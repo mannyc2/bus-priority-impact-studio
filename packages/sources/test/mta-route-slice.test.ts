@@ -1,7 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import {
+  normalizeAceRouteRows,
+  normalizeAceViolationSummaryRows,
+  normalizeBusLaneRows,
   normalizeHourlyRidershipRows,
   normalizeRouteShapeRows,
+  normalizeScheduleTimepointRows,
   normalizeSegmentSpeedRows,
   normalizeStopRows,
 } from "../src/index.js";
@@ -47,6 +51,62 @@ describe("MTA route slice normalization", () => {
         busTripCount: 12,
       }),
     ]);
+  });
+
+  test("skips segment speed rows without usable next-timepoint metadata", () => {
+    const rows = normalizeSegmentSpeedRows([
+      {
+        year: "2026",
+        month: "3",
+        timestamp: "2026-03-01T08:00:00.000",
+        day_of_week: "Weekday",
+        hour_of_day: "8",
+        route_id: "Q63",
+        direction: "N",
+        borough: "Queens",
+        route_type: "Local",
+        stop_order: "22",
+        timepoint_stop_id: "921855",
+        timepoint_stop_name: "39 AV/MAIN ST",
+        timepoint_stop_latitude: "40.7601",
+        timepoint_stop_longitude: "-73.8301",
+        next_timepoint_stop_id: "982491",
+        road_distance: "0.52",
+        average_travel_time: "4.2",
+        average_road_speed: "7.4",
+        bus_trip_count: "6",
+      },
+    ]);
+
+    expect(rows).toEqual([]);
+  });
+
+  test("skips segment speed rows without usable current-timepoint metadata", () => {
+    const rows = normalizeSegmentSpeedRows([
+      {
+        year: "2026",
+        month: "3",
+        timestamp: "2026-03-01T08:00:00.000",
+        day_of_week: "Weekday",
+        hour_of_day: "8",
+        route_id: "Q47",
+        direction: "N",
+        borough: "Queens",
+        route_type: "Local",
+        stop_order: "1",
+        timepoint_stop_id: "904001",
+        next_timepoint_stop_id: "904002",
+        next_timepoint_stop_name: "74 ST/ROOSEVELT AV",
+        next_timepoint_stop_latitude: "40.7461",
+        next_timepoint_stop_longitude: "-73.8911",
+        road_distance: "0.52",
+        average_travel_time: "4.2",
+        average_road_speed: "7.4",
+        bus_trip_count: "6",
+      },
+    ]);
+
+    expect(rows).toEqual([]);
   });
 
   test("normalizes route shapes and stops without losing geometry payloads", () => {
@@ -101,6 +161,34 @@ describe("MTA route slice normalization", () => {
     );
   });
 
+  test("falls back to route id when current route feeds omit short names", () => {
+    const routeShapes = normalizeRouteShapeRows([
+      {
+        route_id: "M2",
+        in_effect: "true",
+        direction_id: "0",
+        direction: "N",
+        shape_id: "M020110",
+      },
+    ]);
+    const stops = normalizeStopRows([
+      {
+        route_id: "M2",
+        stop_id: "404191",
+        stop_name: "MADISON AV/E 95 ST",
+        in_effect: "true",
+        direction_id: "0",
+        direction: "N",
+        timepoint: "1",
+        latitude: "40.786932",
+        longitude: "-73.954292",
+      },
+    ]);
+
+    expect(routeShapes[0]?.routeShortName).toBe("M2");
+    expect(stops[0]?.routeShortName).toBe("M2");
+  });
+
   test("normalizes hourly ridership rows to the segment-speed join grain", () => {
     const rows = normalizeHourlyRidershipRows(
       [
@@ -123,6 +211,145 @@ describe("MTA route slice normalization", () => {
         hourOfDay: 8,
         ridership: 1234,
         transfers: 321,
+      },
+    ]);
+  });
+
+  test("normalizes ACE route implementation rows", () => {
+    const rows = normalizeAceRouteRows([
+      {
+        route: "m1",
+        program: "ACE",
+        implementation_date: "2024-06-20T00:00:00.000",
+      },
+      {
+        route: "M14+",
+        program: "ABLE",
+        implementation_date: "2019-10-07T00:00:00.000",
+      },
+    ]);
+
+    expect(rows).toEqual([
+      {
+        schemaVersion: 1,
+        routeId: "M1",
+        program: "ACE",
+        implementationDate: "2024-06-20T00:00:00.000Z",
+      },
+      {
+        schemaVersion: 1,
+        routeId: "M14+",
+        program: "ABLE",
+        implementationDate: "2019-10-07T00:00:00.000Z",
+      },
+    ]);
+  });
+
+  test("normalizes grouped ACE violation rows", () => {
+    const rows = normalizeAceViolationSummaryRows([
+      {
+        bus_route_id: "m15+",
+        violation_type: "MOBILE BUS LANE",
+        violation_status: "EXEMPT - OTHER",
+        violation_count: "12",
+      },
+    ]);
+
+    expect(rows).toEqual([
+      {
+        schemaVersion: 1,
+        routeId: "M15+",
+        violationType: "MOBILE BUS LANE",
+        violationStatus: "EXEMPT - OTHER",
+        violationCount: 12,
+      },
+    ]);
+  });
+
+  test("normalizes NYC DOT bus lane rows with geometry and operating fields", () => {
+    const rows = normalizeBusLaneRows([
+      {
+        the_geom: {
+          type: "MultiLineString",
+          coordinates: [
+            [
+              [
+                [-73.97, 40.76],
+                [-73.96, 40.77],
+              ],
+            ],
+          ],
+        },
+        street: "5 AVENUE",
+        bltrafdir: "T",
+        segmentid: "0001234",
+        boro: "MAN",
+        facility: "5th Avenue",
+        direction: "SB",
+        hours: "7AM-7PM",
+        days: "Mon - Fri",
+        lane_width: "Single",
+        lane_type1: "Bus Lane",
+        lane_type: "Curbside",
+        open_dates: "4/3/1986",
+        shape_leng: "255.5",
+      },
+    ]);
+
+    expect(rows).toEqual([
+      expect.objectContaining({
+        segmentId: "0001234",
+        street: "5 AVENUE",
+        borough: "MAN",
+        facility: "5th Avenue",
+        direction: "SB",
+        trafficDirection: "T",
+        hours: "7AM-7PM",
+        days: "Mon - Fri",
+        laneType: "Curbside",
+        laneSubtype: "Bus Lane",
+        laneWidth: "Single",
+        openDate: "4/3/1986",
+        shapeLength: 255.5,
+      }),
+    ]);
+  });
+
+  test("normalizes schedule timepoint rows", () => {
+    const rows = normalizeScheduleTimepointRows([
+      {
+        schedule_date: "2026-01-05T00:00:00.000",
+        day_type: "Weekday",
+        direction: "N",
+        shape_id: "M010108",
+        route_id: "m1",
+        stop_sequence: "6",
+        stop_id: "405527",
+        stop_name: "4 AV/E 10 ST",
+        schedule_time: "2026-01-05T07:07:00.000",
+        distance_from_start: "841",
+        trip_headsign: "HARLEM 147 ST via MADISON AV",
+        block_id: "38253118",
+        bundle: "2025Aug",
+      },
+    ]);
+
+    expect(rows).toEqual([
+      {
+        schemaVersion: 1,
+        routeId: "M1",
+        scheduleDate: "2026-01-05T00:00:00.000Z",
+        dayType: "Weekday",
+        direction: "N",
+        shapeId: "M010108",
+        stopSequence: 6,
+        stopId: "405527",
+        stopName: "4 AV/E 10 ST",
+        scheduleTime: "2026-01-05T07:07:00.000Z",
+        distanceFromStart: 841,
+        tripHeadsign: "HARLEM 147 ST via MADISON AV",
+        blockId: "38253118",
+        bundle: "2025Aug",
       },
     ]);
   });

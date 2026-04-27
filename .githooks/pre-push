@@ -23,5 +23,5 @@ if [ -n "$changed" ] && ! printf '%s\n' "$changed" | grep -Ev '^(knowledge/|docs
   exit 0
 fi
 
-printf '%s\n' 'pre-push: code/config changes detected; running typecheck, Biome, unit tests, and Worker smoke tests.'
+printf '%s\n' 'pre-push: code/config changes detected; running typecheck, Biome, architecture, unit, web, and Worker checks.'
 bun run check:prepush

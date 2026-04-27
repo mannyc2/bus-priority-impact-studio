@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "sourceId": "census_acs5_profile_tracts",
+  "sourceType": "web_page",
+  "sourcePriority": "core",
+  "manifestStatus": "active",
+  "checkedAt": "2026-04-27T21:05:48.945Z",
+  "probeStatus": "active",
+  "statusRecommendation": "active",
+  "url": "https://api.census.gov/data/2024/acs/acs5/profile",
+  "http": {
+    "method": "HEAD",
+    "transport": "fetch",
+    "status": 200,
+    "ok": true,
+    "finalUrl": "https://api.census.gov/data/2024/acs/acs5/profile",
+    "contentType": "application/json;charset=utf-8",
+    "contentLengthBytes": 3249,
+    "responseDate": "Mon, 27 Apr 2026 21:05:48 GMT"
+  }
+}

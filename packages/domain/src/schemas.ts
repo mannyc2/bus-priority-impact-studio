@@ -80,6 +80,139 @@ export const MetricNameSchema = registerProjectSchema(
 
 export type MetricName = z.output<typeof MetricNameSchema>;
 
+export const MapLayerMetricSchema = registerProjectSchema(
+  z.enum(["average_speed_mph", "hotspot_score", "ace_status", "bus_lane_presence"]),
+  {
+    id: "bp.map_layer_metric",
+    title: "Map Layer Metric",
+    description: "Metric identifiers available for public map layer styling and legends.",
+    stability: "draft",
+  },
+);
+
+export type MapLayerMetric = z.output<typeof MapLayerMetricSchema>;
+
+export const NycBoroughSchema = registerProjectSchema(
+  z.enum(["Bronx", "Brooklyn", "Manhattan", "Queens", "Staten Island"]),
+  {
+    id: "bp.nyc_borough",
+    title: "NYC Borough",
+    description: "The five New York City boroughs used to scope public map layers.",
+    stability: "stable",
+  },
+);
+
+export type NycBorough = z.output<typeof NycBoroughSchema>;
+
+export const LongitudeLatitudeCoordinateSchema = registerProjectSchema(
+  z.tuple([z.number().min(-180).max(180), z.number().min(-90).max(90)]).readonly(),
+  {
+    id: "bp.longitude_latitude_coordinate",
+    title: "Longitude/Latitude Coordinate",
+    description: "GeoJSON coordinate pair in [longitude, latitude] order.",
+    stability: "draft",
+  },
+);
+
+export type LongitudeLatitudeCoordinate = z.output<typeof LongitudeLatitudeCoordinateSchema>;
+
+export const MapRouteSegmentPropertiesSchema = registerProjectSchema(
+  z
+    .object({
+      segmentId: z.string().min(1),
+      routeId: RouteIdSchema,
+      directionId: DirectionIdSchema,
+      month: IsoMonthSchema,
+      hourOfDay: z.number().int().min(0).max(23).nullable(),
+      averageSpeedMph: z.number().nonnegative().nullable(),
+      hotspotScore: z.number().min(0).max(100),
+      rankOnRoute: z.number().int().nonnegative().nullable(),
+      startStopName: z.string().min(1).nullable(),
+      endStopName: z.string().min(1).nullable(),
+    })
+    .strict()
+    .readonly(),
+  {
+    id: "bp.map_route_segment_properties.v1",
+    title: "Map Route Segment Properties",
+    description: "Public properties attached to a derived timepoint-to-timepoint bus segment.",
+    stability: "draft",
+  },
+);
+
+export type MapRouteSegmentProperties = z.output<typeof MapRouteSegmentPropertiesSchema>;
+
+export const MapLineStringGeometrySchema = registerProjectSchema(
+  z
+    .object({
+      type: z.literal("LineString"),
+      coordinates: z.array(LongitudeLatitudeCoordinateSchema).min(2),
+    })
+    .strict()
+    .readonly(),
+  {
+    id: "bp.map_linestring_geometry.v1",
+    title: "Map LineString Geometry",
+    description: "GeoJSON LineString geometry used by precomputed route-segment artifacts.",
+    stability: "draft",
+  },
+);
+
+export type MapLineStringGeometry = z.output<typeof MapLineStringGeometrySchema>;
+
+export const MapRouteSegmentFeatureSchema = registerProjectSchema(
+  z
+    .object({
+      type: z.literal("Feature"),
+      id: z.string().min(1),
+      geometry: MapLineStringGeometrySchema,
+      properties: MapRouteSegmentPropertiesSchema,
+    })
+    .strict()
+    .readonly(),
+  {
+    id: "bp.map_route_segment_feature.v1",
+    title: "Map Route Segment Feature",
+    description: "GeoJSON feature for one precomputed route segment served to the public map.",
+    stability: "draft",
+  },
+);
+
+export type MapRouteSegmentFeature = z.output<typeof MapRouteSegmentFeatureSchema>;
+
+export const MapRouteSegmentFeatureCollectionSchema = registerProjectSchema(
+  z
+    .object({
+      type: z.literal("FeatureCollection"),
+      features: z.array(MapRouteSegmentFeatureSchema),
+    })
+    .strict()
+    .readonly(),
+  {
+    id: "bp.map_route_segment_feature_collection.v1",
+    title: "Map Route Segment Feature Collection",
+    description: "GeoJSON FeatureCollection for precomputed route segment map artifacts.",
+    stability: "draft",
+  },
+);
+
+export type MapRouteSegmentFeatureCollection = z.output<
+  typeof MapRouteSegmentFeatureCollectionSchema
+>;
+
+export const RouteCoverageStatusSchema = registerProjectSchema(
+  z.enum(["full", "no_observed_speed"]),
+  {
+    id: "bp.route_coverage_status",
+    title: "Route Coverage Status",
+    description:
+      "Whether a route scorecard is backed by observed speed data for the analysis month.",
+    stability: "draft",
+  },
+);
+
+export type RouteCoverageStatus = z.output<typeof RouteCoverageStatusSchema>;
+
 export const RouteScorecardSchema = registerProjectSchema(
   z
     .object({
@@ -87,6 +220,7 @@ export const RouteScorecardSchema = registerProjectSchema(
       routeId: RouteIdSchema,
       month: IsoMonthSchema,
       routeScore: z.number().min(0).max(100),
+      coverageStatus: RouteCoverageStatusSchema,
       averageSpeedMph: z.number().nonnegative(),
       hotspotCount: z.number().int().nonnegative(),
       citations: z.array(SourceCitationSchema).min(1),

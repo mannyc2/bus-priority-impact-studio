@@ -4,7 +4,13 @@
   "type": "module",
   "description": "Public data source adapters for MTA, Socrata, and NYC DOT.",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./socrata": "./src/socrata/index.ts",
+    "./mta": "./src/mta/index.ts",
+    "./nyc-dot": "./src/nyc-dot/index.ts",
+    "./census": "./src/census/index.ts",
+    "./registry": "./src/registry/index.ts",
+    "./probes": "./src/probes/index.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json --noEmit --pretty false",

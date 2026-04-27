@@ -15,18 +15,21 @@ describe("route scoring", () => {
     const scorecard = calculateRouteScore({
       routeId: z.decode(RouteIdCodec, "m1"),
       month: "2026-01",
+      coverageStatus: "full",
       averageSpeedMph: 9,
       hotspotCount: 2,
       citations: [citation],
     });
 
     expect(scorecard.routeScore).toBe(65);
+    expect(scorecard.coverageStatus).toBe("full");
   });
 
   test("does not produce impossible scores", () => {
     const scorecard = calculateRouteScore({
       routeId: z.decode(RouteIdCodec, "m1"),
       month: "2026-01",
+      coverageStatus: "no_observed_speed",
       averageSpeedMph: 99,
       hotspotCount: 999,
       citations: [citation],
@@ -34,5 +37,6 @@ describe("route scoring", () => {
 
     expect(scorecard.routeScore).toBeGreaterThanOrEqual(0);
     expect(scorecard.routeScore).toBeLessThanOrEqual(100);
+    expect(scorecard.coverageStatus).toBe("no_observed_speed");
   });
 });

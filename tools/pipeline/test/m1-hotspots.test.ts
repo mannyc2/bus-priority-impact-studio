@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
-import { buildM1HotspotsFromCli } from "../src/m1-hotspots.js";
+import { buildM1HotspotsFromCli } from "../src/jobs/build/m1-hotspots.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
 const routeId = "T1";
@@ -116,6 +116,37 @@ async function writeSegmentSpeedFixture(): Promise<void> {
   );
 }
 
+async function writeEmptySegmentSpeedFixture(): Promise<void> {
+  await removeFixtureArtifacts();
+  await mkdir(workingDir, { recursive: true });
+  await Bun.write(
+    join(workingDir, "segment-speeds.json"),
+    `${JSON.stringify(
+      {
+        schemaVersion: 1,
+        routeId,
+        isoMonth,
+        rows: [],
+      },
+      null,
+      2,
+    )}\n`,
+  );
+  await Bun.write(
+    join(workingDir, "ridership.json"),
+    `${JSON.stringify(
+      {
+        schemaVersion: 1,
+        routeId,
+        isoMonth,
+        rows: [],
+      },
+      null,
+      2,
+    )}\n`,
+  );
+}
+
 afterEach(async () => {
   await removeFixtureArtifacts();
 });
@@ -161,6 +192,40 @@ describe("M1 hotspot artifact build", () => {
         weightedAverageSpeedMph: 4,
         ridershipExposure: 100,
         riderImpactScore: 79,
+      }),
+    );
+  });
+
+  test("writes empty hotspot artifacts when no segment speeds are available", async () => {
+    await writeEmptySegmentSpeedFixture();
+
+    const result = await buildM1HotspotsFromCli([
+      "--route",
+      routeId,
+      "--year",
+      "2026",
+      "--month",
+      "3",
+    ]);
+    const summary = await Bun.file(result.summaryPath).json();
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        routeId,
+        isoMonth,
+        hotspotCount: 0,
+        topHotspotScore: 0,
+      }),
+    );
+    expect(summary).toEqual(
+      expect.objectContaining({
+        routeId,
+        isoMonth,
+        observationCount: 0,
+        busTripCount: 0,
+        segmentCount: 0,
+        hotspotCount: 0,
+        topHotspots: [],
       }),
     );
   });

@@ -1,4 +1,5 @@
 import {
+  type RouteCoverageStatus,
   type RouteId,
   type RouteScorecard,
   RouteScorecardSchema,
@@ -8,6 +9,7 @@ import {
 export type RouteScoreInput = {
   routeId: RouteId;
   month: string;
+  coverageStatus: RouteCoverageStatus;
   averageSpeedMph: number;
   hotspotCount: number;
   citations: SourceCitation[];
@@ -27,6 +29,7 @@ export function calculateRouteScore(input: RouteScoreInput): RouteScorecard {
     routeId: input.routeId,
     month: input.month,
     routeScore,
+    coverageStatus: input.coverageStatus,
     averageSpeedMph: input.averageSpeedMph,
     hotspotCount: input.hotspotCount,
     citations: input.citations,

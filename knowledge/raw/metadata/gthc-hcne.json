@@ -1,0 +1,330 @@
+{
+  "schemaVersion": 1,
+  "sourceId": "nyc_borough_boundaries",
+  "checkedAt": "2026-04-27T21:03:15.560Z",
+  "metadataUrl": "https://data.cityofnewyork.us/api/views/gthc-hcne",
+  "metadata": {
+    "id": "gthc-hcne",
+    "name": "Borough Boundaries",
+    "description": "Boundaries of boroughs (water areas excluded).\n\nAll previously released versions of this data are available on the <a href=\"https://www.nyc.gov/content/planning/pages/resources/datasets/borough-boundaries\">DCP Website: BYTES of the BIG APPLE</a>. Current version: 26a",
+    "attribution": "Department of City Planning (DCP)",
+    "rowsUpdatedAt": 1773089981,
+    "columns": [
+      {
+        "id": 593778095,
+        "name": "BoroCode",
+        "dataTypeName": "number",
+        "fieldName": "borocode",
+        "description": "Borough code.",
+        "position": 1,
+        "renderTypeName": "number",
+        "tableColumnId": 153058442,
+        "cachedContents": {
+          "non_null": "5",
+          "largest": "5",
+          "null": "0",
+          "top": [
+            {
+              "item": "5",
+              "count": "1"
+            },
+            {
+              "item": "1",
+              "count": "1"
+            },
+            {
+              "item": "2",
+              "count": "1"
+            },
+            {
+              "item": "4",
+              "count": "1"
+            },
+            {
+              "item": "3",
+              "count": "1"
+            }
+          ],
+          "smallest": "1",
+          "count": "5",
+          "cardinality": "5"
+        },
+        "format": {}
+      },
+      {
+        "id": 593778094,
+        "name": "BoroName",
+        "dataTypeName": "text",
+        "fieldName": "boroname",
+        "description": "Name of borough.",
+        "position": 2,
+        "renderTypeName": "text",
+        "tableColumnId": 153058441,
+        "cachedContents": {
+          "non_null": "5",
+          "largest": "Staten Island",
+          "null": "0",
+          "top": [
+            {
+              "item": "Queens",
+              "count": "1"
+            },
+            {
+              "item": "Brooklyn",
+              "count": "1"
+            },
+            {
+              "item": "Manhattan",
+              "count": "1"
+            },
+            {
+              "item": "Staten Island",
+              "count": "1"
+            },
+            {
+              "item": "Bronx",
+              "count": "1"
+            }
+          ],
+          "smallest": "Bronx",
+          "count": "5",
+          "cardinality": "5"
+        },
+        "format": {}
+      },
+      {
+        "id": 593778092,
+        "name": "Shape_Area",
+        "dataTypeName": "number",
+        "fieldName": "shape_area",
+        "description": "Area of feature in internal units squared.",
+        "position": 3,
+        "renderTypeName": "number",
+        "tableColumnId": 153058439,
+        "cachedContents": {
+          "non_null": "5",
+          "largest": "3041419178.99",
+          "null": "0",
+          "top": [
+            {
+              "item": "1623618358.46",
+              "count": "1"
+            },
+            {
+              "item": "1187199300.36",
+              "count": "1"
+            },
+            {
+              "item": "636631650.451",
+              "count": "1"
+            },
+            {
+              "item": "3041419178.99",
+              "count": "1"
+            },
+            {
+              "item": "1934462607.43",
+              "count": "1"
+            }
+          ],
+          "smallest": "636631650.451",
+          "count": "5",
+          "cardinality": "5"
+        },
+        "format": {}
+      },
+      {
+        "id": 593778093,
+        "name": "Shape_Length",
+        "dataTypeName": "number",
+        "fieldName": "shape_leng",
+        "description": "Length of feature in internal units.",
+        "position": 4,
+        "renderTypeName": "number",
+        "tableColumnId": 153058440,
+        "cachedContents": {
+          "non_null": "5",
+          "largest": "887905.076018",
+          "null": "0",
+          "top": [
+            {
+              "item": "887905.076018",
+              "count": "1"
+            },
+            {
+              "item": "726953.044632",
+              "count": "1"
+            },
+            {
+              "item": "359537.866079",
+              "count": "1"
+            },
+            {
+              "item": "463147.071867",
+              "count": "1"
+            },
+            {
+              "item": "325912.288988",
+              "count": "1"
+            }
+          ],
+          "smallest": "325912.288988",
+          "count": "5",
+          "cardinality": "5"
+        },
+        "format": {}
+      },
+      {
+        "id": 593778096,
+        "name": "the_geom",
+        "dataTypeName": "multipolygon",
+        "fieldName": "the_geom",
+        "position": 5,
+        "renderTypeName": "multipolygon",
+        "tableColumnId": 153058443,
+        "format": {}
+      }
+    ],
+    "assetType": "dataset",
+    "attributionLink": "https://www.nyc.gov/content/planning/pages/resources/datasets/borough-boundaries",
+    "averageRating": 0,
+    "category": "City Government",
+    "createdAt": 1718593229,
+    "diciBackend": false,
+    "displayType": "table",
+    "downloadCount": 2563,
+    "hideFromCatalog": false,
+    "hideFromDataJson": false,
+    "locked": false,
+    "newBackend": true,
+    "numberOfComments": 0,
+    "oid": 40622916,
+    "provenance": "official",
+    "publicationAppendEnabled": false,
+    "publicationDate": 1718595121,
+    "publicationGroup": 19550908,
+    "publicationStage": "published",
+    "rowsUpdatedBy": "iqqb-gm94",
+    "tableId": 19550908,
+    "totalTimesRated": 0,
+    "viewCount": 13042,
+    "viewLastModified": 1773089979,
+    "viewType": "tabular",
+    "approvals": [
+      {
+        "reviewedAt": 1741729294,
+        "reviewedAutomatically": false,
+        "state": "approved",
+        "submissionId": 6786714,
+        "submissionObject": "public_audience_request",
+        "submissionOutcome": "change_audience",
+        "submittedAt": 1741729224,
+        "targetAudience": "public",
+        "workflowId": 2285,
+        "reviewer": {
+          "id": "8u8s-8cxv",
+          "displayName": "Zachary Feder (NYC Open Data)"
+        },
+        "submissionDetails": {
+          "permissionType": "read"
+        },
+        "submissionOutcomeApplication": {
+          "endedAt": 1741729294,
+          "failureCount": 0,
+          "startedAt": 1741729294,
+          "status": "success"
+        },
+        "submitter": {
+          "id": "8u8s-8cxv",
+          "displayName": "Zachary Feder (NYC Open Data)"
+        }
+      }
+    ],
+    "clientContext": {
+      "clientContextVariables": [],
+      "inheritedVariables": {}
+    },
+    "grants": [
+      {
+        "inherited": false,
+        "type": "viewer",
+        "flags": [
+          "public"
+        ]
+      }
+    ],
+    "metadata": {
+      "attachments": [
+        {
+          "filename": "data_dictionary.xlsx",
+          "assetId": "96c8615e-7990-44d4-9208-41b2a20329ab",
+          "name": "data_dictionary.xlsx"
+        },
+        {
+          "filename": "nybb_metadata.pdf",
+          "assetId": "5cf29396-4a72-4951-ba6d-43019cf55641",
+          "name": "nybb_metadata.pdf"
+        }
+      ],
+      "custom_fields": {
+        "Update": {
+          "Automation": "Yes",
+          "Date Made Public": "1/31/2013",
+          "Update Frequency": "Quarterly",
+          "Data Change Frequency": "Quarterly"
+        },
+        "Dataset Information": {
+          "Agency": "Department of City Planning (DCP)"
+        }
+      },
+      "rowLabel": "Borough boundary",
+      "availableDisplayTypes": [
+        "table",
+        "fatrow",
+        "page"
+      ]
+    },
+    "owner": {
+      "id": "iqqb-gm94",
+      "displayName": "DCP Open Data",
+      "profileImageUrlLarge": "/api/users/iqqb-gm94/profile_images/LARGE",
+      "profileImageUrlMedium": "/api/users/iqqb-gm94/profile_images/THUMB",
+      "profileImageUrlSmall": "/api/users/iqqb-gm94/profile_images/TINY",
+      "screenName": "DCP Open Data",
+      "type": "interactive",
+      "flags": [
+        "acceptedEula",
+        "mayBeStoriesCoOwner"
+      ]
+    },
+    "query": {},
+    "rights": [
+      "read"
+    ],
+    "tableAuthor": {
+      "id": "iqqb-gm94",
+      "displayName": "DCP Open Data",
+      "profileImageUrlLarge": "/api/users/iqqb-gm94/profile_images/LARGE",
+      "profileImageUrlMedium": "/api/users/iqqb-gm94/profile_images/THUMB",
+      "profileImageUrlSmall": "/api/users/iqqb-gm94/profile_images/TINY",
+      "screenName": "DCP Open Data",
+      "type": "interactive",
+      "flags": [
+        "acceptedEula",
+        "mayBeStoriesCoOwner"
+      ]
+    },
+    "tags": [
+      "borough boundaries",
+      "data",
+      "water areas",
+      "dcp"
+    ],
+    "flags": [
+      "default",
+      "ownerMayBeContacted",
+      "restorable",
+      "restorePossibleForType"
+    ]
+  }
+}

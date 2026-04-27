@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "checkedAt": "2026-04-27T02:46:10.595Z",
-  "sourceCount": 30,
-  "activeCount": 27,
+  "checkedAt": "2026-04-27T21:03:06.552Z",
+  "sourceCount": 32,
+  "activeCount": 29,
   "blockedCount": 0,
   "skippedCount": 3,
   "sources": [
@@ -71,6 +71,14 @@
       "statusRecommendation": "active"
     },
     {
+      "sourceId": "nyc_borough_boundaries",
+      "sourceType": "socrata_dataset",
+      "priority": "core",
+      "manifestStatus": "active",
+      "probeStatus": "active",
+      "statusRecommendation": "active"
+    },
+    {
       "sourceId": "bus_routes_all_bundles",
       "sourceType": "socrata_dataset",
       "priority": "secondary",
@@ -129,6 +137,14 @@
     {
       "sourceId": "nyc_dot_bus_lanes_local_streets",
       "sourceType": "socrata_dataset",
+      "priority": "core",
+      "manifestStatus": "active",
+      "probeStatus": "active",
+      "statusRecommendation": "active"
+    },
+    {
+      "sourceId": "census_acs5_profile_tracts",
+      "sourceType": "web_page",
       "priority": "core",
       "manifestStatus": "active",
       "probeStatus": "active",

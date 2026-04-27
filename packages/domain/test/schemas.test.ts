@@ -21,6 +21,7 @@ describe("domain schemas", () => {
         routeId: "M1",
         month: "2026-01",
         routeScore: 82,
+        coverageStatus: "full",
         averageSpeedMph: 7.5,
         hotspotCount: 3,
         citations: [],

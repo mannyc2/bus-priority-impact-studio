@@ -1,0 +1,429 @@
+import { describe, expect, test } from "bun:test";
+import type { D1DatabaseLike, D1PreparedStatement, D1Result, D1Value } from "../src/index.js";
+import {
+  getRouteBatchStatus,
+  getRouteBriefSummary,
+  listBuildEligibleRoutes,
+  listRouteArtifacts,
+  listRouteBriefSummaries,
+  listRouteBuildPlan,
+  listRouteComparisonRanks,
+  listRouteEquityContexts,
+  listRouteMonthTrends,
+  listRouteReadiness,
+  listRouteReliabilityBaselines,
+  listSelectedRouteBuildCandidates,
+} from "../src/index.js";
+
+type QueryCall = {
+  query: string;
+  bound: D1Value[];
+};
+
+class FakeStatement<T> implements D1PreparedStatement<T> {
+  constructor(
+    private readonly call: QueryCall,
+    private readonly rows: T[],
+  ) {}
+
+  bind(...values: D1Value[]): D1PreparedStatement<T> {
+    this.call.bound = values;
+    return this;
+  }
+
+  async first(): Promise<T | null> {
+    return this.rows[0] ?? null;
+  }
+
+  async all(): Promise<D1Result<T>> {
+    return { results: this.rows };
+  }
+}
+
+class FakeDb implements D1DatabaseLike {
+  readonly calls: QueryCall[] = [];
+
+  constructor(private readonly rowsByTable: Record<string, unknown[]>) {}
+
+  prepare<T = unknown>(query: string): D1PreparedStatement<T> {
+    const call = { query, bound: [] };
+    this.calls.push(call);
+    const table = Object.keys(this.rowsByTable).find((candidate) => query.includes(candidate));
+    const rows = (table === undefined ? [] : this.rowsByTable[table]) as T[];
+
+    return new FakeStatement(call, rows);
+  }
+}
+
+const summaryRow = {
+  route_id: "M1",
+  month: "2026-03",
+  route_score: 16,
+  public_visible: 1,
+  public_visibility_reason: "standard_route",
+  average_speed_mph: 6.7409,
+  hotspot_count: 10,
+  total_ridership: 207870,
+  total_transfers: 40500,
+  ace_active: 0,
+  ace_violation_count: 0,
+  bus_lane_matched_lane_count: 228,
+  schedule_match_rate: 1,
+  peak_ridership_json: JSON.stringify({ dayOfWeek: "Monday", hourOfDay: 17 }),
+  slowest_window_json: JSON.stringify({ dayOfWeek: "Thursday", hourOfDay: 12 }),
+};
+
+const readinessRow = {
+  route_id: "M1",
+  month: "2026-03",
+  route_short_name: "M1",
+  route_long_name: "Harlem - East Village",
+  readiness_status: "ready",
+  build_eligible: 1,
+  readiness_score: 100,
+  missing_inputs_json: "[]",
+  speed_observation_count: 2003,
+  speed_bus_trip_count: 15000,
+  average_speed_mph: 6.7409,
+  schedule_timepoint_count: 35566,
+  shape_count: 37,
+  stop_count: 164,
+  timepoint_stop_count: 64,
+};
+
+const buildPlanRow = {
+  route_id: "M57",
+  month: "2026-03",
+  route_short_name: "M57",
+  route_long_name: "East Side - West Side",
+  candidate_rank: 1,
+  plan_status: "selected",
+  selected_for_next_batch: 1,
+  already_built: 0,
+  build_eligible: 1,
+  priority_score: 3000.75,
+  readiness_status: "ready",
+  readiness_score: 100,
+  missing_inputs_json: "[]",
+  speed_observation_count: 5549,
+  speed_bus_trip_count: 14369,
+  average_speed_mph: 5.2718,
+  schedule_timepoint_count: 12650,
+};
+
+const batchStatusRow = {
+  month: "2026-03",
+  generated_at: "2026-04-27T14:45:59.462Z",
+  status: "pass",
+  route_count: 7,
+  artifact_count: 63,
+  missing_artifact_count: 0,
+  hash_mismatch_count: 0,
+  byte_length_mismatch_count: 0,
+  total_byte_length: 123456,
+  issue_count: 0,
+  built_route_ids_json: JSON.stringify(["M1", "M2", "M57"]),
+  issues_json: "[]",
+};
+
+const reliabilityBaselineRow = {
+  route_id: "M57",
+  month: "2026-03",
+  reliability_status: "scheduled_baseline_only",
+  scheduled_timepoint_count: 23464,
+  stop_headway_group_count: 126,
+  headway_sample_count: 23000,
+  median_scheduled_headway_minutes: 10,
+  p90_scheduled_headway_minutes: 20,
+  max_scheduled_headway_minutes: 60,
+  scheduled_short_headway_share: 0.02,
+  scheduled_long_gap_share: 0.15,
+  top_long_gap_windows_json: JSON.stringify([{ stopId: "S1", p90HeadwayMinutes: 20 }]),
+  source_status_json: JSON.stringify({ observedHeadways: "needs_gtfs_rt_collection" }),
+};
+
+const trendRow = {
+  route_id: "M57",
+  month: "2026-03",
+  speed_observation_count: 5549,
+  speed_bus_trip_count: 14369,
+  average_speed_mph: 5.2718,
+  ridership: 250000,
+  transfers: 30000,
+  has_speed_trend: 1,
+  has_ridership_trend: 1,
+};
+
+const equityContextRow = {
+  route_id: "M1",
+  month: "2026-03",
+  acs_year: 2024,
+  assignment_geography: "county_proxy",
+  assigned_county_fips: "061",
+  assigned_county_name: "New York County",
+  assignment_method: "route_id_prefix",
+  tract_count: 309,
+  total_population: 1640000,
+  occupied_housing_units: 780000,
+  no_vehicle_households: 600000,
+  no_vehicle_household_share: 0.7692,
+  median_household_income: 98000,
+  poverty_rate: 15.4,
+  public_transit_commuter_share: 58.2,
+  hispanic_share: 25.1,
+  non_hispanic_white_share: 44.3,
+  non_hispanic_black_share: 12.1,
+  non_hispanic_asian_share: 14.2,
+  source_status_json: JSON.stringify({ routeSpatialJoin: "pending_tract_geometry_join" }),
+};
+
+describe("route serving repository", () => {
+  test("lists route brief summaries with typed JSON fields", async () => {
+    const db = new FakeDb({ route_brief_summary: [summaryRow] });
+
+    const rows = await listRouteBriefSummaries(db, "2026-03");
+
+    expect(db.calls[0]).toEqual(
+      expect.objectContaining({
+        bound: ["2026-03"],
+      }),
+    );
+    expect(db.calls[0]?.query).toContain("WHERE month = ? AND public_visible = 1");
+    expect(db.calls[0]?.query).toContain("ORDER BY route_score ASC");
+    expect(rows).toEqual([
+      expect.objectContaining({
+        routeId: "M1",
+        month: "2026-03",
+        routeScore: 16,
+        aceActive: false,
+        peakRidership: { dayOfWeek: "Monday", hourOfDay: 17 },
+        slowestWindow: { dayOfWeek: "Thursday", hourOfDay: 12 },
+      }),
+    ]);
+  });
+
+  test("gets one route brief summary by route and month", async () => {
+    const db = new FakeDb({ route_brief_summary: [{ ...summaryRow, ace_active: 1 }] });
+
+    const row = await getRouteBriefSummary(db, "M1", "2026-03");
+
+    expect(db.calls[0]?.bound).toEqual(["M1", "2026-03"]);
+    expect(row).toEqual(
+      expect.objectContaining({
+        routeId: "M1",
+        aceActive: true,
+      }),
+    );
+  });
+
+  test("returns null when a route brief summary does not exist", async () => {
+    const db = new FakeDb({ route_brief_summary: [] });
+
+    await expect(getRouteBriefSummary(db, "M9", "2026-03")).resolves.toBeNull();
+  });
+
+  test("gets route batch status with typed JSON fields", async () => {
+    const db = new FakeDb({ route_batch_status: [batchStatusRow] });
+
+    const row = await getRouteBatchStatus(db, "2026-03");
+
+    expect(db.calls[0]?.query).toContain("FROM route_batch_status");
+    expect(db.calls[0]?.bound).toEqual(["2026-03"]);
+    expect(row).toEqual(
+      expect.objectContaining({
+        month: "2026-03",
+        status: "pass",
+        routeCount: 7,
+        artifactCount: 63,
+        builtRouteIds: ["M1", "M2", "M57"],
+        issues: [],
+      }),
+    );
+  });
+
+  test("lists artifact metadata for a route", async () => {
+    const db = new FakeDb({
+      route_artifact: [
+        {
+          route_id: "M1",
+          month: "2026-03",
+          artifact_name: "route-brief-input.json",
+          artifact_key: "route-slices/m1-2026-03/route-brief-input.json",
+          content_type: "application/json",
+          byte_length: 123,
+          sha256: "a".repeat(64),
+        },
+      ],
+    });
+
+    const rows = await listRouteArtifacts(db, "M1", "2026-03");
+
+    expect(db.calls[0]?.bound).toEqual(["M1", "2026-03"]);
+    expect(rows).toEqual([
+      expect.objectContaining({
+        routeId: "M1",
+        artifactName: "route-brief-input.json",
+        byteLength: 123,
+      }),
+    ]);
+  });
+
+  test("lists comparison ranks ordered by rank", async () => {
+    const db = new FakeDb({
+      route_comparison_rank: [
+        {
+          month: "2026-03",
+          rank: 1,
+          route_id: "M1",
+          route_score: 16,
+          average_speed_mph: 6.7409,
+          total_ridership: 207870,
+          ace_violation_count: 0,
+          bus_lane_matched_lane_count: 228,
+        },
+      ],
+    });
+
+    const rows = await listRouteComparisonRanks(db, "2026-03");
+
+    expect(db.calls[0]?.query).toContain("ORDER BY rank ASC");
+    expect(rows).toEqual([
+      expect.objectContaining({
+        rank: 1,
+        routeId: "M1",
+        routeScore: 16,
+      }),
+    ]);
+  });
+
+  test("lists route readiness rows with missing input details", async () => {
+    const db = new FakeDb({ route_readiness: [readinessRow] });
+
+    const rows = await listRouteReadiness(db, "2026-03");
+
+    expect(db.calls[0]?.query).toContain("ORDER BY build_eligible DESC");
+    expect(db.calls[0]?.bound).toEqual(["2026-03"]);
+    expect(rows).toEqual([
+      expect.objectContaining({
+        routeId: "M1",
+        buildEligible: true,
+        readinessScore: 100,
+        missingInputs: [],
+      }),
+    ]);
+  });
+
+  test("lists build-eligible routes only", async () => {
+    const db = new FakeDb({ route_readiness: [readinessRow] });
+
+    const rows = await listBuildEligibleRoutes(db, "2026-03");
+
+    expect(db.calls[0]?.query).toContain("WHERE month = ? AND build_eligible = 1");
+    expect(rows[0]).toEqual(
+      expect.objectContaining({
+        routeId: "M1",
+        readinessStatus: "ready",
+      }),
+    );
+  });
+
+  test("lists route build plan rows with typed flags and JSON fields", async () => {
+    const db = new FakeDb({ route_build_plan: [buildPlanRow] });
+
+    const rows = await listRouteBuildPlan(db, "2026-03");
+
+    expect(db.calls[0]?.query).toContain("FROM route_build_plan");
+    expect(db.calls[0]?.bound).toEqual(["2026-03"]);
+    expect(rows).toEqual([
+      expect.objectContaining({
+        routeId: "M57",
+        candidateRank: 1,
+        planStatus: "selected",
+        selectedForNextBatch: true,
+        alreadyBuilt: false,
+        missingInputs: [],
+      }),
+    ]);
+  });
+
+  test("lists route reliability baseline rows with JSON fields", async () => {
+    const db = new FakeDb({ route_reliability_baseline: [reliabilityBaselineRow] });
+
+    const rows = await listRouteReliabilityBaselines(db, "2026-03");
+
+    expect(db.calls[0]?.query).toContain("FROM route_reliability_baseline");
+    expect(db.calls[0]?.bound).toEqual(["2026-03"]);
+    expect(rows).toEqual([
+      expect.objectContaining({
+        routeId: "M57",
+        reliabilityStatus: "scheduled_baseline_only",
+        p90ScheduledHeadwayMinutes: 20,
+        topLongGapWindows: [{ stopId: "S1", p90HeadwayMinutes: 20 }],
+        sourceStatus: { observedHeadways: "needs_gtfs_rt_collection" },
+      }),
+    ]);
+  });
+
+  test("lists route monthly trend rows ordered by month", async () => {
+    const db = new FakeDb({ route_month_trend: [trendRow] });
+
+    const rows = await listRouteMonthTrends(db, "M57");
+
+    expect(db.calls[0]?.query).toContain("FROM route_month_trend");
+    expect(db.calls[0]?.bound).toEqual(["M57"]);
+    expect(rows).toEqual([
+      expect.objectContaining({
+        routeId: "M57",
+        month: "2026-03",
+        averageSpeedMph: 5.2718,
+        ridership: 250000,
+        hasSpeedTrend: true,
+        hasRidershipTrend: true,
+      }),
+    ]);
+  });
+
+  test("lists route equity context rows with typed JSON fields", async () => {
+    const db = new FakeDb({ route_equity_context: [equityContextRow] });
+
+    const rows = await listRouteEquityContexts(db, "2026-03");
+
+    expect(db.calls[0]?.query).toContain("FROM route_equity_context");
+    expect(db.calls[0]?.bound).toEqual(["2026-03"]);
+    expect(rows).toEqual([
+      expect.objectContaining({
+        routeId: "M1",
+        acsYear: 2024,
+        assignedCountyName: "New York County",
+        noVehicleHouseholdShare: 0.7692,
+        raceEthnicityShare: expect.objectContaining({
+          nonHispanicWhite: 44.3,
+        }),
+        sourceStatus: { routeSpatialJoin: "pending_tract_geometry_join" },
+      }),
+    ]);
+  });
+
+  test("lists selected route build candidates only", async () => {
+    const db = new FakeDb({ route_build_plan: [buildPlanRow] });
+
+    const rows = await listSelectedRouteBuildCandidates(db, "2026-03");
+
+    expect(db.calls[0]?.query).toContain("WHERE month = ? AND selected_for_next_batch = 1");
+    expect(db.calls[0]?.query).toContain("ORDER BY candidate_rank ASC");
+    expect(rows[0]).toEqual(
+      expect.objectContaining({
+        routeId: "M57",
+        selectedForNextBatch: true,
+      }),
+    );
+  });
+
+  test("rejects corrupted JSON in summary rows", async () => {
+    const db = new FakeDb({
+      route_brief_summary: [{ ...summaryRow, peak_ridership_json: "not-json" }],
+    });
+
+    await expect(listRouteBriefSummaries(db, "2026-03")).rejects.toThrow();
+  });
+});

@@ -84,6 +84,18 @@ sources:
     purpose: Current stop points, timepoint flags, CBD flags, route/direction links.
     status: active
 
+  - id: nyc_borough_boundaries
+    type: socrata_dataset
+    priority: core
+    domain: data.cityofnewyork.us
+    dataset_id: gthc-hcne
+    url: https://data.cityofnewyork.us/City-Government/Borough-Boundaries/gthc-hcne
+    api_json: https://data.cityofnewyork.us/resource/gthc-hcne.json
+    columns_json: https://data.cityofnewyork.us/api/views/gthc-hcne/columns.json
+    rows_csv: https://data.cityofnewyork.us/api/views/gthc-hcne/rows.csv?accessType=DOWNLOAD
+    purpose: NYC five-borough clipping and scope boundary; water areas excluded.
+    status: active
+
   - id: bus_routes_all_bundles
     type: socrata_dataset
     priority: secondary
@@ -178,6 +190,13 @@ sources:
     columns_json: https://data.cityofnewyork.us/api/views/ycrg-ses3/columns.json
     rows_csv: https://data.cityofnewyork.us/api/views/ycrg-ses3/rows.csv?accessType=DOWNLOAD
     purpose: Local-street bus-lane segments based on NYC LION street segments.
+    status: active
+
+  - id: census_acs5_profile_tracts
+    type: web_page
+    priority: core
+    url: https://api.census.gov/data/2024/acs/acs5/profile
+    purpose: Census ACS 5-year tract demographics, poverty, transit commute, and low-car household context for NYC equity layers.
     status: active
 
   - id: bus_gtfs_bronx

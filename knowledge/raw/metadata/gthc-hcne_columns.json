@@ -1,0 +1,182 @@
+{
+  "schemaVersion": 1,
+  "sourceId": "nyc_borough_boundaries",
+  "checkedAt": "2026-04-27T21:03:15.560Z",
+  "columnsUrl": "https://data.cityofnewyork.us/api/views/gthc-hcne/columns.json",
+  "columns": [
+    {
+      "id": 593778095,
+      "name": "BoroCode",
+      "dataTypeName": "number",
+      "fieldName": "borocode",
+      "description": "Borough code.",
+      "position": 1,
+      "renderTypeName": "number",
+      "tableColumnId": 153058442,
+      "cachedContents": {
+        "non_null": "5",
+        "largest": "5",
+        "null": "0",
+        "top": [
+          {
+            "item": "5",
+            "count": "1"
+          },
+          {
+            "item": "1",
+            "count": "1"
+          },
+          {
+            "item": "2",
+            "count": "1"
+          },
+          {
+            "item": "4",
+            "count": "1"
+          },
+          {
+            "item": "3",
+            "count": "1"
+          }
+        ],
+        "smallest": "1",
+        "count": "5",
+        "cardinality": "5"
+      },
+      "format": {}
+    },
+    {
+      "id": 593778094,
+      "name": "BoroName",
+      "dataTypeName": "text",
+      "fieldName": "boroname",
+      "description": "Name of borough.",
+      "position": 2,
+      "renderTypeName": "text",
+      "tableColumnId": 153058441,
+      "cachedContents": {
+        "non_null": "5",
+        "largest": "Staten Island",
+        "null": "0",
+        "top": [
+          {
+            "item": "Queens",
+            "count": "1"
+          },
+          {
+            "item": "Brooklyn",
+            "count": "1"
+          },
+          {
+            "item": "Manhattan",
+            "count": "1"
+          },
+          {
+            "item": "Staten Island",
+            "count": "1"
+          },
+          {
+            "item": "Bronx",
+            "count": "1"
+          }
+        ],
+        "smallest": "Bronx",
+        "count": "5",
+        "cardinality": "5"
+      },
+      "format": {}
+    },
+    {
+      "id": 593778092,
+      "name": "Shape_Area",
+      "dataTypeName": "number",
+      "fieldName": "shape_area",
+      "description": "Area of feature in internal units squared.",
+      "position": 3,
+      "renderTypeName": "number",
+      "tableColumnId": 153058439,
+      "cachedContents": {
+        "non_null": "5",
+        "largest": "3041419178.99",
+        "null": "0",
+        "top": [
+          {
+            "item": "1623618358.46",
+            "count": "1"
+          },
+          {
+            "item": "1187199300.36",
+            "count": "1"
+          },
+          {
+            "item": "636631650.451",
+            "count": "1"
+          },
+          {
+            "item": "3041419178.99",
+            "count": "1"
+          },
+          {
+            "item": "1934462607.43",
+            "count": "1"
+          }
+        ],
+        "smallest": "636631650.451",
+        "count": "5",
+        "cardinality": "5"
+      },
+      "format": {}
+    },
+    {
+      "id": 593778093,
+      "name": "Shape_Length",
+      "dataTypeName": "number",
+      "fieldName": "shape_leng",
+      "description": "Length of feature in internal units.",
+      "position": 4,
+      "renderTypeName": "number",
+      "tableColumnId": 153058440,
+      "cachedContents": {
+        "non_null": "5",
+        "largest": "887905.076018",
+        "null": "0",
+        "top": [
+          {
+            "item": "887905.076018",
+            "count": "1"
+          },
+          {
+            "item": "726953.044632",
+            "count": "1"
+          },
+          {
+            "item": "359537.866079",
+            "count": "1"
+          },
+          {
+            "item": "463147.071867",
+            "count": "1"
+          },
+          {
+            "item": "325912.288988",
+            "count": "1"
+          }
+        ],
+        "smallest": "325912.288988",
+        "count": "5",
+        "cardinality": "5"
+      },
+      "format": {}
+    },
+    {
+      "id": 593778096,
+      "name": "the_geom",
+      "dataTypeName": "multipolygon",
+      "fieldName": "the_geom",
+      "position": 5,
+      "renderTypeName": "multipolygon",
+      "tableColumnId": 153058443,
+      "format": {}
+    }
+  ]
+}

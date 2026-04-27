@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { parseM1SliceCliArgs } from "../src/m1-slice.js";
+import { parseM1SliceCliArgs } from "../src/jobs/ingest/m1-slice.js";
 
 describe("M1 route slice CLI", () => {
   test("parses CLI route and month arguments", () => {

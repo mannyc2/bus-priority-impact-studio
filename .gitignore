@@ -41,3 +41,8 @@ knowledge/raw/downloads/*
 # Tool caches.
 .cache/
 *.tsbuildinfo
+
+# Claude Code personal/local state.
+CLAUDE.local.md
+.claude/settings.local.json
+.claude/agent-memory-local/
