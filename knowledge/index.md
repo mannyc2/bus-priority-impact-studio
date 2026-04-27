@@ -51,8 +51,7 @@ Read this file first. It is the navigation layer for the LLM wiki.
 
 ## Immediate open issues
 
-1. Run schema probes for every Socrata dataset in `raw/source_manifest.yaml`.
-2. Confirm exact field names for current bus routes/stops, schedules, ACE datasets, and bus lanes.
-3. Decide whether to start with the M1 route, a Manhattan pilot, or the Comptroller/worst-route subset.
-4. Decide how much realtime Bus Time data to collect; realtime collection is useful but not required for MVP.
-5. Keep the MVP TypeScript-only unless a documented requirement forces Python/PostGIS/VPS escalation.
+1. Decide when to expand beyond the M1 route demo into a Manhattan pilot or the Comptroller/worst-route subset.
+2. Decide how much realtime Bus Time data to collect; realtime collection is useful but not required for MVP.
+3. Build the M1 route scorecard from the ridership-weighted hotspot artifact.
+4. Keep the MVP TypeScript-only unless a documented requirement forces Python/PostGIS/VPS escalation.

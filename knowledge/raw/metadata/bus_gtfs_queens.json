@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "sourceId": "bus_gtfs_queens",
+  "sourceType": "gtfs_static_zip",
+  "sourcePriority": "secondary",
+  "manifestStatus": "active",
+  "checkedAt": "2026-04-27T02:47:44.012Z",
+  "probeStatus": "active",
+  "statusRecommendation": "active",
+  "url": "https://rrgtfsfeeds.s3.amazonaws.com/gtfs_q.zip",
+  "http": {
+    "method": "HEAD",
+    "transport": "fetch",
+    "status": 200,
+    "ok": true,
+    "finalUrl": "https://rrgtfsfeeds.s3.amazonaws.com/gtfs_q.zip",
+    "contentType": "application/zip",
+    "contentLengthBytes": 5525076,
+    "lastModified": "Wed, 08 Apr 2026 13:20:20 GMT",
+    "etag": "\"22db8b240b5c91178d91ad2b18dc6c90\"",
+    "responseDate": "Mon, 27 Apr 2026 02:47:44 GMT"
+  }
+}

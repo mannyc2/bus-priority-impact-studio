@@ -1,0 +1,3533 @@
+{
+  "schemaVersion": 1,
+  "sourceId": "ace_violations",
+  "sourceType": "socrata_dataset",
+  "sourcePriority": "core",
+  "manifestStatus": "active",
+  "checkedAt": "2026-04-27T02:47:42.303Z",
+  "probeStatus": "active",
+  "statusRecommendation": "active",
+  "url": "https://data.ny.gov/Transportation/MTA-Bus-Automated-Camera-Enforcement-Violations-Be/kh8p-hcbm",
+  "socrata": {
+    "datasetId": "kh8p-hcbm",
+    "domain": "data.ny.gov",
+    "metadataUrl": "https://data.ny.gov/api/views/kh8p-hcbm",
+    "columnsUrl": "https://data.ny.gov/api/views/kh8p-hcbm/columns.json",
+    "rowsCsvUrl": "https://data.ny.gov/api/views/kh8p-hcbm/rows.csv?accessType=DOWNLOAD",
+    "rowCountUrl": "https://data.ny.gov/resource/kh8p-hcbm.json?%24select=count%28*%29",
+    "name": "MTA Bus Automated Camera Enforcement Violations: Beginning October 2019",
+    "columnCount": 15,
+    "rowsUpdatedAt": 1774022150,
+    "rowsUpdatedAtIso": "2026-03-20T15:55:50.000Z",
+    "rowCount": 5248178
+  },
+  "socrataDataset": {
+    "metadata": {
+      "id": "kh8p-hcbm",
+      "name": "MTA Bus Automated Camera Enforcement Violations: Beginning October 2019",
+      "description": "This dataset contains records of violations, including issued violations and those rejected for business reasons. Each row represents an individual violation of a vehicle double parked or blocking a bus lane or bus stop.",
+      "attribution": "Metropolitan Transportation Authority",
+      "rowsUpdatedAt": 1774022150,
+      "columns": [
+        {
+          "id": 615778062,
+          "name": "Violation ID",
+          "dataTypeName": "text",
+          "fieldName": "violation_id",
+          "description": "Unique identifier assigned for each violation.",
+          "position": 1,
+          "renderTypeName": "text",
+          "tableColumnId": 160842742,
+          "cachedContents": {
+            "non_null": "5248178",
+            "largest": "525671545",
+            "null": "0",
+            "top": [
+              {
+                "item": "215520437",
+                "count": "1"
+              },
+              {
+                "item": "215529148",
+                "count": "1"
+              },
+              {
+                "item": "215529313",
+                "count": "1"
+              },
+              {
+                "item": "215529785",
+                "count": "1"
+              },
+              {
+                "item": "215530205",
+                "count": "1"
+              },
+              {
+                "item": "215530442",
+                "count": "1"
+              },
+              {
+                "item": "215559401",
+                "count": "1"
+              },
+              {
+                "item": "215559582",
+                "count": "1"
+              },
+              {
+                "item": "215559764",
+                "count": "1"
+              },
+              {
+                "item": "215560169",
+                "count": "1"
+              },
+              {
+                "item": "215560593",
+                "count": "1"
+              },
+              {
+                "item": "215560745",
+                "count": "1"
+              },
+              {
+                "item": "215563826",
+                "count": "1"
+              },
+              {
+                "item": "215564047",
+                "count": "1"
+              },
+              {
+                "item": "215564138",
+                "count": "1"
+              },
+              {
+                "item": "215564358",
+                "count": "1"
+              },
+              {
+                "item": "215564469",
+                "count": "1"
+              },
+              {
+                "item": "215564553",
+                "count": "1"
+              },
+              {
+                "item": "215564666",
+                "count": "1"
+              },
+              {
+                "item": "215520220",
+                "count": "1"
+              }
+            ],
+            "smallest": "215520220",
+            "count": "5248178",
+            "cardinality": "5248178"
+          },
+          "format": {
+            "decimalSeparator": ".",
+            "noCommas": "true",
+            "align": "center"
+          }
+        },
+        {
+          "id": 615778047,
+          "name": "Vehicle ID",
+          "dataTypeName": "text",
+          "fieldName": "vehicle_id",
+          "description": "Hashed license plate number for the vehicle in violation. Can be used to identify repeat violators.",
+          "position": 2,
+          "renderTypeName": "text",
+          "tableColumnId": 160837222,
+          "cachedContents": {
+            "non_null": "5181537",
+            "largest": "ffffef74bc34a17823e5972e2d03ce6aba0fd0a24acf43bdd0fb2175c781748a",
+            "null": "66641",
+            "top": [
+              {
+                "item": "1feaad876c46cfe1cc4ee357e410ec2054c5c231d268169dfdd9527c1c084a80",
+                "count": "2115"
+              },
+              {
+                "item": "8b5ce6f02a13b43f44bf80e818746cdd1f5cf723e1313cd9a4e905d1c72fa854",
+                "count": "2010"
+              },
+              {
+                "item": "479d603cb0581d14fbaf8908f9f27ade6accce3a371895ba61be5cab8d23691b",
+                "count": "1724"
+              },
+              {
+                "item": "e020820037319aaca4e4ed8d3c29e907f203d722ea46293949ae6e1c9b3ca446",
+                "count": "1589"
+              },
+              {
+                "item": "6d7caef8bf15e2bf8d46aa1e6dd8c0da1ae2fbc5b31acec87ab5642558d4360b",
+                "count": "1473"
+              },
+              {
+                "item": "2a8ac01b157a97b3c124cf33322e71c31062b815dd3b0a9c121ee3a6c22ff64a",
+                "count": "1383"
+              },
+              {
+                "item": "d3394e8be16cf7189dccc9b3621153fcffb272574bc3079a8a3aa63839f249e0",
+                "count": "1230"
+              },
+              {
+                "item": "421d84e2d1638a96cad98d531e96b5c9d5406dfc443b630a3e538943373791b7",
+                "count": "1175"
+              },
+              {
+                "item": "c45c0ba983b1d6f03187f7e4fb886019882aced04218b00e0e22f55955382882",
+                "count": "1173"
+              },
+              {
+                "item": "fb0ef39318825c73839ed4f77bf96f6023f88a99d345696561f2500959bb2fc8",
+                "count": "1171"
+              },
+              {
+                "item": "ebabc585284d95a10b6b45730c38fa55dfd57bcc5aea304b67693b84fb4d0eb0",
+                "count": "1169"
+              },
+              {
+                "item": "0e92016a483877f5c62115578a642425d710c43560e00cdd443e3aad2fed06fe",
+                "count": "1106"
+              },
+              {
+                "item": "992b86a0166250ce8a3ef831a847ea8a0906d9a00b7a941d2acc1206c41e6ed2",
+                "count": "1053"
+              },
+              {
+                "item": "80228a16bca871e024130c63ddf5552024720ac5f9b583df1c7b35bfdb52d630",
+                "count": "1050"
+              },
+              {
+                "item": "80e7bae594e62aaaf4ed702b8230dfd12559743828922bcb043940ad4a087b75",
+                "count": "1038"
+              },
+              {
+                "item": "6dc34b83b477c2c73ec2d9ffb526264ded101d965f3ef0fc9a72d2e2adfeef4e",
+                "count": "990"
+              },
+              {
+                "item": "6979a2434b4611cf1ebf80624eaeb29622929b061958b956f0d93024261a4a3c",
+                "count": "969"
+              },
+              {
+                "item": "8dc7f1039f216e2e11f6f0e355b0650db751516206f5398be35985d34187dfe3",
+                "count": "953"
+              },
+              {
+                "item": "8031501549671d0fd23fd3a5b8fe055bb46e1a2ece8e40029413fb24aa1a4127",
+                "count": "921"
+              },
+              {
+                "item": "990cd7879bb0663a4d818a4c75bfd6bac4e4357c8b5621a037d0830362157a6b",
+                "count": "904"
+              }
+            ],
+            "smallest": "00002b38864ea506f40d0bea42d645e812b143b65d3f805ea135c7e003c33ef9",
+            "count": "5248178",
+            "cardinality": "5248178"
+          },
+          "format": {}
+        },
+        {
+          "id": 615778048,
+          "name": "First Occurrence",
+          "dataTypeName": "calendar_date",
+          "fieldName": "first_occurrence",
+          "description": "Datetime of the first occurrence captured by the first bus.",
+          "position": 3,
+          "renderTypeName": "calendar_date",
+          "tableColumnId": 160837221,
+          "cachedContents": {
+            "non_null": "5248178",
+            "largest": "2026-03-17T12:37:36.000",
+            "null": "0",
+            "top": [
+              {
+                "item": "2023-05-29T07:19:00.000",
+                "count": "19"
+              },
+              {
+                "item": "2023-03-01T07:11:00.000",
+                "count": "13"
+              },
+              {
+                "item": "2023-02-27T16:07:00.000",
+                "count": "11"
+              },
+              {
+                "item": "2023-04-12T16:52:00.000",
+                "count": "11"
+              },
+              {
+                "item": "2023-01-30T18:38:00.000",
+                "count": "11"
+              },
+              {
+                "item": "2023-03-01T10:27:00.000",
+                "count": "10"
+              },
+              {
+                "item": "2023-04-21T08:39:00.000",
+                "count": "10"
+              },
+              {
+                "item": "2023-05-29T07:15:00.000",
+                "count": "10"
+              },
+              {
+                "item": "2023-03-07T17:18:00.000",
+                "count": "9"
+              },
+              {
+                "item": "2023-02-28T16:06:00.000",
+                "count": "9"
+              },
+              {
+                "item": "2023-05-22T07:07:00.000",
+                "count": "9"
+              },
+              {
+                "item": "2023-03-22T17:50:00.000",
+                "count": "9"
+              },
+              {
+                "item": "2023-02-27T16:15:00.000",
+                "count": "9"
+              },
+              {
+                "item": "2023-03-01T18:44:00.000",
+                "count": "9"
+              },
+              {
+                "item": "2023-03-31T16:31:00.000",
+                "count": "9"
+              },
+              {
+                "item": "2023-02-28T16:15:00.000",
+                "count": "9"
+              },
+              {
+                "item": "2023-03-01T14:40:00.000",
+                "count": "8"
+              },
+              {
+                "item": "2023-03-01T13:05:00.000",
+                "count": "8"
+              },
+              {
+                "item": "2023-03-01T17:54:00.000",
+                "count": "8"
+              },
+              {
+                "item": "2023-03-01T18:14:00.000",
+                "count": "8"
+              }
+            ],
+            "smallest": "2019-10-07T07:06:54.000",
+            "count": "5248178",
+            "cardinality": "5248178"
+          },
+          "format": {
+            "view": "date_time",
+            "align": "center"
+          }
+        },
+        {
+          "id": 615778049,
+          "name": "Last Occurrence",
+          "dataTypeName": "calendar_date",
+          "fieldName": "last_occurrence",
+          "description": "Datetime of the second occurrence captured by the second bus.",
+          "position": 4,
+          "renderTypeName": "calendar_date",
+          "tableColumnId": 160837220,
+          "cachedContents": {
+            "non_null": "5248178",
+            "largest": "2026-03-17T12:46:55.000",
+            "null": "0",
+            "top": [
+              {
+                "item": "2023-05-29T07:29:00.000",
+                "count": "20"
+              },
+              {
+                "item": "2023-02-27T18:52:00.000",
+                "count": "12"
+              },
+              {
+                "item": "2023-05-29T07:23:00.000",
+                "count": "11"
+              },
+              {
+                "item": "2023-03-02T18:42:00.000",
+                "count": "11"
+              },
+              {
+                "item": "2023-03-07T18:10:00.000",
+                "count": "10"
+              },
+              {
+                "item": "2023-01-30T16:59:00.000",
+                "count": "10"
+              },
+              {
+                "item": "2023-02-28T17:36:00.000",
+                "count": "10"
+              },
+              {
+                "item": "2023-03-02T16:21:00.000",
+                "count": "10"
+              },
+              {
+                "item": "2023-03-01T18:50:00.000",
+                "count": "10"
+              },
+              {
+                "item": "2023-02-24T09:53:00.000",
+                "count": "10"
+              },
+              {
+                "item": "2023-03-02T16:22:00.000",
+                "count": "10"
+              },
+              {
+                "item": "2023-01-31T16:34:00.000",
+                "count": "9"
+              },
+              {
+                "item": "2023-04-14T17:33:00.000",
+                "count": "9"
+              },
+              {
+                "item": "2023-01-30T18:49:00.000",
+                "count": "9"
+              },
+              {
+                "item": "2023-01-25T18:29:00.000",
+                "count": "9"
+              },
+              {
+                "item": "2022-12-11T11:47:00.000",
+                "count": "9"
+              },
+              {
+                "item": "2023-03-02T18:27:00.000",
+                "count": "9"
+              },
+              {
+                "item": "2023-03-01T17:00:00.000",
+                "count": "9"
+              },
+              {
+                "item": "2023-02-28T16:43:00.000",
+                "count": "9"
+              },
+              {
+                "item": "2023-03-06T18:44:00.000",
+                "count": "9"
+              }
+            ],
+            "smallest": "2019-10-07T07:16:07.000",
+            "count": "5248178",
+            "cardinality": "5248178"
+          },
+          "format": {
+            "view": "date_time",
+            "align": "center"
+          }
+        },
+        {
+          "id": 615778050,
+          "name": "Violation Status",
+          "dataTypeName": "text",
+          "fieldName": "violation_status",
+          "description": "Event rejection reason or notice/document status.",
+          "position": 5,
+          "renderTypeName": "text",
+          "tableColumnId": 160837219,
+          "cachedContents": {
+            "non_null": "5248169",
+            "largest": "VIOLATION ISSUED",
+            "null": "9",
+            "top": [
+              {
+                "item": "VIOLATION ISSUED",
+                "count": "3017576"
+              },
+              {
+                "item": "TECHNICAL ISSUE/OTHER",
+                "count": "524886"
+              },
+              {
+                "item": "DRIVER/VEHICLE INFO MISSING",
+                "count": "429265"
+              },
+              {
+                "item": "EXEMPT - EMERGENCY VEHICLE",
+                "count": "415278"
+              },
+              {
+                "item": "EXEMPT - COMMERCIAL UNDER 20",
+                "count": "408254"
+              },
+              {
+                "item": "EXEMPT - BUS/PARATRANSIT",
+                "count": "256452"
+              },
+              {
+                "item": "EXEMPT - OTHER",
+                "count": "196458"
+              }
+            ],
+            "smallest": "DRIVER/VEHICLE INFO MISSING",
+            "count": "5248178",
+            "cardinality": "5248178"
+          },
+          "format": {}
+        },
+        {
+          "id": 615778051,
+          "name": "Violation Type",
+          "dataTypeName": "text",
+          "fieldName": "violation_type",
+          "description": "Bus stop, bus lane, double parked",
+          "position": 6,
+          "renderTypeName": "text",
+          "tableColumnId": 160837218,
+          "cachedContents": {
+            "non_null": "5248178",
+            "largest": "MOBILE DOUBLE PARKED",
+            "null": "0",
+            "top": [
+              {
+                "item": "MOBILE DOUBLE PARKED",
+                "count": "1939610"
+              },
+              {
+                "item": "MOBILE BUS STOP",
+                "count": "1839579"
+              },
+              {
+                "item": "MOBILE BUS LANE",
+                "count": "1468989"
+              }
+            ],
+            "smallest": "MOBILE BUS LANE",
+            "count": "5248178",
+            "cardinality": "5248178"
+          },
+          "format": {}
+        },
+        {
+          "id": 615778052,
+          "name": "Bus Route ID",
+          "dataTypeName": "text",
+          "fieldName": "bus_route_id",
+          "description": "Bus Route ID that the violation occurred on. Some bus routes overlap, see the overview documentation for more information.",
+          "position": 7,
+          "renderTypeName": "text",
+          "tableColumnId": 160837217,
+          "cachedContents": {
+            "non_null": "5237429",
+            "largest": "S79+",
+            "null": "10749",
+            "top": [
+              {
+                "item": "M15+",
+                "count": "593345"
+              },
+              {
+                "item": "M101",
+                "count": "469234"
+              },
+              {
+                "item": "BX19",
+                "count": "443287"
+              },
+              {
+                "item": "BX36",
+                "count": "294532"
+              },
+              {
+                "item": "BX41+",
+                "count": "271626"
+              },
+              {
+                "item": "B44+",
+                "count": "227981"
+              },
+              {
+                "item": "B46+",
+                "count": "227176"
+              },
+              {
+                "item": "BX12+",
+                "count": "219793"
+              },
+              {
+                "item": "Q44+",
+                "count": "214195"
+              },
+              {
+                "item": "B35",
+                "count": "169409"
+              },
+              {
+                "item": "B82+",
+                "count": "157234"
+              },
+              {
+                "item": "BX6+",
+                "count": "156443"
+              },
+              {
+                "item": "M100",
+                "count": "150096"
+              },
+              {
+                "item": "B41",
+                "count": "146037"
+              },
+              {
+                "item": "M60+",
+                "count": "123219"
+              },
+              {
+                "item": "Q54",
+                "count": "118077"
+              },
+              {
+                "item": "Q58",
+                "count": "106021"
+              },
+              {
+                "item": "BX35",
+                "count": "101978"
+              },
+              {
+                "item": "BX28",
+                "count": "89623"
+              },
+              {
+                "item": "M14+",
+                "count": "76440"
+              }
+            ],
+            "smallest": "B11",
+            "count": "5248178",
+            "cardinality": "5248178"
+          },
+          "format": {
+            "align": "center"
+          }
+        },
+        {
+          "id": 615778053,
+          "name": "Violation Latitude",
+          "dataTypeName": "number",
+          "fieldName": "violation_latitude",
+          "description": "The approximate latitude of the captured violation, based on the latitude of the second bus that observes the event.",
+          "position": 8,
+          "renderTypeName": "number",
+          "tableColumnId": 160837216,
+          "cachedContents": {
+            "non_null": "5248178",
+            "largest": "40.913451",
+            "null": "0",
+            "top": [
+              {
+                "item": "40.862803",
+                "count": "590"
+              },
+              {
+                "item": "40.862707",
+                "count": "535"
+              },
+              {
+                "item": "40.8628",
+                "count": "525"
+              },
+              {
+                "item": "40.862797",
+                "count": "523"
+              },
+              {
+                "item": "40.86271",
+                "count": "510"
+              },
+              {
+                "item": "40.862802",
+                "count": "496"
+              },
+              {
+                "item": "40.862704",
+                "count": "492"
+              },
+              {
+                "item": "40.862806",
+                "count": "461"
+              },
+              {
+                "item": "40.862801",
+                "count": "459"
+              },
+              {
+                "item": "40.862804",
+                "count": "458"
+              },
+              {
+                "item": "40.862794",
+                "count": "451"
+              },
+              {
+                "item": "40.862708",
+                "count": "449"
+              },
+              {
+                "item": "40.862799",
+                "count": "445"
+              },
+              {
+                "item": "40.862798",
+                "count": "444"
+              },
+              {
+                "item": "40.862702",
+                "count": "442"
+              },
+              {
+                "item": "40.862805",
+                "count": "440"
+              },
+              {
+                "item": "40.862749",
+                "count": "439"
+              },
+              {
+                "item": "40.862713",
+                "count": "435"
+              },
+              {
+                "item": "40.862705",
+                "count": "433"
+              },
+              {
+                "item": "40.862727",
+                "count": "424"
+              }
+            ],
+            "smallest": "40.534456",
+            "count": "5248178",
+            "cardinality": "5248178"
+          },
+          "format": {
+            "decimalSeparator": ".",
+            "groupSeparator": ",",
+            "align": "center"
+          }
+        },
+        {
+          "id": 615778054,
+          "name": "Violation Longitude",
+          "dataTypeName": "number",
+          "fieldName": "violation_longitude",
+          "description": "The approximate longitude of the captured violation, based on the longitude of the second bus that observes the event.",
+          "position": 9,
+          "renderTypeName": "number",
+          "tableColumnId": 160837215,
+          "cachedContents": {
+            "non_null": "5248178",
+            "largest": "-73.701051",
+            "null": "0",
+            "top": [
+              {
+                "item": "-73.891852",
+                "count": "619"
+              },
+              {
+                "item": "-73.891862",
+                "count": "596"
+              },
+              {
+                "item": "-73.891863",
+                "count": "589"
+              },
+              {
+                "item": "-73.891856",
+                "count": "589"
+              },
+              {
+                "item": "-73.891858",
+                "count": "586"
+              },
+              {
+                "item": "-73.891864",
+                "count": "572"
+              },
+              {
+                "item": "-73.891857",
+                "count": "556"
+              },
+              {
+                "item": "-73.89185",
+                "count": "547"
+              },
+              {
+                "item": "-73.891859",
+                "count": "546"
+              },
+              {
+                "item": "-73.891869",
+                "count": "544"
+              },
+              {
+                "item": "-73.891846",
+                "count": "532"
+              },
+              {
+                "item": "-73.891853",
+                "count": "525"
+              },
+              {
+                "item": "-73.891861",
+                "count": "519"
+              },
+              {
+                "item": "-73.891851",
+                "count": "514"
+              },
+              {
+                "item": "-73.891867",
+                "count": "507"
+              },
+              {
+                "item": "-73.891865",
+                "count": "502"
+              },
+              {
+                "item": "-73.891854",
+                "count": "498"
+              },
+              {
+                "item": "-73.891914",
+                "count": "497"
+              },
+              {
+                "item": "-73.891841",
+                "count": "490"
+              },
+              {
+                "item": "-73.891866",
+                "count": "486"
+              }
+            ],
+            "smallest": "-74.184422",
+            "count": "5248178",
+            "cardinality": "5248178"
+          },
+          "format": {
+            "decimalSeparator": ".",
+            "groupSeparator": ",",
+            "align": "center"
+          }
+        },
+        {
+          "id": 615778063,
+          "name": "Stop ID",
+          "dataTypeName": "text",
+          "fieldName": "stop_id",
+          "description": "The bus stop ID of the closest previous bus stop.",
+          "position": 10,
+          "renderTypeName": "text",
+          "tableColumnId": 160842743,
+          "cachedContents": {
+            "non_null": "5244275",
+            "largest": "984012",
+            "null": "3903",
+            "top": [
+              {
+                "item": "401779",
+                "count": "56365"
+              },
+              {
+                "item": "402611",
+                "count": "39450"
+              },
+              {
+                "item": "404170",
+                "count": "36649"
+              },
+              {
+                "item": "401756",
+                "count": "36075"
+              },
+              {
+                "item": "401707",
+                "count": "33500"
+              },
+              {
+                "item": "102946",
+                "count": "32047"
+              },
+              {
+                "item": "401738",
+                "count": "30312"
+              },
+              {
+                "item": "104556",
+                "count": "29765"
+              },
+              {
+                "item": "401704",
+                "count": "27441"
+              },
+              {
+                "item": "303477",
+                "count": "24880"
+              },
+              {
+                "item": "303672",
+                "count": "23785"
+              },
+              {
+                "item": "402112",
+                "count": "22278"
+              },
+              {
+                "item": "303417",
+                "count": "22014"
+              },
+              {
+                "item": "303376",
+                "count": "21718"
+              },
+              {
+                "item": "102750",
+                "count": "20808"
+              },
+              {
+                "item": "404995",
+                "count": "19741"
+              },
+              {
+                "item": "903129",
+                "count": "19725"
+              },
+              {
+                "item": "303687",
+                "count": "19557"
+              },
+              {
+                "item": "102806",
+                "count": "18597"
+              },
+              {
+                "item": "100799",
+                "count": "18579"
+              }
+            ],
+            "smallest": "100017",
+            "count": "5248178",
+            "cardinality": "5248178"
+          },
+          "format": {
+            "decimalSeparator": ".",
+            "noCommas": "true",
+            "align": "center"
+          }
+        },
+        {
+          "id": 615778056,
+          "name": "Stop Name",
+          "dataTypeName": "text",
+          "fieldName": "stop_name",
+          "description": "The corresponding bus stop name.",
+          "position": 11,
+          "renderTypeName": "text",
+          "tableColumnId": 160837213,
+          "cachedContents": {
+            "non_null": "5244275",
+            "largest": "ZEREGA AV/CASTLE HILL AV",
+            "null": "3903",
+            "top": [
+              {
+                "item": "2 AV/E 23 ST",
+                "count": "56365"
+              },
+              {
+                "item": "BROADWAY/ISHAM ST",
+                "count": "40959"
+              },
+              {
+                "item": "W 207 ST/10 AV",
+                "count": "38596"
+              },
+              {
+                "item": "WEBSTER AV/E 180 ST",
+                "count": "38518"
+              },
+              {
+                "item": "2 AV/E 78 ST",
+                "count": "36075"
+              },
+              {
+                "item": "UTICA AV/CHURCH AV",
+                "count": "35692"
+              },
+              {
+                "item": "WEBSTER AV/BEDFORD PARK BLVD",
+                "count": "34376"
+              },
+              {
+                "item": "1 AV/E 67 ST",
+                "count": "33500"
+              },
+              {
+                "item": "2 AV/E 125 ST",
+                "count": "30312"
+              },
+              {
+                "item": "SUTPHIN BLVD/HILLSIDE AV",
+                "count": "28556"
+              },
+              {
+                "item": "WEBSTER AV/E 170 ST",
+                "count": "27659"
+              },
+              {
+                "item": "1 AV/E 57 ST",
+                "count": "27441"
+              },
+              {
+                "item": "WEBSTER AV/E 204 ST",
+                "count": "26602"
+              },
+              {
+                "item": "MADISON ST/CATHERINE ST",
+                "count": "25102"
+              },
+              {
+                "item": "NOSTRAND AV/NEWKIRK AV",
+                "count": "24880"
+              },
+              {
+                "item": "W 125 ST/SAINT NICHOLAS AV",
+                "count": "24257"
+              },
+              {
+                "item": "UTICA AV/WINTHROP ST",
+                "count": "24030"
+              },
+              {
+                "item": "E 14 ST/1 AV",
+                "count": "22530"
+              },
+              {
+                "item": "WEBSTER AV/E 167 ST",
+                "count": "22219"
+              },
+              {
+                "item": "BEDFORD AV/LAFAYETTE AV",
+                "count": "22014"
+              }
+            ],
+            "smallest": "108 AV/SUTPHIN BLVD",
+            "count": "5248178",
+            "cardinality": "5248178"
+          },
+          "format": {}
+        },
+        {
+          "id": 615778057,
+          "name": "Bus Stop Latitude",
+          "dataTypeName": "number",
+          "fieldName": "bus_stop_latitude",
+          "description": "Latitude for the bus stop.",
+          "position": 12,
+          "renderTypeName": "number",
+          "tableColumnId": 160837212,
+          "cachedContents": {
+            "non_null": "5244275",
+            "largest": "40.912377",
+            "null": "3903",
+            "top": [
+              {
+                "item": "40.737516",
+                "count": "56365"
+              },
+              {
+                "item": "40.868072",
+                "count": "39450"
+              },
+              {
+                "item": "40.864421",
+                "count": "36649"
+              },
+              {
+                "item": "40.772922",
+                "count": "36075"
+              },
+              {
+                "item": "40.76487",
+                "count": "33500"
+              },
+              {
+                "item": "40.867348",
+                "count": "32047"
+              },
+              {
+                "item": "40.802473",
+                "count": "30312"
+              },
+              {
+                "item": "40.852176",
+                "count": "29825"
+              },
+              {
+                "item": "40.758829",
+                "count": "27441"
+              },
+              {
+                "item": "40.640085",
+                "count": "24880"
+              },
+              {
+                "item": "40.679421",
+                "count": "23785"
+              },
+              {
+                "item": "40.712064",
+                "count": "22278"
+              },
+              {
+                "item": "40.689351",
+                "count": "22014"
+              },
+              {
+                "item": "40.86711",
+                "count": "20808"
+              },
+              {
+                "item": "40.777996",
+                "count": "19725"
+              },
+              {
+                "item": "40.651373",
+                "count": "19557"
+              },
+              {
+                "item": "40.807514",
+                "count": "19294"
+              },
+              {
+                "item": "40.861287",
+                "count": "18597"
+              },
+              {
+                "item": "40.862236",
+                "count": "18579"
+              },
+              {
+                "item": "40.795919",
+                "count": "18438"
+              }
+            ],
+            "smallest": "40.53454",
+            "count": "5248178",
+            "cardinality": "5248178"
+          },
+          "format": {
+            "decimalSeparator": ".",
+            "groupSeparator": ",",
+            "align": "center"
+          }
+        },
+        {
+          "id": 615778058,
+          "name": "Bus Stop Longitude",
+          "dataTypeName": "number",
+          "fieldName": "bus_stop_longitude",
+          "description": "Longitude for the bus stop.",
+          "position": 13,
+          "renderTypeName": "number",
+          "tableColumnId": 160837211,
+          "cachedContents": {
+            "non_null": "5244275",
+            "largest": "-73.701373",
+            "null": "3903",
+            "top": [
+              {
+                "item": "-73.981202",
+                "count": "56365"
+              },
+              {
+                "item": "-73.919801",
+                "count": "39450"
+              },
+              {
+                "item": "-73.918721",
+                "count": "36649"
+              },
+              {
+                "item": "-73.955434",
+                "count": "36075"
+              },
+              {
+                "item": "-73.958109",
+                "count": "33500"
+              },
+              {
+                "item": "-73.883511",
+                "count": "32047"
+              },
+              {
+                "item": "-73.933855",
+                "count": "30312"
+              },
+              {
+                "item": "-73.898105",
+                "count": "29765"
+              },
+              {
+                "item": "-73.962462",
+                "count": "27441"
+              },
+              {
+                "item": "-73.948517",
+                "count": "24880"
+              },
+              {
+                "item": "-73.929",
+                "count": "23785"
+              },
+              {
+                "item": "-73.997462",
+                "count": "22278"
+              },
+              {
+                "item": "-73.955002",
+                "count": "22014"
+              },
+              {
+                "item": "-73.883742",
+                "count": "20808"
+              },
+              {
+                "item": "-73.951745",
+                "count": "19725"
+              },
+              {
+                "item": "-73.930468",
+                "count": "19557"
+              },
+              {
+                "item": "-73.891854",
+                "count": "18597"
+              },
+              {
+                "item": "-73.89601",
+                "count": "18579"
+              },
+              {
+                "item": "-73.93877",
+                "count": "18438"
+              },
+              {
+                "item": "-73.938795",
+                "count": "18334"
+              }
+            ],
+            "smallest": "-74.192639",
+            "count": "5248178",
+            "cardinality": "5248178"
+          },
+          "format": {
+            "decimalSeparator": ".",
+            "groupSeparator": ",",
+            "align": "center"
+          }
+        },
+        {
+          "id": 615778059,
+          "name": "Violation Georeference",
+          "dataTypeName": "point",
+          "fieldName": "violation_georeference",
+          "description": "Violation location.  Open Data platform-generated geocoding information from supplied address components. Point-type location is the centroid of the address components provided and does not reflect a specific address if the street address component is not provided. Point-type location is supplied in \"POINT ( )\" format.",
+          "position": 14,
+          "renderTypeName": "point",
+          "tableColumnId": 160837210,
+          "cachedContents": {
+            "non_null": "5248178",
+            "null": "0",
+            "top": [
+              {
+                "item": {
+                  "coordinates": [
+                    -73.905087,
+                    40.849139
+                  ],
+                  "type": "Point"
+                },
+                "count": "15"
+              },
+              {
+                "item": {
+                  "coordinates": [
+                    -73.949388,
+                    40.64891
+                  ],
+                  "type": "Point"
+                },
+                "count": "15"
+              },
+              {
+                "item": {
+                  "coordinates": [
+                    -73.905045,
+                    40.849129
+                  ],
+                  "type": "Point"
+                },
+                "count": "15"
+              },
+              {
+                "item": {
+                  "coordinates": [
+                    -73.905044,
+                    40.849129
+                  ],
+                  "type": "Point"
+                },
+                "count": "15"
+              },
+              {
+                "item": {
+                  "coordinates": [
+                    -73.885199,
+                    40.866338
+                  ],
+                  "type": "Point"
+                },
+                "count": "14"
+              },
+              {
+                "item": {
+                  "coordinates": [
+                    -73.936216,
+                    40.848632
+                  ],
+                  "type": "Point"
+                },
+                "count": "13"
+              },
+              {
+                "item": {
+                  "coordinates": [
+                    -74.004435,
+                    40.651596
+                  ],
+                  "type": "Point"
+                },
+                "count": "13"
+              },
+              {
+                "item": {
+                  "coordinates": [
+                    -73.905045,
+                    40.849131
+                  ],
+                  "type": "Point"
+                },
+                "count": "13"
+              },
+              {
+                "item": {
+                  "coordinates": [
+                    -73.905045,
+                    40.84913
+                  ],
+                  "type": "Point"
+                },
+                "count": "13"
+              },
+              {
+                "item": {
+                  "coordinates": [
+                    -73.905044,
+                    40.84913
+                  ],
+                  "type": "Point"
+                },
+                "count": "12"
+              },
+              {
+                "item": {
+                  "coordinates": [
+                    -73.949386,
+                    40.648911
+                  ],
+                  "type": "Point"
+                },
+                "count": "12"
+              },
+              {
+                "item": {
+                  "coordinates": [
+                    -73.879542,
+                    40.875501
+                  ],
+                  "type": "Point"
+                },
+                "count": "12"
+              },
+              {
+                "item": {
+                  "coordinates": [
+                    -73.949387,
+                    40.64891
+                  ],
+                  "type": "Point"
+                },
+                "count": "12"
+              },
+              {
+                "item": {
+                  "coordinates": [
+                    -73.949388,
+                    40.648911
+                  ],
+                  "type": "Point"
+                },
+                "count": "11"
+              },
+              {
+                "item": {
+                  "coordinates": [
+                    -73.914907,
+                    40.68607
+                  ],
+                  "type": "Point"
+                },
+                "count": "11"
+              },
+              {
+                "item": {
+                  "coordinates": [
+                    -73.905084,
+                    40.849137
+                  ],
+                  "type": "Point"
+                },
+                "count": "11"
+              },
+              {
+                "item": {
+                  "coordinates": [
+                    -73.905044,
+                    40.849131
+                  ],
+                  "type": "Point"
+                },
+                "count": "11"
+              },
+              {
+                "item": {
+                  "coordinates": [
+                    -74.004442,
+                    40.651601
+                  ],
+                  "type": "Point"
+                },
+                "count": "11"
+              },
+              {
+                "item": {
+                  "coordinates": [
+                    -73.949386,
+                    40.648902
+                  ],
+                  "type": "Point"
+                },
+                "count": "11"
+              },
+              {
+                "item": {
+                  "coordinates": [
+                    -73.879542,
+                    40.875503
+                  ],
+                  "type": "Point"
+                },
+                "count": "11"
+              }
+            ],
+            "count": "5248178",
+            "cardinality": "5248178"
+          },
+          "format": {}
+        },
+        {
+          "id": 615778060,
+          "name": "Bus Stop Georeference",
+          "dataTypeName": "point",
+          "fieldName": "bus_stop_georeference",
+          "description": "Bus stop location.  Open Data platform-generated geocoding information from supplied address components. Point-type location is the centroid of the address components provided and does not reflect a specific address if the street address component is not provided. Point-type location is supplied in \"POINT ( )\" format.",
+          "position": 15,
+          "renderTypeName": "point",
+          "tableColumnId": 160837209,
+          "cachedContents": {
+            "non_null": "5244275",
+            "null": "3903",
+            "top": [
+              {
+                "item": {
+                  "coordinates": [
+                    -73.981202,
+                    40.737516
+                  ],
+                  "type": "Point"
+                },
+                "count": "56365"
+              },
+              {
+                "item": {
+                  "coordinates": [
+                    -73.919801,
+                    40.868072
+                  ],
+                  "type": "Point"
+                },
+                "count": "39450"
+              },
+              {
+                "item": {
+                  "coordinates": [
+                    -73.918721,
+                    40.864421
+                  ],
+                  "type": "Point"
+                },
+                "count": "36649"
+              },
+              {
+                "item": {
+                  "coordinates": [
+                    -73.955434,
+                    40.772922
+                  ],
+                  "type": "Point"
+                },
+                "count": "36075"
+              },
+              {
+                "item": {
+                  "coordinates": [
+                    -73.958109,
+                    40.76487
+                  ],
+                  "type": "Point"
+                },
+                "count": "33500"
+              },
+              {
+                "item": {
+                  "coordinates": [
+                    -73.883511,
+                    40.867348
+                  ],
+                  "type": "Point"
+                },
+                "count": "32047"
+              },
+              {
+                "item": {
+                  "coordinates": [
+                    -73.933855,
+                    40.802473
+                  ],
+                  "type": "Point"
+                },
+                "count": "30312"
+              },
+              {
+                "item": {
+                  "coordinates": [
+                    -73.898105,
+                    40.852176
+                  ],
+                  "type": "Point"
+                },
+                "count": "29765"
+              },
+              {
+                "item": {
+                  "coordinates": [
+                    -73.962462,
+                    40.758829
+                  ],
+                  "type": "Point"
+                },
+                "count": "27441"
+              },
+              {
+                "item": {
+                  "coordinates": [
+                    -73.948517,
+                    40.640085
+                  ],
+                  "type": "Point"
+                },
+                "count": "24880"
+              },
+              {
+                "item": {
+                  "coordinates": [
+                    -73.929,
+                    40.679421
+                  ],
+                  "type": "Point"
+                },
+                "count": "23785"
+              },
+              {
+                "item": {
+                  "coordinates": [
+                    -73.997462,
+                    40.712064
+                  ],
+                  "type": "Point"
+                },
+                "count": "22278"
+              },
+              {
+                "item": {
+                  "coordinates": [
+                    -73.955002,
+                    40.689351
+                  ],
+                  "type": "Point"
+                },
+                "count": "22014"
+              },
+              {
+                "item": {
+                  "coordinates": [
+                    -73.883742,
+                    40.86711
+                  ],
+                  "type": "Point"
+                },
+                "count": "20808"
+              },
+              {
+                "item": {
+                  "coordinates": [
+                    -73.951745,
+                    40.777996
+                  ],
+                  "type": "Point"
+                },
+                "count": "19725"
+              },
+              {
+                "item": {
+                  "coordinates": [
+                    -73.930468,
+                    40.651373
+                  ],
+                  "type": "Point"
+                },
+                "count": "19557"
+              },
+              {
+                "item": {
+                  "coordinates": [
+                    -73.891854,
+                    40.861287
+                  ],
+                  "type": "Point"
+                },
+                "count": "18597"
+              },
+              {
+                "item": {
+                  "coordinates": [
+                    -73.89601,
+                    40.862236
+                  ],
+                  "type": "Point"
+                },
+                "count": "18579"
+              },
+              {
+                "item": {
+                  "coordinates": [
+                    -73.93877,
+                    40.795919
+                  ],
+                  "type": "Point"
+                },
+                "count": "18438"
+              },
+              {
+                "item": {
+                  "coordinates": [
+                    -73.938795,
+                    40.821618
+                  ],
+                  "type": "Point"
+                },
+                "count": "18334"
+              }
+            ],
+            "count": "5248178",
+            "cardinality": "5248178"
+          },
+          "format": {}
+        }
+      ],
+      "assetType": "dataset",
+      "attributionLink": "https://www.mta.info/open-data",
+      "averageRating": 0,
+      "category": "Transportation",
+      "createdAt": 1755098571,
+      "diciBackend": false,
+      "displayType": "table",
+      "downloadCount": 1437,
+      "hideFromCatalog": false,
+      "hideFromDataJson": false,
+      "locked": false,
+      "newBackend": true,
+      "numberOfComments": 0,
+      "oid": 41523163,
+      "provenance": "official",
+      "publicationAppendEnabled": false,
+      "publicationDate": 1755112804,
+      "publicationGroup": 20012211,
+      "publicationStage": "published",
+      "rowsUpdatedBy": "xzik-pf59",
+      "tableId": 20013073,
+      "totalTimesRated": 0,
+      "viewCount": 7891,
+      "viewLastModified": 1774021556,
+      "viewType": "tabular",
+      "approvals": [
+        {
+          "reviewedAt": 1755113431,
+          "reviewedAutomatically": true,
+          "state": "approved",
+          "submissionId": 7032972,
+          "submissionObject": "public_audience_request",
+          "submissionOutcome": "change_audience",
+          "submittedAt": 1755113431,
+          "targetAudience": "public",
+          "workflowId": 2254,
+          "submissionDetails": {
+            "permissionType": "READ"
+          },
+          "submissionOutcomeApplication": {
+            "endedAt": 1755113431,
+            "failureCount": 0,
+            "startedAt": 1755113431,
+            "status": "success"
+          },
+          "submitter": {
+            "id": "28jg-4c4u",
+            "displayName": "Open Data Administrator 1"
+          }
+        }
+      ],
+      "clientContext": {
+        "clientContextVariables": [],
+        "inheritedVariables": {}
+      },
+      "grants": [
+        {
+          "inherited": false,
+          "type": "viewer",
+          "flags": [
+            "public"
+          ]
+        }
+      ],
+      "metadata": {
+        "jsonQuery": {
+          "order": [
+            {
+              "columnFieldName": "violation_id",
+              "ascending": false
+            }
+          ]
+        },
+        "attachments": [
+          {
+            "filename": "MTA_ACEViolations_Overview.pdf",
+            "assetId": "97705606-28f8-4869-8d12-f51724514016",
+            "name": "MTA_ACEViolations_Overview.pdf"
+          },
+          {
+            "filename": "MTA_ACEViolations_DataDictionary.pdf",
+            "assetId": "7e5d97fd-315d-4ced-9ed2-878f0cc5cdc9",
+            "name": "MTA_ACEViolations_DataDictionary.pdf"
+          }
+        ],
+        "custom_fields": {
+          "Dataset Summary": {
+            "Posting Frequency": "Monthly",
+            "Organization": "New York City Transit, MTA Bus Company",
+            "Contact Information": "OpenData@mtahq.org",
+            "Time Period": "Beginning October 2019",
+            "Coverage": "New York City",
+            "Granularity": "Violation ID",
+            "Dataset Owner": "Metropolitan Transportation Authority"
+          },
+          "Additional Resources": {
+            "See Also": "https://metrics.mta.info/"
+          },
+          "Dataset Information": {
+            "Agency": "Metropolitan Transportation Authority"
+          }
+        },
+        "rowIdentifier": 615778061,
+        "availableDisplayTypes": [
+          "table",
+          "fatrow",
+          "page"
+        ]
+      },
+      "owner": {
+        "id": "xzik-pf59",
+        "displayName": "NY Open Data",
+        "profileImageUrlLarge": "/api/users/xzik-pf59/profile_images/LARGE",
+        "profileImageUrlMedium": "/api/users/xzik-pf59/profile_images/THUMB",
+        "profileImageUrlSmall": "/api/users/xzik-pf59/profile_images/TINY",
+        "screenName": "NY Open Data",
+        "type": "interactive",
+        "flags": [
+          "acceptedEula",
+          "mayBeStoriesCoOwner"
+        ]
+      },
+      "query": {
+        "orderBys": [
+          {
+            "ascending": false,
+            "expression": {
+              "columnId": 615778062,
+              "type": "column"
+            }
+          }
+        ]
+      },
+      "rights": [
+        "read"
+      ],
+      "tableAuthor": {
+        "id": "xzik-pf59",
+        "displayName": "NY Open Data",
+        "profileImageUrlLarge": "/api/users/xzik-pf59/profile_images/LARGE",
+        "profileImageUrlMedium": "/api/users/xzik-pf59/profile_images/THUMB",
+        "profileImageUrlSmall": "/api/users/xzik-pf59/profile_images/TINY",
+        "screenName": "NY Open Data",
+        "type": "interactive",
+        "flags": [
+          "acceptedEula",
+          "mayBeStoriesCoOwner"
+        ]
+      },
+      "tags": [
+        "new york city transit",
+        "nyct",
+        "mta bus",
+        "mtabc",
+        "bus",
+        "bus routes",
+        "monthly",
+        "violations",
+        "violators",
+        "coordinates",
+        "locations",
+        "bus stops",
+        "enforcement"
+      ],
+      "flags": [
+        "default",
+        "ownerMayBeContacted",
+        "restorable",
+        "restorePossibleForType"
+      ]
+    },
+    "columns": [
+      {
+        "id": 615778062,
+        "name": "Violation ID",
+        "dataTypeName": "text",
+        "fieldName": "violation_id",
+        "description": "Unique identifier assigned for each violation.",
+        "position": 1,
+        "renderTypeName": "text",
+        "tableColumnId": 160842742,
+        "cachedContents": {
+          "non_null": "5248178",
+          "largest": "525671545",
+          "null": "0",
+          "top": [
+            {
+              "item": "215520437",
+              "count": "1"
+            },
+            {
+              "item": "215529148",
+              "count": "1"
+            },
+            {
+              "item": "215529313",
+              "count": "1"
+            },
+            {
+              "item": "215529785",
+              "count": "1"
+            },
+            {
+              "item": "215530205",
+              "count": "1"
+            },
+            {
+              "item": "215530442",
+              "count": "1"
+            },
+            {
+              "item": "215559401",
+              "count": "1"
+            },
+            {
+              "item": "215559582",
+              "count": "1"
+            },
+            {
+              "item": "215559764",
+              "count": "1"
+            },
+            {
+              "item": "215560169",
+              "count": "1"
+            },
+            {
+              "item": "215560593",
+              "count": "1"
+            },
+            {
+              "item": "215560745",
+              "count": "1"
+            },
+            {
+              "item": "215563826",
+              "count": "1"
+            },
+            {
+              "item": "215564047",
+              "count": "1"
+            },
+            {
+              "item": "215564138",
+              "count": "1"
+            },
+            {
+              "item": "215564358",
+              "count": "1"
+            },
+            {
+              "item": "215564469",
+              "count": "1"
+            },
+            {
+              "item": "215564553",
+              "count": "1"
+            },
+            {
+              "item": "215564666",
+              "count": "1"
+            },
+            {
+              "item": "215520220",
+              "count": "1"
+            }
+          ],
+          "smallest": "215520220",
+          "count": "5248178",
+          "cardinality": "5248178"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "noCommas": "true",
+          "align": "center"
+        }
+      },
+      {
+        "id": 615778047,
+        "name": "Vehicle ID",
+        "dataTypeName": "text",
+        "fieldName": "vehicle_id",
+        "description": "Hashed license plate number for the vehicle in violation. Can be used to identify repeat violators.",
+        "position": 2,
+        "renderTypeName": "text",
+        "tableColumnId": 160837222,
+        "cachedContents": {
+          "non_null": "5181537",
+          "largest": "ffffef74bc34a17823e5972e2d03ce6aba0fd0a24acf43bdd0fb2175c781748a",
+          "null": "66641",
+          "top": [
+            {
+              "item": "1feaad876c46cfe1cc4ee357e410ec2054c5c231d268169dfdd9527c1c084a80",
+              "count": "2115"
+            },
+            {
+              "item": "8b5ce6f02a13b43f44bf80e818746cdd1f5cf723e1313cd9a4e905d1c72fa854",
+              "count": "2010"
+            },
+            {
+              "item": "479d603cb0581d14fbaf8908f9f27ade6accce3a371895ba61be5cab8d23691b",
+              "count": "1724"
+            },
+            {
+              "item": "e020820037319aaca4e4ed8d3c29e907f203d722ea46293949ae6e1c9b3ca446",
+              "count": "1589"
+            },
+            {
+              "item": "6d7caef8bf15e2bf8d46aa1e6dd8c0da1ae2fbc5b31acec87ab5642558d4360b",
+              "count": "1473"
+            },
+            {
+              "item": "2a8ac01b157a97b3c124cf33322e71c31062b815dd3b0a9c121ee3a6c22ff64a",
+              "count": "1383"
+            },
+            {
+              "item": "d3394e8be16cf7189dccc9b3621153fcffb272574bc3079a8a3aa63839f249e0",
+              "count": "1230"
+            },
+            {
+              "item": "421d84e2d1638a96cad98d531e96b5c9d5406dfc443b630a3e538943373791b7",
+              "count": "1175"
+            },
+            {
+              "item": "c45c0ba983b1d6f03187f7e4fb886019882aced04218b00e0e22f55955382882",
+              "count": "1173"
+            },
+            {
+              "item": "fb0ef39318825c73839ed4f77bf96f6023f88a99d345696561f2500959bb2fc8",
+              "count": "1171"
+            },
+            {
+              "item": "ebabc585284d95a10b6b45730c38fa55dfd57bcc5aea304b67693b84fb4d0eb0",
+              "count": "1169"
+            },
+            {
+              "item": "0e92016a483877f5c62115578a642425d710c43560e00cdd443e3aad2fed06fe",
+              "count": "1106"
+            },
+            {
+              "item": "992b86a0166250ce8a3ef831a847ea8a0906d9a00b7a941d2acc1206c41e6ed2",
+              "count": "1053"
+            },
+            {
+              "item": "80228a16bca871e024130c63ddf5552024720ac5f9b583df1c7b35bfdb52d630",
+              "count": "1050"
+            },
+            {
+              "item": "80e7bae594e62aaaf4ed702b8230dfd12559743828922bcb043940ad4a087b75",
+              "count": "1038"
+            },
+            {
+              "item": "6dc34b83b477c2c73ec2d9ffb526264ded101d965f3ef0fc9a72d2e2adfeef4e",
+              "count": "990"
+            },
+            {
+              "item": "6979a2434b4611cf1ebf80624eaeb29622929b061958b956f0d93024261a4a3c",
+              "count": "969"
+            },
+            {
+              "item": "8dc7f1039f216e2e11f6f0e355b0650db751516206f5398be35985d34187dfe3",
+              "count": "953"
+            },
+            {
+              "item": "8031501549671d0fd23fd3a5b8fe055bb46e1a2ece8e40029413fb24aa1a4127",
+              "count": "921"
+            },
+            {
+              "item": "990cd7879bb0663a4d818a4c75bfd6bac4e4357c8b5621a037d0830362157a6b",
+              "count": "904"
+            }
+          ],
+          "smallest": "00002b38864ea506f40d0bea42d645e812b143b65d3f805ea135c7e003c33ef9",
+          "count": "5248178",
+          "cardinality": "5248178"
+        },
+        "format": {}
+      },
+      {
+        "id": 615778048,
+        "name": "First Occurrence",
+        "dataTypeName": "calendar_date",
+        "fieldName": "first_occurrence",
+        "description": "Datetime of the first occurrence captured by the first bus.",
+        "position": 3,
+        "renderTypeName": "calendar_date",
+        "tableColumnId": 160837221,
+        "cachedContents": {
+          "non_null": "5248178",
+          "largest": "2026-03-17T12:37:36.000",
+          "null": "0",
+          "top": [
+            {
+              "item": "2023-05-29T07:19:00.000",
+              "count": "19"
+            },
+            {
+              "item": "2023-03-01T07:11:00.000",
+              "count": "13"
+            },
+            {
+              "item": "2023-02-27T16:07:00.000",
+              "count": "11"
+            },
+            {
+              "item": "2023-04-12T16:52:00.000",
+              "count": "11"
+            },
+            {
+              "item": "2023-01-30T18:38:00.000",
+              "count": "11"
+            },
+            {
+              "item": "2023-03-01T10:27:00.000",
+              "count": "10"
+            },
+            {
+              "item": "2023-04-21T08:39:00.000",
+              "count": "10"
+            },
+            {
+              "item": "2023-05-29T07:15:00.000",
+              "count": "10"
+            },
+            {
+              "item": "2023-03-07T17:18:00.000",
+              "count": "9"
+            },
+            {
+              "item": "2023-02-28T16:06:00.000",
+              "count": "9"
+            },
+            {
+              "item": "2023-05-22T07:07:00.000",
+              "count": "9"
+            },
+            {
+              "item": "2023-03-22T17:50:00.000",
+              "count": "9"
+            },
+            {
+              "item": "2023-02-27T16:15:00.000",
+              "count": "9"
+            },
+            {
+              "item": "2023-03-01T18:44:00.000",
+              "count": "9"
+            },
+            {
+              "item": "2023-03-31T16:31:00.000",
+              "count": "9"
+            },
+            {
+              "item": "2023-02-28T16:15:00.000",
+              "count": "9"
+            },
+            {
+              "item": "2023-03-01T14:40:00.000",
+              "count": "8"
+            },
+            {
+              "item": "2023-03-01T13:05:00.000",
+              "count": "8"
+            },
+            {
+              "item": "2023-03-01T17:54:00.000",
+              "count": "8"
+            },
+            {
+              "item": "2023-03-01T18:14:00.000",
+              "count": "8"
+            }
+          ],
+          "smallest": "2019-10-07T07:06:54.000",
+          "count": "5248178",
+          "cardinality": "5248178"
+        },
+        "format": {
+          "view": "date_time",
+          "align": "center"
+        }
+      },
+      {
+        "id": 615778049,
+        "name": "Last Occurrence",
+        "dataTypeName": "calendar_date",
+        "fieldName": "last_occurrence",
+        "description": "Datetime of the second occurrence captured by the second bus.",
+        "position": 4,
+        "renderTypeName": "calendar_date",
+        "tableColumnId": 160837220,
+        "cachedContents": {
+          "non_null": "5248178",
+          "largest": "2026-03-17T12:46:55.000",
+          "null": "0",
+          "top": [
+            {
+              "item": "2023-05-29T07:29:00.000",
+              "count": "20"
+            },
+            {
+              "item": "2023-02-27T18:52:00.000",
+              "count": "12"
+            },
+            {
+              "item": "2023-05-29T07:23:00.000",
+              "count": "11"
+            },
+            {
+              "item": "2023-03-02T18:42:00.000",
+              "count": "11"
+            },
+            {
+              "item": "2023-03-07T18:10:00.000",
+              "count": "10"
+            },
+            {
+              "item": "2023-01-30T16:59:00.000",
+              "count": "10"
+            },
+            {
+              "item": "2023-02-28T17:36:00.000",
+              "count": "10"
+            },
+            {
+              "item": "2023-03-02T16:21:00.000",
+              "count": "10"
+            },
+            {
+              "item": "2023-03-01T18:50:00.000",
+              "count": "10"
+            },
+            {
+              "item": "2023-02-24T09:53:00.000",
+              "count": "10"
+            },
+            {
+              "item": "2023-03-02T16:22:00.000",
+              "count": "10"
+            },
+            {
+              "item": "2023-01-31T16:34:00.000",
+              "count": "9"
+            },
+            {
+              "item": "2023-04-14T17:33:00.000",
+              "count": "9"
+            },
+            {
+              "item": "2023-01-30T18:49:00.000",
+              "count": "9"
+            },
+            {
+              "item": "2023-01-25T18:29:00.000",
+              "count": "9"
+            },
+            {
+              "item": "2022-12-11T11:47:00.000",
+              "count": "9"
+            },
+            {
+              "item": "2023-03-02T18:27:00.000",
+              "count": "9"
+            },
+            {
+              "item": "2023-03-01T17:00:00.000",
+              "count": "9"
+            },
+            {
+              "item": "2023-02-28T16:43:00.000",
+              "count": "9"
+            },
+            {
+              "item": "2023-03-06T18:44:00.000",
+              "count": "9"
+            }
+          ],
+          "smallest": "2019-10-07T07:16:07.000",
+          "count": "5248178",
+          "cardinality": "5248178"
+        },
+        "format": {
+          "view": "date_time",
+          "align": "center"
+        }
+      },
+      {
+        "id": 615778050,
+        "name": "Violation Status",
+        "dataTypeName": "text",
+        "fieldName": "violation_status",
+        "description": "Event rejection reason or notice/document status.",
+        "position": 5,
+        "renderTypeName": "text",
+        "tableColumnId": 160837219,
+        "cachedContents": {
+          "non_null": "5248169",
+          "largest": "VIOLATION ISSUED",
+          "null": "9",
+          "top": [
+            {
+              "item": "VIOLATION ISSUED",
+              "count": "3017576"
+            },
+            {
+              "item": "TECHNICAL ISSUE/OTHER",
+              "count": "524886"
+            },
+            {
+              "item": "DRIVER/VEHICLE INFO MISSING",
+              "count": "429265"
+            },
+            {
+              "item": "EXEMPT - EMERGENCY VEHICLE",
+              "count": "415278"
+            },
+            {
+              "item": "EXEMPT - COMMERCIAL UNDER 20",
+              "count": "408254"
+            },
+            {
+              "item": "EXEMPT - BUS/PARATRANSIT",
+              "count": "256452"
+            },
+            {
+              "item": "EXEMPT - OTHER",
+              "count": "196458"
+            }
+          ],
+          "smallest": "DRIVER/VEHICLE INFO MISSING",
+          "count": "5248178",
+          "cardinality": "5248178"
+        },
+        "format": {}
+      },
+      {
+        "id": 615778051,
+        "name": "Violation Type",
+        "dataTypeName": "text",
+        "fieldName": "violation_type",
+        "description": "Bus stop, bus lane, double parked",
+        "position": 6,
+        "renderTypeName": "text",
+        "tableColumnId": 160837218,
+        "cachedContents": {
+          "non_null": "5248178",
+          "largest": "MOBILE DOUBLE PARKED",
+          "null": "0",
+          "top": [
+            {
+              "item": "MOBILE DOUBLE PARKED",
+              "count": "1939610"
+            },
+            {
+              "item": "MOBILE BUS STOP",
+              "count": "1839579"
+            },
+            {
+              "item": "MOBILE BUS LANE",
+              "count": "1468989"
+            }
+          ],
+          "smallest": "MOBILE BUS LANE",
+          "count": "5248178",
+          "cardinality": "5248178"
+        },
+        "format": {}
+      },
+      {
+        "id": 615778052,
+        "name": "Bus Route ID",
+        "dataTypeName": "text",
+        "fieldName": "bus_route_id",
+        "description": "Bus Route ID that the violation occurred on. Some bus routes overlap, see the overview documentation for more information.",
+        "position": 7,
+        "renderTypeName": "text",
+        "tableColumnId": 160837217,
+        "cachedContents": {
+          "non_null": "5237429",
+          "largest": "S79+",
+          "null": "10749",
+          "top": [
+            {
+              "item": "M15+",
+              "count": "593345"
+            },
+            {
+              "item": "M101",
+              "count": "469234"
+            },
+            {
+              "item": "BX19",
+              "count": "443287"
+            },
+            {
+              "item": "BX36",
+              "count": "294532"
+            },
+            {
+              "item": "BX41+",
+              "count": "271626"
+            },
+            {
+              "item": "B44+",
+              "count": "227981"
+            },
+            {
+              "item": "B46+",
+              "count": "227176"
+            },
+            {
+              "item": "BX12+",
+              "count": "219793"
+            },
+            {
+              "item": "Q44+",
+              "count": "214195"
+            },
+            {
+              "item": "B35",
+              "count": "169409"
+            },
+            {
+              "item": "B82+",
+              "count": "157234"
+            },
+            {
+              "item": "BX6+",
+              "count": "156443"
+            },
+            {
+              "item": "M100",
+              "count": "150096"
+            },
+            {
+              "item": "B41",
+              "count": "146037"
+            },
+            {
+              "item": "M60+",
+              "count": "123219"
+            },
+            {
+              "item": "Q54",
+              "count": "118077"
+            },
+            {
+              "item": "Q58",
+              "count": "106021"
+            },
+            {
+              "item": "BX35",
+              "count": "101978"
+            },
+            {
+              "item": "BX28",
+              "count": "89623"
+            },
+            {
+              "item": "M14+",
+              "count": "76440"
+            }
+          ],
+          "smallest": "B11",
+          "count": "5248178",
+          "cardinality": "5248178"
+        },
+        "format": {
+          "align": "center"
+        }
+      },
+      {
+        "id": 615778053,
+        "name": "Violation Latitude",
+        "dataTypeName": "number",
+        "fieldName": "violation_latitude",
+        "description": "The approximate latitude of the captured violation, based on the latitude of the second bus that observes the event.",
+        "position": 8,
+        "renderTypeName": "number",
+        "tableColumnId": 160837216,
+        "cachedContents": {
+          "non_null": "5248178",
+          "largest": "40.913451",
+          "null": "0",
+          "top": [
+            {
+              "item": "40.862803",
+              "count": "590"
+            },
+            {
+              "item": "40.862707",
+              "count": "535"
+            },
+            {
+              "item": "40.8628",
+              "count": "525"
+            },
+            {
+              "item": "40.862797",
+              "count": "523"
+            },
+            {
+              "item": "40.86271",
+              "count": "510"
+            },
+            {
+              "item": "40.862802",
+              "count": "496"
+            },
+            {
+              "item": "40.862704",
+              "count": "492"
+            },
+            {
+              "item": "40.862806",
+              "count": "461"
+            },
+            {
+              "item": "40.862801",
+              "count": "459"
+            },
+            {
+              "item": "40.862804",
+              "count": "458"
+            },
+            {
+              "item": "40.862794",
+              "count": "451"
+            },
+            {
+              "item": "40.862708",
+              "count": "449"
+            },
+            {
+              "item": "40.862799",
+              "count": "445"
+            },
+            {
+              "item": "40.862798",
+              "count": "444"
+            },
+            {
+              "item": "40.862702",
+              "count": "442"
+            },
+            {
+              "item": "40.862805",
+              "count": "440"
+            },
+            {
+              "item": "40.862749",
+              "count": "439"
+            },
+            {
+              "item": "40.862713",
+              "count": "435"
+            },
+            {
+              "item": "40.862705",
+              "count": "433"
+            },
+            {
+              "item": "40.862727",
+              "count": "424"
+            }
+          ],
+          "smallest": "40.534456",
+          "count": "5248178",
+          "cardinality": "5248178"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "groupSeparator": ",",
+          "align": "center"
+        }
+      },
+      {
+        "id": 615778054,
+        "name": "Violation Longitude",
+        "dataTypeName": "number",
+        "fieldName": "violation_longitude",
+        "description": "The approximate longitude of the captured violation, based on the longitude of the second bus that observes the event.",
+        "position": 9,
+        "renderTypeName": "number",
+        "tableColumnId": 160837215,
+        "cachedContents": {
+          "non_null": "5248178",
+          "largest": "-73.701051",
+          "null": "0",
+          "top": [
+            {
+              "item": "-73.891852",
+              "count": "619"
+            },
+            {
+              "item": "-73.891862",
+              "count": "596"
+            },
+            {
+              "item": "-73.891863",
+              "count": "589"
+            },
+            {
+              "item": "-73.891856",
+              "count": "589"
+            },
+            {
+              "item": "-73.891858",
+              "count": "586"
+            },
+            {
+              "item": "-73.891864",
+              "count": "572"
+            },
+            {
+              "item": "-73.891857",
+              "count": "556"
+            },
+            {
+              "item": "-73.89185",
+              "count": "547"
+            },
+            {
+              "item": "-73.891859",
+              "count": "546"
+            },
+            {
+              "item": "-73.891869",
+              "count": "544"
+            },
+            {
+              "item": "-73.891846",
+              "count": "532"
+            },
+            {
+              "item": "-73.891853",
+              "count": "525"
+            },
+            {
+              "item": "-73.891861",
+              "count": "519"
+            },
+            {
+              "item": "-73.891851",
+              "count": "514"
+            },
+            {
+              "item": "-73.891867",
+              "count": "507"
+            },
+            {
+              "item": "-73.891865",
+              "count": "502"
+            },
+            {
+              "item": "-73.891854",
+              "count": "498"
+            },
+            {
+              "item": "-73.891914",
+              "count": "497"
+            },
+            {
+              "item": "-73.891841",
+              "count": "490"
+            },
+            {
+              "item": "-73.891866",
+              "count": "486"
+            }
+          ],
+          "smallest": "-74.184422",
+          "count": "5248178",
+          "cardinality": "5248178"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "groupSeparator": ",",
+          "align": "center"
+        }
+      },
+      {
+        "id": 615778063,
+        "name": "Stop ID",
+        "dataTypeName": "text",
+        "fieldName": "stop_id",
+        "description": "The bus stop ID of the closest previous bus stop.",
+        "position": 10,
+        "renderTypeName": "text",
+        "tableColumnId": 160842743,
+        "cachedContents": {
+          "non_null": "5244275",
+          "largest": "984012",
+          "null": "3903",
+          "top": [
+            {
+              "item": "401779",
+              "count": "56365"
+            },
+            {
+              "item": "402611",
+              "count": "39450"
+            },
+            {
+              "item": "404170",
+              "count": "36649"
+            },
+            {
+              "item": "401756",
+              "count": "36075"
+            },
+            {
+              "item": "401707",
+              "count": "33500"
+            },
+            {
+              "item": "102946",
+              "count": "32047"
+            },
+            {
+              "item": "401738",
+              "count": "30312"
+            },
+            {
+              "item": "104556",
+              "count": "29765"
+            },
+            {
+              "item": "401704",
+              "count": "27441"
+            },
+            {
+              "item": "303477",
+              "count": "24880"
+            },
+            {
+              "item": "303672",
+              "count": "23785"
+            },
+            {
+              "item": "402112",
+              "count": "22278"
+            },
+            {
+              "item": "303417",
+              "count": "22014"
+            },
+            {
+              "item": "303376",
+              "count": "21718"
+            },
+            {
+              "item": "102750",
+              "count": "20808"
+            },
+            {
+              "item": "404995",
+              "count": "19741"
+            },
+            {
+              "item": "903129",
+              "count": "19725"
+            },
+            {
+              "item": "303687",
+              "count": "19557"
+            },
+            {
+              "item": "102806",
+              "count": "18597"
+            },
+            {
+              "item": "100799",
+              "count": "18579"
+            }
+          ],
+          "smallest": "100017",
+          "count": "5248178",
+          "cardinality": "5248178"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "noCommas": "true",
+          "align": "center"
+        }
+      },
+      {
+        "id": 615778056,
+        "name": "Stop Name",
+        "dataTypeName": "text",
+        "fieldName": "stop_name",
+        "description": "The corresponding bus stop name.",
+        "position": 11,
+        "renderTypeName": "text",
+        "tableColumnId": 160837213,
+        "cachedContents": {
+          "non_null": "5244275",
+          "largest": "ZEREGA AV/CASTLE HILL AV",
+          "null": "3903",
+          "top": [
+            {
+              "item": "2 AV/E 23 ST",
+              "count": "56365"
+            },
+            {
+              "item": "BROADWAY/ISHAM ST",
+              "count": "40959"
+            },
+            {
+              "item": "W 207 ST/10 AV",
+              "count": "38596"
+            },
+            {
+              "item": "WEBSTER AV/E 180 ST",
+              "count": "38518"
+            },
+            {
+              "item": "2 AV/E 78 ST",
+              "count": "36075"
+            },
+            {
+              "item": "UTICA AV/CHURCH AV",
+              "count": "35692"
+            },
+            {
+              "item": "WEBSTER AV/BEDFORD PARK BLVD",
+              "count": "34376"
+            },
+            {
+              "item": "1 AV/E 67 ST",
+              "count": "33500"
+            },
+            {
+              "item": "2 AV/E 125 ST",
+              "count": "30312"
+            },
+            {
+              "item": "SUTPHIN BLVD/HILLSIDE AV",
+              "count": "28556"
+            },
+            {
+              "item": "WEBSTER AV/E 170 ST",
+              "count": "27659"
+            },
+            {
+              "item": "1 AV/E 57 ST",
+              "count": "27441"
+            },
+            {
+              "item": "WEBSTER AV/E 204 ST",
+              "count": "26602"
+            },
+            {
+              "item": "MADISON ST/CATHERINE ST",
+              "count": "25102"
+            },
+            {
+              "item": "NOSTRAND AV/NEWKIRK AV",
+              "count": "24880"
+            },
+            {
+              "item": "W 125 ST/SAINT NICHOLAS AV",
+              "count": "24257"
+            },
+            {
+              "item": "UTICA AV/WINTHROP ST",
+              "count": "24030"
+            },
+            {
+              "item": "E 14 ST/1 AV",
+              "count": "22530"
+            },
+            {
+              "item": "WEBSTER AV/E 167 ST",
+              "count": "22219"
+            },
+            {
+              "item": "BEDFORD AV/LAFAYETTE AV",
+              "count": "22014"
+            }
+          ],
+          "smallest": "108 AV/SUTPHIN BLVD",
+          "count": "5248178",
+          "cardinality": "5248178"
+        },
+        "format": {}
+      },
+      {
+        "id": 615778057,
+        "name": "Bus Stop Latitude",
+        "dataTypeName": "number",
+        "fieldName": "bus_stop_latitude",
+        "description": "Latitude for the bus stop.",
+        "position": 12,
+        "renderTypeName": "number",
+        "tableColumnId": 160837212,
+        "cachedContents": {
+          "non_null": "5244275",
+          "largest": "40.912377",
+          "null": "3903",
+          "top": [
+            {
+              "item": "40.737516",
+              "count": "56365"
+            },
+            {
+              "item": "40.868072",
+              "count": "39450"
+            },
+            {
+              "item": "40.864421",
+              "count": "36649"
+            },
+            {
+              "item": "40.772922",
+              "count": "36075"
+            },
+            {
+              "item": "40.76487",
+              "count": "33500"
+            },
+            {
+              "item": "40.867348",
+              "count": "32047"
+            },
+            {
+              "item": "40.802473",
+              "count": "30312"
+            },
+            {
+              "item": "40.852176",
+              "count": "29825"
+            },
+            {
+              "item": "40.758829",
+              "count": "27441"
+            },
+            {
+              "item": "40.640085",
+              "count": "24880"
+            },
+            {
+              "item": "40.679421",
+              "count": "23785"
+            },
+            {
+              "item": "40.712064",
+              "count": "22278"
+            },
+            {
+              "item": "40.689351",
+              "count": "22014"
+            },
+            {
+              "item": "40.86711",
+              "count": "20808"
+            },
+            {
+              "item": "40.777996",
+              "count": "19725"
+            },
+            {
+              "item": "40.651373",
+              "count": "19557"
+            },
+            {
+              "item": "40.807514",
+              "count": "19294"
+            },
+            {
+              "item": "40.861287",
+              "count": "18597"
+            },
+            {
+              "item": "40.862236",
+              "count": "18579"
+            },
+            {
+              "item": "40.795919",
+              "count": "18438"
+            }
+          ],
+          "smallest": "40.53454",
+          "count": "5248178",
+          "cardinality": "5248178"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "groupSeparator": ",",
+          "align": "center"
+        }
+      },
+      {
+        "id": 615778058,
+        "name": "Bus Stop Longitude",
+        "dataTypeName": "number",
+        "fieldName": "bus_stop_longitude",
+        "description": "Longitude for the bus stop.",
+        "position": 13,
+        "renderTypeName": "number",
+        "tableColumnId": 160837211,
+        "cachedContents": {
+          "non_null": "5244275",
+          "largest": "-73.701373",
+          "null": "3903",
+          "top": [
+            {
+              "item": "-73.981202",
+              "count": "56365"
+            },
+            {
+              "item": "-73.919801",
+              "count": "39450"
+            },
+            {
+              "item": "-73.918721",
+              "count": "36649"
+            },
+            {
+              "item": "-73.955434",
+              "count": "36075"
+            },
+            {
+              "item": "-73.958109",
+              "count": "33500"
+            },
+            {
+              "item": "-73.883511",
+              "count": "32047"
+            },
+            {
+              "item": "-73.933855",
+              "count": "30312"
+            },
+            {
+              "item": "-73.898105",
+              "count": "29765"
+            },
+            {
+              "item": "-73.962462",
+              "count": "27441"
+            },
+            {
+              "item": "-73.948517",
+              "count": "24880"
+            },
+            {
+              "item": "-73.929",
+              "count": "23785"
+            },
+            {
+              "item": "-73.997462",
+              "count": "22278"
+            },
+            {
+              "item": "-73.955002",
+              "count": "22014"
+            },
+            {
+              "item": "-73.883742",
+              "count": "20808"
+            },
+            {
+              "item": "-73.951745",
+              "count": "19725"
+            },
+            {
+              "item": "-73.930468",
+              "count": "19557"
+            },
+            {
+              "item": "-73.891854",
+              "count": "18597"
+            },
+            {
+              "item": "-73.89601",
+              "count": "18579"
+            },
+            {
+              "item": "-73.93877",
+              "count": "18438"
+            },
+            {
+              "item": "-73.938795",
+              "count": "18334"
+            }
+          ],
+          "smallest": "-74.192639",
+          "count": "5248178",
+          "cardinality": "5248178"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "groupSeparator": ",",
+          "align": "center"
+        }
+      },
+      {
+        "id": 615778059,
+        "name": "Violation Georeference",
+        "dataTypeName": "point",
+        "fieldName": "violation_georeference",
+        "description": "Violation location.  Open Data platform-generated geocoding information from supplied address components. Point-type location is the centroid of the address components provided and does not reflect a specific address if the street address component is not provided. Point-type location is supplied in \"POINT ( )\" format.",
+        "position": 14,
+        "renderTypeName": "point",
+        "tableColumnId": 160837210,
+        "cachedContents": {
+          "non_null": "5248178",
+          "null": "0",
+          "top": [
+            {
+              "item": {
+                "coordinates": [
+                  -73.905087,
+                  40.849139
+                ],
+                "type": "Point"
+              },
+              "count": "15"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.949388,
+                  40.64891
+                ],
+                "type": "Point"
+              },
+              "count": "15"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.905045,
+                  40.849129
+                ],
+                "type": "Point"
+              },
+              "count": "15"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.905044,
+                  40.849129
+                ],
+                "type": "Point"
+              },
+              "count": "15"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.885199,
+                  40.866338
+                ],
+                "type": "Point"
+              },
+              "count": "14"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.936216,
+                  40.848632
+                ],
+                "type": "Point"
+              },
+              "count": "13"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -74.004435,
+                  40.651596
+                ],
+                "type": "Point"
+              },
+              "count": "13"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.905045,
+                  40.849131
+                ],
+                "type": "Point"
+              },
+              "count": "13"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.905045,
+                  40.84913
+                ],
+                "type": "Point"
+              },
+              "count": "13"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.905044,
+                  40.84913
+                ],
+                "type": "Point"
+              },
+              "count": "12"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.949386,
+                  40.648911
+                ],
+                "type": "Point"
+              },
+              "count": "12"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.879542,
+                  40.875501
+                ],
+                "type": "Point"
+              },
+              "count": "12"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.949387,
+                  40.64891
+                ],
+                "type": "Point"
+              },
+              "count": "12"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.949388,
+                  40.648911
+                ],
+                "type": "Point"
+              },
+              "count": "11"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.914907,
+                  40.68607
+                ],
+                "type": "Point"
+              },
+              "count": "11"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.905084,
+                  40.849137
+                ],
+                "type": "Point"
+              },
+              "count": "11"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.905044,
+                  40.849131
+                ],
+                "type": "Point"
+              },
+              "count": "11"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -74.004442,
+                  40.651601
+                ],
+                "type": "Point"
+              },
+              "count": "11"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.949386,
+                  40.648902
+                ],
+                "type": "Point"
+              },
+              "count": "11"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.879542,
+                  40.875503
+                ],
+                "type": "Point"
+              },
+              "count": "11"
+            }
+          ],
+          "count": "5248178",
+          "cardinality": "5248178"
+        },
+        "format": {}
+      },
+      {
+        "id": 615778060,
+        "name": "Bus Stop Georeference",
+        "dataTypeName": "point",
+        "fieldName": "bus_stop_georeference",
+        "description": "Bus stop location.  Open Data platform-generated geocoding information from supplied address components. Point-type location is the centroid of the address components provided and does not reflect a specific address if the street address component is not provided. Point-type location is supplied in \"POINT ( )\" format.",
+        "position": 15,
+        "renderTypeName": "point",
+        "tableColumnId": 160837209,
+        "cachedContents": {
+          "non_null": "5244275",
+          "null": "3903",
+          "top": [
+            {
+              "item": {
+                "coordinates": [
+                  -73.981202,
+                  40.737516
+                ],
+                "type": "Point"
+              },
+              "count": "56365"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.919801,
+                  40.868072
+                ],
+                "type": "Point"
+              },
+              "count": "39450"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.918721,
+                  40.864421
+                ],
+                "type": "Point"
+              },
+              "count": "36649"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.955434,
+                  40.772922
+                ],
+                "type": "Point"
+              },
+              "count": "36075"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.958109,
+                  40.76487
+                ],
+                "type": "Point"
+              },
+              "count": "33500"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.883511,
+                  40.867348
+                ],
+                "type": "Point"
+              },
+              "count": "32047"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.933855,
+                  40.802473
+                ],
+                "type": "Point"
+              },
+              "count": "30312"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.898105,
+                  40.852176
+                ],
+                "type": "Point"
+              },
+              "count": "29765"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.962462,
+                  40.758829
+                ],
+                "type": "Point"
+              },
+              "count": "27441"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.948517,
+                  40.640085
+                ],
+                "type": "Point"
+              },
+              "count": "24880"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.929,
+                  40.679421
+                ],
+                "type": "Point"
+              },
+              "count": "23785"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.997462,
+                  40.712064
+                ],
+                "type": "Point"
+              },
+              "count": "22278"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.955002,
+                  40.689351
+                ],
+                "type": "Point"
+              },
+              "count": "22014"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.883742,
+                  40.86711
+                ],
+                "type": "Point"
+              },
+              "count": "20808"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.951745,
+                  40.777996
+                ],
+                "type": "Point"
+              },
+              "count": "19725"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.930468,
+                  40.651373
+                ],
+                "type": "Point"
+              },
+              "count": "19557"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.891854,
+                  40.861287
+                ],
+                "type": "Point"
+              },
+              "count": "18597"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.89601,
+                  40.862236
+                ],
+                "type": "Point"
+              },
+              "count": "18579"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.93877,
+                  40.795919
+                ],
+                "type": "Point"
+              },
+              "count": "18438"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.938795,
+                  40.821618
+                ],
+                "type": "Point"
+              },
+              "count": "18334"
+            }
+          ],
+          "count": "5248178",
+          "cardinality": "5248178"
+        },
+        "format": {}
+      }
+    ]
+  }
+}

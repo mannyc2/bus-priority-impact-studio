@@ -1,8 +1,8 @@
 ---
 title: ACE Routes and Violations
 type: data
-status: needs_schema_probe
-last_updated: 2026-04-26
+status: active
+last_updated: 2026-04-27
 owner: codex
 source_count: 4
 tags: [mta, ace, automated-camera-enforcement, intervention]
@@ -24,6 +24,15 @@ Automated Camera Enforcement (ACE) is the cleanest public intervention to evalua
 MTA describes ACE as a bus-mounted camera system that issues violations to vehicles occupying bus lanes, double parked vehicles along bus routes, and vehicles blocking bus stops. It is administered with NYC Department of Finance and NYC Department of Transportation.
 
 As of MTA’s ACE page updated April 17, 2026, ACE is active on 54 bus routes carrying more than 980,000 average weekday riders. MTA says camera enforcement has sped up buses by an average of 5%, with some corridors seeing gains up to 30%. The page also says warning notices are issued for 60 days before fine-bearing violations begin.
+
+## Schema probe
+
+Probe completed 2026-04-27.
+
+| Dataset | Rows | Rows updated | Fields |
+|---|---:|---:|---|
+| `ki2b-sg5y` ACE routes | 81 | 2026-04-24T16:37:02Z | `route`, `program`, `implementation_date` |
+| `kh8p-hcbm` ACE violations | 5,248,178 | 2026-03-20T15:55:50Z | `violation_id`, `vehicle_id`, `first_occurrence`, `last_occurrence`, `violation_status`, `violation_type`, `bus_route_id`, `violation_latitude`, `violation_longitude`, `stop_id`, `stop_name`, `bus_stop_latitude`, `bus_stop_longitude`, `violation_georeference`, `bus_stop_georeference` |
 
 ## Implementation notes
 

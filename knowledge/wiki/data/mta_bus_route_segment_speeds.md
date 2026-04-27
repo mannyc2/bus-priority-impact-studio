@@ -1,10 +1,10 @@
 ---
 title: MTA Bus Route Segment Speeds
 type: data
-status: needs_schema_probe
-last_updated: 2026-04-26
+status: active
+last_updated: 2026-04-27
 owner: codex
-source_count: 4
+source_count: 5
 tags: [mta, bus, speeds, performance, core]
 ---
 
@@ -29,32 +29,21 @@ MTA’s 2026 blog says the speed dataset is tabular and does not include true se
 
 ## Grain
 
-Expected grain, pending schema probe:
+Observed grain:
 
 ```text
-route_id + direction_id + trip_type/route_type + year + month + day_of_week + hour_of_day + timepoint_stop_pair
+route_id + direction + route_type + year + month + day_of_week + hour_of_day + stop_order + timepoint_stop_id + next_timepoint_stop_id
 ```
 
-## Required fields after schema probe
+## Schema probe
 
-Codex must probe exact field names before coding. Expected conceptual fields:
+Probe completed 2026-04-27. Metadata files:
 
-- year
-- month
-- day_of_week
-- hour_of_day
-- route_id
-- route_type / trip_type
-- borough
-- direction_id
-- timepoint_stop_name
-- next_timepoint_stop_name
-- stop sequence fields
-- start/end latitude/longitude
-- road distance
-- average travel time
-- average speed
-- bus trips
+| Dataset | Rows | Rows updated | Fields |
+|---|---:|---:|---|
+| `kufs-yh3x` | 7,280,927 | 2026-04-25T00:57:20Z | `year`, `month`, `timestamp`, `day_of_week`, `hour_of_day`, `route_id`, `direction`, `borough`, `route_type`, `stop_order`, `timepoint_stop_id`, `timepoint_stop_name`, `timepoint_stop_latitude`, `timepoint_stop_longitude`, `next_timepoint_stop_id`, `next_timepoint_stop_name`, `next_timepoint_stop_latitude`, `next_timepoint_stop_longitude`, `road_distance`, `average_travel_time`, `average_road_speed`, `bus_trip_count`, `timepoint_stop_georeference`, `next_timepoint_stop_georeference` |
+| `58t6-89vi` | 11,656,097 | 2025-01-24T17:56:02Z | Same fields as `kufs-yh3x` |
+| `r6db-kkzj` | 595,263 | 2026-04-24T16:48:44Z | `month`, `day_type`, `hour_of_day`, `time_period`, `route_type`, `route_id`, `cbd_relation`, `sum_mileage`, `sum_time`, `average_road_speed` |
 
 ## Joins / dependencies
 
@@ -66,7 +55,7 @@ Codex must probe exact field names before coding. Expected conceptual fields:
 
 ## Implementation notes
 
-1. Probe columns with `bun --filter @bp/pipeline sources:probe -- --dataset kufs-yh3x` and the corresponding current dataset ID once the TypeScript pipeline command exists.
+1. Use the generated schema metadata under `knowledge/raw/metadata/`.
 2. Start with a narrow query, for example route `M1` and one recent month.
 3. Build a normalized table `fact_bus_segment_speed`.
 4. Use trip-count-weighted averages when aggregating across hours or days.
@@ -83,5 +72,6 @@ Codex must probe exact field names before coding. Expected conceptual fields:
 
 - https://data.ny.gov/Transportation/MTA-Bus-Route-Segment-Speeds-Beginning-2025/kufs-yh3x — verified_at: 2026-04-26
 - https://data.ny.gov/Transportation/MTA-Bus-Route-Segment-Speeds-2023-2024/58t6-89vi — verified_at: 2026-04-26
+- https://data.ny.gov/Transportation/MTA-Central-Business-District-Bus-Speeds-Beginning/r6db-kkzj — verified_at: 2026-04-27
 - https://www.mta.info/article/beyond-route-introducing-granular-mta-bus-speed-data — verified_at: 2026-04-26
 - https://www.mta.info/article/mapping-movement-exploring-nyc-bus-route-shapes-through-segment-level-speed-data — verified_at: 2026-04-26

@@ -1,0 +1,348 @@
+import { mkdir } from "node:fs/promises";
+import { join } from "node:path";
+import { RouteIdCodec } from "@bp/domain";
+import type { SocrataFetch, SocrataRow, SocrataRowsQuery } from "@bp/sources";
+import {
+  fetchAllSocrataRows,
+  normalizeHourlyRidershipRows,
+  normalizeRouteShapeRows,
+  normalizeSegmentSpeedRows,
+  normalizeStopRows,
+} from "@bp/sources";
+import * as z from "zod";
+import type { SocrataManifestSource } from "./source-manifest.js";
+import { fromRepoRoot, readSourceManifest } from "./source-manifest.js";
+
+const schemaVersion = 1;
+const defaultRouteId = z.decode(RouteIdCodec, "M1");
+const defaultYear = 2026;
+const defaultMonth = 3;
+
+type SliceSourceId =
+  | "bus_segment_speeds_2025"
+  | "current_bus_routes"
+  | "current_bus_stops"
+  | "bus_hourly_ridership_2025";
+
+type RouteSliceArgs = {
+  routeId?: string;
+  year?: number;
+  month?: number;
+  fetchedAt?: Date;
+  fetcher?: SocrataFetch;
+};
+
+type RouteSliceOptions = {
+  routeId: string;
+  year: number;
+  month: number;
+  fetchedAt: Date;
+  fetcher?: SocrataFetch;
+};
+
+type RawSlicePayload = {
+  schemaVersion: typeof schemaVersion;
+  sourceId: SliceSourceId;
+  fetchedAt: string;
+  query: Record<string, string | number>;
+  rows: SocrataRow[];
+};
+
+type RouteSliceOutput = {
+  rawDir: string;
+  workingDir: string;
+  summary: {
+    schemaVersion: typeof schemaVersion;
+    routeId: string;
+    isoMonth: string;
+    fetchedAt: string;
+    raw: Record<SliceSourceId, { rowCount: number; path: string }>;
+    normalized: {
+      segmentSpeedCount: number;
+      routeShapeCount: number;
+      stopCount: number;
+      timepointStopCount: number;
+      ridershipWindowCount: number;
+      totalRidership: number;
+      totalTransfers: number;
+    };
+  };
+};
+
+function assertMonth(month: number): number {
+  if (!Number.isInteger(month) || month < 1 || month > 12) {
+    throw new Error(`Month must be an integer from 1 to 12. Received: ${month}`);
+  }
+
+  return month;
+}
+
+function assertYear(year: number): number {
+  if (!Number.isInteger(year) || year < 2020 || year > 2100) {
+    throw new Error(`Year must be an integer from 2020 to 2100. Received: ${year}`);
+  }
+
+  return year;
+}
+
+function isoMonth(year: number, month: number): string {
+  return `${year}-${String(month).padStart(2, "0")}`;
+}
+
+function isoMonthStart(year: number, month: number): string {
+  return `${isoMonth(year, month)}-01T00:00:00`;
+}
+
+function nextIsoMonthStart(year: number, month: number): string {
+  const nextYear = month === 12 ? year + 1 : year;
+  const nextMonth = month === 12 ? 1 : month + 1;
+
+  return isoMonthStart(nextYear, nextMonth);
+}
+
+function lowerSliceKey(routeId: string, year: number, month: number): string {
+  return `${routeId.toLowerCase()}-${isoMonth(year, month)}`;
+}
+
+function normalizeOptions(args: RouteSliceArgs = {}): RouteSliceOptions {
+  const output: RouteSliceOptions = {
+    routeId: args.routeId === undefined ? defaultRouteId : z.decode(RouteIdCodec, args.routeId),
+    year: assertYear(args.year ?? defaultYear),
+    month: assertMonth(args.month ?? defaultMonth),
+    fetchedAt: args.fetchedAt ?? new Date(),
+  };
+
+  if (args.fetcher !== undefined) {
+    output.fetcher = args.fetcher;
+  }
+
+  return output;
+}
+
+function getSocrataSource(
+  sources: SocrataManifestSource[],
+  id: SliceSourceId,
+): SocrataManifestSource {
+  const source = sources.find((candidate) => candidate.id === id);
+  if (source === undefined) {
+    throw new Error(`Missing Socrata source in manifest: ${id}`);
+  }
+
+  return source;
+}
+
+function writeJson(path: string, data: unknown): Promise<number> {
+  return Bun.write(path, `${JSON.stringify(data, null, 2)}\n`);
+}
+
+function rawPayload(
+  sourceId: SliceSourceId,
+  fetchedAt: string,
+  query: Record<string, string | number>,
+  rows: SocrataRow[],
+): RawSlicePayload {
+  return {
+    schemaVersion,
+    sourceId,
+    fetchedAt,
+    query,
+    rows,
+  };
+}
+
+async function fetchSourceRows(
+  source: SocrataManifestSource,
+  query: SocrataRowsQuery,
+  fetcher: SocrataFetch | undefined,
+): Promise<SocrataRow[]> {
+  const request = {
+    domain: source.domain,
+    datasetId: source.dataset_id,
+    query,
+  };
+
+  return fetcher === undefined
+    ? fetchAllSocrataRows(request)
+    : fetchAllSocrataRows({ ...request, fetcher });
+}
+
+export async function ingestM1RouteSlice(args: RouteSliceArgs = {}): Promise<RouteSliceOutput> {
+  const options = normalizeOptions(args);
+  const manifest = await readSourceManifest();
+  const socrataSources = manifest.sources.filter(
+    (source): source is SocrataManifestSource => source.type === "socrata_dataset",
+  );
+  const routeWhere = `route_id='${options.routeId}'`;
+  const inEffectRouteWhere = `${routeWhere} AND in_effect='true'`;
+  const segmentWhere = `${routeWhere} AND year=${options.year} AND month=${options.month}`;
+  const ridershipWhere = [
+    `bus_route='${options.routeId}'`,
+    `transit_timestamp >= '${isoMonthStart(options.year, options.month)}'`,
+    `transit_timestamp < '${nextIsoMonthStart(options.year, options.month)}'`,
+  ].join(" AND ");
+  const speedSource = getSocrataSource(socrataSources, "bus_segment_speeds_2025");
+  const routeSource = getSocrataSource(socrataSources, "current_bus_routes");
+  const stopSource = getSocrataSource(socrataSources, "current_bus_stops");
+  const ridershipSource = getSocrataSource(socrataSources, "bus_hourly_ridership_2025");
+  const fetchedAt = options.fetchedAt.toISOString();
+  const key = lowerSliceKey(options.routeId, options.year, options.month);
+  const rawDir = fromRepoRoot(join("data/raw/route-slices", key));
+  const workingDir = fromRepoRoot(join("data/working/route-slices", key));
+
+  await mkdir(rawDir, { recursive: true });
+  await mkdir(workingDir, { recursive: true });
+
+  const speedQuery = {
+    where: segmentWhere,
+    order: "direction, stop_order, day_of_week, hour_of_day, timepoint_stop_id",
+  };
+  const routeQuery = {
+    where: inEffectRouteWhere,
+    order: "direction_id, shape_id",
+  };
+  const stopQuery = {
+    where: inEffectRouteWhere,
+    order: "direction_id, stop_id",
+  };
+  const ridershipQuery = {
+    select:
+      "date_extract_dow(transit_timestamp) as day_of_week_index,date_extract_hh(transit_timestamp) as hour_of_day,sum(ridership) as ridership,sum(transfers) as transfers",
+    where: ridershipWhere,
+    group: "date_extract_dow(transit_timestamp),date_extract_hh(transit_timestamp)",
+    order: "day_of_week_index,hour_of_day",
+  };
+  const [speedRows, routeRows, stopRows, ridershipRows] = await Promise.all([
+    fetchSourceRows(speedSource, speedQuery, options.fetcher),
+    fetchSourceRows(routeSource, routeQuery, options.fetcher),
+    fetchSourceRows(stopSource, stopQuery, options.fetcher),
+    fetchSourceRows(ridershipSource, ridershipQuery, options.fetcher),
+  ]);
+  const segmentSpeeds = normalizeSegmentSpeedRows(speedRows);
+  const routeShapes = normalizeRouteShapeRows(routeRows);
+  const stops = normalizeStopRows(stopRows);
+  const ridership = normalizeHourlyRidershipRows(ridershipRows, {
+    routeId: options.routeId,
+    year: options.year,
+    month: options.month,
+  });
+  const rawPaths: Record<SliceSourceId, string> = {
+    bus_segment_speeds_2025: join(rawDir, "bus_segment_speeds_2025.json"),
+    current_bus_routes: join(rawDir, "current_bus_routes.json"),
+    current_bus_stops: join(rawDir, "current_bus_stops.json"),
+    bus_hourly_ridership_2025: join(rawDir, "bus_hourly_ridership_2025.json"),
+  };
+  const totalRidership = ridership.reduce((sum, row) => sum + row.ridership, 0);
+  const totalTransfers = ridership.reduce((sum, row) => sum + row.transfers, 0);
+  const summary: RouteSliceOutput["summary"] = {
+    schemaVersion,
+    routeId: options.routeId,
+    isoMonth: isoMonth(options.year, options.month),
+    fetchedAt,
+    raw: {
+      bus_segment_speeds_2025: {
+        rowCount: speedRows.length,
+        path: rawPaths.bus_segment_speeds_2025,
+      },
+      current_bus_routes: {
+        rowCount: routeRows.length,
+        path: rawPaths.current_bus_routes,
+      },
+      current_bus_stops: {
+        rowCount: stopRows.length,
+        path: rawPaths.current_bus_stops,
+      },
+      bus_hourly_ridership_2025: {
+        rowCount: ridershipRows.length,
+        path: rawPaths.bus_hourly_ridership_2025,
+      },
+    },
+    normalized: {
+      segmentSpeedCount: segmentSpeeds.length,
+      routeShapeCount: routeShapes.length,
+      stopCount: stops.length,
+      timepointStopCount: stops.filter((stop) => stop.timepoint).length,
+      ridershipWindowCount: ridership.length,
+      totalRidership,
+      totalTransfers,
+    },
+  };
+
+  await Promise.all([
+    writeJson(
+      rawPaths.bus_segment_speeds_2025,
+      rawPayload("bus_segment_speeds_2025", fetchedAt, speedQuery, speedRows),
+    ),
+    writeJson(
+      rawPaths.current_bus_routes,
+      rawPayload("current_bus_routes", fetchedAt, routeQuery, routeRows),
+    ),
+    writeJson(
+      rawPaths.current_bus_stops,
+      rawPayload("current_bus_stops", fetchedAt, stopQuery, stopRows),
+    ),
+    writeJson(
+      rawPaths.bus_hourly_ridership_2025,
+      rawPayload("bus_hourly_ridership_2025", fetchedAt, ridershipQuery, ridershipRows),
+    ),
+    writeJson(join(workingDir, "segment-speeds.json"), {
+      schemaVersion,
+      routeId: options.routeId,
+      isoMonth: summary.isoMonth,
+      rows: segmentSpeeds,
+    }),
+    writeJson(join(workingDir, "route-shapes.json"), {
+      schemaVersion,
+      routeId: options.routeId,
+      rows: routeShapes,
+    }),
+    writeJson(join(workingDir, "stops.json"), {
+      schemaVersion,
+      routeId: options.routeId,
+      rows: stops,
+    }),
+    writeJson(join(workingDir, "ridership.json"), {
+      schemaVersion,
+      routeId: options.routeId,
+      isoMonth: summary.isoMonth,
+      rows: ridership,
+    }),
+    writeJson(join(workingDir, "summary.json"), summary),
+  ]);
+
+  return {
+    rawDir,
+    workingDir,
+    summary,
+  };
+}
+
+export function parseM1SliceCliArgs(args: string[]): RouteSliceArgs {
+  const output: RouteSliceArgs = {};
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    const value = args[index + 1];
+
+    if (arg === "--route" && value !== undefined) {
+      output.routeId = value;
+      index += 1;
+      continue;
+    }
+
+    if (arg === "--year" && value !== undefined) {
+      output.year = Number(value);
+      index += 1;
+      continue;
+    }
+
+    if (arg === "--month" && value !== undefined) {
+      output.month = Number(value);
+      index += 1;
+      continue;
+    }
+
+    throw new Error(`Unknown or incomplete argument: ${arg ?? ""}`);
+  }
+
+  return output;
+}

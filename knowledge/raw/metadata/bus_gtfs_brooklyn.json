@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "sourceId": "bus_gtfs_brooklyn",
+  "sourceType": "gtfs_static_zip",
+  "sourcePriority": "secondary",
+  "manifestStatus": "active",
+  "checkedAt": "2026-04-27T02:47:43.974Z",
+  "probeStatus": "active",
+  "statusRecommendation": "active",
+  "url": "https://rrgtfsfeeds.s3.amazonaws.com/gtfs_b.zip",
+  "http": {
+    "method": "HEAD",
+    "transport": "fetch",
+    "status": 200,
+    "ok": true,
+    "finalUrl": "https://rrgtfsfeeds.s3.amazonaws.com/gtfs_b.zip",
+    "contentType": "application/zip",
+    "contentLengthBytes": 15937868,
+    "lastModified": "Wed, 08 Apr 2026 13:20:18 GMT",
+    "etag": "\"92f6f46555050f220dc48b324fe288c0\"",
+    "responseDate": "Mon, 27 Apr 2026 02:47:44 GMT"
+  }
+}

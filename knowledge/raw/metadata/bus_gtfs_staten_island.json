@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "sourceId": "bus_gtfs_staten_island",
+  "sourceType": "gtfs_static_zip",
+  "sourcePriority": "secondary",
+  "manifestStatus": "active",
+  "checkedAt": "2026-04-27T02:47:44.030Z",
+  "probeStatus": "active",
+  "statusRecommendation": "active",
+  "url": "https://rrgtfsfeeds.s3.amazonaws.com/gtfs_si.zip",
+  "http": {
+    "method": "HEAD",
+    "transport": "fetch",
+    "status": 200,
+    "ok": true,
+    "finalUrl": "https://rrgtfsfeeds.s3.amazonaws.com/gtfs_si.zip",
+    "contentType": "application/zip",
+    "contentLengthBytes": 6122389,
+    "lastModified": "Wed, 08 Apr 2026 13:20:20 GMT",
+    "etag": "\"208af47dd601ab947369adf01944686d\"",
+    "responseDate": "Mon, 27 Apr 2026 02:47:45 GMT"
+  }
+}

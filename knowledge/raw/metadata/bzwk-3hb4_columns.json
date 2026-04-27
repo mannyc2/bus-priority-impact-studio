@@ -1,0 +1,1726 @@
+{
+  "schemaVersion": 1,
+  "sourceId": "bus_routes_all_bundles",
+  "checkedAt": "2026-04-27T02:46:17.490Z",
+  "columnsUrl": "https://data.ny.gov/api/views/bzwk-3hb4/columns.json",
+  "columns": [
+    {
+      "id": 624502546,
+      "name": "Valid From",
+      "dataTypeName": "calendar_date",
+      "fieldName": "valid_from",
+      "description": "First service_date (inclusive) for which this shape is valid within the bundle, in MM/DD/YYYY.",
+      "position": 1,
+      "renderTypeName": "calendar_date",
+      "tableColumnId": 162784315,
+      "cachedContents": {
+        "non_null": "200476",
+        "largest": "2026-04-21T00:00:00.000",
+        "null": "0",
+        "top": [
+          {
+            "item": "2022-01-02T00:00:00.000",
+            "count": "2340"
+          },
+          {
+            "item": "2018-09-02T00:00:00.000",
+            "count": "2304"
+          },
+          {
+            "item": "2020-11-20T00:00:00.000",
+            "count": "1891"
+          },
+          {
+            "item": "2020-12-18T00:00:00.000",
+            "count": "1890"
+          },
+          {
+            "item": "2020-10-28T00:00:00.000",
+            "count": "1880"
+          },
+          {
+            "item": "2020-10-15T00:00:00.000",
+            "count": "1880"
+          },
+          {
+            "item": "2020-10-09T00:00:00.000",
+            "count": "1879"
+          },
+          {
+            "item": "2020-09-25T00:00:00.000",
+            "count": "1876"
+          },
+          {
+            "item": "2020-09-06T00:00:00.000",
+            "count": "1876"
+          },
+          {
+            "item": "2020-09-21T00:00:00.000",
+            "count": "1876"
+          },
+          {
+            "item": "2019-04-21T00:00:00.000",
+            "count": "1866"
+          },
+          {
+            "item": "2019-04-25T00:00:00.000",
+            "count": "1866"
+          },
+          {
+            "item": "2019-03-29T00:00:00.000",
+            "count": "1864"
+          },
+          {
+            "item": "2019-03-06T00:00:00.000",
+            "count": "1864"
+          },
+          {
+            "item": "2019-02-17T00:00:00.000",
+            "count": "1862"
+          },
+          {
+            "item": "2019-03-13T00:00:00.000",
+            "count": "1862"
+          },
+          {
+            "item": "2019-10-01T00:00:00.000",
+            "count": "1848"
+          },
+          {
+            "item": "2022-01-11T00:00:00.000",
+            "count": "1847"
+          },
+          {
+            "item": "2019-01-06T00:00:00.000",
+            "count": "1836"
+          },
+          {
+            "item": "2022-01-31T00:00:00.000",
+            "count": "1836"
+          }
+        ],
+        "smallest": "2018-09-02T00:00:00.000",
+        "count": "200476",
+        "cardinality": "200476"
+      },
+      "format": {
+        "view": "date",
+        "align": "center"
+      }
+    },
+    {
+      "id": 624502547,
+      "name": "Valid To",
+      "dataTypeName": "calendar_date",
+      "fieldName": "valid_to",
+      "description": "Last service_date (inclusive) for which this shape is valid within the bundle, in MM/DD/YYYY.",
+      "position": 2,
+      "renderTypeName": "calendar_date",
+      "tableColumnId": 162784316,
+      "cachedContents": {
+        "non_null": "200476",
+        "largest": "2026-06-27T00:00:00.000",
+        "null": "0",
+        "top": [
+          {
+            "item": "2022-01-10T00:00:00.000",
+            "count": "2340"
+          },
+          {
+            "item": "2019-01-05T00:00:00.000",
+            "count": "2304"
+          },
+          {
+            "item": "2020-12-15T00:00:00.000",
+            "count": "1891"
+          },
+          {
+            "item": "2021-01-02T00:00:00.000",
+            "count": "1890"
+          },
+          {
+            "item": "2020-11-19T00:00:00.000",
+            "count": "1880"
+          },
+          {
+            "item": "2020-10-27T00:00:00.000",
+            "count": "1880"
+          },
+          {
+            "item": "2020-10-14T00:00:00.000",
+            "count": "1879"
+          },
+          {
+            "item": "2020-10-08T00:00:00.000",
+            "count": "1876"
+          },
+          {
+            "item": "2020-09-20T00:00:00.000",
+            "count": "1876"
+          },
+          {
+            "item": "2020-09-24T00:00:00.000",
+            "count": "1876"
+          },
+          {
+            "item": "2019-04-24T00:00:00.000",
+            "count": "1866"
+          },
+          {
+            "item": "2019-04-27T00:00:00.000",
+            "count": "1866"
+          },
+          {
+            "item": "2019-04-20T00:00:00.000",
+            "count": "1864"
+          },
+          {
+            "item": "2019-03-12T00:00:00.000",
+            "count": "1864"
+          },
+          {
+            "item": "2019-03-05T00:00:00.000",
+            "count": "1862"
+          },
+          {
+            "item": "2019-03-28T00:00:00.000",
+            "count": "1862"
+          },
+          {
+            "item": "2019-11-11T00:00:00.000",
+            "count": "1848"
+          },
+          {
+            "item": "2022-01-30T00:00:00.000",
+            "count": "1847"
+          },
+          {
+            "item": "2019-02-16T00:00:00.000",
+            "count": "1836"
+          },
+          {
+            "item": "2022-03-05T00:00:00.000",
+            "count": "1836"
+          }
+        ],
+        "smallest": "2019-01-05T00:00:00.000",
+        "count": "200476",
+        "cardinality": "200476"
+      },
+      "format": {
+        "view": "date",
+        "align": "center"
+      }
+    },
+    {
+      "id": 624502566,
+      "name": "In Effect",
+      "dataTypeName": "text",
+      "fieldName": "in_effect",
+      "description": "A true / false flag of whether the route is currently in effect.",
+      "position": 3,
+      "renderTypeName": "text",
+      "tableColumnId": 164511134,
+      "cachedContents": {
+        "non_null": "200476",
+        "largest": "true",
+        "null": "0",
+        "top": [
+          {
+            "item": "false",
+            "count": "198836"
+          },
+          {
+            "item": "true",
+            "count": "1640"
+          }
+        ],
+        "smallest": "false",
+        "count": "200476",
+        "cardinality": "200476"
+      },
+      "format": {}
+    },
+    {
+      "id": 624502548,
+      "name": "Route ID",
+      "dataTypeName": "text",
+      "fieldName": "route_id",
+      "description": "The bus route identifier (e.g., B6, M15, Q46).",
+      "position": 4,
+      "renderTypeName": "text",
+      "tableColumnId": 162784317,
+      "cachedContents": {
+        "non_null": "200476",
+        "largest": "X68",
+        "null": "0",
+        "top": [
+          {
+            "item": "B44",
+            "count": "4801"
+          },
+          {
+            "item": "B6",
+            "count": "2686"
+          },
+          {
+            "item": "B44+",
+            "count": "2353"
+          },
+          {
+            "item": "B41",
+            "count": "2313"
+          },
+          {
+            "item": "BX12",
+            "count": "2219"
+          },
+          {
+            "item": "Q27",
+            "count": "2154"
+          },
+          {
+            "item": "S78",
+            "count": "2031"
+          },
+          {
+            "item": "Q54",
+            "count": "1948"
+          },
+          {
+            "item": "S46",
+            "count": "1778"
+          },
+          {
+            "item": "B49",
+            "count": "1702"
+          },
+          {
+            "item": "M101",
+            "count": "1701"
+          },
+          {
+            "item": "M4",
+            "count": "1687"
+          },
+          {
+            "item": "B9",
+            "count": "1676"
+          },
+          {
+            "item": "S74",
+            "count": "1635"
+          },
+          {
+            "item": "Q58",
+            "count": "1624"
+          },
+          {
+            "item": "B16",
+            "count": "1579"
+          },
+          {
+            "item": "Q85",
+            "count": "1576"
+          },
+          {
+            "item": "Q7",
+            "count": "1573"
+          },
+          {
+            "item": "Q22",
+            "count": "1475"
+          },
+          {
+            "item": "S59",
+            "count": "1455"
+          }
+        ],
+        "smallest": "B1",
+        "count": "200476",
+        "cardinality": "200476"
+      },
+      "format": {
+        "align": "center"
+      }
+    },
+    {
+      "id": 624502549,
+      "name": "Route Short Name",
+      "dataTypeName": "text",
+      "fieldName": "route_short_name",
+      "description": "The short name for the bus route. This is identical to Route ID except for Select Bus Service routes, which are shown with a suffix of a + in Route ID but have a suffix of SBS here, or for some shuttle bus routes.",
+      "position": 5,
+      "renderTypeName": "text",
+      "tableColumnId": 162784318,
+      "cachedContents": {
+        "non_null": "200476",
+        "largest": "X68",
+        "null": "0",
+        "top": [
+          {
+            "item": "B44",
+            "count": "4801"
+          },
+          {
+            "item": "B6",
+            "count": "2686"
+          },
+          {
+            "item": "B44-SBS",
+            "count": "2353"
+          },
+          {
+            "item": "B41",
+            "count": "2313"
+          },
+          {
+            "item": "Bx12",
+            "count": "2219"
+          },
+          {
+            "item": "Q27",
+            "count": "2154"
+          },
+          {
+            "item": "S78",
+            "count": "2031"
+          },
+          {
+            "item": "Q54",
+            "count": "1948"
+          },
+          {
+            "item": "S46",
+            "count": "1778"
+          },
+          {
+            "item": "B49",
+            "count": "1702"
+          },
+          {
+            "item": "M101",
+            "count": "1701"
+          },
+          {
+            "item": "M4",
+            "count": "1687"
+          },
+          {
+            "item": "B9",
+            "count": "1676"
+          },
+          {
+            "item": "S74",
+            "count": "1635"
+          },
+          {
+            "item": "Q58",
+            "count": "1624"
+          },
+          {
+            "item": "B16",
+            "count": "1579"
+          },
+          {
+            "item": "Q85",
+            "count": "1576"
+          },
+          {
+            "item": "Q7",
+            "count": "1573"
+          },
+          {
+            "item": "Q22",
+            "count": "1475"
+          },
+          {
+            "item": "S59",
+            "count": "1455"
+          }
+        ],
+        "smallest": "B1",
+        "count": "200476",
+        "cardinality": "200476"
+      },
+      "format": {
+        "align": "center"
+      }
+    },
+    {
+      "id": 624502550,
+      "name": "Route Long Name",
+      "dataTypeName": "text",
+      "fieldName": "route_long_name",
+      "description": "The long name for the bus route, including the neighborhoods or streets the bus runs between or runs along.",
+      "position": 6,
+      "renderTypeName": "text",
+      "tableColumnId": 162784301,
+      "cachedContents": {
+        "non_null": "200476",
+        "largest": "Yorkville - West Side",
+        "null": "0",
+        "top": [
+          {
+            "item": "Sheepshead Bay - Williamsburg",
+            "count": "7154"
+          },
+          {
+            "item": "St. George - Bricktown Mall",
+            "count": "3666"
+          },
+          {
+            "item": "Bath Beach - East New York",
+            "count": "2686"
+          },
+          {
+            "item": "Kings Plaza - Downtown Brooklyn",
+            "count": "2313"
+          },
+          {
+            "item": "St. George - West Shore Plaza",
+            "count": "2243"
+          },
+          {
+            "item": "Cambria Heights - Flushing",
+            "count": "2154"
+          },
+          {
+            "item": "Cambria Heights - Jamaica",
+            "count": "2107"
+          },
+          {
+            "item": "Williamsburg - Jamaica",
+            "count": "1948"
+          },
+          {
+            "item": "College Point - Jamaica",
+            "count": "1940"
+          },
+          {
+            "item": "Kings Plaza - Williamsburg",
+            "count": "1839"
+          },
+          {
+            "item": "Hunts Point - Riverside Dr",
+            "count": "1824"
+          },
+          {
+            "item": "Throgs Neck - River Park Towers",
+            "count": "1807"
+          },
+          {
+            "item": "Rosedale - Jamaica",
+            "count": "1703"
+          },
+          {
+            "item": "Manhattan Beach - Bedford-Stuyvesant",
+            "count": "1702"
+          },
+          {
+            "item": "The Cloisters - 32 St",
+            "count": "1687"
+          },
+          {
+            "item": "Bay Ridge - Kings Plaza",
+            "count": "1676"
+          },
+          {
+            "item": "Ridgewood - Flushing",
+            "count": "1654"
+          },
+          {
+            "item": "Williamsbridge - The Hub",
+            "count": "1646"
+          },
+          {
+            "item": "St. George - Staten Island Mall",
+            "count": "1624"
+          },
+          {
+            "item": "Pelham Pkwy - Fordham Rd",
+            "count": "1592"
+          }
+        ],
+        "smallest": "101St Avenue",
+        "count": "200476",
+        "cardinality": "200476"
+      },
+      "format": {}
+    },
+    {
+      "id": 624502551,
+      "name": "Route Description",
+      "dataTypeName": "text",
+      "fieldName": "route_description",
+      "description": "A more detailed description of the bus route indicating the main streets it traverses. This field can be NULL.",
+      "position": 7,
+      "renderTypeName": "text",
+      "tableColumnId": 162784302,
+      "cachedContents": {
+        "non_null": "191373",
+        "largest": "York College Vaccination Center",
+        "null": "9103",
+        "top": [
+          {
+            "item": "via Nostrand Av",
+            "count": "4801"
+          },
+          {
+            "item": "via Richmond Av",
+            "count": "3148"
+          },
+          {
+            "item": "via Bay Pkwy / Avenue J / Flatlands Av",
+            "count": "2686"
+          },
+          {
+            "item": "Select Bus Service via Nostrand Av",
+            "count": "2353"
+          },
+          {
+            "item": "via Flatbush Av / Livingston St",
+            "count": "2313"
+          },
+          {
+            "item": "via Pelham Pkwy / Fordham Rd",
+            "count": "2219"
+          },
+          {
+            "item": "via Hylan Blvd",
+            "count": "2031"
+          },
+          {
+            "item": "via Jamaica Av / Metropolitan Av",
+            "count": "1948"
+          },
+          {
+            "item": "via Castleton Av",
+            "count": "1778"
+          },
+          {
+            "item": "via Surf Av / Cropsey Av",
+            "count": "1720"
+          },
+          {
+            "item": "via Ocean Av / Bedford & Rogers Av",
+            "count": "1702"
+          },
+          {
+            "item": "via Third Av / Lexington Av / Amsterdam Av",
+            "count": "1701"
+          },
+          {
+            "item": "via 60th St / Avenue M",
+            "count": "1676"
+          },
+          {
+            "item": "via Richmond Rd / Arthur Kill Rd",
+            "count": "1635"
+          },
+          {
+            "item": "via Fresh Pond Rd / Corona Av / College Pt Blvd",
+            "count": "1624"
+          },
+          {
+            "item": "via Ft Hamilton Pkwy / 13th & 14th Av",
+            "count": "1579"
+          },
+          {
+            "item": "via Union Turnpike",
+            "count": "1495"
+          },
+          {
+            "item": "Via Rockaway Blvd",
+            "count": "1483"
+          },
+          {
+            "item": "via Merrick Blvd / Conduit Av",
+            "count": "1470"
+          },
+          {
+            "item": "via Richmond Av / Arthur Kill Rd / Foster Rd",
+            "count": "1445"
+          }
+        ],
+        "smallest": "Edgemere-York College Vaccination Center",
+        "count": "200476",
+        "cardinality": "200476"
+      },
+      "format": {}
+    },
+    {
+      "id": 624502552,
+      "name": "Trip Type",
+      "dataTypeName": "number",
+      "fieldName": "trip_type",
+      "description": "Trip classification integer (e.g., 1=Local, 10=School Limited, 11=School Local, 12=Limited, 13=Express, 14=SBS).",
+      "position": 8,
+      "renderTypeName": "number",
+      "tableColumnId": 162784319,
+      "cachedContents": {
+        "non_null": "200476",
+        "largest": "14",
+        "null": "0",
+        "top": [
+          {
+            "item": "1",
+            "count": "118270"
+          },
+          {
+            "item": "13",
+            "count": "28796"
+          },
+          {
+            "item": "11",
+            "count": "27977"
+          },
+          {
+            "item": "12",
+            "count": "14627"
+          },
+          {
+            "item": "14",
+            "count": "9549"
+          },
+          {
+            "item": "10",
+            "count": "1257"
+          }
+        ],
+        "smallest": "1",
+        "count": "200476",
+        "cardinality": "200476"
+      },
+      "format": {
+        "decimalSeparator": ".",
+        "groupSeparator": ",",
+        "align": "center"
+      }
+    },
+    {
+      "id": 624502553,
+      "name": "Route Type",
+      "dataTypeName": "text",
+      "fieldName": "route_type",
+      "description": "Human-readable service type mapped from trip_type (e.g., Local, School, Limited, Express, SBS).",
+      "position": 9,
+      "renderTypeName": "text",
+      "tableColumnId": 162784303,
+      "cachedContents": {
+        "non_null": "200476",
+        "largest": "School Limited",
+        "null": "0",
+        "top": [
+          {
+            "item": "Local",
+            "count": "118270"
+          },
+          {
+            "item": "Express",
+            "count": "28796"
+          },
+          {
+            "item": "School",
+            "count": "27977"
+          },
+          {
+            "item": "Limited",
+            "count": "14627"
+          },
+          {
+            "item": "SBS",
+            "count": "9549"
+          },
+          {
+            "item": "School Limited",
+            "count": "1257"
+          }
+        ],
+        "smallest": "Express",
+        "count": "200476",
+        "cardinality": "200476"
+      },
+      "format": {}
+    },
+    {
+      "id": 624502554,
+      "name": "Bundle",
+      "dataTypeName": "text",
+      "fieldName": "bundle",
+      "description": "Identifier of the schedule bundle release (GTFS/STIF package).",
+      "position": 10,
+      "renderTypeName": "text",
+      "tableColumnId": 162784304,
+      "cachedContents": {
+        "non_null": "200476",
+        "largest": "April20",
+        "null": "0",
+        "top": [
+          {
+            "item": "2020Jan",
+            "count": "27477"
+          },
+          {
+            "item": "2020Sep",
+            "count": "16160"
+          },
+          {
+            "item": "2021Jan",
+            "count": "13386"
+          },
+          {
+            "item": "2019Jan",
+            "count": "13020"
+          },
+          {
+            "item": "2021Sep",
+            "count": "12421"
+          },
+          {
+            "item": "2021Apr",
+            "count": "10172"
+          },
+          {
+            "item": "2025Aug",
+            "count": "9891"
+          },
+          {
+            "item": "2025Mar",
+            "count": "8585"
+          },
+          {
+            "item": "2022Jan",
+            "count": "7859"
+          },
+          {
+            "item": "2020Jul",
+            "count": "7711"
+          },
+          {
+            "item": "2019Sep",
+            "count": "7149"
+          },
+          {
+            "item": "2023Sep",
+            "count": "6981"
+          },
+          {
+            "item": "2019Apr",
+            "count": "6812"
+          },
+          {
+            "item": "2025Dec",
+            "count": "6133"
+          },
+          {
+            "item": "2025Jan",
+            "count": "5197"
+          },
+          {
+            "item": "2022Sep",
+            "count": "5155"
+          },
+          {
+            "item": "2025Jun",
+            "count": "3794"
+          },
+          {
+            "item": "2022Jun",
+            "count": "3781"
+          },
+          {
+            "item": "2024Sep",
+            "count": "3517"
+          },
+          {
+            "item": "2026Apr",
+            "count": "3280"
+          }
+        ],
+        "smallest": "2018Sep",
+        "count": "200476",
+        "cardinality": "200476"
+      },
+      "format": {}
+    },
+    {
+      "id": 624502555,
+      "name": "Route Color",
+      "dataTypeName": "text",
+      "fieldName": "route_color",
+      "description": "The six-digit Hex Color code that matches public facing material for the bus route.",
+      "position": 11,
+      "renderTypeName": "text",
+      "tableColumnId": 162784305,
+      "cachedContents": {
+        "non_null": "199011",
+        "largest": "FAA61A",
+        "null": "1465",
+        "top": [
+          {
+            "item": "EE352E",
+            "count": "47803"
+          },
+          {
+            "item": "FAA61A",
+            "count": "32829"
+          },
+          {
+            "item": "00933C",
+            "count": "28831"
+          },
+          {
+            "item": "B933AD",
+            "count": "25976"
+          },
+          {
+            "item": "6CBE45",
+            "count": "21970"
+          },
+          {
+            "item": "006CB7",
+            "count": "21125"
+          },
+          {
+            "item": "00AEEF",
+            "count": "15819"
+          },
+          {
+            "item": "799534",
+            "count": "3484"
+          },
+          {
+            "item": "0062CF",
+            "count": "308"
+          },
+          {
+            "item": "D82233",
+            "count": "305"
+          },
+          {
+            "item": "9A38A1",
+            "count": "289"
+          },
+          {
+            "item": "61AD3C",
+            "count": "264"
+          },
+          {
+            "item": "D0006F",
+            "count": "8"
+          }
+        ],
+        "smallest": "0062CF",
+        "count": "200476",
+        "cardinality": "200476"
+      },
+      "format": {}
+    },
+    {
+      "id": 624502556,
+      "name": "Direction ID",
+      "dataTypeName": "text",
+      "fieldName": "direction_id",
+      "description": "Direction code; 0 for Northbound/Eastbound, 1 for Southbound/Westbound.",
+      "position": 12,
+      "renderTypeName": "text",
+      "tableColumnId": 162784320,
+      "cachedContents": {
+        "non_null": "200476",
+        "largest": "1",
+        "null": "0",
+        "top": [
+          {
+            "item": "1",
+            "count": "102403"
+          },
+          {
+            "item": "0",
+            "count": "98073"
+          }
+        ],
+        "smallest": "0",
+        "count": "200476",
+        "cardinality": "200476"
+      },
+      "format": {
+        "decimalSeparator": ".",
+        "groupSeparator": ","
+      }
+    },
+    {
+      "id": 624502557,
+      "name": "Direction",
+      "dataTypeName": "text",
+      "fieldName": "direction",
+      "description": "Cardinal direction letter (N, S, E, W) corresponding to direction_id.",
+      "position": 13,
+      "renderTypeName": "text",
+      "tableColumnId": 162784306,
+      "cachedContents": {
+        "non_null": "200476",
+        "largest": "W",
+        "null": "0",
+        "top": [
+          {
+            "item": "S",
+            "count": "53678"
+          },
+          {
+            "item": "N",
+            "count": "52892"
+          },
+          {
+            "item": "W",
+            "count": "48725"
+          },
+          {
+            "item": "E",
+            "count": "45181"
+          }
+        ],
+        "smallest": "E",
+        "count": "200476",
+        "cardinality": "200476"
+      },
+      "format": {}
+    },
+    {
+      "id": 624502558,
+      "name": "Shape ID",
+      "dataTypeName": "text",
+      "fieldName": "shape_id",
+      "description": "Unique shape identifier for this route pattern (route + pattern digits/letters).",
+      "position": 14,
+      "renderTypeName": "text",
+      "tableColumnId": 162784307,
+      "cachedContents": {
+        "non_null": "200476",
+        "largest": "X680174",
+        "null": "0",
+        "top": [
+          {
+            "item": "Q880223",
+            "count": "130"
+          },
+          {
+            "item": "BXM30187",
+            "count": "124"
+          },
+          {
+            "item": "SBS460042",
+            "count": "124"
+          },
+          {
+            "item": "BXM10118",
+            "count": "124"
+          },
+          {
+            "item": "BXM40141",
+            "count": "124"
+          },
+          {
+            "item": "M960093",
+            "count": "124"
+          },
+          {
+            "item": "M080022",
+            "count": "122"
+          },
+          {
+            "item": "BXM30188",
+            "count": "121"
+          },
+          {
+            "item": "BXM30189",
+            "count": "121"
+          },
+          {
+            "item": "BXM10121",
+            "count": "119"
+          },
+          {
+            "item": "BXM180077",
+            "count": "119"
+          },
+          {
+            "item": "BM30112",
+            "count": "118"
+          },
+          {
+            "item": "BM40102",
+            "count": "118"
+          },
+          {
+            "item": "B310049",
+            "count": "118"
+          },
+          {
+            "item": "BM10143",
+            "count": "118"
+          },
+          {
+            "item": "BM20216",
+            "count": "118"
+          },
+          {
+            "item": "B240102",
+            "count": "117"
+          },
+          {
+            "item": "B470092",
+            "count": "117"
+          },
+          {
+            "item": "B440357",
+            "count": "116"
+          },
+          {
+            "item": "BXM10144",
+            "count": "113"
+          }
+        ],
+        "smallest": "B1000076",
+        "count": "200476",
+        "cardinality": "200476"
+      },
+      "format": {}
+    },
+    {
+      "id": 624502559,
+      "name": "Vertices",
+      "dataTypeName": "number",
+      "fieldName": "vertices",
+      "description": "Number of vertices in the polyline geometry.",
+      "position": 15,
+      "renderTypeName": "number",
+      "tableColumnId": 162784308,
+      "cachedContents": {
+        "non_null": "200476",
+        "largest": "1398",
+        "null": "0",
+        "top": [
+          {
+            "item": "244",
+            "count": "1097"
+          },
+          {
+            "item": "314",
+            "count": "1039"
+          },
+          {
+            "item": "188",
+            "count": "1021"
+          },
+          {
+            "item": "173",
+            "count": "995"
+          },
+          {
+            "item": "157",
+            "count": "980"
+          },
+          {
+            "item": "111",
+            "count": "969"
+          },
+          {
+            "item": "166",
+            "count": "956"
+          },
+          {
+            "item": "222",
+            "count": "939"
+          },
+          {
+            "item": "135",
+            "count": "924"
+          },
+          {
+            "item": "223",
+            "count": "909"
+          },
+          {
+            "item": "289",
+            "count": "897"
+          },
+          {
+            "item": "144",
+            "count": "883"
+          },
+          {
+            "item": "186",
+            "count": "869"
+          },
+          {
+            "item": "350",
+            "count": "866"
+          },
+          {
+            "item": "224",
+            "count": "860"
+          },
+          {
+            "item": "282",
+            "count": "859"
+          },
+          {
+            "item": "286",
+            "count": "844"
+          },
+          {
+            "item": "278",
+            "count": "841"
+          },
+          {
+            "item": "305",
+            "count": "839"
+          },
+          {
+            "item": "92",
+            "count": "837"
+          }
+        ],
+        "smallest": "3",
+        "count": "200476",
+        "cardinality": "200476"
+      },
+      "format": {
+        "decimalSeparator": ".",
+        "groupSeparator": ","
+      }
+    },
+    {
+      "id": 624502560,
+      "name": "Shape Length",
+      "dataTypeName": "number",
+      "fieldName": "shape_length",
+      "description": "Shape length in feet computed after projecting to EPSG:2263.",
+      "position": 16,
+      "renderTypeName": "number",
+      "tableColumnId": 162784309,
+      "cachedContents": {
+        "non_null": "200476",
+        "largest": "193637.914708967",
+        "null": "0",
+        "top": [
+          {
+            "item": "35202.3385773917",
+            "count": "357"
+          },
+          {
+            "item": "35227.17673504731",
+            "count": "281"
+          },
+          {
+            "item": "33352.84723452503",
+            "count": "277"
+          },
+          {
+            "item": "48843.193404993595",
+            "count": "261"
+          },
+          {
+            "item": "50974.60731906375",
+            "count": "248"
+          },
+          {
+            "item": "16119.301568058281",
+            "count": "241"
+          },
+          {
+            "item": "19831.612465873804",
+            "count": "234"
+          },
+          {
+            "item": "41183.076050814045",
+            "count": "231"
+          },
+          {
+            "item": "47618.77203020582",
+            "count": "221"
+          },
+          {
+            "item": "14715.696873452964",
+            "count": "216"
+          },
+          {
+            "item": "12582.342485030898",
+            "count": "216"
+          },
+          {
+            "item": "53487.65885217778",
+            "count": "213"
+          },
+          {
+            "item": "20381.96314092734",
+            "count": "210"
+          },
+          {
+            "item": "42694.66362125423",
+            "count": "208"
+          },
+          {
+            "item": "36310.01182166555",
+            "count": "204"
+          },
+          {
+            "item": "49023.379236868146",
+            "count": "204"
+          },
+          {
+            "item": "53487.309790323845",
+            "count": "203"
+          },
+          {
+            "item": "42652.652937228566",
+            "count": "202"
+          },
+          {
+            "item": "21725.125771014034",
+            "count": "197"
+          },
+          {
+            "item": "15503.033709929334",
+            "count": "196"
+          }
+        ],
+        "smallest": "1946.494452635725",
+        "count": "200476",
+        "cardinality": "200476"
+      },
+      "format": {
+        "decimalSeparator": ".",
+        "groupSeparator": ","
+      }
+    },
+    {
+      "id": 624502561,
+      "name": "Min Longitude",
+      "dataTypeName": "number",
+      "fieldName": "min_longitude",
+      "description": "Minimum longitude of the shapes bounding box (EPSG:4326).",
+      "position": 17,
+      "renderTypeName": "number",
+      "tableColumnId": 162784310,
+      "cachedContents": {
+        "non_null": "200476",
+        "largest": "-73.741452",
+        "null": "0",
+        "top": [
+          {
+            "item": "-73.987738",
+            "count": "3318"
+          },
+          {
+            "item": "-73.804169",
+            "count": "2854"
+          },
+          {
+            "item": "-74.17129",
+            "count": "2319"
+          },
+          {
+            "item": "-73.796399",
+            "count": "1929"
+          },
+          {
+            "item": "-73.998639",
+            "count": "1884"
+          },
+          {
+            "item": "-73.957008",
+            "count": "1856"
+          },
+          {
+            "item": "-73.931609",
+            "count": "1765"
+          },
+          {
+            "item": "-74.040829",
+            "count": "1589"
+          },
+          {
+            "item": "-73.953416",
+            "count": "1512"
+          },
+          {
+            "item": "-73.989153",
+            "count": "1502"
+          },
+          {
+            "item": "-73.802951",
+            "count": "1402"
+          },
+          {
+            "item": "-73.797309",
+            "count": "1376"
+          },
+          {
+            "item": "-74.000279",
+            "count": "1323"
+          },
+          {
+            "item": "-74.206989",
+            "count": "1255"
+          },
+          {
+            "item": "-73.963099",
+            "count": "1216"
+          },
+          {
+            "item": "-74.036579",
+            "count": "1201"
+          },
+          {
+            "item": "-73.830429",
+            "count": "1183"
+          },
+          {
+            "item": "-73.897429",
+            "count": "1176"
+          },
+          {
+            "item": "-74.014933",
+            "count": "1143"
+          },
+          {
+            "item": "-73.874015",
+            "count": "1143"
+          }
+        ],
+        "smallest": "-74.252339",
+        "count": "200476",
+        "cardinality": "200476"
+      },
+      "format": {
+        "decimalSeparator": ".",
+        "groupSeparator": ","
+      }
+    },
+    {
+      "id": 624502562,
+      "name": "Min Latitude",
+      "dataTypeName": "number",
+      "fieldName": "min_latitude",
+      "description": "Minimum latitude of the shapes bounding box (EPSG:4326).",
+      "position": 18,
+      "renderTypeName": "number",
+      "tableColumnId": 162784311,
+      "cachedContents": {
+        "non_null": "200476",
+        "largest": "40.885015",
+        "null": "0",
+        "top": [
+          {
+            "item": "40.519112",
+            "count": "2051"
+          },
+          {
+            "item": "40.851632",
+            "count": "1957"
+          },
+          {
+            "item": "40.700232",
+            "count": "1826"
+          },
+          {
+            "item": "40.534282",
+            "count": "1730"
+          },
+          {
+            "item": "40.701752",
+            "count": "1720"
+          },
+          {
+            "item": "40.583952",
+            "count": "1584"
+          },
+          {
+            "item": "40.740895",
+            "count": "1502"
+          },
+          {
+            "item": "40.502872",
+            "count": "1458"
+          },
+          {
+            "item": "40.629737",
+            "count": "1420"
+          },
+          {
+            "item": "40.572732",
+            "count": "1418"
+          },
+          {
+            "item": "40.608132",
+            "count": "1371"
+          },
+          {
+            "item": "40.589562",
+            "count": "1323"
+          },
+          {
+            "item": "40.611382",
+            "count": "1316"
+          },
+          {
+            "item": "40.618592",
+            "count": "1278"
+          },
+          {
+            "item": "40.700592",
+            "count": "1248"
+          },
+          {
+            "item": "40.576292",
+            "count": "1186"
+          },
+          {
+            "item": "40.698012",
+            "count": "1058"
+          },
+          {
+            "item": "40.601742",
+            "count": "1041"
+          },
+          {
+            "item": "40.58508",
+            "count": "1014"
+          },
+          {
+            "item": "40.624232",
+            "count": "1010"
+          }
+        ],
+        "smallest": "40.502872",
+        "count": "200476",
+        "cardinality": "200476"
+      },
+      "format": {
+        "decimalSeparator": ".",
+        "groupSeparator": ","
+      }
+    },
+    {
+      "id": 624502563,
+      "name": "Max Longitude",
+      "dataTypeName": "number",
+      "fieldName": "max_longitude",
+      "description": "Maximum longitude of the shapes bounding box (EPSG:4326).",
+      "position": 19,
+      "renderTypeName": "number",
+      "tableColumnId": 162784312,
+      "cachedContents": {
+        "non_null": "200476",
+        "largest": "-73.701241",
+        "null": "0",
+        "top": [
+          {
+            "item": "-74.072329",
+            "count": "5310"
+          },
+          {
+            "item": "-73.735279",
+            "count": "2159"
+          },
+          {
+            "item": "-73.931059",
+            "count": "2039"
+          },
+          {
+            "item": "-73.995889",
+            "count": "1793"
+          },
+          {
+            "item": "-73.996189",
+            "count": "1429"
+          },
+          {
+            "item": "-73.877589",
+            "count": "1273"
+          },
+          {
+            "item": "-73.789769",
+            "count": "1253"
+          },
+          {
+            "item": "-73.920609",
+            "count": "1241"
+          },
+          {
+            "item": "-73.906645",
+            "count": "1206"
+          },
+          {
+            "item": "-73.972359",
+            "count": "1120"
+          },
+          {
+            "item": "-73.968691",
+            "count": "1083"
+          },
+          {
+            "item": "-73.887379",
+            "count": "1044"
+          },
+          {
+            "item": "-73.877519",
+            "count": "1044"
+          },
+          {
+            "item": "-73.931218",
+            "count": "1014"
+          },
+          {
+            "item": "-73.862049",
+            "count": "1008"
+          },
+          {
+            "item": "-73.973949",
+            "count": "1000"
+          },
+          {
+            "item": "-73.900659",
+            "count": "926"
+          },
+          {
+            "item": "-73.792472",
+            "count": "918"
+          },
+          {
+            "item": "-73.820879",
+            "count": "906"
+          },
+          {
+            "item": "-73.825109",
+            "count": "905"
+          }
+        ],
+        "smallest": "-74.207979",
+        "count": "200476",
+        "cardinality": "200476"
+      },
+      "format": {
+        "decimalSeparator": ".",
+        "groupSeparator": ","
+      }
+    },
+    {
+      "id": 624502564,
+      "name": "Max Latitude",
+      "dataTypeName": "number",
+      "fieldName": "max_latitude",
+      "description": "Maximum latitude of the shapes bounding box (EPSG:4326).",
+      "position": 20,
+      "renderTypeName": "number",
+      "tableColumnId": 162784313,
+      "cachedContents": {
+        "non_null": "200476",
+        "largest": "40.93372",
+        "null": "0",
+        "top": [
+          {
+            "item": "40.643681",
+            "count": "3537"
+          },
+          {
+            "item": "40.643399",
+            "count": "3249"
+          },
+          {
+            "item": "40.764355",
+            "count": "3203"
+          },
+          {
+            "item": "40.704842",
+            "count": "2417"
+          },
+          {
+            "item": "40.698872",
+            "count": "1856"
+          },
+          {
+            "item": "40.881072",
+            "count": "1747"
+          },
+          {
+            "item": "40.648392",
+            "count": "1727"
+          },
+          {
+            "item": "40.643482",
+            "count": "1598"
+          },
+          {
+            "item": "40.699527",
+            "count": "1512"
+          },
+          {
+            "item": "40.762316",
+            "count": "1492"
+          },
+          {
+            "item": "40.709593",
+            "count": "1316"
+          },
+          {
+            "item": "40.762952",
+            "count": "1257"
+          },
+          {
+            "item": "40.763008",
+            "count": "1257"
+          },
+          {
+            "item": "40.708647",
+            "count": "1255"
+          },
+          {
+            "item": "40.704432",
+            "count": "1207"
+          },
+          {
+            "item": "40.645781",
+            "count": "1174"
+          },
+          {
+            "item": "40.849832",
+            "count": "1158"
+          },
+          {
+            "item": "40.883012",
+            "count": "1123"
+          },
+          {
+            "item": "40.780312",
+            "count": "1097"
+          },
+          {
+            "item": "40.780902",
+            "count": "1018"
+          }
+        ],
+        "smallest": "40.526753",
+        "count": "200476",
+        "cardinality": "200476"
+      },
+      "format": {
+        "decimalSeparator": ".",
+        "groupSeparator": ","
+      }
+    },
+    {
+      "id": 624502565,
+      "name": "Geometry",
+      "dataTypeName": "multiline",
+      "fieldName": "geometry",
+      "description": "Polyline geometry as Well-Known Text (WKT), coordinates stored in EPSG:4326.",
+      "position": 21,
+      "renderTypeName": "multiline",
+      "tableColumnId": 162794702,
+      "format": {}
+    }
+  ]
+}

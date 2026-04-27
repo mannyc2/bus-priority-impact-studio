@@ -37,7 +37,7 @@ tags: [codex, roadmap, implementation, typescript]
 1. Implement `packages/analytics` transformations.
 2. Compute weighted speed averages by route/segment/time period.
 3. Identify hotspots.
-4. Add ridership weights if the schema probe is complete.
+4. Add ridership weights if the schema probe is complete. Completed for M1 route/month hotspots using route-level hourly exposure.
 5. Add ACE and bus-lane overlays if schemas are confirmed.
 6. Generate a route scorecard for M1.
 7. Generate deterministic route brief inputs with citations/caveats.

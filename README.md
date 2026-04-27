@@ -52,6 +52,10 @@ bun run hooks:install
 
 Bun runs local scripts, workspace filters, package tests, and pipeline commands. Cloudflare Workers still deploy to Cloudflare's `workerd` runtime, and Wrangler remains the Cloudflare CLI.
 
+## Environment
+
+Set `MTA_BUS_TIME_API_KEY` only when you want `sources:probe` to check optional Bus Time GTFS-RT feeds. Without it, those feeds are skipped and the core public source probes still run. Do not commit local env files or secrets.
+
 ## Current scaffold
 
 The current scaffold includes:

@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "sourceId": "bus_time_gtfsrt_alerts",
+  "sourceType": "gtfs_realtime_api",
+  "sourcePriority": "optional",
+  "manifestStatus": "active",
+  "checkedAt": "2026-04-27T02:47:44.050Z",
+  "probeStatus": "skipped",
+  "statusRecommendation": "skipped",
+  "redactedUrl": "https://gtfsrt.prod.obanyc.com/alerts?key=<redacted>",
+  "error": "Set MTA_BUS_TIME_API_KEY to probe Bus Time GTFS-RT feeds."
+}

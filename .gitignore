@@ -3,6 +3,9 @@ dist/
 build/
 .wrangler/
 .dev.vars
+.env
+.env.*
+!.env.example
 .DS_Store
 
 # Local/generated data. Keep fixtures small and intentional.
@@ -18,12 +21,22 @@ data/artifacts/*
 *.sqlite3
 *.duckdb
 *.parquet
+*.jsonl
+*.ndjson
+*.geojson
+*.pmtiles
+*.mbtiles
 *.csv
 *.zip
 
 # Fixtures are intentionally commit-able even when they use data-file extensions.
 !data/fixtures/
 !data/fixtures/**
+
+# Full source captures are local by default. Commit small probe metadata
+# under knowledge/raw/metadata, and put large source datasets under data/raw.
+knowledge/raw/downloads/*
+!knowledge/raw/downloads/.gitkeep
 
 # Tool caches.
 .cache/

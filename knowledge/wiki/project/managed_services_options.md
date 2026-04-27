@@ -13,7 +13,7 @@ tags: [infrastructure, hosting, managed-services, cloudflare, vps, cost]
 
 ## Architecture update — package-structure review
 
-A later engineering decision narrows the MVP implementation to a TypeScript-only monorepo. Where this memo mentions Python, GeoPandas, local Postgres/PostGIS, or a separate Pages + Workers split, treat those as optional escalation tools. The concrete MVP package structure uses Cloudflare Workers Static Assets + Worker API, D1, R2, and local TypeScript pipeline jobs. See [[wiki/engineering/package_structure|Repo Package Structure]].
+A later engineering decision narrows the MVP implementation to a TypeScript-only monorepo. Historical alternatives in this memo, such as Python, GeoPandas, local Postgres/PostGIS, or a separate Pages + Workers split, are escalation options only. The concrete MVP package structure uses Cloudflare Workers Static Assets + Worker API, D1, R2, and local TypeScript pipeline jobs. See [[wiki/engineering/package_structure|Repo Package Structure]].
 
 ## Why this matters
 
@@ -68,10 +68,9 @@ Those should not be hosted the same way. The cheapest credible MVP should make t
 
 **Use for cheapest credible MVP.**
 
-- Local developer machine: DuckDB, Python, GeoPandas/Shapely, SQLite, optional local Postgres/PostGIS container.
+- Local developer machine: Bun-run TypeScript pipeline jobs, with DuckDB/Turf added only when a concrete transform needs them.
 - Build artifacts: route scorecards, segment hotspot tables, map tiles/GeoJSON/PMTiles, route briefs, source manifest, document search index.
-- Cloudflare Pages: static React/Next/Vite frontend.
-- Cloudflare Workers or Pages Functions: thin API layer.
+- Cloudflare Workers Static Assets: React/Vite frontend plus thin Worker API.
 - Cloudflare D1: small serving database for route metadata, scores, source cards, and precomputed queryable tables.
 - Cloudflare R2: larger artifacts such as PMTiles, GeoJSON, Parquet extracts, generated route briefs, and static search indexes.
 - Search: client-side/static MiniSearch/FlexSearch/Lunr index first; optional D1 FTS or Vectorize later.
@@ -83,7 +82,7 @@ Those should not be hosted the same way. The cheapest credible MVP should make t
 **Use when dynamic geospatial queries become necessary.**
 
 - Same local batch pipeline.
-- Cloudflare Pages/Workers for frontend/API.
+- Cloudflare Workers Static Assets + Worker API for frontend/API.
 - Neon Postgres/PostGIS for dynamic map queries, spatial indexes, and/or pgvector if the document corpus outgrows static search.
 - R2 remains the artifact store.
 
@@ -132,7 +131,7 @@ Those should not be hosted the same way. The cheapest credible MVP should make t
 ### Direct answers to the primary questions
 
 1. **Can we do the MVP without any VPS?**  
-   Yes. [Inference] The MVP is mostly read-heavy public serving over deterministic precomputed artifacts, so it can be hosted with Cloudflare Pages + Workers + D1 + R2 while heavy computation stays local.
+   Yes. [Inference] The MVP is mostly read-heavy public serving over deterministic precomputed artifacts, so it can be hosted with Cloudflare Workers Static Assets + D1 + R2 while heavy computation stays local.
 
 2. **Best managed-services architecture for the MVP?**  
    Use **Architecture A: local batch + Cloudflare public serving**.
@@ -144,7 +143,7 @@ Those should not be hosted the same way. The cheapest credible MVP should make t
    **Cloudflare D1** for route metadata, source cards, precomputed scorecards, and small queryable tables. Store large geometry/tiles/artifacts in R2 instead of D1.
 
 5. **Should Postgres/PostGIS be hosted from day one?**  
-   No. Keep Postgres/PostGIS local/offline until a public feature requires dynamic spatial SQL. Use local DuckDB/GeoPandas/Shapely and optional local Postgres/PostGIS for geometry construction and QA.
+   No. Keep Postgres/PostGIS out of the MVP until a public feature requires dynamic spatial SQL. Use local TypeScript pipeline jobs, DuckDB spatial, and/or Turf for geometry construction and QA before escalating.
 
 6. **Best low-cost path for document/wiki search?**  
    Start with a static generated lexical index, such as MiniSearch/FlexSearch/Lunr JSON, served from Pages/R2. Add D1 FTS tables or Turso if the index grows. Add Vectorize or pgvector only after there is a demonstrated semantic-search need.
@@ -153,27 +152,26 @@ Those should not be hosted the same way. The cheapest credible MVP should make t
    See [[#What Should Stay Local Even If Hosting Is Managed]].
 
 8. **Cleanest migration path?**  
-   Keep the repo split into `etl/`, `artifacts/`, `serving/`, and `app/` so that the serving DB can move from D1 to Neon/PostGIS or a VPS without rewriting analytics.
+   Keep the current `tools/pipeline`, `packages/*`, `apps/web`, and `data/artifacts` boundaries so that the serving DB can move from D1 to Neon/PostGIS or a VPS without rewriting analytics.
 
 ### Cheapest credible MVP stack
 
 **Local developer machine**
 
-- Python + DuckDB + pandas/Polars.
-- GeoPandas/Shapely for geometry construction.
-- Optional local Postgres/PostGIS in Docker for validating the future data model.
+- Bun + TypeScript pipeline commands.
+- Optional DuckDB spatial/Turf when route geometry construction needs spatial operations.
 - Local scripts generate:
-  - `artifacts/scorecards/*.json`
-  - `artifacts/maps/*.pmtiles` or `*.geojson`
-  - `artifacts/search/wiki_index.json`
-  - `artifacts/briefs/*.md` / `*.html`
-  - `artifacts/sqlite/serving.sqlite` for portability
+  - `data/artifacts/scorecards/*.json`
+  - `data/artifacts/maps/*.pmtiles` or `*.geojson`
+  - `data/artifacts/search/wiki_index.json`
+  - `data/artifacts/briefs/*.md` / `*.html`
+  - `data/artifacts/sqlite/serving.sqlite` for portability
   - D1 migration/load SQL.
 
 **Managed public layer**
 
-- Cloudflare Pages for static frontend.
-- Cloudflare Workers/Pages Functions for API endpoints.
+- Cloudflare Workers Static Assets for the frontend.
+- Worker API endpoints for server-side reads.
 - Cloudflare D1 for small serving tables.
 - Cloudflare R2 for generated artifacts and larger map/search files.
 - Cloudflare Cron only for metadata freshness checks or cache invalidation, not for ETL.
@@ -200,7 +198,7 @@ Those should not be hosted the same way. The cheapest credible MVP should make t
 
 Use this when the public UI needs dynamic spatial filters, live bounding-box queries, nearest-route/nearest-stop lookup, or interactive intervention overlays that cannot be precomputed cleanly.
 
-- Cloudflare Pages + Workers remain the frontend/API shell.
+- Cloudflare Workers Static Assets + Worker API remain the frontend/API shell.
 - Neon Postgres/PostGIS becomes the serving database.
 - R2 remains the artifact store.
 - Optional pgvector in Neon if document search should live near relational source metadata.
@@ -214,7 +212,7 @@ These estimates exclude LLM API usage, domain registration, paid map tiles, and 
 
 | Scenario | Stack | Expected monthly hosting cost | Notes |
 |---|---|---:|---|
-| Local-first + mostly free managed MVP | Local ETL + Cloudflare Pages/Workers Free + D1 Free + R2 Free | **$0** | Assumes under 100k Worker requests/day, D1 under 500 MB per DB, R2 under 10 GB-month, and static search. |
+| Local-first + mostly free managed MVP | Local ETL + Cloudflare Workers Static Assets/Workers Free + D1 Free + R2 Free | **$0** | Assumes under 100k Worker requests/day, D1 under 500 MB per DB, R2 under 10 GB-month, and static search. |
 | Light public demo traffic | Same Cloudflare stack, optionally Workers Standard | **$0–$5** | Pay $5 if Worker CPU/subrequests or comfort with higher included monthly quota matters. |
 | Moderate portfolio/demo usage | Cloudflare Workers Standard + D1/R2 within included paid quotas | **$5–$15** | $5 base plus small overages if R2 ops or Worker CPU grow. Keep D1 queries indexed. |
 | Flexible PostGIS demo | Cloudflare + Neon Free/Launch | **$0–$25+** | Neon Free may be enough for intermittent demo; Launch has no monthly minimum, but active compute/storage determine real cost. |
@@ -256,15 +254,15 @@ Keep these tasks local/offline even if the public app is fully managed:
 ### Phase 0 — local-first MVP
 
 - Build the ETL locally.
-- Export artifacts to `artifacts/` and commit small generated examples.
+- Export artifacts to `data/artifacts/` and commit small generated examples when they are intentionally fixture-sized.
 - Validate source schemas and update wiki pages.
 - Prototype the UI against local JSON/SQLite.
-- Keep optional local Postgres/PostGIS in Docker for data-model validation.
+- Keep Postgres/PostGIS out unless a documented requirement forces that escalation.
 
 ### Phase 1 — managed/public MVP
 
-- Deploy static UI to Cloudflare Pages.
-- Add Worker/Pages Function endpoints.
+- Deploy static UI through Cloudflare Workers Static Assets.
+- Add Worker API endpoints.
 - Load small serving tables into D1.
 - Upload maps, briefs, and search artifacts to R2.
 - Add CI task that verifies artifacts exist and D1 migrations are reproducible.
@@ -289,8 +287,8 @@ Keep these tasks local/offline even if the public app is fully managed:
 ### Phase 4 — heavier production architecture
 
 - Add explicit batch environment only when local refresh becomes painful.
-- Consider Railway/Render/Fly/VPS for Python jobs or always-on collectors.
-- Consider a real warehouse only if raw public-data backfills and analytic queries outgrow local DuckDB/PostGIS.
+- Consider Railway/Render/Fly/VPS only for a concrete container/runtime need or always-on collectors.
+- Consider a real warehouse only if raw public-data backfills and analytic queries outgrow local TypeScript/DuckDB artifact builds.
 
 ## Caveats
 

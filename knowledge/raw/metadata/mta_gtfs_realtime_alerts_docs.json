@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "sourceId": "mta_gtfs_realtime_alerts_docs",
+  "sourceType": "pdf_or_doc",
+  "sourcePriority": "secondary",
+  "manifestStatus": "active",
+  "checkedAt": "2026-04-27T02:47:44.083Z",
+  "probeStatus": "active",
+  "statusRecommendation": "active",
+  "url": "https://www.mta.info/document/90881",
+  "http": {
+    "method": "HEAD",
+    "transport": "fetch",
+    "status": 200,
+    "ok": true,
+    "finalUrl": "https://www.mta.info/document/90881",
+    "contentType": "application/pdf",
+    "contentLengthBytes": 157829,
+    "lastModified": "Mon, 11 Jul 2022 19:50:11 GMT",
+    "responseDate": "Mon, 27 Apr 2026 02:47:44 GMT"
+  }
+}

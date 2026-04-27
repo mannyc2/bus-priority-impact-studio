@@ -2,7 +2,7 @@
 title: MTA Developer Resources
 type: data
 status: active
-last_updated: 2026-04-26
+last_updated: 2026-04-27
 owner: codex
 source_count: 3
 tags: [mta, gtfs, realtime, api]
@@ -34,6 +34,10 @@ For realtime buses, MTA Bus Time provides GTFS-RT endpoints requiring an API key
 - `https://gtfsrt.prod.obanyc.com/alerts?key=<YOUR_KEY>`
 
 MTA also provides subway/rail/service alerts in GTFS-RT format and links to feed-specific protobuf extensions.
+
+## Probe status
+
+Probe completed 2026-04-27. The developer resources page, data-feed terms page, six static bus GTFS zip URLs, three Bus Time GTFS-RT endpoints, MTA GTFS alerts PDF, and GTFS Realtime reference page were all active. GTFS zip files were checked by HTTP metadata only and were not downloaded.
 
 ## Compliance notes
 

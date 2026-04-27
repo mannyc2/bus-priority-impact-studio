@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "sourceId": "bus_gtfs_mta_bus_company",
+  "sourceType": "gtfs_static_zip",
+  "sourcePriority": "secondary",
+  "manifestStatus": "active",
+  "checkedAt": "2026-04-27T02:47:44.049Z",
+  "probeStatus": "active",
+  "statusRecommendation": "active",
+  "url": "https://rrgtfsfeeds.s3.amazonaws.com/gtfs_busco.zip",
+  "http": {
+    "method": "HEAD",
+    "transport": "fetch",
+    "status": 200,
+    "ok": true,
+    "finalUrl": "https://rrgtfsfeeds.s3.amazonaws.com/gtfs_busco.zip",
+    "contentType": "application/zip",
+    "contentLengthBytes": 8090707,
+    "lastModified": "Fri, 17 Apr 2026 13:54:34 GMT",
+    "etag": "\"bd1fbde2ef4e3e010b8b363bec51fd4f\"",
+    "responseDate": "Mon, 27 Apr 2026 02:47:45 GMT"
+  }
+}

@@ -1,28 +1,28 @@
 # Source manifest for Bus Priority Impact Studio.
 # Codex should validate every source, retrieve metadata, then update wiki/data/source_registry.md.
 
-verified_at: 2026-04-26
+verified_at: 2026-04-27
 sources:
   - id: mta_open_data_program
     type: web_page
     priority: core
     url: https://www.mta.info/open-data
     purpose: Context on MTA Data & Analytics, Open Data commitments, public contact, blog.
-    status: seed_verified
+    status: active
 
   - id: mta_developer_resources
     type: web_page
     priority: core
     url: https://www.mta.info/developers
     purpose: Static GTFS, realtime feed, Bus Time API, and developer-resource entry point.
-    status: seed_verified
+    status: active
 
   - id: mta_data_feed_terms
     type: web_page
     priority: core
     url: https://www.mta.info/developers/terms-and-conditions
     purpose: Compliance rules for using and redistributing MTA data feeds.
-    status: seed_verified
+    status: active
 
   - id: bus_segment_speeds_2025
     type: socrata_dataset
@@ -34,7 +34,7 @@ sources:
     columns_json: https://data.ny.gov/api/views/kufs-yh3x/columns.json
     rows_csv: https://data.ny.gov/api/views/kufs-yh3x/rows.csv?accessType=DOWNLOAD
     purpose: Core observed bus speeds/travel times by route/timepoint/month/day/hour.
-    status: needs_schema_probe
+    status: active
 
   - id: bus_segment_speeds_2023_2024
     type: socrata_dataset
@@ -46,7 +46,7 @@ sources:
     columns_json: https://data.ny.gov/api/views/58t6-89vi/columns.json
     rows_csv: https://data.ny.gov/api/views/58t6-89vi/rows.csv?accessType=DOWNLOAD
     purpose: Historical speed baseline for pre-2025 analysis.
-    status: needs_schema_probe
+    status: active
 
   - id: cbd_bus_speeds_2023
     type: socrata_dataset
@@ -58,7 +58,7 @@ sources:
     columns_json: https://data.ny.gov/api/views/r6db-kkzj/columns.json
     rows_csv: https://data.ny.gov/api/views/r6db-kkzj/rows.csv?accessType=DOWNLOAD
     purpose: CBD-specific speed analysis, useful for congestion-zone context.
-    status: needs_schema_probe
+    status: active
 
   - id: current_bus_routes
     type: socrata_dataset
@@ -70,7 +70,7 @@ sources:
     columns_json: https://data.ny.gov/api/views/h2wf-afav/columns.json
     rows_csv: https://data.ny.gov/api/views/h2wf-afav/rows.csv?accessType=DOWNLOAD
     purpose: Current route-shape polylines and route metadata.
-    status: needs_schema_probe
+    status: active
 
   - id: current_bus_stops
     type: socrata_dataset
@@ -82,7 +82,7 @@ sources:
     columns_json: https://data.ny.gov/api/views/ai5j-txmn/columns.json
     rows_csv: https://data.ny.gov/api/views/ai5j-txmn/rows.csv?accessType=DOWNLOAD
     purpose: Current stop points, timepoint flags, CBD flags, route/direction links.
-    status: needs_schema_probe
+    status: active
 
   - id: bus_routes_all_bundles
     type: socrata_dataset
@@ -94,7 +94,7 @@ sources:
     columns_json: https://data.ny.gov/api/views/bzwk-3hb4/columns.json
     rows_csv: https://data.ny.gov/api/views/bzwk-3hb4/rows.csv?accessType=DOWNLOAD
     purpose: Route shapes across schedule bundles; useful for historical comparisons.
-    status: needs_schema_probe
+    status: active
 
   - id: bus_stops_all_bundles
     type: socrata_dataset
@@ -106,7 +106,7 @@ sources:
     columns_json: https://data.ny.gov/api/views/2ucp-7wg5/columns.json
     rows_csv: https://data.ny.gov/api/views/2ucp-7wg5/rows.csv?accessType=DOWNLOAD
     purpose: Stop points across schedule bundles; useful for historical comparisons.
-    status: needs_schema_probe
+    status: active
 
   - id: bus_hourly_ridership_2025
     type: socrata_dataset
@@ -118,7 +118,7 @@ sources:
     columns_json: https://data.ny.gov/api/views/gxb3-akrn/columns.json
     rows_csv: https://data.ny.gov/api/views/gxb3-akrn/rows.csv?accessType=DOWNLOAD
     purpose: Ridership weighting by route/hour/fare class.
-    status: needs_schema_probe
+    status: active
 
   - id: bus_hourly_ridership_2020_2024
     type: socrata_dataset
@@ -130,7 +130,7 @@ sources:
     columns_json: https://data.ny.gov/api/views/kv7t-n8in/columns.json
     rows_csv: https://data.ny.gov/api/views/kv7t-n8in/rows.csv?accessType=DOWNLOAD
     purpose: Historical ridership baseline.
-    status: needs_schema_probe
+    status: active
 
   - id: bus_schedules_2026
     type: socrata_dataset
@@ -142,7 +142,7 @@ sources:
     columns_json: https://data.ny.gov/api/views/4fnn-qsea/columns.json
     rows_csv: https://data.ny.gov/api/views/4fnn-qsea/rows.csv?accessType=DOWNLOAD
     purpose: Scheduled timepoint rows for planned travel times and schedule-adherence context.
-    status: needs_schema_probe
+    status: active
 
   - id: ace_routes
     type: socrata_dataset
@@ -154,7 +154,7 @@ sources:
     columns_json: https://data.ny.gov/api/views/ki2b-sg5y/columns.json
     rows_csv: https://data.ny.gov/api/views/ki2b-sg5y/rows.csv?accessType=DOWNLOAD
     purpose: ACE/ABLE implementation dates by route.
-    status: needs_schema_probe
+    status: active
 
   - id: ace_violations
     type: socrata_dataset
@@ -166,7 +166,7 @@ sources:
     columns_json: https://data.ny.gov/api/views/kh8p-hcbm/columns.json
     rows_csv: https://data.ny.gov/api/views/kh8p-hcbm/rows.csv?accessType=DOWNLOAD
     purpose: ACE violation records for enforcement intensity and blocked-lane/blocked-stop context.
-    status: needs_schema_probe
+    status: active
 
   - id: nyc_dot_bus_lanes_local_streets
     type: socrata_dataset
@@ -178,102 +178,102 @@ sources:
     columns_json: https://data.cityofnewyork.us/api/views/ycrg-ses3/columns.json
     rows_csv: https://data.cityofnewyork.us/api/views/ycrg-ses3/rows.csv?accessType=DOWNLOAD
     purpose: Local-street bus-lane segments based on NYC LION street segments.
-    status: needs_schema_probe
+    status: active
 
   - id: bus_gtfs_bronx
     type: gtfs_static_zip
     priority: secondary
     url: https://rrgtfsfeeds.s3.amazonaws.com/gtfs_bx.zip
     purpose: Static GTFS for Bronx buses.
-    status: needs_download
+    status: active
 
   - id: bus_gtfs_brooklyn
     type: gtfs_static_zip
     priority: secondary
     url: https://rrgtfsfeeds.s3.amazonaws.com/gtfs_b.zip
     purpose: Static GTFS for Brooklyn buses.
-    status: needs_download
+    status: active
 
   - id: bus_gtfs_manhattan
     type: gtfs_static_zip
     priority: secondary
     url: https://rrgtfsfeeds.s3.amazonaws.com/gtfs_m.zip
     purpose: Static GTFS for Manhattan buses.
-    status: needs_download
+    status: active
 
   - id: bus_gtfs_queens
     type: gtfs_static_zip
     priority: secondary
     url: https://rrgtfsfeeds.s3.amazonaws.com/gtfs_q.zip
     purpose: Static GTFS for Queens buses.
-    status: needs_download
+    status: active
 
   - id: bus_gtfs_staten_island
     type: gtfs_static_zip
     priority: secondary
     url: https://rrgtfsfeeds.s3.amazonaws.com/gtfs_si.zip
     purpose: Static GTFS for Staten Island buses.
-    status: needs_download
+    status: active
 
   - id: bus_gtfs_mta_bus_company
     type: gtfs_static_zip
     priority: secondary
     url: https://rrgtfsfeeds.s3.amazonaws.com/gtfs_busco.zip
     purpose: Static GTFS for MTA Bus Company routes.
-    status: needs_download
+    status: active
 
   - id: bus_time_gtfsrt_trip_updates
     type: gtfs_realtime_api
     priority: optional
     url: https://gtfsrt.prod.obanyc.com/tripUpdates?key=<YOUR_KEY>
     purpose: Realtime bus trip updates; useful for headways, delays, and bunching if collected over time.
-    status: needs_api_key
+    status: active
 
   - id: bus_time_gtfsrt_vehicle_positions
     type: gtfs_realtime_api
     priority: optional
     url: https://gtfsrt.prod.obanyc.com/vehiclePositions?key=<YOUR_KEY>
     purpose: Realtime bus locations; useful for headways, bunching, and route state snapshots.
-    status: needs_api_key
+    status: active
 
   - id: bus_time_gtfsrt_alerts
     type: gtfs_realtime_api
     priority: optional
     url: https://gtfsrt.prod.obanyc.com/alerts?key=<YOUR_KEY>
     purpose: Bus alerts via Bus Time.
-    status: needs_api_key
+    status: active
 
   - id: mta_gtfs_realtime_alerts_docs
     type: pdf_or_doc
     priority: secondary
     url: https://www.mta.info/document/90881
     purpose: MTA GTFS Alerts feed implementation details.
-    status: needs_capture
+    status: active
 
   - id: gtfs_realtime_reference
     type: standard_doc
     priority: secondary
     url: https://gtfs.org/documentation/realtime/reference/
     purpose: GTFS Realtime reference for parsing feeds.
-    status: seed_verified
+    status: active
 
   - id: mta_segment_speed_blog_2026
     type: web_page
     priority: core
     url: https://www.mta.info/article/mapping-movement-exploring-nyc-bus-route-shapes-through-segment-level-speed-data
     purpose: MTA worked example for combining routes, stops, segment speeds, and Python.
-    status: seed_verified
+    status: active
 
   - id: mta_segment_speed_blog_2024
     type: web_page
     priority: core
     url: https://www.mta.info/article/beyond-route-introducing-granular-mta-bus-speed-data
     purpose: MTA explanation of segment-speed methodology and uses.
-    status: seed_verified
+    status: active
 
   - id: mta_ace_page
     type: web_page
     priority: core
     url: https://www.mta.info/agency/new-york-city-transit/automated-camera-enforcement
     purpose: Official ACE program description, claimed impacts, routes, rules, caveats.
-    status: seed_verified
+    status: active

@@ -1,10 +1,10 @@
 ---
 title: MTA Bus Schedules and GTFS
 type: data
-status: needs_schema_probe
-last_updated: 2026-04-26
+status: active
+last_updated: 2026-04-27
 owner: codex
-source_count: 2
+source_count: 8
 tags: [mta, gtfs, schedules, bus]
 ---
 
@@ -20,7 +20,13 @@ Schedules provide planned service context. They help interpret observed speed/tr
 
 Socrata dataset: `4fnn-qsea`.
 
-Known description: rows for each scheduled timepoint stop on a trip.
+Rows for each scheduled timepoint stop on a trip.
+
+Probe completed 2026-04-27: 8,937,275 rows, rows updated 2026-04-26T19:07:48Z, 25 fields:
+
+```text
+schedule_date, day_type, borough, operator, service_id, direction, shape_id, trip_type, route_id, stop_sequence, stop_id, stop_name, schedule_time, origin, destination, school, revenue_stop, timepoint, boarding, alighting, distance_from_start, trip_headsign, block_id, depot_code, bundle
+```
 
 ### Static Bus GTFS feeds
 
@@ -34,6 +40,17 @@ MTA Developer Resources lists six bus GTFS zip files, generally split by borough
 - `gtfs_busco.zip`
 
 MTA says bus GTFS is generally updated four times a year for quarterly bus schedule changes, and temporary service changes/detours generally are not included.
+
+Probe completed 2026-04-27. The zip URLs were verified with HTTP metadata only; files were not downloaded into `data/raw/`.
+
+| Feed | Size | Last modified |
+|---|---:|---:|
+| Bronx | 7,774,521 bytes | 2026-04-08T13:20:19Z |
+| Brooklyn | 15,937,868 bytes | 2026-04-08T13:20:18Z |
+| Manhattan | 7,762,091 bytes | 2026-04-08T13:20:20Z |
+| Queens | 5,525,076 bytes | 2026-04-08T13:20:20Z |
+| Staten Island | 6,122,389 bytes | 2026-04-08T13:20:20Z |
+| MTA Bus Company | 8,090,707 bytes | 2026-04-17T13:54:34Z |
 
 ## Implementation notes
 

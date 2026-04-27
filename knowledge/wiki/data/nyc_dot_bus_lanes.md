@@ -1,8 +1,8 @@
 ---
 title: NYC DOT Bus Lanes
 type: data
-status: needs_schema_probe
-last_updated: 2026-04-26
+status: active
+last_updated: 2026-04-27
 owner: codex
 source_count: 2
 tags: [nyc-dot, bus-lanes, geospatial]
@@ -24,6 +24,14 @@ Bus lanes are a key bus-priority intervention. Overlaying bus-lane locations wit
 NYC Open Data: Bus Lanes - Local Streets — `ycrg-ses3`.
 
 Known description: each record represents a segment of a bus lane based on NYC LION street segments. The `SegmentID` field can be used to join with LION data.
+
+## Schema probe
+
+Probe completed 2026-04-27: `ycrg-ses3` has 4,068 rows, rows updated 2026-04-06T15:44:03Z, and 29 fields:
+
+```text
+the_geom, street, bltrafdir, segmentid, rw_type, streetwidt, boro, facility, direction, hours, days, days_code, lane_width, lane_type1, lane_type, lane_type2, lane_color, sbs_route1, sbs_route2, sbs_route3, open_dates, year1, year2, year3, last_updat, chron_id_1, shape_leng, shape_le_1, mid_block
+```
 
 ## Implementation notes
 

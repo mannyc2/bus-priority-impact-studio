@@ -1,0 +1,2560 @@
+{
+  "schemaVersion": 1,
+  "sourceId": "bus_segment_speeds_2023_2024",
+  "checkedAt": "2026-04-27T02:46:13.080Z",
+  "metadataUrl": "https://data.ny.gov/api/views/58t6-89vi",
+  "metadata": {
+    "id": "58t6-89vi",
+    "name": "MTA Bus Route Segment Speeds: 2023 - 2024",
+    "description": "This dataset provides data on how fast buses are traveling between pairs of subsequent timepoints (the major stops on a bus route) for every bus route in the system. It will provide the average speed in miles per hour between pairs of timepoints, the average travel time in minutes, the road distance in miles, and the number of bus trips for each bus route aggregated by month, day of the week, and hour of day. It also provides the type of bus trip (Local, Limited, SBS, Express, School), the borough of the bus route, the names of the timepoints, their coordinates, and the stop sequence order of the first two timepoints in a pair.",
+    "attribution": "Metropolitan Transportation Authority",
+    "rowsUpdatedAt": 1737741362,
+    "columns": [
+      {
+        "id": 598906422,
+        "name": "Year",
+        "dataTypeName": "number",
+        "fieldName": "year",
+        "description": "The year for the data.",
+        "position": 1,
+        "renderTypeName": "number",
+        "tableColumnId": 154673948,
+        "cachedContents": {
+          "non_null": "11656097",
+          "largest": "2024",
+          "null": "0",
+          "top": [
+            {
+              "item": "2024",
+              "count": "5847050"
+            },
+            {
+              "item": "2023",
+              "count": "5809047"
+            }
+          ],
+          "smallest": "2023",
+          "count": "11656097",
+          "cardinality": "2"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "noCommas": "true",
+          "align": "center"
+        }
+      },
+      {
+        "id": 598906421,
+        "name": "Month",
+        "dataTypeName": "number",
+        "fieldName": "month",
+        "description": "The month bus speeds are being aggregated to.",
+        "position": 2,
+        "renderTypeName": "number",
+        "tableColumnId": 154673947,
+        "cachedContents": {
+          "non_null": "11656097",
+          "largest": "12",
+          "null": "0",
+          "top": [
+            {
+              "item": "8",
+              "count": "1051876"
+            },
+            {
+              "item": "6",
+              "count": "997113"
+            },
+            {
+              "item": "1",
+              "count": "984304"
+            },
+            {
+              "item": "12",
+              "count": "965201"
+            },
+            {
+              "item": "9",
+              "count": "963214"
+            },
+            {
+              "item": "11",
+              "count": "960868"
+            },
+            {
+              "item": "5",
+              "count": "958596"
+            },
+            {
+              "item": "3",
+              "count": "958320"
+            },
+            {
+              "item": "2",
+              "count": "957251"
+            },
+            {
+              "item": "4",
+              "count": "954840"
+            },
+            {
+              "item": "10",
+              "count": "953768"
+            },
+            {
+              "item": "7",
+              "count": "950746"
+            }
+          ],
+          "smallest": "1",
+          "count": "11656097",
+          "cardinality": "12"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "groupSeparator": ",",
+          "align": "center"
+        }
+      },
+      {
+        "id": 598906420,
+        "name": "Timestamp",
+        "dataTypeName": "calendar_date",
+        "fieldName": "timestamp",
+        "description": "Timestamp of the year, month, hour of week the data represents in a MM/DD/YYY HH:MM:SS AM/PM format.",
+        "position": 3,
+        "renderTypeName": "calendar_date",
+        "tableColumnId": 154673946,
+        "cachedContents": {
+          "non_null": "11656097",
+          "largest": "2024-12-01T23:00:00.000",
+          "null": "0",
+          "top": [
+            {
+              "item": "2024-06-01T15:00:00.000",
+              "count": "26504"
+            },
+            {
+              "item": "2023-08-01T17:00:00.000",
+              "count": "26481"
+            },
+            {
+              "item": "2023-08-01T18:00:00.000",
+              "count": "26459"
+            },
+            {
+              "item": "2023-08-01T16:00:00.000",
+              "count": "26405"
+            },
+            {
+              "item": "2024-06-01T14:00:00.000",
+              "count": "26396"
+            },
+            {
+              "item": "2023-08-01T08:00:00.000",
+              "count": "26339"
+            },
+            {
+              "item": "2024-06-01T16:00:00.000",
+              "count": "26069"
+            },
+            {
+              "item": "2024-08-01T16:00:00.000",
+              "count": "26003"
+            },
+            {
+              "item": "2024-08-01T17:00:00.000",
+              "count": "26003"
+            },
+            {
+              "item": "2024-08-01T18:00:00.000",
+              "count": "25962"
+            },
+            {
+              "item": "2024-08-01T08:00:00.000",
+              "count": "25875"
+            },
+            {
+              "item": "2023-08-01T19:00:00.000",
+              "count": "25839"
+            },
+            {
+              "item": "2024-06-01T17:00:00.000",
+              "count": "25792"
+            },
+            {
+              "item": "2024-06-01T08:00:00.000",
+              "count": "25779"
+            },
+            {
+              "item": "2023-08-01T07:00:00.000",
+              "count": "25751"
+            },
+            {
+              "item": "2024-06-01T18:00:00.000",
+              "count": "25738"
+            },
+            {
+              "item": "2023-08-01T09:00:00.000",
+              "count": "25624"
+            },
+            {
+              "item": "2024-06-01T07:00:00.000",
+              "count": "25588"
+            },
+            {
+              "item": "2023-08-01T15:00:00.000",
+              "count": "25520"
+            },
+            {
+              "item": "2024-01-01T15:00:00.000",
+              "count": "25427"
+            }
+          ],
+          "smallest": "2023-01-01T00:00:00.000",
+          "count": "11656097",
+          "cardinality": "576"
+        },
+        "format": {
+          "align": "center"
+        }
+      },
+      {
+        "id": 598906419,
+        "name": "Day of Week",
+        "dataTypeName": "text",
+        "fieldName": "day_of_week",
+        "description": "The day of the week bus speeds are being aggregated to.",
+        "position": 4,
+        "renderTypeName": "text",
+        "tableColumnId": 154673945,
+        "cachedContents": {
+          "non_null": "11656097",
+          "largest": "Wednesday",
+          "null": "0",
+          "top": [
+            {
+              "item": "Monday",
+              "count": "1749599"
+            },
+            {
+              "item": "Thursday",
+              "count": "1739601"
+            },
+            {
+              "item": "Friday",
+              "count": "1736496"
+            },
+            {
+              "item": "Wednesday",
+              "count": "1722754"
+            },
+            {
+              "item": "Tuesday",
+              "count": "1714663"
+            },
+            {
+              "item": "Saturday",
+              "count": "1526799"
+            },
+            {
+              "item": "Sunday",
+              "count": "1466185"
+            }
+          ],
+          "smallest": "Friday",
+          "count": "11656097",
+          "cardinality": "7"
+        },
+        "format": {}
+      },
+      {
+        "id": 598906418,
+        "name": "Hour of Day",
+        "dataTypeName": "number",
+        "fieldName": "hour_of_day",
+        "description": "The hour the data is being aggregated to (0 to 23).",
+        "position": 5,
+        "renderTypeName": "number",
+        "tableColumnId": 154673944,
+        "cachedContents": {
+          "non_null": "11656097",
+          "largest": "23",
+          "null": "0",
+          "top": [
+            {
+              "item": "15",
+              "count": "589512"
+            },
+            {
+              "item": "16",
+              "count": "583816"
+            },
+            {
+              "item": "14",
+              "count": "582342"
+            },
+            {
+              "item": "17",
+              "count": "578900"
+            },
+            {
+              "item": "8",
+              "count": "577722"
+            },
+            {
+              "item": "18",
+              "count": "577526"
+            },
+            {
+              "item": "7",
+              "count": "573143"
+            },
+            {
+              "item": "19",
+              "count": "562376"
+            },
+            {
+              "item": "9",
+              "count": "555120"
+            },
+            {
+              "item": "13",
+              "count": "534508"
+            },
+            {
+              "item": "6",
+              "count": "533114"
+            },
+            {
+              "item": "10",
+              "count": "530324"
+            },
+            {
+              "item": "12",
+              "count": "530009"
+            },
+            {
+              "item": "20",
+              "count": "528021"
+            },
+            {
+              "item": "11",
+              "count": "526936"
+            },
+            {
+              "item": "21",
+              "count": "507796"
+            },
+            {
+              "item": "22",
+              "count": "482836"
+            },
+            {
+              "item": "23",
+              "count": "451879"
+            },
+            {
+              "item": "5",
+              "count": "413996"
+            },
+            {
+              "item": "0",
+              "count": "403971"
+            }
+          ],
+          "smallest": "0",
+          "count": "11656097",
+          "cardinality": "24"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "groupSeparator": ",",
+          "align": "center"
+        }
+      },
+      {
+        "id": 598906417,
+        "name": "Route ID",
+        "dataTypeName": "text",
+        "fieldName": "route_id",
+        "description": "The individual bus route.",
+        "position": 6,
+        "renderTypeName": "text",
+        "tableColumnId": 154673943,
+        "cachedContents": {
+          "non_null": "11656097",
+          "largest": "X68",
+          "null": "0",
+          "top": [
+            {
+              "item": "B6",
+              "count": "107782"
+            },
+            {
+              "item": "B41",
+              "count": "106411"
+            },
+            {
+              "item": "Q85",
+              "count": "103203"
+            },
+            {
+              "item": "M15",
+              "count": "95379"
+            },
+            {
+              "item": "Q36",
+              "count": "93366"
+            },
+            {
+              "item": "Q5",
+              "count": "91245"
+            },
+            {
+              "item": "M101",
+              "count": "89627"
+            },
+            {
+              "item": "Q54",
+              "count": "87072"
+            },
+            {
+              "item": "Q3",
+              "count": "83259"
+            },
+            {
+              "item": "Q27",
+              "count": "83135"
+            },
+            {
+              "item": "S78",
+              "count": "82115"
+            },
+            {
+              "item": "B38",
+              "count": "80152"
+            },
+            {
+              "item": "M11",
+              "count": "79206"
+            },
+            {
+              "item": "B47",
+              "count": "76784"
+            },
+            {
+              "item": "Q58",
+              "count": "76232"
+            },
+            {
+              "item": "B35",
+              "count": "75950"
+            },
+            {
+              "item": "B46",
+              "count": "75924"
+            },
+            {
+              "item": "S46",
+              "count": "74718"
+            },
+            {
+              "item": "B44",
+              "count": "73813"
+            },
+            {
+              "item": "Q17",
+              "count": "72771"
+            }
+          ],
+          "smallest": "B1",
+          "count": "11656097",
+          "cardinality": "356"
+        },
+        "format": {
+          "align": "center"
+        }
+      },
+      {
+        "id": 598906416,
+        "name": "Direction",
+        "dataTypeName": "text",
+        "fieldName": "direction",
+        "description": "The direction of service (N, S, E, W).",
+        "position": 7,
+        "renderTypeName": "text",
+        "tableColumnId": 154673942,
+        "cachedContents": {
+          "non_null": "11656097",
+          "largest": "W",
+          "null": "0",
+          "top": [
+            {
+              "item": "N",
+              "count": "3096734"
+            },
+            {
+              "item": "S",
+              "count": "3017898"
+            },
+            {
+              "item": "W",
+              "count": "2800687"
+            },
+            {
+              "item": "E",
+              "count": "2740778"
+            }
+          ],
+          "smallest": "E",
+          "count": "11656097",
+          "cardinality": "4"
+        },
+        "format": {
+          "align": "center"
+        }
+      },
+      {
+        "id": 598906415,
+        "name": "Borough",
+        "dataTypeName": "text",
+        "fieldName": "borough",
+        "description": "The borough of which the bus route services.",
+        "position": 8,
+        "renderTypeName": "text",
+        "tableColumnId": 154673941,
+        "cachedContents": {
+          "non_null": "11656097",
+          "largest": "Staten Island",
+          "null": "0",
+          "top": [
+            {
+              "item": "Queens",
+              "count": "3409192"
+            },
+            {
+              "item": "Brooklyn",
+              "count": "2936896"
+            },
+            {
+              "item": "Bronx",
+              "count": "2134693"
+            },
+            {
+              "item": "Manhattan",
+              "count": "1615720"
+            },
+            {
+              "item": "Staten Island",
+              "count": "1138802"
+            },
+            {
+              "item": "Other",
+              "count": "420794"
+            }
+          ],
+          "smallest": "Bronx",
+          "count": "11656097",
+          "cardinality": "6"
+        },
+        "format": {}
+      },
+      {
+        "id": 598906414,
+        "name": "Route Type",
+        "dataTypeName": "text",
+        "fieldName": "route_type",
+        "description": "The type of bus service provided: Express, Local, Limited, SBS (Select Bus Service), School (School service is service on a variant path associated with a school).",
+        "position": 9,
+        "renderTypeName": "text",
+        "tableColumnId": 154673940,
+        "cachedContents": {
+          "non_null": "11656097",
+          "largest": "School Limited",
+          "null": "0",
+          "top": [
+            {
+              "item": "Local",
+              "count": "9356331"
+            },
+            {
+              "item": "Express",
+              "count": "1150485"
+            },
+            {
+              "item": "Limited",
+              "count": "655346"
+            },
+            {
+              "item": "SBS",
+              "count": "384836"
+            },
+            {
+              "item": "School",
+              "count": "107039"
+            },
+            {
+              "item": "School Limited",
+              "count": "2060"
+            }
+          ],
+          "smallest": "Express",
+          "count": "11656097",
+          "cardinality": "6"
+        },
+        "format": {}
+      },
+      {
+        "id": 598906413,
+        "name": "Stop Order",
+        "dataTypeName": "number",
+        "fieldName": "stop_order",
+        "description": "The stop sequence order of the first timepoint of the pair.",
+        "position": 10,
+        "renderTypeName": "number",
+        "tableColumnId": 154673939,
+        "cachedContents": {
+          "non_null": "11656097",
+          "largest": "124",
+          "null": "0",
+          "top": [
+            {
+              "item": "1",
+              "count": "1917327"
+            },
+            {
+              "item": "9",
+              "count": "367386"
+            },
+            {
+              "item": "13",
+              "count": "338974"
+            },
+            {
+              "item": "6",
+              "count": "334811"
+            },
+            {
+              "item": "7",
+              "count": "295235"
+            },
+            {
+              "item": "8",
+              "count": "294505"
+            },
+            {
+              "item": "17",
+              "count": "287744"
+            },
+            {
+              "item": "5",
+              "count": "287516"
+            },
+            {
+              "item": "16",
+              "count": "285175"
+            },
+            {
+              "item": "10",
+              "count": "276833"
+            },
+            {
+              "item": "12",
+              "count": "270713"
+            },
+            {
+              "item": "11",
+              "count": "270192"
+            },
+            {
+              "item": "20",
+              "count": "263773"
+            },
+            {
+              "item": "15",
+              "count": "250176"
+            },
+            {
+              "item": "14",
+              "count": "244897"
+            },
+            {
+              "item": "19",
+              "count": "241090"
+            },
+            {
+              "item": "18",
+              "count": "240731"
+            },
+            {
+              "item": "24",
+              "count": "231653"
+            },
+            {
+              "item": "27",
+              "count": "225295"
+            },
+            {
+              "item": "22",
+              "count": "217979"
+            }
+          ],
+          "smallest": "1",
+          "count": "11656097",
+          "cardinality": "96"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "groupSeparator": ","
+        }
+      },
+      {
+        "id": 598906412,
+        "name": "Timepoint Stop ID",
+        "dataTypeName": "number",
+        "fieldName": "timepoint_stop_id",
+        "description": "The stop id of the first of a pair of timepoint bus stops bus speeds are being measured between.",
+        "position": 11,
+        "renderTypeName": "number",
+        "tableColumnId": 154673938,
+        "cachedContents": {
+          "non_null": "11656097",
+          "largest": "992055",
+          "null": "0",
+          "top": [
+            {
+              "item": "501414",
+              "count": "35206"
+            },
+            {
+              "item": "552993",
+              "count": "22076"
+            },
+            {
+              "item": "505264",
+              "count": "20894"
+            },
+            {
+              "item": "500081",
+              "count": "18829"
+            },
+            {
+              "item": "500074",
+              "count": "18768"
+            },
+            {
+              "item": "503967",
+              "count": "18742"
+            },
+            {
+              "item": "400124",
+              "count": "18643"
+            },
+            {
+              "item": "302947",
+              "count": "17630"
+            },
+            {
+              "item": "403777",
+              "count": "17504"
+            },
+            {
+              "item": "500433",
+              "count": "17205"
+            },
+            {
+              "item": "103674",
+              "count": "16980"
+            },
+            {
+              "item": "200534",
+              "count": "16888"
+            },
+            {
+              "item": "403418",
+              "count": "16851"
+            },
+            {
+              "item": "500010",
+              "count": "16687"
+            },
+            {
+              "item": "905002",
+              "count": "16480"
+            },
+            {
+              "item": "400329",
+              "count": "16387"
+            },
+            {
+              "item": "303324",
+              "count": "16363"
+            },
+            {
+              "item": "400363",
+              "count": "16018"
+            },
+            {
+              "item": "500507",
+              "count": "15866"
+            },
+            {
+              "item": "400518",
+              "count": "15706"
+            }
+          ],
+          "smallest": "100014",
+          "count": "11656097",
+          "cardinality": "2794"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "noCommas": "true",
+          "align": "center"
+        }
+      },
+      {
+        "id": 598906411,
+        "name": "Timepoint Stop Name",
+        "dataTypeName": "text",
+        "fieldName": "timepoint_stop_name",
+        "description": "The name of the first of a pair of timepoint bus stops bus speeds are being measured between.",
+        "position": 12,
+        "renderTypeName": "text",
+        "tableColumnId": 154673937,
+        "cachedContents": {
+          "non_null": "11653745",
+          "largest": "ZEREGA AV/CASTLE HILL AV",
+          "null": "2352",
+          "top": [
+            {
+              "item": "ELTINGVILLE/TRANSIT CENTER",
+              "count": "47560"
+            },
+            {
+              "item": "HILLSIDE AV/187 ST",
+              "count": "35516"
+            },
+            {
+              "item": "HILLSIDE AV/179 ST SUBWAY",
+              "count": "35206"
+            },
+            {
+              "item": "VICTORY BL / BAY ST",
+              "count": "31983"
+            },
+            {
+              "item": "BAY ST/VICTORY BL",
+              "count": "30282"
+            },
+            {
+              "item": "FULTON ST/BOND ST",
+              "count": "29795"
+            },
+            {
+              "item": "CASTLETON AV/JEWETT AV",
+              "count": "28193"
+            },
+            {
+              "item": "MAIN ST/39 AV",
+              "count": "28001"
+            },
+            {
+              "item": "MERRICK BL/LINDEN BL",
+              "count": "27966"
+            },
+            {
+              "item": "ARCHER AV /160 ST",
+              "count": "27837"
+            },
+            {
+              "item": "MERRICK BL/BAISLEY BL",
+              "count": "27153"
+            },
+            {
+              "item": "3 AV/E 23 ST",
+              "count": "25567"
+            },
+            {
+              "item": "ARCHER AV/PARSONS BL",
+              "count": "25552"
+            },
+            {
+              "item": "QUEENS BL /59 AV",
+              "count": "22785"
+            },
+            {
+              "item": "RICHMOND AV/VICTORY BL",
+              "count": "22260"
+            },
+            {
+              "item": "HOFFMAN DR /WOODHAVEN BL",
+              "count": "22076"
+            },
+            {
+              "item": "BAINBRIDGE AV/E 206 ST",
+              "count": "22036"
+            },
+            {
+              "item": "MAIN ST/ROOSEVELT AV",
+              "count": "22001"
+            },
+            {
+              "item": "ROOSEVELT AV/MAIN ST",
+              "count": "21884"
+            },
+            {
+              "item": "E 23 ST/BROADWAY",
+              "count": "21649"
+            }
+          ],
+          "smallest": "101 AV /94 ST",
+          "count": "11656097",
+          "cardinality": "2124"
+        },
+        "format": {}
+      },
+      {
+        "id": 598906410,
+        "name": "Timepoint Stop Latitude",
+        "dataTypeName": "number",
+        "fieldName": "timepoint_stop_latitude",
+        "description": "The latitude of the first of a pair of timepoint bus stops bus speeds are being measured between.",
+        "position": 13,
+        "renderTypeName": "number",
+        "tableColumnId": 154673936,
+        "cachedContents": {
+          "non_null": "11653745",
+          "largest": "40.932045",
+          "null": "2352",
+          "top": [
+            {
+              "item": "40.712541",
+              "count": "35206"
+            },
+            {
+              "item": "40.637518",
+              "count": "25432"
+            },
+            {
+              "item": "40.733152",
+              "count": "22076"
+            },
+            {
+              "item": "40.702782",
+              "count": "20894"
+            },
+            {
+              "item": "40.70257",
+              "count": "19540"
+            },
+            {
+              "item": "40.714768",
+              "count": "18829"
+            },
+            {
+              "item": "40.720728",
+              "count": "18768"
+            },
+            {
+              "item": "40.701551",
+              "count": "18742"
+            },
+            {
+              "item": "40.772446",
+              "count": "18643"
+            },
+            {
+              "item": "40.689709",
+              "count": "17630"
+            },
+            {
+              "item": "40.78573",
+              "count": "17504"
+            },
+            {
+              "item": "40.702433",
+              "count": "17205"
+            },
+            {
+              "item": "40.875965",
+              "count": "16980"
+            },
+            {
+              "item": "40.612471",
+              "count": "16888"
+            },
+            {
+              "item": "40.78548",
+              "count": "16851"
+            },
+            {
+              "item": "40.71208",
+              "count": "16697"
+            },
+            {
+              "item": "40.714481",
+              "count": "16687"
+            },
+            {
+              "item": "40.637675",
+              "count": "16480"
+            },
+            {
+              "item": "40.74124",
+              "count": "16387"
+            },
+            {
+              "item": "40.618788",
+              "count": "16363"
+            }
+          ],
+          "smallest": "40.502981",
+          "count": "11656097",
+          "cardinality": "2774"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "groupSeparator": ",",
+          "align": "center"
+        }
+      },
+      {
+        "id": 598906409,
+        "name": "Timepoint Stop Longitude",
+        "dataTypeName": "number",
+        "fieldName": "timepoint_stop_longitude",
+        "description": "The longitude of the first of a pair of timepoint bus stops bus speeds are being measured between.",
+        "position": 14,
+        "renderTypeName": "number",
+        "tableColumnId": 154673935,
+        "cachedContents": {
+          "non_null": "11653745",
+          "largest": "-73.701868",
+          "null": "2352",
+          "top": [
+            {
+              "item": "-73.784401",
+              "count": "35206"
+            },
+            {
+              "item": "-73.871078",
+              "count": "22076"
+            },
+            {
+              "item": "-73.798612",
+              "count": "20894"
+            },
+            {
+              "item": "-73.775267",
+              "count": "18829"
+            },
+            {
+              "item": "-73.760265",
+              "count": "18768"
+            },
+            {
+              "item": "-73.790447",
+              "count": "18742"
+            },
+            {
+              "item": "-73.967247",
+              "count": "18643"
+            },
+            {
+              "item": "-73.983099",
+              "count": "17630"
+            },
+            {
+              "item": "-73.948748",
+              "count": "17504"
+            },
+            {
+              "item": "-73.79054",
+              "count": "17205"
+            },
+            {
+              "item": "-73.829432",
+              "count": "16980"
+            },
+            {
+              "item": "-74.129835",
+              "count": "16888"
+            },
+            {
+              "item": "-73.95133",
+              "count": "16851"
+            },
+            {
+              "item": "-73.775904",
+              "count": "16687"
+            },
+            {
+              "item": "-74.076194",
+              "count": "16480"
+            },
+            {
+              "item": "-73.990062",
+              "count": "16387"
+            },
+            {
+              "item": "-73.932852",
+              "count": "16363"
+            },
+            {
+              "item": "-73.971838",
+              "count": "16018"
+            },
+            {
+              "item": "-73.770144",
+              "count": "15866"
+            },
+            {
+              "item": "-73.981154",
+              "count": "15706"
+            }
+          ],
+          "smallest": "-74.25147",
+          "count": "11656097",
+          "cardinality": "2769"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "groupSeparator": ",",
+          "align": "center"
+        }
+      },
+      {
+        "id": 598906408,
+        "name": "Next Timepoint Stop ID",
+        "dataTypeName": "number",
+        "fieldName": "next_timepoint_stop_id",
+        "description": "The stop id of the second of a pair of timepoint bus stops bus speeds are being measured between.",
+        "position": 15,
+        "renderTypeName": "number",
+        "tableColumnId": 154673934,
+        "cachedContents": {
+          "non_null": "11656097",
+          "largest": "992055",
+          "null": "0",
+          "top": [
+            {
+              "item": "501414",
+              "count": "35191"
+            },
+            {
+              "item": "905046",
+              "count": "23565"
+            },
+            {
+              "item": "804052",
+              "count": "21979"
+            },
+            {
+              "item": "505264",
+              "count": "19480"
+            },
+            {
+              "item": "500074",
+              "count": "18557"
+            },
+            {
+              "item": "981010",
+              "count": "18519"
+            },
+            {
+              "item": "503967",
+              "count": "18325"
+            },
+            {
+              "item": "400124",
+              "count": "18147"
+            },
+            {
+              "item": "500081",
+              "count": "17984"
+            },
+            {
+              "item": "500433",
+              "count": "17974"
+            },
+            {
+              "item": "302947",
+              "count": "17820"
+            },
+            {
+              "item": "403418",
+              "count": "17384"
+            },
+            {
+              "item": "905002",
+              "count": "17308"
+            },
+            {
+              "item": "904005",
+              "count": "17175"
+            },
+            {
+              "item": "500010",
+              "count": "16881"
+            },
+            {
+              "item": "200534",
+              "count": "16778"
+            },
+            {
+              "item": "303222",
+              "count": "16392"
+            },
+            {
+              "item": "982152",
+              "count": "16350"
+            },
+            {
+              "item": "400363",
+              "count": "16263"
+            },
+            {
+              "item": "505227",
+              "count": "15884"
+            }
+          ],
+          "smallest": "100014",
+          "count": "11656097",
+          "cardinality": "2701"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "noCommas": "true",
+          "align": "center"
+        }
+      },
+      {
+        "id": 598906407,
+        "name": "Next Timepoint Stop Name",
+        "dataTypeName": "text",
+        "fieldName": "next_timepoint_stop_name",
+        "description": "The name of the second of a pair of timepoint bus stops bus speeds are being measured between.",
+        "position": 16,
+        "renderTypeName": "text",
+        "tableColumnId": 154673933,
+        "cachedContents": {
+          "non_null": "11654057",
+          "largest": "ZEREGA AV/CASTLE HILL AV",
+          "null": "2040",
+          "top": [
+            {
+              "item": "ELTINGVILLE/TRANSIT CENTER",
+              "count": "47209"
+            },
+            {
+              "item": "HILLSIDE AV/179 ST SUBWAY",
+              "count": "35191"
+            },
+            {
+              "item": "HILLSIDE AV/187 ST",
+              "count": "34865"
+            },
+            {
+              "item": "ST GEORGE FERRY/ST GEORGE FERRY",
+              "count": "34776"
+            },
+            {
+              "item": "VICTORY BL / BAY ST",
+              "count": "32814"
+            },
+            {
+              "item": "BAINBRIDGE AV/E 206 ST",
+              "count": "30052"
+            },
+            {
+              "item": "FULTON ST/BOND ST",
+              "count": "29917"
+            },
+            {
+              "item": "BAY ST/VICTORY BL",
+              "count": "29717"
+            },
+            {
+              "item": "MERRICK BL/LINDEN BL",
+              "count": "28956"
+            },
+            {
+              "item": "CASTLETON AV/JEWETT AV",
+              "count": "27778"
+            },
+            {
+              "item": "MAIN ST/39 AV",
+              "count": "27436"
+            },
+            {
+              "item": "E 57 ST/LEXINGTON AV",
+              "count": "27095"
+            },
+            {
+              "item": "ARCHER AV /160 ST",
+              "count": "26127"
+            },
+            {
+              "item": "MERRICK BL/BAISLEY BL",
+              "count": "25604"
+            },
+            {
+              "item": "3 AV/E 23 ST",
+              "count": "25572"
+            },
+            {
+              "item": "ARCHER AV/PARSONS BL",
+              "count": "24607"
+            },
+            {
+              "item": "QUEENS BL /59 AV",
+              "count": "24495"
+            },
+            {
+              "item": "HOFFMAN DR /WOODHAVEN BL",
+              "count": "22205"
+            },
+            {
+              "item": "39 AV/MAIN ST",
+              "count": "21993"
+            },
+            {
+              "item": "165 ST / 165 ST TERM",
+              "count": "21979"
+            }
+          ],
+          "smallest": "101 AV /94 ST",
+          "count": "11656097",
+          "cardinality": "2029"
+        },
+        "format": {}
+      },
+      {
+        "id": 598906406,
+        "name": "Next Timepoint Stop Latitude",
+        "dataTypeName": "number",
+        "fieldName": "next_timepoint_stop_latitude",
+        "description": "The latitude of the second of a pair of timepoint bus stops bus speeds are being measured between.",
+        "position": 17,
+        "renderTypeName": "number",
+        "tableColumnId": 154673932,
+        "cachedContents": {
+          "non_null": "11654057",
+          "largest": "40.933637",
+          "null": "2040",
+          "top": [
+            {
+              "item": "40.712541",
+              "count": "35191"
+            },
+            {
+              "item": "40.637518",
+              "count": "24861"
+            },
+            {
+              "item": "40.560931",
+              "count": "23565"
+            },
+            {
+              "item": "40.707654",
+              "count": "21979"
+            },
+            {
+              "item": "40.702782",
+              "count": "19480"
+            },
+            {
+              "item": "40.70257",
+              "count": "18595"
+            },
+            {
+              "item": "40.720728",
+              "count": "18557"
+            },
+            {
+              "item": "40.76053",
+              "count": "18519"
+            },
+            {
+              "item": "40.701551",
+              "count": "18325"
+            },
+            {
+              "item": "40.772446",
+              "count": "18147"
+            },
+            {
+              "item": "40.714768",
+              "count": "17984"
+            },
+            {
+              "item": "40.702433",
+              "count": "17974"
+            },
+            {
+              "item": "40.689709",
+              "count": "17820"
+            },
+            {
+              "item": "40.78548",
+              "count": "17384"
+            },
+            {
+              "item": "40.637675",
+              "count": "17308"
+            },
+            {
+              "item": "40.701298",
+              "count": "17175"
+            },
+            {
+              "item": "40.71208",
+              "count": "17170"
+            },
+            {
+              "item": "40.714481",
+              "count": "16881"
+            },
+            {
+              "item": "40.612471",
+              "count": "16778"
+            },
+            {
+              "item": "40.619715",
+              "count": "16392"
+            }
+          ],
+          "smallest": "40.502981",
+          "count": "11656097",
+          "cardinality": "2680"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "groupSeparator": ",",
+          "align": "center"
+        }
+      },
+      {
+        "id": 598906405,
+        "name": "Next Timepoint Stop Longitude",
+        "dataTypeName": "number",
+        "fieldName": "next_timepoint_stop_longitude",
+        "description": "The longitude of the second of a pair of timepoint bus stops bus speeds are being measured between.",
+        "position": 18,
+        "renderTypeName": "number",
+        "tableColumnId": 154673931,
+        "cachedContents": {
+          "non_null": "11654057",
+          "largest": "-73.701382",
+          "null": "2040",
+          "top": [
+            {
+              "item": "-73.784401",
+              "count": "35191"
+            },
+            {
+              "item": "-74.171352",
+              "count": "23565"
+            },
+            {
+              "item": "-73.795238",
+              "count": "21979"
+            },
+            {
+              "item": "-73.798612",
+              "count": "19480"
+            },
+            {
+              "item": "-73.760265",
+              "count": "18557"
+            },
+            {
+              "item": "-73.968299",
+              "count": "18519"
+            },
+            {
+              "item": "-73.790447",
+              "count": "18325"
+            },
+            {
+              "item": "-73.967247",
+              "count": "18147"
+            },
+            {
+              "item": "-73.775267",
+              "count": "17984"
+            },
+            {
+              "item": "-73.79054",
+              "count": "17974"
+            },
+            {
+              "item": "-73.983099",
+              "count": "17820"
+            },
+            {
+              "item": "-73.95133",
+              "count": "17384"
+            },
+            {
+              "item": "-74.076194",
+              "count": "17308"
+            },
+            {
+              "item": "-73.802996",
+              "count": "17175"
+            },
+            {
+              "item": "-73.775904",
+              "count": "16881"
+            },
+            {
+              "item": "-74.129835",
+              "count": "16778"
+            },
+            {
+              "item": "-73.93353",
+              "count": "16392"
+            },
+            {
+              "item": "-73.795441",
+              "count": "16350"
+            },
+            {
+              "item": "-73.971838",
+              "count": "16263"
+            },
+            {
+              "item": "-73.830801",
+              "count": "15884"
+            }
+          ],
+          "smallest": "-74.25147",
+          "count": "11656097",
+          "cardinality": "2675"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "groupSeparator": ",",
+          "align": "center"
+        }
+      },
+      {
+        "id": 598906404,
+        "name": "Road Distance",
+        "dataTypeName": "number",
+        "fieldName": "road_distance",
+        "description": "The roadway distance in miles between the pair of timepoint bus stops.",
+        "position": 19,
+        "renderTypeName": "number",
+        "tableColumnId": 154673930,
+        "cachedContents": {
+          "non_null": "11656097",
+          "largest": "26.126",
+          "null": "0",
+          "top": [
+            {
+              "item": "1.2119999999999997",
+              "count": "22329"
+            },
+            {
+              "item": "1.039",
+              "count": "17062"
+            },
+            {
+              "item": "1.162",
+              "count": "16722"
+            },
+            {
+              "item": "0.43900000000000006",
+              "count": "15620"
+            },
+            {
+              "item": "0.7549999999999999",
+              "count": "15580"
+            },
+            {
+              "item": "1.234",
+              "count": "15577"
+            },
+            {
+              "item": "1.396",
+              "count": "15457"
+            },
+            {
+              "item": "1.907",
+              "count": "15394"
+            },
+            {
+              "item": "1.026",
+              "count": "14994"
+            },
+            {
+              "item": "0.496",
+              "count": "14786"
+            },
+            {
+              "item": "1.39",
+              "count": "14122"
+            },
+            {
+              "item": "1.213",
+              "count": "14092"
+            },
+            {
+              "item": "1.323",
+              "count": "13999"
+            },
+            {
+              "item": "0.9340000000000002",
+              "count": "13842"
+            },
+            {
+              "item": "1.096",
+              "count": "13704"
+            },
+            {
+              "item": "1.069",
+              "count": "13698"
+            },
+            {
+              "item": "0.915",
+              "count": "13547"
+            },
+            {
+              "item": "1.228",
+              "count": "13367"
+            },
+            {
+              "item": "0.6139999999999999",
+              "count": "13334"
+            },
+            {
+              "item": "0.5739999999999998",
+              "count": "13259"
+            }
+          ],
+          "smallest": "0.022",
+          "count": "11656097",
+          "cardinality": "4493"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "groupSeparator": ",",
+          "align": "center"
+        }
+      },
+      {
+        "id": 598906403,
+        "name": "Average Travel Time",
+        "dataTypeName": "number",
+        "fieldName": "average_travel_time",
+        "description": "The average travel time in minutes for all bus trips on a bus route between the pair of subsequent timepoint bus stops for a particular hour of day, day of week, and month.",
+        "position": 20,
+        "renderTypeName": "number",
+        "tableColumnId": 154673929,
+        "cachedContents": {
+          "non_null": "11656097",
+          "largest": "89.966640",
+          "null": "0",
+          "top": [
+            {
+              "item": "3.000000",
+              "count": "6339"
+            },
+            {
+              "item": "6.000000",
+              "count": "4058"
+            },
+            {
+              "item": "9.000000",
+              "count": "2923"
+            },
+            {
+              "item": "4.999998",
+              "count": "2095"
+            },
+            {
+              "item": "6.300000",
+              "count": "1665"
+            },
+            {
+              "item": "6.450000",
+              "count": "1661"
+            },
+            {
+              "item": "5.100000",
+              "count": "1653"
+            },
+            {
+              "item": "6.750000",
+              "count": "1638"
+            },
+            {
+              "item": "6.150000",
+              "count": "1637"
+            },
+            {
+              "item": "5.550000",
+              "count": "1634"
+            },
+            {
+              "item": "4.999980",
+              "count": "1615"
+            },
+            {
+              "item": "4.950000",
+              "count": "1613"
+            },
+            {
+              "item": "6.600000",
+              "count": "1612"
+            },
+            {
+              "item": "1.999980",
+              "count": "1610"
+            },
+            {
+              "item": "7.500000",
+              "count": "1585"
+            },
+            {
+              "item": "7.350000",
+              "count": "1578"
+            },
+            {
+              "item": "7.050000",
+              "count": "1566"
+            },
+            {
+              "item": "5.250000",
+              "count": "1561"
+            },
+            {
+              "item": "4.800000",
+              "count": "1554"
+            },
+            {
+              "item": "5.000004",
+              "count": "1553"
+            }
+          ],
+          "smallest": "0.033318",
+          "count": "11656097",
+          "cardinality": "1170906"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "groupSeparator": ",",
+          "align": "center"
+        }
+      },
+      {
+        "id": 598906402,
+        "name": "Average Road Speed",
+        "dataTypeName": "number",
+        "fieldName": "average_road_speed",
+        "description": "The average speed in miles per hour for all bus trips on a bus route between the pair of subsequent timepoint bus stops for a particular hour of day, day of week, and month.",
+        "position": 21,
+        "renderTypeName": "number",
+        "tableColumnId": 154673928,
+        "cachedContents": {
+          "non_null": "11656097",
+          "largest": "39.99940741618643",
+          "null": "0",
+          "top": [
+            {
+              "item": "2.38",
+              "count": "2200"
+            },
+            {
+              "item": "4.886666666666667",
+              "count": "496"
+            },
+            {
+              "item": "5.3500000000000005",
+              "count": "475"
+            },
+            {
+              "item": "6.2760251041004125",
+              "count": "417"
+            },
+            {
+              "item": "16.54",
+              "count": "416"
+            },
+            {
+              "item": "7.230072300723006",
+              "count": "342"
+            },
+            {
+              "item": "6.275999999999996",
+              "count": "311"
+            },
+            {
+              "item": "6.2759874480250994",
+              "count": "291"
+            },
+            {
+              "item": "7.329999999999999",
+              "count": "291"
+            },
+            {
+              "item": "10.7",
+              "count": "283"
+            },
+            {
+              "item": "24.81",
+              "count": "271"
+            },
+            {
+              "item": "10.700000000000001",
+              "count": "251"
+            },
+            {
+              "item": "7.33",
+              "count": "244"
+            },
+            {
+              "item": "17.34",
+              "count": "243"
+            },
+            {
+              "item": "9.6",
+              "count": "241"
+            },
+            {
+              "item": "25.97999999999999",
+              "count": "193"
+            },
+            {
+              "item": "6.275992827436765",
+              "count": "175"
+            },
+            {
+              "item": "26.010260102601023",
+              "count": "170"
+            },
+            {
+              "item": "18.24",
+              "count": "167"
+            },
+            {
+              "item": "5.35",
+              "count": "165"
+            }
+          ],
+          "smallest": "0.16000000000000422",
+          "count": "11656097",
+          "cardinality": "10827871"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "groupSeparator": ",",
+          "align": "center"
+        }
+      },
+      {
+        "id": 598906401,
+        "name": "Bus Trip Count",
+        "dataTypeName": "number",
+        "fieldName": "bus_trip_count",
+        "description": "The number of bus trips on the specific bus route between the pair of subsequent timepoint bus stops for a particular hour of day, day of week, and month.",
+        "position": 22,
+        "renderTypeName": "number",
+        "tableColumnId": 154673927,
+        "cachedContents": {
+          "non_null": "11656097",
+          "largest": "110",
+          "null": "0",
+          "top": [
+            {
+              "item": "8",
+              "count": "978089"
+            },
+            {
+              "item": "4",
+              "count": "834879"
+            },
+            {
+              "item": "12",
+              "count": "622216"
+            },
+            {
+              "item": "10",
+              "count": "617509"
+            },
+            {
+              "item": "15",
+              "count": "582797"
+            },
+            {
+              "item": "7",
+              "count": "581917"
+            },
+            {
+              "item": "11",
+              "count": "480516"
+            },
+            {
+              "item": "5",
+              "count": "470037"
+            },
+            {
+              "item": "14",
+              "count": "463501"
+            },
+            {
+              "item": "16",
+              "count": "425750"
+            },
+            {
+              "item": "19",
+              "count": "424131"
+            },
+            {
+              "item": "9",
+              "count": "419605"
+            },
+            {
+              "item": "20",
+              "count": "394244"
+            },
+            {
+              "item": "3",
+              "count": "346341"
+            },
+            {
+              "item": "18",
+              "count": "340210"
+            },
+            {
+              "item": "6",
+              "count": "327726"
+            },
+            {
+              "item": "23",
+              "count": "295323"
+            },
+            {
+              "item": "13",
+              "count": "289762"
+            },
+            {
+              "item": "24",
+              "count": "279721"
+            },
+            {
+              "item": "22",
+              "count": "244290"
+            }
+          ],
+          "smallest": "1",
+          "count": "11656097",
+          "cardinality": "110"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "groupSeparator": ",",
+          "align": "center"
+        }
+      },
+      {
+        "id": 598906400,
+        "name": "Timepoint Stop Georeference",
+        "dataTypeName": "point",
+        "fieldName": "timepoint_stop_georeference",
+        "description": "Open Data platform-generated geocoding information from supplied coordinates or address components. Point-type location is the centroid of the address components provided and does not reflect a specific point unless coordinates or the street address component are provided. Point-type location is supplied in \"POINT ( )\" format.",
+        "position": 23,
+        "renderTypeName": "point",
+        "tableColumnId": 154673926,
+        "cachedContents": {
+          "non_null": "11653745",
+          "null": "2352",
+          "top": [
+            {
+              "item": {
+                "coordinates": [
+                  -73.784401,
+                  40.712541
+                ],
+                "type": "Point"
+              },
+              "count": "35206"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.871078,
+                  40.733152
+                ],
+                "type": "Point"
+              },
+              "count": "22076"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.798612,
+                  40.702782
+                ],
+                "type": "Point"
+              },
+              "count": "20894"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.775267,
+                  40.714768
+                ],
+                "type": "Point"
+              },
+              "count": "18829"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.760265,
+                  40.720728
+                ],
+                "type": "Point"
+              },
+              "count": "18768"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.790447,
+                  40.701551
+                ],
+                "type": "Point"
+              },
+              "count": "18742"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.967247,
+                  40.772446
+                ],
+                "type": "Point"
+              },
+              "count": "18643"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.983099,
+                  40.689709
+                ],
+                "type": "Point"
+              },
+              "count": "17630"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.948748,
+                  40.78573
+                ],
+                "type": "Point"
+              },
+              "count": "17504"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.79054,
+                  40.702433
+                ],
+                "type": "Point"
+              },
+              "count": "17205"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.829432,
+                  40.875965
+                ],
+                "type": "Point"
+              },
+              "count": "16980"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -74.129835,
+                  40.612471
+                ],
+                "type": "Point"
+              },
+              "count": "16888"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.95133,
+                  40.78548
+                ],
+                "type": "Point"
+              },
+              "count": "16851"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.775904,
+                  40.714481
+                ],
+                "type": "Point"
+              },
+              "count": "16687"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -74.076194,
+                  40.637675
+                ],
+                "type": "Point"
+              },
+              "count": "16480"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.990062,
+                  40.74124
+                ],
+                "type": "Point"
+              },
+              "count": "16387"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.932852,
+                  40.618788
+                ],
+                "type": "Point"
+              },
+              "count": "16363"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.971838,
+                  40.762858
+                ],
+                "type": "Point"
+              },
+              "count": "16018"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.770144,
+                  40.684112
+                ],
+                "type": "Point"
+              },
+              "count": "15866"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.981154,
+                  40.753191
+                ],
+                "type": "Point"
+              },
+              "count": "15706"
+            }
+          ],
+          "count": "11656097",
+          "cardinality": "2790"
+        },
+        "format": {}
+      },
+      {
+        "id": 598906399,
+        "name": "Next Timepoint Stop Georeference",
+        "dataTypeName": "point",
+        "fieldName": "next_timepoint_stop_georeference",
+        "description": "Open Data platform-generated geocoding information from supplied coordinates or address components. Point-type location is the centroid of the address components provided and does not reflect a specific point unless coordinates or the street address component are provided. Point-type location is supplied in \"POINT ( )\" format.",
+        "position": 24,
+        "renderTypeName": "point",
+        "tableColumnId": 154673925,
+        "cachedContents": {
+          "non_null": "11654057",
+          "null": "2040",
+          "top": [
+            {
+              "item": {
+                "coordinates": [
+                  -73.784401,
+                  40.712541
+                ],
+                "type": "Point"
+              },
+              "count": "35191"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -74.171352,
+                  40.560931
+                ],
+                "type": "Point"
+              },
+              "count": "23565"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.795238,
+                  40.707654
+                ],
+                "type": "Point"
+              },
+              "count": "21979"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.798612,
+                  40.702782
+                ],
+                "type": "Point"
+              },
+              "count": "19480"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.760265,
+                  40.720728
+                ],
+                "type": "Point"
+              },
+              "count": "18557"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.968299,
+                  40.76053
+                ],
+                "type": "Point"
+              },
+              "count": "18519"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.790447,
+                  40.701551
+                ],
+                "type": "Point"
+              },
+              "count": "18325"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.967247,
+                  40.772446
+                ],
+                "type": "Point"
+              },
+              "count": "18147"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.775267,
+                  40.714768
+                ],
+                "type": "Point"
+              },
+              "count": "17984"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.79054,
+                  40.702433
+                ],
+                "type": "Point"
+              },
+              "count": "17974"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.983099,
+                  40.689709
+                ],
+                "type": "Point"
+              },
+              "count": "17820"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.95133,
+                  40.78548
+                ],
+                "type": "Point"
+              },
+              "count": "17384"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -74.076194,
+                  40.637675
+                ],
+                "type": "Point"
+              },
+              "count": "17308"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.802996,
+                  40.701298
+                ],
+                "type": "Point"
+              },
+              "count": "17175"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.775904,
+                  40.714481
+                ],
+                "type": "Point"
+              },
+              "count": "16881"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -74.129835,
+                  40.612471
+                ],
+                "type": "Point"
+              },
+              "count": "16778"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.93353,
+                  40.619715
+                ],
+                "type": "Point"
+              },
+              "count": "16392"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.795441,
+                  40.707223
+                ],
+                "type": "Point"
+              },
+              "count": "16350"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.971838,
+                  40.762858
+                ],
+                "type": "Point"
+              },
+              "count": "16263"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.830801,
+                  40.760255
+                ],
+                "type": "Point"
+              },
+              "count": "15884"
+            }
+          ],
+          "count": "11656097",
+          "cardinality": "2696"
+        },
+        "format": {}
+      }
+    ],
+    "assetType": "dataset",
+    "attributionLink": "https://www.mta.info/open-data",
+    "averageRating": 0,
+    "category": "Transportation",
+    "createdAt": 1724878154,
+    "diciBackend": false,
+    "displayType": "table",
+    "downloadCount": 4625,
+    "hideFromCatalog": false,
+    "hideFromDataJson": false,
+    "locked": false,
+    "newBackend": true,
+    "numberOfComments": 0,
+    "oid": 40838947,
+    "provenance": "official",
+    "publicationAppendEnabled": false,
+    "publicationDate": 1724882937,
+    "publicationGroup": 19638849,
+    "publicationStage": "published",
+    "rowClass": "",
+    "tableId": 19638849,
+    "totalTimesRated": 0,
+    "viewCount": 11254,
+    "viewLastModified": 1762207711,
+    "viewType": "tabular",
+    "approvals": [
+      {
+        "reviewedAt": 1727182852,
+        "reviewedAutomatically": true,
+        "state": "approved",
+        "submissionId": 6559726,
+        "submissionObject": "public_audience_request",
+        "submissionOutcome": "change_audience",
+        "submittedAt": 1727182852,
+        "targetAudience": "public",
+        "workflowId": 2254,
+        "submissionDetails": {
+          "permissionType": "READ"
+        },
+        "submissionOutcomeApplication": {
+          "endedAt": 1727182852,
+          "failureCount": 0,
+          "startedAt": 1727182852,
+          "status": "success"
+        },
+        "submitter": {
+          "id": "28jg-4c4u",
+          "displayName": "Open Data Administrator 1"
+        }
+      }
+    ],
+    "clientContext": {
+      "clientContextVariables": [],
+      "inheritedVariables": {}
+    },
+    "grants": [
+      {
+        "inherited": false,
+        "type": "viewer",
+        "flags": [
+          "public"
+        ]
+      }
+    ],
+    "metadata": {
+      "rdfSubject": "0",
+      "rdfClass": "",
+      "attachments": [
+        {
+          "filename": "MTA_BusRouteSegmentSpeeds_Overview.pdf",
+          "assetId": "a7442c1e-8d29-4232-958b-977686141dd1",
+          "name": "MTA_BusRouteSegmentSpeeds_Overview.pdf"
+        },
+        {
+          "filename": "MTA_BusRouteSegmentSpeeds_DataDictionary.pdf",
+          "assetId": "beb22e83-3ee2-40b1-a91c-885c7ff5c232",
+          "name": "MTA_BusRouteSegmentSpeeds_DataDictionary.pdf"
+        }
+      ],
+      "custom_fields": {
+        "Dataset Summary": {
+          "Posting Frequency": "Static - Not Updated",
+          "Organization": "New York City Transit, MTA Bus Company",
+          "Contact Information": "OpenData@mtahq.org",
+          "Time Period": "2023-2024",
+          "Coverage": "New York City and parts of Nassau, Hudson and Westchester counties",
+          "Granularity": "Month, hour, timepoint bus stop, direction",
+          "Dataset Owner": "Metropolitan Transportation Authority"
+        },
+        "Additional Resources": {
+          "See Also": "https://metrics.mta.info/"
+        },
+        "Dataset Information": {
+          "Agency": "Metropolitan Transportation Authority"
+        }
+      },
+      "availableDisplayTypes": [
+        "table",
+        "fatrow",
+        "page"
+      ]
+    },
+    "owner": {
+      "id": "xzik-pf59",
+      "displayName": "NY Open Data",
+      "profileImageUrlLarge": "/api/users/xzik-pf59/profile_images/LARGE",
+      "profileImageUrlMedium": "/api/users/xzik-pf59/profile_images/THUMB",
+      "profileImageUrlSmall": "/api/users/xzik-pf59/profile_images/TINY",
+      "screenName": "NY Open Data",
+      "type": "interactive",
+      "flags": [
+        "acceptedEula",
+        "mayBeStoriesCoOwner"
+      ]
+    },
+    "query": {},
+    "rights": [
+      "read"
+    ],
+    "tableAuthor": {
+      "id": "xzik-pf59",
+      "displayName": "NY Open Data",
+      "profileImageUrlLarge": "/api/users/xzik-pf59/profile_images/LARGE",
+      "profileImageUrlMedium": "/api/users/xzik-pf59/profile_images/THUMB",
+      "profileImageUrlSmall": "/api/users/xzik-pf59/profile_images/TINY",
+      "screenName": "NY Open Data",
+      "type": "interactive",
+      "flags": [
+        "acceptedEula",
+        "mayBeStoriesCoOwner"
+      ]
+    },
+    "tags": [
+      "new york city transit",
+      "nyct",
+      "bus",
+      "routes",
+      "bus routes",
+      "bus stops",
+      "monthly",
+      "hourly",
+      "journey time",
+      "travel time",
+      "ride time",
+      "speeds",
+      "service",
+      "performance",
+      "timepoints",
+      "coordinates"
+    ],
+    "flags": [
+      "default",
+      "ownerMayBeContacted",
+      "restorable",
+      "restorePossibleForType"
+    ]
+  }
+}

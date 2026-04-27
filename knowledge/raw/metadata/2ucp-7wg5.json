@@ -1,0 +1,1911 @@
+{
+  "schemaVersion": 1,
+  "sourceId": "bus_stops_all_bundles",
+  "checkedAt": "2026-04-27T02:46:20.426Z",
+  "metadataUrl": "https://data.ny.gov/api/views/2ucp-7wg5",
+  "metadata": {
+    "id": "2ucp-7wg5",
+    "name": "MTA Bus Stops",
+    "description": "This dataset contains point features for bus stops used on each route and direction within a bundle, including stop usage flags (revenue, timepoint, boarding, alighting, is in CBD) and basic route descriptors for mapping and stop-level analyses.",
+    "attribution": "Metropolitan Transportation Authority",
+    "rowsUpdatedAt": 1776886198,
+    "columns": [
+      {
+        "id": 624502727,
+        "name": "Valid From",
+        "dataTypeName": "calendar_date",
+        "fieldName": "valid_from",
+        "description": "First service_date (inclusive) for which this shape is valid within the bundle, in MM/DD/YYYY.",
+        "position": 1,
+        "renderTypeName": "calendar_date",
+        "tableColumnId": 162824846,
+        "cachedContents": {
+          "non_null": "3074918",
+          "largest": "2026-04-21T00:00:00.000",
+          "null": "0",
+          "top": [
+            {
+              "item": "2020-10-09T00:00:00.000",
+              "count": "25623"
+            },
+            {
+              "item": "2020-10-28T00:00:00.000",
+              "count": "25608"
+            },
+            {
+              "item": "2020-11-20T00:00:00.000",
+              "count": "25607"
+            },
+            {
+              "item": "2020-10-15T00:00:00.000",
+              "count": "25604"
+            },
+            {
+              "item": "2020-09-25T00:00:00.000",
+              "count": "25604"
+            },
+            {
+              "item": "2020-09-06T00:00:00.000",
+              "count": "25604"
+            },
+            {
+              "item": "2020-09-21T00:00:00.000",
+              "count": "25604"
+            },
+            {
+              "item": "2020-12-18T00:00:00.000",
+              "count": "25603"
+            },
+            {
+              "item": "2021-02-28T00:00:00.000",
+              "count": "25587"
+            },
+            {
+              "item": "2021-03-31T00:00:00.000",
+              "count": "25587"
+            },
+            {
+              "item": "2021-02-25T00:00:00.000",
+              "count": "25547"
+            },
+            {
+              "item": "2019-03-29T00:00:00.000",
+              "count": "25546"
+            },
+            {
+              "item": "2021-01-03T00:00:00.000",
+              "count": "25545"
+            },
+            {
+              "item": "2019-04-21T00:00:00.000",
+              "count": "25543"
+            },
+            {
+              "item": "2019-03-06T00:00:00.000",
+              "count": "25542"
+            },
+            {
+              "item": "2021-01-21T00:00:00.000",
+              "count": "25541"
+            },
+            {
+              "item": "2021-02-11T00:00:00.000",
+              "count": "25541"
+            },
+            {
+              "item": "2021-02-03T00:00:00.000",
+              "count": "25541"
+            },
+            {
+              "item": "2019-02-17T00:00:00.000",
+              "count": "25538"
+            },
+            {
+              "item": "2019-03-13T00:00:00.000",
+              "count": "25538"
+            }
+          ],
+          "smallest": "2018-09-02T00:00:00.000",
+          "count": "3074918",
+          "cardinality": "3074918"
+        },
+        "format": {
+          "view": "date",
+          "align": "center"
+        }
+      },
+      {
+        "id": 624502728,
+        "name": "Valid To",
+        "dataTypeName": "calendar_date",
+        "fieldName": "valid_to",
+        "description": "Last service_date (inclusive) for which this shape is valid within the bundle, in MM/DD/YYYY.",
+        "position": 2,
+        "renderTypeName": "calendar_date",
+        "tableColumnId": 162824847,
+        "cachedContents": {
+          "non_null": "3074918",
+          "largest": "2026-06-27T00:00:00.000",
+          "null": "0",
+          "top": [
+            {
+              "item": "2020-10-14T00:00:00.000",
+              "count": "25623"
+            },
+            {
+              "item": "2020-11-19T00:00:00.000",
+              "count": "25608"
+            },
+            {
+              "item": "2020-12-15T00:00:00.000",
+              "count": "25607"
+            },
+            {
+              "item": "2020-10-27T00:00:00.000",
+              "count": "25604"
+            },
+            {
+              "item": "2020-10-08T00:00:00.000",
+              "count": "25604"
+            },
+            {
+              "item": "2020-09-20T00:00:00.000",
+              "count": "25604"
+            },
+            {
+              "item": "2020-09-24T00:00:00.000",
+              "count": "25604"
+            },
+            {
+              "item": "2021-01-02T00:00:00.000",
+              "count": "25603"
+            },
+            {
+              "item": "2021-03-30T00:00:00.000",
+              "count": "25587"
+            },
+            {
+              "item": "2021-04-03T00:00:00.000",
+              "count": "25587"
+            },
+            {
+              "item": "2021-02-27T00:00:00.000",
+              "count": "25547"
+            },
+            {
+              "item": "2019-04-20T00:00:00.000",
+              "count": "25546"
+            },
+            {
+              "item": "2021-01-20T00:00:00.000",
+              "count": "25545"
+            },
+            {
+              "item": "2019-04-24T00:00:00.000",
+              "count": "25543"
+            },
+            {
+              "item": "2019-03-12T00:00:00.000",
+              "count": "25542"
+            },
+            {
+              "item": "2021-01-31T00:00:00.000",
+              "count": "25541"
+            },
+            {
+              "item": "2021-02-24T00:00:00.000",
+              "count": "25541"
+            },
+            {
+              "item": "2021-02-10T00:00:00.000",
+              "count": "25541"
+            },
+            {
+              "item": "2019-03-05T00:00:00.000",
+              "count": "25538"
+            },
+            {
+              "item": "2019-03-28T00:00:00.000",
+              "count": "25538"
+            }
+          ],
+          "smallest": "2019-01-05T00:00:00.000",
+          "count": "3074918",
+          "cardinality": "3074918"
+        },
+        "format": {
+          "view": "date",
+          "align": "center"
+        }
+      },
+      {
+        "id": 624502750,
+        "name": "In Effect",
+        "dataTypeName": "text",
+        "fieldName": "in_effect",
+        "description": "A true / false flag of whether the stop is currently in effect.",
+        "position": 3,
+        "renderTypeName": "text",
+        "tableColumnId": 164511314,
+        "cachedContents": {
+          "non_null": "3074918",
+          "largest": "true",
+          "null": "0",
+          "top": [
+            {
+              "item": "false",
+              "count": "3051870"
+            },
+            {
+              "item": "true",
+              "count": "23048"
+            }
+          ],
+          "smallest": "false",
+          "count": "3074918",
+          "cardinality": "3074918"
+        },
+        "format": {}
+      },
+      {
+        "id": 624502729,
+        "name": "Route ID",
+        "dataTypeName": "text",
+        "fieldName": "route_id",
+        "description": "The ID of the bus route that uses the timepoint.",
+        "position": 4,
+        "renderTypeName": "text",
+        "tableColumnId": 155962336,
+        "cachedContents": {
+          "non_null": "3074918",
+          "largest": "YOAS",
+          "null": "0",
+          "top": [
+            {
+              "item": "S78",
+              "count": "29960"
+            },
+            {
+              "item": "S74",
+              "count": "25460"
+            },
+            {
+              "item": "S59",
+              "count": "20835"
+            },
+            {
+              "item": "M3",
+              "count": "19875"
+            },
+            {
+              "item": "B6",
+              "count": "19649"
+            },
+            {
+              "item": "M101",
+              "count": "19504"
+            },
+            {
+              "item": "B8",
+              "count": "19336"
+            },
+            {
+              "item": "M4",
+              "count": "18912"
+            },
+            {
+              "item": "B15",
+              "count": "18779"
+            },
+            {
+              "item": "B82",
+              "count": "18754"
+            },
+            {
+              "item": "Q27",
+              "count": "18353"
+            },
+            {
+              "item": "M2",
+              "count": "18087"
+            },
+            {
+              "item": "S76",
+              "count": "17783"
+            },
+            {
+              "item": "S54",
+              "count": "17302"
+            },
+            {
+              "item": "B44",
+              "count": "17038"
+            },
+            {
+              "item": "B49",
+              "count": "16640"
+            },
+            {
+              "item": "M1",
+              "count": "16639"
+            },
+            {
+              "item": "B60",
+              "count": "16568"
+            },
+            {
+              "item": "Q54",
+              "count": "16030"
+            },
+            {
+              "item": "B4",
+              "count": "15959"
+            }
+          ],
+          "smallest": "B1",
+          "count": "3074918",
+          "cardinality": "3074918"
+        },
+        "format": {
+          "align": "center"
+        }
+      },
+      {
+        "id": 624502730,
+        "name": "Route Short Name",
+        "dataTypeName": "text",
+        "fieldName": "route_short_name",
+        "description": "The short name for the bus route. This is identical to Route ID except for Select Bus Service routes, which are shown with a suffix of a + in Route ID but have a suffix of SBS here, or for some shuttle bus routes.",
+        "position": 5,
+        "renderTypeName": "text",
+        "tableColumnId": 162822905,
+        "cachedContents": {
+          "non_null": "3073889",
+          "largest": "X68",
+          "null": "1029",
+          "top": [
+            {
+              "item": "S78",
+              "count": "29960"
+            },
+            {
+              "item": "S74",
+              "count": "25460"
+            },
+            {
+              "item": "S59",
+              "count": "20835"
+            },
+            {
+              "item": "M3",
+              "count": "19875"
+            },
+            {
+              "item": "B6",
+              "count": "19649"
+            },
+            {
+              "item": "M101",
+              "count": "19504"
+            },
+            {
+              "item": "B8",
+              "count": "19336"
+            },
+            {
+              "item": "M4",
+              "count": "18912"
+            },
+            {
+              "item": "B15",
+              "count": "18779"
+            },
+            {
+              "item": "B82",
+              "count": "18754"
+            },
+            {
+              "item": "Q27",
+              "count": "18353"
+            },
+            {
+              "item": "M2",
+              "count": "18087"
+            },
+            {
+              "item": "S76",
+              "count": "17783"
+            },
+            {
+              "item": "S54",
+              "count": "17302"
+            },
+            {
+              "item": "B44",
+              "count": "17038"
+            },
+            {
+              "item": "B49",
+              "count": "16640"
+            },
+            {
+              "item": "M1",
+              "count": "16639"
+            },
+            {
+              "item": "B60",
+              "count": "16568"
+            },
+            {
+              "item": "Q54",
+              "count": "16030"
+            },
+            {
+              "item": "B4",
+              "count": "15959"
+            }
+          ],
+          "smallest": "B1",
+          "count": "3074918",
+          "cardinality": "3074918"
+        },
+        "format": {
+          "align": "center"
+        }
+      },
+      {
+        "id": 624502731,
+        "name": "Route Long Name",
+        "dataTypeName": "text",
+        "fieldName": "route_long_name",
+        "description": "The long name for the bus route, including the neighborhoods or streets the bus runs between or runs along.",
+        "position": 6,
+        "renderTypeName": "text",
+        "tableColumnId": 162822906,
+        "cachedContents": {
+          "non_null": "3073889",
+          "largest": "Yorkville - West Side",
+          "null": "1029",
+          "top": [
+            {
+              "item": "St. George - Bricktown Mall",
+              "count": "55420"
+            },
+            {
+              "item": "College Point - Jamaica",
+              "count": "43820"
+            },
+            {
+              "item": "Harlem - East Village",
+              "count": "31277"
+            },
+            {
+              "item": "St. George - Staten Island Mall",
+              "count": "28939"
+            },
+            {
+              "item": "Broadway Junction - Jamaica",
+              "count": "28030"
+            },
+            {
+              "item": "Downtown Brooklyn - Ridgewood",
+              "count": "27545"
+            },
+            {
+              "item": "Throgs Neck - River Park Towers",
+              "count": "26860"
+            },
+            {
+              "item": "Eltingville - Midtown Manhattan Express",
+              "count": "26844"
+            },
+            {
+              "item": "Sheepshead Bay - Williamsburg",
+              "count": "22000"
+            },
+            {
+              "item": "St. George - West Shore Plaza",
+              "count": "21444"
+            },
+            {
+              "item": "Fort Totten - Flushing",
+              "count": "21146"
+            },
+            {
+              "item": "Laurelton - Jamaica",
+              "count": "21057"
+            },
+            {
+              "item": "East Harlem - South Ferry",
+              "count": "20852"
+            },
+            {
+              "item": "Port Richmond - Tottenville",
+              "count": "20835"
+            },
+            {
+              "item": "Eltingville - Lower Manhattan Express",
+              "count": "20614"
+            },
+            {
+              "item": "Fort George - East Village",
+              "count": "19875"
+            },
+            {
+              "item": "Bath Beach - East New York",
+              "count": "19649"
+            },
+            {
+              "item": "Cambria Heights - Jamaica",
+              "count": "19565"
+            },
+            {
+              "item": "Dyker Heights - East Flatbush",
+              "count": "19336"
+            },
+            {
+              "item": "The Cloisters - 32 St",
+              "count": "18912"
+            }
+          ],
+          "smallest": "101St Avenue",
+          "count": "3074918",
+          "cardinality": "3074918"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "groupSeparator": ",",
+          "align": "left"
+        }
+      },
+      {
+        "id": 624502732,
+        "name": "Route Description",
+        "dataTypeName": "text",
+        "fieldName": "route_description",
+        "description": "A more detailed description of the bus route indicating the main streets it traverses. This field can be NULL.",
+        "position": 7,
+        "renderTypeName": "text",
+        "tableColumnId": 162822907,
+        "cachedContents": {
+          "non_null": "2930524",
+          "largest": "York College Vaccination Center",
+          "null": "144394",
+          "top": [
+            {
+              "item": "via Richmond Av",
+              "count": "55198"
+            },
+            {
+              "item": "via Hylan Blvd",
+              "count": "29960"
+            },
+            {
+              "item": "via Hylan Bl / Richmond Av",
+              "count": "27812"
+            },
+            {
+              "item": "via Richmond Rd / Arthur Kill Rd",
+              "count": "25460"
+            },
+            {
+              "item": "via Watchogue Rd",
+              "count": "23085"
+            },
+            {
+              "item": "via Bay Pkwy / Avenue J / Flatlands Av",
+              "count": "19649"
+            },
+            {
+              "item": "via Third Av / Lexington Av / Amsterdam Av",
+              "count": "19504"
+            },
+            {
+              "item": "via 18th Av / Foster Av / Avenue D",
+              "count": "19336"
+            },
+            {
+              "item": "via Forest Av",
+              "count": "19100"
+            },
+            {
+              "item": "via Marcus Garvey Blvd / New Lots Av",
+              "count": "18779"
+            },
+            {
+              "item": "via Bay Pkwy / Kings Hwy / Flatlands Av",
+              "count": "18754"
+            },
+            {
+              "item": "via Surf Av / Cropsey Av",
+              "count": "18310"
+            },
+            {
+              "item": "via 5th Av / Madison Av / AC Powell Blvd",
+              "count": "18087"
+            },
+            {
+              "item": "via F Capodanno / Giffords La",
+              "count": "17900"
+            },
+            {
+              "item": "via Richmond Rd / New Dorp Ln",
+              "count": "17783"
+            },
+            {
+              "item": "via Manor Rd",
+              "count": "17302"
+            },
+            {
+              "item": "via Nostrand Av",
+              "count": "17038"
+            },
+            {
+              "item": "via Shore Rd",
+              "count": "16844"
+            },
+            {
+              "item": "via Myrtle Av",
+              "count": "16685"
+            },
+            {
+              "item": "via Ocean Av / Bedford & Rogers Av",
+              "count": "16640"
+            }
+          ],
+          "smallest": "Edgemere-York College Vaccination Center",
+          "count": "3074918",
+          "cardinality": "3074918"
+        },
+        "format": {}
+      },
+      {
+        "id": 624502733,
+        "name": "Route Color",
+        "dataTypeName": "text",
+        "fieldName": "route_color",
+        "description": "The six-digit Hex Color code that matches public facing material for the bus route.",
+        "position": 8,
+        "renderTypeName": "text",
+        "tableColumnId": 162822908,
+        "cachedContents": {
+          "non_null": "3048111",
+          "largest": "FAA61A",
+          "null": "26807",
+          "top": [
+            {
+              "item": "EE352E",
+              "count": "641491"
+            },
+            {
+              "item": "00933C",
+              "count": "550380"
+            },
+            {
+              "item": "FAA61A",
+              "count": "520212"
+            },
+            {
+              "item": "B933AD",
+              "count": "378487"
+            },
+            {
+              "item": "6CBE45",
+              "count": "331438"
+            },
+            {
+              "item": "006CB7",
+              "count": "282524"
+            },
+            {
+              "item": "00AEEF",
+              "count": "275231"
+            },
+            {
+              "item": "799534",
+              "count": "54137"
+            },
+            {
+              "item": "61AD3C",
+              "count": "4752"
+            },
+            {
+              "item": "9A38A1",
+              "count": "3536"
+            },
+            {
+              "item": "D82233",
+              "count": "3301"
+            },
+            {
+              "item": "0062CF",
+              "count": "2545"
+            },
+            {
+              "item": "D0006F",
+              "count": "77"
+            }
+          ],
+          "smallest": "0062CF",
+          "count": "3074918",
+          "cardinality": "3074918"
+        },
+        "format": {
+          "align": "center"
+        }
+      },
+      {
+        "id": 624502734,
+        "name": "Stop ID",
+        "dataTypeName": "text",
+        "fieldName": "stop_id",
+        "description": "The six-digit stop ID given by NYC DOT to identify each bus stop (one for each \"lollipop\" sign).",
+        "position": 9,
+        "renderTypeName": "text",
+        "tableColumnId": 162822909,
+        "cachedContents": {
+          "non_null": "3074918",
+          "largest": "999999",
+          "null": "0",
+          "top": [
+            {
+              "item": "401844",
+              "count": "2583"
+            },
+            {
+              "item": "401840",
+              "count": "2071"
+            },
+            {
+              "item": "401842",
+              "count": "2054"
+            },
+            {
+              "item": "901114",
+              "count": "1994"
+            },
+            {
+              "item": "400070",
+              "count": "1950"
+            },
+            {
+              "item": "403293",
+              "count": "1884"
+            },
+            {
+              "item": "404299",
+              "count": "1874"
+            },
+            {
+              "item": "402143",
+              "count": "1806"
+            },
+            {
+              "item": "905046",
+              "count": "1797"
+            },
+            {
+              "item": "203650",
+              "count": "1796"
+            },
+            {
+              "item": "450402",
+              "count": "1779"
+            },
+            {
+              "item": "400354",
+              "count": "1773"
+            },
+            {
+              "item": "981010",
+              "count": "1757"
+            },
+            {
+              "item": "200176",
+              "count": "1693"
+            },
+            {
+              "item": "901109",
+              "count": "1654"
+            },
+            {
+              "item": "402134",
+              "count": "1646"
+            },
+            {
+              "item": "805033",
+              "count": "1571"
+            },
+            {
+              "item": "404169",
+              "count": "1543"
+            },
+            {
+              "item": "402214",
+              "count": "1519"
+            },
+            {
+              "item": "450030",
+              "count": "1458"
+            }
+          ],
+          "smallest": "100014",
+          "count": "3074918",
+          "cardinality": "3074918"
+        },
+        "format": {
+          "align": "center"
+        }
+      },
+      {
+        "id": 624502735,
+        "name": "Stop Name",
+        "dataTypeName": "text",
+        "fieldName": "stop_name",
+        "description": "The name of the bus stop, typically consisting of the street the bus is stopping on, followed by the nearest cross-street. This value is blank for non-revenue stops.",
+        "position": 10,
+        "renderTypeName": "text",
+        "tableColumnId": 162822910,
+        "cachedContents": {
+          "non_null": "3074918",
+          "largest": "ZEREGA AV/CASTLE HILL AV",
+          "null": "0",
+          "top": [
+            {
+              "item": "E 57 ST/MADISON AV",
+              "count": "5061"
+            },
+            {
+              "item": "ELTINGVILLE/TRANSIT CENTER",
+              "count": "4438"
+            },
+            {
+              "item": "E 57 ST/LEXINGTON AV",
+              "count": "4132"
+            },
+            {
+              "item": "W 34 ST/5 AV",
+              "count": "2853"
+            },
+            {
+              "item": "E 23 ST/1 AV",
+              "count": "2628"
+            },
+            {
+              "item": "3 AV/E 50 ST",
+              "count": "2356"
+            },
+            {
+              "item": "3 AV/E 55 ST",
+              "count": "2317"
+            },
+            {
+              "item": "TRINITY PL/RECTOR ST",
+              "count": "2285"
+            },
+            {
+              "item": "E 23 ST/3 AV",
+              "count": "2274"
+            },
+            {
+              "item": "MARSH AV/WINDHAM LOOP",
+              "count": "2273"
+            },
+            {
+              "item": "RICHMOND AV/YUKON AV",
+              "count": "2170"
+            },
+            {
+              "item": "MARSH AV/RING RD",
+              "count": "2159"
+            },
+            {
+              "item": "E 23 ST/BROADWAY",
+              "count": "2144"
+            },
+            {
+              "item": "MADISON AV/E 54 ST",
+              "count": "2093"
+            },
+            {
+              "item": "Gowanus Exp./6 Av (N.B.)",
+              "count": "1994"
+            },
+            {
+              "item": "E 34 ST/PARK AV",
+              "count": "1953"
+            },
+            {
+              "item": "6 AV/W 44 ST",
+              "count": "1892"
+            },
+            {
+              "item": "PEARL ST / PECK SLIP",
+              "count": "1868"
+            },
+            {
+              "item": "188 ST/64 AV",
+              "count": "1851"
+            },
+            {
+              "item": "HILLSIDE AV/187 ST",
+              "count": "1796"
+            }
+          ],
+          "smallest": "+",
+          "count": "3074918",
+          "cardinality": "3074918"
+        },
+        "format": {}
+      },
+      {
+        "id": 624502736,
+        "name": "Direction ID",
+        "dataTypeName": "text",
+        "fieldName": "direction_id",
+        "description": "Direction code; 0 for Northbound/Eastbound, 1 for Southbound/Westbound.",
+        "position": 11,
+        "renderTypeName": "text",
+        "tableColumnId": 162822911,
+        "cachedContents": {
+          "non_null": "3074918",
+          "largest": "1",
+          "null": "0",
+          "top": [
+            {
+              "item": "1",
+              "count": "1543221"
+            },
+            {
+              "item": "0",
+              "count": "1531697"
+            }
+          ],
+          "smallest": "0",
+          "count": "3074918",
+          "cardinality": "3074918"
+        },
+        "format": {
+          "align": "center"
+        }
+      },
+      {
+        "id": 624502737,
+        "name": "Direction",
+        "dataTypeName": "text",
+        "fieldName": "direction",
+        "description": "Cardinal direction letter (N, S, E, W) corresponding to direction_id.",
+        "position": 12,
+        "renderTypeName": "text",
+        "tableColumnId": 162822912,
+        "cachedContents": {
+          "non_null": "3074918",
+          "largest": "W",
+          "null": "0",
+          "top": [
+            {
+              "item": "S",
+              "count": "825753"
+            },
+            {
+              "item": "N",
+              "count": "818101"
+            },
+            {
+              "item": "W",
+              "count": "717468"
+            },
+            {
+              "item": "E",
+              "count": "713596"
+            }
+          ],
+          "smallest": "E",
+          "count": "3074918",
+          "cardinality": "3074918"
+        },
+        "format": {
+          "align": "center"
+        }
+      },
+      {
+        "id": 624502738,
+        "name": "Revenue Stop",
+        "dataTypeName": "text",
+        "fieldName": "revenue_stop",
+        "description": "Flag indicating whether the stop is revenue-serving stop (0 or 1).",
+        "position": 13,
+        "renderTypeName": "text",
+        "tableColumnId": 162822913,
+        "cachedContents": {
+          "non_null": "3074918",
+          "largest": "1",
+          "null": "0",
+          "top": [
+            {
+              "item": "1",
+              "count": "3035640"
+            },
+            {
+              "item": "0",
+              "count": "39278"
+            }
+          ],
+          "smallest": "0",
+          "count": "3074918",
+          "cardinality": "3074918"
+        },
+        "format": {
+          "align": "center"
+        }
+      },
+      {
+        "id": 624502739,
+        "name": "Timepoint",
+        "dataTypeName": "text",
+        "fieldName": "timepoint",
+        "description": "Flag indicating whether the stop is a timepoint in schedules (0 or 1).",
+        "position": 14,
+        "renderTypeName": "text",
+        "tableColumnId": 162822914,
+        "cachedContents": {
+          "non_null": "3074918",
+          "largest": "1",
+          "null": "0",
+          "top": [
+            {
+              "item": "0",
+              "count": "2490843"
+            },
+            {
+              "item": "1",
+              "count": "584075"
+            }
+          ],
+          "smallest": "0",
+          "count": "3074918",
+          "cardinality": "3074918"
+        },
+        "format": {
+          "align": "center"
+        }
+      },
+      {
+        "id": 624502740,
+        "name": "Boarding",
+        "dataTypeName": "text",
+        "fieldName": "boarding",
+        "description": "Flag indicating whether boarding is allowed at this stop (0 or 1).",
+        "position": 15,
+        "renderTypeName": "text",
+        "tableColumnId": 162822915,
+        "cachedContents": {
+          "non_null": "3074918",
+          "largest": "1",
+          "null": "0",
+          "top": [
+            {
+              "item": "1",
+              "count": "2768489"
+            },
+            {
+              "item": "0",
+              "count": "306429"
+            }
+          ],
+          "smallest": "0",
+          "count": "3074918",
+          "cardinality": "3074918"
+        },
+        "format": {
+          "align": "center"
+        }
+      },
+      {
+        "id": 624502741,
+        "name": "Alighting",
+        "dataTypeName": "text",
+        "fieldName": "alighting",
+        "description": "Flag indicating whether alighting is allowed at this stop (0 or 1).",
+        "position": 16,
+        "renderTypeName": "text",
+        "tableColumnId": 162822916,
+        "cachedContents": {
+          "non_null": "3074918",
+          "largest": "1",
+          "null": "0",
+          "top": [
+            {
+              "item": "1",
+              "count": "2780516"
+            },
+            {
+              "item": "0",
+              "count": "294402"
+            }
+          ],
+          "smallest": "0",
+          "count": "3074918",
+          "cardinality": "3074918"
+        },
+        "format": {
+          "align": "center"
+        }
+      },
+      {
+        "id": 624502742,
+        "name": "Is CBD",
+        "dataTypeName": "text",
+        "fieldName": "is_cbd",
+        "description": "Flag indicating whether the stop lies within the Central Business District (CBD); true or false.",
+        "position": 17,
+        "renderTypeName": "text",
+        "tableColumnId": 162822917,
+        "cachedContents": {
+          "non_null": "3074918",
+          "largest": "true",
+          "null": "0",
+          "top": [
+            {
+              "item": "false",
+              "count": "2767770"
+            },
+            {
+              "item": "true",
+              "count": "307148"
+            }
+          ],
+          "smallest": "false",
+          "count": "3074918",
+          "cardinality": "3074918"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "groupSeparator": ",",
+          "align": "center"
+        }
+      },
+      {
+        "id": 624502743,
+        "name": "Latitude",
+        "dataTypeName": "number",
+        "fieldName": "latitude",
+        "description": "The latitude of the timepoint.",
+        "position": 18,
+        "renderTypeName": "number",
+        "tableColumnId": 155962338,
+        "cachedContents": {
+          "non_null": "3074918",
+          "largest": "40.933637",
+          "null": "0",
+          "top": [
+            {
+              "item": "40.635379",
+              "count": "1994"
+            },
+            {
+              "item": "40.641846",
+              "count": "1817"
+            },
+            {
+              "item": "40.560931",
+              "count": "1797"
+            },
+            {
+              "item": "40.76053",
+              "count": "1757"
+            },
+            {
+              "item": "40.748603",
+              "count": "1703"
+            },
+            {
+              "item": "40.635157",
+              "count": "1654"
+            },
+            {
+              "item": "40.708771",
+              "count": "1643"
+            },
+            {
+              "item": "40.741142",
+              "count": "1578"
+            },
+            {
+              "item": "40.610786",
+              "count": "1571"
+            },
+            {
+              "item": "40.760727",
+              "count": "1519"
+            },
+            {
+              "item": "40.711727",
+              "count": "1508"
+            },
+            {
+              "item": "40.71208",
+              "count": "1462"
+            },
+            {
+              "item": "40.760391",
+              "count": "1458"
+            },
+            {
+              "item": "40.663351",
+              "count": "1407"
+            },
+            {
+              "item": "40.756882",
+              "count": "1406"
+            },
+            {
+              "item": "40.760615",
+              "count": "1351"
+            },
+            {
+              "item": "40.737297",
+              "count": "1320"
+            },
+            {
+              "item": "40.604596",
+              "count": "1313"
+            },
+            {
+              "item": "40.624909",
+              "count": "1286"
+            },
+            {
+              "item": "40.606709",
+              "count": "1285"
+            }
+          ],
+          "smallest": "40.502981",
+          "count": "3074918",
+          "cardinality": "3074918"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "groupSeparator": ","
+        }
+      },
+      {
+        "id": 624502744,
+        "name": "Longitude",
+        "dataTypeName": "number",
+        "fieldName": "longitude",
+        "description": "The longitude of the timepoint",
+        "position": 19,
+        "renderTypeName": "number",
+        "tableColumnId": 155962339,
+        "cachedContents": {
+          "non_null": "3074918",
+          "largest": "-73.70123",
+          "null": "0",
+          "top": [
+            {
+              "item": "-74.016664",
+              "count": "1994"
+            },
+            {
+              "item": "-74.171352",
+              "count": "1797"
+            },
+            {
+              "item": "-73.968299",
+              "count": "1757"
+            },
+            {
+              "item": "-73.984667",
+              "count": "1703"
+            },
+            {
+              "item": "-74.075573",
+              "count": "1693"
+            },
+            {
+              "item": "-74.016821",
+              "count": "1654"
+            },
+            {
+              "item": "-74.002757",
+              "count": "1643"
+            },
+            {
+              "item": "-74.031356",
+              "count": "1571"
+            },
+            {
+              "item": "-73.968725",
+              "count": "1519"
+            },
+            {
+              "item": "-74.010261",
+              "count": "1508"
+            },
+            {
+              "item": "-73.968015",
+              "count": "1458"
+            },
+            {
+              "item": "-73.998119",
+              "count": "1407"
+            },
+            {
+              "item": "-73.976199",
+              "count": "1406"
+            },
+            {
+              "item": "-73.98879",
+              "count": "1367"
+            },
+            {
+              "item": "-73.973461",
+              "count": "1351"
+            },
+            {
+              "item": "-73.97936",
+              "count": "1320"
+            },
+            {
+              "item": "-74.069364",
+              "count": "1313"
+            },
+            {
+              "item": "-74.018958",
+              "count": "1286"
+            },
+            {
+              "item": "-74.007712",
+              "count": "1285"
+            },
+            {
+              "item": "-74.075617",
+              "count": "1285"
+            }
+          ],
+          "smallest": "-74.252016",
+          "count": "3074918",
+          "cardinality": "3074918"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "groupSeparator": ","
+        }
+      },
+      {
+        "id": 624502745,
+        "name": "Bundle",
+        "dataTypeName": "text",
+        "fieldName": "bundle",
+        "description": "Identifier of the schedule bundle release (GTFS/STIF package).",
+        "position": 20,
+        "renderTypeName": "text",
+        "tableColumnId": 162822918,
+        "cachedContents": {
+          "non_null": "3074918",
+          "largest": "April20",
+          "null": "0",
+          "top": [
+            {
+              "item": "2020Jan",
+              "count": "485351"
+            },
+            {
+              "item": "2020Sep",
+              "count": "229430"
+            },
+            {
+              "item": "2021Jan",
+              "count": "203497"
+            },
+            {
+              "item": "2019Jan",
+              "count": "178766"
+            },
+            {
+              "item": "2021Sep",
+              "count": "177115"
+            },
+            {
+              "item": "2021Apr",
+              "count": "152527"
+            },
+            {
+              "item": "2020Jul",
+              "count": "151440"
+            },
+            {
+              "item": "2025Aug",
+              "count": "137226"
+            },
+            {
+              "item": "2025Mar",
+              "count": "124716"
+            },
+            {
+              "item": "2019Apr",
+              "count": "101692"
+            },
+            {
+              "item": "2022Jan",
+              "count": "101667"
+            },
+            {
+              "item": "2019Sep",
+              "count": "101619"
+            },
+            {
+              "item": "2023Sep",
+              "count": "99921"
+            },
+            {
+              "item": "2025Dec",
+              "count": "90561"
+            },
+            {
+              "item": "2025Jan",
+              "count": "74876"
+            },
+            {
+              "item": "2022Sep",
+              "count": "74528"
+            },
+            {
+              "item": "2022Jun",
+              "count": "73880"
+            },
+            {
+              "item": "2025Jun",
+              "count": "69917"
+            },
+            {
+              "item": "2019Jul",
+              "count": "50354"
+            },
+            {
+              "item": "2024Sep",
+              "count": "50122"
+            }
+          ],
+          "smallest": "2018Sep",
+          "count": "3074918",
+          "cardinality": "3074918"
+        },
+        "format": {}
+      },
+      {
+        "id": 624502746,
+        "name": "Georeference",
+        "dataTypeName": "point",
+        "fieldName": "georeference",
+        "description": "Open Data platform-generated geocoding information from supplied address components. Point-type location is the centroid of the address components provided and does not reflect a specific address if the street address component is not provided. Point-type location is supplied in \"POINT ( )\" format.",
+        "position": 21,
+        "renderTypeName": "point",
+        "tableColumnId": 155985955,
+        "cachedContents": {
+          "non_null": "3074918",
+          "null": "0",
+          "top": [
+            {
+              "item": {
+                "coordinates": [
+                  -74.016664,
+                  40.635379
+                ],
+                "type": "Point"
+              },
+              "count": "1994"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -74.171352,
+                  40.560931
+                ],
+                "type": "Point"
+              },
+              "count": "1797"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.968299,
+                  40.76053
+                ],
+                "type": "Point"
+              },
+              "count": "1757"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.984667,
+                  40.748603
+                ],
+                "type": "Point"
+              },
+              "count": "1703"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -74.075573,
+                  40.641846
+                ],
+                "type": "Point"
+              },
+              "count": "1693"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -74.016821,
+                  40.635157
+                ],
+                "type": "Point"
+              },
+              "count": "1654"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -74.002757,
+                  40.708771
+                ],
+                "type": "Point"
+              },
+              "count": "1643"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -74.031356,
+                  40.610786
+                ],
+                "type": "Point"
+              },
+              "count": "1571"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.968725,
+                  40.760727
+                ],
+                "type": "Point"
+              },
+              "count": "1519"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -74.010261,
+                  40.711727
+                ],
+                "type": "Point"
+              },
+              "count": "1508"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.968015,
+                  40.760391
+                ],
+                "type": "Point"
+              },
+              "count": "1458"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.998119,
+                  40.663351
+                ],
+                "type": "Point"
+              },
+              "count": "1407"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.976199,
+                  40.756882
+                ],
+                "type": "Point"
+              },
+              "count": "1406"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.98879,
+                  40.741142
+                ],
+                "type": "Point"
+              },
+              "count": "1367"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.973461,
+                  40.760615
+                ],
+                "type": "Point"
+              },
+              "count": "1351"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.97936,
+                  40.737297
+                ],
+                "type": "Point"
+              },
+              "count": "1320"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -74.069364,
+                  40.604596
+                ],
+                "type": "Point"
+              },
+              "count": "1313"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -74.018958,
+                  40.624909
+                ],
+                "type": "Point"
+              },
+              "count": "1286"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -74.075617,
+                  40.606709
+                ],
+                "type": "Point"
+              },
+              "count": "1285"
+            },
+            {
+              "item": {
+                "coordinates": [
+                  -73.970388,
+                  40.756158
+                ],
+                "type": "Point"
+              },
+              "count": "1240"
+            }
+          ],
+          "count": "3074918",
+          "cardinality": "3074918"
+        },
+        "format": {}
+      },
+      {
+        "id": 624502748,
+        "name": "New York Zip Codes",
+        "dataTypeName": "number",
+        "fieldName": ":@computed_region_wbg7_3whc",
+        "description": "This column was automatically created in order to record in what polygon from the dataset 'New York Zip Codes' (wbg7-3whc) the point in column 'georeference' is located.  This enables the creation of region maps (choropleths) in the visualization canvas and data lens.",
+        "position": 22,
+        "renderTypeName": "number",
+        "tableColumnId": 155985957,
+        "computationStrategy": {
+          "source_columns": [
+            "georeference"
+          ],
+          "type": "georegion_match_on_point",
+          "parameters": {
+            "region": "_wbg7-3whc",
+            "primary_key": "_feature_id"
+          }
+        },
+        "format": {}
+      },
+      {
+        "id": 624502749,
+        "name": "Counties",
+        "dataTypeName": "number",
+        "fieldName": ":@computed_region_kjdx_g34t",
+        "description": "This column was automatically created in order to record in what polygon from the dataset 'Counties' (kjdx-g34t) the point in column 'georeference' is located.  This enables the creation of region maps (choropleths) in the visualization canvas and data lens.",
+        "position": 23,
+        "renderTypeName": "number",
+        "tableColumnId": 155985958,
+        "computationStrategy": {
+          "source_columns": [
+            "georeference"
+          ],
+          "type": "georegion_match_on_point",
+          "parameters": {
+            "region": "_kjdx-g34t",
+            "primary_key": "_feature_id"
+          }
+        },
+        "format": {}
+      },
+      {
+        "id": 624502747,
+        "name": "NYS Municipal Boundaries",
+        "dataTypeName": "number",
+        "fieldName": ":@computed_region_yamh_8v7k",
+        "description": "This column was automatically created in order to record in what polygon from the dataset 'NYS Municipal Boundaries' (yamh-8v7k) the point in column 'georeference' is located.  This enables the creation of region maps (choropleths) in the visualization canvas and data lens.",
+        "position": 24,
+        "renderTypeName": "number",
+        "tableColumnId": 155985956,
+        "computationStrategy": {
+          "source_columns": [
+            "georeference"
+          ],
+          "type": "georegion_match_on_point",
+          "parameters": {
+            "region": "_yamh-8v7k",
+            "primary_key": "_feature_id"
+          }
+        },
+        "format": {}
+      }
+    ],
+    "assetType": "dataset",
+    "attributionLink": "https://www.mta.info/open-data",
+    "averageRating": 0,
+    "category": "Transportation",
+    "createdAt": 1734670579,
+    "diciBackend": false,
+    "displayType": "table",
+    "downloadCount": 3903,
+    "hideFromCatalog": false,
+    "hideFromDataJson": false,
+    "locked": false,
+    "newBackend": true,
+    "numberOfComments": 0,
+    "oid": 41867775,
+    "provenance": "official",
+    "publicationAppendEnabled": false,
+    "publicationDate": 1767892758,
+    "publicationGroup": 19719411,
+    "publicationStage": "published",
+    "rowsUpdatedBy": "xzik-pf59",
+    "tableId": 20230642,
+    "totalTimesRated": 0,
+    "viewCount": 4629,
+    "viewLastModified": 1776885796,
+    "viewType": "tabular",
+    "approvals": [
+      {
+        "reviewedAt": 1735311144,
+        "reviewedAutomatically": true,
+        "state": "approved",
+        "submissionId": 7299922,
+        "submissionObject": "public_audience_request",
+        "submissionOutcome": "change_audience",
+        "submittedAt": 1735311144,
+        "targetAudience": "public",
+        "workflowId": 2254,
+        "submissionDetails": {
+          "permissionType": "READ"
+        },
+        "submissionOutcomeApplication": {
+          "endedAt": 1735311144,
+          "failureCount": 0,
+          "startedAt": 1735311144,
+          "status": "success"
+        },
+        "submitter": {
+          "id": "28jg-4c4u",
+          "displayName": "Open Data Administrator 1"
+        }
+      }
+    ],
+    "clientContext": {
+      "clientContextVariables": [],
+      "inheritedVariables": {}
+    },
+    "grants": [
+      {
+        "inherited": false,
+        "type": "viewer",
+        "flags": [
+          "public"
+        ]
+      }
+    ],
+    "metadata": {
+      "attachments": [
+        {
+          "filename": "MTA_BusStops_Overview.pdf",
+          "assetId": "83aa0d63-c0d3-47ac-9790-c579f060a3e3",
+          "name": "MTA_BusStops_Overview.pdf"
+        },
+        {
+          "filename": "MTA_BusStops_DataDictionary.pdf",
+          "assetId": "10af8a19-5b29-4f4d-ba86-da65cd7800c5",
+          "name": "MTA_BusStops_DataDictionary.pdf"
+        }
+      ],
+      "custom_fields": {
+        "Dataset Summary": {
+          "Posting Frequency": "As needed",
+          "Organization": "Metropolitan Transportation Authority",
+          "Contact Information": "OpenData@mtahq.org",
+          "Time Period": "Beginning January 2019",
+          "Coverage": "New York City",
+          "Granularity": "Each row is a unique stop instance on a route and direction for a specific bundle (route_id, direction_id, stop_id, bundle).",
+          "Dataset Owner": "Metropolitan Transportation Authority"
+        },
+        "Additional Resources": {
+          "See Also": "https://metrics.mta.info/"
+        },
+        "Dataset Information": {
+          "Agency": "Metropolitan Transportation Authority"
+        }
+      },
+      "availableDisplayTypes": [
+        "table",
+        "fatrow",
+        "page"
+      ]
+    },
+    "owner": {
+      "id": "xzik-pf59",
+      "displayName": "NY Open Data",
+      "profileImageUrlLarge": "/api/users/xzik-pf59/profile_images/LARGE",
+      "profileImageUrlMedium": "/api/users/xzik-pf59/profile_images/THUMB",
+      "profileImageUrlSmall": "/api/users/xzik-pf59/profile_images/TINY",
+      "screenName": "NY Open Data",
+      "type": "interactive",
+      "flags": [
+        "acceptedEula",
+        "mayBeStoriesCoOwner"
+      ]
+    },
+    "query": {},
+    "rights": [
+      "read"
+    ],
+    "tableAuthor": {
+      "id": "xzik-pf59",
+      "displayName": "NY Open Data",
+      "profileImageUrlLarge": "/api/users/xzik-pf59/profile_images/LARGE",
+      "profileImageUrlMedium": "/api/users/xzik-pf59/profile_images/THUMB",
+      "profileImageUrlSmall": "/api/users/xzik-pf59/profile_images/TINY",
+      "screenName": "NY Open Data",
+      "type": "interactive",
+      "flags": [
+        "acceptedEula",
+        "mayBeStoriesCoOwner"
+      ]
+    },
+    "tags": [
+      "new york city transit",
+      "nyct",
+      "mta bus",
+      "mtabc",
+      "bus",
+      "express bus",
+      "stops",
+      "bus stops",
+      "timepoints",
+      "schedules",
+      "coordinates",
+      "locations"
+    ],
+    "flags": [
+      "default",
+      "ownerMayBeContacted",
+      "restorable",
+      "restorePossibleForType"
+    ]
+  }
+}

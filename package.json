@@ -46,7 +46,9 @@
     "test:watch": "bun test --watch",
     "hooks:install": "sh scripts/install-git-hooks.sh",
     "sources:list": "bun --filter @bp/pipeline sources:list",
-    "sources:probe": "bun --filter @bp/pipeline sources:probe"
+    "sources:probe": "bun --filter @bp/pipeline sources:probe",
+    "ingest:m1": "bun --filter @bp/pipeline ingest:m1",
+    "hotspots:m1": "bun --filter @bp/pipeline hotspots:m1"
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",

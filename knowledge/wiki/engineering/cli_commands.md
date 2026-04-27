@@ -45,6 +45,7 @@ Expected outputs:
 ## Ingest commands
 
 ```bash
+bun run ingest:m1 -- --route M1 --year 2026 --month 3
 bun --filter @bp/pipeline ingest:segment-speeds -- --route M1 --month 2026-01
 bun --filter @bp/pipeline ingest:routes
 bun --filter @bp/pipeline ingest:stops
@@ -62,6 +63,7 @@ Expected outputs:
 ## Build commands
 
 ```bash
+bun run hotspots:m1 -- --route M1 --year 2026 --month 3
 bun --filter @bp/pipeline build:segments -- --route M1
 bun --filter @bp/pipeline build:hotspots -- --route M1 --month 2026-01
 bun --filter @bp/pipeline build:route-score -- --route M1 --month 2026-01
@@ -111,8 +113,7 @@ Do not use `pytest`, `ruff`, or Python scripts in the MVP.
 
 ## Caveats
 
-- These commands are proposed targets, not implemented commands.
-- Start with `sources:probe` and one fixture-backed test before adding ingest/build commands.
+- `sources:list`, `sources:probe`, `ingest:m1`, and `hotspots:m1` are implemented; the generic ingest/build/export targets remain planned.
 - Keep command implementations thin; put reusable logic in `packages/*`.
 
 ## Sources

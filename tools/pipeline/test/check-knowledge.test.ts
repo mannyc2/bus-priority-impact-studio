@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 
 test("knowledge check has a small fixed contract", async () => {
-  const file = await Bun.file("tools/pipeline/src/check-knowledge.ts").text();
+  const file = await Bun.file(new URL("../src/check-knowledge.ts", import.meta.url)).text();
 
   expect(file).toContain("knowledge/index.md");
   expect(file).toContain("knowledge/log.md");

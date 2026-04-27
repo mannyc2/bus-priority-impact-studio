@@ -46,6 +46,7 @@ Default scope: M1 route pilot, then Manhattan expansion.
 Command targets:
 
 ```bash
+bun run ingest:m1 -- --route M1 --year 2026 --month 3
 bun --filter @bp/pipeline ingest:segment-speeds -- --route M1 --month 2026-01
 bun --filter @bp/pipeline ingest:routes
 bun --filter @bp/pipeline ingest:stops
@@ -71,6 +72,7 @@ Verification:
 Command targets:
 
 ```bash
+bun run hotspots:m1 -- --route M1 --year 2026 --month 3
 bun --filter @bp/pipeline build:segments -- --route M1
 bun --filter @bp/pipeline build:hotspots -- --route M1 --month 2026-01
 bun --filter @bp/pipeline build:route-score -- --route M1 --month 2026-01
@@ -80,7 +82,7 @@ Implementation responsibilities:
 
 1. Construct timepoint-to-timepoint route-segment artifacts.
 2. Compute speed/travel-time aggregates.
-3. Identify hotspot segments.
+3. Identify hotspot segments with deterministic scoring.
 4. Compute route scorecard.
 5. Write generated artifacts to `data/artifacts/`.
 
@@ -166,8 +168,8 @@ For every ingested dataset, maintain:
 
 ## Caveats
 
-- Command names are targets, not implemented commands.
-- Exact Socrata field names remain provisional until metadata probes run.
+- Generic command names are targets; `sources:list`, `sources:probe`, `ingest:m1`, and `hotspots:m1` are implemented.
+- Exact Socrata field names are confirmed for active MVP sources through source probes, but downstream join contracts still need route-by-route QA.
 - Realtime Bus Time collection is optional and deferred.
 
 ## Sources

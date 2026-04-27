@@ -42,7 +42,6 @@
       "name": "@bp/analytics",
       "dependencies": {
         "@bp/domain": "workspace:*",
-        "@bp/sources": "workspace:*",
       },
       "devDependencies": {
         "@types/bun": "catalog:",
@@ -87,7 +86,6 @@
       "name": "@bp/pipeline",
       "dependencies": {
         "@bp/analytics": "workspace:*",
-        "@bp/db": "workspace:*",
         "@bp/domain": "workspace:*",
         "@bp/sources": "workspace:*",
         "zod": "catalog:",

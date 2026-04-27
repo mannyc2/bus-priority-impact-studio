@@ -1,8 +1,8 @@
 ---
 title: MTA Bus Time Realtime
 type: data
-status: draft
-last_updated: 2026-04-26
+status: active
+last_updated: 2026-04-27
 owner: codex
 source_count: 3
 tags: [mta, bus-time, realtime, gtfs-rt]
@@ -24,6 +24,10 @@ MTA Bus Time supports GTFS-Realtime endpoints for:
 
 An MTA Bus Time developer API key is required.
 
+## Probe status
+
+Probe completed 2026-04-27. TripUpdates, VehiclePositions, and Alerts all returned HTTP 200 with the local `MTA_BUS_TIME_API_KEY` environment variable. Probe metadata stores only redacted URLs and does not persist the API key.
+
 ## Implementation notes
 
 MVP can skip realtime collection. For a P2 collector:
@@ -43,6 +47,7 @@ MVP can skip realtime collection. For a P2 collector:
 ## Caveats
 
 - Requires API key.
+- The API key must stay in local environment variables or deployment secrets; do not commit it to source files or metadata.
 - No historical data unless we collect it.
 - API/feed semantics require GTFS-RT parsing.
 - Realtime data can be noisy and should not be treated as authoritative without QA.

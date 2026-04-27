@@ -11,11 +11,12 @@
     "typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
     "test": "bun test ./test --timeout 5000",
     "sources:list": "bun run src/sources-list.ts",
-    "sources:probe": "bun run src/sources-probe.ts"
+    "sources:probe": "bun run src/sources-probe.ts",
+    "ingest:m1": "bun run src/ingest-m1.ts",
+    "hotspots:m1": "bun run src/build-m1-hotspots.ts"
   },
   "dependencies": {
     "@bp/analytics": "workspace:*",
-    "@bp/db": "workspace:*",
     "@bp/domain": "workspace:*",
     "@bp/sources": "workspace:*",
     "zod": "catalog:"

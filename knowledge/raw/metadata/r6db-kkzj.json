@@ -1,0 +1,939 @@
+{
+  "schemaVersion": 1,
+  "sourceId": "cbd_bus_speeds_2023",
+  "checkedAt": "2026-04-27T02:46:16.129Z",
+  "metadataUrl": "https://data.ny.gov/api/views/r6db-kkzj",
+  "metadata": {
+    "id": "r6db-kkzj",
+    "name": "MTA Central Business District Bus Speeds: Beginning 2023",
+    "description": "This dataset provides aggregated data on how fast MTA buses are traveling between major stops (timepoints) on a bus route for every route operated by NYCT and MTABC. These segments are categorized as either CBD or Non-CBD. The dataset provides the average speed in miles per hour and the number of bus trips for each bus route, aggregated by month, day type, hour of day, and relation to the CBD.",
+    "attribution": "Metropolitan Transportation Authority",
+    "rowsUpdatedAt": 1777049324,
+    "columns": [
+      {
+        "id": 612799974,
+        "name": "Month",
+        "dataTypeName": "calendar_date",
+        "fieldName": "month",
+        "description": "First day of the calendar month representing the aggregation period.",
+        "position": 1,
+        "renderTypeName": "calendar_date",
+        "tableColumnId": 159599199,
+        "cachedContents": {
+          "non_null": "595263",
+          "largest": "2026-03-01T00:00:00.000",
+          "null": "0",
+          "top": [
+            {
+              "item": "2025-06-01T00:00:00.000",
+              "count": "15841"
+            },
+            {
+              "item": "2026-02-01T00:00:00.000",
+              "count": "15525"
+            },
+            {
+              "item": "2026-01-01T00:00:00.000",
+              "count": "15521"
+            },
+            {
+              "item": "2025-11-01T00:00:00.000",
+              "count": "15505"
+            },
+            {
+              "item": "2025-12-01T00:00:00.000",
+              "count": "15440"
+            },
+            {
+              "item": "2025-09-01T00:00:00.000",
+              "count": "15439"
+            },
+            {
+              "item": "2025-10-01T00:00:00.000",
+              "count": "15429"
+            },
+            {
+              "item": "2026-03-01T00:00:00.000",
+              "count": "15365"
+            },
+            {
+              "item": "2023-01-01T00:00:00.000",
+              "count": "15311"
+            },
+            {
+              "item": "2025-07-01T00:00:00.000",
+              "count": "15282"
+            },
+            {
+              "item": "2024-01-01T00:00:00.000",
+              "count": "15278"
+            },
+            {
+              "item": "2023-09-01T00:00:00.000",
+              "count": "15274"
+            },
+            {
+              "item": "2023-11-01T00:00:00.000",
+              "count": "15271"
+            },
+            {
+              "item": "2024-11-01T00:00:00.000",
+              "count": "15271"
+            },
+            {
+              "item": "2024-12-01T00:00:00.000",
+              "count": "15267"
+            },
+            {
+              "item": "2023-12-01T00:00:00.000",
+              "count": "15266"
+            },
+            {
+              "item": "2024-05-01T00:00:00.000",
+              "count": "15265"
+            },
+            {
+              "item": "2024-09-01T00:00:00.000",
+              "count": "15260"
+            },
+            {
+              "item": "2024-02-01T00:00:00.000",
+              "count": "15258"
+            },
+            {
+              "item": "2023-05-01T00:00:00.000",
+              "count": "15257"
+            }
+          ],
+          "smallest": "2023-01-01T00:00:00.000",
+          "count": "595263",
+          "cardinality": "595263"
+        },
+        "format": {
+          "view": "date",
+          "align": "center"
+        }
+      },
+      {
+        "id": 612799975,
+        "name": "Day Type",
+        "dataTypeName": "text",
+        "fieldName": "day_type",
+        "description": "The day type for which the data is being aggregated to (Weekday or Weekend)",
+        "position": 2,
+        "renderTypeName": "text",
+        "tableColumnId": 159599198,
+        "cachedContents": {
+          "non_null": "595263",
+          "largest": "Weekend",
+          "null": "0",
+          "top": [
+            {
+              "item": "Weekday",
+              "count": "334770"
+            },
+            {
+              "item": "Weekend",
+              "count": "260493"
+            }
+          ],
+          "smallest": "Weekday",
+          "count": "595263",
+          "cardinality": "595263"
+        },
+        "format": {}
+      },
+      {
+        "id": 612799976,
+        "name": "Hour of Day",
+        "dataTypeName": "number",
+        "fieldName": "hour_of_day",
+        "description": "The hour of the day for which the data is being aggregated to (0-23 where 0 = 12am).",
+        "position": 3,
+        "renderTypeName": "number",
+        "tableColumnId": 159599197,
+        "cachedContents": {
+          "non_null": "595263",
+          "largest": "23",
+          "null": "0",
+          "top": [
+            {
+              "item": "7",
+              "count": "30605"
+            },
+            {
+              "item": "18",
+              "count": "30411"
+            },
+            {
+              "item": "16",
+              "count": "30339"
+            },
+            {
+              "item": "8",
+              "count": "30320"
+            },
+            {
+              "item": "17",
+              "count": "30312"
+            },
+            {
+              "item": "15",
+              "count": "30172"
+            },
+            {
+              "item": "19",
+              "count": "29778"
+            },
+            {
+              "item": "14",
+              "count": "28904"
+            },
+            {
+              "item": "9",
+              "count": "28832"
+            },
+            {
+              "item": "6",
+              "count": "28546"
+            },
+            {
+              "item": "20",
+              "count": "26720"
+            },
+            {
+              "item": "10",
+              "count": "26327"
+            },
+            {
+              "item": "13",
+              "count": "25609"
+            },
+            {
+              "item": "12",
+              "count": "25242"
+            },
+            {
+              "item": "11",
+              "count": "25234"
+            },
+            {
+              "item": "21",
+              "count": "25045"
+            },
+            {
+              "item": "22",
+              "count": "23972"
+            },
+            {
+              "item": "23",
+              "count": "22899"
+            },
+            {
+              "item": "5",
+              "count": "22511"
+            },
+            {
+              "item": "0",
+              "count": "20695"
+            }
+          ],
+          "smallest": "0",
+          "count": "595263",
+          "cardinality": "595263"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "groupSeparator": ",",
+          "align": "center"
+        }
+      },
+      {
+        "id": 612799977,
+        "name": "TIme Period",
+        "dataTypeName": "text",
+        "fieldName": "time_period",
+        "description": "Identifies whether the record is during Peak or Overnight hours for the CBD Tolling Program.",
+        "position": 4,
+        "renderTypeName": "text",
+        "tableColumnId": 159599196,
+        "cachedContents": {
+          "non_null": "595263",
+          "largest": "Peak",
+          "null": "0",
+          "top": [
+            {
+              "item": "Peak",
+              "count": "406338"
+            },
+            {
+              "item": "Overnight",
+              "count": "188925"
+            }
+          ],
+          "smallest": "Overnight",
+          "count": "595263",
+          "cardinality": "595263"
+        },
+        "format": {}
+      },
+      {
+        "id": 612799978,
+        "name": "Route Type",
+        "dataTypeName": "text",
+        "fieldName": "route_type",
+        "description": "The type of bus service provided: Express, Local, SBS (Select Bus Service), or Limited.",
+        "position": 5,
+        "renderTypeName": "text",
+        "tableColumnId": 159599195,
+        "cachedContents": {
+          "non_null": "595263",
+          "largest": "School Limited",
+          "null": "0",
+          "top": [
+            {
+              "item": "Local",
+              "count": "403220"
+            },
+            {
+              "item": "Express",
+              "count": "115873"
+            },
+            {
+              "item": "SBS",
+              "count": "34379"
+            },
+            {
+              "item": "Limited",
+              "count": "33242"
+            },
+            {
+              "item": "School",
+              "count": "8219"
+            },
+            {
+              "item": "School Limited",
+              "count": "330"
+            }
+          ],
+          "smallest": "Express",
+          "count": "595263",
+          "cardinality": "595263"
+        },
+        "format": {}
+      },
+      {
+        "id": 612799979,
+        "name": "Route ID",
+        "dataTypeName": "text",
+        "fieldName": "route_id",
+        "description": "Identifies the individual bus route.",
+        "position": 6,
+        "renderTypeName": "text",
+        "tableColumnId": 159599194,
+        "cachedContents": {
+          "non_null": "595263",
+          "largest": "X68",
+          "null": "0",
+          "top": [
+            {
+              "item": "M101",
+              "count": "4990"
+            },
+            {
+              "item": "M2",
+              "count": "4757"
+            },
+            {
+              "item": "M5",
+              "count": "4234"
+            },
+            {
+              "item": "M1",
+              "count": "3946"
+            },
+            {
+              "item": "M102",
+              "count": "3744"
+            },
+            {
+              "item": "M104",
+              "count": "3744"
+            },
+            {
+              "item": "Q60",
+              "count": "3744"
+            },
+            {
+              "item": "SIM1C",
+              "count": "3744"
+            },
+            {
+              "item": "M15",
+              "count": "3744"
+            },
+            {
+              "item": "M103",
+              "count": "3744"
+            },
+            {
+              "item": "M7",
+              "count": "3744"
+            },
+            {
+              "item": "B6",
+              "count": "3519"
+            },
+            {
+              "item": "M4",
+              "count": "3483"
+            },
+            {
+              "item": "Q101",
+              "count": "3408"
+            },
+            {
+              "item": "M11",
+              "count": "3396"
+            },
+            {
+              "item": "M10",
+              "count": "3393"
+            },
+            {
+              "item": "BXM7",
+              "count": "3392"
+            },
+            {
+              "item": "Q32",
+              "count": "3325"
+            },
+            {
+              "item": "M57",
+              "count": "3276"
+            },
+            {
+              "item": "B35",
+              "count": "3271"
+            }
+          ],
+          "smallest": "B1",
+          "count": "595263",
+          "cardinality": "595263"
+        },
+        "format": {}
+      },
+      {
+        "id": 612799980,
+        "name": "CBD Relation",
+        "dataTypeName": "text",
+        "fieldName": "cbd_relation",
+        "description": "Identifies whether each segment—defined by a pair of consecutive timepoints—falls inside the Central Business District (CBD). If either timepoint in the pair is within the CBD boundaries, the segment is labeled CBD; if neither timepoint is within those boundaries, it is labeled Non-CBD.",
+        "position": 7,
+        "renderTypeName": "text",
+        "tableColumnId": 159599193,
+        "cachedContents": {
+          "non_null": "595263",
+          "largest": "Non-CBD",
+          "null": "0",
+          "top": [
+            {
+              "item": "Non-CBD",
+              "count": "479779"
+            },
+            {
+              "item": "CBD",
+              "count": "115484"
+            }
+          ],
+          "smallest": "CBD",
+          "count": "595263",
+          "cardinality": "595263"
+        },
+        "format": {}
+      },
+      {
+        "id": 612799981,
+        "name": "Sum Mileage",
+        "dataTypeName": "number",
+        "fieldName": "sum_mileage",
+        "description": "Total distance in miles traveled by all bus trips aggregated over the specified hour, route, and CBD relation. This represents the sum of segment-level distances between consecutive timepoints within the aggregation period.",
+        "position": 8,
+        "renderTypeName": "number",
+        "tableColumnId": 159599192,
+        "cachedContents": {
+          "non_null": "595263",
+          "largest": "7640.770000000001",
+          "null": "0",
+          "top": [
+            {
+              "item": "53.256",
+              "count": "260"
+            },
+            {
+              "item": "24.760000000000005",
+              "count": "133"
+            },
+            {
+              "item": "66.57",
+              "count": "123"
+            },
+            {
+              "item": "51.104",
+              "count": "117"
+            },
+            {
+              "item": "25.756",
+              "count": "116"
+            },
+            {
+              "item": "35.624",
+              "count": "86"
+            },
+            {
+              "item": "33.966",
+              "count": "75"
+            },
+            {
+              "item": "35.853",
+              "count": "74"
+            },
+            {
+              "item": "72.06800000000001",
+              "count": "73"
+            },
+            {
+              "item": "32.588",
+              "count": "73"
+            },
+            {
+              "item": "30.059999999999995",
+              "count": "73"
+            },
+            {
+              "item": "30.192",
+              "count": "71"
+            },
+            {
+              "item": "47.316",
+              "count": "68"
+            },
+            {
+              "item": "71.404",
+              "count": "65"
+            },
+            {
+              "item": "37.74",
+              "count": "62"
+            },
+            {
+              "item": "24.824",
+              "count": "62"
+            },
+            {
+              "item": "39.942",
+              "count": "60"
+            },
+            {
+              "item": "24.372",
+              "count": "60"
+            },
+            {
+              "item": "44.792",
+              "count": "60"
+            },
+            {
+              "item": "32.195",
+              "count": "59"
+            }
+          ],
+          "smallest": "0.23199999999999932",
+          "count": "595263",
+          "cardinality": "595263"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "precision": "2",
+          "groupSeparator": ",",
+          "align": "right"
+        }
+      },
+      {
+        "id": 612799982,
+        "name": "Sum Time",
+        "dataTypeName": "number",
+        "fieldName": "sum_time",
+        "description": "Total travel time in hours for all bus trips aggregated over the specified hour, route, and CBD relation. This is the sum of observed travel times across each segment between timepoints, expressed in hours.",
+        "position": 9,
+        "renderTypeName": "number",
+        "tableColumnId": 159599191,
+        "cachedContents": {
+          "non_null": "595263",
+          "largest": "805.356666",
+          "null": "0",
+          "top": [
+            {
+              "item": "0.05",
+              "count": "8"
+            },
+            {
+              "item": "0.9675",
+              "count": "7"
+            },
+            {
+              "item": "0.2",
+              "count": "6"
+            },
+            {
+              "item": "7.366944",
+              "count": "6"
+            },
+            {
+              "item": "4.836111",
+              "count": "6"
+            },
+            {
+              "item": "9.678889",
+              "count": "6"
+            },
+            {
+              "item": "5.406111",
+              "count": "6"
+            },
+            {
+              "item": "5.411389",
+              "count": "5"
+            },
+            {
+              "item": "3.553611",
+              "count": "5"
+            },
+            {
+              "item": "4.502222",
+              "count": "5"
+            },
+            {
+              "item": "0.978889",
+              "count": "5"
+            },
+            {
+              "item": "14.008888",
+              "count": "5"
+            },
+            {
+              "item": "1.753334",
+              "count": "5"
+            },
+            {
+              "item": "0.590555",
+              "count": "5"
+            },
+            {
+              "item": "1.9525",
+              "count": "5"
+            },
+            {
+              "item": "2.571667",
+              "count": "5"
+            },
+            {
+              "item": "0.545556",
+              "count": "5"
+            },
+            {
+              "item": "5.670555",
+              "count": "5"
+            },
+            {
+              "item": "5.269443",
+              "count": "5"
+            },
+            {
+              "item": "22.589167",
+              "count": "5"
+            }
+          ],
+          "smallest": "0.016667",
+          "count": "595263",
+          "cardinality": "595263"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "precision": "2",
+          "groupSeparator": ",",
+          "align": "right"
+        }
+      },
+      {
+        "id": 612799983,
+        "name": "Average Road Speed",
+        "dataTypeName": "number",
+        "fieldName": "average_road_speed",
+        "description": "The average speed in miles per hour for all bus trips on a bus route for a particular CBD relation, hour of day, month, and year.",
+        "position": 10,
+        "renderTypeName": "number",
+        "tableColumnId": 159599190,
+        "cachedContents": {
+          "non_null": "595263",
+          "largest": "57.29577464788731",
+          "null": "0",
+          "top": [
+            {
+              "item": "14.065",
+              "count": "4"
+            },
+            {
+              "item": "8.310083100831012",
+              "count": "4"
+            },
+            {
+              "item": "13.27873340158325",
+              "count": "4"
+            },
+            {
+              "item": "7.994960025199866",
+              "count": "3"
+            },
+            {
+              "item": "12.70419847328244",
+              "count": "2"
+            },
+            {
+              "item": "12.08048593232432",
+              "count": "2"
+            },
+            {
+              "item": "43.57531845973889",
+              "count": "2"
+            },
+            {
+              "item": "14.638920414080197",
+              "count": "2"
+            },
+            {
+              "item": "11.2609991675096",
+              "count": "2"
+            },
+            {
+              "item": "11.534155110892195",
+              "count": "2"
+            },
+            {
+              "item": "13.032268337344677",
+              "count": "2"
+            },
+            {
+              "item": "25.776103104412414",
+              "count": "2"
+            },
+            {
+              "item": "27.97570846285498",
+              "count": "2"
+            },
+            {
+              "item": "10.986282664018375",
+              "count": "2"
+            },
+            {
+              "item": "8.842252656781435",
+              "count": "2"
+            },
+            {
+              "item": "4.228524417571105",
+              "count": "2"
+            },
+            {
+              "item": "11.322362473775474",
+              "count": "2"
+            },
+            {
+              "item": "11.158078602620087",
+              "count": "2"
+            },
+            {
+              "item": "7.079999999999999",
+              "count": "2"
+            },
+            {
+              "item": "5.270588235294123",
+              "count": "2"
+            }
+          ],
+          "smallest": "1.5125314557894092",
+          "count": "595263",
+          "cardinality": "595263"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "precision": "2",
+          "groupSeparator": ",",
+          "align": "right"
+        }
+      }
+    ],
+    "assetType": "dataset",
+    "attributionLink": "https://www.mta.info/open-data",
+    "averageRating": 0,
+    "category": "Transportation",
+    "createdAt": 1750711633,
+    "diciBackend": false,
+    "displayType": "table",
+    "downloadCount": 1073,
+    "hideFromCatalog": false,
+    "hideFromDataJson": false,
+    "locked": false,
+    "newBackend": true,
+    "numberOfComments": 0,
+    "oid": 41403658,
+    "provenance": "official",
+    "publicationAppendEnabled": false,
+    "publicationDate": 1750713012,
+    "publicationGroup": 19935678,
+    "publicationStage": "published",
+    "rowsUpdatedBy": "xzik-pf59",
+    "tableId": 19935681,
+    "totalTimesRated": 0,
+    "viewCount": 3017,
+    "viewLastModified": 1777049296,
+    "viewType": "tabular",
+    "approvals": [
+      {
+        "reviewedAt": 1750787753,
+        "reviewedAutomatically": true,
+        "state": "approved",
+        "submissionId": 6938422,
+        "submissionObject": "public_audience_request",
+        "submissionOutcome": "change_audience",
+        "submittedAt": 1750787752,
+        "targetAudience": "public",
+        "workflowId": 2254,
+        "submissionDetails": {
+          "permissionType": "READ"
+        },
+        "submissionOutcomeApplication": {
+          "endedAt": 1750787753,
+          "failureCount": 0,
+          "startedAt": 1750787753,
+          "status": "success"
+        },
+        "submitter": {
+          "id": "28jg-4c4u",
+          "displayName": "Open Data Administrator 1"
+        }
+      }
+    ],
+    "clientContext": {
+      "clientContextVariables": [],
+      "inheritedVariables": {}
+    },
+    "grants": [
+      {
+        "inherited": false,
+        "type": "viewer",
+        "flags": [
+          "public"
+        ]
+      }
+    ],
+    "metadata": {
+      "attachments": [
+        {
+          "filename": "MTA_CBDBusSpeeds_Overview.pdf",
+          "assetId": "417c5fb7-336c-44e1-a014-13e6d6a6e242",
+          "name": "MTA_CBDBusSpeeds_Overview.pdf"
+        },
+        {
+          "filename": "MTA_CBDBusSpeeds_DataDictionary.pdf",
+          "assetId": "d4da7c7a-2bc7-4360-a7ed-f371524fd03d",
+          "name": "MTA_CBDBusSpeeds_DataDictionary.pdf"
+        }
+      ],
+      "custom_fields": {
+        "Dataset Summary": {
+          "Posting Frequency": "Monthly",
+          "Organization": "New York City Transit, MTA Bus Company",
+          "Contact Information": "opendata@mtahq.org",
+          "Time Period": "Beginning 2023",
+          "Coverage": "New York City",
+          "Granularity": "Each row represents the total miles, travel time, average speed, and trip count for a given month, aggregated by day type, hour, route (and its type), and a CBD vs Non-CBD classification.  ",
+          "Dataset Owner": "Metropolitan Transportation Authority"
+        },
+        "Additional Resources": {
+          "See Also": "https://metrics.mta.info/"
+        },
+        "Dataset Information": {
+          "Agency": "Metropolitan Transportation Authority"
+        }
+      },
+      "rowIdentifier": 612799984,
+      "availableDisplayTypes": [
+        "table",
+        "fatrow",
+        "page"
+      ]
+    },
+    "owner": {
+      "id": "xzik-pf59",
+      "displayName": "NY Open Data",
+      "profileImageUrlLarge": "/api/users/xzik-pf59/profile_images/LARGE",
+      "profileImageUrlMedium": "/api/users/xzik-pf59/profile_images/THUMB",
+      "profileImageUrlSmall": "/api/users/xzik-pf59/profile_images/TINY",
+      "screenName": "NY Open Data",
+      "type": "interactive",
+      "flags": [
+        "acceptedEula",
+        "mayBeStoriesCoOwner"
+      ]
+    },
+    "query": {},
+    "rights": [
+      "read"
+    ],
+    "tableAuthor": {
+      "id": "xzik-pf59",
+      "displayName": "NY Open Data",
+      "profileImageUrlLarge": "/api/users/xzik-pf59/profile_images/LARGE",
+      "profileImageUrlMedium": "/api/users/xzik-pf59/profile_images/THUMB",
+      "profileImageUrlSmall": "/api/users/xzik-pf59/profile_images/TINY",
+      "screenName": "NY Open Data",
+      "type": "interactive",
+      "flags": [
+        "acceptedEula",
+        "mayBeStoriesCoOwner"
+      ]
+    },
+    "tags": [
+      "cbdtp",
+      "central business district tolling program",
+      "congestion relief zone",
+      "cbd",
+      "central business district",
+      "congestion",
+      "ridership",
+      "congestion pricing",
+      "new york city transit",
+      "nyct",
+      "mta bus",
+      "mtabc",
+      "bus",
+      "routes",
+      "bus routes",
+      "bus stops",
+      "monthly",
+      "hourly",
+      "journey time",
+      "travel time",
+      "ride time",
+      "speeds",
+      "service",
+      "performance",
+      "timepoints"
+    ],
+    "flags": [
+      "default",
+      "ownerMayBeContacted",
+      "restorable",
+      "restorePossibleForType"
+    ]
+  }
+}

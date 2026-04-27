@@ -10,3 +10,5 @@ Local generated data and fixtures.
 - `fixtures/` — small test fixtures that are safe to commit.
 
 Do not store the LLM wiki here. The wiki lives in `knowledge/`.
+
+Full source downloads belong here, not in committed wiki metadata. Keep committed fixtures small and purpose-built.

@@ -1,0 +1,3848 @@
+{
+  "schemaVersion": 1,
+  "sourceId": "nyc_dot_bus_lanes_local_streets",
+  "sourceType": "socrata_dataset",
+  "sourcePriority": "core",
+  "manifestStatus": "active",
+  "checkedAt": "2026-04-27T02:47:43.741Z",
+  "probeStatus": "active",
+  "statusRecommendation": "active",
+  "url": "https://data.cityofnewyork.us/Transportation/Bus-Lanes-Local-Streets/ycrg-ses3",
+  "socrata": {
+    "datasetId": "ycrg-ses3",
+    "domain": "data.cityofnewyork.us",
+    "metadataUrl": "https://data.cityofnewyork.us/api/views/ycrg-ses3",
+    "columnsUrl": "https://data.cityofnewyork.us/api/views/ycrg-ses3/columns.json",
+    "rowsCsvUrl": "https://data.cityofnewyork.us/api/views/ycrg-ses3/rows.csv?accessType=DOWNLOAD",
+    "rowCountUrl": "https://data.cityofnewyork.us/resource/ycrg-ses3.json?%24select=count%28*%29",
+    "name": "Bus Lanes - Local Streets",
+    "columnCount": 29,
+    "rowsUpdatedAt": 1775490243,
+    "rowsUpdatedAtIso": "2026-04-06T15:44:03.000Z",
+    "rowCount": 4068
+  },
+  "socrataDataset": {
+    "metadata": {
+      "id": "ycrg-ses3",
+      "name": "Bus Lanes - Local Streets",
+      "description": "Bus lanes are travel lanes that are restricted to buses during certain hours of the day. All bus lanes have signs posted along the route with specific regulations; lanes marked \"Bus Only\" and /or painted red. Bus lanes help to keep buses from getting stuck in traffic, generally making travel for bus riders faster and reliable and improving the overall traffic flow of a corridor. Each record represents a segment of a bus lane based on the LION geographic base file of NYC streets. User may use the SegmentID field in this dataset to join with the LION data for more information.",
+      "attribution": "Department of Transportation (DOT)",
+      "rowsUpdatedAt": 1775490243,
+      "columns": [
+        {
+          "id": 617611143,
+          "name": "the_geom",
+          "dataTypeName": "multiline",
+          "fieldName": "the_geom",
+          "description": "",
+          "position": 1,
+          "renderTypeName": "multiline",
+          "tableColumnId": 124489671,
+          "format": {}
+        },
+        {
+          "id": 617611144,
+          "name": "Street",
+          "dataTypeName": "text",
+          "fieldName": "street",
+          "description": "Street of the bus lane",
+          "position": 2,
+          "renderTypeName": "text",
+          "tableColumnId": 124489672,
+          "cachedContents": {
+            "non_null": "4068",
+            "largest": "WOODHAVEN BOULEVARD",
+            "null": "0",
+            "top": [
+              {
+                "item": "HILLSIDE AVENUE",
+                "count": "284"
+              },
+              {
+                "item": "1 AVENUE",
+                "count": "204"
+              },
+              {
+                "item": "WOODHAVEN BOULEVARD",
+                "count": "203"
+              },
+              {
+                "item": "WEBSTER AVENUE",
+                "count": "202"
+              },
+              {
+                "item": "HYLAN BOULEVARD",
+                "count": "191"
+              },
+              {
+                "item": "2 AVENUE",
+                "count": "167"
+              },
+              {
+                "item": "NOSTRAND AVENUE",
+                "count": "125"
+              },
+              {
+                "item": "NORTHERN BOULEVARD",
+                "count": "125"
+              },
+              {
+                "item": "STORY AVENUE",
+                "count": "122"
+              },
+              {
+                "item": "3 AVENUE",
+                "count": "118"
+              },
+              {
+                "item": "MERRICK BOULEVARD",
+                "count": "109"
+              },
+              {
+                "item": "EAST GUN HILL ROAD",
+                "count": "109"
+              },
+              {
+                "item": "21 STREET",
+                "count": "100"
+              },
+              {
+                "item": "UTICA AVENUE",
+                "count": "89"
+              },
+              {
+                "item": "5 AVENUE",
+                "count": "87"
+              },
+              {
+                "item": "FULTON STREET",
+                "count": "81"
+              },
+              {
+                "item": "BROADWAY",
+                "count": "75"
+              },
+              {
+                "item": "LEXINGTON AVENUE",
+                "count": "72"
+              },
+              {
+                "item": "EAST 149 STREET",
+                "count": "70"
+              },
+              {
+                "item": "EAST FORDHAM ROAD",
+                "count": "68"
+              }
+            ],
+            "smallest": "11 AVENUE",
+            "count": "4068",
+            "cardinality": "4068"
+          },
+          "format": {}
+        },
+        {
+          "id": 617611145,
+          "name": "TrafDir",
+          "dataTypeName": "text",
+          "fieldName": "bltrafdir",
+          "description": "Bus Lane Traffic Direction. Code indicating the flow of bus traffic in bus lane relative to the street segment's directionality.",
+          "position": 3,
+          "renderTypeName": "text",
+          "tableColumnId": 124489673,
+          "cachedContents": {
+            "non_null": "4066",
+            "largest": "W",
+            "null": "2",
+            "top": [
+              {
+                "item": "T",
+                "count": "2144"
+              },
+              {
+                "item": "A",
+                "count": "1008"
+              },
+              {
+                "item": "W",
+                "count": "913"
+              },
+              {
+                "item": "P",
+                "count": "1"
+              }
+            ],
+            "smallest": "A",
+            "count": "4068",
+            "cardinality": "4068"
+          },
+          "format": {}
+        },
+        {
+          "id": 617611146,
+          "name": "SegmentID",
+          "dataTypeName": "text",
+          "fieldName": "segmentid",
+          "description": "Segment ID: A seven digit number (right justified, zero filled) that identifies each segment of a street or a non-street feature represented in the LION file.",
+          "position": 4,
+          "renderTypeName": "text",
+          "tableColumnId": 124489674,
+          "cachedContents": {
+            "non_null": "4068",
+            "largest": "9024008",
+            "null": "0",
+            "top": [
+              {
+                "item": "0057466",
+                "count": "6"
+              },
+              {
+                "item": "9004294",
+                "count": "6"
+              },
+              {
+                "item": "9004292",
+                "count": "6"
+              },
+              {
+                "item": "9004324",
+                "count": "4"
+              },
+              {
+                "item": "9004296",
+                "count": "4"
+              },
+              {
+                "item": "0060110",
+                "count": "4"
+              },
+              {
+                "item": "0060907",
+                "count": "4"
+              },
+              {
+                "item": "0115894",
+                "count": "4"
+              },
+              {
+                "item": "0061035",
+                "count": "4"
+              },
+              {
+                "item": "0060768",
+                "count": "4"
+              },
+              {
+                "item": "0060598",
+                "count": "4"
+              },
+              {
+                "item": "0060429",
+                "count": "4"
+              },
+              {
+                "item": "9004332",
+                "count": "4"
+              },
+              {
+                "item": "9004327",
+                "count": "4"
+              },
+              {
+                "item": "9004318",
+                "count": "4"
+              },
+              {
+                "item": "0171158",
+                "count": "4"
+              },
+              {
+                "item": "0060262",
+                "count": "4"
+              },
+              {
+                "item": "0115893",
+                "count": "4"
+              },
+              {
+                "item": "0061021",
+                "count": "4"
+              },
+              {
+                "item": "0076625",
+                "count": "4"
+              }
+            ],
+            "smallest": "0005839",
+            "count": "4068",
+            "cardinality": "4068"
+          },
+          "format": {}
+        },
+        {
+          "id": 617611147,
+          "name": "RW_TYPE",
+          "dataTypeName": "text",
+          "fieldName": "rw_type",
+          "description": "Roadway type (example: street, highway, bridge, tunnel, alley, etc.)",
+          "position": 5,
+          "renderTypeName": "text",
+          "tableColumnId": 124489675,
+          "cachedContents": {
+            "non_null": "3775",
+            "largest": "9",
+            "null": "293",
+            "top": [
+              {
+                "item": "1",
+                "count": "3723"
+              },
+              {
+                "item": "3",
+                "count": "25"
+              },
+              {
+                "item": "2",
+                "count": "19"
+              },
+              {
+                "item": "9",
+                "count": "6"
+              },
+              {
+                "item": "13",
+                "count": "1"
+              },
+              {
+                "item": "6",
+                "count": "1"
+              }
+            ],
+            "smallest": "1",
+            "count": "4068",
+            "cardinality": "4068"
+          },
+          "format": {}
+        },
+        {
+          "id": 617611148,
+          "name": "StreetWidt",
+          "dataTypeName": "number",
+          "fieldName": "streetwidt",
+          "description": "Approximate width, in feet, of the paved area of the street",
+          "position": 6,
+          "renderTypeName": "number",
+          "tableColumnId": 124489676,
+          "cachedContents": {
+            "non_null": "4068",
+            "largest": "134.0",
+            "null": "0",
+            "top": [
+              {
+                "item": "0.0",
+                "count": "682"
+              },
+              {
+                "item": "60.0",
+                "count": "660"
+              },
+              {
+                "item": "70.0",
+                "count": "573"
+              },
+              {
+                "item": "30.0",
+                "count": "240"
+              },
+              {
+                "item": "50.0",
+                "count": "186"
+              },
+              {
+                "item": "52.0",
+                "count": "170"
+              },
+              {
+                "item": "44.0",
+                "count": "170"
+              },
+              {
+                "item": "40.0",
+                "count": "169"
+              },
+              {
+                "item": "32.0",
+                "count": "154"
+              },
+              {
+                "item": "54.0",
+                "count": "83"
+              },
+              {
+                "item": "48.0",
+                "count": "79"
+              },
+              {
+                "item": "55.0",
+                "count": "79"
+              },
+              {
+                "item": "34.0",
+                "count": "78"
+              },
+              {
+                "item": "62.0",
+                "count": "76"
+              },
+              {
+                "item": "68.0",
+                "count": "62"
+              },
+              {
+                "item": "38.0",
+                "count": "60"
+              },
+              {
+                "item": "42.0",
+                "count": "54"
+              },
+              {
+                "item": "45.0",
+                "count": "42"
+              },
+              {
+                "item": "58.0",
+                "count": "42"
+              },
+              {
+                "item": "24.0",
+                "count": "41"
+              }
+            ],
+            "smallest": "0.0",
+            "count": "4068",
+            "cardinality": "4068"
+          },
+          "format": {}
+        },
+        {
+          "id": 617611149,
+          "name": "Boro",
+          "dataTypeName": "text",
+          "fieldName": "boro",
+          "description": "The borough of the bus lane",
+          "position": 7,
+          "renderTypeName": "text",
+          "tableColumnId": 124489677,
+          "cachedContents": {
+            "non_null": "4068",
+            "largest": "SI",
+            "null": "0",
+            "top": [
+              {
+                "item": "MAN",
+                "count": "1304"
+              },
+              {
+                "item": "QNS",
+                "count": "1083"
+              },
+              {
+                "item": "BX",
+                "count": "797"
+              },
+              {
+                "item": "BK",
+                "count": "569"
+              },
+              {
+                "item": "SI",
+                "count": "284"
+              },
+              {
+                "item": "BX, MN",
+                "count": "31"
+              }
+            ],
+            "smallest": "BK",
+            "count": "4068",
+            "cardinality": "4068"
+          },
+          "format": {}
+        },
+        {
+          "id": 617611150,
+          "name": "Facility",
+          "dataTypeName": "text",
+          "fieldName": "facility",
+          "description": "Street name of bus lane with travel direction of lane",
+          "position": 8,
+          "renderTypeName": "text",
+          "tableColumnId": 124489678,
+          "cachedContents": {
+            "non_null": "4068",
+            "largest": "Woodhaven Boulevard",
+            "null": "0",
+            "top": [
+              {
+                "item": "Hillside Avenue",
+                "count": "284"
+              },
+              {
+                "item": "Woodhaven Boulevard",
+                "count": "248"
+              },
+              {
+                "item": "1st Avenue",
+                "count": "204"
+              },
+              {
+                "item": "Webster Avenue",
+                "count": "202"
+              },
+              {
+                "item": "2nd Avenue",
+                "count": "167"
+              },
+              {
+                "item": "Hylan Boulevard",
+                "count": "126"
+              },
+              {
+                "item": "Northern Boulevard",
+                "count": "125"
+              },
+              {
+                "item": "Nostrand Avenue",
+                "count": "125"
+              },
+              {
+                "item": "Story Avenue",
+                "count": "122"
+              },
+              {
+                "item": "Gun Hill Road",
+                "count": "109"
+              },
+              {
+                "item": "Merrick Boulevard",
+                "count": "109"
+              },
+              {
+                "item": "21st",
+                "count": "100"
+              },
+              {
+                "item": "Utica Avenue",
+                "count": "89"
+              },
+              {
+                "item": "5th Avenue",
+                "count": "87"
+              },
+              {
+                "item": "Fordham Road",
+                "count": "84"
+              },
+              {
+                "item": "Fulton Street",
+                "count": "81"
+              },
+              {
+                "item": "Broadway",
+                "count": "75"
+              },
+              {
+                "item": "Lexington Avenue",
+                "count": "72"
+              },
+              {
+                "item": "Kings Highway",
+                "count": "67"
+              },
+              {
+                "item": "Hylan Bl",
+                "count": "65"
+              }
+            ],
+            "smallest": "11th Avenue",
+            "count": "4068",
+            "cardinality": "4068"
+          },
+          "format": {}
+        },
+        {
+          "id": 617611198,
+          "name": "Direction",
+          "dataTypeName": "text",
+          "fieldName": "direction",
+          "description": "Direction of travel of the street\n",
+          "position": 9,
+          "renderTypeName": "text",
+          "tableColumnId": 161816237,
+          "cachedContents": {
+            "non_null": "4055",
+            "largest": "WB",
+            "null": "13",
+            "top": [
+              {
+                "item": "NB",
+                "count": "1292"
+              },
+              {
+                "item": "SB",
+                "count": "1149"
+              },
+              {
+                "item": "EB",
+                "count": "827"
+              },
+              {
+                "item": "WB",
+                "count": "787"
+              }
+            ],
+            "smallest": "EB",
+            "count": "4068",
+            "cardinality": "4068"
+          },
+          "format": {}
+        },
+        {
+          "id": 617611151,
+          "name": "Hours",
+          "dataTypeName": "text",
+          "fieldName": "hours",
+          "description": "The hours the bus lanes are in effect",
+          "position": 10,
+          "renderTypeName": "text",
+          "tableColumnId": 124489679,
+          "cachedContents": {
+            "non_null": "4054",
+            "largest": "7AM-9PM",
+            "null": "14",
+            "top": [
+              {
+                "item": "24 Hours",
+                "count": "2295"
+              },
+              {
+                "item": "7AM-7PM",
+                "count": "449"
+              },
+              {
+                "item": "7AM-9PM",
+                "count": "127"
+              },
+              {
+                "item": "6AM-9AM",
+                "count": "109"
+              },
+              {
+                "item": "7AM-10AM/4PM-7PM",
+                "count": "109"
+              },
+              {
+                "item": "7AM-10AM/2PM-7PM",
+                "count": "101"
+              },
+              {
+                "item": "4PM-7PM",
+                "count": "93"
+              },
+              {
+                "item": "3PM-7PM",
+                "count": "91"
+              },
+              {
+                "item": "7AM-9AM",
+                "count": "87"
+              },
+              {
+                "item": "7AM-10AM",
+                "count": "68"
+              },
+              {
+                "item": "7AM - 8PM",
+                "count": "64"
+              },
+              {
+                "item": "6 AM - 7 PM",
+                "count": "54"
+              },
+              {
+                "item": "6AM-10PM",
+                "count": "49"
+              },
+              {
+                "item": "7AM-10AM / 4PM-8PM",
+                "count": "42"
+              },
+              {
+                "item": "7 AM - 7 PM",
+                "count": "40"
+              },
+              {
+                "item": "7 AM - 8 PM",
+                "count": "34"
+              },
+              {
+                "item": "7AM-10AM/12PM-7PM",
+                "count": "31"
+              },
+              {
+                "item": "7AM-6PM",
+                "count": "28"
+              },
+              {
+                "item": "7AM-12PM/2PM-7PM",
+                "count": "22"
+              },
+              {
+                "item": "7AM - 7PM",
+                "count": "20"
+              }
+            ],
+            "smallest": "24 hour",
+            "count": "4068",
+            "cardinality": "4068"
+          },
+          "format": {}
+        },
+        {
+          "id": 617611152,
+          "name": "Days",
+          "dataTypeName": "text",
+          "fieldName": "days",
+          "description": "The days the bus lanes are in effect",
+          "position": 11,
+          "renderTypeName": "text",
+          "tableColumnId": 124489680,
+          "cachedContents": {
+            "non_null": "4067",
+            "largest": "Mon - Sat",
+            "null": "1",
+            "top": [
+              {
+                "item": "7 Days/Week",
+                "count": "2567"
+              },
+              {
+                "item": "Mon - Fri",
+                "count": "1410"
+              },
+              {
+                "item": "Mon - Sat",
+                "count": "69"
+              },
+              {
+                "item": "Mon-Fri",
+                "count": "20"
+              },
+              {
+                "item": "& Days/Week",
+                "count": "1"
+              }
+            ],
+            "smallest": "7 Days/Week",
+            "count": "4068",
+            "cardinality": "4068"
+          },
+          "format": {}
+        },
+        {
+          "id": 617611163,
+          "name": "Days_Code",
+          "dataTypeName": "number",
+          "fieldName": "days_code",
+          "description": "Number of days per week bus lane is in effect.",
+          "position": 12,
+          "renderTypeName": "number",
+          "tableColumnId": 124489691,
+          "cachedContents": {
+            "non_null": "4068",
+            "largest": "7.0",
+            "null": "0",
+            "top": [
+              {
+                "item": "7.0",
+                "count": "2584"
+              },
+              {
+                "item": "5.0",
+                "count": "1413"
+              },
+              {
+                "item": "6.0",
+                "count": "70"
+              },
+              {
+                "item": "0.0",
+                "count": "1"
+              }
+            ],
+            "smallest": "0.0",
+            "count": "4068",
+            "cardinality": "4068"
+          },
+          "format": {}
+        },
+        {
+          "id": 617611153,
+          "name": "Lane_width",
+          "dataTypeName": "text",
+          "fieldName": "lane_width",
+          "description": "Single or dual bus lanes",
+          "position": 13,
+          "renderTypeName": "text",
+          "tableColumnId": 124489681,
+          "cachedContents": {
+            "non_null": "3980",
+            "largest": "Single",
+            "null": "88",
+            "top": [
+              {
+                "item": "Single",
+                "count": "3919"
+              },
+              {
+                "item": "Double",
+                "count": "61"
+              }
+            ],
+            "smallest": "Double",
+            "count": "4068",
+            "cardinality": "4068"
+          },
+          "format": {}
+        },
+        {
+          "id": 617611158,
+          "name": "Lane_Type1",
+          "dataTypeName": "text",
+          "fieldName": "lane_type1",
+          "description": "The type of bus lane.",
+          "position": 14,
+          "renderTypeName": "text",
+          "tableColumnId": 124489686,
+          "cachedContents": {
+            "non_null": "3683",
+            "largest": "Shared Lane",
+            "null": "385",
+            "top": [
+              {
+                "item": "Bus Lane",
+                "count": "2572"
+              },
+              {
+                "item": "Shared Lane",
+                "count": "1111"
+              }
+            ],
+            "smallest": "Bus Lane",
+            "count": "4068",
+            "cardinality": "4068"
+          },
+          "format": {}
+        },
+        {
+          "id": 617611197,
+          "name": "Lane_Type",
+          "dataTypeName": "text",
+          "fieldName": "lane_type",
+          "description": "A description on the type of bus lane.",
+          "position": 15,
+          "renderTypeName": "text",
+          "tableColumnId": 161816236,
+          "cachedContents": {
+            "non_null": "4067",
+            "largest": "Shoulder",
+            "null": "1",
+            "top": [
+              {
+                "item": "Offset",
+                "count": "1913"
+              },
+              {
+                "item": "Curbside",
+                "count": "1771"
+              },
+              {
+                "item": "Busway",
+                "count": "129"
+              },
+              {
+                "item": "Median",
+                "count": "120"
+              },
+              {
+                "item": "Center Running",
+                "count": "49"
+              },
+              {
+                "item": "Left-side running",
+                "count": "28"
+              },
+              {
+                "item": "Bus lane on shoulder",
+                "count": "19"
+              },
+              {
+                "item": "Contraflow",
+                "count": "7"
+              },
+              {
+                "item": "Enhanced Bus Stop",
+                "count": "7"
+              },
+              {
+                "item": "Shoulder",
+                "count": "6"
+              },
+              {
+                "item": "bus lane on shoulder",
+                "count": "6"
+              },
+              {
+                "item": "Queue Jump",
+                "count": "4"
+              },
+              {
+                "item": "Enhanced bus stop",
+                "count": "4"
+              },
+              {
+                "item": "Buses and local deliveries only",
+                "count": "2"
+              },
+              {
+                "item": "Left Turn Lane",
+                "count": "1"
+              },
+              {
+                "item": "Bus Only",
+                "count": "1"
+              }
+            ],
+            "smallest": "Buses and local deliveries only",
+            "count": "4068",
+            "cardinality": "4068"
+          },
+          "format": {}
+        },
+        {
+          "id": 617611159,
+          "name": "Lane_Descr",
+          "dataTypeName": "text",
+          "fieldName": "lane_type2",
+          "description": "A secondary description on the type of bus lane.",
+          "position": 16,
+          "renderTypeName": "text",
+          "tableColumnId": 124489687,
+          "cachedContents": {
+            "non_null": "719",
+            "largest": "Quick Kerb",
+            "null": "3349",
+            "top": [
+              {
+                "item": "Paint",
+                "count": "570"
+              },
+              {
+                "item": "Bus Only Lane",
+                "count": "63"
+              },
+              {
+                "item": "Queue Jump",
+                "count": "13"
+              },
+              {
+                "item": "Offset",
+                "count": "13"
+              },
+              {
+                "item": "Median",
+                "count": "13"
+              },
+              {
+                "item": "Curbside",
+                "count": "11"
+              },
+              {
+                "item": "Intermittent queue jumps",
+                "count": "10"
+              },
+              {
+                "item": "Concrete",
+                "count": "5"
+              },
+              {
+                "item": "Contraflow",
+                "count": "5"
+              },
+              {
+                "item": "Enhanced Bus Stop",
+                "count": "5"
+              },
+              {
+                "item": "Quick curb",
+                "count": "5"
+              },
+              {
+                "item": "Quick Kerb",
+                "count": "4"
+              },
+              {
+                "item": "Bus Only Left Turn Bay",
+                "count": "1"
+              },
+              {
+                "item": "Continuous",
+                "count": "1"
+              }
+            ],
+            "smallest": "Bus Only Lane",
+            "count": "4068",
+            "cardinality": "4068"
+          },
+          "format": {}
+        },
+        {
+          "id": 617611165,
+          "name": "Lane_Color",
+          "dataTypeName": "text",
+          "fieldName": "lane_color",
+          "description": "Color of bus lanes",
+          "position": 17,
+          "renderTypeName": "text",
+          "tableColumnId": 124489693,
+          "cachedContents": {
+            "non_null": "2982",
+            "largest": "Red",
+            "null": "1086",
+            "top": [
+              {
+                "item": "Red",
+                "count": "2929"
+              },
+              {
+                "item": "None",
+                "count": "32"
+              },
+              {
+                "item": "No",
+                "count": "14"
+              },
+              {
+                "item": "No/Never",
+                "count": "7"
+              }
+            ],
+            "smallest": "No",
+            "count": "4068",
+            "cardinality": "4068"
+          },
+          "format": {}
+        },
+        {
+          "id": 617611160,
+          "name": "SBS_Route1",
+          "dataTypeName": "text",
+          "fieldName": "sbs_route1",
+          "description": "Select Bus Service (SBS) route(s) using bus lane",
+          "position": 18,
+          "renderTypeName": "text",
+          "tableColumnId": 124489688,
+          "cachedContents": {
+            "non_null": "1861",
+            "largest": "S79",
+            "null": "2207",
+            "top": [
+              {
+                "item": "M15",
+                "count": "381"
+              },
+              {
+                "item": "Q52",
+                "count": "270"
+              },
+              {
+                "item": "S79",
+                "count": "204"
+              },
+              {
+                "item": "BX41",
+                "count": "202"
+              },
+              {
+                "item": "B44",
+                "count": "180"
+              },
+              {
+                "item": "B82",
+                "count": "105"
+              },
+              {
+                "item": "B46",
+                "count": "89"
+              },
+              {
+                "item": "BX12",
+                "count": "88"
+              },
+              {
+                "item": "Q44",
+                "count": "83"
+              },
+              {
+                "item": "M34",
+                "count": "56"
+              },
+              {
+                "item": "Q53",
+                "count": "44"
+              },
+              {
+                "item": "BX6",
+                "count": "39"
+              },
+              {
+                "item": "M60",
+                "count": "37"
+              },
+              {
+                "item": "M14 A",
+                "count": "32"
+              },
+              {
+                "item": "M23",
+                "count": "27"
+              },
+              {
+                "item": "M14",
+                "count": "17"
+              },
+              {
+                "item": "M86",
+                "count": "7"
+              }
+            ],
+            "smallest": "B44",
+            "count": "4068",
+            "cardinality": "4068"
+          },
+          "format": {}
+        },
+        {
+          "id": 617611161,
+          "name": "SBS_Route2",
+          "dataTypeName": "text",
+          "fieldName": "sbs_route2",
+          "description": "Select Bus Service (SBS) route(s) using bus lane",
+          "position": 19,
+          "renderTypeName": "text",
+          "tableColumnId": 124489689,
+          "cachedContents": {
+            "non_null": "369",
+            "largest": "Q53",
+            "null": "3699",
+            "top": [
+              {
+                "item": "Q53",
+                "count": "254"
+              },
+              {
+                "item": "M34A",
+                "count": "56"
+              },
+              {
+                "item": "M14 D",
+                "count": "32"
+              },
+              {
+                "item": "Q25",
+                "count": "17"
+              },
+              {
+                "item": "M14 A",
+                "count": "10"
+              }
+            ],
+            "smallest": "M14 A",
+            "count": "4068",
+            "cardinality": "4068"
+          },
+          "format": {}
+        },
+        {
+          "id": 617611162,
+          "name": "SBS_Route3",
+          "dataTypeName": "text",
+          "fieldName": "sbs_route3",
+          "description": "Select Bus Service (SBS) route(s) using bus lane",
+          "position": 20,
+          "renderTypeName": "text",
+          "tableColumnId": 124489690,
+          "cachedContents": {
+            "non_null": "0",
+            "null": "4068",
+            "count": "4068",
+            "cardinality": "4068"
+          },
+          "format": {}
+        },
+        {
+          "id": 617611166,
+          "name": "Open_dates",
+          "dataTypeName": "text",
+          "fieldName": "open_dates",
+          "description": "Year bus lane opened",
+          "position": 21,
+          "renderTypeName": "text",
+          "tableColumnId": 146293317,
+          "cachedContents": {
+            "non_null": "3857",
+            "largest": "9/9/2024",
+            "null": "211",
+            "top": [
+              {
+                "item": "6/30/2013",
+                "count": "195"
+              },
+              {
+                "item": "9/15/2025",
+                "count": "195"
+              },
+              {
+                "item": "11/17/2013",
+                "count": "138"
+              },
+              {
+                "item": "8/24/82, 10/10/10",
+                "count": "130"
+              },
+              {
+                "item": "12/03/2021",
+                "count": "127"
+              },
+              {
+                "item": "8/8/2023",
+                "count": "125"
+              },
+              {
+                "item": "09/02/12",
+                "count": "113"
+              },
+              {
+                "item": "12/1/2020",
+                "count": "109"
+              },
+              {
+                "item": "10/31/2023",
+                "count": "109"
+              },
+              {
+                "item": "8/15/2022",
+                "count": "100"
+              },
+              {
+                "item": "9/12/2020",
+                "count": "93"
+              },
+              {
+                "item": "05/26/69",
+                "count": "85"
+              },
+              {
+                "item": "9/3/02,06/29/08",
+                "count": "78"
+              },
+              {
+                "item": "7/28/82,10/10/10",
+                "count": "73"
+              },
+              {
+                "item": "09/01/15",
+                "count": "72"
+              },
+              {
+                "item": "9/1/2022",
+                "count": "70"
+              },
+              {
+                "item": "10/05/2018",
+                "count": "67"
+              },
+              {
+                "item": "8/5/2020",
+                "count": "64"
+              },
+              {
+                "item": "09/16/2019",
+                "count": "62"
+              },
+              {
+                "item": "8/24/82,10/10/10",
+                "count": "56"
+              }
+            ],
+            "smallest": "???",
+            "count": "4068",
+            "cardinality": "4068"
+          },
+          "format": {}
+        },
+        {
+          "id": 617611155,
+          "name": "Year1",
+          "dataTypeName": "number",
+          "fieldName": "year1",
+          "description": "The year the bus lanes went into effect",
+          "position": 22,
+          "renderTypeName": "number",
+          "tableColumnId": 124489683,
+          "cachedContents": {
+            "non_null": "4068",
+            "largest": "2025",
+            "null": "0",
+            "top": [
+              {
+                "item": "1982",
+                "count": "519"
+              },
+              {
+                "item": "2013",
+                "count": "361"
+              },
+              {
+                "item": "2023",
+                "count": "361"
+              },
+              {
+                "item": "2020",
+                "count": "357"
+              },
+              {
+                "item": "2015",
+                "count": "273"
+              },
+              {
+                "item": "2025",
+                "count": "270"
+              },
+              {
+                "item": "2017",
+                "count": "223"
+              },
+              {
+                "item": "2022",
+                "count": "201"
+              },
+              {
+                "item": "2019",
+                "count": "197"
+              },
+              {
+                "item": "2021",
+                "count": "162"
+              },
+              {
+                "item": "2018",
+                "count": "143"
+              },
+              {
+                "item": "2012",
+                "count": "123"
+              },
+              {
+                "item": "2024",
+                "count": "93"
+              },
+              {
+                "item": "2010",
+                "count": "90"
+              },
+              {
+                "item": "1969",
+                "count": "85"
+              },
+              {
+                "item": "2002",
+                "count": "78"
+              },
+              {
+                "item": "2014",
+                "count": "53"
+              },
+              {
+                "item": "1986",
+                "count": "45"
+              },
+              {
+                "item": "2016",
+                "count": "45"
+              },
+              {
+                "item": "2001",
+                "count": "43"
+              }
+            ],
+            "smallest": "0",
+            "count": "4068",
+            "cardinality": "4068"
+          },
+          "format": {
+            "noCommas": "true"
+          }
+        },
+        {
+          "id": 617611156,
+          "name": "Year2",
+          "dataTypeName": "number",
+          "fieldName": "year2",
+          "description": "The first time the bus lane design or hours were modified",
+          "position": 23,
+          "renderTypeName": "number",
+          "tableColumnId": 152717907,
+          "cachedContents": {
+            "non_null": "4068",
+            "largest": "2021",
+            "null": "0",
+            "top": [
+              {
+                "item": "0",
+                "count": "3250"
+              },
+              {
+                "item": "2010",
+                "count": "347"
+              },
+              {
+                "item": "2008",
+                "count": "115"
+              },
+              {
+                "item": "2017",
+                "count": "87"
+              },
+              {
+                "item": "2019",
+                "count": "69"
+              },
+              {
+                "item": "2021",
+                "count": "52"
+              },
+              {
+                "item": "2011",
+                "count": "37"
+              },
+              {
+                "item": "1999",
+                "count": "36"
+              },
+              {
+                "item": "2018",
+                "count": "22"
+              },
+              {
+                "item": "1990",
+                "count": "20"
+              },
+              {
+                "item": "1982",
+                "count": "19"
+              },
+              {
+                "item": "2015",
+                "count": "14"
+              }
+            ],
+            "smallest": "0",
+            "count": "4068",
+            "cardinality": "4068"
+          },
+          "format": {}
+        },
+        {
+          "id": 617611157,
+          "name": "Year3",
+          "dataTypeName": "number",
+          "fieldName": "year3",
+          "description": "The second time the bus lane design or hours were modified",
+          "position": 24,
+          "renderTypeName": "number",
+          "tableColumnId": 152717906,
+          "cachedContents": {
+            "non_null": "4068",
+            "largest": "2024",
+            "null": "0",
+            "top": [
+              {
+                "item": "0",
+                "count": "3895"
+              },
+              {
+                "item": "2024",
+                "count": "50"
+              },
+              {
+                "item": "2022",
+                "count": "39"
+              },
+              {
+                "item": "2015",
+                "count": "27"
+              },
+              {
+                "item": "2014",
+                "count": "20"
+              },
+              {
+                "item": "2012",
+                "count": "19"
+              },
+              {
+                "item": "2023",
+                "count": "16"
+              },
+              {
+                "item": "2019",
+                "count": "2"
+              }
+            ],
+            "smallest": "0",
+            "count": "4068",
+            "cardinality": "4068"
+          },
+          "format": {}
+        },
+        {
+          "id": 617611164,
+          "name": "Last_Updat",
+          "dataTypeName": "text",
+          "fieldName": "last_updat",
+          "description": "Date feature was updated in database",
+          "position": 25,
+          "renderTypeName": "text",
+          "tableColumnId": 124489692,
+          "cachedContents": {
+            "non_null": "4030",
+            "largest": "9/28/2023",
+            "null": "38",
+            "top": [
+              {
+                "item": "7/19/2017",
+                "count": "1750"
+              },
+              {
+                "item": "5/16/2024",
+                "count": "361"
+              },
+              {
+                "item": "03/31/21",
+                "count": "334"
+              },
+              {
+                "item": "1/28/2026",
+                "count": "289"
+              },
+              {
+                "item": "12/19/2019",
+                "count": "215"
+              },
+              {
+                "item": "3/1/2023",
+                "count": "204"
+              },
+              {
+                "item": "10/31/17",
+                "count": "169"
+              },
+              {
+                "item": "12/15/2021",
+                "count": "159"
+              },
+              {
+                "item": "2/25/2019",
+                "count": "156"
+              },
+              {
+                "item": "4/4/2025",
+                "count": "93"
+              },
+              {
+                "item": "10/3/17",
+                "count": "74"
+              },
+              {
+                "item": "9/26/2023",
+                "count": "46"
+              },
+              {
+                "item": "10/2/17",
+                "count": "39"
+              },
+              {
+                "item": "12/23/2019",
+                "count": "30"
+              },
+              {
+                "item": "4/9/2024",
+                "count": "18"
+              },
+              {
+                "item": "9/05/2024",
+                "count": "17"
+              },
+              {
+                "item": "5/9/2024",
+                "count": "16"
+              },
+              {
+                "item": "12/05/2024",
+                "count": "15"
+              },
+              {
+                "item": "11/25/2024",
+                "count": "14"
+              },
+              {
+                "item": "9/28/2023",
+                "count": "9"
+              }
+            ],
+            "smallest": "03/31/21",
+            "count": "4068",
+            "cardinality": "4068"
+          },
+          "format": {}
+        },
+        {
+          "id": 617611167,
+          "name": "Chron_ID_1",
+          "dataTypeName": "text",
+          "fieldName": "chron_id_1",
+          "description": "Borough and opening year of bus lane",
+          "position": 26,
+          "renderTypeName": "text",
+          "tableColumnId": 124489695,
+          "cachedContents": {
+            "non_null": "4064",
+            "largest": "SI2020",
+            "null": "4",
+            "top": [
+              {
+                "item": "MAN1982",
+                "count": "519"
+              },
+              {
+                "item": "BX2013",
+                "count": "223"
+              },
+              {
+                "item": "QNS2025",
+                "count": "199"
+              },
+              {
+                "item": "QNS2017",
+                "count": "172"
+              },
+              {
+                "item": "BX2023",
+                "count": "167"
+              },
+              {
+                "item": "BK2018",
+                "count": "145"
+              },
+              {
+                "item": "BK2013",
+                "count": "138"
+              },
+              {
+                "item": "BX2021",
+                "count": "127"
+              },
+              {
+                "item": "QNS2023",
+                "count": "127"
+              },
+              {
+                "item": "QNS2015",
+                "count": "126"
+              },
+              {
+                "item": "QNS2020",
+                "count": "118"
+              },
+              {
+                "item": "SI2012",
+                "count": "113"
+              },
+              {
+                "item": "BX2020",
+                "count": "101"
+              },
+              {
+                "item": "QNS2022",
+                "count": "100"
+              },
+              {
+                "item": "SI2020",
+                "count": "95"
+              },
+              {
+                "item": "BK2015",
+                "count": "94"
+              },
+              {
+                "item": "QNS1969",
+                "count": "85"
+              },
+              {
+                "item": "MAN2024",
+                "count": "83"
+              },
+              {
+                "item": "MAN2019",
+                "count": "79"
+              },
+              {
+                "item": "BX2002",
+                "count": "78"
+              }
+            ],
+            "smallest": "BK0",
+            "count": "4068",
+            "cardinality": "4068"
+          },
+          "format": {}
+        },
+        {
+          "id": 617611168,
+          "name": "Shape_Leng",
+          "dataTypeName": "number",
+          "fieldName": "shape_leng",
+          "description": "Length of the line segment in feet",
+          "position": 27,
+          "renderTypeName": "number",
+          "tableColumnId": 124489696,
+          "cachedContents": {
+            "non_null": "4068",
+            "largest": "1843.81930317",
+            "null": "0",
+            "top": [
+              {
+                "item": "0.0",
+                "count": "205"
+              },
+              {
+                "item": "270.513164317",
+                "count": "6"
+              },
+              {
+                "item": "59.9186260656",
+                "count": "6"
+              },
+              {
+                "item": "88.1716140123",
+                "count": "6"
+              },
+              {
+                "item": "40.5644272623",
+                "count": "4"
+              },
+              {
+                "item": "299.546385088",
+                "count": "4"
+              },
+              {
+                "item": "259.856207038",
+                "count": "4"
+              },
+              {
+                "item": "27.0219316229",
+                "count": "4"
+              },
+              {
+                "item": "216.881825323",
+                "count": "4"
+              },
+              {
+                "item": "16.6542809568",
+                "count": "4"
+              },
+              {
+                "item": "26.2490407042",
+                "count": "4"
+              },
+              {
+                "item": "272.438536031",
+                "count": "4"
+              },
+              {
+                "item": "14.4899438147",
+                "count": "4"
+              },
+              {
+                "item": "336.500125693",
+                "count": "4"
+              },
+              {
+                "item": "20.2185647499",
+                "count": "4"
+              },
+              {
+                "item": "170.830304197",
+                "count": "4"
+              },
+              {
+                "item": "94.681859267",
+                "count": "4"
+              },
+              {
+                "item": "31.000304141",
+                "count": "4"
+              },
+              {
+                "item": "19.1928075532",
+                "count": "4"
+              },
+              {
+                "item": "257.388386688",
+                "count": "3"
+              }
+            ],
+            "smallest": "0.0",
+            "count": "4068",
+            "cardinality": "4068"
+          },
+          "format": {}
+        },
+        {
+          "id": 617611169,
+          "name": "Shape_Le_1",
+          "dataTypeName": "multiline",
+          "fieldName": "shape_le_1",
+          "description": "Length of the line segment in feet",
+          "position": 28,
+          "renderTypeName": "multiline",
+          "tableColumnId": 146293316,
+          "format": {}
+        },
+        {
+          "id": 617611195,
+          "name": "Mid_Block",
+          "dataTypeName": "text",
+          "fieldName": "mid_block",
+          "description": "Indicates whether the lane begins or ends before or after the intersection \n",
+          "position": 29,
+          "renderTypeName": "text",
+          "tableColumnId": 161816234,
+          "cachedContents": {
+            "non_null": "14",
+            "largest": "Y",
+            "null": "4054",
+            "top": [
+              {
+                "item": "Y",
+                "count": "14"
+              }
+            ],
+            "smallest": "Y",
+            "count": "4068",
+            "cardinality": "4068"
+          },
+          "format": {}
+        }
+      ],
+      "assetType": "dataset",
+      "averageRating": 0,
+      "category": "Transportation",
+      "createdAt": 1607115973,
+      "diciBackend": false,
+      "displayType": "table",
+      "downloadCount": 2917,
+      "hideFromCatalog": false,
+      "hideFromDataJson": false,
+      "locked": false,
+      "newBackend": true,
+      "numberOfComments": 0,
+      "oid": 41627031,
+      "provenance": "official",
+      "publicationAppendEnabled": false,
+      "publicationDate": 1758047022,
+      "publicationGroup": 17836735,
+      "publicationStage": "published",
+      "rowsUpdatedBy": "8xiq-st2k",
+      "tableId": 20095620,
+      "totalTimesRated": 0,
+      "viewCount": 9509,
+      "viewLastModified": 1775490240,
+      "viewType": "tabular",
+      "approvals": [
+        {
+          "reviewedAt": 1607353521,
+          "reviewedAutomatically": true,
+          "state": "approved",
+          "submissionId": 7124771,
+          "submissionObject": "public_audience_request",
+          "submissionOutcome": "change_audience",
+          "submittedAt": 1607353521,
+          "targetAudience": "public",
+          "workflowId": 2285,
+          "submissionDetails": {
+            "permissionType": "READ"
+          },
+          "submissionOutcomeApplication": {
+            "endedAt": 1607353521,
+            "failureCount": 0,
+            "startedAt": 1607353521,
+            "status": "success"
+          },
+          "submitter": {
+            "id": "d5dp-fses",
+            "displayName": "afinkel"
+          }
+        }
+      ],
+      "clientContext": {
+        "clientContextVariables": [],
+        "inheritedVariables": {}
+      },
+      "grants": [
+        {
+          "inherited": false,
+          "type": "viewer",
+          "flags": [
+            "public"
+          ]
+        }
+      ],
+      "metadata": {
+        "jsonQuery": {
+          "order": [
+            {
+              "columnFieldName": "bltrafdir",
+              "ascending": true
+            },
+            {
+              "columnFieldName": "lane_type2",
+              "ascending": false
+            }
+          ]
+        },
+        "attachments": [
+          {
+            "filename": "Data_Dictionary_BusLanes_LocalStreets.xlsx",
+            "assetId": "5c5f0d91-82e5-45b9-80f5-b3312eeb8e09",
+            "name": "Data_Dictionary_BusLanes_LocalStreets.xlsx"
+          }
+        ],
+        "custom_fields": {
+          "Update": {
+            "Automation": "No",
+            "Date Made Public": "12/7/2020",
+            "Update Frequency": "Annually"
+          },
+          "Dataset Information": {
+            "Agency": "Department of Transportation (DOT)"
+          }
+        },
+        "availableDisplayTypes": [
+          "table",
+          "fatrow",
+          "page"
+        ]
+      },
+      "owner": {
+        "id": "5fuc-pqz2",
+        "displayName": "NYC OpenData",
+        "profileImageUrlLarge": "/api/users/5fuc-pqz2/profile_images/LARGE",
+        "profileImageUrlMedium": "/api/users/5fuc-pqz2/profile_images/THUMB",
+        "profileImageUrlSmall": "/api/users/5fuc-pqz2/profile_images/TINY",
+        "screenName": "NYC OpenData",
+        "type": "interactive",
+        "flags": [
+          "acceptedEula",
+          "mayBeStoriesCoOwner"
+        ]
+      },
+      "query": {
+        "orderBys": [
+          {
+            "ascending": true,
+            "expression": {
+              "columnId": 617611145,
+              "type": "column"
+            }
+          },
+          {
+            "ascending": false,
+            "expression": {
+              "columnId": 617611159,
+              "type": "column"
+            }
+          }
+        ]
+      },
+      "rights": [
+        "read"
+      ],
+      "tableAuthor": {
+        "id": "5fuc-pqz2",
+        "displayName": "NYC OpenData",
+        "profileImageUrlLarge": "/api/users/5fuc-pqz2/profile_images/LARGE",
+        "profileImageUrlMedium": "/api/users/5fuc-pqz2/profile_images/THUMB",
+        "profileImageUrlSmall": "/api/users/5fuc-pqz2/profile_images/TINY",
+        "screenName": "NYC OpenData",
+        "type": "interactive",
+        "flags": [
+          "acceptedEula",
+          "mayBeStoriesCoOwner"
+        ]
+      },
+      "tags": [
+        "bus",
+        "lanes",
+        "mta"
+      ],
+      "flags": [
+        "default",
+        "ownerMayBeContacted",
+        "restorable",
+        "restorePossibleForType"
+      ]
+    },
+    "columns": [
+      {
+        "id": 617611143,
+        "name": "the_geom",
+        "dataTypeName": "multiline",
+        "fieldName": "the_geom",
+        "description": "",
+        "position": 1,
+        "renderTypeName": "multiline",
+        "tableColumnId": 124489671,
+        "format": {}
+      },
+      {
+        "id": 617611144,
+        "name": "Street",
+        "dataTypeName": "text",
+        "fieldName": "street",
+        "description": "Street of the bus lane",
+        "position": 2,
+        "renderTypeName": "text",
+        "tableColumnId": 124489672,
+        "cachedContents": {
+          "non_null": "4068",
+          "largest": "WOODHAVEN BOULEVARD",
+          "null": "0",
+          "top": [
+            {
+              "item": "HILLSIDE AVENUE",
+              "count": "284"
+            },
+            {
+              "item": "1 AVENUE",
+              "count": "204"
+            },
+            {
+              "item": "WOODHAVEN BOULEVARD",
+              "count": "203"
+            },
+            {
+              "item": "WEBSTER AVENUE",
+              "count": "202"
+            },
+            {
+              "item": "HYLAN BOULEVARD",
+              "count": "191"
+            },
+            {
+              "item": "2 AVENUE",
+              "count": "167"
+            },
+            {
+              "item": "NOSTRAND AVENUE",
+              "count": "125"
+            },
+            {
+              "item": "NORTHERN BOULEVARD",
+              "count": "125"
+            },
+            {
+              "item": "STORY AVENUE",
+              "count": "122"
+            },
+            {
+              "item": "3 AVENUE",
+              "count": "118"
+            },
+            {
+              "item": "MERRICK BOULEVARD",
+              "count": "109"
+            },
+            {
+              "item": "EAST GUN HILL ROAD",
+              "count": "109"
+            },
+            {
+              "item": "21 STREET",
+              "count": "100"
+            },
+            {
+              "item": "UTICA AVENUE",
+              "count": "89"
+            },
+            {
+              "item": "5 AVENUE",
+              "count": "87"
+            },
+            {
+              "item": "FULTON STREET",
+              "count": "81"
+            },
+            {
+              "item": "BROADWAY",
+              "count": "75"
+            },
+            {
+              "item": "LEXINGTON AVENUE",
+              "count": "72"
+            },
+            {
+              "item": "EAST 149 STREET",
+              "count": "70"
+            },
+            {
+              "item": "EAST FORDHAM ROAD",
+              "count": "68"
+            }
+          ],
+          "smallest": "11 AVENUE",
+          "count": "4068",
+          "cardinality": "4068"
+        },
+        "format": {}
+      },
+      {
+        "id": 617611145,
+        "name": "TrafDir",
+        "dataTypeName": "text",
+        "fieldName": "bltrafdir",
+        "description": "Bus Lane Traffic Direction. Code indicating the flow of bus traffic in bus lane relative to the street segment's directionality.",
+        "position": 3,
+        "renderTypeName": "text",
+        "tableColumnId": 124489673,
+        "cachedContents": {
+          "non_null": "4066",
+          "largest": "W",
+          "null": "2",
+          "top": [
+            {
+              "item": "T",
+              "count": "2144"
+            },
+            {
+              "item": "A",
+              "count": "1008"
+            },
+            {
+              "item": "W",
+              "count": "913"
+            },
+            {
+              "item": "P",
+              "count": "1"
+            }
+          ],
+          "smallest": "A",
+          "count": "4068",
+          "cardinality": "4068"
+        },
+        "format": {}
+      },
+      {
+        "id": 617611146,
+        "name": "SegmentID",
+        "dataTypeName": "text",
+        "fieldName": "segmentid",
+        "description": "Segment ID: A seven digit number (right justified, zero filled) that identifies each segment of a street or a non-street feature represented in the LION file.",
+        "position": 4,
+        "renderTypeName": "text",
+        "tableColumnId": 124489674,
+        "cachedContents": {
+          "non_null": "4068",
+          "largest": "9024008",
+          "null": "0",
+          "top": [
+            {
+              "item": "0057466",
+              "count": "6"
+            },
+            {
+              "item": "9004294",
+              "count": "6"
+            },
+            {
+              "item": "9004292",
+              "count": "6"
+            },
+            {
+              "item": "9004324",
+              "count": "4"
+            },
+            {
+              "item": "9004296",
+              "count": "4"
+            },
+            {
+              "item": "0060110",
+              "count": "4"
+            },
+            {
+              "item": "0060907",
+              "count": "4"
+            },
+            {
+              "item": "0115894",
+              "count": "4"
+            },
+            {
+              "item": "0061035",
+              "count": "4"
+            },
+            {
+              "item": "0060768",
+              "count": "4"
+            },
+            {
+              "item": "0060598",
+              "count": "4"
+            },
+            {
+              "item": "0060429",
+              "count": "4"
+            },
+            {
+              "item": "9004332",
+              "count": "4"
+            },
+            {
+              "item": "9004327",
+              "count": "4"
+            },
+            {
+              "item": "9004318",
+              "count": "4"
+            },
+            {
+              "item": "0171158",
+              "count": "4"
+            },
+            {
+              "item": "0060262",
+              "count": "4"
+            },
+            {
+              "item": "0115893",
+              "count": "4"
+            },
+            {
+              "item": "0061021",
+              "count": "4"
+            },
+            {
+              "item": "0076625",
+              "count": "4"
+            }
+          ],
+          "smallest": "0005839",
+          "count": "4068",
+          "cardinality": "4068"
+        },
+        "format": {}
+      },
+      {
+        "id": 617611147,
+        "name": "RW_TYPE",
+        "dataTypeName": "text",
+        "fieldName": "rw_type",
+        "description": "Roadway type (example: street, highway, bridge, tunnel, alley, etc.)",
+        "position": 5,
+        "renderTypeName": "text",
+        "tableColumnId": 124489675,
+        "cachedContents": {
+          "non_null": "3775",
+          "largest": "9",
+          "null": "293",
+          "top": [
+            {
+              "item": "1",
+              "count": "3723"
+            },
+            {
+              "item": "3",
+              "count": "25"
+            },
+            {
+              "item": "2",
+              "count": "19"
+            },
+            {
+              "item": "9",
+              "count": "6"
+            },
+            {
+              "item": "13",
+              "count": "1"
+            },
+            {
+              "item": "6",
+              "count": "1"
+            }
+          ],
+          "smallest": "1",
+          "count": "4068",
+          "cardinality": "4068"
+        },
+        "format": {}
+      },
+      {
+        "id": 617611148,
+        "name": "StreetWidt",
+        "dataTypeName": "number",
+        "fieldName": "streetwidt",
+        "description": "Approximate width, in feet, of the paved area of the street",
+        "position": 6,
+        "renderTypeName": "number",
+        "tableColumnId": 124489676,
+        "cachedContents": {
+          "non_null": "4068",
+          "largest": "134.0",
+          "null": "0",
+          "top": [
+            {
+              "item": "0.0",
+              "count": "682"
+            },
+            {
+              "item": "60.0",
+              "count": "660"
+            },
+            {
+              "item": "70.0",
+              "count": "573"
+            },
+            {
+              "item": "30.0",
+              "count": "240"
+            },
+            {
+              "item": "50.0",
+              "count": "186"
+            },
+            {
+              "item": "52.0",
+              "count": "170"
+            },
+            {
+              "item": "44.0",
+              "count": "170"
+            },
+            {
+              "item": "40.0",
+              "count": "169"
+            },
+            {
+              "item": "32.0",
+              "count": "154"
+            },
+            {
+              "item": "54.0",
+              "count": "83"
+            },
+            {
+              "item": "48.0",
+              "count": "79"
+            },
+            {
+              "item": "55.0",
+              "count": "79"
+            },
+            {
+              "item": "34.0",
+              "count": "78"
+            },
+            {
+              "item": "62.0",
+              "count": "76"
+            },
+            {
+              "item": "68.0",
+              "count": "62"
+            },
+            {
+              "item": "38.0",
+              "count": "60"
+            },
+            {
+              "item": "42.0",
+              "count": "54"
+            },
+            {
+              "item": "45.0",
+              "count": "42"
+            },
+            {
+              "item": "58.0",
+              "count": "42"
+            },
+            {
+              "item": "24.0",
+              "count": "41"
+            }
+          ],
+          "smallest": "0.0",
+          "count": "4068",
+          "cardinality": "4068"
+        },
+        "format": {}
+      },
+      {
+        "id": 617611149,
+        "name": "Boro",
+        "dataTypeName": "text",
+        "fieldName": "boro",
+        "description": "The borough of the bus lane",
+        "position": 7,
+        "renderTypeName": "text",
+        "tableColumnId": 124489677,
+        "cachedContents": {
+          "non_null": "4068",
+          "largest": "SI",
+          "null": "0",
+          "top": [
+            {
+              "item": "MAN",
+              "count": "1304"
+            },
+            {
+              "item": "QNS",
+              "count": "1083"
+            },
+            {
+              "item": "BX",
+              "count": "797"
+            },
+            {
+              "item": "BK",
+              "count": "569"
+            },
+            {
+              "item": "SI",
+              "count": "284"
+            },
+            {
+              "item": "BX, MN",
+              "count": "31"
+            }
+          ],
+          "smallest": "BK",
+          "count": "4068",
+          "cardinality": "4068"
+        },
+        "format": {}
+      },
+      {
+        "id": 617611150,
+        "name": "Facility",
+        "dataTypeName": "text",
+        "fieldName": "facility",
+        "description": "Street name of bus lane with travel direction of lane",
+        "position": 8,
+        "renderTypeName": "text",
+        "tableColumnId": 124489678,
+        "cachedContents": {
+          "non_null": "4068",
+          "largest": "Woodhaven Boulevard",
+          "null": "0",
+          "top": [
+            {
+              "item": "Hillside Avenue",
+              "count": "284"
+            },
+            {
+              "item": "Woodhaven Boulevard",
+              "count": "248"
+            },
+            {
+              "item": "1st Avenue",
+              "count": "204"
+            },
+            {
+              "item": "Webster Avenue",
+              "count": "202"
+            },
+            {
+              "item": "2nd Avenue",
+              "count": "167"
+            },
+            {
+              "item": "Hylan Boulevard",
+              "count": "126"
+            },
+            {
+              "item": "Northern Boulevard",
+              "count": "125"
+            },
+            {
+              "item": "Nostrand Avenue",
+              "count": "125"
+            },
+            {
+              "item": "Story Avenue",
+              "count": "122"
+            },
+            {
+              "item": "Gun Hill Road",
+              "count": "109"
+            },
+            {
+              "item": "Merrick Boulevard",
+              "count": "109"
+            },
+            {
+              "item": "21st",
+              "count": "100"
+            },
+            {
+              "item": "Utica Avenue",
+              "count": "89"
+            },
+            {
+              "item": "5th Avenue",
+              "count": "87"
+            },
+            {
+              "item": "Fordham Road",
+              "count": "84"
+            },
+            {
+              "item": "Fulton Street",
+              "count": "81"
+            },
+            {
+              "item": "Broadway",
+              "count": "75"
+            },
+            {
+              "item": "Lexington Avenue",
+              "count": "72"
+            },
+            {
+              "item": "Kings Highway",
+              "count": "67"
+            },
+            {
+              "item": "Hylan Bl",
+              "count": "65"
+            }
+          ],
+          "smallest": "11th Avenue",
+          "count": "4068",
+          "cardinality": "4068"
+        },
+        "format": {}
+      },
+      {
+        "id": 617611198,
+        "name": "Direction",
+        "dataTypeName": "text",
+        "fieldName": "direction",
+        "description": "Direction of travel of the street\n",
+        "position": 9,
+        "renderTypeName": "text",
+        "tableColumnId": 161816237,
+        "cachedContents": {
+          "non_null": "4055",
+          "largest": "WB",
+          "null": "13",
+          "top": [
+            {
+              "item": "NB",
+              "count": "1292"
+            },
+            {
+              "item": "SB",
+              "count": "1149"
+            },
+            {
+              "item": "EB",
+              "count": "827"
+            },
+            {
+              "item": "WB",
+              "count": "787"
+            }
+          ],
+          "smallest": "EB",
+          "count": "4068",
+          "cardinality": "4068"
+        },
+        "format": {}
+      },
+      {
+        "id": 617611151,
+        "name": "Hours",
+        "dataTypeName": "text",
+        "fieldName": "hours",
+        "description": "The hours the bus lanes are in effect",
+        "position": 10,
+        "renderTypeName": "text",
+        "tableColumnId": 124489679,
+        "cachedContents": {
+          "non_null": "4054",
+          "largest": "7AM-9PM",
+          "null": "14",
+          "top": [
+            {
+              "item": "24 Hours",
+              "count": "2295"
+            },
+            {
+              "item": "7AM-7PM",
+              "count": "449"
+            },
+            {
+              "item": "7AM-9PM",
+              "count": "127"
+            },
+            {
+              "item": "6AM-9AM",
+              "count": "109"
+            },
+            {
+              "item": "7AM-10AM/4PM-7PM",
+              "count": "109"
+            },
+            {
+              "item": "7AM-10AM/2PM-7PM",
+              "count": "101"
+            },
+            {
+              "item": "4PM-7PM",
+              "count": "93"
+            },
+            {
+              "item": "3PM-7PM",
+              "count": "91"
+            },
+            {
+              "item": "7AM-9AM",
+              "count": "87"
+            },
+            {
+              "item": "7AM-10AM",
+              "count": "68"
+            },
+            {
+              "item": "7AM - 8PM",
+              "count": "64"
+            },
+            {
+              "item": "6 AM - 7 PM",
+              "count": "54"
+            },
+            {
+              "item": "6AM-10PM",
+              "count": "49"
+            },
+            {
+              "item": "7AM-10AM / 4PM-8PM",
+              "count": "42"
+            },
+            {
+              "item": "7 AM - 7 PM",
+              "count": "40"
+            },
+            {
+              "item": "7 AM - 8 PM",
+              "count": "34"
+            },
+            {
+              "item": "7AM-10AM/12PM-7PM",
+              "count": "31"
+            },
+            {
+              "item": "7AM-6PM",
+              "count": "28"
+            },
+            {
+              "item": "7AM-12PM/2PM-7PM",
+              "count": "22"
+            },
+            {
+              "item": "7AM - 7PM",
+              "count": "20"
+            }
+          ],
+          "smallest": "24 hour",
+          "count": "4068",
+          "cardinality": "4068"
+        },
+        "format": {}
+      },
+      {
+        "id": 617611152,
+        "name": "Days",
+        "dataTypeName": "text",
+        "fieldName": "days",
+        "description": "The days the bus lanes are in effect",
+        "position": 11,
+        "renderTypeName": "text",
+        "tableColumnId": 124489680,
+        "cachedContents": {
+          "non_null": "4067",
+          "largest": "Mon - Sat",
+          "null": "1",
+          "top": [
+            {
+              "item": "7 Days/Week",
+              "count": "2567"
+            },
+            {
+              "item": "Mon - Fri",
+              "count": "1410"
+            },
+            {
+              "item": "Mon - Sat",
+              "count": "69"
+            },
+            {
+              "item": "Mon-Fri",
+              "count": "20"
+            },
+            {
+              "item": "& Days/Week",
+              "count": "1"
+            }
+          ],
+          "smallest": "7 Days/Week",
+          "count": "4068",
+          "cardinality": "4068"
+        },
+        "format": {}
+      },
+      {
+        "id": 617611163,
+        "name": "Days_Code",
+        "dataTypeName": "number",
+        "fieldName": "days_code",
+        "description": "Number of days per week bus lane is in effect.",
+        "position": 12,
+        "renderTypeName": "number",
+        "tableColumnId": 124489691,
+        "cachedContents": {
+          "non_null": "4068",
+          "largest": "7.0",
+          "null": "0",
+          "top": [
+            {
+              "item": "7.0",
+              "count": "2584"
+            },
+            {
+              "item": "5.0",
+              "count": "1413"
+            },
+            {
+              "item": "6.0",
+              "count": "70"
+            },
+            {
+              "item": "0.0",
+              "count": "1"
+            }
+          ],
+          "smallest": "0.0",
+          "count": "4068",
+          "cardinality": "4068"
+        },
+        "format": {}
+      },
+      {
+        "id": 617611153,
+        "name": "Lane_width",
+        "dataTypeName": "text",
+        "fieldName": "lane_width",
+        "description": "Single or dual bus lanes",
+        "position": 13,
+        "renderTypeName": "text",
+        "tableColumnId": 124489681,
+        "cachedContents": {
+          "non_null": "3980",
+          "largest": "Single",
+          "null": "88",
+          "top": [
+            {
+              "item": "Single",
+              "count": "3919"
+            },
+            {
+              "item": "Double",
+              "count": "61"
+            }
+          ],
+          "smallest": "Double",
+          "count": "4068",
+          "cardinality": "4068"
+        },
+        "format": {}
+      },
+      {
+        "id": 617611158,
+        "name": "Lane_Type1",
+        "dataTypeName": "text",
+        "fieldName": "lane_type1",
+        "description": "The type of bus lane.",
+        "position": 14,
+        "renderTypeName": "text",
+        "tableColumnId": 124489686,
+        "cachedContents": {
+          "non_null": "3683",
+          "largest": "Shared Lane",
+          "null": "385",
+          "top": [
+            {
+              "item": "Bus Lane",
+              "count": "2572"
+            },
+            {
+              "item": "Shared Lane",
+              "count": "1111"
+            }
+          ],
+          "smallest": "Bus Lane",
+          "count": "4068",
+          "cardinality": "4068"
+        },
+        "format": {}
+      },
+      {
+        "id": 617611197,
+        "name": "Lane_Type",
+        "dataTypeName": "text",
+        "fieldName": "lane_type",
+        "description": "A description on the type of bus lane.",
+        "position": 15,
+        "renderTypeName": "text",
+        "tableColumnId": 161816236,
+        "cachedContents": {
+          "non_null": "4067",
+          "largest": "Shoulder",
+          "null": "1",
+          "top": [
+            {
+              "item": "Offset",
+              "count": "1913"
+            },
+            {
+              "item": "Curbside",
+              "count": "1771"
+            },
+            {
+              "item": "Busway",
+              "count": "129"
+            },
+            {
+              "item": "Median",
+              "count": "120"
+            },
+            {
+              "item": "Center Running",
+              "count": "49"
+            },
+            {
+              "item": "Left-side running",
+              "count": "28"
+            },
+            {
+              "item": "Bus lane on shoulder",
+              "count": "19"
+            },
+            {
+              "item": "Contraflow",
+              "count": "7"
+            },
+            {
+              "item": "Enhanced Bus Stop",
+              "count": "7"
+            },
+            {
+              "item": "Shoulder",
+              "count": "6"
+            },
+            {
+              "item": "bus lane on shoulder",
+              "count": "6"
+            },
+            {
+              "item": "Queue Jump",
+              "count": "4"
+            },
+            {
+              "item": "Enhanced bus stop",
+              "count": "4"
+            },
+            {
+              "item": "Buses and local deliveries only",
+              "count": "2"
+            },
+            {
+              "item": "Left Turn Lane",
+              "count": "1"
+            },
+            {
+              "item": "Bus Only",
+              "count": "1"
+            }
+          ],
+          "smallest": "Buses and local deliveries only",
+          "count": "4068",
+          "cardinality": "4068"
+        },
+        "format": {}
+      },
+      {
+        "id": 617611159,
+        "name": "Lane_Descr",
+        "dataTypeName": "text",
+        "fieldName": "lane_type2",
+        "description": "A secondary description on the type of bus lane.",
+        "position": 16,
+        "renderTypeName": "text",
+        "tableColumnId": 124489687,
+        "cachedContents": {
+          "non_null": "719",
+          "largest": "Quick Kerb",
+          "null": "3349",
+          "top": [
+            {
+              "item": "Paint",
+              "count": "570"
+            },
+            {
+              "item": "Bus Only Lane",
+              "count": "63"
+            },
+            {
+              "item": "Queue Jump",
+              "count": "13"
+            },
+            {
+              "item": "Offset",
+              "count": "13"
+            },
+            {
+              "item": "Median",
+              "count": "13"
+            },
+            {
+              "item": "Curbside",
+              "count": "11"
+            },
+            {
+              "item": "Intermittent queue jumps",
+              "count": "10"
+            },
+            {
+              "item": "Concrete",
+              "count": "5"
+            },
+            {
+              "item": "Contraflow",
+              "count": "5"
+            },
+            {
+              "item": "Enhanced Bus Stop",
+              "count": "5"
+            },
+            {
+              "item": "Quick curb",
+              "count": "5"
+            },
+            {
+              "item": "Quick Kerb",
+              "count": "4"
+            },
+            {
+              "item": "Bus Only Left Turn Bay",
+              "count": "1"
+            },
+            {
+              "item": "Continuous",
+              "count": "1"
+            }
+          ],
+          "smallest": "Bus Only Lane",
+          "count": "4068",
+          "cardinality": "4068"
+        },
+        "format": {}
+      },
+      {
+        "id": 617611165,
+        "name": "Lane_Color",
+        "dataTypeName": "text",
+        "fieldName": "lane_color",
+        "description": "Color of bus lanes",
+        "position": 17,
+        "renderTypeName": "text",
+        "tableColumnId": 124489693,
+        "cachedContents": {
+          "non_null": "2982",
+          "largest": "Red",
+          "null": "1086",
+          "top": [
+            {
+              "item": "Red",
+              "count": "2929"
+            },
+            {
+              "item": "None",
+              "count": "32"
+            },
+            {
+              "item": "No",
+              "count": "14"
+            },
+            {
+              "item": "No/Never",
+              "count": "7"
+            }
+          ],
+          "smallest": "No",
+          "count": "4068",
+          "cardinality": "4068"
+        },
+        "format": {}
+      },
+      {
+        "id": 617611160,
+        "name": "SBS_Route1",
+        "dataTypeName": "text",
+        "fieldName": "sbs_route1",
+        "description": "Select Bus Service (SBS) route(s) using bus lane",
+        "position": 18,
+        "renderTypeName": "text",
+        "tableColumnId": 124489688,
+        "cachedContents": {
+          "non_null": "1861",
+          "largest": "S79",
+          "null": "2207",
+          "top": [
+            {
+              "item": "M15",
+              "count": "381"
+            },
+            {
+              "item": "Q52",
+              "count": "270"
+            },
+            {
+              "item": "S79",
+              "count": "204"
+            },
+            {
+              "item": "BX41",
+              "count": "202"
+            },
+            {
+              "item": "B44",
+              "count": "180"
+            },
+            {
+              "item": "B82",
+              "count": "105"
+            },
+            {
+              "item": "B46",
+              "count": "89"
+            },
+            {
+              "item": "BX12",
+              "count": "88"
+            },
+            {
+              "item": "Q44",
+              "count": "83"
+            },
+            {
+              "item": "M34",
+              "count": "56"
+            },
+            {
+              "item": "Q53",
+              "count": "44"
+            },
+            {
+              "item": "BX6",
+              "count": "39"
+            },
+            {
+              "item": "M60",
+              "count": "37"
+            },
+            {
+              "item": "M14 A",
+              "count": "32"
+            },
+            {
+              "item": "M23",
+              "count": "27"
+            },
+            {
+              "item": "M14",
+              "count": "17"
+            },
+            {
+              "item": "M86",
+              "count": "7"
+            }
+          ],
+          "smallest": "B44",
+          "count": "4068",
+          "cardinality": "4068"
+        },
+        "format": {}
+      },
+      {
+        "id": 617611161,
+        "name": "SBS_Route2",
+        "dataTypeName": "text",
+        "fieldName": "sbs_route2",
+        "description": "Select Bus Service (SBS) route(s) using bus lane",
+        "position": 19,
+        "renderTypeName": "text",
+        "tableColumnId": 124489689,
+        "cachedContents": {
+          "non_null": "369",
+          "largest": "Q53",
+          "null": "3699",
+          "top": [
+            {
+              "item": "Q53",
+              "count": "254"
+            },
+            {
+              "item": "M34A",
+              "count": "56"
+            },
+            {
+              "item": "M14 D",
+              "count": "32"
+            },
+            {
+              "item": "Q25",
+              "count": "17"
+            },
+            {
+              "item": "M14 A",
+              "count": "10"
+            }
+          ],
+          "smallest": "M14 A",
+          "count": "4068",
+          "cardinality": "4068"
+        },
+        "format": {}
+      },
+      {
+        "id": 617611162,
+        "name": "SBS_Route3",
+        "dataTypeName": "text",
+        "fieldName": "sbs_route3",
+        "description": "Select Bus Service (SBS) route(s) using bus lane",
+        "position": 20,
+        "renderTypeName": "text",
+        "tableColumnId": 124489690,
+        "cachedContents": {
+          "non_null": "0",
+          "null": "4068",
+          "count": "4068",
+          "cardinality": "4068"
+        },
+        "format": {}
+      },
+      {
+        "id": 617611166,
+        "name": "Open_dates",
+        "dataTypeName": "text",
+        "fieldName": "open_dates",
+        "description": "Year bus lane opened",
+        "position": 21,
+        "renderTypeName": "text",
+        "tableColumnId": 146293317,
+        "cachedContents": {
+          "non_null": "3857",
+          "largest": "9/9/2024",
+          "null": "211",
+          "top": [
+            {
+              "item": "6/30/2013",
+              "count": "195"
+            },
+            {
+              "item": "9/15/2025",
+              "count": "195"
+            },
+            {
+              "item": "11/17/2013",
+              "count": "138"
+            },
+            {
+              "item": "8/24/82, 10/10/10",
+              "count": "130"
+            },
+            {
+              "item": "12/03/2021",
+              "count": "127"
+            },
+            {
+              "item": "8/8/2023",
+              "count": "125"
+            },
+            {
+              "item": "09/02/12",
+              "count": "113"
+            },
+            {
+              "item": "12/1/2020",
+              "count": "109"
+            },
+            {
+              "item": "10/31/2023",
+              "count": "109"
+            },
+            {
+              "item": "8/15/2022",
+              "count": "100"
+            },
+            {
+              "item": "9/12/2020",
+              "count": "93"
+            },
+            {
+              "item": "05/26/69",
+              "count": "85"
+            },
+            {
+              "item": "9/3/02,06/29/08",
+              "count": "78"
+            },
+            {
+              "item": "7/28/82,10/10/10",
+              "count": "73"
+            },
+            {
+              "item": "09/01/15",
+              "count": "72"
+            },
+            {
+              "item": "9/1/2022",
+              "count": "70"
+            },
+            {
+              "item": "10/05/2018",
+              "count": "67"
+            },
+            {
+              "item": "8/5/2020",
+              "count": "64"
+            },
+            {
+              "item": "09/16/2019",
+              "count": "62"
+            },
+            {
+              "item": "8/24/82,10/10/10",
+              "count": "56"
+            }
+          ],
+          "smallest": "???",
+          "count": "4068",
+          "cardinality": "4068"
+        },
+        "format": {}
+      },
+      {
+        "id": 617611155,
+        "name": "Year1",
+        "dataTypeName": "number",
+        "fieldName": "year1",
+        "description": "The year the bus lanes went into effect",
+        "position": 22,
+        "renderTypeName": "number",
+        "tableColumnId": 124489683,
+        "cachedContents": {
+          "non_null": "4068",
+          "largest": "2025",
+          "null": "0",
+          "top": [
+            {
+              "item": "1982",
+              "count": "519"
+            },
+            {
+              "item": "2013",
+              "count": "361"
+            },
+            {
+              "item": "2023",
+              "count": "361"
+            },
+            {
+              "item": "2020",
+              "count": "357"
+            },
+            {
+              "item": "2015",
+              "count": "273"
+            },
+            {
+              "item": "2025",
+              "count": "270"
+            },
+            {
+              "item": "2017",
+              "count": "223"
+            },
+            {
+              "item": "2022",
+              "count": "201"
+            },
+            {
+              "item": "2019",
+              "count": "197"
+            },
+            {
+              "item": "2021",
+              "count": "162"
+            },
+            {
+              "item": "2018",
+              "count": "143"
+            },
+            {
+              "item": "2012",
+              "count": "123"
+            },
+            {
+              "item": "2024",
+              "count": "93"
+            },
+            {
+              "item": "2010",
+              "count": "90"
+            },
+            {
+              "item": "1969",
+              "count": "85"
+            },
+            {
+              "item": "2002",
+              "count": "78"
+            },
+            {
+              "item": "2014",
+              "count": "53"
+            },
+            {
+              "item": "1986",
+              "count": "45"
+            },
+            {
+              "item": "2016",
+              "count": "45"
+            },
+            {
+              "item": "2001",
+              "count": "43"
+            }
+          ],
+          "smallest": "0",
+          "count": "4068",
+          "cardinality": "4068"
+        },
+        "format": {
+          "noCommas": "true"
+        }
+      },
+      {
+        "id": 617611156,
+        "name": "Year2",
+        "dataTypeName": "number",
+        "fieldName": "year2",
+        "description": "The first time the bus lane design or hours were modified",
+        "position": 23,
+        "renderTypeName": "number",
+        "tableColumnId": 152717907,
+        "cachedContents": {
+          "non_null": "4068",
+          "largest": "2021",
+          "null": "0",
+          "top": [
+            {
+              "item": "0",
+              "count": "3250"
+            },
+            {
+              "item": "2010",
+              "count": "347"
+            },
+            {
+              "item": "2008",
+              "count": "115"
+            },
+            {
+              "item": "2017",
+              "count": "87"
+            },
+            {
+              "item": "2019",
+              "count": "69"
+            },
+            {
+              "item": "2021",
+              "count": "52"
+            },
+            {
+              "item": "2011",
+              "count": "37"
+            },
+            {
+              "item": "1999",
+              "count": "36"
+            },
+            {
+              "item": "2018",
+              "count": "22"
+            },
+            {
+              "item": "1990",
+              "count": "20"
+            },
+            {
+              "item": "1982",
+              "count": "19"
+            },
+            {
+              "item": "2015",
+              "count": "14"
+            }
+          ],
+          "smallest": "0",
+          "count": "4068",
+          "cardinality": "4068"
+        },
+        "format": {}
+      },
+      {
+        "id": 617611157,
+        "name": "Year3",
+        "dataTypeName": "number",
+        "fieldName": "year3",
+        "description": "The second time the bus lane design or hours were modified",
+        "position": 24,
+        "renderTypeName": "number",
+        "tableColumnId": 152717906,
+        "cachedContents": {
+          "non_null": "4068",
+          "largest": "2024",
+          "null": "0",
+          "top": [
+            {
+              "item": "0",
+              "count": "3895"
+            },
+            {
+              "item": "2024",
+              "count": "50"
+            },
+            {
+              "item": "2022",
+              "count": "39"
+            },
+            {
+              "item": "2015",
+              "count": "27"
+            },
+            {
+              "item": "2014",
+              "count": "20"
+            },
+            {
+              "item": "2012",
+              "count": "19"
+            },
+            {
+              "item": "2023",
+              "count": "16"
+            },
+            {
+              "item": "2019",
+              "count": "2"
+            }
+          ],
+          "smallest": "0",
+          "count": "4068",
+          "cardinality": "4068"
+        },
+        "format": {}
+      },
+      {
+        "id": 617611164,
+        "name": "Last_Updat",
+        "dataTypeName": "text",
+        "fieldName": "last_updat",
+        "description": "Date feature was updated in database",
+        "position": 25,
+        "renderTypeName": "text",
+        "tableColumnId": 124489692,
+        "cachedContents": {
+          "non_null": "4030",
+          "largest": "9/28/2023",
+          "null": "38",
+          "top": [
+            {
+              "item": "7/19/2017",
+              "count": "1750"
+            },
+            {
+              "item": "5/16/2024",
+              "count": "361"
+            },
+            {
+              "item": "03/31/21",
+              "count": "334"
+            },
+            {
+              "item": "1/28/2026",
+              "count": "289"
+            },
+            {
+              "item": "12/19/2019",
+              "count": "215"
+            },
+            {
+              "item": "3/1/2023",
+              "count": "204"
+            },
+            {
+              "item": "10/31/17",
+              "count": "169"
+            },
+            {
+              "item": "12/15/2021",
+              "count": "159"
+            },
+            {
+              "item": "2/25/2019",
+              "count": "156"
+            },
+            {
+              "item": "4/4/2025",
+              "count": "93"
+            },
+            {
+              "item": "10/3/17",
+              "count": "74"
+            },
+            {
+              "item": "9/26/2023",
+              "count": "46"
+            },
+            {
+              "item": "10/2/17",
+              "count": "39"
+            },
+            {
+              "item": "12/23/2019",
+              "count": "30"
+            },
+            {
+              "item": "4/9/2024",
+              "count": "18"
+            },
+            {
+              "item": "9/05/2024",
+              "count": "17"
+            },
+            {
+              "item": "5/9/2024",
+              "count": "16"
+            },
+            {
+              "item": "12/05/2024",
+              "count": "15"
+            },
+            {
+              "item": "11/25/2024",
+              "count": "14"
+            },
+            {
+              "item": "9/28/2023",
+              "count": "9"
+            }
+          ],
+          "smallest": "03/31/21",
+          "count": "4068",
+          "cardinality": "4068"
+        },
+        "format": {}
+      },
+      {
+        "id": 617611167,
+        "name": "Chron_ID_1",
+        "dataTypeName": "text",
+        "fieldName": "chron_id_1",
+        "description": "Borough and opening year of bus lane",
+        "position": 26,
+        "renderTypeName": "text",
+        "tableColumnId": 124489695,
+        "cachedContents": {
+          "non_null": "4064",
+          "largest": "SI2020",
+          "null": "4",
+          "top": [
+            {
+              "item": "MAN1982",
+              "count": "519"
+            },
+            {
+              "item": "BX2013",
+              "count": "223"
+            },
+            {
+              "item": "QNS2025",
+              "count": "199"
+            },
+            {
+              "item": "QNS2017",
+              "count": "172"
+            },
+            {
+              "item": "BX2023",
+              "count": "167"
+            },
+            {
+              "item": "BK2018",
+              "count": "145"
+            },
+            {
+              "item": "BK2013",
+              "count": "138"
+            },
+            {
+              "item": "BX2021",
+              "count": "127"
+            },
+            {
+              "item": "QNS2023",
+              "count": "127"
+            },
+            {
+              "item": "QNS2015",
+              "count": "126"
+            },
+            {
+              "item": "QNS2020",
+              "count": "118"
+            },
+            {
+              "item": "SI2012",
+              "count": "113"
+            },
+            {
+              "item": "BX2020",
+              "count": "101"
+            },
+            {
+              "item": "QNS2022",
+              "count": "100"
+            },
+            {
+              "item": "SI2020",
+              "count": "95"
+            },
+            {
+              "item": "BK2015",
+              "count": "94"
+            },
+            {
+              "item": "QNS1969",
+              "count": "85"
+            },
+            {
+              "item": "MAN2024",
+              "count": "83"
+            },
+            {
+              "item": "MAN2019",
+              "count": "79"
+            },
+            {
+              "item": "BX2002",
+              "count": "78"
+            }
+          ],
+          "smallest": "BK0",
+          "count": "4068",
+          "cardinality": "4068"
+        },
+        "format": {}
+      },
+      {
+        "id": 617611168,
+        "name": "Shape_Leng",
+        "dataTypeName": "number",
+        "fieldName": "shape_leng",
+        "description": "Length of the line segment in feet",
+        "position": 27,
+        "renderTypeName": "number",
+        "tableColumnId": 124489696,
+        "cachedContents": {
+          "non_null": "4068",
+          "largest": "1843.81930317",
+          "null": "0",
+          "top": [
+            {
+              "item": "0.0",
+              "count": "205"
+            },
+            {
+              "item": "270.513164317",
+              "count": "6"
+            },
+            {
+              "item": "59.9186260656",
+              "count": "6"
+            },
+            {
+              "item": "88.1716140123",
+              "count": "6"
+            },
+            {
+              "item": "40.5644272623",
+              "count": "4"
+            },
+            {
+              "item": "299.546385088",
+              "count": "4"
+            },
+            {
+              "item": "259.856207038",
+              "count": "4"
+            },
+            {
+              "item": "27.0219316229",
+              "count": "4"
+            },
+            {
+              "item": "216.881825323",
+              "count": "4"
+            },
+            {
+              "item": "16.6542809568",
+              "count": "4"
+            },
+            {
+              "item": "26.2490407042",
+              "count": "4"
+            },
+            {
+              "item": "272.438536031",
+              "count": "4"
+            },
+            {
+              "item": "14.4899438147",
+              "count": "4"
+            },
+            {
+              "item": "336.500125693",
+              "count": "4"
+            },
+            {
+              "item": "20.2185647499",
+              "count": "4"
+            },
+            {
+              "item": "170.830304197",
+              "count": "4"
+            },
+            {
+              "item": "94.681859267",
+              "count": "4"
+            },
+            {
+              "item": "31.000304141",
+              "count": "4"
+            },
+            {
+              "item": "19.1928075532",
+              "count": "4"
+            },
+            {
+              "item": "257.388386688",
+              "count": "3"
+            }
+          ],
+          "smallest": "0.0",
+          "count": "4068",
+          "cardinality": "4068"
+        },
+        "format": {}
+      },
+      {
+        "id": 617611169,
+        "name": "Shape_Le_1",
+        "dataTypeName": "multiline",
+        "fieldName": "shape_le_1",
+        "description": "Length of the line segment in feet",
+        "position": 28,
+        "renderTypeName": "multiline",
+        "tableColumnId": 146293316,
+        "format": {}
+      },
+      {
+        "id": 617611195,
+        "name": "Mid_Block",
+        "dataTypeName": "text",
+        "fieldName": "mid_block",
+        "description": "Indicates whether the lane begins or ends before or after the intersection \n",
+        "position": 29,
+        "renderTypeName": "text",
+        "tableColumnId": 161816234,
+        "cachedContents": {
+          "non_null": "14",
+          "largest": "Y",
+          "null": "4054",
+          "top": [
+            {
+              "item": "Y",
+              "count": "14"
+            }
+          ],
+          "smallest": "Y",
+          "count": "4068",
+          "cardinality": "4068"
+        },
+        "format": {}
+      }
+    ]
+  }
+}

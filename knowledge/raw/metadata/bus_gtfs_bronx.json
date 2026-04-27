@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "sourceId": "bus_gtfs_bronx",
+  "sourceType": "gtfs_static_zip",
+  "sourcePriority": "secondary",
+  "manifestStatus": "active",
+  "checkedAt": "2026-04-27T02:47:43.957Z",
+  "probeStatus": "active",
+  "statusRecommendation": "active",
+  "url": "https://rrgtfsfeeds.s3.amazonaws.com/gtfs_bx.zip",
+  "http": {
+    "method": "HEAD",
+    "transport": "fetch",
+    "status": 200,
+    "ok": true,
+    "finalUrl": "https://rrgtfsfeeds.s3.amazonaws.com/gtfs_bx.zip",
+    "contentType": "application/zip",
+    "contentLengthBytes": 7774521,
+    "lastModified": "Wed, 08 Apr 2026 13:20:19 GMT",
+    "etag": "\"3017aac325b41cead75ca1e49061b44b\"",
+    "responseDate": "Mon, 27 Apr 2026 02:47:44 GMT"
+  }
+}

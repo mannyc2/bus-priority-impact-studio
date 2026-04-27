@@ -1,0 +1,685 @@
+{
+  "schemaVersion": 1,
+  "sourceId": "bus_hourly_ridership_2025",
+  "checkedAt": "2026-04-27T02:46:20.866Z",
+  "metadataUrl": "https://data.ny.gov/api/views/gxb3-akrn",
+  "metadata": {
+    "id": "gxb3-akrn",
+    "name": "MTA Bus Hourly Ridership: Beginning 2025",
+    "description": "This dataset provides bus ridership estimates on an hourly basis by bus route and class of fare payment.",
+    "attribution": "Metropolitan Transportation Authority",
+    "rowsUpdatedAt": 1776703970,
+    "columns": [
+      {
+        "id": 602051893,
+        "name": "transit_timestamp",
+        "dataTypeName": "calendar_date",
+        "fieldName": "transit_timestamp",
+        "description": "Timestamp payment took place in local time. All transactions here are rounded down to the nearest hour. For example, a swipe that took place at 1:37pm will be reported as having taken place at 1pm.",
+        "position": 1,
+        "renderTypeName": "calendar_date",
+        "tableColumnId": 155679324,
+        "cachedContents": {
+          "non_null": "115060032",
+          "largest": "2026-04-14T23:00:00.000",
+          "null": "0",
+          "top": [
+            {
+              "item": "2025-09-11T11:00:00.000",
+              "count": "10248"
+            },
+            {
+              "item": "2025-09-11T18:00:00.000",
+              "count": "10248"
+            },
+            {
+              "item": "2025-09-11T06:00:00.000",
+              "count": "10248"
+            },
+            {
+              "item": "2025-09-11T10:00:00.000",
+              "count": "10248"
+            },
+            {
+              "item": "2025-09-11T14:00:00.000",
+              "count": "10248"
+            },
+            {
+              "item": "2025-09-11T17:00:00.000",
+              "count": "10248"
+            },
+            {
+              "item": "2025-09-11T02:00:00.000",
+              "count": "10248"
+            },
+            {
+              "item": "2025-09-11T05:00:00.000",
+              "count": "10248"
+            },
+            {
+              "item": "2025-09-11T08:00:00.000",
+              "count": "10248"
+            },
+            {
+              "item": "2025-09-11T09:00:00.000",
+              "count": "10248"
+            },
+            {
+              "item": "2025-09-11T12:00:00.000",
+              "count": "10248"
+            },
+            {
+              "item": "2025-09-11T13:00:00.000",
+              "count": "10248"
+            },
+            {
+              "item": "2025-09-11T15:00:00.000",
+              "count": "10248"
+            },
+            {
+              "item": "2025-09-11T16:00:00.000",
+              "count": "10248"
+            },
+            {
+              "item": "2025-09-11T00:00:00.000",
+              "count": "10248"
+            },
+            {
+              "item": "2025-09-11T01:00:00.000",
+              "count": "10248"
+            },
+            {
+              "item": "2025-09-11T03:00:00.000",
+              "count": "10248"
+            },
+            {
+              "item": "2025-09-11T04:00:00.000",
+              "count": "10248"
+            },
+            {
+              "item": "2025-09-11T07:00:00.000",
+              "count": "10248"
+            },
+            {
+              "item": "2025-09-11T19:00:00.000",
+              "count": "10248"
+            }
+          ],
+          "smallest": "2025-01-01T00:00:00.000",
+          "count": "115060032",
+          "cardinality": "115060032"
+        },
+        "format": {
+          "view": "date_time",
+          "align": "center"
+        }
+      },
+      {
+        "id": 602051894,
+        "name": "bus_route",
+        "dataTypeName": "text",
+        "fieldName": "bus_route",
+        "description": "Identifies the bus route (e.g., M15, Q10). Data for the Q52 SBS and Q53 SBS are reported together.",
+        "position": 2,
+        "renderTypeName": "text",
+        "tableColumnId": 155679325,
+        "cachedContents": {
+          "non_null": "115060032",
+          "largest": "X9",
+          "null": "0",
+          "top": [
+            {
+              "item": "B1",
+              "count": "270144"
+            },
+            {
+              "item": "B101",
+              "count": "270144"
+            },
+            {
+              "item": "B100",
+              "count": "270144"
+            },
+            {
+              "item": "B103",
+              "count": "270144"
+            },
+            {
+              "item": "B106",
+              "count": "270144"
+            },
+            {
+              "item": "B11",
+              "count": "270144"
+            },
+            {
+              "item": "B111",
+              "count": "270144"
+            },
+            {
+              "item": "B12",
+              "count": "270144"
+            },
+            {
+              "item": "B13",
+              "count": "270144"
+            },
+            {
+              "item": "B14",
+              "count": "270144"
+            },
+            {
+              "item": "B15",
+              "count": "270144"
+            },
+            {
+              "item": "B16",
+              "count": "270144"
+            },
+            {
+              "item": "B17",
+              "count": "270144"
+            },
+            {
+              "item": "B2",
+              "count": "270144"
+            },
+            {
+              "item": "B20",
+              "count": "270144"
+            },
+            {
+              "item": "B24",
+              "count": "270144"
+            },
+            {
+              "item": "B25",
+              "count": "270144"
+            },
+            {
+              "item": "B26",
+              "count": "270144"
+            },
+            {
+              "item": "B3",
+              "count": "270144"
+            },
+            {
+              "item": "B31",
+              "count": "270144"
+            }
+          ],
+          "smallest": "B1",
+          "count": "115060032",
+          "cardinality": "115060032"
+        },
+        "format": {}
+      },
+      {
+        "id": 602051895,
+        "name": "payment_method",
+        "dataTypeName": "text",
+        "fieldName": "payment_method",
+        "description": "Specifies whether the payment method used to enter the bus was from OMNY or MetroCard.",
+        "position": 3,
+        "renderTypeName": "text",
+        "tableColumnId": 155679326,
+        "cachedContents": {
+          "non_null": "115060032",
+          "largest": "omny",
+          "null": "0",
+          "top": [
+            {
+              "item": "metrocard",
+              "count": "57530016"
+            },
+            {
+              "item": "omny",
+              "count": "57530016"
+            }
+          ],
+          "smallest": "metrocard",
+          "count": "115060032",
+          "cardinality": "115060032"
+        },
+        "format": {}
+      },
+      {
+        "id": 602051896,
+        "name": "fare_class_category",
+        "dataTypeName": "text",
+        "fieldName": "fare_class_category",
+        "description": "The class of fare payment used for the trip. The consolidated categories are:\n•\tMetroCard – Fair Fare;\n•\tMetroCard – Full Fare;\n•\tMetroCard – Other;\n•\tMetroCard – Senior & Disability;\n•\tMetroCard – Students;\n•\tMetroCard – Unlimited 30-Day;\n•\tMetroCard – Unlimited 7-Day;\n•\tOMNY – Full Fare;\n•\tOMNY – Other;\n•\tOMNY – Seniors & Disabilities;\n",
+        "position": 4,
+        "renderTypeName": "text",
+        "tableColumnId": 155679327,
+        "cachedContents": {
+          "non_null": "115060032",
+          "largest": "OMNY - Students",
+          "null": "0",
+          "top": [
+            {
+              "item": "Metrocard - Fair Fare",
+              "count": "9588336"
+            },
+            {
+              "item": "Metrocard - Full Fare",
+              "count": "9588336"
+            },
+            {
+              "item": "Metrocard - Other",
+              "count": "9588336"
+            },
+            {
+              "item": "Metrocard - Seniors & Disability",
+              "count": "9588336"
+            },
+            {
+              "item": "Metrocard - Students",
+              "count": "9588336"
+            },
+            {
+              "item": "Metrocard - Unlimited 30-Day",
+              "count": "9588336"
+            },
+            {
+              "item": "Metrocard - Unlimited 7-Day",
+              "count": "9588336"
+            },
+            {
+              "item": "OMNY - Fair Fare",
+              "count": "9588336"
+            },
+            {
+              "item": "OMNY - Full Fare",
+              "count": "9588336"
+            },
+            {
+              "item": "OMNY - Other",
+              "count": "9588336"
+            },
+            {
+              "item": "OMNY - Seniors & Disability",
+              "count": "9588336"
+            },
+            {
+              "item": "OMNY - Students",
+              "count": "9588336"
+            }
+          ],
+          "smallest": "Metrocard - Fair Fare",
+          "count": "115060032",
+          "cardinality": "115060032"
+        },
+        "format": {}
+      },
+      {
+        "id": 602051897,
+        "name": "ridership",
+        "dataTypeName": "number",
+        "fieldName": "ridership",
+        "description": "Total number of riders that entered a bus via OMNY or MetroCard at the specific hour and for that specific fare type.",
+        "position": 5,
+        "renderTypeName": "number",
+        "tableColumnId": 155679328,
+        "cachedContents": {
+          "non_null": "115060032",
+          "largest": "2705",
+          "null": "0",
+          "top": [
+            {
+              "item": "0",
+              "count": "93890525"
+            },
+            {
+              "item": "1",
+              "count": "3492621"
+            },
+            {
+              "item": "2",
+              "count": "2164445"
+            },
+            {
+              "item": "3",
+              "count": "1558195"
+            },
+            {
+              "item": "4",
+              "count": "1211467"
+            },
+            {
+              "item": "5",
+              "count": "986099"
+            },
+            {
+              "item": "6",
+              "count": "830863"
+            },
+            {
+              "item": "7",
+              "count": "712758"
+            },
+            {
+              "item": "8",
+              "count": "622956"
+            },
+            {
+              "item": "9",
+              "count": "551783"
+            },
+            {
+              "item": "10",
+              "count": "493014"
+            },
+            {
+              "item": "11",
+              "count": "443079"
+            },
+            {
+              "item": "12",
+              "count": "404573"
+            },
+            {
+              "item": "13",
+              "count": "367082"
+            },
+            {
+              "item": "14",
+              "count": "336917"
+            },
+            {
+              "item": "15",
+              "count": "309144"
+            },
+            {
+              "item": "16",
+              "count": "284706"
+            },
+            {
+              "item": "17",
+              "count": "265142"
+            },
+            {
+              "item": "18",
+              "count": "246212"
+            },
+            {
+              "item": "19",
+              "count": "229104"
+            }
+          ],
+          "smallest": "0",
+          "count": "115060032",
+          "cardinality": "115060032"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "groupSeparator": ",",
+          "align": "right"
+        }
+      },
+      {
+        "id": 602051898,
+        "name": "transfers",
+        "dataTypeName": "number",
+        "fieldName": "transfers",
+        "description": "Number of individuals who entered a bus via a free subway-to-bus, bus-to-bus, or out of network transfer (from Westchester Bee-Line, NICEbus, the Roosevelt Island Tramway, or Hudson RailLink). This represents a subset of total ridership, meaning that these transfers are already included in the preceding ridership column.",
+        "position": 6,
+        "renderTypeName": "number",
+        "tableColumnId": 155679329,
+        "cachedContents": {
+          "non_null": "115060032",
+          "largest": "613",
+          "null": "0",
+          "top": [
+            {
+              "item": "0",
+              "count": "103032381"
+            },
+            {
+              "item": "1",
+              "count": "3291484"
+            },
+            {
+              "item": "2",
+              "count": "1742163"
+            },
+            {
+              "item": "3",
+              "count": "1133687"
+            },
+            {
+              "item": "4",
+              "count": "812258"
+            },
+            {
+              "item": "5",
+              "count": "619568"
+            },
+            {
+              "item": "6",
+              "count": "491036"
+            },
+            {
+              "item": "7",
+              "count": "400729"
+            },
+            {
+              "item": "8",
+              "count": "333833"
+            },
+            {
+              "item": "9",
+              "count": "282100"
+            },
+            {
+              "item": "10",
+              "count": "241247"
+            },
+            {
+              "item": "11",
+              "count": "209736"
+            },
+            {
+              "item": "12",
+              "count": "183335"
+            },
+            {
+              "item": "13",
+              "count": "160276"
+            },
+            {
+              "item": "14",
+              "count": "142649"
+            },
+            {
+              "item": "15",
+              "count": "126721"
+            },
+            {
+              "item": "16",
+              "count": "114545"
+            },
+            {
+              "item": "17",
+              "count": "103458"
+            },
+            {
+              "item": "18",
+              "count": "93561"
+            },
+            {
+              "item": "19",
+              "count": "85284"
+            }
+          ],
+          "smallest": "0",
+          "count": "115060032",
+          "cardinality": "115060032"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "groupSeparator": ",",
+          "align": "right"
+        }
+      }
+    ],
+    "assetType": "dataset",
+    "attributionLink": "https://www.mta.info/open-data",
+    "averageRating": 0,
+    "category": "Transportation",
+    "createdAt": 1732215322,
+    "diciBackend": false,
+    "displayType": "table",
+    "downloadCount": 2735,
+    "hideFromCatalog": false,
+    "hideFromDataJson": false,
+    "locked": false,
+    "newBackend": true,
+    "numberOfComments": 0,
+    "oid": 40972727,
+    "provenance": "official",
+    "publicationAppendEnabled": false,
+    "publicationDate": 1732215325,
+    "publicationGroup": 19700099,
+    "publicationStage": "published",
+    "rowClass": "",
+    "rowsUpdatedBy": "xzik-pf59",
+    "tableId": 19700099,
+    "totalTimesRated": 0,
+    "viewCount": 5644,
+    "viewLastModified": 1776699367,
+    "viewType": "tabular",
+    "approvals": [
+      {
+        "reviewedAt": 1737124613,
+        "reviewedAutomatically": true,
+        "state": "approved",
+        "submissionId": 6690212,
+        "submissionObject": "public_audience_request",
+        "submissionOutcome": "change_audience",
+        "submittedAt": 1737124613,
+        "targetAudience": "public",
+        "workflowId": 2254,
+        "submissionDetails": {
+          "permissionType": "READ"
+        },
+        "submissionOutcomeApplication": {
+          "endedAt": 1737124613,
+          "failureCount": 0,
+          "startedAt": 1737124613,
+          "status": "success"
+        },
+        "submitter": {
+          "id": "xzik-pf59",
+          "displayName": "NY Open Data"
+        }
+      }
+    ],
+    "clientContext": {
+      "clientContextVariables": [],
+      "inheritedVariables": {}
+    },
+    "grants": [
+      {
+        "inherited": false,
+        "type": "viewer",
+        "flags": [
+          "public"
+        ]
+      }
+    ],
+    "metadata": {
+      "rdfSubject": "0",
+      "rdfClass": "",
+      "attachments": [
+        {
+          "filename": "MTA_BusHourlyRidership_Overview.pdf",
+          "assetId": "59feac4c-ab4f-44e1-b4bd-188b5edfcc20",
+          "name": "MTA_BusHourlyRidership_Overview.pdf"
+        },
+        {
+          "filename": "MTA_BusHourlyRidership_DataDictionary.pdf",
+          "assetId": "9b66fdcc-0c3e-446c-b13d-6b0aa3bc30c1",
+          "name": "MTA_BusHourlyRidership_DataDictionary.pdf"
+        }
+      ],
+      "custom_fields": {
+        "Dataset Summary": {
+          "Posting Frequency": "Weekly",
+          "Organization": "New York City Transit, MTA Bus Company",
+          "Contact Information": "OpenData@mtahq.org",
+          "Time Period": "Beginning 2025",
+          "Coverage": "New York City and parts of Nassau, Hudson and Westchester counties",
+          "Granularity": "Hour, bus route, fare medium, class of fare payment",
+          "Dataset Owner": "Metropolitan Transportation Authority"
+        },
+        "Additional Resources": {
+          "See Also": "https://metrics.mta.info/"
+        },
+        "Dataset Information": {
+          "Agency": "Metropolitan Transportation Authority"
+        }
+      },
+      "rowIdentifier": 602051899,
+      "availableDisplayTypes": [
+        "table",
+        "fatrow",
+        "page"
+      ]
+    },
+    "owner": {
+      "id": "xzik-pf59",
+      "displayName": "NY Open Data",
+      "profileImageUrlLarge": "/api/users/xzik-pf59/profile_images/LARGE",
+      "profileImageUrlMedium": "/api/users/xzik-pf59/profile_images/THUMB",
+      "profileImageUrlSmall": "/api/users/xzik-pf59/profile_images/TINY",
+      "screenName": "NY Open Data",
+      "type": "interactive",
+      "flags": [
+        "acceptedEula",
+        "mayBeStoriesCoOwner"
+      ]
+    },
+    "query": {},
+    "rights": [
+      "read"
+    ],
+    "tableAuthor": {
+      "id": "xzik-pf59",
+      "displayName": "NY Open Data",
+      "profileImageUrlLarge": "/api/users/xzik-pf59/profile_images/LARGE",
+      "profileImageUrlMedium": "/api/users/xzik-pf59/profile_images/THUMB",
+      "profileImageUrlSmall": "/api/users/xzik-pf59/profile_images/TINY",
+      "screenName": "NY Open Data",
+      "type": "interactive",
+      "flags": [
+        "acceptedEula",
+        "mayBeStoriesCoOwner"
+      ]
+    },
+    "tags": [
+      "new york city transit",
+      "nyct",
+      "mta bus",
+      "mtabc",
+      "bus",
+      "ridership",
+      "metrocard",
+      "omny",
+      "transfers",
+      "hourly",
+      "route",
+      "bus route",
+      "customers",
+      "passengers",
+      "fare"
+    ],
+    "flags": [
+      "default",
+      "ownerMayBeContacted",
+      "restorable",
+      "restorePossibleForType"
+    ]
+  }
+}

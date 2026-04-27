@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "sourceId": "gtfs_realtime_reference",
+  "sourceType": "standard_doc",
+  "sourcePriority": "secondary",
+  "manifestStatus": "active",
+  "checkedAt": "2026-04-27T02:47:44.314Z",
+  "probeStatus": "active",
+  "statusRecommendation": "active",
+  "url": "https://gtfs.org/documentation/realtime/reference/",
+  "http": {
+    "method": "HEAD",
+    "transport": "fetch",
+    "status": 200,
+    "ok": true,
+    "finalUrl": "https://gtfs.org/documentation/realtime/reference/",
+    "contentType": "text/html",
+    "lastModified": "Wed, 01 Apr 2026 14:15:29 GMT",
+    "responseDate": "Mon, 27 Apr 2026 02:47:44 GMT"
+  }
+}

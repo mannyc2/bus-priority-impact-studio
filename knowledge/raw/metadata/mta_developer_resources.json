@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "sourceId": "mta_developer_resources",
+  "sourceType": "web_page",
+  "sourcePriority": "core",
+  "manifestStatus": "active",
+  "checkedAt": "2026-04-27T02:46:10.726Z",
+  "probeStatus": "active",
+  "statusRecommendation": "active",
+  "url": "https://www.mta.info/developers",
+  "http": {
+    "method": "HEAD",
+    "transport": "fetch",
+    "status": 200,
+    "ok": true,
+    "finalUrl": "https://www.mta.info/developers",
+    "contentType": "text/html; charset=UTF-8",
+    "contentLengthBytes": 12505,
+    "lastModified": "Sun, 26 Apr 2026 22:18:11 GMT",
+    "etag": "\"1777241891\"",
+    "responseDate": "Mon, 27 Apr 2026 02:46:10 GMT"
+  }
+}

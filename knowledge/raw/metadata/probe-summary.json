@@ -1,0 +1,253 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-04-27T02:46:10.595Z",
+  "sourceCount": 30,
+  "activeCount": 27,
+  "blockedCount": 0,
+  "skippedCount": 3,
+  "sources": [
+    {
+      "sourceId": "mta_open_data_program",
+      "sourceType": "web_page",
+      "priority": "core",
+      "manifestStatus": "active",
+      "probeStatus": "active",
+      "statusRecommendation": "active"
+    },
+    {
+      "sourceId": "mta_developer_resources",
+      "sourceType": "web_page",
+      "priority": "core",
+      "manifestStatus": "active",
+      "probeStatus": "active",
+      "statusRecommendation": "active"
+    },
+    {
+      "sourceId": "mta_data_feed_terms",
+      "sourceType": "web_page",
+      "priority": "core",
+      "manifestStatus": "active",
+      "probeStatus": "active",
+      "statusRecommendation": "active"
+    },
+    {
+      "sourceId": "bus_segment_speeds_2025",
+      "sourceType": "socrata_dataset",
+      "priority": "core",
+      "manifestStatus": "active",
+      "probeStatus": "active",
+      "statusRecommendation": "active"
+    },
+    {
+      "sourceId": "bus_segment_speeds_2023_2024",
+      "sourceType": "socrata_dataset",
+      "priority": "core",
+      "manifestStatus": "active",
+      "probeStatus": "active",
+      "statusRecommendation": "active"
+    },
+    {
+      "sourceId": "cbd_bus_speeds_2023",
+      "sourceType": "socrata_dataset",
+      "priority": "optional",
+      "manifestStatus": "active",
+      "probeStatus": "active",
+      "statusRecommendation": "active"
+    },
+    {
+      "sourceId": "current_bus_routes",
+      "sourceType": "socrata_dataset",
+      "priority": "core",
+      "manifestStatus": "active",
+      "probeStatus": "active",
+      "statusRecommendation": "active"
+    },
+    {
+      "sourceId": "current_bus_stops",
+      "sourceType": "socrata_dataset",
+      "priority": "core",
+      "manifestStatus": "active",
+      "probeStatus": "active",
+      "statusRecommendation": "active"
+    },
+    {
+      "sourceId": "bus_routes_all_bundles",
+      "sourceType": "socrata_dataset",
+      "priority": "secondary",
+      "manifestStatus": "active",
+      "probeStatus": "active",
+      "statusRecommendation": "active"
+    },
+    {
+      "sourceId": "bus_stops_all_bundles",
+      "sourceType": "socrata_dataset",
+      "priority": "secondary",
+      "manifestStatus": "active",
+      "probeStatus": "active",
+      "statusRecommendation": "active"
+    },
+    {
+      "sourceId": "bus_hourly_ridership_2025",
+      "sourceType": "socrata_dataset",
+      "priority": "core",
+      "manifestStatus": "active",
+      "probeStatus": "active",
+      "statusRecommendation": "active"
+    },
+    {
+      "sourceId": "bus_hourly_ridership_2020_2024",
+      "sourceType": "socrata_dataset",
+      "priority": "secondary",
+      "manifestStatus": "active",
+      "probeStatus": "active",
+      "statusRecommendation": "active"
+    },
+    {
+      "sourceId": "bus_schedules_2026",
+      "sourceType": "socrata_dataset",
+      "priority": "core",
+      "manifestStatus": "active",
+      "probeStatus": "active",
+      "statusRecommendation": "active"
+    },
+    {
+      "sourceId": "ace_routes",
+      "sourceType": "socrata_dataset",
+      "priority": "core",
+      "manifestStatus": "active",
+      "probeStatus": "active",
+      "statusRecommendation": "active"
+    },
+    {
+      "sourceId": "ace_violations",
+      "sourceType": "socrata_dataset",
+      "priority": "core",
+      "manifestStatus": "active",
+      "probeStatus": "active",
+      "statusRecommendation": "active"
+    },
+    {
+      "sourceId": "nyc_dot_bus_lanes_local_streets",
+      "sourceType": "socrata_dataset",
+      "priority": "core",
+      "manifestStatus": "active",
+      "probeStatus": "active",
+      "statusRecommendation": "active"
+    },
+    {
+      "sourceId": "bus_gtfs_bronx",
+      "sourceType": "gtfs_static_zip",
+      "priority": "secondary",
+      "manifestStatus": "active",
+      "probeStatus": "active",
+      "statusRecommendation": "active"
+    },
+    {
+      "sourceId": "bus_gtfs_brooklyn",
+      "sourceType": "gtfs_static_zip",
+      "priority": "secondary",
+      "manifestStatus": "active",
+      "probeStatus": "active",
+      "statusRecommendation": "active"
+    },
+    {
+      "sourceId": "bus_gtfs_manhattan",
+      "sourceType": "gtfs_static_zip",
+      "priority": "secondary",
+      "manifestStatus": "active",
+      "probeStatus": "active",
+      "statusRecommendation": "active"
+    },
+    {
+      "sourceId": "bus_gtfs_queens",
+      "sourceType": "gtfs_static_zip",
+      "priority": "secondary",
+      "manifestStatus": "active",
+      "probeStatus": "active",
+      "statusRecommendation": "active"
+    },
+    {
+      "sourceId": "bus_gtfs_staten_island",
+      "sourceType": "gtfs_static_zip",
+      "priority": "secondary",
+      "manifestStatus": "active",
+      "probeStatus": "active",
+      "statusRecommendation": "active"
+    },
+    {
+      "sourceId": "bus_gtfs_mta_bus_company",
+      "sourceType": "gtfs_static_zip",
+      "priority": "secondary",
+      "manifestStatus": "active",
+      "probeStatus": "active",
+      "statusRecommendation": "active"
+    },
+    {
+      "sourceId": "bus_time_gtfsrt_trip_updates",
+      "sourceType": "gtfs_realtime_api",
+      "priority": "optional",
+      "manifestStatus": "active",
+      "probeStatus": "skipped",
+      "statusRecommendation": "skipped",
+      "error": "Set MTA_BUS_TIME_API_KEY to probe Bus Time GTFS-RT feeds."
+    },
+    {
+      "sourceId": "bus_time_gtfsrt_vehicle_positions",
+      "sourceType": "gtfs_realtime_api",
+      "priority": "optional",
+      "manifestStatus": "active",
+      "probeStatus": "skipped",
+      "statusRecommendation": "skipped",
+      "error": "Set MTA_BUS_TIME_API_KEY to probe Bus Time GTFS-RT feeds."
+    },
+    {
+      "sourceId": "bus_time_gtfsrt_alerts",
+      "sourceType": "gtfs_realtime_api",
+      "priority": "optional",
+      "manifestStatus": "active",
+      "probeStatus": "skipped",
+      "statusRecommendation": "skipped",
+      "error": "Set MTA_BUS_TIME_API_KEY to probe Bus Time GTFS-RT feeds."
+    },
+    {
+      "sourceId": "mta_gtfs_realtime_alerts_docs",
+      "sourceType": "pdf_or_doc",
+      "priority": "secondary",
+      "manifestStatus": "active",
+      "probeStatus": "active",
+      "statusRecommendation": "active"
+    },
+    {
+      "sourceId": "gtfs_realtime_reference",
+      "sourceType": "standard_doc",
+      "priority": "secondary",
+      "manifestStatus": "active",
+      "probeStatus": "active",
+      "statusRecommendation": "active"
+    },
+    {
+      "sourceId": "mta_segment_speed_blog_2026",
+      "sourceType": "web_page",
+      "priority": "core",
+      "manifestStatus": "active",
+      "probeStatus": "active",
+      "statusRecommendation": "active"
+    },
+    {
+      "sourceId": "mta_segment_speed_blog_2024",
+      "sourceType": "web_page",
+      "priority": "core",
+      "manifestStatus": "active",
+      "probeStatus": "active",
+      "statusRecommendation": "active"
+    },
+    {
+      "sourceId": "mta_ace_page",
+      "sourceType": "web_page",
+      "priority": "core",
+      "manifestStatus": "active",
+      "probeStatus": "active",
+      "statusRecommendation": "active"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "sourceId": "mta_ace_page",
+  "sourceType": "web_page",
+  "sourcePriority": "core",
+  "manifestStatus": "active",
+  "checkedAt": "2026-04-27T02:47:44.537Z",
+  "probeStatus": "active",
+  "statusRecommendation": "active",
+  "url": "https://www.mta.info/agency/new-york-city-transit/automated-camera-enforcement",
+  "http": {
+    "method": "HEAD",
+    "transport": "fetch",
+    "status": 200,
+    "ok": true,
+    "finalUrl": "https://www.mta.info/agency/new-york-city-transit/automated-camera-enforcement",
+    "contentType": "text/html; charset=UTF-8",
+    "contentLengthBytes": 15487,
+    "lastModified": "Sun, 26 Apr 2026 22:10:36 GMT",
+    "etag": "\"1777241436\"",
+    "responseDate": "Mon, 27 Apr 2026 02:47:44 GMT"
+  }
+}

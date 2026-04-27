@@ -2,9 +2,9 @@
 title: Source Registry
 type: data
 status: active
-last_updated: 2026-04-26
+last_updated: 2026-04-27
 owner: codex
-source_count: 22
+source_count: 30
 tags: [sources, datasets, apis]
 ---
 
@@ -12,45 +12,67 @@ tags: [sources, datasets, apis]
 
 This is the master source registry for Bus Priority Impact Studio. Raw machine-readable details live in `raw/source_manifest.yaml`.
 
+## Latest probe
+
+`bun run sources:probe` completed on 2026-04-27 with 30 active sources, 0 blocked sources, and 0 skipped sources. Probe outputs are generated locally under `knowledge/raw/metadata/`, which is gitignored except `.gitkeep`; durable facts are summarized in this wiki. Bus Time GTFS-RT probes require `MTA_BUS_TIME_API_KEY` in the local environment; the key is not written to metadata.
+
 ## Core sources
 
 | Source | ID / endpoint | Priority | Role | Status |
 |---|---:|---|---|---|
-| MTA Open Data Program | `https://www.mta.info/open-data` | Core | Program context, Data & Analytics mission, contact, blog | Seed verified |
-| MTA Developer Resources | `https://www.mta.info/developers` | Core | Static GTFS, realtime feeds, Bus Time, docs | Seed verified |
-| MTA data-feed terms | `https://www.mta.info/developers/terms-and-conditions` | Core | Compliance rules | Seed verified |
-| MTA Bus Route Segment Speeds: Beginning 2025 | `kufs-yh3x` | Core | Main observed speed/travel-time table | Needs schema probe |
-| MTA Bus Route Segment Speeds: 2023–2024 | `58t6-89vi` | Core | Historical baseline | Needs schema probe |
-| MTA Current Bus Routes | `h2wf-afav` | Core | Current route shapes | Needs schema probe |
-| MTA Current Bus Stops | `ai5j-txmn` | Core | Current stop points and timepoint flags | Needs schema probe |
-| MTA Bus Hourly Ridership: Beginning 2025 | `gxb3-akrn` | Core | Rider-impact weights | Needs schema probe |
-| MTA Bus Schedules: 2026 | `4fnn-qsea` | Core | Scheduled timepoint/trip rows | Needs schema probe |
-| ACE routes | `ki2b-sg5y` | Core | Intervention implementation dates | Needs schema probe |
-| ACE violations | `kh8p-hcbm` | Core | Enforcement activity and blockage context | Needs schema probe |
-| NYC DOT Bus Lanes - Local Streets | `ycrg-ses3` | Core | Bus lane geography | Needs schema probe |
-| MTA segment speed blog, 2026 | MTA blog | Core | Worked example for route/stop/speed integration | Seed verified |
-| MTA segment speed blog, 2024 | MTA blog | Core | Methodology and motivation for speed dataset | Seed verified |
-| MTA ACE page | MTA page | Core | ACE program, rules, official impact claims | Seed verified |
+| MTA Open Data Program | `https://www.mta.info/open-data` | Core | Program context, Data & Analytics mission, contact, blog | Active |
+| MTA Developer Resources | `https://www.mta.info/developers` | Core | Static GTFS, realtime feeds, Bus Time, docs | Active |
+| MTA data-feed terms | `https://www.mta.info/developers/terms-and-conditions` | Core | Compliance rules | Active |
+| MTA Bus Route Segment Speeds: Beginning 2025 | `kufs-yh3x` | Core | Main observed speed/travel-time table | Active; schema captured |
+| MTA Bus Route Segment Speeds: 2023–2024 | `58t6-89vi` | Core | Historical baseline | Active; schema captured |
+| MTA Current Bus Routes | `h2wf-afav` | Core | Current route shapes | Active; schema captured |
+| MTA Current Bus Stops | `ai5j-txmn` | Core | Current stop points and timepoint flags | Active; schema captured |
+| MTA Bus Hourly Ridership: Beginning 2025 | `gxb3-akrn` | Core | Rider-impact weights | Active; schema captured |
+| MTA Bus Schedules: 2026 | `4fnn-qsea` | Core | Scheduled timepoint/trip rows | Active; schema captured |
+| ACE routes | `ki2b-sg5y` | Core | Intervention implementation dates | Active; schema captured |
+| ACE violations | `kh8p-hcbm` | Core | Enforcement activity and blockage context | Active; schema captured |
+| NYC DOT Bus Lanes - Local Streets | `ycrg-ses3` | Core | Bus lane geography | Active; schema captured |
+| MTA segment speed blog, 2026 | MTA blog | Core | Worked example for route/stop/speed integration | Active |
+| MTA segment speed blog, 2024 | MTA blog | Core | Methodology and motivation for speed dataset | Active |
+| MTA ACE page | MTA page | Core | ACE program, rules, official impact claims | Active |
 
 ## Secondary / optional sources
 
 | Source | ID / endpoint | Priority | Role | Status |
 |---|---:|---|---|---|
-| CBD Bus Speeds: Beginning 2023 | `r6db-kkzj` | Optional | CBD/congestion-zone speed analysis | Needs schema probe |
-| Bus Routes all bundles | `bzwk-3hb4` | Secondary | Historical route shapes | Needs schema probe |
-| Bus Stops all bundles | `2ucp-7wg5` | Secondary | Historical stop points | Needs schema probe |
-| Bus Hourly Ridership: 2020–2024 | `kv7t-n8in` | Secondary | Historical ridership baseline | Needs schema probe |
-| Static Bus GTFS feeds | six S3 zip URLs | Secondary | GTFS route/trip/shape/stop baseline | Needs download |
-| Bus Time GTFS-RT TripUpdates | `gtfsrt.prod.obanyc.com/tripUpdates` | Optional | Realtime headways/delays if collected | Needs API key |
-| Bus Time GTFS-RT VehiclePositions | `gtfsrt.prod.obanyc.com/vehiclePositions` | Optional | Realtime vehicle locations if collected | Needs API key |
-| Bus Time GTFS-RT Alerts | `gtfsrt.prod.obanyc.com/alerts` | Optional | Bus disruption context | Needs API key |
-| MTA GTFS Alerts docs | `https://www.mta.info/document/90881` | Secondary | Alerts field interpretation | Needs capture |
-| GTFS Realtime reference | `https://gtfs.org/documentation/realtime/reference/` | Secondary | Standard reference | Seed verified |
+| CBD Bus Speeds: Beginning 2023 | `r6db-kkzj` | Optional | CBD/congestion-zone speed analysis | Active; schema captured |
+| Bus Routes all bundles | `bzwk-3hb4` | Secondary | Historical route shapes | Active; schema captured |
+| Bus Stops all bundles | `2ucp-7wg5` | Secondary | Historical stop points | Active; schema captured |
+| Bus Hourly Ridership: 2020–2024 | `kv7t-n8in` | Secondary | Historical ridership baseline | Active; schema captured |
+| Static Bus GTFS feeds | six S3 zip URLs | Secondary | GTFS route/trip/shape/stop baseline | Active URLs; not ingested |
+| Bus Time GTFS-RT TripUpdates | `gtfsrt.prod.obanyc.com/tripUpdates` | Optional | Realtime headways/delays if collected | Active with local API key |
+| Bus Time GTFS-RT VehiclePositions | `gtfsrt.prod.obanyc.com/vehiclePositions` | Optional | Realtime vehicle locations if collected | Active with local API key |
+| Bus Time GTFS-RT Alerts | `gtfsrt.prod.obanyc.com/alerts` | Optional | Bus disruption context | Active with local API key |
+| MTA GTFS Alerts docs | `https://www.mta.info/document/90881` | Secondary | Alerts field interpretation | Active URL; not captured |
+| GTFS Realtime reference | `https://gtfs.org/documentation/realtime/reference/` | Secondary | Standard reference | Active |
+
+## Socrata probe summary
+
+| Dataset | Rows | Rows updated | Columns |
+|---|---:|---:|---:|
+| `kufs-yh3x` | 7,280,927 | 2026-04-25T00:57:20Z | 24 |
+| `58t6-89vi` | 11,656,097 | 2025-01-24T17:56:02Z | 24 |
+| `r6db-kkzj` | 595,263 | 2026-04-24T16:48:44Z | 10 |
+| `h2wf-afav` | 1,640 | 2026-04-22T19:52:40Z | 21 |
+| `ai5j-txmn` | 23,048 | 2026-04-22T19:29:58Z | 21 |
+| `bzwk-3hb4` | 200,476 | 2026-04-22T19:52:40Z | 21 |
+| `2ucp-7wg5` | 3,074,918 | 2026-04-22T19:29:58Z | 24 |
+| `gxb3-akrn` | 115,060,032 | 2026-04-20T16:52:50Z | 6 |
+| `kv7t-n8in` | 447,249,600 | 2025-10-15T03:50:58Z | 6 |
+| `4fnn-qsea` | 8,937,275 | 2026-04-26T19:07:48Z | 25 |
+| `ki2b-sg5y` | 81 | 2026-04-24T16:37:02Z | 3 |
+| `kh8p-hcbm` | 5,248,178 | 2026-03-20T15:55:50Z | 15 |
+| `ycrg-ses3` | 4,068 | 2026-04-06T15:44:03Z | 29 |
 
 ## Required lint before implementation
 
-- No source with `priority: core` may remain `needs_schema_probe` before production metric claims.
-- Every Socrata source must have `raw/metadata/{dataset_id}.json` and `raw/metadata/{dataset_id}_columns.json`.
+- No source with `priority: core` may remain `needs_schema_probe` before production metric claims. This was satisfied by the 2026-04-27 probe.
+- Every Socrata source must be reproducibly probeable with local generated metadata. This was satisfied by the 2026-04-27 probe.
 - Every dataset page must include exact schema, primary-key candidate, join keys, and row-count/date metadata.
 - Every app metric must cite a deterministic transformation and source table.
 

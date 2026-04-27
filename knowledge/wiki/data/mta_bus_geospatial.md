@@ -1,10 +1,10 @@
 ---
 title: MTA Bus Routes and Stops
 type: data
-status: needs_schema_probe
-last_updated: 2026-04-26
+status: active
+last_updated: 2026-04-27
 owner: codex
-source_count: 3
+source_count: 5
 tags: [mta, bus, routes, stops, geospatial, postgis]
 ---
 
@@ -29,6 +29,17 @@ Secondary historical/bundle datasets:
 ## What we know
 
 MTA’s 2026 blog says newly released bus stop and route datasets provide consistent, structured spatial representations of every stop and route shape in the bus network. The Bus Stops dataset includes stop identifiers/names, route identifiers, direction of travel, cardinal directions, timepoint flags, `iscbd`, and an `in_effect` flag. The Bus Routes dataset includes route-shape polylines with key fields such as `shape_id`, `route_type`, `direction_id`, and WKT `geometry`.
+
+## Schema probe
+
+Probe completed 2026-04-27. Metadata files live under `knowledge/raw/metadata/`.
+
+| Dataset | Rows | Rows updated | Fields |
+|---|---:|---:|---|
+| `h2wf-afav` current routes | 1,640 | 2026-04-22T19:52:40Z | `valid_from`, `valid_to`, `in_effect`, `route_id`, `route_short_name`, `route_long_name`, `route_description`, `trip_type`, `route_type`, `bundle`, `route_color`, `direction_id`, `direction`, `shape_id`, `vertices`, `shape_length`, `min_longitude`, `min_latitude`, `max_longitude`, `max_latitude`, `geometry` |
+| `ai5j-txmn` current stops | 23,048 | 2026-04-22T19:29:58Z | `valid_from`, `valid_to`, `in_effect`, `route_id`, `route_short_name`, `route_long_name`, `route_description`, `route_color`, `stop_id`, `stop_name`, `direction_id`, `direction`, `revenue_stop`, `timepoint`, `boarding`, `alighting`, `is_cbd`, `latitude`, `longitude`, `bundle`, `georeference` |
+| `bzwk-3hb4` all-bundle routes | 200,476 | 2026-04-22T19:52:40Z | Same fields as `h2wf-afav` |
+| `2ucp-7wg5` all-bundle stops | 3,074,918 | 2026-04-22T19:29:58Z | Same fields as `ai5j-txmn`, plus Socrata computed-region fields |
 
 ## Implementation notes
 
@@ -71,4 +82,6 @@ Codex must not rely on stop names alone if IDs are available.
 
 - https://data.ny.gov/Transportation/MTA-Current-Bus-Routes/h2wf-afav — verified_at: 2026-04-26
 - https://data.ny.gov/Transportation/MTA-Current-Bus-Stops/ai5j-txmn — verified_at: 2026-04-26
+- https://data.ny.gov/Transportation/MTA-Bus-Routes/bzwk-3hb4 — verified_at: 2026-04-27
+- https://data.ny.gov/Transportation/MTA-Bus-Stops/2ucp-7wg5 — verified_at: 2026-04-27
 - https://www.mta.info/article/mapping-movement-exploring-nyc-bus-route-shapes-through-segment-level-speed-data — verified_at: 2026-04-26

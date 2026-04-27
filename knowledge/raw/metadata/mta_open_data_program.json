@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "sourceId": "mta_open_data_program",
+  "sourceType": "web_page",
+  "sourcePriority": "core",
+  "manifestStatus": "active",
+  "checkedAt": "2026-04-27T02:46:10.595Z",
+  "probeStatus": "active",
+  "statusRecommendation": "active",
+  "url": "https://www.mta.info/open-data",
+  "http": {
+    "method": "HEAD",
+    "transport": "fetch",
+    "status": 200,
+    "ok": true,
+    "finalUrl": "https://www.mta.info/open-data",
+    "contentType": "text/html; charset=UTF-8",
+    "contentLengthBytes": 13194,
+    "lastModified": "Sun, 26 Apr 2026 22:25:47 GMT",
+    "etag": "\"1777242347\"",
+    "responseDate": "Mon, 27 Apr 2026 02:46:10 GMT"
+  }
+}

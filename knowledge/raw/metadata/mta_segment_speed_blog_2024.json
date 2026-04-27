@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "sourceId": "mta_segment_speed_blog_2024",
+  "sourceType": "web_page",
+  "sourcePriority": "core",
+  "manifestStatus": "active",
+  "checkedAt": "2026-04-27T02:47:44.489Z",
+  "probeStatus": "active",
+  "statusRecommendation": "active",
+  "url": "https://www.mta.info/article/beyond-route-introducing-granular-mta-bus-speed-data",
+  "http": {
+    "method": "HEAD",
+    "transport": "fetch",
+    "status": 200,
+    "ok": true,
+    "finalUrl": "https://www.mta.info/article/beyond-route-introducing-granular-mta-bus-speed-data",
+    "contentType": "text/html; charset=UTF-8",
+    "contentLengthBytes": 15032,
+    "lastModified": "Sun, 26 Apr 2026 22:31:54 GMT",
+    "etag": "\"1777242714\"",
+    "responseDate": "Mon, 27 Apr 2026 02:47:44 GMT"
+  }
+}

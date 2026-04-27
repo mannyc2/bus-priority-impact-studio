@@ -1,0 +1,398 @@
+{
+  "schemaVersion": 1,
+  "sourceId": "ace_routes",
+  "checkedAt": "2026-04-27T02:47:41.975Z",
+  "metadataUrl": "https://data.ny.gov/api/views/ki2b-sg5y",
+  "metadata": {
+    "id": "ki2b-sg5y",
+    "name": "MTA Bus Automated Camera Enforced Routes: Beginning October 2019",
+    "description": "This dataset provides information on the implementation dates of Automated Bus Lane Enforcement (ABLE) and Automated Camera Enforcement (ACE) systems across MTA bus routes. ABLE, launched as a pilot in 2019, and later expanded and rebranded as ACE in 2024, uses cameras mounted on buses to capture vehicles obstructing bus lanes, double parked, or parked illegally at bus stops.",
+    "attribution": "Metropolitan Transportation Authority",
+    "rowsUpdatedAt": 1777048622,
+    "columns": [
+      {
+        "id": 602859365,
+        "name": "Route",
+        "dataTypeName": "text",
+        "fieldName": "route",
+        "description": "Identifies each individual bus route.",
+        "position": 1,
+        "renderTypeName": "text",
+        "tableColumnId": 155898752,
+        "cachedContents": {
+          "non_null": "81",
+          "largest": "S79+",
+          "null": "0",
+          "top": [
+            {
+              "item": "B62",
+              "count": "2"
+            },
+            {
+              "item": "M14+",
+              "count": "2"
+            },
+            {
+              "item": "M34+",
+              "count": "2"
+            },
+            {
+              "item": "BX36",
+              "count": "2"
+            },
+            {
+              "item": "BX19",
+              "count": "2"
+            },
+            {
+              "item": "M86+",
+              "count": "2"
+            },
+            {
+              "item": "B44+",
+              "count": "2"
+            },
+            {
+              "item": "B42",
+              "count": "2"
+            },
+            {
+              "item": "B25",
+              "count": "2"
+            },
+            {
+              "item": "S79+",
+              "count": "2"
+            },
+            {
+              "item": "Q58",
+              "count": "2"
+            },
+            {
+              "item": "M15+",
+              "count": "2"
+            },
+            {
+              "item": "BX12+",
+              "count": "2"
+            },
+            {
+              "item": "Q43",
+              "count": "2"
+            },
+            {
+              "item": "B46+",
+              "count": "2"
+            },
+            {
+              "item": "Q44+",
+              "count": "2"
+            },
+            {
+              "item": "B26",
+              "count": "2"
+            },
+            {
+              "item": "BX35",
+              "count": "2"
+            },
+            {
+              "item": "Q54",
+              "count": "2"
+            },
+            {
+              "item": "BX41+",
+              "count": "2"
+            }
+          ],
+          "smallest": "B11",
+          "count": "81",
+          "cardinality": "81"
+        },
+        "format": {}
+      },
+      {
+        "id": 602859364,
+        "name": "Program",
+        "dataTypeName": "text",
+        "fieldName": "program",
+        "description": "Indicates whether it is the ABLE (Automated Bus Lane Enforcement) or ACE (Automated Camera Enforcement) program.",
+        "position": 2,
+        "renderTypeName": "text",
+        "tableColumnId": 155898751,
+        "cachedContents": {
+          "non_null": "81",
+          "largest": "ACE",
+          "null": "0",
+          "top": [
+            {
+              "item": "ACE",
+              "count": "60"
+            },
+            {
+              "item": "ABLE",
+              "count": "21"
+            }
+          ],
+          "smallest": "ABLE",
+          "count": "81",
+          "cardinality": "81"
+        },
+        "format": {}
+      },
+      {
+        "id": 602859363,
+        "name": "Implementation Date",
+        "dataTypeName": "calendar_date",
+        "fieldName": "implementation_date",
+        "description": "The date that the program took effect in a MM/DD/YYYY format.",
+        "position": 3,
+        "renderTypeName": "calendar_date",
+        "tableColumnId": 155898750,
+        "cachedContents": {
+          "non_null": "81",
+          "largest": "2026-04-13T00:00:00.000",
+          "null": "0",
+          "top": [
+            {
+              "item": "2024-06-20T00:00:00.000",
+              "count": "14"
+            },
+            {
+              "item": "2024-09-16T00:00:00.000",
+              "count": "10"
+            },
+            {
+              "item": "2024-09-30T00:00:00.000",
+              "count": "10"
+            },
+            {
+              "item": "2025-11-10T00:00:00.000",
+              "count": "4"
+            },
+            {
+              "item": "2025-09-15T00:00:00.000",
+              "count": "4"
+            },
+            {
+              "item": "2025-10-13T00:00:00.000",
+              "count": "4"
+            },
+            {
+              "item": "2022-12-12T00:00:00.000",
+              "count": "3"
+            },
+            {
+              "item": "2025-12-08T00:00:00.000",
+              "count": "3"
+            },
+            {
+              "item": "2025-05-27T00:00:00.000",
+              "count": "3"
+            },
+            {
+              "item": "2020-08-10T00:00:00.000",
+              "count": "3"
+            },
+            {
+              "item": "2022-11-18T00:00:00.000",
+              "count": "2"
+            },
+            {
+              "item": "2026-04-13T00:00:00.000",
+              "count": "2"
+            },
+            {
+              "item": "2026-02-16T00:00:00.000",
+              "count": "2"
+            },
+            {
+              "item": "2025-05-19T00:00:00.000",
+              "count": "2"
+            },
+            {
+              "item": "2022-11-28T00:00:00.000",
+              "count": "2"
+            },
+            {
+              "item": "2026-03-16T00:00:00.000",
+              "count": "2"
+            },
+            {
+              "item": "2023-07-14T00:00:00.000",
+              "count": "1"
+            },
+            {
+              "item": "2022-10-31T00:00:00.000",
+              "count": "1"
+            },
+            {
+              "item": "2023-05-01T00:00:00.000",
+              "count": "1"
+            },
+            {
+              "item": "2023-09-25T00:00:00.000",
+              "count": "1"
+            }
+          ],
+          "smallest": "2019-10-07T00:00:00.000",
+          "count": "81",
+          "cardinality": "81"
+        },
+        "format": {
+          "view": "date",
+          "align": "center"
+        }
+      }
+    ],
+    "assetType": "dataset",
+    "attributionLink": "https://www.mta.info/open-data",
+    "averageRating": 0,
+    "category": "Transportation",
+    "createdAt": 1734115887,
+    "diciBackend": false,
+    "displayType": "table",
+    "downloadCount": 772,
+    "hideFromCatalog": false,
+    "hideFromDataJson": false,
+    "locked": false,
+    "newBackend": true,
+    "numberOfComments": 0,
+    "oid": 41009479,
+    "provenance": "official",
+    "publicationAppendEnabled": false,
+    "publicationDate": 1734116402,
+    "publicationGroup": 19715516,
+    "publicationStage": "published",
+    "rowsUpdatedBy": "xzik-pf59",
+    "tableId": 19715516,
+    "totalTimesRated": 0,
+    "viewCount": 3629,
+    "viewLastModified": 1777048622,
+    "viewType": "tabular",
+    "approvals": [
+      {
+        "reviewedAt": 1734126832,
+        "reviewedAutomatically": true,
+        "state": "approved",
+        "submissionId": 6653656,
+        "submissionObject": "public_audience_request",
+        "submissionOutcome": "change_audience",
+        "submittedAt": 1734126832,
+        "targetAudience": "public",
+        "workflowId": 2254,
+        "submissionDetails": {
+          "permissionType": "READ"
+        },
+        "submissionOutcomeApplication": {
+          "endedAt": 1734126832,
+          "failureCount": 0,
+          "startedAt": 1734126832,
+          "status": "success"
+        },
+        "submitter": {
+          "id": "28jg-4c4u",
+          "displayName": "Open Data Administrator 1"
+        }
+      }
+    ],
+    "clientContext": {
+      "clientContextVariables": [],
+      "inheritedVariables": {}
+    },
+    "grants": [
+      {
+        "inherited": false,
+        "type": "viewer",
+        "flags": [
+          "public"
+        ]
+      }
+    ],
+    "metadata": {
+      "attachments": [
+        {
+          "filename": "MTA_BusAutomatedCameraEnforcedRoutes_Overview.pdf",
+          "assetId": "96290c52-c43c-46bb-af20-48ccfdaf0a10",
+          "name": "MTA_BusAutomatedCameraEnforcedRoutes_Overview.pdf"
+        },
+        {
+          "filename": "MTA_BusAutomatedCameraEnforcedRoutes_DataDictionary.pdf",
+          "assetId": "289eb28c-3d89-48b8-b944-4a6091637431",
+          "name": "MTA_BusAutomatedCameraEnforcedRoutes_DataDictionary.pdf"
+        }
+      ],
+      "custom_fields": {
+        "Dataset Summary": {
+          "Posting Frequency": "As needed",
+          "Organization": "New York City Transit",
+          "Contact Information": "OpenData@mtahq.org",
+          "Time Period": "Beginning October 2019",
+          "Coverage": "New York City",
+          "Granularity": "Bus route and program",
+          "Dataset Owner": "Metropolitan Transportation Authority"
+        },
+        "Additional Resources": {
+          "See Also": "https://metrics.mta.info/"
+        },
+        "Dataset Information": {
+          "Agency": "Metropolitan Transportation Authority"
+        }
+      },
+      "availableDisplayTypes": [
+        "table",
+        "fatrow",
+        "page"
+      ]
+    },
+    "owner": {
+      "id": "xzik-pf59",
+      "displayName": "NY Open Data",
+      "profileImageUrlLarge": "/api/users/xzik-pf59/profile_images/LARGE",
+      "profileImageUrlMedium": "/api/users/xzik-pf59/profile_images/THUMB",
+      "profileImageUrlSmall": "/api/users/xzik-pf59/profile_images/TINY",
+      "screenName": "NY Open Data",
+      "type": "interactive",
+      "flags": [
+        "acceptedEula",
+        "mayBeStoriesCoOwner"
+      ]
+    },
+    "query": {},
+    "rights": [
+      "read"
+    ],
+    "tableAuthor": {
+      "id": "xzik-pf59",
+      "displayName": "NY Open Data",
+      "profileImageUrlLarge": "/api/users/xzik-pf59/profile_images/LARGE",
+      "profileImageUrlMedium": "/api/users/xzik-pf59/profile_images/THUMB",
+      "profileImageUrlSmall": "/api/users/xzik-pf59/profile_images/TINY",
+      "screenName": "NY Open Data",
+      "type": "interactive",
+      "flags": [
+        "acceptedEula",
+        "mayBeStoriesCoOwner"
+      ]
+    },
+    "tags": [
+      "new york city transit",
+      "nyct",
+      "mta bus",
+      "mtabc",
+      "bus routes",
+      "routes",
+      "bus",
+      "buslane",
+      "lane",
+      "camera",
+      "violation"
+    ],
+    "flags": [
+      "default",
+      "ownerMayBeContacted",
+      "restorable",
+      "restorePossibleForType"
+    ]
+  }
+}
