@@ -1,17 +1,28 @@
-# apps/web
+# @bp/web
 
-Public-facing web app and Cloudflare Worker API.
+React + Vite frontend with a Cloudflare Worker API.
 
-## Responsibilities
+## Folder structure
 
-- Render route scorecards, hotspot maps, source/caveat panels, and generated briefs.
-- Serve API endpoints backed by D1 and R2 bindings.
-- Keep request-time work cheap and read-heavy.
-- Never run source ingestion, geospatial joins, or scoring in a public request handler.
+```text
+src/
+  components/   # reusable UI components (flat, no barrel files)
+  fixtures/     # typed fixture data for demo/dev
+  lib/          # small utilities (cn, etc.)
+  pages/        # page-level components
+  worker/       # Cloudflare Worker runtime; keep separate from UI
+  App.tsx       # root component
+  main.tsx      # entry point
+  global.css    # CSS custom properties and component styles
+```
 
-## Suggested implementation
+Frontend tests live under `apps/web/test/`, not production `src/`.
 
-Use React + Vite with the Cloudflare Vite plugin. Keep Worker handlers under `src/worker/` and UI under `src/components/` / `src/pages/`.
+## Rules
+
+- Components import directly from sibling files, not barrel/index files.
+- `components/` is generic UI only. It must not import Worker code, D1 repositories, or analytics.
+- `worker/` handles public API requests and must not import UI components, source fetchers, analytics jobs, pipeline code, or wiki files.
 
 ## Allowed imports
 

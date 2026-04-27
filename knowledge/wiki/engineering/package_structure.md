@@ -106,12 +106,63 @@ bus-priority-impact-studio/
 |---|---|---|---|---|
 | `apps/web` | `@bp/web` | React/Vite UI and Cloudflare Worker API | `@bp/domain`, `@bp/db` | `@bp/analytics`, `@bp/sources`, `tools/*`, `knowledge/*` |
 | `packages/domain` | `@bp/domain` | Pure domain types, metric names, score input/output shapes, small pure functions | nothing local | Cloudflare, React, D1, R2, filesystem, network |
-| `packages/sources` | `@bp/sources` | Socrata/MTA/NYC DOT adapters, source metadata probes, raw DTO parsing | `@bp/domain` | UI, D1 repositories, route scoring |
+| `packages/sources` | `@bp/sources` | Socrata/MTA/NYC DOT/Census adapters, source metadata probe adapters, raw DTO parsing | `@bp/domain` | UI, D1 repositories, route scoring, local artifact writes |
 | `packages/analytics` | `@bp/analytics` | Deterministic transforms, hotspot scoring, route score computation, ACE impact calculations | `@bp/domain`, `@bp/sources` | React, Worker handlers |
 | `packages/db` | `@bp/db` | D1/SQLite schema, migrations, repository functions, serving read models | `@bp/domain` | source fetchers, heavy analytics |
 | `tools/pipeline` | `@bp/pipeline` | Local CLI for probes, fetches, transforms, artifact builds, D1 seed generation | all packages | public request handlers |
 | `knowledge` | none | LLM-maintained wiki and raw source notes | none at runtime | app runtime imports |
 | `data` | none | Local generated data and test fixtures | none | committed large datasets |
+
+## Pipeline internal layout
+
+`tools/pipeline` is an orchestration package, not the place where all data logic should accumulate.
+
+Use this internal structure:
+
+```text
+tools/pipeline/src/
+  cli.ts
+  checks/
+  jobs/
+    build/
+    export/
+    ingest/
+    sources/
+  lib/
+  source-manifest.ts
+```
+
+Rules:
+
+- `src/cli.ts` owns command dispatch for package scripts.
+- `src/jobs/ingest/` owns source-backed local ingest jobs and raw/working artifact writes.
+- `src/jobs/build/` owns offline artifact builders over local working data.
+- `src/jobs/export/` owns D1 seed/export/verification jobs.
+- `src/jobs/sources/` owns source manifest listing/probing job orchestration and writes to `knowledge/raw/metadata`; probe adapters live in `@bp/sources/probes`.
+- `src/checks/` owns repo/project guard checks used by root scripts.
+- `src/lib/` owns small shared pipeline helpers for paths, dates, route artifact keys, and JSON writes.
+- Pure scoring/transformation logic should continue moving into `packages/analytics`, source transport/parsing into `packages/sources`, and D1 serialization/repository behavior into `packages/db` when a job module starts carrying package-level responsibility.
+
+## Sources package layout
+
+`@bp/sources` owns external-source access and raw DTO normalization. It exposes focused subpaths so pipeline jobs can import a specific adapter without pulling a broad root API:
+
+```text
+packages/sources/src/
+  census/
+  mta/
+  nyc-dot/
+  probes/
+  registry/
+  socrata/
+```
+
+Rules:
+
+- `socrata/` owns URL construction, paging/retry behavior, and `SocrataClient`.
+- `registry/` owns manifest parsing and typed source lookup helpers such as `getSocrataSource`.
+- `mta/`, `nyc-dot/`, and `census/` own raw row schemas and normalized source DTOs.
+- `probes/` owns reusable source probe adapters. Pipeline code decides where probe outputs are written.
 
 ## Dependency rule
 
@@ -135,6 +186,26 @@ apps/web              -> packages/sources
 packages/domain       -> any local package
 runtime app code      -> knowledge/*
 ```
+
+## Type discipline
+
+Type locations follow package boundaries:
+
+| Type kind | Location | Rule |
+|---|---|---|
+| Domain types and Zod schemas | `packages/domain` | Route IDs, months, scorecards, citations, metric names, and public contracts should be Zod schemas with exported `z.output` types. |
+| DB row types | `packages/db` | Serialize/deserialize through domain schemas. |
+| Source DTO schemas | `packages/sources` | Raw external data parsed before reaching analytics or UI. |
+| Component props | component file | Unexported local `Props` type only. If reused across components, move to `@bp/domain`. |
+| Fixtures | `apps/web/src/fixtures/` | Import domain schemas and parse through them. Do not duplicate domain shapes. |
+
+Rules:
+
+- Prefer `type` over `interface` unless declaration merging is intentionally needed.
+- No `any`. Use `unknown` at boundaries, then parse with Zod.
+- Use `.strict()` for Zod object contracts crossing boundaries.
+- Use `.readonly()` for immutable public read models.
+- Use branded schemas for stable identifiers and codecs for boundary normalization (e.g. route ID casing/spacing).
 
 ## Barrel export rule
 
@@ -226,6 +297,7 @@ Actual downloaded datasets should not live in `knowledge/raw/`. They should live
 |---|---|---|
 | Route list, route metadata, source snapshots | D1 | Small, queryable read models |
 | Route scorecards and top hotspot summaries | D1 | Fast public API reads |
+| Route brief summaries, artifact metadata, comparison ranks | D1 | Compact precomputed serving rows with explicit repository helpers |
 | Large GeoJSON route/segment geometry | R2 or static artifact | Avoid bloating D1 and Worker responses |
 | Generated route briefs | R2, with metadata in D1 | Larger payloads, easy versioning |
 | Full source downloads | local `data/raw/` | Not needed by public app |

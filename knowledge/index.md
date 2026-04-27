@@ -31,6 +31,7 @@ Read this file first. It is the navigation layer for the LLM wiki.
 - [[wiki/engineering/package_structure|Repo package structure]] — TypeScript-only monorepo layout, package boundaries, wiki relocation, and Python/PostGIS/VPS escalation rules.
 - [[wiki/engineering/data_model|Data model]] — D1/SQLite serving model, local artifacts, and migration path to PostGIS.
 - [[wiki/engineering/etl_plan|ETL plan]] — Ingestion order, transformation rules, and QA.
+- [[wiki/engineering/map_strategy|Map strategy]] — MapLibre, GeoJSON/PMTiles artifacts, NYC scope, and map package responsibilities.
 - [[wiki/engineering/llm_wiki_rag|LLM wiki + RAG layer]] — How the persistent wiki and cited answer layer should work.
 - [[wiki/engineering/cli_commands|CLI commands]] — TypeScript `/pipeline` command targets for source probes, ingest, analytics builds, exports, and wiki linting.
 - [[wiki/engineering/testing_standards|Testing standards]] — Bun-first tests, TDD loop, Zod contracts, optimized pre-push hooks, and Cloudflare Worker production harnesses.

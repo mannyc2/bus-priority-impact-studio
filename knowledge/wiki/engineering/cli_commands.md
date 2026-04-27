@@ -45,7 +45,16 @@ Expected outputs:
 ## Ingest commands
 
 ```bash
+bun run ingest:ace-routes
+bun run ingest:ace-violations -- --year 2026 --month 3
+bun run ingest:bus-lanes
+bun run ingest:equity-context -- --year 2024
+bun run ingest:route-catalog
+bun run ingest:route-coverage -- --year 2026 --month 3
+bun run ingest:route-trends -- --start-year 2025 --start-month 1 --end-year 2026 --end-month 3 --skip-ridership
+bun run backfill:route-ridership-trends -- --start-year 2025 --start-month 1 --end-year 2026 --end-month 3 --limit 63 --concurrency 4
 bun run ingest:m1 -- --route M1 --year 2026 --month 3
+bun run ingest:m1-schedules -- --route M1 --year 2026 --month 3
 bun --filter @bp/pipeline ingest:segment-speeds -- --route M1 --month 2026-01
 bun --filter @bp/pipeline ingest:routes
 bun --filter @bp/pipeline ingest:stops
@@ -59,11 +68,31 @@ Expected outputs:
 - raw downloads under `data/raw/`
 - normalized working data under `data/working/`
 - small fixtures under `data/fixtures/` only when needed for tests
+- tract-level ACS equity context under `data/working/equity/`
+- multi-month route trend inputs under `data/working/trends/`
+- chunked route/month ridership trend backfill summaries under `data/working/trends/`
 
 ## Build commands
 
 ```bash
 bun run hotspots:m1 -- --route M1 --year 2026 --month 3
+bun run ridership-profile:m1 -- --route M1 --year 2026 --month 3
+bun run speed-profile:m1 -- --route M1 --year 2026 --month 3
+bun run route-score:m1 -- --route M1 --year 2026 --month 3
+bun run interventions:m1 -- --route M1 --year 2026 --month 3
+bun run bus-lanes:m1 -- --route M1 --year 2026 --month 3
+bun run schedules:m1 -- --route M1 --year 2026 --month 3
+bun run route-brief:m1 -- --route M1 --year 2026 --month 3 --top-segments 5
+bun run artifacts:m1 -- --route M1 --year 2026 --month 3
+bun run build:routes -- --routes M1,M2 --year 2026 --month 3
+bun run build:planned-routes -- --year 2026 --month 3 --limit 5
+bun run compare:routes -- --year 2026 --month 3
+bun run route-readiness -- --year 2026 --month 3
+bun run route-build-plan -- --year 2026 --month 3 --limit 20
+bun run route-reliability-baseline -- --year 2026 --month 3
+bun run route-intervention-history -- --year 2026 --month 3
+bun run route-equity-context -- --year 2026 --month 3 --acs-year 2024
+bun run route-batch-audit -- --year 2026 --month 3
 bun --filter @bp/pipeline build:segments -- --route M1
 bun --filter @bp/pipeline build:hotspots -- --route M1 --month 2026-01
 bun --filter @bp/pipeline build:route-score -- --route M1 --month 2026-01
@@ -75,12 +104,23 @@ Expected outputs:
 - generated route/segment GeoJSON
 - route scorecard JSON
 - route brief draft inputs
+- route batch summaries for multi-route comparison
+- route batch execution from selected build-plan candidates
+- route comparison ranking artifacts
+- route readiness artifacts for deciding which all-route/months are safe to build next
+- route build-plan artifacts ranking eligible routes for the next offline batch
+- scheduled reliability baselines for headway gaps, short headways, and long-gap windows
+- route intervention-history artifacts for ACE dates, bus-lane open-date coverage, and still-missing signal/lane-upgrade sources
+- route equity-context artifacts joining route rows to county-level ACS proxy context
+- route batch audit artifacts validating manifests, file existence, byte lengths, and hashes
 - source/caveat metadata
 
 ## Export commands
 
 ```bash
-bun --filter @bp/pipeline export:d1 -- --route M1 --month 2026-01
+bun run export:d1 -- --year 2026 --month 3
+bun run export:d1 -- --year 2026 --month 3 --network-dir data/working/network
+bun run verify:d1 -- --year 2026 --month 3
 bun --filter @bp/pipeline export:artifacts -- --route M1 --month 2026-01
 bun --filter @bp/pipeline export:r2 -- --route M1 --month 2026-01
 ```
@@ -88,6 +128,7 @@ bun --filter @bp/pipeline export:r2 -- --route M1 --month 2026-01
 Expected outputs:
 
 - D1 seed SQL or import-ready rows
+- D1 verification summaries that load generated seed SQL and validate serving row counts
 - artifact keys and hashes
 - optional R2 upload after local artifact contracts are stable
 
@@ -113,7 +154,7 @@ Do not use `pytest`, `ruff`, or Python scripts in the MVP.
 
 ## Caveats
 
-- `sources:list`, `sources:probe`, `ingest:m1`, and `hotspots:m1` are implemented; the generic ingest/build/export targets remain planned.
+- `sources:list`, `sources:probe`, `ingest:ace-routes`, `ingest:ace-violations`, `ingest:bus-lanes`, `ingest:equity-context`, `ingest:route-catalog`, `ingest:route-coverage`, `ingest:route-trends`, `backfill:route-ridership-trends`, `ingest:m1`, `ingest:m1-schedules`, `hotspots:m1`, `ridership-profile:m1`, `speed-profile:m1`, `route-score:m1`, `interventions:m1`, `bus-lanes:m1`, `schedules:m1`, `route-brief:m1`, `artifacts:m1`, `build:routes`, `build:planned-routes`, `compare:routes`, `route-readiness`, `route-build-plan`, `route-reliability-baseline`, `route-intervention-history`, `route-equity-context`, `route-batch-audit`, `export:d1`, and `verify:d1` are implemented; R2 upload remains planned.
 - Keep command implementations thin; put reusable logic in `packages/*`.
 
 ## Sources

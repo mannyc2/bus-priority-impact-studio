@@ -37,6 +37,9 @@ the_geom, street, bltrafdir, segmentid, rw_type, streetwidt, boro, facility, dir
 
 - Load as geospatial line/segment data if geometry is present.
 - If the dataset contains LION segment IDs without geometry, join to NYC LION centerline geometry.
+- `bun run ingest:bus-lanes` writes normalized bus-lane rows to `data/working/interventions/bus-lanes-local-streets.json`.
+- `bun run bus-lanes:m1` writes the current route street/proximity overlay to `data/artifacts/route-slices/<route>-<month>/bus-lane-overlay.json`, including bus-lane open dates where the source publishes them.
+- `bun run route-intervention-history -- --year 2026 --month 3` summarizes matched bus-lane open-date coverage across the current route batch.
 - Compute overlap with MTA route segment geometries.
 - Store overlap percent and bus-lane metadata.
 
@@ -45,6 +48,7 @@ the_geom, street, bltrafdir, segmentid, rw_type, streetwidt, boro, facility, dir
 - Bus lanes have specific active hours/signage; the dataset may not include all regulatory details.
 - Bus-lane presence does not mean clear or effective bus-priority operation.
 - NYC DOT data and MTA route-shape data may use different geometry/segment representations.
+- The current M1 overlay uses street-name and stop-proximity matching, not exact line-over-line overlap.
 
 ## Sources
 

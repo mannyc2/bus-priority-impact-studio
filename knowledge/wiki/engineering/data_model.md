@@ -2,7 +2,7 @@
 title: Data Model
 type: engineering
 status: active
-last_updated: 2026-04-26
+last_updated: 2026-04-27
 owner: codex
 source_count: 1
 tags: [data-model, d1, sqlite, serving-model, artifacts]
@@ -168,6 +168,186 @@ Examples:
 - `routes/M1/2026-01/segments.geojson`
 - `routes/M1/2026-01/brief.md`
 - `routes/M1/2026-01/scorecard.json`
+
+### `route_readiness`
+
+Route/month build-planning read model used to decide which all-route slices are safe to expand next.
+
+Expected fields:
+
+- `route_id TEXT NOT NULL`
+- `month TEXT NOT NULL`
+- `route_short_name TEXT NOT NULL`
+- `route_long_name TEXT`
+- `readiness_status TEXT NOT NULL`
+- `build_eligible INTEGER NOT NULL`
+- `readiness_score INTEGER NOT NULL`
+- `missing_inputs_json TEXT NOT NULL`
+- `speed_observation_count INTEGER NOT NULL`
+- `speed_bus_trip_count INTEGER NOT NULL`
+- `average_speed_mph REAL`
+- `schedule_timepoint_count INTEGER NOT NULL`
+- `shape_count INTEGER NOT NULL`
+- `stop_count INTEGER NOT NULL`
+- `timepoint_stop_count INTEGER NOT NULL`
+
+The March 2026 live artifact has 381 rows and 350 build-eligible routes. This is not a public performance score; it is a data completeness gate for batch expansion.
+
+### `route_build_plan`
+
+Route/month offline batch planner derived from `route_readiness` and the existing batch summary.
+
+Expected fields:
+
+- `route_id TEXT NOT NULL`
+- `month TEXT NOT NULL`
+- `route_short_name TEXT NOT NULL`
+- `route_long_name TEXT`
+- `candidate_rank INTEGER`
+- `plan_status TEXT NOT NULL`
+- `selected_for_next_batch INTEGER NOT NULL`
+- `already_built INTEGER NOT NULL`
+- `build_eligible INTEGER NOT NULL`
+- `priority_score REAL NOT NULL`
+- `readiness_status TEXT NOT NULL`
+- `readiness_score INTEGER NOT NULL`
+- `missing_inputs_json TEXT NOT NULL`
+- `speed_observation_count INTEGER NOT NULL`
+- `speed_bus_trip_count INTEGER NOT NULL`
+- `average_speed_mph REAL`
+- `schedule_timepoint_count INTEGER NOT NULL`
+
+The March 2026 live artifact has 381 rows after the first planned-batch expansion: 20 selected for the next batch at the default limit, 7 already built, 323 eligible backlog routes, and 31 blocked routes. The refreshed selected route list starts with `M125`, `BX35`, `M8`, `BX32`, and `M106`.
+
+### `route_reliability_baseline`
+
+Scheduled reliability read model for batch routes. This is the first reliability layer beyond speed; it uses scheduled timepoint rows to establish headway-gap baselines before observed GTFS-RT history exists.
+
+Expected fields:
+
+- `route_id TEXT NOT NULL`
+- `month TEXT NOT NULL`
+- `reliability_status TEXT NOT NULL`
+- `scheduled_timepoint_count INTEGER NOT NULL`
+- `stop_headway_group_count INTEGER NOT NULL`
+- `headway_sample_count INTEGER NOT NULL`
+- `median_scheduled_headway_minutes REAL`
+- `p90_scheduled_headway_minutes REAL`
+- `max_scheduled_headway_minutes REAL`
+- `scheduled_short_headway_share REAL`
+- `scheduled_long_gap_share REAL`
+- `top_long_gap_windows_json TEXT NOT NULL`
+- `source_status_json TEXT NOT NULL`
+
+The March 2026 live artifact has 7 route rows and 186,322 scheduled headway interval samples. It is explicitly marked `scheduled_baseline_only`; observed headways, bunching, wait-time reliability, and cancellation proxies still need GTFS-RT collection.
+
+### `route_month_trend`
+
+Multi-month route trend read model for panels and event-study inputs.
+
+Expected fields:
+
+- `route_id TEXT NOT NULL`
+- `month TEXT NOT NULL`
+- `speed_observation_count INTEGER NOT NULL`
+- `speed_bus_trip_count INTEGER NOT NULL`
+- `average_speed_mph REAL`
+- `ridership REAL`
+- `transfers REAL`
+- `has_speed_trend INTEGER NOT NULL`
+- `has_ridership_trend INTEGER NOT NULL`
+
+The current live trend artifact covers 7 built routes from January 2025 through March 2026: 105 route-month rows, all with speed coverage and route-level ridership coverage. The first live run skipped broad ridership trend aggregation because the all-route/month Socrata group query was too slow; `bun run backfill:route-ridership-trends` now fills ridership in route/month chunks. Subsequent bounded live backfill chunks completed all 105 route-month rows for the current March 2026 trend window.
+
+### `route_equity_context`
+
+Route-level equity/context read model for comparing reliability and trend outcomes against ACS demographics and low-car household indicators.
+
+Expected fields:
+
+- `route_id TEXT NOT NULL`
+- `month TEXT NOT NULL`
+- `acs_year INTEGER NOT NULL`
+- `assignment_geography TEXT NOT NULL`
+- `assigned_county_fips TEXT`
+- `assigned_county_name TEXT`
+- `assignment_method TEXT NOT NULL`
+- `tract_count INTEGER NOT NULL`
+- `total_population INTEGER`
+- `occupied_housing_units INTEGER`
+- `no_vehicle_households INTEGER`
+- `no_vehicle_household_share REAL`
+- `median_household_income REAL`
+- `poverty_rate REAL`
+- `public_transit_commuter_share REAL`
+- selected race/ethnicity share fields
+- `source_status_json TEXT NOT NULL`
+
+The March 2026 live artifact has 381 route rows. It assigns 358 routes to county-level ACS 2024 proxy context using route ID borough prefixes and leaves 23 route IDs unassigned. This is a serving-ready planning proxy for demographics, low-car households, and public-transit commute share; tract catchment joins and job access remain pending.
+
+### `route_batch_status`
+
+One row per analysis month summarizing generated batch health for serving and deployment checks.
+
+Expected fields:
+
+- `month TEXT PRIMARY KEY`
+- `generated_at TEXT NOT NULL`
+- `status TEXT NOT NULL`
+- `route_count INTEGER NOT NULL`
+- `artifact_count INTEGER NOT NULL`
+- `missing_artifact_count INTEGER NOT NULL`
+- `hash_mismatch_count INTEGER NOT NULL`
+- `byte_length_mismatch_count INTEGER NOT NULL`
+- `total_byte_length INTEGER NOT NULL`
+- `issue_count INTEGER NOT NULL`
+- `built_route_ids_json TEXT NOT NULL`
+- `issues_json TEXT NOT NULL`
+
+The March 2026 live audit currently passes with 7 built routes, 63 verified artifacts, 859,319 total artifact bytes, and 0 audit issues.
+
+## Batch Data Artifacts
+
+### `route-intervention-history.json`
+
+Batch-level intervention history built from route intervention overlays and bus-lane overlays.
+
+Current March 2026 output:
+
+- 7 routes
+- 5 ACE-matched routes
+- 4 active ACE routes during the analysis period
+- 7 routes with matched bus-lane overlay rows
+- 7 routes with at least one matched bus-lane open date
+
+The artifact carries ACE implementation dates, monthly ACE violation counts, bus-lane open-date coverage, lane/facility summaries, and explicit source-readiness flags for missing signal-priority, lane-upgrade, and exact enforcement-activation history.
+
+### ACS equity context
+
+`data/working/equity/nyc-tract-equity-context-2024.json` stores 2,327 NYC census-tract context rows from ACS 2024 5-year profile data. The layer includes total population, occupied housing units, no-vehicle households, median household income, poverty rate, public-transit commute share, and selected race/ethnicity shares.
+
+`route_equity_context.json` stores a county-level route proxy derived from this tract context so the serving layer can compare routes against demographics and low-car households now. It is not a tract catchment join yet, and job access is still not ingested.
+
+## D1 Export Verification
+
+`bun run verify:d1` regenerates the D1 seed, loads the seed SQL into an in-memory SQLite database, checks serving-table counts against the export summary, and exercises typed `packages/db` repository reads.
+
+The March 2026 verification currently passes with these loaded table counts:
+
+- `route_catalog`: 381
+- `route_month_coverage`: 375
+- `route_readiness`: 381
+- `route_build_plan`: 381
+- `route_reliability_baseline`: 7
+- `route_month_trend`: 105
+- `route_equity_context`: 381
+- `route_scorecard`: 7
+- `route_artifact`: 63
+- `route_brief_summary`: 7
+- `route_comparison_rank`: 7
+- `route_batch_status`: 1
+
+The verification artifact is written to `data/exports/d1/<month>/verify-summary.json`.
 
 ## Suggested indexes
 

@@ -38,6 +38,9 @@ Probe completed 2026-04-27.
 
 - Build table `dim_ace_route` from `ki2b-sg5y`.
 - Build table `fact_ace_violation` from `kh8p-hcbm`.
+- `bun run ingest:ace-routes` writes normalized ACE/ABLE implementation rows to `data/working/interventions/ace-routes.json`.
+- `bun run ingest:ace-violations -- --year 2026 --month 3` writes grouped route/type/status violation counts to `data/working/interventions/ace-violations-2026-03.json`.
+- `bun run interventions:m1` writes the current route-level ACE overlay to `data/artifacts/route-slices/m1-2026-03/intervention-overlay.json`.
 - Use ACE start dates as intervention dates.
 - For impact evaluation, compare segment speeds before and after ACE start date.
 - Prefer event study / difference-in-differences over naive before/after.
@@ -52,6 +55,7 @@ Probe completed 2026-04-27.
 
 - ACE route start dates may not imply every segment has comparable enforcement intensity.
 - Violations reflect detected and processed violations, not all obstructions.
+- The current violation ingest is grouped monthly data, not individual violation-level detail.
 - Speed changes can be confounded by service changes, traffic, seasonality, bus lanes, signal changes, congestion pricing, and route redesigns.
 - Some official claims are program-level and should not be attributed to individual routes without analysis.
 
