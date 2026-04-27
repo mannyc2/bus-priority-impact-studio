@@ -12,9 +12,11 @@ build/
 data/raw/*
 data/working/*
 data/artifacts/*
+data/exports/*
 !data/raw/.gitkeep
 !data/working/.gitkeep
 !data/artifacts/.gitkeep
+!data/exports/.gitkeep
 
 # Local databases and analysis outputs.
 *.sqlite
