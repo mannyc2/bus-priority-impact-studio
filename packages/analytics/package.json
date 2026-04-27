@@ -1,0 +1,23 @@
+{
+  "name": "@bp/analytics",
+  "private": true,
+  "type": "module",
+  "description": "Deterministic local transforms and metrics.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json --noEmit --pretty false",
+    "typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
+    "test": "bun test ./test --timeout 5000"
+  },
+  "dependencies": {
+    "@bp/domain": "workspace:*",
+    "@bp/sources": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "typescript": "catalog:",
+    "zod": "catalog:"
+  }
+}

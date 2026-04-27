@@ -1,0 +1,30 @@
+node_modules/
+dist/
+build/
+.wrangler/
+.dev.vars
+.DS_Store
+
+# Local/generated data. Keep fixtures small and intentional.
+data/raw/*
+data/working/*
+data/artifacts/*
+!data/raw/.gitkeep
+!data/working/.gitkeep
+!data/artifacts/.gitkeep
+
+# Local databases and analysis outputs.
+*.sqlite
+*.sqlite3
+*.duckdb
+*.parquet
+*.csv
+*.zip
+
+# Fixtures are intentionally commit-able even when they use data-file extensions.
+!data/fixtures/
+!data/fixtures/**
+
+# Tool caches.
+.cache/
+*.tsbuildinfo

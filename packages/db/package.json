@@ -1,0 +1,23 @@
+{
+  "name": "@bp/db",
+  "private": true,
+  "type": "module",
+  "description": "D1/SQLite serving schema, migrations, and read repositories.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json --noEmit --pretty false",
+    "typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
+    "test": "bun test ./test --timeout 5000"
+  },
+  "dependencies": {
+    "@bp/domain": "workspace:*",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "catalog:",
+    "@types/bun": "catalog:",
+    "typescript": "catalog:"
+  }
+}

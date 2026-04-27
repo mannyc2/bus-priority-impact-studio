@@ -1,0 +1,22 @@
+{
+  "name": "@bp/sources",
+  "private": true,
+  "type": "module",
+  "description": "Public data source adapters for MTA, Socrata, and NYC DOT.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json --noEmit --pretty false",
+    "typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
+    "test": "bun test ./test --timeout 5000"
+  },
+  "dependencies": {
+    "@bp/domain": "workspace:*",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "typescript": "catalog:"
+  }
+}

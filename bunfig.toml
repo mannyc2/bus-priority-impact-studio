@@ -1,0 +1,14 @@
+# Bun-specific repo defaults.
+# Keep this small; TypeScript, Workers, and testing behavior live in their own configs.
+
+[install]
+# Bun's isolated linker is the safer default for monorepos because packages must
+# declare the dependencies they use instead of accidentally relying on hoisting.
+linker = "isolated"
+
+# Save a text lockfile so diffs are reviewable.
+saveTextLockfile = true
+
+# Do not enable frozenLockfile globally; CI and release commands pass
+# --frozen-lockfile explicitly after bun.lock exists.
+frozenLockfile = false

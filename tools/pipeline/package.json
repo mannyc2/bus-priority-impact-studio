@@ -1,0 +1,27 @@
+{
+  "name": "@bp/pipeline",
+  "private": true,
+  "type": "module",
+  "description": "Local TypeScript CLI for data probes, artifact builds, and D1 seed generation.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json --noEmit --pretty false",
+    "typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
+    "test": "bun test ./test --timeout 5000",
+    "sources:list": "bun run src/sources-list.ts",
+    "sources:probe": "bun run src/sources-probe.ts"
+  },
+  "dependencies": {
+    "@bp/analytics": "workspace:*",
+    "@bp/db": "workspace:*",
+    "@bp/domain": "workspace:*",
+    "@bp/sources": "workspace:*",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "typescript": "catalog:"
+  }
+}

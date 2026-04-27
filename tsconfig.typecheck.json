@@ -1,0 +1,18 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["bun", "@cloudflare/workers-types", "vite/client", "vitest"]
+  },
+  "include": [
+    "apps/**/*.ts",
+    "apps/**/*.tsx",
+    "packages/**/*.ts",
+    "tools/**/*.ts",
+    "tests/**/*.ts",
+    "*.ts"
+  ],
+  "exclude": ["**/dist/**", "data/**", "knowledge/raw/downloads/**", "node_modules/**"]
+}

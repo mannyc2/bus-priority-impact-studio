@@ -1,0 +1,21 @@
+{
+  "name": "@bp/domain",
+  "private": true,
+  "type": "module",
+  "description": "Pure domain schemas, branded types, and metric contracts.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json --noEmit --pretty false",
+    "typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
+    "test": "bun test ./test --timeout 5000"
+  },
+  "dependencies": {
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "typescript": "catalog:"
+  }
+}

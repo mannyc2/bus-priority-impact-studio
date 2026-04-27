@@ -1,0 +1,27 @@
+#!/usr/bin/env sh
+set -eu
+
+if ! command -v bun >/dev/null 2>&1; then
+  printf '%s\n' 'pre-push: Bun is required. Install Bun, then retry.' >&2
+  exit 1
+fi
+
+base="${BP_PREPUSH_BASE:-}"
+if [ -z "$base" ]; then
+  base="$(git merge-base HEAD '@{u}' 2>/dev/null || git rev-parse HEAD~1 2>/dev/null || printf '')"
+fi
+
+if [ -n "$base" ]; then
+  changed="$(git diff --name-only "$base" HEAD 2>/dev/null || true)"
+else
+  changed="$(git diff --name-only --cached 2>/dev/null || true)"
+fi
+
+if [ -n "$changed" ] && ! printf '%s\n' "$changed" | grep -Ev '^(knowledge/|docs/|README\.md$|.*\.md$)' >/dev/null; then
+  printf '%s\n' 'pre-push: docs/wiki-only changes detected; running lightweight wiki check.'
+  bun run check:knowledge
+  exit 0
+fi
+
+printf '%s\n' 'pre-push: code/config changes detected; running typecheck, Biome, unit tests, and Worker smoke tests.'
+bun run check:prepush

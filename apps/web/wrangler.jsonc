@@ -1,0 +1,13 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "bus-priority-impact-studio",
+  "main": "./src/worker/index.ts",
+  "compatibility_date": "2026-04-27",
+  "assets": {
+    "directory": "./dist/client",
+    "not_found_handling": "single-page-application"
+  }
+
+  // Add D1/R2 bindings after the first real migration/artifact export exists.
+  // Keeping placeholder IDs out of the scaffold prevents accidental deploy failures.
+}

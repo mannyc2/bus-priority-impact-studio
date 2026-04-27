@@ -1,0 +1,6 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "bus-priority-impact-studio-test",
+  "main": "./src/worker/index.ts",
+  "compatibility_date": "2026-04-27"
+}
