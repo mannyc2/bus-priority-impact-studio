@@ -4,6 +4,7 @@ import {
   localRouteHourlyRidership,
   localRouteScheduleTimepoint,
   localRouteSegmentSpeed,
+  localRouteStop,
 } from "../schema.js";
 
 export type LocalRouteSegmentSpeed = {
@@ -54,6 +55,20 @@ export type LocalRouteScheduleTimepoint = {
   tripHeadsign?: string | undefined;
   blockId: string;
   bundle?: string | undefined;
+};
+
+export type LocalRouteStop = {
+  routeId: string;
+  isoMonth: string;
+  routeShortName: string;
+  stopId: string;
+  stopName: string;
+  inEffect: boolean;
+  directionId: string;
+  direction: string;
+  timepoint: boolean;
+  latitude: number;
+  longitude: number;
 };
 
 export async function replaceRouteSegmentSpeeds(
@@ -280,4 +295,61 @@ export async function listRouteSchedules(
 
     return output;
   });
+}
+
+export async function replaceRouteStops(
+  db: LocalPipelineDb,
+  routeId: string,
+  month: string,
+  rows: readonly LocalRouteStop[],
+): Promise<void> {
+  await db
+    .delete(localRouteStop)
+    .where(and(eq(localRouteStop.routeId, routeId), eq(localRouteStop.month, month)));
+
+  if (rows.length === 0) {
+    return;
+  }
+
+  await db.insert(localRouteStop).values(
+    rows.map((row) => ({
+      routeId: row.routeId,
+      month: row.isoMonth,
+      routeShortName: row.routeShortName,
+      stopId: row.stopId,
+      stopName: row.stopName,
+      inEffect: row.inEffect,
+      directionId: row.directionId,
+      direction: row.direction,
+      timepoint: row.timepoint,
+      latitude: row.latitude,
+      longitude: row.longitude,
+    })),
+  );
+}
+
+export async function listRouteStops(
+  db: LocalPipelineDb,
+  routeId: string,
+  month: string,
+): Promise<LocalRouteStop[]> {
+  const rows = await db
+    .select()
+    .from(localRouteStop)
+    .where(and(eq(localRouteStop.routeId, routeId), eq(localRouteStop.month, month)))
+    .orderBy(asc(localRouteStop.directionId), asc(localRouteStop.stopId));
+
+  return rows.map((row) => ({
+    routeId: row.routeId,
+    isoMonth: row.month,
+    routeShortName: row.routeShortName,
+    stopId: row.stopId,
+    stopName: row.stopName,
+    inEffect: row.inEffect,
+    directionId: row.directionId,
+    direction: row.direction,
+    timepoint: row.timepoint,
+    latitude: row.latitude,
+    longitude: row.longitude,
+  }));
 }

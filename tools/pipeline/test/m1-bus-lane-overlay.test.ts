@@ -1,92 +1,65 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, rm } from "node:fs/promises";
+import { rm } from "node:fs/promises";
 import { join } from "node:path";
+import { replaceBusLanes, replaceRouteStops } from "@bp/db/local";
 import { buildM1BusLaneOverlay } from "../src/jobs/build/m1-bus-lane-overlay.js";
+import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
 const routeDir = fromRepoRoot(join("data/working/route-slices/t1-2026-03"));
-const interventionDir = fromRepoRoot(join("data/working/test-bus-lane-overlay-interventions"));
 const artifactDir = fromRepoRoot(join("data/artifacts/route-slices/t1-2026-03"));
+const dbPath = join(routeDir, "pipeline.sqlite");
 
 async function removeFixtureArtifacts(): Promise<void> {
   await Promise.all([
     rm(routeDir, { force: true, recursive: true }),
-    rm(interventionDir, { force: true, recursive: true }),
     rm(artifactDir, { force: true, recursive: true }),
   ]);
 }
 
 async function writeFixtureArtifacts(): Promise<void> {
   await removeFixtureArtifacts();
-  await mkdir(routeDir, { recursive: true });
-  await mkdir(interventionDir, { recursive: true });
-  await Bun.write(
-    join(routeDir, "stops.json"),
-    `${JSON.stringify(
+  const local = await openLocalPipelineDb(dbPath);
+  try {
+    await replaceRouteStops(local.db, "T1", "2026-03", [
       {
-        schemaVersion: 1,
         routeId: "T1",
-        rows: [
-          {
-            schemaVersion: 1,
-            routeId: "T1",
-            routeShortName: "T1",
-            stopId: "A",
-            stopName: "5 AV/E 72 ST",
-            inEffect: true,
-            directionId: "0",
-            direction: "N",
-            timepoint: true,
-            latitude: 40.772141,
-            longitude: -73.96508,
-          },
-        ],
+        isoMonth: "2026-03",
+        routeShortName: "T1",
+        stopId: "A",
+        stopName: "5 AV/E 72 ST",
+        inEffect: true,
+        directionId: "0",
+        direction: "N",
+        timepoint: true,
+        latitude: 40.772141,
+        longitude: -73.96508,
       },
-      null,
-      2,
-    )}\n`,
-  );
-  await Bun.write(
-    join(interventionDir, "bus-lanes-local-streets.json"),
-    `${JSON.stringify(
+    ]);
+    await replaceBusLanes(local.db, [
       {
-        schemaVersion: 1,
-        sourceId: "nyc_dot_bus_lanes_local_streets",
-        fetchedAt: "2026-04-27T12:00:00.000Z",
-        rows: [
-          {
-            schemaVersion: 1,
-            segmentId: "0001234",
-            street: "5 AVENUE",
-            borough: "MAN",
-            facility: "5th Avenue",
-            direction: "SB",
-            openDate: "2021-05-01T00:00:00.000",
-            geometry: {
-              type: "MultiLineString",
-              coordinates: [
-                [
-                  [
-                    [-73.96508, 40.772141],
-                    [-73.965, 40.7722],
-                  ],
-                ],
-              ],
-            },
-          },
-          {
-            schemaVersion: 1,
-            segmentId: "0005678",
-            street: "HILLSIDE AVENUE",
-            borough: "QNS",
-            facility: "Hillside Avenue",
-          },
+        segmentId: "0001234",
+        street: "5 AVENUE",
+        borough: "MAN",
+        facility: "5th Avenue",
+        direction: "SB",
+        openDate: "2021-05-01T00:00:00.000",
+        coordinates: [
+          { longitude: -73.96508, latitude: 40.772141 },
+          { longitude: -73.965, latitude: 40.7722 },
         ],
       },
-      null,
-      2,
-    )}\n`,
-  );
+      {
+        segmentId: "0005678",
+        street: "HILLSIDE AVENUE",
+        borough: "QNS",
+        facility: "Hillside Avenue",
+        coordinates: [],
+      },
+    ]);
+  } finally {
+    local.sqlite.close();
+  }
 }
 
 afterEach(async () => {
@@ -101,7 +74,7 @@ describe("M1 bus-lane overlay build", () => {
       routeId: "T1",
       year: 2026,
       month: 3,
-      interventionDir,
+      dbPath,
     });
     const overlay = await Bun.file(result.overlayPath).json();
 

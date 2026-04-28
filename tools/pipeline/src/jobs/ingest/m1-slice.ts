@@ -1,6 +1,10 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import { replaceRouteHourlyRidership, replaceRouteSegmentSpeeds } from "@bp/db/local";
+import {
+  replaceRouteHourlyRidership,
+  replaceRouteSegmentSpeeds,
+  replaceRouteStops,
+} from "@bp/db/local";
 import { RouteIdCodec } from "@bp/domain";
 import type { SocrataFetch, SocrataRow, SocrataRowsQuery } from "@bp/sources";
 import {
@@ -241,6 +245,12 @@ export async function ingestM1RouteSlice(args: RouteSliceArgs = {}): Promise<Rou
   try {
     await replaceRouteSegmentSpeeds(local.db, options.routeId, summary.isoMonth, segmentSpeeds);
     await replaceRouteHourlyRidership(local.db, options.routeId, summary.isoMonth, ridership);
+    await replaceRouteStops(
+      local.db,
+      options.routeId,
+      summary.isoMonth,
+      stops.map((stop) => ({ ...stop, isoMonth: summary.isoMonth })),
+    );
   } finally {
     local.sqlite.close();
   }

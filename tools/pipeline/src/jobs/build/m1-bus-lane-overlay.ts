@@ -1,38 +1,23 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
+import { listBusLanes, listRouteStops } from "@bp/db/local";
 import { RouteIdCodec } from "@bp/domain";
-import { NormalizedBusLaneSchema, NormalizedStopSchema } from "@bp/sources";
 import * as z from "zod";
 import { routeSliceKey } from "../../lib/artifacts.js";
 import { isoMonth } from "../../lib/dates.js";
 import { writeJson } from "../../lib/json.js";
+import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
+import { fromCliPath } from "../../lib/paths.js";
 import { fromRepoRoot } from "../../source-manifest.js";
 
 const schemaVersion = 1;
 const proximityThresholdMeters = 150;
 
-const BusLanesArtifactSchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    sourceId: z.literal("nyc_dot_bus_lanes_local_streets"),
-    fetchedAt: z.iso.datetime(),
-    rows: z.array(NormalizedBusLaneSchema),
-  })
-  .strict();
-
-const StopsArtifactSchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    routeId: z.string().min(1),
-    rows: z.array(NormalizedStopSchema),
-  })
-  .strict();
-
 type BusLaneOverlayArgs = {
   routeId?: string;
   year?: number;
   month?: number;
-  interventionDir?: string;
+  dbPath?: string;
 };
 
 type BusLaneOverlayResult = {
@@ -53,7 +38,7 @@ function parseBuildArgs(args: BusLaneOverlayArgs): Required<BusLaneOverlayArgs> 
     routeId: args.routeId ?? "M1",
     year: args.year ?? 2026,
     month: args.month ?? 3,
-    interventionDir: args.interventionDir ?? fromRepoRoot(join("data/working/interventions")),
+    dbPath: args.dbPath ?? defaultLocalPipelineDbPath(),
   };
 }
 
@@ -78,6 +63,12 @@ function parseCliArgs(args: string[]): BusLaneOverlayArgs {
 
     if (arg === "--month" && value !== undefined) {
       output.month = Number(value);
+      index += 1;
+      continue;
+    }
+
+    if (arg === "--db" && value !== undefined) {
+      output.dbPath = fromCliPath(value);
       index += 1;
       continue;
     }
@@ -114,39 +105,6 @@ function routeStreetFromStopName(stopName: string): string {
   return normalizeStreetName(stopName.split("/")[0] ?? stopName);
 }
 
-function isCoordinate(value: unknown): value is [number, number] {
-  return (
-    Array.isArray(value) &&
-    value.length >= 2 &&
-    typeof value[0] === "number" &&
-    typeof value[1] === "number"
-  );
-}
-
-function collectCoordinates(value: unknown, output: Coordinate[] = []): Coordinate[] {
-  if (isCoordinate(value)) {
-    output.push({ longitude: value[0], latitude: value[1] });
-    return output;
-  }
-
-  if (Array.isArray(value)) {
-    for (const item of value) {
-      collectCoordinates(item, output);
-    }
-  }
-
-  return output;
-}
-
-function geometryCoordinates(geometry: unknown): Coordinate[] {
-  if (geometry === undefined || geometry === null || typeof geometry !== "object") {
-    return [];
-  }
-
-  const coordinates = (geometry as { coordinates?: unknown }).coordinates;
-  return collectCoordinates(coordinates);
-}
-
 function metersBetween(left: Coordinate, right: Coordinate): number {
   const latitudeMeters = (left.latitude - right.latitude) * 111_320;
   const longitudeMeters =
@@ -178,25 +136,24 @@ export async function buildM1BusLaneOverlay(
   const key = routeSliceKey(routeId, month);
   const artifactDir = fromRepoRoot(join("data/artifacts/route-slices", key));
   const overlayPath = join(artifactDir, "bus-lane-overlay.json");
-  const stopsPath = fromRepoRoot(join("data/working/route-slices", key, "stops.json"));
-  const busLanesPath = join(options.interventionDir, "bus-lanes-local-streets.json");
-  const stops = StopsArtifactSchema.parse(await Bun.file(stopsPath).json());
-  const busLanes = BusLanesArtifactSchema.parse(await Bun.file(busLanesPath).json());
-  const stopCoordinates = stops.rows.map((stop) => ({
+  const local = await openLocalPipelineDb(options.dbPath);
+  const [stops, busLanes] = await Promise.all([
+    listRouteStops(local.db, routeId, month),
+    listBusLanes(local.db),
+  ]);
+  local.sqlite.close();
+  const stopCoordinates = stops.map((stop) => ({
     longitude: stop.longitude,
     latitude: stop.latitude,
   }));
-  const routeStreets = new Set(stops.rows.map((stop) => routeStreetFromStopName(stop.stopName)));
-  const matchedLanes = busLanes.rows
+  const routeStreets = new Set(stops.map((stop) => routeStreetFromStopName(stop.stopName)));
+  const matchedLanes = busLanes
     .filter((lane) => lane.borough === "MAN")
     .map((lane) => {
       const laneStreet = normalizeStreetName(lane.street);
       const laneFacility = normalizeStreetName(lane.facility);
       const streetMatched = routeStreets.has(laneStreet) || routeStreets.has(laneFacility);
-      const nearestStopDistanceMeters = minDistanceMeters(
-        geometryCoordinates(lane.geometry),
-        stopCoordinates,
-      );
+      const nearestStopDistanceMeters = minDistanceMeters(lane.coordinates, stopCoordinates);
       const proximityMatched = nearestStopDistanceMeters <= proximityThresholdMeters;
 
       return {
@@ -247,7 +204,7 @@ export async function buildM1BusLaneOverlay(
         sourceId: "nyc_dot_bus_lanes_local_streets",
         title: "NYC DOT Bus Lanes - Local Streets",
         url: "https://data.cityofnewyork.us/Transportation/Bus-Lanes-Local-Streets/ycrg-ses3",
-        verifiedAt: busLanes.fetchedAt,
+        verifiedAt: null,
       },
     ],
     caveats: [

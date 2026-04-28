@@ -241,6 +241,53 @@ export const localRouteScheduleTimepoint = sqliteTable(
   (table) => [primaryKey({ columns: [table.routeId, table.month, table.rowRank] })],
 );
 
+export const localRouteStop = sqliteTable(
+  "local_route_stop",
+  {
+    routeId: text("route_id").notNull(),
+    month: text("month").notNull(),
+    stopId: text("stop_id").notNull(),
+    routeShortName: text("route_short_name").notNull(),
+    stopName: text("stop_name").notNull(),
+    inEffect: integer("in_effect", { mode: "boolean" }).notNull(),
+    directionId: text("direction_id").notNull(),
+    direction: text("direction").notNull(),
+    timepoint: integer("timepoint", { mode: "boolean" }).notNull(),
+    latitude: real("latitude").notNull(),
+    longitude: real("longitude").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.routeId, table.month, table.stopId, table.directionId] }),
+  ],
+);
+
+export const localBusLane = sqliteTable("local_bus_lane", {
+  segmentId: text("segment_id").primaryKey(),
+  street: text("street").notNull(),
+  borough: text("borough").notNull(),
+  facility: text("facility").notNull(),
+  direction: text("direction"),
+  trafficDirection: text("traffic_direction"),
+  hours: text("hours"),
+  days: text("days"),
+  laneType: text("lane_type"),
+  laneSubtype: text("lane_subtype"),
+  laneWidth: text("lane_width"),
+  openDate: text("open_date"),
+  shapeLength: real("shape_length"),
+});
+
+export const localBusLaneCoordinate = sqliteTable(
+  "local_bus_lane_coordinate",
+  {
+    segmentId: text("segment_id").notNull(),
+    coordinateRank: integer("coordinate_rank").notNull(),
+    longitude: real("longitude").notNull(),
+    latitude: real("latitude").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.segmentId, table.coordinateRank] })],
+);
+
 export const localRouteEquityContext = sqliteTable(
   "local_route_equity_context",
   {

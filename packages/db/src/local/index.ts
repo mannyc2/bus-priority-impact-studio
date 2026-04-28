@@ -1,6 +1,12 @@
 export type { LocalPipelineDb, LocalPipelineSchema } from "./client.js";
 export { createLocalPipelineDb } from "./client.js";
 export { migrateLocalPipelineDb } from "./migrate.js";
+export type { LocalBusLane, LocalBusLaneCoordinate } from "./repositories/interventions.js";
+export {
+  geometryCoordinates,
+  listBusLanes,
+  replaceBusLanes,
+} from "./repositories/interventions.js";
 export type {
   LocalRouteArtifact,
   LocalRouteBatchBuiltRoute,
@@ -64,12 +70,15 @@ export type {
   LocalRouteHourlyRidership,
   LocalRouteScheduleTimepoint,
   LocalRouteSegmentSpeed,
+  LocalRouteStop,
 } from "./repositories/route-slice.js";
 export {
   listRouteHourlyRidership,
   listRouteSchedules,
   listRouteSegmentSpeeds,
+  listRouteStops,
   replaceRouteHourlyRidership,
   replaceRouteSchedules,
   replaceRouteSegmentSpeeds,
+  replaceRouteStops,
 } from "./repositories/route-slice.js";
