@@ -5,6 +5,7 @@ import { writeRouteSliceArtifact } from "../../lib/artifacts.js";
 import { isoMonth } from "../../lib/dates.js";
 import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
+import { aceInterventionSummary } from "./route-brief-metrics.js";
 
 const schemaVersion = 1;
 
@@ -22,13 +23,6 @@ type InterventionOverlayResult = {
   aceRouteMatchCount: number;
   activeProgramCount: number;
 };
-
-function monthEndIso(year: number, month: number): string {
-  const nextMonthStart = new Date(Date.UTC(year, month, 1));
-  const monthEnd = new Date(nextMonthStart.getTime() - 1);
-
-  return monthEnd.toISOString();
-}
 
 function parseBuildArgs(args: InterventionOverlayArgs): Required<InterventionOverlayArgs> {
   return {
@@ -82,23 +76,18 @@ export async function buildM1InterventionOverlay(
   const options = parseBuildArgs(args);
   const routeId = z.decode(RouteIdCodec, options.routeId);
   const month = isoMonth(options.year, options.month);
-  const analysisPeriodEnd = monthEndIso(options.year, options.month);
   const local = await openLocalPipelineDb(options.dbPath);
   const [routeMatches, routeViolations] = await Promise.all([
     listAceRoutesForRoute(local.db, routeId),
     listAceViolationSummariesForRoute(local.db, routeId, month),
   ]);
   local.sqlite.close();
-  const activePrograms = routeMatches.filter((row) => row.implementationDate <= analysisPeriodEnd);
-  const routeViolationCount = routeViolations.reduce((sum, row) => sum + row.violationCount, 0);
-  const violationTypeCounts = [...new Set(routeViolations.map((row) => row.violationType))]
-    .sort()
-    .map((violationType) => ({
-      violationType,
-      violationCount: routeViolations
-        .filter((row) => row.violationType === violationType)
-        .reduce((sum, row) => sum + row.violationCount, 0),
-    }));
+  const ace = aceInterventionSummary({
+    acePrograms: routeMatches,
+    aceViolations: routeViolations,
+    year: options.year,
+    month: options.month,
+  });
   const overlay = {
     schemaVersion,
     routeId,
@@ -121,15 +110,15 @@ export async function buildM1InterventionOverlay(
     ace: {
       routeMatched: routeMatches.length > 0,
       routeMatchCount: routeMatches.length,
-      activeDuringAnalysisPeriod: activePrograms.length > 0,
-      activePrograms,
-      futurePrograms: routeMatches.filter((row) => row.implementationDate > analysisPeriodEnd),
+      activeDuringAnalysisPeriod: ace.activePrograms.length > 0,
+      activePrograms: ace.activePrograms,
+      futurePrograms: ace.futurePrograms,
     },
     violations: {
       analysisPeriod: month,
-      routeViolationCount,
+      routeViolationCount: ace.routeViolationCount,
       groupedRowCount: routeViolations.length,
-      violationTypeCounts,
+      violationTypeCounts: ace.violationTypeCounts,
     },
     caveats: [
       "ACE route matching is route-level only; this does not prove segment-level camera coverage.",
@@ -151,7 +140,7 @@ export async function buildM1InterventionOverlay(
     isoMonth: month,
     overlayPath,
     aceRouteMatchCount: routeMatches.length,
-    activeProgramCount: activePrograms.length,
+    activeProgramCount: ace.activePrograms.length,
   };
 }
 

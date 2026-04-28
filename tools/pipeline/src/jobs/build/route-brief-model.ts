@@ -14,9 +14,9 @@ import type {
 import { RouteIdCodec } from "@bp/domain";
 import * as z from "zod";
 import {
+  aceInterventionSummary,
   groupedSpeedProfiles,
   matchedBusLanes,
-  monthEndIso,
   ridershipProfiles,
   scheduleComparisons,
   slowSpeedThresholdMph,
@@ -88,14 +88,12 @@ export function buildRouteBriefModel(input: RouteBriefModelInput) {
   const speedProfile = groupedSpeedProfiles(speedRows);
   const ridershipProfile = ridershipProfiles(ridershipRows, speedRows);
   const scheduleComparison = scheduleComparisons(schedules, hotspots);
-  const analysisPeriodEnd = monthEndIso(input.year, input.month);
-  const activeAcePrograms = acePrograms.filter(
-    (program) => program.implementationDate <= analysisPeriodEnd,
-  );
-  const futureAcePrograms = acePrograms.filter(
-    (program) => program.implementationDate > analysisPeriodEnd,
-  );
-  const routeViolationCount = aceViolations.reduce((sum, row) => sum + row.violationCount, 0);
+  const ace = aceInterventionSummary({
+    acePrograms,
+    aceViolations,
+    year: input.year,
+    month: input.month,
+  });
   const matchedLanes = matchedBusLanes(busLanes, stops);
   const matchedStreets = [...new Set(matchedLanes.map((lane) => lane.street))].sort();
   const topSegments = hotspots.slice(0, input.topSegmentLimit).map((hotspot) => ({
@@ -151,11 +149,11 @@ export function buildRouteBriefModel(input: RouteBriefModelInput) {
     },
     interventionStatus: {
       aceRouteMatched: acePrograms.length > 0,
-      aceActiveDuringAnalysisPeriod: activeAcePrograms.length > 0,
+      aceActiveDuringAnalysisPeriod: ace.activePrograms.length > 0,
       aceRouteMatchCount: acePrograms.length,
-      aceActiveProgramCount: activeAcePrograms.length,
-      aceFutureProgramCount: futureAcePrograms.length,
-      aceViolationCount: routeViolationCount,
+      aceActiveProgramCount: ace.activePrograms.length,
+      aceFutureProgramCount: ace.futurePrograms.length,
+      aceViolationCount: ace.routeViolationCount,
       aceViolationGroupedRowCount: aceViolations.length,
       busLaneMatchedLaneCount: matchedLanes.length,
       busLaneMatchedStreetCount: matchedStreets.length,
@@ -232,8 +230,8 @@ export function buildRouteBriefModel(input: RouteBriefModelInput) {
         hotspotCount: scorecard.hotspotCount,
         totalRidership: ridershipProfile.totalRidership,
         totalTransfers: ridershipProfile.totalTransfers,
-        aceActive: activeAcePrograms.length > 0,
-        aceViolationCount: routeViolationCount,
+        aceActive: ace.activePrograms.length > 0,
+        aceViolationCount: ace.routeViolationCount,
         busLaneMatchedLaneCount: matchedLanes.length,
         scheduleMatchRate,
       },

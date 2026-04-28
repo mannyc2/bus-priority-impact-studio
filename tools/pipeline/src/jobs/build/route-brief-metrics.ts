@@ -1,4 +1,6 @@
 import type {
+  LocalAceRoute,
+  LocalAceViolationSummary,
   LocalBusLane,
   LocalRouteHotspot,
   LocalRouteHourlyRidership,
@@ -399,4 +401,35 @@ export function matchedBusLanes(busLanes: LocalBusLane[], stops: LocalRouteStop[
 export function monthEndIso(year: number, month: number): string {
   const nextMonthStart = new Date(Date.UTC(year, month, 1));
   return new Date(nextMonthStart.getTime() - 1).toISOString();
+}
+
+export function aceInterventionSummary(input: {
+  acePrograms: LocalAceRoute[];
+  aceViolations: LocalAceViolationSummary[];
+  year: number;
+  month: number;
+}) {
+  const analysisPeriodEnd = monthEndIso(input.year, input.month);
+  const activePrograms = input.acePrograms.filter(
+    (program) => program.implementationDate <= analysisPeriodEnd,
+  );
+  const futurePrograms = input.acePrograms.filter(
+    (program) => program.implementationDate > analysisPeriodEnd,
+  );
+  const routeViolationCount = input.aceViolations.reduce((sum, row) => sum + row.violationCount, 0);
+  const violationTypeCounts = [...new Set(input.aceViolations.map((row) => row.violationType))]
+    .sort()
+    .map((violationType) => ({
+      violationType,
+      violationCount: input.aceViolations
+        .filter((row) => row.violationType === violationType)
+        .reduce((sum, row) => sum + row.violationCount, 0),
+    }));
+
+  return {
+    activePrograms,
+    futurePrograms,
+    routeViolationCount,
+    violationTypeCounts,
+  };
 }
