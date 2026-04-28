@@ -3,7 +3,7 @@ import { geometryCoordinates, replaceBusLanes } from "@bp/db/local";
 import type { SocrataFetch, SocrataRow } from "@bp/sources";
 import { getSocrataSource, normalizeBusLaneRows, SocrataClient } from "@bp/sources";
 import { dbOption, parseCliOptions } from "../../lib/cli-args.js";
-import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
+import { defaultLocalPipelineDbPath, withLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
 import { writeRawSourceSnapshot } from "../../lib/source-snapshots.js";
 import type { SocrataManifestSource } from "../../source-manifest.js";
@@ -40,18 +40,15 @@ export async function ingestBusLanes(args: BusLaneIngestArgs = {}): Promise<BusL
   const rawRows = await fetchBusLaneRows(source, args.fetcher);
   const normalizedRows = normalizeBusLaneRows(rawRows);
   const manhattanLaneCount = normalizedRows.filter((row) => row.borough === "MAN").length;
-  const local = await openLocalPipelineDb(dbPath);
-  try {
-    await replaceBusLanes(
+  await withLocalPipelineDb(dbPath, (local) =>
+    replaceBusLanes(
       local.db,
       normalizedRows.map((row) => ({
         ...row,
         coordinates: geometryCoordinates(row.geometry),
       })),
-    );
-  } finally {
-    local.sqlite.close();
-  }
+    ),
+  );
 
   await writeRawSourceSnapshot({
     path: rawPath,

@@ -26,3 +26,16 @@ export async function openLocalPipelineDb(
     path,
   };
 }
+
+export async function withLocalPipelineDb<T>(
+  path: string | undefined,
+  useDb: (local: OpenLocalPipelineDb) => T | Promise<T>,
+): Promise<T> {
+  const local = await openLocalPipelineDb(path);
+
+  try {
+    return await useDb(local);
+  } finally {
+    local.sqlite.close();
+  }
+}

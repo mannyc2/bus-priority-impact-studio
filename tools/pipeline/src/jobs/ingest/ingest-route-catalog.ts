@@ -8,7 +8,7 @@ import {
   SocrataClient,
 } from "@bp/sources";
 import { dbOption, parseCliOptions } from "../../lib/cli-args.js";
-import { openLocalPipelineDb } from "../../lib/local-db.js";
+import { withLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
 import { writeRawSourceSnapshot } from "../../lib/source-snapshots.js";
 import type { SocrataManifestSource } from "../../source-manifest.js";
@@ -150,13 +150,10 @@ export async function ingestRouteCatalog(args: RouteCatalogArgs = {}): Promise<R
   const stops = normalizeStopRows(stopRows);
   const catalog = buildCatalog(routeShapes, stops);
   const timepointStopCount = stops.filter((stop) => stop.timepoint).length;
-  const local = await openLocalPipelineDb(args.dbPath);
-
-  try {
+  const dbPath = await withLocalPipelineDb(args.dbPath, async (local) => {
     await replaceRouteCatalog(local.db, catalog);
-  } finally {
-    local.sqlite.close();
-  }
+    return local.path;
+  });
 
   await Promise.all([
     writeRawSourceSnapshot({
@@ -181,7 +178,7 @@ export async function ingestRouteCatalog(args: RouteCatalogArgs = {}): Promise<R
     shapeCount: routeShapes.length,
     stopCount: stops.length,
     timepointStopCount,
-    dbPath: local.path,
+    dbPath,
   };
 }
 

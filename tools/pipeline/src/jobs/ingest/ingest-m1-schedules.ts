@@ -13,7 +13,7 @@ import {
   yearOption,
 } from "../../lib/cli-args.js";
 import { isoMonth } from "../../lib/dates.js";
-import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
+import { defaultLocalPipelineDbPath, withLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
 import { writeRawSourceSnapshot } from "../../lib/source-snapshots.js";
 import type { SocrataManifestSource } from "../../source-manifest.js";
@@ -90,17 +90,14 @@ export async function ingestM1Schedules(
   const bundles = [
     ...new Set(normalizedRows.flatMap((row) => (row.bundle ? [row.bundle] : []))),
   ].sort();
-  const local = await openLocalPipelineDb(dbPath);
-  try {
-    await replaceRouteSchedules(
+  await withLocalPipelineDb(dbPath, (local) =>
+    replaceRouteSchedules(
       local.db,
       routeId,
       monthKey,
       normalizedRows.map((row) => ({ ...row, isoMonth: monthKey })),
-    );
-  } finally {
-    local.sqlite.close();
-  }
+    ),
+  );
 
   await writeRawSourceSnapshot({
     path: rawPath,

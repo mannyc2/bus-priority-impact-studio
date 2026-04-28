@@ -24,7 +24,7 @@ import {
   yearOption,
 } from "../../lib/cli-args.js";
 import { isoMonth, isoMonthStart, nextIsoMonthStart } from "../../lib/dates.js";
-import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
+import { defaultLocalPipelineDbPath, withLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
 import { writeRawSourceSnapshot } from "../../lib/source-snapshots.js";
 import type { SocrataManifestSource } from "../../source-manifest.js";
@@ -219,8 +219,7 @@ export async function ingestM1RouteSlice(args: RouteSliceArgs = {}): Promise<Rou
       totalTransfers,
     },
   };
-  const local = await openLocalPipelineDb(options.dbPath);
-  try {
+  await withLocalPipelineDb(options.dbPath, async (local) => {
     await replaceRouteSegmentSpeeds(local.db, options.routeId, summary.isoMonth, segmentSpeeds);
     await replaceRouteHourlyRidership(local.db, options.routeId, summary.isoMonth, ridership);
     await replaceRouteStops(
@@ -229,9 +228,7 @@ export async function ingestM1RouteSlice(args: RouteSliceArgs = {}): Promise<Rou
       summary.isoMonth,
       stops.map((stop) => ({ ...stop, isoMonth: summary.isoMonth })),
     );
-  } finally {
-    local.sqlite.close();
-  }
+  });
 
   await Promise.all([
     writeRawSourceSnapshot({

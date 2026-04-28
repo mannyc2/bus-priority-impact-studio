@@ -3,7 +3,7 @@ import { replaceAceRoutes } from "@bp/db/local";
 import type { SocrataFetch, SocrataRow } from "@bp/sources";
 import { getSocrataSource, normalizeAceRouteRows, SocrataClient } from "@bp/sources";
 import { dbOption, parseCliOptions } from "../../lib/cli-args.js";
-import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
+import { defaultLocalPipelineDbPath, withLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
 import { writeRawSourceSnapshot } from "../../lib/source-snapshots.js";
 import type { SocrataManifestSource } from "../../source-manifest.js";
@@ -46,12 +46,7 @@ export async function ingestAceRoutes(
   const normalizedRows = normalizeAceRouteRows(rawRows);
   const aceCount = normalizedRows.filter((row) => row.program === "ACE").length;
   const ableCount = normalizedRows.filter((row) => row.program === "ABLE").length;
-  const local = await openLocalPipelineDb(dbPath);
-  try {
-    await replaceAceRoutes(local.db, normalizedRows);
-  } finally {
-    local.sqlite.close();
-  }
+  await withLocalPipelineDb(dbPath, (local) => replaceAceRoutes(local.db, normalizedRows));
 
   await writeRawSourceSnapshot({
     path: rawPath,

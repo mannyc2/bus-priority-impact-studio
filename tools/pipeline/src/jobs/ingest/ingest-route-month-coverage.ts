@@ -5,7 +5,7 @@ import { getSocrataSource, SocrataClient } from "@bp/sources";
 import * as z from "zod";
 import { dbOption, monthOption, parseCliOptions, yearOption } from "../../lib/cli-args.js";
 import { isoMonth } from "../../lib/dates.js";
-import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
+import { defaultLocalPipelineDbPath, withLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
 import type { SocrataManifestSource } from "../../source-manifest.js";
 import { readSourceManifest } from "../../source-manifest.js";
@@ -181,20 +181,17 @@ export async function ingestRouteMonthCoverage(
   const completeCoverageRouteCount = rows.filter(
     (row) => row.hasSpeedData && row.hasScheduleData,
   ).length;
-  const local = await openLocalPipelineDb(options.dbPath);
-
-  try {
+  const dbPath = await withLocalPipelineDb(options.dbPath, async (local) => {
     await replaceRouteMonthCoverage(local.db, month, rows);
-  } finally {
-    local.sqlite.close();
-  }
+    return local.path;
+  });
 
   return {
     routeCount: rows.length,
     speedRouteCount,
     scheduleRouteCount,
     completeCoverageRouteCount,
-    dbPath: local.path,
+    dbPath,
   };
 }
 

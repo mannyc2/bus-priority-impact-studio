@@ -4,7 +4,7 @@ import type { SocrataFetch, SocrataRow, SocrataRowsQuery } from "@bp/sources";
 import { getSocrataSource, normalizeAceViolationSummaryRows, SocrataClient } from "@bp/sources";
 import { dbOption, monthOption, parseCliOptions, yearOption } from "../../lib/cli-args.js";
 import { isoMonth, isoMonthStart, nextIsoMonthStart } from "../../lib/dates.js";
-import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
+import { defaultLocalPipelineDbPath, withLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
 import { writeRawSourceSnapshot } from "../../lib/source-snapshots.js";
 import type { SocrataManifestSource } from "../../source-manifest.js";
@@ -73,16 +73,13 @@ export async function ingestAceViolationSummary(
   const rows = normalizeAceViolationSummaryRows(rawRows);
   const routeIds = [...new Set(rows.map((row) => row.routeId))].sort();
   const violationCount = rows.reduce((sum, row) => sum + row.violationCount, 0);
-  const local = await openLocalPipelineDb(dbPath);
-  try {
-    await replaceAceViolationSummaries(
+  await withLocalPipelineDb(dbPath, (local) =>
+    replaceAceViolationSummaries(
       local.db,
       monthKey,
       rows.map((row) => ({ ...row, month: monthKey })),
-    );
-  } finally {
-    local.sqlite.close();
-  }
+    ),
+  );
 
   await writeRawSourceSnapshot({
     path: rawPath,

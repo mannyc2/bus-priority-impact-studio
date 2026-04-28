@@ -11,7 +11,7 @@ import {
   stringListOption,
 } from "../../lib/cli-args.js";
 import { isoMonth, isoMonthStart, monthRange, nextIsoMonthStart } from "../../lib/dates.js";
-import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
+import { defaultLocalPipelineDbPath, withLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
 import type { SocrataManifestSource } from "../../source-manifest.js";
 import { readSourceManifest } from "../../source-manifest.js";
@@ -131,14 +131,10 @@ async function routeIdsFromCurrentBatch(
   dbPath: string,
 ): Promise<string[]> {
   const month = isoMonth(endYear, endMonth);
-  const local = await openLocalPipelineDb(dbPath);
-
-  try {
+  return withLocalPipelineDb(dbPath, async (local) => {
     const plan = await listRouteBuildPlan(local.db, month);
     return [...new Set(plan.map((route) => z.decode(RouteIdCodec, route.routeId)))].sort();
-  } finally {
-    local.sqlite.close();
-  }
+  });
 }
 
 function trendKey(routeId: string, month: string): string {
@@ -269,9 +265,8 @@ export async function ingestRouteTrends(args: RouteTrendsArgs = {}): Promise<Rou
     (row) => row.trendCoverage.speed && row.trendCoverage.ridership,
   ).length;
 
-  const local = await openLocalPipelineDb(options.dbPath);
-  try {
-    await replaceRouteMonthTrends(
+  await withLocalPipelineDb(options.dbPath, (local) =>
+    replaceRouteMonthTrends(
       local.db,
       rows.map((row) => ({
         routeId: row.routeId,
@@ -284,10 +279,8 @@ export async function ingestRouteTrends(args: RouteTrendsArgs = {}): Promise<Rou
         hasSpeedTrend: row.trendCoverage.speed,
         hasRidershipTrend: row.trendCoverage.ridership,
       })),
-    );
-  } finally {
-    local.sqlite.close();
-  }
+    ),
+  );
 
   return {
     startMonth,

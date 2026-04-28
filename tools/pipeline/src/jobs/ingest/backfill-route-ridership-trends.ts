@@ -5,7 +5,7 @@ import { getSocrataSource, SocrataClient, soqlQuote } from "@bp/sources";
 import * as z from "zod";
 import { dbOption, numberOption, parseCliOptions, stringListOption } from "../../lib/cli-args.js";
 import { isoMonth, isoMonthStart, nextIsoMonthStart } from "../../lib/dates.js";
-import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
+import { defaultLocalPipelineDbPath, withLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
 import type { SocrataManifestSource } from "../../source-manifest.js";
 import { readSourceManifest } from "../../source-manifest.js";
@@ -153,9 +153,9 @@ export async function backfillRouteRidershipTrends(
   const startMonth = isoMonth(options.startYear, options.startMonth);
   const endMonth = isoMonth(options.endYear, options.endMonth);
   const routeFilter = new Set<string>(options.routes.map((route) => z.decode(RouteIdCodec, route)));
-  const local = await openLocalPipelineDb(options.dbPath);
-  const existingRows = await listRouteMonthTrends(local.db);
-  local.sqlite.close();
+  const existingRows = await withLocalPipelineDb(options.dbPath, (local) =>
+    listRouteMonthTrends(local.db),
+  );
   const manifest = await readSourceManifest();
   const source = getSocrataSource(manifest, "bus_hourly_ridership_2025");
   const rangeRows = existingRows.filter((row) => inRange(row, startMonth, endMonth));
@@ -191,12 +191,7 @@ export async function backfillRouteRidershipTrends(
   const outputRows = rows.filter((row) => inRange(row, startMonth, endMonth));
   const remainingRidershipMissingCount = outputRows.filter((row) => !row.hasRidershipTrend).length;
 
-  const writeLocal = await openLocalPipelineDb(options.dbPath);
-  try {
-    await replaceRouteMonthTrends(writeLocal.db, rows);
-  } finally {
-    writeLocal.sqlite.close();
-  }
+  await withLocalPipelineDb(options.dbPath, (local) => replaceRouteMonthTrends(local.db, rows));
 
   return {
     startMonth,

@@ -5,7 +5,7 @@ import type { CensusAcsFetch, NormalizedCensusTractEquityContext } from "@bp/sou
 import { censusAcsProfileVariables, fetchCensusTractEquityContext } from "@bp/sources";
 import { dbOption, parseCliOptions, yearOption } from "../../lib/cli-args.js";
 import { writeJson } from "../../lib/json.js";
-import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
+import { defaultLocalPipelineDbPath, withLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
 import { fromRepoRoot } from "../../source-manifest.js";
 
@@ -58,12 +58,9 @@ export async function ingestEquityContext(
     year: options.year,
     fetcher: options.fetcher,
   });
-  const local = await openLocalPipelineDb(options.dbPath);
-  try {
-    await replaceCensusTractEquityContext(local.db, options.year, fetched.rows);
-  } finally {
-    local.sqlite.close();
-  }
+  await withLocalPipelineDb(options.dbPath, (local) =>
+    replaceCensusTractEquityContext(local.db, options.year, fetched.rows),
+  );
   const totalPopulation = sumDefined(fetched.rows, (row) => row.totalPopulation);
   const noVehicleHouseholds = sumDefined(fetched.rows, (row) => row.noVehicleHouseholds);
 
