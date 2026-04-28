@@ -1,8 +1,11 @@
 import { join } from "node:path";
-import { listRouteBriefSummaries, replaceRouteReliabilityRows } from "@bp/db/local";
-import * as z from "zod";
-import { readArtifact, writeArtifact } from "../../lib/artifact-store.js";
-import { routeSliceKey } from "../../lib/artifacts.js";
+import {
+  type LocalRouteScheduleTimepoint,
+  listRouteBriefSummaries,
+  listRouteSchedules,
+  replaceRouteReliabilityRows,
+} from "@bp/db/local";
+import { writeArtifact } from "../../lib/artifact-store.js";
 import { isoMonth } from "../../lib/dates.js";
 import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
@@ -12,34 +15,13 @@ const schemaVersion = 1;
 const longGapThresholdMinutes = 20;
 const shortHeadwayThresholdMinutes = 3;
 
-const IsoMonthSchema = z.string().regex(/^\d{4}-\d{2}$/);
-
-const SchedulesArtifactSchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    routeId: z.string().min(1),
-    isoMonth: IsoMonthSchema,
-    rows: z.array(
-      z
-        .object({
-          dayType: z.string().min(1),
-          direction: z.string().min(1),
-          stopId: z.string().min(1),
-          stopName: z.string().optional(),
-          scheduleTime: z.string().min(1),
-        })
-        .passthrough(),
-    ),
-  })
-  .passthrough();
-
 type RouteReliabilityBaselineArgs = {
   year?: number;
   month?: number;
   dbPath?: string;
 };
 
-type ScheduleRow = z.output<typeof SchedulesArtifactSchema>["rows"][number];
+type ScheduleRow = LocalRouteScheduleTimepoint;
 
 type HeadwayGroup = {
   routeId: string;
@@ -205,9 +187,9 @@ function buildHeadwayGroups(
 function routeBaseline(
   routeId: string,
   month: string,
-  schedules: z.output<typeof SchedulesArtifactSchema>,
+  schedules: readonly ScheduleRow[],
 ): RouteReliabilityBaselineRow {
-  const headwayGroupsWithIntervals = buildHeadwayGroups(routeId, schedules.rows);
+  const headwayGroupsWithIntervals = buildHeadwayGroups(routeId, schedules);
   const samples = headwayGroupsWithIntervals
     .flatMap((group) => group.intervals)
     .sort((left, right) => left - right);
@@ -227,7 +209,7 @@ function routeBaseline(
     routeId,
     isoMonth: month,
     reliabilityStatus: "scheduled_baseline_only",
-    scheduledTimepointCount: schedules.rows.length,
+    scheduledTimepointCount: schedules.length,
     stopHeadwayGroupCount: headwayGroups.length,
     headwaySampleCount,
     medianScheduledHeadwayMinutes: samples.length === 0 ? null : round(quantile(samples, 0.5) ?? 0),
@@ -268,20 +250,21 @@ export async function buildRouteReliabilityBaseline(
   const baselinePath = join(batchDir, "route-reliability-baseline.json");
   const summaryPath = join(batchDir, "route-reliability-baseline-summary.json");
   const readLocal = await openLocalPipelineDb(options.dbPath);
-  const builtRoutes = await listRouteBriefSummaries(readLocal.db, month);
-  readLocal.sqlite.close();
-  const rows = await Promise.all(
-    builtRoutes.map(async (route) => {
-      const schedules = await readArtifact(
-        fromRepoRoot(
-          join("data/working/route-slices", routeSliceKey(route.routeId, month), "schedules.json"),
+  let rows: RouteReliabilityBaselineRow[];
+  try {
+    const builtRoutes = await listRouteBriefSummaries(readLocal.db, month);
+    rows = await Promise.all(
+      builtRoutes.map(async (route) =>
+        routeBaseline(
+          route.routeId,
+          month,
+          await listRouteSchedules(readLocal.db, route.routeId, month),
         ),
-        SchedulesArtifactSchema,
-      );
-
-      return routeBaseline(route.routeId, month, schedules);
-    }),
-  );
+      ),
+    );
+  } finally {
+    readLocal.sqlite.close();
+  }
   const summary = {
     schemaVersion,
     analysisPeriod: month,

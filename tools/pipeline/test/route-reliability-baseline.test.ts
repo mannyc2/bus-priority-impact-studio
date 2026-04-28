@@ -1,20 +1,18 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, rm } from "node:fs/promises";
+import { rm } from "node:fs/promises";
 import { join } from "node:path";
-import { replaceRouteBriefRows } from "@bp/db/local";
+import { replaceRouteBriefRows, replaceRouteSchedules } from "@bp/db/local";
 import { buildRouteReliabilityBaseline } from "../src/jobs/build/route-reliability-baseline.js";
 import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
 const isoMonth = "2026-10";
 const batchDir = fromRepoRoot(join("data/artifacts/route-batches", isoMonth));
-const routeDir = fromRepoRoot(join("data/working/route-slices/t1-2026-10"));
 const dbPath = fromRepoRoot(join("data/working/test-route-reliability-baseline/pipeline.sqlite"));
 
 async function removeFixtureArtifacts(): Promise<void> {
   await Promise.all([
     rm(batchDir, { force: true, recursive: true }),
-    rm(routeDir, { force: true, recursive: true }),
     rm(fromRepoRoot(join("data/working/test-route-reliability-baseline")), {
       force: true,
       recursive: true,
@@ -24,8 +22,6 @@ async function removeFixtureArtifacts(): Promise<void> {
 
 async function writeFixtureArtifacts(): Promise<void> {
   await removeFixtureArtifacts();
-  await mkdir(batchDir, { recursive: true });
-  await mkdir(routeDir, { recursive: true });
   const local = await openLocalPipelineDb(dbPath);
   try {
     await replaceRouteBriefRows(local.db, {
@@ -47,57 +43,74 @@ async function writeFixtureArtifacts(): Promise<void> {
       peakWindows: [],
       slowestWindows: [],
     });
+    await replaceRouteSchedules(local.db, "T1", isoMonth, [
+      {
+        routeId: "T1",
+        isoMonth,
+        scheduleDate: "2026-01-05T00:00:00.000Z",
+        dayType: "Weekday",
+        direction: "N",
+        shapeId: "T1001",
+        stopSequence: 1,
+        stopId: "S1",
+        stopName: "First stop",
+        scheduleTime: "2026-01-05T08:00:00.000Z",
+        blockId: "B1",
+      },
+      {
+        routeId: "T1",
+        isoMonth,
+        scheduleDate: "2026-01-05T00:00:00.000Z",
+        dayType: "Weekday",
+        direction: "N",
+        shapeId: "T1001",
+        stopSequence: 2,
+        stopId: "S1",
+        stopName: "First stop",
+        scheduleTime: "2026-01-05T08:10:00.000Z",
+        blockId: "B2",
+      },
+      {
+        routeId: "T1",
+        isoMonth,
+        scheduleDate: "2026-01-05T00:00:00.000Z",
+        dayType: "Weekday",
+        direction: "N",
+        shapeId: "T1001",
+        stopSequence: 3,
+        stopId: "S1",
+        stopName: "First stop",
+        scheduleTime: "2026-01-05T08:35:00.000Z",
+        blockId: "B3",
+      },
+      {
+        routeId: "T1",
+        isoMonth,
+        scheduleDate: "2026-01-05T00:00:00.000Z",
+        dayType: "Weekday",
+        direction: "S",
+        shapeId: "T1002",
+        stopSequence: 1,
+        stopId: "S2",
+        scheduleTime: "2026-01-05T09:00:00.000Z",
+        blockId: "B4",
+      },
+      {
+        routeId: "T1",
+        isoMonth,
+        scheduleDate: "2026-01-05T00:00:00.000Z",
+        dayType: "Weekday",
+        direction: "S",
+        shapeId: "T1002",
+        stopSequence: 2,
+        stopId: "S2",
+        scheduleTime: "2026-01-05T09:02:00.000Z",
+        blockId: "B5",
+      },
+    ]);
   } finally {
     local.sqlite.close();
   }
-  await Bun.write(
-    join(routeDir, "schedules.json"),
-    `${JSON.stringify(
-      {
-        schemaVersion: 1,
-        sourceId: "bus_schedules_2026",
-        routeId: "T1",
-        isoMonth,
-        rows: [
-          {
-            dayType: "Weekday",
-            direction: "N",
-            stopId: "S1",
-            stopName: "First stop",
-            scheduleTime: "2026-01-05T08:00:00.000Z",
-          },
-          {
-            dayType: "Weekday",
-            direction: "N",
-            stopId: "S1",
-            stopName: "First stop",
-            scheduleTime: "2026-01-05T08:10:00.000Z",
-          },
-          {
-            dayType: "Weekday",
-            direction: "N",
-            stopId: "S1",
-            stopName: "First stop",
-            scheduleTime: "2026-01-05T08:35:00.000Z",
-          },
-          {
-            dayType: "Weekday",
-            direction: "S",
-            stopId: "S2",
-            scheduleTime: "2026-01-05T09:00:00.000Z",
-          },
-          {
-            dayType: "Weekday",
-            direction: "S",
-            stopId: "S2",
-            scheduleTime: "2026-01-05T09:02:00.000Z",
-          },
-        ],
-      },
-      null,
-      2,
-    )}\n`,
-  );
 }
 
 afterEach(async () => {

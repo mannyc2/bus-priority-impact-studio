@@ -1,6 +1,10 @@
 import { and, asc, eq } from "drizzle-orm";
 import type { LocalPipelineDb } from "../client.js";
-import { localRouteHourlyRidership, localRouteSegmentSpeed } from "../schema.js";
+import {
+  localRouteHourlyRidership,
+  localRouteScheduleTimepoint,
+  localRouteSegmentSpeed,
+} from "../schema.js";
 
 export type LocalRouteSegmentSpeed = {
   routeId: string;
@@ -33,6 +37,23 @@ export type LocalRouteHourlyRidership = {
   hourOfDay: number;
   ridership: number;
   transfers: number;
+};
+
+export type LocalRouteScheduleTimepoint = {
+  routeId: string;
+  isoMonth: string;
+  scheduleDate: string;
+  dayType: string;
+  direction: string;
+  shapeId: string;
+  stopSequence: number;
+  stopId: string;
+  stopName?: string | undefined;
+  scheduleTime: string;
+  distanceFromStart?: number | undefined;
+  tripHeadsign?: string | undefined;
+  blockId: string;
+  bundle?: string | undefined;
 };
 
 export async function replaceRouteSegmentSpeeds(
@@ -172,4 +193,91 @@ export async function listRouteHourlyRidership(
     ridership: row.ridership,
     transfers: row.transfers,
   }));
+}
+
+export async function replaceRouteSchedules(
+  db: LocalPipelineDb,
+  routeId: string,
+  month: string,
+  rows: readonly LocalRouteScheduleTimepoint[],
+): Promise<void> {
+  await db
+    .delete(localRouteScheduleTimepoint)
+    .where(
+      and(
+        eq(localRouteScheduleTimepoint.routeId, routeId),
+        eq(localRouteScheduleTimepoint.month, month),
+      ),
+    );
+
+  if (rows.length === 0) {
+    return;
+  }
+
+  await db.insert(localRouteScheduleTimepoint).values(
+    rows.map((row, index) => ({
+      routeId: row.routeId,
+      month: row.isoMonth,
+      rowRank: index + 1,
+      scheduleDate: row.scheduleDate,
+      dayType: row.dayType,
+      direction: row.direction,
+      shapeId: row.shapeId,
+      stopSequence: row.stopSequence,
+      stopId: row.stopId,
+      stopName: row.stopName ?? null,
+      scheduleTime: row.scheduleTime,
+      distanceFromStart: row.distanceFromStart ?? null,
+      tripHeadsign: row.tripHeadsign ?? null,
+      blockId: row.blockId,
+      bundle: row.bundle ?? null,
+    })),
+  );
+}
+
+export async function listRouteSchedules(
+  db: LocalPipelineDb,
+  routeId: string,
+  month: string,
+): Promise<LocalRouteScheduleTimepoint[]> {
+  const rows = await db
+    .select()
+    .from(localRouteScheduleTimepoint)
+    .where(
+      and(
+        eq(localRouteScheduleTimepoint.routeId, routeId),
+        eq(localRouteScheduleTimepoint.month, month),
+      ),
+    )
+    .orderBy(asc(localRouteScheduleTimepoint.rowRank));
+
+  return rows.map((row) => {
+    const output: LocalRouteScheduleTimepoint = {
+      routeId: row.routeId,
+      isoMonth: row.month,
+      scheduleDate: row.scheduleDate,
+      dayType: row.dayType,
+      direction: row.direction,
+      shapeId: row.shapeId,
+      stopSequence: row.stopSequence,
+      stopId: row.stopId,
+      scheduleTime: row.scheduleTime,
+      blockId: row.blockId,
+    };
+
+    if (row.stopName !== null) {
+      output.stopName = row.stopName;
+    }
+    if (row.distanceFromStart !== null) {
+      output.distanceFromStart = row.distanceFromStart;
+    }
+    if (row.tripHeadsign !== null) {
+      output.tripHeadsign = row.tripHeadsign;
+    }
+    if (row.bundle !== null) {
+      output.bundle = row.bundle;
+    }
+
+    return output;
+  });
 }

@@ -1,24 +1,15 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import { NormalizedScheduleTimepointSchema } from "@bp/sources";
+import { type LocalRouteScheduleTimepoint, listRouteSchedules } from "@bp/db/local";
 import * as z from "zod";
 import { routeSliceKey } from "../../lib/artifacts.js";
 import { isoMonth } from "../../lib/dates.js";
 import { writeJson } from "../../lib/json.js";
+import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
+import { fromCliPath } from "../../lib/paths.js";
 import { fromRepoRoot } from "../../source-manifest.js";
 
 const schemaVersion = 1;
-
-const SchedulesArtifactSchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    sourceId: z.literal("bus_schedules_2026"),
-    routeId: z.string().min(1),
-    isoMonth: z.string().regex(/^\d{4}-\d{2}$/),
-    fetchedAt: z.iso.datetime(),
-    rows: z.array(NormalizedScheduleTimepointSchema),
-  })
-  .strict();
 
 const HotspotSchema = z
   .object({
@@ -54,6 +45,7 @@ type ScheduleComparisonArgs = {
   routeId?: string;
   year?: number;
   month?: number;
+  dbPath?: string;
 };
 
 type ScheduleComparisonResult = {
@@ -74,11 +66,14 @@ type PairAccumulator = {
   scheduledTravelTimes: number[];
 };
 
-function parseBuildArgs(args: ScheduleComparisonArgs): Required<ScheduleComparisonArgs> {
+type ScheduleComparisonOptions = Required<ScheduleComparisonArgs>;
+
+function parseBuildArgs(args: ScheduleComparisonArgs): ScheduleComparisonOptions {
   return {
     routeId: args.routeId ?? "M1",
     year: args.year ?? 2026,
     month: args.month ?? 3,
+    dbPath: args.dbPath ?? defaultLocalPipelineDbPath(),
   };
 }
 
@@ -107,6 +102,12 @@ function parseCliArgs(args: string[]): ScheduleComparisonArgs {
       continue;
     }
 
+    if (arg === "--db" && value !== undefined) {
+      output.dbPath = fromCliPath(value);
+      index += 1;
+      continue;
+    }
+
     throw new Error(`Unknown or incomplete argument: ${arg ?? ""}`);
   }
 
@@ -117,7 +118,7 @@ function pairKey(direction: string, fromStopId: string, toStopId: string): strin
   return `${direction}:${fromStopId}:${toStopId}`;
 }
 
-function groupKey(row: z.output<typeof NormalizedScheduleTimepointSchema>): string {
+function groupKey(row: LocalRouteScheduleTimepoint): string {
   return [row.scheduleDate, row.dayType, row.direction, row.blockId].join(":");
 }
 
@@ -136,10 +137,8 @@ function median(values: number[]): number {
   return Math.round(value * 10) / 10;
 }
 
-function buildScheduledPairs(
-  rows: z.output<typeof NormalizedScheduleTimepointSchema>[],
-): Map<string, PairAccumulator> {
-  const groups = new Map<string, z.output<typeof NormalizedScheduleTimepointSchema>[]>();
+function buildScheduledPairs(rows: LocalRouteScheduleTimepoint[]): Map<string, PairAccumulator> {
+  const groups = new Map<string, LocalRouteScheduleTimepoint[]>();
 
   for (const row of rows) {
     const rowsForGroup = groups.get(groupKey(row)) ?? [];
@@ -159,7 +158,7 @@ function buildScheduledPairs(
       return left.stopSequence - right.stopSequence;
     });
 
-    let currentTrip: z.output<typeof NormalizedScheduleTimepointSchema>[] = [];
+    let currentTrip: LocalRouteScheduleTimepoint[] = [];
     let previousSequence = -1;
 
     for (const row of rowsForGroup) {
@@ -179,7 +178,7 @@ function buildScheduledPairs(
 }
 
 function addTripPairs(
-  tripRows: z.output<typeof NormalizedScheduleTimepointSchema>[],
+  tripRows: LocalRouteScheduleTimepoint[],
   pairs: Map<string, PairAccumulator>,
 ): void {
   for (let index = 0; index < tripRows.length - 1; index += 1) {
@@ -225,16 +224,15 @@ export async function buildM1ScheduleComparison(
   const options = parseBuildArgs(args);
   const month = isoMonth(options.year, options.month);
   const key = routeSliceKey(options.routeId, month);
-  const workingDir = fromRepoRoot(join("data/working/route-slices", key));
   const artifactDir = fromRepoRoot(join("data/artifacts/route-slices", key));
   const comparisonPath = join(artifactDir, "schedule-comparison.json");
-  const schedules = SchedulesArtifactSchema.parse(
-    await Bun.file(join(workingDir, "schedules.json")).json(),
-  );
+  const local = await openLocalPipelineDb(options.dbPath);
+  const schedules = await listRouteSchedules(local.db, options.routeId, month);
+  local.sqlite.close();
   const hotspotsArtifact = HotspotsArtifactSchema.parse(
     await Bun.file(join(artifactDir, "hotspots.json")).json(),
   );
-  const scheduledPairs = buildScheduledPairs(schedules.rows);
+  const scheduledPairs = buildScheduledPairs(schedules);
   const hotspotComparisons = hotspotsArtifact.result.hotspots.map((hotspot) => {
     const pair = scheduledPairs.get(
       pairKey(hotspot.direction, hotspot.timepointStopId, hotspot.nextTimepointStopId),
@@ -268,10 +266,10 @@ export async function buildM1ScheduleComparison(
   ).length;
   const comparison = {
     schemaVersion,
-    routeId: schedules.routeId,
-    analysisPeriod: schedules.isoMonth,
+    routeId: options.routeId,
+    analysisPeriod: month,
     generatedAt: new Date().toISOString(),
-    scheduleFetchedAt: schedules.fetchedAt,
+    scheduleFetchedAt: null,
     scheduledPairCount: scheduledPairs.size,
     hotspotCount: hotspotComparisons.length,
     matchedHotspotCount,
@@ -287,8 +285,8 @@ export async function buildM1ScheduleComparison(
   await writeJson(comparisonPath, comparison);
 
   return {
-    routeId: schedules.routeId,
-    isoMonth: schedules.isoMonth,
+    routeId: options.routeId,
+    isoMonth: month,
     comparisonPath,
     scheduledPairCount: scheduledPairs.size,
     matchedHotspotCount,

@@ -1,11 +1,14 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
+import { replaceRouteSchedules } from "@bp/db/local";
 import { buildM1ScheduleComparisonFromCli } from "../src/jobs/build/m1-schedule-comparison.js";
+import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
 const workingDir = fromRepoRoot(join("data/working/route-slices/t1-2026-03"));
 const artifactDir = fromRepoRoot(join("data/artifacts/route-slices/t1-2026-03"));
+const dbPath = join(workingDir, "pipeline.sqlite");
 
 async function removeFixtureArtifacts(): Promise<void> {
   await Promise.all([
@@ -18,48 +21,39 @@ async function writeFixtureArtifacts(): Promise<void> {
   await removeFixtureArtifacts();
   await mkdir(workingDir, { recursive: true });
   await mkdir(artifactDir, { recursive: true });
-  await Bun.write(
-    join(workingDir, "schedules.json"),
-    `${JSON.stringify(
+  const local = await openLocalPipelineDb(dbPath);
+  try {
+    await replaceRouteSchedules(local.db, "T1", "2026-03", [
       {
-        schemaVersion: 1,
-        sourceId: "bus_schedules_2026",
         routeId: "T1",
         isoMonth: "2026-03",
-        fetchedAt: "2026-04-27T12:00:00.000Z",
-        rows: [
-          {
-            schemaVersion: 1,
-            routeId: "T1",
-            scheduleDate: "2026-01-05T00:00:00.000Z",
-            dayType: "Weekday",
-            direction: "N",
-            shapeId: "T1001",
-            stopSequence: 1,
-            stopId: "A",
-            stopName: "A stop",
-            scheduleTime: "2026-01-05T07:00:00.000Z",
-            blockId: "B1",
-          },
-          {
-            schemaVersion: 1,
-            routeId: "T1",
-            scheduleDate: "2026-01-05T00:00:00.000Z",
-            dayType: "Weekday",
-            direction: "N",
-            shapeId: "T1001",
-            stopSequence: 2,
-            stopId: "B",
-            stopName: "B stop",
-            scheduleTime: "2026-01-05T07:10:00.000Z",
-            blockId: "B1",
-          },
-        ],
+        scheduleDate: "2026-01-05T00:00:00.000Z",
+        dayType: "Weekday",
+        direction: "N",
+        shapeId: "T1001",
+        stopSequence: 1,
+        stopId: "A",
+        stopName: "A stop",
+        scheduleTime: "2026-01-05T07:00:00.000Z",
+        blockId: "B1",
       },
-      null,
-      2,
-    )}\n`,
-  );
+      {
+        routeId: "T1",
+        isoMonth: "2026-03",
+        scheduleDate: "2026-01-05T00:00:00.000Z",
+        dayType: "Weekday",
+        direction: "N",
+        shapeId: "T1001",
+        stopSequence: 2,
+        stopId: "B",
+        stopName: "B stop",
+        scheduleTime: "2026-01-05T07:10:00.000Z",
+        blockId: "B1",
+      },
+    ]);
+  } finally {
+    local.sqlite.close();
+  }
   await Bun.write(
     join(artifactDir, "hotspots.json"),
     `${JSON.stringify(
@@ -106,6 +100,8 @@ describe("M1 schedule comparison build", () => {
       "2026",
       "--month",
       "3",
+      "--db",
+      dbPath,
     ]);
     const comparison = await Bun.file(result.comparisonPath).json();
 

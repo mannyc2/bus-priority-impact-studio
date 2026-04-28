@@ -62,11 +62,14 @@ export {
 } from "./repositories/route-network.js";
 export type {
   LocalRouteHourlyRidership,
+  LocalRouteScheduleTimepoint,
   LocalRouteSegmentSpeed,
 } from "./repositories/route-slice.js";
 export {
   listRouteHourlyRidership,
+  listRouteSchedules,
   listRouteSegmentSpeeds,
   replaceRouteHourlyRidership,
+  replaceRouteSchedules,
   replaceRouteSegmentSpeeds,
 } from "./repositories/route-slice.js";

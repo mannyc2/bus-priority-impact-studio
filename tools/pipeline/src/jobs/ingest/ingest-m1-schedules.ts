@@ -1,5 +1,6 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
+import { replaceRouteSchedules } from "@bp/db/local";
 import { RouteIdCodec } from "@bp/domain";
 import type { SocrataFetch, SocrataRow, SocrataRowsQuery } from "@bp/sources";
 import { getSocrataSource, normalizeScheduleTimepointRows, SocrataClient } from "@bp/sources";
@@ -7,6 +8,8 @@ import * as z from "zod";
 import { routeSliceKey } from "../../lib/artifacts.js";
 import { isoMonth } from "../../lib/dates.js";
 import { writeJson } from "../../lib/json.js";
+import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
+import { fromCliPath } from "../../lib/paths.js";
 import type { SocrataManifestSource } from "../../source-manifest.js";
 import { fromRepoRoot, readSourceManifest } from "../../source-manifest.js";
 
@@ -19,6 +22,7 @@ type ScheduleIngestArgs = {
   month?: number;
   fetchedAt?: Date;
   fetcher?: SocrataFetch;
+  dbPath?: string;
 };
 
 type ScheduleIngestResult = {
@@ -52,6 +56,12 @@ function parseCliArgs(args: string[]): ScheduleIngestArgs {
 
     if (arg === "--month" && value !== undefined) {
       output.month = Number(value);
+      index += 1;
+      continue;
+    }
+
+    if (arg === "--db" && value !== undefined) {
+      output.dbPath = fromCliPath(value);
       index += 1;
       continue;
     }
@@ -90,6 +100,7 @@ export async function ingestM1Schedules(
   const routeId = z.decode(RouteIdCodec, args.routeId ?? "M1");
   const year = args.year ?? 2026;
   const month = args.month ?? 3;
+  const dbPath = args.dbPath ?? defaultLocalPipelineDbPath();
   const monthKey = isoMonth(year, month);
   const manifest = await readSourceManifest();
   const source = getSocrataSource(manifest, sourceId);
@@ -122,6 +133,17 @@ export async function ingestM1Schedules(
     caveat:
       "Schedule rows come from the 2026 schedule dataset and may use representative schedule dates that differ from the observed speed month.",
   };
+  const local = await openLocalPipelineDb(dbPath);
+  try {
+    await replaceRouteSchedules(
+      local.db,
+      routeId,
+      monthKey,
+      normalizedRows.map((row) => ({ ...row, isoMonth: monthKey })),
+    );
+  } finally {
+    local.sqlite.close();
+  }
 
   await mkdir(rawDir, { recursive: true });
   await mkdir(workingDir, { recursive: true });

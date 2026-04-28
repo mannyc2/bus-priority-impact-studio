@@ -219,6 +219,28 @@ export const localRouteHourlyRidership = sqliteTable(
   ],
 );
 
+export const localRouteScheduleTimepoint = sqliteTable(
+  "local_route_schedule_timepoint",
+  {
+    routeId: text("route_id").notNull(),
+    month: text("month").notNull(),
+    rowRank: integer("row_rank").notNull(),
+    scheduleDate: text("schedule_date").notNull(),
+    dayType: text("day_type").notNull(),
+    direction: text("direction").notNull(),
+    shapeId: text("shape_id").notNull(),
+    stopSequence: integer("stop_sequence").notNull(),
+    stopId: text("stop_id").notNull(),
+    stopName: text("stop_name"),
+    scheduleTime: text("schedule_time").notNull(),
+    distanceFromStart: real("distance_from_start"),
+    tripHeadsign: text("trip_headsign"),
+    blockId: text("block_id").notNull(),
+    bundle: text("bundle"),
+  },
+  (table) => [primaryKey({ columns: [table.routeId, table.month, table.rowRank] })],
+);
+
 export const localRouteEquityContext = sqliteTable(
   "local_route_equity_context",
   {
