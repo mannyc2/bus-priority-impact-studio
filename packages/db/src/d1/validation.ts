@@ -9,7 +9,7 @@ import {
   routeReliabilityBaseline,
   routeScorecard,
   routeScorecardCitation,
-} from "../schema/d1/index.js";
+} from "./schema.js";
 
 export const RouteScorecardSelectSchema = createSelectSchema(routeScorecard);
 export const RouteScorecardInsertSchema = createInsertSchema(routeScorecard);

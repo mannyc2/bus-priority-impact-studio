@@ -231,7 +231,7 @@ Use a two-track workflow:
 
 1. **Drizzle schema generation** in `packages/db`.
    - `packages/db/drizzle.config.d1.ts`
-   - schema path: `packages/db/src/schema/d1/index.ts`
+   - schema path: `packages/db/src/d1/schema.ts`
    - migration output: `packages/db/migrations/d1`
    - dialect: `sqlite`
    - D1 HTTP driver only for remote Drizzle Kit operations.
@@ -249,7 +249,7 @@ Do not run `drizzle-kit push` against shared/production D1 for this repo. Genera
 Add Postgres only when a requirement forces it. When it appears:
 
 1. Add `packages/db/drizzle.config.pg.ts`.
-2. Add `packages/db/src/schema/pg`.
+2. Add `packages/db/src/pg/schema.ts`.
 3. Generate Postgres migrations into `packages/db/migrations/pg`.
 4. Run Postgres migrations outside Cloudflare D1's migration system.
 5. In Workers, access the Postgres database through Hyperdrive using `pg` and `drizzle-orm/node-postgres`.

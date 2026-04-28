@@ -1,53 +1,16 @@
+import { Database } from "bun:sqlite";
 import { describe, expect, test } from "bun:test";
 import { RouteIdCodec, RouteScorecardSchema } from "@bp/domain";
+import { drizzle } from "drizzle-orm/bun-sqlite";
 import * as z from "zod";
-import type { D1DatabaseLike, D1PreparedStatement, D1Result, D1Value } from "../src/index.js";
+import type { D1ServingDb } from "../src/d1/index.js";
 import {
   deserializeRouteScorecard,
   getRouteScorecard,
   serializeRouteScorecard,
   serializeRouteScorecardCitations,
-} from "../src/index.js";
-
-type QueryCall = {
-  query: string;
-  bound: D1Value[];
-};
-
-class FakeStatement<T> implements D1PreparedStatement<T> {
-  constructor(
-    private readonly call: QueryCall,
-    private readonly rows: T[],
-  ) {}
-
-  bind(...values: D1Value[]): D1PreparedStatement<T> {
-    this.call.bound = values;
-    return this;
-  }
-
-  async first(): Promise<T | null> {
-    return this.rows[0] ?? null;
-  }
-
-  async all(): Promise<D1Result<T>> {
-    return { results: this.rows };
-  }
-}
-
-class FakeDb implements D1DatabaseLike {
-  readonly calls: QueryCall[] = [];
-
-  constructor(private readonly rowsByTable: Record<string, unknown[]>) {}
-
-  prepare<T = unknown>(query: string): D1PreparedStatement<T> {
-    const call = { query, bound: [] };
-    this.calls.push(call);
-    const table = Object.keys(this.rowsByTable).find((candidate) => query.includes(candidate));
-    const rows = (table === undefined ? [] : this.rowsByTable[table]) as T[];
-
-    return new FakeStatement(call, rows);
-  }
-}
+} from "../src/d1/index.js";
+import { routeScorecard, routeScorecardCitation } from "../src/d1/schema.js";
 
 const scorecard = RouteScorecardSchema.parse({
   schemaVersion: 1,
@@ -67,6 +30,21 @@ const scorecard = RouteScorecardSchema.parse({
   ],
 });
 
+async function createTestDb(): Promise<{ db: D1ServingDb; sqlite: Database }> {
+  const sqlite = new Database(":memory:");
+  const migrationSql = await Bun.file(
+    new URL("../migrations/d1/0000_tense_jane_foster.sql", import.meta.url),
+  ).text();
+  sqlite.exec(migrationSql);
+
+  return {
+    db: drizzle(sqlite, {
+      schema: { routeScorecard, routeScorecardCitation },
+    }) as unknown as D1ServingDb,
+    sqlite,
+  };
+}
+
 describe("D1 route scorecard read model", () => {
   test("round-trips scorecards through a compact row shape", () => {
     const row = serializeRouteScorecard(scorecard);
@@ -83,21 +61,37 @@ describe("D1 route scorecard read model", () => {
   });
 
   test("gets one scorecard by route and month", async () => {
-    const db = new FakeDb({
-      route_scorecard_citation: serializeRouteScorecardCitations(scorecard),
-      route_scorecard: [serializeRouteScorecard(scorecard)],
+    const { db, sqlite } = await createTestDb();
+    await db.insert(routeScorecard).values({
+      routeId: scorecard.routeId,
+      month: scorecard.month,
+      routeScore: scorecard.routeScore,
+      coverageStatus: scorecard.coverageStatus,
+      averageSpeedMph: scorecard.averageSpeedMph,
+      hotspotCount: scorecard.hotspotCount,
     });
+    await db.insert(routeScorecardCitation).values(
+      scorecard.citations.map((citation, index) => ({
+        routeId: scorecard.routeId,
+        month: scorecard.month,
+        citationRank: index + 1,
+        sourceId: citation.sourceId,
+        title: citation.title,
+        url: citation.url,
+        verifiedAt: citation.verifiedAt,
+      })),
+    );
 
     const row = await getRouteScorecard(db, "M1", "2026-01");
 
-    expect(db.calls[0]?.query).toContain("FROM route_scorecard");
-    expect(db.calls[0]?.bound).toEqual(["M1", "2026-01"]);
     expect(row).toEqual(scorecard);
+    sqlite.close();
   });
 
   test("returns null when a scorecard row does not exist", async () => {
-    const db = new FakeDb({});
+    const { db, sqlite } = await createTestDb();
 
     await expect(getRouteScorecard(db, "M2", "2026-01")).resolves.toBeNull();
+    sqlite.close();
   });
 });

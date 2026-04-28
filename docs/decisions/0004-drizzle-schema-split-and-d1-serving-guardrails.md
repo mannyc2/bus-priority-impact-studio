@@ -19,9 +19,9 @@ The main concern is D1's size and workload profile. Cloudflare documents D1 as d
 Adopt Drizzle in `packages/db`, but maintain separate Drizzle schema trees:
 
 ```text
-packages/db/src/schema/d1/      # compact Cloudflare D1 serving projection
-packages/db/src/schema/pg/      # future canonical Postgres analytics/ops schema
-packages/db/src/schema/shared/  # constants/enums only; no shared table objects
+packages/db/src/d1/      # compact Cloudflare D1 serving projection
+packages/db/src/pg/      # future canonical Postgres analytics/ops schema
+packages/db/src/shared/  # constants/enums only; no shared table objects
 ```
 
 Do not use one Drizzle table schema across D1 and Postgres. Share domain contracts through `packages/domain` and share value constants where useful, but keep database schemas dialect- and purpose-specific.
@@ -93,7 +93,7 @@ JSON/JSONB remains appropriate for raw source captures, provenance, schema-probe
 ## Drizzle/Zod pattern
 
 - Use Zod v4 schemas in `packages/domain` for domain/public API contracts.
-- Use Drizzle-generated select/insert/update schemas in `packages/db/src/validation`.
+- Use Drizzle-generated select/insert/update schemas in the relevant DB surface, such as `packages/db/src/d1/validation.ts`.
 - Do not replace domain schemas with Drizzle schemas.
 - Follow the stable package path first: stable `drizzle-orm`, `drizzle-kit`, and stable Drizzle/Zod helper package if needed.
 - Do not adopt a Drizzle 1.0 beta solely to use first-class `drizzle-orm/zod`; document that separately if chosen.

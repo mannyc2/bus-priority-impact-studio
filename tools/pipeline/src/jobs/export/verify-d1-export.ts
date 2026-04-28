@@ -1,7 +1,7 @@
 import { Database } from "bun:sqlite";
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import type { D1DatabaseLike, D1PreparedStatement, D1Result, D1Value } from "@bp/db";
+import type { D1DatabaseLike, D1PreparedStatement, D1Result, D1Value } from "@bp/db/d1";
 import {
   getRouteBatchStatus,
   listBuildEligibleRoutes,
@@ -13,7 +13,7 @@ import {
   listRouteMonthTrends,
   listRouteReliabilityBaselines,
   listSelectedRouteBuildCandidates,
-} from "@bp/db";
+} from "@bp/db/d1";
 import * as z from "zod";
 import { isoMonth } from "../../lib/dates.js";
 import { writeJson } from "../../lib/json.js";

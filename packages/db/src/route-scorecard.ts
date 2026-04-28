@@ -1,5 +1,7 @@
 import { type RouteScorecard, RouteScorecardSchema } from "@bp/domain";
-import type { D1DatabaseLike } from "./d1.js";
+import { and, asc, eq } from "drizzle-orm";
+import type { D1ServingDb } from "./d1/client.js";
+import { routeScorecard, routeScorecardCitation } from "./d1/schema.js";
 
 export type RouteScorecardRow = {
   route_id: string;
@@ -73,37 +75,43 @@ export function deserializeRouteScorecard(
 }
 
 export async function getRouteScorecard(
-  db: D1DatabaseLike,
+  db: D1ServingDb,
   routeId: string,
   month: string,
 ): Promise<RouteScorecard | null> {
-  const row = await db
-    .prepare<RouteScorecardRow>(
-      [
-        "SELECT route_id, month, route_score, coverage_status,",
-        "average_speed_mph, hotspot_count",
-        "FROM route_scorecard",
-        "WHERE route_id = ? AND month = ?",
-      ].join(" "),
-    )
-    .bind(routeId, month)
-    .first();
+  const rows = await db
+    .select({
+      route_id: routeScorecard.routeId,
+      month: routeScorecard.month,
+      route_score: routeScorecard.routeScore,
+      coverage_status: routeScorecard.coverageStatus,
+      average_speed_mph: routeScorecard.averageSpeedMph,
+      hotspot_count: routeScorecard.hotspotCount,
+    })
+    .from(routeScorecard)
+    .where(and(eq(routeScorecard.routeId, routeId), eq(routeScorecard.month, month)))
+    .limit(1);
+  const row = rows[0] ?? null;
 
   if (row === null) {
     return null;
   }
 
   const citations = await db
-    .prepare<RouteScorecardCitationRow>(
-      [
-        "SELECT route_id, month, citation_rank, source_id, title, url, verified_at",
-        "FROM route_scorecard_citation",
-        "WHERE route_id = ? AND month = ?",
-        "ORDER BY citation_rank ASC",
-      ].join(" "),
+    .select({
+      route_id: routeScorecardCitation.routeId,
+      month: routeScorecardCitation.month,
+      citation_rank: routeScorecardCitation.citationRank,
+      source_id: routeScorecardCitation.sourceId,
+      title: routeScorecardCitation.title,
+      url: routeScorecardCitation.url,
+      verified_at: routeScorecardCitation.verifiedAt,
+    })
+    .from(routeScorecardCitation)
+    .where(
+      and(eq(routeScorecardCitation.routeId, routeId), eq(routeScorecardCitation.month, month)),
     )
-    .bind(routeId, month)
-    .all();
+    .orderBy(asc(routeScorecardCitation.citationRank));
 
-  return deserializeRouteScorecard(row, citations.results ?? []);
+  return deserializeRouteScorecard(row, citations);
 }

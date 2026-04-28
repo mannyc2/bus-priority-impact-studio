@@ -1,5 +1,5 @@
 import * as z from "zod";
-import type { D1DatabaseLike } from "./d1.js";
+import type { D1DatabaseLike } from "./d1/legacy.js";
 import {
   groupMissingInputs,
   listReadinessMissingInputRows,

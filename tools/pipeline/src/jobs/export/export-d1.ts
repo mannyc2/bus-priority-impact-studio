@@ -1,7 +1,7 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { classifyPublicRouteVisibility } from "@bp/analytics";
-import { boolInt, sqlNullableNumber, sqlNullableString, sqlString } from "@bp/db";
+import { boolInt, sqlNullableNumber, sqlNullableString, sqlString } from "@bp/db/shared";
 import * as z from "zod";
 import { routeSliceKey } from "../../lib/artifacts.js";
 import { isoMonth } from "../../lib/dates.js";

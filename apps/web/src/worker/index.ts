@@ -1,4 +1,4 @@
-import { type D1DatabaseLike, getRouteScorecard } from "@bp/db";
+import { createD1ServingDb, getRouteScorecard } from "@bp/db/d1";
 import {
   HealthResponseSchema,
   healthResponseJsonSchema,
@@ -10,7 +10,7 @@ import {
 import * as z from "zod";
 
 export type Env = {
-  DB?: D1DatabaseLike;
+  DB?: D1Database;
   ARTIFACTS?: R2Bucket;
 };
 
@@ -63,7 +63,7 @@ async function buildRouteScorecardResponse(url: URL, env: Env): Promise<Response
     return errorJson(400, "Route ID is invalid.");
   }
 
-  const scorecard = await getRouteScorecard(env.DB, routeId, month.data);
+  const scorecard = await getRouteScorecard(createD1ServingDb(env.DB), routeId, month.data);
   if (scorecard === null) {
     return errorJson(404, "Route scorecard was not found.");
   }

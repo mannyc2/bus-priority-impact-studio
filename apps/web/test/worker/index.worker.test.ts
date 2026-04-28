@@ -1,11 +1,10 @@
 import {
-  type D1DatabaseLike,
   type D1PreparedStatement,
   type D1Result,
   type D1Value,
   serializeRouteScorecard,
   serializeRouteScorecardCitations,
-} from "@bp/db";
+} from "@bp/db/d1";
 import { HealthResponseSchema, RouteScorecardSchema } from "@bp/domain";
 import { describe, expect, it } from "vitest";
 import type { Env } from "../../src/worker/index.js";
@@ -34,9 +33,13 @@ class FakeStatement<T> implements D1PreparedStatement<T> {
   async all(): Promise<D1Result<T>> {
     return { results: this.rows };
   }
+
+  async raw(): Promise<unknown[][]> {
+    return this.rows.map((row) => Object.values(row as Record<string, unknown>));
+  }
 }
 
-class FakeDb implements D1DatabaseLike {
+class FakeDb {
   readonly calls: QueryCall[] = [];
 
   constructor(private readonly rowsByTable: Record<string, unknown[]>) {}
@@ -93,7 +96,7 @@ describe("Worker production-behavior harness", () => {
       route_scorecard_citation: serializeRouteScorecardCitations(scorecard),
       route_scorecard: [serializeRouteScorecard(scorecard)],
     });
-    const env = { DB: db } satisfies Env;
+    const env = { DB: db as unknown as D1Database } satisfies Env;
     const response = await worker.fetch(
       new Request("https://example.test/api/routes/m1/scorecard?month=2026-03"),
       env,
@@ -101,17 +104,13 @@ describe("Worker production-behavior harness", () => {
 
     expect(response.status).toBe(200);
     expect(RouteScorecardSchema.parse(await response.json())).toEqual(scorecard);
-    expect(db.calls[0]).toEqual(
-      expect.objectContaining({
-        bound: ["M1", "2026-03"],
-      }),
-    );
+    expect(db.calls[0]?.bound).toEqual(expect.arrayContaining(["M1", "2026-03"]));
   });
 
   it("rejects route scorecard requests without a valid month", async () => {
     const response = await worker.fetch(
       new Request("https://example.test/api/routes/M1/scorecard"),
-      { DB: new FakeDb({}) },
+      { DB: new FakeDb({}) as unknown as D1Database },
     );
 
     expect(response.status).toBe(400);

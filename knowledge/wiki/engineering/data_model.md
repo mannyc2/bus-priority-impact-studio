@@ -443,18 +443,17 @@ packages/db/
     d1/
     pg/
   src/
-    schema/
-      d1/
-      pg/
-      shared/
-    client/
-      d1.ts
-      pg-hyperdrive.ts
-    repositories/
-      d1/
-      pg/
-    validation/
-      zod.ts
+    d1/
+      client.ts
+      index.ts
+      schema.ts
+      validation.ts
+    pg/
+      index.ts
+      schema.ts
+    shared/
+      constants.ts
+      index.ts
 ```
 
 Use D1 for the compact public serving projection. Use Postgres through Hyperdrive only after a concrete requirement appears for canonical normalized operational/analytics storage, dynamic querying, or source-history retention. R2/static assets remain the storage location for large artifacts: GeoJSON, PMTiles, route briefs, source snapshots, debug bundles, and generated exports.
@@ -473,7 +472,7 @@ Facts:
 Inference:
 
 - A single shared Drizzle table layer would either water down Postgres into SQLite-shaped tables or accidentally treat D1 as a warehouse. The shared layer should be **domain contracts and constants**, not database table objects.
-- Use `packages/domain` for route IDs, month IDs, public API contracts, score semantics, and Zod schemas. Use `packages/db/src/schema/shared/` only for enum/value constants that both dialect schemas reference.
+- Use `packages/domain` for route IDs, month IDs, public API contracts, score semantics, and Zod schemas. Use `packages/db/src/shared/` only for enum/value constants that both dialect schemas reference.
 
 ### D1 10 GB concern
 
@@ -575,7 +574,7 @@ Current branch state:
 Use these patterns:
 
 1. Keep public/domain contracts in `packages/domain`, using Zod v4 schemas and `z.output`.
-2. Keep table-generated row schemas in `packages/db/src/validation/`.
+2. Keep table-generated row schemas in the relevant DB surface, such as `packages/db/src/d1/validation.ts`.
 3. Use Drizzle-derived schemas only for database boundary validation: select rows, insert payloads, update payloads, seed rows.
 4. Do not replace domain schemas with Drizzle schemas. Database row shape and public API/domain shape are different layers.
 5. Use `createSelectSchema`, `createInsertSchema`, and `createUpdateSchema` with per-field refinements/overrides where row constraints differ from domain constraints.
@@ -596,7 +595,7 @@ Use these patterns:
 | Question | Answer |
 |---|---|
 | Latest stable Zod version? | npm search reported `4.3.6` as latest on 2026-04-27, and this branch's `bun.lock` already resolves root Zod to `zod@4.3.6`. |
-| Zod v4 pattern? | Domain Zod in `packages/domain`; Drizzle-generated Zod in `packages/db/src/validation`; JSON Schema export only for public API/docs/contracts. |
+| Zod v4 pattern? | Domain Zod in `packages/domain`; Drizzle-generated Zod in DB-specific validation modules such as `packages/db/src/d1/validation.ts`; JSON Schema export only for public API/docs/contracts. |
 | Drizzle D1 setup? | `drizzle-orm/d1` with the Worker D1 binding for runtime; Drizzle Kit `dialect: "sqlite"`, `driver: "d1-http"` for remote D1 operations, with Wrangler D1 migrations for Cloudflare's migration lifecycle. |
 | Drizzle Postgres/Hyperdrive setup? | In Worker runtime, use Hyperdrive binding `env.HYPERDRIVE.connectionString`, `pg` `Client`, `drizzle-orm/node-postgres`, `nodejs_compat`, and per-request connection lifecycle. |
 | One schema or separate? | Separate D1 and Postgres schemas; share domain contracts and value constants only. |

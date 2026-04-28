@@ -3,7 +3,7 @@ import {
   RouteBriefSummarySelectSchema,
   RouteScorecardCitationSelectSchema,
   RouteScorecardSelectSchema,
-} from "../src/validation/d1.js";
+} from "../src/d1/validation.js";
 
 describe("Drizzle D1 validation schemas", () => {
   test("validate Drizzle row shapes for compact serving tables", () => {

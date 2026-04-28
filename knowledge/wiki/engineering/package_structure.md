@@ -388,13 +388,14 @@ A VPS is still not required for the MVP. Concrete triggers:
 
 `packages/db` already owns the right conceptual responsibilities. It now has Drizzle infrastructure plus explicit repository helpers:
 
-- `src/schema/d1/index.ts` declares the D1 Drizzle table mirror.
+- `src/d1/schema.ts` declares the D1 Drizzle table mirror.
 - `migrations/d1/` contains generated Drizzle SQL for the current D1 serving schema.
-- `src/validation/d1.ts` exposes Drizzle-Zod row schemas for DB boundary validation.
+- `src/d1/validation.ts` exposes Drizzle-Zod row schemas for DB boundary validation.
 - `wrangler.d1.jsonc` points Wrangler D1 migrations at `migrations/d1`.
 - the local D1 export path reads the Drizzle migration journal instead of duplicating table SQL strings.
-- `route-scorecard.ts` reconstructs citations from child rows.
-- repository files accept a `D1DatabaseLike`.
+- `@bp/db/d1`, `@bp/db/pg`, and `@bp/db/shared` are explicit subpath surfaces.
+- `route-scorecard.ts` now reads through Drizzle query builders and accepts a Drizzle D1 database.
+- remaining repository files still accept `D1DatabaseLike` while they are migrated.
 - Drizzle dependencies are scoped to `packages/db`.
 
 This should change in a small, staged way rather than rewriting the whole data layer at once.
