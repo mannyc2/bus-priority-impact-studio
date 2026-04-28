@@ -27,8 +27,6 @@ describe("route trends ingestion", () => {
       endYear: 2026,
       endMonth: 2,
       routes: ["T1"],
-      fetchedAt: new Date("2026-04-27T12:00:00.000Z"),
-      workingDir,
       dbPath,
       fetcher: async (input) => {
         const url = new URL(String(input));
@@ -66,7 +64,6 @@ describe("route trends ingestion", () => {
         ]);
       },
     });
-    const summary = await Bun.file(result.summaryPath).json();
     const local = await openLocalPipelineDb(dbPath);
     const trends = await listRouteMonthTrends(local.db);
     local.sqlite.close();
@@ -78,6 +75,9 @@ describe("route trends ingestion", () => {
         routeCount: 1,
         monthCount: 2,
         rowCount: 2,
+        speedRowCount: 1,
+        ridershipRowCount: 2,
+        completeTrendRowCount: 1,
       }),
     );
     expect(trends).toEqual([
@@ -98,12 +98,5 @@ describe("route trends ingestion", () => {
         hasRidershipTrend: true,
       }),
     ]);
-    expect(summary).toEqual(
-      expect.objectContaining({
-        speedRowCount: 1,
-        ridershipRowCount: 2,
-        completeTrendRowCount: 1,
-      }),
-    );
   });
 });

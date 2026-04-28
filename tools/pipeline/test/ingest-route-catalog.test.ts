@@ -7,15 +7,10 @@ import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
 const rawDir = fromRepoRoot(join("data/fixtures/ingest-route-catalog/raw-network"));
-const workingDir = fromRepoRoot(join("data/fixtures/ingest-route-catalog/working-network"));
 const dbPath = fromRepoRoot(join("data/fixtures/ingest-route-catalog/pipeline.sqlite"));
 
 async function removeFixtureArtifacts(): Promise<void> {
-  await Promise.all([
-    rm(rawDir, { force: true, recursive: true }),
-    rm(workingDir, { force: true, recursive: true }),
-    rm(dbPath, { force: true }),
-  ]);
+  await Promise.all([rm(rawDir, { force: true, recursive: true }), rm(dbPath, { force: true })]);
 }
 
 afterEach(async () => {
@@ -27,7 +22,6 @@ describe("route catalog ingestion", () => {
     const result = await ingestRouteCatalog({
       fetchedAt: new Date("2026-04-27T12:00:00.000Z"),
       rawDir,
-      workingDir,
       dbPath,
       fetcher: async (input) => {
         const url = new URL(String(input));
@@ -77,7 +71,6 @@ describe("route catalog ingestion", () => {
         ]);
       },
     });
-    const summary = await Bun.file(result.summaryPath).json();
     const local = await openLocalPipelineDb(dbPath);
     const localCatalog = await listRouteCatalog(local.db);
     local.sqlite.close();
@@ -101,7 +94,6 @@ describe("route catalog ingestion", () => {
         latitudeMax: 40.787,
       }),
     );
-    expect(summary.routeCount).toBe(1);
     expect(localCatalog).toEqual([
       expect.objectContaining({
         routeId: "M1",

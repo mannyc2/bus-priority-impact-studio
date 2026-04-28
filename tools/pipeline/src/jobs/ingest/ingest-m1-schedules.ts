@@ -27,11 +27,11 @@ type ScheduleIngestArgs = {
 
 type ScheduleIngestResult = {
   rawPath: string;
-  summaryPath: string;
   routeId: string;
   isoMonth: string;
   timepointCount: number;
   dayTypes: string[];
+  bundles: string[];
 };
 
 function parseCliArgs(args: string[]): ScheduleIngestArgs {
@@ -106,31 +106,13 @@ export async function ingestM1Schedules(
   const fetchedAt = (args.fetchedAt ?? new Date()).toISOString();
   const key = routeSliceKey(routeId, monthKey);
   const rawDir = fromRepoRoot(join("data/raw/route-slices", key));
-  const workingDir = fromRepoRoot(join("data/working/route-slices", key));
   const rawPath = join(rawDir, "bus_schedules_2026.json");
-  const summaryPath = join(workingDir, "schedules-summary.json");
   const rawRows = await fetchScheduleRows(source, routeId, args.fetcher);
   const normalizedRows = normalizeScheduleTimepointRows(rawRows);
   const dayTypes = [...new Set(normalizedRows.map((row) => row.dayType))].sort();
   const bundles = [
     ...new Set(normalizedRows.flatMap((row) => (row.bundle ? [row.bundle] : []))),
   ].sort();
-  const scheduleDates = [...new Set(normalizedRows.map((row) => row.scheduleDate))].sort();
-  const summary = {
-    schemaVersion,
-    sourceId,
-    routeId,
-    isoMonth: monthKey,
-    fetchedAt,
-    rowCount: rawRows.length,
-    timepointCount: normalizedRows.length,
-    dayTypes,
-    bundles,
-    earliestScheduleDate: scheduleDates[0] ?? null,
-    latestScheduleDate: scheduleDates.at(-1) ?? null,
-    caveat:
-      "Schedule rows come from the 2026 schedule dataset and may use representative schedule dates that differ from the observed speed month.",
-  };
   const local = await openLocalPipelineDb(dbPath);
   try {
     await replaceRouteSchedules(
@@ -144,25 +126,21 @@ export async function ingestM1Schedules(
   }
 
   await mkdir(rawDir, { recursive: true });
-  await mkdir(workingDir, { recursive: true });
-  await Promise.all([
-    writeJson(rawPath, {
-      schemaVersion,
-      sourceId,
-      fetchedAt,
-      query: { routeId, timepoint: "1" },
-      rows: rawRows,
-    }),
-    writeJson(summaryPath, summary),
-  ]);
+  await writeJson(rawPath, {
+    schemaVersion,
+    sourceId,
+    fetchedAt,
+    query: { routeId, timepoint: "1" },
+    rows: rawRows,
+  });
 
   return {
     rawPath,
-    summaryPath,
     routeId,
     isoMonth: monthKey,
     timepointCount: normalizedRows.length,
     dayTypes,
+    bundles,
   };
 }
 

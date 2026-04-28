@@ -20,7 +20,6 @@ type AceRoutesIngestArgs = {
 
 type AceRoutesIngestResult = {
   rawPath: string;
-  summaryPath: string;
   routeCount: number;
   aceCount: number;
   ableCount: number;
@@ -43,25 +42,11 @@ export async function ingestAceRoutes(
   const dbPath = args.dbPath ?? defaultLocalPipelineDbPath();
   const fetchedAt = (args.fetchedAt ?? new Date()).toISOString();
   const rawDir = fromRepoRoot(join("data/raw/interventions"));
-  const workingDir = fromRepoRoot(join("data/working/interventions"));
   const rawPath = join(rawDir, "ace-routes.json");
-  const summaryPath = join(workingDir, "ace-routes-summary.json");
   const rawRows = await fetchAceRouteRows(source, args.fetcher);
   const normalizedRows = normalizeAceRouteRows(rawRows);
   const aceCount = normalizedRows.filter((row) => row.program === "ACE").length;
   const ableCount = normalizedRows.filter((row) => row.program === "ABLE").length;
-  const implementationDates = normalizedRows.map((row) => row.implementationDate).sort();
-  const summary = {
-    schemaVersion,
-    sourceId,
-    fetchedAt,
-    rowCount: rawRows.length,
-    routeCount: normalizedRows.length,
-    aceCount,
-    ableCount,
-    earliestImplementationDate: implementationDates[0] ?? null,
-    latestImplementationDate: implementationDates.at(-1) ?? null,
-  };
   const local = await openLocalPipelineDb(dbPath);
   try {
     await replaceAceRoutes(local.db, normalizedRows);
@@ -70,21 +55,16 @@ export async function ingestAceRoutes(
   }
 
   await mkdir(rawDir, { recursive: true });
-  await mkdir(workingDir, { recursive: true });
-  await Promise.all([
-    writeJson(rawPath, {
-      schemaVersion,
-      sourceId,
-      fetchedAt,
-      query: { order: "route, implementation_date" },
-      rows: rawRows,
-    }),
-    writeJson(summaryPath, summary),
-  ]);
+  await writeJson(rawPath, {
+    schemaVersion,
+    sourceId,
+    fetchedAt,
+    query: { order: "route, implementation_date" },
+    rows: rawRows,
+  });
 
   return {
     rawPath,
-    summaryPath,
     routeCount: normalizedRows.length,
     aceCount,
     ableCount,

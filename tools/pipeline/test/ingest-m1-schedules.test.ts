@@ -7,15 +7,10 @@ import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
 const rawDir = fromRepoRoot(join("data/raw/route-slices/t1-2026-03"));
-const workingDir = fromRepoRoot(join("data/working/route-slices/t1-2026-03"));
 const dbPath = fromRepoRoot(join("data/working/test-m1-schedules/pipeline.sqlite"));
 
 async function removeFixtureArtifacts(): Promise<void> {
-  await Promise.all([
-    rm(rawDir, { force: true, recursive: true }),
-    rm(workingDir, { force: true, recursive: true }),
-    rm(dbPath, { force: true }),
-  ]);
+  await Promise.all([rm(rawDir, { force: true, recursive: true }), rm(dbPath, { force: true })]);
 }
 
 afterEach(async () => {
@@ -50,7 +45,6 @@ describe("M1 schedule ingestion", () => {
           },
         ]),
     });
-    const summary = await Bun.file(result.summaryPath).json();
     const local = await openLocalPipelineDb(dbPath);
     const schedules = await listRouteSchedules(local.db, "T1", "2026-03");
     local.sqlite.close();
@@ -61,6 +55,7 @@ describe("M1 schedule ingestion", () => {
         isoMonth: "2026-03",
         timepointCount: 1,
         dayTypes: ["Weekday"],
+        bundles: ["2025Aug"],
       }),
     );
     expect(schedules[0]).toEqual(
@@ -71,6 +66,5 @@ describe("M1 schedule ingestion", () => {
         scheduleTime: "2026-01-05T07:00:00.000Z",
       }),
     );
-    expect(summary.bundles).toEqual(["2025Aug"]);
   });
 });

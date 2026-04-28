@@ -59,8 +59,6 @@ describe("route ridership trend backfill", () => {
       startMonth: 1,
       endYear: 2026,
       endMonth: 2,
-      fetchedAt: new Date("2026-04-27T12:00:00.000Z"),
-      workingDir,
       dbPath,
       fetcher: async (input) => {
         const url = new URL(String(input));
@@ -71,7 +69,6 @@ describe("route ridership trend backfill", () => {
         return Response.json([{ ridership: "1000", transfers: "125" }]);
       },
     });
-    const summary = await Bun.file(result.summaryPath).json();
     const local = await openLocalPipelineDb(dbPath);
     const trends = await listRouteMonthTrends(local.db);
     local.sqlite.close();
@@ -89,11 +86,6 @@ describe("route ridership trend backfill", () => {
         transfers: 125,
         hasSpeedTrend: true,
         hasRidershipTrend: true,
-      }),
-    );
-    expect(summary.sourceReadiness).toEqual(
-      expect.objectContaining({
-        ridershipTrends: "available",
       }),
     );
   });

@@ -29,7 +29,6 @@ describe("equity context ingestion", () => {
       year: 2024,
       fetchedAt: new Date("2026-04-27T00:00:00.000Z"),
       rawDir,
-      workingDir,
       dbPath,
       fetcher: async () =>
         new Response(
@@ -92,7 +91,6 @@ describe("equity context ingestion", () => {
           { status: 200 },
         ),
     });
-    const summary = await Bun.file(result.summaryPath).json();
     const local = await openLocalPipelineDb(dbPath);
     let rows: LocalCensusTractEquityContext[];
     try {
@@ -118,19 +116,12 @@ describe("equity context ingestion", () => {
         noVehicleHouseholds: 200,
       }),
     );
-    expect(summary).toEqual(
+    expect(rows[1]).toEqual(
       expect.objectContaining({
-        tractCount: 2,
-        totalPopulation: 3000,
-        occupiedHousingUnits: 1000,
-        noVehicleHouseholdShare: 0.35,
-        medianTractMedianHouseholdIncome: 60000,
-      }),
-    );
-    expect(summary.sourceReadiness).toEqual(
-      expect.objectContaining({
-        demographics: "available",
-        jobAccess: "not_ingested_lehd_lodes_or_travel_time_model",
+        geoid: "36047000200",
+        countyName: "Kings County",
+        noVehicleHouseholdShare: 25,
+        medianHouseholdIncome: 70000,
       }),
     );
   });

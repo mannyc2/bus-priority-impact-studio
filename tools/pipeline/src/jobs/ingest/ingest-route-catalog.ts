@@ -22,14 +22,11 @@ type RouteCatalogArgs = {
   fetchedAt?: Date;
   fetcher?: SocrataFetch;
   rawDir?: string;
-  workingDir?: string;
   dbPath?: string;
 };
 
 type RouteCatalogResult = {
   rawDir: string;
-  workingDir: string;
-  summaryPath: string;
   routeCount: number;
   shapeCount: number;
   stopCount: number;
@@ -158,8 +155,6 @@ export async function ingestRouteCatalog(args: RouteCatalogArgs = {}): Promise<R
   const stopSource = getSocrataSource(manifest, "current_bus_stops" satisfies RouteCatalogSourceId);
   const fetchedAt = (args.fetchedAt ?? new Date()).toISOString();
   const rawDir = args.rawDir ?? fromRepoRoot(join("data/raw/network"));
-  const workingDir = args.workingDir ?? fromRepoRoot(join("data/working/network"));
-  const summaryPath = join(workingDir, "route-catalog-summary.json");
   const routeQuery = { where: "in_effect='true'", order: "route_id,direction_id,shape_id" };
   const stopQuery = { where: "in_effect='true'", order: "route_id,direction_id,stop_id" };
   const [routeRows, stopRows] = await Promise.all([
@@ -169,16 +164,7 @@ export async function ingestRouteCatalog(args: RouteCatalogArgs = {}): Promise<R
   const routeShapes = normalizeRouteShapeRows(routeRows);
   const stops = normalizeStopRows(stopRows);
   const catalog = buildCatalog(routeShapes, stops);
-  const summary = {
-    schemaVersion,
-    fetchedAt,
-    routeCount: catalog.length,
-    shapeCount: routeShapes.length,
-    stopCount: stops.length,
-    timepointStopCount: stops.filter((stop) => stop.timepoint).length,
-    routesWithShapes: catalog.filter((route) => route.shapeCount > 0).length,
-    routesWithStops: catalog.filter((route) => route.stopCount > 0).length,
-  };
+  const timepointStopCount = stops.filter((stop) => stop.timepoint).length;
   const local = await openLocalPipelineDb(args.dbPath);
 
   try {
@@ -188,7 +174,6 @@ export async function ingestRouteCatalog(args: RouteCatalogArgs = {}): Promise<R
   }
 
   await mkdir(rawDir, { recursive: true });
-  await mkdir(workingDir, { recursive: true });
   await Promise.all([
     writeJson(join(rawDir, "current_bus_routes.json"), {
       schemaVersion,
@@ -204,17 +189,14 @@ export async function ingestRouteCatalog(args: RouteCatalogArgs = {}): Promise<R
       query: stopQuery,
       rows: stopRows,
     }),
-    writeJson(summaryPath, summary),
   ]);
 
   return {
     rawDir,
-    workingDir,
-    summaryPath,
     routeCount: catalog.length,
     shapeCount: routeShapes.length,
     stopCount: stops.length,
-    timepointStopCount: summary.timepointStopCount,
+    timepointStopCount,
     dbPath: local.path,
   };
 }

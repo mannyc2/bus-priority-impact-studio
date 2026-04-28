@@ -25,8 +25,7 @@ bun run ingest:equity-context -- --year 2024
 Live output for ACS 2024:
 
 - `data/raw/equity/acs5-profile-nyc-tracts-2024.json`
-- `data/working/equity/nyc-tract-equity-context-2024.json`
-- `data/working/equity/nyc-tract-equity-context-2024-summary.json`
+- local pipeline DB table `local_census_tract_equity_context`
 
 Summary:
 

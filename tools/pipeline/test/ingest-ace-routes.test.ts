@@ -7,15 +7,10 @@ import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
 const rawDir = fromRepoRoot(join("data/raw/interventions"));
-const workingDir = fromRepoRoot(join("data/working/interventions"));
 const dbPath = fromRepoRoot(join("data/working/test-ace-routes/pipeline.sqlite"));
 
 async function removeFixtureArtifacts(): Promise<void> {
-  await Promise.all([
-    rm(rawDir, { force: true, recursive: true }),
-    rm(workingDir, { force: true, recursive: true }),
-    rm(dbPath, { force: true }),
-  ]);
+  await Promise.all([rm(rawDir, { force: true, recursive: true }), rm(dbPath, { force: true })]);
 }
 
 afterEach(async () => {
@@ -43,7 +38,6 @@ describe("ACE route ingestion", () => {
           },
         ]),
     });
-    const summary = await Bun.file(result.summaryPath).json();
     const local = await openLocalPipelineDb(dbPath);
     const [m1Routes, m14Routes] = await Promise.all([
       listAceRoutesForRoute(local.db, "M1"),
@@ -70,13 +64,5 @@ describe("ACE route ingestion", () => {
         implementationDate: "2019-10-07T00:00:00.000Z",
       },
     ]);
-    expect(summary).toEqual(
-      expect.objectContaining({
-        rowCount: 2,
-        routeCount: 2,
-        aceCount: 1,
-        ableCount: 1,
-      }),
-    );
   });
 });

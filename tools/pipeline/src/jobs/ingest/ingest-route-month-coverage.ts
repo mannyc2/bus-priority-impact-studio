@@ -1,16 +1,13 @@
-import { mkdir } from "node:fs/promises";
-import { join } from "node:path";
 import { replaceRouteMonthCoverage } from "@bp/db/local";
 import { RouteIdCodec } from "@bp/domain";
 import type { SocrataFetch, SocrataRow, SocrataRowsQuery } from "@bp/sources";
 import { getSocrataSource, SocrataClient } from "@bp/sources";
 import * as z from "zod";
 import { isoMonth } from "../../lib/dates.js";
-import { writeJson } from "../../lib/json.js";
 import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
 import type { SocrataManifestSource } from "../../source-manifest.js";
-import { fromRepoRoot, readSourceManifest } from "../../source-manifest.js";
+import { readSourceManifest } from "../../source-manifest.js";
 
 const schemaVersion = 1;
 
@@ -19,17 +16,15 @@ type CoverageSourceId = "bus_segment_speeds_2025" | "bus_schedules_2026";
 type RouteMonthCoverageArgs = {
   year?: number;
   month?: number;
-  fetchedAt?: Date;
   fetcher?: SocrataFetch;
-  workingDir?: string;
   dbPath?: string;
 };
 
 type RouteMonthCoverageResult = {
-  summaryPath: string;
   routeCount: number;
   speedRouteCount: number;
   scheduleRouteCount: number;
+  completeCoverageRouteCount: number;
   dbPath: string;
 };
 
@@ -61,13 +56,13 @@ type CoverageEntry = {
   hasScheduleData: boolean;
 };
 
-function parseArgs(args: RouteMonthCoverageArgs = {}): Required<RouteMonthCoverageArgs> {
+function parseArgs(
+  args: RouteMonthCoverageArgs = {},
+): Required<Omit<RouteMonthCoverageArgs, "fetchedAt" | "workingDir">> {
   return {
     year: args.year ?? 2026,
     month: args.month ?? 3,
-    fetchedAt: args.fetchedAt ?? new Date(),
     fetcher: args.fetcher ?? fetch,
-    workingDir: args.workingDir ?? fromRepoRoot(join("data/working/network")),
     dbPath: args.dbPath ?? defaultLocalPipelineDbPath(),
   };
 }
@@ -175,8 +170,6 @@ export async function ingestRouteMonthCoverage(
     manifest,
     "bus_schedules_2026" satisfies CoverageSourceId,
   );
-  const workingDir = options.workingDir;
-  const summaryPath = join(workingDir, `route-month-coverage-${month}-summary.json`);
   const speedQuery: SocrataRowsQuery = {
     select:
       "route_id,count(*) as observation_count,sum(bus_trip_count) as bus_trip_count,avg(average_road_speed) as average_speed_mph",
@@ -205,22 +198,11 @@ export async function ingestRouteMonthCoverage(
 
     return left.routeId.localeCompare(right.routeId);
   });
-  const summary = {
-    schemaVersion,
-    analysisPeriod: month,
-    fetchedAt: options.fetchedAt.toISOString(),
-    routeCount: rows.length,
-    speedRouteCount: rows.filter((row) => row.hasSpeedData).length,
-    scheduleRouteCount: rows.filter((row) => row.hasScheduleData).length,
-    completeCoverageRouteCount: rows.filter((row) => row.hasSpeedData && row.hasScheduleData)
-      .length,
-    slowestRoutes: rows.filter((row) => row.averageSpeedMph !== null).slice(0, 10),
-    caveats: [
-      "Coverage rows are route/month aggregates intended for inventory and batch planning.",
-      "Average speed is an unweighted route aggregate from public segment-speed rows; detailed route artifacts compute richer weighted metrics.",
-      "All-route ridership aggregation is intentionally not part of this query because the public ridership dataset is too slow for a single uncached all-route monthly aggregate.",
-    ],
-  };
+  const speedRouteCount = rows.filter((row) => row.hasSpeedData).length;
+  const scheduleRouteCount = rows.filter((row) => row.hasScheduleData).length;
+  const completeCoverageRouteCount = rows.filter(
+    (row) => row.hasSpeedData && row.hasScheduleData,
+  ).length;
   const local = await openLocalPipelineDb(options.dbPath);
 
   try {
@@ -229,14 +211,11 @@ export async function ingestRouteMonthCoverage(
     local.sqlite.close();
   }
 
-  await mkdir(workingDir, { recursive: true });
-  await writeJson(summaryPath, summary);
-
   return {
-    summaryPath,
     routeCount: rows.length,
-    speedRouteCount: summary.speedRouteCount,
-    scheduleRouteCount: summary.scheduleRouteCount,
+    speedRouteCount,
+    scheduleRouteCount,
+    completeCoverageRouteCount,
     dbPath: local.path,
   };
 }

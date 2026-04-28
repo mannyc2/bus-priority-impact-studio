@@ -312,9 +312,9 @@ Batch-level JSON reports are no longer the handoff between local pipeline jobs a
 
 ### ACS equity context
 
-`data/working/equity/nyc-tract-equity-context-2024.json` stores 2,327 NYC census-tract context rows from ACS 2024 5-year profile data. The layer includes total population, occupied housing units, no-vehicle households, median household income, poverty rate, public-transit commute share, and selected race/ethnicity shares.
+The local pipeline DB table `local_census_tract_equity_context` stores 2,327 NYC census-tract context rows from ACS 2024 5-year profile data. The raw Census API capture remains in `data/raw/equity/acs5-profile-nyc-tracts-2024.json`; the normalized tract rows are no longer handed between jobs as JSON.
 
-`route_equity_context.json` stores a county-level route proxy derived from this tract context so the serving layer can compare routes against demographics and low-car households now. It is not a tract catchment join yet, and job access is still not ingested.
+The local and D1 `route_equity_context` tables store a county-level route proxy derived from this tract context so the serving layer can compare routes against demographics and low-car households now. It is not a tract catchment join yet, and job access is still not ingested.
 
 ## D1 Export Verification
 

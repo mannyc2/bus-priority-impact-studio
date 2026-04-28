@@ -23,7 +23,6 @@ type AceViolationIngestArgs = {
 
 type AceViolationIngestResult = {
   rawPath: string;
-  summaryPath: string;
   isoMonth: string;
   routeCount: number;
   groupedRowCount: number;
@@ -93,34 +92,11 @@ export async function ingestAceViolationSummary(
   const source = getSocrataSource(manifest, sourceId);
   const fetchedAt = (args.fetchedAt ?? new Date()).toISOString();
   const rawDir = fromRepoRoot(join("data/raw/interventions"));
-  const workingDir = fromRepoRoot(join("data/working/interventions"));
   const rawPath = join(rawDir, `ace-violations-${monthKey}.json`);
-  const summaryPath = join(workingDir, `ace-violations-${monthKey}-summary.json`);
   const rawRows = await fetchAceViolationSummaryRows(source, year, month, args.fetcher);
   const rows = normalizeAceViolationSummaryRows(rawRows);
   const routeIds = [...new Set(rows.map((row) => row.routeId))].sort();
   const violationCount = rows.reduce((sum, row) => sum + row.violationCount, 0);
-  const byRoute = routeIds
-    .map((routeId) => ({
-      routeId,
-      violationCount: rows
-        .filter((row) => row.routeId === routeId)
-        .reduce((sum, row) => sum + row.violationCount, 0),
-    }))
-    .sort(
-      (left, right) =>
-        right.violationCount - left.violationCount || left.routeId.localeCompare(right.routeId),
-    );
-  const summary = {
-    schemaVersion,
-    sourceId,
-    isoMonth: monthKey,
-    fetchedAt,
-    groupedRowCount: rows.length,
-    routeCount: routeIds.length,
-    violationCount,
-    topRoutes: byRoute.slice(0, 10),
-  };
   const local = await openLocalPipelineDb(dbPath);
   try {
     await replaceAceViolationSummaries(
@@ -133,25 +109,20 @@ export async function ingestAceViolationSummary(
   }
 
   await mkdir(rawDir, { recursive: true });
-  await mkdir(workingDir, { recursive: true });
-  await Promise.all([
-    writeJson(rawPath, {
-      schemaVersion,
-      sourceId,
-      isoMonth: monthKey,
-      fetchedAt,
-      query: {
-        grain: "bus_route_id, violation_type, violation_status",
-        month: monthKey,
-      },
-      rows: rawRows,
-    }),
-    writeJson(summaryPath, summary),
-  ]);
+  await writeJson(rawPath, {
+    schemaVersion,
+    sourceId,
+    isoMonth: monthKey,
+    fetchedAt,
+    query: {
+      grain: "bus_route_id, violation_type, violation_status",
+      month: monthKey,
+    },
+    rows: rawRows,
+  });
 
   return {
     rawPath,
-    summaryPath,
     isoMonth: monthKey,
     routeCount: routeIds.length,
     groupedRowCount: rows.length,

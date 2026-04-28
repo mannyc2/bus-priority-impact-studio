@@ -1,18 +1,13 @@
-import { mkdir } from "node:fs/promises";
-import { join } from "node:path";
 import { listRouteMonthTrends, replaceRouteMonthTrends } from "@bp/db/local";
 import { RouteIdCodec } from "@bp/domain";
 import type { SocrataFetch, SocrataRowsQuery } from "@bp/sources";
 import { getSocrataSource, SocrataClient, soqlQuote } from "@bp/sources";
 import * as z from "zod";
 import { isoMonth, isoMonthStart, nextIsoMonthStart } from "../../lib/dates.js";
-import { writeJson } from "../../lib/json.js";
 import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
 import type { SocrataManifestSource } from "../../source-manifest.js";
-import { fromRepoRoot, readSourceManifest } from "../../source-manifest.js";
-
-const schemaVersion = 1;
+import { readSourceManifest } from "../../source-manifest.js";
 
 type RidershipBackfillArgs = {
   startYear?: number;
@@ -22,16 +17,13 @@ type RidershipBackfillArgs = {
   routes?: string[];
   limit?: number;
   concurrency?: number;
-  fetchedAt?: Date;
   fetcher?: SocrataFetch;
-  workingDir?: string;
   dbPath?: string;
 };
 
 type RidershipBackfillResult = {
   startMonth: string;
   endMonth: string;
-  summaryPath: string;
   attemptedChunkCount: number;
   updatedRowCount: number;
   remainingRidershipMissingCount: number;
@@ -55,7 +47,9 @@ function parseIsoMonth(month: string): { year: number; month: number } {
   return { year, month: monthNumber };
 }
 
-function parseArgs(args: RidershipBackfillArgs = {}): Required<RidershipBackfillArgs> {
+function parseArgs(
+  args: RidershipBackfillArgs = {},
+): Required<Omit<RidershipBackfillArgs, "fetchedAt" | "workingDir">> {
   return {
     startYear: args.startYear ?? 2025,
     startMonth: args.startMonth ?? 1,
@@ -64,9 +58,7 @@ function parseArgs(args: RidershipBackfillArgs = {}): Required<RidershipBackfill
     routes: args.routes ?? [],
     limit: args.limit ?? Number.POSITIVE_INFINITY,
     concurrency: args.concurrency ?? 4,
-    fetchedAt: args.fetchedAt ?? new Date(),
     fetcher: args.fetcher ?? fetch,
-    workingDir: args.workingDir ?? fromRepoRoot(join("data/working/trends")),
     dbPath: args.dbPath ?? defaultLocalPipelineDbPath(),
   };
 }
@@ -133,10 +125,6 @@ function parseCliArgs(args: string[]): RidershipBackfillArgs {
   }
 
   return output;
-}
-
-function summaryPath(workingDir: string, startMonth: string, endMonth: string): string {
-  return join(workingDir, `route-ridership-trend-backfill-${startMonth}_through_${endMonth}.json`);
 }
 
 function inRange(row: TrendRow, startMonth: string, endMonth: string): boolean {
@@ -238,39 +226,17 @@ export async function backfillRouteRidershipTrends(
   });
   const outputRows = rows.filter((row) => inRange(row, startMonth, endMonth));
   const remainingRidershipMissingCount = outputRows.filter((row) => !row.hasRidershipTrend).length;
-  const summary = {
-    schemaVersion,
-    startMonth,
-    endMonth,
-    fetchedAt: options.fetchedAt.toISOString(),
-    attemptedChunkCount: candidates.length,
-    updatedRowCount: updates.length,
-    remainingRidershipMissingCount,
-    routeCount: new Set(outputRows.map((row) => row.routeId)).size,
-    rowCount: outputRows.length,
-    sourceReadiness: {
-      ridershipTrends:
-        remainingRidershipMissingCount === 0 ? "available" : "partial_chunked_backfill",
-    },
-    caveats: [
-      "Backfill fetches one route/month ridership aggregate per chunk to avoid slow all-route Socrata grouped queries.",
-      "Ridership remains route-level and is not allocated to segments or stops.",
-    ],
-  };
 
-  await mkdir(options.workingDir, { recursive: true });
   const writeLocal = await openLocalPipelineDb(options.dbPath);
   try {
     await replaceRouteMonthTrends(writeLocal.db, rows);
   } finally {
     writeLocal.sqlite.close();
   }
-  await writeJson(summaryPath(options.workingDir, startMonth, endMonth), summary);
 
   return {
     startMonth,
     endMonth,
-    summaryPath: summaryPath(options.workingDir, startMonth, endMonth),
     attemptedChunkCount: candidates.length,
     updatedRowCount: updates.length,
     remainingRidershipMissingCount,

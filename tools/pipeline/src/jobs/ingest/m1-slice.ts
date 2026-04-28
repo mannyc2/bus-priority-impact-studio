@@ -63,7 +63,6 @@ type RawSlicePayload = {
 
 type RouteSliceOutput = {
   rawDir: string;
-  workingDir: string;
   summary: {
     schemaVersion: typeof schemaVersion;
     routeId: string;
@@ -162,10 +161,8 @@ export async function ingestM1RouteSlice(args: RouteSliceArgs = {}): Promise<Rou
   const fetchedAt = options.fetchedAt.toISOString();
   const key = lowerSliceKey(options.routeId, options.year, options.month);
   const rawDir = fromRepoRoot(join("data/raw/route-slices", key));
-  const workingDir = fromRepoRoot(join("data/working/route-slices", key));
 
   await mkdir(rawDir, { recursive: true });
-  await mkdir(workingDir, { recursive: true });
 
   const speedQuery = {
     where: segmentWhere,
@@ -272,12 +269,10 @@ export async function ingestM1RouteSlice(args: RouteSliceArgs = {}): Promise<Rou
       rawPaths.bus_hourly_ridership_2025,
       rawPayload("bus_hourly_ridership_2025", fetchedAt, ridershipQuery, ridershipRows),
     ),
-    writeJson(join(workingDir, "summary.json"), summary),
   ]);
 
   return {
     rawDir,
-    workingDir,
     summary,
   };
 }

@@ -1,16 +1,13 @@
-import { mkdir } from "node:fs/promises";
-import { join } from "node:path";
 import { listRouteBuildPlan, replaceRouteMonthTrends } from "@bp/db/local";
 import { RouteIdCodec } from "@bp/domain";
 import type { SocrataFetch, SocrataRow, SocrataRowsQuery } from "@bp/sources";
 import { getSocrataSource, SocrataClient, soqlIn, soqlYearMonthRange } from "@bp/sources";
 import * as z from "zod";
 import { isoMonth, isoMonthStart, monthRange, nextIsoMonthStart } from "../../lib/dates.js";
-import { writeJson } from "../../lib/json.js";
 import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
 import type { SocrataManifestSource } from "../../source-manifest.js";
-import { fromRepoRoot, readSourceManifest } from "../../source-manifest.js";
+import { readSourceManifest } from "../../source-manifest.js";
 
 const schemaVersion = 1;
 
@@ -23,19 +20,19 @@ type RouteTrendsArgs = {
   endMonth?: number;
   routes?: string[];
   includeRidership?: boolean;
-  fetchedAt?: Date;
   fetcher?: SocrataFetch;
-  workingDir?: string;
   dbPath?: string;
 };
 
 type RouteTrendsResult = {
   startMonth: string;
   endMonth: string;
-  summaryPath: string;
   routeCount: number;
   monthCount: number;
   rowCount: number;
+  speedRowCount: number;
+  ridershipRowCount: number;
+  completeTrendRowCount: number;
 };
 
 type TrendRow = {
@@ -74,7 +71,9 @@ const RawRidershipTrendRowSchema = z
   })
   .passthrough();
 
-function parseArgs(args: RouteTrendsArgs = {}): Required<RouteTrendsArgs> {
+function parseArgs(
+  args: RouteTrendsArgs = {},
+): Required<Omit<RouteTrendsArgs, "fetchedAt" | "workingDir">> {
   return {
     startYear: args.startYear ?? 2025,
     startMonth: args.startMonth ?? 1,
@@ -82,9 +81,7 @@ function parseArgs(args: RouteTrendsArgs = {}): Required<RouteTrendsArgs> {
     endMonth: args.endMonth ?? 3,
     routes: args.routes ?? [],
     includeRidership: args.includeRidership ?? true,
-    fetchedAt: args.fetchedAt ?? new Date(),
     fetcher: args.fetcher ?? fetch,
-    workingDir: args.workingDir ?? fromRepoRoot(join("data/working/trends")),
     dbPath: args.dbPath ?? defaultLocalPipelineDbPath(),
   };
 }
@@ -239,7 +236,7 @@ export async function ingestRouteTrends(args: RouteTrendsArgs = {}): Promise<Rou
       : await routeIdsFromCurrentBatch(options.endYear, options.endMonth, options.dbPath);
 
   if (routeIds.length === 0) {
-    throw new Error("No route IDs provided and no batch summary found for the trend end month.");
+    throw new Error("No route IDs provided and no build plan found for the trend end month.");
   }
 
   const manifest = await readSourceManifest();
@@ -292,37 +289,12 @@ export async function ingestRouteTrends(args: RouteTrendsArgs = {}): Promise<Rou
   );
   const startMonth = start.isoMonth;
   const endMonth = end.isoMonth;
-  const suffix = `${startMonth}_through_${endMonth}`;
-  const summaryPath = join(options.workingDir, `route-month-trends-${suffix}-summary.json`);
-  const summary = {
-    schemaVersion,
-    startMonth,
-    endMonth,
-    fetchedAt: options.fetchedAt.toISOString(),
-    routeCount: routeIds.length,
-    routeIds,
-    monthCount: months.length,
-    rowCount: rows.length,
-    speedRowCount: rows.filter((row) => row.trendCoverage.speed).length,
-    ridershipRowCount: rows.filter((row) => row.trendCoverage.ridership).length,
-    completeTrendRowCount: rows.filter(
-      (row) => row.trendCoverage.speed && row.trendCoverage.ridership,
-    ).length,
-    sourceReadiness: {
-      speedTrends: "available",
-      ridershipTrends: options.includeRidership ? "available" : "skipped_for_this_run",
-      reliabilityTrends: "scheduled_baseline_only_until_gtfs_rt_history_exists",
-      interventionEventStudy: "requires_intervention_history_join",
-    },
-    caveats: [
-      "Trend rows are route/month aggregates for panel and event-study inputs.",
-      "Average speed is an unweighted average of public segment-speed rows.",
-      "Ridership is grouped from route-level hourly ridership and is not stop- or segment-specific.",
-    ],
-  };
+  const speedRowCount = rows.filter((row) => row.trendCoverage.speed).length;
+  const ridershipRowCount = rows.filter((row) => row.trendCoverage.ridership).length;
+  const completeTrendRowCount = rows.filter(
+    (row) => row.trendCoverage.speed && row.trendCoverage.ridership,
+  ).length;
 
-  await mkdir(options.workingDir, { recursive: true });
-  await writeJson(summaryPath, summary);
   const local = await openLocalPipelineDb(options.dbPath);
   try {
     await replaceRouteMonthTrends(
@@ -346,10 +318,12 @@ export async function ingestRouteTrends(args: RouteTrendsArgs = {}): Promise<Rou
   return {
     startMonth,
     endMonth,
-    summaryPath,
     routeCount: routeIds.length,
     monthCount: months.length,
     rowCount: rows.length,
+    speedRowCount,
+    ridershipRowCount,
+    completeTrendRowCount,
   };
 }
 
