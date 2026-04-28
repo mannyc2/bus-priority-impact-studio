@@ -14,7 +14,6 @@ import { buildM1Hotspots } from "./m1-hotspots.js";
 import { buildM1InterventionOverlay } from "./m1-intervention-overlay.js";
 import { buildM1RidershipProfile } from "./m1-ridership-profile.js";
 import { buildM1RouteBriefInput } from "./m1-route-brief-input.js";
-import { buildM1RouteScore } from "./m1-route-score.js";
 import { buildM1ScheduleComparison } from "./m1-schedule-comparison.js";
 import { buildM1SpeedProfile } from "./m1-speed-profile.js";
 
@@ -60,7 +59,6 @@ type RoutePipelineDeps = {
   buildHotspots: typeof buildM1Hotspots;
   buildRidershipProfile: typeof buildM1RidershipProfile;
   buildSpeedProfile: typeof buildM1SpeedProfile;
-  buildRouteScore: typeof buildM1RouteScore;
   buildInterventionOverlay: typeof buildM1InterventionOverlay;
   buildBusLaneOverlay: typeof buildM1BusLaneOverlay;
   buildScheduleComparison: typeof buildM1ScheduleComparison;
@@ -77,7 +75,6 @@ const defaultDeps: RoutePipelineDeps = {
   buildHotspots: buildM1Hotspots,
   buildRidershipProfile: buildM1RidershipProfile,
   buildSpeedProfile: buildM1SpeedProfile,
-  buildRouteScore: buildM1RouteScore,
   buildInterventionOverlay: buildM1InterventionOverlay,
   buildBusLaneOverlay: buildM1BusLaneOverlay,
   buildScheduleComparison: buildM1ScheduleComparison,
@@ -185,11 +182,13 @@ export async function buildRouteSliceArtifacts(
 
   await deps.buildRidershipProfile({ ...routeArgs, limit: options.hotspotLimit });
   await deps.buildSpeedProfile({ ...routeArgs, limit: options.hotspotLimit });
-  const scorecard = await deps.buildRouteScore(routeArgs);
   await deps.buildInterventionOverlay(routeArgs);
   await deps.buildBusLaneOverlay(routeArgs);
   await deps.buildScheduleComparison(routeArgs);
-  await deps.buildRouteBriefInput({ ...routeArgs, topSegmentLimit: options.topSegmentLimit });
+  const brief = await deps.buildRouteBriefInput({
+    ...routeArgs,
+    topSegmentLimit: options.topSegmentLimit,
+  });
   const manifest = await deps.buildArtifactManifest(routeArgs);
 
   return {
@@ -199,7 +198,7 @@ export async function buildRouteSliceArtifacts(
     ridershipWindows: slice.summary.normalized.ridershipWindowCount,
     scheduleTimepoints: schedules.timepointCount,
     hotspotCount: hotspots.hotspotCount,
-    routeScore: scorecard.routeScore,
+    routeScore: brief.routeScore,
     artifactCount: manifest.artifactCount,
   };
 }

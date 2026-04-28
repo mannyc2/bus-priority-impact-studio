@@ -32,10 +32,6 @@ describe("route slice batch pipeline", () => {
         calls.push(`speed:${routeId}`);
         return {};
       },
-      buildRouteScore: async ({ routeId }: { routeId?: string }) => {
-        calls.push(`score:${routeId}`);
-        return { routeScore: routeId === "M1" ? 16 : 22 };
-      },
       buildInterventionOverlay: async ({ routeId }: { routeId?: string }) => {
         calls.push(`interventions:${routeId}`);
         return {};
@@ -50,7 +46,7 @@ describe("route slice batch pipeline", () => {
       },
       buildRouteBriefInput: async ({ routeId }: { routeId?: string }) => {
         calls.push(`brief:${routeId}`);
-        return {};
+        return { routeScore: routeId === "M1" ? 16 : 22 };
       },
       buildArtifactManifest: async ({ routeId }: { routeId?: string }) => {
         calls.push(`manifest:${routeId}`);

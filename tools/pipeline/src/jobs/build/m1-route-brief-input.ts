@@ -39,6 +39,8 @@ type RouteBriefBuildResult = {
   routeId: string;
   isoMonth: string;
   briefInputPath: string;
+  scorecardPath: string;
+  routeScore: number;
   topSegmentCount: number;
 };
 
@@ -642,6 +644,12 @@ export async function buildM1RouteBriefInput(
     "route-brief-input.json",
     briefInput,
   );
+  const scorecardPath = await writeRouteSliceArtifact(
+    options.routeId,
+    month,
+    "route-scorecard.json",
+    scorecard,
+  );
   const scheduleMatchRate =
     scorecard.hotspotCount === 0
       ? 0
@@ -730,6 +738,8 @@ export async function buildM1RouteBriefInput(
     routeId: summary.routeId,
     isoMonth: summary.isoMonth,
     briefInputPath,
+    scorecardPath,
+    routeScore: scorecard.routeScore,
     topSegmentCount: topSegments.length,
   };
 }
