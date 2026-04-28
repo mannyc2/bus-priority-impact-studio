@@ -2,13 +2,15 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
 import { mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
+import { replaceRouteBuildPlan, replaceRouteCatalog, replaceRouteReadiness } from "@bp/db/local";
 import { buildRouteBatchAudit } from "../src/jobs/build/route-batch-audit.js";
+import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
 const isoMonth = "2026-08";
 const batchDir = fromRepoRoot(join("data/artifacts/route-batches", isoMonth));
 const routeDir = fromRepoRoot(join("data/artifacts/route-slices/t1-2026-08"));
-const networkDir = fromRepoRoot(join("data/fixtures/route-batch-audit/network"));
+const dbPath = fromRepoRoot(join("data/fixtures/route-batch-audit/pipeline.sqlite"));
 const artifactNames = [
   "summary.json",
   "hotspots.json",
@@ -29,7 +31,7 @@ async function removeFixtureArtifacts(): Promise<void> {
   await Promise.all([
     rm(batchDir, { force: true, recursive: true }),
     rm(routeDir, { force: true, recursive: true }),
-    rm(networkDir, { force: true, recursive: true }),
+    rm(dbPath, { force: true }),
   ]);
 }
 
@@ -37,7 +39,6 @@ async function writeFixtureBatch(): Promise<void> {
   await removeFixtureArtifacts();
   await mkdir(batchDir, { recursive: true });
   await mkdir(routeDir, { recursive: true });
-  await mkdir(networkDir, { recursive: true });
   await Bun.write(
     join(batchDir, "batch-summary.json"),
     `${JSON.stringify(
@@ -46,24 +47,6 @@ async function writeFixtureBatch(): Promise<void> {
         analysisPeriod: isoMonth,
         routeCount: 1,
         routes: [{ routeId: "T1", isoMonth }],
-      },
-      null,
-      2,
-    )}\n`,
-  );
-  await Bun.write(
-    join(batchDir, "route-build-plan.json"),
-    `${JSON.stringify(
-      {
-        schemaVersion: 1,
-        analysisPeriod: isoMonth,
-        rows: [
-          {
-            routeId: "T1",
-            readinessStatus: "missing_speed",
-            missingInputs: ["segment_speeds"],
-          },
-        ],
       },
       null,
       2,
@@ -81,24 +64,68 @@ async function writeFixtureBatch(): Promise<void> {
       2,
     )}\n`,
   );
-  await Bun.write(
-    join(networkDir, "route-catalog.json"),
-    `${JSON.stringify(
-      {
-        schemaVersion: 1,
-        rows: [
-          {
-            routeId: "T1",
-            routeLongName: "7 Shuttle Bus - Main Street - Mets/Willets Pt",
-            routeTypes: ["Local"],
-            shapeCount: 2,
-          },
-        ],
-      },
-      null,
-      2,
-    )}\n`,
-  );
+  const local = await openLocalPipelineDb(dbPath);
+
+  await replaceRouteCatalog(local.db, [
+    {
+      routeId: "T1",
+      routeShortName: "T1",
+      routeLongName: "7 Shuttle Bus - Main Street - Mets/Willets Pt",
+      routeTypes: ["Local"],
+      directions: [],
+      shapeCount: 2,
+      stopCount: 10,
+      timepointStopCount: 4,
+      latitudeMin: null,
+      latitudeMax: null,
+      longitudeMin: null,
+      longitudeMax: null,
+    },
+  ]);
+  await replaceRouteReadiness(local.db, isoMonth, [
+    {
+      routeId: "T1",
+      routeShortName: "T1",
+      routeLongName: "7 Shuttle Bus - Main Street - Mets/Willets Pt",
+      isoMonth,
+      readinessStatus: "missing_speed",
+      buildEligible: true,
+      readinessScore: 60,
+      missingInputs: ["segment_speeds"],
+      speedObservationCount: 0,
+      speedBusTripCount: 0,
+      averageSpeedMph: null,
+      scheduleTimepointCount: 100,
+      shapeCount: 2,
+      stopCount: 10,
+      timepointStopCount: 4,
+    },
+  ]);
+  await replaceRouteBuildPlan(local.db, isoMonth, [
+    {
+      routeId: "T1",
+      routeShortName: "T1",
+      routeLongName: "7 Shuttle Bus - Main Street - Mets/Willets Pt",
+      isoMonth,
+      candidateRank: 1,
+      planStatus: "selected",
+      selectedForNextBatch: true,
+      alreadyBuilt: false,
+      buildEligible: true,
+      priorityScore: 60,
+      readinessStatus: "missing_speed",
+      readinessScore: 60,
+      missingInputs: ["segment_speeds"],
+      speedObservationCount: 0,
+      speedBusTripCount: 0,
+      averageSpeedMph: null,
+      scheduleTimepointCount: 100,
+      shapeCount: 2,
+      stopCount: 10,
+      timepointStopCount: 4,
+    },
+  ]);
+  local.sqlite.close();
   const artifacts = await Promise.all(
     artifactNames.map(async (name) => {
       const content =
@@ -154,7 +181,7 @@ describe("route batch audit", () => {
   test("verifies artifact manifests, byte lengths, and hashes for a batch", async () => {
     await writeFixtureBatch();
 
-    const result = await buildRouteBatchAudit({ year: 2026, month: 8, batchDir, networkDir });
+    const result = await buildRouteBatchAudit({ year: 2026, month: 8, batchDir, dbPath });
     const audit = await Bun.file(result.auditPath).json();
 
     expect(result).toEqual(
@@ -195,7 +222,7 @@ describe("route batch audit", () => {
     await writeFixtureBatch();
     await rm(join(routeDir, "hotspots.json"));
 
-    const result = await buildRouteBatchAudit({ year: 2026, month: 8, batchDir, networkDir });
+    const result = await buildRouteBatchAudit({ year: 2026, month: 8, batchDir, dbPath });
     const audit = await Bun.file(result.auditPath).json();
 
     expect(result.status).toBe("fail");

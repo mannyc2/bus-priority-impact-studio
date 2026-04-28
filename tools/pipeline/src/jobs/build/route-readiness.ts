@@ -1,4 +1,3 @@
-import { join } from "node:path";
 import {
   type LocalRouteCatalogEntry,
   type LocalRouteMonthCoverage,
@@ -7,13 +6,9 @@ import {
   listRouteMonthCoverage,
   replaceRouteReadiness,
 } from "@bp/db/local";
-import { writeArtifact } from "../../lib/artifact-store.js";
 import { isoMonth } from "../../lib/dates.js";
 import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
-import { fromRepoRoot } from "../../source-manifest.js";
-
-const schemaVersion = 1;
 
 type RouteReadinessArgs = {
   year?: number;
@@ -21,14 +16,8 @@ type RouteReadinessArgs = {
   dbPath?: string;
 };
 
-type RouteReadinessArtifactRow = LocalRouteReadiness & {
-  schemaVersion: typeof schemaVersion;
-};
-
 type RouteReadinessResult = {
   isoMonth: string;
-  readinessPath: string;
-  summaryPath: string;
   routeCount: number;
   buildEligibleRouteCount: number;
   dbPath: string;
@@ -152,7 +141,7 @@ function buildReadinessRows(
   catalog: readonly LocalRouteCatalogEntry[],
   coverage: readonly LocalRouteMonthCoverage[],
   month: string,
-): RouteReadinessArtifactRow[] {
+): LocalRouteReadiness[] {
   const coverageByRoute = new Map(coverage.map((row) => [row.routeId, row]));
 
   return catalog
@@ -162,7 +151,6 @@ function buildReadinessRows(
       const status = readinessStatus(missing);
 
       return {
-        schemaVersion,
         routeId: route.routeId,
         routeShortName: route.routeShortName,
         routeLongName: route.routeLongName,
@@ -178,7 +166,7 @@ function buildReadinessRows(
         shapeCount: route.shapeCount,
         stopCount: route.stopCount,
         timepointStopCount: route.timepointStopCount,
-      } satisfies RouteReadinessArtifactRow;
+      } satisfies LocalRouteReadiness;
     })
     .sort((left, right) => {
       if (left.buildEligible !== right.buildEligible) {
@@ -213,26 +201,11 @@ function statusPriority(status: LocalRouteReadiness["readinessStatus"]): number 
   }
 }
 
-function summarizeStatusCounts(
-  rows: readonly RouteReadinessArtifactRow[],
-): Record<LocalRouteReadiness["readinessStatus"], number> {
-  return {
-    ready: rows.filter((row) => row.readinessStatus === "ready").length,
-    partial: rows.filter((row) => row.readinessStatus === "partial").length,
-    missing_geometry: rows.filter((row) => row.readinessStatus === "missing_geometry").length,
-    missing_schedule: rows.filter((row) => row.readinessStatus === "missing_schedule").length,
-    missing_speed: rows.filter((row) => row.readinessStatus === "missing_speed").length,
-  };
-}
-
 export async function buildRouteReadiness(
   args: RouteReadinessArgs = {},
 ): Promise<RouteReadinessResult> {
   const options = parseBuildArgs(args);
   const month = isoMonth(options.year, options.month);
-  const batchDir = fromRepoRoot(join("data/artifacts/route-batches", month));
-  const readinessPath = join(batchDir, "route-readiness.json");
-  const summaryPath = join(batchDir, "route-readiness-summary.json");
   const local = await openLocalPipelineDb(options.dbPath);
 
   try {
@@ -242,43 +215,11 @@ export async function buildRouteReadiness(
     ]);
     const rows = buildReadinessRows(catalog, coverage, month);
     const buildEligibleRoutes = rows.filter((row) => row.buildEligible);
-    const summary = {
-      schemaVersion,
-      analysisPeriod: month,
-      generatedAt: new Date().toISOString(),
-      routeCount: rows.length,
-      buildEligibleRouteCount: buildEligibleRoutes.length,
-      statusCounts: summarizeStatusCounts(rows),
-      topBuildCandidates: buildEligibleRoutes.slice(0, 20).map((row) => ({
-        routeId: row.routeId,
-        averageSpeedMph: row.averageSpeedMph,
-        speedObservationCount: row.speedObservationCount,
-        scheduleTimepointCount: row.scheduleTimepointCount,
-        readinessScore: row.readinessScore,
-      })),
-      caveats: [
-        "Route readiness is a batch-planning gate, not a public performance score.",
-        "Build eligibility now reflects whether the route can move through artifact generation, not whether every upstream source is complete.",
-        "Missing speed, schedule, or geometry coverage is surfaced as a readiness gap and should be treated as a data-quality limitation on the resulting artifacts.",
-        "All-route ridership remains route-slice scoped until a reliable all-route ridership aggregate is added.",
-      ],
-    };
 
     await replaceRouteReadiness(local.db, month, rows);
-    await Promise.all([
-      writeArtifact(batchDir, readinessPath, {
-        schemaVersion,
-        analysisPeriod: month,
-        generatedAt: summary.generatedAt,
-        rows,
-      }),
-      writeArtifact(batchDir, summaryPath, summary),
-    ]);
 
     return {
       isoMonth: month,
-      readinessPath,
-      summaryPath,
       routeCount: rows.length,
       buildEligibleRouteCount: buildEligibleRoutes.length,
       dbPath: local.path,

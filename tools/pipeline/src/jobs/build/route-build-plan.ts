@@ -6,13 +6,11 @@ import {
   replaceRouteBuildPlan,
 } from "@bp/db/local";
 import * as z from "zod";
-import { readArtifactIfPresent, writeArtifact } from "../../lib/artifact-store.js";
+import { readArtifactIfPresent } from "../../lib/artifact-store.js";
 import { isoMonth } from "../../lib/dates.js";
 import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
 import { fromRepoRoot } from "../../source-manifest.js";
-
-const schemaVersion = 1;
 
 const IsoMonthSchema = z.string().regex(/^\d{4}-\d{2}$/);
 
@@ -40,14 +38,8 @@ type RouteBuildPlanArgs = {
 
 type BatchSummary = z.output<typeof BatchSummarySchema>;
 
-type RouteBuildPlanArtifactRow = LocalRouteBuildPlan & {
-  schemaVersion: typeof schemaVersion;
-};
-
 type RouteBuildPlanResult = {
   isoMonth: string;
-  planPath: string;
-  summaryPath: string;
   routeCount: number;
   selectedRouteCount: number;
   alreadyBuiltRouteCount: number;
@@ -153,7 +145,7 @@ function buildPlanRows(input: {
   readiness: readonly LocalRouteReadiness[];
   batch: BatchSummary | null;
   limit: number;
-}): RouteBuildPlanArtifactRow[] {
+}): LocalRouteBuildPlan[] {
   const alreadyBuiltRouteIds = new Set(input.batch?.routes.map((route) => route.routeId) ?? []);
   const candidateRows = input.readiness
     .filter((row) => row.buildEligible && !alreadyBuiltRouteIds.has(row.routeId))
@@ -177,7 +169,6 @@ function buildPlanRows(input: {
             : "backlog";
 
       return {
-        schemaVersion,
         routeId: row.routeId,
         routeShortName: row.routeShortName,
         routeLongName: row.routeLongName,
@@ -198,7 +189,7 @@ function buildPlanRows(input: {
         shapeCount: row.shapeCount,
         stopCount: row.stopCount,
         timepointStopCount: row.timepointStopCount,
-      } satisfies RouteBuildPlanArtifactRow;
+      } satisfies LocalRouteBuildPlan;
     })
     .sort((left, right) => {
       const leftStatusPriority = planStatusPriority(left.planStatus);
@@ -219,26 +210,10 @@ function buildPlanRows(input: {
 }
 
 function countStatus(
-  rows: readonly RouteBuildPlanArtifactRow[],
+  rows: readonly LocalRouteBuildPlan[],
   status: LocalRouteBuildPlan["planStatus"],
 ): number {
   return rows.filter((row) => row.planStatus === status).length;
-}
-
-function summarizeMissingInputs(
-  rows: readonly RouteBuildPlanArtifactRow[],
-): Record<string, number> {
-  const counts = new Map<string, number>();
-
-  for (const row of rows) {
-    for (const input of row.missingInputs) {
-      counts.set(input, (counts.get(input) ?? 0) + 1);
-    }
-  }
-
-  return Object.fromEntries(
-    [...counts.entries()].sort(([left], [right]) => left.localeCompare(right)),
-  );
 }
 
 export async function buildRouteBuildPlan(
@@ -248,8 +223,6 @@ export async function buildRouteBuildPlan(
   const month = isoMonth(options.year, options.month);
   const batchDir = fromRepoRoot(join("data/artifacts/route-batches", month));
   const batchSummaryPath = join(batchDir, "batch-summary.json");
-  const planPath = join(batchDir, "route-build-plan.json");
-  const summaryPath = join(batchDir, "route-build-plan-summary.json");
   const local = await openLocalPipelineDb(options.dbPath);
 
   try {
@@ -261,49 +234,16 @@ export async function buildRouteBuildPlan(
       limit: options.limit,
     });
     const selectedRows = rows.filter((row) => row.selectedForNextBatch);
-    const summary = {
-      schemaVersion,
-      analysisPeriod: month,
-      generatedAt: new Date().toISOString(),
-      limit: options.limit,
+
+    await replaceRouteBuildPlan(local.db, month, rows);
+
+    return {
+      isoMonth: month,
       routeCount: rows.length,
-      candidateRouteCount: rows.filter((row) => row.candidateRank !== null).length,
       selectedRouteCount: selectedRows.length,
       alreadyBuiltRouteCount: countStatus(rows, "already_built"),
       blockedRouteCount: countStatus(rows, "blocked"),
       backlogRouteCount: countStatus(rows, "backlog"),
-      selectedRouteIds: selectedRows.map((row) => row.routeId),
-      missingInputCounts: summarizeMissingInputs(rows),
-      planningMethod:
-        "Eligible routes not already present in the batch summary are ranked by priority score, which weights readiness, slower observed speeds, speed observation volume, bus-trip volume, and schedule coverage.",
-      caveats: [
-        "This is an offline build plan, not a public route grade.",
-        "Already-built routes are excluded from the next-batch selection but kept in the table for auditability.",
-        "Routes missing geometry, speed data, or schedule inputs stay blocked until upstream ingestion fills the gaps.",
-      ],
-    };
-
-    await replaceRouteBuildPlan(local.db, month, rows);
-    await Promise.all([
-      writeArtifact(batchDir, planPath, {
-        schemaVersion,
-        analysisPeriod: month,
-        generatedAt: summary.generatedAt,
-        limit: options.limit,
-        rows,
-      }),
-      writeArtifact(batchDir, summaryPath, summary),
-    ]);
-
-    return {
-      isoMonth: month,
-      planPath,
-      summaryPath,
-      routeCount: rows.length,
-      selectedRouteCount: selectedRows.length,
-      alreadyBuiltRouteCount: summary.alreadyBuiltRouteCount,
-      blockedRouteCount: summary.blockedRouteCount,
-      backlogRouteCount: summary.backlogRouteCount,
       dbPath: local.path,
     };
   } finally {

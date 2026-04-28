@@ -2,10 +2,13 @@ import { createHash } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { classifyPublicRouteVisibility, type PublicRouteVisibilityReason } from "@bp/analytics";
+import { type LocalRouteReadinessStatus, listRouteBuildPlan, listRouteCatalog } from "@bp/db/local";
 import * as z from "zod";
 import { routeSliceKey } from "../../lib/artifacts.js";
 import { isoMonth } from "../../lib/dates.js";
 import { writeJson } from "../../lib/json.js";
+import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
+import { fromCliPath } from "../../lib/paths.js";
 import { fromRepoRoot } from "../../source-manifest.js";
 
 const schemaVersion = 1;
@@ -59,35 +62,6 @@ const ArtifactManifestSchema = z
   })
   .passthrough();
 
-const RouteCatalogSchema = z
-  .object({
-    rows: z.array(
-      z
-        .object({
-          routeId: z.string().min(1),
-          routeLongName: z.string().nullable(),
-          routeTypes: z.array(z.string()),
-          shapeCount: z.number().int().nonnegative(),
-        })
-        .passthrough(),
-    ),
-  })
-  .passthrough();
-
-const RouteBuildPlanSchema = z
-  .object({
-    rows: z.array(
-      z
-        .object({
-          routeId: z.string().min(1),
-          readinessStatus: z.string().min(1),
-          missingInputs: z.array(z.string()),
-        })
-        .passthrough(),
-    ),
-  })
-  .passthrough();
-
 const RouteComparisonSchema = z
   .object({
     rankedRoutes: z.array(
@@ -110,7 +84,7 @@ type RouteBatchAuditArgs = {
   year?: number;
   month?: number;
   batchDir?: string;
-  networkDir?: string;
+  dbPath?: string;
 };
 
 type RouteAuditStatus = "pass" | "fail";
@@ -134,7 +108,7 @@ type RouteCoverageAuditRow = {
   comparisonIncluded: boolean;
   publicVisible: boolean;
   publicVisibilityReason: PublicRouteVisibilityReason;
-  readinessStatus: string | null;
+  readinessStatus: LocalRouteReadinessStatus | null;
   missingInputs: string[];
 };
 
@@ -157,7 +131,7 @@ function parseBuildArgs(args: RouteBatchAuditArgs = {}): Required<RouteBatchAudi
       fromRepoRoot(
         join("data/artifacts/route-batches", isoMonth(args.year ?? 2026, args.month ?? 3)),
       ),
-    networkDir: args.networkDir ?? fromRepoRoot(join("data/working/network")),
+    dbPath: args.dbPath ?? defaultLocalPipelineDbPath(),
   };
 }
 
@@ -180,10 +154,34 @@ function parseCliArgs(args: string[]): RouteBatchAuditArgs {
       continue;
     }
 
+    if (arg === "--db" && value !== undefined) {
+      output.dbPath = fromCliPath(value);
+      index += 1;
+      continue;
+    }
+
     throw new Error(`Unknown or incomplete argument: ${arg ?? ""}`);
   }
 
   return output;
+}
+
+async function readLocalAuditRows(path: string, month: string) {
+  const local = await openLocalPipelineDb(path);
+
+  try {
+    const [routeCatalog, routeBuildPlan] = await Promise.all([
+      listRouteCatalog(local.db),
+      listRouteBuildPlan(local.db, month),
+    ]);
+
+    return {
+      routeCatalog,
+      routeBuildPlan,
+    };
+  } finally {
+    local.sqlite.close();
+  }
 }
 
 async function fileDigest(path: string): Promise<{ byteLength: number; sha256: string }> {
@@ -312,15 +310,12 @@ export async function buildRouteBatchAudit(
   const month = isoMonth(options.year, options.month);
   const batchDir = options.batchDir;
   const auditPath = join(batchDir, "route-batch-audit.json");
-  const routeCatalogPath = join(options.networkDir, "route-catalog.json");
-  const routeBuildPlanPath = join(batchDir, "route-build-plan.json");
   const comparisonPath = join(batchDir, "route-comparison.json");
   const batch = BatchSummarySchema.parse(
     await Bun.file(join(batchDir, "batch-summary.json")).json(),
   );
-  const [routeCatalog, routeBuildPlan, comparison] = await Promise.all([
-    readJsonIfPresent(routeCatalogPath, RouteCatalogSchema),
-    readJsonIfPresent(routeBuildPlanPath, RouteBuildPlanSchema),
+  const [{ routeCatalog, routeBuildPlan }, comparison] = await Promise.all([
+    readLocalAuditRows(options.dbPath, month),
     readJsonIfPresent(comparisonPath, RouteComparisonSchema),
   ]);
   const rows = await Promise.all(
@@ -335,8 +330,8 @@ export async function buildRouteBatchAudit(
     ),
   );
   const issues = summarizeIssues(rows);
-  const catalogByRouteId = new Map(routeCatalog?.rows.map((row) => [row.routeId, row]) ?? []);
-  const buildPlanByRouteId = new Map(routeBuildPlan?.rows.map((row) => [row.routeId, row]) ?? []);
+  const catalogByRouteId = new Map(routeCatalog.map((row) => [row.routeId, row]));
+  const buildPlanByRouteId = new Map(routeBuildPlan.map((row) => [row.routeId, row]));
   const rankedRouteIds = new Set(comparison?.rankedRoutes.map((row) => row.routeId) ?? []);
   const coverageRows = (
     await Promise.all(

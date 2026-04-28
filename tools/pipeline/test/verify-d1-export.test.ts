@@ -2,13 +2,20 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
 import { mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
+import {
+  replaceRouteBuildPlan,
+  replaceRouteCatalog,
+  replaceRouteMonthCoverage,
+  replaceRouteReadiness,
+} from "@bp/db/local";
 import { verifyD1Export } from "../src/jobs/export/verify-d1-export.js";
+import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
 const isoMonth = "2026-09";
 const batchDir = fromRepoRoot(join("data/artifacts/route-batches", isoMonth));
 const exportDir = fromRepoRoot(join("data/exports/d1", isoMonth));
-const networkDir = fromRepoRoot(join("data/fixtures/verify-d1-network"));
+const dbPath = fromRepoRoot(join("data/fixtures/verify-d1/pipeline.sqlite"));
 const trendsDir = fromRepoRoot(join("data/fixtures/verify-d1-trends"));
 const routeDir = fromRepoRoot(join("data/artifacts/route-slices/t1-2026-09"));
 const artifactNames = [
@@ -31,7 +38,7 @@ async function removeFixtureArtifacts(): Promise<void> {
   await Promise.all([
     rm(batchDir, { force: true, recursive: true }),
     rm(exportDir, { force: true, recursive: true }),
-    rm(networkDir, { force: true, recursive: true }),
+    rm(dbPath, { force: true }),
     rm(trendsDir, { force: true, recursive: true }),
     rm(routeDir, { force: true, recursive: true }),
   ]);
@@ -42,43 +49,81 @@ async function writeJson(path: string, value: unknown): Promise<number> {
 }
 
 async function writeFixtureNetwork(): Promise<void> {
-  await mkdir(networkDir, { recursive: true });
   await mkdir(trendsDir, { recursive: true });
-  await writeJson(join(networkDir, "route-catalog.json"), {
-    schemaVersion: 1,
-    rows: [
-      {
-        routeId: "T1",
-        routeShortName: "T1",
-        routeLongName: "Fixture route",
-        routeTypes: ["Local"],
-        directions: ["N", "S"],
-        shapeCount: 2,
-        stopCount: 10,
-        timepointStopCount: 4,
-        latitudeMin: 40,
-        latitudeMax: 41,
-        longitudeMin: -74,
-        longitudeMax: -73,
-      },
-    ],
-  });
-  await writeJson(join(networkDir, `route-month-coverage-${isoMonth}.json`), {
-    schemaVersion: 1,
-    analysisPeriod: isoMonth,
-    rows: [
-      {
-        routeId: "T1",
-        isoMonth,
-        speedObservationCount: 20,
-        speedBusTripCount: 200,
-        averageSpeedMph: 6,
-        scheduleTimepointCount: 100,
-        hasSpeedData: true,
-        hasScheduleData: true,
-      },
-    ],
-  });
+  const local = await openLocalPipelineDb(dbPath);
+
+  await replaceRouteCatalog(local.db, [
+    {
+      routeId: "T1",
+      routeShortName: "T1",
+      routeLongName: "Fixture route",
+      routeTypes: ["Local"],
+      directions: ["N", "S"],
+      shapeCount: 2,
+      stopCount: 10,
+      timepointStopCount: 4,
+      latitudeMin: 40,
+      latitudeMax: 41,
+      longitudeMin: -74,
+      longitudeMax: -73,
+    },
+  ]);
+  await replaceRouteMonthCoverage(local.db, isoMonth, [
+    {
+      routeId: "T1",
+      isoMonth,
+      speedObservationCount: 20,
+      speedBusTripCount: 200,
+      averageSpeedMph: 6,
+      scheduleTimepointCount: 100,
+      hasSpeedData: true,
+      hasScheduleData: true,
+    },
+  ]);
+  await replaceRouteReadiness(local.db, isoMonth, [
+    {
+      routeId: "T1",
+      routeShortName: "T1",
+      routeLongName: "Fixture route",
+      isoMonth,
+      readinessStatus: "ready",
+      buildEligible: true,
+      readinessScore: 100,
+      missingInputs: [],
+      speedObservationCount: 20,
+      speedBusTripCount: 200,
+      averageSpeedMph: 6,
+      scheduleTimepointCount: 100,
+      shapeCount: 2,
+      stopCount: 10,
+      timepointStopCount: 4,
+    },
+  ]);
+  await replaceRouteBuildPlan(local.db, isoMonth, [
+    {
+      routeId: "T1",
+      routeShortName: "T1",
+      routeLongName: "Fixture route",
+      isoMonth,
+      candidateRank: null,
+      planStatus: "already_built",
+      selectedForNextBatch: false,
+      alreadyBuilt: true,
+      buildEligible: true,
+      priorityScore: 2900,
+      readinessStatus: "ready",
+      readinessScore: 100,
+      missingInputs: [],
+      speedObservationCount: 20,
+      speedBusTripCount: 200,
+      averageSpeedMph: 6,
+      scheduleTimepointCount: 100,
+      shapeCount: 2,
+      stopCount: 10,
+      timepointStopCount: 4,
+    },
+  ]);
+  local.sqlite.close();
   await writeJson(join(trendsDir, `route-month-trends-2025-01_through_${isoMonth}.json`), {
     schemaVersion: 1,
     startMonth: "2025-01",
@@ -108,54 +153,6 @@ async function writeFixtureBatch(): Promise<void> {
     analysisPeriod: isoMonth,
     routeCount: 1,
     routes: [{ routeId: "T1", isoMonth }],
-  });
-  await writeJson(join(batchDir, "route-readiness.json"), {
-    schemaVersion: 1,
-    analysisPeriod: isoMonth,
-    rows: [
-      {
-        routeId: "T1",
-        routeShortName: "T1",
-        routeLongName: "Fixture route",
-        isoMonth,
-        readinessStatus: "ready",
-        buildEligible: true,
-        readinessScore: 100,
-        missingInputs: [],
-        speedObservationCount: 20,
-        speedBusTripCount: 200,
-        averageSpeedMph: 6,
-        scheduleTimepointCount: 100,
-        shapeCount: 2,
-        stopCount: 10,
-        timepointStopCount: 4,
-      },
-    ],
-  });
-  await writeJson(join(batchDir, "route-build-plan.json"), {
-    schemaVersion: 1,
-    analysisPeriod: isoMonth,
-    rows: [
-      {
-        routeId: "T1",
-        routeShortName: "T1",
-        routeLongName: "Fixture route",
-        isoMonth,
-        candidateRank: null,
-        planStatus: "already_built",
-        selectedForNextBatch: false,
-        alreadyBuilt: true,
-        buildEligible: true,
-        priorityScore: 2900,
-        readinessStatus: "ready",
-        readinessScore: 100,
-        missingInputs: [],
-        speedObservationCount: 20,
-        speedBusTripCount: 200,
-        averageSpeedMph: 6,
-        scheduleTimepointCount: 100,
-      },
-    ],
   });
   await writeJson(join(batchDir, "route-reliability-baseline.json"), {
     schemaVersion: 1,
@@ -302,7 +299,7 @@ describe("D1 export verification", () => {
   test("loads generated seed SQL and validates serving counts and typed repository reads", async () => {
     await writeFixtureArtifacts();
 
-    const result = await verifyD1Export({ year: 2026, month: 9, networkDir, trendsDir });
+    const result = await verifyD1Export({ year: 2026, month: 9, dbPath, trendsDir });
     const summary = await Bun.file(result.verifyPath).json();
 
     expect(result).toEqual(

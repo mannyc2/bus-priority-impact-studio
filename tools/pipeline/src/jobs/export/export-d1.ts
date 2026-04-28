@@ -2,10 +2,17 @@ import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { classifyPublicRouteVisibility } from "@bp/analytics";
 import { boolInt, sqlNullableNumber, sqlNullableString, sqlString } from "@bp/db/d1/seed";
+import {
+  listRouteBuildPlan,
+  listRouteCatalog,
+  listRouteMonthCoverage,
+  listRouteReadiness,
+} from "@bp/db/local";
 import * as z from "zod";
 import { routeSliceKey } from "../../lib/artifacts.js";
 import { isoMonth } from "../../lib/dates.js";
 import { writeJson } from "../../lib/json.js";
+import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
 import { fromRepoRoot } from "../../source-manifest.js";
 import { buildRouteBatchAudit } from "../build/route-batch-audit.js";
@@ -122,121 +129,6 @@ const RouteComparisonSchema = z
           totalRidership: z.number().nonnegative(),
           aceViolationCount: z.number().int().nonnegative(),
           busLaneMatchedLaneCount: z.number().int().nonnegative(),
-        })
-        .passthrough(),
-    ),
-  })
-  .passthrough();
-
-const RouteCatalogSchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    rows: z.array(
-      z
-        .object({
-          routeId: z.string().min(1),
-          routeShortName: z.string().min(1),
-          routeLongName: z.string().nullable(),
-          routeTypes: z.array(z.string()),
-          directions: z.array(z.string()),
-          shapeCount: z.number().int().nonnegative(),
-          stopCount: z.number().int().nonnegative(),
-          timepointStopCount: z.number().int().nonnegative(),
-          latitudeMin: z.number().nullable(),
-          latitudeMax: z.number().nullable(),
-          longitudeMin: z.number().nullable(),
-          longitudeMax: z.number().nullable(),
-        })
-        .passthrough(),
-    ),
-  })
-  .passthrough();
-
-const RouteMonthCoverageSchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    analysisPeriod: z.string().regex(/^\d{4}-\d{2}$/),
-    rows: z.array(
-      z
-        .object({
-          routeId: z.string().min(1),
-          isoMonth: z.string().regex(/^\d{4}-\d{2}$/),
-          speedObservationCount: z.number().int().nonnegative(),
-          speedBusTripCount: z.number().int().nonnegative(),
-          averageSpeedMph: z.number().nonnegative().nullable(),
-          scheduleTimepointCount: z.number().int().nonnegative(),
-          hasSpeedData: z.boolean(),
-          hasScheduleData: z.boolean(),
-        })
-        .passthrough(),
-    ),
-  })
-  .passthrough();
-
-const RouteReadinessSchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    analysisPeriod: z.string().regex(/^\d{4}-\d{2}$/),
-    rows: z.array(
-      z
-        .object({
-          routeId: z.string().min(1),
-          routeShortName: z.string().min(1),
-          routeLongName: z.string().nullable(),
-          isoMonth: z.string().regex(/^\d{4}-\d{2}$/),
-          readinessStatus: z.enum([
-            "ready",
-            "partial",
-            "missing_geometry",
-            "missing_schedule",
-            "missing_speed",
-          ]),
-          buildEligible: z.boolean(),
-          readinessScore: z.number().int().min(0).max(100),
-          missingInputs: z.array(z.string()),
-          speedObservationCount: z.number().int().nonnegative(),
-          speedBusTripCount: z.number().int().nonnegative(),
-          averageSpeedMph: z.number().nonnegative().nullable(),
-          scheduleTimepointCount: z.number().int().nonnegative(),
-          shapeCount: z.number().int().nonnegative(),
-          stopCount: z.number().int().nonnegative(),
-          timepointStopCount: z.number().int().nonnegative(),
-        })
-        .passthrough(),
-    ),
-  })
-  .passthrough();
-
-const RouteBuildPlanSchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    analysisPeriod: z.string().regex(/^\d{4}-\d{2}$/),
-    rows: z.array(
-      z
-        .object({
-          routeId: z.string().min(1),
-          routeShortName: z.string().min(1),
-          routeLongName: z.string().nullable(),
-          isoMonth: z.string().regex(/^\d{4}-\d{2}$/),
-          candidateRank: z.number().int().positive().nullable(),
-          planStatus: z.enum(["selected", "backlog", "already_built", "blocked"]),
-          selectedForNextBatch: z.boolean(),
-          alreadyBuilt: z.boolean(),
-          buildEligible: z.boolean(),
-          priorityScore: z.number().nonnegative(),
-          readinessStatus: z.enum([
-            "ready",
-            "partial",
-            "missing_geometry",
-            "missing_schedule",
-            "missing_speed",
-          ]),
-          readinessScore: z.number().int().min(0).max(100),
-          missingInputs: z.array(z.string()),
-          speedObservationCount: z.number().int().nonnegative(),
-          speedBusTripCount: z.number().int().nonnegative(),
-          averageSpeedMph: z.number().nonnegative().nullable(),
-          scheduleTimepointCount: z.number().int().nonnegative(),
         })
         .passthrough(),
     ),
@@ -369,7 +261,7 @@ const RouteEquityContextSchema = z
 type D1ExportArgs = {
   year?: number;
   month?: number;
-  networkDir?: string;
+  dbPath?: string;
   trendsDir?: string;
 };
 
@@ -405,7 +297,7 @@ function parseBuildArgs(args: D1ExportArgs = {}): Required<D1ExportArgs> {
   return {
     year: args.year ?? 2026,
     month: args.month ?? 3,
-    networkDir: args.networkDir ?? fromRepoRoot(join("data/working/network")),
+    dbPath: args.dbPath ?? defaultLocalPipelineDbPath(),
     trendsDir: args.trendsDir ?? fromRepoRoot(join("data/working/trends")),
   };
 }
@@ -429,8 +321,8 @@ function parseCliArgs(args: string[]): D1ExportArgs {
       continue;
     }
 
-    if (arg === "--network-dir" && value !== undefined) {
-      output.networkDir = fromCliPath(value);
+    if (arg === "--db" && value !== undefined) {
+      output.dbPath = fromCliPath(value);
       index += 1;
       continue;
     }
@@ -445,6 +337,28 @@ function parseCliArgs(args: string[]): D1ExportArgs {
   }
 
   return output;
+}
+
+async function readLocalRouteNetwork(path: string, month: string) {
+  const local = await openLocalPipelineDb(path);
+
+  try {
+    const [routeCatalog, routeCoverage, routeReadiness, routeBuildPlan] = await Promise.all([
+      listRouteCatalog(local.db),
+      listRouteMonthCoverage(local.db, month),
+      listRouteReadiness(local.db, month),
+      listRouteBuildPlan(local.db, month),
+    ]);
+
+    return {
+      routeCatalog,
+      routeCoverage,
+      routeReadiness,
+      routeBuildPlan,
+    };
+  } finally {
+    local.sqlite.close();
+  }
 }
 
 async function readRouteMonthTrends(
@@ -510,24 +424,15 @@ export async function exportD1Seed(args: D1ExportArgs = {}): Promise<D1ExportRes
   await buildRouteBatchAudit({
     year: options.year,
     month: options.month,
+    dbPath: options.dbPath,
   });
+  const { routeCatalog, routeCoverage, routeReadiness, routeBuildPlan } =
+    await readLocalRouteNetwork(options.dbPath, month);
   const batch = BatchSummarySchema.parse(
     await Bun.file(join(batchDir, "batch-summary.json")).json(),
   );
   const comparison = RouteComparisonSchema.parse(
     await Bun.file(join(batchDir, "route-comparison.json")).json(),
-  );
-  const routeCatalog = RouteCatalogSchema.parse(
-    await Bun.file(join(options.networkDir, "route-catalog.json")).json(),
-  );
-  const routeCoverage = RouteMonthCoverageSchema.parse(
-    await Bun.file(join(options.networkDir, `route-month-coverage-${month}.json`)).json(),
-  );
-  const routeReadiness = RouteReadinessSchema.parse(
-    await Bun.file(join(batchDir, "route-readiness.json")).json(),
-  );
-  const routeBuildPlan = RouteBuildPlanSchema.parse(
-    await Bun.file(join(batchDir, "route-build-plan.json")).json(),
   );
   const routeBatchAudit = RouteBatchAuditSchema.parse(
     await Bun.file(join(batchDir, "route-batch-audit.json")).json(),
@@ -578,7 +483,7 @@ export async function exportD1Seed(args: D1ExportArgs = {}): Promise<D1ExportRes
   let routeBatchIssueRowCount = 0;
   const routeScorecardCitationRowCount = 0;
 
-  for (const route of routeCatalog.rows) {
+  for (const route of routeCatalog) {
     statements.push(
       [
         "INSERT INTO route_catalog",
@@ -613,7 +518,7 @@ export async function exportD1Seed(args: D1ExportArgs = {}): Promise<D1ExportRes
     });
   }
 
-  for (const coverage of routeCoverage.rows) {
+  for (const coverage of routeCoverage) {
     statements.push(
       [
         "INSERT INTO route_month_coverage",
@@ -624,7 +529,7 @@ export async function exportD1Seed(args: D1ExportArgs = {}): Promise<D1ExportRes
     );
   }
 
-  for (const row of routeReadiness.rows) {
+  for (const row of routeReadiness) {
     statements.push(
       [
         "INSERT INTO route_readiness",
@@ -647,7 +552,7 @@ export async function exportD1Seed(args: D1ExportArgs = {}): Promise<D1ExportRes
     });
   }
 
-  for (const row of routeBuildPlan.rows) {
+  for (const row of routeBuildPlan) {
     statements.push(
       [
         "INSERT INTO route_build_plan",
@@ -726,7 +631,7 @@ export async function exportD1Seed(args: D1ExportArgs = {}): Promise<D1ExportRes
     const routeDir = fromRepoRoot(
       join("data/artifacts/route-slices", routeSliceKey(route.routeId, month)),
     );
-    const catalogRow = routeCatalog.rows.find((row) => row.routeId === route.routeId);
+    const catalogRow = routeCatalog.find((row) => row.routeId === route.routeId);
     const manifest = ArtifactManifestSchema.parse(
       await Bun.file(join(routeDir, "artifact-manifest.json")).json(),
     );
@@ -855,13 +760,13 @@ export async function exportD1Seed(args: D1ExportArgs = {}): Promise<D1ExportRes
     routeCount: batch.routes.length,
     artifactRowCount,
     comparisonRowCount: comparison.rankedRoutes.length,
-    routeCatalogRowCount: routeCatalog.rows.length,
+    routeCatalogRowCount: routeCatalog.length,
     routeCatalogTypeRowCount,
     routeDirectionRowCount,
-    routeCoverageRowCount: routeCoverage.rows.length,
-    routeReadinessRowCount: routeReadiness.rows.length,
+    routeCoverageRowCount: routeCoverage.length,
+    routeReadinessRowCount: routeReadiness.length,
     routeReadinessMissingInputRowCount,
-    routeBuildPlanRowCount: routeBuildPlan.rows.length,
+    routeBuildPlanRowCount: routeBuildPlan.length,
     routeReliabilityBaselineRowCount: routeReliabilityBaseline.rows.length,
     routeReliabilityGapWindowRowCount,
     routeMonthSourceStatusRowCount,
@@ -892,13 +797,13 @@ export async function exportD1Seed(args: D1ExportArgs = {}): Promise<D1ExportRes
     routeCount: batch.routes.length,
     artifactRowCount,
     comparisonRowCount: comparison.rankedRoutes.length,
-    routeCatalogRowCount: routeCatalog.rows.length,
+    routeCatalogRowCount: routeCatalog.length,
     routeCatalogTypeRowCount,
     routeDirectionRowCount,
-    routeCoverageRowCount: routeCoverage.rows.length,
-    routeReadinessRowCount: routeReadiness.rows.length,
+    routeCoverageRowCount: routeCoverage.length,
+    routeReadinessRowCount: routeReadiness.length,
     routeReadinessMissingInputRowCount,
-    routeBuildPlanRowCount: routeBuildPlan.rows.length,
+    routeBuildPlanRowCount: routeBuildPlan.length,
     routeReliabilityBaselineRowCount: routeReliabilityBaseline.rows.length,
     routeReliabilityGapWindowRowCount,
     routeMonthSourceStatusRowCount,

@@ -316,6 +316,8 @@ Acceptance:
 - `verify:d1` no longer reads network base JSON files.
 - D1 export row counts match current output.
 
+Implementation note, 2026-04-28: Slice 2 has been hard-cut for route catalog, route/month coverage, readiness, and build-plan state. The ingestion commands still write source/debug JSON, but route readiness, route build plan, planned route batch, route batch audit, D1 export, and D1 verification now use `@bp/db/local` as the required state path for those rows.
+
 ### Slice 3: Batch And Artifact Metadata
 
 Cut over:
@@ -514,6 +516,6 @@ Start with Slice 1 and Slice 2 together only far enough to prove the pattern:
 3. Update `route-readiness` to read those local DB rows.
 4. Keep existing JSON output under `--debug-json` or compatibility only for one slice.
 5. Update `export-d1` to read catalog/coverage/readiness/build-plan from local DB once build plan is cut over.
-6. Delete the compatibility JSON path immediately after parity tests pass.
+6. Delete the compatibility JSON path immediately after parity tests pass. This is complete for readiness/build-plan JSON and D1 export's network-base JSON reads.
 
 This gives the fastest feedback because readiness/build-plan are upstream of route selection and D1 export, and their current file handoffs are DB-shaped rather than product artifacts.

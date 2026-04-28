@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
-import { replaceRouteReadiness } from "@bp/db/local";
+import { listRouteBuildPlan, replaceRouteReadiness } from "@bp/db/local";
 import { buildRouteBuildPlan } from "../src/jobs/build/route-build-plan.js";
 import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
@@ -113,8 +113,9 @@ describe("route build plan", () => {
     await writeFixtureArtifacts();
 
     const result = await buildRouteBuildPlan({ year: 2026, month: 6, limit: 1, dbPath });
-    const plan = await Bun.file(result.planPath).json();
-    const summary = await Bun.file(result.summaryPath).json();
+    const local = await openLocalPipelineDb(dbPath);
+    const plan = await listRouteBuildPlan(local.db, isoMonth);
+    local.sqlite.close();
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -126,13 +127,8 @@ describe("route build plan", () => {
         backlogRouteCount: 1,
       }),
     );
-    expect(plan.rows.map((row: { routeId: string }) => row.routeId)).toEqual([
-      "T2",
-      "T4",
-      "T1",
-      "T3",
-    ]);
-    expect(plan.rows[0]).toEqual(
+    expect(plan.map((row) => row.routeId)).toEqual(["T2", "T4", "T1", "T3"]);
+    expect(plan[0]).toEqual(
       expect.objectContaining({
         routeId: "T2",
         candidateRank: 1,
@@ -141,7 +137,7 @@ describe("route build plan", () => {
         alreadyBuilt: false,
       }),
     );
-    expect(plan.rows[1]).toEqual(
+    expect(plan[1]).toEqual(
       expect.objectContaining({
         routeId: "T4",
         candidateRank: 2,
@@ -149,7 +145,7 @@ describe("route build plan", () => {
         selectedForNextBatch: false,
       }),
     );
-    expect(plan.rows[2]).toEqual(
+    expect(plan[2]).toEqual(
       expect.objectContaining({
         routeId: "T1",
         candidateRank: null,
@@ -157,7 +153,7 @@ describe("route build plan", () => {
         alreadyBuilt: true,
       }),
     );
-    expect(plan.rows[3]).toEqual(
+    expect(plan[3]).toEqual(
       expect.objectContaining({
         routeId: "T3",
         candidateRank: null,
@@ -165,10 +161,9 @@ describe("route build plan", () => {
         buildEligible: false,
       }),
     );
-    expect(summary.selectedRouteIds).toEqual(["T2"]);
-    expect(summary.missingInputCounts).toEqual({
-      segment_speeds: 1,
-      speed_bus_trips: 1,
-    });
+    expect(plan.filter((row) => row.selectedForNextBatch).map((row) => row.routeId)).toEqual([
+      "T2",
+    ]);
+    expect(plan[3]?.missingInputs).toEqual(["segment_speeds", "speed_bus_trips"]);
   });
 });

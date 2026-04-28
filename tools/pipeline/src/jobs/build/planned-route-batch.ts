@@ -1,9 +1,12 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
+import { type LocalRouteBuildPlan, listRouteBuildPlan } from "@bp/db/local";
 import { RouteIdCodec } from "@bp/domain";
 import * as z from "zod";
 import { isoMonth } from "../../lib/dates.js";
 import { writeJson } from "../../lib/json.js";
+import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
+import { fromCliPath } from "../../lib/paths.js";
 import { fromRepoRoot } from "../../source-manifest.js";
 import { exportD1Seed } from "../export/export-d1.js";
 import { ingestAceRoutes } from "../ingest/ingest-ace-routes.js";
@@ -19,25 +22,6 @@ import { buildRouteSliceArtifacts } from "./route-slice-pipeline.js";
 const schemaVersion = 1;
 
 const IsoMonthSchema = z.string().regex(/^\d{4}-\d{2}$/);
-
-const RouteBuildPlanSchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    analysisPeriod: IsoMonthSchema,
-    limit: z.number().int().positive().optional(),
-    rows: z.array(
-      z
-        .object({
-          routeId: z.string().min(1),
-          isoMonth: IsoMonthSchema,
-          candidateRank: z.number().int().positive().nullable(),
-          planStatus: z.enum(["selected", "backlog", "already_built", "blocked"]),
-          selectedForNextBatch: z.boolean(),
-        })
-        .passthrough(),
-    ),
-  })
-  .passthrough();
 
 const BatchSummarySchema = z
   .object({
@@ -65,11 +49,11 @@ type PlannedRouteBatchArgs = {
   refreshSharedSources?: boolean;
   refreshPlan?: boolean;
   exportD1?: boolean;
+  dbPath?: string;
 };
 
 type PlannedRouteBatchResult = {
   isoMonth: string;
-  planPath: string;
   summaryPath: string;
   builtRouteIds: string[];
   selectedRouteCount: number;
@@ -77,7 +61,7 @@ type PlannedRouteBatchResult = {
   totalBatchRouteCount: number;
   auditPath: string;
   comparisonPath: string | null;
-  refreshedPlanPath: string | null;
+  refreshedPlanDbPath: string | null;
   d1SeedPath: string | null;
 };
 
@@ -117,6 +101,7 @@ function parseBuildArgs(args: PlannedRouteBatchArgs = {}): Required<PlannedRoute
     refreshSharedSources: args.refreshSharedSources ?? true,
     refreshPlan: args.refreshPlan ?? true,
     exportD1: args.exportD1 ?? true,
+    dbPath: args.dbPath ?? defaultLocalPipelineDbPath(),
   };
 }
 
@@ -172,6 +157,12 @@ function parseCliArgs(args: string[]): PlannedRouteBatchArgs {
       continue;
     }
 
+    if (arg === "--db" && value !== undefined) {
+      output.dbPath = fromCliPath(value);
+      index += 1;
+      continue;
+    }
+
     throw new Error(`Unknown or incomplete argument: ${arg ?? ""}`);
   }
 
@@ -188,8 +179,22 @@ async function readBatchSummaryIfPresent(path: string) {
   return BatchSummarySchema.parse(await file.json());
 }
 
-function selectedPlanRoutes(plan: z.output<typeof RouteBuildPlanSchema>, limit: number): string[] {
-  return plan.rows
+async function readSelectedPlanRoutes(
+  path: string,
+  month: string,
+  limit: number,
+): Promise<string[]> {
+  const local = await openLocalPipelineDb(path);
+
+  try {
+    return selectedPlanRoutes(await listRouteBuildPlan(local.db, month), limit);
+  } finally {
+    local.sqlite.close();
+  }
+}
+
+function selectedPlanRoutes(planRows: readonly LocalRouteBuildPlan[], limit: number): string[] {
+  return planRows
     .filter((row) => row.selectedForNextBatch)
     .sort((left, right) => {
       if (left.candidateRank !== null && right.candidateRank !== null) {
@@ -225,10 +230,8 @@ export async function buildPlannedRouteBatch(
   const options = parseBuildArgs(args);
   const month = isoMonth(options.year, options.month);
   const batchDir = fromRepoRoot(join("data/artifacts/route-batches", month));
-  const planPath = join(batchDir, "route-build-plan.json");
   const summaryPath = join(batchDir, "batch-summary.json");
-  const plan = RouteBuildPlanSchema.parse(await Bun.file(planPath).json());
-  const plannedRouteIds = selectedPlanRoutes(plan, options.limit);
+  const plannedRouteIds = await readSelectedPlanRoutes(options.dbPath, month, options.limit);
   const existingBatch = await readBatchSummaryIfPresent(summaryPath);
 
   if (options.refreshSharedSources) {
@@ -259,7 +262,6 @@ export async function buildPlannedRouteBatch(
     generatedAt: new Date().toISOString(),
     routeCount: routes.length,
     generatedFromBuildPlan: {
-      planPath,
       selectedRouteCount: plannedRouteIds.length,
       builtRouteIds: builtRoutes.map((route) => route.routeId),
       previousBatchRouteCount: existingBatch?.routes.length ?? 0,
@@ -286,24 +288,26 @@ export async function buildPlannedRouteBatch(
   const audit = await deps.buildRouteBatchAudit({
     year: options.year,
     month: options.month,
+    dbPath: options.dbPath,
   });
   const refreshedPlan = options.refreshPlan
     ? await deps.buildRouteBuildPlan({
         year: options.year,
         month: options.month,
-        limit: plan.limit ?? 20,
+        limit: 20,
+        dbPath: options.dbPath,
       })
     : null;
   const d1Export = options.exportD1
     ? await deps.exportD1Seed({
         year: options.year,
         month: options.month,
+        dbPath: options.dbPath,
       })
     : null;
 
   return {
     isoMonth: month,
-    planPath,
     summaryPath,
     builtRouteIds: builtRoutes.map((route) => route.routeId),
     selectedRouteCount: plannedRouteIds.length,
@@ -311,7 +315,7 @@ export async function buildPlannedRouteBatch(
     totalBatchRouteCount: routes.length,
     auditPath: audit.auditPath,
     comparisonPath: comparison.comparisonPath,
-    refreshedPlanPath: refreshedPlan?.planPath ?? null,
+    refreshedPlanDbPath: refreshedPlan?.dbPath ?? null,
     d1SeedPath: d1Export?.seedPath ?? null,
   };
 }

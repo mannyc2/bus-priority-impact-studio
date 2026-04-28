@@ -18,6 +18,7 @@ import { createBunSqliteServingDb } from "@bp/db/d1/bun-sqlite";
 import * as z from "zod";
 import { isoMonth } from "../../lib/dates.js";
 import { writeJson } from "../../lib/json.js";
+import { defaultLocalPipelineDbPath } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
 import { fromRepoRoot } from "../../source-manifest.js";
 import { exportD1Seed } from "./export-d1.js";
@@ -56,7 +57,7 @@ const ExportSummarySchema = z
 type D1VerifyArgs = {
   year?: number;
   month?: number;
-  networkDir?: string;
+  dbPath?: string;
   trendsDir?: string;
 };
 
@@ -91,7 +92,7 @@ function parseBuildArgs(args: D1VerifyArgs = {}): Required<D1VerifyArgs> {
   return {
     year: args.year ?? 2026,
     month: args.month ?? 3,
-    networkDir: args.networkDir ?? fromRepoRoot(join("data/working/network")),
+    dbPath: args.dbPath ?? defaultLocalPipelineDbPath(),
     trendsDir: args.trendsDir ?? fromRepoRoot(join("data/working/trends")),
   };
 }
@@ -115,8 +116,8 @@ function parseCliArgs(args: string[]): D1VerifyArgs {
       continue;
     }
 
-    if (arg === "--network-dir" && value !== undefined) {
-      output.networkDir = fromCliPath(value);
+    if (arg === "--db" && value !== undefined) {
+      output.dbPath = fromCliPath(value);
       index += 1;
       continue;
     }
@@ -198,7 +199,7 @@ export async function verifyD1Export(args: D1VerifyArgs = {}): Promise<D1VerifyR
   const exportResult = await exportD1Seed({
     year: options.year,
     month: options.month,
-    networkDir: options.networkDir,
+    dbPath: options.dbPath,
     trendsDir: options.trendsDir,
   });
   const exportDir = fromRepoRoot(join("data/exports/d1", month));

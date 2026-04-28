@@ -1,17 +1,16 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
-import { replaceRouteCatalog, replaceRouteMonthCoverage } from "@bp/db/local";
+import { listRouteReadiness, replaceRouteCatalog, replaceRouteMonthCoverage } from "@bp/db/local";
 import { buildRouteReadiness } from "../src/jobs/build/route-readiness.js";
 import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
 const isoMonth = "2026-05";
-const batchDir = fromRepoRoot(join("data/artifacts/route-batches", isoMonth));
 const dbPath = fromRepoRoot(join("data/fixtures/route-readiness/pipeline.sqlite"));
 
 async function removeFixtureArtifacts(): Promise<void> {
-  await Promise.all([rm(batchDir, { force: true, recursive: true }), rm(dbPath, { force: true })]);
+  await rm(dbPath, { force: true });
 }
 
 async function writeFixtureLocalDb(): Promise<void> {
@@ -96,8 +95,9 @@ describe("route readiness build", () => {
     await writeFixtureLocalDb();
 
     const result = await buildRouteReadiness({ year: 2026, month: 5, dbPath });
-    const readiness = await Bun.file(result.readinessPath).json();
-    const summary = await Bun.file(result.summaryPath).json();
+    const local = await openLocalPipelineDb(dbPath);
+    const readiness = await listRouteReadiness(local.db, isoMonth);
+    local.sqlite.close();
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -106,12 +106,8 @@ describe("route readiness build", () => {
         buildEligibleRouteCount: 3,
       }),
     );
-    expect(readiness.rows.map((row: { routeId: string }) => row.routeId)).toEqual([
-      "T1",
-      "T2",
-      "T3",
-    ]);
-    expect(readiness.rows[0]).toEqual(
+    expect(readiness.map((row) => row.routeId)).toEqual(["T1", "T2", "T3"]);
+    expect(readiness[0]).toEqual(
       expect.objectContaining({
         routeId: "T1",
         readinessStatus: "ready",
@@ -120,7 +116,7 @@ describe("route readiness build", () => {
         missingInputs: [],
       }),
     );
-    expect(readiness.rows[1]).toEqual(
+    expect(readiness[1]).toEqual(
       expect.objectContaining({
         routeId: "T2",
         readinessStatus: "missing_speed",
@@ -128,19 +124,12 @@ describe("route readiness build", () => {
         missingInputs: ["segment_speeds", "speed_bus_trips", "schedules"],
       }),
     );
-    expect(readiness.rows[2]).toEqual(
+    expect(readiness[2]).toEqual(
       expect.objectContaining({
         routeId: "T3",
         readinessStatus: "missing_geometry",
         buildEligible: true,
       }),
     );
-    expect(summary.statusCounts).toEqual({
-      ready: 1,
-      partial: 0,
-      missing_geometry: 1,
-      missing_schedule: 0,
-      missing_speed: 1,
-    });
   });
 });

@@ -1,4 +1,4 @@
-import { asc, desc, eq } from "drizzle-orm";
+import { asc, desc, eq, sql } from "drizzle-orm";
 import type { LocalPipelineDb } from "../client.js";
 import {
   localRouteBuildPlan,
@@ -104,6 +104,23 @@ function groupMissingInputs(
 
   return output;
 }
+
+const readinessStatusRank = sql<number>`case ${localRouteReadiness.readinessStatus}
+  when 'ready' then 0
+  when 'partial' then 1
+  when 'missing_schedule' then 2
+  when 'missing_speed' then 3
+  when 'missing_geometry' then 4
+  else 5
+end`;
+
+const buildPlanStatusRank = sql<number>`case ${localRouteBuildPlan.planStatus}
+  when 'selected' then 0
+  when 'backlog' then 1
+  when 'already_built' then 2
+  when 'blocked' then 3
+  else 4
+end`;
 
 export async function replaceRouteCatalog(
   db: LocalPipelineDb,
@@ -291,6 +308,7 @@ export async function listRouteReadiness(
       .where(eq(localRouteReadiness.month, month))
       .orderBy(
         desc(localRouteReadiness.buildEligible),
+        readinessStatusRank,
         desc(localRouteReadiness.readinessScore),
         asc(localRouteReadiness.averageSpeedMph),
         asc(localRouteReadiness.routeId),
@@ -370,7 +388,7 @@ export async function listRouteBuildPlan(
     .from(localRouteBuildPlan)
     .where(eq(localRouteBuildPlan.month, month))
     .orderBy(
-      desc(localRouteBuildPlan.selectedForNextBatch),
+      buildPlanStatusRank,
       asc(localRouteBuildPlan.candidateRank),
       desc(localRouteBuildPlan.priorityScore),
       asc(localRouteBuildPlan.routeId),

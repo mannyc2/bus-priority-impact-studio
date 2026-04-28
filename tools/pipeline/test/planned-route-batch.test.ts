@@ -1,54 +1,93 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
+import { replaceRouteBuildPlan } from "@bp/db/local";
 import { buildPlannedRouteBatch } from "../src/jobs/build/planned-route-batch.js";
+import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
 const isoMonth = "2026-07";
 const batchDir = fromRepoRoot(join("data/artifacts/route-batches", isoMonth));
+const dbPath = fromRepoRoot(join("data/fixtures/planned-route-batch/pipeline.sqlite"));
 
 async function removeFixtureArtifacts(): Promise<void> {
-  await rm(batchDir, { force: true, recursive: true });
+  await Promise.all([rm(batchDir, { force: true, recursive: true }), rm(dbPath, { force: true })]);
 }
 
 async function writeFixtureArtifacts(): Promise<void> {
   await removeFixtureArtifacts();
   await mkdir(batchDir, { recursive: true });
-  await Bun.write(
-    join(batchDir, "route-build-plan.json"),
-    `${JSON.stringify(
-      {
-        schemaVersion: 1,
-        analysisPeriod: isoMonth,
-        limit: 20,
-        rows: [
-          {
-            routeId: "T1",
-            isoMonth,
-            candidateRank: 1,
-            planStatus: "selected",
-            selectedForNextBatch: true,
-          },
-          {
-            routeId: "T2",
-            isoMonth,
-            candidateRank: 2,
-            planStatus: "selected",
-            selectedForNextBatch: true,
-          },
-          {
-            routeId: "T3",
-            isoMonth,
-            candidateRank: 3,
-            planStatus: "backlog",
-            selectedForNextBatch: false,
-          },
-        ],
-      },
-      null,
-      2,
-    )}\n`,
-  );
+  const local = await openLocalPipelineDb(dbPath);
+
+  await replaceRouteBuildPlan(local.db, isoMonth, [
+    {
+      routeId: "T1",
+      routeShortName: "T1",
+      routeLongName: null,
+      isoMonth,
+      candidateRank: 1,
+      planStatus: "selected",
+      selectedForNextBatch: true,
+      alreadyBuilt: false,
+      buildEligible: true,
+      priorityScore: 100,
+      readinessStatus: "ready",
+      readinessScore: 100,
+      missingInputs: [],
+      speedObservationCount: 20,
+      speedBusTripCount: 200,
+      averageSpeedMph: 6,
+      scheduleTimepointCount: 100,
+      shapeCount: 1,
+      stopCount: 10,
+      timepointStopCount: 4,
+    },
+    {
+      routeId: "T2",
+      routeShortName: "T2",
+      routeLongName: null,
+      isoMonth,
+      candidateRank: 2,
+      planStatus: "selected",
+      selectedForNextBatch: true,
+      alreadyBuilt: false,
+      buildEligible: true,
+      priorityScore: 90,
+      readinessStatus: "ready",
+      readinessScore: 100,
+      missingInputs: [],
+      speedObservationCount: 20,
+      speedBusTripCount: 200,
+      averageSpeedMph: 7,
+      scheduleTimepointCount: 100,
+      shapeCount: 1,
+      stopCount: 10,
+      timepointStopCount: 4,
+    },
+    {
+      routeId: "T3",
+      routeShortName: "T3",
+      routeLongName: null,
+      isoMonth,
+      candidateRank: 3,
+      planStatus: "backlog",
+      selectedForNextBatch: false,
+      alreadyBuilt: false,
+      buildEligible: true,
+      priorityScore: 80,
+      readinessStatus: "ready",
+      readinessScore: 100,
+      missingInputs: [],
+      speedObservationCount: 20,
+      speedBusTripCount: 200,
+      averageSpeedMph: 8,
+      scheduleTimepointCount: 100,
+      shapeCount: 1,
+      stopCount: 10,
+      timepointStopCount: 4,
+    },
+  ]);
+  local.sqlite.close();
   await Bun.write(
     join(batchDir, "batch-summary.json"),
     `${JSON.stringify(
@@ -145,8 +184,6 @@ describe("planned route batch build", () => {
         calls.push(`plan:${limit}`);
         return {
           isoMonth,
-          planPath: join(batchDir, "route-build-plan.json"),
-          summaryPath: join(batchDir, "route-build-plan-summary.json"),
           routeCount: 3,
           selectedRouteCount: 2,
           alreadyBuiltRouteCount: 2,
@@ -190,6 +227,7 @@ describe("planned route batch build", () => {
         year: 2026,
         month: 7,
         limit: 1,
+        dbPath,
       },
       deps as never,
     );
