@@ -1,6 +1,6 @@
 import { fromRepoRoot, readSourceManifest } from "../../source-manifest.js";
 import type { SourceProbeOutput } from "./source-probes.js";
-import { probeSource, writeProbeOutput, writeProbeSummary } from "./source-probes.js";
+import { probeSource, writeProbeOutput } from "./source-probes.js";
 
 const metadataDir = fromRepoRoot("knowledge/raw/metadata");
 const manifest = await readSourceManifest();
@@ -18,8 +18,6 @@ for (const source of manifest.sources) {
   const error = output.error === undefined ? "" : ` (${output.error})`;
   console.log(`${output.sourceId}: ${output.probeStatus}${error}`);
 }
-
-await writeProbeSummary(outputs, metadataDir);
 
 const blockedCount = outputs.filter((output) => output.probeStatus === "blocked").length;
 const skippedCount = outputs.filter((output) => output.probeStatus === "skipped").length;

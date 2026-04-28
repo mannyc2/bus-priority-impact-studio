@@ -1,7 +1,6 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import type { SourceProbeOutput } from "@bp/sources/probes";
-import { summarizeProbeOutputs } from "@bp/sources/probes";
 import { writeJson } from "../../lib/json.js";
 
 export type { SourceProbeOutput } from "@bp/sources/probes";
@@ -9,7 +8,6 @@ export {
   parseCurlHeadOutput,
   probeSocrataSource,
   probeSource,
-  summarizeProbeOutputs,
 } from "@bp/sources/probes";
 
 function metadataFilename(id: string): string {
@@ -43,12 +41,4 @@ export async function writeProbeOutput(
       columns: output.socrataDataset.columns,
     });
   }
-}
-
-export async function writeProbeSummary(
-  outputs: SourceProbeOutput[],
-  metadataDir = "knowledge/raw/metadata",
-): Promise<void> {
-  await mkdir(metadataDir, { recursive: true });
-  await writeJson(join(metadataDir, "probe-summary.json"), summarizeProbeOutputs(outputs));
 }
