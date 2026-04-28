@@ -146,22 +146,6 @@ async function writeFixtureBatch(): Promise<void> {
       };
     }),
   );
-
-  await Bun.write(
-    join(routeDir, "artifact-manifest.json"),
-    `${JSON.stringify(
-      {
-        schemaVersion: 1,
-        routeId: "T1",
-        isoMonth,
-        generatedAt: "2026-04-27T12:00:00.000Z",
-        artifactRoot: routeDir,
-        artifacts,
-      },
-      null,
-      2,
-    )}\n`,
-  );
   const artifactLocal = await openLocalPipelineDb(dbPath);
   try {
     await replaceRouteArtifacts(

@@ -35,7 +35,6 @@ type D1ExportArgs = {
   year?: number;
   month?: number;
   dbPath?: string;
-  trendsDir?: string;
 };
 
 type D1ExportResult = {
@@ -71,7 +70,6 @@ function parseBuildArgs(args: D1ExportArgs = {}): Required<D1ExportArgs> {
     year: args.year ?? 2026,
     month: args.month ?? 3,
     dbPath: args.dbPath ?? defaultLocalPipelineDbPath(),
-    trendsDir: args.trendsDir ?? fromRepoRoot(join("data/working/trends")),
   };
 }
 
@@ -96,12 +94,6 @@ function parseCliArgs(args: string[]): D1ExportArgs {
 
     if (arg === "--db" && value !== undefined) {
       output.dbPath = fromCliPath(value);
-      index += 1;
-      continue;
-    }
-
-    if (arg === "--trends-dir" && value !== undefined) {
-      output.trendsDir = fromCliPath(value);
       index += 1;
       continue;
     }

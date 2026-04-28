@@ -2,16 +2,22 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
 import { mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
+import { listRouteArtifacts } from "@bp/db/local";
 import { buildM1ArtifactManifestFromCli } from "../src/jobs/build/m1-artifact-manifest.js";
+import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
 const routeId = "T1";
 const isoMonth = "2026-03";
 const sliceKey = `${routeId.toLowerCase()}-${isoMonth}`;
 const artifactDir = fromRepoRoot(join("data/artifacts/route-slices", sliceKey));
+const dbPath = fromRepoRoot(join("data/fixtures/m1-artifact-manifest/pipeline.sqlite"));
 
 async function removeFixtureArtifacts(): Promise<void> {
-  await rm(artifactDir, { force: true, recursive: true });
+  await Promise.all([
+    rm(artifactDir, { force: true, recursive: true }),
+    rm(dbPath, { force: true }),
+  ]);
 }
 
 async function writeArtifactFixtures(): Promise<void> {
@@ -48,12 +54,16 @@ describe("M1 artifact manifest build", () => {
       "2026",
       "--month",
       "3",
+      "--db",
+      dbPath,
     ]);
-    const manifest = await Bun.file(result.manifestPath).json();
     const summaryBytes = await Bun.file(join(artifactDir, "summary.json")).arrayBuffer();
     const expectedSummaryHash = createHash("sha256")
       .update(Buffer.from(summaryBytes))
       .digest("hex");
+    const local = await openLocalPipelineDb(dbPath);
+    const artifacts = await listRouteArtifacts(local.db, isoMonth);
+    local.sqlite.close();
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -62,15 +72,16 @@ describe("M1 artifact manifest build", () => {
         artifactCount: 9,
       }),
     );
-    expect(manifest.artifacts).toHaveLength(9);
-    expect(manifest.artifacts[0]).toEqual(
+    const summaryArtifact = artifacts.find((artifact) => artifact.artifactName === "summary.json");
+    expect(artifacts).toHaveLength(9);
+    expect(summaryArtifact).toEqual(
       expect.objectContaining({
-        name: "summary.json",
+        artifactName: "summary.json",
         artifactKey: "route-slices/t1-2026-03/summary.json",
         contentType: "application/json",
         sha256: expectedSummaryHash,
       }),
     );
-    expect(manifest.artifacts[0].byteLength).toBeGreaterThan(0);
+    expect(summaryArtifact?.byteLength).toBeGreaterThan(0);
   });
 });

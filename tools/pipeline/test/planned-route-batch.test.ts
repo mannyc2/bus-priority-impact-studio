@@ -109,7 +109,6 @@ describe("planned route batch build", () => {
           hotspotCount: 2,
           routeScore: 42,
           artifactCount: 9,
-          manifestPath: `/tmp/${routeId}.json`,
         };
       },
       buildRouteComparison: async ({ limit }: { limit?: number }) => {

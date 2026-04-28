@@ -1,11 +1,8 @@
 import { createHash } from "node:crypto";
-import { mkdir } from "node:fs/promises";
 import { basename, join } from "node:path";
 import { replaceRouteArtifacts } from "@bp/db/local";
-import * as z from "zod";
 import { routeSliceKey } from "../../lib/artifacts.js";
 import { isoMonth } from "../../lib/dates.js";
-import { writeJson } from "../../lib/json.js";
 import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
 import { fromRepoRoot } from "../../source-manifest.js";
@@ -22,28 +19,6 @@ const artifactNames = [
   "route-brief-input.json",
 ] as const;
 
-const ArtifactManifestSchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    routeId: z.string().min(1),
-    isoMonth: z.string().regex(/^\d{4}-\d{2}$/),
-    generatedAt: z.iso.datetime(),
-    artifactRoot: z.string().min(1),
-    artifacts: z.array(
-      z
-        .object({
-          name: z.enum(artifactNames),
-          path: z.string().min(1),
-          artifactKey: z.string().min(1),
-          contentType: z.literal("application/json"),
-          byteLength: z.number().int().nonnegative(),
-          sha256: z.string().regex(/^[a-f0-9]{64}$/),
-        })
-        .strict(),
-    ),
-  })
-  .strict();
-
 type ArtifactManifestBuildArgs = {
   routeId?: string;
   year?: number;
@@ -54,7 +29,6 @@ type ArtifactManifestBuildArgs = {
 type ArtifactManifestBuildResult = {
   routeId: string;
   isoMonth: string;
-  manifestPath: string;
   artifactCount: number;
 };
 
@@ -120,7 +94,6 @@ export async function buildM1ArtifactManifest(
   const month = isoMonth(options.year, options.month);
   const key = routeSliceKey(options.routeId, month);
   const artifactDir = fromRepoRoot(join("data/artifacts/route-slices", key));
-  const manifestPath = join(artifactDir, "artifact-manifest.json");
   const artifacts = await Promise.all(
     artifactNames.map(async (name) => {
       const path = join(artifactDir, name);
@@ -135,26 +108,17 @@ export async function buildM1ArtifactManifest(
       };
     }),
   );
-  const manifest = ArtifactManifestSchema.parse({
-    schemaVersion: 1,
-    routeId: options.routeId.toUpperCase(),
-    isoMonth: month,
-    generatedAt: new Date().toISOString(),
-    artifactRoot: artifactDir,
-    artifacts,
-  });
+  const routeId = options.routeId.toUpperCase();
 
-  await mkdir(artifactDir, { recursive: true });
-  await writeJson(manifestPath, manifest);
   const local = await openLocalPipelineDb(options.dbPath);
   try {
     await replaceRouteArtifacts(
       local.db,
-      manifest.routeId,
-      manifest.isoMonth,
-      manifest.artifacts.map((artifact) => ({
-        routeId: manifest.routeId,
-        month: manifest.isoMonth,
+      routeId,
+      month,
+      artifacts.map((artifact) => ({
+        routeId,
+        month,
         artifactName: artifact.name,
         artifactKey: artifact.artifactKey,
         contentType: artifact.contentType,
@@ -167,10 +131,9 @@ export async function buildM1ArtifactManifest(
   }
 
   return {
-    routeId: manifest.routeId,
-    isoMonth: manifest.isoMonth,
-    manifestPath,
-    artifactCount: manifest.artifacts.length,
+    routeId,
+    isoMonth: month,
+    artifactCount: artifacts.length,
   };
 }
 

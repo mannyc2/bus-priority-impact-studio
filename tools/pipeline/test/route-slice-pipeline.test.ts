@@ -63,7 +63,7 @@ describe("route slice batch pipeline", () => {
       },
       buildArtifactManifest: async ({ routeId }: { routeId?: string }) => {
         calls.push(`manifest:${routeId}`);
-        return { artifactCount: 9, manifestPath: `/tmp/${routeId}.json` };
+        return { artifactCount: 9 };
       },
       ingestAceRoutes: async () => {
         calls.push("shared:ace-routes");

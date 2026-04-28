@@ -23,7 +23,6 @@ const isoMonth = "2026-09";
 const batchDir = fromRepoRoot(join("data/artifacts/route-batches", isoMonth));
 const exportDir = fromRepoRoot(join("data/exports/d1", isoMonth));
 const dbPath = fromRepoRoot(join("data/fixtures/verify-d1/pipeline.sqlite"));
-const trendsDir = fromRepoRoot(join("data/fixtures/verify-d1-trends"));
 const routeDir = fromRepoRoot(join("data/artifacts/route-slices/t1-2026-09"));
 const artifactNames = [
   "summary.json",
@@ -46,7 +45,6 @@ async function removeFixtureArtifacts(): Promise<void> {
     rm(batchDir, { force: true, recursive: true }),
     rm(exportDir, { force: true, recursive: true }),
     rm(dbPath, { force: true }),
-    rm(trendsDir, { force: true, recursive: true }),
     rm(routeDir, { force: true, recursive: true }),
   ]);
 }
@@ -56,7 +54,6 @@ async function writeJson(path: string, value: unknown): Promise<number> {
 }
 
 async function writeFixtureNetwork(): Promise<void> {
-  await mkdir(trendsDir, { recursive: true });
   const local = await openLocalPipelineDb(dbPath);
 
   await replaceRouteCatalog(local.db, [
@@ -288,26 +285,6 @@ async function writeFixtureNetwork(): Promise<void> {
     },
   ]);
   local.sqlite.close();
-  await writeJson(join(trendsDir, `route-month-trends-2025-01_through_${isoMonth}.json`), {
-    schemaVersion: 1,
-    startMonth: "2025-01",
-    endMonth: isoMonth,
-    rows: [
-      {
-        routeId: "T1",
-        isoMonth,
-        speedObservationCount: 20,
-        speedBusTripCount: 200,
-        averageSpeedMph: 6,
-        ridership: 1000,
-        transfers: 100,
-        trendCoverage: {
-          speed: true,
-          ridership: true,
-        },
-      },
-    ],
-  });
 }
 
 async function writeFixtureBatch(): Promise<void> {
@@ -440,14 +417,6 @@ async function writeFixtureRouteArtifacts(): Promise<void> {
     }),
   );
 
-  await writeJson(join(routeDir, "artifact-manifest.json"), {
-    schemaVersion: 1,
-    routeId: "T1",
-    isoMonth,
-    generatedAt: "2026-04-27T12:00:00.000Z",
-    artifactRoot: routeDir,
-    artifacts,
-  });
   const local = await openLocalPipelineDb(dbPath);
   try {
     await replaceRouteArtifacts(
@@ -482,7 +451,7 @@ describe("D1 export verification", () => {
   test("loads generated seed SQL and validates serving counts and typed repository reads", async () => {
     await writeFixtureArtifacts();
 
-    const result = await verifyD1Export({ year: 2026, month: 9, dbPath, trendsDir });
+    const result = await verifyD1Export({ year: 2026, month: 9, dbPath });
     const summary = await Bun.file(result.verifyPath).json();
 
     expect(result).toEqual(

@@ -58,7 +58,6 @@ type D1VerifyArgs = {
   year?: number;
   month?: number;
   dbPath?: string;
-  trendsDir?: string;
 };
 
 type D1VerifyResult = {
@@ -93,7 +92,6 @@ function parseBuildArgs(args: D1VerifyArgs = {}): Required<D1VerifyArgs> {
     year: args.year ?? 2026,
     month: args.month ?? 3,
     dbPath: args.dbPath ?? defaultLocalPipelineDbPath(),
-    trendsDir: args.trendsDir ?? fromRepoRoot(join("data/working/trends")),
   };
 }
 
@@ -118,12 +116,6 @@ function parseCliArgs(args: string[]): D1VerifyArgs {
 
     if (arg === "--db" && value !== undefined) {
       output.dbPath = fromCliPath(value);
-      index += 1;
-      continue;
-    }
-
-    if (arg === "--trends-dir" && value !== undefined) {
-      output.trendsDir = fromCliPath(value);
       index += 1;
       continue;
     }
@@ -200,7 +192,6 @@ export async function verifyD1Export(args: D1VerifyArgs = {}): Promise<D1VerifyR
     year: options.year,
     month: options.month,
     dbPath: options.dbPath,
-    trendsDir: options.trendsDir,
   });
   const exportDir = fromRepoRoot(join("data/exports/d1", month));
   const verifyPath = join(exportDir, "verify-summary.json");

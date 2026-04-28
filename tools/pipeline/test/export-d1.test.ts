@@ -23,7 +23,6 @@ const isoMonth = "2026-04";
 const batchDir = fromRepoRoot(join("data/artifacts/route-batches", isoMonth));
 const exportDir = fromRepoRoot(join("data/exports/d1", isoMonth));
 const dbPath = fromRepoRoot(join("data/fixtures/export-d1/pipeline.sqlite"));
-const trendsDir = fromRepoRoot(join("data/fixtures/export-d1-trends"));
 
 function routeDir(routeId: string): string {
   return fromRepoRoot(join("data/artifacts/route-slices", `${routeId.toLowerCase()}-${isoMonth}`));
@@ -38,7 +37,6 @@ async function removeFixtureArtifacts(): Promise<void> {
     rm(batchDir, { force: true, recursive: true }),
     rm(exportDir, { force: true, recursive: true }),
     rm(dbPath, { force: true }),
-    rm(trendsDir, { force: true, recursive: true }),
     rm(routeDir("T1"), { force: true, recursive: true }),
   ]);
 }
@@ -46,7 +44,6 @@ async function removeFixtureArtifacts(): Promise<void> {
 async function writeFixtureArtifacts(): Promise<void> {
   await removeFixtureArtifacts();
   await mkdir(batchDir, { recursive: true });
-  await mkdir(trendsDir, { recursive: true });
   await mkdir(routeDir("T1"), { recursive: true });
   const local = await openLocalPipelineDb(dbPath);
 
@@ -291,33 +288,6 @@ async function writeFixtureArtifacts(): Promise<void> {
   ]);
   local.sqlite.close();
   await Bun.write(
-    join(trendsDir, `route-month-trends-2025-01_through_${isoMonth}.json`),
-    `${JSON.stringify(
-      {
-        schemaVersion: 1,
-        startMonth: "2025-01",
-        endMonth: isoMonth,
-        rows: [
-          {
-            routeId: "T1",
-            isoMonth,
-            speedObservationCount: 20,
-            speedBusTripCount: 200,
-            averageSpeedMph: 6,
-            ridership: 1000,
-            transfers: 100,
-            trendCoverage: {
-              speed: true,
-              ridership: true,
-            },
-          },
-        ],
-      },
-      null,
-      2,
-    )}\n`,
-  );
-  await Bun.write(
     join(batchDir, "batch-summary.json"),
     `${JSON.stringify(
       {
@@ -423,27 +393,6 @@ async function writeFixtureArtifacts(): Promise<void> {
     )}\n`,
   );
   await Bun.write(
-    join(routeDir("T1"), "artifact-manifest.json"),
-    `${JSON.stringify(
-      {
-        schemaVersion: 1,
-        routeId: "T1",
-        isoMonth,
-        artifacts: [
-          {
-            name: "route-brief-input.json",
-            artifactKey: "route-slices/t1-2026-04/route-brief-input.json",
-            contentType: "application/json",
-            byteLength: 123,
-            sha256: digest("brief"),
-          },
-        ],
-      },
-      null,
-      2,
-    )}\n`,
-  );
-  await Bun.write(
     join(routeDir("T1"), "route-brief-input.json"),
     `${JSON.stringify(
       {
@@ -484,7 +433,7 @@ describe("D1 seed export", () => {
   test("writes schema, seed SQL, and export summary from batch artifacts", async () => {
     await writeFixtureArtifacts();
 
-    const result = await exportD1Seed({ year: 2026, month: 4, dbPath, trendsDir });
+    const result = await exportD1Seed({ year: 2026, month: 4, dbPath });
     const schema = await Bun.file(result.schemaPath).text();
     const seed = await Bun.file(result.seedPath).text();
     const summary = await Bun.file(result.summaryPath).json();

@@ -52,7 +52,6 @@ type RouteBuildResult = {
   hotspotCount: number;
   routeScore: number;
   artifactCount: number;
-  manifestPath: string;
 };
 
 type RouteBatchResult = {
@@ -209,7 +208,6 @@ export async function buildRouteSliceArtifacts(
     hotspotCount: hotspots.hotspotCount,
     routeScore: scorecard.routeScore,
     artifactCount: manifest.artifactCount,
-    manifestPath: manifest.manifestPath,
   };
 }
 
