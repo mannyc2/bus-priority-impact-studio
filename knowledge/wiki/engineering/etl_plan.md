@@ -2,7 +2,7 @@
 title: ETL Plan
 type: engineering
 status: active
-last_updated: 2026-04-27
+last_updated: 2026-04-28
 owner: codex
 source_count: 20
 tags: [etl, ingestion, data-quality, typescript, bun, drizzle, d1, postgres, local-pipeline]
@@ -267,11 +267,11 @@ After product-queryable JSON columns become relational child tables, every D1 ex
 ### Phased implementation plan
 
 1. **Planning complete:** this wiki/ADR update.
-2. **Drizzle dependency PR:** add `drizzle-orm`, `drizzle-kit`, and the stable Drizzle/Zod helper package if needed; do not change behavior.
-3. **D1 schema mirror:** model current D1 tables in Drizzle; generate SQL; compare with current manual SQL.
+2. **Drizzle dependency PR:** complete. `@bp/db` owns `drizzle-orm`, `drizzle-kit`, and `drizzle-zod`.
+3. **D1 schema mirror:** complete for the current serving schema. Generated SQL lives under `packages/db/migrations/d1`.
 4. **Repository bridge:** keep repository APIs stable while switching query construction to Drizzle for one table family.
 5. **Validation helpers:** add generated select/insert schemas for D1 rows and map to existing domain schemas.
-6. **Relational cleanup:** split JSON columns into child tables, beginning with route catalog directions/types and missing inputs.
+6. **Relational cleanup:** initial pass complete for current product-queryable JSON columns in the D1 export.
 7. **Migration verification:** apply D1 migrations locally; run existing D1 export/verify and Worker tests.
 8. **Future PG track:** only after a documented product/storage/query requirement appears.
 

@@ -48,7 +48,9 @@ class FakeDb implements D1DatabaseLike {
   prepare<T = unknown>(query: string): D1PreparedStatement<T> {
     const call = { query, bound: [] };
     this.calls.push(call);
-    const table = Object.keys(this.rowsByTable).find((candidate) => query.includes(candidate));
+    const table = Object.keys(this.rowsByTable)
+      .toSorted((left, right) => right.length - left.length)
+      .find((candidate) => query.includes(candidate));
     const rows = (table === undefined ? [] : this.rowsByTable[table]) as T[];
 
     return new FakeStatement(call, rows);
@@ -69,8 +71,34 @@ const summaryRow = {
   ace_violation_count: 0,
   bus_lane_matched_lane_count: 228,
   schedule_match_rate: 1,
-  peak_ridership_json: JSON.stringify({ dayOfWeek: "Monday", hourOfDay: 17 }),
-  slowest_window_json: JSON.stringify({ dayOfWeek: "Thursday", hourOfDay: 12 }),
+};
+
+const peakWindowRow = {
+  route_id: "M1",
+  month: "2026-03",
+  window_rank: 1,
+  day_of_week: "Monday",
+  hour_of_day: 17,
+  ridership: 500,
+  transfers: 50,
+  matched_observation_count: 10,
+  bus_trip_count: 100,
+  weighted_average_speed_mph: 6.5,
+  slow_observation_share: 0.2,
+};
+
+const slowestWindowRow = {
+  route_id: "M1",
+  month: "2026-03",
+  window_rank: 1,
+  day_of_week: "Thursday",
+  hour_of_day: 12,
+  observation_count: 10,
+  bus_trip_count: 100,
+  segment_count: 5,
+  weighted_average_speed_mph: 4.5,
+  weighted_average_travel_time_minutes: 9,
+  slow_observation_share: 0.8,
 };
 
 const readinessRow = {
@@ -81,7 +109,6 @@ const readinessRow = {
   readiness_status: "ready",
   build_eligible: 1,
   readiness_score: 100,
-  missing_inputs_json: "[]",
   speed_observation_count: 2003,
   speed_bus_trip_count: 15000,
   average_speed_mph: 6.7409,
@@ -104,7 +131,6 @@ const buildPlanRow = {
   priority_score: 3000.75,
   readiness_status: "ready",
   readiness_score: 100,
-  missing_inputs_json: "[]",
   speed_observation_count: 5549,
   speed_bus_trip_count: 14369,
   average_speed_mph: 5.2718,
@@ -122,9 +148,77 @@ const batchStatusRow = {
   byte_length_mismatch_count: 0,
   total_byte_length: 123456,
   issue_count: 0,
-  built_route_ids_json: JSON.stringify(["M1", "M2", "M57"]),
-  issues_json: "[]",
 };
+
+const batchBuiltRouteRows = [
+  {
+    month: "2026-03",
+    route_rank: 1,
+    route_id: "M1",
+    artifact_count: null,
+    status: "built",
+  },
+  {
+    month: "2026-03",
+    route_rank: 2,
+    route_id: "M2",
+    artifact_count: null,
+    status: "built",
+  },
+  {
+    month: "2026-03",
+    route_rank: 3,
+    route_id: "M57",
+    artifact_count: null,
+    status: "built",
+  },
+];
+
+const batchIssueRows: unknown[] = [];
+
+const reliabilityGapWindowRow = {
+  route_id: "M57",
+  month: "2026-03",
+  window_rank: 1,
+  day_type: "weekday",
+  direction_id: "N",
+  stop_id: "S1",
+  stop_name: null,
+  sample_count: 50,
+  median_headway_minutes: 10,
+  p90_headway_minutes: 20,
+  max_headway_minutes: 30,
+};
+
+const reliabilitySourceStatusRows = [
+  {
+    route_id: "M57",
+    month: "2026-03",
+    source_scope: "reliability",
+    source_id: "observedHeadways",
+    status: "needs_gtfs_rt_collection",
+    row_count: null,
+    snapshot_id: null,
+    note: null,
+  },
+];
+
+const equitySourceStatusRows = [
+  {
+    route_id: "M1",
+    month: "2026-03",
+    source_scope: "equity_context",
+    source_id: "routeSpatialJoin",
+    status: "pending_tract_geometry_join",
+    row_count: null,
+    snapshot_id: null,
+    note: null,
+  },
+];
+
+const allSourceStatusRows = [...reliabilitySourceStatusRows, ...equitySourceStatusRows];
+
+const missingInputRows: unknown[] = [];
 
 const reliabilityBaselineRow = {
   route_id: "M57",
@@ -138,8 +232,6 @@ const reliabilityBaselineRow = {
   max_scheduled_headway_minutes: 60,
   scheduled_short_headway_share: 0.02,
   scheduled_long_gap_share: 0.15,
-  top_long_gap_windows_json: JSON.stringify([{ stopId: "S1", p90HeadwayMinutes: 20 }]),
-  source_status_json: JSON.stringify({ observedHeadways: "needs_gtfs_rt_collection" }),
 };
 
 const trendRow = {
@@ -174,12 +266,15 @@ const equityContextRow = {
   non_hispanic_white_share: 44.3,
   non_hispanic_black_share: 12.1,
   non_hispanic_asian_share: 14.2,
-  source_status_json: JSON.stringify({ routeSpatialJoin: "pending_tract_geometry_join" }),
 };
 
 describe("route serving repository", () => {
-  test("lists route brief summaries with typed JSON fields", async () => {
-    const db = new FakeDb({ route_brief_summary: [summaryRow] });
+  test("lists route brief summaries with typed child rows", async () => {
+    const db = new FakeDb({
+      route_brief_peak_window: [peakWindowRow],
+      route_brief_slowest_window: [slowestWindowRow],
+      route_brief_summary: [summaryRow],
+    });
 
     const rows = await listRouteBriefSummaries(db, "2026-03");
 
@@ -196,14 +291,18 @@ describe("route serving repository", () => {
         month: "2026-03",
         routeScore: 16,
         aceActive: false,
-        peakRidership: { dayOfWeek: "Monday", hourOfDay: 17 },
-        slowestWindow: { dayOfWeek: "Thursday", hourOfDay: 12 },
+        peakRidership: expect.objectContaining({ dayOfWeek: "Monday", hourOfDay: 17 }),
+        slowestWindow: expect.objectContaining({ dayOfWeek: "Thursday", hourOfDay: 12 }),
       }),
     ]);
   });
 
   test("gets one route brief summary by route and month", async () => {
-    const db = new FakeDb({ route_brief_summary: [{ ...summaryRow, ace_active: 1 }] });
+    const db = new FakeDb({
+      route_brief_peak_window: [peakWindowRow],
+      route_brief_slowest_window: [slowestWindowRow],
+      route_brief_summary: [{ ...summaryRow, ace_active: 1 }],
+    });
 
     const row = await getRouteBriefSummary(db, "M1", "2026-03");
 
@@ -222,8 +321,12 @@ describe("route serving repository", () => {
     await expect(getRouteBriefSummary(db, "M9", "2026-03")).resolves.toBeNull();
   });
 
-  test("gets route batch status with typed JSON fields", async () => {
-    const db = new FakeDb({ route_batch_status: [batchStatusRow] });
+  test("gets route batch status with typed child rows", async () => {
+    const db = new FakeDb({
+      route_batch_built_route: batchBuiltRouteRows,
+      route_batch_issue: batchIssueRows,
+      route_batch_status: [batchStatusRow],
+    });
 
     const row = await getRouteBatchStatus(db, "2026-03");
 
@@ -297,7 +400,10 @@ describe("route serving repository", () => {
   });
 
   test("lists route readiness rows with missing input details", async () => {
-    const db = new FakeDb({ route_readiness: [readinessRow] });
+    const db = new FakeDb({
+      route_readiness_missing_input: missingInputRows,
+      route_readiness: [readinessRow],
+    });
 
     const rows = await listRouteReadiness(db, "2026-03");
 
@@ -314,7 +420,10 @@ describe("route serving repository", () => {
   });
 
   test("lists build-eligible routes only", async () => {
-    const db = new FakeDb({ route_readiness: [readinessRow] });
+    const db = new FakeDb({
+      route_readiness_missing_input: missingInputRows,
+      route_readiness: [readinessRow],
+    });
 
     const rows = await listBuildEligibleRoutes(db, "2026-03");
 
@@ -327,8 +436,11 @@ describe("route serving repository", () => {
     );
   });
 
-  test("lists route build plan rows with typed flags and JSON fields", async () => {
-    const db = new FakeDb({ route_build_plan: [buildPlanRow] });
+  test("lists route build plan rows with typed flags and child rows", async () => {
+    const db = new FakeDb({
+      route_readiness_missing_input: missingInputRows,
+      route_build_plan: [buildPlanRow],
+    });
 
     const rows = await listRouteBuildPlan(db, "2026-03");
 
@@ -346,8 +458,12 @@ describe("route serving repository", () => {
     ]);
   });
 
-  test("lists route reliability baseline rows with JSON fields", async () => {
-    const db = new FakeDb({ route_reliability_baseline: [reliabilityBaselineRow] });
+  test("lists route reliability baseline rows with child rows", async () => {
+    const db = new FakeDb({
+      route_reliability_gap_window: [reliabilityGapWindowRow],
+      route_month_source_status: allSourceStatusRows,
+      route_reliability_baseline: [reliabilityBaselineRow],
+    });
 
     const rows = await listRouteReliabilityBaselines(db, "2026-03");
 
@@ -358,7 +474,7 @@ describe("route serving repository", () => {
         routeId: "M57",
         reliabilityStatus: "scheduled_baseline_only",
         p90ScheduledHeadwayMinutes: 20,
-        topLongGapWindows: [{ stopId: "S1", p90HeadwayMinutes: 20 }],
+        topLongGapWindows: [expect.objectContaining({ stopId: "S1", p90HeadwayMinutes: 20 })],
         sourceStatus: { observedHeadways: "needs_gtfs_rt_collection" },
       }),
     ]);
@@ -383,8 +499,11 @@ describe("route serving repository", () => {
     ]);
   });
 
-  test("lists route equity context rows with typed JSON fields", async () => {
-    const db = new FakeDb({ route_equity_context: [equityContextRow] });
+  test("lists route equity context rows with source-status child rows", async () => {
+    const db = new FakeDb({
+      route_month_source_status: allSourceStatusRows,
+      route_equity_context: [equityContextRow],
+    });
 
     const rows = await listRouteEquityContexts(db, "2026-03");
 
@@ -405,7 +524,10 @@ describe("route serving repository", () => {
   });
 
   test("lists selected route build candidates only", async () => {
-    const db = new FakeDb({ route_build_plan: [buildPlanRow] });
+    const db = new FakeDb({
+      route_readiness_missing_input: missingInputRows,
+      route_build_plan: [buildPlanRow],
+    });
 
     const rows = await listSelectedRouteBuildCandidates(db, "2026-03");
 
@@ -419,9 +541,11 @@ describe("route serving repository", () => {
     );
   });
 
-  test("rejects corrupted JSON in summary rows", async () => {
+  test("rejects invalid child rows in summary reads", async () => {
     const db = new FakeDb({
-      route_brief_summary: [{ ...summaryRow, peak_ridership_json: "not-json" }],
+      route_brief_peak_window: [{ ...peakWindowRow, hour_of_day: 99 }],
+      route_brief_slowest_window: [slowestWindowRow],
+      route_brief_summary: [summaryRow],
     });
 
     await expect(listRouteBriefSummaries(db, "2026-03")).rejects.toThrow();

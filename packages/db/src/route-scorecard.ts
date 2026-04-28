@@ -9,8 +9,20 @@ CREATE TABLE IF NOT EXISTS route_scorecard (
   coverage_status TEXT NOT NULL CHECK (coverage_status IN ('full', 'no_observed_speed')),
   average_speed_mph REAL NOT NULL CHECK (average_speed_mph >= 0),
   hotspot_count INTEGER NOT NULL CHECK (hotspot_count >= 0),
-  citations_json TEXT NOT NULL,
   PRIMARY KEY (route_id, month)
+);
+`;
+
+export const createRouteScorecardCitationTableSql = `
+CREATE TABLE IF NOT EXISTS route_scorecard_citation (
+  route_id TEXT NOT NULL,
+  month TEXT NOT NULL,
+  citation_rank INTEGER NOT NULL CHECK (citation_rank >= 1),
+  source_id TEXT NOT NULL,
+  title TEXT NOT NULL,
+  url TEXT NOT NULL,
+  verified_at TEXT NOT NULL,
+  PRIMARY KEY (route_id, month, citation_rank)
 );
 `;
 
@@ -21,7 +33,16 @@ export type RouteScorecardRow = {
   coverage_status: string;
   average_speed_mph: number;
   hotspot_count: number;
-  citations_json: string;
+};
+
+export type RouteScorecardCitationRow = {
+  route_id: string;
+  month: string;
+  citation_rank: number;
+  source_id: string;
+  title: string;
+  url: string;
+  verified_at: string;
 };
 
 export function serializeRouteScorecard(scorecard: RouteScorecard): RouteScorecardRow {
@@ -34,13 +55,29 @@ export function serializeRouteScorecard(scorecard: RouteScorecard): RouteScoreca
     coverage_status: parsed.coverageStatus,
     average_speed_mph: parsed.averageSpeedMph,
     hotspot_count: parsed.hotspotCount,
-    citations_json: JSON.stringify(parsed.citations),
   };
 }
 
-export function deserializeRouteScorecard(row: RouteScorecardRow): RouteScorecard {
-  const citations = JSON.parse(row.citations_json) as unknown;
+export function serializeRouteScorecardCitations(
+  scorecard: RouteScorecard,
+): RouteScorecardCitationRow[] {
+  const parsed = RouteScorecardSchema.parse(scorecard);
 
+  return parsed.citations.map((citation, index) => ({
+    route_id: parsed.routeId,
+    month: parsed.month,
+    citation_rank: index + 1,
+    source_id: citation.sourceId,
+    title: citation.title,
+    url: citation.url,
+    verified_at: citation.verifiedAt,
+  }));
+}
+
+export function deserializeRouteScorecard(
+  row: RouteScorecardRow,
+  citations: RouteScorecardCitationRow[],
+): RouteScorecard {
   return RouteScorecardSchema.parse({
     schemaVersion: 1,
     routeId: row.route_id,
@@ -49,7 +86,14 @@ export function deserializeRouteScorecard(row: RouteScorecardRow): RouteScorecar
     coverageStatus: row.coverage_status,
     averageSpeedMph: row.average_speed_mph,
     hotspotCount: row.hotspot_count,
-    citations,
+    citations: citations
+      .toSorted((left, right) => left.citation_rank - right.citation_rank)
+      .map((citation) => ({
+        sourceId: citation.source_id,
+        title: citation.title,
+        url: citation.url,
+        verifiedAt: citation.verified_at,
+      })),
   });
 }
 
@@ -62,7 +106,7 @@ export async function getRouteScorecard(
     .prepare<RouteScorecardRow>(
       [
         "SELECT route_id, month, route_score, coverage_status,",
-        "average_speed_mph, hotspot_count, citations_json",
+        "average_speed_mph, hotspot_count",
         "FROM route_scorecard",
         "WHERE route_id = ? AND month = ?",
       ].join(" "),
@@ -70,5 +114,21 @@ export async function getRouteScorecard(
     .bind(routeId, month)
     .first();
 
-  return row === null ? null : deserializeRouteScorecard(row);
+  if (row === null) {
+    return null;
+  }
+
+  const citations = await db
+    .prepare<RouteScorecardCitationRow>(
+      [
+        "SELECT route_id, month, citation_rank, source_id, title, url, verified_at",
+        "FROM route_scorecard_citation",
+        "WHERE route_id = ? AND month = ?",
+        "ORDER BY citation_rank ASC",
+      ].join(" "),
+    )
+    .bind(routeId, month)
+    .all();
+
+  return deserializeRouteScorecard(row, citations.results ?? []);
 }

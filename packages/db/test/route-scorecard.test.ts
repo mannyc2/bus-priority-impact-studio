@@ -6,6 +6,7 @@ import {
   deserializeRouteScorecard,
   getRouteScorecard,
   serializeRouteScorecard,
+  serializeRouteScorecardCitations,
 } from "../src/index.js";
 
 type QueryCall = {
@@ -36,13 +37,15 @@ class FakeStatement<T> implements D1PreparedStatement<T> {
 class FakeDb implements D1DatabaseLike {
   readonly calls: QueryCall[] = [];
 
-  constructor(private readonly rows: unknown[]) {}
+  constructor(private readonly rowsByTable: Record<string, unknown[]>) {}
 
   prepare<T = unknown>(query: string): D1PreparedStatement<T> {
     const call = { query, bound: [] };
     this.calls.push(call);
+    const table = Object.keys(this.rowsByTable).find((candidate) => query.includes(candidate));
+    const rows = (table === undefined ? [] : this.rowsByTable[table]) as T[];
 
-    return new FakeStatement(call, this.rows as T[]);
+    return new FakeStatement(call, rows);
   }
 }
 
@@ -67,19 +70,23 @@ const scorecard = RouteScorecardSchema.parse({
 describe("D1 route scorecard read model", () => {
   test("round-trips scorecards through a compact row shape", () => {
     const row = serializeRouteScorecard(scorecard);
-    const parsed = deserializeRouteScorecard(row);
+    const citations = serializeRouteScorecardCitations(scorecard);
+    const parsed = deserializeRouteScorecard(row, citations);
 
     expect(parsed).toEqual(scorecard);
   });
 
-  test("rejects corrupted citation JSON at the repository boundary", () => {
+  test("rejects missing citation child rows at the repository boundary", () => {
     const row = serializeRouteScorecard(scorecard);
 
-    expect(() => deserializeRouteScorecard({ ...row, citations_json: "not-json" })).toThrow();
+    expect(() => deserializeRouteScorecard(row, [])).toThrow();
   });
 
   test("gets one scorecard by route and month", async () => {
-    const db = new FakeDb([serializeRouteScorecard(scorecard)]);
+    const db = new FakeDb({
+      route_scorecard_citation: serializeRouteScorecardCitations(scorecard),
+      route_scorecard: [serializeRouteScorecard(scorecard)],
+    });
 
     const row = await getRouteScorecard(db, "M1", "2026-01");
 
@@ -89,7 +96,7 @@ describe("D1 route scorecard read model", () => {
   });
 
   test("returns null when a scorecard row does not exist", async () => {
-    const db = new FakeDb([]);
+    const db = new FakeDb({});
 
     await expect(getRouteScorecard(db, "M2", "2026-01")).resolves.toBeNull();
   });

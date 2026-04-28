@@ -1,7 +1,13 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { classifyPublicRouteVisibility } from "@bp/analytics";
-import { boolInt, createServingTablesSql, sqlJson, sqlNullableNumber, sqlString } from "@bp/db";
+import {
+  boolInt,
+  createServingTablesSql,
+  sqlNullableNumber,
+  sqlNullableString,
+  sqlString,
+} from "@bp/db";
 import * as z from "zod";
 import { routeSliceKey } from "../../lib/artifacts.js";
 import { isoMonth } from "../../lib/dates.js";
@@ -79,6 +85,32 @@ const RouteBriefInputSchema = z
         slowestDayHourWindows: z.array(z.unknown()),
       })
       .passthrough(),
+  })
+  .passthrough();
+
+const PeakRidershipWindowSchema = z
+  .object({
+    dayOfWeek: z.string().min(1),
+    hourOfDay: z.number().int().min(0).max(23),
+    ridership: z.number().nonnegative().optional(),
+    transfers: z.number().nonnegative().optional(),
+    matchedObservationCount: z.number().int().nonnegative().optional(),
+    busTripCount: z.number().int().nonnegative().optional(),
+    weightedAverageSpeedMph: z.number().nonnegative().optional(),
+    slowObservationShare: z.number().nonnegative().optional(),
+  })
+  .passthrough();
+
+const SlowestWindowSchema = z
+  .object({
+    dayOfWeek: z.string().min(1),
+    hourOfDay: z.number().int().min(0).max(23),
+    observationCount: z.number().int().nonnegative().optional(),
+    busTripCount: z.number().int().nonnegative().optional(),
+    segmentCount: z.number().int().nonnegative().optional(),
+    weightedAverageSpeedMph: z.number().nonnegative().optional(),
+    weightedAverageTravelTimeMinutes: z.number().nonnegative().optional(),
+    slowObservationShare: z.number().nonnegative().optional(),
   })
   .passthrough();
 
@@ -260,6 +292,21 @@ const RouteReliabilityBaselineSchema = z
   })
   .passthrough();
 
+const ReliabilityGapWindowSchema = z
+  .object({
+    dayType: z.string().min(1),
+    direction: z.string().min(1),
+    stopId: z.string().min(1),
+    stopName: z.string().nullable().optional(),
+    sampleCount: z.number().int().nonnegative(),
+    medianHeadwayMinutes: z.number().nonnegative(),
+    p90HeadwayMinutes: z.number().nonnegative(),
+    maxHeadwayMinutes: z.number().nonnegative(),
+  })
+  .passthrough();
+
+const SourceStatusSchema = z.record(z.string(), z.unknown());
+
 const RouteMonthTrendsSchema = z
   .object({
     schemaVersion: z.literal(1),
@@ -340,13 +387,23 @@ type D1ExportResult = {
   artifactRowCount: number;
   comparisonRowCount: number;
   routeCatalogRowCount: number;
+  routeCatalogTypeRowCount: number;
+  routeDirectionRowCount: number;
   routeCoverageRowCount: number;
   routeReadinessRowCount: number;
+  routeReadinessMissingInputRowCount: number;
   routeBuildPlanRowCount: number;
   routeReliabilityBaselineRowCount: number;
+  routeReliabilityGapWindowRowCount: number;
+  routeMonthSourceStatusRowCount: number;
   routeMonthTrendRowCount: number;
   routeEquityContextRowCount: number;
   routeBatchStatusRowCount: number;
+  routeBatchBuiltRouteRowCount: number;
+  routeBatchIssueRowCount: number;
+  routeBriefPeakWindowRowCount: number;
+  routeBriefSlowestWindowRowCount: number;
+  routeScorecardCitationRowCount: number;
 };
 
 function parseBuildArgs(args: D1ExportArgs = {}): Required<D1ExportArgs> {
@@ -411,6 +468,42 @@ async function readRouteMonthTrends(
   return RouteMonthTrendsSchema.parse(await file.json());
 }
 
+function sqlOptionalNumber(value: number | undefined): string {
+  return sqlNullableNumber(value ?? null);
+}
+
+function sourceStatusRows(input: {
+  routeId: string;
+  month: string;
+  sourceScope: "reliability" | "equity_context";
+  sourceStatus: unknown;
+}): string[] {
+  const status = SourceStatusSchema.parse(input.sourceStatus);
+
+  return Object.entries(status).map(([sourceId, value]) =>
+    [
+      "INSERT INTO route_month_source_status",
+      "(route_id, month, source_scope, source_id, status, row_count, snapshot_id, note)",
+      "VALUES",
+      `(${sqlString(input.routeId)}, ${sqlString(input.month)}, ${sqlString(input.sourceScope)}, ${sqlString(sourceId)}, ${sqlString(String(value))}, NULL, NULL, NULL);`,
+    ].join(" "),
+  );
+}
+
+function routeBatchIssueParts(issue: string): {
+  routeId: string | null;
+  issueCode: string;
+  message: string;
+} {
+  const [routeId, issueCode] = issue.split(":");
+
+  return {
+    routeId: routeId === undefined || routeId.length === 0 ? null : routeId,
+    issueCode: issueCode === undefined || issueCode.length === 0 ? "unknown" : issueCode,
+    message: issue,
+  };
+}
+
 export async function exportD1Seed(args: D1ExportArgs = {}): Promise<D1ExportResult> {
   const options = parseBuildArgs(args);
   const month = isoMonth(options.year, options.month);
@@ -455,30 +548,74 @@ export async function exportD1Seed(args: D1ExportArgs = {}): Promise<D1ExportRes
   );
   const statements: string[] = [
     createServingTablesSql.trim(),
+    "DELETE FROM route_catalog_type;",
+    "DELETE FROM route_direction;",
     "DELETE FROM route_catalog;",
     `DELETE FROM route_month_coverage WHERE month = ${sqlString(month)};`,
+    `DELETE FROM route_readiness_missing_input WHERE month = ${sqlString(month)};`,
     `DELETE FROM route_readiness WHERE month = ${sqlString(month)};`,
     `DELETE FROM route_build_plan WHERE month = ${sqlString(month)};`,
+    `DELETE FROM route_reliability_gap_window WHERE month = ${sqlString(month)};`,
+    `DELETE FROM route_month_source_status WHERE month = ${sqlString(month)};`,
     `DELETE FROM route_reliability_baseline WHERE month = ${sqlString(month)};`,
     "DELETE FROM route_month_trend;",
     `DELETE FROM route_equity_context WHERE month = ${sqlString(month)};`,
+    `DELETE FROM route_scorecard_citation WHERE month = ${sqlString(month)};`,
     `DELETE FROM route_scorecard WHERE month = ${sqlString(month)};`,
     `DELETE FROM route_artifact WHERE month = ${sqlString(month)};`,
+    `DELETE FROM route_brief_peak_window WHERE month = ${sqlString(month)};`,
+    `DELETE FROM route_brief_slowest_window WHERE month = ${sqlString(month)};`,
     `DELETE FROM route_brief_summary WHERE month = ${sqlString(month)};`,
     `DELETE FROM route_comparison_rank WHERE month = ${sqlString(month)};`,
+    `DELETE FROM route_batch_built_route WHERE month = ${sqlString(month)};`,
+    `DELETE FROM route_batch_issue WHERE month = ${sqlString(month)};`,
     `DELETE FROM route_batch_status WHERE month = ${sqlString(month)};`,
   ];
   let artifactRowCount = 0;
+  let routeCatalogTypeRowCount = 0;
+  let routeDirectionRowCount = 0;
+  let routeReadinessMissingInputRowCount = 0;
+  let routeReliabilityGapWindowRowCount = 0;
+  let routeMonthSourceStatusRowCount = 0;
+  let routeBriefPeakWindowRowCount = 0;
+  let routeBriefSlowestWindowRowCount = 0;
+  let routeBatchBuiltRouteRowCount = 0;
+  let routeBatchIssueRowCount = 0;
+  const routeScorecardCitationRowCount = 0;
 
   for (const route of routeCatalog.rows) {
     statements.push(
       [
         "INSERT INTO route_catalog",
-        "(route_id, route_short_name, route_long_name, route_types_json, directions_json, shape_count, stop_count, timepoint_stop_count, latitude_min, latitude_max, longitude_min, longitude_max)",
+        "(route_id, route_short_name, route_long_name, shape_count, stop_count, timepoint_stop_count, latitude_min, latitude_max, longitude_min, longitude_max)",
         "VALUES",
-        `(${sqlString(route.routeId)}, ${sqlString(route.routeShortName)}, ${route.routeLongName === null ? "NULL" : sqlString(route.routeLongName)}, ${sqlJson(route.routeTypes)}, ${sqlJson(route.directions)}, ${route.shapeCount}, ${route.stopCount}, ${route.timepointStopCount}, ${sqlNullableNumber(route.latitudeMin)}, ${sqlNullableNumber(route.latitudeMax)}, ${sqlNullableNumber(route.longitudeMin)}, ${sqlNullableNumber(route.longitudeMax)});`,
+        `(${sqlString(route.routeId)}, ${sqlString(route.routeShortName)}, ${sqlNullableString(route.routeLongName)}, ${route.shapeCount}, ${route.stopCount}, ${route.timepointStopCount}, ${sqlNullableNumber(route.latitudeMin)}, ${sqlNullableNumber(route.latitudeMax)}, ${sqlNullableNumber(route.longitudeMin)}, ${sqlNullableNumber(route.longitudeMax)});`,
       ].join(" "),
     );
+
+    route.routeTypes.forEach((routeType, index) => {
+      routeCatalogTypeRowCount += 1;
+      statements.push(
+        [
+          "INSERT INTO route_catalog_type",
+          "(route_id, type_rank, route_type)",
+          "VALUES",
+          `(${sqlString(route.routeId)}, ${index + 1}, ${sqlString(routeType)});`,
+        ].join(" "),
+      );
+    });
+
+    route.directions.forEach((direction, index) => {
+      routeDirectionRowCount += 1;
+      statements.push(
+        [
+          "INSERT INTO route_direction",
+          "(route_id, direction_id, direction_name)",
+          "VALUES",
+          `(${sqlString(route.routeId)}, ${index}, ${sqlString(direction)});`,
+        ].join(" "),
+      );
+    });
   }
 
   for (const coverage of routeCoverage.rows) {
@@ -496,20 +633,32 @@ export async function exportD1Seed(args: D1ExportArgs = {}): Promise<D1ExportRes
     statements.push(
       [
         "INSERT INTO route_readiness",
-        "(route_id, month, route_short_name, route_long_name, readiness_status, build_eligible, readiness_score, missing_inputs_json, speed_observation_count, speed_bus_trip_count, average_speed_mph, schedule_timepoint_count, shape_count, stop_count, timepoint_stop_count)",
+        "(route_id, month, route_short_name, route_long_name, readiness_status, build_eligible, readiness_score, speed_observation_count, speed_bus_trip_count, average_speed_mph, schedule_timepoint_count, shape_count, stop_count, timepoint_stop_count)",
         "VALUES",
-        `(${sqlString(row.routeId)}, ${sqlString(month)}, ${sqlString(row.routeShortName)}, ${row.routeLongName === null ? "NULL" : sqlString(row.routeLongName)}, ${sqlString(row.readinessStatus)}, ${boolInt(row.buildEligible)}, ${row.readinessScore}, ${sqlJson(row.missingInputs)}, ${row.speedObservationCount}, ${row.speedBusTripCount}, ${sqlNullableNumber(row.averageSpeedMph)}, ${row.scheduleTimepointCount}, ${row.shapeCount}, ${row.stopCount}, ${row.timepointStopCount});`,
+        `(${sqlString(row.routeId)}, ${sqlString(month)}, ${sqlString(row.routeShortName)}, ${sqlNullableString(row.routeLongName)}, ${sqlString(row.readinessStatus)}, ${boolInt(row.buildEligible)}, ${row.readinessScore}, ${row.speedObservationCount}, ${row.speedBusTripCount}, ${sqlNullableNumber(row.averageSpeedMph)}, ${row.scheduleTimepointCount}, ${row.shapeCount}, ${row.stopCount}, ${row.timepointStopCount});`,
       ].join(" "),
     );
+
+    row.missingInputs.forEach((inputName, index) => {
+      routeReadinessMissingInputRowCount += 1;
+      statements.push(
+        [
+          "INSERT INTO route_readiness_missing_input",
+          "(route_id, month, input_rank, input_name, severity, note)",
+          "VALUES",
+          `(${sqlString(row.routeId)}, ${sqlString(month)}, ${index + 1}, ${sqlString(inputName)}, 'blocking', NULL);`,
+        ].join(" "),
+      );
+    });
   }
 
   for (const row of routeBuildPlan.rows) {
     statements.push(
       [
         "INSERT INTO route_build_plan",
-        "(route_id, month, route_short_name, route_long_name, candidate_rank, plan_status, selected_for_next_batch, already_built, build_eligible, priority_score, readiness_status, readiness_score, missing_inputs_json, speed_observation_count, speed_bus_trip_count, average_speed_mph, schedule_timepoint_count)",
+        "(route_id, month, route_short_name, route_long_name, candidate_rank, plan_status, selected_for_next_batch, already_built, build_eligible, priority_score, readiness_status, readiness_score, speed_observation_count, speed_bus_trip_count, average_speed_mph, schedule_timepoint_count)",
         "VALUES",
-        `(${sqlString(row.routeId)}, ${sqlString(month)}, ${sqlString(row.routeShortName)}, ${row.routeLongName === null ? "NULL" : sqlString(row.routeLongName)}, ${sqlNullableNumber(row.candidateRank)}, ${sqlString(row.planStatus)}, ${boolInt(row.selectedForNextBatch)}, ${boolInt(row.alreadyBuilt)}, ${boolInt(row.buildEligible)}, ${row.priorityScore}, ${sqlString(row.readinessStatus)}, ${row.readinessScore}, ${sqlJson(row.missingInputs)}, ${row.speedObservationCount}, ${row.speedBusTripCount}, ${sqlNullableNumber(row.averageSpeedMph)}, ${row.scheduleTimepointCount});`,
+        `(${sqlString(row.routeId)}, ${sqlString(month)}, ${sqlString(row.routeShortName)}, ${sqlNullableString(row.routeLongName)}, ${sqlNullableNumber(row.candidateRank)}, ${sqlString(row.planStatus)}, ${boolInt(row.selectedForNextBatch)}, ${boolInt(row.alreadyBuilt)}, ${boolInt(row.buildEligible)}, ${row.priorityScore}, ${sqlString(row.readinessStatus)}, ${row.readinessScore}, ${row.speedObservationCount}, ${row.speedBusTripCount}, ${sqlNullableNumber(row.averageSpeedMph)}, ${row.scheduleTimepointCount});`,
       ].join(" "),
     );
   }
@@ -518,11 +667,33 @@ export async function exportD1Seed(args: D1ExportArgs = {}): Promise<D1ExportRes
     statements.push(
       [
         "INSERT INTO route_reliability_baseline",
-        "(route_id, month, reliability_status, scheduled_timepoint_count, stop_headway_group_count, headway_sample_count, median_scheduled_headway_minutes, p90_scheduled_headway_minutes, max_scheduled_headway_minutes, scheduled_short_headway_share, scheduled_long_gap_share, top_long_gap_windows_json, source_status_json)",
+        "(route_id, month, reliability_status, scheduled_timepoint_count, stop_headway_group_count, headway_sample_count, median_scheduled_headway_minutes, p90_scheduled_headway_minutes, max_scheduled_headway_minutes, scheduled_short_headway_share, scheduled_long_gap_share)",
         "VALUES",
-        `(${sqlString(row.routeId)}, ${sqlString(month)}, ${sqlString(row.reliabilityStatus)}, ${row.scheduledTimepointCount}, ${row.stopHeadwayGroupCount}, ${row.headwaySampleCount}, ${sqlNullableNumber(row.medianScheduledHeadwayMinutes)}, ${sqlNullableNumber(row.p90ScheduledHeadwayMinutes)}, ${sqlNullableNumber(row.maxScheduledHeadwayMinutes)}, ${sqlNullableNumber(row.scheduledShortHeadwayShare)}, ${sqlNullableNumber(row.scheduledLongGapShare)}, ${sqlJson(row.topLongGapWindows)}, ${sqlJson(row.sourceStatus)});`,
+        `(${sqlString(row.routeId)}, ${sqlString(month)}, ${sqlString(row.reliabilityStatus)}, ${row.scheduledTimepointCount}, ${row.stopHeadwayGroupCount}, ${row.headwaySampleCount}, ${sqlNullableNumber(row.medianScheduledHeadwayMinutes)}, ${sqlNullableNumber(row.p90ScheduledHeadwayMinutes)}, ${sqlNullableNumber(row.maxScheduledHeadwayMinutes)}, ${sqlNullableNumber(row.scheduledShortHeadwayShare)}, ${sqlNullableNumber(row.scheduledLongGapShare)});`,
       ].join(" "),
     );
+
+    row.topLongGapWindows.forEach((window, index) => {
+      const parsed = ReliabilityGapWindowSchema.parse(window);
+      routeReliabilityGapWindowRowCount += 1;
+      statements.push(
+        [
+          "INSERT INTO route_reliability_gap_window",
+          "(route_id, month, window_rank, day_type, direction_id, stop_id, stop_name, sample_count, median_headway_minutes, p90_headway_minutes, max_headway_minutes)",
+          "VALUES",
+          `(${sqlString(row.routeId)}, ${sqlString(month)}, ${index + 1}, ${sqlString(parsed.dayType)}, ${sqlString(parsed.direction)}, ${sqlString(parsed.stopId)}, ${sqlNullableString(parsed.stopName ?? null)}, ${parsed.sampleCount}, ${parsed.medianHeadwayMinutes}, ${parsed.p90HeadwayMinutes}, ${parsed.maxHeadwayMinutes});`,
+        ].join(" "),
+      );
+    });
+
+    const statusStatements = sourceStatusRows({
+      routeId: row.routeId,
+      month,
+      sourceScope: "reliability",
+      sourceStatus: row.sourceStatus,
+    });
+    routeMonthSourceStatusRowCount += statusStatements.length;
+    statements.push(...statusStatements);
   }
 
   for (const row of routeMonthTrends.rows) {
@@ -540,11 +711,20 @@ export async function exportD1Seed(args: D1ExportArgs = {}): Promise<D1ExportRes
     statements.push(
       [
         "INSERT INTO route_equity_context",
-        "(route_id, month, acs_year, assignment_geography, assigned_county_fips, assigned_county_name, assignment_method, tract_count, total_population, occupied_housing_units, no_vehicle_households, no_vehicle_household_share, median_household_income, poverty_rate, public_transit_commuter_share, hispanic_share, non_hispanic_white_share, non_hispanic_black_share, non_hispanic_asian_share, source_status_json)",
+        "(route_id, month, acs_year, assignment_geography, assigned_county_fips, assigned_county_name, assignment_method, tract_count, total_population, occupied_housing_units, no_vehicle_households, no_vehicle_household_share, median_household_income, poverty_rate, public_transit_commuter_share, hispanic_share, non_hispanic_white_share, non_hispanic_black_share, non_hispanic_asian_share)",
         "VALUES",
-        `(${sqlString(row.routeId)}, ${sqlString(row.isoMonth)}, ${row.acsYear}, ${sqlString(row.assignmentGeography)}, ${row.assignedCountyFips === null ? "NULL" : sqlString(row.assignedCountyFips)}, ${row.assignedCountyName === null ? "NULL" : sqlString(row.assignedCountyName)}, ${sqlString(row.assignmentMethod)}, ${row.tractCount}, ${sqlNullableNumber(row.totalPopulation)}, ${sqlNullableNumber(row.occupiedHousingUnits)}, ${sqlNullableNumber(row.noVehicleHouseholds)}, ${sqlNullableNumber(row.noVehicleHouseholdShare)}, ${sqlNullableNumber(row.medianHouseholdIncome)}, ${sqlNullableNumber(row.povertyRate)}, ${sqlNullableNumber(row.publicTransitCommuterShare)}, ${sqlNullableNumber(row.raceEthnicityShare.hispanic)}, ${sqlNullableNumber(row.raceEthnicityShare.nonHispanicWhite)}, ${sqlNullableNumber(row.raceEthnicityShare.nonHispanicBlack)}, ${sqlNullableNumber(row.raceEthnicityShare.nonHispanicAsian)}, ${sqlJson(row.sourceStatus)});`,
+        `(${sqlString(row.routeId)}, ${sqlString(row.isoMonth)}, ${row.acsYear}, ${sqlString(row.assignmentGeography)}, ${sqlNullableString(row.assignedCountyFips)}, ${sqlNullableString(row.assignedCountyName)}, ${sqlString(row.assignmentMethod)}, ${row.tractCount}, ${sqlNullableNumber(row.totalPopulation)}, ${sqlNullableNumber(row.occupiedHousingUnits)}, ${sqlNullableNumber(row.noVehicleHouseholds)}, ${sqlNullableNumber(row.noVehicleHouseholdShare)}, ${sqlNullableNumber(row.medianHouseholdIncome)}, ${sqlNullableNumber(row.povertyRate)}, ${sqlNullableNumber(row.publicTransitCommuterShare)}, ${sqlNullableNumber(row.raceEthnicityShare.hispanic)}, ${sqlNullableNumber(row.raceEthnicityShare.nonHispanicWhite)}, ${sqlNullableNumber(row.raceEthnicityShare.nonHispanicBlack)}, ${sqlNullableNumber(row.raceEthnicityShare.nonHispanicAsian)});`,
       ].join(" "),
     );
+
+    const statusStatements = sourceStatusRows({
+      routeId: row.routeId,
+      month: row.isoMonth,
+      sourceScope: "equity_context",
+      sourceStatus: row.sourceStatus,
+    });
+    routeMonthSourceStatusRowCount += statusStatements.length;
+    statements.push(...statusStatements);
   }
 
   for (const route of batch.routes) {
@@ -574,19 +754,46 @@ export async function exportD1Seed(args: D1ExportArgs = {}): Promise<D1ExportRes
     statements.push(
       [
         "INSERT INTO route_scorecard",
-        "(route_id, month, route_score, coverage_status, average_speed_mph, hotspot_count, citations_json)",
+        "(route_id, month, route_score, coverage_status, average_speed_mph, hotspot_count)",
         "VALUES",
-        `(${sqlString(brief.routeId)}, ${sqlString(month)}, ${brief.metrics.routeScore}, ${sqlString(coverageStatus)}, ${brief.metrics.averageSpeedMph}, ${brief.metrics.hotspotCount}, '[]');`,
+        `(${sqlString(brief.routeId)}, ${sqlString(month)}, ${brief.metrics.routeScore}, ${sqlString(coverageStatus)}, ${brief.metrics.averageSpeedMph}, ${brief.metrics.hotspotCount});`,
       ].join(" "),
     );
     statements.push(
       [
         "INSERT INTO route_brief_summary",
-        "(route_id, month, route_score, public_visible, public_visibility_reason, average_speed_mph, hotspot_count, total_ridership, total_transfers, ace_active, ace_violation_count, bus_lane_matched_lane_count, schedule_match_rate, peak_ridership_json, slowest_window_json)",
+        "(route_id, month, route_score, public_visible, public_visibility_reason, average_speed_mph, hotspot_count, total_ridership, total_transfers, ace_active, ace_violation_count, bus_lane_matched_lane_count, schedule_match_rate)",
         "VALUES",
-        `(${sqlString(brief.routeId)}, ${sqlString(month)}, ${brief.metrics.routeScore}, ${boolInt(visibility.publicVisible)}, ${sqlString(visibility.reason)}, ${brief.metrics.averageSpeedMph}, ${brief.metrics.hotspotCount}, ${brief.metrics.totalRidership}, ${brief.metrics.totalTransfers}, ${boolInt(brief.interventionStatus.aceActiveDuringAnalysisPeriod)}, ${brief.interventionStatus.aceViolationCount}, ${brief.interventionStatus.busLaneMatchedLaneCount}, ${scheduleMatchRate}, ${sqlJson(brief.ridershipProfile.peakRidershipWindow)}, ${sqlJson(brief.speedProfile.slowestDayHourWindows[0] ?? null)});`,
+        `(${sqlString(brief.routeId)}, ${sqlString(month)}, ${brief.metrics.routeScore}, ${boolInt(visibility.publicVisible)}, ${sqlString(visibility.reason)}, ${brief.metrics.averageSpeedMph}, ${brief.metrics.hotspotCount}, ${brief.metrics.totalRidership}, ${brief.metrics.totalTransfers}, ${boolInt(brief.interventionStatus.aceActiveDuringAnalysisPeriod)}, ${brief.interventionStatus.aceViolationCount}, ${brief.interventionStatus.busLaneMatchedLaneCount}, ${scheduleMatchRate});`,
       ].join(" "),
     );
+
+    if (brief.ridershipProfile.peakRidershipWindow !== null) {
+      const window = PeakRidershipWindowSchema.parse(brief.ridershipProfile.peakRidershipWindow);
+      routeBriefPeakWindowRowCount += 1;
+      statements.push(
+        [
+          "INSERT INTO route_brief_peak_window",
+          "(route_id, month, window_rank, day_of_week, hour_of_day, ridership, transfers, matched_observation_count, bus_trip_count, weighted_average_speed_mph, slow_observation_share)",
+          "VALUES",
+          `(${sqlString(brief.routeId)}, ${sqlString(month)}, 1, ${sqlString(window.dayOfWeek)}, ${window.hourOfDay}, ${sqlOptionalNumber(window.ridership)}, ${sqlOptionalNumber(window.transfers)}, ${sqlOptionalNumber(window.matchedObservationCount)}, ${sqlOptionalNumber(window.busTripCount)}, ${sqlOptionalNumber(window.weightedAverageSpeedMph)}, ${sqlOptionalNumber(window.slowObservationShare)});`,
+        ].join(" "),
+      );
+    }
+
+    const slowestWindow = brief.speedProfile.slowestDayHourWindows[0];
+    if (slowestWindow !== undefined) {
+      const window = SlowestWindowSchema.parse(slowestWindow);
+      routeBriefSlowestWindowRowCount += 1;
+      statements.push(
+        [
+          "INSERT INTO route_brief_slowest_window",
+          "(route_id, month, window_rank, day_of_week, hour_of_day, observation_count, bus_trip_count, segment_count, weighted_average_speed_mph, weighted_average_travel_time_minutes, slow_observation_share)",
+          "VALUES",
+          `(${sqlString(brief.routeId)}, ${sqlString(month)}, 1, ${sqlString(window.dayOfWeek)}, ${window.hourOfDay}, ${sqlOptionalNumber(window.observationCount)}, ${sqlOptionalNumber(window.busTripCount)}, ${sqlOptionalNumber(window.segmentCount)}, ${sqlOptionalNumber(window.weightedAverageSpeedMph)}, ${sqlOptionalNumber(window.weightedAverageTravelTimeMinutes)}, ${sqlOptionalNumber(window.slowObservationShare)});`,
+        ].join(" "),
+      );
+    }
 
     for (const artifact of manifest.artifacts) {
       artifactRowCount += 1;
@@ -615,11 +822,36 @@ export async function exportD1Seed(args: D1ExportArgs = {}): Promise<D1ExportRes
   statements.push(
     [
       "INSERT INTO route_batch_status",
-      "(month, generated_at, status, route_count, artifact_count, missing_artifact_count, hash_mismatch_count, byte_length_mismatch_count, total_byte_length, issue_count, built_route_ids_json, issues_json)",
+      "(month, generated_at, status, route_count, artifact_count, missing_artifact_count, hash_mismatch_count, byte_length_mismatch_count, total_byte_length, issue_count)",
       "VALUES",
-      `(${sqlString(month)}, ${sqlString(routeBatchAudit.generatedAt)}, ${sqlString(routeBatchAudit.status)}, ${routeBatchAudit.routeCount}, ${routeBatchAudit.artifactCount}, ${routeBatchAudit.missingArtifactCount}, ${routeBatchAudit.hashMismatchCount}, ${routeBatchAudit.byteLengthMismatchCount}, ${routeBatchAudit.totalByteLength}, ${routeBatchAudit.issueCount}, ${sqlJson(routeBatchAudit.builtRouteIds)}, ${sqlJson(routeBatchAudit.issues)});`,
+      `(${sqlString(month)}, ${sqlString(routeBatchAudit.generatedAt)}, ${sqlString(routeBatchAudit.status)}, ${routeBatchAudit.routeCount}, ${routeBatchAudit.artifactCount}, ${routeBatchAudit.missingArtifactCount}, ${routeBatchAudit.hashMismatchCount}, ${routeBatchAudit.byteLengthMismatchCount}, ${routeBatchAudit.totalByteLength}, ${routeBatchAudit.issueCount});`,
     ].join(" "),
   );
+
+  routeBatchAudit.builtRouteIds.forEach((routeId, index) => {
+    routeBatchBuiltRouteRowCount += 1;
+    statements.push(
+      [
+        "INSERT INTO route_batch_built_route",
+        "(month, route_rank, route_id, artifact_count, status)",
+        "VALUES",
+        `(${sqlString(month)}, ${index + 1}, ${sqlString(routeId)}, NULL, 'built');`,
+      ].join(" "),
+    );
+  });
+
+  routeBatchAudit.issues.forEach((issue, index) => {
+    const parts = routeBatchIssueParts(issue);
+    routeBatchIssueRowCount += 1;
+    statements.push(
+      [
+        "INSERT INTO route_batch_issue",
+        "(month, issue_rank, route_id, severity, issue_code, message)",
+        "VALUES",
+        `(${sqlString(month)}, ${index + 1}, ${sqlNullableString(parts.routeId)}, 'error', ${sqlString(parts.issueCode)}, ${sqlString(parts.message)});`,
+      ].join(" "),
+    );
+  });
 
   const summary = {
     schemaVersion,
@@ -629,13 +861,23 @@ export async function exportD1Seed(args: D1ExportArgs = {}): Promise<D1ExportRes
     artifactRowCount,
     comparisonRowCount: comparison.rankedRoutes.length,
     routeCatalogRowCount: routeCatalog.rows.length,
+    routeCatalogTypeRowCount,
+    routeDirectionRowCount,
     routeCoverageRowCount: routeCoverage.rows.length,
     routeReadinessRowCount: routeReadiness.rows.length,
+    routeReadinessMissingInputRowCount,
     routeBuildPlanRowCount: routeBuildPlan.rows.length,
     routeReliabilityBaselineRowCount: routeReliabilityBaseline.rows.length,
+    routeReliabilityGapWindowRowCount,
+    routeMonthSourceStatusRowCount,
     routeMonthTrendRowCount: routeMonthTrends.rows.length,
     routeEquityContextRowCount: routeEquityContext.rows.length,
     routeBatchStatusRowCount: 1,
+    routeBatchBuiltRouteRowCount,
+    routeBatchIssueRowCount,
+    routeBriefPeakWindowRowCount,
+    routeBriefSlowestWindowRowCount,
+    routeScorecardCitationRowCount,
     schemaPath,
     seedPath,
   };
@@ -656,13 +898,23 @@ export async function exportD1Seed(args: D1ExportArgs = {}): Promise<D1ExportRes
     artifactRowCount,
     comparisonRowCount: comparison.rankedRoutes.length,
     routeCatalogRowCount: routeCatalog.rows.length,
+    routeCatalogTypeRowCount,
+    routeDirectionRowCount,
     routeCoverageRowCount: routeCoverage.rows.length,
     routeReadinessRowCount: routeReadiness.rows.length,
+    routeReadinessMissingInputRowCount,
     routeBuildPlanRowCount: routeBuildPlan.rows.length,
     routeReliabilityBaselineRowCount: routeReliabilityBaseline.rows.length,
+    routeReliabilityGapWindowRowCount,
+    routeMonthSourceStatusRowCount,
     routeMonthTrendRowCount: routeMonthTrends.rows.length,
     routeEquityContextRowCount: routeEquityContext.rows.length,
     routeBatchStatusRowCount: 1,
+    routeBatchBuiltRouteRowCount,
+    routeBatchIssueRowCount,
+    routeBriefPeakWindowRowCount,
+    routeBriefSlowestWindowRowCount,
+    routeScorecardCitationRowCount,
   };
 }
 

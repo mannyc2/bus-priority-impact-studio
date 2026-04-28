@@ -1,6 +1,11 @@
 import * as z from "zod";
 import type { D1DatabaseLike } from "./d1.js";
-import { IsoMonthSchema, parseJsonField } from "./serving-shared.js";
+import {
+  groupMissingInputs,
+  listReadinessMissingInputRows,
+  routeMonthKey,
+} from "./route-readiness-repository.js";
+import { IsoMonthSchema } from "./serving-shared.js";
 
 const RouteBuildPlanRowSchema = z
   .object({
@@ -22,7 +27,6 @@ const RouteBuildPlanRowSchema = z
       "missing_speed",
     ]),
     readiness_score: z.number().int().min(0).max(100),
-    missing_inputs_json: z.string(),
     speed_observation_count: z.number().int().nonnegative(),
     speed_bus_trip_count: z.number().int().nonnegative(),
     average_speed_mph: z.number().nonnegative().nullable(),
@@ -45,14 +49,17 @@ export type RouteBuildPlanEntry = {
   priorityScore: number;
   readinessStatus: RouteBuildPlanRow["readiness_status"];
   readinessScore: number;
-  missingInputs: unknown;
+  missingInputs: string[];
   speedObservationCount: number;
   speedBusTripCount: number;
   averageSpeedMph: number | null;
   scheduleTimepointCount: number;
 };
 
-function toRouteBuildPlanEntry(row: RouteBuildPlanRow): RouteBuildPlanEntry {
+function toRouteBuildPlanEntry(
+  row: RouteBuildPlanRow,
+  missingInputs: Map<string, string[]>,
+): RouteBuildPlanEntry {
   return {
     routeId: row.route_id,
     month: row.month,
@@ -66,7 +73,7 @@ function toRouteBuildPlanEntry(row: RouteBuildPlanRow): RouteBuildPlanEntry {
     priorityScore: row.priority_score,
     readinessStatus: row.readiness_status,
     readinessScore: row.readiness_score,
-    missingInputs: parseJsonField(row.missing_inputs_json),
+    missingInputs: missingInputs.get(routeMonthKey(row.route_id, row.month)) ?? [],
     speedObservationCount: row.speed_observation_count,
     speedBusTripCount: row.speed_bus_trip_count,
     averageSpeedMph: row.average_speed_mph,
@@ -74,53 +81,49 @@ function toRouteBuildPlanEntry(row: RouteBuildPlanRow): RouteBuildPlanEntry {
   };
 }
 
-export async function listRouteBuildPlan(
+async function listPlanRows(
   db: D1DatabaseLike,
   month: string,
+  selectedOnly: boolean,
 ): Promise<RouteBuildPlanEntry[]> {
   const result = await db
     .prepare<RouteBuildPlanRow>(
       [
         "SELECT route_id, month, route_short_name, route_long_name, candidate_rank,",
         "plan_status, selected_for_next_batch, already_built, build_eligible, priority_score,",
-        "readiness_status, readiness_score, missing_inputs_json, speed_observation_count,",
-        "speed_bus_trip_count, average_speed_mph, schedule_timepoint_count",
+        "readiness_status, readiness_score, speed_observation_count, speed_bus_trip_count,",
+        "average_speed_mph, schedule_timepoint_count",
         "FROM route_build_plan",
-        "WHERE month = ?",
-        "ORDER BY selected_for_next_batch DESC,",
-        "CASE plan_status WHEN 'selected' THEN 0 WHEN 'backlog' THEN 1",
-        "WHEN 'already_built' THEN 2 ELSE 3 END ASC,",
-        "candidate_rank ASC, priority_score DESC, route_id ASC",
+        selectedOnly ? "WHERE month = ? AND selected_for_next_batch = 1" : "WHERE month = ?",
+        selectedOnly
+          ? "ORDER BY candidate_rank ASC, route_id ASC"
+          : [
+              "ORDER BY selected_for_next_batch DESC,",
+              "CASE plan_status WHEN 'selected' THEN 0 WHEN 'backlog' THEN 1",
+              "WHEN 'already_built' THEN 2 ELSE 3 END ASC,",
+              "candidate_rank ASC, priority_score DESC, route_id ASC",
+            ].join(" "),
       ].join(" "),
     )
     .bind(month)
     .all();
 
-  return (result.results ?? []).map((row) =>
-    toRouteBuildPlanEntry(RouteBuildPlanRowSchema.parse(row)),
-  );
+  const rows = (result.results ?? []).map((row) => RouteBuildPlanRowSchema.parse(row));
+  const missingInputs = groupMissingInputs(await listReadinessMissingInputRows(db, month));
+
+  return rows.map((row) => toRouteBuildPlanEntry(row, missingInputs));
+}
+
+export async function listRouteBuildPlan(
+  db: D1DatabaseLike,
+  month: string,
+): Promise<RouteBuildPlanEntry[]> {
+  return listPlanRows(db, month, false);
 }
 
 export async function listSelectedRouteBuildCandidates(
   db: D1DatabaseLike,
   month: string,
 ): Promise<RouteBuildPlanEntry[]> {
-  const result = await db
-    .prepare<RouteBuildPlanRow>(
-      [
-        "SELECT route_id, month, route_short_name, route_long_name, candidate_rank,",
-        "plan_status, selected_for_next_batch, already_built, build_eligible, priority_score,",
-        "readiness_status, readiness_score, missing_inputs_json, speed_observation_count,",
-        "speed_bus_trip_count, average_speed_mph, schedule_timepoint_count",
-        "FROM route_build_plan",
-        "WHERE month = ? AND selected_for_next_batch = 1",
-        "ORDER BY candidate_rank ASC, route_id ASC",
-      ].join(" "),
-    )
-    .bind(month)
-    .all();
-
-  return (result.results ?? []).map((row) =>
-    toRouteBuildPlanEntry(RouteBuildPlanRowSchema.parse(row)),
-  );
+  return listPlanRows(db, month, true);
 }

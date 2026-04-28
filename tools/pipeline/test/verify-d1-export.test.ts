@@ -315,11 +315,17 @@ describe("D1 export verification", () => {
     expect(result.tableCounts).toEqual(
       expect.objectContaining({
         route_catalog: 1,
+        route_catalog_type: 1,
+        route_direction: 2,
         route_reliability_baseline: 1,
+        route_month_source_status: 3,
         route_month_trend: 1,
         route_equity_context: 1,
         route_artifact: artifactNames.length,
+        route_brief_peak_window: 1,
+        route_brief_slowest_window: 1,
         route_batch_status: 1,
+        route_batch_built_route: 1,
       }),
     );
     expect(summary.repositoryChecks).toEqual(

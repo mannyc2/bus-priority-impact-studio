@@ -16,4 +16,4 @@ Serving database layer.
 - D1 is a serving database, not the analytics warehouse.
 - Store compact, precomputed read models.
 - Large GeoJSON/JSON artifacts should live in R2 or `data/artifacts`, with D1 storing keys and metadata.
-- Prefer explicit query helpers over a full ORM until the serving schema stabilizes.
+- Keep Drizzle schemas and migrations in this package; expose explicit repository helpers to callers.

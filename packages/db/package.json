@@ -8,16 +8,21 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json --noEmit --pretty false",
+    "db:generate:d1": "drizzle-kit generate --config drizzle.config.d1.ts",
+    "db:generate:pg": "drizzle-kit generate --config drizzle.config.pg.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
     "test": "bun test ./test --timeout 5000"
   },
   "dependencies": {
     "@bp/domain": "workspace:*",
+    "drizzle-orm": "catalog:",
+    "drizzle-zod": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "catalog:",
     "@types/bun": "catalog:",
+    "drizzle-kit": "catalog:",
     "typescript": "catalog:"
   }
 }

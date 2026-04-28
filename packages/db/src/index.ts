@@ -38,25 +38,41 @@ export type {
   RouteReliabilityBaselineRow,
 } from "./route-reliability-baseline-repository.js";
 export { listRouteReliabilityBaselines } from "./route-reliability-baseline-repository.js";
-export type { RouteScorecardRow } from "./route-scorecard.js";
+export type { RouteScorecardCitationRow, RouteScorecardRow } from "./route-scorecard.js";
 export {
+  createRouteScorecardCitationTableSql,
   createRouteScorecardTableSql,
   deserializeRouteScorecard,
   getRouteScorecard,
   serializeRouteScorecard,
+  serializeRouteScorecardCitations,
 } from "./route-scorecard.js";
 export {
   createRouteArtifactTableSql,
+  createRouteBatchBuiltRouteTableSql,
+  createRouteBatchIssueTableSql,
   createRouteBatchStatusTableSql,
+  createRouteBriefPeakWindowTableSql,
+  createRouteBriefSlowestWindowTableSql,
   createRouteBriefSummaryTableSql,
   createRouteBuildPlanTableSql,
   createRouteCatalogTableSql,
+  createRouteCatalogTypeTableSql,
   createRouteComparisonRankTableSql,
+  createRouteDirectionTableSql,
   createRouteEquityContextTableSql,
   createRouteMonthCoverageTableSql,
+  createRouteMonthSourceStatusTableSql,
   createRouteMonthTrendTableSql,
+  createRouteReadinessMissingInputTableSql,
   createRouteReadinessTableSql,
   createRouteReliabilityBaselineTableSql,
+  createRouteReliabilityGapWindowTableSql,
   createServingTablesSql,
 } from "./serving-tables.js";
-export { boolInt, sqlJson, sqlNullableNumber, sqlString } from "./sql-serialize.js";
+export {
+  boolInt,
+  sqlNullableNumber,
+  sqlNullableString,
+  sqlString,
+} from "./sql-serialize.js";

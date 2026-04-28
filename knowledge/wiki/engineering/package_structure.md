@@ -2,7 +2,7 @@
 title: Repo Package Structure
 type: engineering
 status: active
-last_updated: 2026-04-27
+last_updated: 2026-04-28
 owner: codex
 source_count: 28
 tags: [repo-structure, typescript, bun, zod, drizzle, cloudflare, clean-architecture, d1, postgres, hyperdrive, r2]
@@ -386,12 +386,15 @@ A VPS is still not required for the MVP. Concrete triggers:
 
 ### Current branch state
 
-`packages/db` already owns the right conceptual responsibilities, but it is still manual-SQL based:
+`packages/db` already owns the right conceptual responsibilities. It now has Drizzle infrastructure plus explicit repository helpers:
 
-- `serving-tables.ts` declares D1 table SQL strings.
-- `route-scorecard.ts` declares SQL and serializes/deserializes JSON manually.
+- `src/schema/d1/index.ts` declares the D1 Drizzle table mirror.
+- `migrations/d1/` contains generated Drizzle SQL for the current D1 serving schema.
+- `src/validation/d1.ts` exposes Drizzle-Zod row schemas for DB boundary validation.
+- `serving-tables.ts` still declares D1 table SQL strings used by the local seed/export path.
+- `route-scorecard.ts` declares scorecard SQL and reconstructs citations from child rows.
 - repository files accept a `D1DatabaseLike`.
-- no Drizzle packages are currently declared in `packages/db/package.json`.
+- Drizzle dependencies are scoped to `packages/db`.
 
 This should change in a small, staged way rather than rewriting the whole data layer at once.
 
@@ -452,13 +455,13 @@ packages/db/
 
 ### Stable migration path for package code
 
-1. Add Drizzle dependencies only to `packages/db`, not to every package.
-2. Recreate the existing D1 table layout in `src/schema/d1`.
-3. Add Drizzle-generated select/insert schemas beside each table group.
+1. Keep Drizzle dependencies only in `packages/db`, not every package.
+2. Keep the D1 Drizzle schema and D1 serving SQL aligned while the export path still uses SQL strings.
+3. Keep Drizzle-generated select/insert schemas beside DB schema code.
 4. Keep the existing repository function names and external types to avoid app churn.
 5. Replace manual SQL strings one table family at a time.
-6. Add child tables for product-queryable JSON cleanup only after the Drizzle schema matches current behavior.
-7. Add `src/schema/pg` and `src/client/pg-hyperdrive.ts` only when the project actually adds Postgres/Hyperdrive.
+6. Keep product-queryable arrays/objects in child tables, not JSON text columns.
+7. Add `src/client/pg-hyperdrive.ts` only when the project actually adds Postgres/Hyperdrive.
 
 ### Proposed scripts
 

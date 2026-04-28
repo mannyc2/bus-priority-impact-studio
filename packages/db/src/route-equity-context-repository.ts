@@ -1,6 +1,7 @@
 import * as z from "zod";
 import type { D1DatabaseLike } from "./d1.js";
-import { IsoMonthSchema, parseJsonField } from "./serving-shared.js";
+import { IsoMonthSchema } from "./serving-shared.js";
+import { groupSourceStatuses, listRouteMonthSourceStatuses } from "./source-status-repository.js";
 
 const RouteEquityContextRowSchema = z
   .object({
@@ -23,7 +24,6 @@ const RouteEquityContextRowSchema = z
     non_hispanic_white_share: z.number().nonnegative().nullable(),
     non_hispanic_black_share: z.number().nonnegative().nullable(),
     non_hispanic_asian_share: z.number().nonnegative().nullable(),
-    source_status_json: z.string(),
   })
   .strict();
 
@@ -51,10 +51,17 @@ export type RouteEquityContext = {
     nonHispanicBlack: number | null;
     nonHispanicAsian: number | null;
   };
-  sourceStatus: unknown;
+  sourceStatus: Record<string, string>;
 };
 
-function toRouteEquityContext(row: RouteEquityContextRow): RouteEquityContext {
+function key(routeId: string, month: string): string {
+  return `${routeId}::${month}`;
+}
+
+function toRouteEquityContext(
+  row: RouteEquityContextRow,
+  sourceStatuses: Map<string, Record<string, string>>,
+): RouteEquityContext {
   return {
     routeId: row.route_id,
     month: row.month,
@@ -77,7 +84,7 @@ function toRouteEquityContext(row: RouteEquityContextRow): RouteEquityContext {
       nonHispanicBlack: row.non_hispanic_black_share,
       nonHispanicAsian: row.non_hispanic_asian_share,
     },
-    sourceStatus: parseJsonField(row.source_status_json),
+    sourceStatus: sourceStatuses.get(key(row.route_id, row.month)) ?? {},
   };
 }
 
@@ -93,7 +100,7 @@ export async function listRouteEquityContexts(
         "occupied_housing_units, no_vehicle_households, no_vehicle_household_share,",
         "median_household_income, poverty_rate, public_transit_commuter_share,",
         "hispanic_share, non_hispanic_white_share, non_hispanic_black_share,",
-        "non_hispanic_asian_share, source_status_json",
+        "non_hispanic_asian_share",
         "FROM route_equity_context",
         "WHERE month = ?",
         "ORDER BY no_vehicle_household_share DESC, route_id ASC",
@@ -102,7 +109,10 @@ export async function listRouteEquityContexts(
     .bind(month)
     .all();
 
-  return (result.results ?? []).map((row) =>
-    toRouteEquityContext(RouteEquityContextRowSchema.parse(row)),
+  const rows = (result.results ?? []).map((row) => RouteEquityContextRowSchema.parse(row));
+  const sourceStatuses = groupSourceStatuses(
+    await listRouteMonthSourceStatuses(db, month, "equity_context"),
   );
+
+  return rows.map((row) => toRouteEquityContext(row, sourceStatuses));
 }

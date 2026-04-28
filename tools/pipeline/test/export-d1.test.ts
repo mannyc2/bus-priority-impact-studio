@@ -349,13 +349,23 @@ describe("D1 seed export", () => {
         isoMonth,
         routeCount: 1,
         routeCatalogRowCount: 1,
+        routeCatalogTypeRowCount: 1,
+        routeDirectionRowCount: 2,
         routeCoverageRowCount: 1,
         routeReadinessRowCount: 1,
+        routeReadinessMissingInputRowCount: 0,
         routeBuildPlanRowCount: 1,
         routeReliabilityBaselineRowCount: 1,
+        routeReliabilityGapWindowRowCount: 0,
+        routeMonthSourceStatusRowCount: 3,
         routeMonthTrendRowCount: 1,
         routeEquityContextRowCount: 1,
         routeBatchStatusRowCount: 1,
+        routeBatchBuiltRouteRowCount: 1,
+        routeBatchIssueRowCount: 10,
+        routeBriefPeakWindowRowCount: 1,
+        routeBriefSlowestWindowRowCount: 1,
+        routeScorecardCitationRowCount: 0,
         artifactRowCount: 1,
         comparisonRowCount: 1,
       }),
@@ -371,24 +381,41 @@ describe("D1 seed export", () => {
     expect(seed).toContain("DELETE FROM route_scorecard WHERE month = '2026-04';");
     expect(seed).toContain("DELETE FROM route_batch_status WHERE month = '2026-04';");
     expect(seed).toContain("INSERT INTO route_catalog");
+    expect(seed).toContain("INSERT INTO route_catalog_type");
+    expect(seed).toContain("INSERT INTO route_direction");
     expect(seed).toContain("INSERT INTO route_month_coverage");
     expect(seed).toContain("INSERT INTO route_readiness");
     expect(seed).toContain("INSERT INTO route_build_plan");
     expect(seed).toContain("INSERT INTO route_reliability_baseline");
+    expect(seed).toContain("INSERT INTO route_month_source_status");
     expect(seed).toContain("INSERT INTO route_month_trend");
     expect(seed).toContain("INSERT INTO route_equity_context");
     expect(seed).toContain("INSERT INTO route_brief_summary");
+    expect(seed).toContain("INSERT INTO route_brief_peak_window");
+    expect(seed).toContain("INSERT INTO route_brief_slowest_window");
     expect(seed).toContain("INSERT INTO route_artifact");
     expect(seed).toContain("INSERT INTO route_comparison_rank");
     expect(seed).toContain("INSERT INTO route_batch_status");
+    expect(seed).toContain("INSERT INTO route_batch_built_route");
+    expect(seed).toContain("INSERT INTO route_batch_issue");
+    expect(seed).not.toContain("_json");
     expect(summary.routeCatalogRowCount).toBe(1);
+    expect(summary.routeCatalogTypeRowCount).toBe(1);
+    expect(summary.routeDirectionRowCount).toBe(2);
     expect(summary.routeCoverageRowCount).toBe(1);
     expect(summary.routeReadinessRowCount).toBe(1);
+    expect(summary.routeReadinessMissingInputRowCount).toBe(0);
     expect(summary.routeBuildPlanRowCount).toBe(1);
     expect(summary.routeReliabilityBaselineRowCount).toBe(1);
+    expect(summary.routeReliabilityGapWindowRowCount).toBe(0);
+    expect(summary.routeMonthSourceStatusRowCount).toBe(3);
     expect(summary.routeMonthTrendRowCount).toBe(1);
     expect(summary.routeEquityContextRowCount).toBe(1);
     expect(summary.routeBatchStatusRowCount).toBe(1);
+    expect(summary.routeBatchBuiltRouteRowCount).toBe(1);
+    expect(summary.routeBatchIssueRowCount).toBe(10);
+    expect(summary.routeBriefPeakWindowRowCount).toBe(1);
+    expect(summary.routeBriefSlowestWindowRowCount).toBe(1);
     expect(summary.artifactRowCount).toBe(1);
   });
 });

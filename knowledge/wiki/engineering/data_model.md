@@ -2,7 +2,7 @@
 title: Data Model
 type: engineering
 status: active
-last_updated: 2026-04-27
+last_updated: 2026-04-28
 owner: codex
 source_count: 19
 tags: [data-model, d1, sqlite, drizzle, postgres, hyperdrive, serving-model, artifacts, json-cleanup]
@@ -409,9 +409,9 @@ If that happens:
 
 ### Branch state reviewed
 
-This branch already has the right high-level direction: `docs/decisions/0002-postgres-drizzle-and-d1-serving-projections.md` says D1 should be a compact serving projection and Postgres through Hyperdrive should become the canonical operational/analytics database when the project outgrows local artifacts. The code has not implemented Drizzle yet: `packages/db` currently owns hand-written D1 SQL strings, D1-like interfaces, SQL serialization helpers, and repository functions over prepared statements.
+This branch already has the right high-level direction: `docs/decisions/0002-postgres-drizzle-and-d1-serving-projections.md` says D1 should be a compact serving projection and Postgres through Hyperdrive should become the canonical operational/analytics database when the project outgrows local artifacts. Implementation now has a D1 Drizzle schema mirror, generated D1 migration files, and Drizzle-Zod validation schemas in `packages/db`; public repositories still expose explicit read helpers over D1-like prepared statements.
 
-Current D1 tables include several `*_json` text columns:
+The pre-cleanup D1 tables included several `*_json` text columns:
 
 - `route_scorecard.citations_json`
 - `route_brief_summary.peak_ridership_json`
@@ -426,7 +426,7 @@ Current D1 tables include several `*_json` text columns:
 - `route_batch_status.built_route_ids_json`
 - `route_batch_status.issues_json`
 
-These JSON columns are fine as a first prototype, but several are now product-queryable: users will want to filter, sort, count, join, rank, or explain routes by these values. Those should move into relational columns or child tables before the app grows.
+These JSON columns were fine as a first prototype, but several are now product-queryable: users will want to filter, sort, count, join, rank, or explain routes by these values. The D1 serving export now emits child tables for these product-queryable shapes instead of JSON text columns, while local artifacts can remain JSON.
 
 ### Recommendation
 
@@ -569,7 +569,7 @@ D1 should then be generated from Postgres or local artifacts as a compact servin
 
 Current branch state:
 
-- Root `package.json` uses `zod: "^4.1.0"`.
+- Root `package.json` uses `zod: "^4.3.6"`.
 - `bun.lock` resolves the root Zod dependency to `zod@4.3.6`.
 
 Use these patterns:
@@ -585,9 +585,9 @@ Use these patterns:
 
 ### Phased data-model implementation
 
-1. **Phase A — no behavior change:** add Drizzle dependencies, represent the current D1 serving tables as a D1 Drizzle schema, and generate/select schemas for current rows. Existing repositories can continue to expose the same public functions.
-2. **Phase B — replace manual SQL table declarations:** generate D1 migration SQL from Drizzle and compare it to the current hand-written SQL. Do not change production data shape in this phase.
-3. **Phase C — relational cleanup migration:** replace current product-queryable JSON columns with child tables, starting with route catalog directions/types, missing inputs, source status, route batch issues, and brief windows.
+1. **Phase A — complete:** add Drizzle dependencies, represent the D1 serving tables as a D1 Drizzle schema, and generate/select schemas for current rows. Existing repositories continue to expose the same public functions.
+2. **Phase B — in progress:** generated D1 migration SQL exists under `packages/db/migrations/d1`; manual SQL table declarations remain as the runtime/export source until Wrangler migration wiring is added.
+3. **Phase C — initial pass complete:** product-queryable JSON columns were replaced with child tables for route catalog directions/types, missing inputs, source status, route batch details, citations, and brief windows.
 4. **Phase D — Postgres canonical schema:** only after the MVP needs dynamic analytics or larger retained history, add the Postgres schema/config and Hyperdrive client.
 5. **Phase E — generated serving projection:** generate D1 rows from Postgres or local artifacts and keep D1 as a small public-serving database.
 

@@ -4,6 +4,7 @@ import {
   type D1Result,
   type D1Value,
   serializeRouteScorecard,
+  serializeRouteScorecardCitations,
 } from "@bp/db";
 import { HealthResponseSchema, RouteScorecardSchema } from "@bp/domain";
 import { describe, expect, it } from "vitest";
@@ -38,13 +39,15 @@ class FakeStatement<T> implements D1PreparedStatement<T> {
 class FakeDb implements D1DatabaseLike {
   readonly calls: QueryCall[] = [];
 
-  constructor(private readonly rows: unknown[]) {}
+  constructor(private readonly rowsByTable: Record<string, unknown[]>) {}
 
   prepare<T = unknown>(query: string): D1PreparedStatement<T> {
     const call = { query, bound: [] };
     this.calls.push(call);
+    const table = Object.keys(this.rowsByTable).find((candidate) => query.includes(candidate));
+    const rows = (table === undefined ? [] : this.rowsByTable[table]) as T[];
 
-    return new FakeStatement(call, this.rows as T[]);
+    return new FakeStatement(call, rows);
   }
 }
 
@@ -86,7 +89,10 @@ describe("Worker production-behavior harness", () => {
   });
 
   it("serves a D1-backed route scorecard", async () => {
-    const db = new FakeDb([serializeRouteScorecard(scorecard)]);
+    const db = new FakeDb({
+      route_scorecard_citation: serializeRouteScorecardCitations(scorecard),
+      route_scorecard: [serializeRouteScorecard(scorecard)],
+    });
     const env = { DB: db } satisfies Env;
     const response = await worker.fetch(
       new Request("https://example.test/api/routes/m1/scorecard?month=2026-03"),
@@ -105,7 +111,7 @@ describe("Worker production-behavior harness", () => {
   it("rejects route scorecard requests without a valid month", async () => {
     const response = await worker.fetch(
       new Request("https://example.test/api/routes/M1/scorecard"),
-      { DB: new FakeDb([]) },
+      { DB: new FakeDb({}) },
     );
 
     expect(response.status).toBe(400);
