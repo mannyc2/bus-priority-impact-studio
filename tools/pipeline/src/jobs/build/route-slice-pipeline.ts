@@ -1,12 +1,8 @@
-import { mkdir } from "node:fs/promises";
-import { join } from "node:path";
 import { RouteIdCodec } from "@bp/domain";
 import * as z from "zod";
 import { isoMonth } from "../../lib/dates.js";
-import { writeJson } from "../../lib/json.js";
 import { defaultLocalPipelineDbPath } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
-import { fromRepoRoot } from "../../source-manifest.js";
 import { ingestAceRoutes } from "../ingest/ingest-ace-routes.js";
 import { ingestAceViolationSummary } from "../ingest/ingest-ace-violations.js";
 import { ingestBusLanes } from "../ingest/ingest-bus-lanes.js";
@@ -21,8 +17,6 @@ import { buildM1RouteBriefInput } from "./m1-route-brief-input.js";
 import { buildM1RouteScore } from "./m1-route-score.js";
 import { buildM1ScheduleComparison } from "./m1-schedule-comparison.js";
 import { buildM1SpeedProfile } from "./m1-speed-profile.js";
-
-const schemaVersion = 1;
 
 type RouteBuildArgs = {
   routeId?: string;
@@ -57,7 +51,6 @@ type RouteBuildResult = {
 type RouteBatchResult = {
   isoMonth: string;
   routeCount: number;
-  summaryPath: string;
   routes: RouteBuildResult[];
 };
 
@@ -243,23 +236,9 @@ export async function buildRouteBatchArtifacts(
     );
   }
 
-  const summaryDir = fromRepoRoot(join("data/artifacts/route-batches", month));
-  const summaryPath = join(summaryDir, "batch-summary.json");
-  const summary = {
-    schemaVersion,
-    analysisPeriod: month,
-    generatedAt: new Date().toISOString(),
-    routeCount: routes.length,
-    routes,
-  };
-
-  await mkdir(summaryDir, { recursive: true });
-  await writeJson(summaryPath, summary);
-
   return {
     isoMonth: month,
     routeCount: routes.length,
-    summaryPath,
     routes,
   };
 }

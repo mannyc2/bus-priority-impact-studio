@@ -20,7 +20,6 @@ import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
 const isoMonth = "2026-04";
-const batchDir = fromRepoRoot(join("data/artifacts/route-batches", isoMonth));
 const exportDir = fromRepoRoot(join("data/exports/d1", isoMonth));
 const dbPath = fromRepoRoot(join("data/fixtures/export-d1/pipeline.sqlite"));
 
@@ -34,7 +33,6 @@ function digest(value: string): string {
 
 async function removeFixtureArtifacts(): Promise<void> {
   await Promise.all([
-    rm(batchDir, { force: true, recursive: true }),
     rm(exportDir, { force: true, recursive: true }),
     rm(dbPath, { force: true }),
     rm(routeDir("T1"), { force: true, recursive: true }),
@@ -43,7 +41,6 @@ async function removeFixtureArtifacts(): Promise<void> {
 
 async function writeFixtureArtifacts(): Promise<void> {
   await removeFixtureArtifacts();
-  await mkdir(batchDir, { recursive: true });
   await mkdir(routeDir("T1"), { recursive: true });
   const local = await openLocalPipelineDb(dbPath);
 
@@ -287,111 +284,6 @@ async function writeFixtureArtifacts(): Promise<void> {
     },
   ]);
   local.sqlite.close();
-  await Bun.write(
-    join(batchDir, "batch-summary.json"),
-    `${JSON.stringify(
-      {
-        schemaVersion: 1,
-        analysisPeriod: isoMonth,
-        routeCount: 1,
-        routes: [{ routeId: "T1", isoMonth }],
-      },
-      null,
-      2,
-    )}\n`,
-  );
-  await Bun.write(
-    join(batchDir, "route-reliability-baseline.json"),
-    `${JSON.stringify(
-      {
-        schemaVersion: 1,
-        analysisPeriod: isoMonth,
-        rows: [
-          {
-            routeId: "T1",
-            isoMonth,
-            reliabilityStatus: "scheduled_baseline_only",
-            scheduledTimepointCount: 100,
-            stopHeadwayGroupCount: 10,
-            headwaySampleCount: 90,
-            medianScheduledHeadwayMinutes: 10,
-            p90ScheduledHeadwayMinutes: 20,
-            maxScheduledHeadwayMinutes: 30,
-            scheduledShortHeadwayShare: 0.1,
-            scheduledLongGapShare: 0.2,
-            topLongGapWindows: [],
-            sourceStatus: {
-              scheduledHeadways: "available",
-              observedHeadways: "needs_gtfs_rt_collection",
-            },
-          },
-        ],
-      },
-      null,
-      2,
-    )}\n`,
-  );
-  await Bun.write(
-    join(batchDir, "route-comparison.json"),
-    `${JSON.stringify(
-      {
-        schemaVersion: 1,
-        analysisPeriod: isoMonth,
-        rankedRoutes: [
-          {
-            routeId: "T1",
-            routeScore: 40,
-            averageSpeedMph: 6,
-            totalRidership: 1000,
-            aceViolationCount: 12,
-            busLaneMatchedLaneCount: 3,
-          },
-        ],
-      },
-      null,
-      2,
-    )}\n`,
-  );
-  await Bun.write(
-    join(batchDir, "route-equity-context.json"),
-    `${JSON.stringify(
-      {
-        schemaVersion: 1,
-        analysisPeriod: isoMonth,
-        acsYear: 2024,
-        rows: [
-          {
-            routeId: "T1",
-            isoMonth,
-            acsYear: 2024,
-            assignmentGeography: "county_proxy",
-            assignedCountyFips: "061",
-            assignedCountyName: "New York County",
-            assignmentMethod: "route_id_prefix",
-            tractCount: 300,
-            totalPopulation: 1600000,
-            occupiedHousingUnits: 800000,
-            noVehicleHouseholds: 500000,
-            noVehicleHouseholdShare: 0.625,
-            medianHouseholdIncome: 90000,
-            povertyRate: 15,
-            publicTransitCommuterShare: 60,
-            raceEthnicityShare: {
-              hispanic: 25,
-              nonHispanicWhite: 40,
-              nonHispanicBlack: 15,
-              nonHispanicAsian: 15,
-            },
-            sourceStatus: {
-              routeSpatialJoin: "pending_tract_geometry_join",
-            },
-          },
-        ],
-      },
-      null,
-      2,
-    )}\n`,
-  );
   await Bun.write(
     join(routeDir("T1"), "route-brief-input.json"),
     `${JSON.stringify(

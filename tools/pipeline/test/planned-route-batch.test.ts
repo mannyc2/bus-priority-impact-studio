@@ -94,7 +94,7 @@ afterEach(async () => {
 });
 
 describe("planned route batch build", () => {
-  test("builds selected plan routes and writes the current batch summary", async () => {
+  test("builds selected plan routes from local DB state", async () => {
     await writeFixtureArtifacts();
     const calls: string[] = [];
     const deps = {
@@ -204,7 +204,6 @@ describe("planned route batch build", () => {
       },
       deps as never,
     );
-    const summary = await Bun.file(result.summaryPath).json();
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -214,13 +213,6 @@ describe("planned route batch build", () => {
         totalBatchRouteCount: 1,
         auditPath: join(batchDir, "route-batch-audit.json"),
         d1SeedPath: "/tmp/seed.sql",
-      }),
-    );
-    expect(summary.routes.map((route: { routeId: string }) => route.routeId)).toEqual(["T1"]);
-    expect(summary.generatedFromBuildPlan).toEqual(
-      expect.objectContaining({
-        selectedRouteCount: 1,
-        builtRouteIds: ["T1"],
       }),
     );
     expect(calls).toEqual(

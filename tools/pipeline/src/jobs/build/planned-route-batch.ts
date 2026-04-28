@@ -1,13 +1,9 @@
-import { mkdir } from "node:fs/promises";
-import { join } from "node:path";
 import { type LocalRouteBuildPlan, listRouteBuildPlan } from "@bp/db/local";
 import { RouteIdCodec } from "@bp/domain";
 import * as z from "zod";
 import { isoMonth } from "../../lib/dates.js";
-import { writeJson } from "../../lib/json.js";
 import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
-import { fromRepoRoot } from "../../source-manifest.js";
 import { exportD1Seed } from "../export/export-d1.js";
 import { ingestAceRoutes } from "../ingest/ingest-ace-routes.js";
 import { ingestAceViolationSummary } from "../ingest/ingest-ace-violations.js";
@@ -18,8 +14,6 @@ import { buildRouteComparison } from "./route-comparison.js";
 import { buildRouteInterventionHistory } from "./route-intervention-history.js";
 import { buildRouteReliabilityBaseline } from "./route-reliability-baseline.js";
 import { buildRouteSliceArtifacts } from "./route-slice-pipeline.js";
-
-const schemaVersion = 1;
 
 type PlannedRouteBatchArgs = {
   year?: number;
@@ -35,7 +29,6 @@ type PlannedRouteBatchArgs = {
 
 type PlannedRouteBatchResult = {
   isoMonth: string;
-  summaryPath: string;
   builtRouteIds: string[];
   selectedRouteCount: number;
   builtRouteCount: number;
@@ -184,8 +177,6 @@ export async function buildPlannedRouteBatch(
 ): Promise<PlannedRouteBatchResult> {
   const options = parseBuildArgs(args);
   const month = isoMonth(options.year, options.month);
-  const batchDir = fromRepoRoot(join("data/artifacts/route-batches", month));
-  const summaryPath = join(batchDir, "batch-summary.json");
   const plannedRouteIds = await readSelectedPlanRoutes(options.dbPath, month, options.limit);
 
   if (options.refreshSharedSources) {
@@ -209,21 +200,6 @@ export async function buildPlannedRouteBatch(
       }),
     );
   }
-
-  const summary = {
-    schemaVersion,
-    analysisPeriod: month,
-    generatedAt: new Date().toISOString(),
-    routeCount: builtRoutes.length,
-    generatedFromBuildPlan: {
-      selectedRouteCount: plannedRouteIds.length,
-      builtRouteIds: builtRoutes.map((route) => route.routeId),
-    },
-    routes: builtRoutes,
-  };
-
-  await mkdir(batchDir, { recursive: true });
-  await writeJson(summaryPath, summary);
 
   const comparison = await deps.buildRouteComparison({
     year: options.year,
@@ -264,7 +240,6 @@ export async function buildPlannedRouteBatch(
 
   return {
     isoMonth: month,
-    summaryPath,
     builtRouteIds: builtRoutes.map((route) => route.routeId),
     selectedRouteCount: plannedRouteIds.length,
     builtRouteCount: builtRoutes.length,

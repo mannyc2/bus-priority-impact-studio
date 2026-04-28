@@ -1,14 +1,5 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { rm } from "node:fs/promises";
-import { join } from "node:path";
+import { describe, expect, test } from "bun:test";
 import { buildRouteBatchArtifacts } from "../src/jobs/build/route-slice-pipeline.js";
-import { fromRepoRoot } from "../src/source-manifest.js";
-
-const batchDir = fromRepoRoot(join("data/artifacts/route-batches/2026-04"));
-
-afterEach(async () => {
-  await rm(batchDir, { force: true, recursive: true });
-});
 
 describe("route slice batch pipeline", () => {
   test("refreshes shared sources once and builds each requested route", async () => {

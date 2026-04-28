@@ -20,7 +20,6 @@ import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
 const isoMonth = "2026-09";
-const batchDir = fromRepoRoot(join("data/artifacts/route-batches", isoMonth));
 const exportDir = fromRepoRoot(join("data/exports/d1", isoMonth));
 const dbPath = fromRepoRoot(join("data/fixtures/verify-d1/pipeline.sqlite"));
 const routeDir = fromRepoRoot(join("data/artifacts/route-slices/t1-2026-09"));
@@ -42,15 +41,10 @@ function digest(value: string): string {
 
 async function removeFixtureArtifacts(): Promise<void> {
   await Promise.all([
-    rm(batchDir, { force: true, recursive: true }),
     rm(exportDir, { force: true, recursive: true }),
     rm(dbPath, { force: true }),
     rm(routeDir, { force: true, recursive: true }),
   ]);
-}
-
-async function writeJson(path: string, value: unknown): Promise<number> {
-  return Bun.write(path, `${JSON.stringify(value, null, 2)}\n`);
 }
 
 async function writeFixtureNetwork(): Promise<void> {
@@ -287,87 +281,6 @@ async function writeFixtureNetwork(): Promise<void> {
   local.sqlite.close();
 }
 
-async function writeFixtureBatch(): Promise<void> {
-  await mkdir(batchDir, { recursive: true });
-  await writeJson(join(batchDir, "batch-summary.json"), {
-    schemaVersion: 1,
-    analysisPeriod: isoMonth,
-    routeCount: 1,
-    routes: [{ routeId: "T1", isoMonth }],
-  });
-  await writeJson(join(batchDir, "route-reliability-baseline.json"), {
-    schemaVersion: 1,
-    analysisPeriod: isoMonth,
-    rows: [
-      {
-        routeId: "T1",
-        isoMonth,
-        reliabilityStatus: "scheduled_baseline_only",
-        scheduledTimepointCount: 100,
-        stopHeadwayGroupCount: 10,
-        headwaySampleCount: 90,
-        medianScheduledHeadwayMinutes: 10,
-        p90ScheduledHeadwayMinutes: 20,
-        maxScheduledHeadwayMinutes: 30,
-        scheduledShortHeadwayShare: 0.1,
-        scheduledLongGapShare: 0.2,
-        topLongGapWindows: [],
-        sourceStatus: {
-          scheduledHeadways: "available",
-          observedHeadways: "needs_gtfs_rt_collection",
-        },
-      },
-    ],
-  });
-  await writeJson(join(batchDir, "route-comparison.json"), {
-    schemaVersion: 1,
-    analysisPeriod: isoMonth,
-    rankedRoutes: [
-      {
-        routeId: "T1",
-        routeScore: 40,
-        averageSpeedMph: 6,
-        totalRidership: 1000,
-        aceViolationCount: 12,
-        busLaneMatchedLaneCount: 3,
-      },
-    ],
-  });
-  await writeJson(join(batchDir, "route-equity-context.json"), {
-    schemaVersion: 1,
-    analysisPeriod: isoMonth,
-    acsYear: 2024,
-    rows: [
-      {
-        routeId: "T1",
-        isoMonth,
-        acsYear: 2024,
-        assignmentGeography: "county_proxy",
-        assignedCountyFips: "061",
-        assignedCountyName: "New York County",
-        assignmentMethod: "route_id_prefix",
-        tractCount: 300,
-        totalPopulation: 1600000,
-        occupiedHousingUnits: 800000,
-        noVehicleHouseholds: 500000,
-        noVehicleHouseholdShare: 0.625,
-        medianHouseholdIncome: 90000,
-        povertyRate: 15,
-        publicTransitCommuterShare: 60,
-        raceEthnicityShare: {
-          hispanic: 25,
-          nonHispanicWhite: 40,
-          nonHispanicBlack: 15,
-          nonHispanicAsian: 15,
-        },
-        sourceStatus: {
-          routeSpatialJoin: "pending_tract_geometry_join",
-        },
-      },
-    ],
-  });
-}
-
 async function writeFixtureRouteArtifacts(): Promise<void> {
   await mkdir(routeDir, { recursive: true });
   const artifactValues = new Map<string, unknown>(
@@ -440,7 +353,7 @@ async function writeFixtureRouteArtifacts(): Promise<void> {
 
 async function writeFixtureArtifacts(): Promise<void> {
   await removeFixtureArtifacts();
-  await Promise.all([writeFixtureNetwork(), writeFixtureBatch(), writeFixtureRouteArtifacts()]);
+  await Promise.all([writeFixtureNetwork(), writeFixtureRouteArtifacts()]);
 }
 
 afterEach(async () => {
