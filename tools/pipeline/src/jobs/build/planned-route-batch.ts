@@ -10,7 +10,7 @@ import {
   yearOption,
 } from "../../lib/cli-args.js";
 import { isoMonth } from "../../lib/dates.js";
-import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
+import { defaultLocalPipelineDbPath, withLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
 import { exportD1Seed } from "../export/export-d1.js";
 import { ingestAceRoutes } from "../ingest/ingest-ace-routes.js";
@@ -113,13 +113,9 @@ async function readSelectedPlanRoutes(
   month: string,
   limit: number,
 ): Promise<string[]> {
-  const local = await openLocalPipelineDb(path);
-
-  try {
+  return withLocalPipelineDb(path, async (local) => {
     return selectedPlanRoutes(await listRouteBuildPlan(local.db, month), limit);
-  } finally {
-    local.sqlite.close();
-  }
+  });
 }
 
 function selectedPlanRoutes(planRows: readonly LocalRouteBuildPlan[], limit: number): string[] {

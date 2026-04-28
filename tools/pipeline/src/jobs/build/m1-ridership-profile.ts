@@ -8,7 +8,7 @@ import {
   yearOption,
 } from "../../lib/cli-args.js";
 import { isoMonth } from "../../lib/dates.js";
-import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
+import { defaultLocalPipelineDbPath, withLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
 import { ridershipProfiles } from "./route-brief-metrics.js";
 
@@ -62,12 +62,12 @@ export async function buildM1RidershipProfile(
 ): Promise<RidershipProfileResult> {
   const options = parseBuildArgs(args);
   const month = isoMonth(options.year, options.month);
-  const local = await openLocalPipelineDb(options.dbPath);
-  const [ridershipRows, speedRows] = await Promise.all([
-    listRouteHourlyRidership(local.db, options.routeId, month),
-    listRouteSegmentSpeeds(local.db, options.routeId, month),
-  ]);
-  local.sqlite.close();
+  const [ridershipRows, speedRows] = await withLocalPipelineDb(options.dbPath, (local) =>
+    Promise.all([
+      listRouteHourlyRidership(local.db, options.routeId, month),
+      listRouteSegmentSpeeds(local.db, options.routeId, month),
+    ]),
+  );
   const ridershipProfile = ridershipProfiles(ridershipRows, speedRows, options.limit);
   const profile = {
     schemaVersion,

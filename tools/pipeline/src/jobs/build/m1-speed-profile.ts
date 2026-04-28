@@ -8,7 +8,7 @@ import {
   yearOption,
 } from "../../lib/cli-args.js";
 import { isoMonth } from "../../lib/dates.js";
-import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
+import { defaultLocalPipelineDbPath, withLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
 import { groupedSpeedProfiles, slowSpeedThresholdMph } from "./route-brief-metrics.js";
 
@@ -63,9 +63,9 @@ export async function buildM1SpeedProfile(
 ): Promise<SpeedProfileResult> {
   const options = parseBuildArgs(args);
   const month = isoMonth(options.year, options.month);
-  const local = await openLocalPipelineDb(options.dbPath);
-  const rows = await listRouteSegmentSpeeds(local.db, options.routeId, month);
-  local.sqlite.close();
+  const rows = await withLocalPipelineDb(options.dbPath, (local) =>
+    listRouteSegmentSpeeds(local.db, options.routeId, month),
+  );
   const speedProfile = groupedSpeedProfiles(rows);
   const slowestDayHourWindows = speedProfile.slowestDayHourWindows.slice(0, options.limit);
   const profile = {

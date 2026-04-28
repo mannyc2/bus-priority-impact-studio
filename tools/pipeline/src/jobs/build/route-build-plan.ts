@@ -13,7 +13,7 @@ import {
   yearOption,
 } from "../../lib/cli-args.js";
 import { isoMonth } from "../../lib/dates.js";
-import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
+import { defaultLocalPipelineDbPath, withLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
 
 type RouteBuildPlanArgs = {
@@ -179,9 +179,7 @@ export async function buildRouteBuildPlan(
 ): Promise<RouteBuildPlanResult> {
   const options = parseBuildArgs(args);
   const month = isoMonth(options.year, options.month);
-  const local = await openLocalPipelineDb(options.dbPath);
-
-  try {
+  return withLocalPipelineDb(options.dbPath, async (local) => {
     const [readiness, builtRoutes] = await Promise.all([
       listRouteReadiness(local.db, month),
       listRouteBriefSummaries(local.db, month),
@@ -204,9 +202,7 @@ export async function buildRouteBuildPlan(
       backlogRouteCount: countStatus(rows, "backlog"),
       dbPath: local.path,
     };
-  } finally {
-    local.sqlite.close();
-  }
+  });
 }
 
 export async function buildRouteBuildPlanFromCli(args: string[]): Promise<RouteBuildPlanResult> {

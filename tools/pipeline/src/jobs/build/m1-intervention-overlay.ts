@@ -10,7 +10,7 @@ import {
   yearOption,
 } from "../../lib/cli-args.js";
 import { isoMonth } from "../../lib/dates.js";
-import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
+import { defaultLocalPipelineDbPath, withLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
 import { aceInterventionSummary } from "./route-brief-metrics.js";
 
@@ -55,12 +55,12 @@ export async function buildM1InterventionOverlay(
   const options = parseBuildArgs(args);
   const routeId = z.decode(RouteIdCodec, options.routeId);
   const month = isoMonth(options.year, options.month);
-  const local = await openLocalPipelineDb(options.dbPath);
-  const [routeMatches, routeViolations] = await Promise.all([
-    listAceRoutesForRoute(local.db, routeId),
-    listAceViolationSummariesForRoute(local.db, routeId, month),
-  ]);
-  local.sqlite.close();
+  const [routeMatches, routeViolations] = await withLocalPipelineDb(options.dbPath, (local) =>
+    Promise.all([
+      listAceRoutesForRoute(local.db, routeId),
+      listAceViolationSummariesForRoute(local.db, routeId, month),
+    ]),
+  );
   const ace = aceInterventionSummary({
     acePrograms: routeMatches,
     aceViolations: routeViolations,

@@ -6,7 +6,7 @@ import {
 } from "@bp/db/local";
 import { dbOption, monthOption, parseCliOptions, yearOption } from "../../lib/cli-args.js";
 import { isoMonth } from "../../lib/dates.js";
-import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
+import { defaultLocalPipelineDbPath, withLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
 
 const schemaVersion = 1;
@@ -219,25 +219,20 @@ export async function buildRouteReliabilityBaseline(
 ): Promise<RouteReliabilityBaselineResult> {
   const options = parseBuildArgs(args);
   const month = isoMonth(options.year, options.month);
-  const readLocal = await openLocalPipelineDb(options.dbPath);
-  let rows: RouteReliabilityBaselineRow[];
-  try {
-    const builtRoutes = await listRouteBriefSummaries(readLocal.db, month);
-    rows = await Promise.all(
+  const rows = await withLocalPipelineDb(options.dbPath, async (local) => {
+    const builtRoutes = await listRouteBriefSummaries(local.db, month);
+    return Promise.all(
       builtRoutes.map(async (route) =>
         routeBaseline(
           route.routeId,
           month,
-          await listRouteSchedules(readLocal.db, route.routeId, month),
+          await listRouteSchedules(local.db, route.routeId, month),
         ),
       ),
     );
-  } finally {
-    readLocal.sqlite.close();
-  }
-  const writeLocal = await openLocalPipelineDb(options.dbPath);
-  try {
-    await replaceRouteReliabilityRows(writeLocal.db, month, {
+  });
+  await withLocalPipelineDb(options.dbPath, (local) =>
+    replaceRouteReliabilityRows(local.db, month, {
       baselines: rows.map((row) => ({
         routeId: row.routeId,
         month: row.isoMonth,
@@ -278,10 +273,8 @@ export async function buildRouteReliabilityBaseline(
           note: null,
         })),
       ),
-    });
-  } finally {
-    writeLocal.sqlite.close();
-  }
+    }),
+  );
 
   return {
     isoMonth: month,

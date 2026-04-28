@@ -3,7 +3,7 @@ import { listRouteArtifacts, replaceRouteBatch } from "@bp/db/local";
 import { fileDigest, routeSliceArtifactNames } from "../../lib/artifacts.js";
 import { dbOption, monthOption, parseCliOptions, yearOption } from "../../lib/cli-args.js";
 import { isoMonth } from "../../lib/dates.js";
-import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
+import { defaultLocalPipelineDbPath, withLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
 import { fromRepoRoot } from "../../source-manifest.js";
 
@@ -54,15 +54,11 @@ function parseCliArgs(args: string[]): RouteBatchAuditArgs {
 }
 
 async function readLocalAuditRows(path: string, month: string) {
-  const local = await openLocalPipelineDb(path);
-
-  try {
+  return withLocalPipelineDb(path, async (local) => {
     return {
       routeArtifacts: await listRouteArtifacts(local.db, month),
     };
-  } finally {
-    local.sqlite.close();
-  }
+  });
 }
 
 async function auditRoute(input: {
@@ -190,9 +186,8 @@ export async function buildRouteBatchAudit(
     issues,
   };
 
-  const local = await openLocalPipelineDb(options.dbPath);
-  try {
-    await replaceRouteBatch(local.db, {
+  await withLocalPipelineDb(options.dbPath, (local) =>
+    replaceRouteBatch(local.db, {
       status: {
         month,
         generatedAt: summary.generatedAt,
@@ -223,10 +218,8 @@ export async function buildRouteBatchAudit(
           message: parts.message,
         };
       }),
-    });
-  } finally {
-    local.sqlite.close();
-  }
+    }),
+  );
 
   return {
     isoMonth: month,

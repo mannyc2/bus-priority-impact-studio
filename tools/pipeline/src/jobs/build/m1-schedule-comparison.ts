@@ -8,7 +8,7 @@ import {
   yearOption,
 } from "../../lib/cli-args.js";
 import { isoMonth } from "../../lib/dates.js";
-import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
+import { defaultLocalPipelineDbPath, withLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
 import { scheduleComparisons } from "./route-brief-metrics.js";
 
@@ -54,12 +54,12 @@ export async function buildM1ScheduleComparison(
 ): Promise<ScheduleComparisonResult> {
   const options = parseBuildArgs(args);
   const month = isoMonth(options.year, options.month);
-  const local = await openLocalPipelineDb(options.dbPath);
-  const [schedules, hotspots] = await Promise.all([
-    listRouteSchedules(local.db, options.routeId, month),
-    listRouteHotspots(local.db, options.routeId, month),
-  ]);
-  local.sqlite.close();
+  const [schedules, hotspots] = await withLocalPipelineDb(options.dbPath, (local) =>
+    Promise.all([
+      listRouteSchedules(local.db, options.routeId, month),
+      listRouteHotspots(local.db, options.routeId, month),
+    ]),
+  );
   const scheduleComparison = scheduleComparisons(schedules, hotspots);
   const comparison = {
     schemaVersion,

@@ -8,7 +8,7 @@ import {
 } from "@bp/db/local";
 import { dbOption, monthOption, parseCliOptions, yearOption } from "../../lib/cli-args.js";
 import { isoMonth } from "../../lib/dates.js";
-import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
+import { defaultLocalPipelineDbPath, withLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
 
 type RouteReadinessArgs = {
@@ -184,9 +184,7 @@ export async function buildRouteReadiness(
 ): Promise<RouteReadinessResult> {
   const options = parseBuildArgs(args);
   const month = isoMonth(options.year, options.month);
-  const local = await openLocalPipelineDb(options.dbPath);
-
-  try {
+  return withLocalPipelineDb(options.dbPath, async (local) => {
     const [catalog, coverage] = await Promise.all([
       listRouteCatalog(local.db),
       listRouteMonthCoverage(local.db, month),
@@ -202,9 +200,7 @@ export async function buildRouteReadiness(
       buildEligibleRouteCount: buildEligibleRoutes.length,
       dbPath: local.path,
     };
-  } finally {
-    local.sqlite.close();
-  }
+  });
 }
 
 export async function buildRouteReadinessFromCli(args: string[]): Promise<RouteReadinessResult> {

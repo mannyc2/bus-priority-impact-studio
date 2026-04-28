@@ -22,7 +22,7 @@ import {
 } from "@bp/db/local";
 import { dbOption, monthOption, parseCliOptions, yearOption } from "../../lib/cli-args.js";
 import { isoMonth } from "../../lib/dates.js";
-import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
+import { defaultLocalPipelineDbPath, withLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
 import { fromRepoRoot } from "../../source-manifest.js";
 import { buildRouteBatchAudit } from "../build/route-batch-audit.js";
@@ -79,9 +79,7 @@ function parseCliArgs(args: string[]): D1ExportArgs {
 }
 
 async function readLocalD1Inputs(path: string, month: string) {
-  const local = await openLocalPipelineDb(path);
-
-  try {
+  return withLocalPipelineDb(path, async (local) => {
     const [
       routeCatalog,
       routeCoverage,
@@ -142,9 +140,7 @@ async function readLocalD1Inputs(path: string, month: string) {
       routeBatchBuiltRoutes,
       routeBatchIssues,
     };
-  } finally {
-    local.sqlite.close();
-  }
+  });
 }
 
 export async function exportD1Seed(args: D1ExportArgs = {}): Promise<D1ExportResult> {

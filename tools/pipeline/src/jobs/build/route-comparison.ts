@@ -11,7 +11,7 @@ import {
   yearOption,
 } from "../../lib/cli-args.js";
 import { isoMonth } from "../../lib/dates.js";
-import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
+import { defaultLocalPipelineDbPath, withLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
 
 type RouteComparisonArgs = {
@@ -57,12 +57,9 @@ export async function buildRouteComparison(
 ): Promise<RouteComparisonResult> {
   const options = parseBuildArgs(args);
   const month = isoMonth(options.year, options.month);
-  const readLocal = await openLocalPipelineDb(options.dbPath);
-  const [briefs, scorecards] = await Promise.all([
-    listRouteBriefSummaries(readLocal.db, month),
-    listRouteScorecards(readLocal.db, month),
-  ]);
-  readLocal.sqlite.close();
+  const [briefs, scorecards] = await withLocalPipelineDb(options.dbPath, (local) =>
+    Promise.all([listRouteBriefSummaries(local.db, month), listRouteScorecards(local.db, month)]),
+  );
   const scorecardsByRoute = new Map(scorecards.map((row) => [row.routeId, row]));
   const routeRows = briefs.map((brief) => {
     const scorecard = scorecardsByRoute.get(brief.routeId);
@@ -91,10 +88,9 @@ export async function buildRouteComparison(
       return left.averageSpeedMph - right.averageSpeedMph;
     })
     .slice(0, options.limit);
-  const writeLocal = await openLocalPipelineDb(options.dbPath);
-  try {
-    await replaceRouteComparisonRanks(
-      writeLocal.db,
+  await withLocalPipelineDb(options.dbPath, (local) =>
+    replaceRouteComparisonRanks(
+      local.db,
       month,
       rankedRoutes.map((route, index) => ({
         month,
@@ -106,10 +102,8 @@ export async function buildRouteComparison(
         aceViolationCount: route.aceViolationCount,
         busLaneMatchedLaneCount: route.busLaneMatchedLaneCount,
       })),
-    );
-  } finally {
-    writeLocal.sqlite.close();
-  }
+    ),
+  );
 
   return {
     isoMonth: month,

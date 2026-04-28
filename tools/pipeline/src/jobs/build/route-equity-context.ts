@@ -13,7 +13,7 @@ import {
   yearOption,
 } from "../../lib/cli-args.js";
 import { isoMonth } from "../../lib/dates.js";
-import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
+import { defaultLocalPipelineDbPath, withLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
 
 type TractEquityRow = LocalCensusTractEquityContext;
@@ -177,15 +177,9 @@ export async function buildRouteEquityContext(
   const month = isoMonth(year, monthNumber);
   const acsYear = args.acsYear ?? 2024;
   const dbPath = args.dbPath ?? defaultLocalPipelineDbPath();
-  const local = await openLocalPipelineDb(dbPath);
-  let routeCatalog: LocalRouteCatalogEntry[];
-  let tractRows: LocalCensusTractEquityContext[];
-  try {
-    routeCatalog = await listRouteCatalog(local.db);
-    tractRows = await listCensusTractEquityContext(local.db, acsYear);
-  } finally {
-    local.sqlite.close();
-  }
+  const [routeCatalog, tractRows] = await withLocalPipelineDb(dbPath, (local) =>
+    Promise.all([listRouteCatalog(local.db), listCensusTractEquityContext(local.db, acsYear)]),
+  );
   const countyAggregates = buildCountyAggregates(tractRows);
   const rows = routeCatalog.map((route) => {
     const assignedCounty = assignCounty(route);
@@ -225,9 +219,8 @@ export async function buildRouteEquityContext(
     };
   });
   const assignedRouteCount = rows.filter((row) => row.assignedCountyFips !== null).length;
-  const writeLocal = await openLocalPipelineDb(dbPath);
-  try {
-    await replaceRouteEquityRows(writeLocal.db, month, {
+  await withLocalPipelineDb(dbPath, (local) =>
+    replaceRouteEquityRows(local.db, month, {
       rows: rows.map((row) => ({
         routeId: row.routeId,
         month: row.isoMonth,
@@ -261,10 +254,8 @@ export async function buildRouteEquityContext(
           note: null,
         })),
       ),
-    });
-  } finally {
-    writeLocal.sqlite.close();
-  }
+    }),
+  );
 
   return {
     analysisPeriod: month,

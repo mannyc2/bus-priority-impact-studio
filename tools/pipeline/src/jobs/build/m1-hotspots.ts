@@ -15,7 +15,7 @@ import {
   yearOption,
 } from "../../lib/cli-args.js";
 import { isoMonth } from "../../lib/dates.js";
-import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
+import { defaultLocalPipelineDbPath, withLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
 
 const schemaVersion = 1;
@@ -101,12 +101,12 @@ export async function buildM1Hotspots(args: HotspotBuildArgs = {}): Promise<Hots
   const key = routeSliceKey(options.routeId, month);
   const inputSource = `local-db://route-slices/${key}/segment-speeds`;
   const ridershipSource = `local-db://route-slices/${key}/ridership`;
-  const local = await openLocalPipelineDb(options.dbPath);
-  const [speedRows, ridershipRows] = await Promise.all([
-    listRouteSegmentSpeeds(local.db, options.routeId, month),
-    listRouteHourlyRidership(local.db, options.routeId, month),
-  ]);
-  local.sqlite.close();
+  const [speedRows, ridershipRows] = await withLocalPipelineDb(options.dbPath, (local) =>
+    Promise.all([
+      listRouteSegmentSpeeds(local.db, options.routeId, month),
+      listRouteHourlyRidership(local.db, options.routeId, month),
+    ]),
+  );
   const observations = addRidershipToObservations(speedRows, ridershipRows);
   if (observations.length === 0) {
     const generatedAt = new Date().toISOString();
@@ -157,12 +157,9 @@ export async function buildM1Hotspots(args: HotspotBuildArgs = {}): Promise<Hots
       topHotspots: [],
     };
 
-    const writeLocal = await openLocalPipelineDb(options.dbPath);
-    try {
-      await replaceRouteHotspots(writeLocal.db, summary, []);
-    } finally {
-      writeLocal.sqlite.close();
-    }
+    await withLocalPipelineDb(options.dbPath, (local) =>
+      replaceRouteHotspots(local.db, summary, []),
+    );
     const [artifactPath, summaryPath] = await Promise.all([
       writeRouteSliceArtifact(options.routeId, month, "hotspots.json", artifact),
       writeRouteSliceArtifact(options.routeId, month, "summary.json", summary),
@@ -213,12 +210,9 @@ export async function buildM1Hotspots(args: HotspotBuildArgs = {}): Promise<Hots
     topHotspots: result.hotspots.slice(0, 5),
   };
 
-  const writeLocal = await openLocalPipelineDb(options.dbPath);
-  try {
-    await replaceRouteHotspots(writeLocal.db, summary, result.hotspots);
-  } finally {
-    writeLocal.sqlite.close();
-  }
+  await withLocalPipelineDb(options.dbPath, (local) =>
+    replaceRouteHotspots(local.db, summary, result.hotspots),
+  );
   const [artifactPath, summaryPath] = await Promise.all([
     writeRouteSliceArtifact(options.routeId, month, "hotspots.json", artifact),
     writeRouteSliceArtifact(options.routeId, month, "summary.json", summary),

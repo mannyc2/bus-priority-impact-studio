@@ -21,7 +21,7 @@ import {
   yearOption,
 } from "../../lib/cli-args.js";
 import { isoMonth } from "../../lib/dates.js";
-import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
+import { defaultLocalPipelineDbPath, withLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
 import { buildRouteBriefModel, type RouteBriefInputRows } from "./route-brief-model.js";
 
@@ -72,9 +72,7 @@ async function readRouteBriefInputRows(
   routeId: string,
   month: string,
 ): Promise<RouteBriefInputRows> {
-  const local = await openLocalPipelineDb(path);
-
-  try {
+  return withLocalPipelineDb(path, async (local) => {
     const summary = await getRouteHotspotSummary(local.db, routeId, month);
     if (summary === null) {
       throw new Error(`No hotspot summary found for ${routeId} ${month}`);
@@ -113,23 +111,17 @@ async function readRouteBriefInputRows(
       stops,
       catalog,
     };
-  } finally {
-    local.sqlite.close();
-  }
+  });
 }
 
 async function writeServingProjection(
   path: string,
   model: ReturnType<typeof buildRouteBriefModel>,
 ): Promise<void> {
-  const local = await openLocalPipelineDb(path);
-
-  try {
+  await withLocalPipelineDb(path, async (local) => {
     await replaceRouteScorecard(local.db, model.routeScorecardRow);
     await replaceRouteBriefRows(local.db, model.routeBriefRows);
-  } finally {
-    local.sqlite.close();
-  }
+  });
 }
 
 export async function buildM1RouteBriefInput(

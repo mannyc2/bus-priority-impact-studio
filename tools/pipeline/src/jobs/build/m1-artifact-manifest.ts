@@ -13,7 +13,7 @@ import {
   yearOption,
 } from "../../lib/cli-args.js";
 import { isoMonth } from "../../lib/dates.js";
-import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
+import { defaultLocalPipelineDbPath, withLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
 
 type ArtifactManifestBuildArgs = {
@@ -68,9 +68,8 @@ export async function buildM1ArtifactManifest(
   );
   const routeId = options.routeId.toUpperCase();
 
-  const local = await openLocalPipelineDb(options.dbPath);
-  try {
-    await replaceRouteArtifacts(
+  await withLocalPipelineDb(options.dbPath, (local) =>
+    replaceRouteArtifacts(
       local.db,
       routeId,
       month,
@@ -83,10 +82,8 @@ export async function buildM1ArtifactManifest(
         byteLength: artifact.byteLength,
         sha256: artifact.sha256,
       })),
-    );
-  } finally {
-    local.sqlite.close();
-  }
+    ),
+  );
 
   return {
     routeId,
