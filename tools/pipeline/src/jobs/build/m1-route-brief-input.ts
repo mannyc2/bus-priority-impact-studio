@@ -1,8 +1,25 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import { classifyPublicRouteVisibility } from "@bp/analytics";
-import { listRouteCatalog, replaceRouteBriefRows, replaceRouteScorecard } from "@bp/db/local";
-import { RouteScorecardSchema } from "@bp/domain";
+import { calculateRouteScore, classifyPublicRouteVisibility } from "@bp/analytics";
+import {
+  getRouteHotspotSummary,
+  type LocalBusLane,
+  type LocalRouteHourlyRidership,
+  type LocalRouteScheduleTimepoint,
+  type LocalRouteSegmentSpeed,
+  listAceRoutesForRoute,
+  listAceViolationSummariesForRoute,
+  listBusLanes,
+  listRouteCatalog,
+  listRouteHotspots,
+  listRouteHourlyRidership,
+  listRouteSchedules,
+  listRouteSegmentSpeeds,
+  listRouteStops,
+  replaceRouteBriefRows,
+  replaceRouteScorecard,
+} from "@bp/db/local";
+import { RouteIdCodec } from "@bp/domain";
 import * as z from "zod";
 import { routeSliceKey } from "../../lib/artifacts.js";
 import { isoMonth } from "../../lib/dates.js";
@@ -11,176 +28,8 @@ import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local
 import { fromCliPath } from "../../lib/paths.js";
 import { fromRepoRoot } from "../../source-manifest.js";
 
-const SegmentHotspotSummarySchema = z
-  .object({
-    segmentId: z.string().min(1),
-    direction: z.string().min(1),
-    stopOrder: z.number().int().nonnegative(),
-    timepointStopName: z.string().min(1),
-    nextTimepointStopName: z.string().min(1),
-    observationCount: z.number().int().nonnegative(),
-    busTripCount: z.number().int().nonnegative(),
-    weightedAverageSpeedMph: z.number().nonnegative(),
-    weightedAverageTravelTimeMinutes: z.number().nonnegative(),
-    averageRoadDistanceMiles: z.number().nonnegative(),
-    slowWindowShare: z.number().min(0).max(1),
-    hotspotScore: z.number().int().min(0).max(100),
-    ridershipExposure: z.number().nonnegative().optional(),
-    riderImpactScore: z.number().int().min(0).max(100).optional(),
-  })
-  .passthrough();
-
-const HotspotSummarySchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    routeId: z.string().min(1),
-    isoMonth: z.string().regex(/^\d{4}-\d{2}$/),
-    generatedAt: z.iso.datetime(),
-    routeWeightedAverageSpeedMph: z.number().nonnegative(),
-    observationCount: z.number().int().nonnegative(),
-    busTripCount: z.number().int().nonnegative(),
-    ridershipWeighted: z.boolean(),
-    ridershipWindowCount: z.number().int().nonnegative(),
-    ridershipMatchedObservationCount: z.number().int().nonnegative(),
-    ridershipExposure: z.number().nonnegative(),
-    segmentCount: z.number().int().nonnegative(),
-    hotspotCount: z.number().int().nonnegative(),
-    topHotspots: z.array(SegmentHotspotSummarySchema),
-  })
-  .strict();
-
-const InterventionOverlaySchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    routeId: z.string().min(1),
-    analysisPeriod: z.string().regex(/^\d{4}-\d{2}$/),
-    generatedAt: z.iso.datetime(),
-    sources: z.array(
-      z
-        .object({
-          sourceId: z.string().min(1),
-          title: z.string().min(1),
-          url: z.url(),
-          verifiedAt: z.iso.datetime(),
-        })
-        .strict(),
-    ),
-    ace: z
-      .object({
-        routeMatched: z.boolean(),
-        routeMatchCount: z.number().int().nonnegative(),
-        activeDuringAnalysisPeriod: z.boolean(),
-        activePrograms: z.array(z.unknown()),
-        futurePrograms: z.array(z.unknown()),
-      })
-      .strict(),
-    violations: z
-      .object({
-        analysisPeriod: z.string().regex(/^\d{4}-\d{2}$/),
-        routeViolationCount: z.number().int().nonnegative(),
-        groupedRowCount: z.number().int().nonnegative(),
-        violationTypeCounts: z.array(z.unknown()),
-      })
-      .strict(),
-    caveats: z.array(z.string().min(1)),
-  })
-  .strict();
-
-const BusLaneOverlaySchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    routeId: z.string().min(1),
-    analysisPeriod: z.string().regex(/^\d{4}-\d{2}$/),
-    generatedAt: z.iso.datetime(),
-    matchedLaneCount: z.number().int().nonnegative(),
-    matchedStreetCount: z.number().int().nonnegative(),
-    matchedStreets: z.array(z.string().min(1)),
-    sources: z.array(
-      z
-        .object({
-          sourceId: z.string().min(1),
-          title: z.string().min(1),
-          url: z.url(),
-          verifiedAt: z.iso.datetime(),
-        })
-        .strict(),
-    ),
-    caveats: z.array(z.string().min(1)),
-  })
-  .passthrough();
-
-const ScheduleComparisonSchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    routeId: z.string().min(1),
-    analysisPeriod: z.string().regex(/^\d{4}-\d{2}$/),
-    generatedAt: z.iso.datetime(),
-    scheduleFetchedAt: z.iso.datetime(),
-    scheduledPairCount: z.number().int().nonnegative(),
-    hotspotCount: z.number().int().nonnegative(),
-    matchedHotspotCount: z.number().int().nonnegative(),
-    hotspotComparisons: z.array(z.unknown()),
-    caveats: z.array(z.string().min(1)),
-  })
-  .strict();
-
-const RidershipProfileSchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    routeId: z.string().min(1),
-    analysisPeriod: z.string().regex(/^\d{4}-\d{2}$/),
-    generatedAt: z.iso.datetime(),
-    ridershipWindowCount: z.number().int().nonnegative(),
-    speedWindowCount: z.number().int().nonnegative(),
-    totalRidership: z.number().nonnegative(),
-    totalTransfers: z.number().nonnegative(),
-    peakRidershipWindow: z.unknown().nullable(),
-    topRidershipWindows: z.array(z.unknown()),
-    slowCrowdedWindows: z.array(z.unknown()),
-    caveats: z.array(z.string().min(1)),
-  })
-  .strict();
-
-const SpeedProfileSchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    routeId: z.string().min(1),
-    analysisPeriod: z.string().regex(/^\d{4}-\d{2}$/),
-    generatedAt: z.iso.datetime(),
-    slowSpeedThresholdMph: z.number().positive(),
-    observationCount: z.number().int().nonnegative(),
-    directionProfiles: z.array(z.unknown()),
-    daypartProfiles: z.array(z.unknown()),
-    slowestDayHourWindows: z.array(z.unknown()),
-    caveats: z.array(z.string().min(1)),
-  })
-  .strict();
-
-const PeakRidershipWindowSchema = z
-  .object({
-    dayOfWeek: z.string().min(1),
-    hourOfDay: z.number().int().min(0).max(23),
-    ridership: z.number().nonnegative().optional(),
-    transfers: z.number().nonnegative().optional(),
-    matchedObservationCount: z.number().int().nonnegative().optional(),
-    busTripCount: z.number().int().nonnegative().optional(),
-    weightedAverageSpeedMph: z.number().nonnegative().optional(),
-    slowObservationShare: z.number().nonnegative().optional(),
-  })
-  .passthrough();
-
-const SlowestWindowSchema = z
-  .object({
-    dayOfWeek: z.string().min(1),
-    hourOfDay: z.number().int().min(0).max(23),
-    observationCount: z.number().int().nonnegative().optional(),
-    busTripCount: z.number().int().nonnegative().optional(),
-    segmentCount: z.number().int().nonnegative().optional(),
-    weightedAverageSpeedMph: z.number().nonnegative().optional(),
-    weightedAverageTravelTimeMinutes: z.number().nonnegative().optional(),
-    slowObservationShare: z.number().nonnegative().optional(),
-  })
-  .passthrough();
+const slowSpeedThresholdMph = 8;
+const busLaneProximityThresholdMeters = 150;
 
 type RouteBriefBuildArgs = {
   routeId?: string;
@@ -254,8 +103,348 @@ function pct(value: number): number {
   return Math.round(value * 1000) / 10;
 }
 
-function optionalNumber(value: number | undefined): number | null {
+function optionalNumber(value: number | null | undefined): number | null {
   return value ?? null;
+}
+
+function round(value: number, decimals = 4): number {
+  const factor = 10 ** decimals;
+  return Math.round(value * factor) / factor;
+}
+
+function daypart(hourOfDay: number): string {
+  if (hourOfDay >= 6 && hourOfDay <= 9) {
+    return "AM peak";
+  }
+  if (hourOfDay >= 10 && hourOfDay <= 15) {
+    return "Midday";
+  }
+  if (hourOfDay >= 16 && hourOfDay <= 19) {
+    return "PM peak";
+  }
+  if (hourOfDay >= 20 && hourOfDay <= 23) {
+    return "Evening";
+  }
+
+  return "Overnight";
+}
+
+function windowKey(dayOfWeek: string, hourOfDay: number): string {
+  return `${dayOfWeek}:${hourOfDay}`;
+}
+
+type SpeedAccumulator = {
+  observationCount: number;
+  busTripCount: number;
+  weightedSpeedSum: number;
+  weightedTravelTimeSum: number;
+  slowObservationCount: number;
+  segmentIds: Set<string>;
+};
+
+function createSpeedAccumulator(): SpeedAccumulator {
+  return {
+    observationCount: 0,
+    busTripCount: 0,
+    weightedSpeedSum: 0,
+    weightedTravelTimeSum: 0,
+    slowObservationCount: 0,
+    segmentIds: new Set(),
+  };
+}
+
+function addSpeedRow(accumulator: SpeedAccumulator, row: LocalRouteSegmentSpeed): void {
+  if (row.busTripCount <= 0) {
+    return;
+  }
+
+  accumulator.observationCount += 1;
+  accumulator.busTripCount += row.busTripCount;
+  accumulator.weightedSpeedSum += row.averageRoadSpeedMph * row.busTripCount;
+  accumulator.weightedTravelTimeSum += row.averageTravelTimeMinutes * row.busTripCount;
+  accumulator.segmentIds.add(
+    [row.direction, row.stopOrder, row.timepointStopId, row.nextTimepointStopId].join(":"),
+  );
+  if (row.averageRoadSpeedMph < slowSpeedThresholdMph) {
+    accumulator.slowObservationCount += 1;
+  }
+}
+
+function summarizeSpeedAccumulator(accumulator: SpeedAccumulator) {
+  return {
+    observationCount: accumulator.observationCount,
+    busTripCount: accumulator.busTripCount,
+    segmentCount: accumulator.segmentIds.size,
+    weightedAverageSpeedMph: round(accumulator.weightedSpeedSum / accumulator.busTripCount),
+    weightedAverageTravelTimeMinutes: round(
+      accumulator.weightedTravelTimeSum / accumulator.busTripCount,
+    ),
+    slowObservationShare: round(accumulator.slowObservationCount / accumulator.observationCount),
+  };
+}
+
+function groupedSpeedProfiles(rows: LocalRouteSegmentSpeed[]) {
+  const directionGroups = new Map<string, SpeedAccumulator>();
+  const daypartGroups = new Map<string, SpeedAccumulator>();
+  const dayHourGroups = new Map<string, SpeedAccumulator>();
+
+  for (const row of rows) {
+    for (const [groups, key] of [
+      [directionGroups, row.direction],
+      [daypartGroups, `${row.direction}:${daypart(row.hourOfDay)}`],
+      [dayHourGroups, windowKey(row.dayOfWeek, row.hourOfDay)],
+    ] as const) {
+      const accumulator = groups.get(key) ?? createSpeedAccumulator();
+      addSpeedRow(accumulator, row);
+      groups.set(key, accumulator);
+    }
+  }
+
+  return {
+    directionProfiles: [...directionGroups.entries()]
+      .map(([direction, accumulator]) => ({ direction, ...summarizeSpeedAccumulator(accumulator) }))
+      .sort((left, right) => left.direction.localeCompare(right.direction)),
+    daypartProfiles: [...daypartGroups.entries()]
+      .map(([key, accumulator]) => {
+        const [direction, part] = key.split(":");
+        return {
+          direction: direction ?? "",
+          daypart: part ?? "",
+          ...summarizeSpeedAccumulator(accumulator),
+        };
+      })
+      .sort(
+        (left, right) =>
+          left.direction.localeCompare(right.direction) ||
+          left.daypart.localeCompare(right.daypart),
+      ),
+    slowestDayHourWindows: [...dayHourGroups.entries()]
+      .map(([key, accumulator]) => {
+        const [dayOfWeek, hourOfDay] = key.split(":");
+        return {
+          dayOfWeek: dayOfWeek ?? "",
+          hourOfDay: Number(hourOfDay),
+          ...summarizeSpeedAccumulator(accumulator),
+        };
+      })
+      .sort((left, right) => {
+        if (left.weightedAverageSpeedMph !== right.weightedAverageSpeedMph) {
+          return left.weightedAverageSpeedMph - right.weightedAverageSpeedMph;
+        }
+        return right.busTripCount - left.busTripCount;
+      }),
+  };
+}
+
+function speedByWindow(
+  rows: LocalRouteSegmentSpeed[],
+): Map<string, ReturnType<typeof summarizeSpeedAccumulator>> {
+  const groups = new Map<string, SpeedAccumulator>();
+  for (const row of rows) {
+    const key = windowKey(row.dayOfWeek, row.hourOfDay);
+    const accumulator = groups.get(key) ?? createSpeedAccumulator();
+    addSpeedRow(accumulator, row);
+    groups.set(key, accumulator);
+  }
+
+  return new Map(
+    [...groups.entries()].map(([key, accumulator]) => [
+      key,
+      summarizeSpeedAccumulator(accumulator),
+    ]),
+  );
+}
+
+function ridershipProfiles(
+  ridershipRows: LocalRouteHourlyRidership[],
+  speedRows: LocalRouteSegmentSpeed[],
+) {
+  const speedSummaries = speedByWindow(speedRows);
+  const windowProfiles = ridershipRows.map((row) => {
+    const speed = speedSummaries.get(windowKey(row.dayOfWeek, row.hourOfDay));
+    return {
+      dayOfWeek: row.dayOfWeek,
+      hourOfDay: row.hourOfDay,
+      ridership: row.ridership,
+      transfers: row.transfers,
+      matchedObservationCount: speed?.observationCount ?? 0,
+      busTripCount: speed?.busTripCount ?? 0,
+      weightedAverageSpeedMph: speed?.weightedAverageSpeedMph ?? null,
+      slowObservationShare: speed?.slowObservationShare ?? null,
+    };
+  });
+  const topRidershipWindows = [...windowProfiles]
+    .sort((left, right) => right.ridership - left.ridership || left.hourOfDay - right.hourOfDay)
+    .slice(0, 10);
+  const slowCrowdedWindows = [...windowProfiles]
+    .filter((window) => window.weightedAverageSpeedMph !== null)
+    .sort((left, right) => {
+      const leftSlowRiders = left.ridership * (left.slowObservationShare ?? 0);
+      const rightSlowRiders = right.ridership * (right.slowObservationShare ?? 0);
+      return rightSlowRiders - leftSlowRiders || right.ridership - left.ridership;
+    })
+    .slice(0, 10);
+
+  return {
+    ridershipWindowCount: ridershipRows.length,
+    speedWindowCount: speedSummaries.size,
+    totalRidership: round(ridershipRows.reduce((sum, row) => sum + row.ridership, 0)),
+    totalTransfers: round(ridershipRows.reduce((sum, row) => sum + row.transfers, 0)),
+    peakRidershipWindow: topRidershipWindows[0] ?? null,
+    topRidershipWindows,
+    slowCrowdedWindows,
+  };
+}
+
+function schedulePairKey(direction: string, fromStopId: string, toStopId: string): string {
+  return `${direction}:${fromStopId}:${toStopId}`;
+}
+
+function median(values: number[]): number {
+  const sorted = [...values].sort((left, right) => left - right);
+  const middle = Math.floor(sorted.length / 2);
+  const value =
+    sorted.length % 2 === 0
+      ? ((sorted[middle - 1] ?? 0) + (sorted[middle] ?? 0)) / 2
+      : (sorted[middle] ?? 0);
+  return Math.round(value * 10) / 10;
+}
+
+function scheduleComparisons(
+  schedules: LocalRouteScheduleTimepoint[],
+  hotspots: Awaited<ReturnType<typeof listRouteHotspots>>,
+) {
+  const pairs = new Map<string, number[]>();
+  const scheduleGroups = new Map<string, LocalRouteScheduleTimepoint[]>();
+
+  for (const row of schedules) {
+    const key = [row.scheduleDate, row.dayType, row.direction, row.blockId].join(":");
+    const group = scheduleGroups.get(key) ?? [];
+    group.push(row);
+    scheduleGroups.set(key, group);
+  }
+
+  for (const groupRows of scheduleGroups.values()) {
+    const sorted = [...groupRows].sort(
+      (left, right) =>
+        left.scheduleTime.localeCompare(right.scheduleTime) ||
+        left.stopSequence - right.stopSequence,
+    );
+    for (let index = 0; index < sorted.length - 1; index += 1) {
+      const from = sorted[index];
+      const to = sorted[index + 1];
+      if (from === undefined || to === undefined || to.stopSequence <= from.stopSequence) {
+        continue;
+      }
+      const travelTimeMinutes =
+        (Date.parse(to.scheduleTime) - Date.parse(from.scheduleTime)) / 60_000;
+      if (travelTimeMinutes <= 0 || travelTimeMinutes > 180) {
+        continue;
+      }
+      const key = schedulePairKey(from.direction, from.stopId, to.stopId);
+      const values = pairs.get(key) ?? [];
+      values.push(travelTimeMinutes);
+      pairs.set(key, values);
+    }
+  }
+
+  const hotspotComparisons = hotspots.map((hotspot) => {
+    const scheduledTravelTimes = pairs.get(
+      schedulePairKey(hotspot.direction, hotspot.timepointStopId, hotspot.nextTimepointStopId),
+    );
+    const scheduledMedianTravelTimeMinutes =
+      scheduledTravelTimes === undefined ? null : median(scheduledTravelTimes);
+    return {
+      segmentId: hotspot.segmentId,
+      direction: hotspot.direction,
+      from: hotspot.timepointStopName,
+      to: hotspot.nextTimepointStopName,
+      observedTravelTimeMinutes: hotspot.weightedAverageTravelTimeMinutes,
+      scheduledMedianTravelTimeMinutes,
+      observedMinusScheduledMinutes:
+        scheduledMedianTravelTimeMinutes === null
+          ? null
+          : round(hotspot.weightedAverageTravelTimeMinutes - scheduledMedianTravelTimeMinutes, 1),
+      scheduledSampleCount: scheduledTravelTimes?.length ?? 0,
+      observedBusTripCount: hotspot.busTripCount,
+      observedSpeedMph: hotspot.weightedAverageSpeedMph,
+      hotspotScore: hotspot.hotspotScore,
+      riderImpactScore: hotspot.riderImpactScore ?? null,
+    };
+  });
+
+  return {
+    scheduledPairCount: pairs.size,
+    matchedHotspotCount: hotspotComparisons.filter(
+      (comparison) => comparison.scheduledMedianTravelTimeMinutes !== null,
+    ).length,
+    hotspotComparisons,
+  };
+}
+
+type Coordinate = { longitude: number; latitude: number };
+
+function normalizeStreetName(value: string): string {
+  return value
+    .toUpperCase()
+    .replace(/\bAV\b/g, "AVENUE")
+    .replace(/\bAVE\b/g, "AVENUE")
+    .replace(/\bST\b/g, "STREET")
+    .replace(/\bBLVD\b/g, "BOULEVARD")
+    .replace(/\bRD\b/g, "ROAD")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function routeStreetFromStopName(stopName: string): string {
+  return normalizeStreetName(stopName.split("/")[0] ?? stopName);
+}
+
+function metersBetween(left: Coordinate, right: Coordinate): number {
+  const latitudeMeters = (left.latitude - right.latitude) * 111_320;
+  const longitudeMeters =
+    (left.longitude - right.longitude) *
+    111_320 *
+    Math.cos(((left.latitude + right.latitude) / 2 / 180) * Math.PI);
+  return Math.sqrt(latitudeMeters ** 2 + longitudeMeters ** 2);
+}
+
+function minDistanceMeters(laneCoordinates: Coordinate[], stopCoordinates: Coordinate[]): number {
+  let minDistance = Number.POSITIVE_INFINITY;
+  for (const laneCoordinate of laneCoordinates) {
+    for (const stopCoordinate of stopCoordinates) {
+      minDistance = Math.min(minDistance, metersBetween(laneCoordinate, stopCoordinate));
+    }
+  }
+  return minDistance;
+}
+
+function matchedBusLanes(
+  busLanes: LocalBusLane[],
+  stops: Awaited<ReturnType<typeof listRouteStops>>,
+) {
+  const stopCoordinates = stops.map((stop) => ({
+    longitude: stop.longitude,
+    latitude: stop.latitude,
+  }));
+  const routeStreets = new Set(stops.map((stop) => routeStreetFromStopName(stop.stopName)));
+  return busLanes.filter((lane) => {
+    if (lane.borough !== "MAN") {
+      return false;
+    }
+    const laneStreet = normalizeStreetName(lane.street);
+    const laneFacility = normalizeStreetName(lane.facility);
+    return (
+      routeStreets.has(laneStreet) ||
+      routeStreets.has(laneFacility) ||
+      minDistanceMeters(lane.coordinates, stopCoordinates) <= busLaneProximityThresholdMeters
+    );
+  });
+}
+
+function monthEndIso(year: number, month: number): string {
+  const nextMonthStart = new Date(Date.UTC(year, month, 1));
+  return new Date(nextMonthStart.getTime() - 1).toISOString();
 }
 
 export async function buildM1RouteBriefInput(
@@ -265,28 +454,98 @@ export async function buildM1RouteBriefInput(
   const month = isoMonth(options.year, options.month);
   const key = routeSliceKey(options.routeId, month);
   const artifactDir = fromRepoRoot(join("data/artifacts/route-slices", key));
-  const summary = HotspotSummarySchema.parse(
-    await Bun.file(join(artifactDir, "summary.json")).json(),
+  const local = await openLocalPipelineDb(options.dbPath);
+  const dbRows = await (async () => {
+    try {
+      const summary = await getRouteHotspotSummary(local.db, options.routeId, month);
+      if (summary === null) {
+        throw new Error(`No hotspot summary found for ${options.routeId} ${month}`);
+      }
+      const [
+        hotspots,
+        speedRows,
+        ridershipRows,
+        schedules,
+        acePrograms,
+        aceViolations,
+        busLanes,
+        stops,
+        catalog,
+      ] = await Promise.all([
+        listRouteHotspots(local.db, options.routeId, month),
+        listRouteSegmentSpeeds(local.db, options.routeId, month),
+        listRouteHourlyRidership(local.db, options.routeId, month),
+        listRouteSchedules(local.db, options.routeId, month),
+        listAceRoutesForRoute(local.db, options.routeId),
+        listAceViolationSummariesForRoute(local.db, options.routeId, month),
+        listBusLanes(local.db),
+        listRouteStops(local.db, options.routeId, month),
+        listRouteCatalog(local.db),
+      ]);
+      return {
+        summary,
+        hotspots,
+        speedRows,
+        ridershipRows,
+        schedules,
+        acePrograms,
+        aceViolations,
+        busLanes,
+        stops,
+        catalog,
+      };
+    } finally {
+      local.sqlite.close();
+    }
+  })();
+  const {
+    summary,
+    hotspots,
+    speedRows,
+    ridershipRows,
+    schedules,
+    acePrograms,
+    aceViolations,
+    busLanes,
+    stops,
+    catalog,
+  } = dbRows;
+  const coverageStatus = summary.observationCount > 0 ? "full" : "no_observed_speed";
+  const scorecard = calculateRouteScore({
+    routeId: z.decode(RouteIdCodec, summary.routeId),
+    month: summary.isoMonth,
+    coverageStatus,
+    averageSpeedMph: summary.routeWeightedAverageSpeedMph,
+    hotspotCount: summary.hotspotCount,
+    citations: [
+      {
+        sourceId: "mta_bus_route_segment_speeds",
+        title: "MTA Bus Route Segment Speeds",
+        url: "https://data.ny.gov/Transportation/MTA-Bus-Route-Segment-Speeds/kufs-yh3x",
+        verifiedAt: summary.generatedAt,
+      },
+      {
+        sourceId: "mta_bus_hourly_ridership",
+        title: "MTA Bus Hourly Ridership",
+        url: "https://data.ny.gov/Transportation/MTA-Bus-Hourly-Ridership-Beginning-2020/wujg-7c2s",
+        verifiedAt: summary.generatedAt,
+      },
+    ],
+  });
+  const speedProfile = groupedSpeedProfiles(speedRows);
+  const ridershipProfile = ridershipProfiles(ridershipRows, speedRows);
+  const scheduleComparison = scheduleComparisons(schedules, hotspots);
+  const analysisPeriodEnd = monthEndIso(options.year, options.month);
+  const activeAcePrograms = acePrograms.filter(
+    (program) => program.implementationDate <= analysisPeriodEnd,
   );
-  const scorecard = RouteScorecardSchema.parse(
-    await Bun.file(join(artifactDir, "route-scorecard.json")).json(),
+  const futureAcePrograms = acePrograms.filter(
+    (program) => program.implementationDate > analysisPeriodEnd,
   );
-  const interventionOverlay = InterventionOverlaySchema.parse(
-    await Bun.file(join(artifactDir, "intervention-overlay.json")).json(),
-  );
-  const busLaneOverlay = BusLaneOverlaySchema.parse(
-    await Bun.file(join(artifactDir, "bus-lane-overlay.json")).json(),
-  );
-  const scheduleComparison = ScheduleComparisonSchema.parse(
-    await Bun.file(join(artifactDir, "schedule-comparison.json")).json(),
-  );
-  const ridershipProfile = RidershipProfileSchema.parse(
-    await Bun.file(join(artifactDir, "ridership-profile.json")).json(),
-  );
-  const speedProfile = SpeedProfileSchema.parse(
-    await Bun.file(join(artifactDir, "speed-profile.json")).json(),
-  );
-  const topSegments = summary.topHotspots.slice(0, options.topSegmentLimit).map((hotspot) => ({
+  const routeViolationCount = aceViolations.reduce((sum, row) => sum + row.violationCount, 0);
+  const matchedLanes = matchedBusLanes(busLanes, stops);
+  const matchedStreets = [...new Set(matchedLanes.map((lane) => lane.street))].sort();
+  const topSegments = hotspots.slice(0, options.topSegmentLimit).map((hotspot) => ({
     segmentId: hotspot.segmentId,
     direction: hotspot.direction,
     stopOrder: hotspot.stopOrder,
@@ -332,22 +591,22 @@ export async function buildM1RouteBriefInput(
       slowCrowdedWindows: ridershipProfile.slowCrowdedWindows,
     },
     speedProfile: {
-      slowSpeedThresholdMph: speedProfile.slowSpeedThresholdMph,
+      slowSpeedThresholdMph,
       directionProfiles: speedProfile.directionProfiles,
       daypartProfiles: speedProfile.daypartProfiles,
       slowestDayHourWindows: speedProfile.slowestDayHourWindows,
     },
     interventionStatus: {
-      aceRouteMatched: interventionOverlay.ace.routeMatched,
-      aceActiveDuringAnalysisPeriod: interventionOverlay.ace.activeDuringAnalysisPeriod,
-      aceRouteMatchCount: interventionOverlay.ace.routeMatchCount,
-      aceActiveProgramCount: interventionOverlay.ace.activePrograms.length,
-      aceFutureProgramCount: interventionOverlay.ace.futurePrograms.length,
-      aceViolationCount: interventionOverlay.violations.routeViolationCount,
-      aceViolationGroupedRowCount: interventionOverlay.violations.groupedRowCount,
-      busLaneMatchedLaneCount: busLaneOverlay.matchedLaneCount,
-      busLaneMatchedStreetCount: busLaneOverlay.matchedStreetCount,
-      busLaneMatchedStreets: busLaneOverlay.matchedStreets,
+      aceRouteMatched: acePrograms.length > 0,
+      aceActiveDuringAnalysisPeriod: activeAcePrograms.length > 0,
+      aceRouteMatchCount: acePrograms.length,
+      aceActiveProgramCount: activeAcePrograms.length,
+      aceFutureProgramCount: futureAcePrograms.length,
+      aceViolationCount: routeViolationCount,
+      aceViolationGroupedRowCount: aceViolations.length,
+      busLaneMatchedLaneCount: matchedLanes.length,
+      busLaneMatchedStreetCount: matchedStreets.length,
+      busLaneMatchedStreets: matchedStreets,
     },
     topSegments,
     scheduleComparisons: scheduleComparison.hotspotComparisons,
@@ -359,15 +618,29 @@ export async function buildM1RouteBriefInput(
             "No observed segment-speed rows were available for this route and month; speed and hotspot metrics are placeholders, not measured performance.",
           ]),
       "Ridership exposure is joined at route/day/hour level; it is not segment-level passenger load.",
-      ...interventionOverlay.caveats,
-      ...busLaneOverlay.caveats,
-      ...scheduleComparison.caveats,
-      ...ridershipProfile.caveats,
-      ...speedProfile.caveats,
+      "ACE route matching is route-level only; this does not prove segment-level camera coverage.",
+      "Bus-lane overlay is based on street/proximity matching and should not be interpreted as exact route-segment coverage.",
+      "Scheduled travel time is derived by splitting schedule rows into trip-like sequences within block/day/direction groups.",
+      "Ridership windows are route-level hourly totals, not segment-level passenger loads.",
+      "Speed profiles aggregate MTA segment-speed timepoint observations by direction, daypart, and day/hour.",
       "The current artifact does not include service-alert or causal intervention overlays.",
       "The hotspot summary is limited to the selected route and month.",
     ],
-    sources: [...scorecard.citations, ...interventionOverlay.sources, ...busLaneOverlay.sources],
+    sources: [
+      ...scorecard.citations,
+      {
+        sourceId: "ace_routes",
+        title: "MTA Bus Automated Camera Enforced Routes",
+        url: "https://data.ny.gov/Transportation/MTA-Bus-Automated-Camera-Enforced-Routes-Beginning/ki2b-sg5y",
+        verifiedAt: summary.generatedAt,
+      },
+      {
+        sourceId: "nyc_dot_bus_lanes_local_streets",
+        title: "NYC DOT Bus Lanes - Local Streets",
+        url: "https://data.cityofnewyork.us/Transportation/Bus-Lanes-Local-Streets/ycrg-ses3",
+        verifiedAt: summary.generatedAt,
+      },
+    ],
   };
   const briefInputPath = join(artifactDir, "route-brief-input.json");
 
@@ -377,11 +650,9 @@ export async function buildM1RouteBriefInput(
     scorecard.hotspotCount === 0
       ? 0
       : scheduleComparison.matchedHotspotCount / scorecard.hotspotCount;
-  const local = await openLocalPipelineDb(options.dbPath);
+  const writeLocal = await openLocalPipelineDb(options.dbPath);
   try {
-    const catalogRow = (await listRouteCatalog(local.db)).find(
-      (row) => row.routeId === summary.routeId,
-    );
+    const catalogRow = catalog.find((row) => row.routeId === summary.routeId);
     const visibility = classifyPublicRouteVisibility({
       routeId: summary.routeId,
       routeLongName: catalogRow?.routeLongName ?? null,
@@ -389,16 +660,10 @@ export async function buildM1RouteBriefInput(
       shapeCount: catalogRow?.shapeCount ?? 0,
       coverageStatus: scorecard.coverageStatus,
     });
-    const peakWindow =
-      ridershipProfile.peakRidershipWindow === null
-        ? null
-        : PeakRidershipWindowSchema.parse(ridershipProfile.peakRidershipWindow);
-    const slowestWindow =
-      speedProfile.slowestDayHourWindows[0] === undefined
-        ? null
-        : SlowestWindowSchema.parse(speedProfile.slowestDayHourWindows[0]);
+    const peakWindow = ridershipProfile.peakRidershipWindow;
+    const slowestWindow = speedProfile.slowestDayHourWindows[0] ?? null;
 
-    await replaceRouteScorecard(local.db, {
+    await replaceRouteScorecard(writeLocal.db, {
       routeId: summary.routeId,
       month: summary.isoMonth,
       routeScore: scorecard.routeScore,
@@ -406,7 +671,7 @@ export async function buildM1RouteBriefInput(
       averageSpeedMph: scorecard.averageSpeedMph,
       hotspotCount: scorecard.hotspotCount,
     });
-    await replaceRouteBriefRows(local.db, {
+    await replaceRouteBriefRows(writeLocal.db, {
       summary: {
         routeId: summary.routeId,
         month: summary.isoMonth,
@@ -417,9 +682,9 @@ export async function buildM1RouteBriefInput(
         hotspotCount: scorecard.hotspotCount,
         totalRidership: ridershipProfile.totalRidership,
         totalTransfers: ridershipProfile.totalTransfers,
-        aceActive: interventionOverlay.ace.activeDuringAnalysisPeriod,
-        aceViolationCount: interventionOverlay.violations.routeViolationCount,
-        busLaneMatchedLaneCount: busLaneOverlay.matchedLaneCount,
+        aceActive: activeAcePrograms.length > 0,
+        aceViolationCount: routeViolationCount,
+        busLaneMatchedLaneCount: matchedLanes.length,
         scheduleMatchRate,
       },
       peakWindows:
@@ -462,7 +727,7 @@ export async function buildM1RouteBriefInput(
             ],
     });
   } finally {
-    local.sqlite.close();
+    writeLocal.sqlite.close();
   }
 
   return {

@@ -1,27 +1,58 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, rm } from "node:fs/promises";
+import { rm } from "node:fs/promises";
 import { join } from "node:path";
-import { RouteScorecardSchema } from "@bp/domain";
+import {
+  replaceAceRoutes,
+  replaceAceViolationSummaries,
+  replaceBusLanes,
+  replaceRouteCatalog,
+  replaceRouteHotspots,
+  replaceRouteHourlyRidership,
+  replaceRouteSchedules,
+  replaceRouteSegmentSpeeds,
+  replaceRouteStops,
+} from "@bp/db/local";
 import { buildM1RouteBriefInputFromCli } from "../src/jobs/build/m1-route-brief-input.js";
+import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
 const routeId = "T1";
 const isoMonth = "2026-03";
 const sliceKey = `${routeId.toLowerCase()}-${isoMonth}`;
 const artifactDir = fromRepoRoot(join("data/artifacts/route-slices", sliceKey));
+const dbDir = fromRepoRoot(join("data/working/test-m1-route-brief-input"));
+const dbPath = join(dbDir, "pipeline.sqlite");
 
 async function removeFixtureArtifacts(): Promise<void> {
-  await rm(artifactDir, { force: true, recursive: true });
+  await Promise.all([
+    rm(artifactDir, { force: true, recursive: true }),
+    rm(dbDir, { force: true, recursive: true }),
+  ]);
 }
 
 async function writeArtifactFixtures(): Promise<void> {
   await removeFixtureArtifacts();
-  await mkdir(artifactDir, { recursive: true });
-  await Bun.write(
-    join(artifactDir, "summary.json"),
-    `${JSON.stringify(
+  const local = await openLocalPipelineDb(dbPath);
+  try {
+    await replaceRouteCatalog(local.db, [
       {
-        schemaVersion: 1,
+        routeId,
+        routeShortName: routeId,
+        routeLongName: "Test route",
+        routeTypes: ["Local"],
+        directions: ["N"],
+        shapeCount: 1,
+        stopCount: 3,
+        timepointStopCount: 3,
+        latitudeMin: 40,
+        latitudeMax: 40.2,
+        longitudeMin: -73.2,
+        longitudeMax: -73,
+      },
+    ]);
+    await replaceRouteHotspots(
+      local.db,
+      {
         routeId,
         isoMonth,
         generatedAt: "2026-04-27T12:00:00.000Z",
@@ -34,250 +65,167 @@ async function writeArtifactFixtures(): Promise<void> {
         ridershipExposure: 1000,
         segmentCount: 4,
         hotspotCount: 2,
-        topHotspots: [
-          {
-            segmentId: "T1:2026-03:N:1:A:B",
-            direction: "N",
-            stopOrder: 1,
-            timepointStopName: "A stop",
-            nextTimepointStopName: "B stop",
-            observationCount: 10,
-            busTripCount: 100,
-            weightedAverageSpeedMph: 4,
-            weightedAverageTravelTimeMinutes: 15,
-            averageRoadDistanceMiles: 1,
-            slowWindowShare: 0.8,
-            speedSeverity: 0.5,
-            hotspotScore: 68,
-            ridershipExposure: 100,
-            riderImpactScore: 79,
-          },
-          {
-            segmentId: "T1:2026-03:N:2:B:C",
-            direction: "N",
-            stopOrder: 2,
-            timepointStopName: "B stop",
-            nextTimepointStopName: "C stop",
-            observationCount: 10,
-            busTripCount: 100,
-            weightedAverageSpeedMph: 6,
-            weightedAverageTravelTimeMinutes: 10,
-            averageRoadDistanceMiles: 1,
-            slowWindowShare: 0.4,
-            hotspotScore: 42,
-          },
-        ],
       },
-      null,
-      2,
-    )}\n`,
-  );
-  await Bun.write(
-    join(artifactDir, "route-scorecard.json"),
-    `${JSON.stringify(
-      RouteScorecardSchema.parse({
-        schemaVersion: 1,
+      [
+        {
+          routeId,
+          isoMonth,
+          segmentId: "T1:2026-03:N:1:A:B",
+          direction: "N",
+          stopOrder: 1,
+          timepointStopId: "A",
+          timepointStopName: "A stop",
+          nextTimepointStopId: "B",
+          nextTimepointStopName: "B stop",
+          observationCount: 10,
+          busTripCount: 100,
+          weightedAverageSpeedMph: 4,
+          weightedAverageTravelTimeMinutes: 15,
+          averageRoadDistanceMiles: 1,
+          slowWindowShare: 0.8,
+          speedSeverity: 0.5,
+          hotspotScore: 68,
+          ridershipExposure: 100,
+          riderImpactScore: 79,
+        },
+        {
+          routeId,
+          isoMonth,
+          segmentId: "T1:2026-03:N:2:B:C",
+          direction: "N",
+          stopOrder: 2,
+          timepointStopId: "B",
+          timepointStopName: "B stop",
+          nextTimepointStopId: "C",
+          nextTimepointStopName: "C stop",
+          observationCount: 10,
+          busTripCount: 100,
+          weightedAverageSpeedMph: 6,
+          weightedAverageTravelTimeMinutes: 10,
+          averageRoadDistanceMiles: 1,
+          slowWindowShare: 0.4,
+          speedSeverity: 0.25,
+          hotspotScore: 42,
+        },
+      ],
+    );
+    await replaceRouteSegmentSpeeds(local.db, routeId, isoMonth, [
+      {
         routeId,
+        isoMonth,
+        timestamp: "2026-03-02T08:00:00.000",
+        dayOfWeek: "Monday",
+        hourOfDay: 8,
+        direction: "N",
+        borough: "Manhattan",
+        routeType: "Local",
+        stopOrder: 1,
+        timepointStopId: "A",
+        timepointStopName: "A stop",
+        timepointStopLatitude: 40,
+        timepointStopLongitude: -73,
+        nextTimepointStopId: "B",
+        nextTimepointStopName: "B stop",
+        nextTimepointStopLatitude: 40.1,
+        nextTimepointStopLongitude: -73.1,
+        roadDistanceMiles: 1,
+        averageTravelTimeMinutes: 12,
+        averageRoadSpeedMph: 5,
+        busTripCount: 100,
+      },
+    ]);
+    await replaceRouteHourlyRidership(local.db, routeId, isoMonth, [
+      { routeId, isoMonth, dayOfWeek: "Monday", hourOfDay: 8, ridership: 1000, transfers: 100 },
+      { routeId, isoMonth, dayOfWeek: "Monday", hourOfDay: 9, ridership: 400, transfers: 25 },
+    ]);
+    await replaceRouteSchedules(local.db, routeId, isoMonth, [
+      {
+        routeId,
+        isoMonth,
+        scheduleDate: "2026-01-05T00:00:00.000Z",
+        dayType: "Weekday",
+        direction: "N",
+        shapeId: "T1001",
+        stopSequence: 1,
+        stopId: "A",
+        stopName: "A stop",
+        scheduleTime: "2026-01-05T07:00:00.000Z",
+        blockId: "B1",
+      },
+      {
+        routeId,
+        isoMonth,
+        scheduleDate: "2026-01-05T00:00:00.000Z",
+        dayType: "Weekday",
+        direction: "N",
+        shapeId: "T1001",
+        stopSequence: 2,
+        stopId: "B",
+        stopName: "B stop",
+        scheduleTime: "2026-01-05T07:10:00.000Z",
+        blockId: "B1",
+      },
+    ]);
+    await replaceAceRoutes(local.db, [
+      { routeId, program: "ACE", implementationDate: "2025-01-15T00:00:00.000Z" },
+    ]);
+    await replaceAceViolationSummaries(local.db, isoMonth, [
+      {
         month: isoMonth,
-        routeScore: 40,
-        coverageStatus: "full",
-        averageSpeedMph: 6,
-        hotspotCount: 2,
-        citations: [
-          {
-            sourceId: "fixture.segment_speeds",
-            title: "Fixture segment speeds",
-            url: "https://example.test/segment-speeds",
-            verifiedAt: "2026-04-27T12:00:00.000Z",
-          },
-        ],
-      }),
-      null,
-      2,
-    )}\n`,
-  );
-  await Bun.write(
-    join(artifactDir, "intervention-overlay.json"),
-    `${JSON.stringify(
-      {
-        schemaVersion: 1,
         routeId,
-        analysisPeriod: isoMonth,
-        generatedAt: "2026-04-27T12:00:00.000Z",
-        sources: [
-          {
-            sourceId: "fixture.ace_routes",
-            title: "Fixture ACE routes",
-            url: "https://example.test/ace-routes",
-            verifiedAt: "2026-04-27T12:00:00.000Z",
-          },
-        ],
-        ace: {
-          routeMatched: true,
-          routeMatchCount: 1,
-          activeDuringAnalysisPeriod: true,
-          activePrograms: [],
-          futurePrograms: [],
-        },
-        violations: {
-          analysisPeriod: isoMonth,
-          routeViolationCount: 12,
-          groupedRowCount: 1,
-          violationTypeCounts: [],
-        },
-        caveats: ["ACE route matching is route-level only."],
+        violationType: "MOBILE BUS LANE",
+        violationStatus: "EXEMPT - OTHER",
+        violationCount: 12,
       },
-      null,
-      2,
-    )}\n`,
-  );
-  await Bun.write(
-    join(artifactDir, "bus-lane-overlay.json"),
-    `${JSON.stringify(
+    ]);
+    await replaceRouteStops(local.db, routeId, isoMonth, [
       {
-        schemaVersion: 1,
         routeId,
-        analysisPeriod: isoMonth,
-        generatedAt: "2026-04-27T12:00:00.000Z",
-        matchedLaneCount: 3,
-        matchedStreetCount: 1,
-        matchedStreets: ["5 AVENUE"],
-        sources: [
-          {
-            sourceId: "fixture.bus_lanes",
-            title: "Fixture bus lanes",
-            url: "https://example.test/bus-lanes",
-            verifiedAt: "2026-04-27T12:00:00.000Z",
-          },
-        ],
-        caveats: ["Bus-lane overlay is a proximity match."],
+        isoMonth,
+        routeShortName: routeId,
+        stopId: "A",
+        stopName: "5 AV/E 72 ST",
+        inEffect: true,
+        directionId: "0",
+        direction: "N",
+        timepoint: true,
+        latitude: 40.772141,
+        longitude: -73.96508,
       },
-      null,
-      2,
-    )}\n`,
-  );
-  await Bun.write(
-    join(artifactDir, "schedule-comparison.json"),
-    `${JSON.stringify(
+    ]);
+    await replaceBusLanes(local.db, [
       {
-        schemaVersion: 1,
-        routeId,
-        analysisPeriod: isoMonth,
-        generatedAt: "2026-04-27T12:00:00.000Z",
-        scheduleFetchedAt: "2026-04-27T12:00:00.000Z",
-        scheduledPairCount: 1,
-        hotspotCount: 1,
-        matchedHotspotCount: 1,
-        hotspotComparisons: [
-          {
-            segmentId: "T1:2026-03:N:1:A:B",
-            scheduledMedianTravelTimeMinutes: 10,
-            observedMinusScheduledMinutes: 4,
-          },
-        ],
-        caveats: ["Schedule comparison is fixture-backed."],
+        segmentId: "1",
+        street: "5 AVENUE",
+        borough: "MAN",
+        facility: "5 Avenue",
+        laneType: "Curbside",
+        laneSubtype: "Bus Lane",
+        openDate: "2024-06-01T00:00:00.000",
+        coordinates: [{ longitude: -73.96508, latitude: 40.772141 }],
       },
-      null,
-      2,
-    )}\n`,
-  );
-  await Bun.write(
-    join(artifactDir, "ridership-profile.json"),
-    `${JSON.stringify(
       {
-        schemaVersion: 1,
-        routeId,
-        analysisPeriod: isoMonth,
-        generatedAt: "2026-04-27T12:00:00.000Z",
-        ridershipWindowCount: 2,
-        speedWindowCount: 1,
-        totalRidership: 1400,
-        totalTransfers: 125,
-        peakRidershipWindow: {
-          dayOfWeek: "Monday",
-          hourOfDay: 8,
-          ridership: 1000,
-          transfers: 100,
-          matchedObservationCount: 2,
-          busTripCount: 20,
-          weightedAverageSpeedMph: 7.5,
-          slowObservationShare: 0.5,
-        },
-        topRidershipWindows: [
-          {
-            dayOfWeek: "Monday",
-            hourOfDay: 8,
-            ridership: 1000,
-            transfers: 100,
-          },
-        ],
-        slowCrowdedWindows: [
-          {
-            dayOfWeek: "Monday",
-            hourOfDay: 8,
-            ridership: 1000,
-            transfers: 100,
-            weightedAverageSpeedMph: 7.5,
-            slowObservationShare: 0.5,
-          },
-        ],
-        caveats: ["Ridership profile is fixture-backed."],
+        segmentId: "2",
+        street: "5 AVENUE",
+        borough: "MAN",
+        facility: "5 Avenue",
+        laneType: "Offset",
+        laneSubtype: "Bus Lane",
+        coordinates: [{ longitude: -73.96508, latitude: 40.772141 }],
       },
-      null,
-      2,
-    )}\n`,
-  );
-  await Bun.write(
-    join(artifactDir, "speed-profile.json"),
-    `${JSON.stringify(
       {
-        schemaVersion: 1,
-        routeId,
-        analysisPeriod: isoMonth,
-        generatedAt: "2026-04-27T12:00:00.000Z",
-        slowSpeedThresholdMph: 8,
-        observationCount: 20,
-        directionProfiles: [
-          {
-            direction: "N",
-            observationCount: 10,
-            busTripCount: 100,
-            segmentCount: 2,
-            weightedAverageSpeedMph: 5,
-            weightedAverageTravelTimeMinutes: 12,
-            slowObservationShare: 1,
-          },
-        ],
-        daypartProfiles: [
-          {
-            direction: "N",
-            daypart: "AM peak",
-            observationCount: 10,
-            busTripCount: 100,
-            segmentCount: 2,
-            weightedAverageSpeedMph: 5,
-            weightedAverageTravelTimeMinutes: 12,
-            slowObservationShare: 1,
-          },
-        ],
-        slowestDayHourWindows: [
-          {
-            dayOfWeek: "Monday",
-            hourOfDay: 8,
-            observationCount: 10,
-            busTripCount: 100,
-            segmentCount: 2,
-            weightedAverageSpeedMph: 5,
-            weightedAverageTravelTimeMinutes: 12,
-            slowObservationShare: 1,
-          },
-        ],
-        caveats: ["Speed profile is fixture-backed."],
+        segmentId: "3",
+        street: "5 AVENUE",
+        borough: "MAN",
+        facility: "5 Avenue",
+        laneType: "Curbside",
+        laneSubtype: "Bus Lane",
+        coordinates: [{ longitude: -73.96508, latitude: 40.772141 }],
       },
-      null,
-      2,
-    )}\n`,
-  );
+    ]);
+  } finally {
+    local.sqlite.close();
+  }
 }
 
 afterEach(async () => {
@@ -297,6 +245,8 @@ describe("M1 route brief input build", () => {
       "3",
       "--top-segments",
       "1",
+      "--db",
+      dbPath,
     ]);
     const briefInput = await Bun.file(result.briefInputPath).json();
 
@@ -347,7 +297,7 @@ describe("M1 route brief input build", () => {
         weightedAverageSpeedMph: 5,
       }),
     );
-    expect(briefInput.scheduleComparisons).toHaveLength(1);
+    expect(briefInput.scheduleComparisons).toHaveLength(2);
     expect(briefInput.topSegments).toEqual([
       expect.objectContaining({
         from: "A stop",
@@ -359,11 +309,21 @@ describe("M1 route brief input build", () => {
     expect(briefInput.caveats).toContain(
       "Route score is a deterministic prioritization heuristic, not an official MTA grade.",
     );
-    expect(briefInput.caveats).toContain("ACE route matching is route-level only.");
-    expect(briefInput.caveats).toContain("Bus-lane overlay is a proximity match.");
-    expect(briefInput.caveats).toContain("Schedule comparison is fixture-backed.");
-    expect(briefInput.caveats).toContain("Ridership profile is fixture-backed.");
-    expect(briefInput.caveats).toContain("Speed profile is fixture-backed.");
-    expect(briefInput.sources).toHaveLength(3);
+    expect(briefInput.caveats).toContain(
+      "ACE route matching is route-level only; this does not prove segment-level camera coverage.",
+    );
+    expect(briefInput.caveats).toContain(
+      "Bus-lane overlay is based on street/proximity matching and should not be interpreted as exact route-segment coverage.",
+    );
+    expect(briefInput.caveats).toContain(
+      "Scheduled travel time is derived by splitting schedule rows into trip-like sequences within block/day/direction groups.",
+    );
+    expect(briefInput.caveats).toContain(
+      "Ridership windows are route-level hourly totals, not segment-level passenger loads.",
+    );
+    expect(briefInput.caveats).toContain(
+      "Speed profiles aggregate MTA segment-speed timepoint observations by direction, daypart, and day/hour.",
+    );
+    expect(briefInput.sources).toHaveLength(4);
   });
 });
