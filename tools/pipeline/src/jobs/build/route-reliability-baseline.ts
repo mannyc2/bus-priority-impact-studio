@@ -1,3 +1,4 @@
+import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import {
   type LocalRouteScheduleTimepoint,
@@ -5,8 +6,8 @@ import {
   listRouteSchedules,
   replaceRouteReliabilityRows,
 } from "@bp/db/local";
-import { writeArtifact } from "../../lib/artifact-store.js";
 import { isoMonth } from "../../lib/dates.js";
+import { writeJson } from "../../lib/json.js";
 import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
 import { fromRepoRoot } from "../../source-manifest.js";
@@ -290,14 +291,15 @@ export async function buildRouteReliabilityBaseline(
     rows,
   };
 
+  await mkdir(batchDir, { recursive: true });
   await Promise.all([
-    writeArtifact(batchDir, baselinePath, {
+    writeJson(baselinePath, {
       schemaVersion,
       analysisPeriod: month,
       generatedAt: summary.generatedAt,
       rows,
     }),
-    writeArtifact(batchDir, summaryPath, summary),
+    writeJson(summaryPath, summary),
   ]);
   const writeLocal = await openLocalPipelineDb(options.dbPath);
   try {

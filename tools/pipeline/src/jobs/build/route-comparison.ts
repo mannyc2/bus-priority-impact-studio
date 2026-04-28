@@ -1,11 +1,12 @@
+import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import {
   listRouteBriefSummaries,
   listRouteScorecards,
   replaceRouteComparisonRanks,
 } from "@bp/db/local";
-import { writeArtifact } from "../../lib/artifact-store.js";
 import { isoMonth } from "../../lib/dates.js";
+import { writeJson } from "../../lib/json.js";
 import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
 import { fromRepoRoot } from "../../source-manifest.js";
@@ -134,7 +135,8 @@ export async function buildRouteComparison(
     ],
   };
 
-  await writeArtifact(batchDir, comparisonPath, comparison);
+  await mkdir(batchDir, { recursive: true });
+  await writeJson(comparisonPath, comparison);
   const writeLocal = await openLocalPipelineDb(options.dbPath);
   try {
     await replaceRouteComparisonRanks(

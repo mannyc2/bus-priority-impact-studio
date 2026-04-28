@@ -1,3 +1,4 @@
+import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import {
   type LocalCensusTractEquityContext,
@@ -6,8 +7,8 @@ import {
   listRouteCatalog,
   replaceRouteEquityRows,
 } from "@bp/db/local";
-import { writeArtifact } from "../../lib/artifact-store.js";
 import { isoMonth } from "../../lib/dates.js";
+import { writeJson } from "../../lib/json.js";
 import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
 import { fromRepoRoot } from "../../source-manifest.js";
@@ -294,15 +295,16 @@ export async function buildRouteEquityContext(
     ],
   };
 
+  await mkdir(outputDir, { recursive: true });
   await Promise.all([
-    writeArtifact(outputDir, outputPath, {
+    writeJson(outputPath, {
       schemaVersion,
       analysisPeriod: month,
       acsYear,
       generatedAt,
       rows,
     }),
-    writeArtifact(outputDir, summaryPath, summary),
+    writeJson(summaryPath, summary),
   ]);
   const writeLocal = await openLocalPipelineDb(dbPath);
   try {
