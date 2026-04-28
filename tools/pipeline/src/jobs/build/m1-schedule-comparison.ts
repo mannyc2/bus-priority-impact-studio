@@ -1,5 +1,12 @@
 import { listRouteHotspots, listRouteSchedules } from "@bp/db/local";
 import { writeRouteSliceArtifact } from "../../lib/artifacts.js";
+import {
+  dbOption,
+  monthOption,
+  parseCliOptions,
+  routeOption,
+  yearOption,
+} from "../../lib/cli-args.js";
 import { isoMonth } from "../../lib/dates.js";
 import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
@@ -34,40 +41,12 @@ function parseBuildArgs(args: ScheduleComparisonArgs): ScheduleComparisonOptions
 }
 
 function parseCliArgs(args: string[]): ScheduleComparisonArgs {
-  const output: ScheduleComparisonArgs = {};
-
-  for (let index = 0; index < args.length; index += 1) {
-    const arg = args[index];
-    const value = args[index + 1];
-
-    if (arg === "--route" && value !== undefined) {
-      output.routeId = value;
-      index += 1;
-      continue;
-    }
-
-    if (arg === "--year" && value !== undefined) {
-      output.year = Number(value);
-      index += 1;
-      continue;
-    }
-
-    if (arg === "--month" && value !== undefined) {
-      output.month = Number(value);
-      index += 1;
-      continue;
-    }
-
-    if (arg === "--db" && value !== undefined) {
-      output.dbPath = fromCliPath(value);
-      index += 1;
-      continue;
-    }
-
-    throw new Error(`Unknown or incomplete argument: ${arg ?? ""}`);
-  }
-
-  return output;
+  return parseCliOptions<ScheduleComparisonArgs>(args, {}, [
+    routeOption(),
+    yearOption(),
+    monthOption(),
+    dbOption(fromCliPath),
+  ]);
 }
 
 export async function buildM1ScheduleComparison(
