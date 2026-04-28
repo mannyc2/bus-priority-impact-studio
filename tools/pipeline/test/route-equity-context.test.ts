@@ -1,19 +1,14 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
-import { replaceRouteCatalog } from "@bp/db/local";
+import { replaceCensusTractEquityContext, replaceRouteCatalog } from "@bp/db/local";
 import { buildRouteEquityContext } from "../src/jobs/build/route-equity-context.js";
 import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
 const fixtureDir = fromRepoRoot(join("data/working/test-route-equity-context"));
-const equityDir = join(fixtureDir, "equity");
 const outputDir = join(fixtureDir, "out");
 const dbPath = join(fixtureDir, "pipeline.sqlite");
-
-async function writeJson(path: string, data: unknown): Promise<number> {
-  return Bun.write(path, `${JSON.stringify(data, null, 2)}\n`);
-}
 
 afterEach(async () => {
   await rm(fixtureDir, { recursive: true, force: true });
@@ -22,10 +17,7 @@ afterEach(async () => {
 describe("route equity context", () => {
   test("assigns route rows to county-level ACS proxy context", async () => {
     await rm(fixtureDir, { recursive: true, force: true });
-    await Promise.all([
-      mkdir(equityDir, { recursive: true }),
-      mkdir(outputDir, { recursive: true }),
-    ]);
+    await mkdir(outputDir, { recursive: true });
     const local = await openLocalPipelineDb(dbPath);
     try {
       await replaceRouteCatalog(local.db, [
@@ -72,21 +64,22 @@ describe("route equity context", () => {
           longitudeMax: null,
         },
       ]);
-    } finally {
-      local.sqlite.close();
-    }
-    await writeJson(join(equityDir, "nyc-tract-equity-context-2024.json"), {
-      schemaVersion: 1,
-      acsYear: 2024,
-      rows: [
+      await replaceCensusTractEquityContext(local.db, 2024, [
         {
+          acsYear: 2024,
+          geoid: "36061000100",
+          stateFips: "36",
           countyFips: "061",
+          tractCode: "000100",
           countyName: "New York County",
+          tractName: "Census Tract 1",
           totalPopulation: 100,
           occupiedHousingUnits: 50,
           noVehicleHouseholds: 20,
+          noVehicleHouseholdShare: 0.4,
           medianHouseholdIncome: 80_000,
           povertyRate: 10,
+          publicTransitCommuters: 60,
           publicTransitCommuterShare: 60,
           raceEthnicityShare: {
             hispanic: 20,
@@ -96,13 +89,20 @@ describe("route equity context", () => {
           },
         },
         {
+          acsYear: 2024,
+          geoid: "36061000200",
+          stateFips: "36",
           countyFips: "061",
+          tractCode: "000200",
           countyName: "New York County",
+          tractName: "Census Tract 2",
           totalPopulation: 300,
           occupiedHousingUnits: 150,
           noVehicleHouseholds: 90,
+          noVehicleHouseholdShare: 0.6,
           medianHouseholdIncome: 100_000,
           povertyRate: 20,
+          publicTransitCommuters: 210,
           publicTransitCommuterShare: 70,
           raceEthnicityShare: {
             hispanic: 30,
@@ -112,13 +112,20 @@ describe("route equity context", () => {
           },
         },
         {
+          acsYear: 2024,
+          geoid: "36005000100",
+          stateFips: "36",
           countyFips: "005",
+          tractCode: "000100",
           countyName: "Bronx County",
+          tractName: "Census Tract 1",
           totalPopulation: 200,
           occupiedHousingUnits: 100,
           noVehicleHouseholds: 70,
+          noVehicleHouseholdShare: 0.7,
           medianHouseholdIncome: 50_000,
           povertyRate: 30,
+          publicTransitCommuters: 130,
           publicTransitCommuterShare: 65,
           raceEthnicityShare: {
             hispanic: 55,
@@ -127,8 +134,10 @@ describe("route equity context", () => {
             nonHispanicAsian: 3,
           },
         },
-      ],
-    });
+      ]);
+    } finally {
+      local.sqlite.close();
+    }
 
     const result = await buildRouteEquityContext({
       year: 2026,
@@ -136,7 +145,6 @@ describe("route equity context", () => {
       acsYear: 2024,
       generatedAt: new Date("2026-04-27T00:00:00.000Z"),
       dbPath,
-      equityDir,
       outputDir,
     });
     const output = await Bun.file(result.outputPath).json();

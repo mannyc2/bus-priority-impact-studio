@@ -1,6 +1,11 @@
 export type { LocalPipelineDb, LocalPipelineSchema } from "./client.js";
 export { createLocalPipelineDb } from "./client.js";
 export { migrateLocalPipelineDb } from "./migrate.js";
+export type { LocalCensusTractEquityContext } from "./repositories/equity.js";
+export {
+  listCensusTractEquityContext,
+  replaceCensusTractEquityContext,
+} from "./repositories/equity.js";
 export type {
   LocalAceRoute,
   LocalAceViolationSummary,

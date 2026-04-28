@@ -1,11 +1,12 @@
 import { join } from "node:path";
 import {
+  type LocalCensusTractEquityContext,
   type LocalRouteCatalogEntry,
+  listCensusTractEquityContext,
   listRouteCatalog,
   replaceRouteEquityRows,
 } from "@bp/db/local";
-import * as z from "zod";
-import { readArtifact, writeArtifact } from "../../lib/artifact-store.js";
+import { writeArtifact } from "../../lib/artifact-store.js";
 import { isoMonth } from "../../lib/dates.js";
 import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
@@ -13,37 +14,7 @@ import { fromRepoRoot } from "../../source-manifest.js";
 
 const schemaVersion = 1;
 
-const TractEquityContextSchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    acsYear: z.number().int(),
-    rows: z.array(
-      z
-        .object({
-          countyFips: z.string().regex(/^\d{3}$/),
-          countyName: z.string().min(1),
-          totalPopulation: z.number().int().nonnegative().nullable(),
-          occupiedHousingUnits: z.number().int().nonnegative().nullable(),
-          noVehicleHouseholds: z.number().int().nonnegative().nullable(),
-          medianHouseholdIncome: z.number().int().nonnegative().nullable(),
-          povertyRate: z.number().nonnegative().nullable(),
-          publicTransitCommuterShare: z.number().nonnegative().nullable(),
-          raceEthnicityShare: z
-            .object({
-              hispanic: z.number().nonnegative().nullable(),
-              nonHispanicWhite: z.number().nonnegative().nullable(),
-              nonHispanicBlack: z.number().nonnegative().nullable(),
-              nonHispanicAsian: z.number().nonnegative().nullable(),
-            })
-            .strict(),
-        })
-        .passthrough(),
-    ),
-  })
-  .passthrough();
-
-type TractEquityContext = z.output<typeof TractEquityContextSchema>;
-type TractEquityRow = TractEquityContext["rows"][number];
+type TractEquityRow = LocalCensusTractEquityContext;
 type RouteCatalogRow = LocalRouteCatalogEntry;
 
 type CountyAggregate = {
@@ -77,7 +48,6 @@ type RouteEquityContextArgs = {
   acsYear?: number;
   generatedAt?: Date;
   dbPath?: string;
-  equityDir?: string;
   outputDir?: string;
 };
 
@@ -128,12 +98,6 @@ function parseCliArgs(args: string[]): RouteEquityContextArgs {
 
     if (arg === "--db" && value !== undefined) {
       output.dbPath = fromCliPath(value);
-      index += 1;
-      continue;
-    }
-
-    if (arg === "--equity-dir" && value !== undefined) {
-      output.equityDir = value;
       index += 1;
       continue;
     }
@@ -248,22 +212,19 @@ export async function buildRouteEquityContext(
   const acsYear = args.acsYear ?? 2024;
   const generatedAt = (args.generatedAt ?? new Date()).toISOString();
   const dbPath = args.dbPath ?? defaultLocalPipelineDbPath();
-  const equityDir = args.equityDir ?? fromRepoRoot(join("data/working/equity"));
   const outputDir = args.outputDir ?? fromRepoRoot(join("data/artifacts/route-batches", month));
   const outputPath = join(outputDir, "route-equity-context.json");
   const summaryPath = join(outputDir, "route-equity-context-summary.json");
   const local = await openLocalPipelineDb(dbPath);
   let routeCatalog: LocalRouteCatalogEntry[];
+  let tractRows: LocalCensusTractEquityContext[];
   try {
     routeCatalog = await listRouteCatalog(local.db);
+    tractRows = await listCensusTractEquityContext(local.db, acsYear);
   } finally {
     local.sqlite.close();
   }
-  const tractContext = await readArtifact(
-    join(equityDir, `nyc-tract-equity-context-${acsYear}.json`),
-    TractEquityContextSchema,
-  );
-  const countyAggregates = buildCountyAggregates(tractContext.rows);
+  const countyAggregates = buildCountyAggregates(tractRows);
   const rows = routeCatalog.map((route) => {
     const assignedCounty = assignCounty(route);
     const aggregate =

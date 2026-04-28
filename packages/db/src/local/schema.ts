@@ -365,6 +365,32 @@ export const localAceViolationSummary = sqliteTable(
   ],
 );
 
+export const localCensusTractEquityContext = sqliteTable(
+  "local_census_tract_equity_context",
+  {
+    acsYear: integer("acs_year").notNull(),
+    geoid: text("geoid").notNull(),
+    stateFips: text("state_fips").notNull(),
+    countyFips: text("county_fips").notNull(),
+    tractCode: text("tract_code").notNull(),
+    countyName: text("county_name").notNull(),
+    tractName: text("tract_name").notNull(),
+    totalPopulation: integer("total_population"),
+    occupiedHousingUnits: integer("occupied_housing_units"),
+    noVehicleHouseholds: integer("no_vehicle_households"),
+    noVehicleHouseholdShare: real("no_vehicle_household_share"),
+    medianHouseholdIncome: integer("median_household_income"),
+    povertyRate: real("poverty_rate"),
+    publicTransitCommuters: integer("public_transit_commuters"),
+    publicTransitCommuterShare: real("public_transit_commuter_share"),
+    hispanicShare: real("hispanic_share"),
+    nonHispanicWhiteShare: real("non_hispanic_white_share"),
+    nonHispanicBlackShare: real("non_hispanic_black_share"),
+    nonHispanicAsianShare: real("non_hispanic_asian_share"),
+  },
+  (table) => [primaryKey({ columns: [table.acsYear, table.geoid] })],
+);
+
 export const localRouteEquityContext = sqliteTable(
   "local_route_equity_context",
   {

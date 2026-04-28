@@ -1,8 +1,11 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
+import { replaceCensusTractEquityContext } from "@bp/db/local";
 import type { CensusAcsFetch, NormalizedCensusTractEquityContext } from "@bp/sources";
 import { censusAcsProfileVariables, fetchCensusTractEquityContext } from "@bp/sources";
 import { writeJson } from "../../lib/json.js";
+import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
+import { fromCliPath } from "../../lib/paths.js";
 import { fromRepoRoot } from "../../source-manifest.js";
 
 const schemaVersion = 1;
@@ -13,10 +16,12 @@ type EquityContextArgs = {
   fetcher?: CensusAcsFetch;
   rawDir?: string;
   workingDir?: string;
+  dbPath?: string;
 };
 
 type EquityContextResult = {
   acsYear: number;
+  dbPath: string;
   rawPath: string;
   workingPath: string;
   summaryPath: string;
@@ -32,6 +37,7 @@ function parseArgs(args: EquityContextArgs = {}): Required<EquityContextArgs> {
     fetcher: args.fetcher ?? fetch,
     rawDir: args.rawDir ?? fromRepoRoot(join("data/raw/equity")),
     workingDir: args.workingDir ?? fromRepoRoot(join("data/working/equity")),
+    dbPath: args.dbPath ?? defaultLocalPipelineDbPath(),
   };
 }
 
@@ -44,6 +50,12 @@ function parseCliArgs(args: string[]): EquityContextArgs {
 
     if (arg === "--year" && value !== undefined) {
       output.year = Number(value);
+      index += 1;
+      continue;
+    }
+
+    if (arg === "--db" && value !== undefined) {
+      output.dbPath = fromCliPath(value);
       index += 1;
       continue;
     }
@@ -113,6 +125,12 @@ export async function ingestEquityContext(
     year: options.year,
     fetcher: options.fetcher,
   });
+  const local = await openLocalPipelineDb(options.dbPath);
+  try {
+    await replaceCensusTractEquityContext(local.db, options.year, fetched.rows);
+  } finally {
+    local.sqlite.close();
+  }
   const totalPopulation = sumDefined(fetched.rows, (row) => row.totalPopulation);
   const occupiedHousingUnits = sumDefined(fetched.rows, (row) => row.occupiedHousingUnits);
   const noVehicleHouseholds = sumDefined(fetched.rows, (row) => row.noVehicleHouseholds);
@@ -183,6 +201,7 @@ export async function ingestEquityContext(
 
   return {
     acsYear: options.year,
+    dbPath: options.dbPath,
     rawPath,
     workingPath,
     summaryPath,
