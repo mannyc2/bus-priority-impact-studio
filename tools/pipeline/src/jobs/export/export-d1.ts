@@ -1,5 +1,6 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
+import { buildD1SeedSql } from "@bp/db/d1/seed";
 import {
   getRouteBatchStatus,
   listRouteArtifacts,
@@ -27,7 +28,6 @@ import { fromCliPath } from "../../lib/paths.js";
 import { fromRepoRoot } from "../../source-manifest.js";
 import { buildRouteBatchAudit } from "../build/route-batch-audit.js";
 import { readD1MigrationSql } from "./d1-migrations.js";
-import { buildD1SeedSql } from "./write-d1-seed-sql.js";
 
 type D1ExportArgs = {
   year?: number;
