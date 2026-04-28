@@ -1,10 +1,19 @@
 export type { LocalPipelineDb, LocalPipelineSchema } from "./client.js";
 export { createLocalPipelineDb } from "./client.js";
 export { migrateLocalPipelineDb } from "./migrate.js";
-export type { LocalBusLane, LocalBusLaneCoordinate } from "./repositories/interventions.js";
+export type {
+  LocalAceRoute,
+  LocalAceViolationSummary,
+  LocalBusLane,
+  LocalBusLaneCoordinate,
+} from "./repositories/interventions.js";
 export {
   geometryCoordinates,
+  listAceRoutesForRoute,
+  listAceViolationSummariesForRoute,
   listBusLanes,
+  replaceAceRoutes,
+  replaceAceViolationSummaries,
   replaceBusLanes,
 } from "./repositories/interventions.js";
 export type {

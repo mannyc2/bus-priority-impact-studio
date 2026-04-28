@@ -1,39 +1,22 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
+import { listAceRoutesForRoute, listAceViolationSummariesForRoute } from "@bp/db/local";
 import { RouteIdCodec } from "@bp/domain";
-import { NormalizedAceRouteSchema, NormalizedAceViolationSummarySchema } from "@bp/sources";
 import * as z from "zod";
 import { routeSliceKey } from "../../lib/artifacts.js";
 import { isoMonth } from "../../lib/dates.js";
 import { writeJson } from "../../lib/json.js";
+import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
+import { fromCliPath } from "../../lib/paths.js";
 import { fromRepoRoot } from "../../source-manifest.js";
 
 const schemaVersion = 1;
-
-const AceRoutesArtifactSchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    sourceId: z.literal("ace_routes"),
-    fetchedAt: z.iso.datetime(),
-    rows: z.array(NormalizedAceRouteSchema),
-  })
-  .strict();
-
-const AceViolationSummaryArtifactSchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    sourceId: z.literal("ace_violations"),
-    isoMonth: z.string().regex(/^\d{4}-\d{2}$/),
-    fetchedAt: z.iso.datetime(),
-    rows: z.array(NormalizedAceViolationSummarySchema),
-  })
-  .strict();
 
 type InterventionOverlayArgs = {
   routeId?: string;
   year?: number;
   month?: number;
-  interventionDir?: string;
+  dbPath?: string;
 };
 
 type InterventionOverlayResult = {
@@ -56,7 +39,7 @@ function parseBuildArgs(args: InterventionOverlayArgs): Required<InterventionOve
     routeId: args.routeId ?? "M1",
     year: args.year ?? 2026,
     month: args.month ?? 3,
-    interventionDir: args.interventionDir ?? fromRepoRoot(join("data/working/interventions")),
+    dbPath: args.dbPath ?? defaultLocalPipelineDbPath(),
   };
 }
 
@@ -85,6 +68,12 @@ function parseCliArgs(args: string[]): InterventionOverlayArgs {
       continue;
     }
 
+    if (arg === "--db" && value !== undefined) {
+      output.dbPath = fromCliPath(value);
+      index += 1;
+      continue;
+    }
+
     throw new Error(`Unknown or incomplete argument: ${arg ?? ""}`);
   }
 
@@ -102,15 +91,13 @@ export async function buildM1InterventionOverlay(
     join("data/artifacts/route-slices", routeSliceKey(routeId, month)),
   );
   const overlayPath = join(artifactDir, "intervention-overlay.json");
-  const aceRoutesPath = join(options.interventionDir, "ace-routes.json");
-  const aceViolationsPath = join(options.interventionDir, `ace-violations-${month}.json`);
-  const aceRoutes = AceRoutesArtifactSchema.parse(await Bun.file(aceRoutesPath).json());
-  const aceViolations = AceViolationSummaryArtifactSchema.parse(
-    await Bun.file(aceViolationsPath).json(),
-  );
-  const routeMatches = aceRoutes.rows.filter((row) => row.routeId === routeId);
+  const local = await openLocalPipelineDb(options.dbPath);
+  const [routeMatches, routeViolations] = await Promise.all([
+    listAceRoutesForRoute(local.db, routeId),
+    listAceViolationSummariesForRoute(local.db, routeId, month),
+  ]);
+  local.sqlite.close();
   const activePrograms = routeMatches.filter((row) => row.implementationDate <= analysisPeriodEnd);
-  const routeViolations = aceViolations.rows.filter((row) => row.routeId === routeId);
   const routeViolationCount = routeViolations.reduce((sum, row) => sum + row.violationCount, 0);
   const violationTypeCounts = [...new Set(routeViolations.map((row) => row.violationType))]
     .sort()
@@ -130,13 +117,13 @@ export async function buildM1InterventionOverlay(
         sourceId: "ace_routes",
         title: "MTA Bus Automated Camera Enforced Routes",
         url: "https://data.ny.gov/Transportation/MTA-Bus-Automated-Camera-Enforced-Routes-Beginning/ki2b-sg5y",
-        verifiedAt: aceRoutes.fetchedAt,
+        verifiedAt: null,
       },
       {
         sourceId: "ace_violations",
         title: "MTA Bus Automated Camera Enforcement Violations",
         url: "https://data.ny.gov/Transportation/MTA-Bus-Automated-Camera-Enforcement-Violations-Be/kh8p-hcbm",
-        verifiedAt: aceViolations.fetchedAt,
+        verifiedAt: null,
       },
     ],
     ace: {
@@ -147,7 +134,7 @@ export async function buildM1InterventionOverlay(
       futurePrograms: routeMatches.filter((row) => row.implementationDate > analysisPeriodEnd),
     },
     violations: {
-      analysisPeriod: aceViolations.isoMonth,
+      analysisPeriod: month,
       routeViolationCount,
       groupedRowCount: routeViolations.length,
       violationTypeCounts,

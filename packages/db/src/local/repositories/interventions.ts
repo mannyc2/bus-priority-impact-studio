@@ -1,6 +1,11 @@
-import { asc } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import type { LocalPipelineDb } from "../client.js";
-import { localBusLane, localBusLaneCoordinate } from "../schema.js";
+import {
+  localAceRoute,
+  localAceViolationSummary,
+  localBusLane,
+  localBusLaneCoordinate,
+} from "../schema.js";
 
 export type LocalBusLaneCoordinate = {
   longitude: number;
@@ -22,6 +27,20 @@ export type LocalBusLane = {
   openDate?: string | undefined;
   shapeLength?: number | undefined;
   coordinates: LocalBusLaneCoordinate[];
+};
+
+export type LocalAceRoute = {
+  routeId: string;
+  program: "ABLE" | "ACE";
+  implementationDate: string;
+};
+
+export type LocalAceViolationSummary = {
+  month: string;
+  routeId: string;
+  violationType: string;
+  violationStatus: string;
+  violationCount: number;
 };
 
 function isCoordinate(value: unknown): value is [number, number] {
@@ -131,4 +150,59 @@ export async function listBusLanes(db: LocalPipelineDb): Promise<LocalBusLane[]>
     shapeLength: row.shapeLength ?? undefined,
     coordinates: coordinatesBySegment.get(row.segmentId) ?? [],
   }));
+}
+
+export async function replaceAceRoutes(
+  db: LocalPipelineDb,
+  rows: readonly LocalAceRoute[],
+): Promise<void> {
+  await db.delete(localAceRoute);
+
+  if (rows.length === 0) {
+    return;
+  }
+
+  await db.insert(localAceRoute).values([...rows]);
+}
+
+export async function listAceRoutesForRoute(
+  db: LocalPipelineDb,
+  routeId: string,
+): Promise<LocalAceRoute[]> {
+  return db
+    .select()
+    .from(localAceRoute)
+    .where(eq(localAceRoute.routeId, routeId))
+    .orderBy(asc(localAceRoute.implementationDate), asc(localAceRoute.program));
+}
+
+export async function replaceAceViolationSummaries(
+  db: LocalPipelineDb,
+  month: string,
+  rows: readonly LocalAceViolationSummary[],
+): Promise<void> {
+  await db.delete(localAceViolationSummary).where(eq(localAceViolationSummary.month, month));
+
+  if (rows.length === 0) {
+    return;
+  }
+
+  await db.insert(localAceViolationSummary).values([...rows]);
+}
+
+export async function listAceViolationSummariesForRoute(
+  db: LocalPipelineDb,
+  routeId: string,
+  month: string,
+): Promise<LocalAceViolationSummary[]> {
+  return db
+    .select()
+    .from(localAceViolationSummary)
+    .where(
+      and(eq(localAceViolationSummary.routeId, routeId), eq(localAceViolationSummary.month, month)),
+    )
+    .orderBy(
+      asc(localAceViolationSummary.violationType),
+      asc(localAceViolationSummary.violationStatus),
+    );
 }

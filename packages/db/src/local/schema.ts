@@ -288,6 +288,32 @@ export const localBusLaneCoordinate = sqliteTable(
   (table) => [primaryKey({ columns: [table.segmentId, table.coordinateRank] })],
 );
 
+export const localAceRoute = sqliteTable(
+  "local_ace_route",
+  {
+    routeId: text("route_id").notNull(),
+    program: text("program", { enum: ["ABLE", "ACE"] }).notNull(),
+    implementationDate: text("implementation_date").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.routeId, table.program, table.implementationDate] })],
+);
+
+export const localAceViolationSummary = sqliteTable(
+  "local_ace_violation_summary",
+  {
+    month: text("month").notNull(),
+    routeId: text("route_id").notNull(),
+    violationType: text("violation_type").notNull(),
+    violationStatus: text("violation_status").notNull(),
+    violationCount: integer("violation_count").notNull(),
+  },
+  (table) => [
+    primaryKey({
+      columns: [table.month, table.routeId, table.violationType, table.violationStatus],
+    }),
+  ],
+);
+
 export const localRouteEquityContext = sqliteTable(
   "local_route_equity_context",
   {

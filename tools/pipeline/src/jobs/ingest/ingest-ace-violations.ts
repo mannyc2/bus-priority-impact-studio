@@ -1,9 +1,12 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
+import { replaceAceViolationSummaries } from "@bp/db/local";
 import type { SocrataFetch, SocrataRow, SocrataRowsQuery } from "@bp/sources";
 import { getSocrataSource, normalizeAceViolationSummaryRows, SocrataClient } from "@bp/sources";
 import { isoMonth, isoMonthStart, nextIsoMonthStart } from "../../lib/dates.js";
 import { writeJson } from "../../lib/json.js";
+import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
+import { fromCliPath } from "../../lib/paths.js";
 import type { SocrataManifestSource } from "../../source-manifest.js";
 import { fromRepoRoot, readSourceManifest } from "../../source-manifest.js";
 
@@ -15,6 +18,7 @@ type AceViolationIngestArgs = {
   month?: number;
   fetchedAt?: Date;
   fetcher?: SocrataFetch;
+  dbPath?: string;
 };
 
 type AceViolationIngestResult = {
@@ -42,6 +46,12 @@ function parseCliArgs(args: string[]): AceViolationIngestArgs {
 
     if (arg === "--month" && value !== undefined) {
       output.month = Number(value);
+      index += 1;
+      continue;
+    }
+
+    if (arg === "--db" && value !== undefined) {
+      output.dbPath = fromCliPath(value);
       index += 1;
       continue;
     }
@@ -78,6 +88,7 @@ export async function ingestAceViolationSummary(
 ): Promise<AceViolationIngestResult> {
   const year = args.year ?? 2026;
   const month = args.month ?? 3;
+  const dbPath = args.dbPath ?? defaultLocalPipelineDbPath();
   const monthKey = isoMonth(year, month);
   const manifest = await readSourceManifest();
   const source = getSocrataSource(manifest, sourceId);
@@ -112,6 +123,16 @@ export async function ingestAceViolationSummary(
     violationCount,
     topRoutes: byRoute.slice(0, 10),
   };
+  const local = await openLocalPipelineDb(dbPath);
+  try {
+    await replaceAceViolationSummaries(
+      local.db,
+      monthKey,
+      rows.map((row) => ({ ...row, month: monthKey })),
+    );
+  } finally {
+    local.sqlite.close();
+  }
 
   await mkdir(rawDir, { recursive: true });
   await mkdir(workingDir, { recursive: true });
