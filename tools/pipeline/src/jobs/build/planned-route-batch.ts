@@ -21,25 +21,6 @@ import { buildRouteSliceArtifacts } from "./route-slice-pipeline.js";
 
 const schemaVersion = 1;
 
-const IsoMonthSchema = z.string().regex(/^\d{4}-\d{2}$/);
-
-const BatchSummarySchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    analysisPeriod: IsoMonthSchema,
-    routes: z.array(
-      z
-        .object({
-          routeId: z.string().min(1),
-          isoMonth: IsoMonthSchema,
-        })
-        .passthrough(),
-    ),
-  })
-  .passthrough();
-
-type ExistingBatchRoute = z.output<typeof BatchSummarySchema>["routes"][number];
-
 type PlannedRouteBatchArgs = {
   year?: number;
   month?: number;
@@ -169,16 +150,6 @@ function parseCliArgs(args: string[]): PlannedRouteBatchArgs {
   return output;
 }
 
-async function readBatchSummaryIfPresent(path: string) {
-  const file = Bun.file(path);
-
-  if (!(await file.exists())) {
-    return null;
-  }
-
-  return BatchSummarySchema.parse(await file.json());
-}
-
 async function readSelectedPlanRoutes(
   path: string,
   month: string,
@@ -207,22 +178,6 @@ function selectedPlanRoutes(planRows: readonly LocalRouteBuildPlan[], limit: num
     .map((row) => z.decode(RouteIdCodec, row.routeId));
 }
 
-function mergeRoutes(
-  existingRoutes: ExistingBatchRoute[],
-  builtRoutes: Awaited<ReturnType<typeof buildRouteSliceArtifacts>>[],
-): ExistingBatchRoute[] {
-  const routeById = new Map<string, ExistingBatchRoute>();
-
-  for (const route of existingRoutes) {
-    routeById.set(route.routeId, route);
-  }
-  for (const route of builtRoutes) {
-    routeById.set(route.routeId, route);
-  }
-
-  return [...routeById.values()];
-}
-
 export async function buildPlannedRouteBatch(
   args: PlannedRouteBatchArgs = {},
   deps: PlannedRouteBatchDeps = defaultDeps,
@@ -232,7 +187,6 @@ export async function buildPlannedRouteBatch(
   const batchDir = fromRepoRoot(join("data/artifacts/route-batches", month));
   const summaryPath = join(batchDir, "batch-summary.json");
   const plannedRouteIds = await readSelectedPlanRoutes(options.dbPath, month, options.limit);
-  const existingBatch = await readBatchSummaryIfPresent(summaryPath);
 
   if (options.refreshSharedSources) {
     await Promise.all([
@@ -256,18 +210,16 @@ export async function buildPlannedRouteBatch(
     );
   }
 
-  const routes = mergeRoutes(existingBatch?.routes ?? [], builtRoutes);
   const summary = {
     schemaVersion,
     analysisPeriod: month,
     generatedAt: new Date().toISOString(),
-    routeCount: routes.length,
+    routeCount: builtRoutes.length,
     generatedFromBuildPlan: {
       selectedRouteCount: plannedRouteIds.length,
       builtRouteIds: builtRoutes.map((route) => route.routeId),
-      previousBatchRouteCount: existingBatch?.routes.length ?? 0,
     },
-    routes,
+    routes: builtRoutes,
   };
 
   await mkdir(batchDir, { recursive: true });
@@ -276,7 +228,7 @@ export async function buildPlannedRouteBatch(
   const comparison = await deps.buildRouteComparison({
     year: options.year,
     month: options.month,
-    limit: routes.length,
+    limit: builtRoutes.length,
     dbPath: options.dbPath,
   });
   await deps.buildRouteReliabilityBaseline({
@@ -287,6 +239,7 @@ export async function buildPlannedRouteBatch(
   await deps.buildRouteInterventionHistory({
     year: options.year,
     month: options.month,
+    dbPath: options.dbPath,
   });
   const audit = await deps.buildRouteBatchAudit({
     year: options.year,
@@ -315,7 +268,7 @@ export async function buildPlannedRouteBatch(
     builtRouteIds: builtRoutes.map((route) => route.routeId),
     selectedRouteCount: plannedRouteIds.length,
     builtRouteCount: builtRoutes.length,
-    totalBatchRouteCount: routes.length,
+    totalBatchRouteCount: builtRoutes.length,
     auditPath: audit.auditPath,
     comparisonPath: comparison.comparisonPath,
     refreshedPlanDbPath: refreshedPlan?.dbPath ?? null,

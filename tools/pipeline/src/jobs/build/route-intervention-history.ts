@@ -1,29 +1,17 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
+import { listRouteBriefSummaries } from "@bp/db/local";
 import * as z from "zod";
 import { routeSliceKey } from "../../lib/artifacts.js";
 import { isoMonth } from "../../lib/dates.js";
 import { writeJson } from "../../lib/json.js";
+import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
+import { fromCliPath } from "../../lib/paths.js";
 import { fromRepoRoot } from "../../source-manifest.js";
 
 const schemaVersion = 1;
 
 const IsoMonthSchema = z.string().regex(/^\d{4}-\d{2}$/);
-
-const BatchSummarySchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    analysisPeriod: IsoMonthSchema,
-    routes: z.array(
-      z
-        .object({
-          routeId: z.string().min(1),
-          isoMonth: IsoMonthSchema,
-        })
-        .passthrough(),
-    ),
-  })
-  .passthrough();
 
 const InterventionOverlaySchema = z
   .object({
@@ -87,6 +75,7 @@ const BusLaneOverlaySchema = z
 type RouteInterventionHistoryArgs = {
   year?: number;
   month?: number;
+  dbPath?: string;
 };
 
 type RouteInterventionHistoryResult = {
@@ -111,6 +100,7 @@ function parseBuildArgs(
   return {
     year: args.year ?? 2026,
     month: args.month ?? 3,
+    dbPath: args.dbPath ?? defaultLocalPipelineDbPath(),
   };
 }
 
@@ -129,6 +119,12 @@ function parseCliArgs(args: string[]): RouteInterventionHistoryArgs {
 
     if (arg === "--month" && value !== undefined) {
       output.month = Number(value);
+      index += 1;
+      continue;
+    }
+
+    if (arg === "--db" && value !== undefined) {
+      output.dbPath = fromCliPath(value);
       index += 1;
       continue;
     }
@@ -196,11 +192,11 @@ export async function buildRouteInterventionHistory(
   const batchDir = fromRepoRoot(join("data/artifacts/route-batches", month));
   const historyPath = join(batchDir, "route-intervention-history.json");
   const summaryPath = join(batchDir, "route-intervention-history-summary.json");
-  const batch = BatchSummarySchema.parse(
-    await Bun.file(join(batchDir, "batch-summary.json")).json(),
-  );
+  const local = await openLocalPipelineDb(options.dbPath);
+  const builtRoutes = await listRouteBriefSummaries(local.db, month);
+  local.sqlite.close();
   const rows = await Promise.all(
-    batch.routes.map(async (route) => {
+    builtRoutes.map(async (route) => {
       const artifactDir = fromRepoRoot(
         join("data/artifacts/route-slices", routeSliceKey(route.routeId, month)),
       );

@@ -1,17 +1,24 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
+import { replaceRouteBriefRows } from "@bp/db/local";
 import { buildRouteInterventionHistory } from "../src/jobs/build/route-intervention-history.js";
+import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
 const isoMonth = "2026-11";
 const batchDir = fromRepoRoot(join("data/artifacts/route-batches", isoMonth));
 const routeDir = fromRepoRoot(join("data/artifacts/route-slices/t1-2026-11"));
+const dbPath = fromRepoRoot(join("data/working/test-route-intervention-history/pipeline.sqlite"));
 
 async function removeFixtureArtifacts(): Promise<void> {
   await Promise.all([
     rm(batchDir, { force: true, recursive: true }),
     rm(routeDir, { force: true, recursive: true }),
+    rm(fromRepoRoot(join("data/working/test-route-intervention-history")), {
+      force: true,
+      recursive: true,
+    }),
   ]);
 }
 
@@ -19,18 +26,30 @@ async function writeFixtureArtifacts(): Promise<void> {
   await removeFixtureArtifacts();
   await mkdir(batchDir, { recursive: true });
   await mkdir(routeDir, { recursive: true });
-  await Bun.write(
-    join(batchDir, "batch-summary.json"),
-    `${JSON.stringify(
-      {
-        schemaVersion: 1,
-        analysisPeriod: isoMonth,
-        routes: [{ routeId: "T1", isoMonth }],
+  const local = await openLocalPipelineDb(dbPath);
+  try {
+    await replaceRouteBriefRows(local.db, {
+      summary: {
+        routeId: "T1",
+        month: isoMonth,
+        routeScore: 40,
+        publicVisible: true,
+        publicVisibilityReason: "included",
+        averageSpeedMph: 8,
+        hotspotCount: 1,
+        totalRidership: 1000,
+        totalTransfers: 100,
+        aceActive: true,
+        aceViolationCount: 42,
+        busLaneMatchedLaneCount: 2,
+        scheduleMatchRate: 1,
       },
-      null,
-      2,
-    )}\n`,
-  );
+      peakWindows: [],
+      slowestWindows: [],
+    });
+  } finally {
+    local.sqlite.close();
+  }
   await Bun.write(
     join(routeDir, "intervention-overlay.json"),
     `${JSON.stringify(
@@ -103,7 +122,7 @@ describe("route intervention history", () => {
   test("builds batch-level ACE and bus-lane timeline coverage", async () => {
     await writeFixtureArtifacts();
 
-    const result = await buildRouteInterventionHistory({ year: 2026, month: 11 });
+    const result = await buildRouteInterventionHistory({ year: 2026, month: 11, dbPath });
     const history = await Bun.file(result.historyPath).json();
     const summary = await Bun.file(result.summaryPath).json();
 

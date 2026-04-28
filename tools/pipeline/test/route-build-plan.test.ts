@@ -1,22 +1,20 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, rm } from "node:fs/promises";
+import { rm } from "node:fs/promises";
 import { join } from "node:path";
-import { listRouteBuildPlan, replaceRouteReadiness } from "@bp/db/local";
+import { listRouteBuildPlan, replaceRouteBriefRows, replaceRouteReadiness } from "@bp/db/local";
 import { buildRouteBuildPlan } from "../src/jobs/build/route-build-plan.js";
 import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
 const isoMonth = "2026-06";
-const batchDir = fromRepoRoot(join("data/artifacts/route-batches", isoMonth));
 const dbPath = fromRepoRoot(join("data/fixtures/route-build-plan/pipeline.sqlite"));
 
 async function removeFixtureArtifacts(): Promise<void> {
-  await Promise.all([rm(batchDir, { force: true, recursive: true }), rm(dbPath, { force: true })]);
+  await rm(dbPath, { force: true });
 }
 
 async function writeFixtureArtifacts(): Promise<void> {
   await removeFixtureArtifacts();
-  await mkdir(batchDir, { recursive: true });
   const local = await openLocalPipelineDb(dbPath);
   await replaceRouteReadiness(local.db, isoMonth, [
     {
@@ -88,20 +86,26 @@ async function writeFixtureArtifacts(): Promise<void> {
       timepointStopCount: 6,
     },
   ]);
+  await replaceRouteBriefRows(local.db, {
+    summary: {
+      routeId: "T1",
+      month: isoMonth,
+      routeScore: 40,
+      publicVisible: true,
+      publicVisibilityReason: "included",
+      averageSpeedMph: 7,
+      hotspotCount: 1,
+      totalRidership: 1000,
+      totalTransfers: 100,
+      aceActive: false,
+      aceViolationCount: 0,
+      busLaneMatchedLaneCount: 0,
+      scheduleMatchRate: 1,
+    },
+    peakWindows: [],
+    slowestWindows: [],
+  });
   local.sqlite.close();
-  await Bun.write(
-    join(batchDir, "batch-summary.json"),
-    `${JSON.stringify(
-      {
-        schemaVersion: 1,
-        analysisPeriod: isoMonth,
-        routeCount: 1,
-        routes: [{ routeId: "T1", isoMonth }],
-      },
-      null,
-      2,
-    )}\n`,
-  );
 }
 
 afterEach(async () => {

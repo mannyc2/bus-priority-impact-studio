@@ -1,33 +1,13 @@
-import { join } from "node:path";
 import {
   type LocalRouteBuildPlan,
   type LocalRouteReadiness,
+  listRouteBriefSummaries,
   listRouteReadiness,
   replaceRouteBuildPlan,
 } from "@bp/db/local";
-import * as z from "zod";
-import { readArtifactIfPresent } from "../../lib/artifact-store.js";
 import { isoMonth } from "../../lib/dates.js";
 import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
-import { fromRepoRoot } from "../../source-manifest.js";
-
-const IsoMonthSchema = z.string().regex(/^\d{4}-\d{2}$/);
-
-const BatchSummarySchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    analysisPeriod: IsoMonthSchema,
-    routes: z.array(
-      z
-        .object({
-          routeId: z.string().min(1),
-          isoMonth: IsoMonthSchema,
-        })
-        .passthrough(),
-    ),
-  })
-  .passthrough();
 
 type RouteBuildPlanArgs = {
   year?: number;
@@ -35,8 +15,6 @@ type RouteBuildPlanArgs = {
   limit?: number;
   dbPath?: string;
 };
-
-type BatchSummary = z.output<typeof BatchSummarySchema>;
 
 type RouteBuildPlanResult = {
   isoMonth: string;
@@ -143,12 +121,11 @@ function planStatusPriority(status: LocalRouteBuildPlan["planStatus"]): number {
 
 function buildPlanRows(input: {
   readiness: readonly LocalRouteReadiness[];
-  batch: BatchSummary | null;
+  alreadyBuiltRouteIds: ReadonlySet<string>;
   limit: number;
 }): LocalRouteBuildPlan[] {
-  const alreadyBuiltRouteIds = new Set(input.batch?.routes.map((route) => route.routeId) ?? []);
   const candidateRows = input.readiness
-    .filter((row) => row.buildEligible && !alreadyBuiltRouteIds.has(row.routeId))
+    .filter((row) => row.buildEligible && !input.alreadyBuiltRouteIds.has(row.routeId))
     .sort(compareCandidates);
   const rankByRouteId = new Map(
     candidateRows.map((row, index) => [row.routeId, index + 1] as const),
@@ -157,7 +134,7 @@ function buildPlanRows(input: {
   return input.readiness
     .map((row) => {
       const candidateRank = rankByRouteId.get(row.routeId) ?? null;
-      const alreadyBuilt = alreadyBuiltRouteIds.has(row.routeId);
+      const alreadyBuilt = input.alreadyBuiltRouteIds.has(row.routeId);
       const selectedForNextBatch =
         candidateRank !== null && candidateRank <= input.limit && !alreadyBuilt;
       const planStatus: LocalRouteBuildPlan["planStatus"] = !row.buildEligible
@@ -221,16 +198,16 @@ export async function buildRouteBuildPlan(
 ): Promise<RouteBuildPlanResult> {
   const options = parseBuildArgs(args);
   const month = isoMonth(options.year, options.month);
-  const batchDir = fromRepoRoot(join("data/artifacts/route-batches", month));
-  const batchSummaryPath = join(batchDir, "batch-summary.json");
   const local = await openLocalPipelineDb(options.dbPath);
 
   try {
-    const batch = await readArtifactIfPresent(batchSummaryPath, BatchSummarySchema);
-    const readiness = await listRouteReadiness(local.db, month);
+    const [readiness, builtRoutes] = await Promise.all([
+      listRouteReadiness(local.db, month),
+      listRouteBriefSummaries(local.db, month),
+    ]);
     const rows = buildPlanRows({
       readiness,
-      batch,
+      alreadyBuiltRouteIds: new Set(builtRoutes.map((route) => route.routeId)),
       limit: options.limit,
     });
     const selectedRows = rows.filter((row) => row.selectedForNextBatch);

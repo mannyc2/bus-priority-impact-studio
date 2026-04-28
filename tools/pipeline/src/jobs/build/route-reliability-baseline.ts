@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import { replaceRouteReliabilityRows } from "@bp/db/local";
+import { listRouteBriefSummaries, replaceRouteReliabilityRows } from "@bp/db/local";
 import * as z from "zod";
 import { readArtifact, writeArtifact } from "../../lib/artifact-store.js";
 import { routeSliceKey } from "../../lib/artifacts.js";
@@ -13,21 +13,6 @@ const longGapThresholdMinutes = 20;
 const shortHeadwayThresholdMinutes = 3;
 
 const IsoMonthSchema = z.string().regex(/^\d{4}-\d{2}$/);
-
-const BatchSummarySchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    analysisPeriod: IsoMonthSchema,
-    routes: z.array(
-      z
-        .object({
-          routeId: z.string().min(1),
-          isoMonth: IsoMonthSchema,
-        })
-        .passthrough(),
-    ),
-  })
-  .passthrough();
 
 const SchedulesArtifactSchema = z
   .object({
@@ -282,9 +267,11 @@ export async function buildRouteReliabilityBaseline(
   const batchDir = fromRepoRoot(join("data/artifacts/route-batches", month));
   const baselinePath = join(batchDir, "route-reliability-baseline.json");
   const summaryPath = join(batchDir, "route-reliability-baseline-summary.json");
-  const batch = await readArtifact(join(batchDir, "batch-summary.json"), BatchSummarySchema);
+  const readLocal = await openLocalPipelineDb(options.dbPath);
+  const builtRoutes = await listRouteBriefSummaries(readLocal.db, month);
+  readLocal.sqlite.close();
   const rows = await Promise.all(
-    batch.routes.map(async (route) => {
+    builtRoutes.map(async (route) => {
       const schedules = await readArtifact(
         fromRepoRoot(
           join("data/working/route-slices", routeSliceKey(route.routeId, month), "schedules.json"),
@@ -329,9 +316,9 @@ export async function buildRouteReliabilityBaseline(
     }),
     writeArtifact(batchDir, summaryPath, summary),
   ]);
-  const local = await openLocalPipelineDb(options.dbPath);
+  const writeLocal = await openLocalPipelineDb(options.dbPath);
   try {
-    await replaceRouteReliabilityRows(local.db, month, {
+    await replaceRouteReliabilityRows(writeLocal.db, month, {
       baselines: rows.map((row) => ({
         routeId: row.routeId,
         month: row.isoMonth,
@@ -374,7 +361,7 @@ export async function buildRouteReliabilityBaseline(
       ),
     });
   } finally {
-    local.sqlite.close();
+    writeLocal.sqlite.close();
   }
 
   return {

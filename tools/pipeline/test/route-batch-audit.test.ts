@@ -2,7 +2,14 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
 import { mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
-import { replaceRouteBuildPlan, replaceRouteCatalog, replaceRouteReadiness } from "@bp/db/local";
+import {
+  replaceRouteArtifacts,
+  replaceRouteBuildPlan,
+  replaceRouteCatalog,
+  replaceRouteComparisonRanks,
+  replaceRouteReadiness,
+  replaceRouteScorecard,
+} from "@bp/db/local";
 import { buildRouteBatchAudit } from "../src/jobs/build/route-batch-audit.js";
 import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
@@ -39,31 +46,6 @@ async function writeFixtureBatch(): Promise<void> {
   await removeFixtureArtifacts();
   await mkdir(batchDir, { recursive: true });
   await mkdir(routeDir, { recursive: true });
-  await Bun.write(
-    join(batchDir, "batch-summary.json"),
-    `${JSON.stringify(
-      {
-        schemaVersion: 1,
-        analysisPeriod: isoMonth,
-        routeCount: 1,
-        routes: [{ routeId: "T1", isoMonth }],
-      },
-      null,
-      2,
-    )}\n`,
-  );
-  await Bun.write(
-    join(batchDir, "route-comparison.json"),
-    `${JSON.stringify(
-      {
-        schemaVersion: 1,
-        analysisPeriod: isoMonth,
-        rankedRoutes: [],
-      },
-      null,
-      2,
-    )}\n`,
-  );
   const local = await openLocalPipelineDb(dbPath);
 
   await replaceRouteCatalog(local.db, [
@@ -125,6 +107,15 @@ async function writeFixtureBatch(): Promise<void> {
       timepointStopCount: 4,
     },
   ]);
+  await replaceRouteScorecard(local.db, {
+    routeId: "T1",
+    month: isoMonth,
+    routeScore: 0,
+    coverageStatus: "no_observed_speed",
+    averageSpeedMph: 0,
+    hotspotCount: 0,
+  });
+  await replaceRouteComparisonRanks(local.db, isoMonth, []);
   local.sqlite.close();
   const artifacts = await Promise.all(
     artifactNames.map(async (name) => {
@@ -171,6 +162,25 @@ async function writeFixtureBatch(): Promise<void> {
       2,
     )}\n`,
   );
+  const artifactLocal = await openLocalPipelineDb(dbPath);
+  try {
+    await replaceRouteArtifacts(
+      artifactLocal.db,
+      "T1",
+      isoMonth,
+      artifacts.map((artifact) => ({
+        routeId: "T1",
+        month: isoMonth,
+        artifactName: artifact.name,
+        artifactKey: artifact.artifactKey,
+        contentType: artifact.contentType,
+        byteLength: artifact.byteLength,
+        sha256: artifact.sha256,
+      })),
+    );
+  } finally {
+    artifactLocal.sqlite.close();
+  }
 }
 
 afterEach(async () => {

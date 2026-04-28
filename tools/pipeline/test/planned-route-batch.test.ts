@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, rm } from "node:fs/promises";
+import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import { replaceRouteBuildPlan } from "@bp/db/local";
 import { buildPlannedRouteBatch } from "../src/jobs/build/planned-route-batch.js";
@@ -16,7 +16,6 @@ async function removeFixtureArtifacts(): Promise<void> {
 
 async function writeFixtureArtifacts(): Promise<void> {
   await removeFixtureArtifacts();
-  await mkdir(batchDir, { recursive: true });
   const local = await openLocalPipelineDb(dbPath);
 
   await replaceRouteBuildPlan(local.db, isoMonth, [
@@ -88,31 +87,6 @@ async function writeFixtureArtifacts(): Promise<void> {
     },
   ]);
   local.sqlite.close();
-  await Bun.write(
-    join(batchDir, "batch-summary.json"),
-    `${JSON.stringify(
-      {
-        schemaVersion: 1,
-        analysisPeriod: isoMonth,
-        routeCount: 1,
-        routes: [
-          {
-            routeId: "E1",
-            isoMonth,
-            segmentSpeedRows: 10,
-            ridershipWindows: 2,
-            scheduleTimepoints: 3,
-            hotspotCount: 1,
-            routeScore: 50,
-            artifactCount: 9,
-            manifestPath: "/tmp/e1.json",
-          },
-        ],
-      },
-      null,
-      2,
-    )}\n`,
-  );
 }
 
 afterEach(async () => {
@@ -120,7 +94,7 @@ afterEach(async () => {
 });
 
 describe("planned route batch build", () => {
-  test("builds selected plan routes and merges them into the existing batch summary", async () => {
+  test("builds selected plan routes and writes the current batch summary", async () => {
     await writeFixtureArtifacts();
     const calls: string[] = [];
     const deps = {
@@ -238,17 +212,16 @@ describe("planned route batch build", () => {
         isoMonth,
         builtRouteIds: ["T1"],
         builtRouteCount: 1,
-        totalBatchRouteCount: 2,
+        totalBatchRouteCount: 1,
         auditPath: join(batchDir, "route-batch-audit.json"),
         d1SeedPath: "/tmp/seed.sql",
       }),
     );
-    expect(summary.routes.map((route: { routeId: string }) => route.routeId)).toEqual(["E1", "T1"]);
+    expect(summary.routes.map((route: { routeId: string }) => route.routeId)).toEqual(["T1"]);
     expect(summary.generatedFromBuildPlan).toEqual(
       expect.objectContaining({
         selectedRouteCount: 1,
         builtRouteIds: ["T1"],
-        previousBatchRouteCount: 1,
       }),
     );
     expect(calls).toEqual(
@@ -257,7 +230,7 @@ describe("planned route batch build", () => {
         "shared:ace-violations",
         "shared:bus-lanes",
         "build:T1",
-        "comparison:2",
+        "comparison:1",
         "reliability",
         "intervention-history",
         "audit",

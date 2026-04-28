@@ -4,12 +4,13 @@ import { join } from "node:path";
 import { classifyPublicRouteVisibility, type PublicRouteVisibilityReason } from "@bp/analytics";
 import {
   type LocalRouteReadinessStatus,
+  listRouteArtifacts,
   listRouteBuildPlan,
   listRouteCatalog,
+  listRouteComparisonRanks,
+  listRouteScorecards,
   replaceRouteBatch,
 } from "@bp/db/local";
-import * as z from "zod";
-import { routeSliceKey } from "../../lib/artifacts.js";
 import { isoMonth } from "../../lib/dates.js";
 import { writeJson } from "../../lib/json.js";
 import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
@@ -29,61 +30,6 @@ const artifactNames = [
   "route-scorecard.json",
   "route-brief-input.json",
 ] as const;
-
-const IsoMonthSchema = z.string().regex(/^\d{4}-\d{2}$/);
-
-const BatchSummarySchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    analysisPeriod: IsoMonthSchema,
-    routes: z.array(
-      z
-        .object({
-          routeId: z.string().min(1),
-          isoMonth: IsoMonthSchema,
-        })
-        .passthrough(),
-    ),
-  })
-  .passthrough();
-
-const ArtifactManifestSchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    routeId: z.string().min(1),
-    isoMonth: IsoMonthSchema,
-    artifacts: z.array(
-      z
-        .object({
-          name: z.string().min(1),
-          path: z.string().min(1).optional(),
-          artifactKey: z.string().min(1),
-          contentType: z.string().min(1),
-          byteLength: z.number().int().nonnegative(),
-          sha256: z.string().regex(/^[a-f0-9]{64}$/),
-        })
-        .passthrough(),
-    ),
-  })
-  .passthrough();
-
-const RouteComparisonSchema = z
-  .object({
-    rankedRoutes: z.array(
-      z
-        .object({
-          routeId: z.string().min(1),
-        })
-        .passthrough(),
-    ),
-  })
-  .passthrough();
-
-const RouteScorecardSchema = z
-  .object({
-    coverageStatus: z.enum(["full", "no_observed_speed"]),
-  })
-  .passthrough();
 
 type RouteBatchAuditArgs = {
   year?: number;
@@ -175,14 +121,21 @@ async function readLocalAuditRows(path: string, month: string) {
   const local = await openLocalPipelineDb(path);
 
   try {
-    const [routeCatalog, routeBuildPlan] = await Promise.all([
-      listRouteCatalog(local.db),
-      listRouteBuildPlan(local.db, month),
-    ]);
+    const [routeCatalog, routeBuildPlan, routeArtifacts, comparisonRanks, scorecards] =
+      await Promise.all([
+        listRouteCatalog(local.db),
+        listRouteBuildPlan(local.db, month),
+        listRouteArtifacts(local.db, month),
+        listRouteComparisonRanks(local.db, month),
+        listRouteScorecards(local.db, month),
+      ]);
 
     return {
       routeCatalog,
       routeBuildPlan,
+      routeArtifacts,
+      comparisonRanks,
+      scorecards,
     };
   } finally {
     local.sqlite.close();
@@ -198,49 +151,20 @@ async function fileDigest(path: string): Promise<{ byteLength: number; sha256: s
   };
 }
 
-async function readJsonIfPresent<TSchema extends z.ZodType>(
-  path: string,
-  schema: TSchema,
-): Promise<z.output<TSchema> | null> {
-  const file = Bun.file(path);
-
-  if (!(await file.exists())) {
-    return null;
-  }
-
-  try {
-    return schema.parse(await file.json());
-  } catch {
-    return null;
-  }
-}
-
 async function auditRoute(input: {
   routeId: string;
   month: string;
-  routeDir: string;
+  artifacts: readonly {
+    artifactName: string;
+    artifactKey: string;
+    byteLength: number;
+    sha256: string;
+  }[];
 }): Promise<RouteBatchAuditRow> {
-  const manifestPath = join(input.routeDir, "artifact-manifest.json");
   const issues: string[] = [];
-  const manifestFile = Bun.file(manifestPath);
-
-  if (!(await manifestFile.exists())) {
-    return {
-      routeId: input.routeId,
-      isoMonth: input.month,
-      status: "fail",
-      expectedArtifactCount: artifactNames.length,
-      verifiedArtifactCount: 0,
-      missingArtifactCount: artifactNames.length,
-      hashMismatchCount: 0,
-      byteLengthMismatchCount: 0,
-      totalByteLength: 0,
-      issues: ["missing_manifest"],
-    };
-  }
-
-  const manifest = ArtifactManifestSchema.parse(await manifestFile.json());
-  const artifactsByName = new Map(manifest.artifacts.map((artifact) => [artifact.name, artifact]));
+  const artifactsByName = new Map(
+    input.artifacts.map((artifact) => [artifact.artifactName, artifact]),
+  );
   let verifiedArtifactCount = 0;
   let missingArtifactCount = 0;
   let hashMismatchCount = 0;
@@ -256,7 +180,7 @@ async function auditRoute(input: {
       continue;
     }
 
-    const path = artifact.path ?? join(input.routeDir, name);
+    const path = fromRepoRoot(join("data/artifacts", artifact.artifactKey));
     const file = Bun.file(path);
 
     if (!(await file.exists())) {
@@ -277,13 +201,6 @@ async function auditRoute(input: {
       hashMismatchCount += 1;
       issues.push(`sha256_mismatch:${name}`);
     }
-  }
-
-  if (manifest.routeId !== input.routeId) {
-    issues.push(`route_id_mismatch:${manifest.routeId}`);
-  }
-  if (manifest.isoMonth !== input.month) {
-    issues.push(`month_mismatch:${manifest.isoMonth}`);
   }
 
   return {
@@ -329,66 +246,49 @@ export async function buildRouteBatchAudit(
   const month = isoMonth(options.year, options.month);
   const batchDir = options.batchDir;
   const auditPath = join(batchDir, "route-batch-audit.json");
-  const comparisonPath = join(batchDir, "route-comparison.json");
-  const batch = BatchSummarySchema.parse(
-    await Bun.file(join(batchDir, "batch-summary.json")).json(),
-  );
-  const [{ routeCatalog, routeBuildPlan }, comparison] = await Promise.all([
-    readLocalAuditRows(options.dbPath, month),
-    readJsonIfPresent(comparisonPath, RouteComparisonSchema),
-  ]);
+  const { routeCatalog, routeBuildPlan, routeArtifacts, comparisonRanks, scorecards } =
+    await readLocalAuditRows(options.dbPath, month);
+  const artifactsByRoute = new Map<string, typeof routeArtifacts>();
+  for (const artifact of routeArtifacts) {
+    artifactsByRoute.set(artifact.routeId, [
+      ...(artifactsByRoute.get(artifact.routeId) ?? []),
+      artifact,
+    ]);
+  }
   const rows = await Promise.all(
-    batch.routes.map((route) =>
+    [...artifactsByRoute.entries()].map(([routeId, artifacts]) =>
       auditRoute({
-        routeId: route.routeId,
+        routeId,
         month,
-        routeDir: fromRepoRoot(
-          join("data/artifacts/route-slices", routeSliceKey(route.routeId, month)),
-        ),
+        artifacts,
       }),
     ),
   );
   const issues = summarizeIssues(rows);
   const catalogByRouteId = new Map(routeCatalog.map((row) => [row.routeId, row]));
   const buildPlanByRouteId = new Map(routeBuildPlan.map((row) => [row.routeId, row]));
-  const rankedRouteIds = new Set(comparison?.rankedRoutes.map((row) => row.routeId) ?? []);
-  const coverageRows = (
-    await Promise.all(
-      batch.routes.map(async (route) => {
-        const routeDir = fromRepoRoot(
-          join("data/artifacts/route-slices", routeSliceKey(route.routeId, month)),
-        );
-        const scorecard = await readJsonIfPresent(
-          join(routeDir, "route-scorecard.json"),
-          RouteScorecardSchema,
-        );
+  const rankedRouteIds = new Set(comparisonRanks.map((row) => row.routeId));
+  const coverageRows = scorecards.map((scorecard) => {
+    const catalogRow = catalogByRouteId.get(scorecard.routeId);
+    const buildPlanRow = buildPlanByRouteId.get(scorecard.routeId);
+    const visibility = classifyPublicRouteVisibility({
+      routeId: scorecard.routeId,
+      routeLongName: catalogRow?.routeLongName ?? null,
+      routeTypes: catalogRow?.routeTypes ?? [],
+      shapeCount: catalogRow?.shapeCount ?? 0,
+      coverageStatus: scorecard.coverageStatus,
+    });
 
-        if (scorecard === null) {
-          return null;
-        }
-
-        const catalogRow = catalogByRouteId.get(route.routeId);
-        const buildPlanRow = buildPlanByRouteId.get(route.routeId);
-        const visibility = classifyPublicRouteVisibility({
-          routeId: route.routeId,
-          routeLongName: catalogRow?.routeLongName ?? null,
-          routeTypes: catalogRow?.routeTypes ?? [],
-          shapeCount: catalogRow?.shapeCount ?? 0,
-          coverageStatus: scorecard.coverageStatus,
-        });
-
-        return {
-          routeId: route.routeId,
-          coverageStatus: scorecard.coverageStatus,
-          comparisonIncluded: rankedRouteIds.has(route.routeId),
-          publicVisible: visibility.publicVisible,
-          publicVisibilityReason: visibility.reason,
-          readinessStatus: buildPlanRow?.readinessStatus ?? null,
-          missingInputs: buildPlanRow?.missingInputs ?? [],
-        } satisfies RouteCoverageAuditRow;
-      }),
-    )
-  ).filter((row): row is RouteCoverageAuditRow => row !== null);
+    return {
+      routeId: scorecard.routeId,
+      coverageStatus: scorecard.coverageStatus,
+      comparisonIncluded: rankedRouteIds.has(scorecard.routeId),
+      publicVisible: visibility.publicVisible,
+      publicVisibilityReason: visibility.reason,
+      readinessStatus: buildPlanRow?.readinessStatus ?? null,
+      missingInputs: buildPlanRow?.missingInputs ?? [],
+    } satisfies RouteCoverageAuditRow;
+  });
   const summary = {
     schemaVersion,
     analysisPeriod: month,
