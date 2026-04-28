@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { replaceAceViolationSummaries } from "@bp/db/local";
 import type { SocrataFetch, SocrataRow, SocrataRowsQuery } from "@bp/sources";
 import { getSocrataSource, normalizeAceViolationSummaryRows, SocrataClient } from "@bp/sources";
+import { dbOption, monthOption, parseCliOptions, yearOption } from "../../lib/cli-args.js";
 import { isoMonth, isoMonthStart, nextIsoMonthStart } from "../../lib/dates.js";
 import { writeJson } from "../../lib/json.js";
 import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
@@ -30,34 +31,11 @@ type AceViolationIngestResult = {
 };
 
 function parseCliArgs(args: string[]): AceViolationIngestArgs {
-  const output: AceViolationIngestArgs = {};
-
-  for (let index = 0; index < args.length; index += 1) {
-    const arg = args[index];
-    const value = args[index + 1];
-
-    if (arg === "--year" && value !== undefined) {
-      output.year = Number(value);
-      index += 1;
-      continue;
-    }
-
-    if (arg === "--month" && value !== undefined) {
-      output.month = Number(value);
-      index += 1;
-      continue;
-    }
-
-    if (arg === "--db" && value !== undefined) {
-      output.dbPath = fromCliPath(value);
-      index += 1;
-      continue;
-    }
-
-    throw new Error(`Unknown or incomplete argument: ${arg ?? ""}`);
-  }
-
-  return output;
+  return parseCliOptions(args, {} as AceViolationIngestArgs, [
+    yearOption(),
+    monthOption(),
+    dbOption(fromCliPath),
+  ]);
 }
 
 async function fetchAceViolationSummaryRows(

@@ -3,6 +3,7 @@ import { RouteIdCodec } from "@bp/domain";
 import type { SocrataFetch, SocrataRowsQuery } from "@bp/sources";
 import { getSocrataSource, SocrataClient, soqlQuote } from "@bp/sources";
 import * as z from "zod";
+import { dbOption, numberOption, parseCliOptions, stringListOption } from "../../lib/cli-args.js";
 import { isoMonth, isoMonthStart, nextIsoMonthStart } from "../../lib/dates.js";
 import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
@@ -64,67 +65,30 @@ function parseArgs(
 }
 
 function parseCliArgs(args: string[]): RidershipBackfillArgs {
-  const output: RidershipBackfillArgs = {};
-
-  for (let index = 0; index < args.length; index += 1) {
-    const arg = args[index];
-    const value = args[index + 1];
-
-    if (arg === "--start-year" && value !== undefined) {
-      output.startYear = Number(value);
-      index += 1;
-      continue;
-    }
-
-    if (arg === "--start-month" && value !== undefined) {
-      output.startMonth = Number(value);
-      index += 1;
-      continue;
-    }
-
-    if (arg === "--end-year" && value !== undefined) {
-      output.endYear = Number(value);
-      index += 1;
-      continue;
-    }
-
-    if (arg === "--end-month" && value !== undefined) {
-      output.endMonth = Number(value);
-      index += 1;
-      continue;
-    }
-
-    if (arg === "--routes" && value !== undefined) {
-      output.routes = value
-        .split(",")
-        .map((route) => route.trim())
-        .filter((route) => route.length > 0);
-      index += 1;
-      continue;
-    }
-
-    if (arg === "--limit" && value !== undefined) {
-      output.limit = Number(value);
-      index += 1;
-      continue;
-    }
-
-    if (arg === "--concurrency" && value !== undefined) {
-      output.concurrency = Number(value);
-      index += 1;
-      continue;
-    }
-
-    if (arg === "--db" && value !== undefined) {
-      output.dbPath = fromCliPath(value);
-      index += 1;
-      continue;
-    }
-
-    throw new Error(`Unknown or incomplete argument: ${arg ?? ""}`);
-  }
-
-  return output;
+  return parseCliOptions(args, {} as RidershipBackfillArgs, [
+    numberOption(["--start-year"], (output, value) => {
+      output.startYear = value;
+    }),
+    numberOption(["--start-month"], (output, value) => {
+      output.startMonth = value;
+    }),
+    numberOption(["--end-year"], (output, value) => {
+      output.endYear = value;
+    }),
+    numberOption(["--end-month"], (output, value) => {
+      output.endMonth = value;
+    }),
+    stringListOption(["--routes"], (output, value) => {
+      output.routes = value;
+    }),
+    numberOption(["--limit"], (output, value) => {
+      output.limit = value;
+    }),
+    numberOption(["--concurrency"], (output, value) => {
+      output.concurrency = value;
+    }),
+    dbOption(fromCliPath),
+  ]);
 }
 
 function inRange(row: TrendRow, startMonth: string, endMonth: string): boolean {

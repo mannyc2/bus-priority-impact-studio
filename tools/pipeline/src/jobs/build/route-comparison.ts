@@ -3,6 +3,13 @@ import {
   listRouteScorecards,
   replaceRouteComparisonRanks,
 } from "@bp/db/local";
+import {
+  dbOption,
+  monthOption,
+  numberOption,
+  parseCliOptions,
+  yearOption,
+} from "../../lib/cli-args.js";
 import { isoMonth } from "../../lib/dates.js";
 import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
@@ -30,40 +37,14 @@ function parseBuildArgs(args: RouteComparisonArgs = {}): Required<RouteCompariso
 }
 
 function parseCliArgs(args: string[]): RouteComparisonArgs {
-  const output: RouteComparisonArgs = {};
-
-  for (let index = 0; index < args.length; index += 1) {
-    const arg = args[index];
-    const value = args[index + 1];
-
-    if (arg === "--year" && value !== undefined) {
-      output.year = Number(value);
-      index += 1;
-      continue;
-    }
-
-    if (arg === "--month" && value !== undefined) {
-      output.month = Number(value);
-      index += 1;
-      continue;
-    }
-
-    if (arg === "--limit" && value !== undefined) {
-      output.limit = Number(value);
-      index += 1;
-      continue;
-    }
-
-    if (arg === "--db" && value !== undefined) {
-      output.dbPath = fromCliPath(value);
-      index += 1;
-      continue;
-    }
-
-    throw new Error(`Unknown or incomplete argument: ${arg ?? ""}`);
-  }
-
-  return output;
+  return parseCliOptions(args, {} as RouteComparisonArgs, [
+    yearOption(),
+    monthOption(),
+    numberOption(["--limit"], (output, value) => {
+      output.limit = value;
+    }),
+    dbOption(fromCliPath),
+  ]);
 }
 
 function round(value: number, decimals = 4): number {

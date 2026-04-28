@@ -8,6 +8,7 @@ import {
   normalizeStopRows,
   SocrataClient,
 } from "@bp/sources";
+import { dbOption, parseCliOptions } from "../../lib/cli-args.js";
 import { writeJson } from "../../lib/json.js";
 import { openLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
@@ -128,22 +129,7 @@ function buildCatalog(
 }
 
 function parseCliArgs(args: string[]): RouteCatalogArgs {
-  const output: RouteCatalogArgs = {};
-
-  for (let index = 0; index < args.length; index += 1) {
-    const arg = args[index];
-    const value = args[index + 1];
-
-    if (arg === "--db" && value !== undefined) {
-      output.dbPath = fromCliPath(value);
-      index += 1;
-      continue;
-    }
-
-    throw new Error(`Unknown or incomplete argument: ${arg ?? ""}`);
-  }
-
-  return output;
+  return parseCliOptions(args, {} as RouteCatalogArgs, [dbOption(fromCliPath)]);
 }
 
 export async function ingestRouteCatalog(args: RouteCatalogArgs = {}): Promise<RouteCatalogResult> {

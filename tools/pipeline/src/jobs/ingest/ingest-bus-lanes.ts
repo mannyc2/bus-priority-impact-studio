@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { geometryCoordinates, replaceBusLanes } from "@bp/db/local";
 import type { SocrataFetch, SocrataRow } from "@bp/sources";
 import { getSocrataSource, normalizeBusLaneRows, SocrataClient } from "@bp/sources";
+import { dbOption, parseCliOptions } from "../../lib/cli-args.js";
 import { writeJson } from "../../lib/json.js";
 import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
@@ -71,22 +72,7 @@ export async function ingestBusLanes(args: BusLaneIngestArgs = {}): Promise<BusL
 }
 
 function parseCliArgs(args: string[]): BusLaneIngestArgs {
-  const output: BusLaneIngestArgs = {};
-
-  for (let index = 0; index < args.length; index += 1) {
-    const arg = args[index];
-    const value = args[index + 1];
-
-    if (arg === "--db" && value !== undefined) {
-      output.dbPath = fromCliPath(value);
-      index += 1;
-      continue;
-    }
-
-    throw new Error(`Unknown or incomplete argument: ${arg ?? ""}`);
-  }
-
-  return output;
+  return parseCliOptions(args, {} as BusLaneIngestArgs, [dbOption(fromCliPath)]);
 }
 
 export async function ingestBusLanesFromCli(args: string[]): Promise<BusLaneIngestResult> {

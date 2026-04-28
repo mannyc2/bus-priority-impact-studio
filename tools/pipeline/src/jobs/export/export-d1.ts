@@ -20,6 +20,7 @@ import {
   listRouteReliabilityGapWindows,
   listRouteScorecards,
 } from "@bp/db/local";
+import { dbOption, monthOption, parseCliOptions, yearOption } from "../../lib/cli-args.js";
 import { isoMonth } from "../../lib/dates.js";
 import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
@@ -70,34 +71,11 @@ function parseBuildArgs(args: D1ExportArgs = {}): Required<D1ExportArgs> {
 }
 
 function parseCliArgs(args: string[]): D1ExportArgs {
-  const output: D1ExportArgs = {};
-
-  for (let index = 0; index < args.length; index += 1) {
-    const arg = args[index];
-    const value = args[index + 1];
-
-    if (arg === "--year" && value !== undefined) {
-      output.year = Number(value);
-      index += 1;
-      continue;
-    }
-
-    if (arg === "--month" && value !== undefined) {
-      output.month = Number(value);
-      index += 1;
-      continue;
-    }
-
-    if (arg === "--db" && value !== undefined) {
-      output.dbPath = fromCliPath(value);
-      index += 1;
-      continue;
-    }
-
-    throw new Error(`Unknown or incomplete argument: ${arg ?? ""}`);
-  }
-
-  return output;
+  return parseCliOptions(args, {} as D1ExportArgs, [
+    yearOption(),
+    monthOption(),
+    dbOption(fromCliPath),
+  ]);
 }
 
 async function readLocalD1Inputs(path: string, month: string) {

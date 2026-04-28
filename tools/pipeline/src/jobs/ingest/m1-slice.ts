@@ -17,6 +17,13 @@ import {
 } from "@bp/sources";
 import * as z from "zod";
 import { routeSliceKey } from "../../lib/artifacts.js";
+import {
+  dbOption,
+  monthOption,
+  parseCliOptions,
+  routeOption,
+  yearOption,
+} from "../../lib/cli-args.js";
 import { isoMonth, isoMonthStart, nextIsoMonthStart } from "../../lib/dates.js";
 import { writeJson } from "../../lib/json.js";
 import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
@@ -278,38 +285,10 @@ export async function ingestM1RouteSlice(args: RouteSliceArgs = {}): Promise<Rou
 }
 
 export function parseM1SliceCliArgs(args: string[]): RouteSliceArgs {
-  const output: RouteSliceArgs = {};
-
-  for (let index = 0; index < args.length; index += 1) {
-    const arg = args[index];
-    const value = args[index + 1];
-
-    if (arg === "--route" && value !== undefined) {
-      output.routeId = value;
-      index += 1;
-      continue;
-    }
-
-    if (arg === "--year" && value !== undefined) {
-      output.year = Number(value);
-      index += 1;
-      continue;
-    }
-
-    if (arg === "--month" && value !== undefined) {
-      output.month = Number(value);
-      index += 1;
-      continue;
-    }
-
-    if (arg === "--db" && value !== undefined) {
-      output.dbPath = fromCliPath(value);
-      index += 1;
-      continue;
-    }
-
-    throw new Error(`Unknown or incomplete argument: ${arg ?? ""}`);
-  }
-
-  return output;
+  return parseCliOptions(args, {} as RouteSliceArgs, [
+    routeOption(),
+    yearOption(),
+    monthOption(),
+    dbOption(fromCliPath),
+  ]);
 }

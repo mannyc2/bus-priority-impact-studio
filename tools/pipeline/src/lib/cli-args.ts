@@ -54,6 +54,43 @@ export const monthOption = <T extends { month?: number }>(): CliOption<T> => ({
   },
 });
 
+export const numberOption = <T>(
+  flags: readonly string[],
+  applyNumber: (output: T, value: number) => void,
+): CliOption<T> => ({
+  flags,
+  apply: (output, value) => {
+    applyNumber(output, Number(value));
+  },
+});
+
+export const stringListOption = <T>(
+  flags: readonly string[],
+  applyList: (output: T, value: string[]) => void,
+): CliOption<T> => ({
+  flags,
+  apply: (output, value) => {
+    applyList(
+      output,
+      (value ?? "")
+        .split(",")
+        .map((item) => item.trim())
+        .filter((item) => item.length > 0),
+    );
+  },
+});
+
+export const falseOption = <T>(
+  flags: readonly string[],
+  applyFalse: (output: T) => void,
+): CliOption<T> => ({
+  flags,
+  value: false,
+  apply: (output) => {
+    applyFalse(output);
+  },
+});
+
 export const dbOption = <T extends { dbPath?: string }>(
   fromCliPath: (value: string) => string,
 ): CliOption<T> => ({

@@ -3,6 +3,13 @@ import { RouteIdCodec } from "@bp/domain";
 import type { SocrataFetch, SocrataRow, SocrataRowsQuery } from "@bp/sources";
 import { getSocrataSource, SocrataClient, soqlIn, soqlYearMonthRange } from "@bp/sources";
 import * as z from "zod";
+import {
+  dbOption,
+  falseOption,
+  numberOption,
+  parseCliOptions,
+  stringListOption,
+} from "../../lib/cli-args.js";
 import { isoMonth, isoMonthStart, monthRange, nextIsoMonthStart } from "../../lib/dates.js";
 import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
@@ -87,60 +94,27 @@ function parseArgs(
 }
 
 function parseCliArgs(args: string[]): RouteTrendsArgs {
-  const output: RouteTrendsArgs = {};
-
-  for (let index = 0; index < args.length; index += 1) {
-    const arg = args[index];
-    const value = args[index + 1];
-
-    if (arg === "--start-year" && value !== undefined) {
-      output.startYear = Number(value);
-      index += 1;
-      continue;
-    }
-
-    if (arg === "--start-month" && value !== undefined) {
-      output.startMonth = Number(value);
-      index += 1;
-      continue;
-    }
-
-    if (arg === "--end-year" && value !== undefined) {
-      output.endYear = Number(value);
-      index += 1;
-      continue;
-    }
-
-    if (arg === "--end-month" && value !== undefined) {
-      output.endMonth = Number(value);
-      index += 1;
-      continue;
-    }
-
-    if (arg === "--routes" && value !== undefined) {
-      output.routes = value
-        .split(",")
-        .map((route) => route.trim())
-        .filter((route) => route.length > 0);
-      index += 1;
-      continue;
-    }
-
-    if (arg === "--skip-ridership") {
+  return parseCliOptions(args, {} as RouteTrendsArgs, [
+    numberOption(["--start-year"], (output, value) => {
+      output.startYear = value;
+    }),
+    numberOption(["--start-month"], (output, value) => {
+      output.startMonth = value;
+    }),
+    numberOption(["--end-year"], (output, value) => {
+      output.endYear = value;
+    }),
+    numberOption(["--end-month"], (output, value) => {
+      output.endMonth = value;
+    }),
+    stringListOption(["--routes"], (output, value) => {
+      output.routes = value;
+    }),
+    falseOption(["--skip-ridership"], (output) => {
       output.includeRidership = false;
-      continue;
-    }
-
-    if (arg === "--db" && value !== undefined) {
-      output.dbPath = fromCliPath(value);
-      index += 1;
-      continue;
-    }
-
-    throw new Error(`Unknown or incomplete argument: ${arg ?? ""}`);
-  }
-
-  return output;
+    }),
+    dbOption(fromCliPath),
+  ]);
 }
 
 async function fetchSourceRows(

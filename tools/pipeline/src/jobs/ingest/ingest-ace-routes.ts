@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { replaceAceRoutes } from "@bp/db/local";
 import type { SocrataFetch, SocrataRow } from "@bp/sources";
 import { getSocrataSource, normalizeAceRouteRows, SocrataClient } from "@bp/sources";
+import { dbOption, parseCliOptions } from "../../lib/cli-args.js";
 import { writeJson } from "../../lib/json.js";
 import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
@@ -72,22 +73,7 @@ export async function ingestAceRoutes(
 }
 
 function parseCliArgs(args: string[]): AceRoutesIngestArgs {
-  const output: AceRoutesIngestArgs = {};
-
-  for (let index = 0; index < args.length; index += 1) {
-    const arg = args[index];
-    const value = args[index + 1];
-
-    if (arg === "--db" && value !== undefined) {
-      output.dbPath = fromCliPath(value);
-      index += 1;
-      continue;
-    }
-
-    throw new Error(`Unknown or incomplete argument: ${arg ?? ""}`);
-  }
-
-  return output;
+  return parseCliOptions(args, {} as AceRoutesIngestArgs, [dbOption(fromCliPath)]);
 }
 
 export async function ingestAceRoutesFromCli(args: string[]): Promise<AceRoutesIngestResult> {

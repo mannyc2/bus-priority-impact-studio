@@ -1,5 +1,14 @@
 import { RouteIdCodec } from "@bp/domain";
 import * as z from "zod";
+import {
+  dbOption,
+  falseOption,
+  monthOption,
+  numberOption,
+  parseCliOptions,
+  stringListOption,
+  yearOption,
+} from "../../lib/cli-args.js";
 import { isoMonth } from "../../lib/dates.js";
 import { defaultLocalPipelineDbPath } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
@@ -109,60 +118,23 @@ function parseRouteBatchArgs(args: RouteBatchArgs = {}): Required<RouteBatchArgs
 }
 
 function parseCliArgs(args: string[]): RouteBatchArgs {
-  const output: RouteBatchArgs = {};
-
-  for (let index = 0; index < args.length; index += 1) {
-    const arg = args[index];
-    const value = args[index + 1];
-
-    if ((arg === "--route" || arg === "--routes") && value !== undefined) {
-      output.routes = value
-        .split(",")
-        .map((route) => route.trim())
-        .filter((route) => route.length > 0);
-      index += 1;
-      continue;
-    }
-
-    if (arg === "--year" && value !== undefined) {
-      output.year = Number(value);
-      index += 1;
-      continue;
-    }
-
-    if (arg === "--month" && value !== undefined) {
-      output.month = Number(value);
-      index += 1;
-      continue;
-    }
-
-    if (arg === "--hotspot-limit" && value !== undefined) {
-      output.hotspotLimit = Number(value);
-      index += 1;
-      continue;
-    }
-
-    if (arg === "--top-segments" && value !== undefined) {
-      output.topSegmentLimit = Number(value);
-      index += 1;
-      continue;
-    }
-
-    if (arg === "--no-refresh-shared") {
+  return parseCliOptions(args, {} as RouteBatchArgs, [
+    stringListOption(["--route", "--routes"], (output, value) => {
+      output.routes = value;
+    }),
+    yearOption(),
+    monthOption(),
+    numberOption(["--hotspot-limit"], (output, value) => {
+      output.hotspotLimit = value;
+    }),
+    numberOption(["--top-segments"], (output, value) => {
+      output.topSegmentLimit = value;
+    }),
+    falseOption(["--no-refresh-shared"], (output) => {
       output.refreshSharedSources = false;
-      continue;
-    }
-
-    if (arg === "--db" && value !== undefined) {
-      output.dbPath = fromCliPath(value);
-      index += 1;
-      continue;
-    }
-
-    throw new Error(`Unknown or incomplete argument: ${arg ?? ""}`);
-  }
-
-  return output;
+    }),
+    dbOption(fromCliPath),
+  ]);
 }
 
 export async function buildRouteSliceArtifacts(
