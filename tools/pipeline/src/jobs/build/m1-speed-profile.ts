@@ -1,29 +1,22 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import { NormalizedSegmentSpeedSchema } from "@bp/sources";
-import * as z from "zod";
+import { type LocalRouteSegmentSpeed, listRouteSegmentSpeeds } from "@bp/db/local";
 import { routeSliceKey } from "../../lib/artifacts.js";
 import { isoMonth } from "../../lib/dates.js";
 import { writeJson } from "../../lib/json.js";
+import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
+import { fromCliPath } from "../../lib/paths.js";
 import { fromRepoRoot } from "../../source-manifest.js";
 
 const schemaVersion = 1;
 const slowSpeedThresholdMph = 8;
-
-const SegmentSpeedArtifactSchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    routeId: z.string().min(1),
-    isoMonth: z.string().regex(/^\d{4}-\d{2}$/),
-    rows: z.array(NormalizedSegmentSpeedSchema),
-  })
-  .strict();
 
 type SpeedProfileArgs = {
   routeId?: string;
   year?: number;
   month?: number;
   limit?: number;
+  dbPath?: string;
 };
 
 type SpeedProfileResult = {
@@ -35,7 +28,7 @@ type SpeedProfileResult = {
   slowWindowCount: number;
 };
 
-type SpeedRow = z.output<typeof NormalizedSegmentSpeedSchema>;
+type SpeedRow = LocalRouteSegmentSpeed;
 
 type SpeedAccumulator = {
   observationCount: number;
@@ -46,12 +39,15 @@ type SpeedAccumulator = {
   segmentIds: Set<string>;
 };
 
-function parseBuildArgs(args: SpeedProfileArgs): Required<SpeedProfileArgs> {
+type SpeedProfileOptions = Required<SpeedProfileArgs>;
+
+function parseBuildArgs(args: SpeedProfileArgs): SpeedProfileOptions {
   return {
     routeId: args.routeId ?? "M1",
     year: args.year ?? 2026,
     month: args.month ?? 3,
     limit: args.limit ?? 10,
+    dbPath: args.dbPath ?? defaultLocalPipelineDbPath(),
   };
 }
 
@@ -82,6 +78,12 @@ function parseCliArgs(args: string[]): SpeedProfileArgs {
 
     if (arg === "--limit" && value !== undefined) {
       output.limit = Number(value);
+      index += 1;
+      continue;
+    }
+
+    if (arg === "--db" && value !== undefined) {
+      output.dbPath = fromCliPath(value);
       index += 1;
       continue;
     }
@@ -169,17 +171,16 @@ export async function buildM1SpeedProfile(
   const options = parseBuildArgs(args);
   const month = isoMonth(options.year, options.month);
   const key = routeSliceKey(options.routeId, month);
-  const workingDir = fromRepoRoot(join("data/working/route-slices", key));
   const artifactDir = fromRepoRoot(join("data/artifacts/route-slices", key));
   const profilePath = join(artifactDir, "speed-profile.json");
-  const speeds = SegmentSpeedArtifactSchema.parse(
-    await Bun.file(join(workingDir, "segment-speeds.json")).json(),
-  );
+  const local = await openLocalPipelineDb(options.dbPath);
+  const rows = await listRouteSegmentSpeeds(local.db, options.routeId, month);
+  local.sqlite.close();
   const directionGroups = new Map<string, SpeedAccumulator>();
   const daypartGroups = new Map<string, SpeedAccumulator>();
   const dayHourGroups = new Map<string, SpeedAccumulator>();
 
-  for (const row of speeds.rows) {
+  for (const row of rows) {
     addToGroup(directionGroups, row.direction, row);
     addToGroup(daypartGroups, `${row.direction}:${daypart(row.hourOfDay)}`, row);
     addToGroup(dayHourGroups, `${row.dayOfWeek}:${row.hourOfDay}`, row);
@@ -225,11 +226,11 @@ export async function buildM1SpeedProfile(
     .slice(0, options.limit);
   const profile = {
     schemaVersion,
-    routeId: speeds.routeId,
-    analysisPeriod: speeds.isoMonth,
+    routeId: options.routeId,
+    analysisPeriod: month,
     generatedAt: new Date().toISOString(),
     slowSpeedThresholdMph,
-    observationCount: speeds.rows.length,
+    observationCount: rows.length,
     directionProfiles,
     daypartProfiles,
     slowestDayHourWindows,
@@ -243,8 +244,8 @@ export async function buildM1SpeedProfile(
   await writeJson(profilePath, profile);
 
   return {
-    routeId: speeds.routeId,
-    isoMonth: speeds.isoMonth,
+    routeId: options.routeId,
+    isoMonth: month,
     profilePath,
     directionCount: directionProfiles.length,
     daypartCount: daypartProfiles.length,

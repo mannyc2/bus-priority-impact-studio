@@ -1,5 +1,6 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
+import { replaceRouteHourlyRidership, replaceRouteSegmentSpeeds } from "@bp/db/local";
 import { RouteIdCodec } from "@bp/domain";
 import type { SocrataFetch, SocrataRow, SocrataRowsQuery } from "@bp/sources";
 import {
@@ -14,6 +15,8 @@ import * as z from "zod";
 import { routeSliceKey } from "../../lib/artifacts.js";
 import { isoMonth, isoMonthStart, nextIsoMonthStart } from "../../lib/dates.js";
 import { writeJson } from "../../lib/json.js";
+import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
+import { fromCliPath } from "../../lib/paths.js";
 import type { SocrataManifestSource } from "../../source-manifest.js";
 import { fromRepoRoot, readSourceManifest } from "../../source-manifest.js";
 
@@ -34,6 +37,7 @@ type RouteSliceArgs = {
   month?: number;
   fetchedAt?: Date;
   fetcher?: SocrataFetch;
+  dbPath?: string;
 };
 
 type RouteSliceOptions = {
@@ -42,6 +46,7 @@ type RouteSliceOptions = {
   month: number;
   fetchedAt: Date;
   fetcher?: SocrataFetch;
+  dbPath: string;
 };
 
 type RawSlicePayload = {
@@ -99,6 +104,7 @@ function normalizeOptions(args: RouteSliceArgs = {}): RouteSliceOptions {
     year: assertYear(args.year ?? defaultYear),
     month: assertMonth(args.month ?? defaultMonth),
     fetchedAt: args.fetchedAt ?? new Date(),
+    dbPath: args.dbPath ?? defaultLocalPipelineDbPath(),
   };
 
   if (args.fetcher !== undefined) {
@@ -231,6 +237,13 @@ export async function ingestM1RouteSlice(args: RouteSliceArgs = {}): Promise<Rou
       totalTransfers,
     },
   };
+  const local = await openLocalPipelineDb(options.dbPath);
+  try {
+    await replaceRouteSegmentSpeeds(local.db, options.routeId, summary.isoMonth, segmentSpeeds);
+    await replaceRouteHourlyRidership(local.db, options.routeId, summary.isoMonth, ridership);
+  } finally {
+    local.sqlite.close();
+  }
 
   await Promise.all([
     writeJson(
@@ -302,6 +315,12 @@ export function parseM1SliceCliArgs(args: string[]): RouteSliceArgs {
 
     if (arg === "--month" && value !== undefined) {
       output.month = Number(value);
+      index += 1;
+      continue;
+    }
+
+    if (arg === "--db" && value !== undefined) {
+      output.dbPath = fromCliPath(value);
       index += 1;
       continue;
     }

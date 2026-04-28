@@ -2,40 +2,23 @@ import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import type { SegmentSpeedObservation } from "@bp/analytics";
 import { detectSegmentHotspots } from "@bp/analytics";
-import { NormalizedHourlyRidershipSchema, NormalizedSegmentSpeedSchema } from "@bp/sources";
-import * as z from "zod";
+import type { LocalRouteHourlyRidership } from "@bp/db/local";
+import { listRouteHourlyRidership, listRouteSegmentSpeeds } from "@bp/db/local";
 import { routeSliceKey } from "../../lib/artifacts.js";
 import { isoMonth } from "../../lib/dates.js";
 import { writeJson } from "../../lib/json.js";
+import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
+import { fromCliPath } from "../../lib/paths.js";
 import { fromRepoRoot } from "../../source-manifest.js";
 
 const schemaVersion = 1;
-
-const SegmentSpeedArtifactSchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    routeId: z.string().min(1),
-    isoMonth: z.string().regex(/^\d{4}-\d{2}$/),
-    rows: z.array(NormalizedSegmentSpeedSchema),
-  })
-  .strict();
-
-const HourlyRidershipArtifactSchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    routeId: z.string().min(1),
-    isoMonth: z.string().regex(/^\d{4}-\d{2}$/),
-    rows: z.array(NormalizedHourlyRidershipSchema),
-  })
-  .strict();
-
-type HourlyRidershipRow = z.output<typeof NormalizedHourlyRidershipSchema>;
 
 type HotspotBuildArgs = {
   routeId?: string;
   year?: number;
   month?: number;
   limit?: number;
+  dbPath?: string;
 };
 
 type HotspotBuildResult = {
@@ -48,12 +31,15 @@ type HotspotBuildResult = {
   topRiderImpactScore?: number;
 };
 
-function parseBuildArgs(args: HotspotBuildArgs): Required<HotspotBuildArgs> {
+type HotspotBuildOptions = Required<HotspotBuildArgs>;
+
+function parseBuildArgs(args: HotspotBuildArgs): HotspotBuildOptions {
   return {
     routeId: args.routeId ?? "M1",
     year: args.year ?? 2026,
     month: args.month ?? 3,
     limit: args.limit ?? 10,
+    dbPath: args.dbPath ?? defaultLocalPipelineDbPath(),
   };
 }
 
@@ -88,6 +74,12 @@ function parseCliArgs(args: string[]): HotspotBuildArgs {
       continue;
     }
 
+    if (arg === "--db" && value !== undefined) {
+      output.dbPath = fromCliPath(value);
+      index += 1;
+      continue;
+    }
+
     throw new Error(`Unknown or incomplete argument: ${arg ?? ""}`);
   }
 
@@ -100,7 +92,7 @@ function ridershipKey(dayOfWeek: string, hourOfDay: number): string {
 
 function addRidershipToObservations(
   rows: SegmentSpeedObservation[],
-  ridershipRows: HourlyRidershipRow[],
+  ridershipRows: LocalRouteHourlyRidership[],
 ): SegmentSpeedObservation[] {
   const ridershipByWindow = new Map(
     ridershipRows.map((row) => [ridershipKey(row.dayOfWeek, row.hourOfDay), row]),
@@ -124,33 +116,29 @@ function addRidershipToObservations(
   });
 }
 
-async function readRidershipRows(path: string): Promise<HourlyRidershipRow[]> {
-  if (!(await Bun.file(path).exists())) {
-    return [];
-  }
-
-  return HourlyRidershipArtifactSchema.parse(await Bun.file(path).json()).rows;
-}
-
 export async function buildM1Hotspots(args: HotspotBuildArgs = {}): Promise<HotspotBuildResult> {
   const options = parseBuildArgs(args);
   const month = isoMonth(options.year, options.month);
   const key = routeSliceKey(options.routeId, month);
-  const inputPath = fromRepoRoot(join("data/working/route-slices", key, "segment-speeds.json"));
-  const ridershipPath = fromRepoRoot(join("data/working/route-slices", key, "ridership.json"));
+  const inputSource = `local-db://route-slices/${key}/segment-speeds`;
+  const ridershipSource = `local-db://route-slices/${key}/ridership`;
   const artifactDir = fromRepoRoot(join("data/artifacts/route-slices", key));
   const artifactPath = join(artifactDir, "hotspots.json");
   const summaryPath = join(artifactDir, "summary.json");
-  const input = SegmentSpeedArtifactSchema.parse(await Bun.file(inputPath).json());
-  const ridershipRows = await readRidershipRows(ridershipPath);
-  const observations = addRidershipToObservations(input.rows, ridershipRows);
+  const local = await openLocalPipelineDb(options.dbPath);
+  const [speedRows, ridershipRows] = await Promise.all([
+    listRouteSegmentSpeeds(local.db, options.routeId, month),
+    listRouteHourlyRidership(local.db, options.routeId, month),
+  ]);
+  local.sqlite.close();
+  const observations = addRidershipToObservations(speedRows, ridershipRows);
   if (observations.length === 0) {
     const generatedAt = new Date().toISOString();
     const artifact = {
       schemaVersion,
       generatedAt,
-      inputPath,
-      ridershipPath: ridershipRows.length > 0 ? ridershipPath : null,
+      inputSource,
+      ridershipSource: ridershipRows.length > 0 ? ridershipSource : null,
       method: {
         targetSpeedMph: 8,
         slowSpeedThresholdMph: 8,
@@ -162,8 +150,8 @@ export async function buildM1Hotspots(args: HotspotBuildArgs = {}): Promise<Hots
           "Ridership is route-level hourly exposure joined by day-of-week and hour; it is not segment-level load.",
       },
       result: {
-        routeId: input.routeId,
-        isoMonth: input.isoMonth,
+        routeId: options.routeId,
+        isoMonth: month,
         targetSpeedMph: 8,
         slowSpeedThresholdMph: 8,
         routeWeightedAverageSpeedMph: 0,
@@ -178,8 +166,8 @@ export async function buildM1Hotspots(args: HotspotBuildArgs = {}): Promise<Hots
     };
     const summary = {
       schemaVersion,
-      routeId: input.routeId,
-      isoMonth: input.isoMonth,
+      routeId: options.routeId,
+      isoMonth: month,
       generatedAt,
       routeWeightedAverageSpeedMph: 0,
       observationCount: 0,
@@ -199,8 +187,8 @@ export async function buildM1Hotspots(args: HotspotBuildArgs = {}): Promise<Hots
     return {
       artifactPath,
       summaryPath,
-      routeId: input.routeId,
-      isoMonth: input.isoMonth,
+      routeId: options.routeId,
+      isoMonth: month,
       hotspotCount: 0,
       topHotspotScore: 0,
     };
@@ -211,8 +199,8 @@ export async function buildM1Hotspots(args: HotspotBuildArgs = {}): Promise<Hots
   const artifact = {
     schemaVersion,
     generatedAt: new Date().toISOString(),
-    inputPath,
-    ridershipPath: ridershipRows.length > 0 ? ridershipPath : null,
+    inputSource,
+    ridershipSource: ridershipRows.length > 0 ? ridershipSource : null,
     method: {
       targetSpeedMph: result.targetSpeedMph,
       slowSpeedThresholdMph: result.slowSpeedThresholdMph,

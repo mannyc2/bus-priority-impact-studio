@@ -60,3 +60,13 @@ export {
   replaceRouteMonthCoverage,
   replaceRouteReadiness,
 } from "./repositories/route-network.js";
+export type {
+  LocalRouteHourlyRidership,
+  LocalRouteSegmentSpeed,
+} from "./repositories/route-slice.js";
+export {
+  listRouteHourlyRidership,
+  listRouteSegmentSpeeds,
+  replaceRouteHourlyRidership,
+  replaceRouteSegmentSpeeds,
+} from "./repositories/route-slice.js";

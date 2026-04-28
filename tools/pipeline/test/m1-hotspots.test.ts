@@ -1,7 +1,9 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, rm } from "node:fs/promises";
+import { rm } from "node:fs/promises";
 import { join } from "node:path";
+import { replaceRouteHourlyRidership, replaceRouteSegmentSpeeds } from "@bp/db/local";
 import { buildM1HotspotsFromCli } from "../src/jobs/build/m1-hotspots.js";
+import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
 const routeId = "T1";
@@ -9,6 +11,7 @@ const isoMonth = "2026-03";
 const sliceKey = `${routeId.toLowerCase()}-${isoMonth}`;
 const workingDir = fromRepoRoot(join("data/working/route-slices", sliceKey));
 const artifactDir = fromRepoRoot(join("data/artifacts/route-slices", sliceKey));
+const dbPath = join(workingDir, "pipeline.sqlite");
 
 async function removeFixtureArtifacts(): Promise<void> {
   await Promise.all([
@@ -19,132 +22,74 @@ async function removeFixtureArtifacts(): Promise<void> {
 
 async function writeSegmentSpeedFixture(): Promise<void> {
   await removeFixtureArtifacts();
-  await mkdir(workingDir, { recursive: true });
-  await Bun.write(
-    join(workingDir, "segment-speeds.json"),
-    `${JSON.stringify(
+  const local = await openLocalPipelineDb(dbPath);
+  try {
+    await replaceRouteSegmentSpeeds(local.db, routeId, isoMonth, [
       {
-        schemaVersion: 1,
         routeId,
         isoMonth,
-        rows: [
-          {
-            schemaVersion: 1,
-            routeId,
-            isoMonth,
-            timestamp: "2026-03-01T08:00:00.000",
-            dayOfWeek: "Monday",
-            hourOfDay: 8,
-            direction: "N",
-            borough: "Manhattan",
-            routeType: "Local",
-            stopOrder: 1,
-            timepointStopId: "A",
-            timepointStopName: "A stop",
-            timepointStopLatitude: 40,
-            timepointStopLongitude: -73,
-            nextTimepointStopId: "B",
-            nextTimepointStopName: "B stop",
-            nextTimepointStopLatitude: 40.1,
-            nextTimepointStopLongitude: -73.1,
-            roadDistanceMiles: 1,
-            averageTravelTimeMinutes: 15,
-            averageRoadSpeedMph: 4,
-            busTripCount: 10,
-          },
-          {
-            schemaVersion: 1,
-            routeId,
-            isoMonth,
-            timestamp: "2026-03-01T09:00:00.000",
-            dayOfWeek: "Monday",
-            hourOfDay: 9,
-            direction: "N",
-            borough: "Manhattan",
-            routeType: "Local",
-            stopOrder: 2,
-            timepointStopId: "B",
-            timepointStopName: "B stop",
-            timepointStopLatitude: 40.1,
-            timepointStopLongitude: -73.1,
-            nextTimepointStopId: "C",
-            nextTimepointStopName: "C stop",
-            nextTimepointStopLatitude: 40.2,
-            nextTimepointStopLongitude: -73.2,
-            roadDistanceMiles: 1,
-            averageTravelTimeMinutes: 6,
-            averageRoadSpeedMph: 10,
-            busTripCount: 10,
-          },
-        ],
+        timestamp: "2026-03-01T08:00:00.000",
+        dayOfWeek: "Monday",
+        hourOfDay: 8,
+        direction: "N",
+        borough: "Manhattan",
+        routeType: "Local",
+        stopOrder: 1,
+        timepointStopId: "A",
+        timepointStopName: "A stop",
+        timepointStopLatitude: 40,
+        timepointStopLongitude: -73,
+        nextTimepointStopId: "B",
+        nextTimepointStopName: "B stop",
+        nextTimepointStopLatitude: 40.1,
+        nextTimepointStopLongitude: -73.1,
+        roadDistanceMiles: 1,
+        averageTravelTimeMinutes: 15,
+        averageRoadSpeedMph: 4,
+        busTripCount: 10,
       },
-      null,
-      2,
-    )}\n`,
-  );
-  await Bun.write(
-    join(workingDir, "ridership.json"),
-    `${JSON.stringify(
       {
-        schemaVersion: 1,
         routeId,
         isoMonth,
-        rows: [
-          {
-            schemaVersion: 1,
-            routeId,
-            isoMonth,
-            dayOfWeek: "Monday",
-            hourOfDay: 8,
-            ridership: 100,
-            transfers: 10,
-          },
-          {
-            schemaVersion: 1,
-            routeId,
-            isoMonth,
-            dayOfWeek: "Monday",
-            hourOfDay: 9,
-            ridership: 1000,
-            transfers: 100,
-          },
-        ],
+        timestamp: "2026-03-01T09:00:00.000",
+        dayOfWeek: "Monday",
+        hourOfDay: 9,
+        direction: "N",
+        borough: "Manhattan",
+        routeType: "Local",
+        stopOrder: 2,
+        timepointStopId: "B",
+        timepointStopName: "B stop",
+        timepointStopLatitude: 40.1,
+        timepointStopLongitude: -73.1,
+        nextTimepointStopId: "C",
+        nextTimepointStopName: "C stop",
+        nextTimepointStopLatitude: 40.2,
+        nextTimepointStopLongitude: -73.2,
+        roadDistanceMiles: 1,
+        averageTravelTimeMinutes: 6,
+        averageRoadSpeedMph: 10,
+        busTripCount: 10,
       },
-      null,
-      2,
-    )}\n`,
-  );
+    ]);
+    await replaceRouteHourlyRidership(local.db, routeId, isoMonth, [
+      { routeId, isoMonth, dayOfWeek: "Monday", hourOfDay: 8, ridership: 100, transfers: 10 },
+      { routeId, isoMonth, dayOfWeek: "Monday", hourOfDay: 9, ridership: 1000, transfers: 100 },
+    ]);
+  } finally {
+    local.sqlite.close();
+  }
 }
 
 async function writeEmptySegmentSpeedFixture(): Promise<void> {
   await removeFixtureArtifacts();
-  await mkdir(workingDir, { recursive: true });
-  await Bun.write(
-    join(workingDir, "segment-speeds.json"),
-    `${JSON.stringify(
-      {
-        schemaVersion: 1,
-        routeId,
-        isoMonth,
-        rows: [],
-      },
-      null,
-      2,
-    )}\n`,
-  );
-  await Bun.write(
-    join(workingDir, "ridership.json"),
-    `${JSON.stringify(
-      {
-        schemaVersion: 1,
-        routeId,
-        isoMonth,
-        rows: [],
-      },
-      null,
-      2,
-    )}\n`,
-  );
+  const local = await openLocalPipelineDb(dbPath);
+  try {
+    await replaceRouteSegmentSpeeds(local.db, routeId, isoMonth, []);
+    await replaceRouteHourlyRidership(local.db, routeId, isoMonth, []);
+  } finally {
+    local.sqlite.close();
+  }
 }
 
 afterEach(async () => {
@@ -164,6 +109,8 @@ describe("M1 hotspot artifact build", () => {
       "3",
       "--limit",
       "1",
+      "--db",
+      dbPath,
     ]);
     const summary = await Bun.file(result.summaryPath).json();
 
@@ -206,6 +153,8 @@ describe("M1 hotspot artifact build", () => {
       "2026",
       "--month",
       "3",
+      "--db",
+      dbPath,
     ]);
     const summary = await Bun.file(result.summaryPath).json();
 

@@ -175,6 +175,50 @@ export const localRouteMonthTrend = sqliteTable(
   (table) => [primaryKey({ columns: [table.routeId, table.month] })],
 );
 
+export const localRouteSegmentSpeed = sqliteTable(
+  "local_route_segment_speed",
+  {
+    routeId: text("route_id").notNull(),
+    month: text("month").notNull(),
+    rowRank: integer("row_rank").notNull(),
+    timestamp: text("timestamp").notNull(),
+    dayOfWeek: text("day_of_week").notNull(),
+    hourOfDay: integer("hour_of_day").notNull(),
+    direction: text("direction").notNull(),
+    borough: text("borough").notNull(),
+    routeType: text("route_type").notNull(),
+    stopOrder: integer("stop_order").notNull(),
+    timepointStopId: text("timepoint_stop_id").notNull(),
+    timepointStopName: text("timepoint_stop_name").notNull(),
+    timepointStopLatitude: real("timepoint_stop_latitude").notNull(),
+    timepointStopLongitude: real("timepoint_stop_longitude").notNull(),
+    nextTimepointStopId: text("next_timepoint_stop_id").notNull(),
+    nextTimepointStopName: text("next_timepoint_stop_name").notNull(),
+    nextTimepointStopLatitude: real("next_timepoint_stop_latitude").notNull(),
+    nextTimepointStopLongitude: real("next_timepoint_stop_longitude").notNull(),
+    roadDistanceMiles: real("road_distance_miles").notNull(),
+    averageTravelTimeMinutes: real("average_travel_time_minutes").notNull(),
+    averageRoadSpeedMph: real("average_road_speed_mph").notNull(),
+    busTripCount: integer("bus_trip_count").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.routeId, table.month, table.rowRank] })],
+);
+
+export const localRouteHourlyRidership = sqliteTable(
+  "local_route_hourly_ridership",
+  {
+    routeId: text("route_id").notNull(),
+    month: text("month").notNull(),
+    dayOfWeek: text("day_of_week").notNull(),
+    hourOfDay: integer("hour_of_day").notNull(),
+    ridership: real("ridership").notNull(),
+    transfers: real("transfers").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.routeId, table.month, table.dayOfWeek, table.hourOfDay] }),
+  ],
+);
+
 export const localRouteEquityContext = sqliteTable(
   "local_route_equity_context",
   {

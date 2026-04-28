@@ -1,7 +1,9 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, rm } from "node:fs/promises";
+import { rm } from "node:fs/promises";
 import { join } from "node:path";
+import { replaceRouteSegmentSpeeds } from "@bp/db/local";
 import { buildM1SpeedProfileFromCli } from "../src/jobs/build/m1-speed-profile.js";
+import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
 const routeId = "T1";
@@ -9,10 +11,10 @@ const isoMonth = "2026-03";
 const sliceKey = `${routeId.toLowerCase()}-${isoMonth}`;
 const workingDir = fromRepoRoot(join("data/working/route-slices", sliceKey));
 const artifactDir = fromRepoRoot(join("data/artifacts/route-slices", sliceKey));
+const dbPath = join(workingDir, "pipeline.sqlite");
 
-function speedRow(overrides: Record<string, unknown>) {
+function speedRow(overrides: Record<string, unknown> = {}) {
   return {
-    schemaVersion: 1,
     routeId,
     isoMonth,
     timestamp: "2026-03-02T08:00:00.000",
@@ -47,43 +49,34 @@ async function removeFixtureArtifacts(): Promise<void> {
 
 async function writeFixtureArtifacts(): Promise<void> {
   await removeFixtureArtifacts();
-  await mkdir(workingDir, { recursive: true });
-  await mkdir(artifactDir, { recursive: true });
-  await Bun.write(
-    join(workingDir, "segment-speeds.json"),
-    `${JSON.stringify(
-      {
-        schemaVersion: 1,
-        routeId,
-        isoMonth,
-        rows: [
-          speedRow({ averageRoadSpeedMph: 5, busTripCount: 10 }),
-          speedRow({
-            hourOfDay: 17,
-            direction: "S",
-            stopOrder: 2,
-            timepointStopId: "C",
-            nextTimepointStopId: "D",
-            averageRoadSpeedMph: 10,
-            averageTravelTimeMinutes: 6,
-            busTripCount: 20,
-          }),
-          speedRow({
-            hourOfDay: 16,
-            direction: "S",
-            stopOrder: 3,
-            timepointStopId: "D",
-            nextTimepointStopId: "E",
-            averageRoadSpeedMph: 4,
-            averageTravelTimeMinutes: 14,
-            busTripCount: 5,
-          }),
-        ],
-      },
-      null,
-      2,
-    )}\n`,
-  );
+  const local = await openLocalPipelineDb(dbPath);
+  try {
+    await replaceRouteSegmentSpeeds(local.db, routeId, isoMonth, [
+      speedRow({ averageRoadSpeedMph: 5, busTripCount: 10 }),
+      speedRow({
+        hourOfDay: 17,
+        direction: "S",
+        stopOrder: 2,
+        timepointStopId: "C",
+        nextTimepointStopId: "D",
+        averageRoadSpeedMph: 10,
+        averageTravelTimeMinutes: 6,
+        busTripCount: 20,
+      }),
+      speedRow({
+        hourOfDay: 16,
+        direction: "S",
+        stopOrder: 3,
+        timepointStopId: "D",
+        nextTimepointStopId: "E",
+        averageRoadSpeedMph: 4,
+        averageTravelTimeMinutes: 14,
+        busTripCount: 5,
+      }),
+    ]);
+  } finally {
+    local.sqlite.close();
+  }
 }
 
 afterEach(async () => {
@@ -103,6 +96,8 @@ describe("M1 speed profile build", () => {
       "3",
       "--limit",
       "2",
+      "--db",
+      dbPath,
     ]);
     const profile = await Bun.file(result.profilePath).json();
 

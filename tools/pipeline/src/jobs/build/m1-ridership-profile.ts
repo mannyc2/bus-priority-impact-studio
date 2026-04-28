@@ -1,37 +1,26 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import { NormalizedHourlyRidershipSchema, NormalizedSegmentSpeedSchema } from "@bp/sources";
-import * as z from "zod";
+import {
+  type LocalRouteHourlyRidership,
+  type LocalRouteSegmentSpeed,
+  listRouteHourlyRidership,
+  listRouteSegmentSpeeds,
+} from "@bp/db/local";
 import { routeSliceKey } from "../../lib/artifacts.js";
 import { isoMonth } from "../../lib/dates.js";
 import { writeJson } from "../../lib/json.js";
+import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
+import { fromCliPath } from "../../lib/paths.js";
 import { fromRepoRoot } from "../../source-manifest.js";
 
 const schemaVersion = 1;
-
-const HourlyRidershipArtifactSchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    routeId: z.string().min(1),
-    isoMonth: z.string().regex(/^\d{4}-\d{2}$/),
-    rows: z.array(NormalizedHourlyRidershipSchema),
-  })
-  .strict();
-
-const SegmentSpeedArtifactSchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    routeId: z.string().min(1),
-    isoMonth: z.string().regex(/^\d{4}-\d{2}$/),
-    rows: z.array(NormalizedSegmentSpeedSchema),
-  })
-  .strict();
 
 type RidershipProfileArgs = {
   routeId?: string;
   year?: number;
   month?: number;
   limit?: number;
+  dbPath?: string;
 };
 
 type RidershipProfileResult = {
@@ -42,8 +31,8 @@ type RidershipProfileResult = {
   slowCrowdedWindowCount: number;
 };
 
-type RidershipRow = z.output<typeof NormalizedHourlyRidershipSchema>;
-type SpeedRow = z.output<typeof NormalizedSegmentSpeedSchema>;
+type RidershipRow = LocalRouteHourlyRidership;
+type SpeedRow = LocalRouteSegmentSpeed;
 
 type SpeedWindowSummary = {
   matchedObservationCount: number;
@@ -52,12 +41,15 @@ type SpeedWindowSummary = {
   slowObservationCount: number;
 };
 
-function parseBuildArgs(args: RidershipProfileArgs): Required<RidershipProfileArgs> {
+type RidershipProfileOptions = Required<RidershipProfileArgs>;
+
+function parseBuildArgs(args: RidershipProfileArgs): RidershipProfileOptions {
   return {
     routeId: args.routeId ?? "M1",
     year: args.year ?? 2026,
     month: args.month ?? 3,
     limit: args.limit ?? 10,
+    dbPath: args.dbPath ?? defaultLocalPipelineDbPath(),
   };
 }
 
@@ -88,6 +80,12 @@ function parseCliArgs(args: string[]): RidershipProfileArgs {
 
     if (arg === "--limit" && value !== undefined) {
       output.limit = Number(value);
+      index += 1;
+      continue;
+    }
+
+    if (arg === "--db" && value !== undefined) {
+      output.dbPath = fromCliPath(value);
       index += 1;
       continue;
     }
@@ -169,17 +167,16 @@ export async function buildM1RidershipProfile(
   const options = parseBuildArgs(args);
   const month = isoMonth(options.year, options.month);
   const key = routeSliceKey(options.routeId, month);
-  const workingDir = fromRepoRoot(join("data/working/route-slices", key));
   const artifactDir = fromRepoRoot(join("data/artifacts/route-slices", key));
   const profilePath = join(artifactDir, "ridership-profile.json");
-  const ridership = HourlyRidershipArtifactSchema.parse(
-    await Bun.file(join(workingDir, "ridership.json")).json(),
-  );
-  const speeds = SegmentSpeedArtifactSchema.parse(
-    await Bun.file(join(workingDir, "segment-speeds.json")).json(),
-  );
-  const speedSummaries = summarizeSpeedWindows(speeds.rows);
-  const windowProfiles = ridership.rows.map((row) => buildWindowProfile(row, speedSummaries));
+  const local = await openLocalPipelineDb(options.dbPath);
+  const [ridershipRows, speedRows] = await Promise.all([
+    listRouteHourlyRidership(local.db, options.routeId, month),
+    listRouteSegmentSpeeds(local.db, options.routeId, month),
+  ]);
+  local.sqlite.close();
+  const speedSummaries = summarizeSpeedWindows(speedRows);
+  const windowProfiles = ridershipRows.map((row) => buildWindowProfile(row, speedSummaries));
   const topRidershipWindows = [...windowProfiles]
     .sort((left, right) => right.ridership - left.ridership || left.hourOfDay - right.hourOfDay)
     .slice(0, options.limit);
@@ -197,13 +194,13 @@ export async function buildM1RidershipProfile(
     .slice(0, options.limit);
   const profile = {
     schemaVersion,
-    routeId: ridership.routeId,
-    analysisPeriod: ridership.isoMonth,
+    routeId: options.routeId,
+    analysisPeriod: month,
     generatedAt: new Date().toISOString(),
-    ridershipWindowCount: ridership.rows.length,
+    ridershipWindowCount: ridershipRows.length,
     speedWindowCount: speedSummaries.size,
-    totalRidership: round(ridership.rows.reduce((total, row) => total + row.ridership, 0)),
-    totalTransfers: round(ridership.rows.reduce((total, row) => total + row.transfers, 0)),
+    totalRidership: round(ridershipRows.reduce((total, row) => total + row.ridership, 0)),
+    totalTransfers: round(ridershipRows.reduce((total, row) => total + row.transfers, 0)),
     peakRidershipWindow: topRidershipWindows[0] ?? null,
     topRidershipWindows,
     slowCrowdedWindows,
@@ -217,10 +214,10 @@ export async function buildM1RidershipProfile(
   await writeJson(profilePath, profile);
 
   return {
-    routeId: ridership.routeId,
-    isoMonth: ridership.isoMonth,
+    routeId: options.routeId,
+    isoMonth: month,
     profilePath,
-    ridershipWindowCount: ridership.rows.length,
+    ridershipWindowCount: ridershipRows.length,
     slowCrowdedWindowCount: slowCrowdedWindows.length,
   };
 }

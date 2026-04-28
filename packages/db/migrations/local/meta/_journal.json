@@ -15,6 +15,13 @@
       "when": 1777383029645,
       "tag": "0001_needy_thor_girl",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1777385397572,
+      "tag": "0002_fast_overlord",
+      "breakpoints": true
     }
   ]
 }
