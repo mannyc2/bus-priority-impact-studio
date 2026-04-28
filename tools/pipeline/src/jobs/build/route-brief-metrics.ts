@@ -161,6 +161,7 @@ function speedByWindow(
 export function ridershipProfiles(
   ridershipRows: LocalRouteHourlyRidership[],
   speedRows: LocalRouteSegmentSpeed[],
+  limit = 10,
 ) {
   const speedSummaries = speedByWindow(speedRows);
   const windowProfiles = ridershipRows.map((row) => {
@@ -178,7 +179,7 @@ export function ridershipProfiles(
   });
   const topRidershipWindows = [...windowProfiles]
     .sort((left, right) => right.ridership - left.ridership || left.hourOfDay - right.hourOfDay)
-    .slice(0, 10);
+    .slice(0, limit);
   const slowCrowdedWindows = [...windowProfiles]
     .filter((window) => window.weightedAverageSpeedMph !== null)
     .sort((left, right) => {
@@ -186,7 +187,7 @@ export function ridershipProfiles(
       const rightSlowRiders = right.ridership * (right.slowObservationShare ?? 0);
       return rightSlowRiders - leftSlowRiders || right.ridership - left.ridership;
     })
-    .slice(0, 10);
+    .slice(0, limit);
 
   return {
     ridershipWindowCount: ridershipRows.length,
