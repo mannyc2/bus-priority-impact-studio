@@ -1,23 +1,10 @@
 import { createHash } from "node:crypto";
-import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import { classifyPublicRouteVisibility, type PublicRouteVisibilityReason } from "@bp/analytics";
-import {
-  type LocalRouteReadinessStatus,
-  listRouteArtifacts,
-  listRouteBuildPlan,
-  listRouteCatalog,
-  listRouteComparisonRanks,
-  listRouteScorecards,
-  replaceRouteBatch,
-} from "@bp/db/local";
+import { listRouteArtifacts, replaceRouteBatch } from "@bp/db/local";
 import { isoMonth } from "../../lib/dates.js";
-import { writeJson } from "../../lib/json.js";
 import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
 import { fromRepoRoot } from "../../source-manifest.js";
-
-const schemaVersion = 1;
 
 const artifactNames = [
   "summary.json",
@@ -34,7 +21,6 @@ const artifactNames = [
 type RouteBatchAuditArgs = {
   year?: number;
   month?: number;
-  batchDir?: string;
   dbPath?: string;
 };
 
@@ -53,19 +39,8 @@ type RouteBatchAuditRow = {
   issues: string[];
 };
 
-type RouteCoverageAuditRow = {
-  routeId: string;
-  coverageStatus: "full" | "no_observed_speed";
-  comparisonIncluded: boolean;
-  publicVisible: boolean;
-  publicVisibilityReason: PublicRouteVisibilityReason;
-  readinessStatus: LocalRouteReadinessStatus | null;
-  missingInputs: string[];
-};
-
 type RouteBatchAuditResult = {
   isoMonth: string;
-  auditPath: string;
   routeCount: number;
   status: RouteAuditStatus;
   issueCount: number;
@@ -77,11 +52,6 @@ function parseBuildArgs(args: RouteBatchAuditArgs = {}): Required<RouteBatchAudi
   return {
     year: args.year ?? 2026,
     month: args.month ?? 3,
-    batchDir:
-      args.batchDir ??
-      fromRepoRoot(
-        join("data/artifacts/route-batches", isoMonth(args.year ?? 2026, args.month ?? 3)),
-      ),
     dbPath: args.dbPath ?? defaultLocalPipelineDbPath(),
   };
 }
@@ -121,21 +91,8 @@ async function readLocalAuditRows(path: string, month: string) {
   const local = await openLocalPipelineDb(path);
 
   try {
-    const [routeCatalog, routeBuildPlan, routeArtifacts, comparisonRanks, scorecards] =
-      await Promise.all([
-        listRouteCatalog(local.db),
-        listRouteBuildPlan(local.db, month),
-        listRouteArtifacts(local.db, month),
-        listRouteComparisonRanks(local.db, month),
-        listRouteScorecards(local.db, month),
-      ]);
-
     return {
-      routeCatalog,
-      routeBuildPlan,
-      routeArtifacts,
-      comparisonRanks,
-      scorecards,
+      routeArtifacts: await listRouteArtifacts(local.db, month),
     };
   } finally {
     local.sqlite.close();
@@ -244,10 +201,7 @@ export async function buildRouteBatchAudit(
 ): Promise<RouteBatchAuditResult> {
   const options = parseBuildArgs(args);
   const month = isoMonth(options.year, options.month);
-  const batchDir = options.batchDir;
-  const auditPath = join(batchDir, "route-batch-audit.json");
-  const { routeCatalog, routeBuildPlan, routeArtifacts, comparisonRanks, scorecards } =
-    await readLocalAuditRows(options.dbPath, month);
+  const { routeArtifacts } = await readLocalAuditRows(options.dbPath, month);
   const artifactsByRoute = new Map<string, typeof routeArtifacts>();
   for (const artifact of routeArtifacts) {
     artifactsByRoute.set(artifact.routeId, [
@@ -265,33 +219,7 @@ export async function buildRouteBatchAudit(
     ),
   );
   const issues = summarizeIssues(rows);
-  const catalogByRouteId = new Map(routeCatalog.map((row) => [row.routeId, row]));
-  const buildPlanByRouteId = new Map(routeBuildPlan.map((row) => [row.routeId, row]));
-  const rankedRouteIds = new Set(comparisonRanks.map((row) => row.routeId));
-  const coverageRows = scorecards.map((scorecard) => {
-    const catalogRow = catalogByRouteId.get(scorecard.routeId);
-    const buildPlanRow = buildPlanByRouteId.get(scorecard.routeId);
-    const visibility = classifyPublicRouteVisibility({
-      routeId: scorecard.routeId,
-      routeLongName: catalogRow?.routeLongName ?? null,
-      routeTypes: catalogRow?.routeTypes ?? [],
-      shapeCount: catalogRow?.shapeCount ?? 0,
-      coverageStatus: scorecard.coverageStatus,
-    });
-
-    return {
-      routeId: scorecard.routeId,
-      coverageStatus: scorecard.coverageStatus,
-      comparisonIncluded: rankedRouteIds.has(scorecard.routeId),
-      publicVisible: visibility.publicVisible,
-      publicVisibilityReason: visibility.reason,
-      readinessStatus: buildPlanRow?.readinessStatus ?? null,
-      missingInputs: buildPlanRow?.missingInputs ?? [],
-    } satisfies RouteCoverageAuditRow;
-  });
   const summary = {
-    schemaVersion,
-    analysisPeriod: month,
     generatedAt: new Date().toISOString(),
     status: summarizeStatus(rows),
     routeCount: rows.length,
@@ -303,33 +231,8 @@ export async function buildRouteBatchAudit(
     issueCount: issues.length,
     builtRouteIds: rows.map((row) => row.routeId),
     issues,
-    coverageReport: {
-      routeCount: coverageRows.length,
-      fullObservedRouteCount: coverageRows.filter((row) => row.coverageStatus === "full").length,
-      noObservedSpeedRouteCount: coverageRows.filter(
-        (row) => row.coverageStatus === "no_observed_speed",
-      ).length,
-      comparisonExcludedRouteCount: coverageRows.filter((row) => !row.comparisonIncluded).length,
-      publicHiddenRouteCount: coverageRows.filter((row) => !row.publicVisible).length,
-      missingGeometryRouteCount: coverageRows.filter(
-        (row) => row.readinessStatus === "missing_geometry",
-      ).length,
-      missingScheduleRouteCount: coverageRows.filter((row) =>
-        row.missingInputs.includes("schedules"),
-      ).length,
-      publicHiddenRoutes: coverageRows
-        .filter((row) => !row.publicVisible)
-        .map((row) => ({
-          routeId: row.routeId,
-          reason: row.publicVisibilityReason,
-        })),
-      rows: coverageRows,
-    },
-    rows,
   };
 
-  await mkdir(batchDir, { recursive: true });
-  await writeJson(auditPath, summary);
   const local = await openLocalPipelineDb(options.dbPath);
   try {
     await replaceRouteBatch(local.db, {
@@ -370,7 +273,6 @@ export async function buildRouteBatchAudit(
 
   return {
     isoMonth: month,
-    auditPath,
     routeCount: summary.routeCount,
     status: summary.status,
     issueCount: summary.issueCount,

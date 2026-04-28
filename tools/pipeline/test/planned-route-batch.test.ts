@@ -124,7 +124,6 @@ describe("planned route batch build", () => {
         calls.push("audit");
         return {
           isoMonth,
-          auditPath: join(batchDir, "route-batch-audit.json"),
           routeCount: 2,
           status: "pass",
           issueCount: 0,
@@ -211,7 +210,6 @@ describe("planned route batch build", () => {
         builtRouteIds: ["T1"],
         builtRouteCount: 1,
         totalBatchRouteCount: 1,
-        auditPath: join(batchDir, "route-batch-audit.json"),
         d1SeedPath: "/tmp/seed.sql",
       }),
     );

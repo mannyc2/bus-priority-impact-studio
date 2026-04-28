@@ -33,7 +33,6 @@ type PlannedRouteBatchResult = {
   selectedRouteCount: number;
   builtRouteCount: number;
   totalBatchRouteCount: number;
-  auditPath: string;
   comparisonPath: string | null;
   refreshedPlanDbPath: string | null;
   d1SeedPath: string | null;
@@ -217,7 +216,7 @@ export async function buildPlannedRouteBatch(
     month: options.month,
     dbPath: options.dbPath,
   });
-  const audit = await deps.buildRouteBatchAudit({
+  await deps.buildRouteBatchAudit({
     year: options.year,
     month: options.month,
     dbPath: options.dbPath,
@@ -244,7 +243,6 @@ export async function buildPlannedRouteBatch(
     selectedRouteCount: plannedRouteIds.length,
     builtRouteCount: builtRoutes.length,
     totalBatchRouteCount: builtRoutes.length,
-    auditPath: audit.auditPath,
     comparisonPath: comparison.comparisonPath,
     refreshedPlanDbPath: refreshedPlan?.dbPath ?? null,
     d1SeedPath: d1Export?.seedPath ?? null,

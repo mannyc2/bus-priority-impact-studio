@@ -3,6 +3,8 @@ import { createHash } from "node:crypto";
 import { mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import {
+  getRouteBatchStatus,
+  listRouteBatchIssues,
   replaceRouteArtifacts,
   replaceRouteBuildPlan,
   replaceRouteCatalog,
@@ -15,7 +17,6 @@ import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
 const isoMonth = "2026-08";
-const batchDir = fromRepoRoot(join("data/artifacts/route-batches", isoMonth));
 const routeDir = fromRepoRoot(join("data/artifacts/route-slices/t1-2026-08"));
 const dbPath = fromRepoRoot(join("data/fixtures/route-batch-audit/pipeline.sqlite"));
 const artifactNames = [
@@ -35,16 +36,11 @@ function sha256(value: string): string {
 }
 
 async function removeFixtureArtifacts(): Promise<void> {
-  await Promise.all([
-    rm(batchDir, { force: true, recursive: true }),
-    rm(routeDir, { force: true, recursive: true }),
-    rm(dbPath, { force: true }),
-  ]);
+  await Promise.all([rm(routeDir, { force: true, recursive: true }), rm(dbPath, { force: true })]);
 }
 
 async function writeFixtureBatch(): Promise<void> {
   await removeFixtureArtifacts();
-  await mkdir(batchDir, { recursive: true });
   await mkdir(routeDir, { recursive: true });
   const local = await openLocalPipelineDb(dbPath);
 
@@ -175,8 +171,11 @@ describe("route batch audit", () => {
   test("verifies artifact manifests, byte lengths, and hashes for a batch", async () => {
     await writeFixtureBatch();
 
-    const result = await buildRouteBatchAudit({ year: 2026, month: 8, batchDir, dbPath });
-    const audit = await Bun.file(result.auditPath).json();
+    const result = await buildRouteBatchAudit({ year: 2026, month: 8, dbPath });
+    const local = await openLocalPipelineDb(dbPath);
+    const status = await getRouteBatchStatus(local.db, isoMonth);
+    const issues = await listRouteBatchIssues(local.db, isoMonth);
+    local.sqlite.close();
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -187,46 +186,38 @@ describe("route batch audit", () => {
         artifactCount: artifactNames.length,
       }),
     );
-    expect(audit.rows[0]).toEqual(
+    expect(status).toEqual(
       expect.objectContaining({
-        routeId: "T1",
         status: "pass",
-        verifiedArtifactCount: artifactNames.length,
         missingArtifactCount: 0,
         hashMismatchCount: 0,
+        artifactCount: artifactNames.length,
       }),
     );
-    expect(audit.coverageReport).toEqual(
-      expect.objectContaining({
-        routeCount: 1,
-        noObservedSpeedRouteCount: 1,
-        comparisonExcludedRouteCount: 1,
-        publicHiddenRouteCount: 1,
-        publicHiddenRoutes: [
-          {
-            routeId: "T1",
-            reason: "temporary_shuttle_without_observed_speed",
-          },
-        ],
-      }),
-    );
+    expect(issues).toEqual([]);
   });
 
   test("records missing artifacts as failing audit issues", async () => {
     await writeFixtureBatch();
     await rm(join(routeDir, "hotspots.json"));
 
-    const result = await buildRouteBatchAudit({ year: 2026, month: 8, batchDir, dbPath });
-    const audit = await Bun.file(result.auditPath).json();
+    const result = await buildRouteBatchAudit({ year: 2026, month: 8, dbPath });
+    const local = await openLocalPipelineDb(dbPath);
+    const [status, issues] = await Promise.all([
+      getRouteBatchStatus(local.db, isoMonth),
+      listRouteBatchIssues(local.db, isoMonth),
+    ]);
+    local.sqlite.close();
 
     expect(result.status).toBe("fail");
     expect(result.issueCount).toBe(1);
-    expect(audit.issues).toEqual(["T1:missing_artifact_file:hotspots.json"]);
-    expect(audit.rows[0]).toEqual(
+    expect(status).toEqual(expect.objectContaining({ missingArtifactCount: 1 }));
+    expect(issues).toEqual([
       expect.objectContaining({
-        missingArtifactCount: 1,
-        verifiedArtifactCount: artifactNames.length - 1,
+        routeId: "T1",
+        issueCode: "missing_artifact_file",
+        message: "T1:missing_artifact_file:hotspots.json",
       }),
-    );
+    ]);
   });
 });
