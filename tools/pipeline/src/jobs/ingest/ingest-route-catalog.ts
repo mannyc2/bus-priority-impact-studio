@@ -1,4 +1,3 @@
-import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { replaceRouteCatalog } from "@bp/db/local";
 import type { NormalizedRouteShape, NormalizedStop, SocrataFetch, SocrataRow } from "@bp/sources";
@@ -9,9 +8,9 @@ import {
   SocrataClient,
 } from "@bp/sources";
 import { dbOption, parseCliOptions } from "../../lib/cli-args.js";
-import { writeJson } from "../../lib/json.js";
 import { openLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
+import { writeRawSourceSnapshot } from "../../lib/source-snapshots.js";
 import type { SocrataManifestSource } from "../../source-manifest.js";
 import { fromRepoRoot, readSourceManifest } from "../../source-manifest.js";
 
@@ -159,17 +158,16 @@ export async function ingestRouteCatalog(args: RouteCatalogArgs = {}): Promise<R
     local.sqlite.close();
   }
 
-  await mkdir(rawDir, { recursive: true });
   await Promise.all([
-    writeJson(join(rawDir, "current_bus_routes.json"), {
-      schemaVersion,
+    writeRawSourceSnapshot({
+      path: join(rawDir, "current_bus_routes.json"),
       sourceId: "current_bus_routes",
       fetchedAt,
       query: routeQuery,
       rows: routeRows,
     }),
-    writeJson(join(rawDir, "current_bus_stops.json"), {
-      schemaVersion,
+    writeRawSourceSnapshot({
+      path: join(rawDir, "current_bus_stops.json"),
       sourceId: "current_bus_stops",
       fetchedAt,
       query: stopQuery,

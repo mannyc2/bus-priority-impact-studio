@@ -1,16 +1,14 @@
-import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { geometryCoordinates, replaceBusLanes } from "@bp/db/local";
 import type { SocrataFetch, SocrataRow } from "@bp/sources";
 import { getSocrataSource, normalizeBusLaneRows, SocrataClient } from "@bp/sources";
 import { dbOption, parseCliOptions } from "../../lib/cli-args.js";
-import { writeJson } from "../../lib/json.js";
 import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
+import { writeRawSourceSnapshot } from "../../lib/source-snapshots.js";
 import type { SocrataManifestSource } from "../../source-manifest.js";
 import { fromRepoRoot, readSourceManifest } from "../../source-manifest.js";
 
-const schemaVersion = 1;
 const sourceId = "nyc_dot_bus_lanes_local_streets";
 
 type BusLaneIngestArgs = {
@@ -55,9 +53,8 @@ export async function ingestBusLanes(args: BusLaneIngestArgs = {}): Promise<BusL
     local.sqlite.close();
   }
 
-  await mkdir(rawDir, { recursive: true });
-  await writeJson(rawPath, {
-    schemaVersion,
+  await writeRawSourceSnapshot({
+    path: rawPath,
     sourceId,
     fetchedAt,
     query: { order: "street, segmentid" },

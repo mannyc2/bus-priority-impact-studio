@@ -1,4 +1,3 @@
-import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { replaceRouteSchedules } from "@bp/db/local";
 import { RouteIdCodec } from "@bp/domain";
@@ -14,13 +13,12 @@ import {
   yearOption,
 } from "../../lib/cli-args.js";
 import { isoMonth } from "../../lib/dates.js";
-import { writeJson } from "../../lib/json.js";
 import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
+import { writeRawSourceSnapshot } from "../../lib/source-snapshots.js";
 import type { SocrataManifestSource } from "../../source-manifest.js";
 import { fromRepoRoot, readSourceManifest } from "../../source-manifest.js";
 
-const schemaVersion = 1;
 const sourceId = "bus_schedules_2026";
 
 type ScheduleIngestArgs = {
@@ -104,9 +102,8 @@ export async function ingestM1Schedules(
     local.sqlite.close();
   }
 
-  await mkdir(rawDir, { recursive: true });
-  await writeJson(rawPath, {
-    schemaVersion,
+  await writeRawSourceSnapshot({
+    path: rawPath,
     sourceId,
     fetchedAt,
     query: { routeId, timepoint: "1" },

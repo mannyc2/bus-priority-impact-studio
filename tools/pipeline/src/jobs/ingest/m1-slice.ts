@@ -1,4 +1,3 @@
-import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import {
   replaceRouteHourlyRidership,
@@ -25,9 +24,9 @@ import {
   yearOption,
 } from "../../lib/cli-args.js";
 import { isoMonth, isoMonthStart, nextIsoMonthStart } from "../../lib/dates.js";
-import { writeJson } from "../../lib/json.js";
 import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
+import { writeRawSourceSnapshot } from "../../lib/source-snapshots.js";
 import type { SocrataManifestSource } from "../../source-manifest.js";
 import { fromRepoRoot, readSourceManifest } from "../../source-manifest.js";
 
@@ -58,14 +57,6 @@ type RouteSliceOptions = {
   fetchedAt: Date;
   fetcher?: SocrataFetch;
   dbPath: string;
-};
-
-type RawSlicePayload = {
-  schemaVersion: typeof schemaVersion;
-  sourceId: SliceSourceId;
-  fetchedAt: string;
-  query: Record<string, string | number>;
-  rows: SocrataRow[];
 };
 
 type RouteSliceOutput = {
@@ -124,21 +115,6 @@ function normalizeOptions(args: RouteSliceArgs = {}): RouteSliceOptions {
   return output;
 }
 
-function rawPayload(
-  sourceId: SliceSourceId,
-  fetchedAt: string,
-  query: Record<string, string | number>,
-  rows: SocrataRow[],
-): RawSlicePayload {
-  return {
-    schemaVersion,
-    sourceId,
-    fetchedAt,
-    query,
-    rows,
-  };
-}
-
 async function fetchSourceRows(
   source: SocrataManifestSource,
   query: SocrataRowsQuery,
@@ -168,8 +144,6 @@ export async function ingestM1RouteSlice(args: RouteSliceArgs = {}): Promise<Rou
   const fetchedAt = options.fetchedAt.toISOString();
   const key = lowerSliceKey(options.routeId, options.year, options.month);
   const rawDir = fromRepoRoot(join("data/raw/route-slices", key));
-
-  await mkdir(rawDir, { recursive: true });
 
   const speedQuery = {
     where: segmentWhere,
@@ -260,22 +234,34 @@ export async function ingestM1RouteSlice(args: RouteSliceArgs = {}): Promise<Rou
   }
 
   await Promise.all([
-    writeJson(
-      rawPaths.bus_segment_speeds_2025,
-      rawPayload("bus_segment_speeds_2025", fetchedAt, speedQuery, speedRows),
-    ),
-    writeJson(
-      rawPaths.current_bus_routes,
-      rawPayload("current_bus_routes", fetchedAt, routeQuery, routeRows),
-    ),
-    writeJson(
-      rawPaths.current_bus_stops,
-      rawPayload("current_bus_stops", fetchedAt, stopQuery, stopRows),
-    ),
-    writeJson(
-      rawPaths.bus_hourly_ridership_2025,
-      rawPayload("bus_hourly_ridership_2025", fetchedAt, ridershipQuery, ridershipRows),
-    ),
+    writeRawSourceSnapshot({
+      path: rawPaths.bus_segment_speeds_2025,
+      sourceId: "bus_segment_speeds_2025",
+      fetchedAt,
+      query: speedQuery,
+      rows: speedRows,
+    }),
+    writeRawSourceSnapshot({
+      path: rawPaths.current_bus_routes,
+      sourceId: "current_bus_routes",
+      fetchedAt,
+      query: routeQuery,
+      rows: routeRows,
+    }),
+    writeRawSourceSnapshot({
+      path: rawPaths.current_bus_stops,
+      sourceId: "current_bus_stops",
+      fetchedAt,
+      query: stopQuery,
+      rows: stopRows,
+    }),
+    writeRawSourceSnapshot({
+      path: rawPaths.bus_hourly_ridership_2025,
+      sourceId: "bus_hourly_ridership_2025",
+      fetchedAt,
+      query: ridershipQuery,
+      rows: ridershipRows,
+    }),
   ]);
 
   return {

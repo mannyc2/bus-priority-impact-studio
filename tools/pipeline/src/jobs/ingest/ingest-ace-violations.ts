@@ -1,17 +1,15 @@
-import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { replaceAceViolationSummaries } from "@bp/db/local";
 import type { SocrataFetch, SocrataRow, SocrataRowsQuery } from "@bp/sources";
 import { getSocrataSource, normalizeAceViolationSummaryRows, SocrataClient } from "@bp/sources";
 import { dbOption, monthOption, parseCliOptions, yearOption } from "../../lib/cli-args.js";
 import { isoMonth, isoMonthStart, nextIsoMonthStart } from "../../lib/dates.js";
-import { writeJson } from "../../lib/json.js";
 import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
+import { writeRawSourceSnapshot } from "../../lib/source-snapshots.js";
 import type { SocrataManifestSource } from "../../source-manifest.js";
 import { fromRepoRoot, readSourceManifest } from "../../source-manifest.js";
 
-const schemaVersion = 1;
 const sourceId = "ace_violations";
 
 type AceViolationIngestArgs = {
@@ -86,11 +84,10 @@ export async function ingestAceViolationSummary(
     local.sqlite.close();
   }
 
-  await mkdir(rawDir, { recursive: true });
-  await writeJson(rawPath, {
-    schemaVersion,
+  await writeRawSourceSnapshot({
+    path: rawPath,
     sourceId,
-    isoMonth: monthKey,
+    extra: { isoMonth: monthKey },
     fetchedAt,
     query: {
       grain: "bus_route_id, violation_type, violation_status",
