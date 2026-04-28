@@ -1,23 +1,13 @@
-import { createHash } from "node:crypto";
-import { basename, join } from "node:path";
 import { replaceRouteArtifacts } from "@bp/db/local";
-import { routeSliceKey } from "../../lib/artifacts.js";
+import {
+  fileDigest,
+  routeSliceArtifactKey,
+  routeSliceArtifactNames,
+  routeSliceArtifactPath,
+} from "../../lib/artifacts.js";
 import { isoMonth } from "../../lib/dates.js";
 import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
-import { fromRepoRoot } from "../../source-manifest.js";
-
-const artifactNames = [
-  "summary.json",
-  "hotspots.json",
-  "ridership-profile.json",
-  "speed-profile.json",
-  "intervention-overlay.json",
-  "bus-lane-overlay.json",
-  "schedule-comparison.json",
-  "route-scorecard.json",
-  "route-brief-input.json",
-] as const;
 
 type ArtifactManifestBuildArgs = {
   routeId?: string;
@@ -78,31 +68,20 @@ function parseCliArgs(args: string[]): ArtifactManifestBuildArgs {
   return output;
 }
 
-async function fileDigest(path: string): Promise<{ byteLength: number; sha256: string }> {
-  const bytes = Buffer.from(await Bun.file(path).arrayBuffer());
-
-  return {
-    byteLength: bytes.byteLength,
-    sha256: createHash("sha256").update(bytes).digest("hex"),
-  };
-}
-
 export async function buildM1ArtifactManifest(
   args: ArtifactManifestBuildArgs = {},
 ): Promise<ArtifactManifestBuildResult> {
   const options = parseBuildArgs(args);
   const month = isoMonth(options.year, options.month);
-  const key = routeSliceKey(options.routeId, month);
-  const artifactDir = fromRepoRoot(join("data/artifacts/route-slices", key));
   const artifacts = await Promise.all(
-    artifactNames.map(async (name) => {
-      const path = join(artifactDir, name);
+    routeSliceArtifactNames.map(async (name) => {
+      const path = routeSliceArtifactPath(options.routeId, month, name);
       const digest = await fileDigest(path);
 
       return {
         name,
         path,
-        artifactKey: `route-slices/${key}/${basename(path)}`,
+        artifactKey: routeSliceArtifactKey(options.routeId, month, name),
         contentType: "application/json" as const,
         ...digest,
       };

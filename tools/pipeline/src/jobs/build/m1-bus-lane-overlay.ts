@@ -1,14 +1,10 @@
-import { mkdir } from "node:fs/promises";
-import { join } from "node:path";
 import { listBusLanes, listRouteStops } from "@bp/db/local";
 import { RouteIdCodec } from "@bp/domain";
 import * as z from "zod";
-import { routeSliceKey } from "../../lib/artifacts.js";
+import { writeRouteSliceArtifact } from "../../lib/artifacts.js";
 import { isoMonth } from "../../lib/dates.js";
-import { writeJson } from "../../lib/json.js";
 import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
-import { fromRepoRoot } from "../../source-manifest.js";
 
 const schemaVersion = 1;
 const proximityThresholdMeters = 150;
@@ -133,9 +129,6 @@ export async function buildM1BusLaneOverlay(
   const options = parseBuildArgs(args);
   const routeId = z.decode(RouteIdCodec, options.routeId);
   const month = isoMonth(options.year, options.month);
-  const key = routeSliceKey(routeId, month);
-  const artifactDir = fromRepoRoot(join("data/artifacts/route-slices", key));
-  const overlayPath = join(artifactDir, "bus-lane-overlay.json");
   const local = await openLocalPipelineDb(options.dbPath);
   const [stops, busLanes] = await Promise.all([
     listRouteStops(local.db, routeId, month),
@@ -213,8 +206,12 @@ export async function buildM1BusLaneOverlay(
     ],
   };
 
-  await mkdir(artifactDir, { recursive: true });
-  await writeJson(overlayPath, overlay);
+  const overlayPath = await writeRouteSliceArtifact(
+    routeId,
+    month,
+    "bus-lane-overlay.json",
+    overlay,
+  );
 
   return {
     routeId,

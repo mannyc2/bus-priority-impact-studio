@@ -1,12 +1,8 @@
-import { mkdir } from "node:fs/promises";
-import { join } from "node:path";
 import { type LocalRouteSegmentSpeed, listRouteSegmentSpeeds } from "@bp/db/local";
-import { routeSliceKey } from "../../lib/artifacts.js";
+import { writeRouteSliceArtifact } from "../../lib/artifacts.js";
 import { isoMonth } from "../../lib/dates.js";
-import { writeJson } from "../../lib/json.js";
 import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
-import { fromRepoRoot } from "../../source-manifest.js";
 
 const schemaVersion = 1;
 const slowSpeedThresholdMph = 8;
@@ -170,9 +166,6 @@ export async function buildM1SpeedProfile(
 ): Promise<SpeedProfileResult> {
   const options = parseBuildArgs(args);
   const month = isoMonth(options.year, options.month);
-  const key = routeSliceKey(options.routeId, month);
-  const artifactDir = fromRepoRoot(join("data/artifacts/route-slices", key));
-  const profilePath = join(artifactDir, "speed-profile.json");
   const local = await openLocalPipelineDb(options.dbPath);
   const rows = await listRouteSegmentSpeeds(local.db, options.routeId, month);
   local.sqlite.close();
@@ -240,8 +233,12 @@ export async function buildM1SpeedProfile(
     ],
   };
 
-  await mkdir(artifactDir, { recursive: true });
-  await writeJson(profilePath, profile);
+  const profilePath = await writeRouteSliceArtifact(
+    options.routeId,
+    month,
+    "speed-profile.json",
+    profile,
+  );
 
   return {
     routeId: options.routeId,

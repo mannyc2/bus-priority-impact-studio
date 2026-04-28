@@ -1,16 +1,12 @@
-import { mkdir } from "node:fs/promises";
-import { join } from "node:path";
 import {
   type LocalRouteScheduleTimepoint,
   listRouteHotspots,
   listRouteSchedules,
 } from "@bp/db/local";
-import { routeSliceKey } from "../../lib/artifacts.js";
+import { writeRouteSliceArtifact } from "../../lib/artifacts.js";
 import { isoMonth } from "../../lib/dates.js";
-import { writeJson } from "../../lib/json.js";
 import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
-import { fromRepoRoot } from "../../source-manifest.js";
 
 const schemaVersion = 1;
 
@@ -196,9 +192,6 @@ export async function buildM1ScheduleComparison(
 ): Promise<ScheduleComparisonResult> {
   const options = parseBuildArgs(args);
   const month = isoMonth(options.year, options.month);
-  const key = routeSliceKey(options.routeId, month);
-  const artifactDir = fromRepoRoot(join("data/artifacts/route-slices", key));
-  const comparisonPath = join(artifactDir, "schedule-comparison.json");
   const local = await openLocalPipelineDb(options.dbPath);
   const [schedules, hotspots] = await Promise.all([
     listRouteSchedules(local.db, options.routeId, month),
@@ -254,8 +247,12 @@ export async function buildM1ScheduleComparison(
     ],
   };
 
-  await mkdir(artifactDir, { recursive: true });
-  await writeJson(comparisonPath, comparison);
+  const comparisonPath = await writeRouteSliceArtifact(
+    options.routeId,
+    month,
+    "schedule-comparison.json",
+    comparison,
+  );
 
   return {
     routeId: options.routeId,

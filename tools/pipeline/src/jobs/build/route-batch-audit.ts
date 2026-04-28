@@ -1,22 +1,10 @@
-import { createHash } from "node:crypto";
 import { join } from "node:path";
 import { listRouteArtifacts, replaceRouteBatch } from "@bp/db/local";
+import { fileDigest, routeSliceArtifactNames } from "../../lib/artifacts.js";
 import { isoMonth } from "../../lib/dates.js";
 import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
 import { fromRepoRoot } from "../../source-manifest.js";
-
-const artifactNames = [
-  "summary.json",
-  "hotspots.json",
-  "ridership-profile.json",
-  "speed-profile.json",
-  "intervention-overlay.json",
-  "bus-lane-overlay.json",
-  "schedule-comparison.json",
-  "route-scorecard.json",
-  "route-brief-input.json",
-] as const;
 
 type RouteBatchAuditArgs = {
   year?: number;
@@ -99,15 +87,6 @@ async function readLocalAuditRows(path: string, month: string) {
   }
 }
 
-async function fileDigest(path: string): Promise<{ byteLength: number; sha256: string }> {
-  const bytes = Buffer.from(await Bun.file(path).arrayBuffer());
-
-  return {
-    byteLength: bytes.byteLength,
-    sha256: createHash("sha256").update(bytes).digest("hex"),
-  };
-}
-
 async function auditRoute(input: {
   routeId: string;
   month: string;
@@ -128,7 +107,7 @@ async function auditRoute(input: {
   let byteLengthMismatchCount = 0;
   let totalByteLength = 0;
 
-  for (const name of artifactNames) {
+  for (const name of routeSliceArtifactNames) {
     const artifact = artifactsByName.get(name);
 
     if (artifact === undefined) {
@@ -164,7 +143,7 @@ async function auditRoute(input: {
     routeId: input.routeId,
     isoMonth: input.month,
     status: issues.length === 0 ? "pass" : "fail",
-    expectedArtifactCount: artifactNames.length,
+    expectedArtifactCount: routeSliceArtifactNames.length,
     verifiedArtifactCount,
     missingArtifactCount,
     hashMismatchCount,

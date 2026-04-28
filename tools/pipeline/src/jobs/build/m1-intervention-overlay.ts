@@ -1,14 +1,10 @@
-import { mkdir } from "node:fs/promises";
-import { join } from "node:path";
 import { listAceRoutesForRoute, listAceViolationSummariesForRoute } from "@bp/db/local";
 import { RouteIdCodec } from "@bp/domain";
 import * as z from "zod";
-import { routeSliceKey } from "../../lib/artifacts.js";
+import { writeRouteSliceArtifact } from "../../lib/artifacts.js";
 import { isoMonth } from "../../lib/dates.js";
-import { writeJson } from "../../lib/json.js";
 import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
-import { fromRepoRoot } from "../../source-manifest.js";
 
 const schemaVersion = 1;
 
@@ -87,10 +83,6 @@ export async function buildM1InterventionOverlay(
   const routeId = z.decode(RouteIdCodec, options.routeId);
   const month = isoMonth(options.year, options.month);
   const analysisPeriodEnd = monthEndIso(options.year, options.month);
-  const artifactDir = fromRepoRoot(
-    join("data/artifacts/route-slices", routeSliceKey(routeId, month)),
-  );
-  const overlayPath = join(artifactDir, "intervention-overlay.json");
   const local = await openLocalPipelineDb(options.dbPath);
   const [routeMatches, routeViolations] = await Promise.all([
     listAceRoutesForRoute(local.db, routeId),
@@ -147,8 +139,12 @@ export async function buildM1InterventionOverlay(
     ],
   };
 
-  await mkdir(artifactDir, { recursive: true });
-  await writeJson(overlayPath, overlay);
+  const overlayPath = await writeRouteSliceArtifact(
+    routeId,
+    month,
+    "intervention-overlay.json",
+    overlay,
+  );
 
   return {
     routeId,

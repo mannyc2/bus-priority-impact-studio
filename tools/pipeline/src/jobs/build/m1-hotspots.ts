@@ -1,5 +1,3 @@
-import { mkdir } from "node:fs/promises";
-import { join } from "node:path";
 import type { SegmentSpeedObservation } from "@bp/analytics";
 import { detectSegmentHotspots } from "@bp/analytics";
 import type { LocalRouteHourlyRidership } from "@bp/db/local";
@@ -8,12 +6,10 @@ import {
   listRouteSegmentSpeeds,
   replaceRouteHotspots,
 } from "@bp/db/local";
-import { routeSliceKey } from "../../lib/artifacts.js";
+import { routeSliceKey, writeRouteSliceArtifact } from "../../lib/artifacts.js";
 import { isoMonth } from "../../lib/dates.js";
-import { writeJson } from "../../lib/json.js";
 import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
-import { fromRepoRoot } from "../../source-manifest.js";
 
 const schemaVersion = 1;
 
@@ -126,9 +122,6 @@ export async function buildM1Hotspots(args: HotspotBuildArgs = {}): Promise<Hots
   const key = routeSliceKey(options.routeId, month);
   const inputSource = `local-db://route-slices/${key}/segment-speeds`;
   const ridershipSource = `local-db://route-slices/${key}/ridership`;
-  const artifactDir = fromRepoRoot(join("data/artifacts/route-slices", key));
-  const artifactPath = join(artifactDir, "hotspots.json");
-  const summaryPath = join(artifactDir, "summary.json");
   const local = await openLocalPipelineDb(options.dbPath);
   const [speedRows, ridershipRows] = await Promise.all([
     listRouteSegmentSpeeds(local.db, options.routeId, month),
@@ -191,8 +184,10 @@ export async function buildM1Hotspots(args: HotspotBuildArgs = {}): Promise<Hots
     } finally {
       writeLocal.sqlite.close();
     }
-    await mkdir(artifactDir, { recursive: true });
-    await Promise.all([writeJson(artifactPath, artifact), writeJson(summaryPath, summary)]);
+    const [artifactPath, summaryPath] = await Promise.all([
+      writeRouteSliceArtifact(options.routeId, month, "hotspots.json", artifact),
+      writeRouteSliceArtifact(options.routeId, month, "summary.json", summary),
+    ]);
 
     return {
       artifactPath,
@@ -245,8 +240,10 @@ export async function buildM1Hotspots(args: HotspotBuildArgs = {}): Promise<Hots
   } finally {
     writeLocal.sqlite.close();
   }
-  await mkdir(artifactDir, { recursive: true });
-  await Promise.all([writeJson(artifactPath, artifact), writeJson(summaryPath, summary)]);
+  const [artifactPath, summaryPath] = await Promise.all([
+    writeRouteSliceArtifact(options.routeId, month, "hotspots.json", artifact),
+    writeRouteSliceArtifact(options.routeId, month, "summary.json", summary),
+  ]);
 
   const output: HotspotBuildResult = {
     artifactPath,
