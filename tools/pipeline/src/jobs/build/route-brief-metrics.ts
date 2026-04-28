@@ -8,7 +8,7 @@ import type {
 } from "@bp/db/local";
 
 export const slowSpeedThresholdMph = 8;
-const busLaneProximityThresholdMeters = 150;
+export const busLaneProximityThresholdMeters = 150;
 
 function round(value: number, decimals = 4): number {
   const factor = 10 ** decimals;
@@ -365,24 +365,35 @@ function minDistanceMeters(laneCoordinates: Coordinate[], stopCoordinates: Coord
   return minDistance;
 }
 
-export function matchedBusLanes(busLanes: LocalBusLane[], stops: LocalRouteStop[]) {
+export function busLaneMatches(busLanes: LocalBusLane[], stops: LocalRouteStop[]) {
   const stopCoordinates = stops.map((stop) => ({
     longitude: stop.longitude,
     latitude: stop.latitude,
   }));
   const routeStreets = new Set(stops.map((stop) => routeStreetFromStopName(stop.stopName)));
-  return busLanes.filter((lane) => {
-    if (lane.borough !== "MAN") {
-      return false;
-    }
-    const laneStreet = normalizeStreetName(lane.street);
-    const laneFacility = normalizeStreetName(lane.facility);
-    return (
-      routeStreets.has(laneStreet) ||
-      routeStreets.has(laneFacility) ||
-      minDistanceMeters(lane.coordinates, stopCoordinates) <= busLaneProximityThresholdMeters
-    );
-  });
+  return busLanes
+    .filter((lane) => lane.borough === "MAN")
+    .map((lane) => {
+      const laneStreet = normalizeStreetName(lane.street);
+      const laneFacility = normalizeStreetName(lane.facility);
+      const nearestStopDistanceMeters = minDistanceMeters(lane.coordinates, stopCoordinates);
+      const streetMatched = routeStreets.has(laneStreet) || routeStreets.has(laneFacility);
+      const proximityMatched = nearestStopDistanceMeters <= busLaneProximityThresholdMeters;
+
+      return {
+        lane,
+        streetMatched,
+        proximityMatched,
+        nearestStopDistanceMeters: Number.isFinite(nearestStopDistanceMeters)
+          ? Math.round(nearestStopDistanceMeters)
+          : null,
+      };
+    })
+    .filter((match) => match.streetMatched || match.proximityMatched);
+}
+
+export function matchedBusLanes(busLanes: LocalBusLane[], stops: LocalRouteStop[]) {
+  return busLaneMatches(busLanes, stops).map((match) => match.lane);
 }
 
 export function monthEndIso(year: number, month: number): string {

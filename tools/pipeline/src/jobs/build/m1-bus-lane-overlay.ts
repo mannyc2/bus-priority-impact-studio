@@ -5,9 +5,9 @@ import { writeRouteSliceArtifact } from "../../lib/artifacts.js";
 import { isoMonth } from "../../lib/dates.js";
 import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
+import { busLaneMatches, busLaneProximityThresholdMeters } from "./route-brief-metrics.js";
 
 const schemaVersion = 1;
-const proximityThresholdMeters = 150;
 
 type BusLaneOverlayArgs = {
   routeId?: string;
@@ -22,11 +22,6 @@ type BusLaneOverlayResult = {
   overlayPath: string;
   matchedLaneCount: number;
   matchedStreetCount: number;
-};
-
-type Coordinate = {
-  longitude: number;
-  latitude: number;
 };
 
 function parseBuildArgs(args: BusLaneOverlayArgs): Required<BusLaneOverlayArgs> {
@@ -75,54 +70,6 @@ function parseCliArgs(args: string[]): BusLaneOverlayArgs {
   return output;
 }
 
-function normalizeStreetName(value: string): string {
-  return value
-    .toUpperCase()
-    .replace(/\bAV\b/g, "AVENUE")
-    .replace(/\bAVE\b/g, "AVENUE")
-    .replace(/\bST\b/g, "STREET")
-    .replace(/\bBLVD\b/g, "BOULEVARD")
-    .replace(/\bRD\b/g, "ROAD")
-    .replace(/\b1ST\b/g, "1")
-    .replace(/\b2ND\b/g, "2")
-    .replace(/\b3RD\b/g, "3")
-    .replace(/\b4TH\b/g, "4")
-    .replace(/\b5TH\b/g, "5")
-    .replace(/\b6TH\b/g, "6")
-    .replace(/\b7TH\b/g, "7")
-    .replace(/\b8TH\b/g, "8")
-    .replace(/\b9TH\b/g, "9")
-    .replace(/\b10TH\b/g, "10")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function routeStreetFromStopName(stopName: string): string {
-  return normalizeStreetName(stopName.split("/")[0] ?? stopName);
-}
-
-function metersBetween(left: Coordinate, right: Coordinate): number {
-  const latitudeMeters = (left.latitude - right.latitude) * 111_320;
-  const longitudeMeters =
-    (left.longitude - right.longitude) *
-    111_320 *
-    Math.cos(((left.latitude + right.latitude) / 2 / 180) * Math.PI);
-
-  return Math.sqrt(latitudeMeters ** 2 + longitudeMeters ** 2);
-}
-
-function minDistanceMeters(laneCoordinates: Coordinate[], stopCoordinates: Coordinate[]): number {
-  let minDistance = Number.POSITIVE_INFINITY;
-
-  for (const laneCoordinate of laneCoordinates) {
-    for (const stopCoordinate of stopCoordinates) {
-      minDistance = Math.min(minDistance, metersBetween(laneCoordinate, stopCoordinate));
-    }
-  }
-
-  return minDistance;
-}
-
 export async function buildM1BusLaneOverlay(
   args: BusLaneOverlayArgs = {},
 ): Promise<BusLaneOverlayResult> {
@@ -135,39 +82,22 @@ export async function buildM1BusLaneOverlay(
     listBusLanes(local.db),
   ]);
   local.sqlite.close();
-  const stopCoordinates = stops.map((stop) => ({
-    longitude: stop.longitude,
-    latitude: stop.latitude,
-  }));
-  const routeStreets = new Set(stops.map((stop) => routeStreetFromStopName(stop.stopName)));
-  const matchedLanes = busLanes
-    .filter((lane) => lane.borough === "MAN")
-    .map((lane) => {
-      const laneStreet = normalizeStreetName(lane.street);
-      const laneFacility = normalizeStreetName(lane.facility);
-      const streetMatched = routeStreets.has(laneStreet) || routeStreets.has(laneFacility);
-      const nearestStopDistanceMeters = minDistanceMeters(lane.coordinates, stopCoordinates);
-      const proximityMatched = nearestStopDistanceMeters <= proximityThresholdMeters;
-
-      return {
-        segmentId: lane.segmentId,
-        street: lane.street,
-        facility: lane.facility,
-        direction: lane.direction ?? null,
-        hours: lane.hours ?? null,
-        days: lane.days ?? null,
-        laneType: lane.laneType ?? null,
-        laneSubtype: lane.laneSubtype ?? null,
-        openDate: lane.openDate ?? null,
-        shapeLength: lane.shapeLength ?? null,
-        streetMatched,
-        proximityMatched,
-        nearestStopDistanceMeters: Number.isFinite(nearestStopDistanceMeters)
-          ? Math.round(nearestStopDistanceMeters)
-          : null,
-      };
-    })
-    .filter((lane) => lane.streetMatched || lane.proximityMatched)
+  const matchedLanes = busLaneMatches(busLanes, stops)
+    .map((match) => ({
+      segmentId: match.lane.segmentId,
+      street: match.lane.street,
+      facility: match.lane.facility,
+      direction: match.lane.direction ?? null,
+      hours: match.lane.hours ?? null,
+      days: match.lane.days ?? null,
+      laneType: match.lane.laneType ?? null,
+      laneSubtype: match.lane.laneSubtype ?? null,
+      openDate: match.lane.openDate ?? null,
+      shapeLength: match.lane.shapeLength ?? null,
+      streetMatched: match.streetMatched,
+      proximityMatched: match.proximityMatched,
+      nearestStopDistanceMeters: match.nearestStopDistanceMeters,
+    }))
     .sort((left, right) => {
       if (left.street !== right.street) {
         return left.street.localeCompare(right.street);
@@ -182,7 +112,7 @@ export async function buildM1BusLaneOverlay(
     analysisPeriod: month,
     generatedAt: new Date().toISOString(),
     method: {
-      proximityThresholdMeters,
+      proximityThresholdMeters: busLaneProximityThresholdMeters,
       matchRule:
         "Manhattan bus-lane rows are included when their street/facility matches a route stop street or a bus-lane geometry vertex is within the threshold of a route stop.",
       caveat:
