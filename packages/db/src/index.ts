@@ -1,10 +1,6 @@
 export type {
-  D1DatabaseLike,
-  D1PreparedStatement,
-  D1Result,
   D1ServingDb,
   D1ServingSchema,
-  D1Value,
   RouteArtifact,
   RouteArtifactRow,
   RouteBatchStatus,
@@ -45,4 +41,3 @@ export {
   serializeRouteScorecard,
   serializeRouteScorecardCitations,
 } from "./d1/index.js";
-export { boolInt, sqlNullableNumber, sqlNullableString, sqlString } from "./shared/index.js";

@@ -1,7 +1,9 @@
+import { asc, desc, eq } from "drizzle-orm";
 import * as z from "zod";
-import type { D1DatabaseLike } from "./d1/legacy.js";
-import { IsoMonthSchema } from "./serving-shared.js";
-import { groupSourceStatuses, listRouteMonthSourceStatuses } from "./source-status-repository.js";
+import type { D1ServingDb } from "../client.js";
+import { routeEquityContext } from "../schema.js";
+import { IsoMonthSchema } from "./shared.js";
+import { groupSourceStatuses, listRouteMonthSourceStatuses } from "./source-statuses.js";
 
 const RouteEquityContextRowSchema = z
   .object({
@@ -89,30 +91,39 @@ function toRouteEquityContext(
 }
 
 export async function listRouteEquityContexts(
-  db: D1DatabaseLike,
+  db: D1ServingDb,
   month: string,
 ): Promise<RouteEquityContext[]> {
-  const result = await db
-    .prepare<RouteEquityContextRow>(
-      [
-        "SELECT route_id, month, acs_year, assignment_geography, assigned_county_fips,",
-        "assigned_county_name, assignment_method, tract_count, total_population,",
-        "occupied_housing_units, no_vehicle_households, no_vehicle_household_share,",
-        "median_household_income, poverty_rate, public_transit_commuter_share,",
-        "hispanic_share, non_hispanic_white_share, non_hispanic_black_share,",
-        "non_hispanic_asian_share",
-        "FROM route_equity_context",
-        "WHERE month = ?",
-        "ORDER BY no_vehicle_household_share DESC, route_id ASC",
-      ].join(" "),
-    )
-    .bind(month)
-    .all();
+  const rows = await db
+    .select({
+      route_id: routeEquityContext.routeId,
+      month: routeEquityContext.month,
+      acs_year: routeEquityContext.acsYear,
+      assignment_geography: routeEquityContext.assignmentGeography,
+      assigned_county_fips: routeEquityContext.assignedCountyFips,
+      assigned_county_name: routeEquityContext.assignedCountyName,
+      assignment_method: routeEquityContext.assignmentMethod,
+      tract_count: routeEquityContext.tractCount,
+      total_population: routeEquityContext.totalPopulation,
+      occupied_housing_units: routeEquityContext.occupiedHousingUnits,
+      no_vehicle_households: routeEquityContext.noVehicleHouseholds,
+      no_vehicle_household_share: routeEquityContext.noVehicleHouseholdShare,
+      median_household_income: routeEquityContext.medianHouseholdIncome,
+      poverty_rate: routeEquityContext.povertyRate,
+      public_transit_commuter_share: routeEquityContext.publicTransitCommuterShare,
+      hispanic_share: routeEquityContext.hispanicShare,
+      non_hispanic_white_share: routeEquityContext.nonHispanicWhiteShare,
+      non_hispanic_black_share: routeEquityContext.nonHispanicBlackShare,
+      non_hispanic_asian_share: routeEquityContext.nonHispanicAsianShare,
+    })
+    .from(routeEquityContext)
+    .where(eq(routeEquityContext.month, month))
+    .orderBy(desc(routeEquityContext.noVehicleHouseholdShare), asc(routeEquityContext.routeId));
 
-  const rows = (result.results ?? []).map((row) => RouteEquityContextRowSchema.parse(row));
+  const parsedRows = rows.map((row) => RouteEquityContextRowSchema.parse(row));
   const sourceStatuses = groupSourceStatuses(
     await listRouteMonthSourceStatuses(db, month, "equity_context"),
   );
 
-  return rows.map((row) => toRouteEquityContext(row, sourceStatuses));
+  return parsedRows.map((row) => toRouteEquityContext(row, sourceStatuses));
 }

@@ -3,7 +3,6 @@ import { describe, expect, test } from "bun:test";
 import { createBunSqliteServingDb } from "../src/d1/bun-sqlite.js";
 import type { D1ServingDb } from "../src/d1/index.js";
 import { routeArtifact, routeComparisonRank, routeMonthTrend } from "../src/d1/schema.js";
-import type { D1DatabaseLike, D1PreparedStatement, D1Result, D1Value } from "../src/index.js";
 import {
   getRouteBatchStatus,
   getRouteBriefSummary,
@@ -19,48 +18,6 @@ import {
   listSelectedRouteBuildCandidates,
 } from "../src/index.js";
 
-type QueryCall = {
-  query: string;
-  bound: D1Value[];
-};
-
-class FakeStatement<T> implements D1PreparedStatement<T> {
-  constructor(
-    private readonly call: QueryCall,
-    private readonly rows: T[],
-  ) {}
-
-  bind(...values: D1Value[]): D1PreparedStatement<T> {
-    this.call.bound = values;
-    return this;
-  }
-
-  async first(): Promise<T | null> {
-    return this.rows[0] ?? null;
-  }
-
-  async all(): Promise<D1Result<T>> {
-    return { results: this.rows };
-  }
-}
-
-class FakeDb implements D1DatabaseLike {
-  readonly calls: QueryCall[] = [];
-
-  constructor(private readonly rowsByTable: Record<string, unknown[]>) {}
-
-  prepare<T = unknown>(query: string): D1PreparedStatement<T> {
-    const call = { query, bound: [] };
-    this.calls.push(call);
-    const table = Object.keys(this.rowsByTable)
-      .toSorted((left, right) => right.length - left.length)
-      .find((candidate) => query.includes(candidate));
-    const rows = (table === undefined ? [] : this.rowsByTable[table]) as T[];
-
-    return new FakeStatement(call, rows);
-  }
-}
-
 async function createDrizzleTestDb(): Promise<{ db: D1ServingDb; sqlite: Database }> {
   const sqlite = new Database(":memory:");
   const migrationSql = await Bun.file(
@@ -72,6 +29,16 @@ async function createDrizzleTestDb(): Promise<{ db: D1ServingDb; sqlite: Databas
     db: createBunSqliteServingDb(sqlite),
     sqlite,
   };
+}
+
+function insertRows(sqlite: Database, tableName: string, rows: readonly Record<string, unknown>[]) {
+  for (const row of rows) {
+    const columns = Object.keys(row);
+    const placeholders = columns.map(() => "?").join(", ");
+    sqlite
+      .query(`INSERT INTO ${tableName} (${columns.join(", ")}) VALUES (${placeholders})`)
+      .run(...(columns.map((column) => row[column]) as never[]));
+  }
 }
 
 const summaryRow = {
@@ -275,21 +242,13 @@ const equityContextRow = {
 
 describe("route serving repository", () => {
   test("lists route brief summaries with typed child rows", async () => {
-    const db = new FakeDb({
-      route_brief_peak_window: [peakWindowRow],
-      route_brief_slowest_window: [slowestWindowRow],
-      route_brief_summary: [summaryRow],
-    });
+    const { db, sqlite } = await createDrizzleTestDb();
+    insertRows(sqlite, "route_brief_summary", [summaryRow]);
+    insertRows(sqlite, "route_brief_peak_window", [peakWindowRow]);
+    insertRows(sqlite, "route_brief_slowest_window", [slowestWindowRow]);
 
     const rows = await listRouteBriefSummaries(db, "2026-03");
 
-    expect(db.calls[0]).toEqual(
-      expect.objectContaining({
-        bound: ["2026-03"],
-      }),
-    );
-    expect(db.calls[0]?.query).toContain("WHERE month = ? AND public_visible = 1");
-    expect(db.calls[0]?.query).toContain("ORDER BY route_score ASC");
     expect(rows).toEqual([
       expect.objectContaining({
         routeId: "M1",
@@ -300,43 +259,41 @@ describe("route serving repository", () => {
         slowestWindow: expect.objectContaining({ dayOfWeek: "Thursday", hourOfDay: 12 }),
       }),
     ]);
+    sqlite.close();
   });
 
   test("gets one route brief summary by route and month", async () => {
-    const db = new FakeDb({
-      route_brief_peak_window: [peakWindowRow],
-      route_brief_slowest_window: [slowestWindowRow],
-      route_brief_summary: [{ ...summaryRow, ace_active: 1 }],
-    });
+    const { db, sqlite } = await createDrizzleTestDb();
+    insertRows(sqlite, "route_brief_summary", [{ ...summaryRow, ace_active: 1 }]);
+    insertRows(sqlite, "route_brief_peak_window", [peakWindowRow]);
+    insertRows(sqlite, "route_brief_slowest_window", [slowestWindowRow]);
 
     const row = await getRouteBriefSummary(db, "M1", "2026-03");
 
-    expect(db.calls[0]?.bound).toEqual(["M1", "2026-03"]);
     expect(row).toEqual(
       expect.objectContaining({
         routeId: "M1",
         aceActive: true,
       }),
     );
+    sqlite.close();
   });
 
   test("returns null when a route brief summary does not exist", async () => {
-    const db = new FakeDb({ route_brief_summary: [] });
+    const { db, sqlite } = await createDrizzleTestDb();
 
     await expect(getRouteBriefSummary(db, "M9", "2026-03")).resolves.toBeNull();
+    sqlite.close();
   });
 
   test("gets route batch status with typed child rows", async () => {
-    const db = new FakeDb({
-      route_batch_built_route: batchBuiltRouteRows,
-      route_batch_issue: batchIssueRows,
-      route_batch_status: [batchStatusRow],
-    });
+    const { db, sqlite } = await createDrizzleTestDb();
+    insertRows(sqlite, "route_batch_status", [batchStatusRow]);
+    insertRows(sqlite, "route_batch_built_route", batchBuiltRouteRows);
+    insertRows(sqlite, "route_batch_issue", batchIssueRows as Record<string, unknown>[]);
 
     const row = await getRouteBatchStatus(db, "2026-03");
 
-    expect(db.calls[0]?.query).toContain("FROM route_batch_status");
-    expect(db.calls[0]?.bound).toEqual(["2026-03"]);
     expect(row).toEqual(
       expect.objectContaining({
         month: "2026-03",
@@ -347,6 +304,7 @@ describe("route serving repository", () => {
         issues: [],
       }),
     );
+    sqlite.close();
   });
 
   test("lists artifact metadata for a route", async () => {
@@ -399,15 +357,16 @@ describe("route serving repository", () => {
   });
 
   test("lists route readiness rows with missing input details", async () => {
-    const db = new FakeDb({
-      route_readiness_missing_input: missingInputRows,
-      route_readiness: [readinessRow],
-    });
+    const { db, sqlite } = await createDrizzleTestDb();
+    insertRows(sqlite, "route_readiness", [readinessRow]);
+    insertRows(
+      sqlite,
+      "route_readiness_missing_input",
+      missingInputRows as Record<string, unknown>[],
+    );
 
     const rows = await listRouteReadiness(db, "2026-03");
 
-    expect(db.calls[0]?.query).toContain("ORDER BY build_eligible DESC");
-    expect(db.calls[0]?.bound).toEqual(["2026-03"]);
     expect(rows).toEqual([
       expect.objectContaining({
         routeId: "M1",
@@ -416,35 +375,40 @@ describe("route serving repository", () => {
         missingInputs: [],
       }),
     ]);
+    sqlite.close();
   });
 
   test("lists build-eligible routes only", async () => {
-    const db = new FakeDb({
-      route_readiness_missing_input: missingInputRows,
-      route_readiness: [readinessRow],
-    });
+    const { db, sqlite } = await createDrizzleTestDb();
+    insertRows(sqlite, "route_readiness", [readinessRow]);
+    insertRows(
+      sqlite,
+      "route_readiness_missing_input",
+      missingInputRows as Record<string, unknown>[],
+    );
 
     const rows = await listBuildEligibleRoutes(db, "2026-03");
 
-    expect(db.calls[0]?.query).toContain("WHERE month = ? AND build_eligible = 1");
     expect(rows[0]).toEqual(
       expect.objectContaining({
         routeId: "M1",
         readinessStatus: "ready",
       }),
     );
+    sqlite.close();
   });
 
   test("lists route build plan rows with typed flags and child rows", async () => {
-    const db = new FakeDb({
-      route_readiness_missing_input: missingInputRows,
-      route_build_plan: [buildPlanRow],
-    });
+    const { db, sqlite } = await createDrizzleTestDb();
+    insertRows(sqlite, "route_build_plan", [buildPlanRow]);
+    insertRows(
+      sqlite,
+      "route_readiness_missing_input",
+      missingInputRows as Record<string, unknown>[],
+    );
 
     const rows = await listRouteBuildPlan(db, "2026-03");
 
-    expect(db.calls[0]?.query).toContain("FROM route_build_plan");
-    expect(db.calls[0]?.bound).toEqual(["2026-03"]);
     expect(rows).toEqual([
       expect.objectContaining({
         routeId: "M57",
@@ -455,19 +419,17 @@ describe("route serving repository", () => {
         missingInputs: [],
       }),
     ]);
+    sqlite.close();
   });
 
   test("lists route reliability baseline rows with child rows", async () => {
-    const db = new FakeDb({
-      route_reliability_gap_window: [reliabilityGapWindowRow],
-      route_month_source_status: allSourceStatusRows,
-      route_reliability_baseline: [reliabilityBaselineRow],
-    });
+    const { db, sqlite } = await createDrizzleTestDb();
+    insertRows(sqlite, "route_reliability_baseline", [reliabilityBaselineRow]);
+    insertRows(sqlite, "route_reliability_gap_window", [reliabilityGapWindowRow]);
+    insertRows(sqlite, "route_month_source_status", allSourceStatusRows);
 
     const rows = await listRouteReliabilityBaselines(db, "2026-03");
 
-    expect(db.calls[0]?.query).toContain("FROM route_reliability_baseline");
-    expect(db.calls[0]?.bound).toEqual(["2026-03"]);
     expect(rows).toEqual([
       expect.objectContaining({
         routeId: "M57",
@@ -477,6 +439,7 @@ describe("route serving repository", () => {
         sourceStatus: { observedHeadways: "needs_gtfs_rt_collection" },
       }),
     ]);
+    sqlite.close();
   });
 
   test("lists route monthly trend rows ordered by month", async () => {
@@ -509,15 +472,12 @@ describe("route serving repository", () => {
   });
 
   test("lists route equity context rows with source-status child rows", async () => {
-    const db = new FakeDb({
-      route_month_source_status: allSourceStatusRows,
-      route_equity_context: [equityContextRow],
-    });
+    const { db, sqlite } = await createDrizzleTestDb();
+    insertRows(sqlite, "route_equity_context", [equityContextRow]);
+    insertRows(sqlite, "route_month_source_status", allSourceStatusRows);
 
     const rows = await listRouteEquityContexts(db, "2026-03");
 
-    expect(db.calls[0]?.query).toContain("FROM route_equity_context");
-    expect(db.calls[0]?.bound).toEqual(["2026-03"]);
     expect(rows).toEqual([
       expect.objectContaining({
         routeId: "M1",
@@ -530,33 +490,36 @@ describe("route serving repository", () => {
         sourceStatus: { routeSpatialJoin: "pending_tract_geometry_join" },
       }),
     ]);
+    sqlite.close();
   });
 
   test("lists selected route build candidates only", async () => {
-    const db = new FakeDb({
-      route_readiness_missing_input: missingInputRows,
-      route_build_plan: [buildPlanRow],
-    });
+    const { db, sqlite } = await createDrizzleTestDb();
+    insertRows(sqlite, "route_build_plan", [buildPlanRow]);
+    insertRows(
+      sqlite,
+      "route_readiness_missing_input",
+      missingInputRows as Record<string, unknown>[],
+    );
 
     const rows = await listSelectedRouteBuildCandidates(db, "2026-03");
 
-    expect(db.calls[0]?.query).toContain("WHERE month = ? AND selected_for_next_batch = 1");
-    expect(db.calls[0]?.query).toContain("ORDER BY candidate_rank ASC");
     expect(rows[0]).toEqual(
       expect.objectContaining({
         routeId: "M57",
         selectedForNextBatch: true,
       }),
     );
+    sqlite.close();
   });
 
   test("rejects invalid child rows in summary reads", async () => {
-    const db = new FakeDb({
-      route_brief_peak_window: [{ ...peakWindowRow, hour_of_day: 99 }],
-      route_brief_slowest_window: [slowestWindowRow],
-      route_brief_summary: [summaryRow],
-    });
+    const { db, sqlite } = await createDrizzleTestDb();
+    insertRows(sqlite, "route_brief_summary", [summaryRow]);
+    insertRows(sqlite, "route_brief_peak_window", [{ ...peakWindowRow, hour_of_day: 99 }]);
+    insertRows(sqlite, "route_brief_slowest_window", [slowestWindowRow]);
 
     await expect(listRouteBriefSummaries(db, "2026-03")).rejects.toThrow();
+    sqlite.close();
   });
 });

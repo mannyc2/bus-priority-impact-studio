@@ -1,6 +1,8 @@
+import { and, asc, desc, eq } from "drizzle-orm";
 import * as z from "zod";
-import type { D1DatabaseLike } from "./d1/legacy.js";
-import { IsoMonthSchema } from "./serving-shared.js";
+import type { D1ServingDb } from "../client.js";
+import { routeReadiness, routeReadinessMissingInput } from "../schema.js";
+import { IsoMonthSchema } from "./shared.js";
 
 const RouteReadinessRowSchema = z
   .object({
@@ -64,22 +66,23 @@ export function routeMonthKey(routeId: string, month: string): string {
 }
 
 export async function listReadinessMissingInputRows(
-  db: D1DatabaseLike,
+  db: D1ServingDb,
   month: string,
 ): Promise<RouteReadinessMissingInputRow[]> {
-  const result = await db
-    .prepare<RouteReadinessMissingInputRow>(
-      [
-        "SELECT route_id, month, input_rank, input_name, severity, note",
-        "FROM route_readiness_missing_input",
-        "WHERE month = ?",
-        "ORDER BY route_id ASC, input_rank ASC",
-      ].join(" "),
-    )
-    .bind(month)
-    .all();
+  const rows = await db
+    .select({
+      route_id: routeReadinessMissingInput.routeId,
+      month: routeReadinessMissingInput.month,
+      input_rank: routeReadinessMissingInput.inputRank,
+      input_name: routeReadinessMissingInput.inputName,
+      severity: routeReadinessMissingInput.severity,
+      note: routeReadinessMissingInput.note,
+    })
+    .from(routeReadinessMissingInput)
+    .where(eq(routeReadinessMissingInput.month, month))
+    .orderBy(asc(routeReadinessMissingInput.routeId), asc(routeReadinessMissingInput.inputRank));
 
-  return (result.results ?? []).map((row) => RouteReadinessMissingInputRowSchema.parse(row));
+  return rows.map((row) => RouteReadinessMissingInputRowSchema.parse(row));
 }
 
 export function groupMissingInputs(
@@ -121,41 +124,59 @@ function toRouteReadiness(
 }
 
 async function listReadinessRows(
-  db: D1DatabaseLike,
+  db: D1ServingDb,
   month: string,
   buildEligibleOnly: boolean,
 ): Promise<RouteReadiness[]> {
-  const result = await db
-    .prepare<RouteReadinessRow>(
-      [
-        "SELECT route_id, month, route_short_name, route_long_name, readiness_status,",
-        "build_eligible, readiness_score, speed_observation_count, speed_bus_trip_count,",
-        "average_speed_mph, schedule_timepoint_count, shape_count, stop_count, timepoint_stop_count",
-        "FROM route_readiness",
-        buildEligibleOnly ? "WHERE month = ? AND build_eligible = 1" : "WHERE month = ?",
-        buildEligibleOnly
-          ? "ORDER BY average_speed_mph ASC, route_id ASC"
-          : "ORDER BY build_eligible DESC, readiness_score DESC, average_speed_mph ASC, route_id ASC",
-      ].join(" "),
+  const rows = await db
+    .select({
+      route_id: routeReadiness.routeId,
+      month: routeReadiness.month,
+      route_short_name: routeReadiness.routeShortName,
+      route_long_name: routeReadiness.routeLongName,
+      readiness_status: routeReadiness.readinessStatus,
+      build_eligible: routeReadiness.buildEligible,
+      readiness_score: routeReadiness.readinessScore,
+      speed_observation_count: routeReadiness.speedObservationCount,
+      speed_bus_trip_count: routeReadiness.speedBusTripCount,
+      average_speed_mph: routeReadiness.averageSpeedMph,
+      schedule_timepoint_count: routeReadiness.scheduleTimepointCount,
+      shape_count: routeReadiness.shapeCount,
+      stop_count: routeReadiness.stopCount,
+      timepoint_stop_count: routeReadiness.timepointStopCount,
+    })
+    .from(routeReadiness)
+    .where(
+      buildEligibleOnly
+        ? and(eq(routeReadiness.month, month), eq(routeReadiness.buildEligible, true))
+        : eq(routeReadiness.month, month),
     )
-    .bind(month)
-    .all();
+    .orderBy(
+      ...(buildEligibleOnly
+        ? [asc(routeReadiness.averageSpeedMph), asc(routeReadiness.routeId)]
+        : [
+            desc(routeReadiness.buildEligible),
+            desc(routeReadiness.readinessScore),
+            asc(routeReadiness.averageSpeedMph),
+            asc(routeReadiness.routeId),
+          ]),
+    );
 
-  const rows = (result.results ?? []).map((row) => RouteReadinessRowSchema.parse(row));
+  const parsedRows = rows.map((row) => RouteReadinessRowSchema.parse(row));
   const missingInputs = groupMissingInputs(await listReadinessMissingInputRows(db, month));
 
-  return rows.map((row) => toRouteReadiness(row, missingInputs));
+  return parsedRows.map((row) => toRouteReadiness(row, missingInputs));
 }
 
 export async function listRouteReadiness(
-  db: D1DatabaseLike,
+  db: D1ServingDb,
   month: string,
 ): Promise<RouteReadiness[]> {
   return listReadinessRows(db, month, false);
 }
 
 export async function listBuildEligibleRoutes(
-  db: D1DatabaseLike,
+  db: D1ServingDb,
   month: string,
 ): Promise<RouteReadiness[]> {
   return listReadinessRows(db, month, true);

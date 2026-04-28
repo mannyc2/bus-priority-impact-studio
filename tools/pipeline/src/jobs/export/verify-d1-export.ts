@@ -1,13 +1,7 @@
 import { Database } from "bun:sqlite";
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import type {
-  D1DatabaseLike,
-  D1PreparedStatement,
-  D1Result,
-  D1ServingDb,
-  D1Value,
-} from "@bp/db/d1";
+import type { D1ServingDb } from "@bp/db/d1";
 import {
   getRouteBatchStatus,
   listBuildEligibleRoutes,
@@ -93,35 +87,6 @@ type RepositoryCheckResult = {
   firstRouteArtifactCount: number;
 };
 
-class SqliteD1Statement<T> implements D1PreparedStatement<T> {
-  private values: D1Value[] = [];
-
-  constructor(private readonly statement: ReturnType<Database["query"]>) {}
-
-  bind(...values: D1Value[]): D1PreparedStatement<T> {
-    this.values = values;
-    return this;
-  }
-
-  async first(): Promise<T | null> {
-    return (this.statement.get(...this.values) as T | null) ?? null;
-  }
-
-  async all(): Promise<D1Result<T>> {
-    return {
-      results: this.statement.all(...this.values) as T[],
-    };
-  }
-}
-
-class SqliteD1Database implements D1DatabaseLike {
-  constructor(private readonly database: Database) {}
-
-  prepare<T = unknown>(query: string): D1PreparedStatement<T> {
-    return new SqliteD1Statement<T>(this.database.query(query));
-  }
-}
-
 function parseBuildArgs(args: D1VerifyArgs = {}): Required<D1VerifyArgs> {
   return {
     year: args.year ?? 2026,
@@ -192,25 +157,24 @@ function compareCount(input: {
 }
 
 async function repositoryChecks(input: {
-  legacyDb: D1DatabaseLike;
-  drizzleDb: D1ServingDb;
+  db: D1ServingDb;
   month: string;
 }): Promise<RepositoryCheckResult> {
-  const batchStatus = await getRouteBatchStatus(input.legacyDb, input.month);
-  const briefSummaries = await listRouteBriefSummaries(input.legacyDb, input.month);
-  const comparisonRanks = await listRouteComparisonRanks(input.drizzleDb, input.month);
-  const buildPlan = await listRouteBuildPlan(input.legacyDb, input.month);
-  const selectedBuildPlan = await listSelectedRouteBuildCandidates(input.legacyDb, input.month);
-  const buildEligibleRoutes = await listBuildEligibleRoutes(input.legacyDb, input.month);
-  const reliabilityBaselines = await listRouteReliabilityBaselines(input.legacyDb, input.month);
-  const routeEquityContexts = await listRouteEquityContexts(input.legacyDb, input.month);
+  const batchStatus = await getRouteBatchStatus(input.db, input.month);
+  const briefSummaries = await listRouteBriefSummaries(input.db, input.month);
+  const comparisonRanks = await listRouteComparisonRanks(input.db, input.month);
+  const buildPlan = await listRouteBuildPlan(input.db, input.month);
+  const selectedBuildPlan = await listSelectedRouteBuildCandidates(input.db, input.month);
+  const buildEligibleRoutes = await listBuildEligibleRoutes(input.db, input.month);
+  const reliabilityBaselines = await listRouteReliabilityBaselines(input.db, input.month);
+  const routeEquityContexts = await listRouteEquityContexts(input.db, input.month);
   const firstRouteId = briefSummaries[0]?.routeId ?? null;
   const routeMonthTrends =
-    firstRouteId === null ? [] : await listRouteMonthTrends(input.drizzleDb, firstRouteId);
+    firstRouteId === null ? [] : await listRouteMonthTrends(input.db, firstRouteId);
   const firstRouteArtifactCount =
     firstRouteId === null
       ? 0
-      : (await listRouteArtifacts(input.drizzleDb, firstRouteId, input.month)).length;
+      : (await listRouteArtifacts(input.db, firstRouteId, input.month)).length;
 
   return {
     batchStatus: batchStatus?.status ?? null,
@@ -413,8 +377,7 @@ export async function verifyD1Export(args: D1VerifyArgs = {}): Promise<D1VerifyR
   });
 
   const checks = await repositoryChecks({
-    legacyDb: new SqliteD1Database(database),
-    drizzleDb: createBunSqliteServingDb(database),
+    db: createBunSqliteServingDb(database),
     month,
   });
 

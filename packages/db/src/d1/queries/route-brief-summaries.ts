@@ -1,6 +1,8 @@
+import { and, asc, eq } from "drizzle-orm";
 import * as z from "zod";
-import type { D1DatabaseLike } from "./d1/legacy.js";
-import { IsoMonthSchema } from "./serving-shared.js";
+import type { D1ServingDb } from "../client.js";
+import { routeBriefPeakWindow, routeBriefSlowestWindow, routeBriefSummary } from "../schema.js";
+import { IsoMonthSchema } from "./shared.js";
 
 const RouteBriefSummaryRowSchema = z
   .object({
@@ -177,98 +179,130 @@ function toRouteBriefSummary(
 }
 
 async function listPeakWindowRows(
-  db: D1DatabaseLike,
+  db: D1ServingDb,
   month: string,
   routeId?: string,
 ): Promise<RouteBriefPeakWindowRow[]> {
   const whereClause =
-    routeId === undefined ? "WHERE month = ?" : "WHERE month = ? AND route_id = ?";
-  const result = await db
-    .prepare<RouteBriefPeakWindowRow>(
-      [
-        "SELECT route_id, month, window_rank, day_of_week, hour_of_day, ridership, transfers,",
-        "matched_observation_count, bus_trip_count, weighted_average_speed_mph, slow_observation_share",
-        "FROM route_brief_peak_window",
-        whereClause,
-        "ORDER BY route_id ASC, window_rank ASC",
-      ].join(" "),
-    )
-    .bind(...(routeId === undefined ? [month] : [month, routeId]))
-    .all();
+    routeId === undefined
+      ? eq(routeBriefPeakWindow.month, month)
+      : and(eq(routeBriefPeakWindow.month, month), eq(routeBriefPeakWindow.routeId, routeId));
+  const rows = await db
+    .select({
+      route_id: routeBriefPeakWindow.routeId,
+      month: routeBriefPeakWindow.month,
+      window_rank: routeBriefPeakWindow.windowRank,
+      day_of_week: routeBriefPeakWindow.dayOfWeek,
+      hour_of_day: routeBriefPeakWindow.hourOfDay,
+      ridership: routeBriefPeakWindow.ridership,
+      transfers: routeBriefPeakWindow.transfers,
+      matched_observation_count: routeBriefPeakWindow.matchedObservationCount,
+      bus_trip_count: routeBriefPeakWindow.busTripCount,
+      weighted_average_speed_mph: routeBriefPeakWindow.weightedAverageSpeedMph,
+      slow_observation_share: routeBriefPeakWindow.slowObservationShare,
+    })
+    .from(routeBriefPeakWindow)
+    .where(whereClause)
+    .orderBy(asc(routeBriefPeakWindow.routeId), asc(routeBriefPeakWindow.windowRank));
 
-  return (result.results ?? []).map((row) => RouteBriefPeakWindowRowSchema.parse(row));
+  return rows.map((row) => RouteBriefPeakWindowRowSchema.parse(row));
 }
 
 async function listSlowestWindowRows(
-  db: D1DatabaseLike,
+  db: D1ServingDb,
   month: string,
   routeId?: string,
 ): Promise<RouteBriefSlowestWindowRow[]> {
   const whereClause =
-    routeId === undefined ? "WHERE month = ?" : "WHERE month = ? AND route_id = ?";
-  const result = await db
-    .prepare<RouteBriefSlowestWindowRow>(
-      [
-        "SELECT route_id, month, window_rank, day_of_week, hour_of_day, observation_count,",
-        "bus_trip_count, segment_count, weighted_average_speed_mph,",
-        "weighted_average_travel_time_minutes, slow_observation_share",
-        "FROM route_brief_slowest_window",
-        whereClause,
-        "ORDER BY route_id ASC, window_rank ASC",
-      ].join(" "),
-    )
-    .bind(...(routeId === undefined ? [month] : [month, routeId]))
-    .all();
+    routeId === undefined
+      ? eq(routeBriefSlowestWindow.month, month)
+      : and(eq(routeBriefSlowestWindow.month, month), eq(routeBriefSlowestWindow.routeId, routeId));
+  const rows = await db
+    .select({
+      route_id: routeBriefSlowestWindow.routeId,
+      month: routeBriefSlowestWindow.month,
+      window_rank: routeBriefSlowestWindow.windowRank,
+      day_of_week: routeBriefSlowestWindow.dayOfWeek,
+      hour_of_day: routeBriefSlowestWindow.hourOfDay,
+      observation_count: routeBriefSlowestWindow.observationCount,
+      bus_trip_count: routeBriefSlowestWindow.busTripCount,
+      segment_count: routeBriefSlowestWindow.segmentCount,
+      weighted_average_speed_mph: routeBriefSlowestWindow.weightedAverageSpeedMph,
+      weighted_average_travel_time_minutes:
+        routeBriefSlowestWindow.weightedAverageTravelTimeMinutes,
+      slow_observation_share: routeBriefSlowestWindow.slowObservationShare,
+    })
+    .from(routeBriefSlowestWindow)
+    .where(whereClause)
+    .orderBy(asc(routeBriefSlowestWindow.routeId), asc(routeBriefSlowestWindow.windowRank));
 
-  return (result.results ?? []).map((row) => RouteBriefSlowestWindowRowSchema.parse(row));
+  return rows.map((row) => RouteBriefSlowestWindowRowSchema.parse(row));
 }
 
 export async function listRouteBriefSummaries(
-  db: D1DatabaseLike,
+  db: D1ServingDb,
   month: string,
 ): Promise<RouteBriefSummary[]> {
-  const result = await db
-    .prepare<RouteBriefSummaryRow>(
-      [
-        "SELECT route_id, month, route_score, public_visible, public_visibility_reason, average_speed_mph, hotspot_count,",
-        "total_ridership, total_transfers, ace_active, ace_violation_count,",
-        "bus_lane_matched_lane_count, schedule_match_rate",
-        "FROM route_brief_summary",
-        "WHERE month = ? AND public_visible = 1",
-        "ORDER BY route_score ASC, average_speed_mph ASC, route_id ASC",
-      ].join(" "),
-    )
-    .bind(month)
-    .all();
+  const rows = await db
+    .select({
+      route_id: routeBriefSummary.routeId,
+      month: routeBriefSummary.month,
+      route_score: routeBriefSummary.routeScore,
+      public_visible: routeBriefSummary.publicVisible,
+      public_visibility_reason: routeBriefSummary.publicVisibilityReason,
+      average_speed_mph: routeBriefSummary.averageSpeedMph,
+      hotspot_count: routeBriefSummary.hotspotCount,
+      total_ridership: routeBriefSummary.totalRidership,
+      total_transfers: routeBriefSummary.totalTransfers,
+      ace_active: routeBriefSummary.aceActive,
+      ace_violation_count: routeBriefSummary.aceViolationCount,
+      bus_lane_matched_lane_count: routeBriefSummary.busLaneMatchedLaneCount,
+      schedule_match_rate: routeBriefSummary.scheduleMatchRate,
+    })
+    .from(routeBriefSummary)
+    .where(and(eq(routeBriefSummary.month, month), eq(routeBriefSummary.publicVisible, true)))
+    .orderBy(
+      asc(routeBriefSummary.routeScore),
+      asc(routeBriefSummary.averageSpeedMph),
+      asc(routeBriefSummary.routeId),
+    );
 
-  const rows = (result.results ?? []).map((row) => RouteBriefSummaryRowSchema.parse(row));
+  const parsedRows = rows.map((row) => RouteBriefSummaryRowSchema.parse(row));
   const [peakRows, slowestRows] = await Promise.all([
     listPeakWindowRows(db, month),
     listSlowestWindowRows(db, month),
   ]);
 
-  return rows.map((row) =>
+  return parsedRows.map((row) =>
     toRouteBriefSummary(row, groupPeakWindows(peakRows), groupSlowestWindows(slowestRows)),
   );
 }
 
 export async function getRouteBriefSummary(
-  db: D1DatabaseLike,
+  db: D1ServingDb,
   routeId: string,
   month: string,
 ): Promise<RouteBriefSummary | null> {
-  const row = await db
-    .prepare<RouteBriefSummaryRow>(
-      [
-        "SELECT route_id, month, route_score, public_visible, public_visibility_reason, average_speed_mph, hotspot_count,",
-        "total_ridership, total_transfers, ace_active, ace_violation_count,",
-        "bus_lane_matched_lane_count, schedule_match_rate",
-        "FROM route_brief_summary",
-        "WHERE route_id = ? AND month = ?",
-      ].join(" "),
-    )
-    .bind(routeId, month)
-    .first();
+  const rows = await db
+    .select({
+      route_id: routeBriefSummary.routeId,
+      month: routeBriefSummary.month,
+      route_score: routeBriefSummary.routeScore,
+      public_visible: routeBriefSummary.publicVisible,
+      public_visibility_reason: routeBriefSummary.publicVisibilityReason,
+      average_speed_mph: routeBriefSummary.averageSpeedMph,
+      hotspot_count: routeBriefSummary.hotspotCount,
+      total_ridership: routeBriefSummary.totalRidership,
+      total_transfers: routeBriefSummary.totalTransfers,
+      ace_active: routeBriefSummary.aceActive,
+      ace_violation_count: routeBriefSummary.aceViolationCount,
+      bus_lane_matched_lane_count: routeBriefSummary.busLaneMatchedLaneCount,
+      schedule_match_rate: routeBriefSummary.scheduleMatchRate,
+    })
+    .from(routeBriefSummary)
+    .where(and(eq(routeBriefSummary.routeId, routeId), eq(routeBriefSummary.month, month)))
+    .limit(1);
+  const row = rows[0] ?? null;
 
   if (row === null) {
     return null;

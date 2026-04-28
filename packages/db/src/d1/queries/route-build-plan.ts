@@ -1,11 +1,13 @@
+import { and, asc, desc, eq, sql } from "drizzle-orm";
 import * as z from "zod";
-import type { D1DatabaseLike } from "./d1/legacy.js";
+import type { D1ServingDb } from "../client.js";
+import { routeBuildPlan } from "../schema.js";
 import {
   groupMissingInputs,
   listReadinessMissingInputRows,
   routeMonthKey,
-} from "./route-readiness-repository.js";
-import { IsoMonthSchema } from "./serving-shared.js";
+} from "./route-readiness.js";
+import { IsoMonthSchema } from "./shared.js";
 
 const RouteBuildPlanRowSchema = z
   .object({
@@ -82,47 +84,62 @@ function toRouteBuildPlanEntry(
 }
 
 async function listPlanRows(
-  db: D1DatabaseLike,
+  db: D1ServingDb,
   month: string,
   selectedOnly: boolean,
 ): Promise<RouteBuildPlanEntry[]> {
-  const result = await db
-    .prepare<RouteBuildPlanRow>(
-      [
-        "SELECT route_id, month, route_short_name, route_long_name, candidate_rank,",
-        "plan_status, selected_for_next_batch, already_built, build_eligible, priority_score,",
-        "readiness_status, readiness_score, speed_observation_count, speed_bus_trip_count,",
-        "average_speed_mph, schedule_timepoint_count",
-        "FROM route_build_plan",
-        selectedOnly ? "WHERE month = ? AND selected_for_next_batch = 1" : "WHERE month = ?",
-        selectedOnly
-          ? "ORDER BY candidate_rank ASC, route_id ASC"
-          : [
-              "ORDER BY selected_for_next_batch DESC,",
-              "CASE plan_status WHEN 'selected' THEN 0 WHEN 'backlog' THEN 1",
-              "WHEN 'already_built' THEN 2 ELSE 3 END ASC,",
-              "candidate_rank ASC, priority_score DESC, route_id ASC",
-            ].join(" "),
-      ].join(" "),
+  const rows = await db
+    .select({
+      route_id: routeBuildPlan.routeId,
+      month: routeBuildPlan.month,
+      route_short_name: routeBuildPlan.routeShortName,
+      route_long_name: routeBuildPlan.routeLongName,
+      candidate_rank: routeBuildPlan.candidateRank,
+      plan_status: routeBuildPlan.planStatus,
+      selected_for_next_batch: routeBuildPlan.selectedForNextBatch,
+      already_built: routeBuildPlan.alreadyBuilt,
+      build_eligible: routeBuildPlan.buildEligible,
+      priority_score: routeBuildPlan.priorityScore,
+      readiness_status: routeBuildPlan.readinessStatus,
+      readiness_score: routeBuildPlan.readinessScore,
+      speed_observation_count: routeBuildPlan.speedObservationCount,
+      speed_bus_trip_count: routeBuildPlan.speedBusTripCount,
+      average_speed_mph: routeBuildPlan.averageSpeedMph,
+      schedule_timepoint_count: routeBuildPlan.scheduleTimepointCount,
+    })
+    .from(routeBuildPlan)
+    .where(
+      selectedOnly
+        ? and(eq(routeBuildPlan.month, month), eq(routeBuildPlan.selectedForNextBatch, true))
+        : eq(routeBuildPlan.month, month),
     )
-    .bind(month)
-    .all();
+    .orderBy(
+      ...(selectedOnly
+        ? [asc(routeBuildPlan.candidateRank), asc(routeBuildPlan.routeId)]
+        : [
+            desc(routeBuildPlan.selectedForNextBatch),
+            sql`case ${routeBuildPlan.planStatus} when 'selected' then 0 when 'backlog' then 1 when 'already_built' then 2 else 3 end`,
+            asc(routeBuildPlan.candidateRank),
+            desc(routeBuildPlan.priorityScore),
+            asc(routeBuildPlan.routeId),
+          ]),
+    );
 
-  const rows = (result.results ?? []).map((row) => RouteBuildPlanRowSchema.parse(row));
+  const parsedRows = rows.map((row) => RouteBuildPlanRowSchema.parse(row));
   const missingInputs = groupMissingInputs(await listReadinessMissingInputRows(db, month));
 
-  return rows.map((row) => toRouteBuildPlanEntry(row, missingInputs));
+  return parsedRows.map((row) => toRouteBuildPlanEntry(row, missingInputs));
 }
 
 export async function listRouteBuildPlan(
-  db: D1DatabaseLike,
+  db: D1ServingDb,
   month: string,
 ): Promise<RouteBuildPlanEntry[]> {
   return listPlanRows(db, month, false);
 }
 
 export async function listSelectedRouteBuildCandidates(
-  db: D1DatabaseLike,
+  db: D1ServingDb,
   month: string,
 ): Promise<RouteBuildPlanEntry[]> {
   return listPlanRows(db, month, true);

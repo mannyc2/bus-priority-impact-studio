@@ -1,6 +1,8 @@
+import { and, asc, eq } from "drizzle-orm";
 import * as z from "zod";
-import type { D1DatabaseLike } from "./d1/legacy.js";
-import { IsoMonthSchema } from "./serving-shared.js";
+import type { D1ServingDb } from "../client.js";
+import { routeMonthSourceStatus } from "../schema.js";
+import { IsoMonthSchema } from "./shared.js";
 
 const RouteMonthSourceStatusRowSchema = z
   .object({
@@ -22,23 +24,31 @@ export type RouteMonthSourceStatusScope = z.output<
 export type RouteMonthSourceStatusRow = z.output<typeof RouteMonthSourceStatusRowSchema>;
 
 export async function listRouteMonthSourceStatuses(
-  db: D1DatabaseLike,
+  db: D1ServingDb,
   month: string,
   sourceScope: RouteMonthSourceStatusScope,
 ): Promise<RouteMonthSourceStatusRow[]> {
-  const result = await db
-    .prepare<RouteMonthSourceStatusRow>(
-      [
-        "SELECT route_id, month, source_scope, source_id, status, row_count, snapshot_id, note",
-        "FROM route_month_source_status",
-        "WHERE month = ? AND source_scope = ?",
-        "ORDER BY route_id ASC, source_id ASC",
-      ].join(" "),
+  const rows = await db
+    .select({
+      route_id: routeMonthSourceStatus.routeId,
+      month: routeMonthSourceStatus.month,
+      source_scope: routeMonthSourceStatus.sourceScope,
+      source_id: routeMonthSourceStatus.sourceId,
+      status: routeMonthSourceStatus.status,
+      row_count: routeMonthSourceStatus.rowCount,
+      snapshot_id: routeMonthSourceStatus.snapshotId,
+      note: routeMonthSourceStatus.note,
+    })
+    .from(routeMonthSourceStatus)
+    .where(
+      and(
+        eq(routeMonthSourceStatus.month, month),
+        eq(routeMonthSourceStatus.sourceScope, sourceScope),
+      ),
     )
-    .bind(month, sourceScope)
-    .all();
+    .orderBy(asc(routeMonthSourceStatus.routeId), asc(routeMonthSourceStatus.sourceId));
 
-  return (result.results ?? []).map((row) => RouteMonthSourceStatusRowSchema.parse(row));
+  return rows.map((row) => RouteMonthSourceStatusRowSchema.parse(row));
 }
 
 export function groupSourceStatuses(

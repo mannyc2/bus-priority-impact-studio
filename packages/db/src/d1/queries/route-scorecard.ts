@@ -1,7 +1,7 @@
 import { type RouteScorecard, RouteScorecardSchema } from "@bp/domain";
 import { and, asc, eq } from "drizzle-orm";
-import type { D1ServingDb } from "./d1/client.js";
-import { routeScorecard, routeScorecardCitation } from "./d1/schema.js";
+import type { D1ServingDb } from "../client.js";
+import { routeScorecard, routeScorecardCitation } from "../schema.js";
 
 export type RouteScorecardRow = {
   route_id: string;

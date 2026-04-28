@@ -1,7 +1,9 @@
+import { asc, desc, eq } from "drizzle-orm";
 import * as z from "zod";
-import type { D1DatabaseLike } from "./d1/legacy.js";
-import { IsoMonthSchema } from "./serving-shared.js";
-import { groupSourceStatuses, listRouteMonthSourceStatuses } from "./source-status-repository.js";
+import type { D1ServingDb } from "../client.js";
+import { routeReliabilityBaseline, routeReliabilityGapWindow } from "../schema.js";
+import { IsoMonthSchema } from "./shared.js";
+import { groupSourceStatuses, listRouteMonthSourceStatuses } from "./source-statuses.js";
 
 const RouteReliabilityBaselineRowSchema = z
   .object({
@@ -124,51 +126,62 @@ function toRouteReliabilityBaseline(
 }
 
 async function listGapWindowRows(
-  db: D1DatabaseLike,
+  db: D1ServingDb,
   month: string,
 ): Promise<RouteReliabilityGapWindowRow[]> {
-  const result = await db
-    .prepare<RouteReliabilityGapWindowRow>(
-      [
-        "SELECT route_id, month, window_rank, day_type, direction_id, stop_id, stop_name,",
-        "sample_count, median_headway_minutes, p90_headway_minutes, max_headway_minutes",
-        "FROM route_reliability_gap_window",
-        "WHERE month = ?",
-        "ORDER BY route_id ASC, window_rank ASC",
-      ].join(" "),
-    )
-    .bind(month)
-    .all();
+  const rows = await db
+    .select({
+      route_id: routeReliabilityGapWindow.routeId,
+      month: routeReliabilityGapWindow.month,
+      window_rank: routeReliabilityGapWindow.windowRank,
+      day_type: routeReliabilityGapWindow.dayType,
+      direction_id: routeReliabilityGapWindow.directionId,
+      stop_id: routeReliabilityGapWindow.stopId,
+      stop_name: routeReliabilityGapWindow.stopName,
+      sample_count: routeReliabilityGapWindow.sampleCount,
+      median_headway_minutes: routeReliabilityGapWindow.medianHeadwayMinutes,
+      p90_headway_minutes: routeReliabilityGapWindow.p90HeadwayMinutes,
+      max_headway_minutes: routeReliabilityGapWindow.maxHeadwayMinutes,
+    })
+    .from(routeReliabilityGapWindow)
+    .where(eq(routeReliabilityGapWindow.month, month))
+    .orderBy(asc(routeReliabilityGapWindow.routeId), asc(routeReliabilityGapWindow.windowRank));
 
-  return (result.results ?? []).map((row) => RouteReliabilityGapWindowRowSchema.parse(row));
+  return rows.map((row) => RouteReliabilityGapWindowRowSchema.parse(row));
 }
 
 export async function listRouteReliabilityBaselines(
-  db: D1DatabaseLike,
+  db: D1ServingDb,
   month: string,
 ): Promise<RouteReliabilityBaseline[]> {
-  const result = await db
-    .prepare<RouteReliabilityBaselineRow>(
-      [
-        "SELECT route_id, month, reliability_status, scheduled_timepoint_count,",
-        "stop_headway_group_count, headway_sample_count, median_scheduled_headway_minutes,",
-        "p90_scheduled_headway_minutes, max_scheduled_headway_minutes,",
-        "scheduled_short_headway_share, scheduled_long_gap_share",
-        "FROM route_reliability_baseline",
-        "WHERE month = ?",
-        "ORDER BY p90_scheduled_headway_minutes DESC, route_id ASC",
-      ].join(" "),
-    )
-    .bind(month)
-    .all();
+  const rows = await db
+    .select({
+      route_id: routeReliabilityBaseline.routeId,
+      month: routeReliabilityBaseline.month,
+      reliability_status: routeReliabilityBaseline.reliabilityStatus,
+      scheduled_timepoint_count: routeReliabilityBaseline.scheduledTimepointCount,
+      stop_headway_group_count: routeReliabilityBaseline.stopHeadwayGroupCount,
+      headway_sample_count: routeReliabilityBaseline.headwaySampleCount,
+      median_scheduled_headway_minutes: routeReliabilityBaseline.medianScheduledHeadwayMinutes,
+      p90_scheduled_headway_minutes: routeReliabilityBaseline.p90ScheduledHeadwayMinutes,
+      max_scheduled_headway_minutes: routeReliabilityBaseline.maxScheduledHeadwayMinutes,
+      scheduled_short_headway_share: routeReliabilityBaseline.scheduledShortHeadwayShare,
+      scheduled_long_gap_share: routeReliabilityBaseline.scheduledLongGapShare,
+    })
+    .from(routeReliabilityBaseline)
+    .where(eq(routeReliabilityBaseline.month, month))
+    .orderBy(
+      desc(routeReliabilityBaseline.p90ScheduledHeadwayMinutes),
+      asc(routeReliabilityBaseline.routeId),
+    );
 
-  const rows = (result.results ?? []).map((row) => RouteReliabilityBaselineRowSchema.parse(row));
+  const parsedRows = rows.map((row) => RouteReliabilityBaselineRowSchema.parse(row));
   const [gapWindows, sourceStatuses] = await Promise.all([
     listGapWindowRows(db, month),
     listRouteMonthSourceStatuses(db, month, "reliability"),
   ]);
 
-  return rows.map((row) =>
+  return parsedRows.map((row) =>
     toRouteReliabilityBaseline(
       row,
       groupGapWindows(gapWindows),

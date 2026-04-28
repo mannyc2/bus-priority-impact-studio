@@ -1,6 +1,8 @@
+import { asc, eq } from "drizzle-orm";
 import * as z from "zod";
-import type { D1DatabaseLike } from "./d1/legacy.js";
-import { IsoMonthSchema } from "./serving-shared.js";
+import type { D1ServingDb } from "../client.js";
+import { routeBatchBuiltRoute, routeBatchIssue, routeBatchStatus } from "../schema.js";
+import { IsoMonthSchema } from "./shared.js";
 
 const RouteBatchStatusRowSchema = z
   .object({
@@ -78,57 +80,60 @@ function toRouteBatchStatus(
   };
 }
 
-async function listBuiltRoutes(
-  db: D1DatabaseLike,
-  month: string,
-): Promise<RouteBatchBuiltRouteRow[]> {
-  const result = await db
-    .prepare<RouteBatchBuiltRouteRow>(
-      [
-        "SELECT month, route_rank, route_id, artifact_count, status",
-        "FROM route_batch_built_route",
-        "WHERE month = ?",
-        "ORDER BY route_rank ASC",
-      ].join(" "),
-    )
-    .bind(month)
-    .all();
+async function listBuiltRoutes(db: D1ServingDb, month: string): Promise<RouteBatchBuiltRouteRow[]> {
+  const rows = await db
+    .select({
+      month: routeBatchBuiltRoute.month,
+      route_rank: routeBatchBuiltRoute.routeRank,
+      route_id: routeBatchBuiltRoute.routeId,
+      artifact_count: routeBatchBuiltRoute.artifactCount,
+      status: routeBatchBuiltRoute.status,
+    })
+    .from(routeBatchBuiltRoute)
+    .where(eq(routeBatchBuiltRoute.month, month))
+    .orderBy(asc(routeBatchBuiltRoute.routeRank));
 
-  return (result.results ?? []).map((row) => RouteBatchBuiltRouteRowSchema.parse(row));
+  return rows.map((row) => RouteBatchBuiltRouteRowSchema.parse(row));
 }
 
-async function listIssues(db: D1DatabaseLike, month: string): Promise<RouteBatchIssueRow[]> {
-  const result = await db
-    .prepare<RouteBatchIssueRow>(
-      [
-        "SELECT month, issue_rank, route_id, severity, issue_code, message",
-        "FROM route_batch_issue",
-        "WHERE month = ?",
-        "ORDER BY issue_rank ASC",
-      ].join(" "),
-    )
-    .bind(month)
-    .all();
+async function listIssues(db: D1ServingDb, month: string): Promise<RouteBatchIssueRow[]> {
+  const rows = await db
+    .select({
+      month: routeBatchIssue.month,
+      issue_rank: routeBatchIssue.issueRank,
+      route_id: routeBatchIssue.routeId,
+      severity: routeBatchIssue.severity,
+      issue_code: routeBatchIssue.issueCode,
+      message: routeBatchIssue.message,
+    })
+    .from(routeBatchIssue)
+    .where(eq(routeBatchIssue.month, month))
+    .orderBy(asc(routeBatchIssue.issueRank));
 
-  return (result.results ?? []).map((row) => RouteBatchIssueRowSchema.parse(row));
+  return rows.map((row) => RouteBatchIssueRowSchema.parse(row));
 }
 
 export async function getRouteBatchStatus(
-  db: D1DatabaseLike,
+  db: D1ServingDb,
   month: string,
 ): Promise<RouteBatchStatus | null> {
-  const row = await db
-    .prepare<RouteBatchStatusRow>(
-      [
-        "SELECT month, generated_at, status, route_count, artifact_count,",
-        "missing_artifact_count, hash_mismatch_count, byte_length_mismatch_count,",
-        "total_byte_length, issue_count",
-        "FROM route_batch_status",
-        "WHERE month = ?",
-      ].join(" "),
-    )
-    .bind(month)
-    .first();
+  const rows = await db
+    .select({
+      month: routeBatchStatus.month,
+      generated_at: routeBatchStatus.generatedAt,
+      status: routeBatchStatus.status,
+      route_count: routeBatchStatus.routeCount,
+      artifact_count: routeBatchStatus.artifactCount,
+      missing_artifact_count: routeBatchStatus.missingArtifactCount,
+      hash_mismatch_count: routeBatchStatus.hashMismatchCount,
+      byte_length_mismatch_count: routeBatchStatus.byteLengthMismatchCount,
+      total_byte_length: routeBatchStatus.totalByteLength,
+      issue_count: routeBatchStatus.issueCount,
+    })
+    .from(routeBatchStatus)
+    .where(eq(routeBatchStatus.month, month))
+    .limit(1);
+  const row = rows[0] ?? null;
 
   if (row === null) {
     return null;

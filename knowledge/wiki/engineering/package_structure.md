@@ -394,8 +394,9 @@ A VPS is still not required for the MVP. Concrete triggers:
 - `wrangler.d1.jsonc` points Wrangler D1 migrations at `migrations/d1`.
 - the local D1 export path reads the Drizzle migration journal instead of duplicating table SQL strings.
 - `@bp/db/d1`, `@bp/db/pg`, and `@bp/db/shared` are explicit subpath surfaces.
-- `route-scorecard.ts` now reads through Drizzle query builders and accepts a Drizzle D1 database.
-- remaining repository files still accept `D1DatabaseLike` while they are migrated.
+- D1 serving query modules live under `src/d1/queries/` and read through Drizzle query builders.
+- D1 seed SQL literal helpers live under `src/d1/seed/`.
+- the legacy `D1DatabaseLike` prepared-statement compatibility layer has been removed.
 - Drizzle dependencies are scoped to `packages/db`.
 
 This should change in a small, staged way rather than rewriting the whole data layer at once.
@@ -410,29 +411,24 @@ packages/db/
     d1/
     pg/                                # add only when Postgres is introduced
   src/
-    schema/
-      d1/
-        index.ts
-        route-catalog.ts
-        route-scorecards.ts
-        route-briefs.ts
+    d1/
+      client.ts
+      schema.ts
+      validation.ts
+      queries/
+        route-scorecard.ts
+        route-brief-summaries.ts
         route-artifacts.ts
-        route-batches.ts
-      pg/
-        index.ts                       # future only
-      shared/
-        values.ts                      # enum/value constants only
-    client/
-      d1.ts
-      pg-hyperdrive.ts                 # future only
-    repositories/
-      d1/
-      pg/                              # future only
-    validation/
-      d1.ts
-      pg.ts                            # future only
-    seed/
-      d1-export.ts
+        route-batch-status.ts
+        route-build-plan.ts
+        route-readiness.ts
+        source-statuses.ts
+      seed/
+        sql-literals.ts
+    pg/
+      schema.ts                        # future canonical DB grows here
+    shared/
+      constants.ts                     # enum/value constants only
     index.ts
 ```
 
@@ -452,7 +448,7 @@ packages/db/
 - `@bp/db` may import `@bp/domain`, `drizzle-orm`, Drizzle drivers, Drizzle validation helpers, and `zod`.
 - `@bp/domain` must not import `@bp/db`, Drizzle, Cloudflare types, or source clients.
 - `@bp/analytics` should not import Drizzle tables; it produces typed domain/read-model outputs.
-- `@bp/pipeline` may call `@bp/db` seed/export helpers but should not construct SQL inline.
+- `tools/pipeline` may call `@bp/db/d1/seed` helpers while seed generation still writes SQL files; it should not own schema DDL or Worker read queries.
 - `apps/web/src/worker` may create a D1 Drizzle client and call repository functions; it must not run source ingestion or analytics.
 
 ### Stable migration path for package code
@@ -461,7 +457,7 @@ packages/db/
 2. Keep D1 seed/export DML separate from DDL; DDL comes from generated Drizzle migrations.
 3. Keep Drizzle-generated select/insert schemas beside DB schema code.
 4. Keep the existing repository function names and external types to avoid app churn.
-5. Replace manual SQL strings one table family at a time.
+5. Keep serving query implementation under `src/d1/queries`; add `src/pg/queries` only when Postgres is actually introduced.
 6. Keep product-queryable arrays/objects in child tables, not JSON text columns.
 7. Add `src/client/pg-hyperdrive.ts` only when the project actually adds Postgres/Hyperdrive.
 

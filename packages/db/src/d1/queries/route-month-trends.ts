@@ -1,8 +1,8 @@
 import { asc, eq } from "drizzle-orm";
 import * as z from "zod";
-import type { D1ServingDb } from "./d1/client.js";
-import { routeMonthTrend } from "./d1/schema.js";
-import { IsoMonthSchema } from "./serving-shared.js";
+import type { D1ServingDb } from "../client.js";
+import { routeMonthTrend } from "../schema.js";
+import { IsoMonthSchema } from "./shared.js";
 
 const RouteMonthTrendRowSchema = z
   .object({

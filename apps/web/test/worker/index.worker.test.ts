@@ -1,27 +1,23 @@
-import {
-  type D1PreparedStatement,
-  type D1Result,
-  type D1Value,
-  serializeRouteScorecard,
-  serializeRouteScorecardCitations,
-} from "@bp/db/d1";
+import { serializeRouteScorecard, serializeRouteScorecardCitations } from "@bp/db/d1";
 import { HealthResponseSchema, RouteScorecardSchema } from "@bp/domain";
 import { describe, expect, it } from "vitest";
 import type { Env } from "../../src/worker/index.js";
 import worker from "../../src/worker/index.js";
+
+type D1Value = string | number | boolean | null;
 
 type QueryCall = {
   query: string;
   bound: D1Value[];
 };
 
-class FakeStatement<T> implements D1PreparedStatement<T> {
+class FakeStatement<T> {
   constructor(
     private readonly call: QueryCall,
     private readonly rows: T[],
   ) {}
 
-  bind(...values: D1Value[]): D1PreparedStatement<T> {
+  bind(...values: D1Value[]): FakeStatement<T> {
     this.call.bound = values;
     return this;
   }
@@ -30,7 +26,7 @@ class FakeStatement<T> implements D1PreparedStatement<T> {
     return this.rows[0] ?? null;
   }
 
-  async all(): Promise<D1Result<T>> {
+  async all(): Promise<{ results: T[] }> {
     return { results: this.rows };
   }
 
@@ -44,7 +40,7 @@ class FakeDb {
 
   constructor(private readonly rowsByTable: Record<string, unknown[]>) {}
 
-  prepare<T = unknown>(query: string): D1PreparedStatement<T> {
+  prepare<T = unknown>(query: string): FakeStatement<T> {
     const call = { query, bound: [] };
     this.calls.push(call);
     const table = Object.keys(this.rowsByTable).find((candidate) => query.includes(candidate));

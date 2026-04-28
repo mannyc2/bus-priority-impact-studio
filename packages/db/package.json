@@ -8,6 +8,7 @@
     "./d1": "./src/d1/index.ts",
     "./d1/bun-sqlite": "./src/d1/bun-sqlite.ts",
     "./d1/schema": "./src/d1/schema.ts",
+    "./d1/seed": "./src/d1/seed/index.ts",
     "./d1/validation": "./src/d1/validation.ts",
     "./pg": "./src/pg/index.ts",
     "./pg/schema": "./src/pg/schema.ts",
