@@ -322,13 +322,12 @@ afterEach(async () => {
 });
 
 describe("D1 seed export", () => {
-  test("writes schema, seed SQL, and export summary from batch artifacts", async () => {
+  test("writes schema and seed SQL from local DB projections", async () => {
     await writeFixtureArtifacts();
 
     const result = await exportD1Seed({ year: 2026, month: 4, dbPath });
     const schema = await Bun.file(result.schemaPath).text();
     const seed = await Bun.file(result.seedPath).text();
-    const summary = await Bun.file(result.summaryPath).json();
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -386,23 +385,5 @@ describe("D1 seed export", () => {
     expect(seed).toContain("INSERT INTO route_batch_built_route");
     expect(seed).toContain("INSERT INTO route_batch_issue");
     expect(seed).not.toContain("_json");
-    expect(summary.routeCatalogRowCount).toBe(1);
-    expect(summary.routeCatalogTypeRowCount).toBe(1);
-    expect(summary.routeDirectionRowCount).toBe(2);
-    expect(summary.routeCoverageRowCount).toBe(1);
-    expect(summary.routeReadinessRowCount).toBe(1);
-    expect(summary.routeReadinessMissingInputRowCount).toBe(0);
-    expect(summary.routeBuildPlanRowCount).toBe(1);
-    expect(summary.routeReliabilityBaselineRowCount).toBe(1);
-    expect(summary.routeReliabilityGapWindowRowCount).toBe(0);
-    expect(summary.routeMonthSourceStatusRowCount).toBe(3);
-    expect(summary.routeMonthTrendRowCount).toBe(1);
-    expect(summary.routeEquityContextRowCount).toBe(1);
-    expect(summary.routeBatchStatusRowCount).toBe(1);
-    expect(summary.routeBatchBuiltRouteRowCount).toBe(1);
-    expect(summary.routeBatchIssueRowCount).toBe(10);
-    expect(summary.routeBriefPeakWindowRowCount).toBe(1);
-    expect(summary.routeBriefSlowestWindowRowCount).toBe(1);
-    expect(summary.artifactRowCount).toBe(1);
   });
 });

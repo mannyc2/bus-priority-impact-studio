@@ -365,7 +365,6 @@ describe("D1 export verification", () => {
     await writeFixtureArtifacts();
 
     const result = await verifyD1Export({ year: 2026, month: 9, dbPath });
-    const summary = await Bun.file(result.verifyPath).json();
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -390,7 +389,7 @@ describe("D1 export verification", () => {
         route_batch_built_route: 1,
       }),
     );
-    expect(summary.repositoryChecks).toEqual(
+    expect(result.repositoryChecks).toEqual(
       expect.objectContaining({
         batchStatus: "pass",
         routeBriefSummaryRows: 1,

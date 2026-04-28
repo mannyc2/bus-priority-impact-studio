@@ -318,7 +318,7 @@ The local and D1 `route_equity_context` tables store a county-level route proxy 
 
 ## D1 Export Verification
 
-`bun run verify:d1` regenerates the D1 seed, loads the seed SQL into an in-memory SQLite database, checks serving-table counts against the export summary, and exercises typed `packages/db` repository reads.
+`bun run verify:d1` regenerates the D1 seed, loads the seed SQL into an in-memory SQLite database, checks serving-table counts against the export result, and exercises typed `packages/db` repository reads.
 
 The March 2026 verification currently passes with these loaded table counts:
 
@@ -335,7 +335,7 @@ The March 2026 verification currently passes with these loaded table counts:
 - `route_comparison_rank`: 7
 - `route_batch_status`: 1
 
-The verification artifact is written to `data/exports/d1/<month>/verify-summary.json`.
+Verification no longer writes a JSON report; the command returns status, table counts, and repository-check details.
 
 ## Suggested indexes
 

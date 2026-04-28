@@ -155,7 +155,6 @@ describe("planned route batch build", () => {
           isoMonth,
           schemaPath: "/tmp/schema.sql",
           seedPath: "/tmp/seed.sql",
-          summaryPath: "/tmp/export-summary.json",
           routeCount: 2,
           artifactRowCount: 18,
           comparisonRowCount: 2,

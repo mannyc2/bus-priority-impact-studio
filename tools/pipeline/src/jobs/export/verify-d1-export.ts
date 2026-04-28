@@ -1,6 +1,4 @@
 import { Database } from "bun:sqlite";
-import { mkdir } from "node:fs/promises";
-import { join } from "node:path";
 import type { D1ServingDb } from "@bp/db/d1";
 import {
   getRouteBatchStatus,
@@ -16,13 +14,9 @@ import {
 } from "@bp/db/d1";
 import { createBunSqliteServingDb } from "@bp/db/d1/bun-sqlite";
 import { isoMonth } from "../../lib/dates.js";
-import { writeJson } from "../../lib/json.js";
 import { defaultLocalPipelineDbPath } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
-import { fromRepoRoot } from "../../source-manifest.js";
 import { exportD1Seed } from "./export-d1.js";
-
-const schemaVersion = 1;
 
 type D1VerifyArgs = {
   year?: number;
@@ -32,10 +26,10 @@ type D1VerifyArgs = {
 
 type D1VerifyResult = {
   isoMonth: string;
-  verifyPath: string;
   status: "pass" | "fail";
   issueCount: number;
   tableCounts: Record<string, number>;
+  repositoryChecks: RepositoryCheckResult;
 };
 
 type CountRow = {
@@ -163,8 +157,6 @@ export async function verifyD1Export(args: D1VerifyArgs = {}): Promise<D1VerifyR
     month: options.month,
     dbPath: options.dbPath,
   });
-  const exportDir = fromRepoRoot(join("data/exports/d1", month));
-  const verifyPath = join(exportDir, "verify-summary.json");
   const schemaSql = await Bun.file(exportResult.schemaPath).text();
   const seedSql = await Bun.file(exportResult.seedPath).text();
   const database = new Database(":memory:");
@@ -359,35 +351,6 @@ export async function verifyD1Export(args: D1VerifyArgs = {}): Promise<D1VerifyR
     issues.push(`repository:firstRouteArtifacts_missing:${checks.firstRouteId}`);
   }
 
-  const verification = {
-    schemaVersion,
-    analysisPeriod: month,
-    generatedAt: new Date().toISOString(),
-    status: issues.length === 0 ? "pass" : "fail",
-    seedPath: exportResult.seedPath,
-    tableCounts,
-    expectedCounts: {
-      route_catalog: exportResult.routeCatalogRowCount,
-      route_month_coverage: exportResult.routeCoverageRowCount,
-      route_readiness: exportResult.routeReadinessRowCount,
-      route_build_plan: exportResult.routeBuildPlanRowCount,
-      route_reliability_baseline: exportResult.routeReliabilityBaselineRowCount,
-      route_month_trend: exportResult.routeMonthTrendRowCount,
-      route_equity_context: exportResult.routeEquityContextRowCount,
-      route_scorecard: exportResult.routeCount,
-      route_artifact: exportResult.artifactRowCount,
-      route_brief_summary: exportResult.routeCount,
-      route_comparison_rank: exportResult.comparisonRowCount,
-      route_batch_status: exportResult.routeBatchStatusRowCount,
-    },
-    publicTableCounts,
-    repositoryChecks: checks,
-    issueCount: issues.length,
-    issues,
-  };
-
-  await mkdir(exportDir, { recursive: true });
-  await writeJson(verifyPath, verification);
   database.close();
 
   if (issues.length > 0) {
@@ -396,10 +359,10 @@ export async function verifyD1Export(args: D1VerifyArgs = {}): Promise<D1VerifyR
 
   return {
     isoMonth: month,
-    verifyPath,
     status: "pass",
     issueCount: 0,
     tableCounts,
+    repositoryChecks: checks,
   };
 }
 

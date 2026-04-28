@@ -22,14 +22,11 @@ import {
   listRouteScorecards,
 } from "@bp/db/local";
 import { isoMonth } from "../../lib/dates.js";
-import { writeJson } from "../../lib/json.js";
 import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
 import { fromRepoRoot } from "../../source-manifest.js";
 import { buildRouteBatchAudit } from "../build/route-batch-audit.js";
 import { readD1MigrationSql } from "./d1-migrations.js";
-
-const schemaVersion = 1;
 
 type D1ExportArgs = {
   year?: number;
@@ -41,7 +38,6 @@ type D1ExportResult = {
   isoMonth: string;
   schemaPath: string;
   seedPath: string;
-  summaryPath: string;
   routeCount: number;
   artifactRowCount: number;
   comparisonRowCount: number;
@@ -179,7 +175,6 @@ export async function exportD1Seed(args: D1ExportArgs = {}): Promise<D1ExportRes
   const exportDir = fromRepoRoot(join("data/exports/d1", month));
   const schemaPath = join(exportDir, "schema.sql");
   const seedPath = join(exportDir, "seed.sql");
-  const summaryPath = join(exportDir, "export-summary.json");
   await buildRouteBatchAudit({
     year: options.year,
     month: options.month,
@@ -483,47 +478,16 @@ export async function exportD1Seed(args: D1ExportArgs = {}): Promise<D1ExportRes
     );
   }
 
-  const summary = {
-    schemaVersion,
-    analysisPeriod: month,
-    generatedAt: new Date().toISOString(),
-    routeCount: routeBatchStatus?.routeCount ?? routeBriefSummaries.length,
-    artifactRowCount,
-    comparisonRowCount: routeComparisonRanks.length,
-    routeCatalogRowCount: routeCatalog.length,
-    routeCatalogTypeRowCount,
-    routeDirectionRowCount,
-    routeCoverageRowCount: routeCoverage.length,
-    routeReadinessRowCount: routeReadiness.length,
-    routeReadinessMissingInputRowCount,
-    routeBuildPlanRowCount: routeBuildPlan.length,
-    routeReliabilityBaselineRowCount: routeReliabilityBaseline.length,
-    routeReliabilityGapWindowRowCount,
-    routeMonthSourceStatusRowCount,
-    routeMonthTrendRowCount: routeMonthTrends.length,
-    routeEquityContextRowCount: routeEquityContext.length,
-    routeBatchStatusRowCount: routeBatchStatus === null ? 0 : 1,
-    routeBatchBuiltRouteRowCount,
-    routeBatchIssueRowCount,
-    routeBriefPeakWindowRowCount,
-    routeBriefSlowestWindowRowCount,
-    routeScorecardCitationRowCount,
-    schemaPath,
-    seedPath,
-  };
-
   await mkdir(exportDir, { recursive: true });
   await Promise.all([
     Bun.write(schemaPath, schemaSql),
     Bun.write(seedPath, `${statements.join("\n")}\n`),
-    writeJson(summaryPath, summary),
   ]);
 
   return {
     isoMonth: month,
     schemaPath,
     seedPath,
-    summaryPath,
     routeCount: routeBatchStatus?.routeCount ?? routeBriefSummaries.length,
     artifactRowCount,
     comparisonRowCount: routeComparisonRanks.length,
