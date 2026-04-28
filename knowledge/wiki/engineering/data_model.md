@@ -586,7 +586,7 @@ Use these patterns:
 ### Phased data-model implementation
 
 1. **Phase A — complete:** add Drizzle dependencies, represent the D1 serving tables as a D1 Drizzle schema, and generate/select schemas for current rows. Existing repositories continue to expose the same public functions.
-2. **Phase B — in progress:** generated D1 migration SQL exists under `packages/db/migrations/d1`; manual SQL table declarations remain as the runtime/export source until Wrangler migration wiring is added.
+2. **Phase B — complete locally:** generated D1 migration SQL exists under `packages/db/migrations/d1`, Wrangler migration scripts are wired through `@bp/db`, and the seed/export path reads the Drizzle migration journal instead of maintaining duplicate table SQL strings.
 3. **Phase C — initial pass complete:** product-queryable JSON columns were replaced with child tables for route catalog directions/types, missing inputs, source status, route batch details, citations, and brief windows.
 4. **Phase D — Postgres canonical schema:** only after the MVP needs dynamic analytics or larger retained history, add the Postgres schema/config and Hyperdrive client.
 5. **Phase E — generated serving projection:** generate D1 rows from Postgres or local artifacts and keep D1 as a small public-serving database.

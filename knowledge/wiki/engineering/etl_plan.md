@@ -236,9 +236,11 @@ Use a two-track workflow:
    - dialect: `sqlite`
    - D1 HTTP driver only for remote Drizzle Kit operations.
 2. **Cloudflare D1 application** through Wrangler migrations.
-   - Use `wrangler d1 migrations apply <database-name> --local` for local verification.
-   - Use `--remote` only after local and Worker tests pass.
+   - Use `bun run db:d1:migrate:local` for local verification.
+   - Use `bun run db:d1:migrate:remote` only after local and Worker tests pass and `packages/db/wrangler.d1.jsonc` has the real Cloudflare database ID.
    - Prefer database name over binding name for migration commands to avoid accidental binding drift.
+
+The D1 seed/export path writes DML only. It copies schema SQL from the Drizzle migration journal so generated migrations remain the DDL source of truth.
 
 Do not run `drizzle-kit push` against shared/production D1 for this repo. Generate/review SQL migrations instead.
 

@@ -391,8 +391,9 @@ A VPS is still not required for the MVP. Concrete triggers:
 - `src/schema/d1/index.ts` declares the D1 Drizzle table mirror.
 - `migrations/d1/` contains generated Drizzle SQL for the current D1 serving schema.
 - `src/validation/d1.ts` exposes Drizzle-Zod row schemas for DB boundary validation.
-- `serving-tables.ts` still declares D1 table SQL strings used by the local seed/export path.
-- `route-scorecard.ts` declares scorecard SQL and reconstructs citations from child rows.
+- `wrangler.d1.jsonc` points Wrangler D1 migrations at `migrations/d1`.
+- the local D1 export path reads the Drizzle migration journal instead of duplicating table SQL strings.
+- `route-scorecard.ts` reconstructs citations from child rows.
 - repository files accept a `D1DatabaseLike`.
 - Drizzle dependencies are scoped to `packages/db`.
 
@@ -456,7 +457,7 @@ packages/db/
 ### Stable migration path for package code
 
 1. Keep Drizzle dependencies only in `packages/db`, not every package.
-2. Keep the D1 Drizzle schema and D1 serving SQL aligned while the export path still uses SQL strings.
+2. Keep D1 seed/export DML separate from DDL; DDL comes from generated Drizzle migrations.
 3. Keep Drizzle-generated select/insert schemas beside DB schema code.
 4. Keep the existing repository function names and external types to avoid app churn.
 5. Replace manual SQL strings one table family at a time.
@@ -469,10 +470,9 @@ Do not add these until dependencies are added, but use these names to keep the r
 
 ```json
 {
-  "db:d1:generate": "drizzle-kit generate --config packages/db/drizzle.config.d1.ts",
-  "db:d1:check": "drizzle-kit check --config packages/db/drizzle.config.d1.ts",
-  "db:d1:migrate:local": "wrangler d1 migrations apply bus-priority-serving --local --config apps/web/wrangler.jsonc",
-  "db:d1:migrate:remote": "wrangler d1 migrations apply bus-priority-serving --remote --config apps/web/wrangler.jsonc",
+  "db:d1:generate": "bun --filter @bp/db db:generate:d1",
+  "db:d1:migrate:local": "bun --filter @bp/db db:migrate:d1:local",
+  "db:d1:migrate:remote": "bun --filter @bp/db db:migrate:d1:remote",
   "db:pg:generate": "drizzle-kit generate --config packages/db/drizzle.config.pg.ts"
 }
 ```

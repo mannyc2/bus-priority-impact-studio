@@ -1,31 +1,6 @@
 import { type RouteScorecard, RouteScorecardSchema } from "@bp/domain";
 import type { D1DatabaseLike } from "./d1.js";
 
-export const createRouteScorecardTableSql = `
-CREATE TABLE IF NOT EXISTS route_scorecard (
-  route_id TEXT NOT NULL,
-  month TEXT NOT NULL,
-  route_score INTEGER NOT NULL CHECK (route_score BETWEEN 0 AND 100),
-  coverage_status TEXT NOT NULL CHECK (coverage_status IN ('full', 'no_observed_speed')),
-  average_speed_mph REAL NOT NULL CHECK (average_speed_mph >= 0),
-  hotspot_count INTEGER NOT NULL CHECK (hotspot_count >= 0),
-  PRIMARY KEY (route_id, month)
-);
-`;
-
-export const createRouteScorecardCitationTableSql = `
-CREATE TABLE IF NOT EXISTS route_scorecard_citation (
-  route_id TEXT NOT NULL,
-  month TEXT NOT NULL,
-  citation_rank INTEGER NOT NULL CHECK (citation_rank >= 1),
-  source_id TEXT NOT NULL,
-  title TEXT NOT NULL,
-  url TEXT NOT NULL,
-  verified_at TEXT NOT NULL,
-  PRIMARY KEY (route_id, month, citation_rank)
-);
-`;
-
 export type RouteScorecardRow = {
   route_id: string;
   month: string;

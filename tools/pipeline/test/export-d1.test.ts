@@ -341,6 +341,7 @@ describe("D1 seed export", () => {
     await writeFixtureArtifacts();
 
     const result = await exportD1Seed({ year: 2026, month: 4, networkDir, trendsDir });
+    const schema = await Bun.file(result.schemaPath).text();
     const seed = await Bun.file(result.seedPath).text();
     const summary = await Bun.file(result.summaryPath).json();
 
@@ -370,7 +371,8 @@ describe("D1 seed export", () => {
         comparisonRowCount: 1,
       }),
     );
-    expect(seed).toContain("CREATE TABLE IF NOT EXISTS route_scorecard");
+    expect(schema).toContain("CREATE TABLE `route_scorecard`");
+    expect(seed).not.toContain("CREATE TABLE");
     expect(seed).toContain("DELETE FROM route_catalog;");
     expect(seed).toContain("DELETE FROM route_month_coverage WHERE month = '2026-04';");
     expect(seed).toContain("DELETE FROM route_readiness WHERE month = '2026-04';");

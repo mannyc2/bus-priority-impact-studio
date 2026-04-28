@@ -1,13 +1,7 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { classifyPublicRouteVisibility } from "@bp/analytics";
-import {
-  boolInt,
-  createServingTablesSql,
-  sqlNullableNumber,
-  sqlNullableString,
-  sqlString,
-} from "@bp/db";
+import { boolInt, sqlNullableNumber, sqlNullableString, sqlString } from "@bp/db";
 import * as z from "zod";
 import { routeSliceKey } from "../../lib/artifacts.js";
 import { isoMonth } from "../../lib/dates.js";
@@ -15,6 +9,7 @@ import { writeJson } from "../../lib/json.js";
 import { fromCliPath } from "../../lib/paths.js";
 import { fromRepoRoot } from "../../source-manifest.js";
 import { buildRouteBatchAudit } from "../build/route-batch-audit.js";
+import { readD1MigrationSql } from "./d1-migrations.js";
 
 const schemaVersion = 1;
 
@@ -546,8 +541,8 @@ export async function exportD1Seed(args: D1ExportArgs = {}): Promise<D1ExportRes
   const routeEquityContext = RouteEquityContextSchema.parse(
     await Bun.file(join(batchDir, "route-equity-context.json")).json(),
   );
+  const schemaSql = await readD1MigrationSql();
   const statements: string[] = [
-    createServingTablesSql.trim(),
     "DELETE FROM route_catalog_type;",
     "DELETE FROM route_direction;",
     "DELETE FROM route_catalog;",
@@ -884,7 +879,7 @@ export async function exportD1Seed(args: D1ExportArgs = {}): Promise<D1ExportRes
 
   await mkdir(exportDir, { recursive: true });
   await Promise.all([
-    Bun.write(schemaPath, `${createServingTablesSql.trim()}\n`),
+    Bun.write(schemaPath, schemaSql),
     Bun.write(seedPath, `${statements.join("\n")}\n`),
     writeJson(summaryPath, summary),
   ]);

@@ -227,10 +227,12 @@ export async function verifyD1Export(args: D1VerifyArgs = {}): Promise<D1VerifyR
   const exportDir = fromRepoRoot(join("data/exports/d1", month));
   const verifyPath = join(exportDir, "verify-summary.json");
   const summary = ExportSummarySchema.parse(await Bun.file(exportResult.summaryPath).json());
+  const schemaSql = await Bun.file(exportResult.schemaPath).text();
   const seedSql = await Bun.file(summary.seedPath).text();
   const database = new Database(":memory:");
   const issues: string[] = [];
 
+  database.exec(schemaSql);
   database.exec(seedSql);
 
   const tableCounts = {
