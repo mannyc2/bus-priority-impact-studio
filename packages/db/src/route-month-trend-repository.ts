@@ -1,5 +1,7 @@
+import { asc, eq } from "drizzle-orm";
 import * as z from "zod";
-import type { D1DatabaseLike } from "./d1/legacy.js";
+import type { D1ServingDb } from "./d1/client.js";
+import { routeMonthTrend } from "./d1/schema.js";
 import { IsoMonthSchema } from "./serving-shared.js";
 
 const RouteMonthTrendRowSchema = z
@@ -45,23 +47,24 @@ function toRouteMonthTrend(row: RouteMonthTrendRow): RouteMonthTrend {
 }
 
 export async function listRouteMonthTrends(
-  db: D1DatabaseLike,
+  db: D1ServingDb,
   routeId: string,
 ): Promise<RouteMonthTrend[]> {
-  const result = await db
-    .prepare<RouteMonthTrendRow>(
-      [
-        "SELECT route_id, month, speed_observation_count, speed_bus_trip_count,",
-        "average_speed_mph, ridership, transfers, has_speed_trend, has_ridership_trend",
-        "FROM route_month_trend",
-        "WHERE route_id = ?",
-        "ORDER BY month ASC",
-      ].join(" "),
-    )
-    .bind(routeId)
-    .all();
+  const rows = await db
+    .select({
+      route_id: routeMonthTrend.routeId,
+      month: routeMonthTrend.month,
+      speed_observation_count: routeMonthTrend.speedObservationCount,
+      speed_bus_trip_count: routeMonthTrend.speedBusTripCount,
+      average_speed_mph: routeMonthTrend.averageSpeedMph,
+      ridership: routeMonthTrend.ridership,
+      transfers: routeMonthTrend.transfers,
+      has_speed_trend: routeMonthTrend.hasSpeedTrend,
+      has_ridership_trend: routeMonthTrend.hasRidershipTrend,
+    })
+    .from(routeMonthTrend)
+    .where(eq(routeMonthTrend.routeId, routeId))
+    .orderBy(asc(routeMonthTrend.month));
 
-  return (result.results ?? []).map((row) =>
-    toRouteMonthTrend(RouteMonthTrendRowSchema.parse(row)),
-  );
+  return rows.map((row) => toRouteMonthTrend(RouteMonthTrendRowSchema.parse(row)));
 }

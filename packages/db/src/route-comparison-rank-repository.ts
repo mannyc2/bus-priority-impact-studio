@@ -1,5 +1,7 @@
+import { asc, eq } from "drizzle-orm";
 import * as z from "zod";
-import type { D1DatabaseLike } from "./d1/legacy.js";
+import type { D1ServingDb } from "./d1/client.js";
+import { routeComparisonRank } from "./d1/schema.js";
 import { IsoMonthSchema } from "./serving-shared.js";
 
 const RouteComparisonRankRowSchema = z
@@ -42,23 +44,23 @@ function toRouteComparisonRank(row: RouteComparisonRankRow): RouteComparisonRank
 }
 
 export async function listRouteComparisonRanks(
-  db: D1DatabaseLike,
+  db: D1ServingDb,
   month: string,
 ): Promise<RouteComparisonRank[]> {
-  const result = await db
-    .prepare<RouteComparisonRankRow>(
-      [
-        "SELECT month, rank, route_id, route_score, average_speed_mph, total_ridership,",
-        "ace_violation_count, bus_lane_matched_lane_count",
-        "FROM route_comparison_rank",
-        "WHERE month = ?",
-        "ORDER BY rank ASC",
-      ].join(" "),
-    )
-    .bind(month)
-    .all();
+  const rows = await db
+    .select({
+      month: routeComparisonRank.month,
+      rank: routeComparisonRank.rank,
+      route_id: routeComparisonRank.routeId,
+      route_score: routeComparisonRank.routeScore,
+      average_speed_mph: routeComparisonRank.averageSpeedMph,
+      total_ridership: routeComparisonRank.totalRidership,
+      ace_violation_count: routeComparisonRank.aceViolationCount,
+      bus_lane_matched_lane_count: routeComparisonRank.busLaneMatchedLaneCount,
+    })
+    .from(routeComparisonRank)
+    .where(eq(routeComparisonRank.month, month))
+    .orderBy(asc(routeComparisonRank.rank));
 
-  return (result.results ?? []).map((row) =>
-    toRouteComparisonRank(RouteComparisonRankRowSchema.parse(row)),
-  );
+  return rows.map((row) => toRouteComparisonRank(RouteComparisonRankRowSchema.parse(row)));
 }

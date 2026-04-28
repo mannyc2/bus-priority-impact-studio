@@ -1,4 +1,8 @@
+import { Database } from "bun:sqlite";
 import { describe, expect, test } from "bun:test";
+import { createBunSqliteServingDb } from "../src/d1/bun-sqlite.js";
+import type { D1ServingDb } from "../src/d1/index.js";
+import { routeArtifact, routeComparisonRank, routeMonthTrend } from "../src/d1/schema.js";
 import type { D1DatabaseLike, D1PreparedStatement, D1Result, D1Value } from "../src/index.js";
 import {
   getRouteBatchStatus,
@@ -55,6 +59,19 @@ class FakeDb implements D1DatabaseLike {
 
     return new FakeStatement(call, rows);
   }
+}
+
+async function createDrizzleTestDb(): Promise<{ db: D1ServingDb; sqlite: Database }> {
+  const sqlite = new Database(":memory:");
+  const migrationSql = await Bun.file(
+    new URL("../migrations/d1/0000_tense_jane_foster.sql", import.meta.url),
+  ).text();
+  sqlite.exec(migrationSql);
+
+  return {
+    db: createBunSqliteServingDb(sqlite),
+    sqlite,
+  };
 }
 
 const summaryRow = {
@@ -234,18 +251,6 @@ const reliabilityBaselineRow = {
   scheduled_long_gap_share: 0.15,
 };
 
-const trendRow = {
-  route_id: "M57",
-  month: "2026-03",
-  speed_observation_count: 5549,
-  speed_bus_trip_count: 14369,
-  average_speed_mph: 5.2718,
-  ridership: 250000,
-  transfers: 30000,
-  has_speed_trend: 1,
-  has_ridership_trend: 1,
-};
-
 const equityContextRow = {
   route_id: "M1",
   month: "2026-03",
@@ -345,23 +350,19 @@ describe("route serving repository", () => {
   });
 
   test("lists artifact metadata for a route", async () => {
-    const db = new FakeDb({
-      route_artifact: [
-        {
-          route_id: "M1",
-          month: "2026-03",
-          artifact_name: "route-brief-input.json",
-          artifact_key: "route-slices/m1-2026-03/route-brief-input.json",
-          content_type: "application/json",
-          byte_length: 123,
-          sha256: "a".repeat(64),
-        },
-      ],
+    const { db, sqlite } = await createDrizzleTestDb();
+    await db.insert(routeArtifact).values({
+      routeId: "M1",
+      month: "2026-03",
+      artifactName: "route-brief-input.json",
+      artifactKey: "route-slices/m1-2026-03/route-brief-input.json",
+      contentType: "application/json",
+      byteLength: 123,
+      sha256: "a".repeat(64),
     });
 
     const rows = await listRouteArtifacts(db, "M1", "2026-03");
 
-    expect(db.calls[0]?.bound).toEqual(["M1", "2026-03"]);
     expect(rows).toEqual([
       expect.objectContaining({
         routeId: "M1",
@@ -369,27 +370,24 @@ describe("route serving repository", () => {
         byteLength: 123,
       }),
     ]);
+    sqlite.close();
   });
 
   test("lists comparison ranks ordered by rank", async () => {
-    const db = new FakeDb({
-      route_comparison_rank: [
-        {
-          month: "2026-03",
-          rank: 1,
-          route_id: "M1",
-          route_score: 16,
-          average_speed_mph: 6.7409,
-          total_ridership: 207870,
-          ace_violation_count: 0,
-          bus_lane_matched_lane_count: 228,
-        },
-      ],
+    const { db, sqlite } = await createDrizzleTestDb();
+    await db.insert(routeComparisonRank).values({
+      month: "2026-03",
+      rank: 1,
+      routeId: "M1",
+      routeScore: 16,
+      averageSpeedMph: 6.7409,
+      totalRidership: 207870,
+      aceViolationCount: 0,
+      busLaneMatchedLaneCount: 228,
     });
 
     const rows = await listRouteComparisonRanks(db, "2026-03");
 
-    expect(db.calls[0]?.query).toContain("ORDER BY rank ASC");
     expect(rows).toEqual([
       expect.objectContaining({
         rank: 1,
@@ -397,6 +395,7 @@ describe("route serving repository", () => {
         routeScore: 16,
       }),
     ]);
+    sqlite.close();
   });
 
   test("lists route readiness rows with missing input details", async () => {
@@ -481,12 +480,21 @@ describe("route serving repository", () => {
   });
 
   test("lists route monthly trend rows ordered by month", async () => {
-    const db = new FakeDb({ route_month_trend: [trendRow] });
+    const { db, sqlite } = await createDrizzleTestDb();
+    await db.insert(routeMonthTrend).values({
+      routeId: "M57",
+      month: "2026-03",
+      speedObservationCount: 5549,
+      speedBusTripCount: 14369,
+      averageSpeedMph: 5.2718,
+      ridership: 250000,
+      transfers: 30000,
+      hasSpeedTrend: true,
+      hasRidershipTrend: true,
+    });
 
     const rows = await listRouteMonthTrends(db, "M57");
 
-    expect(db.calls[0]?.query).toContain("FROM route_month_trend");
-    expect(db.calls[0]?.bound).toEqual(["M57"]);
     expect(rows).toEqual([
       expect.objectContaining({
         routeId: "M57",
@@ -497,6 +505,7 @@ describe("route serving repository", () => {
         hasRidershipTrend: true,
       }),
     ]);
+    sqlite.close();
   });
 
   test("lists route equity context rows with source-status child rows", async () => {

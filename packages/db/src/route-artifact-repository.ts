@@ -1,5 +1,7 @@
+import { and, asc, eq } from "drizzle-orm";
 import * as z from "zod";
-import type { D1DatabaseLike } from "./d1/legacy.js";
+import type { D1ServingDb } from "./d1/client.js";
+import { routeArtifact } from "./d1/schema.js";
 import { IsoMonthSchema } from "./serving-shared.js";
 
 const RouteArtifactRowSchema = z
@@ -39,21 +41,23 @@ function toRouteArtifact(row: RouteArtifactRow): RouteArtifact {
 }
 
 export async function listRouteArtifacts(
-  db: D1DatabaseLike,
+  db: D1ServingDb,
   routeId: string,
   month: string,
 ): Promise<RouteArtifact[]> {
-  const result = await db
-    .prepare<RouteArtifactRow>(
-      [
-        "SELECT route_id, month, artifact_name, artifact_key, content_type, byte_length, sha256",
-        "FROM route_artifact",
-        "WHERE route_id = ? AND month = ?",
-        "ORDER BY artifact_name ASC",
-      ].join(" "),
-    )
-    .bind(routeId, month)
-    .all();
+  const rows = await db
+    .select({
+      route_id: routeArtifact.routeId,
+      month: routeArtifact.month,
+      artifact_name: routeArtifact.artifactName,
+      artifact_key: routeArtifact.artifactKey,
+      content_type: routeArtifact.contentType,
+      byte_length: routeArtifact.byteLength,
+      sha256: routeArtifact.sha256,
+    })
+    .from(routeArtifact)
+    .where(and(eq(routeArtifact.routeId, routeId), eq(routeArtifact.month, month)))
+    .orderBy(asc(routeArtifact.artifactName));
 
-  return (result.results ?? []).map((row) => toRouteArtifact(RouteArtifactRowSchema.parse(row)));
+  return rows.map((row) => toRouteArtifact(RouteArtifactRowSchema.parse(row)));
 }
