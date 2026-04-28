@@ -2,10 +2,10 @@
 title: Managed Services Options
 type: project
 status: active
-last_updated: 2026-04-26
+last_updated: 2026-04-27
 owner: codex
-source_count: 27
-tags: [infrastructure, hosting, managed-services, cloudflare, vps, cost]
+source_count: 39
+tags: [infrastructure, hosting, managed-services, cloudflare, d1, postgres, hyperdrive, vps, cost]
 ---
 
 # Managed Services Options
@@ -345,3 +345,86 @@ Keep these tasks local/offline even if the public app is fully managed:
 Recommendation: Cloudflare Workers Static Assets + Worker API + D1 + R2 for the public MVP, with local TypeScript/DuckDB/Turf pipeline jobs precomputing artifacts and Neon Postgres/PostGIS reserved for the first dynamic geospatial upgrade.
 
 Escalate to VPS when: use a VPS only when the project needs always-on collectors or long-running jobs that cannot be split into local batch artifacts or managed Postgres/serverless tasks.
+
+## D1 10 GB concern and Drizzle/Hyperdrive clarification — 2026-04-27
+
+### Answer to the D1 concern
+
+The concern is correct: D1 should not be treated as this project's main database. Cloudflare documents D1 as designed for horizontal scale-out across many smaller databases, such as per-user, per-tenant, or per-entity databases. It also documents a hard 10 GB maximum database size on Workers Paid and 500 MB on Free. That profile is not a good fit for a single canonical MTA analytics warehouse.
+
+For this project, D1 is still useful because the recommendation is **not** "store all data in D1." The recommendation is:
+
+```text
+Local Bun pipeline and/or future Postgres = canonical computation and normalized source history
+R2/static assets = large generated artifacts and source snapshots
+D1 = compact edge serving projection for public read models
+```
+
+D1 works for the MVP only if the D1 projection is intentionally small and replaceable. If we keep loading more route/month/source history into D1, the architecture is wrong.
+
+### Cheapest credible MVP
+
+Keep:
+
+- Workers Static Assets + Worker API,
+- D1 for route scorecards, route catalog, source freshness, brief summaries, citation rows, artifact metadata, and small hotspot summaries,
+- R2/static assets for GeoJSON, route briefs, source snapshots, and later PMTiles,
+- local Bun pipeline for historical setup/backfill.
+
+Do not add Postgres yet unless the next product feature needs canonical retained analytics data or dynamic ad hoc query surfaces.
+
+### More flexible version
+
+When the project needs retained normalized history or dynamic analytical queries, add:
+
+- managed Postgres as canonical operational/analytics DB,
+- Cloudflare Hyperdrive for Worker access to Postgres,
+- Drizzle Postgres schema/migrations in `packages/db`,
+- D1 retained only as optional edge serving projection.
+
+This is a clearer escalation than adding a VPS. Hyperdrive is specifically documented for connecting Workers to PostgreSQL/PostgreSQL-compatible databases and supports ORM libraries that use those drivers.
+
+### What actually forces Postgres/Hyperdrive
+
+Escalate from D1-only serving when any of these are true:
+
+- product users need to query/filter detailed historical observations, not just summaries,
+- retained source history no longer fits comfortably in compact D1 projections,
+- route/month child tables and indexes are trending toward hundreds of MB in D1,
+- Worker queries need dynamic joins across routes, months, interventions, equity context, and source snapshots,
+- analytics needs transactional operational state beyond import/export metadata,
+- D1's 100-column, 2 MB row, 100-bound-parameter, 30-second-query, or 10 GB database limits shape product decisions.
+
+### What still does not force a VPS
+
+A bigger database alone does not force a VPS. Prefer managed Postgres + Hyperdrive before a VPS because the repo already targets Workers for public serving and because a VPS adds deployment, patching, monitoring, and process management work.
+
+A VPS becomes justified only for always-on collectors, long-running jobs that cannot be moved local or split into Worker/Queue/Cron steps, custom system dependencies, or predictable flat-cost runtime needs that managed services cannot meet.
+
+### Monthly cost implication
+
+- **Local-first/public MVP:** still mostly free/near-free if D1 remains small and R2 artifacts stay inside free tier.
+- **Light public demo traffic:** Workers paid may be worthwhile for operational headroom, but D1 storage should remain tiny.
+- **Moderate portfolio usage:** if D1 growth is due to summaries and child tables, optimize/index/split artifacts first; if growth is due to canonical history, move canonical storage to Postgres rather than expanding D1 usage.
+
+## Sources added in this update
+
+- Zod package on npm — https://www.npmjs.com/package/zod — verified_at: 2026-04-27. npm search result reported latest version `4.3.6`; the checked-in `bun.lock` already resolves root `zod` to `zod@4.3.6`.
+- Zod 4 release notes — https://zod.dev/v4 — verified_at: 2026-04-27. Documents Zod 4 as stable.
+- Zod 4 JSON Schema docs — https://zod.dev/json-schema — verified_at: 2026-04-27. Documents native JSON Schema conversion.
+- Drizzle Cloudflare D1 docs — https://orm.drizzle.team/docs/connect-cloudflare-d1 — verified_at: 2026-04-27. Documents `drizzle-orm/d1`, D1 Worker bindings, and Bun install commands.
+- Drizzle zod docs — https://orm.drizzle.team/docs/zod — verified_at: 2026-04-27. Documents `createSelectSchema`, `createInsertSchema`, `createUpdateSchema`, `createSchemaFactory`, `zod/v4`, and the `drizzle-zod` deprecation note starting with `drizzle-orm@1.0.0-beta.15`.
+- Drizzle config docs — https://orm.drizzle.team/docs/drizzle-config-file — verified_at: 2026-04-27. Documents dialect-specific config, schema glob support, `out`, and `d1-http` driver.
+- Drizzle Kit overview — https://orm.drizzle.team/docs/kit-overview — verified_at: 2026-04-27. Documents generating/running SQL migrations and Bun command support.
+- Drizzle D1 HTTP API guide — https://orm.drizzle.team/docs/guides/d1-http-with-drizzle-kit — verified_at: 2026-04-27. Documents Drizzle Kit `d1-http` migration/push/introspect/studio configuration.
+- Cloudflare D1 overview — https://developers.cloudflare.com/d1/ — verified_at: 2026-04-27. Documents D1 as horizontally scaled across many smaller 10 GB databases.
+- Cloudflare D1 limits — https://developers.cloudflare.com/d1/platform/limits/ — verified_at: 2026-04-27. Documents 500 MB Free / 10 GB Paid max database size, 100-column table limit, 2 MB max row/string/BLOB, 100 bound parameters, 100 KB max SQL statement, and 30-second max query duration.
+- Cloudflare D1 pricing — https://developers.cloudflare.com/d1/platform/pricing/ — verified_at: 2026-04-27. Documents rows-read/rows-written pricing, free/paid included storage, and storage billing including tables and indexes.
+- Cloudflare D1 Worker Binding API — https://developers.cloudflare.com/d1/worker-api/ — verified_at: 2026-04-27. Documents prepared statements and typed row results.
+- Cloudflare D1 migrations — https://developers.cloudflare.com/d1/reference/migrations/ — verified_at: 2026-04-27. Documents SQL migration files, create/list/apply, and `d1_migrations`.
+- Cloudflare D1 Wrangler commands — https://developers.cloudflare.com/d1/wrangler-commands/ — verified_at: 2026-04-27. Documents `wrangler d1 migrations create/list/apply`.
+- Cloudflare D1 local development — https://developers.cloudflare.com/d1/best-practices/local-development/ — verified_at: 2026-04-27. Documents local D1 development, `preview_database_id`, and local migrations.
+- Cloudflare Hyperdrive Drizzle example — https://developers.cloudflare.com/hyperdrive/examples/connect-to-postgres/postgres-drivers-and-libraries/drizzle-orm/ — verified_at: 2026-04-27. Documents `pg`, `drizzle-orm/node-postgres`, `nodejs_compat`, Hyperdrive binding, and per-request client connection.
+- Cloudflare Hyperdrive PostgreSQL docs — https://developers.cloudflare.com/hyperdrive/examples/connect-to-postgres/ — verified_at: 2026-04-27. Documents PostgreSQL/PostgreSQL-compatible database support and ORM/driver support.
+- Cloudflare Workers limits — https://developers.cloudflare.com/workers/platform/limits/ — verified_at: 2026-04-27. Documents default 30-second CPU limit on Paid Workers and optional increase to 5 minutes.
+- Cloudflare Queues limits — https://developers.cloudflare.com/queues/platform/limits/ — verified_at: 2026-04-27. Documents 15-minute wall-time limit for Cron triggers and Queue consumers.

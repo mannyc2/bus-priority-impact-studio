@@ -28,9 +28,9 @@ Read this file first. It is the navigation layer for the LLM wiki.
 
 ## Engineering pages
 
-- [[wiki/engineering/package_structure|Repo package structure]] — TypeScript-only monorepo layout, package boundaries, wiki relocation, and Python/PostGIS/VPS escalation rules.
-- [[wiki/engineering/data_model|Data model]] — D1/SQLite serving model, local artifacts, and migration path to PostGIS.
-- [[wiki/engineering/etl_plan|ETL plan]] — Ingestion order, transformation rules, and QA.
+- [[wiki/engineering/package_structure|Repo package structure]] — TypeScript-only monorepo layout, package boundaries, Drizzle adoption boundaries, wiki relocation, and Python/PostGIS/VPS escalation rules.
+- [[wiki/engineering/data_model|Data model]] — D1/SQLite serving model, Drizzle schema split, JSON cleanup plan, local artifacts, and migration path to Postgres/Hyperdrive.
+- [[wiki/engineering/etl_plan|ETL plan]] — Ingestion order, Drizzle/D1 migration workflow, local backfill rules, transformation rules, and QA.
 - [[wiki/engineering/map_strategy|Map strategy]] — MapLibre, GeoJSON/PMTiles artifacts, NYC scope, and map package responsibilities.
 - [[wiki/engineering/llm_wiki_rag|LLM wiki + RAG layer]] — How the persistent wiki and cited answer layer should work.
 - [[wiki/engineering/cli_commands|CLI commands]] — TypeScript `/pipeline` command targets for source probes, ingest, analytics builds, exports, and wiki linting.
@@ -56,3 +56,4 @@ Read this file first. It is the navigation layer for the LLM wiki.
 2. Decide how much realtime Bus Time data to collect; realtime collection is useful but not required for MVP.
 3. Build the M1 route scorecard from the ridership-weighted hotspot artifact.
 4. Keep the MVP TypeScript-only unless a documented requirement forces Python/PostGIS/VPS escalation.
+5. Keep D1 as a compact serving projection; promote canonical queryable history to Postgres/Hyperdrive instead of growing D1 into a warehouse.

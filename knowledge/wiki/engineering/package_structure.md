@@ -4,8 +4,8 @@ type: engineering
 status: active
 last_updated: 2026-04-27
 owner: codex
-source_count: 16
-tags: [repo-structure, typescript, bun, zod, cloudflare, clean-architecture, d1, r2]
+source_count: 28
+tags: [repo-structure, typescript, bun, zod, drizzle, cloudflare, clean-architecture, d1, postgres, hyperdrive, r2]
 ---
 
 # Repo Package Structure
@@ -381,3 +381,124 @@ A VPS is still not required for the MVP. Concrete triggers:
 - DuckDB Node Neo Client blog/docs — https://duckdb.org/2024/12/18/duckdb-node-neo-client — verified_at: 2026-04-26
 - DuckDB Spatial Extension docs — https://duckdb.org/docs/current/core_extensions/spatial/overview — verified_at: 2026-04-26
 - Turf.js introduction — https://turfjs.org/docs/intro — verified_at: 2026-04-26
+
+## Drizzle adoption package update — 2026-04-27
+
+### Current branch state
+
+`packages/db` already owns the right conceptual responsibilities, but it is still manual-SQL based:
+
+- `serving-tables.ts` declares D1 table SQL strings.
+- `route-scorecard.ts` declares SQL and serializes/deserializes JSON manually.
+- repository files accept a `D1DatabaseLike`.
+- no Drizzle packages are currently declared in `packages/db/package.json`.
+
+This should change in a small, staged way rather than rewriting the whole data layer at once.
+
+### Recommended `packages/db` structure after adopting Drizzle
+
+```text
+packages/db/
+  drizzle.config.d1.ts
+  drizzle.config.pg.ts                 # add only when Postgres is introduced
+  migrations/
+    d1/
+    pg/                                # add only when Postgres is introduced
+  src/
+    schema/
+      d1/
+        index.ts
+        route-catalog.ts
+        route-scorecards.ts
+        route-briefs.ts
+        route-artifacts.ts
+        route-batches.ts
+      pg/
+        index.ts                       # future only
+      shared/
+        values.ts                      # enum/value constants only
+    client/
+      d1.ts
+      pg-hyperdrive.ts                 # future only
+    repositories/
+      d1/
+      pg/                              # future only
+    validation/
+      d1.ts
+      pg.ts                            # future only
+    seed/
+      d1-export.ts
+    index.ts
+```
+
+### Responsibility split
+
+| Package | After Drizzle adoption |
+|---|---|
+| `packages/domain` | Business/domain Zod schemas, branded IDs, metric semantics, public API contracts. No Drizzle imports. |
+| `packages/db` | Drizzle schemas, migrations, row validation helpers, repository SQL construction, D1/PG clients, D1 seed/import helpers. |
+| `packages/sources` | Public source clients and source DTO validation. No Drizzle imports. |
+| `packages/analytics` | Pure deterministic transforms over source/domain inputs. No Drizzle table imports. |
+| `tools/pipeline` | Orchestrates source fetches, analytics, artifact builds, D1 exports, and future Postgres backfills through `@bp/db` repository/export APIs. |
+| `apps/web` | Calls Worker handlers and `@bp/db` public repository functions only. It must not import Drizzle tables directly. |
+
+### Dependency boundary rules
+
+- `@bp/db` may import `@bp/domain`, `drizzle-orm`, Drizzle drivers, Drizzle validation helpers, and `zod`.
+- `@bp/domain` must not import `@bp/db`, Drizzle, Cloudflare types, or source clients.
+- `@bp/analytics` should not import Drizzle tables; it produces typed domain/read-model outputs.
+- `@bp/pipeline` may call `@bp/db` seed/export helpers but should not construct SQL inline.
+- `apps/web/src/worker` may create a D1 Drizzle client and call repository functions; it must not run source ingestion or analytics.
+
+### Stable migration path for package code
+
+1. Add Drizzle dependencies only to `packages/db`, not to every package.
+2. Recreate the existing D1 table layout in `src/schema/d1`.
+3. Add Drizzle-generated select/insert schemas beside each table group.
+4. Keep the existing repository function names and external types to avoid app churn.
+5. Replace manual SQL strings one table family at a time.
+6. Add child tables for product-queryable JSON cleanup only after the Drizzle schema matches current behavior.
+7. Add `src/schema/pg` and `src/client/pg-hyperdrive.ts` only when the project actually adds Postgres/Hyperdrive.
+
+### Proposed scripts
+
+Do not add these until dependencies are added, but use these names to keep the repo predictable:
+
+```json
+{
+  "db:d1:generate": "drizzle-kit generate --config packages/db/drizzle.config.d1.ts",
+  "db:d1:check": "drizzle-kit check --config packages/db/drizzle.config.d1.ts",
+  "db:d1:migrate:local": "wrangler d1 migrations apply bus-priority-serving --local --config apps/web/wrangler.jsonc",
+  "db:d1:migrate:remote": "wrangler d1 migrations apply bus-priority-serving --remote --config apps/web/wrangler.jsonc",
+  "db:pg:generate": "drizzle-kit generate --config packages/db/drizzle.config.pg.ts"
+}
+```
+
+### Type discipline
+
+- Export table-derived row types from `packages/db`, not from arbitrary repository/component files.
+- Keep component-local `Props` types unexported.
+- Export domain/public contracts from `packages/domain`.
+- Use Drizzle-generated row schemas for database boundary validation, then convert to domain/public shapes through mappers.
+
+## Sources added in this update
+
+- Zod package on npm — https://www.npmjs.com/package/zod — verified_at: 2026-04-27. npm search result reported latest version `4.3.6`; the checked-in `bun.lock` already resolves root `zod` to `zod@4.3.6`.
+- Zod 4 release notes — https://zod.dev/v4 — verified_at: 2026-04-27. Documents Zod 4 as stable.
+- Zod 4 JSON Schema docs — https://zod.dev/json-schema — verified_at: 2026-04-27. Documents native JSON Schema conversion.
+- Drizzle Cloudflare D1 docs — https://orm.drizzle.team/docs/connect-cloudflare-d1 — verified_at: 2026-04-27. Documents `drizzle-orm/d1`, D1 Worker bindings, and Bun install commands.
+- Drizzle zod docs — https://orm.drizzle.team/docs/zod — verified_at: 2026-04-27. Documents `createSelectSchema`, `createInsertSchema`, `createUpdateSchema`, `createSchemaFactory`, `zod/v4`, and the `drizzle-zod` deprecation note starting with `drizzle-orm@1.0.0-beta.15`.
+- Drizzle config docs — https://orm.drizzle.team/docs/drizzle-config-file — verified_at: 2026-04-27. Documents dialect-specific config, schema glob support, `out`, and `d1-http` driver.
+- Drizzle Kit overview — https://orm.drizzle.team/docs/kit-overview — verified_at: 2026-04-27. Documents generating/running SQL migrations and Bun command support.
+- Drizzle D1 HTTP API guide — https://orm.drizzle.team/docs/guides/d1-http-with-drizzle-kit — verified_at: 2026-04-27. Documents Drizzle Kit `d1-http` migration/push/introspect/studio configuration.
+- Cloudflare D1 overview — https://developers.cloudflare.com/d1/ — verified_at: 2026-04-27. Documents D1 as horizontally scaled across many smaller 10 GB databases.
+- Cloudflare D1 limits — https://developers.cloudflare.com/d1/platform/limits/ — verified_at: 2026-04-27. Documents 500 MB Free / 10 GB Paid max database size, 100-column table limit, 2 MB max row/string/BLOB, 100 bound parameters, 100 KB max SQL statement, and 30-second max query duration.
+- Cloudflare D1 pricing — https://developers.cloudflare.com/d1/platform/pricing/ — verified_at: 2026-04-27. Documents rows-read/rows-written pricing, free/paid included storage, and storage billing including tables and indexes.
+- Cloudflare D1 Worker Binding API — https://developers.cloudflare.com/d1/worker-api/ — verified_at: 2026-04-27. Documents prepared statements and typed row results.
+- Cloudflare D1 migrations — https://developers.cloudflare.com/d1/reference/migrations/ — verified_at: 2026-04-27. Documents SQL migration files, create/list/apply, and `d1_migrations`.
+- Cloudflare D1 Wrangler commands — https://developers.cloudflare.com/d1/wrangler-commands/ — verified_at: 2026-04-27. Documents `wrangler d1 migrations create/list/apply`.
+- Cloudflare D1 local development — https://developers.cloudflare.com/d1/best-practices/local-development/ — verified_at: 2026-04-27. Documents local D1 development, `preview_database_id`, and local migrations.
+- Cloudflare Hyperdrive Drizzle example — https://developers.cloudflare.com/hyperdrive/examples/connect-to-postgres/postgres-drivers-and-libraries/drizzle-orm/ — verified_at: 2026-04-27. Documents `pg`, `drizzle-orm/node-postgres`, `nodejs_compat`, Hyperdrive binding, and per-request client connection.
+- Cloudflare Hyperdrive PostgreSQL docs — https://developers.cloudflare.com/hyperdrive/examples/connect-to-postgres/ — verified_at: 2026-04-27. Documents PostgreSQL/PostgreSQL-compatible database support and ORM/driver support.
+- Cloudflare Workers limits — https://developers.cloudflare.com/workers/platform/limits/ — verified_at: 2026-04-27. Documents default 30-second CPU limit on Paid Workers and optional increase to 5 minutes.
+- Cloudflare Queues limits — https://developers.cloudflare.com/queues/platform/limits/ — verified_at: 2026-04-27. Documents 15-minute wall-time limit for Cron triggers and Queue consumers.

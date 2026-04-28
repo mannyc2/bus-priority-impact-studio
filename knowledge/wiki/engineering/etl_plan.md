@@ -4,8 +4,8 @@ type: engineering
 status: active
 last_updated: 2026-04-27
 owner: codex
-source_count: 2
-tags: [etl, ingestion, data-quality, typescript, bun, local-pipeline]
+source_count: 20
+tags: [etl, ingestion, data-quality, typescript, bun, drizzle, d1, postgres, local-pipeline]
 ---
 
 # ETL Plan
@@ -176,3 +176,123 @@ For every ingested dataset, maintain:
 
 - Cloudflare D1 Worker Binding API — https://developers.cloudflare.com/d1/worker-api/ — verified_at: 2026-04-27
 - Cloudflare R2 Workers API docs — https://developers.cloudflare.com/r2/api/workers/workers-api-usage/ — verified_at: 2026-04-26
+
+## Drizzle-aware ETL update — 2026-04-27
+
+### Current branch state
+
+The branch already has a rich local Bun pipeline: source probes, route catalog/coverage ingestion, M1 route slices, hotspot scoring, ridership profiles, route scores, route briefs, route batch audits, and D1 export/verification commands. That is the right shape. Drizzle adoption should not move heavy work into Workers.
+
+### Local historical setup and backfill
+
+Keep these local through `tools/pipeline`:
+
+- full Socrata/schema probes,
+- MTA route/stop/schedule source fetches,
+- historical segment-speed backfills,
+- historical route/month ridership backfills,
+- route-shape and timepoint segment construction,
+- geospatial joins,
+- hotspot scoring,
+- ACE/bus-lane historical overlays,
+- route-brief generation,
+- D1 seed/export SQL generation,
+- artifact hashing and R2 upload preparation,
+- large QA reports and debug snapshots.
+
+These jobs may read/write local `data/raw`, `data/working`, and `data/artifacts`. They should emit compact D1 rows and R2 artifacts. They should not require hosted D1 to be the warehouse.
+
+### Bounded production/Worker incremental updates
+
+Workers + D1 or Workers + Postgres can handle bounded incremental updates if the local pipeline performs heavy historical setup first.
+
+Suitable Worker tasks:
+
+- refresh one route/month summary from a small source slice,
+- update `source_status` / freshness rows,
+- write artifact manifest rows after an R2 upload,
+- recalculate a small route/month score from already-normalized rows,
+- process one bounded queue message per route/month/source,
+- trigger a short scheduled source metadata check.
+
+Not suitable Worker tasks:
+
+- full-network historical backfills,
+- multi-year source-history compaction,
+- route-shape segment construction,
+- expensive geospatial joins,
+- multi-route ACE event studies,
+- large D1 import files,
+- large object generation such as PMTiles.
+
+### Drizzle/D1 migration workflow
+
+Use a two-track workflow:
+
+1. **Drizzle schema generation** in `packages/db`.
+   - `packages/db/drizzle.config.d1.ts`
+   - schema path: `packages/db/src/schema/d1/index.ts`
+   - migration output: `packages/db/migrations/d1`
+   - dialect: `sqlite`
+   - D1 HTTP driver only for remote Drizzle Kit operations.
+2. **Cloudflare D1 application** through Wrangler migrations.
+   - Use `wrangler d1 migrations apply <database-name> --local` for local verification.
+   - Use `--remote` only after local and Worker tests pass.
+   - Prefer database name over binding name for migration commands to avoid accidental binding drift.
+
+Do not run `drizzle-kit push` against shared/production D1 for this repo. Generate/review SQL migrations instead.
+
+### Future Postgres migration workflow
+
+Add Postgres only when a requirement forces it. When it appears:
+
+1. Add `packages/db/drizzle.config.pg.ts`.
+2. Add `packages/db/src/schema/pg`.
+3. Generate Postgres migrations into `packages/db/migrations/pg`.
+4. Run Postgres migrations outside Cloudflare D1's migration system.
+5. In Workers, access the Postgres database through Hyperdrive using `pg` and `drizzle-orm/node-postgres`.
+6. Continue using local Bun pipeline jobs for historical backfills; Workers should perform only bounded incremental updates.
+
+### D1 export verification after JSON cleanup
+
+After product-queryable JSON columns become relational child tables, every D1 export should verify:
+
+- parent rows exist before child rows,
+- child-row counts match source artifact counts,
+- critical child tables have indexes on `(route_id, month)` or equivalent,
+- generated SQL stays below D1 statement and bound-parameter limits,
+- each artifact row has a hash and byte length,
+- no geometry or large route-brief body is inserted into D1.
+
+### Phased implementation plan
+
+1. **Planning complete:** this wiki/ADR update.
+2. **Drizzle dependency PR:** add `drizzle-orm`, `drizzle-kit`, and the stable Drizzle/Zod helper package if needed; do not change behavior.
+3. **D1 schema mirror:** model current D1 tables in Drizzle; generate SQL; compare with current manual SQL.
+4. **Repository bridge:** keep repository APIs stable while switching query construction to Drizzle for one table family.
+5. **Validation helpers:** add generated select/insert schemas for D1 rows and map to existing domain schemas.
+6. **Relational cleanup:** split JSON columns into child tables, beginning with route catalog directions/types and missing inputs.
+7. **Migration verification:** apply D1 migrations locally; run existing D1 export/verify and Worker tests.
+8. **Future PG track:** only after a documented product/storage/query requirement appears.
+
+## Sources added in this update
+
+- Zod package on npm — https://www.npmjs.com/package/zod — verified_at: 2026-04-27. npm search result reported latest version `4.3.6`; the checked-in `bun.lock` already resolves root `zod` to `zod@4.3.6`.
+- Zod 4 release notes — https://zod.dev/v4 — verified_at: 2026-04-27. Documents Zod 4 as stable.
+- Zod 4 JSON Schema docs — https://zod.dev/json-schema — verified_at: 2026-04-27. Documents native JSON Schema conversion.
+- Drizzle Cloudflare D1 docs — https://orm.drizzle.team/docs/connect-cloudflare-d1 — verified_at: 2026-04-27. Documents `drizzle-orm/d1`, D1 Worker bindings, and Bun install commands.
+- Drizzle zod docs — https://orm.drizzle.team/docs/zod — verified_at: 2026-04-27. Documents `createSelectSchema`, `createInsertSchema`, `createUpdateSchema`, `createSchemaFactory`, `zod/v4`, and the `drizzle-zod` deprecation note starting with `drizzle-orm@1.0.0-beta.15`.
+- Drizzle config docs — https://orm.drizzle.team/docs/drizzle-config-file — verified_at: 2026-04-27. Documents dialect-specific config, schema glob support, `out`, and `d1-http` driver.
+- Drizzle Kit overview — https://orm.drizzle.team/docs/kit-overview — verified_at: 2026-04-27. Documents generating/running SQL migrations and Bun command support.
+- Drizzle D1 HTTP API guide — https://orm.drizzle.team/docs/guides/d1-http-with-drizzle-kit — verified_at: 2026-04-27. Documents Drizzle Kit `d1-http` migration/push/introspect/studio configuration.
+- Cloudflare D1 overview — https://developers.cloudflare.com/d1/ — verified_at: 2026-04-27. Documents D1 as horizontally scaled across many smaller 10 GB databases.
+- Cloudflare D1 limits — https://developers.cloudflare.com/d1/platform/limits/ — verified_at: 2026-04-27. Documents 500 MB Free / 10 GB Paid max database size, 100-column table limit, 2 MB max row/string/BLOB, 100 bound parameters, 100 KB max SQL statement, and 30-second max query duration.
+- Cloudflare D1 pricing — https://developers.cloudflare.com/d1/platform/pricing/ — verified_at: 2026-04-27. Documents rows-read/rows-written pricing, free/paid included storage, and storage billing including tables and indexes.
+- Cloudflare D1 Worker Binding API — https://developers.cloudflare.com/d1/worker-api/ — verified_at: 2026-04-27. Documents prepared statements and typed row results.
+- Cloudflare D1 migrations — https://developers.cloudflare.com/d1/reference/migrations/ — verified_at: 2026-04-27. Documents SQL migration files, create/list/apply, and `d1_migrations`.
+- Cloudflare D1 Wrangler commands — https://developers.cloudflare.com/d1/wrangler-commands/ — verified_at: 2026-04-27. Documents `wrangler d1 migrations create/list/apply`.
+- Cloudflare D1 local development — https://developers.cloudflare.com/d1/best-practices/local-development/ — verified_at: 2026-04-27. Documents local D1 development, `preview_database_id`, and local migrations.
+- Cloudflare Hyperdrive Drizzle example — https://developers.cloudflare.com/hyperdrive/examples/connect-to-postgres/postgres-drivers-and-libraries/drizzle-orm/ — verified_at: 2026-04-27. Documents `pg`, `drizzle-orm/node-postgres`, `nodejs_compat`, Hyperdrive binding, and per-request client connection.
+- Cloudflare Hyperdrive PostgreSQL docs — https://developers.cloudflare.com/hyperdrive/examples/connect-to-postgres/ — verified_at: 2026-04-27. Documents PostgreSQL/PostgreSQL-compatible database support and ORM/driver support.
+- Cloudflare Workers limits — https://developers.cloudflare.com/workers/platform/limits/ — verified_at: 2026-04-27. Documents default 30-second CPU limit on Paid Workers and optional increase to 5 minutes.
+- Cloudflare Queues limits — https://developers.cloudflare.com/queues/platform/limits/ — verified_at: 2026-04-27. Documents 15-minute wall-time limit for Cron triggers and Queue consumers.
