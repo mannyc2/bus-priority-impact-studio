@@ -204,7 +204,15 @@ function schedulePairKey(direction: string, fromStopId: string, toStopId: string
   return `${direction}:${fromStopId}:${toStopId}`;
 }
 
+function scheduleGroupKey(row: LocalRouteScheduleTimepoint): string {
+  return [row.scheduleDate, row.dayType, row.direction, row.blockId].join(":");
+}
+
 function median(values: number[]): number {
+  if (values.length === 0) {
+    return 0;
+  }
+
   const sorted = [...values].sort((left, right) => left - right);
   const middle = Math.floor(sorted.length / 2);
   const value =
@@ -214,50 +222,84 @@ function median(values: number[]): number {
   return Math.round(value * 10) / 10;
 }
 
+type SchedulePair = {
+  scheduledTravelTimes: number[];
+};
+
+function buildScheduledPairs(rows: LocalRouteScheduleTimepoint[]): Map<string, SchedulePair> {
+  const groups = new Map<string, LocalRouteScheduleTimepoint[]>();
+  for (const row of rows) {
+    const key = scheduleGroupKey(row);
+    const group = groups.get(key) ?? [];
+    group.push(row);
+    groups.set(key, group);
+  }
+
+  const pairs = new Map<string, SchedulePair>();
+
+  for (const groupRows of groups.values()) {
+    groupRows.sort((left, right) => {
+      const timeCompare = left.scheduleTime.localeCompare(right.scheduleTime);
+      if (timeCompare !== 0) {
+        return timeCompare;
+      }
+      return left.stopSequence - right.stopSequence;
+    });
+
+    let currentTrip: LocalRouteScheduleTimepoint[] = [];
+    let previousSequence = -1;
+
+    for (const row of groupRows) {
+      if (currentTrip.length > 0 && row.stopSequence <= previousSequence) {
+        addTripPairs(currentTrip, pairs);
+        currentTrip = [];
+      }
+
+      currentTrip.push(row);
+      previousSequence = row.stopSequence;
+    }
+
+    addTripPairs(currentTrip, pairs);
+  }
+
+  return pairs;
+}
+
+function addTripPairs(
+  tripRows: LocalRouteScheduleTimepoint[],
+  pairs: Map<string, SchedulePair>,
+): void {
+  for (let index = 0; index < tripRows.length - 1; index += 1) {
+    const from = tripRows[index];
+    const to = tripRows[index + 1];
+    if (from === undefined || to === undefined) {
+      continue;
+    }
+
+    const travelTimeMinutes =
+      (Date.parse(to.scheduleTime) - Date.parse(from.scheduleTime)) / 60_000;
+    if (travelTimeMinutes <= 0 || travelTimeMinutes > 180) {
+      continue;
+    }
+
+    const key = schedulePairKey(from.direction, from.stopId, to.stopId);
+    const pair = pairs.get(key) ?? { scheduledTravelTimes: [] };
+    pair.scheduledTravelTimes.push(travelTimeMinutes);
+    pairs.set(key, pair);
+  }
+}
+
 export function scheduleComparisons(
   schedules: LocalRouteScheduleTimepoint[],
   hotspots: LocalRouteHotspot[],
 ) {
-  const pairs = new Map<string, number[]>();
-  const scheduleGroups = new Map<string, LocalRouteScheduleTimepoint[]>();
-
-  for (const row of schedules) {
-    const key = [row.scheduleDate, row.dayType, row.direction, row.blockId].join(":");
-    const group = scheduleGroups.get(key) ?? [];
-    group.push(row);
-    scheduleGroups.set(key, group);
-  }
-
-  for (const groupRows of scheduleGroups.values()) {
-    const sorted = [...groupRows].sort(
-      (left, right) =>
-        left.scheduleTime.localeCompare(right.scheduleTime) ||
-        left.stopSequence - right.stopSequence,
-    );
-    for (let index = 0; index < sorted.length - 1; index += 1) {
-      const from = sorted[index];
-      const to = sorted[index + 1];
-      if (from === undefined || to === undefined || to.stopSequence <= from.stopSequence) {
-        continue;
-      }
-      const travelTimeMinutes =
-        (Date.parse(to.scheduleTime) - Date.parse(from.scheduleTime)) / 60_000;
-      if (travelTimeMinutes <= 0 || travelTimeMinutes > 180) {
-        continue;
-      }
-      const key = schedulePairKey(from.direction, from.stopId, to.stopId);
-      const values = pairs.get(key) ?? [];
-      values.push(travelTimeMinutes);
-      pairs.set(key, values);
-    }
-  }
-
+  const pairs = buildScheduledPairs(schedules);
   const hotspotComparisons = hotspots.map((hotspot) => {
-    const scheduledTravelTimes = pairs.get(
+    const pair = pairs.get(
       schedulePairKey(hotspot.direction, hotspot.timepointStopId, hotspot.nextTimepointStopId),
     );
     const scheduledMedianTravelTimeMinutes =
-      scheduledTravelTimes === undefined ? null : median(scheduledTravelTimes);
+      pair === undefined ? null : median(pair.scheduledTravelTimes);
     return {
       segmentId: hotspot.segmentId,
       direction: hotspot.direction,
@@ -269,7 +311,7 @@ export function scheduleComparisons(
         scheduledMedianTravelTimeMinutes === null
           ? null
           : round(hotspot.weightedAverageTravelTimeMinutes - scheduledMedianTravelTimeMinutes, 1),
-      scheduledSampleCount: scheduledTravelTimes?.length ?? 0,
+      scheduledSampleCount: pair?.scheduledTravelTimes.length ?? 0,
       observedBusTripCount: hotspot.busTripCount,
       observedSpeedMph: hotspot.weightedAverageSpeedMph,
       hotspotScore: hotspot.hotspotScore,

@@ -1,12 +1,9 @@
-import {
-  type LocalRouteScheduleTimepoint,
-  listRouteHotspots,
-  listRouteSchedules,
-} from "@bp/db/local";
+import { listRouteHotspots, listRouteSchedules } from "@bp/db/local";
 import { writeRouteSliceArtifact } from "../../lib/artifacts.js";
 import { isoMonth } from "../../lib/dates.js";
 import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
+import { scheduleComparisons } from "./route-brief-metrics.js";
 
 const schemaVersion = 1;
 
@@ -23,16 +20,6 @@ type ScheduleComparisonResult = {
   comparisonPath: string;
   scheduledPairCount: number;
   matchedHotspotCount: number;
-};
-
-type PairAccumulator = {
-  routeId: string;
-  direction: string;
-  fromStopId: string;
-  fromStopName?: string;
-  toStopId: string;
-  toStopName?: string;
-  scheduledTravelTimes: number[];
 };
 
 type ScheduleComparisonOptions = Required<ScheduleComparisonArgs>;
@@ -83,110 +70,6 @@ function parseCliArgs(args: string[]): ScheduleComparisonArgs {
   return output;
 }
 
-function pairKey(direction: string, fromStopId: string, toStopId: string): string {
-  return `${direction}:${fromStopId}:${toStopId}`;
-}
-
-function groupKey(row: LocalRouteScheduleTimepoint): string {
-  return [row.scheduleDate, row.dayType, row.direction, row.blockId].join(":");
-}
-
-function median(values: number[]): number {
-  if (values.length === 0) {
-    return 0;
-  }
-
-  const sorted = [...values].sort((left, right) => left - right);
-  const middle = Math.floor(sorted.length / 2);
-  const value =
-    sorted.length % 2 === 0
-      ? ((sorted[middle - 1] ?? 0) + (sorted[middle] ?? 0)) / 2
-      : (sorted[middle] ?? 0);
-
-  return Math.round(value * 10) / 10;
-}
-
-function buildScheduledPairs(rows: LocalRouteScheduleTimepoint[]): Map<string, PairAccumulator> {
-  const groups = new Map<string, LocalRouteScheduleTimepoint[]>();
-
-  for (const row of rows) {
-    const rowsForGroup = groups.get(groupKey(row)) ?? [];
-    rowsForGroup.push(row);
-    groups.set(groupKey(row), rowsForGroup);
-  }
-
-  const pairs = new Map<string, PairAccumulator>();
-
-  for (const rowsForGroup of groups.values()) {
-    rowsForGroup.sort((left, right) => {
-      const timeCompare = left.scheduleTime.localeCompare(right.scheduleTime);
-      if (timeCompare !== 0) {
-        return timeCompare;
-      }
-
-      return left.stopSequence - right.stopSequence;
-    });
-
-    let currentTrip: LocalRouteScheduleTimepoint[] = [];
-    let previousSequence = -1;
-
-    for (const row of rowsForGroup) {
-      if (currentTrip.length > 0 && row.stopSequence <= previousSequence) {
-        addTripPairs(currentTrip, pairs);
-        currentTrip = [];
-      }
-
-      currentTrip.push(row);
-      previousSequence = row.stopSequence;
-    }
-
-    addTripPairs(currentTrip, pairs);
-  }
-
-  return pairs;
-}
-
-function addTripPairs(
-  tripRows: LocalRouteScheduleTimepoint[],
-  pairs: Map<string, PairAccumulator>,
-): void {
-  for (let index = 0; index < tripRows.length - 1; index += 1) {
-    const from = tripRows[index];
-    const to = tripRows[index + 1];
-    if (from === undefined || to === undefined) {
-      continue;
-    }
-
-    const travelTimeMinutes =
-      (Date.parse(to.scheduleTime) - Date.parse(from.scheduleTime)) / 60_000;
-    if (travelTimeMinutes <= 0 || travelTimeMinutes > 180) {
-      continue;
-    }
-
-    const key = pairKey(from.direction, from.stopId, to.stopId);
-    let accumulator = pairs.get(key);
-    if (accumulator === undefined) {
-      accumulator = {
-        routeId: from.routeId,
-        direction: from.direction,
-        fromStopId: from.stopId,
-        toStopId: to.stopId,
-        scheduledTravelTimes: [],
-      };
-
-      if (from.stopName !== undefined) {
-        accumulator.fromStopName = from.stopName;
-      }
-      if (to.stopName !== undefined) {
-        accumulator.toStopName = to.stopName;
-      }
-    }
-
-    accumulator.scheduledTravelTimes.push(travelTimeMinutes);
-    pairs.set(key, accumulator);
-  }
-}
-
 export async function buildM1ScheduleComparison(
   args: ScheduleComparisonArgs = {},
 ): Promise<ScheduleComparisonResult> {
@@ -198,48 +81,17 @@ export async function buildM1ScheduleComparison(
     listRouteHotspots(local.db, options.routeId, month),
   ]);
   local.sqlite.close();
-  const scheduledPairs = buildScheduledPairs(schedules);
-  const hotspotComparisons = hotspots.map((hotspot) => {
-    const pair = scheduledPairs.get(
-      pairKey(hotspot.direction, hotspot.timepointStopId, hotspot.nextTimepointStopId),
-    );
-    const scheduledMedianTravelTimeMinutes =
-      pair === undefined ? null : median(pair.scheduledTravelTimes);
-    const observedMinusScheduledMinutes =
-      scheduledMedianTravelTimeMinutes === null
-        ? null
-        : Math.round(
-            (hotspot.weightedAverageTravelTimeMinutes - scheduledMedianTravelTimeMinutes) * 10,
-          ) / 10;
-
-    return {
-      segmentId: hotspot.segmentId,
-      direction: hotspot.direction,
-      from: hotspot.timepointStopName,
-      to: hotspot.nextTimepointStopName,
-      observedTravelTimeMinutes: hotspot.weightedAverageTravelTimeMinutes,
-      scheduledMedianTravelTimeMinutes,
-      observedMinusScheduledMinutes,
-      scheduledSampleCount: pair?.scheduledTravelTimes.length ?? 0,
-      observedBusTripCount: hotspot.busTripCount,
-      observedSpeedMph: hotspot.weightedAverageSpeedMph,
-      hotspotScore: hotspot.hotspotScore,
-      riderImpactScore: hotspot.riderImpactScore ?? null,
-    };
-  });
-  const matchedHotspotCount = hotspotComparisons.filter(
-    (comparison) => comparison.scheduledMedianTravelTimeMinutes !== null,
-  ).length;
+  const scheduleComparison = scheduleComparisons(schedules, hotspots);
   const comparison = {
     schemaVersion,
     routeId: options.routeId,
     analysisPeriod: month,
     generatedAt: new Date().toISOString(),
     scheduleFetchedAt: null,
-    scheduledPairCount: scheduledPairs.size,
-    hotspotCount: hotspotComparisons.length,
-    matchedHotspotCount,
-    hotspotComparisons,
+    scheduledPairCount: scheduleComparison.scheduledPairCount,
+    hotspotCount: scheduleComparison.hotspotComparisons.length,
+    matchedHotspotCount: scheduleComparison.matchedHotspotCount,
+    hotspotComparisons: scheduleComparison.hotspotComparisons,
     caveats: [
       "Scheduled travel time is derived by splitting schedule rows into trip-like sequences within block/day/direction groups.",
       "Schedule rows may use representative schedule dates that differ from the observed speed month.",
@@ -258,8 +110,8 @@ export async function buildM1ScheduleComparison(
     routeId: options.routeId,
     isoMonth: month,
     comparisonPath,
-    scheduledPairCount: scheduledPairs.size,
-    matchedHotspotCount,
+    scheduledPairCount: scheduleComparison.scheduledPairCount,
+    matchedHotspotCount: scheduleComparison.matchedHotspotCount,
   };
 }
 
