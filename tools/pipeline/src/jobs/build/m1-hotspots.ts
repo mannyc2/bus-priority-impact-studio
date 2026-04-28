@@ -3,7 +3,11 @@ import { join } from "node:path";
 import type { SegmentSpeedObservation } from "@bp/analytics";
 import { detectSegmentHotspots } from "@bp/analytics";
 import type { LocalRouteHourlyRidership } from "@bp/db/local";
-import { listRouteHourlyRidership, listRouteSegmentSpeeds } from "@bp/db/local";
+import {
+  listRouteHourlyRidership,
+  listRouteSegmentSpeeds,
+  replaceRouteHotspots,
+} from "@bp/db/local";
 import { routeSliceKey } from "../../lib/artifacts.js";
 import { isoMonth } from "../../lib/dates.js";
 import { writeJson } from "../../lib/json.js";
@@ -181,6 +185,12 @@ export async function buildM1Hotspots(args: HotspotBuildArgs = {}): Promise<Hots
       topHotspots: [],
     };
 
+    const writeLocal = await openLocalPipelineDb(options.dbPath);
+    try {
+      await replaceRouteHotspots(writeLocal.db, summary, []);
+    } finally {
+      writeLocal.sqlite.close();
+    }
     await mkdir(artifactDir, { recursive: true });
     await Promise.all([writeJson(artifactPath, artifact), writeJson(summaryPath, summary)]);
 
@@ -229,6 +239,12 @@ export async function buildM1Hotspots(args: HotspotBuildArgs = {}): Promise<Hots
     topHotspots: result.hotspots.slice(0, 5),
   };
 
+  const writeLocal = await openLocalPipelineDb(options.dbPath);
+  try {
+    await replaceRouteHotspots(writeLocal.db, summary, result.hotspots);
+  } finally {
+    writeLocal.sqlite.close();
+  }
   await mkdir(artifactDir, { recursive: true });
   await Promise.all([writeJson(artifactPath, artifact), writeJson(summaryPath, summary)]);
 

@@ -1,32 +1,21 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { calculateRouteScore } from "@bp/analytics";
+import { getRouteHotspotSummary } from "@bp/db/local";
 import { type RouteCoverageStatusSchema, RouteIdCodec } from "@bp/domain";
 import * as z from "zod";
 import { routeSliceKey } from "../../lib/artifacts.js";
 import { isoMonth } from "../../lib/dates.js";
 import { writeJson } from "../../lib/json.js";
+import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
+import { fromCliPath } from "../../lib/paths.js";
 import { fromRepoRoot } from "../../source-manifest.js";
-
-const HotspotSummarySchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    routeId: z.string().min(1),
-    isoMonth: z.string().regex(/^\d{4}-\d{2}$/),
-    generatedAt: z.iso.datetime(),
-    routeWeightedAverageSpeedMph: z.number().nonnegative(),
-    hotspotCount: z.number().int().nonnegative(),
-    observationCount: z.number().int().nonnegative(),
-    ridershipWeighted: z.boolean(),
-    ridershipWindowCount: z.number().int().nonnegative(),
-    ridershipExposure: z.number().nonnegative().optional(),
-  })
-  .passthrough();
 
 type RouteScoreBuildArgs = {
   routeId?: string;
   year?: number;
   month?: number;
+  dbPath?: string;
 };
 
 type RouteScoreBuildResult = {
@@ -44,6 +33,7 @@ function parseBuildArgs(args: RouteScoreBuildArgs): Required<RouteScoreBuildArgs
     routeId: args.routeId ?? "M1",
     year: args.year ?? 2026,
     month: args.month ?? 3,
+    dbPath: args.dbPath ?? defaultLocalPipelineDbPath(),
   };
 }
 
@@ -72,6 +62,12 @@ function parseCliArgs(args: string[]): RouteScoreBuildArgs {
       continue;
     }
 
+    if (arg === "--db" && value !== undefined) {
+      output.dbPath = fromCliPath(value);
+      index += 1;
+      continue;
+    }
+
     throw new Error(`Unknown or incomplete argument: ${arg ?? ""}`);
   }
 
@@ -85,9 +81,13 @@ export async function buildM1RouteScore(
   const month = isoMonth(options.year, options.month);
   const key = routeSliceKey(options.routeId, month);
   const artifactDir = fromRepoRoot(join("data/artifacts/route-slices", key));
-  const summaryPath = join(artifactDir, "summary.json");
   const scorecardPath = join(artifactDir, "route-scorecard.json");
-  const summary = HotspotSummarySchema.parse(await Bun.file(summaryPath).json());
+  const local = await openLocalPipelineDb(options.dbPath);
+  const summary = await getRouteHotspotSummary(local.db, options.routeId, month);
+  local.sqlite.close();
+  if (summary === null) {
+    throw new Error(`No hotspot summary found for ${options.routeId} ${month}`);
+  }
   const routeId = z.decode(RouteIdCodec, summary.routeId);
   const coverageStatus = summary.observationCount > 0 ? "full" : "no_observed_speed";
   const scorecard = calculateRouteScore({

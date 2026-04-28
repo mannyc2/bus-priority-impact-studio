@@ -1,27 +1,32 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, rm } from "node:fs/promises";
+import { rm } from "node:fs/promises";
 import { join } from "node:path";
+import { replaceRouteHotspots } from "@bp/db/local";
 import { RouteScorecardSchema } from "@bp/domain";
 import { buildM1RouteScoreFromCli } from "../src/jobs/build/m1-route-score.js";
+import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
 const routeId = "T1";
 const isoMonth = "2026-03";
 const sliceKey = `${routeId.toLowerCase()}-${isoMonth}`;
 const artifactDir = fromRepoRoot(join("data/artifacts/route-slices", sliceKey));
+const dbPath = fromRepoRoot(join("data/working/test-m1-route-score/pipeline.sqlite"));
 
 async function removeFixtureArtifacts(): Promise<void> {
-  await rm(artifactDir, { force: true, recursive: true });
+  await Promise.all([
+    rm(artifactDir, { force: true, recursive: true }),
+    rm(fromRepoRoot(join("data/working/test-m1-route-score")), { force: true, recursive: true }),
+  ]);
 }
 
 async function writeHotspotSummaryFixture(): Promise<void> {
   await removeFixtureArtifacts();
-  await mkdir(artifactDir, { recursive: true });
-  await Bun.write(
-    join(artifactDir, "summary.json"),
-    `${JSON.stringify(
+  const local = await openLocalPipelineDb(dbPath);
+  try {
+    await replaceRouteHotspots(
+      local.db,
       {
-        schemaVersion: 1,
         routeId,
         isoMonth,
         generatedAt: "2026-04-27T12:00:00.000Z",
@@ -30,15 +35,16 @@ async function writeHotspotSummaryFixture(): Promise<void> {
         busTripCount: 200,
         ridershipWeighted: true,
         ridershipWindowCount: 2,
+        ridershipMatchedObservationCount: 2,
         ridershipExposure: 1000,
         segmentCount: 4,
         hotspotCount: 2,
-        topHotspots: [],
       },
-      null,
-      2,
-    )}\n`,
-  );
+      [],
+    );
+  } finally {
+    local.sqlite.close();
+  }
 }
 
 afterEach(async () => {
@@ -56,6 +62,8 @@ describe("M1 route score artifact build", () => {
       "2026",
       "--month",
       "3",
+      "--db",
+      dbPath,
     ]);
     const scorecard = RouteScorecardSchema.parse(await Bun.file(result.scorecardPath).json());
 

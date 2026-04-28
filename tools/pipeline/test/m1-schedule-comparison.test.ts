@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
-import { replaceRouteSchedules } from "@bp/db/local";
+import { replaceRouteHotspots, replaceRouteSchedules } from "@bp/db/local";
 import { buildM1ScheduleComparisonFromCli } from "../src/jobs/build/m1-schedule-comparison.js";
 import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
@@ -51,38 +51,47 @@ async function writeFixtureArtifacts(): Promise<void> {
         blockId: "B1",
       },
     ]);
+    await replaceRouteHotspots(
+      local.db,
+      {
+        routeId: "T1",
+        isoMonth: "2026-03",
+        generatedAt: "2026-04-27T12:00:00.000Z",
+        routeWeightedAverageSpeedMph: 4,
+        observationCount: 1,
+        busTripCount: 100,
+        ridershipWeighted: false,
+        ridershipWindowCount: 0,
+        ridershipMatchedObservationCount: 0,
+        ridershipExposure: 0,
+        segmentCount: 1,
+        hotspotCount: 1,
+      },
+      [
+        {
+          routeId: "T1",
+          isoMonth: "2026-03",
+          segmentId: "T1:2026-03:N:1:A:B",
+          direction: "N",
+          stopOrder: 1,
+          timepointStopId: "A",
+          timepointStopName: "A stop",
+          nextTimepointStopId: "B",
+          nextTimepointStopName: "B stop",
+          observationCount: 1,
+          weightedAverageTravelTimeMinutes: 14,
+          weightedAverageSpeedMph: 4,
+          averageRoadDistanceMiles: 1,
+          slowWindowShare: 1,
+          speedSeverity: 0.5,
+          busTripCount: 100,
+          hotspotScore: 68,
+        },
+      ],
+    );
   } finally {
     local.sqlite.close();
   }
-  await Bun.write(
-    join(artifactDir, "hotspots.json"),
-    `${JSON.stringify(
-      {
-        schemaVersion: 1,
-        generatedAt: "2026-04-27T12:00:00.000Z",
-        result: {
-          routeId: "T1",
-          isoMonth: "2026-03",
-          hotspots: [
-            {
-              segmentId: "T1:2026-03:N:1:A:B",
-              direction: "N",
-              timepointStopId: "A",
-              timepointStopName: "A stop",
-              nextTimepointStopId: "B",
-              nextTimepointStopName: "B stop",
-              weightedAverageTravelTimeMinutes: 14,
-              weightedAverageSpeedMph: 4,
-              busTripCount: 100,
-              hotspotScore: 68,
-            },
-          ],
-        },
-      },
-      null,
-      2,
-    )}\n`,
-  );
 }
 
 afterEach(async () => {

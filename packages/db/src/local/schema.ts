@@ -261,6 +261,57 @@ export const localRouteStop = sqliteTable(
   ],
 );
 
+export const localRouteHotspotSummary = sqliteTable(
+  "local_route_hotspot_summary",
+  {
+    routeId: text("route_id").notNull(),
+    month: text("month").notNull(),
+    generatedAt: text("generated_at").notNull(),
+    routeWeightedAverageSpeedMph: real("route_weighted_average_speed_mph").notNull(),
+    observationCount: integer("observation_count").notNull(),
+    busTripCount: integer("bus_trip_count").notNull(),
+    ridershipWeighted: integer("ridership_weighted", { mode: "boolean" }).notNull(),
+    ridershipWindowCount: integer("ridership_window_count").notNull(),
+    ridershipMatchedObservationCount: integer("ridership_matched_observation_count").notNull(),
+    ridershipExposure: real("ridership_exposure").notNull(),
+    segmentCount: integer("segment_count").notNull(),
+    hotspotCount: integer("hotspot_count").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.routeId, table.month] })],
+);
+
+export const localRouteHotspot = sqliteTable(
+  "local_route_hotspot",
+  {
+    routeId: text("route_id").notNull(),
+    month: text("month").notNull(),
+    hotspotRank: integer("hotspot_rank").notNull(),
+    segmentId: text("segment_id").notNull(),
+    direction: text("direction").notNull(),
+    stopOrder: integer("stop_order").notNull(),
+    timepointStopId: text("timepoint_stop_id").notNull(),
+    timepointStopName: text("timepoint_stop_name").notNull(),
+    nextTimepointStopId: text("next_timepoint_stop_id").notNull(),
+    nextTimepointStopName: text("next_timepoint_stop_name").notNull(),
+    observationCount: integer("observation_count").notNull(),
+    busTripCount: integer("bus_trip_count").notNull(),
+    weightedAverageSpeedMph: real("weighted_average_speed_mph").notNull(),
+    weightedAverageTravelTimeMinutes: real("weighted_average_travel_time_minutes").notNull(),
+    averageRoadDistanceMiles: real("average_road_distance_miles").notNull(),
+    slowWindowShare: real("slow_window_share").notNull(),
+    speedSeverity: real("speed_severity").notNull(),
+    hotspotScore: integer("hotspot_score").notNull(),
+    ridershipExposure: real("ridership_exposure"),
+    transferExposure: real("transfer_exposure"),
+    riderDelayIndex: real("rider_delay_index"),
+    riderImpactShare: real("rider_impact_share"),
+    riderWeightedSpeedSeverity: real("rider_weighted_speed_severity"),
+    riderWeightedSlowWindowShare: real("rider_weighted_slow_window_share"),
+    riderImpactScore: integer("rider_impact_score"),
+  },
+  (table) => [primaryKey({ columns: [table.routeId, table.month, table.hotspotRank] })],
+);
+
 export const localBusLane = sqliteTable("local_bus_lane", {
   segmentId: text("segment_id").primaryKey(),
   street: text("street").notNull(),

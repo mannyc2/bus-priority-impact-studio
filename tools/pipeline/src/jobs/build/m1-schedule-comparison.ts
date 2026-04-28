@@ -1,7 +1,10 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import { type LocalRouteScheduleTimepoint, listRouteSchedules } from "@bp/db/local";
-import * as z from "zod";
+import {
+  type LocalRouteScheduleTimepoint,
+  listRouteHotspots,
+  listRouteSchedules,
+} from "@bp/db/local";
 import { routeSliceKey } from "../../lib/artifacts.js";
 import { isoMonth } from "../../lib/dates.js";
 import { writeJson } from "../../lib/json.js";
@@ -10,36 +13,6 @@ import { fromCliPath } from "../../lib/paths.js";
 import { fromRepoRoot } from "../../source-manifest.js";
 
 const schemaVersion = 1;
-
-const HotspotSchema = z
-  .object({
-    segmentId: z.string().min(1),
-    direction: z.string().min(1),
-    timepointStopId: z.string().min(1),
-    timepointStopName: z.string().min(1),
-    nextTimepointStopId: z.string().min(1),
-    nextTimepointStopName: z.string().min(1),
-    weightedAverageTravelTimeMinutes: z.number().nonnegative(),
-    weightedAverageSpeedMph: z.number().nonnegative(),
-    busTripCount: z.number().int().nonnegative(),
-    hotspotScore: z.number().int().min(0).max(100),
-    riderImpactScore: z.number().int().min(0).max(100).optional(),
-  })
-  .passthrough();
-
-const HotspotsArtifactSchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    generatedAt: z.iso.datetime(),
-    result: z
-      .object({
-        routeId: z.string().min(1),
-        isoMonth: z.string().regex(/^\d{4}-\d{2}$/),
-        hotspots: z.array(HotspotSchema),
-      })
-      .passthrough(),
-  })
-  .passthrough();
 
 type ScheduleComparisonArgs = {
   routeId?: string;
@@ -227,13 +200,13 @@ export async function buildM1ScheduleComparison(
   const artifactDir = fromRepoRoot(join("data/artifacts/route-slices", key));
   const comparisonPath = join(artifactDir, "schedule-comparison.json");
   const local = await openLocalPipelineDb(options.dbPath);
-  const schedules = await listRouteSchedules(local.db, options.routeId, month);
+  const [schedules, hotspots] = await Promise.all([
+    listRouteSchedules(local.db, options.routeId, month),
+    listRouteHotspots(local.db, options.routeId, month),
+  ]);
   local.sqlite.close();
-  const hotspotsArtifact = HotspotsArtifactSchema.parse(
-    await Bun.file(join(artifactDir, "hotspots.json")).json(),
-  );
   const scheduledPairs = buildScheduledPairs(schedules);
-  const hotspotComparisons = hotspotsArtifact.result.hotspots.map((hotspot) => {
+  const hotspotComparisons = hotspots.map((hotspot) => {
     const pair = scheduledPairs.get(
       pairKey(hotspot.direction, hotspot.timepointStopId, hotspot.nextTimepointStopId),
     );

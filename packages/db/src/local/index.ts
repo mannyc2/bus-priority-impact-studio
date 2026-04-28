@@ -76,16 +76,21 @@ export {
   replaceRouteReadiness,
 } from "./repositories/route-network.js";
 export type {
+  LocalRouteHotspot,
+  LocalRouteHotspotSummary,
   LocalRouteHourlyRidership,
   LocalRouteScheduleTimepoint,
   LocalRouteSegmentSpeed,
   LocalRouteStop,
 } from "./repositories/route-slice.js";
 export {
+  getRouteHotspotSummary,
+  listRouteHotspots,
   listRouteHourlyRidership,
   listRouteSchedules,
   listRouteSegmentSpeeds,
   listRouteStops,
+  replaceRouteHotspots,
   replaceRouteHourlyRidership,
   replaceRouteSchedules,
   replaceRouteSegmentSpeeds,

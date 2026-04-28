@@ -1,6 +1,8 @@
 import { and, asc, eq } from "drizzle-orm";
 import type { LocalPipelineDb } from "../client.js";
 import {
+  localRouteHotspot,
+  localRouteHotspotSummary,
   localRouteHourlyRidership,
   localRouteScheduleTimepoint,
   localRouteSegmentSpeed,
@@ -69,6 +71,48 @@ export type LocalRouteStop = {
   timepoint: boolean;
   latitude: number;
   longitude: number;
+};
+
+export type LocalRouteHotspotSummary = {
+  routeId: string;
+  isoMonth: string;
+  generatedAt: string;
+  routeWeightedAverageSpeedMph: number;
+  observationCount: number;
+  busTripCount: number;
+  ridershipWeighted: boolean;
+  ridershipWindowCount: number;
+  ridershipMatchedObservationCount: number;
+  ridershipExposure: number;
+  segmentCount: number;
+  hotspotCount: number;
+};
+
+export type LocalRouteHotspot = {
+  routeId: string;
+  isoMonth: string;
+  segmentId: string;
+  direction: string;
+  stopOrder: number;
+  timepointStopId: string;
+  timepointStopName: string;
+  nextTimepointStopId: string;
+  nextTimepointStopName: string;
+  observationCount: number;
+  busTripCount: number;
+  weightedAverageSpeedMph: number;
+  weightedAverageTravelTimeMinutes: number;
+  averageRoadDistanceMiles: number;
+  slowWindowShare: number;
+  speedSeverity: number;
+  hotspotScore: number;
+  ridershipExposure?: number | undefined;
+  transferExposure?: number | undefined;
+  riderDelayIndex?: number | undefined;
+  riderImpactShare?: number | undefined;
+  riderWeightedSpeedSeverity?: number | undefined;
+  riderWeightedSlowWindowShare?: number | undefined;
+  riderImpactScore?: number | undefined;
 };
 
 export async function replaceRouteSegmentSpeeds(
@@ -351,5 +395,149 @@ export async function listRouteStops(
     timepoint: row.timepoint,
     latitude: row.latitude,
     longitude: row.longitude,
+  }));
+}
+
+export async function replaceRouteHotspots(
+  db: LocalPipelineDb,
+  summary: LocalRouteHotspotSummary,
+  hotspots: readonly LocalRouteHotspot[],
+): Promise<void> {
+  await db
+    .delete(localRouteHotspot)
+    .where(
+      and(
+        eq(localRouteHotspot.routeId, summary.routeId),
+        eq(localRouteHotspot.month, summary.isoMonth),
+      ),
+    );
+  await db
+    .delete(localRouteHotspotSummary)
+    .where(
+      and(
+        eq(localRouteHotspotSummary.routeId, summary.routeId),
+        eq(localRouteHotspotSummary.month, summary.isoMonth),
+      ),
+    );
+
+  await db.insert(localRouteHotspotSummary).values({
+    routeId: summary.routeId,
+    month: summary.isoMonth,
+    generatedAt: summary.generatedAt,
+    routeWeightedAverageSpeedMph: summary.routeWeightedAverageSpeedMph,
+    observationCount: summary.observationCount,
+    busTripCount: summary.busTripCount,
+    ridershipWeighted: summary.ridershipWeighted,
+    ridershipWindowCount: summary.ridershipWindowCount,
+    ridershipMatchedObservationCount: summary.ridershipMatchedObservationCount,
+    ridershipExposure: summary.ridershipExposure,
+    segmentCount: summary.segmentCount,
+    hotspotCount: summary.hotspotCount,
+  });
+
+  if (hotspots.length === 0) {
+    return;
+  }
+
+  await db.insert(localRouteHotspot).values(
+    hotspots.map((hotspot, index) => ({
+      routeId: hotspot.routeId,
+      month: hotspot.isoMonth,
+      hotspotRank: index + 1,
+      segmentId: hotspot.segmentId,
+      direction: hotspot.direction,
+      stopOrder: hotspot.stopOrder,
+      timepointStopId: hotspot.timepointStopId,
+      timepointStopName: hotspot.timepointStopName,
+      nextTimepointStopId: hotspot.nextTimepointStopId,
+      nextTimepointStopName: hotspot.nextTimepointStopName,
+      observationCount: hotspot.observationCount,
+      busTripCount: hotspot.busTripCount,
+      weightedAverageSpeedMph: hotspot.weightedAverageSpeedMph,
+      weightedAverageTravelTimeMinutes: hotspot.weightedAverageTravelTimeMinutes,
+      averageRoadDistanceMiles: hotspot.averageRoadDistanceMiles,
+      slowWindowShare: hotspot.slowWindowShare,
+      speedSeverity: hotspot.speedSeverity,
+      hotspotScore: hotspot.hotspotScore,
+      ridershipExposure: hotspot.ridershipExposure ?? null,
+      transferExposure: hotspot.transferExposure ?? null,
+      riderDelayIndex: hotspot.riderDelayIndex ?? null,
+      riderImpactShare: hotspot.riderImpactShare ?? null,
+      riderWeightedSpeedSeverity: hotspot.riderWeightedSpeedSeverity ?? null,
+      riderWeightedSlowWindowShare: hotspot.riderWeightedSlowWindowShare ?? null,
+      riderImpactScore: hotspot.riderImpactScore ?? null,
+    })),
+  );
+}
+
+export async function getRouteHotspotSummary(
+  db: LocalPipelineDb,
+  routeId: string,
+  month: string,
+): Promise<LocalRouteHotspotSummary | null> {
+  const row = await db
+    .select()
+    .from(localRouteHotspotSummary)
+    .where(
+      and(eq(localRouteHotspotSummary.routeId, routeId), eq(localRouteHotspotSummary.month, month)),
+    )
+    .get();
+
+  if (row === undefined) {
+    return null;
+  }
+
+  return {
+    routeId: row.routeId,
+    isoMonth: row.month,
+    generatedAt: row.generatedAt,
+    routeWeightedAverageSpeedMph: row.routeWeightedAverageSpeedMph,
+    observationCount: row.observationCount,
+    busTripCount: row.busTripCount,
+    ridershipWeighted: row.ridershipWeighted,
+    ridershipWindowCount: row.ridershipWindowCount,
+    ridershipMatchedObservationCount: row.ridershipMatchedObservationCount,
+    ridershipExposure: row.ridershipExposure,
+    segmentCount: row.segmentCount,
+    hotspotCount: row.hotspotCount,
+  };
+}
+
+export async function listRouteHotspots(
+  db: LocalPipelineDb,
+  routeId: string,
+  month: string,
+): Promise<LocalRouteHotspot[]> {
+  const rows = await db
+    .select()
+    .from(localRouteHotspot)
+    .where(and(eq(localRouteHotspot.routeId, routeId), eq(localRouteHotspot.month, month)))
+    .orderBy(asc(localRouteHotspot.hotspotRank));
+
+  return rows.map((row) => ({
+    routeId: row.routeId,
+    isoMonth: row.month,
+    segmentId: row.segmentId,
+    direction: row.direction,
+    stopOrder: row.stopOrder,
+    timepointStopId: row.timepointStopId,
+    timepointStopName: row.timepointStopName,
+    nextTimepointStopId: row.nextTimepointStopId,
+    nextTimepointStopName: row.nextTimepointStopName,
+    observationCount: row.observationCount,
+    busTripCount: row.busTripCount,
+    weightedAverageSpeedMph: row.weightedAverageSpeedMph,
+    weightedAverageTravelTimeMinutes: row.weightedAverageTravelTimeMinutes,
+    averageRoadDistanceMiles: row.averageRoadDistanceMiles,
+    slowWindowShare: row.slowWindowShare,
+    speedSeverity: row.speedSeverity,
+    hotspotScore: row.hotspotScore,
+    ridershipExposure: row.ridershipExposure ?? undefined,
+    transferExposure: row.transferExposure ?? undefined,
+    riderDelayIndex: row.riderDelayIndex ?? undefined,
+    riderImpactShare: row.riderImpactShare ?? undefined,
+    riderWeightedSpeedSeverity: row.riderWeightedSpeedSeverity ?? undefined,
+    riderWeightedSlowWindowShare: row.riderWeightedSlowWindowShare ?? undefined,
+    riderImpactScore: row.riderImpactScore ?? undefined,
   }));
 }
