@@ -1,11 +1,14 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
+import { listRouteMonthTrends, replaceRouteMonthTrends } from "@bp/db/local";
 import { RouteIdCodec } from "@bp/domain";
 import type { SocrataFetch, SocrataRowsQuery } from "@bp/sources";
 import { getSocrataSource, SocrataClient, soqlQuote } from "@bp/sources";
 import * as z from "zod";
 import { isoMonth, isoMonthStart, nextIsoMonthStart } from "../../lib/dates.js";
 import { writeJson } from "../../lib/json.js";
+import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
+import { fromCliPath } from "../../lib/paths.js";
 import type { SocrataManifestSource } from "../../source-manifest.js";
 import { fromRepoRoot, readSourceManifest } from "../../source-manifest.js";
 
@@ -22,6 +25,7 @@ type RidershipBackfillArgs = {
   fetchedAt?: Date;
   fetcher?: SocrataFetch;
   workingDir?: string;
+  dbPath?: string;
 };
 
 type RidershipBackfillResult = {
@@ -34,36 +38,7 @@ type RidershipBackfillResult = {
   remainingRidershipMissingCount: number;
 };
 
-type TrendRow = z.output<typeof RouteMonthTrendsSchema>["rows"][number];
-
-const RouteMonthTrendsSchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    startMonth: z.string().regex(/^\d{4}-\d{2}$/),
-    endMonth: z.string().regex(/^\d{4}-\d{2}$/),
-    fetchedAt: z.string().min(1),
-    rows: z.array(
-      z
-        .object({
-          schemaVersion: z.literal(1),
-          routeId: z.string().min(1),
-          isoMonth: z.string().regex(/^\d{4}-\d{2}$/),
-          speedObservationCount: z.number().int().nonnegative(),
-          speedBusTripCount: z.number().int().nonnegative(),
-          averageSpeedMph: z.number().nonnegative().nullable(),
-          ridership: z.number().nonnegative().nullable(),
-          transfers: z.number().nonnegative().nullable(),
-          trendCoverage: z
-            .object({
-              speed: z.boolean(),
-              ridership: z.boolean(),
-            })
-            .passthrough(),
-        })
-        .passthrough(),
-    ),
-  })
-  .passthrough();
+type TrendRow = Awaited<ReturnType<typeof listRouteMonthTrends>>[number];
 
 const RawRidershipAggregateSchema = z
   .object({
@@ -93,6 +68,7 @@ function parseArgs(args: RidershipBackfillArgs = {}): Required<RidershipBackfill
     fetchedAt: args.fetchedAt ?? new Date(),
     fetcher: args.fetcher ?? fetch,
     workingDir: args.workingDir ?? fromRepoRoot(join("data/working/trends")),
+    dbPath: args.dbPath ?? defaultLocalPipelineDbPath(),
   };
 }
 
@@ -148,6 +124,12 @@ function parseCliArgs(args: string[]): RidershipBackfillArgs {
       continue;
     }
 
+    if (arg === "--db" && value !== undefined) {
+      output.dbPath = fromCliPath(value);
+      index += 1;
+      continue;
+    }
+
     throw new Error(`Unknown or incomplete argument: ${arg ?? ""}`);
   }
 
@@ -160,6 +142,27 @@ function trendPath(workingDir: string, startMonth: string, endMonth: string): st
 
 function summaryPath(workingDir: string, startMonth: string, endMonth: string): string {
   return join(workingDir, `route-ridership-trend-backfill-${startMonth}_through_${endMonth}.json`);
+}
+
+function inRange(row: TrendRow, startMonth: string, endMonth: string): boolean {
+  return row.month >= startMonth && row.month <= endMonth;
+}
+
+function trendJsonRow(row: TrendRow) {
+  return {
+    schemaVersion,
+    routeId: row.routeId,
+    isoMonth: row.month,
+    speedObservationCount: row.speedObservationCount,
+    speedBusTripCount: row.speedBusTripCount,
+    averageSpeedMph: row.averageSpeedMph,
+    ridership: row.ridership,
+    transfers: row.transfers,
+    trendCoverage: {
+      speed: row.hasSpeedTrend,
+      ridership: row.hasRidershipTrend,
+    },
+  };
 }
 
 async function fetchRidershipAggregate(input: {
@@ -221,11 +224,14 @@ export async function backfillRouteRidershipTrends(
   const endMonth = isoMonth(options.endYear, options.endMonth);
   const routeFilter = new Set<string>(options.routes.map((route) => z.decode(RouteIdCodec, route)));
   const path = trendPath(options.workingDir, startMonth, endMonth);
-  const trends = RouteMonthTrendsSchema.parse(await Bun.file(path).json());
+  const local = await openLocalPipelineDb(options.dbPath);
+  const existingRows = await listRouteMonthTrends(local.db);
+  local.sqlite.close();
   const manifest = await readSourceManifest();
   const source = getSocrataSource(manifest, "bus_hourly_ridership_2025");
-  const candidates = trends.rows
-    .filter((row) => !row.trendCoverage.ridership)
+  const rangeRows = existingRows.filter((row) => inRange(row, startMonth, endMonth));
+  const candidates = rangeRows
+    .filter((row) => !row.hasRidershipTrend)
     .filter((row) => routeFilter.size === 0 || routeFilter.has(row.routeId))
     .slice(0, options.limit);
   const updates = await mapWithConcurrency(candidates, options.concurrency, async (row) => ({
@@ -233,15 +239,15 @@ export async function backfillRouteRidershipTrends(
     ...(await fetchRidershipAggregate({
       source,
       routeId: row.routeId,
-      isoMonth: row.isoMonth,
+      isoMonth: row.month,
       fetcher: options.fetcher,
     })),
   }));
   const updateByKey = new Map(
-    updates.map((update) => [`${update.row.routeId}::${update.row.isoMonth}`, update]),
+    updates.map((update) => [`${update.row.routeId}::${update.row.month}`, update]),
   );
-  const rows: TrendRow[] = trends.rows.map((row) => {
-    const update = updateByKey.get(`${row.routeId}::${row.isoMonth}`);
+  const rows: TrendRow[] = existingRows.map((row) => {
+    const update = updateByKey.get(`${row.routeId}::${row.month}`);
     if (update === undefined) {
       return row;
     }
@@ -250,13 +256,11 @@ export async function backfillRouteRidershipTrends(
       ...row,
       ridership: update.ridership,
       transfers: update.transfers,
-      trendCoverage: {
-        ...row.trendCoverage,
-        ridership: true,
-      },
+      hasRidershipTrend: true,
     };
   });
-  const remainingRidershipMissingCount = rows.filter((row) => !row.trendCoverage.ridership).length;
+  const outputRows = rows.filter((row) => inRange(row, startMonth, endMonth));
+  const remainingRidershipMissingCount = outputRows.filter((row) => !row.hasRidershipTrend).length;
   const summary = {
     schemaVersion,
     startMonth,
@@ -265,8 +269,8 @@ export async function backfillRouteRidershipTrends(
     attemptedChunkCount: candidates.length,
     updatedRowCount: updates.length,
     remainingRidershipMissingCount,
-    routeCount: new Set(rows.map((row) => row.routeId)).size,
-    rowCount: rows.length,
+    routeCount: new Set(outputRows.map((row) => row.routeId)).size,
+    rowCount: outputRows.length,
     sourceReadiness: {
       ridershipTrends:
         remainingRidershipMissingCount === 0 ? "available" : "partial_chunked_backfill",
@@ -278,11 +282,19 @@ export async function backfillRouteRidershipTrends(
   };
 
   await mkdir(options.workingDir, { recursive: true });
+  const writeLocal = await openLocalPipelineDb(options.dbPath);
+  try {
+    await replaceRouteMonthTrends(writeLocal.db, rows);
+  } finally {
+    writeLocal.sqlite.close();
+  }
   await Promise.all([
     writeJson(path, {
-      ...trends,
+      schemaVersion,
+      startMonth,
+      endMonth,
       fetchedAt: options.fetchedAt.toISOString(),
-      rows,
+      rows: outputRows.map(trendJsonRow),
     }),
     writeJson(summaryPath(options.workingDir, startMonth, endMonth), summary),
   ]);

@@ -1,11 +1,13 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, rm } from "node:fs/promises";
+import { rm } from "node:fs/promises";
 import { join } from "node:path";
+import { replaceRouteMonthTrends } from "@bp/db/local";
 import { backfillRouteRidershipTrends } from "../src/jobs/ingest/backfill-route-ridership-trends.js";
+import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
-const workingDir = fromRepoRoot(join("data/fixtures/backfill-route-ridership-trends"));
-const trendPath = join(workingDir, "route-month-trends-2026-01_through_2026-02.json");
+const workingDir = fromRepoRoot(join("data/working/test-backfill-route-ridership-trends"));
+const dbPath = join(workingDir, "pipeline.sqlite");
 
 async function removeFixtureArtifacts(): Promise<void> {
   await rm(workingDir, { force: true, recursive: true });
@@ -13,44 +15,35 @@ async function removeFixtureArtifacts(): Promise<void> {
 
 async function writeFixtureTrends(): Promise<void> {
   await removeFixtureArtifacts();
-  await mkdir(workingDir, { recursive: true });
-  await Bun.write(
-    trendPath,
-    `${JSON.stringify(
+  const local = await openLocalPipelineDb(dbPath);
+  try {
+    await replaceRouteMonthTrends(local.db, [
       {
-        schemaVersion: 1,
-        startMonth: "2026-01",
-        endMonth: "2026-02",
-        fetchedAt: "2026-04-27T00:00:00.000Z",
-        rows: [
-          {
-            schemaVersion: 1,
-            routeId: "T1",
-            isoMonth: "2026-01",
-            speedObservationCount: 10,
-            speedBusTripCount: 100,
-            averageSpeedMph: 7.5,
-            ridership: null,
-            transfers: null,
-            trendCoverage: { speed: true, ridership: false },
-          },
-          {
-            schemaVersion: 1,
-            routeId: "T1",
-            isoMonth: "2026-02",
-            speedObservationCount: 12,
-            speedBusTripCount: 120,
-            averageSpeedMph: 7.8,
-            ridership: 900,
-            transfers: 90,
-            trendCoverage: { speed: true, ridership: true },
-          },
-        ],
+        routeId: "T1",
+        month: "2026-01",
+        speedObservationCount: 10,
+        speedBusTripCount: 100,
+        averageSpeedMph: 7.5,
+        ridership: null,
+        transfers: null,
+        hasSpeedTrend: true,
+        hasRidershipTrend: false,
       },
-      null,
-      2,
-    )}\n`,
-  );
+      {
+        routeId: "T1",
+        month: "2026-02",
+        speedObservationCount: 12,
+        speedBusTripCount: 120,
+        averageSpeedMph: 7.8,
+        ridership: 900,
+        transfers: 90,
+        hasSpeedTrend: true,
+        hasRidershipTrend: true,
+      },
+    ]);
+  } finally {
+    local.sqlite.close();
+  }
 }
 
 afterEach(async () => {
@@ -68,6 +61,7 @@ describe("route ridership trend backfill", () => {
       endMonth: 2,
       fetchedAt: new Date("2026-04-27T12:00:00.000Z"),
       workingDir,
+      dbPath,
       fetcher: async (input) => {
         const url = new URL(String(input));
 
