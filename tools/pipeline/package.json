@@ -34,7 +34,6 @@
     "build:routes": "bun run src/cli.ts build:routes",
     "build:planned-routes": "bun run src/cli.ts build:planned-routes",
     "compare:routes": "bun run src/cli.ts compare:routes",
-    "route-score:m1": "bun run src/cli.ts route-score:m1",
     "route-batch-audit": "bun run src/cli.ts route-batch-audit",
     "route-brief:m1": "bun run src/cli.ts route-brief:m1",
     "interventions:m1": "bun run src/cli.ts interventions:m1",

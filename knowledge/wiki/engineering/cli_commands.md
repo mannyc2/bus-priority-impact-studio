@@ -78,7 +78,6 @@ Expected outputs:
 bun run hotspots:m1 -- --route M1 --year 2026 --month 3
 bun run ridership-profile:m1 -- --route M1 --year 2026 --month 3
 bun run speed-profile:m1 -- --route M1 --year 2026 --month 3
-bun run route-score:m1 -- --route M1 --year 2026 --month 3
 bun run interventions:m1 -- --route M1 --year 2026 --month 3
 bun run bus-lanes:m1 -- --route M1 --year 2026 --month 3
 bun run schedules:m1 -- --route M1 --year 2026 --month 3
@@ -94,7 +93,6 @@ bun run route-equity-context -- --year 2026 --month 3 --acs-year 2024
 bun run route-batch-audit -- --year 2026 --month 3
 bun --filter @bp/pipeline build:segments -- --route M1
 bun --filter @bp/pipeline build:hotspots -- --route M1 --month 2026-01
-bun --filter @bp/pipeline build:route-score -- --route M1 --month 2026-01
 bun --filter @bp/pipeline build:ace-impact -- --route M1
 ```
 
@@ -153,7 +151,7 @@ Do not use `pytest`, `ruff`, or Python scripts in the MVP.
 
 ## Caveats
 
-- `sources:list`, `sources:probe`, `ingest:ace-routes`, `ingest:ace-violations`, `ingest:bus-lanes`, `ingest:equity-context`, `ingest:route-catalog`, `ingest:route-coverage`, `ingest:route-trends`, `backfill:route-ridership-trends`, `ingest:m1`, `ingest:m1-schedules`, `hotspots:m1`, `ridership-profile:m1`, `speed-profile:m1`, `route-score:m1`, `interventions:m1`, `bus-lanes:m1`, `schedules:m1`, `route-brief:m1`, `artifacts:m1`, `build:routes`, `build:planned-routes`, `compare:routes`, `route-readiness`, `route-build-plan`, `route-reliability-baseline`, `route-equity-context`, `route-batch-audit`, `export:d1`, and `verify:d1` are implemented; R2 upload remains planned.
+- `sources:list`, `sources:probe`, `ingest:ace-routes`, `ingest:ace-violations`, `ingest:bus-lanes`, `ingest:equity-context`, `ingest:route-catalog`, `ingest:route-coverage`, `ingest:route-trends`, `backfill:route-ridership-trends`, `ingest:m1`, `ingest:m1-schedules`, `hotspots:m1`, `ridership-profile:m1`, `speed-profile:m1`, `interventions:m1`, `bus-lanes:m1`, `schedules:m1`, `route-brief:m1`, `artifacts:m1`, `build:routes`, `build:planned-routes`, `compare:routes`, `route-readiness`, `route-build-plan`, `route-reliability-baseline`, `route-equity-context`, `route-batch-audit`, `export:d1`, and `verify:d1` are implemented; R2 upload remains planned.
 - Keep command implementations thin; put reusable logic in `packages/*`.
 
 ## Sources

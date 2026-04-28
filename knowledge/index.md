@@ -55,6 +55,6 @@ Read this file first. It is the navigation layer for the LLM wiki.
 
 1. Decide when to expand beyond the M1 route demo into a Manhattan pilot or the Comptroller/worst-route subset.
 2. Decide how much realtime Bus Time data to collect; realtime collection is useful but not required for MVP.
-3. Build the M1 route scorecard from the ridership-weighted hotspot artifact.
+3. Continue cutting route-slice pipeline complexity now that local DB rows are the handoff.
 4. Keep the MVP TypeScript-only unless a documented requirement forces Python/PostGIS/VPS escalation.
 5. Keep D1 as a compact serving projection; promote canonical queryable history to Postgres/Hyperdrive instead of growing D1 into a warehouse.

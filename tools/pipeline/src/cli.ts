@@ -186,13 +186,6 @@ const commands = {
       return buildRouteComparisonFromCli(args);
     },
   },
-  "route-score:m1": {
-    description: "Build route score artifacts; defaults to M1.",
-    run: async (args) => {
-      const { buildM1RouteScoreFromCli } = await import("./jobs/build/m1-route-score.js");
-      return buildM1RouteScoreFromCli(args);
-    },
-  },
   "route-batch-audit": {
     description: "Audit route batch artifacts.",
     run: async (args) => {
