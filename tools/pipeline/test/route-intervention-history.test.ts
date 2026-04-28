@@ -1,20 +1,24 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, rm } from "node:fs/promises";
+import { rm } from "node:fs/promises";
 import { join } from "node:path";
-import { replaceRouteBriefRows } from "@bp/db/local";
+import {
+  replaceAceRoutes,
+  replaceAceViolationSummaries,
+  replaceBusLanes,
+  replaceRouteBriefRows,
+  replaceRouteStops,
+} from "@bp/db/local";
 import { buildRouteInterventionHistory } from "../src/jobs/build/route-intervention-history.js";
 import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
 const isoMonth = "2026-11";
 const batchDir = fromRepoRoot(join("data/artifacts/route-batches", isoMonth));
-const routeDir = fromRepoRoot(join("data/artifacts/route-slices/t1-2026-11"));
 const dbPath = fromRepoRoot(join("data/working/test-route-intervention-history/pipeline.sqlite"));
 
 async function removeFixtureArtifacts(): Promise<void> {
   await Promise.all([
     rm(batchDir, { force: true, recursive: true }),
-    rm(routeDir, { force: true, recursive: true }),
     rm(fromRepoRoot(join("data/working/test-route-intervention-history")), {
       force: true,
       recursive: true,
@@ -24,8 +28,6 @@ async function removeFixtureArtifacts(): Promise<void> {
 
 async function writeFixtureArtifacts(): Promise<void> {
   await removeFixtureArtifacts();
-  await mkdir(batchDir, { recursive: true });
-  await mkdir(routeDir, { recursive: true });
   const local = await openLocalPipelineDb(dbPath);
   try {
     await replaceRouteBriefRows(local.db, {
@@ -47,71 +49,68 @@ async function writeFixtureArtifacts(): Promise<void> {
       peakWindows: [],
       slowestWindows: [],
     });
+    await replaceAceRoutes(local.db, [
+      {
+        routeId: "T1",
+        program: "ACE",
+        implementationDate: "2025-01-15T00:00:00.000Z",
+      },
+    ]);
+    await replaceAceViolationSummaries(local.db, isoMonth, [
+      {
+        month: isoMonth,
+        routeId: "T1",
+        violationType: "MOBILE BUS LANE",
+        violationStatus: "EXEMPT - OTHER",
+        violationCount: 42,
+      },
+      {
+        month: isoMonth,
+        routeId: "T1",
+        violationType: "MOBILE BUS STOP",
+        violationStatus: "TECHNICAL ISSUE/OTHER",
+        violationCount: 0,
+      },
+    ]);
+    await replaceRouteStops(local.db, "T1", isoMonth, [
+      {
+        routeId: "T1",
+        isoMonth,
+        routeShortName: "T1",
+        stopId: "A",
+        stopName: "MAIN ST/E 1 ST",
+        inEffect: true,
+        directionId: "0",
+        direction: "N",
+        timepoint: true,
+        latitude: 40,
+        longitude: -73,
+      },
+    ]);
+    await replaceBusLanes(local.db, [
+      {
+        segmentId: "1",
+        street: "MAIN STREET",
+        borough: "MAN",
+        facility: "Main Street",
+        laneType: "Curbside",
+        laneSubtype: "Bus Lane",
+        openDate: "2024-06-01T00:00:00.000",
+        coordinates: [{ longitude: -73, latitude: 40 }],
+      },
+      {
+        segmentId: "2",
+        street: "MAIN STREET",
+        borough: "MAN",
+        facility: "Main Street",
+        laneType: "Offset",
+        laneSubtype: "Bus Lane",
+        coordinates: [{ longitude: -73, latitude: 40 }],
+      },
+    ]);
   } finally {
     local.sqlite.close();
   }
-  await Bun.write(
-    join(routeDir, "intervention-overlay.json"),
-    `${JSON.stringify(
-      {
-        schemaVersion: 1,
-        routeId: "T1",
-        analysisPeriod: isoMonth,
-        ace: {
-          routeMatched: true,
-          routeMatchCount: 1,
-          activeDuringAnalysisPeriod: true,
-          activePrograms: [
-            {
-              schemaVersion: 1,
-              routeId: "T1",
-              program: "ACE",
-              implementationDate: "2025-01-15T00:00:00.000Z",
-            },
-          ],
-          futurePrograms: [],
-        },
-        violations: {
-          routeViolationCount: 42,
-          groupedRowCount: 2,
-        },
-      },
-      null,
-      2,
-    )}\n`,
-  );
-  await Bun.write(
-    join(routeDir, "bus-lane-overlay.json"),
-    `${JSON.stringify(
-      {
-        schemaVersion: 1,
-        routeId: "T1",
-        analysisPeriod: isoMonth,
-        matchedLaneCount: 2,
-        matchedStreetCount: 1,
-        matchedLanes: [
-          {
-            segmentId: "1",
-            street: "MAIN STREET",
-            facility: "Main Street",
-            laneType: "Curbside",
-            laneSubtype: "Bus Lane",
-            openDate: "2024-06-01T00:00:00.000",
-          },
-          {
-            segmentId: "2",
-            street: "MAIN STREET",
-            facility: "Main Street",
-            laneType: "Offset",
-            laneSubtype: "Bus Lane",
-            openDate: null,
-          },
-        ],
-      },
-      null,
-      2,
-    )}\n`,
-  );
 }
 
 afterEach(async () => {

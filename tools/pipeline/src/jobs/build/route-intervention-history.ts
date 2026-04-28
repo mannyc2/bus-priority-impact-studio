@@ -1,8 +1,13 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import { listRouteBriefSummaries } from "@bp/db/local";
-import * as z from "zod";
-import { routeSliceKey } from "../../lib/artifacts.js";
+import {
+  type LocalBusLane,
+  listAceRoutesForRoute,
+  listAceViolationSummariesForRoute,
+  listBusLanes,
+  listRouteBriefSummaries,
+  listRouteStops,
+} from "@bp/db/local";
 import { isoMonth } from "../../lib/dates.js";
 import { writeJson } from "../../lib/json.js";
 import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
@@ -10,67 +15,7 @@ import { fromCliPath } from "../../lib/paths.js";
 import { fromRepoRoot } from "../../source-manifest.js";
 
 const schemaVersion = 1;
-
-const IsoMonthSchema = z.string().regex(/^\d{4}-\d{2}$/);
-
-const InterventionOverlaySchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    routeId: z.string().min(1),
-    analysisPeriod: IsoMonthSchema,
-    ace: z
-      .object({
-        routeMatched: z.boolean(),
-        routeMatchCount: z.number().int().nonnegative(),
-        activeDuringAnalysisPeriod: z.boolean(),
-        activePrograms: z.array(
-          z
-            .object({
-              program: z.string().min(1),
-              implementationDate: z.string().min(1),
-            })
-            .passthrough(),
-        ),
-        futurePrograms: z.array(
-          z
-            .object({
-              program: z.string().min(1),
-              implementationDate: z.string().min(1),
-            })
-            .passthrough(),
-        ),
-      })
-      .passthrough(),
-    violations: z
-      .object({
-        routeViolationCount: z.number().int().nonnegative(),
-        groupedRowCount: z.number().int().nonnegative(),
-      })
-      .passthrough(),
-  })
-  .passthrough();
-
-const BusLaneOverlaySchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    routeId: z.string().min(1),
-    analysisPeriod: IsoMonthSchema,
-    matchedLaneCount: z.number().int().nonnegative(),
-    matchedStreetCount: z.number().int().nonnegative(),
-    matchedLanes: z.array(
-      z
-        .object({
-          segmentId: z.string().min(1),
-          street: z.string().min(1),
-          facility: z.string().min(1),
-          laneType: z.string().nullable().optional(),
-          laneSubtype: z.string().nullable().optional(),
-          openDate: z.string().nullable().optional(),
-        })
-        .passthrough(),
-    ),
-  })
-  .passthrough();
+const proximityThresholdMeters = 150;
 
 type RouteInterventionHistoryArgs = {
   year?: number;
@@ -92,7 +37,11 @@ type Program = {
   implementationDate: string;
 };
 
-type BusLane = z.output<typeof BusLaneOverlaySchema>["matchedLanes"][number];
+type BusLane = LocalBusLane;
+type Coordinate = {
+  longitude: number;
+  latitude: number;
+};
 
 function parseBuildArgs(
   args: RouteInterventionHistoryArgs = {},
@@ -145,6 +94,51 @@ function sortedDates(values: Array<string | null | undefined>): string[] {
   return uniqueSorted(values).sort();
 }
 
+function monthEndIso(year: number, month: number): string {
+  const nextMonthStart = new Date(Date.UTC(year, month, 1));
+  const monthEnd = new Date(nextMonthStart.getTime() - 1);
+
+  return monthEnd.toISOString();
+}
+
+function normalizeStreetName(value: string): string {
+  return value
+    .toUpperCase()
+    .replace(/\bAV\b/g, "AVENUE")
+    .replace(/\bAVE\b/g, "AVENUE")
+    .replace(/\bST\b/g, "STREET")
+    .replace(/\bBLVD\b/g, "BOULEVARD")
+    .replace(/\bRD\b/g, "ROAD")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function routeStreetFromStopName(stopName: string): string {
+  return normalizeStreetName(stopName.split("/")[0] ?? stopName);
+}
+
+function metersBetween(left: Coordinate, right: Coordinate): number {
+  const latitudeMeters = (left.latitude - right.latitude) * 111_320;
+  const longitudeMeters =
+    (left.longitude - right.longitude) *
+    111_320 *
+    Math.cos(((left.latitude + right.latitude) / 2 / 180) * Math.PI);
+
+  return Math.sqrt(latitudeMeters ** 2 + longitudeMeters ** 2);
+}
+
+function minDistanceMeters(laneCoordinates: Coordinate[], stopCoordinates: Coordinate[]): number {
+  let minDistance = Number.POSITIVE_INFINITY;
+
+  for (const laneCoordinate of laneCoordinates) {
+    for (const stopCoordinate of stopCoordinates) {
+      minDistance = Math.min(minDistance, metersBetween(laneCoordinate, stopCoordinate));
+    }
+  }
+
+  return minDistance;
+}
+
 function summarizePrograms(activePrograms: Program[], futurePrograms: Program[]) {
   const programs = [
     ...activePrograms.map((program) => ({ ...program, status: "active" as const })),
@@ -189,49 +183,80 @@ export async function buildRouteInterventionHistory(
 ): Promise<RouteInterventionHistoryResult> {
   const options = parseBuildArgs(args);
   const month = isoMonth(options.year, options.month);
+  const analysisPeriodEnd = monthEndIso(options.year, options.month);
   const batchDir = fromRepoRoot(join("data/artifacts/route-batches", month));
   const historyPath = join(batchDir, "route-intervention-history.json");
   const summaryPath = join(batchDir, "route-intervention-history-summary.json");
   const local = await openLocalPipelineDb(options.dbPath);
-  const builtRoutes = await listRouteBriefSummaries(local.db, month);
-  local.sqlite.close();
-  const rows = await Promise.all(
-    builtRoutes.map(async (route) => {
-      const artifactDir = fromRepoRoot(
-        join("data/artifacts/route-slices", routeSliceKey(route.routeId, month)),
-      );
-      const intervention = InterventionOverlaySchema.parse(
-        await Bun.file(join(artifactDir, "intervention-overlay.json")).json(),
-      );
-      const busLanes = BusLaneOverlaySchema.parse(
-        await Bun.file(join(artifactDir, "bus-lane-overlay.json")).json(),
-      );
+  const rows = await (async () => {
+    try {
+      const [builtRoutes, busLanes] = await Promise.all([
+        listRouteBriefSummaries(local.db, month),
+        listBusLanes(local.db),
+      ]);
 
-      return {
-        schemaVersion,
-        routeId: route.routeId,
-        isoMonth: month,
-        ace: summarizePrograms(intervention.ace.activePrograms, intervention.ace.futurePrograms),
-        enforcement: {
-          aceViolationCount: intervention.violations.routeViolationCount,
-          aceViolationGroupedRowCount: intervention.violations.groupedRowCount,
-          enforcementActivationStatus:
-            intervention.ace.activeDuringAnalysisPeriod || intervention.ace.routeMatched
-              ? "ace_implementation_date_available"
-              : "no_ace_route_match",
-        },
-        busLanes: summarizeBusLanes(busLanes.matchedLanes),
-        signalPriority: {
-          status: "not_ingested",
-          note: "No signal-priority source has been added to the manifest or pipeline yet.",
-        },
-        laneUpgrades: {
-          status: "not_ingested",
-          note: "Bus-lane open dates are available where provided, but lane-upgrade/version history is not yet ingested.",
-        },
-      };
-    }),
-  );
+      return await Promise.all(
+        builtRoutes.map(async (route) => {
+          const [programs, violations, stops] = await Promise.all([
+            listAceRoutesForRoute(local.db, route.routeId),
+            listAceViolationSummariesForRoute(local.db, route.routeId, month),
+            listRouteStops(local.db, route.routeId, month),
+          ]);
+          const activePrograms = programs.filter(
+            (program) => program.implementationDate <= analysisPeriodEnd,
+          );
+          const futurePrograms = programs.filter(
+            (program) => program.implementationDate > analysisPeriodEnd,
+          );
+          const stopCoordinates = stops.map((stop) => ({
+            longitude: stop.longitude,
+            latitude: stop.latitude,
+          }));
+          const routeStreets = new Set(stops.map((stop) => routeStreetFromStopName(stop.stopName)));
+          const matchedBusLanes = busLanes.filter((lane) => {
+            if (lane.borough !== "MAN") {
+              return false;
+            }
+
+            const laneStreet = normalizeStreetName(lane.street);
+            const laneFacility = normalizeStreetName(lane.facility);
+            return (
+              routeStreets.has(laneStreet) ||
+              routeStreets.has(laneFacility) ||
+              minDistanceMeters(lane.coordinates, stopCoordinates) <= proximityThresholdMeters
+            );
+          });
+          const aceViolationCount = violations.reduce((sum, row) => sum + row.violationCount, 0);
+          const ace = summarizePrograms(activePrograms, futurePrograms);
+
+          return {
+            schemaVersion,
+            routeId: route.routeId,
+            isoMonth: month,
+            ace,
+            enforcement: {
+              aceViolationCount,
+              aceViolationGroupedRowCount: violations.length,
+              enforcementActivationStatus: ace.routeMatched
+                ? "ace_implementation_date_available"
+                : "no_ace_route_match",
+            },
+            busLanes: summarizeBusLanes(matchedBusLanes),
+            signalPriority: {
+              status: "not_ingested",
+              note: "No signal-priority source has been added to the manifest or pipeline yet.",
+            },
+            laneUpgrades: {
+              status: "not_ingested",
+              note: "Bus-lane open dates are available where provided, but lane-upgrade/version history is not yet ingested.",
+            },
+          };
+        }),
+      );
+    } finally {
+      local.sqlite.close();
+    }
+  })();
   const summary = {
     schemaVersion,
     analysisPeriod: month,
