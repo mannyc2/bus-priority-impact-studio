@@ -32,7 +32,6 @@ type RouteTrendsArgs = {
 type RouteTrendsResult = {
   startMonth: string;
   endMonth: string;
-  trendPath: string;
   summaryPath: string;
   routeCount: number;
   monthCount: number;
@@ -294,7 +293,6 @@ export async function ingestRouteTrends(args: RouteTrendsArgs = {}): Promise<Rou
   const startMonth = start.isoMonth;
   const endMonth = end.isoMonth;
   const suffix = `${startMonth}_through_${endMonth}`;
-  const trendPath = join(options.workingDir, `route-month-trends-${suffix}.json`);
   const summaryPath = join(options.workingDir, `route-month-trends-${suffix}-summary.json`);
   const summary = {
     schemaVersion,
@@ -324,16 +322,7 @@ export async function ingestRouteTrends(args: RouteTrendsArgs = {}): Promise<Rou
   };
 
   await mkdir(options.workingDir, { recursive: true });
-  await Promise.all([
-    writeJson(trendPath, {
-      schemaVersion,
-      startMonth,
-      endMonth,
-      fetchedAt: summary.fetchedAt,
-      rows,
-    }),
-    writeJson(summaryPath, summary),
-  ]);
+  await writeJson(summaryPath, summary);
   const local = await openLocalPipelineDb(options.dbPath);
   try {
     await replaceRouteMonthTrends(
@@ -357,7 +346,6 @@ export async function ingestRouteTrends(args: RouteTrendsArgs = {}): Promise<Rou
   return {
     startMonth,
     endMonth,
-    trendPath,
     summaryPath,
     routeCount: routeIds.length,
     monthCount: months.length,

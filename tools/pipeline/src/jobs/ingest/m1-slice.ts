@@ -272,28 +272,6 @@ export async function ingestM1RouteSlice(args: RouteSliceArgs = {}): Promise<Rou
       rawPaths.bus_hourly_ridership_2025,
       rawPayload("bus_hourly_ridership_2025", fetchedAt, ridershipQuery, ridershipRows),
     ),
-    writeJson(join(workingDir, "segment-speeds.json"), {
-      schemaVersion,
-      routeId: options.routeId,
-      isoMonth: summary.isoMonth,
-      rows: segmentSpeeds,
-    }),
-    writeJson(join(workingDir, "route-shapes.json"), {
-      schemaVersion,
-      routeId: options.routeId,
-      rows: routeShapes,
-    }),
-    writeJson(join(workingDir, "stops.json"), {
-      schemaVersion,
-      routeId: options.routeId,
-      rows: stops,
-    }),
-    writeJson(join(workingDir, "ridership.json"), {
-      schemaVersion,
-      routeId: options.routeId,
-      isoMonth: summary.isoMonth,
-      rows: ridership,
-    }),
     writeJson(join(workingDir, "summary.json"), summary),
   ]);
 

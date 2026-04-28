@@ -20,7 +20,6 @@ type AceRoutesIngestArgs = {
 
 type AceRoutesIngestResult = {
   rawPath: string;
-  workingPath: string;
   summaryPath: string;
   routeCount: number;
   aceCount: number;
@@ -46,7 +45,6 @@ export async function ingestAceRoutes(
   const rawDir = fromRepoRoot(join("data/raw/interventions"));
   const workingDir = fromRepoRoot(join("data/working/interventions"));
   const rawPath = join(rawDir, "ace-routes.json");
-  const workingPath = join(workingDir, "ace-routes.json");
   const summaryPath = join(workingDir, "ace-routes-summary.json");
   const rawRows = await fetchAceRouteRows(source, args.fetcher);
   const normalizedRows = normalizeAceRouteRows(rawRows);
@@ -81,18 +79,11 @@ export async function ingestAceRoutes(
       query: { order: "route, implementation_date" },
       rows: rawRows,
     }),
-    writeJson(workingPath, {
-      schemaVersion,
-      sourceId,
-      fetchedAt,
-      rows: normalizedRows,
-    }),
     writeJson(summaryPath, summary),
   ]);
 
   return {
     rawPath,
-    workingPath,
     summaryPath,
     routeCount: normalizedRows.length,
     aceCount,

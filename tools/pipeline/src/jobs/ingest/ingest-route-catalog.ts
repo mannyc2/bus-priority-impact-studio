@@ -29,7 +29,6 @@ type RouteCatalogArgs = {
 type RouteCatalogResult = {
   rawDir: string;
   workingDir: string;
-  catalogPath: string;
   summaryPath: string;
   routeCount: number;
   shapeCount: number;
@@ -160,7 +159,6 @@ export async function ingestRouteCatalog(args: RouteCatalogArgs = {}): Promise<R
   const fetchedAt = (args.fetchedAt ?? new Date()).toISOString();
   const rawDir = args.rawDir ?? fromRepoRoot(join("data/raw/network"));
   const workingDir = args.workingDir ?? fromRepoRoot(join("data/working/network"));
-  const catalogPath = join(workingDir, "route-catalog.json");
   const summaryPath = join(workingDir, "route-catalog-summary.json");
   const routeQuery = { where: "in_effect='true'", order: "route_id,direction_id,shape_id" };
   const stopQuery = { where: "in_effect='true'", order: "route_id,direction_id,stop_id" };
@@ -206,18 +204,12 @@ export async function ingestRouteCatalog(args: RouteCatalogArgs = {}): Promise<R
       query: stopQuery,
       rows: stopRows,
     }),
-    writeJson(catalogPath, {
-      schemaVersion,
-      fetchedAt,
-      rows: catalog,
-    }),
     writeJson(summaryPath, summary),
   ]);
 
   return {
     rawDir,
     workingDir,
-    catalogPath,
     summaryPath,
     routeCount: catalog.length,
     shapeCount: routeShapes.length,

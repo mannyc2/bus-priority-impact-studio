@@ -1,10 +1,13 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
+import { listRouteMonthTrends } from "@bp/db/local";
 import { ingestRouteTrends } from "../src/jobs/ingest/ingest-route-trends.js";
+import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
 const workingDir = fromRepoRoot(join("data/fixtures/ingest-route-trends"));
+const dbPath = join(workingDir, "pipeline.sqlite");
 
 async function removeFixtureArtifacts(): Promise<void> {
   await rm(workingDir, { force: true, recursive: true });
@@ -26,6 +29,7 @@ describe("route trends ingestion", () => {
       routes: ["T1"],
       fetchedAt: new Date("2026-04-27T12:00:00.000Z"),
       workingDir,
+      dbPath,
       fetcher: async (input) => {
         const url = new URL(String(input));
 
@@ -62,8 +66,10 @@ describe("route trends ingestion", () => {
         ]);
       },
     });
-    const trends = await Bun.file(result.trendPath).json();
     const summary = await Bun.file(result.summaryPath).json();
+    const local = await openLocalPipelineDb(dbPath);
+    const trends = await listRouteMonthTrends(local.db);
+    local.sqlite.close();
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -74,20 +80,22 @@ describe("route trends ingestion", () => {
         rowCount: 2,
       }),
     );
-    expect(trends.rows).toEqual([
+    expect(trends).toEqual([
       expect.objectContaining({
         routeId: "T1",
-        isoMonth: "2026-01",
+        month: "2026-01",
         averageSpeedMph: 7.5,
         ridership: 1000,
-        trendCoverage: { speed: true, ridership: true },
+        hasSpeedTrend: true,
+        hasRidershipTrend: true,
       }),
       expect.objectContaining({
         routeId: "T1",
-        isoMonth: "2026-02",
+        month: "2026-02",
         averageSpeedMph: null,
         ridership: 1200,
-        trendCoverage: { speed: false, ridership: true },
+        hasSpeedTrend: false,
+        hasRidershipTrend: true,
       }),
     ]);
     expect(summary).toEqual(

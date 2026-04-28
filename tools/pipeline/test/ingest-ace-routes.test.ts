@@ -1,16 +1,20 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
+import { listAceRoutesForRoute } from "@bp/db/local";
 import { ingestAceRoutes } from "../src/jobs/ingest/ingest-ace-routes.js";
+import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
 const rawDir = fromRepoRoot(join("data/raw/interventions"));
 const workingDir = fromRepoRoot(join("data/working/interventions"));
+const dbPath = fromRepoRoot(join("data/working/test-ace-routes/pipeline.sqlite"));
 
 async function removeFixtureArtifacts(): Promise<void> {
   await Promise.all([
     rm(rawDir, { force: true, recursive: true }),
     rm(workingDir, { force: true, recursive: true }),
+    rm(dbPath, { force: true }),
   ]);
 }
 
@@ -24,6 +28,7 @@ describe("ACE route ingestion", () => {
 
     const result = await ingestAceRoutes({
       fetchedAt: new Date("2026-04-27T12:00:00.000Z"),
+      dbPath,
       fetcher: async () =>
         Response.json([
           {
@@ -38,8 +43,13 @@ describe("ACE route ingestion", () => {
           },
         ]),
     });
-    const working = await Bun.file(result.workingPath).json();
     const summary = await Bun.file(result.summaryPath).json();
+    const local = await openLocalPipelineDb(dbPath);
+    const [m1Routes, m14Routes] = await Promise.all([
+      listAceRoutesForRoute(local.db, "M1"),
+      listAceRoutesForRoute(local.db, "M14+"),
+    ]);
+    local.sqlite.close();
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -48,15 +58,13 @@ describe("ACE route ingestion", () => {
         ableCount: 1,
       }),
     );
-    expect(working.rows).toEqual([
+    expect([...m1Routes, ...m14Routes]).toEqual([
       {
-        schemaVersion: 1,
         routeId: "M1",
         program: "ACE",
         implementationDate: "2024-06-20T00:00:00.000Z",
       },
       {
-        schemaVersion: 1,
         routeId: "M14+",
         program: "ABLE",
         implementationDate: "2019-10-07T00:00:00.000Z",

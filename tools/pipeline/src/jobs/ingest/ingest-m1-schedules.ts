@@ -27,7 +27,6 @@ type ScheduleIngestArgs = {
 
 type ScheduleIngestResult = {
   rawPath: string;
-  workingPath: string;
   summaryPath: string;
   routeId: string;
   isoMonth: string;
@@ -109,7 +108,6 @@ export async function ingestM1Schedules(
   const rawDir = fromRepoRoot(join("data/raw/route-slices", key));
   const workingDir = fromRepoRoot(join("data/working/route-slices", key));
   const rawPath = join(rawDir, "bus_schedules_2026.json");
-  const workingPath = join(workingDir, "schedules.json");
   const summaryPath = join(workingDir, "schedules-summary.json");
   const rawRows = await fetchScheduleRows(source, routeId, args.fetcher);
   const normalizedRows = normalizeScheduleTimepointRows(rawRows);
@@ -155,20 +153,11 @@ export async function ingestM1Schedules(
       query: { routeId, timepoint: "1" },
       rows: rawRows,
     }),
-    writeJson(workingPath, {
-      schemaVersion,
-      sourceId,
-      routeId,
-      isoMonth: monthKey,
-      fetchedAt,
-      rows: normalizedRows,
-    }),
     writeJson(summaryPath, summary),
   ]);
 
   return {
     rawPath,
-    workingPath,
     summaryPath,
     routeId,
     isoMonth: monthKey,

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
-import { replaceRouteMonthTrends } from "@bp/db/local";
+import { listRouteMonthTrends, replaceRouteMonthTrends } from "@bp/db/local";
 import { backfillRouteRidershipTrends } from "../src/jobs/ingest/backfill-route-ridership-trends.js";
 import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
@@ -71,8 +71,10 @@ describe("route ridership trend backfill", () => {
         return Response.json([{ ridership: "1000", transfers: "125" }]);
       },
     });
-    const trends = await Bun.file(result.trendPath).json();
     const summary = await Bun.file(result.summaryPath).json();
+    const local = await openLocalPipelineDb(dbPath);
+    const trends = await listRouteMonthTrends(local.db);
+    local.sqlite.close();
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -81,11 +83,12 @@ describe("route ridership trend backfill", () => {
         remainingRidershipMissingCount: 0,
       }),
     );
-    expect(trends.rows[0]).toEqual(
+    expect(trends[0]).toEqual(
       expect.objectContaining({
         ridership: 1000,
         transfers: 125,
-        trendCoverage: { speed: true, ridership: true },
+        hasSpeedTrend: true,
+        hasRidershipTrend: true,
       }),
     );
     expect(summary.sourceReadiness).toEqual(

@@ -54,7 +54,6 @@ describe("route month coverage ingestion", () => {
         ]);
       },
     });
-    const coverage = await Bun.file(result.workingPath).json();
     const summary = await Bun.file(result.summaryPath).json();
     const local = await openLocalPipelineDb(dbPath);
     const localCoverage = await listRouteMonthCoverage(local.db, "2026-03");
@@ -67,9 +66,10 @@ describe("route month coverage ingestion", () => {
         scheduleRouteCount: 2,
       }),
     );
-    expect(coverage.rows).toEqual([
+    expect(localCoverage).toEqual([
       expect.objectContaining({
         routeId: "M1",
+        isoMonth: "2026-03",
         speedObservationCount: 20,
         scheduleTimepointCount: 100,
         hasSpeedData: true,
@@ -77,6 +77,7 @@ describe("route month coverage ingestion", () => {
       }),
       expect.objectContaining({
         routeId: "M2",
+        isoMonth: "2026-03",
         speedObservationCount: 0,
         scheduleTimepointCount: 80,
         hasSpeedData: false,
@@ -84,10 +85,5 @@ describe("route month coverage ingestion", () => {
       }),
     ]);
     expect(summary.completeCoverageRouteCount).toBe(1);
-    expect(localCoverage).toEqual(
-      coverage.rows.map(
-        ({ schemaVersion: _schemaVersion, ...row }: Record<string, unknown>) => row,
-      ),
-    );
   });
 });

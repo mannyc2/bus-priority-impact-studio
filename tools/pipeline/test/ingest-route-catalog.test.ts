@@ -77,7 +77,6 @@ describe("route catalog ingestion", () => {
         ]);
       },
     });
-    const catalog = await Bun.file(result.catalogPath).json();
     const summary = await Bun.file(result.summaryPath).json();
     const local = await openLocalPipelineDb(dbPath);
     const localCatalog = await listRouteCatalog(local.db);
@@ -91,7 +90,7 @@ describe("route catalog ingestion", () => {
         timepointStopCount: 1,
       }),
     );
-    expect(catalog.rows[0]).toEqual(
+    expect(localCatalog[0]).toEqual(
       expect.objectContaining({
         routeId: "M1",
         routeLongName: "Harlem - East Village",

@@ -31,7 +31,6 @@ type RidershipBackfillArgs = {
 type RidershipBackfillResult = {
   startMonth: string;
   endMonth: string;
-  trendPath: string;
   summaryPath: string;
   attemptedChunkCount: number;
   updatedRowCount: number;
@@ -136,33 +135,12 @@ function parseCliArgs(args: string[]): RidershipBackfillArgs {
   return output;
 }
 
-function trendPath(workingDir: string, startMonth: string, endMonth: string): string {
-  return join(workingDir, `route-month-trends-${startMonth}_through_${endMonth}.json`);
-}
-
 function summaryPath(workingDir: string, startMonth: string, endMonth: string): string {
   return join(workingDir, `route-ridership-trend-backfill-${startMonth}_through_${endMonth}.json`);
 }
 
 function inRange(row: TrendRow, startMonth: string, endMonth: string): boolean {
   return row.month >= startMonth && row.month <= endMonth;
-}
-
-function trendJsonRow(row: TrendRow) {
-  return {
-    schemaVersion,
-    routeId: row.routeId,
-    isoMonth: row.month,
-    speedObservationCount: row.speedObservationCount,
-    speedBusTripCount: row.speedBusTripCount,
-    averageSpeedMph: row.averageSpeedMph,
-    ridership: row.ridership,
-    transfers: row.transfers,
-    trendCoverage: {
-      speed: row.hasSpeedTrend,
-      ridership: row.hasRidershipTrend,
-    },
-  };
 }
 
 async function fetchRidershipAggregate(input: {
@@ -223,7 +201,6 @@ export async function backfillRouteRidershipTrends(
   const startMonth = isoMonth(options.startYear, options.startMonth);
   const endMonth = isoMonth(options.endYear, options.endMonth);
   const routeFilter = new Set<string>(options.routes.map((route) => z.decode(RouteIdCodec, route)));
-  const path = trendPath(options.workingDir, startMonth, endMonth);
   const local = await openLocalPipelineDb(options.dbPath);
   const existingRows = await listRouteMonthTrends(local.db);
   local.sqlite.close();
@@ -288,21 +265,11 @@ export async function backfillRouteRidershipTrends(
   } finally {
     writeLocal.sqlite.close();
   }
-  await Promise.all([
-    writeJson(path, {
-      schemaVersion,
-      startMonth,
-      endMonth,
-      fetchedAt: options.fetchedAt.toISOString(),
-      rows: outputRows.map(trendJsonRow),
-    }),
-    writeJson(summaryPath(options.workingDir, startMonth, endMonth), summary),
-  ]);
+  await writeJson(summaryPath(options.workingDir, startMonth, endMonth), summary);
 
   return {
     startMonth,
     endMonth,
-    trendPath: path,
     summaryPath: summaryPath(options.workingDir, startMonth, endMonth),
     attemptedChunkCount: candidates.length,
     updatedRowCount: updates.length,

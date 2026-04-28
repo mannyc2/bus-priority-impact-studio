@@ -20,7 +20,6 @@ type BusLaneIngestArgs = {
 
 type BusLaneIngestResult = {
   rawPath: string;
-  workingPath: string;
   summaryPath: string;
   laneCount: number;
   manhattanLaneCount: number;
@@ -41,7 +40,6 @@ export async function ingestBusLanes(args: BusLaneIngestArgs = {}): Promise<BusL
   const rawDir = fromRepoRoot(join("data/raw/interventions"));
   const workingDir = fromRepoRoot(join("data/working/interventions"));
   const rawPath = join(rawDir, "bus-lanes-local-streets.json");
-  const workingPath = join(workingDir, "bus-lanes-local-streets.json");
   const summaryPath = join(workingDir, "bus-lanes-local-streets-summary.json");
   const rawRows = await fetchBusLaneRows(source, args.fetcher);
   const normalizedRows = normalizeBusLaneRows(rawRows);
@@ -88,18 +86,11 @@ export async function ingestBusLanes(args: BusLaneIngestArgs = {}): Promise<BusL
       query: { order: "street, segmentid" },
       rows: rawRows,
     }),
-    writeJson(workingPath, {
-      schemaVersion,
-      sourceId,
-      fetchedAt,
-      rows: normalizedRows,
-    }),
     writeJson(summaryPath, summary),
   ]);
 
   return {
     rawPath,
-    workingPath,
     summaryPath,
     laneCount: normalizedRows.length,
     manhattanLaneCount,

@@ -23,7 +23,6 @@ type AceViolationIngestArgs = {
 
 type AceViolationIngestResult = {
   rawPath: string;
-  workingPath: string;
   summaryPath: string;
   isoMonth: string;
   routeCount: number;
@@ -96,7 +95,6 @@ export async function ingestAceViolationSummary(
   const rawDir = fromRepoRoot(join("data/raw/interventions"));
   const workingDir = fromRepoRoot(join("data/working/interventions"));
   const rawPath = join(rawDir, `ace-violations-${monthKey}.json`);
-  const workingPath = join(workingDir, `ace-violations-${monthKey}.json`);
   const summaryPath = join(workingDir, `ace-violations-${monthKey}-summary.json`);
   const rawRows = await fetchAceViolationSummaryRows(source, year, month, args.fetcher);
   const rows = normalizeAceViolationSummaryRows(rawRows);
@@ -148,19 +146,11 @@ export async function ingestAceViolationSummary(
       },
       rows: rawRows,
     }),
-    writeJson(workingPath, {
-      schemaVersion,
-      sourceId,
-      isoMonth: monthKey,
-      fetchedAt,
-      rows,
-    }),
     writeJson(summaryPath, summary),
   ]);
 
   return {
     rawPath,
-    workingPath,
     summaryPath,
     isoMonth: monthKey,
     routeCount: routeIds.length,

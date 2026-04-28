@@ -26,7 +26,6 @@ type RouteMonthCoverageArgs = {
 };
 
 type RouteMonthCoverageResult = {
-  workingPath: string;
   summaryPath: string;
   routeCount: number;
   speedRouteCount: number;
@@ -177,7 +176,6 @@ export async function ingestRouteMonthCoverage(
     "bus_schedules_2026" satisfies CoverageSourceId,
   );
   const workingDir = options.workingDir;
-  const workingPath = join(workingDir, `route-month-coverage-${month}.json`);
   const summaryPath = join(workingDir, `route-month-coverage-${month}-summary.json`);
   const speedQuery: SocrataRowsQuery = {
     select:
@@ -232,18 +230,9 @@ export async function ingestRouteMonthCoverage(
   }
 
   await mkdir(workingDir, { recursive: true });
-  await Promise.all([
-    writeJson(workingPath, {
-      schemaVersion,
-      analysisPeriod: month,
-      fetchedAt: summary.fetchedAt,
-      rows,
-    }),
-    writeJson(summaryPath, summary),
-  ]);
+  await writeJson(summaryPath, summary);
 
   return {
-    workingPath,
     summaryPath,
     routeCount: rows.length,
     speedRouteCount: summary.speedRouteCount,

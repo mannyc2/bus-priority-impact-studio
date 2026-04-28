@@ -92,7 +92,6 @@ describe("equity context ingestion", () => {
           { status: 200 },
         ),
     });
-    const working = await Bun.file(result.workingPath).json();
     const summary = await Bun.file(result.summaryPath).json();
     const local = await openLocalPipelineDb(dbPath);
     let rows: LocalCensusTractEquityContext[];
@@ -111,7 +110,6 @@ describe("equity context ingestion", () => {
         noVehicleHouseholds: 350,
       }),
     );
-    expect(working.rows).toHaveLength(2);
     expect(rows).toHaveLength(2);
     expect(rows[0]).toEqual(
       expect.objectContaining({

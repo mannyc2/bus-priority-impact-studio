@@ -1,16 +1,20 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
+import { listBusLanes } from "@bp/db/local";
 import { ingestBusLanes } from "../src/jobs/ingest/ingest-bus-lanes.js";
+import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
 const rawDir = fromRepoRoot(join("data/raw/interventions"));
 const workingDir = fromRepoRoot(join("data/working/interventions"));
+const dbPath = fromRepoRoot(join("data/working/test-bus-lanes/pipeline.sqlite"));
 
 async function removeFixtureArtifacts(): Promise<void> {
   await Promise.all([
     rm(rawDir, { force: true, recursive: true }),
     rm(workingDir, { force: true, recursive: true }),
+    rm(dbPath, { force: true }),
   ]);
 }
 
@@ -24,6 +28,7 @@ describe("NYC DOT bus lane ingestion", () => {
 
     const result = await ingestBusLanes({
       fetchedAt: new Date("2026-04-27T12:00:00.000Z"),
+      dbPath,
       fetcher: async () =>
         Response.json([
           {
@@ -44,8 +49,10 @@ describe("NYC DOT bus lane ingestion", () => {
           },
         ]),
     });
-    const working = await Bun.file(result.workingPath).json();
     const summary = await Bun.file(result.summaryPath).json();
+    const local = await openLocalPipelineDb(dbPath);
+    const lanes = await listBusLanes(local.db);
+    local.sqlite.close();
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -53,7 +60,7 @@ describe("NYC DOT bus lane ingestion", () => {
         manhattanLaneCount: 1,
       }),
     );
-    expect(working.rows[0]).toEqual(
+    expect(lanes[0]).toEqual(
       expect.objectContaining({
         segmentId: "0001234",
         street: "5 AVENUE",

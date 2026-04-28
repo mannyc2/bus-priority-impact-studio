@@ -23,7 +23,6 @@ type EquityContextResult = {
   acsYear: number;
   dbPath: string;
   rawPath: string;
-  workingPath: string;
   summaryPath: string;
   tractCount: number;
   totalPopulation: number;
@@ -116,7 +115,6 @@ export async function ingestEquityContext(
 ): Promise<EquityContextResult> {
   const options = parseArgs(args);
   const rawPath = join(options.rawDir, `acs5-profile-nyc-tracts-${options.year}.json`);
-  const workingPath = join(options.workingDir, `nyc-tract-equity-context-${options.year}.json`);
   const summaryPath = join(
     options.workingDir,
     `nyc-tract-equity-context-${options.year}-summary.json`,
@@ -189,13 +187,6 @@ export async function ingestEquityContext(
       source: summary.source,
       rawTable: fetched.rawTable,
     }),
-    writeJson(workingPath, {
-      schemaVersion,
-      acsYear: options.year,
-      fetchedAt: summary.fetchedAt,
-      source: summary.source,
-      rows: fetched.rows,
-    }),
     writeJson(summaryPath, summary),
   ]);
 
@@ -203,7 +194,6 @@ export async function ingestEquityContext(
     acsYear: options.year,
     dbPath: options.dbPath,
     rawPath,
-    workingPath,
     summaryPath,
     tractCount: fetched.rows.length,
     totalPopulation,
