@@ -5,6 +5,7 @@ Serving database layer.
 ## Responsibilities
 
 - D1/SQLite schema and migrations.
+- Local SQLite pipeline schema, migrations, and repositories.
 - Drizzle query modules used by the Worker API and local export verification.
 - Seed/import helpers that load precomputed outputs into D1.
 - Table contracts for R2 artifact keys.
@@ -13,6 +14,7 @@ Serving database layer.
 ## Rules
 
 - D1 is a serving database, not the analytics warehouse.
+- `@bp/db/local` is canonical local pipeline/build state, not a public app dependency.
 - Store compact, precomputed read models.
 - Large GeoJSON/JSON artifacts should live in R2 or `data/artifacts`, with D1 storing keys and metadata.
 - Keep Drizzle schemas and migrations in this package; expose explicit repository helpers to callers.

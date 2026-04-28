@@ -269,9 +269,11 @@ Scripts:
 ```json
 {
   "db:generate:local": "drizzle-kit generate --config drizzle.config.local.ts",
-  "db:migrate:local": "bun tools/pipeline/src/jobs/local-db/migrate-local-db.ts"
+  "db:migrate:local": "bun run src/local/migrate.ts"
 }
 ```
+
+`db:migrate:local` and the pipeline DB opener should use Drizzle's Bun SQLite migrator over `bun:sqlite` and generated Drizzle migration files. Do not add a custom migration journal. Do not add `better-sqlite3`, `@libsql/client`, or another SQLite client only to apply local migrations while the runtime DB client is Bun SQLite.
 
 Acceptance:
 

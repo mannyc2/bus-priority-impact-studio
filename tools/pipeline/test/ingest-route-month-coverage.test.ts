@@ -1,13 +1,19 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
+import { listRouteMonthCoverage } from "@bp/db/local";
 import { ingestRouteMonthCoverage } from "../src/jobs/ingest/ingest-route-month-coverage.js";
+import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
 const workingDir = fromRepoRoot(join("data/fixtures/ingest-route-month-coverage/network"));
+const dbPath = fromRepoRoot(join("data/fixtures/ingest-route-month-coverage/pipeline.sqlite"));
 
 async function removeFixtureArtifacts(): Promise<void> {
-  await rm(workingDir, { force: true, recursive: true });
+  await Promise.all([
+    rm(workingDir, { force: true, recursive: true }),
+    rm(dbPath, { force: true }),
+  ]);
 }
 
 afterEach(async () => {
@@ -21,6 +27,7 @@ describe("route month coverage ingestion", () => {
       month: 3,
       fetchedAt: new Date("2026-04-27T12:00:00.000Z"),
       workingDir,
+      dbPath,
       fetcher: async (input) => {
         const url = new URL(String(input));
 
@@ -49,6 +56,9 @@ describe("route month coverage ingestion", () => {
     });
     const coverage = await Bun.file(result.workingPath).json();
     const summary = await Bun.file(result.summaryPath).json();
+    const local = await openLocalPipelineDb(dbPath);
+    const localCoverage = await listRouteMonthCoverage(local.db, "2026-03");
+    local.sqlite.close();
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -74,5 +84,10 @@ describe("route month coverage ingestion", () => {
       }),
     ]);
     expect(summary.completeCoverageRouteCount).toBe(1);
+    expect(localCoverage).toEqual(
+      coverage.rows.map(
+        ({ schemaVersion: _schemaVersion, ...row }: Record<string, unknown>) => row,
+      ),
+    );
   });
 });

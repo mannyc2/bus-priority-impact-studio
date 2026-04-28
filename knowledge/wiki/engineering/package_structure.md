@@ -108,7 +108,7 @@ bus-priority-impact-studio/
 | `packages/domain` | `@bp/domain` | Pure domain types, metric names, score input/output shapes, small pure functions | nothing local | Cloudflare, React, D1, R2, filesystem, network |
 | `packages/sources` | `@bp/sources` | Socrata/MTA/NYC DOT/Census adapters, source metadata probe adapters, raw DTO parsing | `@bp/domain` | UI, D1 repositories, route scoring, local artifact writes |
 | `packages/analytics` | `@bp/analytics` | Deterministic transforms, hotspot scoring, route score computation, ACE impact calculations | `@bp/domain`, `@bp/sources` | React, Worker handlers |
-| `packages/db` | `@bp/db` | D1/SQLite schema, migrations, repository functions, serving read models | `@bp/domain` | source fetchers, heavy analytics |
+| `packages/db` | `@bp/db` | D1 serving schema/queries plus local SQLite pipeline schema, migrations, and repositories | `@bp/domain` | source fetchers, heavy analytics |
 | `tools/pipeline` | `@bp/pipeline` | Local CLI for probes, fetches, transforms, artifact builds, D1 seed generation | all packages | public request handlers |
 | `knowledge` | none | LLM-maintained wiki and raw source notes | none at runtime | app runtime imports |
 | `data` | none | Local generated data and test fixtures | none | committed large datasets |
@@ -437,7 +437,7 @@ packages/db/
 | Package | After Drizzle adoption |
 |---|---|
 | `packages/domain` | Business/domain Zod schemas, branded IDs, metric semantics, public API contracts. No Drizzle imports. |
-| `packages/db` | Drizzle schemas, migrations, row validation helpers, repository SQL construction, D1/PG clients, D1 seed/import helpers. |
+| `packages/db` | Drizzle schemas, migrations, row validation helpers, repository SQL construction, local/D1/PG clients, D1 seed/import helpers. |
 | `packages/sources` | Public source clients and source DTO validation. No Drizzle imports. |
 | `packages/analytics` | Pure deterministic transforms over source/domain inputs. No Drizzle table imports. |
 | `tools/pipeline` | Orchestrates source fetches, analytics, artifact builds, D1 exports, and future Postgres backfills through `@bp/db` repository/export APIs. |
@@ -449,7 +449,9 @@ packages/db/
 - `@bp/domain` must not import `@bp/db`, Drizzle, Cloudflare types, or source clients.
 - `@bp/analytics` should not import Drizzle tables; it produces typed domain/read-model outputs.
 - `tools/pipeline` may call `@bp/db/d1/seed` helpers while seed generation still writes SQL files; it should not own schema DDL or Worker read queries.
+- `tools/pipeline` may call `@bp/db/local` repositories for canonical local build state.
 - `apps/web/src/worker` may create a D1 Drizzle client and call repository functions; it must not run source ingestion or analytics.
+- `apps/web` must not import `@bp/db/local`.
 
 ### Stable migration path for package code
 

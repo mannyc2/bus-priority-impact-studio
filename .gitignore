@@ -1,6 +1,8 @@
 node_modules/
 dist/
 build/
+!tools/pipeline/src/jobs/build/
+!tools/pipeline/src/jobs/build/**
 .wrangler/
 .dev.vars
 .env
@@ -13,10 +15,12 @@ data/raw/*
 data/working/*
 data/artifacts/*
 data/exports/*
+data/local/*
 !data/raw/.gitkeep
 !data/working/.gitkeep
 !data/artifacts/.gitkeep
 !data/exports/.gitkeep
+!data/local/.gitkeep
 
 # Local databases and analysis outputs.
 *.sqlite

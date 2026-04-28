@@ -1,5 +1,6 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
+import { replaceRouteCatalog } from "@bp/db/local";
 import type { NormalizedRouteShape, NormalizedStop, SocrataFetch, SocrataRow } from "@bp/sources";
 import {
   getSocrataSource,
@@ -8,6 +9,8 @@ import {
   SocrataClient,
 } from "@bp/sources";
 import { writeJson } from "../../lib/json.js";
+import { openLocalPipelineDb } from "../../lib/local-db.js";
+import { fromCliPath } from "../../lib/paths.js";
 import type { SocrataManifestSource } from "../../source-manifest.js";
 import { fromRepoRoot, readSourceManifest } from "../../source-manifest.js";
 
@@ -20,6 +23,7 @@ type RouteCatalogArgs = {
   fetcher?: SocrataFetch;
   rawDir?: string;
   workingDir?: string;
+  dbPath?: string;
 };
 
 type RouteCatalogResult = {
@@ -31,6 +35,7 @@ type RouteCatalogResult = {
   shapeCount: number;
   stopCount: number;
   timepointStopCount: number;
+  dbPath: string;
 };
 
 type RouteCatalogEntry = {
@@ -126,6 +131,25 @@ function buildCatalog(
   );
 }
 
+function parseCliArgs(args: string[]): RouteCatalogArgs {
+  const output: RouteCatalogArgs = {};
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    const value = args[index + 1];
+
+    if (arg === "--db" && value !== undefined) {
+      output.dbPath = fromCliPath(value);
+      index += 1;
+      continue;
+    }
+
+    throw new Error(`Unknown or incomplete argument: ${arg ?? ""}`);
+  }
+
+  return output;
+}
+
 export async function ingestRouteCatalog(args: RouteCatalogArgs = {}): Promise<RouteCatalogResult> {
   const manifest = await readSourceManifest();
   const routeSource = getSocrataSource(
@@ -157,6 +181,13 @@ export async function ingestRouteCatalog(args: RouteCatalogArgs = {}): Promise<R
     routesWithShapes: catalog.filter((route) => route.shapeCount > 0).length,
     routesWithStops: catalog.filter((route) => route.stopCount > 0).length,
   };
+  const local = await openLocalPipelineDb(args.dbPath);
+
+  try {
+    await replaceRouteCatalog(local.db, catalog);
+  } finally {
+    local.sqlite.close();
+  }
 
   await mkdir(rawDir, { recursive: true });
   await mkdir(workingDir, { recursive: true });
@@ -192,5 +223,10 @@ export async function ingestRouteCatalog(args: RouteCatalogArgs = {}): Promise<R
     shapeCount: routeShapes.length,
     stopCount: stops.length,
     timepointStopCount: summary.timepointStopCount,
+    dbPath: local.path,
   };
+}
+
+export async function ingestRouteCatalogFromCli(args: string[]): Promise<RouteCatalogResult> {
+  return ingestRouteCatalog(parseCliArgs(args));
 }

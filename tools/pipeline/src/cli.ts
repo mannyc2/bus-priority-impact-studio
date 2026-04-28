@@ -50,9 +50,9 @@ const commands = {
   },
   "ingest:route-catalog": {
     description: "Fetch current route and stop catalog rows.",
-    run: async () => {
-      const { ingestRouteCatalog } = await import("./jobs/ingest/ingest-route-catalog.js");
-      return ingestRouteCatalog();
+    run: async (args) => {
+      const { ingestRouteCatalogFromCli } = await import("./jobs/ingest/ingest-route-catalog.js");
+      return ingestRouteCatalogFromCli(args);
     },
   },
   "ingest:route-coverage": {

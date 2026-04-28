@@ -4,6 +4,7 @@ const forbiddenRuntimeImports = [
   "@bp/analytics",
   "@bp/sources",
   "@bp/pipeline",
+  "@bp/db/local",
   "tools/pipeline",
   "knowledge/",
 ];

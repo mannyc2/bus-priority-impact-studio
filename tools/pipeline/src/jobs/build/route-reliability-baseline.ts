@@ -1,0 +1,335 @@
+import { join } from "node:path";
+import * as z from "zod";
+import { readArtifact, writeArtifact } from "../../lib/artifact-store.js";
+import { routeSliceKey } from "../../lib/artifacts.js";
+import { isoMonth } from "../../lib/dates.js";
+import { fromRepoRoot } from "../../source-manifest.js";
+
+const schemaVersion = 1;
+const longGapThresholdMinutes = 20;
+const shortHeadwayThresholdMinutes = 3;
+
+const IsoMonthSchema = z.string().regex(/^\d{4}-\d{2}$/);
+
+const BatchSummarySchema = z
+  .object({
+    schemaVersion: z.literal(1),
+    analysisPeriod: IsoMonthSchema,
+    routes: z.array(
+      z
+        .object({
+          routeId: z.string().min(1),
+          isoMonth: IsoMonthSchema,
+        })
+        .passthrough(),
+    ),
+  })
+  .passthrough();
+
+const SchedulesArtifactSchema = z
+  .object({
+    schemaVersion: z.literal(1),
+    routeId: z.string().min(1),
+    isoMonth: IsoMonthSchema,
+    rows: z.array(
+      z
+        .object({
+          dayType: z.string().min(1),
+          direction: z.string().min(1),
+          stopId: z.string().min(1),
+          stopName: z.string().optional(),
+          scheduleTime: z.string().min(1),
+        })
+        .passthrough(),
+    ),
+  })
+  .passthrough();
+
+type RouteReliabilityBaselineArgs = {
+  year?: number;
+  month?: number;
+};
+
+type ScheduleRow = z.output<typeof SchedulesArtifactSchema>["rows"][number];
+
+type HeadwayGroup = {
+  routeId: string;
+  dayType: string;
+  direction: string;
+  stopId: string;
+  stopName: string | null;
+  sampleCount: number;
+  medianHeadwayMinutes: number;
+  p90HeadwayMinutes: number;
+  maxHeadwayMinutes: number;
+};
+
+type HeadwayGroupWithIntervals = HeadwayGroup & {
+  intervals: number[];
+};
+
+type RouteReliabilityBaselineRow = {
+  schemaVersion: typeof schemaVersion;
+  routeId: string;
+  isoMonth: string;
+  reliabilityStatus: "scheduled_baseline_only";
+  scheduledTimepointCount: number;
+  stopHeadwayGroupCount: number;
+  headwaySampleCount: number;
+  medianScheduledHeadwayMinutes: number | null;
+  p90ScheduledHeadwayMinutes: number | null;
+  maxScheduledHeadwayMinutes: number | null;
+  scheduledShortHeadwayShare: number | null;
+  scheduledLongGapShare: number | null;
+  topLongGapWindows: HeadwayGroup[];
+  sourceStatus: {
+    scheduledHeadways: "available";
+    observedHeadways: "needs_gtfs_rt_collection";
+    bunching: "needs_gtfs_rt_collection";
+    waitTimeReliability: "needs_gtfs_rt_collection";
+    tripCancellationProxy: "needs_trip_update_history";
+  };
+};
+
+type RouteReliabilityBaselineResult = {
+  isoMonth: string;
+  baselinePath: string;
+  summaryPath: string;
+  routeCount: number;
+  headwaySampleCount: number;
+};
+
+function parseBuildArgs(
+  args: RouteReliabilityBaselineArgs = {},
+): Required<RouteReliabilityBaselineArgs> {
+  return {
+    year: args.year ?? 2026,
+    month: args.month ?? 3,
+  };
+}
+
+function parseCliArgs(args: string[]): RouteReliabilityBaselineArgs {
+  const output: RouteReliabilityBaselineArgs = {};
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    const value = args[index + 1];
+
+    if (arg === "--year" && value !== undefined) {
+      output.year = Number(value);
+      index += 1;
+      continue;
+    }
+
+    if (arg === "--month" && value !== undefined) {
+      output.month = Number(value);
+      index += 1;
+      continue;
+    }
+
+    throw new Error(`Unknown or incomplete argument: ${arg ?? ""}`);
+  }
+
+  return output;
+}
+
+function round(value: number, decimals = 4): number {
+  const factor = 10 ** decimals;
+  return Math.round(value * factor) / factor;
+}
+
+function quantile(sortedValues: readonly number[], q: number): number | null {
+  if (sortedValues.length === 0) {
+    return null;
+  }
+  if (sortedValues.length === 1) {
+    return sortedValues[0] ?? null;
+  }
+
+  const position = (sortedValues.length - 1) * q;
+  const lower = Math.floor(position);
+  const upper = Math.ceil(position);
+  const lowerValue = sortedValues[lower] ?? 0;
+  const upperValue = sortedValues[upper] ?? lowerValue;
+
+  return lowerValue + (upperValue - lowerValue) * (position - lower);
+}
+
+function groupKey(row: ScheduleRow): string {
+  return [row.dayType, row.direction, row.stopId].join("::");
+}
+
+function minutesBetween(leftIso: string, rightIso: string): number {
+  return (Date.parse(rightIso) - Date.parse(leftIso)) / 60_000;
+}
+
+function buildHeadwayGroups(
+  routeId: string,
+  rows: readonly ScheduleRow[],
+): HeadwayGroupWithIntervals[] {
+  const groups = new Map<string, ScheduleRow[]>();
+
+  for (const row of rows) {
+    const group = groups.get(groupKey(row)) ?? [];
+    group.push(row);
+    groups.set(groupKey(row), group);
+  }
+
+  const output: HeadwayGroupWithIntervals[] = [];
+  for (const groupRows of groups.values()) {
+    const uniqueTimes = [...new Set(groupRows.map((row) => row.scheduleTime))].sort();
+    const intervals = uniqueTimes
+      .slice(1)
+      .map((time, index) => minutesBetween(uniqueTimes[index] ?? time, time))
+      .filter((value) => value > 0 && value <= 240)
+      .sort((left, right) => left - right);
+
+    if (intervals.length === 0) {
+      continue;
+    }
+
+    const firstRow = groupRows[0];
+    output.push({
+      routeId,
+      dayType: firstRow?.dayType ?? "",
+      direction: firstRow?.direction ?? "",
+      stopId: firstRow?.stopId ?? "",
+      stopName: firstRow?.stopName ?? null,
+      sampleCount: intervals.length,
+      intervals,
+      medianHeadwayMinutes: round(quantile(intervals, 0.5) ?? 0),
+      p90HeadwayMinutes: round(quantile(intervals, 0.9) ?? 0),
+      maxHeadwayMinutes: round(Math.max(...intervals)),
+    });
+  }
+
+  return output;
+}
+
+function routeBaseline(
+  routeId: string,
+  month: string,
+  schedules: z.output<typeof SchedulesArtifactSchema>,
+): RouteReliabilityBaselineRow {
+  const headwayGroupsWithIntervals = buildHeadwayGroups(routeId, schedules.rows);
+  const samples = headwayGroupsWithIntervals
+    .flatMap((group) => group.intervals)
+    .sort((left, right) => left - right);
+  const headwayGroups: HeadwayGroup[] = headwayGroupsWithIntervals.map(
+    ({ intervals: _intervals, ...group }) => group,
+  );
+  const headwaySampleCount = samples.length;
+  const shortGroupCount = headwayGroups.filter(
+    (group) => group.medianHeadwayMinutes <= shortHeadwayThresholdMinutes,
+  ).length;
+  const longGroupCount = headwayGroups.filter(
+    (group) => group.p90HeadwayMinutes >= longGapThresholdMinutes,
+  ).length;
+
+  return {
+    schemaVersion,
+    routeId,
+    isoMonth: month,
+    reliabilityStatus: "scheduled_baseline_only",
+    scheduledTimepointCount: schedules.rows.length,
+    stopHeadwayGroupCount: headwayGroups.length,
+    headwaySampleCount,
+    medianScheduledHeadwayMinutes: samples.length === 0 ? null : round(quantile(samples, 0.5) ?? 0),
+    p90ScheduledHeadwayMinutes: samples.length === 0 ? null : round(quantile(samples, 0.9) ?? 0),
+    maxScheduledHeadwayMinutes:
+      headwayGroups.length === 0
+        ? null
+        : round(Math.max(...headwayGroups.map((group) => group.maxHeadwayMinutes))),
+    scheduledShortHeadwayShare:
+      headwayGroups.length === 0 ? null : round(shortGroupCount / headwayGroups.length),
+    scheduledLongGapShare:
+      headwayGroups.length === 0 ? null : round(longGroupCount / headwayGroups.length),
+    topLongGapWindows: headwayGroups
+      .sort((left, right) => {
+        if (left.p90HeadwayMinutes !== right.p90HeadwayMinutes) {
+          return right.p90HeadwayMinutes - left.p90HeadwayMinutes;
+        }
+
+        return right.maxHeadwayMinutes - left.maxHeadwayMinutes;
+      })
+      .slice(0, 5),
+    sourceStatus: {
+      scheduledHeadways: "available",
+      observedHeadways: "needs_gtfs_rt_collection",
+      bunching: "needs_gtfs_rt_collection",
+      waitTimeReliability: "needs_gtfs_rt_collection",
+      tripCancellationProxy: "needs_trip_update_history",
+    },
+  };
+}
+
+export async function buildRouteReliabilityBaseline(
+  args: RouteReliabilityBaselineArgs = {},
+): Promise<RouteReliabilityBaselineResult> {
+  const options = parseBuildArgs(args);
+  const month = isoMonth(options.year, options.month);
+  const batchDir = fromRepoRoot(join("data/artifacts/route-batches", month));
+  const baselinePath = join(batchDir, "route-reliability-baseline.json");
+  const summaryPath = join(batchDir, "route-reliability-baseline-summary.json");
+  const batch = await readArtifact(join(batchDir, "batch-summary.json"), BatchSummarySchema);
+  const rows = await Promise.all(
+    batch.routes.map(async (route) => {
+      const schedules = await readArtifact(
+        fromRepoRoot(
+          join("data/working/route-slices", routeSliceKey(route.routeId, month), "schedules.json"),
+        ),
+        SchedulesArtifactSchema,
+      );
+
+      return routeBaseline(route.routeId, month, schedules);
+    }),
+  );
+  const summary = {
+    schemaVersion,
+    analysisPeriod: month,
+    generatedAt: new Date().toISOString(),
+    routeCount: rows.length,
+    headwaySampleCount: rows.reduce((sum, row) => sum + row.headwaySampleCount, 0),
+    reliabilityStatus: "scheduled_baseline_only",
+    sourceReadiness: {
+      scheduledHeadways: "available",
+      observedHeadways: "needs_gtfs_rt_collection",
+      bunching: "needs_gtfs_rt_collection",
+      waitTimeReliability: "needs_gtfs_rt_collection",
+      tripCancellationProxy: "needs_trip_update_history",
+      multiMonthTrends: "speed_and_ridership_history_available",
+      interventionHistory: "ace_dates_available_bus_lane_dates_partial",
+      equityContext: "not_ingested",
+    },
+    caveats: [
+      "This artifact is a scheduled headway baseline, not observed headway reliability.",
+      "Observed bunching, long gaps, wait-time reliability, and cancellation proxies require GTFS-RT collection over time.",
+      "Schedule rows may use representative schedule dates that differ from the observed speed month.",
+    ],
+    rows,
+  };
+
+  await Promise.all([
+    writeArtifact(batchDir, baselinePath, {
+      schemaVersion,
+      analysisPeriod: month,
+      generatedAt: summary.generatedAt,
+      rows,
+    }),
+    writeArtifact(batchDir, summaryPath, summary),
+  ]);
+
+  return {
+    isoMonth: month,
+    baselinePath,
+    summaryPath,
+    routeCount: rows.length,
+    headwaySampleCount: summary.headwaySampleCount,
+  };
+}
+
+export async function buildRouteReliabilityBaselineFromCli(
+  args: string[],
+): Promise<RouteReliabilityBaselineResult> {
+  return buildRouteReliabilityBaseline(parseCliArgs(args));
+}

@@ -1,92 +1,90 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, rm } from "node:fs/promises";
+import { rm } from "node:fs/promises";
 import { join } from "node:path";
+import { replaceRouteCatalog, replaceRouteMonthCoverage } from "@bp/db/local";
 import { buildRouteReadiness } from "../src/jobs/build/route-readiness.js";
+import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
 const isoMonth = "2026-05";
 const batchDir = fromRepoRoot(join("data/artifacts/route-batches", isoMonth));
-const networkDir = fromRepoRoot(join("data/fixtures/route-readiness-network"));
+const dbPath = fromRepoRoot(join("data/fixtures/route-readiness/pipeline.sqlite"));
 
 async function removeFixtureArtifacts(): Promise<void> {
-  await Promise.all([
-    rm(batchDir, { force: true, recursive: true }),
-    rm(networkDir, { force: true, recursive: true }),
-  ]);
+  await Promise.all([rm(batchDir, { force: true, recursive: true }), rm(dbPath, { force: true })]);
 }
 
-async function writeFixtureNetwork(): Promise<void> {
+async function writeFixtureLocalDb(): Promise<void> {
   await removeFixtureArtifacts();
-  await mkdir(networkDir, { recursive: true });
-  await Bun.write(
-    join(networkDir, "route-catalog.json"),
-    `${JSON.stringify(
-      {
-        schemaVersion: 1,
-        rows: [
-          {
-            routeId: "T1",
-            routeShortName: "T1",
-            routeLongName: "Ready route",
-            shapeCount: 2,
-            stopCount: 12,
-            timepointStopCount: 6,
-          },
-          {
-            routeId: "T2",
-            routeShortName: "T2",
-            routeLongName: "Missing speed route",
-            shapeCount: 1,
-            stopCount: 8,
-            timepointStopCount: 4,
-          },
-          {
-            routeId: "T3",
-            routeShortName: "T3",
-            routeLongName: "Missing geometry route",
-            shapeCount: 0,
-            stopCount: 0,
-            timepointStopCount: 0,
-          },
-        ],
-      },
-      null,
-      2,
-    )}\n`,
-  );
-  await Bun.write(
-    join(networkDir, `route-month-coverage-${isoMonth}.json`),
-    `${JSON.stringify(
-      {
-        schemaVersion: 1,
-        analysisPeriod: isoMonth,
-        rows: [
-          {
-            routeId: "T1",
-            isoMonth,
-            speedObservationCount: 20,
-            speedBusTripCount: 200,
-            averageSpeedMph: 6.5,
-            scheduleTimepointCount: 100,
-            hasSpeedData: true,
-            hasScheduleData: true,
-          },
-          {
-            routeId: "T3",
-            isoMonth,
-            speedObservationCount: 10,
-            speedBusTripCount: 50,
-            averageSpeedMph: 7.5,
-            scheduleTimepointCount: 12,
-            hasSpeedData: true,
-            hasScheduleData: true,
-          },
-        ],
-      },
-      null,
-      2,
-    )}\n`,
-  );
+
+  const local = await openLocalPipelineDb(dbPath);
+  await replaceRouteCatalog(local.db, [
+    {
+      routeId: "T1",
+      routeShortName: "T1",
+      routeLongName: "Ready route",
+      routeTypes: [],
+      directions: [],
+      shapeCount: 2,
+      stopCount: 12,
+      timepointStopCount: 6,
+      latitudeMin: null,
+      latitudeMax: null,
+      longitudeMin: null,
+      longitudeMax: null,
+    },
+    {
+      routeId: "T2",
+      routeShortName: "T2",
+      routeLongName: "Missing speed route",
+      routeTypes: [],
+      directions: [],
+      shapeCount: 1,
+      stopCount: 8,
+      timepointStopCount: 4,
+      latitudeMin: null,
+      latitudeMax: null,
+      longitudeMin: null,
+      longitudeMax: null,
+    },
+    {
+      routeId: "T3",
+      routeShortName: "T3",
+      routeLongName: "Missing geometry route",
+      routeTypes: [],
+      directions: [],
+      shapeCount: 0,
+      stopCount: 0,
+      timepointStopCount: 0,
+      latitudeMin: null,
+      latitudeMax: null,
+      longitudeMin: null,
+      longitudeMax: null,
+    },
+  ]);
+  await replaceRouteMonthCoverage(local.db, isoMonth, [
+    {
+      routeId: "T1",
+      isoMonth,
+      speedObservationCount: 20,
+      speedBusTripCount: 200,
+      averageSpeedMph: 6.5,
+      scheduleTimepointCount: 100,
+      hasSpeedData: true,
+      hasScheduleData: true,
+    },
+    {
+      routeId: "T3",
+      isoMonth,
+      speedObservationCount: 10,
+      speedBusTripCount: 50,
+      averageSpeedMph: 7.5,
+      scheduleTimepointCount: 12,
+      hasSpeedData: true,
+      hasScheduleData: true,
+    },
+  ]);
+  local.sqlite.close();
 }
 
 afterEach(async () => {
@@ -95,9 +93,9 @@ afterEach(async () => {
 
 describe("route readiness build", () => {
   test("joins route catalog and monthly coverage into build-ready rows", async () => {
-    await writeFixtureNetwork();
+    await writeFixtureLocalDb();
 
-    const result = await buildRouteReadiness({ year: 2026, month: 5, networkDir });
+    const result = await buildRouteReadiness({ year: 2026, month: 5, dbPath });
     const readiness = await Bun.file(result.readinessPath).json();
     const summary = await Bun.file(result.summaryPath).json();
 

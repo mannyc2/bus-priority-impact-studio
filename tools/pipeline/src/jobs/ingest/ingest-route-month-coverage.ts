@@ -1,11 +1,14 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
+import { replaceRouteMonthCoverage } from "@bp/db/local";
 import { RouteIdCodec } from "@bp/domain";
 import type { SocrataFetch, SocrataRow, SocrataRowsQuery } from "@bp/sources";
 import { getSocrataSource, SocrataClient } from "@bp/sources";
 import * as z from "zod";
 import { isoMonth } from "../../lib/dates.js";
 import { writeJson } from "../../lib/json.js";
+import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
+import { fromCliPath } from "../../lib/paths.js";
 import type { SocrataManifestSource } from "../../source-manifest.js";
 import { fromRepoRoot, readSourceManifest } from "../../source-manifest.js";
 
@@ -19,6 +22,7 @@ type RouteMonthCoverageArgs = {
   fetchedAt?: Date;
   fetcher?: SocrataFetch;
   workingDir?: string;
+  dbPath?: string;
 };
 
 type RouteMonthCoverageResult = {
@@ -27,6 +31,7 @@ type RouteMonthCoverageResult = {
   routeCount: number;
   speedRouteCount: number;
   scheduleRouteCount: number;
+  dbPath: string;
 };
 
 const RawSpeedCoverageRowSchema = z
@@ -64,6 +69,7 @@ function parseArgs(args: RouteMonthCoverageArgs = {}): Required<RouteMonthCovera
     fetchedAt: args.fetchedAt ?? new Date(),
     fetcher: args.fetcher ?? fetch,
     workingDir: args.workingDir ?? fromRepoRoot(join("data/working/network")),
+    dbPath: args.dbPath ?? defaultLocalPipelineDbPath(),
   };
 }
 
@@ -82,6 +88,12 @@ function parseCliArgs(args: string[]): RouteMonthCoverageArgs {
 
     if (arg === "--month" && value !== undefined) {
       output.month = Number(value);
+      index += 1;
+      continue;
+    }
+
+    if (arg === "--db" && value !== undefined) {
+      output.dbPath = fromCliPath(value);
       index += 1;
       continue;
     }
@@ -211,6 +223,13 @@ export async function ingestRouteMonthCoverage(
       "All-route ridership aggregation is intentionally not part of this query because the public ridership dataset is too slow for a single uncached all-route monthly aggregate.",
     ],
   };
+  const local = await openLocalPipelineDb(options.dbPath);
+
+  try {
+    await replaceRouteMonthCoverage(local.db, month, rows);
+  } finally {
+    local.sqlite.close();
+  }
 
   await mkdir(workingDir, { recursive: true });
   await Promise.all([
@@ -229,6 +248,7 @@ export async function ingestRouteMonthCoverage(
     routeCount: rows.length,
     speedRouteCount: summary.speedRouteCount,
     scheduleRouteCount: summary.scheduleRouteCount,
+    dbPath: local.path,
   };
 }
 
