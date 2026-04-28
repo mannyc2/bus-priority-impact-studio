@@ -1,10 +1,13 @@
 import { createHash } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { basename, join } from "node:path";
+import { replaceRouteArtifacts } from "@bp/db/local";
 import * as z from "zod";
 import { routeSliceKey } from "../../lib/artifacts.js";
 import { isoMonth } from "../../lib/dates.js";
 import { writeJson } from "../../lib/json.js";
+import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
+import { fromCliPath } from "../../lib/paths.js";
 import { fromRepoRoot } from "../../source-manifest.js";
 
 const artifactNames = [
@@ -45,6 +48,7 @@ type ArtifactManifestBuildArgs = {
   routeId?: string;
   year?: number;
   month?: number;
+  dbPath?: string;
 };
 
 type ArtifactManifestBuildResult = {
@@ -59,6 +63,7 @@ function parseBuildArgs(args: ArtifactManifestBuildArgs): Required<ArtifactManif
     routeId: args.routeId ?? "M1",
     year: args.year ?? 2026,
     month: args.month ?? 3,
+    dbPath: args.dbPath ?? defaultLocalPipelineDbPath(),
   };
 }
 
@@ -83,6 +88,12 @@ function parseCliArgs(args: string[]): ArtifactManifestBuildArgs {
 
     if (arg === "--month" && value !== undefined) {
       output.month = Number(value);
+      index += 1;
+      continue;
+    }
+
+    if (arg === "--db" && value !== undefined) {
+      output.dbPath = fromCliPath(value);
       index += 1;
       continue;
     }
@@ -135,6 +146,25 @@ export async function buildM1ArtifactManifest(
 
   await mkdir(artifactDir, { recursive: true });
   await writeJson(manifestPath, manifest);
+  const local = await openLocalPipelineDb(options.dbPath);
+  try {
+    await replaceRouteArtifacts(
+      local.db,
+      manifest.routeId,
+      manifest.isoMonth,
+      manifest.artifacts.map((artifact) => ({
+        routeId: manifest.routeId,
+        month: manifest.isoMonth,
+        artifactName: artifact.name,
+        artifactKey: artifact.artifactKey,
+        contentType: artifact.contentType,
+        byteLength: artifact.byteLength,
+        sha256: artifact.sha256,
+      })),
+    );
+  } finally {
+    local.sqlite.close();
+  }
 
   return {
     routeId: manifest.routeId,

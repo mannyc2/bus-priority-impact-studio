@@ -1,10 +1,14 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
+import { classifyPublicRouteVisibility } from "@bp/analytics";
+import { listRouteCatalog, replaceRouteBriefRows, replaceRouteScorecard } from "@bp/db/local";
 import { RouteScorecardSchema } from "@bp/domain";
 import * as z from "zod";
 import { routeSliceKey } from "../../lib/artifacts.js";
 import { isoMonth } from "../../lib/dates.js";
 import { writeJson } from "../../lib/json.js";
+import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
+import { fromCliPath } from "../../lib/paths.js";
 import { fromRepoRoot } from "../../source-manifest.js";
 
 const SegmentHotspotSummarySchema = z
@@ -152,11 +156,38 @@ const SpeedProfileSchema = z
   })
   .strict();
 
+const PeakRidershipWindowSchema = z
+  .object({
+    dayOfWeek: z.string().min(1),
+    hourOfDay: z.number().int().min(0).max(23),
+    ridership: z.number().nonnegative().optional(),
+    transfers: z.number().nonnegative().optional(),
+    matchedObservationCount: z.number().int().nonnegative().optional(),
+    busTripCount: z.number().int().nonnegative().optional(),
+    weightedAverageSpeedMph: z.number().nonnegative().optional(),
+    slowObservationShare: z.number().nonnegative().optional(),
+  })
+  .passthrough();
+
+const SlowestWindowSchema = z
+  .object({
+    dayOfWeek: z.string().min(1),
+    hourOfDay: z.number().int().min(0).max(23),
+    observationCount: z.number().int().nonnegative().optional(),
+    busTripCount: z.number().int().nonnegative().optional(),
+    segmentCount: z.number().int().nonnegative().optional(),
+    weightedAverageSpeedMph: z.number().nonnegative().optional(),
+    weightedAverageTravelTimeMinutes: z.number().nonnegative().optional(),
+    slowObservationShare: z.number().nonnegative().optional(),
+  })
+  .passthrough();
+
 type RouteBriefBuildArgs = {
   routeId?: string;
   year?: number;
   month?: number;
   topSegmentLimit?: number;
+  dbPath?: string;
 };
 
 type RouteBriefBuildResult = {
@@ -172,6 +203,7 @@ function parseBuildArgs(args: RouteBriefBuildArgs): Required<RouteBriefBuildArgs
     year: args.year ?? 2026,
     month: args.month ?? 3,
     topSegmentLimit: args.topSegmentLimit ?? 5,
+    dbPath: args.dbPath ?? defaultLocalPipelineDbPath(),
   };
 }
 
@@ -206,6 +238,12 @@ function parseCliArgs(args: string[]): RouteBriefBuildArgs {
       continue;
     }
 
+    if (arg === "--db" && value !== undefined) {
+      output.dbPath = fromCliPath(value);
+      index += 1;
+      continue;
+    }
+
     throw new Error(`Unknown or incomplete argument: ${arg ?? ""}`);
   }
 
@@ -214,6 +252,10 @@ function parseCliArgs(args: string[]): RouteBriefBuildArgs {
 
 function pct(value: number): number {
   return Math.round(value * 1000) / 10;
+}
+
+function optionalNumber(value: number | undefined): number | null {
+  return value ?? null;
 }
 
 export async function buildM1RouteBriefInput(
@@ -331,6 +373,97 @@ export async function buildM1RouteBriefInput(
 
   await mkdir(artifactDir, { recursive: true });
   await writeJson(briefInputPath, briefInput);
+  const scheduleMatchRate =
+    scorecard.hotspotCount === 0
+      ? 0
+      : scheduleComparison.matchedHotspotCount / scorecard.hotspotCount;
+  const local = await openLocalPipelineDb(options.dbPath);
+  try {
+    const catalogRow = (await listRouteCatalog(local.db)).find(
+      (row) => row.routeId === summary.routeId,
+    );
+    const visibility = classifyPublicRouteVisibility({
+      routeId: summary.routeId,
+      routeLongName: catalogRow?.routeLongName ?? null,
+      routeTypes: catalogRow?.routeTypes ?? [],
+      shapeCount: catalogRow?.shapeCount ?? 0,
+      coverageStatus: scorecard.coverageStatus,
+    });
+    const peakWindow =
+      ridershipProfile.peakRidershipWindow === null
+        ? null
+        : PeakRidershipWindowSchema.parse(ridershipProfile.peakRidershipWindow);
+    const slowestWindow =
+      speedProfile.slowestDayHourWindows[0] === undefined
+        ? null
+        : SlowestWindowSchema.parse(speedProfile.slowestDayHourWindows[0]);
+
+    await replaceRouteScorecard(local.db, {
+      routeId: summary.routeId,
+      month: summary.isoMonth,
+      routeScore: scorecard.routeScore,
+      coverageStatus: scorecard.coverageStatus,
+      averageSpeedMph: scorecard.averageSpeedMph,
+      hotspotCount: scorecard.hotspotCount,
+    });
+    await replaceRouteBriefRows(local.db, {
+      summary: {
+        routeId: summary.routeId,
+        month: summary.isoMonth,
+        routeScore: scorecard.routeScore,
+        publicVisible: visibility.publicVisible,
+        publicVisibilityReason: visibility.reason,
+        averageSpeedMph: scorecard.averageSpeedMph,
+        hotspotCount: scorecard.hotspotCount,
+        totalRidership: ridershipProfile.totalRidership,
+        totalTransfers: ridershipProfile.totalTransfers,
+        aceActive: interventionOverlay.ace.activeDuringAnalysisPeriod,
+        aceViolationCount: interventionOverlay.violations.routeViolationCount,
+        busLaneMatchedLaneCount: busLaneOverlay.matchedLaneCount,
+        scheduleMatchRate,
+      },
+      peakWindows:
+        peakWindow === null
+          ? []
+          : [
+              {
+                routeId: summary.routeId,
+                month: summary.isoMonth,
+                windowRank: 1,
+                dayOfWeek: peakWindow.dayOfWeek,
+                hourOfDay: peakWindow.hourOfDay,
+                ridership: optionalNumber(peakWindow.ridership),
+                transfers: optionalNumber(peakWindow.transfers),
+                matchedObservationCount: optionalNumber(peakWindow.matchedObservationCount),
+                busTripCount: optionalNumber(peakWindow.busTripCount),
+                weightedAverageSpeedMph: optionalNumber(peakWindow.weightedAverageSpeedMph),
+                slowObservationShare: optionalNumber(peakWindow.slowObservationShare),
+              },
+            ],
+      slowestWindows:
+        slowestWindow === null
+          ? []
+          : [
+              {
+                routeId: summary.routeId,
+                month: summary.isoMonth,
+                windowRank: 1,
+                dayOfWeek: slowestWindow.dayOfWeek,
+                hourOfDay: slowestWindow.hourOfDay,
+                observationCount: optionalNumber(slowestWindow.observationCount),
+                busTripCount: optionalNumber(slowestWindow.busTripCount),
+                segmentCount: optionalNumber(slowestWindow.segmentCount),
+                weightedAverageSpeedMph: optionalNumber(slowestWindow.weightedAverageSpeedMph),
+                weightedAverageTravelTimeMinutes: optionalNumber(
+                  slowestWindow.weightedAverageTravelTimeMinutes,
+                ),
+                slowObservationShare: optionalNumber(slowestWindow.slowObservationShare),
+              },
+            ],
+    });
+  } finally {
+    local.sqlite.close();
+  }
 
   return {
     routeId: summary.routeId,

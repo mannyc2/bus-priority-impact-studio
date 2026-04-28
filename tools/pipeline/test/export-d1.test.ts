@@ -3,10 +3,17 @@ import { createHash } from "node:crypto";
 import { mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import {
+  replaceRouteArtifacts,
+  replaceRouteBriefRows,
   replaceRouteBuildPlan,
   replaceRouteCatalog,
+  replaceRouteComparisonRanks,
+  replaceRouteEquityRows,
   replaceRouteMonthCoverage,
+  replaceRouteMonthTrends,
   replaceRouteReadiness,
+  replaceRouteReliabilityRows,
+  replaceRouteScorecard,
 } from "@bp/db/local";
 import { exportD1Seed } from "../src/jobs/export/export-d1.js";
 import { openLocalPipelineDb } from "../src/lib/local-db.js";
@@ -112,6 +119,174 @@ async function writeFixtureArtifacts(): Promise<void> {
       shapeCount: 2,
       stopCount: 10,
       timepointStopCount: 4,
+    },
+  ]);
+  await replaceRouteReliabilityRows(local.db, isoMonth, {
+    baselines: [
+      {
+        routeId: "T1",
+        month: isoMonth,
+        reliabilityStatus: "scheduled_baseline_only",
+        scheduledTimepointCount: 100,
+        stopHeadwayGroupCount: 10,
+        headwaySampleCount: 90,
+        medianScheduledHeadwayMinutes: 10,
+        p90ScheduledHeadwayMinutes: 20,
+        maxScheduledHeadwayMinutes: 30,
+        scheduledShortHeadwayShare: 0.1,
+        scheduledLongGapShare: 0.2,
+      },
+    ],
+    gapWindows: [],
+    sourceStatuses: [
+      {
+        routeId: "T1",
+        month: isoMonth,
+        sourceScope: "reliability",
+        sourceId: "scheduledHeadways",
+        status: "available",
+        rowCount: null,
+        snapshotId: null,
+        note: null,
+      },
+      {
+        routeId: "T1",
+        month: isoMonth,
+        sourceScope: "reliability",
+        sourceId: "observedHeadways",
+        status: "needs_gtfs_rt_collection",
+        rowCount: null,
+        snapshotId: null,
+        note: null,
+      },
+    ],
+  });
+  await replaceRouteMonthTrends(local.db, [
+    {
+      routeId: "T1",
+      month: isoMonth,
+      speedObservationCount: 20,
+      speedBusTripCount: 200,
+      averageSpeedMph: 6,
+      ridership: 1000,
+      transfers: 100,
+      hasSpeedTrend: true,
+      hasRidershipTrend: true,
+    },
+  ]);
+  await replaceRouteEquityRows(local.db, isoMonth, {
+    rows: [
+      {
+        routeId: "T1",
+        month: isoMonth,
+        acsYear: 2024,
+        assignmentGeography: "county_proxy",
+        assignedCountyFips: "061",
+        assignedCountyName: "New York County",
+        assignmentMethod: "route_id_prefix",
+        tractCount: 300,
+        totalPopulation: 1600000,
+        occupiedHousingUnits: 800000,
+        noVehicleHouseholds: 500000,
+        noVehicleHouseholdShare: 0.625,
+        medianHouseholdIncome: 90000,
+        povertyRate: 15,
+        publicTransitCommuterShare: 60,
+        hispanicShare: 25,
+        nonHispanicWhiteShare: 40,
+        nonHispanicBlackShare: 15,
+        nonHispanicAsianShare: 15,
+      },
+    ],
+    sourceStatuses: [
+      {
+        routeId: "T1",
+        month: isoMonth,
+        sourceScope: "equity_context",
+        sourceId: "routeSpatialJoin",
+        status: "pending_tract_geometry_join",
+        rowCount: null,
+        snapshotId: null,
+        note: null,
+      },
+    ],
+  });
+  await replaceRouteScorecard(local.db, {
+    routeId: "T1",
+    month: isoMonth,
+    routeScore: 40,
+    coverageStatus: "full",
+    averageSpeedMph: 6,
+    hotspotCount: 2,
+  });
+  await replaceRouteBriefRows(local.db, {
+    summary: {
+      routeId: "T1",
+      month: isoMonth,
+      routeScore: 40,
+      publicVisible: true,
+      publicVisibilityReason: "included",
+      averageSpeedMph: 6,
+      hotspotCount: 2,
+      totalRidership: 1000,
+      totalTransfers: 100,
+      aceActive: true,
+      aceViolationCount: 12,
+      busLaneMatchedLaneCount: 3,
+      scheduleMatchRate: 0.5,
+    },
+    peakWindows: [
+      {
+        routeId: "T1",
+        month: isoMonth,
+        windowRank: 1,
+        dayOfWeek: "Monday",
+        hourOfDay: 8,
+        ridership: 500,
+        transfers: null,
+        matchedObservationCount: null,
+        busTripCount: null,
+        weightedAverageSpeedMph: null,
+        slowObservationShare: null,
+      },
+    ],
+    slowestWindows: [
+      {
+        routeId: "T1",
+        month: isoMonth,
+        windowRank: 1,
+        dayOfWeek: "Tuesday",
+        hourOfDay: 12,
+        observationCount: null,
+        busTripCount: null,
+        segmentCount: null,
+        weightedAverageSpeedMph: null,
+        weightedAverageTravelTimeMinutes: null,
+        slowObservationShare: null,
+      },
+    ],
+  });
+  await replaceRouteArtifacts(local.db, "T1", isoMonth, [
+    {
+      routeId: "T1",
+      month: isoMonth,
+      artifactName: "route-brief-input.json",
+      artifactKey: "route-slices/t1-2026-04/route-brief-input.json",
+      contentType: "application/json",
+      byteLength: 123,
+      sha256: digest("brief"),
+    },
+  ]);
+  await replaceRouteComparisonRanks(local.db, isoMonth, [
+    {
+      month: isoMonth,
+      rank: 1,
+      routeId: "T1",
+      routeScore: 40,
+      averageSpeedMph: 6,
+      totalRidership: 1000,
+      aceViolationCount: 12,
+      busLaneMatchedLaneCount: 3,
     },
   ]);
   local.sqlite.close();

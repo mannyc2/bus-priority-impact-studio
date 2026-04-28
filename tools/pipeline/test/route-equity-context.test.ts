@@ -1,33 +1,43 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
+import { replaceRouteCatalog } from "@bp/db/local";
 import { buildRouteEquityContext } from "../src/jobs/build/route-equity-context.js";
+import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
-const fixtureDir = fromRepoRoot(join("data/fixtures/route-equity-context"));
-const networkDir = join(fixtureDir, "network");
+const fixtureDir = fromRepoRoot(join("data/working/test-route-equity-context"));
 const equityDir = join(fixtureDir, "equity");
 const outputDir = join(fixtureDir, "out");
+const dbPath = join(fixtureDir, "pipeline.sqlite");
 
 async function writeJson(path: string, data: unknown): Promise<number> {
   return Bun.write(path, `${JSON.stringify(data, null, 2)}\n`);
 }
 
+afterEach(async () => {
+  await rm(fixtureDir, { recursive: true, force: true });
+});
+
 describe("route equity context", () => {
   test("assigns route rows to county-level ACS proxy context", async () => {
     await rm(fixtureDir, { recursive: true, force: true });
     await Promise.all([
-      mkdir(networkDir, { recursive: true }),
       mkdir(equityDir, { recursive: true }),
       mkdir(outputDir, { recursive: true }),
     ]);
-    await writeJson(join(networkDir, "route-catalog.json"), {
-      schemaVersion: 1,
-      rows: [
+    const local = await openLocalPipelineDb(dbPath);
+    try {
+      await replaceRouteCatalog(local.db, [
         {
           routeId: "M1",
           routeShortName: "M1",
           routeLongName: "Harlem - East Village",
+          routeTypes: ["local"],
+          directions: ["northbound", "southbound"],
+          shapeCount: 1,
+          stopCount: 2,
+          timepointStopCount: 2,
           latitudeMin: 40.1,
           latitudeMax: 40.9,
           longitudeMin: -74,
@@ -37,6 +47,11 @@ describe("route equity context", () => {
           routeId: "BX2",
           routeShortName: "Bx2",
           routeLongName: "Kingsbridge Heights - Mott Haven",
+          routeTypes: ["local"],
+          directions: ["northbound", "southbound"],
+          shapeCount: 1,
+          stopCount: 2,
+          timepointStopCount: 2,
           latitudeMin: 40.8,
           latitudeMax: 40.9,
           longitudeMin: -73.95,
@@ -46,13 +61,20 @@ describe("route equity context", () => {
           routeId: "ZZ1",
           routeShortName: "ZZ1",
           routeLongName: null,
+          routeTypes: [],
+          directions: [],
+          shapeCount: 0,
+          stopCount: 0,
+          timepointStopCount: 0,
           latitudeMin: null,
           latitudeMax: null,
           longitudeMin: null,
           longitudeMax: null,
         },
-      ],
-    });
+      ]);
+    } finally {
+      local.sqlite.close();
+    }
     await writeJson(join(equityDir, "nyc-tract-equity-context-2024.json"), {
       schemaVersion: 1,
       acsYear: 2024,
@@ -113,7 +135,7 @@ describe("route equity context", () => {
       month: 3,
       acsYear: 2024,
       generatedAt: new Date("2026-04-27T00:00:00.000Z"),
-      networkDir,
+      dbPath,
       equityDir,
       outputDir,
     });
@@ -126,7 +148,7 @@ describe("route equity context", () => {
         assignedRouteCount: 2,
       }),
     );
-    expect(output.rows).toEqual([
+    expect(output.rows).toContainEqual(
       expect.objectContaining({
         routeId: "M1",
         assignedCountyName: "New York County",
@@ -137,18 +159,22 @@ describe("route equity context", () => {
         povertyRate: 17.5,
         publicTransitCommuterShare: 67.5,
       }),
+    );
+    expect(output.rows).toContainEqual(
       expect.objectContaining({
         routeId: "BX2",
         assignedCountyName: "Bronx County",
         noVehicleHouseholdShare: 0.7,
       }),
+    );
+    expect(output.rows).toContainEqual(
       expect.objectContaining({
         routeId: "ZZ1",
         assignedCountyName: null,
         assignmentMethod: "unassigned",
         totalPopulation: null,
       }),
-    ]);
+    );
     expect(summary).toEqual(
       expect.objectContaining({
         routeCount: 3,

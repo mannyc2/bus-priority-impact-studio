@@ -251,6 +251,7 @@ export async function buildPlannedRouteBatch(
         month: options.month,
         hotspotLimit: options.hotspotLimit,
         topSegmentLimit: options.topSegmentLimit,
+        dbPath: options.dbPath,
       }),
     );
   }
@@ -276,10 +277,12 @@ export async function buildPlannedRouteBatch(
     year: options.year,
     month: options.month,
     limit: routes.length,
+    dbPath: options.dbPath,
   });
   await deps.buildRouteReliabilityBaseline({
     year: options.year,
     month: options.month,
+    dbPath: options.dbPath,
   });
   await deps.buildRouteInterventionHistory({
     year: options.year,

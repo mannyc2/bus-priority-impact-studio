@@ -1,29 +1,17 @@
 import { join } from "node:path";
+import {
+  type LocalRouteCatalogEntry,
+  listRouteCatalog,
+  replaceRouteEquityRows,
+} from "@bp/db/local";
 import * as z from "zod";
 import { readArtifact, writeArtifact } from "../../lib/artifact-store.js";
 import { isoMonth } from "../../lib/dates.js";
+import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
+import { fromCliPath } from "../../lib/paths.js";
 import { fromRepoRoot } from "../../source-manifest.js";
 
 const schemaVersion = 1;
-
-const RouteCatalogSchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    rows: z.array(
-      z
-        .object({
-          routeId: z.string().min(1),
-          routeShortName: z.string().min(1),
-          routeLongName: z.string().nullable(),
-          latitudeMin: z.number().nullable(),
-          latitudeMax: z.number().nullable(),
-          longitudeMin: z.number().nullable(),
-          longitudeMax: z.number().nullable(),
-        })
-        .passthrough(),
-    ),
-  })
-  .passthrough();
 
 const TractEquityContextSchema = z
   .object({
@@ -54,10 +42,9 @@ const TractEquityContextSchema = z
   })
   .passthrough();
 
-type RouteCatalog = z.output<typeof RouteCatalogSchema>;
 type TractEquityContext = z.output<typeof TractEquityContextSchema>;
 type TractEquityRow = TractEquityContext["rows"][number];
-type RouteCatalogRow = RouteCatalog["rows"][number];
+type RouteCatalogRow = LocalRouteCatalogEntry;
 
 type CountyAggregate = {
   countyFips: string;
@@ -89,7 +76,7 @@ type RouteEquityContextArgs = {
   month?: number;
   acsYear?: number;
   generatedAt?: Date;
-  networkDir?: string;
+  dbPath?: string;
   equityDir?: string;
   outputDir?: string;
 };
@@ -139,8 +126,8 @@ function parseCliArgs(args: string[]): RouteEquityContextArgs {
       continue;
     }
 
-    if (arg === "--network-dir" && value !== undefined) {
-      output.networkDir = value;
+    if (arg === "--db" && value !== undefined) {
+      output.dbPath = fromCliPath(value);
       index += 1;
       continue;
     }
@@ -260,21 +247,24 @@ export async function buildRouteEquityContext(
   const month = isoMonth(year, monthNumber);
   const acsYear = args.acsYear ?? 2024;
   const generatedAt = (args.generatedAt ?? new Date()).toISOString();
-  const networkDir = args.networkDir ?? fromRepoRoot(join("data/working/network"));
+  const dbPath = args.dbPath ?? defaultLocalPipelineDbPath();
   const equityDir = args.equityDir ?? fromRepoRoot(join("data/working/equity"));
   const outputDir = args.outputDir ?? fromRepoRoot(join("data/artifacts/route-batches", month));
   const outputPath = join(outputDir, "route-equity-context.json");
   const summaryPath = join(outputDir, "route-equity-context-summary.json");
-  const routeCatalog = await readArtifact(
-    join(networkDir, "route-catalog.json"),
-    RouteCatalogSchema,
-  );
+  const local = await openLocalPipelineDb(dbPath);
+  let routeCatalog: LocalRouteCatalogEntry[];
+  try {
+    routeCatalog = await listRouteCatalog(local.db);
+  } finally {
+    local.sqlite.close();
+  }
   const tractContext = await readArtifact(
     join(equityDir, `nyc-tract-equity-context-${acsYear}.json`),
     TractEquityContextSchema,
   );
   const countyAggregates = buildCountyAggregates(tractContext.rows);
-  const rows = routeCatalog.rows.map((route) => {
+  const rows = routeCatalog.map((route) => {
     const assignedCounty = assignCounty(route);
     const aggregate =
       assignedCounty === null ? undefined : countyAggregates.get(assignedCounty.countyFips);
@@ -353,6 +343,46 @@ export async function buildRouteEquityContext(
     }),
     writeArtifact(outputDir, summaryPath, summary),
   ]);
+  const writeLocal = await openLocalPipelineDb(dbPath);
+  try {
+    await replaceRouteEquityRows(writeLocal.db, month, {
+      rows: rows.map((row) => ({
+        routeId: row.routeId,
+        month: row.isoMonth,
+        acsYear: row.acsYear,
+        assignmentGeography: row.assignmentGeography,
+        assignedCountyFips: row.assignedCountyFips,
+        assignedCountyName: row.assignedCountyName,
+        assignmentMethod: row.assignmentMethod,
+        tractCount: row.tractCount,
+        totalPopulation: row.totalPopulation,
+        occupiedHousingUnits: row.occupiedHousingUnits,
+        noVehicleHouseholds: row.noVehicleHouseholds,
+        noVehicleHouseholdShare: row.noVehicleHouseholdShare,
+        medianHouseholdIncome: row.medianHouseholdIncome,
+        povertyRate: row.povertyRate,
+        publicTransitCommuterShare: row.publicTransitCommuterShare,
+        hispanicShare: row.raceEthnicityShare.hispanic,
+        nonHispanicWhiteShare: row.raceEthnicityShare.nonHispanicWhite,
+        nonHispanicBlackShare: row.raceEthnicityShare.nonHispanicBlack,
+        nonHispanicAsianShare: row.raceEthnicityShare.nonHispanicAsian,
+      })),
+      sourceStatuses: rows.flatMap((row) =>
+        Object.entries(row.sourceStatus).map(([sourceId, status]) => ({
+          routeId: row.routeId,
+          month: row.isoMonth,
+          sourceScope: "equity_context",
+          sourceId,
+          status,
+          rowCount: null,
+          snapshotId: null,
+          note: null,
+        })),
+      ),
+    });
+  } finally {
+    writeLocal.sqlite.close();
+  }
 
   return {
     analysisPeriod: month,

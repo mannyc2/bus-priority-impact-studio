@@ -1,8 +1,11 @@
 import { join } from "node:path";
+import { replaceRouteComparisonRanks } from "@bp/db/local";
 import * as z from "zod";
 import { readArtifact, writeArtifact } from "../../lib/artifact-store.js";
 import { routeSliceKey } from "../../lib/artifacts.js";
 import { isoMonth } from "../../lib/dates.js";
+import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
+import { fromCliPath } from "../../lib/paths.js";
 import { fromRepoRoot } from "../../source-manifest.js";
 
 const schemaVersion = 1;
@@ -82,6 +85,7 @@ type RouteComparisonArgs = {
   year?: number;
   month?: number;
   limit?: number;
+  dbPath?: string;
 };
 
 type RouteComparisonResult = {
@@ -96,6 +100,7 @@ function parseBuildArgs(args: RouteComparisonArgs = {}): Required<RouteCompariso
     year: args.year ?? 2026,
     month: args.month ?? 3,
     limit: args.limit ?? 10,
+    dbPath: args.dbPath ?? defaultLocalPipelineDbPath(),
   };
 }
 
@@ -120,6 +125,12 @@ function parseCliArgs(args: string[]): RouteComparisonArgs {
 
     if (arg === "--limit" && value !== undefined) {
       output.limit = Number(value);
+      index += 1;
+      continue;
+    }
+
+    if (arg === "--db" && value !== undefined) {
+      output.dbPath = fromCliPath(value);
       index += 1;
       continue;
     }
@@ -225,6 +236,25 @@ export async function buildRouteComparison(
   };
 
   await writeArtifact(batchDir, comparisonPath, comparison);
+  const local = await openLocalPipelineDb(options.dbPath);
+  try {
+    await replaceRouteComparisonRanks(
+      local.db,
+      month,
+      rankedRoutes.map((route, index) => ({
+        month,
+        rank: index + 1,
+        routeId: route.routeId,
+        routeScore: route.routeScore,
+        averageSpeedMph: route.averageSpeedMph,
+        totalRidership: route.totalRidership,
+        aceViolationCount: route.aceViolationCount,
+        busLaneMatchedLaneCount: route.busLaneMatchedLaneCount,
+      })),
+    );
+  } finally {
+    local.sqlite.close();
+  }
 
   return {
     isoMonth: month,

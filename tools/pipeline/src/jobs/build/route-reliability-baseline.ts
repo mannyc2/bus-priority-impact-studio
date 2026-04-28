@@ -1,8 +1,11 @@
 import { join } from "node:path";
+import { replaceRouteReliabilityRows } from "@bp/db/local";
 import * as z from "zod";
 import { readArtifact, writeArtifact } from "../../lib/artifact-store.js";
 import { routeSliceKey } from "../../lib/artifacts.js";
 import { isoMonth } from "../../lib/dates.js";
+import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
+import { fromCliPath } from "../../lib/paths.js";
 import { fromRepoRoot } from "../../source-manifest.js";
 
 const schemaVersion = 1;
@@ -48,6 +51,7 @@ const SchedulesArtifactSchema = z
 type RouteReliabilityBaselineArgs = {
   year?: number;
   month?: number;
+  dbPath?: string;
 };
 
 type ScheduleRow = z.output<typeof SchedulesArtifactSchema>["rows"][number];
@@ -105,6 +109,7 @@ function parseBuildArgs(
   return {
     year: args.year ?? 2026,
     month: args.month ?? 3,
+    dbPath: args.dbPath ?? defaultLocalPipelineDbPath(),
   };
 }
 
@@ -123,6 +128,12 @@ function parseCliArgs(args: string[]): RouteReliabilityBaselineArgs {
 
     if (arg === "--month" && value !== undefined) {
       output.month = Number(value);
+      index += 1;
+      continue;
+    }
+
+    if (arg === "--db" && value !== undefined) {
+      output.dbPath = fromCliPath(value);
       index += 1;
       continue;
     }
@@ -318,6 +329,53 @@ export async function buildRouteReliabilityBaseline(
     }),
     writeArtifact(batchDir, summaryPath, summary),
   ]);
+  const local = await openLocalPipelineDb(options.dbPath);
+  try {
+    await replaceRouteReliabilityRows(local.db, month, {
+      baselines: rows.map((row) => ({
+        routeId: row.routeId,
+        month: row.isoMonth,
+        reliabilityStatus: row.reliabilityStatus,
+        scheduledTimepointCount: row.scheduledTimepointCount,
+        stopHeadwayGroupCount: row.stopHeadwayGroupCount,
+        headwaySampleCount: row.headwaySampleCount,
+        medianScheduledHeadwayMinutes: row.medianScheduledHeadwayMinutes,
+        p90ScheduledHeadwayMinutes: row.p90ScheduledHeadwayMinutes,
+        maxScheduledHeadwayMinutes: row.maxScheduledHeadwayMinutes,
+        scheduledShortHeadwayShare: row.scheduledShortHeadwayShare,
+        scheduledLongGapShare: row.scheduledLongGapShare,
+      })),
+      gapWindows: rows.flatMap((row) =>
+        row.topLongGapWindows.map((window, index) => ({
+          routeId: row.routeId,
+          month: row.isoMonth,
+          windowRank: index + 1,
+          dayType: window.dayType,
+          directionId: window.direction,
+          stopId: window.stopId,
+          stopName: window.stopName,
+          sampleCount: window.sampleCount,
+          medianHeadwayMinutes: window.medianHeadwayMinutes,
+          p90HeadwayMinutes: window.p90HeadwayMinutes,
+          maxHeadwayMinutes: window.maxHeadwayMinutes,
+        })),
+      ),
+      sourceStatuses: rows.flatMap((row) =>
+        Object.entries(row.sourceStatus).map(([sourceId, status]) => ({
+          routeId: row.routeId,
+          month: row.isoMonth,
+          sourceScope: "reliability",
+          sourceId,
+          status,
+          rowCount: null,
+          snapshotId: null,
+          note: null,
+        })),
+      ),
+    });
+  } finally {
+    local.sqlite.close();
+  }
 
   return {
     isoMonth: month,

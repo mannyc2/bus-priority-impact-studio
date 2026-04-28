@@ -4,6 +4,8 @@ import { RouteIdCodec } from "@bp/domain";
 import * as z from "zod";
 import { isoMonth } from "../../lib/dates.js";
 import { writeJson } from "../../lib/json.js";
+import { defaultLocalPipelineDbPath } from "../../lib/local-db.js";
+import { fromCliPath } from "../../lib/paths.js";
 import { fromRepoRoot } from "../../source-manifest.js";
 import { ingestAceRoutes } from "../ingest/ingest-ace-routes.js";
 import { ingestAceViolationSummary } from "../ingest/ingest-ace-violations.js";
@@ -28,6 +30,7 @@ type RouteBuildArgs = {
   month?: number;
   hotspotLimit?: number;
   topSegmentLimit?: number;
+  dbPath?: string;
 };
 
 type RouteBatchArgs = {
@@ -37,6 +40,7 @@ type RouteBatchArgs = {
   hotspotLimit?: number;
   topSegmentLimit?: number;
   refreshSharedSources?: boolean;
+  dbPath?: string;
 };
 
 type RouteBuildResult = {
@@ -99,6 +103,7 @@ function parseRouteBuildArgs(args: RouteBuildArgs = {}): Required<RouteBuildArgs
     month: args.month ?? 3,
     hotspotLimit: args.hotspotLimit ?? 10,
     topSegmentLimit: args.topSegmentLimit ?? 5,
+    dbPath: args.dbPath ?? defaultLocalPipelineDbPath(),
   };
 }
 
@@ -110,6 +115,7 @@ function parseRouteBatchArgs(args: RouteBatchArgs = {}): Required<RouteBatchArgs
     hotspotLimit: args.hotspotLimit ?? 10,
     topSegmentLimit: args.topSegmentLimit ?? 5,
     refreshSharedSources: args.refreshSharedSources ?? true,
+    dbPath: args.dbPath ?? defaultLocalPipelineDbPath(),
   };
 }
 
@@ -158,6 +164,12 @@ function parseCliArgs(args: string[]): RouteBatchArgs {
       continue;
     }
 
+    if (arg === "--db" && value !== undefined) {
+      output.dbPath = fromCliPath(value);
+      index += 1;
+      continue;
+    }
+
     throw new Error(`Unknown or incomplete argument: ${arg ?? ""}`);
   }
 
@@ -173,6 +185,7 @@ export async function buildRouteSliceArtifacts(
     routeId: options.routeId,
     year: options.year,
     month: options.month,
+    dbPath: options.dbPath,
   };
   const slice = await deps.ingestRouteSlice(routeArgs);
   const schedules = await deps.ingestSchedules(routeArgs);
@@ -225,6 +238,7 @@ export async function buildRouteBatchArtifacts(
           month: options.month,
           hotspotLimit: options.hotspotLimit,
           topSegmentLimit: options.topSegmentLimit,
+          dbPath: options.dbPath,
         },
         deps,
       ),

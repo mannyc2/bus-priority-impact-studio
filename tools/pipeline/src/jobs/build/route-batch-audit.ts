@@ -2,7 +2,12 @@ import { createHash } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { classifyPublicRouteVisibility, type PublicRouteVisibilityReason } from "@bp/analytics";
-import { type LocalRouteReadinessStatus, listRouteBuildPlan, listRouteCatalog } from "@bp/db/local";
+import {
+  type LocalRouteReadinessStatus,
+  listRouteBuildPlan,
+  listRouteCatalog,
+  replaceRouteBatch,
+} from "@bp/db/local";
 import * as z from "zod";
 import { routeSliceKey } from "../../lib/artifacts.js";
 import { isoMonth } from "../../lib/dates.js";
@@ -303,6 +308,20 @@ function summarizeIssues(rows: readonly RouteBatchAuditRow[]): string[] {
   return rows.flatMap((row) => row.issues.map((issue) => `${row.routeId}:${issue}`));
 }
 
+function routeBatchIssueParts(issue: string): {
+  routeId: string | null;
+  issueCode: string;
+  message: string;
+} {
+  const [routeId, issueCode] = issue.split(":");
+
+  return {
+    routeId: routeId === undefined || routeId.length === 0 ? null : routeId,
+    issueCode: issueCode === undefined || issueCode.length === 0 ? "unknown" : issueCode,
+    message: issue,
+  };
+}
+
 export async function buildRouteBatchAudit(
   args: RouteBatchAuditArgs = {},
 ): Promise<RouteBatchAuditResult> {
@@ -411,6 +430,43 @@ export async function buildRouteBatchAudit(
 
   await mkdir(batchDir, { recursive: true });
   await writeJson(auditPath, summary);
+  const local = await openLocalPipelineDb(options.dbPath);
+  try {
+    await replaceRouteBatch(local.db, {
+      status: {
+        month,
+        generatedAt: summary.generatedAt,
+        status: summary.status,
+        routeCount: summary.routeCount,
+        artifactCount: summary.artifactCount,
+        missingArtifactCount: summary.missingArtifactCount,
+        hashMismatchCount: summary.hashMismatchCount,
+        byteLengthMismatchCount: summary.byteLengthMismatchCount,
+        totalByteLength: summary.totalByteLength,
+        issueCount: summary.issueCount,
+      },
+      builtRoutes: rows.map((row, index) => ({
+        month,
+        routeRank: index + 1,
+        routeId: row.routeId,
+        artifactCount: row.verifiedArtifactCount,
+        status: row.status === "pass" ? "built" : "failed",
+      })),
+      issues: issues.map((issue, index) => {
+        const parts = routeBatchIssueParts(issue);
+        return {
+          month,
+          issueRank: index + 1,
+          routeId: parts.routeId,
+          severity: "error",
+          issueCode: parts.issueCode,
+          message: parts.message,
+        };
+      }),
+    });
+  } finally {
+    local.sqlite.close();
+  }
 
   return {
     isoMonth: month,

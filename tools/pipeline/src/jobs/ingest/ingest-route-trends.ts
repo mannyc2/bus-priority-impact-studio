@@ -1,11 +1,14 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
+import { listRouteBuildPlan, replaceRouteMonthTrends } from "@bp/db/local";
 import { RouteIdCodec } from "@bp/domain";
 import type { SocrataFetch, SocrataRow, SocrataRowsQuery } from "@bp/sources";
 import { getSocrataSource, SocrataClient, soqlIn, soqlYearMonthRange } from "@bp/sources";
 import * as z from "zod";
 import { isoMonth, isoMonthStart, monthRange, nextIsoMonthStart } from "../../lib/dates.js";
 import { writeJson } from "../../lib/json.js";
+import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
+import { fromCliPath } from "../../lib/paths.js";
 import type { SocrataManifestSource } from "../../source-manifest.js";
 import { fromRepoRoot, readSourceManifest } from "../../source-manifest.js";
 
@@ -23,6 +26,7 @@ type RouteTrendsArgs = {
   fetchedAt?: Date;
   fetcher?: SocrataFetch;
   workingDir?: string;
+  dbPath?: string;
 };
 
 type RouteTrendsResult = {
@@ -49,13 +53,6 @@ type TrendRow = {
     ridership: boolean;
   };
 };
-
-const BatchSummarySchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    routes: z.array(z.object({ routeId: z.string().min(1) }).passthrough()),
-  })
-  .passthrough();
 
 const RawSpeedTrendRowSchema = z
   .object({
@@ -89,6 +86,7 @@ function parseArgs(args: RouteTrendsArgs = {}): Required<RouteTrendsArgs> {
     fetchedAt: args.fetchedAt ?? new Date(),
     fetcher: args.fetcher ?? fetch,
     workingDir: args.workingDir ?? fromRepoRoot(join("data/working/trends")),
+    dbPath: args.dbPath ?? defaultLocalPipelineDbPath(),
   };
 }
 
@@ -137,6 +135,12 @@ function parseCliArgs(args: string[]): RouteTrendsArgs {
       continue;
     }
 
+    if (arg === "--db" && value !== undefined) {
+      output.dbPath = fromCliPath(value);
+      index += 1;
+      continue;
+    }
+
     throw new Error(`Unknown or incomplete argument: ${arg ?? ""}`);
   }
 
@@ -151,16 +155,20 @@ async function fetchSourceRows(
   return SocrataClient.fromSource(source, { fetcher }).rows(query);
 }
 
-async function routeIdsFromCurrentBatch(endYear: number, endMonth: number): Promise<string[]> {
+async function routeIdsFromCurrentBatch(
+  endYear: number,
+  endMonth: number,
+  dbPath: string,
+): Promise<string[]> {
   const month = isoMonth(endYear, endMonth);
-  const path = fromRepoRoot(join("data/artifacts/route-batches", month, "batch-summary.json"));
-  const file = Bun.file(path);
-  if (!(await file.exists())) {
-    return [];
-  }
+  const local = await openLocalPipelineDb(dbPath);
 
-  const batch = BatchSummarySchema.parse(await file.json());
-  return [...new Set(batch.routes.map((route) => z.decode(RouteIdCodec, route.routeId)))].sort();
+  try {
+    const plan = await listRouteBuildPlan(local.db, month);
+    return [...new Set(plan.map((route) => z.decode(RouteIdCodec, route.routeId)))].sort();
+  } finally {
+    local.sqlite.close();
+  }
 }
 
 function trendKey(routeId: string, month: string): string {
@@ -229,7 +237,7 @@ export async function ingestRouteTrends(args: RouteTrendsArgs = {}): Promise<Rou
   const routeIds =
     options.routes.length > 0
       ? [...new Set(options.routes.map((route) => z.decode(RouteIdCodec, route)))].sort()
-      : await routeIdsFromCurrentBatch(options.endYear, options.endMonth);
+      : await routeIdsFromCurrentBatch(options.endYear, options.endMonth, options.dbPath);
 
   if (routeIds.length === 0) {
     throw new Error("No route IDs provided and no batch summary found for the trend end month.");
@@ -326,6 +334,25 @@ export async function ingestRouteTrends(args: RouteTrendsArgs = {}): Promise<Rou
     }),
     writeJson(summaryPath, summary),
   ]);
+  const local = await openLocalPipelineDb(options.dbPath);
+  try {
+    await replaceRouteMonthTrends(
+      local.db,
+      rows.map((row) => ({
+        routeId: row.routeId,
+        month: row.isoMonth,
+        speedObservationCount: row.speedObservationCount,
+        speedBusTripCount: row.speedBusTripCount,
+        averageSpeedMph: row.averageSpeedMph,
+        ridership: row.ridership,
+        transfers: row.transfers,
+        hasSpeedTrend: row.trendCoverage.speed,
+        hasRidershipTrend: row.trendCoverage.ridership,
+      })),
+    );
+  } finally {
+    local.sqlite.close();
+  }
 
   return {
     startMonth,
