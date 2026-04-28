@@ -11,7 +11,6 @@ import { ingestBusLanes } from "../ingest/ingest-bus-lanes.js";
 import { buildRouteBatchAudit } from "./route-batch-audit.js";
 import { buildRouteBuildPlan } from "./route-build-plan.js";
 import { buildRouteComparison } from "./route-comparison.js";
-import { buildRouteInterventionHistory } from "./route-intervention-history.js";
 import { buildRouteReliabilityBaseline } from "./route-reliability-baseline.js";
 import { buildRouteSliceArtifacts } from "./route-slice-pipeline.js";
 
@@ -33,7 +32,6 @@ type PlannedRouteBatchResult = {
   selectedRouteCount: number;
   builtRouteCount: number;
   totalBatchRouteCount: number;
-  comparisonPath: string | null;
   refreshedPlanDbPath: string | null;
   d1SeedPath: string | null;
 };
@@ -42,7 +40,6 @@ type PlannedRouteBatchDeps = {
   buildRouteSliceArtifacts: typeof buildRouteSliceArtifacts;
   buildRouteBatchAudit: typeof buildRouteBatchAudit;
   buildRouteComparison: typeof buildRouteComparison;
-  buildRouteInterventionHistory: typeof buildRouteInterventionHistory;
   buildRouteReliabilityBaseline: typeof buildRouteReliabilityBaseline;
   buildRouteBuildPlan: typeof buildRouteBuildPlan;
   exportD1Seed: typeof exportD1Seed;
@@ -55,7 +52,6 @@ const defaultDeps: PlannedRouteBatchDeps = {
   buildRouteSliceArtifacts,
   buildRouteBatchAudit,
   buildRouteComparison,
-  buildRouteInterventionHistory,
   buildRouteReliabilityBaseline,
   buildRouteBuildPlan,
   exportD1Seed,
@@ -200,18 +196,13 @@ export async function buildPlannedRouteBatch(
     );
   }
 
-  const comparison = await deps.buildRouteComparison({
+  await deps.buildRouteComparison({
     year: options.year,
     month: options.month,
     limit: builtRoutes.length,
     dbPath: options.dbPath,
   });
   await deps.buildRouteReliabilityBaseline({
-    year: options.year,
-    month: options.month,
-    dbPath: options.dbPath,
-  });
-  await deps.buildRouteInterventionHistory({
     year: options.year,
     month: options.month,
     dbPath: options.dbPath,
@@ -243,7 +234,6 @@ export async function buildPlannedRouteBatch(
     selectedRouteCount: plannedRouteIds.length,
     builtRouteCount: builtRoutes.length,
     totalBatchRouteCount: builtRoutes.length,
-    comparisonPath: comparison.comparisonPath,
     refreshedPlanDbPath: refreshedPlan?.dbPath ?? null,
     d1SeedPath: d1Export?.seedPath ?? null,
   };

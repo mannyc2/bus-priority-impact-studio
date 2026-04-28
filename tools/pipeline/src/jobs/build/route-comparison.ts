@@ -1,17 +1,11 @@
-import { mkdir } from "node:fs/promises";
-import { join } from "node:path";
 import {
   listRouteBriefSummaries,
   listRouteScorecards,
   replaceRouteComparisonRanks,
 } from "@bp/db/local";
 import { isoMonth } from "../../lib/dates.js";
-import { writeJson } from "../../lib/json.js";
 import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
-import { fromRepoRoot } from "../../source-manifest.js";
-
-const schemaVersion = 1;
 
 type RouteComparisonArgs = {
   year?: number;
@@ -22,7 +16,6 @@ type RouteComparisonArgs = {
 
 type RouteComparisonResult = {
   isoMonth: string;
-  comparisonPath: string;
   routeCount: number;
   worstRouteId: string | null;
 };
@@ -83,8 +76,6 @@ export async function buildRouteComparison(
 ): Promise<RouteComparisonResult> {
   const options = parseBuildArgs(args);
   const month = isoMonth(options.year, options.month);
-  const batchDir = fromRepoRoot(join("data/artifacts/route-batches", month));
-  const comparisonPath = join(batchDir, "route-comparison.json");
   const readLocal = await openLocalPipelineDb(options.dbPath);
   const [briefs, scorecards] = await Promise.all([
     listRouteBriefSummaries(readLocal.db, month),
@@ -119,24 +110,6 @@ export async function buildRouteComparison(
       return left.averageSpeedMph - right.averageSpeedMph;
     })
     .slice(0, options.limit);
-  const comparison = {
-    schemaVersion,
-    analysisPeriod: month,
-    generatedAt: new Date().toISOString(),
-    routeCount: routeRows.length,
-    rankingMethod:
-      "Routes with observed speed coverage are sorted ascending by deterministic route score, then ascending by average speed.",
-    rankedRoutes,
-    caveats: [
-      "Route comparison uses only routes included in the batch summary for the analysis period.",
-      "Routes without observed speed coverage stay buildable and queryable, but are excluded from cross-route ranking.",
-      "Scores are prioritization heuristics and should not be interpreted as official route grades.",
-      "ACE and bus-lane fields are overlays, not causal estimates of intervention effect.",
-    ],
-  };
-
-  await mkdir(batchDir, { recursive: true });
-  await writeJson(comparisonPath, comparison);
   const writeLocal = await openLocalPipelineDb(options.dbPath);
   try {
     await replaceRouteComparisonRanks(
@@ -159,7 +132,6 @@ export async function buildRouteComparison(
 
   return {
     isoMonth: month,
-    comparisonPath,
     routeCount: routeRows.length,
     worstRouteId: rankedRoutes[0]?.routeId ?? null,
   };

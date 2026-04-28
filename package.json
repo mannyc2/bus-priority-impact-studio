@@ -64,7 +64,6 @@
     "route-readiness": "bun --filter @bp/pipeline route-readiness",
     "route-build-plan": "bun --filter @bp/pipeline route-build-plan",
     "route-reliability-baseline": "bun --filter @bp/pipeline route-reliability-baseline",
-    "route-intervention-history": "bun --filter @bp/pipeline route-intervention-history",
     "route-equity-context": "bun --filter @bp/pipeline route-equity-context",
     "export:d1": "bun --filter @bp/pipeline export:d1",
     "verify:d1": "bun --filter @bp/pipeline verify:d1",

@@ -115,7 +115,6 @@ describe("planned route batch build", () => {
         calls.push(`comparison:${limit}`);
         return {
           isoMonth,
-          comparisonPath: join(batchDir, "route-comparison.json"),
           routeCount: limit ?? 0,
           worstRouteId: "T1",
         };
@@ -135,21 +134,8 @@ describe("planned route batch build", () => {
         calls.push("reliability");
         return {
           isoMonth,
-          baselinePath: join(batchDir, "route-reliability-baseline.json"),
-          summaryPath: join(batchDir, "route-reliability-baseline-summary.json"),
           routeCount: 2,
           headwaySampleCount: 10,
-        };
-      },
-      buildRouteInterventionHistory: async () => {
-        calls.push("intervention-history");
-        return {
-          isoMonth,
-          historyPath: join(batchDir, "route-intervention-history.json"),
-          summaryPath: join(batchDir, "route-intervention-history-summary.json"),
-          routeCount: 2,
-          aceMatchedRouteCount: 0,
-          busLaneMatchedRouteCount: 1,
         };
       },
       buildRouteBuildPlan: async ({ limit }: { limit?: number }) => {
@@ -221,7 +207,6 @@ describe("planned route batch build", () => {
         "build:T1",
         "comparison:1",
         "reliability",
-        "intervention-history",
         "audit",
         "plan:20",
         "export:d1",

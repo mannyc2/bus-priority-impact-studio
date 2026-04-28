@@ -1,5 +1,3 @@
-import { mkdir } from "node:fs/promises";
-import { join } from "node:path";
 import {
   type LocalRouteScheduleTimepoint,
   listRouteBriefSummaries,
@@ -7,10 +5,8 @@ import {
   replaceRouteReliabilityRows,
 } from "@bp/db/local";
 import { isoMonth } from "../../lib/dates.js";
-import { writeJson } from "../../lib/json.js";
 import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
-import { fromRepoRoot } from "../../source-manifest.js";
 
 const schemaVersion = 1;
 const longGapThresholdMinutes = 20;
@@ -65,8 +61,6 @@ type RouteReliabilityBaselineRow = {
 
 type RouteReliabilityBaselineResult = {
   isoMonth: string;
-  baselinePath: string;
-  summaryPath: string;
   routeCount: number;
   headwaySampleCount: number;
 };
@@ -247,9 +241,6 @@ export async function buildRouteReliabilityBaseline(
 ): Promise<RouteReliabilityBaselineResult> {
   const options = parseBuildArgs(args);
   const month = isoMonth(options.year, options.month);
-  const batchDir = fromRepoRoot(join("data/artifacts/route-batches", month));
-  const baselinePath = join(batchDir, "route-reliability-baseline.json");
-  const summaryPath = join(batchDir, "route-reliability-baseline-summary.json");
   const readLocal = await openLocalPipelineDb(options.dbPath);
   let rows: RouteReliabilityBaselineRow[];
   try {
@@ -266,41 +257,6 @@ export async function buildRouteReliabilityBaseline(
   } finally {
     readLocal.sqlite.close();
   }
-  const summary = {
-    schemaVersion,
-    analysisPeriod: month,
-    generatedAt: new Date().toISOString(),
-    routeCount: rows.length,
-    headwaySampleCount: rows.reduce((sum, row) => sum + row.headwaySampleCount, 0),
-    reliabilityStatus: "scheduled_baseline_only",
-    sourceReadiness: {
-      scheduledHeadways: "available",
-      observedHeadways: "needs_gtfs_rt_collection",
-      bunching: "needs_gtfs_rt_collection",
-      waitTimeReliability: "needs_gtfs_rt_collection",
-      tripCancellationProxy: "needs_trip_update_history",
-      multiMonthTrends: "speed_and_ridership_history_available",
-      interventionHistory: "ace_dates_available_bus_lane_dates_partial",
-      equityContext: "not_ingested",
-    },
-    caveats: [
-      "This artifact is a scheduled headway baseline, not observed headway reliability.",
-      "Observed bunching, long gaps, wait-time reliability, and cancellation proxies require GTFS-RT collection over time.",
-      "Schedule rows may use representative schedule dates that differ from the observed speed month.",
-    ],
-    rows,
-  };
-
-  await mkdir(batchDir, { recursive: true });
-  await Promise.all([
-    writeJson(baselinePath, {
-      schemaVersion,
-      analysisPeriod: month,
-      generatedAt: summary.generatedAt,
-      rows,
-    }),
-    writeJson(summaryPath, summary),
-  ]);
   const writeLocal = await openLocalPipelineDb(options.dbPath);
   try {
     await replaceRouteReliabilityRows(writeLocal.db, month, {
@@ -351,10 +307,8 @@ export async function buildRouteReliabilityBaseline(
 
   return {
     isoMonth: month,
-    baselinePath,
-    summaryPath,
     routeCount: rows.length,
-    headwaySampleCount: summary.headwaySampleCount,
+    headwaySampleCount: rows.reduce((sum, row) => sum + row.headwaySampleCount, 0),
   };
 }
 

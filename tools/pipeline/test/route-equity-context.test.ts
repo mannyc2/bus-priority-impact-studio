@@ -1,14 +1,19 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, rm } from "node:fs/promises";
+import { rm } from "node:fs/promises";
 import { join } from "node:path";
-import { replaceCensusTractEquityContext, replaceRouteCatalog } from "@bp/db/local";
+import {
+  listRouteEquityContexts,
+  listRouteMonthSourceStatuses,
+  replaceCensusTractEquityContext,
+  replaceRouteCatalog,
+} from "@bp/db/local";
 import { buildRouteEquityContext } from "../src/jobs/build/route-equity-context.js";
 import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
 const fixtureDir = fromRepoRoot(join("data/working/test-route-equity-context"));
-const outputDir = join(fixtureDir, "out");
 const dbPath = join(fixtureDir, "pipeline.sqlite");
+const isoMonth = "2026-03";
 
 afterEach(async () => {
   await rm(fixtureDir, { recursive: true, force: true });
@@ -17,7 +22,6 @@ afterEach(async () => {
 describe("route equity context", () => {
   test("assigns route rows to county-level ACS proxy context", async () => {
     await rm(fixtureDir, { recursive: true, force: true });
-    await mkdir(outputDir, { recursive: true });
     const local = await openLocalPipelineDb(dbPath);
     try {
       await replaceRouteCatalog(local.db, [
@@ -143,12 +147,12 @@ describe("route equity context", () => {
       year: 2026,
       month: 3,
       acsYear: 2024,
-      generatedAt: new Date("2026-04-27T00:00:00.000Z"),
       dbPath,
-      outputDir,
     });
-    const output = await Bun.file(result.outputPath).json();
-    const summary = await Bun.file(result.summaryPath).json();
+    const readLocal = await openLocalPipelineDb(dbPath);
+    const rows = await listRouteEquityContexts(readLocal.db, isoMonth);
+    const sourceStatuses = await listRouteMonthSourceStatuses(readLocal.db, isoMonth);
+    readLocal.sqlite.close();
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -156,7 +160,7 @@ describe("route equity context", () => {
         assignedRouteCount: 2,
       }),
     );
-    expect(output.rows).toContainEqual(
+    expect(rows).toContainEqual(
       expect.objectContaining({
         routeId: "M1",
         assignedCountyName: "New York County",
@@ -168,14 +172,14 @@ describe("route equity context", () => {
         publicTransitCommuterShare: 67.5,
       }),
     );
-    expect(output.rows).toContainEqual(
+    expect(rows).toContainEqual(
       expect.objectContaining({
         routeId: "BX2",
         assignedCountyName: "Bronx County",
         noVehicleHouseholdShare: 0.7,
       }),
     );
-    expect(output.rows).toContainEqual(
+    expect(rows).toContainEqual(
       expect.objectContaining({
         routeId: "ZZ1",
         assignedCountyName: null,
@@ -183,11 +187,12 @@ describe("route equity context", () => {
         totalPopulation: null,
       }),
     );
-    expect(summary).toEqual(
+    expect(sourceStatuses).toContainEqual(
       expect.objectContaining({
-        routeCount: 3,
-        assignedRouteCount: 2,
-        unassignedRouteCount: 1,
+        routeId: "M1",
+        sourceScope: "equity_context",
+        sourceId: "routeSpatialJoin",
+        status: "pending_tract_geometry_join",
       }),
     );
   });

@@ -1,5 +1,3 @@
-import { mkdir } from "node:fs/promises";
-import { join } from "node:path";
 import {
   type LocalCensusTractEquityContext,
   type LocalRouteCatalogEntry,
@@ -8,12 +6,8 @@ import {
   replaceRouteEquityRows,
 } from "@bp/db/local";
 import { isoMonth } from "../../lib/dates.js";
-import { writeJson } from "../../lib/json.js";
 import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath } from "../../lib/paths.js";
-import { fromRepoRoot } from "../../source-manifest.js";
-
-const schemaVersion = 1;
 
 type TractEquityRow = LocalCensusTractEquityContext;
 type RouteCatalogRow = LocalRouteCatalogEntry;
@@ -47,9 +41,7 @@ type RouteEquityContextArgs = {
   year?: number;
   month?: number;
   acsYear?: number;
-  generatedAt?: Date;
   dbPath?: string;
-  outputDir?: string;
 };
 
 type RouteEquityContextResult = {
@@ -57,8 +49,6 @@ type RouteEquityContextResult = {
   acsYear: number;
   routeCount: number;
   assignedRouteCount: number;
-  outputPath: string;
-  summaryPath: string;
 };
 
 const routePrefixCountyRules: readonly [RegExp, AssignedCounty][] = [
@@ -99,12 +89,6 @@ function parseCliArgs(args: string[]): RouteEquityContextArgs {
 
     if (arg === "--db" && value !== undefined) {
       output.dbPath = fromCliPath(value);
-      index += 1;
-      continue;
-    }
-
-    if (arg === "--output-dir" && value !== undefined) {
-      output.outputDir = value;
       index += 1;
       continue;
     }
@@ -211,11 +195,7 @@ export async function buildRouteEquityContext(
   const monthNumber = args.month ?? 3;
   const month = isoMonth(year, monthNumber);
   const acsYear = args.acsYear ?? 2024;
-  const generatedAt = (args.generatedAt ?? new Date()).toISOString();
   const dbPath = args.dbPath ?? defaultLocalPipelineDbPath();
-  const outputDir = args.outputDir ?? fromRepoRoot(join("data/artifacts/route-batches", month));
-  const outputPath = join(outputDir, "route-equity-context.json");
-  const summaryPath = join(outputDir, "route-equity-context-summary.json");
   const local = await openLocalPipelineDb(dbPath);
   let routeCatalog: LocalRouteCatalogEntry[];
   let tractRows: LocalCensusTractEquityContext[];
@@ -232,12 +212,9 @@ export async function buildRouteEquityContext(
       assignedCounty === null ? undefined : countyAggregates.get(assignedCounty.countyFips);
 
     return {
-      schemaVersion,
       routeId: route.routeId,
       isoMonth: month,
       acsYear,
-      routeShortName: route.routeShortName,
-      routeLongName: route.routeLongName,
       assignmentGeography: "county_proxy",
       assignedCountyFips: assignedCounty?.countyFips ?? null,
       assignedCountyName: assignedCounty?.countyName ?? null,
@@ -267,45 +244,6 @@ export async function buildRouteEquityContext(
     };
   });
   const assignedRouteCount = rows.filter((row) => row.assignedCountyFips !== null).length;
-  const summary = {
-    schemaVersion,
-    analysisPeriod: month,
-    acsYear,
-    generatedAt,
-    routeCount: rows.length,
-    assignedRouteCount,
-    unassignedRouteCount: rows.length - assignedRouteCount,
-    assignmentGeography: "county_proxy",
-    countyCounts: Object.fromEntries(
-      [...countyAggregates.values()]
-        .map((county) => [county.countyName, county.tractCount])
-        .sort(([left], [right]) => String(left).localeCompare(String(right))),
-    ),
-    sourceReadiness: {
-      demographics: "county_proxy_available",
-      lowCarHouseholds: "county_proxy_available",
-      publicTransitCommuteShare: "county_proxy_available",
-      routeSpatialJoin: "pending_tract_geometry_join",
-      jobAccess: "not_ingested_lehd_lodes_or_travel_time_model",
-    },
-    caveats: [
-      "Route equity context is assigned from route ID borough prefixes to county-level ACS aggregates.",
-      "This is a planning proxy and should be replaced by tract catchment joins once tract geometry is ingested.",
-      "Job access is not represented until LEHD/LODES or a travel-time model is added.",
-    ],
-  };
-
-  await mkdir(outputDir, { recursive: true });
-  await Promise.all([
-    writeJson(outputPath, {
-      schemaVersion,
-      analysisPeriod: month,
-      acsYear,
-      generatedAt,
-      rows,
-    }),
-    writeJson(summaryPath, summary),
-  ]);
   const writeLocal = await openLocalPipelineDb(dbPath);
   try {
     await replaceRouteEquityRows(writeLocal.db, month, {
@@ -352,8 +290,6 @@ export async function buildRouteEquityContext(
     acsYear,
     routeCount: rows.length,
     assignedRouteCount,
-    outputPath,
-    summaryPath,
   };
 }
 

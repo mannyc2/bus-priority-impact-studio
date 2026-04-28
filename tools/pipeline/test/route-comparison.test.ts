@@ -1,20 +1,23 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
-import { replaceRouteBriefRows, replaceRouteScorecard } from "@bp/db/local";
+import {
+  listRouteComparisonRanks,
+  replaceRouteBriefRows,
+  replaceRouteScorecard,
+} from "@bp/db/local";
 import { buildRouteComparisonFromCli } from "../src/jobs/build/route-comparison.js";
 import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
 const isoMonth = "2026-04";
-const batchDir = fromRepoRoot(join("data/artifacts/route-batches", isoMonth));
 const dbPath = fromRepoRoot(join("data/working/test-route-comparison/pipeline.sqlite"));
 
 async function removeFixtureArtifacts(): Promise<void> {
-  await Promise.all([
-    rm(batchDir, { force: true, recursive: true }),
-    rm(fromRepoRoot(join("data/working/test-route-comparison")), { force: true, recursive: true }),
-  ]);
+  await rm(fromRepoRoot(join("data/working/test-route-comparison")), {
+    force: true,
+    recursive: true,
+  });
 }
 
 async function writeBrief(
@@ -64,6 +67,16 @@ async function writeFixtureArtifacts(): Promise<void> {
   await writeBrief("T2", 20, 6);
 }
 
+async function readComparisonRanks() {
+  const local = await openLocalPipelineDb(dbPath);
+
+  try {
+    return await listRouteComparisonRanks(local.db, isoMonth);
+  } finally {
+    local.sqlite.close();
+  }
+}
+
 afterEach(async () => {
   await removeFixtureArtifacts();
 });
@@ -80,7 +93,7 @@ describe("route comparison build", () => {
       "--db",
       dbPath,
     ]);
-    const comparison = await Bun.file(result.comparisonPath).json();
+    const ranks = await readComparisonRanks();
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -89,16 +102,12 @@ describe("route comparison build", () => {
         worstRouteId: "T2",
       }),
     );
-    expect(comparison.rankedRoutes.map((route: { routeId: string }) => route.routeId)).toEqual([
-      "T2",
-      "T1",
-    ]);
-    expect(comparison.rankedRoutes[0]).toEqual(
+    expect(ranks.map((route) => route.routeId)).toEqual(["T2", "T1"]);
+    expect(ranks[0]).toEqual(
       expect.objectContaining({
+        rank: 1,
         routeId: "T2",
         routeScore: 20,
-        scheduleMatchRate: 0.6667,
-        aceActiveDuringAnalysisPeriod: true,
         aceViolationCount: 25,
       }),
     );
@@ -116,7 +125,7 @@ describe("route comparison build", () => {
       "--db",
       dbPath,
     ]);
-    const comparison = await Bun.file(result.comparisonPath).json();
+    const ranks = await readComparisonRanks();
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -125,8 +134,6 @@ describe("route comparison build", () => {
         worstRouteId: "T1",
       }),
     );
-    expect(comparison.rankedRoutes.map((route: { routeId: string }) => route.routeId)).toEqual([
-      "T1",
-    ]);
+    expect(ranks.map((route) => route.routeId)).toEqual(["T1"]);
   });
 });

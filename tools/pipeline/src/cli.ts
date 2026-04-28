@@ -103,15 +103,6 @@ const commands = {
       return buildRouteReliabilityBaselineFromCli(args);
     },
   },
-  "route-intervention-history": {
-    description: "Build route intervention history artifacts.",
-    run: async (args) => {
-      const { buildRouteInterventionHistoryFromCli } = await import(
-        "./jobs/build/route-intervention-history.js"
-      );
-      return buildRouteInterventionHistoryFromCli(args);
-    },
-  },
   "route-equity-context": {
     description: "Build route equity context artifacts.",
     run: async (args) => {

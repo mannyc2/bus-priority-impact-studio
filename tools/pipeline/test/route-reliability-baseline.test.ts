@@ -1,23 +1,24 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
-import { replaceRouteBriefRows, replaceRouteSchedules } from "@bp/db/local";
+import {
+  listRouteMonthSourceStatuses,
+  listRouteReliabilityBaselines,
+  replaceRouteBriefRows,
+  replaceRouteSchedules,
+} from "@bp/db/local";
 import { buildRouteReliabilityBaseline } from "../src/jobs/build/route-reliability-baseline.js";
 import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
 const isoMonth = "2026-10";
-const batchDir = fromRepoRoot(join("data/artifacts/route-batches", isoMonth));
 const dbPath = fromRepoRoot(join("data/working/test-route-reliability-baseline/pipeline.sqlite"));
 
 async function removeFixtureArtifacts(): Promise<void> {
-  await Promise.all([
-    rm(batchDir, { force: true, recursive: true }),
-    rm(fromRepoRoot(join("data/working/test-route-reliability-baseline")), {
-      force: true,
-      recursive: true,
-    }),
-  ]);
+  await rm(fromRepoRoot(join("data/working/test-route-reliability-baseline")), {
+    force: true,
+    recursive: true,
+  });
 }
 
 async function writeFixtureArtifacts(): Promise<void> {
@@ -122,8 +123,10 @@ describe("route reliability baseline", () => {
     await writeFixtureArtifacts();
 
     const result = await buildRouteReliabilityBaseline({ year: 2026, month: 10, dbPath });
-    const baseline = await Bun.file(result.baselinePath).json();
-    const summary = await Bun.file(result.summaryPath).json();
+    const local = await openLocalPipelineDb(dbPath);
+    const baselines = await listRouteReliabilityBaselines(local.db, isoMonth);
+    const sourceStatuses = await listRouteMonthSourceStatuses(local.db, isoMonth);
+    local.sqlite.close();
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -132,7 +135,7 @@ describe("route reliability baseline", () => {
         headwaySampleCount: 3,
       }),
     );
-    expect(baseline.rows[0]).toEqual(
+    expect(baselines[0]).toEqual(
       expect.objectContaining({
         routeId: "T1",
         reliabilityStatus: "scheduled_baseline_only",
@@ -143,17 +146,19 @@ describe("route reliability baseline", () => {
         maxScheduledHeadwayMinutes: 25,
       }),
     );
-    expect(baseline.rows[0].sourceStatus).toEqual(
-      expect.objectContaining({
-        observedHeadways: "needs_gtfs_rt_collection",
-        bunching: "needs_gtfs_rt_collection",
-      }),
-    );
-    expect(summary.sourceReadiness).toEqual(
-      expect.objectContaining({
-        equityContext: "not_ingested",
-        interventionHistory: "ace_dates_available_bus_lane_dates_partial",
-      }),
+    expect(
+      sourceStatuses.filter((row) => row.routeId === "T1" && row.sourceScope === "reliability"),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          sourceId: "observedHeadways",
+          status: "needs_gtfs_rt_collection",
+        }),
+        expect.objectContaining({
+          sourceId: "bunching",
+          status: "needs_gtfs_rt_collection",
+        }),
+      ]),
     );
   });
 });

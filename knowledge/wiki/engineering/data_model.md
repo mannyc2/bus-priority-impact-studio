@@ -308,19 +308,7 @@ The March 2026 live audit currently passes with 7 built routes, 63 verified arti
 
 ## Batch Data Artifacts
 
-### `route-intervention-history.json`
-
-Batch-level intervention history built from route intervention overlays and bus-lane overlays.
-
-Current March 2026 output:
-
-- 7 routes
-- 5 ACE-matched routes
-- 4 active ACE routes during the analysis period
-- 7 routes with matched bus-lane overlay rows
-- 7 routes with at least one matched bus-lane open date
-
-The artifact carries ACE implementation dates, monthly ACE violation counts, bus-lane open-date coverage, lane/facility summaries, and explicit source-readiness flags for missing signal-priority, lane-upgrade, and exact enforcement-activation history.
+Batch-level JSON reports are no longer the handoff between local pipeline jobs and D1 export. The local SQLite pipeline database owns relational projections for comparison ranks, reliability baselines, equity context, artifacts, and batch audit status; D1 export reads those tables directly.
 
 ### ACS equity context
 
