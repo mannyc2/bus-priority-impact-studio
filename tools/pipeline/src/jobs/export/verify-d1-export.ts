@@ -15,7 +15,6 @@ import {
   listSelectedRouteBuildCandidates,
 } from "@bp/db/d1";
 import { createBunSqliteServingDb } from "@bp/db/d1/bun-sqlite";
-import * as z from "zod";
 import { isoMonth } from "../../lib/dates.js";
 import { writeJson } from "../../lib/json.js";
 import { defaultLocalPipelineDbPath } from "../../lib/local-db.js";
@@ -24,35 +23,6 @@ import { fromRepoRoot } from "../../source-manifest.js";
 import { exportD1Seed } from "./export-d1.js";
 
 const schemaVersion = 1;
-
-const ExportSummarySchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    analysisPeriod: z.string().regex(/^\d{4}-\d{2}$/),
-    routeCount: z.number().int().nonnegative(),
-    artifactRowCount: z.number().int().nonnegative(),
-    comparisonRowCount: z.number().int().nonnegative(),
-    routeCatalogRowCount: z.number().int().nonnegative(),
-    routeCatalogTypeRowCount: z.number().int().nonnegative(),
-    routeDirectionRowCount: z.number().int().nonnegative(),
-    routeCoverageRowCount: z.number().int().nonnegative(),
-    routeReadinessRowCount: z.number().int().nonnegative(),
-    routeReadinessMissingInputRowCount: z.number().int().nonnegative(),
-    routeBuildPlanRowCount: z.number().int().nonnegative(),
-    routeReliabilityBaselineRowCount: z.number().int().nonnegative(),
-    routeReliabilityGapWindowRowCount: z.number().int().nonnegative(),
-    routeMonthSourceStatusRowCount: z.number().int().nonnegative(),
-    routeMonthTrendRowCount: z.number().int().nonnegative(),
-    routeEquityContextRowCount: z.number().int().nonnegative(),
-    routeBatchStatusRowCount: z.number().int().nonnegative(),
-    routeBatchBuiltRouteRowCount: z.number().int().nonnegative(),
-    routeBatchIssueRowCount: z.number().int().nonnegative(),
-    routeBriefPeakWindowRowCount: z.number().int().nonnegative(),
-    routeBriefSlowestWindowRowCount: z.number().int().nonnegative(),
-    routeScorecardCitationRowCount: z.number().int().nonnegative(),
-    seedPath: z.string().min(1),
-  })
-  .passthrough();
 
 type D1VerifyArgs = {
   year?: number;
@@ -195,9 +165,8 @@ export async function verifyD1Export(args: D1VerifyArgs = {}): Promise<D1VerifyR
   });
   const exportDir = fromRepoRoot(join("data/exports/d1", month));
   const verifyPath = join(exportDir, "verify-summary.json");
-  const summary = ExportSummarySchema.parse(await Bun.file(exportResult.summaryPath).json());
   const schemaSql = await Bun.file(exportResult.schemaPath).text();
-  const seedSql = await Bun.file(summary.seedPath).text();
+  const seedSql = await Bun.file(exportResult.seedPath).text();
   const database = new Database(":memory:");
   const issues: string[] = [];
 
@@ -239,133 +208,133 @@ export async function verifyD1Export(args: D1VerifyArgs = {}): Promise<D1VerifyR
     issues,
     tableName: "route_catalog",
     actual: tableCounts.route_catalog,
-    expected: summary.routeCatalogRowCount,
+    expected: exportResult.routeCatalogRowCount,
   });
   compareCount({
     issues,
     tableName: "route_catalog_type",
     actual: tableCounts.route_catalog_type,
-    expected: summary.routeCatalogTypeRowCount,
+    expected: exportResult.routeCatalogTypeRowCount,
   });
   compareCount({
     issues,
     tableName: "route_direction",
     actual: tableCounts.route_direction,
-    expected: summary.routeDirectionRowCount,
+    expected: exportResult.routeDirectionRowCount,
   });
   compareCount({
     issues,
     tableName: "route_month_coverage",
     actual: tableCounts.route_month_coverage,
-    expected: summary.routeCoverageRowCount,
+    expected: exportResult.routeCoverageRowCount,
   });
   compareCount({
     issues,
     tableName: "route_readiness",
     actual: tableCounts.route_readiness,
-    expected: summary.routeReadinessRowCount,
+    expected: exportResult.routeReadinessRowCount,
   });
   compareCount({
     issues,
     tableName: "route_readiness_missing_input",
     actual: tableCounts.route_readiness_missing_input,
-    expected: summary.routeReadinessMissingInputRowCount,
+    expected: exportResult.routeReadinessMissingInputRowCount,
   });
   compareCount({
     issues,
     tableName: "route_build_plan",
     actual: tableCounts.route_build_plan,
-    expected: summary.routeBuildPlanRowCount,
+    expected: exportResult.routeBuildPlanRowCount,
   });
   compareCount({
     issues,
     tableName: "route_reliability_baseline",
     actual: tableCounts.route_reliability_baseline,
-    expected: summary.routeReliabilityBaselineRowCount,
+    expected: exportResult.routeReliabilityBaselineRowCount,
   });
   compareCount({
     issues,
     tableName: "route_reliability_gap_window",
     actual: tableCounts.route_reliability_gap_window,
-    expected: summary.routeReliabilityGapWindowRowCount,
+    expected: exportResult.routeReliabilityGapWindowRowCount,
   });
   compareCount({
     issues,
     tableName: "route_month_source_status",
     actual: tableCounts.route_month_source_status,
-    expected: summary.routeMonthSourceStatusRowCount,
+    expected: exportResult.routeMonthSourceStatusRowCount,
   });
   compareCount({
     issues,
     tableName: "route_month_trend",
     actual: tableCounts.route_month_trend,
-    expected: summary.routeMonthTrendRowCount,
+    expected: exportResult.routeMonthTrendRowCount,
   });
   compareCount({
     issues,
     tableName: "route_equity_context",
     actual: tableCounts.route_equity_context,
-    expected: summary.routeEquityContextRowCount,
+    expected: exportResult.routeEquityContextRowCount,
   });
   compareCount({
     issues,
     tableName: "route_scorecard",
     actual: tableCounts.route_scorecard,
-    expected: summary.routeCount,
+    expected: exportResult.routeCount,
   });
   compareCount({
     issues,
     tableName: "route_scorecard_citation",
     actual: tableCounts.route_scorecard_citation,
-    expected: summary.routeScorecardCitationRowCount,
+    expected: exportResult.routeScorecardCitationRowCount,
   });
   compareCount({
     issues,
     tableName: "route_artifact",
     actual: tableCounts.route_artifact,
-    expected: summary.artifactRowCount,
+    expected: exportResult.artifactRowCount,
   });
   compareCount({
     issues,
     tableName: "route_brief_summary",
     actual: tableCounts.route_brief_summary,
-    expected: summary.routeCount,
+    expected: exportResult.routeCount,
   });
   compareCount({
     issues,
     tableName: "route_brief_peak_window",
     actual: tableCounts.route_brief_peak_window,
-    expected: summary.routeBriefPeakWindowRowCount,
+    expected: exportResult.routeBriefPeakWindowRowCount,
   });
   compareCount({
     issues,
     tableName: "route_brief_slowest_window",
     actual: tableCounts.route_brief_slowest_window,
-    expected: summary.routeBriefSlowestWindowRowCount,
+    expected: exportResult.routeBriefSlowestWindowRowCount,
   });
   compareCount({
     issues,
     tableName: "route_comparison_rank",
     actual: tableCounts.route_comparison_rank,
-    expected: summary.comparisonRowCount,
+    expected: exportResult.comparisonRowCount,
   });
   compareCount({
     issues,
     tableName: "route_batch_status",
     actual: tableCounts.route_batch_status,
-    expected: summary.routeBatchStatusRowCount,
+    expected: exportResult.routeBatchStatusRowCount,
   });
   compareCount({
     issues,
     tableName: "route_batch_built_route",
     actual: tableCounts.route_batch_built_route,
-    expected: summary.routeBatchBuiltRouteRowCount,
+    expected: exportResult.routeBatchBuiltRouteRowCount,
   });
   compareCount({
     issues,
     tableName: "route_batch_issue",
     actual: tableCounts.route_batch_issue,
-    expected: summary.routeBatchIssueRowCount,
+    expected: exportResult.routeBatchIssueRowCount,
   });
 
   const checks = await repositoryChecks({
@@ -381,9 +350,9 @@ export async function verifyD1Export(args: D1VerifyArgs = {}): Promise<D1VerifyR
       `repository:routeBriefSummaryRows_expected_${publicTableCounts.route_brief_summary}_actual_${checks.routeBriefSummaryRows}`,
     );
   }
-  if (checks.comparisonRankRows !== summary.comparisonRowCount) {
+  if (checks.comparisonRankRows !== exportResult.comparisonRowCount) {
     issues.push(
-      `repository:comparisonRankRows_expected_${summary.comparisonRowCount}_actual_${checks.comparisonRankRows}`,
+      `repository:comparisonRankRows_expected_${exportResult.comparisonRowCount}_actual_${checks.comparisonRankRows}`,
     );
   }
   if (checks.firstRouteId !== null && checks.firstRouteArtifactCount === 0) {
@@ -395,21 +364,21 @@ export async function verifyD1Export(args: D1VerifyArgs = {}): Promise<D1VerifyR
     analysisPeriod: month,
     generatedAt: new Date().toISOString(),
     status: issues.length === 0 ? "pass" : "fail",
-    seedPath: summary.seedPath,
+    seedPath: exportResult.seedPath,
     tableCounts,
     expectedCounts: {
-      route_catalog: summary.routeCatalogRowCount,
-      route_month_coverage: summary.routeCoverageRowCount,
-      route_readiness: summary.routeReadinessRowCount,
-      route_build_plan: summary.routeBuildPlanRowCount,
-      route_reliability_baseline: summary.routeReliabilityBaselineRowCount,
-      route_month_trend: summary.routeMonthTrendRowCount,
-      route_equity_context: summary.routeEquityContextRowCount,
-      route_scorecard: summary.routeCount,
-      route_artifact: summary.artifactRowCount,
-      route_brief_summary: summary.routeCount,
-      route_comparison_rank: summary.comparisonRowCount,
-      route_batch_status: summary.routeBatchStatusRowCount,
+      route_catalog: exportResult.routeCatalogRowCount,
+      route_month_coverage: exportResult.routeCoverageRowCount,
+      route_readiness: exportResult.routeReadinessRowCount,
+      route_build_plan: exportResult.routeBuildPlanRowCount,
+      route_reliability_baseline: exportResult.routeReliabilityBaselineRowCount,
+      route_month_trend: exportResult.routeMonthTrendRowCount,
+      route_equity_context: exportResult.routeEquityContextRowCount,
+      route_scorecard: exportResult.routeCount,
+      route_artifact: exportResult.artifactRowCount,
+      route_brief_summary: exportResult.routeCount,
+      route_comparison_rank: exportResult.comparisonRowCount,
+      route_batch_status: exportResult.routeBatchStatusRowCount,
     },
     publicTableCounts,
     repositoryChecks: checks,
