@@ -119,6 +119,13 @@ const commands = {
       return buildRouteReliabilityBaselineFromCli(args);
     },
   },
+  "build:observed-headways": {
+    description: "Build observed stop events and headway samples from parsed GTFS-RT rows.",
+    run: async (args) => {
+      const { buildObservedHeadwaysFromCli } = await import("./jobs/build/observed-headways.js");
+      return buildObservedHeadwaysFromCli(args);
+    },
+  },
   "route-equity-context": {
     description: "Build route equity context artifacts.",
     run: async (args) => {

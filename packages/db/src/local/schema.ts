@@ -327,6 +327,47 @@ export const localGtfsRtAlert = sqliteTable(
   ],
 );
 
+export const localObservedVehicleStopEvent = sqliteTable(
+  "local_observed_vehicle_stop_event",
+  {
+    runId: text("run_id").notNull(),
+    eventRank: integer("event_rank").notNull(),
+    routeId: text("route_id").notNull(),
+    sourceRouteId: text("source_route_id"),
+    directionId: integer("direction_id"),
+    stopId: text("stop_id").notNull(),
+    vehicleKey: text("vehicle_key").notNull(),
+    vehicleId: text("vehicle_id"),
+    vehicleLabel: text("vehicle_label"),
+    tripId: text("trip_id"),
+    observedTimestamp: integer("observed_timestamp").notNull(),
+    sampleIndex: integer("sample_index").notNull(),
+    currentStatus: text("current_status"),
+    latitude: real("latitude"),
+    longitude: real("longitude"),
+  },
+  (table) => [primaryKey({ columns: [table.runId, table.eventRank] })],
+);
+
+export const localObservedHeadwaySample = sqliteTable(
+  "local_observed_headway_sample",
+  {
+    runId: text("run_id").notNull(),
+    sampleRank: integer("sample_rank").notNull(),
+    routeId: text("route_id").notNull(),
+    sourceRouteId: text("source_route_id"),
+    directionId: integer("direction_id"),
+    stopId: text("stop_id").notNull(),
+    previousVehicleKey: text("previous_vehicle_key").notNull(),
+    vehicleKey: text("vehicle_key").notNull(),
+    previousObservedTimestamp: integer("previous_observed_timestamp").notNull(),
+    observedTimestamp: integer("observed_timestamp").notNull(),
+    headwaySeconds: integer("headway_seconds").notNull(),
+    headwayMinutes: real("headway_minutes").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.runId, table.sampleRank] })],
+);
+
 export const localRouteMonthSourceStatus = sqliteTable(
   "local_route_month_source_status",
   {

@@ -45,6 +45,15 @@ export {
   replaceBusLanes,
 } from "./repositories/interventions.js";
 export type {
+  LocalObservedHeadwaySample,
+  LocalObservedVehicleStopEvent,
+} from "./repositories/observed-reliability.js";
+export {
+  listObservedHeadwaySamples,
+  listObservedVehicleStopEvents,
+  replaceObservedHeadwayRows,
+} from "./repositories/observed-reliability.js";
+export type {
   LocalRouteBatchBuiltRoute,
   LocalRouteBatchIssue,
   LocalRouteBatchStatus,

@@ -71,6 +71,13 @@
       "when": 1778972900233,
       "tag": "0009_gtfs_rt_parsed_rows",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1778973257523,
+      "tag": "0010_observed_headway_samples",
+      "breakpoints": true
     }
   ]
 }

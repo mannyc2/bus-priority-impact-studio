@@ -179,13 +179,16 @@ Implemented so far:
 - `parseGtfsRtFeed` decodes GTFS-RT protobuf snapshots into normalized vehicle-position, trip-update, stop-time-update, and alert records.
 - `ingest:gtfs-rt-snapshots -- --run-id <run_id>` parses collected raw snapshots into local SQLite tables.
 - Parsed snapshot status and counts are stored in `local_gtfs_rt_parsed_snapshot`; malformed snapshots are recorded as `parse_error`.
+- `build:observed-headways -- --run-id <run_id>` derives observed stop events and headway samples from parsed vehicle positions.
+- Observed stop events are stored in `local_observed_vehicle_stop_event`; observed headway samples are stored in `local_observed_headway_sample`.
 - Fixture-backed tests cover successful collection, API-key redaction, and HTTP failure recording.
 - Fixture-backed tests cover vehicle-position parsing, trip-update parsing, alert parsing, local DB ingestion, and malformed protobuf handling.
+- Fixture-backed tests cover duplicate vehicle-observation collapse and headway calculation.
 
 Still missing:
 
-- Observed vehicle stop events.
-- Observed headway samples.
+- Route/month observed reliability summaries.
+- Bunching, long-gap, and wait-time reliability metrics.
 
 Data contracts to add:
 

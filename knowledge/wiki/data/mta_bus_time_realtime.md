@@ -33,6 +33,7 @@ As of 2026-05-16, the pipeline has a bounded raw snapshot collector:
 ```bash
 bun run collect:gtfs-rt -- --duration-hours 24 --sample-seconds 30
 bun run ingest:gtfs-rt-snapshots -- --run-id <run_id>
+bun run build:observed-headways -- --run-id <run_id>
 ```
 
 The collector writes raw protobuf snapshots under `data/raw/gtfs-rt/<date>/<run_id>/` and records collection metadata in local SQLite tables:
@@ -44,6 +45,8 @@ The collector writes raw protobuf snapshots under `data/raw/gtfs-rt/<date>/<run_
 - `local_gtfs_rt_trip_update`
 - `local_gtfs_rt_stop_time_update`
 - `local_gtfs_rt_alert`
+- `local_observed_vehicle_stop_event`
+- `local_observed_headway_sample`
 
 It records feed type, sample index, source id, fetch time, HTTP status, byte length, SHA-256, raw file path, redacted URL, and error text. It does not persist the API key.
 
@@ -55,7 +58,8 @@ V1 collection rules:
 - Keep raw protobuf bodies in `data/raw/gtfs-rt/`, not D1.
 - Store collection metadata in the local pipeline DB.
 - Parse raw snapshots into route, trip, vehicle, position, stop sequence, and arrival/departure estimate rows.
-- Next, build observed stop events and headway samples from parsed vehicle-position/trip-update history.
+- Derive observed stop events and headway samples from parsed vehicle-position history.
+- Next, aggregate route/month observed reliability summaries with sample coverage, bunching, long-gap, and wait-time reliability metrics.
 - Respect MTA terms: do not serve users directly from MTA endpoints; cache on our own server.
 
 ## Potential computed metrics
@@ -70,7 +74,7 @@ V1 collection rules:
 - Requires API key.
 - The API key must stay in local environment variables or deployment secrets; do not commit it to source files or metadata.
 - No historical data unless we collect it.
-- Current parser stores feed entities with route-id normalization, but observed reliability metrics still require stop-event inference and a headway builder.
+- Current observed headway builder is run-scoped and based on parsed vehicle-position stop signals; route/month reliability summaries and confidence gates remain to be built.
 - Realtime data can be noisy and should not be treated as authoritative without QA.
 
 ## Sources
