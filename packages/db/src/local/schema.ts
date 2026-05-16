@@ -182,6 +182,151 @@ export const localGtfsRtFeedSnapshot = sqliteTable(
   (table) => [primaryKey({ columns: [table.runId, table.feedType, table.sampleIndex] })],
 );
 
+export const localGtfsRtParsedSnapshot = sqliteTable(
+  "local_gtfs_rt_parsed_snapshot",
+  {
+    runId: text("run_id").notNull(),
+    feedType: text("feed_type", {
+      enum: ["vehicle_positions", "trip_updates", "alerts"],
+    }).notNull(),
+    sampleIndex: integer("sample_index").notNull(),
+    parsedAt: text("parsed_at").notNull(),
+    status: text("status", { enum: ["parsed", "parse_error"] }).notNull(),
+    gtfsRealtimeVersion: text("gtfs_realtime_version"),
+    feedTimestamp: integer("feed_timestamp"),
+    entityCount: integer("entity_count").notNull(),
+    vehiclePositionCount: integer("vehicle_position_count").notNull(),
+    tripUpdateCount: integer("trip_update_count").notNull(),
+    stopTimeUpdateCount: integer("stop_time_update_count").notNull(),
+    alertCount: integer("alert_count").notNull(),
+    error: text("error"),
+  },
+  (table) => [primaryKey({ columns: [table.runId, table.feedType, table.sampleIndex] })],
+);
+
+export const localGtfsRtVehiclePosition = sqliteTable(
+  "local_gtfs_rt_vehicle_position",
+  {
+    runId: text("run_id").notNull(),
+    feedType: text("feed_type", {
+      enum: ["vehicle_positions", "trip_updates", "alerts"],
+    }).notNull(),
+    sampleIndex: integer("sample_index").notNull(),
+    entityId: text("entity_id").notNull(),
+    entityDeleted: integer("entity_deleted", { mode: "boolean" }).notNull(),
+    gtfsRealtimeVersion: text("gtfs_realtime_version"),
+    feedTimestamp: integer("feed_timestamp"),
+    sourceRouteId: text("source_route_id"),
+    routeId: text("route_id"),
+    tripId: text("trip_id"),
+    startDate: text("start_date"),
+    startTime: text("start_time"),
+    directionId: integer("direction_id"),
+    scheduleRelationship: text("schedule_relationship"),
+    vehicleId: text("vehicle_id"),
+    vehicleLabel: text("vehicle_label"),
+    vehicleLicensePlate: text("vehicle_license_plate"),
+    latitude: real("latitude"),
+    longitude: real("longitude"),
+    bearing: real("bearing"),
+    odometer: real("odometer"),
+    speed: real("speed"),
+    currentStopSequence: integer("current_stop_sequence"),
+    stopId: text("stop_id"),
+    currentStatus: text("current_status"),
+    timestamp: integer("timestamp"),
+    congestionLevel: text("congestion_level"),
+    occupancyStatus: text("occupancy_status"),
+    occupancyPercentage: real("occupancy_percentage"),
+  },
+  (table) => [
+    primaryKey({ columns: [table.runId, table.feedType, table.sampleIndex, table.entityId] }),
+  ],
+);
+
+export const localGtfsRtTripUpdate = sqliteTable(
+  "local_gtfs_rt_trip_update",
+  {
+    runId: text("run_id").notNull(),
+    feedType: text("feed_type", {
+      enum: ["vehicle_positions", "trip_updates", "alerts"],
+    }).notNull(),
+    sampleIndex: integer("sample_index").notNull(),
+    entityId: text("entity_id").notNull(),
+    entityDeleted: integer("entity_deleted", { mode: "boolean" }).notNull(),
+    gtfsRealtimeVersion: text("gtfs_realtime_version"),
+    feedTimestamp: integer("feed_timestamp"),
+    sourceRouteId: text("source_route_id"),
+    routeId: text("route_id"),
+    tripId: text("trip_id"),
+    startDate: text("start_date"),
+    startTime: text("start_time"),
+    directionId: integer("direction_id"),
+    scheduleRelationship: text("schedule_relationship"),
+    vehicleId: text("vehicle_id"),
+    vehicleLabel: text("vehicle_label"),
+    vehicleLicensePlate: text("vehicle_license_plate"),
+    timestamp: integer("timestamp"),
+    delay: integer("delay"),
+  },
+  (table) => [
+    primaryKey({ columns: [table.runId, table.feedType, table.sampleIndex, table.entityId] }),
+  ],
+);
+
+export const localGtfsRtStopTimeUpdate = sqliteTable(
+  "local_gtfs_rt_stop_time_update",
+  {
+    runId: text("run_id").notNull(),
+    feedType: text("feed_type", {
+      enum: ["vehicle_positions", "trip_updates", "alerts"],
+    }).notNull(),
+    sampleIndex: integer("sample_index").notNull(),
+    entityId: text("entity_id").notNull(),
+    updateRank: integer("update_rank").notNull(),
+    stopSequence: integer("stop_sequence"),
+    stopId: text("stop_id"),
+    arrivalDelay: integer("arrival_delay"),
+    arrivalTime: integer("arrival_time"),
+    arrivalUncertainty: integer("arrival_uncertainty"),
+    departureDelay: integer("departure_delay"),
+    departureTime: integer("departure_time"),
+    departureUncertainty: integer("departure_uncertainty"),
+    scheduleRelationship: text("schedule_relationship"),
+    assignedStopId: text("assigned_stop_id"),
+  },
+  (table) => [
+    primaryKey({
+      columns: [table.runId, table.feedType, table.sampleIndex, table.entityId, table.updateRank],
+    }),
+  ],
+);
+
+export const localGtfsRtAlert = sqliteTable(
+  "local_gtfs_rt_alert",
+  {
+    runId: text("run_id").notNull(),
+    feedType: text("feed_type", {
+      enum: ["vehicle_positions", "trip_updates", "alerts"],
+    }).notNull(),
+    sampleIndex: integer("sample_index").notNull(),
+    entityId: text("entity_id").notNull(),
+    entityDeleted: integer("entity_deleted", { mode: "boolean" }).notNull(),
+    gtfsRealtimeVersion: text("gtfs_realtime_version"),
+    feedTimestamp: integer("feed_timestamp"),
+    cause: text("cause"),
+    effect: text("effect"),
+    activePeriodJson: text("active_period_json"),
+    informedEntityJson: text("informed_entity_json"),
+    urlJson: text("url_json"),
+    headerTextJson: text("header_text_json"),
+    descriptionTextJson: text("description_text_json"),
+  },
+  (table) => [
+    primaryKey({ columns: [table.runId, table.feedType, table.sampleIndex, table.entityId] }),
+  ],
+);
+
 export const localRouteMonthSourceStatus = sqliteTable(
   "local_route_month_source_status",
   {

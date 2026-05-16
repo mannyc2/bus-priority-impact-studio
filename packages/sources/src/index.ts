@@ -11,8 +11,14 @@ export {
   nycCountyCodes,
 } from "./census/index.js";
 export type {
+  GtfsRtFeedType,
   NormalizedAceRoute,
   NormalizedAceViolationSummary,
+  NormalizedGtfsRtAlert,
+  NormalizedGtfsRtFeed,
+  NormalizedGtfsRtStopTimeUpdate,
+  NormalizedGtfsRtTripUpdate,
+  NormalizedGtfsRtVehiclePosition,
   NormalizedHourlyRidership,
   NormalizedRouteShape,
   NormalizedScheduleTimepoint,
@@ -20,8 +26,14 @@ export type {
   NormalizedStop,
 } from "./mta/index.js";
 export {
+  GtfsRtFeedTypeSchema,
   NormalizedAceRouteSchema,
   NormalizedAceViolationSummarySchema,
+  NormalizedGtfsRtAlertSchema,
+  NormalizedGtfsRtFeedSchema,
+  NormalizedGtfsRtStopTimeUpdateSchema,
+  NormalizedGtfsRtTripUpdateSchema,
+  NormalizedGtfsRtVehiclePositionSchema,
   NormalizedHourlyRidershipSchema,
   NormalizedRouteShapeSchema,
   NormalizedScheduleTimepointSchema,
@@ -29,11 +41,13 @@ export {
   NormalizedStopSchema,
   normalizeAceRouteRows,
   normalizeAceViolationSummaryRows,
+  normalizeGtfsRtRouteId,
   normalizeHourlyRidershipRows,
   normalizeRouteShapeRows,
   normalizeScheduleTimepointRows,
   normalizeSegmentSpeedRows,
   normalizeStopRows,
+  parseGtfsRtFeed,
 } from "./mta/index.js";
 export type { NormalizedBusLane } from "./nyc-dot/index.js";
 export {

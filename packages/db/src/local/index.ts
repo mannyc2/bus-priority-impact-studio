@@ -8,15 +8,26 @@ export {
 } from "./repositories/equity.js";
 export type {
   GtfsRtFeedType,
+  LocalGtfsRtAlert,
   LocalGtfsRtCollectionRun,
   LocalGtfsRtFeedSnapshot,
+  LocalGtfsRtParsedSnapshot,
+  LocalGtfsRtStopTimeUpdate,
+  LocalGtfsRtTripUpdate,
+  LocalGtfsRtVehiclePosition,
 } from "./repositories/gtfs-rt.js";
 export {
   finishGtfsRtCollectionRun,
   insertGtfsRtCollectionRun,
   insertGtfsRtFeedSnapshot,
+  listGtfsRtAlerts,
   listGtfsRtCollectionRuns,
   listGtfsRtFeedSnapshots,
+  listGtfsRtParsedSnapshots,
+  listGtfsRtStopTimeUpdates,
+  listGtfsRtTripUpdates,
+  listGtfsRtVehiclePositions,
+  replaceGtfsRtParsedSnapshot,
 } from "./repositories/gtfs-rt.js";
 export type {
   LocalAceRoute,

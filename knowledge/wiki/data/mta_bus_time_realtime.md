@@ -32,12 +32,18 @@ As of 2026-05-16, the pipeline has a bounded raw snapshot collector:
 
 ```bash
 bun run collect:gtfs-rt -- --duration-hours 24 --sample-seconds 30
+bun run ingest:gtfs-rt-snapshots -- --run-id <run_id>
 ```
 
 The collector writes raw protobuf snapshots under `data/raw/gtfs-rt/<date>/<run_id>/` and records collection metadata in local SQLite tables:
 
 - `local_gtfs_rt_collection_run`
 - `local_gtfs_rt_feed_snapshot`
+- `local_gtfs_rt_parsed_snapshot`
+- `local_gtfs_rt_vehicle_position`
+- `local_gtfs_rt_trip_update`
+- `local_gtfs_rt_stop_time_update`
+- `local_gtfs_rt_alert`
 
 It records feed type, sample index, source id, fetch time, HTTP status, byte length, SHA-256, raw file path, redacted URL, and error text. It does not persist the API key.
 
@@ -48,7 +54,8 @@ V1 collection rules:
 - Pull feeds at a fixed cadence, e.g. every 30–60 seconds.
 - Keep raw protobuf bodies in `data/raw/gtfs-rt/`, not D1.
 - Store collection metadata in the local pipeline DB.
-- Next, parse raw snapshots into route, trip, vehicle, position, stop sequence, and arrival/departure estimate rows.
+- Parse raw snapshots into route, trip, vehicle, position, stop sequence, and arrival/departure estimate rows.
+- Next, build observed stop events and headway samples from parsed vehicle-position/trip-update history.
 - Respect MTA terms: do not serve users directly from MTA endpoints; cache on our own server.
 
 ## Potential computed metrics
@@ -63,8 +70,7 @@ V1 collection rules:
 - Requires API key.
 - The API key must stay in local environment variables or deployment secrets; do not commit it to source files or metadata.
 - No historical data unless we collect it.
-- API/feed semantics require GTFS-RT parsing.
-- Current collector stores raw snapshots and metadata only; observed reliability metrics still require a parser and headway builder.
+- Current parser stores feed entities with route-id normalization, but observed reliability metrics still require stop-event inference and a headway builder.
 - Realtime data can be noisy and should not be treated as authoritative without QA.
 
 ## Sources

@@ -176,12 +176,14 @@ Implemented so far:
 - `collect:gtfs-rt` records bounded Bus Time GTFS-RT collection runs.
 - Raw protobuf snapshots are written under `data/raw/gtfs-rt/<date>/<run_id>/`.
 - Local SQLite tables `local_gtfs_rt_collection_run` and `local_gtfs_rt_feed_snapshot` store run metadata, snapshot status, byte length, SHA-256, redacted URLs, and raw file paths.
+- `parseGtfsRtFeed` decodes GTFS-RT protobuf snapshots into normalized vehicle-position, trip-update, stop-time-update, and alert records.
+- `ingest:gtfs-rt-snapshots -- --run-id <run_id>` parses collected raw snapshots into local SQLite tables.
+- Parsed snapshot status and counts are stored in `local_gtfs_rt_parsed_snapshot`; malformed snapshots are recorded as `parse_error`.
 - Fixture-backed tests cover successful collection, API-key redaction, and HTTP failure recording.
+- Fixture-backed tests cover vehicle-position parsing, trip-update parsing, alert parsing, local DB ingestion, and malformed protobuf handling.
 
 Still missing:
 
-- GTFS-RT protobuf parsing.
-- Vehicle-position/trip-update normalized rows.
 - Observed vehicle stop events.
 - Observed headway samples.
 

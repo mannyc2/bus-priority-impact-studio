@@ -9,6 +9,24 @@ export type { NormalizedHourlyRidership } from "./bus-ridership.js";
 export { NormalizedHourlyRidershipSchema, normalizeHourlyRidershipRows } from "./bus-ridership.js";
 export type { NormalizedSegmentSpeed } from "./bus-speeds.js";
 export { NormalizedSegmentSpeedSchema, normalizeSegmentSpeedRows } from "./bus-speeds.js";
+export type {
+  GtfsRtFeedType,
+  NormalizedGtfsRtAlert,
+  NormalizedGtfsRtFeed,
+  NormalizedGtfsRtStopTimeUpdate,
+  NormalizedGtfsRtTripUpdate,
+  NormalizedGtfsRtVehiclePosition,
+} from "./gtfs-rt.js";
+export {
+  GtfsRtFeedTypeSchema,
+  NormalizedGtfsRtAlertSchema,
+  NormalizedGtfsRtFeedSchema,
+  NormalizedGtfsRtStopTimeUpdateSchema,
+  NormalizedGtfsRtTripUpdateSchema,
+  NormalizedGtfsRtVehiclePositionSchema,
+  normalizeGtfsRtRouteId,
+  parseGtfsRtFeed,
+} from "./gtfs-rt.js";
 export type { NormalizedRouteShape, NormalizedStop } from "./routes-stops.js";
 export {
   NormalizedRouteShapeSchema,

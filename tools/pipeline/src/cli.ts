@@ -32,6 +32,15 @@ const commands = {
       return ingestAceRoutes();
     },
   },
+  "ingest:gtfs-rt-snapshots": {
+    description: "Parse collected GTFS-RT raw snapshots into local DB rows.",
+    run: async (args) => {
+      const { ingestGtfsRtSnapshotsFromCli } = await import(
+        "./jobs/ingest/ingest-gtfs-rt-snapshots.js"
+      );
+      return ingestGtfsRtSnapshotsFromCli(args);
+    },
+  },
   "ingest:ace-violations": {
     description: "Fetch monthly ACE violation summaries.",
     run: async (args) => {

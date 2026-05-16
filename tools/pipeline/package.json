@@ -13,6 +13,7 @@
     "sources:list": "bun run src/cli.ts sources:list",
     "sources:probe": "bun run src/cli.ts sources:probe",
     "collect:gtfs-rt": "bun run src/cli.ts collect:gtfs-rt",
+    "ingest:gtfs-rt-snapshots": "bun run src/cli.ts ingest:gtfs-rt-snapshots",
     "ingest:ace-routes": "bun run src/cli.ts ingest:ace-routes",
     "ingest:ace-violations": "bun run src/cli.ts ingest:ace-violations",
     "ingest:bus-lanes": "bun run src/cli.ts ingest:bus-lanes",
@@ -52,6 +53,7 @@
   },
   "devDependencies": {
     "@types/bun": "catalog:",
+    "gtfs-realtime-bindings": "1.1.1",
     "typescript": "catalog:"
   }
 }
