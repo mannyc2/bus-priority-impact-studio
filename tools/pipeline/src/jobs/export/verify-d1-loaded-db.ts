@@ -8,6 +8,7 @@ import {
   listRouteComparisonRanks,
   listRouteEquityContexts,
   listRouteMonthTrends,
+  listRouteObservedReliabilitySummaries,
   listRouteReliabilityBaselines,
   listSelectedRouteBuildCandidates,
 } from "@bp/db/d1";
@@ -27,6 +28,7 @@ export type RepositoryCheckResult = {
   selectedBuildPlanRows: number;
   buildEligibleReadinessRows: number;
   reliabilityBaselineRows: number;
+  routeObservedReliabilityRows: number;
   routeMonthTrendRows: number;
   routeEquityContextRows: number;
   firstRouteId: string | null;
@@ -73,6 +75,10 @@ export function collectD1TableCounts(database: Database): {
       route_build_plan: countTable(database, "route_build_plan"),
       route_reliability_baseline: countTable(database, "route_reliability_baseline"),
       route_reliability_gap_window: countTable(database, "route_reliability_gap_window"),
+      route_observed_reliability_summary: countTable(
+        database,
+        "route_observed_reliability_summary",
+      ),
       route_month_source_status: countTable(database, "route_month_source_status"),
       route_month_trend: countTable(database, "route_month_trend"),
       route_equity_context: countTable(database, "route_equity_context"),
@@ -169,6 +175,12 @@ export function verifyD1TableCounts(input: {
   });
   compareCount({
     issues: input.issues,
+    tableName: "route_observed_reliability_summary",
+    actual: count("route_observed_reliability_summary"),
+    expected: input.exportResult.routeObservedReliabilitySummaryRowCount,
+  });
+  compareCount({
+    issues: input.issues,
     tableName: "route_month_source_status",
     actual: count("route_month_source_status"),
     expected: input.exportResult.routeMonthSourceStatusRowCount,
@@ -252,6 +264,10 @@ export async function runD1RepositoryChecks(input: {
   const selectedBuildPlan = await listSelectedRouteBuildCandidates(input.db, input.month);
   const buildEligibleRoutes = await listBuildEligibleRoutes(input.db, input.month);
   const reliabilityBaselines = await listRouteReliabilityBaselines(input.db, input.month);
+  const routeObservedReliability = await listRouteObservedReliabilitySummaries(
+    input.db,
+    input.month,
+  );
   const routeEquityContexts = await listRouteEquityContexts(input.db, input.month);
   const firstRouteId = briefSummaries[0]?.routeId ?? null;
   const routeMonthTrends =
@@ -266,6 +282,7 @@ export async function runD1RepositoryChecks(input: {
     selectedBuildPlanRows: selectedBuildPlan.length,
     buildEligibleReadinessRows: buildEligibleRoutes.length,
     reliabilityBaselineRows: reliabilityBaselines.length,
+    routeObservedReliabilityRows: routeObservedReliability.length,
     routeMonthTrendRows: routeMonthTrends.length,
     routeEquityContextRows: routeEquityContexts.length,
     firstRouteId,
@@ -289,6 +306,14 @@ export function verifyD1RepositoryChecks(input: {
   if (input.checks.comparisonRankRows !== input.exportResult.comparisonRowCount) {
     input.issues.push(
       `repository:comparisonRankRows_expected_${input.exportResult.comparisonRowCount}_actual_${input.checks.comparisonRankRows}`,
+    );
+  }
+  if (
+    input.checks.routeObservedReliabilityRows !==
+    input.exportResult.routeObservedReliabilitySummaryRowCount
+  ) {
+    input.issues.push(
+      `repository:routeObservedReliabilityRows_expected_${input.exportResult.routeObservedReliabilitySummaryRowCount}_actual_${input.checks.routeObservedReliabilityRows}`,
     );
   }
 }

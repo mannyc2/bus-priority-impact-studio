@@ -1,5 +1,6 @@
 import { Database } from "bun:sqlite";
 import { describe, expect, test } from "bun:test";
+import { readdir } from "node:fs/promises";
 import { createBunSqliteServingDb } from "../src/d1/bun-sqlite.js";
 import type { D1ServingDb } from "../src/d1/index.js";
 import { routeComparisonRank, routeMonthTrend } from "../src/d1/schema.js";
@@ -12,6 +13,7 @@ import {
   listRouteComparisonRanks,
   listRouteEquityContexts,
   listRouteMonthTrends,
+  listRouteObservedReliabilitySummaries,
   listRouteReadiness,
   listRouteReliabilityBaselines,
   listSelectedRouteBuildCandidates,
@@ -19,10 +21,13 @@ import {
 
 async function createDrizzleTestDb(): Promise<{ db: D1ServingDb; sqlite: Database }> {
   const sqlite = new Database(":memory:");
-  const migrationSql = await Bun.file(
-    new URL("../migrations/d1/0000_tense_jane_foster.sql", import.meta.url),
-  ).text();
-  sqlite.exec(migrationSql);
+  const migrationsDir = new URL("../migrations/d1/", import.meta.url);
+  const filenames = (await readdir(migrationsDir))
+    .filter((filename) => filename.endsWith(".sql"))
+    .sort();
+  for (const filename of filenames) {
+    sqlite.exec(await Bun.file(new URL(filename, migrationsDir)).text());
+  }
 
   return {
     db: createBunSqliteServingDb(sqlite),
@@ -215,6 +220,30 @@ const reliabilityBaselineRow = {
   max_scheduled_headway_minutes: 60,
   scheduled_short_headway_share: 0.02,
   scheduled_long_gap_share: 0.15,
+};
+
+const observedReliabilitySummaryRow = {
+  route_id: "M57",
+  month: "2026-03",
+  run_id: "fixture-gtfs-rt",
+  reliability_status: "observed",
+  min_sample_threshold: 3,
+  sample_count: 42,
+  stop_count: 5,
+  direction_count: 2,
+  average_observed_headway_minutes: 8.5,
+  median_observed_headway_minutes: 8,
+  p90_observed_headway_minutes: 15,
+  max_observed_headway_minutes: 22,
+  scheduled_median_headway_minutes: 10,
+  bunching_threshold_minutes: 5,
+  long_gap_threshold_minutes: 20,
+  observed_bunching_share: 0.12,
+  observed_long_gap_share: 0.05,
+  expected_wait_minutes: 5.1,
+  scheduled_expected_wait_minutes: 5,
+  excess_wait_minutes: 0.1,
+  wait_reliability_ratio: 1.02,
 };
 
 const equityContextRow = {
@@ -411,6 +440,27 @@ describe("route serving repository", () => {
         reliabilityStatus: "scheduled_baseline_only",
         p90ScheduledHeadwayMinutes: 20,
         topLongGapWindows: [expect.objectContaining({ stopId: "S1", p90HeadwayMinutes: 20 })],
+        sourceStatus: { observedHeadways: "needs_gtfs_rt_collection" },
+      }),
+    ]);
+    sqlite.close();
+  });
+
+  test("lists observed reliability summary rows with source status", async () => {
+    const { db, sqlite } = await createDrizzleTestDb();
+    insertRows(sqlite, "route_observed_reliability_summary", [observedReliabilitySummaryRow]);
+    insertRows(sqlite, "route_month_source_status", allSourceStatusRows);
+
+    const rows = await listRouteObservedReliabilitySummaries(db, "2026-03");
+
+    expect(rows).toEqual([
+      expect.objectContaining({
+        routeId: "M57",
+        runId: "fixture-gtfs-rt",
+        reliabilityStatus: "observed",
+        medianObservedHeadwayMinutes: 8,
+        observedBunchingShare: 0.12,
+        waitReliabilityRatio: 1.02,
         sourceStatus: { observedHeadways: "needs_gtfs_rt_collection" },
       }),
     ]);

@@ -70,12 +70,13 @@ Current strengths:
 - D1 export and verification exist.
 - Route-level deterministic brief inputs and serving summaries exist for all built routes.
 - Scheduled reliability baseline exists.
+- GTFS-RT collection, parsing, observed headway samples, route/month observed reliability summaries, and D1 export/readback for observed reliability exist.
 - ACE and bus-lane overlays exist.
 
 Current v1 gaps:
 
-- No GTFS-RT collector or observed vehicle history tables.
-- No observed headway, bunching, long-gap, or wait-time reliability metrics.
+- GTFS-RT observed reliability still needs a production-length collection run, coverage QA, and brief integration.
+- Observed reliability is route/month summary only; detailed observed reliability windows are not yet built.
 - No before/after or matched comparison intervention evaluation.
 - No corridor entities, corridor membership, corridor metrics, or corridor briefs.
 - Route brief artifacts are deterministic inputs/summaries, not final route/corridor brief bodies.
@@ -88,13 +89,13 @@ Current v1 gaps:
 | Requirement | Current evidence | Status | Required v1 artifact / gate |
 |---|---|---|---|
 | Reproducible full-network pipeline | `build:network` produced 381/381 March 2026 route slices | Partial | Clean rebuild script/runbook from empty local DB through `verify:d1` |
-| GTFS-RT observed reliability | Source probes know Bus Time endpoints; scheduled reliability has `needs_gtfs_rt_collection` flags | Missing | GTFS-RT collector, local tables, observed headway samples, reliability artifacts |
-| Bunching | No observed headway history | Missing | Bunching/long-gap/window metrics with sample coverage/confidence |
+| GTFS-RT observed reliability | Collector, parser, observed headway samples, route/month summaries, and D1 readback exist | Partial | Production-length collection, coverage QA, and brief caveats |
+| Bunching | Route/month observed bunching and long-gap shares are computed from observed headways | Partial | Bunching/long-gap/window metrics with sample coverage/confidence |
 | Before/after intervention evaluation | ACE route dates and violation summaries exist; overlays exist | Missing | Intervention event/window metrics and pre/post comparison artifacts |
 | Corridor grouping | Route/stop/bus-lane street data exists | Missing | Corridor tables, route/segment membership, corridor summaries |
 | Full set of route briefs | 381 `route-brief-input.json` and DB brief summaries exist | Partial | Rendered JSON/Markdown/HTML route brief bodies for public-visible routes |
 | Full set of corridor briefs | No corridor artifacts | Missing | Rendered JSON/Markdown/HTML corridor brief bodies |
-| Verified D1 export contract | `export:d1` and `verify:d1` exist for route serving rows | Partial | D1 verification expanded to reliability, intervention evaluation, and corridor summary rows |
+| Verified D1 export contract | `export:d1` and `verify:d1` cover route serving rows plus observed reliability summaries | Partial | D1 verification expanded to intervention evaluation and corridor summary rows |
 | Static artifact contract | Route artifact manifests exist | Partial | Stable artifact key scheme for route briefs, corridor briefs, map payloads, and evaluation details |
 | QA gates | Tests and route-batch audit exist | Partial | V1 QA command covering source freshness, GTFS-RT sample coverage, intervention eligibility, corridor membership, brief completeness, and export readback |
 | Updated roadmap/docs | Some docs are stale | In progress | This page plus updated index, roadmap, ETL, and data pages |
@@ -183,6 +184,8 @@ Implemented so far:
 - Observed stop events are stored in `local_observed_vehicle_stop_event`; observed headway samples are stored in `local_observed_headway_sample`.
 - `route-observed-reliability -- --run-id <run_id> --year YYYY --month M` aggregates route/month observed reliability summaries.
 - Route/month observed summaries are stored in `local_route_observed_reliability_summary` with observed headway, bunching, long-gap, expected-wait, sample-count, and insufficient-sample status.
+- D1 serving table `route_observed_reliability_summary` stores exported observed reliability summaries.
+- `export:d1` and `verify:d1` include observed reliability row counts and typed repository readback.
 - Fixture-backed tests cover successful collection, API-key redaction, and HTTP failure recording.
 - Fixture-backed tests cover vehicle-position parsing, trip-update parsing, alert parsing, local DB ingestion, and malformed protobuf handling.
 - Fixture-backed tests cover duplicate vehicle-observation collapse and headway calculation.
@@ -190,8 +193,8 @@ Implemented so far:
 
 Still missing:
 
-- D1 export/readback for observed reliability summaries.
 - Brief integration for observed reliability status and caveats.
+- Production-length GTFS-RT collection and coverage QA for the v1 analysis window.
 
 Data contracts to add:
 

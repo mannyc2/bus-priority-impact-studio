@@ -62,7 +62,8 @@ V1 collection rules:
 - Parse raw snapshots into route, trip, vehicle, position, stop sequence, and arrival/departure estimate rows.
 - Derive observed stop events and headway samples from parsed vehicle-position history.
 - Aggregate route/month observed reliability summaries with sample coverage, bunching, long-gap, and wait-time reliability metrics.
-- Next, export observed reliability summaries to D1/static artifacts and surface them in route/corridor briefs.
+- Export observed reliability summaries to D1 and verify typed readback.
+- Next, surface observed reliability status and caveats in route/corridor briefs.
 - Respect MTA terms: do not serve users directly from MTA endpoints; cache on our own server.
 
 ## Potential computed metrics
@@ -77,7 +78,7 @@ V1 collection rules:
 - Requires API key.
 - The API key must stay in local environment variables or deployment secrets; do not commit it to source files or metadata.
 - No historical data unless we collect it.
-- Current observed reliability summaries are run-scoped and sample-count gated; they still need D1/readback coverage and route/corridor brief integration.
+- Current observed reliability summaries are run-scoped and sample-count gated; they still need production-length collection QA and route/corridor brief integration.
 - Realtime data can be noisy and should not be treated as authoritative without QA.
 
 ## Sources

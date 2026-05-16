@@ -30,6 +30,11 @@ export type {
 export { listRouteEquityContexts } from "./queries/route-equity-contexts.js";
 export type { RouteMonthTrend, RouteMonthTrendRow } from "./queries/route-month-trends.js";
 export { listRouteMonthTrends } from "./queries/route-month-trends.js";
+export type {
+  RouteObservedReliabilitySummary,
+  RouteObservedReliabilitySummaryRow,
+} from "./queries/route-observed-reliability.js";
+export { listRouteObservedReliabilitySummaries } from "./queries/route-observed-reliability.js";
 export type { RouteReadiness, RouteReadinessRow } from "./queries/route-readiness.js";
 export { listBuildEligibleRoutes, listRouteReadiness } from "./queries/route-readiness.js";
 export type {

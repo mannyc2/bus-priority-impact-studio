@@ -95,16 +95,22 @@ export async function replaceRouteObservedReliabilityRows(
 export async function listRouteObservedReliabilitySummaries(
   db: LocalPipelineDb,
   month: string,
-  runId: string,
+  runId?: string,
 ): Promise<LocalRouteObservedReliabilitySummary[]> {
+  const whereClause =
+    runId === undefined
+      ? eq(localRouteObservedReliabilitySummary.month, month)
+      : and(
+          eq(localRouteObservedReliabilitySummary.month, month),
+          eq(localRouteObservedReliabilitySummary.runId, runId),
+        );
+
   return db
     .select()
     .from(localRouteObservedReliabilitySummary)
-    .where(
-      and(
-        eq(localRouteObservedReliabilitySummary.month, month),
-        eq(localRouteObservedReliabilitySummary.runId, runId),
-      ),
-    )
-    .orderBy(asc(localRouteObservedReliabilitySummary.routeId));
+    .where(whereClause)
+    .orderBy(
+      asc(localRouteObservedReliabilitySummary.routeId),
+      asc(localRouteObservedReliabilitySummary.runId),
+    );
 }

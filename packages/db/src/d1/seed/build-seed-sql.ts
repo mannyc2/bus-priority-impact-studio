@@ -16,6 +16,7 @@ import type {
   LocalRouteMonthCoverage,
   LocalRouteMonthSourceStatus,
   LocalRouteMonthTrend,
+  LocalRouteObservedReliabilitySummary,
   LocalRouteReadiness,
   LocalRouteReliabilityBaseline,
   LocalRouteReliabilityGapWindow,
@@ -37,6 +38,7 @@ import {
   routeMonthCoverage,
   routeMonthSourceStatus,
   routeMonthTrend,
+  routeObservedReliabilitySummary,
   routeReadiness,
   routeReadinessMissingInput,
   routeReliabilityBaseline,
@@ -53,6 +55,7 @@ export type D1SeedInput = {
   routeBuildPlan: LocalRouteBuildPlan[];
   routeReliabilityBaseline: LocalRouteReliabilityBaseline[];
   routeReliabilityGapWindows: LocalRouteReliabilityGapWindow[];
+  routeObservedReliabilitySummaries: LocalRouteObservedReliabilitySummary[];
   routeMonthSourceStatuses: LocalRouteMonthSourceStatus[];
   routeMonthTrends: LocalRouteMonthTrend[];
   routeEquityContext: LocalRouteEquityContext[];
@@ -79,6 +82,7 @@ export type D1SeedSqlResult = {
   routeBuildPlanRowCount: number;
   routeReliabilityBaselineRowCount: number;
   routeReliabilityGapWindowRowCount: number;
+  routeObservedReliabilitySummaryRowCount: number;
   routeMonthSourceStatusRowCount: number;
   routeMonthTrendRowCount: number;
   routeEquityContextRowCount: number;
@@ -111,6 +115,11 @@ export function buildD1SeedSql(input: D1SeedInput): D1SeedSqlResult {
     renderQuery(seedDb.delete(routeBuildPlan).where(eq(routeBuildPlan.month, month))),
     renderQuery(
       seedDb.delete(routeReliabilityGapWindow).where(eq(routeReliabilityGapWindow.month, month)),
+    ),
+    renderQuery(
+      seedDb
+        .delete(routeObservedReliabilitySummary)
+        .where(eq(routeObservedReliabilitySummary.month, month)),
     ),
     renderQuery(
       seedDb.delete(routeMonthSourceStatus).where(eq(routeMonthSourceStatus.month, month)),
@@ -307,6 +316,36 @@ export function buildD1SeedSql(input: D1SeedInput): D1SeedSqlResult {
           medianHeadwayMinutes: window.medianHeadwayMinutes,
           p90HeadwayMinutes: window.p90HeadwayMinutes,
           maxHeadwayMinutes: window.maxHeadwayMinutes,
+        }),
+      ),
+    );
+  }
+
+  for (const row of input.routeObservedReliabilitySummaries) {
+    statements.push(
+      renderQuery(
+        seedDb.insert(routeObservedReliabilitySummary).values({
+          routeId: row.routeId,
+          month: row.month,
+          runId: row.runId,
+          reliabilityStatus: row.reliabilityStatus,
+          minSampleThreshold: row.minSampleThreshold,
+          sampleCount: row.sampleCount,
+          stopCount: row.stopCount,
+          directionCount: row.directionCount,
+          averageObservedHeadwayMinutes: row.averageObservedHeadwayMinutes,
+          medianObservedHeadwayMinutes: row.medianObservedHeadwayMinutes,
+          p90ObservedHeadwayMinutes: row.p90ObservedHeadwayMinutes,
+          maxObservedHeadwayMinutes: row.maxObservedHeadwayMinutes,
+          scheduledMedianHeadwayMinutes: row.scheduledMedianHeadwayMinutes,
+          bunchingThresholdMinutes: row.bunchingThresholdMinutes,
+          longGapThresholdMinutes: row.longGapThresholdMinutes,
+          observedBunchingShare: row.observedBunchingShare,
+          observedLongGapShare: row.observedLongGapShare,
+          expectedWaitMinutes: row.expectedWaitMinutes,
+          scheduledExpectedWaitMinutes: row.scheduledExpectedWaitMinutes,
+          excessWaitMinutes: row.excessWaitMinutes,
+          waitReliabilityRatio: row.waitReliabilityRatio,
         }),
       ),
     );
@@ -535,6 +574,7 @@ export function buildD1SeedSql(input: D1SeedInput): D1SeedSqlResult {
     routeBuildPlanRowCount: input.routeBuildPlan.length,
     routeReliabilityBaselineRowCount: input.routeReliabilityBaseline.length,
     routeReliabilityGapWindowRowCount,
+    routeObservedReliabilitySummaryRowCount: input.routeObservedReliabilitySummaries.length,
     routeMonthSourceStatusRowCount,
     routeMonthTrendRowCount: input.routeMonthTrends.length,
     routeEquityContextRowCount: input.routeEquityContext.length,

@@ -9,6 +9,7 @@ import {
   replaceRouteEquityRows,
   replaceRouteMonthCoverage,
   replaceRouteMonthTrends,
+  replaceRouteObservedReliabilityRows,
   replaceRouteReadiness,
   replaceRouteReliabilityRows,
   replaceRouteScorecard,
@@ -145,6 +146,65 @@ async function writeFixtureArtifacts(): Promise<void> {
         status: "needs_gtfs_rt_collection",
         rowCount: null,
         snapshotId: null,
+        note: null,
+      },
+    ],
+  });
+  await replaceRouteObservedReliabilityRows(local.db, isoMonth, "fixture-gtfs-rt", {
+    summaries: [
+      {
+        routeId: "T1",
+        month: isoMonth,
+        runId: "fixture-gtfs-rt",
+        reliabilityStatus: "observed",
+        minSampleThreshold: 3,
+        sampleCount: 42,
+        stopCount: 5,
+        directionCount: 2,
+        averageObservedHeadwayMinutes: 8.5,
+        medianObservedHeadwayMinutes: 8,
+        p90ObservedHeadwayMinutes: 15,
+        maxObservedHeadwayMinutes: 22,
+        scheduledMedianHeadwayMinutes: 10,
+        bunchingThresholdMinutes: 5,
+        longGapThresholdMinutes: 20,
+        observedBunchingShare: 0.12,
+        observedLongGapShare: 0.05,
+        expectedWaitMinutes: 5.1,
+        scheduledExpectedWaitMinutes: 5,
+        excessWaitMinutes: 0.1,
+        waitReliabilityRatio: 1.02,
+      },
+    ],
+    sourceStatuses: [
+      {
+        routeId: "T1",
+        month: isoMonth,
+        sourceScope: "reliability",
+        sourceId: "observedHeadways",
+        status: "available",
+        rowCount: 42,
+        snapshotId: "fixture-gtfs-rt",
+        note: null,
+      },
+      {
+        routeId: "T1",
+        month: isoMonth,
+        sourceScope: "reliability",
+        sourceId: "bunching",
+        status: "available",
+        rowCount: 42,
+        snapshotId: "fixture-gtfs-rt",
+        note: null,
+      },
+      {
+        routeId: "T1",
+        month: isoMonth,
+        sourceScope: "reliability",
+        sourceId: "waitTimeReliability",
+        status: "available",
+        rowCount: 42,
+        snapshotId: "fixture-gtfs-rt",
         note: null,
       },
     ],
@@ -325,7 +385,8 @@ describe("D1 seed export", () => {
         routeBuildPlanRowCount: 1,
         routeReliabilityBaselineRowCount: 1,
         routeReliabilityGapWindowRowCount: 0,
-        routeMonthSourceStatusRowCount: 3,
+        routeObservedReliabilitySummaryRowCount: 1,
+        routeMonthSourceStatusRowCount: 5,
         routeMonthTrendRowCount: 1,
         routeEquityContextRowCount: 1,
         routeBatchStatusRowCount: 1,
@@ -338,6 +399,7 @@ describe("D1 seed export", () => {
       }),
     );
     expect(schema).toContain("CREATE TABLE `route_scorecard`");
+    expect(schema).toContain("CREATE TABLE `route_observed_reliability_summary`");
     expect(seed).not.toContain("CREATE TABLE");
     expect(seed).toContain('delete from "route_catalog";');
     expect(seed).toContain(
@@ -351,6 +413,9 @@ describe("D1 seed export", () => {
     );
     expect(seed).toContain(
       'delete from "route_reliability_baseline" where "route_reliability_baseline"."month" = \'2026-04\';',
+    );
+    expect(seed).toContain(
+      'delete from "route_observed_reliability_summary" where "route_observed_reliability_summary"."month" = \'2026-04\';',
     );
     expect(seed).toContain('delete from "route_month_trend";');
     expect(seed).toContain(
@@ -369,6 +434,7 @@ describe("D1 seed export", () => {
     expect(seed).toContain('insert into "route_readiness"');
     expect(seed).toContain('insert into "route_build_plan"');
     expect(seed).toContain('insert into "route_reliability_baseline"');
+    expect(seed).toContain('insert into "route_observed_reliability_summary"');
     expect(seed).toContain('insert into "route_month_source_status"');
     expect(seed).toContain('insert into "route_month_trend"');
     expect(seed).toContain('insert into "route_equity_context"');

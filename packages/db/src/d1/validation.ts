@@ -5,6 +5,7 @@ import {
   routeBriefSlowestWindow,
   routeBriefSummary,
   routeCatalog,
+  routeObservedReliabilitySummary,
   routeReadiness,
   routeReliabilityBaseline,
   routeScorecard,
@@ -20,4 +21,7 @@ export const RouteBriefSlowestWindowSelectSchema = createSelectSchema(routeBrief
 export const RouteCatalogSelectSchema = createSelectSchema(routeCatalog);
 export const RouteReadinessSelectSchema = createSelectSchema(routeReadiness);
 export const RouteReliabilityBaselineSelectSchema = createSelectSchema(routeReliabilityBaseline);
+export const RouteObservedReliabilitySummarySelectSchema = createSelectSchema(
+  routeObservedReliabilitySummary,
+);
 export const RouteBatchStatusSelectSchema = createSelectSchema(routeBatchStatus);

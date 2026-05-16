@@ -20,6 +20,7 @@ export type D1SeedOutputResult = {
   routeBuildPlanRowCount: number;
   routeReliabilityBaselineRowCount: number;
   routeReliabilityGapWindowRowCount: number;
+  routeObservedReliabilitySummaryRowCount: number;
   routeMonthSourceStatusRowCount: number;
   routeMonthTrendRowCount: number;
   routeEquityContextRowCount: number;
@@ -63,6 +64,7 @@ export async function writeRouteD1SeedOutput(input: {
     routeBuildPlanRowCount: seed.routeBuildPlanRowCount,
     routeReliabilityBaselineRowCount: seed.routeReliabilityBaselineRowCount,
     routeReliabilityGapWindowRowCount: seed.routeReliabilityGapWindowRowCount,
+    routeObservedReliabilitySummaryRowCount: seed.routeObservedReliabilitySummaryRowCount,
     routeMonthSourceStatusRowCount: seed.routeMonthSourceStatusRowCount,
     routeMonthTrendRowCount: seed.routeMonthTrendRowCount,
     routeEquityContextRowCount: seed.routeEquityContextRowCount,

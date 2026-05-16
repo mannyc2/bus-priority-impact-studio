@@ -1,12 +1,21 @@
 import { describe, expect, test } from "bun:test";
+import { readdir } from "node:fs/promises";
 
-async function readInitialD1Migration(): Promise<string> {
-  return Bun.file(new URL("../migrations/d1/0000_tense_jane_foster.sql", import.meta.url)).text();
+async function readD1Migrations(): Promise<string> {
+  const migrationsDir = new URL("../migrations/d1/", import.meta.url);
+  const filenames = (await readdir(migrationsDir))
+    .filter((filename) => filename.endsWith(".sql"))
+    .sort();
+  const migrations = await Promise.all(
+    filenames.map((filename) => Bun.file(new URL(filename, migrationsDir)).text()),
+  );
+
+  return migrations.join("\n");
 }
 
 describe("D1 serving table schema", () => {
   test("includes compact serving tables for route artifacts and comparisons", async () => {
-    const migrationSql = await readInitialD1Migration();
+    const migrationSql = await readD1Migrations();
 
     expect(migrationSql).toContain("CREATE TABLE `route_scorecard`");
     expect(migrationSql).toContain("CREATE TABLE `route_scorecard_citation`");
@@ -19,6 +28,7 @@ describe("D1 serving table schema", () => {
     expect(migrationSql).toContain("CREATE TABLE `route_build_plan`");
     expect(migrationSql).toContain("CREATE TABLE `route_reliability_baseline`");
     expect(migrationSql).toContain("CREATE TABLE `route_reliability_gap_window`");
+    expect(migrationSql).toContain("CREATE TABLE `route_observed_reliability_summary`");
     expect(migrationSql).toContain("CREATE TABLE `route_month_source_status`");
     expect(migrationSql).toContain("CREATE TABLE `route_month_trend`");
     expect(migrationSql).toContain("CREATE TABLE `route_equity_context`");
