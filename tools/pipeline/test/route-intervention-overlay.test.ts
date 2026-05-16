@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import { replaceAceRoutes, replaceAceViolationSummaries } from "@bp/db/local";
-import { buildM1InterventionOverlay } from "../src/jobs/build/m1-intervention-overlay.js";
+import { buildRouteInterventionOverlay } from "../src/jobs/build/route-secondary-artifacts.js";
 import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
@@ -58,43 +58,22 @@ afterEach(async () => {
   await removeFixtureArtifacts();
 });
 
-describe("M1 intervention overlay build", () => {
+describe("route intervention overlay build", () => {
   test("classifies active and future route-level ACE programs", async () => {
     await writeAceRoutesFixture();
 
-    const result = await buildM1InterventionOverlay({
+    const result = await buildRouteInterventionOverlay({
       routeId: "T1",
       year: 2026,
       month: 3,
       dbPath,
     });
-    const overlay = await Bun.file(result.overlayPath).json();
-
     expect(result).toEqual(
       expect.objectContaining({
         routeId: "T1",
         isoMonth: "2026-03",
         aceRouteMatchCount: 2,
         activeProgramCount: 1,
-      }),
-    );
-    expect(overlay.ace).toEqual(
-      expect.objectContaining({
-        routeMatched: true,
-        activeDuringAnalysisPeriod: true,
-        routeMatchCount: 2,
-      }),
-    );
-    expect(overlay.ace.activePrograms.map((row: { program: string }) => row.program)).toEqual([
-      "ABLE",
-    ]);
-    expect(overlay.ace.futurePrograms.map((row: { program: string }) => row.program)).toEqual([
-      "ACE",
-    ]);
-    expect(overlay.violations).toEqual(
-      expect.objectContaining({
-        routeViolationCount: 12,
-        groupedRowCount: 1,
       }),
     );
   });

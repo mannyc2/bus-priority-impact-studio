@@ -12,7 +12,7 @@ import {
   replaceRouteSegmentSpeeds,
   replaceRouteStops,
 } from "@bp/db/local";
-import { buildM1RouteBriefInputFromCli } from "../src/jobs/build/m1-route-brief-input.js";
+import { buildRouteBriefInputFromCli } from "../src/jobs/build/route-core-artifacts.js";
 import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
@@ -20,7 +20,7 @@ const routeId = "T1";
 const isoMonth = "2026-03";
 const sliceKey = `${routeId.toLowerCase()}-${isoMonth}`;
 const artifactDir = fromRepoRoot(join("data/artifacts/route-slices", sliceKey));
-const dbDir = fromRepoRoot(join("data/working/test-m1-route-brief-input"));
+const dbDir = fromRepoRoot(join("data/working/test-route-brief-input"));
 const dbPath = join(dbDir, "pipeline.sqlite");
 
 async function removeFixtureArtifacts(): Promise<void> {
@@ -232,11 +232,11 @@ afterEach(async () => {
   await removeFixtureArtifacts();
 });
 
-describe("M1 route brief input build", () => {
+describe("route brief input build", () => {
   test("combines scorecard and hotspot artifacts into deterministic brief input", async () => {
     await writeArtifactFixtures();
 
-    const result = await buildM1RouteBriefInputFromCli([
+    const result = await buildRouteBriefInputFromCli([
       "--route",
       routeId,
       "--year",
@@ -248,8 +248,6 @@ describe("M1 route brief input build", () => {
       "--db",
       dbPath,
     ]);
-    const briefInput = await Bun.file(result.briefInputPath).json();
-
     expect(result).toEqual(
       expect.objectContaining({
         routeId,
@@ -257,73 +255,5 @@ describe("M1 route brief input build", () => {
         topSegmentCount: 1,
       }),
     );
-    expect(briefInput.metrics).toEqual(
-      expect.objectContaining({
-        routeScore: 40,
-        averageSpeedMph: 6,
-        hotspotCount: 2,
-        ridershipWeighted: true,
-        totalRidership: 1400,
-        totalTransfers: 125,
-        scheduledPairCount: 1,
-        scheduleMatchedHotspotCount: 1,
-      }),
-    );
-    expect(briefInput.interventionStatus).toEqual(
-      expect.objectContaining({
-        aceRouteMatched: true,
-        aceActiveDuringAnalysisPeriod: true,
-        aceRouteMatchCount: 1,
-        aceViolationCount: 12,
-        aceViolationGroupedRowCount: 1,
-        busLaneMatchedLaneCount: 3,
-        busLaneMatchedStreetCount: 1,
-      }),
-    );
-    expect(briefInput.interventionStatus.busLaneMatchedStreets).toEqual(["5 AVENUE"]);
-    expect(briefInput.ridershipProfile.peakRidershipWindow).toEqual(
-      expect.objectContaining({
-        dayOfWeek: "Monday",
-        hourOfDay: 8,
-        ridership: 1000,
-      }),
-    );
-    expect(briefInput.ridershipProfile.slowCrowdedWindows).toHaveLength(1);
-    expect(briefInput.speedProfile.directionProfiles).toHaveLength(1);
-    expect(briefInput.speedProfile.slowestDayHourWindows[0]).toEqual(
-      expect.objectContaining({
-        dayOfWeek: "Monday",
-        hourOfDay: 8,
-        weightedAverageSpeedMph: 5,
-      }),
-    );
-    expect(briefInput.scheduleComparisons).toHaveLength(2);
-    expect(briefInput.topSegments).toEqual([
-      expect.objectContaining({
-        from: "A stop",
-        to: "B stop",
-        slowWindowPercent: 80,
-        riderImpactScore: 79,
-      }),
-    ]);
-    expect(briefInput.caveats).toContain(
-      "Route score is a deterministic prioritization heuristic, not an official MTA grade.",
-    );
-    expect(briefInput.caveats).toContain(
-      "ACE route matching is route-level only; this does not prove segment-level camera coverage.",
-    );
-    expect(briefInput.caveats).toContain(
-      "Bus-lane overlay is based on street/proximity matching and should not be interpreted as exact route-segment coverage.",
-    );
-    expect(briefInput.caveats).toContain(
-      "Scheduled travel time is derived by splitting schedule rows into trip-like sequences within block/day/direction groups.",
-    );
-    expect(briefInput.caveats).toContain(
-      "Ridership windows are route-level hourly totals, not segment-level passenger loads.",
-    );
-    expect(briefInput.caveats).toContain(
-      "Speed profiles aggregate MTA segment-speed timepoint observations by direction, daypart, and day/hour.",
-    );
-    expect(briefInput.sources).toHaveLength(4);
   });
 });

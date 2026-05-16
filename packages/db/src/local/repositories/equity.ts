@@ -1,5 +1,5 @@
 import { asc, eq } from "drizzle-orm";
-import type { LocalPipelineDb } from "../client.js";
+import { batchInsert, type LocalPipelineDb } from "../client.js";
 import { localCensusTractEquityContext } from "../schema.js";
 
 export type LocalCensusTractEquityContext = {
@@ -39,7 +39,9 @@ export async function replaceCensusTractEquityContext(
     return;
   }
 
-  await db.insert(localCensusTractEquityContext).values(
+  await batchInsert(
+    db,
+    localCensusTractEquityContext,
     rows.map((row) => ({
       acsYear,
       geoid: row.geoid,

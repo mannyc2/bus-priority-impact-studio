@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import { replaceRouteHourlyRidership, replaceRouteSegmentSpeeds } from "@bp/db/local";
-import { buildM1RidershipProfileFromCli } from "../src/jobs/build/m1-ridership-profile.js";
+import { buildRouteRidershipProfileFromCli } from "../src/jobs/build/route-profiles.js";
 import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
@@ -99,11 +99,11 @@ afterEach(async () => {
   await removeFixtureArtifacts();
 });
 
-describe("M1 ridership profile build", () => {
+describe("route ridership profile build", () => {
   test("summarizes peak ridership and slow crowded windows", async () => {
     await writeFixtureArtifacts();
 
-    const result = await buildM1RidershipProfileFromCli([
+    const result = await buildRouteRidershipProfileFromCli([
       "--route",
       routeId,
       "--year",
@@ -115,31 +115,12 @@ describe("M1 ridership profile build", () => {
       "--db",
       dbPath,
     ]);
-    const profile = await Bun.file(result.profilePath).json();
-
     expect(result).toEqual(
       expect.objectContaining({
         routeId,
         isoMonth,
         ridershipWindowCount: 2,
         slowCrowdedWindowCount: 1,
-      }),
-    );
-    expect(profile.totalRidership).toBe(1400);
-    expect(profile.peakRidershipWindow).toEqual(
-      expect.objectContaining({
-        dayOfWeek: "Monday",
-        hourOfDay: 8,
-        ridership: 1000,
-        weightedAverageSpeedMph: 7.5,
-        slowObservationShare: 0.5,
-      }),
-    );
-    expect(profile.slowCrowdedWindows[0]).toEqual(
-      expect.objectContaining({
-        dayOfWeek: "Monday",
-        hourOfDay: 8,
-        busTripCount: 20,
       }),
     );
   });

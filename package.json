@@ -79,6 +79,7 @@
     "speed-profile:m1": "bun --filter @bp/pipeline speed-profile:m1",
     "build:routes": "bun --filter @bp/pipeline build:routes",
     "build:planned-routes": "bun --filter @bp/pipeline build:planned-routes",
+    "build:network": "bun --filter @bp/pipeline build:network",
     "compare:routes": "bun --filter @bp/pipeline compare:routes",
     "route-batch-audit": "bun --filter @bp/pipeline route-batch-audit",
     "route-brief:m1": "bun --filter @bp/pipeline route-brief:m1",

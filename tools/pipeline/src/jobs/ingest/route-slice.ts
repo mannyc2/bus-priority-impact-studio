@@ -15,23 +15,18 @@ import {
   SocrataClient,
 } from "@bp/sources";
 import * as z from "zod";
-import { routeSliceKey } from "../../lib/artifacts.js";
-import {
-  dbOption,
-  monthOption,
-  parseCliOptions,
-  routeOption,
-  yearOption,
-} from "../../lib/cli-args.js";
 import { isoMonth, isoMonthStart, nextIsoMonthStart } from "../../lib/dates.js";
-import { defaultLocalPipelineDbPath, withLocalPipelineDb } from "../../lib/local-db.js";
-import { fromCliPath } from "../../lib/paths.js";
+import { withLocalPipelineDb } from "../../lib/local-db.js";
+import {
+  createRouteMonthContext,
+  parseRouteMonthDbCliArgs,
+  routeSliceKey,
+} from "../../lib/route-job.js";
 import { writeRawSourceSnapshot } from "../../lib/source-snapshots.js";
 import type { SocrataManifestSource } from "../../source-manifest.js";
 import { fromRepoRoot, readSourceManifest } from "../../source-manifest.js";
 
 const schemaVersion = 1;
-const defaultRouteId = z.decode(RouteIdCodec, "M1");
 const defaultYear = 2026;
 const defaultMonth = 3;
 
@@ -100,12 +95,13 @@ function lowerSliceKey(routeId: string, year: number, month: number): string {
 }
 
 function normalizeOptions(args: RouteSliceArgs = {}): RouteSliceOptions {
+  const routeArgs = createRouteMonthContext(args);
   const output: RouteSliceOptions = {
-    routeId: args.routeId === undefined ? defaultRouteId : z.decode(RouteIdCodec, args.routeId),
-    year: assertYear(args.year ?? defaultYear),
-    month: assertMonth(args.month ?? defaultMonth),
+    routeId: z.decode(RouteIdCodec, routeArgs.routeId),
+    year: assertYear(routeArgs.year ?? defaultYear),
+    month: assertMonth(routeArgs.month ?? defaultMonth),
     fetchedAt: args.fetchedAt ?? new Date(),
-    dbPath: args.dbPath ?? defaultLocalPipelineDbPath(),
+    dbPath: routeArgs.dbPath,
   };
 
   if (args.fetcher !== undefined) {
@@ -123,7 +119,7 @@ async function fetchSourceRows(
   return SocrataClient.fromSource(source, { fetcher }).rows(query);
 }
 
-export async function ingestM1RouteSlice(args: RouteSliceArgs = {}): Promise<RouteSliceOutput> {
+export async function ingestRouteSlice(args: RouteSliceArgs = {}): Promise<RouteSliceOutput> {
   const options = normalizeOptions(args);
   const manifest = await readSourceManifest();
   const routeWhere = `route_id='${options.routeId}'`;
@@ -267,11 +263,6 @@ export async function ingestM1RouteSlice(args: RouteSliceArgs = {}): Promise<Rou
   };
 }
 
-export function parseM1SliceCliArgs(args: string[]): RouteSliceArgs {
-  return parseCliOptions(args, {} as RouteSliceArgs, [
-    routeOption(),
-    yearOption(),
-    monthOption(),
-    dbOption(fromCliPath),
-  ]);
+export function parseRouteSliceCliArgs(args: string[]): RouteSliceArgs {
+  return parseRouteMonthDbCliArgs(args, {} as RouteSliceArgs);
 }

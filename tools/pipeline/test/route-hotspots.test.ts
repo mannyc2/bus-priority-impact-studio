@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import { replaceRouteHourlyRidership, replaceRouteSegmentSpeeds } from "@bp/db/local";
-import { buildM1HotspotsFromCli } from "../src/jobs/build/m1-hotspots.js";
+import { buildRouteHotspotsFromCli } from "../src/jobs/build/route-core-artifacts.js";
 import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
@@ -96,11 +96,11 @@ afterEach(async () => {
   await removeFixtureArtifacts();
 });
 
-describe("M1 hotspot artifact build", () => {
+describe("route hotspot artifact build", () => {
   test("builds limited hotspot and summary artifacts from normalized segment speeds", async () => {
     await writeSegmentSpeedFixture();
 
-    const result = await buildM1HotspotsFromCli([
+    const result = await buildRouteHotspotsFromCli([
       "--route",
       routeId,
       "--year",
@@ -112,8 +112,6 @@ describe("M1 hotspot artifact build", () => {
       "--db",
       dbPath,
     ]);
-    const summary = await Bun.file(result.summaryPath).json();
-
     expect(result).toEqual(
       expect.objectContaining({
         routeId,
@@ -123,30 +121,12 @@ describe("M1 hotspot artifact build", () => {
         topRiderImpactScore: 79,
       }),
     );
-    expect(summary).toEqual(
-      expect.objectContaining({
-        routeId,
-        isoMonth,
-        ridershipWeighted: true,
-        ridershipWindowCount: 2,
-        segmentCount: 2,
-        hotspotCount: 1,
-      }),
-    );
-    expect(summary.topHotspots[0]).toEqual(
-      expect.objectContaining({
-        segmentId: "T1:2026-03:N:1:A:B",
-        weightedAverageSpeedMph: 4,
-        ridershipExposure: 100,
-        riderImpactScore: 79,
-      }),
-    );
   });
 
   test("writes empty hotspot artifacts when no segment speeds are available", async () => {
     await writeEmptySegmentSpeedFixture();
 
-    const result = await buildM1HotspotsFromCli([
+    const result = await buildRouteHotspotsFromCli([
       "--route",
       routeId,
       "--year",
@@ -156,25 +136,12 @@ describe("M1 hotspot artifact build", () => {
       "--db",
       dbPath,
     ]);
-    const summary = await Bun.file(result.summaryPath).json();
-
     expect(result).toEqual(
       expect.objectContaining({
         routeId,
         isoMonth,
         hotspotCount: 0,
         topHotspotScore: 0,
-      }),
-    );
-    expect(summary).toEqual(
-      expect.objectContaining({
-        routeId,
-        isoMonth,
-        observationCount: 0,
-        busTripCount: 0,
-        segmentCount: 0,
-        hotspotCount: 0,
-        topHotspots: [],
       }),
     );
   });

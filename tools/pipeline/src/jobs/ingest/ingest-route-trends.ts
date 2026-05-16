@@ -3,16 +3,10 @@ import { RouteIdCodec } from "@bp/domain";
 import type { SocrataFetch, SocrataRow, SocrataRowsQuery } from "@bp/sources";
 import { getSocrataSource, SocrataClient, soqlIn, soqlYearMonthRange } from "@bp/sources";
 import * as z from "zod";
-import {
-  dbOption,
-  falseOption,
-  numberOption,
-  parseCliOptions,
-  stringListOption,
-} from "../../lib/cli-args.js";
+import { falseOption, stringListOption } from "../../lib/cli-args.js";
 import { isoMonth, isoMonthStart, monthRange, nextIsoMonthStart } from "../../lib/dates.js";
-import { defaultLocalPipelineDbPath, withLocalPipelineDb } from "../../lib/local-db.js";
-import { fromCliPath } from "../../lib/paths.js";
+import { withLocalPipelineDb } from "../../lib/local-db.js";
+import { createMonthRangeContext, parseMonthRangeDbCliArgs } from "../../lib/route-job.js";
 import type { SocrataManifestSource } from "../../source-manifest.js";
 import { readSourceManifest } from "../../source-manifest.js";
 
@@ -78,42 +72,28 @@ const RawRidershipTrendRowSchema = z
   })
   .passthrough();
 
-function parseArgs(
-  args: RouteTrendsArgs = {},
-): Required<Omit<RouteTrendsArgs, "fetchedAt" | "workingDir">> {
+function parseArgs(args: RouteTrendsArgs = {}): Required<
+  Omit<RouteTrendsArgs, "fetchedAt" | "workingDir">
+> & {
+  startIsoMonth: string;
+  endIsoMonth: string;
+} {
   return {
-    startYear: args.startYear ?? 2025,
-    startMonth: args.startMonth ?? 1,
-    endYear: args.endYear ?? 2026,
-    endMonth: args.endMonth ?? 3,
+    ...createMonthRangeContext(args),
     routes: args.routes ?? [],
     includeRidership: args.includeRidership ?? true,
     fetcher: args.fetcher ?? fetch,
-    dbPath: args.dbPath ?? defaultLocalPipelineDbPath(),
   };
 }
 
 function parseCliArgs(args: string[]): RouteTrendsArgs {
-  return parseCliOptions(args, {} as RouteTrendsArgs, [
-    numberOption(["--start-year"], (output, value) => {
-      output.startYear = value;
-    }),
-    numberOption(["--start-month"], (output, value) => {
-      output.startMonth = value;
-    }),
-    numberOption(["--end-year"], (output, value) => {
-      output.endYear = value;
-    }),
-    numberOption(["--end-month"], (output, value) => {
-      output.endMonth = value;
-    }),
+  return parseMonthRangeDbCliArgs(args, {} as RouteTrendsArgs, [
     stringListOption(["--routes"], (output, value) => {
       output.routes = value;
     }),
     falseOption(["--skip-ridership"], (output) => {
       output.includeRidership = false;
     }),
-    dbOption(fromCliPath),
   ]);
 }
 

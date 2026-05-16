@@ -3,16 +3,9 @@ import {
   listRouteScorecards,
   replaceRouteComparisonRanks,
 } from "@bp/db/local";
-import {
-  dbOption,
-  monthOption,
-  numberOption,
-  parseCliOptions,
-  yearOption,
-} from "../../lib/cli-args.js";
-import { isoMonth } from "../../lib/dates.js";
-import { defaultLocalPipelineDbPath, withLocalPipelineDb } from "../../lib/local-db.js";
-import { fromCliPath } from "../../lib/paths.js";
+import { numberOption } from "../../lib/cli-args.js";
+import { withLocalPipelineDb } from "../../lib/local-db.js";
+import { createMonthContext, parseMonthDbCliArgs } from "../../lib/route-job.js";
 
 type RouteComparisonArgs = {
   year?: number;
@@ -27,23 +20,20 @@ type RouteComparisonResult = {
   worstRouteId: string | null;
 };
 
-function parseBuildArgs(args: RouteComparisonArgs = {}): Required<RouteComparisonArgs> {
+function parseBuildArgs(args: RouteComparisonArgs = {}): Required<RouteComparisonArgs> & {
+  isoMonth: string;
+} {
   return {
-    year: args.year ?? 2026,
-    month: args.month ?? 3,
+    ...createMonthContext(args),
     limit: args.limit ?? 10,
-    dbPath: args.dbPath ?? defaultLocalPipelineDbPath(),
   };
 }
 
 function parseCliArgs(args: string[]): RouteComparisonArgs {
-  return parseCliOptions(args, {} as RouteComparisonArgs, [
-    yearOption(),
-    monthOption(),
+  return parseMonthDbCliArgs(args, {} as RouteComparisonArgs, [
     numberOption(["--limit"], (output, value) => {
       output.limit = value;
     }),
-    dbOption(fromCliPath),
   ]);
 }
 
@@ -56,9 +46,11 @@ export async function buildRouteComparison(
   args: RouteComparisonArgs = {},
 ): Promise<RouteComparisonResult> {
   const options = parseBuildArgs(args);
-  const month = isoMonth(options.year, options.month);
   const [briefs, scorecards] = await withLocalPipelineDb(options.dbPath, (local) =>
-    Promise.all([listRouteBriefSummaries(local.db, month), listRouteScorecards(local.db, month)]),
+    Promise.all([
+      listRouteBriefSummaries(local.db, options.isoMonth),
+      listRouteScorecards(local.db, options.isoMonth),
+    ]),
   );
   const scorecardsByRoute = new Map(scorecards.map((row) => [row.routeId, row]));
   const routeRows = briefs.map((brief) => {
@@ -91,9 +83,9 @@ export async function buildRouteComparison(
   await withLocalPipelineDb(options.dbPath, (local) =>
     replaceRouteComparisonRanks(
       local.db,
-      month,
+      options.isoMonth,
       rankedRoutes.map((route, index) => ({
-        month,
+        month: options.isoMonth,
         rank: index + 1,
         routeId: route.routeId,
         routeScore: route.routeScore,
@@ -106,7 +98,7 @@ export async function buildRouteComparison(
   );
 
   return {
-    isoMonth: month,
+    isoMonth: options.isoMonth,
     routeCount: routeRows.length,
     worstRouteId: rankedRoutes[0]?.routeId ?? null,
   };

@@ -44,6 +44,7 @@ Read this file first. It is the navigation layer for the LLM wiki.
 - [[wiki/analysis/route_score|Route score]] — Transparent route ranking formula.
 - [[wiki/analysis/ace_impact_evaluation|ACE impact evaluation]] — Before/after and event-study design.
 - [[wiki/analysis/memo_generation|Memo generation]] — Route-improvement brief format.
+- [[wiki/analysis/methodology_validation|Methodology validation]] — Code-level audit of analysis correctness, limitations, and gaps.
 
 ## Templates
 
@@ -53,8 +54,10 @@ Read this file first. It is the navigation layer for the LLM wiki.
 
 ## Immediate open issues
 
-1. Decide when to expand beyond the M1 route demo into a Manhattan pilot or the Comptroller/worst-route subset.
-2. Decide how much realtime Bus Time data to collect; realtime collection is useful but not required for MVP.
-3. Continue cutting route-slice pipeline complexity now that local DB rows are the handoff.
-4. Keep the MVP TypeScript-only unless a documented requirement forces Python/PostGIS/VPS escalation.
-5. Keep D1 as a compact serving projection; promote canonical queryable history to Postgres/Hyperdrive instead of growing D1 into a warehouse.
+1. Full 381-route network build is running for March 2026. Pipeline is crash-safe and resumable via `build:network`.
+2. Bus lane matching is Manhattan-only — generalize the `borough === "MAN"` filter for outer-borough routes.
+3. Route score uses a two-factor formula; incorporate ridership weight, persistence, reliability, and intervention gap per the planned five-factor model.
+4. Ridership is route-level hourly proxy, not segment-level. Document this prominently in the frontend when showing rider-impact scores.
+5. Decide how much realtime Bus Time data to collect; realtime collection is useful but not required for MVP.
+6. Keep the MVP TypeScript-only unless a documented requirement forces Python/PostGIS/VPS escalation.
+7. Keep D1 as a compact serving projection; promote canonical queryable history to Postgres/Hyperdrive instead of growing D1 into a warehouse.

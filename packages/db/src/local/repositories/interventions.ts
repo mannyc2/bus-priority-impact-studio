@@ -1,5 +1,5 @@
 import { and, asc, eq } from "drizzle-orm";
-import type { LocalPipelineDb } from "../client.js";
+import { batchInsert, type LocalPipelineDb } from "../client.js";
 import {
   localAceRoute,
   localAceViolationSummary,
@@ -86,25 +86,28 @@ export async function replaceBusLanes(
     return;
   }
 
-  await db.insert(localBusLane).values(
-    rows.map((row) => ({
-      segmentId: row.segmentId,
-      street: row.street,
-      borough: row.borough,
-      facility: row.facility,
-      direction: row.direction ?? null,
-      trafficDirection: row.trafficDirection ?? null,
-      hours: row.hours ?? null,
-      days: row.days ?? null,
-      laneType: row.laneType ?? null,
-      laneSubtype: row.laneSubtype ?? null,
-      laneWidth: row.laneWidth ?? null,
-      openDate: row.openDate ?? null,
-      shapeLength: row.shapeLength ?? null,
-    })),
-  );
+  // Deduplicate by segmentId — Socrata source can have multiple rows per segment.
+  const deduped = [...new Map(rows.map((row) => [row.segmentId, row])).values()];
 
-  const coordinates = rows.flatMap((row) =>
+  const laneValues = deduped.map((row) => ({
+    segmentId: row.segmentId,
+    street: row.street,
+    borough: row.borough,
+    facility: row.facility,
+    direction: row.direction ?? null,
+    trafficDirection: row.trafficDirection ?? null,
+    hours: row.hours ?? null,
+    days: row.days ?? null,
+    laneType: row.laneType ?? null,
+    laneSubtype: row.laneSubtype ?? null,
+    laneWidth: row.laneWidth ?? null,
+    openDate: row.openDate ?? null,
+    shapeLength: row.shapeLength ?? null,
+  }));
+
+  await batchInsert(db, localBusLane, laneValues);
+
+  const coordinates = deduped.flatMap((row) =>
     row.coordinates.map((coordinate, index) => ({
       segmentId: row.segmentId,
       coordinateRank: index + 1,
@@ -113,9 +116,7 @@ export async function replaceBusLanes(
     })),
   );
 
-  if (coordinates.length > 0) {
-    await db.insert(localBusLaneCoordinate).values(coordinates);
-  }
+  await batchInsert(db, localBusLaneCoordinate, coordinates);
 }
 
 export async function listBusLanes(db: LocalPipelineDb): Promise<LocalBusLane[]> {

@@ -5,16 +5,9 @@ import {
   listRouteReadiness,
   replaceRouteBuildPlan,
 } from "@bp/db/local";
-import {
-  dbOption,
-  monthOption,
-  numberOption,
-  parseCliOptions,
-  yearOption,
-} from "../../lib/cli-args.js";
-import { isoMonth } from "../../lib/dates.js";
-import { defaultLocalPipelineDbPath, withLocalPipelineDb } from "../../lib/local-db.js";
-import { fromCliPath } from "../../lib/paths.js";
+import { numberOption } from "../../lib/cli-args.js";
+import { withLocalPipelineDb } from "../../lib/local-db.js";
+import { createMonthContext, parseMonthDbCliArgs } from "../../lib/route-job.js";
 
 type RouteBuildPlanArgs = {
   year?: number;
@@ -23,7 +16,7 @@ type RouteBuildPlanArgs = {
   dbPath?: string;
 };
 
-type RouteBuildPlanResult = {
+export type RouteBuildPlanResult = {
   isoMonth: string;
   routeCount: number;
   selectedRouteCount: number;
@@ -33,23 +26,20 @@ type RouteBuildPlanResult = {
   dbPath: string;
 };
 
-function parseBuildArgs(args: RouteBuildPlanArgs = {}): Required<RouteBuildPlanArgs> {
+function parseBuildArgs(args: RouteBuildPlanArgs = {}): Required<RouteBuildPlanArgs> & {
+  isoMonth: string;
+} {
   return {
-    year: args.year ?? 2026,
-    month: args.month ?? 3,
+    ...createMonthContext(args),
     limit: args.limit ?? 20,
-    dbPath: args.dbPath ?? defaultLocalPipelineDbPath(),
   };
 }
 
 function parseCliArgs(args: string[]): RouteBuildPlanArgs {
-  return parseCliOptions(args, {} as RouteBuildPlanArgs, [
-    yearOption(),
-    monthOption(),
+  return parseMonthDbCliArgs(args, {} as RouteBuildPlanArgs, [
     numberOption(["--limit"], (output, value) => {
       output.limit = value;
     }),
-    dbOption(fromCliPath),
   ]);
 }
 
@@ -178,11 +168,10 @@ export async function buildRouteBuildPlan(
   args: RouteBuildPlanArgs = {},
 ): Promise<RouteBuildPlanResult> {
   const options = parseBuildArgs(args);
-  const month = isoMonth(options.year, options.month);
   return withLocalPipelineDb(options.dbPath, async (local) => {
     const [readiness, builtRoutes] = await Promise.all([
-      listRouteReadiness(local.db, month),
-      listRouteBriefSummaries(local.db, month),
+      listRouteReadiness(local.db, options.isoMonth),
+      listRouteBriefSummaries(local.db, options.isoMonth),
     ]);
     const rows = buildPlanRows({
       readiness,
@@ -191,10 +180,10 @@ export async function buildRouteBuildPlan(
     });
     const selectedRows = rows.filter((row) => row.selectedForNextBatch);
 
-    await replaceRouteBuildPlan(local.db, month, rows);
+    await replaceRouteBuildPlan(local.db, options.isoMonth, rows);
 
     return {
-      isoMonth: month,
+      isoMonth: options.isoMonth,
       routeCount: rows.length,
       selectedRouteCount: selectedRows.length,
       alreadyBuiltRouteCount: countStatus(rows, "already_built"),

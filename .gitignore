@@ -38,6 +38,8 @@ data/local/*
 # Fixtures are intentionally commit-able even when they use data-file extensions.
 !data/fixtures/
 !data/fixtures/**
+*.sqlite-shm
+*.sqlite-wal
 
 # Full source captures are local by default. Commit small probe metadata
 # under knowledge/raw/metadata, and put large source datasets under data/raw.

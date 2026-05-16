@@ -2,12 +2,11 @@ import { Database } from "bun:sqlite";
 import { describe, expect, test } from "bun:test";
 import { createBunSqliteServingDb } from "../src/d1/bun-sqlite.js";
 import type { D1ServingDb } from "../src/d1/index.js";
-import { routeArtifact, routeComparisonRank, routeMonthTrend } from "../src/d1/schema.js";
+import { routeComparisonRank, routeMonthTrend } from "../src/d1/schema.js";
 import {
   getRouteBatchStatus,
   getRouteBriefSummary,
   listBuildEligibleRoutes,
-  listRouteArtifacts,
   listRouteBriefSummaries,
   listRouteBuildPlan,
   listRouteComparisonRanks,
@@ -304,30 +303,6 @@ describe("route serving repository", () => {
         issues: [],
       }),
     );
-    sqlite.close();
-  });
-
-  test("lists artifact metadata for a route", async () => {
-    const { db, sqlite } = await createDrizzleTestDb();
-    await db.insert(routeArtifact).values({
-      routeId: "M1",
-      month: "2026-03",
-      artifactName: "route-brief-input.json",
-      artifactKey: "route-slices/m1-2026-03/route-brief-input.json",
-      contentType: "application/json",
-      byteLength: 123,
-      sha256: "a".repeat(64),
-    });
-
-    const rows = await listRouteArtifacts(db, "M1", "2026-03");
-
-    expect(rows).toEqual([
-      expect.objectContaining({
-        routeId: "M1",
-        artifactName: "route-brief-input.json",
-        byteLength: 123,
-      }),
-    ]);
     sqlite.close();
   });
 

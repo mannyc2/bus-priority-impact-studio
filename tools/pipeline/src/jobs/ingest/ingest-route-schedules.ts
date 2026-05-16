@@ -4,17 +4,12 @@ import { RouteIdCodec } from "@bp/domain";
 import type { SocrataFetch, SocrataRow, SocrataRowsQuery } from "@bp/sources";
 import { getSocrataSource, normalizeScheduleTimepointRows, SocrataClient } from "@bp/sources";
 import * as z from "zod";
-import { routeSliceKey } from "../../lib/artifacts.js";
+import { withLocalPipelineDb } from "../../lib/local-db.js";
 import {
-  dbOption,
-  monthOption,
-  parseCliOptions,
-  routeOption,
-  yearOption,
-} from "../../lib/cli-args.js";
-import { isoMonth } from "../../lib/dates.js";
-import { defaultLocalPipelineDbPath, withLocalPipelineDb } from "../../lib/local-db.js";
-import { fromCliPath } from "../../lib/paths.js";
+  createRouteMonthContext,
+  parseRouteMonthDbCliArgs,
+  routeSliceKey,
+} from "../../lib/route-job.js";
 import { writeRawSourceSnapshot } from "../../lib/source-snapshots.js";
 import type { SocrataManifestSource } from "../../source-manifest.js";
 import { fromRepoRoot, readSourceManifest } from "../../source-manifest.js";
@@ -40,12 +35,7 @@ type ScheduleIngestResult = {
 };
 
 function parseCliArgs(args: string[]): ScheduleIngestArgs {
-  return parseCliOptions(args, {} as ScheduleIngestArgs, [
-    routeOption(),
-    yearOption(),
-    monthOption(),
-    dbOption(fromCliPath),
-  ]);
+  return parseRouteMonthDbCliArgs(args, {} as ScheduleIngestArgs);
 }
 
 async function fetchScheduleRows(
@@ -70,14 +60,13 @@ async function fetchScheduleRows(
   return SocrataClient.fromSource(source, { fetcher }).rows(query);
 }
 
-export async function ingestM1Schedules(
+export async function ingestRouteSchedules(
   args: ScheduleIngestArgs = {},
 ): Promise<ScheduleIngestResult> {
-  const routeId = z.decode(RouteIdCodec, args.routeId ?? "M1");
-  const year = args.year ?? 2026;
-  const month = args.month ?? 3;
-  const dbPath = args.dbPath ?? defaultLocalPipelineDbPath();
-  const monthKey = isoMonth(year, month);
+  const routeArgs = createRouteMonthContext(args);
+  const routeId = z.decode(RouteIdCodec, routeArgs.routeId);
+  const dbPath = routeArgs.dbPath;
+  const monthKey = routeArgs.isoMonth;
   const manifest = await readSourceManifest();
   const source = getSocrataSource(manifest, sourceId);
   const fetchedAt = (args.fetchedAt ?? new Date()).toISOString();
@@ -117,6 +106,6 @@ export async function ingestM1Schedules(
   };
 }
 
-export async function ingestM1SchedulesFromCli(args: string[]): Promise<ScheduleIngestResult> {
-  return ingestM1Schedules(parseCliArgs(args));
+export async function ingestRouteSchedulesFromCli(args: string[]): Promise<ScheduleIngestResult> {
+  return ingestRouteSchedules(parseCliArgs(args));
 }

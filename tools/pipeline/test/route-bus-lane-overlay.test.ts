@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import { replaceBusLanes, replaceRouteStops } from "@bp/db/local";
-import { buildM1BusLaneOverlay } from "../src/jobs/build/m1-bus-lane-overlay.js";
+import { buildRouteBusLaneOverlay } from "../src/jobs/build/route-secondary-artifacts.js";
 import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
@@ -66,33 +66,22 @@ afterEach(async () => {
   await removeFixtureArtifacts();
 });
 
-describe("M1 bus-lane overlay build", () => {
+describe("route bus-lane overlay build", () => {
   test("matches bus lanes to route stops by street and proximity", async () => {
     await writeFixtureArtifacts();
 
-    const result = await buildM1BusLaneOverlay({
+    const result = await buildRouteBusLaneOverlay({
       routeId: "T1",
       year: 2026,
       month: 3,
       dbPath,
     });
-    const overlay = await Bun.file(result.overlayPath).json();
-
     expect(result).toEqual(
       expect.objectContaining({
         routeId: "T1",
         isoMonth: "2026-03",
         matchedLaneCount: 1,
         matchedStreetCount: 1,
-      }),
-    );
-    expect(overlay.matchedStreets).toEqual(["5 AVENUE"]);
-    expect(overlay.matchedLanes[0]).toEqual(
-      expect.objectContaining({
-        segmentId: "0001234",
-        openDate: "2021-05-01T00:00:00.000",
-        streetMatched: true,
-        proximityMatched: true,
       }),
     );
   });

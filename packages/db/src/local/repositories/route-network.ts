@@ -422,6 +422,50 @@ export async function listRouteBuildPlan(
   }));
 }
 
+export async function listSelectedRouteBuildCandidates(
+  db: LocalPipelineDb,
+  month: string,
+  limit = Number.POSITIVE_INFINITY,
+): Promise<LocalRouteBuildPlan[]> {
+  return (await listRouteBuildPlan(db, month))
+    .filter((row) => row.selectedForNextBatch)
+    .sort((left, right) => {
+      if (left.candidateRank !== null && right.candidateRank !== null) {
+        return left.candidateRank - right.candidateRank;
+      }
+
+      return left.routeId.localeCompare(right.routeId);
+    })
+    .slice(0, limit);
+}
+
+export async function listBuildEligibleRouteIds(
+  db: LocalPipelineDb,
+  month: string,
+  limit = Number.POSITIVE_INFINITY,
+): Promise<string[]> {
+  return (await listRouteBuildPlan(db, month))
+    .filter((row) => row.buildEligible)
+    .sort((left, right) => {
+      if (left.candidateRank !== null && right.candidateRank !== null) {
+        return left.candidateRank - right.candidateRank;
+      }
+      if (left.candidateRank !== null) {
+        return -1;
+      }
+      if (right.candidateRank !== null) {
+        return 1;
+      }
+      if (left.priorityScore !== right.priorityScore) {
+        return right.priorityScore - left.priorityScore;
+      }
+
+      return left.routeId.localeCompare(right.routeId);
+    })
+    .slice(0, limit)
+    .map((row) => row.routeId);
+}
+
 export async function getRouteMonthCoverageMap(
   db: LocalPipelineDb,
   month: string,

@@ -3,7 +3,6 @@ import { eq, type SQLWrapper } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { SQLiteSyncDialect } from "drizzle-orm/sqlite-core";
 import type {
-  LocalRouteArtifact,
   LocalRouteBatchBuiltRoute,
   LocalRouteBatchIssue,
   LocalRouteBatchStatus,
@@ -23,7 +22,6 @@ import type {
   LocalRouteScorecard,
 } from "../../local/index.js";
 import {
-  routeArtifact,
   routeBatchBuiltRoute,
   routeBatchIssue,
   routeBatchStatus,
@@ -58,7 +56,6 @@ export type D1SeedInput = {
   routeMonthSourceStatuses: LocalRouteMonthSourceStatus[];
   routeMonthTrends: LocalRouteMonthTrend[];
   routeEquityContext: LocalRouteEquityContext[];
-  routeArtifacts: LocalRouteArtifact[];
   routeScorecards: LocalRouteScorecard[];
   routeBriefSummaries: LocalRouteBriefSummary[];
   routeBriefPeakWindows: LocalRouteBriefPeakWindow[];
@@ -72,7 +69,6 @@ export type D1SeedInput = {
 export type D1SeedSqlResult = {
   seedSql: string;
   routeCount: number;
-  artifactRowCount: number;
   comparisonRowCount: number;
   routeCatalogRowCount: number;
   routeCatalogTypeRowCount: number;
@@ -128,7 +124,6 @@ export function buildD1SeedSql(input: D1SeedInput): D1SeedSqlResult {
       seedDb.delete(routeScorecardCitation).where(eq(routeScorecardCitation.month, month)),
     ),
     renderQuery(seedDb.delete(routeScorecard).where(eq(routeScorecard.month, month))),
-    renderQuery(seedDb.delete(routeArtifact).where(eq(routeArtifact.month, month))),
     renderQuery(seedDb.delete(routeBriefPeakWindow).where(eq(routeBriefPeakWindow.month, month))),
     renderQuery(
       seedDb.delete(routeBriefSlowestWindow).where(eq(routeBriefSlowestWindow.month, month)),
@@ -139,7 +134,6 @@ export function buildD1SeedSql(input: D1SeedInput): D1SeedSqlResult {
     renderQuery(seedDb.delete(routeBatchIssue).where(eq(routeBatchIssue.month, month))),
     renderQuery(seedDb.delete(routeBatchStatus).where(eq(routeBatchStatus.month, month))),
   ];
-  let artifactRowCount = 0;
   let routeCatalogTypeRowCount = 0;
   let routeDirectionRowCount = 0;
   let routeReadinessMissingInputRowCount = 0;
@@ -461,23 +455,6 @@ export function buildD1SeedSql(input: D1SeedInput): D1SeedSqlResult {
     );
   }
 
-  for (const artifact of input.routeArtifacts) {
-    artifactRowCount += 1;
-    statements.push(
-      renderQuery(
-        seedDb.insert(routeArtifact).values({
-          routeId: artifact.routeId,
-          month: artifact.month,
-          artifactName: artifact.artifactName,
-          artifactKey: artifact.artifactKey,
-          contentType: artifact.contentType,
-          byteLength: artifact.byteLength,
-          sha256: artifact.sha256,
-        }),
-      ),
-    );
-  }
-
   for (const route of input.routeComparisonRanks) {
     statements.push(
       renderQuery(
@@ -547,8 +524,7 @@ export function buildD1SeedSql(input: D1SeedInput): D1SeedSqlResult {
 
   return {
     seedSql: `${statements.join("\n")}\n`,
-    routeCount: input.routeBatchStatus?.routeCount ?? input.routeBriefSummaries.length,
-    artifactRowCount,
+    routeCount: input.routeScorecards.length,
     comparisonRowCount: input.routeComparisonRanks.length,
     routeCatalogRowCount: input.routeCatalog.length,
     routeCatalogTypeRowCount,

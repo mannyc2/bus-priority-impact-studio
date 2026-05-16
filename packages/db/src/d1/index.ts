@@ -1,7 +1,5 @@
 export type { D1ServingDb, D1ServingSchema } from "./client.js";
 export { createD1ServingDb } from "./client.js";
-export type { RouteArtifact, RouteArtifactRow } from "./queries/route-artifacts.js";
-export { listRouteArtifacts } from "./queries/route-artifacts.js";
 export type { RouteBatchStatus, RouteBatchStatusRow } from "./queries/route-batch-status.js";
 export { getRouteBatchStatus } from "./queries/route-batch-status.js";
 export type {

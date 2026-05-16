@@ -22,7 +22,6 @@ describe("D1 serving table schema", () => {
     expect(migrationSql).toContain("CREATE TABLE `route_month_source_status`");
     expect(migrationSql).toContain("CREATE TABLE `route_month_trend`");
     expect(migrationSql).toContain("CREATE TABLE `route_equity_context`");
-    expect(migrationSql).toContain("CREATE TABLE `route_artifact`");
     expect(migrationSql).toContain("CREATE TABLE `route_brief_summary`");
     expect(migrationSql).toContain("CREATE TABLE `route_brief_peak_window`");
     expect(migrationSql).toContain("CREATE TABLE `route_brief_slowest_window`");

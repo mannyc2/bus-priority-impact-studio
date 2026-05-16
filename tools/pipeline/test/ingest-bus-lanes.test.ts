@@ -62,4 +62,62 @@ describe("NYC DOT bus lane ingestion", () => {
       }),
     );
   });
+
+  test("dedupes repeated source rows by segment id", async () => {
+    await removeFixtureArtifacts();
+
+    const result = await ingestBusLanes({
+      fetchedAt: new Date("2026-04-27T12:00:00.000Z"),
+      dbPath,
+      fetcher: async () =>
+        Response.json([
+          {
+            street: "HILLSIDE AVENUE",
+            segmentid: "0057466",
+            boro: "QNS",
+            facility: "Hillside Avenue",
+            direction: "EB",
+            bltrafdir: "T",
+            hours: "24 Hours",
+            days: "7 Days/Week",
+            lane_type: "Offset",
+            open_dates: "9/15/2025",
+            shape_leng: "270.5",
+          },
+          {
+            street: "HILLSIDE AVENUE",
+            segmentid: "0057466",
+            boro: "QNS",
+            facility: "Hillside Avenue",
+            direction: "WB",
+            bltrafdir: "T",
+            hours: "24 Hours",
+            days: "7 Days/Week",
+            lane_type: "Offset",
+            open_dates: "9/15/2025",
+            shape_leng: "270.5",
+          },
+        ]),
+    });
+    const local = await openLocalPipelineDb(dbPath);
+    const lanes = await listBusLanes(local.db);
+    local.sqlite.close();
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        laneCount: 1,
+        manhattanLaneCount: 0,
+      }),
+    );
+    expect(lanes).toHaveLength(1);
+    expect(lanes[0]).toEqual(
+      expect.objectContaining({
+        segmentId: "0057466",
+        street: "HILLSIDE AVENUE",
+        borough: "QNS",
+        direction: undefined,
+        trafficDirection: "T",
+      }),
+    );
+  });
 });

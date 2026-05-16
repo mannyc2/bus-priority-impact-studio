@@ -1,7 +1,6 @@
 import { and, asc, eq } from "drizzle-orm";
 import type { LocalPipelineDb } from "../client.js";
 import {
-  localRouteArtifact,
   localRouteBatchBuiltRoute,
   localRouteBatchIssue,
   localRouteBatchStatus,
@@ -17,7 +16,6 @@ import {
   localRouteScorecard,
 } from "../schema.js";
 
-export type LocalRouteArtifact = typeof localRouteArtifact.$inferSelect;
 export type LocalRouteScorecard = typeof localRouteScorecard.$inferSelect;
 export type LocalRouteBriefSummary = typeof localRouteBriefSummary.$inferSelect;
 export type LocalRouteBriefPeakWindow = typeof localRouteBriefPeakWindow.$inferSelect;
@@ -31,31 +29,11 @@ export type LocalRouteReliabilityGapWindow = typeof localRouteReliabilityGapWind
 export type LocalRouteMonthSourceStatus = typeof localRouteMonthSourceStatus.$inferSelect;
 export type LocalRouteMonthTrend = typeof localRouteMonthTrend.$inferSelect;
 export type LocalRouteEquityContext = typeof localRouteEquityContext.$inferSelect;
-
-export async function replaceRouteArtifacts(
-  db: LocalPipelineDb,
-  routeId: string,
-  month: string,
-  rows: readonly (typeof localRouteArtifact.$inferInsert)[],
-): Promise<void> {
-  await db
-    .delete(localRouteArtifact)
-    .where(and(eq(localRouteArtifact.routeId, routeId), eq(localRouteArtifact.month, month)));
-  if (rows.length > 0) {
-    await db.insert(localRouteArtifact).values([...rows]);
-  }
-}
-
-export async function listRouteArtifacts(
-  db: LocalPipelineDb,
-  month: string,
-): Promise<LocalRouteArtifact[]> {
-  return db
-    .select()
-    .from(localRouteArtifact)
-    .where(eq(localRouteArtifact.month, month))
-    .orderBy(asc(localRouteArtifact.routeId), asc(localRouteArtifact.artifactName));
-}
+export type PersistedRouteBatchProgress = {
+  status: LocalRouteBatchStatus | null;
+  builtRoutes: LocalRouteBatchBuiltRoute[];
+  issues: LocalRouteBatchIssue[];
+};
 
 export async function replaceRouteScorecard(
   db: LocalPipelineDb,
@@ -230,6 +208,23 @@ export async function listRouteBatchIssues(
     .from(localRouteBatchIssue)
     .where(eq(localRouteBatchIssue.month, month))
     .orderBy(asc(localRouteBatchIssue.issueRank));
+}
+
+export async function getPersistedRouteBatchProgress(
+  db: LocalPipelineDb,
+  month: string,
+): Promise<PersistedRouteBatchProgress> {
+  const [status, builtRoutes, issues] = await Promise.all([
+    getRouteBatchStatus(db, month),
+    listRouteBatchBuiltRoutes(db, month),
+    listRouteBatchIssues(db, month),
+  ]);
+
+  return {
+    status,
+    builtRoutes,
+    issues,
+  };
 }
 
 export async function replaceRouteReliabilityRows(

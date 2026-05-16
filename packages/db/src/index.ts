@@ -1,8 +1,6 @@
 export type {
   D1ServingDb,
   D1ServingSchema,
-  RouteArtifact,
-  RouteArtifactRow,
   RouteBatchStatus,
   RouteBatchStatusRow,
   RouteBriefSummary,
@@ -29,7 +27,6 @@ export {
   getRouteBriefSummary,
   getRouteScorecard,
   listBuildEligibleRoutes,
-  listRouteArtifacts,
   listRouteBriefSummaries,
   listRouteBuildPlan,
   listRouteComparisonRanks,

@@ -3,10 +3,10 @@ import { RouteIdCodec } from "@bp/domain";
 import type { SocrataFetch, SocrataRowsQuery } from "@bp/sources";
 import { getSocrataSource, SocrataClient, soqlQuote } from "@bp/sources";
 import * as z from "zod";
-import { dbOption, numberOption, parseCliOptions, stringListOption } from "../../lib/cli-args.js";
-import { isoMonth, isoMonthStart, nextIsoMonthStart } from "../../lib/dates.js";
-import { defaultLocalPipelineDbPath, withLocalPipelineDb } from "../../lib/local-db.js";
-import { fromCliPath } from "../../lib/paths.js";
+import { numberOption, stringListOption } from "../../lib/cli-args.js";
+import { isoMonthStart, nextIsoMonthStart } from "../../lib/dates.js";
+import { withLocalPipelineDb } from "../../lib/local-db.js";
+import { createMonthRangeContext, parseMonthRangeDbCliArgs } from "../../lib/route-job.js";
 import type { SocrataManifestSource } from "../../source-manifest.js";
 import { readSourceManifest } from "../../source-manifest.js";
 
@@ -48,36 +48,23 @@ function parseIsoMonth(month: string): { year: number; month: number } {
   return { year, month: monthNumber };
 }
 
-function parseArgs(
-  args: RidershipBackfillArgs = {},
-): Required<Omit<RidershipBackfillArgs, "fetchedAt" | "workingDir">> {
+function parseArgs(args: RidershipBackfillArgs = {}): Required<
+  Omit<RidershipBackfillArgs, "fetchedAt" | "workingDir">
+> & {
+  startIsoMonth: string;
+  endIsoMonth: string;
+} {
   return {
-    startYear: args.startYear ?? 2025,
-    startMonth: args.startMonth ?? 1,
-    endYear: args.endYear ?? 2026,
-    endMonth: args.endMonth ?? 3,
+    ...createMonthRangeContext(args),
     routes: args.routes ?? [],
     limit: args.limit ?? Number.POSITIVE_INFINITY,
     concurrency: args.concurrency ?? 4,
     fetcher: args.fetcher ?? fetch,
-    dbPath: args.dbPath ?? defaultLocalPipelineDbPath(),
   };
 }
 
 function parseCliArgs(args: string[]): RidershipBackfillArgs {
-  return parseCliOptions(args, {} as RidershipBackfillArgs, [
-    numberOption(["--start-year"], (output, value) => {
-      output.startYear = value;
-    }),
-    numberOption(["--start-month"], (output, value) => {
-      output.startMonth = value;
-    }),
-    numberOption(["--end-year"], (output, value) => {
-      output.endYear = value;
-    }),
-    numberOption(["--end-month"], (output, value) => {
-      output.endMonth = value;
-    }),
+  return parseMonthRangeDbCliArgs(args, {} as RidershipBackfillArgs, [
     stringListOption(["--routes"], (output, value) => {
       output.routes = value;
     }),
@@ -87,7 +74,6 @@ function parseCliArgs(args: string[]): RidershipBackfillArgs {
     numberOption(["--concurrency"], (output, value) => {
       output.concurrency = value;
     }),
-    dbOption(fromCliPath),
   ]);
 }
 
@@ -150,8 +136,8 @@ export async function backfillRouteRidershipTrends(
   args: RidershipBackfillArgs = {},
 ): Promise<RidershipBackfillResult> {
   const options = parseArgs(args);
-  const startMonth = isoMonth(options.startYear, options.startMonth);
-  const endMonth = isoMonth(options.endYear, options.endMonth);
+  const startMonth = options.startIsoMonth;
+  const endMonth = options.endIsoMonth;
   const routeFilter = new Set<string>(options.routes.map((route) => z.decode(RouteIdCodec, route)));
   const existingRows = await withLocalPipelineDb(options.dbPath, (local) =>
     listRouteMonthTrends(local.db),

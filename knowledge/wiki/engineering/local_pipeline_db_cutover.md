@@ -316,13 +316,13 @@ Acceptance:
 - `verify:d1` no longer reads network base JSON files.
 - D1 export row counts match current output.
 
-Implementation note, 2026-04-28: Slice 2 has been hard-cut for route catalog, route/month coverage, readiness, and build-plan state. The ingestion commands still write source/debug JSON, but route readiness, route build plan, planned route batch, route batch audit, D1 export, and D1 verification now use `@bp/db/local` as the required state path for those rows.
+Implementation note, 2026-04-28: Slice 2 has been hard-cut for route catalog, route/month coverage, readiness, and build-plan state. The ingestion commands still write source/debug JSON, but route readiness, route build plan, graph-based route batch execution, route batch audit, D1 export, and D1 verification now use `@bp/db/local` as the required state path for those rows.
 
 ### Slice 3: Batch And Artifact Metadata
 
 Cut over:
 
-- `planned-route-batch.ts`
+- planned-route batch execution through the route build graph compatibility alias
 - `route-batch-audit.ts`
 - `m1-artifact-manifest.ts`
 - D1 export route artifact reads

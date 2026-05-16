@@ -2,10 +2,9 @@ import { join } from "node:path";
 import { replaceAceViolationSummaries } from "@bp/db/local";
 import type { SocrataFetch, SocrataRow, SocrataRowsQuery } from "@bp/sources";
 import { getSocrataSource, normalizeAceViolationSummaryRows, SocrataClient } from "@bp/sources";
-import { dbOption, monthOption, parseCliOptions, yearOption } from "../../lib/cli-args.js";
-import { isoMonth, isoMonthStart, nextIsoMonthStart } from "../../lib/dates.js";
-import { defaultLocalPipelineDbPath, withLocalPipelineDb } from "../../lib/local-db.js";
-import { fromCliPath } from "../../lib/paths.js";
+import { isoMonthStart, nextIsoMonthStart } from "../../lib/dates.js";
+import { withLocalPipelineDb } from "../../lib/local-db.js";
+import { createMonthContext, parseMonthDbCliArgs } from "../../lib/route-job.js";
 import { writeRawSourceSnapshot } from "../../lib/source-snapshots.js";
 import type { SocrataManifestSource } from "../../source-manifest.js";
 import { fromRepoRoot, readSourceManifest } from "../../source-manifest.js";
@@ -29,11 +28,7 @@ type AceViolationIngestResult = {
 };
 
 function parseCliArgs(args: string[]): AceViolationIngestArgs {
-  return parseCliOptions(args, {} as AceViolationIngestArgs, [
-    yearOption(),
-    monthOption(),
-    dbOption(fromCliPath),
-  ]);
+  return parseMonthDbCliArgs(args, {} as AceViolationIngestArgs);
 }
 
 async function fetchAceViolationSummaryRows(
@@ -60,20 +55,23 @@ async function fetchAceViolationSummaryRows(
 export async function ingestAceViolationSummary(
   args: AceViolationIngestArgs = {},
 ): Promise<AceViolationIngestResult> {
-  const year = args.year ?? 2026;
-  const month = args.month ?? 3;
-  const dbPath = args.dbPath ?? defaultLocalPipelineDbPath();
-  const monthKey = isoMonth(year, month);
+  const options = createMonthContext(args);
+  const monthKey = options.isoMonth;
   const manifest = await readSourceManifest();
   const source = getSocrataSource(manifest, sourceId);
   const fetchedAt = (args.fetchedAt ?? new Date()).toISOString();
   const rawDir = fromRepoRoot(join("data/raw/interventions"));
   const rawPath = join(rawDir, `ace-violations-${monthKey}.json`);
-  const rawRows = await fetchAceViolationSummaryRows(source, year, month, args.fetcher);
+  const rawRows = await fetchAceViolationSummaryRows(
+    source,
+    options.year,
+    options.month,
+    args.fetcher,
+  );
   const rows = normalizeAceViolationSummaryRows(rawRows);
   const routeIds = [...new Set(rows.map((row) => row.routeId))].sort();
   const violationCount = rows.reduce((sum, row) => sum + row.violationCount, 0);
-  await withLocalPipelineDb(dbPath, (local) =>
+  await withLocalPipelineDb(options.dbPath, (local) =>
     replaceAceViolationSummaries(
       local.db,
       monthKey,

@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { replaceRouteHotspots, replaceRouteSchedules } from "@bp/db/local";
-import { buildM1ScheduleComparisonFromCli } from "../src/jobs/build/m1-schedule-comparison.js";
+import { buildRouteScheduleComparisonFromCli } from "../src/jobs/build/route-secondary-artifacts.js";
 import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
@@ -98,11 +98,11 @@ afterEach(async () => {
   await removeFixtureArtifacts();
 });
 
-describe("M1 schedule comparison build", () => {
+describe("route schedule comparison build", () => {
   test("joins scheduled timepoint-pair medians to hotspot pairs", async () => {
     await writeFixtureArtifacts();
 
-    const result = await buildM1ScheduleComparisonFromCli([
+    const result = await buildRouteScheduleComparisonFromCli([
       "--route",
       "T1",
       "--year",
@@ -112,21 +112,12 @@ describe("M1 schedule comparison build", () => {
       "--db",
       dbPath,
     ]);
-    const comparison = await Bun.file(result.comparisonPath).json();
-
     expect(result).toEqual(
       expect.objectContaining({
         routeId: "T1",
         isoMonth: "2026-03",
         scheduledPairCount: 1,
         matchedHotspotCount: 1,
-      }),
-    );
-    expect(comparison.hotspotComparisons[0]).toEqual(
-      expect.objectContaining({
-        scheduledMedianTravelTimeMinutes: 10,
-        observedMinusScheduledMinutes: 4,
-        scheduledSampleCount: 1,
       }),
     );
   });

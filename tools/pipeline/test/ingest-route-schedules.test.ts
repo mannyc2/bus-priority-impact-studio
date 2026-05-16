@@ -2,12 +2,12 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import { listRouteSchedules } from "@bp/db/local";
-import { ingestM1Schedules } from "../src/jobs/ingest/ingest-m1-schedules.js";
+import { ingestRouteSchedules } from "../src/jobs/ingest/ingest-route-schedules.js";
 import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
 const rawDir = fromRepoRoot(join("data/raw/route-slices/t1-2026-03"));
-const dbPath = fromRepoRoot(join("data/working/test-m1-schedules/pipeline.sqlite"));
+const dbPath = fromRepoRoot(join("data/working/test-route-schedules/pipeline.sqlite"));
 
 async function removeFixtureArtifacts(): Promise<void> {
   await Promise.all([rm(rawDir, { force: true, recursive: true }), rm(dbPath, { force: true })]);
@@ -17,11 +17,11 @@ afterEach(async () => {
   await removeFixtureArtifacts();
 });
 
-describe("M1 schedule ingestion", () => {
+describe("route schedule ingestion", () => {
   test("fetches and normalizes route timepoint schedules", async () => {
     await removeFixtureArtifacts();
 
-    const result = await ingestM1Schedules({
+    const result = await ingestRouteSchedules({
       routeId: "T1",
       year: 2026,
       month: 3,

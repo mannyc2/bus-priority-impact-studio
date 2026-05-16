@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { buildRouteBatchArtifacts } from "../src/jobs/build/route-slice-pipeline.js";
+import { buildRouteSliceArtifacts } from "../src/jobs/build/route-slice-pipeline.js";
 
-describe("route slice batch pipeline", () => {
-  test("refreshes shared sources once and builds each requested route", async () => {
+describe("route slice pipeline", () => {
+  test("builds the full artifact set for one requested route", async () => {
     const calls: string[] = [];
     const deps = {
       ingestRouteSlice: async ({ routeId }: { routeId?: string }) => {
@@ -48,47 +48,26 @@ describe("route slice batch pipeline", () => {
         calls.push(`brief:${routeId}`);
         return { routeScore: routeId === "M1" ? 16 : 22 };
       },
-      buildArtifactManifest: async ({ routeId }: { routeId?: string }) => {
-        calls.push(`manifest:${routeId}`);
-        return { artifactCount: 9 };
-      },
-      ingestAceRoutes: async () => {
-        calls.push("shared:ace-routes");
-        return {};
-      },
-      ingestAceViolationSummary: async () => {
-        calls.push("shared:ace-violations");
-        return {};
-      },
-      ingestBusLanes: async () => {
-        calls.push("shared:bus-lanes");
-        return {};
-      },
     };
 
-    const result = await buildRouteBatchArtifacts(
+    const result = await buildRouteSliceArtifacts(
       {
-        routes: ["M1", "M2"],
+        routeId: "M1",
         year: 2026,
         month: 4,
-        refreshSharedSources: true,
       },
       deps as never,
     );
 
-    expect(result).toEqual(
-      expect.objectContaining({
-        isoMonth: "2026-04",
-        routeCount: 2,
-      }),
-    );
-    expect(result.routes.map((route) => route.routeId)).toEqual(["M1", "M2"]);
-    expect(calls.filter((call) => call.startsWith("shared:")).sort()).toEqual([
-      "shared:ace-routes",
-      "shared:ace-violations",
-      "shared:bus-lanes",
-    ]);
-    expect(calls).toContain("manifest:M1");
-    expect(calls).toContain("manifest:M2");
+    expect(result).toEqual({
+      routeId: "M1",
+      isoMonth: "2026-04",
+      segmentSpeedRows: 10,
+      ridershipWindows: 2,
+      scheduleTimepoints: 20,
+      hotspotCount: 3,
+      routeScore: 16,
+    });
+    expect(calls).toContain("brief:M1");
   });
 });

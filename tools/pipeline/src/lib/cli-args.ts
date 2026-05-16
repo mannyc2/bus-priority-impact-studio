@@ -91,6 +91,17 @@ export const falseOption = <T>(
   },
 });
 
+export const trueOption = <T>(
+  flags: readonly string[],
+  applyTrue: (output: T) => void,
+): CliOption<T> => ({
+  flags,
+  value: false,
+  apply: (output) => {
+    applyTrue(output);
+  },
+});
+
 export const dbOption = <T extends { dbPath?: string }>(
   fromCliPath: (value: string) => string,
 ): CliOption<T> => ({

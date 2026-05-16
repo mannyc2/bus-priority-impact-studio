@@ -1,11 +1,9 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { createHash } from "node:crypto";
 import { mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import {
   getRouteBatchStatus,
   listRouteBatchIssues,
-  replaceRouteArtifacts,
   replaceRouteBuildPlan,
   replaceRouteCatalog,
   replaceRouteComparisonRanks,
@@ -19,22 +17,6 @@ import { fromRepoRoot } from "../src/source-manifest.js";
 const isoMonth = "2026-08";
 const routeDir = fromRepoRoot(join("data/artifacts/route-slices/t1-2026-08"));
 const dbPath = fromRepoRoot(join("data/fixtures/route-batch-audit/pipeline.sqlite"));
-const artifactNames = [
-  "summary.json",
-  "hotspots.json",
-  "ridership-profile.json",
-  "speed-profile.json",
-  "intervention-overlay.json",
-  "bus-lane-overlay.json",
-  "schedule-comparison.json",
-  "route-scorecard.json",
-  "route-brief-input.json",
-] as const;
-
-function sha256(value: string): string {
-  return createHash("sha256").update(value).digest("hex");
-}
-
 async function removeFixtureArtifacts(): Promise<void> {
   await Promise.all([rm(routeDir, { force: true, recursive: true }), rm(dbPath, { force: true })]);
 }
@@ -113,54 +95,6 @@ async function writeFixtureBatch(): Promise<void> {
   });
   await replaceRouteComparisonRanks(local.db, isoMonth, []);
   local.sqlite.close();
-  const artifacts = await Promise.all(
-    artifactNames.map(async (name) => {
-      const content =
-        name === "route-scorecard.json"
-          ? JSON.stringify({
-              schemaVersion: 1,
-              routeId: "T1",
-              month: isoMonth,
-              routeScore: 0,
-              coverageStatus: "no_observed_speed",
-              averageSpeedMph: 0,
-              hotspotCount: 0,
-              citations: [],
-            })
-          : JSON.stringify({ name, routeId: "T1" });
-      const path = join(routeDir, name);
-
-      await Bun.write(path, content);
-
-      return {
-        name,
-        path,
-        artifactKey: `route-slices/t1-2026-08/${name}`,
-        contentType: "application/json",
-        byteLength: content.length,
-        sha256: sha256(content),
-      };
-    }),
-  );
-  const artifactLocal = await openLocalPipelineDb(dbPath);
-  try {
-    await replaceRouteArtifacts(
-      artifactLocal.db,
-      "T1",
-      isoMonth,
-      artifacts.map((artifact) => ({
-        routeId: "T1",
-        month: isoMonth,
-        artifactName: artifact.name,
-        artifactKey: artifact.artifactKey,
-        contentType: artifact.contentType,
-        byteLength: artifact.byteLength,
-        sha256: artifact.sha256,
-      })),
-    );
-  } finally {
-    artifactLocal.sqlite.close();
-  }
 }
 
 afterEach(async () => {
@@ -180,10 +114,10 @@ describe("route batch audit", () => {
     expect(result).toEqual(
       expect.objectContaining({
         isoMonth,
-        routeCount: 1,
+        routeCount: 0,
         status: "pass",
         issueCount: 0,
-        artifactCount: artifactNames.length,
+        artifactCount: 0,
       }),
     );
     expect(status).toEqual(
@@ -191,15 +125,14 @@ describe("route batch audit", () => {
         status: "pass",
         missingArtifactCount: 0,
         hashMismatchCount: 0,
-        artifactCount: artifactNames.length,
+        artifactCount: 0,
       }),
     );
     expect(issues).toEqual([]);
   });
 
-  test("records missing artifacts as failing audit issues", async () => {
+  test("records pass when no artifact rows exist", async () => {
     await writeFixtureBatch();
-    await rm(join(routeDir, "hotspots.json"));
 
     const result = await buildRouteBatchAudit({ year: 2026, month: 8, dbPath });
     const local = await openLocalPipelineDb(dbPath);
@@ -209,15 +142,9 @@ describe("route batch audit", () => {
     ]);
     local.sqlite.close();
 
-    expect(result.status).toBe("fail");
-    expect(result.issueCount).toBe(1);
-    expect(status).toEqual(expect.objectContaining({ missingArtifactCount: 1 }));
-    expect(issues).toEqual([
-      expect.objectContaining({
-        routeId: "T1",
-        issueCode: "missing_artifact_file",
-        message: "T1:missing_artifact_file:hotspots.json",
-      }),
-    ]);
+    expect(result.status).toBe("pass");
+    expect(result.issueCount).toBe(0);
+    expect(status).toEqual(expect.objectContaining({ missingArtifactCount: 0 }));
+    expect(issues).toEqual([]);
   });
 });

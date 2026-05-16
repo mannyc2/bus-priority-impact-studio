@@ -75,16 +75,17 @@ Expected outputs:
 ## Build commands
 
 ```bash
-bun run hotspots:m1 -- --route M1 --year 2026 --month 3
-bun run ridership-profile:m1 -- --route M1 --year 2026 --month 3
-bun run speed-profile:m1 -- --route M1 --year 2026 --month 3
-bun run interventions:m1 -- --route M1 --year 2026 --month 3
-bun run bus-lanes:m1 -- --route M1 --year 2026 --month 3
-bun run schedules:m1 -- --route M1 --year 2026 --month 3
-bun run route-brief:m1 -- --route M1 --year 2026 --month 3 --top-segments 5
-bun run artifacts:m1 -- --route M1 --year 2026 --month 3
+bun run build:hotspots -- --route M1 --year 2026 --month 3
+bun run build:ridership-profile -- --route M1 --year 2026 --month 3
+bun run build:speed-profile -- --route M1 --year 2026 --month 3
+bun run build:interventions -- --route M1 --year 2026 --month 3
+bun run build:bus-lanes -- --route M1 --year 2026 --month 3
+bun run build:schedules -- --route M1 --year 2026 --month 3
+bun run build:route-brief -- --route M1 --year 2026 --month 3 --top-segments 5
+bun run build:artifacts -- --route M1 --year 2026 --month 3
 bun run build:routes -- --routes M1,M2 --year 2026 --month 3
-bun run build:planned-routes -- --year 2026 --month 3 --limit 5
+bun run build:routes -- --planned --year 2026 --month 3 --limit 5
+bun run build:network -- --year 2026 --month 3
 bun run compare:routes -- --year 2026 --month 3
 bun run route-readiness -- --year 2026 --month 3
 bun run route-build-plan -- --year 2026 --month 3 --limit 20
@@ -102,15 +103,22 @@ Expected outputs:
 - route scorecard JSON
 - route brief draft inputs
 - route batch summaries for multi-route comparison
-- route batch execution from selected build-plan candidates
+- all-routes graph execution from either explicit route ids or selected build-plan candidates
 - route comparison ranking artifacts
 - route readiness artifacts for deciding which all-route/months are safe to build next
 - route build-plan artifacts ranking eligible routes for the next offline batch
+- monthly network build reports covering every build-eligible route, per-route failures, and post-build export status
 - scheduled reliability baselines for headway gaps, short headways, and long-gap windows
 - route intervention-history artifacts for ACE dates, bus-lane open-date coverage, and still-missing signal/lane-upgrade sources
 - route equity-context artifacts joining route rows to county-level ACS proxy context
 - route batch audit artifacts validating manifests, file existence, byte lengths, and hashes
 - source/caveat metadata
+
+Primary batch entrypoint:
+
+- `build:routes` is the preferred graph command for both explicit route lists and planned-route selection.
+- `build:network` is the preferred monthly “try every build-eligible route” command; it recomputes readiness and the build plan, skips already-built routes by default, writes incremental progress to `data/artifacts/network-builds/<month>/summary.json` after each route attempt, and supports `--no-resume` when a full rebuild is desired.
+- `build:planned-routes` remains available as a compatibility alias for `build:routes -- --planned`.
 
 ## Export commands
 
@@ -151,7 +159,7 @@ Do not use `pytest`, `ruff`, or Python scripts in the MVP.
 
 ## Caveats
 
-- `sources:list`, `sources:probe`, `ingest:ace-routes`, `ingest:ace-violations`, `ingest:bus-lanes`, `ingest:equity-context`, `ingest:route-catalog`, `ingest:route-coverage`, `ingest:route-trends`, `backfill:route-ridership-trends`, `ingest:m1`, `ingest:m1-schedules`, `hotspots:m1`, `ridership-profile:m1`, `speed-profile:m1`, `interventions:m1`, `bus-lanes:m1`, `schedules:m1`, `route-brief:m1`, `artifacts:m1`, `build:routes`, `build:planned-routes`, `compare:routes`, `route-readiness`, `route-build-plan`, `route-reliability-baseline`, `route-equity-context`, `route-batch-audit`, `export:d1`, and `verify:d1` are implemented; R2 upload remains planned.
+- `sources:list`, `sources:probe`, `ingest:ace-routes`, `ingest:ace-violations`, `ingest:bus-lanes`, `ingest:equity-context`, `ingest:route-catalog`, `ingest:route-coverage`, `ingest:route-trends`, `backfill:route-ridership-trends`, `ingest:route-slice`, `ingest:route-schedules`, `build:hotspots`, `build:ridership-profile`, `build:speed-profile`, `build:interventions`, `build:bus-lanes`, `build:schedules`, `build:route-brief`, `build:artifacts`, `build:routes`, `build:network`, `compare:routes`, `route-readiness`, `route-build-plan`, `route-reliability-baseline`, `route-equity-context`, `route-batch-audit`, `export:d1`, and `verify:d1` are implemented. `build:planned-routes` remains as a compatibility alias; R2 upload remains planned.
 - Keep command implementations thin; put reusable logic in `packages/*`.
 
 ## Sources

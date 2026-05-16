@@ -7,9 +7,8 @@ import {
   normalizeStopRows,
   SocrataClient,
 } from "@bp/sources";
-import { dbOption, parseCliOptions } from "../../lib/cli-args.js";
 import { withLocalPipelineDb } from "../../lib/local-db.js";
-import { fromCliPath } from "../../lib/paths.js";
+import { parseDbCliArgs } from "../../lib/route-job.js";
 import { writeRawSourceSnapshot } from "../../lib/source-snapshots.js";
 import type { SocrataManifestSource } from "../../source-manifest.js";
 import { fromRepoRoot, readSourceManifest } from "../../source-manifest.js";
@@ -128,7 +127,7 @@ function buildCatalog(
 }
 
 function parseCliArgs(args: string[]): RouteCatalogArgs {
-  return parseCliOptions(args, {} as RouteCatalogArgs, [dbOption(fromCliPath)]);
+  return parseDbCliArgs(args, {} as RouteCatalogArgs);
 }
 
 export async function ingestRouteCatalog(args: RouteCatalogArgs = {}): Promise<RouteCatalogResult> {

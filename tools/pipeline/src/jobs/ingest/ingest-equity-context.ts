@@ -3,10 +3,10 @@ import { join } from "node:path";
 import { replaceCensusTractEquityContext } from "@bp/db/local";
 import type { CensusAcsFetch, NormalizedCensusTractEquityContext } from "@bp/sources";
 import { censusAcsProfileVariables, fetchCensusTractEquityContext } from "@bp/sources";
-import { dbOption, parseCliOptions, yearOption } from "../../lib/cli-args.js";
+import { yearOption } from "../../lib/cli-args.js";
 import { writeJson } from "../../lib/json.js";
-import { defaultLocalPipelineDbPath, withLocalPipelineDb } from "../../lib/local-db.js";
-import { fromCliPath } from "../../lib/paths.js";
+import { withLocalPipelineDb } from "../../lib/local-db.js";
+import { createDbContext, parseDbCliArgs } from "../../lib/route-job.js";
 import { fromRepoRoot } from "../../source-manifest.js";
 
 const schemaVersion = 1;
@@ -29,17 +29,18 @@ type EquityContextResult = {
 };
 
 function parseArgs(args: EquityContextArgs = {}): Required<EquityContextArgs> {
+  const db = createDbContext(args);
   return {
     year: args.year ?? 2024,
     fetchedAt: args.fetchedAt ?? new Date(),
     fetcher: args.fetcher ?? fetch,
     rawDir: args.rawDir ?? fromRepoRoot(join("data/raw/equity")),
-    dbPath: args.dbPath ?? defaultLocalPipelineDbPath(),
+    dbPath: db.dbPath,
   };
 }
 
 function parseCliArgs(args: string[]): EquityContextArgs {
-  return parseCliOptions(args, {} as EquityContextArgs, [yearOption(), dbOption(fromCliPath)]);
+  return parseDbCliArgs(args, {} as EquityContextArgs, [yearOption()]);
 }
 
 function sumDefined(

@@ -4,10 +4,8 @@ import {
   listRouteSchedules,
   replaceRouteReliabilityRows,
 } from "@bp/db/local";
-import { dbOption, monthOption, parseCliOptions, yearOption } from "../../lib/cli-args.js";
-import { isoMonth } from "../../lib/dates.js";
-import { defaultLocalPipelineDbPath, withLocalPipelineDb } from "../../lib/local-db.js";
-import { fromCliPath } from "../../lib/paths.js";
+import { withLocalPipelineDb } from "../../lib/local-db.js";
+import { createMonthContext, parseMonthDbCliArgs } from "../../lib/route-job.js";
 
 const schemaVersion = 1;
 const longGapThresholdMinutes = 20;
@@ -68,20 +66,12 @@ type RouteReliabilityBaselineResult = {
 
 function parseBuildArgs(
   args: RouteReliabilityBaselineArgs = {},
-): Required<RouteReliabilityBaselineArgs> {
-  return {
-    year: args.year ?? 2026,
-    month: args.month ?? 3,
-    dbPath: args.dbPath ?? defaultLocalPipelineDbPath(),
-  };
+): Required<RouteReliabilityBaselineArgs> & { isoMonth: string } {
+  return createMonthContext(args);
 }
 
 function parseCliArgs(args: string[]): RouteReliabilityBaselineArgs {
-  return parseCliOptions(args, {} as RouteReliabilityBaselineArgs, [
-    yearOption(),
-    monthOption(),
-    dbOption(fromCliPath),
-  ]);
+  return parseMonthDbCliArgs(args, {} as RouteReliabilityBaselineArgs);
 }
 
 function round(value: number, decimals = 4): number {
@@ -218,21 +208,20 @@ export async function buildRouteReliabilityBaseline(
   args: RouteReliabilityBaselineArgs = {},
 ): Promise<RouteReliabilityBaselineResult> {
   const options = parseBuildArgs(args);
-  const month = isoMonth(options.year, options.month);
   const rows = await withLocalPipelineDb(options.dbPath, async (local) => {
-    const builtRoutes = await listRouteBriefSummaries(local.db, month);
+    const builtRoutes = await listRouteBriefSummaries(local.db, options.isoMonth);
     return Promise.all(
       builtRoutes.map(async (route) =>
         routeBaseline(
           route.routeId,
-          month,
-          await listRouteSchedules(local.db, route.routeId, month),
+          options.isoMonth,
+          await listRouteSchedules(local.db, route.routeId, options.isoMonth),
         ),
       ),
     );
   });
   await withLocalPipelineDb(options.dbPath, (local) =>
-    replaceRouteReliabilityRows(local.db, month, {
+    replaceRouteReliabilityRows(local.db, options.isoMonth, {
       baselines: rows.map((row) => ({
         routeId: row.routeId,
         month: row.isoMonth,
@@ -277,7 +266,7 @@ export async function buildRouteReliabilityBaseline(
   );
 
   return {
-    isoMonth: month,
+    isoMonth: options.isoMonth,
     routeCount: rows.length,
     headwaySampleCount: rows.reduce((sum, row) => sum + row.headwaySampleCount, 0),
   };

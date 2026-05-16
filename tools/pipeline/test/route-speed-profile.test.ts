@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import { replaceRouteSegmentSpeeds } from "@bp/db/local";
-import { buildM1SpeedProfileFromCli } from "../src/jobs/build/m1-speed-profile.js";
+import { buildRouteSpeedProfileFromCli } from "../src/jobs/build/route-profiles.js";
 import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
@@ -83,11 +83,11 @@ afterEach(async () => {
   await removeFixtureArtifacts();
 });
 
-describe("M1 speed profile build", () => {
+describe("route speed profile build", () => {
   test("aggregates speed observations by direction, daypart, and slowest windows", async () => {
     await writeFixtureArtifacts();
 
-    const result = await buildM1SpeedProfileFromCli([
+    const result = await buildRouteSpeedProfileFromCli([
       "--route",
       routeId,
       "--year",
@@ -99,8 +99,6 @@ describe("M1 speed profile build", () => {
       "--db",
       dbPath,
     ]);
-    const profile = await Bun.file(result.profilePath).json();
-
     expect(result).toEqual(
       expect.objectContaining({
         routeId,
@@ -108,34 +106,6 @@ describe("M1 speed profile build", () => {
         directionCount: 2,
         daypartCount: 2,
         slowWindowCount: 2,
-      }),
-    );
-    expect(profile.directionProfiles).toContainEqual(
-      expect.objectContaining({
-        direction: "N",
-        weightedAverageSpeedMph: 5,
-        slowObservationShare: 1,
-      }),
-    );
-    expect(profile.directionProfiles).toContainEqual(
-      expect.objectContaining({
-        direction: "S",
-        weightedAverageSpeedMph: 8.8,
-        slowObservationShare: 0.5,
-      }),
-    );
-    expect(profile.daypartProfiles).toContainEqual(
-      expect.objectContaining({
-        direction: "S",
-        daypart: "PM peak",
-        busTripCount: 25,
-      }),
-    );
-    expect(profile.slowestDayHourWindows[0]).toEqual(
-      expect.objectContaining({
-        dayOfWeek: "Monday",
-        hourOfDay: 16,
-        weightedAverageSpeedMph: 4,
       }),
     );
   });

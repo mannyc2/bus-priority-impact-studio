@@ -1,5 +1,5 @@
 export type { LocalPipelineDb, LocalPipelineSchema } from "./client.js";
-export { createLocalPipelineDb } from "./client.js";
+export { batchInsert, createLocalPipelineDb } from "./client.js";
 export { migrateLocalPipelineDb } from "./migrate.js";
 export type { LocalCensusTractEquityContext } from "./repositories/equity.js";
 export {
@@ -22,7 +22,6 @@ export {
   replaceBusLanes,
 } from "./repositories/interventions.js";
 export type {
-  LocalRouteArtifact,
   LocalRouteBatchBuiltRoute,
   LocalRouteBatchIssue,
   LocalRouteBatchStatus,
@@ -36,10 +35,11 @@ export type {
   LocalRouteReliabilityBaseline,
   LocalRouteReliabilityGapWindow,
   LocalRouteScorecard,
+  PersistedRouteBatchProgress,
 } from "./repositories/projection.js";
 export {
+  getPersistedRouteBatchProgress,
   getRouteBatchStatus,
-  listRouteArtifacts,
   listRouteBatchBuiltRoutes,
   listRouteBatchIssues,
   listRouteBriefPeakWindows,
@@ -52,7 +52,6 @@ export {
   listRouteReliabilityBaselines,
   listRouteReliabilityGapWindows,
   listRouteScorecards,
-  replaceRouteArtifacts,
   replaceRouteBatch,
   replaceRouteBriefRows,
   replaceRouteComparisonRanks,
@@ -71,10 +70,12 @@ export type {
 } from "./repositories/route-network.js";
 export {
   getRouteMonthCoverageMap,
+  listBuildEligibleRouteIds,
   listRouteBuildPlan,
   listRouteCatalog,
   listRouteMonthCoverage,
   listRouteReadiness,
+  listSelectedRouteBuildCandidates,
   replaceRouteBuildPlan,
   replaceRouteCatalog,
   replaceRouteMonthCoverage,

@@ -2,13 +2,13 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import { replaceRouteBuildPlan } from "@bp/db/local";
-import { buildPlannedRouteBatch } from "../src/jobs/build/planned-route-batch.js";
+import { buildAllRoutesGraphFromCli } from "../src/jobs/build/route-build-graph.js";
 import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
 const isoMonth = "2026-07";
 const batchDir = fromRepoRoot(join("data/artifacts/route-batches", isoMonth));
-const dbPath = fromRepoRoot(join("data/fixtures/planned-route-batch/pipeline.sqlite"));
+const dbPath = fromRepoRoot(join("data/fixtures/planned-route-alias/pipeline.sqlite"));
 
 async function removeFixtureArtifacts(): Promise<void> {
   await Promise.all([rm(batchDir, { force: true, recursive: true }), rm(dbPath, { force: true })]);
@@ -93,8 +93,8 @@ afterEach(async () => {
   await removeFixtureArtifacts();
 });
 
-describe("planned route batch build", () => {
-  test("builds selected plan routes from local DB state", async () => {
+describe("planned route alias", () => {
+  test("builds planned routes through the shared graph entrypoint", async () => {
     await writeFixtureArtifacts();
     const calls: string[] = [];
     const deps = {
@@ -177,15 +177,14 @@ describe("planned route batch build", () => {
         calls.push("shared:bus-lanes");
         return {};
       },
+      listSelectedPlanRoutes: async () => {
+        calls.push("planned:routes");
+        return ["T1"];
+      },
     };
 
-    const result = await buildPlannedRouteBatch(
-      {
-        year: 2026,
-        month: 7,
-        limit: 1,
-        dbPath,
-      },
+    const result = await buildAllRoutesGraphFromCli(
+      ["--planned", "--year", "2026", "--month", "7", "--limit", "1", "--db", dbPath],
       deps as never,
     );
 
@@ -196,6 +195,7 @@ describe("planned route batch build", () => {
         builtRouteCount: 1,
         totalBatchRouteCount: 1,
         d1SeedPath: "/tmp/seed.sql",
+        refreshedPlanDbPath: null,
       }),
     );
     expect(calls).toEqual(
@@ -203,6 +203,7 @@ describe("planned route batch build", () => {
         "shared:ace-routes",
         "shared:ace-violations",
         "shared:bus-lanes",
+        "planned:routes",
         "build:T1",
         "comparison:1",
         "reliability",

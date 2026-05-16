@@ -19,6 +19,8 @@ export async function openLocalPipelineDb(
   await migrateLocalPipelineDb(path);
 
   const sqlite = new Database(path);
+  sqlite.exec("PRAGMA journal_mode = WAL");
+  sqlite.exec("PRAGMA busy_timeout = 5000");
 
   return {
     db: createLocalPipelineDb(sqlite),

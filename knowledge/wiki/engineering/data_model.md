@@ -146,7 +146,9 @@ Expected fields:
 - `description TEXT`
 - `source_snapshot_id TEXT NOT NULL`
 
-### `route_artifact`
+### `route_artifact` (removed)
+
+> **Removed 2026-04-29.** JSON artifact files and the `route_artifact` table were eliminated. All route data is served from the local pipeline DB and D1 serving tables directly. The table below is historical.
 
 Index of larger generated payloads stored in R2/static artifacts.
 

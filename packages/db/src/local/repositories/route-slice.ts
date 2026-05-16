@@ -1,5 +1,5 @@
 import { and, asc, eq } from "drizzle-orm";
-import type { LocalPipelineDb } from "../client.js";
+import { batchInsert, type LocalPipelineDb } from "../client.js";
 import {
   localRouteHotspot,
   localRouteHotspotSummary,
@@ -131,7 +131,9 @@ export async function replaceRouteSegmentSpeeds(
     return;
   }
 
-  await db.insert(localRouteSegmentSpeed).values(
+  await batchInsert(
+    db,
+    localRouteSegmentSpeed,
     rows.map((row, index) => ({
       routeId: row.routeId,
       month: row.isoMonth,
@@ -216,7 +218,9 @@ export async function replaceRouteHourlyRidership(
     return;
   }
 
-  await db.insert(localRouteHourlyRidership).values(
+  await batchInsert(
+    db,
+    localRouteHourlyRidership,
     rows.map((row) => ({
       routeId: row.routeId,
       month: row.isoMonth,
@@ -273,7 +277,9 @@ export async function replaceRouteSchedules(
     return;
   }
 
-  await db.insert(localRouteScheduleTimepoint).values(
+  await batchInsert(
+    db,
+    localRouteScheduleTimepoint,
     rows.map((row, index) => ({
       routeId: row.routeId,
       month: row.isoMonth,
@@ -355,7 +361,9 @@ export async function replaceRouteStops(
     return;
   }
 
-  await db.insert(localRouteStop).values(
+  await batchInsert(
+    db,
+    localRouteStop,
     rows.map((row) => ({
       routeId: row.routeId,
       month: row.isoMonth,

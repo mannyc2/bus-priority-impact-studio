@@ -227,20 +227,6 @@ export const routeEquityContext = sqliteTable(
   (table) => [primaryKey({ columns: [table.routeId, table.month] })],
 );
 
-export const routeArtifact = sqliteTable(
-  "route_artifact",
-  {
-    routeId: text("route_id").notNull(),
-    month: text("month").notNull(),
-    artifactName: text("artifact_name").notNull(),
-    artifactKey: text("artifact_key").notNull(),
-    contentType: text("content_type").notNull(),
-    byteLength: integer("byte_length").notNull(),
-    sha256: text("sha256").notNull(),
-  },
-  (table) => [primaryKey({ columns: [table.routeId, table.month, table.artifactName] })],
-);
-
 export const routeBriefSummary = sqliteTable(
   "route_brief_summary",
   {
@@ -315,7 +301,7 @@ export const routeComparisonRank = sqliteTable(
 export const routeBatchStatus = sqliteTable("route_batch_status", {
   month: text("month").primaryKey(),
   generatedAt: text("generated_at").notNull(),
-  status: text("status", { enum: ["pass", "fail"] }).notNull(),
+  status: text("status", { enum: ["running", "pass", "fail"] }).notNull(),
   routeCount: integer("route_count").notNull(),
   artifactCount: integer("artifact_count").notNull(),
   missingArtifactCount: integer("missing_artifact_count").notNull(),

@@ -3,10 +3,8 @@ import { RouteIdCodec } from "@bp/domain";
 import type { SocrataFetch, SocrataRow, SocrataRowsQuery } from "@bp/sources";
 import { getSocrataSource, SocrataClient } from "@bp/sources";
 import * as z from "zod";
-import { dbOption, monthOption, parseCliOptions, yearOption } from "../../lib/cli-args.js";
-import { isoMonth } from "../../lib/dates.js";
-import { defaultLocalPipelineDbPath, withLocalPipelineDb } from "../../lib/local-db.js";
-import { fromCliPath } from "../../lib/paths.js";
+import { withLocalPipelineDb } from "../../lib/local-db.js";
+import { createMonthContext, parseMonthDbCliArgs } from "../../lib/route-job.js";
 import type { SocrataManifestSource } from "../../source-manifest.js";
 import { readSourceManifest } from "../../source-manifest.js";
 
@@ -59,21 +57,15 @@ type CoverageEntry = {
 
 function parseArgs(
   args: RouteMonthCoverageArgs = {},
-): Required<Omit<RouteMonthCoverageArgs, "fetchedAt" | "workingDir">> {
+): Required<Omit<RouteMonthCoverageArgs, "fetchedAt" | "workingDir">> & { isoMonth: string } {
   return {
-    year: args.year ?? 2026,
-    month: args.month ?? 3,
+    ...createMonthContext(args),
     fetcher: args.fetcher ?? fetch,
-    dbPath: args.dbPath ?? defaultLocalPipelineDbPath(),
   };
 }
 
 function parseCliArgs(args: string[]): RouteMonthCoverageArgs {
-  return parseCliOptions(args, {} as RouteMonthCoverageArgs, [
-    yearOption(),
-    monthOption(),
-    dbOption(fromCliPath),
-  ]);
+  return parseMonthDbCliArgs(args, {} as RouteMonthCoverageArgs);
 }
 
 async function fetchSourceRows(
@@ -138,7 +130,6 @@ export async function ingestRouteMonthCoverage(
   args: RouteMonthCoverageArgs = {},
 ): Promise<RouteMonthCoverageResult> {
   const options = parseArgs(args);
-  const month = isoMonth(options.year, options.month);
   const manifest = await readSourceManifest();
   const speedSource = getSocrataSource(
     manifest,
@@ -165,8 +156,8 @@ export async function ingestRouteMonthCoverage(
     fetchSourceRows(speedSource, speedQuery, options.fetcher),
     fetchSourceRows(scheduleSource, scheduleQuery, options.fetcher),
   ]);
-  const entries = normalizeSpeedCoverage(speedRows, month);
-  addScheduleCoverage(entries, scheduleRows, month);
+  const entries = normalizeSpeedCoverage(speedRows, options.isoMonth);
+  addScheduleCoverage(entries, scheduleRows, options.isoMonth);
   const rows = [...entries.values()].sort((left, right) => {
     if (left.averageSpeedMph !== null && right.averageSpeedMph !== null) {
       return (
@@ -182,7 +173,7 @@ export async function ingestRouteMonthCoverage(
     (row) => row.hasSpeedData && row.hasScheduleData,
   ).length;
   const dbPath = await withLocalPipelineDb(options.dbPath, async (local) => {
-    await replaceRouteMonthCoverage(local.db, month, rows);
+    await replaceRouteMonthCoverage(local.db, options.isoMonth, rows);
     return local.path;
   });
 

@@ -6,10 +6,8 @@ import {
   listRouteMonthCoverage,
   replaceRouteReadiness,
 } from "@bp/db/local";
-import { dbOption, monthOption, parseCliOptions, yearOption } from "../../lib/cli-args.js";
-import { isoMonth } from "../../lib/dates.js";
-import { defaultLocalPipelineDbPath, withLocalPipelineDb } from "../../lib/local-db.js";
-import { fromCliPath } from "../../lib/paths.js";
+import { withLocalPipelineDb } from "../../lib/local-db.js";
+import { createMonthContext, parseMonthDbCliArgs } from "../../lib/route-job.js";
 
 type RouteReadinessArgs = {
   year?: number;
@@ -17,27 +15,21 @@ type RouteReadinessArgs = {
   dbPath?: string;
 };
 
-type RouteReadinessResult = {
+export type RouteReadinessResult = {
   isoMonth: string;
   routeCount: number;
   buildEligibleRouteCount: number;
   dbPath: string;
 };
 
-function parseBuildArgs(args: RouteReadinessArgs = {}): Required<RouteReadinessArgs> {
-  return {
-    year: args.year ?? 2026,
-    month: args.month ?? 3,
-    dbPath: args.dbPath ?? defaultLocalPipelineDbPath(),
-  };
+function parseBuildArgs(args: RouteReadinessArgs = {}): Required<RouteReadinessArgs> & {
+  isoMonth: string;
+} {
+  return createMonthContext(args);
 }
 
 function parseCliArgs(args: string[]): RouteReadinessArgs {
-  return parseCliOptions(args, {} as RouteReadinessArgs, [
-    yearOption(),
-    monthOption(),
-    dbOption(fromCliPath),
-  ]);
+  return parseMonthDbCliArgs(args, {} as RouteReadinessArgs);
 }
 
 function scoreReadiness(input: {
@@ -183,19 +175,18 @@ export async function buildRouteReadiness(
   args: RouteReadinessArgs = {},
 ): Promise<RouteReadinessResult> {
   const options = parseBuildArgs(args);
-  const month = isoMonth(options.year, options.month);
   return withLocalPipelineDb(options.dbPath, async (local) => {
     const [catalog, coverage] = await Promise.all([
       listRouteCatalog(local.db),
-      listRouteMonthCoverage(local.db, month),
+      listRouteMonthCoverage(local.db, options.isoMonth),
     ]);
-    const rows = buildReadinessRows(catalog, coverage, month);
+    const rows = buildReadinessRows(catalog, coverage, options.isoMonth);
     const buildEligibleRoutes = rows.filter((row) => row.buildEligible);
 
-    await replaceRouteReadiness(local.db, month, rows);
+    await replaceRouteReadiness(local.db, options.isoMonth, rows);
 
     return {
-      isoMonth: month,
+      isoMonth: options.isoMonth,
       routeCount: rows.length,
       buildEligibleRouteCount: buildEligibleRoutes.length,
       dbPath: local.path,

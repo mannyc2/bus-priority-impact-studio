@@ -126,57 +126,64 @@ const commands = {
       return verifyD1ExportFromCli(args);
     },
   },
-  "ingest:m1": {
-    description: "Ingest one route slice; defaults to M1.",
+  "ingest:route-slice": {
+    description: "Ingest one route/month slice.",
     run: async (args) => {
-      const { ingestM1RouteSlice, parseM1SliceCliArgs } = await import("./jobs/ingest/m1-slice.js");
-      return ingestM1RouteSlice(parseM1SliceCliArgs(args));
-    },
-  },
-  "ingest:m1-schedules": {
-    description: "Ingest route schedule timepoints; defaults to M1.",
-    run: async (args) => {
-      const { ingestM1SchedulesFromCli } = await import("./jobs/ingest/ingest-m1-schedules.js");
-      return ingestM1SchedulesFromCli(args);
-    },
-  },
-  "hotspots:m1": {
-    description: "Build route hotspot artifacts; defaults to M1.",
-    run: async (args) => {
-      const { buildM1HotspotsFromCli } = await import("./jobs/build/m1-hotspots.js");
-      return buildM1HotspotsFromCli(args);
-    },
-  },
-  "ridership-profile:m1": {
-    description: "Build route ridership profile artifacts; defaults to M1.",
-    run: async (args) => {
-      const { buildM1RidershipProfileFromCli } = await import(
-        "./jobs/build/m1-ridership-profile.js"
+      const { ingestRouteSlice, parseRouteSliceCliArgs } = await import(
+        "./jobs/ingest/route-slice.js"
       );
-      return buildM1RidershipProfileFromCli(args);
+      return ingestRouteSlice(parseRouteSliceCliArgs(args));
     },
   },
-  "speed-profile:m1": {
-    description: "Build route speed profile artifacts; defaults to M1.",
+  "ingest:route-schedules": {
+    description: "Ingest route schedule timepoints.",
     run: async (args) => {
-      const { buildM1SpeedProfileFromCli } = await import("./jobs/build/m1-speed-profile.js");
-      return buildM1SpeedProfileFromCli(args);
+      const { ingestRouteSchedulesFromCli } = await import(
+        "./jobs/ingest/ingest-route-schedules.js"
+      );
+      return ingestRouteSchedulesFromCli(args);
+    },
+  },
+  "build:hotspots": {
+    description: "Build route hotspot artifacts.",
+    run: async (args) => {
+      const { buildRouteHotspotsFromCli } = await import("./jobs/build/route-core-artifacts.js");
+      return buildRouteHotspotsFromCli(args);
+    },
+  },
+  "build:ridership-profile": {
+    description: "Build route ridership profile artifacts.",
+    run: async (args) => {
+      const { buildRouteRidershipProfileFromCli } = await import("./jobs/build/route-profiles.js");
+      return buildRouteRidershipProfileFromCli(args);
+    },
+  },
+  "build:speed-profile": {
+    description: "Build route speed profile artifacts.",
+    run: async (args) => {
+      const { buildRouteSpeedProfileFromCli } = await import("./jobs/build/route-profiles.js");
+      return buildRouteSpeedProfileFromCli(args);
     },
   },
   "build:routes": {
-    description: "Build route slice artifacts for a batch.",
+    description: "Run the all-routes build graph for explicit routes or --planned selection.",
     run: async (args) => {
-      const { buildRouteBatchArtifactsFromCli } = await import(
-        "./jobs/build/route-slice-pipeline.js"
-      );
-      return buildRouteBatchArtifactsFromCli(args);
+      const { buildAllRoutesGraphFromCli } = await import("./jobs/build/route-build-graph.js");
+      return buildAllRoutesGraphFromCli(args);
+    },
+  },
+  "build:network": {
+    description: "Build all eligible routes for a month and write a completion report.",
+    run: async (args) => {
+      const { buildRouteNetworkFromCli } = await import("./jobs/build/route-network-build.js");
+      return buildRouteNetworkFromCli(args);
     },
   },
   "build:planned-routes": {
-    description: "Build routes selected by the route build plan.",
+    description: "Compatibility alias for build:routes -- --planned.",
     run: async (args) => {
-      const { buildPlannedRouteBatchFromCli } = await import("./jobs/build/planned-route-batch.js");
-      return buildPlannedRouteBatchFromCli(args);
+      const { buildAllRoutesGraphFromCli } = await import("./jobs/build/route-build-graph.js");
+      return buildAllRoutesGraphFromCli(["--planned", ...args]);
     },
   },
   "compare:routes": {
@@ -193,47 +200,38 @@ const commands = {
       return buildRouteBatchAuditFromCli(args);
     },
   },
-  "route-brief:m1": {
-    description: "Build route brief input artifacts; defaults to M1.",
+  "build:route-brief": {
+    description: "Build route brief input artifacts.",
     run: async (args) => {
-      const { buildM1RouteBriefInputFromCli } = await import(
-        "./jobs/build/m1-route-brief-input.js"
-      );
-      return buildM1RouteBriefInputFromCli(args);
+      const { buildRouteBriefInputFromCli } = await import("./jobs/build/route-core-artifacts.js");
+      return buildRouteBriefInputFromCli(args);
     },
   },
-  "interventions:m1": {
-    description: "Build route intervention overlay artifacts; defaults to M1.",
+  "build:interventions": {
+    description: "Build route intervention overlay artifacts.",
     run: async (args) => {
-      const { buildM1InterventionOverlayFromCli } = await import(
-        "./jobs/build/m1-intervention-overlay.js"
+      const { buildRouteInterventionOverlayFromCli } = await import(
+        "./jobs/build/route-secondary-artifacts.js"
       );
-      return buildM1InterventionOverlayFromCli(args);
+      return buildRouteInterventionOverlayFromCli(args);
     },
   },
-  "bus-lanes:m1": {
-    description: "Build route bus-lane overlay artifacts; defaults to M1.",
+  "build:bus-lanes": {
+    description: "Build route bus-lane overlay artifacts.",
     run: async (args) => {
-      const { buildM1BusLaneOverlayFromCli } = await import("./jobs/build/m1-bus-lane-overlay.js");
-      return buildM1BusLaneOverlayFromCli(args);
+      const { buildRouteBusLaneOverlayFromCli } = await import(
+        "./jobs/build/route-secondary-artifacts.js"
+      );
+      return buildRouteBusLaneOverlayFromCli(args);
     },
   },
-  "schedules:m1": {
-    description: "Build route schedule comparison artifacts; defaults to M1.",
+  "build:schedules": {
+    description: "Build route schedule comparison artifacts.",
     run: async (args) => {
-      const { buildM1ScheduleComparisonFromCli } = await import(
-        "./jobs/build/m1-schedule-comparison.js"
+      const { buildRouteScheduleComparisonFromCli } = await import(
+        "./jobs/build/route-secondary-artifacts.js"
       );
-      return buildM1ScheduleComparisonFromCli(args);
-    },
-  },
-  "artifacts:m1": {
-    description: "Build route artifact manifest; defaults to M1.",
-    run: async (args) => {
-      const { buildM1ArtifactManifestFromCli } = await import(
-        "./jobs/build/m1-artifact-manifest.js"
-      );
-      return buildM1ArtifactManifestFromCli(args);
+      return buildRouteScheduleComparisonFromCli(args);
     },
   },
 } satisfies Record<string, Command>;

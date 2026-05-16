@@ -1,9 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { createHash } from "node:crypto";
 import { mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import {
-  replaceRouteArtifacts,
   replaceRouteBriefRows,
   replaceRouteBuildPlan,
   replaceRouteCatalog,
@@ -25,10 +23,6 @@ const dbPath = fromRepoRoot(join("data/fixtures/export-d1/pipeline.sqlite"));
 
 function routeDir(routeId: string): string {
   return fromRepoRoot(join("data/artifacts/route-slices", `${routeId.toLowerCase()}-${isoMonth}`));
-}
-
-function digest(value: string): string {
-  return createHash("sha256").update(value).digest("hex");
 }
 
 async function removeFixtureArtifacts(): Promise<void> {
@@ -260,17 +254,6 @@ async function writeFixtureArtifacts(): Promise<void> {
       },
     ],
   });
-  await replaceRouteArtifacts(local.db, "T1", isoMonth, [
-    {
-      routeId: "T1",
-      month: isoMonth,
-      artifactName: "route-brief-input.json",
-      artifactKey: "route-slices/t1-2026-04/route-brief-input.json",
-      contentType: "application/json",
-      byteLength: 123,
-      sha256: digest("brief"),
-    },
-  ]);
   await replaceRouteComparisonRanks(local.db, isoMonth, [
     {
       month: isoMonth,
@@ -346,44 +329,54 @@ describe("D1 seed export", () => {
         routeMonthTrendRowCount: 1,
         routeEquityContextRowCount: 1,
         routeBatchStatusRowCount: 1,
-        routeBatchBuiltRouteRowCount: 1,
-        routeBatchIssueRowCount: 10,
+        routeBatchBuiltRouteRowCount: 0,
+        routeBatchIssueRowCount: 0,
         routeBriefPeakWindowRowCount: 1,
         routeBriefSlowestWindowRowCount: 1,
         routeScorecardCitationRowCount: 0,
-        artifactRowCount: 1,
         comparisonRowCount: 1,
       }),
     );
     expect(schema).toContain("CREATE TABLE `route_scorecard`");
     expect(seed).not.toContain("CREATE TABLE");
-    expect(seed).toContain("DELETE FROM route_catalog;");
-    expect(seed).toContain("DELETE FROM route_month_coverage WHERE month = '2026-04';");
-    expect(seed).toContain("DELETE FROM route_readiness WHERE month = '2026-04';");
-    expect(seed).toContain("DELETE FROM route_build_plan WHERE month = '2026-04';");
-    expect(seed).toContain("DELETE FROM route_reliability_baseline WHERE month = '2026-04';");
-    expect(seed).toContain("DELETE FROM route_month_trend;");
-    expect(seed).toContain("DELETE FROM route_equity_context WHERE month = '2026-04';");
-    expect(seed).toContain("DELETE FROM route_scorecard WHERE month = '2026-04';");
-    expect(seed).toContain("DELETE FROM route_batch_status WHERE month = '2026-04';");
-    expect(seed).toContain("INSERT INTO route_catalog");
-    expect(seed).toContain("INSERT INTO route_catalog_type");
-    expect(seed).toContain("INSERT INTO route_direction");
-    expect(seed).toContain("INSERT INTO route_month_coverage");
-    expect(seed).toContain("INSERT INTO route_readiness");
-    expect(seed).toContain("INSERT INTO route_build_plan");
-    expect(seed).toContain("INSERT INTO route_reliability_baseline");
-    expect(seed).toContain("INSERT INTO route_month_source_status");
-    expect(seed).toContain("INSERT INTO route_month_trend");
-    expect(seed).toContain("INSERT INTO route_equity_context");
-    expect(seed).toContain("INSERT INTO route_brief_summary");
-    expect(seed).toContain("INSERT INTO route_brief_peak_window");
-    expect(seed).toContain("INSERT INTO route_brief_slowest_window");
-    expect(seed).toContain("INSERT INTO route_artifact");
-    expect(seed).toContain("INSERT INTO route_comparison_rank");
-    expect(seed).toContain("INSERT INTO route_batch_status");
-    expect(seed).toContain("INSERT INTO route_batch_built_route");
-    expect(seed).toContain("INSERT INTO route_batch_issue");
+    expect(seed).toContain('delete from "route_catalog";');
+    expect(seed).toContain(
+      'delete from "route_month_coverage" where "route_month_coverage"."month" = \'2026-04\';',
+    );
+    expect(seed).toContain(
+      'delete from "route_readiness" where "route_readiness"."month" = \'2026-04\';',
+    );
+    expect(seed).toContain(
+      'delete from "route_build_plan" where "route_build_plan"."month" = \'2026-04\';',
+    );
+    expect(seed).toContain(
+      'delete from "route_reliability_baseline" where "route_reliability_baseline"."month" = \'2026-04\';',
+    );
+    expect(seed).toContain('delete from "route_month_trend";');
+    expect(seed).toContain(
+      'delete from "route_equity_context" where "route_equity_context"."month" = \'2026-04\';',
+    );
+    expect(seed).toContain(
+      'delete from "route_scorecard" where "route_scorecard"."month" = \'2026-04\';',
+    );
+    expect(seed).toContain(
+      'delete from "route_batch_status" where "route_batch_status"."month" = \'2026-04\';',
+    );
+    expect(seed).toContain('insert into "route_catalog"');
+    expect(seed).toContain('insert into "route_catalog_type"');
+    expect(seed).toContain('insert into "route_direction"');
+    expect(seed).toContain('insert into "route_month_coverage"');
+    expect(seed).toContain('insert into "route_readiness"');
+    expect(seed).toContain('insert into "route_build_plan"');
+    expect(seed).toContain('insert into "route_reliability_baseline"');
+    expect(seed).toContain('insert into "route_month_source_status"');
+    expect(seed).toContain('insert into "route_month_trend"');
+    expect(seed).toContain('insert into "route_equity_context"');
+    expect(seed).toContain('insert into "route_brief_summary"');
+    expect(seed).toContain('insert into "route_brief_peak_window"');
+    expect(seed).toContain('insert into "route_brief_slowest_window"');
+    expect(seed).toContain('insert into "route_comparison_rank"');
+    expect(seed).toContain('insert into "route_batch_status"');
     expect(seed).not.toContain("_json");
   });
 });
