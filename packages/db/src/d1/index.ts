@@ -28,6 +28,12 @@ export type {
   RouteEquityContextRow,
 } from "./queries/route-equity-contexts.js";
 export { listRouteEquityContexts } from "./queries/route-equity-contexts.js";
+export type {
+  InterventionEventRow,
+  RouteInterventionComparison,
+  RouteInterventionComparisonRow,
+} from "./queries/route-intervention-comparisons.js";
+export { listRouteInterventionComparisons } from "./queries/route-intervention-comparisons.js";
 export type { RouteMonthTrend, RouteMonthTrendRow } from "./queries/route-month-trends.js";
 export { listRouteMonthTrends } from "./queries/route-month-trends.js";
 export type {

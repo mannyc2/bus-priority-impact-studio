@@ -15,6 +15,13 @@
       "when": 1778974137312,
       "tag": "0001_funny_firelord",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1778974838351,
+      "tag": "0002_whole_black_bird",
+      "breakpoints": true
     }
   ]
 }

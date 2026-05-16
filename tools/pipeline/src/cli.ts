@@ -135,6 +135,15 @@ const commands = {
       return buildRouteObservedReliabilityFromCli(args);
     },
   },
+  "route-intervention-evaluation": {
+    description: "Build route/month descriptive intervention before/after comparisons.",
+    run: async (args) => {
+      const { buildRouteInterventionEvaluationFromCli } = await import(
+        "./jobs/build/route-intervention-evaluation.js"
+      );
+      return buildRouteInterventionEvaluationFromCli(args);
+    },
+  },
   "route-equity-context": {
     description: "Build route equity context artifacts.",
     run: async (args) => {

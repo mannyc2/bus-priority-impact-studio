@@ -34,15 +34,21 @@ export type {
   LocalAceViolationSummary,
   LocalBusLane,
   LocalBusLaneCoordinate,
+  LocalInterventionEvent,
+  LocalRouteInterventionComparison,
 } from "./repositories/interventions.js";
 export {
   geometryCoordinates,
+  listAceRoutes,
   listAceRoutesForRoute,
   listAceViolationSummariesForRoute,
   listBusLanes,
+  listInterventionEvents,
+  listRouteInterventionComparisons,
   replaceAceRoutes,
   replaceAceViolationSummaries,
   replaceBusLanes,
+  replaceRouteInterventionEvaluationRows,
 } from "./repositories/interventions.js";
 export type {
   LocalObservedHeadwaySample,

@@ -1,10 +1,12 @@
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import {
+  interventionEvent,
   routeBatchStatus,
   routeBriefPeakWindow,
   routeBriefSlowestWindow,
   routeBriefSummary,
   routeCatalog,
+  routeInterventionComparison,
   routeObservedReliabilitySummary,
   routeReadiness,
   routeReliabilityBaseline,
@@ -23,5 +25,9 @@ export const RouteReadinessSelectSchema = createSelectSchema(routeReadiness);
 export const RouteReliabilityBaselineSelectSchema = createSelectSchema(routeReliabilityBaseline);
 export const RouteObservedReliabilitySummarySelectSchema = createSelectSchema(
   routeObservedReliabilitySummary,
+);
+export const InterventionEventSelectSchema = createSelectSchema(interventionEvent);
+export const RouteInterventionComparisonSelectSchema = createSelectSchema(
+  routeInterventionComparison,
 );
 export const RouteBatchStatusSelectSchema = createSelectSchema(routeBatchStatus);

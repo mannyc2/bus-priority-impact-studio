@@ -621,6 +621,49 @@ export const localAceViolationSummary = sqliteTable(
   ],
 );
 
+export const localInterventionEvent = sqliteTable("local_intervention_event", {
+  eventId: text("event_id").primaryKey(),
+  routeId: text("route_id").notNull(),
+  interventionType: text("intervention_type").notNull(),
+  sourceId: text("source_id").notNull(),
+  program: text("program").notNull(),
+  implementationDate: text("implementation_date").notNull(),
+  implementationMonth: text("implementation_month").notNull(),
+  eventStatus: text("event_status").notNull(),
+  description: text("description").notNull(),
+});
+
+export const localRouteInterventionComparison = sqliteTable(
+  "local_route_intervention_comparison",
+  {
+    routeId: text("route_id").notNull(),
+    month: text("month").notNull(),
+    eventId: text("event_id").notNull(),
+    interventionType: text("intervention_type").notNull(),
+    sourceId: text("source_id").notNull(),
+    evaluationLevel: text("evaluation_level").notNull(),
+    comparisonStatus: text("comparison_status").notNull(),
+    preStartMonth: text("pre_start_month"),
+    preEndMonth: text("pre_end_month"),
+    postStartMonth: text("post_start_month"),
+    postEndMonth: text("post_end_month"),
+    requestedPreMonthCount: integer("requested_pre_month_count").notNull(),
+    requestedPostMonthCount: integer("requested_post_month_count").notNull(),
+    preSampleMonthCount: integer("pre_sample_month_count").notNull(),
+    postSampleMonthCount: integer("post_sample_month_count").notNull(),
+    preSpeedObservationCount: integer("pre_speed_observation_count").notNull(),
+    postSpeedObservationCount: integer("post_speed_observation_count").notNull(),
+    preAverageSpeedMph: real("pre_average_speed_mph"),
+    postAverageSpeedMph: real("post_average_speed_mph"),
+    speedDeltaMph: real("speed_delta_mph"),
+    preAverageMonthlyRidership: real("pre_average_monthly_ridership"),
+    postAverageMonthlyRidership: real("post_average_monthly_ridership"),
+    ridershipDelta: real("ridership_delta"),
+    caveat: text("caveat").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.routeId, table.month, table.eventId] })],
+);
+
 export const localCensusTractEquityContext = sqliteTable(
   "local_census_tract_equity_context",
   {

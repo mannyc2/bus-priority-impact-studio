@@ -3,6 +3,7 @@ import { eq, type SQLWrapper } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { SQLiteSyncDialect } from "drizzle-orm/sqlite-core";
 import type {
+  LocalInterventionEvent,
   LocalRouteBatchBuiltRoute,
   LocalRouteBatchIssue,
   LocalRouteBatchStatus,
@@ -13,6 +14,7 @@ import type {
   LocalRouteCatalogEntry,
   LocalRouteComparisonRank,
   LocalRouteEquityContext,
+  LocalRouteInterventionComparison,
   LocalRouteMonthCoverage,
   LocalRouteMonthSourceStatus,
   LocalRouteMonthTrend,
@@ -23,6 +25,7 @@ import type {
   LocalRouteScorecard,
 } from "../../local/index.js";
 import {
+  interventionEvent,
   routeBatchBuiltRoute,
   routeBatchIssue,
   routeBatchStatus,
@@ -35,6 +38,7 @@ import {
   routeComparisonRank,
   routeDirection,
   routeEquityContext,
+  routeInterventionComparison,
   routeMonthCoverage,
   routeMonthSourceStatus,
   routeMonthTrend,
@@ -56,6 +60,8 @@ export type D1SeedInput = {
   routeReliabilityBaseline: LocalRouteReliabilityBaseline[];
   routeReliabilityGapWindows: LocalRouteReliabilityGapWindow[];
   routeObservedReliabilitySummaries: LocalRouteObservedReliabilitySummary[];
+  interventionEvents: LocalInterventionEvent[];
+  routeInterventionComparisons: LocalRouteInterventionComparison[];
   routeMonthSourceStatuses: LocalRouteMonthSourceStatus[];
   routeMonthTrends: LocalRouteMonthTrend[];
   routeEquityContext: LocalRouteEquityContext[];
@@ -83,6 +89,8 @@ export type D1SeedSqlResult = {
   routeReliabilityBaselineRowCount: number;
   routeReliabilityGapWindowRowCount: number;
   routeObservedReliabilitySummaryRowCount: number;
+  interventionEventRowCount: number;
+  routeInterventionComparisonRowCount: number;
   routeMonthSourceStatusRowCount: number;
   routeMonthTrendRowCount: number;
   routeEquityContextRowCount: number;
@@ -120,6 +128,12 @@ export function buildD1SeedSql(input: D1SeedInput): D1SeedSqlResult {
       seedDb
         .delete(routeObservedReliabilitySummary)
         .where(eq(routeObservedReliabilitySummary.month, month)),
+    ),
+    renderQuery(seedDb.delete(interventionEvent)),
+    renderQuery(
+      seedDb
+        .delete(routeInterventionComparison)
+        .where(eq(routeInterventionComparison.month, month)),
     ),
     renderQuery(
       seedDb.delete(routeMonthSourceStatus).where(eq(routeMonthSourceStatus.month, month)),
@@ -351,6 +365,57 @@ export function buildD1SeedSql(input: D1SeedInput): D1SeedSqlResult {
     );
   }
 
+  for (const row of input.interventionEvents) {
+    statements.push(
+      renderQuery(
+        seedDb.insert(interventionEvent).values({
+          eventId: row.eventId,
+          routeId: row.routeId,
+          interventionType: row.interventionType,
+          sourceId: row.sourceId,
+          program: row.program,
+          implementationDate: row.implementationDate,
+          implementationMonth: row.implementationMonth,
+          eventStatus: row.eventStatus,
+          description: row.description,
+        }),
+      ),
+    );
+  }
+
+  for (const row of input.routeInterventionComparisons) {
+    statements.push(
+      renderQuery(
+        seedDb.insert(routeInterventionComparison).values({
+          routeId: row.routeId,
+          month: row.month,
+          eventId: row.eventId,
+          interventionType: row.interventionType,
+          sourceId: row.sourceId,
+          evaluationLevel: row.evaluationLevel,
+          comparisonStatus: row.comparisonStatus,
+          preStartMonth: row.preStartMonth,
+          preEndMonth: row.preEndMonth,
+          postStartMonth: row.postStartMonth,
+          postEndMonth: row.postEndMonth,
+          requestedPreMonthCount: row.requestedPreMonthCount,
+          requestedPostMonthCount: row.requestedPostMonthCount,
+          preSampleMonthCount: row.preSampleMonthCount,
+          postSampleMonthCount: row.postSampleMonthCount,
+          preSpeedObservationCount: row.preSpeedObservationCount,
+          postSpeedObservationCount: row.postSpeedObservationCount,
+          preAverageSpeedMph: row.preAverageSpeedMph,
+          postAverageSpeedMph: row.postAverageSpeedMph,
+          speedDeltaMph: row.speedDeltaMph,
+          preAverageMonthlyRidership: row.preAverageMonthlyRidership,
+          postAverageMonthlyRidership: row.postAverageMonthlyRidership,
+          ridershipDelta: row.ridershipDelta,
+          caveat: row.caveat,
+        }),
+      ),
+    );
+  }
+
   for (const row of input.routeMonthSourceStatuses) {
     routeMonthSourceStatusRowCount += 1;
     statements.push(
@@ -575,6 +640,8 @@ export function buildD1SeedSql(input: D1SeedInput): D1SeedSqlResult {
     routeReliabilityBaselineRowCount: input.routeReliabilityBaseline.length,
     routeReliabilityGapWindowRowCount,
     routeObservedReliabilitySummaryRowCount: input.routeObservedReliabilitySummaries.length,
+    interventionEventRowCount: input.interventionEvents.length,
+    routeInterventionComparisonRowCount: input.routeInterventionComparisons.length,
     routeMonthSourceStatusRowCount,
     routeMonthTrendRowCount: input.routeMonthTrends.length,
     routeEquityContextRowCount: input.routeEquityContext.length,

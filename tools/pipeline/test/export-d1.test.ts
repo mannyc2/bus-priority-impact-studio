@@ -7,6 +7,7 @@ import {
   replaceRouteCatalog,
   replaceRouteComparisonRanks,
   replaceRouteEquityRows,
+  replaceRouteInterventionEvaluationRows,
   replaceRouteMonthCoverage,
   replaceRouteMonthTrends,
   replaceRouteObservedReliabilityRows,
@@ -209,6 +210,50 @@ async function writeFixtureArtifacts(): Promise<void> {
       },
     ],
   });
+  await replaceRouteInterventionEvaluationRows(local.db, isoMonth, "mta_ace_routes", {
+    events: [
+      {
+        eventId: "ace:T1:ACE:2026-01-15",
+        routeId: "T1",
+        interventionType: "automated_bus_lane_enforcement",
+        sourceId: "mta_ace_routes",
+        program: "ACE",
+        implementationDate: "2026-01-15T00:00:00.000Z",
+        implementationMonth: "2026-01",
+        eventStatus: "implemented",
+        description: "ACE automated bus lane enforcement for T1",
+      },
+    ],
+    comparisons: [
+      {
+        routeId: "T1",
+        month: isoMonth,
+        eventId: "ace:T1:ACE:2026-01-15",
+        interventionType: "automated_bus_lane_enforcement",
+        sourceId: "mta_ace_routes",
+        evaluationLevel: "descriptive_before_after",
+        comparisonStatus: "evaluated",
+        preStartMonth: "2025-11",
+        preEndMonth: "2025-12",
+        postStartMonth: "2026-02",
+        postEndMonth: "2026-03",
+        requestedPreMonthCount: 2,
+        requestedPostMonthCount: 2,
+        preSampleMonthCount: 2,
+        postSampleMonthCount: 2,
+        preSpeedObservationCount: 30,
+        postSpeedObservationCount: 70,
+        preAverageSpeedMph: 6.3333,
+        postAverageSpeedMph: 8,
+        speedDeltaMph: 1.6667,
+        preAverageMonthlyRidership: 1100,
+        postAverageMonthlyRidership: 1400,
+        ridershipDelta: 300,
+        caveat:
+          "Descriptive before/after only; not seasonality-adjusted and not matched to comparison routes.",
+      },
+    ],
+  });
   await replaceRouteMonthTrends(local.db, [
     {
       routeId: "T1",
@@ -386,6 +431,8 @@ describe("D1 seed export", () => {
         routeReliabilityBaselineRowCount: 1,
         routeReliabilityGapWindowRowCount: 0,
         routeObservedReliabilitySummaryRowCount: 1,
+        interventionEventRowCount: 1,
+        routeInterventionComparisonRowCount: 1,
         routeMonthSourceStatusRowCount: 5,
         routeMonthTrendRowCount: 1,
         routeEquityContextRowCount: 1,
@@ -400,6 +447,7 @@ describe("D1 seed export", () => {
     );
     expect(schema).toContain("CREATE TABLE `route_scorecard`");
     expect(schema).toContain("CREATE TABLE `route_observed_reliability_summary`");
+    expect(schema).toContain("CREATE TABLE `route_intervention_comparison`");
     expect(seed).not.toContain("CREATE TABLE");
     expect(seed).toContain('delete from "route_catalog";');
     expect(seed).toContain(
@@ -416,6 +464,10 @@ describe("D1 seed export", () => {
     );
     expect(seed).toContain(
       'delete from "route_observed_reliability_summary" where "route_observed_reliability_summary"."month" = \'2026-04\';',
+    );
+    expect(seed).toContain('delete from "intervention_event";');
+    expect(seed).toContain(
+      'delete from "route_intervention_comparison" where "route_intervention_comparison"."month" = \'2026-04\';',
     );
     expect(seed).toContain('delete from "route_month_trend";');
     expect(seed).toContain(
@@ -435,6 +487,8 @@ describe("D1 seed export", () => {
     expect(seed).toContain('insert into "route_build_plan"');
     expect(seed).toContain('insert into "route_reliability_baseline"');
     expect(seed).toContain('insert into "route_observed_reliability_summary"');
+    expect(seed).toContain('insert into "intervention_event"');
+    expect(seed).toContain('insert into "route_intervention_comparison"');
     expect(seed).toContain('insert into "route_month_source_status"');
     expect(seed).toContain('insert into "route_month_trend"');
     expect(seed).toContain('insert into "route_equity_context"');

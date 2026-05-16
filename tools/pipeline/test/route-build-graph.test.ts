@@ -48,6 +48,18 @@ describe("all-routes build graph", () => {
           headwaySampleCount: 12,
         };
       },
+      buildRouteInterventionEvaluation: async () => {
+        calls.push("intervention-evaluation");
+        return {
+          isoMonth: "2026-08",
+          routeCount: 2,
+          eventCount: 1,
+          comparisonCount: 1,
+          evaluatedComparisonCount: 1,
+          futureComparisonCount: 0,
+          insufficientComparisonCount: 0,
+        };
+      },
       exportD1Seed: async ({ runAudit }: { runAudit?: boolean }) => {
         calls.push(`export:d1:${String(runAudit)}`);
         return {
@@ -127,6 +139,7 @@ describe("all-routes build graph", () => {
         "build:T1",
         "build:T2",
         "comparison:2",
+        "intervention-evaluation",
         "reliability",
         "audit",
         "export:d1:false",
@@ -175,6 +188,18 @@ describe("all-routes build graph", () => {
           isoMonth: "2026-08",
           routeCount: 1,
           headwaySampleCount: 6,
+        };
+      },
+      buildRouteInterventionEvaluation: async () => {
+        calls.push("intervention-evaluation");
+        return {
+          isoMonth: "2026-08",
+          routeCount: 1,
+          eventCount: 1,
+          comparisonCount: 1,
+          evaluatedComparisonCount: 1,
+          futureComparisonCount: 0,
+          insufficientComparisonCount: 0,
         };
       },
       exportD1Seed: async ({ runAudit }: { runAudit?: boolean }) => {
@@ -249,6 +274,7 @@ describe("all-routes build graph", () => {
         "planned:routes",
         "build:T9",
         "comparison:1",
+        "intervention-evaluation",
         "plan:20",
         "export:d1:false",
       ]),

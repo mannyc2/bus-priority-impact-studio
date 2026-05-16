@@ -138,6 +138,18 @@ describe("planned route alias", () => {
           headwaySampleCount: 10,
         };
       },
+      buildRouteInterventionEvaluation: async () => {
+        calls.push("intervention-evaluation");
+        return {
+          isoMonth,
+          routeCount: 1,
+          eventCount: 1,
+          comparisonCount: 1,
+          evaluatedComparisonCount: 1,
+          futureComparisonCount: 0,
+          insufficientComparisonCount: 0,
+        };
+      },
       buildRouteBuildPlan: async ({ limit }: { limit?: number }) => {
         calls.push(`plan:${limit}`);
         return {
@@ -206,6 +218,7 @@ describe("planned route alias", () => {
         "planned:routes",
         "build:T1",
         "comparison:1",
+        "intervention-evaluation",
         "reliability",
         "audit",
         "plan:20",

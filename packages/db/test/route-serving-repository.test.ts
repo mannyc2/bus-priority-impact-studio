@@ -12,6 +12,7 @@ import {
   listRouteBuildPlan,
   listRouteComparisonRanks,
   listRouteEquityContexts,
+  listRouteInterventionComparisons,
   listRouteMonthTrends,
   listRouteObservedReliabilitySummaries,
   listRouteReadiness,
@@ -246,6 +247,46 @@ const observedReliabilitySummaryRow = {
   wait_reliability_ratio: 1.02,
 };
 
+const interventionEventRow = {
+  event_id: "ace:M57:ACE:2026-01-15",
+  route_id: "M57",
+  intervention_type: "automated_bus_lane_enforcement",
+  source_id: "mta_ace_routes",
+  program: "ACE",
+  implementation_date: "2026-01-15T00:00:00.000Z",
+  implementation_month: "2026-01",
+  event_status: "implemented",
+  description: "ACE automated bus lane enforcement for M57",
+};
+
+const interventionComparisonRow = {
+  route_id: "M57",
+  month: "2026-03",
+  event_id: "ace:M57:ACE:2026-01-15",
+  intervention_type: "automated_bus_lane_enforcement",
+  source_id: "mta_ace_routes",
+  evaluation_level: "descriptive_before_after",
+  comparison_status: "evaluated",
+  pre_start_month: "2025-11",
+  pre_end_month: "2025-12",
+  post_start_month: "2026-02",
+  post_end_month: "2026-03",
+  requested_pre_month_count: 2,
+  requested_post_month_count: 2,
+  pre_sample_month_count: 2,
+  post_sample_month_count: 2,
+  pre_speed_observation_count: 30,
+  post_speed_observation_count: 70,
+  pre_average_speed_mph: 6.3333,
+  post_average_speed_mph: 8,
+  speed_delta_mph: 1.6667,
+  pre_average_monthly_ridership: 1100,
+  post_average_monthly_ridership: 1400,
+  ridership_delta: 300,
+  caveat:
+    "Descriptive before/after only; not seasonality-adjusted and not matched to comparison routes.",
+};
+
 const equityContextRow = {
   route_id: "M1",
   month: "2026-03",
@@ -462,6 +503,27 @@ describe("route serving repository", () => {
         observedBunchingShare: 0.12,
         waitReliabilityRatio: 1.02,
         sourceStatus: { observedHeadways: "needs_gtfs_rt_collection" },
+      }),
+    ]);
+    sqlite.close();
+  });
+
+  test("lists route intervention comparisons with event context", async () => {
+    const { db, sqlite } = await createDrizzleTestDb();
+    insertRows(sqlite, "intervention_event", [interventionEventRow]);
+    insertRows(sqlite, "route_intervention_comparison", [interventionComparisonRow]);
+
+    const rows = await listRouteInterventionComparisons(db, "2026-03");
+
+    expect(rows).toEqual([
+      expect.objectContaining({
+        routeId: "M57",
+        program: "ACE",
+        implementationMonth: "2026-01",
+        evaluationLevel: "descriptive_before_after",
+        comparisonStatus: "evaluated",
+        speedDeltaMph: 1.6667,
+        caveat: expect.stringContaining("Descriptive before/after only"),
       }),
     ]);
     sqlite.close();

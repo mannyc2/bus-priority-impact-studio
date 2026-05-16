@@ -36,6 +36,18 @@ describe("route post-build", () => {
           worstRouteId: "T1",
         };
       },
+      buildRouteInterventionEvaluation: async () => {
+        calls.push("intervention-evaluation");
+        return {
+          isoMonth: "2026-08",
+          routeCount: 2,
+          eventCount: 1,
+          comparisonCount: 1,
+          evaluatedComparisonCount: 1,
+          futureComparisonCount: 0,
+          insufficientComparisonCount: 0,
+        };
+      },
       buildRouteReliabilityBaseline: async () => {
         calls.push("reliability");
         return {
@@ -81,6 +93,7 @@ describe("route post-build", () => {
     expect(calls).toEqual(
       expect.arrayContaining([
         "comparison:2",
+        "intervention-evaluation",
         "reliability",
         "audit",
         "plan:20",

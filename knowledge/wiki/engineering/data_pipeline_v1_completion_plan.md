@@ -77,10 +77,10 @@ Current v1 gaps:
 
 - GTFS-RT observed reliability still needs a production-length collection run, coverage QA, and brief integration.
 - Observed reliability is route/month summary only; detailed observed reliability windows are not yet built.
-- No before/after or matched comparison intervention evaluation.
+- ACE descriptive before/after intervention evaluation exists; seasonality-adjusted, matched-comparison, and bus-lane intervention evaluation remain open.
 - No corridor entities, corridor membership, corridor metrics, or corridor briefs.
 - Route brief artifacts are deterministic inputs/summaries, not final route/corridor brief bodies.
-- Bus lane matching has a known Manhattan-only filter in `route-brief-metrics.ts`.
+- Bus lane matching is no longer borough-hardcoded, but still needs v1 QA coverage in the final pipeline gate.
 - Route score is still a simple speed/hotspot heuristic, not the planned multi-factor priority model.
 - Older wiki pages still contain M1-era command names and optional-realtime language.
 
@@ -91,11 +91,11 @@ Current v1 gaps:
 | Reproducible full-network pipeline | `build:network` produced 381/381 March 2026 route slices | Partial | Clean rebuild script/runbook from empty local DB through `verify:d1` |
 | GTFS-RT observed reliability | Collector, parser, observed headway samples, route/month summaries, and D1 readback exist | Partial | Production-length collection, coverage QA, and brief caveats |
 | Bunching | Route/month observed bunching and long-gap shares are computed from observed headways | Partial | Bunching/long-gap/window metrics with sample coverage/confidence |
-| Before/after intervention evaluation | ACE route dates and violation summaries exist; overlays exist | Missing | Intervention event/window metrics and pre/post comparison artifacts |
+| Before/after intervention evaluation | ACE event rows and descriptive before/after route comparisons exist with D1 readback | Partial | Seasonality-aware, matched-comparison, bus-lane intervention, and corridor summaries |
 | Corridor grouping | Route/stop/bus-lane street data exists | Missing | Corridor tables, route/segment membership, corridor summaries |
 | Full set of route briefs | 381 `route-brief-input.json` and DB brief summaries exist | Partial | Rendered JSON/Markdown/HTML route brief bodies for public-visible routes |
 | Full set of corridor briefs | No corridor artifacts | Missing | Rendered JSON/Markdown/HTML corridor brief bodies |
-| Verified D1 export contract | `export:d1` and `verify:d1` cover route serving rows plus observed reliability summaries | Partial | D1 verification expanded to intervention evaluation and corridor summary rows |
+| Verified D1 export contract | `export:d1` and `verify:d1` cover route serving rows, observed reliability, and ACE intervention comparisons | Partial | D1 verification expanded to corridor summary rows and final brief metadata |
 | Static artifact contract | Route artifact manifests exist | Partial | Stable artifact key scheme for route briefs, corridor briefs, map payloads, and evaluation details |
 | QA gates | Tests and route-batch audit exist | Partial | V1 QA command covering source freshness, GTFS-RT sample coverage, intervention eligibility, corridor membership, brief completeness, and export readback |
 | Updated roadmap/docs | Some docs are stale | In progress | This page plus updated index, roadmap, ETL, and data pages |
@@ -156,6 +156,7 @@ bun run ingest:bus-lanes
 bun run ingest:equity-context -- --year 2024
 bun run ingest:route-trends -- --start-year 2025 --start-month 1 --end-year 2026 --end-month 3 --skip-ridership
 bun run build:network -- --year 2026 --month 3
+bun run route-intervention-evaluation -- --year 2026 --month 3
 bun run verify:d1 -- --year 2026 --month 3
 ```
 
@@ -260,6 +261,24 @@ Acceptance:
 ## Phase 4: Intervention Evaluation
 
 Purpose: move from overlays to evidence about what changed.
+
+Status: started 2026-05-16.
+
+Implemented so far:
+
+- `route-intervention-evaluation -- --year YYYY --month M` builds route/month intervention event rows and descriptive before/after comparisons for ACE/ABLE routes.
+- Local tables `local_intervention_event` and `local_route_intervention_comparison` store event metadata, pre/post windows, sample month counts, speed observations, average speed deltas, ridership deltas, evaluation level, comparison status, and caveats.
+- D1 serving tables `intervention_event` and `route_intervention_comparison` store exported intervention summaries.
+- `export:d1` and `verify:d1` include intervention event/comparison row counts and typed repository readback.
+- Route post-build now runs intervention evaluation alongside comparison, scheduled reliability, and batch audit.
+- Fixture-backed tests cover evaluated descriptive ACE comparisons and future-intervention no-evaluation status.
+
+Still missing:
+
+- Seasonality-aware before/after.
+- Matched comparison routes.
+- Bus-lane open-date evaluation where source coverage supports it.
+- Corridor intervention summaries.
 
 Levels:
 

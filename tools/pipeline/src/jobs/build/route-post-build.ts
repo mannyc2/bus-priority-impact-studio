@@ -2,6 +2,7 @@ import { exportD1Seed } from "../export/export-d1.js";
 import { buildRouteBatchAudit } from "./route-batch-audit.js";
 import { buildRouteBuildPlan } from "./route-build-plan.js";
 import { buildRouteComparison } from "./route-comparison.js";
+import { buildRouteInterventionEvaluation } from "./route-intervention-evaluation.js";
 import { buildRouteReliabilityBaseline } from "./route-reliability-baseline.js";
 
 export type RoutePostBuildArgs = {
@@ -22,6 +23,7 @@ export type RoutePostBuildDeps = {
   buildRouteBatchAudit: typeof buildRouteBatchAudit;
   buildRouteBuildPlan: typeof buildRouteBuildPlan;
   buildRouteComparison: typeof buildRouteComparison;
+  buildRouteInterventionEvaluation: typeof buildRouteInterventionEvaluation;
   buildRouteReliabilityBaseline: typeof buildRouteReliabilityBaseline;
   exportD1Seed: typeof exportD1Seed;
 };
@@ -30,6 +32,7 @@ export const defaultRoutePostBuildDeps: RoutePostBuildDeps = {
   buildRouteBatchAudit,
   buildRouteBuildPlan,
   buildRouteComparison,
+  buildRouteInterventionEvaluation,
   buildRouteReliabilityBaseline,
   exportD1Seed,
 };
@@ -60,6 +63,7 @@ export async function runRoutePostBuild(
       ...buildArgs,
       limit: args.routeCount,
     }),
+    deps.buildRouteInterventionEvaluation(buildArgs),
     deps.buildRouteReliabilityBaseline(buildArgs),
     deps.buildRouteBatchAudit(buildArgs),
   ]);

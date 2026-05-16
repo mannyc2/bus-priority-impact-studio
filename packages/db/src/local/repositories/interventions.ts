@@ -5,6 +5,8 @@ import {
   localAceViolationSummary,
   localBusLane,
   localBusLaneCoordinate,
+  localInterventionEvent,
+  localRouteInterventionComparison,
 } from "../schema.js";
 
 export type LocalBusLaneCoordinate = {
@@ -42,6 +44,9 @@ export type LocalAceViolationSummary = {
   violationStatus: string;
   violationCount: number;
 };
+
+export type LocalInterventionEvent = typeof localInterventionEvent.$inferSelect;
+export type LocalRouteInterventionComparison = typeof localRouteInterventionComparison.$inferSelect;
 
 function isCoordinate(value: unknown): value is [number, number] {
   return (
@@ -177,6 +182,13 @@ export async function listAceRoutesForRoute(
     .orderBy(asc(localAceRoute.implementationDate), asc(localAceRoute.program));
 }
 
+export async function listAceRoutes(db: LocalPipelineDb): Promise<LocalAceRoute[]> {
+  return db
+    .select()
+    .from(localAceRoute)
+    .orderBy(asc(localAceRoute.routeId), asc(localAceRoute.implementationDate));
+}
+
 export async function replaceAceViolationSummaries(
   db: LocalPipelineDb,
   month: string,
@@ -205,5 +217,55 @@ export async function listAceViolationSummariesForRoute(
     .orderBy(
       asc(localAceViolationSummary.violationType),
       asc(localAceViolationSummary.violationStatus),
+    );
+}
+
+export async function replaceRouteInterventionEvaluationRows(
+  db: LocalPipelineDb,
+  month: string,
+  sourceId: string,
+  input: {
+    events: readonly (typeof localInterventionEvent.$inferInsert)[];
+    comparisons: readonly (typeof localRouteInterventionComparison.$inferInsert)[];
+  },
+): Promise<void> {
+  await db
+    .delete(localRouteInterventionComparison)
+    .where(
+      and(
+        eq(localRouteInterventionComparison.month, month),
+        eq(localRouteInterventionComparison.sourceId, sourceId),
+      ),
+    );
+  await db.delete(localInterventionEvent).where(eq(localInterventionEvent.sourceId, sourceId));
+
+  if (input.events.length > 0) {
+    await batchInsert(db, localInterventionEvent, [...input.events]);
+  }
+  if (input.comparisons.length > 0) {
+    await batchInsert(db, localRouteInterventionComparison, [...input.comparisons]);
+  }
+}
+
+export async function listInterventionEvents(
+  db: LocalPipelineDb,
+): Promise<LocalInterventionEvent[]> {
+  return db
+    .select()
+    .from(localInterventionEvent)
+    .orderBy(asc(localInterventionEvent.routeId), asc(localInterventionEvent.implementationDate));
+}
+
+export async function listRouteInterventionComparisons(
+  db: LocalPipelineDb,
+  month: string,
+): Promise<LocalRouteInterventionComparison[]> {
+  return db
+    .select()
+    .from(localRouteInterventionComparison)
+    .where(eq(localRouteInterventionComparison.month, month))
+    .orderBy(
+      asc(localRouteInterventionComparison.routeId),
+      asc(localRouteInterventionComparison.eventId),
     );
 }

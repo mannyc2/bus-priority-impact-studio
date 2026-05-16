@@ -7,6 +7,7 @@ import {
   listRouteBuildPlan,
   listRouteComparisonRanks,
   listRouteEquityContexts,
+  listRouteInterventionComparisons,
   listRouteMonthTrends,
   listRouteObservedReliabilitySummaries,
   listRouteReliabilityBaselines,
@@ -29,6 +30,7 @@ export type RepositoryCheckResult = {
   buildEligibleReadinessRows: number;
   reliabilityBaselineRows: number;
   routeObservedReliabilityRows: number;
+  routeInterventionComparisonRows: number;
   routeMonthTrendRows: number;
   routeEquityContextRows: number;
   firstRouteId: string | null;
@@ -79,6 +81,8 @@ export function collectD1TableCounts(database: Database): {
         database,
         "route_observed_reliability_summary",
       ),
+      intervention_event: countTable(database, "intervention_event"),
+      route_intervention_comparison: countTable(database, "route_intervention_comparison"),
       route_month_source_status: countTable(database, "route_month_source_status"),
       route_month_trend: countTable(database, "route_month_trend"),
       route_equity_context: countTable(database, "route_equity_context"),
@@ -181,6 +185,18 @@ export function verifyD1TableCounts(input: {
   });
   compareCount({
     issues: input.issues,
+    tableName: "intervention_event",
+    actual: count("intervention_event"),
+    expected: input.exportResult.interventionEventRowCount,
+  });
+  compareCount({
+    issues: input.issues,
+    tableName: "route_intervention_comparison",
+    actual: count("route_intervention_comparison"),
+    expected: input.exportResult.routeInterventionComparisonRowCount,
+  });
+  compareCount({
+    issues: input.issues,
     tableName: "route_month_source_status",
     actual: count("route_month_source_status"),
     expected: input.exportResult.routeMonthSourceStatusRowCount,
@@ -268,6 +284,10 @@ export async function runD1RepositoryChecks(input: {
     input.db,
     input.month,
   );
+  const routeInterventionComparisons = await listRouteInterventionComparisons(
+    input.db,
+    input.month,
+  );
   const routeEquityContexts = await listRouteEquityContexts(input.db, input.month);
   const firstRouteId = briefSummaries[0]?.routeId ?? null;
   const routeMonthTrends =
@@ -283,6 +303,7 @@ export async function runD1RepositoryChecks(input: {
     buildEligibleReadinessRows: buildEligibleRoutes.length,
     reliabilityBaselineRows: reliabilityBaselines.length,
     routeObservedReliabilityRows: routeObservedReliability.length,
+    routeInterventionComparisonRows: routeInterventionComparisons.length,
     routeMonthTrendRows: routeMonthTrends.length,
     routeEquityContextRows: routeEquityContexts.length,
     firstRouteId,
@@ -314,6 +335,14 @@ export function verifyD1RepositoryChecks(input: {
   ) {
     input.issues.push(
       `repository:routeObservedReliabilityRows_expected_${input.exportResult.routeObservedReliabilitySummaryRowCount}_actual_${input.checks.routeObservedReliabilityRows}`,
+    );
+  }
+  if (
+    input.checks.routeInterventionComparisonRows !==
+    input.exportResult.routeInterventionComparisonRowCount
+  ) {
+    input.issues.push(
+      `repository:routeInterventionComparisonRows_expected_${input.exportResult.routeInterventionComparisonRowCount}_actual_${input.checks.routeInterventionComparisonRows}`,
     );
   }
 }
