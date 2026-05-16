@@ -368,6 +368,36 @@ export const localObservedHeadwaySample = sqliteTable(
   (table) => [primaryKey({ columns: [table.runId, table.sampleRank] })],
 );
 
+export const localRouteObservedReliabilitySummary = sqliteTable(
+  "local_route_observed_reliability_summary",
+  {
+    routeId: text("route_id").notNull(),
+    month: text("month").notNull(),
+    runId: text("run_id").notNull(),
+    reliabilityStatus: text("reliability_status", {
+      enum: ["observed", "insufficient_gtfs_rt_samples"],
+    }).notNull(),
+    minSampleThreshold: integer("min_sample_threshold").notNull(),
+    sampleCount: integer("sample_count").notNull(),
+    stopCount: integer("stop_count").notNull(),
+    directionCount: integer("direction_count").notNull(),
+    averageObservedHeadwayMinutes: real("average_observed_headway_minutes"),
+    medianObservedHeadwayMinutes: real("median_observed_headway_minutes"),
+    p90ObservedHeadwayMinutes: real("p90_observed_headway_minutes"),
+    maxObservedHeadwayMinutes: real("max_observed_headway_minutes"),
+    scheduledMedianHeadwayMinutes: real("scheduled_median_headway_minutes"),
+    bunchingThresholdMinutes: real("bunching_threshold_minutes"),
+    longGapThresholdMinutes: real("long_gap_threshold_minutes"),
+    observedBunchingShare: real("observed_bunching_share"),
+    observedLongGapShare: real("observed_long_gap_share"),
+    expectedWaitMinutes: real("expected_wait_minutes"),
+    scheduledExpectedWaitMinutes: real("scheduled_expected_wait_minutes"),
+    excessWaitMinutes: real("excess_wait_minutes"),
+    waitReliabilityRatio: real("wait_reliability_ratio"),
+  },
+  (table) => [primaryKey({ columns: [table.routeId, table.month, table.runId] })],
+);
+
 export const localRouteMonthSourceStatus = sqliteTable(
   "local_route_month_source_status",
   {

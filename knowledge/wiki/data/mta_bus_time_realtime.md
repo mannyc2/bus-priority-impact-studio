@@ -34,6 +34,7 @@ As of 2026-05-16, the pipeline has a bounded raw snapshot collector:
 bun run collect:gtfs-rt -- --duration-hours 24 --sample-seconds 30
 bun run ingest:gtfs-rt-snapshots -- --run-id <run_id>
 bun run build:observed-headways -- --run-id <run_id>
+bun run route-observed-reliability -- --run-id <run_id> --year 2026 --month 3
 ```
 
 The collector writes raw protobuf snapshots under `data/raw/gtfs-rt/<date>/<run_id>/` and records collection metadata in local SQLite tables:
@@ -47,6 +48,7 @@ The collector writes raw protobuf snapshots under `data/raw/gtfs-rt/<date>/<run_
 - `local_gtfs_rt_alert`
 - `local_observed_vehicle_stop_event`
 - `local_observed_headway_sample`
+- `local_route_observed_reliability_summary`
 
 It records feed type, sample index, source id, fetch time, HTTP status, byte length, SHA-256, raw file path, redacted URL, and error text. It does not persist the API key.
 
@@ -59,7 +61,8 @@ V1 collection rules:
 - Store collection metadata in the local pipeline DB.
 - Parse raw snapshots into route, trip, vehicle, position, stop sequence, and arrival/departure estimate rows.
 - Derive observed stop events and headway samples from parsed vehicle-position history.
-- Next, aggregate route/month observed reliability summaries with sample coverage, bunching, long-gap, and wait-time reliability metrics.
+- Aggregate route/month observed reliability summaries with sample coverage, bunching, long-gap, and wait-time reliability metrics.
+- Next, export observed reliability summaries to D1/static artifacts and surface them in route/corridor briefs.
 - Respect MTA terms: do not serve users directly from MTA endpoints; cache on our own server.
 
 ## Potential computed metrics
@@ -74,7 +77,7 @@ V1 collection rules:
 - Requires API key.
 - The API key must stay in local environment variables or deployment secrets; do not commit it to source files or metadata.
 - No historical data unless we collect it.
-- Current observed headway builder is run-scoped and based on parsed vehicle-position stop signals; route/month reliability summaries and confidence gates remain to be built.
+- Current observed reliability summaries are run-scoped and sample-count gated; they still need D1/readback coverage and route/corridor brief integration.
 - Realtime data can be noisy and should not be treated as authoritative without QA.
 
 ## Sources

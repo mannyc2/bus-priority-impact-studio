@@ -47,11 +47,14 @@ export {
 export type {
   LocalObservedHeadwaySample,
   LocalObservedVehicleStopEvent,
+  LocalRouteObservedReliabilitySummary,
 } from "./repositories/observed-reliability.js";
 export {
   listObservedHeadwaySamples,
   listObservedVehicleStopEvents,
+  listRouteObservedReliabilitySummaries,
   replaceObservedHeadwayRows,
+  replaceRouteObservedReliabilityRows,
 } from "./repositories/observed-reliability.js";
 export type {
   LocalRouteBatchBuiltRoute,

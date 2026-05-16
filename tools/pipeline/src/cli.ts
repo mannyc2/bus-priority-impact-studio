@@ -126,6 +126,15 @@ const commands = {
       return buildObservedHeadwaysFromCli(args);
     },
   },
+  "route-observed-reliability": {
+    description: "Build route/month observed reliability, bunching, and wait metrics.",
+    run: async (args) => {
+      const { buildRouteObservedReliabilityFromCli } = await import(
+        "./jobs/build/route-observed-reliability.js"
+      );
+      return buildRouteObservedReliabilityFromCli(args);
+    },
+  },
   "route-equity-context": {
     description: "Build route equity context artifacts.",
     run: async (args) => {

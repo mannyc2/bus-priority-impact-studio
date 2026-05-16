@@ -1,9 +1,16 @@
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { batchInsert, type LocalPipelineDb } from "../client.js";
-import { localObservedHeadwaySample, localObservedVehicleStopEvent } from "../schema.js";
+import {
+  localObservedHeadwaySample,
+  localObservedVehicleStopEvent,
+  localRouteMonthSourceStatus,
+  localRouteObservedReliabilitySummary,
+} from "../schema.js";
 
 export type LocalObservedVehicleStopEvent = typeof localObservedVehicleStopEvent.$inferSelect;
 export type LocalObservedHeadwaySample = typeof localObservedHeadwaySample.$inferSelect;
+export type LocalRouteObservedReliabilitySummary =
+  typeof localRouteObservedReliabilitySummary.$inferSelect;
 
 export async function replaceObservedHeadwayRows(
   db: LocalPipelineDb,
@@ -46,4 +53,58 @@ export async function listObservedHeadwaySamples(
     .from(localObservedHeadwaySample)
     .where(eq(localObservedHeadwaySample.runId, runId))
     .orderBy(asc(localObservedHeadwaySample.sampleRank));
+}
+
+const observedReliabilitySourceIds = ["observedHeadways", "bunching", "waitTimeReliability"];
+
+export async function replaceRouteObservedReliabilityRows(
+  db: LocalPipelineDb,
+  month: string,
+  runId: string,
+  input: {
+    summaries: readonly (typeof localRouteObservedReliabilitySummary.$inferInsert)[];
+    sourceStatuses: readonly (typeof localRouteMonthSourceStatus.$inferInsert)[];
+  },
+): Promise<void> {
+  await db
+    .delete(localRouteObservedReliabilitySummary)
+    .where(
+      and(
+        eq(localRouteObservedReliabilitySummary.month, month),
+        eq(localRouteObservedReliabilitySummary.runId, runId),
+      ),
+    );
+  await db
+    .delete(localRouteMonthSourceStatus)
+    .where(
+      and(
+        eq(localRouteMonthSourceStatus.month, month),
+        eq(localRouteMonthSourceStatus.sourceScope, "reliability"),
+        inArray(localRouteMonthSourceStatus.sourceId, observedReliabilitySourceIds),
+      ),
+    );
+
+  if (input.summaries.length > 0) {
+    await batchInsert(db, localRouteObservedReliabilitySummary, [...input.summaries]);
+  }
+  if (input.sourceStatuses.length > 0) {
+    await batchInsert(db, localRouteMonthSourceStatus, [...input.sourceStatuses]);
+  }
+}
+
+export async function listRouteObservedReliabilitySummaries(
+  db: LocalPipelineDb,
+  month: string,
+  runId: string,
+): Promise<LocalRouteObservedReliabilitySummary[]> {
+  return db
+    .select()
+    .from(localRouteObservedReliabilitySummary)
+    .where(
+      and(
+        eq(localRouteObservedReliabilitySummary.month, month),
+        eq(localRouteObservedReliabilitySummary.runId, runId),
+      ),
+    )
+    .orderBy(asc(localRouteObservedReliabilitySummary.routeId));
 }

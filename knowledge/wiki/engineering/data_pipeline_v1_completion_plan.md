@@ -181,14 +181,17 @@ Implemented so far:
 - Parsed snapshot status and counts are stored in `local_gtfs_rt_parsed_snapshot`; malformed snapshots are recorded as `parse_error`.
 - `build:observed-headways -- --run-id <run_id>` derives observed stop events and headway samples from parsed vehicle positions.
 - Observed stop events are stored in `local_observed_vehicle_stop_event`; observed headway samples are stored in `local_observed_headway_sample`.
+- `route-observed-reliability -- --run-id <run_id> --year YYYY --month M` aggregates route/month observed reliability summaries.
+- Route/month observed summaries are stored in `local_route_observed_reliability_summary` with observed headway, bunching, long-gap, expected-wait, sample-count, and insufficient-sample status.
 - Fixture-backed tests cover successful collection, API-key redaction, and HTTP failure recording.
 - Fixture-backed tests cover vehicle-position parsing, trip-update parsing, alert parsing, local DB ingestion, and malformed protobuf handling.
 - Fixture-backed tests cover duplicate vehicle-observation collapse and headway calculation.
+- Fixture-backed tests cover observed route summaries and explicit insufficient-sample statuses for routes without enough realtime evidence.
 
 Still missing:
 
-- Route/month observed reliability summaries.
-- Bunching, long-gap, and wait-time reliability metrics.
+- D1 export/readback for observed reliability summaries.
+- Brief integration for observed reliability status and caveats.
 
 Data contracts to add:
 

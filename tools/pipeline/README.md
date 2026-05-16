@@ -24,6 +24,7 @@ bun run sources:probe
 bun run collect:gtfs-rt -- --sample-count 1 --feed-types vehicle_positions
 bun run ingest:gtfs-rt-snapshots -- --run-id <run_id>
 bun run build:observed-headways -- --run-id <run_id>
+bun run route-observed-reliability -- --run-id <run_id> --year 2026 --month 3
 bun run ingest:m1 -- --route M1 --year 2026 --month 3
 bun run hotspots:m1 -- --route M1 --year 2026 --month 3
 ```
@@ -31,5 +32,6 @@ bun run hotspots:m1 -- --route M1 --year 2026 --month 3
 `collect:gtfs-rt` requires `MTA_BUS_TIME_API_KEY`, writes raw protobuf snapshots to ignored `data/raw/gtfs-rt/`, and records run/snapshot metadata in the local pipeline DB with redacted URLs.
 `ingest:gtfs-rt-snapshots` parses a collected run into normalized local vehicle-position, trip-update, stop-time-update, and alert rows.
 `build:observed-headways` collapses parsed vehicle-position stop signals into observed stop events and headway samples.
+`route-observed-reliability` aggregates observed headway samples into route/month reliability summaries with bunching, long-gap, expected-wait, and sample-confidence status.
 `ingest:m1` writes fetched route/month rows to ignored `data/raw/route-slices/` and normalized segment-speed, route, stop, and ridership outputs to ignored `data/working/route-slices/`.
 `hotspots:m1` reads the normalized working slice, joins hourly ridership exposure when present, and writes ignored hotspot artifacts to `data/artifacts/route-slices/`.

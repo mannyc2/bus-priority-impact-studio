@@ -26,6 +26,7 @@
     "route-build-plan": "bun run src/cli.ts route-build-plan",
     "route-reliability-baseline": "bun run src/cli.ts route-reliability-baseline",
     "build:observed-headways": "bun run src/cli.ts build:observed-headways",
+    "route-observed-reliability": "bun run src/cli.ts route-observed-reliability",
     "route-equity-context": "bun run src/cli.ts route-equity-context",
     "export:d1": "bun run src/cli.ts export:d1",
     "verify:d1": "bun run src/cli.ts verify:d1",
