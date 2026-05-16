@@ -12,6 +12,7 @@
     "test": "bun test ./test --timeout 5000",
     "sources:list": "bun run src/cli.ts sources:list",
     "sources:probe": "bun run src/cli.ts sources:probe",
+    "collect:gtfs-rt": "bun run src/cli.ts collect:gtfs-rt",
     "ingest:ace-routes": "bun run src/cli.ts ingest:ace-routes",
     "ingest:ace-violations": "bun run src/cli.ts ingest:ace-violations",
     "ingest:bus-lanes": "bun run src/cli.ts ingest:bus-lanes",

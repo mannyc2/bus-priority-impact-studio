@@ -169,6 +169,22 @@ Acceptance:
 
 Purpose: collect the missing observed operations layer.
 
+Status: started 2026-05-16.
+
+Implemented so far:
+
+- `collect:gtfs-rt` records bounded Bus Time GTFS-RT collection runs.
+- Raw protobuf snapshots are written under `data/raw/gtfs-rt/<date>/<run_id>/`.
+- Local SQLite tables `local_gtfs_rt_collection_run` and `local_gtfs_rt_feed_snapshot` store run metadata, snapshot status, byte length, SHA-256, redacted URLs, and raw file paths.
+- Fixture-backed tests cover successful collection, API-key redaction, and HTTP failure recording.
+
+Still missing:
+
+- GTFS-RT protobuf parsing.
+- Vehicle-position/trip-update normalized rows.
+- Observed vehicle stop events.
+- Observed headway samples.
+
 Data contracts to add:
 
 ```text
@@ -396,4 +412,3 @@ Acceptance:
 7. Route/corridor brief bodies.
 8. Export and v1 QA command.
 9. Product-facing proof finding and frontend/API alignment.
-

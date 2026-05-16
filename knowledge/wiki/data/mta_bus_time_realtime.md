@@ -2,7 +2,7 @@
 title: MTA Bus Time Realtime
 type: data
 status: active
-last_updated: 2026-04-27
+last_updated: 2026-05-16
 owner: codex
 source_count: 3
 tags: [mta, bus-time, realtime, gtfs-rt]
@@ -12,7 +12,7 @@ tags: [mta, bus-time, realtime, gtfs-rt]
 
 ## Why this matters
 
-Realtime Bus Time data can support headway, bunching, delay, and live status analysis. It is optional for MVP because historical realtime metrics require ongoing collection.
+Realtime Bus Time data supports observed headway, bunching, delay, and live status analysis. It is now part of Data Pipeline v1 because the project needs observed reliability evidence, not only scheduled baselines and public monthly speed aggregates.
 
 ## What we know
 
@@ -24,17 +24,31 @@ MTA Bus Time supports GTFS-Realtime endpoints for:
 
 An MTA Bus Time developer API key is required.
 
-## Probe status
+## Probe and collection status
 
-Probe completed 2026-04-27. TripUpdates, VehiclePositions, and Alerts all returned HTTP 200 with the local `MTA_BUS_TIME_API_KEY` environment variable. Probe metadata stores only redacted URLs and does not persist the API key.
+The source manifest contains active GTFS-RT entries for TripUpdates, VehiclePositions, and Alerts. Source probes skip these feeds when `MTA_BUS_TIME_API_KEY` is not present and redact the key when it is present.
+
+As of 2026-05-16, the pipeline has a bounded raw snapshot collector:
+
+```bash
+bun run collect:gtfs-rt -- --duration-hours 24 --sample-seconds 30
+```
+
+The collector writes raw protobuf snapshots under `data/raw/gtfs-rt/<date>/<run_id>/` and records collection metadata in local SQLite tables:
+
+- `local_gtfs_rt_collection_run`
+- `local_gtfs_rt_feed_snapshot`
+
+It records feed type, sample index, source id, fetch time, HTTP status, byte length, SHA-256, raw file path, redacted URL, and error text. It does not persist the API key.
 
 ## Implementation notes
 
-MVP can skip realtime collection. For a P2 collector:
+V1 collection rules:
 
 - Pull feeds at a fixed cadence, e.g. every 30–60 seconds.
-- Store feed timestamp, entity IDs, trip IDs, route IDs, vehicle IDs, positions, stop sequence, arrival/departure estimates.
-- Retain only processed tables if raw protobuf storage is too large.
+- Keep raw protobuf bodies in `data/raw/gtfs-rt/`, not D1.
+- Store collection metadata in the local pipeline DB.
+- Next, parse raw snapshots into route, trip, vehicle, position, stop sequence, and arrival/departure estimate rows.
 - Respect MTA terms: do not serve users directly from MTA endpoints; cache on our own server.
 
 ## Potential computed metrics
@@ -50,6 +64,7 @@ MVP can skip realtime collection. For a P2 collector:
 - The API key must stay in local environment variables or deployment secrets; do not commit it to source files or metadata.
 - No historical data unless we collect it.
 - API/feed semantics require GTFS-RT parsing.
+- Current collector stores raw snapshots and metadata only; observed reliability metrics still require a parser and headway builder.
 - Realtime data can be noisy and should not be treated as authoritative without QA.
 
 ## Sources

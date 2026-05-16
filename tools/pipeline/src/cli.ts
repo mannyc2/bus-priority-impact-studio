@@ -18,6 +18,13 @@ const commands = {
       await import("./jobs/sources/sources-probe.js");
     },
   },
+  "collect:gtfs-rt": {
+    description: "Collect bounded MTA Bus Time GTFS-RT raw feed snapshots.",
+    run: async (args) => {
+      const { collectGtfsRtSnapshotsFromCli } = await import("./jobs/collect/collect-gtfs-rt.js");
+      return collectGtfsRtSnapshotsFromCli(args);
+    },
+  },
   "ingest:ace-routes": {
     description: "Fetch ACE route implementation rows.",
     run: async () => {

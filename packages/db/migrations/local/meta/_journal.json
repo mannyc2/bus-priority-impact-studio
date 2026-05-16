@@ -57,6 +57,13 @@
       "when": 1777387278121,
       "tag": "0007_fluffy_eternity",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1778972158878,
+      "tag": "0008_gtfs_rt_collection",
+      "breakpoints": true
     }
   ]
 }

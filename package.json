@@ -53,6 +53,7 @@
     "hooks:install": "sh scripts/install-git-hooks.sh",
     "sources:list": "bun --filter @bp/pipeline sources:list",
     "sources:probe": "bun --filter @bp/pipeline sources:probe",
+    "collect:gtfs-rt": "bun --filter @bp/pipeline collect:gtfs-rt",
     "ingest:ace-routes": "bun --filter @bp/pipeline ingest:ace-routes",
     "ingest:ace-violations": "bun --filter @bp/pipeline ingest:ace-violations",
     "ingest:bus-lanes": "bun --filter @bp/pipeline ingest:bus-lanes",

@@ -2,7 +2,7 @@
 title: CLI Commands
 type: engineering
 status: active
-last_updated: 2026-04-27
+last_updated: 2026-05-16
 owner: codex
 source_count: 2
 tags: [cli, tools, codex, typescript, bun]
@@ -41,6 +41,21 @@ Expected outputs:
 - updates to `knowledge/wiki/data/*.md`
 - updates to `knowledge/wiki/data/source_registry.md`
 - append-only entry in `knowledge/log.md`
+
+## Collection commands
+
+```bash
+bun run collect:gtfs-rt -- --duration-hours 24 --sample-seconds 30
+bun run collect:gtfs-rt -- --sample-count 1 --feed-types vehicle_positions
+```
+
+Expected outputs:
+
+- raw GTFS-RT protobuf snapshots under `data/raw/gtfs-rt/<date>/<run_id>/`
+- local collection run rows in `local_gtfs_rt_collection_run`
+- local snapshot metadata rows in `local_gtfs_rt_feed_snapshot`
+
+The command requires `MTA_BUS_TIME_API_KEY`. Persisted rows use redacted feed URLs and must not store the API key.
 
 ## Ingest commands
 
@@ -159,7 +174,7 @@ Do not use `pytest`, `ruff`, or Python scripts in the MVP.
 
 ## Caveats
 
-- `sources:list`, `sources:probe`, `ingest:ace-routes`, `ingest:ace-violations`, `ingest:bus-lanes`, `ingest:equity-context`, `ingest:route-catalog`, `ingest:route-coverage`, `ingest:route-trends`, `backfill:route-ridership-trends`, `ingest:route-slice`, `ingest:route-schedules`, `build:hotspots`, `build:ridership-profile`, `build:speed-profile`, `build:interventions`, `build:bus-lanes`, `build:schedules`, `build:route-brief`, `build:artifacts`, `build:routes`, `build:network`, `compare:routes`, `route-readiness`, `route-build-plan`, `route-reliability-baseline`, `route-equity-context`, `route-batch-audit`, `export:d1`, and `verify:d1` are implemented. `build:planned-routes` remains as a compatibility alias; R2 upload remains planned.
+- `sources:list`, `sources:probe`, `collect:gtfs-rt`, `ingest:ace-routes`, `ingest:ace-violations`, `ingest:bus-lanes`, `ingest:equity-context`, `ingest:route-catalog`, `ingest:route-coverage`, `ingest:route-trends`, `backfill:route-ridership-trends`, `ingest:route-slice`, `ingest:route-schedules`, `build:hotspots`, `build:ridership-profile`, `build:speed-profile`, `build:interventions`, `build:bus-lanes`, `build:schedules`, `build:route-brief`, `build:artifacts`, `build:routes`, `build:network`, `compare:routes`, `route-readiness`, `route-build-plan`, `route-reliability-baseline`, `route-equity-context`, `route-batch-audit`, `export:d1`, and `verify:d1` are implemented. `build:planned-routes` remains as a compatibility alias; GTFS-RT parsing, observed headway builds, v1 pipeline QA, and R2 upload remain planned.
 - Keep command implementations thin; put reusable logic in `packages/*`.
 
 ## Sources

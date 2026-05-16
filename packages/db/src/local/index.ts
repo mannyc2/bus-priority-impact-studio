@@ -7,6 +7,18 @@ export {
   replaceCensusTractEquityContext,
 } from "./repositories/equity.js";
 export type {
+  GtfsRtFeedType,
+  LocalGtfsRtCollectionRun,
+  LocalGtfsRtFeedSnapshot,
+} from "./repositories/gtfs-rt.js";
+export {
+  finishGtfsRtCollectionRun,
+  insertGtfsRtCollectionRun,
+  insertGtfsRtFeedSnapshot,
+  listGtfsRtCollectionRuns,
+  listGtfsRtFeedSnapshots,
+} from "./repositories/gtfs-rt.js";
+export type {
   LocalAceRoute,
   LocalAceViolationSummary,
   LocalBusLane,

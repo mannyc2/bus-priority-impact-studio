@@ -142,6 +142,46 @@ export const localRouteReliabilityGapWindow = sqliteTable(
   (table) => [primaryKey({ columns: [table.routeId, table.month, table.windowRank] })],
 );
 
+export const localGtfsRtCollectionRun = sqliteTable("local_gtfs_rt_collection_run", {
+  runId: text("run_id").primaryKey(),
+  startedAt: text("started_at").notNull(),
+  endedAt: text("ended_at"),
+  status: text("status", {
+    enum: ["running", "completed", "completed_with_errors", "failed"],
+  }).notNull(),
+  requestedDurationSeconds: integer("requested_duration_seconds").notNull(),
+  sampleSeconds: integer("sample_seconds").notNull(),
+  requestedFeedTypes: text("requested_feed_types").notNull(),
+  snapshotCount: integer("snapshot_count").notNull(),
+  successCount: integer("success_count").notNull(),
+  failureCount: integer("failure_count").notNull(),
+  rawDirectory: text("raw_directory").notNull(),
+  error: text("error"),
+});
+
+export const localGtfsRtFeedSnapshot = sqliteTable(
+  "local_gtfs_rt_feed_snapshot",
+  {
+    runId: text("run_id").notNull(),
+    feedType: text("feed_type", {
+      enum: ["vehicle_positions", "trip_updates", "alerts"],
+    }).notNull(),
+    sampleIndex: integer("sample_index").notNull(),
+    sourceId: text("source_id").notNull(),
+    fetchedAt: text("fetched_at").notNull(),
+    status: text("status", {
+      enum: ["ok", "http_error", "network_error", "write_error"],
+    }).notNull(),
+    httpStatus: integer("http_status"),
+    byteLength: integer("byte_length"),
+    sha256: text("sha256"),
+    rawPath: text("raw_path"),
+    redactedUrl: text("redacted_url").notNull(),
+    error: text("error"),
+  },
+  (table) => [primaryKey({ columns: [table.runId, table.feedType, table.sampleIndex] })],
+);
+
 export const localRouteMonthSourceStatus = sqliteTable(
   "local_route_month_source_status",
   {
@@ -499,6 +539,20 @@ export const localRouteComparisonRank = sqliteTable(
     busLaneMatchedLaneCount: integer("bus_lane_matched_lane_count").notNull(),
   },
   (table) => [primaryKey({ columns: [table.month, table.rank] })],
+);
+
+export const localRouteArtifact = sqliteTable(
+  "local_route_artifact",
+  {
+    routeId: text("route_id").notNull(),
+    month: text("month").notNull(),
+    artifactName: text("artifact_name").notNull(),
+    artifactKey: text("artifact_key").notNull(),
+    contentType: text("content_type").notNull(),
+    byteLength: integer("byte_length").notNull(),
+    sha256: text("sha256").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.routeId, table.month, table.artifactName] })],
 );
 
 export const localRouteBatchStatus = sqliteTable("local_route_batch_status", {
