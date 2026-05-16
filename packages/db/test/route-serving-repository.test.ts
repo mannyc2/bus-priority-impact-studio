@@ -8,6 +8,7 @@ import {
   getRouteBatchStatus,
   getRouteBriefSummary,
   listBuildEligibleRoutes,
+  listCorridorSummaries,
   listRouteBriefSummaries,
   listRouteBuildPlan,
   listRouteComparisonRanks,
@@ -287,6 +288,56 @@ const interventionComparisonRow = {
     "Descriptive before/after only; not seasonality-adjusted and not matched to comparison routes.",
 };
 
+const corridorRow = {
+  corridor_id: "street:broadway",
+  corridor_name: "Broadway",
+  corridor_key: "BROADWAY",
+  derivation_method: "primary_route_stop_street",
+};
+
+const corridorRouteMemberRow = {
+  corridor_id: "street:broadway",
+  month: "2026-03",
+  route_id: "M57",
+  assignment_status: "assigned",
+  assignment_reason: "primary_stop_street",
+  stop_count: 2,
+  matched_stop_count: 2,
+  hotspot_count: 1,
+  total_ridership: 1000,
+  average_speed_mph: 6,
+};
+
+const corridorMonthSummaryRow = {
+  corridor_id: "street:broadway",
+  month: "2026-03",
+  route_count: 1,
+  assigned_route_count: 1,
+  ambiguous_route_count: 0,
+  unassigned_route_count: 0,
+  total_ridership: 1000,
+  total_transfers: 100,
+  weighted_average_speed_mph: 6,
+  hotspot_count: 1,
+  observed_reliability_route_count: 1,
+  insufficient_reliability_route_count: 0,
+  intervention_comparison_count: 1,
+  evaluated_intervention_comparison_count: 1,
+};
+
+const corridorHotspotRow = {
+  corridor_id: "street:broadway",
+  month: "2026-03",
+  corridor_hotspot_rank: 1,
+  route_id: "M57",
+  route_hotspot_rank: 1,
+  from_stop_name: "BROADWAY/MARCY AV",
+  to_stop_name: "BROADWAY/KEAP ST",
+  weighted_average_speed_mph: 5,
+  hotspot_score: 80,
+  rider_impact_score: 79,
+};
+
 const equityContextRow = {
   route_id: "M1",
   month: "2026-03",
@@ -524,6 +575,28 @@ describe("route serving repository", () => {
         comparisonStatus: "evaluated",
         speedDeltaMph: 1.6667,
         caveat: expect.stringContaining("Descriptive before/after only"),
+      }),
+    ]);
+    sqlite.close();
+  });
+
+  test("lists corridor summaries with members and hotspots", async () => {
+    const { db, sqlite } = await createDrizzleTestDb();
+    insertRows(sqlite, "corridor", [corridorRow]);
+    insertRows(sqlite, "corridor_route_member", [corridorRouteMemberRow]);
+    insertRows(sqlite, "corridor_month_summary", [corridorMonthSummaryRow]);
+    insertRows(sqlite, "corridor_hotspot", [corridorHotspotRow]);
+
+    const rows = await listCorridorSummaries(db, "2026-03");
+
+    expect(rows).toEqual([
+      expect.objectContaining({
+        corridorId: "street:broadway",
+        corridorName: "Broadway",
+        routeCount: 1,
+        weightedAverageSpeedMph: 6,
+        routeMembers: [expect.objectContaining({ route_id: "M57" })],
+        topHotspots: [expect.objectContaining({ route_id: "M57", hotspot_score: 80 })],
       }),
     ]);
     sqlite.close();

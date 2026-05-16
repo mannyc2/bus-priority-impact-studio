@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import {
+  replaceCorridorRows,
   replaceRouteBriefRows,
   replaceRouteBuildPlan,
   replaceRouteCatalog,
@@ -254,6 +255,62 @@ async function writeFixtureArtifacts(): Promise<void> {
       },
     ],
   });
+  await replaceCorridorRows(local.db, isoMonth, {
+    corridors: [
+      {
+        corridorId: "street:broadway",
+        corridorName: "Broadway",
+        corridorKey: "BROADWAY",
+        derivationMethod: "primary_route_stop_street",
+      },
+    ],
+    routeMembers: [
+      {
+        corridorId: "street:broadway",
+        month: isoMonth,
+        routeId: "T1",
+        assignmentStatus: "assigned",
+        assignmentReason: "primary_stop_street",
+        stopCount: 2,
+        matchedStopCount: 2,
+        hotspotCount: 1,
+        totalRidership: 1000,
+        averageSpeedMph: 6,
+      },
+    ],
+    summaries: [
+      {
+        corridorId: "street:broadway",
+        month: isoMonth,
+        routeCount: 1,
+        assignedRouteCount: 1,
+        ambiguousRouteCount: 0,
+        unassignedRouteCount: 0,
+        totalRidership: 1000,
+        totalTransfers: 100,
+        weightedAverageSpeedMph: 6,
+        hotspotCount: 1,
+        observedReliabilityRouteCount: 1,
+        insufficientReliabilityRouteCount: 0,
+        interventionComparisonCount: 1,
+        evaluatedInterventionComparisonCount: 1,
+      },
+    ],
+    hotspots: [
+      {
+        corridorId: "street:broadway",
+        month: isoMonth,
+        corridorHotspotRank: 1,
+        routeId: "T1",
+        routeHotspotRank: 1,
+        fromStopName: "BROADWAY/MARCY AV",
+        toStopName: "BROADWAY/KEAP ST",
+        weightedAverageSpeedMph: 5,
+        hotspotScore: 80,
+        riderImpactScore: 79,
+      },
+    ],
+  });
   await replaceRouteMonthTrends(local.db, [
     {
       routeId: "T1",
@@ -433,6 +490,10 @@ describe("D1 seed export", () => {
         routeObservedReliabilitySummaryRowCount: 1,
         interventionEventRowCount: 1,
         routeInterventionComparisonRowCount: 1,
+        corridorRowCount: 1,
+        corridorRouteMemberRowCount: 1,
+        corridorMonthSummaryRowCount: 1,
+        corridorHotspotRowCount: 1,
         routeMonthSourceStatusRowCount: 5,
         routeMonthTrendRowCount: 1,
         routeEquityContextRowCount: 1,
@@ -448,6 +509,7 @@ describe("D1 seed export", () => {
     expect(schema).toContain("CREATE TABLE `route_scorecard`");
     expect(schema).toContain("CREATE TABLE `route_observed_reliability_summary`");
     expect(schema).toContain("CREATE TABLE `route_intervention_comparison`");
+    expect(schema).toContain("CREATE TABLE `corridor_month_summary`");
     expect(seed).not.toContain("CREATE TABLE");
     expect(seed).toContain('delete from "route_catalog";');
     expect(seed).toContain(
@@ -469,6 +531,9 @@ describe("D1 seed export", () => {
     expect(seed).toContain(
       'delete from "route_intervention_comparison" where "route_intervention_comparison"."month" = \'2026-04\';',
     );
+    expect(seed).toContain(
+      'delete from "corridor_month_summary" where "corridor_month_summary"."month" = \'2026-04\';',
+    );
     expect(seed).toContain('delete from "route_month_trend";');
     expect(seed).toContain(
       'delete from "route_equity_context" where "route_equity_context"."month" = \'2026-04\';',
@@ -489,6 +554,8 @@ describe("D1 seed export", () => {
     expect(seed).toContain('insert into "route_observed_reliability_summary"');
     expect(seed).toContain('insert into "intervention_event"');
     expect(seed).toContain('insert into "route_intervention_comparison"');
+    expect(seed).toContain('insert into "corridor"');
+    expect(seed).toContain('insert into "corridor_month_summary"');
     expect(seed).toContain('insert into "route_month_source_status"');
     expect(seed).toContain('insert into "route_month_trend"');
     expect(seed).toContain('insert into "route_equity_context"');

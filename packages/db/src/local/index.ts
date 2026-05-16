@@ -1,6 +1,19 @@
 export type { LocalPipelineDb, LocalPipelineSchema } from "./client.js";
 export { batchInsert, createLocalPipelineDb } from "./client.js";
 export { migrateLocalPipelineDb } from "./migrate.js";
+export type {
+  LocalCorridor,
+  LocalCorridorHotspot,
+  LocalCorridorMonthSummary,
+  LocalCorridorRouteMember,
+} from "./repositories/corridors.js";
+export {
+  listCorridorHotspots,
+  listCorridorMonthSummaries,
+  listCorridorRouteMembers,
+  listCorridors,
+  replaceCorridorRows,
+} from "./repositories/corridors.js";
 export type { LocalCensusTractEquityContext } from "./repositories/equity.js";
 export {
   listCensusTractEquityContext,

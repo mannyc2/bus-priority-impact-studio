@@ -28,6 +28,7 @@
     "build:observed-headways": "bun run src/cli.ts build:observed-headways",
     "route-observed-reliability": "bun run src/cli.ts route-observed-reliability",
     "route-intervention-evaluation": "bun run src/cli.ts route-intervention-evaluation",
+    "corridor-model": "bun run src/cli.ts corridor-model",
     "route-equity-context": "bun run src/cli.ts route-equity-context",
     "export:d1": "bun run src/cli.ts export:d1",
     "verify:d1": "bun run src/cli.ts verify:d1",

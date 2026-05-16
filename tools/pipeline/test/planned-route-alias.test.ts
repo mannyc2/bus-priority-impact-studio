@@ -150,6 +150,18 @@ describe("planned route alias", () => {
           insufficientComparisonCount: 0,
         };
       },
+      buildCorridorModel: async () => {
+        calls.push("corridor-model");
+        return {
+          isoMonth,
+          publicRouteCount: 1,
+          corridorCount: 1,
+          assignedRouteCount: 1,
+          ambiguousRouteCount: 0,
+          unassignedRouteCount: 0,
+          corridorHotspotCount: 1,
+        };
+      },
       buildRouteBuildPlan: async ({ limit }: { limit?: number }) => {
         calls.push(`plan:${limit}`);
         return {
@@ -219,6 +231,7 @@ describe("planned route alias", () => {
         "build:T1",
         "comparison:1",
         "intervention-evaluation",
+        "corridor-model",
         "reliability",
         "audit",
         "plan:20",

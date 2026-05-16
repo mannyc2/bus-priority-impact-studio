@@ -91,6 +91,7 @@ export type LocalRouteHotspotSummary = {
 export type LocalRouteHotspot = {
   routeId: string;
   isoMonth: string;
+  hotspotRank?: number | undefined;
   segmentId: string;
   direction: string;
   stopOrder: number;
@@ -525,6 +526,7 @@ export async function listRouteHotspots(
   return rows.map((row) => ({
     routeId: row.routeId,
     isoMonth: row.month,
+    hotspotRank: row.hotspotRank,
     segmentId: row.segmentId,
     direction: row.direction,
     stopOrder: row.stopOrder,

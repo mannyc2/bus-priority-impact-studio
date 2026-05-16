@@ -1,4 +1,9 @@
 export type {
+  CorridorHotspotRow,
+  CorridorMonthSummaryRow,
+  CorridorRouteMemberRow,
+  CorridorRow,
+  CorridorSummary,
   D1ServingDb,
   D1ServingSchema,
   InterventionEventRow,
@@ -32,6 +37,7 @@ export {
   getRouteBriefSummary,
   getRouteScorecard,
   listBuildEligibleRoutes,
+  listCorridorSummaries,
   listRouteBriefSummaries,
   listRouteBuildPlan,
   listRouteComparisonRanks,

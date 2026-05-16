@@ -144,6 +144,13 @@ const commands = {
       return buildRouteInterventionEvaluationFromCli(args);
     },
   },
+  "corridor-model": {
+    description: "Build deterministic corridor assignments and summaries.",
+    run: async (args) => {
+      const { buildCorridorModelFromCli } = await import("./jobs/build/corridor-model.js");
+      return buildCorridorModelFromCli(args);
+    },
+  },
   "route-equity-context": {
     description: "Build route equity context artifacts.",
     run: async (args) => {

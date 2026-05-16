@@ -69,6 +69,7 @@
     "build:observed-headways": "bun --filter @bp/pipeline build:observed-headways",
     "route-observed-reliability": "bun --filter @bp/pipeline route-observed-reliability",
     "route-intervention-evaluation": "bun --filter @bp/pipeline route-intervention-evaluation",
+    "corridor-model": "bun --filter @bp/pipeline corridor-model",
     "route-equity-context": "bun --filter @bp/pipeline route-equity-context",
     "export:d1": "bun --filter @bp/pipeline export:d1",
     "verify:d1": "bun --filter @bp/pipeline verify:d1",

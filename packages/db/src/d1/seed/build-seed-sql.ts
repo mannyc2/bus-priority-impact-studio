@@ -3,6 +3,10 @@ import { eq, type SQLWrapper } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { SQLiteSyncDialect } from "drizzle-orm/sqlite-core";
 import type {
+  LocalCorridor,
+  LocalCorridorHotspot,
+  LocalCorridorMonthSummary,
+  LocalCorridorRouteMember,
   LocalInterventionEvent,
   LocalRouteBatchBuiltRoute,
   LocalRouteBatchIssue,
@@ -25,6 +29,10 @@ import type {
   LocalRouteScorecard,
 } from "../../local/index.js";
 import {
+  corridor,
+  corridorHotspot,
+  corridorMonthSummary,
+  corridorRouteMember,
   interventionEvent,
   routeBatchBuiltRoute,
   routeBatchIssue,
@@ -62,6 +70,10 @@ export type D1SeedInput = {
   routeObservedReliabilitySummaries: LocalRouteObservedReliabilitySummary[];
   interventionEvents: LocalInterventionEvent[];
   routeInterventionComparisons: LocalRouteInterventionComparison[];
+  corridors: LocalCorridor[];
+  corridorRouteMembers: LocalCorridorRouteMember[];
+  corridorMonthSummaries: LocalCorridorMonthSummary[];
+  corridorHotspots: LocalCorridorHotspot[];
   routeMonthSourceStatuses: LocalRouteMonthSourceStatus[];
   routeMonthTrends: LocalRouteMonthTrend[];
   routeEquityContext: LocalRouteEquityContext[];
@@ -91,6 +103,10 @@ export type D1SeedSqlResult = {
   routeObservedReliabilitySummaryRowCount: number;
   interventionEventRowCount: number;
   routeInterventionComparisonRowCount: number;
+  corridorRowCount: number;
+  corridorRouteMemberRowCount: number;
+  corridorMonthSummaryRowCount: number;
+  corridorHotspotRowCount: number;
   routeMonthSourceStatusRowCount: number;
   routeMonthTrendRowCount: number;
   routeEquityContextRowCount: number;
@@ -135,6 +151,10 @@ export function buildD1SeedSql(input: D1SeedInput): D1SeedSqlResult {
         .delete(routeInterventionComparison)
         .where(eq(routeInterventionComparison.month, month)),
     ),
+    renderQuery(seedDb.delete(corridorHotspot).where(eq(corridorHotspot.month, month))),
+    renderQuery(seedDb.delete(corridorMonthSummary).where(eq(corridorMonthSummary.month, month))),
+    renderQuery(seedDb.delete(corridorRouteMember).where(eq(corridorRouteMember.month, month))),
+    renderQuery(seedDb.delete(corridor)),
     renderQuery(
       seedDb.delete(routeMonthSourceStatus).where(eq(routeMonthSourceStatus.month, month)),
     ),
@@ -416,6 +436,80 @@ export function buildD1SeedSql(input: D1SeedInput): D1SeedSqlResult {
     );
   }
 
+  for (const row of input.corridors) {
+    statements.push(
+      renderQuery(
+        seedDb.insert(corridor).values({
+          corridorId: row.corridorId,
+          corridorName: row.corridorName,
+          corridorKey: row.corridorKey,
+          derivationMethod: row.derivationMethod,
+        }),
+      ),
+    );
+  }
+
+  for (const row of input.corridorRouteMembers) {
+    statements.push(
+      renderQuery(
+        seedDb.insert(corridorRouteMember).values({
+          corridorId: row.corridorId,
+          month: row.month,
+          routeId: row.routeId,
+          assignmentStatus: row.assignmentStatus,
+          assignmentReason: row.assignmentReason,
+          stopCount: row.stopCount,
+          matchedStopCount: row.matchedStopCount,
+          hotspotCount: row.hotspotCount,
+          totalRidership: row.totalRidership,
+          averageSpeedMph: row.averageSpeedMph,
+        }),
+      ),
+    );
+  }
+
+  for (const row of input.corridorMonthSummaries) {
+    statements.push(
+      renderQuery(
+        seedDb.insert(corridorMonthSummary).values({
+          corridorId: row.corridorId,
+          month: row.month,
+          routeCount: row.routeCount,
+          assignedRouteCount: row.assignedRouteCount,
+          ambiguousRouteCount: row.ambiguousRouteCount,
+          unassignedRouteCount: row.unassignedRouteCount,
+          totalRidership: row.totalRidership,
+          totalTransfers: row.totalTransfers,
+          weightedAverageSpeedMph: row.weightedAverageSpeedMph,
+          hotspotCount: row.hotspotCount,
+          observedReliabilityRouteCount: row.observedReliabilityRouteCount,
+          insufficientReliabilityRouteCount: row.insufficientReliabilityRouteCount,
+          interventionComparisonCount: row.interventionComparisonCount,
+          evaluatedInterventionComparisonCount: row.evaluatedInterventionComparisonCount,
+        }),
+      ),
+    );
+  }
+
+  for (const row of input.corridorHotspots) {
+    statements.push(
+      renderQuery(
+        seedDb.insert(corridorHotspot).values({
+          corridorId: row.corridorId,
+          month: row.month,
+          corridorHotspotRank: row.corridorHotspotRank,
+          routeId: row.routeId,
+          routeHotspotRank: row.routeHotspotRank,
+          fromStopName: row.fromStopName,
+          toStopName: row.toStopName,
+          weightedAverageSpeedMph: row.weightedAverageSpeedMph,
+          hotspotScore: row.hotspotScore,
+          riderImpactScore: row.riderImpactScore,
+        }),
+      ),
+    );
+  }
+
   for (const row of input.routeMonthSourceStatuses) {
     routeMonthSourceStatusRowCount += 1;
     statements.push(
@@ -642,6 +736,10 @@ export function buildD1SeedSql(input: D1SeedInput): D1SeedSqlResult {
     routeObservedReliabilitySummaryRowCount: input.routeObservedReliabilitySummaries.length,
     interventionEventRowCount: input.interventionEvents.length,
     routeInterventionComparisonRowCount: input.routeInterventionComparisons.length,
+    corridorRowCount: input.corridors.length,
+    corridorRouteMemberRowCount: input.corridorRouteMembers.length,
+    corridorMonthSummaryRowCount: input.corridorMonthSummaries.length,
+    corridorHotspotRowCount: input.corridorHotspots.length,
     routeMonthSourceStatusRowCount,
     routeMonthTrendRowCount: input.routeMonthTrends.length,
     routeEquityContextRowCount: input.routeEquityContext.length,

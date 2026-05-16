@@ -1,5 +1,13 @@
 export type { D1ServingDb, D1ServingSchema } from "./client.js";
 export { createD1ServingDb } from "./client.js";
+export type {
+  CorridorHotspotRow,
+  CorridorMonthSummaryRow,
+  CorridorRouteMemberRow,
+  CorridorRow,
+  CorridorSummary,
+} from "./queries/corridor-summaries.js";
+export { listCorridorSummaries } from "./queries/corridor-summaries.js";
 export type { RouteBatchStatus, RouteBatchStatusRow } from "./queries/route-batch-status.js";
 export { getRouteBatchStatus } from "./queries/route-batch-status.js";
 export type {

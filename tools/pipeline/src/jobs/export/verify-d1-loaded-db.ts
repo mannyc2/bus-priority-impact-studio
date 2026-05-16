@@ -3,6 +3,7 @@ import type { D1ServingDb } from "@bp/db/d1";
 import {
   getRouteBatchStatus,
   listBuildEligibleRoutes,
+  listCorridorSummaries,
   listRouteBriefSummaries,
   listRouteBuildPlan,
   listRouteComparisonRanks,
@@ -31,6 +32,7 @@ export type RepositoryCheckResult = {
   reliabilityBaselineRows: number;
   routeObservedReliabilityRows: number;
   routeInterventionComparisonRows: number;
+  corridorSummaryRows: number;
   routeMonthTrendRows: number;
   routeEquityContextRows: number;
   firstRouteId: string | null;
@@ -83,6 +85,10 @@ export function collectD1TableCounts(database: Database): {
       ),
       intervention_event: countTable(database, "intervention_event"),
       route_intervention_comparison: countTable(database, "route_intervention_comparison"),
+      corridor: countTable(database, "corridor"),
+      corridor_route_member: countTable(database, "corridor_route_member"),
+      corridor_month_summary: countTable(database, "corridor_month_summary"),
+      corridor_hotspot: countTable(database, "corridor_hotspot"),
       route_month_source_status: countTable(database, "route_month_source_status"),
       route_month_trend: countTable(database, "route_month_trend"),
       route_equity_context: countTable(database, "route_equity_context"),
@@ -197,6 +203,30 @@ export function verifyD1TableCounts(input: {
   });
   compareCount({
     issues: input.issues,
+    tableName: "corridor",
+    actual: count("corridor"),
+    expected: input.exportResult.corridorRowCount,
+  });
+  compareCount({
+    issues: input.issues,
+    tableName: "corridor_route_member",
+    actual: count("corridor_route_member"),
+    expected: input.exportResult.corridorRouteMemberRowCount,
+  });
+  compareCount({
+    issues: input.issues,
+    tableName: "corridor_month_summary",
+    actual: count("corridor_month_summary"),
+    expected: input.exportResult.corridorMonthSummaryRowCount,
+  });
+  compareCount({
+    issues: input.issues,
+    tableName: "corridor_hotspot",
+    actual: count("corridor_hotspot"),
+    expected: input.exportResult.corridorHotspotRowCount,
+  });
+  compareCount({
+    issues: input.issues,
     tableName: "route_month_source_status",
     actual: count("route_month_source_status"),
     expected: input.exportResult.routeMonthSourceStatusRowCount,
@@ -288,6 +318,7 @@ export async function runD1RepositoryChecks(input: {
     input.db,
     input.month,
   );
+  const corridorSummaries = await listCorridorSummaries(input.db, input.month);
   const routeEquityContexts = await listRouteEquityContexts(input.db, input.month);
   const firstRouteId = briefSummaries[0]?.routeId ?? null;
   const routeMonthTrends =
@@ -304,6 +335,7 @@ export async function runD1RepositoryChecks(input: {
     reliabilityBaselineRows: reliabilityBaselines.length,
     routeObservedReliabilityRows: routeObservedReliability.length,
     routeInterventionComparisonRows: routeInterventionComparisons.length,
+    corridorSummaryRows: corridorSummaries.length,
     routeMonthTrendRows: routeMonthTrends.length,
     routeEquityContextRows: routeEquityContexts.length,
     firstRouteId,
@@ -343,6 +375,11 @@ export function verifyD1RepositoryChecks(input: {
   ) {
     input.issues.push(
       `repository:routeInterventionComparisonRows_expected_${input.exportResult.routeInterventionComparisonRowCount}_actual_${input.checks.routeInterventionComparisonRows}`,
+    );
+  }
+  if (input.checks.corridorSummaryRows !== input.exportResult.corridorMonthSummaryRowCount) {
+    input.issues.push(
+      `repository:corridorSummaryRows_expected_${input.exportResult.corridorMonthSummaryRowCount}_actual_${input.checks.corridorSummaryRows}`,
     );
   }
 }

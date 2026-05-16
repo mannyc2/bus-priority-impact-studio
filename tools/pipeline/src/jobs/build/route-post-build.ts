@@ -1,4 +1,5 @@
 import { exportD1Seed } from "../export/export-d1.js";
+import { buildCorridorModel } from "./corridor-model.js";
 import { buildRouteBatchAudit } from "./route-batch-audit.js";
 import { buildRouteBuildPlan } from "./route-build-plan.js";
 import { buildRouteComparison } from "./route-comparison.js";
@@ -21,6 +22,7 @@ export type RoutePostBuildResult = {
 
 export type RoutePostBuildDeps = {
   buildRouteBatchAudit: typeof buildRouteBatchAudit;
+  buildCorridorModel: typeof buildCorridorModel;
   buildRouteBuildPlan: typeof buildRouteBuildPlan;
   buildRouteComparison: typeof buildRouteComparison;
   buildRouteInterventionEvaluation: typeof buildRouteInterventionEvaluation;
@@ -29,6 +31,7 @@ export type RoutePostBuildDeps = {
 };
 
 export const defaultRoutePostBuildDeps: RoutePostBuildDeps = {
+  buildCorridorModel,
   buildRouteBatchAudit,
   buildRouteBuildPlan,
   buildRouteComparison,
@@ -67,6 +70,7 @@ export async function runRoutePostBuild(
     deps.buildRouteReliabilityBaseline(buildArgs),
     deps.buildRouteBatchAudit(buildArgs),
   ]);
+  await deps.buildCorridorModel(buildArgs);
 
   if (!args.exportD1) {
     return { d1SeedPath: null, refreshedPlanDbPath: refreshedPlan?.dbPath ?? null };

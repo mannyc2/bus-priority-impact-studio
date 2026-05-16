@@ -48,6 +48,18 @@ describe("route post-build", () => {
           insufficientComparisonCount: 0,
         };
       },
+      buildCorridorModel: async () => {
+        calls.push("corridor-model");
+        return {
+          isoMonth: "2026-08",
+          publicRouteCount: 2,
+          corridorCount: 1,
+          assignedRouteCount: 2,
+          ambiguousRouteCount: 0,
+          unassignedRouteCount: 0,
+          corridorHotspotCount: 1,
+        };
+      },
       buildRouteReliabilityBaseline: async () => {
         calls.push("reliability");
         return {
@@ -94,6 +106,7 @@ describe("route post-build", () => {
       expect.arrayContaining([
         "comparison:2",
         "intervention-evaluation",
+        "corridor-model",
         "reliability",
         "audit",
         "plan:20",

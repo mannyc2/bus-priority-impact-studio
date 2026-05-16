@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import {
+  replaceCorridorRows,
   replaceRouteBriefRows,
   replaceRouteBuildPlan,
   replaceRouteCatalog,
@@ -248,6 +249,62 @@ async function writeFixtureNetwork(): Promise<void> {
       },
     ],
   });
+  await replaceCorridorRows(local.db, isoMonth, {
+    corridors: [
+      {
+        corridorId: "street:broadway",
+        corridorName: "Broadway",
+        corridorKey: "BROADWAY",
+        derivationMethod: "primary_route_stop_street",
+      },
+    ],
+    routeMembers: [
+      {
+        corridorId: "street:broadway",
+        month: isoMonth,
+        routeId: "T1",
+        assignmentStatus: "assigned",
+        assignmentReason: "primary_stop_street",
+        stopCount: 2,
+        matchedStopCount: 2,
+        hotspotCount: 1,
+        totalRidership: 1000,
+        averageSpeedMph: 6,
+      },
+    ],
+    summaries: [
+      {
+        corridorId: "street:broadway",
+        month: isoMonth,
+        routeCount: 1,
+        assignedRouteCount: 1,
+        ambiguousRouteCount: 0,
+        unassignedRouteCount: 0,
+        totalRidership: 1000,
+        totalTransfers: 100,
+        weightedAverageSpeedMph: 6,
+        hotspotCount: 1,
+        observedReliabilityRouteCount: 1,
+        insufficientReliabilityRouteCount: 0,
+        interventionComparisonCount: 1,
+        evaluatedInterventionComparisonCount: 1,
+      },
+    ],
+    hotspots: [
+      {
+        corridorId: "street:broadway",
+        month: isoMonth,
+        corridorHotspotRank: 1,
+        routeId: "T1",
+        routeHotspotRank: 1,
+        fromStopName: "BROADWAY/MARCY AV",
+        toStopName: "BROADWAY/KEAP ST",
+        weightedAverageSpeedMph: 5,
+        hotspotScore: 80,
+        riderImpactScore: 79,
+      },
+    ],
+  });
   await replaceRouteMonthTrends(local.db, [
     {
       routeId: "T1",
@@ -399,6 +456,10 @@ describe("D1 export verification", () => {
         route_observed_reliability_summary: 1,
         intervention_event: 1,
         route_intervention_comparison: 1,
+        corridor: 1,
+        corridor_route_member: 1,
+        corridor_month_summary: 1,
+        corridor_hotspot: 1,
         route_month_source_status: 5,
         route_month_trend: 1,
         route_equity_context: 1,
@@ -416,6 +477,7 @@ describe("D1 export verification", () => {
         reliabilityBaselineRows: 1,
         routeObservedReliabilityRows: 1,
         routeInterventionComparisonRows: 1,
+        corridorSummaryRows: 1,
         routeMonthTrendRows: 1,
         routeEquityContextRows: 1,
         firstRouteId: "T1",

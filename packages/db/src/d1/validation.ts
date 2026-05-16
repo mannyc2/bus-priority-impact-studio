@@ -1,5 +1,9 @@
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import {
+  corridor,
+  corridorHotspot,
+  corridorMonthSummary,
+  corridorRouteMember,
   interventionEvent,
   routeBatchStatus,
   routeBriefPeakWindow,
@@ -30,4 +34,8 @@ export const InterventionEventSelectSchema = createSelectSchema(interventionEven
 export const RouteInterventionComparisonSelectSchema = createSelectSchema(
   routeInterventionComparison,
 );
+export const CorridorSelectSchema = createSelectSchema(corridor);
+export const CorridorRouteMemberSelectSchema = createSelectSchema(corridorRouteMember);
+export const CorridorMonthSummarySelectSchema = createSelectSchema(corridorMonthSummary);
+export const CorridorHotspotSelectSchema = createSelectSchema(corridorHotspot);
 export const RouteBatchStatusSelectSchema = createSelectSchema(routeBatchStatus);

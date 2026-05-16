@@ -664,6 +664,70 @@ export const localRouteInterventionComparison = sqliteTable(
   (table) => [primaryKey({ columns: [table.routeId, table.month, table.eventId] })],
 );
 
+export const localCorridor = sqliteTable("local_corridor", {
+  corridorId: text("corridor_id").primaryKey(),
+  corridorName: text("corridor_name").notNull(),
+  corridorKey: text("corridor_key").notNull(),
+  derivationMethod: text("derivation_method").notNull(),
+});
+
+export const localCorridorRouteMember = sqliteTable(
+  "local_corridor_route_member",
+  {
+    corridorId: text("corridor_id").notNull(),
+    month: text("month").notNull(),
+    routeId: text("route_id").notNull(),
+    assignmentStatus: text("assignment_status").notNull(),
+    assignmentReason: text("assignment_reason").notNull(),
+    stopCount: integer("stop_count").notNull(),
+    matchedStopCount: integer("matched_stop_count").notNull(),
+    hotspotCount: integer("hotspot_count").notNull(),
+    totalRidership: real("total_ridership").notNull(),
+    averageSpeedMph: real("average_speed_mph").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.corridorId, table.month, table.routeId] })],
+);
+
+export const localCorridorMonthSummary = sqliteTable(
+  "local_corridor_month_summary",
+  {
+    corridorId: text("corridor_id").notNull(),
+    month: text("month").notNull(),
+    routeCount: integer("route_count").notNull(),
+    assignedRouteCount: integer("assigned_route_count").notNull(),
+    ambiguousRouteCount: integer("ambiguous_route_count").notNull(),
+    unassignedRouteCount: integer("unassigned_route_count").notNull(),
+    totalRidership: real("total_ridership").notNull(),
+    totalTransfers: real("total_transfers").notNull(),
+    weightedAverageSpeedMph: real("weighted_average_speed_mph"),
+    hotspotCount: integer("hotspot_count").notNull(),
+    observedReliabilityRouteCount: integer("observed_reliability_route_count").notNull(),
+    insufficientReliabilityRouteCount: integer("insufficient_reliability_route_count").notNull(),
+    interventionComparisonCount: integer("intervention_comparison_count").notNull(),
+    evaluatedInterventionComparisonCount: integer(
+      "evaluated_intervention_comparison_count",
+    ).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.corridorId, table.month] })],
+);
+
+export const localCorridorHotspot = sqliteTable(
+  "local_corridor_hotspot",
+  {
+    corridorId: text("corridor_id").notNull(),
+    month: text("month").notNull(),
+    corridorHotspotRank: integer("corridor_hotspot_rank").notNull(),
+    routeId: text("route_id").notNull(),
+    routeHotspotRank: integer("route_hotspot_rank").notNull(),
+    fromStopName: text("from_stop_name").notNull(),
+    toStopName: text("to_stop_name").notNull(),
+    weightedAverageSpeedMph: real("weighted_average_speed_mph").notNull(),
+    hotspotScore: integer("hotspot_score").notNull(),
+    riderImpactScore: integer("rider_impact_score"),
+  },
+  (table) => [primaryKey({ columns: [table.corridorId, table.month, table.corridorHotspotRank] })],
+);
+
 export const localCensusTractEquityContext = sqliteTable(
   "local_census_tract_equity_context",
   {

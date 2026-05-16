@@ -39,7 +39,7 @@ Repository state checked from `/mnt/models/dev/bus-reliability-tracker`:
 
 - Branch: `architecture-cleanup-drizzle-plan`
 - Synced with `origin/architecture-cleanup-drizzle-plan`
-- Latest commit: `ab457a6 Generalize route pipeline build graph`
+- Original reset baseline: `ab457a6 Generalize route pipeline build graph`
 - Working tree: clean at audit time
 
 Local generated state:
@@ -78,7 +78,7 @@ Current v1 gaps:
 - GTFS-RT observed reliability still needs a production-length collection run, coverage QA, and brief integration.
 - Observed reliability is route/month summary only; detailed observed reliability windows are not yet built.
 - ACE descriptive before/after intervention evaluation exists; seasonality-adjusted, matched-comparison, and bus-lane intervention evaluation remain open.
-- No corridor entities, corridor membership, corridor metrics, or corridor briefs.
+- Deterministic primary-street corridor entities, route membership, summaries, and hotspot rows exist; corridor brief bodies and richer segment membership remain open.
 - Route brief artifacts are deterministic inputs/summaries, not final route/corridor brief bodies.
 - Bus lane matching is no longer borough-hardcoded, but still needs v1 QA coverage in the final pipeline gate.
 - Route score is still a simple speed/hotspot heuristic, not the planned multi-factor priority model.
@@ -92,10 +92,10 @@ Current v1 gaps:
 | GTFS-RT observed reliability | Collector, parser, observed headway samples, route/month summaries, and D1 readback exist | Partial | Production-length collection, coverage QA, and brief caveats |
 | Bunching | Route/month observed bunching and long-gap shares are computed from observed headways | Partial | Bunching/long-gap/window metrics with sample coverage/confidence |
 | Before/after intervention evaluation | ACE event rows and descriptive before/after route comparisons exist with D1 readback | Partial | Seasonality-aware, matched-comparison, bus-lane intervention, and corridor summaries |
-| Corridor grouping | Route/stop/bus-lane street data exists | Missing | Corridor tables, route/segment membership, corridor summaries |
+| Corridor grouping | Primary-street corridor tables, route membership, summaries, hotspots, and D1 readback exist | Partial | Richer segment membership, ambiguity QA, corridor intervention context, and corridor brief bodies |
 | Full set of route briefs | 381 `route-brief-input.json` and DB brief summaries exist | Partial | Rendered JSON/Markdown/HTML route brief bodies for public-visible routes |
 | Full set of corridor briefs | No corridor artifacts | Missing | Rendered JSON/Markdown/HTML corridor brief bodies |
-| Verified D1 export contract | `export:d1` and `verify:d1` cover route serving rows, observed reliability, and ACE intervention comparisons | Partial | D1 verification expanded to corridor summary rows and final brief metadata |
+| Verified D1 export contract | `export:d1` and `verify:d1` cover route serving rows, observed reliability, ACE intervention comparisons, and corridor summaries | Partial | D1 verification expanded to final brief metadata and static artifact manifests |
 | Static artifact contract | Route artifact manifests exist | Partial | Stable artifact key scheme for route briefs, corridor briefs, map payloads, and evaluation details |
 | QA gates | Tests and route-batch audit exist | Partial | V1 QA command covering source freshness, GTFS-RT sample coverage, intervention eligibility, corridor membership, brief completeness, and export readback |
 | Updated roadmap/docs | Some docs are stale | In progress | This page plus updated index, roadmap, ETL, and data pages |
@@ -157,6 +157,7 @@ bun run ingest:equity-context -- --year 2024
 bun run ingest:route-trends -- --start-year 2025 --start-month 1 --end-year 2026 --end-month 3 --skip-ridership
 bun run build:network -- --year 2026 --month 3
 bun run route-intervention-evaluation -- --year 2026 --month 3
+bun run corridor-model -- --year 2026 --month 3
 bun run verify:d1 -- --year 2026 --month 3
 ```
 
@@ -312,6 +313,25 @@ Acceptance:
 ## Phase 5: Corridor Model
 
 Purpose: produce corridor-level evidence instead of only route-level evidence.
+
+Status: started 2026-05-16.
+
+Implemented so far:
+
+- `corridor-model -- --year YYYY --month M` assigns every public-visible route to a deterministic primary-street corridor or an explicit unassigned placeholder.
+- Local tables `local_corridor`, `local_corridor_route_member`, `local_corridor_month_summary`, and `local_corridor_hotspot` store corridor identity, route membership, summary metrics, and top corridor hotspots.
+- D1 serving tables `corridor`, `corridor_route_member`, `corridor_month_summary`, and `corridor_hotspot` store exported corridor summaries.
+- `export:d1` and `verify:d1` include corridor row counts and typed repository readback through `listCorridorSummaries`.
+- Route post-build now runs the corridor model after intervention evaluation and before D1 export.
+- Fixture-backed tests cover multi-route corridor aggregation, explicit unassigned route handling, reliability counts, intervention counts, and hotspot ranking.
+
+Still missing:
+
+- Richer route-shape/segment-based membership.
+- Bus-lane facility-assisted grouping.
+- Corridor intervention context beyond route-level comparison rollups.
+- Corridor brief bodies.
+- Assignment QA in the final v1 gate.
 
 Initial corridor derivation:
 
