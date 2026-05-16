@@ -16,6 +16,31 @@ The MVP should separate batch computation from public serving. Source probing, h
 
 See [[wiki/engineering/package_structure|Repo Package Structure]] and [[wiki/engineering/data_model|Data Model]].
 
+## V1 scope update — 2026-05-16
+
+The current v1 finish line is no longer only the original M1/local route MVP. See [[wiki/engineering/data_pipeline_v1_completion_plan|Data Pipeline v1 completion plan]].
+
+Approved v1 scope:
+
+1. GTFS-RT observed reliability and bunching are part of v1.
+2. Before/after intervention evaluation is part of v1.
+3. The deliverable is the full network pipeline plus a full set of route and corridor briefs.
+
+Current baseline:
+
+- `build:network` has produced a complete March 2026 full-network route build with 381 route slices and 0 failures.
+- `@bp/db/local` is the canonical local pipeline DB for current route/catalog/artifact state.
+- `export:d1` and `verify:d1` produce and validate the compact serving projection for current route-serving rows.
+
+V1 additions still required:
+
+- GTFS-RT collector and observed headway tables.
+- Observed reliability and bunching metrics.
+- ACE/bus-lane before/after and comparison artifacts.
+- Corridor entities, metrics, and brief summaries.
+- Final route/corridor brief body artifacts.
+- `check:pipeline-v1` or equivalent QA gate that verifies every v1 deliverable.
+
 ## Phase 0: source metadata probes
 
 Command target:
@@ -170,7 +195,8 @@ For every ingested dataset, maintain:
 
 - Generic command names are targets; `sources:list`, `sources:probe`, `ingest:m1`, and `hotspots:m1` are implemented.
 - Exact Socrata field names are confirmed for active MVP sources through source probes, but downstream join contracts still need route-by-route QA.
-- Realtime Bus Time collection is optional and deferred.
+- The command caveat above is historical and stale for the current branch: route/network commands such as `ingest:route-slice`, `build:routes`, `build:network`, `export:d1`, and `verify:d1` are now implemented. Update this page as v1 docs are fully reset.
+- Realtime Bus Time collection is no longer optional for v1 after the 2026-05-16 scope decision.
 
 ## Sources
 

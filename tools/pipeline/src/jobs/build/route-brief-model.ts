@@ -170,7 +170,7 @@ export function buildRouteBriefModel(input: RouteBriefModelInput) {
           ]),
       "Ridership exposure is joined at route/day/hour level; it is not segment-level passenger load.",
       "ACE route matching is route-level only; this does not prove segment-level camera coverage.",
-      "Bus-lane overlay is based on street/proximity matching and should not be interpreted as exact route-segment coverage.",
+      "Bus-lane overlay is based on street plus proximity matching and should not be interpreted as exact route-segment coverage.",
       "Scheduled travel time is derived by splitting schedule rows into trip-like sequences within block/day/direction groups.",
       "Ridership windows are route-level hourly totals, not segment-level passenger loads.",
       "Speed profiles aggregate MTA segment-speed timepoint observations by direction, daypart, and day/hour.",

@@ -1,7 +1,9 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
+import type { LocalBusLane, LocalRouteStop } from "@bp/db/local";
 import { replaceBusLanes, replaceRouteStops } from "@bp/db/local";
+import { busLaneMatches } from "../src/jobs/build/route-brief-metrics.js";
 import { buildRouteBusLaneOverlay } from "../src/jobs/build/route-secondary-artifacts.js";
 import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
@@ -84,5 +86,49 @@ describe("route bus-lane overlay build", () => {
         matchedStreetCount: 1,
       }),
     );
+  });
+
+  test("matches outer-borough bus lanes without cross-borough street-name pollution", () => {
+    const stops: LocalRouteStop[] = [
+      {
+        routeId: "T2",
+        isoMonth: "2026-03",
+        routeShortName: "T2",
+        stopId: "BK1",
+        stopName: "BROADWAY/MARCY AV",
+        inEffect: true,
+        directionId: "0",
+        direction: "N",
+        timepoint: true,
+        latitude: 40.70845,
+        longitude: -73.95779,
+      },
+    ];
+    const lanes: LocalBusLane[] = [
+      {
+        segmentId: "brooklyn-broadway",
+        street: "BROADWAY",
+        borough: "BKN",
+        facility: "Broadway",
+        coordinates: [
+          { longitude: -73.9579, latitude: 40.7085 },
+          { longitude: -73.9577, latitude: 40.7083 },
+        ],
+      },
+      {
+        segmentId: "manhattan-broadway",
+        street: "BROADWAY",
+        borough: "MAN",
+        facility: "Broadway",
+        coordinates: [
+          { longitude: -73.98513, latitude: 40.7589 },
+          { longitude: -73.98492, latitude: 40.7591 },
+        ],
+      },
+    ];
+
+    expect(busLaneMatches(lanes, stops).map((match) => match.lane.segmentId)).toEqual([
+      "brooklyn-broadway",
+    ]);
   });
 });

@@ -11,6 +11,7 @@ import type {
 
 export const slowSpeedThresholdMph = 8;
 export const busLaneProximityThresholdMeters = 150;
+export const busLaneStreetMatchThresholdMeters = 400;
 
 function round(value: number, decimals = 4): number {
   const factor = 10 ** decimals;
@@ -374,24 +375,26 @@ export function busLaneMatches(busLanes: LocalBusLane[], stops: LocalRouteStop[]
   }));
   const routeStreets = new Set(stops.map((stop) => routeStreetFromStopName(stop.stopName)));
   return busLanes
-    .filter((lane) => lane.borough === "MAN")
     .map((lane) => {
       const laneStreet = normalizeStreetName(lane.street);
       const laneFacility = normalizeStreetName(lane.facility);
       const nearestStopDistanceMeters = minDistanceMeters(lane.coordinates, stopCoordinates);
       const streetMatched = routeStreets.has(laneStreet) || routeStreets.has(laneFacility);
       const proximityMatched = nearestStopDistanceMeters <= busLaneProximityThresholdMeters;
+      const streetProximityMatched =
+        streetMatched && nearestStopDistanceMeters <= busLaneStreetMatchThresholdMeters;
 
       return {
         lane,
         streetMatched,
         proximityMatched,
+        streetProximityMatched,
         nearestStopDistanceMeters: Number.isFinite(nearestStopDistanceMeters)
           ? Math.round(nearestStopDistanceMeters)
           : null,
       };
     })
-    .filter((match) => match.streetMatched || match.proximityMatched);
+    .filter((match) => match.streetProximityMatched || match.proximityMatched);
 }
 
 export function matchedBusLanes(busLanes: LocalBusLane[], stops: LocalRouteStop[]) {

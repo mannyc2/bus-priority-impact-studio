@@ -32,6 +32,7 @@ Read this file first. It is the navigation layer for the LLM wiki.
 - [[wiki/engineering/data_model|Data model]] — D1/SQLite serving model, Drizzle schema split, JSON cleanup plan, local artifacts, and migration path to Postgres/Hyperdrive.
 - [[wiki/engineering/etl_plan|ETL plan]] — Ingestion order, Drizzle/D1 migration workflow, local backfill rules, transformation rules, and QA.
 - [[wiki/engineering/local_pipeline_db_cutover|Local pipeline DB cutover plan]] — Plan to replace DB-shaped JSON handoffs with `@bp/db/local` SQLite/Drizzle tables and shrink `tools/pipeline`.
+- [[wiki/engineering/data_pipeline_v1_completion_plan|Data Pipeline v1 completion plan]] — Approved v1 finish line for GTFS-RT reliability, intervention evaluation, corridors, briefs, exports, and QA gates.
 - [[wiki/engineering/map_strategy|Map strategy]] — MapLibre, GeoJSON/PMTiles artifacts, NYC scope, and map package responsibilities.
 - [[wiki/engineering/llm_wiki_rag|LLM wiki + RAG layer]] — How the persistent wiki and cited answer layer should work.
 - [[wiki/engineering/cli_commands|CLI commands]] — TypeScript `/pipeline` command targets for source probes, ingest, analytics builds, exports, and wiki linting.
@@ -54,10 +55,11 @@ Read this file first. It is the navigation layer for the LLM wiki.
 
 ## Immediate open issues
 
-1. Full 381-route network build is running for March 2026. Pipeline is crash-safe and resumable via `build:network`.
+1. Execute [[wiki/engineering/data_pipeline_v1_completion_plan|Data Pipeline v1 completion plan]].
 2. Bus lane matching is Manhattan-only — generalize the `borough === "MAN"` filter for outer-borough routes.
-3. Route score uses a two-factor formula; incorporate ridership weight, persistence, reliability, and intervention gap per the planned five-factor model.
-4. Ridership is route-level hourly proxy, not segment-level. Document this prominently in the frontend when showing rider-impact scores.
-5. Decide how much realtime Bus Time data to collect; realtime collection is useful but not required for MVP.
-6. Keep the MVP TypeScript-only unless a documented requirement forces Python/PostGIS/VPS escalation.
-7. Keep D1 as a compact serving projection; promote canonical queryable history to Postgres/Hyperdrive instead of growing D1 into a warehouse.
+3. GTFS-RT collection is now v1 scope; add local collection, observed headway samples, bunching, and long-gap metrics.
+4. Intervention evaluation is now v1 scope; add before/after and matched-comparison artifacts where source quality supports them.
+5. Add corridor grouping and a full set of route/corridor brief artifacts.
+6. Route score uses a two-factor formula; incorporate ridership weight, persistence, reliability, and intervention gap or demote score behind brief evidence.
+7. Keep the MVP TypeScript-only unless a documented requirement forces Python/PostGIS/VPS escalation.
+8. Keep D1 as a compact serving projection; promote canonical queryable history to Postgres/Hyperdrive instead of growing D1 into a warehouse.

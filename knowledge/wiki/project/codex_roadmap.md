@@ -10,6 +10,36 @@ tags: [codex, roadmap, implementation, typescript]
 
 # Codex Roadmap
 
+## Current v1 direction — 2026-05-16
+
+The current implementation has moved beyond the original M1 prototype. The v1 finish line is now defined in [[wiki/engineering/data_pipeline_v1_completion_plan|Data Pipeline v1 completion plan]].
+
+Approved v1 scope:
+
+1. GTFS-RT observed reliability and bunching are part of v1.
+2. Before/after intervention evaluation is part of v1.
+3. The deliverable is the full network pipeline plus a full set of route and corridor briefs.
+
+Current implementation baseline:
+
+- Full March 2026 network build exists with 381 route slices and 0 build failures.
+- Local SQLite pipeline DB is canonical for route catalog, coverage, route artifacts, scorecards, brief summaries, reliability baselines, intervention overlays, and export inputs.
+- D1 seed export and verification exist for the current route-serving projection.
+- Route brief summaries and deterministic brief input artifacts exist, but final route/corridor brief bodies do not.
+
+Primary remaining roadmap:
+
+1. Reset docs and command references around the generic route/network pipeline.
+2. Harden the current full-network route build and remove known M1-era assumptions, especially Manhattan-only bus-lane matching.
+3. Add GTFS-RT collection and observed headway sample storage.
+4. Compute observed reliability, bunching, long-gap, and wait-time reliability metrics.
+5. Add intervention evaluation artifacts for ACE and bus-lane changes where source coverage supports them.
+6. Add deterministic corridor grouping and corridor metrics.
+7. Generate final route and corridor brief artifacts.
+8. Expand D1/static export contracts and QA gates to cover reliability, interventions, corridors, and brief bodies.
+
+The older phase list below remains as historical context for how the repo reached the current baseline.
+
 ## Phase 0 — Repo and source validation
 
 1. Read root `AGENTS.md`, root `CLAUDE.md`, `knowledge/index.md`, and `knowledge/raw/source_manifest.yaml`.
@@ -75,4 +105,4 @@ tags: [codex, roadmap, implementation, typescript]
 - No FastAPI.
 - No hosted Postgres/PostGIS.
 - No VPS.
-- No realtime Bus Time collector unless explicitly promoted from optional to required.
+- Realtime Bus Time collection was promoted into v1 scope on 2026-05-16; it is no longer a v1 non-goal.
