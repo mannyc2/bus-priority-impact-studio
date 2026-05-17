@@ -176,6 +176,10 @@ describe("planned route alias", () => {
           corridorHotspotCount: 1,
         };
       },
+      buildCorridorShapeReview: async () => {
+        calls.push("shape-review");
+        return { isoMonth, passRouteCount: 1 };
+      },
       buildRouteBuildPlan: async ({ limit }: { limit?: number }) => {
         calls.push(`plan:${limit}`);
         return {
@@ -246,6 +250,7 @@ describe("planned route alias", () => {
         "comparison:1",
         "intervention-evaluation",
         "corridor-model",
+        "shape-review",
         "brief-artifacts",
         "reliability",
         "audit",

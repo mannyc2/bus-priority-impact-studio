@@ -24,9 +24,10 @@ import {
 } from "@bp/db/local";
 import { type CliOption, numberOption, trueOption } from "../../lib/cli-args.js";
 import { withLocalPipelineDb } from "../../lib/local-db.js";
-import { fromCliPath } from "../../lib/paths.js";
+import { defaultArtifactRootPath, fromCliPath } from "../../lib/paths.js";
 import { createMonthContext, parseMonthDbCliArgs } from "../../lib/route-job.js";
 import { fromRepoRoot } from "../../source-manifest.js";
+import { readCorridorShapeReviewArtifact } from "../build/corridor-shape-review.js";
 import { buildRouteBatchAudit } from "../build/route-batch-audit.js";
 import { verifyD1Export } from "../export/verify-d1-export.js";
 
@@ -110,6 +111,11 @@ type PipelineV1Counts = {
   corridorAmbiguousRouteMemberRows: number;
   corridorUnassignedRouteMemberRows: number;
   corridorSegmentEvidenceRouteMemberRows: number;
+  corridorShapeReviewRouteRows: number;
+  corridorShapeReviewPassRows: number;
+  corridorShapeReviewWarningRows: number;
+  corridorShapeReviewIncompleteRows: number;
+  corridorShapeReviewMissingRouteRows: number;
   corridorInterventionContextRows: number;
   corridorAmbiguousRouteShare: number;
   corridorUnassignedRouteShare: number;
@@ -484,6 +490,10 @@ export async function checkPipelineV1(
     dbPath: options.dbPath,
     ...(args.artifactRoot === undefined ? {} : { artifactRoot: args.artifactRoot }),
   });
+  const corridorShapeReview = await readCorridorShapeReviewArtifact({
+    artifactRoot: args.artifactRoot ?? defaultArtifactRootPath(),
+    month,
+  });
   const localState = await withLocalPipelineDb(options.dbPath, async (local) => {
     const [
       catalog,
@@ -735,6 +745,29 @@ export async function checkPipelineV1(
   const corridorSegmentEvidenceRouteMemberRows = localState.corridorMembers.filter(
     (row) => row.matchedSegmentCount > 0,
   ).length;
+  const corridorShapeReviewRows = corridorShapeReview?.routes ?? [];
+  const corridorShapeReviewPassRows = corridorShapeReviewRows.filter(
+    (row) => row.reviewStatus === "pass",
+  ).length;
+  const corridorShapeReviewWarningRows = corridorShapeReviewRows.filter(
+    (row) => row.reviewStatus === "shape_distance_warning",
+  ).length;
+  const corridorShapeReviewIncompleteRows = corridorShapeReviewRows.filter(
+    (row) =>
+      row.matchedSegmentCount > 0 &&
+      row.assignmentStatus !== "unassigned" &&
+      row.reviewStatus !== "pass",
+  ).length;
+  const segmentBackedCorridorRouteIds = unique(
+    localState.corridorMembers
+      .filter((row) => publicRouteIds.includes(row.routeId) && row.matchedSegmentCount > 0)
+      .map((row) => row.routeId),
+  );
+  const corridorShapeReviewRouteIds = new Set(corridorShapeReviewRows.map((row) => row.routeId));
+  const corridorShapeReviewMissingRoutes = missingMembers(
+    segmentBackedCorridorRouteIds,
+    corridorShapeReviewRouteIds,
+  );
   const corridorInterventionRouteIds = new Set(
     localState.corridorInterventionContexts.map((row) => row.routeId),
   );
@@ -1093,6 +1126,66 @@ export async function checkPipelineV1(
       "No corridor route memberships are backed by hotspot-segment evidence.",
     );
   }
+  if (publicRouteIds.length > 0 && corridorShapeReview === null) {
+    addIssue(
+      issues,
+      "corridor_shape_review_missing",
+      "No corridor shape review artifact exists for the analysis month.",
+    );
+  }
+  if (
+    corridorShapeReview !== null &&
+    (corridorShapeReview.artifactKind !== "corridor_shape_review" ||
+      corridorShapeReview.month !== month)
+  ) {
+    addIssue(
+      issues,
+      "corridor_shape_review_invalid",
+      `Corridor shape review artifact is for ${corridorShapeReview.month}, expected ${month}.`,
+    );
+  }
+  if (
+    corridorShapeReview !== null &&
+    corridorShapeReview.summary.publicRouteCount !== publicRouteIds.length
+  ) {
+    addIssue(
+      issues,
+      "corridor_shape_review_route_count_mismatch",
+      `Corridor shape review covers ${corridorShapeReview.summary.publicRouteCount} public routes; expected ${publicRouteIds.length}.`,
+    );
+  }
+  if (
+    corridorShapeReview !== null &&
+    corridorShapeReview.summary.segmentBackedRouteCount < corridorSegmentEvidenceRouteMemberRows
+  ) {
+    addIssue(
+      issues,
+      "corridor_shape_review_segment_coverage_incomplete",
+      `Corridor shape review covers ${corridorShapeReview.summary.segmentBackedRouteCount} segment-backed routes; expected ${corridorSegmentEvidenceRouteMemberRows}.`,
+    );
+  }
+  if (corridorShapeReview !== null && corridorShapeReviewMissingRoutes.length > 0) {
+    addIssue(
+      issues,
+      "corridor_shape_review_route_coverage_incomplete",
+      `${corridorShapeReviewMissingRoutes.length} segment-backed corridor route(s) are missing from shape review: ${sample(corridorShapeReviewMissingRoutes)}.`,
+    );
+  }
+  if (corridorShapeReviewIncompleteRows > 0) {
+    const incompleteRoutes = corridorShapeReviewRows
+      .filter(
+        (row) =>
+          row.matchedSegmentCount > 0 &&
+          row.assignmentStatus !== "unassigned" &&
+          row.reviewStatus !== "pass",
+      )
+      .map((row) => `${row.routeId}:${row.reviewStatus}`);
+    addIssue(
+      issues,
+      "corridor_shape_review_incomplete",
+      `${corridorShapeReviewIncompleteRows} segment-backed corridor route assignment(s) failed shape review: ${sample(incompleteRoutes)}.`,
+    );
+  }
   if (
     localState.interventionComparisons.length > 0 &&
     localState.corridorInterventionContexts.length === 0
@@ -1274,6 +1367,11 @@ export async function checkPipelineV1(
       corridorAmbiguousRouteMemberRows,
       corridorUnassignedRouteMemberRows,
       corridorSegmentEvidenceRouteMemberRows,
+      corridorShapeReviewRouteRows: corridorShapeReviewRows.length,
+      corridorShapeReviewPassRows,
+      corridorShapeReviewWarningRows,
+      corridorShapeReviewIncompleteRows,
+      corridorShapeReviewMissingRouteRows: corridorShapeReviewMissingRoutes.length,
       corridorInterventionContextRows: localState.corridorInterventionContexts.length,
       corridorAmbiguousRouteShare,
       corridorUnassignedRouteShare,

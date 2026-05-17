@@ -158,6 +158,15 @@ const commands = {
       return buildCorridorModelFromCli(args);
     },
   },
+  "corridor-shape-review": {
+    description: "Review corridor assignments against GTFS route-shape geometry.",
+    run: async (args) => {
+      const { buildCorridorShapeReviewFromCli } = await import(
+        "./jobs/build/corridor-shape-review.js"
+      );
+      return buildCorridorShapeReviewFromCli(args);
+    },
+  },
   "brief-artifacts": {
     description: "Build route and corridor brief body artifacts.",
     run: async (args) => {

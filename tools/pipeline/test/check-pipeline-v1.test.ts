@@ -35,6 +35,8 @@ const corridorBriefDir = fromRepoRoot(
 const unassignedCorridorBriefDir = fromRepoRoot(
   join("data/artifacts/briefs/corridors/unassigned-t1", isoMonth),
 );
+const corridorShapeReviewDir = fromRepoRoot(join("data/artifacts/route-batches", isoMonth));
+const corridorShapeReviewPath = join(corridorShapeReviewDir, "corridor-shape-review.json");
 const sourceMetadataDir = fromRepoRoot(join("data/fixtures/check-pipeline-v1/source-metadata"));
 const auditOutputPath = fromRepoRoot(join("data/fixtures/check-pipeline-v1/audit.json"));
 const fixtureNow = new Date("2026-11-15T00:00:00.000Z");
@@ -59,6 +61,7 @@ async function removeFixtureArtifacts(): Promise<void> {
     rm(routeBriefDir, { force: true, recursive: true }),
     rm(corridorBriefDir, { force: true, recursive: true }),
     rm(unassignedCorridorBriefDir, { force: true, recursive: true }),
+    rm(corridorShapeReviewDir, { force: true, recursive: true }),
     rm(sourceMetadataDir, { force: true, recursive: true }),
     rm(auditOutputPath, { force: true }),
   ]);
@@ -87,6 +90,72 @@ async function writeSourceProbeMetadata(
         )}\n`,
       ),
     ),
+  );
+}
+
+async function writeCorridorShapeReviewArtifact(
+  overrides: {
+    routeId?: string;
+    reviewStatus?: string;
+    assignmentStatus?: string;
+    matchedSegmentCount?: number;
+    publicRouteCount?: number;
+    segmentBackedRouteCount?: number;
+  } = {},
+): Promise<void> {
+  const reviewStatus = overrides.reviewStatus ?? "pass";
+  const matchedSegmentCount = overrides.matchedSegmentCount ?? 1;
+  const publicRouteCount = overrides.publicRouteCount ?? 1;
+  const segmentBackedRouteCount =
+    overrides.segmentBackedRouteCount ?? (matchedSegmentCount > 0 ? 1 : 0);
+  await mkdir(corridorShapeReviewDir, { recursive: true });
+  await Bun.write(
+    corridorShapeReviewPath,
+    `${JSON.stringify(
+      {
+        schemaVersion: 1,
+        artifactKind: "corridor_shape_review",
+        month: isoMonth,
+        generatedAt: "2026-11-01T00:00:00.000Z",
+        routeShapeSnapshotPath: "/tmp/current_bus_routes.json",
+        routeShapeSnapshotFetchedAt: "2026-11-01T00:00:00.000Z",
+        maxAllowedEndpointDistanceMeters: 250,
+        summary: {
+          publicRouteCount,
+          segmentBackedRouteCount,
+          shapeReviewedRouteCount: reviewStatus === "pass" ? 1 : 0,
+          passRouteCount: reviewStatus === "pass" ? 1 : 0,
+          warningRouteCount: reviewStatus === "shape_distance_warning" ? 1 : 0,
+          missingShapeRouteCount: reviewStatus === "missing_shape" ? 1 : 0,
+          missingSegmentEvidenceRouteCount: reviewStatus === "missing_segment_evidence" ? 1 : 0,
+          missingSegmentCoordinateRouteCount:
+            reviewStatus === "missing_segment_coordinates" ? 1 : 0,
+          unassignedRouteCount: reviewStatus === "unassigned" ? 1 : 0,
+          maxEndpointDistanceMeters: reviewStatus === "pass" ? 12 : null,
+          p95EndpointDistanceMeters: reviewStatus === "pass" ? 12 : null,
+        },
+        routes: [
+          {
+            routeId: overrides.routeId ?? "T1",
+            corridorId: "street:broadway",
+            corridorName: "Broadway",
+            assignmentStatus: overrides.assignmentStatus ?? "assigned",
+            assignmentReason: "primary_hotspot_segment_street",
+            shapeCount: reviewStatus === "missing_shape" ? 0 : 1,
+            shapeCoordinateCount: reviewStatus === "missing_shape" ? 0 : 2,
+            matchedSegmentCount,
+            reviewedSegmentCount: reviewStatus === "pass" ? 1 : 0,
+            missingSegmentCoordinateCount: reviewStatus === "missing_segment_coordinates" ? 1 : 0,
+            maxEndpointDistanceMeters: reviewStatus === "pass" ? 12 : null,
+            medianEndpointDistanceMeters: reviewStatus === "pass" ? 10 : null,
+            reviewStatus,
+            caveat: "Fixture corridor shape review.",
+          },
+        ],
+      },
+      null,
+      2,
+    )}\n`,
   );
 }
 
@@ -651,6 +720,7 @@ async function writeFixtureNetwork(options: {
     local.sqlite.close();
   }
   await writeSourceProbeMetadata();
+  await writeCorridorShapeReviewArtifact();
   await buildBriefArtifacts({ year: 2026, month: 11, dbPath });
 }
 
@@ -956,6 +1026,11 @@ describe("pipeline v1 check", () => {
         corridorAmbiguousRouteMemberRows: 0,
         corridorUnassignedRouteMemberRows: 0,
         corridorSegmentEvidenceRouteMemberRows: 1,
+        corridorShapeReviewRouteRows: 1,
+        corridorShapeReviewPassRows: 1,
+        corridorShapeReviewWarningRows: 0,
+        corridorShapeReviewIncompleteRows: 0,
+        corridorShapeReviewMissingRouteRows: 0,
         corridorInterventionContextRows: 2,
         corridorAmbiguousRouteShare: 0,
         corridorUnassignedRouteShare: 0,
@@ -1221,6 +1296,33 @@ describe("pipeline v1 check", () => {
     );
     expect(result.issues.map((issue) => issue.code)).toEqual(
       expect.arrayContaining(["corridor_unassigned_route_share_high"]),
+    );
+  });
+
+  test("fails when corridor shape review is missing or incomplete", async () => {
+    await writeFixtureNetwork({ includeObservedAndInterventions: true });
+    await rm(corridorShapeReviewPath, { force: true });
+
+    const missingResult = await checkPipelineV1(checkArgs());
+
+    expect(missingResult.status).toBe("fail");
+    expect(missingResult.issues.map((issue) => issue.code)).toEqual(
+      expect.arrayContaining(["corridor_shape_review_missing"]),
+    );
+
+    await writeCorridorShapeReviewArtifact({ reviewStatus: "missing_shape" });
+    const incompleteResult = await checkPipelineV1(checkArgs());
+
+    expect(incompleteResult.status).toBe("fail");
+    expect(incompleteResult.counts).toEqual(
+      expect.objectContaining({
+        corridorShapeReviewRouteRows: 1,
+        corridorShapeReviewPassRows: 0,
+        corridorShapeReviewIncompleteRows: 1,
+      }),
+    );
+    expect(incompleteResult.issues.map((issue) => issue.code)).toEqual(
+      expect.arrayContaining(["corridor_shape_review_incomplete"]),
     );
   });
 

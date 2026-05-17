@@ -7,6 +7,7 @@ import { backfillRouteRidershipTrends } from "../ingest/backfill-route-ridership
 import { ingestRouteTrends } from "../ingest/ingest-route-trends.js";
 import { buildBriefArtifacts } from "./brief-artifacts.js";
 import { buildCorridorModel } from "./corridor-model.js";
+import { buildCorridorShapeReview } from "./corridor-shape-review.js";
 import { buildObservedHeadways } from "./observed-headways.js";
 import { buildRouteBatchAudit } from "./route-batch-audit.js";
 import { buildRouteInterventionEvaluation } from "./route-intervention-evaluation.js";
@@ -51,6 +52,7 @@ type PipelineV1FinalizeResult = {
   observedReliability: Awaited<ReturnType<typeof buildRouteObservedReliability>>;
   interventionEvaluation: Awaited<ReturnType<typeof buildRouteInterventionEvaluation>>;
   corridorModel: Awaited<ReturnType<typeof buildCorridorModel>>;
+  corridorShapeReview: Awaited<ReturnType<typeof buildCorridorShapeReview>>;
   briefArtifacts: Awaited<ReturnType<typeof buildBriefArtifacts>>;
   audit: Awaited<ReturnType<typeof buildRouteBatchAudit>>;
   d1: Awaited<ReturnType<typeof verifyD1Export>>;
@@ -64,6 +66,7 @@ type PipelineV1FinalizeDeps = {
   buildRouteObservedReliability: typeof buildRouteObservedReliability;
   buildRouteInterventionEvaluation: typeof buildRouteInterventionEvaluation;
   buildCorridorModel: typeof buildCorridorModel;
+  buildCorridorShapeReview: typeof buildCorridorShapeReview;
   buildBriefArtifacts: typeof buildBriefArtifacts;
   buildRouteBatchAudit: typeof buildRouteBatchAudit;
   verifyD1Export: typeof verifyD1Export;
@@ -77,6 +80,7 @@ const defaultPipelineV1FinalizeDeps: PipelineV1FinalizeDeps = {
   buildRouteObservedReliability,
   buildRouteInterventionEvaluation,
   buildCorridorModel,
+  buildCorridorShapeReview,
   buildBriefArtifacts,
   buildRouteBatchAudit,
   verifyD1Export,
@@ -237,6 +241,7 @@ export async function finalizePipelineV1(
   const corridorModel = await deps.buildCorridorModel(monthArgs);
   const artifactMonthArgs =
     args.artifactRoot === undefined ? monthArgs : { ...monthArgs, artifactRoot: args.artifactRoot };
+  const corridorShapeReview = await deps.buildCorridorShapeReview(artifactMonthArgs);
   const exportMonthArgs = {
     ...monthArgs,
     ...(args.artifactRoot === undefined ? {} : { artifactRoot: args.artifactRoot }),
@@ -290,6 +295,7 @@ export async function finalizePipelineV1(
     observedReliability,
     interventionEvaluation,
     corridorModel,
+    corridorShapeReview,
     briefArtifacts,
     audit,
     d1,

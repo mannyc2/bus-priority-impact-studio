@@ -1,6 +1,7 @@
 import { exportD1Seed } from "../export/export-d1.js";
 import { buildBriefArtifacts } from "./brief-artifacts.js";
 import { buildCorridorModel } from "./corridor-model.js";
+import { buildCorridorShapeReview } from "./corridor-shape-review.js";
 import { buildRouteBatchAudit } from "./route-batch-audit.js";
 import { buildRouteBuildPlan } from "./route-build-plan.js";
 import { buildRouteComparison } from "./route-comparison.js";
@@ -27,6 +28,7 @@ export type RoutePostBuildDeps = {
   buildRouteBatchAudit: typeof buildRouteBatchAudit;
   buildBriefArtifacts: typeof buildBriefArtifacts;
   buildCorridorModel: typeof buildCorridorModel;
+  buildCorridorShapeReview: typeof buildCorridorShapeReview;
   buildRouteBuildPlan: typeof buildRouteBuildPlan;
   buildRouteComparison: typeof buildRouteComparison;
   buildRouteInterventionEvaluation: typeof buildRouteInterventionEvaluation;
@@ -37,6 +39,7 @@ export type RoutePostBuildDeps = {
 export const defaultRoutePostBuildDeps: RoutePostBuildDeps = {
   buildBriefArtifacts,
   buildCorridorModel,
+  buildCorridorShapeReview,
   buildRouteBatchAudit,
   buildRouteBuildPlan,
   buildRouteComparison,
@@ -77,6 +80,7 @@ export async function runRoutePostBuild(
     deps.buildRouteReliabilityBaseline(buildArgs),
   ]);
   await deps.buildCorridorModel(buildArgs);
+  await deps.buildCorridorShapeReview(artifactArgs);
   await deps.buildBriefArtifacts(artifactArgs);
   await deps.buildRouteBatchAudit(artifactArgs);
 

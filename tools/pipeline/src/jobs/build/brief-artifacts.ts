@@ -741,7 +741,7 @@ function corridorJson(input: CorridorBriefContext) {
       caveat: context.caveat,
     })),
     caveats: [
-      "The current corridor model is a deterministic primary-street and hotspot-segment grouping, not a final shape-based corridor definition.",
+      "The corridor model is a deterministic hotspot-segment grouping; segment-backed memberships are reviewed against GTFS route-shape geometry but are not official corridor definitions.",
       "Corridor metrics are rollups of route-level and hotspot-level evidence for the analysis month.",
       "Intervention context is matched to corridors through route membership; source-gap rows identify missing implementation dates.",
     ],

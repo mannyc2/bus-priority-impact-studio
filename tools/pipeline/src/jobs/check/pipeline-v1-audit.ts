@@ -347,9 +347,20 @@ export async function auditPipelineV1(
     },
     {
       requirement: "Corridor grouping and corridor briefs",
-      status: publicStructural.counts.corridorRows > 0 ? "partial" : "blocked",
-      evidence: `${publicIsoMonth} has ${publicStructural.counts.corridorRows} corridors, ${publicStructural.counts.corridorRouteMemberRows} route memberships, ${publicStructural.counts.corridorSegmentEvidenceRouteMemberRows} segment-backed memberships, ${publicStructural.counts.corridorInterventionContextRows} intervention context rows, and ${publicStructural.counts.corridorArtifactRows} corridor artifacts.`,
-      missing: ["Shape-based corridor membership review remains open."],
+      status:
+        publicStructural.counts.corridorRows > 0 &&
+        publicStructural.counts.corridorShapeReviewRouteRows > 0 &&
+        publicStructural.counts.corridorShapeReviewIncompleteRows === 0
+          ? "pass"
+          : publicStructural.counts.corridorRows > 0
+            ? "partial"
+            : "blocked",
+      evidence: `${publicIsoMonth} has ${publicStructural.counts.corridorRows} corridors, ${publicStructural.counts.corridorRouteMemberRows} route memberships, ${publicStructural.counts.corridorSegmentEvidenceRouteMemberRows} segment-backed memberships, ${publicStructural.counts.corridorShapeReviewPassRows} shape-reviewed pass rows, ${publicStructural.counts.corridorInterventionContextRows} intervention context rows, and ${publicStructural.counts.corridorArtifactRows} corridor artifacts.`,
+      missing:
+        publicStructural.counts.corridorShapeReviewRouteRows > 0 &&
+        publicStructural.counts.corridorShapeReviewIncompleteRows === 0
+          ? []
+          : ["Shape-based corridor membership review remains open."],
     },
     {
       requirement: "Full route/corridor brief artifact set",

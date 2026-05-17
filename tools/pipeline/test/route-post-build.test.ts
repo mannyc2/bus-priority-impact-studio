@@ -74,6 +74,24 @@ describe("route post-build", () => {
           corridorHotspotCount: 1,
         };
       },
+      buildCorridorShapeReview: async ({ artifactRoot }: { artifactRoot?: string }) => {
+        calls.push(`shape-review:${artifactRoot}`);
+        return {
+          isoMonth: "2026-08",
+          artifactPath: "/tmp/artifacts/route-batches/2026-08/corridor-shape-review.json",
+          publicRouteCount: 2,
+          segmentBackedRouteCount: 2,
+          shapeReviewedRouteCount: 2,
+          passRouteCount: 2,
+          warningRouteCount: 0,
+          missingShapeRouteCount: 0,
+          missingSegmentEvidenceRouteCount: 0,
+          missingSegmentCoordinateRouteCount: 0,
+          unassignedRouteCount: 0,
+          maxEndpointDistanceMeters: 10,
+          p95EndpointDistanceMeters: 10,
+        };
+      },
       buildRouteReliabilityBaseline: async () => {
         calls.push("reliability");
         return {
@@ -129,6 +147,7 @@ describe("route post-build", () => {
         "comparison:2",
         "intervention-evaluation",
         "corridor-model",
+        "shape-review:/tmp/artifacts",
         "brief-artifacts:/tmp/artifacts",
         "reliability",
         "audit:/tmp/artifacts",

@@ -36,9 +36,8 @@ V1 additions still required:
 
 - Production-length GTFS-RT collection, ingestion, observed headway build, and coverage QA for a month that can honestly align with the collected realtime window.
 - Dated bus-lane intervention evaluation.
-- Shape-based corridor review.
 
-Implemented v1 additions include GTFS-RT collection/parsing, observed headway samples, route/month observed reliability and bunching summaries, detailed observed long-gap/bunching windows in route brief artifacts, peer-adjusted ACE/ABLE before/after comparisons, hotspot-segment corridor entities/summaries, corridor intervention context rows, route/corridor brief body generation, D1 artifact metadata, route-batch hash/byte/JSON-contract verification for generated brief bodies, and a clean rebuild proof from an empty local DB through D1/static export verification.
+Implemented v1 additions include GTFS-RT collection/parsing, observed headway samples, route/month observed reliability and bunching summaries, detailed observed long-gap/bunching windows in route brief artifacts, peer-adjusted ACE/ABLE before/after comparisons, hotspot-segment corridor entities/summaries, corridor intervention context rows, shape-based corridor assignment review, route/corridor brief body generation, D1 artifact metadata, route-batch hash/byte/JSON-contract verification for generated brief bodies, and a clean rebuild proof from an empty local DB through D1/static export verification.
 
 ## Phase 0: source metadata probes
 

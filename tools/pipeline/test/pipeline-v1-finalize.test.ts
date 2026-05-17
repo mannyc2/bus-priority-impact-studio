@@ -48,6 +48,10 @@ describe("pipeline v1 finalization", () => {
         calls.push("corridors");
         return { isoMonth: "2026-08", corridorCount: 1 };
       },
+      buildCorridorShapeReview: async () => {
+        calls.push("shape-review");
+        return { isoMonth: "2026-08", passRouteCount: 1 };
+      },
       buildBriefArtifacts: async () => {
         calls.push("briefs");
         return { isoMonth: "2026-08", routeArtifactCount: 3, corridorArtifactCount: 3 };
@@ -102,6 +106,7 @@ describe("pipeline v1 finalization", () => {
       "observed-reliability:fixture-gtfs-rt",
       "interventions",
       "corridors",
+      "shape-review",
       "briefs",
       "audit",
       "verify:d1",
@@ -149,6 +154,10 @@ describe("pipeline v1 finalization", () => {
         calls.push("corridors");
         return {};
       },
+      buildCorridorShapeReview: async () => {
+        calls.push("shape-review");
+        return {};
+      },
       buildBriefArtifacts: async () => {
         calls.push("briefs");
         return {};
@@ -192,6 +201,7 @@ describe("pipeline v1 finalization", () => {
       "observed-reliability:insufficient-gtfs-rt-2026-08",
       "interventions",
       "corridors",
+      "shape-review",
       "briefs",
       "audit",
       "verify:d1",
