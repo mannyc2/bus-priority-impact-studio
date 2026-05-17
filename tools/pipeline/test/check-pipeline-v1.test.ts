@@ -116,6 +116,13 @@ async function writeRouteSpeedAvailabilityArtifact(): Promise<void> {
           busTripCount: 20,
           status: "complete",
         },
+        releaseDecision: {
+          status: "new_complete_month_available",
+          latestCompleteMonth: isoMonth,
+          lastBuiltMonth: null,
+          shouldRebuild: true,
+          reason: `Latest complete speed month is ${isoMonth}; no last built month was provided.`,
+        },
         months: [
           {
             isoMonth,

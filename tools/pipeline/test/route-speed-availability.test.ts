@@ -20,6 +20,8 @@ describe("route speed availability check", () => {
       endYear: 2026,
       year: 2026,
       month: 4,
+      lastBuiltYear: 2026,
+      lastBuiltMonth: 2,
       minSpeedRoutes: 2,
       artifactRoot,
       fetcher: async () =>
@@ -69,9 +71,45 @@ describe("route speed availability check", () => {
       ["2026-03", "complete"],
       ["2026-02", "insufficient_speed_routes"],
     ]);
+    expect(result.releaseDecision).toEqual({
+      status: "new_complete_month_available",
+      latestCompleteMonth: "2026-03",
+      lastBuiltMonth: "2026-02",
+      shouldRebuild: true,
+      reason: "Latest complete speed month 2026-03 is newer than last built month 2026-02.",
+    });
     expect(result.artifactPath).toBe(
       join(artifactRoot, "source-availability", "route-speed-availability.json"),
     );
     await expect(Bun.file(result.artifactPath).json()).resolves.toEqual(result);
+  });
+
+  test("reports no rebuild when latest complete month is already built", async () => {
+    const result = await checkRouteSpeedAvailability({
+      startYear: 2026,
+      endYear: 2026,
+      lastBuiltYear: 2026,
+      lastBuiltMonth: 3,
+      minSpeedRoutes: 1,
+      artifactRoot,
+      fetcher: async () =>
+        Response.json([
+          {
+            year: "2026",
+            month: "3",
+            route_id: "M1",
+            row_count: "20",
+            bus_trip_count: "200",
+          },
+        ]),
+    });
+
+    expect(result.releaseDecision).toEqual({
+      status: "no_new_complete_month",
+      latestCompleteMonth: "2026-03",
+      lastBuiltMonth: "2026-03",
+      shouldRebuild: false,
+      reason: "Latest complete speed month 2026-03 is not newer than last built month 2026-03.",
+    });
   });
 });

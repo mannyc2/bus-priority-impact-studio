@@ -16,6 +16,8 @@ type RouteSpeedAvailabilityArgs = {
   endYear?: number;
   year?: number;
   month?: number;
+  lastBuiltYear?: number;
+  lastBuiltMonth?: number;
   minSpeedRoutes?: number;
   outputPath?: string;
   artifactRoot?: string;
@@ -50,6 +52,13 @@ export type RouteSpeedAvailabilityResult = {
   minSpeedRoutes: number;
   latestSpeedMonth: RouteSpeedAvailabilityMonth | null;
   requestedMonth: RequestedRouteSpeedAvailability | null;
+  releaseDecision: {
+    status: "new_complete_month_available" | "no_new_complete_month" | "no_complete_speed_month";
+    latestCompleteMonth: string | null;
+    lastBuiltMonth: string | null;
+    shouldRebuild: boolean;
+    reason: string;
+  };
   months: RouteSpeedAvailabilityMonth[];
   artifactPath?: string;
 };
@@ -86,6 +95,23 @@ export const RouteSpeedAvailabilityResultSchema = z.object({
   minSpeedRoutes: z.number().int().positive(),
   latestSpeedMonth: RouteSpeedAvailabilityMonthSchema.nullable(),
   requestedMonth: RequestedRouteSpeedAvailabilitySchema.nullable(),
+  releaseDecision: z.object({
+    status: z.enum([
+      "new_complete_month_available",
+      "no_new_complete_month",
+      "no_complete_speed_month",
+    ]),
+    latestCompleteMonth: z
+      .string()
+      .regex(/^\d{4}-\d{2}$/)
+      .nullable(),
+    lastBuiltMonth: z
+      .string()
+      .regex(/^\d{4}-\d{2}$/)
+      .nullable(),
+    shouldRebuild: z.boolean(),
+    reason: z.string().min(1),
+  }),
   months: z.array(RouteSpeedAvailabilityMonthSchema),
   artifactPath: z.string().min(1).optional(),
 });
@@ -133,6 +159,8 @@ function parseCliArgs(args: string[]): RouteSpeedAvailabilityArgs {
   const endYear = parseIntegerFlag(args, "--end-year");
   const year = parseIntegerFlag(args, "--year");
   const month = parseIntegerFlag(args, "--month");
+  const lastBuiltYear = parseIntegerFlag(args, "--last-built-year");
+  const lastBuiltMonth = parseIntegerFlag(args, "--last-built-month");
   const minSpeedRoutes = parseIntegerFlag(args, "--min-speed-routes");
   const outputPath = parseStringFlag(args, "--output");
   const artifactRoot = parseStringFlag(args, "--artifact-root");
@@ -148,6 +176,12 @@ function parseCliArgs(args: string[]): RouteSpeedAvailabilityArgs {
   }
   if (month !== undefined) {
     parsed.month = month;
+  }
+  if (lastBuiltYear !== undefined) {
+    parsed.lastBuiltYear = lastBuiltYear;
+  }
+  if (lastBuiltMonth !== undefined) {
+    parsed.lastBuiltMonth = lastBuiltMonth;
   }
   if (minSpeedRoutes !== undefined) {
     parsed.minSpeedRoutes = minSpeedRoutes;
@@ -187,12 +221,17 @@ function parseOptions(args: RouteSpeedAvailabilityArgs = {}): Required<
   if ((args.year === undefined) !== (args.month === undefined)) {
     throw new Error("--year and --month must be provided together.");
   }
+  if ((args.lastBuiltYear === undefined) !== (args.lastBuiltMonth === undefined)) {
+    throw new Error("--last-built-year and --last-built-month must be provided together.");
+  }
 
   return {
     startYear,
     endYear,
     year: args.year ?? 0,
     month: args.month ?? 0,
+    lastBuiltYear: args.lastBuiltYear ?? 0,
+    lastBuiltMonth: args.lastBuiltMonth ?? 0,
     minSpeedRoutes,
     artifactRoot,
     fetcher: args.fetcher ?? fetch,
@@ -274,6 +313,49 @@ function requestedStatus(
   };
 }
 
+function releaseDecision(input: {
+  latestSpeedMonth: RouteSpeedAvailabilityMonth | null;
+  lastBuiltYear: number;
+  lastBuiltMonth: number;
+}): RouteSpeedAvailabilityResult["releaseDecision"] {
+  const latestCompleteMonth = input.latestSpeedMonth?.isoMonth ?? null;
+  const lastBuiltMonth =
+    input.lastBuiltYear > 0 && input.lastBuiltMonth > 0
+      ? isoMonth(input.lastBuiltYear, input.lastBuiltMonth)
+      : null;
+
+  if (latestCompleteMonth === null) {
+    return {
+      status: "no_complete_speed_month",
+      latestCompleteMonth,
+      lastBuiltMonth,
+      shouldRebuild: false,
+      reason: "No complete route segment speed month is available in the checked range.",
+    };
+  }
+
+  if (lastBuiltMonth === null || latestCompleteMonth > lastBuiltMonth) {
+    return {
+      status: "new_complete_month_available",
+      latestCompleteMonth,
+      lastBuiltMonth,
+      shouldRebuild: true,
+      reason:
+        lastBuiltMonth === null
+          ? `Latest complete speed month is ${latestCompleteMonth}; no last built month was provided.`
+          : `Latest complete speed month ${latestCompleteMonth} is newer than last built month ${lastBuiltMonth}.`,
+    };
+  }
+
+  return {
+    status: "no_new_complete_month",
+    latestCompleteMonth,
+    lastBuiltMonth,
+    shouldRebuild: false,
+    reason: `Latest complete speed month ${latestCompleteMonth} is not newer than last built month ${lastBuiltMonth}.`,
+  };
+}
+
 export async function checkRouteSpeedAvailability(
   args: RouteSpeedAvailabilityArgs = {},
 ): Promise<RouteSpeedAvailabilityResult> {
@@ -296,6 +378,11 @@ export async function checkRouteSpeedAvailability(
     options.year > 0 && options.month > 0
       ? requestedStatus(months, options.year, options.month)
       : null;
+  const decision = releaseDecision({
+    latestSpeedMonth,
+    lastBuiltYear: options.lastBuiltYear,
+    lastBuiltMonth: options.lastBuiltMonth,
+  });
   const artifactPath =
     options.outputPath ?? routeSpeedAvailabilityArtifactPath(options.artifactRoot);
   const result: RouteSpeedAvailabilityResult = {
@@ -306,6 +393,7 @@ export async function checkRouteSpeedAvailability(
     minSpeedRoutes: options.minSpeedRoutes,
     latestSpeedMonth,
     requestedMonth,
+    releaseDecision: decision,
     months,
     artifactPath,
   };
