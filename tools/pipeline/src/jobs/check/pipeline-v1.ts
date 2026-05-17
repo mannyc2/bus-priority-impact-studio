@@ -37,6 +37,8 @@ type PipelineV1CheckArgs = {
   minObservedHeadwaySamples?: number;
   minObservedRouteCount?: number;
   minObservedRouteShare?: number;
+  maxCorridorAmbiguousRouteShare?: number;
+  maxCorridorUnassignedRouteShare?: number;
   maxSourceProbeAgeDays?: number;
   sourceMetadataDir?: string;
   now?: Date;
@@ -90,6 +92,11 @@ type PipelineV1Counts = {
   routeMonthTrendRidershipRows: number;
   corridorRows: number;
   corridorRouteMemberRows: number;
+  corridorAssignedRouteMemberRows: number;
+  corridorAmbiguousRouteMemberRows: number;
+  corridorUnassignedRouteMemberRows: number;
+  corridorAmbiguousRouteShare: number;
+  corridorUnassignedRouteShare: number;
   corridorArtifactRows: number;
   routeBatchIssueRows: number;
 };
@@ -119,6 +126,8 @@ type PipelineV1CheckResult = {
 
 const defaultMinObservedHeadwaySamples = 1;
 const defaultMinObservedRouteShare = 0.9;
+const defaultMaxCorridorAmbiguousRouteShare = 0.15;
+const defaultMaxCorridorUnassignedRouteShare = 0.02;
 const busLaneSourceId = "nyc_dot_bus_lanes";
 const defaultMaxSourceProbeAgeDays = 45;
 const requiredV1SourceProbeIds = [
@@ -155,6 +164,12 @@ function parseCliArgs(args: string[]): PipelineV1CheckArgs {
     }),
     numberOption(["--min-observed-route-share"], (output, value) => {
       output.minObservedRouteShare = value;
+    }),
+    numberOption(["--max-corridor-ambiguous-route-share"], (output, value) => {
+      output.maxCorridorAmbiguousRouteShare = value;
+    }),
+    numberOption(["--max-corridor-unassigned-route-share"], (output, value) => {
+      output.maxCorridorUnassignedRouteShare = value;
     }),
     numberOption(["--max-source-probe-age-days"], (output, value) => {
       output.maxSourceProbeAgeDays = value;
@@ -281,6 +296,12 @@ export async function checkPipelineV1(
     args.minObservedRouteCount === undefined
       ? 0
       : Math.max(0, Math.round(args.minObservedRouteCount));
+  const maxCorridorAmbiguousRouteShare = clampShare(
+    args.maxCorridorAmbiguousRouteShare ?? defaultMaxCorridorAmbiguousRouteShare,
+  );
+  const maxCorridorUnassignedRouteShare = clampShare(
+    args.maxCorridorUnassignedRouteShare ?? defaultMaxCorridorUnassignedRouteShare,
+  );
   const maxSourceProbeAgeDays = Math.max(
     1,
     Math.round(args.maxSourceProbeAgeDays ?? defaultMaxSourceProbeAgeDays),
@@ -460,6 +481,23 @@ export async function checkPipelineV1(
   const routeMonthTrendRidershipRows = localState.routeMonthTrends.filter(
     (row) => row.hasRidershipTrend,
   ).length;
+  const corridorAssignedRouteMemberRows = localState.corridorMembers.filter(
+    (row) => row.assignmentStatus === "assigned",
+  ).length;
+  const corridorAmbiguousRouteMemberRows = localState.corridorMembers.filter(
+    (row) => row.assignmentStatus === "ambiguous",
+  ).length;
+  const corridorUnassignedRouteMemberRows = localState.corridorMembers.filter(
+    (row) => row.assignmentStatus === "unassigned",
+  ).length;
+  const corridorAmbiguousRouteShare =
+    publicRouteIds.length === 0
+      ? 0
+      : round(corridorAmbiguousRouteMemberRows / publicRouteIds.length);
+  const corridorUnassignedRouteShare =
+    publicRouteIds.length === 0
+      ? 0
+      : round(corridorUnassignedRouteMemberRows / publicRouteIds.length);
   const missingSourceProbeRows = sourceFreshness.filter((row) => row.status === "missing");
   const staleSourceProbeRows = sourceFreshness.filter((row) => row.status === "stale");
   const inactiveSourceProbeRows = sourceFreshness.filter((row) => row.status === "inactive");
@@ -693,6 +731,20 @@ export async function checkPipelineV1(
       `${routesMissingCorridor.length} public routes lack corridor membership: ${sample(routesMissingCorridor)}.`,
     );
   }
+  if (corridorAmbiguousRouteShare > maxCorridorAmbiguousRouteShare) {
+    addIssue(
+      issues,
+      "corridor_ambiguous_route_share_high",
+      `${corridorAmbiguousRouteMemberRows} public routes have ambiguous corridor assignments (${formatPercent(corridorAmbiguousRouteShare)}); allowed share is ${formatPercent(maxCorridorAmbiguousRouteShare)}.`,
+    );
+  }
+  if (corridorUnassignedRouteShare > maxCorridorUnassignedRouteShare) {
+    addIssue(
+      issues,
+      "corridor_unassigned_route_share_high",
+      `${corridorUnassignedRouteMemberRows} public routes have unassigned corridor placeholders (${formatPercent(corridorUnassignedRouteShare)}); allowed share is ${formatPercent(maxCorridorUnassignedRouteShare)}.`,
+    );
+  }
   const routesMissingBriefArtifacts = publicRouteIds.filter(
     (routeId) => (routeArtifactsByRoute.get(routeId) ?? 0) < 3,
   );
@@ -821,6 +873,11 @@ export async function checkPipelineV1(
       routeMonthTrendRidershipRows,
       corridorRows: localState.corridors.length,
       corridorRouteMemberRows: localState.corridorMembers.length,
+      corridorAssignedRouteMemberRows,
+      corridorAmbiguousRouteMemberRows,
+      corridorUnassignedRouteMemberRows,
+      corridorAmbiguousRouteShare,
+      corridorUnassignedRouteShare,
       corridorArtifactRows: localState.corridorArtifacts.length,
       routeBatchIssueRows: localState.batchStatus?.issueCount ?? 0,
     },

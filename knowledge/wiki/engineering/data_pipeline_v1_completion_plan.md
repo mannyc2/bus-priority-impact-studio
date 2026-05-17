@@ -113,7 +113,7 @@ Current v1 gaps:
 | Full set of corridor briefs | `brief-artifacts` writes and audits 627 JSON/Markdown/HTML corridor bodies for 209 corridors | Pass for current March run | Clean rebuild from empty local DB proves reproducibility |
 | Verified D1 export contract | `verify:d1` passes with route serving rows, observed reliability, ACE intervention comparisons, corridor summaries, and route/corridor artifact metadata | Pass for current March run | D1 verification expanded to map payload and detailed evaluation manifests |
 | Static artifact contract | Stable `briefs/routes/...` and `briefs/corridors/...` keys exist with byte-length/SHA-256 audit | Partial | Stable artifact key scheme for map payloads and detailed evaluation payloads |
-| QA gates | Strict `check:pipeline-v1` fails the current March run on missing observed GTFS-RT samples and validates required source probe freshness, GTFS-RT collection/parse/headway provenance, observed-route coverage thresholds, per-route observed sample thresholds, route trend coverage, evaluated intervention comparisons, ridership deltas, and bus-lane comparison coverage for matched public routes; `gtfs-rt:preflight` diagnoses the collection/parse/headway/route-reliability blocker before finalization; structural mode can be run with `--allow-insufficient-gtfs-rt` | Partial | Add richer corridor ambiguity checks |
+| QA gates | Strict `check:pipeline-v1` fails the current March run on missing observed GTFS-RT samples and validates required source probe freshness, GTFS-RT collection/parse/headway provenance, observed-route coverage thresholds, per-route observed sample thresholds, route trend coverage, evaluated intervention comparisons, ridership deltas, bus-lane comparison coverage for matched public routes, and corridor assignment ambiguity/unassigned thresholds; `gtfs-rt:preflight` diagnoses the collection/parse/headway/route-reliability blocker before finalization; structural mode can be run with `--allow-insufficient-gtfs-rt` | Partial | Clean rebuild proof and remaining detailed payload contracts |
 | Updated roadmap/docs | Some docs are stale | In progress | This page plus updated index, roadmap, ETL, and data pages |
 
 ## Definition Of Done
@@ -461,6 +461,7 @@ QA command target:
 ```bash
 bun run check:pipeline-v1 -- --year 2026 --month 3
 bun run check:pipeline-v1 -- --year 2026 --month 3 --min-observed-route-share 0.9
+bun run check:pipeline-v1 -- --year 2026 --month 3 --max-corridor-ambiguous-route-share 0.15
 bun run check:pipeline-v1 -- --year 2026 --month 3 --max-source-probe-age-days 45
 bun run check:pipeline-v1 -- --year 2026 --month 3 --allow-insufficient-gtfs-rt
 ```
@@ -471,7 +472,7 @@ QA gates:
 - route/month coverage,
 - GTFS-RT observed-route and sample coverage,
 - intervention eligibility,
-- corridor assignment coverage,
+- corridor assignment coverage and ambiguity/unassigned thresholds,
 - route brief completeness,
 - corridor brief completeness,
 - artifact manifest hash/byte verification,
@@ -482,7 +483,7 @@ Implemented so far:
 
 - `route-batch-audit` checks required route/corridor brief artifacts, file presence, byte length, and SHA-256 against local metadata rows.
 - `verify:d1` loads generated schema/seed SQL and exercises typed readback for route/corridor artifact metadata.
-- `check:pipeline-v1` runs the current v1 QA gate over local DB state, required source probe freshness, route/corridor brief artifacts, route-batch audit results, D1 verification, GTFS-RT provenance, observed-route coverage thresholds, per-route observed sample thresholds, route trend coverage, evaluated intervention comparison coverage, and bus-lane comparison coverage for public routes with matched bus-lane geometry. Against the current March 2026 local DB, strict mode fails because observed reliability has 381 insufficient rows and 0 observed headway samples. Structural mode with `--allow-insufficient-gtfs-rt` passes with 10 fresh required source probe captures, 381 reliability status rows, 251 intervention comparison rows, 5,171 route/month trend rows, 172 bus-lane source-gap comparison rows, and 1,677 verified brief artifacts.
+- `check:pipeline-v1` runs the current v1 QA gate over local DB state, required source probe freshness, route/corridor brief artifacts, route-batch audit results, D1 verification, GTFS-RT provenance, observed-route coverage thresholds, per-route observed sample thresholds, route trend coverage, evaluated intervention comparison coverage, bus-lane comparison coverage for public routes with matched bus-lane geometry, and corridor assignment ambiguity/unassigned thresholds. Against the current March 2026 local DB, strict mode fails because observed reliability has 381 insufficient rows and 0 observed headway samples. Structural mode with `--allow-insufficient-gtfs-rt` passes with 10 fresh required source probe captures, 381 reliability status rows, 251 intervention comparison rows, 5,171 route/month trend rows, 172 bus-lane source-gap comparison rows, 322 assigned corridor route members, 28 ambiguous corridor route members, 0 unassigned corridor route members, and 1,677 verified brief artifacts.
 
 Acceptance:
 

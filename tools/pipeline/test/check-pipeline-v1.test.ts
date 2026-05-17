@@ -31,6 +31,9 @@ const routeBriefDir = fromRepoRoot(join("data/artifacts/briefs/routes/t1", isoMo
 const corridorBriefDir = fromRepoRoot(
   join("data/artifacts/briefs/corridors/street-broadway", isoMonth),
 );
+const unassignedCorridorBriefDir = fromRepoRoot(
+  join("data/artifacts/briefs/corridors/unassigned-t1", isoMonth),
+);
 const sourceMetadataDir = fromRepoRoot(join("data/fixtures/check-pipeline-v1/source-metadata"));
 const fixtureNow = new Date("2026-11-15T00:00:00.000Z");
 const observedRunId = "fixture-gtfs-rt";
@@ -53,6 +56,7 @@ async function removeFixtureArtifacts(): Promise<void> {
     rm(exportDir, { force: true, recursive: true }),
     rm(routeBriefDir, { force: true, recursive: true }),
     rm(corridorBriefDir, { force: true, recursive: true }),
+    rm(unassignedCorridorBriefDir, { force: true, recursive: true }),
     rm(sourceMetadataDir, { force: true, recursive: true }),
   ]);
 }
@@ -686,6 +690,65 @@ async function replaceWithBelowThresholdObservedReliability(): Promise<void> {
   }
 }
 
+async function replaceWithCorridorAssignmentStatus(
+  assignmentStatus: "ambiguous" | "unassigned",
+): Promise<void> {
+  const corridorId = assignmentStatus === "ambiguous" ? "street:broadway" : "unassigned:t1";
+  const local = await openLocalPipelineDb(dbPath);
+  try {
+    await replaceCorridorRows(local.db, isoMonth, {
+      corridors: [
+        {
+          corridorId,
+          corridorName: assignmentStatus === "ambiguous" ? "Broadway" : "Unassigned T1",
+          corridorKey: assignmentStatus === "ambiguous" ? "BROADWAY" : corridorId,
+          derivationMethod:
+            assignmentStatus === "ambiguous"
+              ? "primary_route_stop_street"
+              : "unassigned_route_placeholder",
+        },
+      ],
+      routeMembers: [
+        {
+          corridorId,
+          month: isoMonth,
+          routeId: "T1",
+          assignmentStatus,
+          assignmentReason:
+            assignmentStatus === "ambiguous" ? "ambiguous_primary_stop_street" : "no_route_stops",
+          stopCount: assignmentStatus === "ambiguous" ? 2 : 0,
+          matchedStopCount: assignmentStatus === "ambiguous" ? 1 : 0,
+          hotspotCount: 1,
+          totalRidership: 1000,
+          averageSpeedMph: 6,
+        },
+      ],
+      summaries: [
+        {
+          corridorId,
+          month: isoMonth,
+          routeCount: 1,
+          assignedRouteCount: 0,
+          ambiguousRouteCount: assignmentStatus === "ambiguous" ? 1 : 0,
+          unassignedRouteCount: assignmentStatus === "unassigned" ? 1 : 0,
+          totalRidership: 1000,
+          totalTransfers: 100,
+          weightedAverageSpeedMph: 6,
+          hotspotCount: 1,
+          observedReliabilityRouteCount: 1,
+          insufficientReliabilityRouteCount: 0,
+          interventionComparisonCount: 1,
+          evaluatedInterventionComparisonCount: 1,
+        },
+      ],
+      hotspots: [],
+    });
+  } finally {
+    local.sqlite.close();
+  }
+  await buildBriefArtifacts({ year: 2026, month: 11, dbPath });
+}
+
 afterEach(async () => {
   await removeFixtureArtifacts();
 });
@@ -735,6 +798,12 @@ describe("pipeline v1 check", () => {
         sourceProbeStaleRows: 0,
         sourceProbeInactiveRows: 0,
         corridorRows: 1,
+        corridorRouteMemberRows: 1,
+        corridorAssignedRouteMemberRows: 1,
+        corridorAmbiguousRouteMemberRows: 0,
+        corridorUnassignedRouteMemberRows: 0,
+        corridorAmbiguousRouteShare: 0,
+        corridorUnassignedRouteShare: 0,
         routeArtifactRows: 3,
         corridorArtifactRows: 3,
       }),
@@ -892,6 +961,46 @@ describe("pipeline v1 check", () => {
         "source_probe_metadata_stale",
         "source_probe_metadata_inactive",
       ]),
+    );
+  });
+
+  test("fails when corridor assignments are too ambiguous", async () => {
+    await writeFixtureNetwork({ includeObservedAndInterventions: true });
+    await replaceWithCorridorAssignmentStatus("ambiguous");
+
+    const result = await checkPipelineV1(checkArgs());
+
+    expect(result.status).toBe("fail");
+    expect(result.counts).toEqual(
+      expect.objectContaining({
+        corridorAssignedRouteMemberRows: 0,
+        corridorAmbiguousRouteMemberRows: 1,
+        corridorUnassignedRouteMemberRows: 0,
+        corridorAmbiguousRouteShare: 1,
+      }),
+    );
+    expect(result.issues.map((issue) => issue.code)).toEqual(
+      expect.arrayContaining(["corridor_ambiguous_route_share_high"]),
+    );
+  });
+
+  test("fails when corridor assignments use too many unassigned placeholders", async () => {
+    await writeFixtureNetwork({ includeObservedAndInterventions: true });
+    await replaceWithCorridorAssignmentStatus("unassigned");
+
+    const result = await checkPipelineV1(checkArgs());
+
+    expect(result.status).toBe("fail");
+    expect(result.counts).toEqual(
+      expect.objectContaining({
+        corridorAssignedRouteMemberRows: 0,
+        corridorAmbiguousRouteMemberRows: 0,
+        corridorUnassignedRouteMemberRows: 1,
+        corridorUnassignedRouteShare: 1,
+      }),
+    );
+    expect(result.issues.map((issue) => issue.code)).toEqual(
+      expect.arrayContaining(["corridor_unassigned_route_share_high"]),
     );
   });
 
