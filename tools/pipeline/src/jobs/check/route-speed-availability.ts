@@ -22,7 +22,7 @@ type RouteSpeedAvailabilityArgs = {
   fetcher?: SocrataFetch;
 };
 
-type RouteSpeedAvailabilityMonth = {
+export type RouteSpeedAvailabilityMonth = {
   isoMonth: string;
   year: number;
   month: number;
@@ -32,7 +32,7 @@ type RouteSpeedAvailabilityMonth = {
   status: "complete" | "insufficient_speed_routes";
 };
 
-type RequestedRouteSpeedAvailability = {
+export type RequestedRouteSpeedAvailability = {
   isoMonth: string;
   year: number;
   month: number;
@@ -42,7 +42,7 @@ type RequestedRouteSpeedAvailability = {
   status: "complete" | "insufficient_speed_routes" | "missing_speed";
 };
 
-type RouteSpeedAvailabilityResult = {
+export type RouteSpeedAvailabilityResult = {
   sourceId: RouteSpeedAvailabilitySourceId;
   checkedAt: string;
   startYear: number;
@@ -63,6 +63,32 @@ const RawRouteSpeedAvailabilityRowSchema = z
     bus_trip_count: z.coerce.number().int().nonnegative().default(0),
   })
   .passthrough();
+
+const RouteSpeedAvailabilityMonthSchema = z.object({
+  isoMonth: z.string().regex(/^\d{4}-\d{2}$/),
+  year: z.number().int(),
+  month: z.number().int().min(1).max(12),
+  routeCount: z.number().int().nonnegative(),
+  rowCount: z.number().int().nonnegative(),
+  busTripCount: z.number().int().nonnegative(),
+  status: z.enum(["complete", "insufficient_speed_routes"]),
+});
+
+const RequestedRouteSpeedAvailabilitySchema = RouteSpeedAvailabilityMonthSchema.extend({
+  status: z.enum(["complete", "insufficient_speed_routes", "missing_speed"]),
+});
+
+export const RouteSpeedAvailabilityResultSchema = z.object({
+  sourceId: z.literal("bus_segment_speeds_2025"),
+  checkedAt: z.string().min(1),
+  startYear: z.number().int(),
+  endYear: z.number().int(),
+  minSpeedRoutes: z.number().int().positive(),
+  latestSpeedMonth: RouteSpeedAvailabilityMonthSchema.nullable(),
+  requestedMonth: RequestedRouteSpeedAvailabilitySchema.nullable(),
+  months: z.array(RouteSpeedAvailabilityMonthSchema),
+  artifactPath: z.string().min(1).optional(),
+});
 
 function isoMonth(year: number, month: number): string {
   return `${year}-${String(month).padStart(2, "0")}`;
@@ -136,7 +162,7 @@ function parseCliArgs(args: string[]): RouteSpeedAvailabilityArgs {
   return parsed;
 }
 
-function defaultOutputPath(artifactRoot: string): string {
+export function routeSpeedAvailabilityArtifactPath(artifactRoot: string): string {
   return join(artifactRoot, "source-availability", "route-speed-availability.json");
 }
 
@@ -270,7 +296,8 @@ export async function checkRouteSpeedAvailability(
     options.year > 0 && options.month > 0
       ? requestedStatus(months, options.year, options.month)
       : null;
-  const artifactPath = options.outputPath ?? defaultOutputPath(options.artifactRoot);
+  const artifactPath =
+    options.outputPath ?? routeSpeedAvailabilityArtifactPath(options.artifactRoot);
   const result: RouteSpeedAvailabilityResult = {
     sourceId: "bus_segment_speeds_2025",
     checkedAt: new Date().toISOString(),
@@ -293,4 +320,19 @@ export async function checkRouteSpeedAvailabilityFromCli(
   args: string[],
 ): Promise<RouteSpeedAvailabilityResult> {
   return checkRouteSpeedAvailability(parseCliArgs(args));
+}
+
+export async function readRouteSpeedAvailabilityArtifact(
+  artifactRoot: string,
+): Promise<RouteSpeedAvailabilityResult | null> {
+  const path = routeSpeedAvailabilityArtifactPath(artifactRoot);
+  const file = Bun.file(path);
+  if (!(await file.exists())) {
+    return null;
+  }
+
+  const parsed = RouteSpeedAvailabilityResultSchema.parse(await file.json());
+  const { artifactPath, ...rest } = parsed;
+
+  return artifactPath === undefined ? rest : { ...rest, artifactPath };
 }

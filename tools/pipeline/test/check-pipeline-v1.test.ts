@@ -28,6 +28,7 @@ import { buildEvaluationArtifacts } from "../src/jobs/build/evaluation-artifacts
 import { buildMapArtifacts } from "../src/jobs/build/map-artifacts.js";
 import { checkPipelineV1 } from "../src/jobs/check/pipeline-v1.js";
 import { auditPipelineV1 } from "../src/jobs/check/pipeline-v1-audit.js";
+import { routeSpeedAvailabilityArtifactPath } from "../src/jobs/check/route-speed-availability.js";
 import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
@@ -43,6 +44,9 @@ const unassignedCorridorBriefDir = fromRepoRoot(
 );
 const evaluationArtifactDir = fromRepoRoot(join("data/artifacts/evaluations", isoMonth));
 const mapArtifactDir = fromRepoRoot(join("data/artifacts/map"));
+const routeSpeedAvailabilityPath = routeSpeedAvailabilityArtifactPath(
+  fromRepoRoot(join("data/artifacts")),
+);
 const corridorShapeReviewDir = fromRepoRoot(join("data/artifacts/route-batches", isoMonth));
 const corridorShapeReviewPath = join(corridorShapeReviewDir, "corridor-shape-review.json");
 const mapRawDir = fromRepoRoot(join("data/fixtures/check-pipeline-v1/map-raw"));
@@ -75,11 +79,60 @@ async function removeFixtureArtifacts(): Promise<void> {
     rm(unassignedCorridorBriefDir, { force: true, recursive: true }),
     rm(evaluationArtifactDir, { force: true, recursive: true }),
     rm(mapArtifactDir, { force: true, recursive: true }),
+    rm(dirname(routeSpeedAvailabilityPath), { force: true, recursive: true }),
     rm(corridorShapeReviewDir, { force: true, recursive: true }),
     rm(mapRawDir, { force: true, recursive: true }),
     rm(sourceMetadataDir, { force: true, recursive: true }),
     rm(auditOutputPath, { force: true }),
   ]);
+}
+
+async function writeRouteSpeedAvailabilityArtifact(): Promise<void> {
+  await mkdir(dirname(routeSpeedAvailabilityPath), { recursive: true });
+  await Bun.write(
+    routeSpeedAvailabilityPath,
+    `${JSON.stringify(
+      {
+        sourceId: "bus_segment_speeds_2025",
+        checkedAt: "2026-11-15T00:00:00.000Z",
+        startYear: 2026,
+        endYear: 2026,
+        minSpeedRoutes: 1,
+        latestSpeedMonth: {
+          isoMonth,
+          year: 2026,
+          month: 11,
+          routeCount: 1,
+          rowCount: 2,
+          busTripCount: 20,
+          status: "complete",
+        },
+        requestedMonth: {
+          isoMonth,
+          year: 2026,
+          month: 11,
+          routeCount: 1,
+          rowCount: 2,
+          busTripCount: 20,
+          status: "complete",
+        },
+        months: [
+          {
+            isoMonth,
+            year: 2026,
+            month: 11,
+            routeCount: 1,
+            rowCount: 2,
+            busTripCount: 20,
+            status: "complete",
+          },
+        ],
+        artifactPath: routeSpeedAvailabilityPath,
+      },
+      null,
+      2,
+    )}\n`,
+  );
 }
 
 async function writeRawSnapshot(path: string, sourceId: string, rows: unknown[]): Promise<void> {
@@ -1671,6 +1724,7 @@ describe("pipeline v1 check", () => {
 
   test("writes a prompt-to-artifact audit when single-month gates are green", async () => {
     await writeFixtureNetwork({ includeObservedAndInterventions: true });
+    await writeRouteSpeedAvailabilityArtifact();
 
     const result = await auditPipelineV1({
       publicYear: 2026,
@@ -1715,6 +1769,18 @@ describe("pipeline v1 check", () => {
         blankOpenDateLaneInstanceCount: 1,
         unparsableOpenDateLaneInstanceCount: 0,
         routesWithMissingOpenDateCount: 1,
+      }),
+    );
+    expect(result.sourceAvailability.routeSpeed).toEqual(
+      expect.objectContaining({
+        latestSpeedMonth: expect.objectContaining({
+          isoMonth,
+          status: "complete",
+        }),
+        requestedMonth: expect.objectContaining({
+          isoMonth,
+          status: "complete",
+        }),
       }),
     );
     expect(

@@ -9,11 +9,15 @@ import {
 import { type CliOption, dbOption, parseCliOptions } from "../../lib/cli-args.js";
 import { writeJson } from "../../lib/json.js";
 import { withLocalPipelineDb } from "../../lib/local-db.js";
-import { fromCliPath, fromRepoRoot } from "../../lib/paths.js";
+import { defaultArtifactRootPath, fromCliPath, fromRepoRoot } from "../../lib/paths.js";
 import { busLaneMatches } from "../build/route-brief-metrics.js";
 import { parseBusLaneOpenDates } from "../build/route-intervention-evaluation.js";
 import { preflightGtfsRt } from "./gtfs-rt-preflight.js";
 import { checkPipelineV1 } from "./pipeline-v1.js";
+import {
+  type RouteSpeedAvailabilityResult,
+  readRouteSpeedAvailabilityArtifact,
+} from "./route-speed-availability.js";
 
 type PipelineV1AuditArgs = {
   publicYear?: number;
@@ -75,6 +79,9 @@ type PipelineV1AuditResult = {
   coverage: {
     publicMonth: CoverageSummary;
     realtimeMonth: CoverageSummary;
+  };
+  sourceAvailability: {
+    routeSpeed: RouteSpeedAvailabilityResult | null;
   };
   interventions: {
     busLaneSourceGaps: BusLaneSourceGapDiagnostics;
@@ -336,6 +343,7 @@ export async function auditPipelineV1(
   const publicIsoMonth = isoMonth(publicYear, publicMonth);
   const realtimeIsoMonth = isoMonth(realtimeYear, realtimeMonth);
   const outputPath = args.output ?? defaultOutputPath(publicIsoMonth, realtimeIsoMonth);
+  const artifactRoot = args.artifactRoot ?? defaultArtifactRootPath();
   const dbPath = args.dbPath;
   const dbArg = dbPath === undefined ? {} : { dbPath };
   const runArg = args.runId === undefined ? {} : { runId: args.runId };
@@ -346,8 +354,7 @@ export async function auditPipelineV1(
     args.minGtfsRtCollectionHours === undefined
       ? {}
       : { minGtfsRtCollectionHours: args.minGtfsRtCollectionHours };
-  const artifactRootArg =
-    args.artifactRoot === undefined ? {} : { artifactRoot: args.artifactRoot };
+  const artifactRootArg = { artifactRoot };
   const exportRootArg = args.exportRoot === undefined ? {} : { exportRoot: args.exportRoot };
   const cleanRebuild =
     args.cleanDbPath === undefined
@@ -385,8 +392,13 @@ export async function auditPipelineV1(
     ...artifactRootArg,
     ...exportRootArg,
   });
-  const [realtimePreflight, publicCoverage, realtimeCoverage, busLaneSourceGaps] =
-    await Promise.all([
+  const [
+    realtimePreflight,
+    publicCoverage,
+    realtimeCoverage,
+    busLaneSourceGaps,
+    routeSpeedAvailability,
+  ] = await Promise.all([
     preflightGtfsRt({
       year: realtimeYear,
       month: realtimeMonth,
@@ -397,10 +409,15 @@ export async function auditPipelineV1(
     coverageSummary(dbPath ?? "", publicIsoMonth),
     coverageSummary(dbPath ?? "", realtimeIsoMonth),
     busLaneSourceGapDiagnostics(dbPath ?? "", publicIsoMonth),
+    readRouteSpeedAvailabilityArtifact(artifactRoot),
   ]);
 
   const monthSplit = publicIsoMonth !== realtimeIsoMonth;
   const realtimeHasSpeedCoverage = realtimeCoverage.speedRoutes > 0;
+  const routeSpeedAvailabilityEvidence =
+    routeSpeedAvailability === null
+      ? "No route-speed availability artifact found."
+      : ` Route-speed availability artifact latest complete speed month is ${routeSpeedAvailability.latestSpeedMonth?.isoMonth ?? "none"}; requested month ${routeSpeedAvailability.requestedMonth?.isoMonth ?? "none"} is ${routeSpeedAvailability.requestedMonth?.status ?? "not checked"}.`;
   const cleanRebuildEvidence =
     cleanRebuild === null
       ? ""
@@ -510,7 +527,7 @@ export async function auditPipelineV1(
     {
       requirement: "Single-month source availability",
       status: !monthSplit && realtimeHasSpeedCoverage ? "pass" : "blocked",
-      evidence: `${publicIsoMonth} speed routes: ${publicCoverage.speedRoutes}; ${realtimeIsoMonth} speed routes: ${realtimeCoverage.speedRoutes}; realtime month is ${realtimeIsoMonth}.`,
+      evidence: `${publicIsoMonth} speed routes: ${publicCoverage.speedRoutes}; ${realtimeIsoMonth} speed routes: ${realtimeCoverage.speedRoutes}; realtime month is ${realtimeIsoMonth}.${routeSpeedAvailabilityEvidence}`,
       missing:
         monthSplit || !realtimeHasSpeedCoverage
           ? [
@@ -535,6 +552,9 @@ export async function auditPipelineV1(
     coverage: {
       publicMonth: publicCoverage,
       realtimeMonth: realtimeCoverage,
+    },
+    sourceAvailability: {
+      routeSpeed: routeSpeedAvailability,
     },
     interventions: {
       busLaneSourceGaps,
