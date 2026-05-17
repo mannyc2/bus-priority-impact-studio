@@ -81,7 +81,9 @@ Latest local verification after the brief-artifact slice:
 - `bun run brief-artifacts -- --year 2026 --month 3` produced 1,050 route brief artifacts and 627 corridor brief artifacts.
 - `bun run route-batch-audit -- --year 2026 --month 3` passed with 1,677 artifacts, 0 missing artifacts, 0 hash mismatches, and 0 byte-length mismatches.
 - `bun run verify:d1 -- --year 2026 --month 3` passed for the current export, including `route_artifact` and `corridor_artifact` readback.
+- `bun run check:pipeline-v1 -- --year 2026 --month 3` is implemented as the v1 QA gate and currently fails on the expected missing production evidence rows.
 - The same D1 verification currently shows 0 March 2026 observed reliability summary rows and 0 intervention comparison rows in the local DB export, so those code paths still need a production data run before v1 can be complete.
+- The current v1 QA issue codes are `observed_reliability_missing`, `intervention_events_missing`, `intervention_comparisons_missing`, `d1_observed_reliability_incomplete`, and `d1_intervention_comparisons_missing`.
 
 Current v1 gaps:
 
@@ -107,7 +109,7 @@ Current v1 gaps:
 | Full set of corridor briefs | `brief-artifacts` writes JSON/Markdown/HTML corridor bodies plus `corridor_artifact` metadata | Partial | Final clean full-network run proves every eligible corridor has current brief bodies |
 | Verified D1 export contract | `export:d1` and `verify:d1` cover route serving rows, observed reliability, ACE intervention comparisons, corridor summaries, and route/corridor artifact metadata | Partial | D1 verification expanded to map payload and detailed evaluation manifests |
 | Static artifact contract | Stable `briefs/routes/...` and `briefs/corridors/...` keys exist with byte-length/SHA-256 audit | Partial | Stable artifact key scheme for map payloads and detailed evaluation payloads |
-| QA gates | Route-batch audit verifies route/corridor brief completeness, byte lengths, hashes, and D1 readback | Partial | V1 QA command covering source freshness, GTFS-RT sample coverage, intervention eligibility, corridor membership, and export readback |
+| QA gates | `check:pipeline-v1` verifies route/corridor brief completeness, observed reliability coverage, intervention rows, route-batch audit output, and D1 readback | Partial | Expand with source freshness, GTFS-RT sample confidence, bus-lane intervention eligibility, and richer corridor ambiguity checks |
 | Updated roadmap/docs | Some docs are stale | In progress | This page plus updated index, roadmap, ETL, and data pages |
 
 ## Definition Of Done
@@ -466,6 +468,7 @@ Implemented so far:
 
 - `route-batch-audit` checks required route/corridor brief artifacts, file presence, byte length, and SHA-256 against local metadata rows.
 - `verify:d1` loads generated schema/seed SQL and exercises typed readback for route/corridor artifact metadata.
+- `check:pipeline-v1` runs the current v1 QA gate over local DB state, route/corridor brief artifacts, route-batch audit results, and D1 verification. Against the current March 2026 local DB it fails as expected because observed reliability summaries and intervention comparison rows have not been populated by a production data run.
 
 Acceptance:
 

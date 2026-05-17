@@ -181,6 +181,13 @@ const commands = {
       return verifyD1ExportFromCli(args);
     },
   },
+  "check:pipeline-v1": {
+    description: "Run the full Data Pipeline v1 QA gate.",
+    run: async (args) => {
+      const { checkPipelineV1FromCli } = await import("./jobs/check/pipeline-v1.js");
+      return checkPipelineV1FromCli(args);
+    },
+  },
   "ingest:route-slice": {
     description: "Ingest one route/month slice.",
     run: async (args) => {

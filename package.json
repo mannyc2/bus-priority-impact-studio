@@ -44,6 +44,7 @@
     "check:style": "biome check .",
     "check:style:write": "biome check --write .",
     "check:knowledge": "bun run tools/pipeline/src/checks/check-knowledge.ts",
+    "check:pipeline-v1": "bun --filter @bp/pipeline check:pipeline-v1",
     "check:prepush": "bun run check:types && bun run check:style && bun run check:architecture && bun run test:unit && bun run test:web && bun run test:worker",
     "test": "bun run test:unit && bun run test:web && bun run test:worker",
     "test:unit": "bun test packages tools tests --timeout 5000",
