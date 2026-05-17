@@ -48,6 +48,13 @@ const commands = {
       return preflightGtfsRtFromCli(args);
     },
   },
+  "gtfs-rt:run-status": {
+    description: "Summarize GTFS-RT collection run progress and handoff commands.",
+    run: async (args) => {
+      const { getGtfsRtRunStatusFromCli } = await import("./jobs/check/gtfs-rt-run-status.js");
+      return getGtfsRtRunStatusFromCli(args);
+    },
+  },
   "ingest:ace-violations": {
     description: "Fetch monthly ACE violation summaries.",
     run: async (args) => {
