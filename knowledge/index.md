@@ -55,9 +55,10 @@ Read this file first. It is the navigation layer for the LLM wiki.
 
 ## Immediate open issues
 
-1. Finish v1 as the March 2026 canonical public-source monthly release with May 2026 GTFS-RT attached as a labeled current observed appendix.
+1. Finish v1 as the March 2026 canonical public-source monthly release with May 2026 GTFS-RT attached as a completeness-labeled current observed appendix.
 2. Same-month public-speed plus GTFS-RT alignment is a later observed monthly promotion condition, not the v1 blocker.
-3. Reduce remaining bus-lane source gaps where public dates can be recovered, and get external transit-domain review of the peer-adjusted ACE/ABLE/bus-lane method.
-4. Route score uses a two-factor formula; incorporate ridership weight, persistence, reliability, and intervention gap or demote score behind brief evidence.
-5. Keep the MVP TypeScript-only unless a documented requirement forces Python/PostGIS/VPS escalation.
-6. Keep D1 as a compact serving projection; promote canonical queryable history to Postgres/Hyperdrive instead of growing D1 into a warehouse.
+3. Keep `Baseline Release`, `Current Signal`, `Pending Publication`, and `Observed Release` labels wired through audit artifacts and frontend-facing briefs.
+4. Reduce remaining bus-lane source gaps where public dates can be recovered, and get external transit-domain review of the peer-adjusted ACE/ABLE/bus-lane method.
+5. Route score uses a two-factor formula; incorporate ridership weight, persistence, reliability, and intervention gap or demote score behind brief evidence.
+6. Keep the MVP TypeScript-only unless a documented requirement forces Python/PostGIS/VPS escalation.
+7. Keep D1 as a compact serving projection; promote canonical queryable history to Postgres/Hyperdrive instead of growing D1 into a warehouse.

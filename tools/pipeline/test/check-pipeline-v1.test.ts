@@ -1850,6 +1850,29 @@ describe("pipeline v1 check", () => {
       expect.objectContaining({
         canonicalMonthlyRelease: isoMonth,
         realtimeAppendix: isoMonth,
+        layers: expect.arrayContaining([
+          expect.objectContaining({
+            id: "baseline_release",
+            label: "Baseline Release",
+            completenessStatus: "complete",
+            confidence: "high",
+          }),
+          expect.objectContaining({
+            id: "observed_release",
+            label: "Observed Release",
+            completenessStatus: "complete",
+          }),
+        ]),
+        metricCompleteness: expect.arrayContaining([
+          expect.objectContaining({
+            metric: "public_monthly_speed",
+            completenessStatus: "complete",
+          }),
+          expect.objectContaining({
+            metric: "observed_reliability",
+            completenessStatus: "partial_realtime_only",
+          }),
+        ]),
         sameMonthPromotionReady: true,
         sameMonthPromotionIssues: [],
       }),
@@ -1862,6 +1885,10 @@ describe("pipeline v1 check", () => {
         }),
         expect.objectContaining({
           requirement: "Source cadence and release availability",
+          status: "pass",
+        }),
+        expect.objectContaining({
+          requirement: "Completeness-aware release labels",
           status: "pass",
         }),
       ]),
@@ -1934,6 +1961,18 @@ describe("pipeline v1 check", () => {
           "Same-month public-speed and collected-realtime alignment is tracked as an observed monthly promotion condition, not a Data Pipeline v1 blocker.",
         ]),
         releaseModel: expect.objectContaining({
+          layers: expect.arrayContaining([
+            expect.objectContaining({
+              label: "Baseline Release",
+              completenessStatus: "complete",
+            }),
+          ]),
+          metricCompleteness: expect.arrayContaining([
+            expect.objectContaining({
+              metric: "intervention_evaluation",
+              completenessStatus: "partial_public_monthly_only",
+            }),
+          ]),
           sameMonthPromotionReady: true,
         }),
         publicMonth: isoMonth,
@@ -2034,6 +2073,33 @@ describe("pipeline v1 check", () => {
       expect.objectContaining({
         canonicalMonthlyRelease: "2026-11",
         realtimeAppendix: "2026-12",
+        layers: expect.arrayContaining([
+          expect.objectContaining({
+            id: "current_signal",
+            completenessStatus: "insufficient_samples",
+          }),
+          expect.objectContaining({
+            id: "pending_publication",
+            completenessStatus: "source_lag_expected",
+          }),
+          expect.objectContaining({
+            id: "observed_release",
+            month: null,
+            completenessStatus: "source_lag_expected",
+          }),
+        ]),
+        metricCompleteness: expect.arrayContaining([
+          expect.objectContaining({
+            metric: "current_month_speed",
+            month: "2026-12",
+            completenessStatus: "missing_speed",
+          }),
+          expect.objectContaining({
+            metric: "observed_reliability",
+            month: "2026-12",
+            completenessStatus: "insufficient_samples",
+          }),
+        ]),
         sameMonthPromotionReady: false,
         sameMonthPromotionIssues: expect.arrayContaining([
           "Canonical public-source month 2026-11 differs from realtime appendix month 2026-12.",

@@ -35,8 +35,22 @@ Release boundary:
 - The canonical monthly release uses the latest complete public MTA route-segment speed month. On 2026-05-17, that is March 2026.
 - The realtime observed layer uses collected GTFS-RT from the current collection window. On 2026-05-17, that is May 2026.
 - Same-month public-speed and realtime alignment is an observed monthly promotion condition, not a v1 blocker.
+- The audit release model names four layers: **Baseline Release**, **Current Signal**, **Pending Publication**, and **Observed Release**.
+- Every major metric in the audit carries a completeness status and confidence label so the product can answer what is confident, what is directional, what is unavailable, and what source is expected to improve it.
 
 This replaces the older M1-demo interpretation of the roadmap. M1 remains a useful fixture/example, not the product boundary.
+
+Completeness labels:
+
+| Label | Meaning |
+|---|---|
+| `complete` | Enough source evidence exists for the layer or metric at its intended claim level. |
+| `partial_realtime_only` | Collected GTFS-RT supports current operational signal, but public monthly aggregates are not available for that same month. |
+| `partial_public_monthly_only` | Public monthly evidence supports baseline analysis, but same-month realtime evidence is absent or intentionally not merged. |
+| `missing_speed` | Public route-segment speed rows are absent or below completeness threshold. |
+| `missing_realtime` | Collected GTFS-RT evidence is absent for the relevant month. |
+| `insufficient_samples` | GTFS-RT exists but does not meet route/sample coverage thresholds. |
+| `source_lag_expected` | The missing source is expected because of publication cadence, not necessarily a pipeline bug. |
 
 ## Current State Audit
 
@@ -202,6 +216,7 @@ Acceptance for this production refresh scope:
 | Verified D1 export contract | `verify:d1` passes with route serving rows, observed reliability, intervention comparisons, corridor summaries, corridor intervention context, route/corridor artifact metadata, schema/seed hashes, expected-vs-loaded table counts, and typed repository readback; `check:pipeline-v1` also verifies static evaluation and map payload hashes, row counts, and route-segment contracts | Pass for current March run | Keep D1 export, evaluation manifests, and map manifests in strict QA |
 | Static artifact contract | Stable `briefs/routes/...`, `briefs/corridors/...`, `evaluations/{month}/...`, and `map/...` keys exist with byte-length/SHA-256 audit, JSON contract checks for route/corridor brief bodies, observed reliability window contract checks, route-segment GeoJSON domain contract checks, a generated `data/artifacts/briefs/{month}/manifest.json` inventory, a generated `data/artifacts/evaluations/{month}/manifest.json` inventory, and a generated `data/artifacts/map/{month}/manifest.json` inventory | Pass | Keep manifests regenerated in post-build/finalize |
 | QA gates | Structural `check:pipeline-v1 -- --allow-insufficient-gtfs-rt` validates the canonical public-source monthly release; strict `check:pipeline-v1` remains available as the same-month observed promotion gate; `gtfs-rt:preflight` diagnoses realtime appendix readiness; `audit:pipeline-v1` records clean rebuild proof paths and promotion readiness separately | Pass | Keep canonical release and observed-promotion statuses separate |
+| Completeness-aware labels | `audit:pipeline-v1` emits `releaseModel.layers` and `releaseModel.metricCompleteness`, labeling baseline/current/pending/observed layers plus public speed, current speed, observed reliability, baseline observed reliability, and intervention evaluation | Pass | Keep labels stable for frontend and brief rendering |
 | Updated roadmap/docs | V1 scope docs identify the full-network pipeline, GTFS-RT observed layer, intervention evaluation, corridor briefs, static maps/evaluation artifacts, source cadence caveats, and the same-month promotion condition | Pass | Keep `check:knowledge` passing and update docs when commands or gates change |
 
 ## Definition Of Done
@@ -216,8 +231,9 @@ Data Pipeline v1 is complete only when all of the following are true:
 6. ACE and bus-lane intervention evaluation artifacts exist for eligible routes/corridors with adequate pre/post data.
 7. All causal language is gated by methodology status; unsupported comparisons are labeled descriptive only.
 8. D1 export and static artifact verification pass from generated data.
-9. The route/corridor brief set has caveats, citations, artifact hashes, byte lengths, and source dates.
-10. Documentation matches actual commands, schemas, and limitations.
+9. The audit and downstream artifacts expose completeness/confidence labels instead of flattening expected source lag into failure.
+10. The route/corridor brief set has caveats, citations, artifact hashes, byte lengths, and source dates.
+11. Documentation matches actual commands, schemas, and limitations.
 
 Same-month public-speed plus GTFS-RT alignment remains the promotion condition for an observed monthly release after v1.
 

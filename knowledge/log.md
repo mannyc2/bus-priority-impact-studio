@@ -450,3 +450,7 @@ Added `import:gtfs-rt-r2-manifests`, a Bun pipeline command that reads Worker-wr
 ## [2026-05-17] product | V1 release boundary reframed
 
 Reframed Data Pipeline v1 as the latest defensible public-source monthly release plus a labeled realtime observed appendix when available. Same-month public route-speed and collected GTFS-RT alignment is now an observed monthly promotion condition, not a v1 blocker. Updated `audit:pipeline-v1` to emit a `releaseModel` with canonical monthly release, realtime appendix, and promotion readiness, and updated roadmap/docs so March 2026 public evidence plus May 2026 observed GTFS-RT can be assessed without overclaiming source alignment.
+
+## [2026-05-17] product | Completeness-aware v1 layers
+
+Extended the v1 release model from a pass/fail boundary into completeness-aware layers: `Baseline Release`, `Current Signal`, `Pending Publication`, and `Observed Release`. `audit:pipeline-v1` now emits `releaseModel.layers` plus `releaseModel.metricCompleteness` with statuses such as `complete`, `partial_realtime_only`, `partial_public_monthly_only`, `missing_speed`, `missing_realtime`, `insufficient_samples`, and `source_lag_expected`. This lets the pipeline distinguish confident baseline claims, directional current signals, unavailable claims, and expected source lag.

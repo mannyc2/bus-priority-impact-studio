@@ -78,6 +78,37 @@ type MethodologyGate = {
   caveats: string[];
 };
 
+type DataCompletenessStatus =
+  | "complete"
+  | "partial_realtime_only"
+  | "partial_public_monthly_only"
+  | "missing_speed"
+  | "missing_realtime"
+  | "insufficient_samples"
+  | "source_lag_expected";
+
+type ConfidenceLevel = "high" | "medium" | "low" | "none";
+
+type ReleaseLayer = {
+  id: "baseline_release" | "current_signal" | "pending_publication" | "observed_release";
+  label: string;
+  month: string | null;
+  completenessStatus: DataCompletenessStatus;
+  confidence: ConfidenceLevel;
+  canSay: string[];
+  directionalOnly: string[];
+  cannotSayYet: string[];
+  waitingOn: string[];
+};
+
+type CompletenessMetric = {
+  metric: string;
+  month: string;
+  completenessStatus: DataCompletenessStatus;
+  confidence: ConfidenceLevel;
+  evidence: string;
+};
+
 type PipelineV1AuditResult = {
   status: RequirementStatus;
   generatedAt: string;
@@ -86,6 +117,8 @@ type PipelineV1AuditResult = {
   releaseModel: {
     canonicalMonthlyRelease: string;
     realtimeAppendix: string;
+    layers: ReleaseLayer[];
+    metricCompleteness: CompletenessMetric[];
     sameMonthPromotionReady: boolean;
     sameMonthPromotionIssues: string[];
   };
@@ -124,6 +157,7 @@ const pipelineV1Objective =
 const pipelineV1SuccessCriteria = [
   "Reproducible latest complete public-source monthly release from clean local DB evidence.",
   "GTFS-RT observed reliability and bunching computed from collected realtime samples and attached as a current observed appendix when source months differ.",
+  "Every release layer and major metric is labeled with completeness status and confidence so source lag is visible rather than treated as failure.",
   "Before/after intervention evaluation exists with methodology and causal-claim gates.",
   "Corridor grouping exists with shape-reviewed segment evidence and corridor intervention context.",
   "Full route and corridor brief artifact set passes hash, byte-length, and JSON contract audits.",
@@ -322,6 +356,187 @@ function methodologyGate(input: {
   };
 }
 
+function realtimeCompletenessStatus(input: {
+  realtimeStatus: string;
+  observedRoutes: number;
+  headwaySamples: number;
+}): DataCompletenessStatus {
+  if (input.realtimeStatus !== "pass") {
+    return input.headwaySamples > 0 || input.observedRoutes > 0
+      ? "insufficient_samples"
+      : "missing_realtime";
+  }
+
+  return "partial_realtime_only";
+}
+
+function buildReleaseLayers(input: {
+  publicIsoMonth: string;
+  realtimeIsoMonth: string;
+  publicStructuralStatus: string;
+  publicCoverage: CoverageSummary;
+  realtimeCoverage: CoverageSummary;
+  realtimePreflightStatus: string;
+  realtimeObservedRoutes: number;
+  realtimeHeadwaySamples: number;
+  sameMonthPromotionReady: boolean;
+}): ReleaseLayer[] {
+  const publicMonthlyComplete =
+    input.publicStructuralStatus === "pass" && input.publicCoverage.speedRoutes > 0;
+  const currentSignalStatus = realtimeCompletenessStatus({
+    realtimeStatus: input.realtimePreflightStatus,
+    observedRoutes: input.realtimeObservedRoutes,
+    headwaySamples: input.realtimeHeadwaySamples,
+  });
+  const currentSignalHasSpeed = input.realtimeCoverage.speedRoutes > 0;
+
+  return [
+    {
+      id: "baseline_release",
+      label: "Baseline Release",
+      month: input.publicIsoMonth,
+      completenessStatus: publicMonthlyComplete ? "complete" : "missing_speed",
+      confidence: publicMonthlyComplete ? "high" : "none",
+      canSay: publicMonthlyComplete
+        ? [
+            "Monthly route segment speeds, schedules, route/corridor briefs, intervention comparisons, D1 exports, and static artifacts are publishable for the baseline month.",
+          ]
+        : [],
+      directionalOnly: [
+        "Observed reliability for this baseline month is not inferred from another month's GTFS-RT samples.",
+      ],
+      cannotSayYet: input.sameMonthPromotionReady
+        ? []
+        : ["Same-month observed reliability claims for the baseline month are not supported yet."],
+      waitingOn: input.sameMonthPromotionReady
+        ? []
+        : ["A completed GTFS-RT collection aligned to the baseline public-source month."],
+    },
+    {
+      id: "current_signal",
+      label: "Current Signal",
+      month: input.realtimeIsoMonth,
+      completenessStatus: currentSignalHasSpeed ? "complete" : currentSignalStatus,
+      confidence: input.realtimePreflightStatus === "pass" ? "medium" : "low",
+      canSay:
+        input.realtimePreflightStatus === "pass"
+          ? [
+              "Collected GTFS-RT supports current observed headway, bunching, and long-gap signals for routes with enough samples.",
+            ]
+          : [],
+      directionalOnly: [
+        "Current operational conditions can be compared qualitatively against the baseline, but are not merged into monthly speed/intervention claims until public monthly aggregates land.",
+      ],
+      cannotSayYet: currentSignalHasSpeed
+        ? []
+        : ["Full monthly speed performance for the current signal month is not available."],
+      waitingOn: currentSignalHasSpeed
+        ? []
+        : ["MTA monthly route-segment speed publication for the current signal month."],
+    },
+    {
+      id: "pending_publication",
+      label: "Pending Publication",
+      month: input.realtimeIsoMonth,
+      completenessStatus: currentSignalHasSpeed ? "complete" : "source_lag_expected",
+      confidence: currentSignalHasSpeed ? "high" : "medium",
+      canSay: currentSignalHasSpeed
+        ? ["Public monthly speed rows are available for the current signal month."]
+        : ["The absence of current-month speed rows is an expected source-cadence condition."],
+      directionalOnly: [],
+      cannotSayYet: currentSignalHasSpeed
+        ? []
+        : ["Whether the current signal month is a complete public monthly release."],
+      waitingOn: currentSignalHasSpeed ? [] : ["Next MTA monthly aggregate publication cycle."],
+    },
+    {
+      id: "observed_release",
+      label: "Observed Release",
+      month: input.sameMonthPromotionReady ? input.publicIsoMonth : null,
+      completenessStatus: input.sameMonthPromotionReady ? "complete" : "source_lag_expected",
+      confidence: input.sameMonthPromotionReady ? "high" : "none",
+      canSay: input.sameMonthPromotionReady
+        ? [
+            "Public monthly speed evidence and collected GTFS-RT observed reliability align for the same month.",
+          ]
+        : [],
+      directionalOnly: [],
+      cannotSayYet: input.sameMonthPromotionReady
+        ? []
+        : ["No month is currently promoted to observed release status."],
+      waitingOn: input.sameMonthPromotionReady
+        ? []
+        : [
+            "A month with both complete public monthly speed rows and passing collected GTFS-RT evidence.",
+          ],
+    },
+  ];
+}
+
+function buildMetricCompleteness(input: {
+  publicIsoMonth: string;
+  realtimeIsoMonth: string;
+  publicStructuralStatus: string;
+  publicCoverage: CoverageSummary;
+  realtimeCoverage: CoverageSummary;
+  realtimePreflightStatus: string;
+  realtimeObservedRoutes: number;
+  realtimeHeadwaySamples: number;
+  peerAdjustedRows: number;
+  sameMonthPromotionReady: boolean;
+}): CompletenessMetric[] {
+  return [
+    {
+      metric: "public_monthly_speed",
+      month: input.publicIsoMonth,
+      completenessStatus:
+        input.publicStructuralStatus === "pass" && input.publicCoverage.speedRoutes > 0
+          ? "complete"
+          : "missing_speed",
+      confidence:
+        input.publicStructuralStatus === "pass" && input.publicCoverage.speedRoutes > 0
+          ? "high"
+          : "none",
+      evidence: `${input.publicCoverage.speedRoutes} route(s) have speed coverage in the baseline month.`,
+    },
+    {
+      metric: "current_month_speed",
+      month: input.realtimeIsoMonth,
+      completenessStatus: input.realtimeCoverage.speedRoutes > 0 ? "complete" : "missing_speed",
+      confidence: input.realtimeCoverage.speedRoutes > 0 ? "high" : "none",
+      evidence: `${input.realtimeCoverage.speedRoutes} route(s) have speed coverage in the current signal month.`,
+    },
+    {
+      metric: "observed_reliability",
+      month: input.realtimeIsoMonth,
+      completenessStatus: realtimeCompletenessStatus({
+        realtimeStatus: input.realtimePreflightStatus,
+        observedRoutes: input.realtimeObservedRoutes,
+        headwaySamples: input.realtimeHeadwaySamples,
+      }),
+      confidence: input.realtimePreflightStatus === "pass" ? "medium" : "low",
+      evidence: `${input.realtimeObservedRoutes} observed route(s) and ${input.realtimeHeadwaySamples} observed headway sample(s).`,
+    },
+    {
+      metric: "baseline_observed_reliability",
+      month: input.publicIsoMonth,
+      completenessStatus: input.sameMonthPromotionReady ? "complete" : "missing_realtime",
+      confidence: input.sameMonthPromotionReady ? "high" : "none",
+      evidence: input.sameMonthPromotionReady
+        ? "Baseline month has aligned public monthly and GTFS-RT observed evidence."
+        : "Baseline month does not have aligned collected GTFS-RT evidence.",
+    },
+    {
+      metric: "intervention_evaluation",
+      month: input.publicIsoMonth,
+      completenessStatus:
+        input.peerAdjustedRows > 0 ? "partial_public_monthly_only" : "missing_speed",
+      confidence: input.peerAdjustedRows > 0 ? "medium" : "none",
+      evidence: `${input.peerAdjustedRows} peer-adjusted intervention comparison row(s); causal claims remain methodology-gated.`,
+    },
+  ];
+}
+
 async function busLaneSourceGapDiagnostics(
   dbPath: string,
   month: string,
@@ -501,6 +716,29 @@ export async function auditPipelineV1(
   ];
   const sameMonthPromotionReady =
     sameMonthPromotionIssues.length === 0 && publicStrict.status === "pass";
+  const releaseLayers = buildReleaseLayers({
+    publicIsoMonth,
+    realtimeIsoMonth,
+    publicStructuralStatus: publicStructural.status,
+    publicCoverage,
+    realtimeCoverage,
+    realtimePreflightStatus: realtimePreflight.status,
+    realtimeObservedRoutes: realtimePreflight.counts.routeObservedReliabilityObservedRows,
+    realtimeHeadwaySamples: realtimePreflight.counts.observedHeadwaySampleRows,
+    sameMonthPromotionReady,
+  });
+  const metricCompleteness = buildMetricCompleteness({
+    publicIsoMonth,
+    realtimeIsoMonth,
+    publicStructuralStatus: publicStructural.status,
+    publicCoverage,
+    realtimeCoverage,
+    realtimePreflightStatus: realtimePreflight.status,
+    realtimeObservedRoutes: realtimePreflight.counts.routeObservedReliabilityObservedRows,
+    realtimeHeadwaySamples: realtimePreflight.counts.observedHeadwaySampleRows,
+    peerAdjustedRows: publicStructural.counts.peerAdjustedInterventionComparisonRows,
+    sameMonthPromotionReady,
+  });
   const sourceAvailabilityMissing =
     sourceRefreshPlan === null ? ["Source-refresh plan artifact is missing."] : [];
   const sourceAvailabilityStatus = sourceRefreshPlan === null ? "partial" : "pass";
@@ -613,6 +851,12 @@ export async function auditPipelineV1(
       evidence: `${publicIsoMonth} speed routes: ${publicCoverage.speedRoutes}; ${realtimeIsoMonth} speed routes: ${realtimeCoverage.speedRoutes}; realtime month is ${realtimeIsoMonth}; same-month promotion ready=${sameMonthPromotionReady}.${routeSpeedAvailabilityEvidence}${sourceRefreshPlanEvidence}`,
       missing: sourceAvailabilityMissing,
     },
+    {
+      requirement: "Completeness-aware release labels",
+      status: "pass",
+      evidence: `Release layers: ${releaseLayers.map((layer) => `${layer.label}=${layer.completenessStatus}`).join(", ")}. Metric labels: ${metricCompleteness.map((metric) => `${metric.metric}=${metric.completenessStatus}`).join(", ")}.`,
+      missing: [],
+    },
   ];
   const status = statusFromItems(checklist);
   const interventionMethodologyGate = methodologyGate({
@@ -633,6 +877,8 @@ export async function auditPipelineV1(
     releaseModel: {
       canonicalMonthlyRelease: publicIsoMonth,
       realtimeAppendix: realtimeIsoMonth,
+      layers: releaseLayers,
+      metricCompleteness,
       sameMonthPromotionReady,
       sameMonthPromotionIssues,
     },
