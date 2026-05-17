@@ -21,6 +21,7 @@ import {
 } from "@bp/db/local";
 import { buildBriefArtifacts } from "../src/jobs/build/brief-artifacts.js";
 import { checkPipelineV1 } from "../src/jobs/check/pipeline-v1.js";
+import { auditPipelineV1 } from "../src/jobs/check/pipeline-v1-audit.js";
 import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
@@ -35,6 +36,7 @@ const unassignedCorridorBriefDir = fromRepoRoot(
   join("data/artifacts/briefs/corridors/unassigned-t1", isoMonth),
 );
 const sourceMetadataDir = fromRepoRoot(join("data/fixtures/check-pipeline-v1/source-metadata"));
+const auditOutputPath = fromRepoRoot(join("data/fixtures/check-pipeline-v1/audit.json"));
 const fixtureNow = new Date("2026-11-15T00:00:00.000Z");
 const observedRunId = "fixture-gtfs-rt";
 const requiredSourceIds = [
@@ -58,6 +60,7 @@ async function removeFixtureArtifacts(): Promise<void> {
     rm(corridorBriefDir, { force: true, recursive: true }),
     rm(unassignedCorridorBriefDir, { force: true, recursive: true }),
     rm(sourceMetadataDir, { force: true, recursive: true }),
+    rm(auditOutputPath, { force: true }),
   ]);
 }
 
@@ -376,7 +379,39 @@ async function writeFixtureNetwork(options: {
             alertCount: 0,
             error: null,
           },
-          vehiclePositions: [],
+          vehiclePositions: [
+            {
+              runId: observedRunId,
+              feedType: "vehicle_positions",
+              sampleIndex: 1,
+              entityId: "entity-bus-1",
+              entityDeleted: false,
+              gtfsRealtimeVersion: "2.0",
+              feedTimestamp: gtfsRtTimestampBase,
+              sourceRouteId: "MTA NYCT_T1",
+              routeId: "T1",
+              tripId: "trip-1",
+              startDate: null,
+              startTime: null,
+              directionId: 0,
+              scheduleRelationship: "SCHEDULED",
+              vehicleId: "bus-1",
+              vehicleLabel: null,
+              vehicleLicensePlate: null,
+              latitude: 40.741,
+              longitude: -73.989,
+              bearing: null,
+              odometer: null,
+              speed: null,
+              currentStopSequence: null,
+              stopId: "S1",
+              currentStatus: "STOPPED_AT",
+              timestamp: gtfsRtTimestampBase,
+              congestionLevel: null,
+              occupancyStatus: null,
+              occupancyPercentage: null,
+            },
+          ],
           tripUpdates: [],
           stopTimeUpdates: [],
           alerts: [],
@@ -1104,6 +1139,86 @@ describe("pipeline v1 check", () => {
         "route_month_trends_missing",
         "route_month_trend_speed_missing",
         "route_month_trend_ridership_missing",
+      ]),
+    );
+  });
+
+  test("writes a prompt-to-artifact audit when single-month gates are green", async () => {
+    await writeFixtureNetwork({ includeObservedAndInterventions: true });
+
+    const result = await auditPipelineV1({
+      publicYear: 2026,
+      publicMonth: 11,
+      realtimeYear: 2026,
+      realtimeMonth: 11,
+      runId: observedRunId,
+      dbPath,
+      sourceMetadataDir,
+      now: fixtureNow,
+      minGtfsRtCollectionHours: 0.1,
+      output: auditOutputPath,
+    });
+
+    expect(result.status).toBe("partial");
+    expect(result.gates).toEqual(
+      expect.objectContaining({
+        publicStructuralStatus: "pass",
+        publicStrictStatus: "pass",
+        realtimePreflightStatus: "pass",
+        publicStrictIssues: [],
+        realtimePreflightIssues: [],
+      }),
+    );
+    expect(result.checklist).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          requirement: "Strict single-month v1 QA gate",
+          status: "pass",
+        }),
+        expect.objectContaining({
+          requirement: "Single-month source availability",
+          status: "pass",
+        }),
+      ]),
+    );
+    const written = JSON.parse(await Bun.file(auditOutputPath).text());
+    expect(written).toEqual(expect.objectContaining({ status: "partial", publicMonth: isoMonth }));
+  });
+
+  test("blocks the audit when public-source and realtime months do not align", async () => {
+    await writeFixtureNetwork({ includeObservedAndInterventions: true });
+
+    const result = await auditPipelineV1({
+      publicYear: 2026,
+      publicMonth: 11,
+      realtimeYear: 2026,
+      realtimeMonth: 12,
+      runId: observedRunId,
+      dbPath,
+      sourceMetadataDir,
+      now: fixtureNow,
+      minGtfsRtCollectionHours: 0.1,
+      output: auditOutputPath,
+    });
+
+    expect(result.status).toBe("blocked");
+    expect(result.gates).toEqual(
+      expect.objectContaining({
+        publicStructuralStatus: "pass",
+        publicStrictStatus: "pass",
+        realtimePreflightStatus: "fail",
+      }),
+    );
+    expect(result.checklist).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          requirement: "Single-month source availability",
+          status: "blocked",
+        }),
+        expect.objectContaining({
+          requirement: "GTFS-RT observed reliability and bunching",
+          status: "blocked",
+        }),
       ]),
     );
   });

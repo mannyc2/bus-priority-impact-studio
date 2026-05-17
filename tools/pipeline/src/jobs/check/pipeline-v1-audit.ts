@@ -15,6 +15,9 @@ type PipelineV1AuditArgs = {
   realtimeMonth?: number;
   runId?: string;
   dbPath?: string;
+  sourceMetadataDir?: string;
+  now?: Date;
+  minGtfsRtCollectionHours?: number;
   output?: string;
 };
 
@@ -110,6 +113,20 @@ function parseArgs(args: string[]): Required<PipelineV1AuditArgs> {
       },
     },
     dbOption(fromCliPath),
+    {
+      flags: ["--source-metadata-dir"],
+      apply: (target, value) => {
+        if (value !== undefined) {
+          target.sourceMetadataDir = fromCliPath(value);
+        }
+      },
+    },
+    {
+      flags: ["--min-gtfs-rt-collection-hours"],
+      apply: (target, value) => {
+        target.minGtfsRtCollectionHours = Number(value);
+      },
+    },
   ];
   const parsed = parseCliOptions(args, output, options);
   const publicYear = parsed.publicYear ?? 2026;
@@ -126,6 +143,9 @@ function parseArgs(args: string[]): Required<PipelineV1AuditArgs> {
     realtimeMonth,
     runId: parsed.runId ?? "",
     dbPath: parsed.dbPath ?? "",
+    sourceMetadataDir: parsed.sourceMetadataDir ?? "",
+    now: parsed.now ?? new Date(0),
+    minGtfsRtCollectionHours: parsed.minGtfsRtCollectionHours ?? 0,
     output: parsed.output ?? defaultOutputPath(publicIsoMonth, realtimeIsoMonth),
   };
 }
@@ -167,20 +187,38 @@ export async function auditPipelineV1(
   const dbPath = args.dbPath;
   const dbArg = dbPath === undefined ? {} : { dbPath };
   const runArg = args.runId === undefined ? {} : { runId: args.runId };
+  const sourceMetadataArg =
+    args.sourceMetadataDir === undefined ? {} : { sourceMetadataDir: args.sourceMetadataDir };
+  const nowArg = args.now === undefined ? {} : { now: args.now };
+  const minCollectionHoursArg =
+    args.minGtfsRtCollectionHours === undefined
+      ? {}
+      : { minGtfsRtCollectionHours: args.minGtfsRtCollectionHours };
 
   const publicStructural = await checkPipelineV1({
     year: publicYear,
     month: publicMonth,
     ...dbArg,
+    ...sourceMetadataArg,
+    ...nowArg,
+    ...minCollectionHoursArg,
     allowInsufficientGtfsRt: true,
   });
-  const publicStrict = await checkPipelineV1({ year: publicYear, month: publicMonth, ...dbArg });
+  const publicStrict = await checkPipelineV1({
+    year: publicYear,
+    month: publicMonth,
+    ...dbArg,
+    ...sourceMetadataArg,
+    ...nowArg,
+    ...minCollectionHoursArg,
+  });
   const [realtimePreflight, publicCoverage, realtimeCoverage] = await Promise.all([
     preflightGtfsRt({
       year: realtimeYear,
       month: realtimeMonth,
       ...runArg,
       ...dbArg,
+      ...minCollectionHoursArg,
     }),
     coverageSummary(dbPath ?? "", publicIsoMonth),
     coverageSummary(dbPath ?? "", realtimeIsoMonth),
@@ -314,6 +352,15 @@ export async function auditPipelineV1FromCli(args: string[]): Promise<PipelineV1
   }
   if (parsed.dbPath.length > 0) {
     auditArgs.dbPath = parsed.dbPath;
+  }
+  if (parsed.sourceMetadataDir.length > 0) {
+    auditArgs.sourceMetadataDir = parsed.sourceMetadataDir;
+  }
+  if (parsed.now.getTime() > 0) {
+    auditArgs.now = parsed.now;
+  }
+  if (parsed.minGtfsRtCollectionHours > 0) {
+    auditArgs.minGtfsRtCollectionHours = parsed.minGtfsRtCollectionHours;
   }
 
   return auditPipelineV1(auditArgs);
