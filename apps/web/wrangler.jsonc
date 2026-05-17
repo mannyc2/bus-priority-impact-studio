@@ -6,8 +6,13 @@
   "assets": {
     "directory": "./dist/client",
     "not_found_handling": "single-page-application"
+  },
+  "triggers": {
+    "crons": ["* * * * *"]
   }
 
   // Add D1/R2 bindings after the first real migration/artifact export exists.
+  // The scheduled source-refresh handler stays inert until GTFS_RT_RAW and
+  // MTA_BUS_TIME_API_KEY are configured in the deployed environment.
   // Keeping placeholder IDs out of the scaffold prevents accidental deploy failures.
 }

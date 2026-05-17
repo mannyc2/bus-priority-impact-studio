@@ -418,3 +418,7 @@ Added `plan:source-refresh`, a small pipeline command that writes `data/artifact
 ## [2026-05-17] engineering | Source refresh plan in v1 audit
 
 Extended `audit:pipeline-v1` so `sourceAvailability` includes both `routeSpeed` and `refreshPlan`. The single-month source availability checklist now includes source-refresh job statuses such as `gtfs_rt_collector=required` and `route_speed_monthly_watcher=idle`. If public/realtime months align but the source-refresh plan artifact is missing, the checklist row is `partial` with an explicit missing item instead of silently passing.
+
+## [2026-05-17] engineering | Worker GTFS-RT scheduled capture
+
+Added a lightweight Cloudflare Worker scheduled handler for production GTFS-RT vehicle-position capture. The handler is inert unless the deployed environment has both `GTFS_RT_RAW` and `MTA_BUS_TIME_API_KEY`; when configured, it writes raw protobuf snapshots and redacted JSON manifests to R2. The public request handler still does not import pipeline code, and heavy parsing/finalization remains in the Bun pipeline. The cron entrypoint runs once per minute, so strict 30-second production sampling still needs follow-up queue/scheduler design.

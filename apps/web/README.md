@@ -41,3 +41,7 @@ bun --filter @bp/web deploy
 ```
 
 Worker tests use Cloudflare's Vitest pool so request behavior is exercised in the Workers-compatible runtime harness, not only in Bun's runtime.
+
+## Scheduled source refresh
+
+The Worker has a scheduled source-refresh entrypoint for lightweight GTFS-RT capture. It is inert unless both `GTFS_RT_RAW` and `MTA_BUS_TIME_API_KEY` are configured in the deployed environment. When configured, it writes Bus Time vehicle-position protobuf snapshots plus redacted JSON manifests to R2; heavy parsing, metrics, and D1/static export work remains in `tools/pipeline`. The configured cron is once per minute, so strict 30-second production sampling still needs a follow-up scheduler/queue design before it can replace the local v1 collection command.

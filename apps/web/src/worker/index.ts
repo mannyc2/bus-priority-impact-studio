@@ -8,10 +8,13 @@ import {
   routeScorecardJsonSchema,
 } from "@bp/domain";
 import * as z from "zod";
+import { runScheduledSourceRefresh } from "./source-refresh.js";
 
 export type Env = {
   DB?: D1Database;
   ARTIFACTS?: R2Bucket;
+  GTFS_RT_RAW?: R2Bucket;
+  MTA_BUS_TIME_API_KEY?: string;
 };
 
 function json(body: unknown, init?: ResponseInit): Response {
@@ -92,5 +95,8 @@ export default {
     }
 
     return new Response("Not found", { status: 404 });
+  },
+  async scheduled(_controller: ScheduledController, env: Env = {}): Promise<void> {
+    await runScheduledSourceRefresh(env);
   },
 } satisfies ExportedHandler<Env>;
