@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { rm } from "node:fs/promises";
+import { mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import {
   insertGtfsRtCollectionRun,
@@ -31,7 +31,21 @@ const routeBriefDir = fromRepoRoot(join("data/artifacts/briefs/routes/t1", isoMo
 const corridorBriefDir = fromRepoRoot(
   join("data/artifacts/briefs/corridors/street-broadway", isoMonth),
 );
+const sourceMetadataDir = fromRepoRoot(join("data/fixtures/check-pipeline-v1/source-metadata"));
+const fixtureNow = new Date("2026-11-15T00:00:00.000Z");
 const observedRunId = "fixture-gtfs-rt";
+const requiredSourceIds = [
+  "bus_segment_speeds_2025",
+  "current_bus_routes",
+  "current_bus_stops",
+  "bus_hourly_ridership_2025",
+  "bus_schedules_2026",
+  "ace_routes",
+  "ace_violations",
+  "nyc_dot_bus_lanes_local_streets",
+  "nyc_borough_boundaries",
+  "census_acs5_profile_tracts",
+] as const;
 
 async function removeFixtureArtifacts(): Promise<void> {
   await Promise.all([
@@ -39,7 +53,45 @@ async function removeFixtureArtifacts(): Promise<void> {
     rm(exportDir, { force: true, recursive: true }),
     rm(routeBriefDir, { force: true, recursive: true }),
     rm(corridorBriefDir, { force: true, recursive: true }),
+    rm(sourceMetadataDir, { force: true, recursive: true }),
   ]);
+}
+
+async function writeSourceProbeMetadata(
+  overrides: Partial<
+    Record<(typeof requiredSourceIds)[number], { checkedAt?: string; probeStatus?: string }>
+  > = {},
+): Promise<void> {
+  await mkdir(sourceMetadataDir, { recursive: true });
+
+  await Promise.all(
+    requiredSourceIds.map((sourceId) =>
+      Bun.write(
+        join(sourceMetadataDir, `${sourceId}.json`),
+        `${JSON.stringify(
+          {
+            schemaVersion: 1,
+            sourceId,
+            checkedAt: overrides[sourceId]?.checkedAt ?? "2026-11-01T00:00:00.000Z",
+            probeStatus: overrides[sourceId]?.probeStatus ?? "active",
+          },
+          null,
+          2,
+        )}\n`,
+      ),
+    ),
+  );
+}
+
+function checkArgs(overrides: Parameters<typeof checkPipelineV1>[0] = {}) {
+  return {
+    year: 2026,
+    month: 11,
+    dbPath,
+    sourceMetadataDir,
+    now: fixtureNow,
+    ...overrides,
+  };
 }
 
 async function writeFixtureNetwork(options: {
@@ -496,6 +548,7 @@ async function writeFixtureNetwork(options: {
   } finally {
     local.sqlite.close();
   }
+  await writeSourceProbeMetadata();
   await buildBriefArtifacts({ year: 2026, month: 11, dbPath });
 }
 
@@ -574,7 +627,7 @@ describe("pipeline v1 check", () => {
   test("passes when all v1 serving evidence is present", async () => {
     await writeFixtureNetwork({ includeObservedAndInterventions: true });
 
-    const result = await checkPipelineV1({ year: 2026, month: 11, dbPath });
+    const result = await checkPipelineV1(checkArgs());
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -606,6 +659,11 @@ describe("pipeline v1 check", () => {
         busLaneMatchedPublicRouteCount: 1,
         busLaneInterventionComparisonRows: 1,
         busLaneSourceGapComparisonRows: 1,
+        sourceProbeRows: 10,
+        sourceProbeFreshRows: 10,
+        sourceProbeMissingRows: 0,
+        sourceProbeStaleRows: 0,
+        sourceProbeInactiveRows: 0,
         corridorRows: 1,
         routeArtifactRows: 3,
         corridorArtifactRows: 3,
@@ -623,7 +681,7 @@ describe("pipeline v1 check", () => {
   test("fails loudly when observed reliability and intervention evidence are missing", async () => {
     await writeFixtureNetwork({ includeObservedAndInterventions: false });
 
-    const result = await checkPipelineV1({ year: 2026, month: 11, dbPath });
+    const result = await checkPipelineV1(checkArgs());
 
     expect(result.status).toBe("fail");
     expect(result.issues.map((issue) => issue.code)).toEqual(
@@ -643,13 +701,8 @@ describe("pipeline v1 check", () => {
     await writeFixtureNetwork({ includeObservedAndInterventions: true });
     await replaceWithInsufficientObservedReliability();
 
-    const result = await checkPipelineV1({ year: 2026, month: 11, dbPath });
-    const structuralResult = await checkPipelineV1({
-      year: 2026,
-      month: 11,
-      dbPath,
-      allowInsufficientGtfsRt: true,
-    });
+    const result = await checkPipelineV1(checkArgs());
+    const structuralResult = await checkPipelineV1(checkArgs({ allowInsufficientGtfsRt: true }));
 
     expect(result.status).toBe("fail");
     expect(result.counts).toEqual(
@@ -680,7 +733,7 @@ describe("pipeline v1 check", () => {
       includeGtfsRtProvenance: false,
     });
 
-    const result = await checkPipelineV1({ year: 2026, month: 11, dbPath });
+    const result = await checkPipelineV1(checkArgs());
 
     expect(result.status).toBe("fail");
     expect(result.counts).toEqual(
@@ -702,13 +755,42 @@ describe("pipeline v1 check", () => {
     );
   });
 
+  test("fails when required source probe captures are missing, stale, or inactive", async () => {
+    await writeFixtureNetwork({ includeObservedAndInterventions: true });
+    await writeSourceProbeMetadata({
+      bus_segment_speeds_2025: { checkedAt: "2026-08-01T00:00:00.000Z" },
+      current_bus_routes: { probeStatus: "blocked" },
+    });
+    await rm(join(sourceMetadataDir, "current_bus_stops.json"), { force: true });
+
+    const result = await checkPipelineV1(checkArgs({ maxSourceProbeAgeDays: 30 }));
+
+    expect(result.status).toBe("fail");
+    expect(result.counts).toEqual(
+      expect.objectContaining({
+        sourceProbeRows: 10,
+        sourceProbeFreshRows: 7,
+        sourceProbeMissingRows: 1,
+        sourceProbeStaleRows: 1,
+        sourceProbeInactiveRows: 1,
+      }),
+    );
+    expect(result.issues.map((issue) => issue.code)).toEqual(
+      expect.arrayContaining([
+        "source_probe_metadata_missing",
+        "source_probe_metadata_stale",
+        "source_probe_metadata_inactive",
+      ]),
+    );
+  });
+
   test("fails when intervention trend coverage is missing", async () => {
     await writeFixtureNetwork({
       includeObservedAndInterventions: true,
       includeRouteTrends: false,
     });
 
-    const result = await checkPipelineV1({ year: 2026, month: 11, dbPath });
+    const result = await checkPipelineV1(checkArgs());
 
     expect(result.status).toBe("fail");
     expect(result.counts).toEqual(

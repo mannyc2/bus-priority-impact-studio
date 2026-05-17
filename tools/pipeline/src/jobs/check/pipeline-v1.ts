@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import {
   getRouteBatchStatus,
   listAceRoutes,
@@ -22,7 +23,9 @@ import {
 } from "@bp/db/local";
 import { type CliOption, numberOption, trueOption } from "../../lib/cli-args.js";
 import { withLocalPipelineDb } from "../../lib/local-db.js";
+import { fromCliPath } from "../../lib/paths.js";
 import { createMonthContext, parseMonthDbCliArgs } from "../../lib/route-job.js";
+import { fromRepoRoot } from "../../source-manifest.js";
 import { buildRouteBatchAudit } from "../build/route-batch-audit.js";
 import { verifyD1Export } from "../export/verify-d1-export.js";
 
@@ -32,6 +35,9 @@ type PipelineV1CheckArgs = {
   dbPath?: string;
   allowInsufficientGtfsRt?: boolean;
   minObservedHeadwaySamples?: number;
+  maxSourceProbeAgeDays?: number;
+  sourceMetadataDir?: string;
+  now?: Date;
 };
 
 type CheckStatus = "pass" | "fail";
@@ -69,6 +75,11 @@ type PipelineV1Counts = {
   busLaneMatchedPublicRouteCount: number;
   busLaneInterventionComparisonRows: number;
   busLaneSourceGapComparisonRows: number;
+  sourceProbeRows: number;
+  sourceProbeFreshRows: number;
+  sourceProbeMissingRows: number;
+  sourceProbeStaleRows: number;
+  sourceProbeInactiveRows: number;
   routeMonthTrendRows: number;
   routeMonthTrendSpeedRows: number;
   routeMonthTrendRidershipRows: number;
@@ -103,6 +114,27 @@ type PipelineV1CheckResult = {
 
 const defaultMinObservedHeadwaySamples = 1;
 const busLaneSourceId = "nyc_dot_bus_lanes";
+const defaultMaxSourceProbeAgeDays = 45;
+const requiredV1SourceProbeIds = [
+  "bus_segment_speeds_2025",
+  "current_bus_routes",
+  "current_bus_stops",
+  "bus_hourly_ridership_2025",
+  "bus_schedules_2026",
+  "ace_routes",
+  "ace_violations",
+  "nyc_dot_bus_lanes_local_streets",
+  "nyc_borough_boundaries",
+  "census_acs5_profile_tracts",
+] as const;
+
+type SourceProbeFreshnessRow = {
+  sourceId: string;
+  status: "fresh" | "missing" | "stale" | "inactive";
+  checkedAt: string | null;
+  ageDays: number | null;
+  probeStatus: string | null;
+};
 
 function parseCliArgs(args: string[]): PipelineV1CheckArgs {
   const extraOptions: CliOption<PipelineV1CheckArgs>[] = [
@@ -112,6 +144,17 @@ function parseCliArgs(args: string[]): PipelineV1CheckArgs {
     numberOption(["--min-observed-headway-samples"], (output, value) => {
       output.minObservedHeadwaySamples = value;
     }),
+    numberOption(["--max-source-probe-age-days"], (output, value) => {
+      output.maxSourceProbeAgeDays = value;
+    }),
+    {
+      flags: ["--source-metadata-dir"],
+      apply: (output, value) => {
+        if (value !== undefined) {
+          output.sourceMetadataDir = fromCliPath(value);
+        }
+      },
+    },
   ];
 
   return parseMonthDbCliArgs(args, {} as PipelineV1CheckArgs, extraOptions);
@@ -138,6 +181,65 @@ function unique(values: Iterable<string>): string[] {
   return [...new Set(values)].sort();
 }
 
+function sourceMetadataDir(path: string | undefined): string {
+  return path ?? fromRepoRoot(join("knowledge/raw/metadata"));
+}
+
+function ageDays(checkedAt: string, now: Date): number | null {
+  const timestamp = Date.parse(checkedAt);
+  if (Number.isNaN(timestamp)) {
+    return null;
+  }
+
+  return Math.max(0, Math.floor((now.getTime() - timestamp) / (24 * 60 * 60 * 1000)));
+}
+
+async function sourceProbeFreshnessRows(input: {
+  metadataDir: string;
+  maxAgeDays: number;
+  now: Date;
+}): Promise<SourceProbeFreshnessRow[]> {
+  const rows: SourceProbeFreshnessRow[] = [];
+
+  for (const sourceId of requiredV1SourceProbeIds) {
+    const file = Bun.file(join(input.metadataDir, `${sourceId}.json`));
+    if (!(await file.exists())) {
+      rows.push({
+        sourceId,
+        status: "missing",
+        checkedAt: null,
+        ageDays: null,
+        probeStatus: null,
+      });
+      continue;
+    }
+
+    const parsed = (await file.json()) as {
+      checkedAt?: unknown;
+      probeStatus?: unknown;
+    };
+    const checkedAt = typeof parsed.checkedAt === "string" ? parsed.checkedAt : null;
+    const probeStatus = typeof parsed.probeStatus === "string" ? parsed.probeStatus : null;
+    const probeAgeDays = checkedAt === null ? null : ageDays(checkedAt, input.now);
+    const status =
+      probeStatus !== "active" || probeAgeDays === null
+        ? "inactive"
+        : probeAgeDays > input.maxAgeDays
+          ? "stale"
+          : "fresh";
+
+    rows.push({
+      sourceId,
+      status,
+      checkedAt,
+      ageDays: probeAgeDays,
+      probeStatus,
+    });
+  }
+
+  return rows;
+}
+
 export async function checkPipelineV1(
   args: PipelineV1CheckArgs = {},
 ): Promise<PipelineV1CheckResult> {
@@ -147,6 +249,15 @@ export async function checkPipelineV1(
     1,
     Math.round(args.minObservedHeadwaySamples ?? defaultMinObservedHeadwaySamples),
   );
+  const maxSourceProbeAgeDays = Math.max(
+    1,
+    Math.round(args.maxSourceProbeAgeDays ?? defaultMaxSourceProbeAgeDays),
+  );
+  const sourceFreshness = await sourceProbeFreshnessRows({
+    metadataDir: sourceMetadataDir(args.sourceMetadataDir),
+    maxAgeDays: maxSourceProbeAgeDays,
+    now: args.now ?? new Date(),
+  });
   const audit = await buildRouteBatchAudit({
     year: options.year,
     month: options.month,
@@ -303,7 +414,32 @@ export async function checkPipelineV1(
   const routeMonthTrendRidershipRows = localState.routeMonthTrends.filter(
     (row) => row.hasRidershipTrend,
   ).length;
+  const missingSourceProbeRows = sourceFreshness.filter((row) => row.status === "missing");
+  const staleSourceProbeRows = sourceFreshness.filter((row) => row.status === "stale");
+  const inactiveSourceProbeRows = sourceFreshness.filter((row) => row.status === "inactive");
   const issues: PipelineV1Issue[] = [];
+
+  if (missingSourceProbeRows.length > 0) {
+    addIssue(
+      issues,
+      "source_probe_metadata_missing",
+      `${missingSourceProbeRows.length} required v1 source probe captures are missing: ${sample(missingSourceProbeRows.map((row) => row.sourceId))}.`,
+    );
+  }
+  if (staleSourceProbeRows.length > 0) {
+    addIssue(
+      issues,
+      "source_probe_metadata_stale",
+      `${staleSourceProbeRows.length} required v1 source probe captures are older than ${maxSourceProbeAgeDays} days: ${sample(staleSourceProbeRows.map((row) => `${row.sourceId}:${row.ageDays ?? "unknown"}d`))}.`,
+    );
+  }
+  if (inactiveSourceProbeRows.length > 0) {
+    addIssue(
+      issues,
+      "source_probe_metadata_inactive",
+      `${inactiveSourceProbeRows.length} required v1 source probe captures are not active or have invalid checkedAt values: ${sample(inactiveSourceProbeRows.map((row) => row.sourceId))}.`,
+    );
+  }
 
   if (localState.catalog.length === 0) {
     addIssue(issues, "route_catalog_missing", "No route catalog rows exist.");
@@ -609,6 +745,11 @@ export async function checkPipelineV1(
       busLaneMatchedPublicRouteCount: busLaneMatchedPublicRouteIds.length,
       busLaneInterventionComparisonRows: busLaneInterventionComparisons.length,
       busLaneSourceGapComparisonRows,
+      sourceProbeRows: sourceFreshness.length,
+      sourceProbeFreshRows: sourceFreshness.filter((row) => row.status === "fresh").length,
+      sourceProbeMissingRows: missingSourceProbeRows.length,
+      sourceProbeStaleRows: staleSourceProbeRows.length,
+      sourceProbeInactiveRows: inactiveSourceProbeRows.length,
       routeMonthTrendRows: localState.routeMonthTrends.length,
       routeMonthTrendSpeedRows,
       routeMonthTrendRidershipRows,
