@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { buildD1SeedSql } from "@bp/db/d1/seed";
@@ -6,9 +7,15 @@ import { readD1MigrationSql } from "./d1-migrations.js";
 import { readLocalD1Inputs } from "./route-d1-inputs.js";
 
 export type D1SeedOutputResult = {
+  schemaVersion: number;
   isoMonth: string;
+  analysisPeriod: string;
+  generatedAt: string;
+  summaryPath: string;
   schemaPath: string;
   seedPath: string;
+  schemaFile: D1FileContract;
+  seedFile: D1FileContract;
   routeCount: number;
   comparisonRowCount: number;
   routeCatalogRowCount: number;
@@ -40,11 +47,27 @@ export type D1SeedOutputResult = {
   routeScorecardCitationRowCount: number;
 };
 
+type D1FileContract = {
+  path: string;
+  byteLength: number;
+  sha256: string;
+};
+
+function fileContract(path: string, content: string): D1FileContract {
+  const bytes = new TextEncoder().encode(content);
+  return {
+    path,
+    byteLength: bytes.byteLength,
+    sha256: createHash("sha256").update(bytes).digest("hex"),
+  };
+}
+
 export async function writeRouteD1SeedOutput(input: {
   dbPath: string;
   isoMonth: string;
 }): Promise<D1SeedOutputResult> {
   const exportDir = fromRepoRoot(join("data/exports/d1", input.isoMonth));
+  const summaryPath = join(exportDir, "export-summary.json");
   const schemaPath = join(exportDir, "schema.sql");
   const seedPath = join(exportDir, "seed.sql");
   const d1Inputs = await readLocalD1Inputs(input.dbPath, input.isoMonth);
@@ -53,14 +76,17 @@ export async function writeRouteD1SeedOutput(input: {
     month: input.isoMonth,
     ...d1Inputs,
   });
-
-  await mkdir(exportDir, { recursive: true });
-  await Promise.all([Bun.write(schemaPath, schemaSql), Bun.write(seedPath, seed.seedSql)]);
-
-  return {
+  const generatedAt = new Date().toISOString();
+  const result: D1SeedOutputResult = {
+    schemaVersion: 1,
     isoMonth: input.isoMonth,
+    analysisPeriod: input.isoMonth,
+    generatedAt,
+    summaryPath,
     schemaPath,
     seedPath,
+    schemaFile: fileContract(schemaPath, schemaSql),
+    seedFile: fileContract(seedPath, seed.seedSql),
     routeCount: seed.routeCount,
     comparisonRowCount: seed.comparisonRowCount,
     routeCatalogRowCount: seed.routeCatalogRowCount,
@@ -91,4 +117,13 @@ export async function writeRouteD1SeedOutput(input: {
     routeBriefSlowestWindowRowCount: seed.routeBriefSlowestWindowRowCount,
     routeScorecardCitationRowCount: seed.routeScorecardCitationRowCount,
   };
+
+  await mkdir(exportDir, { recursive: true });
+  await Promise.all([
+    Bun.write(schemaPath, schemaSql),
+    Bun.write(seedPath, seed.seedSql),
+    Bun.write(summaryPath, `${JSON.stringify(result, null, 2)}\n`),
+  ]);
+
+  return result;
 }

@@ -447,10 +447,15 @@ describe("D1 export verification", () => {
     await writeFixtureArtifacts();
 
     const result = await verifyD1Export({ year: 2026, month: 9, dbPath });
+    const summary = await Bun.file(result.summaryPath).json();
 
     expect(result).toEqual(
       expect.objectContaining({
+        schemaVersion: 1,
         isoMonth,
+        analysisPeriod: isoMonth,
+        summaryPath: expect.stringContaining("verify-summary.json"),
+        seedPath: expect.stringContaining("seed.sql"),
         status: "pass",
         issueCount: 0,
       }),
@@ -479,6 +484,15 @@ describe("D1 export verification", () => {
         route_batch_built_route: 0,
       }),
     );
+    expect(result.expectedCounts).toEqual(
+      expect.objectContaining({
+        route_catalog: 1,
+        route_observed_reliability_summary: 1,
+        route_intervention_comparison: 1,
+        route_artifact: 3,
+        corridor_artifact: 3,
+      }),
+    );
     expect(result.repositoryChecks).toEqual(
       expect.objectContaining({
         batchStatus: "pass",
@@ -493,6 +507,15 @@ describe("D1 export verification", () => {
         routeMonthTrendRows: 1,
         routeEquityContextRows: 1,
         firstRouteId: "T1",
+      }),
+    );
+    expect(summary).toEqual(
+      expect.objectContaining({
+        schemaVersion: 1,
+        analysisPeriod: isoMonth,
+        status: "pass",
+        tableCounts: result.tableCounts,
+        expectedCounts: result.expectedCounts,
       }),
     );
   });

@@ -481,10 +481,24 @@ describe("D1 seed export", () => {
     const result = await exportD1Seed({ year: 2026, month: 4, dbPath });
     const schema = await Bun.file(result.schemaPath).text();
     const seed = await Bun.file(result.seedPath).text();
+    const summary = await Bun.file(result.summaryPath).json();
 
     expect(result).toEqual(
       expect.objectContaining({
+        schemaVersion: 1,
         isoMonth,
+        analysisPeriod: isoMonth,
+        summaryPath: expect.stringContaining("export-summary.json"),
+        schemaFile: expect.objectContaining({
+          path: result.schemaPath,
+          byteLength: expect.any(Number),
+          sha256: expect.stringMatching(/^[a-f0-9]{64}$/),
+        }),
+        seedFile: expect.objectContaining({
+          path: result.seedPath,
+          byteLength: expect.any(Number),
+          sha256: expect.stringMatching(/^[a-f0-9]{64}$/),
+        }),
         routeCount: 1,
         routeCatalogRowCount: 1,
         routeCatalogTypeRowCount: 1,
@@ -516,6 +530,17 @@ describe("D1 seed export", () => {
         comparisonRowCount: 1,
       }),
     );
+    expect(summary).toEqual(
+      expect.objectContaining({
+        schemaVersion: 1,
+        analysisPeriod: isoMonth,
+        seedFile: result.seedFile,
+        routeObservedReliabilitySummaryRowCount: 1,
+        corridorArtifactRowCount: 3,
+      }),
+    );
+    expect(result.schemaFile.byteLength).toBe(new TextEncoder().encode(schema).byteLength);
+    expect(result.seedFile.byteLength).toBe(new TextEncoder().encode(seed).byteLength);
     expect(schema).toContain("CREATE TABLE `route_scorecard`");
     expect(schema).toContain("CREATE TABLE `route_observed_reliability_summary`");
     expect(schema).toContain("CREATE TABLE `route_intervention_comparison`");
