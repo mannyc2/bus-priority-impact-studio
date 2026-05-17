@@ -115,6 +115,43 @@ Current v1 gaps:
 - Route score is still a simple speed/hotspot heuristic, not the planned multi-factor priority model.
 - Primary roadmap, ETL, CLI, README, and source-data pages now frame M1 as historical fixture/context and GTFS-RT observed reliability as v1 evidence. Remaining M1 command references are compatibility or historical notes.
 
+## Active Handoff: 24-Hour GTFS-RT Run
+
+Run id: `gtfs-rt-v1-20260517T103607Z-24h`.
+
+Canonical DB: `/mnt/models/dev/bus-reliability-tracker/data/local/pipeline.sqlite`.
+
+Canonical artifact root: `/mnt/models/dev/bus-reliability-tracker/data/artifacts`.
+
+Status artifact:
+
+```text
+/mnt/models/dev/bus-reliability-tracker/data/artifacts/gtfs-rt/run-status/gtfs-rt-v1-20260517T103607Z-24h.json
+```
+
+Current handoff loop while the run is active:
+
+```bash
+bun run gtfs-rt:run-status -- --run-id gtfs-rt-v1-20260517T103607Z-24h --db "/mnt/models/dev/bus-reliability-tracker/data/local/pipeline.sqlite" --artifact-root "/mnt/models/dev/bus-reliability-tracker/data/artifacts"
+```
+
+When `collection.status` becomes `completed` or `completed_with_errors`, run the commands emitted in `nextCommands`. The expected sequence for this run is:
+
+```bash
+bun run ingest:gtfs-rt-snapshots -- --run-id gtfs-rt-v1-20260517T103607Z-24h --db "/mnt/models/dev/bus-reliability-tracker/data/local/pipeline.sqlite"
+bun run build:observed-headways -- --run-id gtfs-rt-v1-20260517T103607Z-24h --db "/mnt/models/dev/bus-reliability-tracker/data/local/pipeline.sqlite"
+bun run route-observed-reliability -- --year 2026 --month 5 --run-id gtfs-rt-v1-20260517T103607Z-24h --db "/mnt/models/dev/bus-reliability-tracker/data/local/pipeline.sqlite"
+bun run gtfs-rt:preflight -- --year 2026 --month 5 --run-id gtfs-rt-v1-20260517T103607Z-24h --db "/mnt/models/dev/bus-reliability-tracker/data/local/pipeline.sqlite"
+```
+
+After preflight passes, rerun the March public + May realtime audit:
+
+```bash
+bun --filter @bp/pipeline audit:pipeline-v1 -- --public-year 2026 --public-month 3 --realtime-year 2026 --realtime-month 5 --run-id gtfs-rt-v1-20260517T103607Z-24h --db "/mnt/models/dev/bus-reliability-tracker/data/local/pipeline.sqlite" --artifact-root "/mnt/models/dev/bus-reliability-tracker/data/artifacts" --export-root "/mnt/models/dev/bus-reliability-tracker/data/exports" --clean-db "/mnt/models/dev/bus-reliability-tracker/data/local/pipeline-clean-full.sqlite" --clean-artifact-root "/mnt/models/dev/bus-reliability-tracker/data/artifacts/pipeline-clean-full" --clean-export-root "/mnt/models/dev/bus-reliability-tracker/data/exports/pipeline-clean-full" --output "/mnt/models/dev/bus-reliability-tracker/data/artifacts/pipeline-v1/audit-2026-03-2026-05.json"
+```
+
+This will still be an appendix audit, not strict v1 completion, until `check:route-speed-availability` reports a complete speed month matching a collected realtime month.
+
 ## Prompt-To-Artifact Checklist
 
 | Requirement | Current evidence | Status | Required v1 artifact / gate |
