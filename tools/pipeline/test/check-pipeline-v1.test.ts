@@ -13,6 +13,7 @@ import {
   replaceRouteCatalog,
   replaceRouteInterventionEvaluationRows,
   replaceRouteMonthCoverage,
+  replaceRouteMonthTrends,
   replaceRouteObservedReliabilityRows,
   replaceRouteReadiness,
   replaceRouteReliabilityRows,
@@ -44,6 +45,7 @@ async function removeFixtureArtifacts(): Promise<void> {
 async function writeFixtureNetwork(options: {
   includeObservedAndInterventions: boolean;
   includeGtfsRtProvenance?: boolean;
+  includeRouteTrends?: boolean;
 }) {
   await removeFixtureArtifacts();
   const local = await openLocalPipelineDb(dbPath);
@@ -159,6 +161,54 @@ async function writeFixtureNetwork(options: {
         implementationDate: "2026-01-15T00:00:00.000Z",
       },
     ]);
+    if (options.includeRouteTrends !== false) {
+      await replaceRouteMonthTrends(local.db, [
+        {
+          routeId: "T1",
+          month: "2025-11",
+          speedObservationCount: 10,
+          speedBusTripCount: 100,
+          averageSpeedMph: 5,
+          ridership: 900,
+          transfers: 90,
+          hasSpeedTrend: true,
+          hasRidershipTrend: true,
+        },
+        {
+          routeId: "T1",
+          month: "2025-12",
+          speedObservationCount: 20,
+          speedBusTripCount: 200,
+          averageSpeedMph: 7,
+          ridership: 1100,
+          transfers: 110,
+          hasSpeedTrend: true,
+          hasRidershipTrend: true,
+        },
+        {
+          routeId: "T1",
+          month: "2026-02",
+          speedObservationCount: 30,
+          speedBusTripCount: 300,
+          averageSpeedMph: 8,
+          ridership: 1300,
+          transfers: 130,
+          hasSpeedTrend: true,
+          hasRidershipTrend: true,
+        },
+        {
+          routeId: "T1",
+          month: "2026-03",
+          speedObservationCount: 40,
+          speedBusTripCount: 400,
+          averageSpeedMph: 8,
+          ridership: 1500,
+          transfers: 150,
+          hasSpeedTrend: true,
+          hasRidershipTrend: true,
+        },
+      ]);
+    }
     if (options.includeObservedAndInterventions) {
       await replaceRouteObservedReliabilityRows(local.db, isoMonth, observedRunId, {
         summaries: [
@@ -495,6 +545,9 @@ describe("pipeline v1 check", () => {
         routeObservedReliabilityObservedRows: 1,
         routeObservedReliabilityInsufficientRows: 0,
         routeObservedReliabilityHeadwaySampleCount: 42,
+        routeMonthTrendRows: 4,
+        routeMonthTrendSpeedRows: 4,
+        routeMonthTrendRidershipRows: 4,
         gtfsRtCollectionRunRows: 1,
         gtfsRtCompletedCollectionRunRows: 1,
         gtfsRtFeedSnapshotRows: 1,
@@ -503,6 +556,8 @@ describe("pipeline v1 check", () => {
         gtfsRtParsedVehiclePositionSnapshotRows: 1,
         gtfsRtObservedHeadwaySampleRows: 42,
         routeInterventionComparisonRows: 1,
+        evaluatedInterventionComparisonRows: 1,
+        evaluatedInterventionComparisonRidershipDeltaRows: 1,
         corridorRows: 1,
         routeArtifactRows: 3,
         corridorArtifactRows: 3,
@@ -594,6 +649,31 @@ describe("pipeline v1 check", () => {
         "gtfs_rt_feed_snapshots_missing",
         "gtfs_rt_vehicle_positions_not_parsed",
         "observed_headway_rows_incomplete",
+      ]),
+    );
+  });
+
+  test("fails when intervention trend coverage is missing", async () => {
+    await writeFixtureNetwork({
+      includeObservedAndInterventions: true,
+      includeRouteTrends: false,
+    });
+
+    const result = await checkPipelineV1({ year: 2026, month: 11, dbPath });
+
+    expect(result.status).toBe("fail");
+    expect(result.counts).toEqual(
+      expect.objectContaining({
+        routeMonthTrendRows: 0,
+        routeMonthTrendSpeedRows: 0,
+        routeMonthTrendRidershipRows: 0,
+      }),
+    );
+    expect(result.issues.map((issue) => issue.code)).toEqual(
+      expect.arrayContaining([
+        "route_month_trends_missing",
+        "route_month_trend_speed_missing",
+        "route_month_trend_ridership_missing",
       ]),
     );
   });

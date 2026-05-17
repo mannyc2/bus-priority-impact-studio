@@ -112,7 +112,7 @@ Current v1 gaps:
 | Full set of corridor briefs | `brief-artifacts` writes and audits 627 JSON/Markdown/HTML corridor bodies for 209 corridors | Pass for current March run | Clean rebuild from empty local DB proves reproducibility |
 | Verified D1 export contract | `verify:d1` passes with route serving rows, observed reliability, ACE intervention comparisons, corridor summaries, and route/corridor artifact metadata | Pass for current March run | D1 verification expanded to map payload and detailed evaluation manifests |
 | Static artifact contract | Stable `briefs/routes/...` and `briefs/corridors/...` keys exist with byte-length/SHA-256 audit | Partial | Stable artifact key scheme for map payloads and detailed evaluation payloads |
-| QA gates | Strict `check:pipeline-v1` fails the current March run on missing observed GTFS-RT samples and validates GTFS-RT collection/parse/headway provenance; structural mode can be run with `--allow-insufficient-gtfs-rt` | Partial | Add source freshness, richer GTFS-RT confidence thresholds, bus-lane intervention eligibility, and richer corridor ambiguity checks |
+| QA gates | Strict `check:pipeline-v1` fails the current March run on missing observed GTFS-RT samples and validates GTFS-RT collection/parse/headway provenance, route trend coverage, evaluated intervention comparisons, and ridership deltas; structural mode can be run with `--allow-insufficient-gtfs-rt` | Partial | Add source freshness, richer GTFS-RT confidence thresholds, bus-lane intervention eligibility, and richer corridor ambiguity checks |
 | Updated roadmap/docs | Some docs are stale | In progress | This page plus updated index, roadmap, ETL, and data pages |
 
 ## Definition Of Done
@@ -475,7 +475,7 @@ Implemented so far:
 
 - `route-batch-audit` checks required route/corridor brief artifacts, file presence, byte length, and SHA-256 against local metadata rows.
 - `verify:d1` loads generated schema/seed SQL and exercises typed readback for route/corridor artifact metadata.
-- `check:pipeline-v1` runs the current v1 QA gate over local DB state, route/corridor brief artifacts, route-batch audit results, D1 verification, and GTFS-RT provenance. Against the current March 2026 local DB, strict mode fails because observed reliability has 381 insufficient rows and 0 observed headway samples. Structural mode with `--allow-insufficient-gtfs-rt` passes with 381 reliability status rows, 79 intervention comparison rows, 5,171 route/month trend rows, and 1,677 verified brief artifacts.
+- `check:pipeline-v1` runs the current v1 QA gate over local DB state, route/corridor brief artifacts, route-batch audit results, D1 verification, GTFS-RT provenance, route trend coverage, and evaluated intervention comparison coverage. Against the current March 2026 local DB, strict mode fails because observed reliability has 381 insufficient rows and 0 observed headway samples. Structural mode with `--allow-insufficient-gtfs-rt` passes with 381 reliability status rows, 79 intervention comparison rows, 5,171 route/month trend rows, and 1,677 verified brief artifacts.
 
 Acceptance:
 

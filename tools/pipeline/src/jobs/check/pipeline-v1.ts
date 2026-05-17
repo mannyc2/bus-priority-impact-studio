@@ -65,6 +65,7 @@ type PipelineV1Counts = {
   interventionEventRows: number;
   routeInterventionComparisonRows: number;
   evaluatedInterventionComparisonRows: number;
+  evaluatedInterventionComparisonRidershipDeltaRows: number;
   routeMonthTrendRows: number;
   routeMonthTrendSpeedRows: number;
   routeMonthTrendRidershipRows: number;
@@ -93,6 +94,7 @@ type PipelineV1CheckResult = {
     corridorArtifactRows: number;
     routeObservedReliabilityRows: number;
     routeInterventionComparisonRows: number;
+    routeMonthTrendRows: number;
   } | null;
 };
 
@@ -272,6 +274,19 @@ export async function checkPipelineV1(
   const parsedVehiclePositionSnapshotCount = gtfsRtState.parsedSnapshots.filter(
     (row) => row.status === "parsed" && row.feedType === "vehicle_positions",
   ).length;
+  const evaluatedInterventionComparisonRows = localState.interventionComparisons.filter(
+    (row) => row.comparisonStatus === "evaluated",
+  ).length;
+  const evaluatedInterventionComparisonRidershipDeltaRows =
+    localState.interventionComparisons.filter(
+      (row) => row.comparisonStatus === "evaluated" && row.ridershipDelta !== null,
+    ).length;
+  const routeMonthTrendSpeedRows = localState.routeMonthTrends.filter(
+    (row) => row.hasSpeedTrend,
+  ).length;
+  const routeMonthTrendRidershipRows = localState.routeMonthTrends.filter(
+    (row) => row.hasRidershipTrend,
+  ).length;
   const issues: PipelineV1Issue[] = [];
 
   if (localState.catalog.length === 0) {
@@ -405,6 +420,32 @@ export async function checkPipelineV1(
       `${localState.aceRoutes.length} ACE/ABLE source rows exist but no route intervention comparisons were generated.`,
     );
   }
+  if (publicRouteIds.length > 0 && localState.routeMonthTrends.length === 0) {
+    addIssue(issues, "route_month_trends_missing", "No route/month trend rows exist.");
+  }
+  if (publicRouteIds.length > 0 && routeMonthTrendSpeedRows === 0) {
+    addIssue(issues, "route_month_trend_speed_missing", "No speed trend rows exist.");
+  }
+  if (publicRouteIds.length > 0 && routeMonthTrendRidershipRows === 0) {
+    addIssue(issues, "route_month_trend_ridership_missing", "No ridership trend rows exist.");
+  }
+  if (localState.aceRoutes.length > 0 && evaluatedInterventionComparisonRows === 0) {
+    addIssue(
+      issues,
+      "intervention_evaluated_comparisons_missing",
+      "ACE/ABLE route comparisons exist but none are evaluated before/after comparisons.",
+    );
+  }
+  if (
+    evaluatedInterventionComparisonRows > 0 &&
+    evaluatedInterventionComparisonRidershipDeltaRows === 0
+  ) {
+    addIssue(
+      issues,
+      "intervention_ridership_deltas_missing",
+      "Evaluated intervention comparisons do not include ridership deltas.",
+    );
+  }
   const comparisonsWithoutCaveats = localState.interventionComparisons.filter(
     (row) => row.caveat.trim().length === 0,
   );
@@ -473,6 +514,7 @@ export async function checkPipelineV1(
         d1Result.tableCounts,
         "route_intervention_comparison",
       ),
+      routeMonthTrendRows: tableCount(d1Result.tableCounts, "route_month_trend"),
     };
     if (d1.routeObservedReliabilityRows < publicRouteIds.length) {
       addIssue(
@@ -488,6 +530,9 @@ export async function checkPipelineV1(
         "D1 export has no route intervention comparison rows.",
       );
     }
+    if (localState.routeMonthTrends.length > 0 && d1.routeMonthTrendRows === 0) {
+      addIssue(issues, "d1_route_month_trends_missing", "D1 export has no route/month trend rows.");
+    }
   } catch (error) {
     d1 = {
       status: "fail",
@@ -495,6 +540,7 @@ export async function checkPipelineV1(
       corridorArtifactRows: 0,
       routeObservedReliabilityRows: 0,
       routeInterventionComparisonRows: 0,
+      routeMonthTrendRows: 0,
     };
     addIssue(
       issues,
@@ -531,15 +577,11 @@ export async function checkPipelineV1(
       aceRouteRows: localState.aceRoutes.length,
       interventionEventRows: localState.interventionEvents.length,
       routeInterventionComparisonRows: localState.interventionComparisons.length,
-      evaluatedInterventionComparisonRows: localState.interventionComparisons.filter(
-        (row) => row.comparisonStatus === "evaluated",
-      ).length,
+      evaluatedInterventionComparisonRows,
+      evaluatedInterventionComparisonRidershipDeltaRows,
       routeMonthTrendRows: localState.routeMonthTrends.length,
-      routeMonthTrendSpeedRows: localState.routeMonthTrends.filter((row) => row.hasSpeedTrend)
-        .length,
-      routeMonthTrendRidershipRows: localState.routeMonthTrends.filter(
-        (row) => row.hasRidershipTrend,
-      ).length,
+      routeMonthTrendSpeedRows,
+      routeMonthTrendRidershipRows,
       corridorRows: localState.corridors.length,
       corridorRouteMemberRows: localState.corridorMembers.length,
       corridorArtifactRows: localState.corridorArtifacts.length,
