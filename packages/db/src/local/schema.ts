@@ -692,6 +692,8 @@ export const localCorridorRouteMember = sqliteTable(
     stopCount: integer("stop_count").notNull(),
     matchedStopCount: integer("matched_stop_count").notNull(),
     hotspotCount: integer("hotspot_count").notNull(),
+    matchedSegmentCount: integer("matched_segment_count").notNull().default(0),
+    segmentEvidenceScore: real("segment_evidence_score").notNull().default(0),
     totalRidership: real("total_ridership").notNull(),
     averageSpeedMph: real("average_speed_mph").notNull(),
   },

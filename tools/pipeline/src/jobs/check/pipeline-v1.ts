@@ -108,6 +108,7 @@ type PipelineV1Counts = {
   corridorAssignedRouteMemberRows: number;
   corridorAmbiguousRouteMemberRows: number;
   corridorUnassignedRouteMemberRows: number;
+  corridorSegmentEvidenceRouteMemberRows: number;
   corridorAmbiguousRouteShare: number;
   corridorUnassignedRouteShare: number;
   corridorArtifactRows: number;
@@ -725,6 +726,9 @@ export async function checkPipelineV1(
   const corridorUnassignedRouteMemberRows = localState.corridorMembers.filter(
     (row) => row.assignmentStatus === "unassigned",
   ).length;
+  const corridorSegmentEvidenceRouteMemberRows = localState.corridorMembers.filter(
+    (row) => row.matchedSegmentCount > 0,
+  ).length;
   const corridorAmbiguousRouteShare =
     publicRouteIds.length === 0
       ? 0
@@ -1073,6 +1077,13 @@ export async function checkPipelineV1(
       `${corridorUnassignedRouteMemberRows} public routes have unassigned corridor placeholders (${formatPercent(corridorUnassignedRouteShare)}); allowed share is ${formatPercent(maxCorridorUnassignedRouteShare)}.`,
     );
   }
+  if (publicRouteIds.length > 0 && corridorSegmentEvidenceRouteMemberRows === 0) {
+    addIssue(
+      issues,
+      "corridor_segment_evidence_missing",
+      "No corridor route memberships are backed by hotspot-segment evidence.",
+    );
+  }
   const routesMissingBriefArtifacts = publicRouteIds.filter(
     (routeId) => (routeArtifactsByRoute.get(routeId) ?? 0) < 3,
   );
@@ -1215,6 +1226,7 @@ export async function checkPipelineV1(
       corridorAssignedRouteMemberRows,
       corridorAmbiguousRouteMemberRows,
       corridorUnassignedRouteMemberRows,
+      corridorSegmentEvidenceRouteMemberRows,
       corridorAmbiguousRouteShare,
       corridorUnassignedRouteShare,
       corridorArtifactRows: localState.corridorArtifacts.length,

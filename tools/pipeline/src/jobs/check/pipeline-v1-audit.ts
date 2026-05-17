@@ -348,9 +348,9 @@ export async function auditPipelineV1(
     {
       requirement: "Corridor grouping and corridor briefs",
       status: publicStructural.counts.corridorRows > 0 ? "partial" : "blocked",
-      evidence: `${publicIsoMonth} has ${publicStructural.counts.corridorRows} corridors, ${publicStructural.counts.corridorRouteMemberRows} route memberships, and ${publicStructural.counts.corridorArtifactRows} corridor artifacts.`,
+      evidence: `${publicIsoMonth} has ${publicStructural.counts.corridorRows} corridors, ${publicStructural.counts.corridorRouteMemberRows} route memberships, ${publicStructural.counts.corridorSegmentEvidenceRouteMemberRows} segment-backed memberships, and ${publicStructural.counts.corridorArtifactRows} corridor artifacts.`,
       missing: [
-        "Richer segment-based corridor membership and corridor intervention context remain open.",
+        "Shape-based corridor membership and corridor-specific intervention event matching remain open.",
       ],
     },
     {

@@ -41,6 +41,8 @@ type CorridorAssignment = {
   assignmentReason: string;
   stopCount: number;
   matchedStopCount: number;
+  matchedSegmentCount: number;
+  segmentEvidenceScore: number;
 };
 
 function round(value: number, decimals = 4): number {
@@ -85,13 +87,77 @@ function corridorNameFor(corridorKey: string): string {
     .join(" ");
 }
 
-function assignCorridor(routeId: string, stops: readonly LocalRouteStop[]): CorridorAssignment {
+function stopStreetCounts(stops: readonly LocalRouteStop[]): Map<string, number> {
   const counts = new Map<string, number>();
   for (const stop of stops) {
     const street = streetFromStopName(stop.stopName);
     if (street !== null) {
       counts.set(street, (counts.get(street) ?? 0) + 1);
     }
+  }
+
+  return counts;
+}
+
+type SegmentStreetEvidence = {
+  street: string;
+  score: number;
+  segmentIds: Set<string>;
+};
+
+function segmentStreetEvidence(hotspots: readonly LocalRouteHotspot[]): SegmentStreetEvidence[] {
+  const evidence = new Map<string, SegmentStreetEvidence>();
+  for (const hotspot of hotspots) {
+    const streets = new Set(
+      [
+        streetFromStopName(hotspot.timepointStopName),
+        streetFromStopName(hotspot.nextTimepointStopName),
+      ].filter((street): street is string => street !== null),
+    );
+    for (const street of streets) {
+      const current = evidence.get(street) ?? {
+        street,
+        score: 0,
+        segmentIds: new Set<string>(),
+      };
+      current.score += hotspot.hotspotScore;
+      current.segmentIds.add(hotspot.segmentId);
+      evidence.set(street, current);
+    }
+  }
+
+  return [...evidence.values()].sort(
+    (left, right) =>
+      right.score - left.score ||
+      right.segmentIds.size - left.segmentIds.size ||
+      left.street.localeCompare(right.street),
+  );
+}
+
+function assignCorridor(
+  routeId: string,
+  stops: readonly LocalRouteStop[],
+  hotspots: readonly LocalRouteHotspot[],
+): CorridorAssignment {
+  const counts = stopStreetCounts(stops);
+  const segmentEvidence = segmentStreetEvidence(hotspots);
+  const topSegment = segmentEvidence[0];
+  if (topSegment !== undefined) {
+    const secondSegment = segmentEvidence[1];
+    const ambiguous = secondSegment !== undefined && secondSegment.score === topSegment.score;
+    return {
+      corridorId: corridorIdFor(topSegment.street),
+      corridorName: corridorNameFor(topSegment.street),
+      corridorKey: topSegment.street,
+      assignmentStatus: ambiguous ? "ambiguous" : "assigned",
+      assignmentReason: ambiguous
+        ? "ambiguous_hotspot_segment_street"
+        : "primary_hotspot_segment_street",
+      stopCount: stops.length,
+      matchedStopCount: counts.get(topSegment.street) ?? 0,
+      matchedSegmentCount: topSegment.segmentIds.size,
+      segmentEvidenceScore: round(topSegment.score),
+    };
   }
 
   const ranked = [...counts.entries()].sort(
@@ -109,6 +175,8 @@ function assignCorridor(routeId: string, stops: readonly LocalRouteStop[]): Corr
       assignmentReason: stops.length === 0 ? "no_route_stops" : "no_parseable_stop_street",
       stopCount: stops.length,
       matchedStopCount: 0,
+      matchedSegmentCount: 0,
+      segmentEvidenceScore: 0,
     };
   }
 
@@ -124,6 +192,8 @@ function assignCorridor(routeId: string, stops: readonly LocalRouteStop[]): Corr
     assignmentReason: ambiguous ? "ambiguous_primary_stop_street" : "primary_stop_street",
     stopCount: stops.length,
     matchedStopCount,
+    matchedSegmentCount: 0,
+    segmentEvidenceScore: 0,
   };
 }
 
@@ -148,6 +218,8 @@ function routeMember(input: {
     stopCount: input.assignment.stopCount,
     matchedStopCount: input.assignment.matchedStopCount,
     hotspotCount: input.hotspotCount,
+    matchedSegmentCount: input.assignment.matchedSegmentCount,
+    segmentEvidenceScore: input.assignment.segmentEvidenceScore,
     totalRidership: input.brief.totalRidership,
     averageSpeedMph: input.brief.averageSpeedMph,
   };
@@ -208,7 +280,7 @@ export async function buildCorridorModel(
         listRouteStops(local.db, brief.routeId, options.isoMonth),
         listRouteHotspots(local.db, brief.routeId, options.isoMonth),
       ]);
-      const assignment = assignCorridor(brief.routeId, stops);
+      const assignment = assignCorridor(brief.routeId, stops, hotspots);
       corridors.set(assignment.corridorId, {
         corridorId: assignment.corridorId,
         corridorName: assignment.corridorName,
@@ -216,7 +288,9 @@ export async function buildCorridorModel(
         derivationMethod:
           assignment.assignmentStatus === "unassigned"
             ? "unassigned_route_placeholder"
-            : "primary_route_stop_street",
+            : assignment.assignmentReason.endsWith("hotspot_segment_street")
+              ? "primary_route_hotspot_segment_street"
+              : "primary_route_stop_street",
       });
       routeMembers.push(
         routeMember({

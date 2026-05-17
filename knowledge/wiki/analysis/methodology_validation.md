@@ -128,6 +128,6 @@ The analysis logic is internally consistent, correctly weighted, and well-tested
 2. **Route score simplicity** — two-factor formula vs planned five-factor model
 3. **Observed realtime month split** — current live GTFS-RT evidence does not align with the March public-source month
 4. **Intervention methodology** — ACE/ABLE rows now include peer-adjusted deltas, but dated bus-lane evaluation remains open
-5. **Corridor precision** — primary-street grouping is deterministic but still needs richer segment-based membership
+5. **Corridor precision** — hotspot-segment grouping is deterministic but still needs final shape-based corridor review
 
-For a portfolio piece demonstrating methodology, the logic is defensible and well-documented. For MTA operational use, ridership allocation, route score calibration, bus-lane intervention dating, and corridor membership would need domain review.
+For a portfolio piece demonstrating methodology, the logic is defensible and well-documented. For MTA operational use, ridership allocation, route score calibration, bus-lane intervention dating, and final corridor geometry would need domain review.

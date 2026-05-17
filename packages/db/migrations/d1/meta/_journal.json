@@ -43,6 +43,13 @@
       "when": 1779007004227,
       "tag": "0005_motionless_anita_blake",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1779007756230,
+      "tag": "0006_certain_franklin_richards",
+      "breakpoints": true
     }
   ]
 }

@@ -705,6 +705,8 @@ function corridorJson(input: CorridorBriefContext) {
       stopCount: member.stopCount,
       matchedStopCount: member.matchedStopCount,
       hotspotCount: member.hotspotCount,
+      matchedSegmentCount: member.matchedSegmentCount,
+      segmentEvidenceScore: member.segmentEvidenceScore,
       totalRidership: member.totalRidership,
       averageSpeedMph: member.averageSpeedMph,
     })),
@@ -718,7 +720,7 @@ function corridorJson(input: CorridorBriefContext) {
       riderImpactScore: hotspot.riderImpactScore,
     })),
     caveats: [
-      "The current corridor model is a deterministic primary-street grouping, not a final shape-based corridor definition.",
+      "The current corridor model is a deterministic primary-street and hotspot-segment grouping, not a final shape-based corridor definition.",
       "Corridor metrics are rollups of route-level and hotspot-level evidence for the analysis month.",
       "Intervention context is counted from route-level comparison rows until corridor-specific event matching is added.",
     ],

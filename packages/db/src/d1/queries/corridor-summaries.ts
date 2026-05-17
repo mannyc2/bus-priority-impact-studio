@@ -42,6 +42,8 @@ const CorridorRouteMemberRowSchema = z
     stop_count: z.number().int().nonnegative(),
     matched_stop_count: z.number().int().nonnegative(),
     hotspot_count: z.number().int().nonnegative(),
+    matched_segment_count: z.number().int().nonnegative(),
+    segment_evidence_score: z.number().nonnegative(),
     total_ridership: z.number().nonnegative(),
     average_speed_mph: z.number().nonnegative(),
   })
@@ -145,6 +147,8 @@ export async function listCorridorSummaries(
         stop_count: corridorRouteMember.stopCount,
         matched_stop_count: corridorRouteMember.matchedStopCount,
         hotspot_count: corridorRouteMember.hotspotCount,
+        matched_segment_count: corridorRouteMember.matchedSegmentCount,
+        segment_evidence_score: corridorRouteMember.segmentEvidenceScore,
         total_ridership: corridorRouteMember.totalRidership,
         average_speed_mph: corridorRouteMember.averageSpeedMph,
       })

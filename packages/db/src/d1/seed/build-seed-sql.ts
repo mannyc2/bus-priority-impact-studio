@@ -513,6 +513,8 @@ export function buildD1SeedSql(input: D1SeedInput): D1SeedSqlResult {
           stopCount: row.stopCount,
           matchedStopCount: row.matchedStopCount,
           hotspotCount: row.hotspotCount,
+          matchedSegmentCount: row.matchedSegmentCount,
+          segmentEvidenceScore: row.segmentEvidenceScore,
           totalRidership: row.totalRidership,
           averageSpeedMph: row.averageSpeedMph,
         }),
