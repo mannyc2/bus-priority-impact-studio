@@ -60,6 +60,8 @@ The pipeline should generate map artifacts under a stable, content-addressable s
 
 ```text
 data/artifacts/map/
+  2026-03/
+    manifest.json
   sources/
     source-snapshot.json
   boroughs/
@@ -82,6 +84,7 @@ Artifact rules:
 - Coordinates should use 5-6 decimal places.
 - Lines should be simplified for display, not for measurement.
 - Every artifact must have source snapshot metadata, schema hash, row count, and created-at timestamp.
+- `map-artifacts` currently writes the monthly manifest, source snapshot metadata, route/stops/bus-lane GeoJSON, and all-day route-segment GeoJSON per public route/month. Borough boundary and PMTiles artifacts remain later map layers.
 - Product databases store artifact keys and hashes, not full route geometry for P0.
 - Route-segment artifacts validate through `MapRouteSegmentFeatureCollectionSchema` in `packages/domain`.
 

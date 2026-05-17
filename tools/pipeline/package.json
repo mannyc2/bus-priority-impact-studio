@@ -32,6 +32,7 @@
     "corridor-model": "bun run src/cli.ts corridor-model",
     "corridor-shape-review": "bun run src/cli.ts corridor-shape-review",
     "evaluation-artifacts": "bun run src/cli.ts evaluation-artifacts",
+    "map-artifacts": "bun run src/cli.ts map-artifacts",
     "brief-artifacts": "bun run src/cli.ts brief-artifacts",
     "route-equity-context": "bun run src/cli.ts route-equity-context",
     "export:d1": "bun run src/cli.ts export:d1",

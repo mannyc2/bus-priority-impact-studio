@@ -105,6 +105,19 @@ describe("route post-build", () => {
           corridorInterventionContextRowCount: 1,
         };
       },
+      buildMapArtifacts: async ({ artifactRoot }: { artifactRoot?: string }) => {
+        calls.push(`map-artifacts:${artifactRoot}`);
+        return {
+          isoMonth: "2026-08",
+          manifestPath: "/tmp/artifacts/map/2026-08/manifest.json",
+          artifactCount: 5,
+          routeSegmentArtifactCount: 2,
+          routeSegmentFeatureCount: 4,
+          totalFeatureCount: 12,
+          totalByteLength: 200,
+          publicRouteCount: 2,
+        };
+      },
       buildRouteReliabilityBaseline: async () => {
         calls.push("reliability");
         return {
@@ -162,6 +175,7 @@ describe("route post-build", () => {
         "corridor-model",
         "shape-review:/tmp/artifacts",
         "evaluation-artifacts:/tmp/artifacts",
+        "map-artifacts:/tmp/artifacts",
         "brief-artifacts:/tmp/artifacts",
         "reliability",
         "audit:/tmp/artifacts",

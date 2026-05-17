@@ -1,16 +1,18 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, rm } from "node:fs/promises";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import {
   insertGtfsRtCollectionRun,
   insertGtfsRtFeedSnapshot,
   replaceAceRoutes,
+  replaceBusLanes,
   replaceCorridorRows,
   replaceGtfsRtParsedSnapshot,
   replaceObservedHeadwayRows,
   replaceRouteBatch,
   replaceRouteBriefRows,
   replaceRouteCatalog,
+  replaceRouteHotspots,
   replaceRouteInterventionEvaluationRows,
   replaceRouteMonthCoverage,
   replaceRouteMonthTrends,
@@ -18,9 +20,11 @@ import {
   replaceRouteReadiness,
   replaceRouteReliabilityRows,
   replaceRouteScorecard,
+  replaceRouteSegmentSpeeds,
 } from "@bp/db/local";
 import { buildBriefArtifacts } from "../src/jobs/build/brief-artifacts.js";
 import { buildEvaluationArtifacts } from "../src/jobs/build/evaluation-artifacts.js";
+import { buildMapArtifacts } from "../src/jobs/build/map-artifacts.js";
 import { checkPipelineV1 } from "../src/jobs/check/pipeline-v1.js";
 import { auditPipelineV1 } from "../src/jobs/check/pipeline-v1-audit.js";
 import { openLocalPipelineDb } from "../src/lib/local-db.js";
@@ -37,8 +41,13 @@ const unassignedCorridorBriefDir = fromRepoRoot(
   join("data/artifacts/briefs/corridors/unassigned-t1", isoMonth),
 );
 const evaluationArtifactDir = fromRepoRoot(join("data/artifacts/evaluations", isoMonth));
+const mapArtifactDir = fromRepoRoot(join("data/artifacts/map"));
 const corridorShapeReviewDir = fromRepoRoot(join("data/artifacts/route-batches", isoMonth));
 const corridorShapeReviewPath = join(corridorShapeReviewDir, "corridor-shape-review.json");
+const mapRawDir = fromRepoRoot(join("data/fixtures/check-pipeline-v1/map-raw"));
+const routeShapeSnapshotPath = join(mapRawDir, "current_bus_routes.json");
+const stopSnapshotPath = join(mapRawDir, "current_bus_stops.json");
+const busLaneSnapshotPath = join(mapRawDir, "bus-lanes-local-streets.json");
 const sourceMetadataDir = fromRepoRoot(join("data/fixtures/check-pipeline-v1/source-metadata"));
 const auditOutputPath = fromRepoRoot(join("data/fixtures/check-pipeline-v1/audit.json"));
 const fixtureNow = new Date("2026-11-15T00:00:00.000Z");
@@ -64,9 +73,93 @@ async function removeFixtureArtifacts(): Promise<void> {
     rm(corridorBriefDir, { force: true, recursive: true }),
     rm(unassignedCorridorBriefDir, { force: true, recursive: true }),
     rm(evaluationArtifactDir, { force: true, recursive: true }),
+    rm(mapArtifactDir, { force: true, recursive: true }),
     rm(corridorShapeReviewDir, { force: true, recursive: true }),
+    rm(mapRawDir, { force: true, recursive: true }),
     rm(sourceMetadataDir, { force: true, recursive: true }),
     rm(auditOutputPath, { force: true }),
+  ]);
+}
+
+async function writeRawSnapshot(path: string, sourceId: string, rows: unknown[]): Promise<void> {
+  await mkdir(dirname(path), { recursive: true });
+  await Bun.write(
+    path,
+    `${JSON.stringify(
+      {
+        schemaVersion: 1,
+        sourceId,
+        fetchedAt: "2026-11-01T00:00:00.000Z",
+        query: {},
+        rows,
+      },
+      null,
+      2,
+    )}\n`,
+  );
+}
+
+async function writeMapRawFixtures(): Promise<void> {
+  await writeRawSnapshot(routeShapeSnapshotPath, "current_bus_routes", [
+    {
+      route_id: "T1",
+      route_short_name: "T1",
+      route_long_name: "Fixture route",
+      in_effect: "true",
+      direction_id: "0",
+      direction: "N",
+      shape_id: "shape-t1-n",
+      route_type: "Local",
+      geometry: {
+        type: "LineString",
+        coordinates: [
+          [-73.99, 40.7],
+          [-73.98, 40.71],
+          [-73.97, 40.72],
+        ],
+      },
+    },
+  ]);
+  await writeRawSnapshot(stopSnapshotPath, "current_bus_stops", [
+    {
+      route_id: "T1",
+      route_short_name: "T1",
+      stop_id: "S1",
+      stop_name: "Start Stop",
+      in_effect: "true",
+      direction_id: "0",
+      direction: "N",
+      timepoint: "1",
+      latitude: "40.7",
+      longitude: "-73.99",
+    },
+    {
+      route_id: "T1",
+      route_short_name: "T1",
+      stop_id: "S2",
+      stop_name: "End Stop",
+      in_effect: "true",
+      direction_id: "0",
+      direction: "N",
+      timepoint: "1",
+      latitude: "40.72",
+      longitude: "-73.97",
+    },
+  ]);
+  await writeRawSnapshot(busLaneSnapshotPath, "nyc_dot_bus_lanes_local_streets", [
+    {
+      segmentid: "BL1",
+      street: "Fixture St",
+      boro: "MAN",
+      facility: "Bus Lane",
+      the_geom: {
+        type: "LineString",
+        coordinates: [
+          [-73.99, 40.7],
+          [-73.98, 40.71],
+        ],
+      },
+    },
   ]);
 }
 
@@ -257,6 +350,81 @@ async function writeFixtureNetwork(options: {
       peakWindows: [],
       slowestWindows: [],
     });
+    await replaceRouteSegmentSpeeds(local.db, "T1", isoMonth, [
+      {
+        routeId: "T1",
+        isoMonth,
+        timestamp: "2026-11-01T08:00:00.000Z",
+        dayOfWeek: "weekday",
+        hourOfDay: 8,
+        direction: "N",
+        borough: "Manhattan",
+        routeType: "Local",
+        stopOrder: 1,
+        timepointStopId: "S1",
+        timepointStopName: "Start Stop",
+        timepointStopLatitude: 40.7,
+        timepointStopLongitude: -73.99,
+        nextTimepointStopId: "S2",
+        nextTimepointStopName: "End Stop",
+        nextTimepointStopLatitude: 40.72,
+        nextTimepointStopLongitude: -73.97,
+        roadDistanceMiles: 1,
+        averageTravelTimeMinutes: 10,
+        averageRoadSpeedMph: 6,
+        busTripCount: 10,
+      },
+    ]);
+    await replaceRouteHotspots(
+      local.db,
+      {
+        routeId: "T1",
+        isoMonth,
+        generatedAt: "2026-11-01T00:00:00.000Z",
+        routeWeightedAverageSpeedMph: 6,
+        observationCount: 1,
+        busTripCount: 10,
+        ridershipWeighted: false,
+        ridershipWindowCount: 0,
+        ridershipMatchedObservationCount: 0,
+        ridershipExposure: 0,
+        segmentCount: 1,
+        hotspotCount: 1,
+      },
+      [
+        {
+          routeId: "T1",
+          isoMonth,
+          segmentId: "N:1:S1:S2",
+          direction: "N",
+          stopOrder: 1,
+          timepointStopId: "S1",
+          timepointStopName: "Start Stop",
+          nextTimepointStopId: "S2",
+          nextTimepointStopName: "End Stop",
+          observationCount: 1,
+          busTripCount: 10,
+          weightedAverageSpeedMph: 6,
+          weightedAverageTravelTimeMinutes: 10,
+          averageRoadDistanceMiles: 1,
+          slowWindowShare: 0.5,
+          speedSeverity: 50,
+          hotspotScore: 75,
+        },
+      ],
+    );
+    await replaceBusLanes(local.db, [
+      {
+        segmentId: "BL1",
+        street: "Fixture St",
+        borough: "MAN",
+        facility: "Bus Lane",
+        coordinates: [
+          { longitude: -73.99, latitude: 40.7 },
+          { longitude: -73.98, latitude: 40.71 },
+        ],
+      },
+    ]);
     await replaceRouteReliabilityRows(local.db, isoMonth, {
       baselines: [
         {
@@ -723,8 +891,17 @@ async function writeFixtureNetwork(options: {
     local.sqlite.close();
   }
   await writeSourceProbeMetadata();
+  await writeMapRawFixtures();
   await writeCorridorShapeReviewArtifact();
   await buildEvaluationArtifacts({ year: 2026, month: 11, dbPath });
+  await buildMapArtifacts({
+    year: 2026,
+    month: 11,
+    dbPath,
+    routeShapeSnapshotPath,
+    stopSnapshotPath,
+    busLaneSnapshotPath,
+  });
   await buildBriefArtifacts({ year: 2026, month: 11, dbPath });
 }
 
@@ -1046,6 +1223,9 @@ describe("pipeline v1 check", () => {
         corridorArtifactRows: 3,
         evaluationArtifactRows: 5,
         evaluationArtifactIssueRows: 0,
+        mapArtifactRows: 8,
+        mapRouteSegmentArtifactRows: 1,
+        mapArtifactIssueRows: 0,
       }),
     );
     expect(result.d1).toEqual(
@@ -1333,6 +1513,25 @@ describe("pipeline v1 check", () => {
     );
     expect(incompleteResult.issues.map((issue) => issue.code)).toEqual(
       expect.arrayContaining(["corridor_shape_review_incomplete"]),
+    );
+  });
+
+  test("fails when map artifact manifest is missing", async () => {
+    await writeFixtureNetwork({ includeObservedAndInterventions: true });
+    await rm(join(mapArtifactDir, isoMonth, "manifest.json"), { force: true });
+
+    const result = await checkPipelineV1(checkArgs());
+
+    expect(result.status).toBe("fail");
+    expect(result.counts).toEqual(
+      expect.objectContaining({
+        mapArtifactRows: 0,
+        mapRouteSegmentArtifactRows: 0,
+        mapArtifactIssueRows: 1,
+      }),
+    );
+    expect(result.issues.map((issue) => issue.code)).toEqual(
+      expect.arrayContaining(["map_artifact_manifest_missing"]),
     );
   });
 

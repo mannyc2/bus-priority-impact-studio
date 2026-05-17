@@ -29,6 +29,7 @@ import { createMonthContext, parseMonthDbCliArgs } from "../../lib/route-job.js"
 import { fromRepoRoot } from "../../source-manifest.js";
 import { readCorridorShapeReviewArtifact } from "../build/corridor-shape-review.js";
 import { verifyEvaluationArtifactManifest } from "../build/evaluation-artifacts.js";
+import { verifyMapArtifactManifest } from "../build/map-artifacts.js";
 import { buildRouteBatchAudit } from "../build/route-batch-audit.js";
 import { verifyD1Export } from "../export/verify-d1-export.js";
 
@@ -125,6 +126,9 @@ type PipelineV1Counts = {
   routeBatchIssueRows: number;
   evaluationArtifactRows: number;
   evaluationArtifactIssueRows: number;
+  mapArtifactRows: number;
+  mapRouteSegmentArtifactRows: number;
+  mapArtifactIssueRows: number;
 };
 
 type PipelineV1CheckResult = {
@@ -786,6 +790,11 @@ export async function checkPipelineV1(
       corridorInterventionContexts: localState.corridorInterventionContexts.length,
     },
   });
+  const mapArtifacts = await verifyMapArtifactManifest({
+    artifactRoot: args.artifactRoot ?? defaultArtifactRootPath(),
+    month,
+    expectedRouteIds: publicRouteIds,
+  });
   const corridorAmbiguousRouteShare =
     publicRouteIds.length === 0
       ? 0
@@ -1254,6 +1263,9 @@ export async function checkPipelineV1(
   for (const issue of evaluationArtifacts.issues) {
     addIssue(issues, issue.code, issue.message);
   }
+  for (const issue of mapArtifacts.issues) {
+    addIssue(issues, issue.code, issue.message);
+  }
 
   let d1: PipelineV1CheckResult["d1"] = null;
   try {
@@ -1401,6 +1413,9 @@ export async function checkPipelineV1(
         evaluationArtifacts.rowCounts.routeInterventionComparisons +
         evaluationArtifacts.rowCounts.corridorInterventionContexts,
       evaluationArtifactIssueRows: evaluationArtifacts.issueCount,
+      mapArtifactRows: mapArtifacts.totalFeatureCount,
+      mapRouteSegmentArtifactRows: mapArtifacts.routeSegmentArtifactCount,
+      mapArtifactIssueRows: mapArtifacts.issueCount,
     },
     audit: {
       status: audit.status,

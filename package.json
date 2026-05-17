@@ -73,6 +73,7 @@
     "route-intervention-evaluation": "bun --filter @bp/pipeline route-intervention-evaluation",
     "corridor-model": "bun --filter @bp/pipeline corridor-model",
     "evaluation-artifacts": "bun --filter @bp/pipeline evaluation-artifacts",
+    "map-artifacts": "bun --filter @bp/pipeline map-artifacts",
     "brief-artifacts": "bun --filter @bp/pipeline brief-artifacts",
     "route-equity-context": "bun --filter @bp/pipeline route-equity-context",
     "export:d1": "bun --filter @bp/pipeline export:d1",

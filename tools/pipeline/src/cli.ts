@@ -176,6 +176,13 @@ const commands = {
       return buildEvaluationArtifactsFromCli(args);
     },
   },
+  "map-artifacts": {
+    description: "Build static map GeoJSON payloads and manifest.",
+    run: async (args) => {
+      const { buildMapArtifactsFromCli } = await import("./jobs/build/map-artifacts.js");
+      return buildMapArtifactsFromCli(args);
+    },
+  },
   "brief-artifacts": {
     description: "Build route and corridor brief body artifacts.",
     run: async (args) => {

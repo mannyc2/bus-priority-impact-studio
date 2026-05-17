@@ -3,6 +3,7 @@ import { buildBriefArtifacts } from "./brief-artifacts.js";
 import { buildCorridorModel } from "./corridor-model.js";
 import { buildCorridorShapeReview } from "./corridor-shape-review.js";
 import { buildEvaluationArtifacts } from "./evaluation-artifacts.js";
+import { buildMapArtifacts } from "./map-artifacts.js";
 import { buildRouteBatchAudit } from "./route-batch-audit.js";
 import { buildRouteBuildPlan } from "./route-build-plan.js";
 import { buildRouteComparison } from "./route-comparison.js";
@@ -31,6 +32,7 @@ export type RoutePostBuildDeps = {
   buildCorridorModel: typeof buildCorridorModel;
   buildCorridorShapeReview: typeof buildCorridorShapeReview;
   buildEvaluationArtifacts: typeof buildEvaluationArtifacts;
+  buildMapArtifacts: typeof buildMapArtifacts;
   buildRouteBuildPlan: typeof buildRouteBuildPlan;
   buildRouteComparison: typeof buildRouteComparison;
   buildRouteInterventionEvaluation: typeof buildRouteInterventionEvaluation;
@@ -43,6 +45,7 @@ export const defaultRoutePostBuildDeps: RoutePostBuildDeps = {
   buildCorridorModel,
   buildCorridorShapeReview,
   buildEvaluationArtifacts,
+  buildMapArtifacts,
   buildRouteBatchAudit,
   buildRouteBuildPlan,
   buildRouteComparison,
@@ -85,6 +88,7 @@ export async function runRoutePostBuild(
   await deps.buildCorridorModel(buildArgs);
   await deps.buildCorridorShapeReview(artifactArgs);
   await deps.buildEvaluationArtifacts(artifactArgs);
+  await deps.buildMapArtifacts(artifactArgs);
   await deps.buildBriefArtifacts(artifactArgs);
   await deps.buildRouteBatchAudit(artifactArgs);
 

@@ -94,6 +94,10 @@ describe("all-routes build graph", () => {
         calls.push("evaluation-artifacts");
         return { isoMonth: "2026-08", artifactCount: 3 };
       },
+      buildMapArtifacts: async () => {
+        calls.push("map-artifacts");
+        return { isoMonth: "2026-08", artifactCount: 5 };
+      },
       exportD1Seed: async ({ runAudit }: { runAudit?: boolean }) => {
         calls.push(`export:d1:${String(runAudit)}`);
         return {
@@ -177,6 +181,7 @@ describe("all-routes build graph", () => {
         "corridor-model",
         "shape-review",
         "evaluation-artifacts",
+        "map-artifacts",
         "brief-artifacts",
         "reliability",
         "audit",
@@ -274,6 +279,10 @@ describe("all-routes build graph", () => {
         calls.push("evaluation-artifacts");
         return { isoMonth: "2026-08", artifactCount: 3 };
       },
+      buildMapArtifacts: async () => {
+        calls.push("map-artifacts");
+        return { isoMonth: "2026-08", artifactCount: 5 };
+      },
       exportD1Seed: async ({ runAudit }: { runAudit?: boolean }) => {
         calls.push(`export:d1:${String(runAudit)}`);
         return {
@@ -350,6 +359,7 @@ describe("all-routes build graph", () => {
         "corridor-model",
         "shape-review",
         "evaluation-artifacts",
+        "map-artifacts",
         "brief-artifacts",
         "plan:20",
         "export:d1:false",

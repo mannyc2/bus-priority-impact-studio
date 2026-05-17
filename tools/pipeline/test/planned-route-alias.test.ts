@@ -184,6 +184,10 @@ describe("planned route alias", () => {
         calls.push("evaluation-artifacts");
         return { isoMonth, artifactCount: 3 };
       },
+      buildMapArtifacts: async () => {
+        calls.push("map-artifacts");
+        return { isoMonth, artifactCount: 5 };
+      },
       buildRouteBuildPlan: async ({ limit }: { limit?: number }) => {
         calls.push(`plan:${limit}`);
         return {
@@ -256,6 +260,7 @@ describe("planned route alias", () => {
         "corridor-model",
         "shape-review",
         "evaluation-artifacts",
+        "map-artifacts",
         "brief-artifacts",
         "reliability",
         "audit",

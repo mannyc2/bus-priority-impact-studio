@@ -384,16 +384,20 @@ export async function auditPipelineV1(
       status:
         publicStructural.d1?.status === "pass" &&
         publicStructural.audit.status === "pass" &&
-        publicStructural.counts.evaluationArtifactIssueRows === 0
+        publicStructural.counts.evaluationArtifactIssueRows === 0 &&
+        publicStructural.counts.mapArtifactIssueRows === 0
           ? "pass"
           : "blocked",
-      evidence: `${publicIsoMonth} D1 status is ${publicStructural.d1?.status ?? "missing"}; route artifacts ${publicStructural.d1?.routeArtifactRows ?? 0}, corridor artifacts ${publicStructural.d1?.corridorArtifactRows ?? 0}, evaluation artifact rows ${publicStructural.counts.evaluationArtifactRows}, evaluation artifact issues ${publicStructural.counts.evaluationArtifactIssueRows}.`,
+      evidence: `${publicIsoMonth} D1 status is ${publicStructural.d1?.status ?? "missing"}; route artifacts ${publicStructural.d1?.routeArtifactRows ?? 0}, corridor artifacts ${publicStructural.d1?.corridorArtifactRows ?? 0}, evaluation artifact rows ${publicStructural.counts.evaluationArtifactRows}, evaluation artifact issues ${publicStructural.counts.evaluationArtifactIssueRows}, map artifact features ${publicStructural.counts.mapArtifactRows}, map route-segment artifacts ${publicStructural.counts.mapRouteSegmentArtifactRows}, map artifact issues ${publicStructural.counts.mapArtifactIssueRows}.`,
       missing:
         publicStructural.d1?.status === "pass" &&
         publicStructural.audit.status === "pass" &&
-        publicStructural.counts.evaluationArtifactIssueRows === 0
+        publicStructural.counts.evaluationArtifactIssueRows === 0 &&
+        publicStructural.counts.mapArtifactIssueRows === 0
           ? []
-          : ["D1 verification, brief artifact audit, or evaluation artifact manifest is failing."],
+          : [
+              "D1 verification, brief artifact audit, evaluation artifact manifest, or map artifact manifest is failing.",
+            ],
     },
     {
       requirement: "Strict single-month v1 QA gate",
