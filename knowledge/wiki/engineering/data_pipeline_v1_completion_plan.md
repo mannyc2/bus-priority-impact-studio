@@ -77,9 +77,10 @@ Current strengths:
 
 Latest local verification after the March 2026 v1 catch-up run:
 
-- `bun run ingest:route-trends -- --start-year 2025 --start-month 1 --end-year 2026 --end-month 3 --skip-ridership` produced 5,171 full-network route/month speed trend rows. Ridership trend rows remain at 0 for this run.
+- `bun run ingest:route-trends -- --start-year 2025 --start-month 1 --end-year 2026 --end-month 3 --skip-ridership` produced 5,171 full-network route/month speed trend rows.
+- Chunked `bun run backfill:route-ridership-trends -- --start-year 2025 --start-month 1 --end-year 2026 --end-month 3 --limit ... --concurrency ...` runs filled ridership coverage for all 5,171 route/month trend rows.
 - `bun run route-observed-reliability -- --year 2026 --month 3 --run-id no-gtfs-rt-samples-2026-03` produced 381 route/month reliability status rows. All 381 are `insufficient_gtfs_rt_samples` because this environment has no `MTA_BUS_TIME_API_KEY` and no collected GTFS-RT snapshots; total observed headway samples are 0.
-- `bun run route-intervention-evaluation -- --year 2026 --month 3` produced 79 ACE/ABLE intervention events and 79 route intervention comparisons: 22 evaluated, 55 insufficient-data, and 2 future-intervention comparisons.
+- `bun run route-intervention-evaluation -- --year 2026 --month 3` produced 79 ACE/ABLE intervention events and 79 route intervention comparisons: 22 evaluated, 55 insufficient-data, and 2 future-intervention comparisons. Of the evaluated comparisons, 21 include ridership deltas.
 - `bun run corridor-model -- --year 2026 --month 3` produced 350 public route assignments, 209 corridors, and 1,113 corridor hotspots.
 - `bun run brief-artifacts -- --year 2026 --month 3` produced 1,050 route brief artifacts and 627 corridor brief artifacts.
 - `bun run route-batch-audit -- --year 2026 --month 3` passed with 1,677 artifacts, 0 missing artifacts, 0 hash mismatches, and 0 byte-length mismatches.
@@ -90,7 +91,7 @@ Current v1 gaps:
 
 - GTFS-RT observed reliability has route/month status rows and D1 readback, but the current March 2026 run has 0 observed samples and 381 insufficient-sample rows because no Bus Time key/collection run is available in this environment.
 - Observed reliability is route/month summary only; detailed observed reliability windows are not yet built.
-- ACE descriptive before/after intervention evaluation exists for March 2026; 22 comparisons are evaluated from speed trend rows, while ridership trend backfill, seasonality-adjusted comparisons, matched-comparison analysis, and bus-lane intervention evaluation remain open.
+- ACE descriptive before/after intervention evaluation exists for March 2026; 22 comparisons are evaluated from speed trend rows and 21 of those include ridership deltas. Seasonality-adjusted comparisons, matched-comparison analysis, and bus-lane intervention evaluation remain open.
 - Deterministic primary-street corridor entities, route membership, summaries, hotspot rows, and generated brief bodies exist; richer segment membership remains open.
 - `brief-artifacts` renders and verifies the current full set of route/corridor JSON, Markdown, and HTML bodies from local DB evidence; a clean rebuild from an empty local DB remains the stronger reproducibility proof.
 - Bus lane matching is no longer borough-hardcoded, but still needs v1 QA coverage in the final pipeline gate.
@@ -104,7 +105,7 @@ Current v1 gaps:
 | Reproducible full-network pipeline | `build:network` produced 381/381 March 2026 route slices | Partial | Clean rebuild script/runbook from empty local DB through `verify:d1` |
 | GTFS-RT observed reliability | 381 March 2026 status rows and D1 readback exist; all are `insufficient_gtfs_rt_samples` with 0 observed headway samples | Partial | Production-length collection and coverage QA with a real Bus Time run |
 | Bunching | Bunching/long-gap fields exist in route/month observed reliability summaries, but the current run has no observed samples | Partial | Real GTFS-RT samples plus sample coverage/confidence |
-| Before/after intervention evaluation | 79 ACE/ABLE event rows and 79 route comparisons exist with D1 readback; 22 are evaluated from speed trends | Partial | Ridership trend backfill, seasonality-aware, matched-comparison, bus-lane intervention, and corridor summaries |
+| Before/after intervention evaluation | 79 ACE/ABLE event rows and 79 route comparisons exist with D1 readback; 22 are evaluated from speed trends and 21 include ridership deltas | Partial | Seasonality-aware, matched-comparison, bus-lane intervention, and corridor summaries |
 | Corridor grouping | Primary-street corridor tables, route membership, summaries, hotspots, D1 readback, and generated corridor brief bodies exist | Partial | Richer segment membership, ambiguity QA, and corridor intervention context |
 | Full set of route briefs | `brief-artifacts` writes and audits 1,050 JSON/Markdown/HTML route bodies for 350 public-visible routes | Pass for current March run | Clean rebuild from empty local DB proves reproducibility |
 | Full set of corridor briefs | `brief-artifacts` writes and audits 627 JSON/Markdown/HTML corridor bodies for 209 corridors | Pass for current March run | Clean rebuild from empty local DB proves reproducibility |
@@ -469,7 +470,7 @@ Implemented so far:
 
 - `route-batch-audit` checks required route/corridor brief artifacts, file presence, byte length, and SHA-256 against local metadata rows.
 - `verify:d1` loads generated schema/seed SQL and exercises typed readback for route/corridor artifact metadata.
-- `check:pipeline-v1` runs the current v1 QA gate over local DB state, route/corridor brief artifacts, route-batch audit results, and D1 verification. Against the current March 2026 local DB it passes with 381 reliability status rows, 79 intervention comparison rows, and 1,677 verified brief artifacts. The QA output now reports observed-vs-insufficient reliability row counts and total observed headway samples so a green gate does not hide missing GTFS-RT sample coverage.
+- `check:pipeline-v1` runs the current v1 QA gate over local DB state, route/corridor brief artifacts, route-batch audit results, and D1 verification. Against the current March 2026 local DB it passes with 381 reliability status rows, 79 intervention comparison rows, 5,171 route/month trend rows, and 1,677 verified brief artifacts. The QA output now reports observed-vs-insufficient reliability row counts, total observed headway samples, and speed/ridership trend coverage so a green gate does not hide missing GTFS-RT sample coverage.
 
 Acceptance:
 

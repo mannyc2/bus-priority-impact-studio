@@ -12,6 +12,7 @@ import {
   listRouteInterventionComparisons,
   listRouteMonthCoverage,
   listRouteMonthSourceStatuses,
+  listRouteMonthTrends,
   listRouteObservedReliabilitySummaries,
   listRouteReadiness,
 } from "@bp/db/local";
@@ -50,6 +51,9 @@ type PipelineV1Counts = {
   interventionEventRows: number;
   routeInterventionComparisonRows: number;
   evaluatedInterventionComparisonRows: number;
+  routeMonthTrendRows: number;
+  routeMonthTrendSpeedRows: number;
+  routeMonthTrendRidershipRows: number;
   corridorRows: number;
   corridorRouteMemberRows: number;
   corridorArtifactRows: number;
@@ -122,6 +126,7 @@ export async function checkPipelineV1(
       aceRoutes,
       interventionEvents,
       interventionComparisons,
+      routeMonthTrends,
       corridors,
       corridorMembers,
       corridorArtifacts,
@@ -138,6 +143,7 @@ export async function checkPipelineV1(
       listAceRoutes(local.db),
       listInterventionEvents(local.db),
       listRouteInterventionComparisons(local.db, month),
+      listRouteMonthTrends(local.db),
       listCorridorMonthSummaries(local.db, month),
       listCorridorRouteMembers(local.db, month),
       listCorridorArtifacts(local.db, month),
@@ -156,6 +162,7 @@ export async function checkPipelineV1(
       aceRoutes,
       interventionEvents,
       interventionComparisons,
+      routeMonthTrends,
       corridors,
       corridorMembers,
       corridorArtifacts,
@@ -376,6 +383,12 @@ export async function checkPipelineV1(
       routeInterventionComparisonRows: localState.interventionComparisons.length,
       evaluatedInterventionComparisonRows: localState.interventionComparisons.filter(
         (row) => row.comparisonStatus === "evaluated",
+      ).length,
+      routeMonthTrendRows: localState.routeMonthTrends.length,
+      routeMonthTrendSpeedRows: localState.routeMonthTrends.filter((row) => row.hasSpeedTrend)
+        .length,
+      routeMonthTrendRidershipRows: localState.routeMonthTrends.filter(
+        (row) => row.hasRidershipTrend,
       ).length,
       corridorRows: localState.corridors.length,
       corridorRouteMemberRows: localState.corridorMembers.length,
