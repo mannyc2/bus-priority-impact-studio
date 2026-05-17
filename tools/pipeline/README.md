@@ -38,7 +38,7 @@ bun --filter @bp/pipeline audit:pipeline-v1 -- --public-year 2026 --public-month
 
 `check:route-speed-availability` checks grouped MTA Bus Route Segment Speeds coverage, reports the latest published speed month plus the requested month status, and writes `data/artifacts/source-availability/route-speed-availability.json` by default. Use `--output <path>` or `--artifact-root <path>` to redirect the watcher artifact.
 `collect:gtfs-rt` requires `MTA_BUS_TIME_API_KEY`, writes raw protobuf snapshots to ignored `data/raw/gtfs-rt/`, and records run/snapshot metadata in the local pipeline DB with redacted URLs.
-`gtfs-rt:run-status` reports long collection progress and prints the next handoff commands.
+`gtfs-rt:run-status` reports long collection progress, prints the next handoff commands, and writes `data/artifacts/gtfs-rt/run-status/<run_id>.json` by default. Use `--output <path>` or `--artifact-root <path>` to redirect the handoff artifact.
 `ingest:gtfs-rt-snapshots` parses a collected run into normalized local vehicle-position, trip-update, stop-time-update, and alert rows.
 `build:observed-headways` collapses parsed vehicle-position stop signals into observed stop events and headway samples.
 `route-observed-reliability` aggregates observed headway samples into route/month reliability summaries with bunching, long-gap, expected-wait, and sample-confidence status.

@@ -1,18 +1,22 @@
-import { readdir, stat } from "node:fs/promises";
-import { join } from "node:path";
+import { mkdir, readdir, stat } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import {
   type GtfsRtFeedType,
   listGtfsRtCollectionRuns,
   listGtfsRtFeedSnapshots,
   listGtfsRtParsedSnapshots,
 } from "@bp/db/local";
+import { writeJson } from "../../lib/json.js";
 import { withLocalPipelineDb } from "../../lib/local-db.js";
+import { defaultArtifactRootPath, fromCliPath } from "../../lib/paths.js";
 import { parseDbCliArgs } from "../../lib/route-job.js";
 
 type GtfsRtRunStatusArgs = {
   dbPath?: string;
   runId?: string;
   now?: Date;
+  artifactRoot?: string;
+  outputPath?: string;
 };
 
 type RawDirectoryStatus = {
@@ -53,6 +57,7 @@ type GtfsRtRunStatusResult = {
     parsedComplete: boolean;
   };
   nextCommands: string[];
+  artifactPath?: string;
 };
 
 function parseRunId(value: string | undefined): string | undefined {
@@ -70,7 +75,27 @@ function parseCliArgs(args: string[]): GtfsRtRunStatusArgs {
         }
       },
     },
+    {
+      flags: ["--artifact-root"],
+      apply: (output, value) => {
+        if (value !== undefined) {
+          output.artifactRoot = fromCliPath(value);
+        }
+      },
+    },
+    {
+      flags: ["--output"],
+      apply: (output, value) => {
+        if (value !== undefined) {
+          output.outputPath = fromCliPath(value);
+        }
+      },
+    },
   ]);
+}
+
+export function gtfsRtRunStatusArtifactPath(artifactRoot: string, runId: string): string {
+  return join(artifactRoot, "gtfs-rt", "run-status", `${runId}.json`);
 }
 
 function requestedFeedTypes(value: string): GtfsRtFeedType[] {
@@ -223,6 +248,7 @@ export async function getGtfsRtRunStatus(
   args: GtfsRtRunStatusArgs = {},
 ): Promise<GtfsRtRunStatusResult> {
   const now = args.now ?? new Date();
+  const artifactRoot = args.artifactRoot ?? defaultArtifactRootPath();
 
   return withLocalPipelineDb(args.dbPath, async (local) => {
     const runs = await listGtfsRtCollectionRuns(local.db);
@@ -230,7 +256,12 @@ export async function getGtfsRtRunStatus(
       args.runId === undefined ? runs.at(-1) : runs.find((row) => row.runId === args.runId);
 
     if (run === undefined) {
-      return {
+      const missingArtifactPath =
+        args.outputPath ??
+        (args.runId === undefined
+          ? undefined
+          : gtfsRtRunStatusArtifactPath(artifactRoot, args.runId));
+      const missingResult: GtfsRtRunStatusResult = {
         status: "missing",
         runId: args.runId ?? null,
         collection: {
@@ -263,6 +294,14 @@ export async function getGtfsRtRunStatus(
             ? ["Run collect:gtfs-rt with a stable --run-id."]
             : [`No collection run found for ${args.runId}.`],
       };
+
+      if (missingArtifactPath !== undefined) {
+        missingResult.artifactPath = missingArtifactPath;
+        await mkdir(dirname(missingArtifactPath), { recursive: true });
+        await writeJson(missingArtifactPath, missingResult);
+      }
+
+      return missingResult;
     }
 
     const feedTypes = requestedFeedTypes(run.requestedFeedTypes);
@@ -284,7 +323,8 @@ export async function getGtfsRtRunStatus(
     const parsedComplete =
       successfulSnapshotRows > 0 && parsedSnapshotRows >= successfulSnapshotRows;
 
-    return {
+    const artifactPath = args.outputPath ?? gtfsRtRunStatusArtifactPath(artifactRoot, run.runId);
+    const result: GtfsRtRunStatusResult = {
       status: "found",
       runId: run.runId,
       collection: {
@@ -325,7 +365,13 @@ export async function getGtfsRtRunStatus(
         parsedSnapshotRows,
         startedAt: run.startedAt,
       }),
+      artifactPath,
     };
+
+    await mkdir(dirname(artifactPath), { recursive: true });
+    await writeJson(artifactPath, result);
+
+    return result;
   });
 }
 

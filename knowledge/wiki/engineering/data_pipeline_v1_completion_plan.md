@@ -270,6 +270,8 @@ bun run route-observed-reliability -- --year YYYY --month M --run-id <run_id>
 bun run gtfs-rt:preflight -- --year YYYY --month M --run-id <run_id>
 ```
 
+`gtfs-rt:run-status` reports long collection progress, prints the next handoff commands, and writes `data/artifacts/gtfs-rt/run-status/<run_id>.json` by default so a long-running Bus Time collection can survive thread or agent handoff.
+
 Implementation notes:
 
 - Require `MTA_BUS_TIME_API_KEY`.

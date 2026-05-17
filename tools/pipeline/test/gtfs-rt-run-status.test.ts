@@ -6,7 +6,10 @@ import {
   insertGtfsRtFeedSnapshot,
   replaceGtfsRtParsedSnapshot,
 } from "@bp/db/local";
-import { getGtfsRtRunStatus } from "../src/jobs/check/gtfs-rt-run-status.js";
+import {
+  getGtfsRtRunStatus,
+  gtfsRtRunStatusArtifactPath,
+} from "../src/jobs/check/gtfs-rt-run-status.js";
 import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
@@ -14,6 +17,7 @@ const testRoot = fromRepoRoot(join("data/working/test-gtfs-rt-run-status"));
 const dbPath = join(testRoot, "pipeline.sqlite");
 const dbArg = ` --db ${JSON.stringify(dbPath)}`;
 const rawDir = join(testRoot, "raw");
+const artifactRoot = join(testRoot, "artifacts");
 
 async function removeFixtureArtifacts(): Promise<void> {
   await rm(testRoot, { force: true, recursive: true });
@@ -124,6 +128,7 @@ describe("GTFS-RT run status", () => {
       dbPath,
       runId,
       now: new Date("2026-05-17T10:01:15.000Z"),
+      artifactRoot,
     });
 
     expect(status).toEqual(
@@ -156,6 +161,8 @@ describe("GTFS-RT run status", () => {
     expect(status.nextCommands).toContain(
       `bun run gtfs-rt:run-status -- --run-id ${runId}${dbArg}`,
     );
+    expect(status.artifactPath).toBe(gtfsRtRunStatusArtifactPath(artifactRoot, runId));
+    await expect(Bun.file(status.artifactPath).json()).resolves.toEqual(status);
   });
 
   test("reports completed collection handoff commands when parsing is incomplete", async () => {
@@ -177,6 +184,7 @@ describe("GTFS-RT run status", () => {
       dbPath,
       runId,
       now: new Date("2026-05-17T10:05:00.000Z"),
+      artifactRoot,
     });
 
     expect(status.collection).toEqual(
@@ -209,6 +217,8 @@ describe("GTFS-RT run status", () => {
     expect(status.nextCommands).toContain(
       `bun run route-observed-reliability -- --year 2026 --month 5 --run-id ${runId}${dbArg}`,
     );
+    expect(status.artifactPath).toBe(gtfsRtRunStatusArtifactPath(artifactRoot, runId));
+    await expect(Bun.file(status.artifactPath).json()).resolves.toEqual(status);
   });
 
   test("reports missing runs without throwing", async () => {
