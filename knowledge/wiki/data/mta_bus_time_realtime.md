@@ -55,6 +55,16 @@ It records feed type, sample index, source id, fetch time, HTTP status, byte len
 
 Observed reliability is analysis-month aligned. A May 2026 Bus Time run can support May observed reliability summaries, but it cannot be used to satisfy a March 2026 strict v1 gate. March 2026 remains the current complete public-source month because April and May 2026 route coverage probes currently expose scheduled routes but no route-speed coverage.
 
+## Source cadence
+
+Bus Time GTFS-RT is a realtime feed, not a historical archive. The pipeline must collect vehicle-position snapshots while service is running; once a month has passed, missed GTFS-RT samples cannot be recreated from the public feed.
+
+This differs from MTA Bus Route Segment Speeds, which is a public monthly aggregate table that appears after MTA processes and publishes a month. The expected v1 release pattern is therefore:
+
+1. collect realtime GTFS-RT during the operating month,
+2. wait for the matching public monthly segment-speed data to appear,
+3. rerun strict v1 using the same month for public speed/schedule evidence and observed reliability.
+
 ## Latest local collection
 
 Run `gtfs-rt-v1-20260517T022348Z` completed on 2026-05-17:

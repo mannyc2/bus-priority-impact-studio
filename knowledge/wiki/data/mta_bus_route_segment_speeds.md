@@ -62,6 +62,10 @@ Probe completed 2026-04-27. Metadata files:
 5. Use trip-count-weighted averages when aggregating across hours or days.
 6. Build segment geometry as a transformation, not as a source field.
 
+## Source cadence
+
+This dataset is monthly aggregate evidence, not a realtime feed. Recent route schedules may appear before segment-speed rows for the same month, so `ingest:route-coverage` can show scheduled routes with `0` speed routes until MTA publishes the processed speed data. Strict v1 should wait for the monthly speed rows that match the collected GTFS-RT month.
+
 ## Caveats
 
 - Speeds represent customer travel-time factors, not free-flow traffic speed.
