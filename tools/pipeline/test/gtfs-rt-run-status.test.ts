@@ -12,6 +12,7 @@ import { fromRepoRoot } from "../src/source-manifest.js";
 
 const testRoot = fromRepoRoot(join("data/working/test-gtfs-rt-run-status"));
 const dbPath = join(testRoot, "pipeline.sqlite");
+const dbArg = ` --db ${JSON.stringify(dbPath)}`;
 const rawDir = join(testRoot, "raw");
 
 async function removeFixtureArtifacts(): Promise<void> {
@@ -152,7 +153,9 @@ describe("GTFS-RT run status", () => {
     expect(status.nextCommands).toContain(
       "Wait for collection status to become completed or completed_with_errors.",
     );
-    expect(status.nextCommands).toContain(`bun run gtfs-rt:run-status -- --run-id ${runId}`);
+    expect(status.nextCommands).toContain(
+      `bun run gtfs-rt:run-status -- --run-id ${runId}${dbArg}`,
+    );
   });
 
   test("reports completed collection handoff commands when parsing is incomplete", async () => {
@@ -197,10 +200,14 @@ describe("GTFS-RT run status", () => {
       snapshotsComplete: true,
       parsedComplete: false,
     });
-    expect(status.nextCommands).toContain(`bun run ingest:gtfs-rt-snapshots -- --run-id ${runId}`);
-    expect(status.nextCommands).toContain(`bun run build:observed-headways -- --run-id ${runId}`);
     expect(status.nextCommands).toContain(
-      `bun run route-observed-reliability -- --year 2026 --month 5 --run-id ${runId}`,
+      `bun run ingest:gtfs-rt-snapshots -- --run-id ${runId}${dbArg}`,
+    );
+    expect(status.nextCommands).toContain(
+      `bun run build:observed-headways -- --run-id ${runId}${dbArg}`,
+    );
+    expect(status.nextCommands).toContain(
+      `bun run route-observed-reliability -- --year 2026 --month 5 --run-id ${runId}${dbArg}`,
     );
   });
 

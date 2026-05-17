@@ -169,6 +169,7 @@ async function rawDirectoryStatus(path: string | null): Promise<RawDirectoryStat
 }
 
 function nextCommands(input: {
+  dbPath: string | undefined;
   runId: string;
   status: string;
   collectionComplete: boolean;
@@ -181,30 +182,31 @@ function nextCommands(input: {
   const commands: string[] = [];
   const month = input.startedAt?.slice(0, 7);
   const [year, monthNumber] = month?.split("-") ?? [];
+  const dbArg = input.dbPath === undefined ? "" : ` --db ${JSON.stringify(input.dbPath)}`;
 
   if (!input.collectionComplete) {
     commands.push("Wait for collection status to become completed or completed_with_errors.");
-    commands.push(`bun run gtfs-rt:run-status -- --run-id ${input.runId}`);
+    commands.push(`bun run gtfs-rt:run-status -- --run-id ${input.runId}${dbArg}`);
     return commands;
   }
 
   if (input.successfulSnapshotRows > 0 && input.parsedSnapshotRows < input.successfulSnapshotRows) {
-    commands.push(`bun run ingest:gtfs-rt-snapshots -- --run-id ${input.runId}`);
-    commands.push(`bun run build:observed-headways -- --run-id ${input.runId}`);
+    commands.push(`bun run ingest:gtfs-rt-snapshots -- --run-id ${input.runId}${dbArg}`);
+    commands.push(`bun run build:observed-headways -- --run-id ${input.runId}${dbArg}`);
   } else if (input.parsedComplete) {
-    commands.push(`bun run build:observed-headways -- --run-id ${input.runId}`);
+    commands.push(`bun run build:observed-headways -- --run-id ${input.runId}${dbArg}`);
   }
 
   if (year !== undefined && monthNumber !== undefined) {
     commands.push(
       `bun run route-observed-reliability -- --year ${Number(year)} --month ${Number(
         monthNumber,
-      )} --run-id ${input.runId}`,
+      )} --run-id ${input.runId}${dbArg}`,
     );
     commands.push(
       `bun run gtfs-rt:preflight -- --year ${Number(year)} --month ${Number(
         monthNumber,
-      )} --run-id ${input.runId}`,
+      )} --run-id ${input.runId}${dbArg}`,
     );
   }
 
@@ -313,6 +315,7 @@ export async function getGtfsRtRunStatus(
         parsedComplete,
       },
       nextCommands: nextCommands({
+        dbPath: args.dbPath,
         runId: run.runId,
         status: run.status,
         collectionComplete,
