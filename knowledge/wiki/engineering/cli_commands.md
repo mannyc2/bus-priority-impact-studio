@@ -80,8 +80,6 @@ bun run ingest:route-catalog
 bun run ingest:route-coverage -- --year 2026 --month 3
 bun run ingest:route-trends -- --start-year 2025 --start-month 1 --end-year 2026 --end-month 3 --skip-ridership
 bun run backfill:route-ridership-trends -- --start-year 2025 --start-month 1 --end-year 2026 --end-month 3 --limit 1000 --concurrency 8
-bun run ingest:m1 -- --route M1 --year 2026 --month 3
-bun run ingest:m1-schedules -- --route M1 --year 2026 --month 3
 bun --filter @bp/pipeline ingest:segment-speeds -- --route M1 --month 2026-01
 bun --filter @bp/pipeline ingest:routes
 bun --filter @bp/pipeline ingest:stops
@@ -98,6 +96,8 @@ Expected outputs:
 - tract-level ACS equity context under `data/working/equity/`
 - multi-month route trend inputs under `data/working/trends/`
 - chunked route/month ridership trend backfill summaries under `data/working/trends/`
+
+Legacy M1 commands such as `ingest:m1`, `ingest:m1-schedules`, and `hotspots:m1` remain compatibility/fixture helpers. They are not the v1 product boundary.
 
 ## Build commands
 

@@ -40,7 +40,7 @@ After that probe, `census_acs5_profile_tracts` was added and live-ingested for 2
 | MTA segment speed blog, 2024 | MTA blog | Core | Methodology and motivation for speed dataset | Active |
 | MTA ACE page | MTA page | Core | ACE program, rules, official impact claims | Active |
 
-## Secondary / optional sources
+## Secondary and realtime sources
 
 | Source | ID / endpoint | Priority | Role | Status |
 |---|---:|---|---|---|
@@ -49,9 +49,9 @@ After that probe, `census_acs5_profile_tracts` was added and live-ingested for 2
 | Bus Stops all bundles | `2ucp-7wg5` | Secondary | Historical stop points | Active; schema captured |
 | Bus Hourly Ridership: 2020–2024 | `kv7t-n8in` | Secondary | Historical ridership baseline | Active; schema captured |
 | Static Bus GTFS feeds | six S3 zip URLs | Secondary | GTFS route/trip/shape/stop baseline | Active URLs; not ingested |
-| Bus Time GTFS-RT TripUpdates | `gtfsrt.prod.obanyc.com/tripUpdates` | Optional | Realtime headways/delays if collected | Active with local API key |
-| Bus Time GTFS-RT VehiclePositions | `gtfsrt.prod.obanyc.com/vehiclePositions` | Optional | Realtime vehicle locations if collected | Active with local API key |
-| Bus Time GTFS-RT Alerts | `gtfsrt.prod.obanyc.com/alerts` | Optional | Bus disruption context | Active with local API key |
+| Bus Time GTFS-RT TripUpdates | `gtfsrt.prod.obanyc.com/tripUpdates` | V1 realtime | Realtime trip updates for reliability context when collected | Active with local API key |
+| Bus Time GTFS-RT VehiclePositions | `gtfsrt.prod.obanyc.com/vehiclePositions` | V1 realtime | Vehicle locations for observed headways, bunching, and long-gap metrics | Active with local API key |
+| Bus Time GTFS-RT Alerts | `gtfsrt.prod.obanyc.com/alerts` | V1 realtime | Bus disruption context when collected | Active with local API key |
 | MTA GTFS Alerts docs | `https://www.mta.info/document/90881` | Secondary | Alerts field interpretation | Active URL; not captured |
 | GTFS Realtime reference | `https://gtfs.org/documentation/realtime/reference/` | Secondary | Standard reference | Active |
 
@@ -80,6 +80,7 @@ After that probe, `census_acs5_profile_tracts` was added and live-ingested for 2
 - Every Socrata source must be reproducibly probeable with local generated metadata. This was satisfied by the 2026-04-27 probe.
 - Every dataset page must include exact schema, primary-key candidate, join keys, and row-count/date metadata.
 - Every app metric must cite a deterministic transformation and source table.
+- GTFS-RT feeds require local collection; they are not historical public tables. Strict v1 requires collected realtime evidence in the same analysis month as public speed/schedule evidence.
 
 ## Sources
 

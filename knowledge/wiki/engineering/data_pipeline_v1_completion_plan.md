@@ -109,7 +109,7 @@ Current v1 gaps:
 - `brief-artifacts` renders and verifies the current full set of route/corridor JSON, Markdown, and HTML bodies from local DB evidence. One-route and full-network isolated clean-DB rebuilds now pass with dedicated DB, artifact-root, and export-root paths.
 - Bus lane matching is no longer borough-hardcoded, and v1 QA now checks bus-lane intervention comparison coverage for public routes with matched bus-lane geometry.
 - Route score is still a simple speed/hotspot heuristic, not the planned multi-factor priority model.
-- Older wiki pages still contain M1-era command names and optional-realtime language.
+- Primary roadmap, ETL, CLI, README, and source-data pages now frame M1 as historical fixture/context and GTFS-RT observed reliability as v1 evidence. Remaining M1 command references are compatibility or historical notes.
 
 ## Prompt-To-Artifact Checklist
 
@@ -122,10 +122,10 @@ Current v1 gaps:
 | Corridor grouping | Hotspot-segment corridor tables, route membership, summaries, hotspots, corridor intervention context rows, D1 readback, generated corridor brief bodies, segment-evidence/intervention-context QA, and shape-based assignment review exist. March 2026 has 350/350 shape-reviewed pass rows and 0 warnings | Pass | Keep corridor shape-review artifact generation in post-build/finalize and strict QA |
 | Full set of route briefs | `brief-artifacts` writes and audits 1,050 JSON/Markdown/HTML route bodies for 350 public-visible routes; full clean rebuild reproduced the route brief set under isolated outputs | Pass | Keep route brief JSON/Markdown/HTML contract checks in `route-batch-audit` |
 | Full set of corridor briefs | `brief-artifacts` writes and audits 579 JSON/Markdown/HTML corridor bodies for 193 corridors; isolated proof paths reproduced the corridor brief set | Pass | Keep corridor brief JSON/Markdown/HTML contract checks in `route-batch-audit` |
-| Verified D1 export contract | `verify:d1` passes with route serving rows, observed reliability, intervention comparisons, corridor summaries, corridor intervention context, route/corridor artifact metadata, schema/seed hashes, expected-vs-loaded table counts, and typed repository readback; `check:pipeline-v1` also verifies static evaluation payload hashes and row counts | Pass for current March run | Map payload manifests remain a separate future contract |
+| Verified D1 export contract | `verify:d1` passes with route serving rows, observed reliability, intervention comparisons, corridor summaries, corridor intervention context, route/corridor artifact metadata, schema/seed hashes, expected-vs-loaded table counts, and typed repository readback; `check:pipeline-v1` also verifies static evaluation and map payload hashes, row counts, and route-segment contracts | Pass for current March run | Keep D1 export, evaluation manifests, and map manifests in strict QA |
 | Static artifact contract | Stable `briefs/routes/...`, `briefs/corridors/...`, `evaluations/{month}/...`, and `map/...` keys exist with byte-length/SHA-256 audit, JSON contract checks for route/corridor brief bodies, observed reliability window contract checks, route-segment GeoJSON domain contract checks, a generated `data/artifacts/briefs/{month}/manifest.json` inventory, a generated `data/artifacts/evaluations/{month}/manifest.json` inventory, and a generated `data/artifacts/map/{month}/manifest.json` inventory | Pass | Keep manifests regenerated in post-build/finalize |
 | QA gates | Strict `check:pipeline-v1` fails the current March run on missing observed GTFS-RT samples and validates required source probe freshness, GTFS-RT analysis-month alignment, collection window/cadence/snapshot coverage, parse/headway provenance, observed-route coverage thresholds, per-route sample thresholds, route trend coverage, evaluated intervention comparisons, ridership deltas, peer-adjusted speed deltas, bus-lane comparison coverage for matched public routes, corridor segment-evidence coverage, corridor shape-review coverage, corridor intervention context coverage, evaluation artifact manifest integrity, map artifact manifest integrity, and corridor assignment ambiguity/unassigned thresholds; `gtfs-rt:preflight` diagnoses realtime readiness; `audit:pipeline-v1` records clean rebuild proof paths | Partial | Resolve strict single-month public/realtime source alignment |
-| Updated roadmap/docs | Some docs are stale | In progress | This page plus updated index, roadmap, ETL, and data pages |
+| Updated roadmap/docs | V1 scope docs identify the full-network pipeline, GTFS-RT observed layer, intervention evaluation, corridor briefs, static maps/evaluation artifacts, and the strict single-month blocker | Pass for current docs reset | Keep `check:knowledge` passing and update docs when commands or gates change |
 
 ## Definition Of Done
 
@@ -238,33 +238,37 @@ Implemented so far:
 
 Still missing:
 
-- Production-length GTFS-RT collection and coverage QA for the v1 analysis window.
+- Production-length GTFS-RT collection and coverage QA for the same month as public speed/schedule coverage. A May observed layer can be an appendix until May or a later month has public speed coverage.
 
-Data contracts to add:
+Implemented data contracts:
 
 ```text
-gtfs_rt_feed_snapshot
-gtfs_rt_vehicle_position
-gtfs_rt_trip_update
-gtfs_rt_alert
-observed_vehicle_stop_event
-observed_headway_sample
-observed_collection_run
+local_gtfs_rt_collection_run
+local_gtfs_rt_feed_snapshot
+local_gtfs_rt_vehicle_position
+local_gtfs_rt_trip_update
+local_gtfs_rt_alert
+local_observed_vehicle_stop_event
+local_observed_headway_sample
+local_route_observed_reliability_summary
 ```
 
-Commands to add:
+Implemented commands:
 
 ```bash
-bun run collect:gtfs-rt -- --duration-hours 24 --sample-seconds 30
-bun run ingest:gtfs-rt-snapshots -- --date YYYY-MM-DD
-bun run build:observed-headways -- --start-date YYYY-MM-DD --end-date YYYY-MM-DD
+bun run collect:gtfs-rt -- --duration-hours 24 --sample-seconds 30 --feed-types vehicle_positions --run-id <run_id>
+bun run gtfs-rt:run-status -- --run-id <run_id>
+bun run ingest:gtfs-rt-snapshots -- --run-id <run_id>
+bun run build:observed-headways -- --run-id <run_id>
+bun run route-observed-reliability -- --year YYYY --month M --run-id <run_id>
+bun run gtfs-rt:preflight -- --year YYYY --month M --run-id <run_id>
 ```
 
 Implementation notes:
 
 - Require `MTA_BUS_TIME_API_KEY`.
 - Never persist the API key.
-- Keep raw feed snapshots local and optional if storage grows too quickly.
+- Keep raw feed snapshots local and gitignored.
 - Store processed observations in the local pipeline DB.
 - Record skipped intervals, HTTP failures, feed timestamps, and entity counts.
 

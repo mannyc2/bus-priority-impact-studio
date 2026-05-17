@@ -2,7 +2,7 @@
 title: MTA Bus Hourly Ridership
 type: data
 status: active
-last_updated: 2026-04-27
+last_updated: 2026-05-17
 owner: codex
 source_count: 2
 tags: [mta, bus, ridership, weighting]
@@ -35,8 +35,9 @@ Probe completed 2026-04-27.
 ## Implementation notes
 
 - Use generated schema metadata under `knowledge/raw/metadata/`.
-- `ingest:m1` aggregates the Beginning 2025 dataset to route/month/day-of-week/hour and writes normalized `ridership.json` in the route slice.
-- Build table `fact_bus_hourly_ridership` before serving the metric from D1.
+- Route/network builds persist normalized route/month/day-of-week/hour rows in `local_route_hourly_ridership`.
+- `ingest:route-trends` plus `backfill:route-ridership-trends` build route/month ridership trend inputs for intervention evaluation.
+- Keep detailed hourly ridership in the local pipeline DB and generated artifacts unless a public UI need requires a compact D1 projection.
 - Use route-level ridership as a proxy for segment rider impact if segment-level ridership is unavailable.
 - Store caveat visibly: ridership weighting may overestimate impact on short segments or branches.
 

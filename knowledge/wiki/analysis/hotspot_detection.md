@@ -16,15 +16,16 @@ Identify route segments where observed bus speeds are persistently low and rider
 
 ## Inputs
 
-- Segment-speed observations from `local_route_segment_speed` (source: MTA Bus Route Segment Speeds, Socrata `wegt-cbs3`).
-- Route-level hourly ridership from `local_route_hourly_ridership` (source: MTA Bus Hourly Ridership, Socrata `mfhd-8see`).
+- Segment-speed observations from `local_route_segment_speed` (source: MTA Bus Route Segment Speeds, Socrata `kufs-yh3x` for 2025+ and `58t6-89vi` for 2023-2024).
+- Route-level hourly ridership from `local_route_hourly_ridership` (source: MTA Bus Hourly Ridership, Socrata `gxb3-akrn` for 2025+ and `kv7t-n8in` for 2020-2024).
 
 ## Implementation
 
 Source: `packages/analytics/src/hotspots.ts` — `detectSegmentHotspots()`
 
 ```bash
-bun run hotspots -- --route M1 --year 2026 --month 3
+bun run build:network -- --year 2026 --month 3
+bun run build:hotspots -- --route M1 --year 2026 --month 3
 ```
 
 ### Grouping

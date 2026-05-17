@@ -2,7 +2,7 @@
 title: MTA Bus Routes and Stops
 type: data
 status: active
-last_updated: 2026-04-27
+last_updated: 2026-05-17
 owner: codex
 source_count: 5
 tags: [mta, bus, routes, stops, geospatial, postgis]
@@ -43,8 +43,8 @@ Probe completed 2026-04-27. Metadata files live under `knowledge/raw/metadata/`.
 
 ## Implementation notes
 
-- Load routes as PostGIS `LINESTRING` or `MULTILINESTRING` from WKT.
-- Load stops as PostGIS `POINT`.
+- Parse current route WKT and stop coordinates into local TypeScript/GeoJSON geometry for offline map and review artifacts; reserve PostGIS for a later documented escalation.
+- Load stops as point geometry in local transforms.
 - Construct segment geometries by:
   1. matching speed rows to start/end timepoint stops,
   2. selecting route shape by route/direction/shape/trip_type/effective bundle,
@@ -57,10 +57,11 @@ Probe completed 2026-04-27. Metadata files live under `knowledge/raw/metadata/`.
 Preferred after schema probe:
 
 ```text
-fact_bus_segment_speed.route_id
+local_route_segment_speed.route_id
 + direction_id
-+ timepoint stop IDs or stop sequence fields
-+ bundle/effective schedule period if available
++ month
++ timepoint_stop_id / next_timepoint_stop_id
++ current route shape and effective schedule evidence when available
 ```
 
 Fallback:

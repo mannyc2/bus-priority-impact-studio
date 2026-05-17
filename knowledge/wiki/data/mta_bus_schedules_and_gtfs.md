@@ -55,8 +55,8 @@ Probe completed 2026-04-27. The zip URLs were verified with HTTP metadata only; 
 ## Implementation notes
 
 - Prefer the Socrata Bus Schedules dataset for timepoint schedule rows if it has simpler fields.
-- `bun run ingest:m1-schedules` writes normalized M1 timepoint schedule rows to `data/working/route-slices/m1-2026-03/schedules.json`.
-- `bun run schedules:m1` writes planned-vs-observed hotspot comparisons to `data/artifacts/route-slices/m1-2026-03/schedule-comparison.json`.
+- `bun run build:network -- --year YYYY --month M` writes normalized full-network schedule timepoint rows into the local pipeline DB as part of route builds.
+- `bun run route-reliability-baseline -- --year YYYY --month M` derives scheduled headway baselines and gap windows for the route/month evidence layer.
 - Use static GTFS for standard `routes.txt`, `trips.txt`, `stop_times.txt`, `stops.txt`, `shapes.txt`, `calendar.txt`, and `calendar_dates.txt`.
 - Use schedules to compute planned travel time between timepoints and compare with observed average travel time.
 - Use schedules to identify branches/patterns and avoid mismatched shape selection.
@@ -66,7 +66,7 @@ Probe completed 2026-04-27. The zip URLs were verified with HTTP metadata only; 
 - Static GTFS may not include temporary service changes or detours.
 - Bus schedules change quarterly.
 - Effective dates must be aligned with observed speed months.
-- The current M1 schedule comparison uses exact stop-id/direction timepoint pairs and schedule rows with representative January 2026 schedule dates.
+- The current schedule baseline is a full-network route/month read model. M1 remains useful as a fixture/example, not as the product boundary.
 
 ## Sources
 

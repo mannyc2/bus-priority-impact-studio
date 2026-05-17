@@ -72,12 +72,12 @@ The older phase list below remains as historical context for how the repo reache
 1. Implement `packages/analytics` transformations.
 2. Compute weighted speed averages by route/segment/time period.
 3. Identify hotspots.
-4. Add ridership weights if the schema probe is complete. Completed for M1 route/month hotspots using route-level hourly exposure.
-5. Add ACE and bus-lane overlays if schemas are confirmed. ACE route-level overlay and bus-lane proximity overlay completed for the current M1 March 2026 artifact set.
-6. Add schedule comparison if the schema probe is complete. Completed for the current M1 March 2026 hotspot artifact using 2026 schedule timepoint rows.
-7. Generate a route scorecard for M1. Completed for the current M1 March 2026 hotspot summary.
-8. Generate deterministic route brief inputs with citations/caveats. Completed for the current M1 March 2026 scorecard and hotspot summary.
-9. Write artifacts to `data/artifacts/`. Completed for the current M1 March 2026 artifact set, including a manifest with keys and hashes.
+4. Add ridership weights if the schema probe is complete. Historical M1 route/month hotspots did this first; the current network build stores route/month hourly ridership evidence in the local pipeline DB.
+5. Add ACE and bus-lane overlays if schemas are confirmed. Historical M1 overlays are superseded by full-network `route-intervention-evaluation` rows for ACE/ABLE and matched NYC DOT bus-lane events/source gaps.
+6. Add schedule comparison if the schema probe is complete. Historical M1 schedule comparison is superseded by full-network schedule baselines and reliability baseline rows.
+7. Generate a route scorecard for M1. Historical M1 scorecards are superseded by the full-network route scorecard, route brief, and corridor brief build.
+8. Generate deterministic route brief inputs with citations/caveats. Historical M1 brief inputs are superseded by `brief-artifacts` JSON/Markdown/HTML bodies for public routes and corridors.
+9. Write artifacts to `data/artifacts/`. Historical M1 artifacts are superseded by route/corridor brief manifests, evaluation manifests, map manifests, and D1 export verification for the full network.
 
 ## Phase 3 — Serving MVP
 

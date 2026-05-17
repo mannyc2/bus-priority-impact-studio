@@ -56,10 +56,11 @@ Probe completed 2026-04-27. Metadata files:
 ## Implementation notes
 
 1. Use the generated schema metadata under `knowledge/raw/metadata/`.
-2. Start with a narrow query, for example route `M1` and one recent month.
-3. Build a normalized table `fact_bus_segment_speed`.
-4. Use trip-count-weighted averages when aggregating across hours or days.
-5. Build segment geometry as a transformation, not as a source field.
+2. Use `bun run ingest:route-coverage -- --year YYYY --month M` to verify whether a month has speed rows before treating it as a v1 candidate.
+3. Use `bun run build:network -- --year YYYY --month M` for the full-network route/month build; route-specific commands remain useful for fixtures and debugging.
+4. Build normalized rows in `local_route_segment_speed`.
+5. Use trip-count-weighted averages when aggregating across hours or days.
+6. Build segment geometry as a transformation, not as a source field.
 
 ## Caveats
 
