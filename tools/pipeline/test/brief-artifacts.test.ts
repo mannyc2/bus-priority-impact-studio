@@ -2,6 +2,8 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import {
+  insertGtfsRtCollectionRun,
+  insertGtfsRtFeedSnapshot,
   listCorridorArtifacts,
   listRouteArtifacts,
   replaceCorridorRows,
@@ -156,6 +158,36 @@ async function writeFixtureNetwork(): Promise<void> {
       ],
       sourceStatuses: [],
     });
+    await insertGtfsRtCollectionRun(local.db, {
+      runId: "fixture-gtfs-rt",
+      startedAt: "2026-10-01T08:00:00.000Z",
+      endedAt: "2026-10-01T08:10:00.000Z",
+      status: "completed",
+      requestedDurationSeconds: 600,
+      sampleSeconds: 30,
+      requestedFeedTypes: "vehicle_positions",
+      snapshotCount: 2,
+      successCount: 2,
+      failureCount: 0,
+      rawDirectory: "/tmp/gtfs-rt",
+      error: null,
+    });
+    for (let sampleIndex = 1; sampleIndex <= 2; sampleIndex += 1) {
+      await insertGtfsRtFeedSnapshot(local.db, {
+        runId: "fixture-gtfs-rt",
+        feedType: "vehicle_positions",
+        sampleIndex,
+        sourceId: "bus_time_gtfsrt_vehicle_positions",
+        fetchedAt: `2026-10-01T08:0${sampleIndex - 1}:00.000Z`,
+        status: "ok",
+        httpStatus: 200,
+        byteLength: 100,
+        sha256: "fixture",
+        rawPath: `/tmp/gtfs-rt/${sampleIndex}.pb`,
+        redactedUrl: "https://example.test/<redacted>",
+        error: null,
+      });
+    }
     await replaceRouteInterventionEvaluationRows(local.db, isoMonth, "mta_ace_routes", {
       events: [],
       comparisons: [
@@ -260,6 +292,9 @@ describe("brief artifacts", () => {
     const routeJson = await Bun.file(
       fromRepoRoot(join("data/artifacts/briefs/routes/t1", isoMonth, "brief.json")),
     ).json();
+    const routeMarkdown = await Bun.file(
+      fromRepoRoot(join("data/artifacts/briefs/routes/t1", isoMonth, "brief.md")),
+    ).text();
     const corridorMarkdown = await Bun.file(
       fromRepoRoot(join("data/artifacts/briefs/corridors/street-broadway", isoMonth, "brief.md")),
     ).text();
@@ -283,8 +318,17 @@ describe("brief artifacts", () => {
         artifactKind: "route_brief",
         routeId: "T1",
         month: isoMonth,
+        observedReliability: expect.objectContaining({
+          collectionWindow: expect.objectContaining({
+            runId: "fixture-gtfs-rt",
+            elapsedSeconds: 600,
+            sampleSeconds: 30,
+            successfulVehiclePositionSnapshotCount: 2,
+          }),
+        }),
       }),
     );
+    expect(routeMarkdown).toContain("GTFS-RT run fixture-gtfs-rt");
     expect(corridorMarkdown).toContain("# Broadway Corridor");
     expect(routeArtifacts).toHaveLength(3);
     expect(corridorArtifacts).toHaveLength(3);

@@ -65,6 +65,7 @@ V1 collection rules:
 - Export observed reliability summaries to D1 and verify typed readback.
 - Next, surface observed reliability status and caveats in route/corridor briefs.
 - `gtfs-rt:preflight` diagnoses, and strict `check:pipeline-v1` requires, the observed run to satisfy configurable collection QA: minimum collection window, maximum sample cadence, requested `vehicle_positions`, and successful vehicle-position snapshot coverage.
+- Generated route briefs include the observed run's collection-window metadata when the run exists in the local pipeline DB.
 - Respect MTA terms: do not serve users directly from MTA endpoints; cache on our own server.
 
 ## Potential computed metrics

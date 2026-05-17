@@ -7,6 +7,8 @@ import type {
   LocalCorridorHotspot,
   LocalCorridorMonthSummary,
   LocalCorridorRouteMember,
+  LocalGtfsRtCollectionRun,
+  LocalGtfsRtFeedSnapshot,
   LocalRouteArtifact,
   LocalRouteBriefSummary,
   LocalRouteCatalogEntry,
@@ -20,6 +22,8 @@ import {
   listCorridorMonthSummaries,
   listCorridorRouteMembers,
   listCorridors,
+  listGtfsRtCollectionRuns,
+  listGtfsRtFeedSnapshots,
   listRouteBriefSummaries,
   listRouteCatalog,
   listRouteHotspots,
@@ -78,6 +82,7 @@ type RouteBriefContext = {
   catalog: LocalRouteCatalogEntry | null;
   hotspots: LocalRouteHotspot[];
   reliability: LocalRouteObservedReliabilitySummary | null;
+  reliabilityCollection: RouteReliabilityCollection | null;
   scheduledReliability: LocalRouteReliabilityBaseline | null;
   interventions: LocalRouteInterventionComparison[];
   generatedAt: string;
@@ -94,6 +99,11 @@ type CorridorBriefContext = {
 type BriefData = {
   routes: RouteBriefContext[];
   corridors: CorridorBriefContext[];
+};
+
+type RouteReliabilityCollection = {
+  run: LocalGtfsRtCollectionRun;
+  feedSnapshots: LocalGtfsRtFeedSnapshot[];
 };
 
 function parseCliArgs(args: string[]): BriefArtifactsArgs {
@@ -126,6 +136,50 @@ function formatPercent(value: number | null | undefined): string {
   }
 
   return `${formatNumber(value * 100, 1)}%`;
+}
+
+function elapsedSeconds(input: { startedAt: string; endedAt: string | null }): number | null {
+  if (input.endedAt === null) {
+    return null;
+  }
+
+  const startedAt = Date.parse(input.startedAt);
+  const endedAt = Date.parse(input.endedAt);
+  if (Number.isNaN(startedAt) || Number.isNaN(endedAt)) {
+    return null;
+  }
+
+  return Math.max(0, Math.round((endedAt - startedAt) / 1000));
+}
+
+function requestedFeedTypes(value: string): string[] {
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0)
+    .sort();
+}
+
+function collectionWindowJson(collection: RouteReliabilityCollection | null) {
+  if (collection === null) {
+    return null;
+  }
+
+  return {
+    runId: collection.run.runId,
+    startedAt: collection.run.startedAt,
+    endedAt: collection.run.endedAt,
+    requestedDurationSeconds: collection.run.requestedDurationSeconds,
+    elapsedSeconds: elapsedSeconds(collection.run),
+    sampleSeconds: collection.run.sampleSeconds,
+    requestedFeedTypes: requestedFeedTypes(collection.run.requestedFeedTypes),
+    snapshotCount: collection.run.snapshotCount,
+    successCount: collection.run.successCount,
+    failureCount: collection.run.failureCount,
+    successfulVehiclePositionSnapshotCount: collection.feedSnapshots.filter(
+      (snapshot) => snapshot.feedType === "vehicle_positions" && snapshot.status === "ok",
+    ).length,
+  };
 }
 
 function slug(value: string): string {
@@ -251,6 +305,7 @@ function routeJson(input: RouteBriefContext) {
             observedLongGapShare: input.reliability.observedLongGapShare,
             expectedWaitMinutes: input.reliability.expectedWaitMinutes,
             excessWaitMinutes: input.reliability.excessWaitMinutes,
+            collectionWindow: collectionWindowJson(input.reliabilityCollection),
           },
     scheduledReliability:
       input.scheduledReliability === null
@@ -308,6 +363,15 @@ function routeMarkdown(input: RouteBriefContext): string {
           (row) =>
             `- ${row.interventionType}: ${row.comparisonStatus}, ${row.evaluationLevel}, speed delta ${formatNumber(row.speedDeltaMph)} mph.`,
         );
+  const reliabilityLines =
+    body.observedReliability === null
+      ? ["- No observed GTFS-RT reliability summary is available."]
+      : [
+          `- ${body.observedReliability.status}: ${body.observedReliability.sampleCount} samples, median headway ${formatNumber(body.observedReliability.medianObservedHeadwayMinutes)} minutes, bunching ${formatPercent(body.observedReliability.observedBunchingShare)}, long gaps ${formatPercent(body.observedReliability.observedLongGapShare)}.`,
+          body.observedReliability.collectionWindow === null
+            ? "- GTFS-RT collection window metadata is unavailable for this reliability run."
+            : `- GTFS-RT run ${body.observedReliability.collectionWindow.runId}: ${formatNumber(body.observedReliability.collectionWindow.elapsedSeconds, 0)} seconds collected at ${body.observedReliability.collectionWindow.sampleSeconds}s cadence, ${body.observedReliability.collectionWindow.successfulVehiclePositionSnapshotCount} successful vehicle-position snapshots.`,
+        ];
 
   return [
     `# ${body.title}`,
@@ -326,9 +390,7 @@ function routeMarkdown(input: RouteBriefContext): string {
     "",
     "## Observed Reliability",
     "",
-    body.observedReliability === null
-      ? "- No observed GTFS-RT reliability summary is available."
-      : `- ${body.observedReliability.status}: ${body.observedReliability.sampleCount} samples, median headway ${formatNumber(body.observedReliability.medianObservedHeadwayMinutes)} minutes, bunching ${formatPercent(body.observedReliability.observedBunchingShare)}, long gaps ${formatPercent(body.observedReliability.observedLongGapShare)}.`,
+    ...reliabilityLines,
     "",
     "## Intervention Context",
     "",
@@ -593,6 +655,7 @@ async function readBriefData(args: {
       observedReliability,
       scheduledReliability,
       interventionComparisons,
+      collectionRuns,
       corridors,
       corridorSummaries,
       corridorMembers,
@@ -603,6 +666,7 @@ async function readBriefData(args: {
       listRouteObservedReliabilitySummaries(local.db, args.month),
       listRouteReliabilityBaselines(local.db, args.month),
       listRouteInterventionComparisons(local.db, args.month),
+      listGtfsRtCollectionRuns(local.db),
       listCorridors(local.db),
       listCorridorMonthSummaries(local.db, args.month),
       listCorridorRouteMembers(local.db, args.month),
@@ -611,6 +675,18 @@ async function readBriefData(args: {
     const catalogByRoute = new Map(routeCatalog.map((row) => [row.routeId, row]));
     const reliabilityByRoute = new Map(observedReliability.map((row) => [row.routeId, row]));
     const scheduledByRoute = new Map(scheduledReliability.map((row) => [row.routeId, row]));
+    const collectionRunIds = new Set(observedReliability.map((row) => row.runId));
+    const collectionByRun = new Map(
+      collectionRuns
+        .filter((row) => collectionRunIds.has(row.runId))
+        .map((row) => [row.runId, row]),
+    );
+    const feedSnapshotsByRun = new Map<string, LocalGtfsRtFeedSnapshot[]>();
+    await Promise.all(
+      [...collectionRunIds].map(async (runId) => {
+        feedSnapshotsByRun.set(runId, await listGtfsRtFeedSnapshots(local.db, runId));
+      }),
+    );
     const interventionsByRoute = new Map<string, LocalRouteInterventionComparison[]>();
     for (const row of interventionComparisons) {
       const group = interventionsByRoute.get(row.routeId) ?? [];
@@ -620,11 +696,20 @@ async function readBriefData(args: {
 
     const routes: RouteBriefContext[] = [];
     for (const summary of routeSummaries.filter((row) => row.publicVisible)) {
+      const reliability = reliabilityByRoute.get(summary.routeId) ?? null;
+      const collection = reliability === null ? undefined : collectionByRun.get(reliability.runId);
       routes.push({
         summary,
         catalog: catalogByRoute.get(summary.routeId) ?? null,
         hotspots: await listRouteHotspots(local.db, summary.routeId, args.month),
-        reliability: reliabilityByRoute.get(summary.routeId) ?? null,
+        reliability,
+        reliabilityCollection:
+          reliability === null || collection === undefined
+            ? null
+            : {
+                run: collection,
+                feedSnapshots: feedSnapshotsByRun.get(reliability.runId) ?? [],
+              },
         scheduledReliability: scheduledByRoute.get(summary.routeId) ?? null,
         interventions: interventionsByRoute.get(summary.routeId) ?? [],
         generatedAt: args.generatedAt,

@@ -280,6 +280,7 @@ Acceptance:
 
 - Route reliability tables include observed metrics, not only scheduled baselines.
 - Briefs can say either "observed bunching detected" or "insufficient GTFS-RT coverage"; they cannot silently omit reliability status.
+- Route briefs include the observed GTFS-RT collection window when collection-run metadata is available.
 - D1 verification reads observed reliability summary rows.
 
 ## Phase 4: Intervention Evaluation
