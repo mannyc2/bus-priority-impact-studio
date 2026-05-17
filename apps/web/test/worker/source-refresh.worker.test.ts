@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   runRouteSpeedMonthlyWatcher,
+  runScheduledGtfsRtCaptureBatch,
   runScheduledSourceRefresh,
 } from "../../src/worker/source-refresh.js";
 
@@ -74,6 +75,39 @@ describe("scheduled source refresh", () => {
     const manifest = JSON.parse(String(bucket.writes.get(result.manifestKey ?? "")));
     expect(manifest.sourceUrl).toContain("key=REDACTED");
     expect(JSON.stringify(manifest)).not.toContain("secret-key");
+  });
+
+  it("can take two spaced GTFS-RT snapshots during one cron invocation", async () => {
+    const bucket = new FakeR2Bucket();
+    const delays: number[] = [];
+    const fetchedUrls: string[] = [];
+    const results = await runScheduledGtfsRtCaptureBatch(
+      {
+        GTFS_RT_RAW: bucket as unknown as R2Bucket,
+        MTA_BUS_TIME_API_KEY: "secret-key",
+        GTFS_RT_SAMPLES_PER_CRON: "2",
+        GTFS_RT_SAMPLE_SECONDS: "30",
+      },
+      {
+        now: new Date("2026-05-17T12:00:00.000Z"),
+        delay: async (milliseconds) => {
+          delays.push(milliseconds);
+        },
+        fetcher: async (input) => {
+          fetchedUrls.push(String(input));
+          return new Response(new Uint8Array([1, 2, 3]), { status: 200 });
+        },
+      },
+    );
+
+    expect(delays).toEqual([30_000]);
+    expect(fetchedUrls).toHaveLength(2);
+    expect(results.map((result) => result.objectKey)).toEqual([
+      "gtfs-rt/vehicle_positions/2026-05-17/2026-05-17T120000000Z.pb",
+      "gtfs-rt/vehicle_positions/2026-05-17/2026-05-17T120030000Z.pb",
+    ]);
+    expect(bucket.writes.has(results[0]?.objectKey ?? "")).toBe(true);
+    expect(bucket.writes.has(results[1]?.objectKey ?? "")).toBe(true);
   });
 
   it("checks route-speed publication and writes a monthly watcher artifact", async () => {

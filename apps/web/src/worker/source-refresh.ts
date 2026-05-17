@@ -3,9 +3,12 @@ type SourceRefreshEnv = {
   GTFS_RT_RAW?: R2Bucket;
   ARTIFACTS?: R2Bucket;
   LAST_BUILT_SPEED_MONTH?: string;
+  GTFS_RT_SAMPLES_PER_CRON?: string;
+  GTFS_RT_SAMPLE_SECONDS?: string;
 };
 
 type SourceRefreshFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+type Delay = (milliseconds: number) => Promise<void>;
 
 export type SourceRefreshResult = {
   status: "skipped" | "captured" | "failed";
@@ -39,7 +42,7 @@ export type RouteSpeedWatcherResult = {
 };
 
 export type ScheduledProductionRefreshResult = {
-  gtfsRt: SourceRefreshResult;
+  gtfsRt: SourceRefreshResult[];
   routeSpeed: RouteSpeedWatcherResult;
 };
 
@@ -82,6 +85,19 @@ function parseInteger(input: string | number | null | undefined): number {
 
 function parseBuiltMonth(input: string | undefined): string | null {
   return input?.match(/^\d{4}-\d{2}$/) ? input : null;
+}
+
+function parsePositiveInteger(input: string | undefined, fallback: number): number {
+  if (input === undefined || input.length === 0) {
+    return fallback;
+  }
+
+  const value = Number.parseInt(input, 10);
+  return Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
+function defaultDelay(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
 function summarizeSpeedRows(rows: RawSpeedRow[], minSpeedRoutes: number): SpeedMonth[] {
@@ -227,6 +243,40 @@ export async function runScheduledSourceRefresh(
   };
 }
 
+export async function runScheduledGtfsRtCaptureBatch(
+  env: SourceRefreshEnv,
+  options: {
+    now?: Date;
+    fetcher?: SourceRefreshFetch;
+    delay?: Delay;
+  } = {},
+): Promise<SourceRefreshResult[]> {
+  const samplesPerCron = parsePositiveInteger(env.GTFS_RT_SAMPLES_PER_CRON, 1);
+  const sampleSeconds = parsePositiveInteger(env.GTFS_RT_SAMPLE_SECONDS, 30);
+  const results: SourceRefreshResult[] = [];
+  const delay = options.delay ?? defaultDelay;
+
+  for (let sampleIndex = 0; sampleIndex < samplesPerCron; sampleIndex += 1) {
+    if (sampleIndex > 0) {
+      await delay(sampleSeconds * 1_000);
+    }
+
+    const sampleNow =
+      options.now === undefined
+        ? new Date()
+        : new Date(options.now.getTime() + sampleIndex * sampleSeconds * 1_000);
+
+    const captureOptions: { now: Date; fetcher?: SourceRefreshFetch } = { now: sampleNow };
+    if (options.fetcher !== undefined) {
+      captureOptions.fetcher = options.fetcher;
+    }
+
+    results.push(await runScheduledSourceRefresh(env, captureOptions));
+  }
+
+  return results;
+}
+
 export async function runRouteSpeedMonthlyWatcher(
   env: SourceRefreshEnv,
   options: {
@@ -319,7 +369,7 @@ export async function runScheduledProductionRefresh(
   env: SourceRefreshEnv,
 ): Promise<ScheduledProductionRefreshResult> {
   const [gtfsRt, routeSpeed] = await Promise.all([
-    runScheduledSourceRefresh(env),
+    runScheduledGtfsRtCaptureBatch(env),
     runRouteSpeedMonthlyWatcher(env),
   ]);
 

@@ -170,11 +170,13 @@ Initial implementation target:
 - Store GTFS-RT raw snapshots in R2 or another durable artifact store, not in D1.
 - Store only compact status, manifest, and serving/export rows in D1.
 - Treat April/May 2026 missing speed coverage as expected source timing unless the watcher finds nonzero route-speed rows.
+- The Worker cron runs once per minute, but the capture helper can take multiple spaced snapshots per invocation. For strict 30-second sampling, configure `GTFS_RT_SAMPLES_PER_CRON=2` and `GTFS_RT_SAMPLE_SECONDS=30`; leave the defaults for one snapshot per cron when looser cadence is acceptable.
 
 Acceptance for this production refresh scope:
 
 - GTFS-RT capture can run without a desktop/local shell staying alive.
 - Raw realtime snapshots survive process restarts and are addressable by run id, date, feed type, and checksum.
+- The configured production cadence can match strict v1 QA expectations, including 30-second snapshots from a one-minute cron by taking two spaced captures per scheduled invocation.
 - Monthly route-speed availability writes the same decision fields as the local `check:route-speed-availability` artifact.
 - A same-month v1 release can be produced by collecting realtime during a month, waiting for that month's public speed rows, then running strict `finalize:pipeline-v1` and `audit:pipeline-v1`.
 

@@ -426,3 +426,7 @@ Added a lightweight Cloudflare Worker scheduled handler for production GTFS-RT v
 ## [2026-05-17] engineering | Full repo check baseline
 
 Ran `bun run check` after source-refresh and QA hardening. Typecheck, Biome style, web architecture, Claude config, package/pipeline/domain/source/db unit tests, web fixture tests, and Cloudflare Worker tests all passed. This confirms the repo code/contract baseline is green while strict Data Pipeline v1 remains blocked by same-month public speed and realtime source alignment.
+
+## [2026-05-17] engineering | GTFS-RT scheduled cadence hardening
+
+Added a batched scheduled GTFS-RT capture helper for the Worker. The existing single-snapshot capture remains available, while production scheduled refresh can now take multiple spaced vehicle-position snapshots within one cron invocation. With `GTFS_RT_SAMPLES_PER_CRON=2` and `GTFS_RT_SAMPLE_SECONDS=30`, the one-minute Cloudflare cron can write two R2 protobuf snapshots per invocation and match the 30-second cadence expected by strict v1 GTFS-RT QA. Updated the Worker harness and v1 completion plan with the cadence configuration.

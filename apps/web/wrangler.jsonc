@@ -13,6 +13,8 @@
 
   // Add D1/R2 bindings after the first real migration/artifact export exists.
   // The scheduled source-refresh handler stays inert until GTFS_RT_RAW and
-  // MTA_BUS_TIME_API_KEY are configured in the deployed environment.
+  // MTA_BUS_TIME_API_KEY are configured in the deployed environment. For
+  // strict 30-second GTFS-RT sampling with the 1-minute cron, set
+  // GTFS_RT_SAMPLES_PER_CRON=2 and GTFS_RT_SAMPLE_SECONDS=30.
   // Keeping placeholder IDs out of the scaffold prevents accidental deploy failures.
 }
