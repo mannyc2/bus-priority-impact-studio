@@ -8,6 +8,7 @@ import { ingestRouteTrends } from "../ingest/ingest-route-trends.js";
 import { buildBriefArtifacts } from "./brief-artifacts.js";
 import { buildCorridorModel } from "./corridor-model.js";
 import { buildCorridorShapeReview } from "./corridor-shape-review.js";
+import { buildEvaluationArtifacts } from "./evaluation-artifacts.js";
 import { buildObservedHeadways } from "./observed-headways.js";
 import { buildRouteBatchAudit } from "./route-batch-audit.js";
 import { buildRouteInterventionEvaluation } from "./route-intervention-evaluation.js";
@@ -53,6 +54,7 @@ type PipelineV1FinalizeResult = {
   interventionEvaluation: Awaited<ReturnType<typeof buildRouteInterventionEvaluation>>;
   corridorModel: Awaited<ReturnType<typeof buildCorridorModel>>;
   corridorShapeReview: Awaited<ReturnType<typeof buildCorridorShapeReview>>;
+  evaluationArtifacts: Awaited<ReturnType<typeof buildEvaluationArtifacts>>;
   briefArtifacts: Awaited<ReturnType<typeof buildBriefArtifacts>>;
   audit: Awaited<ReturnType<typeof buildRouteBatchAudit>>;
   d1: Awaited<ReturnType<typeof verifyD1Export>>;
@@ -67,6 +69,7 @@ type PipelineV1FinalizeDeps = {
   buildRouteInterventionEvaluation: typeof buildRouteInterventionEvaluation;
   buildCorridorModel: typeof buildCorridorModel;
   buildCorridorShapeReview: typeof buildCorridorShapeReview;
+  buildEvaluationArtifacts: typeof buildEvaluationArtifacts;
   buildBriefArtifacts: typeof buildBriefArtifacts;
   buildRouteBatchAudit: typeof buildRouteBatchAudit;
   verifyD1Export: typeof verifyD1Export;
@@ -81,6 +84,7 @@ const defaultPipelineV1FinalizeDeps: PipelineV1FinalizeDeps = {
   buildRouteInterventionEvaluation,
   buildCorridorModel,
   buildCorridorShapeReview,
+  buildEvaluationArtifacts,
   buildBriefArtifacts,
   buildRouteBatchAudit,
   verifyD1Export,
@@ -247,6 +251,7 @@ export async function finalizePipelineV1(
     ...(args.artifactRoot === undefined ? {} : { artifactRoot: args.artifactRoot }),
     ...(args.exportRoot === undefined ? {} : { exportRoot: args.exportRoot }),
   };
+  const evaluationArtifacts = await deps.buildEvaluationArtifacts(artifactMonthArgs);
   const briefArtifacts = await deps.buildBriefArtifacts(artifactMonthArgs);
   const audit = await deps.buildRouteBatchAudit(artifactMonthArgs);
   const d1 = await deps.verifyD1Export(exportMonthArgs);
@@ -296,6 +301,7 @@ export async function finalizePipelineV1(
     interventionEvaluation,
     corridorModel,
     corridorShapeReview,
+    evaluationArtifacts,
     briefArtifacts,
     audit,
     d1,

@@ -167,6 +167,15 @@ const commands = {
       return buildCorridorShapeReviewFromCli(args);
     },
   },
+  "evaluation-artifacts": {
+    description: "Build static observed reliability and intervention evaluation payloads.",
+    run: async (args) => {
+      const { buildEvaluationArtifactsFromCli } = await import(
+        "./jobs/build/evaluation-artifacts.js"
+      );
+      return buildEvaluationArtifactsFromCli(args);
+    },
+  },
   "brief-artifacts": {
     description: "Build route and corridor brief body artifacts.",
     run: async (args) => {

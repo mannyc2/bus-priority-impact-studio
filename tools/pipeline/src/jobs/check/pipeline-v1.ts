@@ -28,6 +28,7 @@ import { defaultArtifactRootPath, fromCliPath } from "../../lib/paths.js";
 import { createMonthContext, parseMonthDbCliArgs } from "../../lib/route-job.js";
 import { fromRepoRoot } from "../../source-manifest.js";
 import { readCorridorShapeReviewArtifact } from "../build/corridor-shape-review.js";
+import { verifyEvaluationArtifactManifest } from "../build/evaluation-artifacts.js";
 import { buildRouteBatchAudit } from "../build/route-batch-audit.js";
 import { verifyD1Export } from "../export/verify-d1-export.js";
 
@@ -122,6 +123,8 @@ type PipelineV1Counts = {
   corridorUnassignedRouteShare: number;
   corridorArtifactRows: number;
   routeBatchIssueRows: number;
+  evaluationArtifactRows: number;
+  evaluationArtifactIssueRows: number;
 };
 
 type PipelineV1CheckResult = {
@@ -774,6 +777,15 @@ export async function checkPipelineV1(
   const corridorInterventionRouteIds = new Set(
     localState.corridorInterventionContexts.map((row) => row.routeId),
   );
+  const evaluationArtifacts = await verifyEvaluationArtifactManifest({
+    artifactRoot: args.artifactRoot ?? defaultArtifactRootPath(),
+    month,
+    expectedRowCounts: {
+      observedReliability: localState.observedReliability.length,
+      routeInterventionComparisons: localState.interventionComparisons.length,
+      corridorInterventionContexts: localState.corridorInterventionContexts.length,
+    },
+  });
   const corridorAmbiguousRouteShare =
     publicRouteIds.length === 0
       ? 0
@@ -1239,6 +1251,9 @@ export async function checkPipelineV1(
       `Route batch audit failed with ${audit.issueCount} issues.`,
     );
   }
+  for (const issue of evaluationArtifacts.issues) {
+    addIssue(issues, issue.code, issue.message);
+  }
 
   let d1: PipelineV1CheckResult["d1"] = null;
   try {
@@ -1381,6 +1396,11 @@ export async function checkPipelineV1(
       corridorUnassignedRouteShare,
       corridorArtifactRows: localState.corridorArtifacts.length,
       routeBatchIssueRows: localState.batchStatus?.issueCount ?? 0,
+      evaluationArtifactRows:
+        evaluationArtifacts.rowCounts.observedReliability +
+        evaluationArtifacts.rowCounts.routeInterventionComparisons +
+        evaluationArtifacts.rowCounts.corridorInterventionContexts,
+      evaluationArtifactIssueRows: evaluationArtifacts.issueCount,
     },
     audit: {
       status: audit.status,

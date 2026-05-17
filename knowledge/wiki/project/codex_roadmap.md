@@ -31,6 +31,7 @@ Current implementation baseline:
 - Corridor route membership now prefers hotspot-segment street evidence before falling back to stop-name majority; strict v1 QA requires at least one segment-backed corridor membership.
 - Corridor intervention context now matches route-level intervention comparison rows back to corridor members and is exported through D1 plus corridor brief JSON/Markdown.
 - `corridor-shape-review` now validates segment-backed corridor assignments against GTFS route-shape geometry. March 2026 canonical and clean-full artifacts both have 350/350 shape-reviewed route memberships passing with 0 warnings.
+- `evaluation-artifacts` writes static observed reliability, route intervention, and corridor intervention payloads under `data/artifacts/evaluations/{month}/` plus a hash/row-count manifest. `check:pipeline-v1` verifies the manifest against local DB counts.
 - Strict `check:pipeline-v1` now distinguishes structural completeness from true observed-reliability completion. March 2026 passes structural verification with `--allow-insufficient-gtfs-rt`, but strict mode still fails because there are no March 2026 observed GTFS-RT headway samples.
 - April and May 2026 source coverage probes on 2026-05-17 returned scheduled routes but no speed-route coverage, so March remains the complete public-source analysis month. A May GTFS-RT run can advance the observed layer, but it cannot honestly complete the March gate.
 - The May GTFS-RT observed layer now passes preflight for run `gtfs-rt-v1-20260517T022348Z`: 480/480 snapshots, 358,875 parsed vehicle positions, 73,702 observed headway samples, and 229 observed route summaries.
@@ -39,7 +40,7 @@ Primary remaining roadmap:
 
 1. Decide whether v1 is March structural + May observed appendix, or wait for public speed coverage so a later month can become the single strict v1 month.
 2. Reduce remaining bus-lane source gaps where public dates can be recovered, and review the peer-adjusted ACE/ABLE/bus-lane method with domain experts.
-3. Add map payload manifests and detailed evaluation manifests.
+3. Add map payload manifests.
 4. Align the public frontend around proof-finding route/corridor briefs rather than a generic route analytics dashboard.
 
 The older phase list below remains as historical context for how the repo reached the current baseline.

@@ -92,6 +92,19 @@ describe("route post-build", () => {
           p95EndpointDistanceMeters: 10,
         };
       },
+      buildEvaluationArtifacts: async ({ artifactRoot }: { artifactRoot?: string }) => {
+        calls.push(`evaluation-artifacts:${artifactRoot}`);
+        return {
+          isoMonth: "2026-08",
+          manifestPath: "/tmp/artifacts/evaluations/2026-08/manifest.json",
+          artifactCount: 3,
+          totalByteLength: 200,
+          observedReliabilityRowCount: 2,
+          interventionEventCount: 1,
+          interventionComparisonCount: 1,
+          corridorInterventionContextRowCount: 1,
+        };
+      },
       buildRouteReliabilityBaseline: async () => {
         calls.push("reliability");
         return {
@@ -148,6 +161,7 @@ describe("route post-build", () => {
         "intervention-evaluation",
         "corridor-model",
         "shape-review:/tmp/artifacts",
+        "evaluation-artifacts:/tmp/artifacts",
         "brief-artifacts:/tmp/artifacts",
         "reliability",
         "audit:/tmp/artifacts",

@@ -20,6 +20,7 @@ import {
   replaceRouteScorecard,
 } from "@bp/db/local";
 import { buildBriefArtifacts } from "../src/jobs/build/brief-artifacts.js";
+import { buildEvaluationArtifacts } from "../src/jobs/build/evaluation-artifacts.js";
 import { checkPipelineV1 } from "../src/jobs/check/pipeline-v1.js";
 import { auditPipelineV1 } from "../src/jobs/check/pipeline-v1-audit.js";
 import { openLocalPipelineDb } from "../src/lib/local-db.js";
@@ -35,6 +36,7 @@ const corridorBriefDir = fromRepoRoot(
 const unassignedCorridorBriefDir = fromRepoRoot(
   join("data/artifacts/briefs/corridors/unassigned-t1", isoMonth),
 );
+const evaluationArtifactDir = fromRepoRoot(join("data/artifacts/evaluations", isoMonth));
 const corridorShapeReviewDir = fromRepoRoot(join("data/artifacts/route-batches", isoMonth));
 const corridorShapeReviewPath = join(corridorShapeReviewDir, "corridor-shape-review.json");
 const sourceMetadataDir = fromRepoRoot(join("data/fixtures/check-pipeline-v1/source-metadata"));
@@ -61,6 +63,7 @@ async function removeFixtureArtifacts(): Promise<void> {
     rm(routeBriefDir, { force: true, recursive: true }),
     rm(corridorBriefDir, { force: true, recursive: true }),
     rm(unassignedCorridorBriefDir, { force: true, recursive: true }),
+    rm(evaluationArtifactDir, { force: true, recursive: true }),
     rm(corridorShapeReviewDir, { force: true, recursive: true }),
     rm(sourceMetadataDir, { force: true, recursive: true }),
     rm(auditOutputPath, { force: true }),
@@ -721,6 +724,7 @@ async function writeFixtureNetwork(options: {
   }
   await writeSourceProbeMetadata();
   await writeCorridorShapeReviewArtifact();
+  await buildEvaluationArtifacts({ year: 2026, month: 11, dbPath });
   await buildBriefArtifacts({ year: 2026, month: 11, dbPath });
 }
 
@@ -789,6 +793,7 @@ async function replaceWithInsufficientObservedReliability(): Promise<void> {
   } finally {
     local.sqlite.close();
   }
+  await buildEvaluationArtifacts({ year: 2026, month: 11, dbPath });
   await buildBriefArtifacts({ year: 2026, month: 11, dbPath });
 }
 
@@ -857,6 +862,7 @@ async function replaceWithBelowThresholdObservedReliability(): Promise<void> {
   } finally {
     local.sqlite.close();
   }
+  await buildEvaluationArtifacts({ year: 2026, month: 11, dbPath });
   await buildBriefArtifacts({ year: 2026, month: 11, dbPath });
 }
 
@@ -961,6 +967,7 @@ async function replaceWithCorridorAssignmentStatus(
   } finally {
     local.sqlite.close();
   }
+  await buildEvaluationArtifacts({ year: 2026, month: 11, dbPath });
   await buildBriefArtifacts({ year: 2026, month: 11, dbPath });
 }
 
@@ -1037,6 +1044,8 @@ describe("pipeline v1 check", () => {
         corridorUnassignedRouteShare: 0,
         routeArtifactRows: 3,
         corridorArtifactRows: 3,
+        evaluationArtifactRows: 5,
+        evaluationArtifactIssueRows: 0,
       }),
     );
     expect(result.d1).toEqual(

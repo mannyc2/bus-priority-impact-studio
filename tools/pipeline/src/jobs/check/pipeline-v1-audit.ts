@@ -382,14 +382,18 @@ export async function auditPipelineV1(
     {
       requirement: "Verified D1/static export contracts",
       status:
-        publicStructural.d1?.status === "pass" && publicStructural.audit.status === "pass"
+        publicStructural.d1?.status === "pass" &&
+        publicStructural.audit.status === "pass" &&
+        publicStructural.counts.evaluationArtifactIssueRows === 0
           ? "pass"
           : "blocked",
-      evidence: `${publicIsoMonth} D1 status is ${publicStructural.d1?.status ?? "missing"}; route artifacts ${publicStructural.d1?.routeArtifactRows ?? 0}, corridor artifacts ${publicStructural.d1?.corridorArtifactRows ?? 0}.`,
+      evidence: `${publicIsoMonth} D1 status is ${publicStructural.d1?.status ?? "missing"}; route artifacts ${publicStructural.d1?.routeArtifactRows ?? 0}, corridor artifacts ${publicStructural.d1?.corridorArtifactRows ?? 0}, evaluation artifact rows ${publicStructural.counts.evaluationArtifactRows}, evaluation artifact issues ${publicStructural.counts.evaluationArtifactIssueRows}.`,
       missing:
-        publicStructural.d1?.status === "pass" && publicStructural.audit.status === "pass"
+        publicStructural.d1?.status === "pass" &&
+        publicStructural.audit.status === "pass" &&
+        publicStructural.counts.evaluationArtifactIssueRows === 0
           ? []
-          : ["D1 verification or static artifact audit is failing."],
+          : ["D1 verification, brief artifact audit, or evaluation artifact manifest is failing."],
     },
     {
       requirement: "Strict single-month v1 QA gate",

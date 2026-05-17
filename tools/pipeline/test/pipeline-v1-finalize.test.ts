@@ -52,6 +52,10 @@ describe("pipeline v1 finalization", () => {
         calls.push("shape-review");
         return { isoMonth: "2026-08", passRouteCount: 1 };
       },
+      buildEvaluationArtifacts: async () => {
+        calls.push("evaluation-artifacts");
+        return { isoMonth: "2026-08", artifactCount: 3 };
+      },
       buildBriefArtifacts: async () => {
         calls.push("briefs");
         return { isoMonth: "2026-08", routeArtifactCount: 3, corridorArtifactCount: 3 };
@@ -107,6 +111,7 @@ describe("pipeline v1 finalization", () => {
       "interventions",
       "corridors",
       "shape-review",
+      "evaluation-artifacts",
       "briefs",
       "audit",
       "verify:d1",
@@ -158,6 +163,10 @@ describe("pipeline v1 finalization", () => {
         calls.push("shape-review");
         return {};
       },
+      buildEvaluationArtifacts: async () => {
+        calls.push("evaluation-artifacts");
+        return {};
+      },
       buildBriefArtifacts: async () => {
         calls.push("briefs");
         return {};
@@ -202,6 +211,7 @@ describe("pipeline v1 finalization", () => {
       "interventions",
       "corridors",
       "shape-review",
+      "evaluation-artifacts",
       "briefs",
       "audit",
       "verify:d1",

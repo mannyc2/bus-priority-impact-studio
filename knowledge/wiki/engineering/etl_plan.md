@@ -37,7 +37,7 @@ V1 additions still required:
 - Production-length GTFS-RT collection, ingestion, observed headway build, and coverage QA for a month that can honestly align with the collected realtime window.
 - Bus-lane intervention source-gap reduction for matched segments without parseable open dates, plus external methodology review before causal claims.
 
-Implemented v1 additions include GTFS-RT collection/parsing, observed headway samples, route/month observed reliability and bunching summaries, detailed observed long-gap/bunching windows in route brief artifacts, peer-adjusted ACE/ABLE before/after comparisons, dated bus-lane before/after comparisons from parseable NYC DOT `open_dates`, hotspot-segment corridor entities/summaries, corridor intervention context rows, shape-based corridor assignment review, route/corridor brief body generation, D1 artifact metadata, route-batch hash/byte/JSON-contract verification for generated brief bodies, and a clean rebuild proof from an empty local DB through D1/static export verification.
+Implemented v1 additions include GTFS-RT collection/parsing, observed headway samples, route/month observed reliability and bunching summaries, detailed observed long-gap/bunching windows in route brief artifacts, peer-adjusted ACE/ABLE before/after comparisons, dated bus-lane before/after comparisons from parseable NYC DOT `open_dates`, hotspot-segment corridor entities/summaries, corridor intervention context rows, shape-based corridor assignment review, route/corridor brief body generation, static detailed evaluation payload manifests, D1 artifact metadata, route-batch hash/byte/JSON-contract verification for generated brief bodies, and a clean rebuild proof from an empty local DB through D1/static export verification.
 
 ## Phase 0: source metadata probes
 
@@ -79,6 +79,8 @@ bun run ingest:route-trends -- --start-year 2025 --start-month 1 --end-year 2026
 bun run backfill:route-ridership-trends -- --start-year 2025 --start-month 1 --end-year 2026 --end-month 3
 bun run route-intervention-evaluation -- --year 2026 --month 3
 bun run corridor-model -- --year 2026 --month 3
+bun run corridor-shape-review -- --year 2026 --month 3
+bun run evaluation-artifacts -- --year 2026 --month 3
 bun run brief-artifacts -- --year 2026 --month 3
 bun run route-batch-audit -- --year 2026 --month 3
 bun run verify:d1 -- --year 2026 --month 3
