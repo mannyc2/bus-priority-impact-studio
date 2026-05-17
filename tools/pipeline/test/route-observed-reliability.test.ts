@@ -307,4 +307,88 @@ describe("route observed reliability", () => {
       }),
     ]);
   });
+
+  test("replaces the active observed reliability run for a month", async () => {
+    await removeFixtureArtifacts();
+    await writeFixtureRows();
+    const replacementRunId = "replacement-reliability-run";
+
+    await buildRouteObservedReliability({
+      dbPath,
+      runId,
+      year: 2026,
+      month: 3,
+      minSamples: 2,
+    });
+    const local = await openLocalPipelineDb(dbPath);
+    try {
+      await replaceObservedHeadwayRows(local.db, replacementRunId, {
+        stopEvents: [],
+        headwaySamples: [
+          {
+            runId: replacementRunId,
+            sampleRank: 1,
+            routeId: "T2",
+            sourceRouteId: "MTA NYCT_T2",
+            directionId: 0,
+            stopId: "S2",
+            previousVehicleKey: "bus-10",
+            vehicleKey: "bus-11",
+            previousObservedTimestamp: 1_773_576_000,
+            observedTimestamp: 1_773_576_300,
+            headwaySeconds: 300,
+            headwayMinutes: 5,
+          },
+          {
+            runId: replacementRunId,
+            sampleRank: 2,
+            routeId: "T2",
+            sourceRouteId: "MTA NYCT_T2",
+            directionId: 0,
+            stopId: "S2",
+            previousVehicleKey: "bus-11",
+            vehicleKey: "bus-12",
+            previousObservedTimestamp: 1_773_576_300,
+            observedTimestamp: 1_773_576_900,
+            headwaySeconds: 600,
+            headwayMinutes: 10,
+          },
+        ],
+      });
+    } finally {
+      local.sqlite.close();
+    }
+
+    await buildRouteObservedReliability({
+      dbPath,
+      runId: replacementRunId,
+      year: 2026,
+      month: 3,
+      minSamples: 2,
+    });
+
+    const verification = await openLocalPipelineDb(dbPath);
+    const summaries = await listRouteObservedReliabilitySummaries(verification.db, isoMonth);
+    const sourceStatuses = await listRouteMonthSourceStatuses(verification.db, isoMonth);
+    verification.sqlite.close();
+
+    expect(new Set(summaries.map((summary) => summary.runId))).toEqual(new Set([replacementRunId]));
+    expect(summaries.find((summary) => summary.routeId === "T1")).toEqual(
+      expect.objectContaining({
+        reliabilityStatus: "insufficient_gtfs_rt_samples",
+        sampleCount: 0,
+      }),
+    );
+    expect(summaries.find((summary) => summary.routeId === "T2")).toEqual(
+      expect.objectContaining({
+        reliabilityStatus: "observed",
+        sampleCount: 2,
+      }),
+    );
+    expect(
+      sourceStatuses
+        .filter((status) => status.sourceId === "observedHeadways")
+        .map((status) => status.snapshotId),
+    ).toEqual([replacementRunId, replacementRunId]);
+  });
 });
