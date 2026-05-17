@@ -5,6 +5,7 @@ import type { LngLatBoundsLike, Map as MapLibreMap, StyleSpecification } from "m
 import { type RefObject, useCallback, useEffect, useRef } from "react";
 
 import { type LatLngTuple, routeGeo } from "../fixtures/routes.js";
+import { fetchMapRouteShapes, routeDisplayName } from "../lib/api-client.js";
 import { gradeColor } from "../lib/tokens.js";
 
 interface BusPulseMapProps {
@@ -35,6 +36,11 @@ interface RouteFeatureCollection<G> {
 interface LineStringGeometry {
   type: "LineString";
   coordinates: LngLatTuple[];
+}
+
+interface MultiLineStringGeometry {
+  type: "MultiLineString";
+  coordinates: LngLatTuple[][];
 }
 
 interface PointGeometry {
@@ -123,6 +129,55 @@ function buildRouteLineData(): RouteFeatureCollection<LineStringGeometry> {
         coordinates: route.path.map(toLngLat),
       },
     })),
+  };
+}
+
+function readGeneratedRouteId(properties: unknown): string | null {
+  if (properties == null || typeof properties !== "object") return null;
+  const { routeId, routeShortName } = properties as {
+    routeId?: unknown;
+    routeShortName?: unknown;
+  };
+  if (typeof routeShortName === "string" && routeShortName.length > 0) return routeShortName;
+  return typeof routeId === "string" && routeId.length > 0 ? routeId : null;
+}
+
+function normalizeGeneratedRouteLineData(
+  payload: unknown,
+): RouteFeatureCollection<LineStringGeometry | MultiLineStringGeometry> | null {
+  if (payload == null || typeof payload !== "object") return null;
+  const collection = payload as {
+    type?: unknown;
+    features?: Array<{
+      type?: unknown;
+      geometry?: unknown;
+      properties?: unknown;
+    }>;
+  };
+  if (collection.type !== "FeatureCollection" || !Array.isArray(collection.features)) return null;
+
+  return {
+    type: "FeatureCollection",
+    features: collection.features.flatMap((feature) => {
+      const geometry = feature.geometry as LineStringGeometry | MultiLineStringGeometry | undefined;
+      if (geometry?.type !== "LineString" && geometry?.type !== "MultiLineString") return [];
+      const routeId = readGeneratedRouteId(feature.properties);
+      if (routeId === null) return [];
+      const name = routeDisplayName(routeId);
+      const grade = "C";
+
+      return [
+        {
+          type: "Feature" as const,
+          properties: {
+            name,
+            grade,
+            color: gradeColor(grade),
+          },
+          geometry,
+        },
+      ];
+    }),
   };
 }
 
@@ -309,6 +364,16 @@ function addRouteSourcesAndLayers(map: MapLibreMap): void {
   });
 }
 
+async function updateRouteLineSourceFromApi(map: MapLibreMap): Promise<void> {
+  const source = map.getSource(ROUTES_SOURCE_ID) as { setData(data: unknown): void } | undefined;
+  if (source === undefined) return;
+
+  const generated = normalizeGeneratedRouteLineData(await fetchMapRouteShapes());
+  if (generated !== null && generated.features.length > 0) {
+    source.setData(generated);
+  }
+}
+
 function routeOpacityExpression(
   highlighted: string | null,
   baseOpacity: number,
@@ -468,6 +533,7 @@ export function BusPulseMap({
 
     map.on("load", () => {
       addRouteSourcesAndLayers(map);
+      void updateRouteLineSourceFromApi(map).catch(() => undefined);
       bindRouteLayerEvents(map, onRouteClickRef, onRouteHoverRef);
       applyHighlight(map, highlightedRouteRef.current);
     });

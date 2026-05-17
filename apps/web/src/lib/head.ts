@@ -1,0 +1,18 @@
+const SITE_NAME = "BusPulse";
+const DEFAULT_DESCRIPTION =
+  "Track NYC bus reliability, hotspots, route grades, and rider-facing service impacts.";
+
+export function routeHead(title: string, description = DEFAULT_DESCRIPTION) {
+  const fullTitle = title === SITE_NAME ? SITE_NAME : `${title} | ${SITE_NAME}`;
+
+  return {
+    meta: [
+      { title: fullTitle },
+      { name: "description", content: description },
+      { property: "og:title", content: fullTitle },
+      { property: "og:description", content: description },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  };
+}

@@ -1,13 +1,16 @@
-import { useState } from "react";
-import { type RouteData, routes } from "../fixtures/routes.js";
+import { Link } from "@tanstack/react-router";
+import type { RouteData } from "../fixtures/routes.js";
+import {
+  DEFAULT_ROUTE_PROFILE_TAB,
+  type RouteProfileTab,
+  routeToPathParams,
+} from "../lib/route-url.js";
 import { bucketColor, colors, gradeColor } from "../lib/tokens.js";
 import { GradeBadge } from "./GradeBadge.js";
 import { Pill } from "./Pill.js";
 import { ReactionRow } from "./ReactionRow.js";
 import { SpeedBar } from "./SpeedBar.js";
 import { StatCard } from "./StatCard.js";
-
-type Tab = "overview" | "segments" | "reports";
 
 const SEGMENTS = [
   { label: "Eastern Pkwy \u2192 Crown St", speed: 4.2 },
@@ -39,22 +42,20 @@ const RIDER_REPORTS = [
 
 export function RouteProfilePanel({
   route: routeProp,
+  tab = DEFAULT_ROUTE_PROFILE_TAB,
   onClose,
   onCompare,
   compact,
 }: {
-  route: { name: string; grade: string } | null;
+  route: RouteData | null;
+  tab?: RouteProfileTab;
   onClose: () => void;
   onCompare?: (route: RouteData) => void;
   compact?: boolean;
 }) {
-  const [tab, setTab] = useState<Tab>("overview");
-
   if (!routeProp) return null;
 
-  const route = routes.find((r) => r.name === routeProp.name);
-  if (!route) return null;
-
+  const route = routeProp;
   const isSlow = route.speed < 6;
   const isBunching = route.bunching > 20;
   const trendUp = route.trend > 0;
@@ -146,27 +147,31 @@ export function RouteProfilePanel({
           marginTop: 12,
         }}
       >
-        {(["overview", "segments", "reports"] as const).map((t) => (
-          <button
-            key={t}
-            type="button"
-            onClick={() => setTab(t)}
+        {(["overview", "segments", "reports"] as const).map((tabKey) => (
+          <Link
+            key={tabKey}
+            from="/routes/$routeId"
+            to="/routes/$routeId"
+            params={routeToPathParams(route.name)}
+            search={{ tab: tabKey }}
+            viewTransition
             style={{
               flex: 1,
               padding: "8px 0",
-              border: "none",
-              borderBottom: tab === t ? `2px solid ${colors.accent}` : "2px solid transparent",
+              borderBottom: tab === tabKey ? `2px solid ${colors.accent}` : "2px solid transparent",
               background: "none",
               fontFamily: "inherit",
               fontSize: 13,
-              fontWeight: tab === t ? 700 : 500,
-              color: tab === t ? colors.accent : colors.muted,
+              fontWeight: tab === tabKey ? 700 : 500,
+              color: tab === tabKey ? colors.accent : colors.muted,
               cursor: "pointer",
+              textDecoration: "none",
+              textAlign: "center",
               textTransform: "capitalize",
             }}
           >
-            {t}
-          </button>
+            {tabKey}
+          </Link>
         ))}
       </div>
 

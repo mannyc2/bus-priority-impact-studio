@@ -419,6 +419,14 @@ Added `plan:source-refresh`, a small pipeline command that writes `data/artifact
 
 Extended `audit:pipeline-v1` so `sourceAvailability` includes both `routeSpeed` and `refreshPlan`. The single-month source availability checklist now includes source-refresh job statuses such as `gtfs_rt_collector=required` and `route_speed_monthly_watcher=idle`. If public/realtime months align but the source-refresh plan artifact is missing, the checklist row is `partial` with an explicit missing item instead of silently passing.
 
+## [2026-05-17] engineering | Recovered GTFS-RT import path
+
+Added `import:bus-observatory-gtfs-rt`, a TypeScript/Bun pipeline command that imports canonical CSV rows exported from the third-party Bus Observatory Parquet archive into the existing local GTFS-RT collection, snapshot, parsed snapshot, and vehicle-position tables. The command labels the run as `third_party_recovered` through the Bus Observatory source id and returns row-level QA facts such as sample count, route count, vehicle count, min/max timestamp, max timestamp gap, and skipped rows. Added a fixture-backed pipeline test plus `publish:serving-release`, a dry-run-by-default one-shot D1/R2 promotion script, and documented the remaining data-infrastructure finish line: recovered March import/QA, one-shot D1/R2 publish, lightweight cron/watchers only, and website unfixture gates.
+
+## [2026-05-17] engineering | Website API endpoint architecture
+
+Drafted `knowledge/wiki/engineering/web_api_endpoint_architecture.md` for the newer mobile-first website. The plan keeps the Worker as a thin BFF over D1 serving projections and R2 artifacts, maps endpoints to the current map/feed/route/compare/search surfaces, requires domain response schemas with completeness metadata, and preserves the rule that public request handlers do not import source adapters, analytics, pipeline code, or wiki files. The main checkout was monitored until frontend/API edits were quiet for more than five minutes, then the docs-only plan was applied without touching the active frontend work.
+
 ## [2026-05-17] engineering | Worker GTFS-RT scheduled capture
 
 Added a lightweight Cloudflare Worker scheduled handler for production GTFS-RT vehicle-position capture and monthly route-speed publication checks. GTFS-RT capture is inert unless the deployed environment has both `GTFS_RT_RAW` and `MTA_BUS_TIME_API_KEY`; the monthly watcher is inert unless `ARTIFACTS` is configured and compares latest complete speed coverage against optional `LAST_BUILT_SPEED_MONTH`. When configured, the Worker writes raw protobuf snapshots, redacted JSON manifests, and a compact route-speed availability artifact to R2. The public request handler still does not import pipeline code, and heavy parsing/finalization remains in the Bun pipeline. The cron entrypoint runs once per minute, so strict 30-second production sampling still needs follow-up queue/scheduler design.
@@ -458,3 +466,61 @@ Extended the v1 release model from a pass/fail boundary into completeness-aware 
 ## [2026-05-17] engineering | Bus Observatory GTFS-RT recovery probe
 
 Added `check:bus-observatory-gtfs-rt`, a TypeScript/Bun probe for the third-party Bus Observatory NYC bus GTFS-RT Parquet archive in the public `busobservatory-lake` S3 bucket. The March 2026 live probe found all 31 March-labeled files plus the 2026-04-01 bridge file, 32 files total and 3,591,483,083 bytes, and wrote `data/artifacts/source-availability/bus-observatory-gtfs-rt-2026-03.json` with `candidateLabel = third_party_full_month_candidate_pending_row_level_qa`. `audit:pipeline-v1` now reads that artifact as `releaseModel.thirdPartyRecoveredGtfsRtCandidate`, but keeps `canPromoteObservedRelease=false` until Parquet row-level QA and an import/conversion path pass.
+
+## [2026-05-17] engineering | Bus Observatory recovered reliability loaded
+
+Added `import:bus-observatory-reliability-summary`, a repeatable Bun pipeline command for loading precomputed route-level observed-reliability summaries from the third-party Bus Observatory archive when raw Parquet row import is too large for the local SQLite path. The command fills every current catalog route, skips archive route IDs outside the catalog, and writes reliability source-status rows tied to the recovered run id. Loaded March 2026 from `data/working/bus-observatory/2026-03/route-observed-reliability-summary.csv`: 381 catalog routes, 346 observed, 35 insufficient, 2,571,297 derived samples, and 7 non-catalog archive routes skipped. Regenerated `brief-artifacts`, `route-batch-audit`, `evaluation-artifacts`, `map-artifacts`, `export:d1`, and `verify:d1`; D1 verification passes with `route_observed_reliability_summary = 381` and `route_batch_issue = 0`, and structural `check:pipeline-v1 -- --allow-insufficient-gtfs-rt` passes for March 2026.
+
+## [2026-05-17] engineering | Bus Observatory strict raw-backed recovery
+
+Added `import:bus-observatory-headway-samples`, a chunked recovered-data importer that streams DuckDB-derived Bus Observatory headway samples into `local_observed_headway_sample` and registers compact 30-second snapshot evidence in the GTFS-RT collection/feed/parsed tables. This avoids loading all 81M raw vehicle positions into SQLite while still giving strict GTFS-RT provenance gates completed collection rows, successful vehicle-position snapshots, parsed snapshot rows, parsed vehicle-position evidence rows, and persisted observed headway samples. Generated March 2026 recovered CSVs under ignored `data/working/bus-observatory/2026-03/raw-provenance/`: 89,109 snapshot buckets and 2,612,086 headway samples. Rebuilt route observed reliability from the raw-backed samples, yielding 381 catalog route rows, 346 observed routes, 35 insufficient routes, and 2,571,297 catalog-route samples. Strict `gtfs-rt:preflight -- --year 2026 --month 3 --run-id bus-observatory-2026-03`, `verify:d1`, and strict `check:pipeline-v1 -- --year 2026 --month 3` all pass.
+
+## [2026-05-17] engineering | Release status API and docs refresh
+
+Added `ReleaseStatusResponseSchema`, `releaseStatusResponseJsonSchema`, and Worker endpoint `GET /api/v1/status` over D1 route-batch and observed-reliability serving tables. The endpoint reports the active baseline month, route/artifact/issue counts, observed and insufficient GTFS-RT route counts, sample count, inferred realtime provenance, and completeness caveats; `bus-observatory-*` runs are labeled `third_party_recovered`. Added Worker coverage for the recovered March provenance path and the static-asset SPA fallback. Verified with `bun --filter @bp/web test:worker`, `bun --filter @bp/web typecheck`, `bun --filter @bp/domain typecheck`, `bun run check:style`, and strict `bun run check:pipeline-v1 -- --year 2026 --month 3`. Refreshed data-infrastructure and API docs so they reflect the now-loaded raw-backed March recovery, the dry-run serving publish path, and the remaining remote deployment/frontend unfixture work.
+
+## [2026-05-17] engineering | Route-card API unfixture step
+
+Added `RouteCardSchema`, `RouteListResponseSchema`, `routeListResponseJsonSchema`, and Worker endpoint `GET /api/v1/routes`. The endpoint reads D1 route brief summaries and observed reliability summaries for the selected month, returns compact ranked cards, and labels each card with completeness/confidence metadata. Recovered `bus-observatory-*` reliability rows are surfaced as medium-confidence third-party recovered evidence. Added Worker coverage for observed and insufficient recovered route cards, plus the `GET /api/schema/route-list` schema endpoint.
+
+## [2026-05-17] engineering | Route profile API unfixture step
+
+Added `RouteArtifactRefSchema`, `RouteProfileResponseSchema`, `routeProfileResponseJsonSchema`, and Worker endpoint `GET /api/v1/routes/:routeId/profile`. The endpoint validates route IDs and months, reads one D1 route brief summary, observed reliability summaries, and route artifact metadata, then returns peak/slowest windows, recovered observed-reliability metrics, completeness caveats, and R2 artifact references. Added Worker coverage for the recovered March route profile path and the `GET /api/schema/route-profile` schema endpoint.
+
+## [2026-05-17] engineering | Map manifest and R2 artifact API
+
+Added `MapArtifactEntrySchema`, `MapManifestResponseSchema`, `mapManifestResponseJsonSchema`, Worker endpoint `GET /api/v1/map/manifest`, and R2 proxy endpoint `GET /api/v1/artifacts/*`. The manifest endpoint reads generated `map/<month>/manifest.json` from the `ARTIFACTS` R2 binding, validates metadata, and adds API fetch paths for each artifact. The artifact endpoint streams R2 objects with immutable cache headers and rejects invalid keys. Added Worker coverage for a generated route-segment GeoJSON manifest entry and artifact fetch.
+
+## [2026-05-17] engineering | Hotspot and compare API unfixture step
+
+Added `HotspotCardSchema`, `HotspotListResponseSchema`, `hotspotListResponseJsonSchema`, `RouteCompareResponseSchema`, `routeCompareResponseJsonSchema`, Worker endpoint `GET /api/v1/hotspots`, and Worker endpoint `GET /api/v1/compare`. Hotspots flatten D1 corridor hotspot summaries into ranked monthly cards with baseline-release quality labels. Compare reads D1 route comparison ranks plus observed reliability summaries for two routes, returns route cards, metric deltas, and recovered-realtime provenance caveats. Added Worker coverage for both endpoints and their schema routes.
+
+## [2026-05-17] engineering | API-first frontend loaders
+
+Added `apps/web/src/lib/api-client.ts` and switched the main panel data loaders to call `/api/v1` first for hotspots, route profiles, and compare data, with fixture fallback when the API is unavailable. Route profile params now accept generated route IDs beyond the small fixture list, and default compare routes use real serving IDs (`B46-SBS`, `M15-SBS`). Added loader tests that mock API responses and verify they map into the current panel component data shape. The map canvas still uses fixture geometry; its next unfixture step is reading `/api/v1/map/manifest` and R2 artifact URLs.
+
+## [2026-05-17] engineering | API-backed map route lines
+
+Extended `BusPulseMap` so it keeps fixture geometry for a nonblank first paint, then fetches `/api/v1/map/manifest`, finds the generated `map_route_shapes_geojson` artifact, and replaces the MapLibre route line source with R2-backed generated GeoJSON when available. The generated route-shape properties are normalized into the current map interaction shape (`name`, `grade`, `color`) so route hover/click still works while the rest of the map layers continue to use fixture stops/labels as fallback.
+
+## [2026-05-17] engineering | GTFS-RT R2 mirror helper
+
+Added `pull:gtfs-rt-r2-run`, a dry-run-by-default shell helper for the deployed Worker capture handoff. Given a reviewed manifest object-key list, it mirrors Worker-written GTFS-RT manifests and paired raw protobuf objects from R2 with `bunx --bun wrangler`, then prints the matching `import:gtfs-rt-r2-manifests` command for the local pipeline.
+
+The mirror helper now defaults to `data/raw/r2-mirror/<run-id>/` so a handoff import only sees manifests for the intended production capture run unless an operator deliberately overrides `--output`.
+
+R2 transfers now use plain `bunx wrangler` rather than `bunx --bun wrangler`; in this environment, the Bun-executed Wrangler path successfully created objects but returned zero-byte payloads for larger R2 uploads/downloads.
+
+## [2026-05-17] operations | Cloudflare production runbook
+
+Added `knowledge/wiki/engineering/cloudflare_operations_runbook.md` with the concrete production deployment path: required D1/R2 bindings, Worker vars and secrets, the one-shot March 2026 serving publish, deployed API verification, scheduled GTFS-RT capture proof, R2 manifest mirroring, downstream pipeline import, and monthly speed watcher rebuild steps. The committed Worker config still avoids fake Cloudflare IDs; production completion requires real resources and `publish:serving-release --execute`.
+
+Added `apps/web/wrangler.production.example.jsonc` as a copyable production binding template for `DB`, `ARTIFACTS`, `GTFS_RT_RAW`, baseline-month vars, and strict GTFS-RT capture cadence. The active `wrangler.jsonc` still avoids placeholder resource IDs.
+
+Created production Cloudflare resources in account `7aa7065a7e971d97435b3f22098d78b0`: D1 `bus-priority-serving` (`d9cd87e2-1f77-44eb-b712-e834b23497b0`), R2 `bus-priority-artifacts`, and R2 `bus-priority-gtfs-rt-raw`. Wired those bindings into `apps/web/wrangler.jsonc` and `packages/db/wrangler.d1.jsonc`, uploaded the `MTA_BUS_TIME_API_KEY` Worker secret, applied the March 2026 D1 schema/seed remotely, and uploaded the March 2026 artifact set to remote R2. R2 transfers must use plain `bunx wrangler`; `bunx --bun wrangler` produced zero-byte objects for larger transfers in this environment.
+
+Added the R2 lifecycle rule `expire-gtfs-rt-after-21-days` on `bus-priority-gtfs-rt-raw` for prefix `gtfs-rt/`. This keeps strict 30-second raw GTFS-RT capture inside the expected Workers Paid/R2 free storage envelope while preserving a three-week mirror/import window.
+
+Deployed the Worker directly from `apps/web/wrangler.jsonc` after the Cloudflare Vite redirected deploy config dropped `vars`, `d1_databases`, and `r2_buckets`. The deployed Worker exposes real bindings for `DB`, `ARTIFACTS`, `GTFS_RT_RAW`, `BASELINE_MONTH`, `LAST_BUILT_SPEED_MONTH`, `GTFS_RT_SAMPLES_PER_CRON`, and `GTFS_RT_SAMPLE_SECONDS`. Live checks passed for `/api/v1/status?month=2026-03`, `/api/v1/routes?month=2026-03&limit=3`, `/api/v1/map/manifest?month=2026-03`, and a route-segment artifact stream. The actual frontend is served from the root workers.dev URL; `/api/v1/artifacts/*` URLs are raw artifact endpoints.
+
+Verified scheduled production GTFS-RT capture. The deployed cron wrote vehicle-position manifests and protobuf snapshots into remote R2 under `gtfs-rt/vehicle_positions/2026-05-17/`; a sampled protobuf object was about 230 KB. Mirrored two live production manifests and paired protobufs with `pull:gtfs-rt-r2-run --execute`, imported them with `import:gtfs-rt-r2-manifests`, and parsed them with `ingest:gtfs-rt-snapshots`: 2 snapshots, 3,612 vehicle positions, and 0 parse errors.

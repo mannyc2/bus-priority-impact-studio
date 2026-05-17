@@ -33,6 +33,9 @@ Read this file first. It is the navigation layer for the LLM wiki.
 - [[wiki/engineering/etl_plan|ETL plan]] — Ingestion order, Drizzle/D1 migration workflow, local backfill rules, transformation rules, and QA.
 - [[wiki/engineering/local_pipeline_db_cutover|Local pipeline DB cutover plan]] — Plan to replace DB-shaped JSON handoffs with `@bp/db/local` SQLite/Drizzle tables and shrink `tools/pipeline`.
 - [[wiki/engineering/data_pipeline_v1_completion_plan|Data Pipeline v1 completion plan]] — Approved v1 finish line for GTFS-RT reliability, intervention evaluation, corridors, briefs, exports, and QA gates.
+- [[wiki/engineering/data_infrastructure_v1_finish_plan|Data Infrastructure v1 finish plan]] — Remaining recovered GTFS-RT integration, D1/R2 publish, scheduling, and website unfixture gates.
+- [[wiki/engineering/cloudflare_operations_runbook|Cloudflare operations runbook]] — Production D1/R2 bindings, serving publish, Worker deploy, scheduled GTFS-RT capture verification, and R2-to-pipeline handoff.
+- [[wiki/engineering/web_api_endpoint_architecture|Web API endpoint architecture]] — Website-facing Worker API plan for route cards, profiles, hotspots, compare, map manifests, and completeness-aware status.
 - [[wiki/engineering/map_strategy|Map strategy]] — MapLibre, GeoJSON/PMTiles artifacts, NYC scope, and map package responsibilities.
 - [[wiki/engineering/llm_wiki_rag|LLM wiki + RAG layer]] — How the persistent wiki and cited answer layer should work.
 - [[wiki/engineering/cli_commands|CLI commands]] — TypeScript `/pipeline` command targets for source probes, ingest, analytics builds, exports, and wiki linting.

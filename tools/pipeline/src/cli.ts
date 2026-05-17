@@ -82,6 +82,33 @@ const commands = {
       return checkBusObservatoryAvailabilityFromCli(args);
     },
   },
+  "import:bus-observatory-gtfs-rt": {
+    description: "Import canonical Bus Observatory GTFS-RT CSV rows into local GTFS-RT tables.",
+    run: async (args) => {
+      const { importBusObservatoryGtfsRtFromCli } = await import(
+        "./jobs/ingest/import-bus-observatory-gtfs-rt.js"
+      );
+      return importBusObservatoryGtfsRtFromCli(args);
+    },
+  },
+  "import:bus-observatory-reliability-summary": {
+    description: "Import Bus Observatory recovered observed-reliability summaries.",
+    run: async (args) => {
+      const { importBusObservatoryReliabilitySummaryFromCli } = await import(
+        "./jobs/ingest/import-bus-observatory-reliability-summary.js"
+      );
+      return importBusObservatoryReliabilitySummaryFromCli(args);
+    },
+  },
+  "import:bus-observatory-headway-samples": {
+    description: "Import chunked Bus Observatory recovered headway samples and run evidence.",
+    run: async (args) => {
+      const { importBusObservatoryHeadwaySamplesFromCli } = await import(
+        "./jobs/ingest/import-bus-observatory-headway-samples.js"
+      );
+      return importBusObservatoryHeadwaySamplesFromCli(args);
+    },
+  },
   "plan:source-refresh": {
     description: "Write production source refresh plan for GTFS-RT and monthly speed data.",
     run: async (args) => {

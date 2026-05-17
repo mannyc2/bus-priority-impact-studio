@@ -1,13 +1,10 @@
+import { Link } from "@tanstack/react-router";
+import type { DigestMiniRoute } from "../lib/panel-data.js";
+import { routeToPathParams } from "../lib/route-url.js";
 import { colors } from "../lib/tokens.js";
 import { PanelHeader } from "./PanelHeader.js";
 import { Pill } from "./Pill.js";
 import { ReactionRow } from "./ReactionRow.js";
-
-const MINI_ROUTES = [
-  { name: "B46", trend: 5 },
-  { name: "Q58", trend: -2 },
-  { name: "B44", trend: 8 },
-] as const;
 
 const UPDATES: {
   icon: string;
@@ -40,12 +37,14 @@ const UPDATES: {
 ];
 
 export function DigestPanel({
-  onRouteClick,
+  miniRoutes,
+  onRouteActivate,
   onClose,
   compact,
   onHoverRoute,
 }: {
-  onRouteClick: (route: { name: string }) => void;
+  miniRoutes: readonly DigestMiniRoute[];
+  onRouteActivate?: () => void;
   onClose?: () => void;
   compact?: boolean;
   onHoverRoute?: (name: string | null) => void;
@@ -74,13 +73,16 @@ export function DigestPanel({
           Your routes are 3% faster this week
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          {MINI_ROUTES.map((r) => {
+          {miniRoutes.map((r) => {
             const up = r.trend > 0;
             return (
-              <button
+              <Link
                 key={r.name}
-                type="button"
-                onClick={() => onRouteClick({ name: r.name })}
+                to="/routes/$routeId"
+                params={routeToPathParams(r.name)}
+                search={{ tab: "overview" }}
+                viewTransition
+                onClick={onRouteActivate}
                 onMouseEnter={() => onHoverRoute?.(r.name)}
                 onMouseLeave={() => onHoverRoute?.(null)}
                 style={{
@@ -92,6 +94,7 @@ export function DigestPanel({
                   cursor: "pointer",
                   fontFamily: "inherit",
                   textAlign: "center",
+                  textDecoration: "none",
                 }}
               >
                 <div style={{ fontWeight: 700, fontSize: 15 }}>{r.name}</div>
@@ -105,7 +108,7 @@ export function DigestPanel({
                 >
                   {up ? "\u2191" : "\u2193"} {Math.abs(r.trend)}%
                 </div>
-              </button>
+              </Link>
             );
           })}
         </div>

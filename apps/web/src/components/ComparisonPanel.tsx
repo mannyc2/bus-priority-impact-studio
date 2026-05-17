@@ -1,4 +1,4 @@
-import { routes } from "../fixtures/routes.js";
+import type { RouteData } from "../fixtures/routes.js";
 import { colors, gradeColor } from "../lib/tokens.js";
 import { GradeBadge } from "./GradeBadge.js";
 import { PanelHeader } from "./PanelHeader.js";
@@ -21,20 +21,16 @@ const METRICS: Metric[] = [
 ];
 
 export function ComparisonPanel({
-  routes: routeNames,
+  routeA,
+  routeB,
   onClose,
   compact,
 }: {
-  routes: string[];
+  routeA: RouteData;
+  routeB: RouteData;
   onClose: () => void;
   compact?: boolean;
 }) {
-  const [a, b] = routeNames;
-  const routeA = routes.find((r) => r.name === a);
-  const routeB = routes.find((r) => r.name === b);
-
-  if (!routeA || !routeB) return null;
-
   return (
     <div className="bp-panel-comparison">
       <PanelHeader

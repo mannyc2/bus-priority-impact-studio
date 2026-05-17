@@ -15,6 +15,7 @@
     "@bp/db": "workspace:*",
     "@bp/domain": "workspace:*",
     "@cloudflare/vite-plugin": "catalog:",
+    "@tanstack/react-router": "catalog:",
     "@vitejs/plugin-react": "catalog:",
     "maplibre-gl": "catalog:",
     "pmtiles": "catalog:",
@@ -24,6 +25,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@tanstack/router-plugin": "catalog:",
     "@cloudflare/vitest-pool-workers": "catalog:",
     "@cloudflare/workers-types": "catalog:",
     "@types/bun": "catalog:",

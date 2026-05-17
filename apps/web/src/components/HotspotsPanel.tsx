@@ -1,42 +1,35 @@
-import { useState } from "react";
-import { type RouteData, routes } from "../fixtures/routes.js";
+import { Link } from "@tanstack/react-router";
+import type { CSSProperties } from "react";
+import type { RouteData } from "../fixtures/routes.js";
+import { type HotspotFilter, routeToPathParams } from "../lib/route-url.js";
 import { colors } from "../lib/tokens.js";
 import { GradeBadge } from "./GradeBadge.js";
 import { PanelHeader } from "./PanelHeader.js";
-import { Pill } from "./Pill.js";
 
-type Filter = "all" | "slow" | "bunching" | "my";
-
-const MY_ROUTES = new Set(["B46", "Q58", "B44"]);
-
-function filterRoutes(filter: Filter): readonly RouteData[] {
-  switch (filter) {
-    case "slow":
-      return routes.filter((r) => r.speed < 6);
-    case "bunching":
-      return routes.filter((r) => r.bunching > 20);
-    case "my":
-      return routes.filter((r) => MY_ROUTES.has(r.name));
-    default:
-      return routes;
-  }
-}
+const FILTERS: ReadonlyArray<[HotspotFilter, string]> = [
+  ["all", "All"],
+  ["slow", "Slow"],
+  ["bunching", "Bunching"],
+  ["my", "My routes"],
+];
 
 export function HotspotsPanel({
-  onRouteClick,
+  activeFilter,
+  routes,
+  onRouteActivate,
   onClose,
   compact,
   hoveredRoute,
   onHoverRoute,
 }: {
-  onRouteClick: (route: RouteData) => void;
+  activeFilter: HotspotFilter;
+  routes: readonly RouteData[];
+  onRouteActivate?: (route: RouteData) => void;
   onClose?: () => void;
   compact?: boolean;
   hoveredRoute?: string | null;
   onHoverRoute?: (name: string | null) => void;
 }) {
-  const [active, setActive] = useState<Filter>("all");
-  const filtered = filterRoutes(active);
   const badgeSize = compact ? 32 : 40;
 
   return (
@@ -59,17 +52,17 @@ export function HotspotsPanel({
           flexShrink: 0,
         }}
       >
-        {(
-          [
-            ["all", "All"],
-            ["slow", "Slow"],
-            ["bunching", "Bunching"],
-            ["my", "My routes"],
-          ] as const
-        ).map(([key, label]) => (
-          <Pill key={key} active={active === key} onClick={() => setActive(key)}>
+        {FILTERS.map(([key, label]) => (
+          <Link
+            key={key}
+            to="/"
+            search={{ filter: key }}
+            viewTransition
+            className="bp-pill"
+            style={activeFilter === key ? activePillStyle : pillLinkStyle}
+          >
             {label}
-          </Pill>
+          </Link>
         ))}
       </div>
 
@@ -80,11 +73,14 @@ export function HotspotsPanel({
           padding: "8px 16px",
         }}
       >
-        {filtered.map((route) => (
-          <button
+        {routes.map((route) => (
+          <Link
             key={route.name}
-            type="button"
-            onClick={() => onRouteClick(route)}
+            to="/routes/$routeId"
+            params={routeToPathParams(route.name)}
+            search={{ tab: "overview" }}
+            viewTransition
+            onClick={() => onRouteActivate?.(route)}
             onMouseEnter={() => onHoverRoute?.(route.name)}
             onMouseLeave={() => onHoverRoute?.(null)}
             style={{
@@ -102,6 +98,7 @@ export function HotspotsPanel({
               textAlign: "left",
               width: "100%",
               fontFamily: "inherit",
+              textDecoration: "none",
               transition: "background 0.15s ease",
             }}
           >
@@ -138,9 +135,20 @@ export function HotspotsPanel({
               {route.trend > 0 ? "\u2191" : route.trend < 0 ? "\u2193" : "\u2192"}{" "}
               {Math.abs(route.trend)}%
             </div>
-          </button>
+          </Link>
         ))}
       </div>
     </div>
   );
 }
+
+const pillLinkStyle: CSSProperties = {
+  textDecoration: "none",
+};
+
+const activePillStyle: CSSProperties = {
+  background: colors.accent,
+  borderColor: colors.accent,
+  color: "#fff",
+  textDecoration: "none",
+};
