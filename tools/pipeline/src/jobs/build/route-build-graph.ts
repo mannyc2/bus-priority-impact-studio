@@ -3,6 +3,7 @@ import { RouteIdCodec } from "@bp/domain";
 import * as z from "zod";
 import { falseOption, numberOption, stringListOption, trueOption } from "../../lib/cli-args.js";
 import { withLocalPipelineDb } from "../../lib/local-db.js";
+import { defaultArtifactRootPath, fromCliPath } from "../../lib/paths.js";
 import { createMonthContext, parseMonthDbCliArgs } from "../../lib/route-job.js";
 import {
   defaultRoutePostBuildDeps,
@@ -27,6 +28,8 @@ export type RouteBuildGraphArgs = {
   refreshPlan: boolean;
   exportD1: boolean;
   dbPath: string;
+  artifactRoot?: string;
+  exportRoot?: string;
 };
 
 export type RouteBuildGraphResult = {
@@ -51,6 +54,8 @@ type RouteBuildGraphCliArgs = {
   refreshPlan?: boolean;
   exportD1?: boolean;
   dbPath?: string;
+  artifactRoot?: string;
+  exportRoot?: string;
 };
 
 export type RouteBuildGraphDeps = {
@@ -92,6 +97,22 @@ function parseGraphCliArgs(args: string[]): RouteBuildGraphCliArgs {
     falseOption(["--no-d1-export"], (output) => {
       output.exportD1 = false;
     }),
+    {
+      flags: ["--artifact-root"],
+      apply: (output, value) => {
+        if (value !== undefined) {
+          output.artifactRoot = fromCliPath(value);
+        }
+      },
+    },
+    {
+      flags: ["--export-root"],
+      apply: (output, value) => {
+        if (value !== undefined) {
+          output.exportRoot = fromCliPath(value);
+        }
+      },
+    },
   ]);
 }
 
@@ -138,6 +159,8 @@ async function resolveGraphArgs(
     refreshPlan: args.refreshPlan ?? routeSelection === "planned",
     exportD1: args.exportD1 ?? true,
     dbPath: options.dbPath,
+    artifactRoot: args.artifactRoot ?? defaultArtifactRootPath(),
+    ...(args.exportRoot === undefined ? {} : { exportRoot: args.exportRoot }),
   };
 }
 
@@ -169,6 +192,8 @@ export async function buildAllRoutesGraph(
       routeCount: routes.length,
       refreshPlan: args.refreshPlan,
       exportD1: args.exportD1,
+      artifactRoot: args.artifactRoot ?? defaultArtifactRootPath(),
+      ...(args.exportRoot === undefined ? {} : { exportRoot: args.exportRoot }),
     },
     deps,
   );

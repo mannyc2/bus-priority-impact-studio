@@ -34,8 +34,8 @@ import {
   replaceRouteArtifactsForMonth,
 } from "@bp/db/local";
 import { withLocalPipelineDb } from "../../lib/local-db.js";
+import { defaultArtifactRootPath, fromCliPath } from "../../lib/paths.js";
 import { createMonthContext, parseMonthDbCliArgs } from "../../lib/route-job.js";
-import { fromRepoRoot } from "../../source-manifest.js";
 
 const schemaVersion = 1;
 const topHotspotLimit = 5;
@@ -47,6 +47,7 @@ type BriefArtifactsArgs = {
   year?: number;
   month?: number;
   dbPath?: string;
+  artifactRoot?: string;
 };
 
 type BriefArtifactsResult = {
@@ -107,7 +108,16 @@ type RouteReliabilityCollection = {
 };
 
 function parseCliArgs(args: string[]): BriefArtifactsArgs {
-  return parseMonthDbCliArgs(args, {} as BriefArtifactsArgs);
+  return parseMonthDbCliArgs(args, {} as BriefArtifactsArgs, [
+    {
+      flags: ["--artifact-root"],
+      apply: (output, value) => {
+        if (value !== undefined) {
+          output.artifactRoot = fromCliPath(value);
+        }
+      },
+    },
+  ]);
 }
 
 function round(value: number | null, decimals = 2): number | null {
@@ -628,8 +638,8 @@ function corridorFiles(input: CorridorBriefContext): BriefFile[] {
   ];
 }
 
-async function writeBriefFile(file: BriefFile): Promise<WrittenBriefFile> {
-  const path = fromRepoRoot(join("data/artifacts", file.artifactKey));
+async function writeBriefFile(file: BriefFile, artifactRoot: string): Promise<WrittenBriefFile> {
+  const path = join(artifactRoot, file.artifactKey);
   const bytes = new TextEncoder().encode(file.content);
   await mkdir(dirname(path), { recursive: true });
   await Bun.write(path, bytes);
@@ -754,6 +764,7 @@ export async function buildBriefArtifacts(
   args: BriefArtifactsArgs = {},
 ): Promise<BriefArtifactsResult> {
   const options = createMonthContext(args);
+  const artifactRoot = args.artifactRoot ?? defaultArtifactRootPath();
   const generatedAt = new Date().toISOString();
   const data = await readBriefData({
     dbPath: options.dbPath,
@@ -765,7 +776,7 @@ export async function buildBriefArtifacts(
 
   for (const route of data.routes) {
     for (const artifact of routeFiles(route)) {
-      const written = await writeBriefFile(artifact);
+      const written = await writeBriefFile(artifact, artifactRoot);
       routeArtifacts.push({
         routeId: route.summary.routeId,
         month: route.summary.month,
@@ -780,7 +791,7 @@ export async function buildBriefArtifacts(
 
   for (const corridor of data.corridors) {
     for (const artifact of corridorFiles(corridor)) {
-      const written = await writeBriefFile(artifact);
+      const written = await writeBriefFile(artifact, artifactRoot);
       corridorArtifacts.push({
         corridorId: corridor.summary.corridorId,
         month: corridor.summary.month,

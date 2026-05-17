@@ -5,8 +5,8 @@ describe("route post-build", () => {
   test("runs batch finalization and exports without re-auditing", async () => {
     const calls: string[] = [];
     const deps = {
-      buildRouteBatchAudit: async () => {
-        calls.push("audit");
+      buildRouteBatchAudit: async ({ artifactRoot }: { artifactRoot?: string }) => {
+        calls.push(`audit:${artifactRoot}`);
         return {
           isoMonth: "2026-08",
           routeCount: 2,
@@ -19,8 +19,8 @@ describe("route post-build", () => {
           totalByteLength: 200,
         };
       },
-      buildBriefArtifacts: async () => {
-        calls.push("brief-artifacts");
+      buildBriefArtifacts: async ({ artifactRoot }: { artifactRoot?: string }) => {
+        calls.push(`brief-artifacts:${artifactRoot}`);
         return {
           isoMonth: "2026-08",
           routeBriefCount: 2,
@@ -82,8 +82,14 @@ describe("route post-build", () => {
           headwaySampleCount: 12,
         };
       },
-      exportD1Seed: async ({ runAudit }: { runAudit?: boolean }) => {
-        calls.push(`export:d1:${String(runAudit)}`);
+      exportD1Seed: async ({
+        runAudit,
+        exportRoot,
+      }: {
+        runAudit?: boolean;
+        exportRoot?: string;
+      }) => {
+        calls.push(`export:d1:${String(runAudit)}:${exportRoot}`);
         return {
           isoMonth: "2026-08",
           schemaPath: "/tmp/schema.sql",
@@ -108,6 +114,8 @@ describe("route post-build", () => {
         routeCount: 2,
         refreshPlan: true,
         exportD1: true,
+        artifactRoot: "/tmp/artifacts",
+        exportRoot: "/tmp/exports",
       },
       deps as never,
     );
@@ -121,11 +129,11 @@ describe("route post-build", () => {
         "comparison:2",
         "intervention-evaluation",
         "corridor-model",
-        "brief-artifacts",
+        "brief-artifacts:/tmp/artifacts",
         "reliability",
-        "audit",
+        "audit:/tmp/artifacts",
         "plan:20",
-        "export:d1:false",
+        "export:d1:false:/tmp/exports",
       ]),
     );
   });

@@ -91,6 +91,7 @@ Latest local verification after the March 2026 v1 catch-up run:
 - April and May 2026 route coverage probes on 2026-05-17 returned 375 scheduled routes but 0 speed routes, so March 2026 remains the current complete public-source analysis month. A live May 2026 GTFS-RT collection can produce May observed reliability evidence, but strict QA now prevents using it to satisfy the March 2026 gate.
 - `bun run collect:gtfs-rt -- --duration-hours 4 --sample-seconds 30 --feed-types vehicle_positions --run-id gtfs-rt-v1-20260517T022348Z` completed on 2026-05-17 with 480/480 successful vehicle-position snapshots and 0 failures. Ingest parsed 480 snapshots and 358,875 vehicle positions; observed-headway build produced 90,136 stop events and 73,702 headway samples; May 2026 route observed reliability produced 381 route rows, including 229 observed routes, 152 insufficient-sample routes, and 72,782 route-summary headway samples. `gtfs-rt:preflight -- --year 2026 --month 5 --run-id gtfs-rt-v1-20260517T022348Z` now passes strict observed-layer readiness.
 - `bun --filter @bp/pipeline audit:pipeline-v1 -- --public-year 2026 --public-month 3 --realtime-year 2026 --realtime-month 5 --run-id gtfs-rt-v1-20260517T022348Z` writes `data/artifacts/pipeline-v1/audit-2026-03-2026-05.json`. The audit is blocked overall because strict single-month v1 remains unavailable, but it records March structural pass, May realtime preflight pass, D1/static export pass, and the exact missing items.
+- A one-route clean-DB rebuild smoke now passes without touching canonical March artifacts: `ingest:route-catalog`, `ingest:route-coverage`, and `build:network -- --limit 1 --db data/local/pipeline-clean-smoke.sqlite --artifact-root data/artifacts/pipeline-clean-smoke --export-root data/exports/pipeline-clean-smoke` built M57 from an empty local DB. The isolated `route-batch-audit` passed with 6 brief artifacts, and isolated `verify:d1` passed with the seed and verification summaries under `data/exports/pipeline-clean-smoke/d1/2026-03/`.
 
 Current v1 gaps:
 
@@ -99,7 +100,7 @@ Current v1 gaps:
 - Observed reliability is route/month summary only; detailed observed reliability windows are not yet built.
 - ACE descriptive before/after intervention evaluation exists for March 2026; 22 comparisons are evaluated from speed trend rows and 21 of those include ridership deltas. Public routes with matched bus-lane geometry now receive explicit `nyc_dot_bus_lanes` source-gap comparison rows. Seasonality-adjusted comparisons, matched-comparison analysis, and true bus-lane before/after evaluation remain open until route-level implementation dates are available.
 - Deterministic primary-street corridor entities, route membership, summaries, hotspot rows, and generated brief bodies exist; richer segment membership remains open.
-- `brief-artifacts` renders and verifies the current full set of route/corridor JSON, Markdown, and HTML bodies from local DB evidence; a clean rebuild from an empty local DB remains the stronger reproducibility proof.
+- `brief-artifacts` renders and verifies the current full set of route/corridor JSON, Markdown, and HTML bodies from local DB evidence. A one-route isolated clean-DB smoke passes; the remaining reproducibility proof is a full-network clean rebuild using the same isolated DB/artifact/export-root pattern.
 - Bus lane matching is no longer borough-hardcoded, and v1 QA now checks bus-lane intervention comparison coverage for public routes with matched bus-lane geometry.
 - Route score is still a simple speed/hotspot heuristic, not the planned multi-factor priority model.
 - Older wiki pages still contain M1-era command names and optional-realtime language.
@@ -108,7 +109,7 @@ Current v1 gaps:
 
 | Requirement | Current evidence | Status | Required v1 artifact / gate |
 |---|---|---|---|
-| Reproducible full-network pipeline | `build:network` produced 381/381 March 2026 route slices | Partial | Clean rebuild script/runbook from empty local DB through `verify:d1` |
+| Reproducible full-network pipeline | `build:network` produced 381/381 March 2026 route slices; a one-route clean-DB smoke builds M57 with isolated artifact/export roots and isolated D1 verification passing | Partial | Full-network clean rebuild script/runbook from empty local DB through `verify:d1` |
 | GTFS-RT observed reliability | 381 March 2026 status rows and D1 readback exist; all are `insufficient_gtfs_rt_samples` with 0 observed headway samples | Partial | Production-length collection and coverage QA with a real Bus Time run |
 | Bunching | Bunching/long-gap fields exist in route/month observed reliability summaries, but the current run has no observed samples | Partial | Real GTFS-RT samples plus sample coverage/confidence |
 | Before/after intervention evaluation | 251 intervention event/comparison rows exist with D1 readback: 79 ACE/ABLE rows, 22 evaluated speed before/after rows, 21 evaluated rows with ridership deltas, and 172 bus-lane source-gap rows for matched public routes | Partial | Seasonality-aware, matched-comparison, dated bus-lane before/after evaluation, and corridor summaries |
@@ -159,7 +160,7 @@ Purpose: make the current full-network route build reproducible and methodologic
 Tasks:
 
 1. Verify the full-network rebuild runbook from a clean local DB.
-2. Verify clean rebuild for the selected v1 month.
+2. Verify clean rebuild for the selected v1 month. A one-route isolated smoke has passed; the full-network run remains open.
 3. Bus-lane matching has been generalized beyond the original Manhattan-only M1 prototype path.
 4. Keep QA coverage for bus-lane intervention comparison rows on public routes with matched lane geometry.
 5. Decide whether route score remains a simple heuristic or is replaced by a v1 priority score.
@@ -184,6 +185,8 @@ bun run finalize:pipeline-v1 -- --year 2026 --month 3 --run-id <run_id> --min-gt
 # Structural-only fallback when no Bus Time collection run exists:
 bun run finalize:pipeline-v1 -- --year 2026 --month 3 --allow-insufficient-gtfs-rt
 ```
+
+Use `--db`, `--artifact-root`, and `--export-root` together for clean rebuild proofs so temporary runs do not overwrite canonical `data/artifacts` or `data/exports` outputs.
 
 Acceptance:
 

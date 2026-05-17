@@ -8,8 +8,8 @@ import {
 import { falseOption, numberOption } from "../../lib/cli-args.js";
 import { writeJson } from "../../lib/json.js";
 import { withLocalPipelineDb } from "../../lib/local-db.js";
+import { defaultArtifactRootPath, fromCliPath } from "../../lib/paths.js";
 import { createMonthContext, parseMonthDbCliArgs } from "../../lib/route-job.js";
-import { fromRepoRoot } from "../../source-manifest.js";
 import type { RouteBuildPlanResult } from "./route-build-plan.js";
 import {
   defaultRoutePostBuildDeps,
@@ -34,6 +34,8 @@ type RouteNetworkBuildArgs = {
   exportD1?: boolean;
   resume?: boolean;
   dbPath?: string;
+  artifactRoot?: string;
+  exportRoot?: string;
 };
 
 type RouteNetworkBuildFailure = {
@@ -100,6 +102,8 @@ function parseNetworkBuildArgs(args: RouteNetworkBuildArgs = {}): RouteNetworkBu
     refreshPlan: args.refreshPlan ?? true,
     exportD1: args.exportD1 ?? true,
     resume: args.resume ?? true,
+    artifactRoot: args.artifactRoot ?? defaultArtifactRootPath(),
+    exportRoot: args.exportRoot ?? "",
   };
 }
 
@@ -120,6 +124,22 @@ function parseNetworkBuildCliArgs(args: string[]): RouteNetworkBuildArgs {
     falseOption(["--no-resume"], (output) => {
       output.resume = false;
     }),
+    {
+      flags: ["--artifact-root"],
+      apply: (output, value) => {
+        if (value !== undefined) {
+          output.artifactRoot = fromCliPath(value);
+        }
+      },
+    },
+    {
+      flags: ["--export-root"],
+      apply: (output, value) => {
+        if (value !== undefined) {
+          output.exportRoot = fromCliPath(value);
+        }
+      },
+    },
   ]);
 }
 
@@ -196,12 +216,15 @@ async function persistBatchProgress(args: {
   });
 }
 
-function reportPath(isoMonth: string): string {
-  return fromRepoRoot(join("data/artifacts/network-builds", isoMonth, "summary.json"));
+function reportPath(isoMonth: string, artifactRoot: string): string {
+  return join(artifactRoot, "network-builds", isoMonth, "summary.json");
 }
 
-async function writeNetworkBuildReport(summary: RouteNetworkBuildSummary): Promise<string> {
-  const path = reportPath(summary.isoMonth);
+async function writeNetworkBuildReport(
+  summary: RouteNetworkBuildSummary,
+  artifactRoot = defaultArtifactRootPath(),
+): Promise<string> {
+  const path = reportPath(summary.isoMonth, artifactRoot);
   await mkdir(dirname(path), { recursive: true });
   await writeJson(path, summary);
 
@@ -282,7 +305,7 @@ export async function buildRouteNetwork(
       refreshedPlanDbPath: input.refreshedPlanDbPath,
     };
 
-    return deps.writeReport(summary);
+    return deps.writeReport(summary, options.artifactRoot);
   };
 
   const routes: RouteBuildResult[] = [];
@@ -362,6 +385,8 @@ export async function buildRouteNetwork(
         routeCount: routes.length + resumedRouteIds.length,
         refreshPlan: options.refreshPlan,
         exportD1: options.exportD1,
+        artifactRoot: options.artifactRoot,
+        ...(options.exportRoot.length > 0 ? { exportRoot: options.exportRoot } : {}),
       },
       deps,
     );

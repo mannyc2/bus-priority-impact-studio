@@ -5,6 +5,7 @@ export type PrepareRouteD1ExportArgs = {
   month: number;
   dbPath: string;
   runAudit: boolean;
+  artifactRoot?: string;
 };
 
 export async function prepareRouteD1Export(args: PrepareRouteD1ExportArgs): Promise<void> {
@@ -16,5 +17,6 @@ export async function prepareRouteD1Export(args: PrepareRouteD1ExportArgs): Prom
     year: args.year,
     month: args.month,
     dbPath: args.dbPath,
+    ...(args.artifactRoot === undefined ? {} : { artifactRoot: args.artifactRoot }),
   });
 }

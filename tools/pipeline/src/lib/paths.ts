@@ -7,6 +7,14 @@ export function fromRepoRoot(path: string): string {
   return join(repoRootPath, path);
 }
 
+export function defaultArtifactRootPath(): string {
+  return fromRepoRoot("data/artifacts");
+}
+
+export function defaultExportRootPath(): string {
+  return fromRepoRoot("data/exports");
+}
+
 export function fromCliPath(value: string): string {
   return isAbsolute(value) ? value : fromRepoRoot(value);
 }

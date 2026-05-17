@@ -1,4 +1,5 @@
 import { dirname, join } from "node:path";
+import { fromCliPath } from "../../lib/paths.js";
 import { createMonthContext, parseMonthDbCliArgs } from "../../lib/route-job.js";
 import { exportD1Seed } from "./export-d1.js";
 import {
@@ -14,6 +15,8 @@ type D1VerifyArgs = {
   year?: number;
   month?: number;
   dbPath?: string;
+  artifactRoot?: string;
+  exportRoot?: string;
 };
 
 type D1VerifyResult = {
@@ -35,7 +38,24 @@ function parseBuildArgs(args: D1VerifyArgs = {}) {
 }
 
 function parseCliArgs(args: string[]): D1VerifyArgs {
-  return parseMonthDbCliArgs(args, {} as D1VerifyArgs);
+  return parseMonthDbCliArgs(args, {} as D1VerifyArgs, [
+    {
+      flags: ["--artifact-root"],
+      apply: (output, value) => {
+        if (value !== undefined) {
+          output.artifactRoot = fromCliPath(value);
+        }
+      },
+    },
+    {
+      flags: ["--export-root"],
+      apply: (output, value) => {
+        if (value !== undefined) {
+          output.exportRoot = fromCliPath(value);
+        }
+      },
+    },
+  ]);
 }
 
 function expectedTableCounts(exportResult: Awaited<ReturnType<typeof exportD1Seed>>) {
@@ -80,6 +100,8 @@ export async function verifyD1Export(args: D1VerifyArgs = {}): Promise<D1VerifyR
     year: options.year,
     month: options.month,
     dbPath: options.dbPath,
+    ...(args.artifactRoot === undefined ? {} : { artifactRoot: args.artifactRoot }),
+    ...(args.exportRoot === undefined ? {} : { exportRoot: args.exportRoot }),
   });
   const schemaSql = await Bun.file(exportResult.schemaPath).text();
   const seedSql = await Bun.file(exportResult.seedPath).text();

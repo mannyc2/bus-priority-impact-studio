@@ -5,16 +5,16 @@ describe("route shared refresh", () => {
   test("refreshes shared intervention sources once", async () => {
     const calls: string[] = [];
     const deps = {
-      ingestAceRoutes: async () => {
-        calls.push("shared:ace-routes");
+      ingestAceRoutes: async ({ dbPath }: { dbPath?: string }) => {
+        calls.push(`shared:ace-routes:${dbPath}`);
         return {};
       },
-      ingestAceViolationSummary: async ({ month }: { month?: number }) => {
-        calls.push(`shared:ace-violations:${month}`);
+      ingestAceViolationSummary: async ({ month, dbPath }: { month?: number; dbPath?: string }) => {
+        calls.push(`shared:ace-violations:${month}:${dbPath}`);
         return {};
       },
-      ingestBusLanes: async () => {
-        calls.push("shared:bus-lanes");
+      ingestBusLanes: async ({ dbPath }: { dbPath?: string }) => {
+        calls.push(`shared:bus-lanes:${dbPath}`);
         return {};
       },
     };
@@ -23,13 +23,18 @@ describe("route shared refresh", () => {
       {
         year: 2026,
         month: 8,
+        dbPath: "/tmp/pipeline-clean.sqlite",
         refreshSharedSources: true,
       },
       deps as never,
     );
 
     expect(calls).toEqual(
-      expect.arrayContaining(["shared:ace-routes", "shared:ace-violations:8", "shared:bus-lanes"]),
+      expect.arrayContaining([
+        "shared:ace-routes:/tmp/pipeline-clean.sqlite",
+        "shared:ace-violations:8:/tmp/pipeline-clean.sqlite",
+        "shared:bus-lanes:/tmp/pipeline-clean.sqlite",
+      ]),
     );
   });
 
@@ -54,6 +59,7 @@ describe("route shared refresh", () => {
       {
         year: 2026,
         month: 8,
+        dbPath: "/tmp/pipeline-clean.sqlite",
         refreshSharedSources: false,
       },
       deps as never,

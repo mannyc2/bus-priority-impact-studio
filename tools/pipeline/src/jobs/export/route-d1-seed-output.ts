@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { buildD1SeedSql } from "@bp/db/d1/seed";
-import { fromRepoRoot } from "../../source-manifest.js";
+import { defaultExportRootPath } from "../../lib/paths.js";
 import { readD1MigrationSql } from "./d1-migrations.js";
 import { readLocalD1Inputs } from "./route-d1-inputs.js";
 
@@ -65,8 +65,9 @@ function fileContract(path: string, content: string): D1FileContract {
 export async function writeRouteD1SeedOutput(input: {
   dbPath: string;
   isoMonth: string;
+  exportRoot?: string;
 }): Promise<D1SeedOutputResult> {
-  const exportDir = fromRepoRoot(join("data/exports/d1", input.isoMonth));
+  const exportDir = join(input.exportRoot ?? defaultExportRootPath(), "d1", input.isoMonth);
   const summaryPath = join(exportDir, "export-summary.json");
   const schemaPath = join(exportDir, "schema.sql");
   const seedPath = join(exportDir, "seed.sql");

@@ -18,6 +18,8 @@ type PipelineV1AuditArgs = {
   sourceMetadataDir?: string;
   now?: Date;
   minGtfsRtCollectionHours?: number;
+  artifactRoot?: string;
+  exportRoot?: string;
   output?: string;
 };
 
@@ -127,6 +129,22 @@ function parseArgs(args: string[]): Required<PipelineV1AuditArgs> {
         target.minGtfsRtCollectionHours = Number(value);
       },
     },
+    {
+      flags: ["--artifact-root"],
+      apply: (target, value) => {
+        if (value !== undefined) {
+          target.artifactRoot = fromCliPath(value);
+        }
+      },
+    },
+    {
+      flags: ["--export-root"],
+      apply: (target, value) => {
+        if (value !== undefined) {
+          target.exportRoot = fromCliPath(value);
+        }
+      },
+    },
   ];
   const parsed = parseCliOptions(args, output, options);
   const publicYear = parsed.publicYear ?? 2026;
@@ -146,6 +164,8 @@ function parseArgs(args: string[]): Required<PipelineV1AuditArgs> {
     sourceMetadataDir: parsed.sourceMetadataDir ?? "",
     now: parsed.now ?? new Date(0),
     minGtfsRtCollectionHours: parsed.minGtfsRtCollectionHours ?? 0,
+    artifactRoot: parsed.artifactRoot ?? "",
+    exportRoot: parsed.exportRoot ?? "",
     output: parsed.output ?? defaultOutputPath(publicIsoMonth, realtimeIsoMonth),
   };
 }
@@ -194,6 +214,9 @@ export async function auditPipelineV1(
     args.minGtfsRtCollectionHours === undefined
       ? {}
       : { minGtfsRtCollectionHours: args.minGtfsRtCollectionHours };
+  const artifactRootArg =
+    args.artifactRoot === undefined ? {} : { artifactRoot: args.artifactRoot };
+  const exportRootArg = args.exportRoot === undefined ? {} : { exportRoot: args.exportRoot };
 
   const publicStructural = await checkPipelineV1({
     year: publicYear,
@@ -202,6 +225,8 @@ export async function auditPipelineV1(
     ...sourceMetadataArg,
     ...nowArg,
     ...minCollectionHoursArg,
+    ...artifactRootArg,
+    ...exportRootArg,
     allowInsufficientGtfsRt: true,
   });
   const publicStrict = await checkPipelineV1({
@@ -211,6 +236,8 @@ export async function auditPipelineV1(
     ...sourceMetadataArg,
     ...nowArg,
     ...minCollectionHoursArg,
+    ...artifactRootArg,
+    ...exportRootArg,
   });
   const [realtimePreflight, publicCoverage, realtimeCoverage] = await Promise.all([
     preflightGtfsRt({
@@ -361,6 +388,12 @@ export async function auditPipelineV1FromCli(args: string[]): Promise<PipelineV1
   }
   if (parsed.minGtfsRtCollectionHours > 0) {
     auditArgs.minGtfsRtCollectionHours = parsed.minGtfsRtCollectionHours;
+  }
+  if (parsed.artifactRoot.length > 0) {
+    auditArgs.artifactRoot = parsed.artifactRoot;
+  }
+  if (parsed.exportRoot.length > 0) {
+    auditArgs.exportRoot = parsed.exportRoot;
   }
 
   return auditPipelineV1(auditArgs);

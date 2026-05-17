@@ -14,6 +14,8 @@ export type RoutePostBuildArgs = {
   routeCount: number;
   refreshPlan: boolean;
   exportD1: boolean;
+  artifactRoot?: string;
+  exportRoot?: string;
 };
 
 export type RoutePostBuildResult = {
@@ -58,6 +60,8 @@ export async function runRoutePostBuild(
   deps: RoutePostBuildDeps = defaultRoutePostBuildDeps,
 ): Promise<RoutePostBuildResult> {
   const buildArgs = monthBuildArgs(args);
+  const artifactArgs =
+    args.artifactRoot === undefined ? buildArgs : { ...buildArgs, artifactRoot: args.artifactRoot };
   const [refreshedPlan] = await Promise.all([
     args.refreshPlan
       ? deps.buildRouteBuildPlan({
@@ -73,8 +77,8 @@ export async function runRoutePostBuild(
     deps.buildRouteReliabilityBaseline(buildArgs),
   ]);
   await deps.buildCorridorModel(buildArgs);
-  await deps.buildBriefArtifacts(buildArgs);
-  await deps.buildRouteBatchAudit(buildArgs);
+  await deps.buildBriefArtifacts(artifactArgs);
+  await deps.buildRouteBatchAudit(artifactArgs);
 
   if (!args.exportD1) {
     return { d1SeedPath: null, refreshedPlanDbPath: refreshedPlan?.dbPath ?? null };
@@ -82,6 +86,8 @@ export async function runRoutePostBuild(
 
   const d1Export = await deps.exportD1Seed({
     ...buildArgs,
+    ...(args.artifactRoot === undefined ? {} : { artifactRoot: args.artifactRoot }),
+    ...(args.exportRoot === undefined ? {} : { exportRoot: args.exportRoot }),
     runAudit: false,
   });
 

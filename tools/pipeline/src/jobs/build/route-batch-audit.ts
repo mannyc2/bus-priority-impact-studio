@@ -17,13 +17,14 @@ import {
   replaceRouteBatch,
 } from "@bp/db/local";
 import { withLocalPipelineDb } from "../../lib/local-db.js";
+import { defaultArtifactRootPath, fromCliPath } from "../../lib/paths.js";
 import { createMonthContext, parseMonthDbCliArgs } from "../../lib/route-job.js";
-import { fromRepoRoot } from "../../source-manifest.js";
 
 type RouteBatchAuditArgs = {
   year?: number;
   month?: number;
   dbPath?: string;
+  artifactRoot?: string;
 };
 
 type RouteAuditStatus = "pass" | "fail";
@@ -64,15 +65,24 @@ function parseBuildArgs(args: RouteBatchAuditArgs = {}) {
 }
 
 function parseCliArgs(args: string[]): RouteBatchAuditArgs {
-  return parseMonthDbCliArgs(args, {} as RouteBatchAuditArgs);
+  return parseMonthDbCliArgs(args, {} as RouteBatchAuditArgs, [
+    {
+      flags: ["--artifact-root"],
+      apply: (output, value) => {
+        if (value !== undefined) {
+          output.artifactRoot = fromCliPath(value);
+        }
+      },
+    },
+  ]);
 }
 
-function artifactPath(artifactKey: string): string {
-  return fromRepoRoot(`data/artifacts/${artifactKey}`);
+function artifactPath(artifactRoot: string, artifactKey: string): string {
+  return join(artifactRoot, artifactKey);
 }
 
-function artifactManifestPath(month: string): string {
-  return fromRepoRoot(join("data/artifacts/briefs", month, "manifest.json"));
+function artifactManifestPath(artifactRoot: string, month: string): string {
+  return join(artifactRoot, "briefs", month, "manifest.json");
 }
 
 function artifactOwner(row: BriefArtifactRow): string {
@@ -129,13 +139,16 @@ function missingRequiredIssues(input: {
   return issues;
 }
 
-async function verifyArtifact(row: BriefArtifactRow): Promise<{
+async function verifyArtifact(
+  row: BriefArtifactRow,
+  artifactRoot: string,
+): Promise<{
   missing: boolean;
   hashMismatch: boolean;
   byteLengthMismatch: boolean;
   issues: AuditIssue[];
 }> {
-  const file = Bun.file(artifactPath(row.artifactKey));
+  const file = Bun.file(artifactPath(artifactRoot, row.artifactKey));
   const exists = await file.exists();
   if (!exists) {
     return {
@@ -183,9 +196,9 @@ async function verifyArtifact(row: BriefArtifactRow): Promise<{
   };
 }
 
-async function readJsonArtifact(row: BriefArtifactRow): Promise<unknown> {
+async function readJsonArtifact(row: BriefArtifactRow, artifactRoot: string): Promise<unknown> {
   try {
-    return await Bun.file(artifactPath(row.artifactKey)).json();
+    return await Bun.file(artifactPath(artifactRoot, row.artifactKey)).json();
   } catch {
     return null;
   }
@@ -344,12 +357,13 @@ function corridorBriefContractIssues(row: LocalCorridorArtifact, json: unknown):
 async function verifyBriefJsonContract(
   row: BriefArtifactRow,
   context: BriefContractContext,
+  artifactRoot: string,
 ): Promise<AuditIssue[]> {
   if (row.artifactName !== "brief.json") {
     return [];
   }
 
-  const json = await readJsonArtifact(row);
+  const json = await readJsonArtifact(row, artifactRoot);
   const shapeIssues = briefJsonShapeIssues(row, json);
   if ("routeId" in row) {
     return [...shapeIssues, ...routeBriefReliabilityContractIssues(row, json, context)];
@@ -415,7 +429,8 @@ export async function buildRouteBatchAudit(
 ): Promise<RouteBatchAuditResult> {
   const options = parseBuildArgs(args);
   const month = options.isoMonth;
-  const manifestPath = artifactManifestPath(month);
+  const artifactRoot = args.artifactRoot ?? defaultArtifactRootPath();
+  const manifestPath = artifactManifestPath(artifactRoot, month);
   const auditInput = await withLocalPipelineDb(options.dbPath, async (local) => {
     const [
       builtRoutes,
@@ -461,14 +476,18 @@ export async function buildRouteBatchAudit(
       ownerKind: "corridor",
     }),
   ];
-  const verificationResults = await Promise.all(artifactRows.map((row) => verifyArtifact(row)));
+  const verificationResults = await Promise.all(
+    artifactRows.map((row) => verifyArtifact(row, artifactRoot)),
+  );
   const verificationIssues = verificationResults.flatMap((result) => result.issues);
   const contractContext: BriefContractContext = {
     reliabilityByRoute: new Map(auditInput.observedReliability.map((row) => [row.routeId, row])),
     collectionRunIds: new Set(auditInput.collectionRuns.map((row) => row.runId)),
   };
   const contractIssues = (
-    await Promise.all(artifactRows.map((row) => verifyBriefJsonContract(row, contractContext)))
+    await Promise.all(
+      artifactRows.map((row) => verifyBriefJsonContract(row, contractContext, artifactRoot)),
+    )
   ).flat();
   const issues = [...requiredIssues, ...verificationIssues, ...contractIssues];
   const missingArtifactCount =

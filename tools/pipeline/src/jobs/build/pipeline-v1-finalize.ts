@@ -1,4 +1,5 @@
 import { type CliOption, falseOption, numberOption, trueOption } from "../../lib/cli-args.js";
+import { fromCliPath } from "../../lib/paths.js";
 import { createMonthContext, parseMonthDbCliArgs } from "../../lib/route-job.js";
 import { checkPipelineV1 } from "../check/pipeline-v1.js";
 import { verifyD1Export } from "../export/verify-d1-export.js";
@@ -30,6 +31,8 @@ type PipelineV1FinalizeArgs = {
   minGtfsRtCollectionHours?: number;
   maxGtfsRtSampleSeconds?: number;
   minGtfsRtVehiclePositionSnapshotShare?: number;
+  artifactRoot?: string;
+  exportRoot?: string;
 };
 
 type PipelineV1FinalizeResult = {
@@ -132,6 +135,22 @@ function parseCliArgs(args: string[]): PipelineV1FinalizeArgs {
     numberOption(["--min-gtfs-rt-vehicle-position-snapshot-share"], (output, value) => {
       output.minGtfsRtVehiclePositionSnapshotShare = value;
     }),
+    {
+      flags: ["--artifact-root"],
+      apply: (output, value) => {
+        if (value !== undefined) {
+          output.artifactRoot = fromCliPath(value);
+        }
+      },
+    },
+    {
+      flags: ["--export-root"],
+      apply: (output, value) => {
+        if (value !== undefined) {
+          output.exportRoot = fromCliPath(value);
+        }
+      },
+    },
   ];
 
   return parseMonthDbCliArgs(args, {} as PipelineV1FinalizeArgs, extraOptions);
@@ -216,9 +235,16 @@ export async function finalizePipelineV1(
   });
   const interventionEvaluation = await deps.buildRouteInterventionEvaluation(monthArgs);
   const corridorModel = await deps.buildCorridorModel(monthArgs);
-  const briefArtifacts = await deps.buildBriefArtifacts(monthArgs);
-  const audit = await deps.buildRouteBatchAudit(monthArgs);
-  const d1 = await deps.verifyD1Export(monthArgs);
+  const artifactMonthArgs =
+    args.artifactRoot === undefined ? monthArgs : { ...monthArgs, artifactRoot: args.artifactRoot };
+  const exportMonthArgs = {
+    ...monthArgs,
+    ...(args.artifactRoot === undefined ? {} : { artifactRoot: args.artifactRoot }),
+    ...(args.exportRoot === undefined ? {} : { exportRoot: args.exportRoot }),
+  };
+  const briefArtifacts = await deps.buildBriefArtifacts(artifactMonthArgs);
+  const audit = await deps.buildRouteBatchAudit(artifactMonthArgs);
+  const d1 = await deps.verifyD1Export(exportMonthArgs);
   const checkArgs = {
     ...monthArgs,
     ...(args.allowInsufficientGtfsRt === undefined
@@ -242,6 +268,8 @@ export async function finalizePipelineV1(
     ...(args.minGtfsRtVehiclePositionSnapshotShare === undefined
       ? {}
       : { minGtfsRtVehiclePositionSnapshotShare: args.minGtfsRtVehiclePositionSnapshotShare }),
+    ...(args.artifactRoot === undefined ? {} : { artifactRoot: args.artifactRoot }),
+    ...(args.exportRoot === undefined ? {} : { exportRoot: args.exportRoot }),
   };
   const check = await deps.checkPipelineV1(checkArgs);
 

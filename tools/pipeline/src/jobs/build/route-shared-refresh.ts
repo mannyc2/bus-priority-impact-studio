@@ -5,6 +5,7 @@ import { ingestBusLanes } from "../ingest/ingest-bus-lanes.js";
 export type RouteSharedRefreshArgs = {
   year: number;
   month: number;
+  dbPath: string;
   refreshSharedSources: boolean;
 };
 
@@ -29,8 +30,8 @@ export async function refreshRouteSharedSources(
   }
 
   await Promise.all([
-    deps.ingestAceRoutes(),
-    deps.ingestAceViolationSummary({ year: args.year, month: args.month }),
-    deps.ingestBusLanes(),
+    deps.ingestAceRoutes({ dbPath: args.dbPath }),
+    deps.ingestAceViolationSummary({ year: args.year, month: args.month, dbPath: args.dbPath }),
+    deps.ingestBusLanes({ dbPath: args.dbPath }),
   ]);
 }

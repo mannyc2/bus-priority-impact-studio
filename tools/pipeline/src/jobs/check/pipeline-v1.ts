@@ -45,6 +45,8 @@ type PipelineV1CheckArgs = {
   maxSourceProbeAgeDays?: number;
   sourceMetadataDir?: string;
   now?: Date;
+  artifactRoot?: string;
+  exportRoot?: string;
 };
 
 type CheckStatus = "pass" | "fail";
@@ -202,6 +204,22 @@ function parseCliArgs(args: string[]): PipelineV1CheckArgs {
       apply: (output, value) => {
         if (value !== undefined) {
           output.sourceMetadataDir = fromCliPath(value);
+        }
+      },
+    },
+    {
+      flags: ["--artifact-root"],
+      apply: (output, value) => {
+        if (value !== undefined) {
+          output.artifactRoot = fromCliPath(value);
+        }
+      },
+    },
+    {
+      flags: ["--export-root"],
+      apply: (output, value) => {
+        if (value !== undefined) {
+          output.exportRoot = fromCliPath(value);
         }
       },
     },
@@ -459,6 +477,7 @@ export async function checkPipelineV1(
     year: options.year,
     month: options.month,
     dbPath: options.dbPath,
+    ...(args.artifactRoot === undefined ? {} : { artifactRoot: args.artifactRoot }),
   });
   const localState = await withLocalPipelineDb(options.dbPath, async (local) => {
     const [
@@ -1073,6 +1092,8 @@ export async function checkPipelineV1(
       year: options.year,
       month: options.month,
       dbPath: options.dbPath,
+      ...(args.artifactRoot === undefined ? {} : { artifactRoot: args.artifactRoot }),
+      ...(args.exportRoot === undefined ? {} : { exportRoot: args.exportRoot }),
     });
     d1 = {
       status: d1Result.status,
