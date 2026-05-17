@@ -69,6 +69,15 @@ type BusLaneSourceGapDiagnostics = {
   }[];
 };
 
+type MethodologyGate = {
+  status: "descriptive_only" | "causal_claims_allowed";
+  externalReviewStatus: "open" | "complete";
+  causalClaimsAllowed: boolean;
+  maxSupportedClaim: "descriptive_association" | "causal_estimate";
+  allowedEvaluationLevels: string[];
+  caveats: string[];
+};
+
 type PipelineV1AuditResult = {
   status: RequirementStatus;
   generatedAt: string;
@@ -87,6 +96,7 @@ type PipelineV1AuditResult = {
   };
   interventions: {
     busLaneSourceGaps: BusLaneSourceGapDiagnostics;
+    methodologyGate: MethodologyGate;
   };
   gates: {
     publicStructuralStatus: string;
@@ -258,6 +268,35 @@ async function coverageSummary(dbPath: string, month: string): Promise<CoverageS
       scheduleRoutes: rows.filter((row) => row.hasScheduleData).length,
     };
   });
+}
+
+function methodologyGate(input: {
+  peerAdjustedInterventionComparisonRows: number;
+  busLaneSourceGapComparisonRows: number;
+  busLaneSourceGaps: BusLaneSourceGapDiagnostics;
+}): MethodologyGate {
+  const caveats = [
+    "External transit-domain methodology review is not complete.",
+    "Peer-adjusted before/after rows control for broad network shifts but are observational.",
+    ...(input.busLaneSourceGapComparisonRows > 0 ||
+    input.busLaneSourceGaps.missingOpenDateLaneInstanceCount > 0
+      ? [
+          "Some matched bus-lane segments lack parseable implementation dates and must remain source-gap rows.",
+        ]
+      : []),
+  ];
+
+  return {
+    status: "descriptive_only",
+    externalReviewStatus: "open",
+    causalClaimsAllowed: false,
+    maxSupportedClaim: "descriptive_association",
+    allowedEvaluationLevels:
+      input.peerAdjustedInterventionComparisonRows > 0
+        ? ["descriptive_before_after", "matched_comparison"]
+        : ["descriptive_before_after"],
+    caveats,
+  };
 }
 
 async function busLaneSourceGapDiagnostics(
@@ -554,6 +593,12 @@ export async function auditPipelineV1(
     },
   ];
   const status = statusFromItems(checklist);
+  const interventionMethodologyGate = methodologyGate({
+    peerAdjustedInterventionComparisonRows:
+      publicStructural.counts.peerAdjustedInterventionComparisonRows,
+    busLaneSourceGapComparisonRows: publicStructural.counts.busLaneSourceGapComparisonRows,
+    busLaneSourceGaps,
+  });
   const recommendation =
     status === "pass"
       ? "Data Pipeline v1 passes as a single-month release candidate."
@@ -576,6 +621,7 @@ export async function auditPipelineV1(
     },
     interventions: {
       busLaneSourceGaps,
+      methodologyGate: interventionMethodologyGate,
     },
     gates: {
       publicStructuralStatus: publicStructural.status,

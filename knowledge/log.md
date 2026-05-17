@@ -430,3 +430,7 @@ Ran `bun run check` after source-refresh and QA hardening. Typecheck, Biome styl
 ## [2026-05-17] engineering | GTFS-RT scheduled cadence hardening
 
 Added a batched scheduled GTFS-RT capture helper for the Worker. The existing single-snapshot capture remains available, while production scheduled refresh can now take multiple spaced vehicle-position snapshots within one cron invocation. With `GTFS_RT_SAMPLES_PER_CRON=2` and `GTFS_RT_SAMPLE_SECONDS=30`, the one-minute Cloudflare cron can write two R2 protobuf snapshots per invocation and match the 30-second cadence expected by strict v1 GTFS-RT QA. Updated the Worker harness and v1 completion plan with the cadence configuration.
+
+## [2026-05-17] engineering | Intervention methodology audit gate
+
+Extended `audit:pipeline-v1` with an explicit `interventions.methodologyGate` section. The gate currently records `descriptive_only`, `externalReviewStatus=open`, `causalClaimsAllowed=false`, and the supported evidence levels, so a release audit cannot accidentally treat peer-adjusted before/after comparisons as causal estimates. Updated the v1 plan and methodology validation page to point at this audit field.

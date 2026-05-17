@@ -100,6 +100,7 @@ Sources: `tools/pipeline/src/jobs/build/route-brief-metrics.ts` and `tools/pipel
 - Peer baselines use public comparison routes with sufficient trend rows, matched on pre-period speed and ridership, to control for networkwide seasonal shifts in the same pre/post windows.
 - Public routes with matched NYC DOT bus-lane geometry receive dated bus-lane comparison rows when matched lane `open_dates` parse, and explicit source-gap comparison rows when matched segments do not have usable dates.
 - Strict v1 QA now fails when evaluated intervention rows lack peer-adjusted speed deltas.
+- `audit:pipeline-v1` records an explicit methodology gate. Until external review is complete, the gate stays `descriptive_only`, `causalClaimsAllowed=false`, with `descriptive_before_after` and `matched_comparison` as supported evidence levels when peer-adjusted rows exist.
 
 **What's limited:**
 - Current ACE/ABLE evaluation is still observational, not causal.

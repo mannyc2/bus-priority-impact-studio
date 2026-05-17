@@ -1861,6 +1861,15 @@ describe("pipeline v1 check", () => {
         routesWithMissingOpenDateCount: 1,
       }),
     );
+    expect(result.interventions.methodologyGate).toEqual(
+      expect.objectContaining({
+        status: "descriptive_only",
+        externalReviewStatus: "open",
+        causalClaimsAllowed: false,
+        maxSupportedClaim: "descriptive_association",
+        allowedEvaluationLevels: expect.arrayContaining(["matched_comparison"]),
+      }),
+    );
     expect(result.sourceAvailability.routeSpeed).toEqual(
       expect.objectContaining({
         latestSpeedMonth: expect.objectContaining({
@@ -1907,6 +1916,9 @@ describe("pipeline v1 check", () => {
         interventions: expect.objectContaining({
           busLaneSourceGaps: expect.objectContaining({
             blankOpenDateLaneInstanceCount: 1,
+          }),
+          methodologyGate: expect.objectContaining({
+            causalClaimsAllowed: false,
           }),
         }),
       }),
