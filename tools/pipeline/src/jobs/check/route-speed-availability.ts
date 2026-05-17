@@ -1,7 +1,11 @@
+import { mkdir } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import { RouteIdCodec } from "@bp/domain";
 import type { SocrataFetch, SocrataRow, SocrataRowsQuery } from "@bp/sources";
 import { getSocrataSource, SocrataClient } from "@bp/sources";
 import * as z from "zod";
+import { writeJson } from "../../lib/json.js";
+import { defaultArtifactRootPath, fromCliPath } from "../../lib/paths.js";
 import type { SocrataManifestSource } from "../../source-manifest.js";
 import { readSourceManifest } from "../../source-manifest.js";
 
@@ -13,6 +17,8 @@ type RouteSpeedAvailabilityArgs = {
   year?: number;
   month?: number;
   minSpeedRoutes?: number;
+  outputPath?: string;
+  artifactRoot?: string;
   fetcher?: SocrataFetch;
 };
 
@@ -45,6 +51,7 @@ type RouteSpeedAvailabilityResult = {
   latestSpeedMonth: RouteSpeedAvailabilityMonth | null;
   requestedMonth: RequestedRouteSpeedAvailability | null;
   months: RouteSpeedAvailabilityMonth[];
+  artifactPath?: string;
 };
 
 const RawRouteSpeedAvailabilityRowSchema = z
@@ -80,6 +87,20 @@ function parseIntegerFlag(args: string[], name: string): number | undefined {
   return parsed;
 }
 
+function parseStringFlag(args: string[], name: string): string | undefined {
+  const index = args.indexOf(name);
+  if (index === -1) {
+    return undefined;
+  }
+
+  const value = args.at(index + 1);
+  if (value === undefined) {
+    throw new Error(`Missing value for ${name}`);
+  }
+
+  return value;
+}
+
 function parseCliArgs(args: string[]): RouteSpeedAvailabilityArgs {
   const parsed: RouteSpeedAvailabilityArgs = {};
   const startYear = parseIntegerFlag(args, "--start-year");
@@ -87,6 +108,8 @@ function parseCliArgs(args: string[]): RouteSpeedAvailabilityArgs {
   const year = parseIntegerFlag(args, "--year");
   const month = parseIntegerFlag(args, "--month");
   const minSpeedRoutes = parseIntegerFlag(args, "--min-speed-routes");
+  const outputPath = parseStringFlag(args, "--output");
+  const artifactRoot = parseStringFlag(args, "--artifact-root");
 
   if (startYear !== undefined) {
     parsed.startYear = startYear;
@@ -103,16 +126,31 @@ function parseCliArgs(args: string[]): RouteSpeedAvailabilityArgs {
   if (minSpeedRoutes !== undefined) {
     parsed.minSpeedRoutes = minSpeedRoutes;
   }
+  if (outputPath !== undefined) {
+    parsed.outputPath = fromCliPath(outputPath);
+  }
+  if (artifactRoot !== undefined) {
+    parsed.artifactRoot = fromCliPath(artifactRoot);
+  }
 
   return parsed;
 }
 
-function parseOptions(args: RouteSpeedAvailabilityArgs = {}): Required<RouteSpeedAvailabilityArgs> {
+function defaultOutputPath(artifactRoot: string): string {
+  return join(artifactRoot, "source-availability", "route-speed-availability.json");
+}
+
+function parseOptions(args: RouteSpeedAvailabilityArgs = {}): Required<
+  Omit<RouteSpeedAvailabilityArgs, "outputPath">
+> & {
+  outputPath?: string;
+} {
   const now = new Date();
   const currentYear = now.getUTCFullYear();
   const startYear = args.startYear ?? currentYear - 1;
   const endYear = args.endYear ?? currentYear;
   const minSpeedRoutes = args.minSpeedRoutes ?? 1;
+  const artifactRoot = args.artifactRoot ?? defaultArtifactRootPath();
 
   if (startYear > endYear) {
     throw new Error(`startYear must be <= endYear. Received ${startYear} > ${endYear}.`);
@@ -130,7 +168,9 @@ function parseOptions(args: RouteSpeedAvailabilityArgs = {}): Required<RouteSpee
     year: args.year ?? 0,
     month: args.month ?? 0,
     minSpeedRoutes,
+    artifactRoot,
     fetcher: args.fetcher ?? fetch,
+    ...(args.outputPath !== undefined ? { outputPath: args.outputPath } : {}),
   };
 }
 
@@ -230,8 +270,8 @@ export async function checkRouteSpeedAvailability(
     options.year > 0 && options.month > 0
       ? requestedStatus(months, options.year, options.month)
       : null;
-
-  return {
+  const artifactPath = options.outputPath ?? defaultOutputPath(options.artifactRoot);
+  const result: RouteSpeedAvailabilityResult = {
     sourceId: "bus_segment_speeds_2025",
     checkedAt: new Date().toISOString(),
     startYear: options.startYear,
@@ -240,7 +280,13 @@ export async function checkRouteSpeedAvailability(
     latestSpeedMonth,
     requestedMonth,
     months,
+    artifactPath,
   };
+
+  await mkdir(dirname(artifactPath), { recursive: true });
+  await writeJson(artifactPath, result);
+
+  return result;
 }
 
 export async function checkRouteSpeedAvailabilityFromCli(

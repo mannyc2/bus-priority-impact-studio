@@ -1,5 +1,17 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
+import { rm } from "node:fs/promises";
+import { join } from "node:path";
 import { checkRouteSpeedAvailability } from "../src/jobs/check/route-speed-availability.js";
+import { fromRepoRoot } from "../src/source-manifest.js";
+
+const artifactRoot = fromRepoRoot(join("data/working/test-route-speed-availability/artifacts"));
+
+afterEach(async () => {
+  await rm(fromRepoRoot(join("data/working/test-route-speed-availability")), {
+    force: true,
+    recursive: true,
+  });
+});
 
 describe("route speed availability check", () => {
   test("reports latest published speed month and missing requested month", async () => {
@@ -9,6 +21,7 @@ describe("route speed availability check", () => {
       year: 2026,
       month: 4,
       minSpeedRoutes: 2,
+      artifactRoot,
       fetcher: async () =>
         Response.json([
           {
@@ -56,5 +69,9 @@ describe("route speed availability check", () => {
       ["2026-03", "complete"],
       ["2026-02", "insufficient_speed_routes"],
     ]);
+    expect(result.artifactPath).toBe(
+      join(artifactRoot, "source-availability", "route-speed-availability.json"),
+    );
+    await expect(Bun.file(result.artifactPath).json()).resolves.toEqual(result);
   });
 });

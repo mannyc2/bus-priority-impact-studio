@@ -36,7 +36,7 @@ bun run check:pipeline-v1 -- --year 2026 --month 3
 bun --filter @bp/pipeline audit:pipeline-v1 -- --public-year 2026 --public-month 3 --realtime-year 2026 --realtime-month 5 --run-id <run_id>
 ```
 
-`check:route-speed-availability` checks grouped MTA Bus Route Segment Speeds coverage and reports the latest published speed month plus the requested month status, so source-publication lag can be distinguished from an ingestion bug.
+`check:route-speed-availability` checks grouped MTA Bus Route Segment Speeds coverage, reports the latest published speed month plus the requested month status, and writes `data/artifacts/source-availability/route-speed-availability.json` by default. Use `--output <path>` or `--artifact-root <path>` to redirect the watcher artifact.
 `collect:gtfs-rt` requires `MTA_BUS_TIME_API_KEY`, writes raw protobuf snapshots to ignored `data/raw/gtfs-rt/`, and records run/snapshot metadata in the local pipeline DB with redacted URLs.
 `gtfs-rt:run-status` reports long collection progress and prints the next handoff commands.
 `ingest:gtfs-rt-snapshots` parses a collected run into normalized local vehicle-position, trip-update, stop-time-update, and alert rows.
