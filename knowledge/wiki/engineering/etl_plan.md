@@ -2,7 +2,7 @@
 title: ETL Plan
 type: engineering
 status: active
-last_updated: 2026-04-28
+last_updated: 2026-05-17
 owner: codex
 source_count: 20
 tags: [etl, ingestion, data-quality, typescript, bun, drizzle, d1, postgres, local-pipeline]
@@ -34,11 +34,11 @@ Current baseline:
 
 V1 additions still required:
 
-- Production-length GTFS-RT collection and coverage QA.
+- Production-length GTFS-RT collection, ingestion, observed headway build, and coverage QA for a month that can honestly align with the collected realtime window.
 - Detailed observed reliability windows beyond route/month summary metrics.
 - Seasonality-aware, matched-comparison, and bus-lane intervention evaluation.
 - Richer segment-based corridor membership and corridor intervention context.
-- `check:pipeline-v1` or equivalent QA gate that verifies every v1 deliverable.
+- A clean rebuild proof from an empty local DB through D1/static export verification.
 
 Implemented v1 additions include GTFS-RT collection/parsing, observed headway samples, route/month observed reliability and bunching summaries, descriptive ACE before/after comparisons, primary-street corridor entities/summaries, route/corridor brief body generation, D1 artifact metadata, and route-batch hash/byte verification for generated brief bodies.
 
@@ -65,9 +65,44 @@ Verification:
 - One live probe can write a metadata JSON file.
 - No dataset page claims exact schema before probe results exist.
 
+## Current route/network command spine
+
+The current branch is route/network-first. These commands are the useful spine for a full analysis month:
+
+```bash
+bun run sources:probe -- --all
+bun run ingest:route-catalog
+bun run ingest:route-coverage -- --year 2026 --month 3
+bun run ingest:ace-routes
+bun run ingest:ace-violations -- --year 2026 --month 3
+bun run ingest:bus-lanes
+bun run ingest:equity-context -- --year 2024
+bun run build:network -- --year 2026 --month 3
+bun run ingest:route-trends -- --start-year 2025 --start-month 1 --end-year 2026 --end-month 3 --skip-ridership
+bun run backfill:route-ridership-trends -- --start-year 2025 --start-month 1 --end-year 2026 --end-month 3
+bun run route-intervention-evaluation -- --year 2026 --month 3
+bun run corridor-model -- --year 2026 --month 3
+bun run brief-artifacts -- --year 2026 --month 3
+bun run route-batch-audit -- --year 2026 --month 3
+bun run verify:d1 -- --year 2026 --month 3
+bun run check:pipeline-v1 -- --year 2026 --month 3
+```
+
+GTFS-RT observed reliability is run-scoped and must align with the requested analysis month:
+
+```bash
+bun run collect:gtfs-rt -- --duration-hours 4 --sample-seconds 30 --feed-types vehicle_positions --run-id <run_id>
+bun run ingest:gtfs-rt-snapshots -- --run-id <run_id>
+bun run build:observed-headways -- --run-id <run_id>
+bun run route-observed-reliability -- --year YYYY --month M --run-id <run_id>
+bun run gtfs-rt:preflight -- --year YYYY --month M --run-id <run_id>
+```
+
+`finalize:pipeline-v1` wraps the post-build v1 finalization steps when the route/network build already exists. `--allow-insufficient-gtfs-rt` is a structural fallback only; it does not complete observed reliability v1.
+
 ## Phase 1: local route pilot
 
-Default scope: M1 route pilot, then Manhattan expansion.
+Historical scope: M1 route pilot, then Manhattan expansion. This is now superseded by the full-network command spine above, but the original notes remain useful as context for fixture-sized work.
 
 Command targets:
 
@@ -194,10 +229,9 @@ For every ingested dataset, maintain:
 
 ## Caveats
 
-- Generic command names are targets; `sources:list`, `sources:probe`, `ingest:m1`, and `hotspots:m1` are implemented.
 - Exact Socrata field names are confirmed for active MVP sources through source probes, but downstream join contracts still need route-by-route QA.
-- The command caveat above is historical and stale for the current branch: route/network commands such as `ingest:route-slice`, `build:routes`, `build:network`, `export:d1`, and `verify:d1` are now implemented. Update this page as v1 docs are fully reset.
 - Realtime Bus Time collection is no longer optional for v1 after the 2026-05-16 scope decision.
+- The current complete public-source analysis month is March 2026. April and May 2026 route coverage probes on 2026-05-17 returned scheduled routes but no speed routes, so live May GTFS-RT evidence cannot be used to satisfy the March strict gate.
 
 ## Sources
 

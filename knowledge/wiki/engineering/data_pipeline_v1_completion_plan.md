@@ -89,10 +89,12 @@ Latest local verification after the March 2026 v1 catch-up run:
 - `bun run check:pipeline-v1 -- --year 2026 --month 3 --allow-insufficient-gtfs-rt` passes with 0 issues as a structural DB/export/artifact check only. This is not a v1 completion signal.
 - `bun run gtfs-rt:preflight -- --year 2026 --month 5 --run-id gtfs-rt-smoke-2026-05-17` confirms the local API key is present without printing it and that collection/ingestion works; the one-snapshot smoke run parsed 1,290 vehicle positions. It still fails strict readiness because the run is only a one-minute smoke test with no observed headways or route reliability. For March 2026, strict `check:pipeline-v1` remains the v1 completion gate and still requires a production-length observed reliability run.
 - April and May 2026 route coverage probes on 2026-05-17 returned 375 scheduled routes but 0 speed routes, so March 2026 remains the current complete public-source analysis month. A live May 2026 GTFS-RT collection can produce May observed reliability evidence, but strict QA now prevents using it to satisfy the March 2026 gate.
+- `bun run collect:gtfs-rt -- --duration-hours 4 --sample-seconds 30 --feed-types vehicle_positions --run-id gtfs-rt-v1-20260517T022348Z` completed on 2026-05-17 with 480/480 successful vehicle-position snapshots and 0 failures. Ingest parsed 480 snapshots and 358,875 vehicle positions; observed-headway build produced 90,136 stop events and 73,702 headway samples; May 2026 route observed reliability produced 381 route rows, including 229 observed routes, 152 insufficient-sample routes, and 72,782 route-summary headway samples. `gtfs-rt:preflight -- --year 2026 --month 5 --run-id gtfs-rt-v1-20260517T022348Z` now passes strict observed-layer readiness.
 
 Current v1 gaps:
 
 - GTFS-RT observed reliability has route/month status rows and D1 readback, but the current March 2026 run has 0 observed samples and 381 insufficient-sample rows because no production-length Bus Time collection has been run for the v1 analysis window.
+- The May 2026 observed layer now passes GTFS-RT preflight, but May cannot be the single full v1 month until public speed coverage exists for May or a later month.
 - Observed reliability is route/month summary only; detailed observed reliability windows are not yet built.
 - ACE descriptive before/after intervention evaluation exists for March 2026; 22 comparisons are evaluated from speed trend rows and 21 of those include ridership deltas. Public routes with matched bus-lane geometry now receive explicit `nyc_dot_bus_lanes` source-gap comparison rows. Seasonality-adjusted comparisons, matched-comparison analysis, and true bus-lane before/after evaluation remain open until route-level implementation dates are available.
 - Deterministic primary-street corridor entities, route membership, summaries, hotspot rows, and generated brief bodies exist; richer segment membership remains open.
@@ -157,8 +159,8 @@ Tasks:
 
 1. Verify the full-network rebuild runbook from a clean local DB.
 2. Verify clean rebuild for the selected v1 month.
-3. Fix the Manhattan-only bus-lane filter in `route-brief-metrics.ts`.
-4. Add QA for bus-lane matching across boroughs.
+3. Bus-lane matching has been generalized beyond the original Manhattan-only M1 prototype path.
+4. Keep QA coverage for bus-lane intervention comparison rows on public routes with matched lane geometry.
 5. Decide whether route score remains a simple heuristic or is replaced by a v1 priority score.
 6. Add source freshness and artifact completeness gates to the network build. `check:pipeline-v1` now enforces fresh required source probe captures; clean-rebuild artifact completeness remains part of the final reproducibility proof.
 
@@ -509,7 +511,7 @@ Acceptance:
 ## Recommended Execution Order
 
 1. Documentation and roadmap reset.
-2. Baseline pipeline hardening and Manhattan bus-lane fix.
+2. Baseline pipeline hardening and bus-lane comparison coverage.
 3. GTFS-RT collector and observed headway schema.
 4. Observed reliability/bunching metrics.
 5. Intervention evaluation.

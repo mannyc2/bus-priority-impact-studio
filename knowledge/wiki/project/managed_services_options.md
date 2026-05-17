@@ -230,7 +230,7 @@ Use a VPS only when at least one of these concrete triggers appears:
 5. **Custom daemons or unsupported extensions** — the project needs OS-level packages, background processes, custom queues, local files, or Postgres extensions not supported by the chosen managed DB.
 6. **Predictable flat-cost compute beats managed overages** — row scans, object operations, or serverless CPU costs become harder to control than a small VM.
 
-[Inference] None of these are required for the P0/P1 MVP. Realtime collection is explicitly optional and should be deferred until the static/public-data analysis is already compelling.
+[Inference] None of these currently force a VPS. GTFS-RT collection is now v1 scope, but bounded local collection remains enough for the MVP; a VPS becomes relevant only if the project needs always-on realtime collection over days or weeks.
 
 ## What Should Stay Local Even If Hosting Is Managed
 

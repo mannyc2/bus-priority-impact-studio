@@ -142,15 +142,18 @@ function clampShare(value: number): number {
   return Math.min(1, Math.max(0, value));
 }
 
-function collectionElapsedSeconds(input: { startedAt: string; endedAt: string | null }): number {
+function collectionElapsedSeconds(input: {
+  startedAt: string;
+  endedAt: string | null;
+}): number | null {
   if (input.endedAt === null) {
-    return 0;
+    return null;
   }
 
   const startedAt = Date.parse(input.startedAt);
   const endedAt = Date.parse(input.endedAt);
   if (Number.isNaN(startedAt) || Number.isNaN(endedAt)) {
-    return 0;
+    return null;
   }
 
   return Math.max(0, Math.round((endedAt - startedAt) / 1000));
@@ -158,15 +161,17 @@ function collectionElapsedSeconds(input: { startedAt: string; endedAt: string | 
 
 function collectionWindowSeconds(input: {
   requestedDurationSeconds: number;
+  sampleSeconds: number;
   startedAt: string;
   endedAt: string | null;
 }): number {
   const elapsedSeconds = collectionElapsedSeconds(input);
-  if (elapsedSeconds === 0) {
+  if (elapsedSeconds === null) {
     return Math.max(0, input.requestedDurationSeconds);
   }
 
-  return Math.min(Math.max(0, input.requestedDurationSeconds), elapsedSeconds);
+  const coveredSeconds = elapsedSeconds + Math.max(1, input.sampleSeconds);
+  return Math.min(Math.max(0, input.requestedDurationSeconds), coveredSeconds);
 }
 
 function monthTimeBounds(input: { year: number; month: number }): {

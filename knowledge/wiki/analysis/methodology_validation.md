@@ -2,14 +2,14 @@
 title: Methodology Validation
 type: analysis
 status: current
-last_updated: 2026-04-29
+last_updated: 2026-05-17
 owner: codex
 tags: [analysis, validation, methodology]
 ---
 
 # Methodology Validation
 
-Code-level audit of per-route analysis logic as of 2026-04-29. Covers correctness of calculations, known limitations, and what would need to change for production use.
+Code-level audit of per-route analysis logic. Covers correctness of calculations, known limitations, and what would need to change for production use.
 
 ## Hotspot detection — sound with caveats
 
@@ -74,8 +74,8 @@ Source: `tools/pipeline/src/jobs/build/route-brief-metrics.ts` — `busLaneMatch
 - Equirectangular distance formula (`metersBetween`) is accurate to <0.1% at NYC latitude (40.7°). Full Haversine is unnecessary at this scale.
 
 **What's limited:**
-- **Manhattan only.** The filter `borough === "MAN"` excludes all outer-borough bus lane matches. This is a data limitation — the NYC DOT bus lane dataset (`ycrg-ses3`) has full city coverage, but the filter was set during M1-focused development and was not generalized.
 - Street name matching is approximate. Stop names like `5 AV/E 72 ST` are parsed to extract the first street (`5 AV`), which may miss lanes on cross streets that the route uses.
+- Bus-lane overlap is useful as context and source-gap detection, but public route-level bus-lane implementation dates are still needed for defensible before/after evaluation.
 
 ## Speed and ridership profiles — correct aggregations
 
@@ -89,16 +89,33 @@ Source: `tools/pipeline/src/jobs/build/route-brief-metrics.ts` — `groupedSpeed
 
 **No known issues** with these calculations.
 
-## ACE intervention summary — correct
+## Intervention evaluation — descriptive and caveated
 
-Source: `tools/pipeline/src/jobs/build/route-brief-metrics.ts` — `aceInterventionSummary()`
+Sources: `tools/pipeline/src/jobs/build/route-brief-metrics.ts` and `tools/pipeline/src/jobs/build/route-intervention-evaluation.ts`
 
 **What's correct:**
 - Correctly splits ACE/ABLE programs into active vs future based on implementation date vs analysis period end.
 - Violation counts are grouped by type with correct summation.
+- ACE/ABLE descriptive before/after rows record pre/post windows, sample counts, speed/ridership deltas, evaluation level, comparison status, and caveats.
+- Public routes with matched NYC DOT bus-lane geometry receive explicit source-gap comparison rows when route-level implementation dates are unavailable.
 
 **What's limited:**
-- No before/after analysis yet. The data is structured for it (implementation dates + monthly violations) but the comparison logic isn't built.
+- Current ACE/ABLE evaluation is descriptive, not causal.
+- Seasonality-aware comparisons, matched comparison routes, and dated bus-lane before/after evaluation remain open.
+
+## Observed reliability — implemented, sample-gated
+
+Sources: `tools/pipeline/src/jobs/collect/collect-gtfs-rt.ts`, `tools/pipeline/src/jobs/build/observed-headways.ts`, and `tools/pipeline/src/jobs/build/route-observed-reliability.ts`
+
+**What's correct:**
+- GTFS-RT raw snapshots, parse metadata, vehicle positions, observed stop events, and observed headway samples are run-scoped.
+- Route/month observed reliability summaries include observed headway, bunching, long-gap, expected-wait, sample count, coverage, and explicit insufficient-sample statuses.
+- Strict v1 QA now checks collection window, sample cadence, successful vehicle-position snapshot coverage, parse/headway provenance, observed-route coverage, and analysis-month alignment.
+
+**What's limited:**
+- The current complete public-source month is March 2026, but there are no March 2026 GTFS-RT samples.
+- Live May 2026 collection can prove the observed layer, but it cannot complete the March strict gate unless the analysis month moves to May after public speed coverage exists.
+- Detailed observed reliability windows are not yet generated beyond route/month summaries.
 
 ## Overall assessment
 
@@ -106,7 +123,8 @@ The analysis logic is internally consistent, correctly weighted, and well-tested
 
 1. **Ridership granularity** — route-level proxy inflates segment-level rider-impact scores
 2. **Route score simplicity** — two-factor formula vs planned five-factor model
-3. **Manhattan-only bus lanes** — outer boroughs excluded by a hardcoded filter
-4. **Single-month snapshots** — no trend analysis in the per-route artifacts yet
+3. **Observed realtime month split** — current live GTFS-RT evidence does not align with the March public-source month
+4. **Intervention methodology** — current evaluated rows are descriptive, with stronger matched/seasonal methods still open
+5. **Corridor precision** — primary-street grouping is deterministic but still needs richer segment-based membership
 
-For a portfolio piece demonstrating methodology, the logic is defensible and well-documented. For MTA operational use, items 1 and 3 would need to be addressed, and the route score formula would need calibration against domain expert judgment.
+For a portfolio piece demonstrating methodology, the logic is defensible and well-documented. For MTA operational use, ridership allocation, route score calibration, matched intervention methods, and corridor membership would need domain review.

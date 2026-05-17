@@ -2,7 +2,7 @@
 title: Business Problem
 type: project
 status: active
-last_updated: 2026-04-26
+last_updated: 2026-05-17
 owner: codex
 source_count: 4
 tags: [mta, business-problem, bus-priority]
@@ -44,15 +44,35 @@ The product should reduce the effort required to answer:
 - Which routes have large rider impact and weak intervention coverage?
 - Did ACE or bus-lane-related enforcement produce measurable speed/reliability changes?
 
+## Outsider positioning
+
+The product should not look like a generic bus analytics dashboard that re-derives facts MTA analysts already know. The credible outsider artifact is a source-backed finding:
+
+```text
+specific route/corridor problem
+  -> public evidence
+  -> reliability/intervention caveat
+  -> brief with reproducible method and citations
+```
+
+The strongest defense against "MTA already has analytics" is not more dashboard surface area. It is showing that the system can find, reproduce, and explain a specific public-data pattern that is useful outside the internal planning workflow.
+
+Breadth and depth serve different jobs:
+
+- Breadth: full-network route/corridor coverage makes triage possible and prevents cherry-picking.
+- Depth: route/corridor briefs, GTFS-RT reliability evidence, intervention status, citations, hashes, and caveats make a finding defensible.
+- Product shape: the frontend should expose proof-finding workflows and generated briefs first, not an undirected dashboard.
+
 ## Success criteria
 
-A demo should be able to produce a one-page route brief with:
+A demo should be able to produce a route or corridor brief with:
 
 - Map of slow segments.
 - Route-level speed and ridership-weighted severity.
+- Observed reliability/bunching status when collected samples support it.
 - Intervention status: ACE, bus lanes, and service-alert context.
-- Before/after evidence for interventions when available.
-- Clear caveats and citations.
+- Before/after evidence or explicit source-gap status for interventions.
+- Clear caveats, citations, method status, and artifact hashes.
 
 ## Sources
 

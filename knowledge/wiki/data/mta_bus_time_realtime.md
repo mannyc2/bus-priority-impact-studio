@@ -28,13 +28,14 @@ An MTA Bus Time developer API key is required.
 
 The source manifest contains active GTFS-RT entries for TripUpdates, VehiclePositions, and Alerts. Source probes skip these feeds when `MTA_BUS_TIME_API_KEY` is not present and redact the key when it is present.
 
-As of 2026-05-16, the pipeline has a bounded raw snapshot collector:
+As of 2026-05-17, the pipeline has a bounded raw snapshot collector:
 
 ```bash
 bun run collect:gtfs-rt -- --duration-hours 24 --sample-seconds 30
 bun run ingest:gtfs-rt-snapshots -- --run-id <run_id>
 bun run build:observed-headways -- --run-id <run_id>
-bun run route-observed-reliability -- --run-id <run_id> --year 2026 --month 3
+bun run route-observed-reliability -- --run-id <run_id> --year YYYY --month M
+bun run gtfs-rt:preflight -- --run-id <run_id> --year YYYY --month M
 ```
 
 The collector writes raw protobuf snapshots under `data/raw/gtfs-rt/<date>/<run_id>/` and records collection metadata in local SQLite tables:
@@ -51,6 +52,18 @@ The collector writes raw protobuf snapshots under `data/raw/gtfs-rt/<date>/<run_
 - `local_route_observed_reliability_summary`
 
 It records feed type, sample index, source id, fetch time, HTTP status, byte length, SHA-256, raw file path, redacted URL, and error text. It does not persist the API key.
+
+Observed reliability is analysis-month aligned. A May 2026 Bus Time run can support May observed reliability summaries, but it cannot be used to satisfy a March 2026 strict v1 gate. March 2026 remains the current complete public-source month because April and May 2026 route coverage probes currently expose scheduled routes but no route-speed coverage.
+
+## Latest local collection
+
+Run `gtfs-rt-v1-20260517T022348Z` completed on 2026-05-17:
+
+- 480/480 vehicle-position snapshots succeeded, with 0 failed fetches.
+- 480 snapshots parsed, producing 358,875 vehicle-position rows.
+- Observed-headway build produced 90,136 stop events and 73,702 headway samples.
+- May 2026 route observed reliability produced 381 route rows: 229 observed and 152 insufficient-sample.
+- `gtfs-rt:preflight -- --year 2026 --month 5 --run-id gtfs-rt-v1-20260517T022348Z` passes strict observed-layer readiness.
 
 ## Implementation notes
 

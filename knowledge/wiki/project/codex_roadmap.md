@@ -2,7 +2,7 @@
 title: Codex Roadmap
 type: project
 status: active
-last_updated: 2026-04-26
+last_updated: 2026-05-17
 owner: codex
 source_count: 0
 tags: [codex, roadmap, implementation, typescript]
@@ -26,17 +26,18 @@ Current implementation baseline:
 - Local SQLite pipeline DB is canonical for route catalog, coverage, route artifacts, scorecards, brief summaries, reliability baselines, intervention overlays, and export inputs.
 - D1 seed export and verification exist for route-serving rows, observed reliability, intervention comparisons, corridor summaries, and route/corridor brief artifact metadata.
 - Route and corridor brief body generation exists through `brief-artifacts`, which writes JSON, Markdown, and HTML bodies plus byte-length/SHA-256 metadata.
+- Strict `check:pipeline-v1` now distinguishes structural completeness from true observed-reliability completion. March 2026 passes structural verification with `--allow-insufficient-gtfs-rt`, but strict mode still fails because there are no March 2026 observed GTFS-RT headway samples.
+- April and May 2026 source coverage probes on 2026-05-17 returned scheduled routes but no speed-route coverage, so March remains the complete public-source analysis month. A May GTFS-RT run can advance the observed layer, but it cannot honestly complete the March gate.
+- The May GTFS-RT observed layer now passes preflight for run `gtfs-rt-v1-20260517T022348Z`: 480/480 snapshots, 358,875 parsed vehicle positions, 73,702 observed headway samples, and 229 observed route summaries.
 
 Primary remaining roadmap:
 
-1. Reset docs and command references around the generic route/network pipeline.
-2. Harden the current full-network route build and remove known M1-era assumptions, especially Manhattan-only bus-lane matching.
-3. Add GTFS-RT collection and observed headway sample storage.
-4. Compute observed reliability, bunching, long-gap, and wait-time reliability metrics.
-5. Add intervention evaluation artifacts for ACE and bus-lane changes where source coverage supports them.
-6. Add deterministic corridor grouping and corridor metrics.
-7. Run the final clean full-network brief generation and verify every public-visible route and eligible corridor has current body artifacts.
-8. Expand D1/static export contracts and QA gates to cover source freshness, GTFS-RT coverage, map payloads, and detailed evaluation manifests.
+1. Decide whether v1 is March structural + May observed appendix, or wait for public speed coverage so a later month can become the single strict v1 month.
+2. Run a clean rebuild proof from an empty local DB through route/corridor brief generation, route-batch audit, D1 export, and v1 QA.
+3. Add detailed observed-reliability windows beyond route/month summaries.
+4. Add seasonality-aware/matched intervention evaluation and dated bus-lane before/after analysis where public source coverage supports it.
+5. Add richer segment-based corridor membership, corridor intervention context, map payload manifests, and detailed evaluation manifests.
+6. Align the public frontend around proof-finding route/corridor briefs rather than a generic route analytics dashboard.
 
 The older phase list below remains as historical context for how the repo reached the current baseline.
 

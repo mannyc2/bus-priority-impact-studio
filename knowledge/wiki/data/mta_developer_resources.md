@@ -2,7 +2,7 @@
 title: MTA Developer Resources
 type: data
 status: active
-last_updated: 2026-04-27
+last_updated: 2026-05-17
 owner: codex
 source_count: 3
 tags: [mta, gtfs, realtime, api]
@@ -47,7 +47,7 @@ MTA data-feed terms say developers may download and host data on a non-MTA serve
 
 - Static GTFS is useful for schedule/trip/shape baseline.
 - Socrata current bus routes/stops may be more convenient for geospatial visualization.
-- Realtime Bus Time is optional for MVP because historical headways require collection over time.
+- Realtime Bus Time is v1 scope after the 2026-05-16 data-pipeline reset. It still requires explicit collection over time because MTA does not provide historical Bus Time samples through these endpoints.
 - If using realtime feeds in a deployed app, run an internal collector/cache and serve users from our own backend.
 
 ## Sources

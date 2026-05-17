@@ -21,39 +21,57 @@ async function removeFixtureArtifacts(): Promise<void> {
   await rm(testRoot, { force: true, recursive: true });
 }
 
-async function writeReadyGtfsRtState(options: { outsideMonth?: boolean } = {}): Promise<void> {
+async function writeReadyGtfsRtState(
+  options: {
+    outsideMonth?: boolean;
+    endedAt?: string;
+    requestedDurationSeconds?: number;
+    sampleSeconds?: number;
+    snapshotCount?: number;
+  } = {},
+): Promise<void> {
   const gtfsRtDatePrefix = options.outsideMonth ? "2026-05-01" : "2026-06-01";
   const gtfsRtTimestampBase = options.outsideMonth ? 1_777_593_600 : 1_780_272_000;
+  const startedAt = `${gtfsRtDatePrefix}T00:00:00.000Z`;
+  const endedAt = options.endedAt ?? `${gtfsRtDatePrefix}T00:10:00.000Z`;
+  const requestedDurationSeconds = options.requestedDurationSeconds ?? 600;
+  const sampleSeconds = options.sampleSeconds ?? 30;
+  const snapshotCount = options.snapshotCount ?? 1;
   const local = await openLocalPipelineDb(dbPath);
   try {
     await insertGtfsRtCollectionRun(local.db, {
       runId,
-      startedAt: `${gtfsRtDatePrefix}T00:00:00.000Z`,
-      endedAt: `${gtfsRtDatePrefix}T00:10:00.000Z`,
+      startedAt,
+      endedAt,
       status: "completed",
-      requestedDurationSeconds: 600,
-      sampleSeconds: 30,
+      requestedDurationSeconds,
+      sampleSeconds,
       requestedFeedTypes: "vehicle_positions",
-      snapshotCount: 1,
-      successCount: 1,
+      snapshotCount,
+      successCount: snapshotCount,
       failureCount: 0,
       rawDirectory: "/tmp/gtfs-rt",
       error: null,
     });
-    await insertGtfsRtFeedSnapshot(local.db, {
-      runId,
-      feedType: "vehicle_positions",
-      sampleIndex: 1,
-      sourceId: "bus_time_gtfsrt_vehicle_positions",
-      fetchedAt: `${gtfsRtDatePrefix}T00:00:00.000Z`,
-      status: "ok",
-      httpStatus: 200,
-      byteLength: 100,
-      sha256: "fixture",
-      rawPath: "/tmp/gtfs-rt/vehicle_positions-1.pb",
-      redactedUrl: "https://example.test/<redacted>",
-      error: null,
-    });
+    const startedAtMilliseconds = Date.parse(startedAt);
+    for (let sampleIndex = 1; sampleIndex <= snapshotCount; sampleIndex += 1) {
+      await insertGtfsRtFeedSnapshot(local.db, {
+        runId,
+        feedType: "vehicle_positions",
+        sampleIndex,
+        sourceId: "bus_time_gtfsrt_vehicle_positions",
+        fetchedAt: new Date(
+          startedAtMilliseconds + (sampleIndex - 1) * sampleSeconds * 1000,
+        ).toISOString(),
+        status: "ok",
+        httpStatus: 200,
+        byteLength: 100,
+        sha256: "fixture",
+        rawPath: `/tmp/gtfs-rt/vehicle_positions-${sampleIndex}.pb`,
+        redactedUrl: "https://example.test/<redacted>",
+        error: null,
+      });
+    }
     await replaceGtfsRtParsedSnapshot(local.db, {
       parsedSnapshot: {
         runId,
@@ -278,6 +296,37 @@ describe("GTFS-RT preflight", () => {
         hasObservedRouteReliability: true,
         strictPipelineV1ObservedLayerReady: true,
       }),
+    );
+  });
+
+  test("counts the final sample interval toward a full requested collection window", async () => {
+    await removeFixtureArtifacts();
+    await writeReadyGtfsRtState({
+      endedAt: "2026-06-01T03:59:46.000Z",
+      requestedDurationSeconds: 14_400,
+      sampleSeconds: 30,
+      snapshotCount: 480,
+    });
+
+    const result = await preflightGtfsRt({
+      year: 2026,
+      month: 6,
+      dbPath,
+      apiKey: "fixture-key",
+      minGtfsRtCollectionHours: 4,
+      minObservedHeadwaySamples: 3,
+    });
+
+    expect(result.status).toBe("pass");
+    expect(result.counts).toEqual(
+      expect.objectContaining({
+        shortestCollectionSeconds: 14_400,
+        successfulVehiclePositionSnapshotRows: 480,
+        requiredVehiclePositionSnapshotRows: 384,
+      }),
+    );
+    expect(result.issues.map((issue) => issue.code)).not.toContain(
+      "gtfs_rt_collection_duration_insufficient",
     );
   });
 

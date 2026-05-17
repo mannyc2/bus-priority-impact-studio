@@ -1,8 +1,8 @@
 ---
 title: Metrics
 type: project
-status: draft
-last_updated: 2026-04-26
+status: active
+last_updated: 2026-05-17
 owner: codex
 source_count: 2
 tags: [metrics, speed, reliability, bus-priority]
@@ -16,7 +16,7 @@ tags: [metrics, speed, reliability, bus-priority]
 
 Use MTA Bus Route Segment Speeds as the observed travel-speed source.
 
-Potential fields after schema probe:
+Confirmed working fields include:
 
 - year
 - month
@@ -33,7 +33,7 @@ Potential fields after schema probe:
 - average_speed_mph
 - bus_trips
 
-Status: **needs exact schema probe**.
+Status: active in the March 2026 full-network build.
 
 ### Ridership-weighted severity
 
@@ -84,12 +84,26 @@ score =
 
 Where `intervention_gap_score` is high if a route/segment is slow, busy, persistent, and not already covered by ACE/bus lanes.
 
+### Observed reliability and bunching
+
+GTFS-RT vehicle-position collection supports:
+
+- observed headway samples by route, direction, stop, and timestamp,
+- median / p90 / max observed headway,
+- bunching share,
+- long-gap share,
+- expected wait time,
+- scheduled-vs-observed wait delta,
+- sample count and coverage status.
+
+These metrics are run-scoped and analysis-month aligned. A realtime run collected in May 2026 can support May observed reliability, but it cannot be used as March 2026 evidence.
+
 ## Caveats
 
 - Segment-speed data includes dwell time, traffic, stops, reliefs, closures, and other real customer travel-time factors; this is good for rider experience but not pure vehicle free-flow speed.
 - Hourly ridership may be route-level rather than segment-level.
 - ACE impact needs comparison routes and careful event windows; naive before/after can be confounded by seasonal changes and service changes.
-- Realtime Bus Time data is not historical unless collected; plan for optional collection.
+- Realtime Bus Time data is not historical unless collected; GTFS-RT observed reliability is now v1 scope and must carry collection-window/sample caveats.
 
 ## Sources
 

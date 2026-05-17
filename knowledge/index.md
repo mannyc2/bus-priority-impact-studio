@@ -55,11 +55,12 @@ Read this file first. It is the navigation layer for the LLM wiki.
 
 ## Immediate open issues
 
-1. Execute [[wiki/engineering/data_pipeline_v1_completion_plan|Data Pipeline v1 completion plan]].
-2. Bus lane matching is Manhattan-only — generalize the `borough === "MAN"` filter for outer-borough routes.
-3. GTFS-RT collection is now v1 scope; add local collection, observed headway samples, bunching, and long-gap metrics.
-4. Intervention evaluation is now v1 scope; add before/after and matched-comparison artifacts where source quality supports them.
-5. Add corridor grouping and a full set of route/corridor brief artifacts.
-6. Route score uses a two-factor formula; incorporate ridership weight, persistence, reliability, and intervention gap or demote score behind brief evidence.
-7. Keep the MVP TypeScript-only unless a documented requirement forces Python/PostGIS/VPS escalation.
-8. Keep D1 as a compact serving projection; promote canonical queryable history to Postgres/Hyperdrive instead of growing D1 into a warehouse.
+1. Decide whether v1 ships as March structural evidence plus a May observed-reliability appendix, or waits until public speed coverage exists for a later single strict v1 month.
+2. March 2026 is structurally complete but has no March realtime samples; May 2026 has a passing observed GTFS-RT layer but no public speed coverage yet.
+3. Run a clean rebuild proof from an empty local DB through network build, route/corridor briefs, route-batch audit, D1 export, and `check:pipeline-v1`.
+4. Add detailed observed reliability windows beyond route/month summaries.
+5. Add seasonality-aware/matched-comparison intervention evaluation and dated bus-lane before/after analysis where source quality supports them.
+6. Add richer segment-based corridor membership, corridor intervention context, map payload manifests, and detailed evaluation manifests.
+7. Route score uses a two-factor formula; incorporate ridership weight, persistence, reliability, and intervention gap or demote score behind brief evidence.
+8. Keep the MVP TypeScript-only unless a documented requirement forces Python/PostGIS/VPS escalation.
+9. Keep D1 as a compact serving projection; promote canonical queryable history to Postgres/Hyperdrive instead of growing D1 into a warehouse.
