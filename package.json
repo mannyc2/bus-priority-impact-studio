@@ -56,6 +56,7 @@
     "sources:probe": "bun --filter @bp/pipeline sources:probe",
     "collect:gtfs-rt": "bun --filter @bp/pipeline collect:gtfs-rt",
     "ingest:gtfs-rt-snapshots": "bun --filter @bp/pipeline ingest:gtfs-rt-snapshots",
+    "gtfs-rt:preflight": "bun --filter @bp/pipeline gtfs-rt:preflight",
     "ingest:ace-routes": "bun --filter @bp/pipeline ingest:ace-routes",
     "ingest:ace-violations": "bun --filter @bp/pipeline ingest:ace-violations",
     "ingest:bus-lanes": "bun --filter @bp/pipeline ingest:bus-lanes",

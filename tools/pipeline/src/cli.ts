@@ -41,6 +41,13 @@ const commands = {
       return ingestGtfsRtSnapshotsFromCli(args);
     },
   },
+  "gtfs-rt:preflight": {
+    description: "Diagnose GTFS-RT collection, parse, headway, and observed reliability readiness.",
+    run: async (args) => {
+      const { preflightGtfsRtFromCli } = await import("./jobs/check/gtfs-rt-preflight.js");
+      return preflightGtfsRtFromCli(args);
+    },
+  },
   "ingest:ace-violations": {
     description: "Fetch monthly ACE violation summaries.",
     run: async (args) => {

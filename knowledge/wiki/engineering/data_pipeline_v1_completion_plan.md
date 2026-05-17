@@ -2,7 +2,7 @@
 title: Data Pipeline V1 Completion Plan
 type: engineering
 status: active
-last_updated: 2026-05-16
+last_updated: 2026-05-17
 owner: codex
 source_count: 0
 tags: [pipeline, roadmap, gtfs-rt, reliability, interventions, corridors, briefs]
@@ -87,6 +87,7 @@ Latest local verification after the March 2026 v1 catch-up run:
 - `bun run verify:d1 -- --year 2026 --month 3` passed with 381 observed reliability rows, 79 intervention comparison rows, 1,050 route artifact rows, and 627 corridor artifact rows.
 - `bun run check:pipeline-v1 -- --year 2026 --month 3` now fails strict v1 QA on `observed_reliability_no_observed_routes` and `observed_reliability_sample_coverage_insufficient`, which is correct for the current local DB because there are 0 observed GTFS-RT headway samples. Strict QA also validates that observed summaries are backed by a completed GTFS-RT collection run, successful feed snapshots, parsed vehicle-position snapshots, and persisted observed headway rows.
 - `bun run check:pipeline-v1 -- --year 2026 --month 3 --allow-insufficient-gtfs-rt` passes with 0 issues as a structural DB/export/artifact check only. This is not a v1 completion signal.
+- `bun run gtfs-rt:preflight -- --year 2026 --month 3` reports the remaining observed-layer blocker directly: no `MTA_BUS_TIME_API_KEY`, no local GTFS-RT collection run, 0 observed headway samples, and 381 route reliability rows that are all marked `insufficient_gtfs_rt_samples`. It is diagnostic; strict `check:pipeline-v1` remains the v1 completion gate.
 
 Current v1 gaps:
 
@@ -112,7 +113,7 @@ Current v1 gaps:
 | Full set of corridor briefs | `brief-artifacts` writes and audits 627 JSON/Markdown/HTML corridor bodies for 209 corridors | Pass for current March run | Clean rebuild from empty local DB proves reproducibility |
 | Verified D1 export contract | `verify:d1` passes with route serving rows, observed reliability, ACE intervention comparisons, corridor summaries, and route/corridor artifact metadata | Pass for current March run | D1 verification expanded to map payload and detailed evaluation manifests |
 | Static artifact contract | Stable `briefs/routes/...` and `briefs/corridors/...` keys exist with byte-length/SHA-256 audit | Partial | Stable artifact key scheme for map payloads and detailed evaluation payloads |
-| QA gates | Strict `check:pipeline-v1` fails the current March run on missing observed GTFS-RT samples and validates GTFS-RT collection/parse/headway provenance, route trend coverage, evaluated intervention comparisons, and ridership deltas; structural mode can be run with `--allow-insufficient-gtfs-rt` | Partial | Add source freshness, richer GTFS-RT confidence thresholds, bus-lane intervention eligibility, and richer corridor ambiguity checks |
+| QA gates | Strict `check:pipeline-v1` fails the current March run on missing observed GTFS-RT samples and validates GTFS-RT collection/parse/headway provenance, route trend coverage, evaluated intervention comparisons, and ridership deltas; `gtfs-rt:preflight` diagnoses the collection/parse/headway/route-reliability blocker before finalization; structural mode can be run with `--allow-insufficient-gtfs-rt` | Partial | Add source freshness, richer GTFS-RT confidence thresholds, bus-lane intervention eligibility, and richer corridor ambiguity checks |
 | Updated roadmap/docs | Some docs are stale | In progress | This page plus updated index, roadmap, ETL, and data pages |
 
 ## Definition Of Done
@@ -170,8 +171,10 @@ bun run ingest:ace-violations -- --year 2026 --month 3
 bun run ingest:bus-lanes
 bun run ingest:equity-context -- --year 2024
 bun run build:network -- --year 2026 --month 3
+bun run gtfs-rt:preflight -- --year 2026 --month 3
 bun run collect:gtfs-rt -- --duration-hours 4 --sample-seconds 30 --run-id <run_id>
 bun run ingest:gtfs-rt-snapshots -- --run-id <run_id>
+bun run gtfs-rt:preflight -- --year 2026 --month 3 --run-id <run_id>
 bun run finalize:pipeline-v1 -- --year 2026 --month 3 --run-id <run_id>
 
 # Structural-only fallback when no Bus Time collection run exists:
@@ -205,6 +208,7 @@ Implemented so far:
 - Observed stop events are stored in `local_observed_vehicle_stop_event`; observed headway samples are stored in `local_observed_headway_sample`.
 - `route-observed-reliability -- --run-id <run_id> --year YYYY --month M` aggregates route/month observed reliability summaries.
 - Route/month observed summaries are stored in `local_route_observed_reliability_summary` with observed headway, bunching, long-gap, expected-wait, sample-count, and insufficient-sample status.
+- `gtfs-rt:preflight -- --year YYYY --month M --run-id <run_id>` diagnoses API-key presence, collection-run status, successful vehicle-position snapshots, parsed vehicle-position rows, observed headway samples, route/month observed reliability rows, source-status coverage, and route sample coverage before strict finalization.
 - D1 serving table `route_observed_reliability_summary` stores exported observed reliability summaries.
 - `export:d1` and `verify:d1` include observed reliability row counts and typed repository readback.
 - Fixture-backed tests cover successful collection, API-key redaction, and HTTP failure recording.
