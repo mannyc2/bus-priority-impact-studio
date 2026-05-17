@@ -60,8 +60,14 @@ describe("pipeline v1 finalization", () => {
         calls.push("verify:d1");
         return { isoMonth: "2026-08", status: "pass" };
       },
-      checkPipelineV1: async (args: { allowInsufficientGtfsRt?: boolean }) => {
-        calls.push(`check:${String(args.allowInsufficientGtfsRt)}`);
+      checkPipelineV1: async (args: {
+        allowInsufficientGtfsRt?: boolean;
+        minObservedRouteCount?: number;
+        minObservedRouteShare?: number;
+      }) => {
+        calls.push(
+          `check:${String(args.allowInsufficientGtfsRt)}:${String(args.minObservedRouteCount)}:${String(args.minObservedRouteShare)}`,
+        );
         return passingCheck();
       },
     };
@@ -74,6 +80,8 @@ describe("pipeline v1 finalization", () => {
         runId: "fixture-gtfs-rt",
         ridershipBackfillLimit: 2,
         ridershipBackfillConcurrency: 3,
+        minObservedRouteCount: 300,
+        minObservedRouteShare: 0.9,
       },
       deps as never,
     );
@@ -97,7 +105,7 @@ describe("pipeline v1 finalization", () => {
       "briefs",
       "audit",
       "verify:d1",
-      "check:undefined",
+      "check:undefined:300:0.9",
     ]);
   });
 

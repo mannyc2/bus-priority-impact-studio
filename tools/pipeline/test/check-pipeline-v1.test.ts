@@ -619,6 +619,73 @@ async function replaceWithInsufficientObservedReliability(): Promise<void> {
   }
 }
 
+async function replaceWithBelowThresholdObservedReliability(): Promise<void> {
+  const local = await openLocalPipelineDb(dbPath);
+  try {
+    await replaceRouteObservedReliabilityRows(local.db, isoMonth, observedRunId, {
+      summaries: [
+        {
+          routeId: "T1",
+          month: isoMonth,
+          runId: observedRunId,
+          reliabilityStatus: "observed",
+          minSampleThreshold: 30,
+          sampleCount: 2,
+          stopCount: 1,
+          directionCount: 1,
+          averageObservedHeadwayMinutes: 8,
+          medianObservedHeadwayMinutes: 8,
+          p90ObservedHeadwayMinutes: 9,
+          maxObservedHeadwayMinutes: 10,
+          scheduledMedianHeadwayMinutes: 10,
+          bunchingThresholdMinutes: 5,
+          longGapThresholdMinutes: 20,
+          observedBunchingShare: 0,
+          observedLongGapShare: 0,
+          expectedWaitMinutes: 4,
+          scheduledExpectedWaitMinutes: 5,
+          excessWaitMinutes: -1,
+          waitReliabilityRatio: 0.8,
+        },
+      ],
+      sourceStatuses: [
+        {
+          routeId: "T1",
+          month: isoMonth,
+          sourceScope: "reliability",
+          sourceId: "observedHeadways",
+          status: "available",
+          rowCount: 2,
+          snapshotId: observedRunId,
+          note: "2 observed headway samples; minimum 30",
+        },
+        {
+          routeId: "T1",
+          month: isoMonth,
+          sourceScope: "reliability",
+          sourceId: "bunching",
+          status: "available",
+          rowCount: 2,
+          snapshotId: observedRunId,
+          note: "2 observed headway samples; minimum 30",
+        },
+        {
+          routeId: "T1",
+          month: isoMonth,
+          sourceScope: "reliability",
+          sourceId: "waitTimeReliability",
+          status: "available",
+          rowCount: 2,
+          snapshotId: observedRunId,
+          note: "2 observed headway samples; minimum 30",
+        },
+      ],
+    });
+  } finally {
+    local.sqlite.close();
+  }
+}
+
 afterEach(async () => {
   await removeFixtureArtifacts();
 });
@@ -642,6 +709,9 @@ describe("pipeline v1 check", () => {
         routeObservedReliabilityRows: 1,
         routeObservedReliabilityObservedRows: 1,
         routeObservedReliabilityInsufficientRows: 0,
+        routeObservedReliabilityRequiredObservedRows: 1,
+        routeObservedReliabilityObservedRouteShare: 1,
+        routeObservedReliabilityBelowThresholdRows: 0,
         routeObservedReliabilityHeadwaySampleCount: 42,
         routeMonthTrendRows: 4,
         routeMonthTrendSpeedRows: 4,
@@ -710,12 +780,16 @@ describe("pipeline v1 check", () => {
         routeObservedReliabilityRows: 1,
         routeObservedReliabilityObservedRows: 0,
         routeObservedReliabilityInsufficientRows: 1,
+        routeObservedReliabilityRequiredObservedRows: 1,
+        routeObservedReliabilityObservedRouteShare: 0,
+        routeObservedReliabilityBelowThresholdRows: 0,
         routeObservedReliabilityHeadwaySampleCount: 0,
       }),
     );
     expect(result.issues.map((issue) => issue.code)).toEqual(
       expect.arrayContaining([
         "observed_reliability_no_observed_routes",
+        "observed_reliability_route_coverage_insufficient",
         "observed_reliability_sample_coverage_insufficient",
       ]),
     );
@@ -752,6 +826,43 @@ describe("pipeline v1 check", () => {
         "gtfs_rt_vehicle_positions_not_parsed",
         "observed_headway_rows_incomplete",
       ]),
+    );
+  });
+
+  test("fails strict mode when observed route coverage is below the configured threshold", async () => {
+    await writeFixtureNetwork({ includeObservedAndInterventions: true });
+
+    const result = await checkPipelineV1(checkArgs({ minObservedRouteCount: 2 }));
+
+    expect(result.status).toBe("fail");
+    expect(result.counts).toEqual(
+      expect.objectContaining({
+        routeObservedReliabilityObservedRows: 1,
+        routeObservedReliabilityRequiredObservedRows: 2,
+        routeObservedReliabilityObservedRouteShare: 1,
+      }),
+    );
+    expect(result.issues.map((issue) => issue.code)).toEqual(
+      expect.arrayContaining(["observed_reliability_route_coverage_insufficient"]),
+    );
+  });
+
+  test("fails strict mode when observed rows are below their sample thresholds", async () => {
+    await writeFixtureNetwork({ includeObservedAndInterventions: true });
+    await replaceWithBelowThresholdObservedReliability();
+
+    const result = await checkPipelineV1(checkArgs({ minObservedHeadwaySamples: 1 }));
+
+    expect(result.status).toBe("fail");
+    expect(result.counts).toEqual(
+      expect.objectContaining({
+        routeObservedReliabilityObservedRows: 1,
+        routeObservedReliabilityBelowThresholdRows: 1,
+        routeObservedReliabilityHeadwaySampleCount: 2,
+      }),
+    );
+    expect(result.issues.map((issue) => issue.code)).toEqual(
+      expect.arrayContaining(["observed_reliability_observed_samples_below_threshold"]),
     );
   });
 

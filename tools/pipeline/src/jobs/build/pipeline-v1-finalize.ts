@@ -25,6 +25,8 @@ type PipelineV1FinalizeArgs = {
   buildObservedHeadways?: boolean;
   allowInsufficientGtfsRt?: boolean;
   minObservedHeadwaySamples?: number;
+  minObservedRouteCount?: number;
+  minObservedRouteShare?: number;
 };
 
 type PipelineV1FinalizeResult = {
@@ -111,6 +113,12 @@ function parseCliArgs(args: string[]): PipelineV1FinalizeArgs {
     }),
     numberOption(["--min-observed-headway-samples"], (output, value) => {
       output.minObservedHeadwaySamples = value;
+    }),
+    numberOption(["--min-observed-route-count"], (output, value) => {
+      output.minObservedRouteCount = value;
+    }),
+    numberOption(["--min-observed-route-share"], (output, value) => {
+      output.minObservedRouteShare = value;
     }),
   ];
 
@@ -207,6 +215,12 @@ export async function finalizePipelineV1(
     ...(args.minObservedHeadwaySamples === undefined
       ? {}
       : { minObservedHeadwaySamples: args.minObservedHeadwaySamples }),
+    ...(args.minObservedRouteCount === undefined
+      ? {}
+      : { minObservedRouteCount: args.minObservedRouteCount }),
+    ...(args.minObservedRouteShare === undefined
+      ? {}
+      : { minObservedRouteShare: args.minObservedRouteShare }),
   };
   const check = await deps.checkPipelineV1(checkArgs);
 

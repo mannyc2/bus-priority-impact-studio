@@ -35,6 +35,8 @@ type PipelineV1CheckArgs = {
   dbPath?: string;
   allowInsufficientGtfsRt?: boolean;
   minObservedHeadwaySamples?: number;
+  minObservedRouteCount?: number;
+  minObservedRouteShare?: number;
   maxSourceProbeAgeDays?: number;
   sourceMetadataDir?: string;
   now?: Date;
@@ -58,6 +60,9 @@ type PipelineV1Counts = {
   routeObservedReliabilityRows: number;
   routeObservedReliabilityObservedRows: number;
   routeObservedReliabilityInsufficientRows: number;
+  routeObservedReliabilityRequiredObservedRows: number;
+  routeObservedReliabilityObservedRouteShare: number;
+  routeObservedReliabilityBelowThresholdRows: number;
   routeObservedReliabilityHeadwaySampleCount: number;
   gtfsRtCollectionRunRows: number;
   gtfsRtCompletedCollectionRunRows: number;
@@ -113,6 +118,7 @@ type PipelineV1CheckResult = {
 };
 
 const defaultMinObservedHeadwaySamples = 1;
+const defaultMinObservedRouteShare = 0.9;
 const busLaneSourceId = "nyc_dot_bus_lanes";
 const defaultMaxSourceProbeAgeDays = 45;
 const requiredV1SourceProbeIds = [
@@ -143,6 +149,12 @@ function parseCliArgs(args: string[]): PipelineV1CheckArgs {
     }),
     numberOption(["--min-observed-headway-samples"], (output, value) => {
       output.minObservedHeadwaySamples = value;
+    }),
+    numberOption(["--min-observed-route-count"], (output, value) => {
+      output.minObservedRouteCount = value;
+    }),
+    numberOption(["--min-observed-route-share"], (output, value) => {
+      output.minObservedRouteShare = value;
     }),
     numberOption(["--max-source-probe-age-days"], (output, value) => {
       output.maxSourceProbeAgeDays = value;
@@ -179,6 +191,19 @@ function tableCount(tableCounts: Record<string, number>, tableName: string): num
 
 function unique(values: Iterable<string>): string[] {
   return [...new Set(values)].sort();
+}
+
+function round(value: number, decimals = 4): number {
+  const factor = 10 ** decimals;
+  return Math.round(value * factor) / factor;
+}
+
+function formatPercent(value: number): string {
+  return `${round(value * 100, 1)}%`;
+}
+
+function clampShare(value: number): number {
+  return Math.min(1, Math.max(0, value));
 }
 
 function sourceMetadataDir(path: string | undefined): string {
@@ -249,6 +274,13 @@ export async function checkPipelineV1(
     1,
     Math.round(args.minObservedHeadwaySamples ?? defaultMinObservedHeadwaySamples),
   );
+  const minObservedRouteShare = clampShare(
+    args.minObservedRouteShare ?? defaultMinObservedRouteShare,
+  );
+  const minObservedRouteCountOverride =
+    args.minObservedRouteCount === undefined
+      ? 0
+      : Math.max(0, Math.round(args.minObservedRouteCount));
   const maxSourceProbeAgeDays = Math.max(
     1,
     Math.round(args.maxSourceProbeAgeDays ?? defaultMaxSourceProbeAgeDays),
@@ -348,6 +380,20 @@ export async function checkPipelineV1(
   ).length;
   const observedReliabilityInsufficientRows = localState.observedReliability.filter(
     (row) => row.reliabilityStatus === "insufficient_gtfs_rt_samples",
+  ).length;
+  const observedReliabilityRequiredObservedRows =
+    publicRouteIds.length === 0
+      ? 0
+      : Math.max(
+          minObservedRouteCountOverride,
+          Math.ceil(publicRouteIds.length * minObservedRouteShare),
+        );
+  const observedReliabilityObservedRouteShare =
+    publicRouteIds.length === 0
+      ? 0
+      : round(observedReliabilityObservedRows / publicRouteIds.length);
+  const observedReliabilityBelowThresholdRows = localState.observedReliability.filter(
+    (row) => row.reliabilityStatus === "observed" && row.sampleCount < row.minSampleThreshold,
   ).length;
   const observedReliabilityHeadwaySampleCount = localState.observedReliability.reduce(
     (sum, row) => sum + row.sampleCount,
@@ -492,6 +538,23 @@ export async function checkPipelineV1(
       issues,
       "observed_reliability_no_observed_routes",
       `No public routes have observed GTFS-RT reliability; ${observedReliabilityInsufficientRows} routes are marked insufficient.`,
+    );
+  }
+  if (
+    !args.allowInsufficientGtfsRt &&
+    observedReliabilityObservedRows < observedReliabilityRequiredObservedRows
+  ) {
+    addIssue(
+      issues,
+      "observed_reliability_route_coverage_insufficient",
+      `${observedReliabilityObservedRows} public routes have observed GTFS-RT reliability; expected at least ${observedReliabilityRequiredObservedRows} (${formatPercent(minObservedRouteShare)} of ${publicRouteIds.length}).`,
+    );
+  }
+  if (!args.allowInsufficientGtfsRt && observedReliabilityBelowThresholdRows > 0) {
+    addIssue(
+      issues,
+      "observed_reliability_observed_samples_below_threshold",
+      `${observedReliabilityBelowThresholdRows} observed reliability rows have sample counts below their per-route minimum thresholds.`,
     );
   }
   if (
@@ -728,6 +791,9 @@ export async function checkPipelineV1(
       routeObservedReliabilityRows: localState.observedReliability.length,
       routeObservedReliabilityObservedRows: observedReliabilityObservedRows,
       routeObservedReliabilityInsufficientRows: observedReliabilityInsufficientRows,
+      routeObservedReliabilityRequiredObservedRows: observedReliabilityRequiredObservedRows,
+      routeObservedReliabilityObservedRouteShare: observedReliabilityObservedRouteShare,
+      routeObservedReliabilityBelowThresholdRows: observedReliabilityBelowThresholdRows,
       routeObservedReliabilityHeadwaySampleCount: observedReliabilityHeadwaySampleCount,
       gtfsRtCollectionRunRows: gtfsRtState.collectionRuns.length,
       gtfsRtCompletedCollectionRunRows: completedGtfsRtCollectionRunCount,
