@@ -328,6 +328,73 @@ async function writeFixtureNetwork(options: { includeObservedAndInterventions: b
   await buildBriefArtifacts({ year: 2026, month: 11, dbPath });
 }
 
+async function replaceWithInsufficientObservedReliability(): Promise<void> {
+  const local = await openLocalPipelineDb(dbPath);
+  try {
+    await replaceRouteObservedReliabilityRows(local.db, isoMonth, "fixture-gtfs-rt", {
+      summaries: [
+        {
+          routeId: "T1",
+          month: isoMonth,
+          runId: "fixture-gtfs-rt",
+          reliabilityStatus: "insufficient_gtfs_rt_samples",
+          minSampleThreshold: 30,
+          sampleCount: 0,
+          stopCount: 0,
+          directionCount: 0,
+          averageObservedHeadwayMinutes: null,
+          medianObservedHeadwayMinutes: null,
+          p90ObservedHeadwayMinutes: null,
+          maxObservedHeadwayMinutes: null,
+          scheduledMedianHeadwayMinutes: 10,
+          bunchingThresholdMinutes: 5,
+          longGapThresholdMinutes: 20,
+          observedBunchingShare: null,
+          observedLongGapShare: null,
+          expectedWaitMinutes: null,
+          scheduledExpectedWaitMinutes: 5,
+          excessWaitMinutes: null,
+          waitReliabilityRatio: null,
+        },
+      ],
+      sourceStatuses: [
+        {
+          routeId: "T1",
+          month: isoMonth,
+          sourceScope: "reliability",
+          sourceId: "observedHeadways",
+          status: "insufficient_gtfs_rt_samples",
+          rowCount: 0,
+          snapshotId: "fixture-gtfs-rt",
+          note: "0 observed headway samples; minimum 30",
+        },
+        {
+          routeId: "T1",
+          month: isoMonth,
+          sourceScope: "reliability",
+          sourceId: "bunching",
+          status: "insufficient_gtfs_rt_samples",
+          rowCount: 0,
+          snapshotId: "fixture-gtfs-rt",
+          note: "0 observed headway samples; minimum 30",
+        },
+        {
+          routeId: "T1",
+          month: isoMonth,
+          sourceScope: "reliability",
+          sourceId: "waitTimeReliability",
+          status: "insufficient_gtfs_rt_samples",
+          rowCount: 0,
+          snapshotId: "fixture-gtfs-rt",
+          note: "0 observed headway samples; minimum 30",
+        },
+      ],
+    });
+  } finally {
+    local.sqlite.close();
+  }
+}
+
 afterEach(async () => {
   await removeFixtureArtifacts();
 });
@@ -382,6 +449,41 @@ describe("pipeline v1 check", () => {
         "d1_observed_reliability_incomplete",
         "d1_intervention_comparisons_missing",
       ]),
+    );
+  });
+
+  test("fails strict mode when reliability rows are all insufficient samples", async () => {
+    await writeFixtureNetwork({ includeObservedAndInterventions: true });
+    await replaceWithInsufficientObservedReliability();
+
+    const result = await checkPipelineV1({ year: 2026, month: 11, dbPath });
+    const structuralResult = await checkPipelineV1({
+      year: 2026,
+      month: 11,
+      dbPath,
+      allowInsufficientGtfsRt: true,
+    });
+
+    expect(result.status).toBe("fail");
+    expect(result.counts).toEqual(
+      expect.objectContaining({
+        routeObservedReliabilityRows: 1,
+        routeObservedReliabilityObservedRows: 0,
+        routeObservedReliabilityInsufficientRows: 1,
+        routeObservedReliabilityHeadwaySampleCount: 0,
+      }),
+    );
+    expect(result.issues.map((issue) => issue.code)).toEqual(
+      expect.arrayContaining([
+        "observed_reliability_no_observed_routes",
+        "observed_reliability_sample_coverage_insufficient",
+      ]),
+    );
+    expect(structuralResult).toEqual(
+      expect.objectContaining({
+        status: "pass",
+        issueCount: 0,
+      }),
     );
   });
 });

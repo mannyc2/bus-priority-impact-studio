@@ -16,6 +16,7 @@ import {
   listRouteObservedReliabilitySummaries,
   listRouteReadiness,
 } from "@bp/db/local";
+import { type CliOption, numberOption, trueOption } from "../../lib/cli-args.js";
 import { withLocalPipelineDb } from "../../lib/local-db.js";
 import { createMonthContext, parseMonthDbCliArgs } from "../../lib/route-job.js";
 import { buildRouteBatchAudit } from "../build/route-batch-audit.js";
@@ -25,6 +26,8 @@ type PipelineV1CheckArgs = {
   year?: number;
   month?: number;
   dbPath?: string;
+  allowInsufficientGtfsRt?: boolean;
+  minObservedHeadwaySamples?: number;
 };
 
 type CheckStatus = "pass" | "fail";
@@ -82,8 +85,19 @@ type PipelineV1CheckResult = {
   } | null;
 };
 
+const defaultMinObservedHeadwaySamples = 1;
+
 function parseCliArgs(args: string[]): PipelineV1CheckArgs {
-  return parseMonthDbCliArgs(args, {} as PipelineV1CheckArgs);
+  const extraOptions: CliOption<PipelineV1CheckArgs>[] = [
+    trueOption(["--allow-insufficient-gtfs-rt"], (output) => {
+      output.allowInsufficientGtfsRt = true;
+    }),
+    numberOption(["--min-observed-headway-samples"], (output, value) => {
+      output.minObservedHeadwaySamples = value;
+    }),
+  ];
+
+  return parseMonthDbCliArgs(args, {} as PipelineV1CheckArgs, extraOptions);
 }
 
 function addIssue(issues: PipelineV1Issue[], code: string, message: string): void {
@@ -108,6 +122,10 @@ export async function checkPipelineV1(
 ): Promise<PipelineV1CheckResult> {
   const options = createMonthContext(args);
   const month = options.isoMonth;
+  const minObservedHeadwaySamples = Math.max(
+    1,
+    Math.round(args.minObservedHeadwaySamples ?? defaultMinObservedHeadwaySamples),
+  );
   const audit = await buildRouteBatchAudit({
     year: options.year,
     month: options.month,
@@ -193,6 +211,16 @@ export async function checkPipelineV1(
       row.sourceScope === "reliability" &&
       ["observedHeadways", "bunching", "waitTimeReliability"].includes(row.sourceId),
   ).length;
+  const observedReliabilityObservedRows = localState.observedReliability.filter(
+    (row) => row.reliabilityStatus === "observed",
+  ).length;
+  const observedReliabilityInsufficientRows = localState.observedReliability.filter(
+    (row) => row.reliabilityStatus === "insufficient_gtfs_rt_samples",
+  ).length;
+  const observedReliabilityHeadwaySampleCount = localState.observedReliability.reduce(
+    (sum, row) => sum + row.sampleCount,
+    0,
+  );
   const issues: PipelineV1Issue[] = [];
 
   if (localState.catalog.length === 0) {
@@ -239,6 +267,23 @@ export async function checkPipelineV1(
       issues,
       "observed_reliability_source_status_incomplete",
       `Observed reliability source-status rows are ${observedReliabilitySourceStatusRows}; expected at least ${publicRouteIds.length * 3}.`,
+    );
+  }
+  if (!args.allowInsufficientGtfsRt && observedReliabilityObservedRows === 0) {
+    addIssue(
+      issues,
+      "observed_reliability_no_observed_routes",
+      `No public routes have observed GTFS-RT reliability; ${observedReliabilityInsufficientRows} routes are marked insufficient.`,
+    );
+  }
+  if (
+    !args.allowInsufficientGtfsRt &&
+    observedReliabilityHeadwaySampleCount < minObservedHeadwaySamples
+  ) {
+    addIssue(
+      issues,
+      "observed_reliability_sample_coverage_insufficient",
+      `Observed GTFS-RT headway samples total ${observedReliabilityHeadwaySampleCount}; expected at least ${minObservedHeadwaySamples}.`,
     );
   }
   if (localState.aceRoutes.length > 0 && localState.interventionEvents.length === 0) {
@@ -367,16 +412,9 @@ export async function checkPipelineV1(
       publicRouteCount: publicRouteIds.length,
       routeArtifactRows: localState.routeArtifacts.length,
       routeObservedReliabilityRows: localState.observedReliability.length,
-      routeObservedReliabilityObservedRows: localState.observedReliability.filter(
-        (row) => row.reliabilityStatus === "observed",
-      ).length,
-      routeObservedReliabilityInsufficientRows: localState.observedReliability.filter(
-        (row) => row.reliabilityStatus === "insufficient_gtfs_rt_samples",
-      ).length,
-      routeObservedReliabilityHeadwaySampleCount: localState.observedReliability.reduce(
-        (sum, row) => sum + row.sampleCount,
-        0,
-      ),
+      routeObservedReliabilityObservedRows: observedReliabilityObservedRows,
+      routeObservedReliabilityInsufficientRows: observedReliabilityInsufficientRows,
+      routeObservedReliabilityHeadwaySampleCount: observedReliabilityHeadwaySampleCount,
       observedReliabilitySourceStatusRows,
       aceRouteRows: localState.aceRoutes.length,
       interventionEventRows: localState.interventionEvents.length,

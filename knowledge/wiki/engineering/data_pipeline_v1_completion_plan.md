@@ -85,7 +85,8 @@ Latest local verification after the March 2026 v1 catch-up run:
 - `bun run brief-artifacts -- --year 2026 --month 3` produced 1,050 route brief artifacts and 627 corridor brief artifacts.
 - `bun run route-batch-audit -- --year 2026 --month 3` passed with 1,677 artifacts, 0 missing artifacts, 0 hash mismatches, and 0 byte-length mismatches.
 - `bun run verify:d1 -- --year 2026 --month 3` passed with 381 observed reliability rows, 79 intervention comparison rows, 1,050 route artifact rows, and 627 corridor artifact rows.
-- `bun run check:pipeline-v1 -- --year 2026 --month 3` passed with 0 issues for the current local DB/export/artifact state.
+- `bun run check:pipeline-v1 -- --year 2026 --month 3` now fails strict v1 QA on `observed_reliability_no_observed_routes` and `observed_reliability_sample_coverage_insufficient`, which is correct for the current local DB because there are 0 observed GTFS-RT headway samples.
+- `bun run check:pipeline-v1 -- --year 2026 --month 3 --allow-insufficient-gtfs-rt` passes with 0 issues as a structural DB/export/artifact check only. This is not a v1 completion signal.
 
 Current v1 gaps:
 
@@ -111,7 +112,7 @@ Current v1 gaps:
 | Full set of corridor briefs | `brief-artifacts` writes and audits 627 JSON/Markdown/HTML corridor bodies for 209 corridors | Pass for current March run | Clean rebuild from empty local DB proves reproducibility |
 | Verified D1 export contract | `verify:d1` passes with route serving rows, observed reliability, ACE intervention comparisons, corridor summaries, and route/corridor artifact metadata | Pass for current March run | D1 verification expanded to map payload and detailed evaluation manifests |
 | Static artifact contract | Stable `briefs/routes/...` and `briefs/corridors/...` keys exist with byte-length/SHA-256 audit | Partial | Stable artifact key scheme for map payloads and detailed evaluation payloads |
-| QA gates | `check:pipeline-v1` verifies route/corridor brief completeness, observed reliability coverage, intervention rows, route-batch audit output, and D1 readback | Partial | Expand with source freshness, GTFS-RT sample confidence, bus-lane intervention eligibility, and richer corridor ambiguity checks |
+| QA gates | Strict `check:pipeline-v1` fails the current March run on missing observed GTFS-RT samples; structural mode can be run with `--allow-insufficient-gtfs-rt` | Partial | Add source freshness, richer GTFS-RT confidence thresholds, bus-lane intervention eligibility, and richer corridor ambiguity checks |
 | Updated roadmap/docs | Some docs are stale | In progress | This page plus updated index, roadmap, ETL, and data pages |
 
 ## Definition Of Done
@@ -451,6 +452,7 @@ QA command target:
 
 ```bash
 bun run check:pipeline-v1 -- --year 2026 --month 3
+bun run check:pipeline-v1 -- --year 2026 --month 3 --allow-insufficient-gtfs-rt
 ```
 
 QA gates:
@@ -470,7 +472,7 @@ Implemented so far:
 
 - `route-batch-audit` checks required route/corridor brief artifacts, file presence, byte length, and SHA-256 against local metadata rows.
 - `verify:d1` loads generated schema/seed SQL and exercises typed readback for route/corridor artifact metadata.
-- `check:pipeline-v1` runs the current v1 QA gate over local DB state, route/corridor brief artifacts, route-batch audit results, and D1 verification. Against the current March 2026 local DB it passes with 381 reliability status rows, 79 intervention comparison rows, 5,171 route/month trend rows, and 1,677 verified brief artifacts. The QA output now reports observed-vs-insufficient reliability row counts, total observed headway samples, and speed/ridership trend coverage so a green gate does not hide missing GTFS-RT sample coverage.
+- `check:pipeline-v1` runs the current v1 QA gate over local DB state, route/corridor brief artifacts, route-batch audit results, and D1 verification. Against the current March 2026 local DB, strict mode fails because observed reliability has 381 insufficient rows and 0 observed headway samples. Structural mode with `--allow-insufficient-gtfs-rt` passes with 381 reliability status rows, 79 intervention comparison rows, 5,171 route/month trend rows, and 1,677 verified brief artifacts.
 
 Acceptance:
 
