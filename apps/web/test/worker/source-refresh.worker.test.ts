@@ -91,6 +91,7 @@ describe("scheduled source refresh", () => {
           expect(url.hostname).toBe("data.ny.gov");
           expect(url.pathname).toBe("/resource/kufs-yh3x.json");
           expect(url.searchParams.get("$group")).toBe("year,month,route_id");
+          expect(url.searchParams.get("$limit")).toBe("50000");
 
           return Response.json([
             {

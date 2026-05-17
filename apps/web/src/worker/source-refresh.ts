@@ -260,6 +260,7 @@ export async function runRouteSpeedMonthlyWatcher(
   url.searchParams.set("$where", `year between ${year - 1} and ${year}`);
   url.searchParams.set("$group", "year,month,route_id");
   url.searchParams.set("$order", "year DESC,month DESC,route_id");
+  url.searchParams.set("$limit", "50000");
 
   const response = await fetcher(url);
   if (!response.ok) {
