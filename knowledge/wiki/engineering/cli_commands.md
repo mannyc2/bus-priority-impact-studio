@@ -47,8 +47,8 @@ Expected outputs:
 ```bash
 bun run gtfs-rt:preflight -- --year 2026 --month 3
 bun run gtfs-rt:preflight -- --year 2026 --month 3 --run-id <run_id>
-bun run collect:gtfs-rt -- --duration-hours 24 --sample-seconds 30
-bun run collect:gtfs-rt -- --sample-count 1 --feed-types vehicle_positions
+bun run collect:gtfs-rt -- --duration-hours 24 --sample-seconds 30 --run-id <run_id>
+bun run collect:gtfs-rt -- --sample-count 1 --feed-types vehicle_positions --run-id <run_id>
 bun run ingest:gtfs-rt-snapshots -- --run-id <run_id>
 bun run build:observed-headways -- --run-id <run_id>
 bun run route-observed-reliability -- --run-id <run_id> --year 2026 --month 3
@@ -144,7 +144,7 @@ Expected outputs:
 - route/corridor brief bodies as JSON, Markdown, and HTML under `data/artifacts/briefs/`
 - route intervention-history artifacts for ACE dates, bus-lane open-date coverage, and still-missing signal/lane-upgrade sources
 - route equity-context artifacts joining route rows to county-level ACS proxy context
-- route batch audit rows validating required route/corridor brief artifacts, file existence, byte lengths, and hashes
+- route batch audit rows validating required route/corridor brief artifacts, file existence, byte lengths, hashes, and JSON contract fields such as owner IDs, observed reliability, collection windows, and corridor reliability metrics
 - static route/corridor brief manifest at `data/artifacts/briefs/<month>/manifest.json`
 - pipeline v1 finalization output chaining trend refresh, observed reliability, intervention evaluation, corridor modeling, brief artifacts, D1 verification, and the v1 QA gate
 - source/caveat metadata
@@ -176,7 +176,7 @@ Expected outputs:
 - D1 seed SQL or import-ready rows
 - D1 export summaries with schema/seed byte lengths and SHA-256 hashes
 - D1 verification summaries that load generated seed SQL, validate expected-vs-loaded serving row counts, and exercise typed repository readback
-- strict v1 QA result covering local route/corridor evidence, required source probe freshness, GTFS-RT collection window/cadence/snapshot coverage, GTFS-RT parse/headway provenance, observed-route and observed-sample coverage, corridor assignment ambiguity/unassigned thresholds, route-batch audit output, and D1 readback
+- strict v1 QA result covering local route/corridor evidence, required source probe freshness, GTFS-RT collection window/cadence/snapshot coverage, GTFS-RT parse/headway provenance, observed-route and observed-sample coverage, corridor assignment ambiguity/unassigned thresholds, route-batch audit file and JSON-contract output, and D1 readback
 - structural DB/export/artifact QA result when `--allow-insufficient-gtfs-rt` is used without a Bus Time collection run
 - artifact keys and hashes
 - optional R2 upload after local artifact contracts are stable

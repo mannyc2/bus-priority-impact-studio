@@ -1,13 +1,19 @@
 import { createHash } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import type { LocalCorridorArtifact, LocalRouteArtifact } from "@bp/db/local";
+import type {
+  LocalCorridorArtifact,
+  LocalRouteArtifact,
+  LocalRouteObservedReliabilitySummary,
+} from "@bp/db/local";
 import {
   listCorridorArtifacts,
   listCorridorMonthSummaries,
+  listGtfsRtCollectionRuns,
   listRouteArtifacts,
   listRouteBatchBuiltRoutes,
   listRouteBriefSummaries,
+  listRouteObservedReliabilitySummaries,
   replaceRouteBatch,
 } from "@bp/db/local";
 import { withLocalPipelineDb } from "../../lib/local-db.js";
@@ -44,6 +50,13 @@ type AuditIssue = {
 
 type BriefArtifactRow = LocalRouteArtifact | LocalCorridorArtifact;
 
+type JsonObject = Record<string, unknown>;
+
+type BriefContractContext = {
+  reliabilityByRoute: ReadonlyMap<string, LocalRouteObservedReliabilitySummary>;
+  collectionRunIds: ReadonlySet<string>;
+};
+
 const requiredArtifactNames = ["brief.json", "brief.md", "brief.html"] as const;
 
 function parseBuildArgs(args: RouteBatchAuditArgs = {}) {
@@ -76,6 +89,18 @@ function issueOwner(row: BriefArtifactRow): string | null {
 
 function artifactKey(row: BriefArtifactRow): string {
   return `${artifactOwner(row)}:${row.artifactName}`;
+}
+
+function isJsonObject(value: unknown): value is JsonObject {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function hasKey(value: JsonObject, key: string): boolean {
+  return Object.hasOwn(value, key);
+}
+
+function jsonField(value: JsonObject, key: string): unknown {
+  return value[key];
 }
 
 function missingRequiredIssues(input: {
@@ -158,6 +183,181 @@ async function verifyArtifact(row: BriefArtifactRow): Promise<{
   };
 }
 
+async function readJsonArtifact(row: BriefArtifactRow): Promise<unknown> {
+  try {
+    return await Bun.file(artifactPath(row.artifactKey)).json();
+  } catch {
+    return null;
+  }
+}
+
+function briefJsonShapeIssues(row: BriefArtifactRow, json: unknown): AuditIssue[] {
+  if (!isJsonObject(json)) {
+    return [
+      {
+        routeId: issueOwner(row),
+        severity: "error",
+        issueCode: "brief_json_invalid",
+        message: `Brief JSON artifact ${row.artifactKey} could not be parsed as an object.`,
+      },
+    ];
+  }
+
+  const expectedKind = artifactOwnerKind(row) === "route" ? "route_brief" : "corridor_brief";
+  const issues: AuditIssue[] = [];
+  const artifactKind = jsonField(json, "artifactKind");
+  if (artifactKind !== expectedKind) {
+    issues.push({
+      routeId: issueOwner(row),
+      severity: "error",
+      issueCode: "brief_json_kind_mismatch",
+      message: `Brief JSON artifact ${row.artifactKey} has artifactKind ${String(artifactKind)}; expected ${expectedKind}.`,
+    });
+  }
+  const artifactMonth = jsonField(json, "month");
+  if (artifactMonth !== row.month) {
+    issues.push({
+      routeId: issueOwner(row),
+      severity: "error",
+      issueCode: "brief_json_month_mismatch",
+      message: `Brief JSON artifact ${row.artifactKey} has month ${String(artifactMonth)}; expected ${row.month}.`,
+    });
+  }
+
+  return issues;
+}
+
+function routeBriefReliabilityContractIssues(
+  row: LocalRouteArtifact,
+  json: unknown,
+  context: BriefContractContext,
+): AuditIssue[] {
+  if (!isJsonObject(json)) {
+    return [];
+  }
+
+  const issues: AuditIssue[] = [];
+  const routeId = jsonField(json, "routeId");
+  if (routeId !== row.routeId) {
+    issues.push({
+      routeId: row.routeId,
+      severity: "error",
+      issueCode: "route_brief_route_id_mismatch",
+      message: `Route brief ${row.artifactKey} has routeId ${String(routeId)}; expected ${row.routeId}.`,
+    });
+  }
+  if (!hasKey(json, "observedReliability")) {
+    issues.push({
+      routeId: row.routeId,
+      severity: "error",
+      issueCode: "route_brief_observed_reliability_contract_missing",
+      message: `Route brief ${row.artifactKey} does not include observedReliability.`,
+    });
+    return issues;
+  }
+
+  const reliability = context.reliabilityByRoute.get(row.routeId);
+  if (reliability === undefined) {
+    return issues;
+  }
+
+  const observedReliability = jsonField(json, "observedReliability");
+  if (!isJsonObject(observedReliability)) {
+    issues.push({
+      routeId: row.routeId,
+      severity: "error",
+      issueCode: "route_brief_observed_reliability_contract_missing",
+      message: `Route brief ${row.artifactKey} should include observedReliability details for ${reliability.runId}.`,
+    });
+    return issues;
+  }
+  const reliabilityStatus = jsonField(observedReliability, "status");
+  const sampleCount = jsonField(observedReliability, "sampleCount");
+  if (
+    reliabilityStatus !== reliability.reliabilityStatus ||
+    sampleCount !== reliability.sampleCount
+  ) {
+    issues.push({
+      routeId: row.routeId,
+      severity: "error",
+      issueCode: "route_brief_observed_reliability_mismatch",
+      message: `Route brief ${row.artifactKey} observedReliability does not match local reliability summary for ${reliability.runId}.`,
+    });
+  }
+  if (!hasKey(observedReliability, "collectionWindow")) {
+    issues.push({
+      routeId: row.routeId,
+      severity: "error",
+      issueCode: "route_brief_collection_window_contract_missing",
+      message: `Route brief ${row.artifactKey} does not include observedReliability.collectionWindow.`,
+    });
+    return issues;
+  }
+  if (!context.collectionRunIds.has(reliability.runId)) {
+    return issues;
+  }
+
+  const collectionWindow = jsonField(observedReliability, "collectionWindow");
+  if (
+    !isJsonObject(collectionWindow) ||
+    jsonField(collectionWindow, "runId") !== reliability.runId
+  ) {
+    issues.push({
+      routeId: row.routeId,
+      severity: "error",
+      issueCode: "route_brief_collection_window_missing",
+      message: `Route brief ${row.artifactKey} does not include the collection window for observed reliability run ${reliability.runId}.`,
+    });
+  }
+
+  return issues;
+}
+
+function corridorBriefContractIssues(row: LocalCorridorArtifact, json: unknown): AuditIssue[] {
+  if (!isJsonObject(json)) {
+    return [];
+  }
+
+  const issues: AuditIssue[] = [];
+  const corridorId = jsonField(json, "corridorId");
+  if (corridorId !== row.corridorId) {
+    issues.push({
+      routeId: null,
+      severity: "error",
+      issueCode: "corridor_brief_corridor_id_mismatch",
+      message: `Corridor brief ${row.artifactKey} has corridorId ${String(corridorId)}; expected ${row.corridorId}.`,
+    });
+  }
+  const metrics = jsonField(json, "metrics");
+  if (!isJsonObject(metrics) || !hasKey(metrics, "observedReliabilityRouteCount")) {
+    issues.push({
+      routeId: null,
+      severity: "error",
+      issueCode: "corridor_brief_metrics_contract_missing",
+      message: `Corridor brief ${row.artifactKey} does not include observed reliability route-count metrics.`,
+    });
+  }
+
+  return issues;
+}
+
+async function verifyBriefJsonContract(
+  row: BriefArtifactRow,
+  context: BriefContractContext,
+): Promise<AuditIssue[]> {
+  if (row.artifactName !== "brief.json") {
+    return [];
+  }
+
+  const json = await readJsonArtifact(row);
+  const shapeIssues = briefJsonShapeIssues(row, json);
+  if ("routeId" in row) {
+    return [...shapeIssues, ...routeBriefReliabilityContractIssues(row, json, context)];
+  }
+
+  return [...shapeIssues, ...corridorBriefContractIssues(row, json)];
+}
+
 async function writeBriefArtifactManifest(input: {
   path: string;
   month: string;
@@ -217,19 +417,30 @@ export async function buildRouteBatchAudit(
   const month = options.isoMonth;
   const manifestPath = artifactManifestPath(month);
   const auditInput = await withLocalPipelineDb(options.dbPath, async (local) => {
-    const [builtRoutes, routeBriefs, routeArtifacts, corridors, corridorArtifacts] =
-      await Promise.all([
-        listRouteBatchBuiltRoutes(local.db, month),
-        listRouteBriefSummaries(local.db, month),
-        listRouteArtifacts(local.db, month),
-        listCorridorMonthSummaries(local.db, month),
-        listCorridorArtifacts(local.db, month),
-      ]);
+    const [
+      builtRoutes,
+      routeBriefs,
+      routeArtifacts,
+      observedReliability,
+      collectionRuns,
+      corridors,
+      corridorArtifacts,
+    ] = await Promise.all([
+      listRouteBatchBuiltRoutes(local.db, month),
+      listRouteBriefSummaries(local.db, month),
+      listRouteArtifacts(local.db, month),
+      listRouteObservedReliabilitySummaries(local.db, month),
+      listGtfsRtCollectionRuns(local.db),
+      listCorridorMonthSummaries(local.db, month),
+      listCorridorArtifacts(local.db, month),
+    ]);
 
     return {
       builtRoutes,
       publicRouteIds: routeBriefs.filter((row) => row.publicVisible).map((row) => row.routeId),
       routeArtifacts,
+      observedReliability,
+      collectionRuns,
       corridorIds: corridors.map((row) => row.corridorId),
       corridorArtifacts,
     };
@@ -252,7 +463,14 @@ export async function buildRouteBatchAudit(
   ];
   const verificationResults = await Promise.all(artifactRows.map((row) => verifyArtifact(row)));
   const verificationIssues = verificationResults.flatMap((result) => result.issues);
-  const issues = [...requiredIssues, ...verificationIssues];
+  const contractContext: BriefContractContext = {
+    reliabilityByRoute: new Map(auditInput.observedReliability.map((row) => [row.routeId, row])),
+    collectionRunIds: new Set(auditInput.collectionRuns.map((row) => row.runId)),
+  };
+  const contractIssues = (
+    await Promise.all(artifactRows.map((row) => verifyBriefJsonContract(row, contractContext)))
+  ).flat();
+  const issues = [...requiredIssues, ...verificationIssues, ...contractIssues];
   const missingArtifactCount =
     requiredIssues.length + verificationResults.filter((result) => result.missing).length;
   const hashMismatchCount = verificationResults.filter((result) => result.hashMismatch).length;

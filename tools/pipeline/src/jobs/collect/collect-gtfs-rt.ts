@@ -344,7 +344,7 @@ function parseFeedTypes(values: string[]): GtfsRtFeedType[] {
   return normalizeFeedTypes(values);
 }
 
-function parseCliArgs(args: string[]): CollectGtfsRtArgs {
+export function parseCollectGtfsRtCliArgs(args: string[]): CollectGtfsRtArgs {
   type CliArgs = CollectGtfsRtArgs & { rawDir?: string };
   const extraOptions: CliOption<CliArgs>[] = [
     {
@@ -375,6 +375,14 @@ function parseCliArgs(args: string[]): CollectGtfsRtArgs {
       output.feedTypes = parseFeedTypes(value);
     }),
     {
+      flags: ["--run-id"],
+      apply: (output, value) => {
+        if (value !== undefined) {
+          output.runId = value;
+        }
+      },
+    },
+    {
       flags: ["--raw-dir"],
       apply: (output, value) => {
         if (value !== undefined) {
@@ -388,5 +396,5 @@ function parseCliArgs(args: string[]): CollectGtfsRtArgs {
 }
 
 export async function collectGtfsRtSnapshotsFromCli(args: string[]): Promise<CollectGtfsRtResult> {
-  return collectGtfsRtSnapshots(parseCliArgs(args));
+  return collectGtfsRtSnapshots(parseCollectGtfsRtCliArgs(args));
 }

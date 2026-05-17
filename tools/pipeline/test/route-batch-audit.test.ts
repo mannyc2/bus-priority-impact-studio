@@ -272,4 +272,26 @@ describe("route batch audit", () => {
       expect.arrayContaining(["artifact_hash_mismatch", "artifact_byte_length_mismatch"]),
     );
   });
+
+  test("records a contract issue when route brief JSON omits observed reliability", async () => {
+    await writeFixtureBatch();
+    const briefPath = join(routeBriefDir, "brief.json");
+    const briefJson = await Bun.file(briefPath).json();
+    delete briefJson.observedReliability;
+    await Bun.write(briefPath, `${JSON.stringify(briefJson, null, 2)}\n`);
+
+    const result = await buildRouteBatchAudit({ year: 2026, month: 8, dbPath });
+    const manifest = await Bun.file(result.manifestPath).json();
+    const local = await openLocalPipelineDb(dbPath);
+    const issues = await listRouteBatchIssues(local.db, isoMonth);
+    local.sqlite.close();
+
+    expect(result.status).toBe("fail");
+    expect(issues.map((issue) => issue.issueCode)).toEqual(
+      expect.arrayContaining(["route_brief_observed_reliability_contract_missing"]),
+    );
+    expect(manifest.issues.map((issue: { issueCode: string }) => issue.issueCode)).toEqual(
+      expect.arrayContaining(["route_brief_observed_reliability_contract_missing"]),
+    );
+  });
 });

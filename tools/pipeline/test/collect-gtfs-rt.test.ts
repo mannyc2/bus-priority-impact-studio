@@ -2,7 +2,10 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import { listGtfsRtCollectionRuns, listGtfsRtFeedSnapshots } from "@bp/db/local";
-import { collectGtfsRtSnapshots } from "../src/jobs/collect/collect-gtfs-rt.js";
+import {
+  collectGtfsRtSnapshots,
+  parseCollectGtfsRtCliArgs,
+} from "../src/jobs/collect/collect-gtfs-rt.js";
 import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
@@ -19,6 +22,25 @@ afterEach(async () => {
 });
 
 describe("GTFS-RT snapshot collection", () => {
+  test("parses a stable run id from CLI arguments", () => {
+    expect(
+      parseCollectGtfsRtCliArgs([
+        "--sample-count",
+        "1",
+        "--feed-types",
+        "vehicle_positions",
+        "--run-id",
+        "fixture-run",
+      ]),
+    ).toEqual(
+      expect.objectContaining({
+        sampleCount: 1,
+        feedTypes: ["vehicle_positions"],
+        runId: "fixture-run",
+      }),
+    );
+  });
+
   test("collects raw snapshots and stores only redacted feed URLs", async () => {
     await removeFixtureArtifacts();
     const seenUrls: string[] = [];
