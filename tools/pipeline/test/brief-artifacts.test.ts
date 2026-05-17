@@ -7,6 +7,7 @@ import {
   listCorridorArtifacts,
   listRouteArtifacts,
   replaceCorridorRows,
+  replaceObservedHeadwayRows,
   replaceRouteBriefRows,
   replaceRouteCatalog,
   replaceRouteHotspots,
@@ -188,6 +189,67 @@ async function writeFixtureNetwork(): Promise<void> {
         error: null,
       });
     }
+    await replaceObservedHeadwayRows(local.db, "fixture-gtfs-rt", {
+      stopEvents: [],
+      headwaySamples: [
+        {
+          runId: "fixture-gtfs-rt",
+          sampleRank: 1,
+          routeId: "T1",
+          sourceRouteId: "MTA NYCT_T1",
+          directionId: 0,
+          stopId: "S1",
+          previousVehicleKey: "bus-1",
+          vehicleKey: "bus-2",
+          previousObservedTimestamp: Date.UTC(2026, 9, 1, 12, 0, 0) / 1000,
+          observedTimestamp: Date.UTC(2026, 9, 1, 12, 24, 0) / 1000,
+          headwaySeconds: 1440,
+          headwayMinutes: 24,
+        },
+        {
+          runId: "fixture-gtfs-rt",
+          sampleRank: 2,
+          routeId: "T1",
+          sourceRouteId: "MTA NYCT_T1",
+          directionId: 0,
+          stopId: "S1",
+          previousVehicleKey: "bus-2",
+          vehicleKey: "bus-3",
+          previousObservedTimestamp: Date.UTC(2026, 9, 1, 12, 24, 0) / 1000,
+          observedTimestamp: Date.UTC(2026, 9, 1, 12, 42, 0) / 1000,
+          headwaySeconds: 1080,
+          headwayMinutes: 18,
+        },
+        {
+          runId: "fixture-gtfs-rt",
+          sampleRank: 3,
+          routeId: "T1",
+          sourceRouteId: "MTA NYCT_T1",
+          directionId: 1,
+          stopId: "S2",
+          previousVehicleKey: "bus-4",
+          vehicleKey: "bus-5",
+          previousObservedTimestamp: Date.UTC(2026, 9, 1, 13, 0, 0) / 1000,
+          observedTimestamp: Date.UTC(2026, 9, 1, 13, 3, 0) / 1000,
+          headwaySeconds: 180,
+          headwayMinutes: 3,
+        },
+        {
+          runId: "fixture-gtfs-rt",
+          sampleRank: 4,
+          routeId: "T1",
+          sourceRouteId: "MTA NYCT_T1",
+          directionId: 1,
+          stopId: "S2",
+          previousVehicleKey: "bus-5",
+          vehicleKey: "bus-6",
+          previousObservedTimestamp: Date.UTC(2026, 9, 1, 13, 3, 0) / 1000,
+          observedTimestamp: Date.UTC(2026, 9, 1, 13, 7, 0) / 1000,
+          headwaySeconds: 240,
+          headwayMinutes: 4,
+        },
+      ],
+    });
     await replaceRouteInterventionEvaluationRows(local.db, isoMonth, "mta_ace_routes", {
       events: [],
       comparisons: [
@@ -325,10 +387,31 @@ describe("brief artifacts", () => {
             sampleSeconds: 30,
             successfulVehiclePositionSnapshotCount: 2,
           }),
+          windows: expect.objectContaining({
+            topLongGapWindows: expect.arrayContaining([
+              expect.objectContaining({
+                rank: 1,
+                stopId: "S1",
+                sampleCount: 2,
+                p90ObservedHeadwayMinutes: 23.4,
+                observedLongGapShare: 0.5,
+              }),
+            ]),
+            topBunchingWindows: expect.arrayContaining([
+              expect.objectContaining({
+                rank: 1,
+                stopId: "S2",
+                sampleCount: 2,
+                observedBunchingShare: 1,
+              }),
+            ]),
+          }),
         }),
       }),
     );
     expect(routeMarkdown).toContain("GTFS-RT run fixture-gtfs-rt");
+    expect(routeMarkdown).toContain("Long-gap window 1");
+    expect(routeMarkdown).toContain("Bunching window 1");
     expect(corridorMarkdown).toContain("# Broadway Corridor");
     expect(routeArtifacts).toHaveLength(3);
     expect(corridorArtifacts).toHaveLength(3);

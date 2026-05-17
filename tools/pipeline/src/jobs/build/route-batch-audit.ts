@@ -306,6 +306,19 @@ function routeBriefReliabilityContractIssues(
     });
     return issues;
   }
+  const windows = jsonField(observedReliability, "windows");
+  if (
+    !isJsonObject(windows) ||
+    !Array.isArray(jsonField(windows, "topLongGapWindows")) ||
+    !Array.isArray(jsonField(windows, "topBunchingWindows"))
+  ) {
+    issues.push({
+      routeId: row.routeId,
+      severity: "error",
+      issueCode: "route_brief_observed_reliability_windows_missing",
+      message: `Route brief ${row.artifactKey} does not include observed reliability long-gap and bunching windows.`,
+    });
+  }
   if (!context.collectionRunIds.has(reliability.runId)) {
     return issues;
   }

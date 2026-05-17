@@ -9,6 +9,7 @@ import {
   replaceRouteBriefRows,
   replaceRouteCatalog,
   replaceRouteComparisonRanks,
+  replaceRouteObservedReliabilityRows,
   replaceRouteReadiness,
   replaceRouteScorecard,
 } from "@bp/db/local";
@@ -174,6 +175,43 @@ async function writeFixtureBatch(): Promise<void> {
   await buildBriefArtifacts({ year: 2026, month: 8, dbPath });
 }
 
+async function addObservedReliabilityAndRebuild(): Promise<void> {
+  const local = await openLocalPipelineDb(dbPath);
+  try {
+    await replaceRouteObservedReliabilityRows(local.db, isoMonth, "fixture-gtfs-rt", {
+      summaries: [
+        {
+          routeId: "T1",
+          month: isoMonth,
+          runId: "fixture-gtfs-rt",
+          reliabilityStatus: "insufficient_gtfs_rt_samples",
+          minSampleThreshold: 30,
+          sampleCount: 0,
+          stopCount: 0,
+          directionCount: 0,
+          averageObservedHeadwayMinutes: null,
+          medianObservedHeadwayMinutes: null,
+          p90ObservedHeadwayMinutes: null,
+          maxObservedHeadwayMinutes: null,
+          scheduledMedianHeadwayMinutes: 10,
+          bunchingThresholdMinutes: 5,
+          longGapThresholdMinutes: 20,
+          observedBunchingShare: null,
+          observedLongGapShare: null,
+          expectedWaitMinutes: null,
+          scheduledExpectedWaitMinutes: 5,
+          excessWaitMinutes: null,
+          waitReliabilityRatio: null,
+        },
+      ],
+      sourceStatuses: [],
+    });
+  } finally {
+    local.sqlite.close();
+  }
+  await buildBriefArtifacts({ year: 2026, month: 8, dbPath });
+}
+
 afterEach(async () => {
   await removeFixtureArtifacts();
 });
@@ -292,6 +330,29 @@ describe("route batch audit", () => {
     );
     expect(manifest.issues.map((issue: { issueCode: string }) => issue.issueCode)).toEqual(
       expect.arrayContaining(["route_brief_observed_reliability_contract_missing"]),
+    );
+  });
+
+  test("records a contract issue when route brief JSON omits observed reliability windows", async () => {
+    await writeFixtureBatch();
+    await addObservedReliabilityAndRebuild();
+    const briefPath = join(routeBriefDir, "brief.json");
+    const briefJson = await Bun.file(briefPath).json();
+    delete briefJson.observedReliability.windows;
+    await Bun.write(briefPath, `${JSON.stringify(briefJson, null, 2)}\n`);
+
+    const result = await buildRouteBatchAudit({ year: 2026, month: 8, dbPath });
+    const manifest = await Bun.file(result.manifestPath).json();
+    const local = await openLocalPipelineDb(dbPath);
+    const issues = await listRouteBatchIssues(local.db, isoMonth);
+    local.sqlite.close();
+
+    expect(result.status).toBe("fail");
+    expect(issues.map((issue) => issue.issueCode)).toEqual(
+      expect.arrayContaining(["route_brief_observed_reliability_windows_missing"]),
+    );
+    expect(manifest.issues.map((issue: { issueCode: string }) => issue.issueCode)).toEqual(
+      expect.arrayContaining(["route_brief_observed_reliability_windows_missing"]),
     );
   });
 });

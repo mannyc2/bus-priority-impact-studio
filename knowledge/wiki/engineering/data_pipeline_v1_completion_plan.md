@@ -93,12 +93,13 @@ Latest local verification after the March 2026 v1 catch-up run:
 - `bun --filter @bp/pipeline audit:pipeline-v1 -- --public-year 2026 --public-month 3 --realtime-year 2026 --realtime-month 5 --run-id gtfs-rt-v1-20260517T022348Z` writes `data/artifacts/pipeline-v1/audit-2026-03-2026-05.json`. The audit is blocked overall because strict single-month v1 remains unavailable, but it records March structural pass, May realtime preflight pass, D1/static export pass, and the exact missing items.
 - A one-route clean-DB rebuild smoke now passes without touching canonical March artifacts: `ingest:route-catalog`, `ingest:route-coverage`, and `build:network -- --limit 1 --db data/local/pipeline-clean-smoke.sqlite --artifact-root data/artifacts/pipeline-clean-smoke --export-root data/exports/pipeline-clean-smoke` built M57 from an empty local DB. The isolated `route-batch-audit` passed with 6 brief artifacts, and isolated `verify:d1` passed with the seed and verification summaries under `data/exports/pipeline-clean-smoke/d1/2026-03/`.
 - A full-network clean-DB rebuild now passes from an empty local DB using isolated outputs: catalog and March coverage were ingested into `data/local/pipeline-clean-full.sqlite`; `build:network -- --year 2026 --month 3 --no-resume --db data/local/pipeline-clean-full.sqlite --artifact-root data/artifacts/pipeline-clean-full --export-root data/exports/pipeline-clean-full` built 381/381 routes with 0 failures; `finalize:pipeline-v1 -- --allow-insufficient-gtfs-rt` produced 5,171 trend rows, 381 explicit insufficient GTFS-RT reliability rows, 413 intervention comparisons with 22 evaluated rows, 209 corridors, 1,677 audited route/corridor brief artifacts, and a verified D1 export. The audit command now accepts `--clean-db`, `--clean-artifact-root`, and `--clean-export-root`; with those proof paths, the reproducible full-network public-source pipeline checklist row is `pass`.
+- Route brief artifacts now include detailed observed reliability windows when observed headway samples exist: top long-gap windows and top bunching windows by NYC local weekday/hour, direction, and stop, with sample counts, median/p90/max observed headways, bunching/long-gap shares, expected wait, and excess wait. `route-batch-audit` now fails if route brief JSON omits the observed reliability window contract. After regenerating canonical March and `pipeline-clean-full` March artifacts, both route-batch audits, both D1 verifications, both structural `check:pipeline-v1 -- --allow-insufficient-gtfs-rt` runs, and the March+May audit still pass/blocked exactly as expected.
 
 Current v1 gaps:
 
 - GTFS-RT observed reliability has route/month status rows and D1 readback, but the current March 2026 run has 0 observed samples and 381 insufficient-sample rows because no production-length Bus Time collection has been run for the v1 analysis window.
 - The May 2026 observed layer now passes GTFS-RT preflight, but May cannot be the single full v1 month until public speed coverage exists for May or a later month.
-- Observed reliability is route/month summary only; detailed observed reliability windows are not yet built.
+- Observed reliability detailed windows now exist in static route brief artifacts when samples exist; a relational D1 window table can be added later if the frontend needs direct querying beyond the artifact bodies.
 - ACE descriptive before/after intervention evaluation exists for March 2026; 22 comparisons are evaluated from speed trend rows and 21 of those include ridership deltas. Public routes with matched bus-lane geometry now receive explicit `nyc_dot_bus_lanes` source-gap comparison rows. Seasonality-adjusted comparisons, matched-comparison analysis, and true bus-lane before/after evaluation remain open until route-level implementation dates are available.
 - Deterministic primary-street corridor entities, route membership, summaries, hotspot rows, and generated brief bodies exist; richer segment membership remains open.
 - `brief-artifacts` renders and verifies the current full set of route/corridor JSON, Markdown, and HTML bodies from local DB evidence. One-route and full-network isolated clean-DB rebuilds now pass with dedicated DB, artifact-root, and export-root paths.
@@ -111,14 +112,14 @@ Current v1 gaps:
 | Requirement | Current evidence | Status | Required v1 artifact / gate |
 |---|---|---|---|
 | Reproducible full-network pipeline | Isolated full-network March 2026 clean rebuild produced 381/381 route slices, 1,677 audited brief artifacts, 5,171 trend rows, 413 intervention comparisons, 209 corridors, and a verified D1 export from `data/local/pipeline-clean-full.sqlite` plus isolated artifact/export roots | Pass | Keep the clean rebuild command sequence documented and rerun before release candidates |
-| GTFS-RT observed reliability | 381 March 2026 status rows and D1 readback exist; all are `insufficient_gtfs_rt_samples` with 0 observed headway samples | Partial | Production-length collection and coverage QA with a real Bus Time run |
-| Bunching | Bunching/long-gap fields exist in route/month observed reliability summaries, but the current run has no observed samples | Partial | Real GTFS-RT samples plus sample coverage/confidence |
+| GTFS-RT observed reliability | 381 March 2026 status rows and D1 readback exist; route brief artifacts include detailed observed windows when samples exist; March rows are all `insufficient_gtfs_rt_samples` with 0 observed headway samples | Partial | Production-length collection and coverage QA with a real Bus Time run in the same month as public source coverage |
+| Bunching | Bunching/long-gap fields exist in route/month observed reliability summaries, and route brief artifacts include top observed bunching/long-gap windows when samples exist; the current March run has no observed samples | Partial | Real same-month GTFS-RT samples plus sample coverage/confidence |
 | Before/after intervention evaluation | 251 intervention event/comparison rows exist with D1 readback: 79 ACE/ABLE rows, 22 evaluated speed before/after rows, 21 evaluated rows with ridership deltas, and 172 bus-lane source-gap rows for matched public routes | Partial | Seasonality-aware, matched-comparison, dated bus-lane before/after evaluation, and corridor summaries |
 | Corridor grouping | Primary-street corridor tables, route membership, summaries, hotspots, D1 readback, and generated corridor brief bodies exist | Partial | Richer segment membership, ambiguity QA, and corridor intervention context |
 | Full set of route briefs | `brief-artifacts` writes and audits 1,050 JSON/Markdown/HTML route bodies for 350 public-visible routes; full clean rebuild reproduced the route brief set under isolated outputs | Pass | Keep route brief JSON/Markdown/HTML contract checks in `route-batch-audit` |
 | Full set of corridor briefs | `brief-artifacts` writes and audits 627 JSON/Markdown/HTML corridor bodies for 209 corridors; full clean rebuild reproduced the corridor brief set under isolated outputs | Pass | Keep corridor brief JSON/Markdown/HTML contract checks in `route-batch-audit` |
 | Verified D1 export contract | `verify:d1` passes with route serving rows, observed reliability, intervention comparisons, corridor summaries, route/corridor artifact metadata, schema/seed hashes, expected-vs-loaded table counts, and typed repository readback | Pass for current March run | Map payload and detailed evaluation manifests remain separate future contracts |
-| Static artifact contract | Stable `briefs/routes/...` and `briefs/corridors/...` keys exist with byte-length/SHA-256 audit, JSON contract checks for route/corridor brief bodies, plus a generated `data/artifacts/briefs/{month}/manifest.json` inventory | Partial | Stable artifact key scheme for map payloads and detailed evaluation payloads |
+| Static artifact contract | Stable `briefs/routes/...` and `briefs/corridors/...` keys exist with byte-length/SHA-256 audit, JSON contract checks for route/corridor brief bodies, observed reliability window contract checks, plus a generated `data/artifacts/briefs/{month}/manifest.json` inventory | Partial | Stable artifact key scheme for map payloads and detailed evaluation payloads |
 | QA gates | Strict `check:pipeline-v1` fails the current March run on missing observed GTFS-RT samples and validates required source probe freshness, GTFS-RT analysis-month alignment, collection window/cadence/snapshot coverage, parse/headway provenance, observed-route coverage thresholds, per-route sample thresholds, route trend coverage, evaluated intervention comparisons, ridership deltas, bus-lane comparison coverage for matched public routes, and corridor assignment ambiguity/unassigned thresholds; `gtfs-rt:preflight` diagnoses realtime readiness; `audit:pipeline-v1` records clean rebuild proof paths | Partial | Resolve strict single-month public/realtime source alignment and add remaining detailed payload contracts |
 | Updated roadmap/docs | Some docs are stale | In progress | This page plus updated index, roadmap, ETL, and data pages |
 
@@ -295,6 +296,7 @@ Acceptance:
 - Route reliability tables include observed metrics, not only scheduled baselines.
 - Briefs can say either "observed bunching detected" or "insufficient GTFS-RT coverage"; they cannot silently omit reliability status.
 - Route briefs include the observed GTFS-RT collection window when collection-run metadata is available.
+- Route briefs include top observed long-gap and bunching windows when observed headway samples exist.
 - D1 verification reads observed reliability summary rows.
 
 ## Phase 4: Intervention Evaluation
@@ -412,11 +414,11 @@ Implemented so far:
 - Local `local_route_artifact` and `local_corridor_artifact` rows store artifact key, content type, byte length, and SHA-256.
 - D1 `route_artifact` and `corridor_artifact` serving rows expose compact metadata while bodies remain static/R2-ready.
 - Route brief JSON/Markdown includes observed reliability status and the GTFS-RT collection window when collection-run metadata is available.
+- Route brief JSON/Markdown includes top observed long-gap and bunching windows when observed headway samples exist.
 - Route post-build runs corridor modeling, brief artifact generation, route-batch audit, then D1 export.
 
 Still missing:
 
-- Final clean full-network run proving all current public-visible route and eligible corridor brief bodies exist.
 - Richer narrative sections once segment-based corridor membership and stronger intervention methodology land.
 - Map and detailed evaluation payload manifests.
 

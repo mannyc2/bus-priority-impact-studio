@@ -9,6 +9,7 @@ import type {
   LocalCorridorRouteMember,
   LocalGtfsRtCollectionRun,
   LocalGtfsRtFeedSnapshot,
+  LocalObservedHeadwaySample,
   LocalRouteArtifact,
   LocalRouteBriefSummary,
   LocalRouteCatalogEntry,
@@ -24,6 +25,7 @@ import {
   listCorridors,
   listGtfsRtCollectionRuns,
   listGtfsRtFeedSnapshots,
+  listObservedHeadwaySamples,
   listRouteBriefSummaries,
   listRouteCatalog,
   listRouteHotspots,
@@ -39,6 +41,7 @@ import { createMonthContext, parseMonthDbCliArgs } from "../../lib/route-job.js"
 
 const schemaVersion = 1;
 const topHotspotLimit = 5;
+const topObservedWindowLimit = 5;
 const artifactNames = ["brief.json", "brief.md", "brief.html"] as const;
 
 type BriefArtifactName = (typeof artifactNames)[number];
@@ -84,6 +87,7 @@ type RouteBriefContext = {
   hotspots: LocalRouteHotspot[];
   reliability: LocalRouteObservedReliabilitySummary | null;
   reliabilityCollection: RouteReliabilityCollection | null;
+  reliabilityWindows: RouteObservedReliabilityWindows;
   scheduledReliability: LocalRouteReliabilityBaseline | null;
   interventions: LocalRouteInterventionComparison[];
   generatedAt: string;
@@ -107,6 +111,46 @@ type RouteReliabilityCollection = {
   feedSnapshots: LocalGtfsRtFeedSnapshot[];
 };
 
+type ObservedReliabilityWindow = {
+  rank: number;
+  dayOfWeek: string;
+  hourOfDay: number;
+  directionId: number | null;
+  stopId: string;
+  sampleCount: number;
+  medianObservedHeadwayMinutes: number | null;
+  p90ObservedHeadwayMinutes: number | null;
+  maxObservedHeadwayMinutes: number | null;
+  observedBunchingShare: number | null;
+  observedLongGapShare: number | null;
+  expectedWaitMinutes: number | null;
+  excessWaitMinutes: number | null;
+};
+
+type RouteObservedReliabilityWindows = {
+  topLongGapWindows: ObservedReliabilityWindow[];
+  topBunchingWindows: ObservedReliabilityWindow[];
+};
+
+type WindowGroupKey = {
+  routeId: string;
+  dayOfWeek: string;
+  hourOfDay: number;
+  directionId: number | null;
+  stopId: string;
+};
+
+type WindowGroup = WindowGroupKey & {
+  samples: LocalObservedHeadwaySample[];
+};
+
+const nycWindowFormatter = new Intl.DateTimeFormat("en-US", {
+  timeZone: "America/New_York",
+  weekday: "long",
+  hour: "2-digit",
+  hourCycle: "h23",
+});
+
 function parseCliArgs(args: string[]): BriefArtifactsArgs {
   return parseMonthDbCliArgs(args, {} as BriefArtifactsArgs, [
     {
@@ -127,6 +171,184 @@ function round(value: number | null, decimals = 2): number | null {
 
   const factor = 10 ** decimals;
   return Math.round(value * factor) / factor;
+}
+
+function quantile(sortedValues: readonly number[], q: number): number | null {
+  if (sortedValues.length === 0) {
+    return null;
+  }
+  if (sortedValues.length === 1) {
+    return sortedValues[0] ?? null;
+  }
+
+  const position = (sortedValues.length - 1) * q;
+  const lower = Math.floor(position);
+  const upper = Math.ceil(position);
+  const lowerValue = sortedValues[lower] ?? 0;
+  const upperValue = sortedValues[upper] ?? lowerValue;
+
+  return lowerValue + (upperValue - lowerValue) * (position - lower);
+}
+
+function expectedWaitMinutes(headwayMinutes: readonly number[]): number | null {
+  const sum = headwayMinutes.reduce((total, value) => total + value, 0);
+  if (sum <= 0) {
+    return null;
+  }
+
+  return round(headwayMinutes.reduce((total, value) => total + value ** 2, 0) / (2 * sum));
+}
+
+function monthTimeBounds(isoMonth: string): { startSeconds: number; endSeconds: number } {
+  const [yearValue, monthValue] = isoMonth.split("-");
+  const year = Number(yearValue);
+  const month = Number(monthValue);
+
+  return {
+    startSeconds: Date.UTC(year, month - 1, 1, 0, 0, 0) / 1000,
+    endSeconds: Date.UTC(year, month, 1, 0, 0, 0) / 1000,
+  };
+}
+
+function isSampleInMonth(sample: LocalObservedHeadwaySample, isoMonth: string): boolean {
+  const bounds = monthTimeBounds(isoMonth);
+
+  return (
+    sample.observedTimestamp >= bounds.startSeconds && sample.observedTimestamp < bounds.endSeconds
+  );
+}
+
+function localWindowParts(timestampSeconds: number): { dayOfWeek: string; hourOfDay: number } {
+  const parts = nycWindowFormatter.formatToParts(new Date(timestampSeconds * 1000));
+  const dayOfWeek = parts.find((part) => part.type === "weekday")?.value ?? "Unknown";
+  const hourValue = parts.find((part) => part.type === "hour")?.value ?? "0";
+
+  return {
+    dayOfWeek,
+    hourOfDay: Number(hourValue),
+  };
+}
+
+function windowGroupKey(input: WindowGroupKey): string {
+  return [
+    input.routeId,
+    input.dayOfWeek,
+    input.hourOfDay,
+    input.directionId ?? "unknown",
+    input.stopId,
+  ].join("::");
+}
+
+function observedWindow(input: {
+  group: WindowGroup;
+  rank: number;
+  reliability: LocalRouteObservedReliabilitySummary;
+}): ObservedReliabilityWindow {
+  const headwayMinutes = input.group.samples
+    .map((sample) => sample.headwayMinutes)
+    .filter((value) => value > 0)
+    .sort((left, right) => left - right);
+  const sampleCount = headwayMinutes.length;
+  const expectedWait = expectedWaitMinutes(headwayMinutes);
+
+  return {
+    rank: input.rank,
+    dayOfWeek: input.group.dayOfWeek,
+    hourOfDay: input.group.hourOfDay,
+    directionId: input.group.directionId,
+    stopId: input.group.stopId,
+    sampleCount,
+    medianObservedHeadwayMinutes:
+      sampleCount === 0 ? null : round(quantile(headwayMinutes, 0.5) ?? null),
+    p90ObservedHeadwayMinutes:
+      sampleCount === 0 ? null : round(quantile(headwayMinutes, 0.9) ?? null),
+    maxObservedHeadwayMinutes: sampleCount === 0 ? null : round(Math.max(...headwayMinutes)),
+    observedBunchingShare:
+      sampleCount === 0 || input.reliability.bunchingThresholdMinutes === null
+        ? null
+        : round(
+            headwayMinutes.filter(
+              (headway) => headway <= (input.reliability.bunchingThresholdMinutes ?? 0),
+            ).length / sampleCount,
+            4,
+          ),
+    observedLongGapShare:
+      sampleCount === 0 || input.reliability.longGapThresholdMinutes === null
+        ? null
+        : round(
+            headwayMinutes.filter(
+              (headway) => headway >= (input.reliability.longGapThresholdMinutes ?? 0),
+            ).length / sampleCount,
+            4,
+          ),
+    expectedWaitMinutes: expectedWait,
+    excessWaitMinutes:
+      expectedWait === null || input.reliability.scheduledExpectedWaitMinutes === null
+        ? null
+        : round(expectedWait - input.reliability.scheduledExpectedWaitMinutes),
+  };
+}
+
+function buildObservedReliabilityWindows(input: {
+  reliability: LocalRouteObservedReliabilitySummary;
+  samples: readonly LocalObservedHeadwaySample[];
+}): RouteObservedReliabilityWindows {
+  const groups = new Map<string, WindowGroup>();
+  for (const sample of input.samples.filter(
+    (row) =>
+      row.routeId === input.reliability.routeId && isSampleInMonth(row, input.reliability.month),
+  )) {
+    const parts = localWindowParts(sample.observedTimestamp);
+    const keyParts = {
+      routeId: sample.routeId,
+      dayOfWeek: parts.dayOfWeek,
+      hourOfDay: parts.hourOfDay,
+      directionId: sample.directionId,
+      stopId: sample.stopId,
+    };
+    const key = windowGroupKey(keyParts);
+    const group = groups.get(key) ?? { ...keyParts, samples: [] };
+    group.samples.push(sample);
+    groups.set(key, group);
+  }
+
+  const windows = [...groups.values()].map((group) =>
+    observedWindow({ group, rank: 0, reliability: input.reliability }),
+  );
+  const topLongGapWindows = [...windows]
+    .sort((left, right) => {
+      if ((left.p90ObservedHeadwayMinutes ?? -1) !== (right.p90ObservedHeadwayMinutes ?? -1)) {
+        return (right.p90ObservedHeadwayMinutes ?? -1) - (left.p90ObservedHeadwayMinutes ?? -1);
+      }
+      if ((left.maxObservedHeadwayMinutes ?? -1) !== (right.maxObservedHeadwayMinutes ?? -1)) {
+        return (right.maxObservedHeadwayMinutes ?? -1) - (left.maxObservedHeadwayMinutes ?? -1);
+      }
+
+      return right.sampleCount - left.sampleCount;
+    })
+    .slice(0, topObservedWindowLimit)
+    .map((window, index) => ({ ...window, rank: index + 1 }));
+  const topBunchingWindows = [...windows]
+    .sort((left, right) => {
+      if ((left.observedBunchingShare ?? -1) !== (right.observedBunchingShare ?? -1)) {
+        return (right.observedBunchingShare ?? -1) - (left.observedBunchingShare ?? -1);
+      }
+      if (left.sampleCount !== right.sampleCount) {
+        return right.sampleCount - left.sampleCount;
+      }
+
+      return (
+        (left.medianObservedHeadwayMinutes ?? Number.POSITIVE_INFINITY) -
+        (right.medianObservedHeadwayMinutes ?? Number.POSITIVE_INFINITY)
+      );
+    })
+    .slice(0, topObservedWindowLimit)
+    .map((window, index) => ({ ...window, rank: index + 1 }));
+
+  return {
+    topLongGapWindows,
+    topBunchingWindows,
+  };
 }
 
 function formatNumber(value: number | null | undefined, decimals = 1): string {
@@ -316,6 +538,7 @@ function routeJson(input: RouteBriefContext) {
             expectedWaitMinutes: input.reliability.expectedWaitMinutes,
             excessWaitMinutes: input.reliability.excessWaitMinutes,
             collectionWindow: collectionWindowJson(input.reliabilityCollection),
+            windows: input.reliabilityWindows,
           },
     scheduledReliability:
       input.scheduledReliability === null
@@ -381,6 +604,14 @@ function routeMarkdown(input: RouteBriefContext): string {
           body.observedReliability.collectionWindow === null
             ? "- GTFS-RT collection window metadata is unavailable for this reliability run."
             : `- GTFS-RT run ${body.observedReliability.collectionWindow.runId}: ${formatNumber(body.observedReliability.collectionWindow.elapsedSeconds, 0)} seconds collected at ${body.observedReliability.collectionWindow.sampleSeconds}s cadence, ${body.observedReliability.collectionWindow.successfulVehiclePositionSnapshotCount} successful vehicle-position snapshots.`,
+          ...body.observedReliability.windows.topLongGapWindows.map(
+            (window) =>
+              `- Long-gap window ${window.rank}: ${window.dayOfWeek} ${window.hourOfDay}:00 at stop ${window.stopId}, p90 headway ${formatNumber(window.p90ObservedHeadwayMinutes)} minutes from ${window.sampleCount} samples.`,
+          ),
+          ...body.observedReliability.windows.topBunchingWindows.map(
+            (window) =>
+              `- Bunching window ${window.rank}: ${window.dayOfWeek} ${window.hourOfDay}:00 at stop ${window.stopId}, bunching ${formatPercent(window.observedBunchingShare)} from ${window.sampleCount} samples.`,
+          ),
         ];
 
   return [
@@ -697,6 +928,12 @@ async function readBriefData(args: {
         feedSnapshotsByRun.set(runId, await listGtfsRtFeedSnapshots(local.db, runId));
       }),
     );
+    const observedSamplesByRun = new Map<string, LocalObservedHeadwaySample[]>();
+    await Promise.all(
+      [...collectionRunIds].map(async (runId) => {
+        observedSamplesByRun.set(runId, await listObservedHeadwaySamples(local.db, runId));
+      }),
+    );
     const interventionsByRoute = new Map<string, LocalRouteInterventionComparison[]>();
     for (const row of interventionComparisons) {
       const group = interventionsByRoute.get(row.routeId) ?? [];
@@ -720,6 +957,13 @@ async function readBriefData(args: {
                 run: collection,
                 feedSnapshots: feedSnapshotsByRun.get(reliability.runId) ?? [],
               },
+        reliabilityWindows:
+          reliability === null
+            ? { topLongGapWindows: [], topBunchingWindows: [] }
+            : buildObservedReliabilityWindows({
+                reliability,
+                samples: observedSamplesByRun.get(reliability.runId) ?? [],
+              }),
         scheduledReliability: scheduledByRoute.get(summary.routeId) ?? null,
         interventions: interventionsByRoute.get(summary.routeId) ?? [],
         generatedAt: args.generatedAt,

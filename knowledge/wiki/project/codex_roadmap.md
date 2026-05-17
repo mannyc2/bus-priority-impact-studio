@@ -33,11 +33,9 @@ Current implementation baseline:
 Primary remaining roadmap:
 
 1. Decide whether v1 is March structural + May observed appendix, or wait for public speed coverage so a later month can become the single strict v1 month.
-2. Run a clean rebuild proof from an empty local DB through route/corridor brief generation, route-batch audit, D1 export, and v1 QA.
-3. Add detailed observed-reliability windows beyond route/month summaries.
-4. Add seasonality-aware/matched intervention evaluation and dated bus-lane before/after analysis where public source coverage supports it.
-5. Add richer segment-based corridor membership, corridor intervention context, map payload manifests, and detailed evaluation manifests.
-6. Align the public frontend around proof-finding route/corridor briefs rather than a generic route analytics dashboard.
+2. Add seasonality-aware/matched intervention evaluation and dated bus-lane before/after analysis where public source coverage supports it.
+3. Add richer segment-based corridor membership, corridor intervention context, map payload manifests, and detailed evaluation manifests.
+4. Align the public frontend around proof-finding route/corridor briefs rather than a generic route analytics dashboard.
 
 The older phase list below remains as historical context for how the repo reached the current baseline.
 

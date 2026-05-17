@@ -110,12 +110,13 @@ Sources: `tools/pipeline/src/jobs/collect/collect-gtfs-rt.ts`, `tools/pipeline/s
 **What's correct:**
 - GTFS-RT raw snapshots, parse metadata, vehicle positions, observed stop events, and observed headway samples are run-scoped.
 - Route/month observed reliability summaries include observed headway, bunching, long-gap, expected-wait, sample count, coverage, and explicit insufficient-sample statuses.
+- Route brief artifacts now include top observed long-gap and bunching windows by NYC local weekday/hour, direction, and stop when observed headway samples exist.
 - Strict v1 QA now checks collection window, sample cadence, successful vehicle-position snapshot coverage, parse/headway provenance, observed-route coverage, and analysis-month alignment.
 
 **What's limited:**
 - The current complete public-source month is March 2026, but there are no March 2026 GTFS-RT samples.
 - Live May 2026 collection can prove the observed layer, but it cannot complete the March strict gate unless the analysis month moves to May after public speed coverage exists.
-- Detailed observed reliability windows are not yet generated beyond route/month summaries.
+- Detailed observed reliability windows currently live in route brief static artifacts rather than a relational D1 window table.
 
 ## Overall assessment
 
