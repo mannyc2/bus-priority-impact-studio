@@ -70,11 +70,14 @@ type PipelineV1Counts = {
   routeArtifactRows: number;
   routeObservedReliabilityRows: number;
   routeObservedReliabilityObservedRows: number;
+  routeObservedReliabilityObservedRouteCount: number;
   routeObservedReliabilityInsufficientRows: number;
   routeObservedReliabilityRequiredObservedRows: number;
   routeObservedReliabilityObservedRouteShare: number;
   routeObservedReliabilityBelowThresholdRows: number;
   routeObservedReliabilityHeadwaySampleCount: number;
+  routeObservedReliabilityDuplicateRouteRows: number;
+  routeObservedReliabilityActiveRunCount: number;
   gtfsRtCollectionRunRows: number;
   gtfsRtCompletedCollectionRunRows: number;
   gtfsRtShortestCollectionSeconds: number;
@@ -588,6 +591,11 @@ export async function checkPipelineV1(
   const observedReliabilityObservedRows = localState.observedReliability.filter(
     (row) => row.reliabilityStatus === "observed",
   ).length;
+  const observedReliabilityObservedRouteCount = new Set(
+    localState.observedReliability
+      .filter((row) => row.reliabilityStatus === "observed" && publicRouteIds.includes(row.routeId))
+      .map((row) => row.routeId),
+  ).size;
   const observedReliabilityInsufficientRows = localState.observedReliability.filter(
     (row) => row.reliabilityStatus === "insufficient_gtfs_rt_samples",
   ).length;
@@ -601,7 +609,21 @@ export async function checkPipelineV1(
   const observedReliabilityObservedRouteShare =
     publicRouteIds.length === 0
       ? 0
-      : round(observedReliabilityObservedRows / publicRouteIds.length);
+      : round(observedReliabilityObservedRouteCount / publicRouteIds.length);
+  const observedReliabilityRowsByRoute = new Map<string, number>();
+  for (const row of localState.observedReliability) {
+    observedReliabilityRowsByRoute.set(
+      row.routeId,
+      (observedReliabilityRowsByRoute.get(row.routeId) ?? 0) + 1,
+    );
+  }
+  const observedReliabilityDuplicateRoutes = [...observedReliabilityRowsByRoute.entries()].filter(
+    ([, count]) => count > 1,
+  );
+  const observedReliabilityDuplicateRouteRows = observedReliabilityDuplicateRoutes.reduce(
+    (sum, [, count]) => sum + count - 1,
+    0,
+  );
   const observedReliabilityBelowThresholdRows = localState.observedReliability.filter(
     (row) => row.reliabilityStatus === "observed" && row.sampleCount < row.minSampleThreshold,
   ).length;
@@ -613,6 +635,9 @@ export async function checkPipelineV1(
     localState.observedReliability
       .filter((row) => row.reliabilityStatus === "observed")
       .map((row) => row.runId),
+  );
+  const allObservedReliabilityRunIds = unique(
+    localState.observedReliability.map((row) => row.runId),
   );
   const gtfsRtState = await withLocalPipelineDb(options.dbPath, async (local) => {
     const collectionRuns = (await listGtfsRtCollectionRuns(local.db)).filter((row) =>
@@ -869,6 +894,20 @@ export async function checkPipelineV1(
       `${routesMissingObserved.length} public routes lack observed reliability rows: ${sample(routesMissingObserved)}.`,
     );
   }
+  if (observedReliabilityDuplicateRouteRows > 0) {
+    addIssue(
+      issues,
+      "observed_reliability_duplicate_route_rows",
+      `${observedReliabilityDuplicateRouteRows} extra observed reliability row(s) exist for route/month pairs: ${sample(observedReliabilityDuplicateRoutes.map(([routeId, count]) => `${routeId}:${count}`))}.`,
+    );
+  }
+  if (allObservedReliabilityRunIds.length > 1) {
+    addIssue(
+      issues,
+      "observed_reliability_multiple_active_runs",
+      `Observed reliability rows for ${month} reference multiple active GTFS-RT run IDs: ${sample(allObservedReliabilityRunIds)}.`,
+    );
+  }
   if (observedReliabilitySourceStatusRows < publicRouteIds.length * 3) {
     addIssue(
       issues,
@@ -876,7 +915,7 @@ export async function checkPipelineV1(
       `Observed reliability source-status rows are ${observedReliabilitySourceStatusRows}; expected at least ${publicRouteIds.length * 3}.`,
     );
   }
-  if (!args.allowInsufficientGtfsRt && observedReliabilityObservedRows === 0) {
+  if (!args.allowInsufficientGtfsRt && observedReliabilityObservedRouteCount === 0) {
     addIssue(
       issues,
       "observed_reliability_no_observed_routes",
@@ -885,12 +924,12 @@ export async function checkPipelineV1(
   }
   if (
     !args.allowInsufficientGtfsRt &&
-    observedReliabilityObservedRows < observedReliabilityRequiredObservedRows
+    observedReliabilityObservedRouteCount < observedReliabilityRequiredObservedRows
   ) {
     addIssue(
       issues,
       "observed_reliability_route_coverage_insufficient",
-      `${observedReliabilityObservedRows} public routes have observed GTFS-RT reliability; expected at least ${observedReliabilityRequiredObservedRows} (${formatPercent(minObservedRouteShare)} of ${publicRouteIds.length}).`,
+      `${observedReliabilityObservedRouteCount} public routes have observed GTFS-RT reliability; expected at least ${observedReliabilityRequiredObservedRows} (${formatPercent(minObservedRouteShare)} of ${publicRouteIds.length}).`,
     );
   }
   if (!args.allowInsufficientGtfsRt && observedReliabilityBelowThresholdRows > 0) {
@@ -1353,11 +1392,14 @@ export async function checkPipelineV1(
       routeArtifactRows: localState.routeArtifacts.length,
       routeObservedReliabilityRows: localState.observedReliability.length,
       routeObservedReliabilityObservedRows: observedReliabilityObservedRows,
+      routeObservedReliabilityObservedRouteCount: observedReliabilityObservedRouteCount,
       routeObservedReliabilityInsufficientRows: observedReliabilityInsufficientRows,
       routeObservedReliabilityRequiredObservedRows: observedReliabilityRequiredObservedRows,
       routeObservedReliabilityObservedRouteShare: observedReliabilityObservedRouteShare,
       routeObservedReliabilityBelowThresholdRows: observedReliabilityBelowThresholdRows,
       routeObservedReliabilityHeadwaySampleCount: observedReliabilityHeadwaySampleCount,
+      routeObservedReliabilityDuplicateRouteRows: observedReliabilityDuplicateRouteRows,
+      routeObservedReliabilityActiveRunCount: allObservedReliabilityRunIds.length,
       gtfsRtCollectionRunRows: gtfsRtState.collectionRuns.length,
       gtfsRtCompletedCollectionRunRows: completedGtfsRtCollectionRunCount,
       gtfsRtShortestCollectionSeconds,

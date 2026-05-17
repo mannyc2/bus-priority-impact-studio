@@ -1043,6 +1043,61 @@ async function replaceWithBelowThresholdObservedReliability(): Promise<void> {
   await buildBriefArtifacts({ year: 2026, month: 11, dbPath });
 }
 
+async function insertStaleObservedReliabilityRun(): Promise<void> {
+  const local = await openLocalPipelineDb(dbPath);
+  try {
+    local.sqlite.exec(`
+      insert into local_route_observed_reliability_summary (
+        route_id,
+        month,
+        run_id,
+        reliability_status,
+        min_sample_threshold,
+        sample_count,
+        stop_count,
+        direction_count,
+        average_observed_headway_minutes,
+        median_observed_headway_minutes,
+        p90_observed_headway_minutes,
+        max_observed_headway_minutes,
+        scheduled_median_headway_minutes,
+        bunching_threshold_minutes,
+        long_gap_threshold_minutes,
+        observed_bunching_share,
+        observed_long_gap_share,
+        expected_wait_minutes,
+        scheduled_expected_wait_minutes,
+        excess_wait_minutes,
+        wait_reliability_ratio
+      ) values (
+        'T1',
+        '${isoMonth}',
+        'stale-gtfs-rt',
+        'observed',
+        3,
+        9,
+        2,
+        1,
+        9,
+        9,
+        12,
+        18,
+        10,
+        5,
+        20,
+        0.2,
+        0.1,
+        6,
+        5,
+        1,
+        1.2
+      );
+    `);
+  } finally {
+    local.sqlite.close();
+  }
+}
+
 async function replaceWithCorridorAssignmentStatus(
   assignmentStatus: "ambiguous" | "unassigned",
 ): Promise<void> {
@@ -1398,6 +1453,31 @@ describe("pipeline v1 check", () => {
     );
     expect(result.issues.map((issue) => issue.code)).toEqual(
       expect.arrayContaining(["observed_reliability_route_coverage_insufficient"]),
+    );
+  });
+
+  test("fails when stale observed reliability runs duplicate a route/month", async () => {
+    await writeFixtureNetwork({ includeObservedAndInterventions: true });
+    await insertStaleObservedReliabilityRun();
+
+    const result = await checkPipelineV1(checkArgs({ allowInsufficientGtfsRt: true }));
+
+    expect(result.status).toBe("fail");
+    expect(result.counts).toEqual(
+      expect.objectContaining({
+        routeObservedReliabilityRows: 2,
+        routeObservedReliabilityObservedRows: 2,
+        routeObservedReliabilityObservedRouteCount: 1,
+        routeObservedReliabilityDuplicateRouteRows: 1,
+        routeObservedReliabilityActiveRunCount: 2,
+        routeObservedReliabilityObservedRouteShare: 1,
+      }),
+    );
+    expect(result.issues.map((issue) => issue.code)).toEqual(
+      expect.arrayContaining([
+        "observed_reliability_duplicate_route_rows",
+        "observed_reliability_multiple_active_runs",
+      ]),
     );
   });
 

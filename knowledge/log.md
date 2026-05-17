@@ -374,3 +374,7 @@ Added `gtfs-rt:run-status`, a small handoff command for long Bus Time collection
 ## [2026-05-17] engineering | Active observed-reliability run replacement
 
 Changed route/month observed reliability rebuilds so a new `route-observed-reliability` run replaces prior observed reliability summaries for that analysis month. This prevents stale Bus Time runs, such as earlier smoke or shorter collection windows, from coexisting with the selected production run and double-counting route coverage in briefs, D1 exports, evaluation payloads, or strict v1 QA.
+
+## [2026-05-17] engineering | Observed-reliability stale-run QA gate
+
+Tightened `check:pipeline-v1` so stale observed-reliability rows cannot silently pass. The QA gate now reports duplicate route/month observed reliability rows and multiple active GTFS-RT run IDs for a month, and observed-route coverage is computed from unique public route IDs rather than row count. Added a regression fixture that inserts a stale GTFS-RT reliability row after artifact generation and verifies the gate fails.
