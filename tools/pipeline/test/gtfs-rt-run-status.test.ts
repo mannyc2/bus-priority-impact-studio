@@ -18,6 +18,7 @@ const dbPath = join(testRoot, "pipeline.sqlite");
 const dbArg = ` --db ${JSON.stringify(dbPath)}`;
 const rawDir = join(testRoot, "raw");
 const artifactRoot = join(testRoot, "artifacts");
+const artifactRootArg = ` --artifact-root ${JSON.stringify(artifactRoot)}`;
 
 async function removeFixtureArtifacts(): Promise<void> {
   await rm(testRoot, { force: true, recursive: true });
@@ -159,7 +160,7 @@ describe("GTFS-RT run status", () => {
       "Wait for collection status to become completed or completed_with_errors.",
     );
     expect(status.nextCommands).toContain(
-      `bun run gtfs-rt:run-status -- --run-id ${runId}${dbArg}`,
+      `bun run gtfs-rt:run-status -- --run-id ${runId}${dbArg}${artifactRootArg}`,
     );
     expect(status.artifactPath).toBe(gtfsRtRunStatusArtifactPath(artifactRoot, runId));
     await expect(Bun.file(status.artifactPath).json()).resolves.toEqual(status);

@@ -195,6 +195,7 @@ async function rawDirectoryStatus(path: string | null): Promise<RawDirectoryStat
 
 function nextCommands(input: {
   dbPath: string | undefined;
+  artifactRoot: string | undefined;
   runId: string;
   status: string;
   collectionComplete: boolean;
@@ -208,10 +209,16 @@ function nextCommands(input: {
   const month = input.startedAt?.slice(0, 7);
   const [year, monthNumber] = month?.split("-") ?? [];
   const dbArg = input.dbPath === undefined ? "" : ` --db ${JSON.stringify(input.dbPath)}`;
+  const artifactRootArg =
+    input.artifactRoot === undefined
+      ? ""
+      : ` --artifact-root ${JSON.stringify(input.artifactRoot)}`;
 
   if (!input.collectionComplete) {
     commands.push("Wait for collection status to become completed or completed_with_errors.");
-    commands.push(`bun run gtfs-rt:run-status -- --run-id ${input.runId}${dbArg}`);
+    commands.push(
+      `bun run gtfs-rt:run-status -- --run-id ${input.runId}${dbArg}${artifactRootArg}`,
+    );
     return commands;
   }
 
@@ -356,6 +363,7 @@ export async function getGtfsRtRunStatus(
       },
       nextCommands: nextCommands({
         dbPath: args.dbPath,
+        artifactRoot: args.artifactRoot,
         runId: run.runId,
         status: run.status,
         collectionComplete,
