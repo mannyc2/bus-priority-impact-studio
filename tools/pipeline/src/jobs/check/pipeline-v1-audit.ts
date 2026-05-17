@@ -1,10 +1,17 @@
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { listRouteMonthCoverage } from "@bp/db/local";
+import {
+  listBusLanes,
+  listRouteBriefSummaries,
+  listRouteMonthCoverage,
+  listRouteStops,
+} from "@bp/db/local";
 import { type CliOption, dbOption, parseCliOptions } from "../../lib/cli-args.js";
 import { writeJson } from "../../lib/json.js";
 import { withLocalPipelineDb } from "../../lib/local-db.js";
 import { fromCliPath, fromRepoRoot } from "../../lib/paths.js";
+import { busLaneMatches } from "../build/route-brief-metrics.js";
+import { parseBusLaneOpenDates } from "../build/route-intervention-evaluation.js";
 import { preflightGtfsRt } from "./gtfs-rt-preflight.js";
 import { checkPipelineV1 } from "./pipeline-v1.js";
 
@@ -42,6 +49,21 @@ type CoverageSummary = {
   scheduleRoutes: number;
 };
 
+type BusLaneSourceGapDiagnostics = {
+  publicMatchedRouteCount: number;
+  matchedLaneInstanceCount: number;
+  missingOpenDateLaneInstanceCount: number;
+  blankOpenDateLaneInstanceCount: number;
+  unparsableOpenDateLaneInstanceCount: number;
+  routesWithMissingOpenDateCount: number;
+  distinctUnparsableOpenDateValues: { sourceValue: string; laneInstanceCount: number }[];
+  topRoutesByMissingOpenDate: {
+    routeId: string;
+    missingOpenDateLaneInstanceCount: number;
+    matchedLaneInstanceCount: number;
+  }[];
+};
+
 type PipelineV1AuditResult = {
   status: RequirementStatus;
   generatedAt: string;
@@ -53,6 +75,9 @@ type PipelineV1AuditResult = {
   coverage: {
     publicMonth: CoverageSummary;
     realtimeMonth: CoverageSummary;
+  };
+  interventions: {
+    busLaneSourceGaps: BusLaneSourceGapDiagnostics;
   };
   gates: {
     publicStructuralStatus: string;
@@ -226,6 +251,81 @@ async function coverageSummary(dbPath: string, month: string): Promise<CoverageS
   });
 }
 
+async function busLaneSourceGapDiagnostics(
+  dbPath: string,
+  month: string,
+): Promise<BusLaneSourceGapDiagnostics> {
+  return withLocalPipelineDb(dbPath.length > 0 ? dbPath : undefined, async (local) => {
+    const [briefs, busLanes] = await Promise.all([
+      listRouteBriefSummaries(local.db, month),
+      listBusLanes(local.db),
+    ]);
+    const publicMatchedBriefs = briefs.filter(
+      (brief) => brief.publicVisible && brief.busLaneMatchedLaneCount > 0,
+    );
+    const unparsableValues = new Map<string, number>();
+    const routeGaps: BusLaneSourceGapDiagnostics["topRoutesByMissingOpenDate"] = [];
+    let matchedLaneInstanceCount = 0;
+    let missingOpenDateLaneInstanceCount = 0;
+    let blankOpenDateLaneInstanceCount = 0;
+    let unparsableOpenDateLaneInstanceCount = 0;
+
+    for (const brief of publicMatchedBriefs) {
+      const stops = await listRouteStops(local.db, brief.routeId, month);
+      const matchedLanes = busLaneMatches([...busLanes], [...stops]).map((match) => match.lane);
+      let routeMissingOpenDateLaneInstanceCount = 0;
+
+      for (const lane of matchedLanes) {
+        matchedLaneInstanceCount += 1;
+        const sourceValue = lane.openDate?.trim() ?? "";
+        if (parseBusLaneOpenDates(sourceValue).length > 0) {
+          continue;
+        }
+
+        missingOpenDateLaneInstanceCount += 1;
+        routeMissingOpenDateLaneInstanceCount += 1;
+        if (sourceValue.length === 0) {
+          blankOpenDateLaneInstanceCount += 1;
+        } else {
+          unparsableOpenDateLaneInstanceCount += 1;
+          unparsableValues.set(sourceValue, (unparsableValues.get(sourceValue) ?? 0) + 1);
+        }
+      }
+
+      if (routeMissingOpenDateLaneInstanceCount > 0) {
+        routeGaps.push({
+          routeId: brief.routeId,
+          missingOpenDateLaneInstanceCount: routeMissingOpenDateLaneInstanceCount,
+          matchedLaneInstanceCount: matchedLanes.length,
+        });
+      }
+    }
+
+    return {
+      publicMatchedRouteCount: publicMatchedBriefs.length,
+      matchedLaneInstanceCount,
+      missingOpenDateLaneInstanceCount,
+      blankOpenDateLaneInstanceCount,
+      unparsableOpenDateLaneInstanceCount,
+      routesWithMissingOpenDateCount: routeGaps.length,
+      distinctUnparsableOpenDateValues: [...unparsableValues.entries()]
+        .sort(
+          ([leftValue, leftCount], [rightValue, rightCount]) =>
+            rightCount - leftCount || leftValue.localeCompare(rightValue),
+        )
+        .slice(0, 20)
+        .map(([sourceValue, laneInstanceCount]) => ({ sourceValue, laneInstanceCount })),
+      topRoutesByMissingOpenDate: routeGaps
+        .sort(
+          (left, right) =>
+            right.missingOpenDateLaneInstanceCount - left.missingOpenDateLaneInstanceCount ||
+            left.routeId.localeCompare(right.routeId),
+        )
+        .slice(0, 20),
+    };
+  });
+}
+
 export async function auditPipelineV1(
   args: PipelineV1AuditArgs = {},
 ): Promise<PipelineV1AuditResult> {
@@ -285,7 +385,8 @@ export async function auditPipelineV1(
     ...artifactRootArg,
     ...exportRootArg,
   });
-  const [realtimePreflight, publicCoverage, realtimeCoverage] = await Promise.all([
+  const [realtimePreflight, publicCoverage, realtimeCoverage, busLaneSourceGaps] =
+    await Promise.all([
     preflightGtfsRt({
       year: realtimeYear,
       month: realtimeMonth,
@@ -295,6 +396,7 @@ export async function auditPipelineV1(
     }),
     coverageSummary(dbPath ?? "", publicIsoMonth),
     coverageSummary(dbPath ?? "", realtimeIsoMonth),
+    busLaneSourceGapDiagnostics(dbPath ?? "", publicIsoMonth),
   ]);
 
   const monthSplit = publicIsoMonth !== realtimeIsoMonth;
@@ -342,7 +444,7 @@ export async function auditPipelineV1(
       requirement: "Before/after intervention evaluation",
       status:
         publicStructural.counts.peerAdjustedInterventionComparisonRows > 0 ? "partial" : "blocked",
-      evidence: `${publicIsoMonth} has ${publicStructural.counts.routeInterventionComparisonRows} intervention comparisons, ${publicStructural.counts.evaluatedInterventionComparisonRows} evaluated rows, ${publicStructural.counts.peerAdjustedInterventionComparisonRows} peer-adjusted rows, ${publicStructural.counts.busLaneDatedInterventionComparisonRows} dated bus-lane comparison rows, and ${publicStructural.counts.busLaneSourceGapComparisonRows} bus-lane source-gap rows.`,
+      evidence: `${publicIsoMonth} has ${publicStructural.counts.routeInterventionComparisonRows} intervention comparisons, ${publicStructural.counts.evaluatedInterventionComparisonRows} evaluated rows, ${publicStructural.counts.peerAdjustedInterventionComparisonRows} peer-adjusted rows, ${publicStructural.counts.busLaneDatedInterventionComparisonRows} dated bus-lane comparison rows, and ${publicStructural.counts.busLaneSourceGapComparisonRows} bus-lane source-gap rows. Bus-lane source-date diagnostics: ${busLaneSourceGaps.missingOpenDateLaneInstanceCount}/${busLaneSourceGaps.matchedLaneInstanceCount} matched lane instances lack parseable source dates, including ${busLaneSourceGaps.blankOpenDateLaneInstanceCount} blank source open_date values and ${busLaneSourceGaps.unparsableOpenDateLaneInstanceCount} unparsable nonblank values across ${busLaneSourceGaps.routesWithMissingOpenDateCount} public route(s).`,
       missing: [
         ...(publicStructural.counts.busLaneDatedInterventionComparisonRows > 0
           ? []
@@ -433,6 +535,9 @@ export async function auditPipelineV1(
     coverage: {
       publicMonth: publicCoverage,
       realtimeMonth: realtimeCoverage,
+    },
+    interventions: {
+      busLaneSourceGaps,
     },
     gates: {
       publicStructuralStatus: publicStructural.status,

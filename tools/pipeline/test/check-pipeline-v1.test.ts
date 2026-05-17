@@ -21,6 +21,7 @@ import {
   replaceRouteReliabilityRows,
   replaceRouteScorecard,
   replaceRouteSegmentSpeeds,
+  replaceRouteStops,
 } from "@bp/db/local";
 import { buildBriefArtifacts } from "../src/jobs/build/brief-artifacts.js";
 import { buildEvaluationArtifacts } from "../src/jobs/build/evaluation-artifacts.js";
@@ -373,6 +374,34 @@ async function writeFixtureNetwork(options: {
         averageTravelTimeMinutes: 10,
         averageRoadSpeedMph: 6,
         busTripCount: 10,
+      },
+    ]);
+    await replaceRouteStops(local.db, "T1", isoMonth, [
+      {
+        routeId: "T1",
+        isoMonth,
+        routeShortName: "T1",
+        stopId: "S1",
+        stopName: "Fixture St / Start Stop",
+        inEffect: true,
+        directionId: "0",
+        direction: "N",
+        timepoint: true,
+        latitude: 40.7,
+        longitude: -73.99,
+      },
+      {
+        routeId: "T1",
+        isoMonth,
+        routeShortName: "T1",
+        stopId: "S2",
+        stopName: "Fixture St / End Stop",
+        inEffect: true,
+        directionId: "0",
+        direction: "N",
+        timepoint: true,
+        latitude: 40.72,
+        longitude: -73.97,
       },
     ]);
     await replaceRouteHotspots(
@@ -1678,8 +1707,32 @@ describe("pipeline v1 check", () => {
         }),
       ]),
     );
+    expect(result.interventions.busLaneSourceGaps).toEqual(
+      expect.objectContaining({
+        publicMatchedRouteCount: 1,
+        matchedLaneInstanceCount: 1,
+        missingOpenDateLaneInstanceCount: 1,
+        blankOpenDateLaneInstanceCount: 1,
+        unparsableOpenDateLaneInstanceCount: 0,
+        routesWithMissingOpenDateCount: 1,
+      }),
+    );
+    expect(
+      result.checklist.find((item) => item.requirement === "Before/after intervention evaluation")
+        ?.evidence,
+    ).toContain("blank source open_date values");
     const written = JSON.parse(await Bun.file(auditOutputPath).text());
-    expect(written).toEqual(expect.objectContaining({ status: "partial", publicMonth: isoMonth }));
+    expect(written).toEqual(
+      expect.objectContaining({
+        status: "partial",
+        publicMonth: isoMonth,
+        interventions: expect.objectContaining({
+          busLaneSourceGaps: expect.objectContaining({
+            blankOpenDateLaneInstanceCount: 1,
+          }),
+        }),
+      }),
+    );
   });
 
   test("marks the reproducible pipeline requirement pass when clean rebuild proof is supplied", async () => {
