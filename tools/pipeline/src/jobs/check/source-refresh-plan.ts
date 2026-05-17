@@ -179,7 +179,7 @@ function buildJobs(input: {
       nextActions: [
         "Deploy a scheduled collector that does not depend on user request traffic.",
         "Store raw protobuf snapshots in durable object storage with run id, timestamp, checksum, feed type, and redacted source URL metadata.",
-        "Run strict finalize/audit only after the collected realtime month has matching public speed coverage.",
+        "Run observed monthly promotion checks only after the collected realtime month has matching public speed coverage.",
       ],
     },
     {
@@ -195,7 +195,7 @@ function buildJobs(input: {
       nextActions: routeSpeedAvailability.releaseDecision.shouldRebuild
         ? [
             `Run ingest/build/finalize for ${routeSpeedAvailability.releaseDecision.latestCompleteMonth}.`,
-            "Regenerate D1/static exports and run strict v1 QA with same-month GTFS-RT evidence.",
+            "Regenerate D1/static exports and run the v1 audit; promote to an observed monthly release only when same-month GTFS-RT evidence exists.",
           ]
         : [
             "Persist the source-availability artifact.",

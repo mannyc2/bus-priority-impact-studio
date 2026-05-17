@@ -55,8 +55,8 @@ Read this file first. It is the navigation layer for the LLM wiki.
 
 ## Immediate open issues
 
-1. Decide whether v1 ships as March structural evidence plus a May observed-reliability appendix, or waits until public speed coverage exists for a later single strict v1 month.
-2. March 2026 is structurally complete but has no March realtime samples; May 2026 has a passing observed GTFS-RT layer but no public speed coverage yet.
+1. Finish v1 as the March 2026 canonical public-source monthly release with May 2026 GTFS-RT attached as a labeled current observed appendix.
+2. Same-month public-speed plus GTFS-RT alignment is a later observed monthly promotion condition, not the v1 blocker.
 3. Reduce remaining bus-lane source gaps where public dates can be recovered, and get external transit-domain review of the peer-adjusted ACE/ABLE/bus-lane method.
 4. Route score uses a two-factor formula; incorporate ridership weight, persistence, reliability, and intervention gap or demote score behind brief evidence.
 5. Keep the MVP TypeScript-only unless a documented requirement forces Python/PostGIS/VPS escalation.

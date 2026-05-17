@@ -185,9 +185,9 @@ Expected outputs:
 - D1 seed SQL or import-ready rows
 - D1 export summaries with schema/seed byte lengths and SHA-256 hashes
 - D1 verification summaries that load generated seed SQL, validate expected-vs-loaded serving row counts, and exercise typed repository readback
-- strict v1 QA result covering local route/corridor evidence, required source probe freshness, GTFS-RT analysis-month alignment, GTFS-RT collection window/cadence/snapshot coverage, GTFS-RT parse/headway provenance, observed-route and observed-sample coverage, corridor assignment ambiguity/unassigned thresholds, route-batch audit file and JSON-contract output, evaluation and map artifact manifests, and D1 readback
+- canonical monthly release QA result covering local route/corridor evidence, required source probe freshness, corridor assignment ambiguity/unassigned thresholds, route-batch audit file and JSON-contract output, evaluation and map artifact manifests, and D1 readback; strict same-month GTFS-RT checks remain the observed monthly promotion gate
 - structural DB/export/artifact QA result when `--allow-insufficient-gtfs-rt` is used without a Bus Time collection run
-- prompt-to-artifact v1 audit JSON at `data/artifacts/pipeline-v1/audit-<public-month>-<realtime-month>.json`, with pass/partial/blocked checklist rows for the public-source month, realtime month, QA gates, source availability, D1/static exports, and remaining gaps
+- prompt-to-artifact v1 audit JSON at `data/artifacts/pipeline-v1/audit-<public-month>-<realtime-month>.json`, with pass/partial/blocked checklist rows for the canonical public-source month, realtime appendix, QA gates, source cadence, D1/static exports, and observed monthly promotion readiness
 - artifact keys and hashes
 - optional R2 upload after local artifact contracts are stable
 

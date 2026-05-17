@@ -1842,18 +1842,26 @@ describe("pipeline v1 check", () => {
     expect(result.objective).toContain("Finish Data Pipeline v1");
     expect(result.successCriteria).toEqual(
       expect.arrayContaining([
-        "GTFS-RT observed reliability and bunching computed from collected same-month realtime samples.",
+        "GTFS-RT observed reliability and bunching computed from collected realtime samples and attached as a current observed appendix when source months differ.",
         "D1 serving export and static evaluation/map artifact contracts verify against generated data.",
       ]),
+    );
+    expect(result.releaseModel).toEqual(
+      expect.objectContaining({
+        canonicalMonthlyRelease: isoMonth,
+        realtimeAppendix: isoMonth,
+        sameMonthPromotionReady: true,
+        sameMonthPromotionIssues: [],
+      }),
     );
     expect(result.checklist).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          requirement: "Strict single-month v1 QA gate",
+          requirement: "Observed monthly promotion condition",
           status: "pass",
         }),
         expect.objectContaining({
-          requirement: "Single-month source availability",
+          requirement: "Source cadence and release availability",
           status: "pass",
         }),
       ]),
@@ -1904,12 +1912,14 @@ describe("pipeline v1 check", () => {
       }),
     );
     expect(
-      result.checklist.find((item) => item.requirement === "Single-month source availability")
-        ?.evidence,
+      result.checklist.find(
+        (item) => item.requirement === "Source cadence and release availability",
+      )?.evidence,
     ).toContain("shouldRebuild=true");
     expect(
-      result.checklist.find((item) => item.requirement === "Single-month source availability")
-        ?.evidence,
+      result.checklist.find(
+        (item) => item.requirement === "Source cadence and release availability",
+      )?.evidence,
     ).toContain("route_speed_monthly_watcher=ready_to_rebuild");
     expect(
       result.checklist.find((item) => item.requirement === "Before/after intervention evaluation")
@@ -1921,8 +1931,11 @@ describe("pipeline v1 check", () => {
         status: "partial",
         objective: expect.stringContaining("Finish Data Pipeline v1"),
         successCriteria: expect.arrayContaining([
-          "Strict single-month QA passes without structural-only GTFS-RT fallback.",
+          "Same-month public-speed and collected-realtime alignment is tracked as an observed monthly promotion condition, not a Data Pipeline v1 blocker.",
         ]),
+        releaseModel: expect.objectContaining({
+          sameMonthPromotionReady: true,
+        }),
         publicMonth: isoMonth,
         interventions: expect.objectContaining({
           busLaneSourceGaps: expect.objectContaining({
@@ -1987,7 +2000,7 @@ describe("pipeline v1 check", () => {
       output: auditOutputPath,
     });
     const sourceAvailability = result.checklist.find(
-      (item) => item.requirement === "Single-month source availability",
+      (item) => item.requirement === "Source cadence and release availability",
     );
 
     expect(result.sourceAvailability.refreshPlan).toBeNull();
@@ -2000,7 +2013,7 @@ describe("pipeline v1 check", () => {
     expect(sourceAvailability?.evidence).toContain("No source-refresh plan artifact found.");
   });
 
-  test("blocks the audit when public-source and realtime months do not align", async () => {
+  test("keeps month mismatch as an observed monthly promotion issue", async () => {
     await writeFixtureNetwork({ includeObservedAndInterventions: true });
 
     const result = await auditPipelineV1({
@@ -2017,6 +2030,17 @@ describe("pipeline v1 check", () => {
     });
 
     expect(result.status).toBe("blocked");
+    expect(result.releaseModel).toEqual(
+      expect.objectContaining({
+        canonicalMonthlyRelease: "2026-11",
+        realtimeAppendix: "2026-12",
+        sameMonthPromotionReady: false,
+        sameMonthPromotionIssues: expect.arrayContaining([
+          "Canonical public-source month 2026-11 differs from realtime appendix month 2026-12.",
+          "Realtime appendix month 2026-12 has no public monthly speed coverage yet.",
+        ]),
+      }),
+    );
     expect(result.gates).toEqual(
       expect.objectContaining({
         publicStructuralStatus: "pass",
@@ -2027,8 +2051,12 @@ describe("pipeline v1 check", () => {
     expect(result.checklist).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          requirement: "Single-month source availability",
-          status: "blocked",
+          requirement: "Source cadence and release availability",
+          status: "partial",
+        }),
+        expect.objectContaining({
+          requirement: "Observed monthly promotion condition",
+          status: "pass",
         }),
         expect.objectContaining({
           requirement: "GTFS-RT observed reliability and bunching",

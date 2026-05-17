@@ -72,7 +72,7 @@ Bun runs local scripts, workspace filters, package tests, and pipeline commands.
 
 ## Environment
 
-Set `MTA_BUS_TIME_API_KEY` for Bus Time GTFS-RT collection and source probes. GTFS-RT observed reliability is part of Data Pipeline v1; without the key, public static/open-data source probes can still run, but strict v1 observed-reliability gates cannot pass. Do not commit local env files or secrets.
+Set `MTA_BUS_TIME_API_KEY` for Bus Time GTFS-RT collection and source probes. GTFS-RT observed reliability is part of Data Pipeline v1 as a current observed layer; without the key, public static/open-data source probes and canonical monthly releases can still run, but realtime appendix and observed monthly promotion gates cannot pass. Do not commit local env files or secrets.
 
 ## Current scaffold
 
