@@ -34,12 +34,13 @@ Current baseline:
 
 V1 additions still required:
 
-- GTFS-RT collector and observed headway tables.
-- Observed reliability and bunching metrics.
-- ACE/bus-lane before/after and comparison artifacts.
-- Corridor entities, metrics, and brief summaries.
-- Final route/corridor brief body artifacts.
+- Production-length GTFS-RT collection and coverage QA.
+- Detailed observed reliability windows beyond route/month summary metrics.
+- Seasonality-aware, matched-comparison, and bus-lane intervention evaluation.
+- Richer segment-based corridor membership and corridor intervention context.
 - `check:pipeline-v1` or equivalent QA gate that verifies every v1 deliverable.
+
+Implemented v1 additions include GTFS-RT collection/parsing, observed headway samples, route/month observed reliability and bunching summaries, descriptive ACE before/after comparisons, primary-street corridor entities/summaries, route/corridor brief body generation, D1 artifact metadata, and route-batch hash/byte verification for generated brief bodies.
 
 ## Phase 0: source metadata probes
 
@@ -130,8 +131,8 @@ bun --filter @bp/pipeline export:artifacts -- --route M1 --month 2026-01
 Implementation responsibilities:
 
 1. Generate D1 seed SQL or import-ready rows for compact serving tables.
-2. Generate route GeoJSON and route-brief artifacts.
-3. Store artifact keys and hashes in `route_artifact`.
+2. Generate route/corridor brief artifacts and route GeoJSON/map artifacts.
+3. Store route artifact keys and hashes in `route_artifact`; store corridor brief artifact keys and hashes in `corridor_artifact`.
 4. Upload artifacts to R2 only after local artifact contracts are stable.
 
 Verification:
@@ -139,7 +140,7 @@ Verification:
 - D1 local migration applies.
 - D1 local seed imports.
 - `apps/web` can read scorecard data from local D1.
-- Artifact hash in D1 matches generated file.
+- Artifact hashes in D1/local metadata match generated files.
 
 ## Phase 4: public app
 

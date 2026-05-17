@@ -1,4 +1,5 @@
 export type {
+  CorridorArtifactRow,
   CorridorHotspotRow,
   CorridorMonthSummaryRow,
   CorridorRouteMemberRow,
@@ -7,6 +8,7 @@ export type {
   D1ServingDb,
   D1ServingSchema,
   InterventionEventRow,
+  RouteArtifactRow,
   RouteBatchStatus,
   RouteBatchStatusRow,
   RouteBriefSummary,
@@ -37,7 +39,9 @@ export {
   getRouteBriefSummary,
   getRouteScorecard,
   listBuildEligibleRoutes,
+  listCorridorArtifacts,
   listCorridorSummaries,
+  listRouteArtifacts,
   listRouteBriefSummaries,
   listRouteBuildPlan,
   listRouteComparisonRanks,

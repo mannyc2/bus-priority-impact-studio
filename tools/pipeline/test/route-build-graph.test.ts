@@ -28,7 +28,21 @@ describe("all-routes build graph", () => {
           routeCount: 2,
           status: "pass",
           issueCount: 0,
+          missingArtifactCount: 0,
+          hashMismatchCount: 0,
+          byteLengthMismatchCount: 0,
           artifactCount: 18,
+          totalByteLength: 200,
+        };
+      },
+      buildBriefArtifacts: async () => {
+        calls.push("brief-artifacts");
+        return {
+          isoMonth: "2026-08",
+          routeBriefCount: 2,
+          corridorBriefCount: 1,
+          routeArtifactCount: 6,
+          corridorArtifactCount: 3,
           totalByteLength: 200,
         };
       },
@@ -153,6 +167,7 @@ describe("all-routes build graph", () => {
         "comparison:2",
         "intervention-evaluation",
         "corridor-model",
+        "brief-artifacts",
         "reliability",
         "audit",
         "export:d1:false",
@@ -183,7 +198,21 @@ describe("all-routes build graph", () => {
           routeCount: 1,
           status: "pass",
           issueCount: 0,
+          missingArtifactCount: 0,
+          hashMismatchCount: 0,
+          byteLengthMismatchCount: 0,
           artifactCount: 9,
+          totalByteLength: 100,
+        };
+      },
+      buildBriefArtifacts: async () => {
+        calls.push("brief-artifacts");
+        return {
+          isoMonth: "2026-08",
+          routeBriefCount: 1,
+          corridorBriefCount: 1,
+          routeArtifactCount: 3,
+          corridorArtifactCount: 3,
           totalByteLength: 100,
         };
       },
@@ -301,6 +330,7 @@ describe("all-routes build graph", () => {
         "comparison:1",
         "intervention-evaluation",
         "corridor-model",
+        "brief-artifacts",
         "plan:20",
         "export:d1:false",
       ]),

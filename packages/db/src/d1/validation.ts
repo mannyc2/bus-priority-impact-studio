@@ -1,10 +1,12 @@
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import {
   corridor,
+  corridorArtifact,
   corridorHotspot,
   corridorMonthSummary,
   corridorRouteMember,
   interventionEvent,
+  routeArtifact,
   routeBatchStatus,
   routeBriefPeakWindow,
   routeBriefSlowestWindow,
@@ -21,6 +23,7 @@ import {
 export const RouteScorecardSelectSchema = createSelectSchema(routeScorecard);
 export const RouteScorecardInsertSchema = createInsertSchema(routeScorecard);
 export const RouteScorecardCitationSelectSchema = createSelectSchema(routeScorecardCitation);
+export const RouteArtifactSelectSchema = createSelectSchema(routeArtifact);
 export const RouteBriefSummarySelectSchema = createSelectSchema(routeBriefSummary);
 export const RouteBriefPeakWindowSelectSchema = createSelectSchema(routeBriefPeakWindow);
 export const RouteBriefSlowestWindowSelectSchema = createSelectSchema(routeBriefSlowestWindow);
@@ -38,4 +41,5 @@ export const CorridorSelectSchema = createSelectSchema(corridor);
 export const CorridorRouteMemberSelectSchema = createSelectSchema(corridorRouteMember);
 export const CorridorMonthSummarySelectSchema = createSelectSchema(corridorMonthSummary);
 export const CorridorHotspotSelectSchema = createSelectSchema(corridorHotspot);
+export const CorridorArtifactSelectSchema = createSelectSchema(corridorArtifact);
 export const RouteBatchStatusSelectSchema = createSelectSchema(routeBatchStatus);

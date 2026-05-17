@@ -23,7 +23,9 @@ export type D1SeedOutputResult = {
   routeObservedReliabilitySummaryRowCount: number;
   interventionEventRowCount: number;
   routeInterventionComparisonRowCount: number;
+  routeArtifactRowCount: number;
   corridorRowCount: number;
+  corridorArtifactRowCount: number;
   corridorRouteMemberRowCount: number;
   corridorMonthSummaryRowCount: number;
   corridorHotspotRowCount: number;
@@ -73,7 +75,9 @@ export async function writeRouteD1SeedOutput(input: {
     routeObservedReliabilitySummaryRowCount: seed.routeObservedReliabilitySummaryRowCount,
     interventionEventRowCount: seed.interventionEventRowCount,
     routeInterventionComparisonRowCount: seed.routeInterventionComparisonRowCount,
+    routeArtifactRowCount: seed.routeArtifactRowCount,
     corridorRowCount: seed.corridorRowCount,
+    corridorArtifactRowCount: seed.corridorArtifactRowCount,
     corridorRouteMemberRowCount: seed.corridorRouteMemberRowCount,
     corridorMonthSummaryRowCount: seed.corridorMonthSummaryRowCount,
     corridorHotspotRowCount: seed.corridorHotspotRowCount,

@@ -4,10 +4,12 @@ import { drizzle } from "drizzle-orm/bun-sqlite";
 import { SQLiteSyncDialect } from "drizzle-orm/sqlite-core";
 import type {
   LocalCorridor,
+  LocalCorridorArtifact,
   LocalCorridorHotspot,
   LocalCorridorMonthSummary,
   LocalCorridorRouteMember,
   LocalInterventionEvent,
+  LocalRouteArtifact,
   LocalRouteBatchBuiltRoute,
   LocalRouteBatchIssue,
   LocalRouteBatchStatus,
@@ -30,10 +32,12 @@ import type {
 } from "../../local/index.js";
 import {
   corridor,
+  corridorArtifact,
   corridorHotspot,
   corridorMonthSummary,
   corridorRouteMember,
   interventionEvent,
+  routeArtifact,
   routeBatchBuiltRoute,
   routeBatchIssue,
   routeBatchStatus,
@@ -70,7 +74,9 @@ export type D1SeedInput = {
   routeObservedReliabilitySummaries: LocalRouteObservedReliabilitySummary[];
   interventionEvents: LocalInterventionEvent[];
   routeInterventionComparisons: LocalRouteInterventionComparison[];
+  routeArtifacts: LocalRouteArtifact[];
   corridors: LocalCorridor[];
+  corridorArtifacts: LocalCorridorArtifact[];
   corridorRouteMembers: LocalCorridorRouteMember[];
   corridorMonthSummaries: LocalCorridorMonthSummary[];
   corridorHotspots: LocalCorridorHotspot[];
@@ -103,7 +109,9 @@ export type D1SeedSqlResult = {
   routeObservedReliabilitySummaryRowCount: number;
   interventionEventRowCount: number;
   routeInterventionComparisonRowCount: number;
+  routeArtifactRowCount: number;
   corridorRowCount: number;
+  corridorArtifactRowCount: number;
   corridorRouteMemberRowCount: number;
   corridorMonthSummaryRowCount: number;
   corridorHotspotRowCount: number;
@@ -151,7 +159,9 @@ export function buildD1SeedSql(input: D1SeedInput): D1SeedSqlResult {
         .delete(routeInterventionComparison)
         .where(eq(routeInterventionComparison.month, month)),
     ),
+    renderQuery(seedDb.delete(routeArtifact).where(eq(routeArtifact.month, month))),
     renderQuery(seedDb.delete(corridorHotspot).where(eq(corridorHotspot.month, month))),
+    renderQuery(seedDb.delete(corridorArtifact).where(eq(corridorArtifact.month, month))),
     renderQuery(seedDb.delete(corridorMonthSummary).where(eq(corridorMonthSummary.month, month))),
     renderQuery(seedDb.delete(corridorRouteMember).where(eq(corridorRouteMember.month, month))),
     renderQuery(seedDb.delete(corridor)),
@@ -436,6 +446,22 @@ export function buildD1SeedSql(input: D1SeedInput): D1SeedSqlResult {
     );
   }
 
+  for (const row of input.routeArtifacts) {
+    statements.push(
+      renderQuery(
+        seedDb.insert(routeArtifact).values({
+          routeId: row.routeId,
+          month: row.month,
+          artifactName: row.artifactName,
+          artifactKey: row.artifactKey,
+          contentType: row.contentType,
+          byteLength: row.byteLength,
+          sha256: row.sha256,
+        }),
+      ),
+    );
+  }
+
   for (const row of input.corridors) {
     statements.push(
       renderQuery(
@@ -444,6 +470,22 @@ export function buildD1SeedSql(input: D1SeedInput): D1SeedSqlResult {
           corridorName: row.corridorName,
           corridorKey: row.corridorKey,
           derivationMethod: row.derivationMethod,
+        }),
+      ),
+    );
+  }
+
+  for (const row of input.corridorArtifacts) {
+    statements.push(
+      renderQuery(
+        seedDb.insert(corridorArtifact).values({
+          corridorId: row.corridorId,
+          month: row.month,
+          artifactName: row.artifactName,
+          artifactKey: row.artifactKey,
+          contentType: row.contentType,
+          byteLength: row.byteLength,
+          sha256: row.sha256,
         }),
       ),
     );
@@ -736,7 +778,9 @@ export function buildD1SeedSql(input: D1SeedInput): D1SeedSqlResult {
     routeObservedReliabilitySummaryRowCount: input.routeObservedReliabilitySummaries.length,
     interventionEventRowCount: input.interventionEvents.length,
     routeInterventionComparisonRowCount: input.routeInterventionComparisons.length,
+    routeArtifactRowCount: input.routeArtifacts.length,
     corridorRowCount: input.corridors.length,
+    corridorArtifactRowCount: input.corridorArtifacts.length,
     corridorRouteMemberRowCount: input.corridorRouteMembers.length,
     corridorMonthSummaryRowCount: input.corridorMonthSummaries.length,
     corridorHotspotRowCount: input.corridorHotspots.length,

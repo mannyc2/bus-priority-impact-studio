@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
+  CorridorArtifactSelectSchema,
+  RouteArtifactSelectSchema,
   RouteBriefSummarySelectSchema,
   RouteScorecardCitationSelectSchema,
   RouteScorecardSelectSchema,
@@ -40,6 +42,22 @@ describe("Drizzle D1 validation schemas", () => {
     );
 
     expect(
+      RouteArtifactSelectSchema.parse({
+        routeId: "M1",
+        month: "2026-03",
+        artifactName: "brief.json",
+        artifactKey: "briefs/routes/m1/2026-03/brief.json",
+        contentType: "application/json",
+        byteLength: 100,
+        sha256: "a".repeat(64),
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        artifactName: "brief.json",
+      }),
+    );
+
+    expect(
       RouteBriefSummarySelectSchema.parse({
         routeId: "M1",
         month: "2026-03",
@@ -58,6 +76,22 @@ describe("Drizzle D1 validation schemas", () => {
     ).toEqual(
       expect.objectContaining({
         publicVisible: true,
+      }),
+    );
+
+    expect(
+      CorridorArtifactSelectSchema.parse({
+        corridorId: "street:broadway",
+        month: "2026-03",
+        artifactName: "brief.md",
+        artifactKey: "briefs/corridors/street-broadway/2026-03/brief.md",
+        contentType: "text/markdown; charset=utf-8",
+        byteLength: 100,
+        sha256: "b".repeat(64),
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        corridorId: "street:broadway",
       }),
     );
   });

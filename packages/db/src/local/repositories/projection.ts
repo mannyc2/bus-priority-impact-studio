@@ -1,6 +1,7 @@
 import { and, asc, eq } from "drizzle-orm";
 import type { LocalPipelineDb } from "../client.js";
 import {
+  localRouteArtifact,
   localRouteBatchBuiltRoute,
   localRouteBatchIssue,
   localRouteBatchStatus,
@@ -17,6 +18,7 @@ import {
 } from "../schema.js";
 
 export type LocalRouteScorecard = typeof localRouteScorecard.$inferSelect;
+export type LocalRouteArtifact = typeof localRouteArtifact.$inferSelect;
 export type LocalRouteBriefSummary = typeof localRouteBriefSummary.$inferSelect;
 export type LocalRouteBriefPeakWindow = typeof localRouteBriefPeakWindow.$inferSelect;
 export type LocalRouteBriefSlowestWindow = typeof localRouteBriefSlowestWindow.$inferSelect;
@@ -56,6 +58,28 @@ export async function listRouteScorecards(
     .from(localRouteScorecard)
     .where(eq(localRouteScorecard.month, month))
     .orderBy(asc(localRouteScorecard.routeId));
+}
+
+export async function replaceRouteArtifactsForMonth(
+  db: LocalPipelineDb,
+  month: string,
+  rows: readonly (typeof localRouteArtifact.$inferInsert)[],
+): Promise<void> {
+  await db.delete(localRouteArtifact).where(eq(localRouteArtifact.month, month));
+  if (rows.length > 0) {
+    await db.insert(localRouteArtifact).values([...rows]);
+  }
+}
+
+export async function listRouteArtifacts(
+  db: LocalPipelineDb,
+  month: string,
+): Promise<LocalRouteArtifact[]> {
+  return db
+    .select()
+    .from(localRouteArtifact)
+    .where(eq(localRouteArtifact.month, month))
+    .orderBy(asc(localRouteArtifact.routeId), asc(localRouteArtifact.artifactName));
 }
 
 export async function replaceRouteBriefRows(

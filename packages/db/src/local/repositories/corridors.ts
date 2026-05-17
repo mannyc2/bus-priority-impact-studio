@@ -2,12 +2,14 @@ import { asc, eq } from "drizzle-orm";
 import { batchInsert, type LocalPipelineDb } from "../client.js";
 import {
   localCorridor,
+  localCorridorArtifact,
   localCorridorHotspot,
   localCorridorMonthSummary,
   localCorridorRouteMember,
 } from "../schema.js";
 
 export type LocalCorridor = typeof localCorridor.$inferSelect;
+export type LocalCorridorArtifact = typeof localCorridorArtifact.$inferSelect;
 export type LocalCorridorRouteMember = typeof localCorridorRouteMember.$inferSelect;
 export type LocalCorridorMonthSummary = typeof localCorridorMonthSummary.$inferSelect;
 export type LocalCorridorHotspot = typeof localCorridorHotspot.$inferSelect;
@@ -23,6 +25,7 @@ export async function replaceCorridorRows(
   },
 ): Promise<void> {
   await db.delete(localCorridorHotspot).where(eq(localCorridorHotspot.month, month));
+  await db.delete(localCorridorArtifact).where(eq(localCorridorArtifact.month, month));
   await db.delete(localCorridorMonthSummary).where(eq(localCorridorMonthSummary.month, month));
   await db.delete(localCorridorRouteMember).where(eq(localCorridorRouteMember.month, month));
   await db.delete(localCorridor);
@@ -41,8 +44,30 @@ export async function replaceCorridorRows(
   }
 }
 
+export async function replaceCorridorArtifacts(
+  db: LocalPipelineDb,
+  month: string,
+  rows: readonly (typeof localCorridorArtifact.$inferInsert)[],
+): Promise<void> {
+  await db.delete(localCorridorArtifact).where(eq(localCorridorArtifact.month, month));
+  if (rows.length > 0) {
+    await batchInsert(db, localCorridorArtifact, [...rows]);
+  }
+}
+
 export async function listCorridors(db: LocalPipelineDb): Promise<LocalCorridor[]> {
   return db.select().from(localCorridor).orderBy(asc(localCorridor.corridorId));
+}
+
+export async function listCorridorArtifacts(
+  db: LocalPipelineDb,
+  month: string,
+): Promise<LocalCorridorArtifact[]> {
+  return db
+    .select()
+    .from(localCorridorArtifact)
+    .where(eq(localCorridorArtifact.month, month))
+    .orderBy(asc(localCorridorArtifact.corridorId), asc(localCorridorArtifact.artifactName));
 }
 
 export async function listCorridorRouteMembers(

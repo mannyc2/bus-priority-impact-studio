@@ -16,6 +16,7 @@ import {
   replaceRouteReliabilityRows,
   replaceRouteScorecard,
 } from "@bp/db/local";
+import { buildBriefArtifacts } from "../src/jobs/build/brief-artifacts.js";
 import { verifyD1Export } from "../src/jobs/export/verify-d1-export.js";
 import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
@@ -24,11 +25,17 @@ const isoMonth = "2026-09";
 const exportDir = fromRepoRoot(join("data/exports/d1", isoMonth));
 const dbPath = fromRepoRoot(join("data/fixtures/verify-d1/pipeline.sqlite"));
 const routeDir = fromRepoRoot(join("data/artifacts/route-slices/t1-2026-09"));
+const routeBriefDir = fromRepoRoot(join("data/artifacts/briefs/routes/t1", isoMonth));
+const corridorBriefDir = fromRepoRoot(
+  join("data/artifacts/briefs/corridors/street-broadway", isoMonth),
+);
 async function removeFixtureArtifacts(): Promise<void> {
   await Promise.all([
     rm(exportDir, { force: true, recursive: true }),
     rm(dbPath, { force: true }),
     rm(routeDir, { force: true, recursive: true }),
+    rm(routeBriefDir, { force: true, recursive: true }),
+    rm(corridorBriefDir, { force: true, recursive: true }),
   ]);
 }
 
@@ -428,6 +435,7 @@ async function writeFixtureNetwork(): Promise<void> {
 async function writeFixtureArtifacts(): Promise<void> {
   await removeFixtureArtifacts();
   await writeFixtureNetwork();
+  await buildBriefArtifacts({ year: 2026, month: 9, dbPath });
 }
 
 afterEach(async () => {
@@ -456,7 +464,9 @@ describe("D1 export verification", () => {
         route_observed_reliability_summary: 1,
         intervention_event: 1,
         route_intervention_comparison: 1,
+        route_artifact: 3,
         corridor: 1,
+        corridor_artifact: 3,
         corridor_route_member: 1,
         corridor_month_summary: 1,
         corridor_hotspot: 1,
@@ -477,7 +487,9 @@ describe("D1 export verification", () => {
         reliabilityBaselineRows: 1,
         routeObservedReliabilityRows: 1,
         routeInterventionComparisonRows: 1,
+        routeArtifactRows: 3,
         corridorSummaryRows: 1,
+        corridorArtifactRows: 3,
         routeMonthTrendRows: 1,
         routeEquityContextRows: 1,
         firstRouteId: "T1",

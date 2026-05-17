@@ -57,7 +57,9 @@ Local generated state:
 | Route hotspot summaries | `local_route_hotspot_summary` | 381 |
 | Route scorecards | `local_route_scorecard` | 381 |
 | Route brief summaries | `local_route_brief_summary` | 381 |
-| Route artifact rows | `local_route_artifact` | 3,429 |
+| Public route brief body artifacts | `local_route_artifact` | 1,050 |
+| Corridor summaries | `local_corridor_month_summary` | 209 |
+| Corridor brief body artifacts | `local_corridor_artifact` | 627 |
 | Scheduled reliability baselines | `local_route_reliability_baseline` | 381 |
 | ACE routes | `local_ace_route` | 81 |
 | ACE violation summaries | `local_ace_violation_summary` | 736 |
@@ -68,18 +70,26 @@ Current strengths:
 - Full-network March 2026 route build exists.
 - Local pipeline DB is already canonical for much of route/catalog/readiness/artifact state.
 - D1 export and verification exist.
-- Route-level deterministic brief inputs and serving summaries exist for all built routes.
+- Route/corridor brief body artifacts have been generated for the current March 2026 local DB: 350 public route briefs and 209 corridor briefs, each with JSON, Markdown, and HTML bodies.
 - Scheduled reliability baseline exists.
-- GTFS-RT collection, parsing, observed headway samples, route/month observed reliability summaries, and D1 export/readback for observed reliability exist.
+- GTFS-RT collection, parsing, observed headway samples, route/month observed reliability summaries, and D1 export/readback code paths exist.
 - ACE and bus-lane overlays exist.
+
+Latest local verification after the brief-artifact slice:
+
+- `bun run corridor-model -- --year 2026 --month 3` produced 350 public route assignments, 209 corridors, and 1,113 corridor hotspots.
+- `bun run brief-artifacts -- --year 2026 --month 3` produced 1,050 route brief artifacts and 627 corridor brief artifacts.
+- `bun run route-batch-audit -- --year 2026 --month 3` passed with 1,677 artifacts, 0 missing artifacts, 0 hash mismatches, and 0 byte-length mismatches.
+- `bun run verify:d1 -- --year 2026 --month 3` passed for the current export, including `route_artifact` and `corridor_artifact` readback.
+- The same D1 verification currently shows 0 March 2026 observed reliability summary rows and 0 intervention comparison rows in the local DB export, so those code paths still need a production data run before v1 can be complete.
 
 Current v1 gaps:
 
-- GTFS-RT observed reliability still needs a production-length collection run, coverage QA, and brief integration.
+- GTFS-RT observed reliability still needs a production-length collection run and coverage QA.
 - Observed reliability is route/month summary only; detailed observed reliability windows are not yet built.
 - ACE descriptive before/after intervention evaluation exists; seasonality-adjusted, matched-comparison, and bus-lane intervention evaluation remain open.
-- Deterministic primary-street corridor entities, route membership, summaries, and hotspot rows exist; corridor brief bodies and richer segment membership remain open.
-- Route brief artifacts are deterministic inputs/summaries, not final route/corridor brief bodies.
+- Deterministic primary-street corridor entities, route membership, summaries, hotspot rows, and generated brief bodies exist; richer segment membership remains open.
+- `brief-artifacts` renders route/corridor JSON, Markdown, and HTML bodies from local DB evidence and stores static artifact metadata, but the final clean full-network run still needs to regenerate and verify the full set.
 - Bus lane matching is no longer borough-hardcoded, but still needs v1 QA coverage in the final pipeline gate.
 - Route score is still a simple speed/hotspot heuristic, not the planned multi-factor priority model.
 - Older wiki pages still contain M1-era command names and optional-realtime language.
@@ -89,15 +99,15 @@ Current v1 gaps:
 | Requirement | Current evidence | Status | Required v1 artifact / gate |
 |---|---|---|---|
 | Reproducible full-network pipeline | `build:network` produced 381/381 March 2026 route slices | Partial | Clean rebuild script/runbook from empty local DB through `verify:d1` |
-| GTFS-RT observed reliability | Collector, parser, observed headway samples, route/month summaries, and D1 readback exist | Partial | Production-length collection, coverage QA, and brief caveats |
+| GTFS-RT observed reliability | Collector, parser, observed headway samples, route/month summaries, D1 readback, and brief-body sections exist | Partial | Production-length collection and coverage QA |
 | Bunching | Route/month observed bunching and long-gap shares are computed from observed headways | Partial | Bunching/long-gap/window metrics with sample coverage/confidence |
 | Before/after intervention evaluation | ACE event rows and descriptive before/after route comparisons exist with D1 readback | Partial | Seasonality-aware, matched-comparison, bus-lane intervention, and corridor summaries |
-| Corridor grouping | Primary-street corridor tables, route membership, summaries, hotspots, and D1 readback exist | Partial | Richer segment membership, ambiguity QA, corridor intervention context, and corridor brief bodies |
-| Full set of route briefs | 381 `route-brief-input.json` and DB brief summaries exist | Partial | Rendered JSON/Markdown/HTML route brief bodies for public-visible routes |
-| Full set of corridor briefs | No corridor artifacts | Missing | Rendered JSON/Markdown/HTML corridor brief bodies |
-| Verified D1 export contract | `export:d1` and `verify:d1` cover route serving rows, observed reliability, ACE intervention comparisons, and corridor summaries | Partial | D1 verification expanded to final brief metadata and static artifact manifests |
-| Static artifact contract | Route artifact manifests exist | Partial | Stable artifact key scheme for route briefs, corridor briefs, map payloads, and evaluation details |
-| QA gates | Tests and route-batch audit exist | Partial | V1 QA command covering source freshness, GTFS-RT sample coverage, intervention eligibility, corridor membership, brief completeness, and export readback |
+| Corridor grouping | Primary-street corridor tables, route membership, summaries, hotspots, D1 readback, and generated corridor brief bodies exist | Partial | Richer segment membership, ambiguity QA, and corridor intervention context |
+| Full set of route briefs | `brief-artifacts` writes JSON/Markdown/HTML route bodies plus `route_artifact` metadata for public-visible routes | Partial | Final clean full-network run proves every public-visible route has current brief bodies |
+| Full set of corridor briefs | `brief-artifacts` writes JSON/Markdown/HTML corridor bodies plus `corridor_artifact` metadata | Partial | Final clean full-network run proves every eligible corridor has current brief bodies |
+| Verified D1 export contract | `export:d1` and `verify:d1` cover route serving rows, observed reliability, ACE intervention comparisons, corridor summaries, and route/corridor artifact metadata | Partial | D1 verification expanded to map payload and detailed evaluation manifests |
+| Static artifact contract | Stable `briefs/routes/...` and `briefs/corridors/...` keys exist with byte-length/SHA-256 audit | Partial | Stable artifact key scheme for map payloads and detailed evaluation payloads |
+| QA gates | Route-batch audit verifies route/corridor brief completeness, byte lengths, hashes, and D1 readback | Partial | V1 QA command covering source freshness, GTFS-RT sample coverage, intervention eligibility, corridor membership, and export readback |
 | Updated roadmap/docs | Some docs are stale | In progress | This page plus updated index, roadmap, ETL, and data pages |
 
 ## Definition Of Done
@@ -158,6 +168,7 @@ bun run ingest:route-trends -- --start-year 2025 --start-month 1 --end-year 2026
 bun run build:network -- --year 2026 --month 3
 bun run route-intervention-evaluation -- --year 2026 --month 3
 bun run corridor-model -- --year 2026 --month 3
+bun run brief-artifacts -- --year 2026 --month 3
 bun run verify:d1 -- --year 2026 --month 3
 ```
 
@@ -363,6 +374,23 @@ Acceptance:
 
 Purpose: turn metrics into complete evidence artifacts.
 
+Status: started 2026-05-16.
+
+Implemented so far:
+
+- `brief-artifacts -- --year YYYY --month M` renders route and corridor brief bodies from local DB serving/evidence rows.
+- Route brief bodies are written to `data/artifacts/briefs/routes/{route_id}/{month}/brief.json`, `brief.md`, and `brief.html`.
+- Corridor brief bodies are written to `data/artifacts/briefs/corridors/{corridor_id_slug}/{month}/brief.json`, `brief.md`, and `brief.html`.
+- Local `local_route_artifact` and `local_corridor_artifact` rows store artifact key, content type, byte length, and SHA-256.
+- D1 `route_artifact` and `corridor_artifact` serving rows expose compact metadata while bodies remain static/R2-ready.
+- Route post-build runs corridor modeling, brief artifact generation, route-batch audit, then D1 export.
+
+Still missing:
+
+- Final clean full-network run proving all current public-visible route and eligible corridor brief bodies exist.
+- Richer narrative sections once segment-based corridor membership and stronger intervention methodology land.
+- Map and detailed evaluation payload manifests.
+
 Brief types:
 
 - route brief
@@ -390,7 +418,7 @@ Each brief must include:
 Acceptance:
 
 - `route-brief-input.json` is no longer the final brief product.
-- Every public-visible route and eligible corridor has a final brief artifact.
+- Every public-visible route and eligible corridor has final JSON, Markdown, and HTML brief bodies.
 - Missing-data sections are explicit.
 
 ## Phase 7: Export, Static Artifact Contract, And QA Gates
@@ -433,6 +461,11 @@ QA gates:
 - artifact manifest hash/byte verification,
 - D1 export table counts,
 - typed D1 readback.
+
+Implemented so far:
+
+- `route-batch-audit` checks required route/corridor brief artifacts, file presence, byte length, and SHA-256 against local metadata rows.
+- `verify:d1` loads generated schema/seed SQL and exercises typed readback for route/corridor artifact metadata.
 
 Acceptance:
 

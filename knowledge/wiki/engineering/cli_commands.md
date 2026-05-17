@@ -112,6 +112,9 @@ bun run compare:routes -- --year 2026 --month 3
 bun run route-readiness -- --year 2026 --month 3
 bun run route-build-plan -- --year 2026 --month 3 --limit 20
 bun run route-reliability-baseline -- --year 2026 --month 3
+bun run route-intervention-evaluation -- --year 2026 --month 3
+bun run corridor-model -- --year 2026 --month 3
+bun run brief-artifacts -- --year 2026 --month 3
 bun run route-equity-context -- --year 2026 --month 3 --acs-year 2024
 bun run route-batch-audit -- --year 2026 --month 3
 bun --filter @bp/pipeline build:segments -- --route M1
@@ -131,9 +134,12 @@ Expected outputs:
 - route build-plan artifacts ranking eligible routes for the next offline batch
 - monthly network build reports covering every build-eligible route, per-route failures, and post-build export status
 - scheduled reliability baselines for headway gaps, short headways, and long-gap windows
+- route/month observed-intervention comparison summaries with explicit evaluation levels and caveats
+- corridor assignments, route membership, corridor summaries, and corridor hotspots
+- route/corridor brief bodies as JSON, Markdown, and HTML under `data/artifacts/briefs/`
 - route intervention-history artifacts for ACE dates, bus-lane open-date coverage, and still-missing signal/lane-upgrade sources
 - route equity-context artifacts joining route rows to county-level ACS proxy context
-- route batch audit artifacts validating manifests, file existence, byte lengths, and hashes
+- route batch audit rows validating required route/corridor brief artifacts, file existence, byte lengths, and hashes
 - source/caveat metadata
 
 Primary batch entrypoint:
@@ -181,7 +187,7 @@ Do not use `pytest`, `ruff`, or Python scripts in the MVP.
 
 ## Caveats
 
-- `sources:list`, `sources:probe`, `collect:gtfs-rt`, `ingest:gtfs-rt-snapshots`, `build:observed-headways`, `route-observed-reliability`, `ingest:ace-routes`, `ingest:ace-violations`, `ingest:bus-lanes`, `ingest:equity-context`, `ingest:route-catalog`, `ingest:route-coverage`, `ingest:route-trends`, `backfill:route-ridership-trends`, `ingest:route-slice`, `ingest:route-schedules`, `build:hotspots`, `build:ridership-profile`, `build:speed-profile`, `build:interventions`, `build:bus-lanes`, `build:schedules`, `build:route-brief`, `build:artifacts`, `build:routes`, `build:network`, `compare:routes`, `route-readiness`, `route-build-plan`, `route-reliability-baseline`, `route-equity-context`, `route-batch-audit`, `export:d1`, and `verify:d1` are implemented. `build:planned-routes` remains as a compatibility alias; observed reliability D1 export, v1 pipeline QA, and R2 upload remain planned.
+- `sources:list`, `sources:probe`, `collect:gtfs-rt`, `ingest:gtfs-rt-snapshots`, `build:observed-headways`, `route-observed-reliability`, `ingest:ace-routes`, `ingest:ace-violations`, `ingest:bus-lanes`, `ingest:equity-context`, `ingest:route-catalog`, `ingest:route-coverage`, `ingest:route-trends`, `backfill:route-ridership-trends`, `ingest:route-slice`, `ingest:route-schedules`, `build:hotspots`, `build:ridership-profile`, `build:speed-profile`, `build:interventions`, `build:bus-lanes`, `build:schedules`, `build:route-brief`, `build:artifacts`, `build:routes`, `build:network`, `compare:routes`, `route-readiness`, `route-build-plan`, `route-reliability-baseline`, `route-intervention-evaluation`, `corridor-model`, `brief-artifacts`, `route-equity-context`, `route-batch-audit`, `export:d1`, and `verify:d1` are implemented. `build:planned-routes` remains as a compatibility alias; v1 pipeline QA and R2 upload remain planned.
 - Keep command implementations thin; put reusable logic in `packages/*`.
 
 ## Sources

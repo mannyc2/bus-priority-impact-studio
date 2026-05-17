@@ -1,5 +1,10 @@
 export type { D1ServingDb, D1ServingSchema } from "./client.js";
 export { createD1ServingDb } from "./client.js";
+export type { CorridorArtifactRow, RouteArtifactRow } from "./queries/brief-artifacts.js";
+export {
+  listCorridorArtifacts,
+  listRouteArtifacts,
+} from "./queries/brief-artifacts.js";
 export type {
   CorridorHotspotRow,
   CorridorMonthSummaryRow,

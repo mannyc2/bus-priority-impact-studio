@@ -24,8 +24,8 @@ Current implementation baseline:
 
 - Full March 2026 network build exists with 381 route slices and 0 build failures.
 - Local SQLite pipeline DB is canonical for route catalog, coverage, route artifacts, scorecards, brief summaries, reliability baselines, intervention overlays, and export inputs.
-- D1 seed export and verification exist for the current route-serving projection.
-- Route brief summaries and deterministic brief input artifacts exist, but final route/corridor brief bodies do not.
+- D1 seed export and verification exist for route-serving rows, observed reliability, intervention comparisons, corridor summaries, and route/corridor brief artifact metadata.
+- Route and corridor brief body generation exists through `brief-artifacts`, which writes JSON, Markdown, and HTML bodies plus byte-length/SHA-256 metadata.
 
 Primary remaining roadmap:
 
@@ -35,8 +35,8 @@ Primary remaining roadmap:
 4. Compute observed reliability, bunching, long-gap, and wait-time reliability metrics.
 5. Add intervention evaluation artifacts for ACE and bus-lane changes where source coverage supports them.
 6. Add deterministic corridor grouping and corridor metrics.
-7. Generate final route and corridor brief artifacts.
-8. Expand D1/static export contracts and QA gates to cover reliability, interventions, corridors, and brief bodies.
+7. Run the final clean full-network brief generation and verify every public-visible route and eligible corridor has current body artifacts.
+8. Expand D1/static export contracts and QA gates to cover source freshness, GTFS-RT coverage, map payloads, and detailed evaluation manifests.
 
 The older phase list below remains as historical context for how the repo reached the current baseline.
 

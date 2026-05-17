@@ -1,100 +1,175 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, rm } from "node:fs/promises";
+import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import {
   getRouteBatchStatus,
   listRouteBatchIssues,
-  replaceRouteBuildPlan,
+  replaceCorridorRows,
+  replaceRouteBatch,
+  replaceRouteBriefRows,
   replaceRouteCatalog,
   replaceRouteComparisonRanks,
   replaceRouteReadiness,
   replaceRouteScorecard,
 } from "@bp/db/local";
+import { buildBriefArtifacts } from "../src/jobs/build/brief-artifacts.js";
 import { buildRouteBatchAudit } from "../src/jobs/build/route-batch-audit.js";
 import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
 const isoMonth = "2026-08";
-const routeDir = fromRepoRoot(join("data/artifacts/route-slices/t1-2026-08"));
 const dbPath = fromRepoRoot(join("data/fixtures/route-batch-audit/pipeline.sqlite"));
+const routeBriefDir = fromRepoRoot(join("data/artifacts/briefs/routes/t1", isoMonth));
+const corridorBriefDir = fromRepoRoot(
+  join("data/artifacts/briefs/corridors/street-broadway", isoMonth),
+);
+
 async function removeFixtureArtifacts(): Promise<void> {
-  await Promise.all([rm(routeDir, { force: true, recursive: true }), rm(dbPath, { force: true })]);
+  await Promise.all([
+    rm(routeBriefDir, { force: true, recursive: true }),
+    rm(corridorBriefDir, { force: true, recursive: true }),
+    rm(dbPath, { force: true }),
+  ]);
 }
 
 async function writeFixtureBatch(): Promise<void> {
   await removeFixtureArtifacts();
-  await mkdir(routeDir, { recursive: true });
   const local = await openLocalPipelineDb(dbPath);
-
-  await replaceRouteCatalog(local.db, [
-    {
+  try {
+    await replaceRouteCatalog(local.db, [
+      {
+        routeId: "T1",
+        routeShortName: "T1",
+        routeLongName: "Fixture route",
+        routeTypes: ["Local"],
+        directions: [],
+        shapeCount: 2,
+        stopCount: 10,
+        timepointStopCount: 4,
+        latitudeMin: null,
+        latitudeMax: null,
+        longitudeMin: null,
+        longitudeMax: null,
+      },
+    ]);
+    await replaceRouteReadiness(local.db, isoMonth, [
+      {
+        routeId: "T1",
+        routeShortName: "T1",
+        routeLongName: "Fixture route",
+        isoMonth,
+        readinessStatus: "ready",
+        buildEligible: true,
+        readinessScore: 100,
+        missingInputs: [],
+        speedObservationCount: 20,
+        speedBusTripCount: 200,
+        averageSpeedMph: 6,
+        scheduleTimepointCount: 100,
+        shapeCount: 2,
+        stopCount: 10,
+        timepointStopCount: 4,
+      },
+    ]);
+    await replaceRouteScorecard(local.db, {
       routeId: "T1",
-      routeShortName: "T1",
-      routeLongName: "7 Shuttle Bus - Main Street - Mets/Willets Pt",
-      routeTypes: ["Local"],
-      directions: [],
-      shapeCount: 2,
-      stopCount: 10,
-      timepointStopCount: 4,
-      latitudeMin: null,
-      latitudeMax: null,
-      longitudeMin: null,
-      longitudeMax: null,
-    },
-  ]);
-  await replaceRouteReadiness(local.db, isoMonth, [
-    {
-      routeId: "T1",
-      routeShortName: "T1",
-      routeLongName: "7 Shuttle Bus - Main Street - Mets/Willets Pt",
-      isoMonth,
-      readinessStatus: "missing_speed",
-      buildEligible: true,
-      readinessScore: 60,
-      missingInputs: ["segment_speeds"],
-      speedObservationCount: 0,
-      speedBusTripCount: 0,
-      averageSpeedMph: null,
-      scheduleTimepointCount: 100,
-      shapeCount: 2,
-      stopCount: 10,
-      timepointStopCount: 4,
-    },
-  ]);
-  await replaceRouteBuildPlan(local.db, isoMonth, [
-    {
-      routeId: "T1",
-      routeShortName: "T1",
-      routeLongName: "7 Shuttle Bus - Main Street - Mets/Willets Pt",
-      isoMonth,
-      candidateRank: 1,
-      planStatus: "selected",
-      selectedForNextBatch: true,
-      alreadyBuilt: false,
-      buildEligible: true,
-      priorityScore: 60,
-      readinessStatus: "missing_speed",
-      readinessScore: 60,
-      missingInputs: ["segment_speeds"],
-      speedObservationCount: 0,
-      speedBusTripCount: 0,
-      averageSpeedMph: null,
-      scheduleTimepointCount: 100,
-      shapeCount: 2,
-      stopCount: 10,
-      timepointStopCount: 4,
-    },
-  ]);
-  await replaceRouteScorecard(local.db, {
-    routeId: "T1",
-    month: isoMonth,
-    routeScore: 0,
-    coverageStatus: "no_observed_speed",
-    averageSpeedMph: 0,
-    hotspotCount: 0,
-  });
-  await replaceRouteComparisonRanks(local.db, isoMonth, []);
-  local.sqlite.close();
+      month: isoMonth,
+      routeScore: 40,
+      coverageStatus: "full",
+      averageSpeedMph: 6,
+      hotspotCount: 1,
+    });
+    await replaceRouteBriefRows(local.db, {
+      summary: {
+        routeId: "T1",
+        month: isoMonth,
+        routeScore: 40,
+        publicVisible: true,
+        publicVisibilityReason: "included",
+        averageSpeedMph: 6,
+        hotspotCount: 1,
+        totalRidership: 1000,
+        totalTransfers: 100,
+        aceActive: false,
+        aceViolationCount: 0,
+        busLaneMatchedLaneCount: 0,
+        scheduleMatchRate: 0.5,
+      },
+      peakWindows: [],
+      slowestWindows: [],
+    });
+    await replaceCorridorRows(local.db, isoMonth, {
+      corridors: [
+        {
+          corridorId: "street:broadway",
+          corridorName: "Broadway",
+          corridorKey: "BROADWAY",
+          derivationMethod: "primary_route_stop_street",
+        },
+      ],
+      routeMembers: [
+        {
+          corridorId: "street:broadway",
+          month: isoMonth,
+          routeId: "T1",
+          assignmentStatus: "assigned",
+          assignmentReason: "primary_stop_street",
+          stopCount: 2,
+          matchedStopCount: 2,
+          hotspotCount: 1,
+          totalRidership: 1000,
+          averageSpeedMph: 6,
+        },
+      ],
+      summaries: [
+        {
+          corridorId: "street:broadway",
+          month: isoMonth,
+          routeCount: 1,
+          assignedRouteCount: 1,
+          ambiguousRouteCount: 0,
+          unassignedRouteCount: 0,
+          totalRidership: 1000,
+          totalTransfers: 100,
+          weightedAverageSpeedMph: 6,
+          hotspotCount: 1,
+          observedReliabilityRouteCount: 0,
+          insufficientReliabilityRouteCount: 0,
+          interventionComparisonCount: 0,
+          evaluatedInterventionComparisonCount: 0,
+        },
+      ],
+      hotspots: [],
+    });
+    await replaceRouteComparisonRanks(local.db, isoMonth, []);
+    await replaceRouteBatch(local.db, {
+      status: {
+        month: isoMonth,
+        generatedAt: "2026-08-01T00:00:00.000Z",
+        status: "running",
+        routeCount: 1,
+        artifactCount: 0,
+        missingArtifactCount: 0,
+        hashMismatchCount: 0,
+        byteLengthMismatchCount: 0,
+        totalByteLength: 0,
+        issueCount: 0,
+      },
+      builtRoutes: [
+        {
+          month: isoMonth,
+          routeRank: 1,
+          routeId: "T1",
+          artifactCount: null,
+          status: "built",
+        },
+      ],
+      issues: [],
+    });
+  } finally {
+    local.sqlite.close();
+  }
+  await buildBriefArtifacts({ year: 2026, month: 8, dbPath });
 }
 
 afterEach(async () => {
@@ -102,7 +177,7 @@ afterEach(async () => {
 });
 
 describe("route batch audit", () => {
-  test("verifies artifact manifests, byte lengths, and hashes for a batch", async () => {
+  test("verifies brief artifact byte lengths and hashes for a batch", async () => {
     await writeFixtureBatch();
 
     const result = await buildRouteBatchAudit({ year: 2026, month: 8, dbPath });
@@ -114,37 +189,38 @@ describe("route batch audit", () => {
     expect(result).toEqual(
       expect.objectContaining({
         isoMonth,
-        routeCount: 0,
+        routeCount: 1,
         status: "pass",
         issueCount: 0,
-        artifactCount: 0,
+        artifactCount: 6,
+        missingArtifactCount: 0,
+        hashMismatchCount: 0,
       }),
     );
     expect(status).toEqual(
       expect.objectContaining({
         status: "pass",
+        artifactCount: 6,
         missingArtifactCount: 0,
         hashMismatchCount: 0,
-        artifactCount: 0,
       }),
     );
     expect(issues).toEqual([]);
   });
 
-  test("records pass when no artifact rows exist", async () => {
+  test("records a hash issue when a generated artifact is modified", async () => {
     await writeFixtureBatch();
+    await Bun.write(join(routeBriefDir, "brief.md"), "changed\n");
 
     const result = await buildRouteBatchAudit({ year: 2026, month: 8, dbPath });
     const local = await openLocalPipelineDb(dbPath);
-    const [status, issues] = await Promise.all([
-      getRouteBatchStatus(local.db, isoMonth),
-      listRouteBatchIssues(local.db, isoMonth),
-    ]);
+    const issues = await listRouteBatchIssues(local.db, isoMonth);
     local.sqlite.close();
 
-    expect(result.status).toBe("pass");
-    expect(result.issueCount).toBe(0);
-    expect(status).toEqual(expect.objectContaining({ missingArtifactCount: 0 }));
-    expect(issues).toEqual([]);
+    expect(result.status).toBe("fail");
+    expect(result.issueCount).toBeGreaterThan(0);
+    expect(issues.map((issue) => issue.issueCode)).toEqual(
+      expect.arrayContaining(["artifact_hash_mismatch", "artifact_byte_length_mismatch"]),
+    );
   });
 });

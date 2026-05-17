@@ -17,6 +17,7 @@ describe("D1 serving table schema", () => {
   test("includes compact serving tables for route artifacts and comparisons", async () => {
     const migrationSql = await readD1Migrations();
 
+    expect(migrationSql).toContain("CREATE TABLE `route_artifact`");
     expect(migrationSql).toContain("CREATE TABLE `route_scorecard`");
     expect(migrationSql).toContain("CREATE TABLE `route_scorecard_citation`");
     expect(migrationSql).toContain("CREATE TABLE `route_catalog`");
@@ -35,6 +36,7 @@ describe("D1 serving table schema", () => {
     expect(migrationSql).toContain("CREATE TABLE `corridor_route_member`");
     expect(migrationSql).toContain("CREATE TABLE `corridor_month_summary`");
     expect(migrationSql).toContain("CREATE TABLE `corridor_hotspot`");
+    expect(migrationSql).toContain("CREATE TABLE `corridor_artifact`");
     expect(migrationSql).toContain("CREATE TABLE `route_month_source_status`");
     expect(migrationSql).toContain("CREATE TABLE `route_month_trend`");
     expect(migrationSql).toContain("CREATE TABLE `route_equity_context`");

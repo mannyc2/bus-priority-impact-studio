@@ -151,6 +151,13 @@ const commands = {
       return buildCorridorModelFromCli(args);
     },
   },
+  "brief-artifacts": {
+    description: "Build route and corridor brief body artifacts.",
+    run: async (args) => {
+      const { buildBriefArtifactsFromCli } = await import("./jobs/build/brief-artifacts.js");
+      return buildBriefArtifactsFromCli(args);
+    },
+  },
   "route-equity-context": {
     description: "Build route equity context artifacts.",
     run: async (args) => {

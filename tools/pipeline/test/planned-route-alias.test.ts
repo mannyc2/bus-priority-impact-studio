@@ -126,7 +126,21 @@ describe("planned route alias", () => {
           routeCount: 2,
           status: "pass",
           issueCount: 0,
+          missingArtifactCount: 0,
+          hashMismatchCount: 0,
+          byteLengthMismatchCount: 0,
           artifactCount: 18,
+          totalByteLength: 200,
+        };
+      },
+      buildBriefArtifacts: async () => {
+        calls.push("brief-artifacts");
+        return {
+          isoMonth,
+          routeBriefCount: 2,
+          corridorBriefCount: 1,
+          routeArtifactCount: 6,
+          corridorArtifactCount: 3,
           totalByteLength: 200,
         };
       },
@@ -232,6 +246,7 @@ describe("planned route alias", () => {
         "comparison:1",
         "intervention-evaluation",
         "corridor-model",
+        "brief-artifacts",
         "reliability",
         "audit",
         "plan:20",

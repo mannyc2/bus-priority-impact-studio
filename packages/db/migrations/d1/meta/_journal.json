@@ -29,6 +29,13 @@
       "when": 1778975641956,
       "tag": "0003_flippant_justice",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1778976725147,
+      "tag": "0004_mighty_centennial",
+      "breakpoints": true
     }
   ]
 }

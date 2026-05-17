@@ -3,7 +3,9 @@ import type { D1ServingDb } from "@bp/db/d1";
 import {
   getRouteBatchStatus,
   listBuildEligibleRoutes,
+  listCorridorArtifacts,
   listCorridorSummaries,
+  listRouteArtifacts,
   listRouteBriefSummaries,
   listRouteBuildPlan,
   listRouteComparisonRanks,
@@ -32,7 +34,9 @@ export type RepositoryCheckResult = {
   reliabilityBaselineRows: number;
   routeObservedReliabilityRows: number;
   routeInterventionComparisonRows: number;
+  routeArtifactRows: number;
   corridorSummaryRows: number;
+  corridorArtifactRows: number;
   routeMonthTrendRows: number;
   routeEquityContextRows: number;
   firstRouteId: string | null;
@@ -85,7 +89,9 @@ export function collectD1TableCounts(database: Database): {
       ),
       intervention_event: countTable(database, "intervention_event"),
       route_intervention_comparison: countTable(database, "route_intervention_comparison"),
+      route_artifact: countTable(database, "route_artifact"),
       corridor: countTable(database, "corridor"),
+      corridor_artifact: countTable(database, "corridor_artifact"),
       corridor_route_member: countTable(database, "corridor_route_member"),
       corridor_month_summary: countTable(database, "corridor_month_summary"),
       corridor_hotspot: countTable(database, "corridor_hotspot"),
@@ -203,9 +209,21 @@ export function verifyD1TableCounts(input: {
   });
   compareCount({
     issues: input.issues,
+    tableName: "route_artifact",
+    actual: count("route_artifact"),
+    expected: input.exportResult.routeArtifactRowCount,
+  });
+  compareCount({
+    issues: input.issues,
     tableName: "corridor",
     actual: count("corridor"),
     expected: input.exportResult.corridorRowCount,
+  });
+  compareCount({
+    issues: input.issues,
+    tableName: "corridor_artifact",
+    actual: count("corridor_artifact"),
+    expected: input.exportResult.corridorArtifactRowCount,
   });
   compareCount({
     issues: input.issues,
@@ -318,7 +336,9 @@ export async function runD1RepositoryChecks(input: {
     input.db,
     input.month,
   );
+  const routeArtifacts = await listRouteArtifacts(input.db, input.month);
   const corridorSummaries = await listCorridorSummaries(input.db, input.month);
+  const corridorArtifacts = await listCorridorArtifacts(input.db, input.month);
   const routeEquityContexts = await listRouteEquityContexts(input.db, input.month);
   const firstRouteId = briefSummaries[0]?.routeId ?? null;
   const routeMonthTrends =
@@ -335,7 +355,9 @@ export async function runD1RepositoryChecks(input: {
     reliabilityBaselineRows: reliabilityBaselines.length,
     routeObservedReliabilityRows: routeObservedReliability.length,
     routeInterventionComparisonRows: routeInterventionComparisons.length,
+    routeArtifactRows: routeArtifacts.length,
     corridorSummaryRows: corridorSummaries.length,
+    corridorArtifactRows: corridorArtifacts.length,
     routeMonthTrendRows: routeMonthTrends.length,
     routeEquityContextRows: routeEquityContexts.length,
     firstRouteId,
@@ -377,9 +399,19 @@ export function verifyD1RepositoryChecks(input: {
       `repository:routeInterventionComparisonRows_expected_${input.exportResult.routeInterventionComparisonRowCount}_actual_${input.checks.routeInterventionComparisonRows}`,
     );
   }
+  if (input.checks.routeArtifactRows !== input.exportResult.routeArtifactRowCount) {
+    input.issues.push(
+      `repository:routeArtifactRows_expected_${input.exportResult.routeArtifactRowCount}_actual_${input.checks.routeArtifactRows}`,
+    );
+  }
   if (input.checks.corridorSummaryRows !== input.exportResult.corridorMonthSummaryRowCount) {
     input.issues.push(
       `repository:corridorSummaryRows_expected_${input.exportResult.corridorMonthSummaryRowCount}_actual_${input.checks.corridorSummaryRows}`,
+    );
+  }
+  if (input.checks.corridorArtifactRows !== input.exportResult.corridorArtifactRowCount) {
+    input.issues.push(
+      `repository:corridorArtifactRows_expected_${input.exportResult.corridorArtifactRowCount}_actual_${input.checks.corridorArtifactRows}`,
     );
   }
 }

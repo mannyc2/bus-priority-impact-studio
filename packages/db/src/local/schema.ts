@@ -728,6 +728,20 @@ export const localCorridorHotspot = sqliteTable(
   (table) => [primaryKey({ columns: [table.corridorId, table.month, table.corridorHotspotRank] })],
 );
 
+export const localCorridorArtifact = sqliteTable(
+  "local_corridor_artifact",
+  {
+    corridorId: text("corridor_id").notNull(),
+    month: text("month").notNull(),
+    artifactName: text("artifact_name").notNull(),
+    artifactKey: text("artifact_key").notNull(),
+    contentType: text("content_type").notNull(),
+    byteLength: integer("byte_length").notNull(),
+    sha256: text("sha256").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.corridorId, table.month, table.artifactName] })],
+);
+
 export const localCensusTractEquityContext = sqliteTable(
   "local_census_tract_equity_context",
   {

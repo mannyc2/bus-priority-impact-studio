@@ -16,6 +16,7 @@ import {
   replaceRouteReliabilityRows,
   replaceRouteScorecard,
 } from "@bp/db/local";
+import { buildBriefArtifacts } from "../src/jobs/build/brief-artifacts.js";
 import { exportD1Seed } from "../src/jobs/export/export-d1.js";
 import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
@@ -23,6 +24,10 @@ import { fromRepoRoot } from "../src/source-manifest.js";
 const isoMonth = "2026-04";
 const exportDir = fromRepoRoot(join("data/exports/d1", isoMonth));
 const dbPath = fromRepoRoot(join("data/fixtures/export-d1/pipeline.sqlite"));
+const routeBriefDir = fromRepoRoot(join("data/artifacts/briefs/routes/t1", isoMonth));
+const corridorBriefDir = fromRepoRoot(
+  join("data/artifacts/briefs/corridors/street-broadway", isoMonth),
+);
 
 function routeDir(routeId: string): string {
   return fromRepoRoot(join("data/artifacts/route-slices", `${routeId.toLowerCase()}-${isoMonth}`));
@@ -33,6 +38,8 @@ async function removeFixtureArtifacts(): Promise<void> {
     rm(exportDir, { force: true, recursive: true }),
     rm(dbPath, { force: true }),
     rm(routeDir("T1"), { force: true, recursive: true }),
+    rm(routeBriefDir, { force: true, recursive: true }),
+    rm(corridorBriefDir, { force: true, recursive: true }),
   ]);
 }
 
@@ -460,6 +467,7 @@ async function writeFixtureArtifacts(): Promise<void> {
       2,
     )}\n`,
   );
+  await buildBriefArtifacts({ year: 2026, month: 4, dbPath });
 }
 
 afterEach(async () => {
@@ -490,7 +498,9 @@ describe("D1 seed export", () => {
         routeObservedReliabilitySummaryRowCount: 1,
         interventionEventRowCount: 1,
         routeInterventionComparisonRowCount: 1,
+        routeArtifactRowCount: 3,
         corridorRowCount: 1,
+        corridorArtifactRowCount: 3,
         corridorRouteMemberRowCount: 1,
         corridorMonthSummaryRowCount: 1,
         corridorHotspotRowCount: 1,
@@ -532,7 +542,13 @@ describe("D1 seed export", () => {
       'delete from "route_intervention_comparison" where "route_intervention_comparison"."month" = \'2026-04\';',
     );
     expect(seed).toContain(
+      'delete from "route_artifact" where "route_artifact"."month" = \'2026-04\';',
+    );
+    expect(seed).toContain(
       'delete from "corridor_month_summary" where "corridor_month_summary"."month" = \'2026-04\';',
+    );
+    expect(seed).toContain(
+      'delete from "corridor_artifact" where "corridor_artifact"."month" = \'2026-04\';',
     );
     expect(seed).toContain('delete from "route_month_trend";');
     expect(seed).toContain(
@@ -554,7 +570,9 @@ describe("D1 seed export", () => {
     expect(seed).toContain('insert into "route_observed_reliability_summary"');
     expect(seed).toContain('insert into "intervention_event"');
     expect(seed).toContain('insert into "route_intervention_comparison"');
+    expect(seed).toContain('insert into "route_artifact"');
     expect(seed).toContain('insert into "corridor"');
+    expect(seed).toContain('insert into "corridor_artifact"');
     expect(seed).toContain('insert into "corridor_month_summary"');
     expect(seed).toContain('insert into "route_month_source_status"');
     expect(seed).toContain('insert into "route_month_trend"');

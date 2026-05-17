@@ -3,15 +3,18 @@ export { batchInsert, createLocalPipelineDb } from "./client.js";
 export { migrateLocalPipelineDb } from "./migrate.js";
 export type {
   LocalCorridor,
+  LocalCorridorArtifact,
   LocalCorridorHotspot,
   LocalCorridorMonthSummary,
   LocalCorridorRouteMember,
 } from "./repositories/corridors.js";
 export {
+  listCorridorArtifacts,
   listCorridorHotspots,
   listCorridorMonthSummaries,
   listCorridorRouteMembers,
   listCorridors,
+  replaceCorridorArtifacts,
   replaceCorridorRows,
 } from "./repositories/corridors.js";
 export type { LocalCensusTractEquityContext } from "./repositories/equity.js";
@@ -76,6 +79,7 @@ export {
   replaceRouteObservedReliabilityRows,
 } from "./repositories/observed-reliability.js";
 export type {
+  LocalRouteArtifact,
   LocalRouteBatchBuiltRoute,
   LocalRouteBatchIssue,
   LocalRouteBatchStatus,
@@ -94,6 +98,7 @@ export type {
 export {
   getPersistedRouteBatchProgress,
   getRouteBatchStatus,
+  listRouteArtifacts,
   listRouteBatchBuiltRoutes,
   listRouteBatchIssues,
   listRouteBriefPeakWindows,
@@ -106,6 +111,7 @@ export {
   listRouteReliabilityBaselines,
   listRouteReliabilityGapWindows,
   listRouteScorecards,
+  replaceRouteArtifactsForMonth,
   replaceRouteBatch,
   replaceRouteBriefRows,
   replaceRouteComparisonRanks,
