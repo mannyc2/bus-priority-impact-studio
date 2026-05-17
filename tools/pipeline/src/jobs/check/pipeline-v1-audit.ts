@@ -417,7 +417,7 @@ export async function auditPipelineV1(
   const routeSpeedAvailabilityEvidence =
     routeSpeedAvailability === null
       ? "No route-speed availability artifact found."
-      : ` Route-speed availability artifact latest complete speed month is ${routeSpeedAvailability.latestSpeedMonth?.isoMonth ?? "none"}; requested month ${routeSpeedAvailability.requestedMonth?.isoMonth ?? "none"} is ${routeSpeedAvailability.requestedMonth?.status ?? "not checked"}.`;
+      : ` Route-speed availability artifact latest complete speed month is ${routeSpeedAvailability.latestSpeedMonth?.isoMonth ?? "none"}; requested month ${routeSpeedAvailability.requestedMonth?.isoMonth ?? "none"} is ${routeSpeedAvailability.requestedMonth?.status ?? "not checked"}; rebuild decision is ${routeSpeedAvailability.releaseDecision.status} with shouldRebuild=${routeSpeedAvailability.releaseDecision.shouldRebuild}.`;
   const cleanRebuildEvidence =
     cleanRebuild === null
       ? ""

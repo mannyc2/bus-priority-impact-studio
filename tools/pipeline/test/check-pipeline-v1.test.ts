@@ -1791,6 +1791,10 @@ describe("pipeline v1 check", () => {
       }),
     );
     expect(
+      result.checklist.find((item) => item.requirement === "Single-month source availability")
+        ?.evidence,
+    ).toContain("shouldRebuild=true");
+    expect(
       result.checklist.find((item) => item.requirement === "Before/after intervention evaluation")
         ?.evidence,
     ).toContain("blank source open_date values");
