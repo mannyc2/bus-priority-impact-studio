@@ -145,6 +145,7 @@ Expected outputs:
 - route intervention-history artifacts for ACE dates, bus-lane open-date coverage, and still-missing signal/lane-upgrade sources
 - route equity-context artifacts joining route rows to county-level ACS proxy context
 - route batch audit rows validating required route/corridor brief artifacts, file existence, byte lengths, and hashes
+- static route/corridor brief manifest at `data/artifacts/briefs/<month>/manifest.json`
 - pipeline v1 finalization output chaining trend refresh, observed reliability, intervention evaluation, corridor modeling, brief artifacts, D1 verification, and the v1 QA gate
 - source/caveat metadata
 

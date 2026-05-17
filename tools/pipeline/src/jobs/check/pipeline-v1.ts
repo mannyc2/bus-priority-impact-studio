@@ -109,6 +109,7 @@ type PipelineV1CheckResult = {
   counts: PipelineV1Counts;
   audit: {
     status: CheckStatus;
+    manifestPath: string;
     artifactCount: number;
     missingArtifactCount: number;
     hashMismatchCount: number;
@@ -883,6 +884,7 @@ export async function checkPipelineV1(
     },
     audit: {
       status: audit.status,
+      manifestPath: audit.manifestPath,
       artifactCount: audit.artifactCount,
       missingArtifactCount: audit.missingArtifactCount,
       hashMismatchCount: audit.hashMismatchCount,

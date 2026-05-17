@@ -1,4 +1,6 @@
 import { createHash } from "node:crypto";
+import { mkdir } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import type { LocalCorridorArtifact, LocalRouteArtifact } from "@bp/db/local";
 import {
   listCorridorArtifacts,
@@ -22,6 +24,7 @@ type RouteAuditStatus = "pass" | "fail";
 
 type RouteBatchAuditResult = {
   isoMonth: string;
+  manifestPath: string;
   routeCount: number;
   status: RouteAuditStatus;
   issueCount: number;
@@ -55,8 +58,16 @@ function artifactPath(artifactKey: string): string {
   return fromRepoRoot(`data/artifacts/${artifactKey}`);
 }
 
+function artifactManifestPath(month: string): string {
+  return fromRepoRoot(join("data/artifacts/briefs", month, "manifest.json"));
+}
+
 function artifactOwner(row: BriefArtifactRow): string {
   return "routeId" in row ? row.routeId : row.corridorId;
+}
+
+function artifactOwnerKind(row: BriefArtifactRow): "route" | "corridor" {
+  return "routeId" in row ? "route" : "corridor";
 }
 
 function issueOwner(row: BriefArtifactRow): string | null {
@@ -147,11 +158,64 @@ async function verifyArtifact(row: BriefArtifactRow): Promise<{
   };
 }
 
+async function writeBriefArtifactManifest(input: {
+  path: string;
+  month: string;
+  generatedAt: string;
+  status: RouteAuditStatus;
+  routeCount: number;
+  publicRouteCount: number;
+  corridorCount: number;
+  routeArtifactCount: number;
+  corridorArtifactCount: number;
+  artifactRows: readonly BriefArtifactRow[];
+  totalByteLength: number;
+  missingArtifactCount: number;
+  hashMismatchCount: number;
+  byteLengthMismatchCount: number;
+  issues: readonly AuditIssue[];
+}): Promise<void> {
+  const content = {
+    schemaVersion: 1,
+    artifactKind: "brief_artifact_manifest",
+    analysisPeriod: input.month,
+    generatedAt: input.generatedAt,
+    status: input.status,
+    requiredArtifactNames,
+    routeCount: input.routeCount,
+    publicRouteCount: input.publicRouteCount,
+    corridorCount: input.corridorCount,
+    routeArtifactCount: input.routeArtifactCount,
+    corridorArtifactCount: input.corridorArtifactCount,
+    artifactCount: input.artifactRows.length,
+    totalByteLength: input.totalByteLength,
+    missingArtifactCount: input.missingArtifactCount,
+    hashMismatchCount: input.hashMismatchCount,
+    byteLengthMismatchCount: input.byteLengthMismatchCount,
+    issueCount: input.issues.length,
+    artifacts: input.artifactRows.map((row) => ({
+      ownerKind: artifactOwnerKind(row),
+      ownerId: artifactOwner(row),
+      month: row.month,
+      artifactName: row.artifactName,
+      artifactKey: row.artifactKey,
+      contentType: row.contentType,
+      byteLength: row.byteLength,
+      sha256: row.sha256,
+    })),
+    issues: input.issues,
+  };
+
+  await mkdir(dirname(input.path), { recursive: true });
+  await Bun.write(input.path, `${JSON.stringify(content, null, 2)}\n`);
+}
+
 export async function buildRouteBatchAudit(
   args: RouteBatchAuditArgs = {},
 ): Promise<RouteBatchAuditResult> {
   const options = parseBuildArgs(args);
   const month = options.isoMonth;
+  const manifestPath = artifactManifestPath(month);
   const auditInput = await withLocalPipelineDb(options.dbPath, async (local) => {
     const [builtRoutes, routeBriefs, routeArtifacts, corridors, corridorArtifacts] =
       await Promise.all([
@@ -196,13 +260,15 @@ export async function buildRouteBatchAudit(
     (result) => result.byteLengthMismatch,
   ).length;
   const totalByteLength = artifactRows.reduce((sum, row) => sum + row.byteLength, 0);
+  const generatedAt = new Date().toISOString();
+  const status: RouteAuditStatus = issues.length === 0 ? "pass" : "fail";
 
   const routeCount = await withLocalPipelineDb(options.dbPath, async (local) => {
     await replaceRouteBatch(local.db, {
       status: {
         month,
-        generatedAt: new Date().toISOString(),
-        status: issues.length === 0 ? "pass" : "fail",
+        generatedAt,
+        status,
         routeCount: auditInput.builtRoutes.length,
         artifactCount: artifactRows.length,
         missingArtifactCount,
@@ -230,11 +296,29 @@ export async function buildRouteBatchAudit(
 
     return auditInput.builtRoutes.length;
   });
+  await writeBriefArtifactManifest({
+    path: manifestPath,
+    month,
+    generatedAt,
+    status,
+    routeCount,
+    publicRouteCount: auditInput.publicRouteIds.length,
+    corridorCount: auditInput.corridorIds.length,
+    routeArtifactCount: auditInput.routeArtifacts.length,
+    corridorArtifactCount: auditInput.corridorArtifacts.length,
+    artifactRows,
+    totalByteLength,
+    missingArtifactCount,
+    hashMismatchCount,
+    byteLengthMismatchCount,
+    issues,
+  });
 
   return {
     isoMonth: month,
+    manifestPath,
     routeCount,
-    status: issues.length === 0 ? "pass" : "fail",
+    status,
     issueCount: issues.length,
     missingArtifactCount,
     hashMismatchCount,

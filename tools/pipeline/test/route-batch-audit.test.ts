@@ -23,11 +23,13 @@ const routeBriefDir = fromRepoRoot(join("data/artifacts/briefs/routes/t1", isoMo
 const corridorBriefDir = fromRepoRoot(
   join("data/artifacts/briefs/corridors/street-broadway", isoMonth),
 );
+const manifestPath = fromRepoRoot(join("data/artifacts/briefs", isoMonth, "manifest.json"));
 
 async function removeFixtureArtifacts(): Promise<void> {
   await Promise.all([
     rm(routeBriefDir, { force: true, recursive: true }),
     rm(corridorBriefDir, { force: true, recursive: true }),
+    rm(manifestPath, { force: true }),
     rm(dbPath, { force: true }),
   ]);
 }
@@ -181,6 +183,7 @@ describe("route batch audit", () => {
     await writeFixtureBatch();
 
     const result = await buildRouteBatchAudit({ year: 2026, month: 8, dbPath });
+    const manifest = await Bun.file(result.manifestPath).json();
     const local = await openLocalPipelineDb(dbPath);
     const status = await getRouteBatchStatus(local.db, isoMonth);
     const issues = await listRouteBatchIssues(local.db, isoMonth);
@@ -189,6 +192,7 @@ describe("route batch audit", () => {
     expect(result).toEqual(
       expect.objectContaining({
         isoMonth,
+        manifestPath,
         routeCount: 1,
         status: "pass",
         issueCount: 0,
@@ -196,6 +200,39 @@ describe("route batch audit", () => {
         missingArtifactCount: 0,
         hashMismatchCount: 0,
       }),
+    );
+    expect(manifest).toEqual(
+      expect.objectContaining({
+        schemaVersion: 1,
+        artifactKind: "brief_artifact_manifest",
+        analysisPeriod: isoMonth,
+        status: "pass",
+        routeCount: 1,
+        publicRouteCount: 1,
+        corridorCount: 1,
+        routeArtifactCount: 3,
+        corridorArtifactCount: 3,
+        artifactCount: 6,
+        issueCount: 0,
+      }),
+    );
+    expect(manifest.artifacts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          ownerKind: "route",
+          ownerId: "T1",
+          artifactName: "brief.json",
+          artifactKey: "briefs/routes/t1/2026-08/brief.json",
+          sha256: expect.stringMatching(/^[a-f0-9]{64}$/),
+        }),
+        expect.objectContaining({
+          ownerKind: "corridor",
+          ownerId: "street:broadway",
+          artifactName: "brief.md",
+          artifactKey: "briefs/corridors/street-broadway/2026-08/brief.md",
+          sha256: expect.stringMatching(/^[a-f0-9]{64}$/),
+        }),
+      ]),
     );
     expect(status).toEqual(
       expect.objectContaining({
@@ -213,6 +250,7 @@ describe("route batch audit", () => {
     await Bun.write(join(routeBriefDir, "brief.md"), "changed\n");
 
     const result = await buildRouteBatchAudit({ year: 2026, month: 8, dbPath });
+    const manifest = await Bun.file(result.manifestPath).json();
     const local = await openLocalPipelineDb(dbPath);
     const issues = await listRouteBatchIssues(local.db, isoMonth);
     local.sqlite.close();
@@ -220,6 +258,17 @@ describe("route batch audit", () => {
     expect(result.status).toBe("fail");
     expect(result.issueCount).toBeGreaterThan(0);
     expect(issues.map((issue) => issue.issueCode)).toEqual(
+      expect.arrayContaining(["artifact_hash_mismatch", "artifact_byte_length_mismatch"]),
+    );
+    expect(manifest).toEqual(
+      expect.objectContaining({
+        status: "fail",
+        issueCount: result.issueCount,
+        hashMismatchCount: result.hashMismatchCount,
+        byteLengthMismatchCount: result.byteLengthMismatchCount,
+      }),
+    );
+    expect(manifest.issues.map((issue: { issueCode: string }) => issue.issueCode)).toEqual(
       expect.arrayContaining(["artifact_hash_mismatch", "artifact_byte_length_mismatch"]),
     );
   });
