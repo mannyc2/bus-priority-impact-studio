@@ -174,9 +174,15 @@ Those should not be hosted the same way. The cheapest credible MVP should make t
 - Worker API endpoints for server-side reads.
 - Cloudflare D1 for small serving tables.
 - Cloudflare R2 for generated artifacts and larger map/search files.
-- Cloudflare Cron only for metadata freshness checks or cache invalidation, not for ETL.
+- Cloudflare Cron/Queues for lightweight source refresh orchestration: monthly MTA Open Data release checks, build triggers, and possibly GTFS-RT snapshot capture if cadence/runtime limits are acceptable.
 - No VPS.
 - No hosted Postgres on day one.
+
+### Realtime collection escalation trigger
+
+The v1 pipeline can be proven with bounded local Bus Time GTFS-RT collection runs, but a deployed product cannot rely on ad hoc local capture. Public GTFS-RT is live forward collection rather than historical backfill, so production observed reliability requires an active collector that writes raw snapshots to durable storage, records metadata/state, and alerts on missed cadence.
+
+[Inference] Start by testing whether Cloudflare Workers Cron/Queues plus R2/D1 can satisfy the target capture cadence and operational visibility. If serverless cadence, runtime, or queue limits make GTFS-RT capture unreliable, that is a concrete requirement that can justify an always-on runner or VPS decision.
 
 **Suggested serving tables in D1**
 
