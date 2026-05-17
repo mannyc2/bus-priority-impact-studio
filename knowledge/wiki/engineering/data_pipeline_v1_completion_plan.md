@@ -153,7 +153,7 @@ Purpose: make the current full-network route build reproducible and methodologic
 
 Tasks:
 
-1. Add a full-network rebuild runbook for a clean local DB.
+1. Verify the full-network rebuild runbook from a clean local DB.
 2. Verify clean rebuild for the selected v1 month.
 3. Fix the Manhattan-only bus-lane filter in `route-brief-metrics.ts`.
 4. Add QA for bus-lane matching across boroughs.
@@ -169,17 +169,20 @@ bun run ingest:ace-routes
 bun run ingest:ace-violations -- --year 2026 --month 3
 bun run ingest:bus-lanes
 bun run ingest:equity-context -- --year 2024
-bun run ingest:route-trends -- --start-year 2025 --start-month 1 --end-year 2026 --end-month 3 --skip-ridership
 bun run build:network -- --year 2026 --month 3
-bun run route-intervention-evaluation -- --year 2026 --month 3
-bun run corridor-model -- --year 2026 --month 3
-bun run brief-artifacts -- --year 2026 --month 3
-bun run verify:d1 -- --year 2026 --month 3
+bun run collect:gtfs-rt -- --duration-hours 4 --sample-seconds 30 --run-id <run_id>
+bun run ingest:gtfs-rt-snapshots -- --run-id <run_id>
+bun run finalize:pipeline-v1 -- --year 2026 --month 3 --run-id <run_id>
+
+# Structural-only fallback when no Bus Time collection run exists:
+bun run finalize:pipeline-v1 -- --year 2026 --month 3 --allow-insufficient-gtfs-rt
 ```
 
 Acceptance:
 
 - Clean rebuild completes without relying on preexisting generated state.
+- Strict `finalize:pipeline-v1` and `check:pipeline-v1` pass with real observed GTFS-RT samples.
+- Structural fallback may pass with `--allow-insufficient-gtfs-rt`, but it does not satisfy GTFS-RT observed reliability v1 completion.
 - `verify:d1` passes.
 - Route-batch audit has 0 missing artifacts and 0 hash mismatches.
 - Bus-lane overlay is no longer borough-hardcoded.

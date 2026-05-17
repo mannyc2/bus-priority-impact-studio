@@ -75,6 +75,7 @@
     "route-equity-context": "bun --filter @bp/pipeline route-equity-context",
     "export:d1": "bun --filter @bp/pipeline export:d1",
     "verify:d1": "bun --filter @bp/pipeline verify:d1",
+    "finalize:pipeline-v1": "bun --filter @bp/pipeline finalize:pipeline-v1",
     "db:d1:generate": "bun --filter @bp/db db:generate:d1",
     "db:local:generate": "bun --filter @bp/db db:generate:local",
     "db:local:migrate": "bun --filter @bp/db db:migrate:local",

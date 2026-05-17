@@ -188,6 +188,13 @@ const commands = {
       return checkPipelineV1FromCli(args);
     },
   },
+  "finalize:pipeline-v1": {
+    description: "Run the Data Pipeline v1 finalization chain for an existing route build.",
+    run: async (args) => {
+      const { finalizePipelineV1FromCli } = await import("./jobs/build/pipeline-v1-finalize.js");
+      return finalizePipelineV1FromCli(args);
+    },
+  },
   "ingest:route-slice": {
     description: "Ingest one route/month slice.",
     run: async (args) => {
