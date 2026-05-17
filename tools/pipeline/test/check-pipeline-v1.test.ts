@@ -349,6 +349,9 @@ describe("pipeline v1 check", () => {
       expect.objectContaining({
         publicRouteCount: 1,
         routeObservedReliabilityRows: 1,
+        routeObservedReliabilityObservedRows: 1,
+        routeObservedReliabilityInsufficientRows: 0,
+        routeObservedReliabilityHeadwaySampleCount: 42,
         routeInterventionComparisonRows: 1,
         corridorRows: 1,
         routeArtifactRows: 3,

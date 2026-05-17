@@ -42,6 +42,9 @@ type PipelineV1Counts = {
   publicRouteCount: number;
   routeArtifactRows: number;
   routeObservedReliabilityRows: number;
+  routeObservedReliabilityObservedRows: number;
+  routeObservedReliabilityInsufficientRows: number;
+  routeObservedReliabilityHeadwaySampleCount: number;
   observedReliabilitySourceStatusRows: number;
   aceRouteRows: number;
   interventionEventRows: number;
@@ -357,6 +360,16 @@ export async function checkPipelineV1(
       publicRouteCount: publicRouteIds.length,
       routeArtifactRows: localState.routeArtifacts.length,
       routeObservedReliabilityRows: localState.observedReliability.length,
+      routeObservedReliabilityObservedRows: localState.observedReliability.filter(
+        (row) => row.reliabilityStatus === "observed",
+      ).length,
+      routeObservedReliabilityInsufficientRows: localState.observedReliability.filter(
+        (row) => row.reliabilityStatus === "insufficient_gtfs_rt_samples",
+      ).length,
+      routeObservedReliabilityHeadwaySampleCount: localState.observedReliability.reduce(
+        (sum, row) => sum + row.sampleCount,
+        0,
+      ),
       observedReliabilitySourceStatusRows,
       aceRouteRows: localState.aceRoutes.length,
       interventionEventRows: localState.interventionEvents.length,
