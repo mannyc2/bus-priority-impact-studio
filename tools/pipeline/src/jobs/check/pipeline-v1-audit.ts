@@ -426,6 +426,20 @@ export async function auditPipelineV1(
     sourceRefreshPlan === null
       ? " No source-refresh plan artifact found."
       : ` Source-refresh plan jobs: ${sourceRefreshPlan.jobs.map((job) => `${job.id}=${job.status}`).join(", ")}.`;
+  const sourceAvailabilityMissing = [
+    ...(monthSplit || !realtimeHasSpeedCoverage
+      ? [
+          "The currently complete public-source month and passing realtime observed month do not align.",
+        ]
+      : []),
+    ...(sourceRefreshPlan === null ? ["Source-refresh plan artifact is missing."] : []),
+  ];
+  const sourceAvailabilityStatus =
+    monthSplit || !realtimeHasSpeedCoverage
+      ? "blocked"
+      : sourceRefreshPlan === null
+        ? "partial"
+        : "pass";
   const cleanRebuildEvidence =
     cleanRebuild === null
       ? ""
@@ -534,14 +548,9 @@ export async function auditPipelineV1(
     },
     {
       requirement: "Single-month source availability",
-      status: !monthSplit && realtimeHasSpeedCoverage ? "pass" : "blocked",
+      status: sourceAvailabilityStatus,
       evidence: `${publicIsoMonth} speed routes: ${publicCoverage.speedRoutes}; ${realtimeIsoMonth} speed routes: ${realtimeCoverage.speedRoutes}; realtime month is ${realtimeIsoMonth}.${routeSpeedAvailabilityEvidence}${sourceRefreshPlanEvidence}`,
-      missing:
-        monthSplit || !realtimeHasSpeedCoverage
-          ? [
-              "The currently complete public-source month and passing realtime observed month do not align.",
-            ]
-          : [],
+      missing: sourceAvailabilityMissing,
     },
   ];
   const status = statusFromItems(checklist);

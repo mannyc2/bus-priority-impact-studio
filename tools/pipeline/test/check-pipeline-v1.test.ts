@@ -1947,6 +1947,36 @@ describe("pipeline v1 check", () => {
     );
   });
 
+  test("records a missing source-refresh plan in the audit", async () => {
+    await writeFixtureNetwork({ includeObservedAndInterventions: true });
+    await writeRouteSpeedAvailabilityArtifact();
+
+    const result = await auditPipelineV1({
+      publicYear: 2026,
+      publicMonth: 11,
+      realtimeYear: 2026,
+      realtimeMonth: 11,
+      runId: observedRunId,
+      dbPath,
+      sourceMetadataDir,
+      now: fixtureNow,
+      minGtfsRtCollectionHours: 0.1,
+      output: auditOutputPath,
+    });
+    const sourceAvailability = result.checklist.find(
+      (item) => item.requirement === "Single-month source availability",
+    );
+
+    expect(result.sourceAvailability.refreshPlan).toBeNull();
+    expect(sourceAvailability).toEqual(
+      expect.objectContaining({
+        status: "partial",
+        missing: ["Source-refresh plan artifact is missing."],
+      }),
+    );
+    expect(sourceAvailability?.evidence).toContain("No source-refresh plan artifact found.");
+  });
+
   test("blocks the audit when public-source and realtime months do not align", async () => {
     await writeFixtureNetwork({ includeObservedAndInterventions: true });
 
