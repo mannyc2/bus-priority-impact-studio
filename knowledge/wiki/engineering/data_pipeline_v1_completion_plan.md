@@ -306,11 +306,11 @@ Implemented so far:
 - Fixture-backed tests cover duplicate vehicle-observation collapse and headway calculation.
 - Fixture-backed tests cover observed route summaries and explicit insufficient-sample statuses for routes without enough realtime evidence.
 
-Still missing:
+Still missing / not yet release-complete:
 
 - Production-length GTFS-RT collection and coverage QA for the same month as public speed/schedule coverage. A May observed layer can be an appendix until May or a later month has public speed coverage.
-- Production collection design: local bounded runs are enough to prove the pipeline, but a deployed product needs a scheduled or always-on GTFS-RT fetcher. The likely Cloudflare-shaped version is a Worker/Cron/Queue pipeline that captures vehicle-position protobuf snapshots at a target cadence, writes raw bodies to R2, records snapshot metadata/state in D1 or another durable store, and triggers parse/headway/reliability build jobs with monitoring for missed samples. If Cloudflare cadence/runtime limits cannot meet the target, this becomes the concrete trigger for a small always-on runner or VPS decision.
-- Monthly public-source refresh design: `check:route-speed-availability` now detects the latest available MTA Bus Route Segment Speeds `(year, month)`, distinguishes missing speed rows from complete speed months, persists a watcher artifact, and sets `releaseDecision.shouldRebuild` by comparing the latest complete speed month against `--last-built-year/--last-built-month`. A scheduled watcher still needs to call this check, snapshot source metadata, and run `ingest:route-coverage`, network build/finalize, D1 export, and static artifact verification when a new complete month appears.
+- Production collection operations: the Worker scheduled hook can capture GTFS-RT snapshots to R2 and can match strict 30-second sampling from a one-minute cron by setting `GTFS_RT_SAMPLES_PER_CRON=2` and `GTFS_RT_SAMPLE_SECONDS=30`. What remains is deployment/configuration, monitoring for missed samples, and the downstream parse/headway/reliability handoff from R2 snapshots into the Bun pipeline.
+- Monthly public-source refresh operations: the local `check:route-speed-availability` command and Worker monthly watcher both distinguish missing speed rows from complete speed months and persist watcher artifacts. What remains is the rebuild trigger/handoff that runs `ingest:route-coverage`, network build/finalize, D1 export, and static artifact verification when a new complete month appears.
 
 Implemented data contracts:
 

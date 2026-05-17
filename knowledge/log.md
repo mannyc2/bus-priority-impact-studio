@@ -438,3 +438,7 @@ Extended `audit:pipeline-v1` with an explicit `interventions.methodologyGate` se
 ## [2026-05-17] engineering | V1 audit objective contract
 
 Extended `audit:pipeline-v1` so the generated JSON includes the full v1 objective and explicit success criteria before the evidence checklist. This makes `data/artifacts/pipeline-v1/audit-*.json` a self-contained prompt-to-artifact contract rather than only a status summary.
+
+## [2026-05-17] docs | Source refresh docs drift cleanup
+
+Updated the web README, v1 completion plan, and roadmap so they reflect the current source-refresh implementation: the Worker scheduled hook can capture GTFS-RT snapshots to R2, can be configured for strict 30-second sampling from a one-minute cron, and includes a monthly route-speed watcher. Remaining production-refresh work is now framed as deployment/configuration, monitoring, R2-to-pipeline handoff, and rebuild triggering when a new complete public speed month appears.

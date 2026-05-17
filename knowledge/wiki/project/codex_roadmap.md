@@ -42,7 +42,7 @@ Current implementation baseline:
 Primary remaining roadmap:
 
 1. Decide whether v1 is March structural + May observed appendix, or wait for public speed coverage so a later month can become the single strict v1 month.
-2. Design the production data refresh path: GTFS-RT live collector to durable raw storage, monthly public-source watcher, rebuild trigger, artifact verification, and monitoring for missed samples or source-publication lag.
+2. Finish production data refresh operations: deploy/configure the scheduled GTFS-RT R2 capture hook and monthly public-source watcher, then add rebuild handoff, artifact verification, and monitoring for missed samples or source-publication lag.
 3. Reduce remaining bus-lane source gaps where public dates can be recovered, and review the peer-adjusted ACE/ABLE/bus-lane method with domain experts.
 4. Align the public frontend around proof-finding route/corridor briefs rather than a generic route analytics dashboard.
 
