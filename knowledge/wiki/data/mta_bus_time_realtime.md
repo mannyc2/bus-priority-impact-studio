@@ -2,7 +2,7 @@
 title: MTA Bus Time Realtime
 type: data
 status: active
-last_updated: 2026-05-16
+last_updated: 2026-05-17
 owner: codex
 source_count: 3
 tags: [mta, bus-time, realtime, gtfs-rt]
@@ -64,6 +64,7 @@ V1 collection rules:
 - Aggregate route/month observed reliability summaries with sample coverage, bunching, long-gap, and wait-time reliability metrics.
 - Export observed reliability summaries to D1 and verify typed readback.
 - Next, surface observed reliability status and caveats in route/corridor briefs.
+- Strict `check:pipeline-v1` requires the observed run to satisfy configurable collection QA: minimum collection window, maximum sample cadence, requested `vehicle_positions`, and successful vehicle-position snapshot coverage.
 - Respect MTA terms: do not serve users directly from MTA endpoints; cache on our own server.
 
 ## Potential computed metrics

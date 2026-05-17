@@ -94,6 +94,7 @@ function checkArgs(overrides: Parameters<typeof checkPipelineV1>[0] = {}) {
     dbPath,
     sourceMetadataDir,
     now: fixtureNow,
+    minGtfsRtCollectionHours: 0.1,
     ...overrides,
   };
 }
@@ -334,26 +335,28 @@ async function writeFixtureNetwork(options: {
           requestedDurationSeconds: 600,
           sampleSeconds: 30,
           requestedFeedTypes: "vehicle_positions",
-          snapshotCount: 1,
-          successCount: 1,
+          snapshotCount: 10,
+          successCount: 10,
           failureCount: 0,
           rawDirectory: "/tmp/gtfs-rt",
           error: null,
         });
-        await insertGtfsRtFeedSnapshot(local.db, {
-          runId: observedRunId,
-          feedType: "vehicle_positions",
-          sampleIndex: 1,
-          sourceId: "bus_time_gtfsrt_vehicle_positions",
-          fetchedAt: "2026-11-01T00:00:00.000Z",
-          status: "ok",
-          httpStatus: 200,
-          byteLength: 100,
-          sha256: "fixture",
-          rawPath: "/tmp/gtfs-rt/vehicle_positions-1.pb",
-          redactedUrl: "https://example.test/<redacted>",
-          error: null,
-        });
+        for (let sampleIndex = 1; sampleIndex <= 10; sampleIndex += 1) {
+          await insertGtfsRtFeedSnapshot(local.db, {
+            runId: observedRunId,
+            feedType: "vehicle_positions",
+            sampleIndex,
+            sourceId: "bus_time_gtfsrt_vehicle_positions",
+            fetchedAt: `2026-11-01T00:${String(sampleIndex - 1).padStart(2, "0")}:00.000Z`,
+            status: "ok",
+            httpStatus: 200,
+            byteLength: 100,
+            sha256: "fixture",
+            rawPath: `/tmp/gtfs-rt/vehicle_positions-${sampleIndex}.pb`,
+            redactedUrl: "https://example.test/<redacted>",
+            error: null,
+          });
+        }
         await replaceGtfsRtParsedSnapshot(local.db, {
           parsedSnapshot: {
             runId: observedRunId,
@@ -781,8 +784,12 @@ describe("pipeline v1 check", () => {
         routeMonthTrendRidershipRows: 4,
         gtfsRtCollectionRunRows: 1,
         gtfsRtCompletedCollectionRunRows: 1,
-        gtfsRtFeedSnapshotRows: 1,
-        gtfsRtSuccessfulFeedSnapshotRows: 1,
+        gtfsRtShortestCollectionSeconds: 600,
+        gtfsRtLongestSampleSeconds: 30,
+        gtfsRtFeedSnapshotRows: 10,
+        gtfsRtSuccessfulFeedSnapshotRows: 10,
+        gtfsRtSuccessfulVehiclePositionSnapshotRows: 10,
+        gtfsRtRequiredVehiclePositionSnapshotRows: 10,
         gtfsRtParsedSnapshotRows: 1,
         gtfsRtParsedVehiclePositionSnapshotRows: 1,
         gtfsRtObservedHeadwaySampleRows: 42,
@@ -814,6 +821,45 @@ describe("pipeline v1 check", () => {
         routeObservedReliabilityRows: 1,
         routeInterventionComparisonRows: 2,
       }),
+    );
+  });
+
+  test("fails strict mode when the GTFS-RT collection window is too short", async () => {
+    await writeFixtureNetwork({ includeObservedAndInterventions: true });
+
+    const result = await checkPipelineV1({
+      year: 2026,
+      month: 11,
+      dbPath,
+      sourceMetadataDir,
+      now: fixtureNow,
+    });
+
+    expect(result.status).toBe("fail");
+    expect(result.counts).toEqual(
+      expect.objectContaining({
+        gtfsRtShortestCollectionSeconds: 600,
+        gtfsRtLongestSampleSeconds: 30,
+        gtfsRtSuccessfulVehiclePositionSnapshotRows: 10,
+        gtfsRtRequiredVehiclePositionSnapshotRows: 384,
+      }),
+    );
+    expect(result.issues.map((issue) => issue.code)).toEqual(
+      expect.arrayContaining([
+        "gtfs_rt_collection_duration_insufficient",
+        "gtfs_rt_vehicle_position_snapshot_coverage_insufficient",
+      ]),
+    );
+  });
+
+  test("fails strict mode when the GTFS-RT sample cadence is too sparse", async () => {
+    await writeFixtureNetwork({ includeObservedAndInterventions: true });
+
+    const result = await checkPipelineV1(checkArgs({ maxGtfsRtSampleSeconds: 10 }));
+
+    expect(result.status).toBe("fail");
+    expect(result.issues.map((issue) => issue.code)).toEqual(
+      expect.arrayContaining(["gtfs_rt_collection_cadence_too_sparse"]),
     );
   });
 

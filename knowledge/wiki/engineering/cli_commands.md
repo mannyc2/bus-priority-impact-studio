@@ -163,6 +163,7 @@ bun run export:d1 -- --year 2026 --month 3 --network-dir data/working/network
 bun run verify:d1 -- --year 2026 --month 3
 bun run check:pipeline-v1 -- --year 2026 --month 3
 bun run check:pipeline-v1 -- --year 2026 --month 3 --min-observed-route-share 0.9
+bun run check:pipeline-v1 -- --year 2026 --month 3 --min-gtfs-rt-collection-hours 4 --max-gtfs-rt-sample-seconds 60
 bun run check:pipeline-v1 -- --year 2026 --month 3 --max-corridor-ambiguous-route-share 0.15
 bun run check:pipeline-v1 -- --year 2026 --month 3 --max-source-probe-age-days 45
 bun run check:pipeline-v1 -- --year 2026 --month 3 --allow-insufficient-gtfs-rt
@@ -175,7 +176,7 @@ Expected outputs:
 - D1 seed SQL or import-ready rows
 - D1 export summaries with schema/seed byte lengths and SHA-256 hashes
 - D1 verification summaries that load generated seed SQL, validate expected-vs-loaded serving row counts, and exercise typed repository readback
-- strict v1 QA result covering local route/corridor evidence, required source probe freshness, GTFS-RT collection/parse/headway provenance, observed-route and observed-sample coverage, corridor assignment ambiguity/unassigned thresholds, route-batch audit output, and D1 readback
+- strict v1 QA result covering local route/corridor evidence, required source probe freshness, GTFS-RT collection window/cadence/snapshot coverage, GTFS-RT parse/headway provenance, observed-route and observed-sample coverage, corridor assignment ambiguity/unassigned thresholds, route-batch audit output, and D1 readback
 - structural DB/export/artifact QA result when `--allow-insufficient-gtfs-rt` is used without a Bus Time collection run
 - artifact keys and hashes
 - optional R2 upload after local artifact contracts are stable

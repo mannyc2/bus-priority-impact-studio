@@ -27,6 +27,9 @@ type PipelineV1FinalizeArgs = {
   minObservedHeadwaySamples?: number;
   minObservedRouteCount?: number;
   minObservedRouteShare?: number;
+  minGtfsRtCollectionHours?: number;
+  maxGtfsRtSampleSeconds?: number;
+  minGtfsRtVehiclePositionSnapshotShare?: number;
 };
 
 type PipelineV1FinalizeResult = {
@@ -119,6 +122,15 @@ function parseCliArgs(args: string[]): PipelineV1FinalizeArgs {
     }),
     numberOption(["--min-observed-route-share"], (output, value) => {
       output.minObservedRouteShare = value;
+    }),
+    numberOption(["--min-gtfs-rt-collection-hours"], (output, value) => {
+      output.minGtfsRtCollectionHours = value;
+    }),
+    numberOption(["--max-gtfs-rt-sample-seconds"], (output, value) => {
+      output.maxGtfsRtSampleSeconds = value;
+    }),
+    numberOption(["--min-gtfs-rt-vehicle-position-snapshot-share"], (output, value) => {
+      output.minGtfsRtVehiclePositionSnapshotShare = value;
     }),
   ];
 
@@ -221,6 +233,15 @@ export async function finalizePipelineV1(
     ...(args.minObservedRouteShare === undefined
       ? {}
       : { minObservedRouteShare: args.minObservedRouteShare }),
+    ...(args.minGtfsRtCollectionHours === undefined
+      ? {}
+      : { minGtfsRtCollectionHours: args.minGtfsRtCollectionHours }),
+    ...(args.maxGtfsRtSampleSeconds === undefined
+      ? {}
+      : { maxGtfsRtSampleSeconds: args.maxGtfsRtSampleSeconds }),
+    ...(args.minGtfsRtVehiclePositionSnapshotShare === undefined
+      ? {}
+      : { minGtfsRtVehiclePositionSnapshotShare: args.minGtfsRtVehiclePositionSnapshotShare }),
   };
   const check = await deps.checkPipelineV1(checkArgs);
 
