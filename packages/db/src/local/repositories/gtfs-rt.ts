@@ -26,6 +26,14 @@ export async function insertGtfsRtCollectionRun(
   await db.insert(localGtfsRtCollectionRun).values(row);
 }
 
+export async function replaceGtfsRtCollectionRun(
+  db: LocalPipelineDb,
+  row: typeof localGtfsRtCollectionRun.$inferInsert,
+): Promise<void> {
+  await db.delete(localGtfsRtCollectionRun).where(eq(localGtfsRtCollectionRun.runId, row.runId));
+  await db.insert(localGtfsRtCollectionRun).values(row);
+}
+
 export async function finishGtfsRtCollectionRun(
   db: LocalPipelineDb,
   runId: string,
@@ -45,6 +53,17 @@ export async function insertGtfsRtFeedSnapshot(
   row: typeof localGtfsRtFeedSnapshot.$inferInsert,
 ): Promise<void> {
   await db.insert(localGtfsRtFeedSnapshot).values(row);
+}
+
+export async function replaceGtfsRtFeedSnapshots(
+  db: LocalPipelineDb,
+  runId: string,
+  rows: readonly (typeof localGtfsRtFeedSnapshot.$inferInsert)[],
+): Promise<void> {
+  await db.delete(localGtfsRtFeedSnapshot).where(eq(localGtfsRtFeedSnapshot.runId, runId));
+  if (rows.length > 0) {
+    await batchInsert(db, localGtfsRtFeedSnapshot, [...rows]);
+  }
 }
 
 export async function listGtfsRtCollectionRuns(

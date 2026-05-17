@@ -14,6 +14,7 @@
     "sources:probe": "bun run src/cli.ts sources:probe",
     "collect:gtfs-rt": "bun run src/cli.ts collect:gtfs-rt",
     "ingest:gtfs-rt-snapshots": "bun run src/cli.ts ingest:gtfs-rt-snapshots",
+    "import:gtfs-rt-r2-manifests": "bun run src/cli.ts import:gtfs-rt-r2-manifests",
     "gtfs-rt:preflight": "bun run src/cli.ts gtfs-rt:preflight",
     "gtfs-rt:run-status": "bun run src/cli.ts gtfs-rt:run-status",
     "check:route-speed-availability": "bun run src/cli.ts check:route-speed-availability",

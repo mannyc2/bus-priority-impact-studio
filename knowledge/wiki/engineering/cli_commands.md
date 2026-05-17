@@ -50,6 +50,7 @@ bun run gtfs-rt:preflight -- --year 2026 --month 3 --run-id <run_id>
 bun run gtfs-rt:run-status -- --run-id <run_id>
 bun run collect:gtfs-rt -- --duration-hours 24 --sample-seconds 30 --run-id <run_id>
 bun run collect:gtfs-rt -- --sample-count 1 --feed-types vehicle_positions --run-id <run_id>
+bun run import:gtfs-rt-r2-manifests -- --run-id <run_id> --manifest-root <local-r2-mirror>/gtfs-rt/vehicle_positions/YYYY-MM-DD --raw-root <local-r2-mirror>
 bun run ingest:gtfs-rt-snapshots -- --run-id <run_id>
 bun run build:observed-headways -- --run-id <run_id>
 bun run route-observed-reliability -- --run-id <run_id> --year 2026 --month 3
@@ -68,6 +69,8 @@ Expected outputs:
 - collection-run status JSON covering snapshot progress, raw protobuf file counts/bytes, parsed snapshot counts, and exact handoff commands for ingestion, observed-headway build, observed reliability, and preflight
 
 Collection requires `MTA_BUS_TIME_API_KEY`; `gtfs-rt:preflight` reports whether it is set without printing the key. Persisted rows use redacted feed URLs and must not store the API key. `route-observed-reliability` filters observed headway samples to the requested analysis month. Both `gtfs-rt:preflight` and strict v1 QA reject collection/snapshot/headway provenance outside that month.
+
+`import:gtfs-rt-r2-manifests` is the Worker/R2 handoff path: point it at a local mirror/export of the R2 GTFS-RT manifest directory and raw object root, and it registers those manifests as a local collection run for the existing protobuf ingest command.
 
 ## Ingest commands
 
@@ -210,7 +213,7 @@ Do not use `pytest`, `ruff`, or Python scripts in the MVP.
 
 ## Caveats
 
-- `sources:list`, `sources:probe`, `collect:gtfs-rt`, `ingest:gtfs-rt-snapshots`, `gtfs-rt:preflight`, `gtfs-rt:run-status`, `build:observed-headways`, `route-observed-reliability`, `ingest:ace-routes`, `ingest:ace-violations`, `ingest:bus-lanes`, `ingest:equity-context`, `ingest:route-catalog`, `ingest:route-coverage`, `ingest:route-trends`, `backfill:route-ridership-trends`, `ingest:route-slice`, `ingest:route-schedules`, `build:hotspots`, `build:ridership-profile`, `build:speed-profile`, `build:interventions`, `build:bus-lanes`, `build:schedules`, `build:route-brief`, `build:artifacts`, `build:routes`, `build:network`, `compare:routes`, `route-readiness`, `route-build-plan`, `route-reliability-baseline`, `route-intervention-evaluation`, `corridor-model`, `evaluation-artifacts`, `map-artifacts`, `brief-artifacts`, `route-equity-context`, `route-batch-audit`, `export:d1`, `verify:d1`, `check:pipeline-v1`, `audit:pipeline-v1`, and `finalize:pipeline-v1` are implemented. `build:planned-routes` remains as a compatibility alias; R2 upload remains planned.
+- `sources:list`, `sources:probe`, `collect:gtfs-rt`, `import:gtfs-rt-r2-manifests`, `ingest:gtfs-rt-snapshots`, `gtfs-rt:preflight`, `gtfs-rt:run-status`, `build:observed-headways`, `route-observed-reliability`, `ingest:ace-routes`, `ingest:ace-violations`, `ingest:bus-lanes`, `ingest:equity-context`, `ingest:route-catalog`, `ingest:route-coverage`, `ingest:route-trends`, `backfill:route-ridership-trends`, `ingest:route-slice`, `ingest:route-schedules`, `build:hotspots`, `build:ridership-profile`, `build:speed-profile`, `build:interventions`, `build:bus-lanes`, `build:schedules`, `build:route-brief`, `build:artifacts`, `build:routes`, `build:network`, `compare:routes`, `route-readiness`, `route-build-plan`, `route-reliability-baseline`, `route-intervention-evaluation`, `corridor-model`, `evaluation-artifacts`, `map-artifacts`, `brief-artifacts`, `route-equity-context`, `route-batch-audit`, `export:d1`, `verify:d1`, `check:pipeline-v1`, `audit:pipeline-v1`, and `finalize:pipeline-v1` are implemented. `build:planned-routes` remains as a compatibility alias; R2 upload remains planned.
 - Keep command implementations thin; put reusable logic in `packages/*`.
 
 ## Sources

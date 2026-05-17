@@ -29,6 +29,7 @@ bun run ingest:route-coverage -- --year 2026 --month 3
 bun run build:network -- --year 2026 --month 3
 bun run collect:gtfs-rt -- --duration-hours 24 --sample-seconds 30 --feed-types vehicle_positions --run-id <run_id>
 bun run gtfs-rt:run-status -- --run-id <run_id>
+bun run import:gtfs-rt-r2-manifests -- --run-id <run_id> --manifest-root <local-r2-mirror>/gtfs-rt/vehicle_positions/YYYY-MM-DD --raw-root <local-r2-mirror>
 bun run ingest:gtfs-rt-snapshots -- --run-id <run_id>
 bun run build:observed-headways -- --run-id <run_id>
 bun run route-observed-reliability -- --run-id <run_id> --year 2026 --month 3
@@ -41,6 +42,7 @@ bun --filter @bp/pipeline audit:pipeline-v1 -- --public-year 2026 --public-month
 `plan:source-refresh` writes `data/artifacts/source-refresh/plan.json`, combining the route-speed rebuild decision with the required production GTFS-RT collector and monthly public-source watcher next actions.
 `collect:gtfs-rt` requires `MTA_BUS_TIME_API_KEY`, writes raw protobuf snapshots to ignored `data/raw/gtfs-rt/`, and records run/snapshot metadata in the local pipeline DB with redacted URLs.
 `gtfs-rt:run-status` reports long collection progress, prints the next handoff commands, and writes `data/artifacts/gtfs-rt/run-status/<run_id>.json` by default. Use `--output <path>` or `--artifact-root <path>` to redirect the handoff artifact.
+`import:gtfs-rt-r2-manifests` registers Worker/R2 GTFS-RT capture manifests from a local R2 mirror as a completed local collection run, so `ingest:gtfs-rt-snapshots` can parse the mirrored protobuf object files through the existing pipeline path.
 `ingest:gtfs-rt-snapshots` parses a collected run into normalized local vehicle-position, trip-update, stop-time-update, and alert rows.
 `build:observed-headways` collapses parsed vehicle-position stop signals into observed stop events and headway samples.
 `route-observed-reliability` aggregates observed headway samples into route/month reliability summaries with bunching, long-gap, expected-wait, and sample-confidence status.

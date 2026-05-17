@@ -309,7 +309,7 @@ Implemented so far:
 Still missing / not yet release-complete:
 
 - Production-length GTFS-RT collection and coverage QA for the same month as public speed/schedule coverage. A May observed layer can be an appendix until May or a later month has public speed coverage.
-- Production collection operations: the Worker scheduled hook can capture GTFS-RT snapshots to R2 and can match strict 30-second sampling from a one-minute cron by setting `GTFS_RT_SAMPLES_PER_CRON=2` and `GTFS_RT_SAMPLE_SECONDS=30`. What remains is deployment/configuration, monitoring for missed samples, and the downstream parse/headway/reliability handoff from R2 snapshots into the Bun pipeline.
+- Production collection operations: the Worker scheduled hook can capture GTFS-RT snapshots to R2 and can match strict 30-second sampling from a one-minute cron by setting `GTFS_RT_SAMPLES_PER_CRON=2` and `GTFS_RT_SAMPLE_SECONDS=30`. The Bun pipeline now has `import:gtfs-rt-r2-manifests` to register Worker/R2 manifests from a local R2 mirror as a local collection run before protobuf parsing. What remains is deployment/configuration, monitoring for missed samples, and automating the R2-to-pipeline handoff.
 - Monthly public-source refresh operations: the local `check:route-speed-availability` command and Worker monthly watcher both distinguish missing speed rows from complete speed months and persist watcher artifacts. What remains is the rebuild trigger/handoff that runs `ingest:route-coverage`, network build/finalize, D1 export, and static artifact verification when a new complete month appears.
 
 Implemented data contracts:

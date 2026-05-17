@@ -442,3 +442,7 @@ Extended `audit:pipeline-v1` so the generated JSON includes the full v1 objectiv
 ## [2026-05-17] docs | Source refresh docs drift cleanup
 
 Updated the web README, v1 completion plan, and roadmap so they reflect the current source-refresh implementation: the Worker scheduled hook can capture GTFS-RT snapshots to R2, can be configured for strict 30-second sampling from a one-minute cron, and includes a monthly route-speed watcher. Remaining production-refresh work is now framed as deployment/configuration, monitoring, R2-to-pipeline handoff, and rebuild triggering when a new complete public speed month appears.
+
+## [2026-05-17] engineering | Worker R2 GTFS-RT import handoff
+
+Added `import:gtfs-rt-r2-manifests`, a Bun pipeline command that reads Worker-written GTFS-RT manifest JSON from a local R2 mirror/export, registers a completed local collection run, and inserts feed snapshot metadata pointing at the mirrored protobuf object files. This gives the production Worker capture path a concrete handoff into the existing `ingest:gtfs-rt-snapshots`, observed-headway, and observed-reliability pipeline without adding heavy parsing to the Worker.

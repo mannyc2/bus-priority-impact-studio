@@ -41,6 +41,15 @@ const commands = {
       return ingestGtfsRtSnapshotsFromCli(args);
     },
   },
+  "import:gtfs-rt-r2-manifests": {
+    description: "Register Worker/R2 GTFS-RT snapshot manifests as a local collection run.",
+    run: async (args) => {
+      const { importGtfsRtR2ManifestsFromCli } = await import(
+        "./jobs/ingest/import-gtfs-rt-r2-manifests.js"
+      );
+      return importGtfsRtR2ManifestsFromCli(args);
+    },
+  },
   "gtfs-rt:preflight": {
     description: "Diagnose GTFS-RT collection, parse, headway, and observed reliability readiness.",
     run: async (args) => {

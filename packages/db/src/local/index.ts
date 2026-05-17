@@ -45,6 +45,8 @@ export {
   listGtfsRtStopTimeUpdates,
   listGtfsRtTripUpdates,
   listGtfsRtVehiclePositions,
+  replaceGtfsRtCollectionRun,
+  replaceGtfsRtFeedSnapshots,
   replaceGtfsRtParsedSnapshot,
 } from "./repositories/gtfs-rt.js";
 export type {
