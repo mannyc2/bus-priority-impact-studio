@@ -163,6 +163,9 @@ describe("GTFS-RT run status", () => {
       `bun run gtfs-rt:run-status -- --run-id ${runId}${dbArg}${artifactRootArg}`,
     );
     expect(status.artifactPath).toBe(gtfsRtRunStatusArtifactPath(artifactRoot, runId));
+    if (status.artifactPath === undefined) {
+      throw new Error("Expected run-status artifact path.");
+    }
     await expect(Bun.file(status.artifactPath).json()).resolves.toEqual(status);
   });
 
@@ -219,6 +222,9 @@ describe("GTFS-RT run status", () => {
       `bun run route-observed-reliability -- --year 2026 --month 5 --run-id ${runId}${dbArg}`,
     );
     expect(status.artifactPath).toBe(gtfsRtRunStatusArtifactPath(artifactRoot, runId));
+    if (status.artifactPath === undefined) {
+      throw new Error("Expected run-status artifact path.");
+    }
     await expect(Bun.file(status.artifactPath).json()).resolves.toEqual(status);
   });
 

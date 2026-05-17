@@ -1,5 +1,6 @@
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import type { SocrataFetch } from "@bp/sources";
 import * as z from "zod";
 import { writeJson } from "../../lib/json.js";
 import { defaultArtifactRootPath, fromCliPath } from "../../lib/paths.js";
@@ -20,7 +21,7 @@ type SourceRefreshPlanArgs = {
   gtfsRtSampleSeconds?: number;
   outputPath?: string;
   artifactRoot?: string;
-  fetcher?: typeof fetch;
+  fetcher?: SocrataFetch;
 };
 
 export type SourceRefreshPlanJob = {

@@ -81,6 +81,9 @@ describe("route speed availability check", () => {
     expect(result.artifactPath).toBe(
       join(artifactRoot, "source-availability", "route-speed-availability.json"),
     );
+    if (result.artifactPath === undefined) {
+      throw new Error("Expected route-speed availability artifact path.");
+    }
     await expect(Bun.file(result.artifactPath).json()).resolves.toEqual(result);
   });
 

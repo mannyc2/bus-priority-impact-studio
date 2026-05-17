@@ -60,6 +60,9 @@ describe("source refresh plan", () => {
       "shouldRebuild=true",
     );
     expect(plan.artifactPath).toBe(join(artifactRoot, "source-refresh", "plan.json"));
+    if (plan.artifactPath === undefined) {
+      throw new Error("Expected source-refresh plan artifact path.");
+    }
     await expect(Bun.file(plan.artifactPath).json()).resolves.toEqual(plan);
   });
 
