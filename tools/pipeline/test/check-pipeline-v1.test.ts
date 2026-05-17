@@ -29,6 +29,7 @@ import { buildMapArtifacts } from "../src/jobs/build/map-artifacts.js";
 import { checkPipelineV1 } from "../src/jobs/check/pipeline-v1.js";
 import { auditPipelineV1 } from "../src/jobs/check/pipeline-v1-audit.js";
 import { routeSpeedAvailabilityArtifactPath } from "../src/jobs/check/route-speed-availability.js";
+import { sourceRefreshPlanArtifactPath } from "../src/jobs/check/source-refresh-plan.js";
 import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
@@ -47,6 +48,7 @@ const mapArtifactDir = fromRepoRoot(join("data/artifacts/map"));
 const routeSpeedAvailabilityPath = routeSpeedAvailabilityArtifactPath(
   fromRepoRoot(join("data/artifacts")),
 );
+const sourceRefreshPlanPath = sourceRefreshPlanArtifactPath(fromRepoRoot(join("data/artifacts")));
 const corridorShapeReviewDir = fromRepoRoot(join("data/artifacts/route-batches", isoMonth));
 const corridorShapeReviewPath = join(corridorShapeReviewDir, "corridor-shape-review.json");
 const mapRawDir = fromRepoRoot(join("data/fixtures/check-pipeline-v1/map-raw"));
@@ -80,6 +82,7 @@ async function removeFixtureArtifacts(): Promise<void> {
     rm(evaluationArtifactDir, { force: true, recursive: true }),
     rm(mapArtifactDir, { force: true, recursive: true }),
     rm(dirname(routeSpeedAvailabilityPath), { force: true, recursive: true }),
+    rm(dirname(sourceRefreshPlanPath), { force: true, recursive: true }),
     rm(corridorShapeReviewDir, { force: true, recursive: true }),
     rm(mapRawDir, { force: true, recursive: true }),
     rm(sourceMetadataDir, { force: true, recursive: true }),
@@ -135,6 +138,85 @@ async function writeRouteSpeedAvailabilityArtifact(): Promise<void> {
           },
         ],
         artifactPath: routeSpeedAvailabilityPath,
+      },
+      null,
+      2,
+    )}\n`,
+  );
+}
+
+async function writeSourceRefreshPlanArtifact(): Promise<void> {
+  await mkdir(dirname(sourceRefreshPlanPath), { recursive: true });
+  await Bun.write(
+    sourceRefreshPlanPath,
+    `${JSON.stringify(
+      {
+        checkedAt: "2026-11-15T00:00:00.000Z",
+        requestedMonth: isoMonth,
+        lastBuiltMonth: "2026-10",
+        routeSpeedAvailability: {
+          sourceId: "bus_segment_speeds_2025",
+          checkedAt: "2026-11-15T00:00:00.000Z",
+          startYear: 2026,
+          endYear: 2026,
+          minSpeedRoutes: 1,
+          latestSpeedMonth: {
+            isoMonth,
+            year: 2026,
+            month: 11,
+            routeCount: 1,
+            rowCount: 2,
+            busTripCount: 20,
+            status: "complete",
+          },
+          requestedMonth: {
+            isoMonth,
+            year: 2026,
+            month: 11,
+            routeCount: 1,
+            rowCount: 2,
+            busTripCount: 20,
+            status: "complete",
+          },
+          releaseDecision: {
+            status: "new_complete_month_available",
+            latestCompleteMonth: isoMonth,
+            lastBuiltMonth: "2026-10",
+            shouldRebuild: true,
+            reason: `Latest complete speed month ${isoMonth} is newer than last built month 2026-10.`,
+          },
+          months: [
+            {
+              isoMonth,
+              year: 2026,
+              month: 11,
+              routeCount: 1,
+              rowCount: 2,
+              busTripCount: 20,
+              status: "complete",
+            },
+          ],
+          artifactPath: routeSpeedAvailabilityPath,
+        },
+        jobs: [
+          {
+            id: "gtfs_rt_collector",
+            requiredForV1: true,
+            cadence: "vehicle_positions every 30s while service is running",
+            status: "required",
+            evidence: "Fixture realtime collection requirement.",
+            nextActions: ["Deploy a scheduled collector."],
+          },
+          {
+            id: "route_speed_monthly_watcher",
+            requiredForV1: true,
+            cadence: "poll current and previous public months",
+            status: "ready_to_rebuild",
+            evidence: "Fixture watcher rebuild decision.",
+            nextActions: ["Run ingest/build/finalize."],
+          },
+        ],
+        artifactPath: sourceRefreshPlanPath,
       },
       null,
       2,
@@ -1732,6 +1814,7 @@ describe("pipeline v1 check", () => {
   test("writes a prompt-to-artifact audit when single-month gates are green", async () => {
     await writeFixtureNetwork({ includeObservedAndInterventions: true });
     await writeRouteSpeedAvailabilityArtifact();
+    await writeSourceRefreshPlanArtifact();
 
     const result = await auditPipelineV1({
       publicYear: 2026,
@@ -1790,10 +1873,28 @@ describe("pipeline v1 check", () => {
         }),
       }),
     );
+    expect(result.sourceAvailability.refreshPlan).toEqual(
+      expect.objectContaining({
+        jobs: expect.arrayContaining([
+          expect.objectContaining({
+            id: "gtfs_rt_collector",
+            status: "required",
+          }),
+          expect.objectContaining({
+            id: "route_speed_monthly_watcher",
+            status: "ready_to_rebuild",
+          }),
+        ]),
+      }),
+    );
     expect(
       result.checklist.find((item) => item.requirement === "Single-month source availability")
         ?.evidence,
     ).toContain("shouldRebuild=true");
+    expect(
+      result.checklist.find((item) => item.requirement === "Single-month source availability")
+        ?.evidence,
+    ).toContain("route_speed_monthly_watcher=ready_to_rebuild");
     expect(
       result.checklist.find((item) => item.requirement === "Before/after intervention evaluation")
         ?.evidence,

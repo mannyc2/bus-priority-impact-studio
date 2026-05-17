@@ -18,6 +18,7 @@ import {
   type RouteSpeedAvailabilityResult,
   readRouteSpeedAvailabilityArtifact,
 } from "./route-speed-availability.js";
+import { readSourceRefreshPlanArtifact, type SourceRefreshPlan } from "./source-refresh-plan.js";
 
 type PipelineV1AuditArgs = {
   publicYear?: number;
@@ -82,6 +83,7 @@ type PipelineV1AuditResult = {
   };
   sourceAvailability: {
     routeSpeed: RouteSpeedAvailabilityResult | null;
+    refreshPlan: SourceRefreshPlan | null;
   };
   interventions: {
     busLaneSourceGaps: BusLaneSourceGapDiagnostics;
@@ -398,6 +400,7 @@ export async function auditPipelineV1(
     realtimeCoverage,
     busLaneSourceGaps,
     routeSpeedAvailability,
+    sourceRefreshPlan,
   ] = await Promise.all([
     preflightGtfsRt({
       year: realtimeYear,
@@ -410,6 +413,7 @@ export async function auditPipelineV1(
     coverageSummary(dbPath ?? "", realtimeIsoMonth),
     busLaneSourceGapDiagnostics(dbPath ?? "", publicIsoMonth),
     readRouteSpeedAvailabilityArtifact(artifactRoot),
+    readSourceRefreshPlanArtifact(artifactRoot),
   ]);
 
   const monthSplit = publicIsoMonth !== realtimeIsoMonth;
@@ -418,6 +422,10 @@ export async function auditPipelineV1(
     routeSpeedAvailability === null
       ? "No route-speed availability artifact found."
       : ` Route-speed availability artifact latest complete speed month is ${routeSpeedAvailability.latestSpeedMonth?.isoMonth ?? "none"}; requested month ${routeSpeedAvailability.requestedMonth?.isoMonth ?? "none"} is ${routeSpeedAvailability.requestedMonth?.status ?? "not checked"}; rebuild decision is ${routeSpeedAvailability.releaseDecision.status} with shouldRebuild=${routeSpeedAvailability.releaseDecision.shouldRebuild}.`;
+  const sourceRefreshPlanEvidence =
+    sourceRefreshPlan === null
+      ? " No source-refresh plan artifact found."
+      : ` Source-refresh plan jobs: ${sourceRefreshPlan.jobs.map((job) => `${job.id}=${job.status}`).join(", ")}.`;
   const cleanRebuildEvidence =
     cleanRebuild === null
       ? ""
@@ -527,7 +535,7 @@ export async function auditPipelineV1(
     {
       requirement: "Single-month source availability",
       status: !monthSplit && realtimeHasSpeedCoverage ? "pass" : "blocked",
-      evidence: `${publicIsoMonth} speed routes: ${publicCoverage.speedRoutes}; ${realtimeIsoMonth} speed routes: ${realtimeCoverage.speedRoutes}; realtime month is ${realtimeIsoMonth}.${routeSpeedAvailabilityEvidence}`,
+      evidence: `${publicIsoMonth} speed routes: ${publicCoverage.speedRoutes}; ${realtimeIsoMonth} speed routes: ${realtimeCoverage.speedRoutes}; realtime month is ${realtimeIsoMonth}.${routeSpeedAvailabilityEvidence}${sourceRefreshPlanEvidence}`,
       missing:
         monthSplit || !realtimeHasSpeedCoverage
           ? [
@@ -555,6 +563,7 @@ export async function auditPipelineV1(
     },
     sourceAvailability: {
       routeSpeed: routeSpeedAvailability,
+      refreshPlan: sourceRefreshPlan,
     },
     interventions: {
       busLaneSourceGaps,

@@ -6,6 +6,7 @@ import { defaultArtifactRootPath, fromCliPath } from "../../lib/paths.js";
 import {
   checkRouteSpeedAvailability,
   type RouteSpeedAvailabilityResult,
+  RouteSpeedAvailabilityResultSchema,
 } from "./route-speed-availability.js";
 
 type SourceRefreshPlanArgs = {
@@ -50,16 +51,7 @@ export const SourceRefreshPlanSchema = z.object({
     .string()
     .regex(/^\d{4}-\d{2}$/)
     .nullable(),
-  routeSpeedAvailability: z.object({
-    releaseDecision: z.object({
-      status: z.enum([
-        "new_complete_month_available",
-        "no_new_complete_month",
-        "no_complete_speed_month",
-      ]),
-      shouldRebuild: z.boolean(),
-    }),
-  }),
+  routeSpeedAvailability: RouteSpeedAvailabilityResultSchema,
   jobs: z.array(
     z.object({
       id: z.enum(["gtfs_rt_collector", "route_speed_monthly_watcher"]),
@@ -157,7 +149,7 @@ function parseCliArgs(args: string[]): SourceRefreshPlanArgs {
   return parsed;
 }
 
-function sourceRefreshPlanArtifactPath(artifactRoot: string): string {
+export function sourceRefreshPlanArtifactPath(artifactRoot: string): string {
   return join(artifactRoot, "source-refresh", "plan.json");
 }
 
@@ -287,4 +279,16 @@ export async function buildSourceRefreshPlan(
 
 export async function buildSourceRefreshPlanFromCli(args: string[]): Promise<SourceRefreshPlan> {
   return buildSourceRefreshPlan(parseCliArgs(args));
+}
+
+export async function readSourceRefreshPlanArtifact(
+  artifactRoot: string,
+): Promise<SourceRefreshPlan | null> {
+  const path = sourceRefreshPlanArtifactPath(artifactRoot);
+  const file = Bun.file(path);
+  if (!(await file.exists())) {
+    return null;
+  }
+
+  return SourceRefreshPlanSchema.parse(await file.json()) as SourceRefreshPlan;
 }
