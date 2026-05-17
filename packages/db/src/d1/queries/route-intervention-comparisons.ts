@@ -27,6 +27,7 @@ const RouteInterventionComparisonRowSchema = z
     source_id: z.string().min(1),
     evaluation_level: z.enum([
       "descriptive_before_after",
+      "peer_adjusted_before_after",
       "insufficient_trend_data",
       "not_evaluated_future",
       "not_evaluated_source_gap",
@@ -54,6 +55,16 @@ const RouteInterventionComparisonRowSchema = z
     pre_average_monthly_ridership: z.number().nonnegative().nullable(),
     post_average_monthly_ridership: z.number().nonnegative().nullable(),
     ridership_delta: z.number().nullable(),
+    comparison_route_count: z.number().int().nonnegative(),
+    comparison_route_ids: z.string().nullable(),
+    comparison_pre_average_speed_mph: z.number().nonnegative().nullable(),
+    comparison_post_average_speed_mph: z.number().nonnegative().nullable(),
+    comparison_speed_delta_mph: z.number().nullable(),
+    adjusted_speed_delta_mph: z.number().nullable(),
+    comparison_pre_average_monthly_ridership: z.number().nonnegative().nullable(),
+    comparison_post_average_monthly_ridership: z.number().nonnegative().nullable(),
+    comparison_ridership_delta: z.number().nullable(),
+    adjusted_ridership_delta: z.number().nullable(),
     caveat: z.string().min(1),
   })
   .strict();
@@ -74,6 +85,7 @@ export type RouteInterventionComparison = {
   description: string;
   evaluationLevel:
     | "descriptive_before_after"
+    | "peer_adjusted_before_after"
     | "insufficient_trend_data"
     | "not_evaluated_future"
     | "not_evaluated_source_gap";
@@ -99,8 +111,31 @@ export type RouteInterventionComparison = {
   preAverageMonthlyRidership: number | null;
   postAverageMonthlyRidership: number | null;
   ridershipDelta: number | null;
+  comparisonRouteCount: number;
+  comparisonRouteIds: string[];
+  comparisonPreAverageSpeedMph: number | null;
+  comparisonPostAverageSpeedMph: number | null;
+  comparisonSpeedDeltaMph: number | null;
+  adjustedSpeedDeltaMph: number | null;
+  comparisonPreAverageMonthlyRidership: number | null;
+  comparisonPostAverageMonthlyRidership: number | null;
+  comparisonRidershipDelta: number | null;
+  adjustedRidershipDelta: number | null;
   caveat: string;
 };
+
+function parseComparisonRouteIds(value: string | null): string[] {
+  if (value === null) {
+    return [];
+  }
+
+  const parsed = JSON.parse(value) as unknown;
+  if (!Array.isArray(parsed) || parsed.some((item) => typeof item !== "string")) {
+    throw new Error("Invalid intervention comparison route ID payload");
+  }
+
+  return parsed;
+}
 
 function toRouteInterventionComparison(
   row: RouteInterventionComparisonRow,
@@ -135,6 +170,16 @@ function toRouteInterventionComparison(
     preAverageMonthlyRidership: row.pre_average_monthly_ridership,
     postAverageMonthlyRidership: row.post_average_monthly_ridership,
     ridershipDelta: row.ridership_delta,
+    comparisonRouteCount: row.comparison_route_count,
+    comparisonRouteIds: parseComparisonRouteIds(row.comparison_route_ids),
+    comparisonPreAverageSpeedMph: row.comparison_pre_average_speed_mph,
+    comparisonPostAverageSpeedMph: row.comparison_post_average_speed_mph,
+    comparisonSpeedDeltaMph: row.comparison_speed_delta_mph,
+    adjustedSpeedDeltaMph: row.adjusted_speed_delta_mph,
+    comparisonPreAverageMonthlyRidership: row.comparison_pre_average_monthly_ridership,
+    comparisonPostAverageMonthlyRidership: row.comparison_post_average_monthly_ridership,
+    comparisonRidershipDelta: row.comparison_ridership_delta,
+    adjustedRidershipDelta: row.adjusted_ridership_delta,
     caveat: row.caveat,
   };
 }
@@ -169,6 +214,19 @@ export async function listRouteInterventionComparisons(
         pre_average_monthly_ridership: routeInterventionComparison.preAverageMonthlyRidership,
         post_average_monthly_ridership: routeInterventionComparison.postAverageMonthlyRidership,
         ridership_delta: routeInterventionComparison.ridershipDelta,
+        comparison_route_count: routeInterventionComparison.comparisonRouteCount,
+        comparison_route_ids: routeInterventionComparison.comparisonRouteIds,
+        comparison_pre_average_speed_mph: routeInterventionComparison.comparisonPreAverageSpeedMph,
+        comparison_post_average_speed_mph:
+          routeInterventionComparison.comparisonPostAverageSpeedMph,
+        comparison_speed_delta_mph: routeInterventionComparison.comparisonSpeedDeltaMph,
+        adjusted_speed_delta_mph: routeInterventionComparison.adjustedSpeedDeltaMph,
+        comparison_pre_average_monthly_ridership:
+          routeInterventionComparison.comparisonPreAverageMonthlyRidership,
+        comparison_post_average_monthly_ridership:
+          routeInterventionComparison.comparisonPostAverageMonthlyRidership,
+        comparison_ridership_delta: routeInterventionComparison.comparisonRidershipDelta,
+        adjusted_ridership_delta: routeInterventionComparison.adjustedRidershipDelta,
         caveat: routeInterventionComparison.caveat,
       })
       .from(routeInterventionComparison)

@@ -522,7 +522,7 @@ describe("D1 seed export", () => {
         routeMonthTrendRowCount: 1,
         routeEquityContextRowCount: 1,
         routeBatchStatusRowCount: 1,
-        routeBatchBuiltRouteRowCount: 0,
+        routeBatchBuiltRouteRowCount: 1,
         routeBatchIssueRowCount: 0,
         routeBriefPeakWindowRowCount: 1,
         routeBriefSlowestWindowRowCount: 1,

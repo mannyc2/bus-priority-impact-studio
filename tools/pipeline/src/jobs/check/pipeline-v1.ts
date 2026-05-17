@@ -91,6 +91,7 @@ type PipelineV1Counts = {
   routeInterventionComparisonRows: number;
   evaluatedInterventionComparisonRows: number;
   evaluatedInterventionComparisonRidershipDeltaRows: number;
+  peerAdjustedInterventionComparisonRows: number;
   busLaneMatchedPublicRouteCount: number;
   busLaneInterventionComparisonRows: number;
   busLaneSourceGapComparisonRows: number;
@@ -690,6 +691,13 @@ export async function checkPipelineV1(
     localState.interventionComparisons.filter(
       (row) => row.comparisonStatus === "evaluated" && row.ridershipDelta !== null,
     ).length;
+  const peerAdjustedInterventionComparisonRows = localState.interventionComparisons.filter(
+    (row) =>
+      row.comparisonStatus === "evaluated" &&
+      row.evaluationLevel === "peer_adjusted_before_after" &&
+      row.comparisonRouteCount > 0 &&
+      row.adjustedSpeedDeltaMph !== null,
+  ).length;
   const busLaneMatchedPublicRouteIds = localState.routeBriefs
     .filter((row) => row.publicVisible && row.busLaneMatchedLaneCount > 0)
     .map((row) => row.routeId);
@@ -1012,6 +1020,13 @@ export async function checkPipelineV1(
       "Evaluated intervention comparisons do not include ridership deltas.",
     );
   }
+  if (evaluatedInterventionComparisonRows > 0 && peerAdjustedInterventionComparisonRows === 0) {
+    addIssue(
+      issues,
+      "intervention_peer_adjusted_comparisons_missing",
+      "Evaluated intervention comparisons do not include peer-adjusted speed deltas.",
+    );
+  }
   const routesMissingBusLaneComparison = missingMembers(
     busLaneMatchedPublicRouteIds,
     busLaneComparisonRouteIds,
@@ -1183,6 +1198,7 @@ export async function checkPipelineV1(
       routeInterventionComparisonRows: localState.interventionComparisons.length,
       evaluatedInterventionComparisonRows,
       evaluatedInterventionComparisonRidershipDeltaRows,
+      peerAdjustedInterventionComparisonRows,
       busLaneMatchedPublicRouteCount: busLaneMatchedPublicRouteIds.length,
       busLaneInterventionComparisonRows: busLaneInterventionComparisons.length,
       busLaneSourceGapComparisonRows,

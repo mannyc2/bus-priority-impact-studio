@@ -89,19 +89,21 @@ Source: `tools/pipeline/src/jobs/build/route-brief-metrics.ts` — `groupedSpeed
 
 **No known issues** with these calculations.
 
-## Intervention evaluation — descriptive and caveated
+## Intervention evaluation — peer-adjusted and caveated
 
 Sources: `tools/pipeline/src/jobs/build/route-brief-metrics.ts` and `tools/pipeline/src/jobs/build/route-intervention-evaluation.ts`
 
 **What's correct:**
 - Correctly splits ACE/ABLE programs into active vs future based on implementation date vs analysis period end.
 - Violation counts are grouped by type with correct summation.
-- ACE/ABLE descriptive before/after rows record pre/post windows, sample counts, speed/ridership deltas, evaluation level, comparison status, and caveats.
+- ACE/ABLE evaluated rows record raw pre/post windows, sample counts, speed/ridership deltas, peer-route comparison counts/IDs, peer baseline deltas, adjusted speed/ridership deltas, evaluation level, comparison status, and caveats.
+- Peer baselines use public comparison routes with sufficient trend rows, matched on pre-period speed and ridership, to control for networkwide seasonal shifts in the same pre/post windows.
 - Public routes with matched NYC DOT bus-lane geometry receive explicit source-gap comparison rows when route-level implementation dates are unavailable.
+- Strict v1 QA now fails when evaluated intervention rows lack peer-adjusted speed deltas.
 
 **What's limited:**
-- Current ACE/ABLE evaluation is descriptive, not causal.
-- Seasonality-aware comparisons, matched comparison routes, and dated bus-lane before/after evaluation remain open.
+- Current ACE/ABLE evaluation is still observational, not causal.
+- Dated bus-lane before/after evaluation and external transit-domain review remain open.
 
 ## Observed reliability — implemented, sample-gated
 
@@ -125,7 +127,7 @@ The analysis logic is internally consistent, correctly weighted, and well-tested
 1. **Ridership granularity** — route-level proxy inflates segment-level rider-impact scores
 2. **Route score simplicity** — two-factor formula vs planned five-factor model
 3. **Observed realtime month split** — current live GTFS-RT evidence does not align with the March public-source month
-4. **Intervention methodology** — current evaluated rows are descriptive, with stronger matched/seasonal methods still open
+4. **Intervention methodology** — ACE/ABLE rows now include peer-adjusted deltas, but dated bus-lane evaluation remains open
 5. **Corridor precision** — primary-street grouping is deterministic but still needs richer segment-based membership
 
-For a portfolio piece demonstrating methodology, the logic is defensible and well-documented. For MTA operational use, ridership allocation, route score calibration, matched intervention methods, and corridor membership would need domain review.
+For a portfolio piece demonstrating methodology, the logic is defensible and well-documented. For MTA operational use, ridership allocation, route score calibration, bus-lane intervention dating, and corridor membership would need domain review.

@@ -15,6 +15,7 @@ const sourceId = "mta_ace_routes";
 const busLaneSourceId = "nyc_dot_bus_lanes";
 const defaultWindowMonths = 3;
 const defaultMinSampleMonths = 1;
+const defaultComparisonRouteCount = 10;
 
 type RouteInterventionEvaluationArgs = {
   year?: number;
@@ -22,6 +23,7 @@ type RouteInterventionEvaluationArgs = {
   dbPath?: string;
   windowMonths?: number;
   minSampleMonths?: number;
+  comparisonRouteCount?: number;
 };
 
 type RouteInterventionEvaluationResult = {
@@ -56,6 +58,19 @@ type TrendWindowSummary = {
   averageSpeedMph: number | null;
   ridershipSampleMonthCount: number;
   averageMonthlyRidership: number | null;
+};
+
+type PeerComparisonSummary = {
+  routeIds: string[];
+  routeCount: number;
+  preAverageSpeedMph: number | null;
+  postAverageSpeedMph: number | null;
+  speedDeltaMph: number | null;
+  adjustedSpeedDeltaMph: number | null;
+  preAverageMonthlyRidership: number | null;
+  postAverageMonthlyRidership: number | null;
+  ridershipDelta: number | null;
+  adjustedRidershipDelta: number | null;
 };
 
 function round(value: number, decimals = 4): number {
@@ -161,11 +176,161 @@ function summarizeTrendWindow(input: {
   };
 }
 
+function weightedAverage(
+  entries: readonly { value: number | null; weight: number }[],
+): number | null {
+  const usable = entries.filter((entry) => entry.value !== null && entry.weight > 0);
+  const totalWeight = usable.reduce((sum, entry) => sum + entry.weight, 0);
+  if (totalWeight === 0) {
+    return null;
+  }
+
+  return round(
+    usable.reduce((sum, entry) => sum + (entry.value ?? 0) * entry.weight, 0) / totalWeight,
+  );
+}
+
+function average(values: readonly (number | null)[]): number | null {
+  const usable = values.filter((value): value is number => value !== null);
+  if (usable.length === 0) {
+    return null;
+  }
+
+  return round(usable.reduce((sum, value) => sum + value, 0) / usable.length);
+}
+
+function delta(post: number | null, pre: number | null): number | null {
+  return post === null || pre === null ? null : round(post - pre);
+}
+
+function buildPeerComparison(input: {
+  routeId: string;
+  candidateRouteIds: readonly string[];
+  excludedRouteIds: ReadonlySet<string>;
+  preMonths: string[];
+  postMonths: string[];
+  minSampleMonths: number;
+  comparisonRouteCount: number;
+  treatedPre: TrendWindowSummary;
+  treatedPost: TrendWindowSummary;
+  trendsByRouteMonth: Map<string, LocalRouteMonthTrend>;
+}): PeerComparisonSummary | null {
+  const treatedPreSpeed = input.treatedPre.averageSpeedMph;
+  const treatedPostSpeed = input.treatedPost.averageSpeedMph;
+  if (treatedPreSpeed === null || treatedPostSpeed === null) {
+    return null;
+  }
+
+  const treatedRidership = input.treatedPre.averageMonthlyRidership;
+  const candidates = input.candidateRouteIds
+    .filter((routeId) => routeId !== input.routeId && !input.excludedRouteIds.has(routeId))
+    .map((routeId) => {
+      const pre = summarizeTrendWindow({
+        routeId,
+        months: input.preMonths,
+        trendsByRouteMonth: input.trendsByRouteMonth,
+      });
+      const post = summarizeTrendWindow({
+        routeId,
+        months: input.postMonths,
+        trendsByRouteMonth: input.trendsByRouteMonth,
+      });
+
+      if (
+        pre.speedSampleMonthCount < input.minSampleMonths ||
+        post.speedSampleMonthCount < input.minSampleMonths ||
+        pre.averageSpeedMph === null ||
+        post.averageSpeedMph === null
+      ) {
+        return null;
+      }
+
+      const speedDistance =
+        Math.abs(pre.averageSpeedMph - treatedPreSpeed) / Math.max(treatedPreSpeed, 1);
+      const ridershipDistance =
+        treatedRidership !== null && pre.averageMonthlyRidership !== null
+          ? Math.abs(pre.averageMonthlyRidership - treatedRidership) / Math.max(treatedRidership, 1)
+          : 0;
+
+      return {
+        routeId,
+        pre,
+        post,
+        matchScore: speedDistance + ridershipDistance * 0.25,
+      };
+    })
+    .filter(
+      (
+        candidate,
+      ): candidate is {
+        routeId: string;
+        pre: TrendWindowSummary;
+        post: TrendWindowSummary;
+        matchScore: number;
+      } => candidate !== null,
+    )
+    .sort(
+      (left, right) =>
+        left.matchScore - right.matchScore || left.routeId.localeCompare(right.routeId),
+    )
+    .slice(0, input.comparisonRouteCount);
+
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  const preAverageSpeedMph = weightedAverage(
+    candidates.map((candidate) => ({
+      value: candidate.pre.averageSpeedMph,
+      weight: candidate.pre.speedBusTripCount,
+    })),
+  );
+  const postAverageSpeedMph = weightedAverage(
+    candidates.map((candidate) => ({
+      value: candidate.post.averageSpeedMph,
+      weight: candidate.post.speedBusTripCount,
+    })),
+  );
+  const comparisonSpeedDeltaMph = delta(postAverageSpeedMph, preAverageSpeedMph);
+  const treatedSpeedDeltaMph = delta(treatedPostSpeed, treatedPreSpeed);
+  const preAverageMonthlyRidership = average(
+    candidates.map((candidate) => candidate.pre.averageMonthlyRidership),
+  );
+  const postAverageMonthlyRidership = average(
+    candidates.map((candidate) => candidate.post.averageMonthlyRidership),
+  );
+  const comparisonRidershipDelta = delta(postAverageMonthlyRidership, preAverageMonthlyRidership);
+  const treatedRidershipDelta = delta(
+    input.treatedPost.averageMonthlyRidership,
+    input.treatedPre.averageMonthlyRidership,
+  );
+
+  return {
+    routeIds: candidates.map((candidate) => candidate.routeId),
+    routeCount: candidates.length,
+    preAverageSpeedMph,
+    postAverageSpeedMph,
+    speedDeltaMph: comparisonSpeedDeltaMph,
+    adjustedSpeedDeltaMph:
+      treatedSpeedDeltaMph === null || comparisonSpeedDeltaMph === null
+        ? null
+        : round(treatedSpeedDeltaMph - comparisonSpeedDeltaMph),
+    preAverageMonthlyRidership,
+    postAverageMonthlyRidership,
+    ridershipDelta: comparisonRidershipDelta,
+    adjustedRidershipDelta:
+      treatedRidershipDelta === null || comparisonRidershipDelta === null
+        ? null
+        : round(treatedRidershipDelta - comparisonRidershipDelta),
+  };
+}
+
 function caveatFor(input: {
   comparisonStatus: string;
   minSampleMonths: number;
   pre: TrendWindowSummary;
   post: TrendWindowSummary;
+  peerComparison: PeerComparisonSummary | null;
 }): string {
   if (input.comparisonStatus === "future_intervention") {
     return "Implementation is after the analysis month; before/after evaluation is not available yet.";
@@ -175,6 +340,9 @@ function caveatFor(input: {
   }
   if (input.comparisonStatus === "insufficient_post_data") {
     return `Insufficient post-period monthly speed trend rows: ${input.post.speedSampleMonthCount} available, ${input.minSampleMonths} required.`;
+  }
+  if (input.peerComparison !== null && input.peerComparison.routeCount > 0) {
+    return `Peer-adjusted before/after using ${input.peerComparison.routeCount} public route(s) matched on pre-period speed and ridership; this controls for networkwide seasonal shifts but is not a causal estimate.`;
   }
 
   return "Descriptive before/after only; not seasonality-adjusted and not matched to comparison routes.";
@@ -243,6 +411,9 @@ function buildComparison(input: {
   analysisMonth: string;
   windowMonths: number;
   minSampleMonths: number;
+  comparisonRouteCount: number;
+  candidateRouteIds: readonly string[];
+  excludedComparisonRouteIds: ReadonlySet<string>;
   trendsByRouteMonth: Map<string, LocalRouteMonthTrend>;
 }) {
   const implementationIndex = monthIndex(input.event.implementationMonth);
@@ -269,9 +440,26 @@ function buildComparison(input: {
     pre,
     post,
   });
+  const peerComparison =
+    status === "evaluated"
+      ? buildPeerComparison({
+          routeId: input.event.routeId,
+          candidateRouteIds: input.candidateRouteIds,
+          excludedRouteIds: input.excludedComparisonRouteIds,
+          preMonths,
+          postMonths,
+          minSampleMonths: input.minSampleMonths,
+          comparisonRouteCount: input.comparisonRouteCount,
+          treatedPre: pre,
+          treatedPost: post,
+          trendsByRouteMonth: input.trendsByRouteMonth,
+        })
+      : null;
   const evaluationLevel =
     status === "evaluated"
-      ? "descriptive_before_after"
+      ? peerComparison === null
+        ? "descriptive_before_after"
+        : "peer_adjusted_before_after"
       : status === "future_intervention"
         ? "not_evaluated_future"
         : "insufficient_trend_data";
@@ -302,15 +490,23 @@ function buildComparison(input: {
         : round(post.averageSpeedMph - pre.averageSpeedMph),
     preAverageMonthlyRidership: pre.averageMonthlyRidership,
     postAverageMonthlyRidership: post.averageMonthlyRidership,
-    ridershipDelta:
-      pre.averageMonthlyRidership === null || post.averageMonthlyRidership === null
-        ? null
-        : round(post.averageMonthlyRidership - pre.averageMonthlyRidership),
+    ridershipDelta: delta(post.averageMonthlyRidership, pre.averageMonthlyRidership),
+    comparisonRouteCount: peerComparison?.routeCount ?? 0,
+    comparisonRouteIds: peerComparison === null ? null : JSON.stringify(peerComparison.routeIds),
+    comparisonPreAverageSpeedMph: peerComparison?.preAverageSpeedMph ?? null,
+    comparisonPostAverageSpeedMph: peerComparison?.postAverageSpeedMph ?? null,
+    comparisonSpeedDeltaMph: peerComparison?.speedDeltaMph ?? null,
+    adjustedSpeedDeltaMph: peerComparison?.adjustedSpeedDeltaMph ?? null,
+    comparisonPreAverageMonthlyRidership: peerComparison?.preAverageMonthlyRidership ?? null,
+    comparisonPostAverageMonthlyRidership: peerComparison?.postAverageMonthlyRidership ?? null,
+    comparisonRidershipDelta: peerComparison?.ridershipDelta ?? null,
+    adjustedRidershipDelta: peerComparison?.adjustedRidershipDelta ?? null,
     caveat: caveatFor({
       comparisonStatus: status,
       minSampleMonths: input.minSampleMonths,
       pre,
       post,
+      peerComparison,
     }),
   };
 }
@@ -343,6 +539,16 @@ function buildBusLaneSourceGapComparison(input: {
     preAverageMonthlyRidership: null,
     postAverageMonthlyRidership: null,
     ridershipDelta: null,
+    comparisonRouteCount: 0,
+    comparisonRouteIds: null,
+    comparisonPreAverageSpeedMph: null,
+    comparisonPostAverageSpeedMph: null,
+    comparisonSpeedDeltaMph: null,
+    adjustedSpeedDeltaMph: null,
+    comparisonPreAverageMonthlyRidership: null,
+    comparisonPostAverageMonthlyRidership: null,
+    comparisonRidershipDelta: null,
+    adjustedRidershipDelta: null,
     caveat:
       "NYC DOT bus lane geometry is matched to the route, but this pipeline has no route-level implementation date for a before/after comparison.",
   };
@@ -356,6 +562,9 @@ function parseCliArgs(args: string[]): RouteInterventionEvaluationArgs {
     numberOption(["--min-sample-months"], (output, value) => {
       output.minSampleMonths = value;
     }),
+    numberOption(["--comparison-route-count"], (output, value) => {
+      output.comparisonRouteCount = value;
+    }),
   ];
 
   return parseMonthDbCliArgs(args, {} as RouteInterventionEvaluationArgs, extraOptions);
@@ -367,6 +576,10 @@ export async function buildRouteInterventionEvaluation(
   const options = createMonthContext(args);
   const windowMonths = Math.max(1, Math.round(args.windowMonths ?? defaultWindowMonths));
   const minSampleMonths = Math.max(1, Math.round(args.minSampleMonths ?? defaultMinSampleMonths));
+  const comparisonRouteCount = Math.max(
+    1,
+    Math.round(args.comparisonRouteCount ?? defaultComparisonRouteCount),
+  );
 
   const { routeCount, events, comparisons } = await withLocalPipelineDb(
     options.dbPath,
@@ -383,6 +596,15 @@ export async function buildRouteInterventionEvaluation(
         .filter((brief) => brief.publicVisible && brief.busLaneMatchedLaneCount > 0)
         .map((brief) => brief.routeId);
       const relevantAceRoutes = aceRoutes.filter((route) => publicRouteIds.has(route.routeId));
+      const excludedComparisonRouteIds = new Set(
+        relevantAceRoutes
+          .filter(
+            (route) =>
+              monthIndex(implementationMonthFromDate(route.implementationDate)) <=
+              monthIndex(options.isoMonth),
+          )
+          .map((route) => route.routeId),
+      );
       const trendsByRouteMonth = new Map(
         trends.map((trend) => [trendKey(trend.routeId, trend.month), trend]),
       );
@@ -399,6 +621,9 @@ export async function buildRouteInterventionEvaluation(
           analysisMonth: options.isoMonth,
           windowMonths,
           minSampleMonths,
+          comparisonRouteCount,
+          candidateRouteIds: [...publicRouteIds],
+          excludedComparisonRouteIds,
           trendsByRouteMonth,
         }),
       );

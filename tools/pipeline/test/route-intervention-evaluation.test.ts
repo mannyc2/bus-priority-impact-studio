@@ -18,7 +18,7 @@ async function removeFixtureArtifacts(): Promise<void> {
   await rm(workingDir, { force: true, recursive: true });
 }
 
-function briefSummary(routeId: string) {
+function briefSummary(routeId: string, options: { busLaneMatchedLaneCount?: number } = {}) {
   return {
     routeId,
     month: "2026-03",
@@ -31,7 +31,7 @@ function briefSummary(routeId: string) {
     totalTransfers: 100,
     aceActive: true,
     aceViolationCount: 12,
-    busLaneMatchedLaneCount: 3,
+    busLaneMatchedLaneCount: options.busLaneMatchedLaneCount ?? 3,
     scheduleMatchRate: 0.5,
   };
 }
@@ -47,6 +47,11 @@ async function writeFixtureNetwork(): Promise<void> {
     });
     await replaceRouteBriefRows(local.db, {
       summary: briefSummary("T2"),
+      peakWindows: [],
+      slowestWindows: [],
+    });
+    await replaceRouteBriefRows(local.db, {
+      summary: briefSummary("T3", { busLaneMatchedLaneCount: 0 }),
       peakWindows: [],
       slowestWindows: [],
     });
@@ -107,6 +112,50 @@ async function writeFixtureNetwork(): Promise<void> {
         hasSpeedTrend: true,
         hasRidershipTrend: true,
       },
+      {
+        routeId: "T3",
+        month: "2025-11",
+        speedObservationCount: 10,
+        speedBusTripCount: 100,
+        averageSpeedMph: 6,
+        ridership: 900,
+        transfers: 90,
+        hasSpeedTrend: true,
+        hasRidershipTrend: true,
+      },
+      {
+        routeId: "T3",
+        month: "2025-12",
+        speedObservationCount: 10,
+        speedBusTripCount: 100,
+        averageSpeedMph: 6,
+        ridership: 1100,
+        transfers: 110,
+        hasSpeedTrend: true,
+        hasRidershipTrend: true,
+      },
+      {
+        routeId: "T3",
+        month: "2026-02",
+        speedObservationCount: 10,
+        speedBusTripCount: 100,
+        averageSpeedMph: 7,
+        ridership: 950,
+        transfers: 95,
+        hasSpeedTrend: true,
+        hasRidershipTrend: true,
+      },
+      {
+        routeId: "T3",
+        month: "2026-03",
+        speedObservationCount: 10,
+        speedBusTripCount: 100,
+        averageSpeedMph: 7,
+        ridership: 1150,
+        transfers: 115,
+        hasSpeedTrend: true,
+        hasRidershipTrend: true,
+      },
     ]);
   } finally {
     local.sqlite.close();
@@ -118,7 +167,7 @@ afterEach(async () => {
 });
 
 describe("route intervention evaluation", () => {
-  test("builds descriptive before/after comparisons with caveats", async () => {
+  test("builds peer-adjusted before/after comparisons with caveats", async () => {
     await writeFixtureNetwork();
 
     const result = await buildRouteInterventionEvaluation({
@@ -134,7 +183,7 @@ describe("route intervention evaluation", () => {
 
       expect(result).toEqual({
         isoMonth: "2026-03",
-        routeCount: 2,
+        routeCount: 3,
         eventCount: 4,
         comparisonCount: 4,
         evaluatedComparisonCount: 1,
@@ -146,7 +195,7 @@ describe("route intervention evaluation", () => {
         expect.objectContaining({
           routeId: "T1",
           sourceId: "mta_ace_routes",
-          evaluationLevel: "descriptive_before_after",
+          evaluationLevel: "peer_adjusted_before_after",
           comparisonStatus: "evaluated",
           preStartMonth: "2025-11",
           preEndMonth: "2025-12",
@@ -160,6 +209,16 @@ describe("route intervention evaluation", () => {
           preAverageMonthlyRidership: 1100,
           postAverageMonthlyRidership: 1400,
           ridershipDelta: 300,
+          comparisonRouteCount: 1,
+          comparisonRouteIds: '["T3"]',
+          comparisonPreAverageSpeedMph: 6,
+          comparisonPostAverageSpeedMph: 7,
+          comparisonSpeedDeltaMph: 1,
+          adjustedSpeedDeltaMph: 0.6667,
+          comparisonPreAverageMonthlyRidership: 1000,
+          comparisonPostAverageMonthlyRidership: 1050,
+          comparisonRidershipDelta: 50,
+          adjustedRidershipDelta: 250,
         }),
         expect.objectContaining({
           routeId: "T1",
@@ -185,7 +244,7 @@ describe("route intervention evaluation", () => {
           speedDeltaMph: null,
         }),
       ]);
-      expect(comparisons[0]?.caveat).toContain("Descriptive before/after only");
+      expect(comparisons[0]?.caveat).toContain("Peer-adjusted before/after");
       expect(comparisons[1]?.caveat).toContain("no route-level implementation date");
       expect(comparisons[2]?.caveat).toContain("after the analysis month");
     } finally {

@@ -481,7 +481,7 @@ describe("D1 export verification", () => {
         route_brief_peak_window: 1,
         route_brief_slowest_window: 1,
         route_batch_status: 1,
-        route_batch_built_route: 0,
+        route_batch_built_route: 1,
       }),
     );
     expect(result.expectedCounts).toEqual(

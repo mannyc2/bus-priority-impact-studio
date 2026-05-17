@@ -370,6 +370,19 @@ function formatPercent(value: number | null | undefined): string {
   return `${formatNumber(value * 100, 1)}%`;
 }
 
+function comparisonRouteIds(value: string | null): string[] {
+  if (value === null) {
+    return [];
+  }
+
+  const parsed = JSON.parse(value) as unknown;
+  if (!Array.isArray(parsed) || parsed.some((item) => typeof item !== "string")) {
+    throw new Error("Invalid route intervention comparison route IDs");
+  }
+
+  return parsed;
+}
+
 function elapsedSeconds(input: { startedAt: string; endedAt: string | null }): number | null {
   if (input.endedAt === null) {
     return null;
@@ -559,6 +572,12 @@ function routeJson(input: RouteBriefContext) {
       postWindow: [row.postStartMonth, row.postEndMonth],
       speedDeltaMph: row.speedDeltaMph,
       ridershipDelta: row.ridershipDelta,
+      comparisonRouteCount: row.comparisonRouteCount,
+      comparisonRouteIds: comparisonRouteIds(row.comparisonRouteIds),
+      comparisonSpeedDeltaMph: row.comparisonSpeedDeltaMph,
+      adjustedSpeedDeltaMph: row.adjustedSpeedDeltaMph,
+      comparisonRidershipDelta: row.comparisonRidershipDelta,
+      adjustedRidershipDelta: row.adjustedRidershipDelta,
       caveat: row.caveat,
     })),
     topHotspots: input.hotspots.slice(0, topHotspotLimit).map((hotspot) => ({
@@ -594,7 +613,7 @@ function routeMarkdown(input: RouteBriefContext): string {
       ? ["- No intervention comparison rows are available for this route/month."]
       : body.interventionComparisons.map(
           (row) =>
-            `- ${row.interventionType}: ${row.comparisonStatus}, ${row.evaluationLevel}, speed delta ${formatNumber(row.speedDeltaMph)} mph.`,
+            `- ${row.interventionType}: ${row.comparisonStatus}, ${row.evaluationLevel}, speed delta ${formatNumber(row.speedDeltaMph)} mph, adjusted delta ${formatNumber(row.adjustedSpeedDeltaMph)} mph.`,
         );
   const reliabilityLines =
     body.observedReliability === null

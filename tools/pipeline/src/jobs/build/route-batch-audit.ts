@@ -14,6 +14,7 @@ import {
   listRouteBatchBuiltRoutes,
   listRouteBriefSummaries,
   listRouteObservedReliabilitySummaries,
+  listRouteReadiness,
   replaceRouteBatch,
 } from "@bp/db/local";
 import { withLocalPipelineDb } from "../../lib/local-db.js";
@@ -451,6 +452,7 @@ export async function buildRouteBatchAudit(
       routeArtifacts,
       observedReliability,
       collectionRuns,
+      routeReadiness,
       corridors,
       corridorArtifacts,
     ] = await Promise.all([
@@ -459,12 +461,22 @@ export async function buildRouteBatchAudit(
       listRouteArtifacts(local.db, month),
       listRouteObservedReliabilitySummaries(local.db, month),
       listGtfsRtCollectionRuns(local.db),
+      listRouteReadiness(local.db, month),
       listCorridorMonthSummaries(local.db, month),
       listCorridorArtifacts(local.db, month),
     ]);
+    const fallbackBuiltRoutes = routeReadiness
+      .filter((row) => row.buildEligible)
+      .map((row, index) => ({
+        month,
+        routeRank: index + 1,
+        routeId: row.routeId,
+        artifactCount: routeArtifacts.filter((artifact) => artifact.routeId === row.routeId).length,
+        status: "built",
+      }));
 
     return {
-      builtRoutes,
+      builtRoutes: builtRoutes.length > 0 ? builtRoutes : fallbackBuiltRoutes,
       publicRouteIds: routeBriefs.filter((row) => row.publicVisible).map((row) => row.routeId),
       routeArtifacts,
       observedReliability,

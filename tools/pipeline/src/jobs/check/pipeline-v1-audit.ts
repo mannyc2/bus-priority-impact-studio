@@ -341,11 +341,9 @@ export async function auditPipelineV1(
     {
       requirement: "Before/after intervention evaluation",
       status:
-        publicStructural.counts.evaluatedInterventionComparisonRows > 0 ? "partial" : "blocked",
-      evidence: `${publicIsoMonth} has ${publicStructural.counts.routeInterventionComparisonRows} intervention comparisons and ${publicStructural.counts.evaluatedInterventionComparisonRows} evaluated descriptive rows.`,
-      missing: [
-        "Seasonality-aware comparisons, matched comparison routes, and dated bus-lane before/after evaluation remain open.",
-      ],
+        publicStructural.counts.peerAdjustedInterventionComparisonRows > 0 ? "partial" : "blocked",
+      evidence: `${publicIsoMonth} has ${publicStructural.counts.routeInterventionComparisonRows} intervention comparisons, ${publicStructural.counts.evaluatedInterventionComparisonRows} evaluated rows, and ${publicStructural.counts.peerAdjustedInterventionComparisonRows} peer-adjusted rows.`,
+      missing: ["Dated bus-lane before/after evaluation and external domain review remain open."],
     },
     {
       requirement: "Corridor grouping and corridor briefs",
