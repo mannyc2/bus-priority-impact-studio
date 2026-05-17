@@ -59,6 +59,7 @@
     "gtfs-rt:preflight": "bun --filter @bp/pipeline gtfs-rt:preflight",
     "gtfs-rt:run-status": "bun --filter @bp/pipeline gtfs-rt:run-status",
     "check:route-speed-availability": "bun --filter @bp/pipeline check:route-speed-availability",
+    "plan:source-refresh": "bun --filter @bp/pipeline plan:source-refresh",
     "ingest:ace-routes": "bun --filter @bp/pipeline ingest:ace-routes",
     "ingest:ace-violations": "bun --filter @bp/pipeline ingest:ace-violations",
     "ingest:bus-lanes": "bun --filter @bp/pipeline ingest:bus-lanes",

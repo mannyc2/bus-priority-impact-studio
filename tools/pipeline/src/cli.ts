@@ -64,6 +64,13 @@ const commands = {
       return checkRouteSpeedAvailabilityFromCli(args);
     },
   },
+  "plan:source-refresh": {
+    description: "Write production source refresh plan for GTFS-RT and monthly speed data.",
+    run: async (args) => {
+      const { buildSourceRefreshPlanFromCli } = await import("./jobs/check/source-refresh-plan.js");
+      return buildSourceRefreshPlanFromCli(args);
+    },
+  },
   "ingest:ace-violations": {
     description: "Fetch monthly ACE violation summaries.",
     run: async (args) => {
