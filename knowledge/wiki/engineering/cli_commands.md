@@ -65,7 +65,7 @@ Expected outputs:
 - route/month observed reliability summaries with bunching, long-gap, expected-wait, and insufficient-sample status
 - JSON preflight readiness covering `MTA_BUS_TIME_API_KEY`, collection runs, collection window/cadence/snapshot coverage, successful vehicle-position snapshots, parsed vehicle-position rows, observed headway samples, and route/month observed reliability rows
 
-Collection requires `MTA_BUS_TIME_API_KEY`; `gtfs-rt:preflight` reports whether it is set without printing the key. Persisted rows use redacted feed URLs and must not store the API key. `route-observed-reliability` filters observed headway samples to the requested analysis month, and strict v1 QA rejects collection/snapshot/headway provenance outside that month.
+Collection requires `MTA_BUS_TIME_API_KEY`; `gtfs-rt:preflight` reports whether it is set without printing the key. Persisted rows use redacted feed URLs and must not store the API key. `route-observed-reliability` filters observed headway samples to the requested analysis month. Both `gtfs-rt:preflight` and strict v1 QA reject collection/snapshot/headway provenance outside that month.
 
 ## Ingest commands
 

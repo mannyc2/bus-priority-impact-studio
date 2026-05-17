@@ -208,7 +208,7 @@ Implemented so far:
 - Observed stop events are stored in `local_observed_vehicle_stop_event`; observed headway samples are stored in `local_observed_headway_sample`.
 - `route-observed-reliability -- --run-id <run_id> --year YYYY --month M` filters observed headway samples to the requested month and aggregates route/month observed reliability summaries.
 - Route/month observed summaries are stored in `local_route_observed_reliability_summary` with observed headway, bunching, long-gap, expected-wait, sample-count, and insufficient-sample status.
-- `gtfs-rt:preflight -- --year YYYY --month M --run-id <run_id>` diagnoses API-key presence, collection-run status, collection window/cadence/snapshot quality, successful vehicle-position snapshots, parsed vehicle-position rows, observed headway samples, route/month observed reliability rows, source-status coverage, and route sample coverage before strict finalization.
+- `gtfs-rt:preflight -- --year YYYY --month M --run-id <run_id>` diagnoses API-key presence, analysis-month alignment, collection-run status, collection window/cadence/snapshot quality, successful vehicle-position snapshots, parsed vehicle-position rows, observed headway samples, route/month observed reliability rows, source-status coverage, and route sample coverage before strict finalization.
 - D1 serving table `route_observed_reliability_summary` stores exported observed reliability summaries.
 - `export:d1` and `verify:d1` include observed reliability row counts and typed repository readback.
 - Fixture-backed tests cover successful collection, CLI run-id parsing, API-key redaction, and HTTP failure recording.

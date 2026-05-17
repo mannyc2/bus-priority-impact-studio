@@ -21,13 +21,15 @@ async function removeFixtureArtifacts(): Promise<void> {
   await rm(testRoot, { force: true, recursive: true });
 }
 
-async function writeReadyGtfsRtState(): Promise<void> {
+async function writeReadyGtfsRtState(options: { outsideMonth?: boolean } = {}): Promise<void> {
+  const gtfsRtDatePrefix = options.outsideMonth ? "2026-05-01" : "2026-06-01";
+  const gtfsRtTimestampBase = options.outsideMonth ? 1_777_593_600 : 1_780_272_000;
   const local = await openLocalPipelineDb(dbPath);
   try {
     await insertGtfsRtCollectionRun(local.db, {
       runId,
-      startedAt: "2026-06-01T00:00:00.000Z",
-      endedAt: "2026-06-01T00:10:00.000Z",
+      startedAt: `${gtfsRtDatePrefix}T00:00:00.000Z`,
+      endedAt: `${gtfsRtDatePrefix}T00:10:00.000Z`,
       status: "completed",
       requestedDurationSeconds: 600,
       sampleSeconds: 30,
@@ -43,7 +45,7 @@ async function writeReadyGtfsRtState(): Promise<void> {
       feedType: "vehicle_positions",
       sampleIndex: 1,
       sourceId: "bus_time_gtfsrt_vehicle_positions",
-      fetchedAt: "2026-06-01T00:00:00.000Z",
+      fetchedAt: `${gtfsRtDatePrefix}T00:00:00.000Z`,
       status: "ok",
       httpStatus: 200,
       byteLength: 100,
@@ -60,7 +62,7 @@ async function writeReadyGtfsRtState(): Promise<void> {
         parsedAt: "2026-06-01T00:00:01.000Z",
         status: "parsed",
         gtfsRealtimeVersion: "2.0",
-        feedTimestamp: 1_780_272_000,
+        feedTimestamp: gtfsRtTimestampBase,
         entityCount: 1,
         vehiclePositionCount: 1,
         tripUpdateCount: 0,
@@ -76,7 +78,7 @@ async function writeReadyGtfsRtState(): Promise<void> {
           entityId: "entity-bus-1",
           entityDeleted: false,
           gtfsRealtimeVersion: "2.0",
-          feedTimestamp: 1_780_272_000,
+          feedTimestamp: gtfsRtTimestampBase,
           sourceRouteId: "MTA NYCT_T1",
           routeId: "T1",
           tripId: "trip-1",
@@ -95,7 +97,7 @@ async function writeReadyGtfsRtState(): Promise<void> {
           currentStopSequence: null,
           stopId: "S1",
           currentStatus: "STOPPED_AT",
-          timestamp: 1_780_272_000,
+          timestamp: gtfsRtTimestampBase,
           congestionLevel: null,
           occupancyStatus: null,
           occupancyPercentage: null,
@@ -116,8 +118,8 @@ async function writeReadyGtfsRtState(): Promise<void> {
         stopId: "S1",
         previousVehicleKey: `bus-${sampleRank}`,
         vehicleKey: `bus-${sampleRank + 1}`,
-        previousObservedTimestamp: 1_780_272_000 + sampleRank * 300,
-        observedTimestamp: 1_780_272_300 + sampleRank * 300,
+        previousObservedTimestamp: gtfsRtTimestampBase + sampleRank * 300,
+        observedTimestamp: gtfsRtTimestampBase + 300 + sampleRank * 300,
         headwaySeconds: 300,
         headwayMinutes: 5,
       })),
@@ -254,9 +256,12 @@ describe("GTFS-RT preflight", () => {
         longestSampleSeconds: 30,
         successfulVehiclePositionSnapshotRows: 1,
         requiredVehiclePositionSnapshotRows: 1,
+        collectionRunMonthMismatchRows: 0,
+        feedSnapshotMonthMismatchRows: 0,
         parsedVehiclePositionSnapshotRows: 1,
         vehiclePositionRows: 1,
         observedHeadwaySampleRows: 3,
+        observedHeadwaySampleMonthMismatchRows: 0,
         routeObservedReliabilityRows: 1,
         routeObservedReliabilityObservedRows: 1,
         observedReliabilitySourceStatusRows: 3,
@@ -264,6 +269,7 @@ describe("GTFS-RT preflight", () => {
     );
     expect(result.readiness).toEqual(
       expect.objectContaining({
+        hasAnalysisMonthAlignedEvidence: true,
         hasCollectionRun: true,
         hasCollectionWindow: true,
         hasSuccessfulVehiclePositionSnapshots: true,
@@ -272,6 +278,42 @@ describe("GTFS-RT preflight", () => {
         hasObservedRouteReliability: true,
         strictPipelineV1ObservedLayerReady: true,
       }),
+    );
+  });
+
+  test("fails when the selected run is outside the analysis month", async () => {
+    await removeFixtureArtifacts();
+    await writeReadyGtfsRtState({ outsideMonth: true });
+
+    const result = await preflightGtfsRt({
+      year: 2026,
+      month: 6,
+      dbPath,
+      apiKey: "fixture-key",
+      minGtfsRtCollectionHours: 0.001,
+      minObservedHeadwaySamples: 3,
+    });
+
+    expect(result.status).toBe("fail");
+    expect(result.counts).toEqual(
+      expect.objectContaining({
+        collectionRunMonthMismatchRows: 1,
+        feedSnapshotMonthMismatchRows: 1,
+        observedHeadwaySampleMonthMismatchRows: 3,
+      }),
+    );
+    expect(result.readiness).toEqual(
+      expect.objectContaining({
+        hasAnalysisMonthAlignedEvidence: false,
+        strictPipelineV1ObservedLayerReady: false,
+      }),
+    );
+    expect(result.issues.map((issue) => issue.code)).toEqual(
+      expect.arrayContaining([
+        "gtfs_rt_collection_month_mismatch",
+        "gtfs_rt_feed_snapshot_month_mismatch",
+        "observed_headway_sample_month_mismatch",
+      ]),
     );
   });
 

@@ -45,10 +45,13 @@ type GtfsRtPreflightCounts = {
   successfulFeedSnapshotRows: number;
   successfulVehiclePositionSnapshotRows: number;
   requiredVehiclePositionSnapshotRows: number;
+  collectionRunMonthMismatchRows: number;
+  feedSnapshotMonthMismatchRows: number;
   parsedSnapshotRows: number;
   parsedVehiclePositionSnapshotRows: number;
   vehiclePositionRows: number;
   observedHeadwaySampleRows: number;
+  observedHeadwaySampleMonthMismatchRows: number;
   routeObservedReliabilityRows: number;
   routeObservedReliabilityObservedRows: number;
   routeObservedReliabilityInsufficientRows: number;
@@ -72,6 +75,7 @@ type GtfsRtPreflightResult = {
   };
   readiness: {
     canCollect: boolean;
+    hasAnalysisMonthAlignedEvidence: boolean;
     hasCollectionRun: boolean;
     hasCollectionWindow: boolean;
     hasSuccessfulVehiclePositionSnapshots: boolean;
@@ -165,6 +169,62 @@ function collectionWindowSeconds(input: {
   return Math.min(Math.max(0, input.requestedDurationSeconds), elapsedSeconds);
 }
 
+function monthTimeBounds(input: { year: number; month: number }): {
+  startMilliseconds: number;
+  endMilliseconds: number;
+} {
+  return {
+    startMilliseconds: Date.UTC(input.year, input.month - 1, 1, 0, 0, 0),
+    endMilliseconds: Date.UTC(input.year, input.month, 1, 0, 0, 0),
+  };
+}
+
+function parsedDateMilliseconds(value: string | null): number | null {
+  if (value === null) {
+    return null;
+  }
+
+  const timestamp = Date.parse(value);
+  return Number.isNaN(timestamp) ? null : timestamp;
+}
+
+function dateStringInMonth(
+  value: string,
+  bounds: { startMilliseconds: number; endMilliseconds: number },
+): boolean {
+  const timestamp = parsedDateMilliseconds(value);
+  return (
+    timestamp !== null &&
+    timestamp >= bounds.startMilliseconds &&
+    timestamp < bounds.endMilliseconds
+  );
+}
+
+function collectionRunOverlapsMonth(
+  input: { startedAt: string; endedAt: string | null },
+  bounds: { startMilliseconds: number; endMilliseconds: number },
+): boolean {
+  const startedAt = parsedDateMilliseconds(input.startedAt);
+  const endedAt = parsedDateMilliseconds(input.endedAt);
+  if (startedAt === null) {
+    return false;
+  }
+
+  const effectiveEndedAt = endedAt ?? startedAt;
+  return startedAt < bounds.endMilliseconds && effectiveEndedAt >= bounds.startMilliseconds;
+}
+
+function unixSecondsInMonth(
+  timestampSeconds: number,
+  bounds: { startMilliseconds: number; endMilliseconds: number },
+): boolean {
+  const timestampMilliseconds = timestampSeconds * 1000;
+  return (
+    timestampMilliseconds >= bounds.startMilliseconds &&
+    timestampMilliseconds < bounds.endMilliseconds
+  );
+}
+
 function requestedFeedTypes(value: string): Set<string> {
   return new Set(
     value
@@ -195,6 +255,8 @@ function recommendationsFor(issues: readonly GtfsRtPreflightIssue[]): string[] {
       "Run collect:gtfs-rt with a stable --run-id, then parse and finalize that same run ID.",
     gtfs_rt_collection_run_not_completed:
       "Use a completed or completed_with_errors GTFS-RT collection run for observed reliability.",
+    gtfs_rt_collection_month_mismatch:
+      "Use a GTFS-RT collection run from the same month as the route reliability analysis.",
     gtfs_rt_collection_duration_insufficient:
       "Collect a longer GTFS-RT window, or lower the explicit collection-hour threshold only for a documented fixture run.",
     gtfs_rt_collection_cadence_too_sparse:
@@ -205,6 +267,8 @@ function recommendationsFor(issues: readonly GtfsRtPreflightIssue[]): string[] {
       "Collect vehicle_positions snapshots; observed headways cannot be derived from alerts or trip updates alone.",
     gtfs_rt_vehicle_position_snapshot_coverage_insufficient:
       "Re-run collection long enough to satisfy the configured successful vehicle-position snapshot coverage threshold.",
+    gtfs_rt_feed_snapshot_month_mismatch:
+      "Rebuild observed reliability with vehicle-position snapshots fetched during the analysis month.",
     gtfs_rt_vehicle_positions_not_parsed:
       "Run ingest:gtfs-rt-snapshots -- --run-id <run_id> before building observed headways.",
     gtfs_rt_vehicle_position_rows_missing:
@@ -213,6 +277,8 @@ function recommendationsFor(issues: readonly GtfsRtPreflightIssue[]): string[] {
       "Run build:observed-headways -- --run-id <run_id> after parsing snapshots, or collect a longer GTFS-RT window.",
     observed_headway_route_coverage_missing:
       "Collect enough observations for at least one route to meet the observed-headway sample threshold.",
+    observed_headway_sample_month_mismatch:
+      "Re-run route-observed-reliability after filtering observed headways to the requested analysis month.",
     route_observed_reliability_missing:
       "Run route-observed-reliability or finalize:pipeline-v1 for the selected month and run ID.",
     route_observed_reliability_no_observed_routes:
@@ -280,6 +346,7 @@ export async function preflightGtfsRt(
   });
 
   const selectedRunId = localState.selectedRunId;
+  const monthBounds = monthTimeBounds({ year: options.year, month: options.month });
   const selectedCollectionRuns =
     selectedRunId === null ? [] : localState.runs.filter((run) => run.runId === selectedRunId);
   const completedCollectionRuns = selectedCollectionRuns.filter((run) =>
@@ -290,6 +357,15 @@ export async function preflightGtfsRt(
   );
   const successfulVehiclePositionSnapshots = successfulFeedSnapshots.filter(
     (snapshot) => snapshot.feedType === "vehicle_positions",
+  );
+  const collectionRunMonthMismatchRows = selectedCollectionRuns.filter(
+    (run) => !collectionRunOverlapsMonth(run, monthBounds),
+  );
+  const feedSnapshotMonthMismatchRows = successfulVehiclePositionSnapshots.filter(
+    (snapshot) => !dateStringInMonth(snapshot.fetchedAt, monthBounds),
+  );
+  const observedHeadwaySampleMonthMismatchRows = localState.observedHeadwaySamples.filter(
+    (sample) => !unixSecondsInMonth(sample.observedTimestamp, monthBounds),
   );
   const selectedCollectionWindows = selectedCollectionRuns.map((run) => ({
     runId: run.runId,
@@ -395,6 +471,13 @@ export async function preflightGtfsRt(
       `GTFS-RT run ${selectedRunId} is not completed or completed_with_errors.`,
     );
   }
+  if (selectedRunId !== null && collectionRunMonthMismatchRows.length > 0) {
+    addIssue(
+      issues,
+      "gtfs_rt_collection_month_mismatch",
+      `${collectionRunMonthMismatchRows.length} GTFS-RT run(s) do not overlap ${options.isoMonth}: ${sample(collectionRunMonthMismatchRows.map((run) => run.runId))}.`,
+    );
+  }
   const shortGtfsRtCollectionRuns = selectedCollectionWindows.filter(
     (run) => run.collectionSeconds < minGtfsRtCollectionSeconds,
   );
@@ -439,6 +522,13 @@ export async function preflightGtfsRt(
       `${lowVehiclePositionSnapshotCoverageRuns.length} GTFS-RT run(s) have too few successful vehicle_positions snapshots for the configured collection window: ${sample(lowVehiclePositionSnapshotCoverageRuns.map((run) => `${run.runId}:${run.actual}/${run.required}`))}.`,
     );
   }
+  if (selectedRunId !== null && feedSnapshotMonthMismatchRows.length > 0) {
+    addIssue(
+      issues,
+      "gtfs_rt_feed_snapshot_month_mismatch",
+      `${feedSnapshotMonthMismatchRows.length} successful vehicle-position snapshot(s) were fetched outside ${options.isoMonth}.`,
+    );
+  }
   if (selectedRunId !== null && parsedVehiclePositionSnapshots.length === 0) {
     addIssue(
       issues,
@@ -458,6 +548,13 @@ export async function preflightGtfsRt(
       issues,
       "observed_headway_samples_insufficient",
       `Observed headway sample rows are ${localState.observedHeadwaySamples.length}; expected at least ${minObservedHeadwaySamples}.`,
+    );
+  }
+  if (selectedRunId !== null && observedHeadwaySampleMonthMismatchRows.length > 0) {
+    addIssue(
+      issues,
+      "observed_headway_sample_month_mismatch",
+      `${observedHeadwaySampleMonthMismatchRows.length} observed headway sample row(s) are outside ${options.isoMonth}.`,
     );
   }
   if (routesMeetingMinSamples === 0) {
@@ -501,10 +598,13 @@ export async function preflightGtfsRt(
     successfulFeedSnapshotRows: successfulFeedSnapshots.length,
     successfulVehiclePositionSnapshotRows: successfulVehiclePositionSnapshots.length,
     requiredVehiclePositionSnapshotRows,
+    collectionRunMonthMismatchRows: collectionRunMonthMismatchRows.length,
+    feedSnapshotMonthMismatchRows: feedSnapshotMonthMismatchRows.length,
     parsedSnapshotRows: localState.parsedSnapshots.length,
     parsedVehiclePositionSnapshotRows: parsedVehiclePositionSnapshots.length,
     vehiclePositionRows: localState.vehiclePositions.length,
     observedHeadwaySampleRows: localState.observedHeadwaySamples.length,
+    observedHeadwaySampleMonthMismatchRows: observedHeadwaySampleMonthMismatchRows.length,
     routeObservedReliabilityRows: localState.routeObservedReliability.length,
     routeObservedReliabilityObservedRows: routeObservedReliabilityObservedRows.length,
     routeObservedReliabilityInsufficientRows: routeObservedReliabilityInsufficientRows.length,
@@ -513,6 +613,11 @@ export async function preflightGtfsRt(
   };
   const readiness = {
     canCollect: apiKeyPresent,
+    hasAnalysisMonthAlignedEvidence:
+      selectedRunId !== null &&
+      collectionRunMonthMismatchRows.length === 0 &&
+      feedSnapshotMonthMismatchRows.length === 0 &&
+      observedHeadwaySampleMonthMismatchRows.length === 0,
     hasCollectionRun: selectedCollectionRuns.length > 0 && completedCollectionRuns.length > 0,
     hasCollectionWindow:
       selectedCollectionRuns.length > 0 &&
