@@ -1,7 +1,13 @@
 import { asc, eq } from "drizzle-orm";
 import * as z from "zod";
 import type { D1ServingDb } from "../client.js";
-import { corridor, corridorHotspot, corridorMonthSummary, corridorRouteMember } from "../schema.js";
+import {
+  corridor,
+  corridorHotspot,
+  corridorInterventionContext,
+  corridorMonthSummary,
+  corridorRouteMember,
+} from "../schema.js";
 import { IsoMonthSchema } from "./shared.js";
 
 const CorridorRowSchema = z
@@ -64,10 +70,46 @@ const CorridorHotspotRowSchema = z
   })
   .strict();
 
+const CorridorInterventionContextRowSchema = z
+  .object({
+    corridor_id: z.string().min(1),
+    month: IsoMonthSchema,
+    context_rank: z.number().int().positive(),
+    route_id: z.string().min(1),
+    event_id: z.string().min(1),
+    intervention_type: z.string().min(1),
+    source_id: z.string().min(1),
+    program: z.string().min(1),
+    implementation_month: IsoMonthSchema,
+    event_status: z.enum(["implemented", "future", "source_gap"]),
+    evaluation_level: z.enum([
+      "descriptive_before_after",
+      "peer_adjusted_before_after",
+      "insufficient_trend_data",
+      "not_evaluated_future",
+      "not_evaluated_source_gap",
+    ]),
+    comparison_status: z.enum([
+      "evaluated",
+      "future_intervention",
+      "insufficient_pre_data",
+      "insufficient_post_data",
+      "source_gap_missing_implementation_date",
+    ]),
+    speed_delta_mph: z.number().nullable(),
+    adjusted_speed_delta_mph: z.number().nullable(),
+    ridership_delta: z.number().nullable(),
+    adjusted_ridership_delta: z.number().nullable(),
+    comparison_route_count: z.number().int().nonnegative(),
+    caveat: z.string().min(1),
+  })
+  .strict();
+
 export type CorridorRow = z.output<typeof CorridorRowSchema>;
 export type CorridorMonthSummaryRow = z.output<typeof CorridorMonthSummaryRowSchema>;
 export type CorridorRouteMemberRow = z.output<typeof CorridorRouteMemberRowSchema>;
 export type CorridorHotspotRow = z.output<typeof CorridorHotspotRowSchema>;
+export type CorridorInterventionContextRow = z.output<typeof CorridorInterventionContextRowSchema>;
 
 export type CorridorSummary = {
   corridorId: string;
@@ -89,6 +131,7 @@ export type CorridorSummary = {
   evaluatedInterventionComparisonCount: number;
   routeMembers: CorridorRouteMemberRow[];
   topHotspots: CorridorHotspotRow[];
+  interventionContext: CorridorInterventionContextRow[];
 };
 
 function groupByCorridor<T extends { corridor_id: string }>(rows: readonly T[]): Map<string, T[]> {
@@ -105,73 +148,101 @@ export async function listCorridorSummaries(
   db: D1ServingDb,
   month: string,
 ): Promise<CorridorSummary[]> {
-  const [corridorRows, summaryRows, memberRows, hotspotRows] = await Promise.all([
-    db
-      .select({
-        corridor_id: corridor.corridorId,
-        corridor_name: corridor.corridorName,
-        corridor_key: corridor.corridorKey,
-        derivation_method: corridor.derivationMethod,
-      })
-      .from(corridor)
-      .orderBy(asc(corridor.corridorId)),
-    db
-      .select({
-        corridor_id: corridorMonthSummary.corridorId,
-        month: corridorMonthSummary.month,
-        route_count: corridorMonthSummary.routeCount,
-        assigned_route_count: corridorMonthSummary.assignedRouteCount,
-        ambiguous_route_count: corridorMonthSummary.ambiguousRouteCount,
-        unassigned_route_count: corridorMonthSummary.unassignedRouteCount,
-        total_ridership: corridorMonthSummary.totalRidership,
-        total_transfers: corridorMonthSummary.totalTransfers,
-        weighted_average_speed_mph: corridorMonthSummary.weightedAverageSpeedMph,
-        hotspot_count: corridorMonthSummary.hotspotCount,
-        observed_reliability_route_count: corridorMonthSummary.observedReliabilityRouteCount,
-        insufficient_reliability_route_count:
-          corridorMonthSummary.insufficientReliabilityRouteCount,
-        intervention_comparison_count: corridorMonthSummary.interventionComparisonCount,
-        evaluated_intervention_comparison_count:
-          corridorMonthSummary.evaluatedInterventionComparisonCount,
-      })
-      .from(corridorMonthSummary)
-      .where(eq(corridorMonthSummary.month, month))
-      .orderBy(asc(corridorMonthSummary.corridorId)),
-    db
-      .select({
-        corridor_id: corridorRouteMember.corridorId,
-        month: corridorRouteMember.month,
-        route_id: corridorRouteMember.routeId,
-        assignment_status: corridorRouteMember.assignmentStatus,
-        assignment_reason: corridorRouteMember.assignmentReason,
-        stop_count: corridorRouteMember.stopCount,
-        matched_stop_count: corridorRouteMember.matchedStopCount,
-        hotspot_count: corridorRouteMember.hotspotCount,
-        matched_segment_count: corridorRouteMember.matchedSegmentCount,
-        segment_evidence_score: corridorRouteMember.segmentEvidenceScore,
-        total_ridership: corridorRouteMember.totalRidership,
-        average_speed_mph: corridorRouteMember.averageSpeedMph,
-      })
-      .from(corridorRouteMember)
-      .where(eq(corridorRouteMember.month, month))
-      .orderBy(asc(corridorRouteMember.corridorId), asc(corridorRouteMember.routeId)),
-    db
-      .select({
-        corridor_id: corridorHotspot.corridorId,
-        month: corridorHotspot.month,
-        corridor_hotspot_rank: corridorHotspot.corridorHotspotRank,
-        route_id: corridorHotspot.routeId,
-        route_hotspot_rank: corridorHotspot.routeHotspotRank,
-        from_stop_name: corridorHotspot.fromStopName,
-        to_stop_name: corridorHotspot.toStopName,
-        weighted_average_speed_mph: corridorHotspot.weightedAverageSpeedMph,
-        hotspot_score: corridorHotspot.hotspotScore,
-        rider_impact_score: corridorHotspot.riderImpactScore,
-      })
-      .from(corridorHotspot)
-      .where(eq(corridorHotspot.month, month))
-      .orderBy(asc(corridorHotspot.corridorId), asc(corridorHotspot.corridorHotspotRank)),
-  ]);
+  const [corridorRows, summaryRows, memberRows, hotspotRows, interventionContextRows] =
+    await Promise.all([
+      db
+        .select({
+          corridor_id: corridor.corridorId,
+          corridor_name: corridor.corridorName,
+          corridor_key: corridor.corridorKey,
+          derivation_method: corridor.derivationMethod,
+        })
+        .from(corridor)
+        .orderBy(asc(corridor.corridorId)),
+      db
+        .select({
+          corridor_id: corridorMonthSummary.corridorId,
+          month: corridorMonthSummary.month,
+          route_count: corridorMonthSummary.routeCount,
+          assigned_route_count: corridorMonthSummary.assignedRouteCount,
+          ambiguous_route_count: corridorMonthSummary.ambiguousRouteCount,
+          unassigned_route_count: corridorMonthSummary.unassignedRouteCount,
+          total_ridership: corridorMonthSummary.totalRidership,
+          total_transfers: corridorMonthSummary.totalTransfers,
+          weighted_average_speed_mph: corridorMonthSummary.weightedAverageSpeedMph,
+          hotspot_count: corridorMonthSummary.hotspotCount,
+          observed_reliability_route_count: corridorMonthSummary.observedReliabilityRouteCount,
+          insufficient_reliability_route_count:
+            corridorMonthSummary.insufficientReliabilityRouteCount,
+          intervention_comparison_count: corridorMonthSummary.interventionComparisonCount,
+          evaluated_intervention_comparison_count:
+            corridorMonthSummary.evaluatedInterventionComparisonCount,
+        })
+        .from(corridorMonthSummary)
+        .where(eq(corridorMonthSummary.month, month))
+        .orderBy(asc(corridorMonthSummary.corridorId)),
+      db
+        .select({
+          corridor_id: corridorRouteMember.corridorId,
+          month: corridorRouteMember.month,
+          route_id: corridorRouteMember.routeId,
+          assignment_status: corridorRouteMember.assignmentStatus,
+          assignment_reason: corridorRouteMember.assignmentReason,
+          stop_count: corridorRouteMember.stopCount,
+          matched_stop_count: corridorRouteMember.matchedStopCount,
+          hotspot_count: corridorRouteMember.hotspotCount,
+          matched_segment_count: corridorRouteMember.matchedSegmentCount,
+          segment_evidence_score: corridorRouteMember.segmentEvidenceScore,
+          total_ridership: corridorRouteMember.totalRidership,
+          average_speed_mph: corridorRouteMember.averageSpeedMph,
+        })
+        .from(corridorRouteMember)
+        .where(eq(corridorRouteMember.month, month))
+        .orderBy(asc(corridorRouteMember.corridorId), asc(corridorRouteMember.routeId)),
+      db
+        .select({
+          corridor_id: corridorHotspot.corridorId,
+          month: corridorHotspot.month,
+          corridor_hotspot_rank: corridorHotspot.corridorHotspotRank,
+          route_id: corridorHotspot.routeId,
+          route_hotspot_rank: corridorHotspot.routeHotspotRank,
+          from_stop_name: corridorHotspot.fromStopName,
+          to_stop_name: corridorHotspot.toStopName,
+          weighted_average_speed_mph: corridorHotspot.weightedAverageSpeedMph,
+          hotspot_score: corridorHotspot.hotspotScore,
+          rider_impact_score: corridorHotspot.riderImpactScore,
+        })
+        .from(corridorHotspot)
+        .where(eq(corridorHotspot.month, month))
+        .orderBy(asc(corridorHotspot.corridorId), asc(corridorHotspot.corridorHotspotRank)),
+      db
+        .select({
+          corridor_id: corridorInterventionContext.corridorId,
+          month: corridorInterventionContext.month,
+          context_rank: corridorInterventionContext.contextRank,
+          route_id: corridorInterventionContext.routeId,
+          event_id: corridorInterventionContext.eventId,
+          intervention_type: corridorInterventionContext.interventionType,
+          source_id: corridorInterventionContext.sourceId,
+          program: corridorInterventionContext.program,
+          implementation_month: corridorInterventionContext.implementationMonth,
+          event_status: corridorInterventionContext.eventStatus,
+          evaluation_level: corridorInterventionContext.evaluationLevel,
+          comparison_status: corridorInterventionContext.comparisonStatus,
+          speed_delta_mph: corridorInterventionContext.speedDeltaMph,
+          adjusted_speed_delta_mph: corridorInterventionContext.adjustedSpeedDeltaMph,
+          ridership_delta: corridorInterventionContext.ridershipDelta,
+          adjusted_ridership_delta: corridorInterventionContext.adjustedRidershipDelta,
+          comparison_route_count: corridorInterventionContext.comparisonRouteCount,
+          caveat: corridorInterventionContext.caveat,
+        })
+        .from(corridorInterventionContext)
+        .where(eq(corridorInterventionContext.month, month))
+        .orderBy(
+          asc(corridorInterventionContext.corridorId),
+          asc(corridorInterventionContext.contextRank),
+        ),
+    ]);
   const corridorsById = new Map(
     corridorRows.map((row) => {
       const parsed = CorridorRowSchema.parse(row);
@@ -180,6 +251,9 @@ export async function listCorridorSummaries(
   );
   const members = groupByCorridor(memberRows.map((row) => CorridorRouteMemberRowSchema.parse(row)));
   const hotspots = groupByCorridor(hotspotRows.map((row) => CorridorHotspotRowSchema.parse(row)));
+  const interventionContexts = groupByCorridor(
+    interventionContextRows.map((row) => CorridorInterventionContextRowSchema.parse(row)),
+  );
 
   return summaryRows.map((row) => {
     const summary = CorridorMonthSummaryRowSchema.parse(row);
@@ -208,6 +282,7 @@ export async function listCorridorSummaries(
       evaluatedInterventionComparisonCount: summary.evaluated_intervention_comparison_count,
       routeMembers: members.get(summary.corridor_id) ?? [],
       topHotspots: hotspots.get(summary.corridor_id) ?? [],
+      interventionContext: interventionContexts.get(summary.corridor_id) ?? [],
     };
   });
 }

@@ -4,6 +4,7 @@ import {
   localCorridor,
   localCorridorArtifact,
   localCorridorHotspot,
+  localCorridorInterventionContext,
   localCorridorMonthSummary,
   localCorridorRouteMember,
 } from "../schema.js";
@@ -12,6 +13,7 @@ export type LocalCorridor = typeof localCorridor.$inferSelect;
 export type LocalCorridorArtifact = typeof localCorridorArtifact.$inferSelect;
 export type LocalCorridorRouteMember = typeof localCorridorRouteMember.$inferSelect;
 export type LocalCorridorMonthSummary = typeof localCorridorMonthSummary.$inferSelect;
+export type LocalCorridorInterventionContext = typeof localCorridorInterventionContext.$inferSelect;
 export type LocalCorridorHotspot = typeof localCorridorHotspot.$inferSelect;
 
 export async function replaceCorridorRows(
@@ -21,11 +23,15 @@ export async function replaceCorridorRows(
     corridors: readonly (typeof localCorridor.$inferInsert)[];
     routeMembers: readonly (typeof localCorridorRouteMember.$inferInsert)[];
     summaries: readonly (typeof localCorridorMonthSummary.$inferInsert)[];
+    interventionContexts?: readonly (typeof localCorridorInterventionContext.$inferInsert)[];
     hotspots: readonly (typeof localCorridorHotspot.$inferInsert)[];
   },
 ): Promise<void> {
   await db.delete(localCorridorHotspot).where(eq(localCorridorHotspot.month, month));
   await db.delete(localCorridorArtifact).where(eq(localCorridorArtifact.month, month));
+  await db
+    .delete(localCorridorInterventionContext)
+    .where(eq(localCorridorInterventionContext.month, month));
   await db.delete(localCorridorMonthSummary).where(eq(localCorridorMonthSummary.month, month));
   await db.delete(localCorridorRouteMember).where(eq(localCorridorRouteMember.month, month));
   await db.delete(localCorridor);
@@ -38,6 +44,10 @@ export async function replaceCorridorRows(
   }
   if (input.summaries.length > 0) {
     await batchInsert(db, localCorridorMonthSummary, [...input.summaries]);
+  }
+  const interventionContexts = input.interventionContexts ?? [];
+  if (interventionContexts.length > 0) {
+    await batchInsert(db, localCorridorInterventionContext, [...interventionContexts]);
   }
   if (input.hotspots.length > 0) {
     await batchInsert(db, localCorridorHotspot, [...input.hotspots]);
@@ -101,4 +111,18 @@ export async function listCorridorHotspots(
     .from(localCorridorHotspot)
     .where(eq(localCorridorHotspot.month, month))
     .orderBy(asc(localCorridorHotspot.corridorId), asc(localCorridorHotspot.corridorHotspotRank));
+}
+
+export async function listCorridorInterventionContexts(
+  db: LocalPipelineDb,
+  month: string,
+): Promise<LocalCorridorInterventionContext[]> {
+  return db
+    .select()
+    .from(localCorridorInterventionContext)
+    .where(eq(localCorridorInterventionContext.month, month))
+    .orderBy(
+      asc(localCorridorInterventionContext.corridorId),
+      asc(localCorridorInterventionContext.contextRank),
+    );
 }

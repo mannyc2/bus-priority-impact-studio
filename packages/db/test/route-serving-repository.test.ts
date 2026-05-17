@@ -379,6 +379,28 @@ const corridorHotspotRow = {
   rider_impact_score: 79,
 };
 
+const corridorInterventionContextRow = {
+  corridor_id: "street:broadway",
+  month: "2026-03",
+  context_rank: 1,
+  route_id: "M57",
+  event_id: "ace:M57:ACE:2026-01-15",
+  intervention_type: "automated_bus_lane_enforcement",
+  source_id: "mta_ace_routes",
+  program: "ACE",
+  implementation_month: "2026-01",
+  event_status: "implemented",
+  evaluation_level: "descriptive_before_after",
+  comparison_status: "evaluated",
+  speed_delta_mph: 1.6667,
+  adjusted_speed_delta_mph: null,
+  ridership_delta: 300,
+  adjusted_ridership_delta: null,
+  comparison_route_count: 0,
+  caveat:
+    "Descriptive before/after only; not seasonality-adjusted and not matched to comparison routes.",
+};
+
 const equityContextRow = {
   route_id: "M1",
   month: "2026-03",
@@ -638,6 +660,7 @@ describe("route serving repository", () => {
     insertRows(sqlite, "corridor", [corridorRow]);
     insertRows(sqlite, "corridor_route_member", [corridorRouteMemberRow]);
     insertRows(sqlite, "corridor_month_summary", [corridorMonthSummaryRow]);
+    insertRows(sqlite, "corridor_intervention_context", [corridorInterventionContextRow]);
     insertRows(sqlite, "corridor_hotspot", [corridorHotspotRow]);
 
     const rows = await listCorridorSummaries(db, "2026-03");
@@ -649,6 +672,13 @@ describe("route serving repository", () => {
         routeCount: 1,
         weightedAverageSpeedMph: 6,
         routeMembers: [expect.objectContaining({ route_id: "M57" })],
+        interventionContext: [
+          expect.objectContaining({
+            route_id: "M57",
+            program: "ACE",
+            comparison_status: "evaluated",
+          }),
+        ],
         topHotspots: [expect.objectContaining({ route_id: "M57", hotspot_score: 80 })],
       }),
     ]);

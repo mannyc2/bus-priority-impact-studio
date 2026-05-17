@@ -1,8 +1,12 @@
 import {
+  type LocalCorridorInterventionContext,
   type LocalCorridorRouteMember,
+  type LocalInterventionEvent,
   type LocalRouteBriefSummary,
   type LocalRouteHotspot,
+  type LocalRouteInterventionComparison,
   type LocalRouteStop,
+  listInterventionEvents,
   listRouteBriefSummaries,
   listRouteHotspots,
   listRouteInterventionComparisons,
@@ -31,6 +35,7 @@ type CorridorModelResult = {
   ambiguousRouteCount: number;
   unassignedRouteCount: number;
   corridorHotspotCount: number;
+  corridorInterventionContextCount: number;
 };
 
 type CorridorAssignment = {
@@ -235,6 +240,84 @@ function groupByCorridor<T extends { corridorId: string }>(rows: readonly T[]): 
   return output;
 }
 
+function interventionStatusPriority(row: LocalRouteInterventionComparison): number {
+  switch (row.comparisonStatus) {
+    case "evaluated":
+      return row.evaluationLevel === "peer_adjusted_before_after" ? 0 : 1;
+    case "insufficient_pre_data":
+    case "insufficient_post_data":
+      return 2;
+    case "future_intervention":
+      return 3;
+    case "source_gap_missing_implementation_date":
+      return 4;
+    default:
+      return 5;
+  }
+}
+
+function interventionDeltaScore(row: LocalRouteInterventionComparison): number {
+  return row.adjustedSpeedDeltaMph ?? row.speedDeltaMph ?? Number.NEGATIVE_INFINITY;
+}
+
+function buildCorridorInterventionContexts(input: {
+  isoMonth: string;
+  membersByCorridor: Map<string, LocalCorridorRouteMember[]>;
+  interventionsByRoute: Map<string, LocalRouteInterventionComparison[]>;
+  eventsById: Map<string, LocalInterventionEvent>;
+}): LocalCorridorInterventionContext[] {
+  return [...input.membersByCorridor.entries()].flatMap(([corridorId, members]) => {
+    const routeIds = new Set(members.map((member) => member.routeId));
+    return [...routeIds]
+      .flatMap((routeId) => input.interventionsByRoute.get(routeId) ?? [])
+      .map((row) => {
+        const event = input.eventsById.get(row.eventId);
+        if (event === undefined) {
+          throw new Error(`Missing intervention event ${row.eventId} for corridor ${corridorId}`);
+        }
+
+        return { row, event };
+      })
+      .sort((left, right) => {
+        const priorityDelta =
+          interventionStatusPriority(left.row) - interventionStatusPriority(right.row);
+        if (priorityDelta !== 0) {
+          return priorityDelta;
+        }
+
+        const deltaScore = interventionDeltaScore(right.row) - interventionDeltaScore(left.row);
+        if (deltaScore !== 0) {
+          return deltaScore;
+        }
+
+        return (
+          left.row.routeId.localeCompare(right.row.routeId) ||
+          left.row.eventId.localeCompare(right.row.eventId)
+        );
+      })
+      .map(({ row, event }, index) => ({
+        corridorId,
+        month: input.isoMonth,
+        contextRank: index + 1,
+        routeId: row.routeId,
+        eventId: row.eventId,
+        interventionType: row.interventionType,
+        sourceId: row.sourceId,
+        program: event.program,
+        implementationMonth: event.implementationMonth,
+        eventStatus: event.eventStatus,
+        evaluationLevel: row.evaluationLevel,
+        comparisonStatus: row.comparisonStatus,
+        speedDeltaMph: row.speedDeltaMph,
+        adjustedSpeedDeltaMph: row.adjustedSpeedDeltaMph,
+        ridershipDelta: row.ridershipDelta,
+        adjustedRidershipDelta: row.adjustedRidershipDelta,
+        comparisonRouteCount: row.comparisonRouteCount,
+        caveat: row.caveat,
+      }));
+  });
+}
+
 function parseCliArgs(args: string[]): CorridorModelArgs {
   const extraOptions: CliOption<CorridorModelArgs>[] = [
     numberOption(["--hotspot-limit"], (output, value) => {
@@ -252,10 +335,11 @@ export async function buildCorridorModel(
   const hotspotLimit = Math.max(1, Math.round(args.hotspotLimit ?? defaultHotspotLimit));
 
   const rows = await withLocalPipelineDb(options.dbPath, async (local) => {
-    const [briefs, reliabilityRows, interventionRows] = await Promise.all([
+    const [briefs, reliabilityRows, interventionRows, interventionEvents] = await Promise.all([
       listRouteBriefSummaries(local.db, options.isoMonth),
       listRouteObservedReliabilitySummaries(local.db, options.isoMonth),
       listRouteInterventionComparisons(local.db, options.isoMonth),
+      listInterventionEvents(local.db),
     ]);
     const publicBriefs = briefs.filter((brief) => brief.publicVisible);
     const reliabilityByRoute = new Map(
@@ -267,6 +351,7 @@ export async function buildCorridorModel(
       group.push(row);
       interventionsByRoute.set(row.routeId, group);
     }
+    const eventsById = new Map(interventionEvents.map((event) => [event.eventId, event]));
 
     const corridors = new Map<
       string,
@@ -304,6 +389,12 @@ export async function buildCorridorModel(
 
     const briefsByRoute = new Map(publicBriefs.map((brief) => [brief.routeId, brief]));
     const membersByCorridor = groupByCorridor(routeMembers);
+    const interventionContexts = buildCorridorInterventionContexts({
+      isoMonth: options.isoMonth,
+      membersByCorridor,
+      interventionsByRoute,
+      eventsById,
+    });
     const summaries = [...membersByCorridor.entries()].map(([corridorId, members]) => {
       const memberBriefs = members
         .map((member) => briefsByRoute.get(member.routeId))
@@ -388,12 +479,14 @@ export async function buildCorridorModel(
       corridors: [...corridors.values()],
       routeMembers,
       summaries,
+      interventionContexts,
       hotspots,
     });
 
     return {
       corridors: [...corridors.values()],
       routeMembers,
+      interventionContexts,
       hotspots,
     };
   });
@@ -411,6 +504,7 @@ export async function buildCorridorModel(
       (member) => member.assignmentStatus === "unassigned",
     ).length,
     corridorHotspotCount: rows.hotspots.length,
+    corridorInterventionContextCount: rows.interventionContexts.length,
   };
 }
 

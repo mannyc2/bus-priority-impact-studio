@@ -3,6 +3,7 @@ import {
   corridor,
   corridorArtifact,
   corridorHotspot,
+  corridorInterventionContext,
   corridorMonthSummary,
   corridorRouteMember,
   interventionEvent,
@@ -40,6 +41,9 @@ export const RouteInterventionComparisonSelectSchema = createSelectSchema(
 export const CorridorSelectSchema = createSelectSchema(corridor);
 export const CorridorRouteMemberSelectSchema = createSelectSchema(corridorRouteMember);
 export const CorridorMonthSummarySelectSchema = createSelectSchema(corridorMonthSummary);
+export const CorridorInterventionContextSelectSchema = createSelectSchema(
+  corridorInterventionContext,
+);
 export const CorridorHotspotSelectSchema = createSelectSchema(corridorHotspot);
 export const CorridorArtifactSelectSchema = createSelectSchema(corridorArtifact);
 export const RouteBatchStatusSelectSchema = createSelectSchema(routeBatchStatus);

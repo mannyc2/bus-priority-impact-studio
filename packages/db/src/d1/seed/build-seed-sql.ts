@@ -6,6 +6,7 @@ import type {
   LocalCorridor,
   LocalCorridorArtifact,
   LocalCorridorHotspot,
+  LocalCorridorInterventionContext,
   LocalCorridorMonthSummary,
   LocalCorridorRouteMember,
   LocalInterventionEvent,
@@ -34,6 +35,7 @@ import {
   corridor,
   corridorArtifact,
   corridorHotspot,
+  corridorInterventionContext,
   corridorMonthSummary,
   corridorRouteMember,
   interventionEvent,
@@ -79,6 +81,7 @@ export type D1SeedInput = {
   corridorArtifacts: LocalCorridorArtifact[];
   corridorRouteMembers: LocalCorridorRouteMember[];
   corridorMonthSummaries: LocalCorridorMonthSummary[];
+  corridorInterventionContexts: LocalCorridorInterventionContext[];
   corridorHotspots: LocalCorridorHotspot[];
   routeMonthSourceStatuses: LocalRouteMonthSourceStatus[];
   routeMonthTrends: LocalRouteMonthTrend[];
@@ -114,6 +117,7 @@ export type D1SeedSqlResult = {
   corridorArtifactRowCount: number;
   corridorRouteMemberRowCount: number;
   corridorMonthSummaryRowCount: number;
+  corridorInterventionContextRowCount: number;
   corridorHotspotRowCount: number;
   routeMonthSourceStatusRowCount: number;
   routeMonthTrendRowCount: number;
@@ -161,6 +165,11 @@ export function buildD1SeedSql(input: D1SeedInput): D1SeedSqlResult {
     ),
     renderQuery(seedDb.delete(routeArtifact).where(eq(routeArtifact.month, month))),
     renderQuery(seedDb.delete(corridorHotspot).where(eq(corridorHotspot.month, month))),
+    renderQuery(
+      seedDb
+        .delete(corridorInterventionContext)
+        .where(eq(corridorInterventionContext.month, month)),
+    ),
     renderQuery(seedDb.delete(corridorArtifact).where(eq(corridorArtifact.month, month))),
     renderQuery(seedDb.delete(corridorMonthSummary).where(eq(corridorMonthSummary.month, month))),
     renderQuery(seedDb.delete(corridorRouteMember).where(eq(corridorRouteMember.month, month))),
@@ -545,6 +554,33 @@ export function buildD1SeedSql(input: D1SeedInput): D1SeedSqlResult {
     );
   }
 
+  for (const row of input.corridorInterventionContexts) {
+    statements.push(
+      renderQuery(
+        seedDb.insert(corridorInterventionContext).values({
+          corridorId: row.corridorId,
+          month: row.month,
+          contextRank: row.contextRank,
+          routeId: row.routeId,
+          eventId: row.eventId,
+          interventionType: row.interventionType,
+          sourceId: row.sourceId,
+          program: row.program,
+          implementationMonth: row.implementationMonth,
+          eventStatus: row.eventStatus,
+          evaluationLevel: row.evaluationLevel,
+          comparisonStatus: row.comparisonStatus,
+          speedDeltaMph: row.speedDeltaMph,
+          adjustedSpeedDeltaMph: row.adjustedSpeedDeltaMph,
+          ridershipDelta: row.ridershipDelta,
+          adjustedRidershipDelta: row.adjustedRidershipDelta,
+          comparisonRouteCount: row.comparisonRouteCount,
+          caveat: row.caveat,
+        }),
+      ),
+    );
+  }
+
   for (const row of input.corridorHotspots) {
     statements.push(
       renderQuery(
@@ -795,6 +831,7 @@ export function buildD1SeedSql(input: D1SeedInput): D1SeedSqlResult {
     corridorArtifactRowCount: input.corridorArtifacts.length,
     corridorRouteMemberRowCount: input.corridorRouteMembers.length,
     corridorMonthSummaryRowCount: input.corridorMonthSummaries.length,
+    corridorInterventionContextRowCount: input.corridorInterventionContexts.length,
     corridorHotspotRowCount: input.corridorHotspots.length,
     routeMonthSourceStatusRowCount,
     routeMonthTrendRowCount: input.routeMonthTrends.length,

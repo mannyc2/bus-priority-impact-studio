@@ -35,6 +35,7 @@ export type D1SeedOutputResult = {
   corridorArtifactRowCount: number;
   corridorRouteMemberRowCount: number;
   corridorMonthSummaryRowCount: number;
+  corridorInterventionContextRowCount: number;
   corridorHotspotRowCount: number;
   routeMonthSourceStatusRowCount: number;
   routeMonthTrendRowCount: number;
@@ -107,6 +108,7 @@ export async function writeRouteD1SeedOutput(input: {
     corridorArtifactRowCount: seed.corridorArtifactRowCount,
     corridorRouteMemberRowCount: seed.corridorRouteMemberRowCount,
     corridorMonthSummaryRowCount: seed.corridorMonthSummaryRowCount,
+    corridorInterventionContextRowCount: seed.corridorInterventionContextRowCount,
     corridorHotspotRowCount: seed.corridorHotspotRowCount,
     routeMonthSourceStatusRowCount: seed.routeMonthSourceStatusRowCount,
     routeMonthTrendRowCount: seed.routeMonthTrendRowCount,

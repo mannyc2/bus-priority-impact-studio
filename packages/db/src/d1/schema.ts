@@ -314,6 +314,31 @@ export const corridorMonthSummary = sqliteTable(
   (table) => [primaryKey({ columns: [table.corridorId, table.month] })],
 );
 
+export const corridorInterventionContext = sqliteTable(
+  "corridor_intervention_context",
+  {
+    corridorId: text("corridor_id").notNull(),
+    month: text("month").notNull(),
+    contextRank: integer("context_rank").notNull(),
+    routeId: text("route_id").notNull(),
+    eventId: text("event_id").notNull(),
+    interventionType: text("intervention_type").notNull(),
+    sourceId: text("source_id").notNull(),
+    program: text("program").notNull(),
+    implementationMonth: text("implementation_month").notNull(),
+    eventStatus: text("event_status").notNull(),
+    evaluationLevel: text("evaluation_level").notNull(),
+    comparisonStatus: text("comparison_status").notNull(),
+    speedDeltaMph: real("speed_delta_mph"),
+    adjustedSpeedDeltaMph: real("adjusted_speed_delta_mph"),
+    ridershipDelta: real("ridership_delta"),
+    adjustedRidershipDelta: real("adjusted_ridership_delta"),
+    comparisonRouteCount: integer("comparison_route_count").notNull().default(0),
+    caveat: text("caveat").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.corridorId, table.month, table.contextRank] })],
+);
+
 export const corridorHotspot = sqliteTable(
   "corridor_hotspot",
   {

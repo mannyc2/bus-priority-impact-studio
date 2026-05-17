@@ -303,6 +303,29 @@ async function writeFixtureArtifacts(): Promise<void> {
         evaluatedInterventionComparisonCount: 1,
       },
     ],
+    interventionContexts: [
+      {
+        corridorId: "street:broadway",
+        month: isoMonth,
+        contextRank: 1,
+        routeId: "T1",
+        eventId: "ace:T1:ACE:2026-01-15",
+        interventionType: "automated_bus_lane_enforcement",
+        sourceId: "mta_ace_routes",
+        program: "ACE",
+        implementationMonth: "2026-01",
+        eventStatus: "implemented",
+        evaluationLevel: "descriptive_before_after",
+        comparisonStatus: "evaluated",
+        speedDeltaMph: 1.6667,
+        adjustedSpeedDeltaMph: null,
+        ridershipDelta: 300,
+        adjustedRidershipDelta: null,
+        comparisonRouteCount: 0,
+        caveat:
+          "Descriptive before/after only; not seasonality-adjusted and not matched to comparison routes.",
+      },
+    ],
     hotspots: [
       {
         corridorId: "street:broadway",
@@ -517,6 +540,7 @@ describe("D1 seed export", () => {
         corridorArtifactRowCount: 3,
         corridorRouteMemberRowCount: 1,
         corridorMonthSummaryRowCount: 1,
+        corridorInterventionContextRowCount: 1,
         corridorHotspotRowCount: 1,
         routeMonthSourceStatusRowCount: 5,
         routeMonthTrendRowCount: 1,
@@ -537,6 +561,7 @@ describe("D1 seed export", () => {
         seedFile: result.seedFile,
         routeObservedReliabilitySummaryRowCount: 1,
         corridorArtifactRowCount: 3,
+        corridorInterventionContextRowCount: 1,
       }),
     );
     expect(result.schemaFile.byteLength).toBe(new TextEncoder().encode(schema).byteLength);
@@ -545,6 +570,7 @@ describe("D1 seed export", () => {
     expect(schema).toContain("CREATE TABLE `route_observed_reliability_summary`");
     expect(schema).toContain("CREATE TABLE `route_intervention_comparison`");
     expect(schema).toContain("CREATE TABLE `corridor_month_summary`");
+    expect(schema).toContain("CREATE TABLE `corridor_intervention_context`");
     expect(seed).not.toContain("CREATE TABLE");
     expect(seed).toContain('delete from "route_catalog";');
     expect(seed).toContain(

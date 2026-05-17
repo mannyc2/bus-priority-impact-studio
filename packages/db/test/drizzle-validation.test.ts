@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   CorridorArtifactSelectSchema,
+  CorridorInterventionContextSelectSchema,
   RouteArtifactSelectSchema,
   RouteBriefSummarySelectSchema,
   RouteScorecardCitationSelectSchema,
@@ -92,6 +93,33 @@ describe("Drizzle D1 validation schemas", () => {
     ).toEqual(
       expect.objectContaining({
         corridorId: "street:broadway",
+      }),
+    );
+
+    expect(
+      CorridorInterventionContextSelectSchema.parse({
+        corridorId: "street:broadway",
+        month: "2026-03",
+        contextRank: 1,
+        routeId: "M1",
+        eventId: "ace:M1:ACE:2026-01-15",
+        interventionType: "automated_bus_lane_enforcement",
+        sourceId: "mta_ace_routes",
+        program: "ACE",
+        implementationMonth: "2026-01",
+        eventStatus: "implemented",
+        evaluationLevel: "peer_adjusted_before_after",
+        comparisonStatus: "evaluated",
+        speedDeltaMph: 2,
+        adjustedSpeedDeltaMph: 1.5,
+        ridershipDelta: 400,
+        adjustedRidershipDelta: 300,
+        comparisonRouteCount: 1,
+        caveat: "Peer-adjusted before/after using one comparison route.",
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        eventId: "ace:M1:ACE:2026-01-15",
       }),
     );
   });

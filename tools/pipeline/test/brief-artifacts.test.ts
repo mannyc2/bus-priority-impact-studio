@@ -251,7 +251,19 @@ async function writeFixtureNetwork(): Promise<void> {
       ],
     });
     await replaceRouteInterventionEvaluationRows(local.db, isoMonth, "mta_ace_routes", {
-      events: [],
+      events: [
+        {
+          eventId: "ace:T1:ACE:2026-01-15",
+          routeId: "T1",
+          interventionType: "automated_bus_lane_enforcement",
+          sourceId: "mta_ace_routes",
+          program: "ACE",
+          implementationDate: "2026-01-15T00:00:00.000Z",
+          implementationMonth: "2026-01",
+          eventStatus: "implemented",
+          description: "ACE automated bus lane enforcement for T1",
+        },
+      ],
       comparisons: [
         {
           routeId: "T1",
@@ -322,6 +334,28 @@ async function writeFixtureNetwork(): Promise<void> {
           evaluatedInterventionComparisonCount: 1,
         },
       ],
+      interventionContexts: [
+        {
+          corridorId: "street:broadway",
+          month: isoMonth,
+          contextRank: 1,
+          routeId: "T1",
+          eventId: "ace:T1:ACE:2026-01-15",
+          interventionType: "automated_bus_lane_enforcement",
+          sourceId: "mta_ace_routes",
+          program: "ACE",
+          implementationMonth: "2026-01",
+          eventStatus: "implemented",
+          evaluationLevel: "descriptive_before_after",
+          comparisonStatus: "evaluated",
+          speedDeltaMph: 2,
+          adjustedSpeedDeltaMph: null,
+          ridershipDelta: 400,
+          adjustedRidershipDelta: null,
+          comparisonRouteCount: 0,
+          caveat: "Descriptive before/after only.",
+        },
+      ],
       hotspots: [
         {
           corridorId: "street:broadway",
@@ -360,6 +394,9 @@ describe("brief artifacts", () => {
     const corridorMarkdown = await Bun.file(
       fromRepoRoot(join("data/artifacts/briefs/corridors/street-broadway", isoMonth, "brief.md")),
     ).text();
+    const corridorJson = await Bun.file(
+      fromRepoRoot(join("data/artifacts/briefs/corridors/street-broadway", isoMonth, "brief.json")),
+    ).json();
     const local = await openLocalPipelineDb(dbPath);
     const [routeArtifacts, corridorArtifacts] = await Promise.all([
       listRouteArtifacts(local.db, isoMonth),
@@ -413,6 +450,20 @@ describe("brief artifacts", () => {
     expect(routeMarkdown).toContain("Long-gap window 1");
     expect(routeMarkdown).toContain("Bunching window 1");
     expect(corridorMarkdown).toContain("# Broadway Corridor");
+    expect(corridorMarkdown).toContain("## Intervention Context");
+    expect(corridorMarkdown).toContain("T1 ACE");
+    expect(corridorJson).toEqual(
+      expect.objectContaining({
+        interventionContext: [
+          expect.objectContaining({
+            routeId: "T1",
+            program: "ACE",
+            comparisonStatus: "evaluated",
+            speedDeltaMph: 2,
+          }),
+        ],
+      }),
+    );
     expect(routeArtifacts).toHaveLength(3);
     expect(corridorArtifacts).toHaveLength(3);
     expect(routeArtifacts[0]).toEqual(

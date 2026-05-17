@@ -5,6 +5,7 @@ import type {
   LocalCorridor,
   LocalCorridorArtifact,
   LocalCorridorHotspot,
+  LocalCorridorInterventionContext,
   LocalCorridorMonthSummary,
   LocalCorridorRouteMember,
   LocalGtfsRtCollectionRun,
@@ -20,6 +21,7 @@ import type {
 } from "@bp/db/local";
 import {
   listCorridorHotspots,
+  listCorridorInterventionContexts,
   listCorridorMonthSummaries,
   listCorridorRouteMembers,
   listCorridors,
@@ -98,6 +100,7 @@ type CorridorBriefContext = {
   summary: LocalCorridorMonthSummary;
   members: LocalCorridorRouteMember[];
   hotspots: LocalCorridorHotspot[];
+  interventionContext: LocalCorridorInterventionContext[];
   generatedAt: string;
 };
 
@@ -719,10 +722,28 @@ function corridorJson(input: CorridorBriefContext) {
       hotspotScore: hotspot.hotspotScore,
       riderImpactScore: hotspot.riderImpactScore,
     })),
+    interventionContext: input.interventionContext.map((context) => ({
+      rank: context.contextRank,
+      routeId: context.routeId,
+      eventId: context.eventId,
+      interventionType: context.interventionType,
+      sourceId: context.sourceId,
+      program: context.program,
+      implementationMonth: context.implementationMonth,
+      eventStatus: context.eventStatus,
+      evaluationLevel: context.evaluationLevel,
+      comparisonStatus: context.comparisonStatus,
+      speedDeltaMph: context.speedDeltaMph,
+      adjustedSpeedDeltaMph: context.adjustedSpeedDeltaMph,
+      ridershipDelta: context.ridershipDelta,
+      adjustedRidershipDelta: context.adjustedRidershipDelta,
+      comparisonRouteCount: context.comparisonRouteCount,
+      caveat: context.caveat,
+    })),
     caveats: [
       "The current corridor model is a deterministic primary-street and hotspot-segment grouping, not a final shape-based corridor definition.",
       "Corridor metrics are rollups of route-level and hotspot-level evidence for the analysis month.",
-      "Intervention context is counted from route-level comparison rows until corridor-specific event matching is added.",
+      "Intervention context is matched to corridors through route membership; source-gap rows identify missing implementation dates.",
     ],
     sources: [
       ...sourceRefs({
@@ -757,6 +778,13 @@ function corridorMarkdown(input: CorridorBriefContext): string {
           (hotspot) =>
             `- ${hotspot.routeId} ${hotspot.fromStopName} to ${hotspot.toStopName}: ${formatNumber(hotspot.weightedAverageSpeedMph)} mph, hotspot score ${hotspot.hotspotScore}.`,
         );
+  const interventionLines =
+    body.interventionContext.length === 0
+      ? ["- No corridor intervention context rows are available."]
+      : body.interventionContext.map(
+          (context) =>
+            `- ${context.routeId} ${context.program}: ${context.comparisonStatus}, ${context.evaluationLevel}, speed delta ${formatNumber(context.speedDeltaMph)} mph, adjusted delta ${formatNumber(context.adjustedSpeedDeltaMph)} mph.`,
+        );
 
   return [
     `# ${body.title}`,
@@ -780,6 +808,10 @@ function corridorMarkdown(input: CorridorBriefContext): string {
     "## Top Hotspots",
     "",
     ...hotspotLines,
+    "",
+    "## Intervention Context",
+    "",
+    ...interventionLines,
     "",
     "## Caveats",
     "",
@@ -922,6 +954,7 @@ async function readBriefData(args: {
       corridorSummaries,
       corridorMembers,
       corridorHotspots,
+      corridorInterventionContexts,
     ] = await Promise.all([
       listRouteBriefSummaries(local.db, args.month),
       listRouteCatalog(local.db),
@@ -933,6 +966,7 @@ async function readBriefData(args: {
       listCorridorMonthSummaries(local.db, args.month),
       listCorridorRouteMembers(local.db, args.month),
       listCorridorHotspots(local.db, args.month),
+      listCorridorInterventionContexts(local.db, args.month),
     ]);
     const catalogByRoute = new Map(routeCatalog.map((row) => [row.routeId, row]));
     const reliabilityByRoute = new Map(observedReliability.map((row) => [row.routeId, row]));
@@ -1004,6 +1038,12 @@ async function readBriefData(args: {
       group.push(row);
       hotspotsByCorridor.set(row.corridorId, group);
     }
+    const interventionContextsByCorridor = new Map<string, LocalCorridorInterventionContext[]>();
+    for (const row of corridorInterventionContexts) {
+      const group = interventionContextsByCorridor.get(row.corridorId) ?? [];
+      group.push(row);
+      interventionContextsByCorridor.set(row.corridorId, group);
+    }
 
     return {
       routes,
@@ -1018,6 +1058,7 @@ async function readBriefData(args: {
           summary,
           members: membersByCorridor.get(summary.corridorId) ?? [],
           hotspots: hotspotsByCorridor.get(summary.corridorId) ?? [],
+          interventionContext: interventionContextsByCorridor.get(summary.corridorId) ?? [],
           generatedAt: args.generatedAt,
         };
       }),

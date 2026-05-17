@@ -7,6 +7,7 @@ export {
 } from "./queries/brief-artifacts.js";
 export type {
   CorridorHotspotRow,
+  CorridorInterventionContextRow,
   CorridorMonthSummaryRow,
   CorridorRouteMemberRow,
   CorridorRow,

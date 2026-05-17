@@ -348,10 +348,8 @@ export async function auditPipelineV1(
     {
       requirement: "Corridor grouping and corridor briefs",
       status: publicStructural.counts.corridorRows > 0 ? "partial" : "blocked",
-      evidence: `${publicIsoMonth} has ${publicStructural.counts.corridorRows} corridors, ${publicStructural.counts.corridorRouteMemberRows} route memberships, ${publicStructural.counts.corridorSegmentEvidenceRouteMemberRows} segment-backed memberships, and ${publicStructural.counts.corridorArtifactRows} corridor artifacts.`,
-      missing: [
-        "Shape-based corridor membership and corridor-specific intervention event matching remain open.",
-      ],
+      evidence: `${publicIsoMonth} has ${publicStructural.counts.corridorRows} corridors, ${publicStructural.counts.corridorRouteMemberRows} route memberships, ${publicStructural.counts.corridorSegmentEvidenceRouteMemberRows} segment-backed memberships, ${publicStructural.counts.corridorInterventionContextRows} intervention context rows, and ${publicStructural.counts.corridorArtifactRows} corridor artifacts.`,
+      missing: ["Shape-based corridor membership review remains open."],
     },
     {
       requirement: "Full route/corridor brief artifact set",

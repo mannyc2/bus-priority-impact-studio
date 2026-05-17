@@ -3,6 +3,7 @@ import {
   getRouteBatchStatus,
   listAceRoutes,
   listCorridorArtifacts,
+  listCorridorInterventionContexts,
   listCorridorMonthSummaries,
   listCorridorRouteMembers,
   listGtfsRtCollectionRuns,
@@ -109,6 +110,7 @@ type PipelineV1Counts = {
   corridorAmbiguousRouteMemberRows: number;
   corridorUnassignedRouteMemberRows: number;
   corridorSegmentEvidenceRouteMemberRows: number;
+  corridorInterventionContextRows: number;
   corridorAmbiguousRouteShare: number;
   corridorUnassignedRouteShare: number;
   corridorArtifactRows: number;
@@ -135,6 +137,7 @@ type PipelineV1CheckResult = {
     corridorArtifactRows: number;
     routeObservedReliabilityRows: number;
     routeInterventionComparisonRows: number;
+    corridorInterventionContextRows: number;
     routeMonthTrendRows: number;
   } | null;
 };
@@ -497,6 +500,7 @@ export async function checkPipelineV1(
       routeMonthTrends,
       corridors,
       corridorMembers,
+      corridorInterventionContexts,
       corridorArtifacts,
       batchStatus,
     ] = await Promise.all([
@@ -514,6 +518,7 @@ export async function checkPipelineV1(
       listRouteMonthTrends(local.db),
       listCorridorMonthSummaries(local.db, month),
       listCorridorRouteMembers(local.db, month),
+      listCorridorInterventionContexts(local.db, month),
       listCorridorArtifacts(local.db, month),
       getRouteBatchStatus(local.db, month),
     ]);
@@ -533,6 +538,7 @@ export async function checkPipelineV1(
       routeMonthTrends,
       corridors,
       corridorMembers,
+      corridorInterventionContexts,
       corridorArtifacts,
       batchStatus,
     };
@@ -729,6 +735,9 @@ export async function checkPipelineV1(
   const corridorSegmentEvidenceRouteMemberRows = localState.corridorMembers.filter(
     (row) => row.matchedSegmentCount > 0,
   ).length;
+  const corridorInterventionRouteIds = new Set(
+    localState.corridorInterventionContexts.map((row) => row.routeId),
+  );
   const corridorAmbiguousRouteShare =
     publicRouteIds.length === 0
       ? 0
@@ -1084,6 +1093,29 @@ export async function checkPipelineV1(
       "No corridor route memberships are backed by hotspot-segment evidence.",
     );
   }
+  if (
+    localState.interventionComparisons.length > 0 &&
+    localState.corridorInterventionContexts.length === 0
+  ) {
+    addIssue(
+      issues,
+      "corridor_intervention_context_missing",
+      "Route intervention comparisons exist, but no corridor intervention context rows were generated.",
+    );
+  }
+  const interventionRouteIds = new Set(
+    localState.interventionComparisons.map((row) => row.routeId),
+  );
+  const interventionRoutesMissingCorridorContext = [...interventionRouteIds].filter(
+    (routeId) => publicRouteIds.includes(routeId) && !corridorInterventionRouteIds.has(routeId),
+  );
+  if (interventionRoutesMissingCorridorContext.length > 0) {
+    addIssue(
+      issues,
+      "corridor_intervention_context_incomplete",
+      `${interventionRoutesMissingCorridorContext.length} public intervention route(s) lack corridor context rows: ${sample(interventionRoutesMissingCorridorContext)}.`,
+    );
+  }
   const routesMissingBriefArtifacts = publicRouteIds.filter(
     (routeId) => (routeArtifactsByRoute.get(routeId) ?? 0) < 3,
   );
@@ -1133,6 +1165,10 @@ export async function checkPipelineV1(
         d1Result.tableCounts,
         "route_intervention_comparison",
       ),
+      corridorInterventionContextRows: tableCount(
+        d1Result.tableCounts,
+        "corridor_intervention_context",
+      ),
       routeMonthTrendRows: tableCount(d1Result.tableCounts, "route_month_trend"),
     };
     if (d1.routeObservedReliabilityRows < publicRouteIds.length) {
@@ -1149,6 +1185,16 @@ export async function checkPipelineV1(
         "D1 export has no route intervention comparison rows.",
       );
     }
+    if (
+      localState.corridorInterventionContexts.length > 0 &&
+      d1.corridorInterventionContextRows === 0
+    ) {
+      addIssue(
+        issues,
+        "d1_corridor_intervention_context_missing",
+        "D1 export has no corridor intervention context rows.",
+      );
+    }
     if (localState.routeMonthTrends.length > 0 && d1.routeMonthTrendRows === 0) {
       addIssue(issues, "d1_route_month_trends_missing", "D1 export has no route/month trend rows.");
     }
@@ -1159,6 +1205,7 @@ export async function checkPipelineV1(
       corridorArtifactRows: 0,
       routeObservedReliabilityRows: 0,
       routeInterventionComparisonRows: 0,
+      corridorInterventionContextRows: 0,
       routeMonthTrendRows: 0,
     };
     addIssue(
@@ -1227,6 +1274,7 @@ export async function checkPipelineV1(
       corridorAmbiguousRouteMemberRows,
       corridorUnassignedRouteMemberRows,
       corridorSegmentEvidenceRouteMemberRows,
+      corridorInterventionContextRows: localState.corridorInterventionContexts.length,
       corridorAmbiguousRouteShare,
       corridorUnassignedRouteShare,
       corridorArtifactRows: localState.corridorArtifacts.length,

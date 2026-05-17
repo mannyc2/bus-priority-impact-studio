@@ -3,6 +3,7 @@ import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import {
   listCorridorHotspots,
+  listCorridorInterventionContexts,
   listCorridorMonthSummaries,
   listCorridorRouteMembers,
   replaceRouteBriefRows,
@@ -214,7 +215,19 @@ async function writeFixtureNetwork(): Promise<void> {
       sourceStatuses: [],
     });
     await replaceRouteInterventionEvaluationRows(local.db, isoMonth, "mta_ace_routes", {
-      events: [],
+      events: [
+        {
+          eventId: "ace:T1:ACE:2026-01-15",
+          routeId: "T1",
+          interventionType: "automated_bus_lane_enforcement",
+          sourceId: "mta_ace_routes",
+          program: "ACE",
+          implementationDate: "2026-01-15T00:00:00.000Z",
+          implementationMonth: "2026-01",
+          eventStatus: "implemented",
+          description: "ACE automated bus lane enforcement for T1",
+        },
+      ],
       comparisons: [
         {
           routeId: "T1",
@@ -264,10 +277,11 @@ describe("corridor model", () => {
     });
     const local = await openLocalPipelineDb(dbPath);
     try {
-      const [members, summaries, hotspots] = await Promise.all([
+      const [members, summaries, hotspots, interventionContexts] = await Promise.all([
         listCorridorRouteMembers(local.db, isoMonth),
         listCorridorMonthSummaries(local.db, isoMonth),
         listCorridorHotspots(local.db, isoMonth),
+        listCorridorInterventionContexts(local.db, isoMonth),
       ]);
 
       expect(result).toEqual({
@@ -278,6 +292,7 @@ describe("corridor model", () => {
         ambiguousRouteCount: 0,
         unassignedRouteCount: 1,
         corridorHotspotCount: 2,
+        corridorInterventionContextCount: 1,
       });
       expect(members).toEqual(
         expect.arrayContaining([
@@ -322,6 +337,17 @@ describe("corridor model", () => {
         ]),
       );
       expect(hotspots.map((row) => row.routeId)).toEqual(["T1", "T2"]);
+      expect(interventionContexts).toEqual([
+        expect.objectContaining({
+          corridorId: "street:broadway",
+          contextRank: 1,
+          routeId: "T1",
+          eventId: "ace:T1:ACE:2026-01-15",
+          program: "ACE",
+          comparisonStatus: "evaluated",
+          speedDeltaMph: 2,
+        }),
+      ]);
     } finally {
       local.sqlite.close();
     }

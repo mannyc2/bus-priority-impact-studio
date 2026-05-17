@@ -77,6 +77,7 @@ function expectedTableCounts(exportResult: Awaited<ReturnType<typeof exportD1See
     corridor_artifact: exportResult.corridorArtifactRowCount,
     corridor_route_member: exportResult.corridorRouteMemberRowCount,
     corridor_month_summary: exportResult.corridorMonthSummaryRowCount,
+    corridor_intervention_context: exportResult.corridorInterventionContextRowCount,
     corridor_hotspot: exportResult.corridorHotspotRowCount,
     route_month_source_status: exportResult.routeMonthSourceStatusRowCount,
     route_month_trend: exportResult.routeMonthTrendRowCount,

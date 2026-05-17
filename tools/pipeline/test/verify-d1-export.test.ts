@@ -297,6 +297,29 @@ async function writeFixtureNetwork(): Promise<void> {
         evaluatedInterventionComparisonCount: 1,
       },
     ],
+    interventionContexts: [
+      {
+        corridorId: "street:broadway",
+        month: isoMonth,
+        contextRank: 1,
+        routeId: "T1",
+        eventId: "ace:T1:ACE:2026-01-15",
+        interventionType: "automated_bus_lane_enforcement",
+        sourceId: "mta_ace_routes",
+        program: "ACE",
+        implementationMonth: "2026-01",
+        eventStatus: "implemented",
+        evaluationLevel: "descriptive_before_after",
+        comparisonStatus: "evaluated",
+        speedDeltaMph: 1.6667,
+        adjustedSpeedDeltaMph: null,
+        ridershipDelta: 300,
+        adjustedRidershipDelta: null,
+        comparisonRouteCount: 0,
+        caveat:
+          "Descriptive before/after only; not seasonality-adjusted and not matched to comparison routes.",
+      },
+    ],
     hotspots: [
       {
         corridorId: "street:broadway",
@@ -474,6 +497,7 @@ describe("D1 export verification", () => {
         corridor_artifact: 3,
         corridor_route_member: 1,
         corridor_month_summary: 1,
+        corridor_intervention_context: 1,
         corridor_hotspot: 1,
         route_month_source_status: 5,
         route_month_trend: 1,
@@ -491,6 +515,7 @@ describe("D1 export verification", () => {
         route_intervention_comparison: 1,
         route_artifact: 3,
         corridor_artifact: 3,
+        corridor_intervention_context: 1,
       }),
     );
     expect(result.repositoryChecks).toEqual(
@@ -503,6 +528,7 @@ describe("D1 export verification", () => {
         routeInterventionComparisonRows: 1,
         routeArtifactRows: 3,
         corridorSummaryRows: 1,
+        corridorInterventionContextRows: 1,
         corridorArtifactRows: 3,
         routeMonthTrendRows: 1,
         routeEquityContextRows: 1,

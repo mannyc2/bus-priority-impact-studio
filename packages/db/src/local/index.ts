@@ -5,12 +5,14 @@ export type {
   LocalCorridor,
   LocalCorridorArtifact,
   LocalCorridorHotspot,
+  LocalCorridorInterventionContext,
   LocalCorridorMonthSummary,
   LocalCorridorRouteMember,
 } from "./repositories/corridors.js";
 export {
   listCorridorArtifacts,
   listCorridorHotspots,
+  listCorridorInterventionContexts,
   listCorridorMonthSummaries,
   listCorridorRouteMembers,
   listCorridors,

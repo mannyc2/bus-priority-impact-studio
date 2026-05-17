@@ -36,6 +36,7 @@ export type RepositoryCheckResult = {
   routeInterventionComparisonRows: number;
   routeArtifactRows: number;
   corridorSummaryRows: number;
+  corridorInterventionContextRows: number;
   corridorArtifactRows: number;
   routeMonthTrendRows: number;
   routeEquityContextRows: number;
@@ -94,6 +95,7 @@ export function collectD1TableCounts(database: Database): {
       corridor_artifact: countTable(database, "corridor_artifact"),
       corridor_route_member: countTable(database, "corridor_route_member"),
       corridor_month_summary: countTable(database, "corridor_month_summary"),
+      corridor_intervention_context: countTable(database, "corridor_intervention_context"),
       corridor_hotspot: countTable(database, "corridor_hotspot"),
       route_month_source_status: countTable(database, "route_month_source_status"),
       route_month_trend: countTable(database, "route_month_trend"),
@@ -239,6 +241,12 @@ export function verifyD1TableCounts(input: {
   });
   compareCount({
     issues: input.issues,
+    tableName: "corridor_intervention_context",
+    actual: count("corridor_intervention_context"),
+    expected: input.exportResult.corridorInterventionContextRowCount,
+  });
+  compareCount({
+    issues: input.issues,
     tableName: "corridor_hotspot",
     actual: count("corridor_hotspot"),
     expected: input.exportResult.corridorHotspotRowCount,
@@ -339,6 +347,10 @@ export async function runD1RepositoryChecks(input: {
   const routeArtifacts = await listRouteArtifacts(input.db, input.month);
   const corridorSummaries = await listCorridorSummaries(input.db, input.month);
   const corridorArtifacts = await listCorridorArtifacts(input.db, input.month);
+  const corridorInterventionContextRows = corridorSummaries.reduce(
+    (sum, summary) => sum + summary.interventionContext.length,
+    0,
+  );
   const routeEquityContexts = await listRouteEquityContexts(input.db, input.month);
   const firstRouteId = briefSummaries[0]?.routeId ?? null;
   const routeMonthTrends =
@@ -357,6 +369,7 @@ export async function runD1RepositoryChecks(input: {
     routeInterventionComparisonRows: routeInterventionComparisons.length,
     routeArtifactRows: routeArtifacts.length,
     corridorSummaryRows: corridorSummaries.length,
+    corridorInterventionContextRows,
     corridorArtifactRows: corridorArtifacts.length,
     routeMonthTrendRows: routeMonthTrends.length,
     routeEquityContextRows: routeEquityContexts.length,
@@ -407,6 +420,14 @@ export function verifyD1RepositoryChecks(input: {
   if (input.checks.corridorSummaryRows !== input.exportResult.corridorMonthSummaryRowCount) {
     input.issues.push(
       `repository:corridorSummaryRows_expected_${input.exportResult.corridorMonthSummaryRowCount}_actual_${input.checks.corridorSummaryRows}`,
+    );
+  }
+  if (
+    input.checks.corridorInterventionContextRows !==
+    input.exportResult.corridorInterventionContextRowCount
+  ) {
+    input.issues.push(
+      `repository:corridorInterventionContextRows_expected_${input.exportResult.corridorInterventionContextRowCount}_actual_${input.checks.corridorInterventionContextRows}`,
     );
   }
   if (input.checks.corridorArtifactRows !== input.exportResult.corridorArtifactRowCount) {

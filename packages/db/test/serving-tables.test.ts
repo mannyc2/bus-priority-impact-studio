@@ -35,6 +35,7 @@ describe("D1 serving table schema", () => {
     expect(migrationSql).toContain("CREATE TABLE `corridor`");
     expect(migrationSql).toContain("CREATE TABLE `corridor_route_member`");
     expect(migrationSql).toContain("CREATE TABLE `corridor_month_summary`");
+    expect(migrationSql).toContain("CREATE TABLE `corridor_intervention_context`");
     expect(migrationSql).toContain("CREATE TABLE `corridor_hotspot`");
     expect(migrationSql).toContain("CREATE TABLE `corridor_artifact`");
     expect(migrationSql).toContain("CREATE TABLE `route_month_source_status`");

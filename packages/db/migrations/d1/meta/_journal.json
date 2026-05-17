@@ -50,6 +50,13 @@
       "when": 1779007756230,
       "tag": "0006_certain_franklin_richards",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1779008882858,
+      "tag": "0007_shocking_red_hulk",
+      "breakpoints": true
     }
   ]
 }
