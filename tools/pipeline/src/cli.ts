@@ -55,6 +55,15 @@ const commands = {
       return getGtfsRtRunStatusFromCli(args);
     },
   },
+  "check:route-speed-availability": {
+    description: "Check latest published MTA route segment speed months.",
+    run: async (args) => {
+      const { checkRouteSpeedAvailabilityFromCli } = await import(
+        "./jobs/check/route-speed-availability.js"
+      );
+      return checkRouteSpeedAvailabilityFromCli(args);
+    },
+  },
   "ingest:ace-violations": {
     description: "Fetch monthly ACE violation summaries.",
     run: async (args) => {

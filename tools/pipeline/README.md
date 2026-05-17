@@ -22,6 +22,7 @@ Local batch pipeline CLI.
 ```bash
 bun run sources:list
 bun run sources:probe
+bun run check:route-speed-availability -- --start-year 2026 --end-year 2026 --year 2026 --month 5 --min-speed-routes 300
 bun run ingest:route-catalog
 bun run ingest:route-coverage -- --year 2026 --month 3
 bun run build:network -- --year 2026 --month 3
@@ -35,6 +36,7 @@ bun run check:pipeline-v1 -- --year 2026 --month 3
 bun --filter @bp/pipeline audit:pipeline-v1 -- --public-year 2026 --public-month 3 --realtime-year 2026 --realtime-month 5 --run-id <run_id>
 ```
 
+`check:route-speed-availability` checks grouped MTA Bus Route Segment Speeds coverage and reports the latest published speed month plus the requested month status, so source-publication lag can be distinguished from an ingestion bug.
 `collect:gtfs-rt` requires `MTA_BUS_TIME_API_KEY`, writes raw protobuf snapshots to ignored `data/raw/gtfs-rt/`, and records run/snapshot metadata in the local pipeline DB with redacted URLs.
 `gtfs-rt:run-status` reports long collection progress and prints the next handoff commands.
 `ingest:gtfs-rt-snapshots` parses a collected run into normalized local vehicle-position, trip-update, stop-time-update, and alert rows.

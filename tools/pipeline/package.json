@@ -16,6 +16,7 @@
     "ingest:gtfs-rt-snapshots": "bun run src/cli.ts ingest:gtfs-rt-snapshots",
     "gtfs-rt:preflight": "bun run src/cli.ts gtfs-rt:preflight",
     "gtfs-rt:run-status": "bun run src/cli.ts gtfs-rt:run-status",
+    "check:route-speed-availability": "bun run src/cli.ts check:route-speed-availability",
     "ingest:ace-routes": "bun run src/cli.ts ingest:ace-routes",
     "ingest:ace-violations": "bun run src/cli.ts ingest:ace-violations",
     "ingest:bus-lanes": "bun run src/cli.ts ingest:bus-lanes",
