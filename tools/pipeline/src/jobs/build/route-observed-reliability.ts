@@ -3,6 +3,7 @@ import {
   type LocalRouteReliabilityBaseline,
   listObservedHeadwaySamples,
   listRouteBriefSummaries,
+  listRouteCatalog,
   listRouteReliabilityBaselines,
   replaceRouteObservedReliabilityRows,
 } from "@bp/db/local";
@@ -53,6 +54,10 @@ type RouteReliabilitySummary = {
   scheduledExpectedWaitMinutes: number | null;
   excessWaitMinutes: number | null;
   waitReliabilityRatio: number | null;
+};
+
+type ReliabilityRoute = {
+  routeId: string;
 };
 
 function requireRunId(value: string | undefined): string {
@@ -232,6 +237,15 @@ function sourceStatusesForSummary(summary: RouteReliabilitySummary) {
   }));
 }
 
+function reliabilityRoutes(input: {
+  briefs: readonly ReliabilityRoute[];
+  catalog: readonly ReliabilityRoute[];
+}): ReliabilityRoute[] {
+  const routes = input.briefs.length > 0 ? input.briefs : input.catalog;
+
+  return [...routes].sort((left, right) => left.routeId.localeCompare(right.routeId));
+}
+
 function parseCliArgs(args: string[]): RouteObservedReliabilityArgs {
   const extraOptions: CliOption<RouteObservedReliabilityArgs>[] = [
     {
@@ -258,11 +272,13 @@ export async function buildRouteObservedReliability(
   const minSampleThreshold = Math.max(1, Math.round(args.minSamples ?? defaultMinSampleThreshold));
 
   const summaries = await withLocalPipelineDb(options.dbPath, async (local) => {
-    const [routes, baselines, samples] = await Promise.all([
+    const [briefs, catalog, baselines, samples] = await Promise.all([
       listRouteBriefSummaries(local.db, options.isoMonth),
+      listRouteCatalog(local.db),
       listRouteReliabilityBaselines(local.db, options.isoMonth),
       listObservedHeadwaySamples(local.db, runId),
     ]);
+    const routes = reliabilityRoutes({ briefs, catalog });
     const samplesByRoute = groupSamplesByRoute(samplesForMonth(samples, options.isoMonth));
     const baselineByRoute = new Map(baselines.map((baseline) => [baseline.routeId, baseline]));
 

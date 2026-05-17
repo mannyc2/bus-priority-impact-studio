@@ -207,7 +207,7 @@ Implemented so far:
 - Parsed snapshot status and counts are stored in `local_gtfs_rt_parsed_snapshot`; malformed snapshots are recorded as `parse_error`.
 - `build:observed-headways -- --run-id <run_id>` derives observed stop events and headway samples from parsed vehicle positions.
 - Observed stop events are stored in `local_observed_vehicle_stop_event`; observed headway samples are stored in `local_observed_headway_sample`.
-- `route-observed-reliability -- --run-id <run_id> --year YYYY --month M` filters observed headway samples to the requested month and aggregates route/month observed reliability summaries.
+- `route-observed-reliability -- --run-id <run_id> --year YYYY --month M` filters observed headway samples to the requested month and aggregates route/month observed reliability summaries. It uses route brief summaries when they exist and falls back to the route catalog when the observed layer is being built before monthly briefs.
 - Route/month observed summaries are stored in `local_route_observed_reliability_summary` with observed headway, bunching, long-gap, expected-wait, sample-count, and insufficient-sample status.
 - `gtfs-rt:preflight -- --year YYYY --month M --run-id <run_id>` diagnoses API-key presence, analysis-month alignment, collection-run status, collection window/cadence/snapshot quality, successful vehicle-position snapshots, parsed vehicle-position rows, observed headway samples, route/month observed reliability rows, source-status coverage, and route sample coverage before strict finalization.
 - D1 serving table `route_observed_reliability_summary` stores exported observed reliability summaries.

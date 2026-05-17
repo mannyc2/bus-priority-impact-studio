@@ -6,6 +6,7 @@ import {
   listRouteObservedReliabilitySummaries,
   replaceObservedHeadwayRows,
   replaceRouteBriefRows,
+  replaceRouteCatalog,
   replaceRouteReliabilityRows,
 } from "@bp/db/local";
 import { buildRouteObservedReliability } from "../src/jobs/build/route-observed-reliability.js";
@@ -235,5 +236,75 @@ describe("route observed reliability", () => {
         (status) => status.routeId === "T1" && status.sourceId === "scheduledHeadways",
       ),
     ).toBe(true);
+  });
+
+  test("falls back to route catalog when month brief summaries are not built yet", async () => {
+    await removeFixtureArtifacts();
+    const local = await openLocalPipelineDb(dbPath);
+    try {
+      await replaceRouteCatalog(local.db, [
+        {
+          routeId: "T1",
+          routeShortName: "T1",
+          routeLongName: "Fixture route",
+          routeTypes: ["Local"],
+          directions: ["N"],
+          shapeCount: 1,
+          stopCount: 2,
+          timepointStopCount: 2,
+          latitudeMin: 40,
+          latitudeMax: 41,
+          longitudeMin: -74,
+          longitudeMax: -73,
+        },
+      ]);
+      await replaceObservedHeadwayRows(local.db, runId, {
+        stopEvents: [],
+        headwaySamples: [
+          {
+            runId,
+            sampleRank: 1,
+            routeId: "T1",
+            sourceRouteId: "MTA NYCT_T1",
+            directionId: 0,
+            stopId: "S1",
+            previousVehicleKey: "bus-1",
+            vehicleKey: "bus-2",
+            previousObservedTimestamp: 1_773_576_000,
+            observedTimestamp: 1_773_576_240,
+            headwaySeconds: 240,
+            headwayMinutes: 4,
+          },
+        ],
+      });
+    } finally {
+      local.sqlite.close();
+    }
+
+    const result = await buildRouteObservedReliability({
+      dbPath,
+      runId,
+      year: 2026,
+      month: 3,
+      minSamples: 1,
+    });
+    const verification = await openLocalPipelineDb(dbPath);
+    const summaries = await listRouteObservedReliabilitySummaries(verification.db, isoMonth, runId);
+    verification.sqlite.close();
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        routeCount: 1,
+        observedRouteCount: 1,
+        headwaySampleCount: 1,
+      }),
+    );
+    expect(summaries).toEqual([
+      expect.objectContaining({
+        routeId: "T1",
+        reliabilityStatus: "observed",
+        sampleCount: 1,
+      }),
+    ]);
   });
 });
