@@ -1839,6 +1839,13 @@ describe("pipeline v1 check", () => {
         realtimePreflightIssues: [],
       }),
     );
+    expect(result.objective).toContain("Finish Data Pipeline v1");
+    expect(result.successCriteria).toEqual(
+      expect.arrayContaining([
+        "GTFS-RT observed reliability and bunching computed from collected same-month realtime samples.",
+        "D1 serving export and static evaluation/map artifact contracts verify against generated data.",
+      ]),
+    );
     expect(result.checklist).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -1912,6 +1919,10 @@ describe("pipeline v1 check", () => {
     expect(written).toEqual(
       expect.objectContaining({
         status: "partial",
+        objective: expect.stringContaining("Finish Data Pipeline v1"),
+        successCriteria: expect.arrayContaining([
+          "Strict single-month QA passes without structural-only GTFS-RT fallback.",
+        ]),
         publicMonth: isoMonth,
         interventions: expect.objectContaining({
           busLaneSourceGaps: expect.objectContaining({

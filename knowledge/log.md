@@ -434,3 +434,7 @@ Added a batched scheduled GTFS-RT capture helper for the Worker. The existing si
 ## [2026-05-17] engineering | Intervention methodology audit gate
 
 Extended `audit:pipeline-v1` with an explicit `interventions.methodologyGate` section. The gate currently records `descriptive_only`, `externalReviewStatus=open`, `causalClaimsAllowed=false`, and the supported evidence levels, so a release audit cannot accidentally treat peer-adjusted before/after comparisons as causal estimates. Updated the v1 plan and methodology validation page to point at this audit field.
+
+## [2026-05-17] engineering | V1 audit objective contract
+
+Extended `audit:pipeline-v1` so the generated JSON includes the full v1 objective and explicit success criteria before the evidence checklist. This makes `data/artifacts/pipeline-v1/audit-*.json` a self-contained prompt-to-artifact contract rather than only a status summary.

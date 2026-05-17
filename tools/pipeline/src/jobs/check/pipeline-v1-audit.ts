@@ -81,6 +81,8 @@ type MethodologyGate = {
 type PipelineV1AuditResult = {
   status: RequirementStatus;
   generatedAt: string;
+  objective: string;
+  successCriteria: string[];
   publicMonth: string;
   realtimeMonth: string;
   runId: string | null;
@@ -109,6 +111,21 @@ type PipelineV1AuditResult = {
   };
   recommendation: string;
 };
+
+const pipelineV1Objective =
+  "Finish Data Pipeline v1: a reproducible full-network pipeline with GTFS-RT observed reliability/bunching, before/after intervention evaluation, corridor grouping, a full set of route/corridor brief artifacts, verified D1/static export contracts, QA gates, and updated roadmap/docs.";
+
+const pipelineV1SuccessCriteria = [
+  "Reproducible full-network public-source pipeline from clean local DB evidence.",
+  "GTFS-RT observed reliability and bunching computed from collected same-month realtime samples.",
+  "Before/after intervention evaluation exists with methodology and causal-claim gates.",
+  "Corridor grouping exists with shape-reviewed segment evidence and corridor intervention context.",
+  "Full route and corridor brief artifact set passes hash, byte-length, and JSON contract audits.",
+  "D1 serving export and static evaluation/map artifact contracts verify against generated data.",
+  "Strict single-month QA passes without structural-only GTFS-RT fallback.",
+  "Public monthly source availability and realtime collection evidence align for the release month.",
+  "Roadmap, methodology, and handoff docs match the commands, limitations, and current blockers.",
+] as const;
 
 function isoMonth(year: number, month: number): string {
   return `${year}-${String(month).padStart(2, "0")}`;
@@ -606,6 +623,8 @@ export async function auditPipelineV1(
   const result: PipelineV1AuditResult = {
     status,
     generatedAt: new Date().toISOString(),
+    objective: pipelineV1Objective,
+    successCriteria: [...pipelineV1SuccessCriteria],
     publicMonth: publicIsoMonth,
     realtimeMonth: realtimeIsoMonth,
     runId: args.runId ?? null,
