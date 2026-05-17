@@ -288,6 +288,47 @@ const interventionComparisonRow = {
     "Descriptive before/after only; not seasonality-adjusted and not matched to comparison routes.",
 };
 
+const busLaneSourceGapEventRow = {
+  event_id: "bus-lane-source-gap:M57:2026-03",
+  route_id: "M57",
+  intervention_type: "bus_lane_infrastructure",
+  source_id: "nyc_dot_bus_lanes",
+  program: "NYC DOT Bus Lanes",
+  implementation_date: "2026-03-01T00:00:00.000Z",
+  implementation_month: "2026-03",
+  event_status: "source_gap",
+  description:
+    "NYC DOT bus lane match for M57; route-level implementation date is not available in the current pipeline evidence.",
+};
+
+const busLaneSourceGapComparisonRow = {
+  route_id: "M57",
+  month: "2026-03",
+  event_id: "bus-lane-source-gap:M57:2026-03",
+  intervention_type: "bus_lane_infrastructure",
+  source_id: "nyc_dot_bus_lanes",
+  evaluation_level: "not_evaluated_source_gap",
+  comparison_status: "source_gap_missing_implementation_date",
+  pre_start_month: null,
+  pre_end_month: null,
+  post_start_month: null,
+  post_end_month: null,
+  requested_pre_month_count: 0,
+  requested_post_month_count: 0,
+  pre_sample_month_count: 0,
+  post_sample_month_count: 0,
+  pre_speed_observation_count: 0,
+  post_speed_observation_count: 0,
+  pre_average_speed_mph: null,
+  post_average_speed_mph: null,
+  speed_delta_mph: null,
+  pre_average_monthly_ridership: null,
+  post_average_monthly_ridership: null,
+  ridership_delta: null,
+  caveat:
+    "NYC DOT bus lane geometry is matched to the route, but this pipeline has no route-level implementation date for a before/after comparison.",
+};
+
 const corridorRow = {
   corridor_id: "street:broadway",
   corridor_name: "Broadway",
@@ -561,8 +602,11 @@ describe("route serving repository", () => {
 
   test("lists route intervention comparisons with event context", async () => {
     const { db, sqlite } = await createDrizzleTestDb();
-    insertRows(sqlite, "intervention_event", [interventionEventRow]);
-    insertRows(sqlite, "route_intervention_comparison", [interventionComparisonRow]);
+    insertRows(sqlite, "intervention_event", [interventionEventRow, busLaneSourceGapEventRow]);
+    insertRows(sqlite, "route_intervention_comparison", [
+      interventionComparisonRow,
+      busLaneSourceGapComparisonRow,
+    ]);
 
     const rows = await listRouteInterventionComparisons(db, "2026-03");
 
@@ -575,6 +619,15 @@ describe("route serving repository", () => {
         comparisonStatus: "evaluated",
         speedDeltaMph: 1.6667,
         caveat: expect.stringContaining("Descriptive before/after only"),
+      }),
+      expect.objectContaining({
+        routeId: "M57",
+        program: "NYC DOT Bus Lanes",
+        eventStatus: "source_gap",
+        evaluationLevel: "not_evaluated_source_gap",
+        comparisonStatus: "source_gap_missing_implementation_date",
+        speedDeltaMph: null,
+        caveat: expect.stringContaining("no route-level implementation date"),
       }),
     ]);
     sqlite.close();

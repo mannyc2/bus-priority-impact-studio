@@ -139,7 +139,7 @@ Expected outputs:
 - route build-plan artifacts ranking eligible routes for the next offline batch
 - monthly network build reports covering every build-eligible route, per-route failures, and post-build export status
 - scheduled reliability baselines for headway gaps, short headways, and long-gap windows
-- route/month observed-intervention comparison summaries with explicit evaluation levels and caveats
+- route/month observed-intervention comparison summaries with explicit evaluation levels and caveats, including bus-lane source-gap rows when matched lane geometry lacks a route-level implementation date
 - corridor assignments, route membership, corridor summaries, and corridor hotspots
 - route/corridor brief bodies as JSON, Markdown, and HTML under `data/artifacts/briefs/`
 - route intervention-history artifacts for ACE dates, bus-lane open-date coverage, and still-missing signal/lane-upgrade sources

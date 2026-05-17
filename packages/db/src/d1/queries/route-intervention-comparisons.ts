@@ -13,7 +13,7 @@ const InterventionEventRowSchema = z
     program: z.string().min(1),
     implementation_date: z.string().min(1),
     implementation_month: IsoMonthSchema,
-    event_status: z.enum(["implemented", "future"]),
+    event_status: z.enum(["implemented", "future", "source_gap"]),
     description: z.string().min(1),
   })
   .strict();
@@ -29,12 +29,14 @@ const RouteInterventionComparisonRowSchema = z
       "descriptive_before_after",
       "insufficient_trend_data",
       "not_evaluated_future",
+      "not_evaluated_source_gap",
     ]),
     comparison_status: z.enum([
       "evaluated",
       "future_intervention",
       "insufficient_pre_data",
       "insufficient_post_data",
+      "source_gap_missing_implementation_date",
     ]),
     pre_start_month: IsoMonthSchema.nullable(),
     pre_end_month: IsoMonthSchema.nullable(),
@@ -68,14 +70,19 @@ export type RouteInterventionComparison = {
   program: string;
   implementationDate: string;
   implementationMonth: string;
-  eventStatus: "implemented" | "future";
+  eventStatus: "implemented" | "future" | "source_gap";
   description: string;
-  evaluationLevel: "descriptive_before_after" | "insufficient_trend_data" | "not_evaluated_future";
+  evaluationLevel:
+    | "descriptive_before_after"
+    | "insufficient_trend_data"
+    | "not_evaluated_future"
+    | "not_evaluated_source_gap";
   comparisonStatus:
     | "evaluated"
     | "future_intervention"
     | "insufficient_pre_data"
-    | "insufficient_post_data";
+    | "insufficient_post_data"
+    | "source_gap_missing_implementation_date";
   preStartMonth: string | null;
   preEndMonth: string | null;
   postStartMonth: string | null;

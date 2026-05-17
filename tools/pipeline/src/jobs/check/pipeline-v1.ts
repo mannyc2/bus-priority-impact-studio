@@ -66,6 +66,9 @@ type PipelineV1Counts = {
   routeInterventionComparisonRows: number;
   evaluatedInterventionComparisonRows: number;
   evaluatedInterventionComparisonRidershipDeltaRows: number;
+  busLaneMatchedPublicRouteCount: number;
+  busLaneInterventionComparisonRows: number;
+  busLaneSourceGapComparisonRows: number;
   routeMonthTrendRows: number;
   routeMonthTrendSpeedRows: number;
   routeMonthTrendRidershipRows: number;
@@ -99,6 +102,7 @@ type PipelineV1CheckResult = {
 };
 
 const defaultMinObservedHeadwaySamples = 1;
+const busLaneSourceId = "nyc_dot_bus_lanes";
 
 function parseCliArgs(args: string[]): PipelineV1CheckArgs {
   const extraOptions: CliOption<PipelineV1CheckArgs>[] = [
@@ -281,6 +285,18 @@ export async function checkPipelineV1(
     localState.interventionComparisons.filter(
       (row) => row.comparisonStatus === "evaluated" && row.ridershipDelta !== null,
     ).length;
+  const busLaneMatchedPublicRouteIds = localState.routeBriefs
+    .filter((row) => row.publicVisible && row.busLaneMatchedLaneCount > 0)
+    .map((row) => row.routeId);
+  const busLaneInterventionComparisons = localState.interventionComparisons.filter(
+    (row) => row.sourceId === busLaneSourceId,
+  );
+  const busLaneComparisonRouteIds = new Set(
+    busLaneInterventionComparisons.map((row) => row.routeId),
+  );
+  const busLaneSourceGapComparisonRows = busLaneInterventionComparisons.filter((row) =>
+    row.comparisonStatus.startsWith("source_gap_"),
+  ).length;
   const routeMonthTrendSpeedRows = localState.routeMonthTrends.filter(
     (row) => row.hasSpeedTrend,
   ).length;
@@ -446,6 +462,17 @@ export async function checkPipelineV1(
       "Evaluated intervention comparisons do not include ridership deltas.",
     );
   }
+  const routesMissingBusLaneComparison = missingMembers(
+    busLaneMatchedPublicRouteIds,
+    busLaneComparisonRouteIds,
+  );
+  if (routesMissingBusLaneComparison.length > 0) {
+    addIssue(
+      issues,
+      "bus_lane_intervention_comparisons_missing",
+      `${routesMissingBusLaneComparison.length} public routes with matched bus lanes lack bus-lane intervention comparison rows: ${sample(routesMissingBusLaneComparison)}.`,
+    );
+  }
   const comparisonsWithoutCaveats = localState.interventionComparisons.filter(
     (row) => row.caveat.trim().length === 0,
   );
@@ -579,6 +606,9 @@ export async function checkPipelineV1(
       routeInterventionComparisonRows: localState.interventionComparisons.length,
       evaluatedInterventionComparisonRows,
       evaluatedInterventionComparisonRidershipDeltaRows,
+      busLaneMatchedPublicRouteCount: busLaneMatchedPublicRouteIds.length,
+      busLaneInterventionComparisonRows: busLaneInterventionComparisons.length,
+      busLaneSourceGapComparisonRows,
       routeMonthTrendRows: localState.routeMonthTrends.length,
       routeMonthTrendSpeedRows,
       routeMonthTrendRidershipRows,

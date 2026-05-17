@@ -380,6 +380,51 @@ async function writeFixtureNetwork(options: {
           },
         ],
       });
+      await replaceRouteInterventionEvaluationRows(local.db, isoMonth, "nyc_dot_bus_lanes", {
+        events: [
+          {
+            eventId: "bus-lane-source-gap:T1:2026-11",
+            routeId: "T1",
+            interventionType: "bus_lane_infrastructure",
+            sourceId: "nyc_dot_bus_lanes",
+            program: "NYC DOT Bus Lanes",
+            implementationDate: "2026-11-01T00:00:00.000Z",
+            implementationMonth: "2026-11",
+            eventStatus: "source_gap",
+            description:
+              "NYC DOT bus lane match for T1; route-level implementation date is not available in the current pipeline evidence.",
+          },
+        ],
+        comparisons: [
+          {
+            routeId: "T1",
+            month: isoMonth,
+            eventId: "bus-lane-source-gap:T1:2026-11",
+            interventionType: "bus_lane_infrastructure",
+            sourceId: "nyc_dot_bus_lanes",
+            evaluationLevel: "not_evaluated_source_gap",
+            comparisonStatus: "source_gap_missing_implementation_date",
+            preStartMonth: null,
+            preEndMonth: null,
+            postStartMonth: null,
+            postEndMonth: null,
+            requestedPreMonthCount: 0,
+            requestedPostMonthCount: 0,
+            preSampleMonthCount: 0,
+            postSampleMonthCount: 0,
+            preSpeedObservationCount: 0,
+            postSpeedObservationCount: 0,
+            preAverageSpeedMph: null,
+            postAverageSpeedMph: null,
+            speedDeltaMph: null,
+            preAverageMonthlyRidership: null,
+            postAverageMonthlyRidership: null,
+            ridershipDelta: null,
+            caveat:
+              "NYC DOT bus lane geometry is matched to the route, but this pipeline has no route-level implementation date for a before/after comparison.",
+          },
+        ],
+      });
     }
     await replaceCorridorRows(local.db, isoMonth, {
       corridors: [
@@ -555,9 +600,12 @@ describe("pipeline v1 check", () => {
         gtfsRtParsedSnapshotRows: 1,
         gtfsRtParsedVehiclePositionSnapshotRows: 1,
         gtfsRtObservedHeadwaySampleRows: 42,
-        routeInterventionComparisonRows: 1,
+        routeInterventionComparisonRows: 2,
         evaluatedInterventionComparisonRows: 1,
         evaluatedInterventionComparisonRidershipDeltaRows: 1,
+        busLaneMatchedPublicRouteCount: 1,
+        busLaneInterventionComparisonRows: 1,
+        busLaneSourceGapComparisonRows: 1,
         corridorRows: 1,
         routeArtifactRows: 3,
         corridorArtifactRows: 3,
@@ -567,7 +615,7 @@ describe("pipeline v1 check", () => {
       expect.objectContaining({
         status: "pass",
         routeObservedReliabilityRows: 1,
-        routeInterventionComparisonRows: 1,
+        routeInterventionComparisonRows: 2,
       }),
     );
   });
@@ -584,6 +632,7 @@ describe("pipeline v1 check", () => {
         "observed_reliability_source_status_incomplete",
         "intervention_events_missing",
         "intervention_comparisons_missing",
+        "bus_lane_intervention_comparisons_missing",
         "d1_observed_reliability_incomplete",
         "d1_intervention_comparisons_missing",
       ]),

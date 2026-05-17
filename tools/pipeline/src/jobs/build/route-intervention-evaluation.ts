@@ -12,6 +12,7 @@ import { withLocalPipelineDb } from "../../lib/local-db.js";
 import { createMonthContext, parseMonthDbCliArgs } from "../../lib/route-job.js";
 
 const sourceId = "mta_ace_routes";
+const busLaneSourceId = "nyc_dot_bus_lanes";
 const defaultWindowMonths = 3;
 const defaultMinSampleMonths = 1;
 
@@ -31,6 +32,7 @@ type RouteInterventionEvaluationResult = {
   evaluatedComparisonCount: number;
   futureComparisonCount: number;
   insufficientComparisonCount: number;
+  sourceGapComparisonCount: number;
 };
 
 type InterventionEventRow = {
@@ -219,6 +221,23 @@ function eventRow(input: {
   };
 }
 
+function busLaneSourceGapEventRow(input: {
+  routeId: string;
+  analysisMonth: string;
+}): InterventionEventRow {
+  return {
+    eventId: `bus-lane-source-gap:${input.routeId}:${input.analysisMonth}`,
+    routeId: input.routeId,
+    interventionType: "bus_lane_infrastructure",
+    sourceId: busLaneSourceId,
+    program: "NYC DOT Bus Lanes",
+    implementationDate: `${input.analysisMonth}-01T00:00:00.000Z`,
+    implementationMonth: input.analysisMonth,
+    eventStatus: "source_gap",
+    description: `NYC DOT bus lane match for ${input.routeId}; route-level implementation date is not available in the current pipeline evidence.`,
+  };
+}
+
 function buildComparison(input: {
   event: InterventionEventRow;
   analysisMonth: string;
@@ -296,6 +315,39 @@ function buildComparison(input: {
   };
 }
 
+function buildBusLaneSourceGapComparison(input: {
+  event: InterventionEventRow;
+  analysisMonth: string;
+}) {
+  return {
+    routeId: input.event.routeId,
+    month: input.analysisMonth,
+    eventId: input.event.eventId,
+    interventionType: input.event.interventionType,
+    sourceId: input.event.sourceId,
+    evaluationLevel: "not_evaluated_source_gap",
+    comparisonStatus: "source_gap_missing_implementation_date",
+    preStartMonth: null,
+    preEndMonth: null,
+    postStartMonth: null,
+    postEndMonth: null,
+    requestedPreMonthCount: 0,
+    requestedPostMonthCount: 0,
+    preSampleMonthCount: 0,
+    postSampleMonthCount: 0,
+    preSpeedObservationCount: 0,
+    postSpeedObservationCount: 0,
+    preAverageSpeedMph: null,
+    postAverageSpeedMph: null,
+    speedDeltaMph: null,
+    preAverageMonthlyRidership: null,
+    postAverageMonthlyRidership: null,
+    ridershipDelta: null,
+    caveat:
+      "NYC DOT bus lane geometry is matched to the route, but this pipeline has no route-level implementation date for a before/after comparison.",
+  };
+}
+
 function parseCliArgs(args: string[]): RouteInterventionEvaluationArgs {
   const extraOptions: CliOption<RouteInterventionEvaluationArgs>[] = [
     numberOption(["--window-months"], (output, value) => {
@@ -327,18 +379,21 @@ export async function buildRouteInterventionEvaluation(
       const publicRouteIds = new Set(
         briefs.filter((brief) => brief.publicVisible).map((brief) => brief.routeId),
       );
+      const busLaneMatchedRouteIds = briefs
+        .filter((brief) => brief.publicVisible && brief.busLaneMatchedLaneCount > 0)
+        .map((brief) => brief.routeId);
       const relevantAceRoutes = aceRoutes.filter((route) => publicRouteIds.has(route.routeId));
       const trendsByRouteMonth = new Map(
         trends.map((trend) => [trendKey(trend.routeId, trend.month), trend]),
       );
-      const events = relevantAceRoutes.map((route) =>
+      const aceEvents = relevantAceRoutes.map((route) =>
         eventRow({
           route,
           implementationMonth: implementationMonthFromDate(route.implementationDate),
           analysisMonth: options.isoMonth,
         }),
       );
-      const comparisons = events.map((event) =>
+      const aceComparisons = aceEvents.map((event) =>
         buildComparison({
           event,
           analysisMonth: options.isoMonth,
@@ -347,21 +402,45 @@ export async function buildRouteInterventionEvaluation(
           trendsByRouteMonth,
         }),
       );
+      const busLaneEvents = busLaneMatchedRouteIds.map((routeId) =>
+        busLaneSourceGapEventRow({
+          routeId,
+          analysisMonth: options.isoMonth,
+        }),
+      );
+      const busLaneComparisons = busLaneEvents.map((event) =>
+        buildBusLaneSourceGapComparison({
+          event,
+          analysisMonth: options.isoMonth,
+        }),
+      );
 
       return {
         routeCount: publicRouteIds.size,
-        events,
-        comparisons,
+        events: [...aceEvents, ...busLaneEvents],
+        comparisons: [...aceComparisons, ...busLaneComparisons],
       };
     },
   );
 
-  await withLocalPipelineDb(options.dbPath, (local) =>
-    replaceRouteInterventionEvaluationRows(local.db, options.isoMonth, sourceId, {
-      events,
-      comparisons,
-    }),
-  );
+  const aceRows = {
+    events: events.filter((event) => event.sourceId === sourceId),
+    comparisons: comparisons.filter((comparison) => comparison.sourceId === sourceId),
+  };
+  const busLaneRows = {
+    events: events.filter((event) => event.sourceId === busLaneSourceId),
+    comparisons: comparisons.filter((comparison) => comparison.sourceId === busLaneSourceId),
+  };
+
+  await withLocalPipelineDb(options.dbPath, async (local) => {
+    await replaceRouteInterventionEvaluationRows(local.db, options.isoMonth, sourceId, aceRows);
+    await replaceRouteInterventionEvaluationRows(
+      local.db,
+      options.isoMonth,
+      busLaneSourceId,
+      busLaneRows,
+    );
+  });
 
   return {
     isoMonth: options.isoMonth,
@@ -376,6 +455,9 @@ export async function buildRouteInterventionEvaluation(
     ).length,
     insufficientComparisonCount: comparisons.filter((comparison) =>
       comparison.comparisonStatus.startsWith("insufficient_"),
+    ).length,
+    sourceGapComparisonCount: comparisons.filter((comparison) =>
+      comparison.comparisonStatus.startsWith("source_gap_"),
     ).length,
   };
 }

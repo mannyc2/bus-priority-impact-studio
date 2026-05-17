@@ -135,15 +135,17 @@ describe("route intervention evaluation", () => {
       expect(result).toEqual({
         isoMonth: "2026-03",
         routeCount: 2,
-        eventCount: 2,
-        comparisonCount: 2,
+        eventCount: 4,
+        comparisonCount: 4,
         evaluatedComparisonCount: 1,
         futureComparisonCount: 1,
         insufficientComparisonCount: 0,
+        sourceGapComparisonCount: 2,
       });
       expect(comparisons).toEqual([
         expect.objectContaining({
           routeId: "T1",
+          sourceId: "mta_ace_routes",
           evaluationLevel: "descriptive_before_after",
           comparisonStatus: "evaluated",
           preStartMonth: "2025-11",
@@ -160,14 +162,32 @@ describe("route intervention evaluation", () => {
           ridershipDelta: 300,
         }),
         expect.objectContaining({
+          routeId: "T1",
+          sourceId: "nyc_dot_bus_lanes",
+          interventionType: "bus_lane_infrastructure",
+          evaluationLevel: "not_evaluated_source_gap",
+          comparisonStatus: "source_gap_missing_implementation_date",
+          speedDeltaMph: null,
+        }),
+        expect.objectContaining({
           routeId: "T2",
+          sourceId: "mta_ace_routes",
           evaluationLevel: "not_evaluated_future",
           comparisonStatus: "future_intervention",
           postSampleMonthCount: 0,
         }),
+        expect.objectContaining({
+          routeId: "T2",
+          sourceId: "nyc_dot_bus_lanes",
+          interventionType: "bus_lane_infrastructure",
+          evaluationLevel: "not_evaluated_source_gap",
+          comparisonStatus: "source_gap_missing_implementation_date",
+          speedDeltaMph: null,
+        }),
       ]);
       expect(comparisons[0]?.caveat).toContain("Descriptive before/after only");
-      expect(comparisons[1]?.caveat).toContain("after the analysis month");
+      expect(comparisons[1]?.caveat).toContain("no route-level implementation date");
+      expect(comparisons[2]?.caveat).toContain("after the analysis month");
     } finally {
       local.sqlite.close();
     }
