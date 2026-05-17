@@ -15,6 +15,9 @@ type PipelineV1AuditArgs = {
   realtimeMonth?: number;
   runId?: string;
   dbPath?: string;
+  cleanDbPath?: string;
+  cleanArtifactRoot?: string;
+  cleanExportRoot?: string;
   sourceMetadataDir?: string;
   now?: Date;
   minGtfsRtCollectionHours?: number;
@@ -55,8 +58,10 @@ type PipelineV1AuditResult = {
     publicStructuralStatus: string;
     publicStrictStatus: string;
     realtimePreflightStatus: string;
+    cleanRebuildStatus: string | null;
     publicStrictIssues: string[];
     realtimePreflightIssues: string[];
+    cleanRebuildIssues: string[];
   };
   recommendation: string;
 };
@@ -116,6 +121,30 @@ function parseArgs(args: string[]): Required<PipelineV1AuditArgs> {
     },
     dbOption(fromCliPath),
     {
+      flags: ["--clean-db"],
+      apply: (target, value) => {
+        if (value !== undefined) {
+          target.cleanDbPath = fromCliPath(value);
+        }
+      },
+    },
+    {
+      flags: ["--clean-artifact-root"],
+      apply: (target, value) => {
+        if (value !== undefined) {
+          target.cleanArtifactRoot = fromCliPath(value);
+        }
+      },
+    },
+    {
+      flags: ["--clean-export-root"],
+      apply: (target, value) => {
+        if (value !== undefined) {
+          target.cleanExportRoot = fromCliPath(value);
+        }
+      },
+    },
+    {
       flags: ["--source-metadata-dir"],
       apply: (target, value) => {
         if (value !== undefined) {
@@ -161,6 +190,9 @@ function parseArgs(args: string[]): Required<PipelineV1AuditArgs> {
     realtimeMonth,
     runId: parsed.runId ?? "",
     dbPath: parsed.dbPath ?? "",
+    cleanDbPath: parsed.cleanDbPath ?? "",
+    cleanArtifactRoot: parsed.cleanArtifactRoot ?? "",
+    cleanExportRoot: parsed.cleanExportRoot ?? "",
     sourceMetadataDir: parsed.sourceMetadataDir ?? "",
     now: parsed.now ?? new Date(0),
     minGtfsRtCollectionHours: parsed.minGtfsRtCollectionHours ?? 0,
@@ -217,6 +249,20 @@ export async function auditPipelineV1(
   const artifactRootArg =
     args.artifactRoot === undefined ? {} : { artifactRoot: args.artifactRoot };
   const exportRootArg = args.exportRoot === undefined ? {} : { exportRoot: args.exportRoot };
+  const cleanRebuild =
+    args.cleanDbPath === undefined
+      ? null
+      : await checkPipelineV1({
+          year: publicYear,
+          month: publicMonth,
+          dbPath: args.cleanDbPath,
+          ...sourceMetadataArg,
+          ...nowArg,
+          ...minCollectionHoursArg,
+          ...(args.cleanArtifactRoot === undefined ? {} : { artifactRoot: args.cleanArtifactRoot }),
+          ...(args.cleanExportRoot === undefined ? {} : { exportRoot: args.cleanExportRoot }),
+          allowInsufficientGtfsRt: true,
+        });
 
   const publicStructural = await checkPipelineV1({
     year: publicYear,
@@ -253,14 +299,30 @@ export async function auditPipelineV1(
 
   const monthSplit = publicIsoMonth !== realtimeIsoMonth;
   const realtimeHasSpeedCoverage = realtimeCoverage.speedRoutes > 0;
+  const cleanRebuildEvidence =
+    cleanRebuild === null
+      ? ""
+      : ` Clean rebuild check is ${cleanRebuild.status}; built routes ${cleanRebuild.counts.builtRouteCount}/${cleanRebuild.counts.buildEligibleRouteCount}.`;
+  const cleanRebuildIssues =
+    cleanRebuild === null
+      ? ["Clean rebuild from an empty local DB still needs to be run and recorded."]
+      : cleanRebuild.issues.map((issue) => issue.code);
+  const reproduciblePipelineStatus =
+    publicStructural.status !== "pass"
+      ? "blocked"
+      : cleanRebuild?.status === "pass"
+        ? "pass"
+        : "partial";
   const checklist: PipelineV1AuditChecklistItem[] = [
     {
       requirement: "Reproducible full-network public-source pipeline",
-      status: publicStructural.status === "pass" ? "partial" : "blocked",
-      evidence: `${publicIsoMonth} structural check is ${publicStructural.status}; built routes ${publicStructural.counts.builtRouteCount}/${publicStructural.counts.buildEligibleRouteCount}.`,
+      status: reproduciblePipelineStatus,
+      evidence: `${publicIsoMonth} structural check is ${publicStructural.status}; built routes ${publicStructural.counts.builtRouteCount}/${publicStructural.counts.buildEligibleRouteCount}.${cleanRebuildEvidence}`,
       missing:
         publicStructural.status === "pass"
-          ? ["Clean rebuild from an empty local DB still needs to be run and recorded."]
+          ? cleanRebuild?.status === "pass"
+            ? []
+            : cleanRebuildIssues
           : publicStructural.issues.map((issue) => issue.code),
     },
     {
@@ -353,8 +415,10 @@ export async function auditPipelineV1(
       publicStructuralStatus: publicStructural.status,
       publicStrictStatus: publicStrict.status,
       realtimePreflightStatus: realtimePreflight.status,
+      cleanRebuildStatus: cleanRebuild?.status ?? null,
       publicStrictIssues: publicStrict.issues.map((issue) => issue.code),
       realtimePreflightIssues: realtimePreflight.issues.map((issue) => issue.code),
+      cleanRebuildIssues: cleanRebuild?.issues.map((issue) => issue.code) ?? [],
     },
     recommendation,
   };
@@ -379,6 +443,15 @@ export async function auditPipelineV1FromCli(args: string[]): Promise<PipelineV1
   }
   if (parsed.dbPath.length > 0) {
     auditArgs.dbPath = parsed.dbPath;
+  }
+  if (parsed.cleanDbPath.length > 0) {
+    auditArgs.cleanDbPath = parsed.cleanDbPath;
+  }
+  if (parsed.cleanArtifactRoot.length > 0) {
+    auditArgs.cleanArtifactRoot = parsed.cleanArtifactRoot;
+  }
+  if (parsed.cleanExportRoot.length > 0) {
+    auditArgs.cleanExportRoot = parsed.cleanExportRoot;
   }
   if (parsed.sourceMetadataDir.length > 0) {
     auditArgs.sourceMetadataDir = parsed.sourceMetadataDir;

@@ -1185,6 +1185,40 @@ describe("pipeline v1 check", () => {
     expect(written).toEqual(expect.objectContaining({ status: "partial", publicMonth: isoMonth }));
   });
 
+  test("marks the reproducible pipeline requirement pass when clean rebuild proof is supplied", async () => {
+    await writeFixtureNetwork({ includeObservedAndInterventions: true });
+
+    const result = await auditPipelineV1({
+      publicYear: 2026,
+      publicMonth: 11,
+      realtimeYear: 2026,
+      realtimeMonth: 11,
+      runId: observedRunId,
+      dbPath,
+      cleanDbPath: dbPath,
+      sourceMetadataDir,
+      now: fixtureNow,
+      minGtfsRtCollectionHours: 0.1,
+      output: auditOutputPath,
+    });
+    const reproduciblePipeline = result.checklist.find(
+      (item) => item.requirement === "Reproducible full-network public-source pipeline",
+    );
+
+    expect(result.gates).toEqual(
+      expect.objectContaining({
+        cleanRebuildStatus: "pass",
+        cleanRebuildIssues: [],
+      }),
+    );
+    expect(reproduciblePipeline).toEqual(
+      expect.objectContaining({
+        status: "pass",
+        missing: [],
+      }),
+    );
+  });
+
   test("blocks the audit when public-source and realtime months do not align", async () => {
     await writeFixtureNetwork({ includeObservedAndInterventions: true });
 
