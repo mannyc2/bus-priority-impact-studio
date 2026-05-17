@@ -99,6 +99,29 @@ function groupSamplesByRoute(
   return output;
 }
 
+function monthTimeBounds(isoMonth: string): { startSeconds: number; endSeconds: number } {
+  const [yearValue, monthValue] = isoMonth.split("-");
+  const year = Number(yearValue);
+  const month = Number(monthValue);
+  const startSeconds = Date.UTC(year, month - 1, 1, 0, 0, 0) / 1000;
+  const endSeconds = Date.UTC(year, month, 1, 0, 0, 0) / 1000;
+
+  return { startSeconds, endSeconds };
+}
+
+function samplesForMonth(
+  samples: readonly LocalObservedHeadwaySample[],
+  isoMonth: string,
+): LocalObservedHeadwaySample[] {
+  const bounds = monthTimeBounds(isoMonth);
+
+  return samples.filter(
+    (sample) =>
+      sample.observedTimestamp >= bounds.startSeconds &&
+      sample.observedTimestamp < bounds.endSeconds,
+  );
+}
+
 function expectedWaitMinutes(headwayMinutes: readonly number[]): number | null {
   const sum = headwayMinutes.reduce((total, value) => total + value, 0);
   if (sum <= 0) {
@@ -240,7 +263,7 @@ export async function buildRouteObservedReliability(
       listRouteReliabilityBaselines(local.db, options.isoMonth),
       listObservedHeadwaySamples(local.db, runId),
     ]);
-    const samplesByRoute = groupSamplesByRoute(samples);
+    const samplesByRoute = groupSamplesByRoute(samplesForMonth(samples, options.isoMonth));
     const baselineByRoute = new Map(baselines.map((baseline) => [baseline.routeId, baseline]));
 
     return routes.map((route) =>

@@ -103,6 +103,7 @@ async function writeFixtureNetwork(options: {
   includeObservedAndInterventions: boolean;
   includeGtfsRtProvenance?: boolean;
   includeRouteTrends?: boolean;
+  gtfsRtOutsideMonth?: boolean;
 }) {
   await removeFixtureArtifacts();
   const local = await openLocalPipelineDb(dbPath);
@@ -327,10 +328,12 @@ async function writeFixtureNetwork(options: {
         ],
       });
       if (options.includeGtfsRtProvenance !== false) {
+        const gtfsRtDatePrefix = options.gtfsRtOutsideMonth ? "2026-10-01" : "2026-11-01";
+        const gtfsRtTimestampBase = options.gtfsRtOutsideMonth ? 1_790_812_800 : 1_793_491_200;
         await insertGtfsRtCollectionRun(local.db, {
           runId: observedRunId,
-          startedAt: "2026-11-01T00:00:00.000Z",
-          endedAt: "2026-11-01T00:10:00.000Z",
+          startedAt: `${gtfsRtDatePrefix}T00:00:00.000Z`,
+          endedAt: `${gtfsRtDatePrefix}T00:10:00.000Z`,
           status: "completed",
           requestedDurationSeconds: 600,
           sampleSeconds: 30,
@@ -347,7 +350,7 @@ async function writeFixtureNetwork(options: {
             feedType: "vehicle_positions",
             sampleIndex,
             sourceId: "bus_time_gtfsrt_vehicle_positions",
-            fetchedAt: `2026-11-01T00:${String(sampleIndex - 1).padStart(2, "0")}:00.000Z`,
+            fetchedAt: `${gtfsRtDatePrefix}T00:${String(sampleIndex - 1).padStart(2, "0")}:00.000Z`,
             status: "ok",
             httpStatus: 200,
             byteLength: 100,
@@ -365,7 +368,7 @@ async function writeFixtureNetwork(options: {
             parsedAt: "2026-11-01T00:00:01.000Z",
             status: "parsed",
             gtfsRealtimeVersion: "2.0",
-            feedTimestamp: 1_793_491_200,
+            feedTimestamp: gtfsRtTimestampBase,
             entityCount: 2,
             vehiclePositionCount: 2,
             tripUpdateCount: 0,
@@ -389,8 +392,8 @@ async function writeFixtureNetwork(options: {
             stopId: "S1",
             previousVehicleKey: `bus-${index}`,
             vehicleKey: `bus-${index + 1}`,
-            previousObservedTimestamp: 1_793_491_200 + index * 600,
-            observedTimestamp: 1_793_491_500 + index * 600,
+            previousObservedTimestamp: gtfsRtTimestampBase + index * 600,
+            observedTimestamp: gtfsRtTimestampBase + 300 + index * 600,
             headwaySeconds: 300,
             headwayMinutes: 5,
           })),
@@ -624,6 +627,7 @@ async function replaceWithInsufficientObservedReliability(): Promise<void> {
   } finally {
     local.sqlite.close();
   }
+  await buildBriefArtifacts({ year: 2026, month: 11, dbPath });
 }
 
 async function replaceWithBelowThresholdObservedReliability(): Promise<void> {
@@ -691,6 +695,7 @@ async function replaceWithBelowThresholdObservedReliability(): Promise<void> {
   } finally {
     local.sqlite.close();
   }
+  await buildBriefArtifacts({ year: 2026, month: 11, dbPath });
 }
 
 async function replaceWithCorridorAssignmentStatus(
@@ -790,9 +795,12 @@ describe("pipeline v1 check", () => {
         gtfsRtSuccessfulFeedSnapshotRows: 10,
         gtfsRtSuccessfulVehiclePositionSnapshotRows: 10,
         gtfsRtRequiredVehiclePositionSnapshotRows: 10,
+        gtfsRtCollectionRunMonthMismatchRows: 0,
+        gtfsRtFeedSnapshotMonthMismatchRows: 0,
         gtfsRtParsedSnapshotRows: 1,
         gtfsRtParsedVehiclePositionSnapshotRows: 1,
         gtfsRtObservedHeadwaySampleRows: 42,
+        gtfsRtObservedHeadwaySampleMonthMismatchRows: 0,
         routeInterventionComparisonRows: 2,
         evaluatedInterventionComparisonRows: 1,
         evaluatedInterventionComparisonRidershipDeltaRows: 1,
@@ -860,6 +868,31 @@ describe("pipeline v1 check", () => {
     expect(result.status).toBe("fail");
     expect(result.issues.map((issue) => issue.code)).toEqual(
       expect.arrayContaining(["gtfs_rt_collection_cadence_too_sparse"]),
+    );
+  });
+
+  test("fails strict mode when observed reliability provenance is outside the analysis month", async () => {
+    await writeFixtureNetwork({
+      includeObservedAndInterventions: true,
+      gtfsRtOutsideMonth: true,
+    });
+
+    const result = await checkPipelineV1(checkArgs());
+
+    expect(result.status).toBe("fail");
+    expect(result.counts).toEqual(
+      expect.objectContaining({
+        gtfsRtCollectionRunMonthMismatchRows: 1,
+        gtfsRtFeedSnapshotMonthMismatchRows: 10,
+        gtfsRtObservedHeadwaySampleMonthMismatchRows: 42,
+      }),
+    );
+    expect(result.issues.map((issue) => issue.code)).toEqual(
+      expect.arrayContaining([
+        "gtfs_rt_collection_month_mismatch",
+        "gtfs_rt_feed_snapshot_month_mismatch",
+        "observed_headway_sample_month_mismatch",
+      ]),
     );
   });
 

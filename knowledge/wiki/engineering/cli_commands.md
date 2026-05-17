@@ -65,7 +65,7 @@ Expected outputs:
 - route/month observed reliability summaries with bunching, long-gap, expected-wait, and insufficient-sample status
 - JSON preflight readiness covering `MTA_BUS_TIME_API_KEY`, collection runs, collection window/cadence/snapshot coverage, successful vehicle-position snapshots, parsed vehicle-position rows, observed headway samples, and route/month observed reliability rows
 
-Collection requires `MTA_BUS_TIME_API_KEY`; `gtfs-rt:preflight` reports whether it is set without printing the key. Persisted rows use redacted feed URLs and must not store the API key.
+Collection requires `MTA_BUS_TIME_API_KEY`; `gtfs-rt:preflight` reports whether it is set without printing the key. Persisted rows use redacted feed URLs and must not store the API key. `route-observed-reliability` filters observed headway samples to the requested analysis month, and strict v1 QA rejects collection/snapshot/headway provenance outside that month.
 
 ## Ingest commands
 
@@ -176,7 +176,7 @@ Expected outputs:
 - D1 seed SQL or import-ready rows
 - D1 export summaries with schema/seed byte lengths and SHA-256 hashes
 - D1 verification summaries that load generated seed SQL, validate expected-vs-loaded serving row counts, and exercise typed repository readback
-- strict v1 QA result covering local route/corridor evidence, required source probe freshness, GTFS-RT collection window/cadence/snapshot coverage, GTFS-RT parse/headway provenance, observed-route and observed-sample coverage, corridor assignment ambiguity/unassigned thresholds, route-batch audit file and JSON-contract output, and D1 readback
+- strict v1 QA result covering local route/corridor evidence, required source probe freshness, GTFS-RT analysis-month alignment, GTFS-RT collection window/cadence/snapshot coverage, GTFS-RT parse/headway provenance, observed-route and observed-sample coverage, corridor assignment ambiguity/unassigned thresholds, route-batch audit file and JSON-contract output, and D1 readback
 - structural DB/export/artifact QA result when `--allow-insufficient-gtfs-rt` is used without a Bus Time collection run
 - artifact keys and hashes
 - optional R2 upload after local artifact contracts are stable
