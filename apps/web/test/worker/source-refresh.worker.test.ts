@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { runScheduledSourceRefresh } from "../../src/worker/source-refresh.js";
+import {
+  runRouteSpeedMonthlyWatcher,
+  runScheduledSourceRefresh,
+} from "../../src/worker/source-refresh.js";
 
 class FakeR2Bucket {
   readonly writes = new Map<string, ArrayBuffer | string>();
@@ -71,5 +74,77 @@ describe("scheduled source refresh", () => {
     const manifest = JSON.parse(String(bucket.writes.get(result.manifestKey ?? "")));
     expect(manifest.sourceUrl).toContain("key=REDACTED");
     expect(JSON.stringify(manifest)).not.toContain("secret-key");
+  });
+
+  it("checks route-speed publication and writes a monthly watcher artifact", async () => {
+    const bucket = new FakeR2Bucket();
+    const result = await runRouteSpeedMonthlyWatcher(
+      {
+        ARTIFACTS: bucket as unknown as R2Bucket,
+        LAST_BUILT_SPEED_MONTH: "2026-02",
+      },
+      {
+        now: new Date("2026-05-17T12:00:00.000Z"),
+        minSpeedRoutes: 2,
+        fetcher: async (input) => {
+          const url = new URL(String(input));
+          expect(url.hostname).toBe("data.ny.gov");
+          expect(url.pathname).toBe("/resource/kufs-yh3x.json");
+          expect(url.searchParams.get("$group")).toBe("year,month,route_id");
+
+          return Response.json([
+            {
+              year: "2026",
+              month: "3",
+              route_id: "M1",
+              row_count: "10",
+              bus_trip_count: "100",
+            },
+            {
+              year: "2026",
+              month: "3",
+              route_id: "M2",
+              row_count: "12",
+              bus_trip_count: "120",
+            },
+          ]);
+        },
+      },
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        status: "checked",
+        latestCompleteMonth: "2026-03",
+        lastBuiltMonth: "2026-02",
+        shouldRebuild: true,
+        artifactKey: "source-availability/route-speed-availability-worker.json",
+      }),
+    );
+    const artifact = JSON.parse(String(bucket.writes.get(result.artifactKey ?? "")));
+    expect(artifact).toEqual(
+      expect.objectContaining({
+        sourceId: "bus_segment_speeds_2025",
+        latestCompleteMonth: "2026-03",
+        shouldRebuild: true,
+      }),
+    );
+  });
+
+  it("skips route-speed publication checks when the artifacts bucket is not configured", async () => {
+    const result = await runRouteSpeedMonthlyWatcher(
+      { LAST_BUILT_SPEED_MONTH: "2026-03" },
+      { now: new Date("2026-05-17T12:00:00.000Z") },
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        status: "skipped",
+        reason: "ARTIFACTS R2 binding is not configured.",
+        latestCompleteMonth: null,
+        lastBuiltMonth: "2026-03",
+        shouldRebuild: false,
+      }),
+    );
   });
 });
