@@ -12,6 +12,10 @@ import { withLocalPipelineDb } from "../../lib/local-db.js";
 import { defaultArtifactRootPath, fromCliPath, fromRepoRoot } from "../../lib/paths.js";
 import { busLaneMatches } from "../build/route-brief-metrics.js";
 import { parseBusLaneOpenDates } from "../build/route-intervention-evaluation.js";
+import {
+  type BusObservatoryAvailabilityResult,
+  readBusObservatoryAvailabilityArtifact,
+} from "./bus-observatory-availability.js";
 import { preflightGtfsRt } from "./gtfs-rt-preflight.js";
 import { checkPipelineV1 } from "./pipeline-v1.js";
 import {
@@ -109,6 +113,9 @@ type CompletenessMetric = {
   evidence: string;
 };
 
+type ThirdPartyRecoveredGtfsRtCandidate =
+  PipelineV1AuditResult["releaseModel"]["thirdPartyRecoveredGtfsRtCandidate"];
+
 type PipelineV1AuditResult = {
   status: RequirementStatus;
   generatedAt: string;
@@ -119,6 +126,20 @@ type PipelineV1AuditResult = {
     realtimeAppendix: string;
     layers: ReleaseLayer[];
     metricCompleteness: CompletenessMetric[];
+    thirdPartyRecoveredGtfsRtCandidate: {
+      month: string;
+      status:
+        | "full_month_candidate_pending_row_level_qa"
+        | "partial_month_candidate"
+        | "missing"
+        | "not_checked";
+      gtfsRtSource: "third_party_recovered" | "none";
+      provider: string | null;
+      license: string | null;
+      artifactPath: string | null;
+      rowLevelQaRequired: boolean;
+      canPromoteObservedRelease: false;
+    };
     sameMonthPromotionReady: boolean;
     sameMonthPromotionIssues: string[];
   };
@@ -134,6 +155,7 @@ type PipelineV1AuditResult = {
   sourceAvailability: {
     routeSpeed: RouteSpeedAvailabilityResult | null;
     refreshPlan: SourceRefreshPlan | null;
+    busObservatoryGtfsRt: BusObservatoryAvailabilityResult | null;
   };
   interventions: {
     busLaneSourceGaps: BusLaneSourceGapDiagnostics;
@@ -537,6 +559,39 @@ function buildMetricCompleteness(input: {
   ];
 }
 
+function buildThirdPartyRecoveredGtfsRtCandidate(input: {
+  publicIsoMonth: string;
+  busObservatoryGtfsRt: BusObservatoryAvailabilityResult | null;
+}): ThirdPartyRecoveredGtfsRtCandidate {
+  const artifact = input.busObservatoryGtfsRt;
+  if (artifact === null || artifact.requestedMonth !== input.publicIsoMonth) {
+    return {
+      month: input.publicIsoMonth,
+      status: "not_checked",
+      gtfsRtSource: "none",
+      provider: null,
+      license: null,
+      artifactPath: null,
+      rowLevelQaRequired: true,
+      canPromoteObservedRelease: false,
+    };
+  }
+
+  return {
+    month: input.publicIsoMonth,
+    status:
+      artifact.coverage.status === "full_month_candidate"
+        ? "full_month_candidate_pending_row_level_qa"
+        : artifact.coverage.status,
+    gtfsRtSource: artifact.provenance.gtfsRtSource,
+    provider: `${artifact.provider.name} / ${artifact.provider.organization}`,
+    license: artifact.provider.license,
+    artifactPath: artifact.artifactPath ?? null,
+    rowLevelQaRequired: artifact.qa.rowLevelQaRequired,
+    canPromoteObservedRelease: false,
+  };
+}
+
 async function busLaneSourceGapDiagnostics(
   dbPath: string,
   month: string,
@@ -678,6 +733,7 @@ export async function auditPipelineV1(
     busLaneSourceGaps,
     routeSpeedAvailability,
     sourceRefreshPlan,
+    busObservatoryGtfsRt,
   ] = await Promise.all([
     preflightGtfsRt({
       year: realtimeYear,
@@ -691,6 +747,7 @@ export async function auditPipelineV1(
     busLaneSourceGapDiagnostics(dbPath ?? "", publicIsoMonth),
     readRouteSpeedAvailabilityArtifact(artifactRoot),
     readSourceRefreshPlanArtifact(artifactRoot),
+    readBusObservatoryAvailabilityArtifact(artifactRoot, publicIsoMonth),
   ]);
 
   const monthSplit = publicIsoMonth !== realtimeIsoMonth;
@@ -738,6 +795,10 @@ export async function auditPipelineV1(
     realtimeHeadwaySamples: realtimePreflight.counts.observedHeadwaySampleRows,
     peerAdjustedRows: publicStructural.counts.peerAdjustedInterventionComparisonRows,
     sameMonthPromotionReady,
+  });
+  const thirdPartyRecoveredGtfsRtCandidate = buildThirdPartyRecoveredGtfsRtCandidate({
+    publicIsoMonth,
+    busObservatoryGtfsRt,
   });
   const sourceAvailabilityMissing =
     sourceRefreshPlan === null ? ["Source-refresh plan artifact is missing."] : [];
@@ -854,7 +915,7 @@ export async function auditPipelineV1(
     {
       requirement: "Completeness-aware release labels",
       status: "pass",
-      evidence: `Release layers: ${releaseLayers.map((layer) => `${layer.label}=${layer.completenessStatus}`).join(", ")}. Metric labels: ${metricCompleteness.map((metric) => `${metric.metric}=${metric.completenessStatus}`).join(", ")}.`,
+      evidence: `Release layers: ${releaseLayers.map((layer) => `${layer.label}=${layer.completenessStatus}`).join(", ")}. Metric labels: ${metricCompleteness.map((metric) => `${metric.metric}=${metric.completenessStatus}`).join(", ")}. Third-party recovered GTFS-RT candidate=${thirdPartyRecoveredGtfsRtCandidate.status}.`,
       missing: [],
     },
   ];
@@ -879,6 +940,7 @@ export async function auditPipelineV1(
       realtimeAppendix: realtimeIsoMonth,
       layers: releaseLayers,
       metricCompleteness,
+      thirdPartyRecoveredGtfsRtCandidate,
       sameMonthPromotionReady,
       sameMonthPromotionIssues,
     },
@@ -894,6 +956,7 @@ export async function auditPipelineV1(
     sourceAvailability: {
       routeSpeed: routeSpeedAvailability,
       refreshPlan: sourceRefreshPlan,
+      busObservatoryGtfsRt,
     },
     interventions: {
       busLaneSourceGaps,

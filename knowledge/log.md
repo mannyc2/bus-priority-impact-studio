@@ -454,3 +454,7 @@ Reframed Data Pipeline v1 as the latest defensible public-source monthly release
 ## [2026-05-17] product | Completeness-aware v1 layers
 
 Extended the v1 release model from a pass/fail boundary into completeness-aware layers: `Baseline Release`, `Current Signal`, `Pending Publication`, and `Observed Release`. `audit:pipeline-v1` now emits `releaseModel.layers` plus `releaseModel.metricCompleteness` with statuses such as `complete`, `partial_realtime_only`, `partial_public_monthly_only`, `missing_speed`, `missing_realtime`, `insufficient_samples`, and `source_lag_expected`. This lets the pipeline distinguish confident baseline claims, directional current signals, unavailable claims, and expected source lag.
+
+## [2026-05-17] engineering | Bus Observatory GTFS-RT recovery probe
+
+Added `check:bus-observatory-gtfs-rt`, a TypeScript/Bun probe for the third-party Bus Observatory NYC bus GTFS-RT Parquet archive in the public `busobservatory-lake` S3 bucket. The March 2026 live probe found all 31 March-labeled files plus the 2026-04-01 bridge file, 32 files total and 3,591,483,083 bytes, and wrote `data/artifacts/source-availability/bus-observatory-gtfs-rt-2026-03.json` with `candidateLabel = third_party_full_month_candidate_pending_row_level_qa`. `audit:pipeline-v1` now reads that artifact as `releaseModel.thirdPartyRecoveredGtfsRtCandidate`, but keeps `canPromoteObservedRelease=false` until Parquet row-level QA and an import/conversion path pass.

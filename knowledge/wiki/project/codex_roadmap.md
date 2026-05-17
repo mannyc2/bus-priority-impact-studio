@@ -36,6 +36,7 @@ Current implementation baseline:
 - Strict `check:pipeline-v1` now distinguishes structural completeness from true observed-reliability completion. March 2026 passes structural verification with `--allow-insufficient-gtfs-rt`, but strict mode still fails because there are no March 2026 observed GTFS-RT headway samples.
 - April and May 2026 source coverage probes on 2026-05-17 returned scheduled routes but no speed-route coverage, so March remains the complete public-source analysis month. A May GTFS-RT run can advance the observed layer, but it cannot honestly complete the March gate.
 - `check:route-speed-availability` now makes the route segment speed release check reproducible. On 2026-05-17, it reported latest complete speed month `2026-03`; April and May 2026 are `missing_speed`.
+- `check:bus-observatory-gtfs-rt` now makes the third-party March recovery question reproducible. On 2026-05-17, it found all 31 March 2026 Bus Observatory NYC bus GTFS-RT Parquet files plus the 2026-04-01 bridge file, with `candidateLabel = third_party_full_month_candidate_pending_row_level_qa`; this is candidate evidence only until row-level QA/import passes.
 - The May GTFS-RT observed layer now passes preflight for run `gtfs-rt-v1-20260517T022348Z`: 480/480 snapshots, 358,875 parsed vehicle positions, 73,702 observed headway samples, and 229 observed route summaries.
 - `audit:pipeline-v1` now treats source lag as modeled evidence. It emits `Baseline Release`, `Current Signal`, `Pending Publication`, and `Observed Release` layers, plus per-metric completeness/confidence labels such as `complete`, `partial_realtime_only`, `missing_speed`, `missing_realtime`, `insufficient_samples`, and `source_lag_expected`.
 - The active 24-hour GTFS-RT run is live forward collection, not backfill. Production scope must include a deployed collector for live Bus Time snapshots and a monthly public-source watcher for route segment speed releases.
@@ -43,9 +44,10 @@ Current implementation baseline:
 Primary remaining roadmap:
 
 1. Ship v1 as the latest defensible public-source monthly release, currently March 2026, with May 2026 GTFS-RT attached as a completeness-labeled current observed appendix.
-2. Finish production data refresh operations: deploy/configure the scheduled GTFS-RT R2 capture hook and monthly public-source watcher, then add rebuild handoff, artifact verification, and monitoring for missed samples or source-publication lag.
-3. Reduce remaining bus-lane source gaps where public dates can be recovered, and review the peer-adjusted ACE/ABLE/bus-lane method with domain experts.
-4. Align the public frontend around proof-finding route/corridor briefs rather than a generic route analytics dashboard.
+2. Decide whether to pursue Bus Observatory recovery for March: build the Parquet import/conversion path, run row-level QA, and keep license/provenance labels explicit.
+3. Finish production data refresh operations: deploy/configure the scheduled GTFS-RT R2 capture hook and monthly public-source watcher, then add rebuild handoff, artifact verification, and monitoring for missed samples or source-publication lag.
+4. Reduce remaining bus-lane source gaps where public dates can be recovered, and review the peer-adjusted ACE/ABLE/bus-lane method with domain experts.
+5. Align the public frontend around proof-finding route/corridor briefs rather than a generic route analytics dashboard.
 
 The older phase list below remains as historical context for how the repo reached the current baseline.
 

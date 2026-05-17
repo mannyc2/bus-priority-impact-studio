@@ -175,6 +175,7 @@ bun run check:pipeline-v1 -- --year 2026 --month 3 --min-gtfs-rt-collection-hour
 bun run check:pipeline-v1 -- --year 2026 --month 3 --max-corridor-ambiguous-route-share 0.15
 bun run check:pipeline-v1 -- --year 2026 --month 3 --max-source-probe-age-days 45
 bun run check:pipeline-v1 -- --year 2026 --month 3 --allow-insufficient-gtfs-rt
+bun run check:bus-observatory-gtfs-rt -- --year 2026 --month 3
 bun --filter @bp/pipeline audit:pipeline-v1 -- --public-year 2026 --public-month 3 --realtime-year 2026 --realtime-month 5 --run-id <run_id>
 bun --filter @bp/pipeline export:artifacts -- --route M1 --month 2026-01
 bun --filter @bp/pipeline export:r2 -- --route M1 --month 2026-01
@@ -187,6 +188,7 @@ Expected outputs:
 - D1 verification summaries that load generated seed SQL, validate expected-vs-loaded serving row counts, and exercise typed repository readback
 - canonical monthly release QA result covering local route/corridor evidence, required source probe freshness, corridor assignment ambiguity/unassigned thresholds, route-batch audit file and JSON-contract output, evaluation and map artifact manifests, and D1 readback; strict same-month GTFS-RT checks remain the observed monthly promotion gate
 - structural DB/export/artifact QA result when `--allow-insufficient-gtfs-rt` is used without a Bus Time collection run
+- Bus Observatory third-party GTFS-RT availability artifact at `data/artifacts/source-availability/bus-observatory-gtfs-rt-YYYY-MM.json`, including file inventory, bridge-file coverage, provenance, CC BY-NC 4.0 license, and row-level QA requirements before use
 - prompt-to-artifact v1 audit JSON at `data/artifacts/pipeline-v1/audit-<public-month>-<realtime-month>.json`, with pass/partial/blocked checklist rows for the canonical public-source month, realtime appendix, QA gates, source cadence, D1/static exports, and observed monthly promotion readiness
 - artifact keys and hashes
 - optional R2 upload after local artifact contracts are stable

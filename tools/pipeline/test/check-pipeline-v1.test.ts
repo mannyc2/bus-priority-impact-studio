@@ -26,6 +26,7 @@ import {
 import { buildBriefArtifacts } from "../src/jobs/build/brief-artifacts.js";
 import { buildEvaluationArtifacts } from "../src/jobs/build/evaluation-artifacts.js";
 import { buildMapArtifacts } from "../src/jobs/build/map-artifacts.js";
+import { busObservatoryAvailabilityArtifactPath } from "../src/jobs/check/bus-observatory-availability.js";
 import { checkPipelineV1 } from "../src/jobs/check/pipeline-v1.js";
 import { auditPipelineV1 } from "../src/jobs/check/pipeline-v1-audit.js";
 import { routeSpeedAvailabilityArtifactPath } from "../src/jobs/check/route-speed-availability.js";
@@ -49,6 +50,10 @@ const routeSpeedAvailabilityPath = routeSpeedAvailabilityArtifactPath(
   fromRepoRoot(join("data/artifacts")),
 );
 const sourceRefreshPlanPath = sourceRefreshPlanArtifactPath(fromRepoRoot(join("data/artifacts")));
+const busObservatoryAvailabilityPath = busObservatoryAvailabilityArtifactPath(
+  fromRepoRoot(join("data/artifacts")),
+  isoMonth,
+);
 const corridorShapeReviewDir = fromRepoRoot(join("data/artifacts/route-batches", isoMonth));
 const corridorShapeReviewPath = join(corridorShapeReviewDir, "corridor-shape-review.json");
 const mapRawDir = fromRepoRoot(join("data/fixtures/check-pipeline-v1/map-raw"));
@@ -83,6 +88,7 @@ async function removeFixtureArtifacts(): Promise<void> {
     rm(mapArtifactDir, { force: true, recursive: true }),
     rm(dirname(routeSpeedAvailabilityPath), { force: true, recursive: true }),
     rm(dirname(sourceRefreshPlanPath), { force: true, recursive: true }),
+    rm(dirname(busObservatoryAvailabilityPath), { force: true, recursive: true }),
     rm(corridorShapeReviewDir, { force: true, recursive: true }),
     rm(mapRawDir, { force: true, recursive: true }),
     rm(sourceMetadataDir, { force: true, recursive: true }),
@@ -217,6 +223,68 @@ async function writeSourceRefreshPlanArtifact(): Promise<void> {
           },
         ],
         artifactPath: sourceRefreshPlanPath,
+      },
+      null,
+      2,
+    )}\n`,
+  );
+}
+
+async function writeBusObservatoryAvailabilityArtifact(): Promise<void> {
+  await mkdir(dirname(busObservatoryAvailabilityPath), { recursive: true });
+  await Bun.write(
+    busObservatoryAvailabilityPath,
+    `${JSON.stringify(
+      {
+        sourceId: "bus_observatory_nyct_mta_bus_gtfsrt",
+        checkedAt: "2026-11-15T00:00:00.000Z",
+        requestedMonth: isoMonth,
+        provider: {
+          name: "Bus Observatory",
+          organization: "Jacobs Urban Tech Hub at Cornell Tech",
+          documentationUrl: "https://api.busobservatory.org/nyct",
+          bucket: "busobservatory-lake",
+          prefix: "feeds/nyct_mta_bus_gtfsrt/",
+          license: "CC BY-NC 4.0",
+          attributionRequired: true,
+        },
+        provenance: {
+          gtfsRtSource: "third_party_recovered",
+          officialMtaBackfill: false,
+          officialSelfCollected: false,
+          rawFormat: "parquet",
+          feedName: "nyct_mta_bus_gtfsrt",
+          compactedWindowNote: "Fixture compacted window note.",
+        },
+        coverage: {
+          expectedMonthFileDates: ["2026-11-01"],
+          foundMonthFileDates: ["2026-11-01"],
+          missingMonthFileDates: [],
+          bridgeFileDate: "2026-12-01",
+          bridgeFilePresent: true,
+          fileCount: 2,
+          totalSizeBytes: 2000,
+          minFileSizeBytes: 1000,
+          maxFileSizeBytes: 1000,
+          status: "full_month_candidate",
+          candidateLabel: "third_party_full_month_candidate_pending_row_level_qa",
+        },
+        objects: [
+          {
+            key: "feeds/nyct_mta_bus_gtfsrt/COMPACTED_nyct_mta_bus_gtfsrt_2026-11-01_18:03:00.parquet",
+            date: "2026-11-01",
+            lastModified: "2026-11-01T18:03:02.000Z",
+            sizeBytes: 1000,
+            url: "https://busobservatory-lake.s3.amazonaws.com/feeds/nyct_mta_bus_gtfsrt/COMPACTED_nyct_mta_bus_gtfsrt_2026-11-01_18%3A03%3A00.parquet",
+          },
+        ],
+        qa: {
+          rowLevelQaRequired: true,
+          checksBeforeUse: ["Fixture row-level QA check."],
+          limitations: ["Fixture limitation."],
+        },
+        nextActions: ["Fixture next action."],
+        artifactPath: busObservatoryAvailabilityPath,
       },
       null,
       2,
@@ -1815,6 +1883,7 @@ describe("pipeline v1 check", () => {
     await writeFixtureNetwork({ includeObservedAndInterventions: true });
     await writeRouteSpeedAvailabilityArtifact();
     await writeSourceRefreshPlanArtifact();
+    await writeBusObservatoryAvailabilityArtifact();
 
     const result = await auditPipelineV1({
       publicYear: 2026,
@@ -1873,6 +1942,15 @@ describe("pipeline v1 check", () => {
             completenessStatus: "partial_realtime_only",
           }),
         ]),
+        thirdPartyRecoveredGtfsRtCandidate: expect.objectContaining({
+          month: isoMonth,
+          status: "full_month_candidate_pending_row_level_qa",
+          gtfsRtSource: "third_party_recovered",
+          provider: "Bus Observatory / Jacobs Urban Tech Hub at Cornell Tech",
+          license: "CC BY-NC 4.0",
+          rowLevelQaRequired: true,
+          canPromoteObservedRelease: false,
+        }),
         sameMonthPromotionReady: true,
         sameMonthPromotionIssues: [],
       }),
@@ -1938,6 +2016,14 @@ describe("pipeline v1 check", () => {
         ]),
       }),
     );
+    expect(result.sourceAvailability.busObservatoryGtfsRt).toEqual(
+      expect.objectContaining({
+        requestedMonth: isoMonth,
+        coverage: expect.objectContaining({
+          status: "full_month_candidate",
+        }),
+      }),
+    );
     expect(
       result.checklist.find(
         (item) => item.requirement === "Source cadence and release availability",
@@ -1973,6 +2059,9 @@ describe("pipeline v1 check", () => {
               completenessStatus: "partial_public_monthly_only",
             }),
           ]),
+          thirdPartyRecoveredGtfsRtCandidate: expect.objectContaining({
+            status: "full_month_candidate_pending_row_level_qa",
+          }),
           sameMonthPromotionReady: true,
         }),
         publicMonth: isoMonth,

@@ -73,6 +73,15 @@ const commands = {
       return checkRouteSpeedAvailabilityFromCli(args);
     },
   },
+  "check:bus-observatory-gtfs-rt": {
+    description: "Check third-party Bus Observatory GTFS-RT archive availability.",
+    run: async (args) => {
+      const { checkBusObservatoryAvailabilityFromCli } = await import(
+        "./jobs/check/bus-observatory-availability.js"
+      );
+      return checkBusObservatoryAvailabilityFromCli(args);
+    },
+  },
   "plan:source-refresh": {
     description: "Write production source refresh plan for GTFS-RT and monthly speed data.",
     run: async (args) => {
