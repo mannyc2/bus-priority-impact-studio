@@ -130,7 +130,13 @@ function utcDateForParts(monthNumber: number, dayOfMonth: number, year: number):
 }
 
 function parseBusLaneOpenDateToken(token: string): string | null {
-  const parts = token.trim().match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
+  const trimmed = token.trim();
+  const yearOnly = trimmed.match(/^(\d{4})$/);
+  if (yearOnly !== null) {
+    return utcDateForParts(1, 1, Number(yearOnly[1]));
+  }
+
+  const parts = trimmed.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
   if (parts === null) {
     return null;
   }

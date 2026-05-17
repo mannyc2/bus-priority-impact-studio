@@ -318,5 +318,8 @@ describe("route intervention evaluation", () => {
     expect(parseBusLaneOpenDates("6/99")).toEqual([
       { sourceValue: "6/99", date: "1999-06-01T00:00:00.000Z", month: "1999-06" },
     ]);
+    expect(parseBusLaneOpenDates("2017,???")).toEqual([
+      { sourceValue: "2017", date: "2017-01-01T00:00:00.000Z", month: "2017-01" },
+    ]);
   });
 });
