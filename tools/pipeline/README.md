@@ -43,3 +43,9 @@ bun --filter @bp/pipeline audit:pipeline-v1 -- --public-year 2026 --public-month
 `build:observed-headways` collapses parsed vehicle-position stop signals into observed stop events and headway samples.
 `route-observed-reliability` aggregates observed headway samples into route/month reliability summaries with bunching, long-gap, expected-wait, and sample-confidence status.
 M1 commands remain as compatibility/fixture helpers, but the v1 product boundary is the full-network pipeline and full route/corridor brief set.
+
+## Source cadence
+
+GTFS-RT is live collection, not a historical backfill. A 24-hour run at a 30-second cadence grows from `0/2880` to `2880/2880` as snapshots are fetched, so a partial count such as `151/2880` means the run is still in progress. Missed realtime windows cannot be reconstructed from the public Bus Time feed.
+
+MTA Bus Route Segment Speeds are monthly public aggregates. The route-speed availability checker should be used as the rebuild trigger: poll the current and previous month, compare the latest complete speed month with the last built month, and rebuild only when `releaseDecision.shouldRebuild` is true. On 2026-05-17, January, February, and March 2026 were complete; April and May 2026 had no route-speed rows.

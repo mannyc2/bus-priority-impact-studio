@@ -90,7 +90,7 @@ Latest local verification after the March 2026 v1 catch-up run:
 - `bun run check:pipeline-v1 -- --year 2026 --month 3` now fails strict v1 QA on `observed_reliability_no_observed_routes`, `observed_reliability_route_coverage_insufficient`, and `observed_reliability_sample_coverage_insufficient`, which is correct for the current local DB because there are 0 observed GTFS-RT headway samples. Strict QA also validates that observed summaries are backed by a completed GTFS-RT collection run for the analysis month, a minimum collection window, sample cadence, successful vehicle-position snapshot coverage, parsed vehicle-position snapshots, persisted observed headway rows, a configurable observed-route coverage threshold, per-route sample thresholds, corridor shape-review coverage, and fresh required source probe captures.
 - `bun run check:pipeline-v1 -- --year 2026 --month 3 --allow-insufficient-gtfs-rt` passes with 0 issues as a structural DB/export/artifact check only. This is not a v1 completion signal.
 - `bun run gtfs-rt:preflight -- --year 2026 --month 5 --run-id gtfs-rt-smoke-2026-05-17` confirms the local API key is present without printing it and that collection/ingestion works; the one-snapshot smoke run parsed 1,290 vehicle positions. It still fails strict readiness because the run is only a one-minute smoke test with no observed headways or route reliability. For March 2026, strict `check:pipeline-v1` remains the v1 completion gate and still requires a production-length observed reliability run.
-- April and May 2026 route coverage probes on 2026-05-17 returned 375 scheduled routes but 0 speed routes, so March 2026 remains the current complete public-source analysis month. A live May 2026 GTFS-RT collection can produce May observed reliability evidence, but strict QA now prevents using it to satisfy the March 2026 gate.
+- April and May 2026 route coverage probes on 2026-05-17 returned 375 scheduled routes but 0 speed routes, so March 2026 remains the current complete public-source analysis month. `check:route-speed-availability` also directly checked April 2026 on 2026-05-17 and returned 0 route-speed rows with `releaseDecision.status = no_new_complete_month` and `shouldRebuild = false` when March 2026 is the last built month. A live May 2026 GTFS-RT collection can produce May observed reliability evidence, but strict QA now prevents using it to satisfy the March 2026 gate.
 - `bun run check:route-speed-availability -- --start-year 2026 --end-year 2026 --year 2026 --month 5 --last-built-year 2026 --last-built-month 3 --min-speed-routes 300` now makes that source-publication check reproducible from the repo and writes `data/artifacts/source-availability/route-speed-availability.json` by default. On 2026-05-17 it reported latest speed month `2026-03` with 353 routes, 472,361 rows, and 7,249,761 bus trips; requested May 2026 status was `missing_speed`. The same command for April 2026 also returned `missing_speed`. When last built month is March 2026, `releaseDecision.shouldRebuild` is `false`.
 - `bun run collect:gtfs-rt -- --duration-hours 4 --sample-seconds 30 --feed-types vehicle_positions --run-id gtfs-rt-v1-20260517T022348Z` completed on 2026-05-17 with 480/480 successful vehicle-position snapshots and 0 failures. Ingest parsed 480 snapshots and 358,875 vehicle positions; observed-headway build produced 90,136 stop events and 73,702 headway samples; May 2026 route observed reliability produced 381 route rows, including 229 observed routes, 152 insufficient-sample routes, and 72,782 route-summary headway samples. `gtfs-rt:preflight -- --year 2026 --month 5 --run-id gtfs-rt-v1-20260517T022348Z` now passes strict observed-layer readiness.
 - The active 24-hour run `gtfs-rt-v1-20260517T103607Z-24h` is live forward collection, not a historical backfill. A status such as `98/2880` means 98 snapshots have been fetched since the run started out of 2,880 expected snapshots for a 24-hour, 30-second cadence. Public Bus Time GTFS-RT does not provide a historical replay API, so missed windows stay missing unless the project is already collecting.
@@ -105,7 +105,7 @@ Current v1 gaps:
 - GTFS-RT observed reliability has route/month status rows and D1 readback, but the current March 2026 run has 0 observed samples and 381 insufficient-sample rows because no production-length Bus Time collection has been run for the v1 analysis window.
 - The May 2026 observed layer now passes GTFS-RT preflight, but May cannot be the single full v1 month until public speed coverage exists for May or a later month.
 - This source-timing mismatch is expected: Bus Time GTFS-RT must be collected live during the operating month, while MTA Bus Route Segment Speeds are published later as monthly aggregate public data. The project should keep collecting realtime evidence now, then rerun strict v1 after the matching monthly speed rows appear.
-- Production scope must include two recurring source jobs after local v1 proves the contracts: a GTFS-RT collector that continuously or frequently captures live snapshots into durable raw storage, and a monthly public-source watcher that polls MTA Open Data for newly published route segment speed months before rerunning coverage/build/finalize.
+- Production scope must include two recurring source jobs after local v1 proves the contracts: a GTFS-RT collector that continuously or frequently captures live snapshots into durable raw storage, and a monthly public-source watcher that polls MTA Open Data for newly published route segment speed months before rerunning coverage/build/finalize. These are v1 operational requirements, not frontend polish.
 - Observed reliability detailed windows now exist in static route brief artifacts when samples exist; a relational D1 window table can be added later if the frontend needs direct querying beyond the artifact bodies.
 - Static detailed evaluation payloads now exist for observed reliability summaries, route intervention comparisons/events, and corridor intervention context rows. Static map payload manifests now exist for source, route, stop, bus-lane, and route-segment GeoJSON artifacts.
 - ACE/ABLE and bus-lane before/after intervention evaluation exists for March 2026. ACE/ABLE rows include 22 evaluated peer-adjusted comparisons. Bus-lane rows use the latest parseable matched NYC DOT `open_dates` as route-level event dates where available, yielding 166 dated comparison rows and 58 evaluated peer-adjusted rows in the canonical March DB. The remaining bus-lane gap is 115 source-gap rows for matched segments without parseable dates, plus external methodology review before any causal language.
@@ -151,6 +151,30 @@ bun --filter @bp/pipeline audit:pipeline-v1 -- --public-year 2026 --public-month
 ```
 
 This will still be an appendix audit, not strict v1 completion, until `check:route-speed-availability` reports a complete speed month matching a collected realtime month.
+
+## Production Source Refresh Scope
+
+The local 24-hour GTFS-RT command proves the observed reliability contract, but it does not solve continuous data availability. Bus Time GTFS-RT is live-only from this project's perspective; the feed must be captured while service is running. The monthly MTA route-speed source is the opposite shape: it is a delayed public aggregate, so the pipeline should poll for newly complete months and rebuild only when a new complete speed month appears.
+
+V1 production source refresh should therefore include two separate jobs:
+
+1. **Realtime GTFS-RT collector.** A scheduled production collector should fetch Bus Time vehicle-position snapshots at the configured cadence, store raw protobuf bodies in durable object storage, and write a small run/snapshot manifest with redacted source URLs, fetch status, byte length, checksum, feed type, and collection timestamp. It must not rely on an end-user request path, and it must keep the API key in deployed secrets only.
+2. **Monthly public-source watcher.** A scheduled watcher should run the route-speed availability check for the current and previous month, compare the latest complete month with the last successfully built month, persist the availability artifact, and trigger or queue the full coverage/build/finalize path only when `releaseDecision.shouldRebuild` is true.
+
+Initial implementation target:
+
+- Keep heavy transforms in the Bun pipeline until the Worker/R2/D1 write contracts are explicit.
+- Use Cloudflare scheduled Workers only for lightweight polling, GTFS-RT snapshot capture, status manifests, and job handoff metadata.
+- Store GTFS-RT raw snapshots in R2 or another durable artifact store, not in D1.
+- Store only compact status, manifest, and serving/export rows in D1.
+- Treat April/May 2026 missing speed coverage as expected source timing unless the watcher finds nonzero route-speed rows.
+
+Acceptance for this production refresh scope:
+
+- GTFS-RT capture can run without a desktop/local shell staying alive.
+- Raw realtime snapshots survive process restarts and are addressable by run id, date, feed type, and checksum.
+- Monthly route-speed availability writes the same decision fields as the local `check:route-speed-availability` artifact.
+- A same-month v1 release can be produced by collecting realtime during a month, waiting for that month's public speed rows, then running strict `finalize:pipeline-v1` and `audit:pipeline-v1`.
 
 ## Prompt-To-Artifact Checklist
 
