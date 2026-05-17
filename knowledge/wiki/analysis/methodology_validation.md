@@ -75,7 +75,7 @@ Source: `tools/pipeline/src/jobs/build/route-brief-metrics.ts` — `busLaneMatch
 
 **What's limited:**
 - Street name matching is approximate. Stop names like `5 AV/E 72 ST` are parsed to extract the first street (`5 AV`), which may miss lanes on cross streets that the route uses.
-- Bus-lane overlap is useful as context and source-gap detection, but public route-level bus-lane implementation dates are still needed for defensible before/after evaluation.
+- Bus-lane overlap is useful as context and source-gap detection. Route-level bus-lane before/after rows now use the latest parseable matched NYC DOT `open_dates`, but undated or unparsable matched segments remain source gaps.
 
 ## Speed and ridership profiles — correct aggregations
 
@@ -98,12 +98,13 @@ Sources: `tools/pipeline/src/jobs/build/route-brief-metrics.ts` and `tools/pipel
 - Violation counts are grouped by type with correct summation.
 - ACE/ABLE evaluated rows record raw pre/post windows, sample counts, speed/ridership deltas, peer-route comparison counts/IDs, peer baseline deltas, adjusted speed/ridership deltas, evaluation level, comparison status, and caveats.
 - Peer baselines use public comparison routes with sufficient trend rows, matched on pre-period speed and ridership, to control for networkwide seasonal shifts in the same pre/post windows.
-- Public routes with matched NYC DOT bus-lane geometry receive explicit source-gap comparison rows when route-level implementation dates are unavailable.
+- Public routes with matched NYC DOT bus-lane geometry receive dated bus-lane comparison rows when matched lane `open_dates` parse, and explicit source-gap comparison rows when matched segments do not have usable dates.
 - Strict v1 QA now fails when evaluated intervention rows lack peer-adjusted speed deltas.
 
 **What's limited:**
 - Current ACE/ABLE evaluation is still observational, not causal.
-- Dated bus-lane before/after evaluation and external transit-domain review remain open.
+- Bus-lane rows depend on route-level approximation from matched segment `open_dates`, and source gaps remain where matched segments lack parseable dates.
+- External transit-domain review remains open before making operational or causal claims.
 
 ## Observed reliability — implemented, sample-gated
 
@@ -127,7 +128,7 @@ The analysis logic is internally consistent, correctly weighted, and well-tested
 1. **Ridership granularity** — route-level proxy inflates segment-level rider-impact scores
 2. **Route score simplicity** — two-factor formula vs planned five-factor model
 3. **Observed realtime month split** — current live GTFS-RT evidence does not align with the March public-source month
-4. **Intervention methodology** — ACE/ABLE rows now include peer-adjusted deltas, but dated bus-lane evaluation remains open
-5. **Corridor precision** — hotspot-segment grouping is deterministic but still needs final shape-based corridor review
+4. **Intervention methodology** — ACE/ABLE and dated bus-lane rows now include peer-adjusted deltas where data supports them, but source gaps and external review remain
+5. **Corridor precision** — hotspot-segment grouping now has shape-review coverage, but route-to-corridor naming still needs domain review for product use
 
-For a portfolio piece demonstrating methodology, the logic is defensible and well-documented. For MTA operational use, ridership allocation, route score calibration, bus-lane intervention dating, and final corridor geometry would need domain review.
+For a portfolio piece demonstrating methodology, the logic is defensible and well-documented. For MTA operational use, ridership allocation, route score calibration, remaining bus-lane source gaps, and final corridor naming would need domain review.

@@ -342,8 +342,16 @@ export async function auditPipelineV1(
       requirement: "Before/after intervention evaluation",
       status:
         publicStructural.counts.peerAdjustedInterventionComparisonRows > 0 ? "partial" : "blocked",
-      evidence: `${publicIsoMonth} has ${publicStructural.counts.routeInterventionComparisonRows} intervention comparisons, ${publicStructural.counts.evaluatedInterventionComparisonRows} evaluated rows, and ${publicStructural.counts.peerAdjustedInterventionComparisonRows} peer-adjusted rows.`,
-      missing: ["Dated bus-lane before/after evaluation and external domain review remain open."],
+      evidence: `${publicIsoMonth} has ${publicStructural.counts.routeInterventionComparisonRows} intervention comparisons, ${publicStructural.counts.evaluatedInterventionComparisonRows} evaluated rows, ${publicStructural.counts.peerAdjustedInterventionComparisonRows} peer-adjusted rows, ${publicStructural.counts.busLaneDatedInterventionComparisonRows} dated bus-lane comparison rows, and ${publicStructural.counts.busLaneSourceGapComparisonRows} bus-lane source-gap rows.`,
+      missing: [
+        ...(publicStructural.counts.busLaneDatedInterventionComparisonRows > 0
+          ? []
+          : ["Dated bus-lane before/after evaluation remains open."]),
+        ...(publicStructural.counts.busLaneSourceGapComparisonRows > 0
+          ? ["Some matched bus-lane segments still lack parseable implementation dates."]
+          : []),
+        "External transit-domain methodology review remains open.",
+      ],
     },
     {
       requirement: "Corridor grouping and corridor briefs",

@@ -96,6 +96,7 @@ type PipelineV1Counts = {
   peerAdjustedInterventionComparisonRows: number;
   busLaneMatchedPublicRouteCount: number;
   busLaneInterventionComparisonRows: number;
+  busLaneDatedInterventionComparisonRows: number;
   busLaneSourceGapComparisonRows: number;
   sourceProbeRows: number;
   sourceProbeFreshRows: number;
@@ -727,6 +728,8 @@ export async function checkPipelineV1(
   const busLaneSourceGapComparisonRows = busLaneInterventionComparisons.filter((row) =>
     row.comparisonStatus.startsWith("source_gap_"),
   ).length;
+  const busLaneDatedInterventionComparisonRows =
+    busLaneInterventionComparisons.length - busLaneSourceGapComparisonRows;
   const routeMonthTrendSpeedRows = localState.routeMonthTrends.filter(
     (row) => row.hasSpeedTrend,
   ).length;
@@ -1352,6 +1355,7 @@ export async function checkPipelineV1(
       peerAdjustedInterventionComparisonRows,
       busLaneMatchedPublicRouteCount: busLaneMatchedPublicRouteIds.length,
       busLaneInterventionComparisonRows: busLaneInterventionComparisons.length,
+      busLaneDatedInterventionComparisonRows,
       busLaneSourceGapComparisonRows,
       sourceProbeRows: sourceFreshness.length,
       sourceProbeFreshRows: sourceFreshness.filter((row) => row.status === "fresh").length,

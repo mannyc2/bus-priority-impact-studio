@@ -1014,6 +1014,7 @@ describe("pipeline v1 check", () => {
         peerAdjustedInterventionComparisonRows: 1,
         busLaneMatchedPublicRouteCount: 1,
         busLaneInterventionComparisonRows: 1,
+        busLaneDatedInterventionComparisonRows: 0,
         busLaneSourceGapComparisonRows: 1,
         sourceProbeRows: 10,
         sourceProbeFreshRows: 10,

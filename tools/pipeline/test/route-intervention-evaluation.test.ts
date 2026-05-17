@@ -4,10 +4,15 @@ import { join } from "node:path";
 import {
   listRouteInterventionComparisons,
   replaceAceRoutes,
+  replaceBusLanes,
   replaceRouteBriefRows,
   replaceRouteMonthTrends,
+  replaceRouteStops,
 } from "@bp/db/local";
-import { buildRouteInterventionEvaluation } from "../src/jobs/build/route-intervention-evaluation.js";
+import {
+  buildRouteInterventionEvaluation,
+  parseBusLaneOpenDates,
+} from "../src/jobs/build/route-intervention-evaluation.js";
 import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
@@ -55,6 +60,54 @@ async function writeFixtureNetwork(): Promise<void> {
       peakWindows: [],
       slowestWindows: [],
     });
+    await replaceBusLanes(local.db, [
+      {
+        segmentId: "L1",
+        street: "Main St",
+        borough: "MAN",
+        facility: "Main St",
+        openDate: "8/24/82, 1/15/2026",
+        coordinates: [{ longitude: -73, latitude: 40 }],
+      },
+      {
+        segmentId: "L2",
+        street: "Broadway",
+        borough: "MAN",
+        facility: "Broadway",
+        openDate: "4/1/2026",
+        coordinates: [{ longitude: -73.01, latitude: 40.01 }],
+      },
+    ]);
+    await replaceRouteStops(local.db, "T1", "2026-03", [
+      {
+        routeId: "T1",
+        isoMonth: "2026-03",
+        routeShortName: "T1",
+        stopId: "T1-1",
+        stopName: "Main St/1 Av",
+        inEffect: true,
+        directionId: "0",
+        direction: "Northbound",
+        timepoint: true,
+        latitude: 40,
+        longitude: -73,
+      },
+    ]);
+    await replaceRouteStops(local.db, "T2", "2026-03", [
+      {
+        routeId: "T2",
+        isoMonth: "2026-03",
+        routeShortName: "T2",
+        stopId: "T2-1",
+        stopName: "Broadway/W 1 St",
+        inEffect: true,
+        directionId: "0",
+        direction: "Northbound",
+        timepoint: true,
+        latitude: 40.01,
+        longitude: -73.01,
+      },
+    ]);
     await replaceAceRoutes(local.db, [
       {
         routeId: "T1",
@@ -186,10 +239,10 @@ describe("route intervention evaluation", () => {
         routeCount: 3,
         eventCount: 4,
         comparisonCount: 4,
-        evaluatedComparisonCount: 1,
-        futureComparisonCount: 1,
+        evaluatedComparisonCount: 2,
+        futureComparisonCount: 2,
         insufficientComparisonCount: 0,
-        sourceGapComparisonCount: 2,
+        sourceGapComparisonCount: 0,
       });
       expect(comparisons).toEqual([
         expect.objectContaining({
@@ -224,9 +277,13 @@ describe("route intervention evaluation", () => {
           routeId: "T1",
           sourceId: "nyc_dot_bus_lanes",
           interventionType: "bus_lane_infrastructure",
-          evaluationLevel: "not_evaluated_source_gap",
-          comparisonStatus: "source_gap_missing_implementation_date",
-          speedDeltaMph: null,
+          evaluationLevel: "peer_adjusted_before_after",
+          comparisonStatus: "evaluated",
+          preStartMonth: "2025-11",
+          preEndMonth: "2025-12",
+          postStartMonth: "2026-02",
+          postEndMonth: "2026-03",
+          adjustedSpeedDeltaMph: 0.6667,
         }),
         expect.objectContaining({
           routeId: "T2",
@@ -239,16 +296,27 @@ describe("route intervention evaluation", () => {
           routeId: "T2",
           sourceId: "nyc_dot_bus_lanes",
           interventionType: "bus_lane_infrastructure",
-          evaluationLevel: "not_evaluated_source_gap",
-          comparisonStatus: "source_gap_missing_implementation_date",
+          evaluationLevel: "not_evaluated_future",
+          comparisonStatus: "future_intervention",
           speedDeltaMph: null,
         }),
       ]);
       expect(comparisons[0]?.caveat).toContain("Peer-adjusted before/after");
-      expect(comparisons[1]?.caveat).toContain("no route-level implementation date");
+      expect(comparisons[1]?.caveat).toContain("Peer-adjusted before/after");
       expect(comparisons[2]?.caveat).toContain("after the analysis month");
     } finally {
       local.sqlite.close();
     }
+  });
+
+  test("parses multi-value bus lane open_dates with month/year fallbacks", () => {
+    expect(parseBusLaneOpenDates("8/30/88,6/01/10,11/14/23")).toEqual([
+      { sourceValue: "8/30/88", date: "1988-08-30T00:00:00.000Z", month: "1988-08" },
+      { sourceValue: "6/01/10", date: "2010-06-01T00:00:00.000Z", month: "2010-06" },
+      { sourceValue: "11/14/23", date: "2023-11-14T00:00:00.000Z", month: "2023-11" },
+    ]);
+    expect(parseBusLaneOpenDates("6/99")).toEqual([
+      { sourceValue: "6/99", date: "1999-06-01T00:00:00.000Z", month: "1999-06" },
+    ]);
   });
 });

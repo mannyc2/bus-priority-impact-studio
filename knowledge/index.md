@@ -57,8 +57,8 @@ Read this file first. It is the navigation layer for the LLM wiki.
 
 1. Decide whether v1 ships as March structural evidence plus a May observed-reliability appendix, or waits until public speed coverage exists for a later single strict v1 month.
 2. March 2026 is structurally complete but has no March realtime samples; May 2026 has a passing observed GTFS-RT layer but no public speed coverage yet.
-3. Add seasonality-aware/matched-comparison intervention evaluation and dated bus-lane before/after analysis where source quality supports them.
-4. Add richer segment-based corridor membership, corridor intervention context, map payload manifests, and detailed evaluation manifests.
+3. Reduce remaining bus-lane source gaps where public dates can be recovered, and get external transit-domain review of the peer-adjusted ACE/ABLE/bus-lane method.
+4. Add map payload manifests and detailed evaluation manifests.
 5. Route score uses a two-factor formula; incorporate ridership weight, persistence, reliability, and intervention gap or demote score behind brief evidence.
 6. Keep the MVP TypeScript-only unless a documented requirement forces Python/PostGIS/VPS escalation.
 7. Keep D1 as a compact serving projection; promote canonical queryable history to Postgres/Hyperdrive instead of growing D1 into a warehouse.

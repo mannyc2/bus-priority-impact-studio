@@ -1,15 +1,20 @@
 import {
   type LocalAceRoute,
+  type LocalBusLane,
   type LocalRouteMonthTrend,
+  type LocalRouteStop,
   listAceRoutes,
+  listBusLanes,
   listRouteBriefSummaries,
   listRouteMonthTrends,
+  listRouteStops,
   replaceRouteInterventionEvaluationRows,
 } from "@bp/db/local";
 import { type CliOption, numberOption } from "../../lib/cli-args.js";
 import { isoMonth } from "../../lib/dates.js";
 import { withLocalPipelineDb } from "../../lib/local-db.js";
 import { createMonthContext, parseMonthDbCliArgs } from "../../lib/route-job.js";
+import { busLaneMatches } from "./route-brief-metrics.js";
 
 const sourceId = "mta_ace_routes";
 const busLaneSourceId = "nyc_dot_bus_lanes";
@@ -73,6 +78,19 @@ type PeerComparisonSummary = {
   adjustedRidershipDelta: number | null;
 };
 
+type ParsedBusLaneOpenDate = {
+  sourceValue: string;
+  date: string;
+  month: string;
+};
+
+type BusLaneDateGroup = {
+  implementationMonth: string;
+  implementationDate: string;
+  lanes: LocalBusLane[];
+  sourceValues: Set<string>;
+};
+
 function round(value: number, decimals = 4): number {
   const factor = 10 ** decimals;
   return Math.round(value * factor) / factor;
@@ -91,6 +109,61 @@ function isoMonthFromIndex(index: number): string {
   const year = Math.floor(index / 12);
   const monthNumber = (index % 12) + 1;
   return isoMonth(year, monthNumber);
+}
+
+function normalizeTwoDigitYear(year: number): number {
+  return year >= 50 ? 1900 + year : 2000 + year;
+}
+
+function utcDateForParts(monthNumber: number, dayOfMonth: number, year: number): string | null {
+  const normalizedYear = year < 100 ? normalizeTwoDigitYear(year) : year;
+  const date = new Date(Date.UTC(normalizedYear, monthNumber - 1, dayOfMonth));
+  if (
+    date.getUTCFullYear() !== normalizedYear ||
+    date.getUTCMonth() !== monthNumber - 1 ||
+    date.getUTCDate() !== dayOfMonth
+  ) {
+    return null;
+  }
+
+  return date.toISOString();
+}
+
+function parseBusLaneOpenDateToken(token: string): string | null {
+  const parts = token.trim().match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
+  if (parts === null) {
+    return null;
+  }
+
+  const monthNumber = Number(parts[1]);
+  if (parts[3] === undefined) {
+    return utcDateForParts(monthNumber, 1, Number(parts[2]));
+  }
+
+  return utcDateForParts(monthNumber, Number(parts[2]), Number(parts[3]));
+}
+
+export function parseBusLaneOpenDates(value: string | undefined): ParsedBusLaneOpenDate[] {
+  if (value === undefined || value.trim().length === 0) {
+    return [];
+  }
+
+  return value
+    .split(/[,;&]/)
+    .map((token) => token.trim())
+    .filter((token) => token.length > 0)
+    .map((token) => ({ token, parsed: parseBusLaneOpenDateToken(token) }))
+    .filter((entry): entry is { token: string; parsed: string } => entry.parsed !== null)
+    .map((entry) => ({
+      sourceValue: entry.token,
+      date: entry.parsed,
+      month: implementationMonthFromDate(entry.parsed),
+    }))
+    .sort((left, right) => left.date.localeCompare(right.date));
+}
+
+function latestBusLaneOpenDate(lane: LocalBusLane): ParsedBusLaneOpenDate | null {
+  return parseBusLaneOpenDates(lane.openDate).at(-1) ?? null;
 }
 
 function implementationMonthFromDate(value: string): string {
@@ -392,7 +465,16 @@ function eventRow(input: {
 function busLaneSourceGapEventRow(input: {
   routeId: string;
   analysisMonth: string;
+  missingDateLaneCount?: number;
+  matchedLaneCount?: number;
 }): InterventionEventRow {
+  const missingDateLaneCount = input.missingDateLaneCount ?? 0;
+  const matchedLaneCount = input.matchedLaneCount ?? 0;
+  const description =
+    matchedLaneCount > 0
+      ? `NYC DOT bus lane match for ${input.routeId}; ${missingDateLaneCount} of ${matchedLaneCount} matched segment(s) lack parseable open_dates for before/after comparison.`
+      : `NYC DOT bus lane match for ${input.routeId}; route-level implementation date is not available in the current pipeline evidence.`;
+
   return {
     eventId: `bus-lane-source-gap:${input.routeId}:${input.analysisMonth}`,
     routeId: input.routeId,
@@ -402,7 +484,31 @@ function busLaneSourceGapEventRow(input: {
     implementationDate: `${input.analysisMonth}-01T00:00:00.000Z`,
     implementationMonth: input.analysisMonth,
     eventStatus: "source_gap",
-    description: `NYC DOT bus lane match for ${input.routeId}; route-level implementation date is not available in the current pipeline evidence.`,
+    description,
+  };
+}
+
+function busLaneDatedEventRow(input: {
+  routeId: string;
+  group: BusLaneDateGroup;
+  analysisMonth: string;
+}): InterventionEventRow {
+  const sourceSample = [...input.group.sourceValues].sort().slice(0, 3).join("; ");
+  const sourceSuffix =
+    input.group.sourceValues.size > 3 ? `; +${input.group.sourceValues.size - 3} more` : "";
+  return {
+    eventId: `bus-lane:${input.routeId}:${input.group.implementationMonth}`,
+    routeId: input.routeId,
+    interventionType: "bus_lane_infrastructure",
+    sourceId: busLaneSourceId,
+    program: "NYC DOT Bus Lanes",
+    implementationDate: input.group.implementationDate,
+    implementationMonth: input.group.implementationMonth,
+    eventStatus:
+      monthIndex(input.group.implementationMonth) <= monthIndex(input.analysisMonth)
+        ? "implemented"
+        : "future",
+    description: `NYC DOT latest matched bus lane opening evidence for ${input.routeId} in ${input.group.implementationMonth}; ${input.group.lanes.length} matched segment(s); source open_dates: ${sourceSample}${sourceSuffix}.`,
   };
 }
 
@@ -554,6 +660,87 @@ function buildBusLaneSourceGapComparison(input: {
   };
 }
 
+function groupDatedBusLaneMatches(lanes: readonly LocalBusLane[]): {
+  groups: BusLaneDateGroup[];
+  missingDateLaneCount: number;
+} {
+  const groupsByMonth = new Map<string, BusLaneDateGroup>();
+  let missingDateLaneCount = 0;
+
+  for (const lane of lanes) {
+    const latestOpenDate = latestBusLaneOpenDate(lane);
+    if (latestOpenDate === null) {
+      missingDateLaneCount += 1;
+      continue;
+    }
+
+    const existing = groupsByMonth.get(latestOpenDate.month);
+    if (existing === undefined) {
+      groupsByMonth.set(latestOpenDate.month, {
+        implementationMonth: latestOpenDate.month,
+        implementationDate: latestOpenDate.date,
+        lanes: [lane],
+        sourceValues: new Set(lane.openDate === undefined ? [] : [lane.openDate]),
+      });
+      continue;
+    }
+
+    existing.lanes.push(lane);
+    if (lane.openDate !== undefined) {
+      existing.sourceValues.add(lane.openDate);
+    }
+    if (latestOpenDate.date < existing.implementationDate) {
+      existing.implementationDate = latestOpenDate.date;
+    }
+  }
+
+  return {
+    groups: [...groupsByMonth.values()].sort((left, right) =>
+      left.implementationMonth.localeCompare(right.implementationMonth),
+    ),
+    missingDateLaneCount,
+  };
+}
+
+function buildBusLaneEventsForRoute(input: {
+  routeId: string;
+  analysisMonth: string;
+  busLanes: readonly LocalBusLane[];
+  stops: readonly LocalRouteStop[];
+}): InterventionEventRow[] {
+  const matchedLanes = busLaneMatches([...input.busLanes], [...input.stops]).map(
+    (match) => match.lane,
+  );
+  const { groups, missingDateLaneCount } = groupDatedBusLaneMatches(matchedLanes);
+  const latestDatedGroup = groups.at(-1);
+  const datedEvents =
+    latestDatedGroup === undefined
+      ? []
+      : [
+          busLaneDatedEventRow({
+            routeId: input.routeId,
+            analysisMonth: input.analysisMonth,
+            group: latestDatedGroup,
+          }),
+        ];
+  const needsSourceGap = matchedLanes.length === 0 || missingDateLaneCount > 0;
+  const sourceGapArgs =
+    matchedLanes.length === 0
+      ? {
+          routeId: input.routeId,
+          analysisMonth: input.analysisMonth,
+        }
+      : {
+          routeId: input.routeId,
+          analysisMonth: input.analysisMonth,
+          missingDateLaneCount,
+          matchedLaneCount: matchedLanes.length,
+        };
+  const sourceGapEvents = needsSourceGap ? [busLaneSourceGapEventRow(sourceGapArgs)] : [];
+
+  return [...datedEvents, ...sourceGapEvents];
+}
+
 function parseCliArgs(args: string[]): RouteInterventionEvaluationArgs {
   const extraOptions: CliOption<RouteInterventionEvaluationArgs>[] = [
     numberOption(["--window-months"], (output, value) => {
@@ -584,10 +771,11 @@ export async function buildRouteInterventionEvaluation(
   const { routeCount, events, comparisons } = await withLocalPipelineDb(
     options.dbPath,
     async (local) => {
-      const [briefs, aceRoutes, trends] = await Promise.all([
+      const [briefs, aceRoutes, trends, busLanes] = await Promise.all([
         listRouteBriefSummaries(local.db, options.isoMonth),
         listAceRoutes(local.db),
         listRouteMonthTrends(local.db),
+        listBusLanes(local.db),
       ]);
       const publicRouteIds = new Set(
         briefs.filter((brief) => brief.publicVisible).map((brief) => brief.routeId),
@@ -627,17 +815,34 @@ export async function buildRouteInterventionEvaluation(
           trendsByRouteMonth,
         }),
       );
-      const busLaneEvents = busLaneMatchedRouteIds.map((routeId) =>
-        busLaneSourceGapEventRow({
-          routeId,
-          analysisMonth: options.isoMonth,
-        }),
-      );
+      const busLaneEvents: InterventionEventRow[] = [];
+      for (const routeId of busLaneMatchedRouteIds) {
+        const stops = await listRouteStops(local.db, routeId, options.isoMonth);
+        busLaneEvents.push(
+          ...buildBusLaneEventsForRoute({
+            routeId,
+            analysisMonth: options.isoMonth,
+            busLanes,
+            stops,
+          }),
+        );
+      }
       const busLaneComparisons = busLaneEvents.map((event) =>
-        buildBusLaneSourceGapComparison({
-          event,
-          analysisMonth: options.isoMonth,
-        }),
+        event.eventStatus === "source_gap"
+          ? buildBusLaneSourceGapComparison({
+              event,
+              analysisMonth: options.isoMonth,
+            })
+          : buildComparison({
+              event,
+              analysisMonth: options.isoMonth,
+              windowMonths,
+              minSampleMonths,
+              comparisonRouteCount,
+              candidateRouteIds: [...publicRouteIds],
+              excludedComparisonRouteIds,
+              trendsByRouteMonth,
+            }),
       );
 
       return {

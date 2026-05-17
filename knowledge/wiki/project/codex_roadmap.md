@@ -27,6 +27,7 @@ Current implementation baseline:
 - D1 seed export and verification exist for route-serving rows, observed reliability, intervention comparisons, corridor summaries, corridor intervention context, and route/corridor brief artifact metadata.
 - Route and corridor brief body generation exists through `brief-artifacts`, which writes JSON, Markdown, and HTML bodies plus byte-length/SHA-256 metadata.
 - ACE/ABLE intervention evaluation now stores raw before/after deltas plus peer-route comparison baselines and adjusted speed/ridership deltas; strict v1 QA requires peer-adjusted speed deltas for evaluated rows.
+- Bus-lane intervention evaluation now creates route-level dated comparisons from the latest parseable matched NYC DOT `open_dates`, while retaining source-gap rows for matched segments without usable dates.
 - Corridor route membership now prefers hotspot-segment street evidence before falling back to stop-name majority; strict v1 QA requires at least one segment-backed corridor membership.
 - Corridor intervention context now matches route-level intervention comparison rows back to corridor members and is exported through D1 plus corridor brief JSON/Markdown.
 - `corridor-shape-review` now validates segment-backed corridor assignments against GTFS route-shape geometry. March 2026 canonical and clean-full artifacts both have 350/350 shape-reviewed route memberships passing with 0 warnings.
@@ -37,7 +38,7 @@ Current implementation baseline:
 Primary remaining roadmap:
 
 1. Decide whether v1 is March structural + May observed appendix, or wait for public speed coverage so a later month can become the single strict v1 month.
-2. Add dated bus-lane before/after analysis where public source coverage supports it, and review the peer-adjusted ACE/ABLE method with domain experts.
+2. Reduce remaining bus-lane source gaps where public dates can be recovered, and review the peer-adjusted ACE/ABLE/bus-lane method with domain experts.
 3. Add map payload manifests and detailed evaluation manifests.
 4. Align the public frontend around proof-finding route/corridor briefs rather than a generic route analytics dashboard.
 
