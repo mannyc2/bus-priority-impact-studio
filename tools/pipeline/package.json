@@ -35,6 +35,7 @@
     "export:d1": "bun run src/cli.ts export:d1",
     "verify:d1": "bun run src/cli.ts verify:d1",
     "check:pipeline-v1": "bun run src/cli.ts check:pipeline-v1",
+    "audit:pipeline-v1": "bun run src/cli.ts audit:pipeline-v1",
     "finalize:pipeline-v1": "bun run src/cli.ts finalize:pipeline-v1",
     "ingest:route-slice": "bun run src/cli.ts ingest:route-slice",
     "ingest:route-schedules": "bun run src/cli.ts ingest:route-schedules",

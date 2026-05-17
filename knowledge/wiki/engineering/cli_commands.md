@@ -167,6 +167,7 @@ bun run check:pipeline-v1 -- --year 2026 --month 3 --min-gtfs-rt-collection-hour
 bun run check:pipeline-v1 -- --year 2026 --month 3 --max-corridor-ambiguous-route-share 0.15
 bun run check:pipeline-v1 -- --year 2026 --month 3 --max-source-probe-age-days 45
 bun run check:pipeline-v1 -- --year 2026 --month 3 --allow-insufficient-gtfs-rt
+bun --filter @bp/pipeline audit:pipeline-v1 -- --public-year 2026 --public-month 3 --realtime-year 2026 --realtime-month 5 --run-id <run_id>
 bun --filter @bp/pipeline export:artifacts -- --route M1 --month 2026-01
 bun --filter @bp/pipeline export:r2 -- --route M1 --month 2026-01
 ```
@@ -178,6 +179,7 @@ Expected outputs:
 - D1 verification summaries that load generated seed SQL, validate expected-vs-loaded serving row counts, and exercise typed repository readback
 - strict v1 QA result covering local route/corridor evidence, required source probe freshness, GTFS-RT analysis-month alignment, GTFS-RT collection window/cadence/snapshot coverage, GTFS-RT parse/headway provenance, observed-route and observed-sample coverage, corridor assignment ambiguity/unassigned thresholds, route-batch audit file and JSON-contract output, and D1 readback
 - structural DB/export/artifact QA result when `--allow-insufficient-gtfs-rt` is used without a Bus Time collection run
+- prompt-to-artifact v1 audit JSON at `data/artifacts/pipeline-v1/audit-<public-month>-<realtime-month>.json`, with pass/partial/blocked checklist rows for the public-source month, realtime month, QA gates, source availability, D1/static exports, and remaining gaps
 - artifact keys and hashes
 - optional R2 upload after local artifact contracts are stable
 
@@ -203,7 +205,7 @@ Do not use `pytest`, `ruff`, or Python scripts in the MVP.
 
 ## Caveats
 
-- `sources:list`, `sources:probe`, `collect:gtfs-rt`, `ingest:gtfs-rt-snapshots`, `gtfs-rt:preflight`, `build:observed-headways`, `route-observed-reliability`, `ingest:ace-routes`, `ingest:ace-violations`, `ingest:bus-lanes`, `ingest:equity-context`, `ingest:route-catalog`, `ingest:route-coverage`, `ingest:route-trends`, `backfill:route-ridership-trends`, `ingest:route-slice`, `ingest:route-schedules`, `build:hotspots`, `build:ridership-profile`, `build:speed-profile`, `build:interventions`, `build:bus-lanes`, `build:schedules`, `build:route-brief`, `build:artifacts`, `build:routes`, `build:network`, `compare:routes`, `route-readiness`, `route-build-plan`, `route-reliability-baseline`, `route-intervention-evaluation`, `corridor-model`, `brief-artifacts`, `route-equity-context`, `route-batch-audit`, `export:d1`, `verify:d1`, `check:pipeline-v1`, and `finalize:pipeline-v1` are implemented. `build:planned-routes` remains as a compatibility alias; R2 upload remains planned.
+- `sources:list`, `sources:probe`, `collect:gtfs-rt`, `ingest:gtfs-rt-snapshots`, `gtfs-rt:preflight`, `build:observed-headways`, `route-observed-reliability`, `ingest:ace-routes`, `ingest:ace-violations`, `ingest:bus-lanes`, `ingest:equity-context`, `ingest:route-catalog`, `ingest:route-coverage`, `ingest:route-trends`, `backfill:route-ridership-trends`, `ingest:route-slice`, `ingest:route-schedules`, `build:hotspots`, `build:ridership-profile`, `build:speed-profile`, `build:interventions`, `build:bus-lanes`, `build:schedules`, `build:route-brief`, `build:artifacts`, `build:routes`, `build:network`, `compare:routes`, `route-readiness`, `route-build-plan`, `route-reliability-baseline`, `route-intervention-evaluation`, `corridor-model`, `brief-artifacts`, `route-equity-context`, `route-batch-audit`, `export:d1`, `verify:d1`, `check:pipeline-v1`, `audit:pipeline-v1`, and `finalize:pipeline-v1` are implemented. `build:planned-routes` remains as a compatibility alias; R2 upload remains planned.
 - Keep command implementations thin; put reusable logic in `packages/*`.
 
 ## Sources

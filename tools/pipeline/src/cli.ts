@@ -195,6 +195,13 @@ const commands = {
       return checkPipelineV1FromCli(args);
     },
   },
+  "audit:pipeline-v1": {
+    description: "Write a Data Pipeline v1 prompt-to-artifact completion audit.",
+    run: async (args) => {
+      const { auditPipelineV1FromCli } = await import("./jobs/check/pipeline-v1-audit.js");
+      return auditPipelineV1FromCli(args);
+    },
+  },
   "finalize:pipeline-v1": {
     description: "Run the Data Pipeline v1 finalization chain for an existing route build.",
     run: async (args) => {

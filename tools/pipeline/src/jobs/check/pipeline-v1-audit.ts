@@ -1,0 +1,320 @@
+import { mkdir } from "node:fs/promises";
+import { dirname, join } from "node:path";
+import { listRouteMonthCoverage } from "@bp/db/local";
+import { type CliOption, dbOption, parseCliOptions } from "../../lib/cli-args.js";
+import { writeJson } from "../../lib/json.js";
+import { withLocalPipelineDb } from "../../lib/local-db.js";
+import { fromCliPath, fromRepoRoot } from "../../lib/paths.js";
+import { preflightGtfsRt } from "./gtfs-rt-preflight.js";
+import { checkPipelineV1 } from "./pipeline-v1.js";
+
+type PipelineV1AuditArgs = {
+  publicYear?: number;
+  publicMonth?: number;
+  realtimeYear?: number;
+  realtimeMonth?: number;
+  runId?: string;
+  dbPath?: string;
+  output?: string;
+};
+
+type RequirementStatus = "pass" | "partial" | "blocked";
+
+type PipelineV1AuditChecklistItem = {
+  requirement: string;
+  status: RequirementStatus;
+  evidence: string;
+  missing: string[];
+};
+
+type CoverageSummary = {
+  isoMonth: string;
+  routeRows: number;
+  speedRoutes: number;
+  scheduleRoutes: number;
+};
+
+type PipelineV1AuditResult = {
+  status: RequirementStatus;
+  generatedAt: string;
+  publicMonth: string;
+  realtimeMonth: string;
+  runId: string | null;
+  outputPath: string;
+  checklist: PipelineV1AuditChecklistItem[];
+  coverage: {
+    publicMonth: CoverageSummary;
+    realtimeMonth: CoverageSummary;
+  };
+  gates: {
+    publicStructuralStatus: string;
+    publicStrictStatus: string;
+    realtimePreflightStatus: string;
+    publicStrictIssues: string[];
+    realtimePreflightIssues: string[];
+  };
+  recommendation: string;
+};
+
+function isoMonth(year: number, month: number): string {
+  return `${year}-${String(month).padStart(2, "0")}`;
+}
+
+function defaultOutputPath(publicMonth: string, realtimeMonth: string): string {
+  return fromRepoRoot(
+    join("data/artifacts/pipeline-v1", `audit-${publicMonth}-${realtimeMonth}.json`),
+  );
+}
+
+function parseArgs(args: string[]): Required<PipelineV1AuditArgs> {
+  const output: PipelineV1AuditArgs = {};
+  const options: CliOption<PipelineV1AuditArgs>[] = [
+    {
+      flags: ["--public-year"],
+      apply: (target, value) => {
+        target.publicYear = Number(value);
+      },
+    },
+    {
+      flags: ["--public-month"],
+      apply: (target, value) => {
+        target.publicMonth = Number(value);
+      },
+    },
+    {
+      flags: ["--realtime-year"],
+      apply: (target, value) => {
+        target.realtimeYear = Number(value);
+      },
+    },
+    {
+      flags: ["--realtime-month"],
+      apply: (target, value) => {
+        target.realtimeMonth = Number(value);
+      },
+    },
+    {
+      flags: ["--run-id"],
+      apply: (target, value) => {
+        if (value !== undefined) {
+          target.runId = value;
+        }
+      },
+    },
+    {
+      flags: ["--output"],
+      apply: (target, value) => {
+        if (value !== undefined) {
+          target.output = fromCliPath(value);
+        }
+      },
+    },
+    dbOption(fromCliPath),
+  ];
+  const parsed = parseCliOptions(args, output, options);
+  const publicYear = parsed.publicYear ?? 2026;
+  const publicMonth = parsed.publicMonth ?? 3;
+  const realtimeYear = parsed.realtimeYear ?? publicYear;
+  const realtimeMonth = parsed.realtimeMonth ?? publicMonth;
+  const publicIsoMonth = isoMonth(publicYear, publicMonth);
+  const realtimeIsoMonth = isoMonth(realtimeYear, realtimeMonth);
+
+  return {
+    publicYear,
+    publicMonth,
+    realtimeYear,
+    realtimeMonth,
+    runId: parsed.runId ?? "",
+    dbPath: parsed.dbPath ?? "",
+    output: parsed.output ?? defaultOutputPath(publicIsoMonth, realtimeIsoMonth),
+  };
+}
+
+function statusFromItems(items: readonly PipelineV1AuditChecklistItem[]): RequirementStatus {
+  if (items.some((item) => item.status === "blocked")) {
+    return "blocked";
+  }
+
+  if (items.some((item) => item.status === "partial")) {
+    return "partial";
+  }
+
+  return "pass";
+}
+
+async function coverageSummary(dbPath: string, month: string): Promise<CoverageSummary> {
+  return withLocalPipelineDb(dbPath.length > 0 ? dbPath : undefined, async (local) => {
+    const rows = await listRouteMonthCoverage(local.db, month);
+    return {
+      isoMonth: month,
+      routeRows: rows.length,
+      speedRoutes: rows.filter((row) => row.hasSpeedData).length,
+      scheduleRoutes: rows.filter((row) => row.hasScheduleData).length,
+    };
+  });
+}
+
+export async function auditPipelineV1(
+  args: PipelineV1AuditArgs = {},
+): Promise<PipelineV1AuditResult> {
+  const publicYear = args.publicYear ?? 2026;
+  const publicMonth = args.publicMonth ?? 3;
+  const realtimeYear = args.realtimeYear ?? publicYear;
+  const realtimeMonth = args.realtimeMonth ?? publicMonth;
+  const publicIsoMonth = isoMonth(publicYear, publicMonth);
+  const realtimeIsoMonth = isoMonth(realtimeYear, realtimeMonth);
+  const outputPath = args.output ?? defaultOutputPath(publicIsoMonth, realtimeIsoMonth);
+  const dbPath = args.dbPath;
+  const dbArg = dbPath === undefined ? {} : { dbPath };
+  const runArg = args.runId === undefined ? {} : { runId: args.runId };
+
+  const publicStructural = await checkPipelineV1({
+    year: publicYear,
+    month: publicMonth,
+    ...dbArg,
+    allowInsufficientGtfsRt: true,
+  });
+  const publicStrict = await checkPipelineV1({ year: publicYear, month: publicMonth, ...dbArg });
+  const [realtimePreflight, publicCoverage, realtimeCoverage] = await Promise.all([
+    preflightGtfsRt({
+      year: realtimeYear,
+      month: realtimeMonth,
+      ...runArg,
+      ...dbArg,
+    }),
+    coverageSummary(dbPath ?? "", publicIsoMonth),
+    coverageSummary(dbPath ?? "", realtimeIsoMonth),
+  ]);
+
+  const monthSplit = publicIsoMonth !== realtimeIsoMonth;
+  const realtimeHasSpeedCoverage = realtimeCoverage.speedRoutes > 0;
+  const checklist: PipelineV1AuditChecklistItem[] = [
+    {
+      requirement: "Reproducible full-network public-source pipeline",
+      status: publicStructural.status === "pass" ? "partial" : "blocked",
+      evidence: `${publicIsoMonth} structural check is ${publicStructural.status}; built routes ${publicStructural.counts.builtRouteCount}/${publicStructural.counts.buildEligibleRouteCount}.`,
+      missing:
+        publicStructural.status === "pass"
+          ? ["Clean rebuild from an empty local DB still needs to be run and recorded."]
+          : publicStructural.issues.map((issue) => issue.code),
+    },
+    {
+      requirement: "GTFS-RT observed reliability and bunching",
+      status: realtimePreflight.status === "pass" ? (monthSplit ? "partial" : "pass") : "blocked",
+      evidence: `${realtimeIsoMonth} GTFS-RT preflight is ${realtimePreflight.status}; observed routes ${realtimePreflight.counts.routeObservedReliabilityObservedRows}, headway samples ${realtimePreflight.counts.observedHeadwaySampleRows}.`,
+      missing:
+        realtimePreflight.status === "pass"
+          ? monthSplit
+            ? [
+                `Observed layer is for ${realtimeIsoMonth}, not public-source month ${publicIsoMonth}.`,
+              ]
+            : []
+          : realtimePreflight.issues.map((issue) => issue.code),
+    },
+    {
+      requirement: "Before/after intervention evaluation",
+      status:
+        publicStructural.counts.evaluatedInterventionComparisonRows > 0 ? "partial" : "blocked",
+      evidence: `${publicIsoMonth} has ${publicStructural.counts.routeInterventionComparisonRows} intervention comparisons and ${publicStructural.counts.evaluatedInterventionComparisonRows} evaluated descriptive rows.`,
+      missing: [
+        "Seasonality-aware comparisons, matched comparison routes, and dated bus-lane before/after evaluation remain open.",
+      ],
+    },
+    {
+      requirement: "Corridor grouping and corridor briefs",
+      status: publicStructural.counts.corridorRows > 0 ? "partial" : "blocked",
+      evidence: `${publicIsoMonth} has ${publicStructural.counts.corridorRows} corridors, ${publicStructural.counts.corridorRouteMemberRows} route memberships, and ${publicStructural.counts.corridorArtifactRows} corridor artifacts.`,
+      missing: [
+        "Richer segment-based corridor membership and corridor intervention context remain open.",
+      ],
+    },
+    {
+      requirement: "Full route/corridor brief artifact set",
+      status: publicStructural.audit.status === "pass" ? "pass" : "blocked",
+      evidence: `${publicIsoMonth} route-batch audit is ${publicStructural.audit.status}; ${publicStructural.audit.artifactCount} artifacts, missing ${publicStructural.audit.missingArtifactCount}, hash mismatches ${publicStructural.audit.hashMismatchCount}.`,
+      missing:
+        publicStructural.audit.status === "pass"
+          ? []
+          : ["Route/corridor artifact audit is failing."],
+    },
+    {
+      requirement: "Verified D1/static export contracts",
+      status:
+        publicStructural.d1?.status === "pass" && publicStructural.audit.status === "pass"
+          ? "pass"
+          : "blocked",
+      evidence: `${publicIsoMonth} D1 status is ${publicStructural.d1?.status ?? "missing"}; route artifacts ${publicStructural.d1?.routeArtifactRows ?? 0}, corridor artifacts ${publicStructural.d1?.corridorArtifactRows ?? 0}.`,
+      missing:
+        publicStructural.d1?.status === "pass" && publicStructural.audit.status === "pass"
+          ? []
+          : ["D1 verification or static artifact audit is failing."],
+    },
+    {
+      requirement: "Strict single-month v1 QA gate",
+      status: publicStrict.status === "pass" ? "pass" : "blocked",
+      evidence: `${publicIsoMonth} strict check is ${publicStrict.status}.`,
+      missing: publicStrict.issues.map((issue) => issue.code),
+    },
+    {
+      requirement: "Single-month source availability",
+      status: !monthSplit && realtimeHasSpeedCoverage ? "pass" : "blocked",
+      evidence: `${publicIsoMonth} speed routes: ${publicCoverage.speedRoutes}; ${realtimeIsoMonth} speed routes: ${realtimeCoverage.speedRoutes}; realtime month is ${realtimeIsoMonth}.`,
+      missing:
+        monthSplit || !realtimeHasSpeedCoverage
+          ? [
+              "The currently complete public-source month and passing realtime observed month do not align.",
+            ]
+          : [],
+    },
+  ];
+  const status = statusFromItems(checklist);
+  const recommendation =
+    status === "pass"
+      ? "Data Pipeline v1 passes as a single-month release candidate."
+      : "Treat the current state as March structural evidence plus a May observed-reliability appendix, or wait for public speed coverage in a later realtime month before calling strict v1 complete.";
+  const result: PipelineV1AuditResult = {
+    status,
+    generatedAt: new Date().toISOString(),
+    publicMonth: publicIsoMonth,
+    realtimeMonth: realtimeIsoMonth,
+    runId: args.runId ?? null,
+    outputPath,
+    checklist,
+    coverage: {
+      publicMonth: publicCoverage,
+      realtimeMonth: realtimeCoverage,
+    },
+    gates: {
+      publicStructuralStatus: publicStructural.status,
+      publicStrictStatus: publicStrict.status,
+      realtimePreflightStatus: realtimePreflight.status,
+      publicStrictIssues: publicStrict.issues.map((issue) => issue.code),
+      realtimePreflightIssues: realtimePreflight.issues.map((issue) => issue.code),
+    },
+    recommendation,
+  };
+
+  await mkdir(dirname(outputPath), { recursive: true });
+  await writeJson(outputPath, result);
+
+  return result;
+}
+
+export async function auditPipelineV1FromCli(args: string[]): Promise<PipelineV1AuditResult> {
+  const parsed = parseArgs(args);
+  const auditArgs: PipelineV1AuditArgs = {
+    publicYear: parsed.publicYear,
+    publicMonth: parsed.publicMonth,
+    realtimeYear: parsed.realtimeYear,
+    realtimeMonth: parsed.realtimeMonth,
+    output: parsed.output,
+  };
+  if (parsed.runId.length > 0) {
+    auditArgs.runId = parsed.runId;
+  }
+  if (parsed.dbPath.length > 0) {
+    auditArgs.dbPath = parsed.dbPath;
+  }
+
+  return auditPipelineV1(auditArgs);
+}

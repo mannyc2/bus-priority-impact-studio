@@ -90,6 +90,7 @@ Latest local verification after the March 2026 v1 catch-up run:
 - `bun run gtfs-rt:preflight -- --year 2026 --month 5 --run-id gtfs-rt-smoke-2026-05-17` confirms the local API key is present without printing it and that collection/ingestion works; the one-snapshot smoke run parsed 1,290 vehicle positions. It still fails strict readiness because the run is only a one-minute smoke test with no observed headways or route reliability. For March 2026, strict `check:pipeline-v1` remains the v1 completion gate and still requires a production-length observed reliability run.
 - April and May 2026 route coverage probes on 2026-05-17 returned 375 scheduled routes but 0 speed routes, so March 2026 remains the current complete public-source analysis month. A live May 2026 GTFS-RT collection can produce May observed reliability evidence, but strict QA now prevents using it to satisfy the March 2026 gate.
 - `bun run collect:gtfs-rt -- --duration-hours 4 --sample-seconds 30 --feed-types vehicle_positions --run-id gtfs-rt-v1-20260517T022348Z` completed on 2026-05-17 with 480/480 successful vehicle-position snapshots and 0 failures. Ingest parsed 480 snapshots and 358,875 vehicle positions; observed-headway build produced 90,136 stop events and 73,702 headway samples; May 2026 route observed reliability produced 381 route rows, including 229 observed routes, 152 insufficient-sample routes, and 72,782 route-summary headway samples. `gtfs-rt:preflight -- --year 2026 --month 5 --run-id gtfs-rt-v1-20260517T022348Z` now passes strict observed-layer readiness.
+- `bun --filter @bp/pipeline audit:pipeline-v1 -- --public-year 2026 --public-month 3 --realtime-year 2026 --realtime-month 5 --run-id gtfs-rt-v1-20260517T022348Z` writes `data/artifacts/pipeline-v1/audit-2026-03-2026-05.json`. The audit is blocked overall because strict single-month v1 remains unavailable, but it records March structural pass, May realtime preflight pass, D1/static export pass, and the exact missing items.
 
 Current v1 gaps:
 
@@ -469,6 +470,7 @@ bun run check:pipeline-v1 -- --year 2026 --month 3 --min-gtfs-rt-collection-hour
 bun run check:pipeline-v1 -- --year 2026 --month 3 --max-corridor-ambiguous-route-share 0.15
 bun run check:pipeline-v1 -- --year 2026 --month 3 --max-source-probe-age-days 45
 bun run check:pipeline-v1 -- --year 2026 --month 3 --allow-insufficient-gtfs-rt
+bun --filter @bp/pipeline audit:pipeline-v1 -- --public-year 2026 --public-month 3 --realtime-year 2026 --realtime-month 5 --run-id gtfs-rt-v1-20260517T022348Z
 ```
 
 QA gates:
@@ -490,6 +492,7 @@ Implemented so far:
 - `export:d1` writes `export-summary.json` with schema/seed byte lengths and SHA-256 hashes plus exported row counts.
 - `verify:d1` loads generated schema/seed SQL, writes `verify-summary.json` with expected-vs-loaded table counts, and exercises typed readback for route/corridor artifact metadata.
 - `check:pipeline-v1` runs the current v1 QA gate over local DB state, required source probe freshness, route/corridor brief artifacts, route-batch audit file and JSON-contract results, static manifest output, D1 verification, GTFS-RT analysis-month alignment, GTFS-RT collection window/cadence/snapshot coverage, GTFS-RT parse/headway provenance, observed-route coverage thresholds, per-route observed sample thresholds, route trend coverage, evaluated intervention comparison coverage, bus-lane comparison coverage for public routes with matched bus-lane geometry, and corridor assignment ambiguity/unassigned thresholds. Against the current March 2026 local DB, strict mode fails because observed reliability has 381 insufficient rows and 0 observed headway samples. Structural mode with `--allow-insufficient-gtfs-rt` passes with 10 fresh required source probe captures, 381 reliability status rows, 251 intervention comparison rows, 5,171 route/month trend rows, 172 bus-lane source-gap comparison rows, 322 assigned corridor route members, 28 ambiguous corridor route members, 0 unassigned corridor route members, and 1,677 verified brief artifacts.
+- `audit:pipeline-v1` writes a prompt-to-artifact completion audit that combines the public-source month, realtime month, structural/strict gates, GTFS-RT preflight, source coverage summaries, and a pass/partial/blocked checklist. The current March + May audit is intentionally blocked rather than green.
 
 Acceptance:
 
