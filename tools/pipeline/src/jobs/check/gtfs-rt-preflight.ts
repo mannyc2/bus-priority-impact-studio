@@ -12,6 +12,9 @@ import { withLocalPipelineDb } from "../../lib/local-db.js";
 import { createMonthContext, parseMonthDbCliArgs } from "../../lib/route-job.js";
 
 const defaultMinObservedHeadwaySamples = 30;
+const defaultMinGtfsRtCollectionHours = 4;
+const defaultMaxGtfsRtSampleSeconds = 60;
+const defaultMinGtfsRtVehiclePositionSnapshotShare = 0.8;
 const observedReliabilitySourceIds = ["observedHeadways", "bunching", "waitTimeReliability"];
 const env = Bun.env as { MTA_BUS_TIME_API_KEY?: string };
 
@@ -21,6 +24,9 @@ type GtfsRtPreflightArgs = {
   dbPath?: string;
   runId?: string;
   minObservedHeadwaySamples?: number;
+  minGtfsRtCollectionHours?: number;
+  maxGtfsRtSampleSeconds?: number;
+  minGtfsRtVehiclePositionSnapshotShare?: number;
   apiKey?: string | null;
 };
 
@@ -33,9 +39,12 @@ type GtfsRtPreflightCounts = {
   collectionRunRows: number;
   selectedCollectionRunRows: number;
   completedCollectionRunRows: number;
+  shortestCollectionSeconds: number;
+  longestSampleSeconds: number;
   feedSnapshotRows: number;
   successfulFeedSnapshotRows: number;
   successfulVehiclePositionSnapshotRows: number;
+  requiredVehiclePositionSnapshotRows: number;
   parsedSnapshotRows: number;
   parsedVehiclePositionSnapshotRows: number;
   vehiclePositionRows: number;
@@ -57,10 +66,14 @@ type GtfsRtPreflightResult = {
   };
   thresholds: {
     minObservedHeadwaySamples: number;
+    minGtfsRtCollectionSeconds: number;
+    maxGtfsRtSampleSeconds: number;
+    minGtfsRtVehiclePositionSnapshotShare: number;
   };
   readiness: {
     canCollect: boolean;
     hasCollectionRun: boolean;
+    hasCollectionWindow: boolean;
     hasSuccessfulVehiclePositionSnapshots: boolean;
     hasParsedVehiclePositions: boolean;
     hasObservedHeadways: boolean;
@@ -91,6 +104,15 @@ function parseCliArgs(args: string[]): GtfsRtPreflightArgs {
     numberOption(["--min-observed-headway-samples"], (output, value) => {
       output.minObservedHeadwaySamples = value;
     }),
+    numberOption(["--min-gtfs-rt-collection-hours"], (output, value) => {
+      output.minGtfsRtCollectionHours = value;
+    }),
+    numberOption(["--max-gtfs-rt-sample-seconds"], (output, value) => {
+      output.maxGtfsRtSampleSeconds = value;
+    }),
+    numberOption(["--min-gtfs-rt-vehicle-position-snapshot-share"], (output, value) => {
+      output.minGtfsRtVehiclePositionSnapshotShare = value;
+    }),
   ];
 
   return parseMonthDbCliArgs(args, {} as GtfsRtPreflightArgs, extraOptions);
@@ -108,6 +130,63 @@ function unique(values: Iterable<string>): string[] {
   return [...new Set(values)].sort();
 }
 
+function sample(values: readonly string[], limit = 5): string {
+  return values.slice(0, limit).join(", ");
+}
+
+function clampShare(value: number): number {
+  return Math.min(1, Math.max(0, value));
+}
+
+function collectionElapsedSeconds(input: { startedAt: string; endedAt: string | null }): number {
+  if (input.endedAt === null) {
+    return 0;
+  }
+
+  const startedAt = Date.parse(input.startedAt);
+  const endedAt = Date.parse(input.endedAt);
+  if (Number.isNaN(startedAt) || Number.isNaN(endedAt)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.round((endedAt - startedAt) / 1000));
+}
+
+function collectionWindowSeconds(input: {
+  requestedDurationSeconds: number;
+  startedAt: string;
+  endedAt: string | null;
+}): number {
+  const elapsedSeconds = collectionElapsedSeconds(input);
+  if (elapsedSeconds === 0) {
+    return Math.max(0, input.requestedDurationSeconds);
+  }
+
+  return Math.min(Math.max(0, input.requestedDurationSeconds), elapsedSeconds);
+}
+
+function requestedFeedTypes(value: string): Set<string> {
+  return new Set(
+    value
+      .split(",")
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0),
+  );
+}
+
+function requiredVehiclePositionSnapshotCount(input: {
+  collectionSeconds: number;
+  sampleSeconds: number;
+  snapshotShare: number;
+}): number {
+  if (input.snapshotShare <= 0) {
+    return 0;
+  }
+
+  const sampleSeconds = Math.max(1, input.sampleSeconds);
+  return Math.max(1, Math.ceil((input.collectionSeconds / sampleSeconds) * input.snapshotShare));
+}
+
 function recommendationsFor(issues: readonly GtfsRtPreflightIssue[]): string[] {
   const byCode: Record<string, string> = {
     api_key_missing:
@@ -116,8 +195,16 @@ function recommendationsFor(issues: readonly GtfsRtPreflightIssue[]): string[] {
       "Run collect:gtfs-rt with a stable --run-id, then parse and finalize that same run ID.",
     gtfs_rt_collection_run_not_completed:
       "Use a completed or completed_with_errors GTFS-RT collection run for observed reliability.",
+    gtfs_rt_collection_duration_insufficient:
+      "Collect a longer GTFS-RT window, or lower the explicit collection-hour threshold only for a documented fixture run.",
+    gtfs_rt_collection_cadence_too_sparse:
+      "Collect GTFS-RT snapshots at the required cadence, normally every 30 to 60 seconds.",
+    gtfs_rt_vehicle_positions_not_requested:
+      "Request the vehicle_positions feed during collection; observed headways cannot be derived from alerts or trip updates alone.",
     gtfs_rt_vehicle_position_snapshot_missing:
       "Collect vehicle_positions snapshots; observed headways cannot be derived from alerts or trip updates alone.",
+    gtfs_rt_vehicle_position_snapshot_coverage_insufficient:
+      "Re-run collection long enough to satisfy the configured successful vehicle-position snapshot coverage threshold.",
     gtfs_rt_vehicle_positions_not_parsed:
       "Run ingest:gtfs-rt-snapshots -- --run-id <run_id> before building observed headways.",
     gtfs_rt_vehicle_position_rows_missing:
@@ -150,6 +237,17 @@ export async function preflightGtfsRt(
   const minObservedHeadwaySamples = Math.max(
     1,
     Math.round(args.minObservedHeadwaySamples ?? defaultMinObservedHeadwaySamples),
+  );
+  const minGtfsRtCollectionSeconds = Math.max(
+    1,
+    Math.round((args.minGtfsRtCollectionHours ?? defaultMinGtfsRtCollectionHours) * 60 * 60),
+  );
+  const maxGtfsRtSampleSeconds = Math.max(
+    1,
+    Math.round(args.maxGtfsRtSampleSeconds ?? defaultMaxGtfsRtSampleSeconds),
+  );
+  const minGtfsRtVehiclePositionSnapshotShare = clampShare(
+    args.minGtfsRtVehiclePositionSnapshotShare ?? defaultMinGtfsRtVehiclePositionSnapshotShare,
   );
 
   const localState = await withLocalPipelineDb(options.dbPath, async (local) => {
@@ -193,6 +291,48 @@ export async function preflightGtfsRt(
   const successfulVehiclePositionSnapshots = successfulFeedSnapshots.filter(
     (snapshot) => snapshot.feedType === "vehicle_positions",
   );
+  const selectedCollectionWindows = selectedCollectionRuns.map((run) => ({
+    runId: run.runId,
+    collectionSeconds: collectionWindowSeconds(run),
+    sampleSeconds: run.sampleSeconds,
+    requestedFeedTypes: requestedFeedTypes(run.requestedFeedTypes),
+    successfulVehiclePositionSnapshots: successfulVehiclePositionSnapshots.length,
+  }));
+  const selectedCollectionWindowsWithVehiclePositions = selectedCollectionWindows.filter((run) =>
+    run.requestedFeedTypes.has("vehicle_positions"),
+  );
+  const shortestCollectionSeconds =
+    selectedCollectionWindows.length === 0
+      ? 0
+      : Math.min(...selectedCollectionWindows.map((run) => run.collectionSeconds));
+  const longestSampleSeconds =
+    selectedCollectionWindows.length === 0
+      ? 0
+      : Math.max(...selectedCollectionWindows.map((run) => run.sampleSeconds));
+  const requiredVehiclePositionSnapshotRows =
+    selectedCollectionWindowsWithVehiclePositions.length === 0
+      ? 0
+      : selectedCollectionWindowsWithVehiclePositions.reduce(
+          (sum, run) =>
+            sum +
+            requiredVehiclePositionSnapshotCount({
+              collectionSeconds: minGtfsRtCollectionSeconds,
+              sampleSeconds: run.sampleSeconds,
+              snapshotShare: minGtfsRtVehiclePositionSnapshotShare,
+            }),
+          0,
+        );
+  const lowVehiclePositionSnapshotCoverageRuns = selectedCollectionWindowsWithVehiclePositions
+    .map((run) => ({
+      runId: run.runId,
+      actual: run.successfulVehiclePositionSnapshots,
+      required: requiredVehiclePositionSnapshotCount({
+        collectionSeconds: minGtfsRtCollectionSeconds,
+        sampleSeconds: run.sampleSeconds,
+        snapshotShare: minGtfsRtVehiclePositionSnapshotShare,
+      }),
+    }))
+    .filter((run) => run.actual < run.required);
   const parsedVehiclePositionSnapshots = localState.parsedSnapshots.filter(
     (snapshot) => snapshot.status === "parsed" && snapshot.feedType === "vehicle_positions",
   );
@@ -255,11 +395,48 @@ export async function preflightGtfsRt(
       `GTFS-RT run ${selectedRunId} is not completed or completed_with_errors.`,
     );
   }
+  const shortGtfsRtCollectionRuns = selectedCollectionWindows.filter(
+    (run) => run.collectionSeconds < minGtfsRtCollectionSeconds,
+  );
+  if (selectedRunId !== null && shortGtfsRtCollectionRuns.length > 0) {
+    addIssue(
+      issues,
+      "gtfs_rt_collection_duration_insufficient",
+      `${shortGtfsRtCollectionRuns.length} GTFS-RT run(s) have collection windows shorter than ${minGtfsRtCollectionSeconds} seconds: ${sample(shortGtfsRtCollectionRuns.map((run) => `${run.runId}:${run.collectionSeconds}s`))}.`,
+    );
+  }
+  const sparseGtfsRtCollectionRuns = selectedCollectionWindows.filter(
+    (run) => run.sampleSeconds > maxGtfsRtSampleSeconds,
+  );
+  if (selectedRunId !== null && sparseGtfsRtCollectionRuns.length > 0) {
+    addIssue(
+      issues,
+      "gtfs_rt_collection_cadence_too_sparse",
+      `${sparseGtfsRtCollectionRuns.length} GTFS-RT run(s) sample less frequently than every ${maxGtfsRtSampleSeconds} seconds: ${sample(sparseGtfsRtCollectionRuns.map((run) => `${run.runId}:${run.sampleSeconds}s`))}.`,
+    );
+  }
+  const runsWithoutRequestedVehiclePositions = selectedCollectionWindows.filter(
+    (run) => !run.requestedFeedTypes.has("vehicle_positions"),
+  );
+  if (selectedRunId !== null && runsWithoutRequestedVehiclePositions.length > 0) {
+    addIssue(
+      issues,
+      "gtfs_rt_vehicle_positions_not_requested",
+      `${runsWithoutRequestedVehiclePositions.length} GTFS-RT run(s) did not request vehicle_positions: ${sample(runsWithoutRequestedVehiclePositions.map((run) => run.runId))}.`,
+    );
+  }
   if (selectedRunId !== null && successfulVehiclePositionSnapshots.length === 0) {
     addIssue(
       issues,
       "gtfs_rt_vehicle_position_snapshot_missing",
       `GTFS-RT run ${selectedRunId} has no successful vehicle_positions feed snapshots.`,
+    );
+  }
+  if (selectedRunId !== null && lowVehiclePositionSnapshotCoverageRuns.length > 0) {
+    addIssue(
+      issues,
+      "gtfs_rt_vehicle_position_snapshot_coverage_insufficient",
+      `${lowVehiclePositionSnapshotCoverageRuns.length} GTFS-RT run(s) have too few successful vehicle_positions snapshots for the configured collection window: ${sample(lowVehiclePositionSnapshotCoverageRuns.map((run) => `${run.runId}:${run.actual}/${run.required}`))}.`,
     );
   }
   if (selectedRunId !== null && parsedVehiclePositionSnapshots.length === 0) {
@@ -318,9 +495,12 @@ export async function preflightGtfsRt(
     collectionRunRows: localState.runs.length,
     selectedCollectionRunRows: selectedCollectionRuns.length,
     completedCollectionRunRows: completedCollectionRuns.length,
+    shortestCollectionSeconds,
+    longestSampleSeconds,
     feedSnapshotRows: localState.feedSnapshots.length,
     successfulFeedSnapshotRows: successfulFeedSnapshots.length,
     successfulVehiclePositionSnapshotRows: successfulVehiclePositionSnapshots.length,
+    requiredVehiclePositionSnapshotRows,
     parsedSnapshotRows: localState.parsedSnapshots.length,
     parsedVehiclePositionSnapshotRows: parsedVehiclePositionSnapshots.length,
     vehiclePositionRows: localState.vehiclePositions.length,
@@ -334,6 +514,12 @@ export async function preflightGtfsRt(
   const readiness = {
     canCollect: apiKeyPresent,
     hasCollectionRun: selectedCollectionRuns.length > 0 && completedCollectionRuns.length > 0,
+    hasCollectionWindow:
+      selectedCollectionRuns.length > 0 &&
+      shortGtfsRtCollectionRuns.length === 0 &&
+      sparseGtfsRtCollectionRuns.length === 0 &&
+      runsWithoutRequestedVehiclePositions.length === 0 &&
+      lowVehiclePositionSnapshotCoverageRuns.length === 0,
     hasSuccessfulVehiclePositionSnapshots: successfulVehiclePositionSnapshots.length > 0,
     hasParsedVehiclePositions:
       parsedVehiclePositionSnapshots.length > 0 && localState.vehiclePositions.length > 0,
@@ -354,6 +540,9 @@ export async function preflightGtfsRt(
     },
     thresholds: {
       minObservedHeadwaySamples,
+      minGtfsRtCollectionSeconds,
+      maxGtfsRtSampleSeconds,
+      minGtfsRtVehiclePositionSnapshotShare,
     },
     readiness,
     routeCoverage: {

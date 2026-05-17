@@ -234,6 +234,7 @@ describe("GTFS-RT preflight", () => {
       month: 6,
       dbPath,
       apiKey: "fixture-key",
+      minGtfsRtCollectionHours: 0.001,
       minObservedHeadwaySamples: 3,
     });
 
@@ -249,7 +250,10 @@ describe("GTFS-RT preflight", () => {
       expect.objectContaining({
         collectionRunRows: 1,
         completedCollectionRunRows: 1,
+        shortestCollectionSeconds: 600,
+        longestSampleSeconds: 30,
         successfulVehiclePositionSnapshotRows: 1,
+        requiredVehiclePositionSnapshotRows: 1,
         parsedVehiclePositionSnapshotRows: 1,
         vehiclePositionRows: 1,
         observedHeadwaySampleRows: 3,
@@ -261,12 +265,48 @@ describe("GTFS-RT preflight", () => {
     expect(result.readiness).toEqual(
       expect.objectContaining({
         hasCollectionRun: true,
+        hasCollectionWindow: true,
         hasSuccessfulVehiclePositionSnapshots: true,
         hasParsedVehiclePositions: true,
         hasObservedHeadways: true,
         hasObservedRouteReliability: true,
         strictPipelineV1ObservedLayerReady: true,
       }),
+    );
+  });
+
+  test("fails when the selected collection run is shorter than strict v1 requires", async () => {
+    await removeFixtureArtifacts();
+    await writeReadyGtfsRtState();
+
+    const result = await preflightGtfsRt({
+      year: 2026,
+      month: 6,
+      dbPath,
+      apiKey: "fixture-key",
+      minObservedHeadwaySamples: 3,
+    });
+
+    expect(result.status).toBe("fail");
+    expect(result.counts).toEqual(
+      expect.objectContaining({
+        shortestCollectionSeconds: 600,
+        longestSampleSeconds: 30,
+        successfulVehiclePositionSnapshotRows: 1,
+        requiredVehiclePositionSnapshotRows: 384,
+      }),
+    );
+    expect(result.readiness).toEqual(
+      expect.objectContaining({
+        hasCollectionWindow: false,
+        strictPipelineV1ObservedLayerReady: false,
+      }),
+    );
+    expect(result.issues.map((issue) => issue.code)).toEqual(
+      expect.arrayContaining([
+        "gtfs_rt_collection_duration_insufficient",
+        "gtfs_rt_vehicle_position_snapshot_coverage_insufficient",
+      ]),
     );
   });
 });

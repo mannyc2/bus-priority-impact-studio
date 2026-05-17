@@ -63,7 +63,7 @@ Expected outputs:
 - parsed vehicle, trip-update, stop-time-update, and alert rows in local GTFS-RT tables
 - observed vehicle stop events and headway samples in local observed reliability tables
 - route/month observed reliability summaries with bunching, long-gap, expected-wait, and insufficient-sample status
-- JSON preflight readiness covering `MTA_BUS_TIME_API_KEY`, collection runs, successful vehicle-position snapshots, parsed vehicle-position rows, observed headway samples, and route/month observed reliability rows
+- JSON preflight readiness covering `MTA_BUS_TIME_API_KEY`, collection runs, collection window/cadence/snapshot coverage, successful vehicle-position snapshots, parsed vehicle-position rows, observed headway samples, and route/month observed reliability rows
 
 Collection requires `MTA_BUS_TIME_API_KEY`; `gtfs-rt:preflight` reports whether it is set without printing the key. Persisted rows use redacted feed URLs and must not store the API key.
 
