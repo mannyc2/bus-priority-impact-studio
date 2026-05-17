@@ -167,7 +167,7 @@ Expected outputs:
 
 - D1 seed SQL or import-ready rows
 - D1 verification summaries that load generated seed SQL and validate serving row counts
-- strict v1 QA result covering local route/corridor evidence, observed GTFS-RT sample coverage, route-batch audit output, and D1 readback
+- strict v1 QA result covering local route/corridor evidence, GTFS-RT collection/parse/headway provenance, observed sample coverage, route-batch audit output, and D1 readback
 - structural DB/export/artifact QA result when `--allow-insufficient-gtfs-rt` is used without a Bus Time collection run
 - artifact keys and hashes
 - optional R2 upload after local artifact contracts are stable

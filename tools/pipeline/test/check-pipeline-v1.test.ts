@@ -2,8 +2,12 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import {
+  insertGtfsRtCollectionRun,
+  insertGtfsRtFeedSnapshot,
   replaceAceRoutes,
   replaceCorridorRows,
+  replaceGtfsRtParsedSnapshot,
+  replaceObservedHeadwayRows,
   replaceRouteBatch,
   replaceRouteBriefRows,
   replaceRouteCatalog,
@@ -26,6 +30,7 @@ const routeBriefDir = fromRepoRoot(join("data/artifacts/briefs/routes/t1", isoMo
 const corridorBriefDir = fromRepoRoot(
   join("data/artifacts/briefs/corridors/street-broadway", isoMonth),
 );
+const observedRunId = "fixture-gtfs-rt";
 
 async function removeFixtureArtifacts(): Promise<void> {
   await Promise.all([
@@ -36,7 +41,10 @@ async function removeFixtureArtifacts(): Promise<void> {
   ]);
 }
 
-async function writeFixtureNetwork(options: { includeObservedAndInterventions: boolean }) {
+async function writeFixtureNetwork(options: {
+  includeObservedAndInterventions: boolean;
+  includeGtfsRtProvenance?: boolean;
+}) {
   await removeFixtureArtifacts();
   const local = await openLocalPipelineDb(dbPath);
   try {
@@ -152,12 +160,12 @@ async function writeFixtureNetwork(options: { includeObservedAndInterventions: b
       },
     ]);
     if (options.includeObservedAndInterventions) {
-      await replaceRouteObservedReliabilityRows(local.db, isoMonth, "fixture-gtfs-rt", {
+      await replaceRouteObservedReliabilityRows(local.db, isoMonth, observedRunId, {
         summaries: [
           {
             routeId: "T1",
             month: isoMonth,
-            runId: "fixture-gtfs-rt",
+            runId: observedRunId,
             reliabilityStatus: "observed",
             minSampleThreshold: 3,
             sampleCount: 42,
@@ -186,7 +194,7 @@ async function writeFixtureNetwork(options: { includeObservedAndInterventions: b
             sourceId: "observedHeadways",
             status: "available",
             rowCount: 42,
-            snapshotId: "fixture-gtfs-rt",
+            snapshotId: observedRunId,
             note: null,
           },
           {
@@ -196,7 +204,7 @@ async function writeFixtureNetwork(options: { includeObservedAndInterventions: b
             sourceId: "bunching",
             status: "available",
             rowCount: 42,
-            snapshotId: "fixture-gtfs-rt",
+            snapshotId: observedRunId,
             note: null,
           },
           {
@@ -206,11 +214,79 @@ async function writeFixtureNetwork(options: { includeObservedAndInterventions: b
             sourceId: "waitTimeReliability",
             status: "available",
             rowCount: 42,
-            snapshotId: "fixture-gtfs-rt",
+            snapshotId: observedRunId,
             note: null,
           },
         ],
       });
+      if (options.includeGtfsRtProvenance !== false) {
+        await insertGtfsRtCollectionRun(local.db, {
+          runId: observedRunId,
+          startedAt: "2026-11-01T00:00:00.000Z",
+          endedAt: "2026-11-01T00:10:00.000Z",
+          status: "completed",
+          requestedDurationSeconds: 600,
+          sampleSeconds: 30,
+          requestedFeedTypes: "vehicle_positions",
+          snapshotCount: 1,
+          successCount: 1,
+          failureCount: 0,
+          rawDirectory: "/tmp/gtfs-rt",
+          error: null,
+        });
+        await insertGtfsRtFeedSnapshot(local.db, {
+          runId: observedRunId,
+          feedType: "vehicle_positions",
+          sampleIndex: 1,
+          sourceId: "bus_time_gtfsrt_vehicle_positions",
+          fetchedAt: "2026-11-01T00:00:00.000Z",
+          status: "ok",
+          httpStatus: 200,
+          byteLength: 100,
+          sha256: "fixture",
+          rawPath: "/tmp/gtfs-rt/vehicle_positions-1.pb",
+          redactedUrl: "https://example.test/<redacted>",
+          error: null,
+        });
+        await replaceGtfsRtParsedSnapshot(local.db, {
+          parsedSnapshot: {
+            runId: observedRunId,
+            feedType: "vehicle_positions",
+            sampleIndex: 1,
+            parsedAt: "2026-11-01T00:00:01.000Z",
+            status: "parsed",
+            gtfsRealtimeVersion: "2.0",
+            feedTimestamp: 1_793_491_200,
+            entityCount: 2,
+            vehiclePositionCount: 2,
+            tripUpdateCount: 0,
+            stopTimeUpdateCount: 0,
+            alertCount: 0,
+            error: null,
+          },
+          vehiclePositions: [],
+          tripUpdates: [],
+          stopTimeUpdates: [],
+          alerts: [],
+        });
+        await replaceObservedHeadwayRows(local.db, observedRunId, {
+          stopEvents: [],
+          headwaySamples: Array.from({ length: 42 }, (_, index) => ({
+            runId: observedRunId,
+            sampleRank: index + 1,
+            routeId: "T1",
+            sourceRouteId: "MTA NYCT_T1",
+            directionId: 0,
+            stopId: "S1",
+            previousVehicleKey: `bus-${index}`,
+            vehicleKey: `bus-${index + 1}`,
+            previousObservedTimestamp: 1_793_491_200 + index * 600,
+            observedTimestamp: 1_793_491_500 + index * 600,
+            headwaySeconds: 300,
+            headwayMinutes: 5,
+          })),
+        });
+      }
       await replaceRouteInterventionEvaluationRows(local.db, isoMonth, "mta_ace_routes", {
         events: [
           {
@@ -331,12 +407,12 @@ async function writeFixtureNetwork(options: { includeObservedAndInterventions: b
 async function replaceWithInsufficientObservedReliability(): Promise<void> {
   const local = await openLocalPipelineDb(dbPath);
   try {
-    await replaceRouteObservedReliabilityRows(local.db, isoMonth, "fixture-gtfs-rt", {
+    await replaceRouteObservedReliabilityRows(local.db, isoMonth, observedRunId, {
       summaries: [
         {
           routeId: "T1",
           month: isoMonth,
-          runId: "fixture-gtfs-rt",
+          runId: observedRunId,
           reliabilityStatus: "insufficient_gtfs_rt_samples",
           minSampleThreshold: 30,
           sampleCount: 0,
@@ -365,7 +441,7 @@ async function replaceWithInsufficientObservedReliability(): Promise<void> {
           sourceId: "observedHeadways",
           status: "insufficient_gtfs_rt_samples",
           rowCount: 0,
-          snapshotId: "fixture-gtfs-rt",
+          snapshotId: observedRunId,
           note: "0 observed headway samples; minimum 30",
         },
         {
@@ -375,7 +451,7 @@ async function replaceWithInsufficientObservedReliability(): Promise<void> {
           sourceId: "bunching",
           status: "insufficient_gtfs_rt_samples",
           rowCount: 0,
-          snapshotId: "fixture-gtfs-rt",
+          snapshotId: observedRunId,
           note: "0 observed headway samples; minimum 30",
         },
         {
@@ -385,7 +461,7 @@ async function replaceWithInsufficientObservedReliability(): Promise<void> {
           sourceId: "waitTimeReliability",
           status: "insufficient_gtfs_rt_samples",
           rowCount: 0,
-          snapshotId: "fixture-gtfs-rt",
+          snapshotId: observedRunId,
           note: "0 observed headway samples; minimum 30",
         },
       ],
@@ -419,6 +495,13 @@ describe("pipeline v1 check", () => {
         routeObservedReliabilityObservedRows: 1,
         routeObservedReliabilityInsufficientRows: 0,
         routeObservedReliabilityHeadwaySampleCount: 42,
+        gtfsRtCollectionRunRows: 1,
+        gtfsRtCompletedCollectionRunRows: 1,
+        gtfsRtFeedSnapshotRows: 1,
+        gtfsRtSuccessfulFeedSnapshotRows: 1,
+        gtfsRtParsedSnapshotRows: 1,
+        gtfsRtParsedVehiclePositionSnapshotRows: 1,
+        gtfsRtObservedHeadwaySampleRows: 42,
         routeInterventionComparisonRows: 1,
         corridorRows: 1,
         routeArtifactRows: 3,
@@ -484,6 +567,34 @@ describe("pipeline v1 check", () => {
         status: "pass",
         issueCount: 0,
       }),
+    );
+  });
+
+  test("fails strict mode when observed summaries are not backed by a GTFS-RT run", async () => {
+    await writeFixtureNetwork({
+      includeObservedAndInterventions: true,
+      includeGtfsRtProvenance: false,
+    });
+
+    const result = await checkPipelineV1({ year: 2026, month: 11, dbPath });
+
+    expect(result.status).toBe("fail");
+    expect(result.counts).toEqual(
+      expect.objectContaining({
+        routeObservedReliabilityObservedRows: 1,
+        routeObservedReliabilityHeadwaySampleCount: 42,
+        gtfsRtCollectionRunRows: 0,
+        gtfsRtObservedHeadwaySampleRows: 0,
+      }),
+    );
+    expect(result.issues.map((issue) => issue.code)).toEqual(
+      expect.arrayContaining([
+        "gtfs_rt_collection_run_missing",
+        "gtfs_rt_collection_run_not_completed",
+        "gtfs_rt_feed_snapshots_missing",
+        "gtfs_rt_vehicle_positions_not_parsed",
+        "observed_headway_rows_incomplete",
+      ]),
     );
   });
 });

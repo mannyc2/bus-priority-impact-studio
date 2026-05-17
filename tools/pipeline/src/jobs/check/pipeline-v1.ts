@@ -4,7 +4,11 @@ import {
   listCorridorArtifacts,
   listCorridorMonthSummaries,
   listCorridorRouteMembers,
+  listGtfsRtCollectionRuns,
+  listGtfsRtFeedSnapshots,
+  listGtfsRtParsedSnapshots,
   listInterventionEvents,
+  listObservedHeadwaySamples,
   listRouteArtifacts,
   listRouteBatchBuiltRoutes,
   listRouteBriefSummaries,
@@ -49,6 +53,13 @@ type PipelineV1Counts = {
   routeObservedReliabilityObservedRows: number;
   routeObservedReliabilityInsufficientRows: number;
   routeObservedReliabilityHeadwaySampleCount: number;
+  gtfsRtCollectionRunRows: number;
+  gtfsRtCompletedCollectionRunRows: number;
+  gtfsRtFeedSnapshotRows: number;
+  gtfsRtSuccessfulFeedSnapshotRows: number;
+  gtfsRtParsedSnapshotRows: number;
+  gtfsRtParsedVehiclePositionSnapshotRows: number;
+  gtfsRtObservedHeadwaySampleRows: number;
   observedReliabilitySourceStatusRows: number;
   aceRouteRows: number;
   interventionEventRows: number;
@@ -115,6 +126,10 @@ function sample(values: readonly string[], limit = 5): string {
 
 function tableCount(tableCounts: Record<string, number>, tableName: string): number {
   return tableCounts[tableName] ?? 0;
+}
+
+function unique(values: Iterable<string>): string[] {
+  return [...new Set(values)].sort();
 }
 
 export async function checkPipelineV1(
@@ -221,6 +236,42 @@ export async function checkPipelineV1(
     (sum, row) => sum + row.sampleCount,
     0,
   );
+  const observedReliabilityRunIds = unique(
+    localState.observedReliability
+      .filter((row) => row.reliabilityStatus === "observed")
+      .map((row) => row.runId),
+  );
+  const gtfsRtState = await withLocalPipelineDb(options.dbPath, async (local) => {
+    const collectionRuns = (await listGtfsRtCollectionRuns(local.db)).filter((row) =>
+      observedReliabilityRunIds.includes(row.runId),
+    );
+    const feedSnapshots = (
+      await Promise.all(
+        observedReliabilityRunIds.map((runId) => listGtfsRtFeedSnapshots(local.db, runId)),
+      )
+    ).flat();
+    const parsedSnapshots = (
+      await Promise.all(
+        observedReliabilityRunIds.map((runId) => listGtfsRtParsedSnapshots(local.db, runId)),
+      )
+    ).flat();
+    const observedHeadwaySamples = (
+      await Promise.all(
+        observedReliabilityRunIds.map((runId) => listObservedHeadwaySamples(local.db, runId)),
+      )
+    ).flat();
+
+    return { collectionRuns, feedSnapshots, parsedSnapshots, observedHeadwaySamples };
+  });
+  const completedGtfsRtCollectionRunCount = gtfsRtState.collectionRuns.filter((row) =>
+    ["completed", "completed_with_errors"].includes(row.status),
+  ).length;
+  const successfulGtfsRtFeedSnapshotCount = gtfsRtState.feedSnapshots.filter(
+    (row) => row.status === "ok",
+  ).length;
+  const parsedVehiclePositionSnapshotCount = gtfsRtState.parsedSnapshots.filter(
+    (row) => row.status === "parsed" && row.feedType === "vehicle_positions",
+  ).length;
   const issues: PipelineV1Issue[] = [];
 
   if (localState.catalog.length === 0) {
@@ -284,6 +335,60 @@ export async function checkPipelineV1(
       issues,
       "observed_reliability_sample_coverage_insufficient",
       `Observed GTFS-RT headway samples total ${observedReliabilityHeadwaySampleCount}; expected at least ${minObservedHeadwaySamples}.`,
+    );
+  }
+  const missingGtfsRtRunIds = missingMembers(
+    observedReliabilityRunIds,
+    gtfsRtState.collectionRuns.map((row) => row.runId),
+  );
+  if (!args.allowInsufficientGtfsRt && missingGtfsRtRunIds.length > 0) {
+    addIssue(
+      issues,
+      "gtfs_rt_collection_run_missing",
+      `Observed reliability references GTFS-RT run IDs without collection rows: ${sample(missingGtfsRtRunIds)}.`,
+    );
+  }
+  if (
+    !args.allowInsufficientGtfsRt &&
+    observedReliabilityRunIds.length > 0 &&
+    completedGtfsRtCollectionRunCount < observedReliabilityRunIds.length
+  ) {
+    addIssue(
+      issues,
+      "gtfs_rt_collection_run_not_completed",
+      `${completedGtfsRtCollectionRunCount} completed GTFS-RT collection runs for ${observedReliabilityRunIds.length} observed reliability run IDs.`,
+    );
+  }
+  if (
+    !args.allowInsufficientGtfsRt &&
+    observedReliabilityRunIds.length > 0 &&
+    successfulGtfsRtFeedSnapshotCount === 0
+  ) {
+    addIssue(
+      issues,
+      "gtfs_rt_feed_snapshots_missing",
+      "Observed reliability has no successful GTFS-RT feed snapshots.",
+    );
+  }
+  if (
+    !args.allowInsufficientGtfsRt &&
+    observedReliabilityRunIds.length > 0 &&
+    parsedVehiclePositionSnapshotCount === 0
+  ) {
+    addIssue(
+      issues,
+      "gtfs_rt_vehicle_positions_not_parsed",
+      "Observed reliability has no parsed GTFS-RT vehicle-position snapshots.",
+    );
+  }
+  if (
+    !args.allowInsufficientGtfsRt &&
+    gtfsRtState.observedHeadwaySamples.length < observedReliabilityHeadwaySampleCount
+  ) {
+    addIssue(
+      issues,
+      "observed_headway_rows_incomplete",
+      `Observed headway sample rows are ${gtfsRtState.observedHeadwaySamples.length}; reliability summaries report ${observedReliabilityHeadwaySampleCount}.`,
     );
   }
   if (localState.aceRoutes.length > 0 && localState.interventionEvents.length === 0) {
@@ -415,6 +520,13 @@ export async function checkPipelineV1(
       routeObservedReliabilityObservedRows: observedReliabilityObservedRows,
       routeObservedReliabilityInsufficientRows: observedReliabilityInsufficientRows,
       routeObservedReliabilityHeadwaySampleCount: observedReliabilityHeadwaySampleCount,
+      gtfsRtCollectionRunRows: gtfsRtState.collectionRuns.length,
+      gtfsRtCompletedCollectionRunRows: completedGtfsRtCollectionRunCount,
+      gtfsRtFeedSnapshotRows: gtfsRtState.feedSnapshots.length,
+      gtfsRtSuccessfulFeedSnapshotRows: successfulGtfsRtFeedSnapshotCount,
+      gtfsRtParsedSnapshotRows: gtfsRtState.parsedSnapshots.length,
+      gtfsRtParsedVehiclePositionSnapshotRows: parsedVehiclePositionSnapshotCount,
+      gtfsRtObservedHeadwaySampleRows: gtfsRtState.observedHeadwaySamples.length,
       observedReliabilitySourceStatusRows,
       aceRouteRows: localState.aceRoutes.length,
       interventionEventRows: localState.interventionEvents.length,
