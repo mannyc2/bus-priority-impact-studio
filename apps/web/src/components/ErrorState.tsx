@@ -15,11 +15,13 @@ export function ErrorState({
   title = "Could not load data",
   body,
   retry,
+  onRetry,
   className,
 }: {
   title?: string;
   body?: ReactNode;
   retry?: ReactNode;
+  onRetry?: () => void;
   className?: string;
 }) {
   return (
@@ -40,7 +42,7 @@ export function ErrorState({
       </EmptyHeader>
       {retry ? (
         <EmptyContent className="flex-row justify-center">
-          <Button size="sm" variant="secondary">
+          <Button size="sm" variant="secondary" onClick={onRetry}>
             {retry}
           </Button>
         </EmptyContent>

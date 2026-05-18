@@ -44,7 +44,7 @@ export function KPI({
       </div>
       <div className="flex items-baseline gap-1">
         <div
-          className="font-mono font-semibold tracking-[-0.02em]"
+          className="font-mono font-semibold tabular-nums tracking-[-0.02em]"
           style={{ color: toneColor[tone], fontSize: sizes.value, lineHeight: 1 }}
         >
           {value}

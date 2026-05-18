@@ -1,8 +1,8 @@
 import type { CSSProperties } from "react";
 
-import { DirIndicator, type Direction } from "@/components/DirIndicator";
+import { type Direction, DirIndicator } from "@/components/DirIndicator";
 import { HourStrip } from "@/components/HourStrip";
-import { type LaneState } from "@/components/LaneGlyph";
+import type { LaneState } from "@/components/LaneGlyph";
 import { TreatmentRow } from "@/components/TreatmentRow";
 import { Skeleton } from "@/components/ui/skeleton";
 
