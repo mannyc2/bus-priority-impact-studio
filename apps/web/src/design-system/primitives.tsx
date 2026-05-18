@@ -1,6 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { bpiColors, bpiFonts } from "./tokens.js";
 
 type Tone = "neutral" | "accent" | "good" | "warn" | "bad";
@@ -801,80 +800,6 @@ export function SkeletonSegmentRow() {
         <Skeleton w={20} h={10} />
         <Skeleton w={20} h={10} />
       </div>
-    </div>
-  );
-}
-
-export function EmptyState({
-  icon = "∅",
-  title,
-  body,
-  primary,
-  secondary,
-  tone = "neutral",
-}: {
-  icon?: ReactNode;
-  title: string;
-  body?: ReactNode;
-  primary?: ReactNode;
-  secondary?: ReactNode;
-  tone?: "neutral" | "warn";
-}) {
-  const palette =
-    tone === "warn"
-      ? { ring: bpiColors.warnBg, fg: bpiColors.warn }
-      : { ring: bpiColors.ink06, fg: bpiColors.ink55 };
-  return (
-    <div className="flex flex-col items-center gap-3 px-7 py-10 text-center">
-      <div
-        className="flex size-11 items-center justify-center rounded-full text-xl leading-none"
-        style={{ background: palette.ring, color: palette.fg }}
-      >
-        {icon}
-      </div>
-      <div className="text-[15px] font-semibold tracking-[-0.01em]">{title}</div>
-      {body ? (
-        <div className="max-w-[360px] text-[12.5px] leading-normal text-[var(--bp-color-ink-70)]">
-          {body}
-        </div>
-      ) : null}
-      {primary || secondary ? (
-        <div className="mt-1 flex gap-2">
-          {secondary ? (
-            <Button size="sm" variant="secondary">
-              {secondary}
-            </Button>
-          ) : null}
-          {primary ? <Button size="sm">{primary}</Button> : null}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-export function ErrorState({
-  title = "Could not load data",
-  body,
-  retry,
-}: {
-  title?: string;
-  body?: ReactNode;
-  retry?: ReactNode;
-}) {
-  return (
-    <div className="flex flex-col items-center gap-2.5 px-6 py-8 text-center">
-      <div className="flex size-10 items-center justify-center rounded-full bg-[var(--bp-color-bad-bg)] text-lg font-bold text-[var(--bp-color-bad)]">
-        !
-      </div>
-      <div className="text-sm font-semibold">{title}</div>
-      {body ? (
-        <div className="max-w-80 text-xs leading-normal text-[var(--bp-color-ink-70)]">{body}</div>
-      ) : null}
-      {retry ? (
-        <Button size="sm" variant="secondary">
-          {retry}
-        </Button>
-      ) : null}
     </div>
   );
 }

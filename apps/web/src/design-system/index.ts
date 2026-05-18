@@ -10,8 +10,6 @@ export {
   ConfidenceBar,
   DirIndicator,
   DotGlyph,
-  EmptyState,
-  ErrorState,
   Heatmap,
   HourBars,
   HourStrip,

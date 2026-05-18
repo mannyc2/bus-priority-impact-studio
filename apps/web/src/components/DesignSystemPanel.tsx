@@ -1,3 +1,4 @@
+import { EmptyState } from "@/components/EmptyState";
 import { SearchField } from "@/components/SearchField";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +12,6 @@ import {
   CommentBadge,
   CommentMarker,
   ConfidenceBar,
-  EmptyState,
   Heatmap,
   HourBars,
   KPI,
