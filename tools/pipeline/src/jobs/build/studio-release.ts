@@ -36,12 +36,15 @@ const defaultSeedPath = "data/exports/d1/2026-03/seed.sql";
 const defaultRouteLimit = 12;
 const canonicalRouteIds = ["M15+", "BX12+", "M101", "B41", "B46+", "Q58", "M14A+", "M14D+"];
 
+type ReleaseProfile = "demo" | "full";
+
 type CliOptions = {
   month: string;
   outputPath: string;
   schemaPath: string;
   seedPath: string;
   routeLimit: number;
+  profile: ReleaseProfile;
 };
 
 type RouteBriefInputArtifact = {
@@ -98,6 +101,12 @@ function parsePositiveInteger(value: string | undefined, fallback: number, name:
   return parsed;
 }
 
+function parseProfile(value: string | undefined): ReleaseProfile {
+  if (value === undefined || value === "demo") return "demo";
+  if (value === "full") return "full";
+  throw new Error(`--profile must be "demo" or "full" (got "${value}")`);
+}
+
 function parseOptions(args: readonly string[]): CliOptions {
   return {
     month: readFlag(args, "--month") ?? defaultMonth,
@@ -105,6 +114,7 @@ function parseOptions(args: readonly string[]): CliOptions {
     schemaPath: readFlag(args, "--schema") ?? defaultSchemaPath,
     seedPath: readFlag(args, "--seed") ?? defaultSeedPath,
     routeLimit: parsePositiveInteger(readFlag(args, "--limit"), defaultRouteLimit, "--limit"),
+    profile: parseProfile(readFlag(args, "--profile")),
   };
 }
 
@@ -551,12 +561,16 @@ async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> 
       const summary = summariesByRoute.get(routeId);
       return summary === undefined ? [] : [summary];
     });
-    const selectedSummaries = [
+    const orderedSummaries = [
       ...requiredSummaries,
       ...briefSummaries.filter(
         (summary) => !requiredSummaries.some((required) => required.routeId === summary.routeId),
       ),
-    ].slice(0, Math.max(options.routeLimit, requiredSummaries.length));
+    ];
+    const selectedSummaries =
+      options.profile === "full"
+        ? orderedSummaries
+        : orderedSummaries.slice(0, Math.max(options.routeLimit, requiredSummaries.length));
     const routeInputs = new Map<string, RouteBriefInputArtifact | null>();
 
     for (const summary of selectedSummaries) {
