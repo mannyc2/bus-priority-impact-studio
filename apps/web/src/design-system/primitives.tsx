@@ -1,6 +1,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { DirIndicator } from "@/components/DirIndicator";
+import { HourStrip } from "@/components/HourStrip";
 import { LaneGlyph } from "@/components/LaneGlyph";
 import { DotGlyph } from "@/components/DotGlyph";
 import { StrengthBars } from "@/components/StrengthBars";
@@ -10,19 +11,27 @@ import { bpiColors, bpiFonts } from "./tokens.js";
 // Re-export shims — consumers still import from primitives.js while the
 // migration to flat components/<X>.tsx is in flight. Removed in Phase 6.
 export { AiAttribution } from "@/components/AiAttribution";
+export { BeforeAfter } from "@/components/BeforeAfter";
+export { ChartFrame } from "@/components/ChartFrame";
 export { Cite } from "@/components/Cite";
 export { CommentBadge } from "@/components/CommentBadge";
 export { CommentMarker } from "@/components/CommentMarker";
 export { ConfidenceBar } from "@/components/ConfidenceBar";
 export { DirIndicator } from "@/components/DirIndicator";
 export { DotGlyph } from "@/components/DotGlyph";
+export { Heatmap } from "@/components/Heatmap";
+export { HourBars } from "@/components/HourBars";
+export { HourStrip } from "@/components/HourStrip";
 export { LaneGlyph } from "@/components/LaneGlyph";
+export { MapThumb } from "@/components/MapThumb";
 export { ReviewerChip, ReviewerStack } from "@/components/Reviewers";
 export { SectionHeader } from "@/components/SectionHeader";
+export { Spark } from "@/components/Spark";
 export { StrengthBars } from "@/components/StrengthBars";
 export { StudioBar } from "@/components/StudioBar";
 export { StudioFooter } from "@/components/StudioFooter";
 export { StudioMark } from "@/components/StudioMark";
+export { Timeline } from "@/components/Timeline";
 
 type Tone = "neutral" | "accent" | "good" | "warn" | "bad";
 type Direction = "NB" | "SB" | "EB" | "WB";
@@ -112,190 +121,6 @@ export function RouteBadge({
         </span>
       ) : null}
     </span>
-  );
-}
-
-export function Spark({
-  data,
-  width = 80,
-  height = 22,
-  color = bpiColors.ink,
-  fill = false,
-  baseline,
-}: {
-  data: readonly number[];
-  width?: number;
-  height?: number;
-  color?: string;
-  fill?: boolean;
-  baseline?: number;
-}) {
-  if (data.length === 0) return null;
-  const min = Math.min(...data, baseline ?? Number.POSITIVE_INFINITY);
-  const max = Math.max(...data, baseline ?? Number.NEGATIVE_INFINITY);
-  const range = max - min || 1;
-  const dx = width / (data.length - 1 || 1);
-  const y = (value: number) => height - 2 - ((value - min) / range) * (height - 4);
-  const points = data.map((value, index) => [index * dx, y(value)] as const);
-  const path = points
-    .map(([x, pointY], index) => `${index === 0 ? "M" : "L"}${x.toFixed(1)},${pointY.toFixed(1)}`)
-    .join(" ");
-
-  return (
-    <svg width={width} height={height} className="block overflow-visible" aria-hidden="true">
-      {baseline !== undefined ? (
-        <line
-          x1="0"
-          x2={width}
-          y1={y(baseline)}
-          y2={y(baseline)}
-          stroke={bpiColors.ink20}
-          strokeDasharray="2 2"
-          strokeWidth="1"
-        />
-      ) : null}
-      {fill ? (
-        <path d={`${path} L${width},${height} L0,${height} Z`} fill={color} opacity="0.12" />
-      ) : null}
-      <path d={path} fill="none" stroke={color} strokeLinejoin="round" strokeWidth="1.4" />
-    </svg>
-  );
-}
-
-export function HourStrip({
-  hours,
-  width = 168,
-  height = 14,
-}: {
-  hours: readonly number[];
-  width?: number;
-  height?: number;
-}) {
-  const cellWidth = width / 24;
-  return (
-    <svg width={width} height={height} className="block" aria-hidden="true">
-      {hours.slice(0, 24).map((value, index) => {
-        const color =
-          value > 0.72
-            ? bpiColors.bad
-            : value > 0.48
-              ? bpiColors.warn
-              : value > 0.2
-                ? bpiColors.good
-                : bpiColors.ink10;
-        return (
-          <rect
-            key={`${index}-${value}`}
-            x={index * cellWidth}
-            y="0"
-            width={Math.max(1, cellWidth - 1)}
-            height={height}
-            rx="1.5"
-            fill={color}
-          />
-        );
-      })}
-    </svg>
-  );
-}
-
-export function BeforeAfter({
-  before,
-  after,
-  max = Math.max(before, after),
-}: {
-  before: number;
-  after: number;
-  max?: number;
-}) {
-  const width = 140;
-  const safeMax = max || 1;
-  return (
-    <div className="flex flex-col gap-[3px]">
-      {[
-        { label: "before", value: before, color: bpiColors.ink40, weight: 400 },
-        {
-          label: "after",
-          value: after,
-          color: after > before ? bpiColors.good : bpiColors.bad,
-          weight: 600,
-        },
-      ].map((row) => (
-        <div key={row.label} className="flex items-center gap-2">
-          <div className="w-9 text-[10px] text-[var(--bp-color-ink-55)]">{row.label}</div>
-          <div
-            className="h-2"
-            style={{ width: (row.value / safeMax) * width, background: row.color }}
-          />
-          <div
-            className="font-mono text-[11px] text-[var(--bp-color-ink-70)]"
-            style={{ fontWeight: row.weight }}
-          >
-            {row.value.toFixed(1)}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-export function MapThumb({
-  width = 120,
-  height = 80,
-  label = "segment map",
-  emphasis = bpiColors.accent,
-}: {
-  width?: number;
-  height?: number;
-  label?: string;
-  emphasis?: string;
-}) {
-  const stops = [
-    [0.1, 0.85],
-    [0.3, 0.55],
-    [0.75, 0.35],
-    [0.92, 0.18],
-  ] as const;
-
-  return (
-    <div
-      className="relative overflow-hidden rounded-[2px] border font-mono text-[9px] text-[var(--bp-color-ink-55)]"
-      style={{
-        width,
-        height,
-        background: `repeating-linear-gradient(45deg, ${bpiColors.ink06} 0 6px, transparent 6px 14px), ${bpiColors.paperDeep}`,
-        borderColor: bpiColors.rule,
-      }}
-    >
-      <svg width={width} height={height} className="absolute inset-0" aria-hidden="true">
-        <line x1="0" y1={height * 0.3} x2={width} y2={height * 0.3} stroke={bpiColors.ink20} />
-        <line x1="0" y1={height * 0.6} x2={width} y2={height * 0.6} stroke={bpiColors.ink20} />
-        <line x1={width * 0.25} y1="0" x2={width * 0.25} y2={height} stroke={bpiColors.ink20} />
-        <line x1={width * 0.7} y1="0" x2={width * 0.7} y2={height} stroke={bpiColors.ink20} />
-        <path
-          d={`M${width * 0.1},${height * 0.85} L${width * 0.3},${height * 0.55} L${width * 0.75},${height * 0.35} L${width * 0.92},${height * 0.18}`}
-          fill="none"
-          stroke={emphasis}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="2.4"
-        />
-        {stops.map(([x, y]) => (
-          <circle
-            key={`${x}-${y}`}
-            cx={x * width}
-            cy={y * height}
-            r="2.2"
-            fill="white"
-            stroke={emphasis}
-            strokeWidth="1.4"
-          />
-        ))}
-      </svg>
-      <div className="absolute bottom-[3px] left-1 font-mono text-[8.5px] text-[var(--bp-color-ink-55)]">
-        {label}
-      </div>
-    </div>
   );
 }
 
@@ -490,50 +315,6 @@ export function SegmentRow({
   );
 }
 
-export function Timeline({
-  events,
-}: {
-  events: ReadonlyArray<{
-    date: string;
-    title: string;
-    detail?: ReactNode;
-    tone?: "good" | "bad" | "accent";
-  }>;
-}) {
-  return (
-    <div className="relative pl-4">
-      <div className="absolute top-1.5 bottom-1.5 left-1 w-px bg-[var(--bp-color-rule)]" />
-      {events.map((event) => (
-        <div key={`${event.date}-${event.title}`} className="relative pb-3.5">
-          <div
-            className="absolute top-[5px] -left-4 size-[9px] rounded-full"
-            style={{
-              background:
-                event.tone === "good"
-                  ? bpiColors.good
-                  : event.tone === "bad"
-                    ? bpiColors.bad
-                    : bpiColors.accent,
-              boxShadow: `0 0 0 2px ${bpiColors.paper}`,
-            }}
-          />
-          <div className="flex items-baseline gap-2">
-            <span className="font-mono text-[11px] font-semibold text-[var(--bp-color-ink-55)]">
-              {event.date}
-            </span>
-            <span className="text-[12.5px] font-semibold">{event.title}</span>
-          </div>
-          {event.detail ? (
-            <div className="mt-0.5 text-[11.5px] leading-normal text-[var(--bp-color-ink-70)]">
-              {event.detail}
-            </div>
-          ) : null}
-        </div>
-      ))}
-    </div>
-  );
-}
-
 export function Skeleton({
   w = "100%",
   h = 12,
@@ -599,226 +380,6 @@ export function SkeletonSegmentRow() {
         <Skeleton w={20} h={10} />
       </div>
     </div>
-  );
-}
-
-export function ChartFrame({
-  title,
-  source,
-  right,
-  height = 220,
-  children,
-}: {
-  title?: string;
-  source?: string;
-  right?: ReactNode;
-  height?: number;
-  children: ReactNode;
-}) {
-  return (
-    <div className="flex flex-col rounded-[3px] bg-[var(--bp-color-card)] p-[18px] shadow-[0_0_0_1px_var(--bp-color-rule)]">
-      {title ? (
-        <div className="mb-3.5 flex items-end justify-between gap-4">
-          <div>
-            <div className="text-sm font-semibold tracking-[-0.005em]">{title}</div>
-            {source ? (
-              <div className="mt-[3px] text-[11px] text-[var(--bp-color-ink-55)]">{source}</div>
-            ) : null}
-          </div>
-          {right}
-        </div>
-      ) : null}
-      <div style={{ minHeight: height }}>{children}</div>
-    </div>
-  );
-}
-
-export function Heatmap({
-  rows,
-  cols,
-  values,
-  min,
-  max,
-  cellW = 36,
-  cellH = 22,
-  labelGutter = 56,
-  colTickEvery = 6,
-  valueFormat = (value) => value.toFixed(1),
-}: {
-  rows: readonly string[];
-  cols: readonly string[];
-  values: ReadonlyArray<readonly number[]>;
-  min?: number;
-  max?: number;
-  cellW?: number;
-  cellH?: number;
-  labelGutter?: number;
-  colTickEvery?: number;
-  valueFormat?: (value: number) => string;
-}) {
-  const flat = values.flat();
-  const lo = min ?? Math.min(...flat);
-  const hi = max ?? Math.max(...flat);
-  const range = hi - lo || 1;
-  const colorAt = (value: number) => {
-    const t = Math.max(0, Math.min(1, (value - lo) / range));
-    return `oklch(${0.55 + t * 0.35} ${0.16 * (1 - t) + 0.02} ${28 + t * 30})`;
-  };
-
-  return (
-    <div className="inline-block">
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: `${labelGutter}px repeat(${cols.length}, ${cellW}px)`,
-        }}
-      >
-        <div />
-        {cols.map((col, index) => (
-          <div
-            key={col}
-            className="h-4 pb-1 text-center font-mono text-[9.5px] text-[var(--bp-color-ink-55)]"
-          >
-            {index % colTickEvery === 0 || index === cols.length - 1 ? col : ""}
-          </div>
-        ))}
-        {rows.map((rowLabel, rowIndex) => (
-          <>
-            <div
-              key={`${rowLabel}-label`}
-              className="flex items-center text-[10.5px] font-medium text-[var(--bp-color-ink-55)]"
-              style={{ height: cellH }}
-            >
-              {rowLabel}
-            </div>
-            {cols.map((col, colIndex) => {
-              const value = values[rowIndex]?.[colIndex] ?? 0;
-              const t = Math.max(0, Math.min(1, (value - lo) / range));
-              return (
-                <div
-                  key={`${rowLabel}-${col}`}
-                  className="mb-0.5 mr-0.5 flex items-center justify-center rounded-[2px] font-mono text-[9px] font-medium"
-                  style={{
-                    background: colorAt(value),
-                    color: t < 0.4 ? "white" : bpiColors.ink70,
-                    height: cellH,
-                    width: cellW - 2,
-                  }}
-                >
-                  {valueFormat(value)}
-                </div>
-              );
-            })}
-          </>
-        ))}
-      </div>
-      <div className="mt-2.5 flex items-center gap-2 text-[10px] text-[var(--bp-color-ink-55)]">
-        <span>slower</span>
-        <div className="h-2 w-[120px] rounded-[2px] bg-[linear-gradient(90deg,oklch(0.55_0.16_28),oklch(0.85_0.04_60),oklch(0.9_0.02_58))]" />
-        <span>faster</span>
-        <span className="ml-3.5 font-mono">
-          {valueFormat(lo)} → {valueFormat(hi)}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-export function HourBars({
-  data,
-  sched,
-  width = 600,
-  height = 200,
-  min,
-  max,
-}: {
-  data: readonly number[];
-  sched?: number;
-  width?: number;
-  height?: number;
-  min?: number;
-  max?: number;
-}) {
-  const lo = min ?? Math.floor(Math.min(...data, sched ?? Number.POSITIVE_INFINITY) - 0.5);
-  const hi = max ?? Math.ceil(Math.max(...data, sched ?? Number.NEGATIVE_INFINITY) + 0.5);
-  const padL = 36;
-  const padR = 12;
-  const padT = 12;
-  const padB = 24;
-  const cw = (width - padL - padR) / 24;
-  const y = (value: number) => padT + (1 - (value - lo) / (hi - lo || 1)) * (height - padT - padB);
-  const step = Math.max(1, Math.round((hi - lo) / 4));
-  const ticks: number[] = [];
-  for (let value = Math.ceil(lo / step) * step; value <= hi; value += step) ticks.push(value);
-
-  return (
-    <svg width={width} height={height} className="block" aria-hidden="true">
-      {ticks.map((value) => (
-        <g key={value}>
-          <line x1={padL} x2={width - padR} y1={y(value)} y2={y(value)} stroke={bpiColors.rule} />
-          <text
-            x={padL - 6}
-            y={y(value) + 3}
-            fontSize="10"
-            textAnchor="end"
-            fill={bpiColors.ink55}
-            fontFamily={bpiFonts.mono}
-          >
-            {value}
-          </text>
-        </g>
-      ))}
-      {sched !== undefined ? (
-        <>
-          <line
-            x1={padL}
-            x2={width - padR}
-            y1={y(sched)}
-            y2={y(sched)}
-            stroke={bpiColors.accent}
-            strokeDasharray="4 3"
-            strokeWidth="1.5"
-          />
-          <text
-            x={width - padR - 4}
-            y={y(sched) - 5}
-            fontSize="10"
-            textAnchor="end"
-            fill={bpiColors.accent}
-            fontWeight="600"
-          >
-            scheduled {sched.toFixed(1)}
-          </text>
-        </>
-      ) : null}
-      {data.slice(0, 24).map((value, index) => {
-        const top = y(value);
-        const bottom = y(lo);
-        return (
-          <rect
-            key={`${index}-${value}`}
-            x={padL + index * cw + 1.5}
-            width={cw - 3}
-            y={top}
-            height={bottom - top}
-            fill={value < 5 ? bpiColors.bad : value < 6.5 ? bpiColors.warn : bpiColors.ink40}
-          />
-        );
-      })}
-      {[0, 6, 12, 18].map((hour) => (
-        <text
-          key={hour}
-          x={padL + hour * cw + cw / 2}
-          y={height - padB + 14}
-          fontSize="10"
-          textAnchor="middle"
-          fill={bpiColors.ink55}
-          fontFamily={bpiFonts.mono}
-        >
-          {hour}:00
-        </text>
-      ))}
-    </svg>
   );
 }
 
