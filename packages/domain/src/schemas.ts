@@ -315,6 +315,20 @@ export const ReleaseStatusResponseSchema = registerProjectSchema(
           routeCoverageShare: z.number().min(0).max(1),
         })
         .strict(),
+      currentObservedSignal: z
+        .object({
+          month: IsoMonthSchema,
+          runId: z.string().min(1).nullable(),
+          source: z.enum(["official_self_collected", "third_party_recovered", "none"]),
+          releaseLayer: z.literal("current_signal"),
+          routeCount: z.number().int().nonnegative(),
+          observedRouteCount: z.number().int().nonnegative(),
+          insufficientRouteCount: z.number().int().nonnegative(),
+          sampleCount: z.number().int().nonnegative(),
+          caveats: z.array(z.string().min(1)).readonly(),
+        })
+        .strict()
+        .nullable(),
       quality: ApiDataQualitySchema,
     })
     .strict()

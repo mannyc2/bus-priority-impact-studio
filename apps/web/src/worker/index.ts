@@ -2,6 +2,7 @@ import {
   createD1ServingDb,
   getRouteBatchStatus,
   getRouteBriefSummary,
+  findLatestNonBaselineObservedMonth,
   getRouteScorecard,
   listCorridorSummaries,
   listRouteArtifacts,
@@ -593,9 +594,10 @@ async function buildReleaseStatusResponse(url: URL, env: Env): Promise<Response>
   }
 
   const db = createD1ServingDb(env.DB);
-  const [batchStatus, reliability] = await Promise.all([
+  const [batchStatus, reliability, currentSignalMonth] = await Promise.all([
     getRouteBatchStatus(db, month),
     listRouteObservedReliabilitySummaries(db, month),
+    findLatestNonBaselineObservedMonth(db, month),
   ]);
 
   if (batchStatus === null) {
@@ -625,12 +627,16 @@ async function buildReleaseStatusResponse(url: URL, env: Env): Promise<Response>
         ? ["No observed realtime evidence is attached to this release."]
         : ["Observed realtime evidence comes from self-collected MTA Bus Time GTFS-RT snapshots."];
 
+  const currentObservedSignal = currentSignalMonth
+    ? await buildCurrentObservedSignal(db, currentSignalMonth)
+    : null;
+
   return json(
     ReleaseStatusResponseSchema.parse({
       schemaVersion: 1,
       generatedAt: batchStatus.generatedAt,
       baselineMonth: month,
-      currentSignalMonth: null,
+      currentSignalMonth: currentObservedSignal?.month ?? null,
       canonicalMonthlyRelease: {
         month,
         status: batchStatus.status,
@@ -646,6 +652,7 @@ async function buildReleaseStatusResponse(url: URL, env: Env): Promise<Response>
         sampleCount,
         routeCoverageShare,
       },
+      currentObservedSignal,
       quality: {
         releaseLayer: observedRouteCount > 0 ? "observed_release" : "baseline_release",
         completenessStatus:
@@ -655,6 +662,54 @@ async function buildReleaseStatusResponse(url: URL, env: Env): Promise<Response>
       },
     }),
   );
+}
+
+async function buildCurrentObservedSignal(
+  db: ReturnType<typeof createD1ServingDb>,
+  month: string,
+): Promise<{
+  month: string;
+  runId: string | null;
+  source: "official_self_collected" | "third_party_recovered" | "none";
+  releaseLayer: "current_signal";
+  routeCount: number;
+  observedRouteCount: number;
+  insufficientRouteCount: number;
+  sampleCount: number;
+  caveats: readonly string[];
+}> {
+  const rows = await listRouteObservedReliabilitySummaries(db, month);
+  const observedRows = rows.filter((row) => row.reliabilityStatus === "observed");
+  const insufficientRows = rows.filter(
+    (row) => row.reliabilityStatus === "insufficient_gtfs_rt_samples",
+  );
+  const runIds = [...new Set(rows.map((row) => row.runId))].sort();
+  const runId = runIds.length === 1 ? (runIds[0] ?? null) : null;
+  const source = realtimeSourceForRunId(runId);
+  const sampleCount = rows.reduce((sum, row) => sum + row.sampleCount, 0);
+  const caveats =
+    source === "third_party_recovered"
+      ? [
+          "Current observed signal is recovered from the third-party Bus Observatory archive, not official MTA historical replay.",
+          "Public monthly speed data is not yet available for this month; reliability evidence stands alone.",
+        ]
+      : source === "official_self_collected"
+        ? [
+            "Current observed signal comes from self-collected MTA Bus Time GTFS-RT snapshots.",
+            "Public monthly speed data is not yet available for this month; reliability evidence stands alone.",
+          ]
+        : ["Current observed signal has ambiguous provenance; multiple runs cover the same month."];
+  return {
+    month,
+    runId,
+    source,
+    releaseLayer: "current_signal",
+    routeCount: rows.length,
+    observedRouteCount: observedRows.length,
+    insufficientRouteCount: insufficientRows.length,
+    sampleCount,
+    caveats,
+  };
 }
 
 async function buildRouteListResponse(url: URL, env: Env): Promise<Response> {

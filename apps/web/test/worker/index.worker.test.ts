@@ -419,6 +419,7 @@ describe("Worker production-behavior harness", () => {
     expect(ReleaseStatusResponseSchema.parse(await response.json())).toEqual(
       expect.objectContaining({
         baselineMonth: "2026-03",
+        currentSignalMonth: null,
         canonicalMonthlyRelease: expect.objectContaining({ status: "pass", routeCount: 2 }),
         observedRealtimeEvidence: expect.objectContaining({
           runId: "bus-observatory-2026-03",
@@ -427,6 +428,106 @@ describe("Worker production-behavior harness", () => {
           insufficientRouteCount: 1,
           sampleCount: 42,
         }),
+        currentObservedSignal: null,
+      }),
+    );
+  });
+
+  it("surfaces the latest non-baseline observed month as currentObservedSignal", async () => {
+    // FakeDb returns all rows regardless of WHERE clause; seed only May reliability
+    // rows + a route_batch_status with enough capacity that the baseline coverage
+    // share (which counts whatever FakeDb returns) stays in [0, 1].
+    const db = new FakeDb({
+      route_batch_built_route: [],
+      route_batch_issue: [],
+      route_batch_status: [
+        {
+          month: "2026-03",
+          generated_at: "2026-05-17T15:46:52.274Z",
+          status: "pass",
+          route_count: 10,
+          artifact_count: 0,
+          missing_artifact_count: 0,
+          hash_mismatch_count: 0,
+          byte_length_mismatch_count: 0,
+          total_byte_length: 0,
+          issue_count: 0,
+        },
+      ],
+      route_month_source_status: [],
+      route_observed_reliability_summary: [
+        {
+          route_id: "M1",
+          month: "2026-05",
+          run_id: "gtfs-rt-v1-20260517T103607Z-24h",
+          reliability_status: "observed",
+          min_sample_threshold: 30,
+          sample_count: 500,
+          stop_count: 12,
+          direction_count: 2,
+          average_observed_headway_minutes: 6,
+          median_observed_headway_minutes: 5,
+          p90_observed_headway_minutes: 12,
+          max_observed_headway_minutes: 18,
+          scheduled_median_headway_minutes: null,
+          bunching_threshold_minutes: 3,
+          long_gap_threshold_minutes: 20,
+          observed_bunching_share: 0.08,
+          observed_long_gap_share: 0.18,
+          expected_wait_minutes: 4,
+          scheduled_expected_wait_minutes: null,
+          excess_wait_minutes: null,
+          wait_reliability_ratio: null,
+        },
+        {
+          route_id: "M2",
+          month: "2026-05",
+          run_id: "gtfs-rt-v1-20260517T103607Z-24h",
+          reliability_status: "insufficient_gtfs_rt_samples",
+          min_sample_threshold: 30,
+          sample_count: 5,
+          stop_count: 4,
+          direction_count: 2,
+          average_observed_headway_minutes: null,
+          median_observed_headway_minutes: null,
+          p90_observed_headway_minutes: null,
+          max_observed_headway_minutes: null,
+          scheduled_median_headway_minutes: null,
+          bunching_threshold_minutes: null,
+          long_gap_threshold_minutes: null,
+          observed_bunching_share: null,
+          observed_long_gap_share: null,
+          expected_wait_minutes: null,
+          scheduled_expected_wait_minutes: null,
+          excess_wait_minutes: null,
+          wait_reliability_ratio: null,
+        },
+      ],
+    });
+
+    const response = await worker.fetch(new Request("https://example.test/api/v1/status"), {
+      BASELINE_MONTH: "2026-03",
+      DB: db as unknown as D1Database,
+    });
+
+    expect(response.status).toBe(200);
+    expect(ReleaseStatusResponseSchema.parse(await response.json())).toEqual(
+      expect.objectContaining({
+        baselineMonth: "2026-03",
+        currentSignalMonth: "2026-05",
+        currentObservedSignal: {
+          month: "2026-05",
+          runId: "gtfs-rt-v1-20260517T103607Z-24h",
+          source: "official_self_collected",
+          releaseLayer: "current_signal",
+          routeCount: 2,
+          observedRouteCount: 1,
+          insufficientRouteCount: 1,
+          sampleCount: 505,
+          caveats: expect.arrayContaining([
+            expect.stringMatching(/self-collected MTA Bus Time GTFS-RT/),
+          ]),
+        },
       }),
     );
   });

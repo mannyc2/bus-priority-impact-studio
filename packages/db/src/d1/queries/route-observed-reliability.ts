@@ -1,4 +1,4 @@
-import { asc, eq } from "drizzle-orm";
+import { asc, desc, eq } from "drizzle-orm";
 import * as z from "zod";
 import type { D1ServingDb } from "../client.js";
 import { routeObservedReliabilitySummary } from "../schema.js";
@@ -137,4 +137,20 @@ export async function listRouteObservedReliabilitySummaries(
   );
 
   return parsedRows.map((row) => toRouteObservedReliabilitySummary(row, statuses));
+}
+
+export async function findLatestNonBaselineObservedMonth(
+  db: D1ServingDb,
+  baselineMonth: string,
+): Promise<string | null> {
+  const rows = await db
+    .select()
+    .from(routeObservedReliabilitySummary)
+    .orderBy(desc(routeObservedReliabilitySummary.month));
+  for (const row of rows) {
+    if (row.month !== baselineMonth) {
+      return row.month;
+    }
+  }
+  return null;
 }

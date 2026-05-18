@@ -54,7 +54,10 @@ export type {
   RouteObservedReliabilitySummary,
   RouteObservedReliabilitySummaryRow,
 } from "./queries/route-observed-reliability.js";
-export { listRouteObservedReliabilitySummaries } from "./queries/route-observed-reliability.js";
+export {
+  findLatestNonBaselineObservedMonth,
+  listRouteObservedReliabilitySummaries,
+} from "./queries/route-observed-reliability.js";
 export type { RouteReadiness, RouteReadinessRow } from "./queries/route-readiness.js";
 export { listBuildEligibleRoutes, listRouteReadiness } from "./queries/route-readiness.js";
 export type {
