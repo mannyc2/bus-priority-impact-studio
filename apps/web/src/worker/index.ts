@@ -10,6 +10,8 @@ import {
   listRouteObservedReliabilitySummaries,
 } from "@bp/db/d1";
 import {
+  buildStudioCompareProjection,
+  getStudioRoute,
   HealthResponseSchema,
   HotspotListResponseSchema,
   healthResponseJsonSchema,
@@ -28,8 +30,22 @@ import {
   routeListResponseJsonSchema,
   routeProfileResponseJsonSchema,
   routeScorecardJsonSchema,
+  studioOpenApiDocument,
 } from "@bp/domain";
 import * as z from "zod";
+import {
+  StudioBriefResponseSchema,
+  StudioBriefsResponseSchema,
+  StudioDocsResponseSchema,
+  StudioFindingResponseSchema,
+  StudioFindingsResponseSchema,
+  StudioMethodsResponseSchema,
+  StudioRouteDetailResponseSchema,
+  StudioRouteLadderResponseSchema,
+  StudioRoutesResponseSchema,
+  StudioSearchResponseSchema,
+} from "../studio/api-contract.js";
+import { getStudioSeoMetadata, injectSeoIntoHtml } from "../studio/seo.js";
 import { runScheduledProductionRefresh } from "./source-refresh.js";
 
 export type Env = {
@@ -39,6 +55,7 @@ export type Env = {
   GTFS_RT_RAW?: R2Bucket;
   MTA_BUS_TIME_API_KEY?: string;
   BASELINE_MONTH?: string;
+  STUDIO_RELEASE_KEY?: string;
   LAST_BUILT_SPEED_MONTH?: string;
   GTFS_RT_SAMPLES_PER_CRON?: string;
   GTFS_RT_SAMPLE_SECONDS?: string;
@@ -64,8 +81,29 @@ export function buildHealthResponse(now = new Date()): Response {
   return json(body);
 }
 
-function errorJson(status: number, message: string): Response {
-  return json({ error: { message } }, { status });
+function errorCodeForStatus(status: number): string {
+  if (status === 400) return "BAD_REQUEST";
+  if (status === 404) return "NOT_FOUND";
+  if (status === 502) return "BAD_GATEWAY";
+  if (status === 503) return "SERVICE_UNAVAILABLE";
+  return `HTTP_${status}`;
+}
+
+function errorJson(status: number, message: string, code = errorCodeForStatus(status)): Response {
+  return json({ error: { code, message } }, { status });
+}
+
+async function withServerTiming(name: string, handler: () => Promise<Response>): Promise<Response> {
+  const startedAt = performance.now();
+  const response = await handler();
+  const headers = new Headers(response.headers);
+  headers.append("Server-Timing", `${name};dur=${(performance.now() - startedAt).toFixed(1)}`);
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
 }
 
 function isApiPath(pathname: string): boolean {
@@ -79,9 +117,42 @@ function isLocalDevHost(hostname: string): boolean {
 function canServeSpaFallback(request: Request, url: URL): boolean {
   return (
     !isApiPath(url.pathname) &&
-    url.pathname !== "/" &&
+    !url.pathname.match(/\/[^/]+\.[^/]+$/) &&
     (request.method === "GET" || request.method === "HEAD")
   );
+}
+
+function isProductionClosedPath(url: URL): boolean {
+  return url.pathname === "/system" && !isLocalDevHost(url.hostname);
+}
+
+async function withSpaSeo(request: Request, url: URL, response: Response): Promise<Response> {
+  if (request.method === "HEAD") {
+    return response;
+  }
+
+  const contentType = response.headers.get("Content-Type") ?? "";
+  if (!contentType.includes("text/html")) {
+    return response;
+  }
+
+  const metadata = getStudioSeoMetadata(url);
+  if (metadata === null) {
+    return response;
+  }
+
+  const headers = new Headers(response.headers);
+  headers.delete("Content-Length");
+  headers.set("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
+  if (metadata.noindex) {
+    headers.set("X-Robots-Tag", "noindex, nofollow");
+  }
+
+  return new Response(injectSeoIntoHtml(await response.text(), metadata, url.origin), {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
 }
 
 async function buildRouteScorecardResponse(url: URL, env: Env): Promise<Response> {
@@ -156,6 +227,303 @@ function artifactApiPath(key: string): string {
     .split("/")
     .map((part) => encodeURIComponent(part))
     .join("/")}`;
+}
+
+const defaultStudioReleaseArtifactKey = "studio/v1/release.json";
+
+function studioProjectionPrefix(env: Env): string {
+  const configuredKey = env.STUDIO_RELEASE_KEY?.trim();
+  const releaseKey =
+    configuredKey && configuredKey.length > 0 ? configuredKey : defaultStudioReleaseArtifactKey;
+  const parts = releaseKey.split("/");
+  parts.pop();
+  return parts.length === 0 ? "studio/v1" : parts.join("/");
+}
+
+function studioProjectionKey(env: Env, path: string): string {
+  return `${studioProjectionPrefix(env)}/${path}`;
+}
+
+function studioJson(body: unknown, env: Env): Response {
+  return json(body, {
+    headers: {
+      "Cache-Control": "public, max-age=60, stale-while-revalidate=86400",
+      "X-Studio-Release": studioProjectionPrefix(env),
+    },
+  });
+}
+
+async function loadStudioProjection<TSchema extends z.ZodType>(
+  env: Env,
+  path: string,
+  schema: TSchema,
+): Promise<Response | z.output<TSchema>> {
+  if (env.ARTIFACTS === undefined) {
+    return errorJson(503, "ARTIFACTS R2 binding is required for the Studio API.");
+  }
+
+  const key = studioProjectionKey(env, path);
+  const object = await env.ARTIFACTS.get(key);
+  if (object === null) {
+    return errorJson(503, `Studio API projection artifact was not found at ${key}.`);
+  }
+
+  let payload: unknown;
+  try {
+    payload = await object.json();
+  } catch {
+    return errorJson(502, `Studio API projection artifact is not valid JSON: ${key}.`);
+  }
+
+  const projection = schema.safeParse(payload);
+  if (!projection.success) {
+    return errorJson(502, `Studio API projection artifact failed contract validation: ${key}.`);
+  }
+
+  return projection.data;
+}
+
+function textIncludesAnyTerm(text: string, terms: readonly string[]): boolean {
+  const normalizedText = text.toLowerCase();
+  return terms.length === 0 || terms.some((term) => normalizedText.includes(term));
+}
+
+function searchTerms(query: string): string[] {
+  return query
+    .toLowerCase()
+    .split(/\s+/)
+    .map((term) => term.trim())
+    .filter((term) => term.length > 0);
+}
+
+async function buildStudioResponse(url: URL, env: Env): Promise<Response> {
+  if (url.pathname === "/api/v1/studio/routes") {
+    const routes = await loadStudioProjection(env, "routes.json", StudioRoutesResponseSchema);
+    return routes instanceof Response ? routes : studioJson(routes, env);
+  }
+
+  if (url.pathname === "/api/v1/studio/search") {
+    const [routes, findings, briefs] = await Promise.all([
+      loadStudioProjection(env, "routes.json", StudioRoutesResponseSchema),
+      loadStudioProjection(env, "findings.json", StudioFindingsResponseSchema),
+      loadStudioProjection(env, "briefs.json", StudioBriefsResponseSchema),
+    ]);
+    if (routes instanceof Response) {
+      return routes;
+    }
+    if (findings instanceof Response) {
+      return findings;
+    }
+    if (briefs instanceof Response) {
+      return briefs;
+    }
+
+    const query = url.searchParams.get("q")?.trim() ?? "";
+    const terms = searchTerms(query);
+    const matchedRoutes = routes.routes.filter((route) =>
+      textIncludesAnyTerm(
+        [
+          route.slug,
+          route.routeId,
+          route.label,
+          route.corridor,
+          route.borough,
+          route.reliability,
+          route.diagnosis,
+          route.sbs ? "sbs select bus service" : "local",
+        ].join(" "),
+        terms,
+      ),
+    );
+    const matchedFindings = findings.findings.filter(({ finding }) =>
+      textIncludesAnyTerm(
+        [
+          finding.id,
+          finding.category,
+          finding.title,
+          finding.body,
+          finding.metric,
+          finding.routeSlug,
+        ].join(" "),
+        terms,
+      ),
+    );
+    const matchedBriefs = briefs.briefs.filter(({ brief }) =>
+      textIncludesAnyTerm(
+        [brief.id, brief.title, brief.summary, brief.status, brief.routeSlug, ...brief.claims].join(
+          " ",
+        ),
+        terms,
+      ),
+    );
+
+    return studioJson(
+      StudioSearchResponseSchema.parse({
+        schemaVersion: 1,
+        generatedAt: routes.generatedAt,
+        query,
+        routes: matchedRoutes,
+        findings: matchedFindings,
+        briefs: matchedBriefs,
+        quality: routes.quality,
+      }),
+      env,
+    );
+  }
+
+  const routeMatch = url.pathname.match(/^\/api\/v1\/studio\/routes\/([^/]+)$/);
+  if (routeMatch) {
+    const slug = decodeURIComponent(routeMatch[1] ?? "");
+    const routes = await loadStudioProjection(env, "routes.json", StudioRoutesResponseSchema);
+    if (routes instanceof Response) {
+      return routes;
+    }
+    if (getStudioRoute(routes, slug) === undefined) {
+      return errorJson(404, "Studio route was not found.");
+    }
+
+    const route = await loadStudioProjection(
+      env,
+      `routes/${slug}/index.json`,
+      StudioRouteDetailResponseSchema,
+    );
+    return route instanceof Response ? route : studioJson(route, env);
+  }
+
+  const ladderMatch = url.pathname.match(/^\/api\/v1\/studio\/routes\/([^/]+)\/ladder$/);
+  if (ladderMatch) {
+    const slug = decodeURIComponent(ladderMatch[1] ?? "");
+    const routes = await loadStudioProjection(env, "routes.json", StudioRoutesResponseSchema);
+    if (routes instanceof Response) {
+      return routes;
+    }
+    if (getStudioRoute(routes, slug) === undefined) {
+      return errorJson(404, "Studio route ladder was not found.");
+    }
+
+    const ladder = await loadStudioProjection(
+      env,
+      `routes/${slug}/ladder.json`,
+      StudioRouteLadderResponseSchema,
+    );
+    return ladder instanceof Response ? ladder : studioJson(ladder, env);
+  }
+
+  if (url.pathname === "/api/v1/studio/compare") {
+    const routes = await loadStudioProjection(env, "routes.json", StudioRoutesResponseSchema);
+    if (routes instanceof Response) {
+      return routes;
+    }
+
+    const routeA = getStudioRoute(routes, url.searchParams.get("a") ?? "");
+    const routeB = getStudioRoute(routes, url.searchParams.get("b") ?? "");
+    if (routeA === undefined || routeB === undefined) {
+      return errorJson(404, "One or more Studio comparison routes were not found.");
+    }
+
+    return studioJson(
+      buildStudioCompareProjection(
+        {
+          schemaVersion: 1,
+          generatedAt: routes.generatedAt,
+          quality: routes.quality,
+          routes: routes.routes,
+          segments: [],
+          findings: [],
+          briefs: [],
+          versions: [],
+          comments: [],
+          methods: [],
+          docsSections: [],
+          docsEndpoints: [],
+        },
+        routeA,
+        routeB,
+      ),
+      env,
+    );
+  }
+
+  if (url.pathname === "/api/v1/studio/findings") {
+    const findings = await loadStudioProjection(env, "findings.json", StudioFindingsResponseSchema);
+    return findings instanceof Response ? findings : studioJson(findings, env);
+  }
+
+  const findingMatch = url.pathname.match(/^\/api\/v1\/studio\/findings\/([^/]+)$/);
+  if (findingMatch) {
+    const findingId = decodeURIComponent(findingMatch[1] ?? "");
+    const findings = await loadStudioProjection(env, "findings.json", StudioFindingsResponseSchema);
+    if (findings instanceof Response) {
+      return findings;
+    }
+    if (!findings.findings.some(({ finding }) => finding.id === findingId)) {
+      return errorJson(404, "Studio finding was not found.");
+    }
+
+    const finding = await loadStudioProjection(
+      env,
+      `findings/${findingId}/index.json`,
+      StudioFindingResponseSchema,
+    );
+    return finding instanceof Response ? finding : studioJson(finding, env);
+  }
+
+  if (url.pathname === "/api/v1/studio/briefs") {
+    const briefs = await loadStudioProjection(env, "briefs.json", StudioBriefsResponseSchema);
+    return briefs instanceof Response ? briefs : studioJson(briefs, env);
+  }
+
+  const briefWorkflowMatch = url.pathname.match(
+    /^\/api\/v1\/studio\/briefs\/([^/]+)\/(?:evidence|history)$/,
+  );
+  if (briefWorkflowMatch) {
+    const briefId = decodeURIComponent(briefWorkflowMatch[1] ?? "");
+    const briefs = await loadStudioProjection(env, "briefs.json", StudioBriefsResponseSchema);
+    if (briefs instanceof Response) {
+      return briefs;
+    }
+    if (!briefs.briefs.some(({ brief }) => brief.id === briefId)) {
+      return errorJson(404, "Studio brief was not found.");
+    }
+
+    const brief = await loadStudioProjection(
+      env,
+      `briefs/${briefId}/index.json`,
+      StudioBriefResponseSchema,
+    );
+    return brief instanceof Response ? brief : studioJson(brief, env);
+  }
+
+  const briefMatch = url.pathname.match(/^\/api\/v1\/studio\/briefs\/([^/]+)$/);
+  if (briefMatch) {
+    const briefId = decodeURIComponent(briefMatch[1] ?? "");
+    const briefs = await loadStudioProjection(env, "briefs.json", StudioBriefsResponseSchema);
+    if (briefs instanceof Response) {
+      return briefs;
+    }
+    if (!briefs.briefs.some(({ brief }) => brief.id === briefId)) {
+      return errorJson(404, "Studio brief was not found.");
+    }
+
+    const brief = await loadStudioProjection(
+      env,
+      `briefs/${briefId}/index.json`,
+      StudioBriefResponseSchema,
+    );
+    return brief instanceof Response ? brief : studioJson(brief, env);
+  }
+
+  if (url.pathname === "/api/v1/studio/methods") {
+    const methods = await loadStudioProjection(env, "methods.json", StudioMethodsResponseSchema);
+    return methods instanceof Response ? methods : studioJson(methods, env);
+  }
+
+  if (url.pathname === "/api/v1/studio/docs") {
+    const docs = await loadStudioProjection(env, "docs.json", StudioDocsResponseSchema);
+    return docs instanceof Response ? docs : studioJson(docs, env);
+  }
+
+  return errorJson(404, "Studio API endpoint was not found.");
 }
 
 type ObservedReliabilityRow = Awaited<
@@ -792,6 +1160,14 @@ export default {
       return json(routeCompareResponseJsonSchema);
     }
 
+    if (url.pathname === "/api/openapi.json") {
+      return json(studioOpenApiDocument);
+    }
+
+    if (url.pathname === "/api/v1/studio" || url.pathname.startsWith("/api/v1/studio/")) {
+      return withServerTiming("studio", () => buildStudioResponse(url, env));
+    }
+
     if (url.pathname === "/api/v1/status") {
       return buildReleaseStatusResponse(url, env);
     }
@@ -824,12 +1200,22 @@ export default {
       return buildRouteScorecardResponse(url, env);
     }
 
+    if (isProductionClosedPath(url)) {
+      return new Response("Not found", {
+        status: 404,
+        headers: {
+          "Content-Type": "text/plain; charset=utf-8",
+          "X-Robots-Tag": "noindex, nofollow",
+        },
+      });
+    }
+
     if (canServeSpaFallback(request, url) && env.ASSETS !== undefined) {
-      return env.ASSETS.fetch(request);
+      return withSpaSeo(request, url, await env.ASSETS.fetch(request));
     }
 
     if (canServeSpaFallback(request, url) && isLocalDevHost(url.hostname)) {
-      return fetch(new Request(new URL("/", request.url), request));
+      return withSpaSeo(request, url, await fetch(new Request(new URL("/", request.url), request)));
     }
 
     return new Response("Not found", { status: 404 });
