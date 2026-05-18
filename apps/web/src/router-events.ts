@@ -7,7 +7,9 @@ export const NAVIGATION_RESOLVED_EVENT = "bp:navigation:resolved";
 
 export type NavigationEventDetail = {
   fromHref?: string;
+  fromPath?: string;
   toHref: string;
+  toPath: string;
   pathChanged: boolean;
   hrefChanged: boolean;
   hashChanged: boolean;
@@ -52,6 +54,7 @@ function navigationDetail(event: {
 }): NavigationEventDetail {
   const detail: NavigationEventDetail = {
     toHref: event.toLocation.href,
+    toPath: pathFromHref(event.toLocation.href),
     pathChanged: event.pathChanged,
     hrefChanged: event.hrefChanged,
     hashChanged: event.hashChanged,
@@ -59,6 +62,7 @@ function navigationDetail(event: {
 
   if (event.fromLocation) {
     detail.fromHref = event.fromLocation.href;
+    detail.fromPath = pathFromHref(event.fromLocation.href);
   }
 
   return detail;
@@ -74,4 +78,13 @@ function measureNavigation(): void {
 
   performance.mark("bp:navigation:rendered");
   performance.measure("bp:navigation", "bp:navigation:start", "bp:navigation:rendered");
+}
+
+function pathFromHref(href: string): string {
+  try {
+    const url = new URL(href, window.location.origin);
+    return url.pathname;
+  } catch {
+    return href.split("?")[0] ?? href;
+  }
 }
