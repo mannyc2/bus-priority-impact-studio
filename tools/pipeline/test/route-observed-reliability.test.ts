@@ -308,7 +308,7 @@ describe("route observed reliability", () => {
     ]);
   });
 
-  test("replaces the active observed reliability run for a month", async () => {
+  test("keeps prior observed reliability runs for the same month under different runIds", async () => {
     await removeFixtureArtifacts();
     await writeFixtureRows();
     const replacementRunId = "replacement-reliability-run";
@@ -372,14 +372,20 @@ describe("route observed reliability", () => {
     const sourceStatuses = await listRouteMonthSourceStatuses(verification.db, isoMonth);
     verification.sqlite.close();
 
-    expect(new Set(summaries.map((summary) => summary.runId))).toEqual(new Set([replacementRunId]));
-    expect(summaries.find((summary) => summary.routeId === "T1")).toEqual(
+    expect(new Set(summaries.map((summary) => summary.runId))).toEqual(
+      new Set([runId, replacementRunId]),
+    );
+    expect(
+      summaries.find((summary) => summary.routeId === "T1" && summary.runId === replacementRunId),
+    ).toEqual(
       expect.objectContaining({
         reliabilityStatus: "insufficient_gtfs_rt_samples",
         sampleCount: 0,
       }),
     );
-    expect(summaries.find((summary) => summary.routeId === "T2")).toEqual(
+    expect(
+      summaries.find((summary) => summary.routeId === "T2" && summary.runId === replacementRunId),
+    ).toEqual(
       expect.objectContaining({
         reliabilityStatus: "observed",
         sampleCount: 2,

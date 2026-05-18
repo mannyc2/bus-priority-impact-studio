@@ -60,15 +60,35 @@ const observedReliabilitySourceIds = ["observedHeadways", "bunching", "waitTimeR
 export async function replaceRouteObservedReliabilityRows(
   db: LocalPipelineDb,
   month: string,
-  _runId: string,
+  runId: string,
   input: {
     summaries: readonly (typeof localRouteObservedReliabilitySummary.$inferInsert)[];
     sourceStatuses: readonly (typeof localRouteMonthSourceStatus.$inferInsert)[];
   },
 ): Promise<void> {
+  for (const row of input.summaries) {
+    if (row.month !== month || row.runId !== runId) {
+      throw new Error(
+        `replaceRouteObservedReliabilityRows: summary row (month=${row.month}, runId=${row.runId}) does not match scope (month=${month}, runId=${runId})`,
+      );
+    }
+  }
+  for (const row of input.sourceStatuses) {
+    if (row.month !== month) {
+      throw new Error(
+        `replaceRouteObservedReliabilityRows: sourceStatus row (month=${row.month}) does not match scope (month=${month})`,
+      );
+    }
+  }
+
   await db
     .delete(localRouteObservedReliabilitySummary)
-    .where(eq(localRouteObservedReliabilitySummary.month, month));
+    .where(
+      and(
+        eq(localRouteObservedReliabilitySummary.month, month),
+        eq(localRouteObservedReliabilitySummary.runId, runId),
+      ),
+    );
   await db
     .delete(localRouteMonthSourceStatus)
     .where(
