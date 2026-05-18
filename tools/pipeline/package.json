@@ -43,6 +43,7 @@
     "map-artifacts": "bun run src/cli.ts map-artifacts",
     "brief-artifacts": "bun run src/cli.ts brief-artifacts",
     "build:studio-release": "bun run src/cli.ts build:studio-release",
+    "audit:studio-coverage": "bun run src/cli.ts audit:studio-coverage",
     "route-equity-context": "bun run src/cli.ts route-equity-context",
     "export:d1": "bun run src/cli.ts export:d1",
     "verify:d1": "bun run src/cli.ts verify:d1",

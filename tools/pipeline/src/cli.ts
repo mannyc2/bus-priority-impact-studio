@@ -265,6 +265,14 @@ const commands = {
       return buildStudioReleaseFromCli(args);
     },
   },
+  "audit:studio-coverage": {
+    description:
+      "Audit Studio v1 projection coverage versus local D1 route/brief/observed data.",
+    run: async (args) => {
+      const { auditStudioCoverageFromCli } = await import("./jobs/audit/studio-coverage.js");
+      return auditStudioCoverageFromCli(args);
+    },
+  },
   "route-equity-context": {
     description: "Build route equity context artifacts.",
     run: async (args) => {
