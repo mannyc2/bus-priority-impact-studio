@@ -112,6 +112,7 @@ export type {
   StudioIntervention,
   StudioMethodDataset,
   StudioMethodsResponse,
+  StudioObservedReliability,
   StudioQuality,
   StudioReleasePayload,
   StudioRoute,

@@ -66,6 +66,22 @@ export const studioRoutes: StudioRoute[] = [
     aceSince: "Nov 2019",
     tspCoverage: "partial",
     reliability: "Worst SBS route in Manhattan",
+    observedReliability: {
+      month: "2026-03",
+      runId: "bus-observatory-2026-03",
+      source: "third_party_recovered",
+      releaseLayer: "observed_release",
+      reliabilityStatus: "observed",
+      sampleCount: 2829,
+      medianObservedHeadwayMinutes: 15.7,
+      p90ObservedHeadwayMinutes: 66.5,
+      observedBunchingShare: 0.11,
+      observedLongGapShare: 0.41,
+      excessWaitMinutes: null,
+      caveats: [
+        "Observed reliability is recovered from the third-party Bus Observatory archive, not official MTA historical replay.",
+      ],
+    },
     diagnosis:
       "Full treatment stack on 72% of route, yet PM-peak speed has declined 0.6 mph over 14 months. Madison Av shows no correlated violation reduction.",
     spark: [6.8, 6.2, 5.4, 4.8, 4.2, 4.5, 5.1],
@@ -122,6 +138,7 @@ export const studioRoutes: StudioRoute[] = [
     aceSince: "Mar 2020",
     tspCoverage: "yes",
     reliability: "Positive control route",
+    observedReliability: null,
     diagnosis:
       "A fuller treatment stack with concrete lanes and TSP makes Bx12 a useful peer benchmark for slower SBS corridors.",
     spark: [7.4, 7.8, 8.1, 8.6, 8.4, 8.7, 8.6],
@@ -178,6 +195,7 @@ export const studioRoutes: StudioRoute[] = [
     aceSince: null,
     tspCoverage: "partial",
     reliability: "Treatment edge case",
+    observedReliability: null,
     diagnosis:
       "The northbound delay begins near the edge of the dedicated-lane network, making it a useful treatment-gap example.",
     spark: [6.4, 6.1, 5.8, 5.3, 5.0, 5.1, 5.0],
@@ -219,6 +237,7 @@ export const studioRoutes: StudioRoute[] = [
     aceSince: null,
     tspCoverage: "none",
     reliability: "Counter-pattern",
+    observedReliability: null,
     diagnosis:
       "Speed is declining even while ridership softens, pointing away from boarding demand as the main explanation.",
     spark: [6.9, 6.5, 6.1, 5.8, 5.7, 5.6, 5.6],
@@ -255,6 +274,7 @@ export const studioRoutes: StudioRoute[] = [
     aceSince: "Jul 2021",
     tspCoverage: "none",
     reliability: "Split-corridor risk",
+    observedReliability: null,
     diagnosis:
       "Speeds improved south of the congestion boundary while northern segments continued to deteriorate.",
     spark: [6.1, 5.9, 5.7, 5.3, 5.0, 5.2, 5.1],
@@ -293,6 +313,7 @@ export const studioRoutes: StudioRoute[] = [
     aceSince: null,
     tspCoverage: "none",
     reliability: "No intervention scheduled",
+    observedReliability: null,
     diagnosis:
       "A steady three-year decline has not yet produced a matching bus priority intervention plan.",
     spark: [7.1, 6.8, 6.7, 6.5, 6.3, 6.2, 6.2],
@@ -323,6 +344,7 @@ export const studioRoutes: StudioRoute[] = [
     aceSince: "May 2023",
     tspCoverage: "partial",
     reliability: "Reversed declining trend",
+    observedReliability: null,
     diagnosis:
       "Busway design + ACE produced a 0.8 mph PM-peak gain over 14 months. Comparable benchmark for ACE-effective corridors.",
     spark: [6.5, 6.7, 6.9, 7.1, 7.3, 7.4, 7.4],
@@ -364,6 +386,7 @@ export const studioRoutes: StudioRoute[] = [
     aceSince: "May 2023",
     tspCoverage: "partial",
     reliability: "Same busway, weaker effect",
+    observedReliability: null,
     diagnosis: "Shares the 14 St busway with M14A. Slightly lower frequency masks per-rider gains.",
     spark: [6.7, 6.8, 6.9, 7.0, 7.1, 7.2, 7.2],
     termini: { north: "Av D / E 14 St", south: "Chelsea Piers / W 14 St" },

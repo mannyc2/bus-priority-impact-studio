@@ -1042,7 +1042,15 @@ describe("Worker production-behavior harness", () => {
     expect(routeResponse.status).toBe(200);
     expect(StudioRouteDetailResponseSchema.parse(await routeResponse.json())).toEqual(
       expect.objectContaining({
-        route: expect.objectContaining({ slug: "m15-sbs" }),
+        route: expect.objectContaining({
+          slug: "m15-sbs",
+          observedReliability: expect.objectContaining({
+            runId: "bus-observatory-2026-03",
+            source: "third_party_recovered",
+            releaseLayer: "observed_release",
+            sampleCount: 2829,
+          }),
+        }),
         segments: expect.arrayContaining([
           expect.objectContaining({ routeSlug: "m15-sbs", id: "madison-28-58-nb" }),
         ]),

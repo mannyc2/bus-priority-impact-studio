@@ -130,8 +130,12 @@ describe("production boundary harness", () => {
       ).toBe(false);
 
       if (!isPrivateStudioStorageKeyAllowed(file.path)) {
+        // Match `studio/v1/` only as an R2 key — not as part of a URL host
+        // like `api.bpi.studio/v1/...`. R2 keys appear as plain identifiers,
+        // never preceded by `.` (which would indicate the `.studio` TLD).
+        const matches = file.text.match(/(^|[^.])studio\/v1\//);
         expect(
-          file.text.includes("studio/v1/"),
+          matches !== null,
           `${file.path} must call /api/v1/studio/* instead of private studio/v1/* storage keys`,
         ).toBe(false);
       }

@@ -3,8 +3,10 @@ import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import {
   listRouteBriefSummaries,
+  listRouteObservedReliabilitySummaries,
   listRouteReadiness,
   type RouteBriefSummary,
+  type RouteObservedReliabilitySummary,
   type RouteReadiness,
 } from "@bp/db";
 import { createBunSqliteServingDb } from "@bp/db/d1/bun-sqlite";
@@ -22,6 +24,7 @@ import {
   type StudioBrief,
   type StudioFinding,
   type StudioMethodDataset,
+  type StudioObservedReliability,
   type StudioReleasePayload,
   StudioReleasePayloadSchema,
   type StudioRoute,
@@ -246,11 +249,49 @@ function buildSegments(
   }));
 }
 
+function buildObservedReliability(
+  row: RouteObservedReliabilitySummary | undefined,
+): StudioObservedReliability | null {
+  if (row === undefined) return null;
+  const source: StudioObservedReliability["source"] = row.runId.startsWith("bus-observatory-")
+    ? "third_party_recovered"
+    : "official_self_collected";
+  const caveats =
+    source === "third_party_recovered"
+      ? [
+          "Observed reliability is recovered from the third-party Bus Observatory archive, not official MTA historical replay.",
+          "Monthly public speed evidence remains official MTA Open Data; realtime evidence has separate provenance.",
+        ]
+      : [
+          "Observed reliability comes from self-collected MTA Bus Time GTFS-RT snapshots.",
+        ];
+  if (row.reliabilityStatus === "insufficient_gtfs_rt_samples") {
+    caveats.push(
+      `Sample count (${row.sampleCount}) is below the minimum threshold (${row.minSampleThreshold}); headway statistics are not reported.`,
+    );
+  }
+  return {
+    month: row.month,
+    runId: row.runId,
+    source,
+    releaseLayer: "observed_release",
+    reliabilityStatus: row.reliabilityStatus,
+    sampleCount: row.sampleCount,
+    medianObservedHeadwayMinutes: row.medianObservedHeadwayMinutes,
+    p90ObservedHeadwayMinutes: row.p90ObservedHeadwayMinutes,
+    observedBunchingShare: row.observedBunchingShare,
+    observedLongGapShare: row.observedLongGapShare,
+    excessWaitMinutes: row.excessWaitMinutes,
+    caveats,
+  };
+}
+
 function buildRoute(
   readiness: RouteReadiness,
   summary: RouteBriefSummary,
   artifact: RouteBriefInputArtifact | null,
   peerSlug: string | null,
+  observed: RouteObservedReliabilitySummary | undefined,
 ): StudioRoute {
   const slug = routeIdToSlug(readiness.routeId);
   const speedMph = Number((summary.averageSpeedMph || readiness.averageSpeedMph || 0).toFixed(1));
@@ -287,6 +328,7 @@ function buildRoute(
         : summary.routeScore >= 40
           ? "Watch list route"
           : "Lower-risk route",
+    observedReliability: buildObservedReliability(observed),
     diagnosis: `${readiness.routeShortName} has a route score of ${summary.routeScore}, ${summary.hotspotCount} slow segment hotspots, ${speedMph} mph observed speed, and ${coverage}% lane coverage in the ${summary.month} serving export.`,
     spark: [0.92, 0.96, 1, 0.98, 1.02, 0.99, 1].map((factor) =>
       Number((speedMph * factor).toFixed(1)),
@@ -551,12 +593,14 @@ async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> 
   );
 
   try {
-    const [readinessRows, briefSummaries] = await Promise.all([
+    const [readinessRows, briefSummaries, observedRows] = await Promise.all([
       listRouteReadiness(db, options.month),
       listRouteBriefSummaries(db, options.month),
+      listRouteObservedReliabilitySummaries(db, options.month),
     ]);
     const readinessByRoute = new Map(readinessRows.map((row) => [row.routeId, row]));
     const summariesByRoute = new Map(briefSummaries.map((summary) => [summary.routeId, summary]));
+    const observedByRoute = new Map(observedRows.map((row) => [row.routeId, row]));
     const requiredSummaries = canonicalRouteIds.flatMap((routeId) => {
       const summary = summariesByRoute.get(routeId);
       return summary === undefined ? [] : [summary];
@@ -588,7 +632,15 @@ async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> 
         peerSummary === undefined || peerSummary.routeId === summary.routeId
           ? null
           : routeIdToSlug(peerSummary.routeId);
-      return [buildRoute(readiness, summary, routeInputs.get(summary.routeId) ?? null, peerSlug)];
+      return [
+        buildRoute(
+          readiness,
+          summary,
+          routeInputs.get(summary.routeId) ?? null,
+          peerSlug,
+          observedByRoute.get(summary.routeId),
+        ),
+      ];
     });
 
     const segments = routes.flatMap((route) =>

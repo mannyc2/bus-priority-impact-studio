@@ -42,6 +42,23 @@ export const ComparableRouteSchema = z
   })
   .strict();
 
+export const StudioObservedReliabilitySchema = z
+  .object({
+    month: z.string(),
+    runId: z.string(),
+    source: z.enum(["official_self_collected", "third_party_recovered"]),
+    releaseLayer: z.enum(["observed_release", "current_signal"]),
+    reliabilityStatus: z.enum(["observed", "insufficient_gtfs_rt_samples"]),
+    sampleCount: z.number().int().nonnegative(),
+    medianObservedHeadwayMinutes: z.number().nullable(),
+    p90ObservedHeadwayMinutes: z.number().nullable(),
+    observedBunchingShare: z.number().nullable(),
+    observedLongGapShare: z.number().nullable(),
+    excessWaitMinutes: z.number().nullable(),
+    caveats: z.array(z.string()),
+  })
+  .strict();
+
 export const StudioRouteSchema = z
   .object({
     slug: z.string(),
@@ -63,6 +80,7 @@ export const StudioRouteSchema = z
     aceSince: z.string().nullable(),
     tspCoverage: z.enum(["yes", "partial", "none"]),
     reliability: z.string(),
+    observedReliability: StudioObservedReliabilitySchema.nullable(),
     diagnosis: z.string(),
     spark: z.array(z.number()),
     termini: z
@@ -442,6 +460,7 @@ export const studioDocsResponseJsonSchema = toProjectJsonSchema(StudioDocsRespon
 export const studioReleasePayloadJsonSchema = toProjectJsonSchema(StudioReleasePayloadSchema);
 
 export type StudioQuality = z.output<typeof StudioQualitySchema>;
+export type StudioObservedReliability = z.output<typeof StudioObservedReliabilitySchema>;
 export type StudioRoute = z.output<typeof StudioRouteSchema>;
 export type StudioIntervention = z.output<typeof StudioInterventionSchema>;
 export type ComparableRoute = z.output<typeof ComparableRouteSchema>;
