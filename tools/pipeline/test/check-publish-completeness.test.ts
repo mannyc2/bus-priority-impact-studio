@@ -56,16 +56,16 @@ describe("check-publish-completeness", () => {
     await writeManifest(true);
     const { exitCode, report } = await runCheck();
     expect(exitCode).toBe(0);
-    expect(report.status).toBe("pass");
-    expect(report.missing).toEqual([]);
-    expect(report.artifactCount).toBe(1);
+    expect(report["status"]).toBe("pass");
+    expect(report["missing"]).toEqual([]);
+    expect(report["artifactCount"]).toBe(1);
   });
 
   test("fails when a manifest references a key without a local file", async () => {
     await writeManifest(false);
     const { exitCode, report } = await runCheck();
     expect(exitCode).toBe(1);
-    expect(report.status).toBe("fail");
-    expect(report.missing).toEqual([`briefs/routes/test-route/${month}/brief.json`]);
+    expect(report["status"]).toBe("fail");
+    expect(report["missing"]).toEqual([`briefs/routes/test-route/${month}/brief.json`]);
   });
 });

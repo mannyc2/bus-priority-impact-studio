@@ -1195,6 +1195,32 @@ describe("Worker production-behavior harness", () => {
     expect(body).not.toHaveProperty("evidence");
   });
 
+  it("fails closed with 503 when a required R2 Studio projection is missing", async () => {
+    // R2 fixture has no briefs.json
+    const env: Env = {
+      ARTIFACTS: new FakeR2Bucket({}) as unknown as R2Bucket,
+    };
+    const response = await worker.fetch(
+      new Request("https://example.test/api/v1/studio/briefs"),
+      env,
+    );
+    expect(response.status).toBe(503);
+    const body = (await response.json()) as { error?: { message?: string } };
+    expect(body.error?.message ?? "").toMatch(/not found at studio\/v1\/briefs\.json/);
+  });
+
+  it("fails closed with 503 when ARTIFACTS R2 binding is unconfigured", async () => {
+    // No ARTIFACTS binding, no DB binding: there is no path that should succeed.
+    const env: Env = {};
+    const response = await worker.fetch(
+      new Request("https://example.test/api/v1/studio/briefs"),
+      env,
+    );
+    expect(response.status).toBe(503);
+    const body = (await response.json()) as { error?: { message?: string } };
+    expect(body.error?.message ?? "").toMatch(/ARTIFACTS R2 binding/);
+  });
+
   it("serves Studio docs endpoint metadata from the generated OpenAPI paths", async () => {
     const response = await worker.fetch(
       new Request("https://example.test/api/v1/studio/docs"),
