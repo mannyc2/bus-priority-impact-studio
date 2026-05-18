@@ -518,43 +518,6 @@ export function KPI({
   );
 }
 
-export function SearchField({
-  placeholder,
-  defaultValue,
-  shortcut,
-}: {
-  placeholder?: string;
-  defaultValue?: string;
-  shortcut?: string;
-}) {
-  return (
-    <div className="flex items-center gap-3 rounded-[4px] border-[1.5px] border-[var(--bp-color-ink)] bg-[var(--bp-color-card)] px-[18px] py-3.5 shadow-[0_2px_0_var(--bp-color-ink)]">
-      <svg
-        width="18"
-        height="18"
-        viewBox="0 0 18 18"
-        fill="none"
-        stroke={bpiColors.ink}
-        strokeWidth="1.8"
-        aria-hidden="true"
-      >
-        <circle cx="8" cy="8" r="5.5" />
-        <path d="M12.5 12.5L16 16" strokeLinecap="round" />
-      </svg>
-      <input
-        className="min-w-0 flex-1 border-none bg-transparent text-[17px] text-[var(--bp-color-ink)] outline-none placeholder:text-[var(--bp-color-ink-40)]"
-        defaultValue={defaultValue}
-        placeholder={placeholder}
-      />
-      {shortcut ? (
-        <span className="rounded-[3px] border border-[var(--bp-color-ink-20)] px-1.5 py-0.5 font-mono text-[11px] text-[var(--bp-color-ink-40)]">
-          {shortcut}
-        </span>
-      ) : null}
-    </div>
-  );
-}
-
 export function DirIndicator({ dir, muted = false }: { dir: Direction; muted?: boolean }) {
   const arrow = { NB: "↑", SB: "↓", EB: "→", WB: "←" }[dir];
   return (

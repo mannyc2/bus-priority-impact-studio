@@ -21,7 +21,6 @@ export {
   ReviewerChip,
   ReviewerStack,
   RouteBadge,
-  SearchField,
   SectionHeader,
   SegmentRow,
   SegmentRowHeader,

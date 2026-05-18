@@ -1,8 +1,9 @@
 import { Link } from "@tanstack/react-router";
 import { Briefcase, FileText } from "lucide-react";
 import type { ReactNode } from "react";
-import { RouteBadge, SearchField } from "../../design-system/primitives.js";
+import { RouteBadge } from "../../design-system/primitives.js";
 import { Badge } from "@/components/ui/badge";
+import { SearchField } from "@/components/SearchField";
 import { StudioHero, StudioPage, StudioPanel } from "../page.js";
 import { studioBriefs, studioFindings, studioRoutes } from "../sample-data.js";
 

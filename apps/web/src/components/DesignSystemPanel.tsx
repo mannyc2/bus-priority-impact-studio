@@ -1,3 +1,4 @@
+import { SearchField } from "@/components/SearchField";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -16,7 +17,6 @@ import {
   MapThumb,
   ReviewerStack,
   RouteBadge,
-  SearchField,
   SectionHeader,
   SegmentRow,
   SegmentRowHeader,

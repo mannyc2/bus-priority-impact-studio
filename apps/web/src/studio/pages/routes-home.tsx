@@ -1,13 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
-import {
-  AiAttribution,
-  KPI,
-  RouteBadge,
-  SearchField,
-  Spark,
-} from "../../design-system/primitives.js";
+import { AiAttribution, KPI, RouteBadge, Spark } from "../../design-system/primitives.js";
 import { Badge } from "@/components/ui/badge";
+import { SearchField } from "@/components/SearchField";
 import { bpiColors } from "../../design-system/tokens.js";
 import { StudioHero, StudioPage, StudioPanel } from "../page.js";
 import { studioRoutes } from "../sample-data.js";
