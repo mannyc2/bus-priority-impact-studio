@@ -45,6 +45,26 @@ function importsForbiddenSpecifier(text: string, forbiddenSpecifier: string): bo
   });
 }
 
+function importsProductionFixture(text: string): string | null {
+  return (
+    extractModuleSpecifiers(text).find(
+      (specifier) =>
+        specifier.includes("fixtures/demo-snippets") ||
+        specifier.includes("studio/sample-data") ||
+        specifier.endsWith("/sample-data.js") ||
+        specifier === "../sample-data.js",
+    ) ?? null
+  );
+}
+
+function isPrivateStudioStorageKeyAllowed(path: string): boolean {
+  return (
+    path.includes("/worker/") ||
+    path.endsWith("/studio/sample-data.ts") ||
+    path.includes("/scripts/")
+  );
+}
+
 function hasWildcardReExport(text: string): boolean {
   return /export\s+\*\s+(?:as\s+\w+\s+)?from\s+["'][^"']+["']/.test(text);
 }
@@ -74,6 +94,45 @@ describe("production boundary harness", () => {
         expect(
           importsForbiddenSpecifier(file.text, forbiddenImport),
           `${file.path} imports ${forbiddenImport}`,
+        ).toBe(false);
+      }
+    }
+  });
+
+  test("production runtime does not import Studio seed data or dev demo fixtures", async () => {
+    const files = (await readFiles("apps/web/src")).filter(
+      (file) =>
+        !file.path.includes("/dev/") &&
+        !file.path.includes("/fixtures/") &&
+        !file.path.endsWith("/studio/sample-data.ts"),
+    );
+
+    for (const file of files) {
+      expect(
+        importsProductionFixture(file.text),
+        `${file.path} must use /api/v1/studio/* contracts or release artifacts instead of production fixture imports`,
+      ).toBeNull();
+    }
+  });
+
+  test("public Studio runtime keeps R2 projection keys private behind REST resources", async () => {
+    const files = (await readFiles("apps/web/src")).filter(
+      (file) =>
+        !file.path.includes("/dev/") &&
+        !file.path.includes("/fixtures/") &&
+        !file.path.endsWith("/studio/sample-data.ts"),
+    );
+
+    for (const file of files) {
+      expect(
+        file.text.includes("X-Studio-Projection"),
+        `${file.path} must expose RESTful resources, not private R2 projection paths`,
+      ).toBe(false);
+
+      if (!isPrivateStudioStorageKeyAllowed(file.path)) {
+        expect(
+          file.text.includes("studio/v1/"),
+          `${file.path} must call /api/v1/studio/* instead of private studio/v1/* storage keys`,
         ).toBe(false);
       }
     }

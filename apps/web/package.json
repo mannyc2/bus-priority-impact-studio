@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:studio-release": "bun ../../tools/pipeline/src/cli.ts build:studio-release",
     "deploy": "wrangler deploy",
     "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
