@@ -1,5 +1,5 @@
 import { Database } from "bun:sqlite";
-import { eq, type SQLWrapper } from "drizzle-orm";
+import { and, eq, inArray, type SQLWrapper } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { SQLiteSyncDialect } from "drizzle-orm/sqlite-core";
 import type {
@@ -842,5 +842,100 @@ export function buildD1SeedSql(input: D1SeedInput): D1SeedSqlResult {
     routeBriefPeakWindowRowCount,
     routeBriefSlowestWindowRowCount,
     routeScorecardCitationRowCount,
+  };
+}
+
+const observedReliabilitySourceIds = ["observedHeadways", "bunching", "waitTimeReliability"];
+
+export type D1AppendixSeedInput = {
+  month: string;
+  routeObservedReliabilitySummaries: LocalRouteObservedReliabilitySummary[];
+  routeMonthSourceStatuses: LocalRouteMonthSourceStatus[];
+};
+
+export type D1AppendixSeedSqlResult = {
+  seedSql: string;
+  month: string;
+  routeObservedReliabilitySummaryRowCount: number;
+  routeMonthSourceStatusRowCount: number;
+};
+
+export function buildD1AppendixSeedSql(input: D1AppendixSeedInput): D1AppendixSeedSqlResult {
+  const { month } = input;
+  const reliabilityStatuses = input.routeMonthSourceStatuses.filter(
+    (row) =>
+      row.sourceScope === "reliability" && observedReliabilitySourceIds.includes(row.sourceId),
+  );
+  const statements: string[] = [
+    renderQuery(
+      seedDb
+        .delete(routeObservedReliabilitySummary)
+        .where(eq(routeObservedReliabilitySummary.month, month)),
+    ),
+    renderQuery(
+      seedDb
+        .delete(routeMonthSourceStatus)
+        .where(
+          and(
+            eq(routeMonthSourceStatus.month, month),
+            eq(routeMonthSourceStatus.sourceScope, "reliability"),
+            inArray(routeMonthSourceStatus.sourceId, observedReliabilitySourceIds),
+          ),
+        ),
+    ),
+  ];
+
+  for (const row of input.routeObservedReliabilitySummaries) {
+    statements.push(
+      renderQuery(
+        seedDb.insert(routeObservedReliabilitySummary).values({
+          routeId: row.routeId,
+          month: row.month,
+          runId: row.runId,
+          reliabilityStatus: row.reliabilityStatus,
+          minSampleThreshold: row.minSampleThreshold,
+          sampleCount: row.sampleCount,
+          stopCount: row.stopCount,
+          directionCount: row.directionCount,
+          averageObservedHeadwayMinutes: row.averageObservedHeadwayMinutes,
+          medianObservedHeadwayMinutes: row.medianObservedHeadwayMinutes,
+          p90ObservedHeadwayMinutes: row.p90ObservedHeadwayMinutes,
+          maxObservedHeadwayMinutes: row.maxObservedHeadwayMinutes,
+          scheduledMedianHeadwayMinutes: row.scheduledMedianHeadwayMinutes,
+          bunchingThresholdMinutes: row.bunchingThresholdMinutes,
+          longGapThresholdMinutes: row.longGapThresholdMinutes,
+          observedBunchingShare: row.observedBunchingShare,
+          observedLongGapShare: row.observedLongGapShare,
+          expectedWaitMinutes: row.expectedWaitMinutes,
+          scheduledExpectedWaitMinutes: row.scheduledExpectedWaitMinutes,
+          excessWaitMinutes: row.excessWaitMinutes,
+          waitReliabilityRatio: row.waitReliabilityRatio,
+        }),
+      ),
+    );
+  }
+
+  for (const row of reliabilityStatuses) {
+    statements.push(
+      renderQuery(
+        seedDb.insert(routeMonthSourceStatus).values({
+          routeId: row.routeId,
+          month: row.month,
+          sourceScope: row.sourceScope,
+          sourceId: row.sourceId,
+          status: row.status,
+          rowCount: row.rowCount,
+          snapshotId: row.snapshotId,
+          note: row.note,
+        }),
+      ),
+    );
+  }
+
+  return {
+    seedSql: `${statements.join("\n")}\n`,
+    month,
+    routeObservedReliabilitySummaryRowCount: input.routeObservedReliabilitySummaries.length,
+    routeMonthSourceStatusRowCount: reliabilityStatuses.length,
   };
 }

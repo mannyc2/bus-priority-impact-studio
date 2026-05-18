@@ -120,3 +120,13 @@ export async function readLocalD1Inputs(path: string, month: string) {
     };
   });
 }
+
+export async function readLocalD1AppendixInputs(path: string, month: string) {
+  return withLocalPipelineDb(path, async (local) => {
+    const [routeObservedReliabilitySummaries, routeMonthSourceStatuses] = await Promise.all([
+      listRouteObservedReliabilitySummaries(local.db, month),
+      listRouteMonthSourceStatuses(local.db, month),
+    ]);
+    return { routeObservedReliabilitySummaries, routeMonthSourceStatuses };
+  });
+}

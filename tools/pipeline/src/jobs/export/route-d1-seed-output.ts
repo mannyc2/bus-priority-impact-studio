@@ -1,10 +1,10 @@
 import { createHash } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import { buildD1SeedSql } from "@bp/db/d1/seed";
+import { buildD1AppendixSeedSql, buildD1SeedSql } from "@bp/db/d1/seed";
 import { defaultExportRootPath } from "../../lib/paths.js";
 import { readD1MigrationSql } from "./d1-migrations.js";
-import { readLocalD1Inputs } from "./route-d1-inputs.js";
+import { readLocalD1AppendixInputs, readLocalD1Inputs } from "./route-d1-inputs.js";
 
 export type D1SeedOutputResult = {
   schemaVersion: number;
@@ -124,6 +124,50 @@ export async function writeRouteD1SeedOutput(input: {
   await mkdir(exportDir, { recursive: true });
   await Promise.all([
     Bun.write(schemaPath, schemaSql),
+    Bun.write(seedPath, seed.seedSql),
+    Bun.write(summaryPath, `${JSON.stringify(result, null, 2)}\n`),
+  ]);
+
+  return result;
+}
+
+export type D1AppendixSeedOutputResult = {
+  schemaVersion: number;
+  isoMonth: string;
+  mode: "appendix";
+  generatedAt: string;
+  summaryPath: string;
+  seedPath: string;
+  seedFile: D1FileContract;
+  routeObservedReliabilitySummaryRowCount: number;
+  routeMonthSourceStatusRowCount: number;
+};
+
+export async function writeRouteD1AppendixSeedOutput(input: {
+  dbPath: string;
+  isoMonth: string;
+  exportRoot?: string;
+}): Promise<D1AppendixSeedOutputResult> {
+  const exportDir = join(input.exportRoot ?? defaultExportRootPath(), "d1", input.isoMonth);
+  const summaryPath = join(exportDir, "appendix-summary.json");
+  const seedPath = join(exportDir, "seed.appendix.sql");
+  const inputs = await readLocalD1AppendixInputs(input.dbPath, input.isoMonth);
+  const seed = buildD1AppendixSeedSql({ month: input.isoMonth, ...inputs });
+  const generatedAt = new Date().toISOString();
+  const result: D1AppendixSeedOutputResult = {
+    schemaVersion: 1,
+    isoMonth: input.isoMonth,
+    mode: "appendix",
+    generatedAt,
+    summaryPath,
+    seedPath,
+    seedFile: fileContract(seedPath, seed.seedSql),
+    routeObservedReliabilitySummaryRowCount: seed.routeObservedReliabilitySummaryRowCount,
+    routeMonthSourceStatusRowCount: seed.routeMonthSourceStatusRowCount,
+  };
+
+  await mkdir(exportDir, { recursive: true });
+  await Promise.all([
     Bun.write(seedPath, seed.seedSql),
     Bun.write(summaryPath, `${JSON.stringify(result, null, 2)}\n`),
   ]);
