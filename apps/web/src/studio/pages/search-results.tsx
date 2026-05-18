@@ -2,22 +2,22 @@ import { Link } from "@tanstack/react-router";
 import { Briefcase, FileText } from "lucide-react";
 import type { ReactNode } from "react";
 import { RouteBadge } from "@/components/RouteBadge";
-import { Badge } from "@/components/ui/badge";
 import { SearchField } from "@/components/SearchField";
+import { Badge } from "@/components/ui/badge";
+import type { StudioSearchResponse } from "../api-contract.js";
 import { StudioHero, StudioPage, StudioPanel } from "../page.js";
-import { studioBriefs, studioFindings, studioRoutes } from "../sample-data.js";
 
-export function SearchResultsPage({ query = "manhattan ace" }: { query?: string }) {
+export function SearchResultsPage({ data }: { data: StudioSearchResponse }) {
   return (
     <StudioPage>
       <StudioHero
         label="Search results"
-        title={`Results for "${query}"`}
+        title={`Results for "${data.query}"`}
         body="Results are grouped by their natural object type so agents and humans can decide whether they need a route, a segment, a brief, or a methodology note."
       />
       <div className="mb-6 max-w-[780px]">
         <SearchField
-          defaultValue={query}
+          defaultValue={data.query}
           placeholder="Search route, segment, brief..."
           shortcut="/"
         />
@@ -35,8 +35,8 @@ export function SearchResultsPage({ query = "manhattan ace" }: { query?: string 
           </div>
         </StudioPanel>
         <div className="space-y-4">
-          <ResultGroup title="Routes" count={studioRoutes.length}>
-            {studioRoutes.slice(0, 3).map((route) => (
+          <ResultGroup title="Routes" count={data.routes.length}>
+            {data.routes.slice(0, 3).map((route) => (
               <Link
                 key={route.slug}
                 to="/routes/$routeId"
@@ -57,8 +57,8 @@ export function SearchResultsPage({ query = "manhattan ace" }: { query?: string 
               </Link>
             ))}
           </ResultGroup>
-          <ResultGroup title="Findings" count={studioFindings.length}>
-            {studioFindings.map((finding) => (
+          <ResultGroup title="Findings" count={data.findings.length}>
+            {data.findings.map(({ finding }) => (
               <Link
                 key={finding.id}
                 to="/findings/$findingId"
@@ -76,8 +76,8 @@ export function SearchResultsPage({ query = "manhattan ace" }: { query?: string 
               </Link>
             ))}
           </ResultGroup>
-          <ResultGroup title="Briefs" count={studioBriefs.length}>
-            {studioBriefs.map((brief) => (
+          <ResultGroup title="Briefs" count={data.briefs.length}>
+            {data.briefs.map(({ brief }) => (
               <Link
                 key={brief.id}
                 to="/briefs/$briefId"

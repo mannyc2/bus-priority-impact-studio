@@ -1,46 +1,8 @@
 import { Badge } from "@/components/ui/badge";
+import type { StudioMethodsResponse } from "../api-contract.js";
 import { StudioHero, StudioPage, StudioPanel } from "../page.js";
 
-const datasets = [
-  {
-    name: "Bus segment speeds",
-    publisher: "MTA Open Data",
-    grain: "route x direction x timepoint pair x hour",
-    cadence: "monthly",
-  },
-  {
-    name: "Hourly ridership",
-    publisher: "MTA Open Data",
-    grain: "stop x hour",
-    cadence: "weekly",
-  },
-  {
-    name: "Schedule timepoints",
-    publisher: "MTA GTFS",
-    grain: "route x trip x timepoint pair",
-    cadence: "GTFS publish",
-  },
-  {
-    name: "ACE program and violations",
-    publisher: "MTA Open Data",
-    grain: "route x segment x date",
-    cadence: "monthly",
-  },
-  {
-    name: "Local-street bus lanes",
-    publisher: "NYC DOT",
-    grain: "lane segment",
-    cadence: "quarterly",
-  },
-  {
-    name: "Route shapes and stops",
-    publisher: "MTA GTFS",
-    grain: "shape / stop",
-    cadence: "GTFS publish",
-  },
-] as const;
-
-export function MethodsPage() {
+export function MethodsPage({ data }: { data: StudioMethodsResponse }) {
   return (
     <StudioPage>
       <StudioHero
@@ -49,7 +11,7 @@ export function MethodsPage() {
         body="Every metric the studio shows is derived from public datasets catalogued here, with the caveats kept close to computed claims."
       />
       <div className="grid grid-cols-2 gap-4 max-lg:grid-cols-1">
-        {datasets.map((dataset) => (
+        {data.datasets.map((dataset) => (
           <StudioPanel key={dataset.name}>
             <div className="mb-2 flex items-start justify-between gap-3">
               <div>

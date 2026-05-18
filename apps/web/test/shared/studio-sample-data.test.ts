@@ -18,6 +18,8 @@ describe("Studio sample data", () => {
       "b41",
       "b46-sbs",
       "q58",
+      "m14a-sbs",
+      "m14d-sbs",
     ]);
     expect(getStudioRoute("m15-sbs")?.routeId).toBe("M15+");
     expect(getStudioRoute("unknown-route")).toBeUndefined();
@@ -39,6 +41,9 @@ describe("Studio sample data", () => {
     expect(routeSegments("m15-sbs").map((segment) => segment.id)).toEqual([
       "madison-28-58-nb",
       "first-14-34-sb",
+      "first-86-96-nb",
+      "second-60-42-sb",
+      "second-23-14-sb",
     ]);
     expect(routeSegments("unknown-route")).toEqual([]);
   });

@@ -17,22 +17,13 @@ export function StatesDemo() {
             <TabsTrigger value="sources">Sources</TabsTrigger>
             <TabsTrigger value="claims">Claims</TabsTrigger>
           </TabsList>
-          <TabsContent
-            value="outline"
-            className="pt-3 text-[12px] text-[var(--bp-color-ink-70)]"
-          >
+          <TabsContent value="outline" className="pt-3 text-[12px] text-[var(--bp-color-ink-70)]">
             Outline view goes here.
           </TabsContent>
-          <TabsContent
-            value="sources"
-            className="pt-3 text-[12px] text-[var(--bp-color-ink-70)]"
-          >
+          <TabsContent value="sources" className="pt-3 text-[12px] text-[var(--bp-color-ink-70)]">
             Source list goes here.
           </TabsContent>
-          <TabsContent
-            value="claims"
-            className="pt-3 text-[12px] text-[var(--bp-color-ink-70)]"
-          >
+          <TabsContent value="claims" className="pt-3 text-[12px] text-[var(--bp-color-ink-70)]">
             Claim list goes here.
           </TabsContent>
         </Tabs>

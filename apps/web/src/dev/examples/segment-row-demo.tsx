@@ -14,13 +14,7 @@ export function SegmentRowDemo() {
       />
       <SegmentRowHeader />
       <SegmentRow {...demoSegment} flag="top" hasNote />
-      <AiAttribution
-        action={
-          <Button variant="accent" size="sm">
-            Explain
-          </Button>
-        }
-      >
+      <AiAttribution>
         No violation reduction despite ACE active on adjacent blocks; the painted-only lane may be
         structurally unenforceable here.
       </AiAttribution>

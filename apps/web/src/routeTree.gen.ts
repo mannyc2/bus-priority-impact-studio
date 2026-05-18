@@ -20,9 +20,11 @@ import { Route as SplatRouteImport } from "./routes/$"
 import { Route as IndexRouteImport } from "./routes/index"
 import { Route as RoutesRouteIdRouteImport } from "./routes/routes/$routeId"
 import { Route as FindingsFindingIdRouteImport } from "./routes/findings/$findingId"
+import { Route as DocsPageRouteImport } from "./routes/docs/$page"
 import { Route as BriefsNewRouteImport } from "./routes/briefs/new"
 import { Route as BriefsBriefIdRouteImport } from "./routes/briefs/$briefId"
 import { Route as RoutesRouteIdLadderRouteImport } from "./routes/routes/$routeId/ladder"
+import { Route as RoutesRouteIdAnnotateRouteImport } from "./routes/routes/$routeId/annotate"
 import { Route as BriefsBriefIdReviewRouteImport } from "./routes/briefs/$briefId/review"
 import { Route as BriefsBriefIdHistoryRouteImport } from "./routes/briefs/$briefId/history"
 import { Route as BriefsBriefIdEvidenceRouteImport } from "./routes/briefs/$briefId/evidence"
@@ -83,6 +85,11 @@ const FindingsFindingIdRoute = FindingsFindingIdRouteImport.update({
   path: "/$findingId",
   getParentRoute: () => FindingsRoute,
 } as any)
+const DocsPageRoute = DocsPageRouteImport.update({
+  id: "/$page",
+  path: "/$page",
+  getParentRoute: () => DocsRoute,
+} as any)
 const BriefsNewRoute = BriefsNewRouteImport.update({
   id: "/new",
   path: "/new",
@@ -96,6 +103,11 @@ const BriefsBriefIdRoute = BriefsBriefIdRouteImport.update({
 const RoutesRouteIdLadderRoute = RoutesRouteIdLadderRouteImport.update({
   id: "/ladder",
   path: "/ladder",
+  getParentRoute: () => RoutesRouteIdRoute,
+} as any)
+const RoutesRouteIdAnnotateRoute = RoutesRouteIdAnnotateRouteImport.update({
+  id: "/annotate",
+  path: "/annotate",
   getParentRoute: () => RoutesRouteIdRoute,
 } as any)
 const BriefsBriefIdReviewRoute = BriefsBriefIdReviewRouteImport.update({
@@ -124,19 +136,21 @@ export interface FileRoutesByFullPath {
   "/$": typeof SplatRoute
   "/briefs": typeof BriefsRouteWithChildren
   "/compare": typeof CompareRoute
-  "/docs": typeof DocsRoute
+  "/docs": typeof DocsRouteWithChildren
   "/findings": typeof FindingsRouteWithChildren
   "/methods": typeof MethodsRoute
   "/search": typeof SearchRoute
   "/system": typeof SystemRoute
   "/briefs/$briefId": typeof BriefsBriefIdRouteWithChildren
   "/briefs/new": typeof BriefsNewRoute
+  "/docs/$page": typeof DocsPageRoute
   "/findings/$findingId": typeof FindingsFindingIdRoute
   "/routes/$routeId": typeof RoutesRouteIdRouteWithChildren
   "/briefs/$briefId/edit": typeof BriefsBriefIdEditRoute
   "/briefs/$briefId/evidence": typeof BriefsBriefIdEvidenceRoute
   "/briefs/$briefId/history": typeof BriefsBriefIdHistoryRoute
   "/briefs/$briefId/review": typeof BriefsBriefIdReviewRoute
+  "/routes/$routeId/annotate": typeof RoutesRouteIdAnnotateRoute
   "/routes/$routeId/ladder": typeof RoutesRouteIdLadderRoute
 }
 export interface FileRoutesByTo {
@@ -144,19 +158,21 @@ export interface FileRoutesByTo {
   "/$": typeof SplatRoute
   "/briefs": typeof BriefsRouteWithChildren
   "/compare": typeof CompareRoute
-  "/docs": typeof DocsRoute
+  "/docs": typeof DocsRouteWithChildren
   "/findings": typeof FindingsRouteWithChildren
   "/methods": typeof MethodsRoute
   "/search": typeof SearchRoute
   "/system": typeof SystemRoute
   "/briefs/$briefId": typeof BriefsBriefIdRouteWithChildren
   "/briefs/new": typeof BriefsNewRoute
+  "/docs/$page": typeof DocsPageRoute
   "/findings/$findingId": typeof FindingsFindingIdRoute
   "/routes/$routeId": typeof RoutesRouteIdRouteWithChildren
   "/briefs/$briefId/edit": typeof BriefsBriefIdEditRoute
   "/briefs/$briefId/evidence": typeof BriefsBriefIdEvidenceRoute
   "/briefs/$briefId/history": typeof BriefsBriefIdHistoryRoute
   "/briefs/$briefId/review": typeof BriefsBriefIdReviewRoute
+  "/routes/$routeId/annotate": typeof RoutesRouteIdAnnotateRoute
   "/routes/$routeId/ladder": typeof RoutesRouteIdLadderRoute
 }
 export interface FileRoutesById {
@@ -165,19 +181,21 @@ export interface FileRoutesById {
   "/$": typeof SplatRoute
   "/briefs": typeof BriefsRouteWithChildren
   "/compare": typeof CompareRoute
-  "/docs": typeof DocsRoute
+  "/docs": typeof DocsRouteWithChildren
   "/findings": typeof FindingsRouteWithChildren
   "/methods": typeof MethodsRoute
   "/search": typeof SearchRoute
   "/system": typeof SystemRoute
   "/briefs/$briefId": typeof BriefsBriefIdRouteWithChildren
   "/briefs/new": typeof BriefsNewRoute
+  "/docs/$page": typeof DocsPageRoute
   "/findings/$findingId": typeof FindingsFindingIdRoute
   "/routes/$routeId": typeof RoutesRouteIdRouteWithChildren
   "/briefs/$briefId/edit": typeof BriefsBriefIdEditRoute
   "/briefs/$briefId/evidence": typeof BriefsBriefIdEvidenceRoute
   "/briefs/$briefId/history": typeof BriefsBriefIdHistoryRoute
   "/briefs/$briefId/review": typeof BriefsBriefIdReviewRoute
+  "/routes/$routeId/annotate": typeof RoutesRouteIdAnnotateRoute
   "/routes/$routeId/ladder": typeof RoutesRouteIdLadderRoute
 }
 export interface FileRouteTypes {
@@ -194,12 +212,14 @@ export interface FileRouteTypes {
     | "/system"
     | "/briefs/$briefId"
     | "/briefs/new"
+    | "/docs/$page"
     | "/findings/$findingId"
     | "/routes/$routeId"
     | "/briefs/$briefId/edit"
     | "/briefs/$briefId/evidence"
     | "/briefs/$briefId/history"
     | "/briefs/$briefId/review"
+    | "/routes/$routeId/annotate"
     | "/routes/$routeId/ladder"
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -214,12 +234,14 @@ export interface FileRouteTypes {
     | "/system"
     | "/briefs/$briefId"
     | "/briefs/new"
+    | "/docs/$page"
     | "/findings/$findingId"
     | "/routes/$routeId"
     | "/briefs/$briefId/edit"
     | "/briefs/$briefId/evidence"
     | "/briefs/$briefId/history"
     | "/briefs/$briefId/review"
+    | "/routes/$routeId/annotate"
     | "/routes/$routeId/ladder"
   id:
     | "__root__"
@@ -234,12 +256,14 @@ export interface FileRouteTypes {
     | "/system"
     | "/briefs/$briefId"
     | "/briefs/new"
+    | "/docs/$page"
     | "/findings/$findingId"
     | "/routes/$routeId"
     | "/briefs/$briefId/edit"
     | "/briefs/$briefId/evidence"
     | "/briefs/$briefId/history"
     | "/briefs/$briefId/review"
+    | "/routes/$routeId/annotate"
     | "/routes/$routeId/ladder"
   fileRoutesById: FileRoutesById
 }
@@ -248,7 +272,7 @@ export interface RootRouteChildren {
   SplatRoute: typeof SplatRoute
   BriefsRoute: typeof BriefsRouteWithChildren
   CompareRoute: typeof CompareRoute
-  DocsRoute: typeof DocsRoute
+  DocsRoute: typeof DocsRouteWithChildren
   FindingsRoute: typeof FindingsRouteWithChildren
   MethodsRoute: typeof MethodsRoute
   SearchRoute: typeof SearchRoute
@@ -335,6 +359,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof FindingsFindingIdRouteImport
       parentRoute: typeof FindingsRoute
     }
+    "/docs/$page": {
+      id: "/docs/$page"
+      path: "/$page"
+      fullPath: "/docs/$page"
+      preLoaderRoute: typeof DocsPageRouteImport
+      parentRoute: typeof DocsRoute
+    }
     "/briefs/new": {
       id: "/briefs/new"
       path: "/new"
@@ -354,6 +385,13 @@ declare module "@tanstack/react-router" {
       path: "/ladder"
       fullPath: "/routes/$routeId/ladder"
       preLoaderRoute: typeof RoutesRouteIdLadderRouteImport
+      parentRoute: typeof RoutesRouteIdRoute
+    }
+    "/routes/$routeId/annotate": {
+      id: "/routes/$routeId/annotate"
+      path: "/annotate"
+      fullPath: "/routes/$routeId/annotate"
+      preLoaderRoute: typeof RoutesRouteIdAnnotateRouteImport
       parentRoute: typeof RoutesRouteIdRoute
     }
     "/briefs/$briefId/review": {
@@ -418,6 +456,16 @@ const BriefsRouteChildren: BriefsRouteChildren = {
 const BriefsRouteWithChildren =
   BriefsRoute._addFileChildren(BriefsRouteChildren)
 
+interface DocsRouteChildren {
+  DocsPageRoute: typeof DocsPageRoute
+}
+
+const DocsRouteChildren: DocsRouteChildren = {
+  DocsPageRoute: DocsPageRoute,
+}
+
+const DocsRouteWithChildren = DocsRoute._addFileChildren(DocsRouteChildren)
+
 interface FindingsRouteChildren {
   FindingsFindingIdRoute: typeof FindingsFindingIdRoute
 }
@@ -431,10 +479,12 @@ const FindingsRouteWithChildren = FindingsRoute._addFileChildren(
 )
 
 interface RoutesRouteIdRouteChildren {
+  RoutesRouteIdAnnotateRoute: typeof RoutesRouteIdAnnotateRoute
   RoutesRouteIdLadderRoute: typeof RoutesRouteIdLadderRoute
 }
 
 const RoutesRouteIdRouteChildren: RoutesRouteIdRouteChildren = {
+  RoutesRouteIdAnnotateRoute: RoutesRouteIdAnnotateRoute,
   RoutesRouteIdLadderRoute: RoutesRouteIdLadderRoute,
 }
 
@@ -447,7 +497,7 @@ const rootRouteChildren: RootRouteChildren = {
   SplatRoute: SplatRoute,
   BriefsRoute: BriefsRouteWithChildren,
   CompareRoute: CompareRoute,
-  DocsRoute: DocsRoute,
+  DocsRoute: DocsRouteWithChildren,
   FindingsRoute: FindingsRouteWithChildren,
   MethodsRoute: MethodsRoute,
   SearchRoute: SearchRoute,

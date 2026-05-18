@@ -6,11 +6,11 @@
   color-scheme: light;
 
   /* --- Bus Priority Impact Studio palette ---
-     Four-tier warm-white surface ladder (per tarbell design system):
-     canvas → paper → card → cardRaised. Each tier ~3–4% lighter with
-     consistent warm undertone (hue ~75). Cold #ffffff is never used as
-     a surface; it's reserved for semantic whites (SBS pill outline,
-     map stop dots). */
+     Warm-white surface ladder (per tarbell design system):
+     canvas → paper → paperDeep → card → cardRaised. Each tier ~3-4%
+     apart with consistent warm undertone (hue ~75). Cold #ffffff is
+     never used as a surface; it's reserved for semantic whites
+     (SBS pill outline, map stop dots). */
   --bp-color-canvas: #f0eee9;
   --bp-color-paper: #f4f1ea;
   --bp-color-paper-deep: #ece7db;
@@ -18,7 +18,7 @@
   --bp-color-card-raised: oklch(0.995 0.004 75);
   --bp-color-ink: #16140f;
   --bp-color-ink-70: rgba(22, 20, 15, 0.7);
-  --bp-color-ink-55: rgba(22, 20, 15, 0.55);
+  --bp-color-ink-55: rgba(22, 20, 15, 0.66);
   --bp-color-ink-40: rgba(22, 20, 15, 0.4);
   --bp-color-ink-20: rgba(22, 20, 15, 0.2);
   --bp-color-ink-10: rgba(22, 20, 15, 0.1);
@@ -28,16 +28,16 @@
   --bp-color-accent-bg: oklch(0.95 0.04 252);
   --bp-color-bad: oklch(0.52 0.16 28);
   --bp-color-bad-bg: oklch(0.95 0.05 28);
-  --bp-color-warn: oklch(0.65 0.13 70);
+  --bp-color-warn: oklch(0.48 0.13 70);
   --bp-color-warn-bg: oklch(0.96 0.05 80);
-  --bp-color-good: oklch(0.55 0.12 155);
+  --bp-color-good: oklch(0.45 0.12 155);
   --bp-color-good-bg: oklch(0.95 0.04 155);
   --bp-route-manhattan: #0039a6;
-  --bp-route-bronx: #ee352e;
+  --bp-route-bronx: #c81f18;
   --bp-route-brooklyn: #6e3219;
-  --bp-route-queens: #ff6319;
+  --bp-route-queens: #a83f00;
   --bp-route-si: #6e4c9f;
-  --bp-route-express: #00933c;
+  --bp-route-express: #00752f;
 
   /* Semantic aliases */
   --bp-color-background: var(--bp-color-canvas);
@@ -156,13 +156,14 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-button,
-a {
-  font: inherit;
-}
-
-a {
-  color: inherit;
+@layer base {
+  button,
+  a {
+    font: inherit;
+  }
+  a {
+    color: inherit;
+  }
 }
 
 :focus-visible {

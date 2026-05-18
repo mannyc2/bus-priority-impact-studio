@@ -1,17 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { routeHead } from "../../../lib/head.js";
+import { fetchStudioBrief } from "../../../studio/api-client.js";
 import { BriefComposerPage } from "../../../studio/pages/brief-workflows.js";
-import { getStudioBrief } from "../../../studio/sample-data.js";
 
 export const Route = createFileRoute("/briefs/$briefId/edit")({
-  head: ({ params }) => {
-    const brief = getStudioBrief(params.briefId);
-    return routeHead(brief ? `${brief.title} Composer` : "Brief Not Found");
-  },
+  loader: ({ params }) => fetchStudioBrief(params.briefId),
+  head: () => routeHead("Brief Composer"),
   component: BriefEditRoute,
 });
 
 function BriefEditRoute() {
-  const briefId = Route.useParams({ select: (params) => params.briefId });
-  return <BriefComposerPage briefId={briefId} />;
+  const data = Route.useLoaderData();
+  return <BriefComposerPage data={data} />;
 }

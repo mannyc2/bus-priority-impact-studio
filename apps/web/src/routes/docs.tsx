@@ -1,12 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { routeHead } from "../lib/head.js";
-import { DocsPage } from "../studio/pages/docs.js";
 
 export const Route = createFileRoute("/docs")({
-  head: () =>
-    routeHead(
-      "Docs",
-      "API, CLI, data credits, and quickstart documentation for Bus Priority Impact Studio.",
-    ),
-  component: DocsPage,
+  beforeLoad: ({ location }) => {
+    if (location.pathname === "/docs" || location.pathname === "/docs/") {
+      throw redirect({ to: "/docs/$page", params: { page: "overview" }, replace: true });
+    }
+  },
+  head: () => routeHead("Docs", "BPI Studio API docs"),
 });

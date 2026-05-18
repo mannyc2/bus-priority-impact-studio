@@ -1,17 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { routeHead } from "../../../lib/head.js";
+import { fetchStudioBrief } from "../../../studio/api-client.js";
 import { BriefReviewPage } from "../../../studio/pages/brief-workflows.js";
-import { getStudioBrief } from "../../../studio/sample-data.js";
 
 export const Route = createFileRoute("/briefs/$briefId/review")({
-  head: ({ params }) => {
-    const brief = getStudioBrief(params.briefId);
-    return routeHead(brief ? `${brief.title} Review` : "Brief Not Found");
-  },
+  loader: ({ params }) => fetchStudioBrief(params.briefId),
+  head: () => routeHead("Brief Review"),
   component: BriefReviewRoute,
 });
 
 function BriefReviewRoute() {
-  const briefId = Route.useParams({ select: (params) => params.briefId });
-  return <BriefReviewPage briefId={briefId} />;
+  const data = Route.useLoaderData();
+  return <BriefReviewPage data={data} />;
 }

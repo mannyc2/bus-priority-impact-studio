@@ -1,15 +1,15 @@
 import type { ReactNode } from "react";
 
-export function StudioPage({ children, rail }: { children: ReactNode; rail?: ReactNode }) {
-  if (rail) {
-    return (
-      <div className="grid min-h-full grid-cols-[minmax(0,1fr)_320px] gap-6 p-7 max-lg:grid-cols-1 max-sm:p-4">
-        <main className="min-w-0">{children}</main>
-        <aside className="min-w-0">{rail}</aside>
-      </div>
-    );
+export function StudioPage({
+  children,
+  flush = false,
+}: {
+  children: ReactNode;
+  flush?: boolean;
+}) {
+  if (flush) {
+    return <div className="h-full min-h-0">{children}</div>;
   }
-
   return <main className="min-h-full p-7 max-sm:p-4">{children}</main>;
 }
 
@@ -28,15 +28,15 @@ export function StudioHero({
     <header className="mb-6 flex items-end justify-between gap-8 border-b border-[var(--bp-color-rule)] pb-6 max-md:flex-col max-md:items-start">
       <div className="max-w-[760px]">
         {label ? (
-          <div className="mb-2 font-mono text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--bp-color-ink-55)]">
+          <div className="mb-2 text-[11.5px] font-semibold text-[var(--bp-color-ink-55)]">
             {label}
           </div>
         ) : null}
-        <h1 className="m-0 text-[38px] font-semibold leading-[1.02] tracking-[0] max-sm:text-[30px]">
+        <h1 className="m-0 text-[44px] font-semibold leading-[1.05] tracking-[-0.025em] max-sm:text-[32px]">
           {title}
         </h1>
         {body ? (
-          <p className="mt-3 max-w-[640px] text-[14px] leading-6 text-[var(--bp-color-ink-70)]">
+          <p className="mt-3 max-w-[640px] text-[14.5px] leading-[1.55] text-[var(--bp-color-ink-70)]">
             {body}
           </p>
         ) : null}

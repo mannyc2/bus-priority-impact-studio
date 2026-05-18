@@ -1,5 +1,14 @@
 import { serializeRouteScorecard, serializeRouteScorecardCitations } from "@bp/db/d1";
 import {
+  buildStudioBriefProjection,
+  buildStudioBriefsProjection,
+  buildStudioDocsProjection,
+  buildStudioFindingProjection,
+  buildStudioFindingsProjection,
+  buildStudioMethodsProjection,
+  buildStudioRouteLadderProjection,
+  buildStudioRouteProjection,
+  buildStudioRoutesProjection,
   HealthResponseSchema,
   HotspotListResponseSchema,
   MapManifestResponseSchema,
@@ -10,6 +19,13 @@ import {
   RouteScorecardSchema,
 } from "@bp/domain";
 import { describe, expect, it } from "vitest";
+import {
+  StudioCompareResponseSchema,
+  StudioDocsResponseSchema,
+  StudioRouteDetailResponseSchema,
+  StudioRoutesResponseSchema,
+} from "../../src/studio/api-contract.js";
+import { studioReleaseSeed } from "../../src/studio/sample-data.js";
 import type { Env } from "../../src/worker/index.js";
 import worker from "../../src/worker/index.js";
 
@@ -87,6 +103,66 @@ class FakeR2Bucket {
   }
 }
 
+function createStudioEnv(): Env {
+  const objects: Record<string, FakeR2Object> = {
+    "studio/v1/briefs.json": new FakeR2Object(
+      JSON.stringify(buildStudioBriefsProjection(studioReleaseSeed)),
+      "application/json",
+    ),
+    "studio/v1/docs.json": new FakeR2Object(
+      JSON.stringify(buildStudioDocsProjection(studioReleaseSeed)),
+      "application/json",
+    ),
+    "studio/v1/findings.json": new FakeR2Object(
+      JSON.stringify(buildStudioFindingsProjection(studioReleaseSeed)),
+      "application/json",
+    ),
+    "studio/v1/methods.json": new FakeR2Object(
+      JSON.stringify(buildStudioMethodsProjection(studioReleaseSeed)),
+      "application/json",
+    ),
+    "studio/v1/routes.json": new FakeR2Object(
+      JSON.stringify(buildStudioRoutesProjection(studioReleaseSeed)),
+      "application/json",
+    ),
+  };
+
+  for (const route of studioReleaseSeed.routes) {
+    objects[`studio/v1/routes/${route.slug}/index.json`] = new FakeR2Object(
+      JSON.stringify(buildStudioRouteProjection(studioReleaseSeed, route)),
+      "application/json",
+    );
+    objects[`studio/v1/routes/${route.slug}/ladder.json`] = new FakeR2Object(
+      JSON.stringify(buildStudioRouteLadderProjection(studioReleaseSeed, route)),
+      "application/json",
+    );
+  }
+
+  for (const finding of studioReleaseSeed.findings) {
+    const projection = buildStudioFindingProjection(studioReleaseSeed, finding);
+    if (projection !== undefined) {
+      objects[`studio/v1/findings/${finding.id}/index.json`] = new FakeR2Object(
+        JSON.stringify(projection),
+        "application/json",
+      );
+    }
+  }
+
+  for (const brief of studioReleaseSeed.briefs) {
+    const projection = buildStudioBriefProjection(studioReleaseSeed, brief);
+    if (projection !== undefined) {
+      objects[`studio/v1/briefs/${brief.id}/index.json`] = new FakeR2Object(
+        JSON.stringify(projection),
+        "application/json",
+      );
+    }
+  }
+
+  return {
+    ARTIFACTS: new FakeR2Bucket(objects) as unknown as R2Bucket,
+  };
+}
+
 const scorecard = RouteScorecardSchema.parse({
   schemaVersion: 1,
   routeId: "M1",
@@ -124,17 +200,38 @@ describe("Worker production-behavior harness", () => {
     expect(response.status).toBe(404);
   });
 
+  it("serves the generated Studio OpenAPI document", async () => {
+    const response = await worker.fetch(new Request("https://example.test/api/openapi.json"));
+    const body = (await response.json()) as {
+      openapi?: unknown;
+      paths?: Record<string, unknown>;
+    };
+
+    expect(response.status).toBe(200);
+    expect(body.openapi).toBe("3.1.0");
+    expect(body.paths).toEqual(
+      expect.objectContaining({
+        "/api/v1/studio/routes": expect.any(Object),
+        "/api/v1/studio/routes/{routeId}": expect.any(Object),
+        "/api/v1/studio/briefs/{briefId}/history": expect.any(Object),
+      }),
+    );
+  });
+
   it("delegates non-API deep links to static assets", async () => {
     const paths: string[] = [];
     const assets = {
       fetch: async (input: RequestInfo | URL): Promise<Response> => {
         const request = input instanceof Request ? input : new Request(input);
         paths.push(new URL(request.url).pathname);
-        return new Response('<!doctype html><div id="root"></div>', {
-          headers: { "Content-Type": "text/html; charset=utf-8" },
-        });
+        return new Response(
+          '<!doctype html><html><head></head><body><div id="root"></div></body></html>',
+          {
+            headers: { "Content-Type": "text/html; charset=utf-8" },
+          },
+        );
       },
-    } as Fetcher;
+    } as unknown as Fetcher;
 
     const response = await worker.fetch(new Request("https://example.test/routes/b46"), {
       ASSETS: assets,
@@ -143,6 +240,63 @@ describe("Worker production-behavior harness", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("Content-Type")).toContain("text/html");
     expect(paths).toEqual(["/routes/b46"]);
+  });
+
+  it("injects crawlable SEO metadata into SPA fallback HTML", async () => {
+    const assets = {
+      fetch: async (): Promise<Response> =>
+        new Response(
+          '<!doctype html><html><head></head><body><div id="root"></div></body></html>',
+          {
+            headers: { "Content-Type": "text/html; charset=utf-8" },
+          },
+        ),
+    } as unknown as Fetcher;
+
+    const response = await worker.fetch(new Request("https://example.test/routes/m15-sbs"), {
+      ASSETS: assets,
+    });
+    const html = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toContain("stale-while-revalidate");
+    expect(html).toContain("<title>M15 SBS Route Detail | Bus Priority Impact Studio</title>");
+    expect(html).toContain('name="description"');
+    expect(html).toContain('rel="canonical" href="https://example.test/routes/m15-sbs"');
+  });
+
+  it("serves the root document through static assets with SEO metadata", async () => {
+    const assets = {
+      fetch: async (): Promise<Response> =>
+        new Response(
+          '<!doctype html><html><head></head><body><div id="root"></div></body></html>',
+          {
+            headers: { "Content-Type": "text/html; charset=utf-8" },
+          },
+        ),
+    } as unknown as Fetcher;
+
+    const response = await worker.fetch(new Request("https://example.test/"), {
+      ASSETS: assets,
+    });
+    const html = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(html).toContain("<title>Routes | Bus Priority Impact Studio</title>");
+    expect(html).toContain('rel="canonical" href="https://example.test/"');
+  });
+
+  it("keeps the dev-only system route closed in production fallback", async () => {
+    const assets = {
+      fetch: async (): Promise<Response> => new Response('<!doctype html><div id="root"></div>'),
+    } as unknown as Fetcher;
+
+    const response = await worker.fetch(new Request("https://example.test/system"), {
+      ASSETS: assets,
+    });
+
+    expect(response.status).toBe(404);
+    expect(response.headers.get("X-Robots-Tag")).toContain("noindex");
   });
 
   it("serves a D1-backed route scorecard", async () => {
@@ -749,6 +903,83 @@ describe("Worker production-behavior harness", () => {
         }),
       }),
     );
+  });
+
+  it("serves Studio route-first contracts without hitting legacy v1 handlers", async () => {
+    const response = await worker.fetch(
+      new Request("https://example.test/api/v1/studio/routes"),
+      createStudioEnv(),
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Server-Timing")).toContain("studio;dur=");
+    expect(response.headers.get("Cache-Control")).toBe(
+      "public, max-age=60, stale-while-revalidate=86400",
+    );
+    expect(response.headers.get("X-Studio-Projection")).toBeNull();
+    expect(response.headers.get("X-Studio-Release")).toBe("studio/v1");
+    expect(StudioRoutesResponseSchema.parse(await response.json())).toEqual(
+      expect.objectContaining({
+        schemaVersion: 1,
+        routes: expect.arrayContaining([
+          expect.objectContaining({ slug: "m15-sbs", routeId: "M15+" }),
+        ]),
+      }),
+    );
+  });
+
+  it("serves Studio route detail and comparison contracts by slug", async () => {
+    const routeResponse = await worker.fetch(
+      new Request("https://example.test/api/v1/studio/routes/m15-sbs"),
+      createStudioEnv(),
+    );
+    const compareResponse = await worker.fetch(
+      new Request("https://example.test/api/v1/studio/compare?a=m15-sbs&b=bx12-sbs"),
+      createStudioEnv(),
+    );
+
+    expect(routeResponse.status).toBe(200);
+    expect(StudioRouteDetailResponseSchema.parse(await routeResponse.json())).toEqual(
+      expect.objectContaining({
+        route: expect.objectContaining({ slug: "m15-sbs" }),
+        segments: expect.arrayContaining([
+          expect.objectContaining({ routeSlug: "m15-sbs", id: "madison-28-58-nb" }),
+        ]),
+      }),
+    );
+    expect(compareResponse.status).toBe(200);
+    expect(StudioCompareResponseSchema.parse(await compareResponse.json())).toEqual(
+      expect.objectContaining({
+        routes: [
+          expect.objectContaining({ slug: "m15-sbs" }),
+          expect.objectContaining({ slug: "bx12-sbs" }),
+        ],
+      }),
+    );
+  });
+
+  it("serves Studio docs endpoint metadata from the generated OpenAPI paths", async () => {
+    const response = await worker.fetch(
+      new Request("https://example.test/api/v1/studio/docs"),
+      createStudioEnv(),
+    );
+
+    expect(response.status).toBe(200);
+    expect(StudioDocsResponseSchema.parse(await response.json()).endpoints).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          method: "GET",
+          path: "/api/v1/studio/routes/:routeId",
+          body: "Fetch route detail, KPIs, diagnosis, and segment evidence.",
+        }),
+      ]),
+    );
+  });
+
+  it("fails Studio API requests closed when projection artifacts are missing", async () => {
+    const response = await worker.fetch(new Request("https://example.test/api/v1/studio/routes"));
+
+    expect(response.status).toBe(503);
   });
 
   it("rejects route scorecard requests without a valid month", async () => {
