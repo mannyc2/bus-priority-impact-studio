@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { cn } from "../../src/lib/cn.js";
+import { cn } from "../../src/lib/utils.js";
 
 describe("cn", () => {
   test("joins truthy class names", () => {

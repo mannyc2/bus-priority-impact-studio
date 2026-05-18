@@ -4,17 +4,17 @@ import type * as React from "react";
 import { cn } from "@/lib/utils";
 
 const alertVariants = cva(
-  "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4",
+  "group/alert relative grid w-full gap-0.5 rounded-[3px] border-l-[3px] px-3.5 py-3 text-left text-[12.5px] leading-normal text-[var(--bp-color-ink-70)] has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
-        default: "bg-card text-card-foreground",
-        destructive:
-          "bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current",
+        warn: "border-l-[var(--bp-color-warn)] bg-[var(--bp-color-warn-bg)]",
+        bad: "border-l-[var(--bp-color-bad)] bg-[var(--bp-color-bad-bg)]",
+        info: "border-l-[var(--bp-color-accent)] bg-[var(--bp-color-accent-bg)]",
       },
     },
     defaultVariants: {
-      variant: "default",
+      variant: "warn",
     },
   },
 );
@@ -34,14 +34,31 @@ function Alert({
   );
 }
 
-function AlertTitle({ className, ...props }: React.ComponentProps<"div">) {
+const alertTitleVariants = cva(
+  "mb-0.5 font-semibold text-[12.5px] group-has-[>svg]/alert:col-start-2 [&_a]:underline [&_a]:underline-offset-3",
+  {
+    variants: {
+      variant: {
+        warn: "text-[var(--bp-color-warn)]",
+        bad: "text-[var(--bp-color-bad)]",
+        info: "text-[var(--bp-color-accent)]",
+      },
+    },
+    defaultVariants: {
+      variant: "warn",
+    },
+  },
+);
+
+function AlertTitle({
+  className,
+  variant,
+  ...props
+}: React.ComponentProps<"div"> & VariantProps<typeof alertTitleVariants>) {
   return (
     <div
       data-slot="alert-title"
-      className={cn(
-        "font-medium group-has-[>svg]/alert:col-start-2 [&_a]:underline [&_a]:underline-offset-3 [&_a]:hover:text-foreground",
-        className,
-      )}
+      className={cn(alertTitleVariants({ variant }), className)}
       {...props}
     />
   );
@@ -52,7 +69,7 @@ function AlertDescription({ className, ...props }: React.ComponentProps<"div">) 
     <div
       data-slot="alert-description"
       className={cn(
-        "text-sm text-balance text-muted-foreground md:text-pretty [&_a]:underline [&_a]:underline-offset-3 [&_a]:hover:text-foreground [&_p:not(:last-child)]:mb-4",
+        "text-[12.5px] leading-normal text-[var(--bp-color-ink-70)] [&_a]:underline [&_a]:underline-offset-3 [&_p:not(:last-child)]:mb-2",
         className,
       )}
       {...props}

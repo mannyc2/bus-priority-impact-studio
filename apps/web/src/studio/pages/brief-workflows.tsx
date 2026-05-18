@@ -2,7 +2,6 @@ import { Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 import {
   AiAttribution,
-  Caveat,
   ChartFrame,
   ClaimList,
   CommentBadge,
@@ -11,6 +10,7 @@ import {
   RouteBadge,
   Timeline,
 } from "../../design-system/primitives.js";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { StudioHero, StudioPage, StudioPanel } from "../page.js";
 import { getStudioBrief, getStudioRoute } from "../sample-data.js";
@@ -57,9 +57,11 @@ export function BriefEvidencePage({ briefId }: { briefId: string }) {
             Rider-hours lost is computed by applying scheduled-vs-observed travel time delta to
             hourly ridership, then summing across weekdays.
           </p>
-          <Caveat tone="warn">
-            Single-month windows are useful for briefs but not causal proof.
-          </Caveat>
+          <Alert variant="warn">
+            <AlertDescription>
+              Single-month windows are useful for briefs but not causal proof.
+            </AlertDescription>
+          </Alert>
         </StudioPanel>
       </div>
     </StudioPage>

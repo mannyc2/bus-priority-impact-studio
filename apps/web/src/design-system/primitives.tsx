@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { bpiColors, bpiFonts } from "./tokens.js";
 
 type Tone = "neutral" | "accent" | "good" | "warn" | "bad";
-type CaveatTone = "warn" | "bad" | "info";
 type Direction = "NB" | "SB" | "EB" | "WB";
 type LaneState = "yes" | "partial" | "minimal" | "none";
 type KpiSize = "md" | "lg";
@@ -516,49 +515,6 @@ export function KPI({
       </div>
       {sub ? <div className="mt-1 text-[11px] text-[var(--bp-color-ink-55)]">{sub}</div> : null}
     </div>
-  );
-}
-
-export function Caveat({
-  tone = "warn",
-  title,
-  children,
-  inline = false,
-}: {
-  tone?: CaveatTone;
-  title?: string;
-  children: ReactNode;
-  inline?: boolean;
-}) {
-  const palette = {
-    warn: { bg: bpiColors.warnBg, fg: bpiColors.warn },
-    bad: { bg: bpiColors.badBg, fg: bpiColors.bad },
-    info: { bg: bpiColors.accentBg, fg: bpiColors.accent },
-  }[tone];
-
-  if (inline) {
-    return (
-      <span
-        className="rounded-[3px] px-2 py-0.5 text-[11.5px] font-medium"
-        style={{ background: palette.bg, color: palette.fg }}
-      >
-        {children}
-      </span>
-    );
-  }
-
-  return (
-    <aside
-      className="border-l-[3px] p-3.5 text-[12.5px] leading-normal text-[var(--bp-color-ink-70)]"
-      style={{ background: palette.bg, borderColor: palette.fg }}
-    >
-      {title ? (
-        <div className="mb-1 font-semibold" style={{ color: palette.fg }}>
-          ⚠ {title}
-        </div>
-      ) : null}
-      {children}
-    </aside>
   );
 }
 

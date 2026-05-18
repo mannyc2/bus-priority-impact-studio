@@ -1,7 +1,6 @@
 export {
   AiAttribution,
   BeforeAfter,
-  Caveat,
   ChartFrame,
   Cite,
   ClaimList,

@@ -2,12 +2,12 @@ import { Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 import {
   AiAttribution,
-  Caveat,
   ChartFrame,
   RouteBadge,
   Spark,
   Timeline,
 } from "../../design-system/primitives.js";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { bpiColors } from "../../design-system/tokens.js";
 import { StudioHero, StudioPage, StudioPanel } from "../page.js";
@@ -97,9 +97,12 @@ export function FindingDetailPage({ findingId }: { findingId: string }) {
             <Badge variant="neutral">ACE</Badge>
             <Badge variant="neutral">Bus lanes</Badge>
           </div>
-          <Caveat tone="warn" title="Interpretation caveat">
-            Peer comparisons narrow the explanation but do not prove a single causal intervention.
-          </Caveat>
+          <Alert variant="warn">
+            <AlertTitle variant="warn">Interpretation caveat</AlertTitle>
+            <AlertDescription>
+              Peer comparisons narrow the explanation but do not prove a single causal intervention.
+            </AlertDescription>
+          </Alert>
         </StudioPanel>
       </div>
     </StudioPage>

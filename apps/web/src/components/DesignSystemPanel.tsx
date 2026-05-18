@@ -1,8 +1,8 @@
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import {
   AiAttribution,
   BeforeAfter,
-  Caveat,
   ChartFrame,
   Cite,
   ClaimList,
@@ -212,10 +212,13 @@ export function DesignSystemPanel() {
             />
             <div className="flex flex-col gap-4">
               <Tabs items={["Outline", "Sources", "Claims"]} active="Claims" />
-              <Caveat title="Publication lag">
-                March 2026 is the current complete public baseline; realtime samples are labeled
-                separately.
-              </Caveat>
+              <Alert variant="warn">
+                <AlertTitle variant="warn">Publication lag</AlertTitle>
+                <AlertDescription>
+                  March 2026 is the current complete public baseline; realtime samples are labeled
+                  separately.
+                </AlertDescription>
+              </Alert>
               <SkeletonKPI />
               <Timeline
                 events={[
