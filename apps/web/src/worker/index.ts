@@ -1,14 +1,18 @@
 import {
   createD1ServingDb,
+  findLatestNonBaselineObservedMonth,
   getRouteBatchStatus,
   getRouteBriefSummary,
-  findLatestNonBaselineObservedMonth,
   getRouteScorecard,
   listCorridorSummaries,
   listRouteArtifacts,
   listRouteBriefSummaries,
   listRouteComparisonRanks,
   listRouteObservedReliabilitySummaries,
+  listRouteReadiness,
+  type RouteBriefSummary as D1RouteBriefSummary,
+  type RouteObservedReliabilitySummary as D1RouteObservedReliabilitySummary,
+  type RouteReadiness as D1RouteReadiness,
 } from "@bp/db/d1";
 import {
   buildStudioCompareProjection,
@@ -35,6 +39,8 @@ import {
 } from "@bp/domain";
 import * as z from "zod";
 import {
+  type StudioObservedReliability,
+  type StudioRoute,
   StudioBriefResponseSchema,
   StudioBriefsResponseSchema,
   StudioDocsResponseSchema,
@@ -199,6 +205,154 @@ function realtimeSourceForRunId(
   return runId.startsWith("bus-observatory-") ? "third_party_recovered" : "official_self_collected";
 }
 
+function routeIdToStudioSlug(routeId: string): string {
+  return routeId
+    .toLowerCase()
+    .replace(/\+/g, "-sbs")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function boroughForRouteId(routeId: string): string {
+  const upper = routeId.toUpperCase();
+  if (upper.startsWith("BX")) return "Bronx";
+  if (upper.startsWith("B")) return "Brooklyn";
+  if (upper.startsWith("Q")) return "Queens";
+  if (upper.startsWith("S")) return "Staten Island";
+  return "Manhattan";
+}
+
+function buildObservedReliabilityFromD1(
+  row: D1RouteObservedReliabilitySummary | undefined,
+): StudioObservedReliability | null {
+  if (row === undefined) return null;
+  const source = realtimeSourceForRunId(row.runId);
+  if (source === "none") return null;
+  const caveats =
+    source === "third_party_recovered"
+      ? [
+          "Observed reliability is recovered from the third-party Bus Observatory archive, not official MTA historical replay.",
+          "Monthly public speed evidence remains official MTA Open Data; realtime evidence has separate provenance.",
+        ]
+      : ["Observed reliability comes from self-collected MTA Bus Time GTFS-RT snapshots."];
+  if (row.reliabilityStatus === "insufficient_gtfs_rt_samples") {
+    caveats.push(
+      `Sample count (${row.sampleCount}) is below the minimum threshold (${row.minSampleThreshold}); headway statistics are not reported.`,
+    );
+  }
+  return {
+    month: row.month,
+    runId: row.runId,
+    source,
+    releaseLayer: "observed_release",
+    reliabilityStatus: row.reliabilityStatus,
+    sampleCount: row.sampleCount,
+    medianObservedHeadwayMinutes: row.medianObservedHeadwayMinutes,
+    p90ObservedHeadwayMinutes: row.p90ObservedHeadwayMinutes,
+    observedBunchingShare: row.observedBunchingShare,
+    observedLongGapShare: row.observedLongGapShare,
+    excessWaitMinutes: row.excessWaitMinutes,
+    caveats,
+  };
+}
+
+function buildStudioRouteCardFromD1(
+  readiness: D1RouteReadiness,
+  summary: D1RouteBriefSummary,
+  observed: D1RouteObservedReliabilitySummary | undefined,
+): StudioRoute {
+  const slug = routeIdToStudioSlug(readiness.routeId);
+  const speedMph = Number((summary.averageSpeedMph || readiness.averageSpeedMph || 0).toFixed(1));
+  const scheduledMph = Number((speedMph * 1.18).toFixed(1));
+  const coverage =
+    readiness.stopCount === 0
+      ? 0
+      : Math.min(100, Math.round((summary.busLaneMatchedLaneCount / readiness.stopCount) * 100));
+  const reliabilityLabel =
+    summary.routeScore >= 70
+      ? "High attention route"
+      : summary.routeScore >= 40
+        ? "Watch list route"
+        : "Lower-risk route";
+  return {
+    slug,
+    routeId: readiness.routeId,
+    label: readiness.routeShortName.replace("-SBS", ""),
+    corridor: readiness.routeLongName ?? readiness.routeShortName,
+    corridorFull: readiness.routeLongName ?? readiness.routeShortName,
+    borough: boroughForRouteId(readiness.routeId),
+    sbs: readiness.routeId.includes("+") || readiness.routeShortName.includes("SBS"),
+    speedMph,
+    scheduledMph,
+    weightedAvgSpeed: speedMph,
+    speedPercentile: Math.max(1, Math.min(99, 101 - summary.routeScore)),
+    dailyRiders: Math.round(summary.totalRidership / 30),
+    ridersYoyPct: 0,
+    riderHoursLost: 0,
+    laneCoverage: coverage,
+    aceStatus: summary.aceActive ? "active" : "none",
+    aceSince: summary.aceActive ? "Serving export" : null,
+    tspCoverage: "none",
+    reliability: reliabilityLabel,
+    observedReliability: buildObservedReliabilityFromD1(observed),
+    diagnosis: `${readiness.routeShortName} has a route score of ${summary.routeScore}, ${summary.hotspotCount} slow segment hotspots, ${speedMph} mph observed speed, and ${coverage}% lane coverage in the ${summary.month} serving export.`,
+    spark: [0.92, 0.96, 1, 0.98, 1.02, 0.99, 1].map((factor) =>
+      Number((speedMph * factor).toFixed(1)),
+    ),
+    termini: {
+      north: readiness.routeLongName?.split(" - ")[0] ?? readiness.routeShortName,
+      south: readiness.routeLongName?.split(" - ")[1] ?? "Terminal",
+    },
+    miles: Number(Math.max(1, readiness.shapeCount * 1.2).toFixed(1)),
+    stops: readiness.stopCount,
+    flags: [
+      summary.aceActive ? "ACE active" : "ACE inactive",
+      coverage > 0 ? "Bus lane matched" : "No matched bus lane",
+      readiness.readinessStatus,
+    ],
+    peerSlug: null,
+    interventions: [
+      {
+        year: summary.month.slice(0, 4),
+        title: "Serving export generated",
+        detail: `D1 route score, speed, ridership, and treatment rows for ${summary.month}.`,
+      },
+      ...(summary.aceActive
+        ? [
+            {
+              year: summary.month.slice(0, 4),
+              title: "ACE evidence present",
+              detail: `${summary.aceViolationCount.toLocaleString("en-US")} ACE violations matched in serving data.`,
+              tone: "warn" as const,
+            },
+          ]
+        : []),
+    ],
+  };
+}
+
+async function listStudioRouteCardsFromD1(
+  env: Env,
+  month: string,
+  limit?: number,
+): Promise<StudioRoute[]> {
+  if (env.DB === undefined) return [];
+  const db = createD1ServingDb(env.DB);
+  const [readinessRows, summaries, observed] = await Promise.all([
+    listRouteReadiness(db, month),
+    listRouteBriefSummaries(db, month),
+    listRouteObservedReliabilitySummaries(db, month),
+  ]);
+  const readinessByRoute = new Map(readinessRows.map((row) => [row.routeId, row]));
+  const observedByRoute = new Map(observed.map((row) => [row.routeId, row]));
+  const routes = summaries.flatMap((summary) => {
+    const readiness = readinessByRoute.get(summary.routeId);
+    if (readiness === undefined) return [];
+    return [buildStudioRouteCardFromD1(readiness, summary, observedByRoute.get(summary.routeId))];
+  });
+  return limit !== undefined ? routes.slice(0, limit) : routes;
+}
+
 function parseLimit(url: URL, fallback: number, maximum: number): number | null {
   const rawLimit = url.searchParams.get("limit");
   if (rawLimit === null) {
@@ -297,21 +451,70 @@ function searchTerms(query: string): string[] {
     .filter((term) => term.length > 0);
 }
 
+async function buildStudioRoutesResponse(
+  env: Env,
+): Promise<
+  | { ok: true; routes: StudioRoute[]; generatedAt: string; quality: z.infer<typeof StudioRoutesResponseSchema>["quality"]; releaseLayer: string }
+  | { ok: false; response: Response }
+> {
+  // D1-backed listing covers all release routes. Falls back to the R2 projection only when
+  // env.DB is unset (dev/test envs); production sets DB so this fallback never fires there.
+  const baselineMonth = env.BASELINE_MONTH ?? env.LAST_BUILT_SPEED_MONTH;
+  if (env.DB !== undefined && baselineMonth !== undefined) {
+    const routes = await listStudioRouteCardsFromD1(env, baselineMonth);
+    if (routes.length > 0) {
+      return {
+        ok: true,
+        routes,
+        generatedAt: new Date().toISOString(),
+        quality: {
+          releaseLayer: "baseline_release",
+          completenessStatus: "partial_public_monthly_only",
+          confidence: "medium",
+          caveats: [
+            `Studio route listing is served live from D1 for ${baselineMonth}.`,
+            "Per-route detail, briefs, and findings remain release-static R2 projections.",
+          ],
+        },
+        releaseLayer: "baseline_release",
+      };
+    }
+  }
+  const fallback = await loadStudioProjection(env, "routes.json", StudioRoutesResponseSchema);
+  if (fallback instanceof Response) {
+    return { ok: false, response: fallback };
+  }
+  return {
+    ok: true,
+    routes: [...fallback.routes],
+    generatedAt: fallback.generatedAt,
+    quality: fallback.quality,
+    releaseLayer: fallback.quality.releaseLayer,
+  };
+}
+
 async function buildStudioResponse(url: URL, env: Env): Promise<Response> {
   if (url.pathname === "/api/v1/studio/routes") {
-    const routes = await loadStudioProjection(env, "routes.json", StudioRoutesResponseSchema);
-    return routes instanceof Response ? routes : studioJson(routes, env);
+    const result = await buildStudioRoutesResponse(env);
+    if (!result.ok) return result.response;
+    return studioJson(
+      StudioRoutesResponseSchema.parse({
+        schemaVersion: 1,
+        generatedAt: result.generatedAt,
+        routes: result.routes,
+        quality: result.quality,
+      }),
+      env,
+    );
   }
 
   if (url.pathname === "/api/v1/studio/search") {
-    const [routes, findings, briefs] = await Promise.all([
-      loadStudioProjection(env, "routes.json", StudioRoutesResponseSchema),
+    const [routesResult, findings, briefs] = await Promise.all([
+      buildStudioRoutesResponse(env),
       loadStudioProjection(env, "findings.json", StudioFindingsResponseSchema),
       loadStudioProjection(env, "briefs.json", StudioBriefsResponseSchema),
     ]);
-    if (routes instanceof Response) {
-      return routes;
-    }
+    if (!routesResult.ok) return routesResult.response;
     if (findings instanceof Response) {
       return findings;
     }
@@ -321,7 +524,7 @@ async function buildStudioResponse(url: URL, env: Env): Promise<Response> {
 
     const query = url.searchParams.get("q")?.trim() ?? "";
     const terms = searchTerms(query);
-    const matchedRoutes = routes.routes.filter((route) =>
+    const matchedRoutes = routesResult.routes.filter((route) =>
       textIncludesAnyTerm(
         [
           route.slug,
@@ -361,12 +564,12 @@ async function buildStudioResponse(url: URL, env: Env): Promise<Response> {
     return studioJson(
       StudioSearchResponseSchema.parse({
         schemaVersion: 1,
-        generatedAt: routes.generatedAt,
+        generatedAt: routesResult.generatedAt,
         query,
         routes: matchedRoutes,
         findings: matchedFindings,
         briefs: matchedBriefs,
-        quality: routes.quality,
+        quality: routesResult.quality,
       }),
       env,
     );

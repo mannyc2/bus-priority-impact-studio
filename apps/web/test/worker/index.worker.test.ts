@@ -1029,6 +1029,97 @@ describe("Worker production-behavior harness", () => {
     );
   });
 
+  it("serves the full Studio routes list from D1 when DB is configured", async () => {
+    const month = "2026-03";
+    const routeIds = Array.from({ length: 50 }, (_, i) => `R${String(i + 1).padStart(3, "0")}`);
+    const readinessRows = routeIds.map((routeId) => ({
+      route_id: routeId,
+      month,
+      route_short_name: routeId,
+      route_long_name: `${routeId} corridor`,
+      readiness_status: "ready",
+      build_eligible: 1,
+      readiness_score: 80,
+      speed_observation_count: 100,
+      speed_bus_trip_count: 50,
+      average_speed_mph: 8,
+      schedule_timepoint_count: 25,
+      shape_count: 1,
+      stop_count: 20,
+      timepoint_stop_count: 10,
+    }));
+    const briefRows = routeIds.map((routeId, index) => ({
+      route_id: routeId,
+      month,
+      route_score: 30 + index,
+      public_visible: 1,
+      public_visibility_reason: "public",
+      average_speed_mph: 7.5,
+      hotspot_count: 4,
+      total_ridership: 1000 + index * 10,
+      total_transfers: 100,
+      ace_active: index % 2 === 0 ? 1 : 0,
+      ace_violation_count: 10,
+      bus_lane_matched_lane_count: 2,
+      schedule_match_rate: 0.95,
+    }));
+    const observedRows = routeIds.slice(0, 30).map((routeId) => ({
+      route_id: routeId,
+      month,
+      run_id: "bus-observatory-2026-03",
+      reliability_status: "observed",
+      min_sample_threshold: 30,
+      sample_count: 200,
+      stop_count: 20,
+      direction_count: 2,
+      average_observed_headway_minutes: 8,
+      median_observed_headway_minutes: 7,
+      p90_observed_headway_minutes: 14,
+      max_observed_headway_minutes: 22,
+      scheduled_median_headway_minutes: null,
+      bunching_threshold_minutes: 3,
+      long_gap_threshold_minutes: 20,
+      observed_bunching_share: 0.1,
+      observed_long_gap_share: 0.2,
+      expected_wait_minutes: 5,
+      scheduled_expected_wait_minutes: null,
+      excess_wait_minutes: null,
+      wait_reliability_ratio: null,
+    }));
+    // Order matters: FakeDb matches the first table key whose name appears in the
+    // SQL query, so put longer/more-specific table names before shorter prefixes
+    // (e.g. route_readiness_missing_input before route_readiness).
+    const db = new FakeDb({
+      route_readiness_missing_input: [],
+      route_readiness: readinessRows,
+      route_brief_peak_window: [],
+      route_brief_slowest_window: [],
+      route_brief_summary: briefRows,
+      route_month_source_status: [],
+      route_observed_reliability_summary: observedRows,
+    });
+    const env: Env = {
+      ...createStudioEnv(),
+      DB: db as unknown as D1Database,
+      BASELINE_MONTH: month,
+    };
+
+    const response = await worker.fetch(
+      new Request("https://example.test/api/v1/studio/routes"),
+      env,
+    );
+
+    expect(response.status).toBe(200);
+    const body = StudioRoutesResponseSchema.parse(await response.json());
+    expect(body.routes).toHaveLength(50);
+    expect(body.quality.caveats[0]).toContain("served live from D1");
+    const r001 = body.routes.find((route) => route.routeId === "R001");
+    expect(r001?.observedReliability?.runId).toBe("bus-observatory-2026-03");
+    expect(r001?.observedReliability?.source).toBe("third_party_recovered");
+    const r031 = body.routes.find((route) => route.routeId === "R031");
+    expect(r031?.observedReliability).toBeNull();
+  });
+
   it("serves Studio route detail and comparison contracts by slug", async () => {
     const routeResponse = await worker.fetch(
       new Request("https://example.test/api/v1/studio/routes/m15-sbs"),
