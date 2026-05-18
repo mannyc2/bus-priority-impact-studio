@@ -258,6 +258,13 @@ const commands = {
       return buildBriefArtifactsFromCli(args);
     },
   },
+  "build:studio-release": {
+    description: "Build Studio REST projection artifacts from D1/R2 serving inputs.",
+    run: async (args) => {
+      const { buildStudioReleaseFromCli } = await import("./jobs/build/studio-release.js");
+      return buildStudioReleaseFromCli(args);
+    },
+  },
   "route-equity-context": {
     description: "Build route equity context artifacts.",
     run: async (args) => {
