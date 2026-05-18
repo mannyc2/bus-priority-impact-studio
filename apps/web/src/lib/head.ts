@@ -1,6 +1,6 @@
-const SITE_NAME = "BusPulse";
+const SITE_NAME = "Bus Priority Impact Studio";
 const DEFAULT_DESCRIPTION =
-  "Track NYC bus reliability, hotspots, route grades, and rider-facing service impacts.";
+  "Track NYC bus priority, route reliability, hotspots, comparisons, and evidence-backed briefs.";
 
 export function routeHead(title: string, description = DEFAULT_DESCRIPTION) {
   const fullTitle = title === SITE_NAME ? SITE_NAME : `${title} | ${SITE_NAME}`;

@@ -5,8 +5,8 @@ import { routeHead } from "../lib/head.js";
 export const Route = createRootRoute({
   head: () =>
     routeHead(
-      "BusPulse",
-      "Track NYC bus priority, route reliability, hotspots, comparisons, and rider reports.",
+      "Bus Priority Impact Studio",
+      "Build evidence-backed NYC bus priority route pages, findings, and cited briefs.",
     ),
   component: RootComponent,
   notFoundComponent: RootComponent,

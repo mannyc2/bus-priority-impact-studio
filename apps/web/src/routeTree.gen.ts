@@ -9,20 +9,58 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from "./routes/__root"
-import { Route as DigestRouteImport } from "./routes/digest"
+import { Route as SystemRouteImport } from "./routes/system"
+import { Route as SearchRouteImport } from "./routes/search"
+import { Route as MethodsRouteImport } from "./routes/methods"
+import { Route as FindingsRouteImport } from "./routes/findings"
+import { Route as DocsRouteImport } from "./routes/docs"
 import { Route as CompareRouteImport } from "./routes/compare"
+import { Route as BriefsRouteImport } from "./routes/briefs"
 import { Route as SplatRouteImport } from "./routes/$"
 import { Route as IndexRouteImport } from "./routes/index"
 import { Route as RoutesRouteIdRouteImport } from "./routes/routes/$routeId"
+import { Route as FindingsFindingIdRouteImport } from "./routes/findings/$findingId"
+import { Route as BriefsNewRouteImport } from "./routes/briefs/new"
+import { Route as BriefsBriefIdRouteImport } from "./routes/briefs/$briefId"
+import { Route as RoutesRouteIdLadderRouteImport } from "./routes/routes/$routeId/ladder"
+import { Route as BriefsBriefIdReviewRouteImport } from "./routes/briefs/$briefId/review"
+import { Route as BriefsBriefIdHistoryRouteImport } from "./routes/briefs/$briefId/history"
+import { Route as BriefsBriefIdEvidenceRouteImport } from "./routes/briefs/$briefId/evidence"
+import { Route as BriefsBriefIdEditRouteImport } from "./routes/briefs/$briefId/edit"
 
-const DigestRoute = DigestRouteImport.update({
-  id: "/digest",
-  path: "/digest",
+const SystemRoute = SystemRouteImport.update({
+  id: "/system",
+  path: "/system",
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SearchRoute = SearchRouteImport.update({
+  id: "/search",
+  path: "/search",
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MethodsRoute = MethodsRouteImport.update({
+  id: "/methods",
+  path: "/methods",
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FindingsRoute = FindingsRouteImport.update({
+  id: "/findings",
+  path: "/findings",
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsRoute = DocsRouteImport.update({
+  id: "/docs",
+  path: "/docs",
   getParentRoute: () => rootRouteImport,
 } as any)
 const CompareRoute = CompareRouteImport.update({
   id: "/compare",
   path: "/compare",
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BriefsRoute = BriefsRouteImport.update({
+  id: "/briefs",
+  path: "/briefs",
   getParentRoute: () => rootRouteImport,
 } as any)
 const SplatRoute = SplatRouteImport.update({
@@ -40,52 +78,219 @@ const RoutesRouteIdRoute = RoutesRouteIdRouteImport.update({
   path: "/routes/$routeId",
   getParentRoute: () => rootRouteImport,
 } as any)
+const FindingsFindingIdRoute = FindingsFindingIdRouteImport.update({
+  id: "/$findingId",
+  path: "/$findingId",
+  getParentRoute: () => FindingsRoute,
+} as any)
+const BriefsNewRoute = BriefsNewRouteImport.update({
+  id: "/new",
+  path: "/new",
+  getParentRoute: () => BriefsRoute,
+} as any)
+const BriefsBriefIdRoute = BriefsBriefIdRouteImport.update({
+  id: "/$briefId",
+  path: "/$briefId",
+  getParentRoute: () => BriefsRoute,
+} as any)
+const RoutesRouteIdLadderRoute = RoutesRouteIdLadderRouteImport.update({
+  id: "/ladder",
+  path: "/ladder",
+  getParentRoute: () => RoutesRouteIdRoute,
+} as any)
+const BriefsBriefIdReviewRoute = BriefsBriefIdReviewRouteImport.update({
+  id: "/review",
+  path: "/review",
+  getParentRoute: () => BriefsBriefIdRoute,
+} as any)
+const BriefsBriefIdHistoryRoute = BriefsBriefIdHistoryRouteImport.update({
+  id: "/history",
+  path: "/history",
+  getParentRoute: () => BriefsBriefIdRoute,
+} as any)
+const BriefsBriefIdEvidenceRoute = BriefsBriefIdEvidenceRouteImport.update({
+  id: "/evidence",
+  path: "/evidence",
+  getParentRoute: () => BriefsBriefIdRoute,
+} as any)
+const BriefsBriefIdEditRoute = BriefsBriefIdEditRouteImport.update({
+  id: "/edit",
+  path: "/edit",
+  getParentRoute: () => BriefsBriefIdRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   "/": typeof IndexRoute
   "/$": typeof SplatRoute
+  "/briefs": typeof BriefsRouteWithChildren
   "/compare": typeof CompareRoute
-  "/digest": typeof DigestRoute
-  "/routes/$routeId": typeof RoutesRouteIdRoute
+  "/docs": typeof DocsRoute
+  "/findings": typeof FindingsRouteWithChildren
+  "/methods": typeof MethodsRoute
+  "/search": typeof SearchRoute
+  "/system": typeof SystemRoute
+  "/briefs/$briefId": typeof BriefsBriefIdRouteWithChildren
+  "/briefs/new": typeof BriefsNewRoute
+  "/findings/$findingId": typeof FindingsFindingIdRoute
+  "/routes/$routeId": typeof RoutesRouteIdRouteWithChildren
+  "/briefs/$briefId/edit": typeof BriefsBriefIdEditRoute
+  "/briefs/$briefId/evidence": typeof BriefsBriefIdEvidenceRoute
+  "/briefs/$briefId/history": typeof BriefsBriefIdHistoryRoute
+  "/briefs/$briefId/review": typeof BriefsBriefIdReviewRoute
+  "/routes/$routeId/ladder": typeof RoutesRouteIdLadderRoute
 }
 export interface FileRoutesByTo {
   "/": typeof IndexRoute
   "/$": typeof SplatRoute
+  "/briefs": typeof BriefsRouteWithChildren
   "/compare": typeof CompareRoute
-  "/digest": typeof DigestRoute
-  "/routes/$routeId": typeof RoutesRouteIdRoute
+  "/docs": typeof DocsRoute
+  "/findings": typeof FindingsRouteWithChildren
+  "/methods": typeof MethodsRoute
+  "/search": typeof SearchRoute
+  "/system": typeof SystemRoute
+  "/briefs/$briefId": typeof BriefsBriefIdRouteWithChildren
+  "/briefs/new": typeof BriefsNewRoute
+  "/findings/$findingId": typeof FindingsFindingIdRoute
+  "/routes/$routeId": typeof RoutesRouteIdRouteWithChildren
+  "/briefs/$briefId/edit": typeof BriefsBriefIdEditRoute
+  "/briefs/$briefId/evidence": typeof BriefsBriefIdEvidenceRoute
+  "/briefs/$briefId/history": typeof BriefsBriefIdHistoryRoute
+  "/briefs/$briefId/review": typeof BriefsBriefIdReviewRoute
+  "/routes/$routeId/ladder": typeof RoutesRouteIdLadderRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   "/": typeof IndexRoute
   "/$": typeof SplatRoute
+  "/briefs": typeof BriefsRouteWithChildren
   "/compare": typeof CompareRoute
-  "/digest": typeof DigestRoute
-  "/routes/$routeId": typeof RoutesRouteIdRoute
+  "/docs": typeof DocsRoute
+  "/findings": typeof FindingsRouteWithChildren
+  "/methods": typeof MethodsRoute
+  "/search": typeof SearchRoute
+  "/system": typeof SystemRoute
+  "/briefs/$briefId": typeof BriefsBriefIdRouteWithChildren
+  "/briefs/new": typeof BriefsNewRoute
+  "/findings/$findingId": typeof FindingsFindingIdRoute
+  "/routes/$routeId": typeof RoutesRouteIdRouteWithChildren
+  "/briefs/$briefId/edit": typeof BriefsBriefIdEditRoute
+  "/briefs/$briefId/evidence": typeof BriefsBriefIdEvidenceRoute
+  "/briefs/$briefId/history": typeof BriefsBriefIdHistoryRoute
+  "/briefs/$briefId/review": typeof BriefsBriefIdReviewRoute
+  "/routes/$routeId/ladder": typeof RoutesRouteIdLadderRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: "/" | "/$" | "/compare" | "/digest" | "/routes/$routeId"
+  fullPaths:
+    | "/"
+    | "/$"
+    | "/briefs"
+    | "/compare"
+    | "/docs"
+    | "/findings"
+    | "/methods"
+    | "/search"
+    | "/system"
+    | "/briefs/$briefId"
+    | "/briefs/new"
+    | "/findings/$findingId"
+    | "/routes/$routeId"
+    | "/briefs/$briefId/edit"
+    | "/briefs/$briefId/evidence"
+    | "/briefs/$briefId/history"
+    | "/briefs/$briefId/review"
+    | "/routes/$routeId/ladder"
   fileRoutesByTo: FileRoutesByTo
-  to: "/" | "/$" | "/compare" | "/digest" | "/routes/$routeId"
-  id: "__root__" | "/" | "/$" | "/compare" | "/digest" | "/routes/$routeId"
+  to:
+    | "/"
+    | "/$"
+    | "/briefs"
+    | "/compare"
+    | "/docs"
+    | "/findings"
+    | "/methods"
+    | "/search"
+    | "/system"
+    | "/briefs/$briefId"
+    | "/briefs/new"
+    | "/findings/$findingId"
+    | "/routes/$routeId"
+    | "/briefs/$briefId/edit"
+    | "/briefs/$briefId/evidence"
+    | "/briefs/$briefId/history"
+    | "/briefs/$briefId/review"
+    | "/routes/$routeId/ladder"
+  id:
+    | "__root__"
+    | "/"
+    | "/$"
+    | "/briefs"
+    | "/compare"
+    | "/docs"
+    | "/findings"
+    | "/methods"
+    | "/search"
+    | "/system"
+    | "/briefs/$briefId"
+    | "/briefs/new"
+    | "/findings/$findingId"
+    | "/routes/$routeId"
+    | "/briefs/$briefId/edit"
+    | "/briefs/$briefId/evidence"
+    | "/briefs/$briefId/history"
+    | "/briefs/$briefId/review"
+    | "/routes/$routeId/ladder"
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SplatRoute: typeof SplatRoute
+  BriefsRoute: typeof BriefsRouteWithChildren
   CompareRoute: typeof CompareRoute
-  DigestRoute: typeof DigestRoute
-  RoutesRouteIdRoute: typeof RoutesRouteIdRoute
+  DocsRoute: typeof DocsRoute
+  FindingsRoute: typeof FindingsRouteWithChildren
+  MethodsRoute: typeof MethodsRoute
+  SearchRoute: typeof SearchRoute
+  SystemRoute: typeof SystemRoute
+  RoutesRouteIdRoute: typeof RoutesRouteIdRouteWithChildren
 }
 
 declare module "@tanstack/react-router" {
   interface FileRoutesByPath {
-    "/digest": {
-      id: "/digest"
-      path: "/digest"
-      fullPath: "/digest"
-      preLoaderRoute: typeof DigestRouteImport
+    "/system": {
+      id: "/system"
+      path: "/system"
+      fullPath: "/system"
+      preLoaderRoute: typeof SystemRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    "/search": {
+      id: "/search"
+      path: "/search"
+      fullPath: "/search"
+      preLoaderRoute: typeof SearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    "/methods": {
+      id: "/methods"
+      path: "/methods"
+      fullPath: "/methods"
+      preLoaderRoute: typeof MethodsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    "/findings": {
+      id: "/findings"
+      path: "/findings"
+      fullPath: "/findings"
+      preLoaderRoute: typeof FindingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    "/docs": {
+      id: "/docs"
+      path: "/docs"
+      fullPath: "/docs"
+      preLoaderRoute: typeof DocsRouteImport
       parentRoute: typeof rootRouteImport
     }
     "/compare": {
@@ -93,6 +298,13 @@ declare module "@tanstack/react-router" {
       path: "/compare"
       fullPath: "/compare"
       preLoaderRoute: typeof CompareRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    "/briefs": {
+      id: "/briefs"
+      path: "/briefs"
+      fullPath: "/briefs"
+      preLoaderRoute: typeof BriefsRouteImport
       parentRoute: typeof rootRouteImport
     }
     "/$": {
@@ -116,15 +328,131 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof RoutesRouteIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    "/findings/$findingId": {
+      id: "/findings/$findingId"
+      path: "/$findingId"
+      fullPath: "/findings/$findingId"
+      preLoaderRoute: typeof FindingsFindingIdRouteImport
+      parentRoute: typeof FindingsRoute
+    }
+    "/briefs/new": {
+      id: "/briefs/new"
+      path: "/new"
+      fullPath: "/briefs/new"
+      preLoaderRoute: typeof BriefsNewRouteImport
+      parentRoute: typeof BriefsRoute
+    }
+    "/briefs/$briefId": {
+      id: "/briefs/$briefId"
+      path: "/$briefId"
+      fullPath: "/briefs/$briefId"
+      preLoaderRoute: typeof BriefsBriefIdRouteImport
+      parentRoute: typeof BriefsRoute
+    }
+    "/routes/$routeId/ladder": {
+      id: "/routes/$routeId/ladder"
+      path: "/ladder"
+      fullPath: "/routes/$routeId/ladder"
+      preLoaderRoute: typeof RoutesRouteIdLadderRouteImport
+      parentRoute: typeof RoutesRouteIdRoute
+    }
+    "/briefs/$briefId/review": {
+      id: "/briefs/$briefId/review"
+      path: "/review"
+      fullPath: "/briefs/$briefId/review"
+      preLoaderRoute: typeof BriefsBriefIdReviewRouteImport
+      parentRoute: typeof BriefsBriefIdRoute
+    }
+    "/briefs/$briefId/history": {
+      id: "/briefs/$briefId/history"
+      path: "/history"
+      fullPath: "/briefs/$briefId/history"
+      preLoaderRoute: typeof BriefsBriefIdHistoryRouteImport
+      parentRoute: typeof BriefsBriefIdRoute
+    }
+    "/briefs/$briefId/evidence": {
+      id: "/briefs/$briefId/evidence"
+      path: "/evidence"
+      fullPath: "/briefs/$briefId/evidence"
+      preLoaderRoute: typeof BriefsBriefIdEvidenceRouteImport
+      parentRoute: typeof BriefsBriefIdRoute
+    }
+    "/briefs/$briefId/edit": {
+      id: "/briefs/$briefId/edit"
+      path: "/edit"
+      fullPath: "/briefs/$briefId/edit"
+      preLoaderRoute: typeof BriefsBriefIdEditRouteImport
+      parentRoute: typeof BriefsBriefIdRoute
+    }
   }
 }
+
+interface BriefsBriefIdRouteChildren {
+  BriefsBriefIdEditRoute: typeof BriefsBriefIdEditRoute
+  BriefsBriefIdEvidenceRoute: typeof BriefsBriefIdEvidenceRoute
+  BriefsBriefIdHistoryRoute: typeof BriefsBriefIdHistoryRoute
+  BriefsBriefIdReviewRoute: typeof BriefsBriefIdReviewRoute
+}
+
+const BriefsBriefIdRouteChildren: BriefsBriefIdRouteChildren = {
+  BriefsBriefIdEditRoute: BriefsBriefIdEditRoute,
+  BriefsBriefIdEvidenceRoute: BriefsBriefIdEvidenceRoute,
+  BriefsBriefIdHistoryRoute: BriefsBriefIdHistoryRoute,
+  BriefsBriefIdReviewRoute: BriefsBriefIdReviewRoute,
+}
+
+const BriefsBriefIdRouteWithChildren = BriefsBriefIdRoute._addFileChildren(
+  BriefsBriefIdRouteChildren,
+)
+
+interface BriefsRouteChildren {
+  BriefsBriefIdRoute: typeof BriefsBriefIdRouteWithChildren
+  BriefsNewRoute: typeof BriefsNewRoute
+}
+
+const BriefsRouteChildren: BriefsRouteChildren = {
+  BriefsBriefIdRoute: BriefsBriefIdRouteWithChildren,
+  BriefsNewRoute: BriefsNewRoute,
+}
+
+const BriefsRouteWithChildren =
+  BriefsRoute._addFileChildren(BriefsRouteChildren)
+
+interface FindingsRouteChildren {
+  FindingsFindingIdRoute: typeof FindingsFindingIdRoute
+}
+
+const FindingsRouteChildren: FindingsRouteChildren = {
+  FindingsFindingIdRoute: FindingsFindingIdRoute,
+}
+
+const FindingsRouteWithChildren = FindingsRoute._addFileChildren(
+  FindingsRouteChildren,
+)
+
+interface RoutesRouteIdRouteChildren {
+  RoutesRouteIdLadderRoute: typeof RoutesRouteIdLadderRoute
+}
+
+const RoutesRouteIdRouteChildren: RoutesRouteIdRouteChildren = {
+  RoutesRouteIdLadderRoute: RoutesRouteIdLadderRoute,
+}
+
+const RoutesRouteIdRouteWithChildren = RoutesRouteIdRoute._addFileChildren(
+  RoutesRouteIdRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SplatRoute: SplatRoute,
+  BriefsRoute: BriefsRouteWithChildren,
   CompareRoute: CompareRoute,
-  DigestRoute: DigestRoute,
-  RoutesRouteIdRoute: RoutesRouteIdRoute,
+  DocsRoute: DocsRoute,
+  FindingsRoute: FindingsRouteWithChildren,
+  MethodsRoute: MethodsRoute,
+  SearchRoute: SearchRoute,
+  SystemRoute: SystemRoute,
+  RoutesRouteIdRoute: RoutesRouteIdRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

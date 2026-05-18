@@ -2,6 +2,24 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-05-18] design | shadcn Base UI design-system cutover started
+
+Initialized shadcn for `apps/web` with the Base UI backend while preserving TanStack Router. Added Tailwind v4 and shadcn aliases for the web app, mapped shadcn semantic CSS variables to the Claude Design Bus Priority Impact Studio token system, and ported the first reusable primitives from the design tarball: studio mark, route badge, chip, citation, sparkline, hour strip, confidence bar, reviewer chips/stack, and AI attribution strip. The generated shadcn button has been refactored to the custom system's compact civic button variants instead of the default Nova look.
+
+Extended the design-system primitive port with the remaining core `system.jsx` building blocks: before/after bars, map thumbnail, section header, studio footer, tabs, KPI, caveat, search field, direction/treatment glyphs, segment rows, timeline, skeleton/loading states, empty/error states, chart frame, heatmap, hour bars, strength bars, and claim rows/lists.
+
+Converted the legacy app-level `Button`, `Pill`, `RouteBadge`, and skeleton components into compatibility wrappers around the shadcn/custom design-system primitives so existing screens can keep importing their current component names while inheriting the new visual system.
+
+Added the missing `StudioBar` primitive from the design tarball and changed legacy app token exports/CSS variable aliases to resolve to the new warm-paper BPI token set. Updated user-facing page metadata from the old BusPulse name to Bus Priority Impact Studio.
+
+Replaced direct `.bp-pill` filter links in the app shell and hotspot panel with the new `Chip` primitive, then removed now-unused legacy CSS blocks for `.bp-pill`, `.bp-route-badge`, `.bp-btn`, and `.bp-skeleton`.
+
+Renamed the internal map component from `BusPulseMap` to `BusPriorityMap` so code symbols no longer carry the old product name.
+
+Added a TanStack Router `/system` panel that renders the ported design-system primitives inside the app shell. The panel exercises foundations, route badges, chips/citations, search, KPIs, sparklines, before/after bars, confidence, treatment glyphs, segment rows, AI attribution, heatmap/hour charts, claim lists, tabs, caveats, skeletons, timelines, and empty states.
+
+Ported the comment badge and inline comment marker shown in the later design-system HTML but not centralized in `system.jsx`, and added both to `/system`.
+
 ## [2026-04-26] seed | Initial LLM wiki scaffold
 
 Created Codex-ready wiki seed for Bus Priority Impact Studio. Added project, data, engineering, analysis, template pages, source registry, source manifest, and starter scripts.
@@ -524,3 +542,13 @@ Added the R2 lifecycle rule `expire-gtfs-rt-after-21-days` on `bus-priority-gtfs
 Deployed the Worker directly from `apps/web/wrangler.jsonc` after the Cloudflare Vite redirected deploy config dropped `vars`, `d1_databases`, and `r2_buckets`. The deployed Worker exposes real bindings for `DB`, `ARTIFACTS`, `GTFS_RT_RAW`, `BASELINE_MONTH`, `LAST_BUILT_SPEED_MONTH`, `GTFS_RT_SAMPLES_PER_CRON`, and `GTFS_RT_SAMPLE_SECONDS`. Live checks passed for `/api/v1/status?month=2026-03`, `/api/v1/routes?month=2026-03&limit=3`, `/api/v1/map/manifest?month=2026-03`, and a route-segment artifact stream. The actual frontend is served from the root workers.dev URL; `/api/v1/artifacts/*` URLs are raw artifact endpoints.
 
 Verified scheduled production GTFS-RT capture. The deployed cron wrote vehicle-position manifests and protobuf snapshots into remote R2 under `gtfs-rt/vehicle_positions/2026-05-17/`; a sampled protobuf object was about 230 KB. Mirrored two live production manifests and paired protobufs with `pull:gtfs-rt-r2-run --execute`, imported them with `import:gtfs-rt-r2-manifests`, and parsed them with `ingest:gtfs-rt-snapshots`: 2 snapshots, 3,612 vehicle positions, and 0 parse errors.
+
+## [2026-05-18] engineering | Design system hard cutover pages
+
+Started the website hard cutover to the new Bus Priority Impact Studio design system. The active TanStack Router pages for hotspots (`/`), route profile tabs (`/routes/$routeId`), comparison (`/compare`), weekly digest (`/digest`), system reference (`/system`), and not-found now render through the new `apps/web/src/design-system` primitives and the Base UI-backed shadcn button. Removed the old compatibility primitive wrappers, legacy preview page/components, legacy token module, and unused legacy CSS blocks so the app no longer falls back to the previous visual system.
+
+## [2026-05-18] engineering | Full website hard cutover plan and shell
+
+Replaced the interim design-system cutover with the canonical reference-site information architecture: route search/results, route detail, route ladder, compare, findings feed/detail, briefs gallery/reading/evidence/composer/review/history, methods, docs, system reference, and not-found. Added `knowledge/wiki/engineering/website_hard_cutover_plan.md` to capture the no-legacy-fallback cutover, API surface direction, generated CLI/docs direction, and React/TanStack Router motion posture. Removed the old map/panel/API-client fallback layer from the web app and replaced its stale tests with Studio sample-data contract coverage so unknown routes/briefs/findings fail closed instead of silently rendering M15 defaults.
+
+Updated the TanStack Router integration to match render-optimization guidance: router structural sharing is enabled by default, route wrappers subscribe to individual params/search fields through `select`, and the hard-cutover plan now records those selector/structural-sharing rules for future API-backed pages.

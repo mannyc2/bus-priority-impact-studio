@@ -6,6 +6,7 @@
     "moduleDetection": "force",
     "lib": ["ES2023"],
     "paths": {
+      "@/*": ["./apps/web/src/*"],
       "@bp/domain": ["./packages/domain/src/index.ts"],
       "@bp/sources": ["./packages/sources/src/index.ts"],
       "@bp/sources/*": ["./packages/sources/src/*/index.ts"],
