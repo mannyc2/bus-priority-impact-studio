@@ -1,11 +1,11 @@
 import {
   BeforeAfter,
   ChartFrame,
-  Chip,
   KPI,
   RouteBadge,
   Spark,
 } from "../../design-system/primitives.js";
+import { Badge } from "@/components/ui/badge";
 import { bpiColors } from "../../design-system/tokens.js";
 import { StudioHero, StudioPage, StudioPanel } from "../page.js";
 import { getStudioRoute, type StudioRoute } from "../sample-data.js";
@@ -102,7 +102,7 @@ function RouteCompareHeader({ route }: { route: StudioRoute }) {
     <StudioPanel>
       <div className="mb-3 flex items-center justify-between gap-3">
         <RouteBadge route={route.label} sbs={route.sbs} size="lg" />
-        <Chip tone={route.speedMph < 5 ? "bad" : "good"}>{route.speedMph.toFixed(1)} mph</Chip>
+        <Badge variant={route.speedMph < 5 ? "bad" : "good"}>{route.speedMph.toFixed(1)} mph</Badge>
       </div>
       <div className="text-[14px] font-semibold">{route.corridor}</div>
       <div className="mt-1 text-[12px] text-[var(--bp-color-ink-55)]">{route.diagnosis}</div>

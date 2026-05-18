@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
-import { AiAttribution, Chip, ConfidenceBar, RouteBadge } from "../../design-system/primitives.js";
+import { AiAttribution, ConfidenceBar, RouteBadge } from "../../design-system/primitives.js";
+import { Badge } from "@/components/ui/badge";
 import { StudioHero, StudioPage, StudioPanel } from "../page.js";
 import { getStudioRoute, studioFindings } from "../sample-data.js";
 
@@ -43,12 +44,12 @@ export function FindingsFeedPage() {
                 <div className="min-w-0">
                   <div className="mb-3 flex flex-wrap items-center gap-2">
                     <RouteBadge route={route.label} sbs={route.sbs} size="sm" />
-                    <Chip tone={finding.category === "Anomaly" ? "warn" : "accent"}>
+                    <Badge variant={finding.category === "Anomaly" ? "warn" : "accent"}>
                       {finding.category}
-                    </Chip>
-                    <Chip tone={finding.confidence === "high" ? "good" : "warn"}>
+                    </Badge>
+                    <Badge variant={finding.confidence === "high" ? "good" : "warn"}>
                       {finding.confidence}
-                    </Chip>
+                    </Badge>
                   </div>
                   <div className="text-[18px] font-semibold tracking-[0]">{finding.title}</div>
                   <p className="mt-2 max-w-[760px] text-[13px] leading-6 text-[var(--bp-color-ink-70)]">

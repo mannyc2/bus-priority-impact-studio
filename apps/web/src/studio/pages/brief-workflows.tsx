@@ -4,7 +4,6 @@ import {
   AiAttribution,
   Caveat,
   ChartFrame,
-  Chip,
   ClaimList,
   CommentBadge,
   Heatmap,
@@ -12,6 +11,7 @@ import {
   RouteBadge,
   Timeline,
 } from "../../design-system/primitives.js";
+import { Badge } from "@/components/ui/badge";
 import { StudioHero, StudioPage, StudioPanel } from "../page.js";
 import { getStudioBrief, getStudioRoute } from "../sample-data.js";
 import { NotFoundPage } from "./not-found.js";
@@ -89,10 +89,10 @@ export function BriefComposerPage({
         <StudioPanel>
           <div className="mb-3 text-[13px] font-semibold">Evidence inspector</div>
           <div className="flex flex-wrap gap-1.5">
-            <Chip tone="accent">Numbers</Chip>
-            <Chip tone="neutral">Charts</Chip>
-            <Chip tone="neutral">Sources</Chip>
-            <Chip tone="neutral">Caveats</Chip>
+            <Badge variant="accent">Numbers</Badge>
+            <Badge variant="neutral">Charts</Badge>
+            <Badge variant="neutral">Sources</Badge>
+            <Badge variant="neutral">Caveats</Badge>
           </div>
           <AiAttribution>
             Drafting is staged claim by claim so the analyst can accept, edit, or drop weak evidence

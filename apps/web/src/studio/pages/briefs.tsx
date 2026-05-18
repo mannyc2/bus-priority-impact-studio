@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
-import { Chip, ClaimList, RouteBadge } from "../../design-system/primitives.js";
+import { ClaimList, RouteBadge } from "../../design-system/primitives.js";
+import { Badge } from "@/components/ui/badge";
 import { StudioHero, StudioPage, StudioPanel } from "../page.js";
 import { getStudioBrief, getStudioRoute, studioBriefs } from "../sample-data.js";
 import { NotFoundPage } from "./not-found.js";
@@ -38,7 +39,7 @@ export function BriefsGalleryPage() {
             >
               <div className="mb-3 flex items-center justify-between gap-3">
                 <RouteBadge route={route.label} sbs={route.sbs} size="sm" />
-                <Chip tone={brief.status === "Published" ? "good" : "warn"}>{brief.status}</Chip>
+                <Badge variant={brief.status === "Published" ? "good" : "warn"}>{brief.status}</Badge>
               </div>
               <div className="text-[20px] font-semibold tracking-[0]">{brief.title}</div>
               <p className="mt-2 text-[13px] leading-6 text-[var(--bp-color-ink-70)]">

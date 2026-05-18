@@ -1,4 +1,4 @@
-import { Chip } from "../../design-system/primitives.js";
+import { Badge } from "@/components/ui/badge";
 import { StudioHero, StudioPage, StudioPanel } from "../page.js";
 
 const datasets = [
@@ -58,7 +58,7 @@ export function MethodsPage() {
                   {dataset.publisher}
                 </div>
               </div>
-              <Chip tone="neutral">{dataset.cadence}</Chip>
+              <Badge variant="neutral">{dataset.cadence}</Badge>
             </div>
             <div className="mt-4 rounded-[3px] bg-[var(--bp-color-paper)] p-3 font-mono text-[11px] text-[var(--bp-color-ink-70)]">
               grain: {dataset.grain}

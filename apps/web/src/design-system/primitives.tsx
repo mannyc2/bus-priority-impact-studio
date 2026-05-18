@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { bpiColors, bpiFonts } from "./tokens.js";
 
@@ -16,14 +17,6 @@ const badgeSizes = {
   md: { h: 22, fs: 12.5, gap: 4, r: 3, w: [30, 40, 50, 62], sbsW: 40 },
   lg: { h: 28, fs: 15, gap: 5, r: 3, w: [38, 51, 64, 79], sbsW: 51 },
   xl: { h: 36, fs: 19, gap: 6, r: 4, w: [48, 65, 81, 100], sbsW: 65 },
-} as const;
-
-const chipTone = {
-  neutral: { background: bpiColors.ink06, color: bpiColors.ink70 },
-  accent: { background: bpiColors.accentBg, color: bpiColors.accent },
-  good: { background: bpiColors.goodBg, color: bpiColors.good },
-  warn: { background: bpiColors.warnBg, color: bpiColors.warn },
-  bad: { background: bpiColors.badBg, color: bpiColors.bad },
 } as const;
 
 const reviewTone = {
@@ -131,25 +124,6 @@ export function RouteBadge({
           SBS
         </span>
       ) : null}
-    </span>
-  );
-}
-
-export function Chip({
-  children,
-  tone = "neutral",
-  style,
-}: {
-  children: ReactNode;
-  tone?: Tone;
-  style?: CSSProperties;
-}) {
-  return (
-    <span
-      className="inline-flex items-center gap-1 rounded-[3px] px-[7px] py-0.5 text-[11px] font-medium tracking-[0.02em]"
-      style={{ ...chipTone[tone], ...style }}
-    >
-      {children}
     </span>
   );
 }
@@ -1338,7 +1312,7 @@ export function ClaimRow({
           >
             {title}
           </span>
-          {editing ? <Chip tone="accent">EDITING</Chip> : null}
+          {editing ? <Badge variant="accent">EDITING</Badge> : null}
         </div>
         <div
           className="mt-1.5 flex items-center gap-2 font-mono text-[10.5px] text-[var(--bp-color-ink-55)]"

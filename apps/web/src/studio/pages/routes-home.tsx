@@ -2,12 +2,12 @@ import { Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 import {
   AiAttribution,
-  Chip,
   KPI,
   RouteBadge,
   SearchField,
   Spark,
 } from "../../design-system/primitives.js";
+import { Badge } from "@/components/ui/badge";
 import { bpiColors } from "../../design-system/tokens.js";
 import { StudioHero, StudioPage, StudioPanel } from "../page.js";
 import { studioRoutes } from "../sample-data.js";
@@ -56,7 +56,7 @@ export function RoutesHomePage() {
       <section className="mt-6">
         <div className="mb-3 flex items-center justify-between gap-4">
           <h2 className="m-0 text-[18px] font-semibold">Routes needing attention</h2>
-          <Chip tone="accent">Mar 2026 baseline</Chip>
+          <Badge variant="accent">Mar 2026 baseline</Badge>
         </div>
         <div className="grid gap-3">
           {studioRoutes.map((route, index) => (
@@ -73,7 +73,7 @@ export function RoutesHomePage() {
               <div className="min-w-0">
                 <div className="mb-2 flex items-center gap-2">
                   <RouteBadge route={route.label} sbs={route.sbs} size="md" />
-                  <Chip tone={route.speedMph < 5 ? "bad" : "warn"}>{route.reliability}</Chip>
+                  <Badge variant={route.speedMph < 5 ? "bad" : "warn"}>{route.reliability}</Badge>
                 </div>
                 <div className="truncate text-[14px] font-semibold">{route.corridor}</div>
                 <div className="mt-1 text-[12px] text-[var(--bp-color-ink-55)]">

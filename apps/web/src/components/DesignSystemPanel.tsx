@@ -1,9 +1,9 @@
+import { Badge } from "@/components/ui/badge";
 import {
   AiAttribution,
   BeforeAfter,
   Caveat,
   ChartFrame,
-  Chip,
   Cite,
   ClaimList,
   CommentBadge,
@@ -101,11 +101,11 @@ export function DesignSystemPanel() {
               <RouteBadge route="Q44" size="lg" sbs />
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
-              <Chip>All boroughs</Chip>
-              <Chip tone="accent">ACE</Chip>
-              <Chip tone="good">LANE</Chip>
-              <Chip tone="warn">LANE: PARTIAL</Chip>
-              <Chip tone="bad">NO LANE</Chip>
+              <Badge>All boroughs</Badge>
+              <Badge variant="accent">ACE</Badge>
+              <Badge variant="good">LANE</Badge>
+              <Badge variant="warn">LANE: PARTIAL</Badge>
+              <Badge variant="bad">NO LANE</Badge>
             </div>
             <div className="mt-4">
               <SearchField placeholder="Search routes, segments, evidence..." shortcut="/" />

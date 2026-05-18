@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 import type { ReactNode } from "react";
-import { Chip } from "../../design-system/primitives.js";
+import { Badge } from "@/components/ui/badge";
 import { StudioHero, StudioPage, StudioPanel } from "../page.js";
 
 const sections = [
@@ -116,7 +116,7 @@ function DocsSection({ title, children }: { title: string; children: ReactNode }
     >
       <div className="mb-3 flex items-center gap-2">
         <h2 className="m-0 text-[20px] font-semibold tracking-[0]">{title}</h2>
-        <Chip tone="neutral">draft</Chip>
+        <Badge variant="neutral">draft</Badge>
       </div>
       {children}
     </section>

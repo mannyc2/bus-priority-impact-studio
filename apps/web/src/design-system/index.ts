@@ -3,7 +3,6 @@ export {
   BeforeAfter,
   Caveat,
   ChartFrame,
-  Chip,
   Cite,
   ClaimList,
   ClaimRow,

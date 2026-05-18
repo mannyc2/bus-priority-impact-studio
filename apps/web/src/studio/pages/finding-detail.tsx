@@ -4,11 +4,11 @@ import {
   AiAttribution,
   Caveat,
   ChartFrame,
-  Chip,
   RouteBadge,
   Spark,
   Timeline,
 } from "../../design-system/primitives.js";
+import { Badge } from "@/components/ui/badge";
 import { bpiColors } from "../../design-system/tokens.js";
 import { StudioHero, StudioPage, StudioPanel } from "../page.js";
 import { getStudioFinding, getStudioRoute } from "../sample-data.js";
@@ -55,7 +55,7 @@ export function FindingDetailPage({ findingId }: { findingId: string }) {
         label={
           <span className="inline-flex items-center gap-2">
             <RouteBadge route={route.label} sbs={route.sbs} size="md" />
-            <Chip tone="accent">{finding.category}</Chip>
+            <Badge variant="accent">{finding.category}</Badge>
           </span>
         }
         title={finding.title}
@@ -92,10 +92,10 @@ export function FindingDetailPage({ findingId }: { findingId: string }) {
         <StudioPanel>
           <div className="text-[13px] font-semibold">Evidence bundle</div>
           <div className="mt-3 flex flex-wrap gap-1.5">
-            <Chip tone="neutral">Speed</Chip>
-            <Chip tone="neutral">Ridership</Chip>
-            <Chip tone="neutral">ACE</Chip>
-            <Chip tone="neutral">Bus lanes</Chip>
+            <Badge variant="neutral">Speed</Badge>
+            <Badge variant="neutral">Ridership</Badge>
+            <Badge variant="neutral">ACE</Badge>
+            <Badge variant="neutral">Bus lanes</Badge>
           </div>
           <Caveat tone="warn" title="Interpretation caveat">
             Peer comparisons narrow the explanation but do not prove a single causal intervention.

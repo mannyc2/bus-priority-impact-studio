@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { ChevronLeft } from "lucide-react";
-import { Chip, HourStrip, RouteBadge, TreatmentRow } from "../../design-system/primitives.js";
+import { HourStrip, RouteBadge, TreatmentRow } from "../../design-system/primitives.js";
+import { Badge } from "@/components/ui/badge";
 import { bpiColors } from "../../design-system/tokens.js";
 import { StudioHero, StudioPage, StudioPanel } from "../page.js";
 import { getStudioRoute, routeSegments } from "../sample-data.js";
@@ -66,7 +67,7 @@ export function RouteLadderPage({ routeSlug }: { routeSlug: string }) {
                         <div className="text-[13px] font-semibold">
                           {segment.from} {"->"} {segment.to}
                         </div>
-                        {index === 0 ? <Chip tone="accent">top impact</Chip> : null}
+                        {index === 0 ? <Badge variant="accent">top impact</Badge> : null}
                       </div>
                       <HourStrip hours={segment.hours} />
                       <div className="mt-3 flex items-center justify-between gap-3">
@@ -85,9 +86,9 @@ export function RouteLadderPage({ routeSlug }: { routeSlug: string }) {
         <StudioPanel>
           <div className="text-[13px] font-semibold">Time window</div>
           <div className="mt-3 flex flex-wrap gap-1.5">
-            <Chip tone="accent">PM peak</Chip>
-            <Chip tone="neutral">AM peak</Chip>
-            <Chip tone="neutral">All day</Chip>
+            <Badge variant="accent">PM peak</Badge>
+            <Badge variant="neutral">AM peak</Badge>
+            <Badge variant="neutral">All day</Badge>
           </div>
           <p className="mt-4 text-[12px] leading-5 text-[var(--bp-color-ink-70)]">
             Scan slow points along the route spine, then open the matching route page or evidence

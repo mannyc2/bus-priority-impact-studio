@@ -1,7 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import { Briefcase, FileText } from "lucide-react";
 import type { ReactNode } from "react";
-import { Chip, RouteBadge, SearchField } from "../../design-system/primitives.js";
+import { RouteBadge, SearchField } from "../../design-system/primitives.js";
+import { Badge } from "@/components/ui/badge";
 import { StudioHero, StudioPage, StudioPanel } from "../page.js";
 import { studioBriefs, studioFindings, studioRoutes } from "../sample-data.js";
 
@@ -26,10 +27,10 @@ export function SearchResultsPage({ query = "manhattan ace" }: { query?: string 
             Facets
           </div>
           <div className="mt-4 flex flex-wrap gap-1.5">
-            <Chip tone="accent">Routes</Chip>
-            <Chip tone="neutral">Segments</Chip>
-            <Chip tone="neutral">Briefs</Chip>
-            <Chip tone="neutral">Methods</Chip>
+            <Badge variant="accent">Routes</Badge>
+            <Badge variant="neutral">Segments</Badge>
+            <Badge variant="neutral">Briefs</Badge>
+            <Badge variant="neutral">Methods</Badge>
           </div>
         </StudioPanel>
         <div className="space-y-4">
@@ -49,9 +50,9 @@ export function SearchResultsPage({ query = "manhattan ace" }: { query?: string 
                     {route.borough} - {route.reliability}
                   </div>
                 </div>
-                <Chip tone={route.speedMph < 5 ? "bad" : "warn"}>
+                <Badge variant={route.speedMph < 5 ? "bad" : "warn"}>
                   {route.speedMph.toFixed(1)} mph
-                </Chip>
+                </Badge>
               </Link>
             ))}
           </ResultGroup>
