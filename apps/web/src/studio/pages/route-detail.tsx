@@ -1,15 +1,12 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
-import {
-  AiAttribution,
-  BeforeAfter,
-  ChartFrame,
-  KPI,
-  RouteBadge,
-  SegmentRow,
-  SegmentRowHeader,
-  Spark,
-} from "../../design-system/primitives.js";
+import { AiAttribution } from "@/components/AiAttribution";
+import { BeforeAfter } from "@/components/BeforeAfter";
+import { ChartFrame } from "@/components/ChartFrame";
+import { KPI } from "@/components/KPI";
+import { RouteBadge } from "@/components/RouteBadge";
+import { SegmentRow, SegmentRowHeader } from "@/components/SegmentRow";
+import { Spark } from "@/components/Spark";
 import { StudioHero, StudioPage, StudioPanel } from "../page.js";
 import { getStudioRoute, routeSegments } from "../sample-data.js";
 import { NotFoundPage } from "./not-found.js";

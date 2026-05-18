@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
-import { ClaimList, RouteBadge } from "../../design-system/primitives.js";
+import { ClaimList } from "@/components/ClaimList";
+import { RouteBadge } from "@/components/RouteBadge";
 import { Badge } from "@/components/ui/badge";
 import { StudioHero, StudioPage, StudioPanel } from "../page.js";
 import { getStudioBrief, getStudioRoute, studioBriefs } from "../sample-data.js";

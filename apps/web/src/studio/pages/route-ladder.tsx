@@ -1,6 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import { ChevronLeft } from "lucide-react";
-import { HourStrip, RouteBadge, TreatmentRow } from "../../design-system/primitives.js";
+import { HourStrip } from "@/components/HourStrip";
+import { RouteBadge } from "@/components/RouteBadge";
+import { TreatmentRow } from "@/components/TreatmentRow";
 import { Badge } from "@/components/ui/badge";
 import { StudioHero, StudioPage, StudioPanel } from "../page.js";
 import { getStudioRoute, routeSegments } from "../sample-data.js";

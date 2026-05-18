@@ -1,15 +1,13 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
-import {
-  AiAttribution,
-  ChartFrame,
-  ClaimList,
-  CommentBadge,
-  Heatmap,
-  ReviewerStack,
-  RouteBadge,
-  Timeline,
-} from "../../design-system/primitives.js";
+import { AiAttribution } from "@/components/AiAttribution";
+import { ChartFrame } from "@/components/ChartFrame";
+import { ClaimList } from "@/components/ClaimList";
+import { CommentBadge } from "@/components/CommentBadge";
+import { Heatmap } from "@/components/Heatmap";
+import { ReviewerStack } from "@/components/Reviewers";
+import { RouteBadge } from "@/components/RouteBadge";
+import { Timeline } from "@/components/Timeline";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { StudioHero, StudioPage, StudioPanel } from "../page.js";

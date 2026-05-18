@@ -1,6 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
-import { AiAttribution, ConfidenceBar, RouteBadge } from "../../design-system/primitives.js";
+import { AiAttribution } from "@/components/AiAttribution";
+import { ConfidenceBar } from "@/components/ConfidenceBar";
+import { RouteBadge } from "@/components/RouteBadge";
 import { Badge } from "@/components/ui/badge";
 import { StudioHero, StudioPage, StudioPanel } from "../page.js";
 import { getStudioRoute, studioFindings } from "../sample-data.js";

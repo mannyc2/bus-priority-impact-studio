@@ -1,10 +1,8 @@
-import {
-  BeforeAfter,
-  ChartFrame,
-  KPI,
-  RouteBadge,
-  Spark,
-} from "../../design-system/primitives.js";
+import { BeforeAfter } from "@/components/BeforeAfter";
+import { ChartFrame } from "@/components/ChartFrame";
+import { KPI } from "@/components/KPI";
+import { RouteBadge } from "@/components/RouteBadge";
+import { Spark } from "@/components/Spark";
 import { Badge } from "@/components/ui/badge";
 import { StudioHero, StudioPage, StudioPanel } from "../page.js";
 import { getStudioRoute, type StudioRoute } from "../sample-data.js";
