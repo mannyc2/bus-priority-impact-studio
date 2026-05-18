@@ -4,7 +4,7 @@ set -eu
 usage() {
   cat <<'USAGE'
 Usage:
-  scripts/publish-serving-release.sh --month YYYY-MM --d1 DATABASE_NAME --r2 BUCKET_NAME [--account-id ACCOUNT_ID] [--execute]
+  scripts/publish-serving-release.sh --month YYYY-MM --d1 DATABASE_NAME --r2 BUCKET_NAME [--account-id ACCOUNT_ID] [--appendix-month YYYY-MM] [--skip-schema] [--execute]
 
 Default mode is dry-run: commands are printed but not executed.
 
@@ -13,20 +13,31 @@ Publishes one generated serving release:
   2. applies data/exports/d1/YYYY-MM/seed.sql to Cloudflare D1
   3. uploads selected data/artifacts release files to Cloudflare R2
 
+When --appendix-month is provided, additionally:
+  4. applies data/exports/d1/APPENDIX-MONTH/seed.appendix.sql to Cloudflare D1
+     (observed-reliability rows only; no schema; no extra R2 uploads beyond what
+     the canonical artifact globs already cover).
+
 This is intentionally a one-shot promotion script, not a cron job.
 USAGE
 }
 
 month=""
+appendix_month=""
 d1_database=""
 r2_bucket=""
 account_id=""
 execute=0
+skip_schema=0
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --month)
       month="${2:-}"
+      shift 2
+      ;;
+    --appendix-month)
+      appendix_month="${2:-}"
       shift 2
       ;;
     --d1)
@@ -43,6 +54,10 @@ while [ "$#" -gt 0 ]; do
       ;;
     --execute)
       execute=1
+      shift
+      ;;
+    --skip-schema)
+      skip_schema=1
       shift
       ;;
     -h|--help)
@@ -64,6 +79,16 @@ case "$month" in
     exit 1
     ;;
 esac
+
+if [ -n "$appendix_month" ]; then
+  case "$appendix_month" in
+    ????-??) ;;
+    *)
+      printf 'Invalid --appendix-month YYYY-MM: %s\n' "$appendix_month" >&2
+      exit 1
+      ;;
+  esac
+fi
 
 if [ -z "$d1_database" ]; then
   printf 'Missing --d1 DATABASE_NAME\n' >&2
@@ -91,6 +116,14 @@ if [ ! -f "$seed_sql" ]; then
   exit 1
 fi
 
+if [ -n "$appendix_month" ]; then
+  appendix_seed_sql="data/exports/d1/$appendix_month/seed.appendix.sql"
+  if [ ! -f "$appendix_seed_sql" ]; then
+    printf 'Missing D1 appendix seed export: %s\n' "$appendix_seed_sql" >&2
+    exit 1
+  fi
+fi
+
 run() {
   printf '+'
   for part in "$@"; do
@@ -107,13 +140,20 @@ run() {
   fi
 }
 
-run bunx --bun wrangler d1 execute "$d1_database" --remote --file "$schema_sql"
+if [ "$skip_schema" -eq 0 ]; then
+  run bunx --bun wrangler d1 execute "$d1_database" --remote --file "$schema_sql"
+fi
 run bunx --bun wrangler d1 execute "$d1_database" --remote --file "$seed_sql"
+
+if [ -n "$appendix_month" ]; then
+  run bunx --bun wrangler d1 execute "$d1_database" --remote --file "$appendix_seed_sql"
+fi
 
 find data/artifacts \
   \( -path "data/artifacts/briefs/$month/*" \
   -o -path "data/artifacts/evaluations/$month/*" \
   -o -path "data/artifacts/map/*" \
+  -o -path "data/artifacts/studio/*" \
   -o -path "data/artifacts/source-availability/*" \
   -o -path "data/artifacts/pipeline-v1/*" \) \
   -type f | sort | while IFS= read -r file; do
@@ -122,5 +162,9 @@ find data/artifacts \
   done
 
 if [ "$execute" -eq 0 ]; then
-  printf '\nDry run only. Re-run with --execute to publish %s (%s-%s).\n' "$month" "$year" "$mon"
+  if [ -n "$appendix_month" ]; then
+    printf '\nDry run only. Re-run with --execute to publish %s (%s-%s) with appendix %s.\n' "$month" "$year" "$mon" "$appendix_month"
+  else
+    printf '\nDry run only. Re-run with --execute to publish %s (%s-%s).\n' "$month" "$year" "$mon"
+  fi
 fi
