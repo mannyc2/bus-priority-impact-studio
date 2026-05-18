@@ -2,7 +2,7 @@
 title: Source Registry
 type: data
 status: active
-last_updated: 2026-04-27
+last_updated: 2026-05-18
 owner: codex
 source_count: 32
 tags: [sources, datasets, apis]
@@ -54,6 +54,23 @@ After that probe, `census_acs5_profile_tracts` was added and live-ingested for 2
 | Bus Time GTFS-RT Alerts | `gtfsrt.prod.obanyc.com/alerts` | V1 realtime | Bus disruption context when collected | Active with local API key |
 | MTA GTFS Alerts docs | `https://www.mta.info/document/90881` | Secondary | Alerts field interpretation | Active URL; not captured |
 | GTFS Realtime reference | `https://gtfs.org/documentation/realtime/reference/` | Secondary | Standard reference | Active |
+
+## Expansion backlog
+
+These sources are **not** active registry entries yet and are not counted in `source_count`. They are candidate inputs for [[wiki/analysis/finding_coverage_and_corpus_expansion|Finding Coverage and Corpus Expansion]]. Add them to `knowledge/raw/source_manifest.yaml` only after a source probe captures schema, row counts, freshness, join keys, and caveats.
+
+| Candidate source | ID / endpoint | Candidate role | Status |
+|---|---:|---|---|
+| MTA Bus Wait Assessment | `v4z4-2h6n` | Official route-level monthly wait assessment to cross-check GTFS-RT-derived reliability | Candidate; unprobed |
+| NYC DOT Traffic Speeds | `i4gi-tjb9` | Road congestion context for bus-speed hotspots | Candidate; unprobed |
+| NYC DOT Automated Traffic Volume Counts | `7ym2-wayt` | Structural traffic-volume context for corridors | Candidate; unprobed |
+| NYC DOT Street Construction Permits | `tqtj-sjs8` | Temporary roadway/sidewalk construction context | Candidate; unprobed |
+| NYC DOT Street Opening Permits | `9jic-byiu` | Street-opening and utility-work disruption context | Candidate; unprobed |
+| NYPD Motor Vehicle Collisions - Crashes | `h9gi-nx95` | Crash disruption and safety context near hotspots | Candidate; unprobed |
+| 311 Service Requests, 2020-present | `erm2-nwe9` | Complaints for blocked streets, parking, traffic signals, street defects, and related context after filtering | Candidate; unprobed |
+| 311 Service Requests, 2010-2019 | `76ig-c548` | Historical 311 baseline after the current table split | Candidate; unprobed |
+| Parking Violations Issued, current fiscal year | `pvqr-7yc4` | Curb-pressure and illegal-standing proxy after code/location filtering | Candidate; unprobed |
+| NYC LION / street centerline | DCP LION page | Stable street segment IDs and street geometry joins across context sources | Candidate; unprobed |
 
 ## Socrata probe summary
 

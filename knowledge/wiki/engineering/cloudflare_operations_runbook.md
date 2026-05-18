@@ -155,6 +155,23 @@ For example, noon UTC becomes `2026-05-17T120000000Z`.
 
 Wrangler can fetch exact object keys but does not provide an object-listing command in this version. Build the manifest object-key list from the Cloudflare dashboard, an R2 inventory/export, or a small admin-only listing tool if one is added later.
 
+The first production smoke proof is complete as of 2026-05-17: the deployed cron wrote
+vehicle-position objects under `gtfs-rt/vehicle_positions/2026-05-17/`, two manifests and paired
+protobufs were mirrored locally, and `ingest:gtfs-rt-snapshots` parsed 3,612 vehicle-position rows
+with 0 parse errors. That proves the deployed bindings and handoff path. It does not prove a
+production-length reliability window by itself.
+
+Use this proof ladder after each deploy or capture-config change:
+
+| Proof | How to verify | Passing evidence |
+|---|---|---|
+| Binding proof | Confirm deployed Worker config or Cloudflare dashboard bindings. | `DB`, `ARTIFACTS`, `GTFS_RT_RAW`, cron, and cadence vars are present; `MTA_BUS_TIME_API_KEY` is a secret. |
+| Write proof | Inspect the raw R2 bucket after at least one cron interval. | Paired `.json` and `.pb` objects exist under the expected date prefix. |
+| Cadence proof | Review a contiguous manifest sample. | Timestamps show two captures per minute, roughly 30 seconds apart. |
+| Integrity proof | Mirror manifests and protobufs locally. | Manifest `objectKey`, `byteLength`, and `sha256` match the paired protobuf object. |
+| Parse proof | Run the local handoff commands. | `import:gtfs-rt-r2-manifests` and `ingest:gtfs-rt-snapshots` complete with nonzero vehicle positions and 0 parse errors. |
+| Reliability proof | Process a 4-hour-or-longer window. | `build:observed-headways`, `route-observed-reliability`, and `gtfs-rt:preflight` pass default thresholds. |
+
 ## Raw GTFS-RT Retention And Cost Guardrail
 
 Keep the raw GTFS-RT bucket on Standard storage and expire Worker-written raw snapshots after 21 days:
@@ -172,7 +189,9 @@ before expiration if the raw public/self-collected evidence is part of a promote
 
 ## R2-To-Pipeline Handoff
 
-Create a reviewed manifest key file:
+Create a reviewed manifest key file. For a smoke proof, include a few contiguous manifest keys. For
+a production-length proof, use a contiguous 4-hour-or-longer window; 24 hours is preferred when the
+run will become a current realtime appendix.
 
 ```text
 data/ops/gtfs-rt-manifests.txt
@@ -197,6 +216,9 @@ Execute the mirror:
 bun run pull:gtfs-rt-r2-run -- --r2 bus-priority-gtfs-rt-raw --run-id gtfs-rt-prod-2026-06-01 --manifest-list data/ops/gtfs-rt-manifests.txt --execute
 ```
 
+Use plain `bunx wrangler` for R2 object transfers. In this environment, forcing Wrangler through
+`bunx --bun wrangler` produced zero-byte payloads for larger R2 transfers.
+
 Then run the printed import command and normal pipeline handoff:
 
 ```bash
@@ -206,6 +228,18 @@ bun run build:observed-headways -- --run-id gtfs-rt-prod-2026-06-01
 bun run route-observed-reliability -- --run-id gtfs-rt-prod-2026-06-01 --year 2026 --month 6
 bun run gtfs-rt:preflight -- --run-id gtfs-rt-prod-2026-06-01 --year 2026 --month 6
 ```
+
+For a production-length proof, also write run-status artifacts before and after parsing:
+
+```bash
+bun run gtfs-rt:run-status -- --run-id gtfs-rt-prod-2026-06-01
+bun run gtfs-rt:preflight -- --run-id gtfs-rt-prod-2026-06-01 --year 2026 --month 6 --min-gtfs-rt-collection-hours 4 --max-gtfs-rt-sample-seconds 60 --min-gtfs-rt-vehicle-position-snapshot-share 0.8
+```
+
+Default preflight thresholds are intentionally modest for appendix readiness: at least 4 collection
+hours, max 60-second sample cadence, at least 80% successful vehicle-position snapshot coverage,
+and at least 30 observed headway samples. A full observed monthly promotion should use stricter
+month-aligned QA through `check:pipeline-v1` and `audit:pipeline-v1`.
 
 ## Monthly Public-Source Watcher
 
@@ -230,7 +264,7 @@ After promotion, update `BASELINE_MONTH` and `LAST_BUILT_SPEED_MONTH` in Worker 
 
 ## Completion Evidence
 
-The data infrastructure production path is not proven until all of these are true:
+The deployed serving and capture path is smoke-proven when all of these are true:
 
 1. `apps/web/wrangler.jsonc` or deployment environment contains real `DB`, `ARTIFACTS`, and `GTFS_RT_RAW` bindings.
 2. `MTA_BUS_TIME_API_KEY` is set as a Worker secret.
@@ -238,6 +272,11 @@ The data infrastructure production path is not proven until all of these are tru
 4. Deployed `/api/v1/status`, `/api/v1/routes`, and `/api/v1/map/manifest` return real production payloads.
 5. Scheduled capture writes GTFS-RT protobuf and manifest objects to `GTFS_RT_RAW`.
 6. `pull:gtfs-rt-r2-run --execute` mirrors a real deployed capture run.
-7. `import:gtfs-rt-r2-manifests` plus downstream ingest/preflight succeeds for that run.
+7. `import:gtfs-rt-r2-manifests` plus `ingest:gtfs-rt-snapshots` succeeds for that run with nonzero parsed vehicle positions.
 8. A monthly speed watcher artifact exists and its rebuild decision has been reviewed.
 9. `GTFS_RT_RAW` has the `expire-gtfs-rt-after-21-days` lifecycle rule enabled for `gtfs-rt/`.
+
+The realtime processing path is production-length proven only after a contiguous 4-hour-or-longer
+deployed run also passes `build:observed-headways`, `route-observed-reliability`, and
+`gtfs-rt:preflight`. A captured month becomes a full observed release only after the same month has
+complete public speed coverage and strict `check:pipeline-v1` plus `audit:pipeline-v1` pass.

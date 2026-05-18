@@ -124,14 +124,23 @@ For every ingested dataset, maintain:
 
 ## LLM/RAG rules
 
-The LLM assistant is not the product. The product is bus-priority analytics. Use LLMs for:
+The LLM assistant is not the product. The product is bus-priority analytics and route evidence
+brief building. Follow [[wiki/project/ai_interaction_model|AI Interaction Model]] when adding any
+AI-facing UI, pipeline artifact, or composer behavior.
+
+Use LLMs for:
 
 - Cited route-improvement briefs.
 - Source search across MTA docs and wiki pages.
 - Explaining methods/caveats to nontechnical readers.
 - Generating analyst memos from computed metrics.
+- Candidate source notes, document claim extraction, entity-link suggestions, and reviewer
+  questions for deterministic validation.
 
-Do not use LLMs to fabricate metrics. Computed metrics must come from deterministic code and stored tables.
+Do not use LLMs to fabricate metrics, promote sources, assert source freshness, perform route/street
+joins, make causal claims, or publish claims without validation. Computed metrics must come from
+deterministic code and stored tables. Public UI output must be rendered as Studio artifacts, not as
+a global chatbot.
 
 ## Preferred naming
 

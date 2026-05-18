@@ -2,7 +2,7 @@
 title: Methodology Validation
 type: analysis
 status: current
-last_updated: 2026-05-17
+last_updated: 2026-05-18
 owner: codex
 tags: [analysis, validation, methodology]
 ---
@@ -118,8 +118,8 @@ Sources: `tools/pipeline/src/jobs/collect/collect-gtfs-rt.ts`, `tools/pipeline/s
 - Strict v1 QA now checks collection window, sample cadence, successful vehicle-position snapshot coverage, parse/headway provenance, observed-route coverage, and analysis-month alignment.
 
 **What's limited:**
-- The current complete public-source month is March 2026, but there are no March 2026 GTFS-RT samples.
-- Live May 2026 collection can prove the observed layer, but it cannot complete the March strict gate unless the analysis month moves to May after public speed coverage exists.
+- The current complete public-source month is March 2026. Recovered March 2026 GTFS-RT evidence is available locally through Bus Observatory / Jacobs Urban Tech Hub provenance and must remain labeled `third_party_recovered`, not official MTA historical backfill.
+- The official self-collected May 2026 Bus Time run can prove the current observed layer after parsing, but it cannot be merged into March speed/intervention claims unless the analysis month moves to May after public speed coverage exists.
 - Detailed observed reliability windows currently live in route brief static artifacts rather than a relational D1 window table.
 
 ## Overall assessment
@@ -128,8 +128,8 @@ The analysis logic is internally consistent, correctly weighted, and well-tested
 
 1. **Ridership granularity** — route-level proxy inflates segment-level rider-impact scores
 2. **Route score simplicity** — two-factor formula vs planned five-factor model
-3. **Observed realtime month split** — current live GTFS-RT evidence does not align with the March public-source month
+3. **Observed provenance split** — March observed reliability uses third-party recovered GTFS-RT evidence, while official self-collected realtime evidence is currently a May appendix until public May speed coverage exists
 4. **Intervention methodology** — ACE/ABLE and dated bus-lane rows now include peer-adjusted deltas where data supports them, but source gaps and external review remain
 5. **Corridor precision** — hotspot-segment grouping now has shape-review coverage, but route-to-corridor naming still needs domain review for product use
 
-For a portfolio piece demonstrating methodology, the logic is defensible and well-documented. For MTA operational use, ridership allocation, route score calibration, remaining bus-lane source gaps, and final corridor naming would need domain review.
+Post-v1, the next methodology layer is [[wiki/analysis/finding_coverage_and_corpus_expansion|Finding Coverage and Corpus Expansion]]: detector coverage audits, source-gap findings, join success metrics, recall-oriented backtests, and a staged source-corpus backlog. For a portfolio piece demonstrating methodology, the logic is defensible and well-documented. For MTA operational use, ridership allocation, route score calibration, remaining bus-lane source gaps, corpus coverage, and final corridor naming would need domain review.

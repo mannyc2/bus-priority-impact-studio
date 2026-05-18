@@ -2,7 +2,7 @@
 title: Data Pipeline V1 Completion Plan
 type: engineering
 status: active
-last_updated: 2026-05-17
+last_updated: 2026-05-18
 owner: codex
 source_count: 0
 tags: [pipeline, roadmap, gtfs-rt, reliability, interventions, corridors, briefs]
@@ -32,9 +32,10 @@ Approved v1 scope:
 Release boundary:
 
 - Data Pipeline v1 is complete when the repo can produce the latest defensible public-source monthly release, plus a live realtime observed appendix when available.
-- The canonical monthly release uses the latest complete public MTA route-segment speed month. On 2026-05-17, that is March 2026.
-- The realtime observed layer uses collected GTFS-RT from the current collection window. On 2026-05-17, that is May 2026.
-- Same-month public-speed and realtime alignment is an observed monthly promotion condition, not a v1 blocker.
+- The canonical monthly release uses the latest complete public MTA route-segment speed month. On 2026-05-18, that is March 2026.
+- March 2026 now has same-month observed reliability from Bus Observatory recovered GTFS-RT imported with `third_party_recovered` provenance. It is an observed release candidate, not official MTA historical backfill.
+- The official self-collected live Bus Time layer remains a current appendix. The completed 24-hour run `gtfs-rt-v1-20260517T103607Z-24h` is May 2026 evidence awaiting ingest/reliability processing.
+- Same-month public-speed and realtime alignment is an observed monthly promotion condition. It is satisfied locally for March 2026 through recovered third-party evidence; future official self-collected months still need matching public speed publication before observed-month promotion.
 - The audit release model names four layers: **Baseline Release**, **Current Signal**, **Pending Publication**, and **Observed Release**.
 - Every major metric in the audit carries a completeness status and confidence label so the product can answer what is confident, what is directional, what is unavailable, and what source is expected to improve it.
 
@@ -52,16 +53,33 @@ Completeness labels:
 | `insufficient_samples` | GTFS-RT exists but does not meet route/sample coverage thresholds. |
 | `source_lag_expected` | The missing source is expected because of publication cadence, not necessarily a pipeline bug. |
 
+## Current Status — 2026-05-18
+
+Local Data Pipeline v1 is through the strict gate for March 2026:
+
+- `bun run check:pipeline-v1 -- --year 2026 --month 3` passes with 0 issues.
+- `bun run gtfs-rt:preflight -- --year 2026 --month 3 --run-id bus-observatory-2026-03` passes.
+- `bun --filter @bp/pipeline audit:pipeline-v1 -- --public-year 2026 --public-month 3 --realtime-year 2026 --realtime-month 3 --run-id bus-observatory-2026-03 ...` passes with `Observed Release=complete` and `sameMonthPromotionReady=true`.
+- The release has 381 built routes, 350 public routes, 346 observed-reliability routes, 2,571,297 route-summary headway samples, 360 intervention comparisons, 193 corridors, 1,629 audited route/corridor brief artifacts, 354 map artifacts, and 0 map/evaluation artifact issues.
+- D1 verification passes with 381 observed reliability rows, 360 intervention comparison rows, 1,050 route artifact rows, 579 corridor artifact rows, 193 corridor summary rows, and 5,171 route/month trend rows. The generated March seed is about 6.3 MB.
+- `check:route-speed-availability` still reports March 2026 as the latest complete public speed month; requested May 2026 is `missing_speed`, so no newer public monthly rebuild is due.
+
+What is next:
+
+1. Promote the verified March release to real Cloudflare D1/R2 and deploy the Worker against production bindings.
+2. Build and seed the versioned `studio/v1/*` projection artifacts from the March D1/R2 release so `/api/v1/studio/*` has real payloads.
+3. Process the completed official 24-hour run `gtfs-rt-v1-20260517T103607Z-24h` into May 2026 observed reliability and keep it as a current appendix until May public speed rows exist.
+4. Deploy the scheduled GTFS-RT R2 capture hook and monthly route-speed watcher; keep heavy rebuild/finalize/export in the Bun pipeline.
+5. Reduce bus-lane date source gaps and complete methodology review before causal intervention language.
+
 ## Current State Audit
 
-Audit date: 2026-05-17.
+Audit date: 2026-05-18.
 
 Repository state checked from `/mnt/models/dev/bus-reliability-tracker`:
 
-- Branch: `architecture-cleanup-drizzle-plan`
-- Synced with `origin/architecture-cleanup-drizzle-plan`
-- Original reset baseline: `ab457a6 Generalize route pipeline build graph`
-- Working tree: clean at audit time
+- Branch: `main`, ahead of `origin/main` with active uncommitted web/API/docs work.
+- Generated pipeline artifacts under `data/` are local/ignored; rerun the commands in this page to refresh them.
 
 Local generated state:
 
@@ -69,7 +87,7 @@ Local generated state:
 |---|---|---:|
 | Route slices | `find data/artifacts/route-slices -mindepth 1 -maxdepth 1 -type d` | 381 |
 | Network build report | `data/artifacts/network-builds/2026-03/summary.json` | 381 requested, 381 built, 0 failed |
-| D1 export | `data/exports/d1/2026-03/seed.sql` | about 3.5 MB |
+| D1 export | `data/exports/d1/2026-03/seed.sql` | about 6.3 MB |
 | Local DB | `data/local/pipeline.sqlite` | about 1.9 GB |
 | Route catalog rows | `local_route_catalog` | 381 |
 | Segment-speed rows | `local_route_segment_speed` | 470,274 |
@@ -82,6 +100,8 @@ Local generated state:
 | Corridor summaries | `local_corridor_month_summary` | 193 |
 | Corridor brief body artifacts | `local_corridor_artifact` | 579 |
 | Scheduled reliability baselines | `local_route_reliability_baseline` | 381 |
+| Observed reliability rows | `local_route_observed_reliability_summary` | 381 rows, 346 observed routes |
+| Observed headway samples | `local_observed_headway_sample` | 2,612,086 recovered samples |
 | ACE routes | `local_ace_route` | 81 |
 | ACE violation summaries | `local_ace_violation_summary` | 736 |
 | Bus lane rows | `local_bus_lane` | 3,048 |
@@ -93,10 +113,13 @@ Current strengths:
 - D1 export and verification exist.
 - Route/corridor brief body artifacts have been generated for the current March 2026 local DB: 350 public route briefs and 193 corridor briefs, each with JSON, Markdown, and HTML bodies.
 - Scheduled reliability baseline exists.
-- GTFS-RT collection, parsing, observed headway samples, route/month observed reliability summaries, and D1 export/readback code paths exist.
+- GTFS-RT collection, recovered import, parsing, observed headway samples, route/month observed reliability summaries, and D1 export/readback code paths exist.
 - ACE and bus-lane overlays exist.
 
-Latest local verification after the March 2026 v1 catch-up run:
+Historical verification notes from the 2026-05-17 catch-up run:
+
+The bullets below record how the repo reached the current state. They are superseded by
+[[#Current Status — 2026-05-18]] where they refer to missing March observed GTFS-RT samples.
 
 - `bun run ingest:route-trends -- --start-year 2025 --start-month 1 --end-year 2026 --end-month 3 --skip-ridership` produced 5,171 full-network route/month speed trend rows.
 - Chunked `bun run backfill:route-ridership-trends -- --start-year 2025 --start-month 1 --end-year 2026 --end-month 3 --limit ... --concurrency ...` runs filled ridership coverage for all 5,171 route/month trend rows.
@@ -127,20 +150,20 @@ Latest local verification after the March 2026 v1 catch-up run:
 
 Current v1 gaps:
 
-- GTFS-RT observed reliability has route/month status rows and D1 readback. The current March 2026 monthly release has 0 observed samples and 381 insufficient-sample rows because no production-length Bus Time collection was run for that historical window.
-- The May 2026 observed layer passes GTFS-RT preflight and is valid as a current observed appendix. It should not be merged into March monthly causal or speed claims.
-- This source-timing mismatch is expected: Bus Time GTFS-RT must be collected live during the operating month, while MTA Bus Route Segment Speeds are published later as monthly aggregate public data. The project should keep collecting realtime evidence now, then promote a same-month observed monthly release after matching public speed rows appear.
+- Local v1 data gates pass, but the March release has not been promoted to real Cloudflare D1/R2 resources yet.
+- The public website still needs production Studio projection artifacts backed by the March D1/R2 release before fixture/demo data can be removed from production paths.
+- The completed official 24-hour Bus Time run has raw protobuf coverage but no parsed May observed reliability yet.
 - Production scope must include two recurring source jobs after local v1 proves the contracts: a GTFS-RT collector that continuously or frequently captures live snapshots into durable raw storage, and a monthly public-source watcher that polls MTA Open Data for newly published route segment speed months before rerunning coverage/build/finalize. These are v1 operational requirements, not frontend polish.
 - Observed reliability detailed windows now exist in static route brief artifacts when samples exist; a relational D1 window table can be added later if the frontend needs direct querying beyond the artifact bodies.
 - Static detailed evaluation payloads now exist for observed reliability summaries, route intervention comparisons/events, and corridor intervention context rows. Static map payload manifests now exist for source, route, stop, bus-lane, and route-segment GeoJSON artifacts.
-- ACE/ABLE and bus-lane before/after intervention evaluation exists for March 2026. ACE/ABLE rows include 22 evaluated peer-adjusted comparisons. Bus-lane rows use the latest parseable matched NYC DOT `open_dates` as route-level event dates where available, yielding 166 dated comparison rows and 58 evaluated peer-adjusted rows in the canonical March DB. The remaining bus-lane gap is 115 source-gap rows for matched segments without parseable dates, plus external methodology review before any causal language.
+- ACE/ABLE and bus-lane before/after intervention evaluation exists for March 2026. Bus-lane rows use the latest parseable matched NYC DOT `open_dates` as route-level event dates where available, yielding 166 dated comparison rows and 58 evaluated peer-adjusted rows in the canonical March DB. The remaining bus-lane gap is 115 source-gap rows for matched segments without parseable dates, plus external methodology review before any causal language.
 - Deterministic hotspot-segment corridor entities, route membership, summaries, hotspot rows, corridor intervention context rows, generated brief bodies, and shape-based assignment review exist. Canonical and clean-full March artifacts both have 350/350 segment-backed public routes passing shape review with 0 warnings.
 - `brief-artifacts` renders and verifies the current full set of route/corridor JSON, Markdown, and HTML bodies from local DB evidence. One-route and full-network isolated clean-DB rebuilds now pass with dedicated DB, artifact-root, and export-root paths.
 - Bus lane matching is no longer borough-hardcoded, and v1 QA now checks bus-lane intervention comparison coverage for public routes with matched bus-lane geometry.
 - Route score is still a simple speed/hotspot heuristic, not the planned multi-factor priority model.
 - Primary roadmap, ETL, CLI, README, and source-data pages now frame M1 as historical fixture/context and GTFS-RT observed reliability as v1 evidence. Remaining M1 command references are compatibility or historical notes.
 
-## Active Handoff: 24-Hour GTFS-RT Run
+## Completed Handoff: 24-Hour Official GTFS-RT Run
 
 Run id: `gtfs-rt-v1-20260517T103607Z-24h`.
 
@@ -154,13 +177,23 @@ Status artifact:
 /mnt/models/dev/bus-reliability-tracker/data/artifacts/gtfs-rt/run-status/gtfs-rt-v1-20260517T103607Z-24h.json
 ```
 
-Current handoff loop while the run is active:
+Latest status:
+
+- Collection status: `completed`.
+- Window: 2026-05-17T10:36:07.106Z through 2026-05-18T10:37:34.636Z.
+- Requested cadence: 24 hours at 30-second vehicle-position sampling.
+- Snapshot rows: 2,880 expected, 2,880 fetched, 2,880 successful, 0 failed.
+- Raw directory: `data/raw/gtfs-rt/2026-05-17/gtfs-rt-v1-20260517T103607Z-24h`.
+- Raw protobuf count: 2,880 files, about 459 MB.
+- Parsed snapshot rows: 0 as of the 2026-05-18 handoff.
+
+The run status command is still useful for confirming parsed completeness:
 
 ```bash
 bun run gtfs-rt:run-status -- --run-id gtfs-rt-v1-20260517T103607Z-24h --db "/mnt/models/dev/bus-reliability-tracker/data/local/pipeline.sqlite" --artifact-root "/mnt/models/dev/bus-reliability-tracker/data/artifacts"
 ```
 
-When `collection.status` becomes `completed` or `completed_with_errors`, run the commands emitted in `nextCommands`. The expected sequence for this run is:
+Next commands for this run:
 
 ```bash
 bun run ingest:gtfs-rt-snapshots -- --run-id gtfs-rt-v1-20260517T103607Z-24h --db "/mnt/models/dev/bus-reliability-tracker/data/local/pipeline.sqlite"
@@ -169,13 +202,13 @@ bun run route-observed-reliability -- --year 2026 --month 5 --run-id gtfs-rt-v1-
 bun run gtfs-rt:preflight -- --year 2026 --month 5 --run-id gtfs-rt-v1-20260517T103607Z-24h --db "/mnt/models/dev/bus-reliability-tracker/data/local/pipeline.sqlite"
 ```
 
-After preflight passes, rerun the March public + May realtime audit:
+After preflight passes, rerun the March observed release + May official-current appendix audit:
 
 ```bash
 bun --filter @bp/pipeline audit:pipeline-v1 -- --public-year 2026 --public-month 3 --realtime-year 2026 --realtime-month 5 --run-id gtfs-rt-v1-20260517T103607Z-24h --db "/mnt/models/dev/bus-reliability-tracker/data/local/pipeline.sqlite" --artifact-root "/mnt/models/dev/bus-reliability-tracker/data/artifacts" --export-root "/mnt/models/dev/bus-reliability-tracker/data/exports" --clean-db "/mnt/models/dev/bus-reliability-tracker/data/local/pipeline-clean-full.sqlite" --clean-artifact-root "/mnt/models/dev/bus-reliability-tracker/data/artifacts/pipeline-clean-full" --clean-export-root "/mnt/models/dev/bus-reliability-tracker/data/exports/pipeline-clean-full" --output "/mnt/models/dev/bus-reliability-tracker/data/artifacts/pipeline-v1/audit-2026-03-2026-05.json"
 ```
 
-This remains a realtime appendix until `check:route-speed-availability` reports a complete speed month matching a collected realtime month. That matching-month condition promotes the release to an observed monthly release; it is not required for the v1 canonical monthly release.
+The May run remains a realtime appendix until `check:route-speed-availability` reports a complete May speed month. That matching-month condition promotes May to an observed monthly release; it does not change the current March recovered observed release.
 
 ## Production Source Refresh Scope
 
@@ -208,16 +241,16 @@ Acceptance for this production refresh scope:
 | Requirement | Current evidence | Status | Required v1 artifact / gate |
 |---|---|---|---|
 | Reproducible full-network pipeline | Isolated full-network March 2026 proof paths contain 381/381 route slices, 1,629 audited brief artifacts, 5,171 trend rows, 584 intervention comparisons, 584 corridor intervention context rows, 193 segment-backed corridors, and a verified D1 export from `data/local/pipeline-clean-full.sqlite` plus isolated artifact/export roots | Pass | Keep the clean rebuild command sequence documented and rerun before release candidates |
-| GTFS-RT observed reliability | 381 March 2026 status rows and D1 readback exist; route brief artifacts include detailed observed windows when samples exist; May 2026 run `gtfs-rt-v1-20260517T022348Z` passes observed-layer preflight as a current realtime appendix | Pass | Keep collector running and label observed evidence by collection month |
-| Bunching | Bunching/long-gap fields exist in route/month observed reliability summaries, and route brief artifacts include top observed bunching/long-gap windows when samples exist; May 2026 appendix has observed headway samples | Pass | Keep sample coverage/confidence in observed appendix and promotion checks |
+| GTFS-RT observed reliability | Recovered March run `bus-observatory-2026-03` passes preflight with 346 observed routes, 2,612,086 observed headway samples, and 2,571,297 route-summary samples. The official 24-hour May run is collected and awaits parsing | Pass | Keep provenance labels explicit; process the official May run as a current appendix |
+| Bunching | Bunching/long-gap fields exist in route/month observed reliability summaries, and route brief artifacts include top observed bunching/long-gap windows when samples exist; March recovered observed evidence now has enough samples for strict QA | Pass | Keep sample coverage/confidence in observed appendix and promotion checks |
 | Before/after intervention evaluation | Intervention event/comparison rows exist with D1 readback: ACE/ABLE evaluated rows carry raw and peer-adjusted speed/ridership deltas; matched public routes with bus-lane geometry get dated bus-lane comparisons where `open_dates` parse and explicit source-gap rows where dates are missing. `audit:pipeline-v1` records a methodology gate with `causalClaimsAllowed=false` until review is complete | Pass with caveats | Reduce bus-lane source gaps where possible and complete external methodology review before causal claims |
 | Corridor grouping | Hotspot-segment corridor tables, route membership, summaries, hotspots, corridor intervention context rows, D1 readback, generated corridor brief bodies, segment-evidence/intervention-context QA, and shape-based assignment review exist. March 2026 has 350/350 shape-reviewed pass rows and 0 warnings | Pass | Keep corridor shape-review artifact generation in post-build/finalize and strict QA |
 | Full set of route briefs | `brief-artifacts` writes and audits 1,050 JSON/Markdown/HTML route bodies for 350 public-visible routes; full clean rebuild reproduced the route brief set under isolated outputs | Pass | Keep route brief JSON/Markdown/HTML contract checks in `route-batch-audit` |
 | Full set of corridor briefs | `brief-artifacts` writes and audits 579 JSON/Markdown/HTML corridor bodies for 193 corridors; isolated proof paths reproduced the corridor brief set | Pass | Keep corridor brief JSON/Markdown/HTML contract checks in `route-batch-audit` |
 | Verified D1 export contract | `verify:d1` passes with route serving rows, observed reliability, intervention comparisons, corridor summaries, corridor intervention context, route/corridor artifact metadata, schema/seed hashes, expected-vs-loaded table counts, and typed repository readback; `check:pipeline-v1` also verifies static evaluation and map payload hashes, row counts, and route-segment contracts | Pass for current March run | Keep D1 export, evaluation manifests, and map manifests in strict QA |
 | Static artifact contract | Stable `briefs/routes/...`, `briefs/corridors/...`, `evaluations/{month}/...`, and `map/...` keys exist with byte-length/SHA-256 audit, JSON contract checks for route/corridor brief bodies, observed reliability window contract checks, route-segment GeoJSON domain contract checks, a generated `data/artifacts/briefs/{month}/manifest.json` inventory, a generated `data/artifacts/evaluations/{month}/manifest.json` inventory, and a generated `data/artifacts/map/{month}/manifest.json` inventory | Pass | Keep manifests regenerated in post-build/finalize |
-| QA gates | Structural `check:pipeline-v1 -- --allow-insufficient-gtfs-rt` validates the canonical public-source monthly release; strict `check:pipeline-v1` remains available as the same-month observed promotion gate; `gtfs-rt:preflight` diagnoses realtime appendix readiness; `audit:pipeline-v1` records clean rebuild proof paths and promotion readiness separately | Pass | Keep canonical release and observed-promotion statuses separate |
-| Third-party recovered GTFS-RT candidate | `check:bus-observatory-gtfs-rt -- --year 2026 --month 3` found 31 March Bus Observatory Parquet files plus the April 1 bridge file and writes provenance/license/QA requirements; `audit:pipeline-v1` records `releaseModel.thirdPartyRecoveredGtfsRtCandidate.status = full_month_candidate_pending_row_level_qa` when that artifact is present | Candidate only | Build Parquet import/conversion and row-level QA before using it for observed reliability |
+| QA gates | Strict `check:pipeline-v1 -- --year 2026 --month 3` passes; `gtfs-rt:preflight` passes for `bus-observatory-2026-03`; `audit:pipeline-v1` records clean rebuild proof paths and `sameMonthPromotionReady=true` for March | Pass | Keep strict gate green before publishing and rerun after any serving/projection changes |
+| Third-party recovered GTFS-RT candidate | `check:bus-observatory-gtfs-rt -- --year 2026 --month 3` found 31 March Bus Observatory Parquet files plus the April 1 bridge file; recovered headway import is loaded locally and passes strict preflight/check gates with `third_party_recovered` provenance | Pass with provenance caveat | Preserve provider/license/provenance labels and avoid official-backfill language |
 | Completeness-aware labels | `audit:pipeline-v1` emits `releaseModel.layers` and `releaseModel.metricCompleteness`, labeling baseline/current/pending/observed layers plus public speed, current speed, observed reliability, baseline observed reliability, and intervention evaluation | Pass | Keep labels stable for frontend and brief rendering |
 | Updated roadmap/docs | V1 scope docs identify the full-network pipeline, GTFS-RT observed layer, intervention evaluation, corridor briefs, static maps/evaluation artifacts, source cadence caveats, and the same-month promotion condition | Pass | Keep `check:knowledge` passing and update docs when commands or gates change |
 
@@ -237,7 +270,7 @@ Data Pipeline v1 is complete only when all of the following are true:
 10. The route/corridor brief set has caveats, citations, artifact hashes, byte lengths, and source dates.
 11. Documentation matches actual commands, schemas, and limitations.
 
-Same-month public-speed plus GTFS-RT alignment remains the promotion condition for an observed monthly release after v1.
+Same-month public-speed plus GTFS-RT alignment remains the promotion condition for future official self-collected observed releases. March 2026 satisfies the condition locally through recovered third-party GTFS-RT and must be labeled accordingly.
 
 ## Phase 0: Documentation And Roadmap Reset
 
@@ -336,7 +369,7 @@ Implemented so far:
 Still missing / not yet release-complete:
 
 - Production-length GTFS-RT collection and coverage QA for the same month as public speed/schedule coverage. A May observed layer can be an appendix until May or a later month has public speed coverage.
-- Production collection operations: the Worker scheduled hook can capture GTFS-RT snapshots to R2 and can match strict 30-second sampling from a one-minute cron by setting `GTFS_RT_SAMPLES_PER_CRON=2` and `GTFS_RT_SAMPLE_SECONDS=30`. The Bun pipeline now has `import:gtfs-rt-r2-manifests` to register Worker/R2 manifests from a local R2 mirror as a local collection run before protobuf parsing. What remains is deployment/configuration, monitoring for missed samples, and automating the R2-to-pipeline handoff.
+- Production collection operations: the Worker scheduled hook can capture GTFS-RT snapshots to R2 and can match strict 30-second sampling from a one-minute cron by setting `GTFS_RT_SAMPLES_PER_CRON=2` and `GTFS_RT_SAMPLE_SECONDS=30`. The Cloudflare path has an initial smoke proof: Worker-written manifests/protobufs were mirrored, imported with `import:gtfs-rt-r2-manifests`, and parsed into nonzero vehicle-position rows. What remains is production-length proof: mirror a contiguous 4-hour-or-longer capture window, build observed headways, generate route reliability, run preflight, and preserve the run-status/audit artifacts.
 - Monthly public-source refresh operations: the local `check:route-speed-availability` command and Worker monthly watcher both distinguish missing speed rows from complete speed months and persist watcher artifacts. What remains is the rebuild trigger/handoff that runs `ingest:route-coverage`, network build/finalize, D1 export, and static artifact verification when a new complete month appears.
 
 Implemented data contracts:
@@ -590,7 +623,7 @@ bun run check:pipeline-v1 -- --year 2026 --month 3 --min-gtfs-rt-collection-hour
 bun run check:pipeline-v1 -- --year 2026 --month 3 --max-corridor-ambiguous-route-share 0.15
 bun run check:pipeline-v1 -- --year 2026 --month 3 --max-source-probe-age-days 45
 bun run check:pipeline-v1 -- --year 2026 --month 3 --allow-insufficient-gtfs-rt
-bun --filter @bp/pipeline audit:pipeline-v1 -- --public-year 2026 --public-month 3 --realtime-year 2026 --realtime-month 5 --run-id gtfs-rt-v1-20260517T022348Z
+bun --filter @bp/pipeline audit:pipeline-v1 -- --public-year 2026 --public-month 3 --realtime-year 2026 --realtime-month 3 --run-id bus-observatory-2026-03
 ```
 
 QA gates:
@@ -611,9 +644,9 @@ Implemented so far:
 - `route-batch-audit` checks required route/corridor brief artifacts, file presence, byte length, SHA-256, and core `brief.json` contract fields against local metadata/evidence rows, then writes `data/artifacts/briefs/{month}/manifest.json` with all static brief body keys, content types, byte lengths, hashes, totals, and audit issues.
 - `export:d1` writes `export-summary.json` with schema/seed byte lengths and SHA-256 hashes plus exported row counts.
 - `verify:d1` loads generated schema/seed SQL, writes `verify-summary.json` with expected-vs-loaded table counts, and exercises typed readback for route/corridor artifact metadata.
-- `check:pipeline-v1` runs the current v1 QA gate over local DB state, required source probe freshness, route/corridor brief artifacts, route-batch audit file and JSON-contract results, static manifest output, D1 verification, GTFS-RT analysis-month alignment, GTFS-RT collection window/cadence/snapshot coverage, GTFS-RT parse/headway provenance, observed-route coverage thresholds, per-route observed sample thresholds, route trend coverage, evaluated intervention comparison coverage, peer-adjusted speed delta coverage, bus-lane comparison coverage for public routes with matched bus-lane geometry, corridor segment-evidence coverage, corridor shape-review coverage, corridor intervention context coverage, and corridor assignment ambiguity/unassigned thresholds. Against the current March 2026 local DB, strict mode fails because observed reliability has 381 insufficient rows and 0 observed headway samples. Structural mode with `--allow-insufficient-gtfs-rt` passes with 10 fresh required source probe captures, 381 reliability status rows, 360 intervention comparison rows, 360 corridor intervention context rows, 5,171 route/month trend rows, 166 dated bus-lane comparison rows, 115 bus-lane source-gap rows, 320 assigned corridor route members, 30 ambiguous corridor route members, 0 unassigned corridor route members, 350 segment-backed corridor route members, 350 corridor shape-review pass rows, and 1,629 verified brief artifacts.
+- `check:pipeline-v1` runs the current v1 QA gate over local DB state, required source probe freshness, route/corridor brief artifacts, route-batch audit file and JSON-contract results, static manifest output, D1 verification, GTFS-RT analysis-month alignment, GTFS-RT collection window/cadence/snapshot coverage, GTFS-RT parse/headway provenance, observed-route coverage thresholds, per-route observed sample thresholds, route trend coverage, evaluated intervention comparison coverage, peer-adjusted speed delta coverage, bus-lane comparison coverage for public routes with matched bus-lane geometry, corridor segment-evidence coverage, corridor shape-review coverage, corridor intervention context coverage, and corridor assignment ambiguity/unassigned thresholds. Against the current March 2026 local DB, strict mode passes with 346 observed reliability routes, 2,571,297 route-summary headway samples, 360 intervention comparison rows, 193 corridors, 350 segment-backed corridor route members, 350 corridor shape-review pass rows, 1,629 verified brief artifacts, 354 map artifacts, and 0 issues.
 - `check:pipeline-v1` also verifies `data/artifacts/map/{month}/manifest.json`, required core map artifacts, one route-segment GeoJSON artifact per public route, route-segment payload hashes/byte lengths/feature counts, and `MapRouteSegmentFeatureCollectionSchema` contract validity.
-- `audit:pipeline-v1` writes a prompt-to-artifact completion audit that restates the v1 objective and success criteria, then combines the public-source month, realtime month, structural/strict gates, GTFS-RT preflight, source coverage summaries, the route-speed source availability artifact, the source-refresh plan artifact, methodology gate, release model, and a pass/partial/blocked checklist. The current March + May audit can pass v1 as the latest public-source monthly release plus realtime appendix while `releaseModel.sameMonthPromotionReady=false`. If `data/artifacts/source-refresh/plan.json` is missing, the source-cadence row is partial until the production collector/watcher handoff is recorded.
+- `audit:pipeline-v1` writes a prompt-to-artifact completion audit that restates the v1 objective and success criteria, then combines the public-source month, realtime month, structural/strict gates, GTFS-RT preflight, source coverage summaries, the route-speed source availability artifact, the source-refresh plan artifact, methodology gate, release model, and a pass/partial/blocked checklist. The current March + March recovered audit passes with `Observed Release=complete` and `sameMonthPromotionReady=true`; future May or later official self-collected evidence remains a current appendix until matching public speed rows are published.
 
 Acceptance:
 

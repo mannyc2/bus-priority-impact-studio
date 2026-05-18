@@ -30,6 +30,15 @@ The app should include:
 4. **Cited memo generator** — deterministic metrics plus source-backed narrative summary.
 5. **LLM wiki / corpus search** — source-aware search over MTA documents, data dictionaries, blog posts, and project analyses.
 
+## AI interaction stance
+
+The Studio uses AI to prepare evidence for analyst judgment, not to create a generic chat surface.
+AI output should become product artifacts such as findings, reasoning trails, segment notes, claim
+seeds, caveats, reviewer notes, and brief drafts. Deterministic code remains the source of truth for
+metrics, source freshness, joins, validation, and publication gates.
+
+See [[wiki/project/ai_interaction_model|AI Interaction Model]] for the canonical product doctrine.
+
 ## Non-goals
 
 - Do not build a full route planner as the primary product.

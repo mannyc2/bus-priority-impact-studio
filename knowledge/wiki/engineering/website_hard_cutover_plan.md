@@ -20,6 +20,17 @@ maps are evidence, findings are AI-surfaced but source-backed, and briefs are th
 This cutover should be hard. Do not keep legacy panels, fixture fallbacks, or map-first navigation as
 alternate paths.
 
+Hard means:
+
+- No production page keeps a legacy endpoint fallback.
+- No production page catches an API miss and renders sample/demo data.
+- No production route imports dev fixtures once its Studio API exists.
+- No production Worker Studio handler imports the local Studio seed; it must read the versioned
+  release artifact or D1/R2 serving projections and fail closed when they are missing.
+- Existing non-Studio `/api/v1/*` endpoints may survive temporarily for compatibility, but they are
+  not the frontend contract.
+- Missing data is a designed unavailable state from the Studio API, not a client fallback.
+
 ## Source Of Truth
 
 Primary reference bundle:
@@ -41,7 +52,7 @@ Reference files to port:
 | `brief-lifecycle.jsx` | Review comments, version history diff |
 | `data-page.jsx` | Methods/data/caveats/glossary |
 | `states.jsx` | Route loading and empty states |
-| `system.jsx` | Shared visual primitives already ported into `apps/web/src/design-system` |
+| `system.jsx` | Shared visual primitives now represented by flat composites in `apps/web/src/components` |
 
 Important user intent from the design chats:
 
@@ -50,6 +61,7 @@ Important user intent from the design chats:
   selected.
 - The product should make analysts feel they did the work even when AI assembled the first pass.
 - AI should read as evidence and reasoning, not as a chatbot. The attribution glyph is `◆`.
+- The canonical AI doctrine lives in [[wiki/project/ai_interaction_model|AI Interaction Model]].
 - Methods/data/credits belong on a real page, with source callouts near specific charts only when
   they earn their place.
 - Docs should serve humans and agents equally, with left sidebar navigation, friendly explanatory
@@ -84,6 +96,10 @@ Delete `/digest` and the old map-panel route semantics.
 Use TanStack Router file routes and route loaders. Page modules should import only the data and
 components they render so route-level code splitting stays effective.
 
+The detailed loading/composer plan lives in
+[[web_app_support_plan|Web App Support Plan]]. Keep that page current when changing route loader
+cache behavior, brief projections, or composer persistence.
+
 Apply the Vercel React guidance as follows:
 
 - Avoid broad page barrels. Keep route pages in focused files and import direct modules.
@@ -99,6 +115,12 @@ Apply the Vercel React guidance as follows:
   hook unless the router default already covers it.
 - Prefer loader-level parallel fetches once API endpoints exist. Do not fetch serially in page
   components.
+- Pass TanStack Router `abortController.signal` into Studio API client fetches so outdated
+  navigations cancel in-flight requests.
+- Use route-specific `staleTime` and narrow `loaderDeps` for Studio projections instead of relying
+  on the default `staleTime: 0` everywhere.
+- Defer slow, non-critical brief evidence/history and map-heavy payloads so the page shell can
+  render before secondary panels resolve.
 - Derive state during render for simple filters/sorts; do not mirror derived state in effects.
 - Keep MapLibre dynamically contained in evidence/map modules, not in the global shell bundle.
 
@@ -115,8 +137,20 @@ View transition posture:
 
 ## API Direction
 
-The new UI needs product-shaped contracts, not just compact route cards. Add schema-first contracts
-to `packages/domain` and keep Worker handlers in `apps/web/src/worker`.
+The new UI needs product-shaped contracts, not just compact route cards. The detailed plan lives in
+`knowledge/wiki/engineering/web_api_endpoint_architecture.md`. Add schema-first contracts to
+`packages/domain` and keep Worker handlers in `apps/web/src/worker`.
+
+The public surface should be RESTful. D1 rows and R2 object keys are private serving details, not
+API resources. The backend should materialize versioned Studio projections from D1/R2 in the Bun
+pipeline, publish those projections to R2, and let the Worker map `/api/v1/studio/*` URLs to the
+private projection keys. Do not expose `/api/v1/r2/*`, `/api/v1/studio/objects/*`, or projection-key
+URLs as client contracts.
+
+`bun run build:studio-release` is pipeline-owned. It uses the D1 serving export plus generated
+route-slice artifacts to write the R2 projection tree consumed by the Worker. The web app may keep
+`studio/sample-data.ts` for dev/test contract fixtures, but the release script path must not import
+it.
 
 Read API:
 
@@ -149,9 +183,26 @@ No public request handler may import analytics or source adapters. If an endpoin
 that does not exist in D1/R2 yet, add a serving projection or mark the page section unavailable with
 a designed empty/error state. Do not compute heavy metrics on request.
 
+## Observability And SEO Direction
+
+The immediate observability plan lives in
+`knowledge/wiki/engineering/web_observability_performance_seo_plan.md`.
+
+Next release gates:
+
+- Build and run Lighthouse against the projection-backed smoke server for the canonical route
+  matrix.
+- Add SEO crawlability checks for titles, descriptions, production `/system` exclusion, and route
+  body text.
+- Add Worker `Server-Timing` and structured API logs for Studio endpoints.
+- Use existing router performance marks for client navigation timing.
+- Do not write raw RUM events to D1; choose a proper event sink before adding production web-vitals
+  beacons.
+
 ## CLI And Docs Direction
 
-Follow the Cloudflare-style pattern from chat 9:
+Follow the Cloudflare-style pattern from chat 9. The full spec lives in
+`knowledge/wiki/engineering/generated_cli_distribution_plan.md`.
 
 1. Define API/CLI surface in TypeScript contracts first.
 2. Generate OpenAPI, docs tables, and CLI command metadata from those contracts.
@@ -179,6 +230,17 @@ Command rules:
 - Use `--force`, never `--skip-confirmations`.
 - Make local/remote execution explicit once local API mirrors exist.
 
+Distribution rules:
+
+- The runtime schema generates CLI source; package-manager wrappers ship only the compiled binary.
+- `CliReleaseManifest` is the only contract from binaries to npm/PyPI/Homebrew renderers.
+- The manifest must include schema version/commit so every release traces back to the exact source
+  contract that produced it.
+- macOS binaries are signed and notarized before hashes are computed.
+- Linux wheel tags are blocked until the manylinux vs musllinux choice is proven in CI.
+- Windows is deferred for the first release, but the manifest reserves `win32` so Scoop/WinGet can be
+  added without reshaping the contract.
+
 ## Cutover Phases
 
 ### Phase 0: Shell And Route Map
@@ -192,7 +254,16 @@ Command rules:
 
 - Add domain schemas for route detail, ladder, search, findings, briefs, methods, and docs metadata.
 - Add Worker endpoints with D1/R2-backed payloads where serving data exists.
-- Remove fixture fallback loaders from web runtime code.
+- Remove fixture fallback loaders from web runtime code in the same patch as the replacement loader.
+- Add an architecture check that fails production runtime imports from `studio/sample-data.ts`,
+  `fixtures/demo-snippets.ts`, and legacy panel/data-loader modules.
+
+Current slice: the initial Studio contracts live in `packages/domain/src/studio-schemas.ts`,
+page-shaped projection builders live in `packages/domain/src/studio-projections.ts`, the Worker
+serves `/api/v1/studio/*` from versioned R2 Studio projection artifacts, production route loaders
+call those endpoints directly, and architecture checks now reject production runtime imports from
+sample/demo data. The local Studio seed remains only as a test/artifact-generation input. The next
+Phase 1 step is generating the Studio projection artifacts from D1/R2 sources.
 
 ### Phase 2: Page Ports
 
@@ -205,6 +276,11 @@ Command rules:
 - Implement draft creation, claim editing, staged generation, evidence attachment, review comments,
   and history payloads.
 - Add Worker harness tests before exposing write endpoints.
+- Keep composer writes feature-flagged until draft storage, auth/reviewer identity, and publish
+  promotion are explicit.
+- Store draft metadata/claims/comments as bounded product rows; store large body snapshots and
+  publish candidates in R2.
+- Never let a normal page request mutate the public March release projection.
 
 ### Phase 4: Docs And CLI Foundation
 
@@ -222,7 +298,7 @@ For each phase:
 - Worker tests for API changes
 - `bun --filter @bp/web build`
 - Smoke routes locally with dev server:
-  `/`, `/search`, `/routes/M15+`, `/routes/M15+/ladder`, `/compare`, `/findings`,
+  `/`, `/search`, `/routes/m15-sbs`, `/routes/m15-sbs/ladder`, `/compare`, `/findings`,
   `/briefs`, `/methods`, `/docs`
 
 Do not declare the cutover complete while old panel loaders, old fixture fallbacks, or old route
