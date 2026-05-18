@@ -381,6 +381,40 @@ export const StudioBriefResponseSchema = z
   })
   .strict();
 
+const StudioBriefHeadingSchema = z
+  .object({
+    id: z.string(),
+    title: z.string(),
+    version: z.string(),
+    routeSlug: z.string(),
+    routeLabel: z.string(),
+    routeSbs: z.boolean(),
+  })
+  .strict();
+
+export const StudioBriefEvidenceResponseSchema = z
+  .object({
+    schemaVersion: z.literal(1),
+    generatedAt: z.string(),
+    heading: StudioBriefHeadingSchema,
+    claims: z.array(StudioClaimSchema),
+    evidence: z.array(ClaimEvidenceSchema),
+    caveats: z.array(ClaimCaveatSchema),
+    quality: StudioQualitySchema,
+  })
+  .strict();
+
+export const StudioBriefHistoryResponseSchema = z
+  .object({
+    schemaVersion: z.literal(1),
+    generatedAt: z.string(),
+    heading: StudioBriefHeadingSchema,
+    versions: z.array(StudioVersionSchema),
+    comments: z.array(StudioCommentSchema),
+    quality: StudioQualitySchema,
+  })
+  .strict();
+
 export const StudioMethodDatasetSchema = z
   .object({
     name: z.string(),
@@ -455,6 +489,12 @@ export const studioFindingsResponseJsonSchema = toProjectJsonSchema(StudioFindin
 export const studioFindingResponseJsonSchema = toProjectJsonSchema(StudioFindingResponseSchema);
 export const studioBriefsResponseJsonSchema = toProjectJsonSchema(StudioBriefsResponseSchema);
 export const studioBriefResponseJsonSchema = toProjectJsonSchema(StudioBriefResponseSchema);
+export const studioBriefEvidenceResponseJsonSchema = toProjectJsonSchema(
+  StudioBriefEvidenceResponseSchema,
+);
+export const studioBriefHistoryResponseJsonSchema = toProjectJsonSchema(
+  StudioBriefHistoryResponseSchema,
+);
 export const studioMethodsResponseJsonSchema = toProjectJsonSchema(StudioMethodsResponseSchema);
 export const studioDocsResponseJsonSchema = toProjectJsonSchema(StudioDocsResponseSchema);
 export const studioReleasePayloadJsonSchema = toProjectJsonSchema(StudioReleasePayloadSchema);
@@ -482,6 +522,8 @@ export type StudioFindingsResponse = z.output<typeof StudioFindingsResponseSchem
 export type StudioFindingResponse = z.output<typeof StudioFindingResponseSchema>;
 export type StudioBriefsResponse = z.output<typeof StudioBriefsResponseSchema>;
 export type StudioBriefResponse = z.output<typeof StudioBriefResponseSchema>;
+export type StudioBriefEvidenceResponse = z.output<typeof StudioBriefEvidenceResponseSchema>;
+export type StudioBriefHistoryResponse = z.output<typeof StudioBriefHistoryResponseSchema>;
 export type StudioMethodsResponse = z.output<typeof StudioMethodsResponseSchema>;
 export type StudioDocsResponse = z.output<typeof StudioDocsResponseSchema>;
 export type StudioMethodDataset = z.output<typeof StudioMethodDatasetSchema>;

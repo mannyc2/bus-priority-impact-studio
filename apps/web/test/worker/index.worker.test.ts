@@ -20,6 +20,8 @@ import {
 } from "@bp/domain";
 import { describe, expect, it } from "vitest";
 import {
+  StudioBriefEvidenceResponseSchema,
+  StudioBriefHistoryResponseSchema,
   StudioCompareResponseSchema,
   StudioDocsResponseSchema,
   StudioRouteDetailResponseSchema,
@@ -1156,6 +1158,41 @@ describe("Worker production-behavior harness", () => {
         ],
       }),
     );
+  });
+
+  it("serves a narrow brief evidence contract that drops versions and comments", async () => {
+    const response = await worker.fetch(
+      new Request("https://example.test/api/v1/studio/briefs/m15-madison-corridor/evidence"),
+      createStudioEnv(),
+    );
+
+    expect(response.status).toBe(200);
+    const body = StudioBriefEvidenceResponseSchema.parse(await response.json());
+    expect(body.heading).toEqual(
+      expect.objectContaining({
+        id: "m15-madison-corridor",
+        routeSlug: "m15-sbs",
+        routeLabel: expect.any(String),
+        routeSbs: true,
+      }),
+    );
+    expect(body.claims.length).toBeGreaterThan(0);
+    expect(body).not.toHaveProperty("versions");
+    expect(body).not.toHaveProperty("comments");
+  });
+
+  it("serves a narrow brief history contract with versions/comments only", async () => {
+    const response = await worker.fetch(
+      new Request("https://example.test/api/v1/studio/briefs/m15-madison-corridor/history"),
+      createStudioEnv(),
+    );
+
+    expect(response.status).toBe(200);
+    const body = StudioBriefHistoryResponseSchema.parse(await response.json());
+    expect(body.heading.id).toBe("m15-madison-corridor");
+    expect(body.versions.length).toBeGreaterThan(0);
+    expect(body).not.toHaveProperty("claims");
+    expect(body).not.toHaveProperty("evidence");
   });
 
   it("serves Studio docs endpoint metadata from the generated OpenAPI paths", async () => {

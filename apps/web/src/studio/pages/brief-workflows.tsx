@@ -13,6 +13,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type {
   ClaimEvidence as ClaimEvidenceType,
   StudioBrief,
+  StudioBriefEvidenceResponse,
+  StudioBriefHistoryResponse,
   StudioBriefResponse,
   StudioComment,
   StudioCommentReply,
@@ -20,22 +22,22 @@ import type {
 import { StudioPage, StudioPanel } from "../page.js";
 import { NotFoundPage } from "./not-found.js";
 
-export function BriefEvidencePage({ data }: { data: StudioBriefResponse | null }) {
+export function BriefEvidencePage({ data }: { data: StudioBriefEvidenceResponse | null }) {
   if (data === null) return <NotFoundPage />;
-  const { brief, route } = data;
+  const { heading } = data;
 
   return (
     <StudioPage>
       <header className="mb-6 flex items-start justify-between gap-4 border-b border-[var(--bp-color-rule)] pb-4 max-md:flex-col">
         <div className="flex items-center gap-3">
-          <RouteBadge route={route.label} sbs={route.sbs} size="md" />
+          <RouteBadge route={heading.routeLabel} sbs={heading.routeSbs} size="md" />
           <span className="text-[11.5px] font-semibold text-[var(--bp-color-ink-55)]">
-            {brief.title} - Evidence
+            {heading.title} - Evidence
           </span>
         </div>
         <Link
           to="/briefs/$briefId"
-          params={{ briefId: brief.id }}
+          params={{ briefId: heading.id }}
           viewTransition
           className="text-[12px] font-medium text-[var(--bp-color-accent)] no-underline"
         >
@@ -612,9 +614,9 @@ function CommentedSpan({ label, children }: { label: string; children: ReactNode
   );
 }
 
-export function BriefHistoryPage({ data }: { data: StudioBriefResponse | null }) {
+export function BriefHistoryPage({ data }: { data: StudioBriefHistoryResponse | null }) {
   if (data === null) return <NotFoundPage />;
-  const { brief, route } = data;
+  const { heading } = data;
 
   const versions = data.versions;
   const [activeB, setActiveB] = useState<string>(versions[0]?.v ?? "v0.4");
@@ -622,23 +624,22 @@ export function BriefHistoryPage({ data }: { data: StudioBriefResponse | null })
 
   return (
     <StudioPage>
-      <BriefTitleBar
-        brief={brief}
-        route={route}
+      <BriefHeadingBar
+        heading={heading}
         chip="IN REVIEW"
         chipTone="warn"
         hint="last edit 2 hours ago"
       >
         <Link
           to="/briefs/$briefId/edit"
-          params={{ briefId: brief.id }}
+          params={{ briefId: heading.id }}
           viewTransition
           className="inline-flex h-9 items-center gap-1.5 rounded-[3px] bg-[var(--bp-color-ink)] px-3.5 text-[12.5px] font-medium text-[var(--bp-color-paper)] no-underline"
         >
           Open in composer
           <ArrowRight size={14} />
         </Link>
-      </BriefTitleBar>
+      </BriefHeadingBar>
       <div className="mb-5 flex items-center gap-3 rounded-[3px] bg-[var(--bp-color-card)] p-4 shadow-[0_0_0_1px_var(--bp-color-rule)]">
         <div className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--bp-color-ink-55)]">
           Comparing
@@ -823,6 +824,35 @@ function DiffClaim({
         </div>
       ) : null}
     </article>
+  );
+}
+
+function BriefHeadingBar({
+  heading,
+  chip,
+  chipTone = "neutral",
+  hint,
+  children,
+}: {
+  heading: StudioBriefHistoryResponse["heading"];
+  chip: string;
+  chipTone?: "neutral" | "warn" | "bad" | "accent";
+  hint: string;
+  children: ReactNode;
+}) {
+  return (
+    <header className="mb-6 flex items-center justify-between gap-4 border-b border-[var(--bp-color-rule)] pb-4 max-md:flex-col max-md:items-start">
+      <div className="flex min-w-0 items-center gap-3">
+        <RouteBadge route={heading.routeLabel} sbs={heading.routeSbs} size="md" />
+        <span className="truncate text-[15px] font-semibold leading-tight">{heading.title}</span>
+        <Badge variant={chipTone}>{chip}</Badge>
+        <span className="font-mono text-[11.5px] tabular-nums text-[var(--bp-color-ink-55)]">
+          {heading.version}
+        </span>
+        <span className="text-[11.5px] text-[var(--bp-color-ink-55)] max-md:hidden">{hint}</span>
+      </div>
+      <div className="flex shrink-0 items-center gap-2">{children}</div>
+    </header>
   );
 }
 

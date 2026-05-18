@@ -41,6 +41,8 @@ import * as z from "zod";
 import {
   type StudioObservedReliability,
   type StudioRoute,
+  StudioBriefEvidenceResponseSchema,
+  StudioBriefHistoryResponseSchema,
   StudioBriefResponseSchema,
   StudioBriefsResponseSchema,
   StudioDocsResponseSchema,
@@ -677,11 +679,11 @@ async function buildStudioResponse(url: URL, env: Env): Promise<Response> {
     return briefs instanceof Response ? briefs : studioJson(briefs, env);
   }
 
-  const briefWorkflowMatch = url.pathname.match(
-    /^\/api\/v1\/studio\/briefs\/([^/]+)\/(?:evidence|history)$/,
+  const briefEvidenceMatch = url.pathname.match(
+    /^\/api\/v1\/studio\/briefs\/([^/]+)\/evidence$/,
   );
-  if (briefWorkflowMatch) {
-    const briefId = decodeURIComponent(briefWorkflowMatch[1] ?? "");
+  if (briefEvidenceMatch) {
+    const briefId = decodeURIComponent(briefEvidenceMatch[1] ?? "");
     const briefs = await loadStudioProjection(env, "briefs.json", StudioBriefsResponseSchema);
     if (briefs instanceof Response) {
       return briefs;
@@ -695,7 +697,63 @@ async function buildStudioResponse(url: URL, env: Env): Promise<Response> {
       `briefs/${briefId}/index.json`,
       StudioBriefResponseSchema,
     );
-    return brief instanceof Response ? brief : studioJson(brief, env);
+    if (brief instanceof Response) return brief;
+    return studioJson(
+      StudioBriefEvidenceResponseSchema.parse({
+        schemaVersion: 1,
+        generatedAt: brief.generatedAt,
+        heading: {
+          id: brief.brief.id,
+          title: brief.brief.title,
+          version: brief.brief.version,
+          routeSlug: brief.brief.routeSlug,
+          routeLabel: brief.route.label,
+          routeSbs: brief.route.sbs,
+        },
+        claims: brief.brief.claims,
+        evidence: brief.brief.evidence,
+        caveats: brief.brief.caveats,
+        quality: brief.quality,
+      }),
+      env,
+    );
+  }
+
+  const briefHistoryMatch = url.pathname.match(/^\/api\/v1\/studio\/briefs\/([^/]+)\/history$/);
+  if (briefHistoryMatch) {
+    const briefId = decodeURIComponent(briefHistoryMatch[1] ?? "");
+    const briefs = await loadStudioProjection(env, "briefs.json", StudioBriefsResponseSchema);
+    if (briefs instanceof Response) {
+      return briefs;
+    }
+    if (!briefs.briefs.some(({ brief }) => brief.id === briefId)) {
+      return errorJson(404, "Studio brief was not found.");
+    }
+
+    const brief = await loadStudioProjection(
+      env,
+      `briefs/${briefId}/index.json`,
+      StudioBriefResponseSchema,
+    );
+    if (brief instanceof Response) return brief;
+    return studioJson(
+      StudioBriefHistoryResponseSchema.parse({
+        schemaVersion: 1,
+        generatedAt: brief.generatedAt,
+        heading: {
+          id: brief.brief.id,
+          title: brief.brief.title,
+          version: brief.brief.version,
+          routeSlug: brief.brief.routeSlug,
+          routeLabel: brief.route.label,
+          routeSbs: brief.route.sbs,
+        },
+        versions: brief.versions,
+        comments: brief.comments,
+        quality: brief.quality,
+      }),
+      env,
+    );
   }
 
   const briefMatch = url.pathname.match(/^\/api\/v1\/studio\/briefs\/([^/]+)$/);

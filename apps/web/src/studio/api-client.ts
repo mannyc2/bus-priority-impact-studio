@@ -1,5 +1,7 @@
 import type * as z from "zod";
 import {
+  StudioBriefEvidenceResponseSchema,
+  StudioBriefHistoryResponseSchema,
   StudioBriefResponseSchema,
   StudioBriefsResponseSchema,
   StudioCompareResponseSchema,
@@ -177,14 +179,14 @@ export function fetchStudioBrief(briefId: string) {
 export function fetchStudioBriefEvidence(briefId: string) {
   return loadNullableStudioJson(
     `/api/v1/studio/briefs/${encodeURIComponent(briefId)}/evidence`,
-    StudioBriefResponseSchema,
+    StudioBriefEvidenceResponseSchema,
   );
 }
 
 export function fetchStudioBriefHistory(briefId: string) {
   return loadNullableStudioJson(
     `/api/v1/studio/briefs/${encodeURIComponent(briefId)}/history`,
-    StudioBriefResponseSchema,
+    StudioBriefHistoryResponseSchema,
   );
 }
 

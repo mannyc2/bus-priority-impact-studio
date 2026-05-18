@@ -1,4 +1,6 @@
 import {
+  studioBriefEvidenceResponseJsonSchema,
+  studioBriefHistoryResponseJsonSchema,
   studioBriefResponseJsonSchema,
   studioBriefsResponseJsonSchema,
   studioCompareResponseJsonSchema,
@@ -197,8 +199,8 @@ const paths: Record<string, Partial<Record<HttpMethod, Operation>>> = {
   "/api/v1/studio/briefs/{briefId}/evidence": {
     get: getOperation(
       "getStudioBriefEvidence",
-      "Fetch evidence-focused data for a Studio brief.",
-      studioBriefResponseJsonSchema,
+      "Fetch evidence-focused data for a Studio brief (claims, evidence, caveats).",
+      studioBriefEvidenceResponseJsonSchema,
       [briefIdParameter],
     ),
   },
@@ -206,7 +208,7 @@ const paths: Record<string, Partial<Record<HttpMethod, Operation>>> = {
     get: getOperation(
       "getStudioBriefHistory",
       "Fetch version history and review context for a Studio brief.",
-      studioBriefResponseJsonSchema,
+      studioBriefHistoryResponseJsonSchema,
       [briefIdParameter],
     ),
   },
