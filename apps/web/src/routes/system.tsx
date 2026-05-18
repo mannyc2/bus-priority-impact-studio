@@ -1,16 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { DesignSystemPanel } from "../components/DesignSystemPanel.js";
+
+import { SystemGallery } from "../dev/system-gallery.js";
 import { routeHead } from "../lib/head.js";
+import { NotFoundPage } from "../studio/pages/not-found.js";
 
 export const Route = createFileRoute("/system")({
   head: () =>
     routeHead(
       "Design System",
-      "Review the Bus Priority Impact Studio design-system primitives ported from the design bundle.",
+      "Dev-only example gallery for the Bus Priority Impact Studio composites.",
     ),
-  component: DesignSystemRoutePanel,
+  component: SystemRoute,
 });
 
-function DesignSystemRoutePanel() {
-  return <DesignSystemPanel />;
+function SystemRoute() {
+  if (!import.meta.env.DEV) return <NotFoundPage />;
+  return <SystemGallery />;
 }
