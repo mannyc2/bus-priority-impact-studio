@@ -5,6 +5,8 @@ import {
   healthResponseJsonSchema,
   RouteIdCodec,
   RouteScorecardSchema,
+  StudioReleasePayloadSchema,
+  studioReleasePayloadJsonSchema,
 } from "../src/index.js";
 
 describe("domain schemas", () => {
@@ -35,6 +37,36 @@ describe("domain schemas", () => {
         $schema: "https://json-schema.org/draft/2020-12/schema",
       }),
     );
+    expect(studioReleasePayloadJsonSchema).toEqual(
+      expect.objectContaining({
+        $schema: "https://json-schema.org/draft/2020-12/schema",
+      }),
+    );
+  });
+
+  test("keeps Studio release payloads strict", () => {
+    expect(() =>
+      StudioReleasePayloadSchema.parse({
+        schemaVersion: 1,
+        generatedAt: "2026-05-18T00:00:00.000Z",
+        quality: {
+          releaseLayer: "baseline_release",
+          completenessStatus: "complete",
+          confidence: "medium",
+          caveats: [],
+        },
+        routes: [],
+        segments: [],
+        findings: [],
+        briefs: [],
+        versions: [],
+        comments: [],
+        methods: [],
+        docsSections: [],
+        docsEndpoints: [],
+        extra: "not allowed",
+      }),
+    ).toThrow();
   });
 
   test("keeps health responses strict", () => {
