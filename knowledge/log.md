@@ -2,6 +2,72 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-05-18] planning | Serving storage split and website support audit
+
+Added [[wiki/engineering/serving_storage_split_plan|Serving Storage Split Plan]] to settle the resource-first storage rule: D1 is the control plane for compact relational state, indexes, manifests, mutable drafts, jobs, idempotency, and queryable summaries; R2 is the artifact plane for immutable release documents, large nested payloads, maps, evidence bundles, exports, and raw-ish captures; the Worker owns REST resource semantics.
+
+Added [[wiki/engineering/website_data_support_audit|Website Data Support Audit]] after code inspection of the Studio API client, Worker, release builder, domain schemas, and observed-reliability repositories. The audit records that production frontend loaders already call real `/api/v1/studio/*` endpoints and no longer import sample data; the real gap is that Studio R2 projections cover a curated route/brief/finding slice while D1 contains full-route serving data, observed reliability, and the May 2026 current appendix. The old "unfixture route loaders" task is obsolete; the new queue is to expand Studio coverage, surface observed reliability/current signal data, and split brief evidence/history contracts.
+
+Follow-up note: documented that the current R2 shape does not look over-stored; the sharper risk is under-publishing nested route/corridor brief body artifacts. The March brief manifest and D1 artifact refs point at keys under `briefs/routes/...` and `briefs/corridors/...`, while the current publish glob clearly includes `briefs/$month/*` and may only upload the manifest. The plan now calls for manifest-driven R2 publishing or an artifact-ref-to-upload validation gate.
+
+## [2026-05-18] release | Production cutover with May 2026 observed appendix
+
+Promoted the canonical March 2026 release plus the May 2026 self-collected GTFS-RT observed appendix to production Cloudflare D1/R2.
+
+Pipeline state: ingested the completed 24-hour run `gtfs-rt-v1-20260517T103607Z-24h` (2,880/2,880 snapshots, 3,589,778 vehicle positions, 0 errors), built observed headways for 2026-05 (395,885 stop events, 366,609 headway samples), built `route-observed-reliability --year 2026 --month 5 --run-id gtfs-rt-v1-20260517T103607Z-24h` (381 routes, 300 observed, 81 insufficient, 360,914 headway samples). `gtfs-rt:preflight` for 2026-05 passed with 0 issues. The strict `check:pipeline-v1 --year 2026 --month 3` audit still passes after the run (0 issues, 1,050 route artifacts, 381 observed reliability rows). Combined `audit:pipeline-v1 --public-year 2026 --public-month 3 --realtime-year 2026 --realtime-month 5` produced `audit-2026-03-2026-05.json` with `publicStrictStatus=pass`, `realtimePreflightStatus=pass`, `sameMonthPromotionReady=false` (correct — May has no public speed coverage), and methodology gate preserved at `descriptive_only`.
+
+Mid-session incident: the first two `route-observed-reliability` invocations (default-month and a malformed `--month 2026-05` string) wrote zero-sample rows for `month=2026-03` and `month=2026-NaN`, clobbering the Bus Observatory recovered March data. Restored from `data/working/bus-observatory/2026-03/route-observed-reliability-summary.csv` via `import:bus-observatory-reliability-summary --year 2026 --month 3 --run-id bus-observatory-2026-03`; counts matched the pre-incident baseline (346 observed routes, 2,571,297 samples). The reliability builder ignores its `runId` parameter when deleting rows; future runs for one month against another month's local DB will clobber rows the same way unless `--year/--month` is passed.
+
+Code change: added a single-tables D1 appendix export path so observed-reliability rows can be promoted without re-running the route-batch audit gate. New `buildD1AppendixSeedSql` in `packages/db/src/d1/seed/build-seed-sql.ts` emits scoped `DELETE` + `INSERT` for `route_observed_reliability_summary` (by month) and `route_month_source_status` (by month + `source_scope='reliability'` + `source_id IN ('observedHeadways','bunching','waitTimeReliability')`). New `readLocalD1AppendixInputs` and `writeRouteD1AppendixSeedOutput` in `tools/pipeline/src/jobs/export/` produce a `seed.appendix.sql` (no schema, no summary parity with canonical). `export:d1 --mode appendix --year YYYY --month M` invokes the appendix path and skips `prepareRouteD1Export` (the audit gate). `scripts/publish-serving-release.sh` gained `--appendix-month YYYY-MM` to layer a second `wrangler d1 execute` of `seed.appendix.sql` on top of the canonical publish, plus `--skip-schema` to re-run the script when D1 tables already exist.
+
+Cutover: ran `export:d1 --year 2026 --month 3` (1,050 route artifacts, 6.1 MB seed) and `export:d1 --mode appendix --year 2026 --month 5` (626 KB seed, 381 observed reliability rows, 1,143 source-status rows). The first `publish:serving-release --execute` failed on `schema.sql` because the production D1 already had the tables from a prior publish (`CREATE TABLE` is non-idempotent). Applied `seed.sql` and `seed.appendix.sql` directly via `wrangler d1 execute --remote`: canonical seed wrote 58,089 rows (38,727 changes), appendix wrote 3,048 rows. Remote D1 now has `route_observed_reliability_summary` for `month=2026-03 / run_id=bus-observatory-2026-03 (381 rows)` and `month=2026-05 / run_id=gtfs-rt-v1-20260517T103607Z-24h (381 rows)`. R2 publish of `bus-priority-artifacts` is the slow tail of the operation (briefs, evaluations, map, pipeline-v1 audits including `audit-2026-03-2026-05.json`, source-availability, studio v1 projection).
+
+Next: Worker deploy via `bun run --cwd apps/web deploy` once R2 uploads finish; production smoke against `/api/v1/studio/release` and a route detail to confirm the May observed appendix is reachable; frontend unfixture per surface; methodology review still gates causal claims.
+
+## [2026-05-18] planning | AI interaction model doctrine
+
+Added [[wiki/project/ai_interaction_model|AI Interaction Model]] as the canonical product doctrine
+for LLM use in the Studio. The model keeps AI output inside Studio artifacts such as findings,
+reasoning trails, route diagnosis strips, segment notes, claim seeds, caveats, reviewer notes, and
+brief drafts; rules out global chat, "Ask AI" navigation, chatbot styling, LLM metric generation,
+and policy recommendations; and defines the determinism gradient from pure metrics/joins through
+strict LLM contracts and bounded composer generation.
+
+Updated the project overview, wiki operating rules, API architecture, agent-author API, LLM/RAG
+page, policy docs corpus, and wiki index to point back to this doctrine.
+
+## [2026-05-18] planning | Realtime processing and production capture proof ladder
+
+Updated the data infrastructure finish plan, Cloudflare operations runbook, ETL plan, pipeline v1 plan, and wiki index with an explicit realtime processing plan. The docs now distinguish the completed production smoke proof from the still-needed production-length proof: mirror a contiguous 4-hour-or-longer Worker/R2 GTFS-RT capture run, import manifests, parse protobufs, build observed headways, generate route reliability, and pass `gtfs-rt:preflight`.
+
+Documented the production capture proof ladder: config proof, R2 write proof, 30-second cadence proof, object integrity proof, R2-to-pipeline parse proof, reliability proof, appendix proof, and same-month observed-release promotion proof. The runbook now calls out that R2 object transfers should use plain `bunx wrangler` in this environment and that full observed release promotion still requires same-month public speed coverage plus strict pipeline/audit gates.
+
+## [2026-05-18] data | Pipeline v1 status refreshed and next steps reset
+
+Rechecked the local March 2026 pipeline state. Regenerated the missing canonical `data/artifacts/map/2026-03/manifest.json`, then strict `bun run check:pipeline-v1 -- --year 2026 --month 3` passed with 0 issues: 381 built routes, 350 public routes, 346 observed reliability routes, 2,571,297 route-summary headway samples, 360 intervention comparisons, 193 corridors, 1,629 audited brief artifacts, 354 map artifacts, and D1 verification passing.
+
+Confirmed `gtfs-rt:preflight -- --year 2026 --month 3 --run-id bus-observatory-2026-03` passes for recovered March observed reliability. Reran the observed-release audit with March public and March recovered realtime evidence; it passed with `Observed Release=complete` and `sameMonthPromotionReady=true`, while preserving Bus Observatory / Jacobs Urban Tech Hub `third_party_recovered` provenance and CC BY-NC 4.0 caveats.
+
+Confirmed the official self-collected run `gtfs-rt-v1-20260517T103607Z-24h` completed with 2,880/2,880 successful vehicle-position snapshots and 0 failures. It still needs ingest, observed-headway build, May 2026 route reliability, and preflight before it becomes the official current observed appendix.
+
+Updated the wiki index, Codex roadmap, ETL plan, data pipeline completion plan, and data infrastructure finish plan. The next work is Cloudflare D1/R2 release promotion, Studio projection seeding/unfixture, production GTFS-RT/source watcher operations, processing the completed official 24-hour run, bus-lane date gap reduction, and methodology review before causal claims.
+
+## [2026-05-18] planning | Web app support plan for briefs, composer, and loaders
+
+Added [[wiki/engineering/web_app_support_plan|Web App Support Plan]] to make the next frontend work explicit. The plan keeps TanStack Router's route loaders as the orchestration layer, uses Router SWR caching for read-heavy Studio projections, adds signal-aware fetches, route-specific `staleTime`, narrow `loaderDeps`, and deferred loading for non-critical brief evidence/history and map-heavy payloads.
+
+The plan also splits published brief contracts from evidence/history payloads and phases the composer from projection-seeded local state to a feature-flagged single-user draft API. Draft metadata, claim text, evidence refs, and review comments may be bounded D1 rows; large body snapshots, diffs, and publish candidates belong in R2. Normal page requests must not mutate the public March release projection.
+
+## [2026-05-18] planning | Post-v1 finding coverage and corpus expansion
+
+Added [[wiki/analysis/finding_coverage_and_corpus_expansion|Finding Coverage and Corpus Expansion]] to make missed-finding risk explicit after Pipeline v1. The plan splits the risk into detector gaps, data gaps, join gaps, threshold gaps, context gaps, and review gaps, then defines a detector matrix, coverage audit, source-gap findings, recall-oriented backtests, and reviewer states.
+
+Updated the source registry with an unprobed expansion backlog for MTA wait assessment, DOT traffic speeds, traffic volume counts, construction/opening permits, NYPD collisions, 311 requests, parking violations, and LION/street-centerline joins. Corrected methodology validation to reflect the current March `third_party_recovered` observed reliability state and the separate May official self-collected appendix path.
+
+## [2026-05-18] planning | LLM processing role for corpus expansion
+
+Extended [[wiki/analysis/finding_coverage_and_corpus_expansion|Finding Coverage and Corpus Expansion]], [[wiki/engineering/llm_wiki_rag|LLM Wiki + RAG Layer]], and [[wiki/data/policy_docs_corpus|Policy and Documents Corpus]] with the post-v1 LLM processing boundary. LLMs can help as readers, authors, and extractors: they can mine documents for candidate source notes, document claim candidates, entity-link candidates, review questions, and caveats, but deterministic probes, route/street/geospatial validators, metric jobs, and composer validation remain the authority for source promotion and public claims.
+
 ## [2026-05-18] design | shadcn Base UI design-system cutover started
 
 Initialized shadcn for `apps/web` with the Base UI backend while preserving TanStack Router. Added Tailwind v4 and shadcn aliases for the web app, mapped shadcn semantic CSS variables to the Claude Design Bus Priority Impact Studio token system, and ported the first reusable primitives from the design tarball: studio mark, route badge, chip, citation, sparkline, hour strip, confidence bar, reviewer chips/stack, and AI attribution strip. The generated shadcn button has been refactored to the custom system's compact civic button variants instead of the default Nova look.
@@ -552,3 +618,109 @@ Started the website hard cutover to the new Bus Priority Impact Studio design sy
 Replaced the interim design-system cutover with the canonical reference-site information architecture: route search/results, route detail, route ladder, compare, findings feed/detail, briefs gallery/reading/evidence/composer/review/history, methods, docs, system reference, and not-found. Added `knowledge/wiki/engineering/website_hard_cutover_plan.md` to capture the no-legacy-fallback cutover, API surface direction, generated CLI/docs direction, and React/TanStack Router motion posture. Removed the old map/panel/API-client fallback layer from the web app and replaced its stale tests with Studio sample-data contract coverage so unknown routes/briefs/findings fail closed instead of silently rendering M15 defaults.
 
 Updated the TanStack Router integration to match render-optimization guidance: router structural sharing is enabled by default, route wrappers subscribe to individual params/search fields through `select`, and the hard-cutover plan now records those selector/structural-sharing rules for future API-backed pages.
+
+Added `knowledge/wiki/engineering/generated_cli_distribution_plan.md` for the Cloudflare-style CLI/API generation and binary distribution pipeline. The plan makes OpenAPI an output of a runtime TypeScript schema, defines schema linting for verbs/flags/locality/output contracts, ties generated CLI source to `bun build --compile`, and makes `CliReleaseManifest` the single contract for npm optional platform packages, PyPI wheels, Homebrew formulae, future Windows wrappers, archive audits, provenance, and manifest-driven rollback.
+
+## [2026-05-18] engineering | Observability and Studio API next plans
+
+Added `knowledge/wiki/engineering/web_observability_performance_seo_plan.md` for the immediate website observability track: Lighthouse route matrix, SEO crawlability checks, Core Web Vitals/RUM posture, Worker `Server-Timing`, structured API logs, and a release gate that keeps raw RUM out of D1. Rewrote `knowledge/wiki/engineering/web_api_endpoint_architecture.md` around the route-first Studio API: existing `/api/v1` endpoints remain lower-level serving primitives, while `/api/v1/studio/*` becomes the product contract for routes, search, ladder, compare, findings, briefs, methods, docs, and future composition endpoints. Updated the wiki index and hard-cutover plan so these are the immediate next tasks.
+
+Tightened the API migration plan to make the Studio API a true hard cutover: production pages call `/api/v1/studio/*` only, do not keep non-Studio endpoint or sample-data fallback branches, and must remove `studio/sample-data.ts` imports in the same patch that adds each route loader. Existing non-Studio `/api/v1/*` handlers can remain temporarily for compatibility or extracted helper logic, but they are not the frontend contract.
+
+## [2026-05-18] engineering | Studio API loader hard cutover slice
+
+Added the first route-first Studio API contract in `apps/web/src/studio/api-contract.ts`, plus client loaders that call `/api/v1/studio/*` directly. The Worker now serves Studio routes, search, route detail, ladder, compare, findings, briefs, methods, and docs endpoints with contract validation and `Server-Timing: studio` headers.
+
+Production TanStack Router pages now load their page data through the Studio API instead of importing `studio/sample-data.ts`. Missing route/finding/brief records render the designed not-found state from API 404s; there is no sample-data or legacy endpoint fallback branch in the route wrappers. The web architecture check and production-boundary harness now fail production UI imports from `studio/sample-data.ts` and `fixtures/demo-snippets.ts`, while still allowing dev-only gallery examples to use demo snippets.
+
+## [2026-05-18] engineering | Web SEO and performance gates
+
+Added the first enforceable web observability gates: `check:web-release` builds the web app, runs `check:web-seo`, and runs `check:web-performance`. The SEO gate validates the canonical public route matrix, title/description/canonical metadata, hash-stamped assets, and dev-only `/system` noindex behavior. The performance gate enforces built client asset budgets and writes a compact ignored summary artifact to `data/artifacts/web-audits/latest/performance-budget.json`.
+
+The Worker now injects crawlable title/meta/canonical tags into SPA fallback HTML for public deep links and returns `404` plus `X-Robots-Tag: noindex` for `/system` outside local dev. Added a debug-only browser performance reporter that logs route navigation timing, LCP, and CLS in dev or when `localStorage.bpDebugVitals = "1"`. Lighthouse CLI is available through `bunx`; real Lighthouse JSON collection is gated behind `BP_RUN_LIGHTHOUSE=1` plus a Chrome executable/URL so CI can opt into it without making local checks depend on a bundled browser.
+
+Follow-up slice: added `serve:web-smoke`, a local production-build smoke server that serves
+`apps/web/dist/client` plus generated `data/artifacts/studio/v1` projections through the same
+`/api/v1/studio/*` URLs used by route loaders. `check:web-performance` now enforces Lighthouse
+thresholds when `BP_RUN_LIGHTHOUSE=1`: desktop performance 0.95+, accessibility 0.95+, best
+practices 0.95+, and SEO 1.00 across the 12-route public matrix. The first real run used Playwright
+Chromium at `/home/cjpher/.cache/ms-playwright/chromium-1223/chrome-linux64/chrome` and passed, with
+SEO 1.00 on every route. Added `robots.txt`, `llms.txt`, and `sitemap.xml`, fixed the canonical
+finding-detail route to `/findings/m15-full-treatment-still-declining`, and darkened shared muted,
+warning, success, and Bronx route colors to satisfy Lighthouse contrast checks.
+
+## [2026-05-18] engineering | Studio release artifact hard cutover
+
+Removed the last Worker-runtime Studio seed import. `/api/v1/studio/*` now reads a versioned
+`studio/v1/release.json` object from the `ARTIFACTS` R2 binding, validates it with
+`StudioReleasePayloadSchema`, and fails closed when the artifact is missing or invalid. The local
+Studio seed remains available only for tests and release-artifact generation, while the architecture
+check and production-boundary harness now reject `studio/sample-data.ts` imports from production
+runtime files, including Worker handlers.
+
+Added `build:studio-release` to write the current `data/artifacts/studio/v1/release.json` artifact
+and extended `publish-serving-release.sh` so Studio release artifacts are uploaded with the D1/R2
+serving promotion path.
+
+Promoted the Studio API schemas into `packages/domain/src/studio-schemas.ts` and changed
+`apps/web/src/studio/api-contract.ts` into a compatibility re-export. `@bp/domain` now exposes
+Studio response schemas, the Studio release-payload schema, and JSON Schema exports for docs/OpenAPI
+generation.
+
+Added `packages/domain/src/studio-openapi.ts` and Worker endpoint `GET /api/openapi.json`. The
+OpenAPI 3.1 document is generated from the package-level Studio JSON Schema exports and covers the
+route-first read contracts used by the website and future agent/CLI surfaces.
+
+Updated `GET /api/v1/studio/docs` so its endpoint table is derived from the generated OpenAPI paths
+instead of being copied from the Studio release artifact.
+
+Follow-up slice: split the runtime Studio API off the monolithic `studio/v1/release.json` read. The
+shared projection builders now live in `packages/domain/src/studio-projections.ts`;
+`bun run build:studio-release` writes page-shaped R2 artifacts such as `studio/v1/routes.json`,
+`studio/v1/routes/:slug/index.json`, `studio/v1/routes/:slug/ladder.json`, `studio/v1/findings.json`,
+and `studio/v1/briefs/:briefId/index.json`; and the Worker serves `/api/v1/studio/*` by validating
+those endpoint projections directly. Missing or invalid projections fail closed, with no fallback to
+the local seed or legacy v1 handlers.
+
+Clarified the RESTful boundary: `/api/v1/studio/*` resources are the public product API and
+`studio/v1/*.json` keys are private R2 storage details. Removed the public `X-Studio-Projection`
+header so responses expose `X-Studio-Release` provenance without leaking object paths.
+
+Documented the backend decision as REST over private projections rather than public D1/R2 object
+access. The intended serving pipeline is now explicit: build Studio resource projections from D1
+serving tables and R2 artifact manifests, publish them under versioned private R2 keys, and have the
+Worker validate and serve those projections through `/api/v1/studio/*`. Public object/projection-key
+endpoints remain out of bounds for the hard cutover.
+
+Moved Studio projection generation into `@bp/pipeline`. `bun run build:studio-release` now runs the
+pipeline `build:studio-release` command, loads the D1 export schema/seed, reads generated
+route-slice artifacts, preserves the canonical public M15/Bx12 route/finding/brief slugs, and writes
+the same page-shaped `studio/v1/*.json` projection tree consumed by the Worker. Removed the old
+web-app sample-data release script from the active build path.
+
+## [2026-05-18] engineering | Agent-Author API commitment
+
+Committed to agents-as-authors as the Year-1 API audience. External coding agents must be able
+to compose, edit, validate, and publish route evidence briefs against the same write surface that
+backs the web composer. The web composer becomes one client of the API, not its privileged
+surface.
+
+Implications, captured in `wiki/engineering/agent_author_api.md`:
+
+- A mid-layer "computed data" tier (per-segment month time series, ACE violation counts,
+  treatment-state-by-period, peer cohorts, evidence catalog) is required. Currently the API only
+  exposes evidence-shaped data; agents authoring novel claims need finer-grained derived
+  projections.
+- A write-side brief API is required: create/edit/validate/review/publish/retract endpoints
+  mirroring every action available in the composer UI. Server-authoritative strength scoring
+  gates publish. Idempotency keys on every write. Async job semantics for the LLM-paced drafting
+  step.
+- Raw observational data (GTFS-RT samples, D1 row keys, R2 object paths) stays internal.
+  Mid-layer endpoints serve derived projections only, with the same `quality` provenance block
+  the existing read surface uses.
+- User-submitted findings rejected as a typed object; the dogfeed loop runs through briefs.
+
+Verification target: an external agent given only the docs follows the canonical 11-step
+walkthrough (find -> read mid-layer data -> POST /briefs -> poll -> attach evidence -> validate
+-> review -> publish) and ends with a round-trippable published brief. The internal team runs
+the same walkthrough against the same endpoints — that is the dogfeed test.
