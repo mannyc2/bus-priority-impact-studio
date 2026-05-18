@@ -149,10 +149,28 @@ if [ -n "$appendix_month" ]; then
   run bunx --bun wrangler d1 execute "$d1_database" --remote --file "$appendix_seed_sql"
 fi
 
+# Pre-flight: every R2 key declared by the brief/evaluation manifests must
+# exist locally. Fails closed: if a manifest entry has no local body we stop
+# before publishing rows that would point at missing R2 objects.
+completeness_keys=$(bun run tools/pipeline/src/checks/check-publish-completeness.ts \
+  --month "$month" --emit-keys)
+completeness_exit=$?
+if [ "$completeness_exit" -ne 0 ]; then
+  printf 'Publish completeness check failed for %s; aborting.\n' "$month" >&2
+  exit "$completeness_exit"
+fi
+
+# Manifest-driven uploads (brief bodies, evaluation payloads) — explicit list,
+# nothing skipped by glob shape.
+printf '%s\n' "$completeness_keys" | while IFS= read -r key; do
+  [ -z "$key" ] && continue
+  run bunx wrangler r2 object put --remote --file "data/artifacts/$key" "$r2_bucket/$key"
+done
+
+# Prefix-driven uploads (map artifacts, studio projections, audits, source
+# availability) — these don't have D1-referenced bodies, so a glob is safe.
 find data/artifacts \
-  \( -path "data/artifacts/briefs/$month/*" \
-  -o -path "data/artifacts/evaluations/$month/*" \
-  -o -path "data/artifacts/map/*" \
+  \( -path "data/artifacts/map/*" \
   -o -path "data/artifacts/studio/*" \
   -o -path "data/artifacts/source-availability/*" \
   -o -path "data/artifacts/pipeline-v1/*" \) \

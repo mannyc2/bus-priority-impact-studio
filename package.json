@@ -63,6 +63,7 @@
     "check:web-performance": "bun run tools/pipeline/src/checks/check-web-performance.ts",
     "serve:web-smoke": "bun run tools/pipeline/src/checks/serve-web-smoke.ts",
     "check:web-release": "bun --filter @bp/web build && bun run check:web-seo && bun run check:web-performance",
+    "check:publish-completeness": "bun run tools/pipeline/src/checks/check-publish-completeness.ts",
     "check:pipeline-v1": "bun --filter @bp/pipeline check:pipeline-v1",
     "check:prepush": "bun run check:types && bun run check:style && bun run check:architecture && bun run test:unit && bun run test:web && bun run test:worker",
     "test": "bun run test:unit && bun run test:web && bun run test:worker",
