@@ -428,37 +428,6 @@ export function StudioBar({
   );
 }
 
-export function Tabs({
-  items,
-  active,
-  padded = false,
-}: {
-  items: readonly string[];
-  active: string;
-  padded?: boolean;
-}) {
-  return (
-    <div
-      className="flex gap-6 bg-[var(--bp-color-card)] text-[12.5px] shadow-[inset_0_-1px_0_var(--bp-color-rule)]"
-      style={{ padding: padded ? "0 28px" : 0 }}
-    >
-      {items.map((item) => (
-        <span
-          key={item}
-          className="cursor-pointer py-2.5"
-          style={{
-            boxShadow: item === active ? `inset 0 -2px 0 ${bpiColors.ink}` : "none",
-            color: item === active ? bpiColors.ink : bpiColors.ink55,
-            fontWeight: item === active ? 600 : 400,
-          }}
-        >
-          {item}
-        </span>
-      ))}
-    </div>
-  );
-}
-
 export function KPI({
   label,
   value,

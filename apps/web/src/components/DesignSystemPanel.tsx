@@ -1,6 +1,7 @@
 import { SearchField } from "@/components/SearchField";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AiAttribution,
   BeforeAfter,
@@ -26,7 +27,6 @@ import {
   StudioBar,
   StudioFooter,
   StudioMark,
-  Tabs,
   Timeline,
   TreatmentRow,
 } from "../design-system/index.js";
@@ -211,7 +211,22 @@ export function DesignSystemPanel() {
               sub="Loading, caveats, empty states, and navigation tabs."
             />
             <div className="flex flex-col gap-4">
-              <Tabs items={["Outline", "Sources", "Claims"]} active="Claims" />
+              <Tabs defaultValue="claims">
+                <TabsList variant="line">
+                  <TabsTrigger value="outline">Outline</TabsTrigger>
+                  <TabsTrigger value="sources">Sources</TabsTrigger>
+                  <TabsTrigger value="claims">Claims</TabsTrigger>
+                </TabsList>
+                <TabsContent value="outline" className="pt-3 text-[12px] text-[var(--bp-color-ink-70)]">
+                  Outline view goes here.
+                </TabsContent>
+                <TabsContent value="sources" className="pt-3 text-[12px] text-[var(--bp-color-ink-70)]">
+                  Source list goes here.
+                </TabsContent>
+                <TabsContent value="claims" className="pt-3 text-[12px] text-[var(--bp-color-ink-70)]">
+                  Claim list goes here.
+                </TabsContent>
+              </Tabs>
               <Alert variant="warn">
                 <AlertTitle variant="warn">Publication lag</AlertTitle>
                 <AlertDescription>

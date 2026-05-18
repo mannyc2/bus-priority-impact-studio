@@ -33,7 +33,6 @@ export {
   StudioBar,
   StudioFooter,
   StudioMark,
-  Tabs,
   Timeline,
   TreatmentRow,
 } from "./primitives.js";
