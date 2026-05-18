@@ -3,7 +3,6 @@ import { ArrowRight } from "lucide-react";
 import { AiAttribution, KPI, RouteBadge, Spark } from "../../design-system/primitives.js";
 import { Badge } from "@/components/ui/badge";
 import { SearchField } from "@/components/SearchField";
-import { bpiColors } from "../../design-system/tokens.js";
 import { StudioHero, StudioPage, StudioPanel } from "../page.js";
 import { studioRoutes } from "../sample-data.js";
 
@@ -86,7 +85,9 @@ export function RoutesHomePage() {
                   data={route.spark}
                   width={82}
                   height={26}
-                  color={route.speedMph < 5 ? bpiColors.bad : bpiColors.warn}
+                  color={
+                    route.speedMph < 5 ? "var(--bp-color-bad)" : "var(--bp-color-warn)"
+                  }
                   baseline={route.scheduledMph}
                 />
               </div>

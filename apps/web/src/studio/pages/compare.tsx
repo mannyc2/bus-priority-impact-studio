@@ -6,7 +6,6 @@ import {
   Spark,
 } from "../../design-system/primitives.js";
 import { Badge } from "@/components/ui/badge";
-import { bpiColors } from "../../design-system/tokens.js";
 import { StudioHero, StudioPage, StudioPanel } from "../page.js";
 import { getStudioRoute, type StudioRoute } from "../sample-data.js";
 import { NotFoundPage } from "./not-found.js";
@@ -62,7 +61,7 @@ export function ComparePage({ a = "m15-sbs", b = "bx12-sbs" }: { a?: string; b?:
               width={360}
               height={110}
               baseline={routeA.scheduledMph}
-              color={bpiColors.bad}
+              color="var(--bp-color-bad)"
               fill
             />
           </div>
@@ -74,7 +73,7 @@ export function ComparePage({ a = "m15-sbs", b = "bx12-sbs" }: { a?: string; b?:
               width={360}
               height={110}
               baseline={routeB.scheduledMph}
-              color={bpiColors.good}
+              color="var(--bp-color-good)"
               fill
             />
           </div>

@@ -2,7 +2,6 @@ import { Link } from "@tanstack/react-router";
 import { ChevronLeft } from "lucide-react";
 import { HourStrip, RouteBadge, TreatmentRow } from "../../design-system/primitives.js";
 import { Badge } from "@/components/ui/badge";
-import { bpiColors } from "../../design-system/tokens.js";
 import { StudioHero, StudioPage, StudioPanel } from "../page.js";
 import { getStudioRoute, routeSegments } from "../sample-data.js";
 import { NotFoundPage } from "./not-found.js";
@@ -51,7 +50,9 @@ export function RouteLadderPage({ routeSlug }: { routeSlug: string }) {
                     <div className="text-right">
                       <div
                         className="font-mono text-[22px] font-semibold"
-                        style={{ color: bad ? bpiColors.bad : bpiColors.warn }}
+                        style={{
+                          color: bad ? "var(--bp-color-bad)" : "var(--bp-color-warn)",
+                        }}
                       >
                         {segment.speedMph.toFixed(1)}
                       </div>

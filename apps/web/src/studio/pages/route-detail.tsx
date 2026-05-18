@@ -10,7 +10,6 @@ import {
   SegmentRowHeader,
   Spark,
 } from "../../design-system/primitives.js";
-import { bpiColors } from "../../design-system/tokens.js";
 import { StudioHero, StudioPage, StudioPanel } from "../page.js";
 import { getStudioRoute, routeSegments } from "../sample-data.js";
 import { NotFoundPage } from "./not-found.js";
@@ -100,7 +99,7 @@ export function RouteDetailPage({ routeSlug }: { routeSlug: string }) {
               width={480}
               height={120}
               baseline={route.scheduledMph}
-              color={route.speedMph < 5 ? bpiColors.bad : bpiColors.warn}
+              color={route.speedMph < 5 ? "var(--bp-color-bad)" : "var(--bp-color-warn)"}
               fill
             />
           </div>

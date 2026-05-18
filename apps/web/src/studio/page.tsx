@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { bpiColors } from "../design-system/tokens.js";
 
 export function StudioPage({ children, rail }: { children: ReactNode; rail?: ReactNode }) {
   if (rail) {
@@ -60,7 +59,7 @@ export function Rule() {
 }
 
 export function toneForMetric(value: number, warning: number, bad: number): string {
-  if (value <= bad) return bpiColors.bad;
-  if (value <= warning) return bpiColors.warn;
-  return bpiColors.good;
+  if (value <= bad) return "var(--bp-color-bad)";
+  if (value <= warning) return "var(--bp-color-warn)";
+  return "var(--bp-color-good)";
 }

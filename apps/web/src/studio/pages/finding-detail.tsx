@@ -9,7 +9,6 @@ import {
 } from "../../design-system/primitives.js";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { bpiColors } from "../../design-system/tokens.js";
 import { StudioHero, StudioPage, StudioPanel } from "../page.js";
 import { getStudioFinding, getStudioRoute } from "../sample-data.js";
 import { NotFoundPage } from "./not-found.js";
@@ -84,7 +83,7 @@ export function FindingDetailPage({ findingId }: { findingId: string }) {
               width={520}
               height={130}
               baseline={route.scheduledMph}
-              color={bpiColors.accent}
+              color="var(--bp-color-accent)"
               fill
             />
           </div>

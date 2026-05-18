@@ -1,8 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { BookOpen, FileText, GitBranch, RouteIcon, Search, Shapes } from "lucide-react";
 import type { ReactNode } from "react";
-import { StudioMark } from "../design-system/primitives.js";
-import { bpiColors } from "../design-system/tokens.js";
+import { StudioMark } from "@/components/StudioMark";
 
 const navItems = [
   { to: "/", label: "Routes", icon: RouteIcon },
@@ -63,11 +62,11 @@ function StudioNavLink({ item, pathname }: { item: (typeof navItems)[number]; pa
     <Link
       to={item.to}
       viewTransition
-      className="flex h-8 shrink-0 items-center gap-1.5 rounded-[3px] px-2.5 text-[12.5px] no-underline transition-colors"
-      style={{
-        background: active ? bpiColors.ink : "transparent",
-        color: active ? bpiColors.paper : bpiColors.ink55,
-      }}
+      className={`flex h-8 shrink-0 items-center gap-1.5 rounded-[3px] px-2.5 text-[12.5px] no-underline transition-colors ${
+        active
+          ? "bg-[var(--bp-color-ink)] text-[var(--bp-color-paper)]"
+          : "bg-transparent text-[var(--bp-color-ink-55)]"
+      }`}
     >
       <Icon size={14} strokeWidth={1.8} />
       {item.label}
