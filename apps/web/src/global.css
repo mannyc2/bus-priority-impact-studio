@@ -2,12 +2,16 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
-
 :root {
   color-scheme: light;
 
-  /* --- Bus Priority Impact Studio palette --- */
+  /* --- Bus Priority Impact Studio palette ---
+     Four-tier warm-white surface ladder (per tarbell design system):
+     canvas → paper → card → cardRaised. Each tier ~3–4% lighter with
+     consistent warm undertone (hue ~75). Cold #ffffff is never used as
+     a surface; it's reserved for semantic whites (SBS pill outline,
+     map stop dots). */
+  --bp-color-canvas: #f0eee9;
   --bp-color-paper: #f4f1ea;
   --bp-color-paper-deep: #ece7db;
   --bp-color-card: oklch(0.99 0.007 75);
@@ -36,7 +40,7 @@
   --bp-route-express: #00933c;
 
   /* Semantic aliases */
-  --bp-color-background: var(--bp-color-paper);
+  --bp-color-background: var(--bp-color-canvas);
   --bp-color-background-raised: var(--bp-color-card);
   --bp-color-foreground: var(--bp-color-ink);
   --bp-color-foreground-muted: var(--bp-color-ink-70);
@@ -92,7 +96,7 @@
   --duration-exit: 120ms;
   --duration-enter: 180ms;
   --duration-move: 220ms;
-  --background: var(--bp-color-paper);
+  --background: var(--bp-color-canvas);
   --foreground: var(--bp-color-ink);
   --card: var(--bp-color-card);
   --card-foreground: var(--bp-color-ink);
@@ -345,40 +349,6 @@ a {
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
-}
-
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
 }
 
 @layer base {
