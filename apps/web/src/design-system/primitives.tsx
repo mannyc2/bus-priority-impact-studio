@@ -1,27 +1,40 @@
 import type { CSSProperties, ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
+import { DirIndicator } from "@/components/DirIndicator";
+import { LaneGlyph } from "@/components/LaneGlyph";
+import { DotGlyph } from "@/components/DotGlyph";
+import { StrengthBars } from "@/components/StrengthBars";
+import { Cite } from "@/components/Cite";
 import { bpiColors, bpiFonts } from "./tokens.js";
+
+// Re-export shims — consumers still import from primitives.js while the
+// migration to flat components/<X>.tsx is in flight. Removed in Phase 6.
+export { AiAttribution } from "@/components/AiAttribution";
+export { Cite } from "@/components/Cite";
+export { CommentBadge } from "@/components/CommentBadge";
+export { CommentMarker } from "@/components/CommentMarker";
+export { ConfidenceBar } from "@/components/ConfidenceBar";
+export { DirIndicator } from "@/components/DirIndicator";
+export { DotGlyph } from "@/components/DotGlyph";
+export { LaneGlyph } from "@/components/LaneGlyph";
+export { ReviewerChip, ReviewerStack } from "@/components/Reviewers";
+export { SectionHeader } from "@/components/SectionHeader";
+export { StrengthBars } from "@/components/StrengthBars";
+export { StudioBar } from "@/components/StudioBar";
+export { StudioFooter } from "@/components/StudioFooter";
+export { StudioMark } from "@/components/StudioMark";
 
 type Tone = "neutral" | "accent" | "good" | "warn" | "bad";
 type Direction = "NB" | "SB" | "EB" | "WB";
 type LaneState = "yes" | "partial" | "minimal" | "none";
 type KpiSize = "md" | "lg";
 type RouteBadgeSize = "sm" | "md" | "lg" | "xl";
-type ReviewState = "approved" | "requested-changes" | "reviewing" | "idle";
-type StrengthSize = "sm" | "md" | "lg";
 
 const badgeSizes = {
   sm: { h: 18, fs: 10.5, gap: 3, r: 3, w: [24, 32, 40, 50], sbsW: 32 },
   md: { h: 22, fs: 12.5, gap: 4, r: 3, w: [30, 40, 50, 62], sbsW: 40 },
   lg: { h: 28, fs: 15, gap: 5, r: 3, w: [38, 51, 64, 79], sbsW: 51 },
   xl: { h: 36, fs: 19, gap: 6, r: 4, w: [48, 65, 81, 100], sbsW: 65 },
-} as const;
-
-const reviewTone = {
-  approved: bpiColors.good,
-  "requested-changes": bpiColors.bad,
-  reviewing: bpiColors.warn,
-  idle: bpiColors.ink40,
 } as const;
 
 function badgeWidth(widths: readonly [number, number, number, number], charCount: number): number {
@@ -42,30 +55,6 @@ function routeColor(route: string, express: boolean): string {
     return bpiColors.route.express;
   }
   return bpiColors.route.manhattan;
-}
-
-export function StudioMark({
-  size = 22,
-  tone = "dark",
-}: {
-  size?: number;
-  tone?: "dark" | "light";
-}) {
-  const background = tone === "dark" ? bpiColors.ink : bpiColors.paper;
-  const foreground = tone === "dark" ? bpiColors.paper : bpiColors.ink;
-
-  return (
-    <svg width={size} height={size} viewBox="0 0 22 22" aria-hidden="true" className="shrink-0">
-      <rect width="22" height="22" rx="3.5" fill={background} />
-      <rect x="4" y="4.5" width="14" height="13" rx="1.8" fill={foreground} />
-      <rect x="5.5" y="6.5" width="4" height="3" rx="0.6" fill={background} />
-      <rect x="12.5" y="6.5" width="4" height="3" rx="0.6" fill={background} />
-      <rect x="4" y="11.5" width="14" height="0.6" fill={background} opacity="0.35" />
-      <rect x="4" y="14.5" width="14" height="1.6" fill={bpiColors.accent} />
-      <rect x="5.5" y="17.4" width="2.6" height="1.4" rx="0.5" fill={foreground} />
-      <rect x="13.9" y="17.4" width="2.6" height="1.4" rx="0.5" fill={foreground} />
-    </svg>
-  );
 }
 
 export function RouteBadge({
@@ -123,14 +112,6 @@ export function RouteBadge({
         </span>
       ) : null}
     </span>
-  );
-}
-
-export function Cite({ n }: { n: number | string }) {
-  return (
-    <sup className="ml-px cursor-help align-super text-[0.62em] font-semibold leading-none text-[var(--bp-color-accent)]">
-      {n}
-    </sup>
   );
 }
 
@@ -215,20 +196,6 @@ export function HourStrip({
         );
       })}
     </svg>
-  );
-}
-
-export function ConfidenceBar({ value, max = 100 }: { value: number; max?: number }) {
-  const pct = Math.max(0, Math.min(1, value / max));
-  const tone = pct >= 0.72 ? bpiColors.good : pct >= 0.45 ? bpiColors.warn : bpiColors.bad;
-  return (
-    <meter
-      className="block h-1.5 w-full overflow-hidden rounded-[3px] bg-[var(--bp-color-ink-10)]"
-      style={{ accentColor: tone }}
-      value={value}
-      min={0}
-      max={max}
-    />
   );
 }
 
@@ -332,101 +299,6 @@ export function MapThumb({
   );
 }
 
-export function SectionHeader({
-  title,
-  sub,
-  right,
-}: {
-  title: string;
-  sub?: ReactNode;
-  right?: ReactNode;
-}) {
-  return (
-    <div className="mb-3.5 flex items-end justify-between gap-4">
-      <div className="min-w-0">
-        <div className="text-[19px] font-semibold leading-tight tracking-[-0.015em]">{title}</div>
-        {sub ? (
-          <div className="mt-1 max-w-[620px] text-[12.5px] leading-normal text-[var(--bp-color-ink-70)]">
-            {sub}
-          </div>
-        ) : null}
-      </div>
-      {right}
-    </div>
-  );
-}
-
-export function StudioFooter({
-  sources = ["MTA Bus Speeds", "Hourly Ridership", "ACE program", "NYC DOT bus lanes"],
-  updated = "2026-05-12",
-}: {
-  sources?: readonly string[];
-  updated?: string;
-}) {
-  return (
-    <footer className="flex flex-wrap items-center gap-2.5 border-t border-[var(--bp-color-rule)] bg-[var(--bp-color-card)] px-7 py-2.5 text-[11px] text-[var(--bp-color-ink-55)]">
-      <span className="text-[var(--bp-color-ink-40)]">Data</span>
-      {sources.map((source, index) => (
-        <span key={source} className="contents">
-          <span className="text-[var(--bp-color-ink-70)]">{source}</span>
-          {index < sources.length - 1 ? (
-            <span className="text-[var(--bp-color-ink-20)]">·</span>
-          ) : null}
-        </span>
-      ))}
-      <div className="flex-1" />
-      <span className="font-mono">updated {updated}</span>
-      <span className="text-[var(--bp-color-ink-20)]">·</span>
-      <span className="font-semibold text-[var(--bp-color-accent)]">Methodology →</span>
-    </footer>
-  );
-}
-
-export function StudioBar({
-  active,
-  breadcrumb,
-  updated = "2026-05-12",
-}: {
-  active?: "Routes" | "Findings" | "Briefs";
-  breadcrumb?: string;
-  updated?: string;
-}) {
-  return (
-    <header className="flex items-center gap-8 bg-[var(--bp-color-card)] px-7 py-3.5 shadow-[inset_0_-1px_0_var(--bp-color-rule)]">
-      <div className="flex items-center gap-2.5">
-        <StudioMark size={22} />
-        <div className="text-sm font-semibold tracking-[-0.01em]">
-          Bus Priority{" "}
-          <span className="font-normal text-[var(--bp-color-ink-55)]">Impact Studio</span>
-        </div>
-      </div>
-      <nav className="flex gap-[22px] text-[13px]" aria-label="Primary">
-        {(["Routes", "Findings", "Briefs"] as const).map((item) => (
-          <span
-            key={item}
-            className="cursor-pointer pb-0.5"
-            style={{
-              boxShadow: item === active ? `inset 0 -2px 0 ${bpiColors.ink}` : "none",
-              color: item === active ? bpiColors.ink : bpiColors.ink55,
-              fontWeight: item === active ? 600 : 400,
-            }}
-          >
-            {item}
-          </span>
-        ))}
-      </nav>
-      <div className="flex-1" />
-      {breadcrumb ? (
-        <div className="font-mono text-xs text-[var(--bp-color-ink-55)]">{breadcrumb}</div>
-      ) : null}
-      <div className="flex items-center gap-1.5 font-mono text-[11px] text-[var(--bp-color-ink-55)]">
-        <span className="size-1.5 rounded-full bg-[var(--bp-color-good)]" />
-        data current to {updated}
-      </div>
-    </header>
-  );
-}
-
 export function KPI({
   label,
   value,
@@ -482,80 +354,6 @@ export function KPI({
         {trend ? <div className="ml-auto">{trend}</div> : null}
       </div>
       {sub ? <div className="mt-1 text-[11px] text-[var(--bp-color-ink-55)]">{sub}</div> : null}
-    </div>
-  );
-}
-
-export function DirIndicator({ dir, muted = false }: { dir: Direction; muted?: boolean }) {
-  const arrow = { NB: "↑", SB: "↓", EB: "→", WB: "←" }[dir];
-  return (
-    <span
-      className="inline-flex items-baseline gap-[3px] font-mono text-[10.5px] font-bold leading-none tracking-[0.04em]"
-      style={{ color: muted ? bpiColors.ink40 : bpiColors.ink55 }}
-    >
-      <span className="translate-y-px text-[13px] leading-none">{arrow}</span>
-      <span>{dir}</span>
-    </span>
-  );
-}
-
-export function LaneGlyph({ state, label = "LANE" }: { state: LaneState; label?: string }) {
-  const count = state === "yes" ? 3 : state === "partial" ? 2 : state === "minimal" ? 1 : 0;
-  const color =
-    state === "yes"
-      ? bpiColors.good
-      : state === "partial" || state === "minimal"
-        ? bpiColors.warn
-        : bpiColors.ink20;
-  return (
-    <div className="flex flex-col items-center gap-1">
-      <div className="flex h-2.5 gap-[1.5px]">
-        {Array.from({ length: 3 }, (_, index) => (
-          <div
-            key={index}
-            className="h-2.5 w-[5px] rounded-[1px]"
-            style={{
-              background: index < count ? color : "transparent",
-              boxShadow: index < count ? "none" : `inset 0 0 0 1px ${bpiColors.ink20}`,
-            }}
-          />
-        ))}
-      </div>
-      <div className="text-[8.5px] font-bold tracking-[0.08em] text-[var(--bp-color-ink-55)]">
-        {label}
-      </div>
-    </div>
-  );
-}
-
-export function DotGlyph({
-  label,
-  on,
-  tone = "good",
-}: {
-  label: string;
-  on: boolean;
-  tone?: "good" | "accent" | "warn";
-}) {
-  const color =
-    tone === "good" ? bpiColors.good : tone === "accent" ? bpiColors.accent : bpiColors.warn;
-  return (
-    <div className="flex flex-col items-center gap-1">
-      <div className="flex h-2.5 items-center">
-        <div
-          className="size-[9px] rounded-full"
-          style={{
-            background: on ? color : "transparent",
-            boxShadow: on ? "none" : `inset 0 0 0 1.2px ${bpiColors.ink20}`,
-          }}
-        />
-      </div>
-      <div
-        className="text-[8.5px] font-bold tracking-[0.08em]"
-        style={{ color: on ? bpiColors.ink70 : bpiColors.ink40 }}
-      >
-        {label}
-      </div>
     </div>
   );
 }
@@ -1024,46 +822,6 @@ export function HourBars({
   );
 }
 
-export function StrengthBars({
-  strength = 0,
-  max = 5,
-  size = "sm",
-}: {
-  strength?: number;
-  max?: number;
-  size?: StrengthSize;
-}) {
-  const tone =
-    strength >= 4
-      ? bpiColors.good
-      : strength >= 3
-        ? bpiColors.accent
-        : strength >= 2
-          ? bpiColors.warn
-          : bpiColors.bad;
-  const dimensions =
-    size === "lg"
-      ? { pip: 14, h: 4, gap: 2.5 }
-      : size === "md"
-        ? { pip: 10, h: 3, gap: 2 }
-        : { pip: 7, h: 3, gap: 1.5 };
-  return (
-    <div className="inline-flex items-center" style={{ gap: dimensions.gap }}>
-      {Array.from({ length: max }, (_, index) => (
-        <div
-          key={index}
-          className="rounded-[1px]"
-          style={{
-            background: index < strength ? tone : bpiColors.ink10,
-            height: dimensions.h,
-            width: dimensions.pip,
-          }}
-        />
-      ))}
-    </div>
-  );
-}
-
 export function ClaimRow({
   n,
   title,
@@ -1215,78 +973,3 @@ export function ClaimList({
   );
 }
 
-export function ReviewerChip({ initials, state }: { initials: string; state: ReviewState }) {
-  return (
-    <span
-      className="inline-flex size-7 items-center justify-center rounded-full bg-[var(--bp-color-paper)] text-[10.5px] font-bold text-[var(--bp-color-ink)]"
-      style={{ boxShadow: `inset 0 0 0 1.5px ${reviewTone[state]}, 0 0 0 1.5px white` }}
-      title={state}
-    >
-      {initials}
-    </span>
-  );
-}
-
-export function ReviewerStack({
-  reviewers,
-}: {
-  reviewers: ReadonlyArray<{ initials: string; state: ReviewState }>;
-}) {
-  return (
-    <span className="inline-flex">
-      {reviewers.map((reviewer, index) => (
-        <span
-          key={`${reviewer.initials}-${reviewer.state}`}
-          style={{ marginLeft: index === 0 ? 0 : -8 }}
-        >
-          <ReviewerChip initials={reviewer.initials} state={reviewer.state} />
-        </span>
-      ))}
-    </span>
-  );
-}
-
-export function CommentBadge({ count }: { count: number }) {
-  const warning = count >= 3;
-  return (
-    <span
-      className="inline-flex items-center gap-[3px] rounded-[10px] px-[7px] py-0.5 text-[10.5px] font-bold"
-      style={{
-        background: warning ? bpiColors.warnBg : bpiColors.ink06,
-        color: warning ? bpiColors.warn : bpiColors.ink70,
-      }}
-      title={`${count} comment${count === 1 ? "" : "s"}`}
-    >
-      <svg width="9" height="9" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true">
-        <path d="M2 2h8a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H6l-3 2V9H2a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z" />
-      </svg>
-      {count}
-    </span>
-  );
-}
-
-export function CommentMarker({ children, marker }: { children: ReactNode; marker: string }) {
-  return (
-    <>
-      <span
-        className="px-0.5"
-        style={{ background: bpiColors.warnBg, borderBottom: `1.5px solid ${bpiColors.warn}` }}
-      >
-        {children}
-      </span>
-      <sup className="ml-px text-[9px] font-bold text-[var(--bp-color-accent)]">{marker}</sup>
-    </>
-  );
-}
-
-export function AiAttribution({ children, action }: { children: ReactNode; action?: ReactNode }) {
-  return (
-    <div className="flex items-start gap-3 rounded-[3px] bg-[var(--bp-color-accent-bg)] p-3 text-[12.5px] leading-normal text-[var(--bp-color-ink)] shadow-[inset_0_0_0_1px_oklch(0.88_0.07_252)]">
-      <span className="mt-0.5 shrink-0 font-mono text-[10px] font-bold text-[var(--bp-color-accent)]">
-        ◆
-      </span>
-      <div className="min-w-0 flex-1">{children}</div>
-      {action ? <div className="shrink-0">{action}</div> : null}
-    </div>
-  );
-}

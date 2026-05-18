@@ -1,25 +1,28 @@
+export { AiAttribution } from "@/components/AiAttribution";
+export { Cite } from "@/components/Cite";
+export { CommentBadge } from "@/components/CommentBadge";
+export { CommentMarker } from "@/components/CommentMarker";
+export { ConfidenceBar } from "@/components/ConfidenceBar";
+export { DirIndicator } from "@/components/DirIndicator";
+export { DotGlyph } from "@/components/DotGlyph";
+export { LaneGlyph } from "@/components/LaneGlyph";
+export { ReviewerChip, ReviewerStack } from "@/components/Reviewers";
+export { SectionHeader } from "@/components/SectionHeader";
+export { StrengthBars } from "@/components/StrengthBars";
+export { StudioBar } from "@/components/StudioBar";
+export { StudioFooter } from "@/components/StudioFooter";
+export { StudioMark } from "@/components/StudioMark";
 export {
-  AiAttribution,
   BeforeAfter,
   ChartFrame,
-  Cite,
   ClaimList,
   ClaimRow,
-  CommentBadge,
-  CommentMarker,
-  ConfidenceBar,
-  DirIndicator,
-  DotGlyph,
   Heatmap,
   HourBars,
   HourStrip,
   KPI,
-  LaneGlyph,
   MapThumb,
-  ReviewerChip,
-  ReviewerStack,
   RouteBadge,
-  SectionHeader,
   SegmentRow,
   SegmentRowHeader,
   Skeleton,
@@ -27,10 +30,6 @@ export {
   SkeletonSegmentRow,
   SkeletonText,
   Spark,
-  StrengthBars,
-  StudioBar,
-  StudioFooter,
-  StudioMark,
   Timeline,
   TreatmentRow,
 } from "./primitives.js";
