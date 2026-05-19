@@ -9,14 +9,18 @@ Usage:
 Default mode is dry-run: commands are printed but not executed.
 
 Publishes one generated serving release:
-  1. applies data/exports/d1/YYYY-MM/schema.sql to Cloudflare D1
-  2. applies data/exports/d1/YYYY-MM/seed.sql to Cloudflare D1
-  3. uploads selected data/artifacts release files to Cloudflare R2
+  1. applies data/exports/d1/YYYY-MM/schema.sql to Cloudflare D1 (via wrangler)
+  2. applies data/exports/d1/YYYY-MM/seed.sql to Cloudflare D1 (via wrangler)
+  3. uploads release artifacts to R2 via the S3-compatible API
+     (idempotent, resumable, parallel — see tools/pipeline publish:r2-artifacts)
 
 When --appendix-month is provided, additionally:
   4. applies data/exports/d1/APPENDIX-MONTH/seed.appendix.sql to Cloudflare D1
      (observed-reliability rows only; no schema; no extra R2 uploads beyond what
      the canonical artifact globs already cover).
+
+Required environment (for the R2 step):
+  R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_ENDPOINT
 
 This is intentionally a one-shot promotion script, not a cron job.
 USAGE
@@ -131,13 +135,31 @@ run() {
   done
   printf '\n'
 
-  if [ "$execute" -eq 1 ]; then
-    if [ -n "$account_id" ]; then
-      CLOUDFLARE_ACCOUNT_ID="$account_id" "$@"
-    else
-      "$@"
-    fi
+  if [ "$execute" -eq 0 ]; then
+    return 0
   fi
+
+  # Retry transient failures (R2 502s, network blips) with exponential backoff.
+  # Each individual wrangler call retries up to 3 times before giving up.
+  attempt=1
+  max_attempts=3
+  while : ; do
+    if [ -n "$account_id" ]; then
+      CLOUDFLARE_ACCOUNT_ID="$account_id" "$@" && return 0
+    else
+      "$@" && return 0
+    fi
+    rc=$?
+    if [ "$attempt" -ge "$max_attempts" ]; then
+      printf 'run: failed after %s attempts (exit %s)\n' "$attempt" "$rc" >&2
+      return "$rc"
+    fi
+    backoff=$((attempt * 5))
+    printf 'run: retrying in %ss (attempt %s/%s, last exit %s)\n' \
+      "$backoff" "$attempt" "$max_attempts" "$rc" >&2
+    sleep "$backoff"
+    attempt=$((attempt + 1))
+  done
 }
 
 if [ "$skip_schema" -eq 0 ]; then
@@ -152,32 +174,30 @@ fi
 # Pre-flight: every R2 key declared by the brief/evaluation manifests must
 # exist locally. Fails closed: if a manifest entry has no local body we stop
 # before publishing rows that would point at missing R2 objects.
-completeness_keys=$(bun run tools/pipeline/src/checks/check-publish-completeness.ts \
-  --month "$month" --emit-keys)
-completeness_exit=$?
-if [ "$completeness_exit" -ne 0 ]; then
+if ! bun run tools/pipeline/src/checks/check-publish-completeness.ts --month "$month" >/dev/null; then
   printf 'Publish completeness check failed for %s; aborting.\n' "$month" >&2
-  exit "$completeness_exit"
+  exit 1
 fi
 
-# Manifest-driven uploads (brief bodies, evaluation payloads) — explicit list,
-# nothing skipped by glob shape.
-printf '%s\n' "$completeness_keys" | while IFS= read -r key; do
-  [ -z "$key" ] && continue
-  run bunx wrangler r2 object put --remote --file "data/artifacts/$key" "$r2_bucket/$key"
-done
-
-# Prefix-driven uploads (map artifacts, studio projections, audits, source
-# availability) — these don't have D1-referenced bodies, so a glob is safe.
-find data/artifacts \
-  \( -path "data/artifacts/map/*" \
-  -o -path "data/artifacts/studio/*" \
-  -o -path "data/artifacts/source-availability/*" \
-  -o -path "data/artifacts/pipeline-v1/*" \) \
-  -type f | sort | while IFS= read -r file; do
-    key="${file#data/artifacts/}"
-    run bunx wrangler r2 object put --remote --file "$file" "$r2_bucket/$key"
-  done
+# R2 uploads via the S3-compatible API: idempotent (HEAD-then-PUT, skips when
+# remote size+etag match), resumable (re-running picks up where it left off),
+# and parallel (default concurrency=16). Requires R2_ACCESS_KEY_ID,
+# R2_SECRET_ACCESS_KEY, and R2_ENDPOINT in the environment. In shell dry-run
+# mode we pass --dry-run through so the idempotency check is still exercised
+# against the live bucket (HEADs are Class B operations, effectively free).
+# Invoke from the repo root so Bun auto-loads the repo-root .env (which holds
+# R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY / R2_ENDPOINT). `bun run --cwd …`
+# changes the cwd before env loading and would miss it.
+if [ "$execute" -eq 0 ]; then
+  bun run tools/pipeline/src/cli.ts publish:r2-artifacts \
+    --month "$month" \
+    --bucket "$r2_bucket" \
+    --dry-run
+else
+  bun run tools/pipeline/src/cli.ts publish:r2-artifacts \
+    --month "$month" \
+    --bucket "$r2_bucket"
+fi
 
 if [ "$execute" -eq 0 ]; then
   if [ -n "$appendix_month" ]; then

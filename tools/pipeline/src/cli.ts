@@ -266,8 +266,7 @@ const commands = {
     },
   },
   "audit:studio-coverage": {
-    description:
-      "Audit Studio v1 projection coverage versus local D1 route/brief/observed data.",
+    description: "Audit Studio v1 projection coverage versus local D1 route/brief/observed data.",
     run: async (args) => {
       const { auditStudioCoverageFromCli } = await import("./jobs/audit/studio-coverage.js");
       return auditStudioCoverageFromCli(args);
@@ -294,6 +293,14 @@ const commands = {
     run: async (args) => {
       const { verifyD1ExportFromCli } = await import("./jobs/export/verify-d1-export.js");
       return verifyD1ExportFromCli(args);
+    },
+  },
+  "publish:r2-artifacts": {
+    description:
+      "Idempotently upload release artifacts to R2 via the S3-compatible API (HEAD-then-PUT, parallel, resumable).",
+    run: async (args) => {
+      const { publishR2ArtifactsFromCli } = await import("./jobs/publish/publish-r2-artifacts.js");
+      return publishR2ArtifactsFromCli(args);
     },
   },
   "check:pipeline-v1": {
