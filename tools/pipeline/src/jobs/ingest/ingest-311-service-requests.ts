@@ -84,7 +84,13 @@ export async function ingest311ServiceRequests(args: Args = {}): Promise<Result>
   const rawPath = join(rawDir, `311-${era}-${monthKey}.json`);
 
   const rawRows = await fetchRows(source, options.year, options.month, args.fetcher, complaintTypes);
-  const rows = normalize311ServiceRequestRows(rawRows, era);
+  const rows = normalize311ServiceRequestRows(rawRows, era).map((r) => ({
+    ...r,
+    // Geocode columns are populated by the geocode job and preserved on
+    // re-ingest via ON CONFLICT.
+    physicalId: null,
+    geocodeConfidence: null,
+  }));
 
   await withLocalPipelineDb(args.dbPath, (local) => upsert311ServiceRequests(local.db, rows));
 

@@ -80,7 +80,13 @@ export async function ingestParkingViolations(args: Args = {}): Promise<Result> 
   const rawPath = join(rawDir, `parking-violations-${monthKey}.json`);
 
   const rawRows = await fetchRows(source, options.year, options.month, args.fetcher, codes);
-  const rows = normalizeParkingViolationRows(rawRows);
+  const rows = normalizeParkingViolationRows(rawRows).map((r) => ({
+    ...r,
+    // Geocode columns are populated by the geocode job and preserved on
+    // re-ingest via ON CONFLICT.
+    physicalId: null,
+    geocodeConfidence: null,
+  }));
 
   await withLocalPipelineDb(args.dbPath, (local) => upsertParkingViolations(local.db, rows));
 

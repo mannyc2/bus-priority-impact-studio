@@ -25,7 +25,13 @@ type AceViolationIngestResult = {
   routeCount: number;
   groupedRowCount: number;
   violationCount: number;
+  skippedMalformedRouteIdCount: number;
 };
+
+// Source occasionally emits malformed bus_route_id values (e.g. "Q44?+").
+// Domain RouteIdCodec strictly rejects those; rather than fail the whole month
+// we drop the offending rows and surface the count in the result.
+const ROUTE_ID_PATTERN = /^[A-Z][A-Z0-9+-]*$/;
 
 function parseCliArgs(args: string[]): AceViolationIngestArgs {
   return parseMonthDbCliArgs(args, {} as AceViolationIngestArgs);
@@ -68,7 +74,12 @@ export async function ingestAceViolationSummary(
     options.month,
     args.fetcher,
   );
-  const rows = normalizeAceViolationSummaryRows(rawRows);
+  const filteredRawRows = rawRows.filter((row) => {
+    const id = typeof row["bus_route_id"] === "string" ? row["bus_route_id"].trim().toUpperCase() : "";
+    return ROUTE_ID_PATTERN.test(id);
+  });
+  const skippedMalformedRouteIdCount = rawRows.length - filteredRawRows.length;
+  const rows = normalizeAceViolationSummaryRows(filteredRawRows);
   const routeIds = [...new Set(rows.map((row) => row.routeId))].sort();
   const violationCount = rows.reduce((sum, row) => sum + row.violationCount, 0);
   await withLocalPipelineDb(options.dbPath, (local) =>
@@ -97,6 +108,7 @@ export async function ingestAceViolationSummary(
     routeCount: routeIds.length,
     groupedRowCount: rows.length,
     violationCount,
+    skippedMalformedRouteIdCount,
   };
 }
 

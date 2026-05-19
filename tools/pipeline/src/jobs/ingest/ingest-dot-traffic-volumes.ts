@@ -47,7 +47,12 @@ export async function ingestDotTrafficVolumes(args: Args = {}): Promise<Result> 
   const rawPath = join(rawDir, `dot-traffic-volumes-${monthKey}.json`);
 
   const rawRows = await fetchRows(source, options.year, options.month, args.fetcher);
-  const rows = normalizeDotTrafficVolumeRows(rawRows);
+  const rows = normalizeDotTrafficVolumeRows(rawRows).map((r) => ({
+    ...r,
+    // Set by geocode:traffic-volumes; preserved on re-ingest via ON CONFLICT.
+    physicalId: null,
+    geocodeConfidence: null,
+  }));
 
   await withLocalPipelineDb(args.dbPath, (local) => insertDotTrafficVolumeCounts(local.db, rows));
 

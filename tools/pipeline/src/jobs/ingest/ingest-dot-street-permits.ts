@@ -21,6 +21,10 @@ type Args = {
   fetcher?: SocrataFetch;
   dbPath?: string;
   kind?: PermitKind;
+  // Backfill mode: read the rows from a local raw snapshot file instead of
+  // hitting Socrata. Used when re-running normalization against an existing
+  // raw capture (e.g. after schema changes).
+  fromSnapshot?: string;
 };
 
 type Result = { rawPath: string; isoMonth: string; rowCount: number; kind: PermitKind };
@@ -38,10 +42,17 @@ function stripFlag(args: string[], flag: string): { rest: string[]; value: strin
 }
 
 function parseCliArgs(args: string[]): Args {
-  const { rest, value } = stripFlag(args, "--kind");
-  const base = parseMonthDbCliArgs(rest, {} as Args);
-  const kind = value === "construction" || value === "opening" ? (value as PermitKind) : undefined;
-  return kind === undefined ? base : { ...base, kind };
+  const afterKind = stripFlag(args, "--kind");
+  const afterSnap = stripFlag(afterKind.rest, "--from-snapshot");
+  const base = parseMonthDbCliArgs(afterSnap.rest, {} as Args);
+  const out: Args = { ...base };
+  if (afterKind.value === "construction" || afterKind.value === "opening") {
+    out.kind = afterKind.value;
+  }
+  if (afterSnap.value !== undefined) {
+    out.fromSnapshot = afterSnap.value;
+  }
+  return out;
 }
 
 async function fetchRows(
@@ -71,19 +82,36 @@ export async function ingestDotStreetPermits(args: Args = {}): Promise<Result> {
   const rawDir = fromRepoRoot(join("data/raw/dot-permits"));
   const rawPath = join(rawDir, `dot-${kind}-permits-${monthKey}.json`);
 
-  const rawRows = await fetchRows(source, options.year, options.month, args.fetcher);
-  const rows = normalizeDotStreetPermitRows(rawRows, kind);
+  let rawRows: SocrataRow[];
+  if (args.fromSnapshot) {
+    const snap = (await Bun.file(args.fromSnapshot).json()) as { rows?: unknown };
+    rawRows = (Array.isArray(snap.rows) ? snap.rows : []) as SocrataRow[];
+  } else {
+    rawRows = await fetchRows(source, options.year, options.month, args.fetcher);
+  }
+
+  const rows = normalizeDotStreetPermitRows(rawRows, kind).map((r) => ({
+    ...r,
+    // Geocode columns are set by the geocode job and preserved on
+    // re-ingest via ON CONFLICT.
+    physicalId: null,
+    geocodeConfidence: null,
+  }));
 
   await withLocalPipelineDb(args.dbPath, (local) => upsertDotStreetPermits(local.db, rows));
 
-  await writeRawSourceSnapshot({
-    path: rawPath,
-    sourceId,
-    extra: { isoMonth: monthKey, kind },
-    fetchedAt,
-    query: { grain: "permit_number", month: monthKey },
-    rows: rawRows,
-  });
+  // Skip raw-snapshot rewrite in backfill mode; the snapshot we just read
+  // from is the authoritative input.
+  if (!args.fromSnapshot) {
+    await writeRawSourceSnapshot({
+      path: rawPath,
+      sourceId,
+      extra: { isoMonth: monthKey, kind },
+      fetchedAt,
+      query: { grain: "permit_number", month: monthKey },
+      rows: rawRows,
+    });
+  }
 
   return { rawPath, isoMonth: monthKey, rowCount: rows.length, kind };
 }

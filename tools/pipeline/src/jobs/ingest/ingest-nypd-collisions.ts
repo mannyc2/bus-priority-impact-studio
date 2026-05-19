@@ -51,7 +51,13 @@ export async function ingestNypdCollisions(args: Args = {}): Promise<Result> {
   const rawPath = join(rawDir, `nypd-collisions-${monthKey}.json`);
 
   const rawRows = await fetchRows(source, options.year, options.month, args.fetcher);
-  const rows = normalizeNypdCollisionRows(rawRows);
+  const rows = normalizeNypdCollisionRows(rawRows).map((r) => ({
+    ...r,
+    // Ingest doesn't know geocode results; the geocode job populates these,
+    // and ON CONFLICT preserves them on re-ingest.
+    physicalId: null,
+    geocodeConfidence: null,
+  }));
 
   await withLocalPipelineDb(args.dbPath, (local) => upsertNypdCollisions(local.db, rows));
 

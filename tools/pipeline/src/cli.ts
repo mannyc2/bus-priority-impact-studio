@@ -1,3 +1,10 @@
+import { loadRepoRootEnv } from "./lib/env.js";
+
+// Load the canonical repo-root .env so `bun --filter` runs (CWD =
+// tools/pipeline) still see API keys and credentials defined at the
+// monorepo root.
+loadRepoRootEnv();
+
 type CommandHandler = (args: string[]) => Promise<unknown>;
 
 type Command = {
@@ -82,6 +89,15 @@ const commands = {
       return checkBusObservatoryAvailabilityFromCli(args);
     },
   },
+  "check:bus-observatory-gtfs-rt-range": {
+    description: "Check Bus Observatory GTFS-RT availability across a month range (--since YYYY-MM --until YYYY-MM).",
+    run: async (args) => {
+      const { checkBusObservatoryAvailabilityRangeFromCli } = await import(
+        "./jobs/check/bus-observatory-availability-range.js"
+      );
+      return checkBusObservatoryAvailabilityRangeFromCli(args);
+    },
+  },
   "import:bus-observatory-gtfs-rt": {
     description: "Import canonical Bus Observatory GTFS-RT CSV rows into local GTFS-RT tables.",
     run: async (args) => {
@@ -100,6 +116,15 @@ const commands = {
       return importBusObservatoryReliabilitySummaryFromCli(args);
     },
   },
+  "backfill:bus-observatory-range": {
+    description: "End-to-end backfill of Bus Observatory recovered GTFS-RT for a month range (--since YYYY-MM --until YYYY-MM [--concurrency N]). Generates DuckDB SQL, streams parquets from S3, imports samples+snapshots, builds reliability summaries.",
+    run: async (args) => {
+      const { backfillBusObservatoryRangeFromCli } = await import(
+        "./jobs/ingest/backfill-bus-observatory-range.js"
+      );
+      return backfillBusObservatoryRangeFromCli(args);
+    },
+  },
   "import:bus-observatory-headway-samples": {
     description: "Import chunked Bus Observatory recovered headway samples and run evidence.",
     run: async (args) => {
@@ -114,6 +139,15 @@ const commands = {
     run: async (args) => {
       const { buildSourceRefreshPlanFromCli } = await import("./jobs/check/source-refresh-plan.js");
       return buildSourceRefreshPlanFromCli(args);
+    },
+  },
+  "backfill:socrata-range": {
+    description: "Backfill Socrata-backed sources across a month range (--since/--until YYYY-MM --sources nypd-collisions,ace-violations,...).",
+    run: async (args) => {
+      const { backfillSocrataRangeFromCli } = await import(
+        "./jobs/ingest/backfill-socrata-range.js"
+      );
+      return backfillSocrataRangeFromCli(args);
     },
   },
   "ingest:ace-violations": {
@@ -155,6 +189,14 @@ const commands = {
       return ingestDotStreetPermitsFromCli(args);
     },
   },
+  "ingest:noaa-weather": {
+    description:
+      "Fetch NOAA GHCN-Daily observations for NYC stations (--since YYYY-MM-DD --until YYYY-MM-DD).",
+    run: async (args) => {
+      const { ingestNoaaWeatherFromCli } = await import("./jobs/ingest/ingest-noaa-weather.js");
+      return ingestNoaaWeatherFromCli(args);
+    },
+  },
   "ingest:dot-traffic-volumes": {
     description:
       "Fetch NYC DOT automated traffic volume counts (per segment × 15-min) for a year+month.",
@@ -192,6 +234,95 @@ const commands = {
         "./jobs/ingest/ingest-parking-violations.js"
       );
       return ingestParkingViolationsFromCli(args);
+    },
+  },
+  "check:spatialite": {
+    description: "Verify mod_spatialite loads into the local pipeline DB and report its version.",
+    run: async (args) => {
+      const { checkSpatialiteFromCli } = await import("./jobs/check/check-spatialite.js");
+      return checkSpatialiteFromCli(args);
+    },
+  },
+  "build:lion-geometry-index": {
+    description: "Materialize LION segment WKT into spatialite geometries with an R-tree index.",
+    run: async (args) => {
+      const { buildLionGeometryIndexFromCli } = await import(
+        "./jobs/build/build-lion-geometry-index.js"
+      );
+      return buildLionGeometryIndexFromCli(args);
+    },
+  },
+  "build:route-shape-geometry-index": {
+    description: "Materialize MTA route shapes into spatialite MultiLineStrings with an R-tree index.",
+    run: async (args) => {
+      const { buildRouteShapeGeometryIndexFromCli } = await import(
+        "./jobs/build/build-route-shape-geometry-index.js"
+      );
+      return buildRouteShapeGeometryIndexFromCli(args);
+    },
+  },
+  "build:route-lion-link": {
+    description: "Compute the route ⇄ LION corridor lookup via ST_Buffer + ST_Intersects.",
+    run: async (args) => {
+      const { buildRouteLionLinkFromCli } = await import("./jobs/build/build-route-lion-link.js");
+      return buildRouteLionLinkFromCli(args);
+    },
+  },
+  "geocode:311": {
+    description: "Attach LION physical_id to 311 service-request rows via lat/lng snap + Geoclient.",
+    run: async (args) => {
+      const { geocode311FromCli } = await import("./jobs/geocode/geocode-311.js");
+      return geocode311FromCli(args);
+    },
+  },
+  "geocode:nypd-collisions": {
+    description: "Attach LION physical_id to NYPD collision rows via lat/lng snap + Geoclient.",
+    run: async (args) => {
+      const { geocodeNypdCollisionsFromCli } = await import(
+        "./jobs/geocode/geocode-nypd-collisions.js"
+      );
+      return geocodeNypdCollisionsFromCli(args);
+    },
+  },
+  "geocode:parking-violations": {
+    description: "Attach LION physical_id to parking-violation rows via Geoclient address lookup.",
+    run: async (args) => {
+      const { geocodeParkingViolationsFromCli } = await import(
+        "./jobs/geocode/geocode-parking-violations.js"
+      );
+      return geocodeParkingViolationsFromCli(args);
+    },
+  },
+  "geocode:permits": {
+    description: "Attach LION physical_id to DOT street-permit rows via address + intersection lookups.",
+    run: async (args) => {
+      const { geocodePermitsFromCli } = await import("./jobs/geocode/geocode-permits.js");
+      return geocodePermitsFromCli(args);
+    },
+  },
+  "geocode:traffic-volumes": {
+    description: "Attach LION physical_id to DOT traffic-volume rows via Geoclient intersection lookup.",
+    run: async (args) => {
+      const { geocodeTrafficVolumesFromCli } = await import(
+        "./jobs/geocode/geocode-traffic-volumes.js"
+      );
+      return geocodeTrafficVolumesFromCli(args);
+    },
+  },
+  "geocode:traffic-speeds": {
+    description: "Attach LION physical_id to DOT traffic-speed rows via lat/lng snap of link_points.",
+    run: async (args) => {
+      const { geocodeTrafficSpeedsFromCli } = await import(
+        "./jobs/geocode/geocode-traffic-speeds.js"
+      );
+      return geocodeTrafficSpeedsFromCli(args);
+    },
+  },
+  "build:context-events": {
+    description: "Materialize geocoded context-source rows into local_context_event.",
+    run: async (args) => {
+      const { buildContextEventsFromCli } = await import("./jobs/build/build-context-events.js");
+      return buildContextEventsFromCli(args);
     },
   },
   "ingest:lion-centerline": {

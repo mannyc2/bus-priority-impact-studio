@@ -97,7 +97,14 @@ export async function ingestDotTrafficSpeeds(
       latestByLink.set(row.linkId, row);
     }
   }
-  const rows = [...latestByLink.values()].sort((a, b) => a.linkId.localeCompare(b.linkId));
+  const rows = [...latestByLink.values()]
+    .sort((a, b) => a.linkId.localeCompare(b.linkId))
+    .map((r) => ({
+      ...r,
+      // Set by geocode:traffic-speeds; preserved on re-ingest via ON CONFLICT.
+      physicalId: null,
+      geocodeConfidence: null,
+    }));
 
   const sampledAt = rows.length > 0 ? rows.map((r) => r.sampledAt).sort().at(-1)! : fetchedAt;
 
