@@ -10,6 +10,12 @@ build/
 !.env.example
 .DS_Store
 
+# Claude Code local scheduler state.
+.claude/
+
+# Vendor API specs downloaded ad hoc during integration; not source-of-truth.
+geoclient-current-v2*.yaml
+
 # Local/generated data. Keep fixtures small and intentional.
 data/raw/*
 data/working/*
