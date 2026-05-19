@@ -36,6 +36,8 @@ Priority sources:
 - Store source summaries in `raw/notes/` and durable synthesis in `wiki/data/` / `wiki/analysis/`.
 - For large PDFs, store metadata and targeted excerpts; avoid dumping entire documents into prompts.
 - Every answer should show source links and page/document dates where possible.
+- Use [[wiki/engineering/tier_2_document_corpus_pipeline|Tier 2 Document Corpus Pipeline]] for
+  detector-facing capture, chunking, extraction, validation, and promotion rules.
 
 ## LLM-assisted intake
 
@@ -84,3 +86,4 @@ The LLM should not:
 - https://www.mta.info/agency/new-york-city-transit/automated-camera-enforcement — verified_at: 2026-04-26
 - [[wiki/engineering/llm_wiki_rag|LLM Wiki + RAG Layer]] — verified_at: 2026-05-18
 - [[wiki/analysis/finding_coverage_and_corpus_expansion|Finding Coverage and Corpus Expansion]] — verified_at: 2026-05-18
+- [[wiki/engineering/tier_2_document_corpus_pipeline|Tier 2 Document Corpus Pipeline]] — verified_at: 2026-05-19

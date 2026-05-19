@@ -2,6 +2,12 @@
 
 Read this file first. It is the navigation layer for the LLM wiki.
 
+## Architecture decisions (ADRs)
+
+ADRs live in `docs/decisions/` (not under `knowledge/wiki/`). Notable: 0007
+adopts spatialite as a loadable SQLite extension in the local pipeline only,
+for route ⇄ LION corridor joins.
+
 ## Project pages
 
 - [[wiki/project/overview|Project overview]] — Product thesis, goals, and non-goals.
@@ -46,6 +52,7 @@ Read this file first. It is the navigation layer for the LLM wiki.
 - [[wiki/engineering/generated_cli_distribution_plan|Generated CLI and distribution plan]] — Cloudflare-style runtime schema/codegen pipeline, compiled Bun CLI binary release manifest, package-manager wrappers, guard rails, and rollback.
 - [[wiki/engineering/map_strategy|Map strategy]] — MapLibre, GeoJSON/PMTiles artifacts, NYC scope, and map package responsibilities.
 - [[wiki/engineering/llm_wiki_rag|LLM wiki + RAG layer]] — How the persistent wiki and cited answer layer should work.
+- [[wiki/engineering/tier_2_document_corpus_pipeline|Tier 2 document corpus pipeline]] — Plan for intervention/policy document capture, extraction, validation, and detector integration.
 - [[wiki/engineering/cli_commands|CLI commands]] — TypeScript `/pipeline` command targets for source probes, ingest, analytics builds, exports, and wiki linting.
 - [[wiki/engineering/testing_standards|Testing standards]] — Bun-first tests, TDD loop, Zod contracts, optimized pre-push hooks, and Cloudflare Worker production harnesses.
 - [[wiki/engineering/source_linting|Source linting]] — Required checks before source-backed claims.
@@ -95,8 +102,8 @@ Read this file first. It is the navigation layer for the LLM wiki.
 10. Start the post-v1 finding coverage track: emit detector considered/hit/skipped counts, source-gap
     findings, join success metrics, and a Tier 1 corpus probe backlog before claiming that quiet
     routes/corridors have no issues.
-11. Add LLM-assisted corpus extraction for policy documents and source discovery, but keep
-    source promotion, entity linking, metric computation, and publish validation deterministic.
+11. Add the Tier 2 document corpus pipeline for policy/intervention documents, but keep source
+    promotion, entity linking, metric computation, and publish validation deterministic.
 12. Route score uses a two-factor formula; incorporate ridership weight, persistence, reliability,
     and intervention gap or demote score behind brief evidence.
 13. Keep the MVP TypeScript-only and D1 as a compact serving projection unless a documented

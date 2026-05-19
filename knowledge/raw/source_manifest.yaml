@@ -346,7 +346,13 @@ sources:
     columns_json: https://data.cityofnewyork.us/api/views/9jic-byiu/columns.json
     rows_csv: https://data.cityofnewyork.us/api/views/9jic-byiu/rows.csv?accessType=DOWNLOAD
     purpose: NYC DOT street opening (utility/excavation) permits with effective work windows.
-    status: active
+    status: alias_of_construction_permits
+    notes: |
+      Empirically identical to nyc_dot_street_construction_permits (tqtj-sjs8) —
+      both endpoints serve the same underlying permit table. The construction
+      vs opening distinction lives on the row in permit_type_desc;
+      classifyPermitKind (packages/sources/src/nyc-dot/street-permits.ts)
+      derives it at ingest. Do not double-ingest.
 
   - id: nyc_dot_traffic_volume_counts
     type: socrata_dataset
@@ -419,3 +425,21 @@ sources:
     rows_csv: https://data.cityofnewyork.us/api/views/inkn-q76z/rows.csv?accessType=DOWNLOAD
     purpose: NYC Centerline (LION) street segments — stable physical_id for joining DOT permits, 311, parking, traffic volume, and bus-route street refs.
     status: active
+
+  - id: noaa_ghcn_daily_nyc
+    type: file_download
+    priority: secondary
+    domain: ncei.noaa.gov
+    url: https://www.ncei.noaa.gov/data/global-historical-climatology-network-daily/access/
+    purpose: NOAA GHCN-Daily weather observations for NYC stations (Central Park, LaGuardia, JFK). Used as a confounder control when interpreting bus reliability dips (storm days, heavy snow, extreme heat).
+    stations:
+      - id: USW00094728
+        name: NY CITY CENTRAL PARK
+      - id: USW00014732
+        name: NY LA GUARDIA AP
+      - id: USW00094789
+        name: JFK INTERNATIONAL
+    status: active
+    notes: |
+      One CSV per station, ~17 MB for the full archive back to the station start
+      date. No API key required. Ingest filters to a date window before upsert.

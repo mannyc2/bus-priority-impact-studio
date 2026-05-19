@@ -326,6 +326,18 @@ Start with this order:
 - Large source downloads.
 - Experiment notebooks or one-off diagnostics, if added later.
 
+## Local spatialite (allowed; not hosted PostGIS)
+
+`tools/pipeline` loads `mod_spatialite` into the local SQLite database for the
+route ⇄ LION corridor join and for nearest-segment snapping during address
+geocoding. Spatialite is offline, local-only, and never reaches D1 or the
+Worker — the output is a flat `local_route_lion_link` lookup table. See
+ADR `docs/decisions/0007-spatialite-for-local-geo-joins.md`. Local dev
+requires `libsqlite3-mod-spatialite` (apt/brew/nix).
+
+This does **not** count as hosted PostGIS — it is a SQLite extension and
+stays inside the pipeline package.
+
 ## What actually forces hosted Postgres/PostGIS
 
 Postgres/PostGIS is not needed for the first public demo. It becomes useful when:

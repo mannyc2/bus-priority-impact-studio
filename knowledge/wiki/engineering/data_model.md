@@ -221,6 +221,45 @@ Expected fields:
 
 The March 2026 live artifact has 381 rows after the first planned-batch expansion: 20 selected for the next batch at the default limit, 7 already built, 323 eligible backlog routes, and 31 blocked routes. The refreshed selected route list starts with `M125`, `BX35`, `M8`, `BX32`, and `M106`.
 
+### Local finding detector tables
+
+Post-v1 finding detection is local-pipeline state first. The public Worker should not run
+detectors and D1 should not become the detector warehouse.
+
+Current local tables:
+
+- `local_context_event`
+- `local_finding_candidate`
+- `local_finding_evidence_link`
+- `local_finding_coverage_audit`
+- `local_route_lion_link`
+
+`local_context_event` is populated by `build:context-events` from geocoded 311, collisions,
+parking violations, DOT permits, traffic volumes, traffic speeds, and ACE violation aggregates.
+`local_route_lion_link` is the flat route-to-LION lookup produced by local spatialite jobs so later
+detectors can join street-level context without loading spatialite.
+
+Current parking note, 2026-05-19: full `geocode:parking-violations` is still running as task
+`bq0nmjpyi`. The latest status was 71,428 of 186,096 parking rows attempted and 13,963 rows with
+`physical_id`. Rerun `build:context-events` after that task finishes before treating parking
+context-event counts as final.
+
+Detector rows are still schema scaffolding, not production findings. The first detector milestone
+should add:
+
+- strict domain contracts for candidates, evidence links, and coverage audits;
+- idempotent replace-by-run writes in `@bp/db/local`;
+- indexes for `local_context_event(physical_id, occurred_at)`,
+  `local_route_lion_link(physical_id)`, and detector result lookup by month/detector/route;
+- a source-gap detector that writes coverage rows even when no public finding is emitted.
+
+Public serving direction:
+
+- D1 serves compact promoted finding summaries, source-gap states, and stable evidence refs.
+- R2 holds detailed evidence bundles, coverage audit artifacts, join samples, and document snippets.
+- Studio projections are generated from reviewed or promoted detector candidates, not from ad hoc
+  frontend finding copy.
+
 ### `route_reliability_baseline`
 
 Scheduled reliability read model for batch routes. This is the first reliability layer beyond speed; it uses scheduled timepoint rows to establish headway-gap baselines before observed GTFS-RT history exists.

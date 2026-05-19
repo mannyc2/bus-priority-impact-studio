@@ -2,7 +2,7 @@
 title: Finding Coverage and Corpus Expansion
 type: analysis
 status: planned
-last_updated: 2026-05-18
+last_updated: 2026-05-19
 owner: codex
 source_count: 12
 tags: [findings, corpus, data-quality, pipeline-v2, false-negatives]
@@ -29,6 +29,153 @@ Pipeline v1 should end with a reproducible March 2026 serving release, productio
 - Emit a coverage audit that records detector hits, detector misses, and data gaps.
 - Surface "insufficient evidence" as a product state in briefs and reviewer queues, not as silence.
 - Expand the source corpus only when the new source reduces a known false-negative risk.
+
+## Detector Architecture Audit - 2026-05-19
+
+The detector should be a local pipeline subsystem, not a Studio/UI feature first. The public Studio
+finding schema is useful for cards and reasoning trails, but it is too product-shaped to be the
+canonical detector output. Canonical outputs should flow through typed local detector rows, evidence
+links, and coverage audit rows; Studio projections should be generated only from reviewed or
+promoted candidates.
+
+Current local state already contains the detector storage spine:
+
+- `local_context_event`
+- `local_finding_candidate`
+- `local_finding_evidence_link`
+- `local_finding_coverage_audit`
+- `packages/db/src/local/repositories/findings.ts`
+- `build:context-events`
+
+Manual local DB audit from `data/local/pipeline.sqlite` on 2026-05-19:
+
+| Table / signal | Count / status |
+|---|---:|
+| `local_finding_candidate` | 0 |
+| `local_finding_evidence_link` | 0 |
+| `local_finding_coverage_audit` | 0 |
+| `local_context_event` | 412,685 |
+| `local_route_hotspot` | 3,097 |
+| `local_route_hotspot_summary` | 381 |
+| `local_route_observed_reliability_summary` | 762 rows across March and May runs |
+| `local_route_intervention_comparison` | 360 |
+| `local_corridor_month_summary` | 193 |
+| `local_route_lion_link` | 283,557 route-to-LION links across 378 routes |
+
+March 2026 has enough inputs for a first detector pass, but not enough for every detector:
+
+- Observed reliability has 346 observed routes and 35 insufficient-sample routes for March 2026.
+- Intervention evaluation has 80 evaluated peer-adjusted rows, 161 insufficient-pre-data rows,
+  2 insufficient-post-data rows, 2 future-intervention rows, and 115 bus-lane source-gap rows.
+- Context events are large enough for caveats and review tasks, but route-level LION matching is
+  broad. The average physical street segment maps to 4.25 routes, with a maximum of 59 routes, so
+  context events must be normalized and treated as explanatory context, not direct causes.
+- Parking-violation geocoding is in flight under task `bq0nmjpyi`: 71,428 of 186,096 rows had
+  been attempted at the latest status check, with 13,963 rows carrying `physical_id`. Do not use
+  parking rows in detector scoring until that pass finishes, `build:context-events` is rerun, and
+  final hit rates are spot-checked.
+- DOT traffic-speed snapshots are May current-signal evidence, not March baseline evidence.
+
+One correctness risk surfaced during audit: March observed reliability rows currently have null
+scheduled-baseline fields even though `local_route_reliability_baseline` has March scheduled
+headway rows. Reliability detectors should join the scheduled baseline table directly and add a QA
+check before ranking excess wait or wait-reliability ratios.
+
+### Package Ownership
+
+Use a three-layer implementation:
+
+| Layer | Location | Responsibility |
+|---|---|---|
+| Domain contracts | `packages/domain` | Strict Zod schemas for detector ids, candidate rows, evidence links, coverage audits, confidence, review state, and reason codes. |
+| Pure detector algorithms | `packages/analytics/src/findings/` | Deterministic scoring over typed inputs. No DB, filesystem, Worker, or source-fetching imports. |
+| Pipeline orchestration | `tools/pipeline/src/jobs/build/findings.ts` | Load local DB inputs, run detector matrix, replace candidate/evidence/audit rows idempotently, write R2-ready audit artifacts. |
+| Local storage | `packages/db/local` | Replace-by-run repositories, query helpers, indexes, and source/evidence refs. |
+| Public projection | `tools/pipeline/src/jobs/build/studio-release.ts` and later D1/R2 export | Convert only reviewed or promoted candidates into Studio cards and brief seeds. |
+
+Target command:
+
+```bash
+bun run findings:detect -- --year 2026 --month 3
+```
+
+The first implementation should not call an LLM. LLM processing can draft wording later from
+deterministic candidates, but the detector pass itself should only emit structured candidate rows,
+evidence refs, coverage rows, and source-gap rows.
+
+### Detector v1 Order
+
+Build detectors in this order:
+
+1. **Source-gap detector.** First because it validates the contract and immediately prevents
+   false "nothing to see here" states. Emit candidates for missing speed, missing geometry,
+   insufficient GTFS-RT, missing scheduled baseline, bus-lane implementation-date gaps, failed
+   context joins, and source-lag states.
+2. **Persistent speed hotspot detector.** Reuse existing hotspot outputs but treat top-10 hotspots
+   as publication candidates, not the whole considered universe. Add all-segment coverage counts or
+   explicit skipped coverage before claiming no speed hotspot.
+3. **Observed reliability detector.** Combine observed GTFS-RT summaries, scheduled reliability
+   baseline, and MTA Bus Wait Assessment. Candidate when observed reliability is poor, source
+   samples are sufficient, and scheduled baseline/wait-assessment evidence is present.
+4. **Intervention gap detector.** Candidate when rider-impact pain is high and ACE/bus-lane
+   treatment evidence is absent or thin. Do not treat missing treatment dates as "no treatment";
+   that is a source-gap candidate.
+5. **Intervention underperformance detector.** Candidate when an implemented treatment has
+   peer-adjusted before/after evidence and current pain remains high. Keep language descriptive
+   until the methodology gate allows stronger claims.
+
+Defer context-correlated disruption, peer residual, and positive-deviance detectors until the
+candidate/evidence/audit loop is stable. Context-event data already exists, but the joins need
+normalization by route overlap, route length, event density, source coverage, and time window before
+they can support more than caveats or review prompts.
+
+### Candidate Contract Gaps
+
+The existing local tables are a good start, but they need hardening before detector output becomes
+durable:
+
+- Add `month`, `scope_kind`, `scope_id`, `category`, `confidence`, `detector_score`,
+  `reason_code`, `review_state`, and `claim_safe_label` to `local_finding_candidate`.
+- Extend evidence kinds beyond `metric`, `context_event`, `source_row`, and `missing_data` to
+  include `source_doc` and `coverage_audit`.
+- Add idempotent repository methods such as `replaceFindingRun(detectorRunId)` or
+  `replaceFindingsForMonth(month, detectorId)`. Current methods are insert-only.
+- Add indexes for common detector reads:
+  - `local_context_event(physical_id, occurred_at)`
+  - `local_context_event(route_id, occurred_at)`
+  - `local_route_lion_link(physical_id)`
+  - `local_finding_candidate(month, detector_id, route_id)`
+  - `local_finding_coverage_audit(detector_run_id, detector_id, outcome)`
+- Preserve detailed evidence payloads and sampled join QA in R2/local artifacts. Keep D1 limited
+  to compact promoted finding summaries and stable evidence refs.
+
+### Algorithm Notes
+
+Detector outputs should use bounded scores and explicit labels, not free prose:
+
+- `detector_score`: 0-100 rank score for sorting candidates within a detector.
+- `severity`: `info`, `low`, `medium`, `high`.
+- `confidence`: source sufficiency and join quality, not rhetorical certainty.
+- `status`: lifecycle state such as `open`, `promoted`, `dismissed`, or `superseded`.
+- `review_state`: reviewer workflow state such as `unreviewed`, `needs_review`, `approved`,
+  `rejected`.
+- `reason_code`: stable machine-readable reason such as `missing_speed`,
+  `insufficient_gtfs_rt_samples`, `persistent_low_speed`, `high_long_gap_share`,
+  `bus_lane_date_gap`, or `negative_peer_adjusted_delta`.
+
+For every detector and release month, the audit should record:
+
+- considered scopes;
+- hits;
+- clean no-hits;
+- skipped scopes and reasons;
+- near-miss threshold distributions;
+- source rows expected vs seen;
+- join success rates;
+- top examples for manual QA.
+
+This audit is as important as the findings. A route with no candidate should still have a coverage
+row proving whether the detector looked cleanly or skipped because evidence was missing.
 
 ## False-negative Risk Model
 
@@ -138,9 +285,12 @@ Already in the source registry:
 
 - MTA route segment speeds, current routes/stops, historical routes/stops, schedules, GTFS static, Bus Time GTFS-RT snapshots, ridership, ACE routes/violations, NYC DOT bus lanes, ACS tract context, borough boundaries, and policy docs.
 
-### Tier 1: high-value structured sources to probe next
+### Tier 1: high-value structured sources
 
-These are candidates because they reduce concrete false-negative risks and have public structured endpoints. Add them to `knowledge/raw/source_manifest.yaml` only after a `sources:probe`-style check captures schema, row counts, freshness, join keys, and caveats.
+These sources reduce concrete false-negative risks and have public structured endpoints. They are
+now in the source registry and several are active in the local pipeline. Do not add detector claims
+from them until a source-specific ingest, join coverage check, and sampled QA exist for the release
+month being evaluated.
 
 | Candidate source | Candidate ID / URL | Use | False-negative risk reduced |
 |---|---:|---|---|
@@ -166,6 +316,8 @@ Use targeted markdown summaries and metadata, not giant PDF dumps:
 - Dataset dictionaries and methodology PDFs for every source used in a claim.
 
 This tier helps the composer produce grounded briefs and helps reviewers distinguish "computed evidence" from "officially announced intervention."
+The concrete capture/extraction/validation plan lives in
+[[wiki/engineering/tier_2_document_corpus_pipeline|Tier 2 Document Corpus Pipeline]].
 
 ### Tier 3: external or heavier enrichment
 
@@ -193,23 +345,34 @@ Before promoting a new source from candidate to active:
 
 Do not add these as ad hoc JSON blobs directly to the public API. Prefer a pipeline-normalized shape:
 
-- `local_context_event`: source, event type, start/end time, route/stop/street/corridor join refs, geometry hash, confidence, source URL.
-- `finding_candidate`: detector, release month, route/corridor refs, severity, confidence, status, claim-safe label, created artifact hash.
-- `finding_evidence_link`: candidate to metric/context/source artifact with role (`primary`, `context`, `caveat`, `missing_data`).
-- `finding_coverage_audit`: release month, detector coverage counts, skipped reasons, join success rates, source freshness.
+- `local_context_event`: source, event type, start/end time, route/stop/street/corridor join refs,
+  geometry hash, confidence, source URL.
+- `local_finding_candidate`: detector, release month, route/corridor/segment refs, severity,
+  confidence, status, review state, claim-safe label, reason code, detector score, created artifact
+  hash.
+- `local_finding_evidence_link`: candidate to metric/context/source/document/coverage artifact with
+  role (`primary`, `context`, `caveat`, `missing_data`, `coverage_audit`).
+- `local_finding_coverage_audit`: release month, detector coverage counts, skipped reasons, join
+  success rates, source freshness, and top near-misses.
 
 D1 should serve compact route/corridor finding summaries. R2 should hold detailed evidence payloads, join samples, coverage audits, and document snippets.
 
 ## Implementation Order
 
-1. Add Tier 1 source candidates to a probe backlog without marking them active.
-2. Implement `FindingCandidate` and coverage-audit contracts in `packages/domain`.
-3. Teach analytics jobs to emit detector-level considered/hit/skipped counts.
-4. Add a first source-gap detector for route/months where reliability, speed, ridership, intervention, or context evidence is missing.
-5. Probe Tier 1 sources in this order: wait assessment, DOT traffic speeds, construction/opening permits, traffic volume counts, collisions, 311, parking violations, LION.
-6. Normalize context events and join them to route segments/corridors with sampled QA.
-7. Backtest against a small known-corridor set before adding more detectors.
-8. Expose coverage and source-gap states in briefs and composer review panels.
+1. Harden `FindingCandidate`, evidence-link, and coverage-audit contracts in `packages/domain` and
+   `packages/db/local`.
+2. Add idempotent local repository writes and detector-read indexes.
+3. Implement `findings:detect` with the source-gap detector only.
+4. Verify source-gap output on a fixture DB and on March 2026 local state.
+5. Add persistent speed hotspot candidates, with coverage rows for every considered route/segment.
+6. Add observed reliability candidates after fixing or directly joining scheduled baseline fields.
+7. Add intervention-gap and intervention-underperformance candidates.
+8. Add a small recall-backtest fixture from ACE/ABLE, DOT bus-priority corridors, and validated
+   document seeds.
+9. Normalize context events and join them to route segments/corridors with sampled QA before adding
+   context-correlated disruption claims.
+10. Expose only reviewed/promoted finding summaries, coverage states, and source-gap states in
+    Studio projections, briefs, and composer review panels.
 
 ## Product Rule
 

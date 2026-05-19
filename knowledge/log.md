@@ -2,6 +2,118 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-05-19] data | Parking geocode still in flight
+
+Parking geocoding is not complete yet. Background task `bq0nmjpyi` is still running under task #63:
+`local_parking_violation` has 186,096 total rows, 71,428 attempted so far, and 13,963 rows with
+`physical_id` at the latest status check, roughly 38% through the pass with about 115k rows
+remaining.
+
+Earlier task #63 steps are complete: `build:lion-geometry-index`,
+`build:route-shape-geometry-index`, `build:route-lion-link`, NYPD collision geocoding, 311
+geocoding, and an intermediate `build:context-events` run. The intermediate context table is about
+412.7k rows and is not final for parking context.
+
+Still pending before treating parking context as detector-ready:
+
+1. Let `geocode:parking-violations` finish.
+2. Rerun `build:context-events` so the completed parking `physical_id` coverage is upserted into
+   `local_context_event`.
+3. Spot-check final hit rates and joined event counts by `event_kind` before using parking rows in
+   detector scoring.
+
+## [2026-05-19] planning | Finding detector architecture audit
+
+Updated [[wiki/analysis/finding_coverage_and_corpus_expansion|Finding Coverage and Corpus Expansion]]
+with the detector architecture audit and implementation plan. The detector should be a local Bun
+pipeline subsystem with canonical rows in `local_finding_candidate`,
+`local_finding_evidence_link`, and `local_finding_coverage_audit`; Studio finding cards should be
+generated only from reviewed or promoted candidates, not treated as the detector contract.
+
+Manual local audit of `data/local/pipeline.sqlite` found the detector storage scaffold already
+exists but is empty: 0 finding candidates, 0 evidence links, 0 coverage rows, 412,685 context
+events, 3,097 route hotspot rows, 762 observed-reliability rows across March and May, 360
+intervention comparisons, 193 corridor summaries, and 283,557 route-to-LION links across 378
+routes. The plan now starts with a source-gap detector, then persistent speed hotspots, observed
+reliability, intervention gaps, and intervention underperformance. Context-correlated disruption is
+deferred until route-to-LION joins and event-density normalization have sampled QA.
+
+Also updated [[wiki/engineering/data_model|Data Model]] to document local finding detector tables,
+the D1/R2 serving split for promoted summaries versus detailed evidence bundles, and the immediate
+schema hardening needs: strict domain contracts, idempotent replace-by-run writes, detector indexes,
+and coverage rows for clean no-hit and skipped states.
+
+## [2026-05-19] planning | Tier 2 document corpus pipeline
+
+Added [[wiki/engineering/tier_2_document_corpus_pipeline|Tier 2 Document Corpus Pipeline]] to
+settle how intervention and policy documents should flow into the future findings detector. The
+plan borrows the useful shape of `ussumant/llm-wiki-compiler` - raw capture, compilation,
+search/lint, and wiki navigation - but keeps detector integration behind typed candidate JSON,
+deterministic validation, local SQLite/R2 artifacts, and explicit promotion gates. Tier 2 documents
+can enrich findings, seed recall backtests, and create source-gap review tasks, but cannot create
+metric claims without deterministic speed/reliability/ridership/evaluation evidence.
+
+Extended the plan with the likely `pi-coding-agent` runtime shape: project-local `.pi/SYSTEM.md`,
+skills, prompts, and a `tier2-doc-tools.ts` extension. The extractor role should run with broad
+coding tools disabled and only narrow chunk/search/lookup/candidate-write tools enabled. Normal Pi
+coding sessions can still use filesystem tools, but reproducible extraction should use schema
+writers, path protection, and deterministic validation tools instead of arbitrary `bash` or wiki
+edits.
+
+## [2026-05-19] build | Geometry join + geocoding + detector schema landed
+
+Three coupled tracks completed:
+
+1. **Route ⇄ LION corridor join** via spatialite as a loadable SQLite extension
+   in the local pipeline. ADR `docs/decisions/0007-spatialite-for-local-geo-joins.md`
+   records the decision; Worker / D1 never load spatialite. Added
+   `local_lion_segment_geom`, `local_route_shape_geom`, and the flat
+   `local_route_lion_link` lookup. Pipeline jobs: `check:spatialite`,
+   `build:lion-geometry-index`, `build:route-shape-geometry-index`,
+   `build:route-lion-link` (default 25m buffer, tunable via `--buffer-m`).
+
+2. **Address → LION mapping** via `packages/sources/src/nyc-geoclient` with
+   address / intersection / search calls, retries, and an opt-in fuzzy
+   street-name resolver (`street-normalize.ts`). Lookups flow through the
+   shared `local_address_geocode` cache so re-runs are free. Three per-source
+   geocode jobs: `geocode:311`, `geocode:nypd-collisions`,
+   `geocode:parking-violations`. `physical_id` and `geocode_confidence`
+   columns added to those three source tables. Requires
+   `NYC_GEOCLIENT_KEY` env var (lat/lng snap + fuzzy fallback work without it).
+
+3. **Detector data model (schema only)**: `local_context_event`,
+   `local_finding_candidate`, `local_finding_evidence_link`,
+   `local_finding_coverage_audit` tables and matching repository in
+   `packages/db/src/local/repositories/findings.ts`. Materializer job
+   `build:context-events` projects geocoded 311 / collisions / parking
+   violations / DOT permits into the unified event table. No detectors yet —
+   detector logic is the next milestone per the corpus-before-findings scope.
+
+Drizzle migration `0022_public_wolfsbane.sql` covers all eight new tables
+plus the six ALTER TABLE column adds. Typecheck and all package tests pass.
+Spatialite itself is not installed in CI; local dev needs
+`libsqlite3-mod-spatialite` (Linux) or `libspatialite` (macOS).
+
+End-to-end run (today):
+- LION geometry index: 122,168 / 122,168 segments inserted.
+- Route-shape geometry index: 1,637 / 1,640 shapes inserted (3 skipped due
+  to empty / malformed coordinate fragments).
+- Route ⇄ LION link: 378 routes × 283,557 corridor links at 25m buffer.
+- NYPD collision geocode: 6,493 hits / 262 misses (96.1% hit rate, 6,755 rows).
+- 311 service-request geocode: 130,213 hits / 16,019 misses (89.1% hit rate,
+  146,232 rows; ~80k unique addresses cached).
+- Parking-violation geocode: initial 10-row smoke had no hits, but the full
+  pass is now running as task `bq0nmjpyi`. Latest in-flight status: 71,428 /
+  186,096 attempted, 13,963 rows with `physical_id`, about 115k remaining.
+- Context events materialized: an intermediate `build:context-events` run has
+  about 412.7k rows. Rerun it after parking geocode finishes so parking
+  context rows are fully upserted.
+
+Bug found during run: the per-source `WHERE physical_id IS NULL` batch
+selector re-fed miss rows every iteration, so the NYPD job spun forever on
+the 262 unmatchable rows. Fixed to `WHERE physical_id IS NULL AND
+geocode_confidence IS NULL` in all three geocode jobs.
+
 ## [2026-05-19] audit | Brief feature is templated infra without authoring backend
 
 Added gap #9 to [[wiki/engineering/website_data_support_audit|Website Data Support Audit]] to
