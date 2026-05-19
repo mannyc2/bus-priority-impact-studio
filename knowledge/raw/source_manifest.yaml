@@ -323,3 +323,99 @@ sources:
     rows_csv: https://data.cityofnewyork.us/api/views/i4gi-tjb9/rows.csv?accessType=DOWNLOAD
     purpose: Real-time NYC DOT traffic-speed snapshot per street link (id, speed, travel time, link geometry) for road-congestion context near slow bus segments.
     status: active
+
+  - id: nyc_dot_street_construction_permits
+    type: socrata_dataset
+    priority: secondary
+    domain: data.cityofnewyork.us
+    dataset_id: tqtj-sjs8
+    url: https://data.cityofnewyork.us/Transportation/Street-Construction-Permits/tqtj-sjs8
+    api_json: https://data.cityofnewyork.us/resource/tqtj-sjs8.json
+    columns_json: https://data.cityofnewyork.us/api/views/tqtj-sjs8/columns.json
+    rows_csv: https://data.cityofnewyork.us/api/views/tqtj-sjs8/rows.csv?accessType=DOWNLOAD
+    purpose: NYC DOT street construction permits with effective work windows; explains hotspots near construction zones.
+    status: active
+
+  - id: nyc_dot_street_opening_permits
+    type: socrata_dataset
+    priority: secondary
+    domain: data.cityofnewyork.us
+    dataset_id: 9jic-byiu
+    url: https://data.cityofnewyork.us/Transportation/Street-Opening-Permits/9jic-byiu
+    api_json: https://data.cityofnewyork.us/resource/9jic-byiu.json
+    columns_json: https://data.cityofnewyork.us/api/views/9jic-byiu/columns.json
+    rows_csv: https://data.cityofnewyork.us/api/views/9jic-byiu/rows.csv?accessType=DOWNLOAD
+    purpose: NYC DOT street opening (utility/excavation) permits with effective work windows.
+    status: active
+
+  - id: nyc_dot_traffic_volume_counts
+    type: socrata_dataset
+    priority: secondary
+    domain: data.cityofnewyork.us
+    dataset_id: 7ym2-wayt
+    url: https://data.cityofnewyork.us/Transportation/Automated-Traffic-Volume-Counts/7ym2-wayt
+    api_json: https://data.cityofnewyork.us/resource/7ym2-wayt.json
+    columns_json: https://data.cityofnewyork.us/api/views/7ym2-wayt/columns.json
+    rows_csv: https://data.cityofnewyork.us/api/views/7ym2-wayt/rows.csv?accessType=DOWNLOAD
+    purpose: NYC DOT automated traffic volume counts per street segment; structural traffic context.
+    status: active
+
+  - id: nypd_motor_vehicle_collisions
+    type: socrata_dataset
+    priority: secondary
+    domain: data.cityofnewyork.us
+    dataset_id: h9gi-nx95
+    url: https://data.cityofnewyork.us/Public-Safety/Motor-Vehicle-Collisions-Crashes/h9gi-nx95
+    api_json: https://data.cityofnewyork.us/resource/h9gi-nx95.json
+    columns_json: https://data.cityofnewyork.us/api/views/h9gi-nx95/columns.json
+    rows_csv: https://data.cityofnewyork.us/api/views/h9gi-nx95/rows.csv?accessType=DOWNLOAD
+    purpose: NYPD motor vehicle collisions; safety + crash-disruption context near bus hotspots.
+    status: active
+
+  - id: nyc_311_service_requests_current
+    type: socrata_dataset
+    priority: secondary
+    domain: data.cityofnewyork.us
+    dataset_id: erm2-nwe9
+    url: https://data.cityofnewyork.us/Social-Services/311-Service-Requests-from-2020-present/erm2-nwe9
+    api_json: https://data.cityofnewyork.us/resource/erm2-nwe9.json
+    columns_json: https://data.cityofnewyork.us/api/views/erm2-nwe9/columns.json
+    rows_csv: https://data.cityofnewyork.us/api/views/erm2-nwe9/rows.csv?accessType=DOWNLOAD
+    purpose: 311 complaints filtered to bus-relevant types (Blocked Driveway, Illegal Parking, Traffic Signal Condition, Street Condition, Bus Stop Condition, Posted Parking Sign Violation).
+    status: active
+
+  - id: nyc_311_service_requests_historical
+    type: socrata_dataset
+    priority: secondary
+    domain: data.cityofnewyork.us
+    dataset_id: 76ig-c548
+    url: https://data.cityofnewyork.us/Social-Services/311-Service-Requests-from-2010-to-2019/76ig-c548
+    api_json: https://data.cityofnewyork.us/resource/76ig-c548.json
+    columns_json: https://data.cityofnewyork.us/api/views/76ig-c548/columns.json
+    rows_csv: https://data.cityofnewyork.us/api/views/76ig-c548/rows.csv?accessType=DOWNLOAD
+    purpose: 311 historical complaints (2010-2019), same filter set; longitudinal baseline.
+    status: active
+
+  - id: nyc_parking_violations_current
+    type: socrata_dataset
+    priority: secondary
+    domain: data.cityofnewyork.us
+    dataset_id: pvqr-7yc4
+    url: https://data.cityofnewyork.us/City-Government/Parking-Violations-Issued-Fiscal-Year-2024/pvqr-7yc4
+    api_json: https://data.cityofnewyork.us/resource/pvqr-7yc4.json
+    columns_json: https://data.cityofnewyork.us/api/views/pvqr-7yc4/columns.json
+    rows_csv: https://data.cityofnewyork.us/api/views/pvqr-7yc4/rows.csv?accessType=DOWNLOAD
+    purpose: Parking violations filtered to bus-relevant codes (5 bus lane, 14/31/67 bus stop / standing in bus stop, etc.).
+    status: active
+
+  - id: nyc_lion_street_centerline
+    type: socrata_dataset
+    priority: secondary
+    domain: data.cityofnewyork.us
+    dataset_id: inkn-q76z
+    url: https://data.cityofnewyork.us/City-Government/Centerline/inkn-q76z
+    api_json: https://data.cityofnewyork.us/resource/inkn-q76z.json
+    columns_json: https://data.cityofnewyork.us/api/views/inkn-q76z/columns.json
+    rows_csv: https://data.cityofnewyork.us/api/views/inkn-q76z/rows.csv?accessType=DOWNLOAD
+    purpose: NYC Centerline (LION) street segments — stable physical_id for joining DOT permits, 311, parking, traffic volume, and bus-route street refs.
+    status: active

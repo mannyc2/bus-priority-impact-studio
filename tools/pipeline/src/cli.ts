@@ -145,6 +145,65 @@ const commands = {
       return ingestDotTrafficSpeedsFromCli(args);
     },
   },
+  "ingest:dot-street-permits": {
+    description:
+      "Fetch NYC DOT street construction or opening permits for a month (--kind construction|opening).",
+    run: async (args) => {
+      const { ingestDotStreetPermitsFromCli } = await import(
+        "./jobs/ingest/ingest-dot-street-permits.js"
+      );
+      return ingestDotStreetPermitsFromCli(args);
+    },
+  },
+  "ingest:dot-traffic-volumes": {
+    description:
+      "Fetch NYC DOT automated traffic volume counts (per segment × 15-min) for a year+month.",
+    run: async (args) => {
+      const { ingestDotTrafficVolumesFromCli } = await import(
+        "./jobs/ingest/ingest-dot-traffic-volumes.js"
+      );
+      return ingestDotTrafficVolumesFromCli(args);
+    },
+  },
+  "ingest:nypd-collisions": {
+    description: "Fetch NYPD motor vehicle collisions for a month (per crash_date).",
+    run: async (args) => {
+      const { ingestNypdCollisionsFromCli } = await import(
+        "./jobs/ingest/ingest-nypd-collisions.js"
+      );
+      return ingestNypdCollisionsFromCli(args);
+    },
+  },
+  "ingest:311-service-requests": {
+    description:
+      "Fetch 311 service requests for a month, filtered to bus-relevant complaint types (--era current|historical).",
+    run: async (args) => {
+      const { ingest311ServiceRequestsFromCli } = await import(
+        "./jobs/ingest/ingest-311-service-requests.js"
+      );
+      return ingest311ServiceRequestsFromCli(args);
+    },
+  },
+  "ingest:parking-violations": {
+    description:
+      "Fetch parking violations for a month filtered to bus-relevant codes (--codes 5,14,31,67).",
+    run: async (args) => {
+      const { ingestParkingViolationsFromCli } = await import(
+        "./jobs/ingest/ingest-parking-violations.js"
+      );
+      return ingestParkingViolationsFromCli(args);
+    },
+  },
+  "ingest:lion-centerline": {
+    description:
+      "Fetch NYC Centerline (LION) active street segments for joins across DOT/311/parking/route street refs.",
+    run: async (args) => {
+      const { ingestLionCenterlineFromCli } = await import(
+        "./jobs/ingest/ingest-lion-centerline.js"
+      );
+      return ingestLionCenterlineFromCli(args);
+    },
+  },
   "ingest:bus-lanes": {
     description: "Fetch NYC DOT bus lane rows.",
     run: async () => {

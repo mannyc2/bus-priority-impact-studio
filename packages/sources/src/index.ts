@@ -52,13 +52,44 @@ export {
   normalizeStopRows,
   parseGtfsRtFeed,
 } from "./mta/index.js";
-export type { NormalizedBusLane, NormalizedDotTrafficSpeed } from "./nyc-dot/index.js";
+export type {
+  NormalizedBusLane,
+  NormalizedDotStreetPermit,
+  NormalizedDotTrafficSpeed,
+  NormalizedDotTrafficVolume,
+  PermitKind,
+} from "./nyc-dot/index.js";
 export {
   NormalizedBusLaneSchema,
+  NormalizedDotStreetPermitSchema,
   NormalizedDotTrafficSpeedSchema,
+  NormalizedDotTrafficVolumeSchema,
+  PermitKindSchema,
   normalizeBusLaneRows,
+  normalizeDotStreetPermitRows,
   normalizeDotTrafficSpeedRows,
+  normalizeDotTrafficVolumeRows,
 } from "./nyc-dot/index.js";
+export type {
+  Normalized311ServiceRequest,
+  NormalizedLionSegment,
+  NormalizedNypdCollision,
+  NormalizedParkingViolation,
+  ServiceRequestEra,
+} from "./nyc-public-data/index.js";
+export {
+  BUS_RELEVANT_311_COMPLAINTS,
+  BUS_RELEVANT_PARKING_CODES,
+  Normalized311ServiceRequestSchema,
+  NormalizedLionSegmentSchema,
+  NormalizedNypdCollisionSchema,
+  NormalizedParkingViolationSchema,
+  ServiceRequestEraSchema,
+  normalize311ServiceRequestRows,
+  normalizeLionSegmentRows,
+  normalizeNypdCollisionRows,
+  normalizeParkingViolationRows,
+} from "./nyc-public-data/index.js";
 export type { ManifestSource, SocrataManifestSource, SourceManifest } from "./registry/index.js";
 export {
   getSocrataSource,

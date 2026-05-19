@@ -8,6 +8,7 @@
     "./socrata": "./src/socrata/index.ts",
     "./mta": "./src/mta/index.ts",
     "./nyc-dot": "./src/nyc-dot/index.ts",
+    "./nyc-public-data": "./src/nyc-public-data/index.ts",
     "./census": "./src/census/index.ts",
     "./registry": "./src/registry/index.ts",
     "./probes": "./src/probes/index.ts"

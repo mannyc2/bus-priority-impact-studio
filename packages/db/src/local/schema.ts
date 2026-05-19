@@ -658,6 +658,139 @@ export const localDotTrafficSpeed = sqliteTable(
   (table) => [primaryKey({ columns: [table.linkId, table.sampledAt] })],
 );
 
+// NYC DOT Street Construction (tqtj-sjs8) + Street Opening (9jic-byiu) share a
+// schema; permit_kind discriminates so they coexist in one table.
+export const localDotStreetPermit = sqliteTable("local_dot_street_permit", {
+  permitNumber: text("permit_number").primaryKey(),
+  permitKind: text("permit_kind", { enum: ["construction", "opening"] }).notNull(),
+  applicationTrackingId: text("application_tracking_id"),
+  permitTypeId: text("permit_type_id"),
+  permitTypeDesc: text("permit_type_desc"),
+  permitStatusId: text("permit_status_id"),
+  permitStatusDesc: text("permit_status_desc"),
+  permitSeriesId: text("permit_series_id"),
+  permitSeriesDesc: text("permit_series_desc"),
+  applicationTypeShortDesc: text("application_type_short_desc"),
+  equipmentTypeDesc: text("equipment_type_desc"),
+  numberOfZones: integer("number_of_zones"),
+  linearFeet: real("linear_feet"),
+  totalSqFeet: real("total_sq_feet"),
+  estimatedNumberOfCuts: integer("estimated_number_of_cuts"),
+  permitIssueDate: text("permit_issue_date"),
+  emergencyIssueDate: text("emergency_issue_date"),
+  issuedWorkStartDate: text("issued_work_start_date"),
+  issuedWorkEndDate: text("issued_work_end_date"),
+  boroughName: text("borough_name"),
+});
+
+export const localDotTrafficVolumeCount = sqliteTable(
+  "local_dot_traffic_volume_count",
+  {
+    requestId: integer("request_id").notNull(),
+    segmentId: integer("segment_id").notNull(),
+    sampledAt: text("sampled_at").notNull(),
+    borough: text("borough"),
+    street: text("street"),
+    fromStreet: text("from_street"),
+    toStreet: text("to_street"),
+    direction: text("direction"),
+    volume: integer("volume").notNull(),
+    wktGeom: text("wkt_geom"),
+  },
+  (table) => [primaryKey({ columns: [table.requestId, table.segmentId, table.sampledAt] })],
+);
+
+export const localNypdCollision = sqliteTable("local_nypd_collision", {
+  collisionId: text("collision_id").primaryKey(),
+  crashDate: text("crash_date").notNull(),
+  crashTime: text("crash_time"),
+  borough: text("borough"),
+  zipCode: text("zip_code"),
+  latitude: real("latitude"),
+  longitude: real("longitude"),
+  onStreetName: text("on_street_name"),
+  offStreetName: text("off_street_name"),
+  crossStreetName: text("cross_street_name"),
+  personsInjured: integer("persons_injured"),
+  personsKilled: integer("persons_killed"),
+  pedestriansInjured: integer("pedestrians_injured"),
+  pedestriansKilled: integer("pedestrians_killed"),
+  cyclistInjured: integer("cyclist_injured"),
+  cyclistKilled: integer("cyclist_killed"),
+  motoristInjured: integer("motorist_injured"),
+  motoristKilled: integer("motorist_killed"),
+  contributingFactorVehicle1: text("contributing_factor_vehicle_1"),
+  contributingFactorVehicle2: text("contributing_factor_vehicle_2"),
+});
+
+// 311 Service Requests (current erm2-nwe9 + historical 76ig-c548). Two
+// tables, identical schema, so 311 spans can be loaded into either without
+// risk of merging eras. era discriminates ("current" vs "historical").
+export const local311ServiceRequest = sqliteTable("local_311_service_request", {
+  uniqueKey: text("unique_key").primaryKey(),
+  era: text("era", { enum: ["current", "historical"] }).notNull(),
+  createdDate: text("created_date").notNull(),
+  closedDate: text("closed_date"),
+  agency: text("agency"),
+  agencyName: text("agency_name"),
+  complaintType: text("complaint_type"),
+  descriptor: text("descriptor"),
+  locationType: text("location_type"),
+  incidentZip: text("incident_zip"),
+  incidentAddress: text("incident_address"),
+  streetName: text("street_name"),
+  crossStreet1: text("cross_street_1"),
+  crossStreet2: text("cross_street_2"),
+  city: text("city"),
+  status: text("status"),
+  resolutionDescription: text("resolution_description"),
+  communityBoard: text("community_board"),
+  latitude: real("latitude"),
+  longitude: real("longitude"),
+});
+
+export const localParkingViolation = sqliteTable("local_parking_violation", {
+  summonsNumber: text("summons_number").primaryKey(),
+  issueDate: text("issue_date").notNull(),
+  violationCode: integer("violation_code").notNull(),
+  violationDescription: text("violation_description"),
+  plateId: text("plate_id"),
+  registrationState: text("registration_state"),
+  plateType: text("plate_type"),
+  vehicleBodyType: text("vehicle_body_type"),
+  vehicleMake: text("vehicle_make"),
+  issuingAgency: text("issuing_agency"),
+  violationLocation: text("violation_location"),
+  violationPrecinct: integer("violation_precinct"),
+  violationCounty: text("violation_county"),
+  houseNumber: text("house_number"),
+  streetName: text("street_name"),
+  violationTime: text("violation_time"),
+});
+
+// NYC LION street-centerline segment metadata. DCP page, not Socrata — we
+// store stable street segment IDs and basic geometry hash references that
+// other DOT/311/parking sources can join through. Geometry kept as raw WKT.
+export const localLionSegment = sqliteTable("local_lion_segment", {
+  physicalId: text("physical_id").primaryKey(),
+  streetCodeMaster: text("street_code_master"),
+  streetName: text("street_name"),
+  borough: text("borough"),
+  l_zip: text("l_zip"),
+  r_zip: text("r_zip"),
+  segmentTypeCode: text("segment_type_code"),
+  segmentTypeDesc: text("segment_type_desc"),
+  rwTypeCode: text("rw_type_code"),
+  rwTypeDesc: text("rw_type_desc"),
+  fromNodeId: text("from_node_id"),
+  toNodeId: text("to_node_id"),
+  trafficDir: text("traffic_dir"),
+  fromLevelCode: text("from_level_code"),
+  toLevelCode: text("to_level_code"),
+  shapeLength: real("shape_length"),
+  wktGeom: text("wkt_geom"),
+});
+
 export const localInterventionEvent = sqliteTable("local_intervention_event", {
   eventId: text("event_id").primaryKey(),
   routeId: text("route_id").notNull(),

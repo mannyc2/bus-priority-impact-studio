@@ -71,16 +71,34 @@ export {
   replaceRouteInterventionEvaluationRows,
 } from "./repositories/interventions.js";
 export type {
+  Local311ServiceRequest,
   LocalBusWaitAssessment,
+  LocalDotStreetPermit,
   LocalDotTrafficSpeed,
+  LocalDotTrafficVolumeCount,
+  LocalLionSegment,
+  LocalNypdCollision,
+  LocalParkingViolation,
 } from "./repositories/corpus-context.js";
 export {
+  count311ByEra,
+  countDotStreetPermits,
+  countDotTrafficVolumes,
+  countLionSegments,
+  countNypdCollisions,
+  countParkingViolationsByCode,
   insertDotTrafficSpeedSnapshot,
+  insertDotTrafficVolumeCounts,
   listBusWaitAssessmentRowsForMonth,
   listBusWaitAssessmentRowsForRoute,
   listDotTrafficSpeedsForLink,
   listLatestDotTrafficSpeeds,
   replaceBusWaitAssessmentRows,
+  upsert311ServiceRequests,
+  upsertDotStreetPermits,
+  upsertLionSegments,
+  upsertNypdCollisions,
+  upsertParkingViolations,
 } from "./repositories/corpus-context.js";
 export type {
   LocalObservedHeadwaySample,
