@@ -5,6 +5,11 @@ export {
   normalizeAceRouteRows,
   normalizeAceViolationSummaryRows,
 } from "./ace.js";
+export type { NormalizedBusWaitAssessment } from "./bus-wait-assessment.js";
+export {
+  NormalizedBusWaitAssessmentSchema,
+  normalizeBusWaitAssessmentRows,
+} from "./bus-wait-assessment.js";
 export type { NormalizedHourlyRidership } from "./bus-ridership.js";
 export { NormalizedHourlyRidershipSchema, normalizeHourlyRidershipRows } from "./bus-ridership.js";
 export type { NormalizedSegmentSpeed } from "./bus-speeds.js";

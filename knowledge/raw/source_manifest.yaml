@@ -296,3 +296,18 @@ sources:
     url: https://www.mta.info/agency/new-york-city-transit/automated-camera-enforcement
     purpose: Official ACE program description, claimed impacts, routes, rules, caveats.
     status: active
+
+  # === Tier 1 expansion candidates (Finding Coverage and Corpus Expansion). ===
+  # Status: candidate until each one is probed and ingested.
+
+  - id: bus_wait_assessment
+    type: socrata_dataset
+    priority: secondary
+    domain: data.ny.gov
+    dataset_id: v4z4-2h6n
+    url: https://data.ny.gov/Transportation/MTA-Bus-Wait-Assessment-Beginning-2020/v4z4-2h6n
+    api_json: https://data.ny.gov/resource/v4z4-2h6n.json
+    columns_json: https://data.ny.gov/api/views/v4z4-2h6n/columns.json
+    rows_csv: https://data.ny.gov/api/views/v4z4-2h6n/rows.csv?accessType=DOWNLOAD
+    purpose: Official MTA monthly route-level wait assessment to cross-check GTFS-RT-derived reliability.
+    status: active

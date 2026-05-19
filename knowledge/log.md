@@ -2,6 +2,46 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-05-19] audit | Brief feature is templated infra without authoring backend
+
+Added gap #9 to [[wiki/engineering/website_data_support_audit|Website Data Support Audit]] to
+make explicit that the brief surface — list/detail/evidence/history pages, the
+`/api/v1/studio/briefs*` endpoints, and the published R2 artifacts — is a read-only stub built on
+top of real D1 route metrics. `brief.summary`, `brief.dek`, `brief.sections[].body`,
+`brief.claims[].title`, and `brief.evidence[].detail` are produced by string-interpolating
+route-summary metrics into prose templates in `tools/pipeline/src/jobs/build/brief-artifacts.ts`
+and the `StudioBrief` builder in `studio-release.ts`. `versions[]` and `comments[]` are
+placeholder shapes; `status: "Published"` and `version: "v1"` are build artifacts, not workflow
+state.
+
+The plan of record for the missing authoring backend is
+[[wiki/engineering/agent_author_api|Agent-Author API]] (status: draft). None of its endpoints
+(`POST /studio/briefs`, `PATCH .../claims/:n`, `POST .../validate`, `POST .../review`,
+`POST .../publish`, `POST .../retract`) exist in the Worker yet; the corresponding
+editorial-state D1 tables (`brief_draft`, `brief_job`, `brief_version`, `brief_claim`,
+`brief_evidence_link`, `brief_comment`, `brief_review`, `brief_idempotency`) are not in
+`packages/db/src/d1/schema.ts`. The mid-layer data endpoints (`/studio/routes/:slug/segments`,
+`/studio/data/violations`) and searchable evidence catalog (`/studio/briefs/:id/evidence?search=…`
+returning *findable* evidence across briefs, not the embedded per-brief array) are also
+unimplemented.
+
+This is a feature-completeness gap, not a polish task. Captured so future work doesn't mistake
+"audit says briefs read fine" for "brief authoring works".
+
+## [2026-05-19] release | S3-API publisher for R2 artifacts
+
+Replaced the wrangler-based R2 upload loop in `scripts/publish-serving-release.sh` (per-call
+process startup × 2,355 puts = ~60 minutes) with
+`tools/pipeline/src/jobs/publish/publish-r2-artifacts.ts`, which uses Bun's native S3Client
+against R2's S3-compatible endpoint. Idempotent via HEAD-then-PUT (skip when remote size+ETag
+match the local md5), resumable (re-run picks up where it left off via the same skip gate),
+parallel (default concurrency 16), with retry+backoff and an audit JSON at
+`data/artifacts/audits/publish-r2-{month}.json`. Wrangler is still used for D1 schema/seed/
+appendix execution and the existing completeness pre-flight. Verified end-to-end against
+`bus-priority-artifacts`: 2,355/2,355 keys HEAD-match the local artifacts; full pass completes
+in ~5 seconds. New env in repo-root `.env`: `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`,
+`R2_ENDPOINT` (Bun auto-loads from repo root; invoking via `--cwd` would miss this).
+
 ## [2026-05-18] planning | Serving storage split and website support audit
 
 Added [[wiki/engineering/serving_storage_split_plan|Serving Storage Split Plan]] to settle the resource-first storage rule: D1 is the control plane for compact relational state, indexes, manifests, mutable drafts, jobs, idempotency, and queryable summaries; R2 is the artifact plane for immutable release documents, large nested payloads, maps, evidence bundles, exports, and raw-ish captures; the Worker owns REST resource semantics.

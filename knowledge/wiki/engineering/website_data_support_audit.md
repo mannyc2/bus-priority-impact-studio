@@ -308,6 +308,105 @@ Impact:
 **Verify fixed:** Check exits 0, then a sample of D1-referenced brief keys is reachable via
 `/api/v1/artifacts/<key>` on production.
 
+### 9. Brief feature is templated pipes around real metrics — no authoring infra yet
+
+The brief surface looks like a finished product but is structurally a read-only stub. What
+exists, what is templated, and what is missing — listed so the gap is not mistaken for a
+labeling problem.
+
+**What exists (real):**
+
+- D1 row per route: `route_brief_summary` carries the metrics (route_score, observed speed,
+  lane coverage, hotspot count, etc.).
+- R2 artifacts at `briefs/routes/{id}/{month}/brief.{html,json,md}` produced by
+  `tools/pipeline/src/jobs/build/brief-artifacts.ts`.
+- Studio projection at `studio/v1/briefs/{id}/index.json` produced by
+  `tools/pipeline/src/jobs/build/studio-release.ts` (the `StudioBrief` builder).
+- Read endpoints: `/api/v1/studio/briefs`, `/api/v1/studio/briefs/:id`, `…/evidence`,
+  `…/history`. Frontend pages render them: `apps/web/src/routes/briefs.tsx`,
+  `routes/briefs/$briefId.tsx`, `.../evidence.tsx`, `.../history.tsx`,
+  `.../review.tsx`, `.../edit.tsx`.
+
+**What is templated (looks real, is synthetic):**
+
+- `brief.summary`, `brief.dek`, `brief.sections[].body`, `brief.claims[].title`,
+  `brief.evidence[].detail` — produced by string-interpolating real metrics into hard-coded
+  prose templates inside `brief-artifacts.ts` / `studio-release.ts`. There is no model,
+  no LLM call, no editorial pass.
+- `brief.status: "Published"`, `brief.version: "v1"`, `brief.generated: <iso>` — produced
+  by the build, not by any publication workflow.
+- `history.versions[]` — generated from the build timestamp; there is no version-control
+  store for brief editorial state.
+- `history.comments[]` — placeholder/empty; no comments backend.
+- `evidence.claims[].evidenceIds` / `caveatIds` — string keys into per-brief `evidence[]`
+  and `caveats[]` arrays inside the same template, not links into a separate evidence
+  catalog.
+
+**What does not exist (the actual gap):**
+
+- **No write API.** The full spec for the agent-author write surface lives in
+  [[agent_author_api|Agent-Author API]] (status: draft) — `POST /studio/briefs`,
+  `PATCH /briefs/:id/claims/:n`, `POST /briefs/:id/validate`, `POST .../review`,
+  `POST .../publish`, `POST .../retract`. None of these endpoints exist in
+  `apps/web/src/worker/index.ts` today.
+- **No D1 tables for editorial state.** No `brief_draft`, no `brief_job`, no
+  `brief_version`, no `brief_claim`, no `brief_evidence_link`, no `brief_comment`, no
+  `brief_review`, no `brief_idempotency`. The schema in `packages/db/src/d1/schema.ts`
+  has only the read-side summary + artifact pointer tables.
+- **No async job runner.** `POST /briefs` is supposed to return `202 + jobId`; there is
+  no job queue, no worker-side polling endpoint, no agent-paced LLM draft step.
+- **No mid-layer data endpoints.** The walkthrough in `agent_author_api.md` step 3-4 calls
+  `/studio/routes/:slug/segments?from=…&grain=…` and `/studio/data/violations?…`. Neither
+  exists.
+- **No evidence catalog.** Step 7 of the walkthrough (`GET /briefs/:id/evidence?search=…`)
+  returns a *searchable additional-evidence* catalog. Today our `…/evidence` endpoint
+  returns only the per-brief embedded `evidence[]` array.
+- **No validate/score gate.** Step 9 (`POST /briefs/:id/validate` → blocking issues +
+  weak claims + missing evidence) does not exist.
+- **No review/publish flow.** No reviewer assignment, no idempotency-keyed publish, no
+  retract.
+
+**Verify gap:**
+
+```bash
+# Look for any write-side brief routes in the worker — expect zero results:
+grep -nE 'POST.*/briefs|PATCH.*/briefs|/briefs/.*/(validate|review|publish|retract)' \
+  apps/web/src/worker/index.ts
+# Look for editorial-state D1 tables — expect zero matches:
+grep -nE 'brief_(draft|job|version|claim|evidence_link|comment|review|idempotency)' \
+  packages/db/src/d1/schema.ts
+```
+
+**Plan of record (where the work is already designed):**
+
+- [[agent_author_api|Agent-Author API]] — canonical write-side spec; lists all endpoints,
+  decisions, and a dogfeed walkthrough.
+- [[ai_interaction_model]] — product doctrine for analyst-in-the-loop authoring; constrains
+  the agent surface to typed artifacts rather than free chat.
+- [[web_app_support_plan]] — composer UI's data-loading shape (currently consumes only the
+  read-side; needs extending for write flows once the API ships).
+
+**Fix outline (deferred, large):** implementing this is its own milestone; the gap below is
+captured so it is not mistaken for "polish needed on existing feature". Suggested order:
+
+1. Land editorial-state D1 schema (`brief_draft`, `brief_job`, `brief_version`,
+   `brief_claim`, `brief_evidence_link`, `brief_comment`, `brief_review`,
+   `brief_idempotency`).
+2. Land the async job runner and `POST /studio/briefs` (returns 202 + jobId).
+3. Land mid-layer data endpoints (`/studio/routes/:slug/segments`, `/studio/data/...`).
+4. Land evidence catalog (`/studio/briefs/:id/evidence?search=…` returns *findable*
+   evidence, not just per-brief embedded).
+5. Land validate / review / publish / retract endpoints with idempotency keys.
+6. Cut over the read-side `studio-release.ts` brief synthesis to instead read editorial
+   state once human-authored briefs exist; keep the templated path as a fallback for routes
+   with no editorial coverage.
+7. Composer UI: wire `apps/web/src/routes/briefs/$briefId/edit.tsx` and `review.tsx` to the
+   new write endpoints (today they render but cannot mutate).
+
+**Verify fixed:** running the canonical walkthrough from [[agent_author_api]] end-to-end
+against the production Worker (a coding agent can compose, validate, review, and publish a
+brief) is the acceptance test.
+
 ## Prerequisite Bug
 
 Before any further appendix-shaped operation:

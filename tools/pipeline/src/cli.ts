@@ -125,6 +125,16 @@ const commands = {
       return ingestAceViolationSummaryFromCli(args);
     },
   },
+  "ingest:bus-wait-assessment": {
+    description:
+      "Fetch monthly MTA Bus Wait Assessment rows (route × dayType × tripType × period).",
+    run: async (args) => {
+      const { ingestBusWaitAssessmentFromCli } = await import(
+        "./jobs/ingest/ingest-bus-wait-assessment.js"
+      );
+      return ingestBusWaitAssessmentFromCli(args);
+    },
+  },
   "ingest:bus-lanes": {
     description: "Fetch NYC DOT bus lane rows.",
     run: async () => {

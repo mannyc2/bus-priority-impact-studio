@@ -127,6 +127,20 @@
       "when": 1779008882706,
       "tag": "0017_married_impossible_man",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1779157595850,
+      "tag": "0018_eager_proudstar",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1779157856649,
+      "tag": "0019_sloppy_ogun",
+      "breakpoints": true
     }
   ]
 }

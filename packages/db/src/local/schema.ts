@@ -621,6 +621,26 @@ export const localAceViolationSummary = sqliteTable(
   ],
 );
 
+export const localBusWaitAssessment = sqliteTable(
+  "local_bus_wait_assessment",
+  {
+    month: text("month").notNull(),
+    routeId: text("route_id").notNull(),
+    borough: text("borough").notNull(),
+    dayType: integer("day_type").notNull(),
+    tripType: text("trip_type").notNull(),
+    period: text("period").notNull(),
+    tripsPassingWait: integer("trips_passing_wait").notNull(),
+    scheduledTrips: integer("scheduled_trips").notNull(),
+    waitAssessment: real("wait_assessment"),
+  },
+  (table) => [
+    primaryKey({
+      columns: [table.month, table.routeId, table.dayType, table.tripType, table.period],
+    }),
+  ],
+);
+
 export const localInterventionEvent = sqliteTable("local_intervention_event", {
   eventId: text("event_id").primaryKey(),
   routeId: text("route_id").notNull(),

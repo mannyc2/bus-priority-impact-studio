@@ -70,6 +70,12 @@ export {
   replaceBusLanes,
   replaceRouteInterventionEvaluationRows,
 } from "./repositories/interventions.js";
+export type { LocalBusWaitAssessment } from "./repositories/corpus-context.js";
+export {
+  listBusWaitAssessmentRowsForMonth,
+  listBusWaitAssessmentRowsForRoute,
+  replaceBusWaitAssessmentRows,
+} from "./repositories/corpus-context.js";
 export type {
   LocalObservedHeadwaySample,
   LocalObservedVehicleStopEvent,

@@ -87,6 +87,7 @@
     "plan:source-refresh": "bun --filter @bp/pipeline plan:source-refresh",
     "ingest:ace-routes": "bun --filter @bp/pipeline ingest:ace-routes",
     "ingest:ace-violations": "bun --filter @bp/pipeline ingest:ace-violations",
+    "ingest:bus-wait-assessment": "bun --filter @bp/pipeline ingest:bus-wait-assessment",
     "ingest:bus-lanes": "bun --filter @bp/pipeline ingest:bus-lanes",
     "ingest:equity-context": "bun --filter @bp/pipeline ingest:equity-context",
     "ingest:route-catalog": "bun --filter @bp/pipeline ingest:route-catalog",
