@@ -30,9 +30,19 @@ const UrlManifestSourceSchema = BaseManifestSourceSchema.extend({
   url: z.string().min(1),
 });
 
+// File-download sources expose one or more pre-rendered files at a base URL
+// (e.g. NOAA GHCN-Daily station CSVs). The manifest may carry a list of
+// station/file identifiers; consumers parse that off the source-by-source
+// schema rather than encoding it here.
+const FileDownloadManifestSourceSchema = BaseManifestSourceSchema.extend({
+  type: z.literal("file_download"),
+  url: z.string().min(1),
+}).passthrough();
+
 export const ManifestSourceSchema = z.discriminatedUnion("type", [
   SocrataManifestSourceSchema,
   UrlManifestSourceSchema,
+  FileDownloadManifestSourceSchema,
 ]);
 
 export const SourceManifestSchema = z

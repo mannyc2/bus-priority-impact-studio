@@ -3,11 +3,15 @@ import type { SocrataRow } from "../socrata/client.js";
 import { schemaVersion } from "../mta/parse-helpers.js";
 
 // Bus-relevant NYC parking violation codes (default filter for ingest).
-// 5 = Bus Lane Violation; 14 = No Standing Bus Stop; 31 = Stand or Park in
-// Bus Stop; 67 = Pedestrian Ramp; 71 = Insp. Sticker Required; 78 = Stand or
-// Park within 50 ft of fire hydrant... We default to the explicitly bus-
-// related codes; callers can pass a different list via --codes.
-export const BUS_RELEVANT_PARKING_CODES = [5, 14, 31, 67] as const;
+//   5  = BUS LANE VIOLATION
+//  14  = NO STANDING-DAY/TIME LIMITS (commonly includes peak-hour bus lanes)
+//  31  = NO STAND-COMM METER ZONE   (commercial loading near stops)
+//  50  = CROSSHATCHED LINES         (intersection blocking — buses can't turn)
+//  51  = NO PARKING-STREET CLEANING (alternate-side; affects curb access)
+//  67  = NO STND FOR HIRE VEH STOP  (taxi stand interferes with bus stops)
+// Callers can override via --codes; 38 (muni-meter receipt) is deliberately
+// excluded because it's parking-meter compliance noise, not bus impact.
+export const BUS_RELEVANT_PARKING_CODES = [5, 14, 31, 50, 51, 67] as const;
 
 export const NormalizedParkingViolationSchema = z
   .object({

@@ -90,6 +90,12 @@ export {
   normalizeNypdCollisionRows,
   normalizeParkingViolationRows,
 } from "./nyc-public-data/index.js";
+export type { NormalizedWeatherObservation, WeatherStationId } from "./noaa/index.js";
+export {
+  NormalizedWeatherObservationSchema,
+  NOAA_NYC_STATIONS,
+  parseGhcnDailyCsv,
+} from "./noaa/index.js";
 export type { ManifestSource, SocrataManifestSource, SourceManifest } from "./registry/index.js";
 export {
   getSocrataSource,

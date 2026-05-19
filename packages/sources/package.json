@@ -9,6 +9,8 @@
     "./mta": "./src/mta/index.ts",
     "./nyc-dot": "./src/nyc-dot/index.ts",
     "./nyc-public-data": "./src/nyc-public-data/index.ts",
+    "./nyc-geoclient": "./src/nyc-geoclient/index.ts",
+    "./noaa": "./src/noaa/index.ts",
     "./census": "./src/census/index.ts",
     "./registry": "./src/registry/index.ts",
     "./probes": "./src/probes/index.ts"

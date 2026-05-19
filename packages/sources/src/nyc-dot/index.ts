@@ -9,6 +9,7 @@ export type { NormalizedDotStreetPermit, PermitKind } from "./street-permits.js"
 export {
   NormalizedDotStreetPermitSchema,
   PermitKindSchema,
+  classifyPermitKind,
   normalizeDotStreetPermitRows,
 } from "./street-permits.js";
 export type { NormalizedDotTrafficVolume } from "./traffic-volume.js";

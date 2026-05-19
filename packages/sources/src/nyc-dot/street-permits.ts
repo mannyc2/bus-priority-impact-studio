@@ -5,6 +5,24 @@ import { schemaVersion } from "../mta/parse-helpers.js";
 export const PermitKindSchema = z.enum(["construction", "opening"]);
 export type PermitKind = z.output<typeof PermitKindSchema>;
 
+/**
+ * The NYC Socrata datasets `tqtj-sjs8` ("Street Construction") and `9jic-byiu`
+ * ("Street Opening") are *aliases of the same underlying table* — both serve
+ * identical rows. The real construction-vs-opening distinction lives in the
+ * row's `permit_type_desc`. Keyword match: utility / repair work classifies
+ * as "opening" (excavation to access subsurface infrastructure); everything
+ * else is "construction".
+ */
+const OPENING_KEYWORDS =
+  /\b(REPAIR|UTILITY|GAS|WATER|SEWER|MANHOLE|CABLE|STEAM|TELEPHONE|ELECTRIC|CONDUIT|MAIN)\b/;
+
+export function classifyPermitKind(permitTypeDesc: string | null | undefined): PermitKind {
+  if (permitTypeDesc && OPENING_KEYWORDS.test(permitTypeDesc.toUpperCase())) {
+    return "opening";
+  }
+  return "construction";
+}
+
 export const NormalizedDotStreetPermitSchema = z
   .object({
     schemaVersion: z.literal(schemaVersion),
@@ -28,6 +46,11 @@ export const NormalizedDotStreetPermitSchema = z
     issuedWorkStartDate: z.string().nullable(),
     issuedWorkEndDate: z.string().nullable(),
     boroughName: z.string().nullable(),
+    houseNumber: z.string().nullable(),
+    onStreetName: z.string().nullable(),
+    fromStreetName: z.string().nullable(),
+    toStreetName: z.string().nullable(),
+    purposeComments: z.string().nullable(),
   })
   .strict();
 
@@ -61,12 +84,20 @@ const RawPermitRowSchema = z
     issuedworkstartdate: stringNullable,
     issuedworkenddate: stringNullable,
     boroughname: stringNullable,
+    permithousenumber: stringNullable,
+    onstreetname: stringNullable,
+    fromstreetname: stringNullable,
+    tostreetname: stringNullable,
+    permitpurposecomments: stringNullable,
   })
   .passthrough();
 
 export function normalizeDotStreetPermitRows(
   rows: SocrataRow[],
-  permitKind: PermitKind,
+  // Retained for back-compat; ignored. permit_kind is now derived per row
+  // from permit_type_desc (see classifyPermitKind) because the two source
+  // endpoints are aliases of the same table.
+  _permitKind: PermitKind,
 ): NormalizedDotStreetPermit[] {
   return rows
     .map((row) => {
@@ -74,7 +105,7 @@ export function normalizeDotStreetPermitRows(
       return {
         schemaVersion,
         permitNumber: parsed.permitnumber,
-        permitKind,
+        permitKind: classifyPermitKind(parsed.permittypedesc),
         applicationTrackingId: parsed.applicationtrackingid,
         permitTypeId: parsed.permittypeid,
         permitTypeDesc: parsed.permittypedesc,
@@ -96,6 +127,11 @@ export function normalizeDotStreetPermitRows(
         issuedWorkStartDate: parsed.issuedworkstartdate,
         issuedWorkEndDate: parsed.issuedworkenddate,
         boroughName: parsed.boroughname,
+        houseNumber: parsed.permithousenumber,
+        onStreetName: parsed.onstreetname,
+        fromStreetName: parsed.fromstreetname,
+        toStreetName: parsed.tostreetname,
+        purposeComments: parsed.permitpurposecomments,
       } satisfies NormalizedDotStreetPermit;
     })
     .sort((a, b) => a.permitNumber.localeCompare(b.permitNumber));
