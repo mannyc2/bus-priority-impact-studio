@@ -9,6 +9,16 @@ const forbiddenRuntimeImports = [
   "knowledge/",
 ];
 
+const requiredRootPipelineScripts = [
+  "check:bus-observatory-gtfs-rt-range",
+  "backfill:bus-observatory-range",
+  "backfill:socrata-range",
+  "geocode:permits",
+  "geocode:traffic-volumes",
+  "geocode:traffic-speeds",
+  "ingest:noaa-weather",
+];
+
 async function readFiles(root: string): Promise<Array<{ path: string; text: string }>> {
   const glob = new Bun.Glob("**/*.{ts,tsx}");
   const files: Array<{ path: string; text: string }> = [];
@@ -86,6 +96,24 @@ async function findSrcTestFiles(): Promise<string[]> {
 }
 
 describe("production boundary harness", () => {
+  test("root package exposes the operational pipeline scripts documented for reviewers", async () => {
+    const rootPackage = (await Bun.file("package.json").json()) as {
+      scripts?: Record<string, string>;
+    };
+    const pipelinePackage = (await Bun.file("tools/pipeline/package.json").json()) as {
+      scripts?: Record<string, string>;
+    };
+
+    for (const script of requiredRootPipelineScripts) {
+      expect(typeof pipelinePackage.scripts?.[script], `pipeline package missing ${script}`).toBe(
+        "string",
+      );
+      expect(rootPackage.scripts?.[script], `root package missing ${script}`).toBe(
+        `bun --filter @bp/pipeline ${script}`,
+      );
+    }
+  });
+
   test("public app code does not import local analytics, source fetchers, pipeline code, or wiki files", async () => {
     const files = await readFiles("apps/web/src");
 

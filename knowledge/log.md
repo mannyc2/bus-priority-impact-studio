@@ -2,6 +2,25 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-05-19] data | Corpus range backfills completed
+
+Branch-tip corpus expansion supersedes the earlier in-flight parking/geocode note below. The local
+corpus now covers Bus Observatory recovered reliability from 2023-04 through 2026-05: the
+range backfill completed 38/38 months, producing about 102.4M headway samples and 14,478
+route/month reliability summary rows. The companion Socrata range backfill for
+`nypd-collisions`, `ace-violations`, and `dot-street-permits` completed 111/111 source-month
+tasks for 2023-04 through 2026-04.
+
+Branch-tip local SQLite counts from the handoff: 277,606 NYPD collisions, 18,683 ACE summaries,
+2,028,951 DOT permit rows, and 412,685 context events. The ACE ingest now skips malformed
+upstream route IDs with `skippedMalformedRouteIdCount` instead of weakening the strict
+`RouteIdSchema`; this was added after rows such as `Q44?+` broke four monthly ingests.
+
+Parking geocoding finished with a known low hit rate, roughly 50.7%, compared with about 98%
+for other geocoded sources. That is a data-quality follow-up, not a blocker for this corpus
+substrate. Bus Observatory 2025-01 still has 12 missing archive days, so downstream reliability
+for that month should be treated as a partial-month signal.
+
 ## [2026-05-19] data | Parking geocode still in flight
 
 Parking geocoding is not complete yet. Background task `bq0nmjpyi` is still running under task #63:

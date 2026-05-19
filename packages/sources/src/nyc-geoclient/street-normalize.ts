@@ -150,12 +150,16 @@ const BOROUGH_CODES: Record<string, string> = {
   manhattan: "1",
   "new york": "1",
   ny: "1",
+  mn: "1",
   bronx: "2",
+  bx: "2",
   brooklyn: "3",
   kings: "3",
+  bk: "3",
   queens: "4",
   "staten island": "5",
   richmond: "5",
+  si: "5",
 };
 
 const LION_BOROUGH_CODES: Record<string, string> = {

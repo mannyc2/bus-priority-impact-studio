@@ -1,8 +1,9 @@
+import type { Database } from "bun:sqlite";
 import { createHash } from "node:crypto";
 import {
+  getGeocodeCacheRow,
   type LocalGeocodeCacheRow,
   type LocalPipelineDb,
-  getGeocodeCacheRow,
   upsertGeocodeCacheRow,
 } from "@bp/db/local";
 import {
@@ -13,7 +14,6 @@ import {
   GeoclientHttpError,
   normalizeStreetName,
 } from "@bp/sources/nyc-geoclient";
-import type { Database } from "bun:sqlite";
 
 /**
  * Geocoder facade used by per-source geocode jobs. Wraps:
@@ -47,10 +47,7 @@ export type GeocodeInputLatLng = {
   hintBorough?: string | null;
 };
 
-export type GeocodeInput =
-  | GeocodeInputAddress
-  | GeocodeInputIntersection
-  | GeocodeInputLatLng;
+export type GeocodeInput = GeocodeInputAddress | GeocodeInputIntersection | GeocodeInputLatLng;
 
 export type GeocodeOutcome = {
   physicalId: string | null;
@@ -130,6 +127,7 @@ export class Geocoder {
     // before any API call so we never send a guess.
     const boroughForApi = canonicalBoroughName(input.borough);
 
+    let geoclientMissStatus: number | null = null;
     if (this.geoclient) {
       // When the source row lacks a parseable borough, brute-force try all
       // five. NYC street + house number is borough-unique often enough that
@@ -141,8 +139,7 @@ export class Geocoder {
       // borough-unique, so most rows resolve on the right borough and 404
       // quickly on the others. Cost: at most ~5 round-trips per no-borough
       // row; affordable because the no-borough pool is small.
-      const boroughsToTry =
-        boroughForApi !== null ? [boroughForApi] : [...ALL_BOROUGH_NAMES];
+      const boroughsToTry = boroughForApi !== null ? [boroughForApi] : [...ALL_BOROUGH_NAMES];
 
       for (const borough of boroughsToTry) {
         try {
@@ -179,6 +176,7 @@ export class Geocoder {
           if (err.status === 401 || err.status === 403 || err.status >= 500) {
             throw err;
           }
+          geoclientMissStatus ??= err.status;
           this.warnOnceForStatus(err.status, err.message);
           // For brute-force borough trials, keep iterating; a 400 in one
           // borough doesn't preclude success in another. We only return a
@@ -187,8 +185,17 @@ export class Geocoder {
       }
     }
 
-    const fuzzyStreet =
-      input.kind === "address" ? input.street : input.crossStreetOne;
+    if (geoclientMissStatus !== null) {
+      return {
+        physicalId: null,
+        lat: null,
+        lng: null,
+        confidence: `geoclient_http_${geoclientMissStatus}`,
+        cached: false,
+      };
+    }
+
+    const fuzzyStreet = input.kind === "address" ? input.street : input.crossStreetOne;
     const fuzzy = this.fuzzyByStreet(fuzzyStreet, input.borough);
     if (fuzzy) return { ...fuzzy, cached: false };
 
@@ -202,7 +209,7 @@ export class Geocoder {
     if (this.warnedHttpStatuses.has(status)) return;
     this.warnedHttpStatuses.add(status);
     console.warn(
-      `[geocoder ${this.sourceLabel}] Geoclient returned HTTP ${status}; falling back to fuzzy. First message: ${message}`,
+      `[geocoder ${this.sourceLabel}] Geoclient returned HTTP ${status}; caching affected lookups as misses. First message: ${message}`,
     );
   }
 
@@ -254,12 +261,9 @@ export class Geocoder {
           LIMIT 1`,
       );
     }
-    const row = this.fuzzyQuery.get(
-      street,
-      borough,
-      boroughLetterFromCode(borough),
-      borough,
-    ) as { physical_id: string } | undefined;
+    const row = this.fuzzyQuery.get(street, borough, boroughLetterFromCode(borough), borough) as
+      | { physical_id: string }
+      | undefined;
     if (!row) return null;
     return { physicalId: row.physical_id, lat: null, lng: null, confidence: "street_only" };
   }

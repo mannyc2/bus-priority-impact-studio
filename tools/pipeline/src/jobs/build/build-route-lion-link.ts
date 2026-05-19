@@ -84,6 +84,9 @@ export async function buildRouteLionLink(args: Args = {}): Promise<Result> {
            borough = excluded.borough,
            computed_at = excluded.computed_at`,
       );
+      const deleteForRoute = local.sqlite.prepare(
+        "DELETE FROM local_route_lion_link WHERE route_id = ?",
+      );
 
       // For each route: union its shapes into one buffered geometry, then
       // intersect against LION via the R-tree (`ROWID IN SpatialIndex`).
@@ -116,24 +119,31 @@ export async function buildRouteLionLink(args: Args = {}): Promise<Result> {
       let routesProcessed = 0;
 
       for (const r of routeRows) {
-        const matches = routeJoinQuery
-          .all(bufferDegrees, r.route_id) as Array<{
-            physical_id: string;
-            overlap_meters: number | null;
-            street_name: string | null;
-            borough: string | null;
-          }>;
-        for (const m of matches) {
-          insert.run(
-            r.route_id,
-            m.physical_id,
-            m.overlap_meters ?? 0,
-            bufferMeters,
-            m.street_name,
-            m.borough,
-            computedAt,
-          );
-          totalLinks += 1;
+        const matches = routeJoinQuery.all(bufferDegrees, r.route_id) as Array<{
+          physical_id: string;
+          overlap_meters: number | null;
+          street_name: string | null;
+          borough: string | null;
+        }>;
+        local.sqlite.exec("BEGIN");
+        try {
+          deleteForRoute.run(r.route_id);
+          for (const m of matches) {
+            insert.run(
+              r.route_id,
+              m.physical_id,
+              m.overlap_meters ?? 0,
+              bufferMeters,
+              m.street_name,
+              m.borough,
+              computedAt,
+            );
+            totalLinks += 1;
+          }
+          local.sqlite.exec("COMMIT");
+        } catch (err) {
+          local.sqlite.exec("ROLLBACK");
+          throw err;
         }
         routesProcessed += 1;
       }

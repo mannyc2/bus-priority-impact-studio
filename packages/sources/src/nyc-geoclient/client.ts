@@ -1,5 +1,5 @@
 /**
- * Thin wrapper over NYC Geoclient (api.nyc.gov/geo/geoclient/v1).
+ * Thin wrapper over NYC Geoclient v2 (api.nyc.gov/geoclient/v2).
  *
  * The free tier is rate-limited; callers should cache responses through the
  * local_address_geocode table (handled in tools/pipeline). This client
@@ -92,7 +92,6 @@ export function createGeoclient(options: GeoclientOptions): Geoclient {
         headers: { "Ocp-Apim-Subscription-Key": options.apiKey, Accept: "application/json" },
       });
       if (response.ok) return response.json();
-      if (response.status === 404) return null;
       if (response.status === 429 || response.status >= 500) {
         lastError = new GeoclientHttpError(
           `Geoclient ${path} ${response.status} ${response.statusText}`,
