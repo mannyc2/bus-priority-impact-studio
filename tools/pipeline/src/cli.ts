@@ -325,6 +325,16 @@ const commands = {
       return buildContextEventsFromCli(args);
     },
   },
+  "build:context-event-route-touches": {
+    description:
+      "Materialize detector-facing context-event route touches from direct route refs and route-LION links.",
+    run: async (args) => {
+      const { buildContextEventRouteTouchesFromCli } = await import(
+        "./jobs/build/build-context-event-route-touches.js"
+      );
+      return buildContextEventRouteTouchesFromCli(args);
+    },
+  },
   "ingest:lion-centerline": {
     description:
       "Fetch NYC Centerline (LION) active street segments for joins across DOT/311/parking/route street refs.",

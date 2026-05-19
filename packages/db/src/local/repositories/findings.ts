@@ -1,7 +1,8 @@
-import { eq, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, lt, type SQL, sql } from "drizzle-orm";
 import type { LocalPipelineDb } from "../client.js";
 import {
   localContextEvent,
+  localContextEventRouteTouch,
   localFindingCandidate,
   localFindingCoverageAudit,
   localFindingEvidenceLink,
@@ -20,6 +21,32 @@ export type LocalContextEvent = {
   routeId: string | null;
   payloadJson: string;
   ingestedAt: string;
+};
+
+export type LocalContextEventRouteTouch = {
+  eventId: string;
+  routeId: string;
+  sourceId: string;
+  eventKind: string;
+  occurredAt: string;
+  endedAt: string | null;
+  physicalId: string | null;
+  touchKind: "direct_route" | "route_lion_link";
+  evidenceRole: "primary" | "context";
+  overlapMeters: number | null;
+  bufferMeters: number | null;
+  routeFanout: number;
+  matchWeight: number;
+  computedAt: string;
+};
+
+export type ListContextEventRouteTouchesArgs = {
+  windowStart: string;
+  windowEnd: string;
+  routeId?: string;
+  eventKinds?: readonly string[];
+  evidenceRoles?: readonly LocalContextEventRouteTouch["evidenceRole"][];
+  limit?: number;
 };
 
 export type LocalFindingCandidate = {
@@ -99,6 +126,38 @@ export async function countContextEvents(db: LocalPipelineDb): Promise<number> {
     .select({ n: sql<number>`count(*)` })
     .from(localContextEvent)) as unknown as Array<{ n: number }>;
   return rows[0]?.n ?? 0;
+}
+
+export async function listContextEventRouteTouchesForWindow(
+  db: LocalPipelineDb,
+  args: ListContextEventRouteTouchesArgs,
+): Promise<LocalContextEventRouteTouch[]> {
+  const conditions: SQL[] = [
+    lt(localContextEventRouteTouch.occurredAt, args.windowEnd),
+    sql`coalesce(${localContextEventRouteTouch.endedAt}, ${localContextEventRouteTouch.occurredAt}) >= ${args.windowStart}`,
+  ];
+  if (args.routeId !== undefined) {
+    conditions.push(eq(localContextEventRouteTouch.routeId, args.routeId));
+  }
+  if (args.eventKinds !== undefined && args.eventKinds.length > 0) {
+    conditions.push(inArray(localContextEventRouteTouch.eventKind, [...args.eventKinds]));
+  }
+  if (args.evidenceRoles !== undefined && args.evidenceRoles.length > 0) {
+    conditions.push(inArray(localContextEventRouteTouch.evidenceRole, [...args.evidenceRoles]));
+  }
+
+  const query = db
+    .select()
+    .from(localContextEventRouteTouch)
+    .where(and(...conditions))
+    .orderBy(
+      asc(localContextEventRouteTouch.routeId),
+      asc(localContextEventRouteTouch.occurredAt),
+      asc(localContextEventRouteTouch.eventId),
+    );
+
+  const rows = args.limit === undefined ? await query : await query.limit(args.limit);
+  return rows as LocalContextEventRouteTouch[];
 }
 
 export async function insertFindingCandidate(

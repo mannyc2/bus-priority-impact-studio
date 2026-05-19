@@ -91,6 +91,7 @@
     "geocode:traffic-volumes": "bun --filter @bp/pipeline geocode:traffic-volumes",
     "geocode:traffic-speeds": "bun --filter @bp/pipeline geocode:traffic-speeds",
     "build:context-events": "bun --filter @bp/pipeline build:context-events",
+    "build:context-event-route-touches": "bun --filter @bp/pipeline build:context-event-route-touches",
     "check:bus-observatory-gtfs-rt": "bun --filter @bp/pipeline check:bus-observatory-gtfs-rt",
     "check:bus-observatory-gtfs-rt-range": "bun --filter @bp/pipeline check:bus-observatory-gtfs-rt-range",
     "import:bus-observatory-gtfs-rt": "bun --filter @bp/pipeline import:bus-observatory-gtfs-rt",

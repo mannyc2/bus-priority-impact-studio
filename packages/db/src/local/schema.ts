@@ -1,4 +1,4 @@
-import { integer, primaryKey, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, integer, primaryKey, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const localRouteCatalog = sqliteTable("local_route_catalog", {
   routeId: text("route_id").primaryKey(),
@@ -884,7 +884,10 @@ export const localRouteLionLink = sqliteTable(
     borough: text("borough"),
     computedAt: text("computed_at").notNull(),
   },
-  (table) => [primaryKey({ columns: [table.routeId, table.physicalId] })],
+  (table) => [
+    primaryKey({ columns: [table.routeId, table.physicalId] }),
+    index("local_route_lion_link_physical_id_idx").on(table.physicalId),
+  ],
 );
 
 // Shared address-geocode cache, dedup'd across context sources. Misses are
@@ -921,6 +924,39 @@ export const localContextEvent = sqliteTable(
     payloadJson: text("payload_json").notNull(),
     ingestedAt: text("ingested_at").notNull(),
   },
+  (table) => [
+    index("local_context_event_physical_time_idx").on(table.physicalId, table.occurredAt),
+    index("local_context_event_route_time_idx").on(table.routeId, table.occurredAt),
+  ],
+);
+
+// Detector-facing route touch bridge. This materializes the cheap answer to
+// "which events touched which routes during this window?" without requiring
+// every detector to re-join local_context_event through local_route_lion_link.
+export const localContextEventRouteTouch = sqliteTable(
+  "local_context_event_route_touch",
+  {
+    eventId: text("event_id").notNull(),
+    routeId: text("route_id").notNull(),
+    sourceId: text("source_id").notNull(),
+    eventKind: text("event_kind").notNull(),
+    occurredAt: text("occurred_at").notNull(),
+    endedAt: text("ended_at"),
+    physicalId: text("physical_id"),
+    touchKind: text("touch_kind", { enum: ["direct_route", "route_lion_link"] }).notNull(),
+    evidenceRole: text("evidence_role", { enum: ["primary", "context"] }).notNull(),
+    overlapMeters: real("overlap_meters"),
+    bufferMeters: real("buffer_meters"),
+    routeFanout: integer("route_fanout").notNull(),
+    matchWeight: real("match_weight").notNull(),
+    computedAt: text("computed_at").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.eventId, table.routeId] }),
+    index("local_context_event_route_touch_route_time_idx").on(table.routeId, table.occurredAt),
+    index("local_context_event_route_touch_time_route_idx").on(table.occurredAt, table.routeId),
+    index("local_context_event_route_touch_kind_time_idx").on(table.eventKind, table.occurredAt),
+  ],
 );
 
 // Detector outputs — short, citable claims with severity and status.

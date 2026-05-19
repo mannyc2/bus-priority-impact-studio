@@ -2,7 +2,7 @@
 title: CLI Commands
 type: engineering
 status: active
-last_updated: 2026-05-17
+last_updated: 2026-05-19
 owner: codex
 source_count: 2
 tags: [cli, tools, codex, typescript, bun]
@@ -125,6 +125,7 @@ bun run route-build-plan -- --year 2026 --month 3 --limit 20
 bun run route-reliability-baseline -- --year 2026 --month 3
 bun run route-intervention-evaluation -- --year 2026 --month 3
 bun run corridor-model -- --year 2026 --month 3
+bun run build:context-event-route-touches
 bun run evaluation-artifacts -- --year 2026 --month 3
 bun run map-artifacts -- --year 2026 --month 3
 bun run brief-artifacts -- --year 2026 --month 3
@@ -151,6 +152,8 @@ Expected outputs:
 - scheduled reliability baselines for headway gaps, short headways, and long-gap windows
 - route/month observed-intervention comparison summaries with explicit evaluation levels and caveats, including bus-lane source-gap rows when matched lane geometry lacks a route-level implementation date
 - corridor assignments, route membership, corridor summaries, and corridor hotspots
+- detector-facing context-event route touches in `local_context_event_route_touch`; direct route keys
+  are primary evidence, while route-LION expansion is context evidence with fanout and match weight
 - route/corridor brief bodies as JSON, Markdown, and HTML under `data/artifacts/briefs/`
 - map payloads under `data/artifacts/map/`: source snapshot metadata, current Local/Limited/SBS route GeoJSON, current timepoint-stop GeoJSON, bus-lane GeoJSON, per-route all-day route-segment GeoJSON, and `data/artifacts/map/<month>/manifest.json`
 - route intervention-history artifacts for ACE dates, bus-lane open-date coverage, and still-missing signal/lane-upgrade sources
@@ -228,7 +231,7 @@ Do not use `pytest`, `ruff`, or Python scripts in the MVP.
 
 ## Caveats
 
-- `sources:list`, `sources:probe`, `collect:gtfs-rt`, `pull:gtfs-rt-r2-run`, `import:gtfs-rt-r2-manifests`, `import:bus-observatory-gtfs-rt`, `import:bus-observatory-headway-samples`, `import:bus-observatory-reliability-summary`, `ingest:gtfs-rt-snapshots`, `gtfs-rt:preflight`, `gtfs-rt:run-status`, `build:observed-headways`, `route-observed-reliability`, `ingest:ace-routes`, `ingest:ace-violations`, `ingest:bus-lanes`, `ingest:equity-context`, `ingest:route-catalog`, `ingest:route-coverage`, `ingest:route-trends`, `backfill:route-ridership-trends`, `ingest:route-slice`, `ingest:route-schedules`, `build:hotspots`, `build:ridership-profile`, `build:speed-profile`, `build:interventions`, `build:bus-lanes`, `build:schedules`, `build:route-brief`, `build:artifacts`, `build:routes`, `build:network`, `compare:routes`, `route-readiness`, `route-build-plan`, `route-reliability-baseline`, `route-intervention-evaluation`, `corridor-model`, `evaluation-artifacts`, `map-artifacts`, `brief-artifacts`, `route-equity-context`, `route-batch-audit`, `export:d1`, `verify:d1`, `check:pipeline-v1`, `audit:pipeline-v1`, and `finalize:pipeline-v1` are implemented. `build:planned-routes` remains as a compatibility alias; remote D1/R2 publish is handled by dry-run-by-default `publish:serving-release` and still needs real Cloudflare resources before `--execute`.
+- `sources:list`, `sources:probe`, `collect:gtfs-rt`, `pull:gtfs-rt-r2-run`, `import:gtfs-rt-r2-manifests`, `import:bus-observatory-gtfs-rt`, `import:bus-observatory-headway-samples`, `import:bus-observatory-reliability-summary`, `ingest:gtfs-rt-snapshots`, `gtfs-rt:preflight`, `gtfs-rt:run-status`, `build:observed-headways`, `route-observed-reliability`, `ingest:ace-routes`, `ingest:ace-violations`, `ingest:bus-lanes`, `ingest:equity-context`, `ingest:route-catalog`, `ingest:route-coverage`, `ingest:route-trends`, `backfill:route-ridership-trends`, `ingest:route-slice`, `ingest:route-schedules`, `build:hotspots`, `build:ridership-profile`, `build:speed-profile`, `build:interventions`, `build:bus-lanes`, `build:schedules`, `build:route-brief`, `build:artifacts`, `build:routes`, `build:network`, `compare:routes`, `route-readiness`, `route-build-plan`, `route-reliability-baseline`, `route-intervention-evaluation`, `corridor-model`, `build:context-event-route-touches`, `evaluation-artifacts`, `map-artifacts`, `brief-artifacts`, `route-equity-context`, `route-batch-audit`, `export:d1`, `verify:d1`, `check:pipeline-v1`, `audit:pipeline-v1`, and `finalize:pipeline-v1` are implemented. `build:planned-routes` remains as a compatibility alias; remote D1/R2 publish is handled by dry-run-by-default `publish:serving-release` and still needs real Cloudflare resources before `--execute`.
 - Keep command implementations thin; put reusable logic in `packages/*`.
 
 ## Sources

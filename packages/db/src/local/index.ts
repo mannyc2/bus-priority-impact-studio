@@ -110,9 +110,11 @@ export {
 } from "./repositories/geocode-cache.js";
 export type {
   LocalContextEvent,
+  LocalContextEventRouteTouch,
   LocalFindingCandidate,
   LocalFindingCoverageAudit,
   LocalFindingEvidenceLink,
+  ListContextEventRouteTouchesArgs,
 } from "./repositories/findings.js";
 export {
   countContextEvents,
@@ -120,6 +122,7 @@ export {
   insertFindingCandidate,
   insertFindingEvidenceLinks,
   listCandidatesByRoute,
+  listContextEventRouteTouchesForWindow,
   listEvidenceForCandidate,
   upsertContextEvents,
 } from "./repositories/findings.js";

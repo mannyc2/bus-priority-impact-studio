@@ -30,6 +30,7 @@
     "geocode:traffic-volumes": "bun run src/cli.ts geocode:traffic-volumes",
     "geocode:traffic-speeds": "bun run src/cli.ts geocode:traffic-speeds",
     "build:context-events": "bun run src/cli.ts build:context-events",
+    "build:context-event-route-touches": "bun run src/cli.ts build:context-event-route-touches",
     "check:bus-observatory-gtfs-rt": "bun run src/cli.ts check:bus-observatory-gtfs-rt",
     "check:bus-observatory-gtfs-rt-range": "bun run src/cli.ts check:bus-observatory-gtfs-rt-range",
     "import:bus-observatory-gtfs-rt": "bun run src/cli.ts import:bus-observatory-gtfs-rt",

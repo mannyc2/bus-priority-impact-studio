@@ -229,6 +229,7 @@ detectors and D1 should not become the detector warehouse.
 Current local tables:
 
 - `local_context_event`
+- `local_context_event_route_touch`
 - `local_finding_candidate`
 - `local_finding_evidence_link`
 - `local_finding_coverage_audit`
@@ -238,6 +239,10 @@ Current local tables:
 parking violations, DOT permits, traffic volumes, traffic speeds, and ACE violation aggregates.
 `local_route_lion_link` is the flat route-to-LION lookup produced by local spatialite jobs so later
 detectors can join street-level context without loading spatialite.
+`local_context_event_route_touch` is the detector-facing bridge built by
+`build:context-event-route-touches`; it materializes one row per `(event_id, route_id)` using direct
+route keys as `primary` evidence and route-LION expansion as `context` evidence with `route_fanout`
+and `match_weight`.
 
 Current parking note, 2026-05-19: full `geocode:parking-violations` is still running as task
 `bq0nmjpyi`. The latest status was 71,428 of 186,096 parking rows attempted and 13,963 rows with
@@ -250,7 +255,9 @@ should add:
 - strict domain contracts for candidates, evidence links, and coverage audits;
 - idempotent replace-by-run writes in `@bp/db/local`;
 - indexes for `local_context_event(physical_id, occurred_at)`,
-  `local_route_lion_link(physical_id)`, and detector result lookup by month/detector/route;
+  `local_context_event(route_id, occurred_at)`, `local_route_lion_link(physical_id)`,
+  `local_context_event_route_touch(route_id, occurred_at)`, and detector result lookup by
+  month/detector/route;
 - a source-gap detector that writes coverage rows even when no public finding is emitted.
 
 Public serving direction:

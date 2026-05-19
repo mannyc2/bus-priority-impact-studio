@@ -41,11 +41,13 @@ promoted candidates.
 Current local state already contains the detector storage spine:
 
 - `local_context_event`
+- `local_context_event_route_touch`
 - `local_finding_candidate`
 - `local_finding_evidence_link`
 - `local_finding_coverage_audit`
 - `packages/db/src/local/repositories/findings.ts`
 - `build:context-events`
+- `build:context-event-route-touches`
 
 Manual local DB audit from `data/local/pipeline.sqlite` on 2026-05-19:
 
@@ -55,6 +57,7 @@ Manual local DB audit from `data/local/pipeline.sqlite` on 2026-05-19:
 | `local_finding_evidence_link` | 0 |
 | `local_finding_coverage_audit` | 0 |
 | `local_context_event` | 412,685 |
+| `local_context_event_route_touch` | local bridge added after audit; rebuild from context events + route-LION links |
 | `local_route_hotspot` | 3,097 |
 | `local_route_hotspot_summary` | 381 |
 | `local_route_observed_reliability_summary` | 762 rows across March and May runs |
@@ -69,7 +72,9 @@ March 2026 has enough inputs for a first detector pass, but not enough for every
   2 insufficient-post-data rows, 2 future-intervention rows, and 115 bus-lane source-gap rows.
 - Context events are large enough for caveats and review tasks, but route-level LION matching is
   broad. The average physical street segment maps to 4.25 routes, with a maximum of 59 routes, so
-  context events must be normalized and treated as explanatory context, not direct causes.
+  route-LION event touches must carry provenance and fanout. Direct route-keyed events are
+  `primary` evidence; route-LION-expanded touches are `context` evidence unless a later source
+  provides a stronger route-specific key.
 - Parking-violation geocoding is in flight under task `bq0nmjpyi`: 71,428 of 186,096 rows had
   been attempted at the latest status check, with 13,963 rows carrying `physical_id`. Do not use
   parking rows in detector scoring until that pass finishes, `build:context-events` is rerun, and
@@ -144,6 +149,9 @@ durable:
   - `local_context_event(physical_id, occurred_at)`
   - `local_context_event(route_id, occurred_at)`
   - `local_route_lion_link(physical_id)`
+  - `local_context_event_route_touch(route_id, occurred_at)`
+  - `local_context_event_route_touch(occurred_at, route_id)`
+  - `local_context_event_route_touch(event_kind, occurred_at)`
   - `local_finding_candidate(month, detector_id, route_id)`
   - `local_finding_coverage_audit(detector_run_id, detector_id, outcome)`
 - Preserve detailed evidence payloads and sampled join QA in R2/local artifacts. Keep D1 limited
@@ -362,16 +370,19 @@ D1 should serve compact route/corridor finding summaries. R2 should hold detaile
 1. Harden `FindingCandidate`, evidence-link, and coverage-audit contracts in `packages/domain` and
    `packages/db/local`.
 2. Add idempotent local repository writes and detector-read indexes.
-3. Implement `findings:detect` with the source-gap detector only.
-4. Verify source-gap output on a fixture DB and on March 2026 local state.
-5. Add persistent speed hotspot candidates, with coverage rows for every considered route/segment.
-6. Add observed reliability candidates after fixing or directly joining scheduled baseline fields.
-7. Add intervention-gap and intervention-underperformance candidates.
-8. Add a small recall-backtest fixture from ACE/ABLE, DOT bus-priority corridors, and validated
+3. Build `local_context_event_route_touch` with `build:context-event-route-touches` after
+   `build:context-events` and `build:route-lion-link`; detectors query this bridge instead of
+   redoing the route-LION join.
+4. Implement `findings:detect` with the source-gap detector only.
+5. Verify source-gap output on a fixture DB and on March 2026 local state.
+6. Add persistent speed hotspot candidates, with coverage rows for every considered route/segment.
+7. Add observed reliability candidates after fixing or directly joining scheduled baseline fields.
+8. Add intervention-gap and intervention-underperformance candidates.
+9. Add a small recall-backtest fixture from ACE/ABLE, DOT bus-priority corridors, and validated
    document seeds.
-9. Normalize context events and join them to route segments/corridors with sampled QA before adding
+10. Normalize context events and join them to route segments/corridors with sampled QA before adding
    context-correlated disruption claims.
-10. Expose only reviewed/promoted finding summaries, coverage states, and source-gap states in
+11. Expose only reviewed/promoted finding summaries, coverage states, and source-gap states in
     Studio projections, briefs, and composer review panels.
 
 ## Product Rule

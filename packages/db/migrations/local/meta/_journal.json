@@ -183,6 +183,13 @@
       "when": 1779210585079,
       "tag": "0025_curly_tempest",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "6",
+      "when": 1779228896706,
+      "tag": "0026_fuzzy_bruce_banner",
+      "breakpoints": true
     }
   ]
 }

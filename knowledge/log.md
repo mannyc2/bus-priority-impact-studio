@@ -820,6 +820,17 @@ SEO 1.00 on every route. Added `robots.txt`, `llms.txt`, and `sitemap.xml`, fixe
 finding-detail route to `/findings/m15-full-treatment-still-declining`, and darkened shared muted,
 warning, success, and Bronx route colors to satisfy Lighthouse contrast checks.
 
+## [2026-05-19] analysis | Detector event-route touch bridge
+
+Added the local-only detector bridge `local_context_event_route_touch` as the canonical cheap answer
+to "which events touched which routes during this window?" The bridge is built after
+`build:context-events` and `build:route-lion-link` by `build:context-event-route-touches`, stores
+direct route-keyed events as `primary` evidence, and stores route-LION-expanded touches as `context`
+evidence with `route_fanout` and `match_weight` so detectors do not mistake broad street proximity
+for route-specific proof.
+
+Updated the finding-coverage, data-model, and CLI docs to make the provenance rule explicit.
+
 ## [2026-05-18] engineering | Studio release artifact hard cutover
 
 Removed the last Worker-runtime Studio seed import. `/api/v1/studio/*` now reads a versioned
