@@ -641,6 +641,23 @@ export const localBusWaitAssessment = sqliteTable(
   ],
 );
 
+export const localDotTrafficSpeed = sqliteTable(
+  "local_dot_traffic_speed",
+  {
+    linkId: text("link_id").notNull(),
+    sampledAt: text("sampled_at").notNull(),
+    speed: real("speed"),
+    travelTime: real("travel_time"),
+    statusCode: text("status_code").notNull(),
+    owner: text("owner"),
+    borough: text("borough"),
+    linkName: text("link_name"),
+    linkPoints: text("link_points"),
+    transcomId: text("transcom_id"),
+  },
+  (table) => [primaryKey({ columns: [table.linkId, table.sampledAt] })],
+);
+
 export const localInterventionEvent = sqliteTable("local_intervention_event", {
   eventId: text("event_id").primaryKey(),
   routeId: text("route_id").notNull(),

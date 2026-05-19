@@ -26,6 +26,7 @@
     "ingest:ace-routes": "bun run src/cli.ts ingest:ace-routes",
     "ingest:ace-violations": "bun run src/cli.ts ingest:ace-violations",
     "ingest:bus-wait-assessment": "bun run src/cli.ts ingest:bus-wait-assessment",
+    "ingest:dot-traffic-speeds": "bun run src/cli.ts ingest:dot-traffic-speeds",
     "ingest:bus-lanes": "bun run src/cli.ts ingest:bus-lanes",
     "ingest:equity-context": "bun run src/cli.ts ingest:equity-context",
     "ingest:route-catalog": "bun run src/cli.ts ingest:route-catalog",

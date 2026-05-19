@@ -311,3 +311,15 @@ sources:
     rows_csv: https://data.ny.gov/api/views/v4z4-2h6n/rows.csv?accessType=DOWNLOAD
     purpose: Official MTA monthly route-level wait assessment to cross-check GTFS-RT-derived reliability.
     status: active
+
+  - id: nyc_dot_traffic_speeds
+    type: socrata_dataset
+    priority: secondary
+    domain: data.cityofnewyork.us
+    dataset_id: i4gi-tjb9
+    url: https://data.cityofnewyork.us/Transportation/Real-Time-Traffic-Speed-Data/i4gi-tjb9
+    api_json: https://data.cityofnewyork.us/resource/i4gi-tjb9.json
+    columns_json: https://data.cityofnewyork.us/api/views/i4gi-tjb9/columns.json
+    rows_csv: https://data.cityofnewyork.us/api/views/i4gi-tjb9/rows.csv?accessType=DOWNLOAD
+    purpose: Real-time NYC DOT traffic-speed snapshot per street link (id, speed, travel time, link geometry) for road-congestion context near slow bus segments.
+    status: active

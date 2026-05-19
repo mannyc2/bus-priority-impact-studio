@@ -135,6 +135,16 @@ const commands = {
       return ingestBusWaitAssessmentFromCli(args);
     },
   },
+  "ingest:dot-traffic-speeds": {
+    description:
+      "Capture a current snapshot of NYC DOT real-time traffic speeds per street link.",
+    run: async (args) => {
+      const { ingestDotTrafficSpeedsFromCli } = await import(
+        "./jobs/ingest/ingest-dot-traffic-speeds.js"
+      );
+      return ingestDotTrafficSpeedsFromCli(args);
+    },
+  },
   "ingest:bus-lanes": {
     description: "Fetch NYC DOT bus lane rows.",
     run: async () => {

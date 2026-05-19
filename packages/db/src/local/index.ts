@@ -70,10 +70,16 @@ export {
   replaceBusLanes,
   replaceRouteInterventionEvaluationRows,
 } from "./repositories/interventions.js";
-export type { LocalBusWaitAssessment } from "./repositories/corpus-context.js";
+export type {
+  LocalBusWaitAssessment,
+  LocalDotTrafficSpeed,
+} from "./repositories/corpus-context.js";
 export {
+  insertDotTrafficSpeedSnapshot,
   listBusWaitAssessmentRowsForMonth,
   listBusWaitAssessmentRowsForRoute,
+  listDotTrafficSpeedsForLink,
+  listLatestDotTrafficSpeeds,
   replaceBusWaitAssessmentRows,
 } from "./repositories/corpus-context.js";
 export type {

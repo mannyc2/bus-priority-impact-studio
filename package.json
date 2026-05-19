@@ -88,6 +88,7 @@
     "ingest:ace-routes": "bun --filter @bp/pipeline ingest:ace-routes",
     "ingest:ace-violations": "bun --filter @bp/pipeline ingest:ace-violations",
     "ingest:bus-wait-assessment": "bun --filter @bp/pipeline ingest:bus-wait-assessment",
+    "ingest:dot-traffic-speeds": "bun --filter @bp/pipeline ingest:dot-traffic-speeds",
     "ingest:bus-lanes": "bun --filter @bp/pipeline ingest:bus-lanes",
     "ingest:equity-context": "bun --filter @bp/pipeline ingest:equity-context",
     "ingest:route-catalog": "bun --filter @bp/pipeline ingest:route-catalog",

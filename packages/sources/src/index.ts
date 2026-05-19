@@ -52,10 +52,12 @@ export {
   normalizeStopRows,
   parseGtfsRtFeed,
 } from "./mta/index.js";
-export type { NormalizedBusLane } from "./nyc-dot/index.js";
+export type { NormalizedBusLane, NormalizedDotTrafficSpeed } from "./nyc-dot/index.js";
 export {
   NormalizedBusLaneSchema,
+  NormalizedDotTrafficSpeedSchema,
   normalizeBusLaneRows,
+  normalizeDotTrafficSpeedRows,
 } from "./nyc-dot/index.js";
 export type { ManifestSource, SocrataManifestSource, SourceManifest } from "./registry/index.js";
 export {
