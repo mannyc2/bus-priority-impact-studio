@@ -13,6 +13,7 @@ import {
   localLionSegment,
   localNypdCollision,
   localParkingViolation,
+  localWeatherObservation,
 } from "../schema.js";
 
 const UPSERT_CHUNK = 250;
@@ -105,18 +106,7 @@ export async function listBusWaitAssessmentRowsForRoute(
 // (linkId, sampledAt). For longitudinal context, run the ingest periodically.
 // =========================================================================
 
-export type LocalDotTrafficSpeed = {
-  linkId: string;
-  sampledAt: string;
-  speed: number | null;
-  travelTime: number | null;
-  statusCode: string;
-  owner: string | null;
-  borough: string | null;
-  linkName: string | null;
-  linkPoints: string | null;
-  transcomId: string | null;
-};
+export type LocalDotTrafficSpeed = typeof localDotTrafficSpeed.$inferSelect;
 
 export async function insertDotTrafficSpeedSnapshot(
   db: LocalPipelineDb,
@@ -213,6 +203,13 @@ export async function upsertDotStreetPermits(
           issuedWorkStartDate: sql`excluded.issued_work_start_date`,
           issuedWorkEndDate: sql`excluded.issued_work_end_date`,
           boroughName: sql`excluded.borough_name`,
+          houseNumber: sql`excluded.house_number`,
+          onStreetName: sql`excluded.on_street_name`,
+          fromStreetName: sql`excluded.from_street_name`,
+          toStreetName: sql`excluded.to_street_name`,
+          purposeComments: sql`excluded.purpose_comments`,
+          // physical_id / geocode_confidence intentionally omitted so the
+          // geocode pass's values are preserved on re-ingest.
         },
       }),
   );
@@ -280,6 +277,10 @@ export async function upsertNypdCollisions(
   rows: readonly LocalNypdCollision[],
 ): Promise<void> {
   if (rows.length === 0) return;
+  // physicalId / geocodeConfidence are populated by the geocode jobs, not by
+  // ingest. The onConflictDoUpdate.set clause below intentionally omits both
+  // so re-ingest preserves previously geocoded values; callers that don't
+  // know them should pass null.
   await chunked(rows, (chunk) =>
     db
       .insert(localNypdCollision)
@@ -327,6 +328,8 @@ export async function upsert311ServiceRequests(
   rows: readonly Local311ServiceRequest[],
 ): Promise<void> {
   if (rows.length === 0) return;
+  // See note on upsertNypdCollisions: geocode-derived columns are preserved
+  // by ON CONFLICT and are the caller's responsibility on INSERT.
   await chunked(rows, (chunk) =>
     db
       .insert(local311ServiceRequest)
@@ -379,6 +382,8 @@ export async function upsertParkingViolations(
   rows: readonly LocalParkingViolation[],
 ): Promise<void> {
   if (rows.length === 0) return;
+  // See note on upsertNypdCollisions: geocode-derived columns are preserved
+  // by ON CONFLICT and are the caller's responsibility on INSERT.
   await chunked(rows, (chunk) =>
     db
       .insert(localParkingViolation)
@@ -462,5 +467,54 @@ export async function upsertLionSegments(
 
 export async function countLionSegments(db: LocalPipelineDb): Promise<number> {
   const rows = await db.select({ c: sql<number>`count(*)`.as("c") }).from(localLionSegment);
+  return Number(rows[0]?.c ?? 0);
+}
+
+// =========================================================================
+// NOAA GHCN-Daily weather observations
+// =========================================================================
+
+export type LocalWeatherObservation = typeof localWeatherObservation.$inferSelect;
+
+export async function upsertWeatherObservations(
+  db: LocalPipelineDb,
+  rows: readonly LocalWeatherObservation[],
+): Promise<void> {
+  if (rows.length === 0) return;
+  await chunked(rows, (chunk) =>
+    db
+      .insert(localWeatherObservation)
+      .values(chunk)
+      .onConflictDoUpdate({
+        target: [localWeatherObservation.stationId, localWeatherObservation.date],
+        set: {
+          stationName: sql`excluded.station_name`,
+          latitude: sql`excluded.latitude`,
+          longitude: sql`excluded.longitude`,
+          elevationM: sql`excluded.elevation_m`,
+          prcpMm: sql`excluded.prcp_mm`,
+          snowMm: sql`excluded.snow_mm`,
+          snwdMm: sql`excluded.snwd_mm`,
+          tmaxC: sql`excluded.tmax_c`,
+          tminC: sql`excluded.tmin_c`,
+          tavgC: sql`excluded.tavg_c`,
+          awndMs: sql`excluded.awnd_ms`,
+          hasFog: sql`excluded.has_fog`,
+          hasThunder: sql`excluded.has_thunder`,
+          hasSleet: sql`excluded.has_sleet`,
+          hasHail: sql`excluded.has_hail`,
+          hasHighWind: sql`excluded.has_high_wind`,
+          hasRain: sql`excluded.has_rain`,
+          hasSnow: sql`excluded.has_snow`,
+          ingestedAt: sql`excluded.ingested_at`,
+        },
+      }),
+  );
+}
+
+export async function countWeatherObservations(db: LocalPipelineDb): Promise<number> {
+  const rows = await db
+    .select({ c: sql<number>`count(*)`.as("c") })
+    .from(localWeatherObservation);
   return Number(rows[0]?.c ?? 0);
 }

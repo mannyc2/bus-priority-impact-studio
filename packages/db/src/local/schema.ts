@@ -654,6 +654,9 @@ export const localDotTrafficSpeed = sqliteTable(
     linkName: text("link_name"),
     linkPoints: text("link_points"),
     transcomId: text("transcom_id"),
+    // Populated by geocode:traffic-speeds via lat/lng snap from link_points.
+    physicalId: text("physical_id"),
+    geocodeConfidence: text("geocode_confidence"),
   },
   (table) => [primaryKey({ columns: [table.linkId, table.sampledAt] })],
 );
@@ -681,6 +684,16 @@ export const localDotStreetPermit = sqliteTable("local_dot_street_permit", {
   issuedWorkStartDate: text("issued_work_start_date"),
   issuedWorkEndDate: text("issued_work_end_date"),
   boroughName: text("borough_name"),
+  // Street fields used for corridor mapping. on/from/to describe the permit's
+  // street segment; house_number anchors point-style permits.
+  houseNumber: text("house_number"),
+  onStreetName: text("on_street_name"),
+  fromStreetName: text("from_street_name"),
+  toStreetName: text("to_street_name"),
+  purposeComments: text("purpose_comments"),
+  // Populated by geocode:permits; preserved on re-ingest via ON CONFLICT.
+  physicalId: text("physical_id"),
+  geocodeConfidence: text("geocode_confidence"),
 });
 
 export const localDotTrafficVolumeCount = sqliteTable(
@@ -696,8 +709,45 @@ export const localDotTrafficVolumeCount = sqliteTable(
     direction: text("direction"),
     volume: integer("volume").notNull(),
     wktGeom: text("wkt_geom"),
+    // Populated by geocode:traffic-volumes via Geoclient intersection of
+    // (street, from_street) / (street, to_street).
+    physicalId: text("physical_id"),
+    geocodeConfidence: text("geocode_confidence"),
   },
   (table) => [primaryKey({ columns: [table.requestId, table.segmentId, table.sampledAt] })],
+);
+
+// NOAA GHCN-Daily weather observations. Citywide daily summaries from 3 NYC
+// stations (Central Park, LaGuardia, JFK). Detectors join by `date` to
+// control for weather as a confounder when explaining bus reliability dips.
+// Values use SI units: temps in °C, precipitation/snow in mm, wind in m/s.
+export const localWeatherObservation = sqliteTable(
+  "local_weather_observation",
+  {
+    stationId: text("station_id").notNull(),
+    date: text("date").notNull(),
+    stationName: text("station_name"),
+    latitude: real("latitude"),
+    longitude: real("longitude"),
+    elevationM: real("elevation_m"),
+    prcpMm: real("prcp_mm"),
+    snowMm: real("snow_mm"),
+    snwdMm: real("snwd_mm"),
+    tmaxC: real("tmax_c"),
+    tminC: real("tmin_c"),
+    tavgC: real("tavg_c"),
+    awndMs: real("awnd_ms"),
+    // Weather-type flags. Each is "1" when the day saw that condition.
+    hasFog: integer("has_fog", { mode: "boolean" }),
+    hasThunder: integer("has_thunder", { mode: "boolean" }),
+    hasSleet: integer("has_sleet", { mode: "boolean" }),
+    hasHail: integer("has_hail", { mode: "boolean" }),
+    hasHighWind: integer("has_high_wind", { mode: "boolean" }),
+    hasRain: integer("has_rain", { mode: "boolean" }),
+    hasSnow: integer("has_snow", { mode: "boolean" }),
+    ingestedAt: text("ingested_at").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.stationId, table.date] })],
 );
 
 export const localNypdCollision = sqliteTable("local_nypd_collision", {
@@ -721,6 +771,8 @@ export const localNypdCollision = sqliteTable("local_nypd_collision", {
   motoristKilled: integer("motorist_killed"),
   contributingFactorVehicle1: text("contributing_factor_vehicle_1"),
   contributingFactorVehicle2: text("contributing_factor_vehicle_2"),
+  physicalId: text("physical_id"),
+  geocodeConfidence: text("geocode_confidence"),
 });
 
 // 311 Service Requests (current erm2-nwe9 + historical 76ig-c548). Two
@@ -747,6 +799,8 @@ export const local311ServiceRequest = sqliteTable("local_311_service_request", {
   communityBoard: text("community_board"),
   latitude: real("latitude"),
   longitude: real("longitude"),
+  physicalId: text("physical_id"),
+  geocodeConfidence: text("geocode_confidence"),
 });
 
 export const localParkingViolation = sqliteTable("local_parking_violation", {
@@ -766,6 +820,8 @@ export const localParkingViolation = sqliteTable("local_parking_violation", {
   houseNumber: text("house_number"),
   streetName: text("street_name"),
   violationTime: text("violation_time"),
+  physicalId: text("physical_id"),
+  geocodeConfidence: text("geocode_confidence"),
 });
 
 // NYC LION street-centerline segment metadata. DCP page, not Socrata — we
@@ -789,6 +845,124 @@ export const localLionSegment = sqliteTable("local_lion_segment", {
   toLevelCode: text("to_level_code"),
   shapeLength: real("shape_length"),
   wktGeom: text("wkt_geom"),
+});
+
+// Spatialite-backed companion to local_lion_segment. The `geom` column is
+// added at runtime via `AddGeometryColumn('local_lion_segment_geom','geom',
+// 4326,'GEOMETRY','XY')`; drizzle only knows about the PK so the spatial
+// column stays opaque to non-geo code paths.
+export const localLionSegmentGeom = sqliteTable("local_lion_segment_geom", {
+  physicalId: text("physical_id").primaryKey(),
+  builtAt: text("built_at").notNull(),
+});
+
+// Spatialite-backed route shape geometry. One row per (routeId, shapeId).
+// Geometry column added via AddGeometryColumn at runtime.
+export const localRouteShapeGeom = sqliteTable(
+  "local_route_shape_geom",
+  {
+    routeId: text("route_id").notNull(),
+    shapeId: text("shape_id").notNull(),
+    directionId: integer("direction_id"),
+    routeShortName: text("route_short_name"),
+    builtAt: text("built_at").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.routeId, table.shapeId] })],
+);
+
+// Flat lookup linking each route to the LION segments its buffered shape
+// crosses. Worker / D1 can consume this without ever loading spatialite.
+export const localRouteLionLink = sqliteTable(
+  "local_route_lion_link",
+  {
+    routeId: text("route_id").notNull(),
+    physicalId: text("physical_id").notNull(),
+    overlapMeters: real("overlap_meters").notNull(),
+    bufferMeters: real("buffer_meters").notNull(),
+    matchKind: text("match_kind").notNull(),
+    streetName: text("street_name"),
+    borough: text("borough"),
+    computedAt: text("computed_at").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.routeId, table.physicalId] })],
+);
+
+// Shared address-geocode cache, dedup'd across context sources. Misses are
+// stored as rows with physical_id IS NULL so re-runs do not re-hit the API.
+export const localAddressGeocode = sqliteTable("local_address_geocode", {
+  rawKey: text("raw_key").primaryKey(),
+  sourceLabel: text("source_label").notNull(),
+  inputKind: text("input_kind").notNull(),
+  inputJson: text("input_json").notNull(),
+  physicalId: text("physical_id"),
+  lat: real("lat"),
+  lng: real("lng"),
+  confidence: text("confidence"),
+  errorReason: text("error_reason"),
+  geocodedAt: text("geocoded_at").notNull(),
+  rawResponse: text("raw_response"),
+});
+
+// Normalized cross-source event row populated by build:context-events after
+// geocoding. event_id is a stable hash of (sourceId, sourceRowId).
+export const localContextEvent = sqliteTable(
+  "local_context_event",
+  {
+    eventId: text("event_id").primaryKey(),
+    sourceId: text("source_id").notNull(),
+    sourceRowId: text("source_row_id").notNull(),
+    eventKind: text("event_kind").notNull(),
+    occurredAt: text("occurred_at").notNull(),
+    endedAt: text("ended_at"),
+    physicalId: text("physical_id"),
+    lat: real("lat"),
+    lng: real("lng"),
+    routeId: text("route_id"),
+    payloadJson: text("payload_json").notNull(),
+    ingestedAt: text("ingested_at").notNull(),
+  },
+);
+
+// Detector outputs — short, citable claims with severity and status.
+export const localFindingCandidate = sqliteTable("local_finding_candidate", {
+  candidateId: text("candidate_id").primaryKey(),
+  detectorId: text("detector_id").notNull(),
+  detectorRunId: text("detector_run_id").notNull(),
+  routeId: text("route_id"),
+  physicalId: text("physical_id"),
+  severity: text("severity").notNull(),
+  claimText: text("claim_text").notNull(),
+  windowStart: text("window_start"),
+  windowEnd: text("window_end"),
+  status: text("status").notNull(),
+  createdAt: text("created_at").notNull(),
+});
+
+// Each candidate is backed by N evidence rows.
+export const localFindingEvidenceLink = sqliteTable("local_finding_evidence_link", {
+  linkId: text("link_id").primaryKey(),
+  candidateId: text("candidate_id")
+    .notNull()
+    .references(() => localFindingCandidate.candidateId, { onDelete: "cascade" }),
+  evidenceKind: text("evidence_kind").notNull(),
+  evidenceRef: text("evidence_ref").notNull(),
+  evidenceWeight: real("evidence_weight"),
+  note: text("note"),
+});
+
+// Per-detector-run accounting: how many routes/segments were considered,
+// hit, skipped, and why. Drives "we looked, we just didn't find" UX.
+export const localFindingCoverageAudit = sqliteTable("local_finding_coverage_audit", {
+  auditId: text("audit_id").primaryKey(),
+  detectorRunId: text("detector_run_id").notNull(),
+  detectorId: text("detector_id").notNull(),
+  scopeKind: text("scope_kind").notNull(),
+  scopeId: text("scope_id").notNull(),
+  outcome: text("outcome").notNull(),
+  reason: text("reason"),
+  inputsSeenJson: text("inputs_seen_json"),
+  inputsExpectedJson: text("inputs_expected_json"),
+  createdAt: text("created_at").notNull(),
 });
 
 export const localInterventionEvent = sqliteTable("local_intervention_event", {

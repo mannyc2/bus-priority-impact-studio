@@ -79,6 +79,7 @@ export type {
   LocalLionSegment,
   LocalNypdCollision,
   LocalParkingViolation,
+  LocalWeatherObservation,
 } from "./repositories/corpus-context.js";
 export {
   count311ByEra,
@@ -87,6 +88,7 @@ export {
   countLionSegments,
   countNypdCollisions,
   countParkingViolationsByCode,
+  countWeatherObservations,
   insertDotTrafficSpeedSnapshot,
   insertDotTrafficVolumeCounts,
   listBusWaitAssessmentRowsForMonth,
@@ -99,7 +101,28 @@ export {
   upsertLionSegments,
   upsertNypdCollisions,
   upsertParkingViolations,
+  upsertWeatherObservations,
 } from "./repositories/corpus-context.js";
+export type { LocalGeocodeCacheRow } from "./repositories/geocode-cache.js";
+export {
+  getGeocodeCacheRow,
+  upsertGeocodeCacheRow,
+} from "./repositories/geocode-cache.js";
+export type {
+  LocalContextEvent,
+  LocalFindingCandidate,
+  LocalFindingCoverageAudit,
+  LocalFindingEvidenceLink,
+} from "./repositories/findings.js";
+export {
+  countContextEvents,
+  insertCoverageAudit,
+  insertFindingCandidate,
+  insertFindingEvidenceLinks,
+  listCandidatesByRoute,
+  listEvidenceForCandidate,
+  upsertContextEvents,
+} from "./repositories/findings.js";
 export type {
   LocalObservedHeadwaySample,
   LocalObservedVehicleStopEvent,
