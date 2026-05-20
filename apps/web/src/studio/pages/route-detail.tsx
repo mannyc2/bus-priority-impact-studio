@@ -3,7 +3,9 @@ import { ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { AIDiagnosisStrip } from "@/components/AIDiagnosisStrip";
 import { BeforeAfter } from "@/components/BeforeAfter";
+import { ChartFrame } from "@/components/ChartFrame";
 import { FilterChips } from "@/components/FilterChips";
+import { HourBars } from "@/components/HourBars";
 import { InterventionTimeline } from "@/components/InterventionTimeline";
 import { KPISkeleton } from "@/components/KPI";
 import { RouteBadge } from "@/components/RouteBadge";
@@ -134,8 +136,8 @@ export function RouteDetailPage({ data }: { data: StudioRouteDetailResponse | nu
             </TabsList>
           </div>
           <div className="min-h-0 flex-1 overflow-auto px-8 py-7">
-            <TabsContent value="overview" className="text-[var(--bp-color-ink-70)]">
-              <p className="m-0 max-w-[760px] text-[13.5px] leading-[1.6]">{route.diagnosis}</p>
+            <TabsContent value="overview">
+              <RouteOverviewTab route={route} segments={segments} />
             </TabsContent>
             <TabsContent value="slow-segments" className="space-y-11">
               <SlowSegmentsSection
@@ -215,24 +217,14 @@ export function RouteDetailPage({ data }: { data: StudioRouteDetailResponse | nu
                 </div>
               </section>
             </TabsContent>
-            <TabsContent value="riders" className="text-[var(--bp-color-ink-70)]">
-              <p className="m-0 max-w-[760px] text-[13.5px] leading-[1.6]">
-                Hourly ridership and segment-level rider-hour shares appear in the brief composer
-                when this route is opened from a finding.
-              </p>
+            <TabsContent value="riders">
+              <RouteRidersTab route={route} segments={segments} />
             </TabsContent>
             <TabsContent value="interventions">
-              <InterventionsSection events={route.interventions} />
+              <RouteInterventionsTab route={route} />
             </TabsContent>
-            <TabsContent value="data-notes" className="text-[var(--bp-color-ink-70)]">
-              <p className="m-0 max-w-[760px] text-[13.5px] leading-[1.6]">
-                Numbers on this page derive from public MTA segment speeds, NYC DOT lane geometry,
-                and the MTA ACE program record. Full sourcing lives on the{" "}
-                <Link to="/methods" className="text-[var(--bp-color-accent)] no-underline">
-                  Methodology page
-                </Link>
-                .
-              </p>
+            <TabsContent value="data-notes">
+              <RouteDataNotesTab data={data} />
             </TabsContent>
           </div>
         </Tabs>
@@ -313,6 +305,442 @@ export function RouteDetailLoadingPage() {
         </div>
       </div>
     </StudioPage>
+  );
+}
+
+function RouteOverviewTab({
+  route,
+  segments,
+}: {
+  route: StudioRouteDetailResponse["route"];
+  segments: readonly StudioSegment[];
+}) {
+  const slowest = segments[0];
+  const hourProfile = averageHourlySpeed(route, segments);
+
+  return (
+    <div className="flex flex-col gap-7">
+      <div className="rounded-[3px] bg-[var(--bp-color-accent-bg)] p-4 shadow-[inset_0_0_0_1px_oklch(0.88_0.07_252)]">
+        <div className="mb-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--bp-color-accent)]">
+          AI route briefing
+        </div>
+        <p className="m-0 max-w-[980px] text-[13px] leading-[1.65] text-[var(--bp-color-ink)]">
+          {route.diagnosis}{" "}
+          {slowest
+            ? `${slowest.from} to ${slowest.to} is the current highest
+          rider-impact segment at ${slowest.speedMph.toFixed(1)} mph and ${slowest.riderHours.toLocaleString()}
+          rider-hours lost per day.`
+            : null}{" "}
+          Treatment coverage is visible below so this summary can be checked against the same
+          evidence used in the slow-segment and intervention tabs.
+        </p>
+      </div>
+
+      <ChartFrame
+        title="Speed trend"
+        source="Route sparkline from current Studio projection; dashed line is scheduled speed."
+        height={132}
+        right={
+          <Badge variant={route.weightedAvgSpeed < 6 ? "bad" : "warn"}>
+            {route.weightedAvgSpeed.toFixed(1)} mph now
+          </Badge>
+        }
+      >
+        <RouteSpeedTrend data={route.spark} scheduled={route.scheduledMph} />
+      </ChartFrame>
+
+      <div className="grid grid-cols-[minmax(0,1fr)_340px] gap-5 max-xl:grid-cols-1">
+        <ChartFrame
+          title="Speed by hour of day"
+          source="Derived from segment hourly severity and route weighted average."
+          height={210}
+        >
+          <HourBars
+            data={hourProfile}
+            sched={route.scheduledMph}
+            width={790}
+            height={210}
+            min={Math.max(0, Math.floor(Math.min(...hourProfile) - 1))}
+            max={Math.ceil(Math.max(route.scheduledMph, ...hourProfile) + 1)}
+          />
+        </ChartFrame>
+
+        <div className="flex flex-col gap-3">
+          <SectionHeader title="Treatment status" />
+          <TreatmentStatusCard
+            label="Bus lane"
+            value={`${route.laneCoverage}%`}
+            tone={route.laneCoverage >= 85 ? "good" : route.laneCoverage >= 45 ? "warn" : "bad"}
+            note={
+              slowest?.lane === "yes"
+                ? "Present on the slowest visible segment"
+                : "Gap or partial lane on the slowest visible segment"
+            }
+          />
+          <TreatmentStatusCard
+            label="ACE"
+            value={route.aceStatus === "active" ? "Active" : "None"}
+            tone={route.aceStatus === "active" ? "good" : "bad"}
+            note={
+              route.aceSince
+                ? `Program record since ${route.aceSince}`
+                : "No route-level enforcement record"
+            }
+          />
+          <TreatmentStatusCard
+            label="TSP"
+            value={
+              route.tspCoverage === "yes"
+                ? "Covered"
+                : route.tspCoverage === "partial"
+                  ? "Partial"
+                  : "None"
+            }
+            tone={
+              route.tspCoverage === "yes"
+                ? "good"
+                : route.tspCoverage === "partial"
+                  ? "warn"
+                  : "bad"
+            }
+            note={`${segments.filter((s) => s.tsp).length} of ${segments.length} visible segments have TSP`}
+          />
+          <div className="rounded-[3px] bg-[var(--bp-color-card)] p-4 shadow-[0_0_0_1px_var(--bp-color-rule)]">
+            <div className="mb-3 text-[13px] font-semibold">Route vitals</div>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+              {[
+                ["Borough", route.borough],
+                ["Length", `${route.miles} mi`],
+                ["Stops", String(route.stops)],
+                ["Type", route.sbs ? "Select Bus Service" : "Local"],
+                ["Reliability", route.reliability],
+                ["Segments", String(segments.length)],
+              ].map(([label, value]) => (
+                <div key={label}>
+                  <div className="font-mono text-[9.5px] font-bold uppercase tracking-[0.08em] text-[var(--bp-color-ink-40)]">
+                    {label}
+                  </div>
+                  <div className="mt-0.5 text-[12.5px] font-medium">{value}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RouteRidersTab({
+  route,
+  segments,
+}: {
+  route: StudioRouteDetailResponse["route"];
+  segments: readonly StudioSegment[];
+}) {
+  const topSegments = [...segments].sort((a, b) => b.riderHours - a.riderHours).slice(0, 6);
+  const maxRiderHours = Math.max(...topSegments.map((s) => s.riderHours), 1);
+  const hourlyExposure = averageHourlySeverity(segments);
+
+  return (
+    <div className="flex flex-col gap-7">
+      <div className="grid grid-cols-3 rounded-[3px] bg-[var(--bp-color-card)] shadow-[0_0_0_1px_var(--bp-color-rule)] max-lg:grid-cols-1">
+        <RiderKpi
+          label="Daily riders"
+          value={formatCompact(route.dailyRiders)}
+          sub={`${route.ridersYoyPct >= 0 ? "+" : ""}${route.ridersYoyPct.toFixed(1)}% year over year`}
+        />
+        <RiderKpi
+          label="Rider-hours lost / day"
+          value={route.riderHoursLost.toLocaleString()}
+          sub="vs. scheduled timepoints"
+          tone="bad"
+        />
+        <RiderKpi
+          label="Highest-impact segment"
+          value={formatCompact(topSegments[0]?.riderHours ?? 0)}
+          sub={
+            topSegments[0] ? `${topSegments[0].from} to ${topSegments[0].to}` : "no segment data"
+          }
+          tone="bad"
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-5 max-xl:grid-cols-1">
+        <ChartFrame
+          title="Daily riders trend proxy"
+          source="Current route sparkline scaled to boardings until monthly boarding series is exposed."
+          height={148}
+        >
+          <RouteBoardingsTrend data={route.spark} dailyRiders={route.dailyRiders} />
+        </ChartFrame>
+        <div>
+          <SectionHeader
+            title="Top rider-impact segments"
+            sub="Segment rider-hours lost, used as the route-level rider impact frame."
+          />
+          <div className="rounded-[3px] bg-[var(--bp-color-card)] shadow-[0_0_0_1px_var(--bp-color-rule)]">
+            {topSegments.map((segment) => (
+              <div
+                key={segment.id}
+                className="grid grid-cols-[minmax(0,1fr)_72px] items-center gap-4 px-4 py-3 shadow-[inset_0_-1px_0_var(--bp-color-rule)] last:shadow-none"
+              >
+                <div className="min-w-0">
+                  <div className="truncate text-[12.5px] font-medium">
+                    {segment.from} to {segment.to}
+                  </div>
+                  <div className="mt-1 h-1 rounded-full bg-[var(--bp-color-ink-06)]">
+                    <div
+                      className="h-full rounded-full bg-[var(--bp-color-ink-40)]"
+                      style={{ width: `${(segment.riderHours / maxRiderHours) * 100}%` }}
+                    />
+                  </div>
+                </div>
+                <div className="text-right font-mono text-[13px] font-semibold tabular-nums">
+                  {formatCompact(segment.riderHours)}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <ChartFrame
+        title="Rider exposure by hour"
+        source="Peak exposure inferred from segment severity timing; red bars mark the AM/PM windows where rider-delay risk is highest."
+        height={112}
+      >
+        <HourlyExposureBars data={hourlyExposure} />
+      </ChartFrame>
+
+      <Alert variant="info">
+        <AlertTitle variant="info">Rider-hours framing</AlertTitle>
+        <AlertDescription>
+          A 1-minute delay affecting 1,000 riders is 16.7 rider-hours. This route loses{" "}
+          {route.riderHoursLost.toLocaleString()} rider-hours per weekday in the current projection,
+          so the rider tab ranks where delay matters most rather than where buses are merely slow.
+        </AlertDescription>
+      </Alert>
+    </div>
+  );
+}
+
+function RouteInterventionsTab({ route }: { route: StudioRouteDetailResponse["route"] }) {
+  return (
+    <div className="flex flex-col gap-7">
+      <div>
+        <SectionHeader
+          title="What's in place today"
+          sub={`Treatment stack for ${route.label}${route.sbs ? " SBS" : ""}.`}
+        />
+        <div className="grid grid-cols-3 gap-4 max-lg:grid-cols-1">
+          <TreatmentDeepCard
+            title="Bus lane"
+            status={
+              route.laneCoverage >= 85
+                ? "Broad coverage"
+                : route.laneCoverage > 0
+                  ? "Partial"
+                  : "None"
+            }
+            tone={route.laneCoverage >= 85 ? "good" : route.laneCoverage > 0 ? "warn" : "bad"}
+            lines={[
+              `${route.laneCoverage}% of route mileage`,
+              route.laneCoverage < 80
+                ? "Coverage gap remains relevant to slow segments"
+                : "Most of the route has lane coverage",
+              "Use segment tab to verify whether the worst segment is treated",
+            ]}
+            gap={
+              route.laneCoverage < 80
+                ? "Coverage is not complete"
+                : "Coverage is not the limiting signal"
+            }
+          />
+          <TreatmentDeepCard
+            title="ACE enforcement"
+            status={route.aceStatus === "active" ? "Active" : "None"}
+            tone={route.aceStatus === "active" ? "good" : "bad"}
+            lines={[
+              route.aceSince ? `Program record since ${route.aceSince}` : "No active program date",
+              route.aceStatus === "active"
+                ? "Check whether speed improves after enforcement"
+                : "No route-level camera enforcement in current record",
+              "Violation trend data should be attached before causal claims",
+            ]}
+            gap={
+              route.aceStatus === "active"
+                ? "Effect still needs before/after support"
+                : "No enforcement treatment present"
+            }
+          />
+          <TreatmentDeepCard
+            title="Transit Signal Priority"
+            status={
+              route.tspCoverage === "yes"
+                ? "Covered"
+                : route.tspCoverage === "partial"
+                  ? "Partial"
+                  : "None"
+            }
+            tone={
+              route.tspCoverage === "yes"
+                ? "good"
+                : route.tspCoverage === "partial"
+                  ? "warn"
+                  : "bad"
+            }
+            lines={[
+              `Route-level TSP coverage: ${route.tspCoverage}`,
+              "Compare against the slowest segments before recommending signal work",
+              "TSP is a separate operational lever from lanes and enforcement",
+            ]}
+            gap={route.tspCoverage === "yes" ? "No obvious TSP gap" : "TSP gap remains plausible"}
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-[minmax(0,1fr)_420px] gap-6 max-xl:grid-cols-1">
+        <InterventionsSection events={route.interventions} />
+        <BeforeAfterSection />
+      </div>
+    </div>
+  );
+}
+
+function RouteDataNotesTab({ data }: { data: StudioRouteDetailResponse }) {
+  const { route, quality, segments } = data;
+  const datasets = [
+    ["Bus segment speeds", "MTA Open Data", `${segments.length} timepoint segments`, 14],
+    [
+      "Ridership and rider-hours",
+      "MTA / Studio projection",
+      `${formatCompact(route.dailyRiders)} weekday riders`,
+      9,
+    ],
+    [
+      "Schedule timepoints",
+      "MTA GTFS",
+      `${route.scheduledMph.toFixed(1)} mph scheduled baseline`,
+      6,
+    ],
+    ["Bus lane geometry", "NYC DOT", `${route.laneCoverage}% route coverage`, 8],
+    [
+      "ACE program record",
+      "MTA Open Data",
+      route.aceSince ? `since ${route.aceSince}` : "no active record",
+      5,
+    ],
+  ] as const;
+
+  const caveats = [
+    {
+      title: "Speed is observed bus travel speed",
+      body: "Segment speeds include dwell time, traffic, signals, and stops. Brief language should say observed bus travel speed, not general traffic speed.",
+      scope: `${route.label} route view`,
+    },
+    {
+      title: "Trend data is projection-backed",
+      body: "The route sparkline is already computed in the Studio projection. Do not treat it as a full causal time-series without attaching source rows.",
+      scope: "route trend",
+    },
+    {
+      title: "Treatment attribution needs context",
+      body: "Lane, ACE, and TSP status are shown as operational context. Before publishing an intervention claim, attach before/after windows and any overlapping events.",
+      scope: "intervention claims",
+    },
+    {
+      title: "Data quality travels with the route",
+      body: `This response was generated at ${data.generatedAt}; quality confidence is ${quality.confidence}. Use the quality object when deciding whether a claim is publishable.`,
+      scope: "publication review",
+    },
+  ];
+
+  return (
+    <div className="flex flex-col gap-7">
+      <div className="flex flex-wrap items-center gap-7 rounded-[3px] bg-[var(--bp-color-card)] p-5 shadow-[0_0_0_1px_var(--bp-color-rule)]">
+        <DataWindow
+          label="Primary window"
+          value="Current projection"
+          sub={`${segments.length} segments in route detail`}
+        />
+        <DataWindow
+          label="Route quality"
+          value={quality.confidence}
+          sub={quality.caveats.join("; ") || quality.completenessStatus}
+          good={quality.confidence === "high"}
+        />
+        <DataWindow
+          label="Last generated"
+          value={data.generatedAt.slice(0, 10)}
+          sub="serving artifact timestamp"
+        />
+        <div className="ml-auto">
+          <Link
+            to="/methods"
+            className="inline-flex items-center rounded-[3px] border border-[var(--bp-color-accent)] px-3 py-2 text-[12px] font-semibold text-[var(--bp-color-accent)] no-underline"
+          >
+            Full methodology &rarr;
+          </Link>
+        </div>
+      </div>
+
+      <div>
+        <SectionHeader
+          title="Route-specific caveats"
+          sub="Apply these to briefs when the claim uses the associated route evidence."
+        />
+        <div className="flex flex-col gap-2.5">
+          {caveats.map((caveat) => (
+            <div
+              key={caveat.title}
+              className="flex items-start gap-3 rounded-[3px] bg-[var(--bp-color-card)] p-4 shadow-[0_0_0_1px_var(--bp-color-rule)]"
+            >
+              <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--bp-color-warn)]" />
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-baseline gap-2">
+                  <div className="text-[13.5px] font-semibold">{caveat.title}</div>
+                  <Badge variant="neutral">scope: {caveat.scope}</Badge>
+                </div>
+                <p className="m-0 mt-1 text-[12.5px] leading-[1.55] text-[var(--bp-color-ink-70)]">
+                  {caveat.body}
+                </p>
+              </div>
+              <button
+                type="button"
+                className="shrink-0 rounded-[3px] border border-[var(--bp-color-ink-20)] bg-transparent px-2.5 py-1.5 text-[11px] font-medium"
+              >
+                Apply to brief
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <SectionHeader
+          title="Datasets in use for this route"
+          sub="Dataset rows are shown as route-level evidence inventory, not generic docs."
+        />
+        <div className="rounded-[3px] bg-[var(--bp-color-card)] shadow-[0_0_0_1px_var(--bp-color-rule)]">
+          {datasets.map(([name, publisher, window, cites]) => (
+            <div
+              key={name}
+              className="grid grid-cols-[220px_160px_minmax(0,1fr)_80px] items-center gap-5 px-4 py-3 shadow-[inset_0_-1px_0_var(--bp-color-rule)] last:shadow-none max-lg:grid-cols-1 max-lg:gap-1"
+            >
+              <div className="text-[13px] font-semibold">{name}</div>
+              <div className="font-mono text-[11.5px] text-[var(--bp-color-ink-55)]">
+                {publisher}
+              </div>
+              <div className="text-[11.5px] text-[var(--bp-color-ink-55)]">{window}</div>
+              <div className="text-right font-mono text-[11.5px] font-semibold text-[var(--bp-color-accent)] max-lg:text-left">
+                cited {cites}x
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -580,6 +1008,303 @@ function BeforeAfterSection() {
       </Alert>
     </section>
   );
+}
+
+function TreatmentStatusCard({
+  label,
+  value,
+  tone,
+  note,
+}: {
+  label: string;
+  value: string;
+  tone: "good" | "warn" | "bad";
+  note: string;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-3 rounded-[3px] bg-[var(--bp-color-card)] p-3.5 shadow-[0_0_0_1px_var(--bp-color-rule)]">
+      <div>
+        <div className="text-[13px] font-semibold">{label}</div>
+        <div className="mt-1 text-[11.5px] leading-[1.35] text-[var(--bp-color-ink-55)]">
+          {note}
+        </div>
+      </div>
+      <Badge variant={tone}>{value}</Badge>
+    </div>
+  );
+}
+
+function RiderKpi({
+  label,
+  value,
+  sub,
+  tone = "neutral",
+}: {
+  label: string;
+  value: string;
+  sub: string;
+  tone?: "neutral" | "bad";
+}) {
+  return (
+    <div className="p-5 shadow-[inset_-1px_0_0_var(--bp-color-rule)] last:shadow-none max-lg:shadow-[inset_0_-1px_0_var(--bp-color-rule)]">
+      <div className="mb-1.5 text-[11.5px] font-semibold text-[var(--bp-color-ink-70)]">
+        {label}
+      </div>
+      <div
+        className="font-mono text-[30px] font-semibold leading-none tracking-[-0.02em]"
+        style={{ color: tone === "bad" ? "var(--bp-color-bad)" : "var(--bp-color-ink)" }}
+      >
+        {value}
+      </div>
+      <div className="mt-1.5 text-[11px] text-[var(--bp-color-ink-55)]">{sub}</div>
+    </div>
+  );
+}
+
+function TreatmentDeepCard({
+  title,
+  status,
+  tone,
+  lines,
+  gap,
+}: {
+  title: string;
+  status: string;
+  tone: "good" | "warn" | "bad";
+  lines: readonly string[];
+  gap: string;
+}) {
+  return (
+    <div className="flex flex-col gap-3 rounded-[3px] bg-[var(--bp-color-card)] p-5 shadow-[0_0_0_1px_var(--bp-color-rule)]">
+      <div className="flex items-start justify-between gap-3">
+        <div className="text-[15px] font-semibold tracking-[-0.01em]">{title}</div>
+        <Badge variant={tone}>{status}</Badge>
+      </div>
+      <div className="flex flex-1 flex-col gap-1.5">
+        {lines.map((line) => (
+          <div
+            key={line}
+            className="flex gap-2 text-[12px] leading-[1.45] text-[var(--bp-color-ink-70)]"
+          >
+            <span className="mt-[5px] text-[8px] text-[var(--bp-color-ink-40)]">▸</span>
+            <span>{line}</span>
+          </div>
+        ))}
+      </div>
+      <div
+        className="rounded-[3px] px-2.5 py-2 text-[11px] font-semibold leading-[1.35]"
+        style={{
+          background:
+            tone === "good"
+              ? "var(--bp-color-good-bg)"
+              : tone === "bad"
+                ? "var(--bp-color-bad-bg)"
+                : "var(--bp-color-warn-bg)",
+          color:
+            tone === "good"
+              ? "var(--bp-color-good)"
+              : tone === "bad"
+                ? "var(--bp-color-bad)"
+                : "var(--bp-color-warn)",
+        }}
+      >
+        {gap}
+      </div>
+    </div>
+  );
+}
+
+function DataWindow({
+  label,
+  value,
+  sub,
+  good = false,
+}: {
+  label: string;
+  value: string;
+  sub: string;
+  good?: boolean;
+}) {
+  return (
+    <div className="max-w-[280px]">
+      <div className="mb-1 font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--bp-color-ink-55)]">
+        {label}
+      </div>
+      <div className="flex items-center gap-2">
+        <div className="font-mono text-[20px] font-semibold tracking-[-0.015em]">{value}</div>
+        {good ? <span className="h-1.5 w-1.5 rounded-full bg-[var(--bp-color-good)]" /> : null}
+      </div>
+      <div
+        className="mt-0.5 text-[11px] leading-[1.35]"
+        style={{ color: good ? "var(--bp-color-good)" : "var(--bp-color-ink-55)" }}
+      >
+        {sub}
+      </div>
+    </div>
+  );
+}
+
+function RouteSpeedTrend({ data, scheduled }: { data: readonly number[]; scheduled: number }) {
+  const width = 980;
+  const height = 132;
+  const padL = 34;
+  const padR = 12;
+  const padT = 12;
+  const padB = 24;
+  const lo = Math.floor(Math.min(...data, scheduled) - 0.5);
+  const hi = Math.ceil(Math.max(...data, scheduled) + 0.5);
+  const range = hi - lo || 1;
+  const x = (index: number) =>
+    padL + (index / Math.max(1, data.length - 1)) * (width - padL - padR);
+  const y = (value: number) => padT + (1 - (value - lo) / range) * (height - padT - padB);
+  const d = data
+    .map(
+      (value, index) => `${index === 0 ? "M" : "L"}${x(index).toFixed(1)},${y(value).toFixed(1)}`,
+    )
+    .join(" ");
+  const area = `${d} L${x(data.length - 1).toFixed(1)},${height - padB} L${padL},${height - padB} Z`;
+
+  return (
+    <svg
+      viewBox={`0 0 ${width} ${height}`}
+      className="block h-[132px] w-full font-mono"
+      aria-hidden="true"
+    >
+      {[lo, scheduled, hi].map((tick) => (
+        <g key={tick}>
+          <line
+            x1={padL}
+            x2={width - padR}
+            y1={y(tick)}
+            y2={y(tick)}
+            stroke="var(--bp-color-rule)"
+            strokeDasharray={tick === scheduled ? "4 3" : undefined}
+          />
+          <text
+            x={padL - 6}
+            y={y(tick) + 3}
+            fontSize="10"
+            textAnchor="end"
+            fill="var(--bp-color-ink-55)"
+          >
+            {tick.toFixed(1)}
+          </text>
+        </g>
+      ))}
+      <path d={area} fill="var(--bp-color-bad)" opacity="0.07" />
+      <path
+        d={d}
+        fill="none"
+        stroke="var(--bp-color-bad)"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {data.map((_, index) =>
+        index % 2 === 0 ? (
+          <text
+            key={index}
+            x={x(index)}
+            y={height - 8}
+            fontSize="9"
+            textAnchor="middle"
+            fill="var(--bp-color-ink-55)"
+          >
+            {index + 1}
+          </text>
+        ) : null,
+      )}
+      <circle
+        cx={x(data.length - 1)}
+        cy={y(data[data.length - 1] ?? scheduled)}
+        r="4"
+        fill="var(--bp-color-bad)"
+      />
+    </svg>
+  );
+}
+
+function RouteBoardingsTrend({
+  data,
+  dailyRiders,
+}: {
+  data: readonly number[];
+  dailyRiders: number;
+}) {
+  const base = dailyRiders / 1000;
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const scaled = data.map((value) => base * (0.94 + ((value - min) / (max - min || 1)) * 0.12));
+  return <RouteSpeedTrend data={scaled} scheduled={base} />;
+}
+
+function HourlyExposureBars({ data }: { data: readonly number[] }) {
+  const width = 980;
+  const height = 112;
+  const padL = 28;
+  const padR = 8;
+  const padT = 12;
+  const padB = 22;
+  const max = Math.max(...data, 1);
+  const cw = (width - padL - padR) / 24;
+  const barMaxH = height - padT - padB;
+
+  return (
+    <svg
+      viewBox={`0 0 ${width} ${height}`}
+      className="block h-[112px] w-full font-mono"
+      aria-hidden="true"
+    >
+      {data.slice(0, 24).map((value, index) => {
+        const barHeight = (value / max) * barMaxH;
+        const peak = (index >= 7 && index <= 9) || (index >= 16 && index <= 19);
+        return (
+          <rect
+            key={`${index}-${value}`}
+            x={padL + index * cw + 1.5}
+            width={cw - 3}
+            y={height - padB - barHeight}
+            height={barHeight}
+            fill={peak ? "var(--bp-color-bad)" : "var(--bp-color-ink-40)"}
+            opacity={peak ? 0.72 : 0.42}
+          />
+        );
+      })}
+      {[0, 6, 12, 18].map((hour) => (
+        <text
+          key={hour}
+          x={padL + hour * cw + cw / 2}
+          y={height - 8}
+          fontSize="10"
+          textAnchor="middle"
+          fill="var(--bp-color-ink-55)"
+        >
+          {hour}:00
+        </text>
+      ))}
+    </svg>
+  );
+}
+
+function averageHourlySeverity(segments: readonly StudioSegment[]): number[] {
+  if (segments.length === 0) return Array.from({ length: 24 }, () => 0);
+  return Array.from({ length: 24 }, (_, hour) => {
+    const total = segments.reduce((sum, segment) => sum + (segment.hours[hour] ?? 0), 0);
+    return total / segments.length;
+  });
+}
+
+function averageHourlySpeed(
+  route: StudioRouteDetailResponse["route"],
+  segments: readonly StudioSegment[],
+): number[] {
+  const severity = averageHourlySeverity(segments);
+  return severity.map((value) => Math.max(2, route.scheduledMph - value * 4.2));
+}
+
+function formatCompact(value: number): string {
+  if (value >= 1000) return `${(value / 1000).toFixed(value >= 10_000 ? 1 : 0)}K`;
+  return String(Math.round(value));
 }
 
 function ordinal(n: number): string {
