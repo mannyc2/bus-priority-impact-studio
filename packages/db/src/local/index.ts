@@ -115,6 +115,7 @@ export type {
   LocalFindingCoverageAudit,
   LocalFindingEvidenceLink,
   ListContextEventRouteTouchesArgs,
+  ReplaceFindingsForMonthArgs,
 } from "./repositories/findings.js";
 export {
   countContextEvents,
@@ -124,6 +125,8 @@ export {
   listCandidatesByRoute,
   listContextEventRouteTouchesForWindow,
   listEvidenceForCandidate,
+  replaceFindingRun,
+  replaceFindingsForMonth,
   upsertContextEvents,
 } from "./repositories/findings.js";
 export type {
@@ -193,6 +196,7 @@ export {
   listBuildEligibleRouteIds,
   listRouteBuildPlan,
   listRouteCatalog,
+  listRouteIdsWithLionLink,
   listRouteMonthCoverage,
   listRouteReadiness,
   listSelectedRouteBuildCandidates,

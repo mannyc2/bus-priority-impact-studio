@@ -5,6 +5,7 @@ import {
   localRouteCatalog,
   localRouteCatalogType,
   localRouteDirection,
+  localRouteLionLink,
   localRouteMonthCoverage,
   localRouteReadiness,
   localRouteReadinessMissingInput,
@@ -170,6 +171,17 @@ export async function replaceRouteCatalog(
   if (directions.length > 0) {
     await db.insert(localRouteDirection).values(directions);
   }
+}
+
+// Distinct route_ids that have any LION segment link. Used by detectors to
+// answer the "do we have geometry for this route?" question without joining
+// the full link table per route.
+export async function listRouteIdsWithLionLink(db: LocalPipelineDb): Promise<string[]> {
+  const rows = (await db
+    .selectDistinct({ routeId: localRouteLionLink.routeId })
+    .from(localRouteLionLink)
+    .orderBy(asc(localRouteLionLink.routeId))) as Array<{ routeId: string }>;
+  return rows.map((row) => row.routeId);
 }
 
 export async function listRouteCatalog(db: LocalPipelineDb): Promise<LocalRouteCatalogEntry[]> {

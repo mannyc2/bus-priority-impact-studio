@@ -960,46 +960,116 @@ export const localContextEventRouteTouch = sqliteTable(
 );
 
 // Detector outputs — short, citable claims with severity and status.
-export const localFindingCandidate = sqliteTable("local_finding_candidate", {
-  candidateId: text("candidate_id").primaryKey(),
-  detectorId: text("detector_id").notNull(),
-  detectorRunId: text("detector_run_id").notNull(),
-  routeId: text("route_id"),
-  physicalId: text("physical_id"),
-  severity: text("severity").notNull(),
-  claimText: text("claim_text").notNull(),
-  windowStart: text("window_start"),
-  windowEnd: text("window_end"),
-  status: text("status").notNull(),
-  createdAt: text("created_at").notNull(),
-});
+// Hardened in 0027 to match the contract in
+// knowledge/wiki/analysis/finding_coverage_and_corpus_expansion.md.
+export const localFindingCandidate = sqliteTable(
+  "local_finding_candidate",
+  {
+    candidateId: text("candidate_id").primaryKey(),
+    detectorId: text("detector_id").notNull(),
+    detectorRunId: text("detector_run_id").notNull(),
+    month: text("month").notNull(),
+    scopeKind: text("scope_kind", {
+      enum: ["route", "segment", "corridor", "system"],
+    }).notNull(),
+    scopeId: text("scope_id").notNull(),
+    routeId: text("route_id"),
+    physicalId: text("physical_id"),
+    category: text("category", {
+      enum: ["reliability", "speed", "intervention", "data_quality", "context"],
+    }).notNull(),
+    severity: text("severity", { enum: ["info", "low", "medium", "high"] }).notNull(),
+    confidence: text("confidence", {
+      enum: ["insufficient", "low", "medium", "high"],
+    }).notNull(),
+    detectorScore: real("detector_score").notNull(),
+    reasonCode: text("reason_code").notNull(),
+    claimSafeLabel: text("claim_safe_label", {
+      enum: [
+        "no_issue_clean",
+        "issue_clean",
+        "issue_needs_review",
+        "insufficient_evidence",
+        "source_lag_expected",
+      ],
+    }).notNull(),
+    claimText: text("claim_text").notNull(),
+    status: text("status", {
+      enum: ["open", "promoted", "dismissed", "superseded"],
+    }).notNull(),
+    reviewState: text("review_state", {
+      enum: ["unreviewed", "needs_review", "approved", "rejected"],
+    }).notNull(),
+    windowStart: text("window_start"),
+    windowEnd: text("window_end"),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    index("local_finding_candidate_month_detector_route_idx").on(
+      table.month,
+      table.detectorId,
+      table.routeId,
+    ),
+  ],
+);
 
-// Each candidate is backed by N evidence rows.
+// Each candidate is backed by N evidence rows. Evidence kind now includes
+// source_doc and coverage_audit so document-derived and audit-derived rows can
+// link the same way as metric/source_row evidence.
 export const localFindingEvidenceLink = sqliteTable("local_finding_evidence_link", {
   linkId: text("link_id").primaryKey(),
   candidateId: text("candidate_id")
     .notNull()
     .references(() => localFindingCandidate.candidateId, { onDelete: "cascade" }),
-  evidenceKind: text("evidence_kind").notNull(),
+  evidenceKind: text("evidence_kind", {
+    enum: ["metric", "context_event", "source_row", "missing_data", "source_doc", "coverage_audit"],
+  }).notNull(),
+  evidenceRole: text("evidence_role", {
+    enum: ["primary", "context", "caveat", "missing_data", "coverage_audit"],
+  }).notNull(),
   evidenceRef: text("evidence_ref").notNull(),
   evidenceWeight: real("evidence_weight"),
   note: text("note"),
 });
 
 // Per-detector-run accounting: how many routes/segments were considered,
-// hit, skipped, and why. Drives "we looked, we just didn't find" UX.
-export const localFindingCoverageAudit = sqliteTable("local_finding_coverage_audit", {
-  auditId: text("audit_id").primaryKey(),
-  detectorRunId: text("detector_run_id").notNull(),
-  detectorId: text("detector_id").notNull(),
-  scopeKind: text("scope_kind").notNull(),
-  scopeId: text("scope_id").notNull(),
-  outcome: text("outcome").notNull(),
-  reason: text("reason"),
-  inputsSeenJson: text("inputs_seen_json"),
-  inputsExpectedJson: text("inputs_expected_json"),
-  createdAt: text("created_at").notNull(),
-});
+// hit, skipped, and why. Drives "we looked, we just didn't find" UX. `month`
+// is mandatory so per-month replacements stay safe; `reason_code` mirrors the
+// candidate contract so coverage and candidates share a vocabulary.
+export const localFindingCoverageAudit = sqliteTable(
+  "local_finding_coverage_audit",
+  {
+    auditId: text("audit_id").primaryKey(),
+    detectorRunId: text("detector_run_id").notNull(),
+    detectorId: text("detector_id").notNull(),
+    month: text("month").notNull(),
+    scopeKind: text("scope_kind", {
+      enum: ["route", "segment", "corridor", "system"],
+    }).notNull(),
+    scopeId: text("scope_id").notNull(),
+    outcome: text("outcome", {
+      enum: [
+        "hit",
+        "clean_no_hit",
+        "skipped_missing_input",
+        "skipped_failed_join",
+        "source_lag",
+      ],
+    }).notNull(),
+    reasonCode: text("reason_code"),
+    reason: text("reason"),
+    inputsSeenJson: text("inputs_seen_json"),
+    inputsExpectedJson: text("inputs_expected_json"),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    index("local_finding_coverage_audit_run_detector_outcome_idx").on(
+      table.detectorRunId,
+      table.detectorId,
+      table.outcome,
+    ),
+  ],
+);
 
 export const localInterventionEvent = sqliteTable("local_intervention_event", {
   eventId: text("event_id").primaryKey(),

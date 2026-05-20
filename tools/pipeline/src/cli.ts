@@ -335,6 +335,32 @@ const commands = {
       return buildContextEventRouteTouchesFromCli(args);
     },
   },
+  "findings:detect": {
+    description:
+      "Run the finding-detector matrix against a release month and replace candidate/evidence/coverage rows idempotently.",
+    run: async (args) => {
+      const { buildFindingsFromCli } = await import("./jobs/build/findings.js");
+      return buildFindingsFromCli(args);
+    },
+  },
+  "findings:audit-feedback": {
+    description:
+      "Summarize structured agent detector-audit results into detector improvement feedback.",
+    run: async (args) => {
+      const { buildFindingsAuditFeedbackFromCli } = await import(
+        "./jobs/build/findings-audit-feedback.js"
+      );
+      return buildFindingsAuditFeedbackFromCli(args);
+    },
+  },
+  "findings:signal-features": {
+    description:
+      "Build route/month/window signal features and preview the first context-event detector.",
+    run: async (args) => {
+      const { buildSignalFeaturesFromCli } = await import("./jobs/build/signal-features.js");
+      return buildSignalFeaturesFromCli(args);
+    },
+  },
   "ingest:lion-centerline": {
     description:
       "Fetch NYC Centerline (LION) active street segments for joins across DOT/311/parking/route street refs.",
