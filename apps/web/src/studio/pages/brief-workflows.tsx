@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, ChevronRight } from "lucide-react";
+import { ArrowRight, ChevronRight, GripVertical, Search, X } from "lucide-react";
 import { type ReactNode, useMemo, useState } from "react";
 import { ChartFrame } from "@/components/ChartFrame";
 import { ClaimList } from "@/components/ClaimList";
@@ -7,6 +7,7 @@ import { CommentBadge } from "@/components/CommentBadge";
 import { Heatmap } from "@/components/Heatmap";
 import { ReviewerStack } from "@/components/Reviewers";
 import { RouteBadge } from "@/components/RouteBadge";
+import { StrengthBars } from "@/components/StrengthBars";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -94,6 +95,12 @@ export function BriefComposerPage({ data }: { data: StudioBriefResponse | null }
   if (!claim) return <NotFoundPage />;
 
   const attachedEvidence = brief.evidence.filter((e) => attached.has(e.id));
+  const suggestedEvidence = brief.evidence.filter(
+    (e) => !attached.has(e.id) && claim.evidenceIds.includes(e.id),
+  );
+  const otherEvidence = brief.evidence.filter(
+    (e) => !attached.has(e.id) && !claim.evidenceIds.includes(e.id),
+  );
   const appliedCaveats = brief.caveats.filter((_, i) => claim.caveatIds.length > i);
 
   function toggleEvidence(id: string) {
@@ -169,14 +176,14 @@ export function BriefComposerPage({ data }: { data: StudioBriefResponse | null }
               <div className="text-[12.5px] font-semibold">
                 Evidence attached ({attachedEvidence.length})
               </div>
-              <span className="text-[11px] text-[var(--bp-color-accent)]">
-                + from inspector &rarr;
+              <span className="font-mono text-[10.5px] text-[var(--bp-color-ink-55)]">
+                drag order locked
               </span>
             </div>
             <ul className="mt-3 m-0 list-none space-y-2 p-0">
               {attachedEvidence.length === 0 ? (
                 <li className="text-[11.5px] text-[var(--bp-color-ink-55)]">
-                  No evidence attached. Pick items from the inspector on the right.
+                  No evidence attached. Use the inline search panel below.
                 </li>
               ) : (
                 attachedEvidence.map((ev) => (
@@ -190,6 +197,13 @@ export function BriefComposerPage({ data }: { data: StudioBriefResponse | null }
               )}
             </ul>
           </StudioPanel>
+          <EvidenceSearchPanel
+            query={claim.title}
+            suggested={suggestedEvidence}
+            other={otherEvidence}
+            attached={attached}
+            onToggle={toggleEvidence}
+          />
           <StudioPanel>
             <div className="flex items-center justify-between">
               <div className="text-[12.5px] font-semibold">
@@ -212,18 +226,22 @@ export function BriefComposerPage({ data }: { data: StudioBriefResponse | null }
             </ul>
           </StudioPanel>
           <StudioPanel>
-            <div className="flex items-center justify-between">
-              <div
-                className="text-[12.5px] font-semibold"
-                style={{ color: "var(--bp-color-good)" }}
-              >
-                Strength - {claim.strength} of 5 - defensible
+            <div className="flex items-center gap-3">
+              <StrengthBars strength={claim.strength} size="lg" />
+              <div className="min-w-0 flex-1">
+                <div
+                  className="text-[12.5px] font-semibold"
+                  style={{ color: "var(--bp-color-good)" }}
+                >
+                  Strength - {claim.strength} of 5 - defensible
+                </div>
+                <p className="mt-1 text-[12px] leading-[1.5] text-[var(--bp-color-ink-70)]">
+                  {attachedEvidence.length} primary sources - {appliedCaveats.length} caveats
+                  acknowledged - no contradicting data found. Add a multi-month baseline to reach
+                  5/5.
+                </p>
               </div>
             </div>
-            <p className="mt-2 text-[12px] leading-[1.5] text-[var(--bp-color-ink-70)]">
-              {attachedEvidence.length} primary sources - {appliedCaveats.length} caveats
-              acknowledged - no contradicting data found. Add a multi-month baseline to reach 5/5.
-            </p>
           </StudioPanel>
         </div>
         <aside className="max-xl:hidden">
@@ -236,6 +254,174 @@ export function BriefComposerPage({ data }: { data: StudioBriefResponse | null }
         </aside>
       </div>
     </StudioPage>
+  );
+}
+
+function EvidenceSearchPanel({
+  query,
+  suggested,
+  other,
+  attached,
+  onToggle,
+}: {
+  query: string;
+  suggested: readonly ClaimEvidenceType[];
+  other: readonly ClaimEvidenceType[];
+  attached: Set<string>;
+  onToggle: (id: string) => void;
+}) {
+  const [filter, setFilter] = useState(query);
+  const normalized = filter.toLowerCase();
+  const matches = (ev: ClaimEvidenceType) =>
+    normalized.length === 0 ||
+    ev.title.toLowerCase().includes(normalized) ||
+    ev.detail.toLowerCase().includes(normalized);
+  const suggestedMatches = suggested.filter(matches);
+  const otherMatches = other.filter(matches).slice(0, 4);
+
+  return (
+    <StudioPanel>
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <div className="text-[12.5px] font-semibold">Evidence search</div>
+          <div className="mt-0.5 font-mono text-[10.5px] text-[var(--bp-color-ink-55)]">
+            pre-seeded from current claim
+          </div>
+        </div>
+        <Badge variant="accent">inline composer</Badge>
+      </div>
+      <div className="mt-3 rounded-[3px] bg-[var(--bp-color-paper)] shadow-[inset_0_0_0_1.5px_var(--bp-color-accent)]">
+        <div className="flex items-center gap-2 border-b border-[var(--bp-color-rule)] px-3 py-2">
+          <Search size={14} data-icon="inline-start" className="text-[var(--bp-color-accent)]" />
+          <input
+            type="text"
+            value={filter}
+            onChange={(event) => setFilter(event.target.value)}
+            className="min-w-0 flex-1 bg-transparent text-[12.5px] font-medium text-[var(--bp-color-accent)] outline-none"
+            aria-label="Search evidence for this claim"
+          />
+          {filter.length > 0 ? (
+            <button
+              type="button"
+              onClick={() => setFilter("")}
+              className="rounded-[3px] p-1 text-[var(--bp-color-ink-40)] hover:bg-[var(--bp-color-ink-06)] hover:text-[var(--bp-color-ink)]"
+              aria-label="Clear evidence search"
+            >
+              <X size={13} />
+            </button>
+          ) : null}
+        </div>
+        <EvidenceResultGroup
+          label="Suggested for this claim"
+          tone="accent"
+          items={suggestedMatches}
+          attached={attached}
+          onToggle={onToggle}
+        />
+        <EvidenceResultGroup
+          label="Other results"
+          items={otherMatches}
+          attached={attached}
+          onToggle={onToggle}
+        />
+      </div>
+    </StudioPanel>
+  );
+}
+
+function EvidenceResultGroup({
+  label,
+  tone = "neutral",
+  items,
+  attached,
+  onToggle,
+}: {
+  label: string;
+  tone?: "accent" | "neutral";
+  items: readonly ClaimEvidenceType[];
+  attached: Set<string>;
+  onToggle: (id: string) => void;
+}) {
+  return (
+    <div className="border-b border-[var(--bp-color-rule)] px-3 py-2 last:border-b-0">
+      <div
+        className={
+          tone === "accent"
+            ? "mb-1.5 font-mono text-[9.5px] font-bold uppercase tracking-[0.08em] text-[var(--bp-color-accent)]"
+            : "mb-1.5 font-mono text-[9.5px] font-bold uppercase tracking-[0.08em] text-[var(--bp-color-ink-40)]"
+        }
+      >
+        {tone === "accent" ? "◆ " : ""}
+        {label}
+      </div>
+      <ul className="m-0 list-none p-0">
+        {items.length === 0 ? (
+          <li className="px-1 py-2 text-[11.5px] text-[var(--bp-color-ink-55)]">
+            No matching evidence in this claim set.
+          </li>
+        ) : (
+          items.map((ev, index) => (
+            <EvidenceResultRow
+              key={ev.id}
+              ev={ev}
+              highlighted={tone === "accent" && index === 0}
+              attached={attached.has(ev.id)}
+              onToggle={() => onToggle(ev.id)}
+            />
+          ))
+        )}
+      </ul>
+    </div>
+  );
+}
+
+function EvidenceResultRow({
+  ev,
+  highlighted,
+  attached,
+  onToggle,
+}: {
+  ev: ClaimEvidenceType;
+  highlighted: boolean;
+  attached: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <li
+      className={
+        highlighted
+          ? "flex items-center gap-2 rounded-[3px] bg-[var(--bp-color-accent-bg)] px-1 py-1.5"
+          : "flex items-center gap-2 rounded-[3px] px-1 py-1.5 hover:bg-[var(--bp-color-ink-06)]"
+      }
+    >
+      <EvidenceGlyph kind={ev.kind} />
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-[12px] font-medium">{ev.title}</div>
+        <div className="truncate font-mono text-[10px] text-[var(--bp-color-ink-55)]">
+          {ev.detail}
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={onToggle}
+        className={
+          attached
+            ? "shrink-0 rounded-[3px] bg-[var(--bp-color-good)] px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-[0.05em] text-white"
+            : "shrink-0 rounded-[3px] bg-transparent px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-[0.05em] text-[var(--bp-color-accent)]"
+        }
+      >
+        {attached ? "Attached" : "+ attach"}
+      </button>
+    </li>
+  );
+}
+
+function EvidenceGlyph({ kind }: { kind: ClaimEvidenceType["kind"] }) {
+  const glyph = kind === "number" ? "#" : kind === "chart" ? "▤" : kind === "source" ? "¶" : "!";
+  return (
+    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-[3px] bg-[var(--bp-color-card)] font-mono text-[11px] font-bold text-[var(--bp-color-ink-70)] shadow-[inset_0_0_0_1px_var(--bp-color-rule)]">
+      {glyph}
+    </span>
   );
 }
 
@@ -347,12 +533,10 @@ function EvidenceItem({
   attached: boolean;
   onToggle: () => void;
 }) {
-  const glyph = ev.kind === "number" ? "#" : ev.kind === "chart" ? "▤" : "¶";
   return (
     <li className="flex items-start gap-2 rounded-[3px] bg-[var(--bp-color-paper)] p-2 text-[11.5px]">
-      <span className="mt-0.5 shrink-0 font-mono text-[10px] font-bold text-[var(--bp-color-accent)]">
-        {glyph}
-      </span>
+      <GripVertical size={13} className="mt-1 shrink-0 text-[var(--bp-color-ink-20)]" />
+      <EvidenceGlyph kind={ev.kind} />
       <div className="min-w-0 flex-1">
         <div className="font-semibold">{ev.title}</div>
         <div className="mt-0.5 text-[var(--bp-color-ink-55)]">{ev.detail}</div>

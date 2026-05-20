@@ -14,11 +14,14 @@ Source: Anthropic Design handoff `1kRVmoz-A6uPPCkDqssp4g`, downloaded 2026-05-20
   - added `Ladder` as a route-detail tab
   - renamed `Methodology` to `Data notes`
   - added an embedded ladder preview with a link to the full ladder interaction
+- Updated the brief composer toward `Evidence Composer.html` / `composer-focus.html`:
+  - added inline evidence search below attached evidence
+  - pre-seeds search from the active claim
+  - separates suggested evidence from other results
+  - preserves click-to-attach behavior and a persistent strength meter
 
 ## Remaining Gaps
 
-- Brief composer evidence search variants from `Evidence Composer.html` and
-  `composer-focus.html` are only partially represented by the current evidence inspector.
 - Loading/empty/error states exist as primitives and demos, but are not yet instantiated
   across every production page context from `states.jsx`.
 - The design-system page exists as a dev gallery, but it is not a full production
@@ -32,4 +35,3 @@ Source: Anthropic Design handoff `1kRVmoz-A6uPPCkDqssp4g`, downloaded 2026-05-20
 - Route-detail screenshot validation was blocked by a local Worker/D1 route API failure
   unrelated to this UI change: `Studio API projection artifact failed contract validation:
   studio/v1/routes.json`.
-
