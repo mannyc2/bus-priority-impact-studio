@@ -5,12 +5,14 @@ import { AIDiagnosisStrip } from "@/components/AIDiagnosisStrip";
 import { BeforeAfter } from "@/components/BeforeAfter";
 import { FilterChips } from "@/components/FilterChips";
 import { InterventionTimeline } from "@/components/InterventionTimeline";
+import { KPISkeleton } from "@/components/KPI";
 import { RouteBadge } from "@/components/RouteBadge";
 import { SectionHeader } from "@/components/SectionHeader";
-import { SegmentRow, SegmentRowHeader } from "@/components/SegmentRow";
+import { SegmentRow, SegmentRowHeader, SegmentRowSkeleton } from "@/components/SegmentRow";
 import { Spark } from "@/components/Spark";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { StudioRouteDetailResponse, StudioSegment } from "../api-contract.js";
 import { StudioPage } from "../page.js";
@@ -234,6 +236,81 @@ export function RouteDetailPage({ data }: { data: StudioRouteDetailResponse | nu
             </TabsContent>
           </div>
         </Tabs>
+      </div>
+    </StudioPage>
+  );
+}
+
+export function RouteDetailLoadingPage() {
+  return (
+    <StudioPage flush>
+      <div className="flex h-full min-h-0 flex-col">
+        <header className="shrink-0 bg-[var(--bp-color-card)] px-7 pb-[18px] pt-6 shadow-[inset_0_-1px_0_var(--bp-color-rule)]">
+          <div className="mb-[18px] flex items-start gap-[18px]">
+            <Skeleton className="h-[58px] w-[78px] rounded-[3px]" />
+            <div className="min-w-0 flex-1">
+              <Skeleton className="h-[27px] w-[430px] max-w-full" />
+              <Skeleton className="mt-2 h-[14px] w-[520px] max-w-full" />
+            </div>
+            <div className="flex shrink-0 items-center gap-2 max-md:hidden">
+              <Skeleton className="h-[36px] w-[170px] rounded-[3px]" />
+              <Skeleton className="h-[36px] w-[126px] rounded-[3px]" />
+            </div>
+          </div>
+          <div className="grid grid-cols-5 gap-6 max-lg:grid-cols-2 max-sm:grid-cols-1">
+            {Array.from({ length: 5 }).map((_, index) => (
+              <div
+                key={index}
+                className={
+                  index < 4 ? "border-r border-[var(--bp-color-rule)] pr-5 max-lg:border-r-0" : ""
+                }
+              >
+                <KPISkeleton />
+              </div>
+            ))}
+          </div>
+        </header>
+        <div className="shrink-0 bg-[var(--bp-color-card)] px-7 shadow-[inset_0_-1px_0_var(--bp-color-rule)]">
+          <div className="flex gap-6 py-[10px]">
+            {TAB_OPTIONS.map((tab) => (
+              <Skeleton key={tab.value} className="h-[15px] w-[82px]" />
+            ))}
+          </div>
+        </div>
+        <div className="min-h-0 flex-1 overflow-auto px-8 py-7">
+          <div className="mb-11">
+            <div className="mb-4 flex items-end justify-between gap-4 max-md:flex-col max-md:items-start">
+              <div>
+                <Skeleton className="h-[22px] w-[360px] max-w-full" />
+                <Skeleton className="mt-2 h-[13px] w-[520px] max-w-full" />
+              </div>
+              <div className="flex gap-2">
+                <Skeleton className="h-[26px] w-[70px] rounded-full" />
+                <Skeleton className="h-[26px] w-[92px] rounded-full" />
+              </div>
+            </div>
+            <SegmentRowHeader />
+            {Array.from({ length: 5 }).map((_, index) => (
+              <SegmentRowSkeleton key={index} />
+            ))}
+          </div>
+          <div>
+            <Skeleton className="h-[22px] w-[280px]" />
+            <Skeleton className="mt-2 h-[13px] w-[520px] max-w-full" />
+            <div className="mt-6 grid grid-cols-3 gap-4 max-lg:grid-cols-1">
+              {Array.from({ length: 3 }).map((_, index) => (
+                <div
+                  key={index}
+                  className="rounded-[3px] bg-[var(--bp-color-card)] p-4 shadow-[0_0_0_1px_var(--bp-color-rule)]"
+                >
+                  <Skeleton className="h-[14px] w-[140px]" />
+                  <Skeleton className="mt-3 h-[10px] w-full" />
+                  <Skeleton className="mt-2 h-[10px] w-[80%]" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     </StudioPage>
   );

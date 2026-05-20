@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { routeHead } from "../lib/head.js";
 import { fetchStudioRoutes } from "../studio/api-client.js";
-import { RoutesHomePage } from "../studio/pages/routes-home.js";
+import { RoutesHomeLoadingPage, RoutesHomePage } from "../studio/pages/routes-home.js";
 
 export const Route = createFileRoute("/")({
   loader: fetchStudioRoutes,
+  pendingComponent: RoutesHomeLoadingPage,
   head: () =>
     routeHead(
       "Routes",

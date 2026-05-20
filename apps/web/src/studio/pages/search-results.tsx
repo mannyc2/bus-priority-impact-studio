@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Briefcase, FileText } from "lucide-react";
 import type { ReactNode } from "react";
+import { EmptyState } from "@/components/EmptyState";
 import { RouteBadge } from "@/components/RouteBadge";
 import { SearchField } from "@/components/SearchField";
 import { Badge } from "@/components/ui/badge";
@@ -35,7 +36,11 @@ export function SearchResultsPage({ data }: { data: StudioSearchResponse }) {
           </div>
         </StudioPanel>
         <div className="space-y-4">
-          <ResultGroup title="Routes" count={data.routes.length}>
+          <ResultGroup
+            title="Routes"
+            count={data.routes.length}
+            emptyBody="No route names, streets, boroughs, or route IDs matched this query."
+          >
             {data.routes.slice(0, 3).map((route) => (
               <Link
                 key={route.slug}
@@ -57,7 +62,11 @@ export function SearchResultsPage({ data }: { data: StudioSearchResponse }) {
               </Link>
             ))}
           </ResultGroup>
-          <ResultGroup title="Findings" count={data.findings.length}>
+          <ResultGroup
+            title="Findings"
+            count={data.findings.length}
+            emptyBody="No reviewed findings matched this query. Try a route ID or corridor name."
+          >
             {data.findings.map(({ finding }) => (
               <Link
                 key={finding.id}
@@ -76,7 +85,11 @@ export function SearchResultsPage({ data }: { data: StudioSearchResponse }) {
               </Link>
             ))}
           </ResultGroup>
-          <ResultGroup title="Briefs" count={data.briefs.length}>
+          <ResultGroup
+            title="Briefs"
+            count={data.briefs.length}
+            emptyBody="No published or draft briefs matched this query."
+          >
             {data.briefs.map(({ brief }) => (
               <Link
                 key={brief.id}
@@ -104,10 +117,12 @@ export function SearchResultsPage({ data }: { data: StudioSearchResponse }) {
 function ResultGroup({
   title,
   count,
+  emptyBody,
   children,
 }: {
   title: string;
   count: number;
+  emptyBody: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -116,7 +131,16 @@ function ResultGroup({
         <h2 className="m-0 text-[15px] font-semibold">{title}</h2>
         <span className="font-mono text-[11px] text-[var(--bp-color-ink-55)]">{count}</span>
       </div>
-      {children}
+      {count === 0 ? (
+        <EmptyState
+          className="px-4 py-7"
+          icon="∅"
+          title={`No ${title.toLowerCase()}`}
+          body={emptyBody}
+        />
+      ) : (
+        children
+      )}
     </section>
   );
 }

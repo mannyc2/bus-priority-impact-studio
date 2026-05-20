@@ -19,11 +19,13 @@ Source: Anthropic Design handoff `1kRVmoz-A6uPPCkDqssp4g`, downloaded 2026-05-20
   - pre-seeds search from the active claim
   - separates suggested evidence from other results
   - preserves click-to-attach behavior and a persistent strength meter
+- Instantiated `states.jsx` patterns in production contexts:
+  - added pending skeletons for route search, findings feed, and route detail loaders
+  - replaced plain filtered-empty messages with structured empty states
+  - added grouped empty states for route/finding/brief search results
 
 ## Remaining Gaps
 
-- Loading/empty/error states exist as primitives and demos, but are not yet instantiated
-  across every production page context from `states.jsx`.
 - The design-system page exists as a dev gallery, but it is not a full production
   equivalent of the handoff's `design-system.html`.
 - `tweaks-panel.jsx` is a prototype-only editing utility and is not planned for

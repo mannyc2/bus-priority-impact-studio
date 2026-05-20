@@ -1,8 +1,10 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { EmptyState } from "@/components/EmptyState";
 import { FilterChips } from "@/components/FilterChips";
 import { RouteBadge } from "@/components/RouteBadge";
 import { type AutocompleteSuggestion, SearchAutocomplete } from "@/components/SearchAutocomplete";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { StudioRoute } from "../api-contract.js";
 import { StudioPage } from "../page.js";
 
@@ -63,11 +65,7 @@ export function RoutesHomePage({ routes }: { routes: readonly StudioRoute[] }) {
         <p className="mt-3.5 max-w-[620px] text-[14.5px] leading-[1.55] text-[var(--bp-color-ink-70)]">
           Built from public MTA bus speed, ridership, and schedule data; NYC DOT bus lane geometry;
           and the MTA Automated Camera Enforcement program record.{" "}
-          <Link
-            to="/methods"
-            viewTransition
-            className="text-[var(--bp-color-accent)] no-underline"
-          >
+          <Link to="/methods" viewTransition className="text-[var(--bp-color-accent)] no-underline">
             Methodology &rarr;
           </Link>
         </p>
@@ -162,10 +160,61 @@ export function RoutesHomePage({ routes }: { routes: readonly StudioRoute[] }) {
           })}
         </div>
         {filtered.length === 0 ? (
-          <div className="mt-4 rounded-[3px] bg-[var(--bp-color-paper-deep)] p-4 text-[12.5px] text-[var(--bp-color-ink-55)]">
-            No routes match this filter.
-          </div>
+          <EmptyState
+            className="mt-4 bg-[var(--bp-color-card)] shadow-[0_0_0_1px_var(--bp-color-rule)]"
+            title="No routes match this filter"
+            body="The route list is still loaded. Clear the current filter or choose another operating pattern to keep scanning."
+          />
         ) : null}
+      </section>
+    </StudioPage>
+  );
+}
+
+export function RoutesHomeLoadingPage() {
+  return (
+    <StudioPage>
+      <header className="mb-9 max-w-[760px]">
+        <Skeleton className="mb-3.5 h-[13px] w-[180px]" />
+        <div className="space-y-2">
+          <Skeleton className="h-[42px] w-full max-w-[720px]" />
+          <Skeleton className="h-[42px] w-[68%]" />
+        </div>
+        <div className="mt-4 space-y-2">
+          <Skeleton className="h-[14px] w-full max-w-[620px]" />
+          <Skeleton className="h-[14px] w-[74%] max-w-[520px]" />
+        </div>
+      </header>
+      <Skeleton className="h-[52px] max-w-[760px] rounded-[3px]" />
+      <section className="mt-14">
+        <div className="mb-4 flex items-end justify-between gap-4 max-md:flex-col max-md:items-start">
+          <div>
+            <Skeleton className="h-[22px] w-[320px]" />
+            <Skeleton className="mt-2 h-[13px] w-[520px] max-w-full" />
+          </div>
+          <div className="flex gap-2">
+            <Skeleton className="h-[28px] w-[92px] rounded-full" />
+            <Skeleton className="h-[28px] w-[74px] rounded-full" />
+            <Skeleton className="h-[28px] w-[80px] rounded-full" />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-x-8 max-lg:grid-cols-1">
+          {Array.from({ length: 8 }).map((_, index) => (
+            <div
+              key={index}
+              className="grid grid-cols-[90px_1fr_76px_60px_100px] items-center gap-3.5 py-3.5 shadow-[inset_0_-1px_0_var(--bp-color-rule)]"
+            >
+              <Skeleton className="h-[36px] w-[70px] rounded-[3px]" />
+              <div className="min-w-0">
+                <Skeleton className="h-[14px] w-[70%]" />
+                <Skeleton className="mt-2 h-[11px] w-[46%]" />
+              </div>
+              <Skeleton className="ml-auto h-[18px] w-[48px]" />
+              <Skeleton className="ml-auto h-[13px] w-[42px]" />
+              <Skeleton className="ml-auto h-[12px] w-[72px]" />
+            </div>
+          ))}
+        </div>
       </section>
     </StudioPage>
   );

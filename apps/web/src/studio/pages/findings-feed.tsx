@@ -2,10 +2,12 @@ import { Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { ConfidenceBar } from "@/components/ConfidenceBar";
+import { EmptyState } from "@/components/EmptyState";
 import { FilterChips } from "@/components/FilterChips";
 import { Rail, RailRule } from "@/components/Rail";
 import { RouteBadge } from "@/components/RouteBadge";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { StudioFindingsResponse } from "../api-contract.js";
 import { StudioPage } from "../page.js";
 
@@ -139,16 +141,18 @@ export function FindingsFeedPage({ data }: { data: StudioFindingsResponse }) {
                   </span>
                 </div>
                 A finding is surfaced when a route&apos;s observed behavior diverges from its
-                expected pattern given its treatment stack. Evidence is the same data visible in
-                the route view - the AI flags; you judge.
+                expected pattern given its treatment stack. Evidence is the same data visible in the
+                route view - the AI flags; you judge.
               </div>
             </div>
           </Rail>
           <div className="flex flex-col gap-3.5 overflow-auto p-7 max-sm:p-4">
             {filtered.length === 0 ? (
-              <div className="rounded-[3px] bg-[var(--bp-color-paper-deep)] p-4 text-[12.5px] text-[var(--bp-color-ink-55)]">
-                No findings match these filters.
-              </div>
+              <EmptyState
+                className="min-h-[360px] bg-[var(--bp-color-card)] shadow-[0_0_0_1px_var(--bp-color-rule)]"
+                title="No findings match these filters"
+                body="The feed is available, but this borough and finding-type combination has no reviewed findings. Broaden one filter to return to the evidence set."
+              />
             ) : null}
             {filtered.map(({ finding, route }) => {
               const borderColor = severityBorderColor(finding.category);
@@ -220,6 +224,66 @@ export function FindingsFeedPage({ data }: { data: StudioFindingsResponse }) {
                 </article>
               );
             })}
+          </div>
+        </div>
+      </div>
+    </StudioPage>
+  );
+}
+
+export function FindingsFeedLoadingPage() {
+  return (
+    <StudioPage flush>
+      <div className="flex h-full min-h-0 flex-col">
+        <header className="flex items-end gap-8 bg-[var(--bp-color-card)] px-7 py-5 shadow-[inset_0_-1px_0_var(--bp-color-rule)] max-md:flex-col max-md:items-start">
+          <div className="min-w-0 flex-1">
+            <Skeleton className="mb-2 h-[12px] w-[260px]" />
+            <Skeleton className="h-[29px] w-[128px]" />
+            <Skeleton className="mt-3 h-[13px] w-[580px] max-w-full" />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Skeleton className="h-[28px] w-[70px] rounded-full" />
+            <Skeleton className="h-[28px] w-[92px] rounded-full" />
+            <Skeleton className="h-[28px] w-[78px] rounded-full" />
+          </div>
+        </header>
+        <div className="grid min-h-0 flex-1 grid-cols-[210px_minmax(0,1fr)] overflow-hidden max-lg:grid-cols-1">
+          <Rail edge="left" className="gap-[2px] px-3.5 py-5">
+            <Skeleton className="mb-3 h-[13px] w-[44px]" />
+            {Array.from({ length: 4 }).map((_, index) => (
+              <Skeleton key={index} className="h-[34px] rounded-[3px]" />
+            ))}
+            <div className="my-3">
+              <RailRule />
+            </div>
+            <Skeleton className="mb-3 h-[13px] w-[38px]" />
+            {Array.from({ length: 3 }).map((_, index) => (
+              <Skeleton key={index} className="h-[28px] rounded-[3px]" />
+            ))}
+          </Rail>
+          <div className="flex flex-col gap-3.5 overflow-auto p-7 max-sm:p-4">
+            {Array.from({ length: 5 }).map((_, index) => (
+              <article
+                key={index}
+                className="rounded-[3px] bg-[var(--bp-color-card)] p-5 shadow-[0_0_0_1px_var(--bp-color-rule)]"
+              >
+                <div className="flex items-start justify-between gap-5 max-sm:flex-col">
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-3 flex gap-2">
+                      <Skeleton className="h-[22px] w-[64px] rounded-[3px]" />
+                      <Skeleton className="h-[22px] w-[98px] rounded-[3px]" />
+                    </div>
+                    <Skeleton className="h-[20px] w-[72%]" />
+                    <Skeleton className="mt-3 h-[13px] w-full max-w-[760px]" />
+                    <Skeleton className="mt-2 h-[13px] w-[64%] max-w-[680px]" />
+                  </div>
+                  <div className="w-[170px] shrink-0">
+                    <Skeleton className="mb-3 h-[22px] w-[96px]" />
+                    <Skeleton className="h-[8px] w-full rounded-full" />
+                  </div>
+                </div>
+              </article>
+            ))}
           </div>
         </div>
       </div>
