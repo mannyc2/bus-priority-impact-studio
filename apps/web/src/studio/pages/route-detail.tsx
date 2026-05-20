@@ -19,9 +19,10 @@ import { NotFoundPage } from "./not-found.js";
 const TAB_OPTIONS = [
   { value: "overview", label: "Overview" },
   { value: "slow-segments", label: "Slow segments" },
+  { value: "ladder", label: "Ladder" },
   { value: "riders", label: "Riders" },
   { value: "interventions", label: "Interventions" },
-  { value: "methodology", label: "Methodology" },
+  { value: "data-notes", label: "Data notes" },
 ] as const;
 
 export function RouteDetailPage({ data }: { data: StudioRouteDetailResponse | null }) {
@@ -42,8 +43,8 @@ export function RouteDetailPage({ data }: { data: StudioRouteDetailResponse | nu
                 {route.corridorFull}
               </h1>
               <div className="mt-1 text-[13px] text-[var(--bp-color-ink-55)]">
-                {route.borough} &middot; {route.termini.north} &harr; {route.termini.south}{" "}
-                &middot; {route.miles} mi &middot; {route.stops} stops
+                {route.borough} &middot; {route.termini.north} &harr; {route.termini.south} &middot;{" "}
+                {route.miles} mi &middot; {route.stops} stops
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-2">
@@ -74,8 +75,8 @@ export function RouteDetailPage({ data }: { data: StudioRouteDetailResponse | nu
             <AIDiagnosisStrip
               body={
                 <>
-                  Full treatment stack (bus lane + ACE + TSP on {route.laneCoverage}% of route),
-                  yet PM-peak speed has declined 0.6 mph over 14 months. Of 8 comparable routes, 6
+                  Full treatment stack (bus lane + ACE + TSP on {route.laneCoverage}% of route), yet
+                  PM-peak speed has declined 0.6 mph over 14 months. Of 8 comparable routes, 6
                   reversed this pattern within 60 days of enforcement.
                 </>
               }
@@ -143,6 +144,75 @@ export function RouteDetailPage({ data }: { data: StudioRouteDetailResponse | nu
               <InterventionsSection events={route.interventions} />
               {route.slug === "m15-sbs" ? <BeforeAfterSection /> : null}
             </TabsContent>
+            <TabsContent value="ladder">
+              <section className="grid grid-cols-[minmax(0,1fr)_280px] gap-5 max-lg:grid-cols-1">
+                <div className="rounded-[3px] bg-[var(--bp-color-card)] p-5 shadow-[0_0_0_1px_var(--bp-color-rule)]">
+                  <SectionHeader
+                    title="Route ladder"
+                    sub="Read the route as a vertical spine: observed speed on one side, treatment continuity on the other, and segment detail at the route grain."
+                    right={<Badge variant="accent">interactive view</Badge>}
+                  />
+                  <div className="mt-5 grid grid-cols-[1fr_56px_1fr] gap-3 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--bp-color-ink-55)]">
+                    <span className="text-right">Speed</span>
+                    <span className="text-center">Spine</span>
+                    <span>Segment</span>
+                  </div>
+                  <ol className="relative m-0 mt-3 flex list-none flex-col gap-3 p-0">
+                    <div
+                      aria-hidden
+                      className="absolute left-1/2 top-2 h-[calc(100%-16px)] w-[3px] -translate-x-1/2 bg-[var(--bp-color-ink-20)]"
+                    />
+                    {segments.slice(0, 6).map((segment, index) => {
+                      const color =
+                        segment.speedMph < 5
+                          ? "var(--bp-color-bad)"
+                          : segment.speedMph < 6.5
+                            ? "var(--bp-color-warn)"
+                            : "var(--bp-color-good)";
+                      return (
+                        <li
+                          key={segment.id}
+                          className="relative grid grid-cols-[1fr_56px_1fr] items-center gap-3"
+                        >
+                          <div className="text-right font-mono text-[14px] font-semibold tabular-nums">
+                            <span style={{ color }}>{segment.speedMph.toFixed(1)}</span>
+                            <span className="ml-1 text-[10px] text-[var(--bp-color-ink-55)]">
+                              mph
+                            </span>
+                          </div>
+                          <div className="relative z-10 flex h-10 w-10 items-center justify-center justify-self-center rounded-full bg-[var(--bp-color-paper)] font-mono text-[11px] font-bold shadow-[inset_0_0_0_2px_var(--bp-color-ink)]">
+                            {String(index + 1).padStart(2, "0")}
+                          </div>
+                          <div className="min-w-0 rounded-[3px] bg-[var(--bp-color-paper)] px-3 py-2 shadow-[inset_0_0_0_1px_var(--bp-color-rule)]">
+                            <div className="truncate text-[12px] font-semibold">
+                              {segment.from} to {segment.to}
+                            </div>
+                            <div className="mt-1 font-mono text-[10.5px] text-[var(--bp-color-ink-55)]">
+                              {segment.riderHours.toLocaleString()} RH/day
+                            </div>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ol>
+                </div>
+                <div className="rounded-[3px] bg-[var(--bp-color-paper)] p-4 shadow-[inset_0_0_0_1px_var(--bp-color-rule)]">
+                  <div className="text-[13px] font-semibold">Analyst challenge</div>
+                  <p className="mt-2 text-[12px] leading-[1.6] text-[var(--bp-color-ink-70)]">
+                    The full ladder view lets an analyst hide speeds and guess the worst segment
+                    from treatment continuity first.
+                  </p>
+                  <Link
+                    to="/routes/$routeId/ladder"
+                    params={{ routeId: route.slug }}
+                    className="mt-4 inline-flex items-center gap-1.5 rounded-[3px] bg-[var(--bp-color-ink)] px-3 py-2 text-[12px] font-semibold text-[var(--bp-color-paper)] no-underline"
+                  >
+                    Open full ladder
+                    <ArrowRight size={13} />
+                  </Link>
+                </div>
+              </section>
+            </TabsContent>
             <TabsContent value="riders" className="text-[var(--bp-color-ink-70)]">
               <p className="m-0 max-w-[760px] text-[13.5px] leading-[1.6]">
                 Hourly ridership and segment-level rider-hour shares appear in the brief composer
@@ -152,7 +222,7 @@ export function RouteDetailPage({ data }: { data: StudioRouteDetailResponse | nu
             <TabsContent value="interventions">
               <InterventionsSection events={route.interventions} />
             </TabsContent>
-            <TabsContent value="methodology" className="text-[var(--bp-color-ink-70)]">
+            <TabsContent value="data-notes" className="text-[var(--bp-color-ink-70)]">
               <p className="m-0 max-w-[760px] text-[13.5px] leading-[1.6]">
                 Numbers on this page derive from public MTA segment speeds, NYC DOT lane geometry,
                 and the MTA ACE program record. Full sourcing lives on the{" "}
@@ -267,9 +337,8 @@ function SlowSegmentsSection({
 }) {
   const [openId, setOpenId] = useState<string | null>(flaggedId ?? null);
   const [direction, setDirection] = useState<"all" | "NB" | "SB" | "EB" | "WB">("all");
-  const visible = (direction === "all"
-    ? segments
-    : segments.filter((s) => s.direction === direction)
+  const visible = (
+    direction === "all" ? segments : segments.filter((s) => s.direction === direction)
   ).slice(0, 5);
 
   return (
@@ -323,8 +392,7 @@ function SlowSegmentsSection({
                 {...(segment.flagged ? { flag: "top" as const } : {})}
                 {...(segment.aiNote
                   ? {
-                      onClick: () =>
-                        setOpenId((cur) => (cur === segment.id ? null : segment.id)),
+                      onClick: () => setOpenId((cur) => (cur === segment.id ? null : segment.id)),
                     }
                   : {})}
               />
@@ -373,10 +441,24 @@ function InterventionsSection({
 }
 
 function BeforeAfterSection() {
-  const cards: { label: string; before: number; after: number; unit: string; max: number; inverse?: boolean }[] = [
+  const cards: {
+    label: string;
+    before: number;
+    after: number;
+    unit: string;
+    max: number;
+    inverse?: boolean;
+  }[] = [
     { label: "Avg speed (PM peak)", before: 6.2, after: 6.9, unit: "mph", max: 8 },
     { label: "Slow-window share", before: 41, after: 33, unit: "% of hours", max: 50 },
-    { label: "Violations / day", before: 1840, after: 590, unit: "incidents", max: 2000, inverse: true },
+    {
+      label: "Violations / day",
+      before: 1840,
+      after: 590,
+      unit: "incidents",
+      max: 2000,
+      inverse: true,
+    },
   ];
   return (
     <section>
@@ -414,8 +496,8 @@ function BeforeAfterSection() {
       <Alert variant="warn" className="mt-4">
         <AlertTitle variant="warn">Causal attribution is not clean</AlertTitle>
         <AlertDescription>
-          The 2025 ACE all-day rollout coincided with the introduction of CBD congestion pricing.
-          We do not claim ACE alone produced the speed gain. On segments where neither intervention
+          The 2025 ACE all-day rollout coincided with the introduction of CBD congestion pricing. We
+          do not claim ACE alone produced the speed gain. On segments where neither intervention
           applies, the gain is not observed.
         </AlertDescription>
       </Alert>
