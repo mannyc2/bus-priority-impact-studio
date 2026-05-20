@@ -23,11 +23,13 @@ Source: Anthropic Design handoff `1kRVmoz-A6uPPCkDqssp4g`, downloaded 2026-05-20
   - added pending skeletons for route search, findings feed, and route detail loaders
   - replaced plain filtered-empty messages with structured empty states
   - added grouped empty states for route/finding/brief search results
+- Brought `/system` closer to `design-system.html`:
+  - added a design-system header, table of contents, and numbered sections
+  - mapped existing primitive demos into the handoff's documented categories
+  - documented composite rules and kept the prototype tweaks panel out of production
 
 ## Remaining Gaps
 
-- The design-system page exists as a dev gallery, but it is not a full production
-  equivalent of the handoff's `design-system.html`.
 - `tweaks-panel.jsx` is a prototype-only editing utility and is not planned for
   production unless a runtime theme/tuning panel becomes a product feature.
 
