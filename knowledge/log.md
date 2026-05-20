@@ -2,6 +2,36 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-05-20] engineering | Source-gap detector thresholds grounded
+
+Completed the source-gap detector threshold pass: context joins now use a 40% minimum join-rate with a 50-row floor based on March 2026 corpus rates, bus-lane placeholder dates use the observed `2026-03-01T00:00:00.000Z` sentinel, and source lag is driven by `tools/pipeline/src/source-freshness-policy.ts` rather than detector-local policy.
+Verification: root `check:types`, `@bp/analytics` tests, pipeline `findings-detect`, knowledge check, and the real March 2026 `findings:detect` run pass. The real corpus now emits 199 source-gap candidates: 115 bus-lane date gaps, 1 context-join failure, 37 insufficient GTFS-RT sample gaps, 31 missing speed gaps, 12 missing scheduled baselines, and 3 missing geometry gaps.
+
+## [2026-05-20] engineering | Persistent speed hotspot detector added
+
+Added the second Finding Coverage v1 detector, `persistent_speed_hotspot`, as a pure analytics pass over existing local route-hotspot outputs. The detector emits segment-scoped `persistent_low_speed` candidates with metric evidence, keeps route-level hit/clean/skipped coverage rows, and is wired into `findings:detect` after `source_gap` with idempotent local replacement per detector/month.
+Verification: `bun --filter @bp/analytics test`, `bun --filter @bp/pipeline test test/findings-detect.test.ts`, `bun run check:types`, targeted Biome on touched detector/pipeline files, and the real March 2026 `findings:detect` run pass. The real corpus now emits 100 persistent-speed-hotspot candidates across 70 hit routes, with 280 clean route no-hits and 31 skipped routes lacking speed input.
+
+## [2026-05-20] engineering | Observed reliability detector added
+
+Added the third Finding Coverage v1 detector, `observed_reliability`, as a pure analytics pass over observed GTFS-RT route summaries, scheduled headway baselines, and MTA Bus Wait Assessment corroboration. The detector emits route-scoped `high_long_gap_share` candidates only when observed samples are sufficient, scheduled baselines exist, and wait-assessment evidence is present; otherwise it writes skipped coverage rows instead of silent no-hits.
+Verification: `bun --filter @bp/analytics test`, `bun --filter @bp/pipeline test test/findings-detect.test.ts`, `bun run check:types`, targeted Biome on touched detector/pipeline files, and the real March 2026 `findings:detect` run pass. The real corpus now emits 100 observed-reliability candidates, 238 clean route no-hits, and 43 skipped route coverage rows (37 insufficient GTFS-RT sample routes and 6 routes missing Bus Wait Assessment corroboration).
+
+## [2026-05-20] engineering | Intervention gap detector added
+
+Added the fourth Finding Coverage v1 detector, `intervention_gap`, as a pure analytics pass that combines in-memory speed/reliability detector pain scores with local route intervention comparison statuses. The detector emits route-scoped candidates only when pain is high and intervention evidence is absent or limited to a bus-lane source-gap placeholder; routes with dated/evaluated treatment evidence are treated as clean for this detector rather than as untreated gaps.
+Verification: `bun --filter @bp/analytics test`, `bun --filter @bp/pipeline test test/findings-detect.test.ts`, `bun run check:types`, targeted Biome on touched detector/pipeline files, and the real March 2026 `findings:detect` run pass. The real corpus now emits 50 intervention-gap candidates, 97 clean route no-hits, and 234 skipped route coverage rows where no speed/reliability pain signal crossed into the detector input.
+
+## [2026-05-20] engineering | Intervention underperformance detector added
+
+Added the fifth Finding Coverage v1 detector, `intervention_underperformance`, as a pure analytics pass over evaluated route intervention comparisons plus current speed/reliability pain signals. The detector emits route-scoped `negative_peer_adjusted_delta` candidates only when an implemented treatment has peer-adjusted before/after evidence with non-positive adjusted speed delta and current pain remains high.
+Verification: `bun --filter @bp/analytics test`, `bun --filter @bp/pipeline test test/findings-detect.test.ts`, `bun run check:types`, targeted Biome on touched detector/pipeline files, and the real March 2026 `findings:detect` run pass. The real corpus now emits 13 intervention-underperformance candidates, 32 clean route no-hits, and 336 skipped route coverage rows where evaluated treatment evidence or current pain signals were unavailable.
+
+## [2026-05-20] engineering | Detector coverage audit artifact added
+
+Extended `findings:detect` to write `data/artifacts/findings/<month>/detector-coverage-audit.json` alongside the local SQLite detector rows. The artifact records detector counts, evidence counts, coverage outcome counts, coverage reason counts, candidate reason counts, and top candidates per detector so reviewer/debug workflows can inspect detector coverage without hand-querying SQLite.
+Verification: `bun --filter @bp/pipeline test test/findings-detect.test.ts`, `bun run check:types`, targeted Biome on the findings job and test, `bun run check:knowledge`, and the real March 2026 `findings:detect` run pass. The March artifact has five detectors and mirrors the real matrix counts: 199 source-gap, 100 speed-hotspot, 100 observed-reliability, 50 intervention-gap, and 13 intervention-underperformance candidates.
+
 ## [2026-05-19] data | Corpus range backfills completed
 
 Branch-tip corpus expansion supersedes the earlier in-flight parking/geocode note below. The local
@@ -906,3 +936,97 @@ Verification target: an external agent given only the docs follows the canonical
 walkthrough (find -> read mid-layer data -> POST /briefs -> poll -> attach evidence -> validate
 -> review -> publish) and ends with a round-trippable published brief. The internal team runs
 the same walkthrough against the same endpoints — that is the dogfeed test.
+
+## [2026-05-20] engineering | Findings review queue artifact
+
+The `findings:detect` job now writes a capped review inbox at
+`data/artifacts/findings/<month>/review-queue.json` alongside the detector coverage audit. The queue
+keeps the highest-priority candidates across the full detector matrix, records per-detector counts,
+preserves route/scope/reason metadata, and attaches evidence refs from detector evidence links so
+manual review can start from concrete source artifacts rather than the raw SQLite rows.
+
+The March 2026 local run produced a 50-candidate queue spanning source gaps, persistent speed
+hotspots, observed reliability, intervention gaps, and intervention underperformance. The artifact
+also records the uncapped detector totals, omitted-by-cap count, evidence-linked candidate count,
+priority bands, and review signals. In the latest run, all 462 candidates had evidence refs, 50 were
+surfaced for review, and 412 were omitted by the cap. Top-ranked items were severe Q65/Bx15 speed,
+reliability, and intervention findings.
+
+Follow-up slice: the review queue now also groups surfaced route-scoped candidates into
+`routeGroups` so reviewers can spot multi-detector routes without manually reconciling candidate
+rows. The March 2026 local queue surfaced 43 route groups, including 7 multi-detector routes. Q65
+ranked first with intervention-gap plus persistent-speed-hotspot signals; Bx15 and Bx5 paired
+observed-reliability with intervention-underperformance signals.
+
+Second follow-up slice: the review queue now includes a `summary` block with total and surfaced
+priority-band counts, surfaced category counts, route priority-band counts, multi-detector route
+count, and critical route-group count. The March 2026 local queue has 462 total candidates
+distributed as 50 critical, 151 high, 204 medium, and 57 low; the 50 surfaced review items are all
+critical and cover 31 data-quality, 9 observed-reliability, 5 intervention-gap, 3 speed-hotspot, and
+2 intervention-underperformance candidates.
+
+Third follow-up slice: the summary now makes cap behavior explicit with omitted priority-band
+counts and `capExhaustedPriorityBands`. For March 2026, the 50-item cap covers every critical
+candidate and omits the remaining 151 high, 204 medium, and 57 low candidates, so reviewers can see
+that the first queue page is complete for critical items but not for lower bands.
+
+Fourth follow-up slice: the review queue now includes a `health` block with machine-readable status
+and issue codes for empty queues, omitted critical candidates, missing evidence refs, ungroupable
+queues, and lower-priority cap omissions. The March 2026 queue reports `ok` with one informational
+`lower_priority_candidates_omitted` issue for the 412 non-critical candidates behind the cap and no
+evidence-link warnings.
+
+Fifth follow-up slice: `findings:detect` now accepts a configurable non-negative
+`reviewQueueLimit` (`--review-queue-limit` from the CLI) so tests and reviewer workflows can
+exercise cap behavior directly. The detector orchestrator fixture now reruns with a zero-item queue
+and verifies that omitted critical candidates produce `attention_required` with
+`empty_review_queue` and `critical_candidates_omitted` warnings. The default March 2026 run still
+uses the 50-item queue and reports `ok`.
+
+Sixth follow-up slice: candidate validation is now agent-native. The review queue includes an
+`agentReview` section aimed at Codex/Claude-style reviewers with instructions, a structured
+decision schema, route packets for the top route groups, and one validation packet per surfaced
+candidate. Each candidate packet carries claim text, scope, priority signals, evidence refs, and
+required checks that force agents to validate from evidence rather than detector score alone. The
+March 2026 artifact emits 20 route packets and 50 candidate packets.
+
+Dogfood follow-up: an agent review of the first five March candidates showed two avoidable tool
+calls: parsing escaped JSON evidence refs with `jq fromjson`, and opening detector source files to
+interpret thresholds/field meanings. Candidate packets now include parsed `evidenceObjects` beside
+the raw provenance strings plus `detectorGuidance` with default thresholds, key evidence-field
+definitions, validation framing, and common follow-ups. The agent instructions now explicitly say to
+use `evidenceObjects` first and retain `evidenceRefs` as provenance.
+
+Second dogfood follow-up: the review packet was reframed from "agent validates/promotes candidate"
+to "agent audits why the detector emitted this candidate." The `agentReview` mode is now
+`agent_detector_audit`, with detector actions (`keep`, `downgrade`, `suppress`, `split`, `enrich`)
+instead of publication decisions. Candidate packets now flag derived score fields with
+`derivedMetricWarnings` so agents do not treat values like `speedPainScore` or
+`reliabilityPainScore` as standalone evidence.
+
+Algorithm improvement from the dogfood review: `intervention_underperformance` now requires a
+current speed-derived detector signal for non-positive peer-adjusted speed-delta claims; reliability
+signals are context only. This removed the 13 March 2026 underperformance candidates that were
+backed by reliability pain plus speed-delta evidence, leaving 30 clean evaluated routes and 351
+skipped routes for missing evaluated intervention or speed-signal input.
+
+Feedback-loop follow-up: agent detector-audit output now has a typed results artifact
+(`finding_detector_audit_results`) and a pipeline summary command, `findings:audit-feedback`. The
+summary artifact rolls up actions by detector, derived-metric issue counts, missing-evidence themes,
+and per-detector recommendations so dogfood reviews can feed back into detector thresholds, packet
+enrichment, and split/suppress decisions without pretending the agent is approving public findings.
+
+Context-detector follow-up: after the permit geocoding pass, `build:context-event-route-touches`
+was rerun and now writes `data/artifacts/context-events/route-touch-audit.json`. The refreshed local
+DB has 549,556 route touches: construction permits touch 23,412 joinable events across 378 routes
+and opening permits touch 6,885 events across 377 routes. Added the first typed feature-layer slice
+via `findings:signal-features`, which writes route/month/all-day signal features with speed, permit
+touches, uncertainty counts, provenance refs, and per-feature coverage facts.
+
+Follow-up integration: `findings:detect` now writes the signal-feature artifact as part of the
+normal detector run and persists `permit_correlated_slowdown` through the findings tables, coverage
+audit, and review queue. Intervention-gap and intervention-underperformance inputs now use
+feature-derived route speed/reliability signals rather than consuming prior emitted detector
+candidates. The March 2026 run now has six detectors and 599 total candidates: 199 source gaps, 100
+speed hotspots, 100 observed-reliability findings, 100 intervention gaps, 0 intervention
+underperformance findings, and 100 permit-correlated slowdown findings.

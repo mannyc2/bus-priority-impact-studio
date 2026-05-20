@@ -155,6 +155,18 @@ describe("context event route touch build", () => {
         routeLionTouches: 2,
         total: 4,
         computedAt: "2026-05-19T12:00:00.000Z",
+        auditArtifactPath: expect.stringContaining("route-touch-audit.json"),
+        sourceEventKinds: expect.arrayContaining([
+          expect.objectContaining({
+            sourceId: "nyc_dot_street_construction_permits",
+            eventKind: "permit",
+            eventCount: 1,
+            joinableEventCount: 1,
+            touchedEventCount: 1,
+            touchCount: 2,
+            routeCount: 2,
+          }),
+        ]),
       });
       expect(rows).toEqual([
         {
