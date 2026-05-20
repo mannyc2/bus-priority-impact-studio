@@ -37,7 +37,18 @@ const defaultOutputPath = "data/artifacts/studio/v1/release.json";
 const defaultSchemaPath = "data/exports/d1/2026-03/schema.sql";
 const defaultSeedPath = "data/exports/d1/2026-03/seed.sql";
 const defaultRouteLimit = 12;
-const canonicalRouteIds = ["M15+", "BX12+", "M101", "B41", "B46+", "Q58", "M14A+", "M14D+"];
+const canonicalRouteIds = [
+  "M15+",
+  "BX12+",
+  "B25",
+  "BX41",
+  "M101",
+  "B41",
+  "B46+",
+  "Q58",
+  "M14A+",
+  "M14D+",
+];
 
 type ReleaseProfile = "demo" | "full";
 
@@ -262,9 +273,7 @@ function buildObservedReliability(
           "Observed reliability is recovered from the third-party Bus Observatory archive, not official MTA historical replay.",
           "Monthly public speed evidence remains official MTA Open Data; realtime evidence has separate provenance.",
         ]
-      : [
-          "Observed reliability comes from self-collected MTA Bus Time GTFS-RT snapshots.",
-        ];
+      : ["Observed reliability comes from self-collected MTA Bus Time GTFS-RT snapshots."];
   if (row.reliabilityStatus === "insufficient_gtfs_rt_samples") {
     caveats.push(
       `Sample count (${row.sampleCount}) is below the minimum threshold (${row.minSampleThreshold}); headway statistics are not reported.`,
@@ -428,6 +437,114 @@ function buildFinding(route: StudioRoute, segment: StudioSegment | undefined): S
     },
     comparableRoutes: [],
   };
+}
+
+function buildReviewedFinding(route: StudioRoute): StudioFinding | null {
+  if (route.routeId === "B25") {
+    return {
+      id: "b25-fulton-corridor-reliability-permits",
+      category: "Emerging risk",
+      routeSlug: route.slug,
+      title: "B25 reliability problems persisted as March street-work context clustered nearby",
+      body: "B25 is a reviewed, multi-dataset prioritization finding: persistent long-gap reliability, slow March speed evidence, and substantial DOT permit activity touching the Fulton Street / Downtown Brooklyn route corridor. This is not a causal permit-slowdown claim.",
+      metric: "78.18% long-gap share",
+      confidence: "high",
+      borough: route.borough,
+      reasoning: [
+        {
+          index: 1,
+          title: "Persistent reliability",
+          detail:
+            "Bus Observatory data shows 13,700 March samples, a 78.18% long-gap share, 17.7054 wait reliability ratio, and 83.5272 excess wait minutes. Across 38 recovered Bus Observatory months, B25 averaged 79.46% long-gap share.",
+          source: "local_route_observed_reliability_summary",
+          tone: "warn",
+        },
+        {
+          index: 2,
+          title: "March speed evidence",
+          detail:
+            "The March route summary shows 6.47 mph weighted average speed, 1,973 speed observations, 31,203 bus trips, 1,177,096 ridership exposure, and 10 hotspot segments.",
+          source: "local_route_hotspot_summary",
+          tone: "accent",
+        },
+        {
+          index: 3,
+          title: "Worst sampled hotspot",
+          detail:
+            "The strongest B25 hotspot ran eastbound from Tillary St/Cadman Plaza East to Fulton St/Bond St at 4.63 mph, with 96.41% of observed windows classified as slow.",
+          source: "local_route_hotspot",
+          tone: "warn",
+        },
+        {
+          index: 4,
+          title: "Context touches",
+          detail:
+            "The route had 162 DOT permit touches in March, including 26 permit-record Fulton Street touches across 14 B25-linked physical street segments, plus collision, 311, parking, and ACE context touches.",
+          source: "local_context_event_route_touch + local_dot_street_permit",
+          tone: "accent",
+        },
+      ],
+      caveat: {
+        title: "Prioritization finding, not causality",
+        body: "This review confirms route-corridor context, but it does not prove that DOT permits caused the B25 slowdown or touched the exact same physical segments as the worst speed hotspots.",
+      },
+      comparableRoutes: [],
+    };
+  }
+
+  if (route.routeId === "BX41") {
+    return {
+      id: "bx41-webster-reliability-permits",
+      category: "Emerging risk",
+      routeSlug: route.slug,
+      title: "BX41 pairs persistent reliability trouble with Webster Avenue street-work context",
+      body: "BX41 is a reviewed, reliability-led prioritization finding: long-gap reliability has been persistently high, March speed evidence shows route hotspots, and Webster Avenue permit touches align with the route-LION bridge. This is still context, not proof of cause.",
+      metric: "81.36% long-gap share",
+      confidence: "high",
+      borough: route.borough,
+      reasoning: [
+        {
+          index: 1,
+          title: "Persistent reliability",
+          detail:
+            "Bus Observatory data shows 5,848 March samples, an 81.36% long-gap share, 17.3109 wait reliability ratio, and 97.8653 excess wait minutes. Across 38 recovered Bus Observatory months, BX41 averaged 82.37% long-gap share.",
+          source: "local_route_observed_reliability_summary",
+          tone: "warn",
+        },
+        {
+          index: 2,
+          title: "March speed evidence",
+          detail:
+            "The March route summary shows 7.62 mph weighted average speed, 2,049 speed observations, 30,045 bus trips, 947,369 ridership exposure, and 10 hotspot segments.",
+          source: "local_route_hotspot_summary",
+          tone: "accent",
+        },
+        {
+          index: 3,
+          title: "Sample-supported hotspots",
+          detail:
+            "The strongest sample-supported hotspots include Melrose Av/E 160 St to Melrose Av/E 149 St at 6.15 mph and Webster Av/E 180 St to Webster Av/East Fordham Rd at 6.61 mph.",
+          source: "local_route_hotspot",
+          tone: "warn",
+        },
+        {
+          index: 4,
+          title: "Webster Avenue context",
+          detail:
+            "The route had 200 DOT permit touches in March. The 62 permit-record Webster Avenue touches span 14 BX41-linked physical street segments, 10 of which are also named WEBSTER AVE in the route-LION bridge.",
+          source: "local_context_event_route_touch + local_dot_street_permit",
+          tone: "accent",
+        },
+      ],
+      caveat: {
+        title: "Reliability-led context finding",
+        body: "This finding should not say permits caused BX41's reliability problem or speed hotspots. It identifies a high-evidence corridor for manual review and public prioritization.",
+      },
+      comparableRoutes: [],
+    };
+  }
+
+  return null;
 }
 
 function buildBrief(route: StudioRoute, finding: StudioFinding | undefined): StudioBrief {
@@ -646,12 +763,20 @@ async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> 
     const segments = routes.flatMap((route) =>
       buildSegments(route.slug, route.routeId, routeInputs.get(route.routeId) ?? null),
     );
-    const findings = routes.slice(0, 6).map((route) =>
-      buildFinding(
-        route,
-        segments.find((segment) => segment.routeSlug === route.slug),
-      ),
-    );
+    const reviewedFindings = routes.flatMap((route) => {
+      const finding = buildReviewedFinding(route);
+      return finding === null ? [] : [finding];
+    });
+    const generatedFindings = routes
+      .filter((route) => !reviewedFindings.some((finding) => finding.routeSlug === route.slug))
+      .slice(0, Math.max(0, 6 - reviewedFindings.length))
+      .map((route) =>
+        buildFinding(
+          route,
+          segments.find((segment) => segment.routeSlug === route.slug),
+        ),
+      );
+    const findings = [...reviewedFindings, ...generatedFindings];
     const briefs = routes.slice(0, 8).map((route) =>
       buildBrief(
         route,
