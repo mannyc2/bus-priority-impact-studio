@@ -2,7 +2,7 @@
 title: Cloudflare Operations Runbook
 type: engineering
 status: active
-last_updated: 2026-05-17
+last_updated: 2026-05-21
 owner: codex
 source_count: 0
 tags: [cloudflare, worker, d1, r2, operations, gtfs-rt]
@@ -92,6 +92,33 @@ bun run publish:serving-release -- --month 2026-03 --d1 bus-priority-serving --r
 ```
 
 This is not a cron job. Run it when promoting a baseline month or a corrected release artifact set.
+
+## Automated GitHub Actions Deploy
+
+`.github/workflows/ci.yml` runs the knowledge check, type check, architecture check, test suite, and
+web release gates for pull requests and pushes. On pushes to `main`, a successful verify job
+triggers the production deploy job:
+
+```bash
+bun --filter @bp/web build
+bun --filter @bp/web deploy
+```
+
+Configure this GitHub Actions secret before relying on automated deploys:
+
+| Name | Purpose |
+|---|---|
+| `CLOUDFLARE_API_TOKEN` | Scoped token allowed to deploy this Worker through Wrangler. |
+
+The workflow skips the Cloudflare deploy step, with a GitHub Actions notice, until
+`CLOUDFLARE_API_TOKEN` exists. The Cloudflare account ID and bindings come from the committed
+`apps/web/wrangler.jsonc` production config.
+
+Keep `MTA_BUS_TIME_API_KEY` as a Cloudflare Worker secret, not a GitHub Actions secret, unless a
+future workflow intentionally rotates deployed Worker secrets. The CI/CD workflow deploys code and
+the committed Wrangler binding config only; it does not publish D1 seed SQL, upload R2 release
+artifacts, or promote a new baseline month. Use [[#One-Time Release Publish]] for reviewed serving
+data releases.
 
 ## Worker Deploy
 

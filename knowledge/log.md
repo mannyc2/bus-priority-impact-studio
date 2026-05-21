@@ -1030,3 +1030,10 @@ feature-derived route speed/reliability signals rather than consuming prior emit
 candidates. The March 2026 run now has six detectors and 599 total candidates: 199 source gaps, 100
 speed hotspots, 100 observed-reliability findings, 100 intervention gaps, 0 intervention
 underperformance findings, and 100 permit-correlated slowdown findings.
+
+Operations follow-up: GitHub Actions now owns CI/CD for the public Worker. The existing CI workflow
+was expanded into a verify-then-deploy pipeline: pull requests and pushes run the knowledge check,
+type check, architecture check, tests, and web release gates; pushes to `main` deploy `@bp/web` to
+Cloudflare with Wrangler after a successful verify job. The deploy job skips with an Actions notice
+until the `CLOUDFLARE_API_TOKEN` GitHub Actions secret is configured. D1/R2 serving-release
+promotion remains a separate reviewed publish step.
