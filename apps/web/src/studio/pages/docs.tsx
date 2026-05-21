@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft, ArrowRight, Check, Copy } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import { Rail } from "@/components/Rail";
 import { StudioPage } from "../page.js";
 import { NotFoundPage } from "./not-found.js";
@@ -60,9 +60,8 @@ export function DocsPage({ page }: { page: string }) {
   const PageComponent = PAGE_COMPONENTS[page];
   const markdown = PAGE_MARKDOWN[page];
   const idx = DOCS_PAGE_ORDER.indexOf(page);
-  const prev = idx > 0 ? DOCS_PAGE_ORDER[idx - 1] ?? null : null;
-  const next =
-    idx < DOCS_PAGE_ORDER.length - 1 ? DOCS_PAGE_ORDER[idx + 1] ?? null : null;
+  const prev = idx > 0 ? (DOCS_PAGE_ORDER[idx - 1] ?? null) : null;
+  const next = idx < DOCS_PAGE_ORDER.length - 1 ? (DOCS_PAGE_ORDER[idx + 1] ?? null) : null;
 
   return (
     <StudioPage flush>
@@ -363,14 +362,17 @@ function CodeBlock({ children, label }: { children: string; label?: string }) {
           <button
             type="button"
             onClick={copy}
-          className="inline-flex items-center gap-1 text-[10.5px] text-[oklch(0.70_0.01_75)] hover:text-white"
+            className="inline-flex items-center gap-1 text-[10.5px] text-[oklch(0.70_0.01_75)] hover:text-white"
           >
             {copied ? <Check size={11} /> : <Copy size={11} />}
             {copied ? "Copied" : "Copy"}
           </button>
         </div>
       ) : null}
-      <pre className="m-0 overflow-auto p-3.5 text-[12.5px] leading-[1.58]" style={{ fontFamily: MONO }}>
+      <pre
+        className="m-0 overflow-auto p-3.5 text-[12.5px] leading-[1.58]"
+        style={{ fontFamily: MONO }}
+      >
         <code>{children}</code>
       </pre>
     </div>
@@ -385,15 +387,15 @@ function OverviewPage() {
       <H1>BPI Studio API</H1>
       <P>
         The BPI Studio API gives developers and coding agents programmatic access to the same
-        pipeline that powers the Studio UI - route performance data, AI-surfaced findings, and
-        brief authoring. Everything you can do in the interface, you can do via REST or CLI.
+        pipeline that powers the Studio UI - route performance data, AI-surfaced findings, and brief
+        authoring. Everything you can do in the interface, you can do via REST or CLI.
       </P>
       <P>
         This is how we dogfood the product internally, and how you can integrate it into your own
         workflows, tooling, or autonomous agents.
       </P>
       <H3>Base URL</H3>
-      <CodeBlock>https://api.bpi.studio/v1</CodeBlock>
+      <CodeBlock>https://api.bpi.studio/api/v1/studio</CodeBlock>
       <H3>Response format</H3>
       <P>
         All responses are JSON. Timestamps are ISO 8601 UTC. Route IDs match MTA convention -{" "}
@@ -422,7 +424,7 @@ function AuthPage() {
         All requests are authenticated with a bearer token. Generate one in the Studio settings or
         via <IC>POST /v1/tokens</IC>.
       </P>
-      <CodeBlock label="bash">{`curl https://api.bpi.studio/v1/routes \\
+      <CodeBlock label="bash">{`curl https://api.bpi.studio/api/v1/studio/routes \\
   -H "Authorization: Bearer $BPI_API_KEY"`}</CodeBlock>
       <Callout warn>
         Keep keys server-side. The CLI reads <IC>BPI_API_KEY</IC> from the environment; never check
@@ -464,7 +466,9 @@ function QuickstartPage() {
           <CodeBlock label="bash">bpi routes get M15-SBS --segments --json</CodeBlock>
         </Step>
         <Step n={5} title="Generate a brief">
-          <CodeBlock label="bash">bpi briefs new m15-madison-corridor --from-finding m15-treatment-anomaly</CodeBlock>
+          <CodeBlock label="bash">
+            bpi briefs new m15-madison-corridor --from-finding m15-treatment-anomaly
+          </CodeBlock>
         </Step>
       </ol>
       <Callout>
@@ -481,8 +485,8 @@ function CliPage() {
     <article>
       <H1>CLI Reference</H1>
       <P>
-        The CLI is a thin wrapper around the REST API. JSON output by default. Pretty-printed
-        tables with <IC>--pretty</IC>.
+        The CLI is a thin wrapper around the REST API. JSON output by default. Pretty-printed tables
+        with <IC>--pretty</IC>.
       </P>
       <H2>Distribution</H2>
       <CmdTable
@@ -519,8 +523,8 @@ function RoutesPage() {
     <article>
       <H1>Routes</H1>
       <P>
-        Route performance data, segment-level breakdowns, and trend windows. Same data the Studio
-        UI consumes.
+        Route performance data, segment-level breakdowns, and trend windows. Same data the Studio UI
+        consumes.
       </P>
       <Endpoint method="get" path="/v1/routes" desc="List all routes" />
       <Params
@@ -581,8 +585,8 @@ function BriefsPage() {
     <article>
       <H1>Briefs</H1>
       <P>
-        Briefs are the publishable artefact: claims, evidence, caveats, and citations bundled into
-        a reviewable document.
+        Briefs are the publishable artefact: claims, evidence, caveats, and citations bundled into a
+        reviewable document.
       </P>
       <Endpoint method="get" path="/v1/briefs" desc="List briefs" />
       <Endpoint method="get" path="/v1/briefs/{id}" desc="Brief detail" />
@@ -591,9 +595,9 @@ function BriefsPage() {
       <Endpoint method="post" path="/v1/briefs/{id}/publish" desc="Mark brief as published" />
       <H2>Generation flow</H2>
       <P>
-        <IC>POST /v1/briefs</IC> returns immediately with a job id. The pipeline drafts claims
-        from the chosen route or finding, attaches evidence and caveats, and emits a brief object
-        with a version pointer. Poll the brief endpoint until <IC>status = "draft"</IC> or{" "}
+        <IC>POST /v1/briefs</IC> returns immediately with a job id. The pipeline drafts claims from
+        the chosen route or finding, attaches evidence and caveats, and emits a brief object with a
+        version pointer. Poll the brief endpoint until <IC>status = "draft"</IC> or{" "}
         <IC>"published"</IC>.
       </P>
       <Callout warn>
@@ -611,11 +615,31 @@ function CreditsPage() {
       <Callout warn>Full attribution table and license details are being finalized.</Callout>
       <Params
         rows={[
-          { name: "MTA GTFS-RT", type: "real-time", desc: "Vehicle positions and trip updates. MTA Developer Data license." },
-          { name: "MTA BusTime API", type: "historical", desc: "Stop-level arrival/departure times." },
-          { name: "OpenStreetMap", type: "geo", desc: "Street network, stop locations. © contributors, ODbL." },
-          { name: "NYC DOT", type: "reference", desc: "Bus lane locations and signal priority corridors." },
-          { name: "MTA ACE", type: "program record", desc: "Camera enforcement coverage and violations." },
+          {
+            name: "MTA GTFS-RT",
+            type: "real-time",
+            desc: "Vehicle positions and trip updates. MTA Developer Data license.",
+          },
+          {
+            name: "MTA BusTime API",
+            type: "historical",
+            desc: "Stop-level arrival/departure times.",
+          },
+          {
+            name: "OpenStreetMap",
+            type: "geo",
+            desc: "Street network, stop locations. © contributors, ODbL.",
+          },
+          {
+            name: "NYC DOT",
+            type: "reference",
+            desc: "Bus lane locations and signal priority corridors.",
+          },
+          {
+            name: "MTA ACE",
+            type: "program record",
+            desc: "Camera enforcement coverage and violations.",
+          },
         ]}
       />
     </article>
@@ -641,12 +665,54 @@ function ChangelogPage() {
     );
   }
   const items: { t: ItemKind; desc: ReactNode }[] = [
-    { t: "new", desc: <span><IC>GET /v1/routes</IC> and <IC>GET /v1/routes/{"{id}"}</IC></span> },
-    { t: "new", desc: <span><IC>GET /v1/routes/{"{id}"}/segments</IC> - segment-level breakdown</span> },
-    { t: "new", desc: <span><IC>GET /v1/findings</IC> + <IC>/v1/findings/{"{id}"}</IC> with reasoning trail</span> },
-    { t: "new", desc: <span><IC>POST /v1/briefs</IC> - async brief generation from claims</span> },
-    { t: "new", desc: <span><IC>GET /v1/briefs/{"{id}"}</IC> + version history + publish flow</span> },
-    { t: "new", desc: <span>CLI technical preview - <IC>npx @bpi/cli</IC> &middot; npm &middot; pip &middot; Homebrew</span> },
+    {
+      t: "new",
+      desc: (
+        <span>
+          <IC>GET /v1/routes</IC> and <IC>GET /v1/routes/{"{id}"}</IC>
+        </span>
+      ),
+    },
+    {
+      t: "new",
+      desc: (
+        <span>
+          <IC>GET /v1/routes/{"{id}"}/segments</IC> - segment-level breakdown
+        </span>
+      ),
+    },
+    {
+      t: "new",
+      desc: (
+        <span>
+          <IC>GET /v1/findings</IC> + <IC>/v1/findings/{"{id}"}</IC> with reasoning trail
+        </span>
+      ),
+    },
+    {
+      t: "new",
+      desc: (
+        <span>
+          <IC>POST /v1/briefs</IC> - async brief generation from claims
+        </span>
+      ),
+    },
+    {
+      t: "new",
+      desc: (
+        <span>
+          <IC>GET /v1/briefs/{"{id}"}</IC> + version history + publish flow
+        </span>
+      ),
+    },
+    {
+      t: "new",
+      desc: (
+        <span>
+          CLI technical preview - <IC>npx @bpi/cli</IC> &middot; npm &middot; pip &middot; Homebrew
+        </span>
+      ),
+    },
   ];
   return (
     <article>
@@ -654,7 +720,10 @@ function ChangelogPage() {
       <div className="mb-10">
         <div className="mb-3 flex items-center gap-3">
           <span className="text-[16px] font-semibold tracking-[-0.015em]">v0.1.0</span>
-          <span className="text-[12.5px] text-[var(--bp-color-ink-40)]" style={{ fontFamily: MONO }}>
+          <span
+            className="text-[12.5px] text-[var(--bp-color-ink-40)]"
+            style={{ fontFamily: MONO }}
+          >
             2026-05-17
           </span>
           <span
@@ -708,11 +777,7 @@ const PAGE_MARKDOWN: Record<DocsPageId, string> = {
   changelog: buildMarkdown("changelog", "data-credits", null),
 };
 
-function buildMarkdown(
-  page: DocsPageId,
-  prev: DocsPageId | null,
-  next: DocsPageId | null,
-): string {
+function buildMarkdown(page: DocsPageId, prev: DocsPageId | null, next: DocsPageId | null): string {
   const allPages = DOCS_PAGE_ORDER.join(" | ");
   const title = DOCS_PAGE_TITLES[page];
   return [
@@ -736,4 +801,3 @@ function buildMarkdown(
     .filter(Boolean)
     .join("\n");
 }
-
