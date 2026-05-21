@@ -1,5 +1,8 @@
 import {
   createD1ServingDb,
+  type RouteBriefSummary as D1RouteBriefSummary,
+  type RouteObservedReliabilitySummary as D1RouteObservedReliabilitySummary,
+  type RouteReadiness as D1RouteReadiness,
   findLatestNonBaselineObservedMonth,
   getRouteBatchStatus,
   getRouteBriefSummary,
@@ -10,9 +13,6 @@ import {
   listRouteComparisonRanks,
   listRouteObservedReliabilitySummaries,
   listRouteReadiness,
-  type RouteBriefSummary as D1RouteBriefSummary,
-  type RouteObservedReliabilitySummary as D1RouteObservedReliabilitySummary,
-  type RouteReadiness as D1RouteReadiness,
 } from "@bp/db/d1";
 import {
   buildStudioCompareProjection,
@@ -39,8 +39,6 @@ import {
 } from "@bp/domain";
 import * as z from "zod";
 import {
-  type StudioObservedReliability,
-  type StudioRoute,
   StudioBriefEvidenceResponseSchema,
   StudioBriefHistoryResponseSchema,
   StudioBriefResponseSchema,
@@ -49,6 +47,8 @@ import {
   StudioFindingResponseSchema,
   StudioFindingsResponseSchema,
   StudioMethodsResponseSchema,
+  type StudioObservedReliability,
+  type StudioRoute,
   StudioRouteDetailResponseSchema,
   StudioRouteLadderResponseSchema,
   StudioRoutesResponseSchema,
@@ -453,10 +453,14 @@ function searchTerms(query: string): string[] {
     .filter((term) => term.length > 0);
 }
 
-async function buildStudioRoutesResponse(
-  env: Env,
-): Promise<
-  | { ok: true; routes: StudioRoute[]; generatedAt: string; quality: z.infer<typeof StudioRoutesResponseSchema>["quality"]; releaseLayer: string }
+async function buildStudioRoutesResponse(env: Env): Promise<
+  | {
+      ok: true;
+      routes: StudioRoute[];
+      generatedAt: string;
+      quality: z.infer<typeof StudioRoutesResponseSchema>["quality"];
+      releaseLayer: string;
+    }
   | { ok: false; response: Response }
 > {
   // D1-backed listing covers all release routes. Falls back to the R2 projection only when
@@ -679,9 +683,7 @@ async function buildStudioResponse(url: URL, env: Env): Promise<Response> {
     return briefs instanceof Response ? briefs : studioJson(briefs, env);
   }
 
-  const briefEvidenceMatch = url.pathname.match(
-    /^\/api\/v1\/studio\/briefs\/([^/]+)\/evidence$/,
-  );
+  const briefEvidenceMatch = url.pathname.match(/^\/api\/v1\/studio\/briefs\/([^/]+)\/evidence$/);
   if (briefEvidenceMatch) {
     const briefId = decodeURIComponent(briefEvidenceMatch[1] ?? "");
     const briefs = await loadStudioProjection(env, "briefs.json", StudioBriefsResponseSchema);
@@ -1536,7 +1538,7 @@ export default {
 
     return new Response("Not found", { status: 404 });
   },
-  async scheduled(_controller: ScheduledController, env: Env = {}): Promise<void> {
-    await runScheduledProductionRefresh(env);
+  async scheduled(controller: ScheduledController, env: Env = {}): Promise<void> {
+    await runScheduledProductionRefresh(env, { cron: controller.cron });
   },
 } satisfies ExportedHandler<Env>;

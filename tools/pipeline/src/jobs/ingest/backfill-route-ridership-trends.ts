@@ -27,13 +27,17 @@ type RidershipBackfillResult = {
   endMonth: string;
   attemptedChunkCount: number;
   updatedRowCount: number;
+  failedRowCount: number;
   remainingRidershipMissingCount: number;
 };
 
 type TrendRow = Awaited<ReturnType<typeof listRouteMonthTrends>>[number];
 
+type RidershipSourceId = "bus_hourly_ridership_2020_2024" | "bus_hourly_ridership_2025";
+
 const RawRidershipAggregateSchema = z
   .object({
+    bus_route: z.string().min(1).optional(),
     ridership: z.coerce.number().nonnegative().optional(),
     transfers: z.coerce.number().nonnegative().optional(),
   })
@@ -81,29 +85,60 @@ function inRange(row: TrendRow, startMonth: string, endMonth: string): boolean {
   return row.month >= startMonth && row.month <= endMonth;
 }
 
-async function fetchRidershipAggregate(input: {
-  source: SocrataManifestSource;
-  routeId: string;
+function ridershipSourceIdForMonth(month: string): RidershipSourceId {
+  return month < "2025-01" ? "bus_hourly_ridership_2020_2024" : "bus_hourly_ridership_2025";
+}
+
+function trendKey(routeId: string, month: string): string {
+  return `${routeId}::${month}`;
+}
+
+function chunkArray<T>(values: readonly T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let index = 0; index < values.length; index += size) {
+    chunks.push(values.slice(index, index + size));
+  }
+  return chunks;
+}
+
+async function fetchRidershipAggregates(input: {
+  sources: ReadonlyMap<RidershipSourceId, SocrataManifestSource>;
+  routeIds: readonly string[];
   isoMonth: string;
   fetcher: SocrataFetch;
-}): Promise<{ ridership: number; transfers: number }> {
+}): Promise<Map<string, { ridership: number; transfers: number }>> {
   const parsedMonth = parseIsoMonth(input.isoMonth);
+  const sourceId = ridershipSourceIdForMonth(input.isoMonth);
+  const source = input.sources.get(sourceId);
+  if (source === undefined) {
+    throw new Error(`Missing ridership source: ${sourceId}`);
+  }
   const query: SocrataRowsQuery = {
-    select: "sum(ridership) as ridership,sum(transfers) as transfers",
+    select: "bus_route,sum(ridership) as ridership,sum(transfers) as transfers",
     where: [
-      `bus_route=${soqlQuote(input.routeId)}`,
+      `bus_route in(${input.routeIds.map(soqlQuote).join(",")})`,
       `transit_timestamp >= ${soqlQuote(isoMonthStart(parsedMonth.year, parsedMonth.month))}`,
       `transit_timestamp < ${soqlQuote(nextIsoMonthStart(parsedMonth.year, parsedMonth.month))}`,
     ].join(" AND "),
-    limit: 1,
+    group: "bus_route",
+    order: "bus_route",
   };
-  const rows = await SocrataClient.fromSource(input.source, { fetcher: input.fetcher }).rows(query);
-  const parsed = RawRidershipAggregateSchema.parse(rows[0] ?? {});
+  const rows = await SocrataClient.fromSource(source, { fetcher: input.fetcher }).rows(query);
+  const output = new Map<string, { ridership: number; transfers: number }>();
 
-  return {
-    ridership: Math.round((parsed.ridership ?? 0) * 10_000) / 10_000,
-    transfers: Math.round((parsed.transfers ?? 0) * 10_000) / 10_000,
-  };
+  for (const row of rows) {
+    const parsed = RawRidershipAggregateSchema.parse(row);
+    if (parsed.bus_route === undefined) {
+      continue;
+    }
+    const routeId = z.decode(RouteIdCodec, parsed.bus_route);
+    output.set(routeId, {
+      ridership: Math.round((parsed.ridership ?? 0) * 10_000) / 10_000,
+      transfers: Math.round((parsed.transfers ?? 0) * 10_000) / 10_000,
+    });
+  }
+
+  return output;
 }
 
 async function mapWithConcurrency<T, U>(
@@ -143,26 +178,64 @@ export async function backfillRouteRidershipTrends(
     listRouteMonthTrends(local.db),
   );
   const manifest = await readSourceManifest();
-  const source = getSocrataSource(manifest, "bus_hourly_ridership_2025");
+  const sources = new Map<RidershipSourceId, SocrataManifestSource>([
+    [
+      "bus_hourly_ridership_2020_2024",
+      getSocrataSource(manifest, "bus_hourly_ridership_2020_2024"),
+    ],
+    ["bus_hourly_ridership_2025", getSocrataSource(manifest, "bus_hourly_ridership_2025")],
+  ]);
   const rangeRows = existingRows.filter((row) => inRange(row, startMonth, endMonth));
   const candidates = rangeRows
     .filter((row) => !row.hasRidershipTrend)
     .filter((row) => routeFilter.size === 0 || routeFilter.has(row.routeId))
     .slice(0, options.limit);
-  const updates = await mapWithConcurrency(candidates, options.concurrency, async (row) => ({
-    row,
-    ...(await fetchRidershipAggregate({
-      source,
-      routeId: row.routeId,
-      isoMonth: row.month,
-      fetcher: options.fetcher,
-    })),
-  }));
+  const candidatesByMonth = new Map<string, TrendRow[]>();
+  for (const row of candidates) {
+    candidatesByMonth.set(row.month, [...(candidatesByMonth.get(row.month) ?? []), row]);
+  }
+  const fetchBatches = [...candidatesByMonth.entries()].flatMap(([month, rows]) =>
+    chunkArray(rows, 50).map((chunk) => ({ month, rows: chunk })),
+  );
+  let completedBatchCount = 0;
+  const updateBatches = await mapWithConcurrency(
+    fetchBatches,
+    options.concurrency,
+    async (batch) => {
+      try {
+        const aggregateByRoute = await fetchRidershipAggregates({
+          sources,
+          routeIds: batch.rows.map((row) => row.routeId),
+          isoMonth: batch.month,
+          fetcher: options.fetcher,
+        });
+        return batch.rows.map((row) => ({
+          row,
+          ...(aggregateByRoute.get(row.routeId) ?? { ridership: 0, transfers: 0 }),
+        }));
+      } catch (error) {
+        console.error(
+          `ridership trend backfill: failed ${batch.month} (${batch.rows.length} routes): ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+        return null;
+      } finally {
+        completedBatchCount += 1;
+        if (completedBatchCount === fetchBatches.length || completedBatchCount % 10 === 0) {
+          console.error(
+            `ridership trend backfill: ${completedBatchCount}/${fetchBatches.length} source batches attempted`,
+          );
+        }
+      }
+    },
+  );
+  const successfulUpdates = updateBatches.flatMap((update) => update ?? []);
   const updateByKey = new Map(
-    updates.map((update) => [`${update.row.routeId}::${update.row.month}`, update]),
+    successfulUpdates.map((update) => [trendKey(update.row.routeId, update.row.month), update]),
   );
   const rows: TrendRow[] = existingRows.map((row) => {
-    const update = updateByKey.get(`${row.routeId}::${row.month}`);
+    const update = updateByKey.get(trendKey(row.routeId, row.month));
     if (update === undefined) {
       return row;
     }
@@ -183,7 +256,8 @@ export async function backfillRouteRidershipTrends(
     startMonth,
     endMonth,
     attemptedChunkCount: candidates.length,
-    updatedRowCount: updates.length,
+    updatedRowCount: successfulUpdates.length,
+    failedRowCount: candidates.length - successfulUpdates.length,
     remainingRidershipMissingCount,
   };
 }

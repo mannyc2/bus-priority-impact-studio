@@ -10,6 +10,10 @@ tags: [pipeline, roadmap, gtfs-rt, reliability, interventions, corridors, briefs
 
 # Data Pipeline V1 Completion Plan
 
+> Forward planning moved to
+> [[wiki/engineering/data_pipeline_finish_plan_v2|Data Pipeline Finish Plan v2]] on 2026-05-21.
+> This page remains the v1 implementation history and proof log.
+
 ## Objective
 
 Finish Data Pipeline v1 as a reproducible full-network evidence pipeline:

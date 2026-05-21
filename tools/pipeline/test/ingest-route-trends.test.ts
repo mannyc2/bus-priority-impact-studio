@@ -99,4 +99,88 @@ describe("route trends ingestion", () => {
       }),
     ]);
   });
+
+  test("splits historical and current trend queries across source datasets", async () => {
+    await removeFixtureArtifacts();
+
+    const calledDatasets: string[] = [];
+    const result = await ingestRouteTrends({
+      startYear: 2024,
+      startMonth: 12,
+      endYear: 2025,
+      endMonth: 1,
+      routes: ["T1"],
+      dbPath,
+      fetcher: async (input) => {
+        const url = new URL(String(input));
+        const dataset = url.pathname.split("/").at(-1)?.replace(".json", "") ?? "";
+        calledDatasets.push(dataset);
+
+        if (dataset === "58t6-89vi") {
+          expect(url.searchParams.get("$where")).toContain("year = 2024");
+          return Response.json([
+            {
+              route_id: "T1",
+              year: "2024",
+              month: "12",
+              observation_count: "8",
+              bus_trip_count: "80",
+              average_speed_mph: "6.5",
+            },
+          ]);
+        }
+
+        if (dataset === "kufs-yh3x") {
+          expect(url.searchParams.get("$where")).toContain("year = 2025");
+          return Response.json([
+            {
+              route_id: "T1",
+              year: "2025",
+              month: "1",
+              observation_count: "10",
+              bus_trip_count: "100",
+              average_speed_mph: "7.5",
+            },
+          ]);
+        }
+
+        if (dataset === "kv7t-n8in") {
+          expect(url.searchParams.get("$where")).toContain("2024-12-01T00:00:00");
+          return Response.json([
+            {
+              bus_route: "T1",
+              year: "2024",
+              month: "12",
+              ridership: "900",
+              transfers: "90",
+            },
+          ]);
+        }
+
+        expect(dataset).toBe("gxb3-akrn");
+        expect(url.searchParams.get("$where")).toContain("2025-01-01T00:00:00");
+        return Response.json([
+          {
+            bus_route: "T1",
+            year: "2025",
+            month: "1",
+            ridership: "1000",
+            transfers: "100",
+          },
+        ]);
+      },
+    });
+
+    expect(calledDatasets.sort()).toEqual(["58t6-89vi", "gxb3-akrn", "kufs-yh3x", "kv7t-n8in"]);
+    expect(result).toEqual(
+      expect.objectContaining({
+        startMonth: "2024-12",
+        endMonth: "2025-01",
+        rowCount: 2,
+        speedRowCount: 2,
+        ridershipRowCount: 2,
+        completeTrendRowCount: 2,
+      }),
+    );
+  });
 });

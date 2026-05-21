@@ -2,6 +2,45 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-05-21] planning | Data Pipeline Finish Plan v2
+
+Added [[wiki/engineering/data_pipeline_finish_plan_v2|Data Pipeline Finish Plan v2]] as the current
+plan of record after the May production cutover and source audit. The plan folds the source coverage
+ledger into historical corpus completion, keeps heavy rebuild/finalize/export work manual on this
+PC, treats Worker `shouldRebuild` as a rebuild-needed signal rather than an automatic job, and
+defers Cloudflare Queues until there is a concrete retry/fanout workload. The immediate tracks are:
+stabilize March/May local drift, generate the coverage ledger, backfill route trends through the
+latest complete public speed month, repair/exclude equity context, rebuild context features and
+findings, split Worker cron behavior, add compact capture/status indexing, and prove a
+production-length R2 GTFS-RT handoff before raw retention expires.
+
+Follow-up implementation on the same day added `audit:source-coverage` and generated the March 2026
+ledger at `data/artifacts/source-coverage/2026-03/ledger.json`. The real ledger classifies 12
+sources: 5 complete for history, 2 requiring backfill (`route_month_trends`,
+`bus_wait_assessment`), 3 release-context-only, 1 current-signal-only, and 1 excluded until fixed
+(`equity_context`). March/May local drift was also cleared: `map-artifacts --year 2026 --month 3`
+wrote 354 map artifacts, strict `check:pipeline-v1 --year 2026 --month 3` passed with 0 issues,
+and May `gtfs-rt:preflight --year 2026 --month 5 --run-id gtfs-rt-v1-20260517T103607Z-24h`
+passed with 1,143 observed-reliability source-status rows.
+
+Route-trend ingestion now knows about the historical speed/ridership datasets in addition to the
+2025+ datasets. A speed-only live backfill first expanded `local_route_month_trend` to 12,075
+route-month speed rows covering 2023-04 through 2026-03. Then `backfill:route-ridership-trends`
+was made historical-source-aware, chunked by month/route set, resilient to failed source batches,
+and progress-reporting. Three live passes filled the remaining ridership coverage, leaving
+12,075/12,075 route-month rows with both speed and ridership trends. The regenerated March source
+coverage ledger now marks `route_month_trends` `complete_for_history`; strict
+`check:pipeline-v1 --year 2026 --month 3` passes with `routeMonthTrendRows=12075`,
+`routeMonthTrendSpeedRows=12075`, and `routeMonthTrendRidershipRows=12075`.
+
+Bus Wait Assessment was backfilled across the same historical window, `2023-04` through `2026-03`,
+using the existing month-scoped `ingest:bus-wait-assessment` command. The local table now has
+46,167 rows across 36 months and 354 distinct routes. The regenerated March source coverage ledger
+reports only one source needing action: `equity_context`, classified as `excluded_until_fixed`.
+Attempting `ingest:equity-context --year 2024` now receives a Census API "Missing Key" HTML
+response in this environment, and no `CENSUS_API_KEY` is configured; keep equity claims excluded
+until the Census API key/config issue is fixed.
+
 ## [2026-05-20] engineering | Source-gap detector thresholds grounded
 
 Completed the source-gap detector threshold pass: context joins now use a 40% minimum join-rate with a 50-row floor based on March 2026 corpus rates, bus-lane placeholder dates use the observed `2026-03-01T00:00:00.000Z` sentinel, and source lag is driven by `tools/pipeline/src/source-freshness-policy.ts` rather than detector-local policy.
@@ -1037,3 +1076,102 @@ type check, architecture check, tests, and web release gates; pushes to `main` d
 Cloudflare with Wrangler after a successful verify job. The deploy job skips with an Actions notice
 until the `CLOUDFLARE_API_TOKEN` GitHub Actions secret is configured. D1/R2 serving-release
 promotion remains a separate reviewed publish step.
+
+Pipeline finish planning pass: `knowledge/wiki/engineering/data_pipeline_finish_plan_v2.md` is now
+the plan of record. The local March/May drift was repaired: March map artifacts and strict
+`check:pipeline-v1` pass locally, and the May official GTFS-RT run
+`gtfs-rt-v1-20260517T103607Z-24h` has route observed reliability and preflight source-status rows.
+The source coverage ledger command now writes
+`data/artifacts/source-coverage/2026-03/ledger.json`; the current ledger classifies 12 active
+sources with only `equity_context` still needing action.
+
+Historical corpus follow-up: route monthly speed/ridership trends now ingest the 2023-2024 speed and
+ridership Socrata datasets plus the 2025+ datasets, with ridership backfill chunked by route/month
+source windows. Local `local_route_month_trend` now covers 12,075 route-month rows from `2023-04`
+through `2026-03`, all with speed and ridership trend coverage. Bus Wait Assessment was backfilled
+for the same 36-month window, yielding 46,167 rows across 354 routes. Equity context remains
+`excluded_until_fixed` because the Census ACS profile API now requires a `CENSUS_API_KEY` in this
+environment.
+
+Context/findings refresh: March 2026 context events and touches were rebuilt from the completed
+source tables. The local DB now has 2,644,997 context events and 5,835,695 route touches; the route
+touch audit records per-source join rates and keeps parking's low touch/geocode coverage explicit.
+After rerunning intervention evaluation and `findings:detect`, the detector pass emits six detector
+families and 600 candidates: 199 source gaps, 100 persistent speed hotspots, 100 observed
+reliability candidates, 100 intervention gaps, 1 intervention underperformance candidate, and 100
+permit-correlated slowdown candidates. March strict pipeline QA still passes with 0 issues.
+
+Worker operations follow-up: scheduled refresh is split in code. The every-minute cron captures
+GTFS-RT and skips the route-speed watcher, while `17 10 * * *` runs the route-speed availability
+watcher. The Worker writes compact refresh health to `source-refresh/latest.json` when the ARTIFACTS
+binding is available, including GTFS-RT status/object keys, route-speed status, and the
+`shouldRebuild` decision. Heavy rebuilds remain manual Bun jobs on this PC; no Queue is needed yet.
+
+Manual rebuild/export verification: after refreshing March historical trends, context, and findings,
+`export:d1 -- --year 2026 --month 3` regenerated the serving export with 12,075 route-month trend
+rows, 381 route observed reliability rows, 360 intervention comparisons, 1,050 route artifacts, and
+579 corridor artifacts. `verify:d1 -- --year 2026 --month 3` passed with 0 issues and matching
+expected-vs-loaded table counts. The dry-run `publish:serving-release -- --month 2026-03 --d1
+bus-priority-serving --r2 bus-priority-artifacts` passed local publish completeness, checked 2,034
+candidate R2 keys, skipped 1,988 already-present keys, and marked 46 as dry-run uploads with 0
+failures.
+
+Completion audit follow-up: added
+`knowledge/wiki/engineering/data_pipeline_finish_plan_v2_completion_audit.md` to map the active
+finish-plan goal to real evidence. The audit shows the historical, context, Worker-code, and manual
+PC rebuild/export pieces are locally verified. The remaining blocker is specifically the deployed
+Worker/R2 GTFS-RT handoff proof: mirror a contiguous 4-hour-or-longer Worker-written R2 window,
+import manifests, parse protobufs, build observed headways/reliability, and run preflight. The local
+official 24-hour run is processed and preflighted, but it does not by itself prove the deployed R2
+mirror/import path.
+
+Deployed R2 handoff proof closed: listed `bus-priority-gtfs-rt-raw` through the R2 S3 API and built
+a 480-manifest window from `2026-05-17T17:13:54Z` through `2026-05-17T21:14:26Z`. The sequential
+Wrangler mirror helper was too slow for this many objects, so the same reviewed manifest list was
+mirrored with Bun's S3 client into
+`data/raw/r2-mirror/gtfs-rt-r2-prod-20260517T171354Z-4h`: 480 manifests, 480 protobufs, and 0 failed
+downloads. `import:gtfs-rt-r2-manifests` registered 480 snapshots over 14,462 seconds;
+`ingest:gtfs-rt-snapshots` parsed 480 snapshots with 894,254 vehicle positions and 0 parse errors;
+`build:observed-headways` produced 151,356 headway samples; `route-observed-reliability` wrote 381
+May route rows with 261 observed routes and 149,376 route-summary samples; and `gtfs-rt:preflight`
+passed with 0 issues for run `gtfs-rt-r2-prod-20260517T171354Z-4h`.
+
+2023-present reframing follow-up: the target corpus window is now `2023-04` through the latest
+complete public speed month, currently `2026-03`. Census ACS equity ingestion is repaired with
+`CENSUS_API_KEY`: `ingest:equity-context -- --year 2024` loaded 2,327 NYC tracts, and
+`route-equity-context -- --year 2026 --month 3 --acs-year 2024` wrote 381 route rows with 358
+county-proxy assignments. The source coverage ledger now treats 311 and parking as historical
+window sources instead of release-only samples, and it requires the target month count rather than
+only min/max dates. 311 and DOT traffic-volume raw backfills ran for all 36 target months with
+72/72 successful tasks; 311 now has 2,560,438 filtered rows and DOT traffic volumes have 196,342
+rows. Parking is partially backfilled: FY2023 April-December plus March 2026 are loaded
+(1,574,356 filtered rows, 10 distinct months), but FY2024/FY2025 API queries are slow/failing and
+need a separate bulk strategy before this reframed goal can be marked complete. The regenerated
+ledger reports two action items: 311 has complete raw history but low geocode/join coverage, and
+parking still needs backfill plus a geocode strategy.
+
+2023-present scope decision close-out: parking was explicitly demoted back to `release_context_only`
+in the source coverage ledger. The normal month-ingest path can load FY2023/FY2026 parking slices,
+but FY2024/FY2025 Socrata queries are too slow/failing for the current pipeline, and historical
+parking rows are not detector-ready without a separate bulk loader plus geocode strategy. 311 stays
+`complete_for_history` for raw coverage but carries an explicit join-rate caveat: route-context
+features use only geocoded/joined rows. After these scope decisions, the regenerated March 2026
+source coverage ledger reports 12 sources and 0 sources needing action. Context events were rebuilt;
+the current local DB count is 6,447,473 rows. Route touches were rebuilt with the route-touch audit preserving low join rates,
+`findings:detect` reran with six detector families and 600 candidates, strict March
+`check:pipeline-v1` passed with 0 issues, D1 export/verify passed with 381 route equity rows, and
+the dry-run serving publish passed publish completeness plus R2 dry-run audit.
+
+Post-completion checkpoint planning: actual March production publish is still a deliberate manual
+decision, not part of the automatic refresh path. Local export, verify, and dry-run publish are
+green; execute `publish:serving-release --execute` only after reviewing the refreshed seed hash,
+route equity rows, and release artifact diffs. Parking remains a future project: build a bulk
+fiscal-year loader and geocode strategy before using it as historical evidence. The next 311 quality
+project is to improve geocode/join coverage for the already-loaded 2023-present raw rows, starting
+with route-relevant rows near March findings rather than trying to geocode all 2.56M rows blindly.
+
+R2 mirror helper follow-up: `bun run pull:gtfs-rt-r2-run` now routes to a Bun/TypeScript pipeline
+command using the R2 S3-compatible API and concurrent downloads instead of the old sequential
+Wrangler object loop. The command keeps the same manifest-list workflow and output layout, supports
+`--concurrency`, skips already mirrored files, resolves raw protobuf keys from each manifest, and
+prints the matching `import:gtfs-rt-r2-manifests` command.

@@ -57,6 +57,15 @@ const commands = {
       return importGtfsRtR2ManifestsFromCli(args);
     },
   },
+  "pull:gtfs-rt-r2-run": {
+    description: "Mirror Worker/R2 GTFS-RT manifests and protobufs through the R2 S3 API.",
+    run: async (args) => {
+      const { pullGtfsRtR2RunFromCli } = await import(
+        "./jobs/ops/pull-gtfs-rt-r2-run.js"
+      );
+      return pullGtfsRtR2RunFromCli(args);
+    },
+  },
   "gtfs-rt:preflight": {
     description: "Diagnose GTFS-RT collection, parse, headway, and observed reliability readiness.",
     run: async (args) => {
@@ -90,7 +99,8 @@ const commands = {
     },
   },
   "check:bus-observatory-gtfs-rt-range": {
-    description: "Check Bus Observatory GTFS-RT availability across a month range (--since YYYY-MM --until YYYY-MM).",
+    description:
+      "Check Bus Observatory GTFS-RT availability across a month range (--since YYYY-MM --until YYYY-MM).",
     run: async (args) => {
       const { checkBusObservatoryAvailabilityRangeFromCli } = await import(
         "./jobs/check/bus-observatory-availability-range.js"
@@ -117,7 +127,8 @@ const commands = {
     },
   },
   "backfill:bus-observatory-range": {
-    description: "End-to-end backfill of Bus Observatory recovered GTFS-RT for a month range (--since YYYY-MM --until YYYY-MM [--concurrency N]). Generates DuckDB SQL, streams parquets from S3, imports samples+snapshots, builds reliability summaries.",
+    description:
+      "End-to-end backfill of Bus Observatory recovered GTFS-RT for a month range (--since YYYY-MM --until YYYY-MM [--concurrency N]). Generates DuckDB SQL, streams parquets from S3, imports samples+snapshots, builds reliability summaries.",
     run: async (args) => {
       const { backfillBusObservatoryRangeFromCli } = await import(
         "./jobs/ingest/backfill-bus-observatory-range.js"
@@ -142,7 +153,8 @@ const commands = {
     },
   },
   "backfill:socrata-range": {
-    description: "Backfill Socrata-backed sources across a month range (--since/--until YYYY-MM --sources nypd-collisions,ace-violations,...).",
+    description:
+      "Backfill Socrata-backed sources across a month range (--since/--until YYYY-MM --sources nypd-collisions,ace-violations,...).",
     run: async (args) => {
       const { backfillSocrataRangeFromCli } = await import(
         "./jobs/ingest/backfill-socrata-range.js"
@@ -170,8 +182,7 @@ const commands = {
     },
   },
   "ingest:dot-traffic-speeds": {
-    description:
-      "Capture a current snapshot of NYC DOT real-time traffic speeds per street link.",
+    description: "Capture a current snapshot of NYC DOT real-time traffic speeds per street link.",
     run: async (args) => {
       const { ingestDotTrafficSpeedsFromCli } = await import(
         "./jobs/ingest/ingest-dot-traffic-speeds.js"
@@ -253,7 +264,8 @@ const commands = {
     },
   },
   "build:route-shape-geometry-index": {
-    description: "Materialize MTA route shapes into spatialite MultiLineStrings with an R-tree index.",
+    description:
+      "Materialize MTA route shapes into spatialite MultiLineStrings with an R-tree index.",
     run: async (args) => {
       const { buildRouteShapeGeometryIndexFromCli } = await import(
         "./jobs/build/build-route-shape-geometry-index.js"
@@ -269,7 +281,8 @@ const commands = {
     },
   },
   "geocode:311": {
-    description: "Attach LION physical_id to 311 service-request rows via lat/lng snap + Geoclient.",
+    description:
+      "Attach LION physical_id to 311 service-request rows via lat/lng snap + Geoclient.",
     run: async (args) => {
       const { geocode311FromCli } = await import("./jobs/geocode/geocode-311.js");
       return geocode311FromCli(args);
@@ -294,14 +307,16 @@ const commands = {
     },
   },
   "geocode:permits": {
-    description: "Attach LION physical_id to DOT street-permit rows via address + intersection lookups.",
+    description:
+      "Attach LION physical_id to DOT street-permit rows via address + intersection lookups.",
     run: async (args) => {
       const { geocodePermitsFromCli } = await import("./jobs/geocode/geocode-permits.js");
       return geocodePermitsFromCli(args);
     },
   },
   "geocode:traffic-volumes": {
-    description: "Attach LION physical_id to DOT traffic-volume rows via Geoclient intersection lookup.",
+    description:
+      "Attach LION physical_id to DOT traffic-volume rows via Geoclient intersection lookup.",
     run: async (args) => {
       const { geocodeTrafficVolumesFromCli } = await import(
         "./jobs/geocode/geocode-traffic-volumes.js"
@@ -310,7 +325,8 @@ const commands = {
     },
   },
   "geocode:traffic-speeds": {
-    description: "Attach LION physical_id to DOT traffic-speed rows via lat/lng snap of link_points.",
+    description:
+      "Attach LION physical_id to DOT traffic-speed rows via lat/lng snap of link_points.",
     run: async (args) => {
       const { geocodeTrafficSpeedsFromCli } = await import(
         "./jobs/geocode/geocode-traffic-speeds.js"
@@ -516,6 +532,15 @@ const commands = {
     run: async (args) => {
       const { auditStudioCoverageFromCli } = await import("./jobs/audit/studio-coverage.js");
       return auditStudioCoverageFromCli(args);
+    },
+  },
+  "audit:source-coverage": {
+    description: "Write a source coverage ledger for historical corpus completion planning.",
+    run: async (args) => {
+      const { buildSourceCoverageLedgerFromCli } = await import(
+        "./jobs/audit/source-coverage-ledger.js"
+      );
+      return buildSourceCoverageLedgerFromCli(args);
     },
   },
   "route-equity-context": {

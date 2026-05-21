@@ -10,6 +10,7 @@ type CensusAcsProfileUrlArgs = {
   variables?: readonly string[];
   stateFips?: string;
   countyFips?: readonly string[];
+  apiKey?: string;
 };
 
 export function buildCensusAcsProfileUrl(args: CensusAcsProfileUrlArgs): URL {
@@ -20,6 +21,10 @@ export function buildCensusAcsProfileUrl(args: CensusAcsProfileUrlArgs): URL {
   url.searchParams.set("for", "tract:*");
   url.searchParams.append("in", `state:${args.stateFips ?? "36"}`);
   url.searchParams.append("in", `county:${(args.countyFips ?? nycCountyCodes).join(",")}`);
+  const apiKey = args.apiKey?.trim();
+  if (apiKey) {
+    url.searchParams.set("key", apiKey);
+  }
 
   return url;
 }
@@ -28,7 +33,11 @@ export async function fetchCensusTractEquityContext(args: {
   year: number;
   fetcher?: CensusAcsFetch;
 }): Promise<{ url: string; rawTable: unknown; rows: NormalizedCensusTractEquityContext[] }> {
-  const url = buildCensusAcsProfileUrl({ year: args.year });
+  const apiKey = process.env["CENSUS_API_KEY"];
+  const url = buildCensusAcsProfileUrl({
+    year: args.year,
+    ...(apiKey === undefined ? {} : { apiKey }),
+  });
   const response = await (args.fetcher ?? fetch)(url);
   if (!response.ok) {
     throw new Error(`Census ACS request failed with HTTP ${response.status}: ${url.toString()}`);
