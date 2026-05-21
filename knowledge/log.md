@@ -1203,3 +1203,16 @@ rebuilding context events and route touches, February 2026 has 10,873 geocoded 3
 unattempted rows; current 311 joinable rows increased to 116,577, touched events to 77,443, and
 route touches to 274,003 across 378 routes. Parking remains parked as a separate future bulk-loader
 and geocoding project.
+
+Production release follow-up: PR #2 was marked ready and merged to `main` as squash commit
+`26a50d7`. Ran `publish:serving-release -- --month 2026-03 --d1 bus-priority-serving --r2
+bus-priority-artifacts --skip-schema --execute`; the publish completed successfully. R2 publish
+reported 2,034 candidate keys, 46 uploads, 1,988 skips, and 0 failures. Production smoke checks:
+`/api/v1/status` reports baseline month `2026-03`, canonical release status `pass`, 381 routes,
+1,629 artifacts, 0 issues, and May 2026 current observed signal from
+`gtfs-rt-v1-20260517T103607Z-24h`; `/api/v1/studio/routes?limit=1` returns the D1-backed Studio
+route list with 350 public route cards; remote D1 `route_brief_summary` has 381 rows. Continued 311
+quality work with a 20,000-row February 2026 slice: 19,654 hits, 346 misses, and 12,358 cache hits.
+After rebuilding context events/touches, February 2026 has 30,527 geocoded rows and 54,768
+unattempted rows; current 311 joinable rows increased to 136,231, touched events to 90,658, and
+route touches to 320,492 across 378 routes.
