@@ -73,15 +73,21 @@ Production-publish follow-up slice:
 - Result: 20,000 scanned, 19,654 hits, 346 misses, 12,358 cache hits.
 - Rebuilt context events and route touches afterward.
 
+February completion slice:
+
+- Ran `geocode:311 -- --since 2026-02-01 --until 2026-03-01 --max-rows 60000 --batch-size 1000`.
+- Result: 54,768 scanned, 54,292 hits, 476 misses, 33,457 cache hits.
+- Rebuilt context events and route touches afterward.
+
 Current 311 evidence after rebuild:
 
-- February 2026: 85,768 filtered rows, 30,527 geocoded, 54,768 unattempted.
-- Current 311 context: 136,231 joinable rows.
-- Current 311 route touches: 90,658 touched events, 320,492 touches, 378 routes.
+- February 2026: 85,768 filtered rows, 84,819 geocoded, 949 misses, 0 unattempted.
+- Current 311 context: 190,523 joinable rows.
+- Current 311 route touches: 125,101 touched events, 433,267 touches, 378 routes.
 
 Next 311 step:
 
-- Continue monthly slices newest-first, measuring hit rate and route-touch lift after each batch.
+- Continue monthly slices newest-first; February 2026 is fully attempted.
 - Prefer rows with coordinates and route-relevant complaint types already in the filtered corpus.
 - Rebuild context events/touches after meaningful batches, not after every tiny batch.
 

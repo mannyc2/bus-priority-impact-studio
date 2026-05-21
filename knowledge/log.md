@@ -1216,3 +1216,12 @@ quality work with a 20,000-row February 2026 slice: 19,654 hits, 346 misses, and
 After rebuilding context events/touches, February 2026 has 30,527 geocoded rows and 54,768
 unattempted rows; current 311 joinable rows increased to 136,231, touched events to 90,658, and
 route touches to 320,492 across 378 routes.
+
+311 February 2026 target window completed: ran the remaining-window slice with
+`geocode:311 -- --since 2026-02-01 --until 2026-03-01 --max-rows 60000 --batch-size 1000`. The job
+scanned 54,768 rows, produced 54,292 hits, 476 misses, and used 33,457 cache hits. After rebuilding
+context events and route touches, February 2026 has 85,768 filtered rows, 84,819 geocoded rows, 949
+geocode misses, and 0 unattempted rows. Current 311 joinable rows increased to 190,523; touched
+events increased to 125,101; and route touches increased to 433,267 across 378 routes. This closes
+the first targeted monthly 311 improvement window; continue with January 2026 or another
+newest-first month next rather than treating the entire 2.52M-row current table as one batch.
