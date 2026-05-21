@@ -231,7 +231,8 @@ gtfs-rt/vehicle_positions/2026-06-01/2026-06-01T000000000Z.json
 gtfs-rt/vehicle_positions/2026-06-01/2026-06-01T000030000Z.json
 ```
 
-Dry-run the mirror:
+Dry-run the mirror. This command uses the R2 S3-compatible API through Bun and is concurrent by
+default, so it can handle production-length windows without one Wrangler process per object:
 
 ```bash
 bun run pull:gtfs-rt-r2-run -- --r2 bus-priority-gtfs-rt-raw --run-id gtfs-rt-prod-2026-06-01 --manifest-list data/ops/gtfs-rt-manifests.txt
@@ -240,11 +241,10 @@ bun run pull:gtfs-rt-r2-run -- --r2 bus-priority-gtfs-rt-raw --run-id gtfs-rt-pr
 Execute the mirror:
 
 ```bash
-bun run pull:gtfs-rt-r2-run -- --r2 bus-priority-gtfs-rt-raw --run-id gtfs-rt-prod-2026-06-01 --manifest-list data/ops/gtfs-rt-manifests.txt --execute
+bun run pull:gtfs-rt-r2-run -- --r2 bus-priority-gtfs-rt-raw --run-id gtfs-rt-prod-2026-06-01 --manifest-list data/ops/gtfs-rt-manifests.txt --concurrency 24 --execute
 ```
 
-Use plain `bunx wrangler` for R2 object transfers. In this environment, forcing Wrangler through
-`bunx --bun wrangler` produced zero-byte payloads for larger R2 transfers.
+Required environment: `R2_ENDPOINT`, `R2_ACCESS_KEY_ID`, and `R2_SECRET_ACCESS_KEY`.
 
 Then run the printed import command and normal pipeline handoff:
 

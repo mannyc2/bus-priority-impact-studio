@@ -30,6 +30,8 @@ const ALLOWED_SOURCES = new Set([
   "ace-violations",
   "dot-street-permits",
   "311-service-requests",
+  "parking-violations",
+  "dot-traffic-volumes",
 ]);
 
 function parseMonth(value: string | undefined, label: string): { year: number; month: number } {

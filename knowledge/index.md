@@ -41,6 +41,9 @@ for route ⇄ LION corridor joins.
 - [[wiki/engineering/local_pipeline_db_cutover|Local pipeline DB cutover plan]] — Plan to replace DB-shaped JSON handoffs with `@bp/db/local` SQLite/Drizzle tables and shrink `tools/pipeline`.
 - [[wiki/engineering/data_pipeline_v1_completion_plan|Data Pipeline v1 completion plan]] — Approved v1 finish line for GTFS-RT reliability, intervention evaluation, corridors, briefs, exports, and QA gates.
 - [[wiki/engineering/data_infrastructure_v1_finish_plan|Data Infrastructure v1 finish plan]] — Remaining recovered GTFS-RT integration, D1/R2 publish, scheduling, and website unfixture gates.
+- [[wiki/engineering/data_pipeline_finish_plan_v2|Data Pipeline Finish Plan v2]] — Current plan for source coverage, historical corpus completion, context features, manual PC rebuilds, and lightweight Worker refresh operations.
+- [[wiki/engineering/data_pipeline_finish_plan_v2_completion_audit|Data Pipeline Finish Plan v2 completion audit]] — Evidence checklist for the active finish-plan goal and the remaining deployed R2 GTFS-RT handoff proof.
+- [[wiki/engineering/data_pipeline_2023_present_completion_audit|Data Pipeline 2023-present completion audit]] — Evidence checklist for the reframed 2023-04 through latest-complete-speed-month corpus.
 - [[wiki/engineering/cloudflare_operations_runbook|Cloudflare operations runbook]] — Production D1/R2 bindings, serving publish, Worker deploy, scheduled GTFS-RT capture verification, and R2-to-pipeline handoff.
 - [[wiki/engineering/web_api_endpoint_architecture|Web API endpoint architecture]] — Website-facing Worker API plan for route cards, profiles, hotspots, compare, map manifests, and completeness-aware status.
 - [[wiki/engineering/serving_storage_split_plan|Serving storage split plan]] — Resource-first D1/R2 storage split, page-shaped projection rules, endpoint backing targets, and migration phases.
@@ -56,6 +59,7 @@ for route ⇄ LION corridor joins.
 - [[wiki/engineering/cli_commands|CLI commands]] — TypeScript `/pipeline` command targets for source probes, ingest, analytics builds, exports, and wiki linting.
 - [[wiki/engineering/testing_standards|Testing standards]] — Bun-first tests, TDD loop, Zod contracts, optimized pre-push hooks, and Cloudflare Worker production harnesses.
 - [[wiki/engineering/source_linting|Source linting]] — Required checks before source-backed claims.
+- [[wiki/engineering/data_pipeline_operationalization_status|Data pipeline operationalization status]] — March release decision, R2 mirror validation, 311 coverage start, and parking scope.
 
 ## Analysis pages
 
@@ -74,18 +78,18 @@ for route ⇄ LION corridor joins.
 
 ## Immediate open issues
 
-1. Move realtime production capture from smoke proof to production-length proof: mirror a contiguous
-   4-hour-or-longer Worker/R2 capture run, import manifests, parse protobufs, build observed
-   headways, generate route reliability, and run `gtfs-rt:preflight`.
-2. Surface the completed official 24-hour Bus Time run
-   `gtfs-rt-v1-20260517T103607Z-24h` through the public API: D1 has the May 2026 observed appendix,
-   but `/api/v1/status` and `/api/v1/studio/*` do not yet expose it as the current observed signal.
-3. Keep the scheduled production source refresh small and durable: Worker cron writes GTFS-RT
-   protobuf/manifests to R2, the monthly route-speed watcher writes availability artifacts, and
-   heavy rebuild/finalize/export stays in the Bun pipeline.
-4. Expand the real `/api/v1/studio/*` projection surface beyond the current curated R2 slice:
-   frontend loaders already call real Studio endpoints, but Studio routes/briefs/findings do not yet
-   cover the full D1-backed serving release.
+1. Promote the Data Pipeline Finish Plan v2 work from local completion to reviewed release
+   promotion: March 2026 publish is intentionally deferred until final seed/artifact review, then
+   run `publish:serving-release --execute` as a deliberate production mutation.
+2. Continue targeted 311 geocode/join improvement with monthly slices; the first February 2026
+   slice recovered 999 physical IDs and increased current 311 route touches after context rebuild.
+3. Keep scheduled production refresh small and durable: Worker cron writes GTFS-RT
+   protobuf/manifests plus compact health to R2/D1, the route-speed watcher runs daily, and
+   `shouldRebuild=true` triggers a manual PC rebuild/publish run. Do not add a Queue until there is
+   a concrete retry/fanout need.
+4. Expand the real `/api/v1/studio/*` projection surface beyond the current partial R2 slice:
+   frontend loaders already call real Studio endpoints, but Studio briefs/findings do not yet cover
+   the full D1-backed serving release.
 5. Implement the web app support plan: split brief evidence/history projections from full brief
    bodies, add signal-aware route loaders, route-specific cache policy, deferred non-critical
    evidence/map panels, and a feature-flagged composer draft API.

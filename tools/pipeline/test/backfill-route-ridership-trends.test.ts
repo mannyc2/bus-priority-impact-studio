@@ -20,6 +20,17 @@ async function writeFixtureTrends(): Promise<void> {
     await replaceRouteMonthTrends(local.db, [
       {
         routeId: "T1",
+        month: "2024-12",
+        speedObservationCount: 9,
+        speedBusTripCount: 90,
+        averageSpeedMph: 7.1,
+        ridership: null,
+        transfers: null,
+        hasSpeedTrend: true,
+        hasRidershipTrend: false,
+      },
+      {
+        routeId: "T1",
         month: "2026-01",
         speedObservationCount: 10,
         speedBusTripCount: 100,
@@ -63,10 +74,10 @@ describe("route ridership trend backfill", () => {
       fetcher: async (input) => {
         const url = new URL(String(input));
 
-        expect(url.searchParams.get("$where")).toContain("bus_route='T1'");
+        expect(url.searchParams.get("$where")).toContain("bus_route in('T1')");
         expect(url.searchParams.get("$where")).toContain("2026-01-01T00:00:00");
 
-        return Response.json([{ ridership: "1000", transfers: "125" }]);
+        return Response.json([{ bus_route: "T1", ridership: "1000", transfers: "125" }]);
       },
     });
     const local = await openLocalPipelineDb(dbPath);
@@ -77,16 +88,96 @@ describe("route ridership trend backfill", () => {
       expect.objectContaining({
         attemptedChunkCount: 1,
         updatedRowCount: 1,
+        failedRowCount: 0,
         remainingRidershipMissingCount: 0,
       }),
     );
-    expect(trends[0]).toEqual(
+    expect(trends.find((row) => row.month === "2026-01")).toEqual(
       expect.objectContaining({
         ridership: 1000,
         transfers: 125,
         hasSpeedTrend: true,
         hasRidershipTrend: true,
       }),
+    );
+  });
+
+  test("uses historical and current ridership datasets for the matching month", async () => {
+    await writeFixtureTrends();
+
+    const calledDatasets: string[] = [];
+    const result = await backfillRouteRidershipTrends({
+      startYear: 2024,
+      startMonth: 12,
+      endYear: 2026,
+      endMonth: 1,
+      routes: ["T1"],
+      limit: 2,
+      dbPath,
+      fetcher: async (input) => {
+        const url = new URL(String(input));
+        const dataset = url.pathname.split("/").at(-1)?.replace(".json", "") ?? "";
+        calledDatasets.push(dataset);
+
+        if (dataset === "kv7t-n8in") {
+          expect(url.searchParams.get("$where")).toContain("2024-12-01T00:00:00");
+          return Response.json([{ bus_route: "T1", ridership: "800", transfers: "80" }]);
+        }
+
+        expect(dataset).toBe("gxb3-akrn");
+        expect(url.searchParams.get("$where")).toContain("2026-01-01T00:00:00");
+        return Response.json([{ bus_route: "T1", ridership: "1000", transfers: "100" }]);
+      },
+    });
+
+    expect(calledDatasets.sort()).toEqual(["gxb3-akrn", "kv7t-n8in"]);
+    expect(result).toEqual(
+      expect.objectContaining({
+        attemptedChunkCount: 2,
+        updatedRowCount: 2,
+        failedRowCount: 0,
+        remainingRidershipMissingCount: 0,
+      }),
+    );
+  });
+
+  test("persists successful ridership rows when one source request fails", async () => {
+    await writeFixtureTrends();
+
+    const result = await backfillRouteRidershipTrends({
+      startYear: 2024,
+      startMonth: 12,
+      endYear: 2026,
+      endMonth: 1,
+      routes: ["T1"],
+      limit: 2,
+      concurrency: 1,
+      dbPath,
+      fetcher: async (input) => {
+        const url = new URL(String(input));
+        if (url.searchParams.get("$where")?.includes("2024-12-01T00:00:00")) {
+          throw new Error("transient source failure");
+        }
+        return Response.json([{ bus_route: "T1", ridership: "1000", transfers: "100" }]);
+      },
+    });
+    const local = await openLocalPipelineDb(dbPath);
+    const trends = await listRouteMonthTrends(local.db);
+    local.sqlite.close();
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        attemptedChunkCount: 2,
+        updatedRowCount: 1,
+        failedRowCount: 1,
+        remainingRidershipMissingCount: 1,
+      }),
+    );
+    expect(trends.find((row) => row.month === "2024-12")).toEqual(
+      expect.objectContaining({ hasRidershipTrend: false }),
+    );
+    expect(trends.find((row) => row.month === "2026-01")).toEqual(
+      expect.objectContaining({ hasRidershipTrend: true, ridership: 1000 }),
     );
   });
 });

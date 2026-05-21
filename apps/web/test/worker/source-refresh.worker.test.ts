@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  ROUTE_SPEED_WATCHER_CRON,
   runRouteSpeedMonthlyWatcher,
   runScheduledGtfsRtCaptureBatch,
+  runScheduledProductionRefresh,
   runScheduledSourceRefresh,
 } from "../../src/worker/source-refresh.js";
 
@@ -179,6 +181,44 @@ describe("scheduled source refresh", () => {
         latestCompleteMonth: null,
         lastBuiltMonth: "2026-03",
         shouldRebuild: false,
+      }),
+    );
+  });
+
+  it("keeps the every-minute production cron to GTFS-RT capture only", async () => {
+    const rawBucket = new FakeR2Bucket();
+    const artifactsBucket = new FakeR2Bucket();
+    const result = await runScheduledProductionRefresh(
+      {
+        GTFS_RT_RAW: rawBucket as unknown as R2Bucket,
+        ARTIFACTS: artifactsBucket as unknown as R2Bucket,
+        LAST_BUILT_SPEED_MONTH: "2026-03",
+      },
+      { cron: "* * * * *" },
+    );
+
+    expect(result.gtfsRt).toHaveLength(1);
+    expect(result.gtfsRt[0]).toEqual(expect.objectContaining({ status: "skipped" }));
+    expect(result.routeSpeed).toEqual(
+      expect.objectContaining({
+        status: "skipped",
+        reason: `Route speed watcher runs on cron ${ROUTE_SPEED_WATCHER_CRON}.`,
+        shouldRebuild: false,
+      }),
+    );
+    expect(result.statusArtifactKey).toBe("source-refresh/latest.json");
+    const status = JSON.parse(String(artifactsBucket.writes.get("source-refresh/latest.json")));
+    expect(status).toEqual(
+      expect.objectContaining({
+        cron: "* * * * *",
+        gtfsRt: expect.objectContaining({
+          sampleCount: 1,
+          capturedCount: 0,
+        }),
+        routeSpeed: expect.objectContaining({
+          status: "skipped",
+          shouldRebuild: false,
+        }),
       }),
     );
   });

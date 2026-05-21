@@ -10,6 +10,10 @@ tags: [data-infrastructure, gtfs-rt, cloudflare, d1, r2, scheduling]
 
 # Data Infrastructure V1 Finish Plan
 
+> Forward planning moved to
+> [[wiki/engineering/data_pipeline_finish_plan_v2|Data Pipeline Finish Plan v2]] on 2026-05-21.
+> This page remains the v1 infrastructure history and proof log.
+
 ## Objective
 
 Finish the data infrastructure layer that turns the existing pipeline into a repeatable serving system:

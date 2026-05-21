@@ -315,8 +315,12 @@ export async function replaceRouteMonthTrends(
   rows: readonly (typeof localRouteMonthTrend.$inferInsert)[],
 ): Promise<void> {
   await db.delete(localRouteMonthTrend);
-  if (rows.length > 0) {
-    await db.insert(localRouteMonthTrend).values([...rows]);
+  const chunkSize = 500;
+  for (let index = 0; index < rows.length; index += chunkSize) {
+    const chunk = rows.slice(index, index + chunkSize);
+    if (chunk.length > 0) {
+      await db.insert(localRouteMonthTrend).values([...chunk]);
+    }
   }
 }
 

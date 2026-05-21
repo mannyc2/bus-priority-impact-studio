@@ -19,6 +19,12 @@ describe("Census ACS equity context", () => {
     expect(url.searchParams.get("get")).toContain("DP04_0058E");
   });
 
+  test("adds an API key when provided", () => {
+    const url = buildCensusAcsProfileUrl({ year: 2024, apiKey: "test-key" });
+
+    expect(url.searchParams.get("key")).toBe("test-key");
+  });
+
   test("normalizes tract demographics and low-car household fields", () => {
     const rows = normalizeCensusTractEquityRows(
       [

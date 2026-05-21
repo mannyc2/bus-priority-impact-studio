@@ -7,6 +7,8 @@ type SourceRefreshEnv = {
   GTFS_RT_SAMPLE_SECONDS?: string;
 };
 
+export const ROUTE_SPEED_WATCHER_CRON = "17 10 * * *";
+
 type SourceRefreshFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 type Delay = (milliseconds: number) => Promise<void>;
 
@@ -44,6 +46,7 @@ export type RouteSpeedWatcherResult = {
 export type ScheduledProductionRefreshResult = {
   gtfsRt: SourceRefreshResult[];
   routeSpeed: RouteSpeedWatcherResult;
+  statusArtifactKey: string | null;
 };
 
 type RawSpeedRow = {
@@ -367,11 +370,59 @@ export async function runRouteSpeedMonthlyWatcher(
 
 export async function runScheduledProductionRefresh(
   env: SourceRefreshEnv,
+  options: { cron?: string } = {},
 ): Promise<ScheduledProductionRefreshResult> {
+  const shouldRunRouteSpeedWatcher =
+    options.cron === undefined || options.cron === ROUTE_SPEED_WATCHER_CRON;
   const [gtfsRt, routeSpeed] = await Promise.all([
     runScheduledGtfsRtCaptureBatch(env),
-    runRouteSpeedMonthlyWatcher(env),
+    shouldRunRouteSpeedWatcher
+      ? runRouteSpeedMonthlyWatcher(env)
+      : Promise.resolve({
+          status: "skipped" as const,
+          reason: `Route speed watcher runs on cron ${ROUTE_SPEED_WATCHER_CRON}.`,
+          latestCompleteMonth: null,
+          lastBuiltMonth: parseBuiltMonth(env.LAST_BUILT_SPEED_MONTH),
+          shouldRebuild: false,
+          artifactKey: null,
+          checkedAt: new Date().toISOString(),
+        }),
   ]);
+  const statusArtifactKey = "source-refresh/latest.json";
+  if (env.ARTIFACTS !== undefined) {
+    await env.ARTIFACTS.put(
+      statusArtifactKey,
+      JSON.stringify(
+        {
+          checkedAt: new Date().toISOString(),
+          cron: options.cron ?? null,
+          gtfsRt: {
+            sampleCount: gtfsRt.length,
+            capturedCount: gtfsRt.filter((result) => result.status === "captured").length,
+            latestFetchedAt: gtfsRt.at(-1)?.fetchedAt ?? null,
+            latestStatus: gtfsRt.at(-1)?.status ?? null,
+            latestObjectKey: gtfsRt.at(-1)?.objectKey ?? null,
+            latestManifestKey: gtfsRt.at(-1)?.manifestKey ?? null,
+          },
+          routeSpeed: {
+            status: routeSpeed.status,
+            latestCompleteMonth: routeSpeed.latestCompleteMonth,
+            lastBuiltMonth: routeSpeed.lastBuiltMonth,
+            shouldRebuild: routeSpeed.shouldRebuild,
+            artifactKey: routeSpeed.artifactKey,
+            reason: routeSpeed.reason,
+          },
+        },
+        null,
+        2,
+      ),
+      { httpMetadata: { contentType: "application/json; charset=utf-8" } },
+    );
+  }
 
-  return { gtfsRt, routeSpeed };
+  return {
+    gtfsRt,
+    routeSpeed,
+    statusArtifactKey: env.ARTIFACTS === undefined ? null : statusArtifactKey,
+  };
 }

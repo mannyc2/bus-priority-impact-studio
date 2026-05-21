@@ -402,16 +402,52 @@ sources:
     purpose: 311 historical complaints (2010-2019), same filter set; longitudinal baseline.
     status: active
 
+  - id: nyc_parking_violations_fy2023
+    type: socrata_dataset
+    priority: secondary
+    domain: data.cityofnewyork.us
+    dataset_id: 869v-vr48
+    url: https://data.cityofnewyork.us/City-Government/Parking-Violations-Issued-Fiscal-Year-2023/869v-vr48
+    api_json: https://data.cityofnewyork.us/resource/869v-vr48.json
+    columns_json: https://data.cityofnewyork.us/api/views/869v-vr48/columns.json
+    rows_csv: https://data.cityofnewyork.us/api/views/869v-vr48/rows.csv?accessType=DOWNLOAD
+    purpose: Parking violations filtered to bus-relevant codes for fiscal year 2023.
+    status: active
+
+  - id: nyc_parking_violations_fy2024
+    type: socrata_dataset
+    priority: secondary
+    domain: data.cityofnewyork.us
+    dataset_id: 8zf9-spf8
+    url: https://data.cityofnewyork.us/City-Government/Parking-Violations-Issued-Fiscal-Year-2024/8zf9-spf8
+    api_json: https://data.cityofnewyork.us/resource/8zf9-spf8.json
+    columns_json: https://data.cityofnewyork.us/api/views/8zf9-spf8/columns.json
+    rows_csv: https://data.cityofnewyork.us/api/views/8zf9-spf8/rows.csv?accessType=DOWNLOAD
+    purpose: Parking violations filtered to bus-relevant codes for fiscal year 2024.
+    status: active
+
+  - id: nyc_parking_violations_fy2025
+    type: socrata_dataset
+    priority: secondary
+    domain: data.cityofnewyork.us
+    dataset_id: m5vz-tzqv
+    url: https://data.cityofnewyork.us/City-Government/Parking-Violations-Issued-Fiscal-Year-2025/m5vz-tzqv
+    api_json: https://data.cityofnewyork.us/resource/m5vz-tzqv.json
+    columns_json: https://data.cityofnewyork.us/api/views/m5vz-tzqv/columns.json
+    rows_csv: https://data.cityofnewyork.us/api/views/m5vz-tzqv/rows.csv?accessType=DOWNLOAD
+    purpose: Parking violations filtered to bus-relevant codes for fiscal year 2025.
+    status: active
+
   - id: nyc_parking_violations_current
     type: socrata_dataset
     priority: secondary
     domain: data.cityofnewyork.us
     dataset_id: pvqr-7yc4
-    url: https://data.cityofnewyork.us/City-Government/Parking-Violations-Issued-Fiscal-Year-2024/pvqr-7yc4
+    url: https://data.cityofnewyork.us/City-Government/Parking-Violations-Issued-Fiscal-Year-2026/pvqr-7yc4
     api_json: https://data.cityofnewyork.us/resource/pvqr-7yc4.json
     columns_json: https://data.cityofnewyork.us/api/views/pvqr-7yc4/columns.json
     rows_csv: https://data.cityofnewyork.us/api/views/pvqr-7yc4/rows.csv?accessType=DOWNLOAD
-    purpose: Parking violations filtered to bus-relevant codes (5 bus lane, 14/31/67 bus stop / standing in bus stop, etc.).
+    purpose: Parking violations filtered to bus-relevant codes for fiscal year 2026 (5 bus lane, 14/31/67 bus stop / standing in bus stop, etc.).
     status: active
 
   - id: nyc_lion_street_centerline

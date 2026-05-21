@@ -68,7 +68,7 @@ async function fetchRows(
     ].join(" AND "),
     order: "unique_key",
   };
-  return SocrataClient.fromSource(source, { fetcher }).rows(query);
+  return SocrataClient.fromSource(source, { fetcher, pageSize: 50_000 }).rows(query);
 }
 
 export async function ingest311ServiceRequests(args: Args = {}): Promise<Result> {

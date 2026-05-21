@@ -34,7 +34,7 @@ async function fetchRows(
     where: `yr = ${year} AND m = ${month}`,
     order: "segmentid,d,hh,mm",
   };
-  return SocrataClient.fromSource(source, { fetcher }).rows(query);
+  return SocrataClient.fromSource(source, { fetcher, pageSize: 50_000 }).rows(query);
 }
 
 export async function ingestDotTrafficVolumes(args: Args = {}): Promise<Result> {

@@ -14,7 +14,12 @@ import { writeRawSourceSnapshot } from "../../lib/source-snapshots.js";
 import type { SocrataManifestSource } from "../../source-manifest.js";
 import { fromRepoRoot, readSourceManifest } from "../../source-manifest.js";
 
-const sourceId = "nyc_parking_violations_current";
+const parkingFiscalYearSources = [
+  { start: "2022-07", end: "2023-06", sourceId: "nyc_parking_violations_fy2023" },
+  { start: "2023-07", end: "2024-06", sourceId: "nyc_parking_violations_fy2024" },
+  { start: "2024-07", end: "2025-06", sourceId: "nyc_parking_violations_fy2025" },
+  { start: "2025-07", end: "2026-06", sourceId: "nyc_parking_violations_current" },
+] as const;
 
 type Args = {
   year?: number;
@@ -28,6 +33,7 @@ type Args = {
 type Result = {
   rawPath: string;
   isoMonth: string;
+  sourceId: string;
   rowCount: number;
   codeBreakdown: { code: number; count: number }[];
 };
@@ -50,6 +56,17 @@ function parseCliArgs(args: string[]): Args {
   return { ...base, codes };
 }
 
+function parkingSourceIdForMonth(year: number, month: number): string {
+  const isoMonth = `${year}-${String(month).padStart(2, "0")}`;
+  const source = parkingFiscalYearSources.find(
+    (candidate) => isoMonth >= candidate.start && isoMonth <= candidate.end,
+  );
+  if (source === undefined) {
+    throw new Error(`No parking violations fiscal-year source configured for ${isoMonth}.`);
+  }
+  return source.sourceId;
+}
+
 async function fetchRows(
   source: SocrataManifestSource,
   year: number,
@@ -66,7 +83,7 @@ async function fetchRows(
     ].join(" AND "),
     order: "summons_number",
   };
-  return SocrataClient.fromSource(source, { fetcher }).rows(query);
+  return SocrataClient.fromSource(source, { fetcher, pageSize: 50_000 }).rows(query);
 }
 
 export async function ingestParkingViolations(args: Args = {}): Promise<Result> {
@@ -74,6 +91,7 @@ export async function ingestParkingViolations(args: Args = {}): Promise<Result> 
   const options = createMonthContext(args);
   const monthKey = options.isoMonth;
   const manifest = await readSourceManifest();
+  const sourceId = parkingSourceIdForMonth(options.year, options.month);
   const source = getSocrataSource(manifest, sourceId);
   const fetchedAt = (args.fetchedAt ?? new Date()).toISOString();
   const rawDir = fromRepoRoot(join("data/raw/parking-violations"));
@@ -103,7 +121,7 @@ export async function ingestParkingViolations(args: Args = {}): Promise<Result> 
     code,
     count: rows.filter((r) => r.violationCode === code).length,
   }));
-  return { rawPath, isoMonth: monthKey, rowCount: rows.length, codeBreakdown };
+  return { rawPath, isoMonth: monthKey, sourceId, rowCount: rows.length, codeBreakdown };
 }
 
 export async function ingestParkingViolationsFromCli(args: string[]): Promise<Result> {
