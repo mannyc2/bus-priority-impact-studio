@@ -18,6 +18,11 @@ Reason for deferral:
 
 - `publish:serving-release --execute` mutates production D1/R2 and should be run only after an explicit release review of the refreshed seed, artifact diffs, and production timing.
 
+## PR state
+
+PR #2 is open as a draft, mergeable, and has a green `verify` CI check. It is not merged in this pass
+because the production publish decision remains deferred to an explicit release review.
+
 ## R2 mirror validation
 
 The faster Bun S3 helper is validated on the production-length Worker capture.
@@ -53,11 +58,17 @@ Current slice started:
 - Result: 1,000 scanned, 999 hits, 1 miss, 588 cache hits.
 - Rebuilt context events and route touches afterward.
 
+Larger follow-up slice:
+
+- Ran `geocode:311 -- --since 2026-02-01 --until 2026-03-01 --max-rows 10000 --batch-size 500`.
+- Result: 10,000 scanned, 9,874 hits, 126 misses, 5,896 cache hits.
+- Rebuilt context events and route touches afterward.
+
 Current 311 evidence after rebuild:
 
-- February 2026: 85,768 filtered rows, 999 geocoded, 84,768 unattempted.
-- Current 311 context: 106,703 joinable rows.
-- Current 311 route touches: 70,816 touched events, 251,732 touches, 378 routes.
+- February 2026: 85,768 filtered rows, 10,873 geocoded, 74,768 unattempted.
+- Current 311 context: 116,577 joinable rows.
+- Current 311 route touches: 77,443 touched events, 274,003 touches, 378 routes.
 
 Next 311 step:
 

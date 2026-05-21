@@ -1194,3 +1194,12 @@ slice ran for February 2026 with `--max-rows 1000 --batch-size 250`, yielding 99
 joinability increased to 106,703 rows, touched current 311 events increased to 70,816, and current
 311 route touches increased to 251,732 across 378 routes. Parking stays outside this cycle as the
 separate bulk-loader/geocoding project.
+
+Post-checkpoint release path: PR #2 is open as a draft, mergeable, and has a green `verify` CI
+check; it remains unmerged because the March 2026 production publish is still deferred to an
+explicit release review. A larger February 2026 311 geocode slice ran with
+`--max-rows 10000 --batch-size 500`, producing 9,874 hits, 126 misses, and 5,896 cache hits. After
+rebuilding context events and route touches, February 2026 has 10,873 geocoded 311 rows and 74,768
+unattempted rows; current 311 joinable rows increased to 116,577, touched events to 77,443, and
+route touches to 274,003 across 378 routes. Parking remains parked as a separate future bulk-loader
+and geocoding project.
