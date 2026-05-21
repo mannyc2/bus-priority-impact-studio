@@ -54,6 +54,10 @@ knowledge/raw/downloads/*
 
 # Tool caches.
 .cache/
+.temp/
+.stryker-tmp/
+**/.stryker-tmp/
+tools/pipeline/test/.tmp-*/
 *.tsbuildinfo
 
 # Claude Code personal/local state.
