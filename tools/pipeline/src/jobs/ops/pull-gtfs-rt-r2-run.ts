@@ -1,6 +1,6 @@
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { type CliOption, parseCliOptions } from "../../lib/cli-args.js";
+import { type CliOption, parseCliOptions, trueOption } from "../../lib/cli-args.js";
 import { fromCliPath } from "../../lib/paths.js";
 
 type PullGtfsRtR2RunArgs = {
@@ -83,12 +83,9 @@ function parseArgs(args: string[]): PullGtfsRtR2RunArgs {
         if (Number.isFinite(parsed)) output.concurrency = Math.max(1, Math.floor(parsed));
       },
     },
-    {
-      flags: ["--execute"],
-      apply: (output) => {
-        output.execute = true;
-      },
-    },
+    trueOption(["--execute"], (output) => {
+      output.execute = true;
+    }),
   ];
 
   return parseCliOptions(args, {}, options);

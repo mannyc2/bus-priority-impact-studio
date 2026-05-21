@@ -26,6 +26,8 @@ type Args = {
   dbPath?: string;
   batchSize?: number;
   maxRows?: number;
+  since?: string;
+  until?: string;
 };
 
 type Result = {
@@ -49,6 +51,16 @@ function parseCliArgs(args: string[]): Args {
   if (mi !== -1) {
     const n = Number(args[mi + 1]);
     if (Number.isFinite(n)) out.maxRows = n;
+  }
+  const si = args.indexOf("--since");
+  const since = si !== -1 ? args[si + 1] : undefined;
+  if (since) {
+    out.since = since;
+  }
+  const ui = args.indexOf("--until");
+  const until = ui !== -1 ? args[ui + 1] : undefined;
+  if (until) {
+    out.until = until;
   }
   return out;
 }
@@ -79,6 +91,19 @@ export async function geocode311(args: Args = {}): Promise<Result> {
           WHERE unique_key = ?`,
       );
 
+      const datePredicates: string[] = [];
+      const dateParams: string[] = [];
+      if (args.since) {
+        datePredicates.push("created_date >= ?");
+        dateParams.push(args.since);
+      }
+      if (args.until) {
+        datePredicates.push("created_date < ?");
+        dateParams.push(args.until);
+      }
+      const dateWhere =
+        datePredicates.length > 0 ? ` AND ${datePredicates.join(" AND ")}` : "";
+
       while (scanned < maxRows) {
         const remaining = Math.min(batchSize, maxRows - scanned);
         if (remaining <= 0) break;
@@ -96,16 +121,18 @@ export async function geocode311(args: Args = {}): Promise<Result> {
               community_board: string | null;
               incident_address: string | null;
             },
-            [number]
+            [...string[], number]
           >(
             `SELECT unique_key, latitude, longitude, street_name,
                     cross_street_1, cross_street_2, city, incident_zip, community_board,
                     incident_address
                FROM local_311_service_request
               WHERE physical_id IS NULL AND geocode_confidence IS NULL
+                    ${dateWhere}
+              ORDER BY created_date DESC, unique_key DESC
               LIMIT ?`,
           )
-          .all(remaining);
+          .all(...dateParams, remaining);
 
         if (rows.length === 0) break;
         for (const row of rows) {

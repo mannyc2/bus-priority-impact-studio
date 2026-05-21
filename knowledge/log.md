@@ -1175,3 +1175,22 @@ command using the R2 S3-compatible API and concurrent downloads instead of the o
 Wrangler object loop. The command keeps the same manifest-list workflow and output layout, supports
 `--concurrency`, skips already mirrored files, resolves raw protobuf keys from each manifest, and
 prints the matching `import:gtfs-rt-r2-manifests` command.
+
+Operationalization checkpoint: the March 2026 serving release remains intentionally deferred rather
+than executed in this pass. The local dry-run is green, but production D1/R2 mutation should happen
+only as a deliberate release action after a final artifact/seed review. The faster R2 mirror helper
+was exercised in real `--execute` mode against the reviewed 480-manifest production-length Worker
+capture `gtfs-rt-r2-prod-20260517T171354Z-4h`; all 960 local files were present/skipped and the
+helper reported 0 failures. The post-mirror handoff chain was rerun: 480 manifests imported, 480
+snapshots parsed, 894,254 vehicle positions, 151,356 observed headway samples, 381 May route
+reliability rows, 261 observed routes, and `gtfs-rt:preflight` passed with 0 issues under the
+4-hour/40-second/90% snapshot thresholds. A CLI parsing bug discovered by the real `--execute` run
+was fixed by making `--execute` use the shared boolean option helper and adding a regression test.
+
+311 quality work started with a targeted date-window capability on `geocode:311`: `--since` and
+`--until` now constrain the unattempted queue and order newest rows first. The first operational
+slice ran for February 2026 with `--max-rows 1000 --batch-size 250`, yielding 999 physical-id hits,
+1 miss, and 588 cache hits. After rebuilding context events and route touches, current 311 context
+joinability increased to 106,703 rows, touched current 311 events increased to 70,816, and current
+311 route touches increased to 251,732 across 378 routes. Parking stays outside this cycle as the
+separate bulk-loader/geocoding project.

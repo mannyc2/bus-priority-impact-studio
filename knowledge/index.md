@@ -59,6 +59,7 @@ for route ⇄ LION corridor joins.
 - [[wiki/engineering/cli_commands|CLI commands]] — TypeScript `/pipeline` command targets for source probes, ingest, analytics builds, exports, and wiki linting.
 - [[wiki/engineering/testing_standards|Testing standards]] — Bun-first tests, TDD loop, Zod contracts, optimized pre-push hooks, and Cloudflare Worker production harnesses.
 - [[wiki/engineering/source_linting|Source linting]] — Required checks before source-backed claims.
+- [[wiki/engineering/data_pipeline_operationalization_status|Data pipeline operationalization status]] — March release decision, R2 mirror validation, 311 coverage start, and parking scope.
 
 ## Analysis pages
 
@@ -78,12 +79,10 @@ for route ⇄ LION corridor joins.
 ## Immediate open issues
 
 1. Promote the Data Pipeline Finish Plan v2 work from local completion to reviewed release
-   promotion: inspect generated D1/R2 diffs, decide whether to execute `publish:serving-release`,
-   and update production labels/vars only after review.
-2. Turn the ad hoc concurrent R2 mirror used in
-   [[wiki/engineering/data_pipeline_finish_plan_v2_completion_audit|Data Pipeline Finish Plan v2 completion audit]]
-   into a first-class helper so future production-length GTFS-RT handoffs do not rely on slow
-   sequential Wrangler downloads.
+   promotion: March 2026 publish is intentionally deferred until final seed/artifact review, then
+   run `publish:serving-release --execute` as a deliberate production mutation.
+2. Continue targeted 311 geocode/join improvement with monthly slices; the first February 2026
+   slice recovered 999 physical IDs and increased current 311 route touches after context rebuild.
 3. Keep scheduled production refresh small and durable: Worker cron writes GTFS-RT
    protobuf/manifests plus compact health to R2/D1, the route-speed watcher runs daily, and
    `shouldRebuild=true` triggers a manual PC rebuild/publish run. Do not add a Queue until there is
