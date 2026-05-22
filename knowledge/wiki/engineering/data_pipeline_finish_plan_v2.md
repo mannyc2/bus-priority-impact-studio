@@ -281,10 +281,10 @@ Current status under that framing:
 - DOT traffic-volume rows were fetched across the target window where the source has data, but the
   source remains `release_context_only` because it is structurally sparse and has low geocode/join
   coverage.
-- Parking violations now use fiscal-year source tables for FY2023 through FY2026. April-December
-  2023 plus March 2026 are loaded, but FY2024/FY2025 Socrata queries are too slow/failing through
-  the normal month ingest path. Parking remains `backfill_required` until a bulk parking strategy is
-  run or the source is deliberately demoted from historical context.
+- Parking violations now use fiscal-year source tables for FY2023 through FY2026. The remaining
+  target months were loaded after removing the remote Socrata `ORDER BY`; geocoding is fully
+  attempted with 0 unattempted rows. Parking remains `release_context_only` because most source
+  locations are truncated camera/intersection strings and route-touch yield remains low.
 
 ## Definition Of Done
 

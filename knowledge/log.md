@@ -1235,3 +1235,15 @@ now has 1,601,395 touched events and 5,418,460 route touches across 378 routes; 
 23,798 touched events and 79,442 route touches across 378 routes. This finishes 311 geocode/join
 coverage for the loaded corpus; remaining non-joins are real geocode misses or events away from
 the bus route/LION touch network, not unprocessed rows.
+
+Parking completion pass: removed the remote Socrata `ORDER BY summons_number` from
+`ingest:parking-violations` because it was the FY2024/FY2025 performance blocker; normalized rows
+still sort locally before upsert. Backfilled all missing parking months from 2024-02 through
+2026-02 with 25/25 successful tasks, after the earlier FY2023 April-December, 2024-01 smoke, and
+2026-03 release month loads. Added date-window and grouped-address support to
+`geocode:parking-violations`, plus a low-confidence `--street-only` sweep for truncated parking
+locations. Final parking DB state: 5,753,409 filtered rows, 157,304 geocoded rows, 5,596,105
+explicit misses, and 0 unattempted rows. Rebuilt context events and route touches; parking now has
+4,740 touched events and 29,234 route touches across 341 routes. Keep parking
+`release_context_only`: the remaining low join rate comes from source location quality
+(camera-style/directional/intersection snippets), not from an unfinished loader.

@@ -803,26 +803,47 @@ export const local311ServiceRequest = sqliteTable("local_311_service_request", {
   geocodeConfidence: text("geocode_confidence"),
 });
 
-export const localParkingViolation = sqliteTable("local_parking_violation", {
-  summonsNumber: text("summons_number").primaryKey(),
-  issueDate: text("issue_date").notNull(),
-  violationCode: integer("violation_code").notNull(),
-  violationDescription: text("violation_description"),
-  plateId: text("plate_id"),
-  registrationState: text("registration_state"),
-  plateType: text("plate_type"),
-  vehicleBodyType: text("vehicle_body_type"),
-  vehicleMake: text("vehicle_make"),
-  issuingAgency: text("issuing_agency"),
-  violationLocation: text("violation_location"),
-  violationPrecinct: integer("violation_precinct"),
-  violationCounty: text("violation_county"),
-  houseNumber: text("house_number"),
-  streetName: text("street_name"),
-  violationTime: text("violation_time"),
-  physicalId: text("physical_id"),
-  geocodeConfidence: text("geocode_confidence"),
-});
+export const localParkingViolation = sqliteTable(
+  "local_parking_violation",
+  {
+    summonsNumber: text("summons_number").primaryKey(),
+    issueDate: text("issue_date").notNull(),
+    violationCode: integer("violation_code").notNull(),
+    violationDescription: text("violation_description"),
+    plateId: text("plate_id"),
+    registrationState: text("registration_state"),
+    plateType: text("plate_type"),
+    vehicleBodyType: text("vehicle_body_type"),
+    vehicleMake: text("vehicle_make"),
+    issuingAgency: text("issuing_agency"),
+    violationLocation: text("violation_location"),
+    violationPrecinct: integer("violation_precinct"),
+    violationCounty: text("violation_county"),
+    houseNumber: text("house_number"),
+    streetName: text("street_name"),
+    violationTime: text("violation_time"),
+    physicalId: text("physical_id"),
+    geocodeConfidence: text("geocode_confidence"),
+  },
+  (table) => [
+    index("local_parking_violation_pending_geocode_idx").on(
+      table.issueDate,
+      table.houseNumber,
+      table.streetName,
+      table.violationCounty,
+      table.physicalId,
+      table.geocodeConfidence,
+    ),
+    index("local_parking_violation_pending_geocode_address_idx").on(
+      table.houseNumber,
+      table.streetName,
+      table.violationCounty,
+      table.issueDate,
+      table.physicalId,
+      table.geocodeConfidence,
+    ),
+  ],
+);
 
 // NYC LION street-centerline segment metadata. DCP page, not Socrata — we
 // store stable street segment IDs and basic geometry hash references that

@@ -93,6 +93,11 @@ Next 311 step:
 
 ## Parking scope
 
-Parking remains out of this operational cycle.
+Parking is raw-complete and fully attempted for the `2023-04` through `2026-03` target window.
 
-The next parking project is a separate bulk fiscal-year loader plus geocode strategy for FY2024/FY2025-scale data, followed by context rebuild and detector-readiness review.
+- Remote Socrata `ORDER BY summons_number` was removed from the parking month ingest; local sorting still keeps deterministic upserts, and the missing FY2024/FY2025/FY2026 months backfilled successfully.
+- Parking now has 5,753,409 filtered rows, 157,304 geocoded rows, 5,596,105 explicit misses, and 0 unattempted rows.
+- Context events and route touches were rebuilt after the full attempt pass.
+- Parking route touches: 4,740 touched events, 29,234 touches, 341 routes.
+
+Parking remains `release_context_only`: most rows publish truncated camera-style locations such as directional/intersection snippets rather than address-grade locations, so the low join rate is a source limitation, not an unprocessed backlog.

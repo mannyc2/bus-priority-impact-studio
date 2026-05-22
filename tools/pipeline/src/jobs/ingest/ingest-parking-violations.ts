@@ -81,7 +81,6 @@ async function fetchRows(
       `issue_date < '${nextIsoMonthStart(year, month)}'`,
       `violation_code IN (${codeList})`,
     ].join(" AND "),
-    order: "summons_number",
   };
   return SocrataClient.fromSource(source, { fetcher, pageSize: 50_000 }).rows(query);
 }

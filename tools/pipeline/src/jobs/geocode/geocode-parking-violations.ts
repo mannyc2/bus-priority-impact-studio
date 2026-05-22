@@ -1,10 +1,14 @@
 import { withLocalPipelineDb } from "../../lib/local-db.js";
 import { createGeoclientFromEnv, Geocoder } from "../../lib/geocoder.js";
+import { canonicalBoroughCode, normalizeStreetName } from "@bp/sources/nyc-geoclient";
 
 type Args = {
   dbPath?: string;
   batchSize?: number;
   maxRows?: number;
+  since?: string;
+  until?: string;
+  streetOnly?: boolean;
 };
 
 type Result = {
@@ -29,7 +33,23 @@ function parseCliArgs(args: string[]): Args {
     const n = Number(args[mi + 1]);
     if (Number.isFinite(n)) out.maxRows = n;
   }
+  const si = args.indexOf("--since");
+  const since = si !== -1 ? args[si + 1] : undefined;
+  if (since) out.since = since;
+  const ui = args.indexOf("--until");
+  const until = ui !== -1 ? args[ui + 1] : undefined;
+  if (until) out.until = until;
+  if (args.includes("--street-only")) out.streetOnly = true;
   return out;
+}
+
+function boroughLetterFromCode(code: string | null): string | null {
+  if (code === "1") return "M";
+  if (code === "2") return "X";
+  if (code === "3") return "K";
+  if (code === "4") return "Q";
+  if (code === "5") return "R";
+  return null;
 }
 
 export async function geocodeParkingViolations(args: Args = {}): Promise<Result> {
@@ -44,45 +64,102 @@ export async function geocodeParkingViolations(args: Args = {}): Promise<Result>
         db: local.db,
         sqlite: local.sqlite,
         sourceLabel: "nyc_parking_violation",
-        geoclient,
+        geoclient: args.streetOnly === true ? null : geoclient,
       });
+      const streetOnlyQuery = local.sqlite.prepare(
+        `SELECT physical_id FROM local_lion_segment
+          WHERE UPPER(street_name) = ?
+            AND (? IS NULL OR UPPER(borough) = ? OR borough = ?)
+          ORDER BY physical_id
+          LIMIT 1`,
+      );
 
       let scanned = 0;
       let hits = 0;
       let misses = 0;
       let cached = 0;
 
-      const update = local.sqlite.prepare(
+      const updateAddressGroup = local.sqlite.prepare(
         `UPDATE local_parking_violation
             SET physical_id = ?, geocode_confidence = ?
-          WHERE summons_number = ?`,
+          WHERE physical_id IS NULL
+            AND geocode_confidence IS NULL
+            AND house_number IS ?
+            AND street_name IS ?
+            AND violation_county IS ?
+            AND (? IS NULL OR issue_date >= ?)
+            AND (? IS NULL OR issue_date < ?)`,
       );
 
+      const datePredicates: string[] = [];
+      const dateParams: string[] = [];
+      if (args.since) {
+        datePredicates.push("issue_date >= ?");
+        dateParams.push(args.since);
+      }
+      if (args.until) {
+        datePredicates.push("issue_date < ?");
+        dateParams.push(args.until);
+      }
+      const dateWhere =
+        datePredicates.length > 0 ? ` AND ${datePredicates.join(" AND ")}` : "";
+
       while (scanned < maxRows) {
-        const remaining = Math.min(batchSize, maxRows - scanned);
-        if (remaining <= 0) break;
+        if (batchSize <= 0) break;
         const rows = local.sqlite
           .query<
             {
-              summons_number: string;
               house_number: string | null;
               street_name: string | null;
               violation_county: string | null;
+              row_count: number;
             },
-            [number]
+            [...string[], number]
           >(
-            `SELECT summons_number, house_number, street_name, violation_county
+            `SELECT house_number,
+                    street_name,
+                    violation_county,
+                    count(*) AS row_count
                FROM local_parking_violation
               WHERE physical_id IS NULL AND geocode_confidence IS NULL
+                    ${dateWhere}
+              GROUP BY house_number, street_name, violation_county
+              ORDER BY
+                    CASE WHEN house_number IS NOT NULL AND street_name IS NOT NULL THEN 0 ELSE 1 END,
+                    row_count DESC
               LIMIT ?`,
           )
-          .all(remaining);
+          .all(...dateParams, batchSize);
 
         if (rows.length === 0) break;
         for (const row of rows) {
-          scanned += 1;
+          scanned += row.row_count;
           let outcome;
-          if (row.house_number && row.street_name) {
+          if (args.streetOnly === true && row.street_name) {
+            const street = normalizeStreetName(row.street_name);
+            const borough = canonicalBoroughCode(row.violation_county);
+            const boroughLetter = boroughLetterFromCode(borough);
+            const streetRow = street
+              ? (streetOnlyQuery.get(street, borough, boroughLetter, borough) as
+                  | { physical_id: string }
+                  | undefined)
+              : undefined;
+            outcome = streetRow
+              ? {
+                  physicalId: streetRow.physical_id,
+                  lat: null,
+                  lng: null,
+                  confidence: "street_only",
+                  cached: true,
+                }
+              : {
+                  physicalId: null,
+                  lat: null,
+                  lng: null,
+                  confidence: street ? "street_only_miss" : "no_inputs",
+                  cached: false,
+                };
+          } else if (row.house_number && row.street_name) {
             outcome = await geocoder.resolve({
               kind: "address",
               houseNumber: row.house_number,
@@ -92,10 +169,22 @@ export async function geocodeParkingViolations(args: Args = {}): Promise<Result>
           } else {
             outcome = { physicalId: null, lat: null, lng: null, confidence: "no_inputs", cached: false };
           }
-          update.run(outcome.physicalId, outcome.confidence, row.summons_number);
-          if (outcome.cached) cached += 1;
-          if (outcome.physicalId) hits += 1;
-          else misses += 1;
+          const result = updateAddressGroup.run(
+            outcome.physicalId,
+            outcome.confidence,
+            row.house_number,
+            row.street_name,
+            row.violation_county,
+            args.since ?? null,
+            args.since ?? null,
+            args.until ?? null,
+            args.until ?? null,
+          );
+          const changed = result.changes;
+          if (outcome.cached) cached += changed;
+          if (outcome.physicalId) hits += changed;
+          else misses += changed;
+          if (scanned >= maxRows) break;
         }
       }
       return { scanned, hits, misses, cached };

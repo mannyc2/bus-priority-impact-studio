@@ -184,7 +184,7 @@ const SOURCE_CONFIGS: readonly SourceConfig[] = [
     joinSourceId: "nyc_parking_violations_current",
     forceDecision: "release_context_only",
     forceReason:
-      "Parking is explicitly scoped out of 2023-present historical claims until a bulk fiscal-year loader and geocode strategy exist; current rows remain low-confidence release context.",
+      "Parking is raw-complete and fully attempted for the 2023-present window, but most rows publish truncated camera-style locations that do not resolve to LION physical_id; use as low-confidence release context, not historical detector evidence.",
   },
   {
     sourceId: "dot_traffic_volume_counts",
