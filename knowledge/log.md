@@ -1225,3 +1225,13 @@ geocode misses, and 0 unattempted rows. Current 311 joinable rows increased to 1
 events increased to 125,101; and route touches increased to 433,267 across 378 routes. This closes
 the first targeted monthly 311 improvement window; continue with January 2026 or another
 newest-first month next rather than treating the entire 2.52M-row current table as one batch.
+
+311 geocode completion: drained the remaining current-era 311 backlog month-by-month from January
+2026 back through April 2023. Every loaded 311 row is now attempted. Final DB counts:
+current-era 311 has 2,521,134 filtered rows, 2,504,843 geocoded rows, 16,291 explicit geocode
+misses, and 0 unattempted rows; historical 311 has 39,304 rows, 37,707 geocoded rows, 1,597 misses,
+and 0 unattempted rows. Rebuilt context events and route touches after the full drain. Current 311
+now has 1,601,395 touched events and 5,418,460 route touches across 378 routes; historical 311 has
+23,798 touched events and 79,442 route touches across 378 routes. This finishes 311 geocode/join
+coverage for the loaded corpus; remaining non-joins are real geocode misses or events away from
+the bus route/LION touch network, not unprocessed rows.

@@ -50,9 +50,9 @@ Post-mirror chain:
 - `route-observed-reliability -- --year 2026 --month 5`: 381 routes, 261 observed routes, 149,376 route-summary headway samples
 - `gtfs-rt:preflight -- --year 2026 --month 5 --run-id gtfs-rt-r2-prod-20260517T171354Z-4h --min-gtfs-rt-collection-hours 4 --max-gtfs-rt-sample-seconds 40 --min-gtfs-rt-vehicle-position-snapshot-share 0.9`: pass, 0 issues
 
-## 311 coverage start
+## 311 coverage
 
-311 raw history is loaded for the 2023-present window, but current-table geocode coverage remains the quality gap.
+311 raw history is loaded and geocoding has been fully attempted for the loaded current and historical tables.
 
 Current slice started:
 
@@ -81,15 +81,15 @@ February completion slice:
 
 Current 311 evidence after rebuild:
 
-- February 2026: 85,768 filtered rows, 84,819 geocoded, 949 misses, 0 unattempted.
-- Current 311 context: 190,523 joinable rows.
-- Current 311 route touches: 125,101 touched events, 433,267 touches, 378 routes.
+- Current 311 table: 2,521,134 filtered rows, 2,504,843 geocoded, 16,291 misses, 0 unattempted.
+- Historical 311 table: 39,304 filtered rows, 37,707 geocoded, 1,597 misses, 0 unattempted.
+- Current 311 route touches: 1,601,395 touched events, 5,418,460 touches, 378 routes.
+- Historical 311 route touches: 23,798 touched events, 79,442 touches, 378 routes.
 
 Next 311 step:
 
-- Continue monthly slices newest-first; February 2026 is fully attempted.
-- Prefer rows with coordinates and route-relevant complaint types already in the filtered corpus.
-- Rebuild context events/touches after meaningful batches, not after every tiny batch.
+- Treat 311 geocoding as complete for the loaded corpus.
+- Remaining misses are explicit geocode misses, not unattempted rows.
 
 ## Parking scope
 
