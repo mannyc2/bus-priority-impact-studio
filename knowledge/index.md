@@ -87,9 +87,9 @@ for route ⇄ LION corridor joins.
    protobuf/manifests plus compact health to R2/D1, the route-speed watcher runs daily, and
    `shouldRebuild=true` triggers a manual PC rebuild/publish run. Do not add a Queue until there is
    a concrete retry/fanout need.
-4. Expand the real `/api/v1/studio/*` projection surface beyond the current partial R2 slice:
-   frontend loaders already call real Studio endpoints, but Studio briefs/findings do not yet cover
-   the full D1-backed serving release.
+4. Finish remaining `/api/v1/studio/*` depth: route listing/search are D1-backed for public
+   routes, and route detail now carries observed reliability plus artifact refs; Studio
+   briefs/findings still do not cover the full D1-backed serving release.
 5. Implement the web app support plan: split brief evidence/history projections from full brief
    bodies, add signal-aware route loaders, route-specific cache policy, deferred non-critical
    evidence/map panels, and a feature-flagged composer draft API.

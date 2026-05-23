@@ -2,7 +2,7 @@
 title: Website Data Support Audit
 type: engineering
 status: active
-last_updated: 2026-05-18
+last_updated: 2026-05-23
 owner: codex
 source_count: 0
 tags: [website, audit, studio-api, d1, r2, cutover, mocks]
@@ -15,13 +15,15 @@ tags: [website, audit, studio-api, d1, r2, cutover, mocks]
 This page records what the website actually loads, what is still demo-shaped, and which data exists
 in production serving storage but is not yet exposed through the route-first Studio API.
 
-The key finding: the frontend is no longer production-mocked through fixture imports. The remaining
-problem is that `/api/v1/studio/*` is backed by a small curated R2 projection while D1 contains much
-broader serving data.
+The key finding: the frontend is no longer production-mocked through fixture imports. Studio route
+listing/search now use the D1-backed public route set, and per-route Studio detail projections are
+generated for the full public route set. The remaining product gap is narrower: briefs/findings are
+still curated/generated slices, brief evidence/history are not split contracts yet, and the
+write-side authoring API is still design-only.
 
 ## Audit Method
 
-Code inspection on 2026-05-18 checked:
+Code inspection on 2026-05-18 and 2026-05-23 checked:
 
 - `apps/web/src/studio/api-client.ts`
 - `apps/web/src/routes/**`
@@ -72,10 +74,13 @@ GTFS-RT snapshots and is not part of public Studio serving.
 | Surface | Current source | Support level |
 |---|---|---|
 | Frontend route loaders | `apps/web/src/studio/api-client.ts` calling `/api/v1/studio/*` | Real fetch path, not production fixture imports. |
-| `/api/v1/studio/*` Worker handlers | R2 `studio/v1/*.json` projections via `loadStudioProjection()` | Real R2-backed API, but curated slice. |
+| `/api/v1/studio/routes` | D1 route brief summaries + observed reliability rows | D1-backed public route listing; R2 fallback only when `DB` is unset. |
+| `/api/v1/studio/search` | D1-backed route cards + R2 findings/brief cards | Mixed real search surface; route coverage is full-public, findings/briefs remain curated. |
+| `/api/v1/studio/routes/:slug` | R2 `studio/v1/routes/{slug}/index.json` detail projection | Full-public route details generated from D1/R2 release data, including observed reliability and artifact refs. |
+| Other `/api/v1/studio/*` Worker handlers | R2 `studio/v1/*.json` projections via `loadStudioProjection()` | Real R2-backed API, but briefs/findings are curated slices. |
 | `/api/v1/routes` | D1 route brief summaries + observed reliability rows | D1-backed all-route compatibility endpoint, not consumed by frontend. |
 | `/api/v1/routes/:id/profile` | D1 route brief summary, observed reliability, route artifacts | Rich D1-backed route profile, not consumed by frontend. |
-| `/api/v1/status` | D1 route batch status + observed reliability for `BASELINE_MONTH` | Does not yet surface latest non-baseline appendix month. |
+| `/api/v1/status` | D1 route batch status + baseline observed reliability + latest non-baseline observed month | Surfaces May 2026 current observed signal when present. |
 | `/api/v1/hotspots` | D1 corridor summaries | D1-backed compatibility endpoint. |
 | `/api/v1/compare` | D1 route comparison ranks + observed reliability | D1-backed compatibility endpoint. |
 | `/api/v1/map/manifest` | R2 `map/{month}/manifest.json` | Real artifact manifest. |
@@ -101,119 +106,53 @@ calling real endpoints. The remaining task is to expand the real endpoints.
 
 ## Current Gaps
 
-### 1. Studio route coverage is curated
+### 1. Studio route coverage is full-public
 
-**Where:** `tools/pipeline/src/jobs/build/studio-release.ts:36-37` (`defaultRouteLimit = 12`,
-`canonicalRouteIds = ["M15+", "BX12+", "M101", "B41", "B46+", "Q58", "M14A+", "M14D+"]`) feed
-into the route selection at line 550, capped at line 559 by `Math.max(routeLimit,
-requiredSummaries.length)`. `studio/v1/routes.json` + per-route `routes/{slug}/index.json` are
-written only for that capped subset.
+**Status:** resolved for route cards and route detail projections.
 
-**Verify gap:** `curl -s https://bus-priority-impact-studio.c20carroll.workers.dev/api/v1/studio/routes | jq '.routes | length'` returns 12; D1 has 381 (`SELECT COUNT(*) FROM route_catalog`).
+`build:studio-release` now defaults to the full public profile; `--profile demo` is the explicit
+curated mode. `/api/v1/studio/routes` and `/api/v1/studio/search` use D1-backed route cards when
+`DB` is configured, while per-route detail remains a release-static R2 projection. The current March
+2026 release has 350 public Studio routes out of 381 catalog rows; the other 31 catalog rows are not
+public-visible route cards.
 
-Impact:
+**Verify fixed:** `bun run audit:studio-coverage -- --year 2026 --month 3` passes with
+`studioRouteCoverageShare=1`, `routesListCount=350`, and `routeDetailCount=350`.
 
-- `/api/v1/studio/routes` exposes a curated subset.
-- `/api/v1/studio/routes/:slug` returns 404 for ~369 routes that exist in D1.
-- The frontend is real, but the product surface is not full-network yet.
+### 2. Observed reliability is in Studio route contracts
 
-**Fix outline:**
+**Status:** resolved.
 
-1. Rename the existing curated behavior `--profile demo`; add `--profile full` that drops the
-   `routeLimit` cap and removes the `canonicalRouteIds` floor.
-2. Make `/api/v1/studio/routes` and `/api/v1/studio/search` D1-backed in the Worker
-   (`apps/web/src/worker/index.ts`) — see [[serving_storage_split_plan]] §"Target Endpoint
-   Backing". Keep per-route detail (`/api/v1/studio/routes/:slug`) R2-backed.
-3. Generate full route detail projections for every route with a `route_brief_summary` row.
+`packages/domain/src/studio-schemas.ts` now defines `StudioObservedReliabilitySchema`, and
+`StudioRouteSchema` carries `observedReliability` alongside the short string label. The Studio
+release builder populates it from `route_observed_reliability_summary` rows with explicit
+`third_party_recovered` or `official_self_collected` provenance.
 
-**Verify fixed:** `bun run build:studio-release -- --month 2026-03 --profile full` writes route
-list/detail projections for every public-visible `route_brief_summary` row. For the current March
-2026 export that is 350 public routes out of 381 catalog routes; the remaining 31 catalog rows are
-not public-visible Studio cards.
+**Verify fixed:** Worker coverage parses the D1-backed Studio route list and R2 route detail
+responses, asserting March recovered observed reliability appears on route cards/details.
 
-### 2. Observed reliability is not in Studio route contracts
+### 3. May appendix is surfaced as a current signal
 
-**Where:** `packages/domain/src/studio-schemas.ts:65` has `reliability: z.string()` — a label,
-not a block. D1 has `route_observed_reliability_summary` rows (381 for March
-`bus-observatory-2026-03`, 381 for May `gtfs-rt-v1-20260517T103607Z-24h`) and the compatibility
-`/api/v1/routes/:id/profile` (`apps/web/src/worker/index.ts`) already serializes the full record.
+**Status:** resolved.
 
-**Verify gap:** `curl -s '.../api/v1/studio/routes/m15-sbs' | jq '.route.reliability'` returns a
-string; the same route's `/api/v1/routes/m15-sbs/profile` returns a structured object.
-
-Impact:
-
-- The public Studio route pages cannot show March recovered observed reliability or the May official
-  current appendix through `/api/v1/studio/*`.
-- Agents using the Studio API cannot inspect observed headway/bunching signals without falling back
-  to compatibility endpoints.
-
-**Fix outline:**
-
-1. Add `StudioObservedReliabilitySchema` to `packages/domain/src/studio-schemas.ts` with
-   `runId`, `source` (`"third_party_recovered" | "official_self_collected"`), `releaseLayer`
-   (`"observed_release" | "current_signal"`), `month`, `sampleCount`, `observedHeadwayP50/P90`,
-   `bunchingShare`, `longGapShare`, `excessWaitSeconds`, `reliabilityStatus`, `caveats`.
-2. Add `observedReliability: StudioObservedReliabilitySchema.nullable()` to `StudioRouteSchema`
-   (line 45-) and `StudioRouteDetailResponseSchema`. Keep the existing string `reliability` as a
-   short label or remove after frontend migrates.
-3. Populate from `route_observed_reliability_summary` in `tools/pipeline/src/jobs/build/studio-release.ts`
-   when building per-route projections; provenance from `realtimeSourceForRunId(runId)`
-   (already exists in worker code).
-
-**Verify fixed:** Worker test `apps/web/test/worker/index.worker.test.ts` parses a route response
-and asserts `route.observedReliability.runId === "gtfs-rt-v1-20260517T103607Z-24h"` for a route
-that has the May appendix.
-
-### 3. May appendix is not surfaced as a current signal
-
-**Where:** `apps/web/src/worker/index.ts:585-633` (`buildReleaseStatusResponse`).
-Line 598 calls `listRouteObservedReliabilitySummaries(db, month)` with the baseline month only.
-Line 633 hardcodes `currentSignalMonth: null`.
-
-**Verify gap:** `curl -s '.../api/v1/status' | jq '.currentSignalMonth'` returns `null` even
-though D1 has 381 May 2026 rows.
-
-Impact:
-
-- The May 2026 self-collected appendix exists in D1 but is not visible through a public status
-  response.
-
-**Fix outline:**
-
-1. Add a `listLatestNonBaselineObservedReliability(db, baselineMonth)` query to `@bp/db/d1`
-   returning the most recent `(month, run_id)` from `route_observed_reliability_summary` where
-   `month != baselineMonth`, plus per-route status counts.
-2. Extend `ReleaseStatusResponseSchema` (`packages/domain/src/schemas.ts:292-330`) with a
-   `currentObservedSignal: { month, runId, source, releaseLayer, routeCount, observedRouteCount,
-   insufficientRouteCount, sampleCount, caveats }.nullable()` field.
-3. Populate in `buildReleaseStatusResponse` (replace `currentSignalMonth: null` with the
-   aggregated row + set `currentSignalMonth` to the month). Reuse the existing
-   `realtimeSourceForRunId(runId)` and caveat construction.
-4. Keep `sameMonthPromotionReady` derivation unchanged — it stays false until matching public
-   speed data lands.
+`/api/v1/status` now looks up the latest non-baseline observed reliability month and returns a
+structured `currentObservedSignal` block. The May 2026 self-collected appendix is visible as a
+current signal while March 2026 remains the baseline observed release.
 
 **Verify fixed:** `curl -s '.../api/v1/status' | jq '.currentObservedSignal'` returns
 `{ "month": "2026-05", "runId": "gtfs-rt-v1-20260517T103607Z-24h", "source":
 "official_self_collected", "observedRouteCount": 300, ... }`.
 
-### 4. D1-backed route profile is richer than Studio route detail
+### 4. Studio route detail now includes route artifact refs
 
-**Where:** Compatibility handler in `apps/web/src/worker/index.ts` for `/api/v1/routes/:id/profile`
-returns the full D1 `route_brief_summary` + `route_observed_reliability_summary` +
-`route_artifact` join. Studio detail (`/api/v1/studio/routes/:slug`) is built from
-`tools/pipeline/src/jobs/build/studio-release.ts` and currently omits observed reliability and
-the artifact-ref array.
+**Status:** resolved for observed reliability and artifact pointers.
 
-Impact:
-
-- Useful serving data exists behind compatibility endpoints but is not part of the route-first
-  product contract.
-
-**Fix outline:** subsumed by gap #2 (`observedReliability` block) + a new `artifactRefs` array
-on `StudioRouteDetailResponseSchema` populated from `route_artifact` rows. Once Studio detail
-has parity, retire `/api/v1/routes/:id/profile` per
-[[web_api_endpoint_architecture]] §"Current State" cutover posture.
+`StudioRouteDetailResponseSchema` now includes `artifactRefs`, and `StudioReleasePayloadSchema`
+stores the route artifact refs loaded from D1 `route_artifact` rows. `build:studio-release` filters
+those refs to the selected Studio route set and route detail projections expose only the refs for
+their route. The compatibility `/api/v1/routes/:id/profile` endpoint can stay temporarily for older
+panel consumers; any remaining peak/slow-window fields should be modeled deliberately in Studio
+rather than kept as an implicit compatibility dependency.
 
 ### 5. Briefs are dual-stored and curated
 
@@ -411,35 +350,28 @@ brief) is the acceptance test.
 
 ## Prerequisite Bug
 
-Before any further appendix-shaped operation:
+**Status:** resolved.
 
-**`replaceRouteObservedReliabilityRows` ignores its runId parameter.**
-`packages/db/src/local/repositories/observed-reliability.ts:60-88`. The `_runId` parameter at
-line 63 is prefixed with `_` and never used; the DELETE at line 69-71 only filters by month, so
-calling the function with the wrong month against an existing month wipes that month's rows.
-This is what caused the March 2026 clobber recorded in `knowledge/log.md` (2026-05-18 release
-entry).
-
-Fix: either honor it (`WHERE month = ? AND run_id = ?` on both deletes) or remove the parameter
-from the signature and update callers. A small test that pre-seeds two run_ids for the same
-month and asserts only one is deleted is enough to lock the behavior.
+`replaceRouteObservedReliabilityRows` now validates that input summary rows match the requested
+`month` and `runId`, then deletes `local_route_observed_reliability_summary` rows by both month and
+run ID. This closes the March clobber risk recorded in `knowledge/log.md` on 2026-05-18.
 
 ## Immediate Work Queue
 
 Each item lists the primary file(s) to change. Ordering minimizes blocking: prerequisite bug
 first, smallest user-visible win next, then schema/projection expansion, then publish-completeness.
 
-| # | Change | Primary files | Approx LOC |
+| # | Status | Change | Primary files |
 |---|---|---|---|
-| 0 | Fix `replaceRouteObservedReliabilityRows` runId | `packages/db/src/local/repositories/observed-reliability.ts:60-88` + unit test | ~20 |
-| 1 | `currentObservedSignal` block on `/api/v1/status` | `packages/domain/src/schemas.ts:292-330`, new `@bp/db/d1` query, `apps/web/src/worker/index.ts:585-650`, worker test | ~80 |
-| 2 | Release-manifest audit (Studio projection vs D1 coverage) | new `tools/pipeline/src/jobs/audit/studio-coverage.ts`; emit `data/artifacts/audits/studio-coverage-{month}.json` | ~120 |
-| 3 | `build:studio-release --profile {demo,full}` | `tools/pipeline/src/jobs/build/studio-release.ts:36-37,107,550-559` | ~30 |
-| 4 | `observedReliability` on `StudioRouteSchema` + populate in builder | `packages/domain/src/studio-schemas.ts:45-90`, `tools/pipeline/src/jobs/build/studio-release.ts` (populate from `route_observed_reliability_summary`) | ~120 |
-| 5 | D1-back `/api/v1/studio/routes` + `/api/v1/studio/search` | new D1 queries in `@bp/db/d1`, `apps/web/src/worker/index.ts` Studio handlers | ~200 |
-| 6 | Split `StudioBriefEvidenceResponse` + `StudioBriefHistoryResponse` | `packages/domain/src/studio-schemas.ts`, `tools/pipeline/src/jobs/build/studio-release.ts`, worker handlers | ~250 |
-| 7 | Manifest-driven publish + completeness check | `scripts/publish-serving-release.sh:152-162`, new `tools/pipeline/src/checks/check-publish-completeness.ts` | ~150 |
-| 8 | Worker tests: full-route listing, current appendix status, missing-projection fail-closed, no-fixture-fallback | `apps/web/test/worker/index.worker.test.ts`, new fixture cases | ~150 |
+| 0 | Done | Fix `replaceRouteObservedReliabilityRows` runId scoping | `packages/db/src/local/repositories/observed-reliability.ts` + unit test |
+| 1 | Done | `currentObservedSignal` block on `/api/v1/status` | `packages/domain/src/schemas.ts`, `@bp/db/d1` query, `apps/web/src/worker/index.ts`, worker test |
+| 2 | Done | Release-manifest audit (Studio projection vs D1 coverage) | `tools/pipeline/src/jobs/audit/studio-coverage.ts` |
+| 3 | Done | `build:studio-release --profile {demo,full}` with full as default | `tools/pipeline/src/jobs/build/studio-release.ts` |
+| 4 | Done | `observedReliability` and `artifactRefs` on Studio route detail | `packages/domain/src/studio-schemas.ts`, `packages/domain/src/studio-projections.ts`, `tools/pipeline/src/jobs/build/studio-release.ts` |
+| 5 | Done | D1-back `/api/v1/studio/routes` + `/api/v1/studio/search` route coverage | `apps/web/src/worker/index.ts`, `@bp/db/d1` queries |
+| 6 | Next | Split `StudioBriefEvidenceResponse` + `StudioBriefHistoryResponse` | `packages/domain/src/studio-schemas.ts`, `tools/pipeline/src/jobs/build/studio-release.ts`, worker handlers |
+| 7 | Next | Manifest-driven publish + completeness check | `scripts/publish-serving-release.sh`, new publish-completeness check |
+| 8 | Next | Worker tests for missing-projection fail-closed and no-fixture-fallback edge cases | `apps/web/test/worker/index.worker.test.ts`, new fixture cases |
 
 Findings expansion (gap #6) and write-side agent API (gap #7) are deliberately not in this
 queue; they need product/auth decisions first (see [[ai_interaction_model]] and
@@ -459,10 +391,12 @@ Release-support checks after implementation:
 
 ```bash
 bun run verify:d1 -- --year 2026 --month 3
-bun run build:studio-release -- --month 2026-03 --profile full
+bun run build:studio-release -- --month 2026-03
+bun run audit:studio-coverage -- --year 2026 --month 3
 bun run check:web-release
 ```
 
-The full cutover is not done until `/api/v1/studio/*` exposes all public routes that D1 can serve,
-surfaces observed reliability/current appendix labels, and uses dedicated brief evidence/history
-contracts without relying on curated demo projections.
+The route-facing cutover is mostly done: `/api/v1/studio/routes` exposes all public routes D1 can
+serve, route details carry observed reliability and artifact refs, and `/api/v1/status` surfaces the
+current appendix. The remaining cutover is brief/finding depth: dedicated brief evidence/history
+contracts, manifest-driven publish completeness, and eventually the write-side authoring API.

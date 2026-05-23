@@ -119,6 +119,18 @@ export const StudioSegmentSchema = z
   })
   .strict();
 
+export const StudioRouteArtifactRefSchema = z
+  .object({
+    routeId: z.string(),
+    month: z.string(),
+    name: z.string(),
+    key: z.string(),
+    contentType: z.string(),
+    byteLength: z.number().int().nonnegative(),
+    sha256: z.string(),
+  })
+  .strict();
+
 export const ReasoningStepSchema = z
   .object({
     index: z.number(),
@@ -311,6 +323,7 @@ export const StudioRouteDetailResponseSchema = z
     route: StudioRouteSchema,
     peerRoute: StudioRouteSchema.optional(),
     segments: z.array(StudioSegmentSchema),
+    artifactRefs: z.array(StudioRouteArtifactRefSchema),
     quality: StudioQualitySchema,
   })
   .strict();
@@ -466,6 +479,7 @@ export const StudioReleasePayloadSchema = z
     quality: StudioQualitySchema,
     routes: z.array(StudioRouteSchema),
     segments: z.array(StudioSegmentSchema),
+    routeArtifacts: z.array(StudioRouteArtifactRefSchema),
     findings: z.array(StudioFindingSchema),
     briefs: z.array(StudioBriefSchema),
     versions: z.array(StudioVersionSchema),
@@ -509,6 +523,7 @@ export type ClaimEvidence = z.output<typeof ClaimEvidenceSchema>;
 export type StudioComment = z.output<typeof StudioCommentSchema>;
 export type StudioCommentReply = z.output<typeof StudioCommentReplySchema>;
 export type StudioSegment = z.output<typeof StudioSegmentSchema>;
+export type StudioRouteArtifactRef = z.output<typeof StudioRouteArtifactRefSchema>;
 export type StudioFinding = z.output<typeof StudioFindingSchema>;
 export type StudioBrief = z.output<typeof StudioBriefSchema>;
 export type StudioFindingCard = z.output<typeof StudioFindingCardSchema>;

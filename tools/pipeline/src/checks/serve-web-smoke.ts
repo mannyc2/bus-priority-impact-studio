@@ -106,6 +106,7 @@ async function studioApiResponse(url: URL): Promise<Response> {
           quality: routesProjection.quality,
           routes: routesProjection.routes,
           segments: [],
+          routeArtifacts: [],
           findings: [],
           briefs: [],
           versions: [],

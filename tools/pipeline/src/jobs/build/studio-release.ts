@@ -2,9 +2,11 @@ import { Database } from "bun:sqlite";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import {
+  listRouteArtifacts,
   listRouteBriefSummaries,
   listRouteObservedReliabilitySummaries,
   listRouteReadiness,
+  type RouteArtifactRow,
   type RouteBriefSummary,
   type RouteObservedReliabilitySummary,
   type RouteReadiness,
@@ -28,6 +30,7 @@ import {
   type StudioReleasePayload,
   StudioReleasePayloadSchema,
   type StudioRoute,
+  type StudioRouteArtifactRef,
   type StudioSegment,
 } from "@bp/domain";
 import { fromRepoRoot } from "../../source-manifest.js";
@@ -292,6 +295,18 @@ function buildObservedReliability(
     observedLongGapShare: row.observedLongGapShare,
     excessWaitMinutes: row.excessWaitMinutes,
     caveats,
+  };
+}
+
+function buildRouteArtifactRef(row: RouteArtifactRow): StudioRouteArtifactRef {
+  return {
+    routeId: row.route_id,
+    month: row.month,
+    name: row.artifact_name,
+    key: row.artifact_key,
+    contentType: row.content_type,
+    byteLength: row.byte_length,
+    sha256: row.sha256,
   };
 }
 
@@ -710,10 +725,11 @@ async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> 
   );
 
   try {
-    const [readinessRows, briefSummaries, observedRows] = await Promise.all([
+    const [readinessRows, briefSummaries, observedRows, routeArtifactRows] = await Promise.all([
       listRouteReadiness(db, options.month),
       listRouteBriefSummaries(db, options.month),
       listRouteObservedReliabilitySummaries(db, options.month),
+      listRouteArtifacts(db, options.month),
     ]);
     const readinessByRoute = new Map(readinessRows.map((row) => [row.routeId, row]));
     const summariesByRoute = new Map(briefSummaries.map((summary) => [summary.routeId, summary]));
@@ -732,6 +748,10 @@ async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> 
       options.profile === "full"
         ? orderedSummaries
         : orderedSummaries.slice(0, Math.max(options.routeLimit, requiredSummaries.length));
+    const selectedRouteIds = new Set(selectedSummaries.map((summary) => summary.routeId));
+    const routeArtifacts = routeArtifactRows
+      .filter((row) => selectedRouteIds.has(row.route_id))
+      .map(buildRouteArtifactRef);
     const routeInputs = new Map<string, RouteBriefInputArtifact | null>();
 
     for (const summary of selectedSummaries) {
@@ -795,6 +815,7 @@ async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> 
       },
       routes,
       segments,
+      routeArtifacts,
       findings,
       briefs,
       versions: briefs.map((brief) => ({

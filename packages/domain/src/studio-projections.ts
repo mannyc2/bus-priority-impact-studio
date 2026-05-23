@@ -97,6 +97,10 @@ function routeSegments(release: StudioReleasePayload, slug: string) {
   return release.segments.filter((segment) => segment.routeSlug === slug);
 }
 
+function routeArtifactRefs(release: StudioReleasePayload, routeId: string) {
+  return release.routeArtifacts.filter((artifact) => artifact.routeId === routeId);
+}
+
 function briefVersions(release: StudioReleasePayload, briefId: string) {
   return release.versions.filter((version) => version.briefId === briefId);
 }
@@ -124,6 +128,7 @@ export function buildStudioRouteProjection(
     route,
     ...(route.peerSlug ? { peerRoute: getStudioRoute(release, route.peerSlug) } : {}),
     segments: routeSegments(release, route.slug),
+    artifactRefs: routeArtifactRefs(release, route.routeId),
     quality: release.quality,
   });
 }

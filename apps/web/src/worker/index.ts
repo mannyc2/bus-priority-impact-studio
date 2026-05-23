@@ -639,6 +639,7 @@ async function buildStudioResponse(url: URL, env: Env): Promise<Response> {
           quality: routes.quality,
           routes: routes.routes,
           segments: [],
+          routeArtifacts: [],
           findings: [],
           briefs: [],
           versions: [],

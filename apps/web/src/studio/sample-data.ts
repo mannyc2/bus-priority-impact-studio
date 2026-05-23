@@ -1432,6 +1432,7 @@ export const studioReleaseSeed: StudioReleasePayload = StudioReleasePayloadSchem
   quality: studioReleaseQuality,
   routes: studioRoutes,
   segments: studioSegments,
+  routeArtifacts: [],
   findings: studioFindings,
   briefs: studioBriefs,
   versions: studioVersions,

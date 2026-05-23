@@ -1287,3 +1287,11 @@ against public-visible route brief summaries instead of every route catalog row:
 public-visible Studio routes out of 381 catalog rows, 350 route detail artifacts, 8 curated brief
 details, and 6 curated finding details. Studio route coverage passes with
 `studioRouteCoverageShare=1`.
+
+Studio route-detail parity follow-up: added route artifact references to the Studio release
+contract and route detail projection. `build:studio-release` now reads D1 `route_artifact` rows,
+filters them to the selected Studio route set, and exposes the matching refs on
+`/api/v1/studio/routes/:slug` detail payloads. Refreshed the website data support audit to mark the
+route-facing cutover items done: full-public route listing/search, observed reliability, current
+observed signal, and route detail artifact refs. The remaining website data support work is now
+brief/finding depth, publish completeness, and write-side authoring.

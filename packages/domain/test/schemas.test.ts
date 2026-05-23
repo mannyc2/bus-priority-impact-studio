@@ -1,11 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import * as z from "zod";
 import {
+  buildStudioRouteProjection,
   HealthResponseSchema,
   healthResponseJsonSchema,
   RouteIdCodec,
   RouteScorecardSchema,
   StudioReleasePayloadSchema,
+  StudioRouteDetailResponseSchema,
   studioReleasePayloadJsonSchema,
 } from "../src/index.js";
 
@@ -67,6 +69,87 @@ describe("domain schemas", () => {
         extra: "not allowed",
       }),
     ).toThrow();
+  });
+
+  test("projects route artifact refs into Studio route detail contracts", () => {
+    const release = StudioReleasePayloadSchema.parse({
+      schemaVersion: 1,
+      generatedAt: "2026-05-18T00:00:00.000Z",
+      quality: {
+        releaseLayer: "baseline_release",
+        completenessStatus: "complete",
+        confidence: "medium",
+        caveats: [],
+      },
+      routes: [
+        {
+          slug: "m15-sbs",
+          routeId: "M15+",
+          label: "M15",
+          corridor: "1 Av / 2 Av",
+          corridorFull: "1st Avenue / 2nd Avenue Select Bus Service",
+          borough: "Manhattan",
+          sbs: true,
+          speedMph: 6.4,
+          scheduledMph: 7.1,
+          weightedAvgSpeed: 6.4,
+          speedPercentile: 12,
+          dailyRiders: 37_200,
+          ridersYoyPct: -4.1,
+          riderHoursLost: 4_310,
+          laneCoverage: 72,
+          aceStatus: "active",
+          aceSince: "2019-11",
+          tspCoverage: "partial",
+          reliability: "Observed reliability available",
+          observedReliability: null,
+          diagnosis: "Fixture route for contract projection.",
+          spark: [6.8, 6.4],
+          termini: { north: "E 125 St", south: "South Ferry" },
+          miles: 8.4,
+          stops: 33,
+          flags: ["ACE active"],
+          peerSlug: null,
+          interventions: [],
+        },
+      ],
+      segments: [],
+      routeArtifacts: [
+        {
+          routeId: "M15+",
+          month: "2026-03",
+          name: "brief.json",
+          key: "briefs/routes/m15-sbs/2026-03/brief.json",
+          contentType: "application/json",
+          byteLength: 42,
+          sha256: "a".repeat(64),
+        },
+      ],
+      findings: [],
+      briefs: [],
+      versions: [],
+      comments: [],
+      methods: [],
+      docsSections: [],
+      docsEndpoints: [],
+    });
+
+    const route = release.routes[0];
+    expect(route).toBeDefined();
+    if (route === undefined) {
+      throw new Error("expected route fixture");
+    }
+
+    const detail = StudioRouteDetailResponseSchema.parse(
+      buildStudioRouteProjection(release, route),
+    );
+
+    expect(detail.artifactRefs).toEqual([
+      expect.objectContaining({
+        routeId: "M15+",
+        key: "briefs/routes/m15-sbs/2026-03/brief.json",
+      }),
+    ]);
   });
 
   test("keeps health responses strict", () => {
