@@ -116,8 +116,8 @@ function parsePositiveInteger(value: string | undefined, fallback: number, name:
 }
 
 function parseProfile(value: string | undefined): ReleaseProfile {
-  if (value === undefined || value === "demo") return "demo";
-  if (value === "full") return "full";
+  if (value === undefined || value === "full") return "full";
+  if (value === "demo") return "demo";
   throw new Error(`--profile must be "demo" or "full" (got "${value}")`);
 }
 

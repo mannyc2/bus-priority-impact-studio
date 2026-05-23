@@ -35,6 +35,7 @@ export type StudioCoverageAuditResult = {
   d1: {
     routeCatalogCount: number;
     routeBriefSummaryCount: number;
+    publicRouteBriefSummaryCount: number;
     observedReliability: ObservedReliabilityByMonth[];
   };
   projection: {
@@ -145,7 +146,8 @@ export async function auditStudioCoverage(
   const artifactRoot = args.artifactRoot ?? defaultArtifactRootPath();
   const studioRoot = join(artifactRoot, "studio", "v1");
   const outputPath =
-    args.output ?? fromRepoRoot(join("data", "artifacts", "audits", `studio-coverage-${isoMonth}.json`));
+    args.output ??
+    fromRepoRoot(join("data", "artifacts", "audits", `studio-coverage-${isoMonth}.json`));
 
   return withLocalPipelineDb(args.dbPath, async (local) => {
     const [catalog, briefSummaries, observedRows] = await Promise.all([
@@ -153,7 +155,9 @@ export async function auditStudioCoverage(
       listRouteBriefSummaries(local.db, isoMonth),
       listRouteObservedReliabilitySummaries(local.db, isoMonth),
     ]);
-    const d1RouteIds = new Set(catalog.map((entry) => entry.routeId));
+    const publicRouteIds = new Set(
+      briefSummaries.filter((entry) => entry.publicVisible).map((entry) => entry.routeId),
+    );
 
     const [routesList, briefsList, findingsList, routeDirs, briefDirs, findingDirs] =
       await Promise.all([
@@ -171,14 +175,17 @@ export async function auditStudioCoverage(
         .filter((id): id is string => id !== null),
     );
 
-    const routesMissingFromProjection = [...d1RouteIds]
+    const routesMissingFromProjection = [...publicRouteIds]
       .filter((routeId) => !projectionRouteIds.has(routeId))
       .sort();
+    const coveredPublicRouteCount = [...publicRouteIds].filter((routeId) =>
+      projectionRouteIds.has(routeId),
+    ).length;
 
     const studioRouteCoverageShare =
-      d1RouteIds.size === 0
+      publicRouteIds.size === 0
         ? 1
-        : Number((projectionRouteIds.size / d1RouteIds.size).toFixed(4));
+        : Number((coveredPublicRouteCount / publicRouteIds.size).toFixed(4));
 
     const status: StudioCoverageAuditResult["status"] =
       routesMissingFromProjection.length === 0
@@ -195,6 +202,7 @@ export async function auditStudioCoverage(
       d1: {
         routeCatalogCount: catalog.length,
         routeBriefSummaryCount: briefSummaries.length,
+        publicRouteBriefSummaryCount: publicRouteIds.size,
         observedReliability: aggregateObserved(observedRows),
       },
       projection: {
@@ -208,8 +216,7 @@ export async function auditStudioCoverage(
       gaps: {
         routesMissingFromProjection,
         studioRouteCoverageShare,
-        note:
-          "D1 route_brief_summary counts every route; the Studio brief gallery is a separately curated artifact set. Brief coverage is reported as counts in `projection.briefsListCount` / `projection.briefDetailCount` rather than a missing-array.",
+        note: "Studio route coverage is measured against public-visible route_brief_summary rows, not every route_catalog row. The Studio brief and finding galleries are separately curated artifact sets; their coverage is reported as counts in `projection.briefsListCount`, `projection.briefDetailCount`, `projection.findingsListCount`, and `projection.findingDetailCount`.",
       },
       outputPath,
     };
@@ -220,6 +227,8 @@ export async function auditStudioCoverage(
   });
 }
 
-export async function auditStudioCoverageFromCli(args: string[]): Promise<StudioCoverageAuditResult> {
+export async function auditStudioCoverageFromCli(
+  args: string[],
+): Promise<StudioCoverageAuditResult> {
   return auditStudioCoverage(parseCliArgs(args));
 }

@@ -165,9 +165,10 @@ async function writeFixture(): Promise<void> {
 describe("auditStudioCoverage", () => {
   afterEach(removeFixture);
 
-  test("flags routes missing from a curated projection", async () => {
+  test("warns when public-visible routes are missing from a curated projection", async () => {
     await writeFixture();
-    // Only m15+ is in the projection; bx12+ and b41 from D1 are missing.
+    // Only m15+ is in the projection; bx12+ is public-visible and missing.
+    // B41 is catalog-only in this fixture, so it should not count as a public Studio gap.
     await writeProjection([{ slug: "m15-sbs", routeId: "M15+" }], ["m15-madison-corridor"]);
 
     const result = await auditStudioCoverage({
@@ -180,6 +181,7 @@ describe("auditStudioCoverage", () => {
 
     expect(result.d1.routeCatalogCount).toBe(3);
     expect(result.d1.routeBriefSummaryCount).toBe(2);
+    expect(result.d1.publicRouteBriefSummaryCount).toBe(2);
     expect(result.d1.observedReliability).toEqual([
       expect.objectContaining({
         month: isoMonth,
@@ -191,11 +193,11 @@ describe("auditStudioCoverage", () => {
     expect(result.projection.routesListCount).toBe(1);
     expect(result.projection.routeDetailCount).toBe(1);
     expect(result.projection.briefsListCount).toBe(1);
-    expect(result.gaps.routesMissingFromProjection).toEqual(["B41", "BX12+"]);
-    expect(result.status).toBe("fail");
+    expect(result.gaps.routesMissingFromProjection).toEqual(["BX12+"]);
+    expect(result.status).toBe("warn");
   });
 
-  test("passes when projection covers every D1 route", async () => {
+  test("passes when projection covers every public-visible route", async () => {
     await writeFixture();
     await writeProjection(
       [
@@ -214,6 +216,7 @@ describe("auditStudioCoverage", () => {
       output: auditOutput,
     });
 
+    expect(result.d1.publicRouteBriefSummaryCount).toBe(2);
     expect(result.status).toBe("pass");
     expect(result.gaps.routesMissingFromProjection).toEqual([]);
     expect(result.gaps.studioRouteCoverageShare).toBe(1);

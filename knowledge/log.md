@@ -1278,3 +1278,12 @@ manual-review subset exists: 54,920 groups and 1,096,073 events meet the high-co
 candidate-count <= 3, location-weight >= 0.8 rule. The rest stays weighted release context or
 low-confidence release context; parking should not become detector-grade evidence without an
 explicit promotion review.
+
+Studio projection coverage fix: changed `build:studio-release` so the full public-route profile is
+the default and `--profile demo` is the explicit curated mode. Refreshed the March 2026 D1 export
+and verification (`route_brief_summary=381`, `route_readiness=381`, 0 verification issues), rebuilt
+Studio projections, and reran `audit:studio-coverage`. The audit now measures route coverage
+against public-visible route brief summaries instead of every route catalog row: March has 350
+public-visible Studio routes out of 381 catalog rows, 350 route detail artifacts, 8 curated brief
+details, and 6 curated finding details. Studio route coverage passes with
+`studioRouteCoverageShare=1`.

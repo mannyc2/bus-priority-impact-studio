@@ -126,8 +126,10 @@ Impact:
    Backing". Keep per-route detail (`/api/v1/studio/routes/:slug`) R2-backed.
 3. Generate full route detail projections for every route with a `route_brief_summary` row.
 
-**Verify fixed:** `bun run build:studio-release -- --month 2026-03 --profile full` writes 381
-`studio/v1/routes/*/index.json` files; deployed `/api/v1/studio/routes` returns 381 entries.
+**Verify fixed:** `bun run build:studio-release -- --month 2026-03 --profile full` writes route
+list/detail projections for every public-visible `route_brief_summary` row. For the current March
+2026 export that is 350 public routes out of 381 catalog routes; the remaining 31 catalog rows are
+not public-visible Studio cards.
 
 ### 2. Observed reliability is not in Studio route contracts
 

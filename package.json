@@ -54,6 +54,7 @@
     "build:studio-release": "bun --filter @bp/pipeline build:studio-release",
     "audit:source-coverage": "bun --filter @bp/pipeline audit:source-coverage",
     "audit:parking-candidate-quality": "bun --filter @bp/pipeline audit:parking-candidate-quality",
+    "audit:studio-coverage": "bun --filter @bp/pipeline audit:studio-coverage",
     "seed:local-studio-r2": "sh scripts/seed-local-studio-r2.sh",
     "pull:gtfs-rt-r2-run": "bun --filter @bp/pipeline pull:gtfs-rt-r2-run",
     "check": "bun run check:types && bun run check:style && bun run check:architecture && bun run test",
