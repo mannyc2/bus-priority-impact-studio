@@ -1336,3 +1336,11 @@ findings as approved manual reviews, detector-queue findings as review candidate
 and detector IDs, and route-score fallback findings as generated candidates. The findings feed and
 finding detail screens display that state directly, keeping the broader detector/evidence corpus
 visible without implying detector candidates are approved claims.
+
+Studio coverage audit promotion guardrail: extended `audit:studio-coverage` to count reviewed,
+review-candidate, generated-candidate, missing-review, and detector-sourced findings. The audit now
+warns if a finding is missing review provenance, if a review candidate is marked approved, if a
+reviewed finding lacks approved review state, or if a detector-sourced finding lacks candidate and
+detector refs. The real March 2026 audit passes with 50 findings: 2 reviewed, 48 review candidates,
+0 generated fallback findings, 0 missing review records, and 48 detector-sourced findings with
+candidate/detector refs.

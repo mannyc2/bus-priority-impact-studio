@@ -90,8 +90,8 @@ for route ⇄ LION corridor joins.
 4. Finish remaining `/api/v1/studio/*` depth: route listing/search and generated Studio briefs
    now cover the public route set, route detail carries observed reliability plus artifact refs,
    and Studio findings now prefer detector review-queue candidates. Finding payloads now expose
-   reviewed/review-candidate/generated provenance so detector candidates do not silently read like
-   approved publication claims.
+   reviewed/review-candidate/generated provenance, and `audit:studio-coverage` verifies that
+   detector candidates do not silently read like approved publication claims.
 5. Implement the remaining web app support plan: add signal-aware route loaders,
    route-specific cache policy, deferred non-critical evidence/map panels, and a feature-flagged
    composer draft API.

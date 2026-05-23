@@ -40,6 +40,9 @@ Finding Coverage v1 now has an implemented local evidence spine for the March 20
 - Studio finding payloads now carry optional review provenance. Manual B25/BX41 findings are marked
   reviewed/approved, detector-queue findings are marked review candidates with candidate and
   detector IDs, and route-score fallback findings are marked generated candidates.
+- `audit:studio-coverage` verifies that review provenance before publish. The March audit passes
+  with 2 reviewed findings, 48 review candidates, 0 generated fallback findings, 0 missing review
+  records, and no detector review candidate marked approved.
 
 Important boundary: this makes all normalized context data available as evidence context, but it
 does not mean every source can drive primary detector claims. Parking remains context-only until

@@ -23,6 +23,7 @@ async function removeFixture(): Promise<void> {
 async function writeProjection(
   routes: { slug: string; routeId: string }[],
   briefs: { id: string; routeId: string }[],
+  findings: Array<{ id: string; routeId?: string; review?: Record<string, unknown> }> = [],
 ): Promise<void> {
   const studioRoot = join(artifactRoot, "studio", "v1");
   await mkdir(join(studioRoot, "routes"), { recursive: true });
@@ -38,7 +39,18 @@ async function writeProjection(
       })),
     }),
   );
-  await writeFile(join(studioRoot, "findings.json"), JSON.stringify({ findings: [] }));
+  await writeFile(
+    join(studioRoot, "findings.json"),
+    JSON.stringify({
+      findings: findings.map((finding) => ({
+        finding: {
+          id: finding.id,
+          ...(finding.review === undefined ? {} : { review: finding.review }),
+        },
+        route: { routeId: finding.routeId ?? routes[0]?.routeId ?? "M15+" },
+      })),
+    }),
+  );
   for (const route of routes) {
     await mkdir(join(studioRoot, "routes", route.slug), { recursive: true });
   }
@@ -206,6 +218,7 @@ describe("auditStudioCoverage", () => {
     expect(result.projection.briefsListCount).toBe(1);
     expect(result.projection.briefEvidenceDetailCount).toBe(1);
     expect(result.projection.briefHistoryDetailCount).toBe(1);
+    expect(result.projection.findingsMissingReviewCount).toBe(0);
     expect(result.gaps.routesMissingFromProjection).toEqual(["BX12+"]);
     expect(result.gaps.briefsMissingFromProjection).toEqual(["BX12+"]);
     expect(result.status).toBe("warn");
@@ -239,5 +252,80 @@ describe("auditStudioCoverage", () => {
     expect(result.gaps.briefsMissingFromProjection).toEqual([]);
     expect(result.gaps.studioRouteCoverageShare).toBe(1);
     expect(result.gaps.studioBriefCoverageShare).toBe(1);
+    expect(result.projection.reviewedFindingCount).toBe(0);
+    expect(result.projection.reviewCandidateFindingCount).toBe(0);
+    expect(result.gaps.findingsMissingReview).toEqual([]);
+  });
+
+  test("warns when Studio findings lack safe review provenance", async () => {
+    await writeFixture();
+    await writeProjection(
+      [
+        { slug: "m15-sbs", routeId: "M15+" },
+        { slug: "bx12-sbs", routeId: "BX12+" },
+      ],
+      [
+        { id: "m15-madison-corridor", routeId: "M15+" },
+        { id: "brief-bx12-sbs", routeId: "BX12+" },
+      ],
+      [
+        { id: "legacy-finding", routeId: "M15+" },
+        {
+          id: "detector-approved-too-early",
+          routeId: "M15+",
+          review: {
+            publicationState: "review_candidate",
+            reviewState: "approved",
+            source: "detector_review_queue",
+            candidateId: "candidate-1",
+            detectorId: "observed_reliability",
+            claimSafeLabel: "issue_needs_review",
+          },
+        },
+        {
+          id: "reviewed-without-approval",
+          routeId: "BX12+",
+          review: {
+            publicationState: "reviewed",
+            reviewState: "needs_review",
+            source: "manual_review",
+            candidateId: null,
+            detectorId: null,
+            claimSafeLabel: "issue_clean",
+          },
+        },
+        {
+          id: "detector-missing-ref",
+          routeId: "BX12+",
+          review: {
+            publicationState: "review_candidate",
+            reviewState: "needs_review",
+            source: "detector_review_queue",
+            candidateId: null,
+            detectorId: "source_gap",
+            claimSafeLabel: "insufficient_evidence",
+          },
+        },
+      ],
+    );
+
+    const result = await auditStudioCoverage({
+      year: Number(isoMonth.split("-")[0]),
+      month: Number(isoMonth.split("-")[1]),
+      dbPath,
+      artifactRoot,
+      output: auditOutput,
+    });
+
+    expect(result.status).toBe("warn");
+    expect(result.projection.findingsListCount).toBe(4);
+    expect(result.projection.reviewedFindingCount).toBe(1);
+    expect(result.projection.reviewCandidateFindingCount).toBe(2);
+    expect(result.projection.detectorFindingCount).toBe(2);
+    expect(result.projection.findingsMissingReviewCount).toBe(1);
+    expect(result.gaps.findingsMissingReview).toEqual(["legacy-finding"]);
+    expect(result.gaps.reviewCandidatesMarkedApproved).toEqual(["detector-approved-too-early"]);
+    expect(result.gaps.reviewedFindingsWithoutApproval).toEqual(["reviewed-without-approval"]);
+    expect(result.gaps.detectorFindingsMissingRefs).toEqual(["detector-missing-ref"]);
   });
 });

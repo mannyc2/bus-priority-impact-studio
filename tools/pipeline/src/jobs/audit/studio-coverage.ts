@@ -47,10 +47,19 @@ export type StudioCoverageAuditResult = {
     briefHistoryDetailCount: number;
     findingsListCount: number;
     findingDetailCount: number;
+    reviewedFindingCount: number;
+    reviewCandidateFindingCount: number;
+    generatedCandidateFindingCount: number;
+    findingsMissingReviewCount: number;
+    detectorFindingCount: number;
   };
   gaps: {
     routesMissingFromProjection: string[];
     briefsMissingFromProjection: string[];
+    findingsMissingReview: string[];
+    reviewCandidatesMarkedApproved: string[];
+    reviewedFindingsWithoutApproval: string[];
+    detectorFindingsMissingRefs: string[];
     studioRouteCoverageShare: number;
     studioBriefCoverageShare: number;
     findingRouteCount: number;
@@ -126,6 +135,29 @@ function pickNestedField(entry: unknown, path: readonly string[]): string | null
     current = (current as Record<string, unknown>)[key];
   }
   return typeof current === "string" ? current : null;
+}
+
+function findingRecord(entry: unknown): Record<string, unknown> {
+  if (typeof entry !== "object" || entry === null) return {};
+  const record = entry as { finding?: unknown };
+  const nested = record.finding;
+  return typeof nested === "object" && nested !== null
+    ? (nested as Record<string, unknown>)
+    : record;
+}
+
+function reviewRecord(finding: Record<string, unknown>): Record<string, unknown> | null {
+  const review = (finding as { review?: unknown }).review;
+  return typeof review === "object" && review !== null ? (review as Record<string, unknown>) : null;
+}
+
+function stringValue(record: Record<string, unknown>, key: string): string | null {
+  const value = record[key];
+  return typeof value === "string" ? value : null;
+}
+
+function findingId(finding: Record<string, unknown>, fallback: number): string {
+  return stringValue(finding, "id") ?? `finding:${fallback + 1}`;
 }
 
 function aggregateObserved(
@@ -208,6 +240,54 @@ export async function auditStudioCoverage(
         .map((entry) => pickNestedField(entry, ["route", "routeId"]) ?? pickField(entry, "routeId"))
         .filter((id): id is string => id !== null),
     );
+    const findings = findingsList.map(findingRecord);
+    const findingsWithReview = findings.map((finding, index) => ({
+      id: findingId(finding, index),
+      review: reviewRecord(finding),
+    }));
+    const findingsMissingReview = findingsWithReview
+      .filter((finding) => finding.review === null)
+      .map((finding) => finding.id);
+    const reviewStateCounts = findingsWithReview.reduce(
+      (counts, finding) => {
+        const publicationState =
+          finding.review === null ? null : stringValue(finding.review, "publicationState");
+        if (publicationState === "reviewed") counts.reviewed += 1;
+        else if (publicationState === "review_candidate") counts.reviewCandidate += 1;
+        else if (publicationState === "generated_candidate") counts.generatedCandidate += 1;
+        return counts;
+      },
+      { reviewed: 0, reviewCandidate: 0, generatedCandidate: 0 },
+    );
+    const detectorFindings = findingsWithReview.filter(
+      (finding) =>
+        finding.review !== null &&
+        stringValue(finding.review, "source") === "detector_review_queue",
+    );
+    const reviewCandidatesMarkedApproved = findingsWithReview
+      .filter(
+        (finding) =>
+          finding.review !== null &&
+          stringValue(finding.review, "publicationState") === "review_candidate" &&
+          stringValue(finding.review, "reviewState") === "approved",
+      )
+      .map((finding) => finding.id);
+    const reviewedFindingsWithoutApproval = findingsWithReview
+      .filter(
+        (finding) =>
+          finding.review !== null &&
+          stringValue(finding.review, "publicationState") === "reviewed" &&
+          stringValue(finding.review, "reviewState") !== "approved",
+      )
+      .map((finding) => finding.id);
+    const detectorFindingsMissingRefs = detectorFindings
+      .filter(
+        (finding) =>
+          finding.review !== null &&
+          (stringValue(finding.review, "candidateId") === null ||
+            stringValue(finding.review, "detectorId") === null),
+      )
+      .map((finding) => finding.id);
 
     const routesMissingFromProjection = [...publicRouteIds]
       .filter((routeId) => !projectionRouteIds.has(routeId))
@@ -245,11 +325,16 @@ export async function auditStudioCoverage(
     ]);
 
     const status: StudioCoverageAuditResult["status"] =
-      routesMissingFromProjection.length === 0 && briefsMissingFromProjection.length === 0
-        ? "pass"
-        : studioRouteCoverageShare < 0.5 || studioBriefCoverageShare < 0.5
-          ? "fail"
-          : "warn";
+      studioRouteCoverageShare < 0.5 || studioBriefCoverageShare < 0.5
+        ? "fail"
+        : routesMissingFromProjection.length > 0 ||
+            briefsMissingFromProjection.length > 0 ||
+            findingsMissingReview.length > 0 ||
+            reviewCandidatesMarkedApproved.length > 0 ||
+            reviewedFindingsWithoutApproval.length > 0 ||
+            detectorFindingsMissingRefs.length > 0
+          ? "warn"
+          : "pass";
 
     const result: StudioCoverageAuditResult = {
       schemaVersion: 1,
@@ -271,10 +356,19 @@ export async function auditStudioCoverage(
         briefHistoryDetailCount,
         findingsListCount: findingsList.length,
         findingDetailCount: findingDirs.length,
+        reviewedFindingCount: reviewStateCounts.reviewed,
+        reviewCandidateFindingCount: reviewStateCounts.reviewCandidate,
+        generatedCandidateFindingCount: reviewStateCounts.generatedCandidate,
+        findingsMissingReviewCount: findingsMissingReview.length,
+        detectorFindingCount: detectorFindings.length,
       },
       gaps: {
         routesMissingFromProjection,
         briefsMissingFromProjection,
+        findingsMissingReview,
+        reviewCandidatesMarkedApproved,
+        reviewedFindingsWithoutApproval,
+        detectorFindingsMissingRefs,
         studioRouteCoverageShare,
         studioBriefCoverageShare,
         findingRouteCount: projectionFindingRouteIds.size,
