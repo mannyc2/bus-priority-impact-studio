@@ -567,7 +567,7 @@ describe("findings:detect orchestrator", () => {
         "source_gap",
       ],
       hasMultiDetectorSignal: true,
-      evidenceRefCount: 4,
+      evidenceRefCount: 8,
     });
     expect(
       reviewQueue.routeGroups.every(
@@ -780,8 +780,9 @@ describe("findings:detect orchestrator", () => {
             )`,
         )
         .all();
-      expect(evidence).toHaveLength(6);
+      expect(evidence).toHaveLength(7);
       expect(evidence.filter((e) => e.evidence_kind === "missing_data")).toHaveLength(5);
+      expect(evidence.filter((e) => e.evidence_kind === "context_event")).toHaveLength(1);
       expect(evidence.filter((e) => e.evidence_role === "coverage_audit")).toHaveLength(1);
       const hotspotEvidence = sqlite
         .query<{ evidence_kind: string; evidence_role: string }, []>(
@@ -794,7 +795,10 @@ describe("findings:detect orchestrator", () => {
             )`,
         )
         .all();
-      expect(hotspotEvidence).toEqual([{ evidence_kind: "metric", evidence_role: "primary" }]);
+      expect(hotspotEvidence).toEqual([
+        { evidence_kind: "metric", evidence_role: "primary" },
+        { evidence_kind: "context_event", evidence_role: "context" },
+      ]);
       const reliabilityCandidates = sqlite
         .query<
           {

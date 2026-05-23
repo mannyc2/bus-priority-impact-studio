@@ -18,8 +18,9 @@ in production serving storage but is not yet exposed through the route-first Stu
 The key finding: the frontend is no longer production-mocked through fixture imports. Studio route
 listing/search now use the D1-backed public route set, and per-route Studio detail projections are
 generated for the full public route set. Studio briefs now cover the public route set too, with
-dedicated evidence/history projections. The remaining product gap is narrower: findings are a
-thresholded candidate feed rather than detector-grade full-route coverage, generated briefs are not
+dedicated evidence/history projections. Studio findings now prefer the local detector review queue
+instead of the older route-score-only generator. The remaining product gap is narrower: findings are
+review-gated candidates rather than approved publication claims, generated briefs are not
 editorially reviewed by default, and the write-side authoring API is still design-only.
 
 ## Audit Method
@@ -76,9 +77,9 @@ GTFS-RT snapshots and is not part of public Studio serving.
 |---|---|---|
 | Frontend route loaders | `apps/web/src/studio/api-client.ts` calling `/api/v1/studio/*` | Real fetch path, not production fixture imports. |
 | `/api/v1/studio/routes` | D1 route brief summaries + observed reliability rows | D1-backed public route listing; R2 fallback only when `DB` is unset. |
-| `/api/v1/studio/search` | D1-backed route cards + R2 findings/brief cards | Mixed real search surface; routes and briefs cover the public route set, findings are thresholded candidates. |
+| `/api/v1/studio/search` | D1-backed route cards + R2 findings/brief cards | Mixed real search surface; routes and briefs cover the public route set, findings are detector review-queue candidates. |
 | `/api/v1/studio/routes/:slug` | R2 `studio/v1/routes/{slug}/index.json` detail projection | Full-public route details generated from D1/R2 release data, including observed reliability and artifact refs. |
-| Other `/api/v1/studio/*` Worker handlers | R2 `studio/v1/*.json` projections via `loadStudioProjection()` | Real R2-backed API; briefs have full public-route coverage with split evidence/history, findings are capped thresholded candidates. |
+| Other `/api/v1/studio/*` Worker handlers | R2 `studio/v1/*.json` projections via `loadStudioProjection()` | Real R2-backed API; briefs have full public-route coverage with split evidence/history, findings are capped detector candidates. |
 | `/api/v1/routes` | D1 route brief summaries + observed reliability rows | D1-backed all-route compatibility endpoint, not consumed by frontend. |
 | `/api/v1/routes/:id/profile` | D1 route brief summary, observed reliability, route artifacts | Rich D1-backed route profile, not consumed by frontend. |
 | `/api/v1/status` | D1 route batch status + baseline observed reliability + latest non-baseline observed month | Surfaces May 2026 current observed signal when present. |
@@ -178,25 +179,33 @@ Impact:
 `briefsListCount=350`, `briefDetailCount=350`, `briefEvidenceDetailCount=350`,
 `briefHistoryDetailCount=350`, and `studioBriefCoverageShare=1`.
 
-### 6. Findings are thresholded candidates, not detector coverage
+### 6. Findings are detector-backed candidates, not approved claims
 
-**Where:** finding generation in `tools/pipeline/src/jobs/build/studio-release.ts` keeps the
-reviewed permit/context findings, then adds scored generated candidates from the public route set up
-to `--finding-limit` (default 50). The generated score uses speed percentile, rider hours lost,
-observed long-gap share, lane coverage, and flagged segment context. There is still no
-detector-coverage layer yet: no "considered N routes, hit M, skipped K" trail and no per-source
-detector promotion decision.
+**Status:** resolved for detector-backed candidate sourcing and evidence-link integrity; still
+review-gated before publication.
+
+**Where:** `findings:detect` emits local detector candidates, evidence links, and coverage rows.
+`build:studio-release` keeps the reviewed B25/BX41 findings, then fills the public finding feed
+from `data/artifacts/findings/{month}/review-queue.json` before falling back to the old generated
+route-score candidate path. The March 2026 proof uses a 200-item review queue to produce 50 public
+Studio findings: 2 reviewed/manual findings plus 48 detector-derived candidates.
+
+The detector layer now has a per-source evidence eligibility ledger, route-month context features
+across normalized context sources, and an evidence-corpus audit. The March proof has 599 detector
+candidates, 1,188 evidence links, 2,304 coverage rows, and zero unlinked review-queue candidates.
 
 Impact:
 
-- Findings are useful as a broader triage feed, but not proof that quiet routes/corridors have no
-  issues.
-- Parking-derived context remains `release_context_only`; it should not silently become
-  detector-grade evidence until candidate fanout, match weights, and promotion rules are reviewed.
+- Findings are useful as a broader triage feed and now carry detector/evidence provenance, but they
+  are still not reviewer-approved claims.
+- Parking-derived context remains `release_context_only`; the all-source route-month context
+  feature makes parking visible as evidence context without silently promoting it to primary
+  detector evidence.
 
-**Fix outline:** deferred. Needs a separate finding-detector pipeline pass (see
-[[finding_coverage_and_corpus_expansion]]) plus a `finding_detector_run` table in D1 to record
-considered/hit/skipped counts and per-source eligibility.
+**Verify fixed:** `bun --filter @bp/pipeline audit:evidence-corpus -- --year 2026 --month 3`
+passes with 12 source eligibility rows, 381 route-month signal features, 6 context sources, 599
+detector candidates, 1,188 evidence links, 2,304 coverage rows, and 0 unlinked review-queue
+candidates.
 
 ### 7. Write-side agent API is design-only
 
@@ -351,9 +360,10 @@ first, smallest user-visible win next, then schema/projection expansion, then pu
 | 7 | Done | Manifest/D1-driven publish + completeness check | `tools/pipeline/src/lib/publish-artifact-keys.ts`, `tools/pipeline/src/checks/check-publish-completeness.ts`, `tools/pipeline/src/jobs/publish/publish-r2-artifacts.ts` |
 | 8 | Done | Worker tests for split brief projections and missing-projection fail-closed behavior | `apps/web/test/worker/index.worker.test.ts`, new fixture cases |
 
-Finding detector coverage (gap #6) and the write-side agent API (gap #7) are deliberately not in
-this queue; they need product/auth decisions first (see [[ai_interaction_model]] and
-[[agent_author_api]]).
+Finding detector source expansion is now partly implemented through detector candidates, source
+eligibility, route-month context features, and the evidence-corpus audit. The remaining finding
+work is source-specific detector promotion and reviewer approval. The write-side agent API (gap #7)
+still needs product/auth decisions first (see [[ai_interaction_model]] and [[agent_author_api]]).
 
 ## Verification Targets
 
@@ -377,6 +387,6 @@ bun run check:web-release
 The route-facing cutover is mostly done: `/api/v1/studio/routes` exposes all public routes D1 can
 serve, route details carry observed reliability and artifact refs, and `/api/v1/status` surfaces the
 current appendix. Studio briefs also cover the public route set with split evidence/history
-projection artifacts, and publish completeness is manifest/D1-driven. The remaining cutover is
-finding detector coverage, generated-brief editorial workflow, and eventually the write-side
-authoring API.
+projection artifacts, Studio findings now derive from detector review-queue candidates, and publish
+completeness is manifest/D1-driven. The remaining cutover is source-specific detector promotion,
+generated-brief editorial workflow, and eventually the write-side authoring API.

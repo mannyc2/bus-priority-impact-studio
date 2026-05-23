@@ -29,9 +29,26 @@ const SourceDecisionSchema = z.enum([
   "current_signal_only",
   "excluded_until_fixed",
 ]);
+const EvidenceRoleSchema = z.enum([
+  "primary",
+  "context",
+  "caveat",
+  "missing_data",
+  "coverage_audit",
+]);
+const DetectorEligibilitySchema = z.enum([
+  "automatic_primary",
+  "manual_review_primary",
+  "context_only",
+  "current_signal_only",
+  "missing_data_only",
+  "blocked",
+]);
 
 export type SourceRole = z.infer<typeof SourceRoleSchema>;
 export type SourceDecision = z.infer<typeof SourceDecisionSchema>;
+export type EvidenceRole = z.infer<typeof EvidenceRoleSchema>;
+export type DetectorEligibility = z.infer<typeof DetectorEligibilitySchema>;
 
 export type SourceCoverageLedgerEntry = {
   sourceId: string;
@@ -56,6 +73,13 @@ export type SourceCoverageLedgerEntry = {
     status: "ready" | "needs_backfill" | "needs_decision" | "blocked" | "sample_only";
     reasons: string[];
   };
+  evidence: {
+    allowedRoles: EvidenceRole[];
+    detectorEligibility: DetectorEligibility;
+    primaryEvidenceAllowed: boolean;
+    automaticPromotionAllowed: boolean;
+    blockers: string[];
+  };
 };
 
 export type SourceCoverageLedger = {
@@ -65,6 +89,7 @@ export type SourceCoverageLedger = {
   summary: {
     sourceCount: number;
     decisionCounts: Record<SourceDecision, number>;
+    detectorEligibilityCounts: Record<DetectorEligibility, number>;
     sourcesNeedingAction: number;
   };
   sources: SourceCoverageLedgerEntry[];
@@ -86,6 +111,9 @@ export type SourceConfig = {
   requireRows?: boolean;
   forceDecision?: SourceDecision;
   forceReason?: string;
+  detectorEligibility?: DetectorEligibility;
+  allowedEvidenceRoles?: readonly EvidenceRole[];
+  automaticPromotionAllowed?: boolean;
 };
 
 type SourceCoverageLedgerArgs = {
@@ -123,6 +151,7 @@ const SOURCE_CONFIGS: readonly SourceConfig[] = [
     joinTable: "local_context_event",
     joinSourceIds: ["nyc_dot_street_construction_permits", "nyc_dot_street_opening_permits"],
     minGeocodeRate: 0.9,
+    detectorEligibility: "automatic_primary",
   },
   {
     sourceId: "nypd_collisions",
@@ -135,6 +164,7 @@ const SOURCE_CONFIGS: readonly SourceConfig[] = [
     joinTable: "local_context_event",
     joinSourceId: "nypd_motor_vehicle_collisions",
     minGeocodeRate: 0.9,
+    detectorEligibility: "manual_review_primary",
   },
   {
     sourceId: "ace_violation_summaries",
@@ -143,6 +173,7 @@ const SOURCE_CONFIGS: readonly SourceConfig[] = [
     role: "historical",
     targetStartMonth: "2023-04",
     targetEndMonth: "2026-04",
+    detectorEligibility: "automatic_primary",
   },
   {
     sourceId: "observed_reliability",
@@ -151,6 +182,7 @@ const SOURCE_CONFIGS: readonly SourceConfig[] = [
     role: "historical",
     targetStartMonth: "2023-04",
     targetEndMonth: "2026-05",
+    detectorEligibility: "automatic_primary",
   },
   {
     sourceId: "bus_wait_assessment",
@@ -160,6 +192,7 @@ const SOURCE_CONFIGS: readonly SourceConfig[] = [
     targetStartMonth: "2023-04",
     targetEndMonth: "2026-03",
     requireRows: true,
+    detectorEligibility: "automatic_primary",
   },
   {
     sourceId: "311_service_requests",
@@ -173,6 +206,8 @@ const SOURCE_CONFIGS: readonly SourceConfig[] = [
     joinSourceIds: ["nyc_311_service_requests_current", "nyc_311_service_requests_historical"],
     forceReason:
       "Raw 311 history is loaded for the target window, but route-context use is limited to geocoded/joined rows and must carry join-rate caveats.",
+    detectorEligibility: "manual_review_primary",
+    automaticPromotionAllowed: false,
   },
   {
     sourceId: "parking_violations",
@@ -185,6 +220,8 @@ const SOURCE_CONFIGS: readonly SourceConfig[] = [
     forceDecision: "release_context_only",
     forceReason:
       "Parking is raw-complete for the 2023-present window. Dedicated parking location candidates recover route context for many camera and street-code rows, but physical_id geocoding remains low and candidate fanout/confidence must stay visible; use as release context, not detector-grade historical evidence.",
+    detectorEligibility: "context_only",
+    automaticPromotionAllowed: false,
   },
   {
     sourceId: "dot_traffic_volume_counts",
@@ -196,6 +233,8 @@ const SOURCE_CONFIGS: readonly SourceConfig[] = [
     joinSourceId: "nyc_dot_automated_traffic_volume_counts",
     forceDecision: "release_context_only",
     forceReason: "Current corpus has a sampled January 2024 window, not full historical coverage.",
+    detectorEligibility: "context_only",
+    automaticPromotionAllowed: false,
   },
   {
     sourceId: "dot_traffic_speeds",
@@ -208,6 +247,8 @@ const SOURCE_CONFIGS: readonly SourceConfig[] = [
     forceDecision: "current_signal_only",
     forceReason:
       "Live DOT traffic speeds are a current snapshot source, not a historical backfill.",
+    detectorEligibility: "current_signal_only",
+    automaticPromotionAllowed: false,
   },
   {
     sourceId: "weather_observations",
@@ -216,6 +257,8 @@ const SOURCE_CONFIGS: readonly SourceConfig[] = [
     role: "historical",
     targetStartMonth: "2023-04",
     targetEndMonth: "2026-05",
+    detectorEligibility: "manual_review_primary",
+    automaticPromotionAllowed: false,
   },
   {
     sourceId: "equity_context",
@@ -225,6 +268,8 @@ const SOURCE_CONFIGS: readonly SourceConfig[] = [
     requireRows: true,
     targetStartMonth: "2026-03",
     targetEndMonth: "2026-03",
+    detectorEligibility: "context_only",
+    automaticPromotionAllowed: false,
   },
 ];
 
@@ -251,6 +296,13 @@ const SourceCoverageLedgerEntrySchema = z.object({
     status: z.enum(["ready", "needs_backfill", "needs_decision", "blocked", "sample_only"]),
     reasons: z.array(z.string()),
   }),
+  evidence: z.object({
+    allowedRoles: z.array(EvidenceRoleSchema),
+    detectorEligibility: DetectorEligibilitySchema,
+    primaryEvidenceAllowed: z.boolean(),
+    automaticPromotionAllowed: z.boolean(),
+    blockers: z.array(z.string()),
+  }),
 });
 
 export const SourceCoverageLedgerSchema = z.object({
@@ -260,6 +312,7 @@ export const SourceCoverageLedgerSchema = z.object({
   summary: z.object({
     sourceCount: z.number().int().nonnegative(),
     decisionCounts: z.record(SourceDecisionSchema, z.number().int().nonnegative()),
+    detectorEligibilityCounts: z.record(DetectorEligibilitySchema, z.number().int().nonnegative()),
     sourcesNeedingAction: z.number().int().nonnegative(),
   }),
   sources: z.array(SourceCoverageLedgerEntrySchema),
@@ -538,11 +591,71 @@ function classifySource(input: {
   };
 }
 
+function evidenceEligibility(input: {
+  config: SourceConfig;
+  decision: SourceDecision;
+  readiness: SourceCoverageLedgerEntry["readiness"];
+}): SourceCoverageLedgerEntry["evidence"] {
+  const blockers = [...input.readiness.reasons];
+  if (input.readiness.status === "blocked") {
+    blockers.unshift("source is blocked for detector use");
+  }
+  if (input.readiness.status === "needs_backfill") {
+    blockers.unshift("source range is incomplete for the target evidence window");
+  }
+  if (input.readiness.status === "needs_decision") {
+    blockers.unshift("source quality needs a manual promotion decision");
+  }
+
+  const defaultEligibility: DetectorEligibility =
+    input.decision === "complete_for_history"
+      ? input.readiness.status === "ready"
+        ? "automatic_primary"
+        : "manual_review_primary"
+      : input.decision === "release_context_only"
+        ? "context_only"
+        : input.decision === "current_signal_only"
+          ? "current_signal_only"
+          : input.decision === "excluded_until_fixed"
+            ? "blocked"
+            : "missing_data_only";
+  const detectorEligibility = input.config.detectorEligibility ?? defaultEligibility;
+  const defaultRoles: EvidenceRole[] =
+    detectorEligibility === "automatic_primary" || detectorEligibility === "manual_review_primary"
+      ? ["primary", "context", "caveat", "coverage_audit"]
+      : detectorEligibility === "context_only" || detectorEligibility === "current_signal_only"
+        ? ["context", "caveat", "coverage_audit"]
+        : detectorEligibility === "missing_data_only"
+          ? ["missing_data", "coverage_audit"]
+          : ["coverage_audit"];
+  const allowedRoles = [...(input.config.allowedEvidenceRoles ?? defaultRoles)];
+  const primaryEvidenceAllowed = allowedRoles.includes("primary");
+  const automaticPromotionAllowed =
+    input.config.automaticPromotionAllowed ??
+    (detectorEligibility === "automatic_primary" &&
+      input.readiness.status === "ready" &&
+      input.decision === "complete_for_history");
+
+  return {
+    allowedRoles,
+    detectorEligibility,
+    primaryEvidenceAllowed,
+    automaticPromotionAllowed,
+    blockers,
+  };
+}
+
 function emptyDecisionCounts(): Record<SourceDecision, number> {
   return Object.fromEntries(DECISIONS.map((decision) => [decision, 0])) as Record<
     SourceDecision,
     number
   >;
+}
+
+function emptyDetectorEligibilityCounts(): Record<DetectorEligibility, number> {
+  return Object.fromEntries(
+    DetectorEligibilitySchema.options.map((eligibility) => [eligibility, 0]),
+  ) as Record<DetectorEligibility, number>;
 }
 
 export function sourceCoverageLedgerPath(artifactRoot: string, month: string): string {
@@ -573,6 +686,14 @@ export function buildSourceCoverageLedger(input: {
           status: config.forceDecision === "excluded_until_fixed" ? "blocked" : "needs_backfill",
           reasons: [`table ${config.tableName} is missing`],
         },
+        evidence: evidenceEligibility({
+          config,
+          decision: config.forceDecision ?? "backfill_required",
+          readiness: {
+            status: config.forceDecision === "excluded_until_fixed" ? "blocked" : "needs_backfill",
+            reasons: [`table ${config.tableName} is missing`],
+          },
+        }),
       };
       sources.push(entry);
       continue;
@@ -601,12 +722,19 @@ export function buildSourceCoverageLedger(input: {
       geocode,
       join,
       readiness: classification.readiness,
+      evidence: evidenceEligibility({
+        config,
+        decision: classification.decision,
+        readiness: classification.readiness,
+      }),
     });
   }
 
   const decisionCounts = emptyDecisionCounts();
+  const detectorEligibilityCounts = emptyDetectorEligibilityCounts();
   for (const source of sources) {
     decisionCounts[source.decision] += 1;
+    detectorEligibilityCounts[source.evidence.detectorEligibility] += 1;
   }
 
   const artifact = {
@@ -616,6 +744,7 @@ export function buildSourceCoverageLedger(input: {
     summary: {
       sourceCount: sources.length,
       decisionCounts,
+      detectorEligibilityCounts,
       sourcesNeedingAction: sources.filter(
         (source) =>
           ["backfill_required", "excluded_until_fixed"].includes(source.decision) ||

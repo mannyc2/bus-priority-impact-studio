@@ -1313,3 +1313,18 @@ full-route detector-coverage claim. `audit:studio-coverage` now verifies route a
 against public `route_brief_summary` rows and reports finding coverage separately; the March audit
 passes with `studioRouteCoverageShare=1`, `studioBriefCoverageShare=1`, `findingRouteCount=50`, and
 `studioFindingCoverageShare=0.1429`.
+
+All-source evidence integration pass: extended the source coverage ledger into a source evidence
+eligibility ledger with allowed evidence roles, detector eligibility, automatic-promotion flags, and
+blockers. Extended route-month signal features so every route now carries all normalized context
+source counts, match weights, high-confidence touch counts, fanout, and provenance, not just permit
+counts. `findings:detect` now attaches that route-month context evidence to detector candidates as
+context evidence links while preserving primary metric evidence. Added `audit:evidence-corpus` to
+verify the chain from source eligibility to signal features, detector evidence, and review queue.
+March 2026 proof passes: 12 source groups, 8 primary-eligible sources, 5 automatic-primary sources,
+3 manual-review-primary sources, 4 context/current-signal-only sources, 381 route-month features, 6
+context sources, 599 detector candidates, 1,188 evidence links, 2,304 coverage rows, and 0 unlinked
+review-queue candidates. The default detector review queue cap is now 200 so public Studio can fill
+its 50 finding slots from detector candidates without falling back to route-score generation.
+Rebuilt Studio from that 200-candidate detector review queue; public Studio findings remain at 50,
+now composed of 2 reviewed/manual findings plus 48 detector-derived review candidates.

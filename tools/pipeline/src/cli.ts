@@ -551,6 +551,14 @@ const commands = {
       return buildSourceCoverageLedgerFromCli(args);
     },
   },
+  "audit:evidence-corpus": {
+    description:
+      "Verify source eligibility, route-month evidence features, detector evidence links, and review queue coverage.",
+    run: async (args) => {
+      const { auditEvidenceCorpusFromCli } = await import("./jobs/audit/evidence-corpus.js");
+      return auditEvidenceCorpusFromCli(args);
+    },
+  },
   "audit:parking-candidate-quality": {
     description:
       "Audit parking candidate fanout and match weights before any detector-grade promotion.",

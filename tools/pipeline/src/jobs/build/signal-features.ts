@@ -5,6 +5,8 @@ import { detectPermitCorrelatedSlowdowns } from "@bp/analytics";
 import {
   type FindingSignalFeaturesArtifact,
   FindingSignalFeaturesArtifactSchema,
+  type RouteMonthContextEventFeature,
+  RouteMonthContextEventFeatureSchema,
   type RouteMonthSignalFeature,
   RouteMonthSignalFeatureSchema,
 } from "@bp/domain";
@@ -56,6 +58,59 @@ export function buildRouteMonthSignalFeaturesFromSqlite(args: {
 }): RouteMonthSignalFeature[] {
   const windowStart = `${args.isoMonth}-01T00:00:00`;
   const windowEnd = nextIsoMonthStart(args.year, args.month);
+  const contextRows = args.sqlite
+    .query<
+      {
+        route_id: string;
+        source_id: string;
+        event_kind: string;
+        touched_event_count: number;
+        touch_count: number;
+        primary_touch_count: number;
+        context_touch_count: number;
+        high_confidence_touch_count: number;
+        match_weight_sum: number;
+        average_match_weight: number;
+        max_route_fanout: number;
+      },
+      [string, string]
+    >(
+      `SELECT route_id,
+              source_id,
+              event_kind,
+              count(DISTINCT event_id) AS touched_event_count,
+              count(*) AS touch_count,
+              sum(CASE WHEN evidence_role = 'primary' THEN 1 ELSE 0 END) AS primary_touch_count,
+              sum(CASE WHEN evidence_role = 'context' THEN 1 ELSE 0 END) AS context_touch_count,
+              sum(CASE WHEN match_weight >= 0.8 AND route_fanout <= 3 THEN 1 ELSE 0 END) AS high_confidence_touch_count,
+              coalesce(sum(match_weight), 0) AS match_weight_sum,
+              coalesce(avg(match_weight), 0) AS average_match_weight,
+              coalesce(max(route_fanout), 0) AS max_route_fanout
+         FROM local_context_event_route_touch
+        WHERE occurred_at >= ?
+          AND occurred_at < ?
+        GROUP BY route_id, source_id, event_kind
+        ORDER BY route_id, source_id, event_kind`,
+    )
+    .all(windowStart, windowEnd);
+  const contextByRoute = new Map<string, RouteMonthContextEventFeature[]>();
+  for (const row of contextRows) {
+    const feature = RouteMonthContextEventFeatureSchema.parse({
+      sourceId: row.source_id,
+      eventKind: row.event_kind,
+      touchedEventCount: row.touched_event_count,
+      touchCount: row.touch_count,
+      primaryTouchCount: row.primary_touch_count,
+      contextTouchCount: row.context_touch_count,
+      highConfidenceTouchCount: row.high_confidence_touch_count,
+      matchWeightSum: Number(row.match_weight_sum.toFixed(4)),
+      averageMatchWeight: Number(row.average_match_weight.toFixed(4)),
+      maxRouteFanout: row.max_route_fanout,
+    });
+    const existing = contextByRoute.get(row.route_id) ?? [];
+    existing.push(feature);
+    contextByRoute.set(row.route_id, existing);
+  }
   const rows = args.sqlite
     .query<
       {
@@ -118,6 +173,23 @@ export function buildRouteMonthSignalFeaturesFromSqlite(args: {
   return rows.map((row) => {
     const speedObservationCount = row.speed_observation_count ?? 0;
     const isComputable = speedObservationCount > 0;
+    const contextEventCounts = contextByRoute.get(row.route_id) ?? [];
+    const contextTouchedEventCount = contextEventCounts.reduce(
+      (total, context) => total + context.touchedEventCount,
+      0,
+    );
+    const contextTouchCount = contextEventCounts.reduce(
+      (total, context) => total + context.touchCount,
+      0,
+    );
+    const contextPrimaryTouchCount = contextEventCounts.reduce(
+      (total, context) => total + context.primaryTouchCount,
+      0,
+    );
+    const contextHighConfidenceTouchCount = contextEventCounts.reduce(
+      (total, context) => total + context.highConfidenceTouchCount,
+      0,
+    );
     return RouteMonthSignalFeatureSchema.parse({
       scope: "route",
       scopeId: row.route_id,
@@ -134,10 +206,17 @@ export function buildRouteMonthSignalFeaturesFromSqlite(args: {
       permitTouchCount: row.permit_touch_count,
       permitRouteCount: row.permit_route_count,
       permitSources: row.permit_sources?.split(",").sort() ?? [],
+      contextTouchedEventCount,
+      contextTouchCount,
+      contextPrimaryTouchCount,
+      contextHighConfidenceTouchCount,
+      contextEventCounts,
       sampleSupport: speedObservationCount,
       uncertainty: {
         speedObservationCount,
         permitTouchedEventCount: row.permit_touched_event_count,
+        contextTouchedEventCount,
+        contextHighConfidenceTouchCount,
       },
       provenance: {
         featureComputedAt: args.generatedAt,
@@ -145,6 +224,7 @@ export function buildRouteMonthSignalFeaturesFromSqlite(args: {
         sourceRefs: [
           `local_route_hotspot_summary:${row.route_id}:${args.isoMonth}`,
           `local_context_event_route_touch:${row.route_id}:permit:${args.isoMonth}`,
+          `local_context_event_route_touch:${row.route_id}:all:${args.isoMonth}`,
         ],
       },
       coverage: {
@@ -191,6 +271,14 @@ export function buildFindingSignalFeaturesArtifact(args: {
       permitTouchedFeatureCount: args.features.filter(
         (feature) => feature.permitTouchedEventCount > 0,
       ).length,
+      contextTouchedFeatureCount: args.features.filter(
+        (feature) => feature.contextTouchedEventCount > 0,
+      ).length,
+      contextSourceCount: new Set(
+        args.features.flatMap((feature) =>
+          feature.contextEventCounts.map((context) => context.sourceId),
+        ),
+      ).size,
       detectorCandidateCount: detectorPreview.candidates.length,
     },
     features: args.features,

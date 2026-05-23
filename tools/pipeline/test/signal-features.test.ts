@@ -119,8 +119,26 @@ describe("findings:signal-features", () => {
       scope: "route",
       window: "all_day",
       permitTouchedEventCount: 30,
-      uncertainty: { speedObservationCount: 700, permitTouchedEventCount: 30 },
+      contextTouchedEventCount: 30,
+      contextHighConfidenceTouchCount: 30,
+      contextEventCounts: [
+        expect.objectContaining({
+          sourceId: "nyc_dot_street_construction_permits",
+          eventKind: "permit",
+          touchedEventCount: 30,
+          highConfidenceTouchCount: 30,
+        }),
+      ],
+      uncertainty: {
+        speedObservationCount: 700,
+        permitTouchedEventCount: 30,
+        contextTouchedEventCount: 30,
+      },
       provenance: { derivationVersion: "route_month_signal_features.v1" },
+    });
+    expect(artifact.summary).toMatchObject({
+      contextTouchedFeatureCount: 1,
+      contextSourceCount: 1,
     });
     expect(artifact.detectorPreview.candidates[0].detectorId).toBe("permit_correlated_slowdown");
   });

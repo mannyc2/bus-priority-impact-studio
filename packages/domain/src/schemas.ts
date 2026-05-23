@@ -1064,6 +1064,32 @@ export const SignalFeatureWindowSchema = registerProjectSchema(
 
 export type SignalFeatureWindow = z.output<typeof SignalFeatureWindowSchema>;
 
+export const RouteMonthContextEventFeatureSchema = registerProjectSchema(
+  z
+    .object({
+      sourceId: z.string().min(1),
+      eventKind: z.string().min(1),
+      touchedEventCount: z.number().int().nonnegative(),
+      touchCount: z.number().int().nonnegative(),
+      primaryTouchCount: z.number().int().nonnegative(),
+      contextTouchCount: z.number().int().nonnegative(),
+      highConfidenceTouchCount: z.number().int().nonnegative(),
+      matchWeightSum: z.number().nonnegative(),
+      averageMatchWeight: z.number().nonnegative(),
+      maxRouteFanout: z.number().int().nonnegative(),
+    })
+    .strict(),
+  {
+    id: "bp.finding.route_month_context_event_feature.v1",
+    title: "Route Month Context Event Feature",
+    description:
+      "Per-route/month context-event support for one source/event-kind pair, including fanout and match-weight uncertainty.",
+    stability: "draft",
+  },
+);
+
+export type RouteMonthContextEventFeature = z.output<typeof RouteMonthContextEventFeatureSchema>;
+
 export const RouteMonthSignalFeatureSchema = registerProjectSchema(
   z
     .object({
@@ -1082,11 +1108,18 @@ export const RouteMonthSignalFeatureSchema = registerProjectSchema(
       permitTouchCount: z.number().int().nonnegative(),
       permitRouteCount: z.number().int().nonnegative(),
       permitSources: z.array(z.string().min(1)),
+      contextTouchedEventCount: z.number().int().nonnegative(),
+      contextTouchCount: z.number().int().nonnegative(),
+      contextPrimaryTouchCount: z.number().int().nonnegative(),
+      contextHighConfidenceTouchCount: z.number().int().nonnegative(),
+      contextEventCounts: z.array(RouteMonthContextEventFeatureSchema),
       sampleSupport: z.number().int().nonnegative(),
       uncertainty: z
         .object({
           speedObservationCount: z.number().int().nonnegative(),
           permitTouchedEventCount: z.number().int().nonnegative(),
+          contextTouchedEventCount: z.number().int().nonnegative(),
+          contextHighConfidenceTouchCount: z.number().int().nonnegative(),
         })
         .strict(),
       provenance: z
@@ -1136,6 +1169,8 @@ export const FindingSignalFeaturesArtifactSchema = registerProjectSchema(
           featureCount: z.number().int().nonnegative(),
           computableFeatureCount: z.number().int().nonnegative(),
           permitTouchedFeatureCount: z.number().int().nonnegative(),
+          contextTouchedFeatureCount: z.number().int().nonnegative(),
+          contextSourceCount: z.number().int().nonnegative(),
           detectorCandidateCount: z.number().int().nonnegative(),
         })
         .strict(),

@@ -1,6 +1,6 @@
 import { Database } from "bun:sqlite";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import {
   listRouteArtifacts,
   listRouteBriefSummaries,
@@ -65,7 +65,27 @@ type CliOptions = {
   seedPath: string;
   routeLimit: number;
   findingLimit: number;
+  reviewQueuePath: string;
   profile: ReleaseProfile;
+};
+
+type ReviewQueueCandidate = {
+  candidateId: string;
+  detectorId: string;
+  routeId: string | null;
+  reasonCode: string;
+  category: string;
+  severity: string;
+  confidence: string;
+  detectorScore: number;
+  claimText: string;
+  evidenceRefCount?: number;
+  evidenceRefs?: string[];
+};
+
+type ReviewQueueArtifact = {
+  artifactKind?: string;
+  candidates?: ReviewQueueCandidate[];
 };
 
 type RouteBriefInputArtifact = {
@@ -129,8 +149,9 @@ function parseProfile(value: string | undefined): ReleaseProfile {
 }
 
 function parseOptions(args: readonly string[]): CliOptions {
+  const month = readFlag(args, "--month") ?? defaultMonth;
   return {
-    month: readFlag(args, "--month") ?? defaultMonth,
+    month,
     outputPath: readFlag(args, "--output") ?? defaultOutputPath,
     schemaPath: readFlag(args, "--schema") ?? defaultSchemaPath,
     seedPath: readFlag(args, "--seed") ?? defaultSeedPath,
@@ -140,6 +161,9 @@ function parseOptions(args: readonly string[]): CliOptions {
       defaultFindingLimit,
       "--finding-limit",
     ),
+    reviewQueuePath:
+      readFlag(args, "--review-queue") ??
+      join("data/artifacts/findings", month, "review-queue.json"),
     profile: parseProfile(readFlag(args, "--profile")),
   };
 }
@@ -461,6 +485,78 @@ function buildFinding(route: StudioRoute, segment: StudioSegment | undefined): S
     },
     comparableRoutes: [],
   };
+}
+
+function humanizeReason(value: string): string {
+  return value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function detectorCategory(candidate: ReviewQueueCandidate): StudioFinding["category"] {
+  if (candidate.reasonCode.includes("intervention")) return "Treatment gap";
+  if (candidate.reasonCode.includes("gap") || candidate.category === "data_quality") {
+    return "Anomaly";
+  }
+  return "Emerging risk";
+}
+
+function buildDetectorFinding(candidate: ReviewQueueCandidate, route: StudioRoute): StudioFinding {
+  const evidenceCount = candidate.evidenceRefCount ?? candidate.evidenceRefs?.length ?? 0;
+  return {
+    id: `detector-${candidate.candidateId}`,
+    category: detectorCategory(candidate),
+    routeSlug: route.slug,
+    title: `${route.label}: ${humanizeReason(candidate.reasonCode)}`,
+    body: candidate.claimText,
+    metric: `${Math.round(candidate.detectorScore)}/100 detector score`,
+    confidence: candidate.confidence === "high" ? "high" : "moderate",
+    borough: route.borough,
+    reasoning: [
+      {
+        index: 1,
+        title: "Detector candidate",
+        detail: candidate.claimText,
+        source: `local_finding_candidate:${candidate.detectorId}`,
+        tone: candidate.severity === "high" ? "warn" : "accent",
+      },
+      {
+        index: 2,
+        title: "Evidence links",
+        detail: `${evidenceCount} detector evidence reference${evidenceCount === 1 ? "" : "s"} are attached for reviewer validation.`,
+        source: "local_finding_evidence_link",
+        tone: evidenceCount > 0 ? "accent" : "warn",
+      },
+    ],
+    caveat: {
+      title: "Detector review candidate",
+      body: "This finding is derived from the local detector review queue. It should stay review-gated until the underlying evidence and source eligibility are approved for publication.",
+    },
+    comparableRoutes: [],
+  };
+}
+
+async function readDetectorFindingsFromReviewQueue(input: {
+  path: string;
+  routes: readonly StudioRoute[];
+  limit: number;
+  excludedRouteSlugs: ReadonlySet<string>;
+}): Promise<StudioFinding[]> {
+  const artifact = await readJsonIfExists<ReviewQueueArtifact>(fromRepoRoot(input.path));
+  if (artifact?.artifactKind !== "finding_review_queue" || artifact.candidates === undefined) {
+    return [];
+  }
+
+  const routeById = new Map(input.routes.map((route) => [route.routeId, route]));
+  const usedRouteSlugs = new Set(input.excludedRouteSlugs);
+  const findings: StudioFinding[] = [];
+  for (const candidate of artifact.candidates) {
+    if (findings.length >= input.limit) break;
+    if (candidate.routeId === null) continue;
+    const route = routeById.get(candidate.routeId);
+    if (route === undefined || usedRouteSlugs.has(route.slug)) continue;
+    findings.push(buildDetectorFinding(candidate, route));
+    usedRouteSlugs.add(route.slug);
+  }
+  return findings;
 }
 
 function generatedFindingScore(route: StudioRoute, segment: StudioSegment | undefined): number {
@@ -852,12 +948,22 @@ async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> 
       const finding = buildReviewedFinding(route);
       return finding === null ? [] : [finding];
     });
-    const generatedFindings = selectGeneratedFindings({
+    const remainingFindingSlots = Math.max(0, options.findingLimit - reviewedFindings.length);
+    const detectorFindings = await readDetectorFindingsFromReviewQueue({
+      path: options.reviewQueuePath,
       routes,
-      segments,
-      reviewedFindings,
-      limit: Math.max(0, options.findingLimit - reviewedFindings.length),
+      limit: remainingFindingSlots,
+      excludedRouteSlugs: new Set(reviewedFindings.map((finding) => finding.routeSlug)),
     });
+    const generatedFindings =
+      detectorFindings.length > 0
+        ? detectorFindings
+        : selectGeneratedFindings({
+            routes,
+            segments,
+            reviewedFindings,
+            limit: remainingFindingSlots,
+          });
     const findings = [...reviewedFindings, ...generatedFindings];
     const routeArtifactRouteIds = new Set(routeArtifacts.map((artifact) => artifact.routeId));
     const briefs = routes

@@ -88,9 +88,9 @@ for route ⇄ LION corridor joins.
    `shouldRebuild=true` triggers a manual PC rebuild/publish run. Do not add a Queue until there is
    a concrete retry/fanout need.
 4. Finish remaining `/api/v1/studio/*` depth: route listing/search and generated Studio briefs
-   now cover the public route set, and route detail carries observed reliability plus artifact
-   refs; Studio findings are still a thresholded candidate feed, not detector-grade full-route
-   evidence.
+   now cover the public route set, route detail carries observed reliability plus artifact refs,
+   and Studio findings now prefer detector review-queue candidates. Findings remain review-gated
+   candidates, not approved publication claims.
 5. Implement the remaining web app support plan: add signal-aware route loaders,
    route-specific cache policy, deferred non-critical evidence/map panels, and a feature-flagged
    composer draft API.
@@ -104,9 +104,9 @@ for route ⇄ LION corridor joins.
    official self-collected current observed appendix until matching public speed rows exist.
 9. Reduce remaining bus-lane source gaps where public dates can be recovered, and get external
    transit-domain review of the peer-adjusted ACE/ABLE/bus-lane method before causal claims.
-10. Start the post-v1 finding coverage track: emit detector considered/hit/skipped counts, source-gap
-    findings, join success metrics, and a Tier 1 corpus probe backlog before claiming that quiet
-    routes/corridors have no issues.
+10. Continue the post-v1 finding coverage track: detector considered/hit/skipped counts, source-gap
+    findings, join success metrics, source evidence eligibility, and route-month context features
+    now exist; next work is source-specific detectors and reviewer promotion rules.
 11. Add the Tier 2 document corpus pipeline for policy/intervention documents, but keep source
     promotion, entity linking, metric computation, and publish validation deterministic.
 12. Route score uses a two-factor formula; incorporate ridership weight, persistence, reliability,

@@ -74,6 +74,7 @@
     "build:studio-release": "bun run src/cli.ts build:studio-release",
     "audit:studio-coverage": "bun run src/cli.ts audit:studio-coverage",
     "audit:source-coverage": "bun run src/cli.ts audit:source-coverage",
+    "audit:evidence-corpus": "bun run src/cli.ts audit:evidence-corpus",
     "audit:parking-candidate-quality": "bun run src/cli.ts audit:parking-candidate-quality",
     "route-equity-context": "bun run src/cli.ts route-equity-context",
     "export:d1": "bun run src/cli.ts export:d1",

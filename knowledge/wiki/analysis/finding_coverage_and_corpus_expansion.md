@@ -1,8 +1,8 @@
 ---
 title: Finding Coverage and Corpus Expansion
 type: analysis
-status: planned
-last_updated: 2026-05-19
+status: active
+last_updated: 2026-05-23
 owner: codex
 source_count: 12
 tags: [findings, corpus, data-quality, pipeline-v2, false-negatives]
@@ -19,6 +19,28 @@ After Pipeline v1, the next analytical risk is missed findings. A quiet route/co
 3. The evidence needed to see the pattern is missing, late, too coarse, or not joined correctly.
 
 Pipeline v2 should treat all three cases explicitly. The goal is not just to ingest more data. The goal is to make the app honest about what it looked for, what it found, and what it could not evaluate.
+
+## Implementation Status - 2026-05-23
+
+Finding Coverage v1 now has an implemented local evidence spine for the March 2026 release:
+
+- `audit:source-coverage` writes source evidence eligibility for 12 source groups, including
+  allowed evidence roles, detector eligibility, and automatic-promotion flags.
+- `findings:signal-features` writes 381 route-month signal features with all normalized context
+  source counts, match weights, high-confidence touch counts, fanout, and provenance.
+- `findings:detect` writes six detector families, 599 candidates, evidence links, coverage rows,
+  and a review queue. Detector candidates now receive route-month context evidence links in
+  addition to their primary metric/source evidence.
+- `build:studio-release` fills public Studio findings from the detector review queue before using
+  any route-score fallback. The March proof produces 50 public findings: 2 reviewed/manual findings
+  and 48 detector-derived review candidates.
+- `audit:evidence-corpus` verifies the chain. March 2026 passes with 12 source eligibility rows,
+  381 route-month features, 6 context sources, 599 detector candidates, 1,188 evidence links, 2,304
+  coverage rows, and zero unlinked review-queue candidates.
+
+Important boundary: this makes all normalized context data available as evidence context, but it
+does not mean every source can drive primary detector claims. Parking remains context-only until
+fanout, weights, and promotion rules are explicitly reviewed.
 
 ## Post-v1 Answer
 

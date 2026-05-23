@@ -90,12 +90,26 @@ describe("source coverage ledger", () => {
         current_signal_only: 0,
         excluded_until_fixed: 0,
       },
+      detectorEligibilityCounts: {
+        automatic_primary: 0,
+        manual_review_primary: 0,
+        context_only: 0,
+        current_signal_only: 0,
+        missing_data_only: 4,
+        blocked: 0,
+      },
       sourcesNeedingAction: 4,
     });
     expect(ledger.sources.find((source) => source.sourceId === "route_month_trends")).toEqual(
       expect.objectContaining({
         decision: "backfill_required",
         readiness: expect.objectContaining({ status: "needs_backfill" }),
+        evidence: expect.objectContaining({
+          allowedRoles: ["missing_data", "coverage_audit"],
+          detectorEligibility: "missing_data_only",
+          primaryEvidenceAllowed: false,
+          automaticPromotionAllowed: false,
+        }),
       }),
     );
     expect(ledger.sources.find((source) => source.sourceId === "dot_street_permits")).toEqual(
