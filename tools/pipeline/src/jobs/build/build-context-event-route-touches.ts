@@ -4,7 +4,13 @@ import { writeJson } from "../../lib/json.js";
 import { withLocalPipelineDb } from "../../lib/local-db.js";
 import { defaultArtifactRootPath, fromCliPath } from "../../lib/paths.js";
 
-type Args = { dbPath?: string; computedAt?: Date; artifactRoot?: string; output?: string };
+type Args = {
+  dbPath?: string;
+  computedAt?: Date;
+  artifactRoot?: string;
+  output?: string;
+  auditOnly?: boolean;
+};
 
 type SourceEventKindAudit = {
   sourceId: string;
@@ -20,6 +26,7 @@ type SourceEventKindAudit = {
 type Result = {
   directTouches: number;
   routeLionTouches: number;
+  parkingLocationTouches: number;
   total: number;
   computedAt: string;
   auditArtifactPath: string;
@@ -40,6 +47,8 @@ function parseCliArgs(args: string[]): Args {
     } else if (arg === "--output" && value !== undefined) {
       output.output = fromCliPath(value);
       index += 1;
+    } else if (arg === "--audit-only") {
+      output.auditOnly = true;
     } else {
       throw new Error(`Unknown or incomplete argument: ${arg ?? ""}`);
     }
@@ -61,13 +70,14 @@ export async function buildContextEventRouteTouches(args: Args = {}): Promise<Re
   const result = await withLocalPipelineDb(args.dbPath, (local) => {
     const computedAt = (args.computedAt ?? new Date()).toISOString();
 
-    local.sqlite.exec("BEGIN");
-    try {
-      local.sqlite.exec("DELETE FROM local_context_event_route_touch");
+    if (args.auditOnly !== true) {
+      local.sqlite.exec("BEGIN");
+      try {
+        local.sqlite.exec("DELETE FROM local_context_event_route_touch");
 
-      local.sqlite
-        .prepare(
-          `INSERT INTO local_context_event_route_touch
+        local.sqlite
+          .prepare(
+            `INSERT INTO local_context_event_route_touch
              (event_id, route_id, source_id, event_kind, occurred_at, ended_at,
               physical_id, touch_kind, evidence_role, overlap_meters, buffer_meters,
               route_fanout, match_weight, computed_at)
@@ -87,12 +97,12 @@ export async function buildContextEventRouteTouches(args: Args = {}): Promise<Re
                   ?
              FROM local_context_event
             WHERE route_id IS NOT NULL`,
-        )
-        .run(computedAt);
+          )
+          .run(computedAt);
 
-      local.sqlite
-        .prepare(
-          `WITH fanout AS (
+        local.sqlite
+          .prepare(
+            `WITH fanout AS (
              SELECT physical_id, count(*) AS route_fanout
                FROM local_route_lion_link
               GROUP BY physical_id
@@ -120,17 +130,53 @@ export async function buildContextEventRouteTouches(args: Args = {}): Promise<Re
              JOIN fanout f ON f.physical_id = e.physical_id
             WHERE e.route_id IS NULL
               AND e.physical_id IS NOT NULL`,
-        )
-        .run(computedAt);
+          )
+          .run(computedAt);
 
-      local.sqlite.exec("COMMIT");
-    } catch (err) {
-      local.sqlite.exec("ROLLBACK");
-      throw err;
+        local.sqlite
+          .prepare(
+            `INSERT OR IGNORE INTO local_context_event_route_touch
+             (event_id, route_id, source_id, event_kind, occurred_at, ended_at,
+              physical_id, touch_kind, evidence_role, overlap_meters, buffer_meters,
+              route_fanout, match_weight, computed_at)
+           SELECT e.event_id,
+                  m.route_id,
+                  e.source_id,
+                  e.event_kind,
+                  e.occurred_at,
+                  e.ended_at,
+                  CASE
+                    WHEN count(DISTINCT m.physical_id) = 1 THEN min(m.physical_id)
+                    ELSE NULL
+                  END AS physical_id,
+                  'parking_location_match',
+                  'context',
+                  NULL,
+                  NULL,
+                  max(m.candidate_count),
+                  min(1.0, sum(m.match_weight)),
+                  ?
+             FROM local_context_event e
+             JOIN local_parking_violation p ON p.summons_number = e.source_row_id
+             JOIN local_parking_violation_match m ON m.location_key = p.match_location_key
+            WHERE e.event_kind = 'parking_violation'
+              AND p.match_location_key IS NOT NULL
+            GROUP BY e.event_id, m.route_id`,
+          )
+          .run(computedAt);
+
+        local.sqlite.exec("COMMIT");
+      } catch (err) {
+        local.sqlite.exec("ROLLBACK");
+        throw err;
+      }
     }
 
     const rows = local.sqlite
-      .query<{ touch_kind: "direct_route" | "route_lion_link"; n: number }, []>(
+      .query<
+        { touch_kind: "direct_route" | "route_lion_link" | "parking_location_match"; n: number },
+        []
+      >(
         `SELECT touch_kind, count(*) AS n
            FROM local_context_event_route_touch
           GROUP BY touch_kind`,
@@ -138,6 +184,8 @@ export async function buildContextEventRouteTouches(args: Args = {}): Promise<Re
       .all();
     const directTouches = rows.find((row) => row.touch_kind === "direct_route")?.n ?? 0;
     const routeLionTouches = rows.find((row) => row.touch_kind === "route_lion_link")?.n ?? 0;
+    const parkingLocationTouches =
+      rows.find((row) => row.touch_kind === "parking_location_match")?.n ?? 0;
     const sourceEventKinds = local.sqlite
       .query<
         {
@@ -151,14 +199,26 @@ export async function buildContextEventRouteTouches(args: Args = {}): Promise<Re
         },
         []
       >(
-        `WITH event_counts AS (
-           SELECT source_id,
-                  event_kind,
+        `WITH parking_match_keys AS (
+           SELECT DISTINCT location_key
+             FROM local_parking_violation_match
+         ),
+         event_counts AS (
+           SELECT e.source_id,
+                  e.event_kind,
                   count(*) AS event_count,
-                  sum(CASE WHEN route_id IS NOT NULL OR physical_id IS NOT NULL THEN 1 ELSE 0 END)
+                  sum(CASE
+                        WHEN e.route_id IS NOT NULL OR e.physical_id IS NOT NULL THEN 1
+                        WHEN pm.location_key IS NOT NULL THEN 1
+                        ELSE 0
+                      END)
                     AS joinable_event_count
-             FROM local_context_event
-            GROUP BY source_id, event_kind
+             FROM local_context_event e
+             LEFT JOIN local_parking_violation p
+               ON p.summons_number = e.source_row_id
+              AND e.event_kind = 'parking_violation'
+             LEFT JOIN parking_match_keys pm ON pm.location_key = p.match_location_key
+            GROUP BY e.source_id, e.event_kind
          ),
          touch_counts AS (
            SELECT source_id,
@@ -198,7 +258,8 @@ export async function buildContextEventRouteTouches(args: Args = {}): Promise<Re
     return {
       directTouches,
       routeLionTouches,
-      total: directTouches + routeLionTouches,
+      parkingLocationTouches,
+      total: directTouches + routeLionTouches + parkingLocationTouches,
       computedAt,
       auditArtifactPath,
       sourceEventKinds,
@@ -213,6 +274,7 @@ export async function buildContextEventRouteTouches(args: Args = {}): Promise<Re
     summary: {
       directTouches: result.directTouches,
       routeLionTouches: result.routeLionTouches,
+      parkingLocationTouches: result.parkingLocationTouches,
       totalTouches: result.total,
       sourceEventKindCount: result.sourceEventKinds.length,
     },
@@ -225,7 +287,7 @@ export async function buildContextEventRouteTouches(args: Args = {}): Promise<Re
 export async function buildContextEventRouteTouchesFromCli(args: string[]): Promise<Result> {
   const result = await buildContextEventRouteTouches(parseCliArgs(args));
   console.log(
-    `context-event-route-touches: direct=${result.directTouches} route_lion=${result.routeLionTouches} total=${result.total} audit=${result.auditArtifactPath}`,
+    `context-event-route-touches: direct=${result.directTouches} route_lion=${result.routeLionTouches} parking_location=${result.parkingLocationTouches} total=${result.total} audit=${result.auditArtifactPath}`,
   );
   return result;
 }

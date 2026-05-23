@@ -8,7 +8,9 @@ describe("NYC Geoclient normalization", () => {
     expect(canonicalBoroughName("BX")).toBe("bronx");
     expect(canonicalBoroughName("BK")).toBe("brooklyn");
     expect(canonicalBoroughName("Q")).toBe("queens");
+    expect(canonicalBoroughName("QN")).toBe("queens");
     expect(canonicalBoroughName("SI")).toBe("staten island");
+    expect(canonicalBoroughName("ST")).toBe("staten island");
     expect(canonicalBoroughName("Unspecified BRONX")).toBe("bronx");
   });
 });

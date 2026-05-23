@@ -1,6 +1,6 @@
 import * as z from "zod";
-import type { SocrataRow } from "../socrata/client.js";
 import { schemaVersion } from "../mta/parse-helpers.js";
+import type { SocrataRow } from "../socrata/client.js";
 
 // Bus-relevant NYC parking violation codes (default filter for ingest).
 //   5  = BUS LANE VIOLATION
@@ -26,21 +26,27 @@ export const NormalizedParkingViolationSchema = z
     vehicleBodyType: z.string().nullable(),
     vehicleMake: z.string().nullable(),
     issuingAgency: z.string().nullable(),
+    streetCode1: z.string().nullable(),
+    streetCode2: z.string().nullable(),
+    streetCode3: z.string().nullable(),
     violationLocation: z.string().nullable(),
     violationPrecinct: z.number().int().nullable(),
     violationCounty: z.string().nullable(),
     houseNumber: z.string().nullable(),
     streetName: z.string().nullable(),
+    intersectingStreet: z.string().nullable(),
     violationTime: z.string().nullable(),
   })
   .strict();
 
 export type NormalizedParkingViolation = z.output<typeof NormalizedParkingViolationSchema>;
 
-const strN = z.union([z.null(), z.undefined(), z.string()]).transform((v) => (v === undefined ? null : v));
-const intN = z.union([z.null(), z.undefined(), z.coerce.number()]).transform((v) =>
-  v === undefined ? null : v === null ? null : Math.round(v),
-);
+const strN = z
+  .union([z.null(), z.undefined(), z.string()])
+  .transform((v) => (v === undefined ? null : v));
+const intN = z
+  .union([z.null(), z.undefined(), z.coerce.number()])
+  .transform((v) => (v === undefined ? null : v === null ? null : Math.round(v)));
 
 const RawParkingRowSchema = z
   .object({
@@ -53,11 +59,15 @@ const RawParkingRowSchema = z
     vehicle_body_type: strN,
     vehicle_make: strN,
     issuing_agency: strN,
+    street_code1: strN,
+    street_code2: strN,
+    street_code3: strN,
     violation_location: strN,
     violation_precinct: intN,
     violation_county: strN,
     house_number: strN,
     street_name: strN,
+    intersecting_street: strN,
     violation_time: strN,
     violation_description: strN,
   })
@@ -79,11 +89,15 @@ export function normalizeParkingViolationRows(rows: SocrataRow[]): NormalizedPar
         vehicleBodyType: p.vehicle_body_type,
         vehicleMake: p.vehicle_make,
         issuingAgency: p.issuing_agency,
+        streetCode1: p.street_code1,
+        streetCode2: p.street_code2,
+        streetCode3: p.street_code3,
         violationLocation: p.violation_location,
         violationPrecinct: p.violation_precinct,
         violationCounty: p.violation_county,
         houseNumber: p.house_number,
         streetName: p.street_name,
+        intersectingStreet: p.intersecting_street,
         violationTime: p.violation_time,
       } satisfies NormalizedParkingViolation;
     })

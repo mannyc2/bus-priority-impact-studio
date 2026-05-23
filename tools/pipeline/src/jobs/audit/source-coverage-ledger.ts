@@ -184,7 +184,7 @@ const SOURCE_CONFIGS: readonly SourceConfig[] = [
     joinSourceId: "nyc_parking_violations_current",
     forceDecision: "release_context_only",
     forceReason:
-      "Parking is raw-complete and fully attempted for the 2023-present window, but most rows publish truncated camera-style locations that do not resolve to LION physical_id; use as low-confidence release context, not historical detector evidence.",
+      "Parking is raw-complete for the 2023-present window. Dedicated parking location candidates recover route context for many camera and street-code rows, but physical_id geocoding remains low and candidate fanout/confidence must stay visible; use as release context, not detector-grade historical evidence.",
   },
   {
     sourceId: "dot_traffic_volume_counts",

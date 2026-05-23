@@ -2,6 +2,25 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-05-22] engineering | Parking location candidate matching added
+
+Added a dedicated parking location candidate layer to address the low route-join rate without
+pretending parking rows are clean address records. The local schema now preserves parking
+`street_code1/2/3`, `intersecting_street`, and `match_location_key`; LION now preserves `b5sc`,
+`boroughcode`, and house-number ranges. The new `build:parking-violation-matches` job hydrates
+those fields from raw snapshots, groups camera/intersection strings and street-code/house-number
+locations, writes candidate route matches with match kind/confidence/fanout/weight, and emits
+`data/artifacts/context-events/parking-violation-match-audit.json`.
+
+Real March corpus verification: LION and parking raw fields were hydrated locally, then the full
+parking match pass scanned 229 camera groups and 174,174 street-code/house groups. It produced
+596,527 candidate route rows across 96,760 grouped locations, representing 3,085,310 parking events
+and 367 routes. Rebuilt route touches added 30,150,878 `parking_location_match` touches. A corrected
+parking verification query shows 3,128,264 joinable parking events, 3,086,633 touched events,
+30,180,112 total parking touches, 378 routes, 98.67% touched among joinable events, and 53.65%
+touched among all parking events. Parking remains `release_context_only` until candidate fanout and
+confidence thresholds are reviewed for detector use.
+
 ## [2026-05-21] planning | Data Pipeline Finish Plan v2
 
 Added [[wiki/engineering/data_pipeline_finish_plan_v2|Data Pipeline Finish Plan v2]] as the current
@@ -1247,3 +1266,15 @@ explicit misses, and 0 unattempted rows. Rebuilt context events and route touche
 4,740 touched events and 29,234 route touches across 341 routes. Keep parking
 `release_context_only`: the remaining low join rate comes from source location quality
 (camera-style/directional/intersection snippets), not from an unfinished loader.
+
+Parking candidate quality audit: added `audit:parking-candidate-quality` to summarize candidate
+fanout, match weights, and detector-review eligibility from `local_parking_violation_match` without
+mutating any rows. The real local audit wrote
+`data/artifacts/context-events/parking-candidate-quality-audit.json` and kept the source decision at
+`keep_release_context_only` with `automaticPromotionAllowed=false`. Current counts: 96,760 matched
+grouped locations, 596,527 candidate route rows, 3,085,310 represented events, 367 matched routes,
+max candidate fanout 76, P90 candidate count 14, event-weighted P90 candidate count 24. A strict
+manual-review subset exists: 54,920 groups and 1,096,073 events meet the high-confidence,
+candidate-count <= 3, location-weight >= 0.8 rule. The rest stays weighted release context or
+low-confidence release context; parking should not become detector-grade evidence without an
+explicit promotion review.

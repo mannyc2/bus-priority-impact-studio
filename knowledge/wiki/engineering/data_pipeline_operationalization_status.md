@@ -1,6 +1,6 @@
 # Data Pipeline Operationalization Status
 
-Updated: 2026-05-21
+Updated: 2026-05-22
 
 This status turns the completed 2023-present checkpoint into the next operational steps.
 
@@ -93,11 +93,23 @@ Next 311 step:
 
 ## Parking scope
 
-Parking is raw-complete and fully attempted for the `2023-04` through `2026-03` target window.
+Parking is raw-complete and now has a parking-specific candidate matching layer for the
+`2023-04` through `2026-03` target window.
 
 - Remote Socrata `ORDER BY summons_number` was removed from the parking month ingest; local sorting still keeps deterministic upserts, and the missing FY2024/FY2025/FY2026 months backfilled successfully.
 - Parking now has 5,753,409 filtered rows, 157,304 geocoded rows, 5,596,105 explicit misses, and 0 unattempted rows.
-- Context events and route touches were rebuilt after the full attempt pass.
-- Parking route touches: 4,740 touched events, 29,234 touches, 341 routes.
+- New raw fields preserved locally: parking `street_code1/2/3`, `intersecting_street`, and `match_location_key`; LION `b5sc`, `boroughcode`, and house-number ranges.
+- New command: `build:parking-violation-matches`.
+- Full match pass: 229 camera groups, 174,174 street-code/house groups, 596,527 candidate route rows, 96,760 matched grouped locations, 3,085,310 represented events, 367 routes.
+- Rebuilt route touches: 30,150,878 `parking_location_match` touches plus the prior 29,234 physical-id route-LION touches.
+- Corrected parking verification query: 3,128,264 joinable events, 3,086,633 touched events, 30,180,112 total touches, 378 routes, 98.67% touched among joinable events, 53.65% touched among all parking events.
+- New command: `audit:parking-candidate-quality`.
+- Candidate quality audit output: `data/artifacts/context-events/parking-candidate-quality-audit.json`.
+- Audit decision: `keep_release_context_only`, `automaticPromotionAllowed=false`.
+- Strict manual-review subset: 54,920 grouped locations and 1,096,073 represented events meet the high-confidence, candidate-count <= 3, location-weight >= 0.8 threshold.
+- Broad fanout caveat: max candidate count is 76, P90 candidate count is 14, and event-weighted P90 candidate count is 24, so weighted route context is useful but detector-grade promotion remains blocked.
 
-Parking remains `release_context_only`: most rows publish truncated camera-style locations such as directional/intersection snippets rather than address-grade locations, so the low join rate is a source limitation, not an unprocessed backlog.
+Parking remains `release_context_only`: the join-rate problem is largely solved for route context,
+but many matches are candidate/fanout matches rather than single physical-id geocodes. Keep
+match kind, confidence, candidate count, and match weight visible before using parking as
+detector-grade historical evidence.

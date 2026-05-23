@@ -67,7 +67,7 @@ planning gap is equity context plus production proof/promotion.
 | Detailed route slice data | March 2026 only | Fine for release builds; not a full historical corpus. |
 | Bus Wait Assessment | 46,167 rows, 2023-04 through 2026-03 | Historical corroboration backfill is complete locally. |
 | 311 | 2019-01 and 2026-03 only | Decide whether this is full historical evidence or release-context evidence. |
-| Parking violations | March 2026 only, about 50.7% geocoded | Treat carefully; not detector-ready without warnings. |
+| Parking violations | 5,753,409 rows, 2023-04 through 2026-03; 157,304 physical-id geocodes plus parking-specific candidate matches | Route-context yield is much better, but still `release_context_only` until fanout/confidence is reviewed. |
 | Traffic volume/speed | January 2024 sample and one live speed day | Current sample/context only unless promoted. |
 | Equity context | Empty locally; Census ACS profile request needs an API key in this environment | `excluded_until_fixed`; no equity claims until repaired. |
 
@@ -283,8 +283,11 @@ Current status under that framing:
   coverage.
 - Parking violations now use fiscal-year source tables for FY2023 through FY2026. The remaining
   target months were loaded after removing the remote Socrata `ORDER BY`; geocoding is fully
-  attempted with 0 unattempted rows. Parking remains `release_context_only` because most source
-  locations are truncated camera/intersection strings and route-touch yield remains low.
+  attempted with 0 unattempted rows. A dedicated parking candidate matcher now preserves raw street
+  codes/intersections, matches camera/intersection and street-code/house groups, and recovers route
+  context for 3,086,633 touched events. Candidate fanout and confidence are now audited by
+  `audit:parking-candidate-quality`; the audit keeps parking `release_context_only` and blocks
+  automatic detector promotion while exposing a strict manual-review subset.
 
 ## Definition Of Done
 

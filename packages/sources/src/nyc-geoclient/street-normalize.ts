@@ -157,9 +157,12 @@ const BOROUGH_CODES: Record<string, string> = {
   kings: "3",
   bk: "3",
   queens: "4",
+  qn: "4",
+  qns: "4",
   "staten island": "5",
   richmond: "5",
   si: "5",
+  st: "5",
 };
 
 const LION_BOROUGH_CODES: Record<string, string> = {

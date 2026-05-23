@@ -31,7 +31,7 @@ export type LocalContextEventRouteTouch = {
   occurredAt: string;
   endedAt: string | null;
   physicalId: string | null;
-  touchKind: "direct_route" | "route_lion_link";
+  touchKind: "direct_route" | "route_lion_link" | "parking_location_match";
   evidenceRole: "primary" | "context";
   overlapMeters: number | null;
   bufferMeters: number | null;

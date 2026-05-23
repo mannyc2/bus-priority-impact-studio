@@ -9,6 +9,7 @@ import {
 } from "@bp/sources";
 import { isoMonthStart, nextIsoMonthStart } from "../../lib/dates.js";
 import { withLocalPipelineDb } from "../../lib/local-db.js";
+import { parkingLocationKey } from "../../lib/parking-location.js";
 import { createMonthContext, parseMonthDbCliArgs } from "../../lib/route-job.js";
 import { writeRawSourceSnapshot } from "../../lib/source-snapshots.js";
 import type { SocrataManifestSource } from "../../source-manifest.js";
@@ -103,6 +104,14 @@ export async function ingestParkingViolations(args: Args = {}): Promise<Result> 
     // re-ingest via ON CONFLICT.
     physicalId: null,
     geocodeConfidence: null,
+    matchLocationKey: parkingLocationKey({
+      violationCode: r.violationCode,
+      violationCounty: r.violationCounty,
+      streetCode1: r.streetCode1,
+      houseNumber: r.houseNumber,
+      streetName: r.streetName,
+      intersectingStreet: r.intersectingStreet,
+    }),
   }));
 
   await withLocalPipelineDb(args.dbPath, (local) => upsertParkingViolations(local.db, rows));

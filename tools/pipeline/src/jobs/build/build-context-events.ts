@@ -148,13 +148,18 @@ export async function buildContextEvents(args: Args = {}): Promise<Result> {
           violation_county: string | null;
           house_number: string | null;
           street_name: string | null;
+          intersecting_street: string | null;
+          street_code1: string | null;
+          street_code2: string | null;
+          street_code3: string | null;
           violation_time: string | null;
           physical_id: string | null;
         },
         []
       >(
         `SELECT summons_number, issue_date, violation_code, violation_description,
-                violation_county, house_number, street_name, violation_time, physical_id
+                violation_county, house_number, street_name, intersecting_street,
+                street_code1, street_code2, street_code3, violation_time, physical_id
            FROM local_parking_violation`,
       )
       .all();
@@ -177,6 +182,10 @@ export async function buildContextEvents(args: Args = {}): Promise<Result> {
         violationCounty: r.violation_county,
         houseNumber: r.house_number,
         streetName: r.street_name,
+        intersectingStreet: r.intersecting_street,
+        streetCode1: r.street_code1,
+        streetCode2: r.street_code2,
+        streetCode3: r.street_code3,
       }),
       ingestedAt,
     }));

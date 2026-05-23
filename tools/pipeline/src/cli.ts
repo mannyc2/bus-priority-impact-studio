@@ -60,9 +60,7 @@ const commands = {
   "pull:gtfs-rt-r2-run": {
     description: "Mirror Worker/R2 GTFS-RT manifests and protobufs through the R2 S3 API.",
     run: async (args) => {
-      const { pullGtfsRtR2RunFromCli } = await import(
-        "./jobs/ops/pull-gtfs-rt-r2-run.js"
-      );
+      const { pullGtfsRtR2RunFromCli } = await import("./jobs/ops/pull-gtfs-rt-r2-run.js");
       return pullGtfsRtR2RunFromCli(args);
     },
   },
@@ -341,6 +339,16 @@ const commands = {
       return buildContextEventsFromCli(args);
     },
   },
+  "build:parking-violation-matches": {
+    description:
+      "Build grouped parking violation location candidates from camera intersections and street-code house ranges.",
+    run: async (args) => {
+      const { buildParkingViolationMatchesFromCli } = await import(
+        "./jobs/build/build-parking-violation-matches.js"
+      );
+      return buildParkingViolationMatchesFromCli(args);
+    },
+  },
   "build:context-event-route-touches": {
     description:
       "Materialize detector-facing context-event route touches from direct route refs and route-LION links.",
@@ -541,6 +549,16 @@ const commands = {
         "./jobs/audit/source-coverage-ledger.js"
       );
       return buildSourceCoverageLedgerFromCli(args);
+    },
+  },
+  "audit:parking-candidate-quality": {
+    description:
+      "Audit parking candidate fanout and match weights before any detector-grade promotion.",
+    run: async (args) => {
+      const { auditParkingCandidateQualityFromCli } = await import(
+        "./jobs/audit/parking-candidate-quality.js"
+      );
+      return auditParkingCandidateQualityFromCli(args);
     },
   },
   "route-equity-context": {

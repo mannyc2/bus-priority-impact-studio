@@ -1,6 +1,6 @@
 import * as z from "zod";
-import type { SocrataRow } from "../socrata/client.js";
 import { schemaVersion } from "../mta/parse-helpers.js";
+import type { SocrataRow } from "../socrata/client.js";
 
 // NYC Centerline / LION (inkn-q76z) — stable street-segment ID + geometry +
 // metadata used by other context sources for street joins.
@@ -9,8 +9,14 @@ export const NormalizedLionSegmentSchema = z
   .object({
     schemaVersion: z.literal(schemaVersion),
     physicalId: z.string().min(1),
+    streetCodeMaster: z.string().nullable(),
     streetName: z.string().nullable(),
     borough: z.string().nullable(),
+    boroughCode: z.string().nullable(),
+    leftLowHouseNumber: z.string().nullable(),
+    leftHighHouseNumber: z.string().nullable(),
+    rightLowHouseNumber: z.string().nullable(),
+    rightHighHouseNumber: z.string().nullable(),
     l_zip: z.string().nullable(),
     r_zip: z.string().nullable(),
     rwTypeCode: z.string().nullable(),
@@ -23,23 +29,32 @@ export const NormalizedLionSegmentSchema = z
 
 export type NormalizedLionSegment = z.output<typeof NormalizedLionSegmentSchema>;
 
-const strN = z.union([z.null(), z.undefined(), z.string()]).transform((v) => (v === undefined ? null : v));
-const numN = z.union([z.null(), z.undefined(), z.coerce.number()]).transform((v) =>
-  v === undefined ? null : v,
-);
+const strN = z
+  .union([z.null(), z.undefined(), z.string()])
+  .transform((v) => (v === undefined ? null : v));
+const numN = z
+  .union([z.null(), z.undefined(), z.coerce.number()])
+  .transform((v) => (v === undefined ? null : v));
 
 const RawCenterlineRowSchema = z
   .object({
     physicalid: z.coerce.string(),
+    b5sc: strN,
     full_street_name: strN,
     street_name: strN,
     borough_indicator: strN,
+    boroughcode: strN,
+    l_low_hn: strN,
+    l_high_hn: strN,
+    r_low_hn: strN,
+    r_high_hn: strN,
     l_zip: strN,
     r_zip: strN,
     rw_type: strN.optional(),
     trafdir: strN,
     segmentlength: numN,
-    the_geom: z.union([z.string(), z.record(z.string(), z.unknown()), z.undefined(), z.null()])
+    the_geom: z
+      .union([z.string(), z.record(z.string(), z.unknown()), z.undefined(), z.null()])
       .transform((value) => {
         if (value === undefined || value === null) return null;
         if (typeof value === "string") return value;
@@ -56,11 +71,18 @@ export function normalizeLionSegmentRows(rows: SocrataRow[]): NormalizedLionSegm
     .map((row) => {
       const p = RawCenterlineRowSchema.parse(row);
       const streetName = p.full_street_name ?? p.street_name;
+      const borough = p.borough_indicator ?? p.boroughcode;
       return {
         schemaVersion,
         physicalId: p.physicalid,
+        streetCodeMaster: p.b5sc,
         streetName,
-        borough: p.borough_indicator,
+        borough,
+        boroughCode: p.boroughcode,
+        leftLowHouseNumber: p.l_low_hn,
+        leftHighHouseNumber: p.l_high_hn,
+        rightLowHouseNumber: p.r_low_hn,
+        rightHighHouseNumber: p.r_high_hn,
         l_zip: p.l_zip,
         r_zip: p.r_zip,
         rwTypeCode: p.rw_type === undefined ? null : p.rw_type,

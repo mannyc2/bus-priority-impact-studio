@@ -63,9 +63,14 @@ export async function ingestLionCenterline(args: Args = {}): Promise<Result> {
   const normalized = normalizeLionSegmentRows(rawRows);
   const rows = normalized.map((n) => ({
     physicalId: n.physicalId,
-    streetCodeMaster: null,
+    streetCodeMaster: n.streetCodeMaster,
     streetName: n.streetName,
     borough: n.borough,
+    boroughCode: n.boroughCode,
+    leftLowHouseNumber: n.leftLowHouseNumber,
+    leftHighHouseNumber: n.leftHighHouseNumber,
+    rightLowHouseNumber: n.rightLowHouseNumber,
+    rightHighHouseNumber: n.rightHighHouseNumber,
     l_zip: n.l_zip,
     r_zip: n.r_zip,
     segmentTypeCode: null,

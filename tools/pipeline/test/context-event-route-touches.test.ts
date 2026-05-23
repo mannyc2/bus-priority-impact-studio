@@ -7,6 +7,7 @@ import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
 const dbPath = fromRepoRoot(join("data/working/test-context-event-route-touches/pipeline.sqlite"));
+const artifactRoot = fromRepoRoot(join("data/working/test-context-event-route-touches/artifacts"));
 
 type SqlValue = string | number | null;
 
@@ -125,6 +126,7 @@ describe("context event route touch build", () => {
 
     const result = await buildContextEventRouteTouches({
       dbPath,
+      artifactRoot,
       computedAt: new Date("2026-05-19T12:00:00.000Z"),
     });
 
@@ -153,6 +155,7 @@ describe("context event route touch build", () => {
       expect(result).toEqual({
         directTouches: 2,
         routeLionTouches: 2,
+        parkingLocationTouches: 0,
         total: 4,
         computedAt: "2026-05-19T12:00:00.000Z",
         auditArtifactPath: expect.stringContaining("route-touch-audit.json"),
