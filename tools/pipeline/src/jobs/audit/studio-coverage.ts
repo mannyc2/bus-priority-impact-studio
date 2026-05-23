@@ -1,4 +1,4 @@
-import { mkdir, readdir, readFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, stat } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import {
   listRouteBriefSummaries,
@@ -43,12 +43,18 @@ export type StudioCoverageAuditResult = {
     routeDetailCount: number;
     briefsListCount: number;
     briefDetailCount: number;
+    briefEvidenceDetailCount: number;
+    briefHistoryDetailCount: number;
     findingsListCount: number;
     findingDetailCount: number;
   };
   gaps: {
     routesMissingFromProjection: string[];
+    briefsMissingFromProjection: string[];
     studioRouteCoverageShare: number;
+    studioBriefCoverageShare: number;
+    findingRouteCount: number;
+    studioFindingCoverageShare: number;
     note: string;
   };
   outputPath: string;
@@ -94,6 +100,15 @@ async function readJsonArray(path: string, key: string): Promise<unknown[]> {
   }
 }
 
+async function fileExists(path: string): Promise<boolean> {
+  try {
+    await stat(path);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function pickField(entry: unknown, ...keys: string[]): string | null {
   if (typeof entry !== "object" || entry === null) return null;
   const record = entry as Record<string, unknown>;
@@ -102,6 +117,15 @@ function pickField(entry: unknown, ...keys: string[]): string | null {
     if (typeof value === "string") return value;
   }
   return null;
+}
+
+function pickNestedField(entry: unknown, path: readonly string[]): string | null {
+  let current = entry;
+  for (const key of path) {
+    if (typeof current !== "object" || current === null) return null;
+    current = (current as Record<string, unknown>)[key];
+  }
+  return typeof current === "string" ? current : null;
 }
 
 function aggregateObserved(
@@ -174,23 +198,56 @@ export async function auditStudioCoverage(
         .map((entry) => pickField(entry, "routeId"))
         .filter((id): id is string => id !== null),
     );
+    const projectionBriefRouteIds = new Set(
+      briefsList
+        .map((entry) => pickNestedField(entry, ["route", "routeId"]) ?? pickField(entry, "routeId"))
+        .filter((id): id is string => id !== null),
+    );
+    const projectionFindingRouteIds = new Set(
+      findingsList
+        .map((entry) => pickNestedField(entry, ["route", "routeId"]) ?? pickField(entry, "routeId"))
+        .filter((id): id is string => id !== null),
+    );
 
     const routesMissingFromProjection = [...publicRouteIds]
       .filter((routeId) => !projectionRouteIds.has(routeId))
       .sort();
+    const briefsMissingFromProjection = [...publicRouteIds]
+      .filter((routeId) => !projectionBriefRouteIds.has(routeId))
+      .sort();
     const coveredPublicRouteCount = [...publicRouteIds].filter((routeId) =>
       projectionRouteIds.has(routeId),
+    ).length;
+    const coveredPublicBriefCount = [...publicRouteIds].filter((routeId) =>
+      projectionBriefRouteIds.has(routeId),
     ).length;
 
     const studioRouteCoverageShare =
       publicRouteIds.size === 0
         ? 1
         : Number((coveredPublicRouteCount / publicRouteIds.size).toFixed(4));
+    const studioBriefCoverageShare =
+      publicRouteIds.size === 0
+        ? 1
+        : Number((coveredPublicBriefCount / publicRouteIds.size).toFixed(4));
+    const studioFindingCoverageShare =
+      publicRouteIds.size === 0
+        ? 0
+        : Number((projectionFindingRouteIds.size / publicRouteIds.size).toFixed(4));
+
+    const [briefEvidenceDetailCount, briefHistoryDetailCount] = await Promise.all([
+      Promise.all(
+        briefDirs.map((dir) => fileExists(join(studioRoot, "briefs", dir, "evidence.json"))),
+      ).then((results) => results.filter(Boolean).length),
+      Promise.all(
+        briefDirs.map((dir) => fileExists(join(studioRoot, "briefs", dir, "history.json"))),
+      ).then((results) => results.filter(Boolean).length),
+    ]);
 
     const status: StudioCoverageAuditResult["status"] =
-      routesMissingFromProjection.length === 0
+      routesMissingFromProjection.length === 0 && briefsMissingFromProjection.length === 0
         ? "pass"
-        : studioRouteCoverageShare < 0.5
+        : studioRouteCoverageShare < 0.5 || studioBriefCoverageShare < 0.5
           ? "fail"
           : "warn";
 
@@ -210,13 +267,19 @@ export async function auditStudioCoverage(
         routeDetailCount: routeDirs.length,
         briefsListCount: briefsList.length,
         briefDetailCount: briefDirs.length,
+        briefEvidenceDetailCount,
+        briefHistoryDetailCount,
         findingsListCount: findingsList.length,
         findingDetailCount: findingDirs.length,
       },
       gaps: {
         routesMissingFromProjection,
+        briefsMissingFromProjection,
         studioRouteCoverageShare,
-        note: "Studio route coverage is measured against public-visible route_brief_summary rows, not every route_catalog row. The Studio brief and finding galleries are separately curated artifact sets; their coverage is reported as counts in `projection.briefsListCount`, `projection.briefDetailCount`, `projection.findingsListCount`, and `projection.findingDetailCount`.",
+        studioBriefCoverageShare,
+        findingRouteCount: projectionFindingRouteIds.size,
+        studioFindingCoverageShare,
+        note: "Studio route and brief coverage are measured against public-visible route_brief_summary rows, not every route_catalog row. Findings are thresholded candidate outputs, so finding coverage is reported but not required to reach every route.",
       },
       outputPath,
     };

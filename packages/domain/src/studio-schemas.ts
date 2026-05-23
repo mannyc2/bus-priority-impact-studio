@@ -266,7 +266,7 @@ export const StudioBriefSchema = z
     id: z.string(),
     routeSlug: z.string(),
     title: z.string(),
-    status: z.enum(["Published", "Draft", "In review"]),
+    status: z.enum(["Published", "Generated", "Draft", "In review"]),
     version: z.string(),
     generated: z.string(),
     authors: z.array(z.string()),

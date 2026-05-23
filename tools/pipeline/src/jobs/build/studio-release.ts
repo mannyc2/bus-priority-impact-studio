@@ -42,6 +42,7 @@ const defaultOutputPath = "data/artifacts/studio/v1/release.json";
 const defaultSchemaPath = "data/exports/d1/2026-03/schema.sql";
 const defaultSeedPath = "data/exports/d1/2026-03/seed.sql";
 const defaultRouteLimit = 12;
+const defaultFindingLimit = 50;
 const canonicalRouteIds = [
   "M15+",
   "BX12+",
@@ -63,6 +64,7 @@ type CliOptions = {
   schemaPath: string;
   seedPath: string;
   routeLimit: number;
+  findingLimit: number;
   profile: ReleaseProfile;
 };
 
@@ -133,6 +135,11 @@ function parseOptions(args: readonly string[]): CliOptions {
     schemaPath: readFlag(args, "--schema") ?? defaultSchemaPath,
     seedPath: readFlag(args, "--seed") ?? defaultSeedPath,
     routeLimit: parsePositiveInteger(readFlag(args, "--limit"), defaultRouteLimit, "--limit"),
+    findingLimit: parsePositiveInteger(
+      readFlag(args, "--finding-limit"),
+      defaultFindingLimit,
+      "--finding-limit",
+    ),
     profile: parseProfile(readFlag(args, "--profile")),
   };
 }
@@ -456,6 +463,54 @@ function buildFinding(route: StudioRoute, segment: StudioSegment | undefined): S
   };
 }
 
+function generatedFindingScore(route: StudioRoute, segment: StudioSegment | undefined): number {
+  let score = 0;
+  if (route.speedPercentile <= 10) score += 40;
+  else if (route.speedPercentile <= 25) score += 28;
+  else if (route.speedPercentile <= 40) score += 16;
+
+  if (route.riderHoursLost >= 10_000) score += 30;
+  else if (route.riderHoursLost >= 5_000) score += 20;
+  else if (route.riderHoursLost >= 1_000) score += 8;
+
+  const longGapShare = route.observedReliability?.observedLongGapShare ?? null;
+  if (longGapShare !== null && longGapShare >= 0.7) score += 25;
+  else if (longGapShare !== null && longGapShare >= 0.5) score += 18;
+  else if (longGapShare !== null && longGapShare >= 0.35) score += 10;
+
+  if (route.laneCoverage < 20 && route.speedPercentile <= 40) score += 15;
+  if (segment?.flagged === true) score += 10;
+  return score;
+}
+
+function selectGeneratedFindings(input: {
+  routes: readonly StudioRoute[];
+  segments: readonly StudioSegment[];
+  reviewedFindings: readonly StudioFinding[];
+  limit: number;
+}): StudioFinding[] {
+  const reviewedRouteSlugs = new Set(input.reviewedFindings.map((finding) => finding.routeSlug));
+  return input.routes
+    .filter((route) => !reviewedRouteSlugs.has(route.slug))
+    .map((route) => {
+      const segment = input.segments.find((candidate) => candidate.routeSlug === route.slug);
+      return {
+        route,
+        segment,
+        score: generatedFindingScore(route, segment),
+      };
+    })
+    .filter((candidate) => candidate.score >= 45)
+    .sort(
+      (a, b) =>
+        b.score - a.score ||
+        b.route.riderHoursLost - a.route.riderHoursLost ||
+        a.route.routeId.localeCompare(b.route.routeId),
+    )
+    .slice(0, input.limit)
+    .map((candidate) => buildFinding(candidate.route, candidate.segment));
+}
+
 function buildReviewedFinding(route: StudioRoute): StudioFinding | null {
   if (route.routeId === "B25") {
     return {
@@ -584,7 +639,12 @@ function buildBrief(route: StudioRoute, finding: StudioFinding | undefined): Stu
     id: canonical?.id ?? `brief-${route.slug}`,
     routeSlug: route.slug,
     title: canonical?.title ?? `${route.label} ${route.corridor} reliability brief`,
-    status: "Published",
+    status:
+      canonical !== null ||
+      finding?.id === "b25-fulton-corridor-reliability-permits" ||
+      finding?.id === "bx41-webster-reliability-permits"
+        ? "Published"
+        : "Generated",
     version: "v1",
     generated: new Date().toISOString(),
     authors: ["Bus Priority Impact Studio"],
@@ -666,8 +726,11 @@ function buildBrief(route: StudioRoute, finding: StudioFinding | undefined): Stu
     ],
     caveats: [
       {
-        title: "Generated publication",
-        body: "This brief is generated from public serving projections and should be reviewed before external use.",
+        title: "Generated route brief",
+        body:
+          canonical !== null
+            ? "This canonical brief is generated from public serving projections and should be reviewed before external use."
+            : "This route brief is generated from public serving projections and is not editorially reviewed.",
       },
     ],
   };
@@ -789,22 +852,22 @@ async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> 
       const finding = buildReviewedFinding(route);
       return finding === null ? [] : [finding];
     });
-    const generatedFindings = routes
-      .filter((route) => !reviewedFindings.some((finding) => finding.routeSlug === route.slug))
-      .slice(0, Math.max(0, 6 - reviewedFindings.length))
+    const generatedFindings = selectGeneratedFindings({
+      routes,
+      segments,
+      reviewedFindings,
+      limit: Math.max(0, options.findingLimit - reviewedFindings.length),
+    });
+    const findings = [...reviewedFindings, ...generatedFindings];
+    const routeArtifactRouteIds = new Set(routeArtifacts.map((artifact) => artifact.routeId));
+    const briefs = routes
+      .filter((route) => routeArtifactRouteIds.has(route.routeId))
       .map((route) =>
-        buildFinding(
+        buildBrief(
           route,
-          segments.find((segment) => segment.routeSlug === route.slug),
+          findings.find((finding) => finding.routeSlug === route.slug),
         ),
       );
-    const findings = [...reviewedFindings, ...generatedFindings];
-    const briefs = routes.slice(0, 8).map((route) =>
-      buildBrief(
-        route,
-        findings.find((finding) => finding.routeSlug === route.slug),
-      ),
-    );
 
     return StudioReleasePayloadSchema.parse({
       schemaVersion: 1,

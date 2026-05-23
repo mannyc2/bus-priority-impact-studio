@@ -22,7 +22,7 @@ async function removeFixture(): Promise<void> {
 
 async function writeProjection(
   routes: { slug: string; routeId: string }[],
-  briefSlugs: string[],
+  briefs: { id: string; routeId: string }[],
 ): Promise<void> {
   const studioRoot = join(artifactRoot, "studio", "v1");
   await mkdir(join(studioRoot, "routes"), { recursive: true });
@@ -31,14 +31,22 @@ async function writeProjection(
   await writeFile(join(studioRoot, "routes.json"), JSON.stringify({ routes }));
   await writeFile(
     join(studioRoot, "briefs.json"),
-    JSON.stringify({ briefs: briefSlugs.map((slug) => ({ id: slug })) }),
+    JSON.stringify({
+      briefs: briefs.map((brief) => ({
+        brief: { id: brief.id },
+        route: { routeId: brief.routeId },
+      })),
+    }),
   );
   await writeFile(join(studioRoot, "findings.json"), JSON.stringify({ findings: [] }));
   for (const route of routes) {
     await mkdir(join(studioRoot, "routes", route.slug), { recursive: true });
   }
-  for (const slug of briefSlugs) {
-    await mkdir(join(studioRoot, "briefs", slug), { recursive: true });
+  for (const brief of briefs) {
+    const briefDir = join(studioRoot, "briefs", brief.id);
+    await mkdir(briefDir, { recursive: true });
+    await writeFile(join(briefDir, "evidence.json"), "{}");
+    await writeFile(join(briefDir, "history.json"), "{}");
   }
 }
 
@@ -169,7 +177,10 @@ describe("auditStudioCoverage", () => {
     await writeFixture();
     // Only m15+ is in the projection; bx12+ is public-visible and missing.
     // B41 is catalog-only in this fixture, so it should not count as a public Studio gap.
-    await writeProjection([{ slug: "m15-sbs", routeId: "M15+" }], ["m15-madison-corridor"]);
+    await writeProjection(
+      [{ slug: "m15-sbs", routeId: "M15+" }],
+      [{ id: "m15-madison-corridor", routeId: "M15+" }],
+    );
 
     const result = await auditStudioCoverage({
       year: Number(isoMonth.split("-")[0]),
@@ -193,7 +204,10 @@ describe("auditStudioCoverage", () => {
     expect(result.projection.routesListCount).toBe(1);
     expect(result.projection.routeDetailCount).toBe(1);
     expect(result.projection.briefsListCount).toBe(1);
+    expect(result.projection.briefEvidenceDetailCount).toBe(1);
+    expect(result.projection.briefHistoryDetailCount).toBe(1);
     expect(result.gaps.routesMissingFromProjection).toEqual(["BX12+"]);
+    expect(result.gaps.briefsMissingFromProjection).toEqual(["BX12+"]);
     expect(result.status).toBe("warn");
   });
 
@@ -205,7 +219,10 @@ describe("auditStudioCoverage", () => {
         { slug: "bx12-sbs", routeId: "BX12+" },
         { slug: "b41", routeId: "B41" },
       ],
-      [],
+      [
+        { id: "m15-madison-corridor", routeId: "M15+" },
+        { id: "brief-bx12-sbs", routeId: "BX12+" },
+      ],
     );
 
     const result = await auditStudioCoverage({
@@ -219,6 +236,8 @@ describe("auditStudioCoverage", () => {
     expect(result.d1.publicRouteBriefSummaryCount).toBe(2);
     expect(result.status).toBe("pass");
     expect(result.gaps.routesMissingFromProjection).toEqual([]);
+    expect(result.gaps.briefsMissingFromProjection).toEqual([]);
     expect(result.gaps.studioRouteCoverageShare).toBe(1);
+    expect(result.gaps.studioBriefCoverageShare).toBe(1);
   });
 });

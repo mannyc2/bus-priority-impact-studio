@@ -1303,3 +1303,13 @@ evaluation, and map manifests plus D1 `route_artifact` / `corridor_artifact` row
 `publish:r2-artifacts` includes those D1-referenced keys in its upload candidate set. Local March
 2026 publish completeness passes with 3 manifests, 1,629 D1 artifact refs, 1,986 unique keys, and
 0 missing files.
+
+Studio public brief/finding coverage follow-up: expanded `build:studio-release` so March 2026
+Studio briefs now cover every public route with route artifact refs instead of the old curated
+8-brief slice. The rebuilt release has 350 briefs, 350 evidence projections, and 350 history
+projections; 4 are marked `Published` and 346 are marked `Generated` to keep editorial state honest.
+Findings are now a thresholded candidate feed capped by `--finding-limit` (default 50), not a
+full-route detector-coverage claim. `audit:studio-coverage` now verifies route and brief coverage
+against public `route_brief_summary` rows and reports finding coverage separately; the March audit
+passes with `studioRouteCoverageShare=1`, `studioBriefCoverageShare=1`, `findingRouteCount=50`, and
+`studioFindingCoverageShare=0.1429`.
