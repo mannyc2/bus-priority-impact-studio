@@ -25,6 +25,7 @@ import {
   type InterventionGapRouteInput,
   type InterventionUnderperformanceRouteInput,
   MULTI_MONTH_SPEED_PEER_DETECTOR_ID,
+  type MultiMonthSpeedPeerGroupMethod,
   type MultiMonthSpeedPeerRouteInput,
   OBSERVED_RELIABILITY_DETECTOR_ID,
   type ObservedReliabilityRouteInput,
@@ -56,6 +57,8 @@ import {
 } from "@bp/db/local";
 import {
   FindingEvidenceLinkSchema,
+  FindingPromotionQueueArtifactSchema,
+  type FindingReviewPacketsArtifact,
   FindingReviewPacketsArtifactSchema,
   type RouteMonthSignalFeature,
 } from "@bp/domain";
@@ -95,6 +98,7 @@ export type FindingsDetectResult = {
   detectorSpecsArtifactPath: string;
   reviewQueueArtifactPath: string;
   reviewPacketsArtifactPath: string;
+  promotionQueueArtifactPath: string;
   signalFeaturesArtifactPath: string;
 };
 
@@ -221,20 +225,176 @@ function median(values: readonly number[]): number | null {
   return (left + right) / 2;
 }
 
+type RoutePeerProfile = {
+  routeId: string;
+  routeFamily: string;
+  primaryRouteType: string;
+  centroidLat: number | null;
+  centroidLng: number | null;
+};
+
+type PeerGroupSelection = {
+  peerGroupId: string;
+  peerGroupLabel: string;
+  peerGroupMethod: MultiMonthSpeedPeerGroupMethod;
+  peerRouteIds: string[];
+};
+
+function routeFamilyFor(routeId: string): string {
+  return routeId.match(/^[A-Z]+/)?.[0] ?? "UNKNOWN";
+}
+
+function primaryRouteTypeFor(routeTypes: readonly string[] | undefined): string {
+  const nonSchool = routeTypes?.find((routeType) => routeType !== "School");
+  return nonSchool ?? routeTypes?.[0] ?? "unknown";
+}
+
+function centroidFor(row: {
+  latitudeMin: number | null;
+  latitudeMax: number | null;
+  longitudeMin: number | null;
+  longitudeMax: number | null;
+}): { lat: number | null; lng: number | null } {
+  if (
+    row.latitudeMin === null ||
+    row.latitudeMax === null ||
+    row.longitudeMin === null ||
+    row.longitudeMax === null
+  ) {
+    return { lat: null, lng: null };
+  }
+  return {
+    lat: (row.latitudeMin + row.latitudeMax) / 2,
+    lng: (row.longitudeMin + row.longitudeMax) / 2,
+  };
+}
+
+function routePeerProfiles(args: {
+  catalog: Awaited<ReturnType<typeof listRouteCatalog>>;
+  trends: Awaited<ReturnType<typeof listRouteMonthTrends>>;
+}): Map<string, RoutePeerProfile> {
+  const profiles = new Map<string, RoutePeerProfile>();
+  for (const row of args.catalog) {
+    const centroid = centroidFor(row);
+    profiles.set(row.routeId, {
+      routeId: row.routeId,
+      routeFamily: routeFamilyFor(row.routeId),
+      primaryRouteType: primaryRouteTypeFor(row.routeTypes),
+      centroidLat: centroid.lat,
+      centroidLng: centroid.lng,
+    });
+  }
+  for (const trend of args.trends) {
+    if (profiles.has(trend.routeId)) continue;
+    profiles.set(trend.routeId, {
+      routeId: trend.routeId,
+      routeFamily: routeFamilyFor(trend.routeId),
+      primaryRouteType: "unknown",
+      centroidLat: null,
+      centroidLng: null,
+    });
+  }
+  return profiles;
+}
+
+function approximateMilesBetween(left: RoutePeerProfile, right: RoutePeerProfile): number | null {
+  if (
+    left.centroidLat === null ||
+    left.centroidLng === null ||
+    right.centroidLat === null ||
+    right.centroidLng === null
+  ) {
+    return null;
+  }
+  const latMiles = (left.centroidLat - right.centroidLat) * 69;
+  const lngMiles =
+    (left.centroidLng - right.centroidLng) * 69 * Math.cos((left.centroidLat * Math.PI) / 180);
+  return Math.sqrt(latMiles ** 2 + lngMiles ** 2);
+}
+
+function peerGroupLabelFor(
+  method: MultiMonthSpeedPeerGroupMethod,
+  profile: RoutePeerProfile,
+): string {
+  if (method === "route_family_type_spatial") {
+    return `${profile.routeFamily} ${profile.primaryRouteType} routes near route geography`;
+  }
+  if (method === "route_family_type") {
+    return `${profile.routeFamily} ${profile.primaryRouteType} routes`;
+  }
+  if (method === "route_family") return `${profile.routeFamily} routes`;
+  if (method === "route_type") return `${profile.primaryRouteType} routes`;
+  return "all supported routes";
+}
+
+function peerGroupIdFor(method: MultiMonthSpeedPeerGroupMethod, profile: RoutePeerProfile): string {
+  if (method === "route_family_type_spatial") {
+    return `${method}:${profile.routeFamily}:${profile.primaryRouteType}:nearby`;
+  }
+  if (method === "route_family_type") {
+    return `${method}:${profile.routeFamily}:${profile.primaryRouteType}`;
+  }
+  if (method === "route_family") return `${method}:${profile.routeFamily}`;
+  if (method === "route_type") return `${method}:${profile.primaryRouteType}`;
+  return method;
+}
+
+function matchedPeerGroup(args: {
+  profile: RoutePeerProfile;
+  candidates: readonly RoutePeerProfile[];
+  minPeerRouteCount: number;
+}): PeerGroupSelection {
+  const byFamilyType = args.candidates.filter(
+    (candidate) =>
+      candidate.routeFamily === args.profile.routeFamily &&
+      candidate.primaryRouteType === args.profile.primaryRouteType,
+  );
+  const byFamilyTypeSpatial = byFamilyType.filter((candidate) => {
+    const miles = approximateMilesBetween(args.profile, candidate);
+    return miles !== null && miles <= 6;
+  });
+  const byFamily = args.candidates.filter(
+    (candidate) => candidate.routeFamily === args.profile.routeFamily,
+  );
+  const byType = args.candidates.filter(
+    (candidate) => candidate.primaryRouteType === args.profile.primaryRouteType,
+  );
+  const groups: Array<{ method: MultiMonthSpeedPeerGroupMethod; profiles: RoutePeerProfile[] }> = [
+    { method: "route_family_type_spatial", profiles: byFamilyTypeSpatial },
+    { method: "route_family_type", profiles: byFamilyType },
+    { method: "route_family", profiles: byFamily },
+    { method: "route_type", profiles: byType },
+    { method: "system", profiles: [...args.candidates] },
+  ];
+  const selected =
+    groups.find((group) => group.profiles.length >= args.minPeerRouteCount) ?? groups.at(-1);
+  const method = selected?.method ?? "system";
+  const peerRouteIds = (selected?.profiles ?? [])
+    .map((profile) => profile.routeId)
+    .sort((left, right) => left.localeCompare(right));
+  return {
+    peerGroupId: peerGroupIdFor(method, args.profile),
+    peerGroupLabel: peerGroupLabelFor(method, args.profile),
+    peerGroupMethod: method,
+    peerRouteIds,
+  };
+}
+
 function buildMultiMonthSpeedPeerInputs(args: {
-  catalogRouteIds: readonly string[];
+  catalog: Awaited<ReturnType<typeof listRouteCatalog>>;
   monthWindow: readonly string[];
   trends: Awaited<ReturnType<typeof listRouteMonthTrends>>;
 }): MultiMonthSpeedPeerRouteInput[] {
   const months = new Set(args.monthWindow);
+  const profiles = routePeerProfiles({ catalog: args.catalog, trends: args.trends });
   const trendByRouteMonth = new Map(
     args.trends
       .filter((trend) => months.has(trend.month))
       .map((trend) => [`${trend.routeId}:${trend.month}`, trend] as const),
   );
-  const peerByMonth = new Map<string, { medianSpeedMph: number | null; routeCount: number }>();
+  const supportedProfilesByMonth = new Map<string, RoutePeerProfile[]>();
   for (const month of args.monthWindow) {
-    const speeds = args.trends
+    const supportedProfiles = args.trends
       .filter(
         (trend) =>
           trend.month === month &&
@@ -243,26 +403,45 @@ function buildMultiMonthSpeedPeerInputs(args: {
           trend.speedObservationCount >=
             DEFAULT_MULTI_MONTH_SPEED_PEER_THRESHOLDS.minSpeedObservationCount,
       )
-      .map((trend) => trend.averageSpeedMph)
-      .filter((value): value is number => value !== null);
-    peerByMonth.set(month, {
-      medianSpeedMph: median(speeds),
-      routeCount: speeds.length,
-    });
+      .map((trend) => profiles.get(trend.routeId))
+      .filter((profile): profile is RoutePeerProfile => profile !== undefined);
+    supportedProfilesByMonth.set(month, supportedProfiles);
   }
 
-  return args.catalogRouteIds.map((routeId) => ({
-    routeId,
+  return args.catalog.map((catalogRow) => ({
+    routeId: catalogRow.routeId,
     observations: args.monthWindow.map((month) => {
-      const trend = trendByRouteMonth.get(`${routeId}:${month}`);
-      const peer = peerByMonth.get(month);
+      const trend = trendByRouteMonth.get(`${catalogRow.routeId}:${month}`);
+      const profile =
+        profiles.get(catalogRow.routeId) ??
+        ({
+          routeId: catalogRow.routeId,
+          routeFamily: routeFamilyFor(catalogRow.routeId),
+          primaryRouteType: primaryRouteTypeFor(catalogRow.routeTypes),
+          centroidLat: null,
+          centroidLng: null,
+        } satisfies RoutePeerProfile);
+      const peerGroup = matchedPeerGroup({
+        profile,
+        candidates: (supportedProfilesByMonth.get(month) ?? []).filter(
+          (candidate) => candidate.routeId !== catalogRow.routeId,
+        ),
+        minPeerRouteCount: DEFAULT_MULTI_MONTH_SPEED_PEER_THRESHOLDS.minPeerRouteCount,
+      });
+      const peerSpeeds = peerGroup.peerRouteIds
+        .map((routeId) => trendByRouteMonth.get(`${routeId}:${month}`)?.averageSpeedMph ?? null)
+        .filter((value): value is number => value !== null);
       return {
         month,
         hasSpeedTrend: trend?.hasSpeedTrend ?? false,
         averageSpeedMph: trend?.averageSpeedMph ?? null,
         speedObservationCount: trend?.speedObservationCount ?? 0,
-        peerMedianSpeedMph: peer?.medianSpeedMph ?? null,
-        peerRouteCount: peer?.routeCount ?? 0,
+        peerMedianSpeedMph: median(peerSpeeds),
+        peerRouteCount: peerGroup.peerRouteIds.length,
+        peerGroupId: peerGroup.peerGroupId,
+        peerGroupLabel: peerGroup.peerGroupLabel,
+        peerGroupMethod: peerGroup.peerGroupMethod,
+        peerRouteIds: peerGroup.peerRouteIds,
       };
     }),
   }));
@@ -816,19 +995,20 @@ function detectorGuidanceFor(detectorId: string) {
   if (detectorId === MULTI_MONTH_SPEED_PEER_DETECTOR_ID) {
     return {
       detectorKind: "service_performance",
-      validateAs: "Route-scoped multi-month low-speed trend below a broad peer median.",
+      validateAs: "Route-scoped multi-month low-speed trend below a matched peer median.",
       defaultThresholds: DEFAULT_MULTI_MONTH_SPEED_PEER_THRESHOLDS,
       keyEvidenceFields: {
         observedMonthCount: "Number of supported route-month trend rows in the lookback window.",
         averageSpeedMph: "Mean route speed across supported months; lower is worse.",
         averagePeerMedianSpeedMph:
-          "Mean monthly route-corpus median speed used as the starter peer baseline.",
+          "Mean monthly matched-peer median speed used as the comparative baseline.",
         averagePeerDeficitMph: "Peer median minus route speed across supported months.",
+        peerGroupMethod: "Route family/type/geography matching method used for each month.",
         peerRouteCount: "Number of routes contributing to each monthly peer median.",
       },
       commonFollowUps: [
-        "Inspect counter-evidence for weak months and broad-peer limitations.",
-        "Replace the broad corpus median with a reviewed borough/route-type peer group before making strong peer claims.",
+        "Inspect counter-evidence for weak months and fallback-peer limitations.",
+        "Validate route-family/type/geography peers before making strong peer claims.",
       ],
     };
   }
@@ -1398,18 +1578,206 @@ async function writeFindingReviewPacketsArtifact(args: {
   generatedAt: string;
   detectorSpecsArtifactPath: string;
   outputs: readonly DetectorOutput[];
-}): Promise<string> {
+}): Promise<{ path: string; artifact: FindingReviewPacketsArtifact }> {
   const path = join(args.artifactRoot, "findings", args.isoMonth, "review-packets.json");
+  const artifact = buildFindingReviewPacketsArtifact({
+    isoMonth: args.isoMonth,
+    generatedAt: args.generatedAt,
+    detectorSpecsArtifactPath: args.detectorSpecsArtifactPath,
+    outputs: args.outputs,
+  });
   await mkdir(dirname(path), { recursive: true });
-  await writeJson(
-    path,
-    buildFindingReviewPacketsArtifact({
-      isoMonth: args.isoMonth,
-      generatedAt: args.generatedAt,
-      detectorSpecsArtifactPath: args.detectorSpecsArtifactPath,
-      outputs: args.outputs,
-    }),
-  );
+  await writeJson(path, artifact);
+  return { path, artifact };
+}
+
+type ReviewPacket = FindingReviewPacketsArtifact["packets"][number];
+
+const REVIEWER_DECISION_OPTIONS = [
+  {
+    decision: "approve",
+    meaning: "Promote the candidate as written within the detector's allowed claim strength.",
+  },
+  {
+    decision: "approve_with_revisions",
+    meaning: "Promote only after revising claim text, scope, or caveats in the reviewer response.",
+  },
+  {
+    decision: "defer",
+    meaning: "Keep the candidate open for more evidence or reviewer follow-up.",
+  },
+  {
+    decision: "reject",
+    meaning: "Reject the candidate for this release month.",
+  },
+  {
+    decision: "downgrade_to_context",
+    meaning: "Keep the evidence as context or data quality, not as a promoted service finding.",
+  },
+] as const;
+
+const PROMOTION_READINESS_VALUES = ["ready_for_review", "needs_enrichment", "blocked"] as const;
+
+const PROMOTION_NEXT_ACTION_VALUES = [
+  "review_for_promotion",
+  "revise_claim_before_promotion",
+  "keep_as_data_quality",
+  "enrich_before_promotion",
+  "do_not_promote",
+] as const;
+
+function countByFixedKeys<T, K extends string>(
+  rows: readonly T[],
+  keys: readonly K[],
+  keyFor: (row: T) => K,
+): Record<K, number> {
+  const counts = Object.fromEntries(keys.map((key) => [key, 0])) as Record<K, number>;
+  for (const row of rows) {
+    counts[keyFor(row)] += 1;
+  }
+  return counts;
+}
+
+function promotionReadinessFor(
+  packet: ReviewPacket,
+): "ready_for_review" | "needs_enrichment" | "blocked" {
+  if (packet.promotionBlockers.length > 0) return "blocked";
+  if (
+    packet.allowedClaimStrength < 2 ||
+    packet.candidate.confidence === "low" ||
+    !packet.packetCompleteness.hasCounterEvidence
+  ) {
+    return "needs_enrichment";
+  }
+  return "ready_for_review";
+}
+
+function promotionNextActionFor(
+  packet: ReviewPacket,
+  readiness: "ready_for_review" | "needs_enrichment" | "blocked",
+):
+  | "review_for_promotion"
+  | "revise_claim_before_promotion"
+  | "keep_as_data_quality"
+  | "enrich_before_promotion"
+  | "do_not_promote" {
+  if (packet.candidate.category === "data_quality" || packet.allowedClaimStrength <= 1) {
+    return "keep_as_data_quality";
+  }
+  if (readiness === "blocked") return "do_not_promote";
+  if (readiness === "needs_enrichment") return "enrich_before_promotion";
+  if (packet.allowedClaimStrength <= 2 || packet.candidate.confidence === "medium") {
+    return "revise_claim_before_promotion";
+  }
+  return "review_for_promotion";
+}
+
+function requiredReviewerActionsFor(packet: ReviewPacket): string[] {
+  if (packet.promotionBlockers.length > 0) return packet.promotionBlockers;
+  return [
+    "Confirm primary evidence directly supports the claim text and scope.",
+    "Confirm counter-evidence does not block promotion or requires claim revision.",
+    "Choose one promotion decision and include rationale plus evidence refs approved.",
+  ];
+}
+
+function buildFindingPromotionQueueArtifact(args: {
+  isoMonth: string;
+  generatedAt: string;
+  reviewPacketsArtifactPath: string;
+  reviewPackets: FindingReviewPacketsArtifact;
+}) {
+  const candidates = args.reviewPackets.packets
+    .map((packet) => {
+      const readiness = promotionReadinessFor(packet);
+      const recommendedNextAction = promotionNextActionFor(packet, readiness);
+      const promotionPriority = packet.priority.score + packet.allowedClaimStrength * 5;
+      return {
+        packetId: packet.packetId,
+        reviewRank: packet.reviewRank,
+        candidate: packet.candidate,
+        readiness,
+        recommendedNextAction,
+        promotionPriority,
+        promotionPriorityBand: reviewPriorityBand(promotionPriority),
+        allowedClaimStrength: packet.allowedClaimStrength,
+        maxPromotableClaimStrength:
+          readiness === "blocked" ? 0 : Math.min(packet.allowedClaimStrength, 3),
+        promotionBlockers: packet.promotionBlockers,
+        requiredReviewerActions: requiredReviewerActionsFor(packet),
+        evidenceSummary: {
+          primaryCount: packet.evidence.primary.length,
+          contextCount: packet.evidence.context.length,
+          counterEvidenceCount: packet.evidence.counterEvidence.length,
+          caveatCount: packet.evidence.caveats.length,
+          missingDataCount: packet.evidence.missingData.length,
+          coverageAuditCount: packet.evidence.coverageAudit.length + packet.coverage.length,
+        },
+        reviewChecklist: packet.reviewChecklist,
+      };
+    })
+    .sort((left, right) => {
+      const priorityDelta = right.promotionPriority - left.promotionPriority;
+      if (priorityDelta !== 0) return priorityDelta;
+      return left.candidate.candidateId.localeCompare(right.candidate.candidateId);
+    })
+    .map((candidate, index) => ({ ...candidate, reviewRank: index + 1 }));
+
+  return FindingPromotionQueueArtifactSchema.parse({
+    artifactKind: "finding_promotion_queue",
+    schemaVersion: 1,
+    month: args.isoMonth,
+    generatedAt: args.generatedAt,
+    reviewPacketsArtifactPath: args.reviewPacketsArtifactPath,
+    candidateCount: candidates.length,
+    summary: {
+      candidateCount: candidates.length,
+      readinessCounts: countByFixedKeys(
+        candidates,
+        PROMOTION_READINESS_VALUES,
+        (candidate) => candidate.readiness,
+      ),
+      recommendedNextActionCounts: countByFixedKeys(
+        candidates,
+        PROMOTION_NEXT_ACTION_VALUES,
+        (candidate) => candidate.recommendedNextAction,
+      ),
+      detectorCounts: countBy(candidates, (candidate) => candidate.candidate.detectorId),
+      readyForReviewCount: candidates.filter(
+        (candidate) => candidate.readiness === "ready_for_review",
+      ).length,
+      blockedCount: candidates.filter((candidate) => candidate.readiness === "blocked").length,
+    },
+    reviewerDecisionOptions: REVIEWER_DECISION_OPTIONS,
+    outputSchema: {
+      candidateId: "string",
+      decision: "approve | approve_with_revisions | defer | reject | downgrade_to_context",
+      revisedClaimText: "string | null",
+      rationale: "string",
+      evidenceRefsApproved: "string[]",
+      reviewer: "string",
+      reviewedAt: "ISO datetime",
+    },
+    candidates,
+  });
+}
+
+async function writeFindingPromotionQueueArtifact(args: {
+  artifactRoot: string;
+  isoMonth: string;
+  generatedAt: string;
+  reviewPacketsArtifactPath: string;
+  reviewPackets: FindingReviewPacketsArtifact;
+}): Promise<string> {
+  const path = join(args.artifactRoot, "findings", args.isoMonth, "promotion-queue.json");
+  const artifact = buildFindingPromotionQueueArtifact({
+    isoMonth: args.isoMonth,
+    generatedAt: args.generatedAt,
+    reviewPacketsArtifactPath: args.reviewPacketsArtifactPath,
+    reviewPackets: args.reviewPackets,
+  });
+  await mkdir(dirname(path), { recursive: true });
+  await writeJson(path, artifact);
   return path;
 }
 
@@ -1609,7 +1977,7 @@ export async function buildFindings(args: FindingsDetectArgs = {}): Promise<Find
       month: options.isoMonth,
       generatedAt,
       routes: buildMultiMonthSpeedPeerInputs({
-        catalogRouteIds: catalog.map((row) => row.routeId),
+        catalog,
         monthWindow: recentIsoMonths({ year: options.year, month: options.month, count: 6 }),
         trends: routeMonthTrends,
       }),
@@ -1810,12 +2178,20 @@ export async function buildFindings(args: FindingsDetectArgs = {}): Promise<Find
       outputs: detectorOutputs,
       limit: reviewQueueLimit,
     });
-    const reviewPacketsArtifactPath = await writeFindingReviewPacketsArtifact({
+    const reviewPacketsWrite = await writeFindingReviewPacketsArtifact({
       artifactRoot,
       isoMonth: options.isoMonth,
       generatedAt,
       detectorSpecsArtifactPath,
       outputs: detectorOutputs,
+    });
+    const reviewPacketsArtifactPath = reviewPacketsWrite.path;
+    const promotionQueueArtifactPath = await writeFindingPromotionQueueArtifact({
+      artifactRoot,
+      isoMonth: options.isoMonth,
+      generatedAt,
+      reviewPacketsArtifactPath,
+      reviewPackets: reviewPacketsWrite.artifact,
     });
 
     const hits = sourceGap.coverage.filter((row) => row.outcome === "hit").length;
@@ -1929,6 +2305,7 @@ export async function buildFindings(args: FindingsDetectArgs = {}): Promise<Find
       detectorSpecsArtifactPath,
       reviewQueueArtifactPath,
       reviewPacketsArtifactPath,
+      promotionQueueArtifactPath,
       signalFeaturesArtifactPath,
     };
   });

@@ -15,6 +15,13 @@ import {
 
 export const MULTI_MONTH_SPEED_PEER_DETECTOR_ID = "multi_month_speed_peer";
 
+export type MultiMonthSpeedPeerGroupMethod =
+  | "route_family_type_spatial"
+  | "route_family_type"
+  | "route_family"
+  | "route_type"
+  | "system";
+
 export type MultiMonthSpeedPeerObservation = {
   month: string;
   hasSpeedTrend: boolean;
@@ -22,6 +29,10 @@ export type MultiMonthSpeedPeerObservation = {
   speedObservationCount: number;
   peerMedianSpeedMph: number | null;
   peerRouteCount: number;
+  peerGroupId: string;
+  peerGroupLabel: string;
+  peerGroupMethod: MultiMonthSpeedPeerGroupMethod;
+  peerRouteIds: readonly string[];
 };
 
 export type MultiMonthSpeedPeerRouteInput = {
@@ -85,6 +96,17 @@ function clamp(value: number, min: number, max: number): number {
 
 function average(values: readonly number[]): number {
   return values.reduce((total, value) => total + value, 0) / values.length;
+}
+
+function uniqueSorted(values: readonly string[]): string[] {
+  return [...new Set(values)].sort();
+}
+
+function hasStrongPeerGroup(observation: MultiMonthSpeedPeerObservation): boolean {
+  return (
+    observation.peerGroupMethod === "route_family_type_spatial" ||
+    observation.peerGroupMethod === "route_family_type"
+  );
 }
 
 function eligibleObservations(
@@ -200,11 +222,15 @@ export function detectMultiMonthSpeedPeerDeficits(
           physicalId: null,
           category: "speed",
           severity: hit.detectorScore >= 85 ? "high" : "medium",
-          confidence: hit.eligibleObservations.length >= 6 ? "medium" : "low",
+          confidence:
+            hit.eligibleObservations.length >= 6 &&
+            hit.eligibleObservations.every(hasStrongPeerGroup)
+              ? "medium"
+              : "low",
           detectorScore: hit.detectorScore,
           reasonCode,
           claimSafeLabel: "issue_needs_review",
-          claimText: `Route ${routeId} has a multi-month low-speed pattern below the route-corpus peer median.`,
+          claimText: `Route ${routeId} has a multi-month low-speed pattern below its matched peer median.`,
           status: "open",
           reviewState: "needs_review",
           windowStart: null,
@@ -225,16 +251,23 @@ export function detectMultiMonthSpeedPeerDeficits(
             averageSpeedMph: hit.averageSpeedMph,
             averagePeerMedianSpeedMph: hit.averagePeerMedianSpeedMph,
             averagePeerDeficitMph: hit.averagePeerDeficitMph,
+            peerGroupMethods: uniqueSorted(
+              hit.eligibleObservations.map((observation) => observation.peerGroupMethod),
+            ),
             observations: hit.eligibleObservations.map((observation) => ({
               month: observation.month,
               averageSpeedMph: observation.averageSpeedMph,
               speedObservationCount: observation.speedObservationCount,
               peerMedianSpeedMph: observation.peerMedianSpeedMph,
               peerRouteCount: observation.peerRouteCount,
+              peerGroupId: observation.peerGroupId,
+              peerGroupLabel: observation.peerGroupLabel,
+              peerGroupMethod: observation.peerGroupMethod,
+              peerRouteIds: observation.peerRouteIds,
             })),
           }),
           evidenceWeight: 1,
-          note: "Multi-month route speed trend compared with the monthly route-corpus median.",
+          note: "Multi-month route speed trend compared with the monthly matched peer median.",
         }),
         FindingEvidenceLinkSchema.parse({
           linkId: stableId(candidateId, "evidence", "peer_limits"),
@@ -248,13 +281,21 @@ export function detectMultiMonthSpeedPeerDeficits(
             configuredMinObservedMonths: thresholds.minObservedMonths,
             configuredMinSpeedObservationCount: thresholds.minSpeedObservationCount,
             configuredMinPeerRouteCount: thresholds.minPeerRouteCount,
+            fallbackPeerMonths: hit.eligibleObservations
+              .filter((observation) => !hasStrongPeerGroup(observation))
+              .map((observation) => ({
+                month: observation.month,
+                peerGroupMethod: observation.peerGroupMethod,
+                peerGroupLabel: observation.peerGroupLabel,
+                peerRouteCount: observation.peerRouteCount,
+              })),
             peerGroupDescription:
-              "The peer median is computed from all supported route-month trend rows for each month, not from a reviewed matched-control peer group.",
+              "Peers are selected by route family, route type, and geography when enough supported routes exist; fallback groups are recorded per month.",
             limitation:
-              "A route-corpus median can miss borough, route type, seasonal, construction, or service-pattern differences; reviewers should inspect stronger peer groups before promotion.",
+              "Matched peer groups are descriptive comparisons, not causal controls; reviewers should inspect route geometry, service pattern, construction, and seasonal differences before promotion.",
           }),
           evidenceWeight: 0.5,
-          note: "Counter-evidence for peer interpretation: this starter layer uses a broad corpus median, not a validated peer set.",
+          note: "Counter-evidence for peer interpretation: matched peers improve the baseline but still require reviewer validation.",
         }),
       );
     }

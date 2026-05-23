@@ -1114,6 +1114,153 @@ export const FindingReviewPacketsArtifactSchema = registerProjectSchema(
 
 export type FindingReviewPacketsArtifact = z.output<typeof FindingReviewPacketsArtifactSchema>;
 
+export const FindingPromotionReadinessSchema = registerProjectSchema(
+  z.enum(["ready_for_review", "needs_enrichment", "blocked"]).brand<"FindingPromotionReadiness">(),
+  {
+    id: "bp.finding.promotion_readiness",
+    title: "Finding Promotion Readiness",
+    description:
+      "Deterministic readiness bucket for moving a detector candidate into human promotion review.",
+    stability: "draft",
+  },
+);
+
+export type FindingPromotionReadiness = z.output<typeof FindingPromotionReadinessSchema>;
+
+export const FindingPromotionDecisionSchema = registerProjectSchema(
+  z
+    .enum(["approve", "approve_with_revisions", "defer", "reject", "downgrade_to_context"])
+    .brand<"FindingPromotionDecision">(),
+  {
+    id: "bp.finding.promotion_decision",
+    title: "Finding Promotion Decision",
+    description:
+      "Human reviewer decision vocabulary for turning a detector candidate into a promoted finding or deferring it.",
+    stability: "draft",
+  },
+);
+
+export type FindingPromotionDecision = z.output<typeof FindingPromotionDecisionSchema>;
+
+export const FindingPromotionNextActionSchema = registerProjectSchema(
+  z
+    .enum([
+      "review_for_promotion",
+      "revise_claim_before_promotion",
+      "keep_as_data_quality",
+      "enrich_before_promotion",
+      "do_not_promote",
+    ])
+    .brand<"FindingPromotionNextAction">(),
+  {
+    id: "bp.finding.promotion_next_action",
+    title: "Finding Promotion Next Action",
+    description:
+      "Pipeline-suggested next review action. This is not an approval decision by itself.",
+    stability: "draft",
+  },
+);
+
+export type FindingPromotionNextAction = z.output<typeof FindingPromotionNextActionSchema>;
+
+export const FindingPromotionQueueItemSchema = registerProjectSchema(
+  z
+    .object({
+      packetId: z.string().min(1),
+      reviewRank: z.number().int().positive(),
+      candidate: FindingCandidateSchema,
+      readiness: FindingPromotionReadinessSchema,
+      recommendedNextAction: FindingPromotionNextActionSchema,
+      promotionPriority: z.number().int().nonnegative(),
+      promotionPriorityBand: FindingReviewPriorityBandSchema,
+      allowedClaimStrength: z.number().int().min(0).max(5),
+      maxPromotableClaimStrength: z.number().int().min(0).max(5),
+      promotionBlockers: z.array(z.string().min(1).max(500)),
+      requiredReviewerActions: z.array(z.string().min(1).max(500)),
+      evidenceSummary: z
+        .object({
+          primaryCount: z.number().int().nonnegative(),
+          contextCount: z.number().int().nonnegative(),
+          counterEvidenceCount: z.number().int().nonnegative(),
+          caveatCount: z.number().int().nonnegative(),
+          missingDataCount: z.number().int().nonnegative(),
+          coverageAuditCount: z.number().int().nonnegative(),
+        })
+        .strict(),
+      reviewChecklist: z.array(z.string().min(1).max(500)),
+    })
+    .strict(),
+  {
+    id: "bp.finding.promotion_queue_item.v1",
+    title: "Finding Promotion Queue Item",
+    description:
+      "One detector candidate summarized for human promotion review, with blockers and decision inputs.",
+    stability: "draft",
+  },
+);
+
+export type FindingPromotionQueueItem = z.output<typeof FindingPromotionQueueItemSchema>;
+
+export const FindingPromotionQueueArtifactSchema = registerProjectSchema(
+  z
+    .object({
+      artifactKind: z.literal("finding_promotion_queue"),
+      schemaVersion: z.literal(schemaVersion),
+      month: IsoMonthSchema,
+      generatedAt: z.iso.datetime(),
+      reviewPacketsArtifactPath: z.string().min(1),
+      candidateCount: z.number().int().nonnegative(),
+      summary: z
+        .object({
+          candidateCount: z.number().int().nonnegative(),
+          readinessCounts: z.record(
+            FindingPromotionReadinessSchema,
+            z.number().int().nonnegative(),
+          ),
+          recommendedNextActionCounts: z.record(
+            FindingPromotionNextActionSchema,
+            z.number().int().nonnegative(),
+          ),
+          detectorCounts: z.record(DetectorIdSchema, z.number().int().nonnegative()),
+          readyForReviewCount: z.number().int().nonnegative(),
+          blockedCount: z.number().int().nonnegative(),
+        })
+        .strict(),
+      reviewerDecisionOptions: z.array(
+        z
+          .object({
+            decision: FindingPromotionDecisionSchema,
+            meaning: z.string().min(1).max(500),
+          })
+          .strict(),
+      ),
+      outputSchema: z
+        .object({
+          candidateId: z.literal("string"),
+          decision: z.literal(
+            "approve | approve_with_revisions | defer | reject | downgrade_to_context",
+          ),
+          revisedClaimText: z.literal("string | null"),
+          rationale: z.literal("string"),
+          evidenceRefsApproved: z.literal("string[]"),
+          reviewer: z.literal("string"),
+          reviewedAt: z.literal("ISO datetime"),
+        })
+        .strict(),
+      candidates: z.array(FindingPromotionQueueItemSchema),
+    })
+    .strict(),
+  {
+    id: "bp.finding.promotion_queue_artifact.v1",
+    title: "Finding Promotion Queue Artifact",
+    description:
+      "Reviewer-facing promotion queue derived from review packets. It exposes readiness, blockers, and an explicit decision contract.",
+    stability: "draft",
+  },
+);
+
+export type FindingPromotionQueueArtifact = z.output<typeof FindingPromotionQueueArtifactSchema>;
+
 export const FindingDetectorAuditActionSchema = registerProjectSchema(
   z.enum(["keep", "downgrade", "suppress", "split", "enrich"]),
   {

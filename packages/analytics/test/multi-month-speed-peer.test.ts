@@ -8,6 +8,13 @@ const GENERATED_AT = "2026-05-20T12:00:00.000Z";
 const MONTH = "2026-03";
 const RUN_ID = "multimonthpeer0123456789abcdef";
 
+const MATCHED_PEER = {
+  peerGroupId: "route_family_type:M:Local",
+  peerGroupLabel: "M Local routes",
+  peerGroupMethod: "route_family_type" as const,
+  peerRouteIds: ["M1", "M2", "M3"],
+};
+
 function route(over: Partial<MultiMonthSpeedPeerRouteInput> = {}): MultiMonthSpeedPeerRouteInput {
   return {
     routeId: "M15",
@@ -19,6 +26,7 @@ function route(over: Partial<MultiMonthSpeedPeerRouteInput> = {}): MultiMonthSpe
         speedObservationCount: 500,
         peerMedianSpeedMph: 7.1,
         peerRouteCount: 40,
+        ...MATCHED_PEER,
       },
       {
         month: "2026-02",
@@ -27,6 +35,7 @@ function route(over: Partial<MultiMonthSpeedPeerRouteInput> = {}): MultiMonthSpe
         speedObservationCount: 520,
         peerMedianSpeedMph: 7.2,
         peerRouteCount: 42,
+        ...MATCHED_PEER,
       },
       {
         month: MONTH,
@@ -35,6 +44,7 @@ function route(over: Partial<MultiMonthSpeedPeerRouteInput> = {}): MultiMonthSpe
         speedObservationCount: 530,
         peerMedianSpeedMph: 7,
         peerRouteCount: 41,
+        ...MATCHED_PEER,
       },
     ],
     ...over,
@@ -61,6 +71,7 @@ describe("detectMultiMonthSpeedPeerDeficits", () => {
     expect(JSON.parse(output.evidence[0]?.evidenceRef ?? "{}")).toMatchObject({
       observedMonthCount: 3,
       averagePeerDeficitMph: 1.87,
+      peerGroupMethods: ["route_family_type"],
     });
     expect(output.coverage[0]?.outcome as string).toBe("hit");
   });

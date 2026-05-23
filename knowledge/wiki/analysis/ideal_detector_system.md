@@ -36,11 +36,13 @@ The implemented March 2026 detector pass has a real evidence spine:
 - 381 route-month signal features.
 - 6 context sources represented in route-month features.
 - 8 detector families.
-- 675 detector candidates.
-- 1,817 evidence links.
+- 673 detector candidates.
+- 1,811 evidence links.
 - 3,066 coverage rows.
 - 200 surfaced review-queue candidates.
-- 675 generated review packets.
+- 673 generated review packets.
+- 673 promotion-queue candidates, with 454 ready for human review, 21 needing enrichment, and 198
+  blocked source-gap/data-quality candidates.
 
 The current detectors are intentionally cautious:
 
@@ -57,7 +59,7 @@ They mostly ask simple questions:
 
 - Is a route missing required evidence?
 - Does a route have slow segment evidence?
-- Does a route have a multi-month speed deficit versus the broad route-corpus peer median?
+- Does a route have a multi-month speed deficit versus matched route-family/type/geography peers?
 - Does a route have observed reliability trouble?
 - Does a route have high pain and thin treatment evidence?
 - Does a route still look bad after a treatment?
@@ -684,8 +686,8 @@ Promotion should produce:
 - date/time;
 - supersession key.
 
-The current Studio review provenance is a first guardrail. The ideal system needs a full promotion
-artifact and a demotion/supersession path.
+The current Studio review provenance and `promotion-queue.json` are first guardrails. The ideal
+system still needs immutable promoted-finding records plus a demotion/supersession path.
 
 ## Scoring Model
 
@@ -829,7 +831,8 @@ The buildable system should keep these layers separate:
    - no unapproved detector claims.
 
 The current package split already matches this direction. The main missing layer is a real typed
-feature store and promotion artifact.
+feature store plus reviewed promotion decisions that turn promotion-queue candidates into immutable
+public findings.
 
 ## Concrete Next Build Steps
 
@@ -849,7 +852,7 @@ The first practical detector-maturity slice is now implemented in code:
 - `audit:findings-backtest` runs a tiny gold-set check against review packets, with optional
   `--gold-set` input for route-specific known cases.
 
-The second slice adds the first broad counter-evidence pass and starts comparative history:
+The second slice added the first broad counter-evidence pass and started comparative history:
 
 - `observed_reliability` now emits counter-evidence for GTFS-RT sample support, scheduled-baseline
   support, Bus Wait Assessment support, and route-month aggregation limits;
@@ -860,13 +863,30 @@ The second slice adds the first broad counter-evidence pass and starts comparati
 - `permit_correlated_slowdown` now emits permit fanout/match-weight/work-type caveats as explicit
   counter-evidence;
 - `multi_month_speed_peer` is now a starter detector over route-month speed trends. It compares each
-  route to the monthly route-corpus median and emits broad-peer counter-evidence before any stronger
-  peer claim can be promoted.
+  route to a monthly peer median and emits peer-limit counter-evidence before any stronger peer
+  claim can be promoted.
+
+The third slice added promotion workflow artifacts and stronger matched peers:
+
+- `@bp/domain` now has strict promotion-readiness, promotion-decision, promotion-next-action, queue
+  item, and queue artifact contracts;
+- `findings:detect` writes `data/artifacts/findings/{month}/promotion-queue.json` from the review
+  packets so reviewers can see readiness, blockers, allowed claim strength, required actions,
+  evidence summaries, decision options, and the expected review response shape;
+- the March 2026 promotion proof has 673 candidates: 454 `ready_for_review`, 21
+  `needs_enrichment`, and 198 `blocked`;
+- recommended next actions separate 168 direct review candidates, 286 claim-revision candidates, 21
+  enrichment candidates, and 198 data-quality/source-gap candidates;
+- `multi_month_speed_peer` now selects matched peers by route family, primary route type, and
+  route geography when enough supported routes exist, then falls back to route family/type, route
+  family, route type, or system peers with the fallback method recorded per month;
+- the March 2026 matched-peer proof surfaces 3 peer-speed candidates, all using the strongest
+  `route_family_type_spatial` method.
 
 This moves the detector layer from mostly level 2 toward level 3 for packet shape. It does not make
 all detectors promotion-ready: source-gap candidates still need source-resolution counter-evidence,
-and the new multi-month peer detector intentionally uses a broad corpus median until stronger
-borough/route-type peer groups and calibrated backtests are added.
+and the new multi-month peer detector still needs calibrated backtests and reviewer validation
+before peer-comparison claims become publication-grade.
 
 ### Step 1: Write detector specs before adding detectors
 
@@ -886,9 +906,8 @@ For each detector, create a short spec with:
 
 ### Step 2: Add review packet schema
 
-Current candidates and evidence links are good, but reviewers need a richer packet. Add a typed
-artifact that groups candidate, evidence, counter-evidence, missing evidence, coverage, and review
-checklist.
+Current status: review packets are implemented and now feed a promotion queue. Next, add immutable
+review decision records that approve, revise, defer, reject, or downgrade candidates.
 
 ### Step 3: Add counter-evidence role
 
@@ -921,8 +940,9 @@ These are more important than more context sources:
 These move the system from "bad this month" to "meaningfully unusual."
 
 Current status: the first `multi_month_speed_peer` detector is implemented as a conservative route
-trend starter. It is useful for review recall, but it should be replaced or complemented by matched
-borough/route-type peers before promotion-grade peer claims.
+trend starter with matched route-family/type/geography peers and recorded fallback groups. It is
+useful for review recall, but promotion-grade peer claims still need calibrated backtests and human
+validation of the peer set.
 
 ### Step 6: Build a gold-set backtest
 
@@ -942,8 +962,9 @@ cases and why it missed any.
 | 5 | Promotion-ready detector | Approved candidates can become public claims under explicit rules |
 | 6 | Learning detector | Review outcomes feed threshold, feature, and source-quality improvements |
 
-Current system: mostly level 2, with some level 3 guardrails in Studio projection. The next target
-is level 3 across all detector families, then level 4 through backtesting.
+Current system: mostly level 3 for packet shape and promotion triage, but not yet level 4 because
+confidence and thresholds are not calibrated against a meaningful gold set. The next target is a
+larger backtest/reviewer-feedback loop.
 
 ## Non-Negotiables
 

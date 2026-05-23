@@ -1369,3 +1369,18 @@ over local route-month speed trends that compares each route with the monthly ro
 and emits broad-peer limitations before promotion. The March 2026 real detector pass now has 8
 detector families, 675 candidates, 1,817 evidence links, 3,066 coverage rows, 675 review packets,
 and 5 multi-month peer-speed candidates.
+
+## [2026-05-23] engineering | Reviewer promotion queue and matched peer groups
+
+Added strict reviewer promotion contracts in `@bp/domain` and taught `findings:detect` to write
+`data/artifacts/findings/<month>/promotion-queue.json` from the review packets. The queue exposes
+readiness, recommended next actions, blockers, allowed claim strength, evidence summaries, decision
+options, and the expected reviewer response shape before any detector candidate can become a
+promoted finding. The real March 2026 proof has 673 promotion candidates: 454 ready for review, 21
+needing enrichment, and 198 blocked source-gap/data-quality candidates.
+
+Strengthened `multi_month_speed_peer` from a route-corpus median comparison to matched monthly peer
+groups. The detector now chooses route-family/type/geography peers when enough supported routes
+exist and records fallback methods per observation. The real March 2026 detector pass now has 8
+detector families, 673 candidates, 1,811 evidence links, 3,066 coverage rows, 673 review packets,
+and 3 matched peer-speed candidates, all using the strongest `route_family_type_spatial` method.

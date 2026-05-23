@@ -3,6 +3,7 @@ import * as z from "zod";
 import {
   buildStudioRouteProjection,
   FindingEvidenceLinkSchema,
+  FindingPromotionQueueArtifactSchema,
   FindingReviewPacketsArtifactSchema,
   HealthResponseSchema,
   healthResponseJsonSchema,
@@ -224,6 +225,94 @@ describe("domain schemas", () => {
     });
 
     expect(artifact.packets[0]?.evidence.counterEvidence).toHaveLength(1);
+  });
+
+  test("parses reviewer promotion queues with explicit decisions", () => {
+    const artifact = FindingPromotionQueueArtifactSchema.parse({
+      artifactKind: "finding_promotion_queue",
+      schemaVersion: 1,
+      month: "2026-03",
+      generatedAt: "2026-05-23T00:00:00.000Z",
+      reviewPacketsArtifactPath: "/tmp/review-packets.json",
+      candidateCount: 1,
+      summary: {
+        candidateCount: 1,
+        readinessCounts: { ready_for_review: 1, needs_enrichment: 0, blocked: 0 },
+        recommendedNextActionCounts: {
+          review_for_promotion: 1,
+          revise_claim_before_promotion: 0,
+          keep_as_data_quality: 0,
+          enrich_before_promotion: 0,
+          do_not_promote: 0,
+        },
+        detectorCounts: { persistent_speed_hotspot: 1 },
+        readyForReviewCount: 1,
+        blockedCount: 0,
+      },
+      reviewerDecisionOptions: [
+        {
+          decision: "approve",
+          meaning: "Promote within the allowed claim strength.",
+        },
+      ],
+      outputSchema: {
+        candidateId: "string",
+        decision: "approve | approve_with_revisions | defer | reject | downgrade_to_context",
+        revisedClaimText: "string | null",
+        rationale: "string",
+        evidenceRefsApproved: "string[]",
+        reviewer: "string",
+        reviewedAt: "ISO datetime",
+      },
+      candidates: [
+        {
+          packetId: "packet-1",
+          reviewRank: 1,
+          candidate: {
+            candidateId: "candidate-1",
+            detectorId: "persistent_speed_hotspot",
+            detectorRunId: "detector-run-1",
+            month: "2026-03",
+            scopeKind: "segment",
+            scopeId: "M15:0:1",
+            routeId: "M15",
+            physicalId: null,
+            category: "speed",
+            severity: "medium",
+            confidence: "high",
+            detectorScore: 88,
+            reasonCode: "persistent_low_speed",
+            claimSafeLabel: "issue_needs_review",
+            claimText: "Route M15 has a persistent low-speed segment.",
+            status: "open",
+            reviewState: "needs_review",
+            windowStart: null,
+            windowEnd: null,
+            createdAt: "2026-05-23T00:00:00.000Z",
+          },
+          readiness: "ready_for_review",
+          recommendedNextAction: "review_for_promotion",
+          promotionPriority: 113,
+          promotionPriorityBand: "critical",
+          allowedClaimStrength: 3,
+          maxPromotableClaimStrength: 3,
+          promotionBlockers: [],
+          requiredReviewerActions: ["Confirm evidence supports the claim."],
+          evidenceSummary: {
+            primaryCount: 1,
+            contextCount: 1,
+            counterEvidenceCount: 1,
+            caveatCount: 0,
+            missingDataCount: 0,
+            coverageAuditCount: 1,
+          },
+          reviewChecklist: ["Keep segment-scoped."],
+        },
+      ],
+    });
+
+    expect(artifact.summary.readyForReviewCount).toBe(1);
+    expect(String(artifact.reviewerDecisionOptions[0]?.decision)).toBe("approve");
   });
 
   test("projects route artifact refs into Studio route detail contracts", () => {

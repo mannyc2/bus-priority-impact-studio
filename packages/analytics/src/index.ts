@@ -25,6 +25,7 @@ export {
 export type {
   MultiMonthSpeedPeerDetectorInput,
   MultiMonthSpeedPeerDetectorOutput,
+  MultiMonthSpeedPeerGroupMethod,
   MultiMonthSpeedPeerObservation,
   MultiMonthSpeedPeerRouteInput,
   MultiMonthSpeedPeerThresholds,

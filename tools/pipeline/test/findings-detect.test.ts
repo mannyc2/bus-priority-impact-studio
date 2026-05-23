@@ -200,7 +200,7 @@ describe("findings:detect orchestrator", () => {
       ] as const) {
         seedRouteTrend(local.sqlite, "M1", trend[0], trend[1]);
         for (let index = 0; index < 10; index += 1) {
-          seedRouteTrend(local.sqlite, `peer${index}`, trend[0], 7.2 + index / 10);
+          seedRouteTrend(local.sqlite, `M${index + 2}`, trend[0], 7.2 + index / 10);
         }
       }
 
@@ -368,6 +368,9 @@ describe("findings:detect orchestrator", () => {
     );
     expect(result.reviewPacketsArtifactPath).toBe(
       join(artifactRoot, "findings", month, "review-packets.json"),
+    );
+    expect(result.promotionQueueArtifactPath).toBe(
+      join(artifactRoot, "findings", month, "promotion-queue.json"),
     );
     expect(result.signalFeaturesArtifactPath).toBe(
       join(artifactRoot, "findings", month, "signal-features.json"),
@@ -685,6 +688,55 @@ describe("findings:detect orchestrator", () => {
     expect(hotspotPacket?.packetCompleteness.hasCoverageAudit).toBe(true);
     expect(hotspotPacket?.evidence.counterEvidence).toHaveLength(1);
     expect(hotspotPacket?.promotionBlockers).toEqual([]);
+    const promotionQueue = JSON.parse(await Bun.file(result.promotionQueueArtifactPath).text()) as {
+      artifactKind: string;
+      candidateCount: number;
+      summary: {
+        readyForReviewCount: number;
+        blockedCount: number;
+        readinessCounts: Record<string, number>;
+        recommendedNextActionCounts: Record<string, number>;
+        detectorCounts: Record<string, number>;
+      };
+      reviewerDecisionOptions: Array<{ decision: string; meaning: string }>;
+      outputSchema: { decision: string; rationale: string };
+      candidates: Array<{
+        candidate: { detectorId: string; candidateId: string };
+        readiness: string;
+        recommendedNextAction: string;
+        evidenceSummary: { primaryCount: number; counterEvidenceCount: number };
+        promotionBlockers: string[];
+      }>;
+    };
+    expect(promotionQueue.artifactKind).toBe("finding_promotion_queue");
+    expect(promotionQueue.candidateCount).toBe(reviewPackets.packetCount);
+    expect(promotionQueue.summary.detectorCounts).toMatchObject({
+      multi_month_speed_peer: 1,
+      persistent_speed_hotspot: 1,
+      source_gap: 6,
+    });
+    expect(promotionQueue.summary.readyForReviewCount).toBeGreaterThan(0);
+    expect(promotionQueue.summary.blockedCount).toBe(6);
+    expect(promotionQueue.summary.recommendedNextActionCounts).toMatchObject({
+      keep_as_data_quality: 6,
+      enrich_before_promotion: 1,
+    });
+    expect(promotionQueue.reviewerDecisionOptions.map((row) => row.decision)).toEqual(
+      expect.arrayContaining(["approve", "defer", "reject", "downgrade_to_context"]),
+    );
+    expect(promotionQueue.outputSchema.decision).toContain("approve_with_revisions");
+    expect(
+      promotionQueue.candidates.find(
+        (candidate) => candidate.candidate.detectorId === "multi_month_speed_peer",
+      ),
+    ).toMatchObject({
+      readiness: "needs_enrichment",
+      evidenceSummary: {
+        primaryCount: 1,
+        counterEvidenceCount: 1,
+      },
+      promotionBlockers: [],
+    });
     const goldSetPath = join(artifactRoot, "fixture-gold-set.json");
     await Bun.write(
       goldSetPath,
