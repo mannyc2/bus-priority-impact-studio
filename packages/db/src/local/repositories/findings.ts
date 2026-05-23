@@ -87,7 +87,13 @@ export type LocalFindingEvidenceLink = {
     | "missing_data"
     | "source_doc"
     | "coverage_audit";
-  evidenceRole: "primary" | "context" | "caveat" | "missing_data" | "coverage_audit";
+  evidenceRole:
+    | "primary"
+    | "context"
+    | "counter_evidence"
+    | "caveat"
+    | "missing_data"
+    | "coverage_audit";
   evidenceRef: string;
   evidenceWeight: number | null;
   note: string | null;
@@ -100,12 +106,7 @@ export type LocalFindingCoverageAudit = {
   month: string;
   scopeKind: "route" | "segment" | "corridor" | "system";
   scopeId: string;
-  outcome:
-    | "hit"
-    | "clean_no_hit"
-    | "skipped_missing_input"
-    | "skipped_failed_join"
-    | "source_lag";
+  outcome: "hit" | "clean_no_hit" | "skipped_missing_input" | "skipped_failed_join" | "source_lag";
   reasonCode: string | null;
   reason: string | null;
   inputsSeenJson: string | null;

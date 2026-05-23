@@ -559,6 +559,13 @@ const commands = {
       return auditEvidenceCorpusFromCli(args);
     },
   },
+  "audit:findings-backtest": {
+    description: "Run the tiny detector gold-set backtest against finding review packets.",
+    run: async (args) => {
+      const { auditFindingsBacktestFromCli } = await import("./jobs/audit/findings-backtest.js");
+      return auditFindingsBacktestFromCli(args);
+    },
+  },
   "audit:parking-candidate-quality": {
     description:
       "Audit parking candidate fanout and match weights before any detector-grade promotion.",

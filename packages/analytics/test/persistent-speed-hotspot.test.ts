@@ -55,8 +55,9 @@ describe("detectPersistentSpeedHotspots", () => {
     expect(out.candidates[0]?.routeId as string).toBe("M15");
     expect(out.candidates[0]?.reasonCode as string).toBe("persistent_low_speed");
     expect(out.candidates[0]?.claimSafeLabel as string).toBe("issue_needs_review");
-    expect(out.evidence).toHaveLength(1);
+    expect(out.evidence).toHaveLength(2);
     expect(out.evidence[0]?.evidenceKind as string).toBe("metric");
+    expect(out.evidence.map((link) => link.evidenceRole as string)).toContain("counter_evidence");
     expect(out.coverage[0]?.outcome as string).toBe("hit");
   });
 

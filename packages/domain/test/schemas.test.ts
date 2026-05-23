@@ -2,6 +2,8 @@ import { describe, expect, test } from "bun:test";
 import * as z from "zod";
 import {
   buildStudioRouteProjection,
+  FindingEvidenceLinkSchema,
+  FindingReviewPacketsArtifactSchema,
   HealthResponseSchema,
   healthResponseJsonSchema,
   RouteIdCodec,
@@ -99,6 +101,129 @@ describe("domain schemas", () => {
     });
 
     expect(finding.review?.publicationState).toBe("review_candidate");
+  });
+
+  test("parses review packets with explicit counter-evidence", () => {
+    const candidate = {
+      candidateId: "candidate-1",
+      detectorId: "persistent_speed_hotspot",
+      detectorRunId: "detector-run-1",
+      month: "2026-03",
+      scopeKind: "segment",
+      scopeId: "M15:0:1",
+      routeId: "M15",
+      physicalId: null,
+      category: "speed",
+      severity: "medium",
+      confidence: "high",
+      detectorScore: 88,
+      reasonCode: "persistent_low_speed",
+      claimSafeLabel: "issue_needs_review",
+      claimText: "Route M15 has a persistent low-speed segment.",
+      status: "open",
+      reviewState: "needs_review",
+      windowStart: null,
+      windowEnd: null,
+      createdAt: "2026-05-23T00:00:00.000Z",
+    };
+    const primary = FindingEvidenceLinkSchema.parse({
+      linkId: "primary-1",
+      candidateId: "candidate-1",
+      evidenceKind: "metric",
+      evidenceRole: "primary",
+      evidenceRef: "{}",
+      evidenceWeight: 1,
+      note: null,
+    });
+    const counter = FindingEvidenceLinkSchema.parse({
+      linkId: "counter-1",
+      candidateId: "candidate-1",
+      evidenceKind: "metric",
+      evidenceRole: "counter_evidence",
+      evidenceRef: "{}",
+      evidenceWeight: 0.4,
+      note: "Segment scope caveat.",
+    });
+
+    const artifact = FindingReviewPacketsArtifactSchema.parse({
+      artifactKind: "finding_review_packets",
+      schemaVersion: 1,
+      month: "2026-03",
+      generatedAt: "2026-05-23T00:00:00.000Z",
+      detectorSpecsArtifactPath: "/tmp/detector-specs.json",
+      packetCount: 1,
+      summary: {
+        packetCount: 1,
+        candidatesWithoutCounterEvidence: 0,
+        candidatesWithoutCoverage: 0,
+        detectorCounts: { persistent_speed_hotspot: 1 },
+      },
+      packets: [
+        {
+          packetId: "packet-1",
+          reviewRank: 1,
+          candidate,
+          detectorSpec: {
+            detectorId: "persistent_speed_hotspot",
+            name: "Persistent speed hotspot",
+            question: "Which segments are slow?",
+            claimTemplate: "A segment is slow.",
+            allowedClaimStrength: 3,
+            primaryEvidenceRequired: ["Speed metric."],
+            supportingEvidenceExpected: ["Context."],
+            counterEvidenceRequired: ["Scope caveat."],
+            promotionChecklist: ["Keep segment-scoped."],
+            knownFailureModes: ["Route-wide overclaim."],
+          },
+          priority: { score: 98, band: "high", signals: ["persistent_speed_hotspot"] },
+          evidence: {
+            primary: [primary],
+            context: [],
+            counterEvidence: [counter],
+            caveats: [],
+            missingData: [],
+            coverageAudit: [],
+          },
+          evidenceObjects: {
+            primary: [{}],
+            context: [],
+            counterEvidence: [{}],
+            caveats: [],
+            missingData: [],
+            coverageAudit: [],
+          },
+          coverage: [
+            {
+              auditId: "audit-1",
+              detectorRunId: "detector-run-1",
+              detectorId: "persistent_speed_hotspot",
+              month: "2026-03",
+              scopeKind: "route",
+              scopeId: "M15",
+              outcome: "hit",
+              reasonCode: null,
+              reason: null,
+              inputsSeenJson: "{}",
+              inputsExpectedJson: "{}",
+              createdAt: "2026-05-23T00:00:00.000Z",
+            },
+          ],
+          derivedMetricWarnings: [],
+          promotionBlockers: [],
+          reviewChecklist: ["Keep segment-scoped."],
+          allowedClaimStrength: 3,
+          packetCompleteness: {
+            hasPrimaryEvidence: true,
+            hasCounterEvidence: true,
+            hasCoverageAudit: true,
+            hasDetectorSpec: true,
+            hasReviewChecklist: true,
+          },
+        },
+      ],
+    });
+
+    expect(artifact.packets[0]?.evidence.counterEvidence).toHaveLength(1);
   });
 
   test("projects route artifact refs into Studio route detail contracts", () => {

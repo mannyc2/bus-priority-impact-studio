@@ -8,12 +8,14 @@ import {
   DEFAULT_INTERVENTION_UNDERPERFORMANCE_THRESHOLDS,
   DEFAULT_OBSERVED_RELIABILITY_THRESHOLDS,
   DEFAULT_PERSISTENT_SPEED_HOTSPOT_THRESHOLDS,
+  DEFAULT_SERVICE_REQUEST_CONTEXT_THRESHOLDS,
   DEFAULT_SOURCE_GAP_THRESHOLDS,
   detectInterventionGaps,
   detectInterventionUnderperformance,
   detectObservedReliability,
   detectPermitCorrelatedSlowdowns,
   detectPersistentSpeedHotspots,
+  detectServiceRequestContext,
   detectSourceGaps,
   INTERVENTION_GAP_DETECTOR_ID,
   INTERVENTION_UNDERPERFORMANCE_DETECTOR_ID,
@@ -25,6 +27,7 @@ import {
   PERMIT_CORRELATED_SLOWDOWN_DETECTOR_ID,
   PERSISTENT_SPEED_HOTSPOT_DETECTOR_ID,
   type PersistentSpeedHotspotRouteInput,
+  SERVICE_REQUEST_CONTEXT_DETECTOR_ID,
   SOURCE_GAP_DETECTOR_ID,
   type SourceGapBusLaneDateInput,
   type SourceGapContextJoinInput,
@@ -46,13 +49,18 @@ import {
   listRouteReliabilityBaselines,
   replaceFindingsForMonth,
 } from "@bp/db/local";
-import { FindingEvidenceLinkSchema, type RouteMonthSignalFeature } from "@bp/domain";
+import {
+  FindingEvidenceLinkSchema,
+  FindingReviewPacketsArtifactSchema,
+  type RouteMonthSignalFeature,
+} from "@bp/domain";
 import { nextIsoMonthStart } from "../../lib/dates.js";
 import { writeJson } from "../../lib/json.js";
 import { withLocalPipelineDb } from "../../lib/local-db.js";
 import { defaultArtifactRootPath, fromCliPath } from "../../lib/paths.js";
 import { createMonthContext, parseMonthDbCliArgs } from "../../lib/route-job.js";
 import { SOURCE_FRESHNESS_POLICIES } from "../../source-freshness-policy.js";
+import { detectorSpecFor, writeDetectorSpecsArtifact } from "./detector-specs.js";
 import {
   buildFindingSignalFeaturesArtifact,
   buildRouteMonthSignalFeaturesFromSqlite,
@@ -79,7 +87,9 @@ export type FindingsDetectResult = {
   }>;
   dbPath: string;
   auditArtifactPath: string;
+  detectorSpecsArtifactPath: string;
   reviewQueueArtifactPath: string;
+  reviewPacketsArtifactPath: string;
   signalFeaturesArtifactPath: string;
 };
 
@@ -785,6 +795,25 @@ function detectorGuidanceFor(detectorId: string) {
       ],
     };
   }
+  if (detectorId === SERVICE_REQUEST_CONTEXT_DETECTOR_ID) {
+    return {
+      detectorKind: "context",
+      validateAs:
+        "Route-scoped slow-speed evidence with substantial 311 service-request context; not causal by itself.",
+      defaultThresholds: DEFAULT_SERVICE_REQUEST_CONTEXT_THRESHOLDS,
+      keyEvidenceFields: {
+        routeWeightedAverageSpeedMph: "Route-month speed signal; lower is worse.",
+        speedObservationCount: "Speed observations supporting the route-month metric.",
+        maxHotspotScore: "Maximum route hotspot score used as alternate speed-pain signal.",
+        serviceRequestContext:
+          "311 touch counts, high-confidence support, match weight, source ids, and fanout.",
+      },
+      commonFollowUps: [
+        "Inspect counter-evidence for fanout, match weight, and reporting-bias limits.",
+        "Use context/correlation language unless event-level 311 rows are reviewed.",
+      ],
+    };
+  }
 
   return {
     detectorKind: "unknown",
@@ -1063,6 +1092,230 @@ async function writeFindingReviewQueueArtifact(args: {
   return path;
 }
 
+type ReviewEvidenceGroups = {
+  primary: LocalFindingEvidenceLink[];
+  context: LocalFindingEvidenceLink[];
+  counterEvidence: LocalFindingEvidenceLink[];
+  caveats: LocalFindingEvidenceLink[];
+  missingData: LocalFindingEvidenceLink[];
+  coverageAudit: LocalFindingEvidenceLink[];
+};
+
+function emptyReviewEvidenceGroups(): ReviewEvidenceGroups {
+  return {
+    primary: [],
+    context: [],
+    counterEvidence: [],
+    caveats: [],
+    missingData: [],
+    coverageAudit: [],
+  };
+}
+
+function groupEvidenceLinks(links: readonly LocalFindingEvidenceLink[]): ReviewEvidenceGroups {
+  const groups = emptyReviewEvidenceGroups();
+  for (const link of links) {
+    if (link.evidenceRole === "primary") {
+      groups.primary.push(link);
+    } else if (link.evidenceRole === "context") {
+      groups.context.push(link);
+    } else if (link.evidenceRole === "counter_evidence") {
+      groups.counterEvidence.push(link);
+    } else if (link.evidenceRole === "caveat") {
+      groups.caveats.push(link);
+    } else if (link.evidenceRole === "missing_data") {
+      groups.missingData.push(link);
+    } else if (link.evidenceRole === "coverage_audit") {
+      groups.coverageAudit.push(link);
+    }
+  }
+  return groups;
+}
+
+function parseEvidenceGroups(groups: ReviewEvidenceGroups) {
+  return {
+    primary: groups.primary.map((link) => parseEvidenceObject(link.evidenceRef)),
+    context: groups.context.map((link) => parseEvidenceObject(link.evidenceRef)),
+    counterEvidence: groups.counterEvidence.map((link) => parseEvidenceObject(link.evidenceRef)),
+    caveats: groups.caveats.map((link) => parseEvidenceObject(link.evidenceRef)),
+    missingData: groups.missingData.map((link) => parseEvidenceObject(link.evidenceRef)),
+    coverageAudit: groups.coverageAudit.map((link) => parseEvidenceObject(link.evidenceRef)),
+  };
+}
+
+function coverageForCandidate(
+  candidate: LocalFindingCandidate,
+  output: DetectorOutput,
+): LocalFindingCoverageAudit[] {
+  return output.coverage.filter(
+    (row) =>
+      row.detectorId === candidate.detectorId &&
+      (row.scopeId === candidate.scopeId ||
+        (candidate.routeId !== null && row.scopeId === candidate.routeId)),
+  );
+}
+
+function promotionBlockersFor(args: {
+  evidence: ReviewEvidenceGroups;
+  coverage: readonly LocalFindingCoverageAudit[];
+  detectorId: string;
+}): string[] {
+  const blockers: string[] = [];
+  const spec = detectorSpecFor(args.detectorId);
+  if (args.evidence.primary.length === 0 && args.evidence.missingData.length === 0) {
+    blockers.push("Missing primary or missing-data evidence for the detector claim.");
+  }
+  if (spec.counterEvidenceRequired.length > 0 && args.evidence.counterEvidence.length === 0) {
+    blockers.push("Missing explicit counter-evidence/caveat rows required by the detector spec.");
+  }
+  if (args.coverage.length === 0) {
+    blockers.push("Missing coverage-audit row for the candidate scope.");
+  }
+  return blockers;
+}
+
+function buildFindingReviewPacketsArtifact(args: {
+  isoMonth: string;
+  generatedAt: string;
+  detectorSpecsArtifactPath: string;
+  outputs: readonly DetectorOutput[];
+}) {
+  const candidates: ReviewQueueCandidate[] = [];
+  const evidenceByCandidate = new Map<string, LocalFindingEvidenceLink[]>();
+  const outputByDetector = new Map<string, DetectorOutput>();
+  for (const output of args.outputs) {
+    const detectorId = output.coverage[0]?.detectorId ?? output.candidates[0]?.detectorId;
+    if (detectorId !== undefined) {
+      outputByDetector.set(detectorId, output);
+    }
+    for (const candidate of output.candidates) {
+      candidates.push({ ...candidate, evidenceRefs: [] });
+    }
+    for (const link of output.evidence) {
+      const links = evidenceByCandidate.get(link.candidateId) ?? [];
+      links.push(link);
+      evidenceByCandidate.set(link.candidateId, links);
+    }
+  }
+
+  const sortedCandidates = candidates
+    .map((candidate) => {
+      const links = evidenceByCandidate.get(candidate.candidateId) ?? [];
+      return {
+        ...candidate,
+        evidenceRefs: links.map((link) => link.evidenceRef),
+      };
+    })
+    .sort((left, right) => {
+      const priorityDelta = reviewPriority(right) - reviewPriority(left);
+      if (priorityDelta !== 0) return priorityDelta;
+      return left.candidateId.localeCompare(right.candidateId);
+    });
+
+  const packets = sortedCandidates.map((candidate, index) => {
+    const candidateRow: LocalFindingCandidate = {
+      candidateId: candidate.candidateId,
+      detectorId: candidate.detectorId,
+      detectorRunId: candidate.detectorRunId,
+      month: candidate.month,
+      scopeKind: candidate.scopeKind,
+      scopeId: candidate.scopeId,
+      routeId: candidate.routeId,
+      physicalId: candidate.physicalId,
+      category: candidate.category,
+      severity: candidate.severity,
+      confidence: candidate.confidence,
+      detectorScore: candidate.detectorScore,
+      reasonCode: candidate.reasonCode,
+      claimSafeLabel: candidate.claimSafeLabel,
+      claimText: candidate.claimText,
+      status: candidate.status,
+      reviewState: candidate.reviewState,
+      windowStart: candidate.windowStart,
+      windowEnd: candidate.windowEnd,
+      createdAt: candidate.createdAt,
+    };
+    const links = evidenceByCandidate.get(candidate.candidateId) ?? [];
+    const evidence = groupEvidenceLinks(links);
+    const output = outputByDetector.get(candidate.detectorId);
+    const coverage = output === undefined ? [] : coverageForCandidate(candidate, output);
+    const spec = detectorSpecFor(candidate.detectorId);
+    const priority = reviewPriority(candidate);
+    const evidenceObjects = parseEvidenceGroups(evidence);
+    const promotionBlockers = promotionBlockersFor({
+      evidence,
+      coverage,
+      detectorId: candidate.detectorId,
+    });
+    return {
+      packetId: stableId("review_packet", candidate.candidateId),
+      reviewRank: index + 1,
+      candidate: candidateRow,
+      detectorSpec: spec,
+      priority: {
+        score: priority,
+        band: reviewPriorityBand(priority),
+        signals: reviewSignals(candidate),
+      },
+      evidence,
+      evidenceObjects,
+      coverage,
+      derivedMetricWarnings: derivedMetricWarningsFor(Object.values(evidenceObjects).flat()),
+      promotionBlockers,
+      reviewChecklist: [...spec.promotionChecklist, ...validationChecksFor(candidate)],
+      allowedClaimStrength: spec.allowedClaimStrength,
+      packetCompleteness: {
+        hasPrimaryEvidence: evidence.primary.length > 0 || evidence.missingData.length > 0,
+        hasCounterEvidence: evidence.counterEvidence.length > 0,
+        hasCoverageAudit: coverage.length > 0,
+        hasDetectorSpec: true,
+        hasReviewChecklist: spec.promotionChecklist.length > 0,
+      },
+    };
+  });
+
+  return FindingReviewPacketsArtifactSchema.parse({
+    artifactKind: "finding_review_packets",
+    schemaVersion: 1,
+    month: args.isoMonth,
+    generatedAt: args.generatedAt,
+    detectorSpecsArtifactPath: args.detectorSpecsArtifactPath,
+    packetCount: packets.length,
+    summary: {
+      packetCount: packets.length,
+      candidatesWithoutCounterEvidence: packets.filter(
+        (packet) => !packet.packetCompleteness.hasCounterEvidence,
+      ).length,
+      candidatesWithoutCoverage: packets.filter(
+        (packet) => !packet.packetCompleteness.hasCoverageAudit,
+      ).length,
+      detectorCounts: countBy(packets, (packet) => packet.candidate.detectorId),
+    },
+    packets,
+  });
+}
+
+async function writeFindingReviewPacketsArtifact(args: {
+  artifactRoot: string;
+  isoMonth: string;
+  generatedAt: string;
+  detectorSpecsArtifactPath: string;
+  outputs: readonly DetectorOutput[];
+}): Promise<string> {
+  const path = join(args.artifactRoot, "findings", args.isoMonth, "review-packets.json");
+  await mkdir(dirname(path), { recursive: true });
+  await writeJson(
+    path,
+    buildFindingReviewPacketsArtifact({
+      isoMonth: args.isoMonth,
+      generatedAt: args.generatedAt,
+      detectorSpecsArtifactPath: args.detectorSpecsArtifactPath,
+      outputs: args.outputs,
+    }),
+  );
+  return path;
+}
+
 function listContextJoinInputs(sqlite: Database): SourceGapContextJoinInput[] {
   return sqlite
     .query<
@@ -1291,6 +1544,16 @@ export async function buildFindings(args: FindingsDetectArgs = {}): Promise<Find
       generatedAt,
       features: signalFeatures,
     });
+    const serviceRequestContext = detectServiceRequestContext({
+      detectorRunId: detectorRunIdFor(
+        SERVICE_REQUEST_CONTEXT_DETECTOR_ID,
+        options.isoMonth,
+        generatedAt,
+      ),
+      month: options.isoMonth,
+      generatedAt,
+      features: signalFeatures,
+    });
     const interventionGapRunId = detectorRunIdFor(
       INTERVENTION_GAP_DETECTOR_ID,
       options.isoMonth,
@@ -1343,6 +1606,16 @@ export async function buildFindings(args: FindingsDetectArgs = {}): Promise<Find
       permitCorrelatedSlowdown,
       signalFeatures,
     );
+    const serviceRequestContextWithContext = serviceRequestContext;
+    const detectorOutputs = [
+      sourceGapWithContext,
+      persistentSpeedHotspotsWithContext,
+      observedReliabilityWithContext,
+      interventionGapWithContext,
+      interventionUnderperformanceWithContext,
+      permitCorrelatedSlowdownWithContext,
+      serviceRequestContextWithContext,
+    ] as const;
 
     await replaceFindingsForMonth(local.db, {
       month: options.isoMonth,
@@ -1386,34 +1659,38 @@ export async function buildFindings(args: FindingsDetectArgs = {}): Promise<Find
       evidence: permitCorrelatedSlowdownWithContext.evidence,
       coverage: permitCorrelatedSlowdownWithContext.coverage,
     });
+    await replaceFindingsForMonth(local.db, {
+      month: options.isoMonth,
+      detectorId: SERVICE_REQUEST_CONTEXT_DETECTOR_ID,
+      candidates: serviceRequestContextWithContext.candidates,
+      evidence: serviceRequestContextWithContext.evidence,
+      coverage: serviceRequestContextWithContext.coverage,
+    });
     await mkdir(dirname(signalFeaturesArtifactPath), { recursive: true });
     await writeJson(signalFeaturesArtifactPath, signalFeaturesArtifact);
+    const detectorSpecsArtifactPath = await writeDetectorSpecsArtifact({
+      artifactRoot,
+      generatedAt,
+    });
     const auditArtifactPath = await writeDetectorAuditArtifact({
       artifactRoot,
       isoMonth: options.isoMonth,
       generatedAt,
-      outputs: [
-        sourceGapWithContext,
-        persistentSpeedHotspotsWithContext,
-        observedReliabilityWithContext,
-        interventionGapWithContext,
-        interventionUnderperformanceWithContext,
-        permitCorrelatedSlowdownWithContext,
-      ],
+      outputs: detectorOutputs,
     });
     const reviewQueueArtifactPath = await writeFindingReviewQueueArtifact({
       artifactRoot,
       isoMonth: options.isoMonth,
       generatedAt,
-      outputs: [
-        sourceGapWithContext,
-        persistentSpeedHotspotsWithContext,
-        observedReliabilityWithContext,
-        interventionGapWithContext,
-        interventionUnderperformanceWithContext,
-        permitCorrelatedSlowdownWithContext,
-      ],
+      outputs: detectorOutputs,
       limit: reviewQueueLimit,
+    });
+    const reviewPacketsArtifactPath = await writeFindingReviewPacketsArtifact({
+      artifactRoot,
+      isoMonth: options.isoMonth,
+      generatedAt,
+      detectorSpecsArtifactPath,
+      outputs: detectorOutputs,
     });
 
     const hits = sourceGap.coverage.filter((row) => row.outcome === "hit").length;
@@ -1446,6 +1723,12 @@ export async function buildFindings(args: FindingsDetectArgs = {}): Promise<Find
       (row) => row.outcome === "hit",
     ).length;
     const permitCorrelatedSlowdownCleanNoHits = permitCorrelatedSlowdown.coverage.filter(
+      (row) => row.outcome === "clean_no_hit",
+    ).length;
+    const serviceRequestContextHits = serviceRequestContext.coverage.filter(
+      (row) => row.outcome === "hit",
+    ).length;
+    const serviceRequestContextCleanNoHits = serviceRequestContext.coverage.filter(
       (row) => row.outcome === "clean_no_hit",
     ).length;
 
@@ -1495,10 +1778,19 @@ export async function buildFindings(args: FindingsDetectArgs = {}): Promise<Find
           hits: permitCorrelatedSlowdownHits,
           cleanNoHits: permitCorrelatedSlowdownCleanNoHits,
         },
+        {
+          detectorId: SERVICE_REQUEST_CONTEXT_DETECTOR_ID,
+          candidateCount: serviceRequestContext.candidates.length,
+          coverageCount: serviceRequestContext.coverage.length,
+          hits: serviceRequestContextHits,
+          cleanNoHits: serviceRequestContextCleanNoHits,
+        },
       ],
       dbPath: local.path,
       auditArtifactPath,
+      detectorSpecsArtifactPath,
       reviewQueueArtifactPath,
+      reviewPacketsArtifactPath,
       signalFeaturesArtifactPath,
     };
   });

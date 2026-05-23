@@ -53,6 +53,7 @@
     "publish:serving-release": "scripts/publish-serving-release.sh",
     "build:studio-release": "bun --filter @bp/pipeline build:studio-release",
     "audit:source-coverage": "bun --filter @bp/pipeline audit:source-coverage",
+    "audit:findings-backtest": "bun --filter @bp/pipeline audit:findings-backtest",
     "audit:parking-candidate-quality": "bun --filter @bp/pipeline audit:parking-candidate-quality",
     "audit:studio-coverage": "bun --filter @bp/pipeline audit:studio-coverage",
     "seed:local-studio-r2": "sh scripts/seed-local-studio-r2.sh",

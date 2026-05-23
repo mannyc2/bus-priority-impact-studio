@@ -1351,3 +1351,12 @@ buildable ideal detector, reframes candidates as hypothesis packets, decomposes 
 severity, defines evidence roles and claim-strength levels, outlines detector families, and sets
 the next implementation targets: detector specs, review packet schema, counter-evidence support,
 source-specific context detectors, multi-month/peer detectors, and a gold-set backtest.
+
+Detector maturity implementation slice: added strict detector spec and review-packet contracts,
+generated `detector-specs.json` and per-month `review-packets.json` from `findings:detect`, and
+introduced `counter_evidence` as an evidence role. `persistent_speed_hotspot` now emits segment-scope
+counter-evidence, `service_request_context` adds the first 311-specific context detector with
+fanout/match-weight counter-evidence, and `audit:findings-backtest` checks review packets against a
+tiny gold set with optional custom expectations. Focused detector/domain/pipeline tests pass, full
+TypeScript passes, and touched-file Biome passes; repo-wide Biome remains blocked by pre-existing
+unrelated formatting/a11y/import diagnostics.

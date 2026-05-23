@@ -108,9 +108,11 @@ for route ⇄ LION corridor joins.
    transit-domain review of the peer-adjusted ACE/ABLE/bus-lane method before causal claims.
 10. Continue the post-v1 finding coverage track: detector considered/hit/skipped counts, source-gap
     findings, join success metrics, source evidence eligibility, and route-month context features
-    now exist; the ideal detector doctrine now defines the target shape. Next work is
-    source-specific detector specs, counter-evidence support, reviewer promotion artifacts, and a
-    gold-set backtest.
+    now exist; the ideal detector doctrine now defines the target shape. The first detector-maturity
+    slice now adds detector specs, review packets, counter-evidence support, a hotspot
+    counter-evidence upgrade, a 311 source-specific context detector, and a tiny review-packet
+    backtest. Next work is richer counter-evidence across the remaining detectors, multi-month/peer
+    detectors, and reviewer promotion artifacts.
 11. Add the Tier 2 document corpus pipeline for policy/intervention documents, but keep source
     promotion, entity linking, metric computation, and publish validation deterministic.
 12. Route score uses a two-factor formula; incorporate ridership weight, persistence, reliability,

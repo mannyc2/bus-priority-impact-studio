@@ -2,6 +2,7 @@ import { Database } from "bun:sqlite";
 import { afterEach, describe, expect, test } from "bun:test";
 import { rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { auditFindingsBacktest } from "../src/jobs/audit/findings-backtest.js";
 import { buildFindings } from "../src/jobs/build/findings.js";
 import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
@@ -277,7 +278,7 @@ describe("findings:detect orchestrator", () => {
 
     const result = await buildFindings({ year: 2026, month: 3, dbPath, artifactRoot });
 
-    expect(result.detectorCounts).toHaveLength(6);
+    expect(result.detectorCounts).toHaveLength(7);
     expect(result.detectorCounts[0]?.detectorId).toBe("source_gap");
     expect(result.detectorCounts[0]?.coverageCount).toBe(13);
     expect(result.detectorCounts[0]?.hits).toBe(2);
@@ -318,11 +319,24 @@ describe("findings:detect orchestrator", () => {
       cleanNoHits: 1,
       candidateCount: 0,
     });
+    expect(result.detectorCounts[6]).toMatchObject({
+      detectorId: "service_request_context",
+      coverageCount: 2,
+      hits: 0,
+      cleanNoHits: 1,
+      candidateCount: 0,
+    });
     expect(result.auditArtifactPath).toBe(
       join(artifactRoot, "findings", month, "detector-coverage-audit.json"),
     );
+    expect(result.detectorSpecsArtifactPath).toBe(
+      join(artifactRoot, "findings", "detector-specs.json"),
+    );
     expect(result.reviewQueueArtifactPath).toBe(
       join(artifactRoot, "findings", month, "review-queue.json"),
+    );
+    expect(result.reviewPacketsArtifactPath).toBe(
+      join(artifactRoot, "findings", month, "review-packets.json"),
     );
     expect(result.signalFeaturesArtifactPath).toBe(
       join(artifactRoot, "findings", month, "signal-features.json"),
@@ -338,7 +352,7 @@ describe("findings:detect orchestrator", () => {
       }>;
     };
     expect(auditArtifact.artifactKind).toBe("finding_detector_coverage_audit");
-    expect(auditArtifact.detectorCount).toBe(6);
+    expect(auditArtifact.detectorCount).toBe(7);
     expect(auditArtifact.detectors.map((detector) => detector.detectorId)).toEqual([
       "source_gap",
       "persistent_speed_hotspot",
@@ -346,6 +360,7 @@ describe("findings:detect orchestrator", () => {
       "intervention_gap",
       "intervention_underperformance",
       "permit_correlated_slowdown",
+      "service_request_context",
     ]);
     expect(
       auditArtifact.detectors.find((detector) => detector.detectorId === "intervention_gap")
@@ -567,7 +582,7 @@ describe("findings:detect orchestrator", () => {
         "source_gap",
       ],
       hasMultiDetectorSignal: true,
-      evidenceRefCount: 8,
+      evidenceRefCount: 9,
     });
     expect(
       reviewQueue.routeGroups.every(
@@ -591,6 +606,81 @@ describe("findings:detect orchestrator", () => {
         (candidate) => candidate.evidenceRefCount === candidate.evidenceRefs.length,
       ),
     ).toBe(true);
+    const detectorSpecs = JSON.parse(await Bun.file(result.detectorSpecsArtifactPath).text()) as {
+      artifactKind: string;
+      detectorCount: number;
+      detectors: Array<{ detectorId: string; counterEvidenceRequired: string[] }>;
+    };
+    expect(detectorSpecs.artifactKind).toBe("finding_detector_specs");
+    expect(detectorSpecs.detectorCount).toBe(7);
+    expect(
+      detectorSpecs.detectors.find((detector) => detector.detectorId === "service_request_context")
+        ?.counterEvidenceRequired,
+    ).toEqual(expect.arrayContaining([expect.stringContaining("Reporting bias")]));
+
+    const reviewPackets = JSON.parse(await Bun.file(result.reviewPacketsArtifactPath).text()) as {
+      artifactKind: string;
+      packetCount: number;
+      summary: {
+        candidatesWithoutCounterEvidence: number;
+        candidatesWithoutCoverage: number;
+        detectorCounts: Record<string, number>;
+      };
+      packets: Array<{
+        candidate: { detectorId: string };
+        evidence: { counterEvidence: unknown[] };
+        packetCompleteness: { hasCounterEvidence: boolean; hasCoverageAudit: boolean };
+        promotionBlockers: string[];
+      }>;
+    };
+    expect(reviewPackets.artifactKind).toBe("finding_review_packets");
+    expect(reviewPackets.packetCount).toBe(9);
+    expect(reviewPackets.summary.detectorCounts).toMatchObject({
+      persistent_speed_hotspot: 1,
+      source_gap: 6,
+    });
+    expect(reviewPackets.summary.candidatesWithoutCounterEvidence).toBe(8);
+    expect(reviewPackets.summary.candidatesWithoutCoverage).toBe(0);
+    const hotspotPacket = reviewPackets.packets.find(
+      (packet) => packet.candidate.detectorId === "persistent_speed_hotspot",
+    );
+    expect(hotspotPacket?.packetCompleteness.hasCounterEvidence).toBe(true);
+    expect(hotspotPacket?.packetCompleteness.hasCoverageAudit).toBe(true);
+    expect(hotspotPacket?.evidence.counterEvidence).toHaveLength(1);
+    expect(hotspotPacket?.promotionBlockers).toEqual([]);
+    const goldSetPath = join(artifactRoot, "fixture-gold-set.json");
+    await Bun.write(
+      goldSetPath,
+      JSON.stringify(
+        {
+          expectations: [
+            {
+              expectationId: "m1-hotspot-counter-evidence",
+              routeId: "M1",
+              detectorId: "persistent_speed_hotspot",
+              reasonCode: "persistent_low_speed",
+              expectCounterEvidence: true,
+            },
+          ],
+        },
+        null,
+        2,
+      ),
+    );
+    const backtest = await auditFindingsBacktest({
+      year: 2026,
+      month: 3,
+      dbPath,
+      artifactRoot,
+      goldSetPath,
+    });
+    expect(backtest).toMatchObject({
+      status: "pass",
+      expectationCount: 1,
+      matchedExpectationCount: 1,
+      missingExpectationCount: 0,
+      artifactPath: join(artifactRoot, "findings", month, "backtest.json"),
+    });
     const cappedResult = await buildFindings({
       year: 2026,
       month: 3,
@@ -795,10 +885,14 @@ describe("findings:detect orchestrator", () => {
             )`,
         )
         .all();
-      expect(hotspotEvidence).toEqual([
-        { evidence_kind: "metric", evidence_role: "primary" },
-        { evidence_kind: "context_event", evidence_role: "context" },
-      ]);
+      expect(hotspotEvidence).toHaveLength(3);
+      expect(hotspotEvidence).toEqual(
+        expect.arrayContaining([
+          { evidence_kind: "metric", evidence_role: "primary" },
+          { evidence_kind: "metric", evidence_role: "counter_evidence" },
+          { evidence_kind: "context_event", evidence_role: "context" },
+        ]),
+      );
       const reliabilityCandidates = sqlite
         .query<
           {
@@ -879,7 +973,7 @@ describe("findings:detect orchestrator", () => {
       const audits = sqlite
         .query<{ n: number }, []>(`SELECT COUNT(*) AS n FROM local_finding_coverage_audit`)
         .get();
-      expect(audits?.n).toBe(15);
+      expect(audits?.n).toBe(16);
     } finally {
       sqlite.close();
     }

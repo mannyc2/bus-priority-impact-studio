@@ -169,6 +169,24 @@ export function detectPersistentSpeedHotspots(
           evidenceWeight: 1,
           note: null,
         }),
+        FindingEvidenceLinkSchema.parse({
+          linkId: stableId(candidateId, "evidence", "route_scope_counter"),
+          candidateId,
+          evidenceKind: "metric",
+          evidenceRole: "counter_evidence",
+          evidenceRef: JSON.stringify({
+            routeId,
+            month,
+            segmentId: hotspot.segmentId,
+            segmentCount: route.segmentCount,
+            eligibleHotspotCount: eligible.length,
+            candidateLimitPerRoute: thresholds.candidateLimitPerRoute,
+            limitation:
+              "Segment-scoped hotspot evidence does not imply the whole route is slow without broader route evidence.",
+          }),
+          evidenceWeight: 0.4,
+          note: "Scope counter-evidence: this candidate is segment-scoped; route-wide claims require broader route evidence.",
+        }),
       );
     }
 

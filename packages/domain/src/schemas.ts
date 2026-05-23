@@ -649,6 +649,7 @@ export const KNOWN_DETECTOR_IDS = [
   "intervention_gap",
   "intervention_underperformance",
   "permit_correlated_slowdown",
+  "service_request_context",
 ] as const;
 
 export const DetectorRunIdSchema = registerProjectSchema(
@@ -783,6 +784,7 @@ export const KNOWN_FINDING_REASON_CODES = [
   "intervention_gap",
   "negative_peer_adjusted_delta",
   "permit_correlated_slowdown",
+  "service_request_context_slowdown",
   // Source-gap detector reason codes.
   "missing_speed",
   "missing_geometry",
@@ -795,6 +797,9 @@ export const KNOWN_FINDING_REASON_CODES = [
   "bus_lane_date_gap",
   "failed_context_join",
   "source_lag",
+  "insufficient_speed_observations",
+  "insufficient_permit_touches",
+  "insufficient_service_request_context",
 ] as const;
 
 export const FindingDetectorScoreSchema = registerProjectSchema(z.number().min(0).max(100), {
@@ -822,12 +827,13 @@ export type FindingEvidenceKind = z.output<typeof FindingEvidenceKindSchema>;
 
 export const FindingEvidenceRoleSchema = registerProjectSchema(
   z
-    .enum(["primary", "context", "caveat", "missing_data", "coverage_audit"])
+    .enum(["primary", "context", "counter_evidence", "caveat", "missing_data", "coverage_audit"])
     .brand<"FindingEvidenceRole">(),
   {
     id: "bp.finding.evidence_role",
     title: "Finding Evidence Role",
-    description: "Role evidence plays in the candidate (primary signal vs context vs caveat).",
+    description:
+      "Role evidence plays in the candidate (primary signal, context, counter-evidence, caveat, or audit support).",
     stability: "draft",
   },
 );
@@ -934,6 +940,175 @@ export const FindingCoverageAuditSchema = registerProjectSchema(
 );
 
 export type FindingCoverageAudit = z.output<typeof FindingCoverageAuditSchema>;
+
+export const FindingDetectorSpecTemplateSchema = registerProjectSchema(
+  z
+    .object({
+      requiredFields: z.array(z.string().min(1)),
+      template: z.record(z.string().min(1), z.string().min(1)),
+    })
+    .strict(),
+  {
+    id: "bp.finding.detector_spec_template.v1",
+    title: "Finding Detector Spec Template",
+    description:
+      "Human-readable template each deterministic detector spec must fill before promotion.",
+    stability: "draft",
+  },
+);
+
+export type FindingDetectorSpecTemplate = z.output<typeof FindingDetectorSpecTemplateSchema>;
+
+export const FindingDetectorSpecSchema = registerProjectSchema(
+  z
+    .object({
+      detectorId: DetectorIdSchema,
+      name: z.string().min(1).max(120),
+      question: z.string().min(1).max(500),
+      claimTemplate: z.string().min(1).max(500),
+      allowedClaimStrength: z.number().int().min(0).max(5),
+      primaryEvidenceRequired: z.array(z.string().min(1).max(300)),
+      supportingEvidenceExpected: z.array(z.string().min(1).max(300)),
+      counterEvidenceRequired: z.array(z.string().min(1).max(300)),
+      promotionChecklist: z.array(z.string().min(1).max(300)),
+      knownFailureModes: z.array(z.string().min(1).max(300)),
+    })
+    .strict(),
+  {
+    id: "bp.finding.detector_spec.v1",
+    title: "Finding Detector Spec",
+    description:
+      "Detector-specific review contract: question, allowed claim strength, required evidence, counter-evidence, and promotion checklist.",
+    stability: "draft",
+  },
+);
+
+export type FindingDetectorSpec = z.output<typeof FindingDetectorSpecSchema>;
+
+export const FindingDetectorSpecsArtifactSchema = registerProjectSchema(
+  z
+    .object({
+      artifactKind: z.literal("finding_detector_specs"),
+      schemaVersion: z.literal(schemaVersion),
+      generatedAt: z.iso.datetime(),
+      template: FindingDetectorSpecTemplateSchema,
+      detectorCount: z.number().int().nonnegative(),
+      detectors: z.array(FindingDetectorSpecSchema),
+    })
+    .strict(),
+  {
+    id: "bp.finding.detector_specs_artifact.v1",
+    title: "Finding Detector Specs Artifact",
+    description:
+      "Generated artifact that freezes the detector spec template and current detector specs used for review packets.",
+    stability: "draft",
+  },
+);
+
+export type FindingDetectorSpecsArtifact = z.output<typeof FindingDetectorSpecsArtifactSchema>;
+
+export const FindingReviewPriorityBandSchema = registerProjectSchema(
+  z.enum(["critical", "high", "medium", "low"]),
+  {
+    id: "bp.finding.review_priority_band",
+    title: "Finding Review Priority Band",
+    description: "Priority bucket used to order detector review packets.",
+    stability: "draft",
+  },
+);
+
+export type FindingReviewPriorityBand = z.output<typeof FindingReviewPriorityBandSchema>;
+
+export const FindingReviewPacketSchema = registerProjectSchema(
+  z
+    .object({
+      packetId: z.string().min(1),
+      reviewRank: z.number().int().positive(),
+      candidate: FindingCandidateSchema,
+      detectorSpec: FindingDetectorSpecSchema,
+      priority: z
+        .object({
+          score: z.number().nonnegative(),
+          band: FindingReviewPriorityBandSchema,
+          signals: z.array(z.string().min(1)),
+        })
+        .strict(),
+      evidence: z
+        .object({
+          primary: z.array(FindingEvidenceLinkSchema),
+          context: z.array(FindingEvidenceLinkSchema),
+          counterEvidence: z.array(FindingEvidenceLinkSchema),
+          caveats: z.array(FindingEvidenceLinkSchema),
+          missingData: z.array(FindingEvidenceLinkSchema),
+          coverageAudit: z.array(FindingEvidenceLinkSchema),
+        })
+        .strict(),
+      evidenceObjects: z
+        .object({
+          primary: z.array(z.unknown()),
+          context: z.array(z.unknown()),
+          counterEvidence: z.array(z.unknown()),
+          caveats: z.array(z.unknown()),
+          missingData: z.array(z.unknown()),
+          coverageAudit: z.array(z.unknown()),
+        })
+        .strict(),
+      coverage: z.array(FindingCoverageAuditSchema),
+      derivedMetricWarnings: z.array(z.string().min(1).max(500)),
+      promotionBlockers: z.array(z.string().min(1).max(500)),
+      reviewChecklist: z.array(z.string().min(1).max(500)),
+      allowedClaimStrength: z.number().int().min(0).max(5),
+      packetCompleteness: z
+        .object({
+          hasPrimaryEvidence: z.boolean(),
+          hasCounterEvidence: z.boolean(),
+          hasCoverageAudit: z.boolean(),
+          hasDetectorSpec: z.boolean(),
+          hasReviewChecklist: z.boolean(),
+        })
+        .strict(),
+    })
+    .strict(),
+  {
+    id: "bp.finding.review_packet.v1",
+    title: "Finding Review Packet",
+    description:
+      "Promotion-review packet with grouped evidence, parsed evidence objects, counter-evidence, coverage rows, and detector checklist.",
+    stability: "draft",
+  },
+);
+
+export type FindingReviewPacket = z.output<typeof FindingReviewPacketSchema>;
+
+export const FindingReviewPacketsArtifactSchema = registerProjectSchema(
+  z
+    .object({
+      artifactKind: z.literal("finding_review_packets"),
+      schemaVersion: z.literal(schemaVersion),
+      month: IsoMonthSchema,
+      generatedAt: z.iso.datetime(),
+      detectorSpecsArtifactPath: z.string().min(1),
+      packetCount: z.number().int().nonnegative(),
+      summary: z
+        .object({
+          packetCount: z.number().int().nonnegative(),
+          candidatesWithoutCounterEvidence: z.number().int().nonnegative(),
+          candidatesWithoutCoverage: z.number().int().nonnegative(),
+          detectorCounts: z.record(DetectorIdSchema, z.number().int().nonnegative()),
+        })
+        .strict(),
+      packets: z.array(FindingReviewPacketSchema),
+    })
+    .strict(),
+  {
+    id: "bp.finding.review_packets_artifact.v1",
+    title: "Finding Review Packets Artifact",
+    description: "Manifest of all packetized detector candidates for human/agent promotion review.",
+    stability: "draft",
+  },
+);
+
+export type FindingReviewPacketsArtifact = z.output<typeof FindingReviewPacketsArtifactSchema>;
 
 export const FindingDetectorAuditActionSchema = registerProjectSchema(
   z.enum(["keep", "downgrade", "suppress", "split", "enrich"]),

@@ -56,6 +56,16 @@ export {
   PERSISTENT_SPEED_HOTSPOT_DETECTOR_ID,
 } from "./findings/persistent-speed-hotspot.js";
 export type {
+  ServiceRequestContextDetectorInput,
+  ServiceRequestContextDetectorOutput,
+  ServiceRequestContextThresholds,
+} from "./findings/service-request-context.js";
+export {
+  DEFAULT_SERVICE_REQUEST_CONTEXT_THRESHOLDS,
+  detectServiceRequestContext,
+  SERVICE_REQUEST_CONTEXT_DETECTOR_ID,
+} from "./findings/service-request-context.js";
+export type {
   SourceGapBusLaneDateInput,
   SourceGapContextJoinInput,
   SourceGapDetectorInput,

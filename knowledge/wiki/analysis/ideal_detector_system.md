@@ -829,6 +829,28 @@ feature store and promotion artifact.
 
 ## Concrete Next Build Steps
 
+### Implementation slice completed on 2026-05-23
+
+The first practical detector-maturity slice is now implemented in code:
+
+- detector specs now have a generated template/spec artifact at
+  `data/artifacts/findings/detector-specs.json`;
+- `@bp/domain` has strict review-packet contracts, and `findings:detect` writes
+  `data/artifacts/findings/{month}/review-packets.json`;
+- evidence links now support an explicit `counter_evidence` role;
+- `persistent_speed_hotspot` emits segment-scope counter-evidence so a segment hit does not silently
+  become a route-wide claim;
+- the first source-specific context detector, `service_request_context`, uses 311 route-month context
+  as cautious review-candidate evidence and emits fanout/match-weight counter-evidence;
+- `audit:findings-backtest` runs a tiny gold-set check against review packets, with optional
+  `--gold-set` input for route-specific known cases.
+
+This moves the detector layer from mostly level 2 toward level 3 for packet shape. It does not make
+all detectors promotion-ready: observed reliability, intervention gap, intervention
+underperformance, permit-context, and source-gap candidates still need richer detector-specific
+counter-evidence before they should be treated as mature publication evidence. Multi-month and peer
+detectors remain the next analytical upgrade.
+
 ### Step 1: Write detector specs before adding detectors
 
 For each detector, create a short spec with:
@@ -921,4 +943,3 @@ The ideal detector system should make the analyst feel three things:
 That is the real bar. Not perfect automation. Not maximum candidate count. Not clever wording. The
 detector layer succeeds when it turns messy public data into a ranked, auditable set of hypotheses
 that a serious reviewer can trust enough to inspect.
-
