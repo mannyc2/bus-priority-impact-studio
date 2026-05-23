@@ -69,6 +69,7 @@ for route ⇄ LION corridor joins.
 - [[wiki/analysis/memo_generation|Memo generation]] — Route-improvement brief format.
 - [[wiki/analysis/methodology_validation|Methodology validation]] — Code-level audit of analysis correctness, limitations, and gaps.
 - [[wiki/analysis/finding_coverage_and_corpus_expansion|Finding coverage and corpus expansion]] — Post-v1 plan for missed-finding risk, detector coverage, source-gap findings, and data-corpus expansion.
+- [[wiki/analysis/ideal_detector_system|Ideal detector system]] — North-star doctrine for detector questions, evidence packets, confidence, promotion, backtesting, and the difference between practical ideal and impossible perfect detectors.
 
 ## Templates
 
@@ -107,7 +108,9 @@ for route ⇄ LION corridor joins.
    transit-domain review of the peer-adjusted ACE/ABLE/bus-lane method before causal claims.
 10. Continue the post-v1 finding coverage track: detector considered/hit/skipped counts, source-gap
     findings, join success metrics, source evidence eligibility, and route-month context features
-    now exist; next work is source-specific detectors and reviewer promotion rules.
+    now exist; the ideal detector doctrine now defines the target shape. Next work is
+    source-specific detector specs, counter-evidence support, reviewer promotion artifacts, and a
+    gold-set backtest.
 11. Add the Tier 2 document corpus pipeline for policy/intervention documents, but keep source
     promotion, entity linking, metric computation, and publish validation deterministic.
 12. Route score uses a two-factor formula; incorporate ridership weight, persistence, reliability,

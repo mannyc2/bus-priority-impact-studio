@@ -1344,3 +1344,10 @@ reviewed finding lacks approved review state, or if a detector-sourced finding l
 detector refs. The real March 2026 audit passes with 50 findings: 2 reviewed, 48 review candidates,
 0 generated fallback findings, 0 missing review records, and 48 detector-sourced findings with
 candidate/detector refs.
+
+Ideal detector doctrine: added `knowledge/wiki/analysis/ideal_detector_system.md` to define the
+north star for detector maturity. The page distinguishes the impossible perfect detector from the
+buildable ideal detector, reframes candidates as hypothesis packets, decomposes confidence and
+severity, defines evidence roles and claim-strength levels, outlines detector families, and sets
+the next implementation targets: detector specs, review packet schema, counter-evidence support,
+source-specific context detectors, multi-month/peer detectors, and a gold-set backtest.
