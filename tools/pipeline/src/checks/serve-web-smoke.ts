@@ -187,11 +187,16 @@ function studioArtifactPath(pathname: string): string | null {
     return `findings/${decodeURIComponent(findingMatch[1] ?? "")}/index.json`;
   }
 
-  const briefMatch = pathname.match(
-    /^\/api\/v1\/studio\/briefs\/([^/]+)(?:\/(?:evidence|history))?$/,
-  );
+  const briefMatch = pathname.match(/^\/api\/v1\/studio\/briefs\/([^/]+)(?:\/([^/]+))?$/);
   if (briefMatch) {
-    return `briefs/${decodeURIComponent(briefMatch[1] ?? "")}/index.json`;
+    const briefId = decodeURIComponent(briefMatch[1] ?? "");
+    const tab = briefMatch[2];
+    if (tab === "evidence" || tab === "history") {
+      return `briefs/${briefId}/${tab}.json`;
+    }
+    if (tab === undefined) {
+      return `briefs/${briefId}/index.json`;
+    }
   }
 
   return null;

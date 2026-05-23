@@ -695,31 +695,12 @@ async function buildStudioResponse(url: URL, env: Env): Promise<Response> {
       return errorJson(404, "Studio brief was not found.");
     }
 
-    const brief = await loadStudioProjection(
+    const evidence = await loadStudioProjection(
       env,
-      `briefs/${briefId}/index.json`,
-      StudioBriefResponseSchema,
+      `briefs/${briefId}/evidence.json`,
+      StudioBriefEvidenceResponseSchema,
     );
-    if (brief instanceof Response) return brief;
-    return studioJson(
-      StudioBriefEvidenceResponseSchema.parse({
-        schemaVersion: 1,
-        generatedAt: brief.generatedAt,
-        heading: {
-          id: brief.brief.id,
-          title: brief.brief.title,
-          version: brief.brief.version,
-          routeSlug: brief.brief.routeSlug,
-          routeLabel: brief.route.label,
-          routeSbs: brief.route.sbs,
-        },
-        claims: brief.brief.claims,
-        evidence: brief.brief.evidence,
-        caveats: brief.brief.caveats,
-        quality: brief.quality,
-      }),
-      env,
-    );
+    return evidence instanceof Response ? evidence : studioJson(evidence, env);
   }
 
   const briefHistoryMatch = url.pathname.match(/^\/api\/v1\/studio\/briefs\/([^/]+)\/history$/);
@@ -733,30 +714,12 @@ async function buildStudioResponse(url: URL, env: Env): Promise<Response> {
       return errorJson(404, "Studio brief was not found.");
     }
 
-    const brief = await loadStudioProjection(
+    const history = await loadStudioProjection(
       env,
-      `briefs/${briefId}/index.json`,
-      StudioBriefResponseSchema,
+      `briefs/${briefId}/history.json`,
+      StudioBriefHistoryResponseSchema,
     );
-    if (brief instanceof Response) return brief;
-    return studioJson(
-      StudioBriefHistoryResponseSchema.parse({
-        schemaVersion: 1,
-        generatedAt: brief.generatedAt,
-        heading: {
-          id: brief.brief.id,
-          title: brief.brief.title,
-          version: brief.brief.version,
-          routeSlug: brief.brief.routeSlug,
-          routeLabel: brief.route.label,
-          routeSbs: brief.route.sbs,
-        },
-        versions: brief.versions,
-        comments: brief.comments,
-        quality: brief.quality,
-      }),
-      env,
-    );
+    return history instanceof Response ? history : studioJson(history, env);
   }
 
   const briefMatch = url.pathname.match(/^\/api\/v1\/studio\/briefs\/([^/]+)$/);

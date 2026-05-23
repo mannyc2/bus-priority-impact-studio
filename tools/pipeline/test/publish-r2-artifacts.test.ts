@@ -24,6 +24,8 @@ function makeOptions(overrides: Partial<PublishR2Options> = {}): PublishR2Option
     backoffMsBase: 1,
     prefixes: ["studio"] as const,
     manifestDirs: ["briefs"] as const,
+    d1SchemaPath: join(artifactRoot, "schema.sql"),
+    d1SeedPath: join(artifactRoot, "seed.sql"),
     artifactRoot,
     outputPath: join(artifactRoot, "audits", `publish-r2-${month}.json`),
     dryRun: false,
@@ -43,6 +45,25 @@ async function writeManifest(month_: string, keys: string[]): Promise<void> {
       analysisPeriod: month_,
       artifacts: keys.map((k) => ({ artifactKey: k, byteLength: 1, sha256: "x" })),
     }),
+  );
+}
+
+async function writeD1Export(month_: string, keys: string[]): Promise<void> {
+  await writeFile(
+    join(artifactRoot, "schema.sql"),
+    [
+      'CREATE TABLE "route_artifact" ("route_id" text NOT NULL, "month" text NOT NULL, "artifact_name" text NOT NULL, "artifact_key" text NOT NULL, "content_type" text NOT NULL, "byte_length" integer NOT NULL, "sha256" text NOT NULL);',
+      'CREATE TABLE "corridor_artifact" ("corridor_id" text NOT NULL, "month" text NOT NULL, "artifact_name" text NOT NULL, "artifact_key" text NOT NULL, "content_type" text NOT NULL, "byte_length" integer NOT NULL, "sha256" text NOT NULL);',
+    ].join("\n"),
+  );
+  await writeFile(
+    join(artifactRoot, "seed.sql"),
+    keys
+      .map(
+        (key, index) =>
+          `insert into "route_artifact" ("route_id", "month", "artifact_name", "artifact_key", "content_type", "byte_length", "sha256") values ('R${index}', '${month_}', 'brief.json', '${key}', 'application/json', 1, '${"a".repeat(64)}');`,
+      )
+      .join("\n"),
   );
 }
 
@@ -110,6 +131,20 @@ describe("publishR2Artifacts", () => {
       `briefs/routes/r1/${month}/brief.json`,
       "studio/v1/release.json",
     ]);
+  });
+
+  test("uploads artifact keys referenced only by the local D1 export", async () => {
+    const key = `briefs/routes/r2/${month}/brief.json`;
+    await writeD1Export(month, [key]);
+    await mkdir(join(artifactRoot, "briefs", "routes", "r2", month), { recursive: true });
+    await writeFile(join(artifactRoot, "briefs", "routes", "r2", month, "brief.json"), '{"ok":1}');
+
+    const stub = makeStubDriver();
+    const report = await publishR2Artifacts(makeOptions({ driver: stub.driver }));
+
+    expect(report.status).toBe("pass");
+    expect(report.candidateCount).toBe(1);
+    expect(stub.putCalls).toEqual([key]);
   });
 
   test("skips keys whose remote size+etag match the local file", async () => {

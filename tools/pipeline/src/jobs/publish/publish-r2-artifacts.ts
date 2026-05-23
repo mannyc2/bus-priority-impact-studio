@@ -4,9 +4,13 @@ import { dirname, join, relative, sep } from "node:path";
 import { Glob } from "bun";
 
 import { fromRepoRoot } from "../../lib/paths.js";
+import {
+  collectD1ArtifactKeys,
+  collectManifestArtifactKeys,
+} from "../../lib/publish-artifact-keys.js";
 
 const DEFAULT_PREFIXES = ["map", "studio", "source-availability", "pipeline-v1"] as const;
-const DEFAULT_MANIFEST_DIRS = ["briefs", "evaluations"] as const;
+const DEFAULT_MANIFEST_DIRS = ["briefs", "evaluations", "map"] as const;
 const DEFAULT_CONCURRENCY = 16;
 const DEFAULT_MAX_ATTEMPTS = 3;
 const DEFAULT_BACKOFF_MS_BASE = 5_000;
@@ -27,6 +31,8 @@ export type PublishR2Options = {
   backoffMsBase: number;
   prefixes: readonly string[];
   manifestDirs: readonly string[];
+  d1SchemaPath: string;
+  d1SeedPath: string;
   artifactRoot: string;
   outputPath: string;
   dryRun: boolean;
@@ -92,9 +98,12 @@ function parseOptions(args: readonly string[]): PublishR2Options {
     throw new Error("Missing --bucket.");
   }
   const dryRun = args.includes("--dry-run");
-  const endpoint = readFlag(args, "--endpoint") ?? process.env["R2_ENDPOINT"] ?? "";
-  const accessKeyId = process.env["R2_ACCESS_KEY_ID"] ?? "";
-  const secretAccessKey = process.env["R2_SECRET_ACCESS_KEY"] ?? "";
+  const {
+    R2_ACCESS_KEY_ID: accessKeyId = "",
+    R2_ENDPOINT: envEndpoint = "",
+    R2_SECRET_ACCESS_KEY: secretAccessKey = "",
+  } = process.env;
+  const endpoint = readFlag(args, "--endpoint") ?? envEndpoint;
   // Without credentials we can still enumerate candidates for --dry-run, but we
   // cannot HEAD or PUT against R2, so any non-dry-run invocation requires them.
   if (!dryRun) {
@@ -116,6 +125,7 @@ function parseOptions(args: readonly string[]): PublishR2Options {
     "--max-attempts",
   );
   const artifactRoot = readFlag(args, "--artifact-root") ?? fromRepoRoot("data/artifacts");
+  const exportRoot = readFlag(args, "--export-root") ?? fromRepoRoot("data/exports/d1");
   const outputPath =
     readFlag(args, "--output") ?? join(artifactRoot, "audits", `publish-r2-${month}.json`);
   return {
@@ -129,6 +139,8 @@ function parseOptions(args: readonly string[]): PublishR2Options {
     backoffMsBase: DEFAULT_BACKOFF_MS_BASE,
     prefixes: DEFAULT_PREFIXES,
     manifestDirs: DEFAULT_MANIFEST_DIRS,
+    d1SchemaPath: readFlag(args, "--schema") ?? join(exportRoot, month, "schema.sql"),
+    d1SeedPath: readFlag(args, "--seed") ?? join(exportRoot, month, "seed.sql"),
     artifactRoot,
     outputPath,
     dryRun,
@@ -156,29 +168,6 @@ function normalizeEtag(etag: string): string {
   return etag.replace(/^"|"$/g, "").toLowerCase();
 }
 
-async function collectManifestKeys(
-  artifactRoot: string,
-  manifestDirs: readonly string[],
-  month: string,
-): Promise<string[]> {
-  const keys = new Set<string>();
-  for (const dir of manifestDirs) {
-    const manifestPath = join(artifactRoot, dir, month, "manifest.json");
-    try {
-      const body = await readFile(manifestPath, "utf-8");
-      const parsed = JSON.parse(body) as { artifacts?: Array<{ artifactKey?: unknown }> };
-      for (const entry of parsed.artifacts ?? []) {
-        if (typeof entry.artifactKey === "string" && entry.artifactKey.length > 0) {
-          keys.add(entry.artifactKey);
-        }
-      }
-    } catch {
-      // Missing manifest is allowed; the completeness check enforces presence upstream.
-    }
-  }
-  return [...keys];
-}
-
 async function collectPrefixKeys(
   artifactRoot: string,
   prefixes: readonly string[],
@@ -201,11 +190,20 @@ async function collectPrefixKeys(
 }
 
 async function collectCandidates(options: PublishR2Options): Promise<UploadItem[]> {
-  const [manifestKeys, prefixKeys] = await Promise.all([
-    collectManifestKeys(options.artifactRoot, options.manifestDirs, options.month),
+  const [manifestKeys, d1Keys, prefixKeys] = await Promise.all([
+    collectManifestArtifactKeys({
+      artifactRoot: options.artifactRoot,
+      manifestDirs: options.manifestDirs,
+      month: options.month,
+    }),
+    collectD1ArtifactKeys({
+      month: options.month,
+      schemaPath: options.d1SchemaPath,
+      seedPath: options.d1SeedPath,
+    }),
     collectPrefixKeys(options.artifactRoot, options.prefixes),
   ]);
-  const merged = new Set<string>([...manifestKeys, ...prefixKeys]);
+  const merged = new Set<string>([...manifestKeys.keys, ...d1Keys.keys, ...prefixKeys]);
   return [...merged].sort().map((key) => ({ key, localPath: join(options.artifactRoot, key) }));
 }
 

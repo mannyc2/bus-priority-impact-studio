@@ -13,6 +13,8 @@ import {
 } from "@bp/db";
 import { createBunSqliteServingDb } from "@bp/db/d1/bun-sqlite";
 import {
+  buildStudioBriefEvidenceProjection,
+  buildStudioBriefHistoryProjection,
   buildStudioBriefProjection,
   buildStudioBriefsProjection,
   buildStudioDocsProjection,
@@ -871,6 +873,14 @@ async function writeProjections(outputPath: string, release: StudioReleasePayloa
     const projection = buildStudioBriefProjection(release, brief);
     if (projection !== undefined) {
       await writeJson(resolve(outputDir, "briefs", brief.id, "index.json"), projection);
+    }
+    const evidenceProjection = buildStudioBriefEvidenceProjection(release, brief);
+    if (evidenceProjection !== undefined) {
+      await writeJson(resolve(outputDir, "briefs", brief.id, "evidence.json"), evidenceProjection);
+    }
+    const historyProjection = buildStudioBriefHistoryProjection(release, brief);
+    if (historyProjection !== undefined) {
+      await writeJson(resolve(outputDir, "briefs", brief.id, "history.json"), historyProjection);
     }
   }
 }

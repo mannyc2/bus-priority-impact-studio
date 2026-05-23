@@ -202,52 +202,17 @@ Target:
 - Store large generated draft/publish candidate artifacts in R2.
 - Keep publish promotion deliberate and audited.
 
-### 8. Brief body artifacts may be under-published
+### 8. Brief body artifacts are covered by publish completeness
 
-**Where:** `scripts/publish-serving-release.sh:152-162` globs only
-`data/artifacts/briefs/$month/*`, `evaluations/$month/*`, `map/*`, `studio/*`,
-`source-availability/*`, `pipeline-v1/*`. Local generated brief bodies live at
-`data/artifacts/briefs/routes/{routeId}/{month}/brief.{html,json,md}` and
-`data/artifacts/briefs/corridors/{corridorId}/{month}/brief.{html,json,md}` — those paths don't
-start with `briefs/$month/`. D1 `route_artifact` / `corridor_artifact` rows store keys like
-`briefs/routes/m15-sbs/2026-03/brief.json` which the glob skips.
+**Status:** resolved locally.
 
-**Verify gap (production):**
+`publish:r2-artifacts` now builds its candidate set from release prefixes, manifest-declared keys
+(`briefs`, `evaluations`, and `map`), and D1 `route_artifact` / `corridor_artifact` keys from the
+local serving export. `check-publish-completeness` uses the same manifest/D1 key model and fails if
+any referenced key lacks a local `data/artifacts/<key>` body.
 
-```bash
-# Should return many files; if empty, bodies were never uploaded:
-bunx wrangler r2 object list bus-priority-artifacts --prefix briefs/routes/ | head -20
-# Pick any D1 artifact ref and confirm it exists in R2:
-bunx wrangler d1 execute bus-priority-serving --remote \
-  --command "SELECT artifact_path FROM route_artifact WHERE month='2026-03' LIMIT 5;" --json \
-  | jq -r '.[0].results[].artifact_path'
-# Then: bunx wrangler r2 object get bus-priority-artifacts/<that-key>
-```
-
-**Verify gap (local):**
-
-```bash
-find data/artifacts/briefs/routes -name 'brief.json' | head -5
-# These paths don't match the glob `data/artifacts/briefs/$month/*`.
-```
-
-Impact:
-
-- D1 and the brief manifest can point at R2 keys that were not uploaded by the release script.
-- The issue is not over-storing in R2; it is potentially under-publishing artifact bodies while
-  still publishing their indexes/refs.
-
-**Fix outline:**
-
-1. Replace the `find` glob in `scripts/publish-serving-release.sh:152-162` with a manifest-driven
-   list: read `data/artifacts/briefs/{month}/manifest.json` + `data/artifacts/map/{month}/manifest.json`
-   + the new `route_artifact` / `corridor_artifact` keys from the D1 export, dedup, then upload.
-2. Add a pre-publish check (`tools/pipeline/src/checks/check-publish-completeness.ts`) that fails if
-   any D1 `artifact_path` or brief-manifest key has no local file at the equivalent
-   `data/artifacts/<key>` path.
-
-**Verify fixed:** Check exits 0, then a sample of D1-referenced brief keys is reachable via
-`/api/v1/artifacts/<key>` on production.
+**Verify fixed:** `bun run tools/pipeline/src/checks/check-publish-completeness.ts --month 2026-03`
+passes with 3 manifests, 1,629 D1 artifact refs, 1,986 unique keys, and 0 missing files.
 
 ### 9. Brief feature is templated pipes around real metrics — no authoring infra yet
 
@@ -261,8 +226,9 @@ labeling problem.
   lane coverage, hotspot count, etc.).
 - R2 artifacts at `briefs/routes/{id}/{month}/brief.{html,json,md}` produced by
   `tools/pipeline/src/jobs/build/brief-artifacts.ts`.
-- Studio projection at `studio/v1/briefs/{id}/index.json` produced by
-  `tools/pipeline/src/jobs/build/studio-release.ts` (the `StudioBrief` builder).
+- Studio projections at `studio/v1/briefs/{id}/index.json`,
+  `studio/v1/briefs/{id}/evidence.json`, and `studio/v1/briefs/{id}/history.json` produced by
+  `tools/pipeline/src/jobs/build/studio-release.ts`.
 - Read endpoints: `/api/v1/studio/briefs`, `/api/v1/studio/briefs/:id`, `…/evidence`,
   `…/history`. Frontend pages render them: `apps/web/src/routes/briefs.tsx`,
   `routes/briefs/$briefId.tsx`, `.../evidence.tsx`, `.../history.tsx`,
@@ -369,9 +335,9 @@ first, smallest user-visible win next, then schema/projection expansion, then pu
 | 3 | Done | `build:studio-release --profile {demo,full}` with full as default | `tools/pipeline/src/jobs/build/studio-release.ts` |
 | 4 | Done | `observedReliability` and `artifactRefs` on Studio route detail | `packages/domain/src/studio-schemas.ts`, `packages/domain/src/studio-projections.ts`, `tools/pipeline/src/jobs/build/studio-release.ts` |
 | 5 | Done | D1-back `/api/v1/studio/routes` + `/api/v1/studio/search` route coverage | `apps/web/src/worker/index.ts`, `@bp/db/d1` queries |
-| 6 | Next | Split `StudioBriefEvidenceResponse` + `StudioBriefHistoryResponse` | `packages/domain/src/studio-schemas.ts`, `tools/pipeline/src/jobs/build/studio-release.ts`, worker handlers |
-| 7 | Next | Manifest-driven publish + completeness check | `scripts/publish-serving-release.sh`, new publish-completeness check |
-| 8 | Next | Worker tests for missing-projection fail-closed and no-fixture-fallback edge cases | `apps/web/test/worker/index.worker.test.ts`, new fixture cases |
+| 6 | Done | Split `StudioBriefEvidenceResponse` + `StudioBriefHistoryResponse` projections | `packages/domain/src/studio-projections.ts`, `tools/pipeline/src/jobs/build/studio-release.ts`, worker handlers |
+| 7 | Done | Manifest/D1-driven publish + completeness check | `tools/pipeline/src/lib/publish-artifact-keys.ts`, `tools/pipeline/src/checks/check-publish-completeness.ts`, `tools/pipeline/src/jobs/publish/publish-r2-artifacts.ts` |
+| 8 | Done | Worker tests for split brief projections and missing-projection fail-closed behavior | `apps/web/test/worker/index.worker.test.ts`, new fixture cases |
 
 Findings expansion (gap #6) and write-side agent API (gap #7) are deliberately not in this
 queue; they need product/auth decisions first (see [[ai_interaction_model]] and
@@ -398,5 +364,6 @@ bun run check:web-release
 
 The route-facing cutover is mostly done: `/api/v1/studio/routes` exposes all public routes D1 can
 serve, route details carry observed reliability and artifact refs, and `/api/v1/status` surfaces the
-current appendix. The remaining cutover is brief/finding depth: dedicated brief evidence/history
-contracts, manifest-driven publish completeness, and eventually the write-side authoring API.
+current appendix. Brief evidence/history now have split projection artifacts, and publish
+completeness is manifest/D1-driven. The remaining cutover is brief/finding depth and eventually the
+write-side authoring API.

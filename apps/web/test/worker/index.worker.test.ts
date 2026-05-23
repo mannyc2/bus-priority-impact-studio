@@ -1,5 +1,7 @@
 import { serializeRouteScorecard, serializeRouteScorecardCitations } from "@bp/db/d1";
 import {
+  buildStudioBriefEvidenceProjection,
+  buildStudioBriefHistoryProjection,
   buildStudioBriefProjection,
   buildStudioBriefsProjection,
   buildStudioDocsProjection,
@@ -155,6 +157,20 @@ function createStudioEnv(): Env {
     if (projection !== undefined) {
       objects[`studio/v1/briefs/${brief.id}/index.json`] = new FakeR2Object(
         JSON.stringify(projection),
+        "application/json",
+      );
+    }
+    const evidenceProjection = buildStudioBriefEvidenceProjection(studioReleaseSeed, brief);
+    if (evidenceProjection !== undefined) {
+      objects[`studio/v1/briefs/${brief.id}/evidence.json`] = new FakeR2Object(
+        JSON.stringify(evidenceProjection),
+        "application/json",
+      );
+    }
+    const historyProjection = buildStudioBriefHistoryProjection(studioReleaseSeed, brief);
+    if (historyProjection !== undefined) {
+      objects[`studio/v1/briefs/${brief.id}/history.json`] = new FakeR2Object(
+        JSON.stringify(historyProjection),
         "application/json",
       );
     }
@@ -1179,6 +1195,40 @@ describe("Worker production-behavior harness", () => {
     expect(body.claims.length).toBeGreaterThan(0);
     expect(body).not.toHaveProperty("versions");
     expect(body).not.toHaveProperty("comments");
+  });
+
+  it("serves brief evidence from its split projection without requiring the full brief body", async () => {
+    const brief = studioReleaseSeed.briefs.find((item) => item.id === "m15-madison-corridor");
+    expect(brief).toBeDefined();
+    if (brief === undefined) {
+      throw new Error("expected brief fixture");
+    }
+    const evidence = buildStudioBriefEvidenceProjection(studioReleaseSeed, brief);
+    expect(evidence).toBeDefined();
+    if (evidence === undefined) {
+      throw new Error("expected brief evidence projection");
+    }
+
+    const env: Env = {
+      ARTIFACTS: new FakeR2Bucket({
+        "studio/v1/briefs.json": new FakeR2Object(
+          JSON.stringify(buildStudioBriefsProjection(studioReleaseSeed)),
+          "application/json",
+        ),
+        "studio/v1/briefs/m15-madison-corridor/evidence.json": new FakeR2Object(
+          JSON.stringify(evidence),
+          "application/json",
+        ),
+      }) as unknown as R2Bucket,
+    };
+    const response = await worker.fetch(
+      new Request("https://example.test/api/v1/studio/briefs/m15-madison-corridor/evidence"),
+      env,
+    );
+
+    expect(response.status).toBe(200);
+    const body = StudioBriefEvidenceResponseSchema.parse(await response.json());
+    expect(body.heading.id).toBe("m15-madison-corridor");
   });
 
   it("serves a narrow brief history contract with versions/comments only", async () => {

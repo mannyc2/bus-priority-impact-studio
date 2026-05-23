@@ -90,9 +90,9 @@ for route ⇄ LION corridor joins.
 4. Finish remaining `/api/v1/studio/*` depth: route listing/search are D1-backed for public
    routes, and route detail now carries observed reliability plus artifact refs; Studio
    briefs/findings still do not cover the full D1-backed serving release.
-5. Implement the web app support plan: split brief evidence/history projections from full brief
-   bodies, add signal-aware route loaders, route-specific cache policy, deferred non-critical
-   evidence/map panels, and a feature-flagged composer draft API.
+5. Implement the remaining web app support plan: add signal-aware route loaders,
+   route-specific cache policy, deferred non-critical evidence/map panels, and a feature-flagged
+   composer draft API.
 6. Add web release gates: Lighthouse route matrix, SEO crawlability checks, Worker
    `Server-Timing`, and no-D1 RUM.
 7. Generate `/docs` API metadata from the same package-level Studio runtime contracts that serve

@@ -125,6 +125,8 @@ export {
 } from "./schemas.js";
 export { studioOpenApiDocument } from "./studio-openapi.js";
 export {
+  buildStudioBriefEvidenceProjection,
+  buildStudioBriefHistoryProjection,
   buildStudioBriefProjection,
   buildStudioBriefsProjection,
   buildStudioCompareProjection,

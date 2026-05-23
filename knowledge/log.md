@@ -1295,3 +1295,11 @@ filters them to the selected Studio route set, and exposes the matching refs on
 route-facing cutover items done: full-public route listing/search, observed reliability, current
 observed signal, and route detail artifact refs. The remaining website data support work is now
 brief/finding depth, publish completeness, and write-side authoring.
+
+Studio brief/publish support follow-up: split brief evidence and history into dedicated Studio
+projection files (`evidence.json` and `history.json`) so those endpoints no longer depend on the
+full brief body projection. Publish completeness now collects required keys from brief,
+evaluation, and map manifests plus D1 `route_artifact` / `corridor_artifact` rows, and
+`publish:r2-artifacts` includes those D1-referenced keys in its upload candidate set. Local March
+2026 publish completeness passes with 3 manifests, 1,629 D1 artifact refs, 1,986 unique keys, and
+0 missing files.

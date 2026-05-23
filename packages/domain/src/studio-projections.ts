@@ -2,6 +2,10 @@ import { studioOpenApiDocument } from "./studio-openapi.js";
 import {
   type StudioBrief,
   type StudioBriefCard,
+  type StudioBriefEvidenceResponse,
+  StudioBriefEvidenceResponseSchema,
+  type StudioBriefHistoryResponse,
+  StudioBriefHistoryResponseSchema,
   type StudioBriefResponse,
   StudioBriefResponseSchema,
   type StudioBriefsResponse,
@@ -107,6 +111,17 @@ function briefVersions(release: StudioReleasePayload, briefId: string) {
 
 function briefComments(release: StudioReleasePayload, briefId: string) {
   return release.comments.filter((comment) => comment.briefId === briefId);
+}
+
+function briefHeading(brief: StudioBrief, route: StudioRoute) {
+  return {
+    id: brief.id,
+    title: brief.title,
+    version: brief.version,
+    routeSlug: brief.routeSlug,
+    routeLabel: route.label,
+    routeSbs: route.sbs,
+  };
 }
 
 export function buildStudioRoutesProjection(release: StudioReleasePayload): StudioRoutesResponse {
@@ -216,6 +231,45 @@ export function buildStudioBriefProjection(
     generatedAt: release.generatedAt,
     brief,
     route,
+    versions: briefVersions(release, brief.id),
+    comments: briefComments(release, brief.id),
+    quality: release.quality,
+  });
+}
+
+export function buildStudioBriefEvidenceProjection(
+  release: StudioReleasePayload,
+  brief: StudioBrief,
+): StudioBriefEvidenceResponse | undefined {
+  const route = getStudioRoute(release, brief.routeSlug);
+  if (route === undefined) {
+    return undefined;
+  }
+
+  return StudioBriefEvidenceResponseSchema.parse({
+    schemaVersion: 1,
+    generatedAt: release.generatedAt,
+    heading: briefHeading(brief, route),
+    claims: brief.claims,
+    evidence: brief.evidence,
+    caveats: brief.caveats,
+    quality: release.quality,
+  });
+}
+
+export function buildStudioBriefHistoryProjection(
+  release: StudioReleasePayload,
+  brief: StudioBrief,
+): StudioBriefHistoryResponse | undefined {
+  const route = getStudioRoute(release, brief.routeSlug);
+  if (route === undefined) {
+    return undefined;
+  }
+
+  return StudioBriefHistoryResponseSchema.parse({
+    schemaVersion: 1,
+    generatedAt: release.generatedAt,
+    heading: briefHeading(brief, route),
     versions: briefVersions(release, brief.id),
     comments: briefComments(release, brief.id),
     quality: release.quality,
