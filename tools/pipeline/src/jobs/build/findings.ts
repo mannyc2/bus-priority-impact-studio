@@ -6,12 +6,14 @@ import {
   BUS_LANE_DATE_SENTINELS,
   DEFAULT_INTERVENTION_GAP_THRESHOLDS,
   DEFAULT_INTERVENTION_UNDERPERFORMANCE_THRESHOLDS,
+  DEFAULT_MULTI_MONTH_SPEED_PEER_THRESHOLDS,
   DEFAULT_OBSERVED_RELIABILITY_THRESHOLDS,
   DEFAULT_PERSISTENT_SPEED_HOTSPOT_THRESHOLDS,
   DEFAULT_SERVICE_REQUEST_CONTEXT_THRESHOLDS,
   DEFAULT_SOURCE_GAP_THRESHOLDS,
   detectInterventionGaps,
   detectInterventionUnderperformance,
+  detectMultiMonthSpeedPeerDeficits,
   detectObservedReliability,
   detectPermitCorrelatedSlowdowns,
   detectPersistentSpeedHotspots,
@@ -22,6 +24,8 @@ import {
   type InterventionEvidenceStatus,
   type InterventionGapRouteInput,
   type InterventionUnderperformanceRouteInput,
+  MULTI_MONTH_SPEED_PEER_DETECTOR_ID,
+  type MultiMonthSpeedPeerRouteInput,
   OBSERVED_RELIABILITY_DETECTOR_ID,
   type ObservedReliabilityRouteInput,
   PERMIT_CORRELATED_SLOWDOWN_DETECTOR_ID,
@@ -45,6 +49,7 @@ import {
   listRouteIdsWithLionLink,
   listRouteInterventionComparisons,
   listRouteMonthCoverage,
+  listRouteMonthTrends,
   listRouteObservedReliabilitySummaries,
   listRouteReliabilityBaselines,
   replaceFindingsForMonth,
@@ -54,7 +59,7 @@ import {
   FindingReviewPacketsArtifactSchema,
   type RouteMonthSignalFeature,
 } from "@bp/domain";
-import { nextIsoMonthStart } from "../../lib/dates.js";
+import { isoMonth, nextIsoMonthStart } from "../../lib/dates.js";
 import { writeJson } from "../../lib/json.js";
 import { withLocalPipelineDb } from "../../lib/local-db.js";
 import { defaultArtifactRootPath, fromCliPath } from "../../lib/paths.js";
@@ -188,6 +193,79 @@ async function buildPersistentSpeedHotspotInputs(args: {
       };
     }),
   );
+}
+
+function recentIsoMonths(args: { year: number; month: number; count: number }): string[] {
+  const months: string[] = [];
+  let year = args.year;
+  let month = args.month;
+  for (let index = 0; index < args.count; index += 1) {
+    months.unshift(isoMonth(year, month));
+    month -= 1;
+    if (month === 0) {
+      year -= 1;
+      month = 12;
+    }
+  }
+  return months;
+}
+
+function median(values: readonly number[]): number | null {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((left, right) => left - right);
+  const midpoint = Math.floor(sorted.length / 2);
+  if (sorted.length % 2 === 1) return sorted[midpoint] ?? null;
+  const left = sorted[midpoint - 1];
+  const right = sorted[midpoint];
+  if (left === undefined || right === undefined) return null;
+  return (left + right) / 2;
+}
+
+function buildMultiMonthSpeedPeerInputs(args: {
+  catalogRouteIds: readonly string[];
+  monthWindow: readonly string[];
+  trends: Awaited<ReturnType<typeof listRouteMonthTrends>>;
+}): MultiMonthSpeedPeerRouteInput[] {
+  const months = new Set(args.monthWindow);
+  const trendByRouteMonth = new Map(
+    args.trends
+      .filter((trend) => months.has(trend.month))
+      .map((trend) => [`${trend.routeId}:${trend.month}`, trend] as const),
+  );
+  const peerByMonth = new Map<string, { medianSpeedMph: number | null; routeCount: number }>();
+  for (const month of args.monthWindow) {
+    const speeds = args.trends
+      .filter(
+        (trend) =>
+          trend.month === month &&
+          trend.hasSpeedTrend &&
+          trend.averageSpeedMph !== null &&
+          trend.speedObservationCount >=
+            DEFAULT_MULTI_MONTH_SPEED_PEER_THRESHOLDS.minSpeedObservationCount,
+      )
+      .map((trend) => trend.averageSpeedMph)
+      .filter((value): value is number => value !== null);
+    peerByMonth.set(month, {
+      medianSpeedMph: median(speeds),
+      routeCount: speeds.length,
+    });
+  }
+
+  return args.catalogRouteIds.map((routeId) => ({
+    routeId,
+    observations: args.monthWindow.map((month) => {
+      const trend = trendByRouteMonth.get(`${routeId}:${month}`);
+      const peer = peerByMonth.get(month);
+      return {
+        month,
+        hasSpeedTrend: trend?.hasSpeedTrend ?? false,
+        averageSpeedMph: trend?.averageSpeedMph ?? null,
+        speedObservationCount: trend?.speedObservationCount ?? 0,
+        peerMedianSpeedMph: peer?.medianSpeedMph ?? null,
+        peerRouteCount: peer?.routeCount ?? 0,
+      };
+    }),
+  }));
 }
 
 function buildBusWaitAssessmentByRoute(
@@ -732,6 +810,25 @@ function detectorGuidanceFor(detectorId: string) {
       commonFollowUps: [
         "Confirm the segment stop names and geometry if speed is near zero.",
         "Prefer segment-specific validation over route-wide claims.",
+      ],
+    };
+  }
+  if (detectorId === MULTI_MONTH_SPEED_PEER_DETECTOR_ID) {
+    return {
+      detectorKind: "service_performance",
+      validateAs: "Route-scoped multi-month low-speed trend below a broad peer median.",
+      defaultThresholds: DEFAULT_MULTI_MONTH_SPEED_PEER_THRESHOLDS,
+      keyEvidenceFields: {
+        observedMonthCount: "Number of supported route-month trend rows in the lookback window.",
+        averageSpeedMph: "Mean route speed across supported months; lower is worse.",
+        averagePeerMedianSpeedMph:
+          "Mean monthly route-corpus median speed used as the starter peer baseline.",
+        averagePeerDeficitMph: "Peer median minus route speed across supported months.",
+        peerRouteCount: "Number of routes contributing to each monthly peer median.",
+      },
+      commonFollowUps: [
+        "Inspect counter-evidence for weak months and broad-peer limitations.",
+        "Replace the broad corpus median with a reviewed borough/route-type peer group before making strong peer claims.",
       ],
     };
   }
@@ -1426,6 +1523,7 @@ export async function buildFindings(args: FindingsDetectArgs = {}): Promise<Find
       scheduledBaselines,
       busWaitRows,
       interventionComparisons,
+      routeMonthTrends,
     ] = await Promise.all([
       listRouteCatalog(local.db),
       listRouteMonthCoverage(local.db, options.isoMonth),
@@ -1437,6 +1535,7 @@ export async function buildFindings(args: FindingsDetectArgs = {}): Promise<Find
       listRouteReliabilityBaselines(local.db, options.isoMonth),
       listBusWaitAssessmentRowsForMonth(local.db, options.isoMonth),
       listRouteInterventionComparisons(local.db, options.isoMonth),
+      listRouteMonthTrends(local.db),
     ]);
     const routesWithGeometry = new Set(geometryRouteIds);
 
@@ -1500,6 +1599,20 @@ export async function buildFindings(args: FindingsDetectArgs = {}): Promise<Find
       month: options.isoMonth,
       generatedAt,
       routes: hotspotInputs,
+    });
+    const multiMonthSpeedPeer = detectMultiMonthSpeedPeerDeficits({
+      detectorRunId: detectorRunIdFor(
+        MULTI_MONTH_SPEED_PEER_DETECTOR_ID,
+        options.isoMonth,
+        generatedAt,
+      ),
+      month: options.isoMonth,
+      generatedAt,
+      routes: buildMultiMonthSpeedPeerInputs({
+        catalogRouteIds: catalog.map((row) => row.routeId),
+        monthWindow: recentIsoMonths({ year: options.year, month: options.month, count: 6 }),
+        trends: routeMonthTrends,
+      }),
     });
     const observedReliabilityInputs = buildObservedReliabilityInputs({
       catalogRouteIds: catalog.map((row) => row.routeId),
@@ -1593,6 +1706,10 @@ export async function buildFindings(args: FindingsDetectArgs = {}): Promise<Find
       persistentSpeedHotspots,
       signalFeatures,
     );
+    const multiMonthSpeedPeerWithContext = attachRouteContextEvidence(
+      multiMonthSpeedPeer,
+      signalFeatures,
+    );
     const observedReliabilityWithContext = attachRouteContextEvidence(
       observedReliability,
       signalFeatures,
@@ -1610,6 +1727,7 @@ export async function buildFindings(args: FindingsDetectArgs = {}): Promise<Find
     const detectorOutputs = [
       sourceGapWithContext,
       persistentSpeedHotspotsWithContext,
+      multiMonthSpeedPeerWithContext,
       observedReliabilityWithContext,
       interventionGapWithContext,
       interventionUnderperformanceWithContext,
@@ -1630,6 +1748,13 @@ export async function buildFindings(args: FindingsDetectArgs = {}): Promise<Find
       candidates: persistentSpeedHotspotsWithContext.candidates,
       evidence: persistentSpeedHotspotsWithContext.evidence,
       coverage: persistentSpeedHotspotsWithContext.coverage,
+    });
+    await replaceFindingsForMonth(local.db, {
+      month: options.isoMonth,
+      detectorId: MULTI_MONTH_SPEED_PEER_DETECTOR_ID,
+      candidates: multiMonthSpeedPeerWithContext.candidates,
+      evidence: multiMonthSpeedPeerWithContext.evidence,
+      coverage: multiMonthSpeedPeerWithContext.coverage,
     });
     await replaceFindingsForMonth(local.db, {
       month: options.isoMonth,
@@ -1701,6 +1826,12 @@ export async function buildFindings(args: FindingsDetectArgs = {}): Promise<Find
     const hotspotCleanNoHits = persistentSpeedHotspots.coverage.filter(
       (row) => row.outcome === "clean_no_hit",
     ).length;
+    const multiMonthSpeedPeerHits = multiMonthSpeedPeer.coverage.filter(
+      (row) => row.outcome === "hit",
+    ).length;
+    const multiMonthSpeedPeerCleanNoHits = multiMonthSpeedPeer.coverage.filter(
+      (row) => row.outcome === "clean_no_hit",
+    ).length;
     const reliabilityHits = observedReliability.coverage.filter(
       (row) => row.outcome === "hit",
     ).length;
@@ -1749,6 +1880,13 @@ export async function buildFindings(args: FindingsDetectArgs = {}): Promise<Find
           coverageCount: persistentSpeedHotspots.coverage.length,
           hits: hotspotHits,
           cleanNoHits: hotspotCleanNoHits,
+        },
+        {
+          detectorId: MULTI_MONTH_SPEED_PEER_DETECTOR_ID,
+          candidateCount: multiMonthSpeedPeer.candidates.length,
+          coverageCount: multiMonthSpeedPeer.coverage.length,
+          hits: multiMonthSpeedPeerHits,
+          cleanNoHits: multiMonthSpeedPeerCleanNoHits,
         },
         {
           detectorId: OBSERVED_RELIABILITY_DETECTOR_ID,

@@ -645,6 +645,7 @@ export type DetectorId = z.output<typeof DetectorIdSchema>;
 export const KNOWN_DETECTOR_IDS = [
   "source_gap",
   "persistent_speed_hotspot",
+  "multi_month_speed_peer",
   "observed_reliability",
   "intervention_gap",
   "intervention_underperformance",
@@ -780,6 +781,7 @@ export type FindingReasonCode = z.output<typeof FindingReasonCodeSchema>;
 export const KNOWN_FINDING_REASON_CODES = [
   // Candidate reason codes from the wiki.
   "persistent_low_speed",
+  "multi_month_peer_speed_deficit",
   "high_long_gap_share",
   "intervention_gap",
   "negative_peer_adjusted_delta",
@@ -800,6 +802,8 @@ export const KNOWN_FINDING_REASON_CODES = [
   "insufficient_speed_observations",
   "insufficient_permit_touches",
   "insufficient_service_request_context",
+  "insufficient_trend_months",
+  "missing_current_trend_month",
 ] as const;
 
 export const FindingDetectorScoreSchema = registerProjectSchema(z.number().min(0).max(100), {

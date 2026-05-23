@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 import {
   INTERVENTION_GAP_DETECTOR_ID,
   INTERVENTION_UNDERPERFORMANCE_DETECTOR_ID,
+  MULTI_MONTH_SPEED_PEER_DETECTOR_ID,
   OBSERVED_RELIABILITY_DETECTOR_ID,
   PERMIT_CORRELATED_SLOWDOWN_DETECTOR_ID,
   PERSISTENT_SPEED_HOTSPOT_DETECTOR_ID,
@@ -91,6 +92,31 @@ const DETECTOR_SPEC_ROWS = [
     knownFailureModes: [
       "Promoting one segment hit into a whole-route diagnosis.",
       "Relying on derived hotspot score without raw speed support.",
+    ],
+  },
+  {
+    detectorId: MULTI_MONTH_SPEED_PEER_DETECTOR_ID,
+    name: "Multi-month speed peer",
+    question: "Which routes show multi-month low-speed trends below a broad peer median?",
+    claimTemplate: "The route has a multi-month low-speed pattern below the route-corpus median.",
+    allowedClaimStrength: 2,
+    primaryEvidenceRequired: [
+      "Supported route-month speed trend rows, peer median speed, peer route count, and average deficit.",
+    ],
+    supportingEvidenceExpected: [
+      "Current route speed/hotspot evidence and a reviewed borough/route-type peer group before promotion.",
+    ],
+    counterEvidenceRequired: [
+      "Missing/weak months, broad-peer limitations, seasonal effects, and route/service-pattern changes.",
+    ],
+    promotionChecklist: [
+      "Check that the current release month is included in the multi-month evidence.",
+      "Review whether the broad route-corpus peer median is an acceptable comparison group.",
+      "Prefer cautious persistence language until matched peers are reviewed.",
+    ],
+    knownFailureModes: [
+      "Treating a broad corpus median as a causal peer/control group.",
+      "Ignoring seasonal changes or service-pattern changes across the lookback window.",
     ],
   },
   {

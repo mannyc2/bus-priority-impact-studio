@@ -147,6 +147,26 @@ export function detectInterventionGaps(
           evidenceWeight: 1,
           note: null,
         }),
+        FindingEvidenceLinkSchema.parse({
+          linkId: stableId(candidateId, "evidence", "inventory_limits"),
+          candidateId,
+          evidenceKind: "metric",
+          evidenceRole: "counter_evidence",
+          evidenceRef: JSON.stringify({
+            routeId,
+            month,
+            speedPainScore: route.speedPainScore,
+            reliabilityPainScore: route.reliabilityPainScore,
+            hasSpeedPainSignal: route.speedPainScore !== null,
+            hasReliabilityPainSignal: route.reliabilityPainScore !== null,
+            interventionEvidenceStatus: route.interventionEvidenceStatus,
+            interventionEvidenceCount: route.interventionEvidenceCount,
+            limitation:
+              "Absent or thin local intervention evidence is not proof no treatment exists; undated, future-only, or source-gap interventions can hide a relevant treatment.",
+          }),
+          evidenceWeight: 0.5,
+          note: "Counter-evidence for no-intervention interpretation: verify intervention inventory coverage before promotion.",
+        }),
       );
     }
 

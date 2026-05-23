@@ -213,6 +213,28 @@ export function detectObservedReliability(
           evidenceWeight: 1,
           note: null,
         }),
+        FindingEvidenceLinkSchema.parse({
+          linkId: stableId(candidateId, "evidence", "sample_limits"),
+          candidateId,
+          evidenceKind: "metric",
+          evidenceRole: "counter_evidence",
+          evidenceRef: JSON.stringify({
+            routeId,
+            month,
+            reliabilityStatus: route.reliabilityStatus,
+            sampleCount: route.sampleCount,
+            minSampleThreshold: route.minSampleThreshold,
+            configuredMinGtfsRtHeadwaySamples: thresholds.minGtfsRtHeadwaySamples,
+            scheduledBaselineHeadwaySampleCount: route.scheduledBaselineHeadwaySampleCount,
+            configuredMinScheduledBaselineSamples: thresholds.minScheduledBaselineSamples,
+            busWaitAssessmentTripCount: route.busWaitAssessmentTripCount,
+            configuredMinBusWaitAssessmentTrips: thresholds.minBusWaitAssessmentTrips,
+            limitation:
+              "Observed reliability is route-month evidence from available GTFS-RT and Bus Wait Assessment support; it does not explain cause and may hide direction or time-window differences.",
+          }),
+          evidenceWeight: 0.5,
+          note: "Counter-evidence for reliability interpretation: review sample support, schedule baseline support, and aggregation limits before promotion.",
+        }),
       );
     }
 

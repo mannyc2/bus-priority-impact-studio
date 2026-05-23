@@ -131,6 +131,14 @@ export function detectInterventionUnderperformance(
 
     if (hit !== undefined) {
       const candidateId = stableId(detectorRunId, "candidate", routeId, hit.comparison.eventId);
+      const evaluatedComparisons = route.comparisons.filter(
+        (comparison) => comparison.comparisonStatus === "evaluated",
+      );
+      const positiveAdjustedDeltaCount = evaluatedComparisons.filter(
+        (comparison) =>
+          comparison.adjustedSpeedDeltaMph !== null &&
+          comparison.adjustedSpeedDeltaMph > thresholds.maxAdjustedSpeedDeltaMph,
+      ).length;
       candidates.push(
         FindingCandidateSchema.parse({
           candidateId,
@@ -173,6 +181,32 @@ export function detectInterventionUnderperformance(
           }),
           evidenceWeight: 1,
           note: null,
+        }),
+        FindingEvidenceLinkSchema.parse({
+          linkId: stableId(candidateId, "evidence", "comparison_limits"),
+          candidateId,
+          evidenceKind: "metric",
+          evidenceRole: "counter_evidence",
+          evidenceRef: JSON.stringify({
+            routeId,
+            month,
+            selectedEventId: hit.comparison.eventId,
+            evaluatedComparisonCount: evaluatedComparisons.length,
+            positiveAdjustedDeltaCount,
+            selectedComparisonRouteCount: hit.comparison.comparisonRouteCount,
+            configuredMinComparisonRouteCount: thresholds.minComparisonRouteCount,
+            reliabilityPainScore: route.reliabilityPainScore,
+            evaluatedComparisons: evaluatedComparisons.map((comparison) => ({
+              eventId: comparison.eventId,
+              interventionType: comparison.interventionType,
+              adjustedSpeedDeltaMph: comparison.adjustedSpeedDeltaMph,
+              comparisonRouteCount: comparison.comparisonRouteCount,
+            })),
+            limitation:
+              "Peer-adjusted speed deltas are descriptive, not causal by themselves; route changes, window choice, and peer comparability can weaken an underperformance claim.",
+          }),
+          evidenceWeight: 0.5,
+          note: "Counter-evidence for treatment underperformance: review peer count, comparison windows, and any positive evaluated comparisons.",
         }),
       );
     }

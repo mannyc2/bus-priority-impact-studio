@@ -69,6 +69,20 @@ function seedScheduledBaseline(
   });
 }
 
+function seedRouteTrend(sqlite: Database, routeId: string, month: string, averageSpeedMph: number) {
+  insertRow(sqlite, "local_route_month_trend", {
+    route_id: routeId,
+    month,
+    speed_observation_count: 500,
+    speed_bus_trip_count: 200,
+    average_speed_mph: averageSpeedMph,
+    ridership: null,
+    transfers: null,
+    has_speed_trend: 1,
+    has_ridership_trend: 0,
+  });
+}
+
 afterEach(async () => {
   await resetDb();
 });
@@ -179,6 +193,16 @@ describe("findings:detect orchestrator", () => {
         rider_weighted_slow_window_share: 0.9,
         rider_impact_score: 88,
       });
+      for (const trend of [
+        ["2026-01", 5.2],
+        ["2026-02", 5.4],
+        [month, 5.1],
+      ] as const) {
+        seedRouteTrend(local.sqlite, "M1", trend[0], trend[1]);
+        for (let index = 0; index < 10; index += 1) {
+          seedRouteTrend(local.sqlite, `peer${index}`, trend[0], 7.2 + index / 10);
+        }
+      }
 
       insertRow(local.sqlite, "local_context_event", {
         event_id: "joined-alert-1",
@@ -278,7 +302,7 @@ describe("findings:detect orchestrator", () => {
 
     const result = await buildFindings({ year: 2026, month: 3, dbPath, artifactRoot });
 
-    expect(result.detectorCounts).toHaveLength(7);
+    expect(result.detectorCounts).toHaveLength(8);
     expect(result.detectorCounts[0]?.detectorId).toBe("source_gap");
     expect(result.detectorCounts[0]?.coverageCount).toBe(13);
     expect(result.detectorCounts[0]?.hits).toBe(2);
@@ -292,34 +316,41 @@ describe("findings:detect orchestrator", () => {
       candidateCount: 1,
     });
     expect(result.detectorCounts[2]).toMatchObject({
-      detectorId: "observed_reliability",
+      detectorId: "multi_month_speed_peer",
       coverageCount: 2,
       hits: 1,
       cleanNoHits: 0,
       candidateCount: 1,
     });
     expect(result.detectorCounts[3]).toMatchObject({
-      detectorId: "intervention_gap",
+      detectorId: "observed_reliability",
       coverageCount: 2,
       hits: 1,
       cleanNoHits: 0,
       candidateCount: 1,
     });
     expect(result.detectorCounts[4]).toMatchObject({
+      detectorId: "intervention_gap",
+      coverageCount: 2,
+      hits: 1,
+      cleanNoHits: 0,
+      candidateCount: 1,
+    });
+    expect(result.detectorCounts[5]).toMatchObject({
       detectorId: "intervention_underperformance",
       coverageCount: 2,
       hits: 0,
       cleanNoHits: 0,
       candidateCount: 0,
     });
-    expect(result.detectorCounts[5]).toMatchObject({
+    expect(result.detectorCounts[6]).toMatchObject({
       detectorId: "permit_correlated_slowdown",
       coverageCount: 2,
       hits: 0,
       cleanNoHits: 1,
       candidateCount: 0,
     });
-    expect(result.detectorCounts[6]).toMatchObject({
+    expect(result.detectorCounts[7]).toMatchObject({
       detectorId: "service_request_context",
       coverageCount: 2,
       hits: 0,
@@ -352,10 +383,11 @@ describe("findings:detect orchestrator", () => {
       }>;
     };
     expect(auditArtifact.artifactKind).toBe("finding_detector_coverage_audit");
-    expect(auditArtifact.detectorCount).toBe(7);
+    expect(auditArtifact.detectorCount).toBe(8);
     expect(auditArtifact.detectors.map((detector) => detector.detectorId)).toEqual([
       "source_gap",
       "persistent_speed_hotspot",
+      "multi_month_speed_peer",
       "observed_reliability",
       "intervention_gap",
       "intervention_underperformance",
@@ -462,19 +494,21 @@ describe("findings:detect orchestrator", () => {
       }>;
     };
     expect(reviewQueue.artifactKind).toBe("finding_review_queue");
-    expect(reviewQueue.totalCandidateCount).toBe(9);
-    expect(reviewQueue.candidateCount).toBe(9);
+    expect(reviewQueue.totalCandidateCount).toBe(10);
+    expect(reviewQueue.candidateCount).toBe(10);
     expect(reviewQueue.omittedCandidateCount).toBe(0);
-    expect(reviewQueue.evidenceLinkedCandidateCount).toBe(9);
+    expect(reviewQueue.evidenceLinkedCandidateCount).toBe(10);
     expect(reviewQueue.unlinkedCandidateCount).toBe(0);
     expect(reviewQueue.totalDetectorCounts).toEqual({
       intervention_gap: 1,
+      multi_month_speed_peer: 1,
       observed_reliability: 1,
       persistent_speed_hotspot: 1,
       source_gap: 6,
     });
     expect(reviewQueue.detectorCounts).toEqual({
       intervention_gap: 1,
+      multi_month_speed_peer: 1,
       observed_reliability: 1,
       persistent_speed_hotspot: 1,
       source_gap: 6,
@@ -559,6 +593,7 @@ describe("findings:detect orchestrator", () => {
       data_quality: 6,
       high_long_gap_share: 1,
       intervention_gap: 1,
+      multi_month_peer_speed_deficit: 1,
       persistent_low_speed: 1,
     });
     expect(reviewQueue.routeGroupCount).toBe(2);
@@ -574,15 +609,16 @@ describe("findings:detect orchestrator", () => {
       evidenceRefCount: 4,
     });
     expect(reviewQueue.routeGroups.find((group) => group.routeId === "M1")).toMatchObject({
-      candidateCount: 4,
+      candidateCount: 5,
       detectorIds: [
         "intervention_gap",
+        "multi_month_speed_peer",
         "observed_reliability",
         "persistent_speed_hotspot",
         "source_gap",
       ],
       hasMultiDetectorSignal: true,
-      evidenceRefCount: 9,
+      evidenceRefCount: 14,
     });
     expect(
       reviewQueue.routeGroups.every(
@@ -612,7 +648,7 @@ describe("findings:detect orchestrator", () => {
       detectors: Array<{ detectorId: string; counterEvidenceRequired: string[] }>;
     };
     expect(detectorSpecs.artifactKind).toBe("finding_detector_specs");
-    expect(detectorSpecs.detectorCount).toBe(7);
+    expect(detectorSpecs.detectorCount).toBe(8);
     expect(
       detectorSpecs.detectors.find((detector) => detector.detectorId === "service_request_context")
         ?.counterEvidenceRequired,
@@ -634,12 +670,13 @@ describe("findings:detect orchestrator", () => {
       }>;
     };
     expect(reviewPackets.artifactKind).toBe("finding_review_packets");
-    expect(reviewPackets.packetCount).toBe(9);
+    expect(reviewPackets.packetCount).toBe(10);
     expect(reviewPackets.summary.detectorCounts).toMatchObject({
+      multi_month_speed_peer: 1,
       persistent_speed_hotspot: 1,
       source_gap: 6,
     });
-    expect(reviewPackets.summary.candidatesWithoutCounterEvidence).toBe(8);
+    expect(reviewPackets.summary.candidatesWithoutCounterEvidence).toBe(6);
     expect(reviewPackets.summary.candidatesWithoutCoverage).toBe(0);
     const hotspotPacket = reviewPackets.packets.find(
       (packet) => packet.candidate.detectorId === "persistent_speed_hotspot",
@@ -973,7 +1010,7 @@ describe("findings:detect orchestrator", () => {
       const audits = sqlite
         .query<{ n: number }, []>(`SELECT COUNT(*) AS n FROM local_finding_coverage_audit`)
         .get();
-      expect(audits?.n).toBe(16);
+      expect(audits?.n).toBe(17);
     } finally {
       sqlite.close();
     }

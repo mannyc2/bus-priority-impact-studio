@@ -1360,3 +1360,12 @@ fanout/match-weight counter-evidence, and `audit:findings-backtest` checks revie
 tiny gold set with optional custom expectations. Focused detector/domain/pipeline tests pass, full
 TypeScript passes, and touched-file Biome passes; repo-wide Biome remains blocked by pre-existing
 unrelated formatting/a11y/import diagnostics.
+
+Detector counter-evidence and peer-history slice: added explicit `counter_evidence` rows to
+`observed_reliability`, `intervention_gap`, `intervention_underperformance`, and
+`permit_correlated_slowdown`, covering sample support, inventory gaps, peer-comparison limits, and
+permit fanout/work-type caveats. Added `multi_month_speed_peer`, a conservative route-level detector
+over local route-month speed trends that compares each route with the monthly route-corpus median
+and emits broad-peer limitations before promotion. The March 2026 real detector pass now has 8
+detector families, 675 candidates, 1,817 evidence links, 3,066 coverage rows, 675 review packets,
+and 5 multi-month peer-speed candidates.

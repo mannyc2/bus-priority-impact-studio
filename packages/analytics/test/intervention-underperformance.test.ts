@@ -46,7 +46,12 @@ describe("detectInterventionUnderperformance", () => {
     expect(out.candidates).toHaveLength(1);
     expect(out.candidates[0]?.detectorId as string).toBe("intervention_underperformance");
     expect(out.candidates[0]?.reasonCode as string).toBe("negative_peer_adjusted_delta");
+    expect(out.evidence).toHaveLength(2);
     expect(out.evidence[0]?.evidenceKind as string).toBe("metric");
+    expect(out.evidence.map((link) => link.evidenceRole as string).sort()).toEqual([
+      "counter_evidence",
+      "primary",
+    ]);
     expect(out.coverage[0]?.outcome as string).toBe("hit");
   });
 

@@ -80,7 +80,11 @@ describe("detectPermitCorrelatedSlowdowns", () => {
     expect(output.candidates[0]?.detectorId as string).toBe("permit_correlated_slowdown");
     expect(output.candidates[0]?.reasonCode as string).toBe("permit_correlated_slowdown");
     expect(output.candidates[0]?.category as string).toBe("context");
-    expect(output.evidence).toHaveLength(1);
+    expect(output.evidence).toHaveLength(2);
+    expect(output.evidence.map((link) => link.evidenceRole as string).sort()).toEqual([
+      "counter_evidence",
+      "primary",
+    ]);
     expect(JSON.parse(output.evidence[0]?.evidenceRef ?? "{}")).toMatchObject({
       routeId: "M15",
       window: "all_day",

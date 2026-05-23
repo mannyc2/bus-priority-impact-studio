@@ -32,6 +32,18 @@ export const DEFAULT_PERMIT_CORRELATED_SLOWDOWN_THRESHOLDS: PermitCorrelatedSlow
   candidateLimit: 100,
 };
 
+type PermitContextSummary = {
+  sourceIds: string[];
+  touchedEventCount: number;
+  touchCount: number;
+  primaryTouchCount: number;
+  contextTouchCount: number;
+  highConfidenceTouchCount: number;
+  matchWeightSum: number;
+  averageMatchWeight: number;
+  maxRouteFanout: number;
+};
+
 export type PermitCorrelatedSlowdownDetectorInput = {
   detectorRunId: string;
   month: string;
@@ -53,6 +65,25 @@ type Hit = {
 
 function stableId(...parts: string[]): string {
   return createHash("sha256").update(parts.join("\u001f")).digest("hex").slice(0, 32);
+}
+
+function permitContext(feature: RouteMonthSignalFeature): PermitContextSummary {
+  const rows = feature.contextEventCounts.filter((context) => context.eventKind === "permit");
+  const touchedEventCount = rows.reduce((total, row) => total + row.touchedEventCount, 0);
+  const touchCount = rows.reduce((total, row) => total + row.touchCount, 0);
+  const matchWeightSum = rows.reduce((total, row) => total + row.matchWeightSum, 0);
+
+  return {
+    sourceIds: [...new Set(rows.map((row) => row.sourceId))].sort(),
+    touchedEventCount,
+    touchCount,
+    primaryTouchCount: rows.reduce((total, row) => total + row.primaryTouchCount, 0),
+    contextTouchCount: rows.reduce((total, row) => total + row.contextTouchCount, 0),
+    highConfidenceTouchCount: rows.reduce((total, row) => total + row.highConfidenceTouchCount, 0),
+    matchWeightSum: Number(matchWeightSum.toFixed(4)),
+    averageMatchWeight: touchCount === 0 ? 0 : Number((matchWeightSum / touchCount).toFixed(4)),
+    maxRouteFanout: rows.reduce((max, row) => Math.max(max, row.maxRouteFanout), 0),
+  };
 }
 
 function slowdownSignal(
@@ -125,6 +156,7 @@ export function detectPermitCorrelatedSlowdowns(
     const hit = hits.get(feature.scopeId);
     if (hit !== undefined) {
       const candidateId = stableId(detectorRunId, "candidate", feature.scopeId, feature.window);
+      const permit = permitContext(feature);
       candidates.push(
         FindingCandidateSchema.parse({
           candidateId,
@@ -158,6 +190,27 @@ export function detectPermitCorrelatedSlowdowns(
           evidenceRef: JSON.stringify(feature),
           evidenceWeight: 1,
           note: "Route-month signal feature with speed, permit-touch, uncertainty, and provenance fields.",
+        }),
+        FindingEvidenceLinkSchema.parse({
+          linkId: stableId(candidateId, "evidence", "permit_join_limits"),
+          candidateId,
+          evidenceKind: "metric",
+          evidenceRole: "counter_evidence",
+          evidenceRef: JSON.stringify({
+            routeId,
+            month,
+            window: feature.window,
+            permitContext: permit,
+            featurePermitTouchedEventCount: feature.permitTouchedEventCount,
+            featurePermitTouchCount: feature.permitTouchCount,
+            featurePermitRouteCount: feature.permitRouteCount,
+            permitSources: feature.permitSources,
+            uncertainty: feature.uncertainty,
+            limitation:
+              "Permit touches are broad street-work context, not causal evidence by themselves; permit type, route fanout, match weight, and unrelated work must be reviewed.",
+          }),
+          evidenceWeight: 0.5,
+          note: "Counter-evidence for permit interpretation: review fanout, match weight, and work-type relevance before promotion.",
         }),
       );
     }

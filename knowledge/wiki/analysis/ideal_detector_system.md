@@ -35,30 +35,34 @@ The implemented March 2026 detector pass has a real evidence spine:
 - 12 source groups with evidence eligibility and promotion flags.
 - 381 route-month signal features.
 - 6 context sources represented in route-month features.
-- 6 detector families.
-- 599 detector candidates.
-- 1,188 evidence links.
-- 2,304 coverage rows.
+- 8 detector families.
+- 675 detector candidates.
+- 1,817 evidence links.
+- 3,066 coverage rows.
 - 200 surfaced review-queue candidates.
-- 50 Studio findings, currently 2 reviewed/manual findings and 48 detector review candidates.
+- 675 generated review packets.
 
 The current detectors are intentionally cautious:
 
 - `source_gap`
 - `persistent_speed_hotspot`
+- `multi_month_speed_peer`
 - `observed_reliability`
 - `intervention_gap`
 - `intervention_underperformance`
 - `permit_correlated_slowdown`
+- `service_request_context`
 
 They mostly ask simple questions:
 
 - Is a route missing required evidence?
 - Does a route have slow segment evidence?
+- Does a route have a multi-month speed deficit versus the broad route-corpus peer median?
 - Does a route have observed reliability trouble?
 - Does a route have high pain and thin treatment evidence?
 - Does a route still look bad after a treatment?
 - Does a slow route also have many permit touches?
+- Does a slow route also have substantial 311 service-request context?
 
 This is useful, but not yet ideal. It is closer to a smoke alarm panel than an analyst. The next
 system should preserve that auditability while becoming more precise, comparative, historical, and
@@ -829,7 +833,7 @@ feature store and promotion artifact.
 
 ## Concrete Next Build Steps
 
-### Implementation slice completed on 2026-05-23
+### Implementation slices completed on 2026-05-23
 
 The first practical detector-maturity slice is now implemented in code:
 
@@ -845,11 +849,24 @@ The first practical detector-maturity slice is now implemented in code:
 - `audit:findings-backtest` runs a tiny gold-set check against review packets, with optional
   `--gold-set` input for route-specific known cases.
 
+The second slice adds the first broad counter-evidence pass and starts comparative history:
+
+- `observed_reliability` now emits counter-evidence for GTFS-RT sample support, scheduled-baseline
+  support, Bus Wait Assessment support, and route-month aggregation limits;
+- `intervention_gap` now emits counter-evidence that absent/thin local inventory evidence is not
+  proof of no treatment;
+- `intervention_underperformance` now emits counter-evidence for evaluated-comparison counts,
+  positive deltas, peer counts, and descriptive-not-causal limitations;
+- `permit_correlated_slowdown` now emits permit fanout/match-weight/work-type caveats as explicit
+  counter-evidence;
+- `multi_month_speed_peer` is now a starter detector over route-month speed trends. It compares each
+  route to the monthly route-corpus median and emits broad-peer counter-evidence before any stronger
+  peer claim can be promoted.
+
 This moves the detector layer from mostly level 2 toward level 3 for packet shape. It does not make
-all detectors promotion-ready: observed reliability, intervention gap, intervention
-underperformance, permit-context, and source-gap candidates still need richer detector-specific
-counter-evidence before they should be treated as mature publication evidence. Multi-month and peer
-detectors remain the next analytical upgrade.
+all detectors promotion-ready: source-gap candidates still need source-resolution counter-evidence,
+and the new multi-month peer detector intentionally uses a broad corpus median until stronger
+borough/route-type peer groups and calibrated backtests are added.
 
 ### Step 1: Write detector specs before adding detectors
 
@@ -878,6 +895,10 @@ checklist.
 Before promoting more findings, add explicit counter-evidence support. This will prevent every
 threshold hit from becoming a one-sided story.
 
+Current status: implemented for persistent speed hotspots, observed reliability, intervention gap,
+intervention underperformance, permit context, 311 service-request context, and the starter
+multi-month peer-speed detector. Source-gap counter-evidence remains source-resolution oriented.
+
 ### Step 4: Add source-specific context detectors carefully
 
 Start with 311 or permits before parking:
@@ -898,6 +919,10 @@ These are more important than more context sources:
 - positive deviance.
 
 These move the system from "bad this month" to "meaningfully unusual."
+
+Current status: the first `multi_month_speed_peer` detector is implemented as a conservative route
+trend starter. It is useful for review recall, but it should be replaced or complemented by matched
+borough/route-type peers before promotion-grade peer claims.
 
 ### Step 6: Build a gold-set backtest
 

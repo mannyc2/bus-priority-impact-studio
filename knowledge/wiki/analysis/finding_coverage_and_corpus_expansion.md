@@ -28,15 +28,16 @@ Finding Coverage v1 now has an implemented local evidence spine for the March 20
   allowed evidence roles, detector eligibility, and automatic-promotion flags.
 - `findings:signal-features` writes 381 route-month signal features with all normalized context
   source counts, match weights, high-confidence touch counts, fanout, and provenance.
-- `findings:detect` writes six detector families, 599 candidates, evidence links, coverage rows,
-  and a review queue. Detector candidates now receive route-month context evidence links in
-  addition to their primary metric/source evidence.
+- `findings:detect` writes eight detector families, 675 candidates, 1,817 evidence links, 3,066
+  coverage rows, and a review queue. Detector candidates now receive route-month context evidence
+  links in addition to their primary metric/source evidence, and most service/context/intervention
+  detectors emit explicit counter-evidence rows.
 - `build:studio-release` fills public Studio findings from the detector review queue before using
   any route-score fallback. The March proof produces 50 public findings: 2 reviewed/manual findings
   and 48 detector-derived review candidates.
-- `audit:evidence-corpus` verifies the chain. March 2026 passes with 12 source eligibility rows,
-  381 route-month features, 6 context sources, 599 detector candidates, 1,188 evidence links, 2,304
-  coverage rows, and zero unlinked review-queue candidates.
+- `audit:evidence-corpus` verifies the chain. The latest March 2026 detector pass has 12 source
+  eligibility rows, 381 route-month features, 6 context sources, 675 detector candidates, 1,817
+  evidence links, 3,066 coverage rows, and zero unlinked review-queue candidates.
 - Studio finding payloads now carry optional review provenance. Manual B25/BX41 findings are marked
   reviewed/approved, detector-queue findings are marked review candidates with candidate and
   detector IDs, and route-score fallback findings are marked generated candidates.
@@ -46,7 +47,8 @@ Finding Coverage v1 now has an implemented local evidence spine for the March 20
 
 Important boundary: this makes all normalized context data available as evidence context, but it
 does not mean every source can drive primary detector claims. Parking remains context-only until
-fanout, weights, and promotion rules are explicitly reviewed.
+fanout, weights, and promotion rules are explicitly reviewed. The new `multi_month_speed_peer`
+detector is also review-only: it uses a broad route-corpus median, not a matched peer/control set.
 
 ## Post-v1 Answer
 
@@ -156,11 +158,14 @@ Build detectors in this order:
 5. **Intervention underperformance detector.** Candidate when an implemented treatment has
    peer-adjusted before/after evidence and current pain remains high. Keep language descriptive
    until the methodology gate allows stronger claims.
+6. **Source-specific context and peer-history starters.** `service_request_context` and
+   `multi_month_speed_peer` now exist as cautious review-candidate detectors. 311 context includes
+   fanout/match-weight counter-evidence; multi-month peer speed includes broad-peer limitations.
 
-Defer context-correlated disruption, peer residual, and positive-deviance detectors until the
-candidate/evidence/audit loop is stable. Context-event data already exists, but the joins need
-normalization by route overlap, route length, event density, source coverage, and time window before
-they can support more than caveats or review prompts.
+Defer richer context-correlated disruption, matched-peer residual, and positive-deviance detectors
+until the candidate/evidence/audit loop has reviewer promotion artifacts. Context-event data already
+exists, but the joins need normalization by route overlap, route length, event density, source
+coverage, and time window before they can support more than caveats or review prompts.
 
 ### Candidate Contract Gaps
 
