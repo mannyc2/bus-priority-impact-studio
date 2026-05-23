@@ -1328,3 +1328,11 @@ review-queue candidates. The default detector review queue cap is now 200 so pub
 its 50 finding slots from detector candidates without falling back to route-score generation.
 Rebuilt Studio from that 200-candidate detector review queue; public Studio findings remain at 50,
 now composed of 2 reviewed/manual findings plus 48 detector-derived review candidates.
+
+Studio finding review-state follow-up: added optional review provenance to the Studio finding
+contract and release builder so findings can distinguish `reviewed`, `review_candidate`, and
+`generated_candidate` publication states. The March release builder now marks B25/BX41 manual
+findings as approved manual reviews, detector-queue findings as review candidates with candidate
+and detector IDs, and route-score fallback findings as generated candidates. The findings feed and
+finding detail screens display that state directly, keeping the broader detector/evidence corpus
+visible without implying detector candidates are approved claims.

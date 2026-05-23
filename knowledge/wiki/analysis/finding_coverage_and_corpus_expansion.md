@@ -37,6 +37,9 @@ Finding Coverage v1 now has an implemented local evidence spine for the March 20
 - `audit:evidence-corpus` verifies the chain. March 2026 passes with 12 source eligibility rows,
   381 route-month features, 6 context sources, 599 detector candidates, 1,188 evidence links, 2,304
   coverage rows, and zero unlinked review-queue candidates.
+- Studio finding payloads now carry optional review provenance. Manual B25/BX41 findings are marked
+  reviewed/approved, detector-queue findings are marked review candidates with candidate and
+  detector IDs, and route-score fallback findings are marked generated candidates.
 
 Important boundary: this makes all normalized context data available as evidence context, but it
 does not mean every source can drive primary detector claims. Parking remains context-only until

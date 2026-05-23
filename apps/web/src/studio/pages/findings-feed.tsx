@@ -32,10 +32,27 @@ function severityBorderColor(category: string): string {
   return "var(--bp-color-accent)";
 }
 
+function reviewBadge(finding: StudioFindingsResponse["findings"][number]["finding"]) {
+  const state = finding.review?.publicationState ?? "generated_candidate";
+  if (state === "reviewed") {
+    return { label: "Reviewed", variant: "good" as const };
+  }
+  if (state === "review_candidate") {
+    return { label: "Review candidate", variant: "warn" as const };
+  }
+  return { label: "Generated", variant: "neutral" as const };
+}
+
 export function FindingsFeedPage({ data }: { data: StudioFindingsResponse }) {
   const [borough, setBorough] = useState<string>("All");
   const [type, setType] = useState<string>("all");
   const [sort, setSort] = useState<string>("impact");
+  const reviewedCount = data.findings.filter(
+    ({ finding }) => finding.review?.publicationState === "reviewed",
+  ).length;
+  const reviewCandidateCount = data.findings.filter(
+    ({ finding }) => finding.review?.publicationState === "review_candidate",
+  ).length;
 
   const filtered = data.findings.filter(({ finding, route }) => {
     if (borough !== "All" && route.borough !== borough) return false;
@@ -58,15 +75,15 @@ export function FindingsFeedPage({ data }: { data: StudioFindingsResponse }) {
             <div className="mb-1.5 flex items-center gap-2.5 font-mono text-[10px] font-bold uppercase tracking-[0.06em]">
               <span className="text-[var(--bp-color-accent)]">&#9670; AI-analyzed</span>
               <span className="text-[var(--bp-color-ink-40)]">
-                updated 2026-05-12 · 340 routes scanned
+                {reviewedCount} reviewed · {reviewCandidateCount} review candidates
               </span>
             </div>
             <h1 className="m-0 text-[26px] font-semibold leading-[1.1] tracking-[-0.02em]">
               Findings
             </h1>
             <p className="mt-1.5 max-w-[580px] text-[13px] leading-[1.45] text-[var(--bp-color-ink-55)]">
-              Notable patterns surfaced across all NYC bus routes. Each finding traces directly to
-              the data in the route view - nothing invented.
+              Notable patterns surfaced across all NYC bus routes, with review state kept visible so
+              detector candidates do not read like approved claims.
             </p>
           </div>
           <FilterChips
@@ -156,6 +173,7 @@ export function FindingsFeedPage({ data }: { data: StudioFindingsResponse }) {
             ) : null}
             {filtered.map(({ finding, route }) => {
               const borderColor = severityBorderColor(finding.category);
+              const review = reviewBadge(finding);
               return (
                 <article
                   key={finding.id}
@@ -183,6 +201,7 @@ export function FindingsFeedPage({ data }: { data: StudioFindingsResponse }) {
                           >
                             {finding.category}
                           </Badge>
+                          <Badge variant={review.variant}>{review.label}</Badge>
                           <span className="text-[11.5px] text-[var(--bp-color-ink-55)]">
                             {route.borough}
                           </span>

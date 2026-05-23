@@ -6,6 +6,7 @@ import {
   healthResponseJsonSchema,
   RouteIdCodec,
   RouteScorecardSchema,
+  StudioFindingSchema,
   StudioReleasePayloadSchema,
   StudioRouteDetailResponseSchema,
   studioReleasePayloadJsonSchema,
@@ -69,6 +70,35 @@ describe("domain schemas", () => {
         extra: "not allowed",
       }),
     ).toThrow();
+  });
+
+  test("marks Studio findings with optional review provenance", () => {
+    const finding = StudioFindingSchema.parse({
+      id: "detector-fixture",
+      category: "Emerging risk",
+      routeSlug: "m1",
+      title: "M1 detector candidate",
+      body: "Fixture detector finding.",
+      metric: "88/100 detector score",
+      confidence: "moderate",
+      borough: "Manhattan",
+      reasoning: [],
+      caveat: {
+        title: "Detector review candidate",
+        body: "Needs review before publication.",
+      },
+      comparableRoutes: [],
+      review: {
+        publicationState: "review_candidate",
+        reviewState: "needs_review",
+        source: "detector_review_queue",
+        candidateId: "candidate-1",
+        detectorId: "observed_reliability",
+        claimSafeLabel: "issue_needs_review",
+      },
+    });
+
+    expect(finding.review?.publicationState).toBe("review_candidate");
   });
 
   test("projects route artifact refs into Studio route detail contracts", () => {

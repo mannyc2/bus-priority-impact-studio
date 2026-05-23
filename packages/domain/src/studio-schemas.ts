@@ -141,6 +141,25 @@ export const ReasoningStepSchema = z
   })
   .strict();
 
+export const StudioFindingReviewSchema = z
+  .object({
+    publicationState: z.enum(["reviewed", "review_candidate", "generated_candidate"]),
+    reviewState: z.enum(["approved", "needs_review", "unreviewed"]).nullable(),
+    source: z.enum(["manual_review", "detector_review_queue", "route_score_fallback"]),
+    candidateId: z.string().nullable(),
+    detectorId: z.string().nullable(),
+    claimSafeLabel: z
+      .enum([
+        "no_issue_clean",
+        "issue_clean",
+        "issue_needs_review",
+        "insufficient_evidence",
+        "source_lag_expected",
+      ])
+      .nullable(),
+  })
+  .strict();
+
 export const StudioFindingSchema = z
   .object({
     id: z.string(),
@@ -159,6 +178,7 @@ export const StudioFindingSchema = z
       })
       .strict(),
     comparableRoutes: z.array(ComparableRouteSchema),
+    review: StudioFindingReviewSchema.optional(),
   })
   .strict();
 
@@ -519,6 +539,7 @@ export type StudioRoute = z.output<typeof StudioRouteSchema>;
 export type StudioIntervention = z.output<typeof StudioInterventionSchema>;
 export type ComparableRoute = z.output<typeof ComparableRouteSchema>;
 export type ReasoningStep = z.output<typeof ReasoningStepSchema>;
+export type StudioFindingReview = z.output<typeof StudioFindingReviewSchema>;
 export type ClaimEvidence = z.output<typeof ClaimEvidenceSchema>;
 export type StudioComment = z.output<typeof StudioCommentSchema>;
 export type StudioCommentReply = z.output<typeof StudioCommentReplySchema>;

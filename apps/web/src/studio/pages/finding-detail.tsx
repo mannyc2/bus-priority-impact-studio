@@ -3,11 +3,8 @@ import { ArrowRight } from "lucide-react";
 import { Rail, RailRule } from "@/components/Rail";
 import { RouteBadge } from "@/components/RouteBadge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import type {
-  ComparableRoute,
-  ReasoningStep,
-  StudioFindingResponse,
-} from "../api-contract.js";
+import { Badge } from "@/components/ui/badge";
+import type { ComparableRoute, ReasoningStep, StudioFindingResponse } from "../api-contract.js";
 import { StudioPage } from "../page.js";
 import { NotFoundPage } from "./not-found.js";
 
@@ -19,11 +16,23 @@ function categoryChip(category: string) {
   return { bg: "var(--bp-color-accent-bg)", fg: "var(--bp-color-accent)", label: "EMERGING RISK" };
 }
 
+function reviewBadge(finding: StudioFindingResponse["finding"]) {
+  const state = finding.review?.publicationState ?? "generated_candidate";
+  if (state === "reviewed") {
+    return { label: "Reviewed", variant: "good" as const };
+  }
+  if (state === "review_candidate") {
+    return { label: "Review candidate", variant: "warn" as const };
+  }
+  return { label: "Generated", variant: "neutral" as const };
+}
+
 export function FindingDetailPage({ data }: { data: StudioFindingResponse | null }) {
   if (data === null) return <NotFoundPage />;
   const { finding, route } = data;
   const chip = categoryChip(finding.category);
   const metricColor = chip.fg;
+  const review = reviewBadge(finding);
 
   return (
     <StudioPage flush>
@@ -37,6 +46,7 @@ export function FindingDetailPage({ data }: { data: StudioFindingResponse | null
             >
               {chip.label}
             </span>
+            <Badge variant={review.variant}>{review.label}</Badge>
           </div>
           <h1 className="m-0 max-w-[680px] text-[26px] font-semibold leading-[1.15] tracking-[-0.02em]">
             {finding.title}
@@ -47,6 +57,7 @@ export function FindingDetailPage({ data }: { data: StudioFindingResponse | null
             </span>
             <span className="text-[var(--bp-color-ink-40)]">
               {finding.reasoning.length} sources &middot; {finding.confidence} confidence
+              {finding.review?.detectorId ? ` · ${finding.review.detectorId}` : ""}
             </span>
           </div>
           <ol className="relative m-0 list-none pl-8">
@@ -182,10 +193,7 @@ function ComparableRouteRow({ peer }: { peer: ComparableRoute }) {
           </div>
           <div className="text-[10px] text-[var(--bp-color-ink-55)]">{peer.detail}</div>
         </div>
-        <div
-          className="font-mono text-[12px] font-bold tabular-nums"
-          style={{ color: toneColor }}
-        >
+        <div className="font-mono text-[12px] font-bold tabular-nums" style={{ color: toneColor }}>
           {peer.delta}
         </div>
       </Link>

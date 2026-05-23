@@ -27,6 +27,7 @@ import {
   type ReasoningStep,
   type StudioBrief,
   type StudioFinding,
+  type StudioFindingReview,
   type StudioMethodDataset,
   type StudioObservedReliability,
   type StudioReleasePayload,
@@ -78,7 +79,9 @@ type ReviewQueueCandidate = {
   severity: string;
   confidence: string;
   detectorScore: number;
+  claimSafeLabel?: StudioFindingReview["claimSafeLabel"];
   claimText: string;
+  reviewState?: StudioFindingReview["reviewState"];
   evidenceRefCount?: number;
   evidenceRefs?: string[];
 };
@@ -484,6 +487,14 @@ function buildFinding(route: StudioRoute, segment: StudioSegment | undefined): S
       body: "This finding is generated deterministically from serving projections and should be reviewed before publication.",
     },
     comparableRoutes: [],
+    review: {
+      publicationState: "generated_candidate",
+      reviewState: "unreviewed",
+      source: "route_score_fallback",
+      candidateId: null,
+      detectorId: null,
+      claimSafeLabel: "issue_needs_review",
+    },
   };
 }
 
@@ -531,6 +542,14 @@ function buildDetectorFinding(candidate: ReviewQueueCandidate, route: StudioRout
       body: "This finding is derived from the local detector review queue. It should stay review-gated until the underlying evidence and source eligibility are approved for publication.",
     },
     comparableRoutes: [],
+    review: {
+      publicationState: "review_candidate",
+      reviewState: candidate.reviewState ?? "needs_review",
+      source: "detector_review_queue",
+      candidateId: candidate.candidateId,
+      detectorId: candidate.detectorId,
+      claimSafeLabel: candidate.claimSafeLabel ?? "issue_needs_review",
+    },
   };
 }
 
@@ -657,6 +676,14 @@ function buildReviewedFinding(route: StudioRoute): StudioFinding | null {
         body: "This review confirms route-corridor context, but it does not prove that DOT permits caused the B25 slowdown or touched the exact same physical segments as the worst speed hotspots.",
       },
       comparableRoutes: [],
+      review: {
+        publicationState: "reviewed",
+        reviewState: "approved",
+        source: "manual_review",
+        candidateId: null,
+        detectorId: null,
+        claimSafeLabel: "issue_clean",
+      },
     };
   }
 
@@ -709,6 +736,14 @@ function buildReviewedFinding(route: StudioRoute): StudioFinding | null {
         body: "This finding should not say permits caused BX41's reliability problem or speed hotspots. It identifies a high-evidence corridor for manual review and public prioritization.",
       },
       comparableRoutes: [],
+      review: {
+        publicationState: "reviewed",
+        reviewState: "approved",
+        source: "manual_review",
+        candidateId: null,
+        detectorId: null,
+        claimSafeLabel: "issue_clean",
+      },
     };
   }
 
