@@ -164,6 +164,19 @@ async function withSpaSeo(request: Request, url: URL, response: Response): Promi
   });
 }
 
+async function serveSpaFallback(request: Request, url: URL, assets: Fetcher): Promise<Response> {
+  const response = await assets.fetch(request);
+  if (response.status !== 404) {
+    return withSpaSeo(request, url, response);
+  }
+
+  return withSpaSeo(
+    request,
+    url,
+    await assets.fetch(new Request(new URL("/", request.url), request)),
+  );
+}
+
 async function buildRouteScorecardResponse(url: URL, env: Env): Promise<Response> {
   if (env.DB === undefined) {
     return errorJson(503, "D1 binding is not configured.");
@@ -1493,7 +1506,7 @@ export default {
     }
 
     if (canServeSpaFallback(request, url) && env.ASSETS !== undefined) {
-      return withSpaSeo(request, url, await env.ASSETS.fetch(request));
+      return serveSpaFallback(request, url, env.ASSETS);
     }
 
     if (canServeSpaFallback(request, url) && isLocalDevHost(url.hostname)) {

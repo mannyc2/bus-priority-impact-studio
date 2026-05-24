@@ -260,6 +260,36 @@ describe("Worker production-behavior harness", () => {
     expect(paths).toEqual(["/routes/b46"]);
   });
 
+  it("falls back to the root SPA document when a deep link has no direct asset", async () => {
+    const paths: string[] = [];
+    const assets = {
+      fetch: async (input: RequestInfo | URL): Promise<Response> => {
+        const request = input instanceof Request ? input : new Request(input);
+        const pathname = new URL(request.url).pathname;
+        paths.push(pathname);
+        if (pathname !== "/") {
+          return new Response("Not found", { status: 404 });
+        }
+        return new Response(
+          '<!doctype html><html><head></head><body><div id="root"></div></body></html>',
+          {
+            headers: { "Content-Type": "text/html; charset=utf-8" },
+          },
+        );
+      },
+    } as unknown as Fetcher;
+
+    const response = await worker.fetch(new Request("https://example.test/routes/m57"), {
+      ASSETS: assets,
+    });
+    const html = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Content-Type")).toContain("text/html");
+    expect(html).toContain("<title>M57 Route Detail | Bus Priority Impact Studio</title>");
+    expect(paths).toEqual(["/routes/m57", "/"]);
+  });
+
   it("injects crawlable SEO metadata into SPA fallback HTML", async () => {
     const assets = {
       fetch: async (): Promise<Response> =>
