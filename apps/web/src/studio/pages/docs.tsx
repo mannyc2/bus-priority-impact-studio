@@ -246,7 +246,7 @@ function Endpoint({ method, path, desc }: { method: string; path: string; desc?:
   );
 }
 
-type ParamRow = { name: string; type: string; req?: boolean; desc: string };
+type ParamRow = { name: string; type: string; req?: boolean; desc: ReactNode };
 function Params({ rows }: { rows: readonly ParamRow[] }) {
   return (
     <table className="my-3 w-full border-collapse text-left">
@@ -608,40 +608,388 @@ function BriefsPage() {
   );
 }
 
+function SourceLink({ href, children }: { href: string; children: ReactNode }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className="font-medium text-[var(--bp-color-accent)] underline decoration-[var(--bp-color-accent-40)] underline-offset-[3px] hover:text-[var(--bp-color-accent-strong)]"
+    >
+      {children}
+    </a>
+  );
+}
+
+type ReleaseFact = {
+  label: string;
+  value: string;
+  detail: string;
+};
+
+const releaseFacts: readonly ReleaseFact[] = [
+  {
+    label: "Release month",
+    value: "2026-03",
+    detail: "Latest complete public speed month in the deployed observed release.",
+  },
+  {
+    label: "Route coverage",
+    value: "350 public routes",
+    detail: "381 catalog routes are loaded; Studio publishes the public-visible route set.",
+  },
+  {
+    label: "Route artifacts",
+    value: "1,629 audited refs",
+    detail: "Route/corridor briefs, evidence, map, and evaluation artifacts passed publish checks.",
+  },
+  {
+    label: "Findings",
+    value: "202 reviewed",
+    detail: "Includes 200 promoted detector findings with immutable review/audit provenance.",
+  },
+  {
+    label: "Observed reliability",
+    value: "2.57M March samples",
+    detail: "346 observed routes from the recovered Bus Observatory March run.",
+  },
+  {
+    label: "Source ledger",
+    value: "0 open source actions",
+    detail:
+      "12 source families audited: 9 historical-ready, 2 context-only, 1 current-signal-only.",
+  },
+];
+
+function ReleaseFactList() {
+  return (
+    <dl className="my-5 grid grid-cols-2 gap-x-5 gap-y-4 max-sm:grid-cols-1">
+      {releaseFacts.map((fact) => (
+        <div key={fact.label} className="border-t border-[var(--bp-color-rule)] pt-3">
+          <dt className="text-[10.5px] font-bold uppercase tracking-[0.08em] text-[var(--bp-color-ink-40)]">
+            {fact.label}
+          </dt>
+          <dd className="m-0 mt-1 text-[17px] font-semibold tracking-[-0.01em] text-[var(--bp-color-ink)]">
+            {fact.value}
+          </dd>
+          <dd className="m-0 mt-1 text-[12.5px] leading-[1.45] text-[var(--bp-color-ink-55)]">
+            {fact.detail}
+          </dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+type CreditRow = {
+  source: ReactNode;
+  role: string;
+  coverage: string;
+  use: ReactNode;
+};
+
+function CreditTable({ rows }: { rows: readonly CreditRow[] }) {
+  return (
+    <div className="my-4 overflow-x-auto">
+      <table className="w-full min-w-[720px] border-collapse text-left">
+        <thead>
+          <tr>
+            {["Source", "Role", "Release coverage", "Use in Studio"].map((heading) => (
+              <th
+                key={heading}
+                className="border-b border-[var(--bp-color-rule)] px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--bp-color-ink-40)]"
+              >
+                {heading}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, i) => (
+            <tr key={i}>
+              <td className="border-b border-[var(--bp-color-rule)] px-2.5 py-2.5 align-top text-[13px] leading-[1.45] text-[var(--bp-color-ink)]">
+                {row.source}
+              </td>
+              <td
+                className="border-b border-[var(--bp-color-rule)] px-2.5 py-2.5 align-top text-[11px] text-[var(--bp-color-ink-55)]"
+                style={{ fontFamily: MONO }}
+              >
+                {row.role}
+              </td>
+              <td className="border-b border-[var(--bp-color-rule)] px-2.5 py-2.5 align-top text-[12.5px] leading-[1.45] text-[var(--bp-color-ink-70)]">
+                {row.coverage}
+              </td>
+              <td className="border-b border-[var(--bp-color-rule)] px-2.5 py-2.5 align-top text-[12.5px] leading-[1.45] text-[var(--bp-color-ink-70)]">
+                {row.use}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+const primaryCreditRows: readonly CreditRow[] = [
+  {
+    source: (
+      <>
+        <SourceLink href="https://data.ny.gov/Transportation/MTA-Bus-Route-Segment-Speeds-2023-2024/58t6-89vi">
+          MTA Bus Route Segment Speeds 2023-2024
+        </SourceLink>{" "}
+        and{" "}
+        <SourceLink href="https://data.ny.gov/Transportation/MTA-Bus-Route-Segment-Speeds-Beginning-2025/kufs-yh3x">
+          Beginning 2025
+        </SourceLink>
+      </>
+    ),
+    role: "primary",
+    coverage: "2023-04 through 2026-03 route-month trends.",
+    use: "Canonical public monthly speed, trip, hotspot, and peer-speed evidence.",
+  },
+  {
+    source: (
+      <>
+        <SourceLink href="https://data.ny.gov/Transportation/MTA-Current-Bus-Routes/h2wf-afav">
+          MTA Current Bus Routes
+        </SourceLink>
+        ,{" "}
+        <SourceLink href="https://data.ny.gov/Transportation/MTA-Current-Bus-Stops/ai5j-txmn">
+          Current Bus Stops
+        </SourceLink>
+        , and{" "}
+        <SourceLink href="https://data.ny.gov/Transportation/MTA-Bus-Schedules-2026/4fnn-qsea">
+          Bus Schedules 2026
+        </SourceLink>
+      </>
+    ),
+    role: "primary",
+    coverage: "381 active catalog routes plus schedule/timepoint rows for release matching.",
+    use: "Route shapes, stop/timepoint matching, scheduled service baselines, and route pages.",
+  },
+  {
+    source: (
+      <>
+        <SourceLink href="https://data.ny.gov/Transportation/MTA-Bus-Hourly-Ridership-2020-2024/kv7t-n8in">
+          MTA Bus Hourly Ridership 2020-2024
+        </SourceLink>{" "}
+        and{" "}
+        <SourceLink href="https://data.ny.gov/Transportation/MTA-Bus-Hourly-Ridership-Beginning-2025/gxb3-akrn">
+          Beginning 2025
+        </SourceLink>
+      </>
+    ),
+    role: "primary",
+    coverage: "Historical and current ridership inputs joined into route/month evidence.",
+    use: "Rider exposure, route ranking, passenger-load controls, and brief context.",
+  },
+  {
+    source: (
+      <>
+        <SourceLink href="https://api.busobservatory.org/nyct">Bus Observatory</SourceLink>{" "}
+        recovered GTFS-RT archive,{" "}
+        <SourceLink href="https://www.mta.info/developers">MTA Bus Time GTFS-RT</SourceLink>, and{" "}
+        <SourceLink href="https://data.ny.gov/Transportation/MTA-Bus-Wait-Assessment-Beginning-2020/v4z4-2h6n">
+          MTA Bus Wait Assessment
+        </SourceLink>
+      </>
+    ),
+    role: "primary",
+    coverage:
+      "Observed reliability summaries cover 2023-04 through 2026-05; March release uses recovered third-party GTFS-RT provenance.",
+    use: "Long gaps, bunching, expected wait, weather/control splits, and reliability detectors.",
+  },
+  {
+    source: (
+      <>
+        <SourceLink href="https://data.ny.gov/Transportation/MTA-Bus-Automated-Camera-Enforced-Routes-Beginning/ki2b-sg5y">
+          ACE/ABLE route rollout
+        </SourceLink>
+        ,{" "}
+        <SourceLink href="https://data.ny.gov/Transportation/MTA-Bus-Automated-Camera-Enforcement-Violations-Be/kh8p-hcbm">
+          ACE violations
+        </SourceLink>
+        , and{" "}
+        <SourceLink href="https://data.cityofnewyork.us/Transportation/Bus-Lanes-Local-Streets/ycrg-ses3">
+          NYC DOT bus lanes
+        </SourceLink>
+      </>
+    ),
+    role: "primary",
+    coverage: "ACE summaries from 2023-04 through 2026-04; bus-lane geometry in release context.",
+    use: "Intervention history, treatment-gap findings, before/after reviews, and caveats.",
+  },
+];
+
+const contextCreditRows: readonly CreditRow[] = [
+  {
+    source: (
+      <>
+        <SourceLink href="https://data.cityofnewyork.us/Transportation/Street-Construction-Permits/tqtj-sjs8">
+          NYC DOT Street Construction Permits
+        </SourceLink>{" "}
+        and Street Opening Permit rows
+      </>
+    ),
+    role: "primary/context",
+    coverage: "2,028,951 rows; 2018-05 through 2026-05; 96.3% geocoded.",
+    use: "Permit-context findings and manual review evidence. Not a causal slowdown claim by itself.",
+  },
+  {
+    source: (
+      <>
+        <SourceLink href="https://data.cityofnewyork.us/Social-Services/311-Service-Requests-from-2020-present/erm2-nwe9">
+          NYC 311 current requests
+        </SourceLink>{" "}
+        and{" "}
+        <SourceLink href="https://data.cityofnewyork.us/Social-Services/311-Service-Requests-from-2010-to-2019/76ig-c548">
+          historical requests
+        </SourceLink>
+      </>
+    ),
+    role: "manual primary",
+    coverage:
+      "2,560,438 filtered rows; 2023-present target window plus retained 2019 baseline slice.",
+    use: "Complaint context for parking, blocked streets, signals, street conditions, and detector review packets.",
+  },
+  {
+    source: (
+      <SourceLink href="https://data.cityofnewyork.us/Public-Safety/Motor-Vehicle-Collisions-Crashes/h9gi-nx95">
+        NYPD Motor Vehicle Collisions
+      </SourceLink>
+    ),
+    role: "manual primary",
+    coverage: "277,606 rows; 2023-04 through 2026-04; 95.9% geocoded.",
+    use: "Crash/disruption and safety context near route hotspots and reliability findings.",
+  },
+  {
+    source: (
+      <>
+        NYC Parking Violations FY2023-FY2026, including{" "}
+        <SourceLink href="https://data.cityofnewyork.us/City-Government/Parking-Violations-Issued-Fiscal-Year-2026/pvqr-7yc4">
+          current FY2026
+        </SourceLink>
+      </>
+    ),
+    role: "context only",
+    coverage: "5,753,409 bus-relevant rows; raw-complete for 2023-04 through 2026-03.",
+    use: "Curb-pressure context only. Physical-ID geocoding remains low, so parking is not detector-grade evidence.",
+  },
+  {
+    source: (
+      <>
+        <SourceLink href="https://data.cityofnewyork.us/Transportation/Automated-Traffic-Volume-Counts/7ym2-wayt">
+          NYC DOT Automated Traffic Volume Counts
+        </SourceLink>{" "}
+        and{" "}
+        <SourceLink href="https://data.cityofnewyork.us/Transportation/Real-Time-Traffic-Speed-Data/i4gi-tjb9">
+          Real-Time Traffic Speed Data
+        </SourceLink>
+      </>
+    ),
+    role: "context/current",
+    coverage:
+      "Traffic volume is release-context-only; DOT realtime speeds are a May 2026 current snapshot.",
+    use: "Traffic appendices and caveats. They do not promote route findings automatically.",
+  },
+  {
+    source: (
+      <>
+        <SourceLink href="https://www.ncei.noaa.gov/data/global-historical-climatology-network-daily/access/">
+          NOAA GHCN-Daily
+        </SourceLink>
+        ,{" "}
+        <SourceLink href="https://api.census.gov/data/2024/acs/acs5/profile">
+          Census ACS 5-year profile
+        </SourceLink>
+        , and{" "}
+        <SourceLink href="https://data.cityofnewyork.us/City-Government/Centerline/inkn-q76z">
+          NYC Centerline / LION
+        </SourceLink>
+      </>
+    ),
+    role: "context",
+    coverage: "Weather covers 2023-01 through 2026-05; ACS/LION provide route context and joins.",
+    use: "Weather controls, equity-priority context, borough/route joins, and source-coverage caveats.",
+  },
+];
+
 function CreditsPage() {
   return (
     <article>
       <H1>Data & Credits</H1>
-      <Callout warn>Full attribution table and license details are being finalized.</Callout>
+      <P>
+        The current public Studio release is a March 2026 observed release backed by generated D1
+        serving tables and R2 artifacts. The historical corpus is complete for the product&apos;s
+        target 2023-04 through latest-complete-speed-month window, with source-specific caveats
+        below.
+      </P>
+      <ReleaseFactList />
+      <Callout>
+        &quot;Complete&quot; means release-ready for the evidence role assigned to each source, not
+        that every public dataset is allowed to become detector-grade proof. Parking violations and
+        traffic-volume counts are intentionally context-only; DOT realtime traffic speeds are a
+        current-condition appendix.
+      </Callout>
+
+      <H2>Primary Release Evidence</H2>
+      <P>
+        These sources can support route performance, reliability, intervention, or reviewed detector
+        claims when the route-level evidence packet passes the matching QA checks.
+      </P>
+      <CreditTable rows={primaryCreditRows} />
+
+      <H2>Context Sources</H2>
+      <P>
+        These sources explain, caveat, or prioritize route findings. They are valuable, but several
+        are deliberately held below automatic detector-grade status because joins, timing, or
+        causality are weaker than the route performance sources.
+      </P>
+      <CreditTable rows={contextCreditRows} />
+
+      <H2>Use Rules</H2>
       <Params
         rows={[
           {
-            name: "MTA GTFS-RT",
-            type: "real-time",
-            desc: "Vehicle positions and trip updates. MTA Developer Data license.",
+            name: "Release claims",
+            type: "rule",
+            desc: "Use March 2026 public monthly speed, schedule, ridership, route, and observed-reliability evidence as the canonical deployed release.",
           },
           {
-            name: "MTA BusTime API",
-            type: "historical",
-            desc: "Stop-level arrival/departure times.",
+            name: "Realtime claims",
+            type: "rule",
+            desc: "May 2026 GTFS-RT is labeled current signal because matching public monthly speed rows are not available yet.",
           },
           {
-            name: "OpenStreetMap",
-            type: "geo",
-            desc: "Street network, stop locations. © contributors, ODbL.",
+            name: "Causality",
+            type: "rule",
+            desc: "Context sources such as permits, 311, parking, collisions, weather, and traffic do not prove causes by themselves.",
           },
           {
-            name: "NYC DOT",
-            type: "reference",
-            desc: "Bus lane locations and signal priority corridors.",
+            name: "Parking",
+            type: "rule",
+            desc: "Parking violations remain release-context-only until candidate fanout, match weights, and low physical-ID geocoding are reviewed for detector promotion.",
           },
           {
-            name: "MTA ACE",
-            type: "program record",
-            desc: "Camera enforcement coverage and violations.",
+            name: "Equity",
+            type: "rule",
+            desc: "ACS context is used for prioritization and transparency, not as a performance metric or agency grade.",
           },
         ]}
       />
+
+      <H2>Terms</H2>
+      <P>
+        MTA datasets and Bus Time feeds are credited to the Metropolitan Transportation Authority
+        and should be used with the{" "}
+        <SourceLink href="https://www.mta.info/developers/terms-and-conditions">
+          MTA data-feed terms
+        </SourceLink>
+        . NYC Open Data datasets are credited to their publishing agencies, including NYC DOT, NYPD,
+        NYC 311, and NYC Department of Finance. NOAA GHCN-Daily and U.S. Census ACS data are public
+        federal datasets. Bus Observatory-derived March reliability is labeled third-party recovered
+        provenance throughout the API and UI.
+      </P>
     </article>
   );
 }
@@ -773,9 +1121,46 @@ const PAGE_MARKDOWN: Record<DocsPageId, string> = {
   routes: buildMarkdown("routes", "cli", "findings"),
   findings: buildMarkdown("findings", "routes", "briefs"),
   briefs: buildMarkdown("briefs", "findings", "data-credits"),
-  "data-credits": buildMarkdown("data-credits", "briefs", "changelog"),
+  "data-credits": buildDataCreditsMarkdown(),
   changelog: buildMarkdown("changelog", "data-credits", null),
 };
+
+function buildDataCreditsMarkdown(): string {
+  return [
+    "---",
+    "page: data-credits",
+    "prev: briefs",
+    "next: changelog",
+    `pages: ${DOCS_PAGE_ORDER.join(" | ")}`,
+    "index: https://api.bpi.studio/llms.txt",
+    "---",
+    "",
+    "# BPI Studio API - Data & Credits",
+    "",
+    "Current public release: March 2026 observed release.",
+    "",
+    "- 350 public routes from 381 loaded catalog routes.",
+    "- 1,629 audited route/corridor/evidence/map artifact references.",
+    "- 202 reviewed findings, including 200 promoted detector findings.",
+    "- 2,571,297 March observed-reliability samples across 346 observed routes.",
+    "- Source ledger: 12 source families; 9 historical-ready, 2 context-only, 1 current-signal-only, 0 open source actions.",
+    "",
+    "Complete means release-ready for the evidence role assigned to each source, not that every dataset is detector-grade proof.",
+    "",
+    "Primary evidence sources: MTA Bus Route Segment Speeds, MTA Current Bus Routes and Stops, MTA Bus Schedules, MTA Bus Hourly Ridership, Bus Observatory recovered GTFS-RT, MTA Bus Time GTFS-RT, MTA Bus Wait Assessment, ACE/ABLE route rollout, ACE violations, and NYC DOT bus lanes.",
+    "",
+    "Context sources: NYC DOT street permits, NYC 311 service requests, NYPD collisions, NYC parking violations, NYC DOT traffic volume counts, NYC DOT realtime traffic speeds, NOAA GHCN-Daily weather, Census ACS 5-year profile data, and NYC Centerline/LION.",
+    "",
+    "Use rules: March 2026 monthly public evidence is the canonical release layer; May 2026 GTFS-RT is current signal only until public monthly speed rows exist; context sources do not prove causality by themselves; parking remains context-only until match fanout and low physical-ID geocoding are promoted by review.",
+    "",
+    "Terms: MTA datasets and Bus Time feeds are governed by MTA data-feed terms. NYC Open Data datasets are credited to their publishing agencies. NOAA GHCN-Daily and U.S. Census ACS are public federal datasets. Bus Observatory-derived March reliability is labeled third-party recovered provenance.",
+    "",
+    "---",
+    "Prev: [Briefs](/docs/briefs)",
+    "Next: [Changelog](/docs/changelog)",
+    "Index: https://api.bpi.studio/llms.txt",
+  ].join("\n");
+}
 
 function buildMarkdown(page: DocsPageId, prev: DocsPageId | null, next: DocsPageId | null): string {
   const allPages = DOCS_PAGE_ORDER.join(" | ");
