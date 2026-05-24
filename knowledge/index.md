@@ -113,9 +113,10 @@ for route ⇄ LION corridor joins.
     packets, promotion queues, reviewer decision capture, immutable promoted-finding artifacts,
     counter-evidence support, hotspot/observed-reliability/intervention/permit caveats, a 311
     context detector, a matched multi-month peer-speed detector, and confidence-aware backtest
-    calibration hooks are implemented. Promoted findings now publish through Studio while
-    preserving detector audit trails. Next work is larger gold-set/reviewer-decision expansion and
-    demotion/supersession records.
+    calibration hooks are implemented. A 200-finding manual curation pass now promotes reviewed
+    detector findings through Studio while preserving detector audit trails. Next work is larger
+    gold-set/reviewer-decision expansion, demotion/supersession records, and per-finding feature
+    exposure for ledger sources that are still corpus-only in March packets.
 11. Add the Tier 2 document corpus pipeline for policy/intervention documents, but keep source
     promotion, entity linking, metric computation, and publish validation deterministic.
 12. Route score uses a two-factor formula; incorporate ridership weight, persistence, reliability,

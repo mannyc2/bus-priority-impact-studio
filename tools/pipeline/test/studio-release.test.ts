@@ -113,10 +113,10 @@ function promotedFindingArtifact() {
     generatedAt: "2026-05-24T00:10:00.000Z",
     promotionQueueArtifactPath: "/tmp/promotion-queue.json",
     reviewDecisionsArtifactPath: "/tmp/review-decisions.json",
-    promotedFindingCount: 1,
+    promotedFindingCount: 2,
     summary: {
-      promotedFindingCount: 1,
-      detectorCounts: { observed_reliability: 1 },
+      promotedFindingCount: 2,
+      detectorCounts: { observed_reliability: 1, service_request_context: 1 },
       routeCount: 1,
     },
     findings: [
@@ -145,6 +145,40 @@ function promotedFindingArtifact() {
         candidateSnapshotHash: "d".repeat(64),
         promotedFindingHash: "e".repeat(64),
       },
+      {
+        promotedFindingId: "promoted_finding_m1_context",
+        sourceCandidateId: "candidate-m1-context",
+        sourceDecisionId: "review_decision_m1_context",
+        sourcePacketId: "packet-m1-context",
+        detectorId: "service_request_context",
+        month,
+        scopeKind: "route",
+        scopeId: "M1",
+        routeId: "M1",
+        category: "context",
+        severity: "medium",
+        confidence: "high",
+        reasonCode: "service_request_context_slowdown",
+        claimText: "M1 has slow-speed evidence during a month with substantial 311 context.",
+        approvedClaimStrength: 2,
+        approvedEvidenceRefs: ["evidence-m1-context"],
+        reviewer: "fixture-reviewer",
+        reviewedAt: "2026-05-24T00:06:00.000Z",
+        reviewRationale: "Context evidence supports a non-causal route-scoped claim.",
+        sourceCandidate: {
+          ...sourceCandidate,
+          candidateId: "candidate-m1-context",
+          detectorId: "service_request_context",
+          detectorScore: 87,
+          category: "context",
+          severity: "medium",
+          reasonCode: "service_request_context_slowdown",
+          claimText: "M1 has slow-speed evidence during a month with substantial 311 context.",
+        },
+        decisionHash: "f".repeat(64),
+        candidateSnapshotHash: "0".repeat(64),
+        promotedFindingHash: "1".repeat(64),
+      },
     ],
   };
 }
@@ -155,7 +189,11 @@ async function writeFindingArtifacts(): Promise<void> {
     `${JSON.stringify(
       {
         artifactKind: "finding_review_queue",
-        candidates: [reviewQueueCandidate("M1"), reviewQueueCandidate("M2")],
+        candidates: [
+          reviewQueueCandidate("M1"),
+          { ...reviewQueueCandidate("M1"), candidateId: "candidate-m1-context" },
+          reviewQueueCandidate("M2"),
+        ],
       },
       null,
       2,
@@ -191,7 +229,7 @@ describe("build:studio-release promoted findings", () => {
       "--promoted-findings",
       promotedFindingsRelative,
       "--finding-limit",
-      "2",
+      "3",
     ]);
 
     const release = (await Bun.file(result.outputPath).json()) as {
@@ -215,8 +253,8 @@ describe("build:studio-release promoted findings", () => {
       }>;
     };
 
-    expect(release.findings).toHaveLength(2);
-    expect(release.findings.map((finding) => finding.routeSlug)).toEqual(["m1", "m2"]);
+    expect(release.findings).toHaveLength(3);
+    expect(release.findings.map((finding) => finding.routeSlug)).toEqual(["m1", "m1", "m2"]);
     expect(release.findings[0]?.review).toMatchObject({
       publicationState: "reviewed",
       reviewState: "approved",
@@ -233,6 +271,11 @@ describe("build:studio-release promoted findings", () => {
       promotedFindingHash: "e".repeat(64),
     });
     expect(release.findings[1]?.review).toMatchObject({
+      publicationState: "reviewed",
+      source: "promoted_finding",
+      candidateId: "candidate-m1-context",
+    });
+    expect(release.findings[2]?.review).toMatchObject({
       publicationState: "review_candidate",
       source: "detector_review_queue",
       candidateId: "candidate-m2",
@@ -246,6 +289,7 @@ describe("build:studio-release promoted findings", () => {
       }>;
     };
     expect(findingsProjection.findings.map((entry) => entry.finding.review?.source)).toEqual([
+      "promoted_finding",
       "promoted_finding",
       "detector_review_queue",
     ]);

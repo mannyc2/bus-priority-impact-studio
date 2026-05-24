@@ -635,15 +635,13 @@ async function readPromotedFindingsFromArtifact(input: {
 
   const promoted = PromotedFindingsArtifactSchema.parse(artifact);
   const routeById = new Map(input.routes.map((route) => [route.routeId, route]));
-  const usedRouteSlugs = new Set(input.excludedRouteSlugs);
   const findings: StudioFinding[] = [];
   for (const finding of promoted.findings) {
     if (findings.length >= input.limit) break;
     if (finding.routeId === null) continue;
     const route = routeById.get(finding.routeId);
-    if (route === undefined || usedRouteSlugs.has(route.slug)) continue;
+    if (route === undefined || input.excludedRouteSlugs.has(route.slug)) continue;
     findings.push(buildPromotedFinding(finding, route));
-    usedRouteSlugs.add(route.slug);
   }
   return findings;
 }

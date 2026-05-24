@@ -1413,3 +1413,22 @@ immutable hash provenance. `audit:studio-coverage` counts promoted findings as d
 outputs and warns if any promoted finding loses candidate/detector refs or its promoted/decision/
 packet/hash audit trail. Added fixture coverage proving `findings.json` and finding detail
 projections preserve that audit trail.
+
+## [2026-05-24] engineering | 200 manually curated promoted findings
+
+Completed the first 200-finding manual curation pass for the March 2026 release. The curation file
+`data/artifacts/findings/2026-03/manual-curation-decisions-200.json` approves 200 candidates with
+revised conservative claim text, 600 approved packet evidence refs, no source-gap candidates, no
+promotion blockers, and complete packet/counter-evidence/coverage support. The promoted artifact
+`data/artifacts/findings/2026-03/promoted-findings.json` now has 200 immutable promoted findings
+across observed reliability, persistent speed hotspot, permit context, intervention gap, 311
+context, matched peer-speed, and intervention-underperformance detectors.
+
+The curation audit represents every source currently exposed as March route-scoped detector
+evidence: route trends, DOT permits, NYPD collisions, ACE summaries, observed reliability, Bus Wait
+Assessment, 311, and parking context. DOT traffic volumes, DOT realtime traffic speeds, weather,
+and equity context are not in the March detector review packets as per-finding evidence, so they
+were not fabricated into approvals; they remain source-coverage/corpus context until detectors add
+per-finding features for them. `build:studio-release -- --month 2026-03 --finding-limit 202` now
+builds 202 reviewed findings: 2 manual reviewed findings plus the 200 promoted detector findings,
+and `audit:studio-coverage` passes with zero review candidates and zero missing detector audit refs.
