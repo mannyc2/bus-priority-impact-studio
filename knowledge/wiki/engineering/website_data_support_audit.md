@@ -181,14 +181,18 @@ Impact:
 
 ### 6. Findings are detector-backed candidates, not approved claims
 
-**Status:** resolved for detector-backed candidate sourcing and evidence-link integrity; still
-review-gated before publication.
+**Status:** resolved for detector-backed candidate sourcing, approved promotion projection, and
+evidence-link integrity; unpromoted detector candidates remain review-gated before publication.
 
 **Where:** `findings:detect` emits local detector candidates, evidence links, and coverage rows.
 `build:studio-release` keeps the reviewed B25/BX41 findings, then fills the public finding feed
-from `data/artifacts/findings/{month}/review-queue.json` before falling back to the old generated
-route-score candidate path. The March 2026 proof uses a 200-item review queue to produce 50 public
-Studio findings: 2 reviewed/manual findings plus 48 detector-derived candidates.
+from `data/artifacts/findings/{month}/promoted-findings.json`, then
+`data/artifacts/findings/{month}/review-queue.json`, before falling back to the old generated
+route-score candidate path. A promoted finding claims its route slot so the approved reviewed
+finding replaces the route's review candidate while keeping candidate, detector, decision, packet,
+reviewer, and hash provenance attached. The March 2026 proof without a reviewed promotion file uses
+a 200-item review queue to produce 50 public Studio findings: 2 reviewed/manual findings plus 48
+detector-derived candidates.
 
 The detector layer now has a per-source evidence eligibility ledger, route-month context features
 across normalized context sources, and an evidence-corpus audit. The March proof has 599 detector

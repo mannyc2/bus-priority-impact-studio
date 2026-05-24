@@ -893,6 +893,9 @@ calibration loop:
   `review-decisions.json` plus immutable `promoted-findings.json`;
 - promoted findings carry stable decision, candidate snapshot, and promoted-finding hashes so a
   changed reviewer decision or candidate snapshot creates a different promoted record;
+- `build:studio-release` now reads `promoted-findings.json` before the detector review queue, so
+  approved promoted findings replace their review candidates in public Studio while preserving
+  candidate, detector, decision, packet, reviewer, and hash provenance;
 - `audit:findings-backtest` now supports "should surface" and "should not surface" expectations,
   minimum-confidence checks, and detector/confidence calibration buckets from captured reviewer
   decisions.
@@ -921,8 +924,9 @@ For each detector, create a short spec with:
 ### Step 2: Add review packet schema
 
 Current status: review packets feed a promotion queue, reviewer decisions are captured in
-`review-decisions.json`, and approved decisions produce immutable promoted-finding records. Next,
-wire promoted findings into Studio/public projections and add demotion/supersession records.
+`review-decisions.json`, approved decisions produce immutable promoted-finding records, and Studio
+public projections prefer those approved records before review candidates. Next, add
+demotion/supersession records.
 
 ### Step 3: Add counter-evidence role
 

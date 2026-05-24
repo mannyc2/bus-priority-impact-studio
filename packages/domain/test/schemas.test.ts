@@ -104,6 +104,44 @@ describe("domain schemas", () => {
     });
 
     expect(finding.review?.publicationState).toBe("review_candidate");
+
+    const promoted = StudioFindingSchema.parse({
+      id: "promoted-fixture",
+      category: "Emerging risk",
+      routeSlug: "m1",
+      title: "M1 promoted finding",
+      body: "Fixture promoted finding.",
+      metric: "91/100 detector score",
+      confidence: "high",
+      borough: "Manhattan",
+      reasoning: [],
+      caveat: {
+        title: "Reviewer-approved detector finding",
+        body: "Keeps detector audit trail.",
+      },
+      comparableRoutes: [],
+      review: {
+        publicationState: "reviewed",
+        reviewState: "approved",
+        source: "promoted_finding",
+        candidateId: "candidate-1",
+        detectorId: "observed_reliability",
+        promotedFindingId: "promoted-finding-1",
+        decisionId: "decision-1",
+        packetId: "packet-1",
+        approvedEvidenceRefs: ["evidence-1"],
+        reviewRationale: "Reviewer approved the public claim.",
+        decisionHash: "a".repeat(64),
+        candidateSnapshotHash: "b".repeat(64),
+        promotedFindingHash: "c".repeat(64),
+        reviewer: "tester",
+        reviewedAt: "2026-05-24T00:00:00.000Z",
+        claimSafeLabel: "issue_clean",
+      },
+    });
+
+    expect(promoted.review?.source).toBe("promoted_finding");
+    expect(promoted.review?.candidateId).toBe("candidate-1");
   });
 
   test("parses review packets with explicit counter-evidence", () => {

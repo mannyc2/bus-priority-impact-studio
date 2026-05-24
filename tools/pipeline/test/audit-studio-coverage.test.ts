@@ -306,6 +306,21 @@ describe("auditStudioCoverage", () => {
             claimSafeLabel: "insufficient_evidence",
           },
         },
+        {
+          id: "promoted-missing-hash-trail",
+          routeId: "BX12+",
+          review: {
+            publicationState: "reviewed",
+            reviewState: "approved",
+            source: "promoted_finding",
+            candidateId: "candidate-2",
+            detectorId: "observed_reliability",
+            promotedFindingId: "promoted-finding-2",
+            decisionId: "decision-2",
+            packetId: "packet-2",
+            claimSafeLabel: "issue_clean",
+          },
+        },
       ],
     );
 
@@ -318,14 +333,17 @@ describe("auditStudioCoverage", () => {
     });
 
     expect(result.status).toBe("warn");
-    expect(result.projection.findingsListCount).toBe(4);
-    expect(result.projection.reviewedFindingCount).toBe(1);
+    expect(result.projection.findingsListCount).toBe(5);
+    expect(result.projection.reviewedFindingCount).toBe(2);
     expect(result.projection.reviewCandidateFindingCount).toBe(2);
-    expect(result.projection.detectorFindingCount).toBe(2);
+    expect(result.projection.detectorFindingCount).toBe(3);
     expect(result.projection.findingsMissingReviewCount).toBe(1);
     expect(result.gaps.findingsMissingReview).toEqual(["legacy-finding"]);
     expect(result.gaps.reviewCandidatesMarkedApproved).toEqual(["detector-approved-too-early"]);
     expect(result.gaps.reviewedFindingsWithoutApproval).toEqual(["reviewed-without-approval"]);
-    expect(result.gaps.detectorFindingsMissingRefs).toEqual(["detector-missing-ref"]);
+    expect(result.gaps.detectorFindingsMissingRefs).toEqual([
+      "detector-missing-ref",
+      "promoted-missing-hash-trail",
+    ]);
   });
 });

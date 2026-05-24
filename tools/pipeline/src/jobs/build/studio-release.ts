@@ -24,6 +24,8 @@ import {
   buildStudioRouteLadderProjection,
   buildStudioRouteProjection,
   buildStudioRoutesProjection,
+  type PromotedFinding,
+  PromotedFindingsArtifactSchema,
   type ReasoningStep,
   type StudioBrief,
   type StudioFinding,
@@ -67,6 +69,7 @@ type CliOptions = {
   routeLimit: number;
   findingLimit: number;
   reviewQueuePath: string;
+  promotedFindingsPath: string;
   profile: ReleaseProfile;
 };
 
@@ -167,6 +170,9 @@ function parseOptions(args: readonly string[]): CliOptions {
     reviewQueuePath:
       readFlag(args, "--review-queue") ??
       join("data/artifacts/findings", month, "review-queue.json"),
+    promotedFindingsPath:
+      readFlag(args, "--promoted-findings") ??
+      join("data/artifacts/findings", month, "promoted-findings.json"),
     profile: parseProfile(readFlag(args, "--profile")),
   };
 }
@@ -502,9 +508,12 @@ function humanizeReason(value: string): string {
   return value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-function detectorCategory(candidate: ReviewQueueCandidate): StudioFinding["category"] {
-  if (candidate.reasonCode.includes("intervention")) return "Treatment gap";
-  if (candidate.reasonCode.includes("gap") || candidate.category === "data_quality") {
+function detectorCategory(input: {
+  reasonCode: string;
+  category: string;
+}): StudioFinding["category"] {
+  if (input.reasonCode.includes("intervention")) return "Treatment gap";
+  if (input.reasonCode.includes("gap") || input.category === "data_quality") {
     return "Anomaly";
   }
   return "Emerging risk";
@@ -551,6 +560,92 @@ function buildDetectorFinding(candidate: ReviewQueueCandidate, route: StudioRout
       claimSafeLabel: candidate.claimSafeLabel ?? "issue_needs_review",
     },
   };
+}
+
+function buildPromotedFinding(finding: PromotedFinding, route: StudioRoute): StudioFinding {
+  const evidenceCount = finding.approvedEvidenceRefs.length;
+  return {
+    id: `promoted-${finding.promotedFindingId}`,
+    category: detectorCategory(finding),
+    routeSlug: route.slug,
+    title: `${route.label}: ${humanizeReason(finding.reasonCode)}`,
+    body: finding.claimText,
+    metric: `${Math.round(finding.sourceCandidate.detectorScore)}/100 detector score`,
+    confidence: finding.confidence === "high" ? "high" : "moderate",
+    borough: route.borough,
+    reasoning: [
+      {
+        index: 1,
+        title: "Promoted detector finding",
+        detail: finding.claimText,
+        source: `promoted_finding:${finding.promotedFindingId}`,
+        tone: finding.severity === "high" ? "warn" : "accent",
+      },
+      {
+        index: 2,
+        title: "Approved evidence",
+        detail: `${evidenceCount} approved evidence reference${evidenceCount === 1 ? "" : "s"} are attached from reviewer decision ${finding.sourceDecisionId}.`,
+        source: `review_decision:${finding.sourceDecisionId}`,
+        tone: evidenceCount > 0 ? "accent" : "warn",
+      },
+      {
+        index: 3,
+        title: "Detector audit trail",
+        detail: `Original candidate ${finding.sourceCandidateId} from ${finding.detectorId}; decision, candidate snapshot, and promoted finding hashes are preserved in review provenance.`,
+        source: `local_finding_candidate:${finding.detectorId}`,
+        tone: "accent",
+      },
+    ],
+    caveat: {
+      title: "Reviewer-approved detector finding",
+      body: "This finding was promoted from a detector candidate by reviewer decision. The original candidate id, detector id, decision id, packet id, approved evidence refs, and immutable hashes stay attached for audit.",
+    },
+    comparableRoutes: [],
+    review: {
+      publicationState: "reviewed",
+      reviewState: "approved",
+      source: "promoted_finding",
+      candidateId: finding.sourceCandidateId,
+      detectorId: finding.detectorId,
+      promotedFindingId: finding.promotedFindingId,
+      decisionId: finding.sourceDecisionId,
+      packetId: finding.sourcePacketId,
+      approvedEvidenceRefs: finding.approvedEvidenceRefs,
+      reviewRationale: finding.reviewRationale,
+      decisionHash: finding.decisionHash,
+      candidateSnapshotHash: finding.candidateSnapshotHash,
+      promotedFindingHash: finding.promotedFindingHash,
+      reviewedAt: finding.reviewedAt,
+      reviewer: finding.reviewer,
+      claimSafeLabel: finding.sourceCandidate.claimSafeLabel,
+    },
+  };
+}
+
+async function readPromotedFindingsFromArtifact(input: {
+  path: string;
+  routes: readonly StudioRoute[];
+  limit: number;
+  excludedRouteSlugs: ReadonlySet<string>;
+}): Promise<StudioFinding[]> {
+  const artifact = await readJsonIfExists<unknown>(fromRepoRoot(input.path));
+  if (artifact === null) {
+    return [];
+  }
+
+  const promoted = PromotedFindingsArtifactSchema.parse(artifact);
+  const routeById = new Map(input.routes.map((route) => [route.routeId, route]));
+  const usedRouteSlugs = new Set(input.excludedRouteSlugs);
+  const findings: StudioFinding[] = [];
+  for (const finding of promoted.findings) {
+    if (findings.length >= input.limit) break;
+    if (finding.routeId === null) continue;
+    const route = routeById.get(finding.routeId);
+    if (route === undefined || usedRouteSlugs.has(route.slug)) continue;
+    findings.push(buildPromotedFinding(finding, route));
+    usedRouteSlugs.add(route.slug);
+  }
+  return findings;
 }
 
 async function readDetectorFindingsFromReviewQueue(input: {
@@ -983,12 +1078,22 @@ async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> 
       const finding = buildReviewedFinding(route);
       return finding === null ? [] : [finding];
     });
-    const remainingFindingSlots = Math.max(0, options.findingLimit - reviewedFindings.length);
+    const promotedFindings = await readPromotedFindingsFromArtifact({
+      path: options.promotedFindingsPath,
+      routes,
+      limit: Math.max(0, options.findingLimit - reviewedFindings.length),
+      excludedRouteSlugs: new Set(reviewedFindings.map((finding) => finding.routeSlug)),
+    });
+    const reviewedAndPromotedFindings = [...reviewedFindings, ...promotedFindings];
+    const remainingFindingSlots = Math.max(
+      0,
+      options.findingLimit - reviewedAndPromotedFindings.length,
+    );
     const detectorFindings = await readDetectorFindingsFromReviewQueue({
       path: options.reviewQueuePath,
       routes,
       limit: remainingFindingSlots,
-      excludedRouteSlugs: new Set(reviewedFindings.map((finding) => finding.routeSlug)),
+      excludedRouteSlugs: new Set(reviewedAndPromotedFindings.map((finding) => finding.routeSlug)),
     });
     const generatedFindings =
       detectorFindings.length > 0
@@ -996,10 +1101,10 @@ async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> 
         : selectGeneratedFindings({
             routes,
             segments,
-            reviewedFindings,
+            reviewedFindings: reviewedAndPromotedFindings,
             limit: remainingFindingSlots,
           });
-    const findings = [...reviewedFindings, ...generatedFindings];
+    const findings = [...reviewedAndPromotedFindings, ...generatedFindings];
     const routeArtifactRouteIds = new Set(routeArtifacts.map((artifact) => artifact.routeId));
     const briefs = routes
       .filter((route) => routeArtifactRouteIds.has(route.routeId))

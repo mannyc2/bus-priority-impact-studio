@@ -41,11 +41,15 @@ Finding Coverage v1 now has an implemented local evidence spine for the March 20
   candidates against the promotion queue and review-packet evidence refs, writes
   `review-decisions.json`, and writes immutable `promoted-findings.json` records with stable
   decision/candidate/promoted-finding hashes.
+- `build:studio-release` reads `promoted-findings.json` before `review-queue.json`, so approved
+  detector findings publish as reviewed Studio findings and replace the matching route's review
+  candidate without dropping detector, decision, packet, reviewer, or hash provenance.
 - `audit:findings-backtest` now accepts richer gold-set expectations, including "should not
   surface" cases and minimum confidence checks, and adds detector/confidence calibration buckets
   from reviewer decisions when `review-decisions.json` exists.
-- `build:studio-release` fills public Studio findings from the detector review queue before using
-  any route-score fallback. The March proof produces 50 public findings: 2 reviewed/manual findings
+- If no promoted finding exists for a route, `build:studio-release` still fills public Studio
+  findings from the detector review queue before using any route-score fallback. The current March
+  proof without a reviewed promotion file produces 50 public findings: 2 reviewed/manual findings
   and 48 detector-derived review candidates.
 - `audit:evidence-corpus` verifies the chain. The latest March 2026 detector pass has 12 source
   eligibility rows, 381 route-month features, 6 context sources, 673 detector candidates, 1,811

@@ -1399,3 +1399,17 @@ expectations can now require "should surface" or "should not surface" outcomes a
 confidence, and the audit adds detector/confidence calibration buckets from captured reviewer
 decisions when a review-decision artifact exists. This still needs a much larger gold set and real
 reviewer-decision corpus before confidence labels can be considered calibrated.
+
+## [2026-05-24] engineering | Promoted findings in Studio projections
+
+Wired immutable promoted-finding artifacts into the public Studio release builder. `build:studio-release`
+now reads `data/artifacts/findings/<month>/promoted-findings.json` before the detector
+`review-queue.json`, publishes route-scoped promoted records as reviewed/approved Studio findings,
+and excludes the same route from review-candidate fill so an approved finding replaces its
+candidate rather than duplicating it.
+
+The Studio finding review contract now carries promoted-finding, decision, packet, reviewer, and
+immutable hash provenance. `audit:studio-coverage` counts promoted findings as detector-backed
+outputs and warns if any promoted finding loses candidate/detector refs or its promoted/decision/
+packet/hash audit trail. Added fixture coverage proving `findings.json` and finding detail
+projections preserve that audit trail.

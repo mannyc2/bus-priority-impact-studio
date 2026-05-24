@@ -156,6 +156,11 @@ function stringValue(record: Record<string, unknown>, key: string): string | nul
   return typeof value === "string" ? value : null;
 }
 
+function stringArrayValue(record: Record<string, unknown>, key: string): string[] | null {
+  const value = record[key];
+  return Array.isArray(value) && value.every((entry) => typeof entry === "string") ? value : null;
+}
+
 function findingId(finding: Record<string, unknown>, fallback: number): string {
   return stringValue(finding, "id") ?? `finding:${fallback + 1}`;
 }
@@ -262,7 +267,8 @@ export async function auditStudioCoverage(
     const detectorFindings = findingsWithReview.filter(
       (finding) =>
         finding.review !== null &&
-        stringValue(finding.review, "source") === "detector_review_queue",
+        (stringValue(finding.review, "source") === "detector_review_queue" ||
+          stringValue(finding.review, "source") === "promoted_finding"),
     );
     const reviewCandidatesMarkedApproved = findingsWithReview
       .filter(
@@ -281,12 +287,22 @@ export async function auditStudioCoverage(
       )
       .map((finding) => finding.id);
     const detectorFindingsMissingRefs = detectorFindings
-      .filter(
-        (finding) =>
-          finding.review !== null &&
-          (stringValue(finding.review, "candidateId") === null ||
-            stringValue(finding.review, "detectorId") === null),
-      )
+      .filter((finding) => {
+        if (finding.review === null) return false;
+        const source = stringValue(finding.review, "source");
+        return (
+          stringValue(finding.review, "candidateId") === null ||
+          stringValue(finding.review, "detectorId") === null ||
+          (source === "promoted_finding" &&
+            (stringValue(finding.review, "promotedFindingId") === null ||
+              stringValue(finding.review, "decisionId") === null ||
+              stringValue(finding.review, "packetId") === null ||
+              (stringArrayValue(finding.review, "approvedEvidenceRefs")?.length ?? 0) === 0 ||
+              stringValue(finding.review, "decisionHash") === null ||
+              stringValue(finding.review, "candidateSnapshotHash") === null ||
+              stringValue(finding.review, "promotedFindingHash") === null))
+        );
+      })
       .map((finding) => finding.id);
 
     const routesMissingFromProjection = [...publicRouteIds]

@@ -90,9 +90,10 @@ for route ⇄ LION corridor joins.
    a concrete retry/fanout need.
 4. Finish remaining `/api/v1/studio/*` depth: route listing/search and generated Studio briefs
    now cover the public route set, route detail carries observed reliability plus artifact refs,
-   and Studio findings now prefer detector review-queue candidates. Finding payloads now expose
-   reviewed/review-candidate/generated provenance, and `audit:studio-coverage` verifies that
-   detector candidates do not silently read like approved publication claims.
+   and Studio findings now prefer approved promoted-finding artifacts before detector review-queue
+   candidates. Finding payloads now expose reviewed/promoted/review-candidate/generated
+   provenance, and `audit:studio-coverage` verifies that detector-backed findings keep candidate,
+   detector, decision, packet, and immutable hash refs where required.
 5. Implement the remaining web app support plan: add signal-aware route loaders,
    route-specific cache policy, deferred non-critical evidence/map panels, and a feature-flagged
    composer draft API.
@@ -112,8 +113,9 @@ for route ⇄ LION corridor joins.
     packets, promotion queues, reviewer decision capture, immutable promoted-finding artifacts,
     counter-evidence support, hotspot/observed-reliability/intervention/permit caveats, a 311
     context detector, a matched multi-month peer-speed detector, and confidence-aware backtest
-    calibration hooks are implemented. Next work is larger gold-set/reviewer-decision expansion,
-    promoted-finding Studio projection, and demotion/supersession records.
+    calibration hooks are implemented. Promoted findings now publish through Studio while
+    preserving detector audit trails. Next work is larger gold-set/reviewer-decision expansion and
+    demotion/supersession records.
 11. Add the Tier 2 document corpus pipeline for policy/intervention documents, but keep source
     promotion, entity linking, metric computation, and publish validation deterministic.
 12. Route score uses a two-factor formula; incorporate ridership weight, persistence, reliability,

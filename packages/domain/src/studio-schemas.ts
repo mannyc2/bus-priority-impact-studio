@@ -145,9 +145,24 @@ export const StudioFindingReviewSchema = z
   .object({
     publicationState: z.enum(["reviewed", "review_candidate", "generated_candidate"]),
     reviewState: z.enum(["approved", "needs_review", "unreviewed"]).nullable(),
-    source: z.enum(["manual_review", "detector_review_queue", "route_score_fallback"]),
+    source: z.enum([
+      "manual_review",
+      "promoted_finding",
+      "detector_review_queue",
+      "route_score_fallback",
+    ]),
     candidateId: z.string().nullable(),
     detectorId: z.string().nullable(),
+    promotedFindingId: z.string().nullable().optional(),
+    decisionId: z.string().nullable().optional(),
+    packetId: z.string().nullable().optional(),
+    approvedEvidenceRefs: z.array(z.string()).optional(),
+    reviewRationale: z.string().nullable().optional(),
+    decisionHash: z.string().nullable().optional(),
+    candidateSnapshotHash: z.string().nullable().optional(),
+    promotedFindingHash: z.string().nullable().optional(),
+    reviewedAt: z.string().nullable().optional(),
+    reviewer: z.string().nullable().optional(),
     claimSafeLabel: z
       .enum([
         "no_issue_clean",
