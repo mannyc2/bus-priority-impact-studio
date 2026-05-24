@@ -4,6 +4,7 @@ import { rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { auditFindingsBacktest } from "../src/jobs/audit/findings-backtest.js";
 import { buildFindings } from "../src/jobs/build/findings.js";
+import { buildPromotedFindings } from "../src/jobs/build/promoted-findings.js";
 import { openLocalPipelineDb } from "../src/lib/local-db.js";
 import { fromRepoRoot } from "../src/source-manifest.js";
 
@@ -666,8 +667,11 @@ describe("findings:detect orchestrator", () => {
         detectorCounts: Record<string, number>;
       };
       packets: Array<{
-        candidate: { detectorId: string };
-        evidence: { counterEvidence: unknown[] };
+        candidate: { candidateId: string; detectorId: string };
+        evidence: {
+          primary: Array<{ linkId: string; evidenceRef: string }>;
+          counterEvidence: unknown[];
+        };
         packetCompleteness: { hasCounterEvidence: boolean; hasCoverageAudit: boolean };
         promotionBlockers: string[];
       }>;
@@ -737,6 +741,95 @@ describe("findings:detect orchestrator", () => {
       },
       promotionBlockers: [],
     });
+    const peerPromotionCandidate = promotionQueue.candidates.find(
+      (candidate) => candidate.candidate.detectorId === "multi_month_speed_peer",
+    );
+    const approvedEvidenceRef = hotspotPacket?.evidence.primary[0]?.linkId;
+    if (
+      hotspotPacket === undefined ||
+      peerPromotionCandidate === undefined ||
+      approvedEvidenceRef === undefined
+    ) {
+      throw new Error("Fixture should produce hotspot and peer promotion candidates");
+    }
+    const reviewerDecisionsInputPath = join(artifactRoot, "fixture-review-decisions.json");
+    await Bun.write(
+      reviewerDecisionsInputPath,
+      JSON.stringify(
+        {
+          decisions: [
+            {
+              candidateId: hotspotPacket.candidate.candidateId,
+              decision: "approve",
+              revisedClaimText: null,
+              rationale: "Primary hotspot evidence supports a segment-scoped descriptive claim.",
+              evidenceRefsApproved: [approvedEvidenceRef],
+              reviewer: "fixture-reviewer",
+              reviewedAt: "2026-05-24T00:00:00.000Z",
+            },
+            {
+              candidateId: peerPromotionCandidate.candidate.candidateId,
+              decision: "defer",
+              revisedClaimText: null,
+              rationale: "Peer-speed claim needs calibrated matched-peer review first.",
+              evidenceRefsApproved: [],
+              reviewer: "fixture-reviewer",
+              reviewedAt: "2026-05-24T00:10:00.000Z",
+            },
+          ],
+        },
+        null,
+        2,
+      ),
+    );
+    const promotedResult = await buildPromotedFindings({
+      year: 2026,
+      month: 3,
+      dbPath,
+      artifactRoot,
+      decisionsPath: reviewerDecisionsInputPath,
+    });
+    expect(promotedResult).toMatchObject({
+      decisionCount: 2,
+      promotedFindingCount: 1,
+      reviewDecisionsArtifactPath: join(artifactRoot, "findings", month, "review-decisions.json"),
+      promotedFindingsArtifactPath: join(artifactRoot, "findings", month, "promoted-findings.json"),
+    });
+    const reviewDecisionsArtifact = JSON.parse(
+      await Bun.file(promotedResult.reviewDecisionsArtifactPath).text(),
+    ) as {
+      summary: {
+        decisionCounts: Record<string, number>;
+        promotedDecisionCount: number;
+        nonPromotedDecisionCount: number;
+      };
+    };
+    expect(reviewDecisionsArtifact.summary.decisionCounts).toMatchObject({
+      approve: 1,
+      defer: 1,
+    });
+    expect(reviewDecisionsArtifact.summary.promotedDecisionCount).toBe(1);
+    expect(reviewDecisionsArtifact.summary.nonPromotedDecisionCount).toBe(1);
+    const promotedFindingsArtifact = JSON.parse(
+      await Bun.file(promotedResult.promotedFindingsArtifactPath).text(),
+    ) as {
+      promotedFindingCount: number;
+      findings: Array<{
+        sourceCandidateId: string;
+        approvedEvidenceRefs: string[];
+        decisionHash: string;
+        candidateSnapshotHash: string;
+        promotedFindingHash: string;
+      }>;
+    };
+    expect(promotedFindingsArtifact.promotedFindingCount).toBe(1);
+    expect(promotedFindingsArtifact.findings[0]).toMatchObject({
+      sourceCandidateId: hotspotPacket.candidate.candidateId,
+      approvedEvidenceRefs: [approvedEvidenceRef],
+    });
+    expect(promotedFindingsArtifact.findings[0]?.decisionHash).toHaveLength(64);
+    expect(promotedFindingsArtifact.findings[0]?.candidateSnapshotHash).toHaveLength(64);
+    expect(promotedFindingsArtifact.findings[0]?.promotedFindingHash).toHaveLength(64);
     const goldSetPath = join(artifactRoot, "fixture-gold-set.json");
     await Bun.write(
       goldSetPath,
@@ -749,6 +842,7 @@ describe("findings:detect orchestrator", () => {
               detectorId: "persistent_speed_hotspot",
               reasonCode: "persistent_low_speed",
               expectCounterEvidence: true,
+              minimumConfidence: "medium",
             },
           ],
         },
@@ -768,8 +862,36 @@ describe("findings:detect orchestrator", () => {
       expectationCount: 1,
       matchedExpectationCount: 1,
       missingExpectationCount: 0,
+      unexpectedMatchCount: 0,
+      confidenceMissCount: 0,
       artifactPath: join(artifactRoot, "findings", month, "backtest.json"),
     });
+    const backtestArtifact = JSON.parse(await Bun.file(backtest.artifactPath).text()) as {
+      confidenceCalibration: {
+        reviewDecisionCount: number;
+        approvedDecisionCount: number;
+        byDetectorConfidence: Array<{
+          detectorId: string;
+          confidence: string;
+          reviewedCandidateCount: number;
+          approvedDecisionCount: number;
+          approvalRate: number | null;
+        }>;
+      };
+    };
+    expect(backtestArtifact.confidenceCalibration.reviewDecisionCount).toBe(2);
+    expect(backtestArtifact.confidenceCalibration.approvedDecisionCount).toBe(1);
+    expect(backtestArtifact.confidenceCalibration.byDetectorConfidence).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          detectorId: "persistent_speed_hotspot",
+          confidence: "high",
+          reviewedCandidateCount: 1,
+          approvedDecisionCount: 1,
+          approvalRate: 1,
+        }),
+      ]),
+    );
     const cappedResult = await buildFindings({
       year: 2026,
       month: 3,

@@ -109,11 +109,11 @@ for route ⇄ LION corridor joins.
 10. Continue the post-v1 finding coverage track: detector considered/hit/skipped counts, source-gap
     findings, join success metrics, source evidence eligibility, and route-month context features
     now exist; the ideal detector doctrine now defines the target shape. Detector specs, review
-    packets, promotion queues, counter-evidence support,
-    hotspot/observed-reliability/intervention/permit caveats, a 311 context detector, a matched
-    multi-month peer-speed detector, and a tiny review-packet backtest are implemented. Next work is
-    calibrated backtest/gold-set expansion, reviewer decision capture, and immutable promoted
-    finding artifacts.
+    packets, promotion queues, reviewer decision capture, immutable promoted-finding artifacts,
+    counter-evidence support, hotspot/observed-reliability/intervention/permit caveats, a 311
+    context detector, a matched multi-month peer-speed detector, and confidence-aware backtest
+    calibration hooks are implemented. Next work is larger gold-set/reviewer-decision expansion,
+    promoted-finding Studio projection, and demotion/supersession records.
 11. Add the Tier 2 document corpus pipeline for policy/intervention documents, but keep source
     promotion, entity linking, metric computation, and publish validation deterministic.
 12. Route score uses a two-factor formula; incorporate ridership weight, persistence, reliability,

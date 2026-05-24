@@ -385,6 +385,13 @@ const commands = {
       return buildSignalFeaturesFromCli(args);
     },
   },
+  "findings:promote": {
+    description: "Capture reviewer decisions and write immutable promoted-finding artifacts.",
+    run: async (args) => {
+      const { buildPromotedFindingsFromCli } = await import("./jobs/build/promoted-findings.js");
+      return buildPromotedFindingsFromCli(args);
+    },
+  },
   "ingest:lion-centerline": {
     description:
       "Fetch NYC Centerline (LION) active street segments for joins across DOT/311/parking/route street refs.",

@@ -2,7 +2,7 @@
 title: Ideal Detector System
 type: analysis
 status: active
-last_updated: 2026-05-23
+last_updated: 2026-05-24
 owner: codex
 source_count: 0
 tags: [findings, detectors, methodology, evidence, review]
@@ -883,6 +883,20 @@ The third slice added promotion workflow artifacts and stronger matched peers:
 - the March 2026 matched-peer proof surfaces 3 peer-speed candidates, all using the strongest
   `route_family_type_spatial` method.
 
+The fourth slice added reviewer decision capture, immutable promoted findings, and the first
+calibration loop:
+
+- `@bp/domain` now has strict reviewer-decision input, validated decision-record,
+  review-decisions artifact, promoted-finding, and promoted-findings artifact contracts;
+- `findings:promote -- --decisions <file>` reads reviewer decisions, validates approved evidence
+  refs against review packets, blocks promotion of candidates with promotion blockers, and writes
+  `review-decisions.json` plus immutable `promoted-findings.json`;
+- promoted findings carry stable decision, candidate snapshot, and promoted-finding hashes so a
+  changed reviewer decision or candidate snapshot creates a different promoted record;
+- `audit:findings-backtest` now supports "should surface" and "should not surface" expectations,
+  minimum-confidence checks, and detector/confidence calibration buckets from captured reviewer
+  decisions.
+
 This moves the detector layer from mostly level 2 toward level 3 for packet shape. It does not make
 all detectors promotion-ready: source-gap candidates still need source-resolution counter-evidence,
 and the new multi-month peer detector still needs calibrated backtests and reviewer validation
@@ -906,8 +920,9 @@ For each detector, create a short spec with:
 
 ### Step 2: Add review packet schema
 
-Current status: review packets are implemented and now feed a promotion queue. Next, add immutable
-review decision records that approve, revise, defer, reject, or downgrade candidates.
+Current status: review packets feed a promotion queue, reviewer decisions are captured in
+`review-decisions.json`, and approved decisions produce immutable promoted-finding records. Next,
+wire promoted findings into Studio/public projections and add demotion/supersession records.
 
 ### Step 3: Add counter-evidence role
 
@@ -948,7 +963,8 @@ validation of the peer set.
 
 Without a gold set, the detector layer will keep feeling primitive because there is no learning
 loop. The gold set can start small, but every detector should answer whether it found the known
-cases and why it missed any.
+cases, whether it over-surfaced known false positives, whether the matched confidence was high
+enough, and how reviewer decisions calibrate detector confidence.
 
 ## Maturity Levels
 
@@ -962,9 +978,10 @@ cases and why it missed any.
 | 5 | Promotion-ready detector | Approved candidates can become public claims under explicit rules |
 | 6 | Learning detector | Review outcomes feed threshold, feature, and source-quality improvements |
 
-Current system: mostly level 3 for packet shape and promotion triage, but not yet level 4 because
-confidence and thresholds are not calibrated against a meaningful gold set. The next target is a
-larger backtest/reviewer-feedback loop.
+Current system: mostly level 3 for packet shape and promotion triage, with the first level 4 hooks
+in place. It is not fully calibrated until the gold set and reviewer-decision corpus are much
+larger. The next target is a larger backtest/reviewer-feedback loop and promoted-finding projection
+into Studio.
 
 ## Non-Negotiables
 

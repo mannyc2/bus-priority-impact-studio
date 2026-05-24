@@ -4,9 +4,11 @@ import {
   buildStudioRouteProjection,
   FindingEvidenceLinkSchema,
   FindingPromotionQueueArtifactSchema,
+  FindingReviewDecisionsArtifactSchema,
   FindingReviewPacketsArtifactSchema,
   HealthResponseSchema,
   healthResponseJsonSchema,
+  PromotedFindingsArtifactSchema,
   RouteIdCodec,
   RouteScorecardSchema,
   StudioFindingSchema,
@@ -313,6 +315,117 @@ describe("domain schemas", () => {
 
     expect(artifact.summary.readyForReviewCount).toBe(1);
     expect(String(artifact.reviewerDecisionOptions[0]?.decision)).toBe("approve");
+  });
+
+  test("parses review decision and immutable promoted finding artifacts", () => {
+    const sourceCandidate = {
+      candidateId: "candidate-1",
+      detectorId: "persistent_speed_hotspot",
+      detectorRunId: "detector-run-1",
+      month: "2026-03",
+      scopeKind: "segment",
+      scopeId: "M15:0:1",
+      routeId: "M15",
+      physicalId: null,
+      category: "speed",
+      severity: "medium",
+      confidence: "high",
+      detectorScore: 88,
+      reasonCode: "persistent_low_speed",
+      claimSafeLabel: "issue_needs_review",
+      claimText: "Route M15 has a persistent low-speed segment.",
+      status: "open",
+      reviewState: "needs_review",
+      windowStart: null,
+      windowEnd: null,
+      createdAt: "2026-05-23T00:00:00.000Z",
+    };
+    const decisionHash = "a".repeat(64);
+    const candidateSnapshotHash = "b".repeat(64);
+    const promotedFindingHash = "c".repeat(64);
+
+    const decisions = FindingReviewDecisionsArtifactSchema.parse({
+      artifactKind: "finding_review_decisions",
+      schemaVersion: 1,
+      month: "2026-03",
+      generatedAt: "2026-05-24T00:00:00.000Z",
+      promotionQueueArtifactPath: "/tmp/promotion-queue.json",
+      reviewPacketsArtifactPath: "/tmp/review-packets.json",
+      decisionCount: 1,
+      summary: {
+        decisionCount: 1,
+        decisionCounts: {
+          approve: 1,
+          approve_with_revisions: 0,
+          defer: 0,
+          reject: 0,
+          downgrade_to_context: 0,
+        },
+        promotedDecisionCount: 1,
+        nonPromotedDecisionCount: 0,
+      },
+      decisions: [
+        {
+          decisionId: "review_decision_1",
+          decisionHash,
+          packetId: "packet-1",
+          candidateId: "candidate-1",
+          detectorId: "persistent_speed_hotspot",
+          routeId: "M15",
+          decision: "approve",
+          revisedClaimText: null,
+          rationale: "Primary speed evidence supports a segment-scoped descriptive claim.",
+          evidenceRefsApproved: ["evidence-1"],
+          reviewer: "tester",
+          reviewedAt: "2026-05-24T00:00:00.000Z",
+          promoted: true,
+        },
+      ],
+    });
+    const promoted = PromotedFindingsArtifactSchema.parse({
+      artifactKind: "promoted_findings",
+      schemaVersion: 1,
+      month: "2026-03",
+      generatedAt: "2026-05-24T00:00:00.000Z",
+      promotionQueueArtifactPath: "/tmp/promotion-queue.json",
+      reviewDecisionsArtifactPath: "/tmp/review-decisions.json",
+      promotedFindingCount: 1,
+      summary: {
+        promotedFindingCount: 1,
+        detectorCounts: { persistent_speed_hotspot: 1 },
+        routeCount: 1,
+      },
+      findings: [
+        {
+          promotedFindingId: "promoted_finding_1",
+          sourceCandidateId: "candidate-1",
+          sourceDecisionId: "review_decision_1",
+          sourcePacketId: "packet-1",
+          detectorId: "persistent_speed_hotspot",
+          month: "2026-03",
+          scopeKind: "segment",
+          scopeId: "M15:0:1",
+          routeId: "M15",
+          category: "speed",
+          severity: "medium",
+          confidence: "high",
+          reasonCode: "persistent_low_speed",
+          claimText: "Route M15 has a persistent low-speed segment.",
+          approvedClaimStrength: 3,
+          approvedEvidenceRefs: ["evidence-1"],
+          reviewer: "tester",
+          reviewedAt: "2026-05-24T00:00:00.000Z",
+          reviewRationale: "Primary speed evidence supports a segment-scoped descriptive claim.",
+          sourceCandidate,
+          decisionHash,
+          candidateSnapshotHash,
+          promotedFindingHash,
+        },
+      ],
+    });
+
+    expect(decisions.summary.promotedDecisionCount).toBe(1);
+    expect(promoted.findings[0]?.sourceCandidate.candidateId).toBe("candidate-1");
   });
 
   test("projects route artifact refs into Studio route detail contracts", () => {

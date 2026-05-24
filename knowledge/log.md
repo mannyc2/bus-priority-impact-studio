@@ -1384,3 +1384,18 @@ groups. The detector now chooses route-family/type/geography peers when enough s
 exist and records fallback methods per observation. The real March 2026 detector pass now has 8
 detector families, 673 candidates, 1,811 evidence links, 3,066 coverage rows, 673 review packets,
 and 3 matched peer-speed candidates, all using the strongest `route_family_type_spatial` method.
+
+## [2026-05-24] engineering | Reviewer decisions and promoted-finding artifacts
+
+Added reviewer decision capture and immutable promoted-finding artifacts. `@bp/domain` now has
+strict contracts for reviewer decision inputs, validated decision records, review-decision
+artifacts, promoted findings, and promoted-finding artifacts. The new `findings:promote` command
+reads a reviewer decision file, validates approvals against the promotion queue and review-packet
+evidence refs, blocks candidates with promotion blockers, writes `review-decisions.json`, and emits
+hash-stamped `promoted-findings.json` records.
+
+Expanded `audit:findings-backtest` from a tiny recall check into the first calibration loop. Gold
+expectations can now require "should surface" or "should not surface" outcomes and minimum detector
+confidence, and the audit adds detector/confidence calibration buckets from captured reviewer
+decisions when a review-decision artifact exists. This still needs a much larger gold set and real
+reviewer-decision corpus before confidence labels can be considered calibrated.

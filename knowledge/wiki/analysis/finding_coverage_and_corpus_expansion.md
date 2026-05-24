@@ -2,7 +2,7 @@
 title: Finding Coverage and Corpus Expansion
 type: analysis
 status: active
-last_updated: 2026-05-23
+last_updated: 2026-05-24
 owner: codex
 source_count: 12
 tags: [findings, corpus, data-quality, pipeline-v2, false-negatives]
@@ -20,7 +20,7 @@ After Pipeline v1, the next analytical risk is missed findings. A quiet route/co
 
 Pipeline v2 should treat all three cases explicitly. The goal is not just to ingest more data. The goal is to make the app honest about what it looked for, what it found, and what it could not evaluate.
 
-## Implementation Status - 2026-05-23
+## Implementation Status - 2026-05-24
 
 Finding Coverage v1 now has an implemented local evidence spine for the March 2026 release:
 
@@ -37,6 +37,13 @@ Finding Coverage v1 now has an implemented local evidence spine for the March 20
   March proof has 454 candidates ready for human review, 21 needing enrichment, and 198 blocked
   source-gap/data-quality candidates; recommended next actions distinguish direct review, claim
   revision, enrichment, and data-quality retention.
+- `findings:promote -- --decisions <file>` captures reviewer decisions, validates approved
+  candidates against the promotion queue and review-packet evidence refs, writes
+  `review-decisions.json`, and writes immutable `promoted-findings.json` records with stable
+  decision/candidate/promoted-finding hashes.
+- `audit:findings-backtest` now accepts richer gold-set expectations, including "should not
+  surface" cases and minimum confidence checks, and adds detector/confidence calibration buckets
+  from reviewer decisions when `review-decisions.json` exists.
 - `build:studio-release` fills public Studio findings from the detector review queue before using
   any route-score fallback. The March proof produces 50 public findings: 2 reviewed/manual findings
   and 48 detector-derived review candidates.

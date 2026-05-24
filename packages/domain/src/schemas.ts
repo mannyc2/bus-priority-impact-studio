@@ -1261,6 +1261,160 @@ export const FindingPromotionQueueArtifactSchema = registerProjectSchema(
 
 export type FindingPromotionQueueArtifact = z.output<typeof FindingPromotionQueueArtifactSchema>;
 
+export const FindingReviewerDecisionInputSchema = registerProjectSchema(
+  z
+    .object({
+      candidateId: z.string().min(1),
+      decision: FindingPromotionDecisionSchema,
+      revisedClaimText: z.string().min(1).max(500).nullable(),
+      rationale: z.string().min(1).max(1000),
+      evidenceRefsApproved: z.array(z.string().min(1)).default([]),
+      reviewer: z.string().min(1).max(120),
+      reviewedAt: z.iso.datetime(),
+    })
+    .strict(),
+  {
+    id: "bp.finding.reviewer_decision_input.v1",
+    title: "Finding Reviewer Decision Input",
+    description:
+      "Human reviewer decision captured outside the detector. Approval decisions are validated against the promotion queue before promotion.",
+    stability: "draft",
+  },
+);
+
+export type FindingReviewerDecisionInput = z.output<typeof FindingReviewerDecisionInputSchema>;
+
+export const FindingReviewerDecisionRecordSchema = registerProjectSchema(
+  z
+    .object({
+      decisionId: z.string().min(1),
+      decisionHash: z.string().regex(/^[a-f0-9]{64}$/),
+      packetId: z.string().min(1),
+      candidateId: z.string().min(1),
+      detectorId: DetectorIdSchema,
+      routeId: RouteIdSchema.nullable(),
+      decision: FindingPromotionDecisionSchema,
+      revisedClaimText: z.string().min(1).max(500).nullable(),
+      rationale: z.string().min(1).max(1000),
+      evidenceRefsApproved: z.array(z.string().min(1)),
+      reviewer: z.string().min(1).max(120),
+      reviewedAt: z.iso.datetime(),
+      promoted: z.boolean(),
+    })
+    .strict(),
+  {
+    id: "bp.finding.reviewer_decision_record.v1",
+    title: "Finding Reviewer Decision Record",
+    description:
+      "Validated reviewer decision with a stable hash and candidate metadata for calibration and promotion audit.",
+    stability: "draft",
+  },
+);
+
+export type FindingReviewerDecisionRecord = z.output<typeof FindingReviewerDecisionRecordSchema>;
+
+export const FindingReviewDecisionsArtifactSchema = registerProjectSchema(
+  z
+    .object({
+      artifactKind: z.literal("finding_review_decisions"),
+      schemaVersion: z.literal(schemaVersion),
+      month: IsoMonthSchema,
+      generatedAt: z.iso.datetime(),
+      promotionQueueArtifactPath: z.string().min(1),
+      reviewPacketsArtifactPath: z.string().min(1),
+      decisionCount: z.number().int().nonnegative(),
+      summary: z
+        .object({
+          decisionCount: z.number().int().nonnegative(),
+          decisionCounts: z.record(FindingPromotionDecisionSchema, z.number().int().nonnegative()),
+          promotedDecisionCount: z.number().int().nonnegative(),
+          nonPromotedDecisionCount: z.number().int().nonnegative(),
+        })
+        .strict(),
+      decisions: z.array(FindingReviewerDecisionRecordSchema),
+    })
+    .strict(),
+  {
+    id: "bp.finding.review_decisions_artifact.v1",
+    title: "Finding Review Decisions Artifact",
+    description:
+      "Captured reviewer decisions for detector candidates. This is the audit input for promoted findings and calibration.",
+    stability: "draft",
+  },
+);
+
+export type FindingReviewDecisionsArtifact = z.output<typeof FindingReviewDecisionsArtifactSchema>;
+
+export const PromotedFindingSchema = registerProjectSchema(
+  z
+    .object({
+      promotedFindingId: z.string().min(1),
+      sourceCandidateId: z.string().min(1),
+      sourceDecisionId: z.string().min(1),
+      sourcePacketId: z.string().min(1),
+      detectorId: DetectorIdSchema,
+      month: IsoMonthSchema,
+      scopeKind: FindingScopeKindSchema,
+      scopeId: z.string().min(1),
+      routeId: RouteIdSchema.nullable(),
+      category: FindingCategorySchema,
+      severity: FindingSeveritySchema,
+      confidence: FindingConfidenceSchema,
+      reasonCode: FindingReasonCodeSchema,
+      claimText: z.string().min(1).max(500),
+      approvedClaimStrength: z.number().int().min(0).max(5),
+      approvedEvidenceRefs: z.array(z.string().min(1)),
+      reviewer: z.string().min(1).max(120),
+      reviewedAt: z.iso.datetime(),
+      reviewRationale: z.string().min(1).max(1000),
+      sourceCandidate: FindingCandidateSchema,
+      decisionHash: z.string().regex(/^[a-f0-9]{64}$/),
+      candidateSnapshotHash: z.string().regex(/^[a-f0-9]{64}$/),
+      promotedFindingHash: z.string().regex(/^[a-f0-9]{64}$/),
+    })
+    .strict(),
+  {
+    id: "bp.finding.promoted_finding.v1",
+    title: "Promoted Finding",
+    description:
+      "Immutable promoted-finding record produced from an approved reviewer decision and a frozen detector candidate snapshot.",
+    stability: "draft",
+  },
+);
+
+export type PromotedFinding = z.output<typeof PromotedFindingSchema>;
+
+export const PromotedFindingsArtifactSchema = registerProjectSchema(
+  z
+    .object({
+      artifactKind: z.literal("promoted_findings"),
+      schemaVersion: z.literal(schemaVersion),
+      month: IsoMonthSchema,
+      generatedAt: z.iso.datetime(),
+      promotionQueueArtifactPath: z.string().min(1),
+      reviewDecisionsArtifactPath: z.string().min(1),
+      promotedFindingCount: z.number().int().nonnegative(),
+      summary: z
+        .object({
+          promotedFindingCount: z.number().int().nonnegative(),
+          detectorCounts: z.record(DetectorIdSchema, z.number().int().nonnegative()),
+          routeCount: z.number().int().nonnegative(),
+        })
+        .strict(),
+      findings: z.array(PromotedFindingSchema),
+    })
+    .strict(),
+  {
+    id: "bp.finding.promoted_findings_artifact.v1",
+    title: "Promoted Findings Artifact",
+    description:
+      "Immutable promoted-finding artifact. Each record is traceable to a reviewer decision, detector candidate, and approved evidence refs.",
+    stability: "draft",
+  },
+);
+
+export type PromotedFindingsArtifact = z.output<typeof PromotedFindingsArtifactSchema>;
+
 export const FindingDetectorAuditActionSchema = registerProjectSchema(
   z.enum(["keep", "downgrade", "suppress", "split", "enrich"]),
   {
