@@ -50,6 +50,7 @@ for route ⇄ LION corridor joins.
 - [[wiki/engineering/website_data_support_audit|Website data support audit]] — Current frontend/Worker data paths, mocked-vs-real status, Studio projection coverage gaps, and immediate support queue.
 - [[wiki/engineering/web_app_support_plan|Web app support plan]] — Briefs, composer workflows, route-loader caching, deferred evidence payloads, and TanStack Router data-loading policy.
 - [[wiki/engineering/agent_author_api|Agent-Author API]] — Write-side spec for agents-as-authors, canonical brief-composition walkthrough, mid-layer data endpoints, async job semantics, idempotency, and dogfeed test.
+- [[wiki/engineering/agent_first_contributor_leaderboard|Agent-first contributor leaderboard]] — Plan for agent-submitted transit issue artifacts, review states, scoring ledger, leaderboard snapshots, and dogfood walkthrough.
 - [[wiki/engineering/web_observability_performance_seo_plan|Web observability, performance, and SEO plan]] — Lighthouse route matrix, Core Web Vitals/RUM posture, SEO crawlability checks, Worker timing, and release gates.
 - [[wiki/engineering/website_hard_cutover_plan|Website hard cutover plan]] — Canonical route-first website IA, design reference mapping, schema-first API plan, and CLI/docs direction.
 - [[wiki/engineering/generated_cli_distribution_plan|Generated CLI and distribution plan]] — Cloudflare-style runtime schema/codegen pipeline, compiled Bun CLI binary release manifest, package-manager wrappers, guard rails, and rollback.
@@ -114,12 +115,23 @@ for route ⇄ LION corridor joins.
     counter-evidence support, hotspot/observed-reliability/intervention/permit caveats, a 311
     context detector, a matched multi-month peer-speed detector, and confidence-aware backtest
     calibration hooks are implemented. A 200-finding manual curation pass now promotes reviewed
-    detector findings through Studio while preserving detector audit trails. Next work is larger
-    gold-set/reviewer-decision expansion, demotion/supersession records, and per-finding feature
-    exposure for ledger sources that are still corpus-only in March packets.
+    detector findings through Studio while preserving detector audit trails. Weather, equity,
+    traffic-volume, and current traffic-speed supplemental evidence now attach to detector review
+    packets as non-primary context/caveats with freshness labels, and a context appendix now exposes
+    the available portions of that evidence in public Studio finding reasoning. The first
+    route-day weather reliability split now compares observed headways on weather-impacted versus
+    reference days, including matched local day/hour/direction/stop control windows where enough
+    samples exist, planned-service controls with route-hour fallback schedule matching, and
+    route-hour passenger-load plus incident controls. Backtest calibration now uses those
+    normalized control fields for observed-reliability control readiness and adjusted confidence.
+    Next work is larger gold-set/reviewer-decision expansion, demotion/supersession records, and
+    normalized detector layers over day/window speed, traffic, passenger-load, and incident metrics.
 11. Add the Tier 2 document corpus pipeline for policy/intervention documents, but keep source
     promotion, entity linking, metric computation, and publish validation deterministic.
 12. Route score uses a two-factor formula; incorporate ridership weight, persistence, reliability,
     and intervention gap or demote score behind brief evidence.
 13. Keep the MVP TypeScript-only and D1 as a compact serving projection unless a documented
     requirement forces Python/PostGIS/VPS or Postgres/Hyperdrive escalation.
+14. Plan the contributor leaderboard as an agent-first issue intake and review system: agents submit
+    typed `ContributorIssue` artifacts, deterministic validation and human/trusted review award
+    score ledger events, and the public leaderboard reads from precomputed D1 snapshots.

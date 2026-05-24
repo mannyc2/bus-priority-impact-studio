@@ -70,6 +70,7 @@ type CliOptions = {
   findingLimit: number;
   reviewQueuePath: string;
   promotedFindingsPath: string;
+  contextAppendixPath: string;
   profile: ReleaseProfile;
 };
 
@@ -92,6 +93,20 @@ type ReviewQueueCandidate = {
 type ReviewQueueArtifact = {
   artifactKind?: string;
   candidates?: ReviewQueueCandidate[];
+};
+
+type FindingContextAppendixRoute = {
+  routeId?: string;
+  weatherReliability?: unknown;
+  equity?: unknown;
+  trafficVolume?: unknown;
+  currentTrafficSpeed?: unknown;
+};
+
+type FindingContextAppendixArtifact = {
+  artifactKind?: string;
+  weather?: unknown;
+  routes?: FindingContextAppendixRoute[];
 };
 
 type RouteBriefInputArtifact = {
@@ -173,6 +188,9 @@ function parseOptions(args: readonly string[]): CliOptions {
     promotedFindingsPath:
       readFlag(args, "--promoted-findings") ??
       join("data/artifacts/findings", month, "promoted-findings.json"),
+    contextAppendixPath:
+      readFlag(args, "--context-appendix") ??
+      join("data/artifacts/findings", month, "context-appendix.json"),
     profile: parseProfile(readFlag(args, "--profile")),
   };
 }
@@ -620,6 +638,190 @@ function buildPromotedFinding(finding: PromotedFinding, route: StudioRoute): Stu
       claimSafeLabel: finding.sourceCandidate.claimSafeLabel,
     },
   };
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function numberField(record: Record<string, unknown>, key: string): number | null {
+  const value = record[key];
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function stringField(record: Record<string, unknown>, key: string): string | null {
+  const value = record[key];
+  return typeof value === "string" ? value : null;
+}
+
+function percentText(value: number | null): string {
+  return value === null ? "n/a" : `${(value * 100).toFixed(1)}%`;
+}
+
+function numberText(value: number | null, suffix = ""): string {
+  return value === null ? "n/a" : `${value.toLocaleString("en-US")}${suffix}`;
+}
+
+function routeAppendixReasoningSteps(args: {
+  route: StudioRoute;
+  weather: unknown;
+  appendix: FindingContextAppendixRoute | undefined;
+  startIndex: number;
+}): ReasoningStep[] {
+  const steps: ReasoningStep[] = [];
+  const equity = asRecord(args.appendix?.equity);
+  if (equity !== null) {
+    const band = stringField(equity, "equityPriorityBand") ?? "unscored";
+    steps.push({
+      index: args.startIndex + steps.length,
+      title: "Equity context",
+      detail: `${args.route.label} has ${band} equity-priority context: ${percentText(
+        numberField(equity, "noVehicleHouseholdShare"),
+      )} no-vehicle households, ${percentText(numberField(equity, "povertyRate"))} poverty rate, and ${percentText(
+        numberField(equity, "publicTransitCommuterShare"),
+      )} public-transit commuter share in the assigned ACS context.`,
+      source: "route_equity_context appendix",
+      tone: band === "high" || band === "medium" ? "warn" : "accent",
+    });
+  }
+
+  const weather = asRecord(args.weather);
+  if (weather !== null) {
+    const rainDays = numberField(weather, "rainDayCount") ?? 0;
+    const snowDays = numberField(weather, "snowDayCount") ?? 0;
+    const highWindDays = numberField(weather, "highWindDayCount") ?? 0;
+    steps.push({
+      index: args.startIndex + steps.length,
+      title: "Weather normalization",
+      detail: `NOAA month context covers ${numberField(weather, "observationDayCount") ?? 0} observed days and ${
+        numberField(weather, "stationCount") ?? 0
+      } NYC stations. It records ${rainDays} rain days, ${snowDays} snow days, and ${highWindDays} high-wind days; route-level reliability checks use the observed headway weather split when available.`,
+      source: "local_weather_observation appendix",
+      tone: rainDays > 0 || snowDays > 0 || highWindDays > 0 ? "warn" : "good",
+    });
+  }
+
+  const weatherReliability = asRecord(args.appendix?.weatherReliability);
+  if (weatherReliability !== null) {
+    const sampleSupport = stringField(weatherReliability, "sampleSupport") ?? "unknown";
+    const interpretation = stringField(weatherReliability, "interpretation") ?? "unknown";
+    const controlledSampleSupport =
+      stringField(weatherReliability, "controlledWindowSampleSupport") ?? "unknown";
+    const controlledInterpretation =
+      stringField(weatherReliability, "controlledWindowInterpretation") ?? "unknown";
+    const plannedServiceStatus =
+      stringField(weatherReliability, "plannedServiceControlStatus") ?? "unknown";
+    const plannedServiceMethod =
+      stringField(weatherReliability, "plannedServiceBestMatchMethod") ?? "unknown";
+    const passengerLoadStatus =
+      stringField(weatherReliability, "passengerLoadControlStatus") ?? "unknown";
+    const incidentStatus = stringField(weatherReliability, "incidentControlStatus") ?? "unknown";
+    steps.push({
+      index: args.startIndex + steps.length,
+      title: "Observed reliability weather split",
+      detail: `${args.route.label} has ${
+        numberField(weatherReliability, "weatherImpactedSampleCount") ?? 0
+      } observed headway samples on weather-impacted days and ${
+        numberField(weatherReliability, "referenceSampleCount") ?? 0
+      } on reference days. Long-gap share is ${percentText(
+        numberField(weatherReliability, "weatherImpactedLongGapShare"),
+      )} on weather days versus ${percentText(
+        numberField(weatherReliability, "referenceLongGapShare"),
+      )} on reference days; expected-wait delta is ${numberText(
+        numberField(weatherReliability, "expectedWaitDeltaMinutes"),
+        " min",
+      )}. Matched local day/hour/direction/stop windows cover ${
+        numberField(weatherReliability, "controlledWindowCount") ?? 0
+      } buckets and ${
+        numberField(weatherReliability, "controlledReferenceSampleCount") ?? 0
+      } reference samples; controlled interpretation: ${controlledInterpretation}. Planned-service control is ${plannedServiceStatus}, with observed-to-scheduled expected-wait ratio ${numberText(
+        numberField(weatherReliability, "controlledObservedToScheduledExpectedWaitRatio"),
+      )} using ${plannedServiceMethod} schedule matching. Passenger-load control is ${passengerLoadStatus}, with average controlled-window ridership ${numberText(
+        numberField(weatherReliability, "controlledPassengerLoadAverageRidership"),
+      )}; incident control is ${incidentStatus}, with weather/reference incident-weight delta ${numberText(
+        numberField(weatherReliability, "controlledIncidentWeightDelta"),
+      )}.`,
+      source:
+        "local_observed_headway_sample + local_weather_observation + local_route_schedule_timepoint + local_route_hourly_ridership + local_context_event_route_touch appendix",
+      tone:
+        sampleSupport !== "sufficient_split" ||
+        controlledSampleSupport !== "sufficient_split" ||
+        plannedServiceStatus === "missing" ||
+        passengerLoadStatus === "missing" ||
+        incidentStatus === "missing" ||
+        interpretation === "weather_conditions_worse" ||
+        controlledInterpretation === "weather_conditions_worse"
+          ? "warn"
+          : "accent",
+    });
+  }
+
+  const trafficVolume = asRecord(args.appendix?.trafficVolume);
+  if (trafficVolume !== null) {
+    const lag = numberField(trafficVolume, "lagMonths") ?? 0;
+    steps.push({
+      index: args.startIndex + steps.length,
+      title: "Traffic-volume context",
+      detail: `DOT traffic-volume context has ${
+        numberField(trafficVolume, "observationCount") ?? 0
+      } route-adjacent observations from ${stringField(trafficVolume, "sourceMonth") ?? "unknown month"} with lagMonths=${lag}. Treat it as street-load context, not same-month bus evidence when lagMonths is positive.`,
+      source: "local_dot_traffic_volume_count appendix",
+      tone: lag > 1 ? "warn" : "accent",
+    });
+  }
+
+  const currentTrafficSpeed = asRecord(args.appendix?.currentTrafficSpeed);
+  if (currentTrafficSpeed !== null) {
+    steps.push({
+      index: args.startIndex + steps.length,
+      title: "Current traffic appendix",
+      detail: `DOT realtime traffic-speed context has ${
+        numberField(currentTrafficSpeed, "linkSampleCount") ?? 0
+      } route-adjacent link samples from ${
+        stringField(currentTrafficSpeed, "currentSignalDay") ?? "unknown day"
+      } with relation ${
+        stringField(currentTrafficSpeed, "temporalRelation") ?? "unknown"
+      }. It describes current street conditions, not the historical release month.`,
+      source: "local_dot_traffic_speed appendix",
+      tone: "accent",
+    });
+  }
+
+  return steps;
+}
+
+function addFindingContextAppendix(input: {
+  findings: readonly StudioFinding[];
+  routes: readonly StudioRoute[];
+  appendix: FindingContextAppendixArtifact | null;
+}): StudioFinding[] {
+  if (input.appendix?.artifactKind !== "finding_context_appendix") {
+    return [...input.findings];
+  }
+
+  const routeBySlug = new Map(input.routes.map((route) => [route.slug, route]));
+  const appendixByRoute = new Map(
+    (input.appendix.routes ?? []).flatMap((route) =>
+      typeof route.routeId === "string" ? [[route.routeId, route] as const] : [],
+    ),
+  );
+  return input.findings.map((finding) => {
+    const route = routeBySlug.get(finding.routeSlug);
+    if (route === undefined) return finding;
+    const steps = routeAppendixReasoningSteps({
+      route,
+      weather: input.appendix?.weather ?? null,
+      appendix: appendixByRoute.get(route.routeId),
+      startIndex: finding.reasoning.length + 1,
+    });
+    if (steps.length === 0) return finding;
+    return {
+      ...finding,
+      reasoning: [...finding.reasoning, ...steps],
+    };
+  });
 }
 
 async function readPromotedFindingsFromArtifact(input: {
@@ -1102,7 +1304,14 @@ async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> 
             reviewedFindings: reviewedAndPromotedFindings,
             limit: remainingFindingSlots,
           });
-    const findings = [...reviewedAndPromotedFindings, ...generatedFindings];
+    const contextAppendix = await readJsonIfExists<FindingContextAppendixArtifact>(
+      fromRepoRoot(options.contextAppendixPath),
+    );
+    const findings = addFindingContextAppendix({
+      findings: [...reviewedAndPromotedFindings, ...generatedFindings],
+      routes,
+      appendix: contextAppendix,
+    });
     const routeArtifactRouteIds = new Set(routeArtifacts.map((artifact) => artifact.routeId));
     const briefs = routes
       .filter((route) => routeArtifactRouteIds.has(route.routeId))

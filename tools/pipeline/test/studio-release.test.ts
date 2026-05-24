@@ -13,6 +13,7 @@ const seedRelative = join(workRootRelative, "seed.sql");
 const outputRelative = join(workRootRelative, "studio/release.json");
 const reviewQueueRelative = join(workRootRelative, "findings/review-queue.json");
 const promotedFindingsRelative = join(workRootRelative, "findings/promoted-findings.json");
+const contextAppendixRelative = join(workRootRelative, "findings/context-appendix.json");
 
 async function reset(): Promise<void> {
   await rm(workRoot, { recursive: true, force: true });
@@ -203,6 +204,87 @@ async function writeFindingArtifacts(): Promise<void> {
     fromRepoRoot(promotedFindingsRelative),
     `${JSON.stringify(promotedFindingArtifact(), null, 2)}\n`,
   );
+  await writeFile(
+    fromRepoRoot(contextAppendixRelative),
+    `${JSON.stringify(
+      {
+        artifactKind: "finding_context_appendix",
+        schemaVersion: 1,
+        month,
+        generatedAt: "2026-05-24T00:20:00.000Z",
+        summary: {
+          routeCount: 1,
+          weatherAvailable: true,
+          equityRouteCount: 1,
+          trafficVolumeRouteCount: 1,
+          currentTrafficSpeedRouteCount: 1,
+          trafficVolumeSourceMonths: ["2026-02"],
+          currentTrafficSpeedDays: ["2026-05-18"],
+        },
+        weather: {
+          artifactKind: "route_month_weather_normalization_context",
+          month,
+          observationDayCount: 31,
+          stationCount: 3,
+          rainDayCount: 2,
+          snowDayCount: 0,
+          highWindDayCount: 1,
+          normalizationStatus: "weather_context_only",
+        },
+        routes: [
+          {
+            routeId: "M1",
+            weatherReliability: {
+              artifactKind: "route_weather_reliability_context",
+              routeId: "M1",
+              sampleSupport: "sufficient_split",
+              interpretation: "reference_days_still_poor",
+              weatherImpactedSampleCount: 140,
+              referenceSampleCount: 600,
+              weatherImpactedLongGapShare: 0.32,
+              referenceLongGapShare: 0.29,
+              expectedWaitDeltaMinutes: 0.8,
+              controlledWindowCount: 4,
+              controlledWindowSampleSupport: "sufficient_split",
+              controlledWindowInterpretation: "reference_days_still_poor",
+              controlledReferenceSampleCount: 420,
+              plannedServiceControlStatus: "available",
+              plannedServiceBestMatchMethod: "mixed",
+              controlledObservedToScheduledExpectedWaitRatio: 2.1,
+              passengerLoadControlStatus: "available",
+              controlledPassengerLoadAverageRidership: 280,
+              incidentControlStatus: "available",
+              controlledIncidentWeightDelta: 0.2,
+            },
+            equity: {
+              artifactKind: "route_equity_prioritization_context",
+              routeId: "M1",
+              equityPriorityBand: "high",
+              noVehicleHouseholdShare: 0.7,
+              povertyRate: 0.21,
+              publicTransitCommuterShare: 0.61,
+            },
+            trafficVolume: {
+              artifactKind: "route_traffic_volume_context",
+              routeId: "M1",
+              sourceMonth: "2026-02",
+              observationCount: 144,
+              lagMonths: 1,
+            },
+            currentTrafficSpeed: {
+              artifactKind: "route_current_traffic_speed_context",
+              routeId: "M1",
+              currentSignalDay: "2026-05-18",
+              temporalRelation: "after_release",
+              linkSampleCount: 3,
+            },
+          },
+        ],
+      },
+      null,
+      2,
+    )}\n`,
+  );
 }
 
 afterEach(async () => {
@@ -228,6 +310,8 @@ describe("build:studio-release promoted findings", () => {
       reviewQueueRelative,
       "--promoted-findings",
       promotedFindingsRelative,
+      "--context-appendix",
+      contextAppendixRelative,
       "--finding-limit",
       "3",
     ]);
@@ -235,6 +319,7 @@ describe("build:studio-release promoted findings", () => {
     const release = (await Bun.file(result.outputPath).json()) as {
       findings: Array<{
         routeSlug: string;
+        reasoning: Array<{ title: string; source: string }>;
         review?: {
           publicationState: string;
           reviewState: string | null;
@@ -255,6 +340,18 @@ describe("build:studio-release promoted findings", () => {
 
     expect(release.findings).toHaveLength(3);
     expect(release.findings.map((finding) => finding.routeSlug)).toEqual(["m1", "m1", "m2"]);
+    expect(release.findings[0]?.reasoning.map((step) => step.title)).toEqual(
+      expect.arrayContaining([
+        "Equity context",
+        "Weather normalization",
+        "Observed reliability weather split",
+        "Traffic-volume context",
+        "Current traffic appendix",
+      ]),
+    );
+    expect(release.findings[2]?.reasoning.map((step) => step.title)).toEqual(
+      expect.not.arrayContaining(["Traffic-volume context", "Current traffic appendix"]),
+    );
     expect(release.findings[0]?.review).toMatchObject({
       publicationState: "reviewed",
       reviewState: "approved",

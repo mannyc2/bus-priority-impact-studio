@@ -53,6 +53,7 @@
     "publish:serving-release": "scripts/publish-serving-release.sh",
     "build:studio-release": "bun --filter @bp/pipeline build:studio-release",
     "findings:promote": "bun --filter @bp/pipeline findings:promote",
+    "findings:context-appendix": "bun run --filter @bp/pipeline findings:context-appendix",
     "audit:source-coverage": "bun --filter @bp/pipeline audit:source-coverage",
     "audit:findings-backtest": "bun --filter @bp/pipeline audit:findings-backtest",
     "audit:parking-candidate-quality": "bun --filter @bp/pipeline audit:parking-candidate-quality",

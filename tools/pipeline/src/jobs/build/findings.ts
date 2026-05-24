@@ -699,6 +699,1772 @@ function attachRouteContextEvidence(
   };
 }
 
+type WeatherNormalizationContext = {
+  artifactKind: "route_month_weather_normalization_context";
+  month: string;
+  releaseLayer: "baseline_release";
+  observationDayCount: number;
+  stationCount: number;
+  precipitationMm: number;
+  rainDayCount: number;
+  snowDayCount: number;
+  highWindDayCount: number;
+  maxDailyPrecipitationMm: number | null;
+  averageTemperatureC: number | null;
+  averageWindMs: number | null;
+  normalizationStatus: "weather_context_only";
+  caveats: string[];
+  sourceRefs: string[];
+};
+
+type RouteWeatherReliabilityContext = {
+  artifactKind: "route_weather_reliability_context";
+  month: string;
+  runId: string;
+  releaseLayer: "baseline_release";
+  routeId: string;
+  normalizationStatus: "route_day_weather_split";
+  sampleSupport:
+    | "sufficient_split"
+    | "thin_weather_samples"
+    | "thin_reference_samples"
+    | "insufficient_split";
+  interpretation:
+    | "reference_days_still_poor"
+    | "weather_conditions_worse"
+    | "reference_conditions_worse"
+    | "similar_weather_and_reference"
+    | "insufficient_split";
+  minBucketSampleThreshold: number;
+  weatherImpactedDayCount: number;
+  referenceDayCount: number;
+  weatherImpactedSampleCount: number;
+  referenceSampleCount: number;
+  weatherImpactedExpectedWaitMinutes: number | null;
+  referenceExpectedWaitMinutes: number | null;
+  expectedWaitDeltaMinutes: number | null;
+  weatherImpactedLongGapShare: number | null;
+  referenceLongGapShare: number | null;
+  longGapShareDelta: number | null;
+  controlledWindowCount: number;
+  controlledWindowSampleSupport:
+    | "sufficient_split"
+    | "thin_weather_samples"
+    | "thin_reference_samples"
+    | "insufficient_split";
+  controlledWindowInterpretation:
+    | "reference_days_still_poor"
+    | "weather_conditions_worse"
+    | "reference_conditions_worse"
+    | "similar_weather_and_reference"
+    | "insufficient_split";
+  controlledWeatherImpactedSampleCount: number;
+  controlledReferenceSampleCount: number;
+  controlledWeatherImpactedExpectedWaitMinutes: number | null;
+  controlledReferenceExpectedWaitMinutes: number | null;
+  controlledExpectedWaitDeltaMinutes: number | null;
+  controlledWeatherImpactedLongGapShare: number | null;
+  controlledReferenceLongGapShare: number | null;
+  controlledLongGapShareDelta: number | null;
+  plannedServiceControlStatus: "available" | "partial" | "missing";
+  plannedServiceBestMatchMethod: "exact_stop_hour" | "route_hour_fallback" | "mixed" | "none";
+  controlledScheduledWindowCount: number;
+  controlledScheduledExactWindowCount: number;
+  controlledScheduledFallbackWindowCount: number;
+  controlledScheduledMatchedSampleCount: number;
+  controlledScheduledSampleCoverageShare: number | null;
+  controlledScheduledAverageHeadwayMinutes: number | null;
+  controlledScheduledExpectedWaitMinutes: number | null;
+  controlledObservedExpectedWaitMinutes: number | null;
+  controlledObservedToScheduledExpectedWaitRatio: number | null;
+  passengerLoadControlStatus: "available" | "partial" | "missing";
+  controlledPassengerLoadMatchedSampleCount: number;
+  controlledPassengerLoadSampleCoverageShare: number | null;
+  controlledPassengerLoadAverageRidership: number | null;
+  controlledPassengerLoadAverageTransfers: number | null;
+  incidentControlStatus: "available" | "partial" | "missing";
+  controlledIncidentCheckedSampleCount: number;
+  controlledIncidentSampleCoverageShare: number | null;
+  controlledWeatherImpactedAverageIncidentWeight: number | null;
+  controlledReferenceAverageIncidentWeight: number | null;
+  controlledIncidentWeightDelta: number | null;
+  longGapThresholdMinutes: number;
+  weatherImpactDefinition: {
+    precipitationMmAtLeast: number;
+    windMsAtLeast: number;
+    includesSnowOrWeatherFlags: boolean;
+  };
+  caveats: string[];
+  sourceRefs: string[];
+};
+
+type EquityPrioritizationContext = {
+  artifactKind: "route_equity_prioritization_context";
+  month: string;
+  releaseLayer: "baseline_release";
+  routeId: string;
+  acsYear: number;
+  assignmentGeography: string;
+  assignmentMethod: string;
+  tractCount: number;
+  noVehicleHouseholdShare: number | null;
+  povertyRate: number | null;
+  publicTransitCommuterShare: number | null;
+  medianHouseholdIncome: number | null;
+  equityPriorityScore: number | null;
+  equityPriorityBand: "high" | "medium" | "reference" | "unscored";
+  caveats: string[];
+  sourceRefs: string[];
+};
+
+type TrafficVolumeContext = {
+  artifactKind: "route_traffic_volume_context";
+  releaseMonth: string;
+  sourceMonth: string;
+  releaseLayer: "release_context";
+  temporalRelation: "same_month" | "latest_prior_month";
+  lagMonths: number;
+  routeId: string;
+  observationCount: number;
+  physicalIdCount: number;
+  dayCount: number;
+  weightedVolumeSum: number;
+  averageVolumePerObservation: number | null;
+  peakVolume: number | null;
+  averageMatchWeight: number | null;
+  maxRouteFanout: number;
+  caveats: string[];
+  sourceRefs: string[];
+};
+
+type CurrentTrafficSpeedContext = {
+  artifactKind: "route_current_traffic_speed_context";
+  releaseMonth: string;
+  currentSignalDay: string;
+  currentSignalMonth: string;
+  releaseLayer: "current_signal";
+  temporalRelation: "same_month" | "after_release" | "before_release";
+  monthOffsetFromRelease: number;
+  routeId: string;
+  linkSampleCount: number;
+  speedSampleCount: number;
+  averageTrafficSpeedMph: number | null;
+  minTrafficSpeedMph: number | null;
+  slowLinkSampleCount: number;
+  statusCodes: string[];
+  averageMatchWeight: number | null;
+  maxRouteFanout: number;
+  caveats: string[];
+  sourceRefs: string[];
+};
+
+export type SupplementalRouteEvidenceContext = {
+  weather: WeatherNormalizationContext | null;
+  weatherReliabilityByRoute: Map<string, RouteWeatherReliabilityContext>;
+  equityByRoute: Map<string, EquityPrioritizationContext>;
+  trafficVolumeByRoute: Map<string, TrafficVolumeContext>;
+  currentTrafficSpeedByRoute: Map<string, CurrentTrafficSpeedContext>;
+};
+
+function round(value: number, digits = 4): number {
+  return Number(value.toFixed(digits));
+}
+
+function roundNullable(value: number | null | undefined, digits = 4): number | null {
+  return value === null || value === undefined ? null : round(value, digits);
+}
+
+const weatherImpactedPrecipitationMmThreshold = 1;
+const weatherImpactedWindMsThreshold = 8;
+const weatherReliabilityMinBucketSamples = 100;
+const nycWeatherWindowFormatter = new Intl.DateTimeFormat("en-US", {
+  timeZone: "America/New_York",
+  weekday: "long",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  hourCycle: "h23",
+});
+
+function monthStartDate(month: string): string {
+  return `${month}-01`;
+}
+
+function monthUnixBounds(month: string): { startSeconds: number; endSeconds: number } {
+  const [yearPart, monthPart] = month.split("-");
+  const year = Number(yearPart);
+  const monthNumber = Number(monthPart);
+  if (!Number.isInteger(year) || !Number.isInteger(monthNumber)) {
+    throw new Error(`Invalid ISO month: ${month}`);
+  }
+
+  return {
+    startSeconds: Date.UTC(year, monthNumber - 1, 1, 0, 0, 0) / 1000,
+    endSeconds: Date.UTC(year, monthNumber, 1, 0, 0, 0) / 1000,
+  };
+}
+
+function localWeatherWindowParts(timestampSeconds: number): {
+  observedDate: string;
+  dayOfWeek: string;
+  hourOfDay: number;
+} {
+  const parts = nycWeatherWindowFormatter.formatToParts(new Date(timestampSeconds * 1000));
+  const part = (type: string): string => parts.find((item) => item.type === type)?.value ?? "";
+  return {
+    observedDate: `${part("year")}-${part("month")}-${part("day")}`,
+    dayOfWeek: part("weekday") || "Unknown",
+    hourOfDay: Number(part("hour") || "0"),
+  };
+}
+
+function evidenceTemporalRelation(
+  sourceMonth: string,
+  releaseMonth: string,
+): "same_month" | "latest_prior_month" {
+  return sourceMonth === releaseMonth ? "same_month" : "latest_prior_month";
+}
+
+function isoMonthIndex(month: string): number {
+  const [yearPart, monthPart] = month.split("-");
+  const year = Number(yearPart);
+  const monthNumber = Number(monthPart);
+  if (!Number.isInteger(year) || !Number.isInteger(monthNumber)) {
+    throw new Error(`Invalid ISO month: ${month}`);
+  }
+  return year * 12 + monthNumber - 1;
+}
+
+function lagMonths(sourceMonth: string, releaseMonth: string): number {
+  return Math.max(0, isoMonthIndex(releaseMonth) - isoMonthIndex(sourceMonth));
+}
+
+function monthOffsetFromRelease(sourceMonth: string, releaseMonth: string): number {
+  return isoMonthIndex(sourceMonth) - isoMonthIndex(releaseMonth);
+}
+
+function currentSignalTemporalRelation(
+  sourceMonth: string,
+  releaseMonth: string,
+): "same_month" | "after_release" | "before_release" {
+  if (sourceMonth === releaseMonth) return "same_month";
+  return sourceMonth > releaseMonth ? "after_release" : "before_release";
+}
+
+function listWeatherNormalizationContext(args: {
+  sqlite: Database;
+  month: string;
+  monthEndDate: string;
+}): WeatherNormalizationContext | null {
+  const row = args.sqlite
+    .query<
+      {
+        observation_day_count: number;
+        station_count: number | null;
+        precipitation_mm: number | null;
+        rain_day_count: number | null;
+        snow_day_count: number | null;
+        high_wind_day_count: number | null;
+        max_daily_precipitation_mm: number | null;
+        average_temperature_c: number | null;
+        average_wind_ms: number | null;
+      },
+      [string, string]
+    >(
+      `WITH daily AS (
+         SELECT date,
+                count(DISTINCT station_id) AS station_count,
+                avg(coalesce(prcp_mm, 0)) AS daily_precipitation_mm,
+                max(coalesce(prcp_mm, 0)) AS max_daily_precipitation_mm,
+                avg(tavg_c) AS average_temperature_c,
+                avg(awnd_ms) AS average_wind_ms,
+                max(CASE
+                  WHEN coalesce(has_rain, 0) = 1
+                    OR coalesce(prcp_mm, 0) >= ${weatherImpactedPrecipitationMmThreshold}
+                  THEN 1 ELSE 0 END) AS has_rain,
+                max(CASE
+                  WHEN coalesce(has_snow, 0) = 1
+                    OR coalesce(snow_mm, 0) > 0
+                  THEN 1 ELSE 0 END) AS has_snow,
+                max(CASE
+                  WHEN coalesce(has_high_wind, 0) = 1
+                    OR coalesce(awnd_ms, 0) >= ${weatherImpactedWindMsThreshold}
+                  THEN 1 ELSE 0 END) AS has_high_wind
+           FROM local_weather_observation
+          WHERE date >= ?
+            AND date < ?
+          GROUP BY date
+       )
+       SELECT count(*) AS observation_day_count,
+              max(station_count) AS station_count,
+              coalesce(sum(daily_precipitation_mm), 0) AS precipitation_mm,
+              coalesce(sum(has_rain), 0) AS rain_day_count,
+              coalesce(sum(has_snow), 0) AS snow_day_count,
+              coalesce(sum(has_high_wind), 0) AS high_wind_day_count,
+              max(max_daily_precipitation_mm) AS max_daily_precipitation_mm,
+              avg(average_temperature_c) AS average_temperature_c,
+              avg(average_wind_ms) AS average_wind_ms
+         FROM daily`,
+    )
+    .get(monthStartDate(args.month), args.monthEndDate);
+
+  if (row === null || row.observation_day_count === 0) {
+    return null;
+  }
+
+  return {
+    artifactKind: "route_month_weather_normalization_context",
+    month: args.month,
+    releaseLayer: "baseline_release",
+    observationDayCount: row.observation_day_count,
+    stationCount: row.station_count ?? 0,
+    precipitationMm: round(row.precipitation_mm ?? 0, 2),
+    rainDayCount: row.rain_day_count ?? 0,
+    snowDayCount: row.snow_day_count ?? 0,
+    highWindDayCount: row.high_wind_day_count ?? 0,
+    maxDailyPrecipitationMm: roundNullable(row.max_daily_precipitation_mm, 2),
+    averageTemperatureC: roundNullable(row.average_temperature_c, 2),
+    averageWindMs: roundNullable(row.average_wind_ms, 2),
+    normalizationStatus: "weather_context_only",
+    caveats: [
+      "Weather is citywide month context; it is not a route-level causal explanation.",
+      "True weather-normalized findings require route-day or route-window performance metrics.",
+    ],
+    sourceRefs: [`local_weather_observation:${args.month}`],
+  };
+}
+
+type DailyWeatherSplit = {
+  isWeatherImpacted: boolean;
+};
+
+type WeatherReliabilityRouteRun = {
+  routeId: string;
+  runId: string;
+  longGapThresholdMinutes: number;
+  sampleCount: number;
+};
+
+type WeatherReliabilityBucket = {
+  sampleCount: number;
+  headwaySum: number;
+  headwaySquareSum: number;
+  longGapCount: number;
+  ridershipSampleCount: number;
+  ridershipSum: number;
+  transferSum: number;
+  incidentCheckedSampleCount: number;
+  incidentWeightedEventSum: number;
+  dates: Set<string>;
+};
+
+type WeatherReliabilityWindowAccumulator = {
+  dayOfWeek: string;
+  hourOfDay: number;
+  directionId: string;
+  stopId: string;
+  weatherImpacted: WeatherReliabilityBucket;
+  reference: WeatherReliabilityBucket;
+};
+
+type WeatherReliabilityRouteAccumulator = {
+  runId: string;
+  longGapThresholdMinutes: number;
+  weatherImpacted: WeatherReliabilityBucket;
+  reference: WeatherReliabilityBucket;
+  windows: Map<string, WeatherReliabilityWindowAccumulator>;
+};
+
+type ScheduledWindowStats = {
+  intervalCount: number;
+  headwaySumMinutes: number;
+};
+
+type RidershipWindowStats = {
+  ridership: number;
+  transfers: number;
+};
+
+type IncidentWindowStats = {
+  eventCount: number;
+  weightedEventCount: number;
+};
+
+type PlannedServiceControlStats = {
+  status: RouteWeatherReliabilityContext["plannedServiceControlStatus"];
+  bestMatchMethod: RouteWeatherReliabilityContext["plannedServiceBestMatchMethod"];
+  scheduledWindowCount: number;
+  scheduledExactWindowCount: number;
+  scheduledFallbackWindowCount: number;
+  scheduledMatchedSampleCount: number;
+  scheduledSampleCoverageShare: number | null;
+  scheduledAverageHeadwayMinutes: number | null;
+  scheduledExpectedWaitMinutes: number | null;
+  observedExpectedWaitMinutes: number | null;
+  observedToScheduledExpectedWaitRatio: number | null;
+};
+
+type PassengerLoadControlStats = {
+  status: RouteWeatherReliabilityContext["passengerLoadControlStatus"];
+  matchedSampleCount: number;
+  sampleCoverageShare: number | null;
+  averageRidership: number | null;
+  averageTransfers: number | null;
+};
+
+type IncidentControlStats = {
+  status: RouteWeatherReliabilityContext["incidentControlStatus"];
+  checkedSampleCount: number;
+  sampleCoverageShare: number | null;
+  weatherImpactedAverageIncidentWeight: number | null;
+  referenceAverageIncidentWeight: number | null;
+  incidentWeightDelta: number | null;
+};
+
+function emptyWeatherReliabilityBucket(): WeatherReliabilityBucket {
+  return {
+    sampleCount: 0,
+    headwaySum: 0,
+    headwaySquareSum: 0,
+    longGapCount: 0,
+    ridershipSampleCount: 0,
+    ridershipSum: 0,
+    transferSum: 0,
+    incidentCheckedSampleCount: 0,
+    incidentWeightedEventSum: 0,
+    dates: new Set(),
+  };
+}
+
+function updateWeatherReliabilityBucket(
+  bucket: WeatherReliabilityBucket,
+  input: {
+    observedDate: string;
+    headwayMinutes: number;
+    longGapThresholdMinutes: number;
+    ridership: RidershipWindowStats | undefined;
+    incident: IncidentWindowStats | undefined;
+    incidentControlsAvailable: boolean;
+  },
+): void {
+  bucket.sampleCount += 1;
+  bucket.headwaySum += input.headwayMinutes;
+  bucket.headwaySquareSum += input.headwayMinutes ** 2;
+  if (input.headwayMinutes >= input.longGapThresholdMinutes) {
+    bucket.longGapCount += 1;
+  }
+  if (input.ridership !== undefined) {
+    bucket.ridershipSampleCount += 1;
+    bucket.ridershipSum += input.ridership.ridership;
+    bucket.transferSum += input.ridership.transfers;
+  }
+  if (input.incidentControlsAvailable) {
+    bucket.incidentCheckedSampleCount += 1;
+    bucket.incidentWeightedEventSum += input.incident?.weightedEventCount ?? 0;
+  }
+  bucket.dates.add(input.observedDate);
+}
+
+function mergeWeatherReliabilityBucket(
+  target: WeatherReliabilityBucket,
+  source: WeatherReliabilityBucket,
+): void {
+  target.sampleCount += source.sampleCount;
+  target.headwaySum += source.headwaySum;
+  target.headwaySquareSum += source.headwaySquareSum;
+  target.longGapCount += source.longGapCount;
+  target.ridershipSampleCount += source.ridershipSampleCount;
+  target.ridershipSum += source.ridershipSum;
+  target.transferSum += source.transferSum;
+  target.incidentCheckedSampleCount += source.incidentCheckedSampleCount;
+  target.incidentWeightedEventSum += source.incidentWeightedEventSum;
+  for (const date of source.dates) {
+    target.dates.add(date);
+  }
+}
+
+function expectedWaitForBucket(bucket: WeatherReliabilityBucket): number | null {
+  if (bucket.sampleCount === 0 || bucket.headwaySum <= 0) {
+    return null;
+  }
+  return round(bucket.headwaySquareSum / (2 * bucket.headwaySum));
+}
+
+function controlledWeatherBuckets(accumulator: WeatherReliabilityRouteAccumulator): {
+  windowCount: number;
+  weatherImpacted: WeatherReliabilityBucket;
+  reference: WeatherReliabilityBucket;
+} {
+  const weatherImpacted = emptyWeatherReliabilityBucket();
+  const reference = emptyWeatherReliabilityBucket();
+  let windowCount = 0;
+
+  for (const window of accumulator.windows.values()) {
+    if (window.weatherImpacted.sampleCount === 0 || window.reference.sampleCount === 0) {
+      continue;
+    }
+    windowCount += 1;
+    mergeWeatherReliabilityBucket(weatherImpacted, window.weatherImpacted);
+    mergeWeatherReliabilityBucket(reference, window.reference);
+  }
+
+  return { windowCount, weatherImpacted, reference };
+}
+
+function listScheduledWindowStats(args: {
+  sqlite: Database;
+  month: string;
+  routeIds: readonly string[];
+}): Map<string, ScheduledWindowStats> {
+  const output = new Map<string, ScheduledWindowStats>();
+  const addScheduledWindow = (key: string, headwayMinutes: number) => {
+    const stats = output.get(key) ?? { intervalCount: 0, headwaySumMinutes: 0 };
+    stats.intervalCount += 1;
+    stats.headwaySumMinutes += headwayMinutes;
+    output.set(key, stats);
+  };
+  const query = args.sqlite.query<
+    {
+      route_id: string;
+      day_type: string;
+      stop_id: string;
+      schedule_time: string;
+    },
+    [string, string]
+  >(
+    `SELECT route_id,
+            day_type,
+            stop_id,
+            schedule_time
+       FROM local_route_schedule_timepoint
+      WHERE month = ?
+        AND route_id = ?
+      ORDER BY day_type, stop_id, schedule_time`,
+  );
+
+  for (const routeId of args.routeIds) {
+    let priorGroupKey: string | null = null;
+    let priorScheduleTime: string | null = null;
+    for (const row of query.iterate(args.month, routeId)) {
+      const groupKey = [row.route_id, row.day_type, row.stop_id].join("::");
+      if (groupKey !== priorGroupKey) {
+        priorGroupKey = groupKey;
+        priorScheduleTime = row.schedule_time;
+        continue;
+      }
+      if (priorScheduleTime === null || row.schedule_time === priorScheduleTime) {
+        priorScheduleTime = row.schedule_time;
+        continue;
+      }
+
+      const headwayMinutes =
+        (Date.parse(row.schedule_time) - Date.parse(priorScheduleTime)) / 60_000;
+      priorScheduleTime = row.schedule_time;
+      if (headwayMinutes <= 0 || headwayMinutes > 240) {
+        continue;
+      }
+
+      const hourOfDay = scheduleHourOfDay(row.schedule_time);
+      if (hourOfDay === null) {
+        continue;
+      }
+      const key = scheduledWindowKey({
+        routeId: row.route_id,
+        dayType: row.day_type,
+        hourOfDay,
+        stopId: row.stop_id,
+      });
+      addScheduledWindow(key, headwayMinutes);
+      addScheduledWindow(
+        scheduledRouteHourWindowKey({
+          routeId: row.route_id,
+          dayType: row.day_type,
+          hourOfDay,
+        }),
+        headwayMinutes,
+      );
+    }
+  }
+
+  return output;
+}
+
+function listRidershipWindowStats(args: {
+  sqlite: Database;
+  month: string;
+  routeIds: readonly string[];
+}): Map<string, RidershipWindowStats> {
+  const output = new Map<string, RidershipWindowStats>();
+  const query = args.sqlite.query<
+    {
+      route_id: string;
+      day_of_week: string;
+      hour_of_day: number;
+      ridership: number;
+      transfers: number;
+    },
+    [string, string]
+  >(
+    `SELECT route_id,
+            day_of_week,
+            hour_of_day,
+            ridership,
+            transfers
+       FROM local_route_hourly_ridership
+      WHERE month = ?
+        AND route_id = ?`,
+  );
+
+  for (const routeId of args.routeIds) {
+    for (const row of query.iterate(args.month, routeId)) {
+      output.set(
+        ridershipWindowKey({
+          routeId: row.route_id,
+          dayOfWeek: row.day_of_week,
+          hourOfDay: row.hour_of_day,
+        }),
+        {
+          ridership: row.ridership,
+          transfers: row.transfers,
+        },
+      );
+    }
+  }
+
+  return output;
+}
+
+function listIncidentWindowStats(args: {
+  sqlite: Database;
+  month: string;
+  monthEndDate: string;
+  routeIds: readonly string[];
+}): { windows: Map<string, IncidentWindowStats>; hasRows: boolean } {
+  const routeIds = new Set(args.routeIds);
+  const windows = new Map<string, IncidentWindowStats>();
+  let hasRows = false;
+  const query = args.sqlite.query<
+    {
+      route_id: string;
+      occurred_at: string;
+      match_weight: number;
+    },
+    [string, string]
+  >(
+    `SELECT route_id,
+            occurred_at,
+            match_weight
+       FROM local_context_event_route_touch
+      WHERE occurred_at >= ?
+        AND occurred_at < ?`,
+  );
+
+  for (const row of query.iterate(monthStartDate(args.month), args.monthEndDate)) {
+    if (!routeIds.has(row.route_id)) {
+      continue;
+    }
+    const parts = eventLocalWindowParts(row.occurred_at);
+    if (parts === null) {
+      continue;
+    }
+    hasRows = true;
+    const key = incidentWindowKey({
+      routeId: row.route_id,
+      observedDate: parts.observedDate,
+      hourOfDay: parts.hourOfDay,
+    });
+    const stats = windows.get(key) ?? { eventCount: 0, weightedEventCount: 0 };
+    stats.eventCount += 1;
+    stats.weightedEventCount += row.match_weight;
+    windows.set(key, stats);
+  }
+
+  return { windows, hasRows };
+}
+
+function plannedServiceControlStats(input: {
+  routeId: string;
+  accumulator: WeatherReliabilityRouteAccumulator;
+  controlled: ReturnType<typeof controlledWeatherBuckets>;
+  scheduledWindows: ReadonlyMap<string, ScheduledWindowStats>;
+}): PlannedServiceControlStats {
+  const totalControlledSamples =
+    input.controlled.weatherImpacted.sampleCount + input.controlled.reference.sampleCount;
+  let scheduledWindowCount = 0;
+  let scheduledExactWindowCount = 0;
+  let scheduledFallbackWindowCount = 0;
+  let scheduledMatchedSampleCount = 0;
+  let scheduledWeightedHeadwaySum = 0;
+
+  for (const window of input.accumulator.windows.values()) {
+    if (window.weatherImpacted.sampleCount === 0 || window.reference.sampleCount === 0) {
+      continue;
+    }
+    const dayType = dayTypeForDayOfWeek(window.dayOfWeek);
+    const exactKey = scheduledWindowKey({
+      routeId: input.routeId,
+      dayType,
+      hourOfDay: window.hourOfDay,
+      stopId: window.stopId,
+    });
+    const fallbackKey = scheduledRouteHourWindowKey({
+      routeId: input.routeId,
+      dayType,
+      hourOfDay: window.hourOfDay,
+    });
+    const exactScheduled = input.scheduledWindows.get(exactKey);
+    const fallbackScheduled = input.scheduledWindows.get(fallbackKey);
+    const scheduled =
+      exactScheduled !== undefined && exactScheduled.intervalCount > 0
+        ? exactScheduled
+        : fallbackScheduled;
+    if (scheduled === undefined || scheduled.intervalCount === 0) {
+      continue;
+    }
+    const observedSampleCount = window.weatherImpacted.sampleCount + window.reference.sampleCount;
+    scheduledWindowCount += 1;
+    if (scheduled === exactScheduled) {
+      scheduledExactWindowCount += 1;
+    } else {
+      scheduledFallbackWindowCount += 1;
+    }
+    scheduledMatchedSampleCount += observedSampleCount;
+    scheduledWeightedHeadwaySum +=
+      (scheduled.headwaySumMinutes / scheduled.intervalCount) * observedSampleCount;
+  }
+
+  const scheduledSampleCoverageShare =
+    totalControlledSamples === 0
+      ? null
+      : round(scheduledMatchedSampleCount / totalControlledSamples);
+  const scheduledAverageHeadwayMinutes =
+    scheduledMatchedSampleCount === 0
+      ? null
+      : round(scheduledWeightedHeadwaySum / scheduledMatchedSampleCount);
+  const scheduledExpectedWaitMinutes =
+    scheduledAverageHeadwayMinutes === null ? null : round(scheduledAverageHeadwayMinutes / 2);
+  const observedBucket = emptyWeatherReliabilityBucket();
+  mergeWeatherReliabilityBucket(observedBucket, input.controlled.weatherImpacted);
+  mergeWeatherReliabilityBucket(observedBucket, input.controlled.reference);
+  const observedExpectedWaitMinutes = expectedWaitForBucket(observedBucket);
+  const status =
+    scheduledMatchedSampleCount === 0
+      ? "missing"
+      : (scheduledSampleCoverageShare ?? 0) >= 0.8
+        ? "available"
+        : "partial";
+  const bestMatchMethod =
+    scheduledWindowCount === 0
+      ? "none"
+      : scheduledExactWindowCount > 0 && scheduledFallbackWindowCount > 0
+        ? "mixed"
+        : scheduledFallbackWindowCount > 0
+          ? "route_hour_fallback"
+          : "exact_stop_hour";
+
+  return {
+    status,
+    bestMatchMethod,
+    scheduledWindowCount,
+    scheduledExactWindowCount,
+    scheduledFallbackWindowCount,
+    scheduledMatchedSampleCount,
+    scheduledSampleCoverageShare,
+    scheduledAverageHeadwayMinutes,
+    scheduledExpectedWaitMinutes,
+    observedExpectedWaitMinutes,
+    observedToScheduledExpectedWaitRatio: ratio(
+      observedExpectedWaitMinutes,
+      scheduledExpectedWaitMinutes,
+    ),
+  };
+}
+
+function passengerLoadControlStats(input: {
+  controlled: ReturnType<typeof controlledWeatherBuckets>;
+}): PassengerLoadControlStats {
+  const totalControlledSamples =
+    input.controlled.weatherImpacted.sampleCount + input.controlled.reference.sampleCount;
+  const matchedSampleCount =
+    input.controlled.weatherImpacted.ridershipSampleCount +
+    input.controlled.reference.ridershipSampleCount;
+  const ridershipSum =
+    input.controlled.weatherImpacted.ridershipSum + input.controlled.reference.ridershipSum;
+  const transferSum =
+    input.controlled.weatherImpacted.transferSum + input.controlled.reference.transferSum;
+  const sampleCoverageShare =
+    totalControlledSamples === 0 ? null : round(matchedSampleCount / totalControlledSamples);
+  const status =
+    matchedSampleCount === 0
+      ? "missing"
+      : (sampleCoverageShare ?? 0) >= 0.8
+        ? "available"
+        : "partial";
+
+  return {
+    status,
+    matchedSampleCount,
+    sampleCoverageShare,
+    averageRidership: matchedSampleCount === 0 ? null : round(ridershipSum / matchedSampleCount),
+    averageTransfers: matchedSampleCount === 0 ? null : round(transferSum / matchedSampleCount),
+  };
+}
+
+function averageIncidentWeightForBucket(bucket: WeatherReliabilityBucket): number | null {
+  return bucket.incidentCheckedSampleCount === 0
+    ? null
+    : round(bucket.incidentWeightedEventSum / bucket.incidentCheckedSampleCount);
+}
+
+function incidentControlStats(input: {
+  controlled: ReturnType<typeof controlledWeatherBuckets>;
+}): IncidentControlStats {
+  const totalControlledSamples =
+    input.controlled.weatherImpacted.sampleCount + input.controlled.reference.sampleCount;
+  const checkedSampleCount =
+    input.controlled.weatherImpacted.incidentCheckedSampleCount +
+    input.controlled.reference.incidentCheckedSampleCount;
+  const sampleCoverageShare =
+    totalControlledSamples === 0 ? null : round(checkedSampleCount / totalControlledSamples);
+  const status =
+    checkedSampleCount === 0
+      ? "missing"
+      : (sampleCoverageShare ?? 0) >= 0.8
+        ? "available"
+        : "partial";
+  const weatherImpactedAverageIncidentWeight = averageIncidentWeightForBucket(
+    input.controlled.weatherImpacted,
+  );
+  const referenceAverageIncidentWeight = averageIncidentWeightForBucket(input.controlled.reference);
+
+  return {
+    status,
+    checkedSampleCount,
+    sampleCoverageShare,
+    weatherImpactedAverageIncidentWeight,
+    referenceAverageIncidentWeight,
+    incidentWeightDelta: delta(
+      weatherImpactedAverageIncidentWeight,
+      referenceAverageIncidentWeight,
+    ),
+  };
+}
+
+function longGapShareForBucket(bucket: WeatherReliabilityBucket): number | null {
+  return bucket.sampleCount === 0 ? null : round(bucket.longGapCount / bucket.sampleCount);
+}
+
+function delta(left: number | null, right: number | null): number | null {
+  return left === null || right === null ? null : round(left - right);
+}
+
+function ratio(numerator: number | null, denominator: number | null): number | null {
+  return numerator === null || denominator === null || denominator === 0
+    ? null
+    : round(numerator / denominator);
+}
+
+function dayTypeForDayOfWeek(dayOfWeek: string): "Saturday" | "Sunday" | "Weekday" {
+  if (dayOfWeek === "Saturday") return "Saturday";
+  if (dayOfWeek === "Sunday") return "Sunday";
+  return "Weekday";
+}
+
+function scheduleHourOfDay(scheduleTime: string): number | null {
+  const hour = Number(scheduleTime.slice(11, 13));
+  return Number.isInteger(hour) && hour >= 0 && hour <= 23 ? hour : null;
+}
+
+function scheduledWindowKey(input: {
+  routeId: string;
+  dayType: string;
+  hourOfDay: number;
+  stopId: string;
+}): string {
+  return [input.routeId, input.dayType, input.hourOfDay, input.stopId].join("::");
+}
+
+function scheduledRouteHourWindowKey(input: {
+  routeId: string;
+  dayType: string;
+  hourOfDay: number;
+}): string {
+  return [input.routeId, input.dayType, input.hourOfDay, "*"].join("::");
+}
+
+function ridershipWindowKey(input: {
+  routeId: string;
+  dayOfWeek: string;
+  hourOfDay: number;
+}): string {
+  return [input.routeId, input.dayOfWeek, input.hourOfDay].join("::");
+}
+
+function incidentWindowKey(input: {
+  routeId: string;
+  observedDate: string;
+  hourOfDay: number;
+}): string {
+  return [input.routeId, input.observedDate, input.hourOfDay].join("::");
+}
+
+function eventLocalWindowParts(occurredAt: string): {
+  observedDate: string;
+  hourOfDay: number;
+} | null {
+  const hasTimezone = /(?:Z|[+-]\d{2}:?\d{2})$/.test(occurredAt);
+  const localMatch = /^(\d{4}-\d{2}-\d{2})(?:[T\s](\d{1,2}))?/.exec(occurredAt);
+  if (!hasTimezone && localMatch !== null) {
+    const observedDate = localMatch[1];
+    const hour = Number(localMatch[2] ?? "0");
+    if (observedDate !== undefined && Number.isInteger(hour) && hour >= 0 && hour <= 23) {
+      return { observedDate, hourOfDay: hour };
+    }
+  }
+
+  const parsed = Date.parse(occurredAt);
+  if (Number.isNaN(parsed)) {
+    return null;
+  }
+  const parts = localWeatherWindowParts(parsed / 1000);
+  return { observedDate: parts.observedDate, hourOfDay: parts.hourOfDay };
+}
+
+function weatherReliabilitySampleSupport(input: {
+  weatherImpactedSampleCount: number;
+  referenceSampleCount: number;
+  minBucketSampleThreshold: number;
+}): RouteWeatherReliabilityContext["sampleSupport"] {
+  const hasWeather = input.weatherImpactedSampleCount >= input.minBucketSampleThreshold;
+  const hasReference = input.referenceSampleCount >= input.minBucketSampleThreshold;
+  if (hasWeather && hasReference) return "sufficient_split";
+  if (!hasWeather && hasReference) return "thin_weather_samples";
+  if (hasWeather && !hasReference) return "thin_reference_samples";
+  return "insufficient_split";
+}
+
+function weatherReliabilityInterpretation(input: {
+  sampleSupport: RouteWeatherReliabilityContext["sampleSupport"];
+  expectedWaitDeltaMinutes: number | null;
+  longGapShareDelta: number | null;
+  referenceLongGapShare: number | null;
+}): RouteWeatherReliabilityContext["interpretation"] {
+  if (input.sampleSupport !== "sufficient_split") return "insufficient_split";
+  const waitDelta = input.expectedWaitDeltaMinutes ?? 0;
+  const longGapDelta = input.longGapShareDelta ?? 0;
+  if (waitDelta >= 2 || longGapDelta >= 0.05) return "weather_conditions_worse";
+  if (waitDelta <= -2 || longGapDelta <= -0.05) return "reference_conditions_worse";
+  if ((input.referenceLongGapShare ?? 0) >= 0.2) return "reference_days_still_poor";
+  return "similar_weather_and_reference";
+}
+
+function listWeatherSplitByDate(args: {
+  sqlite: Database;
+  month: string;
+  monthEndDate: string;
+}): Map<string, DailyWeatherSplit> {
+  return new Map(
+    args.sqlite
+      .query<
+        {
+          date: string;
+          is_weather_impacted: number;
+        },
+        [string, string]
+      >(
+        `SELECT date,
+                max(CASE
+                  WHEN coalesce(prcp_mm, 0) >= ${weatherImpactedPrecipitationMmThreshold}
+                    OR coalesce(snow_mm, 0) > 0
+                    OR coalesce(has_rain, 0) = 1
+                    OR coalesce(has_snow, 0) = 1
+                    OR coalesce(has_high_wind, 0) = 1
+                    OR coalesce(awnd_ms, 0) >= ${weatherImpactedWindMsThreshold}
+                  THEN 1 ELSE 0 END) AS is_weather_impacted
+           FROM local_weather_observation
+          WHERE date >= ?
+            AND date < ?
+          GROUP BY date
+          ORDER BY date`,
+      )
+      .all(monthStartDate(args.month), args.monthEndDate)
+      .map((row) => [row.date, { isWeatherImpacted: row.is_weather_impacted === 1 }] as const),
+  );
+}
+
+function listBestObservedReliabilityRunsByRoute(args: {
+  sqlite: Database;
+  month: string;
+}): Map<string, WeatherReliabilityRouteRun> {
+  const output = new Map<string, WeatherReliabilityRouteRun>();
+  const rows = args.sqlite
+    .query<
+      {
+        route_id: string;
+        run_id: string;
+        long_gap_threshold_minutes: number | null;
+        sample_count: number;
+      },
+      [string]
+    >(
+      `SELECT route_id,
+              run_id,
+              long_gap_threshold_minutes,
+              sample_count
+         FROM local_route_observed_reliability_summary
+        WHERE month = ?
+          AND reliability_status = 'observed'
+        ORDER BY route_id, sample_count DESC, run_id`,
+    )
+    .all(args.month);
+
+  for (const row of rows) {
+    if (output.has(row.route_id)) continue;
+    output.set(row.route_id, {
+      routeId: row.route_id,
+      runId: row.run_id,
+      longGapThresholdMinutes: row.long_gap_threshold_minutes ?? 20,
+      sampleCount: row.sample_count,
+    });
+  }
+  return output;
+}
+
+function weatherReliabilityContextFromAccumulator(args: {
+  month: string;
+  routeId: string;
+  accumulator: WeatherReliabilityRouteAccumulator;
+  scheduledWindows: ReadonlyMap<string, ScheduledWindowStats>;
+}): RouteWeatherReliabilityContext {
+  const controlled = controlledWeatherBuckets(args.accumulator);
+  const plannedService = plannedServiceControlStats({
+    routeId: args.routeId,
+    accumulator: args.accumulator,
+    controlled,
+    scheduledWindows: args.scheduledWindows,
+  });
+  const passengerLoad = passengerLoadControlStats({ controlled });
+  const incidentControl = incidentControlStats({ controlled });
+  const weatherExpectedWait = expectedWaitForBucket(args.accumulator.weatherImpacted);
+  const referenceExpectedWait = expectedWaitForBucket(args.accumulator.reference);
+  const weatherLongGapShare = longGapShareForBucket(args.accumulator.weatherImpacted);
+  const referenceLongGapShare = longGapShareForBucket(args.accumulator.reference);
+  const expectedWaitDeltaMinutes = delta(weatherExpectedWait, referenceExpectedWait);
+  const longGapShareDelta = delta(weatherLongGapShare, referenceLongGapShare);
+  const controlledWeatherExpectedWait = expectedWaitForBucket(controlled.weatherImpacted);
+  const controlledReferenceExpectedWait = expectedWaitForBucket(controlled.reference);
+  const controlledWeatherLongGapShare = longGapShareForBucket(controlled.weatherImpacted);
+  const controlledReferenceLongGapShare = longGapShareForBucket(controlled.reference);
+  const controlledExpectedWaitDeltaMinutes = delta(
+    controlledWeatherExpectedWait,
+    controlledReferenceExpectedWait,
+  );
+  const controlledLongGapShareDelta = delta(
+    controlledWeatherLongGapShare,
+    controlledReferenceLongGapShare,
+  );
+  const sampleSupport = weatherReliabilitySampleSupport({
+    weatherImpactedSampleCount: args.accumulator.weatherImpacted.sampleCount,
+    referenceSampleCount: args.accumulator.reference.sampleCount,
+    minBucketSampleThreshold: weatherReliabilityMinBucketSamples,
+  });
+  const controlledWindowSampleSupport = weatherReliabilitySampleSupport({
+    weatherImpactedSampleCount: controlled.weatherImpacted.sampleCount,
+    referenceSampleCount: controlled.reference.sampleCount,
+    minBucketSampleThreshold: weatherReliabilityMinBucketSamples,
+  });
+
+  return {
+    artifactKind: "route_weather_reliability_context",
+    month: args.month,
+    runId: args.accumulator.runId,
+    releaseLayer: "baseline_release",
+    routeId: args.routeId,
+    normalizationStatus: "route_day_weather_split",
+    sampleSupport,
+    interpretation: weatherReliabilityInterpretation({
+      sampleSupport,
+      expectedWaitDeltaMinutes,
+      longGapShareDelta,
+      referenceLongGapShare,
+    }),
+    minBucketSampleThreshold: weatherReliabilityMinBucketSamples,
+    weatherImpactedDayCount: args.accumulator.weatherImpacted.dates.size,
+    referenceDayCount: args.accumulator.reference.dates.size,
+    weatherImpactedSampleCount: args.accumulator.weatherImpacted.sampleCount,
+    referenceSampleCount: args.accumulator.reference.sampleCount,
+    weatherImpactedExpectedWaitMinutes: weatherExpectedWait,
+    referenceExpectedWaitMinutes: referenceExpectedWait,
+    expectedWaitDeltaMinutes,
+    weatherImpactedLongGapShare: weatherLongGapShare,
+    referenceLongGapShare,
+    longGapShareDelta,
+    controlledWindowCount: controlled.windowCount,
+    controlledWindowSampleSupport,
+    controlledWindowInterpretation: weatherReliabilityInterpretation({
+      sampleSupport: controlledWindowSampleSupport,
+      expectedWaitDeltaMinutes: controlledExpectedWaitDeltaMinutes,
+      longGapShareDelta: controlledLongGapShareDelta,
+      referenceLongGapShare: controlledReferenceLongGapShare,
+    }),
+    controlledWeatherImpactedSampleCount: controlled.weatherImpacted.sampleCount,
+    controlledReferenceSampleCount: controlled.reference.sampleCount,
+    controlledWeatherImpactedExpectedWaitMinutes: controlledWeatherExpectedWait,
+    controlledReferenceExpectedWaitMinutes: controlledReferenceExpectedWait,
+    controlledExpectedWaitDeltaMinutes,
+    controlledWeatherImpactedLongGapShare: controlledWeatherLongGapShare,
+    controlledReferenceLongGapShare: controlledReferenceLongGapShare,
+    controlledLongGapShareDelta,
+    plannedServiceControlStatus: plannedService.status,
+    plannedServiceBestMatchMethod: plannedService.bestMatchMethod,
+    controlledScheduledWindowCount: plannedService.scheduledWindowCount,
+    controlledScheduledExactWindowCount: plannedService.scheduledExactWindowCount,
+    controlledScheduledFallbackWindowCount: plannedService.scheduledFallbackWindowCount,
+    controlledScheduledMatchedSampleCount: plannedService.scheduledMatchedSampleCount,
+    controlledScheduledSampleCoverageShare: plannedService.scheduledSampleCoverageShare,
+    controlledScheduledAverageHeadwayMinutes: plannedService.scheduledAverageHeadwayMinutes,
+    controlledScheduledExpectedWaitMinutes: plannedService.scheduledExpectedWaitMinutes,
+    controlledObservedExpectedWaitMinutes: plannedService.observedExpectedWaitMinutes,
+    controlledObservedToScheduledExpectedWaitRatio:
+      plannedService.observedToScheduledExpectedWaitRatio,
+    passengerLoadControlStatus: passengerLoad.status,
+    controlledPassengerLoadMatchedSampleCount: passengerLoad.matchedSampleCount,
+    controlledPassengerLoadSampleCoverageShare: passengerLoad.sampleCoverageShare,
+    controlledPassengerLoadAverageRidership: passengerLoad.averageRidership,
+    controlledPassengerLoadAverageTransfers: passengerLoad.averageTransfers,
+    incidentControlStatus: incidentControl.status,
+    controlledIncidentCheckedSampleCount: incidentControl.checkedSampleCount,
+    controlledIncidentSampleCoverageShare: incidentControl.sampleCoverageShare,
+    controlledWeatherImpactedAverageIncidentWeight:
+      incidentControl.weatherImpactedAverageIncidentWeight,
+    controlledReferenceAverageIncidentWeight: incidentControl.referenceAverageIncidentWeight,
+    controlledIncidentWeightDelta: incidentControl.incidentWeightDelta,
+    longGapThresholdMinutes: args.accumulator.longGapThresholdMinutes,
+    weatherImpactDefinition: {
+      precipitationMmAtLeast: weatherImpactedPrecipitationMmThreshold,
+      windMsAtLeast: weatherImpactedWindMsThreshold,
+      includesSnowOrWeatherFlags: true,
+    },
+    caveats: [
+      "This is a route-day weather split over observed headway samples, not a causal weather model.",
+      "Controlled-window fields compare only local day-of-week, hour, direction, and stop buckets that have both weather-impacted and reference samples.",
+      "Planned-service controls use scheduled timepoints by exact stop/hour when possible, with a route-hour fallback when exact stop alignment is unavailable; they do not prove what service actually ran.",
+      "Passenger-load controls use route/day/hour ridership profiles, not stop-level crowding.",
+      "Incident controls use route/date/hour event-touch density; they do not prove incident causality or exact stop exposure.",
+      "Dates are joined at daily grain; same-day weather can still miss the exact conditions during a specific headway sample.",
+    ],
+    sourceRefs: [
+      `local_observed_headway_sample:${args.accumulator.runId}:${args.routeId}:${args.month}`,
+      `local_weather_observation:${args.month}`,
+      `local_route_schedule_timepoint:${args.month}`,
+      `local_route_hourly_ridership:${args.month}`,
+      `local_context_event_route_touch:${args.month}`,
+    ],
+  };
+}
+
+function listWeatherReliabilityContextByRoute(args: {
+  sqlite: Database;
+  month: string;
+  monthEndDate: string;
+}): Map<string, RouteWeatherReliabilityContext> {
+  const weatherByDate = listWeatherSplitByDate(args);
+  if (weatherByDate.size === 0) return new Map();
+
+  const bestRunsByRoute = listBestObservedReliabilityRunsByRoute(args);
+  if (bestRunsByRoute.size === 0) return new Map();
+
+  const routeRunByKey = new Map(
+    [...bestRunsByRoute.values()].map((run) => [`${run.runId}:${run.routeId}`, run] as const),
+  );
+  const runIds = [...new Set([...bestRunsByRoute.values()].map((run) => run.runId))].sort();
+  const scheduledWindows = listScheduledWindowStats({
+    sqlite: args.sqlite,
+    month: args.month,
+    routeIds: [...bestRunsByRoute.keys()].sort(),
+  });
+  const ridershipWindows = listRidershipWindowStats({
+    sqlite: args.sqlite,
+    month: args.month,
+    routeIds: [...bestRunsByRoute.keys()].sort(),
+  });
+  const incidentWindows = listIncidentWindowStats({
+    sqlite: args.sqlite,
+    month: args.month,
+    monthEndDate: args.monthEndDate,
+    routeIds: [...bestRunsByRoute.keys()].sort(),
+  });
+  const routeAccumulators = new Map<string, WeatherReliabilityRouteAccumulator>();
+  const bounds = monthUnixBounds(args.month);
+  const sampleQuery = args.sqlite.query<
+    {
+      route_id: string;
+      run_id: string;
+      observed_timestamp: number;
+      direction_id: number | null;
+      stop_id: string;
+      headway_minutes: number;
+    },
+    [string, number, number]
+  >(
+    `SELECT route_id,
+            run_id,
+            observed_timestamp,
+            direction_id,
+            stop_id,
+            headway_minutes
+       FROM local_observed_headway_sample
+      WHERE run_id = ?
+        AND observed_timestamp >= ?
+        AND observed_timestamp < ?
+        AND headway_minutes > 0`,
+  );
+
+  for (const runId of runIds) {
+    for (const row of sampleQuery.iterate(runId, bounds.startSeconds, bounds.endSeconds)) {
+      const routeRun = routeRunByKey.get(`${row.run_id}:${row.route_id}`);
+      if (routeRun === undefined) continue;
+      const parts = localWeatherWindowParts(row.observed_timestamp);
+      const weather = weatherByDate.get(parts.observedDate);
+      if (weather === undefined) continue;
+      const accumulator = routeAccumulators.get(row.route_id) ?? {
+        runId: routeRun.runId,
+        longGapThresholdMinutes: routeRun.longGapThresholdMinutes,
+        weatherImpacted: emptyWeatherReliabilityBucket(),
+        reference: emptyWeatherReliabilityBucket(),
+        windows: new Map<string, WeatherReliabilityWindowAccumulator>(),
+      };
+      const windowKey = [
+        parts.dayOfWeek,
+        parts.hourOfDay,
+        row.direction_id ?? "unknown_direction",
+        row.stop_id,
+      ].join("::");
+      const window = accumulator.windows.get(windowKey) ?? {
+        dayOfWeek: parts.dayOfWeek,
+        hourOfDay: parts.hourOfDay,
+        directionId: String(row.direction_id ?? "unknown_direction"),
+        stopId: row.stop_id,
+        weatherImpacted: emptyWeatherReliabilityBucket(),
+        reference: emptyWeatherReliabilityBucket(),
+      };
+      const targetBucket = weather.isWeatherImpacted
+        ? accumulator.weatherImpacted
+        : accumulator.reference;
+      const targetWindowBucket = weather.isWeatherImpacted
+        ? window.weatherImpacted
+        : window.reference;
+      const ridership = ridershipWindows.get(
+        ridershipWindowKey({
+          routeId: row.route_id,
+          dayOfWeek: parts.dayOfWeek,
+          hourOfDay: parts.hourOfDay,
+        }),
+      );
+      const incident = incidentWindows.windows.get(
+        incidentWindowKey({
+          routeId: row.route_id,
+          observedDate: parts.observedDate,
+          hourOfDay: parts.hourOfDay,
+        }),
+      );
+      updateWeatherReliabilityBucket(targetBucket, {
+        observedDate: parts.observedDate,
+        headwayMinutes: row.headway_minutes,
+        longGapThresholdMinutes: routeRun.longGapThresholdMinutes,
+        ridership,
+        incident,
+        incidentControlsAvailable: incidentWindows.hasRows,
+      });
+      updateWeatherReliabilityBucket(targetWindowBucket, {
+        observedDate: parts.observedDate,
+        headwayMinutes: row.headway_minutes,
+        longGapThresholdMinutes: routeRun.longGapThresholdMinutes,
+        ridership,
+        incident,
+        incidentControlsAvailable: incidentWindows.hasRows,
+      });
+      accumulator.windows.set(windowKey, window);
+      routeAccumulators.set(row.route_id, accumulator);
+    }
+  }
+
+  return new Map(
+    [...routeAccumulators.entries()].map(([routeId, accumulator]) => [
+      routeId,
+      weatherReliabilityContextFromAccumulator({
+        month: args.month,
+        routeId,
+        accumulator,
+        scheduledWindows,
+      }),
+    ]),
+  );
+}
+
+function percentileRanks<T>(
+  rows: readonly T[],
+  valueFor: (row: T) => number | null,
+  invert = false,
+): Map<T, number> {
+  const scored = rows
+    .map((row) => ({ row, value: valueFor(row) }))
+    .filter((row): row is { row: T; value: number } => row.value !== null)
+    .sort((left, right) => left.value - right.value);
+  const output = new Map<T, number>();
+  const denominator = Math.max(1, scored.length - 1);
+  scored.forEach((row, index) => {
+    const rank = index / denominator;
+    output.set(row.row, invert ? 1 - rank : rank);
+  });
+  return output;
+}
+
+function equityPriorityBand(
+  score: number | null,
+): EquityPrioritizationContext["equityPriorityBand"] {
+  if (score === null) return "unscored";
+  if (score >= 75) return "high";
+  if (score >= 50) return "medium";
+  return "reference";
+}
+
+function listEquityPrioritizationContextByRoute(args: {
+  sqlite: Database;
+  month: string;
+}): Map<string, EquityPrioritizationContext> {
+  const rows = args.sqlite
+    .query<
+      {
+        route_id: string;
+        acs_year: number;
+        assignment_geography: string;
+        assignment_method: string;
+        tract_count: number;
+        no_vehicle_household_share: number | null;
+        poverty_rate: number | null;
+        public_transit_commuter_share: number | null;
+        median_household_income: number | null;
+      },
+      [string]
+    >(
+      `SELECT route_id,
+              acs_year,
+              assignment_geography,
+              assignment_method,
+              tract_count,
+              no_vehicle_household_share,
+              poverty_rate,
+              public_transit_commuter_share,
+              median_household_income
+         FROM local_route_equity_context
+        WHERE month = ?
+        ORDER BY route_id`,
+    )
+    .all(args.month);
+
+  const noVehicleRanks = percentileRanks(rows, (row) => row.no_vehicle_household_share);
+  const povertyRanks = percentileRanks(rows, (row) => row.poverty_rate);
+  const transitRanks = percentileRanks(rows, (row) => row.public_transit_commuter_share);
+  const lowIncomeRanks = percentileRanks(rows, (row) => row.median_household_income, true);
+  const output = new Map<string, EquityPrioritizationContext>();
+
+  for (const row of rows) {
+    const rankInputs = [
+      noVehicleRanks.get(row),
+      povertyRanks.get(row),
+      transitRanks.get(row),
+      lowIncomeRanks.get(row),
+    ].filter((value): value is number => value !== undefined);
+    const score =
+      rankInputs.length === 0
+        ? null
+        : round((rankInputs.reduce((total, value) => total + value, 0) / rankInputs.length) * 100);
+    output.set(row.route_id, {
+      artifactKind: "route_equity_prioritization_context",
+      month: args.month,
+      releaseLayer: "baseline_release",
+      routeId: row.route_id,
+      acsYear: row.acs_year,
+      assignmentGeography: row.assignment_geography,
+      assignmentMethod: row.assignment_method,
+      tractCount: row.tract_count,
+      noVehicleHouseholdShare: roundNullable(row.no_vehicle_household_share),
+      povertyRate: roundNullable(row.poverty_rate),
+      publicTransitCommuterShare: roundNullable(row.public_transit_commuter_share),
+      medianHouseholdIncome: roundNullable(row.median_household_income, 2),
+      equityPriorityScore: score,
+      equityPriorityBand: equityPriorityBand(score),
+      caveats: [
+        "Equity context is a prioritization lens, not a detector cause.",
+        "Route assignment uses the current route-equity context artifact and should be reviewed before weighting public rankings.",
+      ],
+      sourceRefs: [`local_route_equity_context:${row.route_id}:${args.month}`],
+    });
+  }
+
+  return output;
+}
+
+function latestTrafficVolumeMonth(sqlite: Database, releaseMonth: string): string | null {
+  const row = sqlite
+    .query<{ source_month: string | null }, [string]>(
+      `SELECT max(substr(sampled_at, 1, 7)) AS source_month
+         FROM local_dot_traffic_volume_count
+        WHERE physical_id IS NOT NULL
+          AND substr(sampled_at, 1, 7) <= ?`,
+    )
+    .get(releaseMonth);
+  return row?.source_month ?? null;
+}
+
+function listTrafficVolumeContextByRoute(args: {
+  sqlite: Database;
+  releaseMonth: string;
+}): Map<string, TrafficVolumeContext> {
+  const sourceMonth = latestTrafficVolumeMonth(args.sqlite, args.releaseMonth);
+  if (sourceMonth === null) return new Map();
+
+  const rows = args.sqlite
+    .query<
+      {
+        route_id: string;
+        observation_count: number;
+        physical_id_count: number;
+        day_count: number;
+        weighted_volume_sum: number | null;
+        average_volume_per_observation: number | null;
+        peak_volume: number | null;
+        average_match_weight: number | null;
+        max_route_fanout: number | null;
+      },
+      [string]
+    >(
+      `WITH fanout AS (
+         SELECT physical_id, count(DISTINCT route_id) AS route_fanout
+           FROM local_route_lion_link
+          GROUP BY physical_id
+       ),
+       route_volume AS (
+         SELECT l.route_id,
+                v.request_id,
+                v.segment_id,
+                v.sampled_at,
+                v.physical_id,
+                v.volume,
+                f.route_fanout
+           FROM local_dot_traffic_volume_count v
+           JOIN local_route_lion_link l ON l.physical_id = v.physical_id
+           JOIN fanout f ON f.physical_id = v.physical_id
+          WHERE substr(v.sampled_at, 1, 7) = ?
+       )
+       SELECT route_id,
+              count(*) AS observation_count,
+              count(DISTINCT physical_id) AS physical_id_count,
+              count(DISTINCT substr(sampled_at, 1, 10)) AS day_count,
+              sum(volume * (1.0 / route_fanout)) AS weighted_volume_sum,
+              avg(volume) AS average_volume_per_observation,
+              max(volume) AS peak_volume,
+              avg(1.0 / route_fanout) AS average_match_weight,
+              max(route_fanout) AS max_route_fanout
+         FROM route_volume
+        GROUP BY route_id
+        ORDER BY route_id`,
+    )
+    .all(sourceMonth);
+
+  return new Map(
+    rows.map((row) => {
+      const lag = lagMonths(sourceMonth, args.releaseMonth);
+      return [
+        row.route_id,
+        {
+          artifactKind: "route_traffic_volume_context",
+          releaseMonth: args.releaseMonth,
+          sourceMonth,
+          releaseLayer: "release_context",
+          temporalRelation: evidenceTemporalRelation(sourceMonth, args.releaseMonth),
+          lagMonths: lag,
+          routeId: row.route_id,
+          observationCount: row.observation_count,
+          physicalIdCount: row.physical_id_count,
+          dayCount: row.day_count,
+          weightedVolumeSum: round(row.weighted_volume_sum ?? 0, 2),
+          averageVolumePerObservation: roundNullable(row.average_volume_per_observation, 2),
+          peakVolume: roundNullable(row.peak_volume, 2),
+          averageMatchWeight: roundNullable(row.average_match_weight),
+          maxRouteFanout: row.max_route_fanout ?? 0,
+          caveats: [
+            "DOT traffic volume is route-adjacent street context, not bus operating speed.",
+            `Volume context is ${lag} month${lag === 1 ? "" : "s"} from the release month; do not cite as same-month evidence when lagMonths > 0.`,
+          ],
+          sourceRefs: [`local_dot_traffic_volume_count:${row.route_id}:${sourceMonth}`],
+        },
+      ];
+    }),
+  );
+}
+
+function latestTrafficSpeedDay(sqlite: Database): string | null {
+  const row = sqlite
+    .query<{ source_day: string | null }, []>(
+      `SELECT max(substr(sampled_at, 1, 10)) AS source_day
+         FROM local_dot_traffic_speed
+        WHERE physical_id IS NOT NULL`,
+    )
+    .get();
+  return row?.source_day ?? null;
+}
+
+function listCurrentTrafficSpeedContextByRoute(args: {
+  sqlite: Database;
+  releaseMonth: string;
+}): Map<string, CurrentTrafficSpeedContext> {
+  const sourceDay = latestTrafficSpeedDay(args.sqlite);
+  if (sourceDay === null) return new Map();
+  const sourceMonth = sourceDay.slice(0, 7);
+
+  const rows = args.sqlite
+    .query<
+      {
+        route_id: string;
+        link_sample_count: number;
+        speed_sample_count: number | null;
+        average_traffic_speed_mph: number | null;
+        min_traffic_speed_mph: number | null;
+        slow_link_sample_count: number | null;
+        status_codes: string | null;
+        average_match_weight: number | null;
+        max_route_fanout: number | null;
+      },
+      [string]
+    >(
+      `WITH fanout AS (
+         SELECT physical_id, count(DISTINCT route_id) AS route_fanout
+           FROM local_route_lion_link
+          GROUP BY physical_id
+       ),
+       route_speed AS (
+         SELECT l.route_id,
+                s.link_id,
+                s.speed,
+                s.status_code,
+                f.route_fanout
+           FROM local_dot_traffic_speed s
+           JOIN local_route_lion_link l ON l.physical_id = s.physical_id
+           JOIN fanout f ON f.physical_id = s.physical_id
+          WHERE substr(s.sampled_at, 1, 10) = ?
+       )
+       SELECT route_id,
+              count(*) AS link_sample_count,
+              sum(CASE WHEN speed IS NOT NULL THEN 1 ELSE 0 END) AS speed_sample_count,
+              avg(speed) AS average_traffic_speed_mph,
+              min(speed) AS min_traffic_speed_mph,
+              sum(CASE WHEN speed IS NOT NULL AND speed < 10 THEN 1 ELSE 0 END)
+                AS slow_link_sample_count,
+              group_concat(DISTINCT status_code) AS status_codes,
+              avg(1.0 / route_fanout) AS average_match_weight,
+              max(route_fanout) AS max_route_fanout
+         FROM route_speed
+        GROUP BY route_id
+        ORDER BY route_id`,
+    )
+    .all(sourceDay);
+
+  return new Map(
+    rows.map((row) => [
+      row.route_id,
+      {
+        artifactKind: "route_current_traffic_speed_context",
+        releaseMonth: args.releaseMonth,
+        currentSignalDay: sourceDay,
+        currentSignalMonth: sourceMonth,
+        releaseLayer: "current_signal",
+        temporalRelation: currentSignalTemporalRelation(sourceMonth, args.releaseMonth),
+        monthOffsetFromRelease: monthOffsetFromRelease(sourceMonth, args.releaseMonth),
+        routeId: row.route_id,
+        linkSampleCount: row.link_sample_count,
+        speedSampleCount: row.speed_sample_count ?? 0,
+        averageTrafficSpeedMph: roundNullable(row.average_traffic_speed_mph, 2),
+        minTrafficSpeedMph: roundNullable(row.min_traffic_speed_mph, 2),
+        slowLinkSampleCount: row.slow_link_sample_count ?? 0,
+        statusCodes: row.status_codes?.split(",").sort() ?? [],
+        averageMatchWeight: roundNullable(row.average_match_weight),
+        maxRouteFanout: row.max_route_fanout ?? 0,
+        caveats: [
+          "DOT realtime traffic speed is a current-condition appendix, not historical March release evidence.",
+          "Traffic link speed is street-link context and may not equal observed bus operating speed.",
+        ],
+        sourceRefs: [`local_dot_traffic_speed:${row.route_id}:${sourceDay}`],
+      },
+    ]),
+  );
+}
+
+export function buildSupplementalRouteEvidenceContext(args: {
+  sqlite: Database;
+  month: string;
+  monthEndDate: string;
+}): SupplementalRouteEvidenceContext {
+  return {
+    weather: listWeatherNormalizationContext({
+      sqlite: args.sqlite,
+      month: args.month,
+      monthEndDate: args.monthEndDate,
+    }),
+    weatherReliabilityByRoute: listWeatherReliabilityContextByRoute({
+      sqlite: args.sqlite,
+      month: args.month,
+      monthEndDate: args.monthEndDate,
+    }),
+    equityByRoute: listEquityPrioritizationContextByRoute({
+      sqlite: args.sqlite,
+      month: args.month,
+    }),
+    trafficVolumeByRoute: listTrafficVolumeContextByRoute({
+      sqlite: args.sqlite,
+      releaseMonth: args.month,
+    }),
+    currentTrafficSpeedByRoute: listCurrentTrafficSpeedContextByRoute({
+      sqlite: args.sqlite,
+      releaseMonth: args.month,
+    }),
+  };
+}
+
+function supplementalEvidenceLinksForCandidate(
+  candidate: LocalFindingCandidate,
+  context: SupplementalRouteEvidenceContext,
+): LocalFindingEvidenceLink[] {
+  if (candidate.routeId === null) return [];
+
+  const links: LocalFindingEvidenceLink[] = [];
+  if (context.weather !== null) {
+    links.push(
+      FindingEvidenceLinkSchema.parse({
+        linkId: stableId(candidate.candidateId, "supplemental", "weather", context.weather.month),
+        candidateId: candidate.candidateId,
+        evidenceKind: "metric",
+        evidenceRole: candidate.category === "data_quality" ? "caveat" : "counter_evidence",
+        evidenceRef: JSON.stringify(context.weather),
+        evidenceWeight: null,
+        note: "Weather context is attached so reviewers can check whether weather weakens or scopes the detector claim; it is not a causal route diagnosis.",
+      }) as LocalFindingEvidenceLink,
+    );
+  }
+
+  const weatherReliability = context.weatherReliabilityByRoute.get(candidate.routeId);
+  if (
+    candidate.detectorId === OBSERVED_RELIABILITY_DETECTOR_ID &&
+    weatherReliability !== undefined
+  ) {
+    const weatherOnlyRisk =
+      weatherReliability.interpretation === "weather_conditions_worse" ||
+      weatherReliability.controlledWindowInterpretation === "weather_conditions_worse";
+    links.push(
+      FindingEvidenceLinkSchema.parse({
+        linkId: stableId(
+          candidate.candidateId,
+          "supplemental",
+          "weather_reliability",
+          candidate.routeId,
+          weatherReliability.runId,
+        ),
+        candidateId: candidate.candidateId,
+        evidenceKind: "metric",
+        evidenceRole:
+          weatherReliability.sampleSupport === "sufficient_split" && !weatherOnlyRisk
+            ? "counter_evidence"
+            : "caveat",
+        evidenceRef: JSON.stringify(weatherReliability),
+        evidenceWeight:
+          weatherReliability.sampleSupport === "sufficient_split"
+            ? Math.min(1, weatherReliability.referenceSampleCount / 1_000)
+            : null,
+        note:
+          weatherReliability.sampleSupport === "sufficient_split"
+            ? "Route-day observed headways are split by weather-impacted versus reference days to check whether reliability risk persists outside weather conditions."
+            : "Weather reliability split is attached as a caveat because one side of the split has thin sample support.",
+      }) as LocalFindingEvidenceLink,
+    );
+  }
+
+  const equity = context.equityByRoute.get(candidate.routeId);
+  if (equity !== undefined) {
+    links.push(
+      FindingEvidenceLinkSchema.parse({
+        linkId: stableId(candidate.candidateId, "supplemental", "equity", candidate.routeId),
+        candidateId: candidate.candidateId,
+        evidenceKind: "metric",
+        evidenceRole: "context",
+        evidenceRef: JSON.stringify(equity),
+        evidenceWeight:
+          equity.equityPriorityScore === null ? null : equity.equityPriorityScore / 100,
+        note: "Equity context can inform prioritization/review order, but it is not detector proof of a service issue.",
+      }) as LocalFindingEvidenceLink,
+    );
+  }
+
+  const trafficVolume = context.trafficVolumeByRoute.get(candidate.routeId);
+  if (trafficVolume !== undefined) {
+    links.push(
+      FindingEvidenceLinkSchema.parse({
+        linkId: stableId(
+          candidate.candidateId,
+          "supplemental",
+          "traffic_volume",
+          candidate.routeId,
+          trafficVolume.sourceMonth,
+        ),
+        candidateId: candidate.candidateId,
+        evidenceKind: "context_event",
+        evidenceRole: "context",
+        evidenceRef: JSON.stringify(trafficVolume),
+        evidenceWeight: trafficVolume.averageMatchWeight,
+        note: "DOT traffic-volume context is route-adjacent street evidence; use it for review context, not as detector-grade cause.",
+      }) as LocalFindingEvidenceLink,
+    );
+  }
+
+  const currentTrafficSpeed = context.currentTrafficSpeedByRoute.get(candidate.routeId);
+  if (currentTrafficSpeed !== undefined) {
+    links.push(
+      FindingEvidenceLinkSchema.parse({
+        linkId: stableId(
+          candidate.candidateId,
+          "supplemental",
+          "current_traffic_speed",
+          candidate.routeId,
+          currentTrafficSpeed.currentSignalDay,
+        ),
+        candidateId: candidate.candidateId,
+        evidenceKind: "metric",
+        evidenceRole: "caveat",
+        evidenceRef: JSON.stringify(currentTrafficSpeed),
+        evidenceWeight: currentTrafficSpeed.averageMatchWeight,
+        note: "Current DOT traffic speed is an appendix for present conditions and must not be cited as historical release-month evidence.",
+      }) as LocalFindingEvidenceLink,
+    );
+  }
+
+  return links;
+}
+
+function attachSupplementalRouteEvidence(
+  output: DetectorOutput,
+  context: SupplementalRouteEvidenceContext,
+): DetectorOutput {
+  const supplementalEvidence = output.candidates.flatMap((candidate) =>
+    supplementalEvidenceLinksForCandidate(candidate, context),
+  );
+  return {
+    candidates: output.candidates,
+    coverage: output.coverage,
+    evidence: [...output.evidence, ...supplementalEvidence],
+  };
+}
+
 type ReviewQueueCandidate = DetectorOutput["candidates"][number] & {
   evidenceRefs: string[];
 };
@@ -1931,6 +3697,7 @@ export async function buildFindings(args: FindingsDetectArgs = {}): Promise<Find
       windowStart: `${options.isoMonth}-01T00:00:00`,
       windowEnd: nextIsoMonthStart(options.year, options.month),
     });
+    const monthEnd = nextIsoMonthStart(options.year, options.month);
 
     const generatedAt = new Date().toISOString();
     const detectorRunId = detectorRunIdFor(SOURCE_GAP_DETECTOR_ID, options.isoMonth, generatedAt);
@@ -2069,31 +3836,46 @@ export async function buildFindings(args: FindingsDetectArgs = {}): Promise<Find
         comparisons: interventionComparisons,
       }),
     });
+    const supplementalRouteContext = buildSupplementalRouteEvidenceContext({
+      sqlite: local.sqlite,
+      month: options.isoMonth,
+      monthEndDate: monthEnd.slice(0, 10),
+    });
     const sourceGapWithContext = attachRouteContextEvidence(sourceGap, signalFeatures);
-    const persistentSpeedHotspotsWithContext = attachRouteContextEvidence(
-      persistentSpeedHotspots,
-      signalFeatures,
+    const persistentSpeedHotspotsWithContext = attachSupplementalRouteEvidence(
+      attachRouteContextEvidence(persistentSpeedHotspots, signalFeatures),
+      supplementalRouteContext,
     );
-    const multiMonthSpeedPeerWithContext = attachRouteContextEvidence(
-      multiMonthSpeedPeer,
-      signalFeatures,
+    const multiMonthSpeedPeerWithContext = attachSupplementalRouteEvidence(
+      attachRouteContextEvidence(multiMonthSpeedPeer, signalFeatures),
+      supplementalRouteContext,
     );
-    const observedReliabilityWithContext = attachRouteContextEvidence(
-      observedReliability,
-      signalFeatures,
+    const observedReliabilityWithContext = attachSupplementalRouteEvidence(
+      attachRouteContextEvidence(observedReliability, signalFeatures),
+      supplementalRouteContext,
     );
-    const interventionGapWithContext = attachRouteContextEvidence(interventionGap, signalFeatures);
-    const interventionUnderperformanceWithContext = attachRouteContextEvidence(
-      interventionUnderperformance,
-      signalFeatures,
+    const interventionGapWithContext = attachSupplementalRouteEvidence(
+      attachRouteContextEvidence(interventionGap, signalFeatures),
+      supplementalRouteContext,
     );
-    const permitCorrelatedSlowdownWithContext = attachRouteContextEvidence(
-      permitCorrelatedSlowdown,
-      signalFeatures,
+    const interventionUnderperformanceWithContext = attachSupplementalRouteEvidence(
+      attachRouteContextEvidence(interventionUnderperformance, signalFeatures),
+      supplementalRouteContext,
     );
-    const serviceRequestContextWithContext = serviceRequestContext;
-    const detectorOutputs = [
+    const permitCorrelatedSlowdownWithContext = attachSupplementalRouteEvidence(
+      attachRouteContextEvidence(permitCorrelatedSlowdown, signalFeatures),
+      supplementalRouteContext,
+    );
+    const serviceRequestContextWithContext = attachSupplementalRouteEvidence(
+      serviceRequestContext,
+      supplementalRouteContext,
+    );
+    const sourceGapWithSupplementalContext = attachSupplementalRouteEvidence(
       sourceGapWithContext,
+      supplementalRouteContext,
+    );
+    const detectorOutputs = [
+      sourceGapWithSupplementalContext,
       persistentSpeedHotspotsWithContext,
       multiMonthSpeedPeerWithContext,
       observedReliabilityWithContext,
@@ -2106,9 +3888,9 @@ export async function buildFindings(args: FindingsDetectArgs = {}): Promise<Find
     await replaceFindingsForMonth(local.db, {
       month: options.isoMonth,
       detectorId: SOURCE_GAP_DETECTOR_ID,
-      candidates: sourceGapWithContext.candidates,
-      evidence: sourceGapWithContext.evidence,
-      coverage: sourceGapWithContext.coverage,
+      candidates: sourceGapWithSupplementalContext.candidates,
+      evidence: sourceGapWithSupplementalContext.evidence,
+      coverage: sourceGapWithSupplementalContext.coverage,
     });
     await replaceFindingsForMonth(local.db, {
       month: options.isoMonth,

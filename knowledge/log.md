@@ -1432,3 +1432,140 @@ were not fabricated into approvals; they remain source-coverage/corpus context u
 per-finding features for them. `build:studio-release -- --month 2026-03 --finding-limit 202` now
 builds 202 reviewed findings: 2 manual reviewed findings plus the 200 promoted detector findings,
 and `audit:studio-coverage` passes with zero review candidates and zero missing detector audit refs.
+
+## [2026-05-24] engineering | Supplemental detector evidence for remaining ledger sources
+
+Added non-primary supplemental evidence links to `findings:detect` for the four ledger sources that
+were still corpus-only in March review packets: NOAA weather, route equity context, DOT automated
+traffic volumes, and DOT realtime traffic speeds. Weather now attaches as counter-evidence or a
+caveat with `weather_context_only` normalization status; equity attaches as prioritization context;
+traffic volume attaches as route-adjacent context with `lagMonths`; and realtime traffic speed
+attaches as a `current_signal` caveat with month offset from the release. None of these links can
+become primary detector evidence by accident.
+
+The read-only March DB check shows 673 route-scoped detector candidates across 302 routes. The new
+context would attach weather and equity to all 673 route-scoped candidates, current traffic-speed
+context to 198 candidates, and route-joined traffic-volume context to 25 candidates. The latest
+route-joined DOT traffic-volume source month is January 2024, while the latest DOT realtime speed
+day is 2026-05-18, so both sources stay appendix/context evidence rather than March detector-grade
+proof. Focused type checks, touched-file Biome, and the detector orchestrator test pass.
+
+## [2026-05-24] engineering | Studio context appendix for remaining ledger sources
+
+Added `findings:context-appendix`, a standalone March route-level appendix for weather, equity,
+route-joined DOT traffic volume, and DOT realtime traffic speed. `build:studio-release` now reads
+that appendix and adds public finding reasoning steps for the available route context while
+preserving promoted-finding ids, reviewer decisions, packet refs, and immutable hashes.
+
+The rebuilt March Studio release still has 202 reviewed findings and zero review candidates. All
+202 findings now include equity and weather reasoning, 3 include traffic-volume context, and 37
+include current-traffic appendices. `audit:studio-coverage --year 2026 --month 3` passes with 350
+public routes, 350 briefs, 202 reviewed findings, 200 detector-backed promoted findings, zero
+findings missing review records, and zero detector findings missing refs. This is public evidence
+coverage, not a true weather-normalized or traffic-normalized detector layer yet.
+
+## [2026-05-24] engineering | Route-day weather split for observed reliability
+
+Added the first descriptive weather-normalized evidence layer for observed reliability. The
+supplemental context builder now splits `local_observed_headway_sample` rows by weather-impacted
+versus reference days using NOAA daily precipitation, snow, wind, and weather flags, then records
+sample counts, long-gap shares, expected-wait deltas, support status, and interpretation per route.
+The observed-reliability detector path can attach this route-day split as non-primary
+counter-evidence or a caveat, and `findings:context-appendix` exposes it for public Studio finding
+reasoning.
+
+The real March appendix has 346 routes with weather reliability splits and 339 with sufficient
+samples on both sides of the split. The NOAA month summary now counts precipitation-derived rain
+days instead of relying only on sparse weather-type flags: March 2026 shows 9 rain days and 2
+high-wind days. The rebuilt Studio release still has 202 reviewed findings; all 202 now include an
+observed-reliability weather-split reasoning step. This remains descriptive, not causal: it does
+not yet control for day-of-week, hour, direction, stop mix, planned service, or incident context.
+
+## [2026-05-24] engineering | Matched-window controls for weather reliability
+
+Strengthened the observed-reliability weather split with matched local window controls. The
+appendix now computes the broad weather-day/reference-day comparison and a controlled comparison
+using only buckets that have both weather-impacted and reference samples for the same route, local
+day-of-week, hour, direction, and stop. Public Studio reasoning now reports the controlled
+interpretation and matched-window support instead of relying only on the broad route-day split.
+
+The real March appendix has 303 routes with sufficient matched-window support, 39 insufficient
+matched splits, and 4 thin-weather-sample matched splits. Controlled interpretations across the
+346 route split rows are: 215 reference-days-worse, 72 weather-conditions-worse, 13 reference-days
+still poor, 3 similar, and 43 insufficient. The rebuilt Studio release still has 202 reviewed
+findings and all 202 include the weather-split reasoning step. This is a better descriptive
+normalization layer, but still not a causal model because it does not control for planned service,
+incidents, passenger loads, or exact weather at sample time.
+
+## [2026-05-24] engineering | Planned-service controls for weather reliability
+
+Added planned-service support to the weather reliability split. The appendix now derives scheduled
+headway context from `local_route_schedule_timepoint` by route, schedule day type, hour, and stop,
+then attaches schedule coverage, scheduled expected wait, controlled observed expected wait, and an
+observed-to-scheduled expected-wait ratio to the matched weather-control windows. Studio finding
+reasoning now reports whether the planned-service control is available, partial, or missing.
+
+The real March appendix shows why this must remain a caveated control layer: across 346 weather
+reliability route rows, planned-service matching is available for 6, partial for 326, and missing
+for 14. Among the 202 public findings, 3 have available planned-service controls, 196 partial, and
+3 missing. The release still passes `audit:studio-coverage`. Next improvement should either improve
+schedule matching from observed direction/stop to GTFS scheduled stop patterns or add
+passenger-load/incident controls that do not depend on exact schedule-stop alignment.
+
+## [2026-05-24] engineering | Stronger weather-reliability controls
+
+Strengthened the observed-reliability weather split controls in two ways. Planned-service matching
+now tries exact route/day-type/hour/stop schedule windows first, then falls back to route/day-type/
+hour schedule context when observed stop IDs do not align with scheduled timepoint stop IDs. The
+context also carries passenger-load controls from `local_route_hourly_ridership` at route/day/hour
+grain and incident controls from `local_context_event_route_touch` at route/date/hour grain, so
+those controls do not depend on exact schedule-stop alignment.
+
+Real March 2026 appendix verification: 346 routes have weather reliability split rows; planned
+service, passenger load, and incident controls are each available for 336 rows and missing for 10
+rows. Planned-service match methods are 6 exact stop/hour, 326 mixed exact plus route-hour
+fallback, 4 route-hour fallback only, and 10 none. The rebuilt Studio release keeps the approved
+release posture: 202 findings, all reviewed, zero review candidates, 200 detector-backed promoted
+findings, and `audit:studio-coverage --year 2026 --month 3` passes. All 202 public findings carry
+the observed-reliability weather split; 199 have available passenger-load and incident controls in
+the public reasoning text.
+
+Follow-up verification hardening added those control counts directly to
+`finding_context_appendix.summary.weatherReliabilityControls`, and the CLI now prints
+`plannedServiceAvailable`, `passengerLoadAvailable`, and `incidentAvailable` counts. Rebuilding the
+March appendix reports 336 available for all three controls, with the same schedule-match method
+breakdown, and the refreshed Studio release still passes coverage audit.
+
+## [2026-05-24] engineering | Normalized controls in confidence calibration
+
+Started using the normalized observed-reliability controls in `audit:findings-backtest` instead of
+leaving them as public reasoning only. Gold-set expectations can now require
+`minimumNormalizedControlReadiness`, and the backtest artifact records matched normalized-control
+readiness plus control-adjusted confidence for every matched packet. Confidence calibration now
+adds `byDetectorConfidenceAndControls`, which buckets candidates by detector, raw confidence,
+control-adjusted confidence, normalized control readiness, schedule match method, passenger-load
+status, incident status, and controlled-window support.
+
+The calibration is conservative: observed-reliability candidates with strong controls keep their
+raw confidence; partial controls can cap high confidence at medium; weak or missing controls
+downgrade one confidence step. Rebuilding March review packets and rerunning the backtest produced
+100 observed-reliability candidates: 93 strong-control candidates and 7 weak/missing-control
+candidates whose adjusted confidence drops from high to medium. The 200 promoted approvals are now
+recovered for calibration through immutable promoted-finding signature matching, because direct
+review-decision candidate IDs drift after detector reruns. Backtest passes with 2/2 default gold
+expectations, 0 control misses, 200 approved calibration matches, and 6 warnings for approved
+observed-reliability findings with missing normalized controls.
+
+## [2026-05-24] planning | Agent-first contributor leaderboard
+
+Added [[wiki/engineering/agent_first_contributor_leaderboard|Agent-First Contributor Leaderboard]]
+as the plan of record for a contributor leaderboard where Codex/Claude-style agents can submit
+typed transit issue artifacts. The plan keeps the product bus-first, distinguishes contributor
+issues from internal route-batch audit issues, requires deterministic validation and duplicate
+fingerprinting before review, and awards points only through append-only score events after
+confirmed usefulness.
+
+The intended dogfood path is agent-first: an external coding agent discovers
+`/.well-known/bp-agent.json`, reads OpenAPI contracts, checks route/finding context, validates one
+`ContributorIssue` packet, and submits with an idempotency key. Public leaderboard pages are D1
+snapshot projections over verified score ledger events, not raw report counts.

@@ -36,6 +36,7 @@
     "findings:detect": "bun run src/cli.ts findings:detect",
     "findings:audit-feedback": "bun run src/cli.ts findings:audit-feedback",
     "findings:signal-features": "bun run src/cli.ts findings:signal-features",
+    "findings:context-appendix": "bun run src/cli.ts findings:context-appendix",
     "findings:promote": "bun run src/cli.ts findings:promote",
     "check:bus-observatory-gtfs-rt": "bun run src/cli.ts check:bus-observatory-gtfs-rt",
     "check:bus-observatory-gtfs-rt-range": "bun run src/cli.ts check:bus-observatory-gtfs-rt-range",

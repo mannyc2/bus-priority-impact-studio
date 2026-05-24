@@ -47,6 +47,15 @@ Finding Coverage v1 now has an implemented local evidence spine for the March 20
 - `audit:findings-backtest` now accepts richer gold-set expectations, including "should not
   surface" cases and minimum confidence checks, and adds detector/confidence calibration buckets
   from reviewer decisions when `review-decisions.json` exists.
+- `audit:findings-backtest` also uses the normalized observed-reliability control fields from
+  review-packet evidence. Gold expectations can require `minimumNormalizedControlReadiness`, and
+  calibration now records control-adjusted confidence plus buckets by detector/confidence/control
+  readiness, planned-service match method, passenger-load status, incident status, and
+  controlled-window support. The March proof currently has 100 observed-reliability candidates: 93
+  keep high confidence with strong controls, while 7 weak/missing-control candidates are adjusted
+  from high to medium for calibration. Because detector reruns can drift candidate IDs, the
+  backtest now recovers approved calibration rows from immutable promoted-finding snapshots by
+  detector/month/scope/reason signature; direct review-decision ID matches still take precedence.
 - If no promoted finding exists for a route, `build:studio-release` still fills public Studio
   findings from the detector review queue before using any route-score fallback. The current March
   proof without a reviewed promotion file produces 50 public findings: 2 reviewed/manual findings
@@ -60,12 +69,49 @@ Finding Coverage v1 now has an implemented local evidence spine for the March 20
 - `audit:studio-coverage` verifies that review provenance before publish. The March audit passes
   with 2 reviewed findings, 48 review candidates, 0 generated fallback findings, 0 missing review
   records, and no detector review candidate marked approved.
+- `findings:detect` now also attaches supplemental route evidence objects for ledger sources that
+  previously stayed corpus-only in March packets: citywide monthly weather context, route equity
+  prioritization context, route-adjacent DOT traffic-volume context, and DOT realtime traffic-speed
+  current-signal context. These links are deliberately non-primary: weather is counter-evidence or a
+  caveat, equity and traffic volume are context, and realtime traffic speed is a current-condition
+  caveat. The current DB would attach weather and equity to all 673 route-scoped March candidates,
+  current traffic speed to 198 candidates across 123 routes, and route-joined traffic volume to 25
+  candidates across 19 routes. Route-joined traffic-volume rows currently use January 2024 as the
+  latest joinable source month, so packets carry `lagMonths` and must not treat that source as
+  same-month March evidence.
+- `findings:context-appendix` now writes a route-level appendix for those same ledger sources, and
+  `build:studio-release` reads it into public finding reasoning without changing promoted-finding
+  ids or reviewer audit trails. The March 2026 Studio rebuild publishes 202 reviewed findings; all
+  202 carry equity and weather reasoning, 3 carry route-joined traffic-volume context, and 37 carry
+  DOT realtime current-traffic appendices. The appendix now includes a first route-day weather
+  reliability split from observed headway samples: 346 March routes have split rows, 339 have enough
+  weather-impacted and reference-day samples, 303 have sufficient matched local
+  day/hour/direction/stop control windows, and all 202 public findings carry that split in their
+  reasoning. Planned-service controls now try exact stop/hour schedule matching first, then fall
+  back to route/day-type/hour schedule context when exact stop alignment is unavailable. The March
+  route split rows now have 336 available and 10 missing planned-service controls; match methods
+  are 6 exact stop/hour, 326 mixed exact plus route-hour fallback, 4 route-hour fallback only, and
+  10 none. Passenger-load controls from `local_route_hourly_ridership` and incident controls from
+  `local_context_event_route_touch` are also attached at route/day/hour and route/date/hour grain,
+  avoiding dependence on exact schedule-stop alignment. Both are available for the same 336 route
+  split rows and missing for 10 rows without controlled windows. The appendix summary now records
+  those control-status counts plus the schedule-match method counts, so verification no longer
+  depends on one-off JSON queries. `audit:studio-coverage`
+  passes after the rebuild with 202 reviewed findings, 200 detector-backed promoted findings, 0
+  review candidates, and no missing detector audit refs.
 
 Important boundary: this makes all normalized context data available as evidence context, but it
 does not mean every source can drive primary detector claims. Parking remains context-only until
 fanout, weights, and promotion rules are explicitly reviewed. The `multi_month_speed_peer` detector
 is also review-only: it now uses matched route-family/type/geography peers when enough peers exist,
-but those groups are descriptive comparisons, not causal controls.
+but those groups are descriptive comparisons, not causal controls. Weather normalization has a first
+observed-reliability split at route-day grain plus matched local day/hour/direction/stop controls,
+planned-service controls with route-hour schedule fallback, and route-hour passenger-load and
+incident controls. It is still descriptive: the schedule fallback is not a stop-specific scheduled
+service proof, passenger load is a route-hour profile rather than vehicle crowding, incident
+exposure is route/date/hour event-touch density rather than exact stop causality, and exact weather
+at sample time is still unavailable. It also cannot normalize route speed until route-day/window
+speed observations are available.
 
 ## Post-v1 Answer
 

@@ -385,6 +385,16 @@ const commands = {
       return buildSignalFeaturesFromCli(args);
     },
   },
+  "findings:context-appendix": {
+    description:
+      "Build non-primary route context appendices for weather, equity, traffic volume, and current traffic speed.",
+    run: async (args) => {
+      const { buildFindingContextAppendixFromCli } = await import(
+        "./jobs/build/finding-context-appendix.js"
+      );
+      return buildFindingContextAppendixFromCli(args);
+    },
+  },
   "findings:promote": {
     description: "Capture reviewer decisions and write immutable promoted-finding artifacts.",
     run: async (args) => {
