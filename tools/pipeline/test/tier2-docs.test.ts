@@ -1371,10 +1371,78 @@ describe("Tier 2 document corpus capture", () => {
       outputPath: reviewPath,
       generatedAt: "2026-05-24T00:03:00.000Z",
     });
+    const markdownCandidateExtractionPath = join(
+      manifest.runArtifactRoot,
+      "ocr-markdown-candidates.json",
+    );
+    await Bun.write(
+      markdownCandidateExtractionPath,
+      JSON.stringify({
+        version: 1,
+        runId: "candidate-run",
+        generatedAt: "2026-05-24T00:03:30.000Z",
+        ocrPlanPath: planPath,
+        pageMarkdownAuditPath: join(manifest.runArtifactRoot, "ocr-page-markdown-audit.json"),
+        outputPath: markdownCandidateExtractionPath,
+        provider: "openrouter",
+        model: "qwen/qwen3.7-max",
+        serviceTier: "flex",
+        maxTokens: 4096,
+        pageMarkdownRootName: "ocr-page-markdown",
+        candidateRootName: "ocr-markdown-candidates",
+        promptVersion: "ocr-markdown-candidates-v2",
+        execute: false,
+        summary: {
+          selectedSourceCount: 1,
+          windowCount: 1,
+          extractedWindowCount: 1,
+          failedWindowCount: 0,
+          reusedExistingWindowCount: 0,
+          candidateCount: 1,
+          candidateTypeCounts: { document_metric_claim_candidate: 1 },
+        },
+        windows: [],
+        documentEvidenceCandidates: [
+          {
+            candidateType: "document_metric_claim_candidate",
+            candidateId:
+              "document_evidence:sample_pdf:ocr_markdown:document_metric_claim_candidate:fixture",
+            sourceRef: {
+              sourceId: "sample_pdf",
+              sourceUrl: "https://example.test/sample.pdf",
+              title: "Sample Presentation",
+              publisher: "Example Agency",
+              documentDate: null,
+              sourceGroup: "bus_priority_document",
+              artifactKeys: {
+                raw: "sources/sample_pdf/source.pdf",
+                text: null,
+                ocrText: null,
+                ocrJson: null,
+                ocrAnnotations: null,
+              },
+              pages: [1],
+            },
+            factClassification: "official_claim",
+            negativeEvidenceFlag: "none",
+            routeMentions: ["B1"],
+            corridorMentions: ["Sample Street"],
+            evidencePageRefs: [1],
+            evidenceQuote:
+              "The page names the B1 route, Sample Street corridor, and May 2026 SBS launch.",
+            summary: "Fixture route launch claim suitable for evidence review.",
+            fields: { metricName: "launch_status", comparisonPeriodStart: "2026-05" },
+            validationState: "unvalidated",
+            reviewReason: "Fixture.",
+          },
+        ],
+      }),
+    );
     const outputPath = join(manifest.runArtifactRoot, "candidate-bundle.json");
     const bundle = await extractTier2Candidates({
       ocrPlanPath: planPath,
       ocrQualityReviewPath: reviewPath,
+      ocrMarkdownCandidateExtractionPath: markdownCandidateExtractionPath,
       outputPath,
       generatedAt: "2026-05-24T00:04:00.000Z",
     });
@@ -2265,7 +2333,7 @@ describe("Tier 2 document corpus capture", () => {
               },
             ],
             sourceEventIds: ["tier2:busway_launch:fixture"],
-            sourceCandidateIds: ["intervention_seed:fixture_source:busway:fixture"],
+            sourceCandidateIds: ["document_evidence:fixture_source:busway:fixture"],
             disposition: "curated",
             review: {
               reviewer: "test",
@@ -2349,6 +2417,39 @@ describe("Tier 2 document corpus capture", () => {
             corridorMentions: ["Fixture Street"],
             dateMentions: ["January 2, 2020"],
             status: "candidate_from_ocr_triage",
+            validationState: "unvalidated",
+            reviewReason: "Fixture.",
+          },
+        ],
+        documentEvidenceCandidates: [
+          {
+            candidateType: "document_treatment_component_candidate",
+            candidateId: "document_evidence:fixture_source:busway:fixture",
+            sourceRef: {
+              sourceId: "fixture_source",
+              sourceUrl: "https://example.test/source.pdf",
+              title: "Fixture Source",
+              publisher: "Fixture",
+              documentDate: null,
+              sourceGroup: "fixture",
+              artifactKeys: {
+                raw: null,
+                text: null,
+                ocrText: null,
+                ocrJson: null,
+                ocrAnnotations: null,
+              },
+              pages: [1],
+            },
+            factClassification: "official_claim",
+            negativeEvidenceFlag: "none",
+            routeMentions: ["M1"],
+            corridorMentions: ["Fixture Street"],
+            evidencePageRefs: [1],
+            evidenceQuote:
+              "Fixture source says the busway launched on January 2, 2020.",
+            summary: "Fixture busway launch component.",
+            fields: {},
             validationState: "unvalidated",
             reviewReason: "Fixture.",
           },

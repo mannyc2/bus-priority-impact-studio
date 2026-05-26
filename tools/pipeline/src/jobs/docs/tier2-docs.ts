@@ -1504,6 +1504,7 @@ type ExtractTier2OcrMarkdownCandidatesArgs = {
 type ExtractTier2CandidatesArgs = {
   ocrPlanPath: string;
   ocrQualityReviewPath: string;
+  ocrMarkdownCandidateExtractionPath: string;
   outputPath?: string;
   generatedAt?: string;
   triageRootName?: string;
@@ -1679,7 +1680,9 @@ type OcrReviewCliArgs = {
   triageRootName?: string;
 };
 
-type ExtractCliArgs = OcrReviewCliArgs;
+type ExtractCliArgs = OcrReviewCliArgs & {
+  ocrMarkdownCandidateExtractionPath?: string;
+};
 
 type OcrPageMarkdownAuditCliArgs = {
   ocrPlanPath?: string;
@@ -2984,11 +2987,22 @@ function ensureCapturedOcrSource(source: Tier2CapturedSource): Tier2OcrPlanSourc
 export async function planTier2Ocr(args: PlanTier2OcrArgs): Promise<Tier2OcrPlan> {
   const manifest = (await Bun.file(args.captureManifestPath).json()) as Tier2CaptureManifest;
   const model = args.model ?? process.env["OPENROUTER_OCR_MODEL"] ?? DEFAULT_OCR_MODEL;
-  const pageRange = args.defaultPageRange ?? "1-10";
-  const sources = manifest.sources.flatMap((source) => {
-    const plannedSource = ensureCapturedOcrSource(source);
-    return plannedSource === null ? [] : [{ ...plannedSource, pageRange }];
-  });
+  const manifestRunRoot = dirname(args.captureManifestPath);
+  const sourcesAsync = await Promise.all(
+    manifest.sources.map(async (source) => {
+      const plannedSource = ensureCapturedOcrSource(source);
+      if (plannedSource === null) {
+        return null;
+      }
+      if (args.defaultPageRange !== undefined) {
+        return { ...plannedSource, pageRange: args.defaultPageRange };
+      }
+      const pageCount = await pdfInfoPageCount(join(manifestRunRoot, plannedSource.rawArtifactKey));
+      const pageRange = pageCount === null ? "1-9999" : `1-${pageCount}`;
+      return { ...plannedSource, pageRange };
+    }),
+  );
+  const sources = sourcesAsync.filter((source): source is Tier2OcrPlanSource => source !== null);
   const totalBytes = sources.reduce((sum, source) => sum + source.byteLength, 0);
 
   const plan: Tier2OcrPlan = {
@@ -7212,6 +7226,7 @@ function interventionSeedsForTriage(input: {
   }));
 }
 
+// @ts-expect-error retained for PR3 cleanup; no longer called after PR1 wired Phase 2 candidates.
 function evidenceCandidatesForTriage(input: {
   sourceRef: Tier2CandidateSourceRef;
   triage: OcrTriageRecord;
@@ -7334,6 +7349,18 @@ export async function extractTier2Candidates(
 ): Promise<Tier2CandidateBundle> {
   const plan = (await Bun.file(args.ocrPlanPath).json()) as Tier2OcrPlan;
   const review = (await Bun.file(args.ocrQualityReviewPath).json()) as Tier2OcrQualityReview;
+  const markdownCandidateExtraction = (await Bun.file(
+    args.ocrMarkdownCandidateExtractionPath,
+  ).json()) as Tier2OcrMarkdownCandidateExtraction;
+  const evidenceCandidatesBySourceId = new Map<string, Tier2DocumentEvidenceCandidate[]>();
+  for (const candidate of markdownCandidateExtraction.documentEvidenceCandidates) {
+    const list = evidenceCandidatesBySourceId.get(candidate.sourceRef.sourceId);
+    if (list === undefined) {
+      evidenceCandidatesBySourceId.set(candidate.sourceRef.sourceId, [candidate]);
+    } else {
+      list.push(candidate);
+    }
+  }
   const captureManifest = (await Bun.file(plan.captureManifestPath).json()) as Tier2CaptureManifest;
   const runRoot = dirname(plan.captureManifestPath);
   const triageRootName = normalizeOcrTriageRootName(args.triageRootName ?? review.triageRootName);
@@ -7435,7 +7462,12 @@ export async function extractTier2Candidates(
     }
     documentEntityLinkCandidates.push(...entityLinkCandidatesForTriage({ sourceRef, triage }));
     documentInterventionSeeds.push(...interventionSeedsForTriage({ sourceRef, triage }));
-    documentEvidenceCandidates.push(...evidenceCandidatesForTriage({ sourceRef, triage }));
+  }
+  for (const planSource of plan.sources) {
+    const phase2Evidence = evidenceCandidatesBySourceId.get(planSource.sourceId);
+    if (phase2Evidence !== undefined) {
+      documentEvidenceCandidates.push(...phase2Evidence);
+    }
   }
 
   const partialBundle = {
@@ -8581,7 +8613,7 @@ export async function verifyTier2ManualInterventions(
   const eventIds = new Set(canonical.events.map((event) => event.eventId));
   const manualCandidateIds = new Set(manual.candidates.map((candidate) => candidate.candidateId));
   const candidateIds = new Set(
-    bundle.documentInterventionSeeds.map((candidate) => candidate.candidateId),
+    (bundle.documentEvidenceCandidates ?? []).map((candidate) => candidate.candidateId),
   );
   const chunksById = new Map(chunks.chunks.map((chunk) => [chunk.chunkId, chunk]));
   const issues = new Map<string, Set<string>>();
@@ -10296,13 +10328,18 @@ export async function reviewTier2OcrQualityFromCli(args: string[]): Promise<Tier
 async function resolveExtractPaths(args: ExtractCliArgs): Promise<{
   ocrPlanPath: string;
   ocrQualityReviewPath: string;
+  ocrMarkdownCandidateExtractionPath: string;
   outputPath: string;
 }> {
   if (args.ocrPlanPath !== undefined) {
+    if (args.ocrMarkdownCandidateExtractionPath === undefined) {
+      throw new Error("--markdown-candidate-extraction is required when --ocr-plan is provided.");
+    }
     return {
       ocrPlanPath: args.ocrPlanPath,
       ocrQualityReviewPath:
         args.ocrQualityReviewPath ?? join(dirname(args.ocrPlanPath), "ocr-quality-review.json"),
+      ocrMarkdownCandidateExtractionPath: args.ocrMarkdownCandidateExtractionPath,
       outputPath: args.outputPath ?? join(dirname(args.ocrPlanPath), "candidate-bundle.json"),
     };
   }
@@ -10313,15 +10350,82 @@ async function resolveExtractPaths(args: ExtractCliArgs): Promise<{
     throw new Error("No docs run found. Provide --run-id or --ocr-plan.");
   }
 
+  if (args.ocrMarkdownCandidateExtractionPath === undefined) {
+    throw new Error("--markdown-candidate-extraction is required.");
+  }
+
   return {
     ocrPlanPath: ocrPlanPath(artifactRoot, runId),
     ocrQualityReviewPath: args.ocrQualityReviewPath ?? ocrQualityReviewPath(artifactRoot, runId),
+    ocrMarkdownCandidateExtractionPath: args.ocrMarkdownCandidateExtractionPath,
     outputPath: args.outputPath ?? candidateBundlePath(artifactRoot, runId),
   };
 }
 
+function parseExtractCliArgs(args: string[]): ExtractCliArgs {
+  const options: CliOption<ExtractCliArgs>[] = [
+    {
+      flags: ["--ocr-plan"],
+      apply: (output, value) => {
+        if (value !== undefined) {
+          output.ocrPlanPath = fromCliPath(value);
+        }
+      },
+    },
+    {
+      flags: ["--ocr-review"],
+      apply: (output, value) => {
+        if (value !== undefined) {
+          output.ocrQualityReviewPath = fromCliPath(value);
+        }
+      },
+    },
+    {
+      flags: ["--markdown-candidate-extraction"],
+      apply: (output, value) => {
+        if (value !== undefined) {
+          output.ocrMarkdownCandidateExtractionPath = fromCliPath(value);
+        }
+      },
+    },
+    {
+      flags: ["--artifact-root"],
+      apply: (output, value) => {
+        if (value !== undefined) {
+          output.artifactRoot = fromCliPath(value);
+        }
+      },
+    },
+    {
+      flags: ["--run-id"],
+      apply: (output, value) => {
+        if (value !== undefined) {
+          output.runId = value;
+        }
+      },
+    },
+    {
+      flags: ["--output"],
+      apply: (output, value) => {
+        if (value !== undefined) {
+          output.outputPath = fromCliPath(value);
+        }
+      },
+    },
+    {
+      flags: ["--triage-root"],
+      apply: (output, value) => {
+        if (value !== undefined) {
+          output.triageRootName = value;
+        }
+      },
+    },
+  ];
+  return parseCliOptions(args, {}, options);
+}
+
 export async function extractTier2CandidatesFromCli(args: string[]): Promise<Tier2CandidateBundle> {
-  const parsed = parseOcrReviewCliArgs(args);
+  const parsed = parseExtractCliArgs(args);
   const paths = await resolveExtractPaths(parsed);
   return extractTier2Candidates({
     ...paths,
