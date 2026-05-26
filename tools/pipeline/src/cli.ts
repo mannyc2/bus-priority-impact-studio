@@ -60,6 +60,16 @@ const commands = {
       return auditTier2OcrPageMarkdownFromCli(args);
     },
   },
+  "docs:intervention-records": {
+    description:
+      "Synthesize per-source intervention records from Tier 2 evidence candidates.",
+    run: async (args) => {
+      const { extractTier2DocumentInterventionRecordsFromCli } = await import(
+        "./jobs/docs/tier2-docs.js"
+      );
+      return extractTier2DocumentInterventionRecordsFromCli(args);
+    },
+  },
   "docs:ocr-markdown-candidates": {
     description: "Extract evidence candidates from page-level OCR Markdown with required tool calls.",
     run: async (args) => {

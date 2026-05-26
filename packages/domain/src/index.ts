@@ -22,8 +22,27 @@ export {
   DocumentEvidenceCandidateSchema,
   DocumentEvidenceCandidateTypeSchema,
   DocumentFactClassificationSchema,
+  DocumentMetricNameSchema,
   DocumentNegativeEvidenceFlagSchema,
+  DocumentServiceChangeKindSchema,
+  DocumentTreatmentTypeSchema,
 } from "./document-candidates.js";
+export type {
+  DocumentInterventionDatePrecision,
+  DocumentInterventionRecord,
+  DocumentInterventionRecordDraft,
+  DocumentInterventionRecordsToolResponse,
+  DocumentInterventionServiceMode,
+  DocumentInterventionStatus,
+} from "./document-intervention-records.js";
+export {
+  DocumentInterventionDatePrecisionSchema,
+  DocumentInterventionRecordDraftSchema,
+  DocumentInterventionRecordSchema,
+  DocumentInterventionRecordsToolResponseSchema,
+  DocumentInterventionServiceModeSchema,
+  DocumentInterventionStatusSchema,
+} from "./document-intervention-records.js";
 export type {
   ApiDataQuality,
   CompletenessStatus,

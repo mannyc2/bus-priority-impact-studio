@@ -6,10 +6,13 @@ import { replaceTier2InterventionStagingRows } from "@bp/db/local";
 import {
   DocumentEvidenceCandidateDraftSchema,
   DocumentEvidenceCandidateDraftToolSchema,
+  DocumentInterventionRecordsToolResponseSchema,
   toProjectJsonSchema,
   type DocumentEvidenceCandidateDraft,
   type DocumentEvidenceCandidateType,
   type DocumentFactClassification,
+  type DocumentInterventionRecord,
+  type DocumentInterventionRecordsToolResponse,
   type DocumentNegativeEvidenceFlag,
 } from "@bp/domain";
 import { PDFDocument } from "pdf-lib";
@@ -1326,8 +1329,11 @@ const DEFAULT_OCR_MAX_TOKENS = 8192;
 const DEFAULT_OCR_PAGE_MARKDOWN_ROOT_NAME = "ocr-page-markdown";
 const OCR_PAGE_MARKDOWN_TOOL_NAME = "record_tier2_ocr_page";
 const OCR_MARKDOWN_CANDIDATE_TOOL_NAME = "record_tier2_ocr_markdown_candidates";
+const INTERVENTION_RECORDS_TOOL_NAME = "record_tier2_document_intervention_records";
 const OCR_PAGE_MARKDOWN_PROMPT_VERSION = "page-markdown-v3";
 const OCR_MARKDOWN_CANDIDATE_PROMPT_VERSION = "ocr-markdown-candidates-v2";
+const INTERVENTION_RECORDS_PROMPT_VERSION = "intervention-records-v1";
+const DEFAULT_INTERVENTION_RECORDS_ROOT_NAME = "intervention-records";
 const DEFAULT_OPENROUTER_MAX_ATTEMPTS = 3;
 
 function docsArtifactRoot(artifactRoot: string): string {
@@ -5125,6 +5131,575 @@ export async function extractTier2OcrMarkdownCandidatesFromCli(
     ...(parsed.windowConcurrency !== undefined
       ? { windowConcurrency: parsed.windowConcurrency }
       : {}),
+    execute: parsed.execute ?? false,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Phase 3: synthesize per-source intervention records from evidence candidates.
+// ---------------------------------------------------------------------------
+
+export type Tier2DocumentInterventionRecord = DocumentInterventionRecord;
+
+export type Tier2InterventionRecordsExtraction = {
+  version: 1;
+  runId: string;
+  generatedAt: string;
+  ocrMarkdownCandidateExtractionPath: string;
+  outputPath: string | null;
+  provider: "openrouter";
+  model: string;
+  serviceTier: "flex" | "priority";
+  maxTokens: number;
+  synthesisRootName: string;
+  promptVersion: string;
+  execute: boolean;
+  summary: {
+    selectedSourceCount: number;
+    extractedSourceCount: number;
+    failedSourceCount: number;
+    reusedExistingSourceCount: number;
+    recordCount: number;
+    unattachedCandidateCount: number;
+  };
+  sources: Tier2InterventionRecordsSource[];
+  documentInterventionRecords: Tier2DocumentInterventionRecord[];
+};
+
+export type Tier2InterventionRecordsSource = {
+  sourceId: string;
+  status: "extracted" | "failed" | "skipped";
+  candidateCount: number;
+  recordCount: number;
+  unattachedCandidateCount: number;
+  reusedExisting: boolean;
+  responseArtifactKey: string | null;
+  toolCallArtifactKey: string | null;
+  errorArtifactKey: string | null;
+  error: string | null;
+};
+
+type ExtractTier2InterventionRecordsArgs = {
+  ocrMarkdownCandidateExtractionPath: string;
+  outputPath?: string;
+  generatedAt?: string;
+  synthesisRootName?: string;
+  model?: string;
+  serviceTier?: "flex" | "priority";
+  maxTokens?: number;
+  sourceIds?: string[];
+  limitSources?: number;
+  execute?: boolean;
+  fetcher?: FetchLike;
+  apiKey?: string;
+};
+
+const INTERVENTION_RECORDS_SYSTEM_PROMPT = [
+  "You are synthesizing Tier 2 evidence candidates into canonical intervention records for Bus Priority Impact Studio.",
+  "Each input candidate already carries a verbatim source quote and was extracted from one source document. Group candidates that describe the same discrete change to bus service into one intervention record.",
+  "Every record's claims must trace back to specific candidateIds via evidenceRefs. Do not invent facts beyond what the candidates say.",
+  "A source can produce zero, one, or several records: zero if the candidates describe no actionable intervention (pure methodology paper, opinion piece); several if the source covers separate changes (e.g. an SBS launch and a later RTPI install).",
+  "Treatment-component candidates, metric candidates, project-status candidates, service-change candidates, treatment maps, and corridor-defining quotes typically belong inside one of the records.",
+  "Tables, figures, methodology, source_gap, caveat, and review_question candidates either attach as evidence to a specific record component (e.g. a metric's evidenceRefs) or land in unattachedCandidateIds when they don't belong to any record.",
+  "When candidates disagree on status (one says \"implementing\", another says \"complete\"), record both as separate statusHistory entries with their respective evidence; do not pick one and discard the other.",
+  "Omit optional fields when the source does not supply the information. Do not emit empty strings or empty objects as placeholders.",
+].join("\n");
+
+function interventionRecordsTool(): Record<string, unknown> {
+  const responseSchema = toProjectJsonSchema(DocumentInterventionRecordsToolResponseSchema);
+  if (
+    responseSchema === null ||
+    typeof responseSchema !== "object" ||
+    Array.isArray(responseSchema)
+  ) {
+    throw new Error("DocumentInterventionRecordsToolResponseSchema did not produce an object schema.");
+  }
+  const { ["$schema"]: _ignored, ...parameters } = responseSchema as Record<string, unknown>;
+  return {
+    type: "function",
+    function: {
+      name: INTERVENTION_RECORDS_TOOL_NAME,
+      description:
+        "Record per-source intervention records synthesized from a source's evidence candidates. Each record carries its supporting candidateIds via evidenceRefs; do not invent IDs.",
+      parameters,
+    },
+  };
+}
+
+function buildInterventionRecordsPrompt(input: {
+  source: { sourceId: string; title: string; publisher: string; sourceGroup: string };
+  candidates: Tier2DocumentEvidenceCandidate[];
+}): string {
+  const candidatesForModel = input.candidates.map((candidate) => ({
+    candidateId: candidate.candidateId,
+    candidateType: candidate.candidateType,
+    factClassification: candidate.factClassification,
+    negativeEvidenceFlag: candidate.negativeEvidenceFlag,
+    routeMentions: candidate.routeMentions,
+    corridorMentions: candidate.corridorMentions,
+    evidencePageRefs: candidate.evidencePageRefs,
+    evidenceQuote: candidate.evidenceQuote,
+    summary: candidate.summary,
+    fields: candidate.fields,
+  }));
+  return [
+    `Source ID: ${input.source.sourceId}`,
+    `Title: ${input.source.title}`,
+    `Publisher: ${input.source.publisher}`,
+    `Source group: ${input.source.sourceGroup}`,
+    `Candidate count: ${input.candidates.length}`,
+    "",
+    "Evidence candidates (JSON, one entry per line):",
+    ...candidatesForModel.map((candidate) => JSON.stringify(candidate)),
+  ].join("\n");
+}
+
+async function callOpenRouterInterventionRecords(input: {
+  apiKey: string;
+  model: string;
+  serviceTier: "flex" | "priority";
+  maxTokens: number;
+  source: { sourceId: string; title: string; publisher: string; sourceGroup: string };
+  candidates: Tier2DocumentEvidenceCandidate[];
+  fetcher: FetchLike;
+}): Promise<OpenRouterCallResult> {
+  const reasoning = requiredToolCallReasoningOverride(input.model);
+  return postOpenRouterChatCompletions({
+    apiKey: input.apiKey,
+    title: "Bus Priority Impact Studio Tier 2 Intervention Synthesis",
+    fetcher: input.fetcher,
+    body: {
+      model: input.model,
+      service_tier: input.serviceTier,
+      max_tokens: input.maxTokens,
+      messages: [
+        { role: "system", content: INTERVENTION_RECORDS_SYSTEM_PROMPT },
+        {
+          role: "user",
+          content: buildInterventionRecordsPrompt({
+            source: input.source,
+            candidates: input.candidates,
+          }),
+        },
+      ],
+      tools: [interventionRecordsTool()],
+      tool_choice: {
+        type: "function",
+        function: { name: INTERVENTION_RECORDS_TOOL_NAME },
+      },
+      ...(reasoning === null ? {} : { reasoning }),
+      temperature: 0,
+    },
+  });
+}
+
+function interventionRecordsSourceRoot(input: {
+  runRoot: string;
+  sourceId: string;
+  sourceIndex: number;
+  synthesisRootName: string;
+}): string {
+  return join(
+    input.runRoot,
+    input.synthesisRootName,
+    "sources",
+    `${String(input.sourceIndex + 1).padStart(4, "0")}_${input.sourceId}`,
+  );
+}
+
+function interventionRecordsSourcePaths(input: { sourceRoot: string }): {
+  responsePath: string;
+  toolCallPath: string;
+  errorPath: string;
+} {
+  return {
+    responsePath: join(input.sourceRoot, "openrouter-response.json"),
+    toolCallPath: join(input.sourceRoot, "intervention-records-tool-call.json"),
+    errorPath: join(input.sourceRoot, "error.json"),
+  };
+}
+
+function recordIdForDraft(input: {
+  sourceId: string;
+  routes: readonly string[];
+  primaryTreatments: readonly string[];
+  effectiveDate: string | undefined;
+  index: number;
+}): string {
+  return `document_intervention:${input.sourceId}:${shortHash(
+    [
+      ...input.routes,
+      ...input.primaryTreatments,
+      input.effectiveDate ?? "",
+      String(input.index),
+    ].join("|"),
+  )}`;
+}
+
+function collectEvidenceRefs(draft: import("@bp/domain").DocumentInterventionRecordDraft): string[] {
+  const refs = new Set<string>();
+  for (const obs of draft.statusHistory) {
+    for (const id of obs.evidenceRefs) refs.add(id);
+  }
+  for (const component of draft.treatmentComponents) {
+    for (const id of component.evidenceRefs) refs.add(id);
+  }
+  for (const metric of draft.metrics) {
+    for (const id of metric.evidenceRefs) refs.add(id);
+  }
+  for (const caveat of draft.caveats) {
+    for (const id of caveat.evidenceRefs) refs.add(id);
+  }
+  return [...refs];
+}
+
+export async function extractTier2DocumentInterventionRecords(
+  args: ExtractTier2InterventionRecordsArgs,
+): Promise<Tier2InterventionRecordsExtraction> {
+  const candidateExtraction = (await Bun.file(
+    args.ocrMarkdownCandidateExtractionPath,
+  ).json()) as Tier2OcrMarkdownCandidateExtraction;
+  const runRoot = dirname(args.ocrMarkdownCandidateExtractionPath);
+  const model = args.model ?? process.env["OPENROUTER_OCR_MODEL"] ?? DEFAULT_OCR_MODEL;
+  const serviceTier = args.serviceTier ?? "flex";
+  const maxTokens = args.maxTokens ?? DEFAULT_OCR_MAX_TOKENS;
+  const synthesisRootName = normalizeOcrArtifactRootName({
+    value: args.synthesisRootName,
+    defaultName: DEFAULT_INTERVENTION_RECORDS_ROOT_NAME,
+    flagName: "--synthesis-root",
+  });
+  const execute = args.execute ?? false;
+  const fetcher = args.fetcher ?? defaultFetch;
+  const apiKey = args.apiKey ?? process.env["OPENROUTER_API_KEY"];
+  if (execute && (apiKey === undefined || apiKey === "")) {
+    throw new Error("OPENROUTER_API_KEY is required for docs:intervention-records --execute.");
+  }
+
+  const candidatesBySourceId = new Map<string, Tier2DocumentEvidenceCandidate[]>();
+  for (const candidate of candidateExtraction.documentEvidenceCandidates) {
+    const list = candidatesBySourceId.get(candidate.sourceRef.sourceId) ?? [];
+    list.push(candidate);
+    candidatesBySourceId.set(candidate.sourceRef.sourceId, list);
+  }
+  const sourceFilter = new Set(args.sourceIds ?? []);
+  const sourceIds = [...candidatesBySourceId.keys()]
+    .filter((sourceId) => sourceFilter.size === 0 || sourceFilter.has(sourceId))
+    .slice(0, args.limitSources ?? Number.POSITIVE_INFINITY);
+
+  const sources: Tier2InterventionRecordsSource[] = [];
+  const documentInterventionRecords: Tier2DocumentInterventionRecord[] = [];
+
+  for (let sourceIndex = 0; sourceIndex < sourceIds.length; sourceIndex += 1) {
+    const sourceId = sourceIds[sourceIndex];
+    if (sourceId === undefined) continue;
+    const candidates = candidatesBySourceId.get(sourceId) ?? [];
+    const sourceMeta = candidates[0]?.sourceRef;
+    const sourceRoot = interventionRecordsSourceRoot({
+      runRoot,
+      sourceId,
+      sourceIndex,
+      synthesisRootName,
+    });
+    const paths = interventionRecordsSourcePaths({ sourceRoot });
+    if (!execute) {
+      sources.push({
+        sourceId,
+        status: "skipped",
+        candidateCount: candidates.length,
+        recordCount: 0,
+        unattachedCandidateCount: 0,
+        reusedExisting: false,
+        responseArtifactKey: null,
+        toolCallArtifactKey: null,
+        errorArtifactKey: null,
+        error: null,
+      });
+      continue;
+    }
+    if (sourceMeta === undefined) {
+      sources.push({
+        sourceId,
+        status: "failed",
+        candidateCount: 0,
+        recordCount: 0,
+        unattachedCandidateCount: 0,
+        reusedExisting: false,
+        responseArtifactKey: null,
+        toolCallArtifactKey: null,
+        errorArtifactKey: null,
+        error: "No sourceRef found in candidates.",
+      });
+      continue;
+    }
+    await mkdir(sourceRoot, { recursive: true });
+    try {
+      const openRouter = await callOpenRouterInterventionRecords({
+        apiKey: apiKey as string,
+        model,
+        serviceTier,
+        maxTokens,
+        source: {
+          sourceId,
+          title: sourceMeta.title,
+          publisher: sourceMeta.publisher,
+          sourceGroup: sourceMeta.sourceGroup,
+        },
+        candidates,
+        fetcher,
+      });
+      await writeJson(paths.responsePath, openRouter.body);
+      const toolArgs = extractToolCallArguments(openRouter.body, INTERVENTION_RECORDS_TOOL_NAME);
+      if (toolArgs === null) {
+        throw new Error(
+          `OpenRouter response did not include required ${INTERVENTION_RECORDS_TOOL_NAME} tool call.`,
+        );
+      }
+      await writeJson(paths.toolCallPath, toolArgs);
+      const parsed = DocumentInterventionRecordsToolResponseSchema.safeParse(toolArgs);
+      if (!parsed.success) {
+        const issues = parsed.error.issues.slice(0, 8).map((issue) => ({
+          path: issue.path.join("."),
+          code: issue.code,
+          message: issue.message,
+        }));
+        await writeJson(paths.errorPath, { reason: "schema_validation_failed", issues });
+        sources.push({
+          sourceId,
+          status: "failed",
+          candidateCount: candidates.length,
+          recordCount: 0,
+          unattachedCandidateCount: 0,
+          reusedExisting: false,
+          responseArtifactKey: artifactKey(paths.responsePath, runRoot),
+          toolCallArtifactKey: artifactKey(paths.toolCallPath, runRoot),
+          errorArtifactKey: artifactKey(paths.errorPath, runRoot),
+          error: "schema_validation_failed",
+        });
+        continue;
+      }
+      const response: DocumentInterventionRecordsToolResponse = parsed.data;
+      const validCandidateIds = new Set(candidates.map((candidate) => candidate.candidateId));
+      const persistedRecords: Tier2DocumentInterventionRecord[] = [];
+      for (let recordIndex = 0; recordIndex < response.interventionRecords.length; recordIndex += 1) {
+        const draft = response.interventionRecords[recordIndex];
+        if (draft === undefined) continue;
+        const evidenceIds = collectEvidenceRefs(draft);
+        const recordId = recordIdForDraft({
+          sourceId,
+          routes: draft.routes,
+          primaryTreatments: draft.primaryTreatments,
+          effectiveDate: draft.effectiveDate,
+          index: recordIndex,
+        });
+        persistedRecords.push({
+          ...draft,
+          recordId,
+          sourceId,
+          evidenceCandidateIds: evidenceIds.filter((id) => validCandidateIds.has(id)),
+          extraction: {
+            candidateExtractionRootName: candidateExtraction.pageMarkdownRootName,
+            candidateRootName: candidateExtraction.candidateRootName,
+            synthesisRootName,
+          },
+        });
+      }
+      documentInterventionRecords.push(...persistedRecords);
+      sources.push({
+        sourceId,
+        status: "extracted",
+        candidateCount: candidates.length,
+        recordCount: persistedRecords.length,
+        unattachedCandidateCount: response.unattachedCandidateIds.length,
+        reusedExisting: false,
+        responseArtifactKey: artifactKey(paths.responsePath, runRoot),
+        toolCallArtifactKey: artifactKey(paths.toolCallPath, runRoot),
+        errorArtifactKey: null,
+        error: null,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      await writeJson(paths.errorPath, { reason: "openrouter_call_failed", message });
+      sources.push({
+        sourceId,
+        status: "failed",
+        candidateCount: candidates.length,
+        recordCount: 0,
+        unattachedCandidateCount: 0,
+        reusedExisting: false,
+        responseArtifactKey: null,
+        toolCallArtifactKey: null,
+        errorArtifactKey: artifactKey(paths.errorPath, runRoot),
+        error: message,
+      });
+    }
+  }
+
+  const artifact: Tier2InterventionRecordsExtraction = {
+    version: 1,
+    runId: candidateExtraction.runId,
+    generatedAt: args.generatedAt ?? new Date().toISOString(),
+    ocrMarkdownCandidateExtractionPath: args.ocrMarkdownCandidateExtractionPath,
+    outputPath: args.outputPath ?? null,
+    provider: "openrouter",
+    model,
+    serviceTier,
+    maxTokens,
+    synthesisRootName,
+    promptVersion: INTERVENTION_RECORDS_PROMPT_VERSION,
+    execute,
+    summary: {
+      selectedSourceCount: sourceIds.length,
+      extractedSourceCount: sources.filter((source) => source.status === "extracted").length,
+      failedSourceCount: sources.filter((source) => source.status === "failed").length,
+      reusedExistingSourceCount: sources.filter((source) => source.reusedExisting).length,
+      recordCount: documentInterventionRecords.length,
+      unattachedCandidateCount: sources.reduce(
+        (sum, source) => sum + source.unattachedCandidateCount,
+        0,
+      ),
+    },
+    sources,
+    documentInterventionRecords,
+  };
+  if (args.outputPath !== undefined) {
+    await mkdir(dirname(args.outputPath), { recursive: true });
+    await writeJson(args.outputPath, artifact);
+  }
+  return artifact;
+}
+
+type InterventionRecordsCliArgs = {
+  ocrMarkdownCandidateExtractionPath?: string;
+  artifactRoot?: string;
+  runId?: string;
+  outputPath?: string;
+  synthesisRootName?: string;
+  model?: string;
+  serviceTier?: "flex" | "priority";
+  maxTokens?: number;
+  sourceIds?: string[];
+  limitSources?: number;
+  execute?: boolean;
+};
+
+function parseInterventionRecordsCliArgs(args: string[]): InterventionRecordsCliArgs {
+  const options: CliOption<InterventionRecordsCliArgs>[] = [
+    {
+      flags: ["--markdown-candidate-extraction"],
+      apply: (output, value) => {
+        if (value !== undefined) {
+          output.ocrMarkdownCandidateExtractionPath = fromCliPath(value);
+        }
+      },
+    },
+    {
+      flags: ["--artifact-root"],
+      apply: (output, value) => {
+        if (value !== undefined) output.artifactRoot = fromCliPath(value);
+      },
+    },
+    {
+      flags: ["--run-id"],
+      apply: (output, value) => {
+        if (value !== undefined) output.runId = value;
+      },
+    },
+    {
+      flags: ["--output"],
+      apply: (output, value) => {
+        if (value !== undefined) output.outputPath = fromCliPath(value);
+      },
+    },
+    {
+      flags: ["--synthesis-root"],
+      apply: (output, value) => {
+        if (value !== undefined) output.synthesisRootName = value;
+      },
+    },
+    {
+      flags: ["--model"],
+      apply: (output, value) => {
+        if (value !== undefined) output.model = value;
+      },
+    },
+    {
+      flags: ["--service-tier"],
+      apply: (output, value) => {
+        if (value === "flex" || value === "priority") {
+          output.serviceTier = value;
+          return;
+        }
+        throw new Error("--service-tier must be flex or priority.");
+      },
+    },
+    {
+      flags: ["--max-tokens"],
+      apply: (output, value) => {
+        output.maxTokens = Number(value);
+      },
+    },
+    {
+      flags: ["--source-ids"],
+      apply: (output, value) => {
+        const parsed = parseSourceIds(value);
+        if (parsed !== undefined) output.sourceIds = parsed;
+      },
+    },
+    {
+      flags: ["--source-id"],
+      apply: (output, value) => {
+        const parsed = parseSourceIds(value);
+        output.sourceIds = [...(output.sourceIds ?? []), ...(parsed ?? [])];
+      },
+    },
+    {
+      flags: ["--limit-sources"],
+      apply: (output, value) => {
+        output.limitSources = Number(value);
+      },
+    },
+    trueOption<InterventionRecordsCliArgs>(["--execute"], (output) => {
+      output.execute = true;
+    }),
+  ];
+  return parseCliOptions(args, {}, options);
+}
+
+async function resolveInterventionRecordsPaths(
+  args: InterventionRecordsCliArgs,
+): Promise<{ ocrMarkdownCandidateExtractionPath: string; outputPath: string }> {
+  if (args.ocrMarkdownCandidateExtractionPath !== undefined) {
+    const dir = dirname(args.ocrMarkdownCandidateExtractionPath);
+    return {
+      ocrMarkdownCandidateExtractionPath: args.ocrMarkdownCandidateExtractionPath,
+      outputPath: args.outputPath ?? join(dir, "intervention-records.json"),
+    };
+  }
+  const artifactRoot = args.artifactRoot ?? defaultArtifactRootPath();
+  const runId = args.runId ?? (await latestDocsRunId(artifactRoot));
+  if (runId === null) {
+    throw new Error("No docs run found. Provide --run-id or --markdown-candidate-extraction.");
+  }
+  const baseDir = runArtifactRoot(artifactRoot, runId);
+  return {
+    ocrMarkdownCandidateExtractionPath: join(baseDir, "ocr-markdown-candidates.json"),
+    outputPath: args.outputPath ?? join(baseDir, "intervention-records.json"),
+  };
+}
+
+export async function extractTier2DocumentInterventionRecordsFromCli(
+  args: string[],
+): Promise<Tier2InterventionRecordsExtraction> {
+  const parsed = parseInterventionRecordsCliArgs(args);
+  const paths = await resolveInterventionRecordsPaths(parsed);
+  return extractTier2DocumentInterventionRecords({
+    ...paths,
+    ...(parsed.synthesisRootName !== undefined ? { synthesisRootName: parsed.synthesisRootName } : {}),
+    ...(parsed.model !== undefined ? { model: parsed.model } : {}),
+    ...(parsed.serviceTier !== undefined ? { serviceTier: parsed.serviceTier } : {}),
+    ...(parsed.maxTokens !== undefined ? { maxTokens: parsed.maxTokens } : {}),
+    ...(parsed.sourceIds !== undefined ? { sourceIds: parsed.sourceIds } : {}),
+    ...(parsed.limitSources !== undefined ? { limitSources: parsed.limitSources } : {}),
     execute: parsed.execute ?? false,
   });
 }
