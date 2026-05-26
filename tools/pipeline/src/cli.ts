@@ -25,6 +25,173 @@ const commands = {
       await import("./jobs/sources/sources-probe.js");
     },
   },
+  "sources:catalog-search": {
+    description: "Search the Socrata catalog for public approved datasets.",
+    run: async (args) => {
+      const { searchSourceCatalogFromCli } = await import("./jobs/sources/catalog-search.js");
+      return searchSourceCatalogFromCli(args);
+    },
+  },
+  "docs:capture": {
+    description: "Fetch the reviewed Tier 2 document backlog and write capture metadata.",
+    run: async (args) => {
+      const { captureTier2DocsFromCli } = await import("./jobs/docs/tier2-docs.js");
+      return captureTier2DocsFromCli(args);
+    },
+  },
+  "docs:discover": {
+    description: "Discover additional Tier 2 document links from a captured corpus.",
+    run: async (args) => {
+      const { discoverTier2DocsFromCli } = await import("./jobs/docs/tier2-docs.js");
+      return discoverTier2DocsFromCli(args);
+    },
+  },
+  "docs:ocr-plan": {
+    description: "Plan Pi/OpenRouter OCR work for captured Tier 2 documents marked ocr_required.",
+    run: async (args) => {
+      const { planTier2OcrFromCli } = await import("./jobs/docs/tier2-docs.js");
+      return planTier2OcrFromCli(args);
+    },
+  },
+  "docs:ocr": {
+    description:
+      "Run Tier 2 OCR through OpenRouter artifacts; use --page-markdown for page-level Markdown.",
+    run: async (args) => {
+      const { triageTier2OcrFromCli } = await import("./jobs/docs/tier2-docs.js");
+      return triageTier2OcrFromCli(args);
+    },
+  },
+  "docs:ocr-review": {
+    description: "Review Tier 2 OCR triage artifact quality and extraction readiness.",
+    run: async (args) => {
+      const { reviewTier2OcrQualityFromCli } = await import("./jobs/docs/tier2-docs.js");
+      return reviewTier2OcrQualityFromCli(args);
+    },
+  },
+  "docs:ocr-page-audit": {
+    description: "Audit page-level OCR Markdown artifacts for completeness and visual review.",
+    run: async (args) => {
+      const { auditTier2OcrPageMarkdownFromCli } = await import("./jobs/docs/tier2-docs.js");
+      return auditTier2OcrPageMarkdownFromCli(args);
+    },
+  },
+  "docs:ocr-markdown-candidates": {
+    description: "Extract evidence candidates from page-level OCR Markdown with required tool calls.",
+    run: async (args) => {
+      const { extractTier2OcrMarkdownCandidatesFromCli } = await import(
+        "./jobs/docs/tier2-docs.js"
+      );
+      return extractTier2OcrMarkdownCandidatesFromCli(args);
+    },
+  },
+  "docs:extract": {
+    description: "Build deterministic Tier 2 candidate bundle from OCR review artifacts.",
+    run: async (args) => {
+      const { extractTier2CandidatesFromCli } = await import("./jobs/docs/tier2-docs.js");
+      return extractTier2CandidatesFromCli(args);
+    },
+  },
+  "docs:chunk": {
+    description: "Build deterministic text/OCR chunks for Tier 2 source-span review.",
+    run: async (args) => {
+      const { chunkTier2DocumentsFromCli } = await import("./jobs/docs/tier2-docs.js");
+      return chunkTier2DocumentsFromCli(args);
+    },
+  },
+  "docs:dedupe": {
+    description: "Audit duplicate candidates in canonical Tier 2 intervention staging events.",
+    run: async (args) => {
+      const { auditTier2InterventionDuplicatesFromCli } = await import("./jobs/docs/tier2-docs.js");
+      return auditTier2InterventionDuplicatesFromCli(args);
+    },
+  },
+  "docs:duplicate-review": {
+    description: "Build a human review queue for duplicate Tier 2 intervention candidates.",
+    run: async (args) => {
+      const { buildTier2DuplicateReviewQueueFromCli } = await import("./jobs/docs/tier2-docs.js");
+      return buildTier2DuplicateReviewQueueFromCli(args);
+    },
+  },
+  "docs:duplicate-decisions": {
+    description:
+      "Build an editable decision template for duplicate Tier 2 intervention candidates.",
+    run: async (args) => {
+      const { buildTier2DuplicateDecisionTemplateFromCli } = await import(
+        "./jobs/docs/tier2-docs.js"
+      );
+      return buildTier2DuplicateDecisionTemplateFromCli(args);
+    },
+  },
+  "docs:verify-duplicate-decisions": {
+    description: "Verify whether duplicate Tier 2 intervention decisions are complete.",
+    run: async (args) => {
+      const { verifyTier2DuplicateDecisionsFromCli } = await import("./jobs/docs/tier2-docs.js");
+      return verifyTier2DuplicateDecisionsFromCli(args);
+    },
+  },
+  "docs:status": {
+    description: "Summarize Tier 2 pipeline completion gates from generated artifacts.",
+    run: async (args) => {
+      const { buildTier2PipelineStatusFromCli } = await import("./jobs/docs/tier2-docs.js");
+      return buildTier2PipelineStatusFromCli(args);
+    },
+  },
+  "docs:load-staging": {
+    description: "Load canonical Tier 2 staging events into local serving staging tables.",
+    run: async (args) => {
+      const { loadTier2InterventionStagingFromCli } = await import("./jobs/docs/tier2-docs.js");
+      return loadTier2InterventionStagingFromCli(args);
+    },
+  },
+  "docs:followup-ocr-plan": {
+    description: "Build a focused follow-up OCR plan from Tier 2 follow-up candidates.",
+    run: async (args) => {
+      const { planTier2FollowupOcrFromCli } = await import("./jobs/docs/tier2-docs.js");
+      return planTier2FollowupOcrFromCli(args);
+    },
+  },
+  "docs:followup-curation-queue": {
+    description: "Build a manual curation queue from reviewed Tier 2 follow-up OCR artifacts.",
+    run: async (args) => {
+      const { buildTier2FollowupCurationQueueFromCli } = await import("./jobs/docs/tier2-docs.js");
+      return buildTier2FollowupCurationQueueFromCli(args);
+    },
+  },
+  "docs:followup-curation-decisions": {
+    description: "Build an editable decision template for Tier 2 follow-up OCR curation.",
+    run: async (args) => {
+      const { buildTier2FollowupCurationDecisionTemplateFromCli } = await import(
+        "./jobs/docs/tier2-docs.js"
+      );
+      return buildTier2FollowupCurationDecisionTemplateFromCli(args);
+    },
+  },
+  "docs:verify-followup-curation": {
+    description: "Verify whether Tier 2 follow-up OCR curation decisions are complete.",
+    run: async (args) => {
+      const { verifyTier2FollowupCurationDecisionsFromCli } = await import(
+        "./jobs/docs/tier2-docs.js"
+      );
+      return verifyTier2FollowupCurationDecisionsFromCli(args);
+    },
+  },
+  "docs:verify-manual-interventions": {
+    description: "Verify manually enriched Tier 2 intervention candidates.",
+    run: async (args) => {
+      const { verifyTier2ManualInterventionsFromCli } = await import("./jobs/docs/tier2-docs.js");
+      return verifyTier2ManualInterventionsFromCli(args);
+    },
+  },
+  "docs:followup-curation-bundle": {
+    description:
+      "Build a deterministic candidate bundle from manually curated follow-up OCR decisions.",
+    run: async (args) => {
+      const { buildTier2FollowupCurationCandidateBundleFromCli } = await import(
+        "./jobs/docs/tier2-docs.js"
+      );
+      return buildTier2FollowupCurationCandidateBundleFromCli(args);
+    },
+  },
   "collect:gtfs-rt": {
     description: "Collect bounded MTA Bus Time GTFS-RT raw feed snapshots.",
     run: async (args) => {
@@ -62,6 +229,14 @@ const commands = {
     run: async (args) => {
       const { pullGtfsRtR2RunFromCli } = await import("./jobs/ops/pull-gtfs-rt-r2-run.js");
       return pullGtfsRtR2RunFromCli(args);
+    },
+  },
+  "cloudflare:cost-plan": {
+    description:
+      "Estimate Cloudflare operation usage and Workers Paid overage risk before execute.",
+    run: async (args) => {
+      const { cloudflareCostPlanFromCli } = await import("./jobs/ops/cloudflare-cost-plan.js");
+      return cloudflareCostPlanFromCli(args);
     },
   },
   "gtfs-rt:preflight": {
@@ -177,6 +352,16 @@ const commands = {
         "./jobs/ingest/ingest-bus-wait-assessment.js"
       );
       return ingestBusWaitAssessmentFromCli(args);
+    },
+  },
+  "ingest:express-bus-capacity": {
+    description:
+      "Fetch static MTA express bus maximum-load-point capacity rows and write local-only artifacts.",
+    run: async (args) => {
+      const { ingestExpressBusCapacityFromCli } = await import(
+        "./jobs/ingest/ingest-express-bus-capacity.js"
+      );
+      return ingestExpressBusCapacityFromCli(args);
     },
   },
   "ingest:dot-traffic-speeds": {
@@ -395,6 +580,34 @@ const commands = {
       return buildFindingContextAppendixFromCli(args);
     },
   },
+  "build:express-bus-capacity-context": {
+    description: "Build route-hour express bus load summaries from local normalized capacity rows.",
+    run: async (args) => {
+      const { buildExpressBusCapacityContextFromCli } = await import(
+        "./jobs/build/express-bus-capacity-context.js"
+      );
+      return buildExpressBusCapacityContextFromCli(args);
+    },
+  },
+  "build:express-route-analysis": {
+    description:
+      "Join express-bus capacity windows to route/hour speed context for offline screening.",
+    run: async (args) => {
+      const { buildExpressRouteAnalysisFromCli } = await import(
+        "./jobs/build/express-route-analysis.js"
+      );
+      return buildExpressRouteAnalysisFromCli(args);
+    },
+  },
+  "audit:express-route-analysis": {
+    description: "Validate the generated express-route load-speed screening artifact.",
+    run: async (args) => {
+      const { auditExpressRouteAnalysisFromCli } = await import(
+        "./jobs/build/express-route-analysis.js"
+      );
+      return auditExpressRouteAnalysisFromCli(args);
+    },
+  },
   "findings:promote": {
     description: "Capture reviewer decisions and write immutable promoted-finding artifacts.",
     run: async (args) => {
@@ -538,6 +751,13 @@ const commands = {
       return buildMapArtifactsFromCli(args);
     },
   },
+  "audit:map-artifacts": {
+    description: "Verify static map GeoJSON payloads, manifest totals, hashes, and contracts.",
+    run: async (args) => {
+      const { auditMapArtifactsFromCli } = await import("./jobs/build/map-artifacts.js");
+      return auditMapArtifactsFromCli(args);
+    },
+  },
   "brief-artifacts": {
     description: "Build route and corridor brief body artifacts.",
     run: async (args) => {
@@ -550,6 +770,15 @@ const commands = {
     run: async (args) => {
       const { buildStudioReleaseFromCli } = await import("./jobs/build/studio-release.js");
       return buildStudioReleaseFromCli(args);
+    },
+  },
+  "studio:promote-publish-candidate": {
+    description: "Promote a reviewed Studio publish-candidate export into release artifacts.",
+    run: async (args) => {
+      const { promoteStudioPublishCandidateFromCli } = await import(
+        "./jobs/publish/promote-studio-publish-candidate.js"
+      );
+      return promoteStudioPublishCandidateFromCli(args);
     },
   },
   "audit:studio-coverage": {
@@ -698,13 +927,6 @@ const commands = {
       return buildRouteNetworkFromCli(args);
     },
   },
-  "build:planned-routes": {
-    description: "Compatibility alias for build:routes -- --planned.",
-    run: async (args) => {
-      const { buildAllRoutesGraphFromCli } = await import("./jobs/build/route-build-graph.js");
-      return buildAllRoutesGraphFromCli(["--planned", ...args]);
-    },
-  },
   "compare:routes": {
     description: "Build route comparison artifacts.",
     run: async (args) => {
@@ -724,6 +946,13 @@ const commands = {
     run: async (args) => {
       const { buildRouteBriefInputFromCli } = await import("./jobs/build/route-core-artifacts.js");
       return buildRouteBriefInputFromCli(args);
+    },
+  },
+  "build:route-briefs": {
+    description: "Build route brief input artifacts for explicit or all public routes.",
+    run: async (args) => {
+      const { buildRouteBriefInputsFromCli } = await import("./jobs/build/route-core-artifacts.js");
+      return buildRouteBriefInputsFromCli(args);
     },
   },
   "build:interventions": {

@@ -1,7 +1,5 @@
-import { Database } from "bun:sqlite";
 import { Buffer } from "node:buffer";
 import { createHash } from "node:crypto";
-import { existsSync } from "node:fs";
 import { mkdir, readdir } from "node:fs/promises";
 import { basename, dirname, join, relative } from "node:path";
 import { replaceTier2InterventionStagingRows } from "@bp/db/local";
@@ -625,60 +623,6 @@ export type Tier2FollowupCurationDecisionVerification = {
   };
 };
 
-export type Tier2FollowupValidationResolutionCategory =
-  | "validator_gap_corridor_alias"
-  | "validator_gap_source_span_packaging"
-  | "validator_gap_date_normalization"
-  | "not_route_scoped_enough"
-  | "mixed_validation_gaps";
-
-export type Tier2FollowupOcrResolutionCategory =
-  | "exhausted_no_selectable_pages"
-  | "manual_reviewed_from_text_annotations";
-
-export type Tier2FollowupValidationResolution = {
-  candidateId: string;
-  sourceId: string;
-  currentValidationState: Tier2CandidateValidationState;
-  resolution: "defer_not_promotable";
-  category: Tier2FollowupValidationResolutionCategory;
-  failedChecks: string[];
-  reviewer: string;
-  reviewedAt: string;
-  rationale: string;
-};
-
-export type Tier2FollowupOcrResolution = {
-  sourceId: string;
-  status: Tier2OcrQualityReviewSource["status"];
-  resolution: "exhausted" | "reviewed_deferred";
-  category: Tier2FollowupOcrResolutionCategory;
-  reviewer: string;
-  reviewedAt: string;
-  rationale: string;
-};
-
-export type Tier2FollowupResolutionAudit = {
-  version: 1;
-  runId: string;
-  generatedAt: string;
-  candidateValidationPath: string;
-  ocrQualityReviewPath: string;
-  outputPath: string | null;
-  complete: boolean;
-  summary: {
-    needsReviewCandidateCount: number;
-    resolvedNeedsReviewCandidateCount: number;
-    unresolvedNeedsReviewCandidateCount: number;
-    unresolvedOcrSourceCount: number;
-    resolvedOcrSourceCount: number;
-    unresolvedOcrRemainingCount: number;
-    categoryCounts: Record<string, number>;
-  };
-  validationResolutions: Tier2FollowupValidationResolution[];
-  ocrResolutions: Tier2FollowupOcrResolution[];
-};
-
 export type Tier2CandidateValidationState =
   | "unvalidated"
   | "validated"
@@ -851,85 +795,6 @@ export type Tier2CandidateBundle = {
   llmExtractionAudits: Tier2LlmExtractionAudit[];
 };
 
-export type Tier2CandidateValidationResult = {
-  candidateId: string;
-  candidateType: "document_intervention_seed";
-  sourceId: string;
-  validationState: Tier2CandidateValidationState;
-  normalizedInterventionType: string | null;
-  normalizedRouteIds: string[];
-  normalizedCorridorMentions: string[];
-  matchedCorridorStreets: string[];
-  normalizedDate: string | null;
-  datePrecision: "day" | "month" | "year" | null;
-  sourceSpanValid: boolean;
-  sourceSpanChunkIds: string[];
-  checks: {
-    route: Tier2CandidateValidationState;
-    corridor: Tier2CandidateValidationState;
-    date: Tier2CandidateValidationState;
-    sourceSpan: Tier2CandidateValidationState;
-    interventionType: Tier2CandidateValidationState;
-  };
-  reasons: string[];
-};
-
-export type Tier2CandidateValidation = {
-  version: 1;
-  runId: string;
-  generatedAt: string;
-  candidateBundlePath: string;
-  documentChunksPath: string;
-  routeCatalogPath: string;
-  outputPath: string | null;
-  summary: {
-    interventionSeedCount: number;
-    validatedCount: number;
-    needsReviewCount: number;
-    rejectedCount: number;
-    routeValidatedCount: number;
-    dateValidatedCount: number;
-    sourceSpanValidatedCount: number;
-    chunkSourceSpanValidatedCount: number;
-    interventionTypeValidatedCount: number;
-    corridorNeedsReviewCount: number;
-  };
-  results: Tier2CandidateValidationResult[];
-};
-
-export type Tier2PromotionReport = {
-  version: 1;
-  runId: string;
-  generatedAt: string;
-  candidateValidationPath: string;
-  canonicalOutputPath: string | null;
-  outputPath: string | null;
-  dryRun: boolean;
-  summary: {
-    validationResultCount: number;
-    promotedEventCount: number;
-    canonicalEventCount: number;
-    blockedNeedsReviewCount: number;
-    blockedRejectedCount: number;
-  };
-  promotedEvents: Array<{
-    candidateId: string;
-    sourceId: string;
-    eventId: string;
-    routeIds: string[];
-    interventionType: string;
-    implementationDate: string;
-    datePrecision: "day" | "month" | "year";
-    sourceSpanValid: true;
-    sourceSpanChunkIds: string[];
-  }>;
-  blockedCandidates: Array<{
-    candidateId: string;
-    validationState: Tier2CandidateValidationState;
-    reasons: string[];
-  }>;
-};
-
 export type Tier2CanonicalInterventionEvent = {
   eventId: string;
   candidateId: string;
@@ -956,38 +821,6 @@ export type Tier2CanonicalInterventionEventsArtifact = {
     sourceCount: number;
   };
   events: Tier2CanonicalInterventionEvent[];
-};
-
-export type Tier2PromotedEventSourceBackingAudit = {
-  version: 1;
-  runId: string;
-  generatedAt: string;
-  canonicalEventsPath: string;
-  candidateValidationPath: string;
-  documentChunksPath: string;
-  outputPath: string | null;
-  complete: boolean;
-  summary: {
-    eventCount: number;
-    auditedEventCount: number;
-    sourceBackedEventCount: number;
-    missingValidationCount: number;
-    nonValidatedCandidateCount: number;
-    sourceMismatchCount: number;
-    routeMismatchCount: number;
-    dateMismatchCount: number;
-    typeMismatchCount: number;
-    missingChunkRefCount: number;
-    unknownChunkRefCount: number;
-    chunkSourceMismatchCount: number;
-    eventIssueCount: number;
-  };
-  eventIssues: Array<{
-    eventId: string;
-    candidateId: string;
-    sourceId: string;
-    issueCodes: string[];
-  }>;
 };
 
 export type Tier2ManualInterventionEvidence = {
@@ -1301,17 +1134,13 @@ export type Tier2PipelineStatusArtifact = {
   summary: {
     sourceCandidateCount: number;
     interventionSeedCount: number;
-    validatedSeedCount: number;
-    promotedEventCount: number;
+    canonicalEventCount: number;
     eligibleTimelineEventCount: number;
     blockedDuplicateEventCount: number;
     suppressedDuplicateEventCount: number;
     completeDuplicateDecisionCount: number;
     incompleteDuplicateDecisionCount: number;
     duplicateDecisionComplete: boolean;
-    promotedSourceBackingAuditComplete: boolean;
-    promotedSourceBackedEventCount: number;
-    promotedSourceBackingIssueCount: number;
     followupOcrPlannedCount: number;
     followupOcrTop30CompletedCount: number;
     followupOcrLatestReviewPath: string | null;
@@ -1325,13 +1154,7 @@ export type Tier2PipelineStatusArtifact = {
     followupCurationIncompleteDecisionCount: number;
     followupCandidateBundlePath: string | null;
     followupInterventionSeedCount: number;
-    followupValidatedSeedCount: number;
-    followupNeedsReviewSeedCount: number;
-    followupResolvedNeedsReviewSeedCount: number;
-    followupUnresolvedNeedsReviewSeedCount: number;
-    followupResolvedOcrSourceCount: number;
     followupUnresolvedOcrSourceCount: number;
-    followupPromotableEventCount: number;
     studioTier2TimelineRowCount: number;
     studioTier2RowsMissingSourceLinks: number;
     studioTier2RowsMissingSourceSpanPreviews: number;
@@ -1516,23 +1339,6 @@ type ChunkTier2DocumentsArgs = {
   generatedAt?: string;
 };
 
-type ValidateTier2CandidatesArgs = {
-  candidateBundlePath: string;
-  documentChunksPath: string;
-  routeCatalogPath: string;
-  dbPath?: string;
-  outputPath?: string;
-  generatedAt?: string;
-};
-
-type PromoteTier2CandidatesArgs = {
-  candidateValidationPath: string;
-  canonicalOutputPath?: string;
-  outputPath?: string;
-  generatedAt?: string;
-  dryRun?: boolean;
-};
-
 type AuditTier2InterventionDuplicatesArgs = {
   canonicalEventsPath: string;
   outputPath?: string;
@@ -1559,26 +1365,10 @@ type VerifyTier2DuplicateDecisionsArgs = {
   generatedAt?: string;
 };
 
-type AuditTier2PromotedEventSourceBackingArgs = {
-  canonicalEventsPath: string;
-  candidateValidationPath: string;
-  documentChunksPath: string;
-  outputPath?: string;
-  generatedAt?: string;
-};
-
 type BuildTier2PipelineStatusArgs = {
   runId: string;
   artifactRoot: string;
   studioReleasePath: string;
-  outputPath?: string;
-  generatedAt?: string;
-};
-
-export type BuildTier2FollowupResolutionAuditArgs = {
-  runId: string;
-  candidateValidationPath: string;
-  ocrQualityReviewPath: string;
   outputPath?: string;
   generatedAt?: string;
 };
@@ -1717,25 +1507,6 @@ type ChunkCliArgs = {
   outputPath?: string;
 };
 
-type ValidateCliArgs = {
-  candidateBundlePath?: string;
-  documentChunksPath?: string;
-  routeCatalogPath?: string;
-  dbPath?: string;
-  artifactRoot?: string;
-  runId?: string;
-  outputPath?: string;
-};
-
-type PromoteCliArgs = {
-  candidateValidationPath?: string;
-  canonicalOutputPath?: string;
-  artifactRoot?: string;
-  runId?: string;
-  outputPath?: string;
-  dryRun?: boolean;
-};
-
 type DuplicateAuditCliArgs = {
   canonicalEventsPath?: string;
   artifactRoot?: string;
@@ -1766,27 +1537,10 @@ type VerifyDuplicateDecisionsCliArgs = {
   outputPath?: string;
 };
 
-type PromotedSourceAuditCliArgs = {
-  canonicalEventsPath?: string;
-  candidateValidationPath?: string;
-  documentChunksPath?: string;
-  artifactRoot?: string;
-  runId?: string;
-  outputPath?: string;
-};
-
 type PipelineStatusCliArgs = {
   artifactRoot?: string;
   runId?: string;
   studioReleasePath?: string;
-  outputPath?: string;
-};
-
-export type FollowupResolutionAuditCliArgs = {
-  candidateValidationPath?: string;
-  ocrQualityReviewPath?: string;
-  artifactRoot?: string;
-  runId?: string;
   outputPath?: string;
 };
 
@@ -1854,8 +1608,6 @@ type DiscoverCliArgs = {
 };
 
 const DEFAULT_BACKLOG_PATH = fromRepoRoot("knowledge/raw/tier2_document_backlog.json");
-const DEFAULT_ROUTE_CATALOG_PATH = fromRepoRoot("data/working/network/route-catalog.json");
-const DEFAULT_LOCAL_DB_PATH = fromRepoRoot("data/local/pipeline.sqlite");
 const DEFAULT_OCR_MODEL = "qwen/qwen3.7-max";
 const DEFAULT_OCR_MAX_TOKENS = 4096;
 const DEFAULT_OCR_TRIAGE_ROOT_NAME = "ocr-triage";
@@ -1897,14 +1649,6 @@ export function candidateBundlePath(artifactRoot: string, runId: string): string
 
 export function documentChunksPath(artifactRoot: string, runId: string): string {
   return join(runArtifactRoot(artifactRoot, runId), "document-chunks.json");
-}
-
-export function candidateValidationPath(artifactRoot: string, runId: string): string {
-  return join(runArtifactRoot(artifactRoot, runId), "candidate-validation.json");
-}
-
-export function promotionReportPath(artifactRoot: string, runId: string): string {
-  return join(runArtifactRoot(artifactRoot, runId), "promotion-report.json");
 }
 
 export function canonicalInterventionEventsPath(artifactRoot: string, runId: string): string {
@@ -7709,161 +7453,6 @@ export async function chunkTier2Documents(
   return artifact;
 }
 
-type RouteCatalogArtifact = {
-  rows?: Array<{
-    routeId?: unknown;
-    routeShortName?: unknown;
-  }>;
-  routes?: Array<{
-    routeId?: unknown;
-    label?: unknown;
-  }>;
-};
-
-function normalizeRouteMention(value: string): string {
-  return value
-    .toUpperCase()
-    .replace(/\bSBS\b/g, "+")
-    .replace(/SELECT BUS SERVICE/g, "+")
-    .replace(/[^A-Z0-9+]/g, "");
-}
-
-function normalizeStreetMention(value: string): string {
-  return value
-    .toUpperCase()
-    .replace(/&/g, " AND ")
-    .replace(/\bAVENUE\b/g, "AVE")
-    .replace(/\bSTREET\b/g, "ST")
-    .replace(/\bBOULEVARD\b/g, "BLVD")
-    .replace(/\bROAD\b/g, "RD")
-    .replace(/\bDRIVE\b/g, "DR")
-    .replace(/\bPLACE\b/g, "PL")
-    .replace(/\bPARKWAY\b/g, "PKWY")
-    .replace(/\bEAST\b/g, "E")
-    .replace(/\bWEST\b/g, "W")
-    .replace(/\bNORTH\b/g, "N")
-    .replace(/\bSOUTH\b/g, "S")
-    .replace(/[^A-Z0-9]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function corridorMentionParts(value: string): string[] {
-  return [
-    ...new Set(
-      value
-        .split(/\b(?:and|to|between|from|,|;|\/|\+|&)\b|[-–—]/i)
-        .map(normalizeStreetMention)
-        .filter((part) => part.length > 0),
-    ),
-  ];
-}
-
-class RouteStreetIndex {
-  private readonly database: Database | null;
-  private readonly cache = new Map<string, Set<string>>();
-
-  constructor(path: string | undefined) {
-    if (path === undefined || !existsSync(path)) {
-      this.database = null;
-      return;
-    }
-    this.database = new Database(path, { readonly: true });
-  }
-
-  close(): void {
-    this.database?.close();
-  }
-
-  streetsForRoute(routeId: string): Set<string> {
-    const cached = this.cache.get(routeId);
-    if (cached !== undefined) {
-      return cached;
-    }
-    const streets = new Set<string>();
-    if (this.database !== null) {
-      const rows = this.database
-        .query<{ street_name: string | null }, [string]>(
-          "SELECT DISTINCT street_name FROM local_route_lion_link WHERE route_id = ? AND street_name IS NOT NULL",
-        )
-        .all(routeId);
-      for (const row of rows) {
-        if (row.street_name !== null) {
-          streets.add(normalizeStreetMention(row.street_name));
-        }
-      }
-    }
-    this.cache.set(routeId, streets);
-    return streets;
-  }
-}
-
-async function readRouteIdSet(path: string): Promise<Set<string>> {
-  const artifact = (await Bun.file(path).json()) as RouteCatalogArtifact;
-  const routeIds = new Set<string>();
-  const rows = artifact.rows ?? artifact.routes ?? [];
-  for (const row of rows) {
-    if (typeof row.routeId === "string") {
-      routeIds.add(normalizeRouteMention(row.routeId));
-    }
-    const routeShortName = "routeShortName" in row ? row.routeShortName : undefined;
-    if (typeof routeShortName === "string") {
-      routeIds.add(normalizeRouteMention(routeShortName));
-    }
-    const label = "label" in row ? row.label : undefined;
-    if (typeof label === "string") {
-      routeIds.add(normalizeRouteMention(label));
-    }
-  }
-  return routeIds;
-}
-
-function normalizeDateMention(value: string): {
-  normalizedDate: string | null;
-  datePrecision: Tier2CandidateValidationResult["datePrecision"];
-} {
-  const trimmed = value.trim();
-  const isoDay = trimmed.match(/\b(20\d{2}|19\d{2})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])\b/);
-  if (isoDay !== null) {
-    return { normalizedDate: isoDay[0], datePrecision: "day" };
-  }
-  const isoMonth = trimmed.match(/\b(20\d{2}|19\d{2})-(0[1-9]|1[0-2])\b/);
-  if (isoMonth !== null) {
-    return { normalizedDate: isoMonth[0], datePrecision: "month" };
-  }
-  const monthName = trimmed.match(
-    /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(20\d{2}|19\d{2})\b/i,
-  );
-  if (monthName !== null) {
-    const monthIndex =
-      [
-        "january",
-        "february",
-        "march",
-        "april",
-        "may",
-        "june",
-        "july",
-        "august",
-        "september",
-        "october",
-        "november",
-        "december",
-      ].indexOf(monthName[1]?.toLowerCase() ?? "") + 1;
-    if (monthIndex > 0) {
-      return {
-        normalizedDate: `${monthName[2]}-${String(monthIndex).padStart(2, "0")}`,
-        datePrecision: "month",
-      };
-    }
-  }
-  const year = trimmed.match(/\b(20\d{2}|19\d{2})\b/);
-  if (year !== null) {
-    return { normalizedDate: year[1] ?? null, datePrecision: "year" };
-  }
-  return { normalizedDate: null, datePrecision: null };
-}
-
 function normalizeInterventionFamily(value: string): string | null {
   const text = value.toLowerCase().replace(/[_-]+/g, " ");
   if (text.includes("select bus service") || /\bsbs\b/.test(text)) {
@@ -8364,180 +7953,6 @@ export async function buildTier2FollowupCurationCandidateBundle(
   return bundle;
 }
 
-function failedValidationChecks(result: Tier2CandidateValidationResult): string[] {
-  return Object.entries(result.checks)
-    .filter(([, state]) => state === "needs_review")
-    .map(([check]) => check)
-    .toSorted();
-}
-
-function classifyFollowupValidationResolution(
-  result: Tier2CandidateValidationResult,
-): Tier2FollowupValidationResolutionCategory {
-  const failedChecks = new Set(failedValidationChecks(result));
-  if (failedChecks.has("route") && failedChecks.has("corridor")) {
-    return "not_route_scoped_enough";
-  }
-  if (failedChecks.size === 1 && failedChecks.has("corridor")) {
-    return "validator_gap_corridor_alias";
-  }
-  if (failedChecks.size === 1 && failedChecks.has("sourceSpan")) {
-    return "validator_gap_source_span_packaging";
-  }
-  if (failedChecks.size === 1 && failedChecks.has("date")) {
-    return "validator_gap_date_normalization";
-  }
-  return "mixed_validation_gaps";
-}
-
-function followupValidationResolutionRationale(
-  result: Tier2CandidateValidationResult,
-  category: Tier2FollowupValidationResolutionCategory,
-): string {
-  const failedChecks = failedValidationChecks(result).join(", ");
-  if (category === "not_route_scoped_enough") {
-    return `Deferred from timeline promotion: deterministic validation could not tie the candidate to both a route and route-linked corridor (${failedChecks}). Keep as wiki/search evidence until a route-scoped source or validator alias is added.`;
-  }
-  if (category === "validator_gap_corridor_alias") {
-    return `Deferred from timeline promotion: route/date/type validated, but the corridor mention did not match a route-linked LION street alias (${failedChecks}). Candidate can be reconsidered after corridor alias improvements.`;
-  }
-  if (category === "validator_gap_source_span_packaging") {
-    return `Deferred from timeline promotion: route/corridor/date/type validated, but no single evidence span currently satisfies the route, corridor, date, and intervention co-mention rule (${failedChecks}). Keep source text indexed; promote only after source-span packaging is improved or manually tightened.`;
-  }
-  if (category === "validator_gap_date_normalization") {
-    return `Deferred from timeline promotion: deterministic date normalization failed (${failedChecks}). Promote only after the date can be normalized from the source text.`;
-  }
-  return `Deferred from timeline promotion: multiple deterministic checks still need review (${failedChecks}). Keep in the wiki/search layer until the failing checks are corrected with source-backed evidence.`;
-}
-
-function ocrSourceNeedsResolution(source: Tier2OcrQualityReviewSource): boolean {
-  return (
-    source.ocrQuality === "unknown" ||
-    source.decision === "unknown" ||
-    source.issueCodes.includes("not_started") ||
-    source.issueCodes.includes("missing_triage_json") ||
-    source.issueCodes.includes("missing_annotations")
-  );
-}
-
-function manualAnnotationOcrRationale(sourceId: string): string {
-  if (sourceId.includes("125th_cb10_post_implementation_update")) {
-    return "Manual text/annotation review found useful M60/125th SBS post-implementation evidence, but the canonical timeline already has M60/125th launch and feature evidence from parsed 125th Street sources; defer this unparsed OCR tail source as duplicate support.";
-  }
-  if (sourceId.includes("2015_04_06_brt_uticaave_cb3_presentation")) {
-    return "Manual text/annotation review found B46/Utica SBS planning evidence, but it is proposed/planning material covered by other parsed Utica sources; defer this unparsed OCR tail source as duplicate support.";
-  }
-  if (sourceId.includes("fordham_rd_sedgwick_ave_bronx_river_pkwy_cb6_may2026")) {
-    return "Manual text/annotation review found Bx12/Fordham Road May 2026 final-proposal evidence similar to parsed CB5/CB7 Fordham sources; defer this unparsed OCR tail source as duplicate support until source-span packaging for Fordham follow-up candidates is tightened.";
-  }
-  return "Manual text/annotation review found usable OCR text but no parsed triage JSON; defer this source from candidate promotion until a parsed triage artifact or tighter manual candidate is available.";
-}
-
-export async function buildTier2FollowupResolutionAudit(
-  args: BuildTier2FollowupResolutionAuditArgs,
-): Promise<Tier2FollowupResolutionAudit> {
-  const [validation, ocrReview] = await Promise.all([
-    readRequiredJsonArtifact<Tier2CandidateValidation>(args.candidateValidationPath),
-    readRequiredJsonArtifact<Tier2OcrQualityReview>(args.ocrQualityReviewPath),
-  ]);
-  const reviewedAt = args.generatedAt ?? new Date().toISOString();
-  const validationResolutions = validation.results
-    .filter((result) => result.validationState === "needs_review")
-    .map((result): Tier2FollowupValidationResolution => {
-      const category = classifyFollowupValidationResolution(result);
-      return {
-        candidateId: result.candidateId,
-        sourceId: result.sourceId,
-        currentValidationState: result.validationState,
-        resolution: "defer_not_promotable",
-        category,
-        failedChecks: failedValidationChecks(result),
-        reviewer: "codex_followup_resolution_audit",
-        reviewedAt,
-        rationale: followupValidationResolutionRationale(result, category),
-      };
-    });
-  const unresolvedOcrSources = ocrReview.sources.filter(ocrSourceNeedsResolution);
-  const ocrResolutions = unresolvedOcrSources
-    .flatMap((source): Tier2FollowupOcrResolution[] => {
-      if (source.status === "not_started" || source.status === "prepared") {
-        return [
-          {
-            sourceId: source.sourceId,
-            status: source.status,
-            resolution: "exhausted",
-            category: "exhausted_no_selectable_pages",
-            reviewer: "codex_followup_resolution_audit",
-            reviewedAt,
-            rationale:
-              "Deferred from follow-up OCR promotion: the follow-up plan produced no selected pages/annotations for this source, so there is no reviewable OCR text to curate in this pass.",
-          },
-        ];
-      }
-      if (source.status === "ocr_complete" && source.issueCodes.includes("missing_triage_json")) {
-        return [
-          {
-            sourceId: source.sourceId,
-            status: source.status,
-            resolution: "reviewed_deferred",
-            category: "manual_reviewed_from_text_annotations",
-            reviewer: "codex_followup_resolution_audit",
-            reviewedAt,
-            rationale: manualAnnotationOcrRationale(source.sourceId),
-          },
-        ];
-      }
-      return [];
-    })
-    .toSorted((a, b) => a.sourceId.localeCompare(b.sourceId));
-  const resolvedOcrSourceIds = new Set(ocrResolutions.map((resolution) => resolution.sourceId));
-  const categoryCounts: Record<string, number> = {};
-  for (const resolution of validationResolutions) {
-    incrementRecordCount(categoryCounts, resolution.category);
-  }
-  for (const resolution of ocrResolutions) {
-    incrementRecordCount(categoryCounts, resolution.category);
-  }
-  const unresolvedNeedsReviewCandidateCount =
-    validation.summary.needsReviewCount - validationResolutions.length;
-  const unresolvedOcrRemainingCount = unresolvedOcrSources.filter(
-    (source) => !resolvedOcrSourceIds.has(source.sourceId),
-  ).length;
-  const audit: Tier2FollowupResolutionAudit = {
-    version: 1,
-    runId: args.runId,
-    generatedAt: reviewedAt,
-    candidateValidationPath: args.candidateValidationPath,
-    ocrQualityReviewPath: args.ocrQualityReviewPath,
-    outputPath: args.outputPath ?? null,
-    complete: unresolvedNeedsReviewCandidateCount === 0 && unresolvedOcrRemainingCount === 0,
-    summary: {
-      needsReviewCandidateCount: validation.summary.needsReviewCount,
-      resolvedNeedsReviewCandidateCount: validationResolutions.length,
-      unresolvedNeedsReviewCandidateCount,
-      unresolvedOcrSourceCount: unresolvedOcrSources.length,
-      resolvedOcrSourceCount: ocrResolutions.length,
-      unresolvedOcrRemainingCount,
-      categoryCounts,
-    },
-    validationResolutions,
-    ocrResolutions,
-  };
-
-  if (args.outputPath !== undefined) {
-    await mkdir(dirname(args.outputPath), { recursive: true });
-    await writeJson(args.outputPath, audit);
-  }
-
-  return audit;
-}
-
-function sameStringSet(left: string[], right: string[]): boolean {
-  if (left.length !== right.length) return false;
-  const rightSet = new Set(right);
-  return left.every((value) => rightSet.has(value));
-}
-
 function supportPathExists(
   candidate: Tier2ManualInterventionCandidate,
   supportPath: string,
@@ -8840,547 +8255,6 @@ export async function verifyTier2ManualInterventions(
   return verification;
 }
 
-export async function auditTier2PromotedEventSourceBacking(
-  args: AuditTier2PromotedEventSourceBackingArgs,
-): Promise<Tier2PromotedEventSourceBackingAudit> {
-  const [canonical, validation, chunks] = await Promise.all([
-    readRequiredJsonArtifact<Tier2CanonicalInterventionEventsArtifact>(args.canonicalEventsPath),
-    readRequiredJsonArtifact<Tier2CandidateValidation>(args.candidateValidationPath),
-    readRequiredJsonArtifact<Tier2DocumentChunksArtifact>(args.documentChunksPath),
-  ]);
-  const validationByCandidateId = new Map(
-    validation.results.map((result) => [result.candidateId, result]),
-  );
-  const chunksById = new Map(chunks.chunks.map((chunk) => [chunk.chunkId, chunk]));
-  const summary: Tier2PromotedEventSourceBackingAudit["summary"] = {
-    eventCount: canonical.events.length,
-    auditedEventCount: canonical.events.length,
-    sourceBackedEventCount: 0,
-    missingValidationCount: 0,
-    nonValidatedCandidateCount: 0,
-    sourceMismatchCount: 0,
-    routeMismatchCount: 0,
-    dateMismatchCount: 0,
-    typeMismatchCount: 0,
-    missingChunkRefCount: 0,
-    unknownChunkRefCount: 0,
-    chunkSourceMismatchCount: 0,
-    eventIssueCount: 0,
-  };
-  const eventIssues: Tier2PromotedEventSourceBackingAudit["eventIssues"] = [];
-
-  for (const event of canonical.events) {
-    const issueCodes: string[] = [];
-    const validationResult = validationByCandidateId.get(event.candidateId);
-    if (validationResult === undefined) {
-      summary.missingValidationCount += 1;
-      issueCodes.push("missing_validation");
-    } else {
-      if (validationResult.validationState !== "validated") {
-        summary.nonValidatedCandidateCount += 1;
-        issueCodes.push("candidate_not_validated");
-      }
-      if (validationResult.sourceId !== event.sourceId) {
-        summary.sourceMismatchCount += 1;
-        issueCodes.push("source_mismatch");
-      }
-      if (!sameStringSet(validationResult.normalizedRouteIds, event.routeIds)) {
-        summary.routeMismatchCount += 1;
-        issueCodes.push("route_mismatch");
-      }
-      if (validationResult.normalizedDate !== event.implementationDate) {
-        summary.dateMismatchCount += 1;
-        issueCodes.push("date_mismatch");
-      }
-      if (validationResult.normalizedInterventionType !== event.interventionType) {
-        summary.typeMismatchCount += 1;
-        issueCodes.push("type_mismatch");
-      }
-      if (!sameStringSet(validationResult.sourceSpanChunkIds, event.sourceSpanChunkIds)) {
-        summary.missingChunkRefCount += 1;
-        issueCodes.push("source_span_ref_mismatch");
-      }
-    }
-    if (event.sourceSpanChunkIds.length === 0) {
-      summary.missingChunkRefCount += 1;
-      issueCodes.push("missing_source_span_chunks");
-    }
-    for (const chunkId of event.sourceSpanChunkIds) {
-      const chunk = chunksById.get(chunkId);
-      if (chunk === undefined) {
-        summary.unknownChunkRefCount += 1;
-        issueCodes.push("unknown_source_span_chunk");
-      } else if (chunk.sourceId !== event.sourceId) {
-        summary.chunkSourceMismatchCount += 1;
-        issueCodes.push("source_span_chunk_source_mismatch");
-      }
-    }
-    if (issueCodes.length === 0) {
-      summary.sourceBackedEventCount += 1;
-    } else {
-      summary.eventIssueCount += 1;
-      eventIssues.push({
-        eventId: event.eventId,
-        candidateId: event.candidateId,
-        sourceId: event.sourceId,
-        issueCodes: [...new Set(issueCodes)],
-      });
-    }
-  }
-
-  const audit: Tier2PromotedEventSourceBackingAudit = {
-    version: 1,
-    runId: canonical.runId,
-    generatedAt: args.generatedAt ?? new Date().toISOString(),
-    canonicalEventsPath: args.canonicalEventsPath,
-    candidateValidationPath: args.candidateValidationPath,
-    documentChunksPath: args.documentChunksPath,
-    outputPath: args.outputPath ?? null,
-    complete:
-      summary.eventIssueCount === 0 && summary.sourceBackedEventCount === summary.eventCount,
-    summary,
-    eventIssues,
-  };
-  if (args.outputPath !== undefined) {
-    await mkdir(dirname(args.outputPath), { recursive: true });
-    await writeJson(args.outputPath, audit);
-  }
-  return audit;
-}
-
-async function artifactExists(runRoot: string, artifactKey: string | null): Promise<boolean> {
-  return artifactKey !== null && (await Bun.file(join(runRoot, artifactKey)).exists());
-}
-
-function pageRefsOverlap(left: number[], right: number[]): boolean {
-  if (left.length === 0 || right.length === 0) {
-    return true;
-  }
-  const rightPages = new Set(right);
-  return left.some((page) => rightPages.has(page));
-}
-
-function normalizedEvidenceText(chunk: Tier2DocumentChunk): string {
-  return normalizeStreetMention(chunk.text ?? chunk.excerpt);
-}
-
-function seedMentionSupport(input: {
-  seed: Tier2DocumentInterventionSeed;
-  chunks: Tier2DocumentChunk[];
-}): {
-  chunkIds: string[];
-  hasRoute: boolean;
-  hasCorridor: boolean;
-  hasDate: boolean;
-  hasInterventionFamily: boolean;
-} {
-  const routeMentions = input.seed.routeMentions.map(normalizeRouteMention);
-  const corridorMentions = input.seed.corridorMentions.flatMap(corridorMentionParts);
-  const dateMentions = input.seed.dateMentions.map((mention) => normalizeStreetMention(mention));
-  const familyMentions = [
-    input.seed.interventionFamily,
-    ...(normalizeInterventionFamily(input.seed.interventionFamily)?.split("_") ?? []),
-  ].map(normalizeStreetMention);
-  const matchingChunkIds: string[] = [];
-  let hasRoute = routeMentions.length === 0;
-  let hasCorridor = corridorMentions.length === 0;
-  let hasDate = dateMentions.length === 0;
-  let hasInterventionFamily = familyMentions.length === 0;
-
-  for (const chunk of input.chunks) {
-    const text = normalizedEvidenceText(chunk);
-    const routeText = normalizeRouteMention(chunk.text ?? chunk.excerpt);
-    const chunkHasRoute = routeMentions.some(
-      (mention) => mention.length > 0 && routeText.includes(mention),
-    );
-    const chunkHasCorridor = corridorMentions.some((mention) => text.includes(mention));
-    const chunkHasDate = dateMentions.some(
-      (mention) => mention.length > 0 && text.includes(mention),
-    );
-    const chunkHasFamily = familyMentions.some(
-      (mention) => mention.length > 0 && text.includes(mention),
-    );
-    if (chunkHasRoute || chunkHasCorridor || chunkHasDate || chunkHasFamily) {
-      matchingChunkIds.push(chunk.chunkId);
-    }
-    hasRoute ||= chunkHasRoute;
-    hasCorridor ||= chunkHasCorridor;
-    hasDate ||= chunkHasDate;
-    hasInterventionFamily ||= chunkHasFamily;
-  }
-
-  return {
-    chunkIds: [...new Set(matchingChunkIds)].toSorted(),
-    hasRoute,
-    hasCorridor,
-    hasDate,
-    hasInterventionFamily,
-  };
-}
-
-function sourceSpanSupportForSeed(
-  seed: Tier2DocumentInterventionSeed,
-  chunksBySourceId: Map<string, Tier2DocumentChunk[]>,
-): ReturnType<typeof seedMentionSupport> {
-  const artifactKeys = new Set(
-    Object.values(seed.sourceRef.artifactKeys).filter(
-      (artifactKey): artifactKey is string => artifactKey !== null,
-    ),
-  );
-  const chunks = chunksBySourceId.get(seed.sourceRef.sourceId) ?? [];
-  const candidateChunks = chunks.filter(
-    (chunk) =>
-      artifactKeys.has(chunk.artifactKey) && pageRefsOverlap(seed.sourceRef.pages, chunk.pageRefs),
-  );
-  return seedMentionSupport({ seed, chunks: candidateChunks });
-}
-
-async function validateInterventionSeed(input: {
-  seed: Tier2DocumentInterventionSeed;
-  routeIds: Set<string>;
-  routeStreetIndex: RouteStreetIndex;
-  chunksBySourceId: Map<string, Tier2DocumentChunk[]>;
-  runRoot: string;
-}): Promise<Tier2CandidateValidationResult> {
-  const reasons: string[] = [];
-  const normalizedRouteIds = [
-    ...new Set(
-      input.seed.routeMentions
-        .map(normalizeRouteMention)
-        .filter((routeId) => routeId.length > 0 && input.routeIds.has(routeId)),
-    ),
-  ];
-  const routeState: Tier2CandidateValidationState =
-    normalizedRouteIds.length > 0 ? "validated" : "needs_review";
-  if (routeState !== "validated") {
-    reasons.push("No route mention matched the deterministic route catalog.");
-  }
-
-  const dateCandidates = input.seed.dateMentions
-    .map(normalizeDateMention)
-    .filter((date) => date.normalizedDate !== null);
-  const preferredDate =
-    dateCandidates.find((date) => date.datePrecision === "day") ??
-    dateCandidates.find((date) => date.datePrecision === "month") ??
-    dateCandidates[0] ??
-    null;
-  const dateState: Tier2CandidateValidationState =
-    preferredDate === null ? "needs_review" : "validated";
-  if (dateState !== "validated") {
-    reasons.push("No date mention normalized to a year, month, or day.");
-  }
-
-  const normalizedInterventionType = normalizeInterventionFamily(input.seed.interventionFamily);
-  const interventionTypeState: Tier2CandidateValidationState =
-    normalizedInterventionType === null ? "needs_review" : "validated";
-  if (interventionTypeState !== "validated") {
-    reasons.push("Intervention family did not map to a supported canonical intervention type.");
-  }
-
-  const artifactSourceSpanValid =
-    input.seed.sourceRef.pages.length > 0 &&
-    ((await artifactExists(input.runRoot, input.seed.sourceRef.artifactKeys.ocrJson)) ||
-      (await artifactExists(input.runRoot, input.seed.sourceRef.artifactKeys.text)));
-  const sourceSpanSupport = sourceSpanSupportForSeed(input.seed, input.chunksBySourceId);
-  const sourceSpanChunkIds = sourceSpanSupport.chunkIds;
-  const sourceSpanValid =
-    artifactSourceSpanValid &&
-    sourceSpanSupport.hasRoute &&
-    sourceSpanSupport.hasCorridor &&
-    sourceSpanSupport.hasDate &&
-    sourceSpanSupport.hasInterventionFamily;
-  const sourceSpanState: Tier2CandidateValidationState = sourceSpanValid
-    ? "validated"
-    : "needs_review";
-  if (sourceSpanState !== "validated") {
-    reasons.push(
-      artifactSourceSpanValid
-        ? "Source span chunks do not cover the route, corridor, date, and intervention mentions."
-        : "Source span lacks pages plus an existing OCR JSON/text artifact.",
-    );
-  }
-
-  const normalizedCorridorMentions = [
-    ...new Set(input.seed.corridorMentions.flatMap(corridorMentionParts)),
-  ];
-  const matchedCorridorStreets: string[] = [];
-  for (const routeId of normalizedRouteIds) {
-    const routeStreets = input.routeStreetIndex.streetsForRoute(routeId);
-    for (const corridor of normalizedCorridorMentions) {
-      for (const street of routeStreets) {
-        if (
-          corridor.length >= 4 &&
-          street.length >= 4 &&
-          (street.includes(corridor) || corridor.includes(street))
-        ) {
-          matchedCorridorStreets.push(street);
-        }
-      }
-    }
-  }
-  const uniqueMatchedCorridorStreets = [...new Set(matchedCorridorStreets)].toSorted();
-  const corridorState: Tier2CandidateValidationState =
-    normalizedCorridorMentions.length > 0 && uniqueMatchedCorridorStreets.length > 0
-      ? "validated"
-      : "needs_review";
-  if (corridorState !== "validated") {
-    reasons.push("No corridor mention matched a LION street name linked to a validated route.");
-  }
-
-  const validationState: Tier2CandidateValidationState =
-    routeState === "validated" &&
-    corridorState === "validated" &&
-    dateState === "validated" &&
-    sourceSpanState === "validated" &&
-    interventionTypeState === "validated"
-      ? "validated"
-      : "needs_review";
-
-  return {
-    candidateId: input.seed.candidateId,
-    candidateType: "document_intervention_seed",
-    sourceId: input.seed.sourceRef.sourceId,
-    validationState,
-    normalizedInterventionType,
-    normalizedRouteIds,
-    normalizedCorridorMentions,
-    matchedCorridorStreets: uniqueMatchedCorridorStreets,
-    normalizedDate: preferredDate?.normalizedDate ?? null,
-    datePrecision: preferredDate?.datePrecision ?? null,
-    sourceSpanValid,
-    sourceSpanChunkIds,
-    checks: {
-      route: routeState,
-      corridor: corridorState,
-      date: dateState,
-      sourceSpan: sourceSpanState,
-      interventionType: interventionTypeState,
-    },
-    reasons,
-  };
-}
-
-export async function validateTier2Candidates(
-  args: ValidateTier2CandidatesArgs,
-): Promise<Tier2CandidateValidation> {
-  const bundle = (await Bun.file(args.candidateBundlePath).json()) as Tier2CandidateBundle;
-  const documentChunks = (await Bun.file(
-    args.documentChunksPath,
-  ).json()) as Tier2DocumentChunksArtifact;
-  const routeIds = await readRouteIdSet(args.routeCatalogPath);
-  const runRoot = dirname(args.candidateBundlePath);
-  const results: Tier2CandidateValidationResult[] = [];
-  const routeStreetIndex = new RouteStreetIndex(args.dbPath ?? DEFAULT_LOCAL_DB_PATH);
-  const chunksBySourceId = new Map<string, Tier2DocumentChunk[]>();
-  for (const chunk of documentChunks.chunks) {
-    const chunks = chunksBySourceId.get(chunk.sourceId) ?? [];
-    chunks.push(chunk);
-    chunksBySourceId.set(chunk.sourceId, chunks);
-  }
-
-  try {
-    for (const seed of bundle.documentInterventionSeeds) {
-      results.push(
-        await validateInterventionSeed({
-          seed,
-          routeIds,
-          routeStreetIndex,
-          chunksBySourceId,
-          runRoot,
-        }),
-      );
-    }
-  } finally {
-    routeStreetIndex.close();
-  }
-
-  const validation: Tier2CandidateValidation = {
-    version: 1,
-    runId: bundle.runId,
-    generatedAt: args.generatedAt ?? new Date().toISOString(),
-    candidateBundlePath: args.candidateBundlePath,
-    documentChunksPath: args.documentChunksPath,
-    routeCatalogPath: args.routeCatalogPath,
-    outputPath: args.outputPath ?? null,
-    summary: {
-      interventionSeedCount: results.length,
-      validatedCount: results.filter((result) => result.validationState === "validated").length,
-      needsReviewCount: results.filter((result) => result.validationState === "needs_review")
-        .length,
-      rejectedCount: results.filter((result) => result.validationState === "rejected").length,
-      routeValidatedCount: results.filter((result) => result.checks.route === "validated").length,
-      dateValidatedCount: results.filter((result) => result.checks.date === "validated").length,
-      sourceSpanValidatedCount: results.filter((result) => result.checks.sourceSpan === "validated")
-        .length,
-      chunkSourceSpanValidatedCount: results.filter(
-        (result) => result.sourceSpanChunkIds.length > 0,
-      ).length,
-      interventionTypeValidatedCount: results.filter(
-        (result) => result.checks.interventionType === "validated",
-      ).length,
-      corridorNeedsReviewCount: results.filter(
-        (result) => result.checks.corridor === "needs_review",
-      ).length,
-    },
-    results,
-  };
-
-  if (args.outputPath !== undefined) {
-    await mkdir(dirname(args.outputPath), { recursive: true });
-    await writeJson(args.outputPath, validation);
-  }
-
-  return validation;
-}
-
-function promotedEventForValidationResult(
-  result: Tier2CandidateValidationResult,
-): Tier2PromotionReport["promotedEvents"][number] | null {
-  if (
-    result.validationState !== "validated" ||
-    result.normalizedInterventionType === null ||
-    result.normalizedDate === null ||
-    result.datePrecision === null ||
-    !result.sourceSpanValid ||
-    result.sourceSpanChunkIds.length === 0 ||
-    result.normalizedRouteIds.length === 0
-  ) {
-    return null;
-  }
-
-  return {
-    candidateId: result.candidateId,
-    sourceId: result.sourceId,
-    eventId: `tier2:${slugify(result.normalizedInterventionType)}:${shortHash(
-      `${result.candidateId}:${result.normalizedDate}:${result.normalizedRouteIds.join(",")}`,
-    )}`,
-    routeIds: result.normalizedRouteIds,
-    interventionType: result.normalizedInterventionType,
-    implementationDate: result.normalizedDate,
-    datePrecision: result.datePrecision,
-    sourceSpanValid: true,
-    sourceSpanChunkIds: result.sourceSpanChunkIds,
-  };
-}
-
-function implementationMonthForPromotedEvent(input: {
-  implementationDate: string;
-  datePrecision: "day" | "month" | "year";
-}): string {
-  if (input.datePrecision === "day" || input.datePrecision === "month") {
-    return input.implementationDate.slice(0, 7);
-  }
-  return `${input.implementationDate}-01`;
-}
-
-function eventStatusForImplementationDate(input: {
-  implementationDate: string;
-  datePrecision: "day" | "month" | "year";
-  generatedAt: string;
-}): Tier2CanonicalInterventionEvent["eventStatus"] {
-  const dateText =
-    input.datePrecision === "year"
-      ? `${input.implementationDate}-01-01`
-      : input.datePrecision === "month"
-        ? `${input.implementationDate}-01`
-        : input.implementationDate;
-  const generatedDate = input.generatedAt.slice(0, 10);
-  return dateText > generatedDate ? "future" : "implemented";
-}
-
-function canonicalEventForPromotedEvent(input: {
-  event: Tier2PromotionReport["promotedEvents"][number];
-  generatedAt: string;
-}): Tier2CanonicalInterventionEvent {
-  return {
-    eventId: input.event.eventId,
-    candidateId: input.event.candidateId,
-    sourceId: input.event.sourceId,
-    routeIds: input.event.routeIds,
-    interventionType: input.event.interventionType,
-    implementationDate: input.event.implementationDate,
-    implementationMonth: implementationMonthForPromotedEvent(input.event),
-    datePrecision: input.event.datePrecision,
-    eventStatus: eventStatusForImplementationDate({
-      implementationDate: input.event.implementationDate,
-      datePrecision: input.event.datePrecision,
-      generatedAt: input.generatedAt,
-    }),
-    validationState: "validated",
-    sourceSpanChunkIds: input.event.sourceSpanChunkIds,
-  };
-}
-
-export async function promoteTier2Candidates(
-  args: PromoteTier2CandidatesArgs,
-): Promise<Tier2PromotionReport> {
-  const validation = (await Bun.file(
-    args.candidateValidationPath,
-  ).json()) as Tier2CandidateValidation;
-  const dryRun = args.dryRun ?? true;
-  const generatedAt = args.generatedAt ?? new Date().toISOString();
-
-  const promotedEvents = validation.results
-    .map(promotedEventForValidationResult)
-    .filter((event): event is Tier2PromotionReport["promotedEvents"][number] => event !== null);
-  const canonicalEvents = promotedEvents.map((event) =>
-    canonicalEventForPromotedEvent({ event, generatedAt }),
-  );
-  const blockedCandidates = validation.results
-    .filter((result) => promotedEventForValidationResult(result) === null)
-    .map((result) => ({
-      candidateId: result.candidateId,
-      validationState: result.validationState,
-      reasons: result.reasons,
-    }));
-
-  const report: Tier2PromotionReport = {
-    version: 1,
-    runId: validation.runId,
-    generatedAt,
-    candidateValidationPath: args.candidateValidationPath,
-    canonicalOutputPath: dryRun ? null : (args.canonicalOutputPath ?? null),
-    outputPath: args.outputPath ?? null,
-    dryRun,
-    summary: {
-      validationResultCount: validation.results.length,
-      promotedEventCount: promotedEvents.length,
-      canonicalEventCount: dryRun ? 0 : canonicalEvents.length,
-      blockedNeedsReviewCount: validation.results.filter(
-        (result) => result.validationState === "needs_review",
-      ).length,
-      blockedRejectedCount: validation.results.filter(
-        (result) => result.validationState === "rejected",
-      ).length,
-    },
-    promotedEvents,
-    blockedCandidates,
-  };
-
-  if (args.outputPath !== undefined) {
-    await mkdir(dirname(args.outputPath), { recursive: true });
-    await writeJson(args.outputPath, report);
-  }
-  if (!dryRun && args.canonicalOutputPath !== undefined) {
-    const artifact: Tier2CanonicalInterventionEventsArtifact = {
-      version: 1,
-      runId: validation.runId,
-      generatedAt,
-      candidateValidationPath: args.candidateValidationPath,
-      outputPath: args.canonicalOutputPath,
-      summary: {
-        eventCount: canonicalEvents.length,
-        routeEventCount: canonicalEvents.reduce((sum, event) => sum + event.routeIds.length, 0),
-        sourceCount: new Set(canonicalEvents.map((event) => event.sourceId)).size,
-      },
-      events: canonicalEvents,
-    };
-    await mkdir(dirname(args.canonicalOutputPath), { recursive: true });
-    await writeJson(args.canonicalOutputPath, artifact);
-  }
-
-  return report;
-}
 
 function duplicateFingerprint(event: Tier2CanonicalInterventionEvent): string {
   return [
@@ -9794,43 +8668,29 @@ export async function buildTier2PipelineStatus(
   args: BuildTier2PipelineStatusArgs,
 ): Promise<Tier2PipelineStatusArtifact> {
   const baseDir = runArtifactRoot(args.artifactRoot, args.runId);
-  const [
-    baseBundle,
-    baseValidation,
-    baseCanonical,
-    staging,
-    duplicateVerification,
-    followupPlan,
-    top30Review,
-  ] = await Promise.all([
-    readRequiredJsonArtifact<Tier2CandidateBundle>(
-      candidateBundlePath(args.artifactRoot, args.runId),
-    ),
-    readRequiredJsonArtifact<Tier2CandidateValidation>(
-      candidateValidationPath(args.artifactRoot, args.runId),
-    ),
-    readRequiredJsonArtifact<Tier2CanonicalInterventionEventsArtifact>(
-      canonicalInterventionEventsPath(args.artifactRoot, args.runId),
-    ),
-    readRequiredJsonArtifact<Tier2InterventionStagingLoadReport>(
-      join(baseDir, "tier2-intervention-staging-load-report.json"),
-    ),
-    readRequiredJsonArtifact<Tier2DuplicateDecisionVerification>(
-      join(baseDir, "tier2-intervention-duplicate-decision-verification.json"),
-    ),
-    readRequiredJsonArtifact<Tier2OcrPlan>(followupOcrPlanPath(args.artifactRoot, args.runId)),
-    readJsonArtifactIfExistsForStatus<Tier2OcrQualityReview>(
-      join(baseDir, "followup-ocr-quality-review-top30.json"),
-    ),
-  ]);
+  const [baseBundle, baseCanonical, staging, duplicateVerification, followupPlan, top30Review] =
+    await Promise.all([
+      readRequiredJsonArtifact<Tier2CandidateBundle>(
+        candidateBundlePath(args.artifactRoot, args.runId),
+      ),
+      readRequiredJsonArtifact<Tier2CanonicalInterventionEventsArtifact>(
+        canonicalInterventionEventsPath(args.artifactRoot, args.runId),
+      ),
+      readRequiredJsonArtifact<Tier2InterventionStagingLoadReport>(
+        join(baseDir, "tier2-intervention-staging-load-report.json"),
+      ),
+      readRequiredJsonArtifact<Tier2DuplicateDecisionVerification>(
+        join(baseDir, "tier2-intervention-duplicate-decision-verification.json"),
+      ),
+      readRequiredJsonArtifact<Tier2OcrPlan>(followupOcrPlanPath(args.artifactRoot, args.runId)),
+      readJsonArtifactIfExistsForStatus<Tier2OcrQualityReview>(
+        join(baseDir, "followup-ocr-quality-review-top30.json"),
+      ),
+    ]);
   const bundle =
     (await readJsonArtifactIfExistsForStatus<Tier2CandidateBundle>(
       join(baseDir, "candidate-bundle-combined.json"),
     )) ?? baseBundle;
-  const validation =
-    (await readJsonArtifactIfExistsForStatus<Tier2CandidateValidation>(
-      join(baseDir, "candidate-validation-combined.json"),
-    )) ?? baseValidation;
   const canonical =
     (await readJsonArtifactIfExistsForStatus<Tier2CanonicalInterventionEventsArtifact>(
       join(baseDir, "tier2-intervention-events-combined.json"),
@@ -9843,32 +8703,6 @@ export async function buildTier2PipelineStatus(
   const manualFollowupBundle = await readJsonArtifactIfExistsForStatus<Tier2CandidateBundle>(
     join(baseDir, "candidate-bundle-followup-manual.json"),
   );
-  const latestFollowupValidation = await latestTopNJsonArtifactForStatus<Tier2CandidateValidation>(
-    baseDir,
-    /^candidate-validation-followup-top\d+\.json$/,
-  );
-  const manualFollowupValidation =
-    await readJsonArtifactIfExistsForStatus<Tier2CandidateValidation>(
-      join(baseDir, "candidate-validation-followup-manual.json"),
-    );
-  const latestFollowupPromotion = await latestTopNJsonArtifactForStatus<Tier2PromotionReport>(
-    baseDir,
-    /^promotion-report-followup-top\d+\.json$/,
-  );
-  const manualFollowupPromotion = await readJsonArtifactIfExistsForStatus<Tier2PromotionReport>(
-    join(baseDir, "promotion-report-followup-manual.json"),
-  );
-  const followupResolutionAudit =
-    await readJsonArtifactIfExistsForStatus<Tier2FollowupResolutionAudit>(
-      join(baseDir, "followup-resolution-audit.json"),
-    );
-  const promotedSourceBackingAudit =
-    (await readJsonArtifactIfExistsForStatus<Tier2PromotedEventSourceBackingAudit>(
-      join(baseDir, "promoted-event-source-backing-audit-combined.json"),
-    )) ??
-    (await readJsonArtifactIfExistsForStatus<Tier2PromotedEventSourceBackingAudit>(
-      join(baseDir, "promoted-event-source-backing-audit.json"),
-    ));
   const followupCurationQueuePath = join(baseDir, "followup-curation-queue.json");
   const followupCurationQueue =
     await readJsonArtifactIfExistsForStatus<Tier2FollowupCurationQueue>(followupCurationQueuePath);
@@ -9891,17 +8725,13 @@ export async function buildTier2PipelineStatus(
   const summary = {
     sourceCandidateCount: bundle.summary.sourceCandidateCount,
     interventionSeedCount: bundle.summary.interventionSeedCount,
-    validatedSeedCount: validation.summary.validatedCount,
-    promotedEventCount: canonical.summary.eventCount,
+    canonicalEventCount: canonical.summary.eventCount,
     eligibleTimelineEventCount: staging.summary.eligibleForTimelineCount,
     blockedDuplicateEventCount: staging.summary.blockedDuplicateReviewCount,
     suppressedDuplicateEventCount: staging.summary.suppressedDuplicateCount,
     completeDuplicateDecisionCount: staging.summary.completeDuplicateDecisionCount,
     incompleteDuplicateDecisionCount: staging.summary.incompleteDuplicateDecisionCount,
     duplicateDecisionComplete: duplicateVerification.complete,
-    promotedSourceBackingAuditComplete: promotedSourceBackingAudit?.complete ?? false,
-    promotedSourceBackedEventCount: promotedSourceBackingAudit?.summary.sourceBackedEventCount ?? 0,
-    promotedSourceBackingIssueCount: promotedSourceBackingAudit?.summary.eventIssueCount ?? 0,
     followupOcrPlannedCount: followupPlan.summary.ocrRequiredSourceCount,
     followupOcrTop30CompletedCount: top30Review?.summary.ocrCompleteCount ?? 0,
     followupOcrLatestReviewPath: latestFollowupReview?.path ?? null,
@@ -9920,37 +8750,14 @@ export async function buildTier2PipelineStatus(
         ? (latestFollowupBundle?.path ?? null)
         : join(baseDir, "candidate-bundle-followup-manual.json"),
     followupInterventionSeedCount:
-      manualFollowupValidation?.summary.interventionSeedCount ??
       manualFollowupBundle?.summary.interventionSeedCount ??
-      latestFollowupValidation?.artifact.summary.interventionSeedCount ??
       latestFollowupBundle?.artifact.summary.interventionSeedCount ??
       0,
-    followupValidatedSeedCount:
-      manualFollowupValidation?.summary.validatedCount ??
-      latestFollowupValidation?.artifact.summary.validatedCount ??
-      0,
-    followupNeedsReviewSeedCount:
-      manualFollowupValidation?.summary.needsReviewCount ??
-      latestFollowupValidation?.artifact.summary.needsReviewCount ??
-      0,
-    followupResolvedNeedsReviewSeedCount:
-      followupResolutionAudit?.summary.resolvedNeedsReviewCandidateCount ?? 0,
-    followupUnresolvedNeedsReviewSeedCount:
-      followupResolutionAudit?.summary.unresolvedNeedsReviewCandidateCount ??
-      manualFollowupValidation?.summary.needsReviewCount ??
-      latestFollowupValidation?.artifact.summary.needsReviewCount ??
-      0,
-    followupResolvedOcrSourceCount: followupResolutionAudit?.summary.resolvedOcrSourceCount ?? 0,
     followupUnresolvedOcrSourceCount:
-      followupResolutionAudit?.summary.unresolvedOcrRemainingCount ??
-      (latestFollowupReview === null
+      latestFollowupReview === null
         ? 0
         : (latestFollowupReview.review.summary.unknownQualityCount ?? 0) +
-          (latestFollowupReview.review.summary.unknownDecisionCount ?? 0)),
-    followupPromotableEventCount:
-      manualFollowupPromotion?.summary.promotedEventCount ??
-      latestFollowupPromotion?.artifact.summary.promotedEventCount ??
-      0,
+          (latestFollowupReview.review.summary.unknownDecisionCount ?? 0),
     studioTier2TimelineRowCount: tier2Rows.length,
     studioTier2RowsMissingSourceLinks,
     studioTier2RowsMissingSourceSpanPreviews,
@@ -9966,18 +8773,6 @@ export async function buildTier2PipelineStatus(
       remaining: null,
     },
     {
-      gate: "validation_and_promotion",
-      status:
-        summary.promotedEventCount > 0 && summary.promotedSourceBackingAuditComplete
-          ? "complete"
-          : "blocked",
-      evidence: `${summary.validatedSeedCount} validated seeds; ${summary.promotedEventCount} promoted staging events; ${summary.promotedSourceBackedEventCount} source-backed events in promoted-event audit; ${summary.promotedSourceBackingIssueCount} source-backing issues.`,
-      remaining:
-        summary.promotedEventCount > 0 && summary.promotedSourceBackingAuditComplete
-          ? null
-          : "Run and pass docs:audit-promoted-source-backing before treating promoted events as fully verified.",
-    },
-    {
       gate: "duplicate_decisions",
       status: summary.duplicateDecisionComplete ? "complete" : "blocked",
       evidence: `${summary.completeDuplicateDecisionCount} duplicate decisions complete; ${summary.incompleteDuplicateDecisionCount} incomplete; ${summary.blockedDuplicateEventCount} events remain blocked; ${summary.suppressedDuplicateEventCount} duplicates suppressed.`,
@@ -9988,20 +8783,16 @@ export async function buildTier2PipelineStatus(
     {
       gate: "followup_ocr",
       status:
-        summary.followupCurationDecisionComplete &&
-        summary.followupUnresolvedNeedsReviewSeedCount === 0 &&
-        summary.followupUnresolvedOcrSourceCount === 0
+        summary.followupCurationDecisionComplete && summary.followupUnresolvedOcrSourceCount === 0
           ? "complete"
           : "partial",
-      evidence: `${summary.followupOcrCompletedCount} completed follow-up OCR outputs; ${summary.followupOcrReviewedCount} reviewed; ${summary.followupResolvedOcrSourceCount} unresolved OCR-tail sources dispositioned; ${summary.followupUnresolvedOcrSourceCount} OCR-tail sources unresolved; ${summary.followupCurationQueueItemCount} curation-queue items (${summary.followupCurationQueueHighPriorityCount} high priority); ${summary.followupCurationCompleteDecisionCount} curation decisions complete; ${summary.followupCurationIncompleteDecisionCount} incomplete; ${summary.followupInterventionSeedCount} follow-up seeds; ${summary.followupValidatedSeedCount} validated; ${summary.followupResolvedNeedsReviewSeedCount} needs-review seeds dispositioned; ${summary.followupUnresolvedNeedsReviewSeedCount} needs-review seeds unresolved; ${summary.followupPromotableEventCount} integrated/promotable; ${summary.followupOcrPlannedCount} total follow-up ranges planned.`,
+      evidence: `${summary.followupOcrCompletedCount} completed follow-up OCR outputs; ${summary.followupOcrReviewedCount} reviewed; ${summary.followupUnresolvedOcrSourceCount} OCR-tail sources unresolved; ${summary.followupCurationQueueItemCount} curation-queue items (${summary.followupCurationQueueHighPriorityCount} high priority); ${summary.followupCurationCompleteDecisionCount} curation decisions complete; ${summary.followupCurationIncompleteDecisionCount} incomplete; ${summary.followupInterventionSeedCount} follow-up seeds; ${summary.followupOcrPlannedCount} total follow-up ranges planned.`,
       remaining:
-        summary.followupCurationDecisionComplete &&
-        summary.followupUnresolvedNeedsReviewSeedCount === 0 &&
-        summary.followupUnresolvedOcrSourceCount === 0
+        summary.followupCurationDecisionComplete && summary.followupUnresolvedOcrSourceCount === 0
           ? null
           : summary.followupCurationDecisionComplete
-            ? "Follow-up curation decisions, validated-candidate integration, duplicate review, and promotion gates are complete; remaining work is unresolved OCR-tail sources or needs-review follow-up seeds without a resolution audit disposition."
-            : "Full follow-up candidate curation remains partial; unreviewed OCR ranges, curation-queue items, or needs-review follow-up seeds remain.",
+            ? "Follow-up curation decisions complete; remaining work is unresolved OCR-tail sources."
+            : "Full follow-up candidate curation remains partial; unreviewed OCR ranges or curation-queue items remain.",
     },
     {
       gate: "studio_timeline_affordances",
@@ -10498,186 +9289,6 @@ export async function chunkTier2DocumentsFromCli(
   return chunkTier2Documents(await resolveChunkPaths(parseChunkCliArgs(args)));
 }
 
-function parseValidateCliArgs(args: string[]): ValidateCliArgs {
-  const options: CliOption<ValidateCliArgs>[] = [
-    {
-      flags: ["--candidate-bundle"],
-      apply: (output, value) => {
-        if (value !== undefined) {
-          output.candidateBundlePath = fromCliPath(value);
-        }
-      },
-    },
-    {
-      flags: ["--route-catalog"],
-      apply: (output, value) => {
-        if (value !== undefined) {
-          output.routeCatalogPath = fromCliPath(value);
-        }
-      },
-    },
-    {
-      flags: ["--document-chunks"],
-      apply: (output, value) => {
-        if (value !== undefined) {
-          output.documentChunksPath = fromCliPath(value);
-        }
-      },
-    },
-    {
-      flags: ["--db"],
-      apply: (output, value) => {
-        if (value !== undefined) {
-          output.dbPath = fromCliPath(value);
-        }
-      },
-    },
-    {
-      flags: ["--artifact-root"],
-      apply: (output, value) => {
-        if (value !== undefined) {
-          output.artifactRoot = fromCliPath(value);
-        }
-      },
-    },
-    {
-      flags: ["--run-id"],
-      apply: (output, value) => {
-        if (value !== undefined) {
-          output.runId = value;
-        }
-      },
-    },
-    {
-      flags: ["--output"],
-      apply: (output, value) => {
-        if (value !== undefined) {
-          output.outputPath = fromCliPath(value);
-        }
-      },
-    },
-  ];
-  return parseCliOptions(args, {}, options);
-}
-
-async function resolveValidatePaths(args: ValidateCliArgs): Promise<ValidateTier2CandidatesArgs> {
-  if (args.candidateBundlePath !== undefined) {
-    return {
-      candidateBundlePath: args.candidateBundlePath,
-      documentChunksPath:
-        args.documentChunksPath ?? join(dirname(args.candidateBundlePath), "document-chunks.json"),
-      routeCatalogPath: args.routeCatalogPath ?? DEFAULT_ROUTE_CATALOG_PATH,
-      ...(args.dbPath !== undefined ? { dbPath: args.dbPath } : {}),
-      outputPath:
-        args.outputPath ?? join(dirname(args.candidateBundlePath), "candidate-validation.json"),
-    };
-  }
-
-  const artifactRoot = args.artifactRoot ?? defaultArtifactRootPath();
-  const runId = args.runId ?? (await latestDocsRunId(artifactRoot));
-  if (runId === null) {
-    throw new Error("No docs run found. Provide --run-id or --candidate-bundle.");
-  }
-
-  return {
-    candidateBundlePath: candidateBundlePath(artifactRoot, runId),
-    documentChunksPath: args.documentChunksPath ?? documentChunksPath(artifactRoot, runId),
-    routeCatalogPath: args.routeCatalogPath ?? DEFAULT_ROUTE_CATALOG_PATH,
-    ...(args.dbPath !== undefined ? { dbPath: args.dbPath } : {}),
-    outputPath: args.outputPath ?? candidateValidationPath(artifactRoot, runId),
-  };
-}
-
-export async function validateTier2CandidatesFromCli(
-  args: string[],
-): Promise<Tier2CandidateValidation> {
-  return validateTier2Candidates(await resolveValidatePaths(parseValidateCliArgs(args)));
-}
-
-function parsePromoteCliArgs(args: string[]): PromoteCliArgs {
-  const options: CliOption<PromoteCliArgs>[] = [
-    {
-      flags: ["--candidate-validation"],
-      apply: (output, value) => {
-        if (value !== undefined) {
-          output.candidateValidationPath = fromCliPath(value);
-        }
-      },
-    },
-    {
-      flags: ["--artifact-root"],
-      apply: (output, value) => {
-        if (value !== undefined) {
-          output.artifactRoot = fromCliPath(value);
-        }
-      },
-    },
-    {
-      flags: ["--run-id"],
-      apply: (output, value) => {
-        if (value !== undefined) {
-          output.runId = value;
-        }
-      },
-    },
-    {
-      flags: ["--output"],
-      apply: (output, value) => {
-        if (value !== undefined) {
-          output.outputPath = fromCliPath(value);
-        }
-      },
-    },
-    {
-      flags: ["--canonical-output"],
-      apply: (output, value) => {
-        if (value !== undefined) {
-          output.canonicalOutputPath = fromCliPath(value);
-        }
-      },
-    },
-    trueOption<PromoteCliArgs>(["--dry-run"], (output) => {
-      output.dryRun = true;
-    }),
-    trueOption<PromoteCliArgs>(["--execute"], (output) => {
-      output.dryRun = false;
-    }),
-  ];
-  return parseCliOptions(args, { dryRun: true }, options);
-}
-
-async function resolvePromotePaths(args: PromoteCliArgs): Promise<PromoteTier2CandidatesArgs> {
-  if (args.candidateValidationPath !== undefined) {
-    return {
-      candidateValidationPath: args.candidateValidationPath,
-      canonicalOutputPath:
-        args.canonicalOutputPath ??
-        join(dirname(args.candidateValidationPath), "tier2-intervention-events.json"),
-      outputPath:
-        args.outputPath ?? join(dirname(args.candidateValidationPath), "promotion-report.json"),
-      dryRun: args.dryRun ?? true,
-    };
-  }
-
-  const artifactRoot = args.artifactRoot ?? defaultArtifactRootPath();
-  const runId = args.runId ?? (await latestDocsRunId(artifactRoot));
-  if (runId === null) {
-    throw new Error("No docs run found. Provide --run-id or --candidate-validation.");
-  }
-
-  return {
-    candidateValidationPath: candidateValidationPath(artifactRoot, runId),
-    canonicalOutputPath:
-      args.canonicalOutputPath ?? canonicalInterventionEventsPath(artifactRoot, runId),
-    outputPath: args.outputPath ?? promotionReportPath(artifactRoot, runId),
-    dryRun: args.dryRun ?? true,
-  };
-}
-
-export async function promoteTier2CandidatesFromCli(args: string[]): Promise<Tier2PromotionReport> {
-  return promoteTier2Candidates(await resolvePromotePaths(parsePromoteCliArgs(args)));
-}
-
 function parseDuplicateAuditCliArgs(args: string[]): DuplicateAuditCliArgs {
   const options: CliOption<DuplicateAuditCliArgs>[] = [
     {
@@ -11110,88 +9721,6 @@ export async function verifyTier2ManualInterventionsFromCli(
   };
 }
 
-function parsePromotedSourceAuditCliArgs(args: string[]): PromotedSourceAuditCliArgs {
-  const options: CliOption<PromotedSourceAuditCliArgs>[] = [
-    {
-      flags: ["--canonical-events"],
-      apply: (output, value) => {
-        if (value !== undefined) output.canonicalEventsPath = fromCliPath(value);
-      },
-    },
-    {
-      flags: ["--candidate-validation"],
-      apply: (output, value) => {
-        if (value !== undefined) output.candidateValidationPath = fromCliPath(value);
-      },
-    },
-    {
-      flags: ["--document-chunks"],
-      apply: (output, value) => {
-        if (value !== undefined) output.documentChunksPath = fromCliPath(value);
-      },
-    },
-    {
-      flags: ["--artifact-root"],
-      apply: (output, value) => {
-        if (value !== undefined) output.artifactRoot = fromCliPath(value);
-      },
-    },
-    {
-      flags: ["--run-id"],
-      apply: (output, value) => {
-        if (value !== undefined) output.runId = value;
-      },
-    },
-    {
-      flags: ["--output"],
-      apply: (output, value) => {
-        if (value !== undefined) output.outputPath = fromCliPath(value);
-      },
-    },
-  ];
-  return parseCliOptions(args, {}, options);
-}
-
-async function resolvePromotedSourceAuditPaths(
-  args: PromotedSourceAuditCliArgs,
-): Promise<AuditTier2PromotedEventSourceBackingArgs> {
-  const artifactRoot = args.artifactRoot ?? defaultArtifactRootPath();
-  const runId = args.runId ?? (await latestDocsRunId(artifactRoot));
-  if (runId === null) {
-    throw new Error("No docs run found. Provide --run-id.");
-  }
-  const baseDir = runArtifactRoot(artifactRoot, runId);
-  return {
-    canonicalEventsPath:
-      args.canonicalEventsPath ?? canonicalInterventionEventsPath(artifactRoot, runId),
-    candidateValidationPath:
-      args.candidateValidationPath ?? candidateValidationPath(artifactRoot, runId),
-    documentChunksPath: args.documentChunksPath ?? join(baseDir, "document-chunks.json"),
-    outputPath: args.outputPath ?? join(baseDir, "promoted-event-source-backing-audit.json"),
-  };
-}
-
-export async function auditTier2PromotedEventSourceBackingFromCli(
-  args: string[],
-): Promise<
-  Pick<
-    Tier2PromotedEventSourceBackingAudit,
-    "version" | "runId" | "generatedAt" | "outputPath" | "complete" | "summary"
-  >
-> {
-  const audit = await auditTier2PromotedEventSourceBacking(
-    await resolvePromotedSourceAuditPaths(parsePromotedSourceAuditCliArgs(args)),
-  );
-  return {
-    version: audit.version,
-    runId: audit.runId,
-    generatedAt: audit.generatedAt,
-    outputPath: audit.outputPath,
-    complete: audit.complete,
-    summary: audit.summary,
-  };
-}
-
 function parsePipelineStatusCliArgs(args: string[]): PipelineStatusCliArgs {
   const options: CliOption<PipelineStatusCliArgs>[] = [
     {
@@ -11517,82 +10046,6 @@ export async function buildTier2FollowupCurationCandidateBundleFromCli(
     generatedAt: bundle.generatedAt,
     outputPath: bundle.outputPath,
     summary: bundle.summary,
-  };
-}
-
-function parseFollowupResolutionAuditCliArgs(args: string[]): FollowupResolutionAuditCliArgs {
-  const options: CliOption<FollowupResolutionAuditCliArgs>[] = [
-    {
-      flags: ["--candidate-validation"],
-      apply: (output, value) => {
-        if (value !== undefined) output.candidateValidationPath = fromCliPath(value);
-      },
-    },
-    {
-      flags: ["--ocr-review"],
-      apply: (output, value) => {
-        if (value !== undefined) output.ocrQualityReviewPath = fromCliPath(value);
-      },
-    },
-    {
-      flags: ["--artifact-root"],
-      apply: (output, value) => {
-        if (value !== undefined) output.artifactRoot = fromCliPath(value);
-      },
-    },
-    {
-      flags: ["--run-id"],
-      apply: (output, value) => {
-        if (value !== undefined) output.runId = value;
-      },
-    },
-    {
-      flags: ["--output"],
-      apply: (output, value) => {
-        if (value !== undefined) output.outputPath = fromCliPath(value);
-      },
-    },
-  ];
-  return parseCliOptions(args, {}, options);
-}
-
-async function resolveFollowupResolutionAuditPaths(
-  args: FollowupResolutionAuditCliArgs,
-): Promise<BuildTier2FollowupResolutionAuditArgs> {
-  const artifactRoot = args.artifactRoot ?? defaultArtifactRootPath();
-  const runId = args.runId ?? (await latestDocsRunId(artifactRoot));
-  if (runId === null) {
-    throw new Error("No docs run found. Provide --run-id.");
-  }
-  const baseDir = runArtifactRoot(artifactRoot, runId);
-  return {
-    runId,
-    candidateValidationPath:
-      args.candidateValidationPath ?? join(baseDir, "candidate-validation-followup-manual.json"),
-    ocrQualityReviewPath:
-      args.ocrQualityReviewPath ?? join(baseDir, "followup-ocr-quality-review-full.json"),
-    outputPath: args.outputPath ?? join(baseDir, "followup-resolution-audit.json"),
-  };
-}
-
-export async function buildTier2FollowupResolutionAuditFromCli(
-  args: string[],
-): Promise<
-  Pick<
-    Tier2FollowupResolutionAudit,
-    "version" | "runId" | "generatedAt" | "outputPath" | "complete" | "summary"
-  >
-> {
-  const audit = await buildTier2FollowupResolutionAudit(
-    await resolveFollowupResolutionAuditPaths(parseFollowupResolutionAuditCliArgs(args)),
-  );
-  return {
-    version: audit.version,
-    runId: audit.runId,
-    generatedAt: audit.generatedAt,
-    outputPath: audit.outputPath,
-    complete: audit.complete,
-    summary: audit.summary,
   };
 }
 
