@@ -368,6 +368,9 @@ export type Tier2OcrMarkdownCandidateExtraction = {
     reusedExistingWindowCount: number;
     candidateCount: number;
     candidateTypeCounts: Record<string, number>;
+    candidateValidationStateCounts: Record<Tier2CandidateValidationState, number>;
+    candidateQualityIssueCounts: Record<Tier2OcrMarkdownCandidateQualityIssueCode, number>;
+    candidateQualityRepairCounts: Record<Tier2OcrMarkdownCandidateQualityRepairCode, number>;
   };
   windows: Tier2OcrMarkdownCandidateWindow[];
   documentEvidenceCandidates: Tier2DocumentEvidenceCandidate[];
@@ -449,6 +452,46 @@ export type Tier2CandidateValidationState =
   | "validated"
   | "needs_review"
   | "rejected";
+
+export type Tier2OcrMarkdownCandidateQualityIssueCode =
+  | "evidence_quote_not_exact"
+  | "evidence_quote_spans_page_boundary"
+  | "evidence_quote_uses_ellipsis"
+  | "evidence_quote_flattened_table"
+  | "metric_value_numeric_not_supported_by_quote"
+  | "treatment_type_not_supported_by_quote"
+  | "treatment_candidate_without_supported_type"
+  | "project_status_spans_multiple_statuses";
+
+export type Tier2OcrMarkdownCandidateQualityRepairCode =
+  | "evidence_page_refs_trimmed_to_quote_pages"
+  | "evidence_page_refs_repaired_to_window_quote_pages"
+  | "metric_value_numeric_removed_as_derived"
+  | "negative_evidence_flag_set_proposed_only"
+  | "fact_classification_set_third_party_evaluation"
+  | "unsupported_treatment_types_removed";
+
+const OCR_MARKDOWN_CANDIDATE_QUALITY_ISSUE_CODES: readonly Tier2OcrMarkdownCandidateQualityIssueCode[] =
+  [
+    "evidence_quote_not_exact",
+    "evidence_quote_spans_page_boundary",
+    "evidence_quote_uses_ellipsis",
+    "evidence_quote_flattened_table",
+    "metric_value_numeric_not_supported_by_quote",
+    "treatment_type_not_supported_by_quote",
+    "treatment_candidate_without_supported_type",
+    "project_status_spans_multiple_statuses",
+  ];
+
+const OCR_MARKDOWN_CANDIDATE_QUALITY_REPAIR_CODES: readonly Tier2OcrMarkdownCandidateQualityRepairCode[] =
+  [
+    "evidence_page_refs_trimmed_to_quote_pages",
+    "evidence_page_refs_repaired_to_window_quote_pages",
+    "metric_value_numeric_removed_as_derived",
+    "negative_evidence_flag_set_proposed_only",
+    "fact_classification_set_third_party_evaluation",
+    "unsupported_treatment_types_removed",
+  ];
 
 export type Tier2CandidateSourceRef = {
   sourceId: string;
@@ -557,6 +600,8 @@ export type Tier2DocumentEvidenceCandidate = {
     pageMarkdownRootName: string;
     candidateRootName: string;
     windowPages: number[];
+    qualityIssues?: Tier2OcrMarkdownCandidateQualityIssueCode[];
+    qualityRepairs?: Tier2OcrMarkdownCandidateQualityRepairCode[];
   };
   validationState: Tier2CandidateValidationState;
   reviewReason: string;
@@ -1333,11 +1378,14 @@ const OCR_PAGE_MARKDOWN_TOOL_NAME = "record_tier2_ocr_page";
 const OCR_MARKDOWN_CANDIDATE_TOOL_NAME = "record_tier2_ocr_markdown_candidates";
 const INTERVENTION_RECORDS_TOOL_NAME = "record_tier2_document_intervention_records";
 const OCR_PAGE_MARKDOWN_PROMPT_VERSION = "page-markdown-v3";
-const OCR_MARKDOWN_CANDIDATE_PROMPT_VERSION = "ocr-markdown-candidates-v2";
+const OCR_MARKDOWN_CANDIDATE_PROMPT_VERSION = "ocr-markdown-candidates-v3";
 const INTERVENTION_RECORDS_PROMPT_VERSION = "intervention-records-v1";
 const DEFAULT_INTERVENTION_RECORDS_ROOT_NAME = "intervention-records";
-const DEFAULT_INTERVENTION_RECORDS_MAX_TOKENS = 16384;
+const DEFAULT_INTERVENTION_RECORDS_MAX_TOKENS = 32768;
+const DEFAULT_TEXT_MODEL = "deepseek-v4-pro";
+const DEEPSEEK_CHAT_COMPLETIONS_URL = "https://api.deepseek.com/v1/chat/completions";
 const DEFAULT_OPENROUTER_MAX_ATTEMPTS = 3;
+const DEFAULT_DEEPSEEK_MAX_ATTEMPTS = 3;
 
 function docsArtifactRoot(artifactRoot: string): string {
   return join(artifactRoot, "docs");
@@ -1464,6 +1512,10 @@ function slugify(value: string): string {
 
 function shortHash(value: string): string {
   return createHash("sha256").update(value).digest("hex").slice(0, 8);
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function detectContentType(input: {
@@ -3473,6 +3525,80 @@ async function postOpenRouterChatCompletions(input: {
   return lastResult;
 }
 
+// DeepSeek's API is OpenAI-compatible: same request body shape, same
+// `tool_calls` semantics. The differences we have to respect:
+//   - URL and auth header
+//   - No `service_tier`, no `plugins.file-parser`, no `reasoning` override
+//   - Thinking mode is on by default for v4-pro and is incompatible with
+//     a forced `tool_choice` ("Thinking mode does not support this
+//     tool_choice"). We disable thinking here since every caller of this
+//     client forces a specific tool call.
+//   - Different transient-failure shapes
+async function postDeepSeekChatCompletions(input: {
+  apiKey: string;
+  body: Record<string, unknown>;
+  fetcher: FetchLike;
+  maxAttempts?: number;
+}): Promise<OpenRouterCallResult> {
+  const maxAttempts = input.maxAttempts ?? DEFAULT_DEEPSEEK_MAX_ATTEMPTS;
+  const bodyWithThinkingDisabled = {
+    ...input.body,
+    thinking: { type: "disabled" as const },
+  };
+  let lastResult: OpenRouterCallResult | null = null;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const response = await input.fetcher(DEEPSEEK_CHAT_COMPLETIONS_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${input.apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(bodyWithThinkingDisabled),
+    });
+    const text = await response.text();
+    let body: unknown;
+    try {
+      body = JSON.parse(text);
+    } catch {
+      body = { rawText: text };
+    }
+    const result = { response, body };
+    lastResult = result;
+    if (attempt >= maxAttempts || !isTransientDeepSeekFailure(result)) {
+      return result;
+    }
+    await sleepMs(500 * attempt);
+  }
+  if (lastResult === null) {
+    throw new Error("DeepSeek request loop exited without a response.");
+  }
+  return lastResult;
+}
+
+function isTransientDeepSeekFailure(result: OpenRouterCallResult): boolean {
+  if (result.response.status === 429 || result.response.status >= 500) {
+    return true;
+  }
+  const body = result.body;
+  if (body !== null && typeof body === "object" && !Array.isArray(body) && "error" in body) {
+    const error = (body as { error?: unknown }).error;
+    if (error !== null && typeof error === "object" && !Array.isArray(error)) {
+      const message = (error as { message?: unknown }).message;
+      const text = typeof message === "string" ? message.toLowerCase() : "";
+      if (
+        text.includes("rate limit") ||
+        text.includes("temporarily") ||
+        text.includes("timeout") ||
+        text.includes("timed out") ||
+        text.includes("overloaded")
+      ) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 async function callOpenRouterPageMarkdownOcr(input: {
   apiKey: string;
   model: string;
@@ -4412,7 +4538,14 @@ function ocrMarkdownCandidateTool(): Record<string, unknown> {
 const OCR_MARKDOWN_CANDIDATE_SYSTEM_PROMPT = [
   "You are extracting source-grounded evidence candidates for Bus Priority Impact Studio.",
   "Use only the provided OCR Markdown pages. Do not infer facts from outside knowledge.",
-  "Every candidate must cite a short verbatim excerpt from the supplied Markdown (evidenceQuote) and the supporting page numbers (evidencePageRefs).",
+  "Every candidate must cite a short, contiguous, verbatim excerpt from the supplied Markdown (evidenceQuote) and the page numbers that contain that exact excerpt (evidencePageRefs).",
+  "Copy evidenceQuote exactly as it appears in the Markdown. Preserve Markdown table pipes, emphasis markers, footnote digits, punctuation, line breaks inside tables, and OCR oddities. Do not insert ellipses, flatten tables, clean up wording, normalize punctuation, or stitch non-adjacent text.",
+  "For tables, evidenceQuote must be an exact Markdown table block or exact contiguous table row block copied from the source, not a prose-like pipe-separated rewrite.",
+  "Use valueNumeric only when that exact value appears in evidenceQuote, allowing direct unit wording such as \"1.1 million\" for 1100000. If the source gives a range, keep the range in valueQualifier and do not invent a midpoint.",
+  "For third-party evaluations, audits, consultant reports, advocacy reports, and oversight reports, classify extracted facts or judgments as third_party_evaluation unless the quoted sentence itself is explicitly an official MTA/DOT/NYC agency fact being cited.",
+  "Recommendations, goals, planned work, proposed routes, future expected work, and \"should\" statements must use negativeEvidenceFlag \"proposed_only\" unless the quote also says the item was implemented or completed.",
+  "Do not infer treatment components from a branded program name. If a quote says only \"SBS route\" or \"bus improvement\" but does not name bus lanes, off-board fare collection, all-door boarding, TSP, camera enforcement, or another treatment, do not add that treatment type.",
+  "When one sentence contains multiple lifecycle statuses for separate projects, emit separate candidates instead of collapsing them into one project_status candidate.",
   "The tool's parameter schema defines the candidate types, their fields, and when to use them. Follow the per-type guidance there; do not invent fields outside the documented ones unless the source clearly demands them.",
   "Skip boilerplate pages: title pages, table of contents, copyright notices, and publication-info pages do not produce candidates. Section headings alone are not candidates; only emit a candidate when the section contains a concrete claim, metric, or treatment description.",
   "For optional fields you don't know, omit the key entirely. Do not emit empty strings or empty arrays as placeholders.",
@@ -4477,24 +4610,430 @@ function markdownCandidateRecordCandidates(value: unknown): OcrEvidenceCandidate
   return ocrEvidenceCandidateDrafts(record["evidenceCandidateDrafts"]);
 }
 
-async function callOpenRouterMarkdownCandidates(input: {
+type OcrMarkdownCandidateQuality = {
+  issues: Tier2OcrMarkdownCandidateQualityIssueCode[];
+  repairs: Tier2OcrMarkdownCandidateQualityRepairCode[];
+  validationState: Tier2CandidateValidationState;
+  reviewReason: string;
+};
+
+type ProcessedOcrEvidenceCandidateDraft = {
+  draft: OcrEvidenceCandidateDraft;
+  quality: OcrMarkdownCandidateQuality;
+};
+
+const DEFAULT_OCR_MARKDOWN_CANDIDATE_REVIEW_REASON =
+  "OCR Markdown evidence candidate requires deterministic source-span, table/metric/methodology, route/corridor, and fact-classification validation before public use.";
+
+const THIRD_PARTY_EVALUATION_SOURCE_PATTERN =
+  /\b(?:comptroller|independent budget|ibo|consultant|consulting|sam schwartz|advocacy|oversight|audit)\b/i;
+
+const PROPOSED_ONLY_QUOTE_PATTERN =
+  /\b(?:should|recommend(?:s|ed|ation)?|proposal|proposals|proposed|planned|planning to|expected to|goal|target)\b/i;
+
+const IMPLEMENTED_OR_COMPLETE_QUOTE_PATTERN =
+  /\b(?:implemented|completed|complete|built|installed|launched|went into effect|in effect|operational)\b/i;
+
+const NUMBER_WORDS: Record<string, number> = {
+  zero: 0,
+  one: 1,
+  two: 2,
+  three: 3,
+  four: 4,
+  five: 5,
+  six: 6,
+  seven: 7,
+  eight: 8,
+  nine: 9,
+  ten: 10,
+  eleven: 11,
+  twelve: 12,
+  thirteen: 13,
+  fourteen: 14,
+  fifteen: 15,
+  sixteen: 16,
+  seventeen: 17,
+  eighteen: 18,
+  nineteen: 19,
+  twenty: 20,
+};
+
+const TREATMENT_TYPE_QUOTE_PATTERNS: Record<string, RegExp> = {
+  bus_lane: /\b(?:bus lane|bus lanes|dedicated lane|dedicated lanes|offset lane|curbside lane|center-running lane|median lane|red lane)\b/i,
+  busway: /\b(?:busway|transitway|transit and truck priority|ttp)\b/i,
+  transit_signal_priority: /\b(?:transit signal priority|signal priority|\btsp\b|green signal|green time|signal timing|signal retiming|signal changes?)\b/i,
+  queue_jump: /\b(?:queue jump|queue-jump|queue bypass)\b/i,
+  stop_consolidation: /\b(?:stop consolidation|consolidat(?:e|ed|ion).*stops?|fewer stops?|removed stops?|stop spacing|changed from limited to local only)\b/i,
+  stop_relocation: /\b(?:stop relocation|relocat(?:e|ed|ion).*stops?|station locations?|stations? were added|stops? were added)\b/i,
+  bus_bulb: /\b(?:bus bulb|bus bulbs|boarding bulb|bulb station)\b/i,
+  neckdown: /\b(?:neckdown|neckdowns|curb extension|curb extensions)\b/i,
+  red_paint: /\b(?:red paint|red-painted|red bus lane)\b/i,
+  off_board_fare_collection: /\b(?:off-board fare|off board fare|fare machines?|pay before boarding|pre-board fare)\b/i,
+  all_door_boarding: /\b(?:all-door boarding|all door boarding|board(?:ing)? through any door|proof-of-payment)\b/i,
+  ace: /\b(?:automated camera enforcement|\bace\b|camera-enforced|bus-mounted cameras?|stationary cameras?|bus lane camera|camera enforcement)\b/i,
+  able: /\b(?:automated bus lane enforcement|\bable\b|bus lane enforcement cameras?)\b/i,
+  reroute: /\b(?:rerout(?:e|ed|ing)|route modified|moved to|instead of traveling|route change|route extension|extend(?:ing)? .*route)\b/i,
+  pedestrian_improvement: /\b(?:pedestrian|crosswalk|sidewalk|plaza|traffic calming|pedestrian island|shorten crossing|public space)\b/i,
+  signal_retiming: /\b(?:signal retiming|signal timing|signal changes?|green time|coordination of the signals|traffic signal)\b/i,
+};
+
+function pageMarkdownByNumber(input: {
+  runRoot: string;
+  pages: Tier2OcrPageMarkdownAuditPage[];
+}): Promise<Map<number, string>> {
+  return Promise.all(
+    input.pages.map(async (page): Promise<[number, string]> => {
+      if (page.markdownArtifactKey === null) return [page.pageNumber, ""];
+      const text = await Bun.file(join(input.runRoot, page.markdownArtifactKey)).text();
+      return [page.pageNumber, markdownBody(text)];
+    }),
+  ).then((entries) => new Map(entries));
+}
+
+function uniqueQualityIssues(
+  issues: Tier2OcrMarkdownCandidateQualityIssueCode[],
+): Tier2OcrMarkdownCandidateQualityIssueCode[] {
+  return [...new Set(issues)];
+}
+
+function uniqueQualityRepairs(
+  repairs: Tier2OcrMarkdownCandidateQualityRepairCode[],
+): Tier2OcrMarkdownCandidateQualityRepairCode[] {
+  return [...new Set(repairs)];
+}
+
+function isThirdPartyEvaluationSource(sourceRef: Tier2CandidateSourceRef): boolean {
+  return THIRD_PARTY_EVALUATION_SOURCE_PATTERN.test(
+    [sourceRef.publisher, sourceRef.sourceGroup].join(" "),
+  );
+}
+
+function fieldString(fields: Record<string, unknown>, key: string): string | null {
+  const value = fields[key];
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+}
+
+function shouldSetProposedOnlyFlag(draft: OcrEvidenceCandidateDraft): boolean {
+  const implementationStatus = fieldString(draft.fields, "implementationStatus");
+  const status = fieldString(draft.fields, "status");
+  if (
+    implementationStatus === "proposed" ||
+    implementationStatus === "planned" ||
+    status === "proposed" ||
+    status === "planning"
+  ) {
+    return true;
+  }
+  if (
+    draft.candidateType !== "document_claim_candidate" &&
+    draft.candidateType !== "document_project_status_candidate" &&
+    draft.candidateType !== "document_treatment_component_candidate"
+  ) {
+    return false;
+  }
+  return (
+    PROPOSED_ONLY_QUOTE_PATTERN.test(draft.evidenceQuote) &&
+    !IMPLEMENTED_OR_COMPLETE_QUOTE_PATTERN.test(draft.evidenceQuote)
+  );
+}
+
+function normalizeNumericText(value: number): string {
+  return Number.isInteger(value) ? String(value) : String(value).replace(/0+$/, "").replace(/\.$/, "");
+}
+
+function numericQuoteVariants(value: number): string[] {
+  const absolute = Math.abs(value);
+  const variants = new Set<string>([
+    normalizeNumericText(value),
+    normalizeNumericText(absolute),
+    absolute.toLocaleString("en-US"),
+  ]);
+  if (absolute >= 1_000_000) {
+    const millions = absolute / 1_000_000;
+    variants.add(`${normalizeNumericText(millions)} million`);
+  }
+  if (absolute >= 1_000 && absolute < 1_000_000) {
+    const thousands = absolute / 1_000;
+    variants.add(`${normalizeNumericText(thousands)} thousand`);
+  }
+  for (const [word, number] of Object.entries(NUMBER_WORDS)) {
+    if (absolute === number) variants.add(word);
+  }
+  return [...variants].filter((variant) => variant.length > 0);
+}
+
+function quoteSupportsNumericValue(quote: string, value: number): boolean {
+  const normalizedQuote = quote.toLowerCase().replace(/,/g, "");
+  return numericQuoteVariants(value).some((variant) => {
+    const normalizedVariant = variant.toLowerCase().replace(/,/g, "");
+    const trailingBoundary = Number.isInteger(value)
+      ? "(?!\\.\\d)(?=$|[^0-9a-z])"
+      : "(?=$|[^0-9a-z])";
+    return new RegExp(
+      `(^|[^0-9a-z.])\\$?\\s*${escapeRegExp(normalizedVariant)}${trailingBoundary}`,
+    ).test(normalizedQuote);
+  });
+}
+
+function normalizeEvidenceQuoteForSearch(text: string): string {
+  return text.replace(/\s+/g, " ").trim();
+}
+
+function pageBoundarySearchText(markdown: string): string {
+  return markdown
+    .replace(/^---\n[\s\S]*?\n---\n?/, "")
+    .replace(/^#\s+Page\s+\d+\s*$/gim, "");
+}
+
+function adjacentPageBoundaryHits(input: {
+  quote: string;
+  windowMarkdownByPage: Map<number, string>;
+}): number[] {
+  const normalizedQuote = normalizeEvidenceQuoteForSearch(input.quote);
+  if (normalizedQuote.length === 0) return [];
+
+  const hits = new Set<number>();
+  const pages = [...input.windowMarkdownByPage.entries()].sort(
+    ([leftPage], [rightPage]) => leftPage - rightPage,
+  );
+
+  for (let index = 0; index < pages.length - 1; index += 1) {
+    const [leftPage, leftMarkdown] = pages[index]!;
+    const [rightPage, rightMarkdown] = pages[index + 1]!;
+    const leftBody = pageBoundarySearchText(leftMarkdown);
+    const rightBody = pageBoundarySearchText(rightMarkdown);
+    const leftText = normalizeEvidenceQuoteForSearch(leftBody);
+    const rightText = normalizeEvidenceQuoteForSearch(rightBody);
+    if (leftText.includes(normalizedQuote) || rightText.includes(normalizedQuote)) continue;
+
+    const joinedText = normalizeEvidenceQuoteForSearch(`${leftBody}\n${rightBody}`);
+    if (joinedText.includes(normalizedQuote)) {
+      hits.add(leftPage);
+      hits.add(rightPage);
+    }
+  }
+
+  return [...hits].sort((leftPage, rightPage) => leftPage - rightPage);
+}
+
+function pageRefListsMatch(left: number[], right: number[]): boolean {
+  if (left.length !== right.length) return false;
+  const leftSorted = [...left].sort((leftPage, rightPage) => leftPage - rightPage);
+  const rightSorted = [...right].sort((leftPage, rightPage) => leftPage - rightPage);
+  return leftSorted.every((pageNumber, index) => pageNumber === rightSorted[index]);
+}
+
+function quoteHasRangeEvidence(quote: string, valueQualifier: unknown): boolean {
+  const text = [quote, typeof valueQualifier === "string" ? valueQualifier : ""]
+    .join(" ")
+    .toLowerCase();
+  const numericTokens = text.match(/\d+(?:\.\d+)?/g) ?? [];
+  if (numericTokens.length < 2) return false;
+  return /\bbetween\b|\bfrom\b|\bto\b|\band\b|-|\u2013/.test(text);
+}
+
+function treatmentTypes(fields: Record<string, unknown>): string[] {
+  const value = fields["treatmentTypes"];
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string" && item.length > 0)
+    : [];
+}
+
+function supportedTreatmentTypesForQuote(types: string[], quote: string): string[] {
+  return types.filter((type) => {
+    const pattern = TREATMENT_TYPE_QUOTE_PATTERNS[type];
+    return pattern === undefined || pattern.test(quote);
+  });
+}
+
+function projectStatusSpanHasMultipleStatuses(quote: string): boolean {
+  const statusFamilies = [
+    /\bcomplete(?:d)?\b/i,
+    /\bimplement(?:ed|ing|ation)\b/i,
+    /\bplanning\b/i,
+    /\bscheduled\b/i,
+    /\bno plans?\b|\bcancel(?:ed|led)\b|\bscrapped\b|\babandon(?:ed|ing)\b/i,
+  ];
+  return statusFamilies.filter((pattern) => pattern.test(quote)).length > 1;
+}
+
+function reviewReasonForQuality(quality: {
+  issues: Tier2OcrMarkdownCandidateQualityIssueCode[];
+  repairs: Tier2OcrMarkdownCandidateQualityRepairCode[];
+}): string {
+  if (quality.issues.length > 0) {
+    return `OCR Markdown evidence candidate needs review after deterministic quality checks: ${quality.issues.join(", ")}.`;
+  }
+  if (quality.repairs.length > 0) {
+    return `OCR Markdown evidence candidate received deterministic safe repairs: ${quality.repairs.join(", ")}.`;
+  }
+  return DEFAULT_OCR_MARKDOWN_CANDIDATE_REVIEW_REASON;
+}
+
+function processOcrEvidenceCandidateDraft(input: {
+  draft: OcrEvidenceCandidateDraft;
+  sourceRef: Tier2CandidateSourceRef;
+  windowMarkdownByPage: Map<number, string>;
+}): ProcessedOcrEvidenceCandidateDraft {
+  const original = input.draft;
+  let factClassification = original.factClassification;
+  let negativeEvidenceFlag = original.negativeEvidenceFlag;
+  let evidencePageRefs = [...original.evidencePageRefs];
+  const fields: Record<string, unknown> = { ...original.fields };
+  const issues: Tier2OcrMarkdownCandidateQualityIssueCode[] = [];
+  const repairs: Tier2OcrMarkdownCandidateQualityRepairCode[] = [];
+  const quote = original.evidenceQuote;
+
+  const citedHits = evidencePageRefs.filter(
+    (pageNumber) => input.windowMarkdownByPage.get(pageNumber)?.includes(quote) ?? false,
+  );
+  const windowHits = [...input.windowMarkdownByPage.entries()]
+    .filter(([, markdown]) => markdown.includes(quote))
+    .map(([pageNumber]) => pageNumber);
+  const boundaryHits =
+    citedHits.length === 0 && windowHits.length === 0
+      ? adjacentPageBoundaryHits({ quote, windowMarkdownByPage: input.windowMarkdownByPage })
+      : [];
+
+  if (quote.includes("...")) {
+    issues.push("evidence_quote_uses_ellipsis");
+  }
+  if (
+    original.candidateType === "document_table_candidate" &&
+    quote.includes(" | ") &&
+    !quote.includes("\n|") &&
+    !quote.trimStart().startsWith("|") &&
+    windowHits.length === 0
+  ) {
+    issues.push("evidence_quote_flattened_table");
+  }
+  if (citedHits.length > 0 && citedHits.length < evidencePageRefs.length) {
+    evidencePageRefs = citedHits;
+    repairs.push("evidence_page_refs_trimmed_to_quote_pages");
+  } else if (citedHits.length === 0 && windowHits.length > 0) {
+    evidencePageRefs = windowHits;
+    repairs.push("evidence_page_refs_repaired_to_window_quote_pages");
+  } else if (citedHits.length === 0 && boundaryHits.length > 0) {
+    if (!pageRefListsMatch(evidencePageRefs, boundaryHits)) {
+      evidencePageRefs = boundaryHits;
+      repairs.push("evidence_page_refs_repaired_to_window_quote_pages");
+    }
+    issues.push("evidence_quote_spans_page_boundary");
+  } else if (citedHits.length === 0) {
+    issues.push("evidence_quote_not_exact");
+  }
+
+  if (
+    isThirdPartyEvaluationSource(input.sourceRef) &&
+    (factClassification === "official_fact" || factClassification === "official_claim")
+  ) {
+    factClassification = "third_party_evaluation";
+    repairs.push("fact_classification_set_third_party_evaluation");
+  }
+
+  if (negativeEvidenceFlag === "none" && shouldSetProposedOnlyFlag(original)) {
+    negativeEvidenceFlag = "proposed_only";
+    repairs.push("negative_evidence_flag_set_proposed_only");
+  }
+
+  if (original.candidateType === "document_metric_claim_candidate") {
+    const valueNumeric = fields["valueNumeric"];
+    if (typeof valueNumeric === "number" && !quoteSupportsNumericValue(quote, valueNumeric)) {
+      if (quoteHasRangeEvidence(quote, fields["valueQualifier"])) {
+        delete fields["valueNumeric"];
+        repairs.push("metric_value_numeric_removed_as_derived");
+      } else {
+        issues.push("metric_value_numeric_not_supported_by_quote");
+      }
+    }
+  }
+
+  if (original.candidateType === "document_treatment_component_candidate") {
+    const types = treatmentTypes(fields);
+    if (types.length > 0) {
+      const supportedTypes = supportedTreatmentTypesForQuote(types, quote);
+      if (supportedTypes.length < types.length) {
+        repairs.push("unsupported_treatment_types_removed");
+        if (supportedTypes.length === 0) {
+          delete fields["treatmentTypes"];
+        } else {
+          fields["treatmentTypes"] = supportedTypes;
+        }
+        if (supportedTypes.length === 0 && fieldString(fields, "customTreatmentType") === null) {
+          issues.push("treatment_type_not_supported_by_quote");
+        }
+      }
+    }
+    if (treatmentTypes(fields).length === 0 && fieldString(fields, "customTreatmentType") === null) {
+      issues.push("treatment_candidate_without_supported_type");
+    }
+  }
+
+  if (
+    original.candidateType === "document_project_status_candidate" &&
+    projectStatusSpanHasMultipleStatuses(quote)
+  ) {
+    issues.push("project_status_spans_multiple_statuses");
+  }
+
+  const uniqueIssues = uniqueQualityIssues(issues);
+  const uniqueRepairs = uniqueQualityRepairs(repairs);
+  const quality = {
+    issues: uniqueIssues,
+    repairs: uniqueRepairs,
+    validationState: uniqueIssues.length > 0 ? "needs_review" : "unvalidated",
+    reviewReason: reviewReasonForQuality({ issues: uniqueIssues, repairs: uniqueRepairs }),
+  } satisfies OcrMarkdownCandidateQuality;
+
+  return {
+    draft: {
+      candidateType: original.candidateType,
+      factClassification,
+      negativeEvidenceFlag,
+      routeMentions: [...original.routeMentions],
+      corridorMentions: [...original.corridorMentions],
+      evidencePageRefs,
+      evidenceQuote: original.evidenceQuote,
+      summary: original.summary,
+      fields,
+    } as OcrEvidenceCandidateDraft,
+    quality,
+  };
+}
+
+async function processOcrEvidenceCandidateDrafts(input: {
+  drafts: OcrEvidenceCandidateDraft[];
+  sourceRef: Tier2CandidateSourceRef;
+  runRoot: string;
+  pages: Tier2OcrPageMarkdownAuditPage[];
+}): Promise<ProcessedOcrEvidenceCandidateDraft[]> {
+  const windowMarkdownByPage = await pageMarkdownByNumber({
+    runRoot: input.runRoot,
+    pages: input.pages,
+  });
+  return input.drafts.map((draft) =>
+    processOcrEvidenceCandidateDraft({
+      draft,
+      sourceRef: input.sourceRef,
+      windowMarkdownByPage,
+    }),
+  );
+}
+
+async function callDeepSeekMarkdownCandidates(input: {
   apiKey: string;
   model: string;
-  serviceTier: "flex" | "priority";
   maxTokens: number;
   source: Tier2OcrPlanSource;
   pages: Tier2OcrPageMarkdownAuditPage[];
   markdownText: string;
   fetcher: FetchLike;
 }): Promise<OpenRouterCallResult> {
-  const reasoning = requiredToolCallReasoningOverride(input.model);
-  return postOpenRouterChatCompletions({
+  return postDeepSeekChatCompletions({
     apiKey: input.apiKey,
-    title: "Bus Priority Impact Studio OCR Markdown Candidate Extraction",
     fetcher: input.fetcher,
     body: {
       model: input.model,
-      service_tier: input.serviceTier,
       max_tokens: input.maxTokens,
       messages: [
         { role: "system", content: OCR_MARKDOWN_CANDIDATE_SYSTEM_PROMPT },
@@ -4512,7 +5051,6 @@ async function callOpenRouterMarkdownCandidates(input: {
         type: "function",
         function: { name: OCR_MARKDOWN_CANDIDATE_TOOL_NAME },
       },
-      ...(reasoning === null ? {} : { reasoning }),
       temperature: 0,
     },
   });
@@ -4525,6 +5063,7 @@ function evidenceCandidateFromMarkdownDraft(input: {
   candidateRootName: string;
   windowPages: number[];
   index: number;
+  quality?: OcrMarkdownCandidateQuality;
 }): Tier2DocumentEvidenceCandidate {
   return {
     candidateType: input.draft.candidateType,
@@ -4555,10 +5094,15 @@ function evidenceCandidateFromMarkdownDraft(input: {
       pageMarkdownRootName: input.pageMarkdownRootName,
       candidateRootName: input.candidateRootName,
       windowPages: [...input.windowPages],
+      ...(input.quality?.issues.length
+        ? { qualityIssues: [...input.quality.issues] }
+        : {}),
+      ...(input.quality?.repairs.length
+        ? { qualityRepairs: [...input.quality.repairs] }
+        : {}),
     },
-    validationState: "unvalidated",
-    reviewReason:
-      "OCR Markdown evidence candidate requires deterministic source-span, table/metric/methodology, route/corridor, and fact-classification validation before public use.",
+    validationState: input.quality?.validationState ?? "unvalidated",
+    reviewReason: input.quality?.reviewReason ?? DEFAULT_OCR_MARKDOWN_CANDIDATE_REVIEW_REASON,
   };
 }
 
@@ -4596,7 +5140,7 @@ async function readExistingMarkdownCandidateWindow(input: {
   sourceRef: Tier2CandidateSourceRef;
   pageMarkdownRootName: string;
   candidateRootName: string;
-  pages: number[];
+  pages: Tier2OcrPageMarkdownAuditPage[];
 }): Promise<{
   window: Tier2OcrMarkdownCandidateWindow;
   candidates: Tier2DocumentEvidenceCandidate[];
@@ -4604,28 +5148,36 @@ async function readExistingMarkdownCandidateWindow(input: {
   if (!(await Bun.file(input.paths.toolCallPath).exists())) return null;
   const toolCall = await Bun.file(input.paths.toolCallPath).json();
   const drafts = markdownCandidateRecordCandidates(toolCall);
+  const pageNumbers = input.pages.map((page) => page.pageNumber);
+  const processedDrafts = await processOcrEvidenceCandidateDrafts({
+    drafts,
+    sourceRef: input.sourceRef,
+    runRoot: input.runRoot,
+    pages: input.pages,
+  });
   return {
     window: {
       sourceId: input.sourceRef.sourceId,
-      pages: input.pages,
+      pages: pageNumbers,
       status: "extracted",
       reusedExisting: true,
       responseArtifactKey: (await Bun.file(input.paths.responsePath).exists())
         ? artifactKey(input.paths.responsePath, input.runRoot)
         : null,
       toolCallArtifactKey: artifactKey(input.paths.toolCallPath, input.runRoot),
-      candidateCount: drafts.length,
+      candidateCount: processedDrafts.length,
       usage: null,
       error: null,
     },
-    candidates: drafts.map((draft, index) =>
+    candidates: processedDrafts.map(({ draft, quality }, index) =>
       evidenceCandidateFromMarkdownDraft({
         draft,
         sourceRef: input.sourceRef,
         pageMarkdownRootName: input.pageMarkdownRootName,
         candidateRootName: input.candidateRootName,
-        windowPages: input.pages,
+        windowPages: pageNumbers,
         index,
+        quality,
       }),
     ),
   };
@@ -4671,7 +5223,7 @@ async function extractOcrMarkdownCandidateWindow(input: {
     sourceRef: input.sourceRef,
     pageMarkdownRootName: input.pageMarkdownRootName,
     candidateRootName: input.candidateRootName,
-    pages: pageNumbers,
+    pages: input.pages,
   });
   if (existing !== null) return existing;
   if (!input.execute) {
@@ -4691,13 +5243,12 @@ async function extractOcrMarkdownCandidateWindow(input: {
     };
   }
   if (input.apiKey === undefined || input.apiKey.length === 0) {
-    throw new Error("OPENROUTER_API_KEY is required for docs:ocr-markdown-candidates --execute.");
+    throw new Error("DEEPSEEK_API_KEY is required for docs:ocr-markdown-candidates --execute.");
   }
   const markdownText = await pageWindowMarkdown({ runRoot: input.runRoot, pages: input.pages });
-  const openRouter = await callOpenRouterMarkdownCandidates({
+  const openRouter = await callDeepSeekMarkdownCandidates({
     apiKey: input.apiKey,
     model: input.model,
-    serviceTier: input.serviceTier,
     maxTokens: input.maxTokens,
     source: input.source,
     pages: input.pages,
@@ -4754,7 +5305,13 @@ async function extractOcrMarkdownCandidateWindow(input: {
   }
   await writeJson(paths.toolCallPath, toolArgs);
   const drafts = markdownCandidateRecordCandidates(toolArgs);
-  const candidates = drafts.map((draft, index) =>
+  const processedDrafts = await processOcrEvidenceCandidateDrafts({
+    drafts,
+    sourceRef: input.sourceRef,
+    runRoot: input.runRoot,
+    pages: input.pages,
+  });
+  const candidates = processedDrafts.map(({ draft, quality }, index) =>
     evidenceCandidateFromMarkdownDraft({
       draft,
       sourceRef: input.sourceRef,
@@ -4762,6 +5319,7 @@ async function extractOcrMarkdownCandidateWindow(input: {
       candidateRootName: input.candidateRootName,
       windowPages: pageNumbers,
       index,
+      quality,
     }),
   );
   return {
@@ -4788,6 +5346,49 @@ function chunkPages<T>(pages: T[], size: number): T[][] {
   return chunks;
 }
 
+function candidateValidationStateCounts(
+  candidates: Tier2DocumentEvidenceCandidate[],
+): Record<Tier2CandidateValidationState, number> {
+  const counts: Record<Tier2CandidateValidationState, number> = {
+    unvalidated: 0,
+    validated: 0,
+    needs_review: 0,
+    rejected: 0,
+  };
+  for (const candidate of candidates) {
+    counts[candidate.validationState] += 1;
+  }
+  return counts;
+}
+
+function candidateQualityIssueCounts(
+  candidates: Tier2DocumentEvidenceCandidate[],
+): Record<Tier2OcrMarkdownCandidateQualityIssueCode, number> {
+  const counts = Object.fromEntries(
+    OCR_MARKDOWN_CANDIDATE_QUALITY_ISSUE_CODES.map((code) => [code, 0]),
+  ) as Record<Tier2OcrMarkdownCandidateQualityIssueCode, number>;
+  for (const candidate of candidates) {
+    for (const code of candidate.extraction.qualityIssues ?? []) {
+      counts[code] += 1;
+    }
+  }
+  return counts;
+}
+
+function candidateQualityRepairCounts(
+  candidates: Tier2DocumentEvidenceCandidate[],
+): Record<Tier2OcrMarkdownCandidateQualityRepairCode, number> {
+  const counts = Object.fromEntries(
+    OCR_MARKDOWN_CANDIDATE_QUALITY_REPAIR_CODES.map((code) => [code, 0]),
+  ) as Record<Tier2OcrMarkdownCandidateQualityRepairCode, number>;
+  for (const candidate of candidates) {
+    for (const code of candidate.extraction.qualityRepairs ?? []) {
+      counts[code] += 1;
+    }
+  }
+  return counts;
+}
+
 export async function extractTier2OcrMarkdownCandidates(
   args: ExtractTier2OcrMarkdownCandidatesArgs,
 ): Promise<Tier2OcrMarkdownCandidateExtraction> {
@@ -4797,7 +5398,7 @@ export async function extractTier2OcrMarkdownCandidates(
   const capturedById = new Map(captureManifest.sources.map((source) => [source.sourceId, source]));
   const auditById = new Map(audit.sources.map((source) => [source.sourceId, source]));
   const runRoot = dirname(plan.captureManifestPath);
-  const model = args.model ?? process.env["OPENROUTER_OCR_MODEL"] ?? DEFAULT_OCR_MODEL;
+  const model = args.model ?? process.env["DEEPSEEK_TEXT_MODEL"] ?? DEFAULT_TEXT_MODEL;
   const serviceTier = args.serviceTier ?? "flex";
   const maxTokens = args.maxTokens ?? DEFAULT_OCR_MAX_TOKENS;
   const pageWindowSize = args.pageWindowSize ?? 4;
@@ -4821,7 +5422,7 @@ export async function extractTier2OcrMarkdownCandidates(
   });
   const execute = args.execute ?? false;
   const fetcher = args.fetcher ?? defaultFetch;
-  const apiKey = args.apiKey ?? process.env["OPENROUTER_API_KEY"];
+  const apiKey = args.apiKey ?? process.env["DEEPSEEK_API_KEY"];
   const windows: Tier2OcrMarkdownCandidateWindow[] = [];
   const documentEvidenceCandidates: Tier2DocumentEvidenceCandidate[] = [];
 
@@ -4896,6 +5497,9 @@ export async function extractTier2OcrMarkdownCandidates(
       reusedExistingWindowCount: windows.filter((window) => window.reusedExisting).length,
       candidateCount: documentEvidenceCandidates.length,
       candidateTypeCounts,
+      candidateValidationStateCounts: candidateValidationStateCounts(documentEvidenceCandidates),
+      candidateQualityIssueCounts: candidateQualityIssueCounts(documentEvidenceCandidates),
+      candidateQualityRepairCounts: candidateQualityRepairCounts(documentEvidenceCandidates),
     },
     windows,
     documentEvidenceCandidates,
@@ -5265,24 +5869,20 @@ function buildInterventionRecordsPrompt(input: {
   ].join("\n");
 }
 
-async function callOpenRouterInterventionRecords(input: {
+async function callDeepSeekInterventionRecords(input: {
   apiKey: string;
   model: string;
-  serviceTier: "flex" | "priority";
   maxTokens: number;
   source: { sourceId: string; title: string; publisher: string; sourceGroup: string };
   candidates: Tier2DocumentEvidenceCandidate[];
   routeCatalogSnippet: string | null;
   fetcher: FetchLike;
 }): Promise<OpenRouterCallResult> {
-  const reasoning = requiredToolCallReasoningOverride(input.model);
-  return postOpenRouterChatCompletions({
+  return postDeepSeekChatCompletions({
     apiKey: input.apiKey,
-    title: "Bus Priority Impact Studio Tier 2 Intervention Synthesis",
     fetcher: input.fetcher,
     body: {
       model: input.model,
-      service_tier: input.serviceTier,
       max_tokens: input.maxTokens,
       messages: [
         { role: "system", content: INTERVENTION_RECORDS_SYSTEM_PROMPT },
@@ -5300,7 +5900,6 @@ async function callOpenRouterInterventionRecords(input: {
         type: "function",
         function: { name: INTERVENTION_RECORDS_TOOL_NAME },
       },
-      ...(reasoning === null ? {} : { reasoning }),
       temperature: 0,
     },
   });
@@ -5542,7 +6141,7 @@ export async function extractTier2DocumentInterventionRecords(
     args.ocrMarkdownCandidateExtractionPath,
   ).json()) as Tier2OcrMarkdownCandidateExtraction;
   const runRoot = dirname(args.ocrMarkdownCandidateExtractionPath);
-  const model = args.model ?? process.env["OPENROUTER_OCR_MODEL"] ?? DEFAULT_OCR_MODEL;
+  const model = args.model ?? process.env["DEEPSEEK_TEXT_MODEL"] ?? DEFAULT_TEXT_MODEL;
   const serviceTier = args.serviceTier ?? "flex";
   const maxTokens = args.maxTokens ?? DEFAULT_INTERVENTION_RECORDS_MAX_TOKENS;
   const synthesisRootName = normalizeOcrArtifactRootName({
@@ -5552,9 +6151,9 @@ export async function extractTier2DocumentInterventionRecords(
   });
   const execute = args.execute ?? false;
   const fetcher = args.fetcher ?? defaultFetch;
-  const apiKey = args.apiKey ?? process.env["OPENROUTER_API_KEY"];
+  const apiKey = args.apiKey ?? process.env["DEEPSEEK_API_KEY"];
   if (execute && (apiKey === undefined || apiKey === "")) {
-    throw new Error("OPENROUTER_API_KEY is required for docs:intervention-records --execute.");
+    throw new Error("DEEPSEEK_API_KEY is required for docs:intervention-records --execute.");
   }
   const routeCatalogPath =
     args.routeCatalogPath ?? DEFAULT_INTERVENTION_RECORDS_ROUTE_CATALOG_PATH;
@@ -5624,10 +6223,9 @@ export async function extractTier2DocumentInterventionRecords(
         catalog: routeCatalog,
         candidates,
       });
-      const openRouter = await callOpenRouterInterventionRecords({
+      const openRouter = await callDeepSeekInterventionRecords({
         apiKey: apiKey as string,
         model,
-        serviceTier,
         maxTokens,
         source: {
           sourceId,
@@ -5643,7 +6241,7 @@ export async function extractTier2DocumentInterventionRecords(
       const toolArgs = extractToolCallArguments(openRouter.body, INTERVENTION_RECORDS_TOOL_NAME);
       if (toolArgs === null) {
         throw new Error(
-          `OpenRouter response did not include required ${INTERVENTION_RECORDS_TOOL_NAME} tool call.`,
+          `DeepSeek response did not include required ${INTERVENTION_RECORDS_TOOL_NAME} tool call.`,
         );
       }
       await writeJson(paths.toolCallPath, toolArgs);
