@@ -1317,7 +1317,7 @@ type DiscoverCliArgs = {
 
 const DEFAULT_BACKLOG_PATH = fromRepoRoot("knowledge/raw/tier2_document_backlog.json");
 const DEFAULT_OCR_MODEL = "qwen/qwen3.7-max";
-const DEFAULT_OCR_MAX_TOKENS = 4096;
+const DEFAULT_OCR_MAX_TOKENS = 8192;
 const DEFAULT_OCR_PAGE_MARKDOWN_ROOT_NAME = "ocr-page-markdown";
 const OCR_PAGE_MARKDOWN_TOOL_NAME = "record_tier2_ocr_page";
 const OCR_MARKDOWN_CANDIDATE_TOOL_NAME = "record_tier2_ocr_markdown_candidates";
