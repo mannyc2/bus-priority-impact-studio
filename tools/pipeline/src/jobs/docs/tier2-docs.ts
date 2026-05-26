@@ -1334,6 +1334,7 @@ const OCR_PAGE_MARKDOWN_PROMPT_VERSION = "page-markdown-v3";
 const OCR_MARKDOWN_CANDIDATE_PROMPT_VERSION = "ocr-markdown-candidates-v2";
 const INTERVENTION_RECORDS_PROMPT_VERSION = "intervention-records-v1";
 const DEFAULT_INTERVENTION_RECORDS_ROOT_NAME = "intervention-records";
+const DEFAULT_INTERVENTION_RECORDS_MAX_TOKENS = 16384;
 const DEFAULT_OPENROUTER_MAX_ATTEMPTS = 3;
 
 function docsArtifactRoot(artifactRoot: string): string {
@@ -5362,7 +5363,7 @@ export async function extractTier2DocumentInterventionRecords(
   const runRoot = dirname(args.ocrMarkdownCandidateExtractionPath);
   const model = args.model ?? process.env["OPENROUTER_OCR_MODEL"] ?? DEFAULT_OCR_MODEL;
   const serviceTier = args.serviceTier ?? "flex";
-  const maxTokens = args.maxTokens ?? DEFAULT_OCR_MAX_TOKENS;
+  const maxTokens = args.maxTokens ?? DEFAULT_INTERVENTION_RECORDS_MAX_TOKENS;
   const synthesisRootName = normalizeOcrArtifactRootName({
     value: args.synthesisRootName,
     defaultName: DEFAULT_INTERVENTION_RECORDS_ROOT_NAME,
