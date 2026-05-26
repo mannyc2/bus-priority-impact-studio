@@ -142,64 +142,6 @@ export type Tier2OcrPlan = {
   sources: Tier2OcrPlanSource[];
 };
 
-export type Tier2OcrTriageSource = {
-  sourceId: string;
-  title: string;
-  publisher: string;
-  sourceGroup: string;
-  sourceUrl: string;
-  finalUrl: string;
-  rawArtifactKey: string;
-  pageRange: string;
-  requestedPageLimit: number;
-  pdfPageCount: number | null;
-  selectedPageCount: number;
-  selectedPages: number[];
-  inputPdfArtifactKey: string | null;
-  inputByteLength: number;
-  inputSha256: string | null;
-  status: "prepared" | "ocr_complete" | "ocr_failed";
-  reusedExisting: boolean;
-  httpStatus: number | null;
-  requestedServiceTier: "flex" | "priority" | null;
-  servedServiceTier: string | null;
-  responseArtifactKey: string | null;
-  textArtifactKey: string | null;
-  parsedJsonArtifactKey: string | null;
-  annotationsArtifactKey: string | null;
-  usage: unknown | null;
-  error: string | null;
-};
-
-export type Tier2OcrTriageManifest = {
-  version: 1;
-  runId: string;
-  generatedAt: string;
-  ocrPlanPath: string;
-  captureManifestPath: string;
-  outputPath: string | null;
-  runtime: "pi-mono";
-  provider: "openrouter";
-  model: string;
-  api: "chat.completions";
-  pdfEngine: "cloudflare-ai" | "mistral-ocr" | "native";
-  serviceTier: "flex" | "priority";
-  maxTokens: number;
-  triageRootName: string;
-  execute: boolean;
-  pageLimit: number;
-  summary: {
-    plannedSourceCount: number;
-    selectedSourceCount: number;
-    preparedCount: number;
-    ocrCompleteCount: number;
-    ocrFailedCount: number;
-    reusedExistingCount: number;
-    totalInputBytes: number;
-  };
-  sources: Tier2OcrTriageSource[];
-};
-
 export type Tier2OcrPageInputPreference = "auto" | "pdf" | "image";
 
 export type Tier2OcrPageMarkdownPage = {
@@ -497,131 +439,6 @@ export type Tier2OcrQualityReview = {
   sources: Tier2OcrQualityReviewSource[];
 };
 
-export type Tier2FollowupCurationPriority = "high" | "medium" | "low";
-
-export type Tier2FollowupCurationQueueItem = {
-  reviewItemId: string;
-  priority: Tier2FollowupCurationPriority;
-  sourceId: string;
-  title: string;
-  publisher: string;
-  sourceGroup: string;
-  sourceUrl: string;
-  ocrQuality: Tier2OcrQualityReviewSource["ocrQuality"];
-  decision: Tier2OcrQualityReviewSource["decision"];
-  pagesReviewed: number[];
-  usefulPages: number[];
-  issueCodes: Tier2OcrQualityIssueCode[];
-  reviewNotes: string | null;
-  triageSummary: string | null;
-  interventionFamilies: string[];
-  normalizedInterventionTypes: string[];
-  routesMentioned: string[];
-  corridorsMentioned: string[];
-  dateMentions: string[];
-  artifactKeys: {
-    ocrText: string | null;
-    ocrJson: string | null;
-    ocrAnnotations: string | null;
-  };
-  manualCuration: {
-    state: "not_started" | "in_progress" | "curated" | "skip" | "needs_more_source";
-    reviewer: string | null;
-    reviewedAt: string | null;
-    curatedCandidateIds: string[];
-    notes: string | null;
-  };
-};
-
-export type Tier2FollowupCurationQueue = {
-  version: 1;
-  runId: string;
-  generatedAt: string;
-  ocrQualityReviewPath: string;
-  triageManifestPath: string;
-  outputPath: string | null;
-  summary: {
-    reviewedExtractSourceCount: number;
-    queueItemCount: number;
-    highPriorityCount: number;
-    mediumPriorityCount: number;
-    lowPriorityCount: number;
-    normalizedInterventionTypeCounts: Record<string, number>;
-    sourceGroupCounts: Record<string, number>;
-    issueCounts: Record<string, number>;
-  };
-  items: Tier2FollowupCurationQueueItem[];
-};
-
-export type Tier2FollowupCuratedCandidateDraft = {
-  candidateId: string;
-  interventionType: string;
-  eventStatus: "implemented" | "planned" | "proposed" | "unknown";
-  dateMention: string | null;
-  datePrecision: "day" | "month" | "year" | "unknown";
-  routeMentions: string[];
-  corridorMentions: string[];
-  evidenceRefs: Array<{
-    artifactKey: string;
-    pageRefs: number[];
-    excerpt: string | null;
-  }>;
-  notes: string | null;
-};
-
-export type Tier2FollowupCurationDecision = {
-  reviewItemId: string;
-  sourceId: string;
-  priority: Tier2FollowupCurationPriority;
-  title: string;
-  sourceUrl: string;
-  currentDecision: "needs_human_review" | "curate_candidates" | "skip" | "needs_more_source";
-  reviewer: string | null;
-  reviewedAt: string | null;
-  rationale: string | null;
-  suggestedInterventionTypes: string[];
-  usefulPages: number[];
-  curatedCandidates: Tier2FollowupCuratedCandidateDraft[];
-};
-
-export type Tier2FollowupCurationDecisionTemplate = {
-  version: 1;
-  runId: string;
-  generatedAt: string;
-  queuePath: string;
-  outputPath: string | null;
-  summary: {
-    decisionCount: number;
-    needsHumanReviewCount: number;
-  };
-  decisions: Tier2FollowupCurationDecision[];
-};
-
-export type Tier2FollowupCurationDecisionVerification = {
-  version: 1;
-  runId: string;
-  generatedAt: string;
-  decisionsPath: string;
-  queuePath: string;
-  outputPath: string | null;
-  complete: boolean;
-  summary: {
-    decisionCount: number;
-    completeDecisionCount: number;
-    incompleteDecisionCount: number;
-    needsHumanReviewCount: number;
-    curateCandidatesCount: number;
-    skipCount: number;
-    needsMoreSourceCount: number;
-    curatedCandidateCount: number;
-    missingReviewerCount: number;
-    missingReviewedAtCount: number;
-    missingRationaleCount: number;
-    invalidCuratedCandidateCount: number;
-    unknownReviewItemCount: number;
-    missingReviewItemCount: number;
-  };
-};
 
 export type Tier2CandidateValidationState =
   | "unvalidated"
@@ -762,7 +579,7 @@ export type Tier2LlmExtractionAudit = {
   model: string;
   provider: "openrouter";
   serviceTier: string | null;
-  extractionMode: "deterministic_ocr_triage_candidate_bundle";
+  extractionMode: "ocr_markdown_candidate_bundle";
   generatedAt: string;
   sourceCount: number;
   candidateCounts: Record<string, number>;
@@ -774,22 +591,17 @@ export type Tier2CandidateBundle = {
   runId: string;
   generatedAt: string;
   ocrPlanPath: string;
-  ocrQualityReviewPath: string;
   outputPath: string | null;
-  triageRootName: string;
   summary: {
     sourceCandidateCount: number;
-    entityLinkCandidateCount: number;
-    interventionSeedCount: number;
+    evidenceCandidateCount: number;
     reviewQuestionCandidateCount: number;
     followupOcrCandidateCount: number;
     auditCount: number;
     unvalidatedCandidateCount: number;
   };
   documentSourceCandidates: Tier2DocumentSourceCandidate[];
-  documentEntityLinkCandidates: Tier2DocumentEntityLinkCandidate[];
-  documentInterventionSeeds: Tier2DocumentInterventionSeed[];
-  documentEvidenceCandidates?: Tier2DocumentEvidenceCandidate[];
+  documentEvidenceCandidates: Tier2DocumentEvidenceCandidate[];
   reviewQuestionCandidates: Tier2ReviewQuestionCandidate[];
   followupOcrCandidates: Tier2FollowupOcrCandidate[];
   llmExtractionAudits: Tier2LlmExtractionAudit[];
@@ -1133,7 +945,7 @@ export type Tier2PipelineStatusArtifact = {
   complete: boolean;
   summary: {
     sourceCandidateCount: number;
-    interventionSeedCount: number;
+    evidenceCandidateCount: number;
     canonicalEventCount: number;
     eligibleTimelineEventCount: number;
     blockedDuplicateEventCount: number;
@@ -1146,14 +958,8 @@ export type Tier2PipelineStatusArtifact = {
     followupOcrLatestReviewPath: string | null;
     followupOcrReviewedCount: number;
     followupOcrCompletedCount: number;
-    followupCurationQueuePath: string | null;
-    followupCurationQueueItemCount: number;
-    followupCurationQueueHighPriorityCount: number;
-    followupCurationDecisionComplete: boolean;
-    followupCurationCompleteDecisionCount: number;
-    followupCurationIncompleteDecisionCount: number;
     followupCandidateBundlePath: string | null;
-    followupInterventionSeedCount: number;
+    followupEvidenceCandidateCount: number;
     followupUnresolvedOcrSourceCount: number;
     studioTier2TimelineRowCount: number;
     studioTier2RowsMissingSourceLinks: number;
@@ -1253,23 +1059,6 @@ type PlanTier2OcrArgs = {
   defaultPageRange?: string;
 };
 
-type TriageTier2OcrArgs = {
-  ocrPlanPath: string;
-  outputPath?: string;
-  generatedAt?: string;
-  model?: string;
-  pdfEngine?: Tier2OcrTriageManifest["pdfEngine"];
-  serviceTier?: Tier2OcrTriageManifest["serviceTier"];
-  maxTokens?: number;
-  triageRootName?: string;
-  pageLimit?: number;
-  limit?: number;
-  sourceId?: string;
-  execute?: boolean;
-  fetcher?: FetchLike;
-  apiKey?: string;
-};
-
 type OcrTier2PageMarkdownArgs = {
   ocrPlanPath: string;
   outputPath?: string;
@@ -1289,13 +1078,6 @@ type OcrTier2PageMarkdownArgs = {
   execute?: boolean;
   fetcher?: FetchLike;
   apiKey?: string;
-};
-
-type ReviewTier2OcrArgs = {
-  ocrPlanPath: string;
-  outputPath?: string;
-  generatedAt?: string;
-  triageRootName?: string;
 };
 
 type AuditTier2OcrPageMarkdownArgs = {
@@ -1390,41 +1172,6 @@ type PlanTier2FollowupOcrArgs = {
   limit?: number;
 };
 
-type BuildTier2FollowupCurationQueueArgs = {
-  ocrQualityReviewPath: string;
-  triageManifestPath: string;
-  outputPath?: string;
-  generatedAt?: string;
-};
-
-type BuildTier2FollowupCurationDecisionTemplateArgs = {
-  queuePath: string;
-  outputPath?: string;
-  generatedAt?: string;
-};
-
-type VerifyTier2FollowupCurationDecisionsArgs = {
-  decisionsPath: string;
-  queuePath: string;
-  outputPath?: string;
-  generatedAt?: string;
-};
-
-type BuildTier2FollowupCurationCandidateBundleArgs = {
-  decisionsPath: string;
-  queuePath: string;
-  outputPath?: string;
-  generatedAt?: string;
-};
-
-type DiscoverTier2DocsArgs = {
-  captureManifestPath: string;
-  backlogPath?: string;
-  outputPath?: string;
-  mergedBacklogPath?: string;
-  generatedAt?: string;
-};
-
 type CaptureCliArgs = {
   backlogPath?: string;
   artifactRoot?: string;
@@ -1438,27 +1185,6 @@ type OcrPlanCliArgs = {
   outputPath?: string;
   model?: string;
   defaultPageRange?: string;
-};
-
-type OcrCliArgs = {
-  ocrPlanPath?: string;
-  artifactRoot?: string;
-  runId?: string;
-  outputPath?: string;
-  model?: string;
-  pdfEngine?: Tier2OcrTriageManifest["pdfEngine"];
-  serviceTier?: Tier2OcrTriageManifest["serviceTier"];
-  maxTokens?: number;
-  triageRootName?: string;
-  pageLimit?: number;
-  limit?: number;
-  sourceId?: string;
-  execute?: boolean;
-  pageMarkdown?: boolean;
-  pageInputPreference?: Tier2OcrPageInputPreference;
-  allPages?: boolean;
-  pageRangeOverride?: string;
-  pageConcurrency?: number;
 };
 
 type OcrReviewCliArgs = {
@@ -1573,30 +1299,13 @@ type FollowupOcrPlanCliArgs = {
   limit?: number;
 };
 
-type FollowupCurationQueueCliArgs = {
-  ocrQualityReviewPath?: string;
-  triageManifestPath?: string;
-  artifactRoot?: string;
-  runId?: string;
+type DiscoverTier2DocsArgs = {
+  captureManifestPath: string;
+  backlogPath?: string;
   outputPath?: string;
+  mergedBacklogPath?: string;
+  generatedAt?: string;
 };
-
-type FollowupCurationDecisionTemplateCliArgs = {
-  queuePath?: string;
-  artifactRoot?: string;
-  runId?: string;
-  outputPath?: string;
-};
-
-type VerifyFollowupCurationDecisionsCliArgs = {
-  decisionsPath?: string;
-  queuePath?: string;
-  artifactRoot?: string;
-  runId?: string;
-  outputPath?: string;
-};
-
-type FollowupCurationCandidateBundleCliArgs = VerifyFollowupCurationDecisionsCliArgs;
 
 type DiscoverCliArgs = {
   captureManifestPath?: string;
@@ -1610,9 +1319,7 @@ type DiscoverCliArgs = {
 const DEFAULT_BACKLOG_PATH = fromRepoRoot("knowledge/raw/tier2_document_backlog.json");
 const DEFAULT_OCR_MODEL = "qwen/qwen3.7-max";
 const DEFAULT_OCR_MAX_TOKENS = 4096;
-const DEFAULT_OCR_TRIAGE_ROOT_NAME = "ocr-triage";
 const DEFAULT_OCR_PAGE_MARKDOWN_ROOT_NAME = "ocr-page-markdown";
-const OCR_TRIAGE_TOOL_NAME = "record_tier2_ocr_triage";
 const OCR_PAGE_MARKDOWN_TOOL_NAME = "record_tier2_ocr_page";
 const OCR_MARKDOWN_CANDIDATE_TOOL_NAME = "record_tier2_ocr_markdown_candidates";
 const OCR_PAGE_MARKDOWN_PROMPT_VERSION = "page-markdown-v3";
@@ -2812,147 +2519,6 @@ export async function planTier2OcrFromCli(args: string[]): Promise<Tier2OcrPlan>
   return planTier2Ocr(planArgs);
 }
 
-function parseOcrCliArgs(args: string[]): OcrCliArgs {
-  const options: CliOption<OcrCliArgs>[] = [
-    {
-      flags: ["--ocr-plan"],
-      apply: (output, value) => {
-        if (value !== undefined) {
-          output.ocrPlanPath = fromCliPath(value);
-        }
-      },
-    },
-    {
-      flags: ["--artifact-root"],
-      apply: (output, value) => {
-        if (value !== undefined) {
-          output.artifactRoot = fromCliPath(value);
-        }
-      },
-    },
-    {
-      flags: ["--run-id"],
-      apply: (output, value) => {
-        if (value !== undefined) {
-          output.runId = value;
-        }
-      },
-    },
-    {
-      flags: ["--output"],
-      apply: (output, value) => {
-        if (value !== undefined) {
-          output.outputPath = fromCliPath(value);
-        }
-      },
-    },
-    {
-      flags: ["--model"],
-      apply: (output, value) => {
-        if (value !== undefined) {
-          output.model = value;
-        }
-      },
-    },
-    {
-      flags: ["--pdf-engine"],
-      apply: (output, value) => {
-        if (value === "cloudflare-ai" || value === "mistral-ocr" || value === "native") {
-          output.pdfEngine = value;
-          return;
-        }
-        throw new Error("--pdf-engine must be cloudflare-ai, mistral-ocr, or native.");
-      },
-    },
-    {
-      flags: ["--service-tier"],
-      apply: (output, value) => {
-        if (value === "flex" || value === "priority") {
-          output.serviceTier = value;
-          return;
-        }
-        throw new Error("--service-tier must be flex or priority.");
-      },
-    },
-    {
-      flags: ["--max-tokens"],
-      apply: (output, value) => {
-        output.maxTokens = Number(value);
-      },
-    },
-    {
-      flags: ["--triage-root"],
-      apply: (output, value) => {
-        if (value !== undefined) {
-          output.triageRootName = value;
-        }
-      },
-    },
-    {
-      flags: ["--page-limit"],
-      apply: (output, value) => {
-        output.pageLimit = Number(value);
-      },
-    },
-    {
-      flags: ["--page"],
-      apply: (output, value) => {
-        if (value !== undefined) {
-          output.pageRangeOverride = value;
-        }
-      },
-    },
-    {
-      flags: ["--page-range"],
-      apply: (output, value) => {
-        if (value !== undefined) {
-          output.pageRangeOverride = value;
-        }
-      },
-    },
-    {
-      flags: ["--page-concurrency"],
-      apply: (output, value) => {
-        output.pageConcurrency = Number(value);
-      },
-    },
-    {
-      flags: ["--limit"],
-      apply: (output, value) => {
-        output.limit = Number(value);
-      },
-    },
-    {
-      flags: ["--source-id"],
-      apply: (output, value) => {
-        if (value !== undefined) {
-          output.sourceId = value;
-        }
-      },
-    },
-    {
-      flags: ["--page-input"],
-      apply: (output, value) => {
-        if (value === "auto" || value === "pdf" || value === "image") {
-          output.pageInputPreference = value;
-          return;
-        }
-        throw new Error("--page-input must be auto, pdf, or image.");
-      },
-    },
-    trueOption<OcrCliArgs>(["--page-markdown"], (output) => {
-      output.pageMarkdown = true;
-    }),
-    trueOption<OcrCliArgs>(["--all-pages"], (output) => {
-      output.allPages = true;
-    }),
-    trueOption<OcrCliArgs>(["--execute"], (output) => {
-      output.execute = true;
-    }),
-  ];
-  return parseCliOptions(args, {}, options);
-}
-
 function parsePageRange(range: string, pageCount: number): number[] {
   if (pageCount < 1) {
     return [];
@@ -2996,34 +2562,12 @@ function normalizeOcrArtifactRootName(input: {
   return rootName;
 }
 
-function normalizeOcrTriageRootName(value: string | undefined): string {
-  return normalizeOcrArtifactRootName({
-    value,
-    defaultName: DEFAULT_OCR_TRIAGE_ROOT_NAME,
-    flagName: "--triage-root",
-  });
-}
-
 function normalizeOcrPageMarkdownRootName(value: string | undefined): string {
   return normalizeOcrArtifactRootName({
     value,
     defaultName: DEFAULT_OCR_PAGE_MARKDOWN_ROOT_NAME,
     flagName: "--triage-root",
   });
-}
-
-function ocrTriageSourceRoot(input: {
-  runRoot: string;
-  source: Tier2OcrPlanSource;
-  sourceIndex: number;
-  triageRootName?: string;
-}): string {
-  return join(
-    input.runRoot,
-    normalizeOcrTriageRootName(input.triageRootName),
-    "sources",
-    `${String(input.sourceIndex + 1).padStart(4, "0")}_${input.source.sourceId}`,
-  );
 }
 
 function ocrPageMarkdownSourceRoot(input: {
@@ -3038,52 +2582,6 @@ function ocrPageMarkdownSourceRoot(input: {
     "sources",
     `${String(input.sourceIndex + 1).padStart(4, "0")}_${input.source.sourceId}`,
   );
-}
-
-async function writePdfSlice(input: {
-  runRoot: string;
-  source: Tier2OcrPlanSource;
-  sourceIndex: number;
-  triageRootName?: string;
-  pageLimit: number;
-  pageRange: string;
-}): Promise<{
-  pdfPageCount: number;
-  selectedPages: number[];
-  artifactKey: string;
-  byteLength: number;
-  sha256: string;
-}> {
-  const rawPath = join(input.runRoot, input.source.rawArtifactKey);
-  const rawBytes = new Uint8Array(await Bun.file(rawPath).arrayBuffer());
-  const pdf = await PDFDocument.load(rawBytes, { ignoreEncryption: true });
-  const pdfPageCount = pdf.getPageCount();
-  const selectedPageIndexes = parsePageRange(input.pageRange, pdfPageCount).slice(
-    0,
-    input.pageLimit,
-  );
-  if (selectedPageIndexes.length === 0) {
-    throw new Error(`No pages selected for ${input.source.sourceId}.`);
-  }
-
-  const slice = await PDFDocument.create();
-  const copiedPages = await slice.copyPages(pdf, selectedPageIndexes);
-  for (const page of copiedPages) {
-    slice.addPage(page);
-  }
-  const sliceBytes = await slice.save();
-  const sourceRoot = ocrTriageSourceRoot(input);
-  await mkdir(sourceRoot, { recursive: true });
-  const outputPath = join(sourceRoot, "input-pages.pdf");
-  await Bun.write(outputPath, sliceBytes);
-
-  return {
-    pdfPageCount,
-    selectedPages: selectedPageIndexes.map((pageIndex) => pageIndex + 1),
-    artifactKey: artifactKey(outputPath, input.runRoot),
-    byteLength: sliceBytes.byteLength,
-    sha256: sha256(sliceBytes),
-  };
 }
 
 async function executableExists(command: string): Promise<boolean> {
@@ -3365,190 +2863,6 @@ async function preparePageMarkdownInputs(input: {
     pdfPageCount,
     selectedPages: selectedPageIndexes.map((pageIndex) => pageIndex + 1),
     pages: preparedPages,
-  };
-}
-
-function buildOcrTriagePrompt(input: {
-  source: Tier2OcrPlanSource;
-  selectedPages: number[];
-  pdfPageCount: number;
-}): string {
-  return [
-    "You are doing OCR triage for Bus Priority Impact Studio.",
-    "Read only the attached PDF slice and return source-grounded triage. Do not infer facts from memory.",
-    `You must call the ${OCR_TRIAGE_TOOL_NAME} tool. Do not answer with plain text or fallback JSON.`,
-    "Goal: decide whether these pages contain useful official bus intervention or policy evidence.",
-    "Look for SBS launch dates, Transit Signal Priority installs, busway launches, stop consolidation, all-door boarding/fare policy, route redesign/service changes, capital project milestones, ACE/ABLE scope changes, route lists, corridor names, implementation dates, or project status.",
-    "Candidate drafts are only draft leads. Create them only when a single source span supports one intervention or policy candidate; do not combine unrelated claims into one draft.",
-    "Evidence candidate drafts are also draft leads. Use them for before/after metric rows, tables, methodology notes, caveats, project status, treatment components, supersession, or explicit source gaps. Put type-specific details in fields and keep every candidate anchored to the evidence quote and page refs.",
-    "",
-    `Source ID: ${input.source.sourceId}`,
-    `Title: ${input.source.title}`,
-    `Publisher: ${input.source.publisher}`,
-    `Source group: ${input.source.sourceGroup}`,
-    `Pages in this slice: ${input.selectedPages.join(", ")} of ${input.pdfPageCount}`,
-    "",
-    "Return JSON with exactly these top-level keys:",
-    "{",
-    '  "sourceId": string,',
-    '  "pagesReviewed": number[],',
-    '  "ocrQuality": "good" | "partial" | "poor",',
-    '  "decision": "extract" | "skip" | "needs_review",',
-    '  "interventionFamilies": string[],',
-    '  "routesMentioned": string[],',
-    '  "corridorsMentioned": string[],',
-    '  "dateMentions": string[],',
-    '  "usefulPages": number[],',
-    '  "summary": string,',
-    '  "reviewNotes": string,',
-    '  "candidateDrafts": [',
-    "    {",
-    '      "interventionType": string,',
-    '      "eventStatus": "implemented" | "planned" | "proposed" | "unknown",',
-    '      "dateMention": string | null,',
-    '      "datePrecision": "day" | "month" | "year" | "unknown",',
-    '      "routeMentions": string[],',
-    '      "corridorMentions": string[],',
-    '      "evidencePageRefs": number[],',
-    '      "evidenceQuote": string,',
-    '      "rationale": string',
-    "    }",
-    "  ],",
-    '  "evidenceCandidateDrafts": [',
-    "    {",
-    '      "candidateType": "document_metric_claim_candidate" | "document_table_candidate" | "document_methodology_candidate" | "document_caveat_candidate" | "document_project_status_candidate" | "document_treatment_component_candidate" | "document_supersession_candidate" | "document_source_gap_candidate",',
-    '      "factClassification": "official_fact" | "official_claim" | "third_party_evaluation" | "context" | "caveat" | "methodology" | "source_gap",',
-    '      "negativeEvidenceFlag": "proposed_only" | "outreach_not_implementation" | "ocr_cannot_read_map" | "no_stop_table" | "claim_without_row_data" | "presentation_date_not_implementation" | "superseded_source" | "official_linked_not_mta_dot" | "mention_too_thin_for_intervention" | "none",',
-    '      "routeMentions": string[],',
-    '      "corridorMentions": string[],',
-    '      "evidencePageRefs": number[],',
-    '      "evidenceQuote": string,',
-    '      "summary": string,',
-    '      "fields": object',
-    "    }",
-    "  ]",
-    "}",
-  ].join("\n");
-}
-
-function ocrTriageTool(): Record<string, unknown> {
-  return {
-    type: "function",
-    function: {
-      name: OCR_TRIAGE_TOOL_NAME,
-      description:
-        "Record source-grounded OCR triage and draft intervention candidates from the attached official PDF slice.",
-      parameters: {
-        type: "object",
-        additionalProperties: false,
-        required: [
-          "sourceId",
-          "pagesReviewed",
-          "ocrQuality",
-          "decision",
-          "interventionFamilies",
-          "routesMentioned",
-          "corridorsMentioned",
-          "dateMentions",
-          "usefulPages",
-          "summary",
-          "reviewNotes",
-          "candidateDrafts",
-          "evidenceCandidateDrafts",
-        ],
-        properties: {
-          sourceId: { type: "string" },
-          pagesReviewed: { type: "array", items: { type: "integer", minimum: 1 } },
-          ocrQuality: { type: "string", enum: ["good", "partial", "poor"] },
-          decision: { type: "string", enum: ["extract", "skip", "needs_review"] },
-          interventionFamilies: { type: "array", items: { type: "string" } },
-          routesMentioned: { type: "array", items: { type: "string" } },
-          corridorsMentioned: { type: "array", items: { type: "string" } },
-          dateMentions: { type: "array", items: { type: "string" } },
-          usefulPages: { type: "array", items: { type: "integer", minimum: 1 } },
-          summary: { type: "string" },
-          reviewNotes: { type: "string" },
-          candidateDrafts: {
-            type: "array",
-            maxItems: 12,
-            items: {
-              type: "object",
-              additionalProperties: false,
-              required: [
-                "interventionType",
-                "eventStatus",
-                "dateMention",
-                "datePrecision",
-                "routeMentions",
-                "corridorMentions",
-                "evidencePageRefs",
-                "evidenceQuote",
-                "rationale",
-              ],
-              properties: {
-                interventionType: { type: "string" },
-                eventStatus: {
-                  type: "string",
-                  enum: ["implemented", "planned", "proposed", "unknown"],
-                },
-                dateMention: { type: ["string", "null"] },
-                datePrecision: {
-                  type: "string",
-                  enum: ["day", "month", "year", "unknown"],
-                },
-                routeMentions: { type: "array", items: { type: "string" } },
-                corridorMentions: { type: "array", items: { type: "string" } },
-                evidencePageRefs: { type: "array", items: { type: "integer", minimum: 1 } },
-                evidenceQuote: { type: "string" },
-                rationale: { type: "string" },
-              },
-            },
-          },
-          evidenceCandidateDrafts: {
-            type: "array",
-            maxItems: 16,
-            items: {
-              type: "object",
-              additionalProperties: false,
-              required: [
-                "candidateType",
-                "factClassification",
-                "negativeEvidenceFlag",
-                "routeMentions",
-                "corridorMentions",
-                "evidencePageRefs",
-                "evidenceQuote",
-                "summary",
-                "fields",
-              ],
-              properties: {
-                candidateType: {
-                  type: "string",
-                  enum: DocumentEvidenceCandidateTypeSchema.options,
-                },
-                factClassification: {
-                  type: "string",
-                  enum: DocumentFactClassificationSchema.options,
-                },
-                negativeEvidenceFlag: {
-                  type: "string",
-                  enum: DocumentNegativeEvidenceFlagSchema.options,
-                },
-                routeMentions: { type: "array", items: { type: "string" } },
-                corridorMentions: { type: "array", items: { type: "string" } },
-                evidencePageRefs: { type: "array", items: { type: "integer", minimum: 1 } },
-                evidenceQuote: { type: "string" },
-                summary: { type: "string" },
-                fields: {
-                  type: "object",
-                  additionalProperties: true,
-                },
-              },
-            },
-          },
-        },
-      },
-    },
   };
 }
 
@@ -3927,31 +3241,6 @@ function isPlausibleJsonLine(line: string): boolean {
   return /^(?:-?\d+(?:\.\d+)?|true|false|null),?$/.test(line);
 }
 
-const OCR_QUALITY_ISSUE_CODES: readonly Tier2OcrQualityIssueCode[] = [
-  "not_started",
-  "ocr_failed",
-  "missing_triage_json",
-  "invalid_triage_json",
-  "source_id_mismatch",
-  "missing_annotations",
-  "missing_ocr_text",
-  "low_ocr_text_density",
-  "partial_or_poor_ocr",
-  "extract_no_intervention_family",
-  "extract_no_date",
-  "extract_no_corridor",
-  "extract_no_route",
-  "extract_no_useful_pages",
-  "manual_visual_review_hint",
-];
-
-function emptyOcrQualityIssueCounts(): Record<Tier2OcrQualityIssueCode, number> {
-  return Object.fromEntries(OCR_QUALITY_ISSUE_CODES.map((code) => [code, 0])) as Record<
-    Tier2OcrQualityIssueCode,
-    number
-  >;
-}
-
 async function readJsonArtifact(path: string): Promise<{
   exists: boolean;
   parsed: unknown | null;
@@ -3966,10 +3255,6 @@ async function readJsonArtifact(path: string): Promise<{
   } catch {
     return { exists: true, parsed: null, parseError: true };
   }
-}
-
-function stringArrayLength(value: unknown): number {
-  return Array.isArray(value) ? value.filter((item) => typeof item === "string").length : 0;
 }
 
 function stringArray(value: unknown): string[] {
@@ -3991,51 +3276,9 @@ function triageString(value: unknown): string | null {
   return typeof value === "string" && value.trim().length > 0 ? value : null;
 }
 
-function triageOcrQuality(value: unknown): Tier2OcrQualityReviewSource["ocrQuality"] {
-  if (value === "good" || value === "partial" || value === "poor") {
-    return value;
-  }
-  return "unknown";
-}
-
-function triageDecision(value: unknown): Tier2OcrQualityReviewSource["decision"] {
-  if (value === "extract" || value === "skip" || value === "needs_review") {
-    return value;
-  }
-  return "unknown";
-}
-
 type OcrAnnotationRecord = Record<string, unknown> & {
   text?: unknown;
   type?: unknown;
-};
-
-type OcrTriageRecord = Record<string, unknown> & {
-  candidateDrafts?: unknown;
-  corridorsMentioned?: unknown;
-  dateMentions?: unknown;
-  decision?: unknown;
-  evidenceCandidateDrafts?: unknown;
-  interventionFamilies?: unknown;
-  ocrQuality?: unknown;
-  pagesReviewed?: unknown;
-  reviewNotes?: unknown;
-  routesMentioned?: unknown;
-  sourceId?: unknown;
-  summary?: unknown;
-  usefulPages?: unknown;
-};
-
-type OcrCandidateDraft = {
-  interventionType: string;
-  eventStatus: "implemented" | "planned" | "proposed" | "unknown";
-  dateMention: string | null;
-  datePrecision: "day" | "month" | "year" | "unknown";
-  routeMentions: string[];
-  corridorMentions: string[];
-  evidencePageRefs: number[];
-  evidenceQuote: string | null;
-  rationale: string | null;
 };
 
 type OcrEvidenceCandidateDraft = DocumentEvidenceCandidateDraft;
@@ -4050,51 +3293,6 @@ function requiredToolCallReasoningOverride(model: string): { effort: "none" } | 
 
 function supportsRenderedImageOcrInput(model: string): boolean {
   return !model.toLowerCase().startsWith("qwen/qwen3.7-max");
-}
-
-function ocrCandidateEventStatus(value: unknown): OcrCandidateDraft["eventStatus"] {
-  if (value === "implemented" || value === "planned" || value === "proposed") {
-    return value;
-  }
-  return "unknown";
-}
-
-function ocrCandidateDatePrecision(value: unknown): OcrCandidateDraft["datePrecision"] {
-  if (value === "day" || value === "month" || value === "year") {
-    return value;
-  }
-  return "unknown";
-}
-
-function ocrCandidateDrafts(value: unknown): OcrCandidateDraft[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-  const drafts: OcrCandidateDraft[] = [];
-  for (const item of value) {
-    if (item === null || typeof item !== "object" || Array.isArray(item)) {
-      continue;
-    }
-    const record = item as Record<string, unknown>;
-    const interventionType = triageString(
-      record["interventionType"] ?? record["interventionFamily"],
-    );
-    if (interventionType === null) {
-      continue;
-    }
-    drafts.push({
-      interventionType,
-      eventStatus: ocrCandidateEventStatus(record["eventStatus"]),
-      dateMention: triageString(record["dateMention"]),
-      datePrecision: ocrCandidateDatePrecision(record["datePrecision"]),
-      routeMentions: [...new Set(stringArray(record["routeMentions"]))],
-      corridorMentions: [...new Set(stringArray(record["corridorMentions"]))],
-      evidencePageRefs: [...new Set(numberArray(record["evidencePageRefs"] ?? record["pages"]))],
-      evidenceQuote: triageString(record["evidenceQuote"]),
-      rationale: triageString(record["rationale"] ?? record["notes"]),
-    });
-  }
-  return drafts;
 }
 
 function ocrEvidenceCandidateDrafts(value: unknown): OcrEvidenceCandidateDraft[] {
@@ -4182,144 +3380,6 @@ function annotationTextBlocks(annotations: unknown): string[] {
   return blocks;
 }
 
-function annotationStats(annotations: unknown): {
-  textBlockCount: number;
-  textCharCount: number;
-  imageCount: number;
-} {
-  let textBlockCount = 0;
-  let textCharCount = 0;
-  let imageCount = 0;
-  const seen = new Set<unknown>();
-
-  const visit = (value: unknown) => {
-    if (value === null || typeof value !== "object" || seen.has(value)) {
-      return;
-    }
-    seen.add(value);
-    const record = value as OcrAnnotationRecord;
-    if (record.type === "text" && typeof record.text === "string") {
-      if (!annotationTextIsWrapper(record.text)) {
-        textBlockCount += 1;
-        textCharCount += record.text.trim().length;
-      }
-      return;
-    }
-    if (record.type === "image_url") {
-      imageCount += 1;
-      return;
-    }
-    for (const nested of Object.values(record)) {
-      if (Array.isArray(nested)) {
-        for (const item of nested) {
-          visit(item);
-        }
-      } else {
-        visit(nested);
-      }
-    }
-  };
-
-  if (Array.isArray(annotations)) {
-    for (const annotation of annotations) {
-      visit(annotation);
-    }
-  } else {
-    visit(annotations);
-  }
-
-  return { textBlockCount, textCharCount, imageCount };
-}
-
-function hasManualVisualReviewHint(triage: OcrTriageRecord): boolean {
-  const text = [triageString(triage.summary), triageString(triage.reviewNotes)]
-    .filter((item): item is string => item !== null)
-    .join(" ")
-    .toLowerCase();
-  return [
-    "chart",
-    "diagram",
-    "garbled",
-    "image",
-    "map",
-    "not captured",
-    "not readable",
-    "table",
-    "timeline",
-    "visual review",
-  ].some((hint) => text.includes(hint));
-}
-
-function issueListForOcrReviewSource(input: {
-  status: Tier2OcrQualityReviewSource["status"];
-  source: Tier2OcrPlanSource;
-  triage: OcrTriageRecord | null;
-  triageExists: boolean;
-  triageParseError: boolean;
-  annotationsExist: boolean;
-  annotationTextCharCount: number;
-  textCharsPerReviewedPage: number | null;
-  ocrQuality: Tier2OcrQualityReviewSource["ocrQuality"];
-  decision: Tier2OcrQualityReviewSource["decision"];
-  interventionFamilyCount: number;
-  routeCount: number;
-  corridorCount: number;
-  dateCount: number;
-  usefulPageCount: number;
-}): Tier2OcrQualityIssueCode[] {
-  const issues: Tier2OcrQualityIssueCode[] = [];
-  if (input.status === "not_started" || input.status === "prepared") {
-    issues.push("not_started");
-  }
-  if (input.status === "ocr_failed") {
-    issues.push("ocr_failed");
-  }
-  if (input.status !== "ocr_failed" && !input.triageExists) {
-    issues.push("missing_triage_json");
-  } else if (input.status !== "ocr_failed" && input.triageParseError) {
-    issues.push("invalid_triage_json");
-  }
-  if (
-    input.triage !== null &&
-    typeof input.triage.sourceId === "string" &&
-    input.triage.sourceId !== input.source.sourceId
-  ) {
-    issues.push("source_id_mismatch");
-  }
-  if (!input.annotationsExist) {
-    issues.push("missing_annotations");
-  } else if (input.annotationTextCharCount === 0) {
-    issues.push("missing_ocr_text");
-  }
-  if (input.textCharsPerReviewedPage !== null && input.textCharsPerReviewedPage < 250) {
-    issues.push("low_ocr_text_density");
-  }
-  if (input.ocrQuality === "partial" || input.ocrQuality === "poor") {
-    issues.push("partial_or_poor_ocr");
-  }
-  if (input.decision === "extract") {
-    if (input.interventionFamilyCount === 0) {
-      issues.push("extract_no_intervention_family");
-    }
-    if (input.dateCount === 0) {
-      issues.push("extract_no_date");
-    }
-    if (input.corridorCount === 0) {
-      issues.push("extract_no_corridor");
-    }
-    if (input.routeCount === 0) {
-      issues.push("extract_no_route");
-    }
-    if (input.usefulPageCount === 0) {
-      issues.push("extract_no_useful_pages");
-    }
-  }
-  if (input.triage !== null && hasManualVisualReviewHint(input.triage)) {
-    issues.push("manual_visual_review_hint");
-  }
-  return [...new Set(issues)];
-}
-
 function sleepMs(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -4398,130 +3458,6 @@ async function postOpenRouterChatCompletions(input: {
     throw new Error("OpenRouter request loop exited without a response.");
   }
   return lastResult;
-}
-
-async function readExistingTriageSource(input: {
-  baseSource: Omit<
-    Tier2OcrTriageSource,
-    | "status"
-    | "reusedExisting"
-    | "httpStatus"
-    | "requestedServiceTier"
-    | "servedServiceTier"
-    | "responseArtifactKey"
-    | "textArtifactKey"
-    | "parsedJsonArtifactKey"
-    | "annotationsArtifactKey"
-    | "usage"
-    | "error"
-  >;
-  runRoot: string;
-  sourceRoot: string;
-  requestedServiceTier: Tier2OcrTriageManifest["serviceTier"] | null;
-}): Promise<Tier2OcrTriageSource | null> {
-  const responsePath = join(input.sourceRoot, "openrouter-response.json");
-  const textPath = join(input.sourceRoot, "triage-output.txt");
-  const parsedJsonPath = join(input.sourceRoot, "triage-output.json");
-  const annotationsPath = join(input.sourceRoot, "openrouter-file-annotations.json");
-
-  if (
-    !(await Bun.file(responsePath).exists()) ||
-    !(await Bun.file(textPath).exists()) ||
-    !(await Bun.file(parsedJsonPath).exists())
-  ) {
-    return null;
-  }
-
-  const responseBody = (await Bun.file(responsePath)
-    .json()
-    .catch(() => null)) as {
-    error?: unknown;
-    usage?: unknown;
-    service_tier?: string | null;
-  } | null;
-  if (responseBody === null || responseBody.error !== undefined) {
-    return null;
-  }
-
-  return {
-    ...input.baseSource,
-    status: "ocr_complete",
-    reusedExisting: true,
-    httpStatus: 200,
-    requestedServiceTier: input.requestedServiceTier,
-    servedServiceTier:
-      typeof responseBody.service_tier === "string" ? responseBody.service_tier : null,
-    responseArtifactKey: artifactKey(responsePath, input.runRoot),
-    textArtifactKey: artifactKey(textPath, input.runRoot),
-    parsedJsonArtifactKey: artifactKey(parsedJsonPath, input.runRoot),
-    annotationsArtifactKey: (await Bun.file(annotationsPath).exists())
-      ? artifactKey(annotationsPath, input.runRoot)
-      : null,
-    usage: responseBody.usage ?? null,
-    error: null,
-  };
-}
-
-async function callOpenRouterOcr(input: {
-  apiKey: string;
-  model: string;
-  pdfEngine: Tier2OcrTriageManifest["pdfEngine"];
-  serviceTier: Tier2OcrTriageManifest["serviceTier"];
-  maxTokens: number;
-  source: Tier2OcrPlanSource;
-  selectedPages: number[];
-  pdfPageCount: number;
-  inputPdfPath: string;
-  fetcher: FetchLike;
-}): Promise<{ response: Response; body: unknown }> {
-  const bytes = new Uint8Array(await Bun.file(input.inputPdfPath).arrayBuffer());
-  const base64 = Buffer.from(bytes).toString("base64");
-  const prompt = buildOcrTriagePrompt({
-    source: input.source,
-    selectedPages: input.selectedPages,
-    pdfPageCount: input.pdfPageCount,
-  });
-  const reasoning = requiredToolCallReasoningOverride(input.model);
-  return postOpenRouterChatCompletions({
-    apiKey: input.apiKey,
-    title: "Bus Priority Impact Studio Tier 2 OCR",
-    fetcher: input.fetcher,
-    body: {
-      model: input.model,
-      service_tier: input.serviceTier,
-      max_tokens: input.maxTokens,
-      messages: [
-        {
-          role: "user",
-          content: [
-            { type: "text", text: prompt },
-            {
-              type: "file",
-              file: {
-                filename: `${input.source.sourceId}.pdf`,
-                file_data: `data:application/pdf;base64,${base64}`,
-              },
-            },
-          ],
-        },
-      ],
-      plugins: [
-        {
-          id: "file-parser",
-          pdf: {
-            engine: input.pdfEngine,
-          },
-        },
-      ],
-      tools: [ocrTriageTool()],
-      tool_choice: {
-        type: "function",
-        function: { name: OCR_TRIAGE_TOOL_NAME },
-      },
-      ...(reasoning === null ? {} : { reasoning }),
-      temperature: 0,
-    },
-  });
 }
 
 async function callOpenRouterPageMarkdownOcr(input: {
@@ -4620,307 +3556,6 @@ function openRouterErrorMessage(body: unknown): string | null {
     }
   }
   return "OpenRouter response contained an error object.";
-}
-
-async function triageOcrSource(input: {
-  source: Tier2OcrPlanSource;
-  sourceIndex: number;
-  runRoot: string;
-  triageRootName: string;
-  pageLimit: number;
-  model: string;
-  pdfEngine: Tier2OcrTriageManifest["pdfEngine"];
-  serviceTier: Tier2OcrTriageManifest["serviceTier"];
-  maxTokens: number;
-  execute: boolean;
-  fetcher: FetchLike;
-  apiKey: string | undefined;
-}): Promise<Tier2OcrTriageSource> {
-  try {
-    const slice = await writePdfSlice({
-      runRoot: input.runRoot,
-      source: input.source,
-      sourceIndex: input.sourceIndex,
-      triageRootName: input.triageRootName,
-      pageLimit: input.pageLimit,
-      pageRange: input.source.pageRange,
-    });
-    const inputPdfPath = join(input.runRoot, slice.artifactKey);
-    const baseSource = {
-      sourceId: input.source.sourceId,
-      title: input.source.title,
-      publisher: input.source.publisher,
-      sourceGroup: input.source.sourceGroup,
-      sourceUrl: input.source.sourceUrl,
-      finalUrl: input.source.finalUrl,
-      rawArtifactKey: input.source.rawArtifactKey,
-      pageRange: input.source.pageRange,
-      requestedPageLimit: input.pageLimit,
-      pdfPageCount: slice.pdfPageCount,
-      selectedPageCount: slice.selectedPages.length,
-      selectedPages: slice.selectedPages,
-      inputPdfArtifactKey: slice.artifactKey,
-      inputByteLength: slice.byteLength,
-      inputSha256: slice.sha256,
-    };
-
-    if (!input.execute) {
-      return {
-        ...baseSource,
-        status: "prepared",
-        reusedExisting: false,
-        httpStatus: null,
-        requestedServiceTier: input.serviceTier,
-        servedServiceTier: null,
-        responseArtifactKey: null,
-        textArtifactKey: null,
-        parsedJsonArtifactKey: null,
-        annotationsArtifactKey: null,
-        usage: null,
-        error: null,
-      };
-    }
-
-    const sourceRoot = dirname(inputPdfPath);
-    const existing = await readExistingTriageSource({
-      baseSource,
-      runRoot: input.runRoot,
-      sourceRoot,
-      requestedServiceTier: null,
-    });
-    if (existing !== null) {
-      return existing;
-    }
-
-    if (input.apiKey === undefined || input.apiKey.length === 0) {
-      throw new Error("OPENROUTER_API_KEY is required for docs:ocr --execute.");
-    }
-
-    const openRouter = await callOpenRouterOcr({
-      apiKey: input.apiKey,
-      model: input.model,
-      pdfEngine: input.pdfEngine,
-      serviceTier: input.serviceTier,
-      maxTokens: input.maxTokens,
-      source: input.source,
-      selectedPages: slice.selectedPages,
-      pdfPageCount: slice.pdfPageCount,
-      inputPdfPath,
-      fetcher: input.fetcher,
-    });
-    const responsePath = join(sourceRoot, "openrouter-response.json");
-    await writeJson(responsePath, openRouter.body);
-    const annotations = extractFileAnnotations(openRouter.body);
-    const annotationsPath = join(sourceRoot, "openrouter-file-annotations.json");
-    if (annotations.length > 0) {
-      await writeJson(annotationsPath, annotations);
-    }
-
-    const providerErrorMessage = openRouterErrorMessage(openRouter.body);
-    if (!openRouter.response.ok || providerErrorMessage !== null) {
-      const httpErrorMessage = `OpenRouter HTTP ${openRouter.response.status} ${openRouter.response.statusText}`;
-      const errorMessage =
-        providerErrorMessage === null
-          ? httpErrorMessage
-          : openRouter.response.ok
-            ? `OpenRouter provider error: ${providerErrorMessage}`
-            : `${httpErrorMessage}: ${providerErrorMessage}`;
-      await writeJson(join(sourceRoot, "error.json"), {
-        sourceId: input.source.sourceId,
-        httpStatus: openRouter.response.status,
-        statusText: openRouter.response.statusText,
-        error: errorMessage,
-      });
-      return {
-        ...baseSource,
-        status: "ocr_failed",
-        reusedExisting: false,
-        httpStatus: openRouter.response.status,
-        requestedServiceTier: input.serviceTier,
-        servedServiceTier: null,
-        responseArtifactKey: artifactKey(responsePath, input.runRoot),
-        textArtifactKey: null,
-        parsedJsonArtifactKey: null,
-        annotationsArtifactKey:
-          annotations.length > 0 ? artifactKey(annotationsPath, input.runRoot) : null,
-        usage: null,
-        error: errorMessage,
-      };
-    }
-
-    const toolArgs = extractToolCallArguments(openRouter.body, OCR_TRIAGE_TOOL_NAME);
-    if (toolArgs === null) {
-      const errorMessage = `OpenRouter response did not include required ${OCR_TRIAGE_TOOL_NAME} tool call.`;
-      await writeJson(join(sourceRoot, "error.json"), {
-        sourceId: input.source.sourceId,
-        httpStatus: openRouter.response.status,
-        statusText: openRouter.response.statusText,
-        error: errorMessage,
-      });
-      return {
-        ...baseSource,
-        status: "ocr_failed",
-        reusedExisting: false,
-        httpStatus: openRouter.response.status,
-        requestedServiceTier: input.serviceTier,
-        servedServiceTier:
-          typeof (openRouter.body as { service_tier?: unknown }).service_tier === "string"
-            ? (openRouter.body as { service_tier: string }).service_tier
-            : null,
-        responseArtifactKey: artifactKey(responsePath, input.runRoot),
-        textArtifactKey: null,
-        parsedJsonArtifactKey: null,
-        annotationsArtifactKey:
-          annotations.length > 0 ? artifactKey(annotationsPath, input.runRoot) : null,
-        usage: (openRouter.body as { usage?: unknown }).usage ?? null,
-        error: errorMessage,
-      };
-    }
-    const outputText = JSON.stringify(toolArgs, null, 2);
-    const textPath = join(sourceRoot, "triage-output.txt");
-    await Bun.write(textPath, `${outputText.trim()}\n`);
-    const parsedJson = toolArgs;
-    const parsedJsonPath = join(sourceRoot, "triage-output.json");
-    if (parsedJson !== null) {
-      await writeJson(parsedJsonPath, parsedJson);
-    }
-    const responseUsage = (openRouter.body as { usage?: unknown }).usage ?? null;
-
-    return {
-      ...baseSource,
-      status: "ocr_complete",
-      reusedExisting: false,
-      httpStatus: openRouter.response.status,
-      requestedServiceTier: input.serviceTier,
-      servedServiceTier:
-        typeof (openRouter.body as { service_tier?: unknown }).service_tier === "string"
-          ? (openRouter.body as { service_tier: string }).service_tier
-          : null,
-      responseArtifactKey: artifactKey(responsePath, input.runRoot),
-      textArtifactKey: artifactKey(textPath, input.runRoot),
-      parsedJsonArtifactKey:
-        parsedJson === null ? null : artifactKey(parsedJsonPath, input.runRoot),
-      annotationsArtifactKey:
-        annotations.length > 0 ? artifactKey(annotationsPath, input.runRoot) : null,
-      usage: responseUsage,
-      error: null,
-    };
-  } catch (error) {
-    return {
-      sourceId: input.source.sourceId,
-      title: input.source.title,
-      publisher: input.source.publisher,
-      sourceGroup: input.source.sourceGroup,
-      sourceUrl: input.source.sourceUrl,
-      finalUrl: input.source.finalUrl,
-      rawArtifactKey: input.source.rawArtifactKey,
-      pageRange: input.source.pageRange,
-      requestedPageLimit: input.pageLimit,
-      pdfPageCount: null,
-      selectedPageCount: 0,
-      selectedPages: [],
-      inputPdfArtifactKey: null,
-      inputByteLength: 0,
-      inputSha256: null,
-      status: "ocr_failed",
-      reusedExisting: false,
-      httpStatus: null,
-      requestedServiceTier: input.serviceTier,
-      servedServiceTier: null,
-      responseArtifactKey: null,
-      textArtifactKey: null,
-      parsedJsonArtifactKey: null,
-      annotationsArtifactKey: null,
-      usage: null,
-      error: error instanceof Error ? error.message : String(error),
-    };
-  }
-}
-
-export async function triageTier2Ocr(args: TriageTier2OcrArgs): Promise<Tier2OcrTriageManifest> {
-  const plan = (await Bun.file(args.ocrPlanPath).json()) as Tier2OcrPlan;
-  const runRoot = dirname(plan.captureManifestPath);
-  const model = args.model ?? process.env["OPENROUTER_OCR_MODEL"] ?? DEFAULT_OCR_MODEL;
-  const pageLimit = args.pageLimit ?? 10;
-  if (!Number.isInteger(pageLimit) || pageLimit < 1) {
-    throw new Error("--page-limit must be a positive integer.");
-  }
-  const limit = args.limit ?? 1;
-  if (!Number.isInteger(limit) || limit < 1) {
-    throw new Error("--limit must be a positive integer.");
-  }
-  const filteredSources = plan.sources
-    .map((source, sourceIndex) => ({ source, sourceIndex }))
-    .filter(({ source }) => args.sourceId === undefined || source.sourceId === args.sourceId);
-  const selectedSources = filteredSources.slice(0, limit);
-  const execute = args.execute ?? false;
-  const fetcher = args.fetcher ?? defaultFetch;
-  const serviceTier = args.serviceTier ?? "flex";
-  const maxTokens = args.maxTokens ?? DEFAULT_OCR_MAX_TOKENS;
-  if (!Number.isInteger(maxTokens) || maxTokens < 1) {
-    throw new Error("--max-tokens must be a positive integer.");
-  }
-  const triageRootName = normalizeOcrTriageRootName(args.triageRootName);
-  const sources: Tier2OcrTriageSource[] = [];
-
-  for (const selectedSource of selectedSources) {
-    if (selectedSource === undefined) {
-      continue;
-    }
-    const { source, sourceIndex } = selectedSource;
-    sources.push(
-      await triageOcrSource({
-        source,
-        sourceIndex,
-        runRoot,
-        triageRootName,
-        pageLimit,
-        model,
-        pdfEngine: args.pdfEngine ?? "mistral-ocr",
-        serviceTier,
-        maxTokens,
-        execute,
-        fetcher,
-        apiKey: args.apiKey ?? process.env["OPENROUTER_API_KEY"],
-      }),
-    );
-  }
-
-  const manifest: Tier2OcrTriageManifest = {
-    version: 1,
-    runId: plan.runId,
-    generatedAt: args.generatedAt ?? new Date().toISOString(),
-    ocrPlanPath: args.ocrPlanPath,
-    captureManifestPath: plan.captureManifestPath,
-    outputPath: args.outputPath ?? null,
-    runtime: "pi-mono",
-    provider: "openrouter",
-    model,
-    api: "chat.completions",
-    pdfEngine: args.pdfEngine ?? "mistral-ocr",
-    serviceTier,
-    maxTokens,
-    triageRootName,
-    execute,
-    pageLimit,
-    summary: {
-      plannedSourceCount: plan.sources.length,
-      selectedSourceCount: selectedSources.length,
-      preparedCount: sources.filter((source) => source.status === "prepared").length,
-      ocrCompleteCount: sources.filter((source) => source.status === "ocr_complete").length,
-      ocrFailedCount: sources.filter((source) => source.status === "ocr_failed").length,
-      reusedExistingCount: sources.filter((source) => source.reusedExisting).length,
-      totalInputBytes: sources.reduce((sum, source) => sum + source.inputByteLength, 0),
-    },
-    sources,
-  };
-
-  if (args.outputPath !== undefined) {
-    await mkdir(dirname(args.outputPath), { recursive: true });
-    await writeJson(args.outputPath, manifest);
-  }
-
-  return manifest;
 }
 
 function servedServiceTier(body: unknown): string | null {
@@ -6295,83 +4930,6 @@ export async function extractTier2OcrMarkdownCandidates(
   return artifact;
 }
 
-async function resolveOcrPaths(args: OcrCliArgs): Promise<{
-  ocrPlanPath: string;
-  outputPath: string;
-}> {
-  if (args.ocrPlanPath !== undefined) {
-    return {
-      ocrPlanPath: args.ocrPlanPath,
-      outputPath:
-        args.outputPath ??
-        join(
-          dirname(args.ocrPlanPath),
-          args.pageMarkdown ? "ocr-page-markdown-manifest.json" : "ocr-triage-manifest.json",
-        ),
-    };
-  }
-
-  const artifactRoot = args.artifactRoot ?? defaultArtifactRootPath();
-  const runId = args.runId ?? (await latestDocsRunId(artifactRoot));
-  if (runId === null) {
-    throw new Error("No docs run found. Provide --run-id or --ocr-plan.");
-  }
-
-  return {
-    ocrPlanPath: ocrPlanPath(artifactRoot, runId),
-    outputPath:
-      args.outputPath ??
-      (args.pageMarkdown
-        ? join(runArtifactRoot(artifactRoot, runId), "ocr-page-markdown-manifest.json")
-        : ocrTriageManifestPath(artifactRoot, runId)),
-  };
-}
-
-export async function triageTier2OcrFromCli(
-  args: string[],
-): Promise<Tier2OcrTriageManifest | Tier2OcrPageMarkdownManifest> {
-  const parsed = parseOcrCliArgs(args);
-  const paths = await resolveOcrPaths(parsed);
-  if (parsed.pageMarkdown === true) {
-    return ocrTier2PageMarkdown({
-      ...paths,
-      ...(parsed.model !== undefined ? { model: parsed.model } : {}),
-      ...(parsed.pdfEngine !== undefined ? { pdfEngine: parsed.pdfEngine } : {}),
-      ...(parsed.serviceTier !== undefined ? { serviceTier: parsed.serviceTier } : {}),
-      ...(parsed.maxTokens !== undefined ? { maxTokens: parsed.maxTokens } : {}),
-      ...(parsed.triageRootName !== undefined
-        ? { pageMarkdownRootName: parsed.triageRootName }
-        : {}),
-      ...(parsed.pageInputPreference !== undefined
-        ? { pageInputPreference: parsed.pageInputPreference }
-        : {}),
-      ...(parsed.allPages !== undefined ? { allPages: parsed.allPages } : {}),
-      ...(parsed.pageRangeOverride !== undefined
-        ? { pageRangeOverride: parsed.pageRangeOverride }
-        : {}),
-      ...(parsed.pageConcurrency !== undefined
-        ? { pageConcurrency: parsed.pageConcurrency }
-        : {}),
-      ...(parsed.pageLimit !== undefined ? { pageLimit: parsed.pageLimit } : {}),
-      ...(parsed.limit !== undefined ? { limit: parsed.limit } : {}),
-      ...(parsed.sourceId !== undefined ? { sourceId: parsed.sourceId } : {}),
-      execute: parsed.execute ?? false,
-    });
-  }
-  return triageTier2Ocr({
-    ...paths,
-    ...(parsed.model !== undefined ? { model: parsed.model } : {}),
-    ...(parsed.pdfEngine !== undefined ? { pdfEngine: parsed.pdfEngine } : {}),
-    ...(parsed.serviceTier !== undefined ? { serviceTier: parsed.serviceTier } : {}),
-    ...(parsed.maxTokens !== undefined ? { maxTokens: parsed.maxTokens } : {}),
-    ...(parsed.triageRootName !== undefined ? { triageRootName: parsed.triageRootName } : {}),
-    ...(parsed.pageLimit !== undefined ? { pageLimit: parsed.pageLimit } : {}),
-    ...(parsed.limit !== undefined ? { limit: parsed.limit } : {}),
-    ...(parsed.sourceId !== undefined ? { sourceId: parsed.sourceId } : {}),
-    execute: parsed.execute ?? false,
-  });
-}
-
 function parseOcrPageMarkdownAuditCliArgs(args: string[]): OcrPageMarkdownAuditCliArgs {
   const options: CliOption<OcrPageMarkdownAuditCliArgs>[] = [
     {
@@ -6603,195 +5161,9 @@ export async function extractTier2OcrMarkdownCandidatesFromCli(
   });
 }
 
-async function reviewOcrSource(input: {
-  runRoot: string;
-  source: Tier2OcrPlanSource;
-  sourceIndex: number;
-  triageRootName?: string;
-}): Promise<Tier2OcrQualityReviewSource> {
-  const sourceRoot = ocrTriageSourceRoot(input);
-  const triagePath = join(sourceRoot, "triage-output.json");
-  const annotationPath = join(sourceRoot, "openrouter-file-annotations.json");
-  const errorPath = join(sourceRoot, "error.json");
-  const inputPdfPath = join(sourceRoot, "input-pages.pdf");
-  const responsePath = join(sourceRoot, "openrouter-response.json");
-
-  const [
-    triageArtifact,
-    annotationArtifact,
-    responseArtifact,
-    errorExists,
-    inputPdfExists,
-    responseExists,
-  ] = await Promise.all([
-    readJsonArtifact(triagePath),
-    readJsonArtifact(annotationPath),
-    readJsonArtifact(responsePath),
-    Bun.file(errorPath).exists(),
-    Bun.file(inputPdfPath).exists(),
-    Bun.file(responsePath).exists(),
-  ]);
-  const responseHasOpenRouterError =
-    responseArtifact.parsed !== null &&
-    typeof responseArtifact.parsed === "object" &&
-    !Array.isArray(responseArtifact.parsed) &&
-    "error" in responseArtifact.parsed;
-  const triage =
-    triageArtifact.parsed !== null &&
-    typeof triageArtifact.parsed === "object" &&
-    !Array.isArray(triageArtifact.parsed)
-      ? (triageArtifact.parsed as OcrTriageRecord)
-      : null;
-
-  let status: Tier2OcrQualityReviewSource["status"] = "not_started";
-  if (triage !== null) {
-    status = "ocr_complete";
-  } else if (errorExists || responseHasOpenRouterError) {
-    status = "ocr_failed";
-  } else if (responseExists) {
-    status = "ocr_complete";
-  } else if (inputPdfExists) {
-    status = "prepared";
-  }
-
-  const stats = annotationStats(annotationArtifact.parsed);
-  const pagesReviewed = triage === null ? [] : numberArray(triage.pagesReviewed);
-  const usefulPages = triage === null ? [] : numberArray(triage.usefulPages);
-  const textCharsPerReviewedPage =
-    pagesReviewed.length > 0
-      ? Math.round((stats.textCharCount / pagesReviewed.length) * 10) / 10
-      : null;
-  const ocrQuality = triage === null ? "unknown" : triageOcrQuality(triage.ocrQuality);
-  const decision = triage === null ? "unknown" : triageDecision(triage.decision);
-  const interventionFamilyCount =
-    triage === null ? 0 : stringArrayLength(triage.interventionFamilies);
-  const routeCount = triage === null ? 0 : stringArrayLength(triage.routesMentioned);
-  const corridorCount = triage === null ? 0 : stringArrayLength(triage.corridorsMentioned);
-  const dateCount = triage === null ? 0 : stringArrayLength(triage.dateMentions);
-  const issueCodes = issueListForOcrReviewSource({
-    status,
-    source: input.source,
-    triage,
-    triageExists: triageArtifact.exists,
-    triageParseError: triageArtifact.parseError,
-    annotationsExist: annotationArtifact.exists,
-    annotationTextCharCount: stats.textCharCount,
-    textCharsPerReviewedPage,
-    ocrQuality,
-    decision,
-    interventionFamilyCount,
-    routeCount,
-    corridorCount,
-    dateCount,
-    usefulPageCount: usefulPages.length,
-  });
-
-  return {
-    sourceId: input.source.sourceId,
-    title: input.source.title,
-    publisher: input.source.publisher,
-    sourceGroup: input.source.sourceGroup,
-    sourceUrl: input.source.sourceUrl,
-    status,
-    ocrQuality,
-    decision,
-    pagesReviewed,
-    usefulPages,
-    interventionFamilyCount,
-    routeCount,
-    corridorCount,
-    dateCount,
-    annotationTextBlockCount: stats.textBlockCount,
-    annotationTextCharCount: stats.textCharCount,
-    annotationImageCount: stats.imageCount,
-    textCharsPerReviewedPage,
-    issueCodes,
-    reviewNotes: triage === null ? null : triageString(triage.reviewNotes),
-  };
-}
-
-export async function reviewTier2OcrQuality(
-  args: ReviewTier2OcrArgs,
-): Promise<Tier2OcrQualityReview> {
-  const plan = (await Bun.file(args.ocrPlanPath).json()) as Tier2OcrPlan;
-  const runRoot = dirname(plan.captureManifestPath);
-  const triageRootName = normalizeOcrTriageRootName(args.triageRootName);
-  const sources: Tier2OcrQualityReviewSource[] = [];
-
-  for (let sourceIndex = 0; sourceIndex < plan.sources.length; sourceIndex += 1) {
-    const source = plan.sources[sourceIndex];
-    if (source === undefined) {
-      continue;
-    }
-    sources.push(await reviewOcrSource({ runRoot, source, sourceIndex, triageRootName }));
-  }
-
-  const issueCounts = emptyOcrQualityIssueCounts();
-  let reviewedPageCount = 0;
-  for (const source of sources) {
-    reviewedPageCount += source.pagesReviewed.length;
-    for (const issueCode of source.issueCodes) {
-      issueCounts[issueCode] += 1;
-    }
-  }
-  const totalAnnotationTextChars = sources.reduce(
-    (sum, source) => sum + source.annotationTextCharCount,
-    0,
-  );
-
-  const review: Tier2OcrQualityReview = {
-    version: 1,
-    runId: plan.runId,
-    generatedAt: args.generatedAt ?? new Date().toISOString(),
-    ocrPlanPath: args.ocrPlanPath,
-    outputPath: args.outputPath ?? null,
-    triageRootName,
-    summary: {
-      plannedSourceCount: plan.sources.length,
-      reviewedSourceCount: sources.filter(
-        (source) => source.status === "ocr_complete" && source.decision !== "unknown",
-      ).length,
-      notStartedCount: sources.filter(
-        (source) => source.status === "not_started" || source.status === "prepared",
-      ).length,
-      ocrCompleteCount: sources.filter((source) => source.status === "ocr_complete").length,
-      ocrFailedCount: sources.filter((source) => source.status === "ocr_failed").length,
-      goodCount: sources.filter((source) => source.ocrQuality === "good").length,
-      partialCount: sources.filter((source) => source.ocrQuality === "partial").length,
-      poorCount: sources.filter((source) => source.ocrQuality === "poor").length,
-      unknownQualityCount: sources.filter((source) => source.ocrQuality === "unknown").length,
-      extractCount: sources.filter((source) => source.decision === "extract").length,
-      skipCount: sources.filter((source) => source.decision === "skip").length,
-      needsReviewCount: sources.filter((source) => source.decision === "needs_review").length,
-      unknownDecisionCount: sources.filter((source) => source.decision === "unknown").length,
-      annotationTextSourceCount: sources.filter((source) => source.annotationTextCharCount > 0)
-        .length,
-      missingAnnotationTextCount: sources.filter((source) =>
-        source.issueCodes.includes("missing_ocr_text"),
-      ).length,
-      totalAnnotationTextChars,
-      averageTextCharsPerReviewedPage:
-        reviewedPageCount > 0
-          ? Math.round((totalAnnotationTextChars / reviewedPageCount) * 10) / 10
-          : null,
-      issueCounts,
-    },
-    sources,
-  };
-
-  if (args.outputPath !== undefined) {
-    await mkdir(dirname(args.outputPath), { recursive: true });
-    await writeJson(args.outputPath, review);
-  }
-
-  return review;
-}
-
 function validationSummaryForBundle(bundle: {
   documentSourceCandidates: Tier2DocumentSourceCandidate[];
-  documentEntityLinkCandidates: Tier2DocumentEntityLinkCandidate[];
-  documentInterventionSeeds: Tier2DocumentInterventionSeed[];
-  documentEvidenceCandidates?: Tier2DocumentEvidenceCandidate[];
+  documentEvidenceCandidates: Tier2DocumentEvidenceCandidate[];
   reviewQuestionCandidates: Tier2ReviewQuestionCandidate[];
   followupOcrCandidates: Tier2FollowupOcrCandidate[];
 }): Record<Tier2CandidateValidationState, number> {
@@ -6803,42 +5175,13 @@ function validationSummaryForBundle(bundle: {
   };
   for (const candidate of [
     ...bundle.documentSourceCandidates,
-    ...bundle.documentEntityLinkCandidates,
-    ...bundle.documentInterventionSeeds,
-    ...(bundle.documentEvidenceCandidates ?? []),
+    ...bundle.documentEvidenceCandidates,
     ...bundle.reviewQuestionCandidates,
     ...bundle.followupOcrCandidates,
   ]) {
     summary[candidate.validationState] += 1;
   }
   return summary;
-}
-
-function sourceRefForCandidate(input: {
-  capturedSource: Tier2CapturedSource | null;
-  planSource: Tier2OcrPlanSource;
-  triageSource: Tier2OcrTriageSource | null;
-  reviewSource: Tier2OcrQualityReviewSource;
-}): Tier2CandidateSourceRef {
-  return {
-    sourceId: input.planSource.sourceId,
-    sourceUrl: input.planSource.sourceUrl,
-    title: input.planSource.title,
-    publisher: input.planSource.publisher,
-    documentDate: input.capturedSource?.documentDate ?? null,
-    sourceGroup: input.planSource.sourceGroup,
-    artifactKeys: {
-      raw: input.planSource.rawArtifactKey,
-      text: input.capturedSource?.textArtifactKey ?? null,
-      ocrText: input.triageSource?.textArtifactKey ?? null,
-      ocrJson: input.triageSource?.parsedJsonArtifactKey ?? null,
-      ocrAnnotations: input.triageSource?.annotationsArtifactKey ?? null,
-    },
-    pages:
-      input.reviewSource.usefulPages.length > 0
-        ? input.reviewSource.usefulPages
-        : input.reviewSource.pagesReviewed,
-  };
 }
 
 function documentSourceCandidate(source: Tier2CapturedSource): Tier2DocumentSourceCandidate {
@@ -6866,358 +5209,22 @@ function documentSourceCandidate(source: Tier2CapturedSource): Tier2DocumentSour
   };
 }
 
-function entityLinkCandidatesForTriage(input: {
-  sourceRef: Tier2CandidateSourceRef;
-  triage: OcrTriageRecord;
-}): Tier2DocumentEntityLinkCandidate[] {
-  const candidates: Tier2DocumentEntityLinkCandidate[] = [];
-  const add = (
-    entityKind: Tier2DocumentEntityLinkCandidate["entityKind"],
-    mentions: string[],
-  ): void => {
-    for (const mention of [...new Set(mentions)]) {
-      candidates.push({
-        candidateType: "document_entity_link_candidate",
-        candidateId: `entity_link:${input.sourceRef.sourceId}:${entityKind}:${slugify(mention)}`,
-        sourceRef: input.sourceRef,
-        entityKind,
-        mentionText: mention,
-        linkerMethod: "ocr_triage_json",
-        validationState: "unvalidated",
-        reviewReason:
-          "OCR triage mention requires deterministic route/corridor/date/intervention validation.",
-      });
-    }
-  };
-
-  add("route", stringArray(input.triage.routesMentioned));
-  add("corridor", stringArray(input.triage.corridorsMentioned));
-  add("date", stringArray(input.triage.dateMentions));
-  add("intervention_family", stringArray(input.triage.interventionFamilies));
-  return candidates;
-}
-
-function interventionSeedsForTriage(input: {
-  sourceRef: Tier2CandidateSourceRef;
-  triage: OcrTriageRecord;
-}): Tier2DocumentInterventionSeed[] {
-  if (triageDecision(input.triage.decision) !== "extract") {
-    return [];
-  }
-
-  const routeMentions = [...new Set(stringArray(input.triage.routesMentioned))];
-  const corridorMentions = [...new Set(stringArray(input.triage.corridorsMentioned))];
-  const dateMentions = [...new Set(stringArray(input.triage.dateMentions))];
-  const toolDrafts = ocrCandidateDrafts(input.triage.candidateDrafts);
-  if (toolDrafts.length > 0) {
-    return toolDrafts.map((draft, index) => {
-      const draftRouteMentions =
-        draft.routeMentions.length > 0 ? draft.routeMentions : routeMentions;
-      const draftCorridorMentions =
-        draft.corridorMentions.length > 0 ? draft.corridorMentions : corridorMentions;
-      const draftDateMentions =
-        draft.dateMention === null ? dateMentions : [...new Set([draft.dateMention])];
-      const reviewEvidence = [draft.rationale, draft.evidenceQuote]
-        .filter((item): item is string => item !== null)
-        .join(" ");
-      return {
-        candidateType: "document_intervention_seed",
-        candidateId: `intervention_seed:${input.sourceRef.sourceId}:tool:${slugify(
-          draft.interventionType,
-        )}:${shortHash(
-          [
-            ...draftRouteMentions,
-            ...draftCorridorMentions,
-            ...draftDateMentions,
-            ...draft.evidencePageRefs.map(String),
-            draft.eventStatus,
-            draft.datePrecision,
-            reviewEvidence,
-            String(index),
-          ].join("|"),
-        )}`,
-        sourceRef: input.sourceRef,
-        interventionFamily: draft.interventionType,
-        routeMentions: draftRouteMentions,
-        corridorMentions: draftCorridorMentions,
-        dateMentions: draftDateMentions,
-        status: "candidate_from_ocr_triage",
-        validationState: "unvalidated",
-        reviewReason: [
-          "OCR tool-call candidate requires deterministic route/corridor/date/intervention validation.",
-          reviewEvidence.length > 0 ? reviewEvidence : null,
-        ]
-          .filter((item): item is string => item !== null)
-          .join(" "),
-      };
-    });
-  }
-
-  return [...new Set(stringArray(input.triage.interventionFamilies))].map((family) => ({
-    candidateType: "document_intervention_seed",
-    candidateId: `intervention_seed:${input.sourceRef.sourceId}:${slugify(family)}:${shortHash(
-      [...routeMentions, ...corridorMentions, ...dateMentions].join("|"),
-    )}`,
-    sourceRef: input.sourceRef,
-    interventionFamily: family,
-    routeMentions,
-    corridorMentions,
-    dateMentions,
-    status: "candidate_from_ocr_triage",
-    validationState: "unvalidated",
-    reviewReason:
-      "OCR triage says extract, but this seed still needs source-span, route, corridor, date, and intervention-type validation.",
-  }));
-}
-
-// @ts-expect-error retained for PR3 cleanup; no longer called after PR1 wired Phase 2 candidates.
-function evidenceCandidatesForTriage(input: {
-  sourceRef: Tier2CandidateSourceRef;
-  triage: OcrTriageRecord;
-}): Tier2DocumentEvidenceCandidate[] {
-  if (triageDecision(input.triage.decision) !== "extract") {
-    return [];
-  }
-  return ocrEvidenceCandidateDrafts(input.triage.evidenceCandidateDrafts).map((draft, index) => ({
-    candidateType: draft.candidateType,
-    candidateId: `document_evidence:${input.sourceRef.sourceId}:${draft.candidateType}:${shortHash(
-      [
-        draft.factClassification,
-        draft.negativeEvidenceFlag,
-        ...draft.routeMentions,
-        ...draft.corridorMentions,
-        ...draft.evidencePageRefs.map(String),
-        draft.evidenceQuote,
-        draft.summary,
-        JSON.stringify(draft.fields),
-        String(index),
-      ].join("|"),
-    )}`,
-    sourceRef: input.sourceRef,
-    factClassification: draft.factClassification,
-    negativeEvidenceFlag: draft.negativeEvidenceFlag,
-    routeMentions: [...draft.routeMentions],
-    corridorMentions: [...draft.corridorMentions],
-    evidencePageRefs: [...draft.evidencePageRefs],
-    evidenceQuote: draft.evidenceQuote,
-    summary: draft.summary,
-    fields: { ...draft.fields },
-    validationState: "unvalidated",
-    reviewReason:
-      "OCR tool-call evidence candidate requires deterministic source-span, metric/table/methodology, route/corridor, and fact-classification validation.",
-  }));
-}
-
-function reviewQuestionsForSource(input: {
-  sourceRef: Tier2CandidateSourceRef;
-  reviewSource: Tier2OcrQualityReviewSource;
-}): Tier2ReviewQuestionCandidate[] {
-  const actionableIssues = input.reviewSource.issueCodes.filter(
-    (issue) => issue !== "low_ocr_text_density",
-  );
-  if (input.reviewSource.decision === "extract" && actionableIssues.length === 0) {
-    return [];
-  }
-  if (input.reviewSource.decision === "skip" && actionableIssues.length === 0) {
-    return [];
-  }
-
-  const priority: Tier2ReviewQuestionCandidate["priority"] =
-    actionableIssues.includes("partial_or_poor_ocr") ||
-    actionableIssues.includes("extract_no_date") ||
-    actionableIssues.includes("extract_no_route")
-      ? "high"
-      : actionableIssues.length > 0
-        ? "medium"
-        : "low";
-  return [
-    {
-      candidateType: "review_question_candidate",
-      candidateId: `review_question:${input.sourceRef.sourceId}:${shortHash(
-        actionableIssues.join("|") || input.reviewSource.decision,
-      )}`,
-      sourceRef: input.sourceRef,
-      priority,
-      question: `Review ${input.sourceRef.sourceId} before promotion: ${[
-        ...actionableIssues,
-        input.reviewSource.reviewNotes ?? "",
-      ]
-        .filter((item) => item.length > 0)
-        .join("; ")}`,
-      issueCodes: actionableIssues,
-      validationState: "needs_review",
-    },
-  ];
-}
-
-function followupOcrCandidateForSource(input: {
-  sourceRef: Tier2CandidateSourceRef;
-  reviewSource: Tier2OcrQualityReviewSource;
-}): Tier2FollowupOcrCandidate | null {
-  const note = input.reviewSource.reviewNotes?.toLowerCase() ?? "";
-  const issueSet = new Set(input.reviewSource.issueCodes);
-  const laterPageHint =
-    /after page 10|later page|outside (?:this )?slice|proposal appears|begin after page 10|timeline/.test(
-      note,
-    );
-  const needsFollowup =
-    laterPageHint ||
-    issueSet.has("partial_or_poor_ocr") ||
-    issueSet.has("manual_visual_review_hint") ||
-    input.reviewSource.decision === "needs_review";
-  if (!needsFollowup) {
-    return null;
-  }
-
-  const lastReviewedPage = Math.max(0, ...input.reviewSource.pagesReviewed);
-  const suggestedPageRange =
-    laterPageHint && lastReviewedPage > 0
-      ? `${lastReviewedPage + 1}-${lastReviewedPage + 10}`
-      : input.reviewSource.pagesReviewed.join(",") || "1-10";
-  const priority: Tier2FollowupOcrCandidate["priority"] =
-    input.reviewSource.decision === "extract" && laterPageHint ? "high" : "medium";
-
-  return {
-    candidateType: "followup_ocr_candidate",
-    candidateId: `followup_ocr:${input.sourceRef.sourceId}:${slugify(suggestedPageRange)}`,
-    sourceRef: input.sourceRef,
-    suggestedPageRange,
-    reason: input.reviewSource.reviewNotes ?? input.reviewSource.issueCodes.join("; "),
-    priority,
-    validationState: "needs_review",
-  };
-}
-
 export async function extractTier2Candidates(
   args: ExtractTier2CandidatesArgs,
 ): Promise<Tier2CandidateBundle> {
   const plan = (await Bun.file(args.ocrPlanPath).json()) as Tier2OcrPlan;
-  const review = (await Bun.file(args.ocrQualityReviewPath).json()) as Tier2OcrQualityReview;
   const markdownCandidateExtraction = (await Bun.file(
     args.ocrMarkdownCandidateExtractionPath,
   ).json()) as Tier2OcrMarkdownCandidateExtraction;
-  const evidenceCandidatesBySourceId = new Map<string, Tier2DocumentEvidenceCandidate[]>();
-  for (const candidate of markdownCandidateExtraction.documentEvidenceCandidates) {
-    const list = evidenceCandidatesBySourceId.get(candidate.sourceRef.sourceId);
-    if (list === undefined) {
-      evidenceCandidatesBySourceId.set(candidate.sourceRef.sourceId, [candidate]);
-    } else {
-      list.push(candidate);
-    }
-  }
   const captureManifest = (await Bun.file(plan.captureManifestPath).json()) as Tier2CaptureManifest;
-  const runRoot = dirname(plan.captureManifestPath);
-  const triageRootName = normalizeOcrTriageRootName(args.triageRootName ?? review.triageRootName);
-  const triageManifestArtifact = await readJsonArtifact(join(runRoot, "ocr-triage-manifest.json"));
-  const triageManifest =
-    triageManifestArtifact.parsed !== null &&
-    typeof triageManifestArtifact.parsed === "object" &&
-    !Array.isArray(triageManifestArtifact.parsed) &&
-    (triageManifestArtifact.parsed as { triageRootName?: unknown }).triageRootName ===
-      triageRootName
-      ? (triageManifestArtifact.parsed as Tier2OcrTriageManifest)
-      : null;
-  const capturedById = new Map(captureManifest.sources.map((source) => [source.sourceId, source]));
-  const reviewById = new Map(review.sources.map((source) => [source.sourceId, source]));
 
   const documentSourceCandidates = captureManifest.sources.map(documentSourceCandidate);
-  const documentEntityLinkCandidates: Tier2DocumentEntityLinkCandidate[] = [];
-  const documentInterventionSeeds: Tier2DocumentInterventionSeed[] = [];
-  const documentEvidenceCandidates: Tier2DocumentEvidenceCandidate[] = [];
+  const documentEvidenceCandidates = [...markdownCandidateExtraction.documentEvidenceCandidates];
   const reviewQuestionCandidates: Tier2ReviewQuestionCandidate[] = [];
   const followupOcrCandidates: Tier2FollowupOcrCandidate[] = [];
 
-  for (let sourceIndex = 0; sourceIndex < plan.sources.length; sourceIndex += 1) {
-    const planSource = plan.sources[sourceIndex];
-    if (planSource === undefined) {
-      continue;
-    }
-    const reviewSource = reviewById.get(planSource.sourceId);
-    if (reviewSource === undefined) {
-      continue;
-    }
-    const sourceRoot = ocrTriageSourceRoot({
-      runRoot,
-      source: planSource,
-      sourceIndex,
-      triageRootName,
-    });
-    const triageArtifact = await readJsonArtifact(join(sourceRoot, "triage-output.json"));
-    const triage =
-      triageArtifact.parsed !== null &&
-      typeof triageArtifact.parsed === "object" &&
-      !Array.isArray(triageArtifact.parsed)
-        ? (triageArtifact.parsed as OcrTriageRecord)
-        : null;
-    const triageSource: Tier2OcrTriageSource | null =
-      triage === null
-        ? null
-        : {
-            sourceId: planSource.sourceId,
-            title: planSource.title,
-            publisher: planSource.publisher,
-            sourceGroup: planSource.sourceGroup,
-            sourceUrl: planSource.sourceUrl,
-            finalUrl: planSource.finalUrl,
-            rawArtifactKey: planSource.rawArtifactKey,
-            pageRange: planSource.pageRange,
-            requestedPageLimit: reviewSource.pagesReviewed.length,
-            pdfPageCount: null,
-            selectedPageCount: reviewSource.pagesReviewed.length,
-            selectedPages: reviewSource.pagesReviewed,
-            inputPdfArtifactKey: null,
-            inputByteLength: 0,
-            inputSha256: null,
-            status: "ocr_complete",
-            reusedExisting: true,
-            httpStatus: null,
-            requestedServiceTier: null,
-            servedServiceTier: null,
-            responseArtifactKey: null,
-            textArtifactKey: `${triageRootName}/sources/${String(sourceIndex + 1).padStart(
-              4,
-              "0",
-            )}_${planSource.sourceId}/openrouter-message.txt`,
-            parsedJsonArtifactKey: `${triageRootName}/sources/${String(sourceIndex + 1).padStart(
-              4,
-              "0",
-            )}_${planSource.sourceId}/triage-output.json`,
-            annotationsArtifactKey: `${triageRootName}/sources/${String(sourceIndex + 1).padStart(
-              4,
-              "0",
-            )}_${planSource.sourceId}/openrouter-file-annotations.json`,
-            usage: null,
-            error: null,
-          };
-    const sourceRef = sourceRefForCandidate({
-      capturedSource: capturedById.get(planSource.sourceId) ?? null,
-      planSource,
-      triageSource,
-      reviewSource,
-    });
-
-    reviewQuestionCandidates.push(...reviewQuestionsForSource({ sourceRef, reviewSource }));
-    const followup = followupOcrCandidateForSource({ sourceRef, reviewSource });
-    if (followup !== null) {
-      followupOcrCandidates.push(followup);
-    }
-    if (triage === null) {
-      continue;
-    }
-    documentEntityLinkCandidates.push(...entityLinkCandidatesForTriage({ sourceRef, triage }));
-    documentInterventionSeeds.push(...interventionSeedsForTriage({ sourceRef, triage }));
-  }
-  for (const planSource of plan.sources) {
-    const phase2Evidence = evidenceCandidatesBySourceId.get(planSource.sourceId);
-    if (phase2Evidence !== undefined) {
-      documentEvidenceCandidates.push(...phase2Evidence);
-    }
-  }
-
   const partialBundle = {
     documentSourceCandidates,
-    documentEntityLinkCandidates,
-    documentInterventionSeeds,
     documentEvidenceCandidates,
     reviewQuestionCandidates,
     followupOcrCandidates,
@@ -7225,8 +5232,6 @@ export async function extractTier2Candidates(
   const validationSummary = validationSummaryForBundle(partialBundle);
   const candidateCounts = {
     document_source_candidate: documentSourceCandidates.length,
-    document_entity_link_candidate: documentEntityLinkCandidates.length,
-    document_intervention_seed: documentInterventionSeeds.length,
     document_evidence_candidate: documentEvidenceCandidates.length,
     review_question_candidate: reviewQuestionCandidates.length,
     followup_ocr_candidate: followupOcrCandidates.length,
@@ -7234,11 +5239,11 @@ export async function extractTier2Candidates(
   const llmExtractionAudits: Tier2LlmExtractionAudit[] = [
     {
       candidateType: "llm_extraction_audit",
-      candidateId: `llm_extraction_audit:${plan.runId}:deterministic_ocr_triage`,
-      model: triageManifest?.model ?? plan.model,
-      provider: triageManifest?.provider ?? "openrouter",
-      serviceTier: triageManifest?.serviceTier ?? null,
-      extractionMode: "deterministic_ocr_triage_candidate_bundle",
+      candidateId: `llm_extraction_audit:${plan.runId}:ocr_markdown_candidate_bundle`,
+      model: markdownCandidateExtraction.model,
+      provider: markdownCandidateExtraction.provider,
+      serviceTier: markdownCandidateExtraction.serviceTier,
+      extractionMode: "ocr_markdown_candidate_bundle",
       generatedAt: args.generatedAt ?? new Date().toISOString(),
       sourceCount: captureManifest.sources.length,
       candidateCounts,
@@ -7251,21 +5256,16 @@ export async function extractTier2Candidates(
     runId: plan.runId,
     generatedAt: args.generatedAt ?? new Date().toISOString(),
     ocrPlanPath: args.ocrPlanPath,
-    ocrQualityReviewPath: args.ocrQualityReviewPath,
     outputPath: args.outputPath ?? null,
-    triageRootName,
     summary: {
       sourceCandidateCount: documentSourceCandidates.length,
-      entityLinkCandidateCount: documentEntityLinkCandidates.length,
-      interventionSeedCount: documentInterventionSeeds.length,
+      evidenceCandidateCount: documentEvidenceCandidates.length,
       reviewQuestionCandidateCount: reviewQuestionCandidates.length,
       followupOcrCandidateCount: followupOcrCandidates.length,
       auditCount: llmExtractionAudits.length,
       unvalidatedCandidateCount: validationSummary.unvalidated,
     },
     documentSourceCandidates,
-    documentEntityLinkCandidates,
-    documentInterventionSeeds,
     documentEvidenceCandidates,
     reviewQuestionCandidates,
     followupOcrCandidates,
@@ -7351,9 +5351,7 @@ function documentChunk(input: {
 function sourceRefsForBundle(bundle: Tier2CandidateBundle): Tier2CandidateSourceRef[] {
   const refs: Tier2CandidateSourceRef[] = [];
   for (const candidate of [
-    ...bundle.documentEntityLinkCandidates,
-    ...bundle.documentInterventionSeeds,
-    ...(bundle.documentEvidenceCandidates ?? []),
+    ...bundle.documentEvidenceCandidates,
     ...bundle.reviewQuestionCandidates,
     ...bundle.followupOcrCandidates,
   ]) {
@@ -7451,506 +5449,6 @@ export async function chunkTier2Documents(
   }
 
   return artifact;
-}
-
-function normalizeInterventionFamily(value: string): string | null {
-  const text = value.toLowerCase().replace(/[_-]+/g, " ");
-  if (text.includes("select bus service") || /\bsbs\b/.test(text)) {
-    return "select_bus_service_launch";
-  }
-  if (text.includes("signal priority") || /\btsp\b/.test(text)) {
-    return "transit_signal_priority_install";
-  }
-  if (text.includes("busway")) {
-    return "busway_launch";
-  }
-  if (
-    text.includes("stop consolidation") ||
-    text.includes("bus stop consolidation") ||
-    text.includes("stop relocation") ||
-    text.includes("bus stop relocation")
-  ) {
-    return "stop_consolidation";
-  }
-  if (
-    text.includes("all-door") ||
-    text.includes("all door") ||
-    text.includes("off-board") ||
-    text.includes("fare")
-  ) {
-    return "fare_or_boarding_policy_change";
-  }
-  if (text.includes("redesign") || text.includes("service change")) {
-    return "route_redesign_service_change";
-  }
-  if (text.includes("capital")) {
-    return "capital_project_milestone";
-  }
-  if (text.includes("ace") || text.includes("able") || text.includes("automated camera")) {
-    return "ace_scope_change";
-  }
-  if (text.includes("bus lane")) {
-    return "bus_lane_infrastructure";
-  }
-  return null;
-}
-
-function incrementRecordCount(record: Record<string, number>, key: string): void {
-  record[key] = (record[key] ?? 0) + 1;
-}
-
-function followupCurationPriority(input: {
-  review: Tier2OcrQualityReviewSource;
-  normalizedInterventionTypes: string[];
-}): Tier2FollowupCurationPriority {
-  if (input.review.decision !== "extract") return "low";
-  const nonStructuredTypes = input.normalizedInterventionTypes.filter(
-    (type) => type !== "bus_lane_infrastructure",
-  );
-  if (nonStructuredTypes.length > 0 && input.review.routeCount > 0 && input.review.dateCount > 0) {
-    return "high";
-  }
-  if (
-    nonStructuredTypes.length > 0 ||
-    input.normalizedInterventionTypes.length > 0 ||
-    input.review.usefulPages.length > 0
-  ) {
-    return "medium";
-  }
-  return "low";
-}
-
-export async function buildTier2FollowupCurationQueue(
-  args: BuildTier2FollowupCurationQueueArgs,
-): Promise<Tier2FollowupCurationQueue> {
-  const review = await readRequiredJsonArtifact<Tier2OcrQualityReview>(args.ocrQualityReviewPath);
-  const triageManifest = await readRequiredJsonArtifact<Tier2OcrTriageManifest>(
-    args.triageManifestPath,
-  );
-  const runRoot = dirname(triageManifest.captureManifestPath);
-  const triageBySourceId = new Map(
-    triageManifest.sources.map((source) => [source.sourceId, source]),
-  );
-
-  const items: Tier2FollowupCurationQueueItem[] = [];
-  for (const reviewSource of review.sources) {
-    if (reviewSource.decision !== "extract" || reviewSource.ocrQuality !== "good") {
-      continue;
-    }
-    const triageSource = triageBySourceId.get(reviewSource.sourceId);
-    const triage =
-      triageSource?.parsedJsonArtifactKey === null ||
-      triageSource?.parsedJsonArtifactKey === undefined
-        ? null
-        : await readJsonArtifactIfExistsForStatus<OcrTriageRecord>(
-            join(runRoot, triageSource.parsedJsonArtifactKey),
-          );
-    const interventionFamilies = [
-      ...new Set(stringArray(triage?.interventionFamilies).filter((value) => value.length > 0)),
-    ];
-    const normalizedInterventionTypes = [
-      ...new Set(
-        interventionFamilies
-          .map((family) => normalizeInterventionFamily(family))
-          .filter((family): family is string => family !== null),
-      ),
-    ];
-    const priority = followupCurationPriority({
-      review: reviewSource,
-      normalizedInterventionTypes,
-    });
-    items.push({
-      reviewItemId: `followup_curation:${reviewSource.sourceId}`,
-      priority,
-      sourceId: reviewSource.sourceId,
-      title: reviewSource.title,
-      publisher: reviewSource.publisher,
-      sourceGroup: reviewSource.sourceGroup,
-      sourceUrl: reviewSource.sourceUrl,
-      ocrQuality: reviewSource.ocrQuality,
-      decision: reviewSource.decision,
-      pagesReviewed: reviewSource.pagesReviewed,
-      usefulPages: reviewSource.usefulPages,
-      issueCodes: reviewSource.issueCodes,
-      reviewNotes: reviewSource.reviewNotes,
-      triageSummary: triage === null ? null : triageString(triage.summary),
-      interventionFamilies,
-      normalizedInterventionTypes,
-      routesMentioned: [...new Set(stringArray(triage?.routesMentioned))],
-      corridorsMentioned: [...new Set(stringArray(triage?.corridorsMentioned))],
-      dateMentions: [...new Set(stringArray(triage?.dateMentions))],
-      artifactKeys: {
-        ocrText: triageSource?.textArtifactKey ?? null,
-        ocrJson: triageSource?.parsedJsonArtifactKey ?? null,
-        ocrAnnotations: triageSource?.annotationsArtifactKey ?? null,
-      },
-      manualCuration: {
-        state: "not_started",
-        reviewer: null,
-        reviewedAt: null,
-        curatedCandidateIds: [],
-        notes: null,
-      },
-    });
-  }
-
-  items.sort((a, b) => {
-    const priorityRank: Record<Tier2FollowupCurationPriority, number> = {
-      high: 0,
-      medium: 1,
-      low: 2,
-    };
-    const priorityDelta = priorityRank[a.priority] - priorityRank[b.priority];
-    if (priorityDelta !== 0) return priorityDelta;
-    return a.sourceId.localeCompare(b.sourceId);
-  });
-
-  const normalizedInterventionTypeCounts: Record<string, number> = {};
-  const sourceGroupCounts: Record<string, number> = {};
-  const issueCounts: Record<string, number> = {};
-  for (const item of items) {
-    incrementRecordCount(sourceGroupCounts, item.sourceGroup);
-    for (const type of item.normalizedInterventionTypes) {
-      incrementRecordCount(normalizedInterventionTypeCounts, type);
-    }
-    for (const issue of item.issueCodes) {
-      incrementRecordCount(issueCounts, issue);
-    }
-  }
-
-  const artifact: Tier2FollowupCurationQueue = {
-    version: 1,
-    runId: review.runId,
-    generatedAt: args.generatedAt ?? new Date().toISOString(),
-    ocrQualityReviewPath: args.ocrQualityReviewPath,
-    triageManifestPath: args.triageManifestPath,
-    outputPath: args.outputPath ?? null,
-    summary: {
-      reviewedExtractSourceCount: review.summary.extractCount,
-      queueItemCount: items.length,
-      highPriorityCount: items.filter((item) => item.priority === "high").length,
-      mediumPriorityCount: items.filter((item) => item.priority === "medium").length,
-      lowPriorityCount: items.filter((item) => item.priority === "low").length,
-      normalizedInterventionTypeCounts,
-      sourceGroupCounts,
-      issueCounts,
-    },
-    items,
-  };
-
-  if (args.outputPath !== undefined) {
-    await mkdir(dirname(args.outputPath), { recursive: true });
-    await writeJson(args.outputPath, artifact);
-  }
-
-  return artifact;
-}
-
-export async function buildTier2FollowupCurationDecisionTemplate(
-  args: BuildTier2FollowupCurationDecisionTemplateArgs,
-): Promise<Tier2FollowupCurationDecisionTemplate> {
-  const queue = await readRequiredJsonArtifact<Tier2FollowupCurationQueue>(args.queuePath);
-  const decisions = queue.items.map(
-    (item): Tier2FollowupCurationDecision => ({
-      reviewItemId: item.reviewItemId,
-      sourceId: item.sourceId,
-      priority: item.priority,
-      title: item.title,
-      sourceUrl: item.sourceUrl,
-      currentDecision: "needs_human_review",
-      reviewer: null,
-      reviewedAt: null,
-      rationale: null,
-      suggestedInterventionTypes: item.normalizedInterventionTypes,
-      usefulPages: item.usefulPages,
-      curatedCandidates: [],
-    }),
-  );
-  const artifact: Tier2FollowupCurationDecisionTemplate = {
-    version: 1,
-    runId: queue.runId,
-    generatedAt: args.generatedAt ?? new Date().toISOString(),
-    queuePath: args.queuePath,
-    outputPath: args.outputPath ?? null,
-    summary: {
-      decisionCount: decisions.length,
-      needsHumanReviewCount: decisions.length,
-    },
-    decisions,
-  };
-  if (args.outputPath !== undefined) {
-    await mkdir(dirname(args.outputPath), { recursive: true });
-    await writeJson(args.outputPath, artifact);
-  }
-  return artifact;
-}
-
-function curatedCandidateDraftIsValid(candidate: Tier2FollowupCuratedCandidateDraft): boolean {
-  return (
-    candidate.candidateId.length > 0 &&
-    candidate.interventionType.length > 0 &&
-    candidate.evidenceRefs.length > 0 &&
-    candidate.evidenceRefs.every((ref) => ref.artifactKey.length > 0 && ref.pageRefs.length > 0)
-  );
-}
-
-export async function verifyTier2FollowupCurationDecisions(
-  args: VerifyTier2FollowupCurationDecisionsArgs,
-): Promise<Tier2FollowupCurationDecisionVerification> {
-  const [queue, template] = await Promise.all([
-    readRequiredJsonArtifact<Tier2FollowupCurationQueue>(args.queuePath),
-    readRequiredJsonArtifact<Tier2FollowupCurationDecisionTemplate>(args.decisionsPath),
-  ]);
-  const queueItemIds = new Set(queue.items.map((item) => item.reviewItemId));
-  const decisionItemIds = new Set(template.decisions.map((decision) => decision.reviewItemId));
-  const summary = {
-    decisionCount: template.decisions.length,
-    completeDecisionCount: 0,
-    incompleteDecisionCount: 0,
-    needsHumanReviewCount: 0,
-    curateCandidatesCount: 0,
-    skipCount: 0,
-    needsMoreSourceCount: 0,
-    curatedCandidateCount: 0,
-    missingReviewerCount: 0,
-    missingReviewedAtCount: 0,
-    missingRationaleCount: 0,
-    invalidCuratedCandidateCount: 0,
-    unknownReviewItemCount: 0,
-    missingReviewItemCount: 0,
-  };
-
-  for (const decision of template.decisions) {
-    if (!queueItemIds.has(decision.reviewItemId)) {
-      summary.unknownReviewItemCount += 1;
-    }
-    if (decision.currentDecision === "needs_human_review") {
-      summary.needsHumanReviewCount += 1;
-    }
-    if (decision.currentDecision === "curate_candidates") {
-      summary.curateCandidatesCount += 1;
-      summary.curatedCandidateCount += decision.curatedCandidates.length;
-      if (
-        decision.curatedCandidates.length === 0 ||
-        decision.curatedCandidates.some((candidate) => !curatedCandidateDraftIsValid(candidate))
-      ) {
-        summary.invalidCuratedCandidateCount += 1;
-      }
-    }
-    if (decision.currentDecision === "skip") {
-      summary.skipCount += 1;
-    }
-    if (decision.currentDecision === "needs_more_source") {
-      summary.needsMoreSourceCount += 1;
-    }
-    if (decision.reviewer === null || decision.reviewer.trim().length === 0) {
-      summary.missingReviewerCount += 1;
-    }
-    if (decision.reviewedAt === null || decision.reviewedAt.trim().length === 0) {
-      summary.missingReviewedAtCount += 1;
-    }
-    if (decision.rationale === null || decision.rationale.trim().length === 0) {
-      summary.missingRationaleCount += 1;
-    }
-
-    const complete =
-      decision.currentDecision !== "needs_human_review" &&
-      decision.reviewer !== null &&
-      decision.reviewer.trim().length > 0 &&
-      decision.reviewedAt !== null &&
-      decision.reviewedAt.trim().length > 0 &&
-      decision.rationale !== null &&
-      decision.rationale.trim().length > 0 &&
-      (decision.currentDecision !== "curate_candidates" ||
-        (decision.curatedCandidates.length > 0 &&
-          decision.curatedCandidates.every(curatedCandidateDraftIsValid)));
-    if (complete) {
-      summary.completeDecisionCount += 1;
-    } else {
-      summary.incompleteDecisionCount += 1;
-    }
-  }
-  for (const item of queue.items) {
-    if (!decisionItemIds.has(item.reviewItemId)) {
-      summary.missingReviewItemCount += 1;
-    }
-  }
-
-  const verification: Tier2FollowupCurationDecisionVerification = {
-    version: 1,
-    runId: queue.runId,
-    generatedAt: args.generatedAt ?? new Date().toISOString(),
-    decisionsPath: args.decisionsPath,
-    queuePath: args.queuePath,
-    outputPath: args.outputPath ?? null,
-    complete:
-      summary.incompleteDecisionCount === 0 &&
-      summary.unknownReviewItemCount === 0 &&
-      summary.missingReviewItemCount === 0,
-    summary,
-  };
-  if (args.outputPath !== undefined) {
-    await mkdir(dirname(args.outputPath), { recursive: true });
-    await writeJson(args.outputPath, verification);
-  }
-  return verification;
-}
-
-function sourceRefForFollowupCandidate(input: {
-  item: Tier2FollowupCurationQueue["items"][number];
-  candidate: Tier2FollowupCuratedCandidateDraft;
-}): Tier2CandidateSourceRef {
-  const pageRefs = [
-    ...new Set(input.candidate.evidenceRefs.flatMap((ref) => ref.pageRefs)),
-  ].toSorted((a, b) => a - b);
-  const firstEvidenceRef = input.candidate.evidenceRefs[0] ?? null;
-  return {
-    sourceId: input.item.sourceId,
-    sourceUrl: input.item.sourceUrl,
-    title: input.item.title,
-    publisher: input.item.publisher,
-    documentDate: null,
-    sourceGroup: input.item.sourceGroup,
-    artifactKeys: {
-      raw: null,
-      text: input.item.artifactKeys.ocrText,
-      ocrText: input.item.artifactKeys.ocrText,
-      ocrJson: input.item.artifactKeys.ocrJson,
-      ocrAnnotations: firstEvidenceRef?.artifactKey ?? input.item.artifactKeys.ocrAnnotations,
-    },
-    pages: pageRefs,
-  };
-}
-
-function documentSourceCandidateForFollowupQueueItem(
-  item: Tier2FollowupCurationQueueItem,
-): Tier2DocumentSourceCandidate {
-  return {
-    candidateType: "document_source_candidate",
-    candidateId: `document_source:${item.sourceId}`,
-    sourceId: item.sourceId,
-    sourceUrl: item.sourceUrl,
-    finalUrl: item.sourceUrl,
-    title: item.title,
-    publisher: item.publisher,
-    sourceGroup: item.sourceGroup,
-    intendedUse: [...item.normalizedInterventionTypes],
-    priority: item.priority === "high" ? 1 : item.priority === "medium" ? 2 : 3,
-    documentDate: null,
-    retrievedAt: null,
-    captureStatus: "captured",
-    detectedContentType: "pdf",
-    textExtractionStatus: "ocr_required",
-    contentSha256: null,
-    rawArtifactKey: null,
-    textArtifactKey: item.artifactKeys.ocrText,
-    termsNote: null,
-    validationState: "unvalidated",
-  };
-}
-
-export async function buildTier2FollowupCurationCandidateBundle(
-  args: BuildTier2FollowupCurationCandidateBundleArgs,
-): Promise<Tier2CandidateBundle> {
-  const [queue, decisions] = await Promise.all([
-    readRequiredJsonArtifact<Tier2FollowupCurationQueue>(args.queuePath),
-    readRequiredJsonArtifact<Tier2FollowupCurationDecisionTemplate>(args.decisionsPath),
-  ]);
-  const queueByReviewItemId = new Map(queue.items.map((item) => [item.reviewItemId, item]));
-  const documentSourceCandidatesById = new Map<string, Tier2DocumentSourceCandidate>();
-  const documentInterventionSeeds: Tier2DocumentInterventionSeed[] = [];
-
-  for (const decision of decisions.decisions) {
-    if (decision.currentDecision !== "curate_candidates") {
-      continue;
-    }
-    const item = queueByReviewItemId.get(decision.reviewItemId);
-    if (item === undefined) {
-      continue;
-    }
-    documentSourceCandidatesById.set(
-      item.sourceId,
-      documentSourceCandidateForFollowupQueueItem(item),
-    );
-    for (const candidate of decision.curatedCandidates) {
-      documentInterventionSeeds.push({
-        candidateType: "document_intervention_seed",
-        candidateId: candidate.candidateId,
-        sourceRef: sourceRefForFollowupCandidate({ item, candidate }),
-        interventionFamily: candidate.interventionType,
-        routeMentions: candidate.routeMentions,
-        corridorMentions: candidate.corridorMentions,
-        dateMentions: candidate.dateMention === null ? [] : [candidate.dateMention],
-        status: "candidate_from_ocr_triage",
-        validationState: "unvalidated",
-        reviewReason: candidate.notes ?? "Manually curated from follow-up OCR review.",
-      });
-    }
-  }
-
-  const candidateCounts = {
-    document_source_candidate: documentSourceCandidatesById.size,
-    document_entity_link_candidate: 0,
-    document_intervention_seed: documentInterventionSeeds.length,
-    document_evidence_candidate: 0,
-    review_question_candidate: 0,
-    followup_ocr_candidate: 0,
-  };
-  const validationSummary = validationSummaryForBundle({
-    documentSourceCandidates: [],
-    documentEntityLinkCandidates: [],
-    documentInterventionSeeds,
-    reviewQuestionCandidates: [],
-    followupOcrCandidates: [],
-  });
-  const generatedAt = args.generatedAt ?? new Date().toISOString();
-  const bundle: Tier2CandidateBundle = {
-    version: 1,
-    runId: queue.runId,
-    generatedAt,
-    ocrPlanPath: queue.ocrQualityReviewPath,
-    ocrQualityReviewPath: queue.ocrQualityReviewPath,
-    outputPath: args.outputPath ?? null,
-    triageRootName: "manual_followup_curation",
-    summary: {
-      sourceCandidateCount: documentSourceCandidatesById.size,
-      entityLinkCandidateCount: 0,
-      interventionSeedCount: documentInterventionSeeds.length,
-      reviewQuestionCandidateCount: 0,
-      followupOcrCandidateCount: 0,
-      auditCount: 1,
-      unvalidatedCandidateCount: validationSummary.unvalidated,
-    },
-    documentSourceCandidates: [...documentSourceCandidatesById.values()].toSorted((a, b) =>
-      a.sourceId.localeCompare(b.sourceId),
-    ),
-    documentEntityLinkCandidates: [],
-    documentInterventionSeeds,
-    documentEvidenceCandidates: [],
-    reviewQuestionCandidates: [],
-    followupOcrCandidates: [],
-    llmExtractionAudits: [
-      {
-        candidateType: "llm_extraction_audit",
-        candidateId: `llm_extraction_audit:${queue.runId}:manual_followup_curation`,
-        model: "manual_review",
-        provider: "openrouter",
-        serviceTier: null,
-        extractionMode: "deterministic_ocr_triage_candidate_bundle",
-        generatedAt,
-        sourceCount: new Set(documentInterventionSeeds.map((seed) => seed.sourceRef.sourceId)).size,
-        candidateCounts,
-        validationSummary,
-      },
-    ],
-  };
-
-  if (args.outputPath !== undefined) {
-    await mkdir(dirname(args.outputPath), { recursive: true });
-    await writeJson(args.outputPath, bundle);
-  }
-
-  return bundle;
 }
 
 function supportPathExists(
@@ -8373,8 +5871,8 @@ export async function buildTier2DuplicateReviewQueue(
     Tier2CandidateBundle,
   ];
   const eventsById = new Map(canonical.events.map((event) => [event.eventId, event]));
-  const seedsById = new Map(
-    bundle.documentInterventionSeeds.map((seed) => [seed.candidateId, seed]),
+  const evidenceByCandidateId = new Map(
+    bundle.documentEvidenceCandidates.map((candidate) => [candidate.candidateId, candidate]),
   );
   const sourcesById = new Map(
     bundle.documentSourceCandidates.map((source) => [source.sourceId, source]),
@@ -8390,24 +5888,24 @@ export async function buildTier2DuplicateReviewQueue(
         if (event === undefined) {
           throw new Error(`Duplicate review references unknown event ${eventId}`);
         }
-        const seed = seedsById.get(event.candidateId);
+        const evidence = evidenceByCandidateId.get(event.candidateId);
         const source = sourcesById.get(event.sourceId);
         return [
           {
             eventId: event.eventId,
             candidateId: event.candidateId,
             sourceId: event.sourceId,
-            sourceTitle: source?.title ?? seed?.sourceRef.title ?? null,
-            sourceUrl: source?.sourceUrl ?? seed?.sourceRef.sourceUrl ?? null,
+            sourceTitle: source?.title ?? evidence?.sourceRef.title ?? null,
+            sourceUrl: source?.sourceUrl ?? evidence?.sourceRef.sourceUrl ?? null,
             routeIds: event.routeIds,
             interventionType: event.interventionType,
             implementationDate: event.implementationDate,
             datePrecision: event.datePrecision,
             sourceSpanChunkIds: event.sourceSpanChunkIds,
-            routeMentions: seed?.routeMentions ?? [],
-            corridorMentions: seed?.corridorMentions ?? [],
-            dateMentions: seed?.dateMentions ?? [],
-            interventionFamily: seed?.interventionFamily ?? null,
+            routeMentions: evidence?.routeMentions ?? [],
+            corridorMentions: evidence?.corridorMentions ?? [],
+            dateMentions: [],
+            interventionFamily: null,
           },
         ];
       });
@@ -8703,13 +6201,6 @@ export async function buildTier2PipelineStatus(
   const manualFollowupBundle = await readJsonArtifactIfExistsForStatus<Tier2CandidateBundle>(
     join(baseDir, "candidate-bundle-followup-manual.json"),
   );
-  const followupCurationQueuePath = join(baseDir, "followup-curation-queue.json");
-  const followupCurationQueue =
-    await readJsonArtifactIfExistsForStatus<Tier2FollowupCurationQueue>(followupCurationQueuePath);
-  const followupCurationVerification =
-    await readJsonArtifactIfExistsForStatus<Tier2FollowupCurationDecisionVerification>(
-      join(baseDir, "followup-curation-decision-verification.json"),
-    );
   const release = await readRequiredJsonArtifact<StudioReleaseForStatus>(args.studioReleasePath);
   const tier2Rows = (release.routes ?? []).flatMap((route) =>
     (route.interventions ?? []).filter(
@@ -8724,7 +6215,7 @@ export async function buildTier2PipelineStatus(
   ).length;
   const summary = {
     sourceCandidateCount: bundle.summary.sourceCandidateCount,
-    interventionSeedCount: bundle.summary.interventionSeedCount,
+    evidenceCandidateCount: bundle.summary.evidenceCandidateCount,
     canonicalEventCount: canonical.summary.eventCount,
     eligibleTimelineEventCount: staging.summary.eligibleForTimelineCount,
     blockedDuplicateEventCount: staging.summary.blockedDuplicateReviewCount,
@@ -8737,21 +6228,13 @@ export async function buildTier2PipelineStatus(
     followupOcrLatestReviewPath: latestFollowupReview?.path ?? null,
     followupOcrReviewedCount: latestFollowupReview?.review.summary.reviewedSourceCount ?? 0,
     followupOcrCompletedCount: latestFollowupReview?.review.summary.ocrCompleteCount ?? 0,
-    followupCurationQueuePath: followupCurationQueue === null ? null : followupCurationQueuePath,
-    followupCurationQueueItemCount: followupCurationQueue?.summary.queueItemCount ?? 0,
-    followupCurationQueueHighPriorityCount: followupCurationQueue?.summary.highPriorityCount ?? 0,
-    followupCurationDecisionComplete: followupCurationVerification?.complete ?? false,
-    followupCurationCompleteDecisionCount:
-      followupCurationVerification?.summary.completeDecisionCount ?? 0,
-    followupCurationIncompleteDecisionCount:
-      followupCurationVerification?.summary.incompleteDecisionCount ?? 0,
     followupCandidateBundlePath:
       manualFollowupBundle === null
         ? (latestFollowupBundle?.path ?? null)
         : join(baseDir, "candidate-bundle-followup-manual.json"),
-    followupInterventionSeedCount:
-      manualFollowupBundle?.summary.interventionSeedCount ??
-      latestFollowupBundle?.artifact.summary.interventionSeedCount ??
+    followupEvidenceCandidateCount:
+      manualFollowupBundle?.summary.evidenceCandidateCount ??
+      latestFollowupBundle?.artifact.summary.evidenceCandidateCount ??
       0,
     followupUnresolvedOcrSourceCount:
       latestFollowupReview === null
@@ -8766,10 +6249,10 @@ export async function buildTier2PipelineStatus(
     {
       gate: "corpus_and_extraction",
       status:
-        summary.sourceCandidateCount > 0 && summary.interventionSeedCount > 0
+        summary.sourceCandidateCount > 0 && summary.evidenceCandidateCount > 0
           ? "complete"
           : "blocked",
-      evidence: `${summary.sourceCandidateCount} source candidates; ${summary.interventionSeedCount} intervention seeds.`,
+      evidence: `${summary.sourceCandidateCount} source candidates; ${summary.evidenceCandidateCount} evidence candidates.`,
       remaining: null,
     },
     {
@@ -8782,17 +6265,12 @@ export async function buildTier2PipelineStatus(
     },
     {
       gate: "followup_ocr",
-      status:
-        summary.followupCurationDecisionComplete && summary.followupUnresolvedOcrSourceCount === 0
-          ? "complete"
-          : "partial",
-      evidence: `${summary.followupOcrCompletedCount} completed follow-up OCR outputs; ${summary.followupOcrReviewedCount} reviewed; ${summary.followupUnresolvedOcrSourceCount} OCR-tail sources unresolved; ${summary.followupCurationQueueItemCount} curation-queue items (${summary.followupCurationQueueHighPriorityCount} high priority); ${summary.followupCurationCompleteDecisionCount} curation decisions complete; ${summary.followupCurationIncompleteDecisionCount} incomplete; ${summary.followupInterventionSeedCount} follow-up seeds; ${summary.followupOcrPlannedCount} total follow-up ranges planned.`,
+      status: summary.followupUnresolvedOcrSourceCount === 0 ? "complete" : "partial",
+      evidence: `${summary.followupOcrCompletedCount} completed follow-up OCR outputs; ${summary.followupOcrReviewedCount} reviewed; ${summary.followupUnresolvedOcrSourceCount} OCR-tail sources unresolved; ${summary.followupEvidenceCandidateCount} follow-up evidence candidates; ${summary.followupOcrPlannedCount} total follow-up ranges planned.`,
       remaining:
-        summary.followupCurationDecisionComplete && summary.followupUnresolvedOcrSourceCount === 0
+        summary.followupUnresolvedOcrSourceCount === 0
           ? null
-          : summary.followupCurationDecisionComplete
-            ? "Follow-up curation decisions complete; remaining work is unresolved OCR-tail sources."
-            : "Full follow-up candidate curation remains partial; unreviewed OCR ranges or curation-queue items remain.",
+          : "Unresolved follow-up OCR sources remain.",
     },
     {
       gate: "studio_timeline_affordances",
@@ -9028,92 +6506,6 @@ export async function planTier2FollowupOcr(args: PlanTier2FollowupOcrArgs): Prom
   }
 
   return plan;
-}
-
-function parseOcrReviewCliArgs(args: string[]): OcrReviewCliArgs {
-  const options: CliOption<OcrReviewCliArgs>[] = [
-    {
-      flags: ["--ocr-plan"],
-      apply: (output, value) => {
-        if (value !== undefined) {
-          output.ocrPlanPath = fromCliPath(value);
-        }
-      },
-    },
-    {
-      flags: ["--ocr-review"],
-      apply: (output, value) => {
-        if (value !== undefined) {
-          output.ocrQualityReviewPath = fromCliPath(value);
-        }
-      },
-    },
-    {
-      flags: ["--artifact-root"],
-      apply: (output, value) => {
-        if (value !== undefined) {
-          output.artifactRoot = fromCliPath(value);
-        }
-      },
-    },
-    {
-      flags: ["--run-id"],
-      apply: (output, value) => {
-        if (value !== undefined) {
-          output.runId = value;
-        }
-      },
-    },
-    {
-      flags: ["--output"],
-      apply: (output, value) => {
-        if (value !== undefined) {
-          output.outputPath = fromCliPath(value);
-        }
-      },
-    },
-    {
-      flags: ["--triage-root"],
-      apply: (output, value) => {
-        if (value !== undefined) {
-          output.triageRootName = value;
-        }
-      },
-    },
-  ];
-  return parseCliOptions(args, {}, options);
-}
-
-async function resolveOcrReviewPaths(args: OcrReviewCliArgs): Promise<{
-  ocrPlanPath: string;
-  outputPath: string;
-}> {
-  if (args.ocrPlanPath !== undefined) {
-    return {
-      ocrPlanPath: args.ocrPlanPath,
-      outputPath: args.outputPath ?? join(dirname(args.ocrPlanPath), "ocr-quality-review.json"),
-    };
-  }
-
-  const artifactRoot = args.artifactRoot ?? defaultArtifactRootPath();
-  const runId = args.runId ?? (await latestDocsRunId(artifactRoot));
-  if (runId === null) {
-    throw new Error("No docs run found. Provide --run-id or --ocr-plan.");
-  }
-
-  return {
-    ocrPlanPath: ocrPlanPath(artifactRoot, runId),
-    outputPath: args.outputPath ?? ocrQualityReviewPath(artifactRoot, runId),
-  };
-}
-
-export async function reviewTier2OcrQualityFromCli(args: string[]): Promise<Tier2OcrQualityReview> {
-  const parsed = parseOcrReviewCliArgs(args);
-  const paths = await resolveOcrReviewPaths(parsed);
-  return reviewTier2OcrQuality({
-    ...paths,
-    ...(parsed.triageRootName !== undefined ? { triageRootName: parsed.triageRootName } : {}),
-  });
 }
 
 async function resolveExtractPaths(args: ExtractCliArgs): Promise<{
@@ -9788,264 +7180,6 @@ export async function buildTier2PipelineStatusFromCli(
     complete: status.complete,
     summary: status.summary,
     gates: status.gates,
-  };
-}
-
-function parseFollowupCurationQueueCliArgs(args: string[]): FollowupCurationQueueCliArgs {
-  const options: CliOption<FollowupCurationQueueCliArgs>[] = [
-    {
-      flags: ["--ocr-review"],
-      apply: (output, value) => {
-        if (value !== undefined) output.ocrQualityReviewPath = fromCliPath(value);
-      },
-    },
-    {
-      flags: ["--triage-manifest"],
-      apply: (output, value) => {
-        if (value !== undefined) output.triageManifestPath = fromCliPath(value);
-      },
-    },
-    {
-      flags: ["--artifact-root"],
-      apply: (output, value) => {
-        if (value !== undefined) output.artifactRoot = fromCliPath(value);
-      },
-    },
-    {
-      flags: ["--run-id"],
-      apply: (output, value) => {
-        if (value !== undefined) output.runId = value;
-      },
-    },
-    {
-      flags: ["--output"],
-      apply: (output, value) => {
-        if (value !== undefined) output.outputPath = fromCliPath(value);
-      },
-    },
-  ];
-  return parseCliOptions(args, {}, options);
-}
-
-async function resolveFollowupCurationQueuePaths(
-  args: FollowupCurationQueueCliArgs,
-): Promise<BuildTier2FollowupCurationQueueArgs> {
-  const artifactRoot = args.artifactRoot ?? defaultArtifactRootPath();
-  const runId = args.runId ?? (await latestDocsRunId(artifactRoot));
-  if (runId === null) {
-    throw new Error("No docs run found. Provide --run-id.");
-  }
-  const baseDir = runArtifactRoot(artifactRoot, runId);
-  return {
-    ocrQualityReviewPath:
-      args.ocrQualityReviewPath ?? join(baseDir, "followup-ocr-quality-review-full.json"),
-    triageManifestPath:
-      args.triageManifestPath ?? join(baseDir, "followup-ocr-triage-manifest-full.json"),
-    outputPath: args.outputPath ?? join(baseDir, "followup-curation-queue.json"),
-  };
-}
-
-export async function buildTier2FollowupCurationQueueFromCli(
-  args: string[],
-): Promise<
-  Pick<Tier2FollowupCurationQueue, "version" | "runId" | "generatedAt" | "outputPath" | "summary">
-> {
-  const queue = await buildTier2FollowupCurationQueue(
-    await resolveFollowupCurationQueuePaths(parseFollowupCurationQueueCliArgs(args)),
-  );
-  return {
-    version: queue.version,
-    runId: queue.runId,
-    generatedAt: queue.generatedAt,
-    outputPath: queue.outputPath,
-    summary: queue.summary,
-  };
-}
-
-function parseFollowupCurationDecisionTemplateCliArgs(
-  args: string[],
-): FollowupCurationDecisionTemplateCliArgs {
-  const options: CliOption<FollowupCurationDecisionTemplateCliArgs>[] = [
-    {
-      flags: ["--queue"],
-      apply: (output, value) => {
-        if (value !== undefined) output.queuePath = fromCliPath(value);
-      },
-    },
-    {
-      flags: ["--artifact-root"],
-      apply: (output, value) => {
-        if (value !== undefined) output.artifactRoot = fromCliPath(value);
-      },
-    },
-    {
-      flags: ["--run-id"],
-      apply: (output, value) => {
-        if (value !== undefined) output.runId = value;
-      },
-    },
-    {
-      flags: ["--output"],
-      apply: (output, value) => {
-        if (value !== undefined) output.outputPath = fromCliPath(value);
-      },
-    },
-  ];
-  return parseCliOptions(args, {}, options);
-}
-
-async function resolveFollowupCurationDecisionTemplatePaths(
-  args: FollowupCurationDecisionTemplateCliArgs,
-): Promise<BuildTier2FollowupCurationDecisionTemplateArgs> {
-  const artifactRoot = args.artifactRoot ?? defaultArtifactRootPath();
-  const runId = args.runId ?? (await latestDocsRunId(artifactRoot));
-  if (runId === null) {
-    throw new Error("No docs run found. Provide --run-id.");
-  }
-  const baseDir = runArtifactRoot(artifactRoot, runId);
-  return {
-    queuePath: args.queuePath ?? join(baseDir, "followup-curation-queue.json"),
-    outputPath: args.outputPath ?? join(baseDir, "followup-curation-decisions.json"),
-  };
-}
-
-export async function buildTier2FollowupCurationDecisionTemplateFromCli(
-  args: string[],
-): Promise<
-  Pick<
-    Tier2FollowupCurationDecisionTemplate,
-    "version" | "runId" | "generatedAt" | "outputPath" | "summary"
-  >
-> {
-  const template = await buildTier2FollowupCurationDecisionTemplate(
-    await resolveFollowupCurationDecisionTemplatePaths(
-      parseFollowupCurationDecisionTemplateCliArgs(args),
-    ),
-  );
-  return {
-    version: template.version,
-    runId: template.runId,
-    generatedAt: template.generatedAt,
-    outputPath: template.outputPath,
-    summary: template.summary,
-  };
-}
-
-function parseVerifyFollowupCurationDecisionsCliArgs(
-  args: string[],
-): VerifyFollowupCurationDecisionsCliArgs {
-  const options: CliOption<VerifyFollowupCurationDecisionsCliArgs>[] = [
-    {
-      flags: ["--decisions"],
-      apply: (output, value) => {
-        if (value !== undefined) output.decisionsPath = fromCliPath(value);
-      },
-    },
-    {
-      flags: ["--queue"],
-      apply: (output, value) => {
-        if (value !== undefined) output.queuePath = fromCliPath(value);
-      },
-    },
-    {
-      flags: ["--artifact-root"],
-      apply: (output, value) => {
-        if (value !== undefined) output.artifactRoot = fromCliPath(value);
-      },
-    },
-    {
-      flags: ["--run-id"],
-      apply: (output, value) => {
-        if (value !== undefined) output.runId = value;
-      },
-    },
-    {
-      flags: ["--output"],
-      apply: (output, value) => {
-        if (value !== undefined) output.outputPath = fromCliPath(value);
-      },
-    },
-  ];
-  return parseCliOptions(args, {}, options);
-}
-
-async function resolveVerifyFollowupCurationDecisionsPaths(
-  args: VerifyFollowupCurationDecisionsCliArgs,
-): Promise<VerifyTier2FollowupCurationDecisionsArgs> {
-  const artifactRoot = args.artifactRoot ?? defaultArtifactRootPath();
-  const runId = args.runId ?? (await latestDocsRunId(artifactRoot));
-  if (runId === null) {
-    throw new Error("No docs run found. Provide --run-id.");
-  }
-  const baseDir = runArtifactRoot(artifactRoot, runId);
-  return {
-    decisionsPath: args.decisionsPath ?? join(baseDir, "followup-curation-decisions.json"),
-    queuePath: args.queuePath ?? join(baseDir, "followup-curation-queue.json"),
-    outputPath: args.outputPath ?? join(baseDir, "followup-curation-decision-verification.json"),
-  };
-}
-
-export async function verifyTier2FollowupCurationDecisionsFromCli(
-  args: string[],
-): Promise<
-  Pick<
-    Tier2FollowupCurationDecisionVerification,
-    "version" | "runId" | "generatedAt" | "outputPath" | "complete" | "summary"
-  >
-> {
-  const verification = await verifyTier2FollowupCurationDecisions(
-    await resolveVerifyFollowupCurationDecisionsPaths(
-      parseVerifyFollowupCurationDecisionsCliArgs(args),
-    ),
-  );
-  return {
-    version: verification.version,
-    runId: verification.runId,
-    generatedAt: verification.generatedAt,
-    outputPath: verification.outputPath,
-    complete: verification.complete,
-    summary: verification.summary,
-  };
-}
-
-function parseFollowupCurationCandidateBundleCliArgs(
-  args: string[],
-): FollowupCurationCandidateBundleCliArgs {
-  return parseVerifyFollowupCurationDecisionsCliArgs(args);
-}
-
-async function resolveFollowupCurationCandidateBundlePaths(
-  args: FollowupCurationCandidateBundleCliArgs,
-): Promise<BuildTier2FollowupCurationCandidateBundleArgs> {
-  const artifactRoot = args.artifactRoot ?? defaultArtifactRootPath();
-  const runId = args.runId ?? (await latestDocsRunId(artifactRoot));
-  if (runId === null) {
-    throw new Error("No docs run found. Provide --run-id.");
-  }
-  const baseDir = runArtifactRoot(artifactRoot, runId);
-  return {
-    decisionsPath: args.decisionsPath ?? join(baseDir, "followup-curation-decisions.json"),
-    queuePath: args.queuePath ?? join(baseDir, "followup-curation-queue.json"),
-    outputPath: args.outputPath ?? join(baseDir, "candidate-bundle-followup-manual.json"),
-  };
-}
-
-export async function buildTier2FollowupCurationCandidateBundleFromCli(
-  args: string[],
-): Promise<
-  Pick<Tier2CandidateBundle, "version" | "runId" | "generatedAt" | "outputPath" | "summary">
-> {
-  const bundle = await buildTier2FollowupCurationCandidateBundle(
-    await resolveFollowupCurationCandidateBundlePaths(
-      parseFollowupCurationCandidateBundleCliArgs(args),
-    ),
-  );
-  return {
-    version: bundle.version,
-    runId: bundle.runId,
-    generatedAt: bundle.generatedAt,
-    outputPath: bundle.outputPath,
-    summary: bundle.summary,
   };
 }
 

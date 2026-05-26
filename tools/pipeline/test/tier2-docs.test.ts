@@ -8,8 +8,6 @@ import {
   auditTier2InterventionDuplicates,
   buildTier2DuplicateDecisionTemplate,
   buildTier2DuplicateReviewQueue,
-  buildTier2FollowupCurationDecisionTemplate,
-  buildTier2FollowupCurationQueue,
   buildTier2PipelineStatus,
   captureTier2Docs,
   chunkTier2Documents,
@@ -19,11 +17,8 @@ import {
   ocrTier2PageMarkdown,
   planTier2FollowupOcr,
   planTier2Ocr,
-  reviewTier2OcrQuality,
   type Tier2Backlog,
-  triageTier2Ocr,
   verifyTier2DuplicateDecisions,
-  verifyTier2FollowupCurationDecisions,
   verifyTier2ManualInterventions,
 } from "../src/jobs/docs/tier2-docs.js";
 
@@ -181,361 +176,7 @@ describe("Tier 2 document corpus capture", () => {
     await expect(Bun.file(outputPath).json()).resolves.toEqual(plan);
   });
 
-  test("prepares first-page OCR triage slices without calling OpenRouter", async () => {
-    const root = await makeWorkingRoot();
-    const backlogPath = join(root, "backlog.json");
-    const artifactRoot = join(root, "artifacts");
-    const backlog: Tier2Backlog = {
-      version: 1,
-      updatedAt: "2026-05-24",
-      sources: [
-        {
-          sourceId: "sample_pdf",
-          url: "https://example.test/sample.pdf",
-          title: "Sample Presentation",
-          publisher: "Example Agency",
-          sourceGroup: "bus_priority_document",
-          intendedUse: ["document_claim_candidate"],
-          priority: 1,
-          expectedContentType: "pdf",
-          ocrHint: "required",
-        },
-      ],
-    };
-    await Bun.write(backlogPath, JSON.stringify(backlog));
-    const pdfBytes = await makePdf(3);
-    const manifest = await captureTier2Docs({
-      backlogPath,
-      artifactRoot,
-      runId: "ocr-run",
-      fetchedAt: "2026-05-24T00:00:00.000Z",
-      fetcher: async () =>
-        new Response(responseBody(pdfBytes), {
-          headers: { "content-type": "application/pdf" },
-        }),
-    });
-    const planPath = join(manifest.runArtifactRoot, "ocr-plan.json");
-    await planTier2Ocr({
-      captureManifestPath: join(manifest.runArtifactRoot, "capture-manifest.json"),
-      outputPath: planPath,
-      generatedAt: "2026-05-24T00:01:00.000Z",
-      defaultPageRange: "1-10",
-    });
 
-    const triagePath = join(manifest.runArtifactRoot, "ocr-triage-manifest.json");
-    const triage = await triageTier2Ocr({
-      ocrPlanPath: planPath,
-      outputPath: triagePath,
-      generatedAt: "2026-05-24T00:02:00.000Z",
-      pageLimit: 2,
-      execute: false,
-    });
-
-    expect(triage.summary).toEqual({
-      plannedSourceCount: 1,
-      selectedSourceCount: 1,
-      preparedCount: 1,
-      ocrCompleteCount: 0,
-      ocrFailedCount: 0,
-      reusedExistingCount: 0,
-      totalInputBytes: expect.any(Number),
-    });
-    expect(triage.sources).toEqual([
-      expect.objectContaining({
-        sourceId: "sample_pdf",
-        status: "prepared",
-        pdfPageCount: 3,
-        selectedPageCount: 2,
-        selectedPages: [1, 2],
-      }),
-    ]);
-    const inputPdfArtifactKey = triage.sources[0]?.inputPdfArtifactKey;
-    if (inputPdfArtifactKey === null || inputPdfArtifactKey === undefined) {
-      throw new Error("Expected OCR triage input PDF artifact.");
-    }
-    const slicedPdf = await PDFDocument.load(
-      new Uint8Array(
-        await Bun.file(join(manifest.runArtifactRoot, inputPdfArtifactKey)).arrayBuffer(),
-      ),
-    );
-    expect(slicedPdf.getPageCount()).toBe(2);
-    await expect(Bun.file(triagePath).json()).resolves.toEqual(triage);
-  });
-
-  test("sends OpenRouter OCR triage with flex service tier and reuses existing outputs", async () => {
-    const root = await makeWorkingRoot();
-    const backlogPath = join(root, "backlog.json");
-    const artifactRoot = join(root, "artifacts");
-    const backlog: Tier2Backlog = {
-      version: 1,
-      updatedAt: "2026-05-24",
-      sources: [
-        {
-          sourceId: "sample_pdf",
-          url: "https://example.test/sample.pdf",
-          title: "Sample Presentation",
-          publisher: "Example Agency",
-          sourceGroup: "bus_priority_document",
-          intendedUse: ["document_claim_candidate"],
-          priority: 1,
-          expectedContentType: "pdf",
-          ocrHint: "required",
-        },
-      ],
-    };
-    await Bun.write(backlogPath, JSON.stringify(backlog));
-    const pdfBytes = await makePdf(1);
-    const manifest = await captureTier2Docs({
-      backlogPath,
-      artifactRoot,
-      runId: "ocr-flex-run",
-      fetchedAt: "2026-05-24T00:00:00.000Z",
-      fetcher: async () =>
-        new Response(responseBody(pdfBytes), {
-          headers: { "content-type": "application/pdf" },
-        }),
-    });
-    const planPath = join(manifest.runArtifactRoot, "ocr-plan.json");
-    await planTier2Ocr({
-      captureManifestPath: join(manifest.runArtifactRoot, "capture-manifest.json"),
-      outputPath: planPath,
-      generatedAt: "2026-05-24T00:01:00.000Z",
-    });
-
-    let requestCount = 0;
-    const seenServiceTiers: unknown[] = [];
-    const seenMaxTokens: unknown[] = [];
-    const seenToolNames: unknown[] = [];
-    const seenToolChoices: unknown[] = [];
-    const seenReasoning: unknown[] = [];
-    const triage = await triageTier2Ocr({
-      ocrPlanPath: planPath,
-      generatedAt: "2026-05-24T00:02:00.000Z",
-      execute: true,
-      triageRootName: "ocr-triage-test-model",
-      apiKey: "test-key",
-      fetcher: async (_url, init) => {
-        requestCount += 1;
-        const body = JSON.parse(String(init?.body));
-        seenServiceTiers.push(body.service_tier);
-        seenMaxTokens.push(body.max_tokens);
-        seenToolNames.push(body.tools?.[0]?.function?.name);
-        seenToolChoices.push(body.tool_choice);
-        seenReasoning.push(body.reasoning);
-        return new Response(
-          JSON.stringify({
-            service_tier: "flex",
-            choices: [
-              {
-                message: {
-                  annotations: [
-                    {
-                      type: "file",
-                      file: {
-                        content: [
-                          { type: "text", text: '<file name="sample_pdf.pdf">' },
-                          {
-                            type: "text",
-                            text: [
-                              "# Sample Presentation",
-                              "The sample pages clearly identify a 2026 bus lane intervention on Sample Street for the B1 route.",
-                              "They include route, corridor, intervention family, launch year, and enough readable OCR text to avoid the low-density review warning.",
-                              "This is fixture text used to confirm that annotation OCR text is counted by the quality review command.",
-                            ].join("\n\n"),
-                          },
-                          {
-                            type: "image_url",
-                            image_url: { url: "data:image/png;base64,fixture" },
-                          },
-                          { type: "text", text: "</file>" },
-                        ],
-                      },
-                    },
-                  ],
-                  content: "",
-                  tool_calls: [
-                    {
-                      id: "call_ocr_triage",
-                      type: "function",
-                      function: {
-                        name: "record_tier2_ocr_triage",
-                        arguments: JSON.stringify({
-                          sourceId: "sample_pdf",
-                          pagesReviewed: [1],
-                          ocrQuality: "good",
-                          decision: "extract",
-                          interventionFamilies: ["bus lanes"],
-                          routesMentioned: ["B1"],
-                          corridorsMentioned: ["Sample Street"],
-                          dateMentions: ["2026"],
-                          usefulPages: [1],
-                          summary: "Useful sample.",
-                          reviewNotes: "Fixture response.",
-                          candidateDrafts: [
-                            {
-                              interventionType: "bus lane",
-                              eventStatus: "implemented",
-                              dateMention: "2026",
-                              datePrecision: "year",
-                              routeMentions: ["B1"],
-                              corridorMentions: ["Sample Street"],
-                              evidencePageRefs: [1],
-                              evidenceQuote:
-                                "The pages identify a 2026 bus lane intervention on Sample Street for the B1 route.",
-                              rationale:
-                                "One source span ties route, corridor, intervention family, and year.",
-                            },
-                          ],
-                          evidenceCandidateDrafts: [
-                            {
-                              candidateType: "document_treatment_component_candidate",
-                              factClassification: "official_claim",
-                              negativeEvidenceFlag: "none",
-                              routeMentions: ["B1"],
-                              corridorMentions: ["Sample Street"],
-                              evidencePageRefs: [1],
-                              evidenceQuote:
-                                "The pages identify a 2026 bus lane intervention on Sample Street for the B1 route.",
-                              summary: "Sample Street bus lane treatment component.",
-                              fields: {
-                                treatmentType: "bus_lane_curbside",
-                                implementationStatus: "implemented",
-                              },
-                            },
-                          ],
-                        }),
-                      },
-                    },
-                  ],
-                  ignored_json_fallback_fixture: JSON.stringify({
-                    sourceId: "sample_pdf",
-                    pagesReviewed: [1],
-                    ocrQuality: "good",
-                    decision: "extract",
-                    interventionFamilies: ["bus lanes"],
-                    routesMentioned: ["B1"],
-                    corridorsMentioned: ["Sample Street"],
-                    dateMentions: ["2026"],
-                    usefulPages: [1],
-                    summary: "Useful sample.",
-                    reviewNotes: "Fixture response.",
-                  }),
-                },
-              },
-            ],
-            usage: { cost: 0.01 },
-          }),
-          { headers: { "content-type": "application/json" } },
-        );
-      },
-    });
-
-    expect(requestCount).toBe(1);
-    expect(seenServiceTiers).toEqual(["flex"]);
-    expect(seenMaxTokens).toEqual([4096]);
-    expect(seenToolNames).toEqual(["record_tier2_ocr_triage"]);
-    expect(seenToolChoices).toEqual([
-      { type: "function", function: { name: "record_tier2_ocr_triage" } },
-    ]);
-    expect(seenReasoning).toEqual([{ effort: "none" }]);
-    expect(triage.triageRootName).toBe("ocr-triage-test-model");
-    expect(triage.sources[0]?.inputPdfArtifactKey?.startsWith("ocr-triage-test-model/")).toBe(true);
-    expect(triage.sources[0]).toEqual(
-      expect.objectContaining({
-        status: "ocr_complete",
-        reusedExisting: false,
-        requestedServiceTier: "flex",
-        servedServiceTier: "flex",
-      }),
-    );
-    const parsedJsonArtifactKey = triage.sources[0]?.parsedJsonArtifactKey;
-    if (parsedJsonArtifactKey === null || parsedJsonArtifactKey === undefined) {
-      throw new Error("Expected parsed OCR triage artifact.");
-    }
-    await expect(
-      Bun.file(join(manifest.runArtifactRoot, parsedJsonArtifactKey)).json(),
-    ).resolves.toEqual(
-      expect.objectContaining({
-        sourceId: "sample_pdf",
-        candidateDrafts: [
-          expect.objectContaining({
-            interventionType: "bus lane",
-            evidencePageRefs: [1],
-          }),
-        ],
-        evidenceCandidateDrafts: [
-          expect.objectContaining({
-            candidateType: "document_treatment_component_candidate",
-            evidencePageRefs: [1],
-          }),
-        ],
-      }),
-    );
-    await Bun.write(
-      join(
-        root,
-        "artifacts",
-        "run",
-        "ocr-triage-test-model",
-        "sources",
-        "0001_sample_pdf",
-        "error.json",
-      ),
-      JSON.stringify({ stale: true }),
-    );
-
-    const review = await reviewTier2OcrQuality({
-      ocrPlanPath: planPath,
-      generatedAt: "2026-05-24T00:04:00.000Z",
-      triageRootName: "ocr-triage-test-model",
-    });
-    expect(review.triageRootName).toBe("ocr-triage-test-model");
-    expect(review.summary).toEqual(
-      expect.objectContaining({
-        plannedSourceCount: 1,
-        reviewedSourceCount: 1,
-        ocrCompleteCount: 1,
-        goodCount: 1,
-        extractCount: 1,
-        annotationTextSourceCount: 1,
-        missingAnnotationTextCount: 0,
-      }),
-    );
-    expect(review.sources[0]).toEqual(
-      expect.objectContaining({
-        sourceId: "sample_pdf",
-        status: "ocr_complete",
-        annotationImageCount: 1,
-        issueCodes: [],
-      }),
-    );
-
-    const resumed = await triageTier2Ocr({
-      ocrPlanPath: planPath,
-      generatedAt: "2026-05-24T00:03:00.000Z",
-      execute: true,
-      triageRootName: "ocr-triage-test-model",
-      apiKey: "test-key",
-      fetcher: async () => {
-        throw new Error("Existing OCR output should be reused.");
-      },
-    });
-
-    expect(resumed.summary).toEqual(
-      expect.objectContaining({
-        ocrCompleteCount: 1,
-        reusedExistingCount: 1,
-      }),
-    );
-    expect(resumed.sources[0]).toEqual(
-      expect.objectContaining({
-        status: "ocr_complete",
-        reusedExisting: true,
-        requestedServiceTier: null,
-        servedServiceTier: "flex",
-      }),
-    );
-  });
 
   test("writes page-level Markdown OCR with required tool calls and host provenance", async () => {
     const root = await makeWorkingRoot();
@@ -786,101 +427,6 @@ describe("Tier 2 document corpus capture", () => {
     expect(maxActiveRequests).toBe(2);
   });
 
-  test("marks OpenRouter 200 error bodies as failed OCR", async () => {
-    const root = await makeWorkingRoot();
-    const backlogPath = join(root, "backlog.json");
-    const artifactRoot = join(root, "artifacts");
-    const backlog: Tier2Backlog = {
-      version: 1,
-      updatedAt: "2026-05-24",
-      sources: [
-        {
-          sourceId: "sample_pdf",
-          url: "https://example.test/sample.pdf",
-          title: "Sample Presentation",
-          publisher: "Example Agency",
-          sourceGroup: "bus_priority_document",
-          intendedUse: ["document_claim_candidate"],
-          priority: 1,
-          expectedContentType: "pdf",
-          ocrHint: "required",
-        },
-      ],
-    };
-    await Bun.write(backlogPath, JSON.stringify(backlog));
-    const pdfBytes = await makePdf(1);
-    const manifest = await captureTier2Docs({
-      backlogPath,
-      artifactRoot,
-      runId: "ocr-provider-error-run",
-      fetchedAt: "2026-05-24T00:00:00.000Z",
-      fetcher: async () =>
-        new Response(responseBody(pdfBytes), {
-          headers: { "content-type": "application/pdf" },
-        }),
-    });
-    const planPath = join(manifest.runArtifactRoot, "ocr-plan.json");
-    await planTier2Ocr({
-      captureManifestPath: join(manifest.runArtifactRoot, "capture-manifest.json"),
-      outputPath: planPath,
-      generatedAt: "2026-05-24T00:01:00.000Z",
-    });
-
-    const triage = await triageTier2Ocr({
-      ocrPlanPath: planPath,
-      generatedAt: "2026-05-24T00:02:00.000Z",
-      execute: true,
-      triageRootName: "ocr-provider-error",
-      apiKey: "test-key",
-      fetcher: async () =>
-        new Response(
-          JSON.stringify({
-            error: {
-              message: "Provider returned error",
-              code: 400,
-            },
-          }),
-          {
-            status: 200,
-            statusText: "OK",
-            headers: { "content-type": "application/json" },
-          },
-        ),
-    });
-
-    expect(triage.summary).toEqual(
-      expect.objectContaining({
-        ocrCompleteCount: 0,
-        ocrFailedCount: 1,
-      }),
-    );
-    expect(triage.sources[0]).toEqual(
-      expect.objectContaining({
-        status: "ocr_failed",
-        httpStatus: 200,
-        responseArtifactKey: "ocr-provider-error/sources/0001_sample_pdf/openrouter-response.json",
-        textArtifactKey: null,
-        parsedJsonArtifactKey: null,
-        error: "OpenRouter provider error: Provider returned error (code: 400)",
-      }),
-    );
-    await expect(
-      Bun.file(
-        join(
-          manifest.runArtifactRoot,
-          "ocr-provider-error",
-          "sources",
-          "0001_sample_pdf",
-          "error.json",
-        ),
-      ).json(),
-    ).resolves.toEqual(
-      expect.objectContaining({
-        error: "OpenRouter provider error: Provider returned error (code: 400)",
-        httpStatus: 200,
-      }),
-    );
-  });
 
   test("discovers official Tier 2 page and PDF links from captured HTML", async () => {
     const root = await makeWorkingRoot();
@@ -1073,151 +619,6 @@ describe("Tier 2 document corpus capture", () => {
     await expect(Bun.file(outputPath).json()).resolves.toEqual(plan);
   });
 
-  test("builds a manual follow-up curation queue from reviewed OCR", async () => {
-    const root = await makeWorkingRoot();
-    const runRoot = join(root, "run");
-    await mkdir(join(runRoot, "ocr-followup", "sources", "0001_sample"), { recursive: true });
-    const triagePath = join(
-      runRoot,
-      "ocr-followup",
-      "sources",
-      "0001_sample",
-      "triage-output.json",
-    );
-    await Bun.write(
-      triagePath,
-      JSON.stringify({
-        sourceId: "sample_followup",
-        summary: "M60 SBS launch and bus lane proposal pages with date evidence.",
-        interventionFamilies: ["Select Bus Service", "bus lanes"],
-        routesMentioned: ["M60 SBS"],
-        corridorsMentioned: ["125th Street"],
-        dateMentions: ["May 2014"],
-      }),
-    );
-    const reviewPath = join(runRoot, "followup-ocr-quality-review-full.json");
-    await Bun.write(
-      reviewPath,
-      JSON.stringify({
-        version: 1,
-        runId: "followup-run",
-        generatedAt: "2026-05-25T00:00:00.000Z",
-        ocrPlanPath: join(runRoot, "followup-ocr-plan.json"),
-        outputPath: reviewPath,
-        triageRootName: "ocr-followup",
-        summary: {
-          extractCount: 1,
-        },
-        sources: [
-          {
-            sourceId: "sample_followup",
-            title: "Sample Follow-up OCR",
-            publisher: "NYC DOT",
-            sourceGroup: "select_bus_service",
-            sourceUrl: "https://example.test/sample.pdf",
-            status: "ocr_complete",
-            ocrQuality: "good",
-            decision: "extract",
-            pagesReviewed: [1, 2, 3],
-            usefulPages: [2],
-            interventionFamilyCount: 2,
-            routeCount: 1,
-            corridorCount: 1,
-            dateCount: 1,
-            annotationTextBlockCount: 3,
-            annotationTextCharCount: 900,
-            annotationImageCount: 0,
-            textCharsPerReviewedPage: 300,
-            issueCodes: ["manual_visual_review_hint"],
-            reviewNotes: "Map should be visually checked before promotion.",
-          },
-        ],
-      }),
-    );
-    const manifestPath = join(runRoot, "followup-ocr-triage-manifest-full.json");
-    await Bun.write(
-      manifestPath,
-      JSON.stringify({
-        version: 1,
-        runId: "followup-run",
-        captureManifestPath: join(runRoot, "capture-manifest.json"),
-        sources: [
-          {
-            sourceId: "sample_followup",
-            textArtifactKey: "ocr-followup/sources/0001_sample/triage-output.txt",
-            parsedJsonArtifactKey: "ocr-followup/sources/0001_sample/triage-output.json",
-            annotationsArtifactKey:
-              "ocr-followup/sources/0001_sample/openrouter-file-annotations.json",
-          },
-        ],
-      }),
-    );
-    const outputPath = join(runRoot, "followup-curation-queue.json");
-
-    const queue = await buildTier2FollowupCurationQueue({
-      ocrQualityReviewPath: reviewPath,
-      triageManifestPath: manifestPath,
-      outputPath,
-      generatedAt: "2026-05-25T00:01:00.000Z",
-    });
-
-    expect(queue.summary).toEqual({
-      reviewedExtractSourceCount: 1,
-      queueItemCount: 1,
-      highPriorityCount: 1,
-      mediumPriorityCount: 0,
-      lowPriorityCount: 0,
-      normalizedInterventionTypeCounts: {
-        bus_lane_infrastructure: 1,
-        select_bus_service_launch: 1,
-      },
-      sourceGroupCounts: {
-        select_bus_service: 1,
-      },
-      issueCounts: {
-        manual_visual_review_hint: 1,
-      },
-    });
-    expect(queue.items[0]).toEqual(
-      expect.objectContaining({
-        priority: "high",
-        sourceId: "sample_followup",
-        usefulPages: [2],
-        normalizedInterventionTypes: ["select_bus_service_launch", "bus_lane_infrastructure"],
-        routesMentioned: ["M60 SBS"],
-        dateMentions: ["May 2014"],
-        manualCuration: expect.objectContaining({ state: "not_started" }),
-      }),
-    );
-    await expect(Bun.file(outputPath).json()).resolves.toEqual(queue);
-
-    const decisionsPath = join(runRoot, "followup-curation-decisions.json");
-    const decisions = await buildTier2FollowupCurationDecisionTemplate({
-      queuePath: outputPath,
-      outputPath: decisionsPath,
-      generatedAt: "2026-05-25T00:02:00.000Z",
-    });
-    expect(decisions.summary).toEqual({
-      decisionCount: 1,
-      needsHumanReviewCount: 1,
-    });
-    const verificationPath = join(runRoot, "followup-curation-decision-verification.json");
-    const verification = await verifyTier2FollowupCurationDecisions({
-      decisionsPath,
-      queuePath: outputPath,
-      outputPath: verificationPath,
-      generatedAt: "2026-05-25T00:03:00.000Z",
-    });
-    expect(verification.complete).toBe(false);
-    expect(verification.summary).toEqual(
-      expect.objectContaining({
-        decisionCount: 1,
-        completeDecisionCount: 0,
-        incompleteDecisionCount: 1,
-        needsHumanReviewCount: 1,
-      }),
-    );
-  });
 
   test("builds a duplicate review queue with source context", async () => {
     const root = await makeWorkingRoot();
@@ -1317,11 +718,9 @@ describe("Tier 2 document corpus capture", () => {
       ocrPlanPath: "/tmp/ocr-plan.json",
       ocrQualityReviewPath: "/tmp/ocr-review.json",
       outputPath: candidateBundlePath,
-      triageRootName: "ocr-triage",
       summary: {
         sourceCandidateCount: 1,
-        entityLinkCandidateCount: 0,
-        interventionSeedCount: 2,
+        evidenceCandidateCount: 2,
         reviewQuestionCandidateCount: 0,
         followupOcrCandidateCount: 0,
         auditCount: 0,
@@ -1351,29 +750,34 @@ describe("Tier 2 document corpus capture", () => {
           validationState: "unvalidated",
         },
       ],
-      documentEntityLinkCandidates: [],
-      documentInterventionSeeds: [
+      documentEvidenceCandidates: [
         {
-          candidateType: "document_intervention_seed",
+          candidateType: "document_treatment_component_candidate",
           candidateId: "candidate-a",
           sourceRef,
-          interventionFamily: "sbs_launch",
+          factClassification: "official_claim",
+          negativeEvidenceFlag: "none",
           routeMentions: ["B1"],
           corridorMentions: ["Sample Street"],
-          dateMentions: ["May 2026"],
-          status: "candidate_from_ocr_triage",
+          evidencePageRefs: [1],
+          evidenceQuote: "B1 SBS launch May 2026.",
+          summary: "Fixture candidate A.",
+          fields: {},
           validationState: "unvalidated",
           reviewReason: "fixture",
         },
         {
-          candidateType: "document_intervention_seed",
+          candidateType: "document_treatment_component_candidate",
           candidateId: "candidate-b",
           sourceRef,
-          interventionFamily: "select_bus_service",
+          factClassification: "official_claim",
+          negativeEvidenceFlag: "none",
           routeMentions: ["B1"],
           corridorMentions: ["Sample Street"],
-          dateMentions: ["May 2026"],
-          status: "candidate_from_ocr_triage",
+          evidencePageRefs: [1],
+          evidenceQuote: "B1 SBS launch May 2026.",
+          summary: "Fixture candidate B.",
+          fields: {},
           validationState: "unvalidated",
           reviewReason: "fixture",
         },
@@ -1409,15 +813,15 @@ describe("Tier 2 document corpus capture", () => {
       }),
     );
     expect(queue.items[0]?.events.map((event) => event.interventionFamily)).toEqual([
-      "sbs_launch",
-      "select_bus_service",
+      null,
+      null,
     ]);
     expect(queue.items[0]?.events[0]).toEqual(
       expect.objectContaining({
         sourceTitle: "Source A",
         sourceUrl: "https://example.test/source-a.pdf",
         routeMentions: ["B1"],
-        dateMentions: ["May 2026"],
+        dateMentions: [],
       }),
     );
     await expect(Bun.file(outputPath).json()).resolves.toEqual(queue);
@@ -1797,7 +1201,7 @@ describe("Tier 2 document corpus capture", () => {
       JSON.stringify({
         summary: {
           sourceCandidateCount: 2,
-          interventionSeedCount: 3,
+          evidenceCandidateCount: 3,
         },
       }),
     );
@@ -1904,7 +1308,7 @@ describe("Tier 2 document corpus capture", () => {
     expect(status.complete).toBe(false);
     expect(status.summary).toEqual({
       sourceCandidateCount: 2,
-      interventionSeedCount: 3,
+      evidenceCandidateCount: 3,
       canonicalEventCount: 2,
       eligibleTimelineEventCount: 1,
       blockedDuplicateEventCount: 1,
@@ -1917,14 +1321,8 @@ describe("Tier 2 document corpus capture", () => {
       followupOcrLatestReviewPath: join(runRoot, "followup-ocr-quality-review-full.json"),
       followupOcrReviewedCount: 2,
       followupOcrCompletedCount: 2,
-      followupCurationQueuePath: null,
-      followupCurationQueueItemCount: 0,
-      followupCurationQueueHighPriorityCount: 0,
-      followupCurationDecisionComplete: false,
-      followupCurationCompleteDecisionCount: 0,
-      followupCurationIncompleteDecisionCount: 0,
       followupCandidateBundlePath: null,
-      followupInterventionSeedCount: 0,
+      followupEvidenceCandidateCount: 0,
       followupUnresolvedOcrSourceCount: 0,
       studioTier2TimelineRowCount: 1,
       studioTier2RowsMissingSourceLinks: 0,
@@ -1933,7 +1331,7 @@ describe("Tier 2 document corpus capture", () => {
     expect(status.gates.map((gate) => [gate.gate, gate.status])).toEqual([
       ["corpus_and_extraction", "complete"],
       ["duplicate_decisions", "blocked"],
-      ["followup_ocr", "partial"],
+      ["followup_ocr", "complete"],
       ["studio_timeline_affordances", "complete"],
     ]);
     await expect(Bun.file(outputPath).json()).resolves.toEqual(status);

@@ -53,21 +53,6 @@ const commands = {
       return planTier2OcrFromCli(args);
     },
   },
-  "docs:ocr": {
-    description:
-      "Run Tier 2 OCR through OpenRouter artifacts; use --page-markdown for page-level Markdown.",
-    run: async (args) => {
-      const { triageTier2OcrFromCli } = await import("./jobs/docs/tier2-docs.js");
-      return triageTier2OcrFromCli(args);
-    },
-  },
-  "docs:ocr-review": {
-    description: "Review Tier 2 OCR triage artifact quality and extraction readiness.",
-    run: async (args) => {
-      const { reviewTier2OcrQualityFromCli } = await import("./jobs/docs/tier2-docs.js");
-      return reviewTier2OcrQualityFromCli(args);
-    },
-  },
   "docs:ocr-page-audit": {
     description: "Audit page-level OCR Markdown artifacts for completeness and visual review.",
     run: async (args) => {
@@ -150,46 +135,11 @@ const commands = {
       return planTier2FollowupOcrFromCli(args);
     },
   },
-  "docs:followup-curation-queue": {
-    description: "Build a manual curation queue from reviewed Tier 2 follow-up OCR artifacts.",
-    run: async (args) => {
-      const { buildTier2FollowupCurationQueueFromCli } = await import("./jobs/docs/tier2-docs.js");
-      return buildTier2FollowupCurationQueueFromCli(args);
-    },
-  },
-  "docs:followup-curation-decisions": {
-    description: "Build an editable decision template for Tier 2 follow-up OCR curation.",
-    run: async (args) => {
-      const { buildTier2FollowupCurationDecisionTemplateFromCli } = await import(
-        "./jobs/docs/tier2-docs.js"
-      );
-      return buildTier2FollowupCurationDecisionTemplateFromCli(args);
-    },
-  },
-  "docs:verify-followup-curation": {
-    description: "Verify whether Tier 2 follow-up OCR curation decisions are complete.",
-    run: async (args) => {
-      const { verifyTier2FollowupCurationDecisionsFromCli } = await import(
-        "./jobs/docs/tier2-docs.js"
-      );
-      return verifyTier2FollowupCurationDecisionsFromCli(args);
-    },
-  },
   "docs:verify-manual-interventions": {
     description: "Verify manually enriched Tier 2 intervention candidates.",
     run: async (args) => {
       const { verifyTier2ManualInterventionsFromCli } = await import("./jobs/docs/tier2-docs.js");
       return verifyTier2ManualInterventionsFromCli(args);
-    },
-  },
-  "docs:followup-curation-bundle": {
-    description:
-      "Build a deterministic candidate bundle from manually curated follow-up OCR decisions.",
-    run: async (args) => {
-      const { buildTier2FollowupCurationCandidateBundleFromCli } = await import(
-        "./jobs/docs/tier2-docs.js"
-      );
-      return buildTier2FollowupCurationCandidateBundleFromCli(args);
     },
   },
   "collect:gtfs-rt": {
