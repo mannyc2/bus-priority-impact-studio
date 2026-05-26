@@ -5,9 +5,8 @@ import { basename, dirname, join, relative } from "node:path";
 import { replaceTier2InterventionStagingRows } from "@bp/db/local";
 import {
   DocumentEvidenceCandidateDraftSchema,
-  DocumentEvidenceCandidateTypeSchema,
-  DocumentFactClassificationSchema,
-  DocumentNegativeEvidenceFlagSchema,
+  DocumentEvidenceCandidateDraftToolSchema,
+  toProjectJsonSchema,
   type DocumentEvidenceCandidateDraft,
   type DocumentEvidenceCandidateType,
   type DocumentFactClassification,
@@ -4357,61 +4356,38 @@ export async function auditTier2OcrPageMarkdown(
 }
 
 function ocrMarkdownCandidateTool(): Record<string, unknown> {
+  const draftSchema = toProjectJsonSchema(DocumentEvidenceCandidateDraftToolSchema);
   return {
     type: "function",
     function: {
       name: OCR_MARKDOWN_CANDIDATE_TOOL_NAME,
       description:
-        "Record source-grounded document evidence candidates from OCR Markdown pages.",
+        "Record source-grounded document evidence candidates extracted from the provided OCR Markdown pages. Every draft must be backed by a verbatim quote from those pages; do not infer from outside knowledge.",
       parameters: {
         type: "object",
         additionalProperties: false,
         required: ["sourceId", "pageNumbers", "evidenceCandidateDrafts", "reviewNotes"],
         properties: {
-          sourceId: { type: "string" },
-          pageNumbers: { type: "array", items: { type: "integer", minimum: 1 } },
-          reviewNotes: { type: "string" },
+          sourceId: {
+            type: "string",
+            description: "The sourceId supplied by the pipeline; echo it back unchanged.",
+          },
+          pageNumbers: {
+            type: "array",
+            items: { type: "integer", minimum: 1 },
+            description: "Page numbers covered by this extraction window (echo the supplied list).",
+          },
+          reviewNotes: {
+            type: "string",
+            description:
+              "Notes for human review: what was ambiguous, what was skipped and why. Empty string if nothing to flag.",
+          },
           evidenceCandidateDrafts: {
             type: "array",
             maxItems: 24,
-            items: {
-              type: "object",
-              additionalProperties: false,
-              required: [
-                "candidateType",
-                "factClassification",
-                "negativeEvidenceFlag",
-                "routeMentions",
-                "corridorMentions",
-                "evidencePageRefs",
-                "evidenceQuote",
-                "summary",
-                "fields",
-              ],
-              properties: {
-                candidateType: {
-                  type: "string",
-                  enum: DocumentEvidenceCandidateTypeSchema.options,
-                },
-                factClassification: {
-                  type: "string",
-                  enum: DocumentFactClassificationSchema.options,
-                },
-                negativeEvidenceFlag: {
-                  type: "string",
-                  enum: DocumentNegativeEvidenceFlagSchema.options,
-                },
-                routeMentions: { type: "array", items: { type: "string" } },
-                corridorMentions: { type: "array", items: { type: "string" } },
-                evidencePageRefs: { type: "array", items: { type: "integer", minimum: 1 } },
-                evidenceQuote: { type: "string" },
-                summary: { type: "string" },
-                fields: {
-                  type: "object",
-                  additionalProperties: true,
-                },
-              },
-            },
+            description:
+              "Source-backed draft candidates. Emit one entry per discrete fact, claim, table, figure, or other extractable evidence. Do not include candidates for decorative pages, table-of-contents rows, or unsourced summaries.",
+            items: draftSchema,
           },
         },
       },
@@ -4419,36 +4395,19 @@ function ocrMarkdownCandidateTool(): Record<string, unknown> {
   };
 }
 
+const OCR_MARKDOWN_CANDIDATE_SYSTEM_PROMPT = [
+  "You are extracting source-grounded evidence candidates for Bus Priority Impact Studio.",
+  "Use only the provided OCR Markdown pages. Do not infer facts from outside knowledge.",
+  "Every candidate must cite a short verbatim excerpt from the supplied Markdown (evidenceQuote) and the supporting page numbers (evidencePageRefs).",
+  "The tool's parameter schema defines the candidate types, their fields, and when to use them. Follow the per-type guidance there; do not invent fields outside the documented ones unless the source clearly demands them.",
+].join("\n");
+
 function buildOcrMarkdownCandidatePrompt(input: {
   source: Tier2OcrPlanSource;
   pages: Tier2OcrPageMarkdownAuditPage[];
   markdownText: string;
 }): string {
   return [
-    "You are extracting source-grounded evidence candidates for Bus Priority Impact Studio.",
-    "Use only the provided OCR Markdown pages. Do not infer from outside knowledge.",
-    `You must call the ${OCR_MARKDOWN_CANDIDATE_TOOL_NAME} tool.`,
-    "Emit candidates only for useful, source-backed facts. Prefer the candidate types requested by the research roadmap:",
-    "- document_claim_candidate: a single source-backed non-metric claim.",
-    "- document_metric_claim_candidate: a metric value, unit, baseline/comparison window, scope, and methodology/caveat when present.",
-    "- document_table_candidate: an extracted table caption, headers, and rows when the Markdown preserves enough structure.",
-    "- document_figure_candidate: a chart/map/photo/diagram with caption and extractable data notes.",
-    "- document_map_extent_candidate: corridor limits, map bounds, intersections, or treatment extents visible in OCR text.",
-    "- document_methodology_candidate: dataset definitions, aggregation units, comparison basis, or caveats about how a metric is computed.",
-    "- document_caveat_candidate: a limitation, confound, data gap, or source-use warning.",
-    "- document_project_status_candidate: proposed, planning, implementing, monitoring, complete, canceled, superseded, or phase status.",
-    "- document_treatment_component_candidate: bus lane, busway, TSP, queue jump, stop consolidation, ACE, red paint, bus bulb, or related treatment.",
-    "- document_service_change_candidate: route added/discontinued/modified, stop added/removed, frequency/headway/terminus changes.",
-    "- document_stop_or_intersection_candidate: stop/intersection-specific treatments, metrics, or named locations.",
-    "- document_supersession_candidate: one source, plan, addendum, pilot, or status update replacing/amending/canceling another.",
-    "- document_source_gap_candidate: explicit absence or negative evidence, such as no stop table, no TSP inventory, or proposed-only status.",
-    "- document_evidence_link_candidate: a link between a claim and its underlying dataset or table.",
-    "- review_question_candidate: a concrete open question that needs a follow-up source or human review.",
-    "Do not create generic candidates for decorative pages, table-of-contents rows, or unsourced summaries.",
-    "For every candidate, evidenceQuote must be a short verbatim excerpt from the provided OCR Markdown and evidencePageRefs must name the supporting page(s).",
-    "Put type-specific values in fields, for example claimSubject, metricName, valueNumeric, valueQualifier, unit, baselinePeriodStart, baselinePeriodEnd, comparisonPeriodStart, comparisonPeriodEnd, geographyScope, methodology, tableCaption, headers, rows, figureCaption, figureType, extentIntersections, status, statusAsOfDate, phase, treatmentType, implementationStatus, changeType, effectiveDate, stopIdIfKnown, intersectionName, supersedes, supersededBy, supersessionType, sourceGapSubject, linkedDatasetId, reviewQuestion, proposedAnswer, and requiredSource.",
-    "Use negativeEvidenceFlag when a candidate is proposed-only, outreach-only, map OCR is unreadable, no stop table exists, a claim lacks row data, a presentation date is not an implementation date, or the source is superseded.",
-    "",
     `Source ID: ${input.source.sourceId}`,
     `Title: ${input.source.title}`,
     `Publisher: ${input.source.publisher}`,
@@ -4521,6 +4480,7 @@ async function callOpenRouterMarkdownCandidates(input: {
       service_tier: input.serviceTier,
       max_tokens: input.maxTokens,
       messages: [
+        { role: "system", content: OCR_MARKDOWN_CANDIDATE_SYSTEM_PROMPT },
         {
           role: "user",
           content: buildOcrMarkdownCandidatePrompt({
