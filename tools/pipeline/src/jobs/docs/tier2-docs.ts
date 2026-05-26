@@ -548,6 +548,11 @@ export type Tier2DocumentEvidenceCandidate = {
   evidenceQuote: string;
   summary: string;
   fields: Record<string, unknown>;
+  extraction: {
+    pageMarkdownRootName: string;
+    candidateRootName: string;
+    windowPages: number[];
+  };
   validationState: Tier2CandidateValidationState;
   reviewReason: string;
 };
@@ -4400,6 +4405,9 @@ const OCR_MARKDOWN_CANDIDATE_SYSTEM_PROMPT = [
   "Use only the provided OCR Markdown pages. Do not infer facts from outside knowledge.",
   "Every candidate must cite a short verbatim excerpt from the supplied Markdown (evidenceQuote) and the supporting page numbers (evidencePageRefs).",
   "The tool's parameter schema defines the candidate types, their fields, and when to use them. Follow the per-type guidance there; do not invent fields outside the documented ones unless the source clearly demands them.",
+  "Skip boilerplate pages: title pages, table of contents, copyright notices, and publication-info pages do not produce candidates. Section headings alone are not candidates; only emit a candidate when the section contains a concrete claim, metric, or treatment description.",
+  "For optional fields you don't know, omit the key entirely. Do not emit empty strings or empty arrays as placeholders.",
+  "Route mentions go in routeMentions as bare MTA route IDs (e.g. \"B44\", \"M15\"). Put service-mode information (SBS, Limited, Local) in the relevant per-type field (e.g. serviceMode on a treatment component), not in the route ID.",
 ].join("\n");
 
 function buildOcrMarkdownCandidatePrompt(input: {
@@ -4533,11 +4541,11 @@ function evidenceCandidateFromMarkdownDraft(input: {
     evidencePageRefs: [...input.draft.evidencePageRefs],
     evidenceQuote: input.draft.evidenceQuote,
     summary: input.draft.summary,
-    fields: {
-      ...input.draft.fields,
+    fields: { ...input.draft.fields },
+    extraction: {
       pageMarkdownRootName: input.pageMarkdownRootName,
-      extractionRootName: input.candidateRootName,
-      extractionWindowPages: input.windowPages,
+      candidateRootName: input.candidateRootName,
+      windowPages: [...input.windowPages],
     },
     validationState: "unvalidated",
     reviewReason:

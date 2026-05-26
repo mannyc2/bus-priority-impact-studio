@@ -128,16 +128,20 @@ const sharedDraftFields = {
     "How this fact relates to its source: official_fact and official_claim come from the publishing agency; third_party_evaluation is an outside assessment; context and caveat narrate; methodology describes how a metric was computed; source_gap is an explicit absence.",
   ),
   negativeEvidenceFlag: DocumentNegativeEvidenceFlagSchema.default("none").describe(
-    "Reason this candidate is negative or weak evidence, when applicable. Use proposed_only, outreach_not_implementation, ocr_cannot_read_map, no_stop_table, claim_without_row_data, presentation_date_not_implementation, superseded_source, official_linked_not_mta_dot, or mention_too_thin_for_intervention. Use \"none\" otherwise.",
+    "Reason this candidate is negative or weak evidence, when applicable. Use \"none\" otherwise.",
   ),
   routeMentions: z
     .array(z.string().min(1))
     .default([])
-    .describe("Route IDs or names mentioned in the supporting quote, e.g. B1, M15-SBS."),
+    .describe(
+      "Bare MTA route IDs as they appear in the route catalog, e.g. [\"B44\", \"M15\"]. Do not append service-mode suffixes like SBS, Limited, or Local; those go on per-type fields when relevant. Use the empty array when no route is named.",
+    ),
   corridorMentions: z
     .array(z.string().min(1))
     .default([])
-    .describe("Corridor or street names mentioned in the supporting quote."),
+    .describe(
+      "Street or avenue names mentioned in the supporting quote, e.g. [\"Nostrand Avenue\", \"14th Street\"]. Use the empty array when no corridor is named.",
+    ),
   evidencePageRefs: z
     .array(z.number().int().positive())
     .default([])
@@ -146,8 +150,75 @@ const sharedDraftFields = {
     .string()
     .min(1)
     .describe("A short verbatim excerpt from the provided OCR Markdown that supports this candidate."),
-  summary: z.string().min(1).describe("One- or two-sentence summary of the candidate, in your own words."),
+  summary: z
+    .string()
+    .min(1)
+    .describe("One- or two-sentence summary of the candidate, in your own words."),
 } as const;
+
+const OPTIONAL_PERIOD_DESCRIPTION =
+  "ISO date or YYYY-MM. Omit this key entirely when the period is not given in the source; do not emit an empty string.";
+
+// Canonical metric names common in NYC bus-priority documents. Extracted from
+// reading the prompt's prior free-text vocabulary; not exhaustive. Use the
+// `customMetricName` escape hatch for anything not in the list.
+export const DocumentMetricNameSchema = z.enum([
+  "bus_travel_time",
+  "bus_running_time",
+  "bus_average_speed",
+  "ridership",
+  "ridership_growth",
+  "on_time_performance",
+  "schedule_adherence",
+  "headway_regularity",
+  "stop_dwell_time",
+  "customer_satisfaction",
+  "general_traffic_speed",
+  "general_traffic_travel_time",
+  "general_traffic_volume",
+  "pedestrian_injuries",
+  "vehicle_injuries",
+  "traffic_injuries",
+  "fare_collection_time",
+  "boarding_time",
+]);
+export type DocumentMetricName = z.output<typeof DocumentMetricNameSchema>;
+
+// Canonical treatment families. The same caveat applies: prefer one of these,
+// fall back to `customTreatmentType` for anything else.
+export const DocumentTreatmentTypeSchema = z.enum([
+  "bus_lane",
+  "busway",
+  "transit_signal_priority",
+  "queue_jump",
+  "stop_consolidation",
+  "stop_relocation",
+  "bus_bulb",
+  "neckdown",
+  "red_paint",
+  "off_board_fare_collection",
+  "all_door_boarding",
+  "ace",
+  "able",
+  "reroute",
+  "pedestrian_improvement",
+  "signal_retiming",
+]);
+export type DocumentTreatmentType = z.output<typeof DocumentTreatmentTypeSchema>;
+
+export const DocumentServiceChangeKindSchema = z.enum([
+  "route_added",
+  "route_discontinued",
+  "route_modified",
+  "stop_added",
+  "stop_removed",
+  "frequency_change",
+  "headway_change",
+  "terminus_change",
+  "branch_added",
+  "branch_discontinued",
+]);
+export type DocumentServiceChangeKind = z.output<typeof DocumentServiceChangeKindSchema>;
 
 function draftVariant<TType extends DocumentEvidenceCandidateType>(
   candidateType: TType,
@@ -172,16 +243,35 @@ const claimFields = z
 
 const metricClaimFields = z
   .object({
-    metricName: z.string().optional(),
-    valueNumeric: z.number().optional(),
-    valueQualifier: z.string().optional().describe("Qualifier such as \"approximately\" or \"up to\"."),
-    unit: z.string().optional(),
-    baselinePeriodStart: z.string().optional().describe("ISO date or YYYY-MM."),
-    baselinePeriodEnd: z.string().optional().describe("ISO date or YYYY-MM."),
-    comparisonPeriodStart: z.string().optional().describe("ISO date or YYYY-MM."),
-    comparisonPeriodEnd: z.string().optional().describe("ISO date or YYYY-MM."),
-    geographyScope: z.string().optional(),
-    methodology: z.string().optional(),
+    metricName: DocumentMetricNameSchema.optional().describe(
+      "Canonical metric name. Pick one of the enum values when it fits; otherwise leave this unset and use customMetricName.",
+    ),
+    customMetricName: z
+      .string()
+      .optional()
+      .describe(
+        "Free-text metric name when no enum value fits. Use only when metricName is unset.",
+      ),
+    valueNumeric: z.number().optional().describe("Primary numeric value of the metric."),
+    valueQualifier: z
+      .string()
+      .optional()
+      .describe(
+        "Qualifier such as \"approximately\", \"up to\", or a range like \"15-31%\" when the source gives a range rather than a single number.",
+      ),
+    unit: z.string().optional().describe("Unit such as \"percent\", \"minutes\", \"mph\", \"riders/day\"."),
+    baselinePeriodStart: z.string().optional().describe(OPTIONAL_PERIOD_DESCRIPTION),
+    baselinePeriodEnd: z.string().optional().describe(OPTIONAL_PERIOD_DESCRIPTION),
+    comparisonPeriodStart: z.string().optional().describe(OPTIONAL_PERIOD_DESCRIPTION),
+    comparisonPeriodEnd: z.string().optional().describe(OPTIONAL_PERIOD_DESCRIPTION),
+    geographyScope: z
+      .string()
+      .optional()
+      .describe("Scope of the metric, e.g. \"B44 corridor\", \"Brooklyn\", \"system-wide\"."),
+    methodology: z
+      .string()
+      .optional()
+      .describe("Brief description of how the metric was computed if the source explains it."),
   })
   .passthrough();
 
@@ -220,40 +310,69 @@ const caveatFields = z.object({}).passthrough();
 const projectStatusFields = z
   .object({
     status: z
+      .enum([
+        "proposed",
+        "planning",
+        "implementing",
+        "monitoring",
+        "complete",
+        "canceled",
+        "superseded",
+      ])
+      .optional()
+      .describe("Lifecycle stage of the project as described in the source."),
+    statusAsOfDate: z
       .string()
       .optional()
       .describe(
-        "proposed, planning, implementing, monitoring, complete, canceled, or superseded.",
+        "Date the status was reported. ISO date or YYYY-MM. Omit when no date is given.",
       ),
-    statusAsOfDate: z.string().optional().describe("ISO date or YYYY-MM."),
-    phase: z.string().optional(),
+    phase: z
+      .string()
+      .optional()
+      .describe("Free-text phase label when the source uses a project-specific phase name."),
   })
   .passthrough();
 
 const treatmentComponentFields = z
   .object({
-    treatmentType: z
-      .string()
+    treatmentTypes: z
+      .array(DocumentTreatmentTypeSchema)
       .optional()
       .describe(
-        "Treatment family: bus_lane, busway, transit_signal_priority, queue_jump, stop_consolidation, ace, red_paint, bus_bulb, etc.",
+        "Treatment families this candidate describes. Use one or more of the enum values; emit one candidate per discrete claim, but list multiple types when the source bundles them together. Use customTreatmentType for anything not in the enum.",
       ),
-    implementationStatus: z
+    customTreatmentType: z
       .string()
       .optional()
-      .describe("proposed, planned, implemented, or removed."),
+      .describe("Free-text treatment label when no enum value applies."),
+    implementationStatus: z
+      .enum(["proposed", "planned", "implemented", "removed"])
+      .optional()
+      .describe("Lifecycle stage of the treatment as described in the source."),
+    serviceMode: z
+      .enum(["sbs", "local", "limited", "express", "lcl"])
+      .optional()
+      .describe(
+        "Bus service mode the treatment applies to, when the source distinguishes. SBS = Select Bus Service.",
+      ),
   })
   .passthrough();
 
 const serviceChangeFields = z
   .object({
-    changeType: z
+    changeTypes: z
+      .array(DocumentServiceChangeKindSchema)
+      .optional()
+      .describe(
+        "Kinds of service change described. List all that apply, but emit one candidate per discrete change span.",
+      ),
+    effectiveDate: z
       .string()
       .optional()
       .describe(
-        "route_added, route_discontinued, route_modified, stop_added, stop_removed, frequency_change, headway_change, terminus_change.",
+        "Date the change took effect. ISO date or YYYY-MM. Omit this key entirely when no date is given.",
       ),
-    effectiveDate: z.string().optional().describe("ISO date or YYYY-MM."),
   })
   .passthrough();
 
