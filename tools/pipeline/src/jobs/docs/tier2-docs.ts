@@ -12,7 +12,9 @@ import {
   type DocumentEvidenceCandidateType,
   type DocumentFactClassification,
   type DocumentInterventionRecord,
+  type DocumentInterventionRecordKind,
   type DocumentInterventionRecordsToolResponse,
+  type DocumentInterventionStatus,
   type DocumentNegativeEvidenceFlag,
 } from "@bp/domain";
 import { PDFDocument } from "pdf-lib";
@@ -5190,10 +5192,15 @@ type ExtractTier2InterventionRecordsArgs = {
   maxTokens?: number;
   sourceIds?: string[];
   limitSources?: number;
+  routeCatalogPath?: string;
   execute?: boolean;
   fetcher?: FetchLike;
   apiKey?: string;
 };
+
+const DEFAULT_INTERVENTION_RECORDS_ROUTE_CATALOG_PATH = fromRepoRoot(
+  "data/raw/network/current_bus_routes.json",
+);
 
 const INTERVENTION_RECORDS_SYSTEM_PROMPT = [
   "You are synthesizing Tier 2 evidence candidates into canonical intervention records for Bus Priority Impact Studio.",
@@ -5202,7 +5209,8 @@ const INTERVENTION_RECORDS_SYSTEM_PROMPT = [
   "A source can produce zero, one, or several records: zero if the candidates describe no actionable intervention (pure methodology paper, opinion piece); several if the source covers separate changes (e.g. an SBS launch and a later RTPI install).",
   "Treatment-component candidates, metric candidates, project-status candidates, service-change candidates, treatment maps, and corridor-defining quotes typically belong inside one of the records.",
   "Tables, figures, methodology, source_gap, caveat, and review_question candidates either attach as evidence to a specific record component (e.g. a metric's evidenceRefs) or land in unattachedCandidateIds when they don't belong to any record.",
-  "When candidates disagree on status (one says \"implementing\", another says \"complete\"), record both as separate statusHistory entries with their respective evidence; do not pick one and discard the other.",
+  "Every record must populate statusHistory with at least one observation. When candidates carry an explicit status (e.g. fields.implementationStatus: \"proposed\", fields.status: \"complete\"), emit a matching statusHistory entry pointing at the supporting candidateId. When candidates disagree (one says \"implementing\", another says \"complete\"), emit both as separate entries with their respective evidence.",
+  "If every supporting candidate is flagged proposed-only (negativeEvidenceFlag: \"proposed_only\" or fields.implementationStatus: \"proposed\"), the record represents a recommendation; reflect that with a statusHistory entry whose status is \"proposed\".",
   "Omit optional fields when the source does not supply the information. Do not emit empty strings or empty objects as placeholders.",
 ].join("\n");
 
@@ -5230,6 +5238,7 @@ function interventionRecordsTool(): Record<string, unknown> {
 function buildInterventionRecordsPrompt(input: {
   source: { sourceId: string; title: string; publisher: string; sourceGroup: string };
   candidates: Tier2DocumentEvidenceCandidate[];
+  routeCatalogSnippet: string | null;
 }): string {
   const candidatesForModel = input.candidates.map((candidate) => ({
     candidateId: candidate.candidateId,
@@ -5250,6 +5259,7 @@ function buildInterventionRecordsPrompt(input: {
     `Source group: ${input.source.sourceGroup}`,
     `Candidate count: ${input.candidates.length}`,
     "",
+    ...(input.routeCatalogSnippet === null ? [] : [input.routeCatalogSnippet, ""]),
     "Evidence candidates (JSON, one entry per line):",
     ...candidatesForModel.map((candidate) => JSON.stringify(candidate)),
   ].join("\n");
@@ -5262,6 +5272,7 @@ async function callOpenRouterInterventionRecords(input: {
   maxTokens: number;
   source: { sourceId: string; title: string; publisher: string; sourceGroup: string };
   candidates: Tier2DocumentEvidenceCandidate[];
+  routeCatalogSnippet: string | null;
   fetcher: FetchLike;
 }): Promise<OpenRouterCallResult> {
   const reasoning = requiredToolCallReasoningOverride(input.model);
@@ -5280,6 +5291,7 @@ async function callOpenRouterInterventionRecords(input: {
           content: buildInterventionRecordsPrompt({
             source: input.source,
             candidates: input.candidates,
+            routeCatalogSnippet: input.routeCatalogSnippet,
           }),
         },
       ],
@@ -5354,6 +5366,175 @@ function collectEvidenceRefs(draft: import("@bp/domain").DocumentInterventionRec
   return [...refs];
 }
 
+// ---------------------------------------------------------------------------
+// Phase 3 deterministic post-processing helpers.
+//
+// The LLM is responsible for the semantic work — clustering candidates and
+// writing prose descriptions. These helpers handle the parts that have
+// straightforward rules:
+//   - back-fill statusHistory from candidate `fields.implementationStatus` /
+//     `fields.status` when the model dropped it
+//   - infer recordKind (implemented / in_progress / proposed) from the
+//     statusHistory plus candidate-level negativeEvidenceFlag values
+// ---------------------------------------------------------------------------
+
+function isDocumentInterventionStatus(value: unknown): value is DocumentInterventionStatus {
+  return (
+    value === "proposed" ||
+    value === "planning" ||
+    value === "implementing" ||
+    value === "monitoring" ||
+    value === "complete" ||
+    value === "canceled" ||
+    value === "superseded"
+  );
+}
+
+function statusFromCandidateFields(
+  fields: Record<string, unknown> | undefined,
+): DocumentInterventionStatus | null {
+  if (fields === undefined) return null;
+  const status = fields["status"];
+  if (isDocumentInterventionStatus(status)) return status;
+  const implementationStatus = fields["implementationStatus"];
+  if (implementationStatus === "proposed") return "proposed";
+  if (implementationStatus === "planned") return "planning";
+  if (implementationStatus === "implemented") return "complete";
+  return null;
+}
+
+function stringField(fields: Record<string, unknown> | undefined, key: string): string | null {
+  if (fields === undefined) return null;
+  const value = fields[key];
+  return typeof value === "string" && value.length > 0 ? value : null;
+}
+
+function backfillStatusHistory(input: {
+  draft: import("@bp/domain").DocumentInterventionRecordDraft;
+  recordCandidates: Tier2DocumentEvidenceCandidate[];
+}): import("@bp/domain").DocumentInterventionRecordDraft["statusHistory"] {
+  const existing = input.draft.statusHistory;
+  const seenKeys = new Set(
+    existing.map((entry) => `${entry.status}|${entry.asOfDate ?? ""}`),
+  );
+  const inferred: import("@bp/domain").DocumentInterventionRecordDraft["statusHistory"] = [];
+  for (const candidate of input.recordCandidates) {
+    const status = statusFromCandidateFields(candidate.fields);
+    if (status === null) continue;
+    const asOfDate = stringField(candidate.fields, "statusAsOfDate") ?? undefined;
+    const key = `${status}|${asOfDate ?? ""}`;
+    if (seenKeys.has(key)) continue;
+    seenKeys.add(key);
+    inferred.push({
+      status,
+      ...(asOfDate === undefined ? {} : { asOfDate }),
+      evidenceRefs: [candidate.candidateId],
+    });
+  }
+  return [...existing, ...inferred];
+}
+
+function inferRecordKind(input: {
+  statusHistory: import("@bp/domain").DocumentInterventionRecordDraft["statusHistory"];
+  recordCandidates: Tier2DocumentEvidenceCandidate[];
+}): DocumentInterventionRecordKind {
+  const statuses = new Set(input.statusHistory.map((entry) => entry.status));
+  if (
+    statuses.has("complete") ||
+    statuses.has("monitoring") ||
+    statuses.has("implementing")
+  ) {
+    return statuses.has("complete") || statuses.has("monitoring")
+      ? "implemented"
+      : "in_progress";
+  }
+  if (statuses.has("planning") || statuses.has("canceled") || statuses.has("superseded")) {
+    return "in_progress";
+  }
+  if (
+    statuses.size === 1 &&
+    statuses.has("proposed") &&
+    input.recordCandidates.every(
+      (candidate) =>
+        candidate.negativeEvidenceFlag === "proposed_only" ||
+        statusFromCandidateFields(candidate.fields) === "proposed",
+    )
+  ) {
+    return "proposed";
+  }
+  if (statuses.has("proposed")) {
+    return "proposed";
+  }
+  // No status anywhere — default to proposed so consumers err on the side of
+  // not surfacing as an implemented intervention.
+  return "proposed";
+}
+
+// Route catalog injection (Step 2). Loads the MTA bus route catalog and
+// builds a focused snippet for only the routes the candidates name, so the
+// model can sanity-check route/corridor pairings without paying for the
+// whole catalog every call.
+
+type RouteCatalogEntry = {
+  routeId: string;
+  longName: string | null;
+  description: string | null;
+};
+
+type RouteCatalogRow = {
+  route_id?: unknown;
+  route_long_name?: unknown;
+  route_description?: unknown;
+  in_effect?: unknown;
+};
+
+async function loadRouteCatalog(path: string): Promise<Map<string, RouteCatalogEntry>> {
+  const raw = (await Bun.file(path).json()) as { rows?: RouteCatalogRow[] };
+  const catalog = new Map<string, RouteCatalogEntry>();
+  for (const row of raw.rows ?? []) {
+    if (row.in_effect !== "true" && row.in_effect !== true) continue;
+    const routeId = typeof row.route_id === "string" ? row.route_id : null;
+    if (routeId === null) continue;
+    if (catalog.has(routeId)) continue;
+    catalog.set(routeId, {
+      routeId,
+      longName: typeof row.route_long_name === "string" ? row.route_long_name : null,
+      description: typeof row.route_description === "string" ? row.route_description : null,
+    });
+  }
+  return catalog;
+}
+
+function buildRouteCatalogSnippet(input: {
+  catalog: Map<string, RouteCatalogEntry>;
+  candidates: Tier2DocumentEvidenceCandidate[];
+}): string | null {
+  const mentioned = new Set<string>();
+  for (const candidate of input.candidates) {
+    for (const mention of candidate.routeMentions) {
+      const trimmed = mention.trim();
+      if (trimmed.length > 0) mentioned.add(trimmed);
+    }
+  }
+  if (mentioned.size === 0) return null;
+  const entries: string[] = [];
+  for (const routeId of [...mentioned].sort()) {
+    const entry = input.catalog.get(routeId);
+    if (entry === undefined) {
+      entries.push(`- ${routeId}: not found in MTA route catalog (verify before assigning a corridor)`);
+      continue;
+    }
+    const long = entry.longName ?? "";
+    const desc = entry.description ?? "";
+    const corridorBlurb = [long, desc].filter((part) => part.length > 0).join(" — ");
+    entries.push(`- ${routeId}: ${corridorBlurb || "no corridor on file"}`);
+  }
+  return [
+    "Route reference (use to sanity-check route/corridor pairings; flag in notes if a record's corridor does not match the route's actual service area):",
+    ...entries,
+  ].join("\n");
+}
+
 export async function extractTier2DocumentInterventionRecords(
   args: ExtractTier2InterventionRecordsArgs,
 ): Promise<Tier2InterventionRecordsExtraction> {
@@ -5375,6 +5556,11 @@ export async function extractTier2DocumentInterventionRecords(
   if (execute && (apiKey === undefined || apiKey === "")) {
     throw new Error("OPENROUTER_API_KEY is required for docs:intervention-records --execute.");
   }
+  const routeCatalogPath =
+    args.routeCatalogPath ?? DEFAULT_INTERVENTION_RECORDS_ROUTE_CATALOG_PATH;
+  const routeCatalog = (await Bun.file(routeCatalogPath).exists())
+    ? await loadRouteCatalog(routeCatalogPath)
+    : new Map<string, RouteCatalogEntry>();
 
   const candidatesBySourceId = new Map<string, Tier2DocumentEvidenceCandidate[]>();
   for (const candidate of candidateExtraction.documentEvidenceCandidates) {
@@ -5434,6 +5620,10 @@ export async function extractTier2DocumentInterventionRecords(
     }
     await mkdir(sourceRoot, { recursive: true });
     try {
+      const routeCatalogSnippet = buildRouteCatalogSnippet({
+        catalog: routeCatalog,
+        candidates,
+      });
       const openRouter = await callOpenRouterInterventionRecords({
         apiKey: apiKey as string,
         model,
@@ -5446,6 +5636,7 @@ export async function extractTier2DocumentInterventionRecords(
           sourceGroup: sourceMeta.sourceGroup,
         },
         candidates,
+        routeCatalogSnippet,
         fetcher,
       });
       await writeJson(paths.responsePath, openRouter.body);
@@ -5480,23 +5671,38 @@ export async function extractTier2DocumentInterventionRecords(
       }
       const response: DocumentInterventionRecordsToolResponse = parsed.data;
       const validCandidateIds = new Set(candidates.map((candidate) => candidate.candidateId));
+      const candidateById = new Map(
+        candidates.map((candidate) => [candidate.candidateId, candidate]),
+      );
       const persistedRecords: Tier2DocumentInterventionRecord[] = [];
       for (let recordIndex = 0; recordIndex < response.interventionRecords.length; recordIndex += 1) {
         const draft = response.interventionRecords[recordIndex];
         if (draft === undefined) continue;
-        const evidenceIds = collectEvidenceRefs(draft);
+        const modelEvidenceIds = collectEvidenceRefs(draft).filter((id) =>
+          validCandidateIds.has(id),
+        );
+        const recordCandidates = modelEvidenceIds
+          .map((id) => candidateById.get(id))
+          .filter((candidate): candidate is Tier2DocumentEvidenceCandidate => candidate !== undefined);
+        const statusHistory = backfillStatusHistory({ draft, recordCandidates });
+        const recordKind = inferRecordKind({ statusHistory, recordCandidates });
+        const finalDraft = { ...draft, statusHistory };
+        const evidenceIds = collectEvidenceRefs(finalDraft).filter((id) =>
+          validCandidateIds.has(id),
+        );
         const recordId = recordIdForDraft({
           sourceId,
-          routes: draft.routes,
-          primaryTreatments: draft.primaryTreatments,
-          effectiveDate: draft.effectiveDate,
+          routes: finalDraft.routes,
+          primaryTreatments: finalDraft.primaryTreatments,
+          effectiveDate: finalDraft.effectiveDate,
           index: recordIndex,
         });
         persistedRecords.push({
-          ...draft,
+          ...finalDraft,
           recordId,
           sourceId,
-          evidenceCandidateIds: evidenceIds.filter((id) => validCandidateIds.has(id)),
+          recordKind,
+          evidenceCandidateIds: evidenceIds,
           extraction: {
             candidateExtractionRootName: candidateExtraction.pageMarkdownRootName,
             candidateRootName: candidateExtraction.candidateRootName,
@@ -5580,6 +5786,7 @@ type InterventionRecordsCliArgs = {
   maxTokens?: number;
   sourceIds?: string[];
   limitSources?: number;
+  routeCatalogPath?: string;
   execute?: boolean;
 };
 
@@ -5659,6 +5866,12 @@ function parseInterventionRecordsCliArgs(args: string[]): InterventionRecordsCli
         output.limitSources = Number(value);
       },
     },
+    {
+      flags: ["--route-catalog"],
+      apply: (output, value) => {
+        if (value !== undefined) output.routeCatalogPath = fromCliPath(value);
+      },
+    },
     trueOption<InterventionRecordsCliArgs>(["--execute"], (output) => {
       output.execute = true;
     }),
@@ -5701,6 +5914,7 @@ export async function extractTier2DocumentInterventionRecordsFromCli(
     ...(parsed.maxTokens !== undefined ? { maxTokens: parsed.maxTokens } : {}),
     ...(parsed.sourceIds !== undefined ? { sourceIds: parsed.sourceIds } : {}),
     ...(parsed.limitSources !== undefined ? { limitSources: parsed.limitSources } : {}),
+    ...(parsed.routeCatalogPath !== undefined ? { routeCatalogPath: parsed.routeCatalogPath } : {}),
     execute: parsed.execute ?? false,
   });
 }

@@ -31,6 +31,7 @@ export type {
   DocumentInterventionDatePrecision,
   DocumentInterventionRecord,
   DocumentInterventionRecordDraft,
+  DocumentInterventionRecordKind,
   DocumentInterventionRecordsToolResponse,
   DocumentInterventionServiceMode,
   DocumentInterventionStatus,
@@ -38,6 +39,7 @@ export type {
 export {
   DocumentInterventionDatePrecisionSchema,
   DocumentInterventionRecordDraftSchema,
+  DocumentInterventionRecordKindSchema,
   DocumentInterventionRecordSchema,
   DocumentInterventionRecordsToolResponseSchema,
   DocumentInterventionServiceModeSchema,

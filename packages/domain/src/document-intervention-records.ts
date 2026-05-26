@@ -46,6 +46,20 @@ export type DocumentInterventionDatePrecision = z.output<
   typeof DocumentInterventionDatePrecisionSchema
 >;
 
+// Pipeline-computed discriminator. `proposed` means every supporting candidate
+// is flagged proposed-only; `implemented` means at least one candidate reports
+// the intervention as in service or complete; `in_progress` is the middle
+// ground (planning, designing, monitoring). The model does not assign this
+// directly — Phase 3 post-processing derives it from candidate fields.
+export const DocumentInterventionRecordKindSchema = z.enum([
+  "implemented",
+  "in_progress",
+  "proposed",
+]);
+export type DocumentInterventionRecordKind = z.output<
+  typeof DocumentInterventionRecordKindSchema
+>;
+
 const evidenceRefList = z
   .array(z.string().min(1))
   .describe(
@@ -272,10 +286,13 @@ export type DocumentInterventionRecordsToolResponse = z.output<
   typeof DocumentInterventionRecordsToolResponseSchema
 >;
 
-// Persisted shape: adds recordId + extraction provenance.
+// Persisted shape: adds recordId, recordKind, extraction provenance, and
+// any deterministic back-fill of statusHistory or routes that the pipeline
+// applied after the model returned.
 const DocumentInterventionRecordObjectSchema = DocumentInterventionRecordDraftSchema.extend({
   recordId: z.string().min(1),
   sourceId: z.string().min(1),
+  recordKind: DocumentInterventionRecordKindSchema,
   evidenceCandidateIds: z
     .array(z.string().min(1))
     .describe("Every candidateId referenced anywhere in this record."),
