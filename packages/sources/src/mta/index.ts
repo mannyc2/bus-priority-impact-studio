@@ -14,6 +14,11 @@ export type { NormalizedHourlyRidership } from "./bus-ridership.js";
 export { NormalizedHourlyRidershipSchema, normalizeHourlyRidershipRows } from "./bus-ridership.js";
 export type { NormalizedSegmentSpeed } from "./bus-speeds.js";
 export { NormalizedSegmentSpeedSchema, normalizeSegmentSpeedRows } from "./bus-speeds.js";
+export type { NormalizedExpressBusCapacity } from "./express-bus-capacity.js";
+export {
+  NormalizedExpressBusCapacitySchema,
+  normalizeExpressBusCapacityRows,
+} from "./express-bus-capacity.js";
 export type {
   GtfsRtFeedType,
   NormalizedGtfsRtAlert,

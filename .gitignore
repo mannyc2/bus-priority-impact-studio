@@ -1,8 +1,8 @@
 node_modules/
 dist/
 build/
-!tools/pipeline/src/jobs/build/
-!tools/pipeline/src/jobs/build/**
+!tools/pipeline-v2/src/commands/build/
+!tools/pipeline-v2/src/commands/build/**
 .wrangler/
 .dev.vars
 .env

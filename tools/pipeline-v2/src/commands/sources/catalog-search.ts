@@ -1,5 +1,82 @@
 import { defineCommand, z } from "@liche/core";
-import { SocrataCatalogClient } from "@bp/sources";
+import { SocrataCatalogClient, type SocrataFetch } from "@bp/sources";
+
+type SocrataCatalogSearchResponse = Awaited<ReturnType<SocrataCatalogClient["search"]>>;
+
+export type SearchSourceCatalogArgs = {
+  query?: string | undefined;
+  domain?: string | undefined;
+  category?: string | undefined;
+  agency?: string | undefined;
+  tags?: string | undefined;
+  limit?: number | undefined;
+  offset?: number | undefined;
+  order?: string | undefined;
+  fetcher?: SocrataFetch | undefined;
+};
+
+export type SourceCatalogSearchResult = {
+  command: "sources:catalog-search";
+  checkedAt: string;
+  domain: string;
+  query: string;
+  filters: {
+    category: string | null;
+    agency: string | null;
+    tags: string | null;
+    limit: number;
+    offset: number;
+    order: string;
+  };
+  catalogUrl: string | null;
+  resultSetSize: number;
+  returned: number;
+  warnings: unknown[];
+  results: SocrataCatalogSearchResponse["results"];
+};
+
+export async function searchSourceCatalog(
+  args: SearchSourceCatalogArgs = {},
+): Promise<SourceCatalogSearchResult> {
+  const domain = args.domain?.trim() || "data.ny.gov";
+  const query = args.query?.trim();
+  if (query === undefined || query.length === 0) {
+    throw new Error("sources:catalog-search requires --query.");
+  }
+  const limit = args.limit ?? 20;
+  const offset = args.offset ?? 0;
+  const order = args.order ?? "relevance";
+  const client = new SocrataCatalogClient({ domain, fetcher: args.fetcher });
+  const response = await client.search({
+    query,
+    category: args.category,
+    agency: args.agency,
+    tags: args.tags,
+    limit,
+    offset,
+    order,
+  });
+
+  return {
+    command: "sources:catalog-search",
+    checkedAt: new Date().toISOString(),
+    domain,
+    query,
+    filters: {
+      category: args.category ?? null,
+      agency: args.agency ?? null,
+      tags: args.tags ?? null,
+      limit,
+      offset,
+      order,
+    },
+    catalogUrl: response.url ?? null,
+    resultSetSize: response.resultSetSize,
+    returned: response.returned,
+    warnings: response.warnings,
+    results: response.results,
+  };
+}
 
 export default defineCommand({
   path: ["sources", "catalog-search"],
@@ -36,44 +113,15 @@ export default defineCommand({
     results: z.array(z.unknown()),
   }),
   async run({ input }) {
-    const domain = input.options.domain?.trim() || "data.ny.gov";
-    const query = input.options.query.trim();
-    if (query.length === 0) {
-      throw new Error("sources:catalog-search requires --query.");
-    }
-    const limit = input.options.limit ?? 20;
-    const offset = input.options.offset ?? 0;
-    const order = input.options.order ?? "relevance";
-
-    const client = new SocrataCatalogClient({ domain });
-    const response = await client.search({
-      query,
+    return searchSourceCatalog({
+      query: input.options.query,
+      domain: input.options.domain,
       category: input.options.category,
       agency: input.options.agency,
       tags: input.options.tags,
-      limit,
-      offset,
-      order,
+      limit: input.options.limit,
+      offset: input.options.offset,
+      order: input.options.order,
     });
-
-    return {
-      command: "sources:catalog-search" as const,
-      checkedAt: new Date().toISOString(),
-      domain,
-      query,
-      filters: {
-        category: input.options.category ?? null,
-        agency: input.options.agency ?? null,
-        tags: input.options.tags ?? null,
-        limit,
-        offset,
-        order,
-      },
-      catalogUrl: response.url ?? null,
-      resultSetSize: response.resultSetSize,
-      returned: response.returned,
-      warnings: response.warnings,
-      results: response.results,
-    };
   },
 });
