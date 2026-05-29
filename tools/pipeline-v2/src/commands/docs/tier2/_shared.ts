@@ -5,9 +5,19 @@
 // `defineCommand`. Files prefixed with `_` are helpers (no `default`
 // export) and are ignored by the v2 CLI loader.
 //
-// NOTE (Goal 6 follow-up): the OpenRouter LLM call sites in this file are
-// preserved inline. A future pass will migrate them to
-// `@earendil-works/pi-ai` so they share the canonical client.
+// NOTE (Goal 6, partial): the simple OpenRouter chat-completions surface used
+// by `studio/_release-segments.ts` (segment-note generation) now routes through
+// `@earendil-works/pi-ai` (`lib/llm.ts`). The OpenRouter and DeepSeek call sites
+// in this file (`postOpenRouterChatCompletions`, `postDeepSeekChatCompletions`,
+// `callOpenRouterPageMarkdownOcr`) stay inline because they exercise provider-
+// specific features pi-ai does not currently model: OpenRouter's `plugins.
+// file-parser` for PDF input, DeepSeek's thinking-mode toggle vs. forced
+// `tool_choice`, OpenRouter's `service_tier`, and the `tool_choice: { type:
+// "function", function: { name: ... } }` shape with multimodal pages. Migrating
+// them through pi-ai would require custom providers + thinking-level mappers
+// for behavior that the v1 hand-rolled clients already model accurately. Revisit
+// when pi-ai adds first-class OpenRouter file-parser + DeepSeek thinking-mode
+// support.
 import { Buffer } from "node:buffer";
 import { createHash } from "node:crypto";
 import { mkdir, readdir, unlink } from "node:fs/promises";

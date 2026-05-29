@@ -1,3 +1,4 @@
+import { complete } from "@earendil-works/pi-ai";
 import {
   type StudioAiAnalystNote,
   StudioAiAnalystNoteSchema,
@@ -5,6 +6,7 @@ import {
   StudioAiPublicNoteSchema,
   type StudioRouteSegmentEvidence,
 } from "@bp/domain";
+import { openRouterModel } from "../../lib/llm.ts";
 import {
   tspMatchMethodForSegment,
   tspStatusForSegment,
@@ -661,29 +663,6 @@ function buildSegmentNoteLlmPrompt(segment: StudioSegment, previousError?: strin
   );
 }
 
-function extractOpenRouterText(body: unknown): string {
-  if (typeof body !== "object" || body === null) {
-    throw new Error("OpenRouter response was not a JSON object.");
-  }
-  const value = body as {
-    choices?: Array<{ message?: { content?: unknown } }>;
-    error?: { message?: unknown };
-  };
-  const content = value.choices?.[0]?.message?.content;
-  if (typeof content === "string" && content.trim().length > 0) {
-    return content;
-  }
-  const errorMessage = value.error?.message;
-  throw new Error(
-    typeof errorMessage === "string"
-      ? `OpenRouter response did not include message content: ${errorMessage}`
-      : "OpenRouter response did not include message content.",
-  );
-}
-
-// NOTE (Goal 6 follow-up): this OpenRouter call is ported verbatim from
-// tools/pipeline v1. A separate pass will route dev-side LLM traffic through
-// @earendil-works/pi-ai. Until then we preserve behavior.
 async function callOpenRouterSegmentNote(input: {
   segment: StudioSegment;
   options: SegmentNoteLlmOptions;
@@ -692,56 +671,39 @@ async function callOpenRouterSegmentNote(input: {
     throw new Error("OPENROUTER_API_KEY is required for --segment-note-llm.");
   }
 
+  const model = openRouterModel(input.options.model);
   let previousError: string | undefined;
   let lastError: unknown;
   for (let attempt = 1; attempt <= input.options.maxAttempts; attempt += 1) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), input.options.timeoutMs);
     try {
-      const response = await input.options.fetcher(
-        "https://openrouter.ai/api/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${input.options.apiKey}`,
-            "Content-Type": "application/json",
-            "HTTP-Referer": "https://github.com/",
-            "X-Title": "Bus Priority Impact Studio Segment Notes",
+      const result = await complete(model, {
+        systemPrompt:
+          "You write evidence-bounded public transit analysis notes. You improve analyst usefulness without inventing facts or causal claims.",
+        messages: [
+          {
+            role: "user",
+            content: buildSegmentNoteLlmPrompt(input.segment, previousError),
+            timestamp: Date.now(),
           },
-          signal: controller.signal,
-          body: JSON.stringify({
-            model: input.options.model,
-            max_tokens: input.options.maxTokens,
-            messages: [
-              {
-                role: "system",
-                content:
-                  "You write evidence-bounded public transit analysis notes. You improve analyst usefulness without inventing facts or causal claims.",
-              },
-              {
-                role: "user",
-                content: buildSegmentNoteLlmPrompt(input.segment, previousError),
-              },
-            ],
-            response_format: { type: "json_object" },
-            temperature: 0.2,
-          }),
-        },
-      );
-
-      const text = await response.text();
-      let body: unknown;
-      try {
-        body = JSON.parse(text);
-      } catch {
-        body = { rawText: text };
-      }
-      if (!response.ok) {
+        ],
+      }, {
+        apiKey: input.options.apiKey,
+        signal: controller.signal,
+        maxOutputTokens: input.options.maxTokens,
+        providerOptions: { response_format: { type: "json_object" }, temperature: 0.2 },
+      });
+      const text = result.content
+        .filter((block): block is { type: "text"; text: string } => block.type === "text")
+        .map((block) => block.text)
+        .join("");
+      if (text.trim().length === 0) {
         throw new Error(
-          `OpenRouter HTTP ${response.status} ${response.statusText}: ${text.slice(0, 300)}`,
+          `LLM segment note for ${input.segment.id} returned no text content.`,
         );
       }
-      return applyStudioLlmSegmentNoteOutput(input.segment, extractOpenRouterText(body));
+      return applyStudioLlmSegmentNoteOutput(input.segment, text);
     } catch (error) {
       const resolvedError = controller.signal.aborted
         ? new Error(
