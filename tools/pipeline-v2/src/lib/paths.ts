@@ -18,3 +18,11 @@ export function defaultExportRootPath(): string {
 export function fromCliPath(value: string): string {
   return isAbsolute(value) ? value : fromRepoRoot(value);
 }
+
+export function findingsArtifactDir(month: string): string {
+  return fromRepoRoot("data", "artifacts", "findings", month);
+}
+
+export function agentProposalsDir(month: string, runId: string): string {
+  return join(findingsArtifactDir(month), "agent-proposals", runId);
+}

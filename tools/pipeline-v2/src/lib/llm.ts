@@ -1,8 +1,11 @@
 import {
+  type Api,
   complete,
   type Context,
+  getModel,
   type Model,
   registerBuiltInApiProviders,
+  type ThinkingLevel,
 } from "@earendil-works/pi-ai";
 
 let providersRegistered = false;
@@ -38,12 +41,54 @@ export function openRouterModel(modelId: string): Model<"openai-completions"> {
   };
 }
 
+/**
+ * Direct DeepSeek model descriptor (OpenAI-compatible API at
+ * https://api.deepseek.com/v1). Use when going direct rather than via
+ * OpenRouter — same OpenAI completions wire format, separate billing.
+ *
+ * Common modelId values: "deepseek-chat" (V3 chat), "deepseek-reasoner" (R1).
+ */
+/**
+ * Resolve a model by id against pi-ai's generated OpenRouter catalog. Returns
+ * the catalog entry (with reasoning + thinkingLevelMap + compat fields wired)
+ * when present; null when the id is custom or unknown. Use the catalog model
+ * whenever it exists so thinking-mode and provider-specific behavior come
+ * along for free.
+ */
+export function getOpenRouterCatalogModel(modelId: string): Model<Api> | null {
+  const model = getModel("openrouter" as never, modelId as never);
+  return (model ?? null) as Model<Api> | null;
+}
+
+export function deepSeekModel(modelId: string): Model<"openai-completions"> {
+  return {
+    id: modelId,
+    name: modelId,
+    api: "openai-completions",
+    provider: "deepseek",
+    baseUrl: "https://api.deepseek.com/v1",
+    reasoning: false,
+    input: ["text"],
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    contextWindow: 128_000,
+    maxTokens: 8_000,
+  };
+}
+
 export type CompleteJsonOptions = {
   apiKey: string;
   timeoutMs: number;
   maxAttempts: number;
   maxOutputTokens?: number | undefined;
   responseFormatJson?: boolean | undefined;
+  reasoning?: ThinkingLevel | undefined;
+  /**
+   * Extra provider-specific body fields. Merged onto the providerOptions object
+   * (responseFormatJson contributes `response_format`). Use for DeepSeek's
+   * `thinking: {type: "enabled"}` + `reasoning_effort` extensions or other
+   * non-standard fields the upstream accepts.
+   */
+  providerOptions?: Record<string, unknown> | undefined;
   describeAttemptError?: ((error: unknown) => string) | undefined;
   appName?: string | undefined;
 };
@@ -66,7 +111,7 @@ export type CompleteJsonResult = {
  * dev-side use.
  */
 export async function completeJson(
-  model: Model<"openai-completions">,
+  model: Model<Api>,
   context: Context,
   options: CompleteJsonOptions,
 ): Promise<CompleteJsonResult> {
@@ -80,20 +125,33 @@ export async function completeJson(
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), options.timeoutMs);
     try {
+      const providerOptions: Record<string, unknown> = {
+        ...(options.responseFormatJson ? { response_format: { type: "json_object" } } : {}),
+        ...(options.providerOptions ?? {}),
+      };
       const result = await complete(model, context, {
         apiKey: options.apiKey,
         signal: controller.signal,
         ...(options.maxOutputTokens === undefined ? {} : { maxOutputTokens: options.maxOutputTokens }),
-        ...(options.responseFormatJson
-          ? { providerOptions: { response_format: { type: "json_object" } } }
-          : {}),
+        ...(options.reasoning === undefined ? {} : { reasoning: options.reasoning }),
+        ...(Object.keys(providerOptions).length > 0 ? { providerOptions } : {}),
       });
+      // Propagate provider-reported errors verbatim — pi-ai stuffs them on
+      // result.errorMessage when stopReason is "error". The previous behavior
+      // ("LLM response did not include any text content") buried real causes
+      // like "402 Insufficient credits" or rate limits.
+      if (result.stopReason === "error" && result.errorMessage) {
+        throw new Error(`LLM provider error: ${result.errorMessage}`);
+      }
       const text = result.content
         .filter((block): block is { type: "text"; text: string } => block.type === "text")
         .map((block) => block.text)
         .join("");
       if (text.length === 0) {
-        throw new Error("LLM response did not include any text content.");
+        const blockTypes = result.content.map((b) => b.type).join(",");
+        throw new Error(
+          `LLM response had no text content (stopReason=${result.stopReason} blocks=[${blockTypes}]). Raise --max-output-tokens, drop --thinking, or check provider quotas.`,
+        );
       }
       return { text, attempts: attempt };
     } catch (error) {

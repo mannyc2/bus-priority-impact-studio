@@ -1675,6 +1675,337 @@ export const FindingSignalFeaturesArtifactSchema = registerProjectSchema(
 
 export type FindingSignalFeaturesArtifact = z.output<typeof FindingSignalFeaturesArtifactSchema>;
 
+export const AgentFindingProposalClaimStrengthSchema = registerProjectSchema(
+  z.enum(["observation", "qualified_claim", "blocked"]),
+  {
+    id: "bp.finding.agent_proposal.claim_strength",
+    title: "Agent Finding Proposal Claim Strength",
+    description:
+      "Strength label an agent proposal commits to. `observation` is descriptive only; `qualified_claim` is the highest an agent may assert; `blocked` signals the agent reached a non-permitted claim and the proposal is for review notice only.",
+    stability: "draft",
+  },
+);
+
+export type AgentFindingProposalClaimStrength = z.output<typeof AgentFindingProposalClaimStrengthSchema>;
+
+export const AgentFindingProposalValidationStateSchema = registerProjectSchema(
+  z.enum(["pending", "valid", "rejected"]),
+  {
+    id: "bp.finding.agent_proposal.validation_state",
+    title: "Agent Finding Proposal Validation State",
+    description:
+      "Outcome of deterministic validation. `pending` is the model-submitted default; valid proposals enter the review queue; rejected proposals never do.",
+    stability: "draft",
+  },
+);
+
+export type AgentFindingProposalValidationState = z.output<
+  typeof AgentFindingProposalValidationStateSchema
+>;
+
+export const AgentFindingProposalEvidenceRefSchema = registerProjectSchema(
+  z
+    .discriminatedUnion("kind", [
+      z
+        .object({
+          kind: z.literal("review_packet_link"),
+          packetId: z.string().min(1),
+          linkId: z.string().min(1),
+        })
+        .strict(),
+      z
+        .object({
+          kind: z.literal("signal_feature"),
+          routeId: RouteIdSchema,
+          month: IsoMonthSchema,
+          window: SignalFeatureWindowSchema,
+          feature: z.string().min(1).max(120),
+        })
+        .strict(),
+      z
+        .object({
+          kind: z.literal("promoted_finding"),
+          promotedFindingId: z.string().min(1),
+        })
+        .strict(),
+      z
+        .object({
+          kind: z.literal("intervention_record"),
+          recordId: z.string().min(1),
+        })
+        .strict(),
+      z
+        .object({
+          kind: z.literal("document_candidate"),
+          candidateId: z.string().min(1),
+        })
+        .strict(),
+      z
+        .object({
+          kind: z.literal("context_appendix"),
+          routeId: RouteIdSchema,
+          month: IsoMonthSchema,
+          section: z.string().min(1).max(120),
+        })
+        .strict(),
+    ]),
+  {
+    id: "bp.finding.agent_proposal.evidence_ref.v1",
+    title: "Agent Finding Proposal Evidence Reference",
+    description:
+      "Discriminated reference to an existing corpus artifact. Every kind must resolve in the loaded corpus; invented refs fail validation.",
+    stability: "draft",
+  },
+);
+
+export type AgentFindingProposalEvidenceRef = z.output<
+  typeof AgentFindingProposalEvidenceRefSchema
+>;
+
+export const AgentFindingProposalMetricClaimSchema = registerProjectSchema(
+  z
+    .object({
+      variable: z.string().min(1).max(120),
+      value: z.number(),
+      units: z.string().min(1).max(40).nullable(),
+      evidenceRef: AgentFindingProposalEvidenceRefSchema,
+    })
+    .strict(),
+  {
+    id: "bp.finding.agent_proposal.metric_claim.v1",
+    title: "Agent Finding Proposal Metric Claim",
+    description:
+      "Quantitative claim made inside a proposal. The cited evidenceRef must contain a value matching `value` within validator tolerance.",
+    stability: "draft",
+  },
+);
+
+export type AgentFindingProposalMetricClaim = z.output<
+  typeof AgentFindingProposalMetricClaimSchema
+>;
+
+export const AgentFindingProposalDuplicateCheckSchema = registerProjectSchema(
+  z
+    .object({
+      matchedPromotedFindingId: z.string().min(1).nullable(),
+      reason: z.string().min(1).max(400),
+    })
+    .strict(),
+  {
+    id: "bp.finding.agent_proposal.duplicate_check.v1",
+    title: "Agent Finding Proposal Duplicate Check",
+    description:
+      "Result of comparing the proposal against existing promoted findings on the same route. Non-null matchedPromotedFindingId blocks promotion.",
+    stability: "draft",
+  },
+);
+
+export type AgentFindingProposalDuplicateCheck = z.output<
+  typeof AgentFindingProposalDuplicateCheckSchema
+>;
+
+export const AgentFindingProposalSchema = registerProjectSchema(
+  z
+    .object({
+      proposalId: z.string().min(1),
+      runId: z.string().min(1),
+      routeId: RouteIdSchema.nullable(),
+      scopeKind: FindingScopeKindSchema,
+      category: FindingCategorySchema,
+      severity: FindingSeveritySchema,
+      confidence: FindingConfidenceSchema,
+      claimText: z.string().min(1).max(500),
+      claimStrength: AgentFindingProposalClaimStrengthSchema,
+      evidenceRefs: z.array(AgentFindingProposalEvidenceRefSchema),
+      counterEvidenceRefs: z.array(AgentFindingProposalEvidenceRefSchema),
+      interventionRecordIds: z.array(z.string().min(1)),
+      documentCandidateIds: z.array(z.string().min(1)),
+      metricClaims: z.array(AgentFindingProposalMetricClaimSchema),
+      caveats: z.array(z.string().min(1).max(280)),
+      missingEvidence: z.array(z.string().min(1).max(280)),
+      duplicateCheck: AgentFindingProposalDuplicateCheckSchema,
+      validationState: AgentFindingProposalValidationStateSchema,
+      validationErrors: z.array(z.string().min(1).max(400)),
+    })
+    .strict(),
+  {
+    id: "bp.finding.agent_proposal.v1",
+    title: "Agent Finding Proposal",
+    description:
+      "Proposal-only artifact written by `findings:agent-propose`. Never a public finding; only enters the human review queue after deterministic validation.",
+    stability: "draft",
+  },
+);
+
+export type AgentFindingProposal = z.output<typeof AgentFindingProposalSchema>;
+
+export const AgentFindingProposalModelMetaSchema = registerProjectSchema(
+  z
+    .object({
+      provider: z.string().min(1).max(80),
+      modelId: z.string().min(1).max(160),
+      temperature: z.number().min(0).max(2).nullable(),
+      maxOutputTokens: z.number().int().positive().nullable(),
+    })
+    .strict(),
+  {
+    id: "bp.finding.agent_proposal.model_meta.v1",
+    title: "Agent Finding Proposal Model Metadata",
+    description:
+      "Identifies the LLM and key generation parameters used to produce a proposal artifact. Operator-supplied via --model.",
+    stability: "draft",
+  },
+);
+
+export type AgentFindingProposalModelMeta = z.output<
+  typeof AgentFindingProposalModelMetaSchema
+>;
+
+export const AgentFindingProposalCorpusPathsSchema = registerProjectSchema(
+  z
+    .object({
+      reviewPackets: z.string().min(1).nullable(),
+      promotionQueue: z.string().min(1).nullable(),
+      promotedFindings: z.string().min(1).nullable(),
+      signalFeatures: z.string().min(1).nullable(),
+      contextAppendix: z.string().min(1).nullable(),
+      interventionPublishable: z.string().min(1).nullable(),
+      interventionPublishableByRoute: z.string().min(1).nullable(),
+      interventionRecords: z.string().min(1).nullable(),
+      documentCandidates: z.string().min(1).nullable(),
+    })
+    .strict(),
+  {
+    id: "bp.finding.agent_proposal.corpus_paths.v1",
+    title: "Agent Finding Proposal Corpus Paths",
+    description:
+      "Resolved absolute paths of the corpus artifacts the proposal run consumed. Nullable per-artifact so runs can document partial coverage.",
+    stability: "draft",
+  },
+);
+
+export type AgentFindingProposalCorpusPaths = z.output<
+  typeof AgentFindingProposalCorpusPathsSchema
+>;
+
+export const AgentFindingProposalsArtifactSchema = registerProjectSchema(
+  z
+    .object({
+      artifactKind: z.literal("agent_finding_proposals"),
+      schemaVersion: z.literal(schemaVersion),
+      month: IsoMonthSchema,
+      runId: z.string().min(1),
+      model: AgentFindingProposalModelMetaSchema,
+      corpusPaths: AgentFindingProposalCorpusPathsSchema,
+      generatedAt: z.iso.datetime(),
+      durationMs: z.number().int().nonnegative(),
+      toolCallCount: z.number().int().nonnegative(),
+      proposals: z.array(AgentFindingProposalSchema),
+      summary: z
+        .object({
+          totalProposals: z.number().int().nonnegative(),
+          validCount: z.number().int().nonnegative(),
+          rejectedCount: z.number().int().nonnegative(),
+          byCategory: z.record(z.string(), z.number().int().nonnegative()),
+          bySeverity: z.record(z.string(), z.number().int().nonnegative()),
+          byScope: z.record(z.string(), z.number().int().nonnegative()),
+        })
+        .strict(),
+    })
+    .strict(),
+  {
+    id: "bp.finding.agent_proposals_artifact.v1",
+    title: "Agent Finding Proposals Artifact",
+    description:
+      "Full output of one `findings:agent-propose` run. Includes provenance, tool-call count, and per-proposal records pre-validation.",
+    stability: "draft",
+  },
+);
+
+export type AgentFindingProposalsArtifact = z.output<
+  typeof AgentFindingProposalsArtifactSchema
+>;
+
+export const AgentFindingProposalValidationCheckSchema = registerProjectSchema(
+  z
+    .object({
+      name: z.enum([
+        "evidence_refs_resolve",
+        "metric_consistency",
+        "prose_number_coverage",
+        "route_refs",
+        "intervention_support",
+        "language",
+        "duplicate",
+        "scope_blocked_claims",
+      ]),
+      passed: z.boolean(),
+      errors: z.array(z.string().min(1).max(400)),
+    })
+    .strict(),
+  {
+    id: "bp.finding.agent_proposal.validation_check.v1",
+    title: "Agent Finding Proposal Validation Check",
+    description: "Per-validator outcome for one proposal.",
+    stability: "draft",
+  },
+);
+
+export type AgentFindingProposalValidationCheck = z.output<
+  typeof AgentFindingProposalValidationCheckSchema
+>;
+
+export const AgentFindingProposalValidationRecordSchema = registerProjectSchema(
+  z
+    .object({
+      proposalId: z.string().min(1),
+      validationState: AgentFindingProposalValidationStateSchema,
+      errors: z.array(z.string().min(1).max(400)),
+      checks: z.array(AgentFindingProposalValidationCheckSchema),
+    })
+    .strict(),
+  {
+    id: "bp.finding.agent_proposal.validation_record.v1",
+    title: "Agent Finding Proposal Validation Record",
+    description: "All validator outcomes for one proposal, plus the rolled-up state.",
+    stability: "draft",
+  },
+);
+
+export type AgentFindingProposalValidationRecord = z.output<
+  typeof AgentFindingProposalValidationRecordSchema
+>;
+
+export const AgentFindingProposalValidationArtifactSchema = registerProjectSchema(
+  z
+    .object({
+      artifactKind: z.literal("agent_finding_proposal_validation"),
+      schemaVersion: z.literal(schemaVersion),
+      proposalsArtifactPath: z.string().min(1),
+      generatedAt: z.iso.datetime(),
+      summary: z
+        .object({
+          totalProposals: z.number().int().nonnegative(),
+          validCount: z.number().int().nonnegative(),
+          rejectedCount: z.number().int().nonnegative(),
+        })
+        .strict(),
+      validations: z.array(AgentFindingProposalValidationRecordSchema),
+    })
+    .strict(),
+  {
+    id: "bp.finding.agent_proposal_validation_artifact.v1",
+    title: "Agent Finding Proposal Validation Artifact",
+    description:
+      "Deterministic validation outputs for a proposals artifact. The bridge command only promotes proposals where validationState is `valid`.",
+    stability: "draft",
+  },
+);
+
+export type AgentFindingProposalValidationArtifact = z.output<
+  typeof AgentFindingProposalValidationArtifactSchema
+>;
+
 export const routeScorecardJsonSchema = toProjectJsonSchema(RouteScorecardSchema);
 export const healthResponseJsonSchema = toProjectJsonSchema(HealthResponseSchema);
 export const releaseStatusResponseJsonSchema = toProjectJsonSchema(ReleaseStatusResponseSchema);

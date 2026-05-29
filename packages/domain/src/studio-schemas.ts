@@ -150,6 +150,7 @@ export const StudioFindingReviewSchema = z
       "promoted_finding",
       "detector_review_queue",
       "route_score_fallback",
+      "agent_proposal",
     ]),
     candidateId: z.string().nullable(),
     detectorId: z.string().nullable(),
