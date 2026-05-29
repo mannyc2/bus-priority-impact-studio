@@ -13,8 +13,12 @@ async function discoverCommands(): Promise<DeclarativeCommand[]> {
   const glob = new Glob("commands/**/*.ts");
   const commands: DeclarativeCommand[] = [];
   for await (const path of glob.scan({ cwd: import.meta.dir })) {
-    const mod = await import(`./${path}`);
-    if (mod.default) commands.push(mod.default as DeclarativeCommand);
+    try {
+      const mod = await import(`./${path}`);
+      if (mod.default) commands.push(mod.default as DeclarativeCommand);
+    } catch (err) {
+      console.error(`pipeline: skipping ${path} (${(err as Error).message.split("\n")[0]})`);
+    }
   }
   return commands;
 }

@@ -132,4 +132,9 @@ export {
   soqlQuote,
   soqlYearMonthRange,
   summarizeSocrataMetadata,
+  buildSocrataCatalogSearchUrl,
+  defaultSocrataCatalogBoostDomains,
+  parseSocrataCatalogSearchResponse,
+  searchSocrataCatalog,
+  SocrataCatalogClient,
 } from "./socrata/index.js";

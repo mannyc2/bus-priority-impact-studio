@@ -24,3 +24,16 @@ export {
   summarizeSocrataMetadata,
 } from "./client.js";
 export { soqlIn, soqlQuote, soqlYearMonthRange } from "./soql.js";
+export {
+  buildSocrataCatalogSearchUrl,
+  defaultSocrataCatalogBoostDomains,
+  parseSocrataCatalogSearchResponse,
+  searchSocrataCatalog,
+  SocrataCatalogClient,
+} from "./catalog.js";
+export type {
+  SocrataCatalogClientOptions,
+  SocrataCatalogSearchOptions,
+  SocrataCatalogSearchResponse,
+  SocrataCatalogSearchResult,
+} from "./catalog.js";
