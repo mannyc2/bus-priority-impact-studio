@@ -7,7 +7,6 @@ import type {
   RouteReadiness,
 } from "@bp/db";
 import type {
-  StudioIntervention,
   StudioObservedReliability,
   StudioRouteArtifactRef,
   StudioSpeedPercentileContext,
@@ -21,6 +20,7 @@ import type {
   RouteBriefTopStopBoardings,
   RouteGeometrySummary,
   SpeedPercentileResult,
+  StudioIntervention,
   StudioRoute,
   StudioSegment,
   TspEvidence,
@@ -363,7 +363,7 @@ export function buildRoute(
       speedPercentile.routeCount,
     ),
     dailyRiders: averageCalendarDayRiders(summary.totalRidership, summary.month),
-    ridersYoyPct: routeRidersYoyPct(summary, routeTrends),
+    ridersYoyPct: routeRidersYoyPct(summary, routeTrends) ?? 0,
     ridershipSpark: ridershipSpark.values,
     ridershipSparkMonths: ridershipSpark.months,
     ridershipProfile: routeRidershipProfile(artifact),

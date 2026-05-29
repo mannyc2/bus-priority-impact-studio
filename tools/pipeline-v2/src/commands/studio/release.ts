@@ -19,15 +19,12 @@ import {
   buildStudioBriefHistoryProjection,
   buildStudioBriefProjection,
   buildStudioBriefsProjection,
-  buildStudioCohortCatalogProjection,
   buildStudioDocsProjection,
-  buildStudioEvidenceCatalogProjection,
   buildStudioFindingProjection,
   buildStudioFindingsProjection,
   buildStudioMethodsProjection,
   buildStudioRouteLadderProjection,
   buildStudioRouteProjection,
-  buildStudioRouteSegmentsProjection,
   buildStudioRoutesProjection,
   type StudioAiPublicNote,
   type StudioIntervention,
@@ -606,11 +603,6 @@ async function writeProjections(
   await writeJson(resolve(outputDir, "routes.json"), buildStudioRoutesProjection(release));
   await writeJson(resolve(outputDir, "findings.json"), buildStudioFindingsProjection(release));
   await writeJson(resolve(outputDir, "briefs.json"), buildStudioBriefsProjection(release));
-  await writeJson(
-    resolve(outputDir, "evidence.json"),
-    buildStudioEvidenceCatalogProjection(release),
-  );
-  await writeJson(resolve(outputDir, "cohorts.json"), buildStudioCohortCatalogProjection(release));
   await writeJson(resolve(outputDir, "methods.json"), buildStudioMethodsProjection(release));
   await writeJson(resolve(outputDir, "docs.json"), buildStudioDocsProjection(release));
 
@@ -622,10 +614,6 @@ async function writeProjections(
     await writeJson(
       resolve(outputDir, "routes", route.slug, "ladder.json"),
       buildStudioRouteLadderProjection(release, route),
-    );
-    await writeJson(
-      resolve(outputDir, "routes", route.slug, "segments.json"),
-      buildStudioRouteSegmentsProjection(release, route),
     );
   }
 

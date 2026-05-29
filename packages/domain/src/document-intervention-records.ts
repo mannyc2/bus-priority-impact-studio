@@ -301,6 +301,10 @@ const DocumentInterventionRecordObjectSchema = DocumentInterventionRecordDraftSc
       candidateExtractionRootName: z.string().min(1),
       candidateRootName: z.string().min(1),
       synthesisRootName: z.string().min(1),
+      qualityIssues: z.array(z.string().min(1)).optional(),
+      qualityRepairs: z.array(z.string().min(1)).optional(),
+      bucketId: z.string().min(1).optional(),
+      bucketKind: z.string().min(1).optional(),
     })
     .strict(),
 }).strict();

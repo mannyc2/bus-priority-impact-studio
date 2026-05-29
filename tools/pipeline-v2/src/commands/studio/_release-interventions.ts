@@ -1,12 +1,12 @@
 import {
   buildStudioInterventionsFromComparisons,
-  type StudioIntervention,
 } from "@bp/domain";
 import type {
   RouteInterventionComparison,
 } from "@bp/db";
 import { routeKey } from "./_release-routes.ts";
 import type {
+  StudioIntervention,
   Tier2DocumentChunkIndex,
   Tier2ManualInterventionCandidate,
   Tier2ManualInterventionCandidatesArtifact,

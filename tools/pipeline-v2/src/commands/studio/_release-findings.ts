@@ -2,7 +2,6 @@ import {
   type PromotedFinding,
   PromotedFindingsArtifactSchema,
   type ReasoningStep,
-  type StudioFinding,
 } from "@bp/domain";
 import { fromRepoRoot } from "../../lib/paths.ts";
 import { readJsonIfExists } from "./_release-geometry.ts";
@@ -11,6 +10,7 @@ import type {
   FindingContextAppendixRoute,
   ReviewQueueArtifact,
   ReviewQueueCandidate,
+  StudioFinding,
   StudioRoute,
 } from "./_release-types.ts";
 

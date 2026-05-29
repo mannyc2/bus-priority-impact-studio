@@ -6,7 +6,7 @@ import {
   listRouteCatalog,
   listRouteObservedReliabilitySummaries,
 } from "@bp/db/local";
-import { StudioAiPublicNoteSchema, StudioEvidenceCatalogResponseSchema } from "@bp/domain";
+import { StudioAiPublicNoteSchema } from "@bp/domain";
 import { isoMonth } from "../../lib/dates.ts";
 import { writeJson } from "../../lib/json.ts";
 import { dbOptions, localDbFromCtx, withLocalDb } from "../../lib/local-db.ts";
@@ -762,13 +762,6 @@ function hasValidPublicAiNote(value: unknown): boolean {
   return StudioAiPublicNoteSchema.safeParse(value).success;
 }
 
-function artifactApiPath(key: string): string {
-  return `/api/v1/artifacts/${key
-    .split("/")
-    .map((part) => encodeURIComponent(part))
-    .join("/")}`;
-}
-
 const requiredBoardingUnavailableCoverageReasons = [
   "stop_level_boardings_unavailable",
   "segment_level_boardings_unavailable",
@@ -891,77 +884,13 @@ async function auditGeneratedArtifactPresentationText(
   };
 }
 
-async function auditEvidenceCatalog(studioRoot: string): Promise<EvidenceCatalogAudit> {
-  let payload: unknown;
-  try {
-    payload = JSON.parse(await readFile(join(studioRoot, "evidence.json"), "utf8"));
-  } catch {
-    return {
-      evidenceCatalogItemCount: 0,
-      evidenceCatalogInvalidItemCount: 1,
-      invalidEvidenceCatalogRefs: ["evidence.json:missing-or-invalid-json"],
-    };
-  }
-
-  const parsed = StudioEvidenceCatalogResponseSchema.safeParse(payload);
-  if (!parsed.success) {
-    return {
-      evidenceCatalogItemCount: 0,
-      evidenceCatalogInvalidItemCount: 1,
-      invalidEvidenceCatalogRefs: ["evidence.json:schema"],
-    };
-  }
-
-  const invalidRefs: string[] = [];
-  const seenIds = new Set<string>();
-  for (const [index, item] of parsed.data.items.entries()) {
-    const ref = item.id.length > 0 ? item.id : `item:${index + 1}`;
-    if (!/^[a-z0-9][a-z0-9:_-]*$/.test(item.id)) {
-      invalidRefs.push(`${ref}:unstable-id`);
-    }
-    if (seenIds.has(item.id)) {
-      invalidRefs.push(`${ref}:duplicate-id`);
-    }
-    seenIds.add(item.id);
-    if (item.kind !== "caveat") {
-      if (item.sourceRefId === undefined || item.sourceRefId.trim().length === 0) {
-        invalidRefs.push(`${ref}:missing-sourceRefId`);
-      }
-      if (item.sourceLabel === undefined || item.sourceLabel.trim().length === 0) {
-        invalidRefs.push(`${ref}:missing-sourceLabel`);
-      }
-    }
-    const hasArtifactField =
-      item.sourceArtifactKey !== undefined ||
-      item.sourceArtifactHref !== undefined ||
-      item.sourceArtifactSha256 !== undefined;
-    if (hasArtifactField) {
-      if (item.sourceArtifactKey === undefined || item.sourceArtifactKey.trim().length === 0) {
-        invalidRefs.push(`${ref}:missing-sourceArtifactKey`);
-      }
-      if (item.sourceArtifactHref === undefined || item.sourceArtifactHref.trim().length === 0) {
-        invalidRefs.push(`${ref}:missing-sourceArtifactHref`);
-      }
-      if (
-        item.sourceArtifactSha256 === undefined ||
-        item.sourceArtifactSha256.trim().length === 0
-      ) {
-        invalidRefs.push(`${ref}:missing-sourceArtifactSha256`);
-      }
-      if (
-        item.sourceArtifactKey !== undefined &&
-        item.sourceArtifactHref !== undefined &&
-        item.sourceArtifactHref !== artifactApiPath(item.sourceArtifactKey)
-      ) {
-        invalidRefs.push(`${ref}:artifact-href-mismatch`);
-      }
-    }
-  }
-
+async function auditEvidenceCatalog(_studioRoot: string): Promise<EvidenceCatalogAudit> {
+  // evidence.json projection retired with the cohort/evidence catalog domain refactor;
+  // gate is now vestigial and always reports zero items.
   return {
-    evidenceCatalogItemCount: parsed.data.items.length,
-    evidenceCatalogInvalidItemCount: invalidRefs.length,
-    invalidEvidenceCatalogRefs: invalidRefs.sort(),
+    evidenceCatalogItemCount: 0,
+    evidenceCatalogInvalidItemCount: 0,
+    invalidEvidenceCatalogRefs: [],
   };
 }
 

@@ -1,11 +1,10 @@
 import type { SourceCoverageLedgerEntry } from "../audit/source-coverage.ts";
 import type {
   StudioDocsSource,
-  StudioFinding,
   StudioMethodDataset,
   StudioRouteArtifactRef,
 } from "@bp/domain";
-import type { StudioBrief, StudioRoute } from "./_release-types.ts";
+import type { StudioBrief, StudioFinding, StudioRoute } from "./_release-types.ts";
 
 function formatMonthRange(months: readonly string[]): string {
   if (months.length === 0) return "month unavailable";
@@ -333,7 +332,9 @@ export function sourceHrefForSourceLink(
   const selected =
     preferredLabelIncludes === undefined
       ? links[0]
-      : (links.find((link) => link.label.includes(preferredLabelIncludes)) ?? links[0]);
+      : (links.find((link: { label: string; url: string }) =>
+          link.label.includes(preferredLabelIncludes),
+        ) ?? links[0]);
   if (selected === undefined) {
     throw new Error(`Missing Studio source link for ${sourceId}.`);
   }

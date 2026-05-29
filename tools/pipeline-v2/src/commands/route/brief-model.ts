@@ -413,7 +413,7 @@ export function buildRouteBriefSegmentUniverse(input: {
   }
 
   const detected = detectSegmentHotspots(observations, { limit: Number.MAX_SAFE_INTEGER });
-  const segments = [...detected.segments].sort(segmentOrder);
+  const segments = [...detected.hotspots].sort(segmentOrder);
   const comparisons = scheduleComparisons(input.schedules, segments);
   const comparisonsBySegment = new Map(
     comparisons.hotspotComparisons.map((comparison) => [comparison.segmentId, comparison]),
@@ -638,8 +638,6 @@ export function buildRouteBriefModel(input: RouteBriefModelInput) {
     routeTypes: catalogRow?.routeTypes ?? [],
     shapeCount: catalogRow?.shapeCount ?? 0,
     coverageStatus: scorecard.coverageStatus,
-    ridershipWindowCount: summary.ridershipWindowCount,
-    totalRidership: ridershipProfile.totalRidership,
   });
   const peakWindow = ridershipProfile.peakRidershipWindow;
   const slowestWindow = speedProfile.slowestDayHourWindows[0] ?? null;

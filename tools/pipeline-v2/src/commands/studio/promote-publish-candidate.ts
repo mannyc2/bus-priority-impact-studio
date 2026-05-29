@@ -6,23 +6,20 @@ import {
   buildStudioBriefHistoryProjection,
   buildStudioBriefProjection,
   buildStudioBriefsProjection,
-  buildStudioCohortCatalogProjection,
   buildStudioDocsProjection,
-  buildStudioEvidenceCatalogProjection,
   buildStudioFindingProjection,
   buildStudioFindingsProjection,
   buildStudioMethodsProjection,
   buildStudioRouteLadderProjection,
   buildStudioRouteProjection,
-  buildStudioRouteSegmentsProjection,
   buildStudioRoutesProjection,
+  type StudioBrief,
   type StudioBriefPublishCandidateExportResponse,
   StudioBriefPublishCandidateExportResponseSchema,
   type StudioComment,
   type StudioReleasePayload,
   StudioReleasePayloadSchema,
 } from "@bp/domain";
-import type { StudioBrief } from "./_release-types.ts";
 import { fromCliPath } from "../../lib/paths.ts";
 
 const defaultReleasePath = "data/artifacts/studio/v1/release.json";
@@ -131,7 +128,7 @@ function promoteCandidateIntoRelease(
           author: promoted.authors[0] ?? "Studio publish-candidate promotion",
           summary: `Promoted from Studio publish candidate ${candidate.candidateId}.`,
           claimsCount: promoted.claims.length,
-          evidenceRefCount: promoted.evidenceRefCount,
+          citesCount: promoted.evidence.length,
           caveatsCount: promoted.caveats.length,
         },
       ],
@@ -173,13 +170,6 @@ async function writeProjectionSet(
   wroteProjectionCount += 1;
   await writeJson(resolve(outputDir, "briefs.json"), buildStudioBriefsProjection(release));
   wroteProjectionCount += 1;
-  await writeJson(
-    resolve(outputDir, "evidence.json"),
-    buildStudioEvidenceCatalogProjection(release),
-  );
-  wroteProjectionCount += 1;
-  await writeJson(resolve(outputDir, "cohorts.json"), buildStudioCohortCatalogProjection(release));
-  wroteProjectionCount += 1;
   await writeJson(resolve(outputDir, "methods.json"), buildStudioMethodsProjection(release));
   wroteProjectionCount += 1;
   await writeJson(resolve(outputDir, "docs.json"), buildStudioDocsProjection(release));
@@ -194,11 +184,6 @@ async function writeProjectionSet(
     await writeJson(
       resolve(outputDir, "routes", route.slug, "ladder.json"),
       buildStudioRouteLadderProjection(release, route),
-    );
-    wroteProjectionCount += 1;
-    await writeJson(
-      resolve(outputDir, "routes", route.slug, "segments.json"),
-      buildStudioRouteSegmentsProjection(release, route),
     );
     wroteProjectionCount += 1;
   }
@@ -265,7 +250,7 @@ export async function promoteStudioPublishCandidate(
     outputPath: displayPath(outputPath),
     dryRun: !options.execute,
     targetBriefId,
-    sourceBriefId: candidate.sourceBriefId,
+    sourceBriefId: candidate.sourceBriefId ?? null,
     candidateBriefId: candidate.briefId,
     routeSlug: candidate.brief.routeSlug,
     artifactPath: displayPath(writeResult.artifactPath),

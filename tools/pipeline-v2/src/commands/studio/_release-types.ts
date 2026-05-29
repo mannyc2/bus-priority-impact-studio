@@ -1,6 +1,10 @@
 import type { LocalBusLane } from "@bp/db/local";
 import type {
+  ClaimCaveat as DomainClaimCaveat,
+  ClaimEvidence as DomainClaimEvidence,
   StudioAiPublicNote,
+  StudioFinding as DomainStudioFinding,
+  StudioIntervention as DomainStudioIntervention,
   StudioRoute as DomainStudioRoute,
   StudioSegment as DomainStudioSegment,
   StudioBrief as DomainStudioBrief,
@@ -15,7 +19,25 @@ import type {
 // evidence, brief evidence-ref counts). These augmentations match the field set
 // the v1 monolith produced; they live here so downstream files can import the
 // extended shapes without a workspace-wide schema change.
-export type StudioRoute = DomainStudioRoute & {
+export type StudioRoute = Omit<DomainStudioRoute, "tspCoverage" | "diagnosis" | "termini"> & {
+  tspCoverage?: DomainStudioRoute["tspCoverage"];
+  diagnosis?: DomainStudioRoute["diagnosis"];
+  termini?: DomainStudioRoute["termini"];
+  ridershipProfile: {
+    peakRidershipWindow: RouteBriefRidershipWindow | null;
+    topRidershipWindows: RouteBriefRidershipWindow[];
+    slowCrowdedWindows: RouteBriefRidershipWindow[];
+    hourlyBoardings: RouteBriefHourlyBoardings | null;
+    topStopBoardings: RouteBriefTopStopBoardings;
+  } | null;
+  sparkMonths: string[];
+  ridershipSpark: number[];
+  ridershipSparkMonths: string[];
+  speedPercentileContext: StudioSpeedPercentileContext;
+  endpoints: { start: string; end: string };
+  laneTypes: string[];
+  laneOperatingHours: string[];
+  laneOperatingDays: string[];
   laneCoverageSource: "dot_bus_lanes_geometry" | "geometry_unavailable";
   tspStatus: "installed" | "candidate" | "unknown";
   tspSource: "not_in_ingested_tsp_sources" | "nyc_dot_tsp_status_2017";
@@ -49,8 +71,57 @@ export type StudioSegment = Omit<DomainStudioSegment, "aiNote" | "tsp"> & {
     | "route_level_status_only";
 };
 
-export type StudioBrief = DomainStudioBrief & {
-  evidenceRefCount: number;
+// Studio brief evidence rows carry pipeline-internal source provenance fields
+// (sourceRefId/sourceLabel/sourceHref + optional artifact triple). These are
+// not part of the public ClaimEvidence schema but are written by the release
+// builder for downstream audit and rendering.
+export type StudioClaimEvidence = DomainClaimEvidence & {
+  sourceRefId?: string;
+  sourceLabel?: string;
+  sourceHref?: string;
+  sourceArtifactKey?: string;
+  sourceArtifactHref?: string;
+  sourceArtifactSha256?: string;
+};
+
+// Brief/finding caveats carry a pipeline-internal stable id used for claim
+// caveatIds references.
+export type StudioClaimCaveat = DomainClaimCaveat & {
+  id: string;
+};
+
+export type StudioBrief = Omit<
+  DomainStudioBrief,
+  "evidence" | "caveats" | "citationCount"
+> & {
+  evidence: StudioClaimEvidence[];
+  caveats: StudioClaimCaveat[];
+  citationCount?: number;
+  evidenceRefCount?: number;
+};
+
+export type StudioFinding = Omit<DomainStudioFinding, "caveat"> & {
+  caveat: DomainStudioFinding["caveat"] & { id: string };
+};
+
+// Studio interventions accept v1 manual-registry fields (timelineLayer,
+// candidateId, sourceLinks, sourceSpanRefs, etc.) on top of the public domain
+// shape.
+export type StudioIntervention = DomainStudioIntervention & {
+  candidateId?: string;
+  timelineLayer?:
+    | "canonical_milestone"
+    | "treatment_component"
+    | "planned_or_proposed"
+    | "evaluation";
+  qualityTier?: string;
+  status?: "implemented" | "planned" | "proposed" | "historical_context" | "defer";
+  interventionType?: string;
+  sourceLabel?: string;
+  sourceDetail?: string;
+  sourceSpanChunkIds?: string[];
+  sourceSpanRefs?: Tier2DocumentChunkPreview[];
+  sourceLinks?: Array<{ label: string; url: string }>;
 };
 
 export type ReleaseProfile = "demo" | "full";

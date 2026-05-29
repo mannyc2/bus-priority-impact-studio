@@ -581,3 +581,43 @@ export type StudioMethodDataset = z.output<typeof StudioMethodDatasetSchema>;
 export type StudioDocsSection = z.output<typeof StudioDocsSectionSchema>;
 export type StudioDocsEndpoint = z.output<typeof StudioDocsEndpointSchema>;
 export type StudioReleasePayload = z.output<typeof StudioReleasePayloadSchema>;
+
+export const StudioAiNoteEvidenceKeySchema = z.string().min(1);
+export type StudioAiNoteEvidenceKey = z.output<typeof StudioAiNoteEvidenceKeySchema>;
+
+export const StudioAiAnalystNoteSchema = z.object({
+  generationMode: z.string().min(1),
+  headline: z.string().min(1),
+  body: z.string().min(1),
+  primaryEvidence: z.array(StudioAiNoteEvidenceKeySchema),
+  caveats: z.array(z.string().min(1)),
+  nextChecks: z.array(z.string().min(1)),
+  blockedClaims: z.array(z.string().min(1)),
+  confidence: z.enum(["low", "medium", "high"]),
+});
+export type StudioAiAnalystNote = z.output<typeof StudioAiAnalystNoteSchema>;
+
+export const StudioAiPublicNoteSchema = z.object({
+  generationMode: z.string().min(1),
+  body: z.string().min(1),
+  source: z.string().min(1),
+});
+export type StudioAiPublicNote = z.output<typeof StudioAiPublicNoteSchema>;
+
+export const StudioBriefPublishCandidateExportResponseSchema = z.object({
+  briefId: z.string().min(1),
+  sourceBriefId: z.string().min(1).nullable().optional(),
+  candidateId: z.string().min(1),
+  artifactKey: z.string().min(1),
+  generatedAt: z.string().min(1),
+  version: z.string().min(1),
+  publishedAt: z.string().min(1),
+  brief: StudioBriefSchema,
+  route: StudioRouteSchema,
+  history: z.object({
+    comments: z.array(StudioCommentSchema),
+  }),
+});
+export type StudioBriefPublishCandidateExportResponse = z.output<
+  typeof StudioBriefPublishCandidateExportResponseSchema
+>;
