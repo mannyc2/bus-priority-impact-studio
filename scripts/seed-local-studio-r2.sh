@@ -6,7 +6,7 @@ config="${2:-apps/web/wrangler.jsonc}"
 root="data/artifacts/studio/v1"
 
 if [ ! -d "$root" ]; then
-  printf 'Missing Studio projections at %s. Run: bun run build:studio-release\n' "$root" >&2
+  printf 'Missing Studio projections at %s. Run: bun run pipeline studio release\n' "$root" >&2
   exit 1
 fi
 

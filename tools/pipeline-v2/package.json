@@ -1,0 +1,31 @@
+{
+  "name": "@bp/pipeline-v2",
+  "private": true,
+  "type": "module",
+  "description": "Liche-based rewrite of @bp/pipeline. Stage 1 pilot.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "bin": {
+    "pipeline": "./src/cli.ts"
+  },
+  "scripts": {
+    "cli": "bun run src/cli.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
+    "test": "bun test ./test --timeout 5000"
+  },
+  "dependencies": {
+    "@bp/analytics": "workspace:*",
+    "@bp/db": "workspace:*",
+    "@bp/domain": "workspace:*",
+    "@bp/sources": "workspace:*",
+    "@earendil-works/pi-ai": "^0.75.5",
+    "@liche/core": "^0.7.0",
+    "pdf-lib": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "typescript": "catalog:"
+  }
+}

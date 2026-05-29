@@ -2,6 +2,27 @@
 
 Read this file first. It is the navigation layer for the LLM wiki.
 
+> **Pipeline-v2 status (2026-05-29).** `tools/pipeline-v2` is the canonical pipeline CLI: all
+> 89 port-rated v1 commands now exist as v2 commands under `tools/pipeline-v2/src/commands/**`,
+> the three v1 monoliths (`tier2-docs.ts`, `studio-release.ts`, `audit/studio-coverage.ts`)
+> split during port, and root `package.json` collapsed from 114 scripts to 31 orchestration
+> entries (most pipeline calls now go through `bun --filter @bp/pipeline-v2 cli -- ...`).
+> v1 deletion is **gated on user-run integration tests**: the rebuild-trigger workflow against
+> the March 2026 fixture and the Tier 2 docs corpus pipeline end-to-end. See
+> `tools/pipeline-v2/migration-plan.md`.
+
+> **v1 command retirement note (2026-05-29).** v1 Tier 2 pipeline commands referenced in the
+> linked wiki pages — `docs:ocr`, `docs:ocr-review`, `docs:validate`, `docs:promote`,
+> `docs:audit-promoted-source-backing`, `docs:followup-curation-bundle`,
+> `docs:followup-curation-queue`, `docs:followup-curation-decisions`,
+> `docs:followup-resolution-audit`, `docs:verify-followup-curation`, and `build:artifacts` —
+> have been retired and no longer exist in `tools/pipeline/package.json` or
+> `tools/pipeline/src/cli.ts`. References in those pages describe past pipeline state and the
+> on-disk artifacts under `tier2-full-corpus-2026-05-24-pass2/`, not commands that exist today.
+> The Phase 2/3 successors in v2 are `docs:ocr-plan`, `docs:ocr-page-audit`,
+> `docs:ocr-markdown-candidates`, `docs:extract`, and `docs:intervention-records`. See
+> `tools/pipeline-v2/inventory-audit.md`.
+
 ## Architecture decisions (ADRs)
 
 ADRs live in `docs/decisions/` (not under `knowledge/wiki/`). Notable: 0007

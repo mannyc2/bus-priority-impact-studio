@@ -1,0 +1,152 @@
+import { join } from "node:path";
+import { arg, defineCommand, z } from "@liche/core";
+import { upsertParkingViolations } from "@bp/db/local";
+import {
+  BUS_RELEVANT_PARKING_CODES,
+  getSocrataSource,
+  normalizeParkingViolationRows,
+  parseSourceManifest,
+  type SocrataFetch,
+  type SocrataRow,
+  type SocrataRowsQuery,
+  SocrataClient,
+} from "@bp/sources";
+import { isoMonth, isoMonthStart, nextIsoMonthStart } from "../../lib/dates.ts";
+import {
+  dbOptions,
+  localDbFromCtx,
+  type OpenLocalPipelineDb,
+  withLocalDb,
+} from "../../lib/local-db.ts";
+import { parkingLocationKey } from "../../lib/parking-location.ts";
+import { fromRepoRoot } from "../../lib/paths.ts";
+import { writeRawSourceSnapshot } from "../../lib/source-snapshots.ts";
+
+const parkingFiscalYearSources = [
+  { start: "2022-07", end: "2023-06", sourceId: "nyc_parking_violations_fy2023" },
+  { start: "2023-07", end: "2024-06", sourceId: "nyc_parking_violations_fy2024" },
+  { start: "2024-07", end: "2025-06", sourceId: "nyc_parking_violations_fy2025" },
+  { start: "2025-07", end: "2026-06", sourceId: "nyc_parking_violations_current" },
+] as const;
+
+export type ParkingViolationsRunInputs = {
+  local: OpenLocalPipelineDb;
+  year: number;
+  month: number;
+  codes?: readonly number[] | undefined;
+  fetchedAt?: Date | undefined;
+  fetcher?: SocrataFetch | undefined;
+  manifestText?: string | undefined;
+  snapshotPath?: string | undefined;
+};
+
+export type ParkingViolationsIngestResult = {
+  rawPath: string;
+  isoMonth: string;
+  sourceId: string;
+  rowCount: number;
+  codeBreakdown: { code: number; count: number }[];
+};
+
+function parkingSourceIdForMonth(year: number, month: number): string {
+  const monthKey = isoMonth(year, month);
+  const source = parkingFiscalYearSources.find(
+    (candidate) => monthKey >= candidate.start && monthKey <= candidate.end,
+  );
+  if (source === undefined) {
+    throw new Error(`No parking violations fiscal-year source configured for ${monthKey}.`);
+  }
+  return source.sourceId;
+}
+
+export async function runParkingViolationsIngest(
+  inputs: ParkingViolationsRunInputs,
+): Promise<ParkingViolationsIngestResult> {
+  const codes =
+    inputs.codes && inputs.codes.length > 0 ? inputs.codes : BUS_RELEVANT_PARKING_CODES;
+  const monthKey = isoMonth(inputs.year, inputs.month);
+  const manifestText =
+    inputs.manifestText ??
+    (await Bun.file(fromRepoRoot("knowledge/raw/source_manifest.yaml")).text());
+  const sourceId = parkingSourceIdForMonth(inputs.year, inputs.month);
+  const source = getSocrataSource(parseSourceManifest(manifestText), sourceId);
+  const fetchedAt = (inputs.fetchedAt ?? new Date()).toISOString();
+  const rawPath =
+    inputs.snapshotPath ??
+    fromRepoRoot(join("data/raw/parking-violations", `parking-violations-${monthKey}.json`));
+
+  const codeList = codes.join(",");
+  const query: SocrataRowsQuery = {
+    where: [
+      `issue_date >= '${isoMonthStart(inputs.year, inputs.month)}'`,
+      `issue_date < '${nextIsoMonthStart(inputs.year, inputs.month)}'`,
+      `violation_code IN (${codeList})`,
+    ].join(" AND "),
+  };
+  const rawRows: SocrataRow[] = await SocrataClient.fromSource(source, {
+    fetcher: inputs.fetcher,
+    pageSize: 50_000,
+  }).rows(query);
+  const rows = normalizeParkingViolationRows(rawRows).map((r) => ({
+    ...r,
+    // Geocode columns set by geocode job; preserved on re-ingest.
+    physicalId: null,
+    geocodeConfidence: null,
+    matchLocationKey: parkingLocationKey({
+      violationCode: r.violationCode,
+      violationCounty: r.violationCounty,
+      streetCode1: r.streetCode1,
+      houseNumber: r.houseNumber,
+      streetName: r.streetName,
+      intersectingStreet: r.intersectingStreet,
+    }),
+  }));
+
+  await upsertParkingViolations(inputs.local.db, rows);
+
+  await writeRawSourceSnapshot({
+    path: rawPath,
+    sourceId,
+    extra: { isoMonth: monthKey, codes: [...codes] },
+    fetchedAt,
+    query: { grain: "summons_number", month: monthKey, codeFilter: codes.length },
+    rows: rawRows,
+  });
+
+  const codeBreakdown = [...codes].map((code) => ({
+    code,
+    count: rows.filter((r) => r.violationCode === code).length,
+  }));
+  return { rawPath, isoMonth: monthKey, sourceId, rowCount: rows.length, codeBreakdown };
+}
+
+export default defineCommand({
+  path: ["ingest", "parking-violations"],
+  summary: "Fetch monthly bus-relevant parking violations across fiscal-year datasets.",
+  input: {
+    options: dbOptions.extend({
+      year: arg.positiveInt().default(2026).describe("Calendar year"),
+      month: arg.positiveInt().default(3).describe("Calendar month, 1-12"),
+      codes: z
+        .array(arg.int())
+        .default([])
+        .describe("Override violation codes (default: BUS_RELEVANT_PARKING_CODES)"),
+    }),
+  },
+  middleware: [withLocalDb()],
+  output: z.object({
+    rawPath: z.string(),
+    isoMonth: z.string(),
+    sourceId: z.string(),
+    rowCount: z.number(),
+    codeBreakdown: z.array(z.object({ code: z.number(), count: z.number() })),
+  }),
+  async run({ ctx, input }) {
+    return runParkingViolationsIngest({
+      local: localDbFromCtx(ctx),
+      year: input.options.year,
+      month: input.options.month,
+      codes: input.options.codes.length > 0 ? input.options.codes : undefined,
+    });
+  },
+});

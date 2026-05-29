@@ -2,6 +2,49 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-05-29] pipeline | tools/pipeline-v2 ports complete (89/89) and monoliths split
+
+All 89 port-rated v1 commands now have v2 implementations under
+`tools/pipeline-v2/src/commands/**`. Batches A-bottom, A-top, B, C, and D are closed. The
+three v1 monoliths split during port: `tier2-docs.ts` (8088 LOC) into 16 sub-commands under
+`src/commands/docs/tier2/`; `studio-release.ts` (4385 LOC) into per-phase release files plus a
+`studio release` entrypoint; `audit/studio-coverage.ts` (1625 LOC) into `audit/studio-coverage.ts`
+with sibling helpers. The `findings:*` namespace stays deferred in v1 per
+`[[scope_corpus_before_findings]]`. v2 commands are invoked through
+`bun --filter @bp/pipeline-v2 cli -- <namespace> <command> [...flags]`.
+
+As Stage 1→2 cleanup: removed `build:artifacts` from `tools/pipeline/package.json` (the last
+remaining script-stale entry from `tools/pipeline-v2/inventory-audit.md`; the other 10 Cluster
+A/B entries were already absent in HEAD). Collapsed root `package.json` from 114 scripts to 31
+top-level orchestration entries (dev/build/deploy, the CI check matrix, the test matrix, the
+`@bp/db` migration entries, `publish:serving-release`, `seed:local-studio-r2`, and a single
+`pipeline` alias that proxies to the v2 CLI). The ~83 per-command `bun --filter @bp/pipeline ...`
+aliases were removed; the CI workflow (`.github/workflows/ci.yml`) only uses the keepers and
+needed no edits. Swept the three Tier 2 wiki files
+(`knowledge/wiki/data/tier2_pipeline_completion_audit.md`,
+`knowledge/wiki/data/intervention_source_coverage.md`,
+`knowledge/wiki/engineering/tier_2_document_corpus_pipeline.md`) so every reference to the
+retired v1 commands (`docs:ocr`, `docs:ocr-review`, `docs:validate`, `docs:promote`,
+`docs:audit-promoted-source-backing`, `docs:followup-curation-bundle`,
+`docs:followup-curation-decisions`, `docs:followup-curation-queue`,
+`docs:followup-resolution-audit`, `docs:verify-followup-curation`, `build:artifacts`) sits
+under an explicit retirement notice naming the v2 successors and the
+`tier2-full-corpus-2026-05-24-pass2` historical artifact set.
+
+**Not done; user-gated:** v1 deletion remains gated on integration testing the
+rebuild-trigger workflow (plan → finalize → check → export → verify → publish) end-to-end in
+v2 against the March 2026 fixture, and on the Tier 2 docs corpus pipeline
+(capture → discover → ocr-plan → ocr → extract → chunk → dedupe → duplicate-decisions →
+status → load-staging) end-to-end in v2. Until those two integration smokes pass,
+`tools/pipeline/` stays in place and shippable.
+
+Verification: `jq '.scripts | length' package.json` returns 31; `jq '.scripts | length'
+tools/pipeline/package.json` returns 93. `grep -rn 'docs:ocr\b\|docs:ocr-review\|docs:validate\|docs:promote\|docs:followup-curation' knowledge/wiki/`
+returns only references inside the explicit retirement notices and the historical prose those
+notices tag as describing past pipeline state. Root `bun run check:types` carries the
+pre-existing v1-side errors from untracked Tier 2/Studio working-tree code; no new errors
+are introduced by the script collapse.
+
 ## [2026-05-22] engineering | Parking location candidate matching added
 
 Added a dedicated parking location candidate layer to address the low route-join rate without
