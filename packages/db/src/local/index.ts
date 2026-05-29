@@ -226,3 +226,10 @@ export {
   replaceRouteSegmentSpeeds,
   replaceRouteStops,
 } from "./repositories/route-slice.js";
+
+export {
+  replaceTier2InterventionStagingRows,
+  type LocalTier2InterventionStagingEvent,
+  type LocalTier2InterventionStagingEventRoute,
+  type LocalTier2InterventionStagingEventSourceSpan,
+} from "./repositories/tier2-intervention-staging.js";

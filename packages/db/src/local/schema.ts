@@ -1477,3 +1477,39 @@ export const localRouteBatchIssue = sqliteTable(
   },
   (table) => [primaryKey({ columns: [table.month, table.issueRank] })],
 );
+
+export const localTier2InterventionEvent = sqliteTable("local_tier2_intervention_event", {
+  eventId: text("event_id").primaryKey(),
+  candidateId: text("candidate_id").notNull(),
+  sourceId: text("source_id").notNull(),
+  sourceTitle: text("source_title"),
+  sourceUrl: text("source_url"),
+  interventionType: text("intervention_type").notNull(),
+  implementationDate: text("implementation_date").notNull(),
+  implementationMonth: text("implementation_month").notNull(),
+  datePrecision: text("date_precision").notNull(),
+  eventStatus: text("event_status").notNull(),
+  validationState: text("validation_state").notNull(),
+  duplicateReviewState: text("duplicate_review_state").notNull(),
+  duplicateFingerprint: text("duplicate_fingerprint").notNull(),
+  promotionState: text("promotion_state").notNull(),
+});
+
+export const localTier2InterventionEventRoute = sqliteTable(
+  "local_tier2_intervention_event_route",
+  {
+    eventId: text("event_id").notNull(),
+    routeId: text("route_id").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.eventId, table.routeId] })],
+);
+
+export const localTier2InterventionEventSourceSpan = sqliteTable(
+  "local_tier2_intervention_event_source_span",
+  {
+    eventId: text("event_id").notNull(),
+    chunkRank: integer("chunk_rank").notNull(),
+    chunkId: text("chunk_id").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.eventId, table.chunkRank] })],
+);
