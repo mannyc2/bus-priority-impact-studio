@@ -39,12 +39,34 @@ export function buildStderrEventSink(options: { prefix?: string } = {}): ToolLoo
     if (event.type === "tool_execution_end") {
       const started = toolStartMs.get(event.toolCallId);
       const elapsed = started === undefined ? "?" : `${Date.now() - started}ms`;
-      const detail = event.result as { details?: { exitCode?: number; stdout?: string } } | undefined;
-      const exitCode = detail?.details?.exitCode ?? "?";
-      const stdoutBytes = detail?.details?.stdout?.length ?? "?";
-      write(
-        `tool ${event.toolName} (${event.toolCallId.slice(0, 8)}) done: exit=${exitCode} stdout=${stdoutBytes}b ${elapsed}${event.isError ? " ERROR" : ""}`,
-      );
+      const idShort = event.toolCallId.slice(0, 8);
+      const errSuffix = event.isError ? " ERROR" : "";
+
+      // Sandbox tools (python_exec, bash_exec) attach a SandboxResult on
+      // result.details. Print exit + stdout bytes. For other extraTools, fall
+      // back to the result's first text block — caller-defined tools (e.g.
+      // findings' submit_finding_proposals) put a human-readable summary there.
+      const detail = event.result as
+        | {
+            details?: { exitCode?: number; stdout?: string };
+            content?: Array<{ type?: string; text?: string }>;
+          }
+        | undefined;
+      const isSandboxShape = detail?.details && typeof detail.details.exitCode === "number";
+      if (isSandboxShape) {
+        const exitCode = detail.details!.exitCode;
+        const stdoutBytes = detail.details!.stdout?.length ?? 0;
+        write(
+          `tool ${event.toolName} (${idShort}) done: exit=${exitCode} stdout=${stdoutBytes}b ${elapsed}${errSuffix}`,
+        );
+      } else {
+        const text = detail?.content?.find((b) => b?.type === "text")?.text ?? "";
+        const oneLine = text.replace(/\s+/g, " ").slice(0, 120);
+        const preview = oneLine.length > 0 ? `: ${oneLine}${text.length > 120 ? "…" : ""}` : "";
+        write(
+          `tool ${event.toolName} (${idShort}) done${preview} (${elapsed})${errSuffix}`,
+        );
+      }
       return;
     }
     if (event.type === "turn_end") {

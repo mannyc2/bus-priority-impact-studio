@@ -434,9 +434,14 @@ export default defineCommand({
     await mkdir(outputDir, { recursive: true });
     const proposalsPath = join(outputDir, "agent-finding-proposals.json");
     const validationPath = join(outputDir, "agent-finding-proposal-validation.json");
+    // toolCallCount: codemode counts sandbox + submit attempts (from the
+    // runner); non-codemode counts modelComplete() invocations (from
+    // counter.tokens). Sum them — they never overlap because each run
+    // takes exactly one path.
+    const toolCallCount = result.toolCallCount + counter.tokens;
     await writeJson(proposalsPath, {
       ...result.proposalsArtifact,
-      toolCallCount: counter.tokens,
+      toolCallCount,
     });
     await writeJson(validationPath, {
       ...result.validationArtifact,
@@ -452,7 +457,7 @@ export default defineCommand({
       inventory,
       artifacts: { proposals: proposalsPath, validation: validationPath },
       summary: result.proposalsArtifact.summary,
-      toolCallCount: counter.tokens,
+      toolCallCount,
       durationMs: result.durationMs,
     };
   },

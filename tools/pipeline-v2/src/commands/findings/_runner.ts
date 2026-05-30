@@ -204,10 +204,17 @@ export type RunProposalsResult = {
   proposals: AgentFindingProposal[];
   proposalsArtifact: AgentFindingProposalsArtifact;
   validationArtifact: AgentFindingProposalValidationArtifact;
+  // Total tool calls the model issued during this run. In codemode this is
+  // sandbox calls (python_exec + bash_exec, from toolUseTrace) PLUS the
+  // submit_finding_proposals attempts. Non-codemode path returns 0 since
+  // the model emits text only.
   toolCallCount: number;
+  // Codemode-only: how many times the model called submit_finding_proposals.
+  // >1 indicates the model self-corrected after validator rejections.
+  submitAttempts?: number;
   durationMs: number;
-  // Populated when codemode is on. The trace records every tool call the
-  // model issued during proposal generation, in order. Distinct from the
+  // Populated when codemode is on. The trace records every sandbox tool call
+  // the model issued during proposal generation, in order. Distinct from the
   // re-execution that happens during validation.
   toolUseTrace?: ToolUseTraceEntry[];
   toolLoopCapsHit?: "calls" | "stdout" | "walltime" | null;
@@ -283,6 +290,7 @@ export async function runAgentPropose(
   });
   let toolUseTrace: ToolUseTraceEntry[] | undefined;
   let toolLoopCapsHit: "calls" | "stdout" | "walltime" | null | undefined;
+  let submitAttempts: number | undefined;
   let proposals: AgentFindingProposal[] = [];
   let validations: AgentFindingProposalValidationArtifact["validations"] = [];
 
@@ -307,6 +315,7 @@ export async function runAgentPropose(
     });
     toolUseTrace = loopResult.toolUseTrace;
     toolLoopCapsHit = loopResult.capsHit;
+    submitAttempts = store.attempts;
     if (store.attempts === 0) {
       throw new Error(
         `codemode loop ended without a submit_finding_proposals call (capsHit=${loopResult.capsHit ?? "null"}, iterations=${loopResult.iterations}, toolCalls=${loopResult.toolUseTrace.length}). The model must call the submit tool to record proposals.`,
@@ -390,7 +399,8 @@ export async function runAgentPropose(
     byScope: tally(proposals.map((p) => p.scopeKind)),
   };
 
-  const toolCallCount = toolUseTrace?.length ?? 0;
+  const sandboxToolCalls = toolUseTrace?.length ?? 0;
+  const toolCallCount = sandboxToolCalls + (submitAttempts ?? 0);
   const proposalsArtifact: AgentFindingProposalsArtifact = {
     artifactKind: "agent_finding_proposals",
     schemaVersion: 1,
@@ -424,6 +434,7 @@ export async function runAgentPropose(
     validationArtifact,
     toolCallCount,
     durationMs,
+    ...(submitAttempts === undefined ? {} : { submitAttempts }),
     ...(toolUseTrace === undefined ? {} : { toolUseTrace }),
     ...(toolLoopCapsHit === undefined ? {} : { toolLoopCapsHit }),
   };
