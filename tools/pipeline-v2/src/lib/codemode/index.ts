@@ -12,6 +12,7 @@
 //   DEFAULT_COMPACTION_SETTINGS — re-export for future cross-turn batching
 
 export {
+  type CodemodeTerminationSignal,
   DEFAULT_COMPACTION_SETTINGS,
   type HarnessFactory,
   type HarnessLike,

@@ -15,6 +15,10 @@ import type { ModelToolLoop, ToolUseTraceEntry } from "../../lib/codemode/index.
 
 import type { LoadedCorpus } from "./_corpus.ts";
 import {
+  buildSubmitFindingProposalsTool,
+  type ProposalStore,
+} from "./_submit_tool.ts";
+import {
   getRouteContextDigest,
   type RouteContextDigest,
 } from "./_tools.ts";
@@ -81,11 +85,7 @@ function extractJsonObject(text: string): string {
 // ---------------------------------------------------------------------------
 // Prompts
 
-const SYSTEM_PROMPT = `You are the **Bus Priority Impact Studio** findings-proposal agent.
-
-Your job is to propose candidate findings about NYC bus performance, grounded in the corpus passed to you. You do **not** publish findings — every proposal goes through deterministic validation and a human reviewer.
-
-# Hard rules
+const COMMON_RULES = `# Hard rules
 - Only reference evidence that appears in the corpus block. Never invent packetIds, linkIds, recordIds, candidateIds, or signal-feature column names.
 - Never assert causal effect ("caused", "led to", "because of"). Stay observational.
 - Never recommend policy ("should", "must", "we recommend").
@@ -99,7 +99,13 @@ Your job is to propose candidate findings about NYC bus performance, grounded in
 reliability, speed, intervention, data_quality, context
 
 # Severity: info, low, medium, high
-# Confidence: insufficient, low, medium, high
+# Confidence: insufficient, low, medium, high`;
+
+const SYSTEM_PROMPT = `You are the **Bus Priority Impact Studio** findings-proposal agent.
+
+Your job is to propose candidate findings about NYC bus performance, grounded in the corpus passed to you. You do **not** publish findings — every proposal goes through deterministic validation and a human reviewer.
+
+${COMMON_RULES}
 
 # Output shape
 Return JSON only:
@@ -133,6 +139,31 @@ Return JSON only:
 
 Return nothing else. No commentary, no markdown, no preamble.`;
 
+// Codemode prompt: no JSON output shape — the agent submits proposals by
+// calling submit_finding_proposals. Validation runs inside the tool and
+// returns per-proposal errors the agent can fix and re-submit.
+const SYSTEM_PROMPT_CODEMODE = `You are the **Bus Priority Impact Studio** findings-proposal agent.
+
+Your job is to investigate NYC bus performance using the sandbox tools (python_exec, bash_exec) and then submit candidate findings via the submit_finding_proposals tool. You do **not** publish findings — every accepted proposal still goes through a human reviewer.
+
+${COMMON_RULES}
+
+# Workflow (mandatory)
+
+You have a small budget of investigation tool calls before you MUST submit.
+
+1. Spend at most **6–8** python_exec / bash_exec calls inspecting the corpus to gather evidence.
+2. Then call \`submit_finding_proposals({proposals: [...]})\` with what you have.
+3. If the submit tool returns validation errors, fix the offending fields and call it again. You may iterate on submission up to **3 times**.
+4. If after investigation you have nothing supportable to propose, call \`submit_finding_proposals\` with a single proposal whose \`claimStrength\` is \`"blocked"\` explaining what's missing — do not just stop exploring.
+
+Do not emit JSON in a text response — only \`submit_finding_proposals\` advances the run. Final text responses are ignored. The run ends only when the submit tool accepts your proposals.
+
+# Submit tool reminders
+
+- The tool returns per-proposal errors with full Zod paths. Read them carefully — the same evidenceRef shape is required on top-level \`evidenceRefs\` AND on every \`metricClaims[].evidenceRef\` (e.g. \`context_appendix\` requires \`{kind, routeId, section, month}\` in BOTH places).
+- Re-submit the entire batch each time, not just the corrected entries.`;
+
 function buildUserMessage(input: {
   digests: RouteContextDigest[];
   maxProposalsPerRoute: number;
@@ -140,7 +171,7 @@ function buildUserMessage(input: {
   const header = [
     `Generate up to ${input.maxProposalsPerRoute} proposals per route below.`,
     "Skip routes where the corpus does not support any proposal.",
-    "Return a single JSON object as instructed in the system prompt.",
+    "Follow the workflow described in the system prompt.",
     "",
     "# Corpus",
   ];
@@ -250,91 +281,103 @@ export async function runAgentPropose(
     digests,
     maxProposalsPerRoute: input.maxProposalsPerRoute,
   });
-  let text: string;
   let toolUseTrace: ToolUseTraceEntry[] | undefined;
   let toolLoopCapsHit: "calls" | "stdout" | "walltime" | null | undefined;
+  let proposals: AgentFindingProposal[] = [];
+  let validations: AgentFindingProposalValidationArtifact["validations"] = [];
+
   if (input.enableCodemode) {
     if (!input.modelToolLoop) {
       throw new Error("enableCodemode is true but modelToolLoop was not supplied");
     }
     const systemPrompt = input.corpusMapMarkdown
-      ? `${SYSTEM_PROMPT}\n\n# Corpus map (codemode)\n\n${input.corpusMapMarkdown}`
-      : SYSTEM_PROMPT;
-    const loopResult = await input.modelToolLoop({ systemPrompt, userMessage });
-    text = loopResult.finalText;
+      ? `${SYSTEM_PROMPT_CODEMODE}\n\n# Corpus map (codemode)\n\n${input.corpusMapMarkdown}`
+      : SYSTEM_PROMPT_CODEMODE;
+    const store: ProposalStore = { proposals: [], validations: [], attempts: 0 };
+    const submitTool = buildSubmitFindingProposalsTool({
+      runId: input.runId,
+      corpus: input.corpus,
+      buildProposal,
+      store,
+    });
+    const loopResult = await input.modelToolLoop({
+      systemPrompt,
+      userMessage,
+      extraTools: [submitTool],
+    });
     toolUseTrace = loopResult.toolUseTrace;
     toolLoopCapsHit = loopResult.capsHit;
-    if (text.length === 0) {
+    if (store.attempts === 0) {
       throw new Error(
-        `codemode tool loop returned no text (capsHit=${loopResult.capsHit ?? "null"}, iterations=${loopResult.iterations}, toolCalls=${loopResult.toolUseTrace.length})`,
+        `codemode loop ended without a submit_finding_proposals call (capsHit=${loopResult.capsHit ?? "null"}, iterations=${loopResult.iterations}, toolCalls=${loopResult.toolUseTrace.length}). The model must call the submit tool to record proposals.`,
       );
     }
+    proposals = store.proposals;
+    validations = store.validations;
   } else {
-    text = await input.modelComplete({
+    const text = await input.modelComplete({
       systemPrompt: SYSTEM_PROMPT,
       userMessage,
     });
-  }
-  let parsed: z.output<typeof ModelResponseSchema>;
-  try {
-    const json = JSON.parse(extractJsonObject(text));
-    const result = ModelResponseSchema.safeParse(json);
-    if (!result.success) {
-      throw new Error(
-        `model response failed schema validation: ${result.error.issues
-          .slice(0, 3)
-          .map((i) => `${i.path.join(".")}: ${i.message}`)
-          .join("; ")}`,
-      );
-    }
-    parsed = result.data;
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    throw new Error(`failed to parse model response: ${message}`);
-  }
-
-  const proposals: AgentFindingProposal[] = [];
-  const validations: AgentFindingProposalValidationArtifact["validations"] = [];
-  for (const draft of parsed.proposals) {
-    const proposal = buildProposal({
-      runId: input.runId,
-      month: input.corpus.month,
-      draft,
-    });
-    const strict = AgentFindingProposalSchema.safeParse(proposal);
-    if (!strict.success) {
-      const errors = strict.error.issues
-        .slice(0, 5)
-        .map((i) => `${i.path.join(".") || "<root>"}: ${i.message}`);
-      proposal.validationState = "rejected" as typeof proposal.validationState;
-      proposal.validationErrors = errors.map((e) => `[schema] ${e}`);
-      proposals.push(proposal);
-      validations.push({
-        proposalId: proposal.proposalId,
-        validationState: proposal.validationState,
-        errors: proposal.validationErrors,
-        checks: [],
-      });
-      continue;
-    }
-    const record = await validateProposal(input.corpus, strict.data);
-    const validated: AgentFindingProposal = {
-      ...strict.data,
-      validationState: record.validationState,
-      validationErrors: record.errors,
-    };
-    const dupCheck = record.checks.find((c) => c.name === "duplicate");
-    if (dupCheck && !dupCheck.passed) {
-      const match = dupCheck.errors[0]?.match(/duplicate of promoted finding (\S+):/);
-      if (match?.[1]) {
-        validated.duplicateCheck = {
-          matchedPromotedFindingId: match[1],
-          reason: dupCheck.errors[0] ?? "",
-        };
+    let parsed: z.output<typeof ModelResponseSchema>;
+    try {
+      const json = JSON.parse(extractJsonObject(text));
+      const result = ModelResponseSchema.safeParse(json);
+      if (!result.success) {
+        throw new Error(
+          `model response failed schema validation: ${result.error.issues
+            .slice(0, 3)
+            .map((i) => `${i.path.join(".")}: ${i.message}`)
+            .join("; ")}`,
+        );
       }
+      parsed = result.data;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      throw new Error(`failed to parse model response: ${message}`);
     }
-    proposals.push(validated);
-    validations.push(record);
+
+    for (const draft of parsed.proposals) {
+      const proposal = buildProposal({
+        runId: input.runId,
+        month: input.corpus.month,
+        draft,
+      });
+      const strict = AgentFindingProposalSchema.safeParse(proposal);
+      if (!strict.success) {
+        const errors = strict.error.issues
+          .slice(0, 5)
+          .map((i) => `${i.path.join(".") || "<root>"}: ${i.message}`);
+        proposal.validationState = "rejected" as typeof proposal.validationState;
+        proposal.validationErrors = errors.map((e) => `[schema] ${e}`);
+        proposals.push(proposal);
+        validations.push({
+          proposalId: proposal.proposalId,
+          validationState: proposal.validationState,
+          errors: proposal.validationErrors,
+          checks: [],
+        });
+        continue;
+      }
+      const record = await validateProposal(input.corpus, strict.data);
+      const validated: AgentFindingProposal = {
+        ...strict.data,
+        validationState: record.validationState,
+        validationErrors: record.errors,
+      };
+      const dupCheck = record.checks.find((c) => c.name === "duplicate");
+      if (dupCheck && !dupCheck.passed) {
+        const match = dupCheck.errors[0]?.match(/duplicate of promoted finding (\S+):/);
+        if (match?.[1]) {
+          validated.duplicateCheck = {
+            matchedPromotedFindingId: match[1],
+            reason: dupCheck.errors[0] ?? "",
+          };
+        }
+      }
+      proposals.push(validated);
+      validations.push(record);
+    }
   }
 
   const durationMs = Date.now() - start;

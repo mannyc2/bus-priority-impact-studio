@@ -75,6 +75,20 @@ export function deepSeekModel(modelId: string): Model<"openai-completions"> {
   };
 }
 
+/**
+ * Resolve a deepseek model against pi-ai's generated catalog. Returns the
+ * catalog entry when present (e.g. "deepseek-v4-flash", "deepseek-v4-pro" —
+ * which ship with the right thinkingFormat: "deepseek",
+ * requiresReasoningContentOnAssistantMessages, thinkingLevelMap, etc.).
+ * Returns null for legacy ids like "deepseek-chat" / "deepseek-reasoner";
+ * caller should fall back to the handcrafted `deepSeekModel`.
+ */
+export function getDeepSeekCatalogModel(modelId: string): Model<Api> | null {
+  ensureProviders();
+  const model = getModel("deepseek" as never, modelId as never);
+  return (model ?? null) as Model<Api> | null;
+}
+
 export type CompleteJsonOptions = {
   apiKey: string;
   timeoutMs: number;

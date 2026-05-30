@@ -1,15 +1,45 @@
 import { describe, expect, test } from "bun:test";
 
 import type { AgentFindingProposalModelMeta } from "@bp/domain";
+import type { AgentToolResult } from "@earendil-works/pi-agent-core";
 
 import { sha256Hex } from "../../../src/commands/findings/_code_execution.ts";
 import type { LoadedCorpus } from "../../../src/commands/findings/_corpus.ts";
 import { runAgentPropose } from "../../../src/commands/findings/_runner.ts";
-import type {
-  ModelToolLoop,
-  ToolUseTraceEntry,
-} from "../../../src/lib/codemode/index.ts";
+import type { SubmitResultDetails } from "../../../src/commands/findings/_submit_tool.ts";
+import type { ModelToolLoop } from "../../../src/lib/codemode/index.ts";
 import { runPython } from "../../../src/lib/sandbox.ts";
+
+// Helper for the codemode tests: invoke the submit_finding_proposals tool
+// that runAgentPropose adds to extraTools, capture its response, and return
+// a minimal ToolLoopResult that ends the loop. Each test asserts on the
+// captured submit-tool details.
+async function invokeSubmit(
+  extraTools: NonNullable<Parameters<ModelToolLoop>[0]["extraTools"]>,
+  proposals: unknown[],
+): Promise<{ details: SubmitResultDetails | undefined; result: AgentToolResult<unknown> }> {
+  const submitTool = extraTools.find((t) => t.name === "submit_finding_proposals");
+  if (!submitTool) throw new Error("submit_finding_proposals tool not in extraTools");
+  const result = (await submitTool.execute(
+    "tc-submit-1",
+    { proposals },
+  )) as AgentToolResult<unknown>;
+  return {
+    details: result.details as SubmitResultDetails | undefined,
+    result,
+  };
+}
+
+function emptyLoopResult() {
+  return {
+    finalText: "",
+    toolUseTrace: [],
+    capsHit: null,
+    usage: { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, totalTokens: 0, costUsd: 0 },
+    retries: 0,
+    iterations: 1,
+  };
+}
 
 // Step 7 + 8: codemode end-to-end. Mock the `ModelToolLoop` so the test
 // doesn't need a real LLM, but let `preExecuteCodeRefs` (called inside
@@ -87,80 +117,50 @@ async function captureHash(code: string): Promise<string> {
 }
 
 maybe("runAgentPropose codemode (mock loop + real sandbox)", () => {
-  test("a code_execution ref re-validates end-to-end", async () => {
+  test("a valid code_execution submission is accepted end-to-end", async () => {
     const corpus = emptyCorpus();
     const code = "print(42)";
     const stdoutHash = await captureHash(code);
 
-    const fakeTrace: ToolUseTraceEntry[] = [
-      {
-        toolCallId: "fake-tc-1",
-        tool: "python_exec",
-        code,
-        timeoutSec: undefined,
-        exitCode: 0,
-        stdoutPreview: "42\n",
-        stderrPreview: "",
-        durationMs: 12,
-        stdoutBytes: 3,
-        stdoutTruncated: false,
-        timedOut: false,
-      },
-    ];
-
     const seenSystemPrompts: string[] = [];
-    const modelToolLoop: ModelToolLoop = async ({ systemPrompt }) => {
+    let captured: SubmitResultDetails | undefined;
+    const modelToolLoop: ModelToolLoop = async ({ systemPrompt, extraTools }) => {
       seenSystemPrompts.push(systemPrompt);
-      return {
-        finalText: JSON.stringify({
-          proposals: [
+      const { details } = await invokeSubmit(extraTools ?? [], [
+        {
+          routeId: "B44",
+          scopeKind: "route",
+          category: "context",
+          severity: "low",
+          confidence: "low",
+          claimText:
+            "Observation: a sandbox computation reports value 42 for this route's reference probe.",
+          claimStrength: "observation",
+          evidenceRefs: [
+            { kind: "code_execution", language: "python", code, stdoutHash },
+          ],
+          counterEvidenceRefs: [],
+          interventionRecordIds: [],
+          documentCandidateIds: [],
+          metricClaims: [
             {
-              proposalId: "p-codemode-1",
-              routeId: "B44",
-              scopeKind: "route",
-              category: "context",
-              severity: "low",
-              confidence: "low",
-              claimText:
-                "Observation: a sandbox computation reports value 42 for this route's reference probe.",
-              claimStrength: "observation",
-              evidenceRefs: [
-                {
-                  kind: "code_execution",
-                  language: "python",
-                  code,
-                  stdoutHash,
-                  citedValuePath: undefined,
-                },
-              ],
-              counterEvidenceRefs: [],
-              interventionRecordIds: [],
-              documentCandidateIds: [],
-              metricClaims: [
-                {
-                  variable: "value",
-                  value: 42,
-                  units: null,
-                  evidenceRef: {
-                    kind: "code_execution",
-                    language: "python",
-                    code,
-                    stdoutHash,
-                    citedValuePath: undefined,
-                  },
-                },
-              ],
-              caveats: [],
-              missingEvidence: [],
+              variable: "value",
+              value: 42,
+              units: null,
+              evidenceRef: {
+                kind: "code_execution",
+                language: "python",
+                code,
+                stdoutHash,
+              },
             },
           ],
-        }),
-        toolUseTrace: fakeTrace,
-        capsHit: null,
-        usage: { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, totalTokens: 0, costUsd: 0 },
-        retries: 0,
-        iterations: 2,
-      };
+          caveats: [],
+          missingEvidence: [],
+        },
+      ]);
+      captured = details;
+      return emptyLoopResult();
     };
 
     const result = await runAgentPropose({
@@ -180,60 +180,47 @@ maybe("runAgentPropose codemode (mock loop + real sandbox)", () => {
     expect(seenSystemPrompts.length).toBe(1);
     expect(seenSystemPrompts[0]).toContain("Test corpus map");
 
+    expect(captured?.outcome).toBe("accepted");
+    expect(captured?.terminateLoop).toBe(true);
     expect(result.proposals.length).toBe(1);
     const proposal = result.proposals[0]!;
-    if (proposal.validationState !== "valid") {
-      throw new Error(
-        `expected valid, got ${proposal.validationState}: ${JSON.stringify(
-          proposal.validationErrors,
-        )}`,
-      );
-    }
-    expect(result.toolUseTrace).toBeDefined();
-    expect(result.toolUseTrace?.length).toBe(1);
-    expect(result.toolCallCount).toBe(1);
-    expect(result.toolLoopCapsHit).toBeNull();
+    expect(proposal.validationState).toBe("valid");
   });
 
-  test("a code_execution ref with a tampered stdoutHash is rejected", async () => {
+  test("a code_execution ref with a tampered stdoutHash is rejected by the submit tool", async () => {
     const corpus = emptyCorpus();
     const code = "print(42)";
 
-    const modelToolLoop: ModelToolLoop = async () => ({
-      finalText: JSON.stringify({
-        proposals: [
-          {
-            proposalId: "p-tampered-1",
-            routeId: "B44",
-            scopeKind: "route",
-            category: "context",
-            severity: "low",
-            confidence: "low",
-            claimText: "Tampered observation: cited code does not match its hash.",
-            claimStrength: "observation",
-            evidenceRefs: [
-              {
-                kind: "code_execution",
-                language: "python",
-                code,
-                stdoutHash: "0".repeat(64), // deliberately wrong
-              },
-            ],
-            counterEvidenceRefs: [],
-            interventionRecordIds: [],
-            documentCandidateIds: [],
-            metricClaims: [],
-            caveats: [],
-            missingEvidence: [],
-          },
-        ],
-      }),
-      toolUseTrace: [],
-      capsHit: null,
-      usage: { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, totalTokens: 0, costUsd: 0 },
-      retries: 0,
-      iterations: 1,
-    });
+    let captured: SubmitResultDetails | undefined;
+    const modelToolLoop: ModelToolLoop = async ({ extraTools }) => {
+      const { details } = await invokeSubmit(extraTools ?? [], [
+        {
+          routeId: "B44",
+          scopeKind: "route",
+          category: "context",
+          severity: "low",
+          confidence: "low",
+          claimText: "Tampered observation: cited code does not match its hash.",
+          claimStrength: "observation",
+          evidenceRefs: [
+            {
+              kind: "code_execution",
+              language: "python",
+              code,
+              stdoutHash: "0".repeat(64),
+            },
+          ],
+          counterEvidenceRefs: [],
+          interventionRecordIds: [],
+          documentCandidateIds: [],
+          metricClaims: [],
+          caveats: [],
+          missingEvidence: [],
+        },
+      ]);
+      captured = details;
+      return emptyLoopResult();
+    };
 
     const result = await runAgentPropose({
       corpus,
@@ -248,54 +235,47 @@ maybe("runAgentPropose codemode (mock loop + real sandbox)", () => {
       modelToolLoop,
     });
 
-    const proposal = result.proposals[0]!;
-    expect(proposal.validationState).toBe("rejected");
-    expect(
-      proposal.validationErrors.some((e) =>
-        e.includes("stdout hash mismatch"),
-      ),
-    ).toBe(true);
+    expect(captured?.outcome).toBe("rejected");
+    expect(captured?.terminateLoop).toBe(false);
+    expect(captured?.errorsByIndex[0]?.errors.some((e) => e.includes("stdout hash mismatch"))).toBe(true);
+    // Rejected proposals are not committed to the artifact under the new flow.
+    expect(result.proposals.length).toBe(0);
   });
 
-  test("a code_execution ref with non-deterministic code is rejected before exec", async () => {
+  test("non-deterministic code is rejected by the submit tool before sandbox exec", async () => {
     const corpus = emptyCorpus();
     const code = "import time\nprint(time.time())";
 
-    const modelToolLoop: ModelToolLoop = async () => ({
-      finalText: JSON.stringify({
-        proposals: [
-          {
-            proposalId: "p-nondeterm-1",
-            routeId: "B44",
-            scopeKind: "route",
-            category: "context",
-            severity: "low",
-            confidence: "low",
-            claimText: "Non-deterministic citation should be blocked at lint.",
-            claimStrength: "observation",
-            evidenceRefs: [
-              {
-                kind: "code_execution",
-                language: "python",
-                code,
-                stdoutHash: "0".repeat(64),
-              },
-            ],
-            counterEvidenceRefs: [],
-            interventionRecordIds: [],
-            documentCandidateIds: [],
-            metricClaims: [],
-            caveats: [],
-            missingEvidence: [],
-          },
-        ],
-      }),
-      toolUseTrace: [],
-      capsHit: null,
-      usage: { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, totalTokens: 0, costUsd: 0 },
-      retries: 0,
-      iterations: 1,
-    });
+    let captured: SubmitResultDetails | undefined;
+    const modelToolLoop: ModelToolLoop = async ({ extraTools }) => {
+      const { details } = await invokeSubmit(extraTools ?? [], [
+        {
+          routeId: "B44",
+          scopeKind: "route",
+          category: "context",
+          severity: "low",
+          confidence: "low",
+          claimText: "Non-deterministic citation should be blocked at lint.",
+          claimStrength: "observation",
+          evidenceRefs: [
+            {
+              kind: "code_execution",
+              language: "python",
+              code,
+              stdoutHash: "0".repeat(64),
+            },
+          ],
+          counterEvidenceRefs: [],
+          interventionRecordIds: [],
+          documentCandidateIds: [],
+          metricClaims: [],
+          caveats: [],
+          missingEvidence: [],
+        },
+      ]);
+      captured = details;
+      return emptyLoopResult();
+    };
 
     const result = await runAgentPropose({
       corpus,
@@ -310,13 +290,9 @@ maybe("runAgentPropose codemode (mock loop + real sandbox)", () => {
       modelToolLoop,
     });
 
-    const proposal = result.proposals[0]!;
-    expect(proposal.validationState).toBe("rejected");
-    expect(
-      proposal.validationErrors.some((e) =>
-        e.includes("non-deterministic"),
-      ),
-    ).toBe(true);
+    expect(captured?.outcome).toBe("rejected");
+    expect(captured?.errorsByIndex[0]?.errors.some((e) => e.includes("non-deterministic"))).toBe(true);
+    expect(result.proposals.length).toBe(0);
   });
 });
 
@@ -334,5 +310,24 @@ describe("runAgentPropose codemode (wiring)", () => {
         enableCodemode: true,
       }),
     ).rejects.toThrow(/modelToolLoop was not supplied/);
+  });
+
+  test("throws when the model never calls submit_finding_proposals", async () => {
+    const corpus = emptyCorpus();
+    const modelToolLoop: ModelToolLoop = async () => emptyLoopResult();
+    await expect(
+      runAgentPropose({
+        corpus,
+        routes: ["B44"],
+        maxProposalsPerRoute: 1,
+        runId: "run-codemode-nosubmit",
+        model,
+        modelComplete: async () => {
+          throw new Error("non-codemode path should not be reached");
+        },
+        enableCodemode: true,
+        modelToolLoop,
+      }),
+    ).rejects.toThrow(/codemode loop ended without a submit_finding_proposals call/);
   });
 });

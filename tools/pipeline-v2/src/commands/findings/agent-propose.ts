@@ -14,6 +14,7 @@ import { writeJson } from "../../lib/json.ts";
 import {
   completeJson,
   deepSeekModel,
+  getDeepSeekCatalogModel,
   getOpenRouterCatalogModel,
   openRouterModel,
 } from "../../lib/llm.ts";
@@ -79,12 +80,15 @@ function buildLlmRunner(input: {
   reasoning: ThinkingLevel | null;
   counter: { tokens: number };
 }): ModelCompletion {
+  // Prefer pi-ai's catalog model so reasoning + thinkingLevelMap + the right
+  // compat fields (requiresReasoningContentOnAssistantMessages,
+  // thinkingFormat: "deepseek", correct max_tokens field) come along. Falls
+  // back to a custom Model<> for ids the catalog does not know (e.g. the
+  // legacy "deepseek-chat" / "deepseek-reasoner" V3 ids).
   let model: Model<Api>;
   if (input.provider === "deepseek") {
-    model = deepSeekModel(input.modelId);
+    model = getDeepSeekCatalogModel(input.modelId) ?? deepSeekModel(input.modelId);
   } else {
-    // Prefer pi-ai's catalog model so reasoning + thinkingLevelMap come along.
-    // Fall back to a custom model for ids the catalog does not know.
     model = getOpenRouterCatalogModel(input.modelId) ?? openRouterModel(input.modelId);
   }
   return async ({ systemPrompt, userMessage }) => {
@@ -99,12 +103,16 @@ function buildLlmRunner(input: {
       ],
     };
     // DeepSeek's direct API expresses thinking through provider-specific body
-    // fields, not pi-ai's reasoning level. When --provider deepseek with a
-    // thinking level, pass `thinking: {type: "enabled"}` + `reasoning_effort`.
-    // For pi-ai catalog models (openrouter v4-flash etc.) the `reasoning:` flag
-    // is the right knob and the catalog model carries the thinkingLevelMap.
+    // fields. When the catalog model is in play (deepseek-v4-flash /
+    // deepseek-v4-pro) its `compat.thinkingFormat: "deepseek"` +
+    // `thinkingLevelMap` make pi-ai do this automatically from the
+    // `reasoning:` flag. For the legacy handcrafted `deepSeekModel`
+    // (deepseek-chat / deepseek-reasoner) we still need to inject the body
+    // fields manually.
     const useDeepSeekDirectThinking =
-      input.provider === "deepseek" && input.reasoning !== null;
+      input.provider === "deepseek" &&
+      input.reasoning !== null &&
+      model.thinkingLevelMap === undefined;
     const deepSeekProviderOptions: Record<string, unknown> = useDeepSeekDirectThinking
       ? { thinking: { type: "enabled" }, reasoning_effort: input.reasoning }
       : {};
@@ -230,13 +238,22 @@ export default defineCommand({
         .union([z.boolean(), z.string()])
         .default(false)
         .describe(
-          "Run the agent with python_exec + bash_exec tools backed by the bp-sandbox Docker image. Loads knowledge/wiki/data/agent_corpus_map.md into the system prompt. Requires the image to be built (`bun run sandbox:build`). Cited code_execution evidence refs are re-executed at validation time.",
+          "Run the agent with python_exec + bash_exec tools backed by the bp-sandbox Docker image. Inlines the corpus-navigation skill (tools/agent-corpus-lib/skills/) into the system prompt. Requires the image to be built (`bun run sandbox:build`). Cited code_execution evidence refs are re-executed at validation time.",
         ),
       persistSessions: z
         .union([z.boolean(), z.string()])
         .default(false)
         .describe(
           "Persist the AgentHarness transcript to <agent-proposals-dir>/<runId>/sessions/. Disabled by default — sessions stay in memory for ephemeral runs.",
+        ),
+      maxToolCalls: z.coerce
+        .number()
+        .int()
+        .min(1)
+        .max(200)
+        .default(40)
+        .describe(
+          "Codemode tool-call budget per route. Counts python_exec + bash_exec calls; submit_finding_proposals does not count. Default 40.",
         ),
     }),
   },
@@ -366,7 +383,7 @@ export default defineCommand({
     if (enableCodemodeFlag) {
       const baseModel: Model<Api> =
         options.provider === "deepseek"
-          ? deepSeekModel(options.model)
+          ? (getDeepSeekCatalogModel(options.model) ?? deepSeekModel(options.model))
           : (getOpenRouterCatalogModel(options.model) ?? openRouterModel(options.model));
       const onEvent: ToolLoopEventSink = buildStderrEventSink();
       const sessionsRoot = persistSessionsFlag
@@ -385,6 +402,7 @@ export default defineCommand({
         model: baseModel,
         apiKey,
         maxOutputTokens: options.maxOutputTokens,
+        maxToolCalls: options.maxToolCalls,
         ...(reasoning === null ? {} : { reasoning }),
         onEvent,
         ...(sessionsRoot === undefined ? {} : { sessionsRoot }),

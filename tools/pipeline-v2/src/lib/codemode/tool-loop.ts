@@ -98,9 +98,22 @@ export type ToolUseTraceEntry = {
   timedOut: boolean;
 };
 
+// Convention for caller-supplied tools (extraTools): if a tool's
+// AgentToolResult.details carries `terminateLoop: true`, the harness stops
+// after that tool call. Used by submit-style tools (e.g. findings'
+// submit_finding_proposals) to end the loop when the model has produced a
+// validated final artifact, without having to emit a final-text response.
+export interface CodemodeTerminationSignal {
+  terminateLoop?: boolean;
+}
+
 export type ToolLoopInput = {
   systemPrompt: string;
   userMessage: string;
+  // Extra agent tools added on top of python_exec + bash_exec for this
+  // specific run. The caller owns lifecycle: any state the tool captures
+  // (e.g. a results buffer) lives in the caller's closure.
+  extraTools?: AgentTool[];
 };
 
 export type ToolLoopUsage = {
@@ -258,7 +271,7 @@ export type MakeToolLoopRunnerArgs = {
 };
 
 export function makeToolLoopRunner(args: MakeToolLoopRunnerArgs): ModelToolLoop {
-  const maxToolCalls = args.maxToolCalls ?? 20;
+  const maxToolCalls = args.maxToolCalls ?? 40;
   const maxTotalStdoutBytes = args.maxTotalStdoutBytes ?? 2 * 1024 * 1024;
   const maxWallTimeMs = args.maxWallTimeMs ?? 4 * 60 * 1000;
   const maxRetries = args.maxRetries ?? 3;
@@ -334,11 +347,21 @@ export function makeToolLoopRunner(args: MakeToolLoopRunnerArgs): ModelToolLoop 
             ...skills.map((s) => `# Skill: ${s.name}\n\n${s.content}`),
           ].join("\n\n");
 
+    const extraTools = input.extraTools ?? [];
+    const sandboxToolNames = new Set<string>(["python_exec", "bash_exec"]);
+    for (const t of extraTools) {
+      if (sandboxToolNames.has(t.name)) {
+        throw new Error(
+          `extraTools may not redefine sandbox tool '${t.name}'`,
+        );
+      }
+    }
+
     const harness = createHarness({
       env,
       session,
       model: args.model,
-      tools: [pythonTool, bashTool],
+      tools: [pythonTool, bashTool, ...extraTools],
       systemPrompt: composedSystemPrompt,
       getApiKeyAndHeaders: async () => ({ apiKey: args.apiKey }),
       // Delegate transient-error retry to pi-ai's HTTP layer (rate limits,
@@ -354,12 +377,20 @@ export function makeToolLoopRunner(args: MakeToolLoopRunnerArgs): ModelToolLoop 
     // `details` carries the SandboxResult we placed on the AgentToolResult.
     // Returning `{ terminate: true }` halts the agent after the current batch.
     harness.on("tool_result", (event) => {
-      const details = event.details as SandboxResult | null;
-      if (details === null || details === undefined) return undefined;
-      if (event.toolName !== "python_exec" && event.toolName !== "bash_exec") {
+      // Non-sandbox tools (extraTools) signal completion via
+      // `details.terminateLoop: true`. Used by submit-style tools so the
+      // model doesn't have to emit a final-text response after a successful
+      // submission.
+      if (!sandboxToolNames.has(event.toolName)) {
+        const extraDetails = event.details as CodemodeTerminationSignal | null;
+        if (extraDetails && extraDetails.terminateLoop === true) {
+          return { terminate: true };
+        }
         return undefined;
       }
-      const toolName = event.toolName;
+      const details = event.details as SandboxResult | null;
+      if (details === null || details === undefined) return undefined;
+      const toolName = event.toolName as "python_exec" | "bash_exec";
       const inputArgs = event.input as { code: string; timeoutSec?: number };
 
       toolCalls += 1;
