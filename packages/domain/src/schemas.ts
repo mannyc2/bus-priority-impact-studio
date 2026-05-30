@@ -2006,6 +2006,335 @@ export type AgentFindingProposalValidationArtifact = z.output<
   typeof AgentFindingProposalValidationArtifactSchema
 >;
 
+// ===========================================================================
+// AgentBriefProposal — LLM-authored brief drafts
+//
+// A brief proposal wraps a complete StudioBrief draft (display-ready prose,
+// structured claims/evidence/caveats) with a provenance index that maps each
+// `brief.evidence[i].id` back to the corpus AgentEvidenceRefs and metricClaims
+// it was derived from. Validators run against the provenance to verify that
+// every quantitative figure in the display layer traces to real data.
+//
+// Proposals carry status="Draft" inside the embedded brief; the bridge
+// command (`findings:agent-briefs-to-review`) writes valid drafts into the
+// release payload's briefs array. Reviewers iterate via the existing comments
+// + versions flow, then an operator promotes through
+// `studio:promote-publish-candidate` as today.
+
+export const AgentBriefProposalEvidenceProvenanceSchema = registerProjectSchema(
+  z
+    .object({
+      evidenceId: z.string().min(1),
+      citedRefs: z.array(AgentFindingProposalEvidenceRefSchema),
+      metricClaims: z.array(AgentFindingProposalMetricClaimSchema),
+    })
+    .strict(),
+  {
+    id: "bp.brief.agent_proposal.evidence_provenance.v1",
+    title: "Agent Brief Proposal Evidence Provenance",
+    description:
+      "Per-evidence-row provenance: which corpus refs and metric claims back the display text in `brief.evidence[evidenceId].detail`.",
+    stability: "draft",
+  },
+);
+
+export type AgentBriefProposalEvidenceProvenance = z.output<
+  typeof AgentBriefProposalEvidenceProvenanceSchema
+>;
+
+export const AgentBriefProposalDuplicateCheckSchema = registerProjectSchema(
+  z
+    .object({
+      matchedBriefId: z.string().min(1).nullable(),
+      reason: z.string().min(1).max(400),
+    })
+    .strict(),
+  {
+    id: "bp.brief.agent_proposal.duplicate_check.v1",
+    title: "Agent Brief Proposal Duplicate Check",
+    description:
+      "Result of comparing the proposal against existing briefs on the same route. Non-null matchedBriefId blocks promotion.",
+    stability: "draft",
+  },
+);
+
+export type AgentBriefProposalDuplicateCheck = z.output<
+  typeof AgentBriefProposalDuplicateCheckSchema
+>;
+
+// The agent draft shape diverges from the strict @bp/domain StudioBriefSchema
+// in two places: (a) evidence + caveats carry `id` fields the strict schema
+// omits (the deterministic studio builder writes them too — see
+// _release-briefs.ts), (b) we lock status="Draft" and version="draft-v1" so
+// agent output can never claim publication readiness. The slice-11 bridge
+// lifts a validated draft into a full StudioBrief (adds id, generated,
+// authors, evidenceRefCount, source-provenance fields) before writing it
+// into the release payload.
+
+const AgentBriefDraftKpiSchema = z
+  .object({
+    label: z.string().min(1).max(80),
+    value: z.string().min(1).max(40),
+    unit: z.string().max(20).optional(),
+    sub: z.string().max(80),
+    tone: z.enum(["neutral", "good", "warn", "bad"]),
+  })
+  .strict();
+
+const AgentBriefDraftSectionCalloutSchema = z
+  .object({
+    variant: z.enum(["warn", "bad", "info"]),
+    title: z.string().min(1).max(120),
+    body: z.string().min(1).max(400),
+  })
+  .strict();
+
+const AgentBriefDraftSectionFigureSchema = z
+  .object({
+    kind: z.enum(["map", "chart"]),
+    label: z.string().min(1).max(160),
+  })
+  .strict();
+
+const AgentBriefDraftSectionSchema = z
+  .object({
+    title: z.string().min(1).max(120),
+    sub: z.string().max(160).optional(),
+    body: z.array(z.string().min(1).max(800)),
+    callout: AgentBriefDraftSectionCalloutSchema.optional(),
+    figure: AgentBriefDraftSectionFigureSchema.optional(),
+  })
+  .strict();
+
+const AgentBriefDraftClaimSchema = z
+  .object({
+    n: z.number().int().positive(),
+    title: z.string().min(1).max(280),
+    body: z.string().max(800).optional(),
+    strength: z.number().int().min(0).max(100),
+    evidenceIds: z.array(z.string().min(1)),
+    caveatIds: z.array(z.string().min(1)),
+    state: z.enum(["editing", "weak", "active"]).optional(),
+  })
+  .strict();
+
+const AgentBriefDraftEvidenceSchema = z
+  .object({
+    id: z.string().min(1).max(80),
+    kind: z.enum(["number", "chart", "source", "caveat"]),
+    title: z.string().min(1).max(160),
+    detail: z.string().min(1).max(800),
+  })
+  .strict();
+
+const AgentBriefDraftCaveatSchema = z
+  .object({
+    id: z.string().min(1).max(80),
+    title: z.string().min(1).max(120),
+    body: z.string().min(1).max(400),
+  })
+  .strict();
+
+export const AgentBriefDraftSchema = registerProjectSchema(
+  z
+    .object({
+      routeSlug: z.string().min(1).max(80),
+      title: z.string().min(1).max(200),
+      status: z.literal("Draft"),
+      version: z.literal("draft-v1"),
+      summary: z.string().min(1).max(800),
+      dek: z.string().min(1).max(400),
+      kpis: z.array(AgentBriefDraftKpiSchema),
+      sections: z.array(AgentBriefDraftSectionSchema),
+      claims: z.array(AgentBriefDraftClaimSchema),
+      evidence: z.array(AgentBriefDraftEvidenceSchema),
+      caveats: z.array(AgentBriefDraftCaveatSchema),
+    })
+    .strict(),
+  {
+    id: "bp.brief.agent_draft.v1",
+    title: "Agent Brief Draft",
+    description:
+      "Agent-authored brief draft. Status and version are pinned; evidence/caveat ids exist so claims.evidenceIds/caveatIds can reference them. The bridge command lifts this into a publishable StudioBrief.",
+    stability: "draft",
+  },
+);
+
+export type AgentBriefDraft = z.output<typeof AgentBriefDraftSchema>;
+
+export const AgentBriefProposalSchema = registerProjectSchema(
+  z
+    .object({
+      proposalId: z.string().min(1),
+      runId: z.string().min(1),
+      brief: AgentBriefDraftSchema,
+      evidenceProvenance: z.array(AgentBriefProposalEvidenceProvenanceSchema),
+      selectedFindingIds: z.array(z.string().min(1)),
+      selectedInterventionRecordIds: z.array(z.string().min(1)),
+      curationRationale: z.string().min(1).max(1000),
+      caveats: z.array(z.string().min(1).max(280)),
+      missingEvidence: z.array(z.string().min(1).max(280)),
+      duplicateCheck: AgentBriefProposalDuplicateCheckSchema,
+      validationState: AgentFindingProposalValidationStateSchema,
+      validationErrors: z.array(z.string().min(1).max(400)),
+    })
+    .strict(),
+  {
+    id: "bp.brief.agent_proposal.v1",
+    title: "Agent Brief Proposal",
+    description:
+      "Proposal-only artifact written by `findings:agent-brief-propose`. The embedded brief carries status=Draft; only reviewer approval + operator promotion produces a published brief.",
+    stability: "draft",
+  },
+);
+
+export type AgentBriefProposal = z.output<typeof AgentBriefProposalSchema>;
+
+export const AgentBriefProposalCorpusPathsSchema = registerProjectSchema(
+  z
+    .object({
+      reviewPackets: z.string().min(1).nullable(),
+      promotionQueue: z.string().min(1).nullable(),
+      promotedFindings: z.string().min(1).nullable(),
+      signalFeatures: z.string().min(1).nullable(),
+      contextAppendix: z.string().min(1).nullable(),
+      interventionPublishable: z.string().min(1).nullable(),
+      interventionPublishableByRoute: z.string().min(1).nullable(),
+      interventionRecords: z.string().min(1).nullable(),
+      documentCandidates: z.string().min(1).nullable(),
+      briefs: z.string().min(1).nullable(),
+    })
+    .strict(),
+  {
+    id: "bp.brief.agent_proposal.corpus_paths.v1",
+    title: "Agent Brief Proposal Corpus Paths",
+    description:
+      "Resolved absolute paths of the corpus artifacts the brief-proposal run consumed. Adds the briefs artifact path for dedupe vs existing briefs.",
+    stability: "draft",
+  },
+);
+
+export type AgentBriefProposalCorpusPaths = z.output<
+  typeof AgentBriefProposalCorpusPathsSchema
+>;
+
+export const AgentBriefProposalsArtifactSchema = registerProjectSchema(
+  z
+    .object({
+      artifactKind: z.literal("agent_brief_proposals"),
+      schemaVersion: z.literal(schemaVersion),
+      month: IsoMonthSchema,
+      runId: z.string().min(1),
+      model: AgentFindingProposalModelMetaSchema,
+      corpusPaths: AgentBriefProposalCorpusPathsSchema,
+      generatedAt: z.iso.datetime(),
+      durationMs: z.number().int().nonnegative(),
+      toolCallCount: z.number().int().nonnegative(),
+      proposals: z.array(AgentBriefProposalSchema),
+      summary: z
+        .object({
+          totalProposals: z.number().int().nonnegative(),
+          validCount: z.number().int().nonnegative(),
+          rejectedCount: z.number().int().nonnegative(),
+          byRoute: z.record(z.string(), z.number().int().nonnegative()),
+        })
+        .strict(),
+    })
+    .strict(),
+  {
+    id: "bp.brief.agent_proposals_artifact.v1",
+    title: "Agent Brief Proposals Artifact",
+    description:
+      "Full output of one `findings:agent-brief-propose` run. Includes provenance, tool-call count, and per-proposal records pre-validation.",
+    stability: "draft",
+  },
+);
+
+export type AgentBriefProposalsArtifact = z.output<
+  typeof AgentBriefProposalsArtifactSchema
+>;
+
+export const AgentBriefProposalValidationCheckSchema = registerProjectSchema(
+  z
+    .object({
+      name: z.enum([
+        "brief_reference_integrity",
+        "evidence_provenance_resolves",
+        "prose_number_coverage",
+        "metric_consistency",
+        "language",
+        "scope_blocked_claims",
+        "duplicate",
+        "section_coverage",
+        "kpi_grounding",
+      ]),
+      passed: z.boolean(),
+      errors: z.array(z.string().min(1).max(400)),
+    })
+    .strict(),
+  {
+    id: "bp.brief.agent_proposal.validation_check.v1",
+    title: "Agent Brief Proposal Validation Check",
+    description: "Per-validator outcome for one brief proposal.",
+    stability: "draft",
+  },
+);
+
+export type AgentBriefProposalValidationCheck = z.output<
+  typeof AgentBriefProposalValidationCheckSchema
+>;
+
+export const AgentBriefProposalValidationRecordSchema = registerProjectSchema(
+  z
+    .object({
+      proposalId: z.string().min(1),
+      validationState: AgentFindingProposalValidationStateSchema,
+      errors: z.array(z.string().min(1).max(400)),
+      checks: z.array(AgentBriefProposalValidationCheckSchema),
+    })
+    .strict(),
+  {
+    id: "bp.brief.agent_proposal.validation_record.v1",
+    title: "Agent Brief Proposal Validation Record",
+    description: "All validator outcomes for one brief proposal plus the rolled-up state.",
+    stability: "draft",
+  },
+);
+
+export type AgentBriefProposalValidationRecord = z.output<
+  typeof AgentBriefProposalValidationRecordSchema
+>;
+
+export const AgentBriefProposalValidationArtifactSchema = registerProjectSchema(
+  z
+    .object({
+      artifactKind: z.literal("agent_brief_proposal_validation"),
+      schemaVersion: z.literal(schemaVersion),
+      proposalsArtifactPath: z.string().min(1),
+      generatedAt: z.iso.datetime(),
+      summary: z
+        .object({
+          totalProposals: z.number().int().nonnegative(),
+          validCount: z.number().int().nonnegative(),
+          rejectedCount: z.number().int().nonnegative(),
+        })
+        .strict(),
+      validations: z.array(AgentBriefProposalValidationRecordSchema),
+    })
+    .strict(),
+  {
+    id: "bp.brief.agent_proposal_validation_artifact.v1",
+    title: "Agent Brief Proposal Validation Artifact",
+    description:
+      "Deterministic validation outputs for a brief-proposals artifact. The bridge command only promotes proposals where validationState is `valid`.",
+    stability: "draft",
+  },
+);
+
+export type AgentBriefProposalValidationArtifact = z.output<
+  typeof AgentBriefProposalValidationArtifactSchema
+>;
+
 export const routeScorecardJsonSchema = toProjectJsonSchema(RouteScorecardSchema);
 export const healthResponseJsonSchema = toProjectJsonSchema(HealthResponseSchema);
 export const releaseStatusResponseJsonSchema = toProjectJsonSchema(ReleaseStatusResponseSchema);

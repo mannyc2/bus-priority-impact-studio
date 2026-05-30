@@ -57,6 +57,8 @@ function buildCorpusWithPromoted(
     documentCandidates: new Map(),
     publishableInterventions: [],
     publishableInterventionsByRoute: new Map() as never,
+    briefs: new Map(),
+    briefsByRouteSlug: new Map(),
   };
 }
 

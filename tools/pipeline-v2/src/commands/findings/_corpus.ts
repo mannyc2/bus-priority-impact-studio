@@ -20,6 +20,7 @@ import {
   type RouteId,
   RouteIdSchema,
   type RouteMonthSignalFeature,
+  type StudioBrief,
 } from "@bp/domain";
 
 import { readOptionalJsonArtifact } from "../../lib/json.ts";
@@ -100,6 +101,25 @@ const DocumentCandidatesArtifactSchema = z
   .catchall(z.unknown())
   .or(z.array(z.record(z.string(), z.unknown())));
 
+// Permissive briefs-artifact shape. On disk this is
+// `{ schemaVersion, generatedAt, briefs: [{ brief, route }, ...], quality }`
+// (see StudioBriefsResponseSchema). We narrow each `card.brief` lazily so a
+// drifted serving release doesn't crash the loader — briefs the agent can't
+// safely use for dedupe just get skipped.
+const BriefsArtifactSchema = z
+  .object({
+    briefs: z
+      .array(
+        z
+          .object({
+            brief: z.record(z.string(), z.unknown()),
+          })
+          .catchall(z.unknown()),
+      )
+      .optional(),
+  })
+  .catchall(z.unknown());
+
 export type CorpusPathInput = {
   month: string;
   reviewPacketsPath?: string | null;
@@ -111,6 +131,7 @@ export type CorpusPathInput = {
   interventionPublishableByRoutePath?: string | null;
   interventionRecordsPath?: string | null;
   documentCandidatesPath?: string | null;
+  briefsPath?: string | null;
 };
 
 export type LoadedCorpus = {
@@ -131,6 +152,8 @@ export type LoadedCorpus = {
   documentCandidates: ReadonlyMap<string, DocumentEvidenceCandidate>;
   publishableInterventions: readonly PublishableIntervention[];
   publishableInterventionsByRoute: ReadonlyMap<RouteId, PublishableIntervention[]>;
+  briefs: ReadonlyMap<string, StudioBrief>;
+  briefsByRouteSlug: ReadonlyMap<string, StudioBrief[]>;
 };
 
 function parseRouteId(value: string | null | undefined): RouteId | null {
@@ -191,6 +214,10 @@ export async function loadCorpus(input: CorpusPathInput): Promise<LoadedCorpus> 
   const documentCandidatesRaw = await readOptionalJsonArtifact(
     input.documentCandidatesPath ?? null,
     DocumentCandidatesArtifactSchema,
+  );
+  const briefsRaw = await readOptionalJsonArtifact(
+    input.briefsPath ?? null,
+    BriefsArtifactSchema,
   );
 
   const reviewPackets = new Map<string, FindingReviewPacket>();
@@ -266,6 +293,23 @@ export async function loadCorpus(input: CorpusPathInput): Promise<LoadedCorpus> 
     documentCandidates.set(candidateId, candidate);
   }
 
+  const briefs = new Map<string, StudioBrief>();
+  const briefsByRouteSlug = new Map<string, StudioBrief[]>();
+  for (const card of briefsRaw?.briefs ?? []) {
+    const raw = card.brief as Record<string, unknown>;
+    const id = (raw["id"] as string | undefined) ?? null;
+    const routeSlug = (raw["routeSlug"] as string | undefined) ?? null;
+    if (!id || !routeSlug) continue;
+    // Keep the raw object — downstream validators only read structural fields
+    // (id, title, summary, claims, evidence). Strict parsing is the brief
+    // proposal's job, not the existing-brief dedupe corpus.
+    const brief = raw as unknown as StudioBrief;
+    briefs.set(id, brief);
+    const arr = briefsByRouteSlug.get(routeSlug) ?? [];
+    arr.push(brief);
+    briefsByRouteSlug.set(routeSlug, arr);
+  }
+
   const publishableInterventions = publishableArtifact?.publishableInterventions ?? [];
   const publishableInterventionsByRoute = new Map<RouteId, PublishableIntervention[]>();
   for (const record of publishableInterventions) {
@@ -321,5 +365,7 @@ export async function loadCorpus(input: CorpusPathInput): Promise<LoadedCorpus> 
     documentCandidates,
     publishableInterventions,
     publishableInterventionsByRoute,
+    briefs,
+    briefsByRouteSlug,
   };
 }

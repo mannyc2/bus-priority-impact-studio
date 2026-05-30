@@ -126,9 +126,9 @@ export function validateEvidenceRefsResolve(
 // variable="highConfidenceTouchCount", value=480 fails because the payload's
 // highConfidenceTouchCount is 101 (touchedEventCount is the field that's 480).
 
-const METRIC_TOLERANCE = 1e-6;
+export const METRIC_TOLERANCE = 1e-6;
 
-function metricTolerance(actual: number): number {
+export function metricTolerance(actual: number): number {
   return Math.max(METRIC_TOLERANCE, Math.abs(actual) * 0.02);
 }
 
@@ -205,6 +205,10 @@ function scrubNonQuantityNumerics(
   // NYC service-code identifiers. These are not counts; "311 service-request"
   // means a 311-system complaint, not 311 of something.
   scrub = scrub.replace(/\b(?:311|911|211|411)\b/g, " ");
+  // Slug-style identifiers ("pf-1", "ev-1", "cv-1", "ir-3", "phase-3"). The
+  // digit here is a serial, not a quantity, and 32-char hex ids are already
+  // stripped above for longer IDs.
+  scrub = scrub.replace(/\b[a-z]+-\d+\b/gi, " ");
   // Known route ids from the loaded corpus.
   for (const r of routes) {
     if (r.length === 0) continue;
@@ -363,7 +367,7 @@ export function validateInterventionSupport(
 //
 // Reject causal verbs, recommendations, and marketing tone. Whole-word match.
 
-const FORBIDDEN_LANGUAGE_PATTERNS: ReadonlyArray<{
+export const FORBIDDEN_LANGUAGE_PATTERNS: ReadonlyArray<{
   pattern: RegExp;
   reason: string;
 }> = [
@@ -403,10 +407,10 @@ export function validateLanguage(ctx: ValidatorContext): AgentFindingProposalVal
 // duplicateCheck field to record the matched id and reason, since the validator
 // is the authoritative dup check.
 
-const JACCARD_THRESHOLD = 0.6;
-const EVIDENCE_OVERLAP_THRESHOLD = 2;
+export const JACCARD_THRESHOLD = 0.6;
+export const EVIDENCE_OVERLAP_THRESHOLD = 2;
 
-function tokenize(text: string): Set<string> {
+export function tokenize(text: string): Set<string> {
   return new Set(
     text
       .toLowerCase()
@@ -416,7 +420,7 @@ function tokenize(text: string): Set<string> {
   );
 }
 
-function jaccard(a: Set<string>, b: Set<string>): number {
+export function jaccard(a: Set<string>, b: Set<string>): number {
   if (a.size === 0 && b.size === 0) return 0;
   let intersect = 0;
   for (const t of a) if (b.has(t)) intersect += 1;
@@ -509,7 +513,7 @@ export function validateDuplicate(
 //  - any explicit causal effect assertion (caught by language; this is a defense)
 //  - assertions of public-ready approval (the proposal pathway never produces them)
 
-const PUBLIC_READY_PATTERNS: ReadonlyArray<{ pattern: RegExp; reason: string }> = [
+export const PUBLIC_READY_PATTERNS: ReadonlyArray<{ pattern: RegExp; reason: string }> = [
   { pattern: /\bpromoted\s+finding\b/i, reason: "asserts promoted-finding status" },
   { pattern: /\bofficially\s+approved\b/i, reason: "asserts official approval" },
   { pattern: /\bready\s+to\s+publish\b/i, reason: "asserts publish readiness" },

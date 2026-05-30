@@ -46,6 +46,15 @@ export {
   DocumentInterventionStatusSchema,
 } from "./document-intervention-records.js";
 export type {
+  AgentBriefDraft,
+  AgentBriefProposal,
+  AgentBriefProposalCorpusPaths,
+  AgentBriefProposalDuplicateCheck,
+  AgentBriefProposalEvidenceProvenance,
+  AgentBriefProposalsArtifact,
+  AgentBriefProposalValidationArtifact,
+  AgentBriefProposalValidationCheck,
+  AgentBriefProposalValidationRecord,
   AgentFindingProposal,
   AgentFindingProposalClaimStrength,
   AgentFindingProposalCorpusPaths,
@@ -120,6 +129,15 @@ export type {
   SignalFeatureWindow,
 } from "./schemas.js";
 export {
+  AgentBriefDraftSchema,
+  AgentBriefProposalCorpusPathsSchema,
+  AgentBriefProposalDuplicateCheckSchema,
+  AgentBriefProposalEvidenceProvenanceSchema,
+  AgentBriefProposalSchema,
+  AgentBriefProposalsArtifactSchema,
+  AgentBriefProposalValidationArtifactSchema,
+  AgentBriefProposalValidationCheckSchema,
+  AgentBriefProposalValidationRecordSchema,
   AgentFindingProposalClaimStrengthSchema,
   AgentFindingProposalCorpusPathsSchema,
   AgentFindingProposalDuplicateCheckSchema,
