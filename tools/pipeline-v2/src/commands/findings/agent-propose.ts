@@ -242,8 +242,9 @@ export default defineCommand({
       model: z
         .string()
         .min(1)
+        .default("deepseek/deepseek-v4-flash")
         .describe(
-          "Model ID. With --provider openrouter use e.g. `deepseek/deepseek-chat-v3-0324` or `anthropic/claude-3.5-sonnet`. With --provider deepseek use e.g. `deepseek-chat` or `deepseek-reasoner`. Required — no default.",
+          "Model ID. Defaults to `deepseek/deepseek-v4-flash` (via openrouter — has a pi-ai catalog entry with thinkingLevelMap and proper cost data). With --provider openrouter use e.g. `deepseek/deepseek-v4-flash`, `deepseek/deepseek-chat-v3-0324`, or `anthropic/claude-3.5-sonnet`. With --provider deepseek use e.g. `deepseek-chat` or `deepseek-reasoner`.",
         ),
       maxProposalsPerRoute: z.coerce
         .number()
