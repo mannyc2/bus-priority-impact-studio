@@ -1,10 +1,15 @@
 import { defineCommand, z } from "@liche/core";
 import { join } from "node:path";
-import { mkdir } from "node:fs/promises";
+import { mkdir, readFile } from "node:fs/promises";
 
 import type { Api, Context, Model, ThinkingLevel } from "@earendil-works/pi-ai";
 
-import { agentProposalsDir, findingsArtifactDir, fromCliPath } from "../../lib/paths.ts";
+import {
+  agentProposalsDir,
+  findingsArtifactDir,
+  fromCliPath,
+  fromRepoRoot,
+} from "../../lib/paths.ts";
 import { writeJson } from "../../lib/json.ts";
 import {
   completeJson,
@@ -15,6 +20,7 @@ import {
 
 import { loadCorpus, type LoadedCorpus } from "./_corpus.ts";
 import { runAgentPropose, type ModelCompletion } from "./_runner.ts";
+import { makeToolLoopRunner, type ModelToolLoop } from "./_tool_loop.ts";
 import { summarizeCorpusInventory } from "./_tools.ts";
 
 function makeRunId(): string {
@@ -213,6 +219,12 @@ export default defineCommand({
         .describe(
           "Without --execute (default false), the command does a dry run: load corpus, print inventory, print first route digest, exit. With --execute, calls the LLM and writes artifacts.",
         ),
+      enableCodemode: z
+        .union([z.boolean(), z.string()])
+        .default(false)
+        .describe(
+          "Run the agent with python_exec + bash_exec tools backed by the bp-sandbox Docker image. Loads knowledge/wiki/data/agent_corpus_map.md into the system prompt. Requires the image to be built (`bun run sandbox:build`). Cited code_execution evidence refs are re-executed at validation time.",
+        ),
     }),
   },
   output: z.object({
@@ -277,12 +289,17 @@ export default defineCommand({
       typeof options.execute === "string"
         ? options.execute === "true" || options.execute === "1"
         : options.execute;
+    const enableCodemodeFlag =
+      typeof options.enableCodemode === "string"
+        ? options.enableCodemode === "true" || options.enableCodemode === "1"
+        : options.enableCodemode;
 
     if (!executeFlag) {
       console.log("findings:agent-propose (dry run)");
       console.log(`  month=${monthIso}`);
       console.log(`  model=${options.model}`);
       console.log(`  routes=${routesToRun.length}`);
+      console.log(`  codemode=${enableCodemodeFlag}`);
       console.log("  corpus inventory:");
       for (const [k, v] of Object.entries(inventory)) {
         console.log(`    ${k}: ${v}`);
@@ -327,6 +344,25 @@ export default defineCommand({
       counter,
     });
 
+    let modelToolLoop: ModelToolLoop | undefined;
+    let corpusMapMarkdown: string | undefined;
+    if (enableCodemodeFlag) {
+      const baseModel: Model<Api> =
+        options.provider === "deepseek"
+          ? deepSeekModel(options.model)
+          : (getOpenRouterCatalogModel(options.model) ?? openRouterModel(options.model));
+      corpusMapMarkdown = await readFile(
+        fromRepoRoot("knowledge/wiki/data/agent_corpus_map.md"),
+        "utf8",
+      );
+      modelToolLoop = makeToolLoopRunner({
+        model: baseModel,
+        apiKey,
+        maxOutputTokens: options.maxOutputTokens,
+        ...(reasoning === null ? {} : { reasoning }),
+      });
+    }
+
     const result = await runAgentPropose({
       corpus,
       routes: routesToRun,
@@ -339,6 +375,13 @@ export default defineCommand({
         maxOutputTokens: options.maxOutputTokens,
       },
       modelComplete,
+      ...(enableCodemodeFlag
+        ? {
+            enableCodemode: true,
+            modelToolLoop: modelToolLoop!,
+            corpusMapMarkdown: corpusMapMarkdown!,
+          }
+        : {}),
     });
 
     const outputDir = agentProposalsDir(monthIso, runId);

@@ -2,6 +2,49 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-05-30] pipeline | codemode findings agent: Python sandbox + code_execution evidence refs
+
+`findings:agent-propose` gains an opt-in codemode (`--enable-codemode true`) that hands the
+model a `python_exec` + `bash_exec` tool pair backed by a read-only Docker sandbox. The agent
+slices the corpus by writing code instead of relying on the prompt-sliced `RouteContextDigest`.
+Code the agent cites is captured as a new `code_execution` `AgentFindingProposalEvidenceRef`
+kind (language, code, stdoutHash, citedValuePath); validation re-executes the code in the same
+sandbox and rejects the proposal if `sha256(stdout)` doesn't match the model-declared hash.
+That hash check is the deterministic gate this feature exists for — it catches model drift,
+non-reproducible scripts, and tampered hashes with the same machinery that catches them at
+manual review time.
+
+ADR 0010 (`docs/decisions/0010-python-in-sandbox.md`) gates Python to the sandbox image only.
+`apps/web`, `packages/`, and the rest of `tools/` stay TypeScript-only — the boundary is the
+Dockerfile and the `tools/agent-corpus-lib/` package (bp_corpus: routes/signals/findings
+loaders, bind-mounted into the sandbox at `/work/agent-corpus-lib`). The sandbox image
+(`tools/sandbox/Dockerfile`, built via `bun run sandbox:build`) is digest-pinned (python:3.12-slim),
+hash-pins its pip deps (pandas + duckdb + pyarrow) via `requirements.txt` with `--require-hashes`,
+ships ripgrep + jq, and runs as a non-root user under `--network=none --read-only --cap-drop=ALL`
+with `--tmpfs` scratch and ulimit caps applied by `tools/pipeline-v2/src/lib/sandbox.ts`.
+
+Tool loop is built on `@earendil-works/pi-agent-core@^0.78.0` (pi-ai bumped 0.75 → 0.78 in the
+same commit; existing call sites unaffected). `_tool_loop.ts` registers `python_exec` and
+`bash_exec` as `AgentTool`s with typebox parameter schemas, dispatches through `runAgentLoop`,
+and enforces per-run caps (max tool calls, total stdout bytes, walltime) via `afterToolCall`
+returning `terminate` hints plus an `AbortController` signal. The trace surfaces on
+`RunProposalsResult.toolUseTrace`. `validateProposal` is now async — it pre-executes unique
+code refs once per proposal and threads the cache through `ValidatorContext.codeExecutionCache`.
+
+`knowledge/wiki/data/agent_corpus_map.md` is the navigation doc the CLI loads into the system
+prompt when codemode is on; it documents the bp_corpus API, mount layout, JSON shapes for the
+load-bearing artifacts, five worked example sequences, and the determinism rules that keep
+re-execution reproducible.
+
+**Not yet done:** persisting `toolUseTrace` to the validation artifact (would need a schema
+migration on `AgentFindingProposalValidationArtifact`); a real-model dry run against the
+2026-03 fixture to capture latency/cost numbers. The CLI is wired and dry-runs cleanly with
+`bun --filter @bp/pipeline-v2 cli -- findings agent-propose --year 2026 --month 3 --model
+"<model-id>" --enable-codemode true`.
+
+Verification: 215 pipeline-v2 tests + 16 domain tests + 10 sandbox wrapper tests pass; image
+builds to 464 MB.
+
 ## [2026-05-29] pipeline | tools/pipeline-v2 ports complete (89/89) and monoliths split
 
 All 89 port-rated v1 commands now have v2 implementations under
