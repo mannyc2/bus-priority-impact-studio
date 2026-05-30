@@ -11,8 +11,9 @@ import {
   type FindingSeverity,
 } from "@bp/domain";
 
+import type { ModelToolLoop, ToolUseTraceEntry } from "../../lib/codemode/index.ts";
+
 import type { LoadedCorpus } from "./_corpus.ts";
-import type { ModelToolLoop, ToolUseTraceEntry } from "./_tool_loop.ts";
 import {
   getRouteContextDigest,
   type RouteContextDigest,

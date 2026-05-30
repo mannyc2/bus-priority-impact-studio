@@ -15,7 +15,7 @@ import {
   type HarnessLike,
   type ToolExecutor,
   makeToolLoopRunner,
-} from "../../../src/commands/findings/_tool_loop.ts";
+} from "../../../src/lib/codemode/index.ts";
 import type { SandboxResult } from "../../../src/lib/sandbox.ts";
 
 // ---------------------------------------------------------------------------

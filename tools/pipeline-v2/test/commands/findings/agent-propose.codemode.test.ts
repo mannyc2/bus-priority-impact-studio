@@ -8,7 +8,7 @@ import { runAgentPropose } from "../../../src/commands/findings/_runner.ts";
 import type {
   ModelToolLoop,
   ToolUseTraceEntry,
-} from "../../../src/commands/findings/_tool_loop.ts";
+} from "../../../src/lib/codemode/index.ts";
 import { runPython } from "../../../src/lib/sandbox.ts";
 
 // Step 7 + 8: codemode end-to-end. Mock the `ModelToolLoop` so the test

@@ -26,7 +26,7 @@ import {
   type Usage,
 } from "@earendil-works/pi-ai";
 
-import { runBash, runPython, type SandboxResult } from "../../lib/sandbox.ts";
+import { runBash, runPython, type SandboxResult } from "../sandbox.ts";
 
 // ---------------------------------------------------------------------------
 // Tools — typebox schemas via pi-ai's re-exported `Type`. Each tool is an
