@@ -83,6 +83,8 @@ function evidenceRefsToStrings(proposal: AgentFindingProposal): string[] {
         return `document:${ref.candidateId}`;
       case "context_appendix":
         return `context:${ref.routeId}:${ref.section}`;
+      case "code_execution":
+        return `code:${ref.language}:${ref.stdoutHash.slice(0, 12)}`;
     }
   });
 }

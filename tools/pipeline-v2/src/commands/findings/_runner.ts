@@ -12,6 +12,7 @@ import {
 } from "@bp/domain";
 
 import type { LoadedCorpus } from "./_corpus.ts";
+import type { ModelToolLoop, ToolUseTraceEntry } from "./_tool_loop.ts";
 import {
   getRouteContextDigest,
   type RouteContextDigest,
@@ -159,6 +160,12 @@ export type RunProposalsInput = {
   runId: string;
   model: AgentFindingProposalModelMeta;
   modelComplete: ModelCompletion;
+  // Codemode (step 7). When `enableCodemode` is true the runner uses
+  // `modelToolLoop` instead of `modelComplete`, appends `corpusMapMarkdown`
+  // to the system prompt, and surfaces `toolUseTrace` on the result.
+  enableCodemode?: boolean;
+  modelToolLoop?: ModelToolLoop;
+  corpusMapMarkdown?: string;
 };
 
 export type RunProposalsResult = {
@@ -167,6 +174,11 @@ export type RunProposalsResult = {
   validationArtifact: AgentFindingProposalValidationArtifact;
   toolCallCount: number;
   durationMs: number;
+  // Populated when codemode is on. The trace records every tool call the
+  // model issued during proposal generation, in order. Distinct from the
+  // re-execution that happens during validation.
+  toolUseTrace?: ToolUseTraceEntry[];
+  toolLoopCapsHit?: "calls" | "stdout" | "walltime" | null;
 };
 
 let counter = 0;
@@ -237,10 +249,31 @@ export async function runAgentPropose(
     digests,
     maxProposalsPerRoute: input.maxProposalsPerRoute,
   });
-  const text = await input.modelComplete({
-    systemPrompt: SYSTEM_PROMPT,
-    userMessage,
-  });
+  let text: string;
+  let toolUseTrace: ToolUseTraceEntry[] | undefined;
+  let toolLoopCapsHit: "calls" | "stdout" | "walltime" | null | undefined;
+  if (input.enableCodemode) {
+    if (!input.modelToolLoop) {
+      throw new Error("enableCodemode is true but modelToolLoop was not supplied");
+    }
+    const systemPrompt = input.corpusMapMarkdown
+      ? `${SYSTEM_PROMPT}\n\n# Corpus map (codemode)\n\n${input.corpusMapMarkdown}`
+      : SYSTEM_PROMPT;
+    const loopResult = await input.modelToolLoop({ systemPrompt, userMessage });
+    text = loopResult.finalText;
+    toolUseTrace = loopResult.toolUseTrace;
+    toolLoopCapsHit = loopResult.capsHit;
+    if (text.length === 0) {
+      throw new Error(
+        `codemode tool loop returned no text (capsHit=${loopResult.capsHit ?? "null"}, iterations=${loopResult.iterations}, toolCalls=${loopResult.toolUseTrace.length})`,
+      );
+    }
+  } else {
+    text = await input.modelComplete({
+      systemPrompt: SYSTEM_PROMPT,
+      userMessage,
+    });
+  }
   let parsed: z.output<typeof ModelResponseSchema>;
   try {
     const json = JSON.parse(extractJsonObject(text));
@@ -283,7 +316,7 @@ export async function runAgentPropose(
       });
       continue;
     }
-    const record = validateProposal(input.corpus, strict.data);
+    const record = await validateProposal(input.corpus, strict.data);
     const validated: AgentFindingProposal = {
       ...strict.data,
       validationState: record.validationState,
@@ -313,6 +346,7 @@ export async function runAgentPropose(
     byScope: tally(proposals.map((p) => p.scopeKind)),
   };
 
+  const toolCallCount = toolUseTrace?.length ?? 0;
   const proposalsArtifact: AgentFindingProposalsArtifact = {
     artifactKind: "agent_finding_proposals",
     schemaVersion: 1,
@@ -322,7 +356,7 @@ export async function runAgentPropose(
     corpusPaths: input.corpus.paths,
     generatedAt: new Date().toISOString(),
     durationMs,
-    toolCallCount: 0, // single-prompt runner, no per-tool calls yet
+    toolCallCount,
     proposals,
     summary,
   };
@@ -344,8 +378,10 @@ export async function runAgentPropose(
     proposals,
     proposalsArtifact,
     validationArtifact,
-    toolCallCount: 0,
+    toolCallCount,
     durationMs,
+    ...(toolUseTrace === undefined ? {} : { toolUseTrace }),
+    ...(toolLoopCapsHit === undefined ? {} : { toolLoopCapsHit }),
   };
 }
 

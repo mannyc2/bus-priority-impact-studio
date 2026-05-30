@@ -1,0 +1,4 @@
+# Keep build context minimal. The Dockerfile only needs requirements.txt.
+*
+!Dockerfile
+!requirements.txt

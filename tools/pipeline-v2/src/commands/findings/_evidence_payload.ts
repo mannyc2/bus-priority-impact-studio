@@ -1,5 +1,10 @@
 import type { AgentFindingProposalEvidenceRef } from "@bp/domain";
 
+import {
+  type CodeExecutionCache,
+  extractFromStdout,
+  sha256Hex,
+} from "./_code_execution.ts";
 import type { LoadedCorpus } from "./_corpus.ts";
 
 export type EvidencePayload = Record<string, unknown>;
@@ -24,6 +29,7 @@ export type EvidencePayload = Record<string, unknown>;
 export function resolveEvidencePayload(
   corpus: LoadedCorpus,
   ref: AgentFindingProposalEvidenceRef,
+  codeExecutionCache?: CodeExecutionCache,
 ): EvidencePayload | null {
   switch (ref.kind) {
     case "review_packet_link": {
@@ -64,6 +70,13 @@ export function resolveEvidencePayload(
         return section as EvidencePayload;
       }
       return appendix as EvidencePayload;
+    }
+    case "code_execution": {
+      if (!codeExecutionCache) return null;
+      const entry = codeExecutionCache.get(sha256Hex(ref.code));
+      if (!entry || entry.error !== null) return null;
+      if (entry.stdoutHash !== ref.stdoutHash) return null;
+      return extractFromStdout(entry.stdout, ref.citedValuePath) as EvidencePayload | null;
     }
   }
 }

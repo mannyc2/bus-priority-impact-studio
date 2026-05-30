@@ -53,6 +53,7 @@ for route ⇄ LION corridor joins.
 - [[wiki/data/nyc_dot_bus_lanes|NYC DOT bus lanes]] — Street-level bus-lane presence.
 - [[wiki/data/service_alerts_and_planned_changes|Service alerts and planned changes]] — Disruption/context filters.
 - [[wiki/data/policy_docs_corpus|Policy/docs corpus]] — Board materials, open-data plans, press releases, MTA blog posts, and LLM-assisted candidate extraction.
+- [[wiki/data/agent_corpus_map|Agent corpus map]] — Codemode sandbox layout and the `bp_corpus` Python API loaded into the findings-agent system prompt.
 
 ## Engineering pages
 

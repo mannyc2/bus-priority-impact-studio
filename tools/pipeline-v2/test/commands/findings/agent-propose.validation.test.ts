@@ -738,7 +738,7 @@ describe("validateScopeBlockedClaims", () => {
 // Aggregator
 
 describe("validateProposal", () => {
-  test("returns valid state when every check passes", () => {
+  test("returns valid state when every check passes", async () => {
     const corpus = buildCorpus({
       routes: ["B44"],
       reviewPackets: [{ packetId: "pkt-1", routeId: "B44", linkIds: ["link-1"] }],
@@ -748,18 +748,18 @@ describe("validateProposal", () => {
         { kind: "review_packet_link", packetId: "pkt-1", linkId: "link-1" },
       ],
     });
-    const record = validateProposal(corpus, proposal);
+    const record = await validateProposal(corpus, proposal);
     expect(record.validationState).toBe("valid");
     expect(record.errors).toEqual([]);
     expect(record.checks.length).toBe(8);
   });
 
-  test("returns rejected with prefixed error names", () => {
+  test("returns rejected with prefixed error names", async () => {
     const corpus = buildCorpus({});
     const proposal = buildProposal({
       claimText: "Bus lane caused speed gains on Main Street.",
     });
-    const record = validateProposal(corpus, proposal);
+    const record = await validateProposal(corpus, proposal);
     expect(record.validationState).toBe("rejected");
     expect(record.errors.some((e) => e.startsWith("[language]"))).toBe(true);
     expect(record.errors.some((e) => e.startsWith("[evidence_refs_resolve]"))).toBe(

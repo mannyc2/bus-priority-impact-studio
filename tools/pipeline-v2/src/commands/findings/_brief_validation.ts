@@ -169,6 +169,8 @@ function describeRef(ref: AgentFindingProposalEvidenceRef): string {
       return `document_candidate(${ref.candidateId})`;
     case "context_appendix":
       return `context_appendix(${ref.routeId}/${ref.section})`;
+    case "code_execution":
+      return `code_execution(${ref.language}/${ref.stdoutHash.slice(0, 12)})`;
   }
 }
 

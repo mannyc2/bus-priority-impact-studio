@@ -8,12 +8,22 @@ import type {
   RouteMonthSignalFeature,
 } from "@bp/domain";
 
+import {
+  type CodeExecutionCache,
+  preExecuteCodeRefs,
+  sha256Hex,
+} from "./_code_execution.ts";
 import type { LoadedCorpus } from "./_corpus.ts";
 import { findNumericField, resolveEvidencePayload } from "./_evidence_payload.ts";
 
 export type ValidatorContext = {
   corpus: LoadedCorpus;
   proposal: AgentFindingProposal;
+  // Populated by validateProposal via preExecuteCodeRefs. Optional so unit
+  // tests that exercise individual validators don't have to thread a Map
+  // through every call site — code_execution refs in those tests will
+  // surface a clear "cache missing" error if they slip in by accident.
+  codeExecutionCache?: CodeExecutionCache;
 };
 
 // ---------------------------------------------------------------------------
@@ -43,13 +53,16 @@ function describeRef(ref: AgentFindingProposalEvidenceRef): string {
       return `document_candidate(candidateId=${ref.candidateId})`;
     case "context_appendix":
       return `context_appendix(routeId=${ref.routeId}, section=${ref.section})`;
+    case "code_execution":
+      return `code_execution(language=${ref.language}, stdoutHash=${ref.stdoutHash.slice(0, 12)})`;
   }
 }
 
 function resolveEvidenceRef(
-  corpus: LoadedCorpus,
+  ctx: ValidatorContext,
   ref: AgentFindingProposalEvidenceRef,
 ): string | null {
+  const corpus = ctx.corpus;
   switch (ref.kind) {
     case "review_packet_link": {
       if (!corpus.reviewPackets.has(ref.packetId)) {
@@ -86,6 +99,18 @@ function resolveEvidenceRef(
         ? null
         : `no context appendix for route ${ref.routeId}`;
     }
+    case "code_execution": {
+      if (!ctx.codeExecutionCache) {
+        return "internal: code_execution validator called without pre-execution cache";
+      }
+      const entry = ctx.codeExecutionCache.get(sha256Hex(ref.code));
+      if (!entry) return "internal: code_execution cache miss (pre-execution did not run)";
+      if (entry.error !== null) return entry.error;
+      if (entry.stdoutHash !== ref.stdoutHash) {
+        return `stdout hash mismatch: cited=${ref.stdoutHash.slice(0, 12)}…, actual=${entry.stdoutHash.slice(0, 12)}… — code is not deterministic or stdout drifted from when the ref was created`;
+      }
+      return null;
+    }
   }
 }
 
@@ -98,7 +123,7 @@ export function validateEvidenceRefsResolve(
     errors.push("proposal has no evidenceRefs or counterEvidenceRefs");
   }
   for (const ref of allRefs) {
-    const error = resolveEvidenceRef(ctx.corpus, ref);
+    const error = resolveEvidenceRef(ctx, ref);
     if (error) errors.push(`${describeRef(ref)}: ${error}`);
   }
   for (const recordId of ctx.proposal.interventionRecordIds) {
@@ -137,7 +162,7 @@ export function validateMetricConsistency(
 ): AgentFindingProposalValidationCheck {
   const errors: string[] = [];
   for (const claim of ctx.proposal.metricClaims) {
-    const payload = resolveEvidencePayload(ctx.corpus, claim.evidenceRef);
+    const payload = resolveEvidencePayload(ctx.corpus, claim.evidenceRef, ctx.codeExecutionCache);
     if (!payload) {
       errors.push(
         `metricClaim ${claim.variable}: cited evidenceRef does not resolve to a payload`,
@@ -573,11 +598,12 @@ const ALL_VALIDATORS = [
   validateScopeBlockedClaims,
 ] as const;
 
-export function validateProposal(
+export async function validateProposal(
   corpus: LoadedCorpus,
   proposal: AgentFindingProposal,
-): AgentFindingProposalValidationRecord {
-  const ctx: ValidatorContext = { corpus, proposal };
+): Promise<AgentFindingProposalValidationRecord> {
+  const codeExecutionCache = await preExecuteCodeRefs(proposal);
+  const ctx: ValidatorContext = { corpus, proposal, codeExecutionCache };
   const checks: AgentFindingProposalValidationCheck[] = ALL_VALIDATORS.map((validator) =>
     validator(ctx),
   );

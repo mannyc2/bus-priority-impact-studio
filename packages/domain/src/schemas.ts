@@ -1748,12 +1748,21 @@ export const AgentFindingProposalEvidenceRefSchema = registerProjectSchema(
           section: z.string().min(1).max(120),
         })
         .strict(),
+      z
+        .object({
+          kind: z.literal("code_execution"),
+          language: z.enum(["python", "bash"]),
+          code: z.string().min(1).max(8000),
+          stdoutHash: z.string().regex(/^[0-9a-f]{64}$/),
+          citedValuePath: z.string().min(1).max(200).optional(),
+        })
+        .strict(),
     ]),
   {
     id: "bp.finding.agent_proposal.evidence_ref.v1",
     title: "Agent Finding Proposal Evidence Reference",
     description:
-      "Discriminated reference to an existing corpus artifact. Every kind must resolve in the loaded corpus; invented refs fail validation.",
+      "Discriminated reference to an existing corpus artifact or to a sandboxed code execution. Every kind must resolve in the loaded corpus or re-execute deterministically; invented refs fail validation.",
     stability: "draft",
   },
 );

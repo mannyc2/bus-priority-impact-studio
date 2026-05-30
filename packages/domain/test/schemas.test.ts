@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import * as z from "zod";
 import {
+  AgentFindingProposalEvidenceRefSchema,
   buildStudioRouteProjection,
   FindingEvidenceLinkSchema,
   FindingPromotionQueueArtifactSchema,
@@ -556,5 +557,39 @@ describe("domain schemas", () => {
         extra: "not allowed",
       }),
     ).toThrow();
+  });
+
+  test("AgentFindingProposalEvidenceRefSchema accepts a code_execution ref", () => {
+    const parsed = AgentFindingProposalEvidenceRefSchema.parse({
+      kind: "code_execution",
+      language: "python",
+      code: "from bp_corpus import signals\nprint(len(signals.features('2026-03')))",
+      stdoutHash: "a".repeat(64),
+      citedValuePath: "/lines/0",
+    });
+    expect(parsed.kind).toBe("code_execution");
+    if (parsed.kind === "code_execution") {
+      expect(parsed.language).toBe("python");
+    }
+  });
+
+  test("AgentFindingProposalEvidenceRefSchema rejects code_execution refs with bad stdoutHash", () => {
+    expect(() =>
+      AgentFindingProposalEvidenceRefSchema.parse({
+        kind: "code_execution",
+        language: "python",
+        code: "print(1)",
+        stdoutHash: "not-a-sha256",
+      }),
+    ).toThrow();
+  });
+
+  test("AgentFindingProposalEvidenceRefSchema still accepts existing review_packet_link kind", () => {
+    const parsed = AgentFindingProposalEvidenceRefSchema.parse({
+      kind: "review_packet_link",
+      packetId: "pkt-1",
+      linkId: "link-1",
+    });
+    expect(parsed.kind).toBe("review_packet_link");
   });
 });
