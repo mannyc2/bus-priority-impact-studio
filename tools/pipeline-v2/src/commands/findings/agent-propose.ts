@@ -1,6 +1,6 @@
 import { defineCommand, z } from "@liche/core";
 import { join } from "node:path";
-import { mkdir, readFile } from "node:fs/promises";
+import { mkdir } from "node:fs/promises";
 
 import type { Api, Context, Model, ThinkingLevel } from "@earendil-works/pi-ai";
 
@@ -85,6 +85,19 @@ function buildStderrEventSink(): ToolLoopEventSink {
     }
     if (event.type === "agent_end") {
       write(`agent_end (${event.messages.length} messages)`);
+      return;
+    }
+    if (event.type === "session_before_compact") {
+      write(
+        `compact start: tokensBefore=${event.preparation.tokensBefore} keepRecent=${event.preparation.settings.keepRecentTokens}`,
+      );
+      return;
+    }
+    if (event.type === "session_compact") {
+      const entry = event.compactionEntry;
+      write(
+        `compact end: firstKept=${entry.firstKeptEntryId.slice(0, 8)} tokensBefore=${entry.tokensBefore}`,
+      );
       return;
     }
   };
@@ -288,6 +301,12 @@ export default defineCommand({
         .describe(
           "Run the agent with python_exec + bash_exec tools backed by the bp-sandbox Docker image. Loads knowledge/wiki/data/agent_corpus_map.md into the system prompt. Requires the image to be built (`bun run sandbox:build`). Cited code_execution evidence refs are re-executed at validation time.",
         ),
+      persistSessions: z
+        .union([z.boolean(), z.string()])
+        .default(false)
+        .describe(
+          "Persist the AgentHarness transcript to <agent-proposals-dir>/<runId>/sessions/. Disabled by default — sessions stay in memory for ephemeral runs.",
+        ),
     }),
   },
   output: z.object({
@@ -407,24 +426,38 @@ export default defineCommand({
       counter,
     });
 
+    const persistSessionsFlag =
+      typeof options.persistSessions === "string"
+        ? options.persistSessions === "true" || options.persistSessions === "1"
+        : options.persistSessions;
+
     let modelToolLoop: ModelToolLoop | undefined;
-    let corpusMapMarkdown: string | undefined;
     if (enableCodemodeFlag) {
       const baseModel: Model<Api> =
         options.provider === "deepseek"
           ? deepSeekModel(options.model)
           : (getOpenRouterCatalogModel(options.model) ?? openRouterModel(options.model));
-      corpusMapMarkdown = await readFile(
-        fromRepoRoot("knowledge/wiki/data/agent_corpus_map.md"),
-        "utf8",
-      );
       const onEvent: ToolLoopEventSink = buildStderrEventSink();
+      const sessionsRoot = persistSessionsFlag
+        ? join(agentProposalsDir(monthIso, runId), "sessions")
+        : undefined;
+      if (sessionsRoot !== undefined) {
+        await mkdir(sessionsRoot, { recursive: true });
+        console.log(`  sessions=${sessionsRoot}`);
+      }
+      // SKILL.md files at tools/agent-corpus-lib/skills/ are inlined into the
+      // system prompt by _tool_loop.ts (replaces the prior ad-hoc read of
+      // knowledge/wiki/data/agent_corpus_map.md). To customize, point
+      // skillsRoot at another directory or set it to undefined to suppress.
+      const skillsRoot = fromRepoRoot("tools/agent-corpus-lib/skills");
       modelToolLoop = makeToolLoopRunner({
         model: baseModel,
         apiKey,
         maxOutputTokens: options.maxOutputTokens,
         ...(reasoning === null ? {} : { reasoning }),
         onEvent,
+        ...(sessionsRoot === undefined ? {} : { sessionsRoot }),
+        skillsRoot,
       });
     }
 
@@ -444,7 +477,6 @@ export default defineCommand({
         ? {
             enableCodemode: true,
             modelToolLoop: modelToolLoop!,
-            corpusMapMarkdown: corpusMapMarkdown!,
           }
         : {}),
     });

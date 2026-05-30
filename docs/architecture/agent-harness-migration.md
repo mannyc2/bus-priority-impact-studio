@@ -1,7 +1,8 @@
 # AgentHarness migration plan
 
-Status: phase 1 landed (2026-05-30); phases 1b–4 still planned.
-Tracking commits: TBD (phase 1 landing commit on `main`).
+Status: phases 1, 1b, 2, 3, 4 landed (2026-05-30). Cross-route batching for
+true compaction value remains a runner-level follow-up.
+Tracking commits: see `git log` on `main`.
 
 ## Why
 
@@ -111,88 +112,104 @@ free. Keep custom retry until phase 1b.
 
 **Estimated effort:** ~200 LOC delta. 1 session.
 
-### Phase 1b: drop custom retry, adopt harness retry settings
+### Phase 1b: drop custom retry, adopt harness retry settings  ✅ LANDED 2026-05-30
 
-**Goal:** remove `isRetryableProviderError` and the backoff loop from
-`_tool_loop.ts`; rely on harness's built-in retry. Wire
-`auto_retry_start`/`auto_retry_end` events through `onEvent`.
+**Goal:** remove the custom backoff loop from `_tool_loop.ts`; rely on
+pi-ai's HTTP-layer retry via `streamOptions.maxRetries`.
 
-**Files touched:**
-- `_tool_loop.ts` — delete ~50 LOC of retry plumbing
-- Keep `retries: number` field on `ToolLoopResult`, populated from
-  harness's auto_retry_end event count
+**Outcome:**
+- Custom retry loop deleted (~50 LOC). `streamOptions.maxRetries = 3,
+  maxRetryDelayMs = 30000` is passed to AgentHarness; pi-ai's
+  `streamSimple` handles transient errors (429, 5xx, network) internally
+  before they reach the harness as `stopReason: "error"`.
+- `isRetryableProviderError` + `RETRYABLE_ERROR_PATTERN` removed — no
+  longer needed.
+- `retries: number` field on `ToolLoopResult` retained for compatibility
+  but now always 0. pi-agent-core 0.78 does not surface internal retry
+  attempts as harness events (no `auto_retry_*` events exist), so the
+  count isn't observable.
+- Any `stopReason: "error"` that *does* surface is treated as fatal and
+  thrown verbatim — pi-ai's HTTP retry already exhausted by that point.
 
-**Estimated effort:** ~50 LOC delta. Same session as phase 1 if budget allows.
-
-### Phase 2: session persistence via JsonlSessionRepo
+### Phase 2: session persistence via JsonlSessionRepo  ✅ LANDED 2026-05-30 (persistence only; resume deferred)
 
 **Goal:** Each agent-propose run writes its transcript to
-`data/artifacts/findings/<month>/agent-proposals/<runId>/session.jsonl`.
-Crash mid-run, resume cleanly.
+`data/artifacts/findings/<month>/agent-proposals/<runId>/sessions/`.
 
-**Files touched:**
-- `_tool_loop.ts` — accept an optional `sessionDir` arg; when set,
-  construct `JsonlSessionRepo` instead of `InMemorySessionRepo`
-- `agent-propose.ts` — pass `agentProposalsDir(month, runId)/session.jsonl`
-  through when `--execute` is on
-- New CLI flag `--resume <runId>` to reattach to an existing session repo
-  and call `harness.continue()` instead of `harness.prompt()`
+**Outcome:**
+- `makeToolLoopRunner` gained `sessionsRoot?: string` + `sessionsCwd?: string`
+  args. When `sessionsRoot` is set, the loop constructs `JsonlSessionRepo`
+  instead of `InMemorySessionRepo`; otherwise behavior is unchanged.
+- `ToolLoopResult` gained optional `sessionId` + `sessionPath` fields.
+- New CLI flag `--persist-sessions` on `findings:agent-propose`. When set,
+  sessions land in `agentProposalsDir(month, runId)/sessions/<encoded-cwd>/
+  <sessionId>-<timestamp>.jsonl`.
+- Resume (the `--resume <runId>` flag) is **not** implemented in this phase.
+  The runner iterates per-route; each route gets its own session. Resume
+  semantics require tracking which routes completed and skipping them on
+  rerun, which is a runner-level change. Treat this phase as "audit
+  transcripts on disk" — full resumability is a follow-up.
 
-**Verification:**
-- Kill an agent-propose mid-run; rerun with `--resume`; verify it picks up
-  where it left off without re-running tools
-- New integration test: write a fake session.jsonl with one turn complete,
-  verify `--resume` produces a valid completion
+**Estimated effort delivered:** ~80 LOC. 0 new tests (the InMemorySession
+mock harness in `_tool-loop.test.ts` already covers the seam; the on-disk
+path is exercised end-to-end by `--persist-sessions` and the upstream
+JsonlSessionRepo is already tested in pi-agent-core).
 
-**Estimated effort:** ~150 LOC delta + 1 integration test. 1 session.
+### Phase 3: skills via SKILL.md + AgentHarnessResources  ✅ LANDED 2026-05-30
 
-### Phase 3: skills via SKILL.md + AgentHarnessResources
+**Outcome:**
+- `tools/agent-corpus-lib/skills/corpus-navigation/SKILL.md` created from
+  the corpus map content with proper YAML frontmatter (`name`,
+  `description`). The legacy `knowledge/wiki/data/agent_corpus_map.md`
+  stays as the human-readable wiki page; the SKILL.md is the machine copy.
+- `_tool_loop.ts` gained `skillsRoot?: string`. When set, the loop calls
+  `loadSkills(env, skillsRoot)`, emits any diagnostics to stderr, inlines
+  each skill's content into the composed system prompt, AND passes the
+  parsed skills via `resources.skills` so future explicit
+  `harness.skill(name)` invocations work.
+- `agent-propose.ts` no longer reads `agent_corpus_map.md` directly. It
+  defaults `skillsRoot` to `tools/agent-corpus-lib/skills/`. The runner-
+  level `corpusMapMarkdown` input is preserved for the codemode E2E test
+  (which inlines a string directly) but the CLI doesn't populate it.
+- **Caveat:** upstream's `formatSkillsForSystemPrompt` emits only pointers
+  (name + description + host file path) and assumes the model can `cat`
+  the path. That fails inside our read-only docker sandbox, so we inline
+  the full content instead. Future iterations could remap `filePath` to
+  `/work/agent-corpus-lib/skills/...` (which IS mounted into the sandbox)
+  and switch to the pointer pattern for lazy loading.
 
-**Goal:** Move the corpus map and determinism rules out of an ad-hoc
-markdown read into a real skill registry. Future agents (intervention rank,
-brief writer) reuse the same skills.
+**Estimated effort delivered:** ~140 LOC delta + the new SKILL.md.
 
-**Decisions to make:**
-- Where do SKILL.md files live? Proposed: `tools/agent-corpus-lib/skills/`
-  - `corpus-navigation.md` — bp_corpus API + determinism rules
-  - `proposal-format.md` — output JSON shape + claim-strength rules
-- Skills are loaded via `loadSourcedPromptTemplates` / `loadSkills` helpers
-  pi-agent-core already exposes, then passed via
-  `AgentHarnessResources.skills`
-- The `systemPrompt` callback option becomes the integration point; we
-  compose the prompt from the active skills + the per-run claim/severity rules
+### Phase 4: compaction wiring  ✅ LANDED 2026-05-30 (observability only)
 
-**Files touched:**
-- `tools/agent-corpus-lib/skills/*.md` — new directory, ~3 skills
-- `_tool_loop.ts` — load skills at runner construction, pass via `resources`
-- The old `agent_corpus_map.md` in `knowledge/wiki/data/` stays as
-  human-readable docs; `corpus-navigation.md` is the machine-loadable copy
-  (or vice versa — open question)
+**Reality check:** pi-agent-core 0.78 exposes `harness.compact()` as a
+manual, idle-phase method; there is no automatic in-flight compaction
+during a `prompt()` call. `AgentHarnessOptions` does not accept a
+`compactionSettings` field — the harness uses
+`DEFAULT_COMPACTION_SETTINGS` hardcoded inside `compact()`. So the
+"pass compactionSettings to AgentHarness" item from the original plan
+isn't expressible against the current upstream API.
 
-**Estimated effort:** ~200 LOC delta + skill content. 1 session.
+**Outcome:**
+- `_tool_loop.ts` re-exports `DEFAULT_COMPACTION_SETTINGS` from
+  pi-agent-core so future runner refactors don't need an extra import path.
+- `buildStderrEventSink` in `agent-propose.ts` now prints
+  `session_before_compact` and `session_compact` events for visibility
+  when compaction does run.
+- **No CLI flag.** `--max-routes-per-turn` wasn't added because the runner
+  still iterates per-route — there's nothing to batch yet. Cross-route
+  batching is the real prerequisite for compaction to matter.
 
-### Phase 4: compaction for long runs
+**Follow-up (not in this slice):**
+- Refactor `_runner.ts` to optionally bundle N routes into one
+  `harness.prompt()` call. Call `harness.compact()` between turns when
+  `shouldCompact(usage)` returns true. Add `--max-routes-per-turn` then.
+  Open question: does compacting a transcript still let validators
+  re-resolve `code_execution` evidence refs? (Answer is probably yes,
+  since refs hash by stdout not by message id, but worth verifying with
+  an integration test.)
 
-**Goal:** Auto-compact context when it exceeds threshold. Lets us run all
-381 routes in a single agent-propose invocation instead of per-route batches.
-
-**Decisions to make:**
-- Compaction strategy: pi-agent-core's `DEFAULT_COMPACTION_SETTINGS` or a
-  custom one tuned for our digest sizes
-- Where to insert summary content — proposed at the model layer
-
-**Files touched:**
-- `_tool_loop.ts` — pass `compactionSettings` to AgentHarness; subscribe to
-  `compaction_start`/`compaction_end` events for stderr visibility
-- New CLI flag `--max-routes-per-turn` to control batching
-
-**Verification:**
-- Run with 50+ routes per turn; verify compaction fires when context
-  approaches the model's window
-- Confirm validated proposals still re-resolve evidence refs correctly
-  against the compacted transcript
-
-**Estimated effort:** ~100 LOC delta + threshold tuning. 1 session.
+**Estimated effort delivered:** ~30 LOC (re-export + 2 stderr lines).
 
 ## Total effort
 
