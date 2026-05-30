@@ -297,7 +297,39 @@ export function makeToolLoopRunner(args: MakeToolLoopRunnerArgs): ModelToolLoop 
       clearTimeout(timer);
     }
 
+    // Surface provider errors (auth, rate-limit, etc.) that pi-agent-core
+    // reports via `stopReason: "error"` on the final assistant message
+    // instead of throwing — without this we'd hand the runner an empty
+    // text and crash later with a confusing "no text" message.
+    for (let i = finalMessages.length - 1; i >= 0; i -= 1) {
+      const m = finalMessages[i];
+      if (m && m.role === "assistant") {
+        const stopReason = (m as { stopReason?: string }).stopReason;
+        const errorMessage = (m as { errorMessage?: string }).errorMessage;
+        if (stopReason === "error" && errorMessage) {
+          throw new Error(`LLM provider error: ${errorMessage}`);
+        }
+        break;
+      }
+    }
     const finalText = extractLastAssistantText(finalMessages);
+    if (finalText.length === 0 && process.env.BP_DEBUG_TOOL_LOOP === "1") {
+      const summary = finalMessages.map((m) => {
+        if (m.role === "assistant") {
+          return {
+            role: "assistant",
+            stopReason: (m as { stopReason?: string }).stopReason,
+            errorMessage: (m as { errorMessage?: string }).errorMessage,
+            blockTypes: m.content.map((b) => b.type),
+            textLengths: m.content
+              .filter((b): b is { type: "text"; text: string } => b.type === "text")
+              .map((b) => b.text.length),
+          };
+        }
+        return { role: m.role };
+      });
+      process.stderr.write(`[tool_loop debug] empty finalText. messages=${JSON.stringify(summary, null, 2)}\n`);
+    }
     return { finalText, toolUseTrace: trace, capsHit, iterations };
   };
 }
