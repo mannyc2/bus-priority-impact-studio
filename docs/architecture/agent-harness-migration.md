@@ -1,7 +1,7 @@
 # AgentHarness migration plan
 
-Status: planned (2026-05-30) — not yet started.
-Tracking commit on landing: TBD.
+Status: phase 1 landed (2026-05-30); phases 1b–4 still planned.
+Tracking commits: TBD (phase 1 landing commit on `main`).
 
 ## Why
 
@@ -53,11 +53,34 @@ Reference materials:
 
 ## What changes, by phase
 
-### Phase 1: drop-in AgentHarness, replacing runAgentLoop
+### Phase 1: drop-in AgentHarness, replacing runAgentLoop  ✅ LANDED 2026-05-30
 
 **Goal:** swap `runAgentLoop(prompts, context, config, emit, signal)` for
 `new AgentHarness(...).prompt(userMessage)`. Get HTTP-status hooks for
 free. Keep custom retry until phase 1b.
+
+**Outcome:**
+- `_tool_loop.ts` now constructs `NodeExecutionEnv` + `InMemorySessionRepo`
+  + `AgentHarness` per attempt. Caps + trace live in
+  `harness.on("tool_result", ...)` (terminate: true semantics). Usage +
+  iterations roll up via `harness.subscribe(...)` watching `turn_start`/
+  `turn_end` AgentEvents. Wall-time enforced via `setTimeout(() =>
+  harness.abort())`.
+- `runAgentLoopFn` test seam replaced with `harnessFactory: HarnessFactory`
+  returning a `HarnessLike` (subset of AgentHarness — `on`, `subscribe`,
+  `prompt`, `abort`).
+- `maxOutputTokens` not exposed by AgentHarnessStreamOptions in pi-agent-core
+  0.78, so injected via `harness.on("before_provider_payload", ...)`
+  patching `max_tokens` into the provider payload. Drop this hook if a
+  future pi-agent-core release surfaces it natively.
+- `ToolLoopEventSink` type widened from `AgentEvent` to
+  `AgentHarnessEvent = AgentEvent | AgentHarnessOwnEvent`; the stderr
+  printer in `agent-propose.ts` keeps working because it only narrows on
+  `AgentEvent` types.
+- Custom retry loop preserved (phase 1b unfinished). `streamOptions.maxRetries
+  = 0` disables the harness's own provider retries.
+- All 217 pipeline-v2 tests green. Real-model smoke against deepseek-v4-flash
+  still pending verification (documented for next session).
 
 **Files touched:**
 - `tools/pipeline-v2/src/commands/findings/_tool_loop.ts` — ~150 LOC diff:

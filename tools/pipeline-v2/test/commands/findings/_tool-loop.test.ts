@@ -1,16 +1,18 @@
 import { describe, expect, test } from "bun:test";
 
 import type {
-  AgentContext,
-  AgentEvent,
-  AgentLoopConfig,
-  AgentMessage,
+  AgentHarnessEvent,
+  AgentHarnessEventResultMap,
+  AgentHarnessOptions,
+  AgentHarnessOwnEvent,
   AgentTool,
-  runAgentLoop,
+  AgentToolResult,
 } from "@earendil-works/pi-agent-core";
-import type { Api, Model } from "@earendil-works/pi-ai";
+import type { Api, AssistantMessage, Model } from "@earendil-works/pi-ai";
 
 import {
+  type HarnessFactory,
+  type HarnessLike,
   type ToolExecutor,
   makeToolLoopRunner,
 } from "../../../src/commands/findings/_tool_loop.ts";
@@ -19,10 +21,13 @@ import type { SandboxResult } from "../../../src/lib/sandbox.ts";
 // ---------------------------------------------------------------------------
 // Doubles
 //
-// pi-agent-core drives the loop now; we inject a fake runAgentLoop that
-// invokes each `AgentTool.execute()` once with scripted arguments, calls
-// `afterToolCall` for each, and returns a final assistant transcript. That
-// lets us assert trace + caps behavior without docker or a real LLM.
+// AgentHarness drives the loop now; we inject a fake `HarnessFactory` that
+// returns a `HarnessLike` honoring the same observable contract we depend on:
+// it calls each `AgentTool.execute()` per scripted call, fires `tool_result`
+// hooks (respecting their `terminate: true` patches), broadcasts AgentEvent
+// turn_start/turn_end through subscribers, and resolves `prompt()` with a
+// scripted AssistantMessage. That lets us assert trace + caps + usage
+// behavior without docker or a real LLM.
 
 const dummyModel = {
   api: "openai-completions",
@@ -30,69 +35,97 @@ const dummyModel = {
   id: "mock/v0",
 } as unknown as Model<Api>;
 
-type ScriptedCall = { tool: "python_exec" | "bash_exec"; args: { code: string; timeoutSec?: number }; toolCallId: string };
+type ScriptedCall = {
+  tool: "python_exec" | "bash_exec";
+  args: { code: string; timeoutSec?: number };
+  toolCallId: string;
+};
 
-function mkRunAgentLoop(
+type ToolResultHandler = (
+  event: Extract<AgentHarnessOwnEvent, { type: "tool_result" }>,
+) => Promise<AgentHarnessEventResultMap["tool_result"]> | AgentHarnessEventResultMap["tool_result"];
+
+function mkHarnessFactory(
   scriptedCalls: ScriptedCall[],
   finalAssistantText: string,
-): typeof runAgentLoop {
-  const fn = async (
-    prompts: AgentMessage[],
-    context: AgentContext,
-    config: AgentLoopConfig,
-    emit: (event: AgentEvent) => Promise<void> | void,
-  ): Promise<AgentMessage[]> => {
-    await emit({ type: "agent_start" });
-    await emit({ type: "turn_start" });
+): HarnessFactory {
+  return (opts: AgentHarnessOptions): HarnessLike => {
+    const toolByName = new Map<string, AgentTool>(
+      (opts.tools ?? []).map((t) => [t.name, t]),
+    );
+    const subscribers: Array<(event: AgentHarnessEvent) => Promise<void> | void> = [];
+    let toolResultHandler: ToolResultHandler | undefined;
 
-    const tools = context.tools ?? [];
-    const toolByName = new Map<string, AgentTool>(tools.map((t) => [t.name, t]));
-
-    let terminated = false;
-    for (const call of scriptedCalls) {
-      if (terminated) break;
-      const tool = toolByName.get(call.tool);
-      if (!tool) throw new Error(`scripted unknown tool ${call.tool}`);
-      const result = await tool.execute(call.toolCallId, call.args);
-      const afterToolCallHook = config.afterToolCall;
-      if (afterToolCallHook) {
-        const hookResult = await afterToolCallHook({
-          assistantMessage: {} as never,
-          toolCall: { type: "toolCall", id: call.toolCallId, name: call.tool, arguments: call.args },
-          args: call.args,
-          result,
-          isError: false,
-          context,
-        });
-        if (hookResult?.terminate) terminated = true;
+    const emit = async (event: AgentHarnessEvent) => {
+      for (const s of subscribers) {
+        await s(event);
       }
-    }
+    };
 
-    const finalMessage: AgentMessage = {
-      role: "assistant",
-      content: [{ type: "text", text: finalAssistantText }],
-      api: dummyModel.api,
-      provider: dummyModel.provider,
-      model: dummyModel.id,
-      stopReason: "stop",
-      timestamp: Date.now(),
-      usage: {
-        input: 0,
-        output: 0,
-        cacheRead: 0,
-        cacheWrite: 0,
-        totalTokens: 0,
-        cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+    const prompt = async (_text: string): Promise<AssistantMessage> => {
+      await emit({ type: "agent_start" });
+      await emit({ type: "turn_start" });
+
+      let terminated = false;
+      for (const call of scriptedCalls) {
+        if (terminated) break;
+        const tool = toolByName.get(call.tool);
+        if (!tool) throw new Error(`scripted unknown tool ${call.tool}`);
+        const result = (await tool.execute(call.toolCallId, call.args)) as AgentToolResult<unknown>;
+        if (toolResultHandler) {
+          const patch = await toolResultHandler({
+            type: "tool_result",
+            toolCallId: call.toolCallId,
+            toolName: call.tool,
+            input: call.args,
+            content: result.content,
+            details: result.details,
+            isError: false,
+          });
+          if (patch?.terminate) terminated = true;
+        }
+      }
+
+      const finalMessage: AssistantMessage = {
+        role: "assistant",
+        content: [{ type: "text", text: finalAssistantText }],
+        api: dummyModel.api,
+        provider: dummyModel.provider,
+        model: dummyModel.id,
+        stopReason: "stop",
+        timestamp: Date.now(),
+        usage: {
+          input: 0,
+          output: 0,
+          cacheRead: 0,
+          cacheWrite: 0,
+          totalTokens: 0,
+          cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+        },
+        id: "fake-final",
+      } as AssistantMessage;
+
+      await emit({ type: "turn_end", message: finalMessage, toolResults: [] });
+      await emit({ type: "agent_end", messages: [finalMessage] });
+
+      return finalMessage;
+    };
+
+    return {
+      on: ((type, handler) => {
+        if (type === "tool_result") {
+          toolResultHandler = handler as ToolResultHandler;
+        }
+        return () => {};
+      }) as HarnessLike["on"],
+      subscribe: (listener) => {
+        subscribers.push(listener);
+        return () => {};
       },
-      id: "fake-final",
-    } as AgentMessage;
-
-    await emit({ type: "turn_end", message: finalMessage, toolResults: [] });
-    await emit({ type: "agent_end", messages: [...prompts, finalMessage] });
-
-    return [...prompts, finalMessage];
+      prompt,
+      abort: async () => ({ clearedSteer: [], clearedFollowUp: [] }),
+    };
   };
-  return fn as unknown as typeof runAgentLoop;
 }
 
 function mkSandboxResult(overrides: Partial<SandboxResult> = {}): SandboxResult {
@@ -121,13 +154,13 @@ function scriptedExecutor(results: SandboxResult[]): ToolExecutor {
 // ---------------------------------------------------------------------------
 // Tests
 
-describe("makeToolLoopRunner (pi-agent-core)", () => {
+describe("makeToolLoopRunner (AgentHarness)", () => {
   test("returns the final assistant text when no tools are called", async () => {
     const loop = makeToolLoopRunner({
       model: dummyModel,
       apiKey: "test-key",
       executor: scriptedExecutor([]),
-      runAgentLoopFn: mkRunAgentLoop([], '{"proposals":[]}'),
+      harnessFactory: mkHarnessFactory([], '{"proposals":[]}'),
     });
     const r = await loop({ systemPrompt: "sys", userMessage: "user" });
     expect(r.finalText).toBe('{"proposals":[]}');
@@ -143,7 +176,7 @@ describe("makeToolLoopRunner (pi-agent-core)", () => {
         mkSandboxResult({ stdout: "first\n" }),
         mkSandboxResult({ stdout: "second\n" }),
       ]),
-      runAgentLoopFn: mkRunAgentLoop(
+      harnessFactory: mkHarnessFactory(
         [
           { tool: "python_exec", args: { code: "print('first')" }, toolCallId: "tc-1" },
           { tool: "bash_exec", args: { code: "echo second" }, toolCallId: "tc-2" },
@@ -171,7 +204,7 @@ describe("makeToolLoopRunner (pi-agent-core)", () => {
         mkSandboxResult({ stdout: "x\n" }),
         mkSandboxResult({ stdout: "y\n" }),
       ]),
-      runAgentLoopFn: mkRunAgentLoop(
+      harnessFactory: mkHarnessFactory(
         [
           { tool: "python_exec", args: { code: "x" }, toolCallId: "tc-1" },
           { tool: "python_exec", args: { code: "y" }, toolCallId: "tc-2" },
@@ -193,7 +226,7 @@ describe("makeToolLoopRunner (pi-agent-core)", () => {
       onEvent: (event) => {
         seenEvents.push(event.type);
       },
-      runAgentLoopFn: mkRunAgentLoop(
+      harnessFactory: mkHarnessFactory(
         [{ tool: "python_exec", args: { code: "x" }, toolCallId: "tc-1" }],
         "done",
       ),
@@ -221,7 +254,7 @@ describe("makeToolLoopRunner (pi-agent-core)", () => {
       onEvent: () => {
         throw new Error("subscriber blew up");
       },
-      runAgentLoopFn: mkRunAgentLoop([], "still finished"),
+      harnessFactory: mkHarnessFactory([], "still finished"),
     });
     const r = await loop({ systemPrompt: "sys", userMessage: "user" });
     expect(r.finalText).toBe("still finished");
@@ -234,7 +267,7 @@ describe("makeToolLoopRunner (pi-agent-core)", () => {
       apiKey: "test-key",
       maxTotalStdoutBytes: 1024,
       executor: scriptedExecutor([mkSandboxResult({ stdout: big })]),
-      runAgentLoopFn: mkRunAgentLoop(
+      harnessFactory: mkHarnessFactory(
         [{ tool: "python_exec", args: { code: "print(big)" }, toolCallId: "tc-1" }],
         "should-not-reach",
       ),

@@ -1,20 +1,24 @@
 import {
-  type AfterToolCallContext,
-  type AfterToolCallResult,
-  type AgentContext,
-  type AgentEvent,
-  type AgentLoopConfig,
-  type AgentMessage,
+  AgentHarness,
+  type AgentHarnessEvent,
+  type AgentHarnessEventResultMap,
+  type AgentHarnessOptions,
+  type AgentHarnessOwnEvent,
   type AgentTool,
   type AgentToolResult,
-  runAgentLoop,
+  type ExecutionEnv,
+  InMemorySessionRepo,
+  type PromptTemplate,
+  type Session,
+  type Skill,
 } from "@earendil-works/pi-agent-core";
+import { NodeExecutionEnv } from "@earendil-works/pi-agent-core/node";
 import {
   type Api,
   type AssistantMessage,
-  type Message,
   type Model,
   type Static,
+  type ThinkingLevel,
   Type,
   type Usage,
 } from "@earendil-works/pi-ai";
@@ -23,7 +27,7 @@ import { runBash, runPython, type SandboxResult } from "../../lib/sandbox.ts";
 
 // ---------------------------------------------------------------------------
 // Tools — typebox schemas via pi-ai's re-exported `Type`. Each tool is an
-// `AgentTool` (extends pi-ai's `Tool` with label + execute) which pi-agent-core
+// `AgentTool` (extends pi-ai's `Tool` with label + execute) which AgentHarness
 // dispatches inside the loop.
 
 const pythonExecParams = Type.Object(
@@ -74,7 +78,7 @@ const BASH_EXEC_DESCRIPTION =
   "Run bash in the sandbox. Same determinism rules as python_exec apply for any code you intend to cite.";
 
 // ---------------------------------------------------------------------------
-// Caller-facing types — kept stable across the pi-agent-core refactor so
+// Caller-facing types — kept stable across the AgentHarness migration so
 // _runner.ts and the codemode tests need no changes.
 
 export type ToolUseTraceEntry = {
@@ -126,12 +130,13 @@ export function isRetryableProviderError(errorMessage: string): boolean {
 
 export type ModelToolLoop = (input: ToolLoopInput) => Promise<ToolLoopResult>;
 
-// Live observability seam — caller subscribes to pi-agent-core's full event
-// stream (turn_start, message_update streaming deltas, tool_execution_*,
-// turn_end with per-message usage, agent_end). The factory forwards events
-// to this callback after its own bookkeeping. Errors thrown by the
-// subscriber are swallowed so a bad print doesn't kill the loop.
-export type ToolLoopEventSink = (event: AgentEvent) => void;
+// Live observability seam — caller subscribes to AgentHarness's full event
+// stream: AgentEvent (turn_start, message_update streaming deltas,
+// tool_execution_*, turn_end with per-message usage, agent_end) AND
+// AgentHarnessOwnEvent (tool_call, tool_result, after_provider_response, …).
+// Errors thrown by the subscriber are swallowed so a bad print doesn't kill
+// the loop.
+export type ToolLoopEventSink = (event: AgentHarnessEvent) => void;
 
 // Test seam — lets unit tests run the loop without docker.
 export type ToolExecutor = (
@@ -139,9 +144,33 @@ export type ToolExecutor = (
   args: { code: string; timeoutSec?: number },
 ) => Promise<SandboxResult>;
 
-// Test seam — pi-agent-core's `runAgentLoop` accepts an optional streamFn we
-// can override to return scripted AssistantMessage events without an HTTP call.
-type RunAgentLoopFn = typeof runAgentLoop;
+// Subset of the `AgentHarness` surface we depend on. Defined as an interface so
+// unit tests can substitute a mock without standing up the real harness, env,
+// session, or provider stack.
+export interface HarnessLike {
+  on<TType extends keyof AgentHarnessEventResultMap>(
+    type: TType,
+    handler: (
+      event: Extract<AgentHarnessOwnEvent, { type: TType }>,
+    ) =>
+      | Promise<AgentHarnessEventResultMap[TType]>
+      | AgentHarnessEventResultMap[TType],
+  ): () => void;
+  subscribe(
+    listener: (
+      event: AgentHarnessEvent,
+      signal?: AbortSignal,
+    ) => Promise<void> | void,
+  ): () => void;
+  prompt(text: string): Promise<AssistantMessage>;
+  abort(): Promise<unknown>;
+}
+
+// Test seam — production wraps these options into `new AgentHarness(...)`.
+// Tests inject a fake harness that scripts events + tool calls.
+export type HarnessFactory = (
+  opts: AgentHarnessOptions<Skill, PromptTemplate, AgentTool>,
+) => HarnessLike;
 
 const STDOUT_PREVIEW_BYTES = 4000;
 const STDERR_PREVIEW_BYTES = 1000;
@@ -174,18 +203,15 @@ function sandboxToAgentResult(r: SandboxResult): AgentToolResult<SandboxResult> 
   };
 }
 
-function extractLastAssistantText(messages: AgentMessage[]): string {
-  for (let i = messages.length - 1; i >= 0; i -= 1) {
-    const m = messages[i];
-    if (m && m.role === "assistant") {
-      return m.content
-        .filter((b): b is { type: "text"; text: string } => b.type === "text")
-        .map((b) => b.text)
-        .join("");
-    }
-  }
-  return "";
+function extractAssistantText(message: AssistantMessage): string {
+  return message.content
+    .filter((b): b is { type: "text"; text: string } => b.type === "text")
+    .map((b) => b.text)
+    .join("");
 }
+
+const defaultHarnessFactory: HarnessFactory = (opts) =>
+  new AgentHarness(opts);
 
 // ---------------------------------------------------------------------------
 // Factory
@@ -194,7 +220,7 @@ export type MakeToolLoopRunnerArgs = {
   model: Model<Api>;
   apiKey: string;
   maxOutputTokens?: number;
-  reasoning?: AgentLoopConfig["reasoning"];
+  reasoning?: ThinkingLevel;
   // Caps
   maxToolCalls?: number;
   maxTotalStdoutBytes?: number;
@@ -207,7 +233,8 @@ export type MakeToolLoopRunnerArgs = {
   onEvent?: ToolLoopEventSink;
   // Test seams
   executor?: ToolExecutor;
-  runAgentLoopFn?: RunAgentLoopFn;
+  env?: ExecutionEnv;
+  harnessFactory?: HarnessFactory;
 };
 
 export function makeToolLoopRunner(args: MakeToolLoopRunnerArgs): ModelToolLoop {
@@ -217,14 +244,25 @@ export function makeToolLoopRunner(args: MakeToolLoopRunnerArgs): ModelToolLoop 
   const maxRetries = args.maxRetries ?? 3;
   const retryBaseDelayMs = args.retryBaseDelayMs ?? 2000;
   const executor = args.executor ?? defaultExecutor;
-  const runLoop = args.runAgentLoopFn ?? runAgentLoop;
+  const createHarness = args.harnessFactory ?? defaultHarnessFactory;
 
   return async (input) => {
+    const env: ExecutionEnv =
+      args.env ?? new NodeExecutionEnv({ cwd: process.cwd() });
+
     const trace: ToolUseTraceEntry[] = [];
     let toolCalls = 0;
     let stdoutBytes = 0;
     let capsHit: ToolLoopResult["capsHit"] = null;
     let iterations = 0;
+    const usage: ToolLoopUsage = {
+      inputTokens: 0,
+      outputTokens: 0,
+      cacheReadTokens: 0,
+      cacheWriteTokens: 0,
+      totalTokens: 0,
+      costUsd: 0,
+    };
 
     const pythonTool: AgentTool<typeof pythonExecParams, SandboxResult> = {
       name: "python_exec",
@@ -248,184 +286,169 @@ export function makeToolLoopRunner(args: MakeToolLoopRunnerArgs): ModelToolLoop 
       },
     };
 
-    const prompts: AgentMessage[] = [
-      {
-        role: "user",
-        content: [{ type: "text", text: input.userMessage }],
-        timestamp: Date.now(),
-        id: `user-${Date.now().toString(36)}`,
-      } as AgentMessage,
-    ];
+    let finalMessage: AssistantMessage | null = null;
+    let retries = 0;
 
-    // Trace + caps live in afterToolCall. Terminate hints stop the agent after
-    // the current batch finishes — pi-agent-core's parallel-execution semantics.
-    const afterToolCall = async (
-      ctx: AfterToolCallContext,
-    ): Promise<AfterToolCallResult | undefined> => {
-      const toolName = ctx.toolCall.name as "python_exec" | "bash_exec";
-      const callArgs = ctx.args as { code: string; timeoutSec?: number };
-      const sandboxResult = (ctx.result.details ?? null) as SandboxResult | null;
-      if (sandboxResult === null) return undefined;
+    while (true) {
+      // Reset per-attempt accumulators so the result reflects only the
+      // successful run, not failed retries. Each retry gets a fresh harness +
+      // session so the prior failed turn doesn't leak into the new attempt.
+      trace.length = 0;
+      toolCalls = 0;
+      stdoutBytes = 0;
+      capsHit = null;
+      iterations = 0;
+      usage.inputTokens = 0;
+      usage.outputTokens = 0;
+      usage.cacheReadTokens = 0;
+      usage.cacheWriteTokens = 0;
+      usage.totalTokens = 0;
+      usage.costUsd = 0;
 
-      toolCalls += 1;
-      stdoutBytes += sandboxResult.stdout.length;
+      const sessionRepo = new InMemorySessionRepo();
+      const session: Session = await sessionRepo.create({});
 
-      trace.push({
-        toolCallId: ctx.toolCall.id,
-        tool: toolName,
-        code: callArgs.code,
-        timeoutSec: callArgs.timeoutSec,
-        exitCode: sandboxResult.exitCode,
-        stdoutPreview: sandboxResult.stdout.slice(0, STDOUT_PREVIEW_BYTES),
-        stderrPreview: sandboxResult.stderr.slice(0, STDERR_PREVIEW_BYTES),
-        durationMs: sandboxResult.durationMs,
-        stdoutBytes: sandboxResult.stdout.length,
-        stdoutTruncated: sandboxResult.stdoutTruncated,
-        timedOut: sandboxResult.timedOut,
+      const harness = createHarness({
+        env,
+        session,
+        model: args.model,
+        tools: [pythonTool, bashTool],
+        systemPrompt: input.systemPrompt,
+        getApiKeyAndHeaders: async () => ({ apiKey: args.apiKey }),
+        // Disable the harness's own provider retries; phase 1 keeps the
+        // existing custom retry loop. Phase 1b folds them into the harness.
+        streamOptions: { maxRetries: 0 },
+        ...(args.reasoning === undefined ? {} : { thinkingLevel: args.reasoning }),
       });
 
-      if (toolCalls >= maxToolCalls) {
-        capsHit = capsHit ?? "calls";
-        return { terminate: true };
-      }
-      if (stdoutBytes >= maxTotalStdoutBytes) {
-        capsHit = capsHit ?? "stdout";
-        return { terminate: true };
-      }
-      return undefined;
-    };
-
-    // pi-agent-core requires convertToLlm — for us every AgentMessage already
-    // satisfies the LLM `Message` shape (we don't use custom roles), so a
-    // straight pass-through is correct.
-    const convertToLlm = (messages: AgentMessage[]): Message[] => messages as Message[];
-
-    const config: AgentLoopConfig = {
-      model: args.model,
-      apiKey: args.apiKey,
-      ...(args.maxOutputTokens === undefined ? {} : { maxOutputTokens: args.maxOutputTokens }),
-      ...(args.reasoning === undefined ? {} : { reasoning: args.reasoning }),
-      convertToLlm,
-      afterToolCall,
-    };
-
-    const controller = new AbortController();
-    const timer = setTimeout(() => {
-      capsHit = capsHit ?? "walltime";
-      controller.abort();
-    }, maxWallTimeMs);
-
-    const usage: ToolLoopUsage = {
-      inputTokens: 0,
-      outputTokens: 0,
-      cacheReadTokens: 0,
-      cacheWriteTokens: 0,
-      totalTokens: 0,
-      costUsd: 0,
-    };
-
-    const onEvent = args.onEvent;
-    const emit = (event: AgentEvent): void => {
-      if (event.type === "turn_start") {
-        iterations += 1;
-      } else if (event.type === "turn_end") {
-        const u = (event.message as AssistantMessage).usage as Usage | undefined;
-        if (u) {
-          usage.inputTokens += u.input;
-          usage.outputTokens += u.output;
-          usage.cacheReadTokens += u.cacheRead;
-          usage.cacheWriteTokens += u.cacheWrite;
-          usage.totalTokens += u.totalTokens;
-          usage.costUsd += u.cost.total;
+      // Caps + trace. `tool_result` fires after each tool's `execute()` returns;
+      // `details` carries the SandboxResult we placed on the AgentToolResult.
+      // Returning `{ terminate: true }` halts the agent after the current batch.
+      harness.on("tool_result", (event) => {
+        const details = event.details as SandboxResult | null;
+        if (details === null || details === undefined) return undefined;
+        if (event.toolName !== "python_exec" && event.toolName !== "bash_exec") {
+          return undefined;
         }
-      }
-      if (onEvent) {
-        try {
-          onEvent(event);
-        } catch {
-          // Subscriber failures are non-fatal — keep the loop alive.
+        const toolName = event.toolName;
+        const inputArgs = event.input as { code: string; timeoutSec?: number };
+
+        toolCalls += 1;
+        stdoutBytes += details.stdout.length;
+
+        trace.push({
+          toolCallId: event.toolCallId,
+          tool: toolName,
+          code: inputArgs.code,
+          timeoutSec: inputArgs.timeoutSec,
+          exitCode: details.exitCode,
+          stdoutPreview: details.stdout.slice(0, STDOUT_PREVIEW_BYTES),
+          stderrPreview: details.stderr.slice(0, STDERR_PREVIEW_BYTES),
+          durationMs: details.durationMs,
+          stdoutBytes: details.stdout.length,
+          stdoutTruncated: details.stdoutTruncated,
+          timedOut: details.timedOut,
+        });
+
+        if (toolCalls >= maxToolCalls) {
+          capsHit = capsHit ?? "calls";
+          return { terminate: true };
         }
+        if (stdoutBytes >= maxTotalStdoutBytes) {
+          capsHit = capsHit ?? "stdout";
+          return { terminate: true };
+        }
+        return undefined;
+      });
+
+      // maxOutputTokens isn't a top-level harness option (see
+      // AgentHarnessStreamOptions in pi-agent-core 0.78). Inject it into the
+      // provider payload directly — `max_tokens` is the field name for both
+      // OpenAI-completions and Anthropic. If/when the harness gains
+      // first-class support we can drop this hook.
+      if (args.maxOutputTokens !== undefined) {
+        const maxTokens = args.maxOutputTokens;
+        harness.on("before_provider_payload", (event) => {
+          const payload = event.payload as Record<string, unknown>;
+          return { payload: { ...payload, max_tokens: maxTokens } };
+        });
       }
-    };
 
-    let finalMessages: AgentMessage[];
-    let retries = 0;
-    try {
-      while (true) {
-        // Reset per-attempt accumulators so the result reflects only the
-        // successful run, not failed retries. Caps/iterations/usage are
-        // updated again as the loop progresses.
-        trace.length = 0;
-        toolCalls = 0;
-        stdoutBytes = 0;
-        capsHit = null;
-        iterations = 0;
-        usage.inputTokens = 0;
-        usage.outputTokens = 0;
-        usage.cacheReadTokens = 0;
-        usage.cacheWriteTokens = 0;
-        usage.totalTokens = 0;
-        usage.costUsd = 0;
-
-        const attemptContext: AgentContext = {
-          systemPrompt: input.systemPrompt,
-          messages: [],
-          tools: [pythonTool, bashTool],
-        };
-
-        finalMessages = await runLoop(
-          prompts,
-          attemptContext,
-          config,
-          emit,
-          controller.signal,
-        );
-
-        // Detect provider errors via stopReason on the final assistant message.
-        let providerError: string | null = null;
-        for (let i = finalMessages.length - 1; i >= 0; i -= 1) {
-          const m = finalMessages[i];
-          if (m && m.role === "assistant") {
-            const stopReason = (m as { stopReason?: string }).stopReason;
-            const errorMessage = (m as { errorMessage?: string }).errorMessage;
-            if (stopReason === "error" && errorMessage) providerError = errorMessage;
-            break;
+      const onEvent = args.onEvent;
+      harness.subscribe((event) => {
+        if (event.type === "turn_start") {
+          iterations += 1;
+        } else if (event.type === "turn_end") {
+          const u = (event.message as AssistantMessage).usage as Usage | undefined;
+          if (u) {
+            usage.inputTokens += u.input;
+            usage.outputTokens += u.output;
+            usage.cacheReadTokens += u.cacheRead;
+            usage.cacheWriteTokens += u.cacheWrite;
+            usage.totalTokens += u.totalTokens;
+            usage.costUsd += u.cost.total;
           }
         }
-
-        if (providerError === null) break; // success
-
-        if (!isRetryableProviderError(providerError) || retries >= maxRetries) {
-          throw new Error(`LLM provider error: ${providerError}`);
+        if (onEvent) {
+          try {
+            onEvent(event);
+          } catch {
+            // Subscriber failures are non-fatal — keep the loop alive.
+          }
         }
-
-        retries += 1;
-        const delayMs = retryBaseDelayMs * 2 ** (retries - 1);
-        process.stderr.write(
-          `[tool_loop] retry ${retries}/${maxRetries} after ${delayMs}ms: ${providerError.slice(0, 120)}\n`,
-        );
-        await new Promise<void>((resolve) => setTimeout(resolve, delayMs));
-      }
-    } finally {
-      clearTimeout(timer);
-    }
-    const finalText = extractLastAssistantText(finalMessages);
-    if (finalText.length === 0 && process.env["BP_DEBUG_TOOL_LOOP"] === "1") {
-      const summary = finalMessages.map((m) => {
-        if (m.role === "assistant") {
-          return {
-            role: "assistant",
-            stopReason: (m as { stopReason?: string }).stopReason,
-            errorMessage: (m as { errorMessage?: string }).errorMessage,
-            blockTypes: m.content.map((b) => b.type),
-            textLengths: m.content
-              .filter((b): b is { type: "text"; text: string } => b.type === "text")
-              .map((b) => b.text.length),
-          };
-        }
-        return { role: m.role };
       });
-      process.stderr.write(`[tool_loop debug] empty finalText. messages=${JSON.stringify(summary, null, 2)}\n`);
+
+      // Wall-time enforcement: abort the harness when the timer fires.
+      const timer = setTimeout(() => {
+        capsHit = capsHit ?? "walltime";
+        void harness.abort().catch(() => {
+          // Best-effort; abort failures are not actionable here.
+        });
+      }, maxWallTimeMs);
+
+      try {
+        finalMessage = await harness.prompt(input.userMessage);
+      } finally {
+        clearTimeout(timer);
+      }
+
+      // AgentHarness reports provider failures via stopReason: "error" +
+      // errorMessage on the returned assistant message (see
+      // agent-harness.ts emitRunFailure). Retry transient errors; rethrow
+      // permanent ones verbatim so the operator sees the provider message.
+      const stopReason = (finalMessage as { stopReason?: string }).stopReason;
+      const errorMessage = (finalMessage as { errorMessage?: string }).errorMessage;
+      if (stopReason !== "error" || !errorMessage) break; // success
+
+      if (!isRetryableProviderError(errorMessage) || retries >= maxRetries) {
+        throw new Error(`LLM provider error: ${errorMessage}`);
+      }
+
+      retries += 1;
+      const delayMs = retryBaseDelayMs * 2 ** (retries - 1);
+      process.stderr.write(
+        `[tool_loop] retry ${retries}/${maxRetries} after ${delayMs}ms: ${errorMessage.slice(0, 120)}\n`,
+      );
+      await new Promise<void>((resolve) => setTimeout(resolve, delayMs));
+    }
+
+    const finalText = finalMessage === null ? "" : extractAssistantText(finalMessage);
+    if (finalText.length === 0 && process.env["BP_DEBUG_TOOL_LOOP"] === "1") {
+      const summary =
+        finalMessage === null
+          ? null
+          : {
+              role: "assistant",
+              stopReason: (finalMessage as { stopReason?: string }).stopReason,
+              errorMessage: (finalMessage as { errorMessage?: string }).errorMessage,
+              blockTypes: finalMessage.content.map((b) => b.type),
+              textLengths: finalMessage.content
+                .filter((b): b is { type: "text"; text: string } => b.type === "text")
+                .map((b) => b.text.length),
+            };
+      process.stderr.write(
+        `[tool_loop debug] empty finalText. finalMessage=${JSON.stringify(summary, null, 2)}\n`,
+      );
     }
     return { finalText, toolUseTrace: trace, capsHit, iterations, usage, retries };
   };
