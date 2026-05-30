@@ -184,6 +184,49 @@ describe("makeToolLoopRunner (pi-agent-core)", () => {
     expect(r.toolUseTrace.length).toBe(1);
   });
 
+  test("forwards events to the onEvent subscriber and rolls up usage", async () => {
+    const seenEvents: string[] = [];
+    const loop = makeToolLoopRunner({
+      model: dummyModel,
+      apiKey: "test-key",
+      executor: scriptedExecutor([mkSandboxResult({ stdout: "ok\n" })]),
+      onEvent: (event) => {
+        seenEvents.push(event.type);
+      },
+      runAgentLoopFn: mkRunAgentLoop(
+        [{ tool: "python_exec", args: { code: "x" }, toolCallId: "tc-1" }],
+        "done",
+      ),
+    });
+    const r = await loop({ systemPrompt: "sys", userMessage: "user" });
+    expect(seenEvents).toContain("agent_start");
+    expect(seenEvents).toContain("turn_start");
+    expect(seenEvents).toContain("turn_end");
+    expect(seenEvents).toContain("agent_end");
+    expect(r.usage).toEqual({
+      inputTokens: 0,
+      outputTokens: 0,
+      cacheReadTokens: 0,
+      cacheWriteTokens: 0,
+      totalTokens: 0,
+      costUsd: 0,
+    });
+  });
+
+  test("swallows subscriber exceptions instead of killing the loop", async () => {
+    const loop = makeToolLoopRunner({
+      model: dummyModel,
+      apiKey: "test-key",
+      executor: scriptedExecutor([]),
+      onEvent: () => {
+        throw new Error("subscriber blew up");
+      },
+      runAgentLoopFn: mkRunAgentLoop([], "still finished"),
+    });
+    const r = await loop({ systemPrompt: "sys", userMessage: "user" });
+    expect(r.finalText).toBe("still finished");
+  });
+
   test("capsHit='stdout' when cumulative stdout passes the cap", async () => {
     const big = "x".repeat(2048);
     const loop = makeToolLoopRunner({

@@ -20,12 +20,74 @@ import {
 
 import { loadCorpus, type LoadedCorpus } from "./_corpus.ts";
 import { runAgentPropose, type ModelCompletion } from "./_runner.ts";
-import { makeToolLoopRunner, type ModelToolLoop } from "./_tool_loop.ts";
+import {
+  makeToolLoopRunner,
+  type ModelToolLoop,
+  type ToolLoopEventSink,
+} from "./_tool_loop.ts";
 import { summarizeCorpusInventory } from "./_tools.ts";
 
 function makeRunId(): string {
   const ts = new Date().toISOString().replace(/[:.]/g, "-");
   return `agent-propose-${ts}`;
+}
+
+// Live status printer for codemode runs. pi-agent-core emits a rich event
+// stream (turn_start, tool_execution_start/end, turn_end with per-message
+// usage, agent_end). The CLI prints one line per significant transition to
+// stderr so the JSON result on stdout stays parseable. Everything is best-
+// effort — exceptions are swallowed by the loop wrapper.
+function buildStderrEventSink(): ToolLoopEventSink {
+  let turn = 0;
+  const turnStartMs = new Map<number, number>();
+  const toolStartMs = new Map<string, number>();
+  const write = (line: string) => {
+    process.stderr.write(`[codemode] ${line}\n`);
+  };
+  return (event) => {
+    if (event.type === "agent_start") {
+      write("agent_start");
+      return;
+    }
+    if (event.type === "turn_start") {
+      turn += 1;
+      turnStartMs.set(turn, Date.now());
+      write(`turn ${turn} start`);
+      return;
+    }
+    if (event.type === "tool_execution_start") {
+      toolStartMs.set(event.toolCallId, Date.now());
+      const code = (event.args as { code?: string } | undefined)?.code ?? "";
+      const preview = code.replace(/\s+/g, " ").slice(0, 80);
+      write(`tool ${event.toolName} (${event.toolCallId.slice(0, 8)}): ${preview}${code.length > 80 ? "…" : ""}`);
+      return;
+    }
+    if (event.type === "tool_execution_end") {
+      const started = toolStartMs.get(event.toolCallId);
+      const elapsed = started === undefined ? "?" : `${Date.now() - started}ms`;
+      const detail = event.result as { details?: { exitCode?: number; stdout?: string } } | undefined;
+      const exitCode = detail?.details?.exitCode ?? "?";
+      const stdoutBytes = detail?.details?.stdout?.length ?? "?";
+      write(
+        `tool ${event.toolName} (${event.toolCallId.slice(0, 8)}) done: exit=${exitCode} stdout=${stdoutBytes}b ${elapsed}${event.isError ? " ERROR" : ""}`,
+      );
+      return;
+    }
+    if (event.type === "turn_end") {
+      const started = turnStartMs.get(turn);
+      const elapsed = started === undefined ? "?" : `${Date.now() - started}ms`;
+      const usage = (event.message as { usage?: { input: number; output: number; cost: { total: number } } }).usage;
+      const usageStr = usage
+        ? ` in=${usage.input}tok out=${usage.output}tok cost=$${usage.cost.total.toFixed(4)}`
+        : "";
+      write(`turn ${turn} end (${elapsed})${usageStr}`);
+      return;
+    }
+    if (event.type === "agent_end") {
+      write(`agent_end (${event.messages.length} messages)`);
+      return;
+    }
+  };
 }
 
 function defaultCorpusPaths(input: {
@@ -355,11 +417,13 @@ export default defineCommand({
         fromRepoRoot("knowledge/wiki/data/agent_corpus_map.md"),
         "utf8",
       );
+      const onEvent: ToolLoopEventSink = buildStderrEventSink();
       modelToolLoop = makeToolLoopRunner({
         model: baseModel,
         apiKey,
         maxOutputTokens: options.maxOutputTokens,
         ...(reasoning === null ? {} : { reasoning }),
+        onEvent,
       });
     }
 

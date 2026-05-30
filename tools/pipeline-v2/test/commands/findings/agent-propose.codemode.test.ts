@@ -157,6 +157,8 @@ maybe("runAgentPropose codemode (mock loop + real sandbox)", () => {
         }),
         toolUseTrace: fakeTrace,
         capsHit: null,
+        usage: { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, totalTokens: 0, costUsd: 0 },
+        retries: 0,
         iterations: 2,
       };
     };
@@ -228,6 +230,8 @@ maybe("runAgentPropose codemode (mock loop + real sandbox)", () => {
       }),
       toolUseTrace: [],
       capsHit: null,
+      usage: { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, totalTokens: 0, costUsd: 0 },
+      retries: 0,
       iterations: 1,
     });
 
@@ -288,6 +292,8 @@ maybe("runAgentPropose codemode (mock loop + real sandbox)", () => {
       }),
       toolUseTrace: [],
       capsHit: null,
+      usage: { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, totalTokens: 0, costUsd: 0 },
+      retries: 0,
       iterations: 1,
     });
 

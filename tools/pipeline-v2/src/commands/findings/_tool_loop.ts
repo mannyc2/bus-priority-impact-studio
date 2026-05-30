@@ -2,6 +2,7 @@ import {
   type AfterToolCallContext,
   type AfterToolCallResult,
   type AgentContext,
+  type AgentEvent,
   type AgentLoopConfig,
   type AgentMessage,
   type AgentTool,
@@ -10,10 +11,12 @@ import {
 } from "@earendil-works/pi-agent-core";
 import {
   type Api,
+  type AssistantMessage,
   type Message,
   type Model,
   type Static,
   Type,
+  type Usage,
 } from "@earendil-works/pi-ai";
 
 import { runBash, runPython, type SandboxResult } from "../../lib/sandbox.ts";
@@ -93,14 +96,42 @@ export type ToolLoopInput = {
   userMessage: string;
 };
 
+export type ToolLoopUsage = {
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheWriteTokens: number;
+  totalTokens: number;
+  costUsd: number;
+};
+
 export type ToolLoopResult = {
   finalText: string;
   toolUseTrace: ToolUseTraceEntry[];
   capsHit: "calls" | "stdout" | "walltime" | null;
   iterations: number;
+  usage: ToolLoopUsage;
+  retries: number;
 };
 
+// Matches pi-coding-agent's _isRetryableError regex. Covers rate limits,
+// transient 5xx, network glitches, premature stream closes — anything the
+// upstream provider is likely to recover from on its own.
+const RETRYABLE_ERROR_PATTERN =
+  /overloaded|provider.?returned.?error|rate.?limit|too many requests|429|500|502|503|504|service.?unavailable|server.?error|internal.?error|network.?error|connection.?error|connection.?refused|connection.?lost|websocket.?closed|websocket.?error|other side closed|fetch failed|upstream.?connect|reset before headers|socket hang up|ended without|stream ended before message_stop|http2 request did not get a response|timed? out|timeout|terminated|retry delay/i;
+
+export function isRetryableProviderError(errorMessage: string): boolean {
+  return RETRYABLE_ERROR_PATTERN.test(errorMessage);
+}
+
 export type ModelToolLoop = (input: ToolLoopInput) => Promise<ToolLoopResult>;
+
+// Live observability seam — caller subscribes to pi-agent-core's full event
+// stream (turn_start, message_update streaming deltas, tool_execution_*,
+// turn_end with per-message usage, agent_end). The factory forwards events
+// to this callback after its own bookkeeping. Errors thrown by the
+// subscriber are swallowed so a bad print doesn't kill the loop.
+export type ToolLoopEventSink = (event: AgentEvent) => void;
 
 // Test seam — lets unit tests run the loop without docker.
 export type ToolExecutor = (
@@ -168,6 +199,12 @@ export type MakeToolLoopRunnerArgs = {
   maxToolCalls?: number;
   maxTotalStdoutBytes?: number;
   maxWallTimeMs?: number;
+  // Retry on transient provider errors (rate limits, 5xx, network). The
+  // wall-time cap encompasses all retries. Set maxRetries: 0 to disable.
+  maxRetries?: number;
+  retryBaseDelayMs?: number;
+  // Live event subscription (status lines, progress UI, cost tracking).
+  onEvent?: ToolLoopEventSink;
   // Test seams
   executor?: ToolExecutor;
   runAgentLoopFn?: RunAgentLoopFn;
@@ -177,6 +214,8 @@ export function makeToolLoopRunner(args: MakeToolLoopRunnerArgs): ModelToolLoop 
   const maxToolCalls = args.maxToolCalls ?? 20;
   const maxTotalStdoutBytes = args.maxTotalStdoutBytes ?? 2 * 1024 * 1024;
   const maxWallTimeMs = args.maxWallTimeMs ?? 4 * 60 * 1000;
+  const maxRetries = args.maxRetries ?? 3;
+  const retryBaseDelayMs = args.retryBaseDelayMs ?? 2000;
   const executor = args.executor ?? defaultExecutor;
   const runLoop = args.runAgentLoopFn ?? runAgentLoop;
 
@@ -207,12 +246,6 @@ export function makeToolLoopRunner(args: MakeToolLoopRunnerArgs): ModelToolLoop 
         const r = await executor("bash_exec", params);
         return sandboxToAgentResult(r);
       },
-    };
-
-    const context: AgentContext = {
-      systemPrompt: input.systemPrompt,
-      messages: [],
-      tools: [pythonTool, bashTool],
     };
 
     const prompts: AgentMessage[] = [
@@ -282,38 +315,102 @@ export function makeToolLoopRunner(args: MakeToolLoopRunnerArgs): ModelToolLoop 
       controller.abort();
     }, maxWallTimeMs);
 
+    const usage: ToolLoopUsage = {
+      inputTokens: 0,
+      outputTokens: 0,
+      cacheReadTokens: 0,
+      cacheWriteTokens: 0,
+      totalTokens: 0,
+      costUsd: 0,
+    };
+
+    const onEvent = args.onEvent;
+    const emit = (event: AgentEvent): void => {
+      if (event.type === "turn_start") {
+        iterations += 1;
+      } else if (event.type === "turn_end") {
+        const u = (event.message as AssistantMessage).usage as Usage | undefined;
+        if (u) {
+          usage.inputTokens += u.input;
+          usage.outputTokens += u.output;
+          usage.cacheReadTokens += u.cacheRead;
+          usage.cacheWriteTokens += u.cacheWrite;
+          usage.totalTokens += u.totalTokens;
+          usage.costUsd += u.cost.total;
+        }
+      }
+      if (onEvent) {
+        try {
+          onEvent(event);
+        } catch {
+          // Subscriber failures are non-fatal — keep the loop alive.
+        }
+      }
+    };
+
     let finalMessages: AgentMessage[];
+    let retries = 0;
     try {
-      finalMessages = await runLoop(
-        prompts,
-        context,
-        config,
-        (event) => {
-          if (event.type === "turn_start") iterations += 1;
-        },
-        controller.signal,
-      );
+      while (true) {
+        // Reset per-attempt accumulators so the result reflects only the
+        // successful run, not failed retries. Caps/iterations/usage are
+        // updated again as the loop progresses.
+        trace.length = 0;
+        toolCalls = 0;
+        stdoutBytes = 0;
+        capsHit = null;
+        iterations = 0;
+        usage.inputTokens = 0;
+        usage.outputTokens = 0;
+        usage.cacheReadTokens = 0;
+        usage.cacheWriteTokens = 0;
+        usage.totalTokens = 0;
+        usage.costUsd = 0;
+
+        const attemptContext: AgentContext = {
+          systemPrompt: input.systemPrompt,
+          messages: [],
+          tools: [pythonTool, bashTool],
+        };
+
+        finalMessages = await runLoop(
+          prompts,
+          attemptContext,
+          config,
+          emit,
+          controller.signal,
+        );
+
+        // Detect provider errors via stopReason on the final assistant message.
+        let providerError: string | null = null;
+        for (let i = finalMessages.length - 1; i >= 0; i -= 1) {
+          const m = finalMessages[i];
+          if (m && m.role === "assistant") {
+            const stopReason = (m as { stopReason?: string }).stopReason;
+            const errorMessage = (m as { errorMessage?: string }).errorMessage;
+            if (stopReason === "error" && errorMessage) providerError = errorMessage;
+            break;
+          }
+        }
+
+        if (providerError === null) break; // success
+
+        if (!isRetryableProviderError(providerError) || retries >= maxRetries) {
+          throw new Error(`LLM provider error: ${providerError}`);
+        }
+
+        retries += 1;
+        const delayMs = retryBaseDelayMs * 2 ** (retries - 1);
+        process.stderr.write(
+          `[tool_loop] retry ${retries}/${maxRetries} after ${delayMs}ms: ${providerError.slice(0, 120)}\n`,
+        );
+        await new Promise<void>((resolve) => setTimeout(resolve, delayMs));
+      }
     } finally {
       clearTimeout(timer);
     }
-
-    // Surface provider errors (auth, rate-limit, etc.) that pi-agent-core
-    // reports via `stopReason: "error"` on the final assistant message
-    // instead of throwing — without this we'd hand the runner an empty
-    // text and crash later with a confusing "no text" message.
-    for (let i = finalMessages.length - 1; i >= 0; i -= 1) {
-      const m = finalMessages[i];
-      if (m && m.role === "assistant") {
-        const stopReason = (m as { stopReason?: string }).stopReason;
-        const errorMessage = (m as { errorMessage?: string }).errorMessage;
-        if (stopReason === "error" && errorMessage) {
-          throw new Error(`LLM provider error: ${errorMessage}`);
-        }
-        break;
-      }
-    }
     const finalText = extractLastAssistantText(finalMessages);
-    if (finalText.length === 0 && process.env.BP_DEBUG_TOOL_LOOP === "1") {
+    if (finalText.length === 0 && process.env["BP_DEBUG_TOOL_LOOP"] === "1") {
       const summary = finalMessages.map((m) => {
         if (m.role === "assistant") {
           return {
@@ -330,6 +427,6 @@ export function makeToolLoopRunner(args: MakeToolLoopRunnerArgs): ModelToolLoop 
       });
       process.stderr.write(`[tool_loop debug] empty finalText. messages=${JSON.stringify(summary, null, 2)}\n`);
     }
-    return { finalText, toolUseTrace: trace, capsHit, iterations };
+    return { finalText, toolUseTrace: trace, capsHit, iterations, usage, retries };
   };
 }
