@@ -6,6 +6,7 @@ import { and, asc, desc, eq, gte, sql } from "drizzle-orm";
 import { batchInsert, type LocalPipelineDb } from "../client.js";
 import {
   local311ServiceRequest,
+  localBusCustomerJourneyMetric,
   localBusWaitAssessment,
   localDotStreetPermit,
   localDotTrafficSpeed,
@@ -87,15 +88,87 @@ export async function listBusWaitAssessmentRowsForRoute(
     .select()
     .from(localBusWaitAssessment)
     .where(
-      and(
-        eq(localBusWaitAssessment.routeId, routeId),
-        eq(localBusWaitAssessment.month, month),
-      ),
+      and(eq(localBusWaitAssessment.routeId, routeId), eq(localBusWaitAssessment.month, month)),
     )
     .orderBy(
       asc(localBusWaitAssessment.dayType),
       asc(localBusWaitAssessment.tripType),
       asc(localBusWaitAssessment.period),
+    );
+}
+
+// =========================================================================
+// MTA Bus Customer Journey-Focused Metrics (Socrata 8mkn-d32t)
+// Monthly route-period customer journey metrics. additional_bus_stop_time is
+// the compact MTA schedule-based wait penalty used by EWT calibration.
+// =========================================================================
+
+export type LocalBusCustomerJourneyMetric = {
+  month: string;
+  routeId: string;
+  borough: string;
+  tripType: string;
+  period: string;
+  customers: number;
+  additionalBusStopTimeMinutes: number | null;
+  additionalTravelTimeMinutes: number | null;
+  customerJourneyTimeMinutes: number | null;
+};
+
+export async function replaceBusCustomerJourneyMetricRows(
+  db: LocalPipelineDb,
+  month: string,
+  rows: readonly LocalBusCustomerJourneyMetric[],
+): Promise<void> {
+  for (const row of rows) {
+    if (row.month !== month) {
+      throw new Error(
+        `replaceBusCustomerJourneyMetricRows: row month ${row.month} does not match scope ${month}.`,
+      );
+    }
+  }
+
+  await db
+    .delete(localBusCustomerJourneyMetric)
+    .where(eq(localBusCustomerJourneyMetric.month, month));
+
+  if (rows.length === 0) return;
+
+  await batchInsert(db, localBusCustomerJourneyMetric, [...rows]);
+}
+
+export async function listBusCustomerJourneyMetricRowsForMonth(
+  db: LocalPipelineDb,
+  month: string,
+): Promise<LocalBusCustomerJourneyMetric[]> {
+  return db
+    .select()
+    .from(localBusCustomerJourneyMetric)
+    .where(eq(localBusCustomerJourneyMetric.month, month))
+    .orderBy(
+      asc(localBusCustomerJourneyMetric.routeId),
+      asc(localBusCustomerJourneyMetric.tripType),
+      asc(localBusCustomerJourneyMetric.period),
+    );
+}
+
+export async function listBusCustomerJourneyMetricRowsForRoute(
+  db: LocalPipelineDb,
+  routeId: string,
+  month: string,
+): Promise<LocalBusCustomerJourneyMetric[]> {
+  return db
+    .select()
+    .from(localBusCustomerJourneyMetric)
+    .where(
+      and(
+        eq(localBusCustomerJourneyMetric.routeId, routeId),
+        eq(localBusCustomerJourneyMetric.month, month),
+      ),
+    )
+    .orderBy(
+      asc(localBusCustomerJourneyMetric.tripType),
+      asc(localBusCustomerJourneyMetric.period),
     );
 }
 
@@ -523,8 +596,6 @@ export async function upsertWeatherObservations(
 }
 
 export async function countWeatherObservations(db: LocalPipelineDb): Promise<number> {
-  const rows = await db
-    .select({ c: sql<number>`count(*)`.as("c") })
-    .from(localWeatherObservation);
+  const rows = await db.select({ c: sql<number>`count(*)`.as("c") }).from(localWeatherObservation);
   return Number(rows[0]?.c ?? 0);
 }

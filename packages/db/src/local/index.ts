@@ -72,6 +72,7 @@ export {
 } from "./repositories/interventions.js";
 export type {
   Local311ServiceRequest,
+  LocalBusCustomerJourneyMetric,
   LocalBusWaitAssessment,
   LocalDotStreetPermit,
   LocalDotTrafficSpeed,
@@ -91,10 +92,13 @@ export {
   countWeatherObservations,
   insertDotTrafficSpeedSnapshot,
   insertDotTrafficVolumeCounts,
+  listBusCustomerJourneyMetricRowsForMonth,
+  listBusCustomerJourneyMetricRowsForRoute,
   listBusWaitAssessmentRowsForMonth,
   listBusWaitAssessmentRowsForRoute,
   listDotTrafficSpeedsForLink,
   listLatestDotTrafficSpeeds,
+  replaceBusCustomerJourneyMetricRows,
   replaceBusWaitAssessmentRows,
   upsert311ServiceRequests,
   upsertDotStreetPermits,

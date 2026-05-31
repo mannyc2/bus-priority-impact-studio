@@ -641,6 +641,26 @@ export const localBusWaitAssessment = sqliteTable(
   ],
 );
 
+export const localBusCustomerJourneyMetric = sqliteTable(
+  "local_bus_customer_journey_metric",
+  {
+    month: text("month").notNull(),
+    routeId: text("route_id").notNull(),
+    borough: text("borough").notNull(),
+    tripType: text("trip_type").notNull(),
+    period: text("period").notNull(),
+    customers: real("customers").notNull(),
+    additionalBusStopTimeMinutes: real("additional_bus_stop_time_minutes"),
+    additionalTravelTimeMinutes: real("additional_travel_time_minutes"),
+    customerJourneyTimeMinutes: real("customer_journey_time_minutes"),
+  },
+  (table) => [
+    primaryKey({
+      columns: [table.month, table.routeId, table.tripType, table.period],
+    }),
+  ],
+);
+
 export const localDotTrafficSpeed = sqliteTable(
   "local_dot_traffic_speed",
   {
