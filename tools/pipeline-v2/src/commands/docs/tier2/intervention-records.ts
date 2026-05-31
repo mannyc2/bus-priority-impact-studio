@@ -1,6 +1,6 @@
 import { defineCommand, z } from "@liche/core";
 import { optionsToArgs } from "./_cli-bridge.ts";
-import { extractTier2DocumentInterventionRecordsFromCli } from "./_shared.ts";
+import { extractTier2DocumentInterventionRecordsFromCli } from "./_intervention-records.ts";
 
 const optionsSchema = z.object({
   markdownCandidateExtraction: z.string().optional(),

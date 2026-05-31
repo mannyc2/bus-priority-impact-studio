@@ -42,6 +42,38 @@ export function openRouterModel(modelId: string): Model<"openai-completions"> {
 }
 
 /**
+ * OpenAI-compatible Pioneer model descriptor. Pioneer is intentionally kept as
+ * a custom provider here because pi-ai 0.78 does not ship a built-in Pioneer
+ * catalog. Set PIONEER_BASE_URL to the provider's OpenAI-compatible `/v1`
+ * endpoint and PIONEER_API_KEY for requests.
+ */
+export function pioneerModel(
+  modelId: string,
+  baseUrl = requiredPioneerBaseUrl(),
+): Model<"openai-completions"> {
+  return {
+    id: modelId,
+    name: modelId,
+    api: "openai-completions",
+    provider: "pioneer",
+    baseUrl,
+    reasoning: false,
+    input: ["text", "image"],
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    contextWindow: 256_000,
+    maxTokens: 16_000,
+  };
+}
+
+export function requiredPioneerBaseUrl(): string {
+  const baseUrl = process.env["PIONEER_BASE_URL"]?.trim();
+  if (!baseUrl) {
+    throw new Error("PIONEER_BASE_URL is required for --provider pioneer.");
+  }
+  return baseUrl.replace(/\/+$/, "");
+}
+
+/**
  * Direct DeepSeek model descriptor (OpenAI-compatible API at
  * https://api.deepseek.com/v1). Use when going direct rather than via
  * OpenRouter — same OpenAI completions wire format, separate billing.
@@ -131,7 +163,7 @@ export async function completeJson(
 ): Promise<CompleteJsonResult> {
   ensureProviders();
   if (options.apiKey.trim().length === 0) {
-    throw new Error("OPENROUTER_API_KEY is required.");
+    throw new Error("API key is required.");
   }
 
   let lastError: unknown;
@@ -178,6 +210,150 @@ export async function completeJson(
       if (attempt >= options.maxAttempts) break;
     } finally {
       clearTimeout(timeout);
+    }
+  }
+  throw lastError ?? new Error("LLM request failed with no error.");
+}
+
+/** A single OpenAI-style content block as the Tier 2 callers build them. */
+export type ToolCallContentBlock =
+  | { type: "text"; text: string }
+  | { type: "image"; data: string; mimeType: string };
+
+export type ToolCallMessage = {
+  role: "system" | "user";
+  content: string | ToolCallContentBlock[];
+};
+
+export type CompleteToolCallOptions = {
+  apiKey: string;
+  timeoutMs: number;
+  maxAttempts: number;
+  /** Name of the function the model is forced to call (`tool_choice`). */
+  toolName: string;
+  /** OpenAI-style messages; system/user, string or text+image content blocks. */
+  messages: ToolCallMessage[];
+  /** Function tools in OpenAI shape: `{ name, description, parameters }`. */
+  tools: Array<{ name: string; description: string; parameters: Record<string, unknown> }>;
+  maxOutputTokens?: number | undefined;
+  reasoning?: ThinkingLevel | undefined;
+  /**
+   * Swap `globalThis.fetch` for the duration of the call. The pi-ai transport
+   * runs through the OpenAI SDK, which uses the global fetch; tests inject a
+   * stub here to drive canned provider responses without real network I/O.
+   */
+  fetch?: typeof globalThis.fetch | undefined;
+};
+
+export type CompleteToolCallResult = {
+  /** The forced tool call when the model produced one; null otherwise. */
+  toolCall: { id: string; name: string; arguments: Record<string, unknown> } | null;
+  /** pi-ai's normalized token usage, or null when the provider omitted it. */
+  usage: { input: number; output: number; totalTokens: number } | null;
+  stopReason: "stop" | "length" | "toolUse" | "error" | "aborted";
+  /** Provider/transport error message when stopReason is "error", else null. */
+  errorMessage: string | null;
+  attempts: number;
+};
+
+/**
+ * Run a forced-tool-call completion through the pi harness and surface the tool
+ * call, usage, and stop reason in a transport-agnostic shape. The Tier 2 callers
+ * synthesize the legacy `{response, body}` contract from this so their downstream
+ * consumers (`extractToolCallArguments`, `openRouterErrorMessage`, …) are unchanged.
+ *
+ * pi-ai streams via the OpenAI SDK, so `service_tier`, OpenRouter file
+ * annotations, and the raw provider body are NOT recoverable here; callers that
+ * relied on those degrade gracefully (null service tier, empty annotations).
+ */
+export async function completeToolCall(
+  model: Model<Api>,
+  options: CompleteToolCallOptions,
+): Promise<CompleteToolCallResult> {
+  ensureProviders();
+  if (options.apiKey.trim().length === 0) {
+    throw new Error("API key is required.");
+  }
+
+  // pi-ai's Context carries the system prompt out-of-band (`systemPrompt`), not as
+  // a `role:"system"` entry in `messages` — those are silently dropped. Hoist any
+  // system messages (always string content in the Tier 2 callers) into
+  // `systemPrompt`; the rest become user messages.
+  const systemPrompt = options.messages
+    .filter((message) => message.role === "system")
+    .map((message) => (typeof message.content === "string" ? message.content : ""))
+    .join("\n");
+  const userMessages = options.messages.filter((message) => message.role !== "system");
+  const context: Context = {
+    ...(systemPrompt.length > 0 ? { systemPrompt } : {}),
+    messages: userMessages.map((message) => ({
+      role: "user" as const,
+      content:
+        typeof message.content === "string"
+          ? message.content
+          : message.content.map((block) =>
+              block.type === "text"
+                ? { type: "text" as const, text: block.text }
+                : { type: "image" as const, data: block.data, mimeType: block.mimeType },
+            ),
+      timestamp: Date.now(),
+    })) as Context["messages"],
+    tools: options.tools.map((tool) => ({
+      name: tool.name,
+      description: tool.description,
+      parameters: tool.parameters as never,
+    })),
+  };
+
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= options.maxAttempts; attempt += 1) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), options.timeoutMs);
+    const originalFetch = globalThis.fetch;
+    if (options.fetch !== undefined) {
+      globalThis.fetch = options.fetch;
+    }
+    try {
+      const result = await complete(model, context, {
+        apiKey: options.apiKey,
+        signal: controller.signal,
+        toolChoice: { type: "function", function: { name: options.toolName } },
+        maxRetries: 0,
+        ...(options.maxOutputTokens === undefined ? {} : { maxTokens: options.maxOutputTokens }),
+        ...(options.reasoning === undefined ? {} : { reasoning: options.reasoning }),
+      } as never);
+
+      const toolCallBlock = result.content.find(
+        (block): block is { type: "toolCall"; id: string; name: string; arguments: Record<string, unknown> } =>
+          block.type === "toolCall",
+      );
+      const usage = result.usage
+        ? {
+            input: result.usage.input,
+            output: result.usage.output,
+            totalTokens: result.usage.totalTokens,
+          }
+        : null;
+      return {
+        toolCall: toolCallBlock
+          ? { id: toolCallBlock.id, name: toolCallBlock.name, arguments: toolCallBlock.arguments }
+          : null,
+        usage,
+        stopReason: result.stopReason,
+        errorMessage:
+          result.stopReason === "error" ? (result.errorMessage ?? "Provider returned an error stop reason") : null,
+        attempts: attempt,
+      };
+    } catch (error) {
+      lastError = controller.signal.aborted
+        ? new Error(`LLM request timed out after ${options.timeoutMs}ms for ${model.id}.`)
+        : error;
+      if (attempt >= options.maxAttempts) break;
+    } finally {
+      clearTimeout(timeout);
+      if (options.fetch !== undefined) {
+        globalThis.fetch = originalFetch;
+      }
     }
   }
   throw lastError ?? new Error("LLM request failed with no error.");

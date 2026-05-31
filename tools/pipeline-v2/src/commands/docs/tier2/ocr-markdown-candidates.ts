@@ -1,6 +1,6 @@
 import { defineCommand, z } from "@liche/core";
 import { optionsToArgs } from "./_cli-bridge.ts";
-import { extractTier2OcrMarkdownCandidatesFromCli } from "./_shared.ts";
+import { extractTier2OcrMarkdownCandidatesFromCli } from "./_ocr-candidates.ts";
 
 const optionsSchema = z.object({
   ocrPlan: z.string().optional(),

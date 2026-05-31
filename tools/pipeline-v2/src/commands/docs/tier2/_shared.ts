@@ -5,19 +5,30 @@
 // `defineCommand`. Files prefixed with `_` are helpers (no `default`
 // export) and are ignored by the v2 CLI loader.
 //
-// NOTE (Goal 6, partial): the simple OpenRouter chat-completions surface used
-// by `studio/_release-segments.ts` (segment-note generation) now routes through
-// `@earendil-works/pi-ai` (`lib/llm.ts`). The OpenRouter and DeepSeek call sites
-// in this file (`postOpenRouterChatCompletions`, `postDeepSeekChatCompletions`,
-// `callOpenRouterPageMarkdownOcr`) stay inline because they exercise provider-
-// specific features pi-ai does not currently model: OpenRouter's `plugins.
-// file-parser` for PDF input, DeepSeek's thinking-mode toggle vs. forced
-// `tool_choice`, OpenRouter's `service_tier`, and the `tool_choice: { type:
-// "function", function: { name: ... } }` shape with multimodal pages. Migrating
-// them through pi-ai would require custom providers + thinking-level mappers
-// for behavior that the v1 hand-rolled clients already model accurately. Revisit
-// when pi-ai adds first-class OpenRouter file-parser + DeepSeek thinking-mode
-// support.
+// NOTE (Tier 2 LLM transport): the forced-tool-call surfaces now route through
+// the pi harness (`lib/llm.ts` -> `@earendil-works/pi-ai`) wherever pi-ai can
+// express the request:
+//   - DeepSeek candidate + intervention-record extraction
+//     (`callDeepSeekMarkdownCandidates`, `callDeepSeekInterventionRecords`):
+//     text-only forced tool calls. The pi-ai DeepSeek catalog model auto-injects
+//     `thinking: { type: "disabled" }` when reasoning is off, matching the legacy
+//     client's manual disable that keeps a forced `tool_choice` working.
+//   - Rendered-image (PNG) OCR (`callOpenRouterPageMarkdownOcr`, image path):
+//     pi-ai serializes the `{type:"image"}` content block to OpenRouter's
+//     `{type:"image_url"}`. This is the canonical OCR path (the corpus is 100%
+//     rendered-image input).
+// Each pi call synthesizes the legacy `{response, body}` contract (see
+// `_llm-clients.ts: synthesizeOpenRouterCallResult`) so the per-step consumers
+// (`extractToolCallArguments`, `openRouterErrorMessage`, `body.usage`) are
+// unchanged. Because pi-ai streams via the OpenAI SDK, OpenRouter `service_tier`,
+// file annotations, and the raw provider `usage` are not recoverable; the image
+// OCR path therefore reports a null served service tier and empty annotations.
+//
+// Only OpenRouter's server-side file-parser path stays inline on
+// `postOpenRouterChatCompletions`: the rare non-vision `pdf_page` fallback in
+// `callOpenRouterPageMarkdownOcr` needs the `{type:"file"}` content block plus
+// `plugins: [{ id: "file-parser", pdf: { engine } }]`, neither of which pi-ai's
+// content/option model can express.
 import { Buffer } from "node:buffer";
 import { createHash } from "node:crypto";
 import { mkdir, readdir, unlink } from "node:fs/promises";
@@ -55,13 +66,13 @@ import {
 import { writeJson } from "../../../lib/json.ts";
 
 // v1's lib/cli-args.js (kept inline; the FromCli parsers below still want it).
-type CliOption<T> = {
+export type CliOption<T> = {
   flags: readonly string[];
   value?: boolean;
   apply: (output: T, value: string | undefined) => void;
 };
 
-function parseCliOptions<T>(
+export function parseCliOptions<T>(
   args: string[],
   output: T,
   options: readonly CliOption<T>[],
@@ -89,7 +100,7 @@ function parseCliOptions<T>(
   return output;
 }
 
-const trueOption = <T>(
+export const trueOption = <T>(
   flags: readonly string[],
   applyTrue: (output: T) => void,
 ): CliOption<T> => ({
@@ -102,7 +113,7 @@ const trueOption = <T>(
 
 // v1's withLocalPipelineDb callback wrapper, kept local so the existing
 // FromCli function bodies below don't need restructuring.
-async function withLocalPipelineDb<T>(
+export async function withLocalPipelineDb<T>(
   path: string | undefined,
   useDb: (local: OpenLocalPipelineDb) => T | Promise<T>,
   options: { spatial?: boolean } = {},
@@ -569,7 +580,7 @@ export type Tier2OcrMarkdownCandidateQualityRepairCode =
   | "unsupported_service_change_types_removed"
   | "route_mentions_normalized";
 
-const OCR_MARKDOWN_CANDIDATE_QUALITY_ISSUE_CODES: readonly Tier2OcrMarkdownCandidateQualityIssueCode[] =
+export const OCR_MARKDOWN_CANDIDATE_QUALITY_ISSUE_CODES: readonly Tier2OcrMarkdownCandidateQualityIssueCode[] =
   [
     "evidence_quote_not_exact",
     "evidence_quote_spans_page_boundary",
@@ -584,7 +595,7 @@ const OCR_MARKDOWN_CANDIDATE_QUALITY_ISSUE_CODES: readonly Tier2OcrMarkdownCandi
     "project_status_spans_multiple_statuses",
   ];
 
-const OCR_MARKDOWN_CANDIDATE_QUALITY_REPAIR_CODES: readonly Tier2OcrMarkdownCandidateQualityRepairCode[] =
+export const OCR_MARKDOWN_CANDIDATE_QUALITY_REPAIR_CODES: readonly Tier2OcrMarkdownCandidateQualityRepairCode[] =
   [
     "evidence_quote_repaired_to_source_substring",
     "evidence_page_refs_trimmed_to_quote_pages",
@@ -1218,7 +1229,7 @@ export type Tier2DiscoveryArtifact = {
   excludedLinks: Tier2ExcludedDiscoveryLink[];
 };
 
-type DiscoveryClassification =
+export type DiscoveryClassification =
   | {
       include: false;
       reason: string;
@@ -1233,7 +1244,7 @@ type DiscoveryClassification =
       intendedUse: string[];
     };
 
-type CaptureTier2DocsArgs = {
+export type CaptureTier2DocsArgs = {
   backlogPath?: string;
   artifactRoot?: string;
   runId?: string;
@@ -1241,7 +1252,7 @@ type CaptureTier2DocsArgs = {
   fetcher?: FetchLike;
 };
 
-type PlanTier2OcrArgs = {
+export type PlanTier2OcrArgs = {
   captureManifestPath: string;
   outputPath?: string;
   generatedAt?: string;
@@ -1249,7 +1260,7 @@ type PlanTier2OcrArgs = {
   defaultPageRange?: string;
 };
 
-type OcrTier2PageMarkdownArgs = {
+export type OcrTier2PageMarkdownArgs = {
   ocrPlanPath: string;
   outputPath?: string;
   generatedAt?: string;
@@ -1270,14 +1281,14 @@ type OcrTier2PageMarkdownArgs = {
   apiKey?: string;
 };
 
-type AuditTier2OcrPageMarkdownArgs = {
+export type AuditTier2OcrPageMarkdownArgs = {
   ocrPlanPath: string;
   outputPath?: string;
   generatedAt?: string;
   pageMarkdownRootName?: string;
 };
 
-type ExtractTier2OcrMarkdownCandidatesArgs = {
+export type ExtractTier2OcrMarkdownCandidatesArgs = {
   ocrPlanPath: string;
   pageMarkdownAuditPath: string;
   outputPath?: string;
@@ -1296,7 +1307,7 @@ type ExtractTier2OcrMarkdownCandidatesArgs = {
   apiKey?: string;
 };
 
-type ExtractTier2CandidatesArgs = {
+export type ExtractTier2CandidatesArgs = {
   ocrPlanPath: string;
   ocrQualityReviewPath: string;
   ocrMarkdownCandidateExtractionPath: string;
@@ -1305,19 +1316,19 @@ type ExtractTier2CandidatesArgs = {
   triageRootName?: string;
 };
 
-type ChunkTier2DocumentsArgs = {
+export type ChunkTier2DocumentsArgs = {
   candidateBundlePath: string;
   outputPath?: string;
   generatedAt?: string;
 };
 
-type AuditTier2InterventionDuplicatesArgs = {
+export type AuditTier2InterventionDuplicatesArgs = {
   canonicalEventsPath: string;
   outputPath?: string;
   generatedAt?: string;
 };
 
-type BuildTier2DuplicateReviewQueueArgs = {
+export type BuildTier2DuplicateReviewQueueArgs = {
   canonicalEventsPath: string;
   duplicateAuditPath: string;
   candidateBundlePath: string;
@@ -1325,19 +1336,19 @@ type BuildTier2DuplicateReviewQueueArgs = {
   generatedAt?: string;
 };
 
-type BuildTier2DuplicateDecisionTemplateArgs = {
+export type BuildTier2DuplicateDecisionTemplateArgs = {
   duplicateReviewPath: string;
   outputPath?: string;
   generatedAt?: string;
 };
 
-type VerifyTier2DuplicateDecisionsArgs = {
+export type VerifyTier2DuplicateDecisionsArgs = {
   duplicateDecisionsPath: string;
   outputPath?: string;
   generatedAt?: string;
 };
 
-type BuildTier2PipelineStatusArgs = {
+export type BuildTier2PipelineStatusArgs = {
   runId: string;
   artifactRoot: string;
   studioReleasePath: string;
@@ -1345,7 +1356,7 @@ type BuildTier2PipelineStatusArgs = {
   generatedAt?: string;
 };
 
-type LoadTier2InterventionStagingArgs = {
+export type LoadTier2InterventionStagingArgs = {
   canonicalEventsPath: string;
   duplicateAuditPath: string;
   candidateBundlePath: string;
@@ -1355,20 +1366,20 @@ type LoadTier2InterventionStagingArgs = {
   generatedAt?: string;
 };
 
-type PlanTier2FollowupOcrArgs = {
+export type PlanTier2FollowupOcrArgs = {
   candidateBundlePath: string;
   outputPath?: string;
   generatedAt?: string;
   limit?: number;
 };
 
-type CaptureCliArgs = {
+export type CaptureCliArgs = {
   backlogPath?: string;
   artifactRoot?: string;
   runId?: string;
 };
 
-type OcrPlanCliArgs = {
+export type OcrPlanCliArgs = {
   captureManifestPath?: string;
   artifactRoot?: string;
   runId?: string;
@@ -1386,11 +1397,11 @@ type OcrReviewCliArgs = {
   triageRootName?: string;
 };
 
-type ExtractCliArgs = OcrReviewCliArgs & {
+export type ExtractCliArgs = OcrReviewCliArgs & {
   ocrMarkdownCandidateExtractionPath?: string;
 };
 
-type OcrPageMarkdownAuditCliArgs = {
+export type OcrPageMarkdownAuditCliArgs = {
   ocrPlanPath?: string;
   artifactRoot?: string;
   runId?: string;
@@ -1398,7 +1409,7 @@ type OcrPageMarkdownAuditCliArgs = {
   pageMarkdownRootName?: string;
 };
 
-type OcrMarkdownCandidatesCliArgs = {
+export type OcrMarkdownCandidatesCliArgs = {
   ocrPlanPath?: string;
   pageMarkdownAuditPath?: string;
   artifactRoot?: string;
@@ -1416,21 +1427,21 @@ type OcrMarkdownCandidatesCliArgs = {
   execute?: boolean;
 };
 
-type ChunkCliArgs = {
+export type ChunkCliArgs = {
   candidateBundlePath?: string;
   artifactRoot?: string;
   runId?: string;
   outputPath?: string;
 };
 
-type DuplicateAuditCliArgs = {
+export type DuplicateAuditCliArgs = {
   canonicalEventsPath?: string;
   artifactRoot?: string;
   runId?: string;
   outputPath?: string;
 };
 
-type DuplicateReviewCliArgs = {
+export type DuplicateReviewCliArgs = {
   canonicalEventsPath?: string;
   duplicateAuditPath?: string;
   candidateBundlePath?: string;
@@ -1439,28 +1450,28 @@ type DuplicateReviewCliArgs = {
   outputPath?: string;
 };
 
-type DuplicateDecisionTemplateCliArgs = {
+export type DuplicateDecisionTemplateCliArgs = {
   duplicateReviewPath?: string;
   artifactRoot?: string;
   runId?: string;
   outputPath?: string;
 };
 
-type VerifyDuplicateDecisionsCliArgs = {
+export type VerifyDuplicateDecisionsCliArgs = {
   duplicateDecisionsPath?: string;
   artifactRoot?: string;
   runId?: string;
   outputPath?: string;
 };
 
-type PipelineStatusCliArgs = {
+export type PipelineStatusCliArgs = {
   artifactRoot?: string;
   runId?: string;
   studioReleasePath?: string;
   outputPath?: string;
 };
 
-type VerifyManualInterventionsCliArgs = {
+export type VerifyManualInterventionsCliArgs = {
   manualInterventionsPath?: string;
   canonicalEventsPath?: string;
   candidateBundlePath?: string;
@@ -1470,7 +1481,7 @@ type VerifyManualInterventionsCliArgs = {
   outputPath?: string;
 };
 
-type LoadStagingCliArgs = {
+export type LoadStagingCliArgs = {
   canonicalEventsPath?: string;
   duplicateAuditPath?: string;
   candidateBundlePath?: string;
@@ -1481,7 +1492,7 @@ type LoadStagingCliArgs = {
   outputPath?: string;
 };
 
-type FollowupOcrPlanCliArgs = {
+export type FollowupOcrPlanCliArgs = {
   candidateBundlePath?: string;
   artifactRoot?: string;
   runId?: string;
@@ -1489,7 +1500,7 @@ type FollowupOcrPlanCliArgs = {
   limit?: number;
 };
 
-type DiscoverTier2DocsArgs = {
+export type DiscoverTier2DocsArgs = {
   captureManifestPath: string;
   backlogPath?: string;
   outputPath?: string;
@@ -1497,7 +1508,7 @@ type DiscoverTier2DocsArgs = {
   generatedAt?: string;
 };
 
-type DiscoverCliArgs = {
+export type DiscoverCliArgs = {
   captureManifestPath?: string;
   backlogPath?: string;
   artifactRoot?: string;
@@ -1506,11 +1517,11 @@ type DiscoverCliArgs = {
   mergedBacklogPath?: string;
 };
 
-const DEFAULT_BACKLOG_PATH = fromRepoRoot("knowledge/raw/tier2_document_backlog.json");
-const DEFAULT_OCR_MODEL = "qwen/qwen3.7-max";
-const DEFAULT_OCR_MAX_TOKENS = 16384;
+export const DEFAULT_BACKLOG_PATH = fromRepoRoot("knowledge/raw/tier2_document_backlog.json");
+export const DEFAULT_OCR_MODEL = "qwen/qwen3.7-max";
+export const DEFAULT_OCR_MAX_TOKENS = 16384;
 const DEFAULT_OCR_PAGE_MARKDOWN_ROOT_NAME = "ocr-page-markdown";
-const OCR_PAGE_MARKDOWN_TOOL_NAME = "record_tier2_ocr_page";
+export const OCR_PAGE_MARKDOWN_TOOL_NAME = "record_tier2_ocr_page";
 const OCR_MARKDOWN_CANDIDATE_TOOL_NAME = "record_tier2_ocr_markdown_candidates";
 export const INTERVENTION_RECORDS_TOOL_NAME = "record_tier2_document_intervention_records";
 const OCR_PAGE_MARKDOWN_PROMPT_VERSION = "page-markdown-v3";
@@ -1518,7 +1529,7 @@ const OCR_MARKDOWN_CANDIDATE_PROMPT_VERSION = "ocr-markdown-candidates-v4";
 const INTERVENTION_RECORDS_PROMPT_VERSION = "intervention-records-v2";
 const DEFAULT_INTERVENTION_RECORDS_ROOT_NAME = "intervention-records";
 const DEFAULT_INTERVENTION_RECORDS_MAX_TOKENS = 32768;
-const DEFAULT_TEXT_MODEL = "deepseek-v4-pro";
+export const DEFAULT_TEXT_MODEL = "deepseek-v4-pro";
 const DEEPSEEK_CHAT_COMPLETIONS_URL = "https://api.deepseek.com/v1/chat/completions";
 const DEFAULT_OPENROUTER_MAX_ATTEMPTS = 3;
 const DEFAULT_DEEPSEEK_MAX_ATTEMPTS = 3;
@@ -1527,7 +1538,7 @@ function docsArtifactRoot(artifactRoot: string): string {
   return join(artifactRoot, "docs");
 }
 
-function runArtifactRoot(artifactRoot: string, runId: string): string {
+export function runArtifactRoot(artifactRoot: string, runId: string): string {
   return join(docsArtifactRoot(artifactRoot), runId);
 }
 
@@ -1575,36 +1586,36 @@ export function discoveredBacklogPath(artifactRoot: string, runId: string): stri
   return join(runArtifactRoot(artifactRoot, runId), "discovered-backlog.json");
 }
 
-function createRunId(now = new Date()): string {
+export function createRunId(now = new Date()): string {
   return `docs-capture-${now
     .toISOString()
     .replace(/\.\d{3}Z$/, "Z")
     .replaceAll(/[:.]/g, "")}`;
 }
 
-function sha256(bytes: Uint8Array): string {
+export function sha256(bytes: Uint8Array): string {
   return `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
 }
 
-function artifactKey(absolutePath: string, root: string): string {
+export function artifactKey(absolutePath: string, root: string): string {
   return relative(root, absolutePath).split(/[\\/]/).join("/");
 }
 
-function decodeUtf8(bytes: Uint8Array): string {
+export function decodeUtf8(bytes: Uint8Array): string {
   return new TextDecoder("utf-8", { fatal: false }).decode(bytes);
 }
 
-async function readRequiredJsonArtifact<T>(path: string): Promise<T> {
+export async function readRequiredJsonArtifact<T>(path: string): Promise<T> {
   return (await Bun.file(path).json()) as T;
 }
 
-async function readJsonArtifactIfExistsForStatus<T>(path: string): Promise<T | null> {
+export async function readJsonArtifactIfExistsForStatus<T>(path: string): Promise<T | null> {
   const file = Bun.file(path);
   if (!(await file.exists())) return null;
   return (await file.json()) as T;
 }
 
-function stripHtmlToText(html: string): string {
+export function stripHtmlToText(html: string): string {
   return html
     .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ")
     .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ")
@@ -1646,11 +1657,11 @@ function slugify(value: string): string {
   return slug.length === 0 ? "source" : slug.slice(0, 96).replace(/_+$/g, "");
 }
 
-function shortHash(value: string): string {
+export function shortHash(value: string): string {
   return createHash("sha256").update(value).digest("hex").slice(0, 8);
 }
 
-function escapeRegExp(value: string): string {
+export function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
@@ -1725,7 +1736,7 @@ function captureHeaders(init: RequestInit | undefined, userAgent: string): Heade
   return headers;
 }
 
-async function defaultFetch(input: string | URL | Request, init?: RequestInit): Promise<Response> {
+export async function defaultFetch(input: string | URL | Request, init?: RequestInit): Promise<Response> {
   const primary = await fetch(input, {
     ...init,
     headers: captureHeaders(init, "BusPriorityImpactStudio/0.1 (+https://github.com/)"),
@@ -1744,7 +1755,7 @@ async function defaultFetch(input: string | URL | Request, init?: RequestInit): 
   });
 }
 
-async function readBacklog(path: string): Promise<Tier2Backlog> {
+export async function readBacklog(path: string): Promise<Tier2Backlog> {
   return Tier2BacklogSchema.parse(await Bun.file(path).json());
 }
 
@@ -2073,7 +2084,7 @@ async function writeRawArtifacts(input: {
   };
 }
 
-async function writeSourceMetadata(runRoot: string, source: Tier2CapturedSource): Promise<void> {
+export async function writeSourceMetadata(runRoot: string, source: Tier2CapturedSource): Promise<void> {
   const sourceRoot = join(runRoot, "sources", source.sourceId);
   await mkdir(sourceRoot, { recursive: true });
   await writeJson(join(sourceRoot, "metadata.json"), source);
@@ -2171,7 +2182,7 @@ async function captureSource(input: {
   }
 }
 
-function summarizeCapture(sources: Tier2CapturedSource[]): Tier2CaptureManifest["summary"] {
+export function summarizeCapture(sources: Tier2CapturedSource[]): Tier2CaptureManifest["summary"] {
   return {
     sourceCount: sources.length,
     capturedCount: sources.filter((source) => source.captureStatus === "captured").length,
@@ -2751,7 +2762,7 @@ function parsePageRange(range: string, pageCount: number): number[] {
   return [...selected].toSorted((left, right) => left - right);
 }
 
-function normalizeOcrArtifactRootName(input: {
+export function normalizeOcrArtifactRootName(input: {
   value: string | undefined;
   defaultName: string;
   flagName: string;
@@ -2763,7 +2774,7 @@ function normalizeOcrArtifactRootName(input: {
   return rootName;
 }
 
-function normalizeOcrPageMarkdownRootName(value: string | undefined): string {
+export function normalizeOcrPageMarkdownRootName(value: string | undefined): string {
   return normalizeOcrArtifactRootName({
     value,
     defaultName: DEFAULT_OCR_PAGE_MARKDOWN_ROOT_NAME,
@@ -2771,7 +2782,7 @@ function normalizeOcrPageMarkdownRootName(value: string | undefined): string {
   });
 }
 
-function ocrPageMarkdownSourceRoot(input: {
+export function ocrPageMarkdownSourceRoot(input: {
   runRoot: string;
   source: Tier2OcrPlanSource;
   sourceIndex: number;
@@ -2785,7 +2796,7 @@ function ocrPageMarkdownSourceRoot(input: {
   );
 }
 
-async function executableExists(command: string): Promise<boolean> {
+export async function executableExists(command: string): Promise<boolean> {
   const proc = Bun.spawn(["which", command], {
     stdout: "pipe",
     stderr: "pipe",
@@ -2794,7 +2805,7 @@ async function executableExists(command: string): Promise<boolean> {
   return exitCode === 0;
 }
 
-async function pdfInfoPageCount(pdfPath: string): Promise<number | null> {
+export async function pdfInfoPageCount(pdfPath: string): Promise<number | null> {
   if (!(await executableExists("pdfinfo"))) {
     return null;
   }
@@ -2817,7 +2828,7 @@ async function pdfInfoPageCount(pdfPath: string): Promise<number | null> {
   return Number.isFinite(pageCount) && pageCount > 0 ? pageCount : null;
 }
 
-async function mapWithConcurrency<T, R>(
+export async function mapWithConcurrency<T, R>(
   items: T[],
   concurrency: number,
   mapper: (item: T, index: number) => Promise<R>,
@@ -3152,7 +3163,7 @@ function ocrPageMarkdownTool(): Record<string, unknown> {
   };
 }
 
-function unknownRecord(value: unknown): Record<string, unknown> | null {
+export function unknownRecord(value: unknown): Record<string, unknown> | null {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
     return null;
   }
@@ -3172,7 +3183,7 @@ function booleanField(record: Record<string, unknown>, key: string): boolean | n
   return typeof value === "boolean" ? value : null;
 }
 
-function pageMarkdownToolResult(value: unknown): {
+export function pageMarkdownToolResult(value: unknown): {
   sourceId: string;
   pageNumber: number;
   markdown: string;
@@ -3217,7 +3228,7 @@ function pageMarkdownToolResult(value: unknown): {
   };
 }
 
-function frontmatterValue(value: unknown): string {
+export function frontmatterValue(value: unknown): string {
   if (value === null || typeof value === "string" || typeof value === "boolean") {
     return JSON.stringify(value);
   }
@@ -3349,7 +3360,7 @@ function extractFinishReason(responseJson: unknown): string | null {
   return typeof reason === "string" ? reason : null;
 }
 
-function missingToolCallErrorMessage(input: {
+export function missingToolCallErrorMessage(input: {
   responseJson: unknown;
   toolName: string;
   maxTokens: number;
@@ -3482,7 +3493,7 @@ function isPlausibleJsonLine(line: string): boolean {
   return /^(?:-?\d+(?:\.\d+)?|true|false|null),?$/.test(line);
 }
 
-async function readJsonArtifact(path: string): Promise<{
+export async function readJsonArtifact(path: string): Promise<{
   exists: boolean;
   parsed: unknown | null;
   parseError: boolean;
@@ -3522,7 +3533,7 @@ type OcrAnnotationRecord = Record<string, unknown> & {
   type?: unknown;
 };
 
-type OcrEvidenceCandidateDraft = DocumentEvidenceCandidateDraft;
+export type OcrEvidenceCandidateDraft = DocumentEvidenceCandidateDraft;
 
 function shouldDisableReasoningForRequiredToolCalls(model: string): boolean {
   return model.toLowerCase().startsWith("qwen/qwen3.7");
@@ -3536,7 +3547,7 @@ function supportsRenderedImageOcrInput(model: string): boolean {
   return !model.toLowerCase().startsWith("qwen/qwen3.7-max");
 }
 
-function ocrEvidenceCandidateDrafts(value: unknown): OcrEvidenceCandidateDraft[] {
+export function ocrEvidenceCandidateDrafts(value: unknown): OcrEvidenceCandidateDraft[] {
   if (!Array.isArray(value)) {
     return [];
   }
@@ -3579,7 +3590,7 @@ function annotationTextIsWrapper(text: string): boolean {
   return trimmed.startsWith("<file ") || trimmed === "</file>";
 }
 
-function annotationTextBlocks(annotations: unknown): string[] {
+export function annotationTextBlocks(annotations: unknown): string[] {
   const blocks: string[] = [];
   const seen = new Set<unknown>();
 
@@ -3879,7 +3890,7 @@ function servedServiceTier(body: unknown): string | null {
     : null;
 }
 
-function pageMarkdownOutputPaths(pageRoot: string): {
+export function pageMarkdownOutputPaths(pageRoot: string): {
   responsePath: string;
   toolCallPath: string;
   markdownPath: string;
@@ -4432,21 +4443,21 @@ const OCR_PAGE_AUDIT_ISSUE_CODES = [
   "ocr_error",
 ] as const satisfies readonly Tier2OcrPageMarkdownAuditIssueCode[];
 
-function emptyPageAuditIssueCounts(): Record<Tier2OcrPageMarkdownAuditIssueCode, number> {
+export function emptyPageAuditIssueCounts(): Record<Tier2OcrPageMarkdownAuditIssueCode, number> {
   return Object.fromEntries(OCR_PAGE_AUDIT_ISSUE_CODES.map((code) => [code, 0])) as Record<
     Tier2OcrPageMarkdownAuditIssueCode,
     number
   >;
 }
 
-function addPageAuditIssue(
+export function addPageAuditIssue(
   counts: Record<Tier2OcrPageMarkdownAuditIssueCode, number>,
   code: Tier2OcrPageMarkdownAuditIssueCode,
 ): void {
   counts[code] += 1;
 }
 
-function markdownBody(markdown: string): string {
+export function markdownBody(markdown: string): string {
   return markdown.replace(/^---\n[\s\S]*?\n---\n?/, "").trim();
 }
 
@@ -6981,7 +6992,7 @@ export async function recaptureFailedSourcesFromCli(
   });
 }
 
-function parseSourceIds(value: string | undefined): string[] | undefined {
+export function parseSourceIds(value: string | undefined): string[] | undefined {
   if (value === undefined) return undefined;
   const sourceIds = value
     .split(",")
@@ -10701,7 +10712,7 @@ export async function buildTier2DuplicateDecisionTemplate(
   return template;
 }
 
-function duplicateDecisionIsComplete(item: Tier2DuplicateDecisionItem): boolean {
+export function duplicateDecisionIsComplete(item: Tier2DuplicateDecisionItem): boolean {
   if (item.currentDecision === "needs_human_review") {
     return false;
   }
