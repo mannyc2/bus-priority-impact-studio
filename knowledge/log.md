@@ -2,6 +2,209 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-05-31] architecture | Codemode sandbox moved to Bun/TypeScript
+
+Accepted `docs/decisions/0013-bun-typescript-codemode-sandbox.md`, superseding the
+Python-only codemode ADR for new work. The active harness tools are now `ts_exec`
+and `bash_exec`; `code_execution` refs accept TypeScript or deterministic bash;
+the sandbox image carries Bun, `rg`, and `jq` instead of Python/pandas/duckdb; and
+the runtime bind-mounts `packages/analytics` plus `packages/domain` read-only so
+agent-authored computations use the same deterministic kernel as detector code.
+
+Pioneer/GPT-5.5 is now the default findings codemode provider/model path, configured
+by `PIONEER_API_KEY` and `PIONEER_BASE_URL`. The LLM remains an author/prototyper,
+not a detector of record: validation re-runs cited TypeScript in a clean sandbox,
+and analytics package code remains free of prompt, model, sandbox, filesystem, and
+agent-loop dependencies.
+
+## [2026-05-31] analysis | Ideal detector doctrine audit
+
+Audited and revised [[wiki/analysis/ideal_detector_system|Ideal Detector System]] against the
+2026-05-30 analytics refactor and ADR 0012. The page now treats `ANALYTICS_DETECTOR_REGISTRY` as
+the governing detector object, updates current reality from the stale 8-detector March pass to the
+18 registered-detector kernel, and adds explicit critique of the old doctrine: it underweighted
+registry lifecycle, claim-tier gates, feature-grain silence, detector retirement, and the
+LLM-as-author-but-not-detector boundary.
+
+The revised doctrine now distinguishes `FindingDetectorSpec.allowedClaimStrength` from registry
+`claimTier`, updates detector-family status for reliability, schedule, speed/pace, trends,
+positive deviance, intervention event panels, and context association, and replaces the old
+"first detector maturity slices" backlog with next steps for registry-first runs, fleet-scale
+feature materialization coverage, calibration persistence, promotion/demotion hardening,
+agent-assisted detector candidates, and evaluation against findings mode.
+
+## [2026-05-31] pipeline | Finish incomplete analytics data runner
+
+Started `data/ops/backfills/finish-incomplete-data-20260531T030000Z/run.sh` in the
+`finish-incomplete-data` tmux session. The runner is resumable enough for the current gaps: it
+fills the missing May 2025 hourly-ridership month, reruns route intervention comparisons for
+2023-04 through 2026-03 using the March 2026 route universe/treatment inventory, builds
+GTFS-backed stop-direction-hour EWT artifacts for all eligible March and May observed-headway
+routes, resumes the 2025/2024/2023 Socrata route-schedule source staging, and finishes by
+refreshing route-schedule, historical backfill, materialization, and corpus-profile audits.
+
+`route intervention-evaluation` now accepts `--route-universe-year` and
+`--route-universe-month`, so historical analysis months can use a known complete route/treatment
+inventory while evaluating against each month's historical speed and ridership trend rows. This
+prevents zero-row historical intervention months caused only by release-snapshot route metadata
+being present for March 2026.
+
+## [2026-05-31] planning | Re-audited ADR 0012 after the analytics refactor
+
+Rewrote `docs/decisions/0012-agent-authored-detectors.md` as a registry-first,
+agent-assisted detector-authoring plan. The old 0012 draft assumed 8 hand-authored
+detectors, scattered detector logic, detached detector specs, no claim-tier metadata,
+and a proposed `submit_detector -> {score, flagged, evidence}` shape. The current
+analytics kernel has 18 registered detectors, a uniform `AnalyticsDetector<TInput>`
+contract, generated detector-spec projections, registry metadata, calibration helpers,
+and reviewer/retirement primitives.
+
+The revised plan makes `ANALYTICS_DETECTOR_REGISTRY` canonical and treats Ralph/LLM
+work as detector candidate authoring, not detector-of-record execution. Agents may
+prototype procedures, draft specs, or open normal TypeScript patches; accepted detector
+versions still require pure analytics code, tests, deterministic admission packets,
+backtests, review outcomes, and human review. This explicitly reconciles 0012 with
+`ideal_detector_system.md`: the LLM may author a frozen procedure, but the harness
+computes metric values and review gates decide publication.
+
+The new gates are A0-A8: boundary, contract, determinism/scope, non-degeneracy,
+novelty for new detectors, claim-tier/promotion, evidence packet, domination for
+improved versions, and lifecycle. Existing helpers are reused (`summarizeScoreVector`,
+`flaggedSet`, `jaccardOverlap`, `evaluateGoldSet`, `evaluateRangePrecisionRecall`,
+`summarizeReviewerDecisions`, `summarizeDetectorReviewCycle`,
+`summarizeFalsePositiveRootCauses`, `recommendDetectorRetirement`,
+`summarizeInterventionGates`). Real gaps are called out: Spearman/rank correlation,
+score-vector spread statistics, pipeline-owned detector candidate capsules, admission
+packet persistence, and backtested domination policy.
+
+`docs/decisions/0011-deep-novel-findings-mode.md` also has a short post-refactor note:
+its mechanics are unchanged, but registry feature grains sharpen the non-restatement
+gate, and 0011's Ralph loop is the substrate that detector mode forks. Nothing built
+yet; both ADRs remain Proposed.
+
+## [2026-05-31] pipeline | GTFS static all-stop schedule staging
+
+Added `ingest gtfs-static`, which parses the six downloaded bus GTFS static ZIPs into local
+all-stop schedule tables: routes, trips, stops, calendars, calendar exceptions, and stop_times.
+The staged run `20260531T010822Z` loaded 6 bundles, 386 GTFS routes, 13,478 stops, 184,044 trips,
+104 services, and 5,946,147 stop_time rows.
+
+Added `audit route-schedule-progress` so schedule backfills are inspectable without hand-written
+SQL. The audit now reports that the Socrata 2026 schedule layer has 20,351,999 rows across 375
+routes and is entirely timepoint-grain, while the GTFS static layer is the all-stop schedule source
+for detector-grade EWT baselines.
+
+The stop-direction-hour EWT artifact builder now has a source selector: `gtfs_static`,
+`socrata_route_schedule`, `route_schedule_timepoint`, or `auto`. It prefers GTFS static when
+available, falls back through the staged Socrata schedule layer and legacy route-slice timepoints,
+and labels the selected source in every artifact. A real M15 May 2026 artifact using GTFS static
+produced 440,022 scheduled stop arrivals, 8,727 schedule baseline cells, and 4,279 observed feature
+rows at
+`data/artifacts/analytics-stop-direction-hour-ewt/2026-05/bus-observatory-2026-05/m15/stop-direction-hour-ewt-features.json`.
+
+Also repaired the noisy pipeline command discovery warnings by restoring the expected findings
+exports and adding the missing `agentBriefProposalsDir` path helper.
+
+Verification: focused GTFS static ingest, route-schedule audit, route-schedule ingest, and
+stop-direction-hour EWT tests pass. Pipeline CLI help now loads without command-discovery skip
+warnings. Full pipeline typecheck remains blocked by existing domain/studio export drift and the
+pre-existing Ralph `ralphDir` tool-loop type mismatch.
+
+## [2026-05-31] planning | Drizzle 1.0 RC modernization plan
+
+Added [[wiki/engineering/drizzle_query_modernization_plan|Drizzle Query Modernization Plan]] after
+auditing the current raw-SQL clusters and checking current Drizzle registry tags. The plan now
+targets an intentional Drizzle 1.0 RC upgrade, removes `drizzle-zod` in favor of
+`drizzle-orm/zod`, gates the migration-folder conversion on Wrangler D1 compatibility, mirrors
+newer D1 write-side tables into `packages/db/src/d1/schema.ts`, and defines how the repo should use
+core query builders, future RQB v2 relations, generated row validation, local repositories, and
+raw-SQL exceptions.
+
+## [2026-05-31] analytics | 36-month ABST baseline surface
+
+Added the official MTA Bus Customer Journey-Focused Metrics source (`8mkn-d32t`) as the compact
+route-month ABST baseline surface. ABST is schedule-relative and EWT-like, but it is an official
+derived aggregate rather than a first-principles GTFS schedule feature. The new ingest command is
+`tools/pipeline-v2/src/commands/ingest/bus-customer-journey-metrics.ts`; it stages
+`local_bus_customer_journey_metric` and pulled 2023-04..2026-03 into the local corpus: 24,344 rows,
+36 months, 356 routes.
+
+The EWT score-vector builder now joins `local_route_observed_reliability_summary` to
+`local_bus_customer_journey_metric` and prefers the customer-weighted
+`additional_bus_stop_time` value as `mta_abst_customer_journey_metric`, with observed-regularity
+excess wait retained only as fallback. It does not replace raw schedule-derived features for
+stop-direction-hour EWT, schedule mismatch, headway regularity, or detector audit packets.
+Regenerated March 2026 artifact:
+11,937 usable route-month rows, 11,591 baseline rows, 346 release routes, 20 release flags, and
+score-basis counts of 11,737 ABST rows plus 200 observed fallback rows.
+
+Verification: focused analytics/pipeline tests pass for the pure artifact builder, SQLite-backed
+artifact command, and customer-journey ingest command.
+
+## [2026-05-31] analytics | Raw stop-hour EWT feature path
+
+Added the first raw schedule-derived feature path for detector-grade EWT. The pure materializer
+builds stop-direction-hour feature rows from raw `local_route_schedule_timepoint` arrivals plus
+`local_observed_headway_sample`; the pipeline command is
+`tools/pipeline-v2/src/commands/build/stop-direction-hour-ewt-features.ts`.
+
+The feature builder computes scheduled buses/hour and scheduled headway baselines from schedule
+timepoints, joins observed headways by route/direction/stop/day type/hour, and emits audit rows
+with typed missing-data states such as `baseline_unavailable`, `insufficient_headways`, and
+`low_coverage`. Historical artifacts default to `month_day_type_hour` aggregation; daily/live audit
+runs can use `service_date_hour`.
+
+Materialized a March 2026 M15 artifact from `bus-observatory-2026-03` at
+`data/artifacts/analytics-stop-direction-hour-ewt/2026-03/bus-observatory-2026-03/m15/stop-direction-hour-ewt-features.json`.
+That route slice produced 76,369 schedule timepoints, 10,738 observed headway samples, 1,753
+schedule baselines, 3,657 feature rows, and explicit missing-data/audit rows. The low ready-cell
+count is expected with the current timepoint-only schedule slice and confirms this does not replace
+the broader raw schedule corpus.
+
+Verification: focused feature-builder and SQLite-backed artifact tests pass.
+
+## [2026-05-31] pipeline | Incomplete schedule corpus backfill started
+
+Added `ingest route-schedules` as a resumable route-by-route Socrata schedule staging command for
+the 2023-2026 MTA Bus Schedules sources. The command writes `local_route_schedule_stop` keyed by
+source year and route, skips already staged routes by default, and keeps this high-volume IO inside
+`tools/pipeline-v2` rather than `packages/analytics`.
+
+Smoke-ingested 2026 M15: 167,005 rows fetched and 166,693 rows written. The smoke also confirmed
+an important source limitation: the Socrata schedule source still appears to be timepoint-grain for
+that route (25 distinct stops, all staged rows marked timepoint), so it is useful historical
+schedule context but not a substitute for all-stop GTFS `stop_times`.
+
+Started the background backfill runner at
+`data/ops/backfills/incomplete-corpus-20260531T010822Z/run.sh`. It downloads the six current bus
+GTFS static ZIPs, reruns the corrected intervention-comparison range for 2023-04..2026-03, and
+then stages the 2026, 2025, 2024, and 2023 Socrata schedule sources with route-level resume/skip
+semantics.
+
+Verification: route-schedule ingest, raw stop-hour EWT feature, and SQLite-backed feature command
+tests pass; the background runner passed shell syntax validation and is logging to
+`data/ops/backfills/incomplete-corpus-20260531T010822Z/backfill.log`.
+
+## [2026-05-30] analytics | EWT route-month score-vector artifact path
+
+Started the first data-driven EWT calibration artifact path. The pure score-vector builder lives in
+`packages/analytics/src/calibration/ewt-route-month-score-vectors.ts`; the pipeline IO wrapper is
+`tools/pipeline-v2/src/commands/build/ewt-score-vectors.ts`; and the generated March 2026 artifact
+is written to
+`data/artifacts/analytics-ewt-score-vectors/2023-04_to_2026-03/2026-03/ewt-route-month-score-vectors.json`.
+
+The run exposed an important corpus distinction: historical observed reliability summaries have
+AWT and average observed headway for 36 months, but schedule-based EWT is only populated for the
+release month because historical scheduled expected wait is not yet backfilled. The score-vector
+therefore uses observed-regularity excess wait (`AWT - mean_observed_headway / 2`) for calibration
+and preserves schedule-based EWT where present as evidence. March 2026 output: 13,716 raw rows,
+11,937 usable route-month rows, 11,591 pre-release baseline rows, 35 baseline months, 346 release
+routes, and 29 release routes above the fleet P90 cutoff.
+
+Verification: the fixture tests for the pure analytics builder and SQLite-backed pipeline command
+pass. Full package typecheck remains blocked by existing domain/studio export drift unrelated to
+this artifact path.
+
 ## [2026-05-30] pipeline | codemode findings agent: Python sandbox + code_execution evidence refs
 
 `findings:agent-propose` gains an opt-in codemode (`--enable-codemode true`) that hands the
@@ -989,8 +1192,8 @@ Follow-up slice: added `serve:web-smoke`, a local production-build smoke server 
 `/api/v1/studio/*` URLs used by route loaders. `check:web-performance` now enforces Lighthouse
 thresholds when `BP_RUN_LIGHTHOUSE=1`: desktop performance 0.95+, accessibility 0.95+, best
 practices 0.95+, and SEO 1.00 across the 12-route public matrix. The first real run used Playwright
-Chromium at `/home/cjpher/.cache/ms-playwright/chromium-1223/chrome-linux64/chrome` and passed, with
-SEO 1.00 on every route. Added `robots.txt`, `llms.txt`, and `sitemap.xml`, fixed the canonical
+Chromium from the local browser cache and passed, with SEO 1.00 on every route. Added `robots.txt`,
+`llms.txt`, and `sitemap.xml`, fixed the canonical
 finding-detail route to `/findings/m15-full-treatment-still-declining`, and darkened shared muted,
 warning, success, and Bronx route colors to satisfy Lighthouse contrast checks.
 
@@ -1655,3 +1858,19 @@ The intended dogfood path is agent-first: an external coding agent discovers
 `/.well-known/bp-agent.json`, reads OpenAPI contracts, checks route/finding context, validates one
 `ContributorIssue` packet, and submits with an idempotency key. Public leaderboard pages are D1
 snapshot projections over verified score ledger events, not raw report counts.
+
+## [2026-05-31] engineering | Route-level materialization coverage audit
+
+Added `audit analytics-materialization-coverage` to separate source/staging coverage from actual
+derived route artifact coverage. The audit checks the route catalog against concrete month/run
+outputs including stop-direction-hour EWT feature artifacts, route-slice inputs, generated route
+briefs, EWT route-month score vectors, route summary/scorecard tables, segment speeds, hourly
+ridership, and observed reliability summaries.
+
+The first May 2026 run makes the current gap explicit: GTFS static and observed headway support
+make 346 routes eligible for detector-grade stop-direction-hour EWT, but only one route artifact
+exists so far. The March 2026 run shows a different picture: route-slice inputs, route brief
+summary rows, and scorecards cover all 381 catalog routes, while generated briefs, EWT score
+vectors, speed, ridership, observed reliability, and stop-direction-hour EWT artifacts still have
+route-level gaps. This audit is now the place to catch "we generated a few examples but not the
+fleet" before treating a surface as complete.

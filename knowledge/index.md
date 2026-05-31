@@ -27,7 +27,8 @@ Read this file first. It is the navigation layer for the LLM wiki.
 
 ADRs live in `docs/decisions/` (not under `knowledge/wiki/`). Notable: 0007
 adopts spatialite as a loadable SQLite extension in the local pipeline only,
-for route ⇄ LION corridor joins.
+for route ⇄ LION corridor joins; 0012 defines the registry-first,
+agent-assisted detector authoring plan after the analytics refactor.
 
 ## Project pages
 
@@ -53,7 +54,7 @@ for route ⇄ LION corridor joins.
 - [[wiki/data/nyc_dot_bus_lanes|NYC DOT bus lanes]] — Street-level bus-lane presence.
 - [[wiki/data/service_alerts_and_planned_changes|Service alerts and planned changes]] — Disruption/context filters.
 - [[wiki/data/policy_docs_corpus|Policy/docs corpus]] — Board materials, open-data plans, press releases, MTA blog posts, and LLM-assisted candidate extraction.
-- [[wiki/data/agent_corpus_map|Agent corpus map]] — Codemode sandbox layout and the `bp_corpus` Python API loaded into the findings-agent system prompt.
+- [[wiki/data/agent_corpus_map|Agent corpus map]] — Codemode sandbox layout for `ts_exec`/`bash_exec`, read-only analytics access, and deterministic `code_execution` evidence.
 
 ## Engineering pages
 
@@ -61,6 +62,7 @@ for route ⇄ LION corridor joins.
 - [[wiki/engineering/data_model|Data model]] — D1/SQLite serving model, Drizzle schema split, JSON cleanup plan, local artifacts, and migration path to Postgres/Hyperdrive.
 - [[wiki/engineering/etl_plan|ETL plan]] — Ingestion order, Drizzle/D1 migration workflow, local backfill rules, transformation rules, and QA.
 - [[wiki/engineering/local_pipeline_db_cutover|Local pipeline DB cutover plan]] — Plan to replace DB-shaped JSON handoffs with `@bp/db/local` SQLite/Drizzle tables and shrink `tools/pipeline`.
+- [[wiki/engineering/drizzle_query_modernization_plan|Drizzle query modernization plan]] — Drizzle 1.0 RC upgrade path, `drizzle-orm/zod` validation policy, table/query/relation rules, and raw-SQL exception boundaries.
 - [[wiki/engineering/data_pipeline_v1_completion_plan|Data Pipeline v1 completion plan]] — Approved v1 finish line for GTFS-RT reliability, intervention evaluation, corridors, briefs, exports, and QA gates.
 - [[wiki/engineering/data_infrastructure_v1_finish_plan|Data Infrastructure v1 finish plan]] — Remaining recovered GTFS-RT integration, D1/R2 publish, scheduling, and website unfixture gates.
 - [[wiki/engineering/data_pipeline_finish_plan_v2|Data Pipeline Finish Plan v2]] — Current plan for source coverage, historical corpus completion, context features, manual PC rebuilds, and lightweight Worker refresh operations.
@@ -92,7 +94,7 @@ for route ⇄ LION corridor joins.
 - [[wiki/analysis/memo_generation|Memo generation]] — Route-improvement brief format.
 - [[wiki/analysis/methodology_validation|Methodology validation]] — Code-level audit of analysis correctness, limitations, and gaps.
 - [[wiki/analysis/finding_coverage_and_corpus_expansion|Finding coverage and corpus expansion]] — Post-v1 plan for missed-finding risk, detector coverage, source-gap findings, and data-corpus expansion.
-- [[wiki/analysis/ideal_detector_system|Ideal detector system]] — North-star doctrine for detector questions, evidence packets, confidence, promotion, backtesting, and the difference between practical ideal and impossible perfect detectors.
+- [[wiki/analysis/ideal_detector_system|Ideal detector system]] — Registry-first detector doctrine for questions, evidence packets, claim tiers, promotion, calibration, LLM boundaries, and practical limits.
 
 ## Templates
 
