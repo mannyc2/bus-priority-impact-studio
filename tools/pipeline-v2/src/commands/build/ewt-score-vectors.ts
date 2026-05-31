@@ -1,0 +1,315 @@
+import type { Database } from "bun:sqlite";
+import { Database as BunDatabase } from "bun:sqlite";
+import { mkdir } from "node:fs/promises";
+import { dirname, isAbsolute, join, relative } from "node:path";
+import {
+  buildEwtRouteMonthScoreVectorArtifact,
+  type EwtRouteMonthReliabilityRow,
+  type EwtRouteMonthScoreVectorArtifact,
+} from "@bp/analytics";
+import { arg, defineCommand, z } from "@liche/core";
+import { isoMonth } from "../../lib/dates.ts";
+import { writeJson } from "../../lib/json.ts";
+import { dbOptions, defaultLocalPipelineDbPath } from "../../lib/local-db.ts";
+import { defaultArtifactRootPath, fromCliPath, repoRoot } from "../../lib/paths.ts";
+
+type RawEwtRow = {
+  route_id: unknown;
+  month: unknown;
+  run_id: unknown;
+  reliability_status: unknown;
+  sample_count: unknown;
+  stop_count: unknown;
+  direction_count: unknown;
+  average_observed_headway_minutes: unknown;
+  expected_wait_minutes: unknown;
+  scheduled_expected_wait_minutes: unknown;
+  excess_wait_minutes: unknown;
+  wait_reliability_ratio: unknown;
+};
+
+type CustomerJourneyAbstRow = {
+  route_id: unknown;
+  month: unknown;
+  mta_abst_minutes: unknown;
+};
+
+function repoDisplayPath(path: string): string {
+  if (!isAbsolute(path)) return path;
+  const relativePath = relative(repoRoot, path);
+  return relativePath.startsWith("..") ? path : relativePath;
+}
+
+function textValue(value: unknown): string | null {
+  return typeof value === "string" && value.length > 0 ? value : null;
+}
+
+function numberValue(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "bigint") return Number(value);
+  if (typeof value === "string" && value.length > 0) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return null;
+}
+
+export function parseEwtRouteMonthRows(rows: readonly RawEwtRow[]): EwtRouteMonthReliabilityRow[] {
+  return rows.flatMap((row) => {
+    const routeId = textValue(row.route_id);
+    const month = textValue(row.month);
+    const runId = textValue(row.run_id);
+    const reliabilityStatus = textValue(row.reliability_status);
+    const sampleCount = numberValue(row.sample_count);
+    const stopCount = numberValue(row.stop_count);
+    const directionCount = numberValue(row.direction_count);
+    if (
+      routeId === null ||
+      month === null ||
+      runId === null ||
+      reliabilityStatus === null ||
+      sampleCount === null ||
+      stopCount === null ||
+      directionCount === null
+    ) {
+      return [];
+    }
+    return [
+      {
+        routeId,
+        month,
+        runId,
+        reliabilityStatus,
+        sampleCount,
+        stopCount,
+        directionCount,
+        averageObservedHeadwayMinutes: numberValue(row.average_observed_headway_minutes),
+        expectedWaitMinutes: numberValue(row.expected_wait_minutes),
+        scheduledExpectedWaitMinutes: numberValue(row.scheduled_expected_wait_minutes),
+        excessWaitMinutes: numberValue(row.excess_wait_minutes),
+        mtaAbstMinutes: null,
+        waitReliabilityRatio: numberValue(row.wait_reliability_ratio),
+      },
+    ];
+  });
+}
+
+function routeMonthKey(routeId: string, month: string): string {
+  return `${routeId}\0${month}`;
+}
+
+function hasTable(sqlite: Database, tableName: string): boolean {
+  const row = sqlite
+    .query("SELECT 1 AS found FROM sqlite_master WHERE type = 'table' AND name = ? LIMIT 1")
+    .get(tableName) as { found?: unknown } | null;
+  return row !== null;
+}
+
+export function queryCustomerJourneyAbst(
+  sqlite: Database,
+  startMonth: string,
+  endMonth: string,
+): Map<string, number> {
+  if (!hasTable(sqlite, "local_bus_customer_journey_metric")) {
+    return new Map();
+  }
+  const rows = sqlite
+    .query(
+      `
+        SELECT
+          route_id,
+          month,
+          SUM(customers * additional_bus_stop_time_minutes) / SUM(customers)
+            AS mta_abst_minutes
+        FROM local_bus_customer_journey_metric
+        WHERE month >= ?
+          AND month <= ?
+          AND customers > 0
+          AND additional_bus_stop_time_minutes IS NOT NULL
+        GROUP BY month, route_id
+        ORDER BY month, route_id
+      `,
+    )
+    .all(startMonth, endMonth) as CustomerJourneyAbstRow[];
+  const output = new Map<string, number>();
+  for (const row of rows) {
+    const routeId = textValue(row.route_id);
+    const month = textValue(row.month);
+    const value = numberValue(row.mta_abst_minutes);
+    if (routeId !== null && month !== null && value !== null) {
+      output.set(routeMonthKey(routeId, month), value);
+    }
+  }
+  return output;
+}
+
+export function queryEwtRouteMonthRows(
+  sqlite: Database,
+  startMonth: string,
+  endMonth: string,
+): EwtRouteMonthReliabilityRow[] {
+  const mtaAbstByRouteMonth = queryCustomerJourneyAbst(sqlite, startMonth, endMonth);
+  const rows = sqlite
+    .query(
+      `
+        SELECT
+          route_id,
+          month,
+          run_id,
+          reliability_status,
+          sample_count,
+          stop_count,
+          direction_count,
+          average_observed_headway_minutes,
+          expected_wait_minutes,
+          scheduled_expected_wait_minutes,
+          excess_wait_minutes,
+          wait_reliability_ratio
+        FROM local_route_observed_reliability_summary
+        WHERE month >= ? AND month <= ?
+        ORDER BY month, route_id, run_id
+      `,
+    )
+    .all(startMonth, endMonth) as RawEwtRow[];
+  return parseEwtRouteMonthRows(rows).map((row) => ({
+    ...row,
+    mtaAbstMinutes: mtaAbstByRouteMonth.get(routeMonthKey(row.routeId, row.month)) ?? null,
+  }));
+}
+
+export function buildEwtRouteMonthScoreVectorArtifactFromDb(input: {
+  sqlite: Database;
+  startMonth: string;
+  endMonth: string;
+  releaseMonth: string;
+  generatedAt: string;
+  dbPath: string | null;
+  artifactPath: string;
+  minSampleCount: number;
+  fleetFlagQuantile: number;
+}): EwtRouteMonthScoreVectorArtifact {
+  const rows = queryEwtRouteMonthRows(input.sqlite, input.startMonth, input.endMonth);
+  return buildEwtRouteMonthScoreVectorArtifact({
+    rows,
+    startMonth: input.startMonth,
+    endMonth: input.endMonth,
+    releaseMonth: input.releaseMonth,
+    generatedAt: input.generatedAt,
+    dbPath: input.dbPath,
+    artifactPath: input.artifactPath,
+    minSampleCount: input.minSampleCount,
+    fleetFlagQuantile: input.fleetFlagQuantile,
+  });
+}
+
+export function ewtScoreVectorArtifactPath(
+  artifactRoot: string,
+  startMonth: string,
+  endMonth: string,
+  releaseMonth: string,
+): string {
+  return join(
+    artifactRoot,
+    "analytics-ewt-score-vectors",
+    `${startMonth}_to_${endMonth}`,
+    releaseMonth,
+    "ewt-route-month-score-vectors.json",
+  );
+}
+
+export default defineCommand({
+  path: ["build", "ewt-score-vectors"],
+  summary: "Build route-month EWT baseline and score-vector calibration artifacts.",
+  input: {
+    options: dbOptions.extend({
+      startYear: arg.positiveInt().default(2023).describe("Start year"),
+      startMonth: arg.positiveInt().default(4).describe("Start month, 1-12"),
+      endYear: arg.positiveInt().default(2026).describe("End year"),
+      endMonth: arg.positiveInt().default(3).describe("End month, 1-12"),
+      releaseYear: arg.positiveInt().default(2026).describe("Release year for release vector"),
+      releaseMonth: arg.positiveInt().default(3).describe("Release month for release vector, 1-12"),
+      minSampleCount: arg
+        .positiveInt()
+        .default(30)
+        .describe("Minimum observed headway samples for a route-month row to enter scoring"),
+      fleetFlagQuantile: z
+        .number()
+        .min(0)
+        .max(1)
+        .default(0.9)
+        .describe("Fleet historical quantile used for calibration flags"),
+      artifactRoot: z.string().optional().describe("Override artifact root directory"),
+      output: z.string().optional().describe("Override output path for EWT score-vector JSON"),
+    }),
+  },
+  output: z.object({
+    startMonth: z.string(),
+    endMonth: z.string(),
+    releaseMonth: z.string(),
+    outputPath: z.string(),
+    rawRowCount: z.number().int().nonnegative(),
+    usableRowCount: z.number().int().nonnegative(),
+    baselineUsableRowCount: z.number().int().nonnegative(),
+    excludedRowCount: z.number().int().nonnegative(),
+    routeCount: z.number().int().nonnegative(),
+    usableMonthCount: z.number().int().nonnegative(),
+    baselineMonthCount: z.number().int().nonnegative(),
+    releaseUsableRouteCount: z.number().int().nonnegative(),
+    releaseFlaggedRouteCount: z.number().int().nonnegative(),
+    scoreBasisCounts: z.record(z.string(), z.number().int().nonnegative()),
+  }),
+  async run({ input }) {
+    const startMonth = isoMonth(input.options.startYear, input.options.startMonth);
+    const endMonth = isoMonth(input.options.endYear, input.options.endMonth);
+    const releaseMonth = isoMonth(input.options.releaseYear, input.options.releaseMonth);
+    const artifactRoot =
+      input.options.artifactRoot === undefined
+        ? defaultArtifactRootPath()
+        : fromCliPath(input.options.artifactRoot);
+    const outputPath =
+      input.options.output === undefined
+        ? ewtScoreVectorArtifactPath(artifactRoot, startMonth, endMonth, releaseMonth)
+        : fromCliPath(input.options.output);
+    const dbPath =
+      input.options.db === undefined ? defaultLocalPipelineDbPath() : fromCliPath(input.options.db);
+    const sqlite = new BunDatabase(dbPath, { readonly: true });
+    sqlite.exec("PRAGMA busy_timeout = 5000");
+
+    let artifact: EwtRouteMonthScoreVectorArtifact;
+    try {
+      artifact = buildEwtRouteMonthScoreVectorArtifactFromDb({
+        sqlite,
+        startMonth,
+        endMonth,
+        releaseMonth,
+        generatedAt: new Date().toISOString(),
+        dbPath: repoDisplayPath(dbPath),
+        artifactPath: repoDisplayPath(outputPath),
+        minSampleCount: input.options.minSampleCount,
+        fleetFlagQuantile: input.options.fleetFlagQuantile,
+      });
+    } finally {
+      sqlite.close();
+    }
+
+    await mkdir(dirname(outputPath), { recursive: true });
+    await writeJson(outputPath, artifact);
+
+    return {
+      startMonth,
+      endMonth,
+      releaseMonth,
+      outputPath: repoDisplayPath(outputPath),
+      rawRowCount: artifact.summary.rawRowCount,
+      usableRowCount: artifact.summary.usableRowCount,
+      baselineUsableRowCount: artifact.summary.baselineUsableRowCount,
+      excludedRowCount: artifact.summary.excludedRowCount,
+      routeCount: artifact.summary.routeCount,
+      usableMonthCount: artifact.summary.usableMonthCount,
+      baselineMonthCount: artifact.summary.baselineMonthCount,
+      releaseUsableRouteCount: artifact.summary.releaseUsableRouteCount,
+      releaseFlaggedRouteCount: artifact.summary.releaseFlaggedRouteCount,
+      scoreBasisCounts: artifact.summary.scoreBasisCounts,
+    };
+  },
+});
