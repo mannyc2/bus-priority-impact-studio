@@ -156,6 +156,42 @@ sources:
     purpose: Scheduled timepoint rows for planned travel times and schedule-adherence context.
     status: active
 
+  - id: bus_schedules_2025
+    type: socrata_dataset
+    priority: core
+    domain: data.ny.gov
+    dataset_id: t4bz-xqa9
+    url: https://data.ny.gov/Transportation/MTA-Bus-Schedules-2025/t4bz-xqa9
+    api_json: https://data.ny.gov/resource/t4bz-xqa9.json
+    columns_json: https://data.ny.gov/api/views/t4bz-xqa9/columns.json
+    rows_csv: https://data.ny.gov/api/views/t4bz-xqa9/rows.csv?accessType=DOWNLOAD
+    purpose: Historical full scheduled bus stop rows for 2025 raw schedule-derived EWT and schedule-mismatch features.
+    status: active
+
+  - id: bus_schedules_2024
+    type: socrata_dataset
+    priority: core
+    domain: data.ny.gov
+    dataset_id: udt9-hvjq
+    url: https://data.ny.gov/Transportation/MTA-Bus-Schedules-2024/udt9-hvjq
+    api_json: https://data.ny.gov/resource/udt9-hvjq.json
+    columns_json: https://data.ny.gov/api/views/udt9-hvjq/columns.json
+    rows_csv: https://data.ny.gov/api/views/udt9-hvjq/rows.csv?accessType=DOWNLOAD
+    purpose: Historical full scheduled bus stop rows for 2024 raw schedule-derived EWT and schedule-mismatch features.
+    status: active
+
+  - id: bus_schedules_2023
+    type: socrata_dataset
+    priority: core
+    domain: data.ny.gov
+    dataset_id: x5mx-4rfs
+    url: https://data.ny.gov/Transportation/MTA-Bus-Schedules-2023/x5mx-4rfs
+    api_json: https://data.ny.gov/resource/x5mx-4rfs.json
+    columns_json: https://data.ny.gov/api/views/x5mx-4rfs/columns.json
+    rows_csv: https://data.ny.gov/api/views/x5mx-4rfs/rows.csv?accessType=DOWNLOAD
+    purpose: Historical full scheduled bus stop rows for 2023 raw schedule-derived EWT and schedule-mismatch features.
+    status: active
+
   - id: ace_routes
     type: socrata_dataset
     priority: core
@@ -310,6 +346,18 @@ sources:
     columns_json: https://data.ny.gov/api/views/v4z4-2h6n/columns.json
     rows_csv: https://data.ny.gov/api/views/v4z4-2h6n/rows.csv?accessType=DOWNLOAD
     purpose: Official MTA monthly route-level wait assessment to cross-check GTFS-RT-derived reliability.
+    status: active
+
+  - id: bus_customer_journey_metrics
+    type: socrata_dataset
+    priority: secondary
+    domain: data.ny.gov
+    dataset_id: 8mkn-d32t
+    url: https://data.ny.gov/Transportation/MTA-Bus-Customer-Journey-Focused-Metrics-Beginning/8mkn-d32t
+    api_json: https://data.ny.gov/resource/8mkn-d32t.json
+    columns_json: https://data.ny.gov/api/views/8mkn-d32t/columns.json
+    rows_csv: https://data.ny.gov/api/views/8mkn-d32t/rows.csv?accessType=DOWNLOAD
+    purpose: Official MTA monthly route-level customer journey metrics; Additional Bus Stop Time (ABST) is the compact schedule-relative wait aggregate used for 36-month route-month EWT baseline priors.
     status: active
 
   - id: nyc_dot_traffic_speeds

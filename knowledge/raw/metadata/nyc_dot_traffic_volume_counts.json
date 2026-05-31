@@ -1,0 +1,2658 @@
+{
+  "schemaVersion": 1,
+  "sourceId": "nyc_dot_traffic_volume_counts",
+  "sourceType": "socrata_dataset",
+  "sourcePriority": "secondary",
+  "manifestStatus": "active",
+  "checkedAt": "2026-05-25T21:34:07.902Z",
+  "probeStatus": "active",
+  "statusRecommendation": "active",
+  "url": "https://data.cityofnewyork.us/Transportation/Automated-Traffic-Volume-Counts/7ym2-wayt",
+  "socrata": {
+    "datasetId": "7ym2-wayt",
+    "domain": "data.cityofnewyork.us",
+    "metadataUrl": "https://data.cityofnewyork.us/api/views/7ym2-wayt",
+    "columnsUrl": "https://data.cityofnewyork.us/api/views/7ym2-wayt/columns.json",
+    "rowsCsvUrl": "https://data.cityofnewyork.us/api/views/7ym2-wayt/rows.csv?accessType=DOWNLOAD",
+    "rowCountUrl": "https://data.cityofnewyork.us/resource/7ym2-wayt.json?%24select=count%28*%29",
+    "name": "Automated Traffic Volume Counts",
+    "columnCount": 14,
+    "rowsUpdatedAt": 1773980461,
+    "rowsUpdatedAtIso": "2026-03-20T04:21:01.000Z",
+    "rowCount": 1875154
+  },
+  "socrataDataset": {
+    "metadata": {
+      "id": "7ym2-wayt",
+      "name": "Automated Traffic Volume Counts",
+      "description": "New York City Department of Transportation (NYC DOT) uses Automated Traffic Recorders (ATR) to collect traffic sample volume counts at bridge crossings and roadways.These counts do not cover the entire year, and the number of days counted per location may vary from year to year.",
+      "rowsUpdatedAt": 1773980461,
+      "columns": [
+        {
+          "id": 591377916,
+          "name": "RequestID",
+          "dataTypeName": "number",
+          "fieldName": "requestid",
+          "description": "An unique ID that is generated for each counts request.",
+          "position": 1,
+          "renderTypeName": "number",
+          "tableColumnId": 139199536,
+          "width": 208,
+          "cachedContents": {
+            "non_null": "1875154",
+            "largest": "39920",
+            "null": "0",
+            "top": [
+              {
+                "item": "32970",
+                "count": "31350"
+              },
+              {
+                "item": "28006",
+                "count": "21554"
+              },
+              {
+                "item": "34815",
+                "count": "17777"
+              },
+              {
+                "item": "26799",
+                "count": "17280"
+              },
+              {
+                "item": "37574",
+                "count": "17084"
+              },
+              {
+                "item": "30153",
+                "count": "16571"
+              },
+              {
+                "item": "36190",
+                "count": "15673"
+              },
+              {
+                "item": "29023",
+                "count": "15467"
+              },
+              {
+                "item": "36828",
+                "count": "12647"
+              },
+              {
+                "item": "36179",
+                "count": "11970"
+              },
+              {
+                "item": "16701",
+                "count": "10990"
+              },
+              {
+                "item": "38108",
+                "count": "10560"
+              },
+              {
+                "item": "36741",
+                "count": "10535"
+              },
+              {
+                "item": "32143",
+                "count": "9494"
+              },
+              {
+                "item": "34045",
+                "count": "9408"
+              },
+              {
+                "item": "16599",
+                "count": "8452"
+              },
+              {
+                "item": "36401",
+                "count": "8230"
+              },
+              {
+                "item": "20922",
+                "count": "7974"
+              },
+              {
+                "item": "39019",
+                "count": "7680"
+              },
+              {
+                "item": "15389",
+                "count": "7628"
+              }
+            ],
+            "smallest": "1139",
+            "count": "1875154",
+            "cardinality": "1875154"
+          },
+          "format": {
+            "noCommas": "true"
+          }
+        },
+        {
+          "id": 591377917,
+          "name": "Boro",
+          "dataTypeName": "text",
+          "fieldName": "boro",
+          "description": "Lists which of the five administrative divisions of New York City the location is within, written as a word ",
+          "position": 2,
+          "renderTypeName": "text",
+          "tableColumnId": 139199537,
+          "width": 148,
+          "cachedContents": {
+            "non_null": "1875154",
+            "largest": "Staten Island",
+            "null": "0",
+            "top": [
+              {
+                "item": "Queens",
+                "count": "560928"
+              },
+              {
+                "item": "Brooklyn",
+                "count": "540695"
+              },
+              {
+                "item": "Manhattan",
+                "count": "343555"
+              },
+              {
+                "item": "Bronx",
+                "count": "308124"
+              },
+              {
+                "item": "Staten Island",
+                "count": "121852"
+              }
+            ],
+            "smallest": "Bronx",
+            "count": "1875154",
+            "cardinality": "1875154"
+          },
+          "format": {}
+        },
+        {
+          "id": 591377918,
+          "name": "Yr",
+          "dataTypeName": "number",
+          "fieldName": "yr",
+          "description": "The two digit year portion of the date when the count was conducted.",
+          "position": 3,
+          "renderTypeName": "number",
+          "tableColumnId": 139199538,
+          "width": 124,
+          "cachedContents": {
+            "non_null": "1875154",
+            "largest": "2026",
+            "null": "0",
+            "top": [
+              {
+                "item": "2010",
+                "count": "132016"
+              },
+              {
+                "item": "2014",
+                "count": "130754"
+              },
+              {
+                "item": "2016",
+                "count": "129617"
+              },
+              {
+                "item": "2013",
+                "count": "128762"
+              },
+              {
+                "item": "2012",
+                "count": "128222"
+              },
+              {
+                "item": "2015",
+                "count": "124428"
+              },
+              {
+                "item": "2017",
+                "count": "123901"
+              },
+              {
+                "item": "2009",
+                "count": "122851"
+              },
+              {
+                "item": "2011",
+                "count": "120249"
+              },
+              {
+                "item": "2019",
+                "count": "115730"
+              },
+              {
+                "item": "2018",
+                "count": "98961"
+              },
+              {
+                "item": "2024",
+                "count": "95203"
+              },
+              {
+                "item": "2021",
+                "count": "85810"
+              },
+              {
+                "item": "2023",
+                "count": "85106"
+              },
+              {
+                "item": "2025",
+                "count": "82368"
+              },
+              {
+                "item": "2022",
+                "count": "78652"
+              },
+              {
+                "item": "2020",
+                "count": "40224"
+              },
+              {
+                "item": "2008",
+                "count": "32482"
+              },
+              {
+                "item": "2026",
+                "count": "9120"
+              },
+              {
+                "item": "2007",
+                "count": "8130"
+              }
+            ],
+            "smallest": "2000",
+            "count": "1875154",
+            "cardinality": "1875154"
+          },
+          "format": {
+            "noCommas": "true"
+          }
+        },
+        {
+          "id": 591377919,
+          "name": "M",
+          "dataTypeName": "number",
+          "fieldName": "m",
+          "description": "The two digit month portion of the date when the count was conducted.",
+          "position": 4,
+          "renderTypeName": "number",
+          "tableColumnId": 139199539,
+          "width": 112,
+          "cachedContents": {
+            "non_null": "1875154",
+            "largest": "12",
+            "null": "0",
+            "top": [
+              {
+                "item": "5",
+                "count": "193207"
+              },
+              {
+                "item": "10",
+                "count": "192918"
+              },
+              {
+                "item": "3",
+                "count": "189923"
+              },
+              {
+                "item": "6",
+                "count": "186330"
+              },
+              {
+                "item": "4",
+                "count": "176408"
+              },
+              {
+                "item": "11",
+                "count": "161860"
+              },
+              {
+                "item": "9",
+                "count": "147317"
+              },
+              {
+                "item": "1",
+                "count": "142098"
+              },
+              {
+                "item": "2",
+                "count": "137726"
+              },
+              {
+                "item": "8",
+                "count": "132955"
+              },
+              {
+                "item": "7",
+                "count": "117914"
+              },
+              {
+                "item": "12",
+                "count": "96498"
+              }
+            ],
+            "smallest": "1",
+            "count": "1875154",
+            "cardinality": "1875154"
+          },
+          "format": {}
+        },
+        {
+          "id": 591377920,
+          "name": "D",
+          "dataTypeName": "number",
+          "fieldName": "d",
+          "description": "The two digit day portion of the date when the count was conducted.",
+          "position": 5,
+          "renderTypeName": "number",
+          "tableColumnId": 139199540,
+          "width": 112,
+          "cachedContents": {
+            "non_null": "1875154",
+            "largest": "31",
+            "null": "0",
+            "top": [
+              {
+                "item": "11",
+                "count": "68416"
+              },
+              {
+                "item": "9",
+                "count": "68142"
+              },
+              {
+                "item": "10",
+                "count": "67667"
+              },
+              {
+                "item": "12",
+                "count": "67547"
+              },
+              {
+                "item": "8",
+                "count": "66807"
+              },
+              {
+                "item": "13",
+                "count": "66082"
+              },
+              {
+                "item": "18",
+                "count": "65588"
+              },
+              {
+                "item": "7",
+                "count": "65362"
+              },
+              {
+                "item": "14",
+                "count": "65184"
+              },
+              {
+                "item": "19",
+                "count": "64892"
+              },
+              {
+                "item": "17",
+                "count": "64058"
+              },
+              {
+                "item": "15",
+                "count": "63926"
+              },
+              {
+                "item": "20",
+                "count": "63278"
+              },
+              {
+                "item": "16",
+                "count": "63099"
+              },
+              {
+                "item": "6",
+                "count": "62867"
+              },
+              {
+                "item": "5",
+                "count": "60662"
+              },
+              {
+                "item": "21",
+                "count": "60412"
+              },
+              {
+                "item": "22",
+                "count": "60287"
+              },
+              {
+                "item": "4",
+                "count": "60030"
+              },
+              {
+                "item": "23",
+                "count": "59670"
+              }
+            ],
+            "smallest": "1",
+            "count": "1875154",
+            "cardinality": "1875154"
+          },
+          "format": {}
+        },
+        {
+          "id": 591377921,
+          "name": "HH",
+          "dataTypeName": "number",
+          "fieldName": "hh",
+          "description": "The two digit hour portion of the time when the count was conducted.",
+          "position": 6,
+          "renderTypeName": "number",
+          "tableColumnId": 139199541,
+          "width": 124,
+          "cachedContents": {
+            "non_null": "1875154",
+            "largest": "23",
+            "null": "0",
+            "top": [
+              {
+                "item": "8",
+                "count": "78323"
+              },
+              {
+                "item": "7",
+                "count": "78278"
+              },
+              {
+                "item": "9",
+                "count": "78264"
+              },
+              {
+                "item": "10",
+                "count": "78173"
+              },
+              {
+                "item": "23",
+                "count": "78146"
+              },
+              {
+                "item": "22",
+                "count": "78139"
+              },
+              {
+                "item": "6",
+                "count": "78132"
+              },
+              {
+                "item": "20",
+                "count": "78130"
+              },
+              {
+                "item": "21",
+                "count": "78130"
+              },
+              {
+                "item": "14",
+                "count": "78127"
+              },
+              {
+                "item": "15",
+                "count": "78119"
+              },
+              {
+                "item": "19",
+                "count": "78119"
+              },
+              {
+                "item": "17",
+                "count": "78114"
+              },
+              {
+                "item": "13",
+                "count": "78114"
+              },
+              {
+                "item": "18",
+                "count": "78114"
+              },
+              {
+                "item": "16",
+                "count": "78102"
+              },
+              {
+                "item": "0",
+                "count": "78096"
+              },
+              {
+                "item": "12",
+                "count": "78089"
+              },
+              {
+                "item": "11",
+                "count": "78088"
+              },
+              {
+                "item": "1",
+                "count": "78085"
+              }
+            ],
+            "smallest": "0",
+            "count": "1875154",
+            "cardinality": "1875154"
+          },
+          "format": {}
+        },
+        {
+          "id": 591377922,
+          "name": "MM",
+          "dataTypeName": "number",
+          "fieldName": "mm",
+          "description": "The two digit start minute portion of the time when the count was conducted.",
+          "position": 7,
+          "renderTypeName": "number",
+          "tableColumnId": 139199542,
+          "width": 124,
+          "cachedContents": {
+            "non_null": "1875154",
+            "largest": "50",
+            "null": "0",
+            "top": [
+              {
+                "item": "0",
+                "count": "473659"
+              },
+              {
+                "item": "15",
+                "count": "466215"
+              },
+              {
+                "item": "30",
+                "count": "466210"
+              },
+              {
+                "item": "45",
+                "count": "466199"
+              },
+              {
+                "item": "20",
+                "count": "718"
+              },
+              {
+                "item": "10",
+                "count": "718"
+              },
+              {
+                "item": "40",
+                "count": "718"
+              },
+              {
+                "item": "50",
+                "count": "717"
+              }
+            ],
+            "smallest": "0",
+            "count": "1875154",
+            "cardinality": "1875154"
+          },
+          "format": {}
+        },
+        {
+          "id": 591377923,
+          "name": "Vol",
+          "dataTypeName": "number",
+          "fieldName": "vol",
+          "description": "The total sum of count collected within a 15 minute increments.",
+          "position": 8,
+          "renderTypeName": "number",
+          "tableColumnId": 139199543,
+          "width": 136,
+          "cachedContents": {
+            "non_null": "1875154",
+            "largest": "5425",
+            "null": "0",
+            "top": [
+              {
+                "item": "0",
+                "count": "96278"
+              },
+              {
+                "item": "1",
+                "count": "25287"
+              },
+              {
+                "item": "2",
+                "count": "25287"
+              },
+              {
+                "item": "3",
+                "count": "24514"
+              },
+              {
+                "item": "4",
+                "count": "23876"
+              },
+              {
+                "item": "5",
+                "count": "23270"
+              },
+              {
+                "item": "6",
+                "count": "22868"
+              },
+              {
+                "item": "7",
+                "count": "21763"
+              },
+              {
+                "item": "8",
+                "count": "21723"
+              },
+              {
+                "item": "9",
+                "count": "20755"
+              },
+              {
+                "item": "10",
+                "count": "20716"
+              },
+              {
+                "item": "11",
+                "count": "19683"
+              },
+              {
+                "item": "12",
+                "count": "19646"
+              },
+              {
+                "item": "14",
+                "count": "18770"
+              },
+              {
+                "item": "13",
+                "count": "18689"
+              },
+              {
+                "item": "15",
+                "count": "17958"
+              },
+              {
+                "item": "16",
+                "count": "17592"
+              },
+              {
+                "item": "18",
+                "count": "16752"
+              },
+              {
+                "item": "17",
+                "count": "16700"
+              },
+              {
+                "item": "19",
+                "count": "16145"
+              }
+            ],
+            "smallest": "-1",
+            "count": "1875154",
+            "cardinality": "1875154"
+          },
+          "format": {}
+        },
+        {
+          "id": 591377924,
+          "name": "SegmentID",
+          "dataTypeName": "number",
+          "fieldName": "segmentid",
+          "description": "The ID that identifies each segment of a street in the LION street network version 14.",
+          "position": 9,
+          "renderTypeName": "number",
+          "tableColumnId": 139199544,
+          "width": 208,
+          "cachedContents": {
+            "non_null": "1875154",
+            "largest": "9017010",
+            "null": "0",
+            "top": [
+              {
+                "item": "72887",
+                "count": "13398"
+              },
+              {
+                "item": "83624",
+                "count": "11317"
+              },
+              {
+                "item": "34332",
+                "count": "11038"
+              },
+              {
+                "item": "89528",
+                "count": "9512"
+              },
+              {
+                "item": "146375",
+                "count": "9198"
+              },
+              {
+                "item": "62117",
+                "count": "8653"
+              },
+              {
+                "item": "95433",
+                "count": "8170"
+              },
+              {
+                "item": "156016",
+                "count": "7587"
+              },
+              {
+                "item": "62211",
+                "count": "7124"
+              },
+              {
+                "item": "105839",
+                "count": "6737"
+              },
+              {
+                "item": "189271",
+                "count": "6496"
+              },
+              {
+                "item": "50963",
+                "count": "6308"
+              },
+              {
+                "item": "156766",
+                "count": "6157"
+              },
+              {
+                "item": "177615",
+                "count": "6143"
+              },
+              {
+                "item": "71036",
+                "count": "5952"
+              },
+              {
+                "item": "196368",
+                "count": "5841"
+              },
+              {
+                "item": "62497",
+                "count": "5793"
+              },
+              {
+                "item": "148405",
+                "count": "5649"
+              },
+              {
+                "item": "149701",
+                "count": "5506"
+              },
+              {
+                "item": "149198",
+                "count": "5491"
+              }
+            ],
+            "smallest": "44",
+            "count": "1875154",
+            "cardinality": "1875154"
+          },
+          "format": {
+            "noCommas": "true"
+          }
+        },
+        {
+          "id": 591377925,
+          "name": "WktGeom",
+          "dataTypeName": "text",
+          "fieldName": "wktgeom",
+          "description": "A text markup language for representing vector geometry objects on a map and spatial reference systems of spatial objects.",
+          "position": 10,
+          "renderTypeName": "text",
+          "tableColumnId": 139199545,
+          "width": 184,
+          "cachedContents": {
+            "non_null": "1875154",
+            "largest": "POINT (999999.1 198849.3)",
+            "null": "0",
+            "top": [
+              {
+                "item": "POINT (1024642.826238825 211995.16442551484)",
+                "count": "11317"
+              },
+              {
+                "item": "POINT (987087.2195708795 220744.5037073528)",
+                "count": "10080"
+              },
+              {
+                "item": "POINT (1007807.3102189016 253610.3799800104)",
+                "count": "9888"
+              },
+              {
+                "item": "POINT (1028931.8143046284 215115.26618027306)",
+                "count": "6143"
+              },
+              {
+                "item": "POINT (1023055.8409196973 185039.53691861132)",
+                "count": "5841"
+              },
+              {
+                "item": "POINT (1056415.1868210472 170827.2200271171)",
+                "count": "5793"
+              },
+              {
+                "item": "POINT (937132.3664491847 145760.33531702144)",
+                "count": "5381"
+              },
+              {
+                "item": "POINT (1037356.1 200863.7)",
+                "count": "5123"
+              },
+              {
+                "item": "POINT (1026054.3 269634.8)",
+                "count": "5063"
+              },
+              {
+                "item": "POINT (1035162.6 253330.1)",
+                "count": "4973"
+              },
+              {
+                "item": "POINT (1066863.5604375903 213507.78845794866)",
+                "count": "4885"
+              },
+              {
+                "item": "POINT (1060029.1 191032)",
+                "count": "4839"
+              },
+              {
+                "item": "POINT (1022726.375963018 184975.11727740432)",
+                "count": "4672"
+              },
+              {
+                "item": "POINT (1052667.7 161622.3)",
+                "count": "4431"
+              },
+              {
+                "item": "POINT (1015029.50289154 223906.76034060976)",
+                "count": "4123"
+              },
+              {
+                "item": "POINT (993601.5 220583.3)",
+                "count": "4110"
+              },
+              {
+                "item": "POINT (1002839.0943176756 237849.6336393494)",
+                "count": "3882"
+              },
+              {
+                "item": "POINT (1002564.5610851326 240983.75683398134)",
+                "count": "3811"
+              },
+              {
+                "item": "POINT (1017127.2579874671 243558.26531133518)",
+                "count": "3778"
+              },
+              {
+                "item": "POINT (1016427.0083067568 241061.93848773025)",
+                "count": "3665"
+              }
+            ],
+            "smallest": "POINT (1000071.6 216653.5)",
+            "count": "1875154",
+            "cardinality": "1875154"
+          },
+          "format": {}
+        },
+        {
+          "id": 591377926,
+          "name": "street",
+          "dataTypeName": "text",
+          "fieldName": "street",
+          "description": "The 'On Street' where the count took place.",
+          "position": 11,
+          "renderTypeName": "text",
+          "tableColumnId": 139199546,
+          "width": 172,
+          "cachedContents": {
+            "non_null": "1875154",
+            "largest": "YORK AVENUE",
+            "null": "0",
+            "top": [
+              {
+                "item": "BROADWAY",
+                "count": "30173"
+              },
+              {
+                "item": "111 STREET",
+                "count": "17876"
+              },
+              {
+                "item": "LINDEN BOULEVARD",
+                "count": "16193"
+              },
+              {
+                "item": "FLATBUSH AVENUE",
+                "count": "15067"
+              },
+              {
+                "item": "SUTTER AVENUE",
+                "count": "13813"
+              },
+              {
+                "item": "3 AVENUE",
+                "count": "13371"
+              },
+              {
+                "item": "WHITE PLAINS ROAD",
+                "count": "12490"
+              },
+              {
+                "item": "LINDEN BLVD",
+                "count": "11695"
+              },
+              {
+                "item": "WEST END AVENUE",
+                "count": "11472"
+              },
+              {
+                "item": "EAST 174 ST BRIDGE",
+                "count": "10248"
+              },
+              {
+                "item": "UNIVERSITY HEIGHTS BRIDGE",
+                "count": "10076"
+              },
+              {
+                "item": "ATLANTIC AVENUE",
+                "count": "9752"
+              },
+              {
+                "item": "BOSTON ROAD",
+                "count": "9716"
+              },
+              {
+                "item": "NORTH CHANNEL BRIDGE",
+                "count": "9558"
+              },
+              {
+                "item": "UNION TURNPIKE",
+                "count": "9495"
+              },
+              {
+                "item": "OCEAN PARKWAY",
+                "count": "9289"
+              },
+              {
+                "item": "PULASKI BRIDGE",
+                "count": "8610"
+              },
+              {
+                "item": "MERRICK BOULEVARD",
+                "count": "8109"
+              },
+              {
+                "item": "FRESH KILLS BRIDGE",
+                "count": "8087"
+              },
+              {
+                "item": "CROPSEY AVENUE BRIDGE",
+                "count": "7957"
+              }
+            ],
+            "smallest": "101 AV",
+            "count": "1875154",
+            "cardinality": "1875154"
+          },
+          "format": {}
+        },
+        {
+          "id": 591377927,
+          "name": "fromSt",
+          "dataTypeName": "text",
+          "fieldName": "fromst",
+          "description": "The 'From Street' where the count took place.",
+          "position": 12,
+          "renderTypeName": "text",
+          "tableColumnId": 139199547,
+          "width": 172,
+          "cachedContents": {
+            "non_null": "1875154",
+            "largest": "ZWICKY AV",
+            "null": "0",
+            "top": [
+              {
+                "item": "Dead End",
+                "count": "214043"
+              },
+              {
+                "item": "Dead end",
+                "count": "27595"
+              },
+              {
+                "item": "Harlem River Shoreline",
+                "count": "18549"
+              },
+              {
+                "item": "BOROUGH BOUNDARY",
+                "count": "17751"
+              },
+              {
+                "item": "West 60 Street",
+                "count": "13518"
+              },
+              {
+                "item": "Broadway",
+                "count": "12963"
+              },
+              {
+                "item": "45 Avenue",
+                "count": "11911"
+              },
+              {
+                "item": "Flushing Line",
+                "count": "9440"
+              },
+              {
+                "item": "Richmond Avenue",
+                "count": "9431"
+              },
+              {
+                "item": "Borden Avenue",
+                "count": "9376"
+              },
+              {
+                "item": "3 Street",
+                "count": "8847"
+              },
+              {
+                "item": "Newtown Creek Shoreline",
+                "count": "7980"
+              },
+              {
+                "item": "Alley",
+                "count": "7548"
+              },
+              {
+                "item": "Broadway/ 7 Avenue Line",
+                "count": "7406"
+              },
+              {
+                "item": "BEND",
+                "count": "7300"
+              },
+              {
+                "item": "14 Street/canarsie Line",
+                "count": "7221"
+              },
+              {
+                "item": "Astoria Line",
+                "count": "7188"
+              },
+              {
+                "item": "8 Avenue Line",
+                "count": "6841"
+              },
+              {
+                "item": "DEAD END",
+                "count": "6787"
+              },
+              {
+                "item": "Langdale Street",
+                "count": "6416"
+              }
+            ],
+            "smallest": "0.000 Undefined",
+            "count": "1875154",
+            "cardinality": "1875154"
+          },
+          "format": {}
+        },
+        {
+          "id": 591377928,
+          "name": "toSt",
+          "dataTypeName": "text",
+          "fieldName": "tost",
+          "description": "The 'To Street' where the count took place.",
+          "position": 13,
+          "renderTypeName": "text",
+          "tableColumnId": 139199548,
+          "width": 148,
+          "cachedContents": {
+            "non_null": "1873908",
+            "largest": "ZION ST",
+            "null": "1246",
+            "top": [
+              {
+                "item": "Dead end",
+                "count": "230924"
+              },
+              {
+                "item": "Harlem River Shoreline",
+                "count": "34021"
+              },
+              {
+                "item": "BODY OF WATER",
+                "count": "32852"
+              },
+              {
+                "item": "DEAD END",
+                "count": "25380"
+              },
+              {
+                "item": "Dead End",
+                "count": "15376"
+              },
+              {
+                "item": "Bronx River Shoreline",
+                "count": "13845"
+              },
+              {
+                "item": "West 61 Street",
+                "count": "13518"
+              },
+              {
+                "item": "46 Avenue",
+                "count": "11317"
+              },
+              {
+                "item": "BEND",
+                "count": "11142"
+              },
+              {
+                "item": "Flushing Line",
+                "count": "10692"
+              },
+              {
+                "item": "8 Avenue Line",
+                "count": "9102"
+              },
+              {
+                "item": "BROADWAY",
+                "count": "8541"
+              },
+              {
+                "item": "CONNECTOR",
+                "count": "8493"
+              },
+              {
+                "item": "Hewlett Street",
+                "count": "8440"
+              },
+              {
+                "item": "Eastchester Road",
+                "count": "7284"
+              },
+              {
+                "item": "Broadway",
+                "count": "7258"
+              },
+              {
+                "item": "Cypress Avenue",
+                "count": "6831"
+              },
+              {
+                "item": "Broadway/ 7 Avenue Line",
+                "count": "6654"
+              },
+              {
+                "item": "MADISON AV",
+                "count": "6545"
+              },
+              {
+                "item": "North Conduit Avenue",
+                "count": "6513"
+              }
+            ],
+            "smallest": "100 Street",
+            "count": "1875154",
+            "cardinality": "1875154"
+          },
+          "format": {}
+        },
+        {
+          "id": 591377929,
+          "name": "Direction",
+          "dataTypeName": "text",
+          "fieldName": "direction",
+          "description": "The text-based direction of traffic where the count took place.",
+          "position": 14,
+          "renderTypeName": "text",
+          "tableColumnId": 139199549,
+          "width": 208,
+          "cachedContents": {
+            "non_null": "1875154",
+            "largest": "WB",
+            "null": "0",
+            "top": [
+              {
+                "item": "NB",
+                "count": "474645"
+              },
+              {
+                "item": "SB",
+                "count": "469877"
+              },
+              {
+                "item": "EB",
+                "count": "463384"
+              },
+              {
+                "item": "WB",
+                "count": "460720"
+              },
+              {
+                "item": "EW",
+                "count": "3564"
+              },
+              {
+                "item": "NS",
+                "count": "2964"
+              }
+            ],
+            "smallest": "EB",
+            "count": "1875154",
+            "cardinality": "1875154"
+          },
+          "format": {}
+        }
+      ],
+      "assetType": "dataset",
+      "averageRating": 0,
+      "category": "Transportation",
+      "createdAt": 1630442332,
+      "diciBackend": false,
+      "displayType": "table",
+      "downloadCount": 9904,
+      "hideFromCatalog": false,
+      "hideFromDataJson": false,
+      "locale": "en_US",
+      "locked": false,
+      "newBackend": true,
+      "numberOfComments": 0,
+      "oid": 40506635,
+      "provenance": "official",
+      "publicationAppendEnabled": true,
+      "publicationDate": 1712070387,
+      "publicationGroup": 18426096,
+      "publicationStage": "published",
+      "rowClass": "",
+      "rowsUpdatedBy": "5fuc-pqz2",
+      "tableId": 19493323,
+      "totalTimesRated": 0,
+      "viewCount": 61713,
+      "viewLastModified": 1773979450,
+      "viewType": "tabular",
+      "approvals": [
+        {
+          "reviewedAt": 1633527967,
+          "reviewedAutomatically": true,
+          "state": "approved",
+          "submissionId": 6246611,
+          "submissionObject": "public_audience_request",
+          "submissionOutcome": "change_audience",
+          "submittedAt": 1633527967,
+          "targetAudience": "public",
+          "workflowId": 2285,
+          "submissionDetails": {
+            "permissionType": "READ"
+          },
+          "submissionOutcomeApplication": {
+            "endedAt": 1633527967,
+            "failureCount": 0,
+            "startedAt": 1633527967,
+            "status": "success"
+          },
+          "submitter": {
+            "id": "d5dp-fses",
+            "displayName": "afinkel"
+          }
+        }
+      ],
+      "clientContext": {
+        "clientContextVariables": [],
+        "inheritedVariables": {}
+      },
+      "grants": [
+        {
+          "inherited": false,
+          "type": "viewer",
+          "flags": [
+            "public"
+          ]
+        }
+      ],
+      "metadata": {
+        "rdfSubject": "0",
+        "rdfClass": "",
+        "attachments": [
+          {
+            "filename": "Data_Dictionary_-_Automated_Traffic_Volume_Counts.xlsx",
+            "assetId": "634d4f24-db90-4444-905b-5fdfc975a607",
+            "name": "Data_Dictionary_-_Automated_Traffic_Volume_Counts.xlsx"
+          },
+          {
+            "filename": "ATR Location_Errors2025.xlsx",
+            "assetId": "5d84797d-5e2e-45a7-8ad7-8d055d37c82a",
+            "name": "ATR Location_Errors2025.xlsx"
+          }
+        ],
+        "custom_fields": {
+          "Update": {
+            "Automation": "Yes",
+            "Date Made Public": "10/6/2021",
+            "Update Frequency": "Every 6 months"
+          },
+          "Dataset Information": {
+            "Agency": "Department of Transportation (DOT)"
+          }
+        },
+        "availableDisplayTypes": [
+          "table",
+          "fatrow",
+          "page"
+        ],
+        "renderTypeConfig": {
+          "visible": {
+            "table": true
+          }
+        }
+      },
+      "owner": {
+        "id": "5fuc-pqz2",
+        "displayName": "NYC OpenData",
+        "profileImageUrlLarge": "/api/users/5fuc-pqz2/profile_images/LARGE",
+        "profileImageUrlMedium": "/api/users/5fuc-pqz2/profile_images/THUMB",
+        "profileImageUrlSmall": "/api/users/5fuc-pqz2/profile_images/TINY",
+        "screenName": "NYC OpenData",
+        "type": "interactive",
+        "flags": [
+          "acceptedEula",
+          "mayBeStoriesCoOwner"
+        ]
+      },
+      "query": {},
+      "rights": [
+        "read"
+      ],
+      "tableAuthor": {
+        "id": "5fuc-pqz2",
+        "displayName": "NYC OpenData",
+        "profileImageUrlLarge": "/api/users/5fuc-pqz2/profile_images/LARGE",
+        "profileImageUrlMedium": "/api/users/5fuc-pqz2/profile_images/THUMB",
+        "profileImageUrlSmall": "/api/users/5fuc-pqz2/profile_images/TINY",
+        "screenName": "NYC OpenData",
+        "type": "interactive",
+        "flags": [
+          "acceptedEula",
+          "mayBeStoriesCoOwner"
+        ]
+      },
+      "tags": [
+        "volume",
+        "count",
+        "traffic",
+        "screenline",
+        "bridges",
+        "roadway",
+        "atr"
+      ],
+      "flags": [
+        "default",
+        "ownerMayBeContacted",
+        "restorable",
+        "restorePossibleForType"
+      ]
+    },
+    "columns": [
+      {
+        "id": 591377916,
+        "name": "RequestID",
+        "dataTypeName": "number",
+        "fieldName": "requestid",
+        "description": "An unique ID that is generated for each counts request.",
+        "position": 1,
+        "renderTypeName": "number",
+        "tableColumnId": 139199536,
+        "width": 208,
+        "cachedContents": {
+          "non_null": "1875154",
+          "largest": "39920",
+          "null": "0",
+          "top": [
+            {
+              "item": "32970",
+              "count": "31350"
+            },
+            {
+              "item": "28006",
+              "count": "21554"
+            },
+            {
+              "item": "34815",
+              "count": "17777"
+            },
+            {
+              "item": "26799",
+              "count": "17280"
+            },
+            {
+              "item": "37574",
+              "count": "17084"
+            },
+            {
+              "item": "30153",
+              "count": "16571"
+            },
+            {
+              "item": "36190",
+              "count": "15673"
+            },
+            {
+              "item": "29023",
+              "count": "15467"
+            },
+            {
+              "item": "36828",
+              "count": "12647"
+            },
+            {
+              "item": "36179",
+              "count": "11970"
+            },
+            {
+              "item": "16701",
+              "count": "10990"
+            },
+            {
+              "item": "38108",
+              "count": "10560"
+            },
+            {
+              "item": "36741",
+              "count": "10535"
+            },
+            {
+              "item": "32143",
+              "count": "9494"
+            },
+            {
+              "item": "34045",
+              "count": "9408"
+            },
+            {
+              "item": "16599",
+              "count": "8452"
+            },
+            {
+              "item": "36401",
+              "count": "8230"
+            },
+            {
+              "item": "20922",
+              "count": "7974"
+            },
+            {
+              "item": "39019",
+              "count": "7680"
+            },
+            {
+              "item": "15389",
+              "count": "7628"
+            }
+          ],
+          "smallest": "1139",
+          "count": "1875154",
+          "cardinality": "1875154"
+        },
+        "format": {
+          "noCommas": "true"
+        }
+      },
+      {
+        "id": 591377917,
+        "name": "Boro",
+        "dataTypeName": "text",
+        "fieldName": "boro",
+        "description": "Lists which of the five administrative divisions of New York City the location is within, written as a word ",
+        "position": 2,
+        "renderTypeName": "text",
+        "tableColumnId": 139199537,
+        "width": 148,
+        "cachedContents": {
+          "non_null": "1875154",
+          "largest": "Staten Island",
+          "null": "0",
+          "top": [
+            {
+              "item": "Queens",
+              "count": "560928"
+            },
+            {
+              "item": "Brooklyn",
+              "count": "540695"
+            },
+            {
+              "item": "Manhattan",
+              "count": "343555"
+            },
+            {
+              "item": "Bronx",
+              "count": "308124"
+            },
+            {
+              "item": "Staten Island",
+              "count": "121852"
+            }
+          ],
+          "smallest": "Bronx",
+          "count": "1875154",
+          "cardinality": "1875154"
+        },
+        "format": {}
+      },
+      {
+        "id": 591377918,
+        "name": "Yr",
+        "dataTypeName": "number",
+        "fieldName": "yr",
+        "description": "The two digit year portion of the date when the count was conducted.",
+        "position": 3,
+        "renderTypeName": "number",
+        "tableColumnId": 139199538,
+        "width": 124,
+        "cachedContents": {
+          "non_null": "1875154",
+          "largest": "2026",
+          "null": "0",
+          "top": [
+            {
+              "item": "2010",
+              "count": "132016"
+            },
+            {
+              "item": "2014",
+              "count": "130754"
+            },
+            {
+              "item": "2016",
+              "count": "129617"
+            },
+            {
+              "item": "2013",
+              "count": "128762"
+            },
+            {
+              "item": "2012",
+              "count": "128222"
+            },
+            {
+              "item": "2015",
+              "count": "124428"
+            },
+            {
+              "item": "2017",
+              "count": "123901"
+            },
+            {
+              "item": "2009",
+              "count": "122851"
+            },
+            {
+              "item": "2011",
+              "count": "120249"
+            },
+            {
+              "item": "2019",
+              "count": "115730"
+            },
+            {
+              "item": "2018",
+              "count": "98961"
+            },
+            {
+              "item": "2024",
+              "count": "95203"
+            },
+            {
+              "item": "2021",
+              "count": "85810"
+            },
+            {
+              "item": "2023",
+              "count": "85106"
+            },
+            {
+              "item": "2025",
+              "count": "82368"
+            },
+            {
+              "item": "2022",
+              "count": "78652"
+            },
+            {
+              "item": "2020",
+              "count": "40224"
+            },
+            {
+              "item": "2008",
+              "count": "32482"
+            },
+            {
+              "item": "2026",
+              "count": "9120"
+            },
+            {
+              "item": "2007",
+              "count": "8130"
+            }
+          ],
+          "smallest": "2000",
+          "count": "1875154",
+          "cardinality": "1875154"
+        },
+        "format": {
+          "noCommas": "true"
+        }
+      },
+      {
+        "id": 591377919,
+        "name": "M",
+        "dataTypeName": "number",
+        "fieldName": "m",
+        "description": "The two digit month portion of the date when the count was conducted.",
+        "position": 4,
+        "renderTypeName": "number",
+        "tableColumnId": 139199539,
+        "width": 112,
+        "cachedContents": {
+          "non_null": "1875154",
+          "largest": "12",
+          "null": "0",
+          "top": [
+            {
+              "item": "5",
+              "count": "193207"
+            },
+            {
+              "item": "10",
+              "count": "192918"
+            },
+            {
+              "item": "3",
+              "count": "189923"
+            },
+            {
+              "item": "6",
+              "count": "186330"
+            },
+            {
+              "item": "4",
+              "count": "176408"
+            },
+            {
+              "item": "11",
+              "count": "161860"
+            },
+            {
+              "item": "9",
+              "count": "147317"
+            },
+            {
+              "item": "1",
+              "count": "142098"
+            },
+            {
+              "item": "2",
+              "count": "137726"
+            },
+            {
+              "item": "8",
+              "count": "132955"
+            },
+            {
+              "item": "7",
+              "count": "117914"
+            },
+            {
+              "item": "12",
+              "count": "96498"
+            }
+          ],
+          "smallest": "1",
+          "count": "1875154",
+          "cardinality": "1875154"
+        },
+        "format": {}
+      },
+      {
+        "id": 591377920,
+        "name": "D",
+        "dataTypeName": "number",
+        "fieldName": "d",
+        "description": "The two digit day portion of the date when the count was conducted.",
+        "position": 5,
+        "renderTypeName": "number",
+        "tableColumnId": 139199540,
+        "width": 112,
+        "cachedContents": {
+          "non_null": "1875154",
+          "largest": "31",
+          "null": "0",
+          "top": [
+            {
+              "item": "11",
+              "count": "68416"
+            },
+            {
+              "item": "9",
+              "count": "68142"
+            },
+            {
+              "item": "10",
+              "count": "67667"
+            },
+            {
+              "item": "12",
+              "count": "67547"
+            },
+            {
+              "item": "8",
+              "count": "66807"
+            },
+            {
+              "item": "13",
+              "count": "66082"
+            },
+            {
+              "item": "18",
+              "count": "65588"
+            },
+            {
+              "item": "7",
+              "count": "65362"
+            },
+            {
+              "item": "14",
+              "count": "65184"
+            },
+            {
+              "item": "19",
+              "count": "64892"
+            },
+            {
+              "item": "17",
+              "count": "64058"
+            },
+            {
+              "item": "15",
+              "count": "63926"
+            },
+            {
+              "item": "20",
+              "count": "63278"
+            },
+            {
+              "item": "16",
+              "count": "63099"
+            },
+            {
+              "item": "6",
+              "count": "62867"
+            },
+            {
+              "item": "5",
+              "count": "60662"
+            },
+            {
+              "item": "21",
+              "count": "60412"
+            },
+            {
+              "item": "22",
+              "count": "60287"
+            },
+            {
+              "item": "4",
+              "count": "60030"
+            },
+            {
+              "item": "23",
+              "count": "59670"
+            }
+          ],
+          "smallest": "1",
+          "count": "1875154",
+          "cardinality": "1875154"
+        },
+        "format": {}
+      },
+      {
+        "id": 591377921,
+        "name": "HH",
+        "dataTypeName": "number",
+        "fieldName": "hh",
+        "description": "The two digit hour portion of the time when the count was conducted.",
+        "position": 6,
+        "renderTypeName": "number",
+        "tableColumnId": 139199541,
+        "width": 124,
+        "cachedContents": {
+          "non_null": "1875154",
+          "largest": "23",
+          "null": "0",
+          "top": [
+            {
+              "item": "8",
+              "count": "78323"
+            },
+            {
+              "item": "7",
+              "count": "78278"
+            },
+            {
+              "item": "9",
+              "count": "78264"
+            },
+            {
+              "item": "10",
+              "count": "78173"
+            },
+            {
+              "item": "23",
+              "count": "78146"
+            },
+            {
+              "item": "22",
+              "count": "78139"
+            },
+            {
+              "item": "6",
+              "count": "78132"
+            },
+            {
+              "item": "20",
+              "count": "78130"
+            },
+            {
+              "item": "21",
+              "count": "78130"
+            },
+            {
+              "item": "14",
+              "count": "78127"
+            },
+            {
+              "item": "15",
+              "count": "78119"
+            },
+            {
+              "item": "19",
+              "count": "78119"
+            },
+            {
+              "item": "17",
+              "count": "78114"
+            },
+            {
+              "item": "13",
+              "count": "78114"
+            },
+            {
+              "item": "18",
+              "count": "78114"
+            },
+            {
+              "item": "16",
+              "count": "78102"
+            },
+            {
+              "item": "0",
+              "count": "78096"
+            },
+            {
+              "item": "12",
+              "count": "78089"
+            },
+            {
+              "item": "11",
+              "count": "78088"
+            },
+            {
+              "item": "1",
+              "count": "78085"
+            }
+          ],
+          "smallest": "0",
+          "count": "1875154",
+          "cardinality": "1875154"
+        },
+        "format": {}
+      },
+      {
+        "id": 591377922,
+        "name": "MM",
+        "dataTypeName": "number",
+        "fieldName": "mm",
+        "description": "The two digit start minute portion of the time when the count was conducted.",
+        "position": 7,
+        "renderTypeName": "number",
+        "tableColumnId": 139199542,
+        "width": 124,
+        "cachedContents": {
+          "non_null": "1875154",
+          "largest": "50",
+          "null": "0",
+          "top": [
+            {
+              "item": "0",
+              "count": "473659"
+            },
+            {
+              "item": "15",
+              "count": "466215"
+            },
+            {
+              "item": "30",
+              "count": "466210"
+            },
+            {
+              "item": "45",
+              "count": "466199"
+            },
+            {
+              "item": "20",
+              "count": "718"
+            },
+            {
+              "item": "10",
+              "count": "718"
+            },
+            {
+              "item": "40",
+              "count": "718"
+            },
+            {
+              "item": "50",
+              "count": "717"
+            }
+          ],
+          "smallest": "0",
+          "count": "1875154",
+          "cardinality": "1875154"
+        },
+        "format": {}
+      },
+      {
+        "id": 591377923,
+        "name": "Vol",
+        "dataTypeName": "number",
+        "fieldName": "vol",
+        "description": "The total sum of count collected within a 15 minute increments.",
+        "position": 8,
+        "renderTypeName": "number",
+        "tableColumnId": 139199543,
+        "width": 136,
+        "cachedContents": {
+          "non_null": "1875154",
+          "largest": "5425",
+          "null": "0",
+          "top": [
+            {
+              "item": "0",
+              "count": "96278"
+            },
+            {
+              "item": "1",
+              "count": "25287"
+            },
+            {
+              "item": "2",
+              "count": "25287"
+            },
+            {
+              "item": "3",
+              "count": "24514"
+            },
+            {
+              "item": "4",
+              "count": "23876"
+            },
+            {
+              "item": "5",
+              "count": "23270"
+            },
+            {
+              "item": "6",
+              "count": "22868"
+            },
+            {
+              "item": "7",
+              "count": "21763"
+            },
+            {
+              "item": "8",
+              "count": "21723"
+            },
+            {
+              "item": "9",
+              "count": "20755"
+            },
+            {
+              "item": "10",
+              "count": "20716"
+            },
+            {
+              "item": "11",
+              "count": "19683"
+            },
+            {
+              "item": "12",
+              "count": "19646"
+            },
+            {
+              "item": "14",
+              "count": "18770"
+            },
+            {
+              "item": "13",
+              "count": "18689"
+            },
+            {
+              "item": "15",
+              "count": "17958"
+            },
+            {
+              "item": "16",
+              "count": "17592"
+            },
+            {
+              "item": "18",
+              "count": "16752"
+            },
+            {
+              "item": "17",
+              "count": "16700"
+            },
+            {
+              "item": "19",
+              "count": "16145"
+            }
+          ],
+          "smallest": "-1",
+          "count": "1875154",
+          "cardinality": "1875154"
+        },
+        "format": {}
+      },
+      {
+        "id": 591377924,
+        "name": "SegmentID",
+        "dataTypeName": "number",
+        "fieldName": "segmentid",
+        "description": "The ID that identifies each segment of a street in the LION street network version 14.",
+        "position": 9,
+        "renderTypeName": "number",
+        "tableColumnId": 139199544,
+        "width": 208,
+        "cachedContents": {
+          "non_null": "1875154",
+          "largest": "9017010",
+          "null": "0",
+          "top": [
+            {
+              "item": "72887",
+              "count": "13398"
+            },
+            {
+              "item": "83624",
+              "count": "11317"
+            },
+            {
+              "item": "34332",
+              "count": "11038"
+            },
+            {
+              "item": "89528",
+              "count": "9512"
+            },
+            {
+              "item": "146375",
+              "count": "9198"
+            },
+            {
+              "item": "62117",
+              "count": "8653"
+            },
+            {
+              "item": "95433",
+              "count": "8170"
+            },
+            {
+              "item": "156016",
+              "count": "7587"
+            },
+            {
+              "item": "62211",
+              "count": "7124"
+            },
+            {
+              "item": "105839",
+              "count": "6737"
+            },
+            {
+              "item": "189271",
+              "count": "6496"
+            },
+            {
+              "item": "50963",
+              "count": "6308"
+            },
+            {
+              "item": "156766",
+              "count": "6157"
+            },
+            {
+              "item": "177615",
+              "count": "6143"
+            },
+            {
+              "item": "71036",
+              "count": "5952"
+            },
+            {
+              "item": "196368",
+              "count": "5841"
+            },
+            {
+              "item": "62497",
+              "count": "5793"
+            },
+            {
+              "item": "148405",
+              "count": "5649"
+            },
+            {
+              "item": "149701",
+              "count": "5506"
+            },
+            {
+              "item": "149198",
+              "count": "5491"
+            }
+          ],
+          "smallest": "44",
+          "count": "1875154",
+          "cardinality": "1875154"
+        },
+        "format": {
+          "noCommas": "true"
+        }
+      },
+      {
+        "id": 591377925,
+        "name": "WktGeom",
+        "dataTypeName": "text",
+        "fieldName": "wktgeom",
+        "description": "A text markup language for representing vector geometry objects on a map and spatial reference systems of spatial objects.",
+        "position": 10,
+        "renderTypeName": "text",
+        "tableColumnId": 139199545,
+        "width": 184,
+        "cachedContents": {
+          "non_null": "1875154",
+          "largest": "POINT (999999.1 198849.3)",
+          "null": "0",
+          "top": [
+            {
+              "item": "POINT (1024642.826238825 211995.16442551484)",
+              "count": "11317"
+            },
+            {
+              "item": "POINT (987087.2195708795 220744.5037073528)",
+              "count": "10080"
+            },
+            {
+              "item": "POINT (1007807.3102189016 253610.3799800104)",
+              "count": "9888"
+            },
+            {
+              "item": "POINT (1028931.8143046284 215115.26618027306)",
+              "count": "6143"
+            },
+            {
+              "item": "POINT (1023055.8409196973 185039.53691861132)",
+              "count": "5841"
+            },
+            {
+              "item": "POINT (1056415.1868210472 170827.2200271171)",
+              "count": "5793"
+            },
+            {
+              "item": "POINT (937132.3664491847 145760.33531702144)",
+              "count": "5381"
+            },
+            {
+              "item": "POINT (1037356.1 200863.7)",
+              "count": "5123"
+            },
+            {
+              "item": "POINT (1026054.3 269634.8)",
+              "count": "5063"
+            },
+            {
+              "item": "POINT (1035162.6 253330.1)",
+              "count": "4973"
+            },
+            {
+              "item": "POINT (1066863.5604375903 213507.78845794866)",
+              "count": "4885"
+            },
+            {
+              "item": "POINT (1060029.1 191032)",
+              "count": "4839"
+            },
+            {
+              "item": "POINT (1022726.375963018 184975.11727740432)",
+              "count": "4672"
+            },
+            {
+              "item": "POINT (1052667.7 161622.3)",
+              "count": "4431"
+            },
+            {
+              "item": "POINT (1015029.50289154 223906.76034060976)",
+              "count": "4123"
+            },
+            {
+              "item": "POINT (993601.5 220583.3)",
+              "count": "4110"
+            },
+            {
+              "item": "POINT (1002839.0943176756 237849.6336393494)",
+              "count": "3882"
+            },
+            {
+              "item": "POINT (1002564.5610851326 240983.75683398134)",
+              "count": "3811"
+            },
+            {
+              "item": "POINT (1017127.2579874671 243558.26531133518)",
+              "count": "3778"
+            },
+            {
+              "item": "POINT (1016427.0083067568 241061.93848773025)",
+              "count": "3665"
+            }
+          ],
+          "smallest": "POINT (1000071.6 216653.5)",
+          "count": "1875154",
+          "cardinality": "1875154"
+        },
+        "format": {}
+      },
+      {
+        "id": 591377926,
+        "name": "street",
+        "dataTypeName": "text",
+        "fieldName": "street",
+        "description": "The 'On Street' where the count took place.",
+        "position": 11,
+        "renderTypeName": "text",
+        "tableColumnId": 139199546,
+        "width": 172,
+        "cachedContents": {
+          "non_null": "1875154",
+          "largest": "YORK AVENUE",
+          "null": "0",
+          "top": [
+            {
+              "item": "BROADWAY",
+              "count": "30173"
+            },
+            {
+              "item": "111 STREET",
+              "count": "17876"
+            },
+            {
+              "item": "LINDEN BOULEVARD",
+              "count": "16193"
+            },
+            {
+              "item": "FLATBUSH AVENUE",
+              "count": "15067"
+            },
+            {
+              "item": "SUTTER AVENUE",
+              "count": "13813"
+            },
+            {
+              "item": "3 AVENUE",
+              "count": "13371"
+            },
+            {
+              "item": "WHITE PLAINS ROAD",
+              "count": "12490"
+            },
+            {
+              "item": "LINDEN BLVD",
+              "count": "11695"
+            },
+            {
+              "item": "WEST END AVENUE",
+              "count": "11472"
+            },
+            {
+              "item": "EAST 174 ST BRIDGE",
+              "count": "10248"
+            },
+            {
+              "item": "UNIVERSITY HEIGHTS BRIDGE",
+              "count": "10076"
+            },
+            {
+              "item": "ATLANTIC AVENUE",
+              "count": "9752"
+            },
+            {
+              "item": "BOSTON ROAD",
+              "count": "9716"
+            },
+            {
+              "item": "NORTH CHANNEL BRIDGE",
+              "count": "9558"
+            },
+            {
+              "item": "UNION TURNPIKE",
+              "count": "9495"
+            },
+            {
+              "item": "OCEAN PARKWAY",
+              "count": "9289"
+            },
+            {
+              "item": "PULASKI BRIDGE",
+              "count": "8610"
+            },
+            {
+              "item": "MERRICK BOULEVARD",
+              "count": "8109"
+            },
+            {
+              "item": "FRESH KILLS BRIDGE",
+              "count": "8087"
+            },
+            {
+              "item": "CROPSEY AVENUE BRIDGE",
+              "count": "7957"
+            }
+          ],
+          "smallest": "101 AV",
+          "count": "1875154",
+          "cardinality": "1875154"
+        },
+        "format": {}
+      },
+      {
+        "id": 591377927,
+        "name": "fromSt",
+        "dataTypeName": "text",
+        "fieldName": "fromst",
+        "description": "The 'From Street' where the count took place.",
+        "position": 12,
+        "renderTypeName": "text",
+        "tableColumnId": 139199547,
+        "width": 172,
+        "cachedContents": {
+          "non_null": "1875154",
+          "largest": "ZWICKY AV",
+          "null": "0",
+          "top": [
+            {
+              "item": "Dead End",
+              "count": "214043"
+            },
+            {
+              "item": "Dead end",
+              "count": "27595"
+            },
+            {
+              "item": "Harlem River Shoreline",
+              "count": "18549"
+            },
+            {
+              "item": "BOROUGH BOUNDARY",
+              "count": "17751"
+            },
+            {
+              "item": "West 60 Street",
+              "count": "13518"
+            },
+            {
+              "item": "Broadway",
+              "count": "12963"
+            },
+            {
+              "item": "45 Avenue",
+              "count": "11911"
+            },
+            {
+              "item": "Flushing Line",
+              "count": "9440"
+            },
+            {
+              "item": "Richmond Avenue",
+              "count": "9431"
+            },
+            {
+              "item": "Borden Avenue",
+              "count": "9376"
+            },
+            {
+              "item": "3 Street",
+              "count": "8847"
+            },
+            {
+              "item": "Newtown Creek Shoreline",
+              "count": "7980"
+            },
+            {
+              "item": "Alley",
+              "count": "7548"
+            },
+            {
+              "item": "Broadway/ 7 Avenue Line",
+              "count": "7406"
+            },
+            {
+              "item": "BEND",
+              "count": "7300"
+            },
+            {
+              "item": "14 Street/canarsie Line",
+              "count": "7221"
+            },
+            {
+              "item": "Astoria Line",
+              "count": "7188"
+            },
+            {
+              "item": "8 Avenue Line",
+              "count": "6841"
+            },
+            {
+              "item": "DEAD END",
+              "count": "6787"
+            },
+            {
+              "item": "Langdale Street",
+              "count": "6416"
+            }
+          ],
+          "smallest": "0.000 Undefined",
+          "count": "1875154",
+          "cardinality": "1875154"
+        },
+        "format": {}
+      },
+      {
+        "id": 591377928,
+        "name": "toSt",
+        "dataTypeName": "text",
+        "fieldName": "tost",
+        "description": "The 'To Street' where the count took place.",
+        "position": 13,
+        "renderTypeName": "text",
+        "tableColumnId": 139199548,
+        "width": 148,
+        "cachedContents": {
+          "non_null": "1873908",
+          "largest": "ZION ST",
+          "null": "1246",
+          "top": [
+            {
+              "item": "Dead end",
+              "count": "230924"
+            },
+            {
+              "item": "Harlem River Shoreline",
+              "count": "34021"
+            },
+            {
+              "item": "BODY OF WATER",
+              "count": "32852"
+            },
+            {
+              "item": "DEAD END",
+              "count": "25380"
+            },
+            {
+              "item": "Dead End",
+              "count": "15376"
+            },
+            {
+              "item": "Bronx River Shoreline",
+              "count": "13845"
+            },
+            {
+              "item": "West 61 Street",
+              "count": "13518"
+            },
+            {
+              "item": "46 Avenue",
+              "count": "11317"
+            },
+            {
+              "item": "BEND",
+              "count": "11142"
+            },
+            {
+              "item": "Flushing Line",
+              "count": "10692"
+            },
+            {
+              "item": "8 Avenue Line",
+              "count": "9102"
+            },
+            {
+              "item": "BROADWAY",
+              "count": "8541"
+            },
+            {
+              "item": "CONNECTOR",
+              "count": "8493"
+            },
+            {
+              "item": "Hewlett Street",
+              "count": "8440"
+            },
+            {
+              "item": "Eastchester Road",
+              "count": "7284"
+            },
+            {
+              "item": "Broadway",
+              "count": "7258"
+            },
+            {
+              "item": "Cypress Avenue",
+              "count": "6831"
+            },
+            {
+              "item": "Broadway/ 7 Avenue Line",
+              "count": "6654"
+            },
+            {
+              "item": "MADISON AV",
+              "count": "6545"
+            },
+            {
+              "item": "North Conduit Avenue",
+              "count": "6513"
+            }
+          ],
+          "smallest": "100 Street",
+          "count": "1875154",
+          "cardinality": "1875154"
+        },
+        "format": {}
+      },
+      {
+        "id": 591377929,
+        "name": "Direction",
+        "dataTypeName": "text",
+        "fieldName": "direction",
+        "description": "The text-based direction of traffic where the count took place.",
+        "position": 14,
+        "renderTypeName": "text",
+        "tableColumnId": 139199549,
+        "width": 208,
+        "cachedContents": {
+          "non_null": "1875154",
+          "largest": "WB",
+          "null": "0",
+          "top": [
+            {
+              "item": "NB",
+              "count": "474645"
+            },
+            {
+              "item": "SB",
+              "count": "469877"
+            },
+            {
+              "item": "EB",
+              "count": "463384"
+            },
+            {
+              "item": "WB",
+              "count": "460720"
+            },
+            {
+              "item": "EW",
+              "count": "3564"
+            },
+            {
+              "item": "NS",
+              "count": "2964"
+            }
+          ],
+          "smallest": "EB",
+          "count": "1875154",
+          "cardinality": "1875154"
+        },
+        "format": {}
+      }
+    ]
+  }
+}
