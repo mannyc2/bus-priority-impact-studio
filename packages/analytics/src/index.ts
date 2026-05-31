@@ -1,4 +1,26 @@
 export type {
+  EwtDistributionSummary,
+  EwtRouteBaseline,
+  EwtRouteMonthReliabilityRow,
+  EwtRouteMonthScoreVectorArtifact,
+  EwtScoreBasis,
+  EwtScoreVectorEntry,
+} from "./calibration/ewt-route-month-score-vectors.js";
+export {
+  buildEwtRouteMonthScoreVectorArtifact,
+  summarizeEwtDistribution,
+} from "./calibration/ewt-route-month-score-vectors.js";
+export type {
+  HeadwayReliabilityEwtDetectorInput,
+  HeadwayReliabilityEwtDetectorOutput,
+  HeadwayReliabilityEwtThresholds,
+} from "./findings/headway-reliability-ewt.js";
+export {
+  DEFAULT_HEADWAY_RELIABILITY_EWT_THRESHOLDS,
+  detectHeadwayReliabilityEwt,
+  HEADWAY_RELIABILITY_EWT_DETECTOR_ID,
+} from "./findings/headway-reliability-ewt.js";
+export type {
   InterventionEvidenceStatus,
   InterventionGapDetectorInput,
   InterventionGapDetectorOutput,

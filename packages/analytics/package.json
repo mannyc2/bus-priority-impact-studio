@@ -4,7 +4,14 @@
   "type": "module",
   "description": "Deterministic local transforms and metrics.",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./baselines": "./src/baselines/index.ts",
+    "./calibration": "./src/calibration/index.ts",
+    "./core": "./src/core/index.ts",
+    "./corpus": "./src/corpus/index.ts",
+    "./detectors": "./src/detectors/index.ts",
+    "./features": "./src/features/index.ts",
+    "./registry": "./src/registry/index.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json --noEmit --pretty false",
