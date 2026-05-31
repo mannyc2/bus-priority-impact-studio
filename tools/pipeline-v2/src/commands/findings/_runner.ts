@@ -1,27 +1,20 @@
-import * as z from "zod";
-
 import {
   type AgentFindingProposal,
-  AgentFindingProposalSchema,
   type AgentFindingProposalModelMeta,
+  AgentFindingProposalSchema,
   type AgentFindingProposalsArtifact,
   type AgentFindingProposalValidationArtifact,
   type FindingCategory,
   type FindingScopeKind,
   type FindingSeverity,
 } from "@bp/domain";
+import * as z from "zod";
 
 import type { ModelToolLoop, ToolUseTraceEntry } from "../../lib/codemode/index.ts";
 
 import type { LoadedCorpus } from "./_corpus.ts";
-import {
-  buildSubmitFindingProposalsTool,
-  type ProposalStore,
-} from "./_submit_tool.ts";
-import {
-  getRouteContextDigest,
-  type RouteContextDigest,
-} from "./_tools.ts";
+import { buildSubmitFindingProposalsTool, type ProposalStore } from "./_submit_tool.ts";
+import { getRouteContextDigest, type RouteContextDigest } from "./_tools.ts";
 import { validateProposal } from "./_validation.ts";
 
 // ---------------------------------------------------------------------------
@@ -85,7 +78,7 @@ function extractJsonObject(text: string): string {
 // ---------------------------------------------------------------------------
 // Prompts
 
-const COMMON_RULES = `# Hard rules
+export const COMMON_RULES = `# Hard rules
 - Only reference evidence that appears in the corpus block. Never invent packetIds, linkIds, recordIds, candidateIds, or signal-feature column names.
 - Never assert causal effect ("caused", "led to", "because of"). Stay observational.
 - Never recommend policy ("should", "must", "we recommend").
@@ -144,7 +137,7 @@ Return nothing else. No commentary, no markdown, no preamble.`;
 // returns per-proposal errors the agent can fix and re-submit.
 const SYSTEM_PROMPT_CODEMODE = `You are the **Bus Priority Impact Studio** findings-proposal agent.
 
-Your job is to investigate NYC bus performance using the sandbox tools (python_exec, bash_exec) and then submit candidate findings via the submit_finding_proposals tool. You do **not** publish findings — every accepted proposal still goes through a human reviewer.
+Your job is to investigate NYC bus performance using the sandbox tools (ts_exec, bash_exec) and then submit candidate findings via the submit_finding_proposals tool. You do **not** publish findings — every accepted proposal still goes through a human reviewer.
 
 ${COMMON_RULES}
 
@@ -152,7 +145,7 @@ ${COMMON_RULES}
 
 You have a small budget of investigation tool calls before you MUST submit.
 
-1. Spend at most **6–8** python_exec / bash_exec calls inspecting the corpus to gather evidence.
+1. Spend at most **6–8** ts_exec / bash_exec calls inspecting the corpus to gather evidence.
 2. Then call \`submit_finding_proposals({proposals: [...]})\` with what you have.
 3. If the submit tool returns validation errors, fix the offending fields and call it again. You may iterate on submission up to **3 times**.
 4. If after investigation you have nothing supportable to propose, call \`submit_finding_proposals\` with a single proposal whose \`claimStrength\` is \`"blocked"\` explaining what's missing — do not just stop exploring.
@@ -205,7 +198,7 @@ export type RunProposalsResult = {
   proposalsArtifact: AgentFindingProposalsArtifact;
   validationArtifact: AgentFindingProposalValidationArtifact;
   // Total tool calls the model issued during this run. In codemode this is
-  // sandbox calls (python_exec + bash_exec, from toolUseTrace) PLUS the
+  // sandbox calls (ts_exec + bash_exec, from toolUseTrace) PLUS the
   // submit_finding_proposals attempts. Non-codemode path returns 0 since
   // the model emits text only.
   toolCallCount: number;
@@ -239,7 +232,7 @@ function normalizeEvidenceRef(
   return ref;
 }
 
-function buildProposal(input: {
+export function buildProposal(input: {
   runId: string;
   month: string;
   draft: z.output<typeof ModelProposalDraftSchema>;
@@ -258,10 +251,9 @@ function buildProposal(input: {
     evidenceRefs: draft.evidenceRefs.map((ref) =>
       normalizeEvidenceRef(ref, input.month),
     ) as AgentFindingProposal["evidenceRefs"],
-    counterEvidenceRefs:
-      ((draft.counterEvidenceRefs ?? []).map((ref) =>
-        normalizeEvidenceRef(ref, input.month),
-      ) as AgentFindingProposal["counterEvidenceRefs"]),
+    counterEvidenceRefs: (draft.counterEvidenceRefs ?? []).map((ref) =>
+      normalizeEvidenceRef(ref, input.month),
+    ) as AgentFindingProposal["counterEvidenceRefs"],
     interventionRecordIds: draft.interventionRecordIds ?? [],
     documentCandidateIds: draft.documentCandidateIds ?? [],
     metricClaims: (draft.metricClaims as AgentFindingProposal["metricClaims"]) ?? [],
@@ -277,13 +269,9 @@ function buildProposal(input: {
   return proposal;
 }
 
-export async function runAgentPropose(
-  input: RunProposalsInput,
-): Promise<RunProposalsResult> {
+export async function runAgentPropose(input: RunProposalsInput): Promise<RunProposalsResult> {
   const start = Date.now();
-  const digests = input.routes.map((routeId) =>
-    getRouteContextDigest(input.corpus, routeId),
-  );
+  const digests = input.routes.map((routeId) => getRouteContextDigest(input.corpus, routeId));
   const userMessage = buildUserMessage({
     digests,
     maxProposalsPerRoute: input.maxProposalsPerRoute,

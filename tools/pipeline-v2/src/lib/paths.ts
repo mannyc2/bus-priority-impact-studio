@@ -1,5 +1,5 @@
-import { fileURLToPath } from "node:url";
 import { isAbsolute, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 export const repoRoot = fileURLToPath(new URL("../../../../", import.meta.url));
 
@@ -25,4 +25,8 @@ export function findingsArtifactDir(month: string): string {
 
 export function agentProposalsDir(month: string, runId: string): string {
   return join(findingsArtifactDir(month), "agent-proposals", runId);
+}
+
+export function agentBriefProposalsDir(month: string, runId: string): string {
+  return join(findingsArtifactDir(month), "agent-brief-proposals", runId);
 }

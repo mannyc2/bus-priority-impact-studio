@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 
 import { repoRoot } from "./paths.ts";
 
-export type SandboxLanguage = "bash" | "python";
+export type SandboxLanguage = "bash" | "typescript";
 
 export type SandboxResult = {
   stdout: string;
@@ -20,6 +20,7 @@ export type SandboxOptions = {
   maxStderrBytes?: number;
   memoryMb?: number;
   image?: string;
+  ralphDir?: string;
 };
 
 const DEFAULTS = {
@@ -29,10 +30,14 @@ const DEFAULTS = {
   maxStderrBytes: 64 * 1024,
   memoryMb: 1024,
   image: "bp-sandbox:latest",
+} satisfies Required<Omit<SandboxOptions, "ralphDir">>;
+
+type ResolvedSandboxOptions = Required<Omit<SandboxOptions, "timeoutSec" | "ralphDir">> & {
+  ralphDir?: string;
 };
 
-function dockerArgs(opts: Required<Omit<SandboxOptions, "timeoutSec">>): string[] {
-  return [
+function dockerArgs(opts: ResolvedSandboxOptions): string[] {
+  const args = [
     "run", "--rm", "-i",
     "--network=none",
     "--read-only",
@@ -45,15 +50,38 @@ function dockerArgs(opts: Required<Omit<SandboxOptions, "timeoutSec">>): string[
     "--tmpfs", "/tmp:rw,size=64m",
     "--tmpfs", "/home/agent:rw,size=8m",
     "-e", "HOME=/home/agent",
-    "-e", "PYTHONPATH=/work/agent-corpus-lib",
+    "-e", "BUN_RUNTIME_TRANSPILER_CACHE_PATH=/tmp/bun-transpiler-cache",
     "-v", `${repoRoot}data/artifacts:/work/data/artifacts:ro`,
     "-v", `${repoRoot}data/raw:/work/data/raw:ro`,
     "-v", `${repoRoot}data/local:/work/data/local:ro`,
     "-v", `${repoRoot}knowledge:/work/knowledge:ro`,
-    "-v", `${repoRoot}tools/agent-corpus-lib:/work/agent-corpus-lib:ro`,
+    "-v", `${repoRoot}packages/analytics:/work/repo/packages/analytics:ro`,
+    "-v", `${repoRoot}packages/domain:/work/repo/packages/domain:ro`,
+    "-v", `${repoRoot}node_modules:/work/repo/node_modules:ro`,
     "-w", "/work",
     "--user", "1000:1000",
     opts.image,
+  ];
+  if (opts.ralphDir !== undefined) {
+    args.splice(args.length - 3, 0, "-v", `${opts.ralphDir}:/work/.ralph:rw`);
+  }
+  return args;
+}
+
+function interpreterFor(language: SandboxLanguage): string[] {
+  if (language === "bash") return ["bash", "-s"];
+  return [
+    "bash",
+    "-lc",
+    [
+      "set -euo pipefail",
+      "mkdir -p /tmp/codemode/node_modules/@bp",
+      "ln -sfn /work/repo/packages/analytics /tmp/codemode/node_modules/@bp/analytics",
+      "ln -sfn /work/repo/packages/domain /tmp/codemode/node_modules/@bp/domain",
+      "cat > /tmp/codemode/main.ts",
+      "cd /tmp/codemode",
+      "bun main.ts",
+    ].join("\n"),
   ];
 }
 
@@ -71,13 +99,15 @@ export async function runCode(
     maxStderrBytes: options.maxStderrBytes ?? DEFAULTS.maxStderrBytes,
     memoryMb: options.memoryMb ?? DEFAULTS.memoryMb,
     image: options.image ?? DEFAULTS.image,
+    ...(options.ralphDir === undefined ? {} : { ralphDir: options.ralphDir }),
   };
-  const interpreter = language === "python" ? ["python3", "-"] : ["bash", "-s"];
+  const interpreter = interpreterFor(language);
   const args = [...dockerArgs({
     maxStdoutBytes: resolved.maxStdoutBytes,
     maxStderrBytes: resolved.maxStderrBytes,
     memoryMb: resolved.memoryMb,
     image: resolved.image,
+    ...(resolved.ralphDir === undefined ? {} : { ralphDir: resolved.ralphDir }),
   }), ...interpreter];
   return runDocker(
     args,
@@ -88,12 +118,12 @@ export async function runCode(
   );
 }
 
-export function runPython(code: string, options?: SandboxOptions): Promise<SandboxResult> {
-  return runCode("python", code, options);
-}
-
 export function runBash(command: string, options?: SandboxOptions): Promise<SandboxResult> {
   return runCode("bash", command, options);
+}
+
+export function runTypeScript(code: string, options?: SandboxOptions): Promise<SandboxResult> {
+  return runCode("typescript", code, options);
 }
 
 function runDocker(

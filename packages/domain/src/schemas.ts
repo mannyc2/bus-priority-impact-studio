@@ -92,6 +92,19 @@ export const MapLayerMetricSchema = registerProjectSchema(
 
 export type MapLayerMetric = z.output<typeof MapLayerMetricSchema>;
 
+export const CodeExecutionLanguageSchema = registerProjectSchema(
+  z.enum(["typescript", "bash"]),
+  {
+    id: "bp.code_execution_language",
+    title: "Code Execution Language",
+    description:
+      "Languages accepted by agent-authored code_execution evidence refs. TypeScript/Bun is the primary path; bash is limited to deterministic shell slicing.",
+    stability: "draft",
+  },
+);
+
+export type CodeExecutionLanguage = z.output<typeof CodeExecutionLanguageSchema>;
+
 export const NycBoroughSchema = registerProjectSchema(
   z.enum(["Bronx", "Brooklyn", "Manhattan", "Queens", "Staten Island"]),
   {
@@ -1751,7 +1764,7 @@ export const AgentFindingProposalEvidenceRefSchema = registerProjectSchema(
       z
         .object({
           kind: z.literal("code_execution"),
-          language: z.enum(["python", "bash"]),
+          language: CodeExecutionLanguageSchema,
           code: z.string().min(1).max(8000),
           stdoutHash: z.string().regex(/^[0-9a-f]{64}$/),
           citedValuePath: z.string().min(1).max(200).optional(),
