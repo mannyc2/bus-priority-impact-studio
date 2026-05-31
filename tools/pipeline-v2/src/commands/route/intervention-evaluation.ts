@@ -1,4 +1,3 @@
-import { arg, defineCommand, z } from "@liche/core";
 import {
   type LocalAceRoute,
   type LocalBusLane,
@@ -11,6 +10,7 @@ import {
   listRouteStops,
   replaceRouteInterventionEvaluationRows,
 } from "@bp/db/local";
+import { arg, defineCommand, z } from "@liche/core";
 import { isoMonth } from "../../lib/dates.ts";
 import {
   dbOptions,
@@ -28,6 +28,7 @@ const defaultComparisonRouteCount = 10;
 
 export type RouteInterventionEvaluationResult = {
   isoMonth: string;
+  routeUniverseMonth: string;
   routeCount: number;
   eventCount: number;
   comparisonCount: number;
@@ -688,17 +689,23 @@ export async function runRouteInterventionEvaluation(inputs: {
   local: OpenLocalPipelineDb;
   year: number;
   month: number;
+  routeUniverseYear?: number | undefined;
+  routeUniverseMonth?: number | undefined;
   windowMonths: number;
   minSampleMonths: number;
   comparisonRouteCount: number;
 }): Promise<RouteInterventionEvaluationResult> {
   const month = isoMonth(inputs.year, inputs.month);
+  const routeUniverseMonth = isoMonth(
+    inputs.routeUniverseYear ?? inputs.year,
+    inputs.routeUniverseMonth ?? inputs.month,
+  );
   const windowMonths = Math.max(1, Math.round(inputs.windowMonths));
   const minSampleMonths = Math.max(1, Math.round(inputs.minSampleMonths));
   const comparisonRouteCount = Math.max(1, Math.round(inputs.comparisonRouteCount));
 
   const [briefs, aceRoutes, trends, busLanes] = await Promise.all([
-    listRouteBriefSummaries(inputs.local.db, month),
+    listRouteBriefSummaries(inputs.local.db, routeUniverseMonth),
     listAceRoutes(inputs.local.db),
     listRouteMonthTrends(inputs.local.db),
     listBusLanes(inputs.local.db),
@@ -742,7 +749,7 @@ export async function runRouteInterventionEvaluation(inputs: {
   );
   const busLaneEvents: InterventionEventRow[] = [];
   for (const routeId of busLaneMatchedRouteIds) {
-    const stops = await listRouteStops(inputs.local.db, routeId, month);
+    const stops = await listRouteStops(inputs.local.db, routeId, routeUniverseMonth);
     busLaneEvents.push(
       ...buildBusLaneEventsForRoute({
         routeId,
@@ -792,6 +799,7 @@ export async function runRouteInterventionEvaluation(inputs: {
 
   return {
     isoMonth: month,
+    routeUniverseMonth,
     routeCount: publicRouteIds.size,
     eventCount: events.length,
     comparisonCount: comparisons.length,
@@ -817,6 +825,14 @@ export default defineCommand({
     options: dbOptions.extend({
       year: arg.positiveInt().default(2026).describe("Calendar year"),
       month: arg.positiveInt().default(3).describe("Calendar month, 1-12"),
+      routeUniverseYear: arg
+        .positiveInt()
+        .optional()
+        .describe("Year for route universe/treatment inventory; defaults to analysis year"),
+      routeUniverseMonth: arg
+        .positiveInt()
+        .optional()
+        .describe("Month for route universe/treatment inventory; defaults to analysis month"),
       windowMonths: arg
         .positiveInt()
         .default(defaultWindowMonths)
@@ -834,6 +850,7 @@ export default defineCommand({
   middleware: [withLocalDb()],
   output: z.object({
     isoMonth: z.string(),
+    routeUniverseMonth: z.string(),
     routeCount: z.number(),
     eventCount: z.number(),
     comparisonCount: z.number(),
@@ -847,6 +864,8 @@ export default defineCommand({
       local: localDbFromCtx(ctx),
       year: input.options.year,
       month: input.options.month,
+      routeUniverseYear: input.options.routeUniverseYear,
+      routeUniverseMonth: input.options.routeUniverseMonth,
       windowMonths: input.options.windowMonths,
       minSampleMonths: input.options.minSampleMonths,
       comparisonRouteCount: input.options.comparisonRouteCount,
