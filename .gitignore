@@ -3,6 +3,8 @@ dist/
 build/
 !tools/pipeline-v2/src/commands/build/
 !tools/pipeline-v2/src/commands/build/**
+!tools/pipeline-v2/test/commands/build/
+!tools/pipeline-v2/test/commands/build/**
 .wrangler/
 .dev.vars
 .env
@@ -22,6 +24,8 @@ data/working/*
 data/artifacts/*
 data/exports/*
 data/local/*
+# Operational run logs, PIDs, and scratch from local backfill runners.
+data/ops/backfills/
 !data/raw/.gitkeep
 !data/working/.gitkeep
 !data/artifacts/.gitkeep
@@ -51,6 +55,9 @@ data/local/*
 # under knowledge/raw/metadata, and put large source datasets under data/raw.
 knowledge/raw/downloads/*
 !knowledge/raw/downloads/.gitkeep
+
+# TanStack Start local build cache.
+apps/web/.tanstack/
 
 # Tool caches.
 .cache/
