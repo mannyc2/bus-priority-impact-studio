@@ -2086,56 +2086,166 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = DataProductManifestSch
       ],
     },
     {
-      id: "tier2_docs_corpus_outputs",
-      label: "Tier 2 docs corpus outputs",
+      id: "tier2_ocr_raw_handoff_archives",
+      label: "Tier 2 OCR raw handoff archives",
       kind: "artifact_family",
       owner: "tools/pipeline-v2/docs/tier2",
-      grain: "docs run corpus artifacts",
-      producerCommand:
-        "docs:tier2 capture/extract/chunk/promote-publishable-interventions pipeline",
+      grain: "external OCR handoff archive",
+      producerCommand: "docs:tier2 OCR handoff/import",
       expectedUniverse: {
         description:
-          "The selected Tier 2 docs run has source acquisition, candidate extraction, page Markdown audit, reviewed intervention records, and publishable outputs. Legacy OCR runs may be preserved, but they do not satisfy this gate by themselves.",
+          "Raw third-party/OCR handoff archives preserved outside operational logs so the OCR text layer can be re-audited or re-imported.",
       },
-      requiredInputs: ["Tier 2 source registry/backlog", "LLM OCR/extraction runs"],
+      requiredInputs: ["Tier 2 source registry/backlog", "LLM OCR runs"],
+      downstreamConsumers: ["tier2_ocr_page_markdown_corpus", "OCR provenance audits"],
+      freshnessPolicy: { cadence: "manual" },
+      checks: [
+        {
+          id: "raw_handoff_archives",
+          label: "Preserved OCR handoff zip archives",
+          type: "artifact_glob",
+          rootTemplate: "{repoRoot}/data/raw/third-party/tier2-ocr-handoffs",
+          pattern: "**/*.zip",
+          minFiles: 2,
+        },
+      ],
+    },
+    {
+      id: "tier2_ocr_page_markdown_corpus",
+      label: "Tier 2 OCR page Markdown corpus",
+      kind: "artifact_family",
+      owner: "tools/pipeline-v2/docs/tier2",
+      grain: "source PDF page Markdown",
+      producerCommand: "docs:tier2 ocr-page-markdown",
+      expectedUniverse: {
+        description:
+          "Full Tier 2 document corpus has one OCR Markdown page per rendered PDF page, plus audit/manifests proving page-level coverage. This is text coverage only; it is not the structured extraction layer.",
+      },
+      requiredInputs: [
+        "Tier 2 source registry/backlog",
+        "tier2_ocr_raw_handoff_archives",
+        "rendered per-page PNGs",
+      ],
+      downstreamConsumers: [
+        "tier2_structured_intervention_extraction_full_corpus",
+        "finding evidence corpus",
+        "document evidence search",
+      ],
+      freshnessPolicy: { cadence: "manual" },
+      checks: [
+        {
+          id: "prepare_manifest",
+          label: "Full Tier 2 OCR prepare manifest",
+          type: "json_artifact",
+          pathTemplate:
+            "{artifactRoot}/docs/tier2-full-corpus-2026-05-24-pass2/ocr-page-markdown-prepare-v1.json",
+        },
+        {
+          id: "page_markdown_files",
+          label: "Full Tier 2 OCR page Markdown files",
+          type: "artifact_glob",
+          rootTemplate:
+            "{artifactRoot}/docs/tier2-full-corpus-2026-05-24-pass2/ocr-page-markdown-pioneer-gemini35-lowhanging-v1",
+          pattern: "**/*.md",
+          minFiles: 9262,
+        },
+        {
+          id: "page_markdown_audit",
+          label: "Full Tier 2 OCR page Markdown audit",
+          type: "json_artifact",
+          pathTemplate:
+            "{artifactRoot}/docs/tier2-ocr-audits/gemini35-lowhanging-v1/ocr-page-markdown-audit.json",
+        },
+        {
+          id: "source_manifests",
+          label: "Full Tier 2 OCR per-source manifests",
+          type: "artifact_glob",
+          rootTemplate: "{artifactRoot}/docs/tier2-ocr-audits/gemini35-lowhanging-v1/manifests",
+          pattern: "*.json",
+          minFiles: 386,
+        },
+      ],
+    },
+    {
+      id: "tier2_ocr_preservation_overlay",
+      label: "Tier 2 OCR preservation overlay",
+      kind: "artifact_family",
+      owner: "tools/pipeline-v2/docs/tier2",
+      grain: "preserved OCR source reconciliation",
+      producerCommand: "docs:tier2 preserve/reconcile older OCR Markdown",
+      expectedUniverse: {
+        description:
+          "Overlay artifacts preserving older valid OCR Markdown and source reconciliation so the full text corpus can reuse rather than discard prior OCR work.",
+      },
+      requiredInputs: ["older OCR Markdown corpus", "tier2_ocr_page_markdown_corpus"],
+      downstreamConsumers: ["tier2_structured_intervention_extraction_full_corpus"],
+      freshnessPolicy: { cadence: "manual" },
+      checks: [
+        {
+          id: "preserved_source_registration",
+          label: "Preserved source registration",
+          type: "json_artifact",
+          pathTemplate:
+            "{artifactRoot}/docs/tier2-ocr-preservation-20260531/preserved-source-registration.json",
+        },
+        {
+          id: "ocr_reuse_overlay",
+          label: "Current full-corpus OCR reuse overlay",
+          type: "json_artifact",
+          pathTemplate:
+            "{artifactRoot}/docs/tier2-ocr-preservation-20260531/current-full-corpus-ocr-reuse-overlay.json",
+        },
+        {
+          id: "older_page_md_reconciliation",
+          label: "Older page Markdown source reconciliation",
+          type: "json_artifact",
+          pathTemplate:
+            "{artifactRoot}/docs/tier2-ocr-preservation-20260531/older-page-md-source-reconciliation.json",
+        },
+      ],
+    },
+    {
+      id: "tier2_structured_intervention_extraction_full_corpus",
+      label: "Tier 2 structured intervention extraction from OCR corpus",
+      kind: "artifact_family",
+      owner: "tools/pipeline-v2/docs/tier2",
+      grain: "reviewed document intervention/event records",
+      producerCommand: "docs:tier2 extract/promote structured interventions from OCR Markdown",
+      expectedUniverse: {
+        description:
+          "Structured intervention candidates/events extracted from the full OCR Markdown corpus, reviewed, de-duplicated, and promoted into publishable intervention records. This is the known missing layer after OCR text coverage.",
+      },
+      requiredInputs: ["tier2_ocr_page_markdown_corpus", "tier2_ocr_preservation_overlay"],
       downstreamConsumers: ["Studio intervention timeline", "finding evidence corpus"],
       freshnessPolicy: { cadence: "manual" },
       checks: [
         {
-          id: "capture_manifests",
-          label: "Selected Tier 2 capture manifest",
-          type: "json_artifact",
-          pathTemplate: "{artifactRoot}/docs/gap-roadmap-docs-2026-05-25/capture-manifest.json",
-          requiredJsonValues: [{ path: "runId", equals: "gap-roadmap-docs-2026-05-25" }],
-        },
-        {
-          id: "candidate_bundles",
-          label: "Selected Tier 2 candidate bundle",
-          type: "json_artifact",
-          pathTemplate: "{artifactRoot}/docs/gap-roadmap-docs-2026-05-25/candidate-bundle.json",
-          requiredJsonValues: [{ path: "runId", equals: "gap-roadmap-docs-2026-05-25" }],
-        },
-        {
-          id: "page_markdown_audit",
-          label: "Selected Tier 2 page Markdown audit",
+          id: "candidate_bundle_combined",
+          label: "Full Tier 2 combined candidate bundle",
           type: "json_artifact",
           pathTemplate:
-            "{artifactRoot}/docs/gap-roadmap-docs-2026-05-25/ocr-page-markdown-audit.json",
-          requiredJsonValues: [{ path: "runId", equals: "gap-roadmap-docs-2026-05-25" }],
+            "{artifactRoot}/docs/tier2-full-corpus-2026-05-24-pass2/candidate-bundle-combined.json",
         },
         {
-          id: "reviewed_intervention_records",
-          label: "Selected Tier 2 reviewed intervention records",
+          id: "intervention_events_combined",
+          label: "Full Tier 2 combined intervention events",
           type: "json_artifact",
           pathTemplate:
-            "{artifactRoot}/docs/gap-roadmap-docs-2026-05-25/intervention-records-corpus-v3-reviewed-2026-05-27.json",
+            "{artifactRoot}/docs/tier2-full-corpus-2026-05-24-pass2/tier2-intervention-events-combined.json",
         },
         {
-          id: "publishable_interventions",
-          label: "Selected Tier 2 publishable intervention artifact",
+          id: "reviewed_intervention_records_full_corpus",
+          label: "Full Tier 2 reviewed intervention records",
           type: "json_artifact",
           pathTemplate:
-            "{artifactRoot}/docs/gap-roadmap-docs-2026-05-25/intervention-publishable-v1.json",
+            "{artifactRoot}/docs/tier2-full-corpus-2026-05-24-pass2/intervention-records-corpus-reviewed.json",
+        },
+        {
+          id: "publishable_interventions_full_corpus",
+          label: "Full Tier 2 publishable intervention artifact",
+          type: "json_artifact",
+          pathTemplate:
+            "{artifactRoot}/docs/tier2-full-corpus-2026-05-24-pass2/intervention-publishable-v1.json",
           semantic: "tier2_publishable_ready",
         },
       ],
@@ -2151,7 +2261,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = DataProductManifestSch
         description:
           "Publishable gate artifact for the selected docs run. Historical/deleted pipeline status files are retained as provenance but are not the release gate.",
       },
-      requiredInputs: ["tier2_docs_corpus_outputs", "studio_release_projection_manifest"],
+      requiredInputs: ["selected Tier 2 docs run artifacts", "studio_release_projection_manifest"],
       downstreamConsumers: ["release promotion checklist", "Studio Tier 2 affordance audit"],
       freshnessPolicy: { cadence: "manual" },
       checks: [
