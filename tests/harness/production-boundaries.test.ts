@@ -4,20 +4,20 @@ const forbiddenRuntimeImports = [
   "@bp/analytics",
   "@bp/sources",
   "@bp/pipeline",
+  "@bp/pipeline-v2",
   "@bp/db/local",
   "tools/pipeline",
+  "tools/pipeline-v2",
   "knowledge/",
 ];
 
-const requiredRootPipelineScripts = [
-  "check:bus-observatory-gtfs-rt-range",
-  "backfill:bus-observatory-range",
-  "backfill:socrata-range",
-  "geocode:permits",
-  "geocode:traffic-volumes",
-  "geocode:traffic-speeds",
-  "ingest:noaa-weather",
-];
+const requiredRootScripts = {
+  pipeline: "bun --filter @bp/pipeline-v2 cli --",
+  "check:knowledge": "bun run tools/pipeline-v2/src/checks/check-knowledge.ts",
+  "check:web-architecture": "bun test tests/harness/production-boundaries.test.ts --timeout 5000",
+  "check:publish-completeness":
+    "bun run tools/pipeline-v2/src/checks/check-publish-completeness.ts",
+} as const;
 
 async function readFiles(root: string): Promise<Array<{ path: string; text: string }>> {
   const glob = new Bun.Glob("**/*.{ts,tsx}");
@@ -96,21 +96,31 @@ async function findSrcTestFiles(): Promise<string[]> {
 }
 
 describe("production boundary harness", () => {
-  test("root package exposes the operational pipeline scripts documented for reviewers", async () => {
+  test("root package exposes v2 pipeline entrypoints and no stale v1 script paths", async () => {
     const rootPackage = (await Bun.file("package.json").json()) as {
       scripts?: Record<string, string>;
     };
-    const pipelinePackage = (await Bun.file("tools/pipeline/package.json").json()) as {
+    const pipelinePackage = (await Bun.file("tools/pipeline-v2/package.json").json()) as {
+      name?: string;
       scripts?: Record<string, string>;
     };
 
-    for (const script of requiredRootPipelineScripts) {
-      expect(typeof pipelinePackage.scripts?.[script], `pipeline package missing ${script}`).toBe(
-        "string",
-      );
-      expect(rootPackage.scripts?.[script], `root package missing ${script}`).toBe(
-        `bun --filter @bp/pipeline ${script}`,
-      );
+    expect(pipelinePackage.name).toBe("@bp/pipeline-v2");
+    expect(pipelinePackage.scripts?.["cli"]).toBe("bun run src/cli.ts");
+
+    for (const [script, command] of Object.entries(requiredRootScripts)) {
+      expect(rootPackage.scripts?.[script], `root package ${script} drifted`).toBe(command);
+    }
+
+    for (const [script, command] of Object.entries(rootPackage.scripts ?? {})) {
+      expect(
+        /tools\/pipeline(?!-v2)\//.test(command),
+        `root package ${script} still references deleted tools/pipeline`,
+      ).toBe(false);
+      expect(
+        /@bp\/pipeline(?!-v2)\b/.test(command),
+        `root package ${script} still references @bp/pipeline`,
+      ).toBe(false);
     }
   });
 
@@ -180,6 +190,30 @@ describe("production boundary harness", () => {
       "react",
       "fs",
       "node:",
+    ];
+
+    for (const file of files) {
+      for (const forbiddenImport of forbiddenImports) {
+        expect(
+          importsForbiddenSpecifier(file.text, forbiddenImport),
+          `${file.path} imports ${forbiddenImport}`,
+        ).toBe(false);
+      }
+    }
+  });
+
+  test("applied research package stays headless and does not import apps, tools, wiki, source fetchers, or UI runtimes", async () => {
+    const files = await readFiles("packages/applied-research/src");
+    const forbiddenImports = [
+      "apps/",
+      "tools/",
+      "knowledge/",
+      "@bp/sources",
+      "@bp/pipeline",
+      "@bp/pipeline-v2",
+      "react",
+      "@cloudflare",
+      "wrangler",
     ];
 
     for (const file of files) {

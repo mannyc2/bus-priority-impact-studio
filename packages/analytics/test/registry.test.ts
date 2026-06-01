@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import {
   BUNCHING_HOTSPOTS_DETECTOR_ID,
-  DELAY_CONCENTRATION_DETECTOR_ID,
   DEGRADATION_TREND_DETECTOR_ID,
+  DELAY_CONCENTRATION_DETECTOR_ID,
   HEADWAY_RELIABILITY_EWT_DETECTOR_ID,
   INTERVENTION_EVENT_STUDY_DETECTOR_ID,
   INTERVENTION_GAP_DETECTOR_ID,
@@ -19,19 +19,21 @@ import {
   SPEED_PACE_HOTSPOT_DETECTOR_ID,
   TRAVEL_TIME_VARIABILITY_DETECTOR_ID,
 } from "@bp/analytics/detectors";
+import { getFeatureContract } from "@bp/analytics/features";
 import {
   ANALYTICS_DETECTOR_REGISTRY,
+  assertDetectorRegistryMatchesSpecs,
+  buildFindingDetectorSpecsArtifact,
   DETECTOR_BASELINE_FAMILIES,
   DETECTOR_CLAIM_TIERS,
   DETECTOR_PROMOTION_GATE_KINDS,
   DETECTOR_RETIREMENT_STATUSES,
   FINDING_DETECTOR_SPECS,
-  assertDetectorRegistryMatchesSpecs,
-  buildFindingDetectorSpecsArtifact,
   getAnalyticsDetector,
   getFindingDetectorSpec,
   listAnalyticsDetectors,
 } from "@bp/analytics/registry";
+import { KNOWN_DETECTOR_IDS, KNOWN_FINDING_REASON_CODES } from "@bp/domain";
 
 const EXPECTED_DETECTOR_IDS = [
   SOURCE_GAP_DETECTOR_ID,
@@ -58,10 +60,12 @@ describe("analytics detector registry", () => {
   test("registers every detector spec exactly once", () => {
     expect(() => assertDetectorRegistryMatchesSpecs()).not.toThrow();
 
-    const registeredIds = ANALYTICS_DETECTOR_REGISTRY.map((detector) => detector.detectorId);
-    expect(registeredIds).toEqual(EXPECTED_DETECTOR_IDS);
+    const registeredIds = ANALYTICS_DETECTOR_REGISTRY.map((detector) =>
+      String(detector.detectorId),
+    );
+    expect(registeredIds).toEqual([...EXPECTED_DETECTOR_IDS]);
     expect(new Set(registeredIds).size).toBe(registeredIds.length);
-    expect(FINDING_DETECTOR_SPECS.map((spec) => spec.detectorId).sort()).toEqual(
+    expect(FINDING_DETECTOR_SPECS.map((spec) => String(spec.detectorId)).sort()).toEqual(
       [...EXPECTED_DETECTOR_IDS].sort(),
     );
   });
@@ -85,6 +89,12 @@ describe("analytics detector registry", () => {
     for (const detector of ANALYTICS_DETECTOR_REGISTRY) {
       expect(detector.version).toMatch(/^\d+\.\d+\.\d+$/);
       expect(detector.featureGrains.length).toBeGreaterThan(0);
+      for (const featureGrain of detector.featureGrains) {
+        const contract = getFeatureContract(featureGrain);
+        expect(contract?.featureGrain).toBe(featureGrain);
+        expect(contract?.grainKeys.length).toBeGreaterThan(0);
+        expect(contract?.requiredFields.length).toBeGreaterThan(0);
+      }
       expect(detector.spec.detectorId).toBe(detector.detectorId);
       expect(detector.spec.primaryEvidenceRequired.length).toBeGreaterThan(0);
       expect(detector.spec.counterEvidenceRequired.length).toBeGreaterThan(0);
@@ -104,6 +114,17 @@ describe("analytics detector registry", () => {
       expect(detector.evidenceSchemaVersion).toMatch(/^v\d+$/);
       expect(retirementStatuses.has(detector.retirementStatus)).toBe(true);
       expect(typeof detector.run).toBe("function");
+    }
+  });
+
+  test("keeps domain detector documentation aligned with the analytics registry", () => {
+    expect(KNOWN_DETECTOR_IDS.map(String)).toEqual([...EXPECTED_DETECTOR_IDS]);
+
+    const documentedReasonCodes = new Set<string>(KNOWN_FINDING_REASON_CODES);
+    for (const detector of ANALYTICS_DETECTOR_REGISTRY) {
+      for (const missingDataState of detector.missingDataStates) {
+        expect(documentedReasonCodes.has(missingDataState)).toBe(true);
+      }
     }
   });
 
@@ -150,7 +171,9 @@ describe("analytics detector registry", () => {
 
     expect(artifact.artifactKind).toBe("finding_detector_specs");
     expect(artifact.detectorCount).toBe(EXPECTED_DETECTOR_IDS.length);
-    expect(artifact.detectors.map((spec) => spec.detectorId)).toEqual(EXPECTED_DETECTOR_IDS);
+    expect(artifact.detectors.map((spec) => String(spec.detectorId))).toEqual([
+      ...EXPECTED_DETECTOR_IDS,
+    ]);
     expect(getFindingDetectorSpec(DELAY_CONCENTRATION_DETECTOR_ID)?.allowedClaimStrength).toBe(2);
   });
 });

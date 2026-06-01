@@ -3,29 +3,25 @@ import { Database as BunDatabase } from "bun:sqlite";
 import { mkdir } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative } from "node:path";
 import {
-  buildStopDirectionHourEwtFeatures,
+  buildStopDirectionHourEwtFeatureArtifact,
+  parseObservedRowsForStopDirectionHourEwt,
+  parseScheduleRowsForStopDirectionHourEwt,
   type ObservedHeadwayForStopDirectionHourEwt,
+  type RawObservedHeadwayForEwtRow,
+  type RawScheduleStopArrivalRow,
   type ScheduleStopArrivalForStopDirectionHourEwt,
-  type StopDirectionHourEwtAuditRow,
-  type StopDirectionHourEwtFeatureBuildSummary,
-  type StopDirectionHourFeature,
-  type StopDirectionHourScheduleBaseline,
-} from "@bp/analytics/features";
+  type StopDirectionHourEwtFeatureArtifact,
+  type StopDirectionHourEwtScheduleSelection,
+  type StopDirectionHourEwtScheduleSourceKind,
+} from "@bp/applied-research/feature-resolvers";
+import { createStopDirectionHourEwtFeatureInputPort } from "@bp/applied-research/local-db";
 import { arg, defineCommand, z } from "@liche/core";
 import { isoMonth } from "../../lib/dates.ts";
 import { writeJson } from "../../lib/json.ts";
 import { dbOptions, defaultLocalPipelineDbPath } from "../../lib/local-db.ts";
 import { defaultArtifactRootPath, fromCliPath, repoRoot } from "../../lib/paths.ts";
 
-type RawScheduleRow = {
-  route_id: unknown;
-  day_type: unknown;
-  direction: unknown;
-  stop_id: unknown;
-  stop_name: unknown;
-  schedule_date: unknown;
-  schedule_time: unknown;
-};
+type RawScheduleRow = RawScheduleStopArrivalRow;
 
 type RawGtfsStopTimeRow = {
   source_id: unknown;
@@ -58,54 +54,11 @@ type RawGtfsCalendarDateRow = {
   exception_type: unknown;
 };
 
-type RawObservedHeadwayRow = {
-  route_id: unknown;
-  direction: unknown;
-  stop_id: unknown;
-  stop_name: unknown;
-  observed_timestamp: unknown;
-  headway_minutes: unknown;
-};
+type RawObservedHeadwayRow = RawObservedHeadwayForEwtRow;
 
-type ScheduleSourceKind = "gtfs_static" | "socrata_route_schedule" | "route_schedule_timepoint";
+type ScheduleSourceKind = StopDirectionHourEwtScheduleSourceKind;
 
-type ScheduleSourceSelection = {
-  kind: ScheduleSourceKind;
-  table:
-    | "local_gtfs_static_stop_time"
-    | "local_route_schedule_stop"
-    | "local_route_schedule_timepoint";
-  gtfsRunId: string | null;
-  caveat: string;
-};
-
-export type StopDirectionHourEwtFeatureArtifact = {
-  artifactKind: "stop_direction_hour_ewt_features";
-  generatedAt: string;
-  month: string;
-  routeId: string;
-  runId: string;
-  timezone: string;
-  observedAggregation: "service_date_hour" | "month_day_type_hour";
-  dbPath: string | null;
-  artifactPath: string;
-  source: {
-    scheduleSource: ScheduleSourceKind;
-    scheduleTable:
-      | "local_gtfs_static_stop_time"
-      | "local_route_schedule_stop"
-      | "local_route_schedule_timepoint";
-    gtfsRunId: string | null;
-    observedHeadwayTable: "local_observed_headway_sample";
-    stopDirectionTable: "local_route_stop";
-    grain: "stop_direction_hour";
-    caveat: string;
-  };
-  summary: StopDirectionHourEwtFeatureBuildSummary;
-  scheduleBaselines: StopDirectionHourScheduleBaseline[];
-  features: StopDirectionHourFeature[];
-  auditRows: StopDirectionHourEwtAuditRow[];
-};
+type ScheduleSourceSelection = StopDirectionHourEwtScheduleSelection;
 
 function repoDisplayPath(path: string): string {
   if (!isAbsolute(path)) return path;
@@ -182,69 +135,6 @@ function gtfsTimeToIso(serviceDate: string, gtfsTime: string): string | null {
   return new Date(Date.UTC(year, month - 1, day, hour, minute, second)).toISOString();
 }
 
-function parseScheduleRows(
-  rows: readonly RawScheduleRow[],
-): ScheduleStopArrivalForStopDirectionHourEwt[] {
-  return rows.flatMap((row) => {
-    const routeId = textValue(row.route_id);
-    const dayType = textValue(row.day_type);
-    const direction = textValue(row.direction);
-    const stopId = textValue(row.stop_id);
-    const scheduleDate = textValue(row.schedule_date);
-    const scheduleTime = textValue(row.schedule_time);
-    if (
-      routeId === null ||
-      dayType === null ||
-      direction === null ||
-      stopId === null ||
-      scheduleDate === null ||
-      scheduleTime === null
-    ) {
-      return [];
-    }
-    return [
-      {
-        routeId,
-        dayType,
-        direction,
-        stopId,
-        stopName: textValue(row.stop_name),
-        scheduleDate,
-        scheduleTime,
-      },
-    ];
-  });
-}
-
-function parseObservedRows(
-  rows: readonly RawObservedHeadwayRow[],
-): ObservedHeadwayForStopDirectionHourEwt[] {
-  return rows.flatMap((row) => {
-    const routeId = textValue(row.route_id);
-    const stopId = textValue(row.stop_id);
-    const observedTimestamp = numberValue(row.observed_timestamp);
-    const headwayMinutes = numberValue(row.headway_minutes);
-    if (
-      routeId === null ||
-      stopId === null ||
-      observedTimestamp === null ||
-      headwayMinutes === null
-    ) {
-      return [];
-    }
-    return [
-      {
-        routeId,
-        direction: textValue(row.direction),
-        stopId,
-        stopName: textValue(row.stop_name),
-        observedTimestamp,
-        headwayMinutes,
-      },
-    ];
-  });
-}
-
 export function queryScheduleTimepointsForEwtFeatures(
   sqlite: Database,
   month: string,
@@ -267,7 +157,7 @@ export function queryScheduleTimepointsForEwtFeatures(
       `,
     )
     .all(month, routeId) as RawScheduleRow[];
-  return parseScheduleRows(rows);
+  return parseScheduleRowsForStopDirectionHourEwt(rows);
 }
 
 export function querySocrataRouteSchedulesForEwtFeatures(
@@ -302,7 +192,7 @@ export function querySocrataRouteSchedulesForEwtFeatures(
       `${monthStart(month)}T00:00:00`,
       `${nextMonthStart(month)}T00:00:00`,
     ) as RawScheduleRow[];
-  return parseScheduleRows(rows);
+  return parseScheduleRowsForStopDirectionHourEwt(rows);
 }
 
 function latestGtfsStaticRunId(sqlite: Database): string | null {
@@ -326,6 +216,23 @@ function datesInMonth(month: string): string[] {
   const start = new Date(`${monthStart(month)}T12:00:00Z`);
   const end = new Date(`${nextMonthStart(month)}T12:00:00Z`);
   for (let time = start.getTime(); time < end.getTime(); time += 86_400_000) {
+    dates.push(new Date(time).toISOString().slice(0, 10));
+  }
+  return dates;
+}
+
+function datesBetweenInclusive(startCompact: string, endCompact: string, maxDays = 370): string[] {
+  const startIso = isoDateFromYyyymmdd(startCompact);
+  const endIso = isoDateFromYyyymmdd(endCompact);
+  if (startIso === null || endIso === null) return [];
+  const dates: string[] = [];
+  const start = new Date(`${startIso}T12:00:00Z`);
+  const end = new Date(`${endIso}T12:00:00Z`);
+  for (
+    let time = start.getTime(), count = 0;
+    time <= end.getTime() && count < maxDays;
+    time += 86_400_000, count += 1
+  ) {
     dates.push(new Date(time).toISOString().slice(0, 10));
   }
   return dates;
@@ -394,10 +301,76 @@ function buildGtfsServiceDateMap(input: {
   }
 
   return new Map(
-    [...active.entries()].map(([key, values]) => [
-      key,
-      [...values].sort((left, right) => left.localeCompare(right)),
-    ]),
+    [...active.entries()]
+      .map(([key, values]) => [
+        key,
+        [...values].sort((left, right) => left.localeCompare(right)),
+      ] as const)
+      .filter(([, values]) => values.length > 0),
+  );
+}
+
+function buildGtfsRepresentativeServiceDateMap(input: {
+  calendars: readonly RawGtfsServiceCalendarRow[];
+  calendarDates: readonly RawGtfsCalendarDateRow[];
+}): Map<string, string[]> {
+  const active = new Map<string, Set<string>>();
+
+  for (const calendar of input.calendars) {
+    const sourceId = textValue(calendar.source_id);
+    const serviceId = textValue(calendar.service_id);
+    const startDate = textValue(calendar.start_date);
+    const endDate = textValue(calendar.end_date);
+    if (sourceId === null || serviceId === null || startDate === null || endDate === null) {
+      continue;
+    }
+    const key = serviceKey(sourceId, serviceId);
+    const dates = active.get(key) ?? new Set<string>();
+    const selectedDayTypes = new Set([...dates].map(dayTypeFromIsoDate));
+    const serviceFlags = [
+      intValue(calendar.sunday) ?? 0,
+      intValue(calendar.monday) ?? 0,
+      intValue(calendar.tuesday) ?? 0,
+      intValue(calendar.wednesday) ?? 0,
+      intValue(calendar.thursday) ?? 0,
+      intValue(calendar.friday) ?? 0,
+      intValue(calendar.saturday) ?? 0,
+    ];
+    for (const date of datesBetweenInclusive(startDate, endDate)) {
+      const day = new Date(`${date}T12:00:00Z`).getUTCDay();
+      if ((serviceFlags[day] ?? 0) !== 1) continue;
+      const dayType = dayTypeFromIsoDate(date);
+      if (selectedDayTypes.has(dayType)) continue;
+      dates.add(date);
+      selectedDayTypes.add(dayType);
+      if (selectedDayTypes.size >= 3) break;
+    }
+    if (dates.size > 0) active.set(key, dates);
+  }
+
+  for (const calendarDate of input.calendarDates) {
+    const sourceId = textValue(calendarDate.source_id);
+    const serviceId = textValue(calendarDate.service_id);
+    const date = textValue(calendarDate.service_date);
+    const exceptionType = intValue(calendarDate.exception_type);
+    const isoDate = date === null ? null : isoDateFromYyyymmdd(date);
+    if (sourceId === null || serviceId === null || isoDate === null || exceptionType === null) {
+      continue;
+    }
+    const key = serviceKey(sourceId, serviceId);
+    const dates = active.get(key) ?? new Set<string>();
+    if (exceptionType === 1) dates.add(isoDate);
+    if (exceptionType === 2) dates.delete(isoDate);
+    if (dates.size > 0) active.set(key, dates);
+  }
+
+  return new Map(
+    [...active.entries()]
+      .map(([key, values]) => [
+        key,
+        [...values].sort((left, right) => left.localeCompare(right)),
+      ] as const)
+      .filter(([, values]) => values.length > 0),
   );
 }
 
@@ -406,10 +379,14 @@ export function queryGtfsStaticScheduleArrivalsForEwtFeatures(
   month: string,
   routeId: string,
   runId: string | null,
-): { runId: string | null; rows: ScheduleStopArrivalForStopDirectionHourEwt[] } {
+): {
+  runId: string | null;
+  rows: ScheduleStopArrivalForStopDirectionHourEwt[];
+  usedReferenceCalendar: boolean;
+} {
   const resolvedRunId = runId ?? latestGtfsStaticRunId(sqlite);
   if (resolvedRunId === null || !tableExists(sqlite, "local_gtfs_static_stop_time")) {
-    return { runId: resolvedRunId, rows: [] };
+    return { runId: resolvedRunId, rows: [], usedReferenceCalendar: false };
   }
 
   const calendars = sqlite
@@ -446,8 +423,14 @@ export function queryGtfsStaticScheduleArrivalsForEwtFeatures(
       `,
     )
     .all(resolvedRunId, routeId) as RawGtfsCalendarDateRow[];
-  const serviceDatesByKey = buildGtfsServiceDateMap({ month, calendars, calendarDates });
-  if (serviceDatesByKey.size === 0) return { runId: resolvedRunId, rows: [] };
+  let serviceDatesByKey = buildGtfsServiceDateMap({ month, calendars, calendarDates });
+  const usedReferenceCalendar = serviceDatesByKey.size === 0;
+  if (usedReferenceCalendar) {
+    serviceDatesByKey = buildGtfsRepresentativeServiceDateMap({ calendars, calendarDates });
+  }
+  if (serviceDatesByKey.size === 0) {
+    return { runId: resolvedRunId, rows: [], usedReferenceCalendar };
+  }
 
   const stopTimes = sqlite
     .query(
@@ -511,7 +494,7 @@ export function queryGtfsStaticScheduleArrivalsForEwtFeatures(
     }
   }
 
-  return { runId: resolvedRunId, rows };
+  return { runId: resolvedRunId, rows, usedReferenceCalendar };
 }
 
 function selectScheduleSource(input: {
@@ -533,8 +516,9 @@ function selectScheduleSource(input: {
         kind: "gtfs_static" as const,
         table: "local_gtfs_static_stop_time" as const,
         gtfsRunId: gtfs.runId,
-        caveat:
-          "Schedule baselines use all-stop GTFS static stop_times expanded through calendar/calendar_dates for the analysis month. Cells still emit typed missing-data states when observed samples or matched scheduled baselines are insufficient.",
+        caveat: gtfs.usedReferenceCalendar
+          ? "Schedule baselines use all-stop GTFS static stop_times expanded through representative active service dates because the selected GTFS bundle calendar does not overlap the analysis month. This is a day-type/hour baseline fallback; month-specific service exceptions are not asserted."
+          : "Schedule baselines use all-stop GTFS static stop_times expanded through calendar/calendar_dates for the analysis month. Cells still emit typed missing-data states when observed samples or matched scheduled baselines are insufficient.",
       },
       rows: gtfs.rows,
     };
@@ -576,11 +560,18 @@ export function queryObservedHeadwaysForEwtFeatures(
   runId: string,
   routeId: string,
 ): ObservedHeadwayForStopDirectionHourEwt[] {
+  const routeIdCandidates = [
+    routeId,
+    ...(/^([A-Z]+)([1-9])$/.test(routeId)
+      ? [routeId.replace(/^([A-Z]+)([1-9])$/, (_match, prefix, number) => `${prefix}0${number}`)]
+      : []),
+  ];
+  const placeholders = routeIdCandidates.map(() => "?").join(", ");
   const rows = sqlite
     .query(
       `
         SELECT
-          h.route_id,
+          ? AS route_id,
           COALESCE(s.direction, CAST(h.direction_id AS TEXT)) AS direction,
           h.stop_id,
           s.stop_name AS stop_name,
@@ -588,18 +579,18 @@ export function queryObservedHeadwaysForEwtFeatures(
           h.headway_minutes
         FROM local_observed_headway_sample h
         LEFT JOIN local_route_stop s
-          ON s.route_id = h.route_id
+          ON s.route_id = ?
           AND s.month = ?
           AND s.stop_id = h.stop_id
           AND s.direction_id = CAST(h.direction_id AS TEXT)
         WHERE h.run_id = ?
-          AND h.route_id = ?
+          AND h.route_id IN (${placeholders})
           AND h.headway_minutes > 0
         ORDER BY h.observed_timestamp, h.stop_id
       `,
     )
-    .all(month, runId, routeId) as RawObservedHeadwayRow[];
-  return parseObservedRows(rows);
+    .all(routeId, routeId, month, runId, ...routeIdCandidates) as RawObservedHeadwayRow[];
+  return parseObservedRowsForStopDirectionHourEwt(rows);
 }
 
 export function buildStopDirectionHourEwtFeatureArtifactFromDb(input: {
@@ -617,55 +608,46 @@ export function buildStopDirectionHourEwtFeatureArtifactFromDb(input: {
   minCoverageShare: number;
   observedAggregation: "service_date_hour" | "month_day_type_hour";
 }): StopDirectionHourEwtFeatureArtifact {
-  const { selection, rows: scheduleArrivals } = selectScheduleSource({
-    sqlite: input.sqlite,
-    month: input.month,
-    routeId: input.routeId,
-    requestedSource: input.scheduleSource,
-    gtfsRunId: input.gtfsRunId,
-  });
-  const observedHeadways = queryObservedHeadwaysForEwtFeatures(
-    input.sqlite,
-    input.month,
-    input.runId,
-    input.routeId,
-  );
-  const built = buildStopDirectionHourEwtFeatures({
-    scheduleArrivals,
-    observedHeadways,
-    options: {
-      timezone: input.timezone,
-      analysisMonth: input.month,
-      observedAggregation: input.observedAggregation,
-      minHeadways: input.minHeadways,
-      minCoverageShare: input.minCoverageShare,
+  const inputPort = createStopDirectionHourEwtFeatureInputPort(
+    ({ month, routeId, runId, scheduleSource, gtfsRunId }) => {
+      const { selection, rows: scheduleArrivals } = selectScheduleSource({
+        sqlite: input.sqlite,
+        month,
+        routeId,
+        requestedSource: scheduleSource,
+        gtfsRunId,
+      });
+      const observedHeadways = queryObservedHeadwaysForEwtFeatures(
+        input.sqlite,
+        month,
+        runId,
+        routeId,
+      );
+      return { selection, scheduleArrivals, observedHeadways };
     },
-  });
-
-  return {
-    artifactKind: "stop_direction_hour_ewt_features",
-    generatedAt: input.generatedAt,
+  );
+  const { selection, scheduleArrivals, observedHeadways } = inputPort.load({
     month: input.month,
     routeId: input.routeId,
     runId: input.runId,
-    timezone: built.timezone,
-    observedAggregation: input.observedAggregation,
+    scheduleSource: input.scheduleSource,
+    gtfsRunId: input.gtfsRunId,
+  });
+  return buildStopDirectionHourEwtFeatureArtifact({
+    month: input.month,
+    routeId: input.routeId,
+    runId: input.runId,
+    selection,
+    scheduleArrivals,
+    observedHeadways,
+    timezone: input.timezone,
+    generatedAt: input.generatedAt,
     dbPath: input.dbPath,
     artifactPath: input.artifactPath,
-    source: {
-      scheduleSource: selection.kind,
-      scheduleTable: selection.table,
-      gtfsRunId: selection.gtfsRunId,
-      observedHeadwayTable: "local_observed_headway_sample",
-      stopDirectionTable: "local_route_stop",
-      grain: "stop_direction_hour",
-      caveat: selection.caveat,
-    },
-    summary: built.summary,
-    scheduleBaselines: built.scheduleBaselines,
-    features: built.features,
-    auditRows: built.auditRows,
-  };
+    minHeadways: input.minHeadways,
+    minCoverageShare: input.minCoverageShare,
+    observedAggregation: input.observedAggregation,
+  });
 }
 
 export function stopDirectionHourEwtFeatureArtifactPath(

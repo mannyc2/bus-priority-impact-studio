@@ -6,27 +6,18 @@ import {
   buildEwtRouteMonthScoreVectorArtifact,
   type EwtRouteMonthReliabilityRow,
   type EwtRouteMonthScoreVectorArtifact,
-} from "@bp/analytics";
+  parseEwtRouteMonthRows,
+  routeMonthKey,
+  type RawEwtRouteMonthReliabilityRow,
+} from "@bp/applied-research/score-vectors";
+import { createEwtRouteMonthRowsPort } from "@bp/applied-research/local-db";
 import { arg, defineCommand, z } from "@liche/core";
 import { isoMonth } from "../../lib/dates.ts";
 import { writeJson } from "../../lib/json.ts";
 import { dbOptions, defaultLocalPipelineDbPath } from "../../lib/local-db.ts";
 import { defaultArtifactRootPath, fromCliPath, repoRoot } from "../../lib/paths.ts";
 
-type RawEwtRow = {
-  route_id: unknown;
-  month: unknown;
-  run_id: unknown;
-  reliability_status: unknown;
-  sample_count: unknown;
-  stop_count: unknown;
-  direction_count: unknown;
-  average_observed_headway_minutes: unknown;
-  expected_wait_minutes: unknown;
-  scheduled_expected_wait_minutes: unknown;
-  excess_wait_minutes: unknown;
-  wait_reliability_ratio: unknown;
-};
+type RawEwtRow = RawEwtRouteMonthReliabilityRow;
 
 type CustomerJourneyAbstRow = {
   route_id: unknown;
@@ -52,50 +43,6 @@ function numberValue(value: unknown): number | null {
     if (Number.isFinite(parsed)) return parsed;
   }
   return null;
-}
-
-export function parseEwtRouteMonthRows(rows: readonly RawEwtRow[]): EwtRouteMonthReliabilityRow[] {
-  return rows.flatMap((row) => {
-    const routeId = textValue(row.route_id);
-    const month = textValue(row.month);
-    const runId = textValue(row.run_id);
-    const reliabilityStatus = textValue(row.reliability_status);
-    const sampleCount = numberValue(row.sample_count);
-    const stopCount = numberValue(row.stop_count);
-    const directionCount = numberValue(row.direction_count);
-    if (
-      routeId === null ||
-      month === null ||
-      runId === null ||
-      reliabilityStatus === null ||
-      sampleCount === null ||
-      stopCount === null ||
-      directionCount === null
-    ) {
-      return [];
-    }
-    return [
-      {
-        routeId,
-        month,
-        runId,
-        reliabilityStatus,
-        sampleCount,
-        stopCount,
-        directionCount,
-        averageObservedHeadwayMinutes: numberValue(row.average_observed_headway_minutes),
-        expectedWaitMinutes: numberValue(row.expected_wait_minutes),
-        scheduledExpectedWaitMinutes: numberValue(row.scheduled_expected_wait_minutes),
-        excessWaitMinutes: numberValue(row.excess_wait_minutes),
-        mtaAbstMinutes: null,
-        waitReliabilityRatio: numberValue(row.wait_reliability_ratio),
-      },
-    ];
-  });
-}
-
-function routeMonthKey(routeId: string, month: string): string {
-  return `${routeId}\0${month}`;
 }
 
 function hasTable(sqlite: Database, tableName: string): boolean {
@@ -188,7 +135,13 @@ export function buildEwtRouteMonthScoreVectorArtifactFromDb(input: {
   minSampleCount: number;
   fleetFlagQuantile: number;
 }): EwtRouteMonthScoreVectorArtifact {
-  const rows = queryEwtRouteMonthRows(input.sqlite, input.startMonth, input.endMonth);
+  const rowsPort = createEwtRouteMonthRowsPort(({ startMonth, endMonth }) =>
+    queryEwtRouteMonthRows(input.sqlite, startMonth, endMonth),
+  );
+  const rows = rowsPort.load({
+    startMonth: input.startMonth,
+    endMonth: input.endMonth,
+  });
   return buildEwtRouteMonthScoreVectorArtifact({
     rows,
     startMonth: input.startMonth,

@@ -7,6 +7,8 @@ import { isoMonth } from "../../lib/dates.ts";
 import { writeJson } from "../../lib/json.ts";
 import { dbOptions, defaultLocalPipelineDbPath } from "../../lib/local-db.ts";
 import { defaultArtifactRootPath, fromCliPath, repoRoot } from "../../lib/paths.ts";
+import { canonicalRouteId } from "../../lib/route-ids.ts";
+import { DATA_PRODUCT_MANIFEST } from "../../registry/data-products.ts";
 
 type RouteRow = {
   route_id?: unknown;
@@ -17,6 +19,7 @@ export type MaterializationCoverageStatus = "complete" | "partial" | "missing" |
 
 export type MaterializationCoverageSurface = {
   surfaceId: string;
+  registryProductId: string | null;
   label: string;
   layer: "artifact" | "table" | "aggregate_artifact";
   expectedBasis: string;
@@ -60,6 +63,25 @@ export type AnalyticsMaterializationCoverageAudit = {
   nextActions: string[];
 };
 
+export const MATERIALIZATION_COVERAGE_REGISTRY_PRODUCT_BY_SURFACE = {
+  stop_direction_hour_ewt_features: "stop_direction_hour_ewt_features",
+  route_brief_input_slices: "route_brief_input_slices",
+  route_briefs: "generated_route_briefs",
+  ewt_route_month_score_vectors: "ewt_route_month_score_vectors",
+  local_route_brief_summary: "studio_route_brief_summaries",
+  local_route_scorecard: "studio_route_scorecards",
+  local_route_segment_speed: "local_route_segment_speed_history",
+  local_route_hourly_ridership: "local_route_hourly_ridership_history",
+  local_route_observed_reliability_summary: "local_route_observed_reliability_summary_release",
+} as const;
+
+export const MATERIALIZATION_COVERAGE_REGISTRY_PRODUCT_IDS = [
+  ...new Set(Object.values(MATERIALIZATION_COVERAGE_REGISTRY_PRODUCT_BY_SURFACE)),
+].sort();
+
+type MaterializationCoverageRegistryProductId =
+  (typeof MATERIALIZATION_COVERAGE_REGISTRY_PRODUCT_BY_SURFACE)[keyof typeof MATERIALIZATION_COVERAGE_REGISTRY_PRODUCT_BY_SURFACE];
+
 type BuildAnalyticsMaterializationCoverageInput = {
   sqlite: Database;
   month: string;
@@ -94,11 +116,27 @@ function tableExists(sqlite: Database, tableName: string): boolean {
   return row !== null;
 }
 
-function routeSetFromRows(rows: readonly RouteRow[]): Set<string> {
+function columnExists(sqlite: Database, tableName: string, columnName: string): boolean {
+  if (!tableExists(sqlite, tableName)) return false;
+  const rows = sqlite.query(`PRAGMA table_info(${tableName})`).all() as { name?: unknown }[];
+  return rows.some((row) => row.name === columnName);
+}
+
+function routeSetFromRows(
+  rows: readonly RouteRow[],
+  routeUniverse: ReadonlySet<string> | null = null,
+): Set<string> {
   return new Set(
     rows
-      .map((row) => routeIdValue(row.route_id))
-      .filter((routeId): routeId is string => routeId !== null)
+      .map((row) =>
+        routeUniverse === null
+          ? routeIdValue(row.route_id)
+          : canonicalRouteId(row.route_id, routeUniverse),
+      )
+      .filter(
+        (routeId): routeId is string =>
+          routeId !== null && (routeUniverse === null || routeUniverse.has(routeId)),
+      )
       .sort(),
   );
 }
@@ -108,9 +146,10 @@ function routeSetFromQuery(
   tableName: string,
   sql: string,
   params: SQLQueryBindings[] = [],
+  routeUniverse: ReadonlySet<string> | null = null,
 ): Set<string> {
   if (!tableExists(sqlite, tableName)) return new Set();
-  return routeSetFromRows(sqlite.query(sql).all(...params) as RouteRow[]);
+  return routeSetFromRows(sqlite.query(sql).all(...params) as RouteRow[], routeUniverse);
 }
 
 function latestGtfsRunId(sqlite: Database): string | null {
@@ -135,6 +174,18 @@ function intersection(left: ReadonlySet<string>, right: ReadonlySet<string>): Se
 
 function sortedRoutes(routes: ReadonlySet<string>): string[] {
   return [...routes].sort();
+}
+
+const dataProductsById = new Map(
+  DATA_PRODUCT_MANIFEST.products.map((product) => [product.id, product]),
+);
+
+function registryProduct(id: MaterializationCoverageRegistryProductId) {
+  const product = dataProductsById.get(id);
+  if (product === undefined) {
+    throw new Error(`Materialization coverage registry product is missing: ${id}`);
+  }
+  return product;
 }
 
 async function safeDirEntries(path: string) {
@@ -225,8 +276,9 @@ async function ewtScoreVectorRoutes(input: {
   return routeIdsFromScoreVectorArtifact(await Bun.file(artifactPath).json());
 }
 
-function coverageSurface(input: {
+type CoverageSurfaceInput = {
   surfaceId: string;
+  registryProductId?: string | null;
   label: string;
   layer: MaterializationCoverageSurface["layer"];
   expectedBasis: string;
@@ -235,7 +287,9 @@ function coverageSurface(input: {
   path?: string | null;
   tableName?: string | null;
   note: string;
-}): MaterializationCoverageSurface {
+};
+
+function coverageSurface(input: CoverageSurfaceInput): MaterializationCoverageSurface {
   const expectedRoutes = sortedRoutes(input.expectedRoutes);
   const materializedExpectedRoutes = expectedRoutes.filter((routeId) =>
     input.materializedRoutes.has(routeId),
@@ -257,6 +311,7 @@ function coverageSurface(input: {
 
   return {
     surfaceId: input.surfaceId,
+    registryProductId: input.registryProductId ?? null,
     label: input.label,
     layer: input.layer,
     expectedBasis: input.expectedBasis,
@@ -271,6 +326,20 @@ function coverageSurface(input: {
     sampleMissingRoutes: missingRoutes.slice(0, 12),
     note: input.note,
   };
+}
+
+function registryBackedCoverageSurface(
+  input: Omit<CoverageSurfaceInput, "label" | "expectedBasis" | "registryProductId"> & {
+    registryProductId: MaterializationCoverageRegistryProductId;
+  },
+): MaterializationCoverageSurface {
+  const product = registryProduct(input.registryProductId);
+  return coverageSurface({
+    ...input,
+    registryProductId: product.id,
+    label: product.label,
+    expectedBasis: product.expectedUniverse.description,
+  });
 }
 
 function routeTableRoutes(sqlite: Database, tableName: string, month: string): Set<string> {
@@ -305,6 +374,20 @@ export async function buildAnalyticsMaterializationCoverageAudit(
     "local_route_catalog",
     "SELECT DISTINCT route_id FROM local_route_catalog ORDER BY route_id",
   );
+  const speedSourceRoutes = routeSetFromQuery(
+    input.sqlite,
+    "local_route_segment_speed",
+    "SELECT DISTINCT route_id FROM local_route_segment_speed WHERE month = ? ORDER BY route_id",
+    [input.month],
+    catalogRoutes,
+  );
+  const ridershipSourceRoutes = routeSetFromQuery(
+    input.sqlite,
+    "local_route_hourly_ridership",
+    "SELECT DISTINCT route_id FROM local_route_hourly_ridership WHERE month = ? ORDER BY route_id",
+    [input.month],
+    catalogRoutes,
+  );
   const gtfsRoutes =
     gtfsRunId === null
       ? new Set<string>()
@@ -313,51 +396,93 @@ export async function buildAnalyticsMaterializationCoverageAudit(
           "local_gtfs_static_route",
           "SELECT DISTINCT route_id FROM local_gtfs_static_route WHERE run_id = ? ORDER BY route_id",
           [gtfsRunId],
+          catalogRoutes,
         );
   const observedRoutes = routeSetFromQuery(
     input.sqlite,
     "local_observed_headway_sample",
     "SELECT DISTINCT route_id FROM local_observed_headway_sample WHERE run_id = ? ORDER BY route_id",
     [input.runId],
+    catalogRoutes,
+  );
+  const observedReliabilitySql = columnExists(
+    input.sqlite,
+    "local_route_observed_reliability_summary",
+    "sample_count",
+  )
+    ? `
+        SELECT DISTINCT route_id
+        FROM local_route_observed_reliability_summary
+        WHERE month = ? AND run_id = ? AND sample_count >= 30
+        ORDER BY route_id
+      `
+    : `
+        SELECT DISTINCT route_id
+        FROM local_route_observed_reliability_summary
+        WHERE month = ? AND run_id = ?
+        ORDER BY route_id
+      `;
+  const observedReliabilityExpectedRoutes = routeSetFromQuery(
+    input.sqlite,
+    "local_route_observed_reliability_summary",
+    observedReliabilitySql,
+    [input.month, input.runId],
+    catalogRoutes,
+  );
+  const publicVisibleSql = columnExists(input.sqlite, "local_route_brief_summary", "public_visible")
+    ? `
+        SELECT DISTINCT route_id
+        FROM local_route_brief_summary
+        WHERE month = ? AND public_visible = 1
+        ORDER BY route_id
+      `
+    : `
+        SELECT DISTINCT route_id
+        FROM local_route_brief_summary
+        WHERE month = ?
+        ORDER BY route_id
+      `;
+  const publicVisibleRoutes = routeSetFromQuery(
+    input.sqlite,
+    "local_route_brief_summary",
+    publicVisibleSql,
+    [input.month],
+    catalogRoutes,
   );
   const ewtEligibleRoutes = intersection(intersection(catalogRoutes, gtfsRoutes), observedRoutes);
   const surfaces: MaterializationCoverageSurface[] = [
-    coverageSurface({
+    registryBackedCoverageSurface({
       surfaceId: "stop_direction_hour_ewt_features",
-      label: "Stop-direction-hour EWT feature artifacts",
+      registryProductId: "stop_direction_hour_ewt_features",
       layer: "artifact",
-      expectedBasis: "routes with catalog, GTFS static, and observed headway support",
       expectedRoutes: ewtEligibleRoutes,
       materializedRoutes: await ewtArtifactRoutes(input.artifactRoot, input.month, input.runId),
       path: join(input.artifactRoot, "analytics-stop-direction-hour-ewt", input.month, input.runId),
       note: "This is the detector-grade all-stop EWT materialization; source staging alone does not imply these per-route artifacts exist.",
     }),
-    coverageSurface({
+    registryBackedCoverageSurface({
       surfaceId: "route_brief_input_slices",
-      label: "Route brief input slices",
+      registryProductId: "route_brief_input_slices",
       layer: "artifact",
-      expectedBasis: "route catalog",
       expectedRoutes: catalogRoutes,
       materializedRoutes: await routeSliceInputRoutes(input.artifactRoot, input.month),
       path: join(input.artifactRoot, "route-slices"),
       note: "One route-slice input should exist for each served route-month.",
     }),
-    coverageSurface({
+    registryBackedCoverageSurface({
       surfaceId: "route_briefs",
-      label: "Generated route briefs",
+      registryProductId: "generated_route_briefs",
       layer: "artifact",
-      expectedBasis: "route catalog",
-      expectedRoutes: catalogRoutes,
+      expectedRoutes: publicVisibleRoutes,
       materializedRoutes: await routeBriefRoutes(input.artifactRoot, input.month),
       path: join(input.artifactRoot, "briefs", "routes"),
       note: "Generated prose/html briefs are downstream serving artifacts, not detector primitives.",
     }),
-    coverageSurface({
+    registryBackedCoverageSurface({
       surfaceId: "ewt_route_month_score_vectors",
-      label: "EWT route-month score vectors",
+      registryProductId: "ewt_route_month_score_vectors",
       layer: "aggregate_artifact",
-      expectedBasis: "route catalog",
-      expectedRoutes: catalogRoutes,
+      expectedRoutes: observedReliabilityExpectedRoutes,
       materializedRoutes: await ewtScoreVectorRoutes({
         artifactRoot: input.artifactRoot,
         historyStartMonth: input.historyStartMonth,
@@ -372,42 +497,38 @@ export async function buildAnalyticsMaterializationCoverageAudit(
       ),
       note: "This artifact is a route-month baseline/calibration surface; it is useful, but it is not a substitute for stop-direction-hour EWT artifacts.",
     }),
-    coverageSurface({
+    registryBackedCoverageSurface({
       surfaceId: "local_route_brief_summary",
-      label: "Route brief summary table",
+      registryProductId: "studio_route_brief_summaries",
       layer: "table",
-      expectedBasis: "route catalog",
       expectedRoutes: catalogRoutes,
       materializedRoutes: routeTableRoutes(input.sqlite, "local_route_brief_summary", input.month),
       tableName: "local_route_brief_summary",
       note: "D1/serving-facing route summary rows.",
     }),
-    coverageSurface({
+    registryBackedCoverageSurface({
       surfaceId: "local_route_scorecard",
-      label: "Route scorecard table",
+      registryProductId: "studio_route_scorecards",
       layer: "table",
-      expectedBasis: "route catalog",
       expectedRoutes: catalogRoutes,
       materializedRoutes: routeTableRoutes(input.sqlite, "local_route_scorecard", input.month),
       tableName: "local_route_scorecard",
       note: "Route-month scorecard rows used by serving projections.",
     }),
-    coverageSurface({
+    registryBackedCoverageSurface({
       surfaceId: "local_route_segment_speed",
-      label: "Route segment speed table",
+      registryProductId: "local_route_segment_speed_history",
       layer: "table",
-      expectedBasis: "route catalog",
-      expectedRoutes: catalogRoutes,
+      expectedRoutes: speedSourceRoutes,
       materializedRoutes: routeTableRoutes(input.sqlite, "local_route_segment_speed", input.month),
       tableName: "local_route_segment_speed",
       note: "Fine-grain monthly speed surface; should cover the route universe for detector baselines.",
     }),
-    coverageSurface({
+    registryBackedCoverageSurface({
       surfaceId: "local_route_hourly_ridership",
-      label: "Route hourly ridership table",
+      registryProductId: "local_route_hourly_ridership_history",
       layer: "table",
-      expectedBasis: "route catalog",
-      expectedRoutes: catalogRoutes,
+      expectedRoutes: ridershipSourceRoutes,
       materializedRoutes: routeTableRoutes(
         input.sqlite,
         "local_route_hourly_ridership",
@@ -416,11 +537,10 @@ export async function buildAnalyticsMaterializationCoverageAudit(
       tableName: "local_route_hourly_ridership",
       note: "Rider-weighting route-month surface.",
     }),
-    coverageSurface({
+    registryBackedCoverageSurface({
       surfaceId: "local_route_observed_reliability_summary",
-      label: "Observed reliability summary table",
+      registryProductId: "local_route_observed_reliability_summary_release",
       layer: "table",
-      expectedBasis: "routes with observed headway support for the run",
       expectedRoutes: observedRoutes,
       materializedRoutes: observedReliabilityRoutes(input.sqlite, input.month, input.runId),
       tableName: "local_route_observed_reliability_summary",

@@ -9,18 +9,6 @@ export {
   detectBunchingHotspots,
 } from "../findings/bunching-hotspots.js";
 export type {
-  DelayConcentrationDetectorInput,
-  DelayConcentrationDetectorOutput,
-  DelayConcentrationRouteInput,
-  DelayConcentrationSegmentInput,
-  DelayConcentrationThresholds,
-} from "../findings/delay-concentration.js";
-export {
-  DEFAULT_DELAY_CONCENTRATION_THRESHOLDS,
-  DELAY_CONCENTRATION_DETECTOR_ID,
-  detectDelayConcentration,
-} from "../findings/delay-concentration.js";
-export type {
   DegradationTrendDetectorInput,
   DegradationTrendDetectorOutput,
   DegradationTrendThresholds,
@@ -33,6 +21,18 @@ export {
   detectDegradationTrends,
 } from "../findings/degradation-trend.js";
 export type {
+  DelayConcentrationDetectorInput,
+  DelayConcentrationDetectorOutput,
+  DelayConcentrationRouteInput,
+  DelayConcentrationSegmentInput,
+  DelayConcentrationThresholds,
+} from "../findings/delay-concentration.js";
+export {
+  DEFAULT_DELAY_CONCENTRATION_THRESHOLDS,
+  DELAY_CONCENTRATION_DETECTOR_ID,
+  detectDelayConcentration,
+} from "../findings/delay-concentration.js";
+export type {
   HeadwayReliabilityEwtDetectorInput,
   HeadwayReliabilityEwtDetectorOutput,
   HeadwayReliabilityEwtThresholds,
@@ -43,15 +43,15 @@ export {
   HEADWAY_RELIABILITY_EWT_DETECTOR_ID,
 } from "../findings/headway-reliability-ewt.js";
 export type {
-  RiderWeightedExcessWaitDetectorInput,
-  RiderWeightedExcessWaitDetectorOutput,
-  RiderWeightedExcessWaitThresholds,
-} from "../findings/rider-weighted-excess-wait.js";
+  InterventionEventStudyDetectorInput,
+  InterventionEventStudyDetectorOutput,
+  InterventionEventStudyThresholds,
+} from "../findings/intervention-event-study.js";
 export {
-  DEFAULT_RIDER_WEIGHTED_EXCESS_WAIT_THRESHOLDS,
-  detectRiderWeightedExcessWait,
-  RIDER_WEIGHTED_EXCESS_WAIT_DETECTOR_ID,
-} from "../findings/rider-weighted-excess-wait.js";
+  DEFAULT_INTERVENTION_EVENT_STUDY_THRESHOLDS,
+  detectInterventionEventStudies,
+  INTERVENTION_EVENT_STUDY_DETECTOR_ID,
+} from "../findings/intervention-event-study.js";
 export type {
   InterventionEvidenceStatus,
   InterventionGapDetectorInput,
@@ -64,16 +64,6 @@ export {
   detectInterventionGaps,
   INTERVENTION_GAP_DETECTOR_ID,
 } from "../findings/intervention-gap.js";
-export type {
-  InterventionEventStudyDetectorInput,
-  InterventionEventStudyDetectorOutput,
-  InterventionEventStudyThresholds,
-} from "../findings/intervention-event-study.js";
-export {
-  DEFAULT_INTERVENTION_EVENT_STUDY_THRESHOLDS,
-  detectInterventionEventStudies,
-  INTERVENTION_EVENT_STUDY_DETECTOR_ID,
-} from "../findings/intervention-event-study.js";
 export type {
   InterventionUnderperformanceComparisonInput,
   InterventionUnderperformanceDetectorInput,
@@ -143,6 +133,16 @@ export {
   POSITIVE_DEVIANCE_DETECTOR_ID,
 } from "../findings/positive-deviance.js";
 export type {
+  RiderWeightedExcessWaitDetectorInput,
+  RiderWeightedExcessWaitDetectorOutput,
+  RiderWeightedExcessWaitThresholds,
+} from "../findings/rider-weighted-excess-wait.js";
+export {
+  DEFAULT_RIDER_WEIGHTED_EXCESS_WAIT_THRESHOLDS,
+  detectRiderWeightedExcessWait,
+  RIDER_WEIGHTED_EXCESS_WAIT_DETECTOR_ID,
+} from "../findings/rider-weighted-excess-wait.js";
+export type {
   ScheduleMismatchDetectorInput,
   ScheduleMismatchDetectorOutput,
   ScheduleMismatchThresholds,
@@ -163,16 +163,6 @@ export {
   SERVICE_REQUEST_CONTEXT_DETECTOR_ID,
 } from "../findings/service-request-context.js";
 export type {
-  SpeedPaceHotspotDetectorInput,
-  SpeedPaceHotspotDetectorOutput,
-  SpeedPaceHotspotThresholds,
-} from "../findings/speed-pace-hotspot.js";
-export {
-  DEFAULT_SPEED_PACE_HOTSPOT_THRESHOLDS,
-  detectSpeedPaceHotspots,
-  SPEED_PACE_HOTSPOT_DETECTOR_ID,
-} from "../findings/speed-pace-hotspot.js";
-export type {
   SourceGapBusLaneDateInput,
   SourceGapContextJoinInput,
   SourceGapDetectorInput,
@@ -187,6 +177,16 @@ export {
   detectSourceGaps,
   SOURCE_GAP_DETECTOR_ID,
 } from "../findings/source-gap.js";
+export type {
+  SpeedPaceHotspotDetectorInput,
+  SpeedPaceHotspotDetectorOutput,
+  SpeedPaceHotspotThresholds,
+} from "../findings/speed-pace-hotspot.js";
+export {
+  DEFAULT_SPEED_PACE_HOTSPOT_THRESHOLDS,
+  detectSpeedPaceHotspots,
+  SPEED_PACE_HOTSPOT_DETECTOR_ID,
+} from "../findings/speed-pace-hotspot.js";
 export type {
   TravelTimeVariabilityDetectorInput,
   TravelTimeVariabilityDetectorOutput,

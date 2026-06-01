@@ -19,6 +19,7 @@ import {
 } from "@bp/analytics/core";
 import { DEFAULT_DELAY_CONCENTRATION_THRESHOLDS } from "@bp/analytics/detectors";
 import { routeMonthFeatureKey } from "@bp/analytics/features";
+import { IsoMonthSchema, RouteIdSchema } from "@bp/domain";
 
 describe("analytics architecture primitives", () => {
   test("creates stable ids from ordered parts", () => {
@@ -98,8 +99,13 @@ describe("analytics architecture primitives", () => {
   });
 
   test("defines feature grain keys without depending on app or pipeline code", () => {
-    expect(routeMonthFeatureKey({ routeId: "M15", month: "2026-03", window: "all_day" })).toBe(
-      "M15:2026-03:all_day:all",
-    );
+    expect(
+      routeMonthFeatureKey({
+        routeId: RouteIdSchema.parse("M15"),
+        month: IsoMonthSchema.parse("2026-03"),
+        window: "all_day",
+        direction: null,
+      }),
+    ).toBe("M15:2026-03:all_day:all");
   });
 });

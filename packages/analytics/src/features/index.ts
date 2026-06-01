@@ -1,5 +1,11 @@
 export type { ContextSourceFeature } from "./context.js";
 export { CONTEXT_SOURCE_FEATURE_GRAIN } from "./context.js";
+export type { FeatureContract, FeatureMaterializationKind } from "./contracts.js";
+export {
+  featureContractsForGrains,
+  getFeatureContract,
+  listFeatureContracts,
+} from "./contracts.js";
 export type { FeedHealthFeature } from "./feed-health.js";
 export { FEED_HEALTH_FEATURE_GRAIN, feedHealthFeatureKey } from "./feed-health.js";
 export type { InterventionWindowFeature } from "./intervention.js";

@@ -9,6 +9,7 @@ import {
   getCalibrationWindowConfig,
   listDetectorCalibrationPolicies,
 } from "@bp/analytics/calibration";
+import { listAnalyticsDetectors } from "@bp/analytics/registry";
 import { arg, defineCommand, z } from "@liche/core";
 import { isoMonth } from "../../lib/dates.ts";
 import { writeJson } from "../../lib/json.ts";
@@ -22,7 +23,7 @@ import {
   type SurfaceMonthCoverage,
 } from "./analytics-backfill-coverage.ts";
 
-type DetectorReadinessStatus = "ready" | "partial" | "blocked";
+type DetectorReadinessStatus = "ready" | "partial" | "blocked" | "policy_pending";
 
 type DirectSurfaceConfig = {
   surfaceId: BackfillValidationSurfaceId;
@@ -38,6 +39,12 @@ type RawSurfaceRow = {
   row_count: unknown;
   route_count: unknown;
   sample_count?: unknown;
+};
+
+type SourceYearSurfaceRow = {
+  source_year: unknown;
+  row_count: unknown;
+  route_count: unknown;
 };
 
 type PolicySurfaceCoverageSummary = Omit<SurfaceCoverageSummary, "surfaceId"> & {
@@ -87,6 +94,7 @@ export type AnalyticsDetectorReadinessAudit = {
     readyDetectorCount: number;
     partialDetectorCount: number;
     blockedDetectorCount: number;
+    policyPendingDetectorCount: number;
     requiredSurfaceCount: number;
     readyRequiredSurfaceCount: number;
     partialRequiredSurfaceCount: number;
@@ -114,6 +122,21 @@ const DIRECT_SURFACES: readonly DirectSurfaceConfig[] = [
     minRouteCount: 250,
   },
   {
+    surfaceId: "bus_wait_assessment",
+    label: "Bus Wait Assessment route-period rows",
+    tableName: "local_bus_wait_assessment",
+    sql: `
+      SELECT
+        month,
+        COUNT(*) AS row_count,
+        COUNT(DISTINCT route_id) AS route_count
+      FROM local_bus_wait_assessment
+      GROUP BY month
+    `,
+    minRowCount: 250,
+    minRouteCount: 250,
+  },
+  {
     surfaceId: "gtfs_schedule_runtime",
     label: "GTFS schedule timepoints",
     tableName: "local_route_schedule_timepoint",
@@ -128,6 +151,38 @@ const DIRECT_SURFACES: readonly DirectSurfaceConfig[] = [
     `,
     minRowCount: 10_000,
     minRouteCount: 250,
+  },
+  {
+    surfaceId: "dot_permit_route_touches",
+    label: "DOT permit route-touch bridge rows",
+    tableName: "local_context_event_route_touch",
+    sql: `
+      SELECT
+        substr(occurred_at, 1, 7) AS month,
+        COUNT(*) AS row_count,
+        COUNT(DISTINCT route_id) AS route_count
+      FROM local_context_event_route_touch
+      WHERE event_kind = 'permit'
+      GROUP BY substr(occurred_at, 1, 7)
+    `,
+    minRowCount: 25,
+    minRouteCount: 1,
+  },
+  {
+    surfaceId: "service_request_route_touches",
+    label: "311 service-request route-touch bridge rows",
+    tableName: "local_context_event_route_touch",
+    sql: `
+      SELECT
+        substr(occurred_at, 1, 7) AS month,
+        COUNT(*) AS row_count,
+        COUNT(DISTINCT route_id) AS route_count
+      FROM local_context_event_route_touch
+      WHERE event_kind = '311_complaint'
+      GROUP BY substr(occurred_at, 1, 7)
+    `,
+    minRowCount: 25,
+    minRouteCount: 1,
   },
 ];
 
@@ -158,11 +213,58 @@ function repoDisplayPath(path: string): string {
   return relativePath.startsWith("..") ? path : relativePath;
 }
 
+function tableExists(sqlite: Database, tableName: string): boolean {
+  const row = sqlite
+    .query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?")
+    .get(tableName) as { name?: unknown } | null;
+  return row?.name === tableName;
+}
+
 function directSurfaceCoverage(
   sqlite: Database,
   config: DirectSurfaceConfig,
   backfillCoverage: AnalyticsBackfillCoverageAudit,
 ): PolicySurfaceCoverageSummary {
+  const months = backfillCoverage.surfaces[0]?.months.map((month) => month.month) ?? [];
+  if (
+    config.surfaceId === "gtfs_schedule_runtime" &&
+    tableExists(sqlite, "local_route_schedule_stop")
+  ) {
+    return scheduleStopSourceYearCoverage(sqlite, config, months);
+  }
+  if (!tableExists(sqlite, config.tableName)) {
+    const coverageMonths = months.map(
+      (month): SurfaceMonthCoverage => ({
+        month,
+        status: "missing",
+        rowCount: 0,
+        routeCount: 0,
+        evaluatedCount: null,
+        reasons: ["surface_table_missing"],
+      }),
+    );
+    return {
+      surfaceId: config.surfaceId,
+      label: config.label,
+      tableName: config.tableName,
+      expectedMonthCount: months.length,
+      presentMonthCount: 0,
+      thinMonthCount: 0,
+      missingMonthCount: coverageMonths.length,
+      medianRowsPerPresentMonth: 0,
+      medianRoutesPerPresentMonth: 0,
+      thresholds: {
+        minRowCount: config.minRowCount,
+        minRouteCount: config.minRouteCount,
+        suspiciousRowDropRatio: 0,
+        suspiciousRouteDropRatio: 0,
+      },
+      missingMonths: coverageMonths.map((row) => row.month),
+      thinMonths: [],
+      months: coverageMonths,
+    };
+  }
+
   const rows = sqlite.query(config.sql).all() as RawSurfaceRow[];
   const observedByMonth = new Map<string, { rowCount: number; routeCount: number }>();
   for (const row of rows) {
@@ -174,7 +276,6 @@ function directSurfaceCoverage(
     });
   }
 
-  const months = backfillCoverage.surfaces[0]?.months.map((month) => month.month) ?? [];
   const coverageMonths = months.map((month): SurfaceMonthCoverage => {
     const row = observedByMonth.get(month);
     const reasons: string[] = [];
@@ -204,6 +305,98 @@ function directSurfaceCoverage(
     surfaceId: config.surfaceId,
     label: config.label,
     tableName: config.tableName,
+    expectedMonthCount: months.length,
+    presentMonthCount: coverageMonths.filter((row) => row.status === "present").length,
+    thinMonthCount: coverageMonths.filter((row) => row.status === "thin").length,
+    missingMonthCount: coverageMonths.filter((row) => row.status === "missing").length,
+    medianRowsPerPresentMonth: median(rowCounts),
+    medianRoutesPerPresentMonth: median(routeCounts),
+    thresholds: {
+      minRowCount: config.minRowCount,
+      minRouteCount: config.minRouteCount,
+      suspiciousRowDropRatio: 0,
+      suspiciousRouteDropRatio: 0,
+    },
+    missingMonths: coverageMonths.filter((row) => row.status === "missing").map((row) => row.month),
+    thinMonths: coverageMonths.filter((row) => row.status === "thin").map((row) => row.month),
+    months: coverageMonths,
+  };
+}
+
+function sourceYearForMonth(month: string): number | null {
+  const sourceYear = Number(month.slice(0, 4));
+  return Number.isInteger(sourceYear) ? sourceYear : null;
+}
+
+function scheduleStopSourceYearCoverage(
+  sqlite: Database,
+  config: DirectSurfaceConfig,
+  months: readonly string[],
+): PolicySurfaceCoverageSummary {
+  const sourceYears = Array.from(
+    new Set(months.map(sourceYearForMonth).filter((year): year is number => year !== null)),
+  );
+  const whereClause =
+    sourceYears.length === 0
+      ? ""
+      : `WHERE source_year IN (${sourceYears.map(() => "?").join(", ")})`;
+  const rows = sqlite
+    .query(
+      `
+        SELECT
+          source_year,
+          COUNT(*) AS row_count,
+          COUNT(DISTINCT route_id) AS route_count
+        FROM local_route_schedule_stop
+        ${whereClause}
+        GROUP BY source_year
+      `,
+    )
+    .all(...sourceYears) as SourceYearSurfaceRow[];
+  const observedBySourceYear = new Map<number, { rowCount: number; routeCount: number }>();
+  for (const row of rows) {
+    const sourceYear = numberValue(row.source_year);
+    if (!Number.isInteger(sourceYear) || sourceYear <= 0) continue;
+    observedBySourceYear.set(sourceYear, {
+      rowCount: numberValue(row.row_count),
+      routeCount: numberValue(row.route_count),
+    });
+  }
+
+  const coverageMonths = months.map((month): SurfaceMonthCoverage => {
+    const sourceYear = sourceYearForMonth(month);
+    const row = sourceYear === null ? undefined : observedBySourceYear.get(sourceYear);
+    const reasons: string[] = [];
+    if (sourceYear === null || row === undefined || row.rowCount === 0) {
+      reasons.push("missing_source_year");
+    } else {
+      if (row.rowCount < config.minRowCount) reasons.push("below_min_row_count");
+      if (row.routeCount < config.minRouteCount) reasons.push("below_min_route_count");
+    }
+    return {
+      month,
+      status:
+        reasons.length === 0
+          ? "present"
+          : reasons.includes("missing_source_year")
+            ? "missing"
+            : "thin",
+      rowCount: row?.rowCount ?? 0,
+      routeCount: row?.routeCount ?? 0,
+      evaluatedCount: null,
+      reasons,
+    };
+  });
+
+  const presentRows = coverageMonths.filter((row) => row.rowCount > 0);
+  const rowCounts = presentRows.map((row) => row.rowCount).sort((left, right) => left - right);
+  const routeCounts = presentRows.map((row) => row.routeCount).sort((left, right) => left - right);
+  const median = (values: readonly number[]) => values[Math.floor(values.length / 2)] ?? 0;
+
+  return {
+    surfaceId: config.surfaceId,
+    label: "Source-year schedule stop rows",
+    tableName: "local_route_schedule_stop",
     expectedMonthCount: months.length,
     presentMonthCount: coverageMonths.filter((row) => row.status === "present").length,
     thinMonthCount: coverageMonths.filter((row) => row.status === "thin").length,
@@ -318,6 +511,11 @@ function detectorStatus(
 }
 
 function nextActionsFor(detector: DetectorReadinessSummary): string[] {
+  if (detector.status === "policy_pending") {
+    return [
+      "Add an explicit detector calibration policy or record why historical calibration is not required.",
+    ];
+  }
   if (detector.status === "ready") {
     return [
       "Materialize baseline snapshots for the declared windows.",
@@ -330,6 +528,70 @@ function nextActionsFor(detector: DetectorReadinessSummary): string[] {
       (requirement) =>
         `${requirement.surfaceId}: ${requirement.failureState} (${requirement.usableMonthCount}/${requirement.minimumCompleteMonths} minimum usable months; ${requirement.missingMonthCount} missing, ${requirement.thinMonthCount} thin).`,
     );
+}
+
+function pendingPolicyDetectorSummary(input: {
+  detectorId: string;
+  detectorName: string;
+}): DetectorReadinessSummary {
+  const detector: DetectorReadinessSummary = {
+    detectorId: input.detectorId,
+    detectorName: input.detectorName,
+    status: "policy_pending",
+    releaseOutputWindow: "policy_pending",
+    baselineWindowIds: [],
+    minimumCompleteMonths: 0,
+    requiredSurfaceIds: [],
+    optionalSurfaceIds: [],
+    requirements: [],
+    blockingReasons: ["calibration_policy_pending"],
+    nextActions: [],
+  };
+  return {
+    ...detector,
+    nextActions: nextActionsFor(detector),
+  };
+}
+
+function detectorReadinessFromPolicy(input: {
+  policy: DetectorCalibrationPolicy;
+  surfaceById: ReadonlyMap<string, PolicySurfaceCoverageSummary>;
+}): DetectorReadinessSummary {
+  const minimumCompleteMonths = maximumMinimumCompleteMonths(input.policy);
+  const requirements = input.policy.postBackfillValidation.map((expectation) =>
+    surfaceReadiness({
+      expectation,
+      surface: input.surfaceById.get(expectation.surfaceId),
+      minimumCompleteMonths,
+    }),
+  );
+  const status = detectorStatus(requirements);
+  const blockingReasons = requirements
+    .filter((requirement) => requirement.required && requirement.status === "blocked")
+    .flatMap((requirement) =>
+      requirement.reasons.map((reason) => `${requirement.surfaceId}:${reason}`),
+    );
+  const detector: DetectorReadinessSummary = {
+    detectorId: input.policy.detectorId,
+    detectorName: input.policy.detectorName,
+    status,
+    releaseOutputWindow: input.policy.releaseOutputWindow,
+    baselineWindowIds: [...input.policy.baselineWindowIds],
+    minimumCompleteMonths,
+    requiredSurfaceIds: input.policy.postBackfillValidation
+      .filter((expectation) => expectation.required)
+      .map((expectation) => expectation.surfaceId),
+    optionalSurfaceIds: input.policy.postBackfillValidation
+      .filter((expectation) => !expectation.required)
+      .map((expectation) => expectation.surfaceId),
+    requirements,
+    blockingReasons,
+    nextActions: [],
+  };
+  return {
+    ...detector,
+    nextActions: nextActionsFor(detector),
+  };
 }
 
 export function buildAnalyticsDetectorReadinessAudit(input: {
@@ -357,42 +619,18 @@ export function buildAnalyticsDetectorReadinessAudit(input: {
     surfaces.map((surface) => [surface.surfaceId, surface]),
   );
 
-  const detectors = listDetectorCalibrationPolicies().map((policy): DetectorReadinessSummary => {
-    const minimumCompleteMonths = maximumMinimumCompleteMonths(policy);
-    const requirements = policy.postBackfillValidation.map((expectation) =>
-      surfaceReadiness({
-        expectation,
-        surface: surfaceById.get(expectation.surfaceId),
-        minimumCompleteMonths,
-      }),
-    );
-    const status = detectorStatus(requirements);
-    const blockingReasons = requirements
-      .filter((requirement) => requirement.required && requirement.status === "blocked")
-      .flatMap((requirement) =>
-        requirement.reasons.map((reason) => `${requirement.surfaceId}:${reason}`),
-      );
-    const detector: DetectorReadinessSummary = {
-      detectorId: policy.detectorId,
-      detectorName: policy.detectorName,
-      status,
-      releaseOutputWindow: policy.releaseOutputWindow,
-      baselineWindowIds: [...policy.baselineWindowIds],
-      minimumCompleteMonths,
-      requiredSurfaceIds: policy.postBackfillValidation
-        .filter((expectation) => expectation.required)
-        .map((expectation) => expectation.surfaceId),
-      optionalSurfaceIds: policy.postBackfillValidation
-        .filter((expectation) => !expectation.required)
-        .map((expectation) => expectation.surfaceId),
-      requirements,
-      blockingReasons,
-      nextActions: [],
-    };
-    return {
-      ...detector,
-      nextActions: nextActionsFor(detector),
-    };
+  const policyByDetectorId = new Map(
+    listDetectorCalibrationPolicies().map((policy) => [policy.detectorId, policy]),
+  );
+  const detectors = listAnalyticsDetectors().map((detector): DetectorReadinessSummary => {
+    const policy = policyByDetectorId.get(detector.detectorId);
+    if (policy === undefined) {
+      return pendingPolicyDetectorSummary({
+        detectorId: detector.detectorId,
+        detectorName: detector.spec.name,
+      });
+    }
+    return detectorReadinessFromPolicy({ policy, surfaceById });
   });
 
   const requiredRequirements = detectors.flatMap((detector) =>
@@ -410,6 +648,9 @@ export function buildAnalyticsDetectorReadinessAudit(input: {
       readyDetectorCount: detectors.filter((detector) => detector.status === "ready").length,
       partialDetectorCount: detectors.filter((detector) => detector.status === "partial").length,
       blockedDetectorCount: detectors.filter((detector) => detector.status === "blocked").length,
+      policyPendingDetectorCount: detectors.filter(
+        (detector) => detector.status === "policy_pending",
+      ).length,
       requiredSurfaceCount: requiredRequirements.length,
       readyRequiredSurfaceCount: requiredRequirements.filter(
         (requirement) => requirement.status === "ready",
@@ -460,6 +701,7 @@ export default defineCommand({
     readyDetectorCount: z.number().int().nonnegative(),
     partialDetectorCount: z.number().int().nonnegative(),
     blockedDetectorCount: z.number().int().nonnegative(),
+    policyPendingDetectorCount: z.number().int().nonnegative(),
     readyRequiredSurfaceCount: z.number().int().nonnegative(),
     partialRequiredSurfaceCount: z.number().int().nonnegative(),
     blockedRequiredSurfaceCount: z.number().int().nonnegative(),
@@ -507,6 +749,7 @@ export default defineCommand({
       readyDetectorCount: audit.summary.readyDetectorCount,
       partialDetectorCount: audit.summary.partialDetectorCount,
       blockedDetectorCount: audit.summary.blockedDetectorCount,
+      policyPendingDetectorCount: audit.summary.policyPendingDetectorCount,
       readyRequiredSurfaceCount: audit.summary.readyRequiredSurfaceCount,
       partialRequiredSurfaceCount: audit.summary.partialRequiredSurfaceCount,
       blockedRequiredSurfaceCount: audit.summary.blockedRequiredSurfaceCount,

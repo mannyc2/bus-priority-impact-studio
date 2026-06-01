@@ -1,0 +1,33 @@
+{
+  "name": "@bp/applied-research",
+  "private": true,
+  "type": "module",
+  "description": "Corpus-backed applied research workflows over the pure analytics kernel.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./artifacts": "./src/artifacts/index.ts",
+    "./causal": "./src/causal/index.ts",
+    "./core": "./src/core/index.ts",
+    "./detector-runs": "./src/detector-runs/index.ts",
+    "./evaluation": "./src/evaluation/index.ts",
+    "./feature-resolvers": "./src/feature-resolvers/index.ts",
+    "./forecasting": "./src/forecasting/index.ts",
+    "./local-db": "./src/local-db/index.ts",
+    "./review-packets": "./src/review-packets/index.ts",
+    "./score-vectors": "./src/score-vectors/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json --noEmit --pretty false",
+    "typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
+    "test": "bun test ./test --timeout 5000"
+  },
+  "dependencies": {
+    "@bp/analytics": "workspace:*",
+    "@bp/db": "workspace:*",
+    "@bp/domain": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "typescript": "catalog:"
+  }
+}

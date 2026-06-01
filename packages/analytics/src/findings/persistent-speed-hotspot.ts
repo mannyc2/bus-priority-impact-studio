@@ -102,7 +102,7 @@ export function detectPersistentSpeedHotspots(
 
   for (const route of input.routes) {
     const routeId = RouteIdSchema.parse(route.routeId);
-    const eligible = route.hotspots
+    const qualified = route.hotspots
       .filter(
         (hotspot) =>
           hotspot.hotspotScore >= thresholds.minHotspotScore &&
@@ -115,7 +115,8 @@ export function detectPersistentSpeedHotspots(
         if (speedDelta !== 0) return speedDelta;
         return left.hotspotRank - right.hotspotRank;
       })
-      .slice(0, thresholds.candidateLimitPerRoute);
+    const eligible = qualified.slice(0, thresholds.candidateLimitPerRoute);
+    const eligibleSegmentIds = new Set(eligible.map((hotspot) => hotspot.segmentId));
 
     for (const hotspot of eligible) {
       const score = rankScore(hotspot);
@@ -191,9 +192,55 @@ export function detectPersistentSpeedHotspots(
     }
 
     const skipped = !route.hasSpeedData || route.speedObservationCount === 0;
+    if (!skipped) {
+      for (const hotspot of route.hotspots) {
+        const segmentOutcome = eligibleSegmentIds.has(hotspot.segmentId)
+          ? "hit"
+          : hotspot.observationCount < thresholds.minObservationCount
+            ? "skipped_missing_input"
+            : "clean_no_hit";
+        coverage.push(
+          FindingCoverageAuditSchema.parse({
+            auditId: stableId(detectorRunId, "audit", "segment", routeId, hotspot.segmentId),
+            detectorRunId,
+            detectorId,
+            month,
+            scopeKind: "segment",
+            scopeId: hotspot.segmentId,
+            outcome: segmentOutcome,
+            reasonCode:
+              segmentOutcome === "skipped_missing_input"
+                ? FindingReasonCodeSchema.parse("insufficient_speed_observations")
+                : null,
+            reason:
+              segmentOutcome === "skipped_missing_input"
+                ? "Segment observation count is below the detector minimum."
+                : null,
+            inputsSeenJson: JSON.stringify({
+              routeId,
+              segmentId: hotspot.segmentId,
+              hotspotRank: hotspot.hotspotRank,
+              hotspotScore: hotspot.hotspotScore,
+              riderImpactScore: hotspot.riderImpactScore,
+              observationCount: hotspot.observationCount,
+              busTripCount: hotspot.busTripCount,
+              weightedAverageSpeedMph: hotspot.weightedAverageSpeedMph,
+              slowWindowShare: hotspot.slowWindowShare,
+            }),
+            inputsExpectedJson: JSON.stringify({
+              scopeKind: "segment",
+              minHotspotScore: thresholds.minHotspotScore,
+              minObservationCount: thresholds.minObservationCount,
+              candidateLimitPerRoute: thresholds.candidateLimitPerRoute,
+            }),
+            createdAt: input.generatedAt,
+          }),
+        );
+      }
+    }
     coverage.push(
       FindingCoverageAuditSchema.parse({
-        auditId: stableId(detectorRunId, "audit", routeId),
+        auditId: stableId(detectorRunId, "audit", "route", routeId),
         detectorRunId,
         detectorId,
         month,

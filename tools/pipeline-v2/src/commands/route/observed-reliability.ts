@@ -15,6 +15,7 @@ import {
   type OpenLocalPipelineDb,
   withLocalDb,
 } from "../../lib/local-db.ts";
+import { canonicalRouteId } from "../../lib/route-ids.ts";
 
 const fallbackBunchingThresholdMinutes = 3;
 const fallbackLongGapThresholdMinutes = 20;
@@ -84,12 +85,15 @@ function samplesForMonth(
 
 function groupSamplesByRoute(
   samples: readonly LocalObservedHeadwaySample[],
+  routeUniverse: ReadonlySet<string>,
 ): Map<string, LocalObservedHeadwaySample[]> {
   const out = new Map<string, LocalObservedHeadwaySample[]>();
   for (const sample of samples) {
-    const group = out.get(sample.routeId) ?? [];
+    const routeId = canonicalRouteId(sample.routeId, routeUniverse);
+    if (routeId === null || !routeUniverse.has(routeId)) continue;
+    const group = out.get(routeId) ?? [];
     group.push(sample);
-    out.set(sample.routeId, group);
+    out.set(routeId, group);
   }
   return out;
 }
@@ -218,7 +222,8 @@ export async function runRouteObservedReliability(inputs: {
   const routes = (briefs.length > 0 ? briefs : catalog)
     .map((r) => ({ routeId: r.routeId }))
     .sort((a, b) => a.routeId.localeCompare(b.routeId));
-  const samplesByRoute = groupSamplesByRoute(samplesForMonth(samples, month));
+  const routeUniverse = new Set(routes.map((route) => route.routeId));
+  const samplesByRoute = groupSamplesByRoute(samplesForMonth(samples, month), routeUniverse);
   const baselineByRoute = new Map(baselines.map((b) => [b.routeId, b]));
 
   const summaries = routes.map((r) =>

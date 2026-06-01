@@ -11,6 +11,9 @@
       "@bp/sources": ["./packages/sources/src/index.ts"],
       "@bp/sources/*": ["./packages/sources/src/*/index.ts"],
       "@bp/analytics": ["./packages/analytics/src/index.ts"],
+      "@bp/analytics/*": ["./packages/analytics/src/*/index.ts"],
+      "@bp/applied-research": ["./packages/applied-research/src/index.ts"],
+      "@bp/applied-research/*": ["./packages/applied-research/src/*/index.ts"],
       "@bp/db": ["./packages/db/src/index.ts"]
     },
     "allowSyntheticDefaultImports": true,

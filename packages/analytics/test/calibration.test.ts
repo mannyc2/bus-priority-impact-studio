@@ -187,11 +187,24 @@ describe("detector calibration helpers", () => {
   test("declares baseline-window and history gates for core detector calibration", () => {
     const policies = listDetectorCalibrationPolicies();
     expect(policies.map((policy) => policy.detectorId).sort()).toEqual([
+      "bunching_hotspots",
       "degradation_trend",
+      "delay_concentration",
       "headway_reliability_ewt",
       "intervention_event_study",
+      "intervention_gap",
+      "intervention_underperformance",
+      "multi_month_speed_peer",
+      "observed_reliability",
+      "permit_correlated_slowdown",
+      "persistent_speed_hotspot",
+      "positive_deviance",
+      "rider_weighted_excess_wait",
       "schedule_mismatch",
+      "service_request_context",
+      "source_gap",
       "speed_pace_hotspot",
+      "travel_time_variability",
     ]);
 
     expect(getCalibrationWindowConfig("lookback36")).toMatchObject({
@@ -203,9 +216,40 @@ describe("detector calibration helpers", () => {
       baselineWindowIds: ["releaseMonth", "lookback12", "lookback36", "seasonalPeerWindow"],
     });
 
+    expect(requiredBackfillSurfacesForDetector("source_gap")).toEqual([
+      "gtfs_schedule_runtime",
+      "observed_headways",
+      "route_segment_speeds",
+    ]);
+    expect(requiredBackfillSurfacesForDetector("observed_reliability")).toEqual([
+      "bus_wait_assessment",
+      "gtfs_schedule_runtime",
+      "observed_headways",
+    ]);
+    expect(requiredBackfillSurfacesForDetector("bunching_hotspots")).toEqual([
+      "gtfs_schedule_runtime",
+      "observed_headways",
+    ]);
+    expect(requiredBackfillSurfacesForDetector("rider_weighted_excess_wait")).toEqual([
+      "gtfs_schedule_runtime",
+      "observed_headways",
+      "route_hourly_ridership",
+    ]);
     expect(requiredBackfillSurfacesForDetector("intervention_event_study")).toEqual([
       "intervention_comparisons",
       "route_segment_speeds",
+    ]);
+    expect(requiredBackfillSurfacesForDetector("intervention_gap")).toEqual([
+      "intervention_comparisons",
+      "route_segment_speeds",
+    ]);
+    expect(requiredBackfillSurfacesForDetector("permit_correlated_slowdown")).toEqual([
+      "dot_permit_route_touches",
+      "route_segment_speeds",
+    ]);
+    expect(requiredBackfillSurfacesForDetector("service_request_context")).toEqual([
+      "route_segment_speeds",
+      "service_request_route_touches",
     ]);
     expect(requiredBackfillSurfacesForDetector("unknown_detector")).toEqual([]);
   });

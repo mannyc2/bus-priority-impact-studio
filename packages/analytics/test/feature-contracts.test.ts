@@ -1,33 +1,33 @@
 import { describe, expect, test } from "bun:test";
+import { SOURCE_GAP_DETECTOR_ID } from "@bp/analytics/detectors";
 import {
   FEED_HEALTH_FEATURE_GRAIN,
-  INTERVENTION_PANEL_FEATURE_GRAIN,
-  POSITIVE_DEVIANCE_FEATURE_GRAIN,
-  RIDER_WEIGHTED_EXCESS_WAIT_FEATURE_GRAIN,
-  ROUTE_DIRECTION_DAYPART_FEATURE_GRAIN,
-  ROUTE_METRIC_HISTORY_FEATURE_GRAIN,
-  SEGMENT_DAYPART_FEATURE_GRAIN,
-  STOP_DIRECTION_HOUR_FEATURE_GRAIN,
+  type FeatureQuality,
+  type FeedHealthFeature,
   feedHealthFeatureKey,
   hasFeatureQuality,
+  INTERVENTION_PANEL_FEATURE_GRAIN,
+  type InterventionPanelFeature,
   interventionPanelFeatureKey,
+  POSITIVE_DEVIANCE_FEATURE_GRAIN,
+  type PositiveDevianceFeature,
   positiveDevianceFeatureKey,
+  RIDER_WEIGHTED_EXCESS_WAIT_FEATURE_GRAIN,
+  type RiderWeightedExcessWaitFeature,
+  ROUTE_DIRECTION_DAYPART_FEATURE_GRAIN,
+  ROUTE_METRIC_HISTORY_FEATURE_GRAIN,
+  type RouteDirectionDaypartFeature,
+  type RouteMetricHistoryFeature,
   riderWeightedExcessWaitFeatureKey,
   routeDirectionDaypartFeatureKey,
   routeMetricHistoryFeatureKey,
+  SEGMENT_DAYPART_FEATURE_GRAIN,
+  type SegmentDaypartFeature,
+  STOP_DIRECTION_HOUR_FEATURE_GRAIN,
+  type StopDirectionHourFeature,
   segmentDaypartFeatureKey,
   stopDirectionHourFeatureKey,
-  type FeatureQuality,
-  type FeedHealthFeature,
-  type InterventionPanelFeature,
-  type PositiveDevianceFeature,
-  type RiderWeightedExcessWaitFeature,
-  type RouteDirectionDaypartFeature,
-  type RouteMetricHistoryFeature,
-  type SegmentDaypartFeature,
-  type StopDirectionHourFeature,
 } from "@bp/analytics/features";
-import { SOURCE_GAP_DETECTOR_ID } from "@bp/analytics/detectors";
 import { getAnalyticsDetector } from "@bp/analytics/registry";
 
 const QUALITY: FeatureQuality = {
@@ -174,25 +174,30 @@ describe("R1 reliability feature contracts", () => {
       quality: QUALITY,
       ridershipQuality: QUALITY,
     };
-
     expect(stopDirectionHourFeatureKey(stopHour)).toBe("M15:N:401234:2026-03-05:08");
     expect(segmentDaypartFeatureKey(segmentDaypart)).toBe("M15:2026-03:N:M15:N:10:am_peak");
     expect(routeDirectionDaypartFeatureKey(routeDaypart)).toBe("M15:2026-03:N:am_peak");
     expect(routeMetricHistoryFeatureKey(history)).toBe("route:M15:excess_wait_minutes:12");
     expect(interventionPanelFeatureKey(panel)).toBe("ace-m15-2026:route:M15");
-    expect(feedHealthFeatureKey(feedHealth)).toBe("mta_gtfs_rt_vehicle_positions:route:M15:2026-03");
+    expect(feedHealthFeatureKey(feedHealth)).toBe(
+      "mta_gtfs_rt_vehicle_positions:route:M15:2026-03",
+    );
     expect(positiveDevianceFeatureKey(positiveDeviance)).toBe(
       "route:M15:average_speed_mph:manhattan_local:1",
     );
-    expect(riderWeightedExcessWaitFeatureKey(riderWeightedEwt)).toBe(
-      "M15:N:401234:2026-03-05:08",
-    );
+    expect(riderWeightedExcessWaitFeatureKey(riderWeightedEwt)).toBe("M15:N:401234:2026-03-05:08");
   });
 
   test("requires quality fields on new feature rows", () => {
-    const rows = [
+    const rows: Array<{ quality: FeatureQuality }> = [
       { quality: QUALITY },
-      { quality: { ...QUALITY, coverageStatus: "low_coverage", sampleStatus: "insufficient_samples" } },
+      {
+        quality: {
+          ...QUALITY,
+          coverageStatus: "low_coverage",
+          sampleStatus: "insufficient_samples",
+        },
+      },
     ];
 
     for (const row of rows) {

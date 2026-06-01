@@ -8,8 +8,8 @@ import {
 } from "@bp/domain";
 
 import { BUNCHING_HOTSPOTS_DETECTOR_ID } from "../findings/bunching-hotspots.js";
-import { DELAY_CONCENTRATION_DETECTOR_ID } from "../findings/delay-concentration.js";
 import { DEGRADATION_TREND_DETECTOR_ID } from "../findings/degradation-trend.js";
+import { DELAY_CONCENTRATION_DETECTOR_ID } from "../findings/delay-concentration.js";
 import { HEADWAY_RELIABILITY_EWT_DETECTOR_ID } from "../findings/headway-reliability-ewt.js";
 import { INTERVENTION_EVENT_STUDY_DETECTOR_ID } from "../findings/intervention-event-study.js";
 import { INTERVENTION_GAP_DETECTOR_ID } from "../findings/intervention-gap.js";
@@ -43,12 +43,10 @@ export const DETECTOR_SPEC_TEMPLATE: FindingDetectorSpecTemplate =
       detectorId: "Stable snake_case detector id.",
       question: "Specific question the detector is allowed to answer.",
       claimTemplate: "Strongest safe claim text pattern before reviewer promotion.",
-      allowedClaimStrength:
-        "0-5 ceiling where 0 is data-quality only and 5 is publication-grade.",
+      allowedClaimStrength: "0-5 ceiling where 0 is data-quality only and 5 is publication-grade.",
       primaryEvidenceRequired: "Evidence that must directly support the detector question.",
       supportingEvidenceExpected: "Corroborating context expected in a complete packet.",
-      counterEvidenceRequired:
-        "Evidence or caveats that would weaken, scope, or block the claim.",
+      counterEvidenceRequired: "Evidence or caveats that would weaken, scope, or block the claim.",
       promotionChecklist: "Reviewer checks that must pass before promotion.",
       knownFailureModes: "Common ways this detector can overclaim or mislead.",
     },
@@ -59,7 +57,8 @@ const specs = [
     detectorId: SOURCE_GAP_DETECTOR_ID,
     name: "Source gap",
     question: "Which route/source scopes are missing required data or join coverage?",
-    claimTemplate: "A source needed for stronger service claims is missing, stale, or failed to join.",
+    claimTemplate:
+      "A source needed for stronger service claims is missing, stale, or failed to join.",
     allowedClaimStrength: 1,
     primaryEvidenceRequired: [
       "Missing-data or coverage-audit evidence with expected vs observed inputs.",
@@ -157,7 +156,8 @@ const specs = [
   {
     detectorId: OBSERVED_RELIABILITY_DETECTOR_ID,
     name: "Observed reliability",
-    question: "Which routes show observed headway reliability risk corroborated by wait assessment?",
+    question:
+      "Which routes show observed headway reliability risk corroborated by wait assessment?",
     claimTemplate: "The route shows observed long-gap/wait reliability risk for the release month.",
     allowedClaimStrength: 3,
     primaryEvidenceRequired: [
@@ -290,7 +290,8 @@ const specs = [
   {
     detectorId: SCHEDULE_MISMATCH_DETECTOR_ID,
     name: "Schedule mismatch",
-    question: "Which route-direction-daypart cells have scheduled runtime far from observed median runtime?",
+    question:
+      "Which route-direction-daypart cells have scheduled runtime far from observed median runtime?",
     claimTemplate:
       "Scheduled runtime differs materially from observed median runtime, suggesting schedule review.",
     allowedClaimStrength: 3,
@@ -371,7 +372,8 @@ const specs = [
     detectorId: INTERVENTION_GAP_DETECTOR_ID,
     name: "Intervention gap",
     question: "Which high-pain routes lack dated or evaluated intervention evidence?",
-    claimTemplate: "A route with high speed/reliability pain has absent or thin intervention evidence.",
+    claimTemplate:
+      "A route with high speed/reliability pain has absent or thin intervention evidence.",
     allowedClaimStrength: 2,
     primaryEvidenceRequired: [
       "Underlying speed or reliability evidence plus intervention inventory status.",
@@ -423,7 +425,8 @@ const specs = [
     detectorId: INTERVENTION_UNDERPERFORMANCE_DETECTOR_ID,
     name: "Intervention underperformance",
     question: "Which evaluated interventions have non-positive peer-adjusted speed outcomes?",
-    claimTemplate: "An evaluated treatment has non-positive peer-adjusted speed delta and current pain.",
+    claimTemplate:
+      "An evaluated treatment has non-positive peer-adjusted speed delta and current pain.",
     allowedClaimStrength: 2,
     primaryEvidenceRequired: [
       "Intervention event, comparison status, adjusted speed delta, peer count, and current speed evidence.",
@@ -475,9 +478,7 @@ const specs = [
     question: "Which slow routes also have substantial bus-relevant 311 service-request context?",
     claimTemplate: "Slow-speed evidence coincides with substantial 311 service-request context.",
     allowedClaimStrength: 2,
-    primaryEvidenceRequired: [
-      "Route-month speed signal and 311 context-event touch summary.",
-    ],
+    primaryEvidenceRequired: ["Route-month speed signal and 311 context-event touch summary."],
     supportingEvidenceExpected: [
       "311 source ids, complaint event kind, match weights, and route fanout.",
     ],

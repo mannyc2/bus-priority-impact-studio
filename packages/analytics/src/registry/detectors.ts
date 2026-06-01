@@ -4,6 +4,7 @@ import {
   FEED_HEALTH_FEATURE_GRAIN,
   INTERVENTION_PANEL_FEATURE_GRAIN,
   INTERVENTION_WINDOW_FEATURE_GRAIN,
+  POSITIVE_DEVIANCE_FEATURE_GRAIN,
   RIDER_WEIGHTED_EXCESS_WAIT_FEATURE_GRAIN,
   ROUTE_DIRECTION_DAYPART_FEATURE_GRAIN,
   ROUTE_METRIC_HISTORY_FEATURE_GRAIN,
@@ -11,25 +12,24 @@ import {
   ROUTE_RELIABILITY_FEATURE_GRAIN,
   ROUTE_SEGMENT_MONTH_FEATURE_GRAIN,
   SEGMENT_DAYPART_FEATURE_GRAIN,
-  POSITIVE_DEVIANCE_FEATURE_GRAIN,
   SOURCE_COVERAGE_FEATURE_GRAIN,
   STOP_DIRECTION_HOUR_FEATURE_GRAIN,
 } from "../features/index.js";
 import {
   BUNCHING_HOTSPOTS_DETECTOR_ID,
-  detectBunchingHotspots,
   type BunchingHotspotsDetectorInput,
+  detectBunchingHotspots,
 } from "../findings/bunching-hotspots.js";
 import {
-  DELAY_CONCENTRATION_DETECTOR_ID,
-  detectDelayConcentration,
-  type DelayConcentrationDetectorInput,
-} from "../findings/delay-concentration.js";
-import {
   DEGRADATION_TREND_DETECTOR_ID,
-  detectDegradationTrends,
   type DegradationTrendDetectorInput,
+  detectDegradationTrends,
 } from "../findings/degradation-trend.js";
+import {
+  DELAY_CONCENTRATION_DETECTOR_ID,
+  type DelayConcentrationDetectorInput,
+  detectDelayConcentration,
+} from "../findings/delay-concentration.js";
 import {
   detectHeadwayReliabilityEwt,
   HEADWAY_RELIABILITY_EWT_DETECTOR_ID,
@@ -178,7 +178,8 @@ export const ANALYTICS_DETECTOR_REGISTRY: RegisteredAnalyticsDetector[] = [
     promotionGates: [
       {
         kind: "coverage",
-        description: "Expected source, route, and join inputs must be explicitly observed or missed.",
+        description:
+          "Expected source, route, and join inputs must be explicitly observed or missed.",
         requiredFor: ["descriptive", "associational", "candidate_causal_needs_review"],
       },
       {
@@ -421,7 +422,8 @@ export const ANALYTICS_DETECTOR_REGISTRY: RegisteredAnalyticsDetector[] = [
       ...DESCRIPTIVE_GATES,
       {
         kind: "source_freshness",
-        description: "Runtime observations must be fresh enough for descriptive variability claims.",
+        description:
+          "Runtime observations must be fresh enough for descriptive variability claims.",
         requiredFor: ["descriptive", "associational", "candidate_causal_needs_review"],
       },
     ],
@@ -563,7 +565,8 @@ export const ANALYTICS_DETECTOR_REGISTRY: RegisteredAnalyticsDetector[] = [
       },
       {
         kind: "method_divergence",
-        description: "Divergent uncontrolled, matched-peer, or SCM estimates block stronger claims.",
+        description:
+          "Divergent uncontrolled, matched-peer, or SCM estimates block stronger claims.",
         requiredFor: ["candidate_causal_needs_review"],
       },
     ],

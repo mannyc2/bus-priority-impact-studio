@@ -7,21 +7,21 @@ const visibleRoute = {
   routeTypes: ["Local"],
   shapeCount: 1,
   coverageStatus: "full" as const,
-  ridershipWindowCount: 168,
-  totalRidership: 10_000,
 };
 
 describe("public route visibility", () => {
-  test("requires rider-hours inputs for public Studio routes", () => {
+  test("hides placeholder routes without public metadata", () => {
     expect(
       classifyPublicRouteVisibility({
-        ...visibleRoute,
-        ridershipWindowCount: 0,
-        totalRidership: 0,
+        routeId: "UNKNOWN",
+        routeLongName: null,
+        routeTypes: [],
+        shapeCount: 0,
+        coverageStatus: "full",
       }),
     ).toEqual({
       publicVisible: false,
-      reason: "missing_ridership_exposure",
+      reason: "placeholder_without_public_metadata",
     });
   });
 

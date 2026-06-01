@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@bp/analytics": "workspace:*",
+    "@bp/applied-research": "workspace:*",
     "@bp/db": "workspace:*",
     "@bp/domain": "workspace:*",
     "@bp/sources": "workspace:*",

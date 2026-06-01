@@ -97,6 +97,7 @@ describe("audit analytics-materialization-coverage", () => {
 
       const bySurface = new Map(audit.surfaces.map((surface) => [surface.surfaceId, surface]));
       expect(bySurface.get("stop_direction_hour_ewt_features")).toMatchObject({
+        registryProductId: "stop_direction_hour_ewt_features",
         expectedRouteCount: 2,
         materializedRouteCount: 1,
         missingRouteCount: 1,
@@ -104,21 +105,25 @@ describe("audit analytics-materialization-coverage", () => {
         sampleMissingRoutes: ["B1"],
       });
       expect(bySurface.get("route_brief_input_slices")).toMatchObject({
+        registryProductId: "route_brief_input_slices",
         expectedRouteCount: 3,
         materializedRouteCount: 3,
         status: "complete",
       });
       expect(bySurface.get("route_briefs")).toMatchObject({
-        expectedRouteCount: 3,
+        registryProductId: "generated_route_briefs",
+        expectedRouteCount: 2,
         materializedRouteCount: 1,
         status: "partial",
       });
       expect(bySurface.get("local_route_segment_speed")).toMatchObject({
-        expectedRouteCount: 3,
+        registryProductId: "local_route_segment_speed_history",
+        expectedRouteCount: 1,
         materializedRouteCount: 1,
-        status: "partial",
+        status: "complete",
       });
       expect(bySurface.get("local_route_observed_reliability_summary")).toMatchObject({
+        registryProductId: "local_route_observed_reliability_summary_release",
         expectedRouteCount: 2,
         materializedRouteCount: 1,
         status: "partial",

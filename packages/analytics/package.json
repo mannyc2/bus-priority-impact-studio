@@ -10,6 +10,7 @@
     "./core": "./src/core/index.ts",
     "./corpus": "./src/corpus/index.ts",
     "./detectors": "./src/detectors/index.ts",
+    "./evaluation": "./src/evaluation/index.ts",
     "./features": "./src/features/index.ts",
     "./registry": "./src/registry/index.ts"
   },
