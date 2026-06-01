@@ -123,7 +123,23 @@ These power the rider-impact weighting in route scoring — slow speed × high r
 
 ### 2. Local artifacts — `tools/pipeline-v2` output
 
-`tools/pipeline-v2` reads `knowledge/raw/`, runs deterministic transformations, and writes both **rows into `@bp/db/local` (the local SQLite pipeline DB)** and **JSON/GeoJSON artifacts under `data/artifacts/`**. The local pipeline DB is the canonical handoff: it replaced the older DB-shaped JSON files (see `local_pipeline_db_cutover.md`).
+`tools/pipeline-v2` reads `knowledge/raw/` plus gitignored source snapshots under
+`data/raw/`, runs deterministic transformations, and writes both **rows into
+`@bp/db/local` (the local SQLite pipeline DB)** and **JSON/GeoJSON artifacts
+under `data/artifacts/`**. The local pipeline DB is the canonical handoff: it
+replaced the older DB-shaped JSON files (see `local_pipeline_db_cutover.md`).
+
+The local `data/` tree has a strict role split:
+
+- `data/raw/` holds durable external source snapshots and mirrored raw handoffs.
+- `data/working/` holds resumable intermediate state and scratch materialization.
+- `data/artifacts/` holds deterministic derived products such as review packets,
+  route briefs, map payloads, OCR markdown, and coverage reports.
+- `data/exports/` holds release/publish handoffs.
+- `data/local/` holds local databases and stores.
+- `data/ops/` holds operational run control and observability: logs, PIDs, retry
+  traces, progress ledgers, and restart scripts. It is not the canonical home for
+  raw downloads or derived corpus artifacts.
 
 These artifacts are the *staging ground* — what the publish step promotes from. They are not served directly. They are versioned by run and date (e.g. `tier2-full-corpus-2026-05-24-pass2/`).
 
