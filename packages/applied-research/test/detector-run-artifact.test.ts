@@ -19,7 +19,6 @@ describe("detector run artifacts", () => {
             candidateId: "c1",
             detectorRunId: "speed_pace_hotspot-2026-03-test",
             detectorId: "speed_pace_hotspot",
-            detectorVersion: "1.0.0",
             month: "2026-03",
             routeId: "M15",
             physicalId: null,
@@ -29,7 +28,7 @@ describe("detector run artifacts", () => {
             reasonCode: "slow_segment",
             severity: "medium",
             confidence: "medium",
-            detectorScore: 750,
+            detectorScore: 75,
             claimText: "Segment is slow.",
             claimSafeLabel: "issue_needs_review",
             status: "open",
@@ -42,21 +41,18 @@ describe("detector run artifacts", () => {
         evidence: [],
         coverage: [
           FindingCoverageAuditSchema.parse({
+            auditId: "a1",
             detectorRunId: "speed_pace_hotspot-2026-03-test",
             detectorId: "speed_pace_hotspot",
             month: "2026-03",
             scopeKind: "segment",
             scopeId: "seg-1",
-            routeId: "M15",
             outcome: "hit",
-            observedCount: 1,
-            expectedCount: null,
-            coverageShare: null,
-            freshnessStatus: "not_expected",
-            sampleCount: 20,
-            minSampleCount: 15,
             reasonCode: null,
             reason: null,
+            inputsSeenJson: JSON.stringify({ routeId: "M15", sampleCount: 20 }),
+            inputsExpectedJson: JSON.stringify({ minSampleCount: 15 }),
+            createdAt: "2026-06-01T00:00:00.000Z",
           }),
         ],
       },
@@ -69,5 +65,6 @@ describe("detector run artifacts", () => {
     });
     expect(artifact.featureContracts.map((contract) => contract.status)).toContain("resolved");
     expect(artifact.candidateSamples[0]?.candidateId).toBe("c1");
+    expect(artifact.candidateSamples[0]?.detectorScore).toBe(75);
   });
 });

@@ -13,11 +13,12 @@ const forbiddenImports = [
 async function readSourceFiles(): Promise<Array<{ path: string; text: string }>> {
   const glob = new Bun.Glob("**/*.ts");
   const files: Array<{ path: string; text: string }> = [];
+  const srcRoot = new URL("../src/", import.meta.url);
 
-  for await (const path of glob.scan({ cwd: "src", onlyFiles: true })) {
+  for await (const path of glob.scan({ cwd: srcRoot.pathname, onlyFiles: true })) {
     files.push({
       path: `src/${path}`,
-      text: await Bun.file(`src/${path}`).text(),
+      text: await Bun.file(new URL(path, srcRoot)).text(),
     });
   }
 
@@ -56,7 +57,7 @@ describe("applied research architecture", () => {
   });
 
   test("root barrel stays explicit", async () => {
-    const text = await Bun.file("src/index.ts").text();
+    const text = await Bun.file(new URL("../src/index.ts", import.meta.url)).text();
     expect(/export\s+\*\s+from/.test(text)).toBe(false);
   });
 });
