@@ -2,7 +2,7 @@
 title: Repo Package Structure
 type: engineering
 status: active
-last_updated: 2026-04-28
+last_updated: 2026-06-01
 owner: codex
 source_count: 28
 tags: [repo-structure, typescript, bun, zod, drizzle, cloudflare, clean-architecture, d1, postgres, hyperdrive, r2]
@@ -77,6 +77,7 @@ bus-priority-impact-studio/
     domain/
     sources/
     analytics/
+    applied-research/
     db/
 
   tools/
@@ -108,6 +109,7 @@ bus-priority-impact-studio/
 | `packages/domain` | `@bp/domain` | Pure domain types, metric names, score input/output shapes, small pure functions | nothing local | Cloudflare, React, D1, R2, filesystem, network |
 | `packages/sources` | `@bp/sources` | Socrata/MTA/NYC DOT/Census adapters, source metadata probe adapters, raw DTO parsing | `@bp/domain` | UI, D1 repositories, route scoring, local artifact writes |
 | `packages/analytics` | `@bp/analytics` | Deterministic transforms, hotspot scoring, route score computation, ACE impact calculations | `@bp/domain`, `@bp/sources` | React, Worker handlers |
+| `packages/applied-research` | `@bp/applied-research` | Corpus-backed research workflows over analytics: detector studies, score vectors, review packets, evaluation artifacts, causal panels, forecasting backtests | `@bp/domain`, `@bp/analytics`, focused `@bp/db/local` adapters | apps, tools, source fetching, publishing, React |
 | `packages/db` | `@bp/db` | D1 serving schema/queries plus local SQLite pipeline schema, migrations, and repositories | `@bp/domain` | source fetchers, heavy analytics |
 | `tools/pipeline` | `@bp/pipeline` | Local CLI for probes, fetches, transforms, artifact builds, D1 seed generation | all packages | public request handlers |
 | `knowledge` | none | LLM-maintained wiki and raw source notes | none at runtime | app runtime imports |
@@ -142,6 +144,65 @@ Rules:
 - `src/checks/` owns repo/project guard checks used by root scripts.
 - `src/lib/` owns small shared pipeline helpers for paths, dates, route artifact keys, and JSON writes.
 - Pure scoring/transformation logic should continue moving into `packages/analytics`, source transport/parsing into `packages/sources`, and D1 serialization/repository behavior into `packages/db` when a job module starts carrying package-level responsibility.
+- Corpus-backed research implementation should move into `packages/applied-research` when a pipeline
+  command starts assembling detector-native features, score vectors, review packets, evaluation
+  artifacts, causal panels, or forecasting backtests. The CLI should parse flags, open local stores,
+  call the research package, and write outputs.
+
+## Applied research package layout
+
+`@bp/applied-research` is the bridge between the pure analytics kernel and headless consumers such
+as `tools/pipeline-v2` and Ralph/Codex research loops.
+
+It answers:
+
+- Which corpus rows and artifact families are eligible for this study?
+- Which detector-native grain is required?
+- Which baseline/history window should be used?
+- Which candidate, clean-no-hit, skipped, and missing-data rows should be emitted?
+- Which review packet, score vector, causal panel, or forecast backtest artifact should be built?
+- How good was the study according to the shared scoring system?
+
+It does not fetch sources, publish releases, run Workers, render React, or own detector math.
+`apps/applied-research` is out of scope; research UX should be artifact/tooling-first unless a
+future decision explicitly reopens an app surface.
+
+Implementation status, 2026-06-01: `@bp/applied-research` has been scaffolded with core study,
+grain, window, port, and scoring primitives, detector-evaluation artifact/markdown contracts,
+detector-evaluation scorecard construction, detector-evaluation label-set construction, generic
+detector score-vector artifact builders, speed/pace plus runtime/history feature + score-vector
+builders, EWT route-month score-vector builders, raw stop-direction-hour EWT feature artifact
+builders, detector-family feature resolvers, and registry detector-run artifact assembly.
+Review-packet, promotion-queue, review-queue, and review-packet coverage artifact construction also
+lives in the package. The first local corpus ports define the route-month EWT and
+stop-direction-hour EWT input contracts; pipeline-v2 only adapts SQLite rows into those contracts
+and writes the outputs. The causal and forecasting subpaths expose initial study contracts plus
+claim-readiness and calibration scoring helpers for the higher-order systems planned on top of the
+detector-grade corpus. The
+production-boundary harness now verifies that this package stays headless and does not import apps,
+tools, wiki files, source fetchers, or UI/runtime dependencies.
+
+Target structure:
+
+```text
+packages/applied-research/src/
+  core/
+  feature-resolvers/
+  detector-runs/
+  review-packets/
+  score-vectors/
+  evaluation/
+  causal/
+  forecasting/
+  artifacts/
+  local-db/
+```
+
+The doctrine is captured in
+[[wiki/engineering/applied_research_architecture|Applied Research Architecture]]:
+detectors find candidate structure, causal inference tests intervention claims, and forecasting
+predicts future distributions. A shared scorecard gives all three a numerical improvement loop
+without pretending they are the same kind of evidence.
 
 ## Sources package layout
 
@@ -172,8 +233,9 @@ Allowed import direction:
 apps/web              -> packages/domain, packages/db
 packages/db           -> packages/domain
 packages/analytics    -> packages/domain, packages/sources
+packages/applied-research -> packages/domain, packages/analytics, packages/db
 packages/sources      -> packages/domain
-tools/pipeline        -> packages/domain, packages/sources, packages/analytics, packages/db
+tools/pipeline        -> packages/domain, packages/sources, packages/analytics, packages/applied-research, packages/db
 ```
 
 Forbidden:
@@ -182,8 +244,11 @@ Forbidden:
 packages/*            -> apps/*
 apps/web              -> tools/pipeline
 apps/web              -> packages/analytics
+apps/web              -> packages/applied-research
 apps/web              -> packages/sources
 packages/domain       -> any local package
+packages/applied-research -> apps/*
+packages/applied-research -> tools/*
 runtime app code      -> knowledge/*
 ```
 
@@ -406,7 +471,9 @@ A VPS is still not required for the MVP. Concrete triggers:
 - `wrangler.d1.jsonc` points Wrangler D1 migrations at `migrations/d1`.
 - the local D1 export path reads the Drizzle migration journal instead of duplicating table SQL strings.
 - `@bp/db/d1`, `@bp/db/pg`, and `@bp/db/shared` are explicit subpath surfaces.
-- D1 serving query modules live under `src/d1/queries/` and read through Drizzle query builders.
+- D1 serving query modules live under `src/d1/queries/`; most read through Drizzle query builders,
+  while Worker-facing prepared-statement helpers such as `studio-brief-drafts.ts` and
+  `studio-auth.ts` are exported explicitly from `@bp/db/d1` for Cloudflare D1 bindings.
 - D1 seed SQL literal helpers live under `src/d1/seed/`.
 - the legacy `D1DatabaseLike` prepared-statement compatibility layer has been removed.
 - Drizzle dependencies are scoped to `packages/db`.
@@ -463,6 +530,9 @@ packages/db/
 - `tools/pipeline` may call `@bp/db/d1/seed` helpers while seed generation still writes SQL files; it should not own schema DDL or Worker read queries.
 - `tools/pipeline` may call `@bp/db/local` repositories for canonical local build state.
 - `apps/web/src/worker` may create a D1 Drizzle client and call repository functions; it must not run source ingestion or analytics.
+- `apps/web/src/worker` may host Cloudflare Think / Workers AI authoring agents. Those agents must
+  mutate Studio drafts only through Worker-local tools and `@bp/db/d1` helpers, never by importing
+  pipeline, analytics, or `knowledge/` runtime code.
 - `apps/web` must not import `@bp/db/local`.
 
 ### Stable migration path for package code

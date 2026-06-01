@@ -222,6 +222,11 @@ Implemented corpus acquisition:
   corpus from the reviewed seeds and captured official HTML pages. Pass 2 captured 426 sources,
   left 28 failures as source gaps, extracted 55 HTML text artifacts, and queued 368 PDFs for OCR
   planning.
+- 2026-05-31 preservation reconciliation corrected that picture: the pass-2 fixed point was a
+  discovery fixed point, not a complete reviewed-seed fixed point. A reproducible supplement in
+  `data/ops/docs/tier2-ocr-preservation-20260531/` re-adds 31 absent OCR-backed seed sources,
+  records 7 renamed/current source-id aliases, and writes a 485-source augmented backlog plus a
+  filtered capture manifest that reuses the already-downloaded May 25 artifacts.
 
 OCR runs after corpus capture. Tier 2 should first fetch the reviewed corpus, prefer HTML and
 text-layer PDFs, classify scanned or explicitly reviewed PDFs as `ocr_required`, then run a separate

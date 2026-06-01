@@ -64,6 +64,10 @@ The current registry covers these detector families:
   `intervention_event_study`;
 - context association: `permit_correlated_slowdown`, `service_request_context`.
 
+The lattice idea now sits outside the registry as a local `findings lattice-review-bundles`
+workbench artifact. It can help inspect cross-signal review bundles, but it is not a detector,
+causal method, forecast, or public finding source.
+
 The remaining weakness is no longer "we need a first detector spine." The weakness is integration
 and governance:
 

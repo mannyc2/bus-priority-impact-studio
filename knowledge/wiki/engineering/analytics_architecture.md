@@ -49,6 +49,12 @@ The initial calibration policy scaffold is
 seasonality rules, minimum-history gates, and post-backfill validation expectations for the first
 full-history detector families.
 
+The corpus-backed research orchestration layer is
+[[wiki/engineering/applied_research_architecture|Applied Research Architecture]]. That page defines
+`packages/applied-research` as the future home for detector study orchestration, score-vector
+artifact builders, review-packet assembly, causal panels, forecasting backtests, and the shared
+research scorecard. Those responsibilities should not live in this pure analytics kernel.
+
 ## Current Audit
 
 The current package is directionally right:
@@ -80,8 +86,8 @@ Current analytics footprint, after the 2026-05-30 architecture refactor:
 
 | Area | Files | Notes |
 |---|---:|---|
-| Package source | 73 TypeScript files | Core helpers, feature contracts, baseline primitives, detector registry/specs, calibration helpers, corpus profiling, detector files, transforms, and explicit barrels |
-| Package tests | 27 TypeScript test files | Detector behavior tests plus architecture, registry, calibration, corpus, and feature-contract tests |
+| Package source | 81 TypeScript files | Core helpers, feature contracts, baseline primitives, detector registry/specs, calibration helpers, corpus profiling, detector files, local review-bundle helpers, transforms, and explicit barrels |
+| Package tests | 30 TypeScript test files | Detector behavior tests plus architecture, registry, calibration, corpus, local review-bundle, and feature-contract tests |
 | Detector families | 18 | Legacy coverage detectors plus the literature-driven headway, bunching, speed/pace, variability, schedule, trend, positive-deviance, intervention-event, and rider-weighted EWT detectors |
 | Registry entries | 18 | Every detector has a spec, version, declared feature grains, scope metadata, claim tier, missing-data states, and run function |
 | Repeated mechanics | centralized where stable | Stable IDs, threshold merging, number helpers, score-to-severity, evidence builders, coverage builders, score-vector summaries, gold-set evaluation, and reviewer summaries |
@@ -119,6 +125,7 @@ Consumers stay outside the package:
 
 | Consumer | Responsibility |
 |---|---|
+| `packages/applied-research` | Resolve corpus-backed study inputs, run analytics over detector-native grains, build score vectors, review packets, evaluation artifacts, causal panels, and forecasting backtests |
 | `tools/pipeline-v2` | Load local DB/artifact inputs, call analytics, persist detector outputs, build review packets and Studio artifacts |
 | `packages/db` | Store local detector inputs/outputs and serving projections |
 | `packages/domain` | Own public/internal contracts, branded IDs, and Zod schemas crossing package boundaries |

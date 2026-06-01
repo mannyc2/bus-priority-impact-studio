@@ -2,7 +2,7 @@
 title: Agent-Author API
 type: engineering
 status: draft
-last_updated: 2026-05-18
+last_updated: 2026-06-01
 owner: codex
 source_count: 0
 tags: [api, worker, agents, briefs, llm, composer, write-side]
@@ -55,33 +55,45 @@ anything not on this flow is out of scope for v1.
 4.  GET /api/v1/studio/data/violations?route=m15-sbs&segment=madison-28-58
        → mid-layer ACE violation counts by period
 5.  POST /api/v1/studio/briefs
-       body: { fromFindingId: "m15-full-treatment-still-declining", title?, claims?[] }
-       → 202 Accepted, { jobId, briefId, status: "drafting" }
-6.  GET /api/v1/studio/briefs/{briefId}        (polled until status != "drafting")
-       → full brief with system-drafted claims, evidence, caveats
-7.  GET /api/v1/studio/briefs/{briefId}/evidence?search=madison+rh
+       body: { routeSlug?: "m15-sbs", fromFindingId?: "...", sourceBriefId?: "..." }
+       → { draft } with a new draft-only brief id
+6.  PATCH /api/v1/studio/briefs/{briefId}/draft
+       body: { title?, dek?, summary?, bodyMd?, status? }
+       → 204 No Content
+7.  POST /api/v1/studio/briefs/{briefId}/draft/generate
+       body: {}
+       → { status, error, draft } (queues a Think / Workers AI generation run; no inline inference)
+8.  GET /api/v1/studio/briefs/{briefId}
+       → public brief, overlaid with draft state only for an authorized operator
+9.  GET /api/v1/studio/briefs/{briefId}/evidence
        → searchable catalog of additional evidence the brief could cite
-8.  PATCH /api/v1/studio/briefs/{briefId}/claims/2
-       body: { attachEvidence: ["e-madison-rh-share"], applyCaveats: ["c-observed-speed"] }
-       → updated claim with recomputed strength
-9.  POST /api/v1/studio/briefs/{briefId}/validate
+10. PATCH /api/v1/studio/briefs/{briefId}/draft/claims/2
+       body: { evidenceIds: ["e-madison-rh-share"], caveatIds: ["c-observed-speed"] }
+       → 204 No Content
+11. POST /api/v1/studio/briefs/{briefId}/draft/validate
        → { score, weakClaims, missingEvidence, blockingIssues[] }
-10. POST /api/v1/studio/briefs/{briefId}/review
-       body: { reviewers: ["sr@example.com"], message?: "..." }
-       → 202 Accepted, { reviewId }
-11. POST /api/v1/studio/briefs/{briefId}/publish
-       body: { idempotencyKey: "agent-run-7f3a..." }
-       → 200 OK, { briefId, version, publishedAt }
+12. POST /api/v1/studio/briefs/{briefId}/draft/review
+       body: { message: "..." }
+       → 204 No Content
+13. POST /api/v1/studio/briefs/{briefId}/draft/verdict
+       body: { verdict: "approve" | "request_changes", message?: "..." }
+       → 204 No Content
+14. POST /api/v1/studio/briefs/{briefId}/draft/publish
+       body: {}
+       → 204 No Content
+15. GET /api/v1/studio/briefs/{briefId}/draft/publish-candidate-export
+       → publish-candidate payload for release review
 ```
 
 Decisions this walkthrough forces (each must have an explicit answer before any endpoint ships):
 
 - **Async drafting is required.** LLM-paced brief generation cannot fit a synchronous request.
-  `POST /briefs` returns a job, agent polls.
+  The live Worker records a generation job and signals the Cloudflare Think / Workers AI
+  `BriefAuthorAgent` out-of-band.
 - **Strength scoring is server-authoritative.** Step 9 cannot be a client-side compute; otherwise
   agents can publish briefs the system would consider weak. The validate endpoint is the gate.
-- **Idempotency keys on every write.** Agents retry. Without keys we get duplicate briefs and
-  duplicate publishes. Required on `POST /briefs`, `PATCH .../claims/{n}`, `POST .../publish`.
+- **Idempotency keys on every write.** Agents retry. Without keys we get duplicate claims and
+  duplicate publishes. Required as the `Idempotency-Key` header on every draft mutation.
 - **Reviewer assignment is async.** Step 10 enqueues; it does not block. The brief stays in the
   agent's hands until a human reviewer acts.
 - **Publish is reversible but not undoable.** A published brief can be retracted via
@@ -119,35 +131,58 @@ Every action the web composer can take is a write-side endpoint. The shape follo
 
 | Endpoint | Action | Notes |
 |---|---|---|
-| `POST /studio/briefs` | Create a brief from a finding, route, or empty seed. | Async; returns `{ jobId, briefId, status: "drafting" }`. Idempotency key required. |
-| `GET /studio/briefs/{id}` | Read the current draft / published state. | Same shape as today's response. Add `status` field (`drafting | draft | in-review | published | retracted`). |
-| `PATCH /studio/briefs/{id}` | Edit brief-level metadata (title, dek). | Idempotency key required. |
-| `POST /studio/briefs/{id}/claims` | Add a claim. | Returns the new claim with `n` assigned. |
-| `PATCH /studio/briefs/{id}/claims/{n}` | Edit a claim: text, attach/detach evidence, apply/remove caveats, change state. | Server recomputes `strength`. |
-| `DELETE /studio/briefs/{id}/claims/{n}` | Remove a claim. | Renumbers remaining claims. |
-| `POST /studio/briefs/{id}/validate` | Run server-side validation. | Returns `{ score, weakClaims, missingEvidence, blockingIssues[] }`. Required before publish. |
-| `POST /studio/briefs/{id}/review` | Send to review. Enqueues reviewer notification. | Brief stays editable; status becomes `in-review`. |
-| `POST /studio/briefs/{id}/publish` | Publish. | Refuses if validate returned `blockingIssues`. Idempotent on `idempotencyKey`. |
-| `POST /studio/briefs/{id}/retract` | Retract a published brief. | History is preserved; the brief moves back to `draft`. |
+| `GET /studio/briefs/{id}` | Read the public brief, with draft overlay for authorized operators. | Anonymous reads remain public; operator reads need `read:briefs` in the draft workspace. |
+| `POST /studio/briefs` | Create a new draft-only brief from a `routeSlug`, `sourceBriefId`, or `fromFindingId`. | `write:briefs`; `Idempotency-Key` required; returns `{ draft }`. Authorized reads can fetch draft-only briefs by id. |
+| `PATCH /studio/briefs/{id}/draft` | Edit brief-level metadata/status/body markdown. | `write:briefs`; `Idempotency-Key` required. Seeds from the release brief if needed. |
+| `POST /studio/briefs/{id}/draft/generate` | Queue a Think / Workers AI generation run. | `write:briefs`; no inline inference; returns `{ status, error, draft }`; missing bindings fail closed with `not_configured`. |
+| `POST /studio/briefs/{id}/draft/agent-runs` | Start an authoring agent run against the current draft version/hash. | `write:briefs`; `Idempotency-Key` required; no model execution yet. |
+| `POST /studio/briefs/{id}/draft/agent-runs/{runId}/propose-edit` | Submit structured agent edit operations. | `write:briefs`; returns either a stored proposal id or machine-readable repair/stale-base feedback; accepted draft content is unchanged. |
+| `GET /studio/briefs/{id}/draft/proposals/{proposalId}` | Fetch a stored agent proposal. | `read:briefs`; used for preview and human approval. |
+| `POST /studio/briefs/{id}/draft/proposals/{proposalId}/apply` | Apply all or selected proposal operations after human approval. | `write:briefs`; `Idempotency-Key` required; mutates accepted draft content, records accepted operation ids, and creates a version snapshot. |
+| `POST /studio/briefs/{id}/draft/proposals/{proposalId}/reject` | Reject a stored agent proposal. | `write:briefs`; `Idempotency-Key` required; accepted draft content is unchanged. |
+| `GET /studio/briefs/{id}/draft/versions` | List draft version milestones. | `read:briefs`; returns D1-backed version refs. |
+| `POST /studio/briefs/{id}/draft/versions/{versionId}/restore` | Restore a draft version snapshot as a new version. | `write:briefs`; `Idempotency-Key` required; resets status to draft and recomputes validation. |
+| `POST /studio/briefs/{id}/draft/claims` | Add a claim. | `write:briefs`; returns the new claim with `n` assigned. |
+| `PATCH /studio/briefs/{id}/draft/claims/{n}` | Edit a claim: text, evidence ids, caveat ids, state. | `write:briefs`; deterministic strength recompute is deferred. |
+| `DELETE /studio/briefs/{id}/draft/claims/{n}` | Remove a claim. | `write:briefs`; renumbers remaining claims. |
+| `POST /studio/briefs/{id}/draft/blocks` | Add a typed primitive block for the markdown content graph. | `write:briefs`; returns the normalized block. |
+| `PATCH /studio/briefs/{id}/draft/blocks/{blockId}` | Edit a typed primitive block. | `write:briefs`; block id must match the path. |
+| `DELETE /studio/briefs/{id}/draft/blocks/{blockId}` | Remove a typed primitive block. | `write:briefs`; validation reports body refs that now point at missing blocks. |
+| `POST /studio/briefs/{id}/draft/refs/resolve` | Validate/normalize proposed block, evidence, metric, source, artifact, and unresolved refs. | `write:briefs`; local block refs resolve from D1, evidence/source/metric refs from the brief projection, and artifacts from route detail refs. |
+| `POST /studio/briefs/{id}/draft/validate` | Run server-side validation. | `write:briefs`; returns `{ score, weakClaims, missingEvidence, blockingIssues[] }`, including missing/mismatched body block refs. |
+| `POST /studio/briefs/{id}/draft/review` | Send to review by adding a comment. | `review:briefs`; status becomes `in_review`. |
+| `POST /studio/briefs/{id}/draft/verdict` | Approve or request changes. | `review:briefs`; optional message is stored as a review comment; approval is separate from publish-candidate marking. |
+| `POST /studio/briefs/{id}/draft/publish` | Mark as publish candidate. | `publish:briefs`; does not mutate the public release. |
+| `POST /studio/briefs/{id}/draft/retract` | Retract a publish candidate. | `publish:briefs`; history is preserved. |
+| `GET /studio/briefs/{id}/draft/publish-candidate-export` | Fetch candidate payload. | `publish:briefs`; combines D1 draft with R2 release context. |
+| `.../draft/comments*` | Draft-private anchored review threads, replies, suggestions, and resolution. | Implemented for D1 draft-private collaboration; see `docs/architecture/studio-review-collaboration-and-promotion.md`. |
 | `GET /studio/briefs/{id}/history` | Versions with diffs. | Same shape as today. |
 | `GET /studio/briefs/{id}/evidence` | Catalog of evidence the brief could attach. | Supports `?search`, `?kind`, server-side ranked by relevance to the brief's route/segments. |
 
 ## Decisions Settled In This Spec
 
 - **Audience**: agents-as-authors, equally first-class with the web composer UI.
-- **Composing is async.** Brief generation is LLM-paced; `POST /briefs` returns a job id.
+- **Composing is async.** Brief generation is LLM-paced; the Worker records a job and signals the
+  `BriefAuthorAgent` Durable Object to run Workers AI out-of-band.
 - **Strength is server-authoritative.** Clients cannot bypass `validate` to publish weak briefs.
-- **Idempotency keys on all writes.** Agents retry; the API never creates duplicates.
+- **Idempotency keys on all draft writes.** Agents retry; the API never creates duplicates.
+- **Auth is settled for draft authoring.** ADR 0008 sessions resolve operator roles. Draft writes
+  use `write:briefs`, review uses `review:briefs`, publish/export uses `publish:briefs`.
 - **No raw observational data.** Mid-layer is derived projections only.
 - **The web composer is a client of this API**, not a privileged surface. Anything possible in the
   UI is possible via REST.
+- **Review collaboration and public promotion are now scoped.** Draft-private review threads use
+  anchored quote selectors and suggested-edit primitives; promotion stays a two-phase flow where
+  the Worker exports a validated candidate and the pipeline writes immutable public projections.
+  See `docs/architecture/studio-review-collaboration-and-promotion.md`.
 
 ## Decisions Still Open
 
-- **Auth model.** Bearer token + scopes is the working assumption (`read:routes`, `read:findings`,
-  `write:briefs`, `publish:briefs`). Per-workspace tokens vs per-developer is unresolved.
-- **Workspace model.** Today there's one global brief library. With external agents, do briefs
-  belong to a workspace? If so, what's the boundary — author, org, project?
+- **Bearer-token agent auth.** Browser/operator auth is settled via ADR 0008 cookies; external agent
+  bearer-token UX and lifecycle remain open.
+- **Public body/block backfill implementation.** Draft `bodyMd`, block rows, and resolver validation
+  exist, and the promotion model is scoped; released public projections still need ref persistence,
+  candidate-export validation, and promotion-command hardening.
 - **Rate limits.** Working assumption is 500 rpm per token. Brief generation has a separate budget
   (e.g. 10 active drafts per token).
 - **Webhooks vs polling for async jobs.** Polling is the v1 default; webhooks deferred.
@@ -167,7 +202,7 @@ Every action the web composer can take is a write-side endpoint. The shape follo
 ## Verification
 
 A v1 implementation of this spec is verified by **one end-to-end walkthrough**: an external coding
-agent, given only the docs, follows steps 1-11 above and ends with a published brief whose
+agent, given only the docs, follows steps 1-13 above and ends with a published brief whose
 evidence and caveats round-trip through `GET /briefs/{id}` correctly. The internal team must run
 the same walkthrough against the same endpoints — that is the dogfeed test.
 

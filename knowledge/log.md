@@ -2,6 +2,241 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-01] planning | Event-family response drift scoped
+
+Extended the curb-pulse natural-experiment plan and applied-research architecture with a
+portfolio-level study family for historical event/intervention response drift. This is the transit
+analogue of an announcement-effect regime shift: the same class of street event, permit, weather
+threshold, enforcement action, or agency intervention can change effect sign, magnitude, or marginal
+value when the binding constraint changes. The docs now define `event-family-effect-panel` and
+`event-family-response-drift-study` / `event-response-drift-study` artifacts, acceptance gates,
+context-regime labels, representative-case requirements, and review-gated product language.
+
+## [2026-06-01] planning | Natural-experiment probe requirements added
+
+Extended `knowledge/wiki/engineering/curb_pulse_natural_experiment_plan.md` after synthetic design
+probes covering film-production curb occupancy, industrial weather reversals, court-calendar
+rideshare pulses, cruise-terminal staging, and commercial loading-dock timing. The plan now includes
+hard case-study acceptance gates, source-readiness statuses, a generic external-event-window
+interface, an estimand grammar requiring quantified effects and nulls, a narrative template, a
+single-primary-visual contract, candidate-library/multiple-testing controls, and fixture guidance
+for near misses and false positives. These probes remain synthetic requirements discovery, not
+evidence about real routes.
+
+## [2026-06-01] planning | Curb-pulse natural experiment direction
+
+Added `knowledge/wiki/engineering/curb_pulse_natural_experiment_plan.md` as the planning base for
+a richer applied-research product direction: segment/daypart travel-time pulses, event-window
+overlap, official-intervention exclusion, heterogeneous event effects, 311/boarding/placebo
+mechanism checks, and local case-study artifacts. The plan positions this as a deterministic
+natural-experiment workbench under `packages/applied-research`, not a route-month detector, not a
+transformer training task, and not a public finding source until manual and methodology review gates
+exist.
+
+## [2026-06-01] engineering | Lattice review bundle moved out of detector registry
+
+Moved the lattice experiment out of the detector family and into a local analyst workbench. The
+analytics registry no longer exposes `lattice_opportunity`, the domain detector/reason-code lists no
+longer document lattice finding codes, and the pipeline-v2 command is now
+`findings lattice-review-bundles`, writing `lattice-review-bundles.{json,md,html}` review artifacts
+instead of finding candidates. The pure powerset-lattice helper remains available for local
+experimentation and corpus audit, but the output is not a public detector, causal method, forecast,
+or Studio finding source.
+
+## [2026-06-01] pipeline | Lattice opportunity preview artifacts
+
+Added a local-only `findings lattice-opportunities` pipeline-v2 command that reads March finding
+review packets and route signal features, runs the experimental `lattice_opportunity` detector,
+and writes JSON, Markdown, and static HTML previews under `data/artifacts/findings/{month}/`.
+The preview is deliberately not wired into promotion, serving releases, D1, R2, or Studio; it is a
+review surface for deciding whether the lattice archetypes are useful enough to tighten.
+
+## [2026-06-01] engineering | Lattice opportunity detector added
+
+Implemented `lattice_opportunity` as the first cross-signal MTA opportunity detector inspired by
+Lattice Deduction Transformers. The analytics package now includes a pure powerset-lattice
+deduction helper, an experimental route-level detector that narrows speed, reliability,
+intervention, curb/enforcement, context, schedule, treatment, and positive-deviance signals into
+bespoke opportunity archetypes, and fixture tests for enforcement-gap, context-timed street
+management, reliability-dispatch, positive-deviance transfer, clean no-hit, and abstention cases.
+The registry now has 19 detectors and the new detector remains associational and review-gated.
+
+## [2026-06-01] engineering | Studio Think / Workers AI generation runner
+
+Implemented the first real Cloudflare Think / Workers AI execution slice for Studio brief
+authoring. `apps/web` now carries the Think/Agents/AI SDK/Workers AI provider dependencies, deploy
+Wrangler configs bind Workers AI as `AI` and `BriefAuthorAgent` as a Durable Object, and
+`POST .../draft/generate` records a queued D1 generation job plus agent run before signaling the
+draft-scoped `BriefAuthorAgent` with `ctx.waitUntil`. The agent calls Workers AI through
+`workers-ai-provider`, exposes the existing schema-validated `proposeBriefEdit` tool, stores valid
+model output as a proposal, and leaves accepted draft content unchanged until human approval. The
+Worker harness uses fake `AI` and author-agent bindings so CI stays local; missing production
+bindings still return `not_configured`.
+
+## [2026-06-01] engineering | Studio agent proposal-state backend slice
+
+Implemented the proposal approval backend slice for proposal-first Studio authoring agents. Domain
+contracts now cover agent run status, proposal status, structured edit operations, repair feedback,
+provenance, accepted operation ids, draft version milestones, apply/reject responses, and restore
+responses. D1 migrations/query helpers add `studio_brief_agent_run`,
+`studio_brief_agent_proposal`, `studio_brief_draft_version`, and D1-backed version snapshots. The
+Worker exposes `POST/GET .../draft/agent-runs*`,
+`POST .../draft/agent-runs/{runId}/propose-edit`, `GET .../draft/proposals/{proposalId}`,
+`POST .../draft/proposals/{proposalId}/apply`, `POST .../draft/proposals/{proposalId}/reject`,
+`GET .../draft/versions`, and `POST .../draft/versions/{versionId}/restore`, all operator-scoped
+and D1-backed. `propose-edit` validates structured output and leaves accepted content unchanged;
+`apply` mutates accepted draft content only after approval, records accepted operation ids, stores a
+snapshot, creates a draft-version milestone, and supports selected-operation acceptance. OpenAPI and
+client helpers now list the new endpoints; Cloudflare Think/Workers AI execution remains unwired.
+
+## [2026-06-01] planning | Studio agent edit approvals and versions
+
+Added `docs/architecture/studio-agent-edit-approval-versioning.md` to define how AI agent edits
+modify brief content. The model is proposal-first: explicit user triggers start scoped agent runs,
+the agent writes structured change sets against a known draft version/hash, authors approve all or
+selected operations, and approved changes create durable draft-version milestones. This preserves
+the canonical undo/redo UX for live editing while adding restoreable versions at approval,
+suggestion-acceptance, publish-candidate, and promotion-receipt boundaries. Cloudflare Think remains
+the real-time agent runtime; its queue is enough for short async work, while Workflows are deferred
+for future long-running post-approval or multi-system recovery flows. Clarified that normal
+authoring approval is approval of the agent's proposed end result, not per-tool-call approval. The
+first implementation should add an internal run/proposal state machine and a `proposeBriefEdit`
+tool that validates structured operations, returns machine-readable repair feedback, and stores
+only valid proposals for human approval.
+
+Clarified the Cloudflare Agent state boundary in `docs/architecture/studio-agent-stack.md`: Agent
+`setState`/SQLite is useful for live synchronized run UI, current step/progress summaries, and small
+reconstructable caches, but D1/R2 remain authoritative for accepted draft content, proposals,
+versions, review state, idempotency, publish candidates, and promotion receipts. The default v1
+BriefAuthorAgent scope is `workspaceId + briefId`, with client-originated state updates treated as
+untrusted UI signals rather than approval/apply commands.
+
+## [2026-06-01] planning | Studio brief authoring UX canon
+
+Added `docs/architecture/studio-brief-authoring-ux.md` as the product UX canon for Studio brief
+authoring. The note consolidates the canonical design handoff, AI interaction doctrine, content
+graph ADR, review-collaboration model, and current live-tree frontend/backend state. It defines the
+authoring thesis: the composer, review surface, triage flow, and public reader are one
+document-shaped workflow; evidence appears as real inline/embedded figures; AI works through typed
+artifacts marked with `◆`; review pins to prose; undo/redo replaces autosave-history chrome; and
+public promotion remains deliberate and offline.
+
+## [2026-06-01] planning | Studio agent stack scoped
+
+Added `docs/architecture/studio-agent-stack.md` to plan the production Studio authoring-agent
+stack. The note records the live-tree gap that `draft/generate` still returns `not_configured`,
+chooses Cloudflare Think as the production agent runtime, keeps D1/R2 as the source of truth for
+draft/public brief state, scopes tools to the same operator permissions as the REST draft API, uses
+Think/Sessions for chat memory rather than product state, and defers Cloudflare Codemode until
+mid-layer evidence workflows need code-shaped multi-tool orchestration.
+
+## [2026-06-01] planning | Context-event externality reversal archetype
+
+Extended [[wiki/engineering/detector_corpus_grain_audit_plan|Detector Corpus Grain Audit Plan]] with
+a generic context-event externality reversal finding archetype. The archetype describes detector
+support for short episodic segment/stop performance pulses, misattribution guards against nearby
+agency interventions, context-event overlap, network-vs-local sign reversal, mechanism evidence,
+placebo/demand checks, and prospective falsification. It explicitly treats this as a multi-detector
+packet, not a route-specific factual claim or a single monolithic detector.
+
+## [2026-06-01] engineering | Detector corpus grain phase 0 implemented
+
+Implemented `audit detector-corpus-grain` in pipeline-v2 and updated
+[[wiki/engineering/detector_corpus_grain_audit_plan|Detector Corpus Grain Audit Plan]] from a plan
+to a Phase 0 audit artifact. The command joins the analytics detector registry, data-product
+manifest/completeness status, and local findings candidate/coverage counts, writing
+`data/artifacts/detector-corpus-grain/2023-04_to_2026-03/2026-03/grain-audit.{json,md}` for the
+March 2026 snapshot. The first run audits all 18 registered detectors, flags 5 detectors using the
+high-risk `route_month` screening grain, and shows only 8 detectors currently have release-month
+coverage rows, keeping product materialization distinct from detector execution.
+
+## [2026-06-01] planning | Detector corpus grain audit plan
+
+Added [[wiki/engineering/detector_corpus_grain_audit_plan|Detector Corpus Grain Audit Plan]] to
+separate healthy detector optimization from lossy feature collapse. The plan makes the local
+analytical corpus plus detector-native feature grains the target detector substrate, reclassifies
+`RouteMonthSignalFeature` as screening/route-level context rather than the canonical detector
+corpus, records current March/May grain-loss evidence from `data/local/pipeline.sqlite` and
+findings artifacts, and phases the next work through registry-driven corpus-grain audits,
+materialization coverage, v2 findings execution, false-negative shadow audits, and release gates.
+
+## [2026-06-01] architecture | Studio review collaboration and promotion model scoped
+
+Added `docs/architecture/studio-review-collaboration-and-promotion.md` to settle the next backend
+slice after ADR 0014/0015. Review collaboration is draft-private D1 state: anchored threads,
+replies, suggested edits, resolution, optional reviewer assignment, and review gates live under the
+`.../draft/comments*` namespace rather than public `comments[]`. Public promotion remains an
+offline pipeline mutation: the Worker validates and exports a self-contained publish candidate,
+while `studio promote-publish-candidate` merges it into immutable `studio/v1` projections and
+archives private review audit data without exposing it in the public brief response.
+
+## [2026-06-01] architecture | Studio typed brief blocks backend landed
+
+Extended the Studio brief-draft backend with the first ADR 0015 content-graph slice. Domain schemas
+now define typed `BriefBlock` variants plus `BriefRef`; D1 has `studio_brief_draft_block`; `@bp/db/d1`
+exports insert/update/delete helpers; and the Worker exposes idempotency-keyed
+`POST/PATCH/DELETE /api/v1/studio/briefs/{briefId}/draft/blocks*` plus
+`POST /api/v1/studio/briefs/{briefId}/draft/refs/resolve` for schema normalization. Operator draft
+overlays and publish-candidate export include typed blocks when present. Still open: body markdown
+storage, richer corpus-backed ref resolution / Send-to-brief attach, public projection backfill, and
+renderer integration.
+
+## [2026-05-31] architecture | Studio brief-draft Worker endpoints implemented
+
+Accepted `docs/decisions/0014-brief-draft-live-write-serving.md` and implemented the backend
+foundation for Studio brief-draft authoring without building the authoring UI/UX. The Worker now
+routes `/api/v1/studio/briefs/{briefId}/draft*` to D1 draft helpers exported from `@bp/db/d1`,
+enforces ADR 0008 operator sessions/scopes, requires `Idempotency-Key` on draft mutations, records
+generation jobs without inline LLM inference, and overlays D1 `draftStatus`/`draftPublishedAt` onto
+brief reads only for authorized operators in the draft workspace. OpenAPI, in-app docs endpoint
+metadata, db/Worker tests, and the agent-author/wiki architecture pages were updated. Cloudflare
+Think / Workers AI execution remains a future out-of-band runner; the current generation route
+honestly returns `failed` / `not_configured` rather than pretending a runner exists.
+
+## [2026-05-31] planning | Studio brief-draft authoring Worker plan
+
+Added [[wiki/engineering/studio_brief_draft_authoring_worker_plan|Studio Brief-Draft Authoring
+Worker Plan]] after live-tree verification of the draft client contract, domain schemas, D1 query
+helpers, migrations, Worker auth helpers, OpenAPI surface, and Worker test pattern. The plan keeps
+public Studio reads anonymous while treating `/api/v1/studio/briefs/{briefId}/draft*` as an
+authenticated AI-backed authoring surface, gates mutations by `write:briefs`, `review:briefs`, and
+`publish:briefs`, uses `Idempotency-Key` for draft writes, overlays D1 draft status onto the public
+brief response only for authorized operators in the draft workspace, and records generation jobs
+without inline LLM inference. Cloudflare Think remains the intended future out-of-band runner, but
+the current tree has no Think, Workers AI, Durable Object, Queue, or worker-loader binding wired.
+
+## [2026-05-31] web | Methods page folded into Docs
+
+Retired the standalone `/methods` page and its tabbed, data-driven UI. The genuinely unique
+content — the metric definitions and publication caveats — moved to a new prose docs page at
+`/docs/methodology` (Resources section, between Data & Credits and Changelog). The dataset and
+source content was already covered by `/docs/data-credits`, which now also carries a short
+derived-artifacts note and a reciprocal cross-link. `/methods` now `beforeLoad`-redirects to
+`/docs/methodology`; the two inbound "methodology" links (routes home, route detail) point at the
+new URL directly. Dropped the `fetchStudioMethods` web loader and deleted
+`apps/web/src/studio/pages/methods.tsx`. The server endpoint `GET /api/v1/studio/methods` and its
+projection/test are left live but are now UI-unused (separate retirement if desired). Updated the
+prescriptive `/methods` references in [[wiki/engineering/ui_copy_doctrine|UI copy doctrine]] to
+`/docs/methodology`; other historical wiki plan/audit pages still mention `/methods` and can be
+swept later — this entry is the record of the cutover.
+
+## [2026-05-31] pipeline | Root checks retargeted to pipeline-v2
+
+Started Workstream 5 drift cleanup by retargeting root check scripts away from deleted
+`tools/pipeline/src/checks/*` paths. The production-boundary harness now asserts the canonical
+`@bp/pipeline-v2` CLI wrapper and rejects stale root package script references to v1. The lightweight
+knowledge and web release checks now live under `tools/pipeline-v2/src/checks/`, while
+`check:web-architecture` runs the cross-cutting production-boundary harness directly.
+
+## [2026-05-31] planning | Ambitious analytics workstream prompts
+
+Added [[wiki/engineering/ambitious_analytics_workstreams|Ambitious Analytics Workstreams]] as the
+coordination page for six high-value work areas that can proceed while the historical backfill
+runs: registry-driven detector operation, Serving Snapshot 2.0, a data-product completeness
+registry, detector quality/loss scoring, pipeline-v2/docs drift cleanup, and research-to-detector
+hardening. The page includes a 0-1,000 weighted opportunity scoring model, parallelization guidance,
+disjoint write-set cautions, copy-ready prompts for separate Codex sessions, and definitions of done.
+
 ## [2026-05-31] architecture | Codemode sandbox moved to Bun/TypeScript
 
 Accepted `docs/decisions/0013-bun-typescript-codemode-sandbox.md`, superseding the
@@ -12,7 +247,8 @@ the runtime bind-mounts `packages/analytics` plus `packages/domain` read-only so
 agent-authored computations use the same deterministic kernel as detector code.
 
 Pioneer/GPT-5.5 is now the default findings codemode provider/model path, configured
-by `PIONEER_API_KEY` and `PIONEER_BASE_URL`. The LLM remains an author/prototyper,
+by `PIONEER_API_KEY` with `https://api.pioneer.ai/v1` as the default OpenAI-compatible
+base URL. The LLM remains an author/prototyper,
 not a detector of record: validation re-runs cited TypeScript in a clean sandbox,
 and analytics package code remains free of prompt, model, sandbox, filesystem, and
 agent-loop dependencies.
@@ -1874,3 +2110,160 @@ summary rows, and scorecards cover all 381 catalog routes, while generated brief
 vectors, speed, ridership, observed reliability, and stop-direction-hour EWT artifacts still have
 route-level gaps. This audit is now the place to catch "we generated a few examples but not the
 fleet" before treating a surface as complete.
+
+## [2026-05-31] engineering | Data-product completeness registry
+
+Started Workstream 3 from `knowledge/wiki/engineering/ambitious_analytics_workstreams.md` with a
+typed derived-product registry in `tools/pipeline-v2/src/registry/data-products.ts` and a read-only
+`audit data-product-completeness` command. The registry is separate from
+`knowledge/raw/source_manifest.yaml`: raw source availability no longer implies that local tables,
+feature artifacts, score vectors, serving projections, or release manifests are complete.
+
+The first registered slice covers 12 high-value products. Against the March 2026 observed release
+candidate, the audit reports 8 complete, 3 partial, and 1 missing product. The remaining blockers
+are release schedule timepoint route coverage, EWT score-vector route coverage, generated route
+brief coverage, and the top-level map release manifest.
+
+## [2026-05-31] engineering | Bulk CSV schedule-source import path
+
+Added `ingest route-schedules-bulk` as a parallel route-schedule import path for Socrata
+`rows.csv` snapshots. It downloads or reuses a full CSV snapshot, has a `--download-only` mode for
+source caching without SQLite writes, streams rows into per-route scratch files, sorts each route
+with the same deterministic key as the existing JSON route/page ingest, and writes the same
+`local_route_schedule_stop` and route ingest status tables.
+
+The first scratch benchmark used 2025 SIM35 rows: the existing JSON route/page path wrote 66,150
+rows in 23.85s, while CSV download plus bulk import took 6.08s total. A SQLite `EXCEPT`
+comparison found equal row counts and zero row differences between the two scratch outputs. The
+path is documented in [[wiki/engineering/analytics_backfill_runbook|Analytics Backfill Runbook]]
+and should be validated on a full-year snapshot before replacing the active schedule backfill.
+
+## [2026-06-01] engineering | Detector evaluation negatives and score vectors
+
+Extended the detector evaluation harness with deterministic clean no-hit labels, a stable-hash
+holdout split, missing-data scope accounting, generic local-finding score vectors, and all-detector
+packet coverage. The new builders are `build detector-evaluation-labels` and
+`build detector-score-vectors`; both feed the March 2026 `evaluate detectors` artifact.
+
+The refreshed March packet has 18/18 detector scorecards, 200 confirmed positives, 2,133 derived
+confirmed negatives, 451 holdout negatives, 473 near-miss scopes, 451 missing-data scopes, and
+8/18 detector families with review packets. The portfolio is no longer positive-only. The remaining
+evaluation gap is quality, not shape: derived negatives need reviewer-labeled rejection examples,
+and detector-specific historical score vectors are still needed for the families that report
+`score_vector_unavailable`.
+
+## [2026-06-01] engineering | Brief markdown rendering & embeddable primitives (ADR 0015)
+
+Scoped the brief markdown-rendering work: brief bodies become markdown and the design's 14 brief
+primitives (5 inline, 9 embedded) render *through* that pipeline, replacing three ad-hoc plain-string
+prose renderers (reading / composer / review). Decided (with the user) on a markdown + typed-block
+hybrid: prose and inline primitives use `react-markdown` + `remark-directive`/`remark-gfm`; embedded
+figures carry a `ref` to a Zod-validated `BriefBlock` so figure data stays typed and the markdown stays
+thin and safe (allowlist, no raw HTML). The stack is lazy-loaded into the already-split brief chunks to
+hold the 168 KB initial-JS budget. Recorded in ADR 0015 and `docs/architecture/brief-markdown-primitives.md`.
+Phasing: shared `<BriefProse>` inline tier across all three surfaces, then `BriefBlock` + the embedded
+tier, then the authoring write path and AI emission. Open item: confirm whether `/briefs/$briefId`
+server-renders in the Worker (the pipeline must run there if so).
+
+## [2026-06-01] engineering | Brief draft body markdown and ref resolver
+
+Landed the backend half of ADR 0015's authoring content graph: draft `bodyMd` is now part of the
+domain draft contract, persists in D1 as `studio_brief_draft.body_md`, seeds from the release brief
+sections when a draft is first initialized, and overlays onto `GET /studio/briefs/{id}` for
+authorized operators only.
+
+The draft resolver now checks local block refs from D1, evidence/source and metric-source refs from
+the brief projection, and artifact refs from the route detail projection. Draft validation reports
+missing body block refs and directive/block-type mismatches. Public released projections still need
+body/blocks backfill and promotion wiring before the public reader can rely on `bodyMd`.
+
+## [2026-06-01] engineering | Draft-only brief creation and review verdicts
+
+Added the next authoring backend slice: `POST /api/v1/studio/briefs` now mints D1 draft-only brief
+ids from a route, source brief, or finding seed, returns the draft contract, and lets authorized
+operators read that draft through the canonical `GET /studio/briefs/{id}` path without exposing it
+to anonymous public reads.
+
+Reviewer workflow now has a separate `POST .../draft/verdict` endpoint for `approve` and
+`request_changes`. Verdicts are gated by `review:briefs`, may attach a review comment message, and
+move the D1 draft status independently from publish-candidate marking.
+
+## [2026-06-01] engineering | Review threads and publish-candidate audit
+
+Landed the backend collaboration primitives from
+`docs/architecture/studio-review-collaboration-and-promotion.md`: `studio_brief_review_comment`
+now stores draft-private root threads, replies, anchors, suggestions, and resolution state, and the
+Worker exposes `.../draft/comments*` endpoints for anchored comments, change requests, replies,
+status changes, and body-markdown suggestion acceptance.
+
+Review state now participates in validation, approval, and publish-candidate marking: open change
+requests or suggested edits block approval/publish until resolved or dismissed. Candidate export now
+rejects stale blocking validation, works for source-backed and draft-only briefs, includes a private
+audit section with validation/content hashes/review summaries, and the promotion command archives
+that audit without copying private review threads into public `comments[]`.
+
+## [2026-06-01] engineering | Durable refs, attach, and promotion receipt
+
+Finished the next Studio authoring backend slice: draft refs now persist in
+`studio_brief_draft_ref`, round-trip through the draft contract, and are embedded into candidate
+exports/public projections alongside `bodyMd` and typed blocks. The Worker exposes
+`GET/PUT .../draft/refs` for durable ref lists while preserving `.../draft/refs/resolve` as the
+normalizer.
+
+Added `POST .../draft/attach` so Send-to-brief can attach a captured Studio object as a typed block,
+persist its refs, and append the matching body-markdown directive. Added
+`POST .../draft/promotion-receipt` so the offline promotion command can close the D1 lifecycle by
+marking a publish candidate as `published` with candidate id, target public brief id, artifact key,
+artifact hash, and promotion timestamp.
+
+## [2026-06-01] engineering | General review-packet generation and packet coverage
+
+Added the registry-backed `findings review-packets` path for March 2026. It rebuilds detector specs
+from the analytics registry, packetizes every local finding candidate, preserves existing packet ids
+for already-reviewed candidates, regenerates the promotion queue, and emits
+`review-packet-coverage.json` so complete, partial, missing, and no-candidate detector states are
+tracked explicitly.
+
+The refreshed March packet has 773 candidates and 773 packets across 9 candidate-bearing detector
+families, with 0 candidate-to-packet gaps. Seven detector families have complete packets. Two are
+partial: `source_gap` is intentionally data-quality-only, and `persistent_speed_hotspot` exposes a
+real grain/lineage mismatch because segment candidates are backed by route-level coverage rows.
+The detector evaluation harness now consumes the review-packet coverage artifact, so packet-covered
+counts no longer treat partial packets as complete.
+
+## [2026-06-01] engineering | Packet coverage gate and persistent-speed coverage repair
+
+Finished the follow-up slice for review-packet coverage. `persistent_speed_hotspot` now emits
+segment-scope coverage rows for new runs, and the March local findings table was repaired with 100
+exact segment hit rows for its existing candidates. Added `findings coverage-audit` so
+`detector-coverage-audit.json` is rebuilt from SQLite instead of stale hand-maintained detector
+lists; it now records 773 candidates, 3,680 evidence links, and 17,094 coverage rows, including
+13,928 `speed_pace_hotspot` segment/daypart rows.
+
+`findings review-packets` now also regenerates `review-queue.json` from the same packet/promotion
+surface, keeping the Studio serving queue aligned with 773 packets and 0 unlinked candidates. Added
+`audit review-packet-coverage` as a release gate: March now has 8 complete candidate-bearing
+detectors, 1 warning-only partial (`source_gap`, data-quality packets without counter-evidence), and
+0 missing packet candidates. Reran `evaluate detectors`; portfolio pre-gate and gated scores are now
+854.4, and `speed_pace_hotspot` no longer has the missing-data-scope flag.
+
+## [2026-06-01] engineering | Registry detector execution and route-month shadow audit
+
+Extended `findings run-detector` beyond `speed_pace_hotspot` to run five more registered detector
+families through typed feature resolvers: `headway_reliability_ewt`, `bunching_hotspots`,
+`schedule_mismatch`, `travel_time_variability`, and `degradation_trend`. The March local findings
+surface now has 982 candidates, 4,098 evidence links, and 1,322,549 coverage rows across 14
+candidate-bearing detector families.
+
+Refreshed review packets, packet coverage, generic score vectors, evaluation labels, evaluation
+scorecards, and the corpus-grain audit. Packet coverage now passes with 982 packets for 982
+candidates; `source_gap` has a packet-coverage waiver for absent counter-evidence because it is a
+data-quality detector, while still being blocked from service-performance promotion. The generic
+score-vector builder now handles million-row coverage arrays without spreading scores onto the
+call stack.
+
+Added `audit route-month-shadow`, which compares route-month clean no-hits against richer-grain
+detector candidates on the same route. The first March run found 350 route-month clean-no-hit
+routes, 112 routes with hidden richer-grain candidates, and 1,142 hidden candidate scopes. The
+evaluation harness now reports 18 scorecards, 20,933 derived negatives, 4,185 holdout negatives,
+782 near-miss scopes, 1,300,725 missing-data scopes, and a portfolio gated score of 845.2.

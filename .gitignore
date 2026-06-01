@@ -25,6 +25,7 @@ data/artifacts/*
 data/exports/*
 data/local/*
 # Operational run logs, PIDs, and scratch from local backfill runners.
+data/ops/*
 data/ops/backfills/
 !data/raw/.gitkeep
 !data/working/.gitkeep
@@ -71,3 +72,4 @@ tools/pipeline/test/.tmp-*/
 CLAUDE.local.md
 .claude/settings.local.json
 .claude/agent-memory-local/
+.gstack/

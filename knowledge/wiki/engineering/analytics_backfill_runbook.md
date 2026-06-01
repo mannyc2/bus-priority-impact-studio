@@ -2,7 +2,7 @@
 title: Analytics Backfill Runbook
 type: engineering
 status: active
-last_updated: 2026-05-30
+last_updated: 2026-05-31
 owner: tools/pipeline-v2
 source_count: 0
 tags: [analytics, backfill, runbook, corpus, operations]
@@ -157,15 +157,95 @@ Known 2026-05-30 wrinkle:
 - If it still times out, resume the failed month with `ROUTE_HOURLY_CHUNK_SIZE=3` or a single
   `--route M1` style probe before rerunning the whole surface.
 
+## Schedule-source bulk CSV path
+
+The schedule-source backfill now has two raw CSV snapshot paths:
+
+1. **Preferred:** authenticated SODA3 `export.csv` partitioned by `schedule_date`, one monthly chunk
+   per file, with a `partition-manifest.json`.
+2. **Fallback only:** whole-dataset `rows.csv?accessType=DOWNLOAD`, which has repeatedly reset
+   multi-GB connections and cannot be assumed byte-range resumable.
+
+Use the partitioned path first:
+
+```sh
+MAX_PARALLEL=4 data/ops/backfills/soda3-route-schedules-partitioned-20260531T2115Z/run.sh \
+  | tee data/ops/backfills/soda3-route-schedules-partitioned-20260531T2115Z/run.log
+```
+
+Then import a completed year directly from its partition manifest:
+
+```sh
+bun --filter @bp/pipeline-v2 cli -- ingest route-schedules-bulk \
+  --source-year 2025 \
+  --partition-manifest-path data/raw/socrata-partitioned/bus_schedules_2025/schedule-2025/partition-manifest.json \
+  --skip-existing true \
+  --only-missing-current-routes true
+```
+
+The importer resolves the current-catalog routes still missing from the local DB before scanning
+CSV chunks, then streams only matching rows into per-route scratch files, deterministic sort, and
+`local_route_schedule_stop` writes. Completed chunk files are reused on resume; an interrupted
+active chunk may need to restart, but already completed months do not. The queued
+`import-after-download.sh` runner imports each source year as soon as its partition manifest exists.
+
+The fallback whole-file path remains:
+
+```sh
+bun --filter @bp/pipeline-v2 cli -- ingest route-schedules-bulk \
+  --source-year 2025 \
+  --csv-path data/raw/socrata-bulk/bus_schedules_2025/rows.csv \
+  --spool-dir data/working/route-schedules-bulk/bus_schedules_2025 \
+  --skip-existing true
+```
+
+If `--csv-path` does not exist, the command downloads the manifest `rows_csv` URL first. The
+import then streams the CSV into per-route scratch files, reads one route at a time, sorts by the
+same deterministic key as `ingest route-schedules`, and writes `local_route_schedule_stop` plus
+`local_route_schedule_ingest_status`. Keep `--skip-existing true` when running against the main
+local database so completed route/year pairs are not rewritten.
+
+To cache the source snapshot without writing SQLite rows, add `--download-only`. This is the safe
+mode to run while another schedule ingest is actively writing to the main local database.
+
+Large Socrata `rows.csv` exports can reset the socket before completion. The command retries failed
+download attempts with `--download-retry-count` and `--download-retry-delay-ms`; use lower
+parallelism for multi-GB exports. The Socrata bulk export endpoint observed on 2026-05-31 did not
+honor HTTP byte-range requests, so these retries restart the export attempt rather than resuming a
+partial temp file. Preserve any large interrupted temp files under
+`data/raw/socrata-bulk/_partials-preserved/` before rerunning a whole-file retry; do not treat those
+partials as complete raw coverage.
+
+Use this path first on a scratch database or a route filter:
+
+```sh
+bun --filter @bp/pipeline-v2 cli -- ingest route-schedules-bulk \
+  --db data/working/route-schedules-bulk-smoke.sqlite \
+  --source-year 2025 \
+  --route SIM35 \
+  --csv-path data/working/route-schedules-bulk-benchmark/sim35.csv \
+  --skip-download true \
+  --skip-existing false
+```
+
+The initial SIM35 scratch benchmark on 2025 rows wrote 66,150 rows. The existing JSON route/page
+path took 23.85s. The CSV route download took 3.94s and the bulk importer took 2.14s. A SQLite
+`EXCEPT` comparison between both scratch outputs found equal row counts and zero row differences.
+This is promising, but it is still a validation path until a full-year `rows.csv` snapshot is
+downloaded and one large missing-year import completes cleanly.
+
 ## Completion verification
 
 The backfill is not complete merely because tmux exits. Completion requires:
 
 1. no unexplained `FAIL(...)` lines across the latest run logs;
 2. read-only coverage audit over the intended month range;
-3. corpus profile refresh showing the backfilled surfaces are no longer release-only;
-4. detector readiness audit showing which detector policies are ready, partial, or blocked;
-5. documented source-quality caveats for any intentionally accepted gaps.
+3. data-product completeness audit showing which derived tables, artifacts, score vectors, serving
+   projections, and release manifests are complete, partial, missing, stale, waived, blocked, or
+   fetching;
+4. corpus profile refresh showing the backfilled surfaces are no longer release-only;
+5. detector readiness audit showing which detector policies are ready, partial, or blocked;
+6. documented source-quality caveats for any intentionally accepted gaps.
 
 Run the coverage audit:
 
@@ -180,6 +260,25 @@ Expected artifact:
 ```text
 data/artifacts/analytics-backfill-coverage/2023-04_to_2026-03/coverage.json
 ```
+
+Then run the derived data-product completeness audit:
+
+```sh
+bun --filter @bp/pipeline-v2 cli -- audit data-product-completeness \
+  --year 2026 --month 3 \
+  --history-start-month 2023-04 \
+  --run-id bus-observatory-2026-03
+```
+
+Expected artifact:
+
+```text
+data/artifacts/data-product-completeness/2023-04_to_2026-03/bus-observatory-2026-03/completeness.json
+```
+
+The registry for this audit is `tools/pipeline-v2/src/registry/data-products.ts`. Register expected
+derived products there before starting a new backfill so missing downstream products are visible
+instead of inferred from source availability.
 
 Then rerun the corpus profile:
 

@@ -127,6 +127,13 @@ These power the rider-impact weighting in route scoring — slow speed × high r
 
 These artifacts are the *staging ground* — what the publish step promotes from. They are not served directly. They are versioned by run and date (e.g. `tier2-full-corpus-2026-05-24-pass2/`).
 
+Derived products are now registered separately from raw sources in
+`tools/pipeline-v2/src/registry/data-products.ts`. The read-only
+`audit data-product-completeness` command joins that registry to local SQLite tables and
+`data/artifacts/` paths so the project can distinguish source availability from derived-product
+completeness. Its statuses are `complete`, `partial`, `missing`, `stale`, `waived`, `blocked`, and
+`fetching`.
+
 The pipeline is a chain of stages, each with its own granularity-loss profile. Walking the chain:
 
 #### Stage A — Ingest (1:1 typed mirror)
@@ -334,6 +341,8 @@ This is **not** a list of bugs — most of these collapses are deliberate (the p
 
 - **Per-dataset detail** — `knowledge/wiki/data/*` (one page per major source).
 - **Source registry** — `knowledge/wiki/data/source_registry.md` and `knowledge/raw/source_manifest.yaml`.
+- **Derived-product registry** — `tools/pipeline-v2/src/registry/data-products.ts` and
+  `audit data-product-completeness`.
 - **Local analytical layer rules** — `knowledge/wiki/engineering/data_model.md` § "Local analytical layer".
 - **D1/R2 split** — `knowledge/wiki/engineering/serving_storage_split_plan.md`.
 - **ETL flow** — `knowledge/wiki/engineering/etl_plan.md`.

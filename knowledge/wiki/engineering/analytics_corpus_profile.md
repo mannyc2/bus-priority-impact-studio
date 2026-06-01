@@ -2,7 +2,7 @@
 title: Analytics Corpus Profile
 type: engineering
 status: active
-last_updated: 2026-05-30
+last_updated: 2026-05-31
 owner: packages/analytics
 source_count: 0
 tags: [analytics, corpus, detectors, calibration, historical-baselines]
@@ -143,6 +143,33 @@ corpus.
 If a month remains thin for a real source reason, document it as a source-quality caveat. Do not
 hide it by loosening thresholds without a note.
 
+## Data Product Completeness Registry
+
+The corpus profile is an observation-family profile, not the complete product registry. The derived
+data-product registry now lives in `tools/pipeline-v2/src/registry/data-products.ts` and covers
+high-value local tables, detector feature artifacts, score vectors, serving projections, and release
+manifests. It deliberately complements `knowledge/raw/source_manifest.yaml`: source availability is
+not treated as proof that derived products exist.
+
+Run the registry audit with:
+
+```sh
+bun --filter @bp/pipeline-v2 cli -- audit data-product-completeness \
+  --year 2026 --month 3 \
+  --history-start-month 2023-04 \
+  --run-id bus-observatory-2026-03
+```
+
+The default artifact path is:
+
+```text
+data/artifacts/data-product-completeness/2023-04_to_2026-03/bus-observatory-2026-03/completeness.json
+```
+
+The status vocabulary is `complete`, `partial`, `missing`, `stale`, `waived`, `blocked`, and
+`fetching`. Future backfills should add expected derived products to the registry before relying on
+them in detector calibration, serving release notes, or Ralph/Codex prompt bundles.
+
 ## Implemented Surface
 
 `@bp/analytics/corpus` exports `summarizeCorpusProfile`, a pure helper over preloaded source
@@ -219,6 +246,7 @@ include:
 - detector registry/specs;
 - corpus profile source summaries;
 - analytics backfill coverage status;
+- data-product completeness status;
 - declared feature-window policy;
 - score vectors and threshold sensitivity summaries;
 - known false-positive root causes;

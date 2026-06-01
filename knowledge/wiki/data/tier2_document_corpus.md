@@ -63,6 +63,13 @@ Current artifacts under `data/artifacts/docs/gap-roadmap-docs-2026-05-25/`:
 Active v2 commands: `docs:ocr-plan`, `docs:ocr-page-audit`, `docs:ocr-markdown-candidates`,
 `docs:extract`, `docs:intervention-records`.
 
+> **Preservation note.** The 2026-05-31 OCR preservation reconciliation found that the
+> `tier2-full-corpus-2026-05-24-pass2` fixed-point backlog had dropped 31 OCR-backed seed sources
+> that were already captured in `gap-roadmap-docs-2026-05-25`, plus 7 seed sources that are present
+> under renamed/current source ids. The reproducible supplement lives under
+> `data/ops/docs/tier2-ocr-preservation-20260531/`; its augmented backlog has 485 sources and its
+> filtered capture manifest reuses the already-downloaded source files before any new OCR requests.
+
 > **Historical note.** An earlier pass, `tier2-full-corpus-2026-05-24-pass2`, ran the v1 Tier 2
 > pipeline end-to-end (939 staged evidence events, follow-up OCR over 188 page ranges, manual
 > curation of 175 reviewed sources, 106 follow-up candidate drafts). Its v1 commands (`docs:ocr`,

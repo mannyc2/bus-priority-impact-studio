@@ -17,3 +17,6 @@ Create a new ADR before introducing Python, hosted Postgres/PostGIS, a VPS, or a
 - `0011-deep-novel-findings-mode.md` - Ralph-style deep findings loop for novel one-off research findings.
 - `0012-agent-authored-detectors.md` - Registry-first, agent-assisted detector authoring plan after the analytics refactor.
 - `0013-bun-typescript-codemode-sandbox.md` - Bun/TypeScript codemode sandbox with read-only analytics access and Pioneer/GPT-5.5 as the default deep-run path.
+- `0014-brief-draft-live-write-serving.md` - D1-backed Studio draft write API, operator authz, idempotency, and projection overlay model.
+- `0015-brief-markdown-and-primitives.md` - Brief markdown plus typed primitive block/ref content model.
+- `0016-studio-brief-author-agent-runtime.md` - Cloudflare Think / Workers AI runtime for queued Studio brief authoring proposals.

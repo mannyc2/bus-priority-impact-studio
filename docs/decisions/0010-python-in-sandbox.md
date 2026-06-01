@@ -1,5 +1,10 @@
 # 0010 - Python inside the codemode sandbox
 
+Status: Superseded on 2026-05-31 by
+`0013-bun-typescript-codemode-sandbox.md`. This ADR is retained as historical
+context for why the first codemode slice used Python; new codemode work uses
+Bun/TypeScript with analytics-package access.
+
 Date: 2026-05-30
 
 ## Status

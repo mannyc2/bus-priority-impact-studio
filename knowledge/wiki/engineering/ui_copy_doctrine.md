@@ -6,7 +6,7 @@ Rules for what user-facing copy on Studio pages is allowed to say. These exist b
 
 **User-facing copy on a Studio page describes what the user is looking at, in the user's vocabulary. It does not describe the pipeline, the projection, the API contract, or its own existence.**
 
-Methodology and caveat prose belong on `/methods` or in a tooltip. Per-route data caveats (when they have to live on the route page) belong on the Data Notes tab. They do not belong in section subheads on the home page, the route page, the compare page, or any other surface a non-operator reader is expected to read.
+Methodology and caveat prose belong on `/docs/methodology` or in a tooltip. Per-route data caveats (when they have to live on the route page) belong on the Data Notes tab. They do not belong in section subheads on the home page, the route page, the compare page, or any other surface a non-operator reader is expected to read.
 
 ## Tests for whether a sentence is in the wrong place
 
@@ -14,7 +14,7 @@ A sentence in user-facing copy is suspect if it has any of these:
 
 - **Pipeline vocabulary**: "projection," "release," "generated," "ingested," "audited," "regulatory," "snapshot," "schema," "endpoint," "denominator," "coverage," "rolled up," "deterministic," "evidence summary," "claim," "publishable."
 - **Reflexive meta-talk**: "from this chart," "in this table," "this page is generated from…," "the served X projection," "the current projection."
-- **Definitions of filter labels or chip labels in body copy**: if a chip says "Low lane overlap" and the body copy explains what "low lane overlap" means, the definition belongs in a tooltip on the chip or on `/methods`. The chip text is the definition.
+- **Definitions of filter labels or chip labels in body copy**: if a chip says "Low lane overlap" and the body copy explains what "low lane overlap" means, the definition belongs in a tooltip on the chip or on `/docs/methodology`. The chip text is the definition.
 - **Schema field name disguised as prose**: "use the quality object when deciding whether…," "the route-month trend rows," "the route-slice schedule-comparison exposure."
 - **"This is not X" without an "X is" anchor**: a sentence that exists only to disclaim what a number isn't, without telling the reader what it actually is. If the disclaimer matters, the methodology sentence matters more — lead with that.
 - **Snake_case sentinels rendered as text**: `geometry_unavailable`, `not_in_ingested_tsp_sources`, `monthly_route_hourly_ridership_exposure`. Either render a user-readable label or don't render the field.
@@ -33,12 +33,12 @@ One sentence. It tells the reader *how the list was ranked* (the methodology), t
 - **Methodology first, disclaimer second.** "Weighted average route speed by month" before "not a recommendation." If you can't write the methodology sentence in a clause or two, the surface probably shouldn't have a subhead at all.
 - **Concrete over abstract.** "5.8 mph in March 2026" over "current projection value." The reader is looking at the number — name it directly.
 - **No meta about the page itself.** Don't say "this chart shows," "in this table," "from this view." The chart is the chart.
-- **No pipeline vocabulary except on `/methods` or in `/docs`.** Those pages are *about* the pipeline. Everywhere else, translate.
+- **No pipeline vocabulary except in `/docs` (including `/docs/methodology`).** Those pages are *about* the pipeline. Everywhere else, translate.
 - **Disclaimers when data is missing**: don't ship a section. If the data isn't there, the section isn't there. A placeholder explaining what we don't have is itself a violation — that's pipeline status talk leaking to readers.
 
 ## Where caveats *do* belong
 
-- **`/methods`** — the canonical home for methodology prose, glossary, dataset definitions, scope of evidence.
+- **`/docs/methodology`** — the canonical home for methodology prose, metric definitions, and caveats. The dataset/source ledger and credits live on **`/docs/data-credits`**.
 - **Tooltips on chips/badges/labels** — short, on-demand, optional. Won't be read by readers who don't need it.
 - **Route page Data Notes tab** — per-route caveats that don't generalize to all routes. Even here, the prose should be in user-facing voice, not pipeline voice.
 - **The brief composer** — operator surface. The full caveat language is fine here because the audience is the analyst building the brief.
@@ -71,4 +71,4 @@ One sentence. It tells the reader *how the list was ranked* (the methodology), t
 
 ## For agents
 
-If you're working on the pipeline or the projection schema and you're tempted to add prose explaining the data shape directly into a Studio page: **don't**. Write it into `/methods` (or `knowledge/wiki/engineering/synthetic_data_inventory.md` if the surface is still synthetic), or flag a UI request in `knowledge/wiki/engineering/ui_backlog_for_user.md`. The Studio page is not the documentation for the pipeline.
+If you're working on the pipeline or the projection schema and you're tempted to add prose explaining the data shape directly into a Studio page: **don't**. Write it into `/docs/methodology` (or `knowledge/wiki/engineering/synthetic_data_inventory.md` if the surface is still synthetic), or flag a UI request in `knowledge/wiki/engineering/ui_backlog_for_user.md`. The Studio page is not the documentation for the pipeline.

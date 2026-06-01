@@ -2,7 +2,7 @@
 title: Web API Endpoint Architecture
 type: engineering
 status: active
-last_updated: 2026-05-18
+last_updated: 2026-06-01
 owner: codex
 source_count: 0
 tags: [api, worker, frontend, d1, r2, contracts, studio]
@@ -119,6 +119,14 @@ artifacts, and TanStack Router loaders call those API resources directly. If a r
 artifact is missing or invalid, Studio endpoints fail closed; there is no Worker fallback to local
 seed data and no frontend legacy endpoint branch.
 
+The brief-draft authoring slice is now wired as a narrow live-write exception to the R2 projection
+model. `/api/v1/studio/briefs/:briefId/draft*` routes read and write D1 draft rows through the
+`@bp/db/d1` query layer, require an ADR 0008 `bp_session` operator role, and validate all request and
+response bodies with `packages/domain` draft schemas. Public brief reads stay anonymous; when a
+request has `read:briefs` for the draft workspace, `GET /api/v1/studio/briefs/:briefId` overlays
+D1 draft title/dek/summary/version/claims plus `draftStatus` and `draftPublishedAt`. Anonymous and
+non-operator reads keep the R2 projection with draft fields `null`.
+
 `bun run build:studio-release` now delegates to the pipeline command
 `@bp/pipeline build:studio-release`. That command loads the D1 export schema/seed, reads generated
 route-slice artifacts, builds a strict `StudioReleasePayload`, and writes page-shaped endpoint
@@ -230,25 +238,64 @@ or authorization questions.
 
 ## Write/Composition API
 
-Write endpoints should be designed now but implemented after persistence and review/auth decisions.
-For the MVP, keep them behind a feature flag or local-only mode.
+The brief-draft subset is implemented in the Worker. These routes are still bounded authoring
+endpoints, not a general collaboration API. All draft mutations require `Idempotency-Key`; authz
+comes from `identity_session` + `studio_actor_role` scopes (`write:briefs`, `review:briefs`,
+`publish:briefs`). Generation records a job and returns the job response without running LLM
+inference inline. When `AI` and `BRIEF_AUTHOR_AGENT` bindings are present, the Worker signals the
+Cloudflare Think `BriefAuthorAgent` to run Workers AI out-of-band and store a proposal for human
+approval; missing bindings still fail closed as `not_configured`.
 
-| Endpoint | Purpose | Blocking decision |
+| Endpoint | Purpose | Backing/auth |
 |---|---|---|
-| `POST /api/v1/studio/briefs` | Create draft brief from route/finding/segment context | Draft storage model and auth |
-| `POST /api/v1/studio/briefs/:briefId/claims` | Add claim | Draft storage model |
-| `PATCH /api/v1/studio/briefs/:briefId/claims/:claimId` | Edit claim text/evidence/caveats | Draft storage model |
-| `POST /api/v1/studio/briefs/:briefId/generate` | Staged deterministic draft generation | LLM/provider policy and audit log |
-| `POST /api/v1/studio/briefs/:briefId/reviews` | Add review comment/request changes | Auth/reviewer identity |
-| `POST /api/v1/studio/briefs/:briefId/publish` | Promote reviewed brief artifact | Release workflow and rollback |
+| `POST /api/v1/studio/briefs` | Create a new draft-only brief from a route, source brief, or finding seed. | D1 draft row plus optional seed claims; `write:briefs` |
+| `PATCH /api/v1/studio/briefs/:briefId/draft` | Edit draft metadata/status/body markdown. | D1 draft row; `write:briefs` |
+| `POST /api/v1/studio/briefs/:briefId/draft/generate` | Queue a Think / Workers AI generation run. | D1 job + agent run fields; `write:briefs`; no inline inference; valid model output becomes a proposal |
+| `POST /api/v1/studio/briefs/:briefId/draft/agent-runs` | Start an authoring agent run against the current draft version/hash. | D1 agent run row; `write:briefs`; no inline inference |
+| `GET /api/v1/studio/briefs/:briefId/draft/agent-runs/:runId` | Fetch one authoring agent run. | D1 agent run row; `read:briefs` |
+| `POST /api/v1/studio/briefs/:briefId/draft/agent-runs/:runId/propose-edit` | Validate and store structured proposed edits. | D1 proposal row; `write:briefs`; returns repair/stale-base feedback instead of mutating accepted draft content |
+| `GET /api/v1/studio/briefs/:briefId/draft/proposals/:proposalId` | Fetch a stored agent proposal. | D1 proposal row; `read:briefs` |
+| `POST /api/v1/studio/briefs/:briefId/draft/proposals/:proposalId/apply` | Apply all or selected approved proposal operations. | D1 proposal + draft rows; `write:briefs`; creates a draft version snapshot |
+| `POST /api/v1/studio/briefs/:briefId/draft/proposals/:proposalId/reject` | Reject a stored agent proposal. | D1 proposal row; `write:briefs`; accepted draft content is unchanged |
+| `GET /api/v1/studio/briefs/:briefId/draft/versions` | List draft version milestones. | D1 version rows; `read:briefs` |
+| `POST /api/v1/studio/briefs/:briefId/draft/versions/:versionId/restore` | Restore a D1-backed draft version snapshot as a new version. | D1 draft/version/snapshot rows; `write:briefs` |
+| `POST /api/v1/studio/briefs/:briefId/draft/claims` | Add claim. | D1 claim row; `write:briefs` |
+| `PATCH /api/v1/studio/briefs/:briefId/draft/claims/:claimN` | Edit claim text/evidence/caveats/state. | D1 claim row; `write:briefs` |
+| `DELETE /api/v1/studio/briefs/:briefId/draft/claims/:claimN` | Remove a claim and renumber later claims. | D1 claim rows; `write:briefs` |
+| `POST /api/v1/studio/briefs/:briefId/draft/blocks` | Add a typed primitive block. | D1 block row; `write:briefs` |
+| `PATCH /api/v1/studio/briefs/:briefId/draft/blocks/:blockId` | Edit a typed primitive block. | D1 block row; `write:briefs` |
+| `DELETE /api/v1/studio/briefs/:briefId/draft/blocks/:blockId` | Remove a typed primitive block. | D1 block row; `write:briefs` |
+| `POST /api/v1/studio/briefs/:briefId/draft/refs/resolve` | Validate/normalize proposed content-graph refs. | Domain `BriefRef` schemas plus D1/R2 lookup for block, evidence, metric, source, and artifact refs; `write:briefs` |
+| `GET /api/v1/studio/briefs/:briefId/draft/refs` | List persisted content-graph refs. | D1 ref rows; `read:briefs` |
+| `PUT /api/v1/studio/briefs/:briefId/draft/refs` | Replace persisted content-graph refs after normalization. | D1 ref rows; `write:briefs` |
+| `POST /api/v1/studio/briefs/:briefId/draft/attach` | Attach a captured Studio object as a typed block, body directive, and refs. | D1 block/ref rows plus body markdown; `write:briefs` |
+| `GET /api/v1/studio/briefs/:briefId/draft/comments` | List draft-private review threads and replies. | D1 review rows; `read:briefs` |
+| `POST /api/v1/studio/briefs/:briefId/draft/comments` | Create an anchored comment, change request, or suggested edit. | D1 review rows; `review:briefs` |
+| `POST /api/v1/studio/briefs/:briefId/draft/comments/:commentId/replies` | Reply to a review thread. | D1 review rows; `write:briefs` or `review:briefs` |
+| `PATCH /api/v1/studio/briefs/:briefId/draft/comments/:commentId` | Resolve, dismiss, reopen, or edit a review thread. | D1 review rows; `write:briefs` or `review:briefs` |
+| `POST /api/v1/studio/briefs/:briefId/draft/comments/:commentId/accept-suggestion` | Apply a body-markdown suggested edit. | D1 draft body + review rows; `write:briefs` |
+| `POST /api/v1/studio/briefs/:briefId/draft/validate` | Run deterministic validation. | D1 validation fields; checks claim strength/evidence plus body block refs; `write:briefs` |
+| `POST /api/v1/studio/briefs/:briefId/draft/review` | Add review request/comment and move to review. | D1 review comments; `review:briefs` |
+| `POST /api/v1/studio/briefs/:briefId/draft/verdict` | Approve a draft or request changes without publishing. | D1 draft status plus optional review comment; `review:briefs` |
+| `POST /api/v1/studio/briefs/:briefId/draft/publish` | Mark the draft as a publish candidate. | D1 status/published_at; `publish:briefs` |
+| `POST /api/v1/studio/briefs/:briefId/draft/retract` | Retract a publish candidate. | D1 status; `publish:briefs` |
+| `POST /api/v1/studio/briefs/:briefId/draft/promotion-receipt` | Record that offline projection promotion completed. | D1 promotion receipt fields; `publish:briefs` |
+| `GET /api/v1/studio/briefs/:briefId/draft/publish-candidate-export` | Return the publish-candidate export payload plus private audit. | D1 draft + R2 route/brief projection; `publish:briefs` |
+
+Still unimplemented: reviewer notification delivery, reviewer assignment endpoints, the searchable
+evidence catalog, and UI streaming for live agent progress. The
+collaboration and promotion model is tracked in
+`docs/architecture/studio-review-collaboration-and-promotion.md`: review threads stay draft-private
+under `.../draft/comments*`, while public promotion remains an offline pipeline projection step fed
+by a validated candidate export and finalized by a promotion receipt.
 
 Do not use D1 as an unbounded collaboration/event log. If drafts become a real multi-user product,
 record the storage/auth decision before implementation.
 
-For the single-user MVP composer, D1 may hold bounded draft metadata, claim text, evidence refs, and
-review comments. Large generated bodies, diff snapshots, and publish candidates should live in R2
-with D1 storing only refs and hashes. Published release projections remain immutable until an
-explicit promotion step updates them.
+For the single-user MVP composer, D1 may hold bounded draft metadata, draft body markdown, typed
+block rows, claim text, evidence refs, and review comments. Large generated artifacts, diff
+snapshots, and publish candidates should live in R2 with D1 storing only refs and hashes. Published
+release projections remain immutable until an explicit promotion step updates them.
 
 ## Response Shapes By Page
 

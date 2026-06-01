@@ -28,7 +28,26 @@ Read this file first. It is the navigation layer for the LLM wiki.
 ADRs live in `docs/decisions/` (not under `knowledge/wiki/`). Notable: 0007
 adopts spatialite as a loadable SQLite extension in the local pipeline only,
 for route ⇄ LION corridor joins; 0012 defines the registry-first,
-agent-assisted detector authoring plan after the analytics refactor.
+agent-assisted detector authoring plan after the analytics refactor; 0014 defines the D1 live-write
+serving model for Studio brief-draft authoring endpoints; 0015 adopts a lazy-loaded markdown
+pipeline + typed `BriefBlock` primitives for rendering brief prose with embeddable figures; 0016
+records the Cloudflare Think / Workers AI runtime for queued brief-author proposals. Draft
+creation, verdicts, body markdown, authoring ref resolution/persistence, draft-private review
+threads, send-to-brief attachment, candidate export audit wiring, and promotion receipt have landed.
+The remaining authoring/promotion follow-ups are tracked in
+`docs/architecture/studio-review-collaboration-and-promotion.md` alongside
+`docs/architecture/brief-markdown-primitives.md`. The brief authoring UX canon is now
+`docs/architecture/studio-brief-authoring-ux.md`: the composer/review/public reader are one
+document-shaped workflow where figures are evidence and AI works through typed artifacts, not chat.
+Agent-authored edit approvals and durable draft-version milestones are tracked in
+`docs/architecture/studio-agent-edit-approval-versioning.md`; the D1-backed
+agent run/proposal approval slice now supports propose/edit repair feedback,
+apply all or selected operations, reject, version snapshots, and restore, while
+`POST .../draft/generate` now queues the Cloudflare Think `BriefAuthorAgent` to call Workers AI and
+produce proposals for approval when bindings are configured.
+The production Studio agent stack is recorded in `docs/architecture/studio-agent-stack.md`:
+Cloudflare Think for authoring agents, D1/R2 for product state, operator-scoped tools for
+mutations, and Codemode deferred until a workflow needs it.
 
 ## Project pages
 
@@ -59,6 +78,15 @@ agent-assisted detector authoring plan after the analytics refactor.
 ## Engineering pages
 
 - [[wiki/engineering/package_structure|Repo package structure]] — TypeScript-only monorepo layout, package boundaries, Drizzle adoption boundaries, wiki relocation, and Python/PostGIS/VPS escalation rules.
+- [[wiki/engineering/ambitious_analytics_workstreams|Ambitious analytics workstreams]] — Ranked high-value analytics/serving/corpus work packages with copy-ready prompts for one or more Codex sessions.
+- [[wiki/engineering/analytics_architecture|Analytics architecture]] — Pure `packages/analytics` detector kernel architecture, feature contracts, registry doctrine, and migration plan.
+- [[wiki/engineering/applied_research_architecture|Applied research architecture]] — Plan for `packages/applied-research` as the corpus-backed research engine for detector studies, causal inference, forecasting, score vectors, and review artifacts, with `pipeline-v2` as a thin CLI consumer.
+- [[wiki/engineering/curb_pulse_natural_experiment_plan|Curb pulse natural experiment plan]] — Applied-research workbench plan for segment/daypart travel-time pulses, event-window overlaps, mechanism corroboration, placebo checks, and falsifiable curb-management case studies.
+- [[wiki/engineering/analytics_corpus_profile|Analytics corpus profile]] — Release snapshot versus historical detector-window doctrine, corpus readiness, and Ralph input policy.
+- [[wiki/engineering/detector_corpus_grain_audit_plan|Detector corpus grain audit plan]] — Plan to make detector inputs use the rich local analytical corpus and detector-native grains instead of a single coarse route-month substrate.
+- [[wiki/engineering/analytics_detector_calibration|Analytics detector calibration]] — Baseline windows, seasonality rules, minimum-history gates, and score-vector path for detector calibration.
+- [[wiki/engineering/detector_evaluation_harness_plan|Detector evaluation harness plan]] — Release-cycle plan for detector quality scoring, negative/near-miss sets, false-positive roots, novelty, elegance, and Ralph evaluation gates.
+- [[wiki/engineering/analytics_backfill_runbook|Analytics backfill runbook]] — Monitoring, restart, resume, and verification plan for local analytics corpus backfills.
 - [[wiki/engineering/data_model|Data model]] — D1/SQLite serving model, Drizzle schema split, JSON cleanup plan, local artifacts, and migration path to Postgres/Hyperdrive.
 - [[wiki/engineering/etl_plan|ETL plan]] — Ingestion order, Drizzle/D1 migration workflow, local backfill rules, transformation rules, and QA.
 - [[wiki/engineering/local_pipeline_db_cutover|Local pipeline DB cutover plan]] — Plan to replace DB-shaped JSON handoffs with `@bp/db/local` SQLite/Drizzle tables and shrink `tools/pipeline`.
@@ -73,7 +101,8 @@ agent-assisted detector authoring plan after the analytics refactor.
 - [[wiki/engineering/serving_storage_split_plan|Serving storage split plan]] — Resource-first D1/R2 storage split, page-shaped projection rules, endpoint backing targets, and migration phases.
 - [[wiki/engineering/website_data_support_audit|Website data support audit]] — Current frontend/Worker data paths, mocked-vs-real status, Studio projection coverage gaps, and immediate support queue.
 - [[wiki/engineering/web_app_support_plan|Web app support plan]] — Briefs, composer workflows, route-loader caching, deferred evidence payloads, and TanStack Router data-loading policy.
-- [[wiki/engineering/agent_author_api|Agent-Author API]] — Write-side spec for agents-as-authors, canonical brief-composition walkthrough, mid-layer data endpoints, async job semantics, idempotency, and dogfeed test.
+- [[wiki/engineering/agent_author_api|Agent-Author API]] — Write-side spec for agents-as-authors, canonical brief-composition walkthrough, draft body/block/ref endpoints, async job semantics, idempotency, and dogfeed test.
+- [[wiki/engineering/studio_brief_draft_authoring_worker_plan|Studio brief-draft authoring Worker plan]] — Step-by-step plan for D1-backed draft endpoints, authz, idempotency, draft-status overlays, generation-job recording, tests, OpenAPI, and docs.
 - [[wiki/engineering/agent_first_contributor_leaderboard|Agent-first contributor leaderboard]] — Plan for agent-submitted transit issue artifacts, review states, scoring ledger, leaderboard snapshots, and dogfood walkthrough.
 - [[wiki/engineering/web_observability_performance_seo_plan|Web observability, performance, and SEO plan]] — Lighthouse route matrix, Core Web Vitals/RUM posture, SEO crawlability checks, Worker timing, and release gates.
 - [[wiki/engineering/website_hard_cutover_plan|Website hard cutover plan]] — Canonical route-first website IA, design reference mapping, schema-first API plan, and CLI/docs direction.
@@ -120,8 +149,8 @@ agent-assisted detector authoring plan after the analytics refactor.
    provenance, and `audit:studio-coverage` verifies that detector-backed findings keep candidate,
    detector, decision, packet, and immutable hash refs where required.
 5. Implement the remaining web app support plan: add signal-aware route loaders,
-   route-specific cache policy, deferred non-critical evidence/map panels, and a feature-flagged
-   composer draft API.
+   route-specific cache policy, deferred non-critical evidence/map panels, and wire the authoring
+   UI/UX to the now-live draft API.
 6. Add web release gates: Lighthouse route matrix, SEO crawlability checks, Worker
    `Server-Timing`, and no-D1 RUM.
 7. Generate `/docs` API metadata from the same package-level Studio runtime contracts that serve
