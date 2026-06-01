@@ -2276,6 +2276,241 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = DataProductManifestSch
       ],
     },
     {
+      id: "applied_research_segment_daypart_panel",
+      label: "Applied-research segment daypart panel",
+      kind: "artifact_family",
+      owner: "packages/applied-research",
+      grain: "segment-daypart-month panel",
+      producerCommand: "applied-research build segment-daypart-panel",
+      expectedUniverse: {
+        description:
+          "Long-history segment/daypart performance panel used by causal, forecasting, and response-drift studies before any route-month aggregation.",
+        months: "history_window",
+      },
+      requiredInputs: ["segment_daypart_history_artifact", "speed_pace score vectors"],
+      downstreamConsumers: [
+        "causal_event_study_workbench",
+        "continuous_travel_time_forecasting",
+        "event_family_response_drift",
+      ],
+      freshnessPolicy: { cadence: "historical_window" },
+      lifecycle: {
+        status: "blocked",
+        reason: "planned applied-research artifact family; builder not implemented yet",
+      },
+      checks: [
+        {
+          id: "segment_daypart_panel",
+          label: "Segment daypart panel JSON",
+          type: "json_artifact",
+          pathTemplate:
+            "{artifactRoot}/applied-research/{historyStartMonth}_to_{releaseMonth}/{releaseMonth}/segment-daypart-panel.json",
+          validateReleaseMonth: true,
+        },
+      ],
+    },
+    {
+      id: "applied_research_pulse_candidate_set",
+      label: "Applied-research pulse candidate set",
+      kind: "artifact_family",
+      owner: "packages/applied-research",
+      grain: "event/intervention candidate",
+      producerCommand: "applied-research build pulse-candidates",
+      expectedUniverse: {
+        description:
+          "Candidate event/intervention set that preserves many plausible research hypotheses before selection into a causal design.",
+        months: "history_window",
+      },
+      requiredInputs: [
+        "tier2_structured_intervention_extraction_full_corpus",
+        "detector candidates",
+        "source event registries",
+      ],
+      downstreamConsumers: ["causal_event_study_workbench", "event_family_response_drift"],
+      freshnessPolicy: { cadence: "historical_window" },
+      lifecycle: {
+        status: "blocked",
+        reason: "planned applied-research artifact family; builder not implemented yet",
+      },
+      checks: [
+        {
+          id: "pulse_candidate_set",
+          label: "Pulse candidate set JSON",
+          type: "json_artifact",
+          pathTemplate:
+            "{artifactRoot}/applied-research/{historyStartMonth}_to_{releaseMonth}/{releaseMonth}/pulse-candidate-set.json",
+          validateReleaseMonth: true,
+        },
+      ],
+    },
+    {
+      id: "applied_research_pulse_event_overlap",
+      label: "Applied-research pulse event overlap panel",
+      kind: "artifact_family",
+      owner: "packages/applied-research",
+      grain: "event/intervention by route/segment time window",
+      producerCommand: "applied-research build pulse-event-overlap",
+      expectedUniverse: {
+        description:
+          "Space-time overlap artifact joining intervention candidates to route, corridor, and segment windows without collapsing the search space too early.",
+        months: "history_window",
+      },
+      requiredInputs: [
+        "applied_research_pulse_candidate_set",
+        "applied_research_segment_daypart_panel",
+      ],
+      downstreamConsumers: ["causal_event_study_workbench", "event_family_response_drift"],
+      freshnessPolicy: { cadence: "historical_window" },
+      lifecycle: {
+        status: "blocked",
+        reason: "planned applied-research artifact family; builder not implemented yet",
+      },
+      checks: [
+        {
+          id: "pulse_event_overlap",
+          label: "Pulse event overlap panel JSON",
+          type: "json_artifact",
+          pathTemplate:
+            "{artifactRoot}/applied-research/{historyStartMonth}_to_{releaseMonth}/{releaseMonth}/pulse-event-overlap.json",
+          validateReleaseMonth: true,
+        },
+      ],
+    },
+    {
+      id: "applied_research_event_effect_contrast",
+      label: "Applied-research event effect contrast artifact",
+      kind: "artifact_family",
+      owner: "packages/applied-research",
+      grain: "intervention-window effect contrast",
+      producerCommand: "applied-research build event-effect-contrast",
+      expectedUniverse: {
+        description:
+          "Review-gated contrast artifact for ITS, matched-peer, and synthetic-control summaries with placebo and pre-trend gates.",
+        months: "history_window",
+      },
+      requiredInputs: [
+        "applied_research_pulse_event_overlap",
+        "applied_research_segment_daypart_panel",
+        "tier2_structured_intervention_extraction_full_corpus",
+      ],
+      downstreamConsumers: ["causal_event_study_workbench", "methodology review packets"],
+      freshnessPolicy: { cadence: "historical_window" },
+      lifecycle: {
+        status: "blocked",
+        reason: "planned applied-research artifact family; builder not implemented yet",
+      },
+      checks: [
+        {
+          id: "event_effect_contrast",
+          label: "Event effect contrast JSON",
+          type: "json_artifact",
+          pathTemplate:
+            "{artifactRoot}/applied-research/{historyStartMonth}_to_{releaseMonth}/{releaseMonth}/event-effect-contrast.json",
+          validateReleaseMonth: true,
+        },
+      ],
+    },
+    {
+      id: "applied_research_mechanism_corroboration",
+      label: "Applied-research mechanism corroboration artifact",
+      kind: "artifact_family",
+      owner: "packages/applied-research",
+      grain: "intervention-window mechanism evidence",
+      producerCommand: "applied-research build mechanism-corroboration",
+      expectedUniverse: {
+        description:
+          "Structured support/counter-evidence layer that distinguishes plausible mechanisms from mere before/after movement.",
+        months: "history_window",
+      },
+      requiredInputs: [
+        "applied_research_event_effect_contrast",
+        "tier2_structured_intervention_extraction_full_corpus",
+        "context source products",
+      ],
+      downstreamConsumers: ["causal_event_study_workbench", "event_family_response_drift"],
+      freshnessPolicy: { cadence: "historical_window" },
+      lifecycle: {
+        status: "blocked",
+        reason: "planned applied-research artifact family; builder not implemented yet",
+      },
+      checks: [
+        {
+          id: "mechanism_corroboration",
+          label: "Mechanism corroboration JSON",
+          type: "json_artifact",
+          pathTemplate:
+            "{artifactRoot}/applied-research/{historyStartMonth}_to_{releaseMonth}/{releaseMonth}/mechanism-corroboration.json",
+          validateReleaseMonth: true,
+        },
+      ],
+    },
+    {
+      id: "applied_research_event_family_effect_panel",
+      label: "Applied-research event-family effect panel",
+      kind: "artifact_family",
+      owner: "packages/applied-research",
+      grain: "event-family by time-regime effect panel",
+      producerCommand: "applied-research build event-family-effect-panel",
+      expectedUniverse: {
+        description:
+          "Panel of comparable event/intervention families used to test whether response patterns vary across time and street-context regimes.",
+        months: "history_window",
+      },
+      requiredInputs: [
+        "applied_research_event_effect_contrast",
+        "applied_research_mechanism_corroboration",
+      ],
+      downstreamConsumers: ["event_family_response_drift"],
+      freshnessPolicy: { cadence: "historical_window" },
+      lifecycle: {
+        status: "blocked",
+        reason: "planned applied-research artifact family; builder not implemented yet",
+      },
+      checks: [
+        {
+          id: "event_family_effect_panel",
+          label: "Event-family effect panel JSON",
+          type: "json_artifact",
+          pathTemplate:
+            "{artifactRoot}/applied-research/{historyStartMonth}_to_{releaseMonth}/{releaseMonth}/event-family-effect-panel.json",
+          validateReleaseMonth: true,
+        },
+      ],
+    },
+    {
+      id: "applied_research_event_family_response_drift_study",
+      label: "Applied-research event-family response drift study",
+      kind: "artifact_family",
+      owner: "packages/applied-research",
+      grain: "event-family response drift study",
+      producerCommand: "applied-research build response-drift-study",
+      expectedUniverse: {
+        description:
+          "Review-gated study artifact asking whether the same event/intervention family stopped working, changed magnitude, or reversed sign under newer regimes.",
+        months: "history_window",
+      },
+      requiredInputs: [
+        "applied_research_event_family_effect_panel",
+        "applied_research_segment_daypart_panel",
+      ],
+      downstreamConsumers: ["research review packets", "strategy planning"],
+      freshnessPolicy: { cadence: "historical_window" },
+      lifecycle: {
+        status: "blocked",
+        reason: "planned applied-research artifact family; builder not implemented yet",
+      },
+      checks: [
+        {
+          id: "response_drift_study",
+          label: "Response drift study JSON",
+          type: "json_artifact",
+          pathTemplate:
+            "{artifactRoot}/applied-research/{historyStartMonth}_to_{releaseMonth}/{releaseMonth}/event-family-response-drift-study.json",
+          validateReleaseMonth: true,
+        },
+      ],
+    },
+    {
       id: "detector_review_promotion_artifacts",
       label: "Detector review and promotion artifacts",
       kind: "artifact_family",

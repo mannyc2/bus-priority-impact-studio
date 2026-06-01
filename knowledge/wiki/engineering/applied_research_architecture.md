@@ -385,7 +385,9 @@ overall_score = method_validity_score * 0.60
               - veto_penalties
 ```
 
-All scores are on a 0-1000 scale. Unknown evidence is `null`, not zero or perfect.
+All scores are on a 0-1000 scale. Unknown evidence is `null`, not zero or perfect. Component
+weights are normalized over known components so new dimensions can be added without changing older
+partial score behavior.
 
 ### Research Quality Score
 
@@ -402,6 +404,11 @@ This score is shared by detectors, causal studies, and forecasting studies.
 | Novelty/actionability | 100 | Finds non-obvious but useful structure |
 | Elegance | 100 | Simple enough to audit, low boilerplate, few special cases, clear APIs |
 | Maintainability | 100 | Small modules, explicit ports, fixture tests, low CLI coupling |
+| Mechanism corroboration | 70 | Plausible mechanisms have independent support/counter-evidence |
+| Search preservation | 70 | The system keeps candidate search broad enough before selecting examples |
+| Placebo strength | 70 | Placebo-in-time/space/family checks are present and decision-relevant |
+| Temporal transportability | 70 | Effects or forecasts are tested across historical windows/regimes |
+| Regime sensitivity | 70 | The study can detect sign/magnitude drift under changing street constraints |
 
 ### Detector Validity Score
 
@@ -467,6 +474,7 @@ Initial artifact families:
 | Artifact | Purpose |
 |---|---|
 | `research-study-manifest` | Declares study inputs, methods, windows, and output artifacts |
+| `analysis-dependency-closure` | Joins detector/research units to data products, packets, readiness, and evaluation status |
 | `detector-run-artifact` | Candidate, clean no-hit, skipped, and coverage rows |
 | `review-packet-bundle` | Evidence packets and packet coverage |
 | `detector-score-vectors` | Historical scores at detector-native grains |
@@ -476,6 +484,27 @@ Initial artifact families:
 | `event-family-effect-panel` | Event/intervention effects by historical window, context regime, and source coverage |
 | `event-response-drift-study` | Sign, magnitude, or marginal-value drift across event families and binding constraints |
 | `forecast-backtest` | Forecast outputs, baseline comparisons, calibration, drift |
+
+The first closure command is:
+
+```sh
+bun --filter @bp/pipeline-v2 cli -- audit detector-closure \
+  --year 2026 --month 3 \
+  --history-start-month 2023-04 \
+  --run-id bus-observatory-2026-03
+```
+
+It writes:
+
+```text
+data/artifacts/detector-closure/2023-04_to_2026-03/2026-03/detector-closure.json
+data/artifacts/detector-closure/2023-04_to_2026-03/2026-03/detector-closure.md
+```
+
+Although the command name starts with detector closure, the artifact schema is generalized around
+analysis units: detectors, causal studies, forecasting studies, and response-drift studies. Current
+future research units are intentionally registered as blocked/planned through data-product registry
+products until their builders and validation gates exist.
 
 ## Migration Plan
 

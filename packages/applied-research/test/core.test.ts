@@ -55,6 +55,11 @@ describe("applied research core", () => {
     expect(score.weightedScore).toBeCloseTo(897.3, 1);
     expect(score.gatedScore).toBe(500);
     expect(score.missingComponents).toContain("claimDiscipline");
+    expect(score.missingComponents).toContain("mechanismCorroboration");
+    expect(score.missingComponents).toContain("searchPreservation");
+    expect(score.missingComponents).toContain("placeboStrength");
+    expect(score.missingComponents).toContain("temporalTransportability");
+    expect(score.missingComponents).toContain("regimeSensitivity");
   });
 
   test("requires studies to declare purpose, grain, and artifact outputs", () => {

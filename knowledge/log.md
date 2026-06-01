@@ -2,6 +2,18 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-01] engineering | Analysis dependency closure audit added
+
+Added `audit detector-closure` as the first dependency-closure control plane for analysis units.
+The artifact joins data-product completeness, detector readiness, corpus-grain audit status,
+review-packet coverage, and detector-evaluation scorecards into one per-unit closure report. The
+schema is generalized beyond detectors to include planned causal, forecasting, and response-drift
+units, and intervention/event-study closure now explicitly depends on the Tier 2 structured
+intervention extraction layer rather than OCR text coverage alone. Registered planned
+applied-research product families remain blocked/planned until their builders and validation gates
+exist. The shared applied-research score now includes mechanism corroboration, search preservation,
+placebo strength, temporal transportability, and regime sensitivity dimensions.
+
 ## [2026-06-01] planning | Event-family response drift scoped
 
 Extended the curb-pulse natural-experiment plan and applied-research architecture with a

@@ -90,6 +90,31 @@ queues, detector coverage audits, readiness artifacts, EWT score vectors, detect
 speed/pace score vectors, generic detector score vectors, deterministic evaluation labels, and the
 detector corpus-grain audit.
 Grain-policy warnings are now visible as scorecard flags instead of living only in planning docs.
+
+The next control-plane join is `audit detector-closure`, which turns those separate artifacts into a
+per-analysis-unit dependency closure report:
+
+```sh
+bun --filter @bp/pipeline-v2 cli -- audit detector-closure \
+  --year 2026 --month 3 \
+  --history-start-month 2023-04 \
+  --run-id bus-observatory-2026-03
+```
+
+It writes:
+
+```text
+data/artifacts/detector-closure/2023-04_to_2026-03/2026-03/detector-closure.json
+data/artifacts/detector-closure/2023-04_to_2026-03/2026-03/detector-closure.md
+```
+
+This artifact is deliberately broader than detectors. It represents `detector`, `causal_study`,
+`forecasting`, and `response_drift_study` units with a shared dependency model over source
+products, derived features, score vectors, review packets, readiness policies, evaluation
+scorecards, and validation gates. Intervention and event-study units explicitly depend on
+`tier2_structured_intervention_extraction_full_corpus`, so OCR text coverage alone cannot be
+mistaken for causal/effect-study readiness.
+
 The supporting build commands are:
 
 ```sh

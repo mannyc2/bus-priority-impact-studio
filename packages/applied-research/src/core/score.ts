@@ -7,9 +7,16 @@ export type ResearchQualityComponent =
   | "reviewerUtility"
   | "noveltyActionability"
   | "elegance"
-  | "maintainability";
+  | "maintainability"
+  | "mechanismCorroboration"
+  | "searchPreservation"
+  | "placeboStrength"
+  | "temporalTransportability"
+  | "regimeSensitivity";
 
-export type ResearchQualityComponentScores = Partial<Record<ResearchQualityComponent, number | null>>;
+export type ResearchQualityComponentScores = Partial<
+  Record<ResearchQualityComponent, number | null>
+>;
 
 export type VetoCap = {
   readonly code: string;
@@ -35,6 +42,11 @@ export const RESEARCH_QUALITY_WEIGHTS = {
   noveltyActionability: 100,
   elegance: 100,
   maintainability: 100,
+  mechanismCorroboration: 70,
+  searchPreservation: 70,
+  placeboStrength: 70,
+  temporalTransportability: 70,
+  regimeSensitivity: 70,
 } as const satisfies Record<ResearchQualityComponent, number>;
 
 const COMPONENTS = Object.keys(RESEARCH_QUALITY_WEIGHTS) as ResearchQualityComponent[];
@@ -88,7 +100,8 @@ export function combineResearchQualityScore(params: {
     knownWeight += weight;
   }
 
-  const weightedScore = knownWeight === 0 ? null : Math.round((weightedTotal / knownWeight) * 10) / 10;
+  const weightedScore =
+    knownWeight === 0 ? null : Math.round((weightedTotal / knownWeight) * 10) / 10;
   const vetoCaps = params.vetoCaps ?? [];
 
   return {
