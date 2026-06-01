@@ -81,7 +81,9 @@ function statusDetail(input: StudioInterventionComparisonInput): string {
   return "Matched treatment evidence needs a source-backed implementation date.";
 }
 
-function interventionTone(input: StudioInterventionComparisonInput): StudioIntervention["tone"] {
+function interventionTone(
+  input: StudioInterventionComparisonInput,
+): NonNullable<StudioIntervention["tone"]> {
   if (input.comparisonStatus !== "evaluated") {
     return input.eventStatus === "future" ? "accent" : "warn";
   }

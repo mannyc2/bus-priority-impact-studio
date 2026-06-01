@@ -562,14 +562,14 @@ describe("domain schemas", () => {
   test("AgentFindingProposalEvidenceRefSchema accepts a code_execution ref", () => {
     const parsed = AgentFindingProposalEvidenceRefSchema.parse({
       kind: "code_execution",
-      language: "python",
-      code: "from bp_corpus import signals\nprint(len(signals.features('2026-03')))",
+      language: "typescript",
+      code: "import { listAnalyticsDetectors } from '@bp/analytics/registry';\nconsole.log(listAnalyticsDetectors().length)",
       stdoutHash: "a".repeat(64),
       citedValuePath: "/lines/0",
     });
     expect(parsed.kind).toBe("code_execution");
     if (parsed.kind === "code_execution") {
-      expect(parsed.language).toBe("python");
+      expect(parsed.language).toBe("typescript");
     }
   });
 
@@ -577,8 +577,8 @@ describe("domain schemas", () => {
     expect(() =>
       AgentFindingProposalEvidenceRefSchema.parse({
         kind: "code_execution",
-        language: "python",
-        code: "print(1)",
+        language: "typescript",
+        code: "console.log(1)",
         stdoutHash: "not-a-sha256",
       }),
     ).toThrow();

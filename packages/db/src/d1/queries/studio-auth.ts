@@ -5,9 +5,9 @@ import {
   getOperatorRoleForIdentity,
   recordSessionUse,
   type StudioActorScope,
-} from "./identity";
+} from "./identity.js";
 
-export type { StudioActorScope } from "./identity";
+export type { StudioActorScope } from "./identity.js";
 
 export type StudioActorAuth = {
   actorId: string;

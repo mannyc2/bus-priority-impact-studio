@@ -38,5 +38,5 @@ export const Route = createFileRoute("/briefs/new")({
 
 function NewBriefRoute() {
   const data = Route.useLoaderData();
-  return <BriefComposerPage data={data} />;
+  return <BriefComposerPage data={data} mode="new" />;
 }

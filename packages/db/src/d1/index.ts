@@ -14,6 +14,16 @@ export type {
   CorridorSummary,
 } from "./queries/corridor-summaries.js";
 export { listCorridorSummaries } from "./queries/corridor-summaries.js";
+export {
+  consumeMagicLinkRequest,
+  createMagicLinkRequest,
+  createSession,
+  getIdentityById,
+  getIdentityBySessionTokenHash,
+  getOperatorRoleForIdentity,
+  recordSessionUse,
+  revokeSession,
+} from "./queries/identity.js";
 export type { RouteBatchStatus, RouteBatchStatusRow } from "./queries/route-batch-status.js";
 export { getRouteBatchStatus } from "./queries/route-batch-status.js";
 export type {
@@ -72,3 +82,81 @@ export {
   serializeRouteScorecard,
   serializeRouteScorecardCitations,
 } from "./queries/route-scorecard.js";
+export type { StudioActorAuth } from "./queries/studio-auth.js";
+export { getStudioActorAuthByTokenHash, markStudioActorTokenUsed } from "./queries/studio-auth.js";
+export type {
+  StudioBriefAgentProposalRow,
+  StudioBriefAgentProposalStatus,
+  StudioBriefAgentRunIntent,
+  StudioBriefAgentRunRow,
+  StudioBriefAgentRunStatus,
+  StudioBriefDraftVersionActorType,
+  StudioBriefDraftVersionReason,
+  StudioBriefDraftVersionRow,
+  StudioBriefDraftVersionSnapshotRow,
+  StudioBriefDraftVersionSnapshotStorage,
+} from "./queries/studio-brief-agents.js";
+export {
+  getStudioBriefAgentProposal,
+  getStudioBriefAgentRun,
+  getStudioBriefDraftVersion,
+  getStudioBriefDraftVersionSnapshot,
+  insertStudioBriefAgentProposal,
+  insertStudioBriefAgentRun,
+  insertStudioBriefDraftVersion,
+  insertStudioBriefDraftVersionSnapshot,
+  listStudioBriefAgentProposals,
+  listStudioBriefDraftVersions,
+  updateStudioBriefAgentProposalStatus,
+  updateStudioBriefAgentRunStatus,
+} from "./queries/studio-brief-agents.js";
+export type {
+  StudioBriefDraftBlockRow,
+  StudioBriefDraftClaimRow,
+  StudioBriefDraftRecord,
+  StudioBriefDraftRefRow,
+  StudioBriefDraftRow,
+  StudioBriefDraftStatus,
+  StudioBriefGenerationJobStatus,
+  StudioBriefGenerationMode,
+  StudioBriefHistoryEventRow,
+  StudioBriefLlmGenerationStatus,
+  StudioBriefReviewCommentKind,
+  StudioBriefReviewCommentRow,
+  StudioBriefReviewCommentStatus,
+  StudioBriefWriteIdempotencyRow,
+} from "./queries/studio-brief-drafts.js";
+export {
+  deleteStudioBriefDraftBlock,
+  deleteStudioBriefDraftClaim,
+  deleteStudioBriefDraftClaims,
+  deleteStudioBriefDraftRefsForBlock,
+  getStudioBriefDraftRecord,
+  getStudioBriefDraftRecordByJobId,
+  getStudioBriefReviewComment,
+  getStudioBriefWriteIdempotency,
+  insertStudioBriefDraft,
+  insertStudioBriefDraftBlock,
+  insertStudioBriefDraftClaim,
+  insertStudioBriefHistoryEvent,
+  insertStudioBriefReviewComment,
+  insertStudioBriefReviewReply,
+  insertStudioBriefReviewThread,
+  listStudioBriefHistoryEvents,
+  markStudioBriefDraftPublishCandidate,
+  markStudioBriefDraftRetracted,
+  parseDraftNumberArray,
+  parseDraftStringArray,
+  recordStudioBriefPromotionReceipt,
+  recordStudioBriefWriteIdempotency,
+  replaceStudioBriefDraftBlocks,
+  replaceStudioBriefDraftClaims,
+  replaceStudioBriefDraftRefs,
+  updateStudioBriefDraftBlock,
+  updateStudioBriefDraftClaim,
+  updateStudioBriefDraftGeneration,
+  updateStudioBriefDraftJobStatus,
+  updateStudioBriefDraftMetadata,
+  updateStudioBriefDraftValidation,
+  updateStudioBriefReviewComment,
+} from "./queries/studio-brief-drafts.js";

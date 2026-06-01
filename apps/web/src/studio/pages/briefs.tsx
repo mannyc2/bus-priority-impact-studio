@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 import { useMemo, useState } from "react";
+import { BriefProse } from "@/components/brief/prose/BriefProse.js";
 import { MapThumb } from "@/components/MapThumb";
 import { Rail, RailRule } from "@/components/Rail";
 import { RouteBadge } from "@/components/RouteBadge";
@@ -142,15 +143,13 @@ export function BriefReadingPage({ data }: { data: StudioBriefResponse | null })
                 </div>
               ) : null}
               <div className="mt-4 grid grid-cols-[minmax(0,1fr)_240px] gap-5 max-lg:grid-cols-1">
-                <div className="space-y-4 text-[14.5px] leading-[1.65] text-[var(--bp-color-ink)]">
-                  {section.body.map((para, j) => (
-                    <p key={j} className="m-0">
-                      {para}
-                    </p>
-                  ))}
-                </div>
+                <BriefProse
+                  markdown={section.body.join("\n\n")}
+                  blocks={brief.blocks}
+                  className="text-[14.5px] text-[var(--bp-color-ink)]"
+                />
                 {section.figure ? (
-                  <MapThumb label={section.figure.label} width={240} height={160} emphasis="m15" />
+                  <MapThumb label={section.figure.label} width={240} height={160} />
                 ) : null}
               </div>
               {section.callout ? (

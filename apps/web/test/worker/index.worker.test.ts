@@ -232,7 +232,30 @@ describe("Worker production-behavior harness", () => {
         "/api/v1/studio/routes": expect.any(Object),
         "/api/v1/studio/routes/{routeId}": expect.any(Object),
         "/api/v1/studio/briefs/{briefId}/history": expect.any(Object),
+        "/api/v1/studio/briefs/{briefId}/draft/blocks": expect.any(Object),
+        "/api/v1/studio/briefs/{briefId}/draft/blocks/{blockId}": expect.any(Object),
+        "/api/v1/studio/briefs/{briefId}/draft/generate": expect.any(Object),
+        "/api/v1/studio/briefs/{briefId}/draft/publish-candidate-export": expect.any(Object),
+        "/api/v1/studio/briefs/{briefId}/draft/refs/resolve": expect.any(Object),
       }),
+    );
+    const draftGenerate = body.paths?.[
+      "/api/v1/studio/briefs/{briefId}/draft/generate"
+    ] as
+      | {
+          post?: {
+            parameters?: Array<{ name?: unknown; in?: unknown; required?: unknown }>;
+          };
+        }
+      | undefined;
+    expect(draftGenerate?.post?.parameters).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: "Idempotency-Key",
+          in: "header",
+          required: true,
+        }),
+      ]),
     );
   });
 

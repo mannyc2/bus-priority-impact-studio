@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { Briefcase, FileText } from "lucide-react";
 import type { ReactNode } from "react";
 import { EmptyState } from "@/components/EmptyState";
@@ -9,6 +9,7 @@ import type { StudioSearchResponse } from "../api-contract.js";
 import { StudioHero, StudioPage, StudioPanel } from "../page.js";
 
 export function SearchResultsPage({ data }: { data: StudioSearchResponse }) {
+  const navigate = useNavigate();
   return (
     <StudioPage>
       <StudioHero
@@ -21,6 +22,12 @@ export function SearchResultsPage({ data }: { data: StudioSearchResponse }) {
           defaultValue={data.query}
           placeholder="Search route, segment, brief..."
           shortcut="/"
+          onKeyDown={(event) => {
+            if (event.key !== "Enter") return;
+            const q = event.currentTarget.value.trim();
+            if (q.length === 0) return;
+            navigate({ to: "/search", search: { q } });
+          }}
         />
       </div>
       <div className="grid grid-cols-[220px_1fr] gap-6 max-lg:grid-cols-1">

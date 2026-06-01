@@ -108,6 +108,36 @@ function brief(id: string, status: "Published" | "In review", summary: string) {
       },
     ],
     caveats: [{ title: "Fixture caveat", body: "Fixture caveat body." }],
+    ...(status === "In review"
+      ? {
+          bodyMd: `${summary}\n\n:::finding{ref="finding_m1"}`,
+          blocks: [
+            {
+              id: "finding_m1",
+              type: "finding",
+              title: "M1 slow speed finding",
+              confidence: "moderate",
+              claim: summary,
+              supports: ["e1"],
+            },
+          ],
+          refs: [
+            {
+              id: "block:finding_m1",
+              kind: "block",
+              blockId: "finding_m1",
+              blockType: "finding",
+            },
+            {
+              id: "evidence:e1",
+              kind: "evidence",
+              evidenceId: "e1",
+              role: "primary",
+              label: "Observed speed",
+            },
+          ],
+        }
+      : {}),
   } as const;
 }
 
@@ -211,6 +241,41 @@ function candidate() {
       ],
       quality: quality(),
     },
+    audit: {
+      validation: {
+        score: 100,
+        weakClaims: [],
+        missingEvidence: [],
+        blockingIssues: [],
+        validatedAt: "2026-05-25T00:00:30.000Z",
+      },
+      contentHashes: {
+        bodyMd: "0".repeat(64),
+        claims: [{ claimN: 1, sha256: "1".repeat(64) }],
+        blocks: [],
+      },
+      reviewThreads: [
+        {
+          commentId: "review-thread-1",
+          kind: "suggested-edit",
+          status: "resolved",
+          anchor: {
+            target: "body",
+            targetId: null,
+            quote: { exact: "Old wording." },
+          },
+          suggestion: {
+            suggestFrom: "Old wording.",
+            suggestTo: "New wording.",
+          },
+          replyCount: 1,
+          createdAt: "2026-05-25T00:00:10.000Z",
+          updatedAt: "2026-05-25T00:00:20.000Z",
+          resolvedAt: "2026-05-25T00:00:20.000Z",
+          resolvedBy: "author@example.test",
+        },
+      ],
+    },
     quality: quality(),
   };
 }
@@ -264,6 +329,9 @@ describe("studio publish-candidate promotion", () => {
     const candidateArchiveExists = await Bun.file(
       fromRepoRoot(join(workRootRelative, "studio/v1/publish-candidates/draft-m1.json")),
     ).exists();
+    const candidateArchive = await Bun.file(
+      fromRepoRoot(join(workRootRelative, "studio/v1/publish-candidates/draft-m1.json")),
+    ).json();
 
     expect(result.dryRun).toBe(false);
     expect(result.wroteProjectionCount).toBeGreaterThan(0);
@@ -273,12 +341,20 @@ describe("studio publish-candidate promotion", () => {
       status: "Published",
       version: "v2-candidate",
       summary: "Reviewed replacement summary.",
+      bodyMd: expect.stringContaining(":::finding"),
     });
+    expect(releaseAfter.briefs[0].blocks).toHaveLength(1);
+    expect(releaseAfter.briefs[0].refs).toHaveLength(2);
     expect(releaseAfter.comments[0]).toMatchObject({ briefId: "brief-m1" });
+    expect(releaseAfter.comments).toHaveLength(1);
+    expect(candidateArchive.audit.reviewThreads[0]).toMatchObject({ commentId: "review-thread-1" });
     expect(briefsIndex.briefs.map((item: { brief: { id: string } }) => item.brief.id)).toEqual([
       "brief-m1",
     ]);
     expect(detail.brief.summary).toBe("Reviewed replacement summary.");
+    expect(detail.brief.bodyMd).toContain(":::finding");
+    expect(detail.brief.blocks[0]).toMatchObject({ id: "finding_m1", type: "finding" });
+    expect(detail.brief.refs[0]).toMatchObject({ id: "block:finding_m1" });
     expect(candidateArchiveExists).toBe(true);
   });
 });

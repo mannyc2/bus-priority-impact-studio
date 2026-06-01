@@ -1,8 +1,9 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AIDiagnosisStrip } from "@/components/AIDiagnosisStrip";
 import { BeforeAfter } from "@/components/BeforeAfter";
+import { type CaptureSource, SendToBriefSheet } from "@/components/brief/SendToBriefSheet.js";
 import { ChartFrame } from "@/components/ChartFrame";
 import { FilterChips } from "@/components/FilterChips";
 import { HourBars } from "@/components/HourBars";
@@ -16,9 +17,17 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { pushRecentRoute } from "@/lib/recent-routes";
 import type { StudioRouteDetailResponse, StudioSegment } from "../api-contract.js";
 import { StudioPage } from "../page.js";
 import { NotFoundPage } from "./not-found.js";
+
+function TrackRecentRoute({ slug }: { slug: string }) {
+  useEffect(() => {
+    pushRecentRoute(slug);
+  }, [slug]);
+  return null;
+}
 
 const TAB_OPTIONS = [
   { value: "overview", label: "Overview" },
@@ -39,6 +48,7 @@ export function RouteDetailPage({ data }: { data: StudioRouteDetailResponse | nu
   return (
     <StudioPage flush>
       <div className="flex h-full min-h-0 flex-col">
+        <TrackRecentRoute slug={route.slug} />
         <header className="shrink-0 bg-[var(--bp-color-card)] px-7 pb-[18px] pt-6 shadow-[inset_0_-1px_0_var(--bp-color-rule)]">
           <div className="mb-[18px] flex items-start gap-[18px]">
             <RouteBadge route={route.label} sbs={route.sbs} size="xl" />
@@ -142,6 +152,8 @@ export function RouteDetailPage({ data }: { data: StudioRouteDetailResponse | nu
             <TabsContent value="slow-segments" className="space-y-11">
               <SlowSegmentsSection
                 routeSlug={route.slug}
+                routeLabel={route.label}
+                routeSbs={route.sbs}
                 segments={segments}
                 {...(flagged?.id ? { flaggedId: flagged.id } : {})}
               />
@@ -677,7 +689,8 @@ function RouteDataNotesTab({ data }: { data: StudioRouteDetailResponse }) {
         />
         <div className="ml-auto">
           <Link
-            to="/methods"
+            to="/docs/$page"
+            params={{ page: "methodology" }}
             className="inline-flex items-center rounded-[3px] border border-[var(--bp-color-accent)] px-3 py-2 text-[12px] font-semibold text-[var(--bp-color-accent)] no-underline"
           >
             Full methodology &rarr;
@@ -706,12 +719,6 @@ function RouteDataNotesTab({ data }: { data: StudioRouteDetailResponse }) {
                   {caveat.body}
                 </p>
               </div>
-              <button
-                type="button"
-                className="shrink-0 rounded-[3px] border border-[var(--bp-color-ink-20)] bg-transparent px-2.5 py-1.5 text-[11px] font-medium"
-              >
-                Apply to brief
-              </button>
             </div>
           ))}
         </div>
@@ -833,15 +840,30 @@ function KpiStrip({ route }: { route: StudioRouteDetailResponse["route"] }) {
 
 function SlowSegmentsSection({
   routeSlug,
+  routeLabel,
+  routeSbs,
   segments,
   flaggedId,
 }: {
   routeSlug: string;
+  routeLabel: string;
+  routeSbs: boolean;
   segments: readonly StudioSegment[];
   flaggedId?: string;
 }) {
   const [openId, setOpenId] = useState<string | null>(flaggedId ?? null);
   const [direction, setDirection] = useState<"all" | "NB" | "SB" | "EB" | "WB">("all");
+  const [sendSeg, setSendSeg] = useState<StudioSegment | null>(null);
+
+  const capture: CaptureSource | null = sendSeg && {
+    routeSlug,
+    routeLabel,
+    routeSbs,
+    dir: sendSeg.direction,
+    from: sendSeg.from,
+    to: sendSeg.to,
+    mph: sendSeg.speedMph,
+  };
   const visible = (
     direction === "all" ? segments : segments.filter((s) => s.direction === direction)
   ).slice(0, 5);
@@ -875,45 +897,57 @@ function SlowSegmentsSection({
           </div>
         }
       />
-      <div className="min-w-[760px]">
-        <SegmentRowHeader />
-        {visible.map((segment) => {
-          const isOpen = openId === segment.id;
-          return (
-            <div key={segment.id}>
-              <SegmentRow
-                dir={segment.direction}
-                from={segment.from}
-                to={segment.to}
-                mph={segment.speedMph}
-                sched={segment.scheduledMph}
-                riderHours={segment.riderHours}
-                hours={segment.hours}
-                lane={segment.lane}
-                ace={segment.ace}
-                tsp={segment.tsp}
-                hasNote={Boolean(segment.aiNote)}
-                noteOpen={isOpen && Boolean(segment.aiNote)}
-                {...(segment.flagged ? { flag: "top" as const } : {})}
-                {...(segment.aiNote
-                  ? {
-                      onClick: () => setOpenId((cur) => (cur === segment.id ? null : segment.id)),
-                    }
-                  : {})}
-              />
-              {isOpen && segment.aiNote ? (
-                <div className="flex items-start gap-2 bg-[var(--bp-color-accent-bg)] px-3 py-[11px] shadow-[inset_0_-1px_0_oklch(0.88_0.07_252)]">
-                  <span className="mt-[2px] shrink-0 font-mono text-[10px] font-bold text-[var(--bp-color-accent)]">
-                    &#9670;
-                  </span>
-                  <p className="m-0 text-[12px] leading-[1.6] text-[var(--bp-color-ink-70)]">
-                    {segment.aiNote}
-                  </p>
+      <div className="overflow-x-auto">
+        <div className="min-w-[760px]">
+          <SegmentRowHeader />
+          {visible.map((segment) => {
+            const isOpen = openId === segment.id;
+            return (
+              <div key={segment.id}>
+                <SegmentRow
+                  dir={segment.direction}
+                  from={segment.from}
+                  to={segment.to}
+                  mph={segment.speedMph}
+                  sched={segment.scheduledMph}
+                  riderHours={segment.riderHours}
+                  hours={segment.hours}
+                  lane={segment.lane}
+                  ace={segment.ace}
+                  tsp={segment.tsp}
+                  hasNote={Boolean(segment.aiNote)}
+                  noteOpen={isOpen && Boolean(segment.aiNote)}
+                  {...(segment.flagged ? { flag: "top" as const } : {})}
+                  {...(segment.aiNote
+                    ? {
+                        onClick: () => setOpenId((cur) => (cur === segment.id ? null : segment.id)),
+                      }
+                    : {})}
+                />
+                {isOpen && segment.aiNote ? (
+                  <div className="flex items-start gap-2 bg-[var(--bp-color-accent-bg)] px-3 py-[11px] shadow-[inset_0_-1px_0_oklch(0.88_0.07_252)]">
+                    <span className="mt-[2px] shrink-0 font-mono text-[10px] font-bold text-[var(--bp-color-accent)]">
+                      &#9670;
+                    </span>
+                    <p className="m-0 text-[12px] leading-[1.6] text-[var(--bp-color-ink-70)]">
+                      {segment.aiNote}
+                    </p>
+                  </div>
+                ) : null}
+                <div className="flex justify-end px-3 py-1.5 shadow-[inset_0_-1px_0_var(--bp-color-rule)]">
+                  <button
+                    type="button"
+                    onClick={() => setSendSeg(segment)}
+                    className="inline-flex items-center gap-1 text-[11.5px] font-semibold text-[var(--bp-color-accent)] hover:underline"
+                  >
+                    Send to brief
+                    <ArrowRight size={13} />
+                  </button>
                 </div>
-              ) : null}
-            </div>
-          );
-        })}
+              </div>
+            );
+          })}
+        </div>
       </div>
       <div className="mt-3 text-[11.5px] text-[var(--bp-color-ink-55)]">
         Showing {visible.length} of {segments.length} timepoint segments.{" "}
@@ -925,6 +959,7 @@ function SlowSegmentsSection({
           Show all &rarr;
         </Link>
       </div>
+      {capture ? <SendToBriefSheet source={capture} onClose={() => setSendSeg(null)} /> : null}
     </section>
   );
 }

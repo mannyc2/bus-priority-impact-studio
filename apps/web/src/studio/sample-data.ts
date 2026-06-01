@@ -1408,12 +1408,87 @@ export const studioDocsEndpoints: StudioDocsEndpoint[] = [
   {
     method: "GET",
     path: "/api/openapi.json",
-    body: "Fetch the generated OpenAPI document for Studio read contracts.",
+    body: "Fetch the generated OpenAPI document for Studio read and draft-authoring contracts.",
+  },
+  {
+    method: "PATCH",
+    path: "/api/v1/studio/briefs/:briefId/draft",
+    body: "Update operator-scoped draft metadata; requires a Studio session and Idempotency-Key.",
   },
   {
     method: "POST",
-    path: "/api/v1/studio/briefs/:briefId/generate",
-    body: "Planned composing endpoint for staged draft generation from attached claims and evidence.",
+    path: "/api/v1/studio/briefs/:briefId/draft/generate",
+    body: "Queue a Cloudflare Think / Workers AI generation run that stores a proposal for approval.",
+  },
+  {
+    method: "POST",
+    path: "/api/v1/studio/briefs/:briefId/draft/agent-runs",
+    body: "Start an authoring agent run against the current draft version and content hash.",
+  },
+  {
+    method: "POST",
+    path: "/api/v1/studio/briefs/:briefId/draft/agent-runs/:runId/propose-edit",
+    body: "Submit structured agent edit operations; invalid output returns repair feedback instead of mutating the draft.",
+  },
+  {
+    method: "GET",
+    path: "/api/v1/studio/briefs/:briefId/draft/proposals/:proposalId",
+    body: "Fetch an agent proposal for preview and human approval.",
+  },
+  {
+    method: "POST",
+    path: "/api/v1/studio/briefs/:briefId/draft/proposals/:proposalId/apply",
+    body: "Apply all or selected approved proposal operations and create a draft version snapshot.",
+  },
+  {
+    method: "POST",
+    path: "/api/v1/studio/briefs/:briefId/draft/proposals/:proposalId/reject",
+    body: "Reject an agent proposal without mutating accepted draft content.",
+  },
+  {
+    method: "GET",
+    path: "/api/v1/studio/briefs/:briefId/draft/versions",
+    body: "List restoreable draft version milestones.",
+  },
+  {
+    method: "POST",
+    path: "/api/v1/studio/briefs/:briefId/draft/versions/:versionId/restore",
+    body: "Restore a D1-backed draft version snapshot as a new draft version.",
+  },
+  {
+    method: "POST",
+    path: "/api/v1/studio/briefs/:briefId/draft/claims",
+    body: "Add a claim to the operator-scoped draft.",
+  },
+  {
+    method: "PATCH/DELETE",
+    path: "/api/v1/studio/briefs/:briefId/draft/claims/:claimN",
+    body: "Edit or remove a draft claim by one-based claim number.",
+  },
+  {
+    method: "POST",
+    path: "/api/v1/studio/briefs/:briefId/draft/validate",
+    body: "Refresh deterministic validation for a draft before review or publication.",
+  },
+  {
+    method: "POST",
+    path: "/api/v1/studio/briefs/:briefId/draft/review",
+    body: "Request review for a draft and append a review comment.",
+  },
+  {
+    method: "POST",
+    path: "/api/v1/studio/briefs/:briefId/draft/publish",
+    body: "Mark a draft as a publish candidate.",
+  },
+  {
+    method: "POST",
+    path: "/api/v1/studio/briefs/:briefId/draft/retract",
+    body: "Retract a draft publish candidate without mutating the public release.",
+  },
+  {
+    method: "GET",
+    path: "/api/v1/studio/briefs/:briefId/draft/publish-candidate-export",
+    body: "Fetch the publish-candidate export payload for release review.",
   },
 ];
 

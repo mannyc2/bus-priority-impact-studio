@@ -3,6 +3,8 @@
 // is recorded as a structured log in Workers Observability. Dev console output
 // lives in web-vitals-debug.ts; this module is the production data path.
 
+import type { RumReport } from "@bp/domain";
+
 const RUM_ENDPOINT = "/api/v1/rum";
 
 export function installWebVitalsReporter(): void {
@@ -40,7 +42,7 @@ export function installWebVitalsReporter(): void {
     lcpObserver?.disconnect();
     clsObserver?.disconnect();
 
-    const report = {
+    const report: RumReport = {
       path: landingPath,
       ttfb: positiveMs(navigationEntry()?.responseStart),
       fcp: positiveMs(firstContentfulPaint()),

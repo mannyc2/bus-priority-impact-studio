@@ -106,8 +106,17 @@ export type StudioFinding = Omit<DomainStudioFinding, "caveat"> & {
 
 // Studio interventions accept v1 manual-registry fields (timelineLayer,
 // candidateId, sourceLinks, sourceSpanRefs, etc.) on top of the public domain
-// shape.
-export type StudioIntervention = DomainStudioIntervention & {
+// shape. A few optional domain fields are widened to preserve exact-optional
+// compatibility for JSON artifacts that may explicitly carry undefined while
+// the release pipeline is still normalizing them.
+export type StudioIntervention = Omit<
+  DomainStudioIntervention,
+  "comparisonCohort" | "sourceDetail" | "sourceLabel" | "tone"
+> & {
+  comparisonCohort?: DomainStudioIntervention["comparisonCohort"] | undefined;
+  sourceDetail?: DomainStudioIntervention["sourceDetail"] | undefined;
+  sourceLabel?: DomainStudioIntervention["sourceLabel"] | undefined;
+  tone?: DomainStudioIntervention["tone"] | undefined;
   candidateId?: string;
   timelineLayer?:
     | "canonical_milestone"
@@ -117,8 +126,6 @@ export type StudioIntervention = DomainStudioIntervention & {
   qualityTier?: string;
   status?: "implemented" | "planned" | "proposed" | "historical_context" | "defer";
   interventionType?: string;
-  sourceLabel?: string;
-  sourceDetail?: string;
   sourceSpanChunkIds?: string[];
   sourceSpanRefs?: Tier2DocumentChunkPreview[];
   sourceLinks?: Array<{ label: string; url: string }>;

@@ -1,20 +1,59 @@
+type LineGeometry = {
+  coordinates: ReadonlyArray<readonly [number, number]>;
+};
+
 export function MapThumb({
   width = 120,
   height = 80,
   label = "segment map",
   emphasis = "var(--bp-color-accent)",
+  line,
 }: {
   width?: number;
   height?: number;
   label?: string;
   emphasis?: string;
+  line?: LineGeometry | null;
 }) {
-  const stops = [
-    [0.1, 0.85],
-    [0.3, 0.55],
-    [0.75, 0.35],
-    [0.92, 0.18],
-  ] as const;
+  const padX = width / 10;
+  const padY = height / 10;
+  const innerW = width - 2 * padX;
+  const innerH = height - 2 * padY;
+
+  const projectedPoints =
+    line && line.coordinates.length >= 2
+      ? (() => {
+          const lngs = line.coordinates.map(([lng]) => lng);
+          const lats = line.coordinates.map(([, lat]) => lat);
+          const lngMin = Math.min(...lngs);
+          const lngMax = Math.max(...lngs);
+          const latMin = Math.min(...lats);
+          const latMax = Math.max(...lats);
+          const lngSpan = lngMax - lngMin;
+          const latSpan = latMax - latMin;
+          return line.coordinates.map(([lng, lat]) => {
+            const x = padX + (lngSpan === 0 ? 0.5 : (lng - lngMin) / lngSpan) * innerW;
+            const y = padY + (latSpan === 0 ? 0.5 : 1 - (lat - latMin) / latSpan) * innerH;
+            return [x, y] as const;
+          });
+        })()
+      : null;
+
+  const fallbackPath = `M${width * 0.1},${height * 0.85} L${width * 0.3},${height * 0.55} L${width * 0.75},${height * 0.35} L${width * 0.92},${height * 0.18}`;
+  const pathD =
+    projectedPoints === null
+      ? fallbackPath
+      : projectedPoints.map(([x, y], index) => `${index === 0 ? "M" : "L"}${x},${y}`).join(" ");
+
+  const firstPoint = projectedPoints?.[0];
+  const lastPoint = projectedPoints?.[projectedPoints.length - 1];
+  const circleCenters: ReadonlyArray<readonly [number, number]> =
+    firstPoint !== undefined && lastPoint !== undefined
+      ? [firstPoint, lastPoint]
+      : [
+          [width * 0.1, height * 0.85],
+          [width * 0.92, height * 0.18],
+        ];
 
   return (
     <div
@@ -56,18 +95,18 @@ export function MapThumb({
           stroke="var(--bp-color-ink-20)"
         />
         <path
-          d={`M${width * 0.1},${height * 0.85} L${width * 0.3},${height * 0.55} L${width * 0.75},${height * 0.35} L${width * 0.92},${height * 0.18}`}
+          d={pathD}
           fill="none"
           stroke={emphasis}
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth="2.4"
         />
-        {stops.map(([x, y]) => (
+        {circleCenters.map(([cx, cy]) => (
           <circle
-            key={`${x}-${y}`}
-            cx={x * width}
-            cy={y * height}
+            key={`${cx}-${cy}`}
+            cx={cx}
+            cy={cy}
             r="2.2"
             fill="white"
             stroke={emphasis}

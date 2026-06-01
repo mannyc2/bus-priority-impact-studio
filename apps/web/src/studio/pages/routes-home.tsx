@@ -5,15 +5,14 @@ import { FilterChips } from "@/components/FilterChips";
 import { RouteBadge } from "@/components/RouteBadge";
 import { type AutocompleteSuggestion, SearchAutocomplete } from "@/components/SearchAutocomplete";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useRecentRoutes } from "@/lib/recent-routes";
 import type { StudioRoute } from "../api-contract.js";
 import { StudioPage } from "../page.js";
 
-type FilterId = "all" | "am" | "pm" | "sbs" | "no-lane";
+type FilterId = "all" | "sbs" | "no-lane";
 
 const filters: readonly { id: FilterId; label: string }[] = [
   { id: "all", label: "All boroughs" },
-  { id: "am", label: "AM peak" },
-  { id: "pm", label: "PM peak" },
   { id: "sbs", label: "SBS only" },
   { id: "no-lane", label: "No bus lane" },
 ];
@@ -31,6 +30,8 @@ function formatRiders(n: number): string {
 export function RoutesHomePage({ routes }: { routes: readonly StudioRoute[] }) {
   const navigate = useNavigate();
   const [filter, setFilter] = useState<FilterId>("all");
+  const recentSlugs = useRecentRoutes();
+  const recent = recentSlugs.length > 0 ? recentSlugs : ["m15-sbs", "b41", "m14a-sbs", "bx12-sbs"];
 
   const suggestions = useMemo<AutocompleteSuggestion[]>(
     () =>
@@ -65,7 +66,12 @@ export function RoutesHomePage({ routes }: { routes: readonly StudioRoute[] }) {
         <p className="mt-3.5 max-w-[620px] text-[14.5px] leading-[1.55] text-[var(--bp-color-ink-70)]">
           Built from public MTA bus speed, ridership, and schedule data; NYC DOT bus lane geometry;
           and the MTA Automated Camera Enforcement program record.{" "}
-          <Link to="/methods" viewTransition className="text-[var(--bp-color-accent)] no-underline">
+          <Link
+            to="/docs/$page"
+            params={{ page: "methodology" }}
+            viewTransition
+            className="text-[var(--bp-color-accent)] no-underline"
+          >
             Methodology &rarr;
           </Link>
         </p>
@@ -79,7 +85,7 @@ export function RoutesHomePage({ routes }: { routes: readonly StudioRoute[] }) {
         recent={
           <div className="flex items-center gap-2.5 text-[12px] text-[var(--bp-color-ink-55)]">
             <span>Recent:</span>
-            {["m15-sbs", "b41", "m14a-sbs", "bx12-sbs"].map((slug) => {
+            {recent.map((slug) => {
               const r = routes.find((x) => x.slug === slug);
               if (!r) return null;
               return (

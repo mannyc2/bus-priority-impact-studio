@@ -38,7 +38,6 @@ export const PUBLIC_STUDIO_ROUTES: readonly PublicStudioRoute[] = [
     label: "Brief evidence",
     expectedTitleText: "Evidence",
   },
-  { path: "/methods", label: "Methods", expectedTitleText: "Methods" },
   { path: "/docs", label: "Docs", expectedTitleText: "Docs" },
 ] as const;
 
@@ -167,14 +166,6 @@ export function getStudioSeoMetadata(input: URL | string): StudioSeoMetadata | n
       briefDescription(title, section),
       pathname,
       section === "edit" || section === "review" || section === "history",
-    );
-  }
-
-  if (pathname === "/methods") {
-    return metadata(
-      "Methods",
-      "Review the public datasets, metric definitions, caveats, and source credits behind the Studio.",
-      pathname,
     );
   }
 

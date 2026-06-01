@@ -106,10 +106,12 @@ export function SearchAutocomplete({
     <div ref={containerRef} className={cn("relative", className)}>
       <InputGroup
         className={cn(
-          "h-auto rounded-[4px] border-[1.5px] border-[var(--bp-color-ink)] bg-[var(--bp-color-card-raised)] px-[12px] py-[10px] shadow-[0_2px_0_var(--bp-color-ink)]",
-          "hover:bg-[var(--bp-color-card-raised)]",
-          "has-[[data-slot=input-group-control]:focus-visible]:border-[var(--bp-color-ink)]",
-          "has-[[data-slot=input-group-control]:focus-visible]:ring-0",
+          "h-auto rounded-[4px] border-[1.5px] border-[var(--bp-color-ink)] bg-[#fff]! px-[12px] py-[10px] shadow-[0_2px_0_var(--bp-color-ink)]",
+          // Focus: keep the resting ink border, hard-kill the shadcn accent (blue) ring. The `!`
+          // is required because the base InputGroup's has-[…:focus-visible]:ring-3/ring-ring/50
+          // is an arbitrary variant tailwind-merge won't reliably collapse.
+          "has-[[data-slot=input-group-control]:focus-visible]:border-[var(--bp-color-ink)]!",
+          "has-[[data-slot=input-group-control]:focus-visible]:ring-0!",
         )}
       >
         <InputGroupAddon align="inline-start" className="text-[var(--bp-color-ink)]">
@@ -122,7 +124,7 @@ export function SearchAutocomplete({
           aria-expanded={showList}
           aria-controls={listboxId}
           aria-activedescendant={showList ? `${listboxId}-${activeIndex}` : undefined}
-          className="appearance-none px-1 text-[17px] text-[var(--bp-color-ink)] placeholder:text-[var(--bp-color-ink-40)] outline-none focus:outline-none focus-visible:outline-none md:text-[17px] [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none"
+          className="appearance-none px-1 text-[17px] text-[var(--bp-color-ink)] placeholder:text-[var(--bp-color-ink-40)] outline-none! focus:outline-none! focus-visible:outline-none! md:text-[17px] [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none"
           placeholder={placeholder}
           value={query}
           onChange={(e) => {

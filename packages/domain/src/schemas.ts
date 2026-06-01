@@ -92,16 +92,13 @@ export const MapLayerMetricSchema = registerProjectSchema(
 
 export type MapLayerMetric = z.output<typeof MapLayerMetricSchema>;
 
-export const CodeExecutionLanguageSchema = registerProjectSchema(
-  z.enum(["typescript", "bash"]),
-  {
-    id: "bp.code_execution_language",
-    title: "Code Execution Language",
-    description:
-      "Languages accepted by agent-authored code_execution evidence refs. TypeScript/Bun is the primary path; bash is limited to deterministic shell slicing.",
-    stability: "draft",
-  },
-);
+export const CodeExecutionLanguageSchema = registerProjectSchema(z.enum(["typescript", "bash"]), {
+  id: "bp.code_execution_language",
+  title: "Code Execution Language",
+  description:
+    "Languages accepted by agent-authored code_execution evidence refs. TypeScript/Bun is the primary path; bash is limited to deterministic shell slicing.",
+  stability: "draft",
+});
 
 export type CodeExecutionLanguage = z.output<typeof CodeExecutionLanguageSchema>;
 
@@ -653,17 +650,28 @@ export const DetectorIdSchema = registerProjectSchema(
 
 export type DetectorId = z.output<typeof DetectorIdSchema>;
 
-// Detectors built (or planned) in the v1 order from the wiki. Listing them as
-// a const lets callers `as const` reference them without weakening the schema.
+// Detectors accepted by the analytics registry. Listing them as a const lets
+// callers `as const` reference them without weakening the schema. Analytics
+// tests keep this documentation list in lockstep with the registry.
 export const KNOWN_DETECTOR_IDS = [
   "source_gap",
   "persistent_speed_hotspot",
+  "speed_pace_hotspot",
   "multi_month_speed_peer",
   "observed_reliability",
+  "headway_reliability_ewt",
+  "bunching_hotspots",
+  "rider_weighted_excess_wait",
+  "travel_time_variability",
+  "schedule_mismatch",
+  "degradation_trend",
+  "positive_deviance",
   "intervention_gap",
+  "intervention_event_study",
   "intervention_underperformance",
   "permit_correlated_slowdown",
   "service_request_context",
+  "delay_concentration",
 ] as const;
 
 export const DetectorRunIdSchema = registerProjectSchema(
@@ -788,27 +796,64 @@ export const FindingReasonCodeSchema = registerProjectSchema(
 
 export type FindingReasonCode = z.output<typeof FindingReasonCodeSchema>;
 
-// Seed list of reason codes documented in the wiki + the codes the source-gap
-// detector will emit. New detectors may introduce more — the schema only
-// enforces shape, not membership in this list.
+// Seed list of reason codes documented in the wiki + accepted analytics
+// detector reason and missing-data codes. New detectors may introduce more; the
+// schema only enforces shape, not membership in this list.
 export const KNOWN_FINDING_REASON_CODES = [
-  // Candidate reason codes from the wiki.
+  // Candidate reason codes.
   "persistent_low_speed",
+  "slow_pace_hotspot",
+  "delay_concentrated",
   "multi_month_peer_speed_deficit",
   "high_long_gap_share",
+  "excess_wait_time",
+  "bunching_hotspot",
+  "headway_gap_hotspot",
+  "rider_weighted_excess_wait",
+  "high_travel_time_variability",
+  "schedule_too_tight",
+  "schedule_padding_review",
+  "worsening_trend",
+  "positive_deviance",
   "intervention_gap",
+  "intervention_association",
   "negative_peer_adjusted_delta",
   "permit_correlated_slowdown",
   "service_request_context_slowdown",
-  // Source-gap detector reason codes.
+  // Missing-data and coverage reason codes.
   "missing_speed",
   "missing_geometry",
   "insufficient_gtfs_rt_samples",
   "missing_scheduled_baseline",
+  "validator_errors",
   "missing_bus_wait_assessment",
   "missing_reliability_metric",
+  "insufficient_headways",
+  "insufficient_headway_pairs",
+  "missing_excess_wait",
+  "ridership_proxy_unavailable",
+  "insufficient_runtime_observations",
+  "missing_runtime_metric",
+  "insufficient_traversals",
+  "segment_too_short",
+  "spatial_join_uncertain",
+  "baseline_unavailable",
+  "unsupported_frequency",
+  "unsupported_window",
+  "low_coverage",
+  "feed_stale",
+  "insufficient_history",
+  "missing_current_history_point",
+  "series_break_versioned",
+  "baseline_dispersion_unavailable",
+  "insufficient_peers",
+  "insufficient_positive_periods",
+  "reciprocal_metric_warning",
   "missing_pain_signal",
   "missing_evaluated_intervention",
+  "insufficient_window",
+  "no_counterfactual",
+  "missing_effect_estimate",
   "bus_lane_date_gap",
   "failed_context_join",
   "source_lag",
@@ -817,6 +862,8 @@ export const KNOWN_FINDING_REASON_CODES = [
   "insufficient_service_request_context",
   "insufficient_trend_months",
   "missing_current_trend_month",
+  "thin_source_gap",
+  "future_only",
 ] as const;
 
 export const FindingDetectorScoreSchema = registerProjectSchema(z.number().min(0).max(100), {
@@ -1699,7 +1746,9 @@ export const AgentFindingProposalClaimStrengthSchema = registerProjectSchema(
   },
 );
 
-export type AgentFindingProposalClaimStrength = z.output<typeof AgentFindingProposalClaimStrengthSchema>;
+export type AgentFindingProposalClaimStrength = z.output<
+  typeof AgentFindingProposalClaimStrengthSchema
+>;
 
 export const AgentFindingProposalValidationStateSchema = registerProjectSchema(
   z.enum(["pending", "valid", "rejected"]),
@@ -1717,60 +1766,59 @@ export type AgentFindingProposalValidationState = z.output<
 >;
 
 export const AgentFindingProposalEvidenceRefSchema = registerProjectSchema(
-  z
-    .discriminatedUnion("kind", [
-      z
-        .object({
-          kind: z.literal("review_packet_link"),
-          packetId: z.string().min(1),
-          linkId: z.string().min(1),
-        })
-        .strict(),
-      z
-        .object({
-          kind: z.literal("signal_feature"),
-          routeId: RouteIdSchema,
-          month: IsoMonthSchema,
-          window: SignalFeatureWindowSchema,
-          feature: z.string().min(1).max(120),
-        })
-        .strict(),
-      z
-        .object({
-          kind: z.literal("promoted_finding"),
-          promotedFindingId: z.string().min(1),
-        })
-        .strict(),
-      z
-        .object({
-          kind: z.literal("intervention_record"),
-          recordId: z.string().min(1),
-        })
-        .strict(),
-      z
-        .object({
-          kind: z.literal("document_candidate"),
-          candidateId: z.string().min(1),
-        })
-        .strict(),
-      z
-        .object({
-          kind: z.literal("context_appendix"),
-          routeId: RouteIdSchema,
-          month: IsoMonthSchema,
-          section: z.string().min(1).max(120),
-        })
-        .strict(),
-      z
-        .object({
-          kind: z.literal("code_execution"),
-          language: CodeExecutionLanguageSchema,
-          code: z.string().min(1).max(8000),
-          stdoutHash: z.string().regex(/^[0-9a-f]{64}$/),
-          citedValuePath: z.string().min(1).max(200).optional(),
-        })
-        .strict(),
-    ]),
+  z.discriminatedUnion("kind", [
+    z
+      .object({
+        kind: z.literal("review_packet_link"),
+        packetId: z.string().min(1),
+        linkId: z.string().min(1),
+      })
+      .strict(),
+    z
+      .object({
+        kind: z.literal("signal_feature"),
+        routeId: RouteIdSchema,
+        month: IsoMonthSchema,
+        window: SignalFeatureWindowSchema,
+        feature: z.string().min(1).max(120),
+      })
+      .strict(),
+    z
+      .object({
+        kind: z.literal("promoted_finding"),
+        promotedFindingId: z.string().min(1),
+      })
+      .strict(),
+    z
+      .object({
+        kind: z.literal("intervention_record"),
+        recordId: z.string().min(1),
+      })
+      .strict(),
+    z
+      .object({
+        kind: z.literal("document_candidate"),
+        candidateId: z.string().min(1),
+      })
+      .strict(),
+    z
+      .object({
+        kind: z.literal("context_appendix"),
+        routeId: RouteIdSchema,
+        month: IsoMonthSchema,
+        section: z.string().min(1).max(120),
+      })
+      .strict(),
+    z
+      .object({
+        kind: z.literal("code_execution"),
+        language: CodeExecutionLanguageSchema,
+        code: z.string().min(1).max(8000),
+        stdoutHash: z.string().regex(/^[0-9a-f]{64}$/),
+        citedValuePath: z.string().min(1).max(200).optional(),
+      })
+      .strict(),
+  ]),
   {
     id: "bp.finding.agent_proposal.evidence_ref.v1",
     title: "Agent Finding Proposal Evidence Reference",
@@ -1879,9 +1927,7 @@ export const AgentFindingProposalModelMetaSchema = registerProjectSchema(
   },
 );
 
-export type AgentFindingProposalModelMeta = z.output<
-  typeof AgentFindingProposalModelMetaSchema
->;
+export type AgentFindingProposalModelMeta = z.output<typeof AgentFindingProposalModelMetaSchema>;
 
 export const AgentFindingProposalCorpusPathsSchema = registerProjectSchema(
   z
@@ -1944,9 +1990,7 @@ export const AgentFindingProposalsArtifactSchema = registerProjectSchema(
   },
 );
 
-export type AgentFindingProposalsArtifact = z.output<
-  typeof AgentFindingProposalsArtifactSchema
->;
+export type AgentFindingProposalsArtifact = z.output<typeof AgentFindingProposalsArtifactSchema>;
 
 export const AgentFindingProposalValidationCheckSchema = registerProjectSchema(
   z
@@ -2236,9 +2280,7 @@ export const AgentBriefProposalCorpusPathsSchema = registerProjectSchema(
   },
 );
 
-export type AgentBriefProposalCorpusPaths = z.output<
-  typeof AgentBriefProposalCorpusPathsSchema
->;
+export type AgentBriefProposalCorpusPaths = z.output<typeof AgentBriefProposalCorpusPathsSchema>;
 
 export const AgentBriefProposalsArtifactSchema = registerProjectSchema(
   z
@@ -2272,9 +2314,7 @@ export const AgentBriefProposalsArtifactSchema = registerProjectSchema(
   },
 );
 
-export type AgentBriefProposalsArtifact = z.output<
-  typeof AgentBriefProposalsArtifactSchema
->;
+export type AgentBriefProposalsArtifact = z.output<typeof AgentBriefProposalsArtifactSchema>;
 
 export const AgentBriefProposalValidationCheckSchema = registerProjectSchema(
   z

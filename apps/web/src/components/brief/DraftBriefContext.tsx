@@ -1,4 +1,4 @@
-import { createContext, type ReactNode, use, useMemo, useState } from "react";
+import { createContext, type ReactNode, use, useEffect, useMemo, useRef, useState } from "react";
 import {
   addStudioBriefDraftClaim,
   deleteStudioBriefDraftClaim,
@@ -14,13 +14,24 @@ import type {
   StudioBriefGenerationJobResponse,
   StudioBriefResponse,
 } from "@/studio/api-contract.js";
+import { useHistory } from "./composer/use-history.js";
 
 type DraftMode = "new" | "edit";
+
+type DraftEditorState = {
+  text: string;
+  canUndo: boolean;
+  canRedo: boolean;
+  dirty: boolean;
+};
 
 type DraftBriefState = {
   attached: ReadonlySet<string>;
   attachedCaveats: ReadonlySet<string>;
   activeClaimN: number;
+  editor: DraftEditorState;
+  corpusOpen: boolean;
+  justInsertedId: string | null;
   generationJob: StudioBriefGenerationJobResponse | null;
   pendingCaveatId: string | null;
   pendingEvidenceId: string | null;
@@ -32,6 +43,13 @@ type DraftBriefActions = {
   toggleEvidence: (id: string) => void;
   toggleCaveat: (id: string) => void;
   setActiveClaimN: (n: number) => void;
+  editActiveText: (text: string) => void;
+  undoEdit: () => void;
+  redoEdit: () => void;
+  commitActiveText: () => void;
+  openCorpus: () => void;
+  closeCorpus: () => void;
+  insertEvidence: (id: string) => void;
   saveMetadata: (input: StudioBriefDraftPatchRequest) => void;
   saveClaim: (claimN: number, input: StudioBriefDraftClaimPatchRequest) => void;
   addClaim: (input: StudioBriefDraftClaimCreateRequest) => void;
@@ -82,6 +100,25 @@ export function DraftBriefProvider({
     () => new Set(activeClaim?.caveatIds ?? []),
     [activeClaim?.caveatIds],
   );
+
+  // v2 editor slice: the active claim's prose is real, editable text driven by
+  // a lightweight undo/redo history. Switching claims re-seeds the history from
+  // that claim's persisted body; typing only updates the present.
+  const [corpusOpen, setCorpusOpen] = useState(false);
+  const [justInsertedId, setJustInsertedId] = useState<string | null>(null);
+  const history = useHistory(activeClaim?.body ?? "");
+  const persistedText = activeClaim?.body ?? "";
+  const dirty = history.present !== persistedText;
+  const prevClaimN = useRef(activeClaimN);
+  useEffect(() => {
+    if (prevClaimN.current !== activeClaimN) {
+      prevClaimN.current = activeClaimN;
+      const next = brief.claims.find((claim) => claim.n === activeClaimN);
+      history.reset(next?.body ?? "");
+      setCorpusOpen(false);
+      setJustInsertedId(null);
+    }
+  }, [activeClaimN, brief.claims, history]);
 
   async function refreshBrief() {
     const refreshed = await fetchStudioBrief(brief.id);
@@ -166,12 +203,40 @@ export function DraftBriefProvider({
     });
   }
 
+  function commitActiveText() {
+    if (activeClaim === undefined) return;
+    if (history.present === (activeClaim.body ?? "")) return;
+    void runWrite(`claim-body:${activeClaim.n}`, async () => {
+      await updateStudioBriefDraftClaim(brief.id, activeClaim.n, { body: history.present });
+    });
+  }
+
+  function insertEvidence(id: string) {
+    if (activeClaim === undefined) return;
+    setCorpusOpen(false);
+    if (activeClaim.evidenceIds.includes(id)) return;
+    const next = [...activeClaim.evidenceIds, id];
+    setJustInsertedId(id);
+    window.setTimeout(() => setJustInsertedId(null), 1100);
+    void runWrite(`insert:${id}`, async () => {
+      await updateStudioBriefDraftClaim(brief.id, activeClaim.n, { evidenceIds: next });
+    });
+  }
+
   const value = useMemo<DraftBriefContextValue>(
     () => ({
       state: {
         attached,
         attachedCaveats,
         activeClaimN,
+        editor: {
+          text: history.present,
+          canUndo: history.canUndo,
+          canRedo: history.canRedo,
+          dirty,
+        },
+        corpusOpen,
+        justInsertedId,
         generationJob,
         pendingCaveatId,
         pendingEvidenceId,
@@ -182,6 +247,13 @@ export function DraftBriefProvider({
         toggleEvidence,
         toggleCaveat,
         setActiveClaimN,
+        editActiveText: (text: string) => history.set(text),
+        undoEdit: () => history.undo(),
+        redoEdit: () => history.redo(),
+        commitActiveText,
+        openCorpus: () => setCorpusOpen(true),
+        closeCorpus: () => setCorpusOpen(false),
+        insertEvidence,
         saveMetadata,
         saveClaim,
         addClaim,
@@ -195,6 +267,10 @@ export function DraftBriefProvider({
       attached,
       attachedCaveats,
       activeClaimN,
+      history,
+      dirty,
+      corpusOpen,
+      justInsertedId,
       generationJob,
       pendingCaveatId,
       pendingEvidenceId,

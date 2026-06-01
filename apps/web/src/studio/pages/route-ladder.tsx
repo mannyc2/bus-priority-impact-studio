@@ -51,17 +51,37 @@ export function RouteLadderPage({ data }: { data: StudioRouteLadderResponse | nu
               {route.label}
               {route.sbs ? " SBS" : ""} as a vertical ladder - north at the top, south at the
               bottom. The spine is colored by bus-lane continuity.{" "}
-              <span className="font-semibold text-[var(--bp-color-bad)]">Click any segment</span>{" "}
-              to focus.
+              <span className="font-semibold text-[var(--bp-color-bad)]">Click any segment</span> to
+              focus.
             </p>
           </RailSection>
           <RailRule />
           <RailSection eyebrow="Legend">
             <div className="flex flex-col gap-2.5 text-[11.5px] text-[var(--bp-color-ink-70)]">
-              <LegendRow swatch="bar" color="var(--bp-color-bad)" label="< 5.0 mph" sub="below pedestrian pace" />
-              <LegendRow swatch="bar" color="var(--bp-color-warn)" label="5.0 – 6.5 mph" sub="slow" />
-              <LegendRow swatch="bar" color="var(--bp-color-ink-40)" label="> 6.5 mph" sub="nominal" />
-              <LegendRow swatch="tall" color="var(--bp-color-accent)" label="Scheduled" sub="timepoint pace" />
+              <LegendRow
+                swatch="bar"
+                color="var(--bp-color-bad)"
+                label="< 5.0 mph"
+                sub="below pedestrian pace"
+              />
+              <LegendRow
+                swatch="bar"
+                color="var(--bp-color-warn)"
+                label="5.0 – 6.5 mph"
+                sub="slow"
+              />
+              <LegendRow
+                swatch="bar"
+                color="var(--bp-color-ink-40)"
+                label="> 6.5 mph"
+                sub="nominal"
+              />
+              <LegendRow
+                swatch="tall"
+                color="var(--bp-color-accent)"
+                label="Scheduled"
+                sub="timepoint pace"
+              />
             </div>
           </RailSection>
           <RailRule />
@@ -75,8 +95,11 @@ export function RouteLadderPage({ data }: { data: StudioRouteLadderResponse | nu
           <RailRule />
           <RailSection eyebrow="Story">
             <p className="m-0 text-[12px] leading-[1.6] text-[var(--bp-color-ink-70)]">
-              One segment <strong className="font-semibold text-[var(--bp-color-bad)]">breaks the pattern</strong>:
-              Madison Av - E 28-58 St. It&apos;s the only spine break in the route&apos;s bus-lane
+              One segment{" "}
+              <strong className="font-semibold text-[var(--bp-color-bad)]">
+                breaks the pattern
+              </strong>
+              : Madison Av - E 28-58 St. It&apos;s the only spine break in the route&apos;s bus-lane
               coverage, and it carries the highest rider-hour delay of any segment.
             </p>
           </RailSection>
@@ -120,8 +143,8 @@ export function RouteLadderPage({ data }: { data: StudioRouteLadderResponse | nu
             title={route.corridorFull}
             meta={
               <>
-                {route.borough} &middot; {route.termini.north} &harr; {route.termini.south}{" "}
-                &middot; {route.miles} mi &middot; {route.stops} stops
+                {route.borough} &middot; {route.termini.north} &harr; {route.termini.south} &middot;{" "}
+                {route.miles} mi &middot; {route.stops} stops
               </>
             }
             right={
@@ -225,7 +248,7 @@ export function RouteLadderPage({ data }: { data: StudioRouteLadderResponse | nu
             {route.termini.south}
           </div>
           <p className="mt-4 text-center text-[11px] text-[var(--bp-color-ink-55)]">
-            Click any segment to focus, or use the time window pill above to compare past months.
+            Click any segment to focus its detail.
           </p>
         </main>
 
@@ -297,8 +320,7 @@ function ChallengeReveal({
         <strong>{correct ? "✓ Correct." : "Not quite."}</strong>{" "}
         {!correct && guessed ? (
           <>
-            You picked{" "}
-            <strong className="text-[var(--bp-color-ink)]">{guessed.from}</strong>.
+            You picked <strong className="text-[var(--bp-color-ink)]">{guessed.from}</strong>.
             <br />
           </>
         ) : null}
@@ -389,10 +411,7 @@ function SelectedSegmentDetail({
           <div
             className="mt-1 font-mono text-[22px] font-semibold tabular-nums leading-none tracking-[-0.02em]"
             style={{
-              color:
-                segment.riderHours > 15000
-                  ? "var(--bp-color-bad)"
-                  : "var(--bp-color-ink)",
+              color: segment.riderHours > 15000 ? "var(--bp-color-bad)" : "var(--bp-color-ink)",
             }}
           >
             {segment.riderHours.toLocaleString()}
@@ -417,12 +436,6 @@ function SelectedSegmentDetail({
           Send to brief
           <ArrowRight size={13} />
         </Link>
-        <button
-          type="button"
-          className="w-full rounded-[3px] border border-[var(--bp-color-ink-20)] bg-transparent py-2 text-[11.5px] font-medium text-[var(--bp-color-ink)]"
-        >
-          Compare similar segments
-        </button>
       </div>
     </>
   );

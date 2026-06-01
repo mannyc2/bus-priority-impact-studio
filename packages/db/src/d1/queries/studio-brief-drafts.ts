@@ -13,6 +13,8 @@ const DraftStatusSchema = z.enum([
 ]);
 
 const ClaimStateSchema = z.enum(["editing", "weak", "active"]);
+const ReviewCommentKindSchema = z.enum(["comment", "change-requested", "suggested-edit"]);
+const ReviewCommentStatusSchema = z.enum(["open", "resolved", "dismissed"]);
 const GenerationJobStatusSchema = z.enum(["queued", "running", "succeeded", "failed"]);
 const GenerationModeSchema = z.enum(["deterministic_seed", "llm_assisted"]);
 const LlmGenerationStatusSchema = z.enum([
@@ -36,6 +38,7 @@ const StudioBriefDraftRowSchema = z
     title: z.string(),
     dek: z.string(),
     summary: z.string(),
+    body_md: z.string().nullable(),
     version: z.string(),
     job_id: z.string(),
     job_status: GenerationJobStatusSchema,
@@ -54,6 +57,11 @@ const StudioBriefDraftRowSchema = z
     created_at: z.string(),
     updated_at: z.string(),
     published_at: z.string().nullable(),
+    promotion_candidate_id: z.string().nullable(),
+    promotion_target_brief_id: z.string().nullable(),
+    promotion_artifact_key: z.string().nullable(),
+    promotion_artifact_sha256: z.string().nullable(),
+    promotion_recorded_at: z.string().nullable(),
   })
   .strict();
 
@@ -72,14 +80,44 @@ const StudioBriefDraftClaimRowSchema = z
   })
   .strict();
 
+const StudioBriefDraftBlockRowSchema = z
+  .object({
+    brief_id: z.string(),
+    block_id: z.string(),
+    block_type: z.string(),
+    block_json: z.string(),
+    created_at: z.string(),
+    updated_at: z.string(),
+  })
+  .strict();
+
+const StudioBriefDraftRefRowSchema = z
+  .object({
+    brief_id: z.string(),
+    ref_id: z.string(),
+    ref_kind: z.string(),
+    ref_json: z.string(),
+    created_at: z.string(),
+    updated_at: z.string(),
+  })
+  .strict();
+
 const StudioBriefReviewCommentRowSchema = z
   .object({
     comment_id: z.string(),
     brief_id: z.string(),
+    parent_comment_id: z.string().nullable(),
     reviewer: z.string(),
     reviewer_display_name: z.string().nullable(),
     message: z.string(),
+    kind: ReviewCommentKindSchema,
+    status: ReviewCommentStatusSchema,
+    anchor_json: z.string().nullable(),
+    suggestion_json: z.string().nullable(),
     created_at: z.string(),
+    updated_at: z.string(),
+    resolved_at: z.string().nullable(),
+    resolved_by: z.string().nullable(),
   })
   .strict();
 
@@ -109,11 +147,15 @@ const StudioBriefWriteIdempotencyRowSchema = z
   .strict();
 
 export type StudioBriefDraftStatus = z.output<typeof DraftStatusSchema>;
+export type StudioBriefReviewCommentKind = z.output<typeof ReviewCommentKindSchema>;
+export type StudioBriefReviewCommentStatus = z.output<typeof ReviewCommentStatusSchema>;
 export type StudioBriefGenerationJobStatus = z.output<typeof GenerationJobStatusSchema>;
 export type StudioBriefGenerationMode = z.output<typeof GenerationModeSchema>;
 export type StudioBriefLlmGenerationStatus = z.output<typeof LlmGenerationStatusSchema>;
 export type StudioBriefDraftRow = z.output<typeof StudioBriefDraftRowSchema>;
 export type StudioBriefDraftClaimRow = z.output<typeof StudioBriefDraftClaimRowSchema>;
+export type StudioBriefDraftBlockRow = z.output<typeof StudioBriefDraftBlockRowSchema>;
+export type StudioBriefDraftRefRow = z.output<typeof StudioBriefDraftRefRowSchema>;
 export type StudioBriefReviewCommentRow = z.output<typeof StudioBriefReviewCommentRowSchema>;
 export type StudioBriefHistoryEventRow = z.output<typeof StudioBriefHistoryEventRowSchema>;
 export type StudioBriefWriteIdempotencyRow = z.output<typeof StudioBriefWriteIdempotencyRowSchema>;
@@ -121,6 +163,8 @@ export type StudioBriefWriteIdempotencyRow = z.output<typeof StudioBriefWriteIde
 export type StudioBriefDraftRecord = {
   draft: StudioBriefDraftRow;
   claims: StudioBriefDraftClaimRow[];
+  blocks: StudioBriefDraftBlockRow[];
+  refs: StudioBriefDraftRefRow[];
   reviewComments: StudioBriefReviewCommentRow[];
 };
 
@@ -224,11 +268,14 @@ export async function getStudioBriefDraftRecord(
   const draft = await first(
     database,
     `select brief_id, route_slug, workspace_id, source_brief_id, from_finding_id, status, title, dek, summary,
+            body_md,
             version, job_id, job_status, job_generation_mode, job_llm_status, job_llm_provider,
             job_llm_model, job_started_at, job_completed_at, job_error,
             validation_score, validation_weak_claims_json,
             validation_missing_evidence_json, validation_blocking_issues_json, last_validated_at,
-            created_at, updated_at, published_at
+            created_at, updated_at, published_at, promotion_candidate_id,
+            promotion_target_brief_id, promotion_artifact_key, promotion_artifact_sha256,
+            promotion_recorded_at
        from studio_brief_draft
       where brief_id = ?`,
     StudioBriefDraftRowSchema,
@@ -236,7 +283,7 @@ export async function getStudioBriefDraftRecord(
   );
   if (draft === null) return null;
 
-  const [claims, reviewComments] = await Promise.all([
+  const [claims, blocks, refs, reviewComments] = await Promise.all([
     all(
       database,
       `select brief_id, claim_n, title, body, strength, evidence_ids_json, caveat_ids_json,
@@ -249,7 +296,27 @@ export async function getStudioBriefDraftRecord(
     ),
     all(
       database,
-      `select comment_id, brief_id, reviewer, reviewer_display_name, message, created_at
+      `select brief_id, block_id, block_type, block_json, created_at, updated_at
+         from studio_brief_draft_block
+        where brief_id = ?
+        order by created_at asc, block_id asc`,
+      StudioBriefDraftBlockRowSchema,
+      [briefId],
+    ),
+    all(
+      database,
+      `select brief_id, ref_id, ref_kind, ref_json, created_at, updated_at
+         from studio_brief_draft_ref
+        where brief_id = ?
+        order by created_at asc, ref_id asc`,
+      StudioBriefDraftRefRowSchema,
+      [briefId],
+    ),
+    all(
+      database,
+      `select comment_id, brief_id, parent_comment_id, reviewer, reviewer_display_name,
+              message, kind, status, anchor_json, suggestion_json, created_at,
+              coalesce(updated_at, created_at) as updated_at, resolved_at, resolved_by
          from studio_brief_review_comment
         where brief_id = ?
         order by created_at asc`,
@@ -258,7 +325,23 @@ export async function getStudioBriefDraftRecord(
     ),
   ]);
 
-  return { draft, claims, reviewComments };
+  return { draft, claims, blocks, refs, reviewComments };
+}
+
+export async function getStudioBriefReviewComment(
+  database: D1Database,
+  input: { briefId: string; commentId: string },
+): Promise<StudioBriefReviewCommentRow | null> {
+  return first(
+    database,
+    `select comment_id, brief_id, parent_comment_id, reviewer, reviewer_display_name,
+            message, kind, status, anchor_json, suggestion_json, created_at,
+            coalesce(updated_at, created_at) as updated_at, resolved_at, resolved_by
+       from studio_brief_review_comment
+      where brief_id = ? and comment_id = ?`,
+    StudioBriefReviewCommentRowSchema,
+    [input.briefId, input.commentId],
+  );
 }
 
 export async function getStudioBriefDraftRecordByJobId(
@@ -343,6 +426,7 @@ export async function insertStudioBriefDraft(
     title: string;
     dek: string;
     summary: string;
+    bodyMd?: string | null;
     version: string;
     jobId: string;
     jobStatus?: StudioBriefGenerationJobStatus;
@@ -361,10 +445,10 @@ export async function insertStudioBriefDraft(
     database,
     `insert into studio_brief_draft
       (brief_id, route_slug, workspace_id, source_brief_id, from_finding_id, status, title, dek, summary,
-       version, job_id, job_status, job_generation_mode, job_llm_status, job_llm_provider,
+       body_md, version, job_id, job_status, job_generation_mode, job_llm_status, job_llm_provider,
        job_llm_model, job_started_at, job_completed_at, job_error, created_at,
        updated_at)
-      values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       input.briefId,
       input.routeSlug,
@@ -375,6 +459,7 @@ export async function insertStudioBriefDraft(
       input.title,
       input.dek,
       input.summary,
+      input.bodyMd ?? null,
       input.version,
       input.jobId,
       input.jobStatus ?? "succeeded",
@@ -399,7 +484,9 @@ export async function updateStudioBriefDraftMetadata(
     title?: string;
     dek?: string;
     summary?: string;
+    bodyMd?: string | null;
     status?: "draft" | "in_review" | "approved" | "archived";
+    version?: string;
   },
 ): Promise<void> {
   const assignments: string[] = ["updated_at = ?"];
@@ -416,9 +503,17 @@ export async function updateStudioBriefDraftMetadata(
     assignments.push("summary = ?");
     values.push(input.summary);
   }
+  if (input.bodyMd !== undefined) {
+    assignments.push("body_md = ?");
+    values.push(input.bodyMd);
+  }
   if (input.status !== undefined) {
     assignments.push("status = ?");
     values.push(input.status);
+  }
+  if (input.version !== undefined) {
+    assignments.push("version = ?");
+    values.push(input.version);
   }
   values.push(input.briefId);
   await run(
@@ -653,6 +748,138 @@ export async function deleteStudioBriefDraftClaims(
   await run(database, "delete from studio_brief_draft_claim where brief_id = ?", [input.briefId]);
 }
 
+export async function replaceStudioBriefDraftClaims(
+  database: D1Database,
+  input: {
+    briefId: string;
+    claims: Array<{
+      claimN: number;
+      title: string;
+      body: string | null;
+      strength: number;
+      evidenceIds: string[];
+      caveatIds: string[];
+      state: "editing" | "weak" | "active" | null;
+      createdAt: string;
+      updatedAt: string;
+    }>;
+  },
+): Promise<void> {
+  await run(database, "delete from studio_brief_draft_claim where brief_id = ?", [input.briefId]);
+  for (const claim of input.claims) {
+    await insertStudioBriefDraftClaim(database, { briefId: input.briefId, ...claim });
+  }
+}
+
+export async function insertStudioBriefDraftBlock(
+  database: D1Database,
+  input: {
+    briefId: string;
+    blockId: string;
+    blockType: string;
+    blockJson: string;
+    createdAt: string;
+    updatedAt: string;
+  },
+): Promise<void> {
+  await run(
+    database,
+    `insert into studio_brief_draft_block
+      (brief_id, block_id, block_type, block_json, created_at, updated_at)
+      values (?, ?, ?, ?, ?, ?)`,
+    [
+      input.briefId,
+      input.blockId,
+      input.blockType,
+      input.blockJson,
+      input.createdAt,
+      input.updatedAt,
+    ],
+  );
+}
+
+export async function updateStudioBriefDraftBlock(
+  database: D1Database,
+  input: {
+    briefId: string;
+    blockId: string;
+    blockType: string;
+    blockJson: string;
+    updatedAt: string;
+  },
+): Promise<void> {
+  await run(
+    database,
+    `update studio_brief_draft_block
+        set block_type = ?, block_json = ?, updated_at = ?
+      where brief_id = ? and block_id = ?`,
+    [input.blockType, input.blockJson, input.updatedAt, input.briefId, input.blockId],
+  );
+}
+
+export async function deleteStudioBriefDraftBlock(
+  database: D1Database,
+  input: { briefId: string; blockId: string },
+): Promise<void> {
+  await run(database, "delete from studio_brief_draft_block where brief_id = ? and block_id = ?", [
+    input.briefId,
+    input.blockId,
+  ]);
+}
+
+export async function replaceStudioBriefDraftBlocks(
+  database: D1Database,
+  input: {
+    briefId: string;
+    blocks: Array<{
+      blockId: string;
+      blockType: string;
+      blockJson: string;
+      createdAt: string;
+      updatedAt: string;
+    }>;
+  },
+): Promise<void> {
+  await run(database, "delete from studio_brief_draft_block where brief_id = ?", [input.briefId]);
+  for (const block of input.blocks) {
+    await insertStudioBriefDraftBlock(database, { briefId: input.briefId, ...block });
+  }
+}
+
+export async function replaceStudioBriefDraftRefs(
+  database: D1Database,
+  input: {
+    briefId: string;
+    refs: Array<{ refId: string; refKind: string; refJson: string }>;
+    updatedAt: string;
+  },
+): Promise<void> {
+  await run(database, "delete from studio_brief_draft_ref where brief_id = ?", [input.briefId]);
+  for (const ref of input.refs) {
+    await run(
+      database,
+      `insert into studio_brief_draft_ref
+        (brief_id, ref_id, ref_kind, ref_json, created_at, updated_at)
+        values (?, ?, ?, ?, ?, ?)`,
+      [input.briefId, ref.refId, ref.refKind, ref.refJson, input.updatedAt, input.updatedAt],
+    );
+  }
+}
+
+export async function deleteStudioBriefDraftRefsForBlock(
+  database: D1Database,
+  input: { briefId: string; blockId: string },
+): Promise<void> {
+  await run(
+    database,
+    `delete from studio_brief_draft_ref
+      where brief_id = ?
+        and ref_kind = 'block'
+        and json_extract(ref_json, '$.blockId') = ?`,
+    [input.briefId, input.blockId],
+  );
+}
+
 export async function updateStudioBriefDraftValidation(
   database: D1Database,
   input: {
@@ -686,6 +913,40 @@ export async function updateStudioBriefDraftValidation(
   );
 }
 
+export async function recordStudioBriefPromotionReceipt(
+  database: D1Database,
+  input: {
+    briefId: string;
+    candidateId: string;
+    targetBriefId: string;
+    artifactKey: string;
+    artifactSha256: string;
+    recordedAt: string;
+  },
+): Promise<void> {
+  await run(
+    database,
+    `update studio_brief_draft
+        set status = 'published',
+            promotion_candidate_id = ?,
+            promotion_target_brief_id = ?,
+            promotion_artifact_key = ?,
+            promotion_artifact_sha256 = ?,
+            promotion_recorded_at = ?,
+            updated_at = ?
+      where brief_id = ?`,
+    [
+      input.candidateId,
+      input.targetBriefId,
+      input.artifactKey,
+      input.artifactSha256,
+      input.recordedAt,
+      input.recordedAt,
+      input.briefId,
+    ],
+  );
+}
+
 export async function insertStudioBriefReviewComment(
   database: D1Database,
   input: {
@@ -700,21 +961,145 @@ export async function insertStudioBriefReviewComment(
   await run(
     database,
     `insert into studio_brief_review_comment
-      (comment_id, brief_id, reviewer, reviewer_display_name, message, created_at)
-      values (?, ?, ?, ?, ?, ?)`,
+      (comment_id, brief_id, parent_comment_id, reviewer, reviewer_display_name, message,
+       kind, status, anchor_json, suggestion_json, created_at, updated_at, resolved_at,
+       resolved_by)
+      values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       input.commentId,
       input.briefId,
+      null,
       input.reviewer,
       input.reviewerDisplayName ?? null,
       input.message,
+      "comment",
+      "open",
+      null,
+      null,
       input.createdAt,
+      input.createdAt,
+      null,
+      null,
     ],
   );
   await run(
     database,
     "update studio_brief_draft set status = ?, updated_at = ? where brief_id = ?",
     ["in_review", input.createdAt, input.briefId],
+  );
+}
+
+export async function insertStudioBriefReviewThread(
+  database: D1Database,
+  input: {
+    commentId: string;
+    briefId: string;
+    reviewer: string;
+    reviewerDisplayName?: string | null;
+    message: string;
+    kind: StudioBriefReviewCommentKind;
+    status?: StudioBriefReviewCommentStatus;
+    anchorJson?: string | null;
+    suggestionJson?: string | null;
+    createdAt: string;
+  },
+): Promise<void> {
+  await run(
+    database,
+    `insert into studio_brief_review_comment
+      (comment_id, brief_id, parent_comment_id, reviewer, reviewer_display_name, message,
+       kind, status, anchor_json, suggestion_json, created_at, updated_at, resolved_at,
+       resolved_by)
+      values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      input.commentId,
+      input.briefId,
+      null,
+      input.reviewer,
+      input.reviewerDisplayName ?? null,
+      input.message,
+      input.kind,
+      input.status ?? "open",
+      input.anchorJson ?? null,
+      input.suggestionJson ?? null,
+      input.createdAt,
+      input.createdAt,
+      null,
+      null,
+    ],
+  );
+}
+
+export async function insertStudioBriefReviewReply(
+  database: D1Database,
+  input: {
+    commentId: string;
+    briefId: string;
+    parentCommentId: string;
+    reviewer: string;
+    reviewerDisplayName?: string | null;
+    message: string;
+    createdAt: string;
+  },
+): Promise<void> {
+  await run(
+    database,
+    `insert into studio_brief_review_comment
+      (comment_id, brief_id, parent_comment_id, reviewer, reviewer_display_name, message,
+       kind, status, anchor_json, suggestion_json, created_at, updated_at, resolved_at,
+       resolved_by)
+      values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      input.commentId,
+      input.briefId,
+      input.parentCommentId,
+      input.reviewer,
+      input.reviewerDisplayName ?? null,
+      input.message,
+      "comment",
+      "open",
+      null,
+      null,
+      input.createdAt,
+      input.createdAt,
+      null,
+      null,
+    ],
+  );
+}
+
+export async function updateStudioBriefReviewComment(
+  database: D1Database,
+  input: {
+    briefId: string;
+    commentId: string;
+    updatedAt: string;
+    message?: string;
+    status?: StudioBriefReviewCommentStatus;
+    resolvedBy?: string | null;
+  },
+): Promise<void> {
+  const assignments: string[] = ["updated_at = ?"];
+  const values: D1Value[] = [input.updatedAt];
+  if (input.message !== undefined) {
+    assignments.push("message = ?");
+    values.push(input.message);
+  }
+  if (input.status !== undefined) {
+    assignments.push("status = ?");
+    values.push(input.status);
+    assignments.push("resolved_at = ?");
+    values.push(input.status === "open" ? null : input.updatedAt);
+    assignments.push("resolved_by = ?");
+    values.push(input.status === "open" ? null : (input.resolvedBy ?? null));
+  }
+  values.push(input.briefId, input.commentId);
+  await run(
+    database,
+    `update studio_brief_review_comment
+        set ${assignments.join(", ")}
+      where brief_id = ? and comment_id = ?`,
+    values,
   );
 }
 

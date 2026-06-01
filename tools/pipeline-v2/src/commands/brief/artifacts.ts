@@ -46,6 +46,7 @@ import {
   withLocalDb,
 } from "../../lib/local-db.ts";
 import { defaultArtifactRootPath, fromCliPath } from "../../lib/paths.ts";
+import { canonicalRouteId } from "../../lib/route-ids.ts";
 
 const schemaVersion = 1;
 const topHotspotLimit = 5;
@@ -283,13 +284,15 @@ function buildObservedReliabilityWindows(input: {
   samples: readonly LocalObservedHeadwaySample[];
 }): RouteObservedReliabilityWindows {
   const groups = new Map<string, WindowGroup>();
+  const routeUniverse = new Set([input.reliability.routeId]);
   for (const sample of input.samples.filter(
     (row) =>
-      row.routeId === input.reliability.routeId && isSampleInMonth(row, input.reliability.month),
+      canonicalRouteId(row.routeId, routeUniverse) === input.reliability.routeId &&
+      isSampleInMonth(row, input.reliability.month),
   )) {
     const parts = localWindowParts(sample.observedTimestamp);
     const keyParts = {
-      routeId: sample.routeId,
+      routeId: input.reliability.routeId,
       dayOfWeek: parts.dayOfWeek,
       hourOfDay: parts.hourOfDay,
       directionId: sample.directionId,

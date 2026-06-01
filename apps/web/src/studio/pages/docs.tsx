@@ -3,22 +3,10 @@ import { ArrowLeft, ArrowRight, Check, Copy } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { Rail } from "@/components/Rail";
 import { StudioPage } from "../page.js";
+import { DOCS_PAGE_ORDER, type DocsPageId, isDocsPage } from "./docs-pages.js";
 import { NotFoundPage } from "./not-found.js";
 
 const MONO = "var(--bp-font-mono)";
-
-export const DOCS_PAGE_ORDER = [
-  "overview",
-  "authentication",
-  "quickstart",
-  "cli",
-  "routes",
-  "findings",
-  "briefs",
-  "data-credits",
-  "changelog",
-] as const;
-export type DocsPageId = (typeof DOCS_PAGE_ORDER)[number];
 
 const DOCS_PAGE_TITLES: Record<DocsPageId, string> = {
   overview: "Overview",
@@ -29,6 +17,7 @@ const DOCS_PAGE_TITLES: Record<DocsPageId, string> = {
   findings: "Findings",
   briefs: "Briefs",
   "data-credits": "Data & Credits",
+  methodology: "Methodology",
   changelog: "Changelog",
 };
 
@@ -41,6 +30,7 @@ const DOCS_PAGE_SECTIONS: Record<DocsPageId, string> = {
   findings: "API Reference",
   briefs: "API Reference",
   "data-credits": "Resources",
+  methodology: "Resources",
   changelog: "Resources",
 };
 
@@ -48,12 +38,8 @@ const NAV_GROUPS: { label: string; pages: DocsPageId[] }[] = [
   { label: "Introduction", pages: ["overview", "authentication"] },
   { label: "Get started", pages: ["quickstart", "cli"] },
   { label: "API Reference", pages: ["routes", "findings", "briefs"] },
-  { label: "Resources", pages: ["data-credits", "changelog"] },
+  { label: "Resources", pages: ["data-credits", "methodology", "changelog"] },
 ];
-
-export function isDocsPage(value: string): value is DocsPageId {
-  return (DOCS_PAGE_ORDER as readonly string[]).includes(value);
-}
 
 export function DocsPage({ page }: { page: string }) {
   if (!isDocsPage(page)) return <NotFoundPage />;
@@ -421,27 +407,44 @@ function AuthPage() {
     <article>
       <H1>Authentication</H1>
       <P>
-        All requests are authenticated with a bearer token. Generate one in the Studio settings or
-        via <IC>POST /v1/tokens</IC>.
+        Public Studio read endpoints are anonymous. Draft authoring endpoints use the signed-in
+        Studio session cookie from magic-link auth and require an operator role in the draft
+        workspace.
       </P>
-      <CodeBlock label="bash">{`curl https://api.bpi.studio/api/v1/studio/routes \\
-  -H "Authorization: Bearer $BPI_API_KEY"`}</CodeBlock>
+      <CodeBlock label="bash">{`curl https://api.bpi.studio/api/v1/studio/briefs/m15-madison-corridor/draft \\
+  -X PATCH \\
+  -H "Cookie: bp_session=$BP_SESSION" \\
+  -H "Idempotency-Key: draft-title-1" \\
+  -H "Content-Type: application/json" \\
+  --data '{"title":"Madison corridor draft"}'`}</CodeBlock>
       <Callout warn>
-        Keep keys server-side. The CLI reads <IC>BPI_API_KEY</IC> from the environment; never check
-        a key into source control.
+        Draft mutation requests must include <IC>Idempotency-Key</IC>. Use one stable key for one
+        user or agent action so retries cannot duplicate claims or history events.
       </Callout>
       <H2>Key scopes</H2>
       <Params
         rows={[
-          { name: "read:routes", type: "scope", desc: "List routes, segments, and trends." },
-          { name: "read:findings", type: "scope", desc: "Read AI-surfaced findings + reasoning." },
-          { name: "write:briefs", type: "scope", req: true, desc: "Create and edit briefs." },
+          { name: "read:briefs", type: "scope", desc: "Read live draft overlays for a workspace." },
+          {
+            name: "write:briefs",
+            type: "scope",
+            req: true,
+            desc: "Edit draft metadata and claims.",
+          },
+          { name: "review:briefs", type: "scope", desc: "Request review and add review notes." },
+          {
+            name: "publish:briefs",
+            type: "scope",
+            desc: "Mark, retract, and export publish candidates.",
+          },
+          { name: "admin:identities", type: "scope", desc: "Manage Studio operator roles." },
         ]}
       />
-      <H2>Rate limits</H2>
+      <H2>Generation</H2>
       <P>
-        500 requests per minute per key. Long-running brief generation runs in the background; poll{" "}
-        <IC>GET /v1/briefs/{"{id}"}</IC> to track status.
+        Generation requests are recorded as jobs and queued through the Cloudflare Think authoring
+        agent when Workers AI bindings are configured. The REST handler returns immediately; model
+        output lands as a proposal that still needs operator approval.
       </P>
     </article>
   );
@@ -456,8 +459,8 @@ function QuickstartPage() {
         <Step n={1} title="Install the CLI">
           <CodeBlock label="bash">npm install -g @bpi/cli</CodeBlock>
         </Step>
-        <Step n={2} title="Authenticate">
-          <CodeBlock label="bash">export BPI_API_KEY=bpi_sk_live_••••••••••••••••</CodeBlock>
+        <Step n={2} title="Sign in to Studio">
+          <CodeBlock label="bash">export BP_SESSION=your_magic_link_session_cookie</CodeBlock>
         </Step>
         <Step n={3} title="List routes">
           <CodeBlock label="bash">bpi routes list --borough Manhattan --json</CodeBlock>
@@ -465,16 +468,20 @@ function QuickstartPage() {
         <Step n={4} title="Open a route">
           <CodeBlock label="bash">bpi routes get M15-SBS --segments --json</CodeBlock>
         </Step>
-        <Step n={5} title="Generate a brief">
+        <Step n={5} title="Start an existing-brief draft">
           <CodeBlock label="bash">
-            bpi briefs new m15-madison-corridor --from-finding m15-treatment-anomaly
+            {`curl https://api.bpi.studio/api/v1/studio/briefs/m15-madison-corridor/draft \\
+  -X PATCH \\
+  -H "Cookie: bp_session=$BP_SESSION" \\
+  -H "Idempotency-Key: quickstart-draft-1" \\
+  -H "Content-Type: application/json" \\
+  --data '{"title":"Madison corridor draft"}'`}
           </CodeBlock>
         </Step>
       </ol>
       <Callout>
-        Briefs are generated asynchronously. The CLI polls automatically. To use REST,{" "}
-        <IC>POST /v1/briefs</IC> returns a job id; poll <IC>GET /v1/briefs/{"{id}"}</IC> until{" "}
-        <IC>status = "published"</IC>.
+        Draft authoring currently starts from an existing published brief. New-brief creation,
+        evidence minting, and the out-of-band AI runner are separate follow-up surfaces.
       </Callout>
     </article>
   );
@@ -505,8 +512,8 @@ function CliPage() {
           ["bpi findings list", "AI-surfaced findings"],
           ["bpi findings get <id>", "Reasoning trail for a finding"],
           ["bpi briefs list", "Briefs you can read or edit"],
-          ["bpi briefs new <slug>", "Start a brief from a route or finding"],
-          ["bpi briefs publish <id>", "Mark a brief as published"],
+          ["bpi briefs draft <id>", "Start or update an existing brief draft"],
+          ["bpi briefs publish-candidate <id>", "Mark a draft as a publish candidate"],
         ]}
       />
       <H3>Output format</H3>
@@ -588,22 +595,183 @@ function BriefsPage() {
         Briefs are the publishable artefact: claims, evidence, caveats, and citations bundled into a
         reviewable document.
       </P>
-      <Endpoint method="get" path="/v1/briefs" desc="List briefs" />
-      <Endpoint method="get" path="/v1/briefs/{id}" desc="Brief detail" />
-      <Endpoint method="post" path="/v1/briefs" desc="Generate a brief from claims" />
-      <Endpoint method="patch" path="/v1/briefs/{id}" desc="Edit claims, evidence, or caveats" />
-      <Endpoint method="post" path="/v1/briefs/{id}/publish" desc="Mark brief as published" />
-      <H2>Generation flow</H2>
+      <H2>Public reads</H2>
+      <Endpoint method="get" path="/api/v1/studio/briefs" desc="List briefs" />
+      <Endpoint method="get" path="/api/v1/studio/briefs/{id}" desc="Brief detail" />
+      <Endpoint method="get" path="/api/v1/studio/briefs/{id}/evidence" desc="Evidence catalog" />
+      <Endpoint
+        method="get"
+        path="/api/v1/studio/briefs/{id}/history"
+        desc="Release history projection"
+      />
+      <H2>Draft authoring</H2>
       <P>
-        <IC>POST /v1/briefs</IC> returns immediately with a job id. The pipeline drafts claims from
-        the chosen route or finding, attaches evidence and caveats, and emits a brief object with a
-        version pointer. Poll the brief endpoint until <IC>status = "draft"</IC> or{" "}
-        <IC>"published"</IC>.
+        Draft endpoints are live D1 writes for signed-in Studio operators. All draft mutations
+        require
+        <IC>Idempotency-Key</IC>; public brief reads remain anonymous and only overlay draft status
+        for operators with <IC>read:briefs</IC> in the draft workspace.
       </P>
-      <Callout warn>
-        Brief generation can take 30-90 seconds for complex routes. Use the CLI&apos;s built-in
-        polling or implement an exponential backoff against the brief endpoint.
-      </Callout>
+      <Endpoint
+        method="post"
+        path="/api/v1/studio/briefs"
+        desc="Create a draft brief from a route, finding, or source brief"
+      />
+      <Endpoint method="patch" path="/api/v1/studio/briefs/{id}/draft" desc="Edit draft metadata" />
+      <Endpoint
+        method="post"
+        path="/api/v1/studio/briefs/{id}/draft/generate"
+        desc="Queue an AI generation run"
+      />
+      <Endpoint
+        method="post"
+        path="/api/v1/studio/briefs/{id}/draft/agent-runs"
+        desc="Start an authoring agent run"
+      />
+      <Endpoint
+        method="get"
+        path="/api/v1/studio/briefs/{id}/draft/agent-runs/{runId}"
+        desc="Fetch an authoring agent run"
+      />
+      <Endpoint
+        method="post"
+        path="/api/v1/studio/briefs/{id}/draft/agent-runs/{runId}/propose-edit"
+        desc="Validate and store structured agent edits"
+      />
+      <Endpoint
+        method="get"
+        path="/api/v1/studio/briefs/{id}/draft/proposals/{proposalId}"
+        desc="Fetch an agent proposal"
+      />
+      <Endpoint
+        method="post"
+        path="/api/v1/studio/briefs/{id}/draft/proposals/{proposalId}/apply"
+        desc="Apply approved proposal operations"
+      />
+      <Endpoint
+        method="post"
+        path="/api/v1/studio/briefs/{id}/draft/proposals/{proposalId}/reject"
+        desc="Reject an agent proposal"
+      />
+      <Endpoint
+        method="get"
+        path="/api/v1/studio/briefs/{id}/draft/versions"
+        desc="List draft version milestones"
+      />
+      <Endpoint
+        method="post"
+        path="/api/v1/studio/briefs/{id}/draft/versions/{versionId}/restore"
+        desc="Restore a draft version snapshot"
+      />
+      <Endpoint
+        method="post"
+        path="/api/v1/studio/briefs/{id}/draft/claims"
+        desc="Add a draft claim"
+      />
+      <Endpoint
+        method="patch"
+        path="/api/v1/studio/briefs/{id}/draft/claims/{claimN}"
+        desc="Edit a draft claim"
+      />
+      <Endpoint
+        method="delete"
+        path="/api/v1/studio/briefs/{id}/draft/claims/{claimN}"
+        desc="Delete and renumber a draft claim"
+      />
+      <Endpoint
+        method="post"
+        path="/api/v1/studio/briefs/{id}/draft/blocks"
+        desc="Add a typed primitive block"
+      />
+      <Endpoint
+        method="patch"
+        path="/api/v1/studio/briefs/{id}/draft/blocks/{blockId}"
+        desc="Edit a typed primitive block"
+      />
+      <Endpoint
+        method="delete"
+        path="/api/v1/studio/briefs/{id}/draft/blocks/{blockId}"
+        desc="Delete a typed primitive block"
+      />
+      <Endpoint
+        method="post"
+        path="/api/v1/studio/briefs/{id}/draft/refs/resolve"
+        desc="Resolve content-graph refs"
+      />
+      <Endpoint
+        method="get"
+        path="/api/v1/studio/briefs/{id}/draft/refs"
+        desc="List persisted content-graph refs"
+      />
+      <Endpoint
+        method="put"
+        path="/api/v1/studio/briefs/{id}/draft/refs"
+        desc="Replace persisted content-graph refs"
+      />
+      <Endpoint
+        method="post"
+        path="/api/v1/studio/briefs/{id}/draft/attach"
+        desc="Attach a captured Studio object as a typed block"
+      />
+      <Endpoint
+        method="get"
+        path="/api/v1/studio/briefs/{id}/draft/comments"
+        desc="List draft-private review threads"
+      />
+      <Endpoint
+        method="post"
+        path="/api/v1/studio/briefs/{id}/draft/comments"
+        desc="Create an anchored comment, change request, or suggestion"
+      />
+      <Endpoint
+        method="post"
+        path="/api/v1/studio/briefs/{id}/draft/comments/{commentId}/replies"
+        desc="Reply to a review thread"
+      />
+      <Endpoint
+        method="patch"
+        path="/api/v1/studio/briefs/{id}/draft/comments/{commentId}"
+        desc="Resolve, dismiss, reopen, or edit a review thread"
+      />
+      <Endpoint
+        method="post"
+        path="/api/v1/studio/briefs/{id}/draft/comments/{commentId}/accept-suggestion"
+        desc="Apply a body-markdown suggestion"
+      />
+      <Endpoint
+        method="post"
+        path="/api/v1/studio/briefs/{id}/draft/validate"
+        desc="Refresh deterministic validation"
+      />
+      <Endpoint
+        method="post"
+        path="/api/v1/studio/briefs/{id}/draft/review"
+        desc="Request review"
+      />
+      <Endpoint
+        method="post"
+        path="/api/v1/studio/briefs/{id}/draft/verdict"
+        desc="Approve or request changes"
+      />
+      <Endpoint
+        method="post"
+        path="/api/v1/studio/briefs/{id}/draft/publish"
+        desc="Mark as publish candidate"
+      />
+      <Endpoint
+        method="post"
+        path="/api/v1/studio/briefs/{id}/draft/retract"
+        desc="Retract a publish candidate"
+      />
+      <Endpoint
+        method="post"
+        path="/api/v1/studio/briefs/{id}/draft/promotion-receipt"
+        desc="Record an offline public promotion"
+      />
+      <Endpoint
+        method="get"
+        path="/api/v1/studio/briefs/{id}/draft/publish-candidate-export"
+        desc="Fetch release-review payload"
+      />
     </article>
   );
 }
@@ -655,9 +823,8 @@ const releaseFacts: readonly ReleaseFact[] = [
   },
   {
     label: "Source ledger",
-    value: "0 open source actions",
-    detail:
-      "12 source families audited: 9 historical-ready, 2 context-only, 1 current-signal-only.",
+    value: "0 blocking metadata gaps",
+    detail: "12 source families audited; source-productization actions remain tracked separately.",
   },
 ];
 
@@ -947,6 +1114,23 @@ function CreditsPage() {
       </P>
       <CreditTable rows={contextCreditRows} />
 
+      <H2>Derived Artifacts</H2>
+      <P>
+        On top of these sources, the Studio publishes its own generated route-slice artifacts -
+        route/month/segment evidence rows carrying the evidence references and quality flags that
+        power route detail, findings, briefs, and the public projections. They are a derived layer,
+        not a separate source: every row resolves back to the primary and context datasets above.
+        The metric definitions and publication caveats applied to them live on{" "}
+        <Link
+          to="/docs/$page"
+          params={{ page: "methodology" }}
+          className="font-medium text-[var(--bp-color-accent)] underline decoration-[var(--bp-color-accent-40)] underline-offset-[3px] hover:text-[var(--bp-color-accent-strong)]"
+        >
+          Methodology
+        </Link>
+        .
+      </P>
+
       <H2>Use Rules</H2>
       <Params
         rows={[
@@ -990,6 +1174,90 @@ function CreditsPage() {
         federal datasets. Bus Observatory-derived March reliability is labeled third-party recovered
         provenance throughout the API and UI.
       </P>
+    </article>
+  );
+}
+
+function MethodologyPage() {
+  const metrics = [
+    {
+      name: "Observed long-gap share",
+      expr: "long-gap samples / observed headway samples",
+      note: "Used as the lead metric for reviewed B25 and BX41 reliability findings.",
+    },
+    {
+      name: "Weighted average route speed",
+      expr: "route speed weighted by segment evidence and exposure",
+      note: "Published as route-speed evidence, not as an isolated rider-pain score.",
+    },
+    {
+      name: "DOT permit route touches",
+      expr: "context events joined through direct route IDs or route-LION physical IDs",
+      note: "Supports context/prioritization claims only unless exact hotspot overlap is verified.",
+    },
+    {
+      name: "Ridership exposure",
+      expr: "ridership assigned to segment or route evidence rows",
+      note: "Used to prefer findings where many riders are exposed to the observed condition.",
+    },
+  ];
+  const caveats = [
+    {
+      name: "Context is not causality",
+      body: "Permit, collision, 311, parking, and ACE touches identify nearby operational context. They do not prove the context caused a speed or reliability outcome.",
+    },
+    {
+      name: "Single-month speed release",
+      body: "March 2026 speed/hotspot evidence is strong for publication, but speed trend claims need additional monthly route-slice summaries.",
+    },
+    {
+      name: "Recovered reliability provenance",
+      body: "Bus Observatory reliability rows are third-party recovered observations. They are useful for trends, but should remain labeled separately from official self-collected GTFS-RT runs.",
+    },
+    {
+      name: "Physical overlap varies by source",
+      body: "Route-touch joins may prove route-corridor overlap before they prove exact hotspot-segment overlap. Published claims should name the verified grain.",
+    },
+  ];
+  return (
+    <article>
+      <H1>Methodology</H1>
+      <P>
+        Every public finding should trace back to a dataset, a computed metric, and a caveat. This
+        page defines the metrics behind Studio findings and the limits on how far each claim can be
+        pushed. For the datasets and source credits those metrics are computed from, see{" "}
+        <Link
+          to="/docs/$page"
+          params={{ page: "data-credits" }}
+          className="font-medium text-[var(--bp-color-accent)] underline decoration-[var(--bp-color-accent-40)] underline-offset-[3px] hover:text-[var(--bp-color-accent-strong)]"
+        >
+          Data &amp; Credits
+        </Link>
+        .
+      </P>
+      <Callout>
+        <strong>Publication rule:</strong> a public finding should name the evidence grain it
+        actually verifies. Route-corridor context is not the same as exact hotspot-segment overlap.
+      </Callout>
+
+      <H2>Metrics</H2>
+      {metrics.map((m) => (
+        <div key={m.name}>
+          <H3>{m.name}</H3>
+          <P>
+            <IC>{m.expr}</IC>
+          </P>
+          <P>{m.note}</P>
+        </div>
+      ))}
+
+      <H2>Caveats</H2>
+      {caveats.map((c) => (
+        <div key={c.name}>
+          <H3>{c.name}</H3>
+          <P>{c.body}</P>
+        </div>
+      ))}
     </article>
   );
 }
@@ -1041,7 +1309,7 @@ function ChangelogPage() {
       t: "new",
       desc: (
         <span>
-          <IC>POST /v1/briefs</IC> - async brief generation from claims
+          <IC>/api/v1/studio/briefs/{"{id}"}/draft*</IC> - live draft authoring endpoints
         </span>
       ),
     },
@@ -1049,7 +1317,7 @@ function ChangelogPage() {
       t: "new",
       desc: (
         <span>
-          <IC>GET /v1/briefs/{"{id}"}</IC> + version history + publish flow
+          <IC>GET /api/v1/studio/briefs/{"{id}"}</IC> + draft status overlay for operators
         </span>
       ),
     },
@@ -1110,6 +1378,7 @@ const PAGE_COMPONENTS: Record<DocsPageId, () => ReactNode> = {
   findings: FindingsPage,
   briefs: BriefsPage,
   "data-credits": CreditsPage,
+  methodology: MethodologyPage,
   changelog: ChangelogPage,
 };
 
@@ -1122,7 +1391,8 @@ const PAGE_MARKDOWN: Record<DocsPageId, string> = {
   findings: buildMarkdown("findings", "routes", "briefs"),
   briefs: buildMarkdown("briefs", "findings", "data-credits"),
   "data-credits": buildDataCreditsMarkdown(),
-  changelog: buildMarkdown("changelog", "data-credits", null),
+  methodology: buildMethodologyMarkdown(),
+  changelog: buildMarkdown("changelog", "methodology", null),
 };
 
 function buildDataCreditsMarkdown(): string {
@@ -1130,7 +1400,7 @@ function buildDataCreditsMarkdown(): string {
     "---",
     "page: data-credits",
     "prev: briefs",
-    "next: changelog",
+    "next: methodology",
     `pages: ${DOCS_PAGE_ORDER.join(" | ")}`,
     "index: https://api.bpi.studio/llms.txt",
     "---",
@@ -1143,13 +1413,15 @@ function buildDataCreditsMarkdown(): string {
     "- 1,629 audited route/corridor/evidence/map artifact references.",
     "- 202 reviewed findings, including 200 promoted detector findings.",
     "- 2,571,297 March observed-reliability samples across 346 observed routes.",
-    "- Source ledger: 12 source families; 9 historical-ready, 2 context-only, 1 current-signal-only, 0 open source actions.",
+    "- Source ledger: 12 source families; 9 historical-ready, 2 context-only, 1 current-signal-only, 0 blocking metadata gaps. Source-productization actions remain tracked separately.",
     "",
-    "Complete means release-ready for the evidence role assigned to each source, not that every dataset is detector-grade proof.",
+    "Complete means release-ready for the evidence role assigned to each source, not that every dataset is detector-grade proof or that detector quality is fully calibrated.",
     "",
     "Primary evidence sources: MTA Bus Route Segment Speeds, MTA Current Bus Routes and Stops, MTA Bus Schedules, MTA Bus Hourly Ridership, Bus Observatory recovered GTFS-RT, MTA Bus Time GTFS-RT, MTA Bus Wait Assessment, ACE/ABLE route rollout, ACE violations, and NYC DOT bus lanes.",
     "",
     "Context sources: NYC DOT street permits, NYC 311 service requests, NYPD collisions, NYC parking violations, NYC DOT traffic volume counts, NYC DOT realtime traffic speeds, NOAA GHCN-Daily weather, Census ACS 5-year profile data, and NYC Centerline/LION.",
+    "",
+    "Derived artifacts: the Studio publishes its own generated route-slice artifacts (route/month/segment evidence rows with evidence references and quality flags) as a derived layer over the sources above. Metric definitions and publication caveats for them live on Methodology (/docs/methodology).",
     "",
     "Use rules: March 2026 monthly public evidence is the canonical release layer; May 2026 GTFS-RT is current signal only until public monthly speed rows exist; context sources do not prove causality by themselves; parking remains context-only until match fanout and low physical-ID geocoding are promoted by review.",
     "",
@@ -1157,6 +1429,43 @@ function buildDataCreditsMarkdown(): string {
     "",
     "---",
     "Prev: [Briefs](/docs/briefs)",
+    "Next: [Methodology](/docs/methodology)",
+    "Index: https://api.bpi.studio/llms.txt",
+  ].join("\n");
+}
+
+function buildMethodologyMarkdown(): string {
+  return [
+    "---",
+    "page: methodology",
+    "prev: data-credits",
+    "next: changelog",
+    `pages: ${DOCS_PAGE_ORDER.join(" | ")}`,
+    "index: https://api.bpi.studio/llms.txt",
+    "---",
+    "",
+    "# BPI Studio API - Methodology",
+    "",
+    "Every public finding traces back to a dataset, a computed metric, and a caveat. Dataset and source credits live on the Data & Credits page (/docs/data-credits).",
+    "",
+    "Publication rule: a public finding should name the evidence grain it actually verifies. Route-corridor context is not the same as exact hotspot-segment overlap.",
+    "",
+    "## Metrics",
+    "",
+    "- Observed long-gap share: long-gap samples / observed headway samples. Used as the lead metric for reviewed B25 and BX41 reliability findings.",
+    "- Weighted average route speed: route speed weighted by segment evidence and exposure. Published as route-speed evidence, not as an isolated rider-pain score.",
+    "- DOT permit route touches: context events joined through direct route IDs or route-LION physical IDs. Supports context/prioritization claims only unless exact hotspot overlap is verified.",
+    "- Ridership exposure: ridership assigned to segment or route evidence rows. Used to prefer findings where many riders are exposed to the observed condition.",
+    "",
+    "## Caveats",
+    "",
+    "- Context is not causality: permit, collision, 311, parking, and ACE touches identify nearby operational context. They do not prove the context caused a speed or reliability outcome.",
+    "- Single-month speed release: March 2026 speed/hotspot evidence is strong for publication, but speed trend claims need additional monthly route-slice summaries.",
+    "- Recovered reliability provenance: Bus Observatory reliability rows are third-party recovered observations and should remain labeled separately from official self-collected GTFS-RT runs.",
+    "- Physical overlap varies by source: route-touch joins may prove route-corridor overlap before they prove exact hotspot-segment overlap. Published claims should name the verified grain.",
+    "",
+    "---",
+    "Prev: [Data & Credits](/docs/data-credits)",
     "Next: [Changelog](/docs/changelog)",
     "Index: https://api.bpi.studio/llms.txt",
   ].join("\n");
