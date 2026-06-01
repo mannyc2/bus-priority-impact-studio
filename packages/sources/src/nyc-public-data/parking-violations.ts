@@ -42,10 +42,12 @@ export const NormalizedParkingViolationSchema = z
 export type NormalizedParkingViolation = z.output<typeof NormalizedParkingViolationSchema>;
 
 const strN = z
-  .union([z.null(), z.undefined(), z.string()])
+  .union([z.null(), z.string()])
+  .optional()
   .transform((v) => (v === undefined ? null : v));
 const intN = z
-  .union([z.null(), z.undefined(), z.coerce.number()])
+  .union([z.null(), z.coerce.number()])
+  .optional()
   .transform((v) => (v === undefined ? null : v === null ? null : Math.round(v)));
 
 const RawParkingRowSchema = z

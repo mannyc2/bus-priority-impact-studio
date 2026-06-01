@@ -4,24 +4,27 @@
 // the core module; the core module never imports back here.
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";
 import { writeJson } from "../../../lib/json.ts";
+import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";
 import {
   artifactKey,
+  type CliOption,
   captureManifestPath,
   decodeUtf8,
   defaultFetch,
+  type ExpectedContentType,
+  type FetchLike,
   latestDocsRunId,
   parseCliOptions,
   parseSourceIds,
+  pdfInfoPageCount,
   sha256,
   stripHtmlToText,
   summarizeCapture,
-  writeSourceMetadata,
-  type CliOption,
-  type FetchLike,
-  type Tier2CaptureManifest,
+  type TextExtractionStatus,
   type Tier2CapturedSource,
+  type Tier2CaptureManifest,
+  writeSourceMetadata,
 } from "./_shared.ts";
 
 // ---------------------------------------------------------------------------
@@ -102,6 +105,51 @@ function waybackContentUrl(snapshot: { timestamp: string; originalUrl: string })
   return `https://web.archive.org/web/${snapshot.timestamp}id_/${snapshot.originalUrl}`;
 }
 
+function detectRecapturedContentType(input: {
+  contentType: string | null;
+  fallback: ExpectedContentType;
+  finalUrl: string;
+  bytes: Uint8Array;
+}): ExpectedContentType {
+  const normalized = input.contentType?.toLowerCase() ?? "";
+  const urlPath = input.finalUrl.toLowerCase().split("?")[0] ?? "";
+  const preview = decodeUtf8(input.bytes.slice(0, 128)).trimStart().toLowerCase();
+  if (
+    normalized.includes("application/pdf") ||
+    urlPath.endsWith(".pdf") ||
+    preview.startsWith("%pdf")
+  ) {
+    return "pdf";
+  }
+  if (
+    normalized.includes("text/html") ||
+    preview.startsWith("<!doctype") ||
+    preview.startsWith("<html")
+  ) {
+    return "html";
+  }
+  if (normalized.includes("application/json") || normalized.includes("+json")) {
+    return "json";
+  }
+  return input.fallback;
+}
+
+function extensionForContentType(contentType: ExpectedContentType): string {
+  if (contentType === "pdf") return "pdf";
+  if (contentType === "html") return "html";
+  if (contentType === "json") return "json";
+  return "bin";
+}
+
+function recapturedTextExtractionStatus(
+  source: Tier2CapturedSource,
+  contentType: ExpectedContentType,
+): TextExtractionStatus {
+  if (contentType === "html") return "html_text";
+  if (contentType === "pdf" && source.ocrHint !== "not_needed") return "ocr_required";
+  return "metadata_only";
+}
+
 async function recaptureSource(input: {
   source: Tier2CapturedSource;
   fetcher: FetchLike;
@@ -146,13 +194,60 @@ async function recaptureSource(input: {
       };
     }
     const bytes = new Uint8Array(await response.arrayBuffer());
+    const detectedContentType = detectRecapturedContentType({
+      contentType: response.headers.get("content-type"),
+      fallback: input.source.detectedContentType,
+      finalUrl: contentUrl,
+      bytes,
+    });
     const sourceRoot = join(input.runRoot, "sources", input.source.sourceId);
     await mkdir(sourceRoot, { recursive: true });
-    const rawPath = join(sourceRoot, "source.html");
+    const rawPath = join(sourceRoot, `source.${extensionForContentType(detectedContentType)}`);
     await Bun.write(rawPath, bytes);
-    const text = stripHtmlToText(decodeUtf8(bytes));
-    const textPath = join(sourceRoot, "text.txt");
-    await Bun.write(textPath, `${text}\n`);
+    if (detectedContentType === "pdf" && (await pdfInfoPageCount(rawPath)) === null) {
+      const updated: Tier2CapturedSource = {
+        ...input.source,
+        finalUrl: contentUrl,
+        captureStatus: "failed",
+        httpStatus: response.status,
+        contentType: response.headers.get("content-type"),
+        detectedContentType,
+        byteLength: bytes.byteLength,
+        sha256: sha256(bytes),
+        rawArtifactKey: artifactKey(rawPath, input.runRoot),
+        textArtifactKey: null,
+        textLength: 0,
+        textExtractionStatus: "metadata_only",
+        retrievedAt: input.retrievedAt,
+        error: "Recaptured PDF is not readable by pdfinfo.",
+      };
+      await writeJson(join(sourceRoot, "recapture-metadata.json"), {
+        captureSource: "wayback",
+        waybackTimestamp: snapshot.timestamp,
+        waybackUrl: contentUrl,
+        originalUrl: snapshot.originalUrl,
+        retrievedAt: input.retrievedAt,
+        detectedContentType,
+        textLength: 0,
+        error: updated.error,
+      });
+      return {
+        result: {
+          ...baseResult,
+          status: "failed",
+          httpStatus: response.status,
+          waybackTimestamp: snapshot.timestamp,
+          waybackUrl: contentUrl,
+          error: updated.error,
+        },
+        updated,
+      };
+    }
+    const text = detectedContentType === "html" ? stripHtmlToText(decodeUtf8(bytes)) : "";
+    const textPath = detectedContentType === "html" ? join(sourceRoot, "text.txt") : null;
+    if (textPath !== null) {
+      await Bun.write(textPath, `${text}\n`);
+    }
     const recapturePath = join(sourceRoot, "recapture-metadata.json");
     await writeJson(recapturePath, {
       captureSource: "wayback",
@@ -160,6 +255,7 @@ async function recaptureSource(input: {
       waybackUrl: contentUrl,
       originalUrl: snapshot.originalUrl,
       retrievedAt: input.retrievedAt,
+      detectedContentType,
       textLength: text.length,
     });
 
@@ -169,13 +265,13 @@ async function recaptureSource(input: {
       captureStatus: "captured",
       httpStatus: response.status,
       contentType: response.headers.get("content-type"),
-      detectedContentType: "html",
+      detectedContentType,
       byteLength: bytes.byteLength,
       sha256: sha256(bytes),
       rawArtifactKey: artifactKey(rawPath, input.runRoot),
-      textArtifactKey: artifactKey(textPath, input.runRoot),
+      textArtifactKey: textPath === null ? null : artifactKey(textPath, input.runRoot),
       textLength: text.length,
-      textExtractionStatus: "html_text",
+      textExtractionStatus: recapturedTextExtractionStatus(input.source, detectedContentType),
       retrievedAt: input.retrievedAt,
       error: null,
     };
@@ -221,10 +317,12 @@ export async function recaptureFailedSources(
 
   const results: RecaptureSourceResult[] = [];
   for (let index = 0; index < manifest.sources.length; index += 1) {
-    const source = manifest.sources[index]!;
+    const source = manifest.sources[index];
+    if (source === undefined) continue;
     const isFailed = source.captureStatus === "failed";
     const inFilter = filterSet === null || filterSet.has(source.sourceId);
-    if (!isFailed || !inFilter) continue;
+    const shouldAttempt = filterSet === null ? isFailed : inFilter;
+    if (!shouldAttempt) continue;
     const { result, updated } = await recaptureSource({
       source,
       fetcher,
@@ -232,7 +330,7 @@ export async function recaptureFailedSources(
       retrievedAt: generatedAt,
     });
     results.push(result);
-    if (result.status === "recaptured") {
+    if (updated !== source) {
       manifest.sources[index] = updated;
       await writeSourceMetadata(runRoot, updated);
     }
@@ -320,9 +418,7 @@ async function resolveRecapturePaths(
   return { captureManifestPath: captureManifestPath(artifactRoot, runId) };
 }
 
-export async function recaptureFailedSourcesFromCli(
-  args: string[],
-): Promise<RecaptureAudit> {
+export async function recaptureFailedSourcesFromCli(args: string[]): Promise<RecaptureAudit> {
   const parsed = parseRecaptureCliArgs(args);
   const paths = await resolveRecapturePaths(parsed);
   return recaptureFailedSources({

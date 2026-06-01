@@ -15,9 +15,15 @@ Read the page top-to-bottom and include every visible heading, paragraph sentenc
 Use Markdown tables when the page has tables.
 If a chart or figure contains readable labels and numeric values, transcribe the chart title and visible values into a Markdown table near the chart position. Do not put chart values only in image alt text.
 Use image placeholders only for non-textual visual content that cannot be represented as text or a table.
+Image placeholders must be brief alt text only; do not add separate visual-analysis notes, object lists, or inferred scene descriptions.
 Ignore repeated slide footers, page numbers, and decorative artifacts unless they carry source meaning. Never repeat the same visible footer or page number more than once.
 Use normal Markdown line breaks and sections. Do not collapse the whole page into one paragraph.
-Do not summarize, reinterpret, or add facts that are not visible on the page. Mark unreadable text as [unclear].
+Sparse pages are valid OCR outputs. If the page is a cover, divider, map-only page, or mostly decorative image, transcribe only the visible text and use a short image placeholder.
+A sparse page can produce a short markdown field. Do not pad the answer to make it look complete.
+Never infer report sections, examples, route impacts, benefits, tables, footnotes, or metrics that are not visibly printed on this exact page.
+The source metadata below is for routing and validation only. Do not copy Source ID, Title, Publisher, Source group, or Page into the markdown field unless those exact words are visibly printed on the page image.
+If no table is visible on the page, do not create a table and set containsTables to false.
+Do not summarize, reinterpret, or add facts that are not visible on the page. Omit unreadable background signs, decorative text, and tiny labels; do not emit [unclear], [illegible], or lists of unreadable items.
 You must call the record_tier2_ocr_page tool. Put the full Markdown transcription in the markdown field.
 In the tool call, pageNumber must be exactly 1. This is the PDF page ordinal supplied by the pipeline; do not replace it with a printed page number visible on the document.
 Use the hint fields only for indexing and later search. Do not include pipeline metadata or YAML frontmatter; the host pipeline will add that.

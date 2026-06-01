@@ -1,7 +1,7 @@
 import {
   type Api,
-  complete,
   type Context,
+  complete,
   getModel,
   type Model,
   registerBuiltInApiProviders,
@@ -44,12 +44,14 @@ export function openRouterModel(modelId: string): Model<"openai-completions"> {
 /**
  * OpenAI-compatible Pioneer model descriptor. Pioneer is intentionally kept as
  * a custom provider here because pi-ai 0.78 does not ship a built-in Pioneer
- * catalog. Set PIONEER_BASE_URL to the provider's OpenAI-compatible `/v1`
- * endpoint and PIONEER_API_KEY for requests.
+ * catalog. Pioneer's OpenAI-compatible default is
+ * https://api.pioneer.ai/v1; PIONEER_BASE_URL can override it for local
+ * testing or an enterprise endpoint. Pioneer accepts the API key as both the
+ * OpenAI-compatible bearer token and X-API-Key.
  */
 export function pioneerModel(
   modelId: string,
-  baseUrl = requiredPioneerBaseUrl(),
+  baseUrl = pioneerBaseUrl(),
 ): Model<"openai-completions"> {
   return {
     id: modelId,
@@ -65,12 +67,21 @@ export function pioneerModel(
   };
 }
 
-export function requiredPioneerBaseUrl(): string {
-  const baseUrl = process.env["PIONEER_BASE_URL"]?.trim();
-  if (!baseUrl) {
-    throw new Error("PIONEER_BASE_URL is required for --provider pioneer.");
+export function pioneerBaseUrl(): string {
+  return (process.env["PIONEER_BASE_URL"]?.trim() || "https://api.pioneer.ai/v1").replace(
+    /\/+$/,
+    "",
+  );
+}
+
+export function providerHeaders(
+  provider: string,
+  apiKey: string,
+): Record<string, string> | undefined {
+  if (provider === "pioneer") {
+    return { "X-API-Key": apiKey };
   }
-  return baseUrl.replace(/\/+$/, "");
+  return undefined;
 }
 
 /**
@@ -135,6 +146,7 @@ export type CompleteJsonOptions = {
    * non-standard fields the upstream accepts.
    */
   providerOptions?: Record<string, unknown> | undefined;
+  headers?: Record<string, string> | undefined;
   describeAttemptError?: ((error: unknown) => string) | undefined;
   appName?: string | undefined;
 };
@@ -178,9 +190,12 @@ export async function completeJson(
       const result = await complete(model, context, {
         apiKey: options.apiKey,
         signal: controller.signal,
-        ...(options.maxOutputTokens === undefined ? {} : { maxOutputTokens: options.maxOutputTokens }),
+        ...(options.maxOutputTokens === undefined
+          ? {}
+          : { maxOutputTokens: options.maxOutputTokens }),
         ...(options.reasoning === undefined ? {} : { reasoning: options.reasoning }),
         ...(Object.keys(providerOptions).length > 0 ? { providerOptions } : {}),
+        ...(options.headers === undefined ? {} : { headers: options.headers }),
       });
       // Propagate provider-reported errors verbatim — pi-ai stuffs them on
       // result.errorMessage when stopReason is "error". The previous behavior
@@ -202,9 +217,7 @@ export async function completeJson(
       return { text, attempts: attempt };
     } catch (error) {
       const resolved = controller.signal.aborted
-        ? new Error(
-            `LLM request timed out after ${options.timeoutMs}ms for ${model.id}.`,
-          )
+        ? new Error(`LLM request timed out after ${options.timeoutMs}ms for ${model.id}.`)
         : error;
       lastError = resolved;
       if (attempt >= options.maxAttempts) break;
@@ -237,6 +250,7 @@ export type CompleteToolCallOptions = {
   tools: Array<{ name: string; description: string; parameters: Record<string, unknown> }>;
   maxOutputTokens?: number | undefined;
   reasoning?: ThinkingLevel | undefined;
+  headers?: Record<string, string> | undefined;
   /**
    * Swap `globalThis.fetch` for the duration of the call. The pi-ai transport
    * runs through the OpenAI SDK, which uses the global fetch; tests inject a
@@ -321,11 +335,18 @@ export async function completeToolCall(
         maxRetries: 0,
         ...(options.maxOutputTokens === undefined ? {} : { maxTokens: options.maxOutputTokens }),
         ...(options.reasoning === undefined ? {} : { reasoning: options.reasoning }),
+        ...(options.headers === undefined ? {} : { headers: options.headers }),
       } as never);
 
       const toolCallBlock = result.content.find(
-        (block): block is { type: "toolCall"; id: string; name: string; arguments: Record<string, unknown> } =>
-          block.type === "toolCall",
+        (
+          block,
+        ): block is {
+          type: "toolCall";
+          id: string;
+          name: string;
+          arguments: Record<string, unknown>;
+        } => block.type === "toolCall",
       );
       const usage = result.usage
         ? {
@@ -341,7 +362,9 @@ export async function completeToolCall(
         usage,
         stopReason: result.stopReason,
         errorMessage:
-          result.stopReason === "error" ? (result.errorMessage ?? "Provider returned an error stop reason") : null,
+          result.stopReason === "error"
+            ? (result.errorMessage ?? "Provider returned an error stop reason")
+            : null,
         attempts: attempt,
       };
     } catch (error) {

@@ -30,10 +30,12 @@ export const NormalizedLionSegmentSchema = z
 export type NormalizedLionSegment = z.output<typeof NormalizedLionSegmentSchema>;
 
 const strN = z
-  .union([z.null(), z.undefined(), z.string()])
+  .union([z.null(), z.string()])
+  .optional()
   .transform((v) => (v === undefined ? null : v));
 const numN = z
-  .union([z.null(), z.undefined(), z.coerce.number()])
+  .union([z.null(), z.coerce.number()])
+  .optional()
   .transform((v) => (v === undefined ? null : v));
 
 const RawCenterlineRowSchema = z
@@ -54,7 +56,8 @@ const RawCenterlineRowSchema = z
     trafdir: strN,
     segmentlength: numN,
     the_geom: z
-      .union([z.string(), z.record(z.string(), z.unknown()), z.undefined(), z.null()])
+      .union([z.string(), z.record(z.string(), z.unknown()), z.null()])
+      .optional()
       .transform((value) => {
         if (value === undefined || value === null) return null;
         if (typeof value === "string") return value;

@@ -80,6 +80,7 @@ export type FetchSocrataRowsOptions = {
   pageSize?: number | undefined;
   retryCount?: number | undefined;
   retryDelayMs?: number | undefined;
+  timeoutMs?: number | undefined;
 };
 
 export type SocrataClientOptions = {
@@ -87,6 +88,7 @@ export type SocrataClientOptions = {
   pageSize?: number | undefined;
   retryCount?: number | undefined;
   retryDelayMs?: number | undefined;
+  timeoutMs?: number | undefined;
 };
 
 function setOptionalSearchParam(url: URL, name: string, value: string | number | undefined): void {
@@ -124,6 +126,16 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function retryDelay(options: FetchSocrataRowsOptions, attempt: number): number {
+  const baseDelay = options.retryDelayMs ?? 250;
+  return baseDelay * 2 ** attempt;
+}
+
+function fetchInitWithTimeout(timeoutMs: number | undefined): RequestInit | undefined {
+  if (timeoutMs === undefined) return undefined;
+  return { signal: AbortSignal.timeout(timeoutMs) };
+}
+
 async function fetchJson(url: URL, fetcher: SocrataFetch | undefined): Promise<unknown> {
   const response = await (fetcher ?? fetch)(url);
   if (!response.ok) {
@@ -139,12 +151,21 @@ export async function fetchSocrataRowsPage(
   attempt = 0,
 ): Promise<SocrataRow[]> {
   const url = buildSocrataRowsUrl(options.domain, options.datasetId, options.query);
-  const response = await (options.fetcher ?? fetch)(url);
+  let response: Response;
+  try {
+    response = await (options.fetcher ?? fetch)(url, fetchInitWithTimeout(options.timeoutMs));
+  } catch (error) {
+    if (attempt < (options.retryCount ?? 2)) {
+      await sleep(retryDelay(options, attempt));
+      return fetchSocrataRowsPage(options, attempt + 1);
+    }
+    throw error;
+  }
 
   if (!response.ok) {
     await response.body?.cancel();
     if (isRetryableStatus(response.status) && attempt < (options.retryCount ?? 2)) {
-      await sleep(options.retryDelayMs ?? 250);
+      await sleep(retryDelay(options, attempt));
       return fetchSocrataRowsPage(options, attempt + 1);
     }
 

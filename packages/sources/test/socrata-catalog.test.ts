@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   buildSocrataCatalogSearchUrl,
   parseSocrataCatalogSearchResponse,
+  SocrataDatasetIdSchema,
   SocrataCatalogClient,
 } from "../src/index.js";
 
@@ -107,7 +108,7 @@ describe("Socrata catalog search", () => {
     });
 
     expect(response.url).toContain("/api/catalog/v1?");
-    expect(response.results[0]?.datasetId).toBe("4tpr-3bvc");
+    expect(response.results[0]?.datasetId).toBe(SocrataDatasetIdSchema.parse("4tpr-3bvc"));
     expect(requestedUrls[0]?.searchParams.get("q")).toBe("MTA Express Bus Capacity");
     expect(requestedUrls[0]?.searchParams.get("limit")).toBe("1");
   });

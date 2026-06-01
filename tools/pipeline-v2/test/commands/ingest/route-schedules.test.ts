@@ -77,7 +77,15 @@ describe("runRouteSchedulesIngest", () => {
           return Response.json(page([{ route_id: "B1" }, { route_id: "M15" }], url));
         }
 
+        const select = url.searchParams.get("$select") ?? "";
         const where = url.searchParams.get("$where") ?? "";
+        if (select === "count(*)" && where.includes("'M15'")) {
+          return Response.json([{ count: m15Rows.length }]);
+        }
+        if (select === "count(*)" && where.includes("'B1'")) {
+          return Response.json([{ count: 0 }]);
+        }
+
         if (where.includes("'M15'")) {
           routeFetches.push("M15");
           return Response.json(page(m15Rows, url));
@@ -108,6 +116,8 @@ describe("runRouteSchedulesIngest", () => {
         skippedRouteCount: 0,
         fetchedRowCount: 2,
         writtenRowCount: 2,
+        failedRouteCount: 0,
+        failedRoutes: [],
       });
 
       expect(
@@ -140,8 +150,206 @@ describe("runRouteSchedulesIngest", () => {
         skippedRouteCount: 1,
         fetchedRowCount: 0,
         writtenRowCount: 0,
+        failedRouteCount: 0,
+        failedRoutes: [],
       });
-      expect(routeFetches).toEqual(["M15", "B1"]);
+      expect(routeFetches).toEqual(["M15"]);
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  test("marks no-row route fetches as source_absent so later imports can repair them", async () => {
+    const sqlite = new Database(":memory:");
+    try {
+      let hasRows = false;
+      const fetcher = async (input: string | URL) => {
+        const url = new URL(input);
+        const select = url.searchParams.get("$select") ?? "";
+        if (select === "count(*)") {
+          return Response.json([{ count: hasRows ? m15Rows.length : 0 }]);
+        }
+        return Response.json(hasRows ? page(m15Rows, url) : []);
+      };
+
+      const first = await runRouteSchedulesIngest({
+        sqlite,
+        sourceYear: 2026,
+        routes: ["M15"],
+        routeConcurrency: 1,
+        skipExisting: false,
+        fetcher,
+        manifestText,
+      });
+      expect(first).toMatchObject({
+        routeCount: 1,
+        fetchedRowCount: 0,
+        writtenRowCount: 0,
+      });
+      expect(
+        sqlite
+          .query(
+            "SELECT status, row_count, error FROM local_route_schedule_ingest_status WHERE source_year = 2026 AND route_id = 'M15'",
+          )
+          .get(),
+      ).toEqual({
+        status: "source_absent",
+        row_count: 0,
+        error: "no_source_rows_for_requested_route",
+      });
+
+      hasRows = true;
+      const second = await runRouteSchedulesIngest({
+        sqlite,
+        sourceYear: 2026,
+        routes: ["M15"],
+        routeConcurrency: 1,
+        skipExisting: true,
+        fetcher,
+        manifestText,
+      });
+      expect(second).toMatchObject({
+        skippedRouteCount: 0,
+        fetchedRowCount: 2,
+        writtenRowCount: 2,
+      });
+      expect(
+        sqlite
+          .query(
+            "SELECT status, row_count, error FROM local_route_schedule_ingest_status WHERE source_year = 2026 AND route_id = 'M15'",
+          )
+          .get(),
+      ).toEqual({
+        status: "complete",
+        row_count: 2,
+        error: null,
+      });
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  test("fetches large routes in deterministic concurrent pages", async () => {
+    const sqlite = new Database(":memory:");
+    const rows = Array.from({ length: 12 }, (_, index) => ({
+      ...m15Rows[0],
+      stop_sequence: String(index + 1),
+      stop_id: `40${String(index).padStart(4, "0")}`,
+      schedule_time: `07:${String(index).padStart(2, "0")}:00`,
+    }));
+    const routeOffsets: number[] = [];
+    try {
+      const fetcher = async (input: string | URL) => {
+        const url = new URL(input);
+        const group = url.searchParams.get("$group");
+        const select = url.searchParams.get("$select") ?? "";
+        if (group === "route_id") {
+          return Response.json(page([{ route_id: "M15" }], url));
+        }
+        if (select === "count(*)") {
+          return Response.json([{ count: rows.length }]);
+        }
+
+        routeOffsets.push(Number(url.searchParams.get("$offset") ?? "0"));
+        return Response.json(page(rows, url));
+      };
+
+      const result = await runRouteSchedulesIngest({
+        sqlite,
+        sourceYear: 2026,
+        routes: ["M15"],
+        routeConcurrency: 1,
+        routePageConcurrency: 3,
+        pageSize: 5,
+        skipExisting: false,
+        fetcher,
+        manifestText,
+      });
+
+      expect(result.fetchedRowCount).toBe(12);
+      expect(result.writtenRowCount).toBe(12);
+      expect(routeOffsets.sort((a, b) => a - b)).toEqual([0, 5, 10]);
+      expect(
+        sqlite
+          .query(
+            `
+              SELECT row_rank, stop_id
+              FROM local_route_schedule_stop
+              WHERE source_year = 2026 AND route_id = 'M15'
+              ORDER BY row_rank
+            `,
+          )
+          .all(),
+      ).toEqual(
+        rows.map((row, index) => ({
+          row_rank: index + 1,
+          stop_id: row.stop_id,
+        })),
+      );
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  test("continues writing later routes before reporting route fetch failures", async () => {
+    const sqlite = new Database(":memory:");
+    const progressEvents: string[] = [];
+    try {
+      const fetcher = async (input: string | URL) => {
+        const url = new URL(input);
+        const select = url.searchParams.get("$select") ?? "";
+        const where = url.searchParams.get("$where") ?? "";
+
+        if (select === "count(*)" && where.includes("'B1'")) {
+          return Response.json([{ count: 2 }]);
+        }
+        if (select === "count(*)" && where.includes("'M15'")) {
+          return Response.json([{ count: m15Rows.length }]);
+        }
+
+        if (where.includes("'B1'")) {
+          throw new Error("socket closed");
+        }
+        if (where.includes("'M15'")) {
+          return Response.json(page(m15Rows, url));
+        }
+
+        return Response.json([]);
+      };
+
+      await expect(
+        runRouteSchedulesIngest({
+          sqlite,
+          sourceYear: 2026,
+          routes: ["B1", "M15"],
+          routeConcurrency: 1,
+          fetchRetryCount: 0,
+          skipExisting: false,
+          fetcher,
+          manifestText,
+          progress: (event) => progressEvents.push(`${event.kind}:${event.routeId}`),
+        }),
+      ).rejects.toThrow("Failed to fetch 1 route schedule(s) for 2026: B1");
+
+      expect(progressEvents).toEqual([
+        "route_fetching:B1",
+        "route_failed:B1",
+        "route_fetching:M15",
+        "route_page_written:M15",
+        "route_written:M15",
+      ]);
+      expect(
+        sqlite
+          .query(
+            `
+              SELECT route_id, COUNT(*) AS row_count
+              FROM local_route_schedule_stop
+              WHERE source_year = 2026
+              GROUP BY route_id
+            `,
+          )
+          .all(),
+      ).toEqual([{ route_id: "M15", row_count: 2 }]);
     } finally {
       sqlite.close();
     }

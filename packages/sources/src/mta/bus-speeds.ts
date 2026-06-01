@@ -44,11 +44,11 @@ const RawSegmentSpeedRowSchema = z
     borough: z.string().min(1),
     route_type: z.string().min(1),
     stop_order: z.coerce.number().int(),
-    timepoint_stop_id: z.string().min(1),
+    timepoint_stop_id: z.coerce.string().min(1),
     timepoint_stop_name: z.string().min(1),
     timepoint_stop_latitude: z.coerce.number(),
     timepoint_stop_longitude: z.coerce.number(),
-    next_timepoint_stop_id: z.string().min(1),
+    next_timepoint_stop_id: z.coerce.string().min(1),
     next_timepoint_stop_name: z.string().min(1),
     next_timepoint_stop_latitude: z.coerce.number(),
     next_timepoint_stop_longitude: z.coerce.number(),
@@ -80,11 +80,11 @@ function hasUsableTimepointSegment(row: SocrataRow): boolean {
   } = row;
 
   return (
-    hasText(timepointStopId) &&
+    hasValue(timepointStopId) &&
     hasText(timepointStopName) &&
     hasValue(timepointStopLatitude) &&
     hasValue(timepointStopLongitude) &&
-    hasText(nextTimepointStopId) &&
+    hasValue(nextTimepointStopId) &&
     hasText(nextTimepointStopName) &&
     hasValue(nextTimepointStopLatitude) &&
     hasValue(nextTimepointStopLongitude)

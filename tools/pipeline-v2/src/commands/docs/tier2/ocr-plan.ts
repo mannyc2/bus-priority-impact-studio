@@ -1,6 +1,6 @@
 import { defineCommand, z } from "@liche/core";
 import { optionsToArgs } from "./_cli-bridge.ts";
-import { planTier2OcrFromCli } from "./_shared.ts";
+import { planTier2OcrFromCli } from "./_ocr-plan.ts";
 
 const optionsSchema = z.object({
   captureManifest: z.string().optional(),

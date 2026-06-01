@@ -143,6 +143,52 @@ describe("Tier 2 LLM request shape (pi-harness migration)", () => {
     }
   });
 
+  test("callOpenRouterPageMarkdownOcr — Pioneer PNG page uses direct OpenAI-compatible request", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "tier2-ocr-pioneer-png-"));
+    try {
+      const inputPath = join(dir, "page.png");
+      await writeFile(inputPath, new Uint8Array([1, 2, 3, 4]));
+      const { fetcher, captured } = jsonSpyFetcher();
+      await callOpenRouterPageMarkdownOcr({
+        apiKey: "test-key",
+        provider: "pioneer",
+        model: "gpt-4o-mini",
+        pdfEngine: "mistral-ocr",
+        serviceTier: "flex",
+        maxTokens: 4096,
+        source: OCR_SOURCE,
+        pageNumber: 1,
+        pdfPageCount: 3,
+        inputPath,
+        inputMimeType: "image/png",
+        fetcher,
+      });
+      expect(captured).toHaveLength(1);
+      const req = captured[0]!;
+      expect(req.url).toBe("https://api.pioneer.ai/v1/chat/completions");
+      expect(req.headers).toMatchObject({
+        Authorization: "Bearer test-key",
+        "X-API-Key": "test-key",
+        "Content-Type": "application/json",
+      });
+      expect(req.body["model"]).toBe("gpt-4o-mini");
+      expect(req.body["tool_choice"]).toEqual({
+        type: "function",
+        function: { name: "record_tier2_ocr_page" },
+      });
+      expect(toolNames(req.body)).toEqual(["record_tier2_ocr_page"]);
+      const content = firstUserContent(req.body);
+      expect(content.map((c) => c.type)).toEqual(["text", "image_url"]);
+      expect((content[0]!["text"] as string)).toContain("Sparse pages are valid OCR outputs.");
+      expect((content[0]!["text"] as string)).toContain("do not emit [unclear]");
+      expect((content[1]!["image_url"] as { url: string }).url).toBe(
+        "data:image/png;base64,AQIDBA==",
+      );
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
   test("callOpenRouterPageMarkdownOcr — PDF page (inline file-parser fallback) keeps byte-exact wire shape", async () => {
     const dir = await mkdtemp(join(tmpdir(), "tier2-ocr-pdf-"));
     try {

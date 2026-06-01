@@ -1,6 +1,6 @@
 import { defineCommand, z } from "@liche/core";
 import { optionsToArgs } from "./_cli-bridge.ts";
-import { recaptureFailedSourcesFromCli } from "./_shared.ts";
+import { recaptureFailedSourcesFromCli } from "./_recapture.ts";
 
 const optionsSchema = z.object({
   captureManifest: z.string().optional(),
@@ -26,7 +26,8 @@ export async function runDocsTier2CaptureRecapture403(input: z.infer<typeof opti
 
 export default defineCommand({
   path: ["docs", "tier2", "capture-recapture-403"],
-  summary: "Recapture html_text sources that failed initial capture (e.g. 403) via Wayback Machine.",
+  summary:
+    "Recapture html_text sources that failed initial capture (e.g. 403) via Wayback Machine.",
   input: { options: optionsSchema },
   output: z.unknown(),
   async run({ input }) {

@@ -4,20 +4,20 @@
 // core module; the core module never imports back here.
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";
 import { writeJson } from "../../../lib/json.ts";
+import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";
 import {
+  type CliOption,
   captureManifestPath,
   DEFAULT_OCR_MODEL,
   latestDocsRunId,
+  type OcrPlanCliArgs,
   ocrPlanPath,
+  type PlanTier2OcrArgs,
   parseCliOptions,
   pdfInfoPageCount,
-  type CliOption,
-  type OcrPlanCliArgs,
-  type PlanTier2OcrArgs,
-  type Tier2CaptureManifest,
   type Tier2CapturedSource,
+  type Tier2CaptureManifest,
   type Tier2OcrPlan,
   type Tier2OcrPlanSource,
 } from "./_shared.ts";
@@ -118,8 +118,10 @@ export async function planTier2Ocr(args: PlanTier2OcrArgs): Promise<Tier2OcrPlan
         return { ...plannedSource, pageRange: args.defaultPageRange };
       }
       const pageCount = await pdfInfoPageCount(join(manifestRunRoot, plannedSource.rawArtifactKey));
-      const pageRange = pageCount === null ? "1-9999" : `1-${pageCount}`;
-      return { ...plannedSource, pageRange };
+      if (pageCount === null) {
+        return null;
+      }
+      return { ...plannedSource, pageRange: `1-${pageCount}` };
     }),
   );
   const sources = sourcesAsync.filter((source): source is Tier2OcrPlanSource => source !== null);

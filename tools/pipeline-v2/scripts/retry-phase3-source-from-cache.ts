@@ -228,7 +228,8 @@ const retrySourceRoot = sourceRoot({
   sourceId,
   sourceIndex: 0,
 });
-const previousBucketIds = new Set(previousSource.buckets.map((bucket) => bucket.bucketId));
+const previousBuckets = previousSource.buckets;
+const previousBucketIds = new Set(previousBuckets.map((bucket) => bucket.bucketId));
 const isOnlyBucket = buckets.length === 1;
 
 type BucketOutcome = {
@@ -245,7 +246,7 @@ async function processCachedBucket(
     return null;
   }
   const previousIsOnlyBucket =
-    previousSource.buckets.length === 1 && previousSource.buckets[0]?.bucketId === bucket.bucketId;
+    previousBuckets.length === 1 && previousBuckets[0]?.bucketId === bucket.bucketId;
   const paths = bucketPaths({
     sourceRoot: previousSourceRoot,
     bucketId: bucket.bucketId,

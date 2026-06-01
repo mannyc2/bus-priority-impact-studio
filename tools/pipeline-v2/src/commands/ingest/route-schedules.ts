@@ -12,7 +12,7 @@ import { arg, defineCommand, z } from "@liche/core";
 import { dbOptions, defaultLocalPipelineDbPath } from "../../lib/local-db.ts";
 import { fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
 
-type BusScheduleSourceId =
+export type BusScheduleSourceId =
   | "bus_schedules_2023"
   | "bus_schedules_2024"
   | "bus_schedules_2025"
@@ -22,7 +22,7 @@ type RawRouteIdRow = {
   route_id?: unknown;
 };
 
-type RawScheduleStopRow = {
+export type RawScheduleStopRow = {
   schedule_date?: unknown;
   day_type?: unknown;
   direction?: unknown;
@@ -47,7 +47,12 @@ export type RouteSchedulesIngestInputs = {
   sourceYear: number;
   routes: readonly string[];
   routeConcurrency?: number | undefined;
+  routePageConcurrency?: number | undefined;
+  pageSize?: number | undefined;
+  fetchTimeoutMs?: number | undefined;
+  fetchRetryCount?: number | undefined;
   skipExisting?: boolean | undefined;
+  progress?: ((event: RouteSchedulesIngestProgressEvent) => void) | undefined;
   fetcher?: SocrataFetch | undefined;
   manifestText?: string | undefined;
 };
@@ -59,11 +64,31 @@ export type RouteSchedulesIngestResult = {
   skippedRouteCount: number;
   fetchedRowCount: number;
   writtenRowCount: number;
+  failedRouteCount: number;
+  failedRoutes: string[];
+};
+
+export type RouteSchedulesIngestProgressEvent = {
+  kind:
+    | "route_failed"
+    | "route_fetching"
+    | "route_page_written"
+    | "route_skipped"
+    | "route_written";
+  sourceYear: number;
+  routeId: string;
+  offset?: number | undefined;
+  rowCount?: number | undefined;
+  error?: string | undefined;
 };
 
 const DEFAULT_ROUTE_CONCURRENCY = 2;
+const DEFAULT_ROUTE_PAGE_CONCURRENCY = 1;
+const DEFAULT_ROUTE_PAGE_SIZE = 5_000;
+const DEFAULT_FETCH_TIMEOUT_MS = 60_000;
+const DEFAULT_FETCH_RETRY_COUNT = 2;
 
-function sourceIdForYear(sourceYear: number): BusScheduleSourceId {
+export function sourceIdForYear(sourceYear: number): BusScheduleSourceId {
   if (sourceYear === 2023) return "bus_schedules_2023";
   if (sourceYear === 2024) return "bus_schedules_2024";
   if (sourceYear === 2025) return "bus_schedules_2025";
@@ -79,11 +104,11 @@ function chunkArray<T>(values: readonly T[], size: number): T[][] {
   return chunks;
 }
 
-function textValue(value: unknown): string | null {
+export function textValue(value: unknown): string | null {
   return typeof value === "string" && value.length > 0 ? value : null;
 }
 
-function numberValue(value: unknown): number | null {
+export function numberValue(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value)) return value;
   if (typeof value === "bigint") return Number(value);
   if (typeof value === "string" && value.length > 0) {
@@ -93,7 +118,7 @@ function numberValue(value: unknown): number | null {
   return null;
 }
 
-function booleanValue(value: unknown): boolean | null {
+export function booleanValue(value: unknown): boolean | null {
   if (typeof value === "boolean") return value;
   if (typeof value === "number") return value !== 0;
   if (typeof value === "string") {
@@ -101,6 +126,17 @@ function booleanValue(value: unknown): boolean | null {
     if (value === "0" || value.toLowerCase() === "false") return false;
   }
   return null;
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function emitProgress(
+  inputs: RouteSchedulesIngestInputs,
+  event: RouteSchedulesIngestProgressEvent,
+): void {
+  inputs.progress?.(event);
 }
 
 function scheduleYearWhere(sourceYear: number): string {
@@ -111,7 +147,7 @@ function scheduleYearWhere(sourceYear: number): string {
   ].join(" AND ");
 }
 
-function ensureRouteScheduleStopTable(sqlite: Database): void {
+export function ensureRouteScheduleStopTable(sqlite: Database): void {
   sqlite.exec(`
     CREATE TABLE IF NOT EXISTS local_route_schedule_stop (
       source_year integer NOT NULL,
@@ -137,21 +173,95 @@ function ensureRouteScheduleStopTable(sqlite: Database): void {
     );
     CREATE INDEX IF NOT EXISTS local_route_schedule_stop_lookup_idx
       ON local_route_schedule_stop (source_year, route_id, direction, stop_id, schedule_time);
+
+    CREATE TABLE IF NOT EXISTS local_route_schedule_ingest_status (
+      source_year integer NOT NULL,
+      route_id text NOT NULL,
+      status text NOT NULL,
+      row_count integer NOT NULL DEFAULT 0,
+      error text,
+      updated_at text NOT NULL,
+      completed_at text,
+      PRIMARY KEY (source_year, route_id)
+    );
   `);
 }
 
-function existingRowCount(sqlite: Database, sourceYear: number, routeId: string): number {
+function routeHasRows(sqlite: Database, sourceYear: number, routeId: string): boolean {
   const row = sqlite
     .query(
       `
-        SELECT COUNT(*) AS count
+        SELECT 1 AS exists_row
         FROM local_route_schedule_stop
+        WHERE source_year = ? AND route_id = ?
+        LIMIT 1
+      `,
+    )
+    .get(sourceYear, routeId) as { exists_row?: unknown } | null;
+  return row !== null;
+}
+
+export function isExistingRouteComplete(
+  sqlite: Database,
+  sourceYear: number,
+  routeId: string,
+): boolean {
+  const status = sqlite
+    .query(
+      `
+        SELECT status, row_count
+        FROM local_route_schedule_ingest_status
         WHERE source_year = ? AND route_id = ?
       `,
     )
-    .get(sourceYear, routeId) as { count?: unknown } | null;
-  const count = numberValue(row?.count);
-  return count === null ? 0 : count;
+    .get(sourceYear, routeId) as { status?: unknown; row_count?: unknown } | null;
+
+  if (status !== null) {
+    return status.status === "complete" && Number(status.row_count ?? 0) > 0;
+  }
+
+  return routeHasRows(sqlite, sourceYear, routeId);
+}
+
+type RouteScheduleIngestStatus = "complete" | "failed" | "in_progress" | "source_absent";
+
+export function markRouteStatus(input: {
+  sqlite: Database;
+  sourceYear: number;
+  routeId: string;
+  status: RouteScheduleIngestStatus;
+  rowCount: number;
+  error?: string | null | undefined;
+}): void {
+  input.sqlite
+    .prepare(
+      `
+        INSERT INTO local_route_schedule_ingest_status (
+          source_year, route_id, status, row_count, error, updated_at, completed_at
+        )
+        VALUES (?, ?, ?, ?, ?, datetime('now'), CASE WHEN ? IN ('complete', 'source_absent') THEN datetime('now') ELSE NULL END)
+        ON CONFLICT(source_year, route_id) DO UPDATE SET
+          status = excluded.status,
+          row_count = excluded.row_count,
+          error = excluded.error,
+          updated_at = excluded.updated_at,
+          completed_at = excluded.completed_at
+      `,
+    )
+    .run(
+      input.sourceYear,
+      input.routeId,
+      input.status,
+      input.rowCount,
+      input.error ?? null,
+      input.status,
+    );
+}
+
+export function deleteRouteRows(sqlite: Database, sourceYear: number, routeId: string): void {
+  sqlite
+    .prepare("DELETE FROM local_route_schedule_stop WHERE source_year = ? AND route_id = ?")
+    .run(sourceYear, routeId);
 }
 
 async function listSourceRoutes(input: {
@@ -170,24 +280,103 @@ async function listSourceRoutes(input: {
     .sort();
 }
 
-async function fetchRouteScheduleRows(input: {
+async function fetchAndWriteRouteScheduleRows(input: {
   client: SocrataClient;
-  sourceYear: number;
-  routeId: string;
-}): Promise<RawScheduleStopRow[]> {
-  const query: SocrataRowsQuery = {
-    select:
-      "schedule_date,day_type,direction,shape_id,route_id,stop_sequence,stop_id,stop_name,schedule_time,distance_from_start,trip_headsign,block_id,bundle,timepoint,revenue_stop,origin,destination",
-    where: [scheduleYearWhere(input.sourceYear), soqlIn("route_id", [input.routeId])].join(" AND "),
-    order: "route_id,schedule_date,direction,shape_id,block_id,schedule_time,stop_sequence",
-  };
-  return (await input.client.rows(query)) as RawScheduleStopRow[];
-}
-
-function writeRouteRows(input: {
   sqlite: Database;
   sourceYear: number;
   routeId: string;
+  pageConcurrency: number;
+  pageSize: number;
+  onPageWritten?: ((event: { offset: number; rowCount: number }) => void) | undefined;
+}): Promise<{ fetchedRowCount: number; writtenRowCount: number }> {
+  const where = [scheduleYearWhere(input.sourceYear), soqlIn("route_id", [input.routeId])].join(
+    " AND ",
+  );
+  const countRows = (await input.client.rows({
+    select: "count(*)",
+    where,
+  })) as Array<{ count?: unknown }>;
+  const rowCount = numberValue(countRows[0]?.count) ?? 0;
+  markRouteStatus({
+    sqlite: input.sqlite,
+    sourceYear: input.sourceYear,
+    routeId: input.routeId,
+    status: "in_progress",
+    rowCount: 0,
+  });
+  deleteRouteRows(input.sqlite, input.sourceYear, input.routeId);
+  if (rowCount <= 0) {
+    markRouteStatus({
+      sqlite: input.sqlite,
+      sourceYear: input.sourceYear,
+      routeId: input.routeId,
+      status: "source_absent",
+      rowCount: 0,
+      error: "no_source_rows_for_requested_route",
+    });
+    return { fetchedRowCount: 0, writtenRowCount: 0 };
+  }
+
+  const baseQuery: SocrataRowsQuery = {
+    select:
+      "schedule_date,day_type,direction,shape_id,route_id,stop_sequence,stop_id,stop_name,schedule_time,distance_from_start,trip_headsign,block_id,bundle,timepoint,revenue_stop,origin,destination",
+    where,
+    order: "route_id,schedule_date,direction,shape_id,block_id,schedule_time,stop_sequence",
+  };
+  const offsets = Array.from(
+    { length: Math.ceil(rowCount / input.pageSize) },
+    (_, index) => index * input.pageSize,
+  );
+
+  let fetchedRowCount = 0;
+  let writtenRowCount = 0;
+  for (const offsetChunk of chunkArray(offsets, input.pageConcurrency)) {
+    const pageResults = await Promise.allSettled(
+      offsetChunk.map(async (offset) => ({
+        offset,
+        rows: (await input.client.rows({
+          ...baseQuery,
+          limit: input.pageSize,
+          offset,
+        })) as RawScheduleStopRow[],
+      })),
+    );
+    const rejected = pageResults.find((result) => result.status === "rejected");
+    if (rejected !== undefined) {
+      throw rejected.reason;
+    }
+
+    for (const result of pageResults) {
+      if (result.status !== "fulfilled") continue;
+      const page = result.value;
+      fetchedRowCount += page.rows.length;
+      const pageWrittenRowCount = writeRoutePageRows({
+        sqlite: input.sqlite,
+        sourceYear: input.sourceYear,
+        routeId: input.routeId,
+        rowRankStart: page.offset + 1,
+        rows: page.rows,
+      });
+      writtenRowCount += pageWrittenRowCount;
+      input.onPageWritten?.({ offset: page.offset, rowCount: pageWrittenRowCount });
+    }
+  }
+
+  markRouteStatus({
+    sqlite: input.sqlite,
+    sourceYear: input.sourceYear,
+    routeId: input.routeId,
+    status: "complete",
+    rowCount: writtenRowCount,
+  });
+  return { fetchedRowCount, writtenRowCount };
+}
+
+export function writeRoutePageRows(input: {
+  sqlite: Database;
+  sourceYear: number;
+  routeId: string;
+  rowRankStart: number;
   rows: readonly RawScheduleStopRow[];
 }): number {
   const insert = input.sqlite.prepare(`
@@ -198,13 +387,9 @@ function writeRouteRows(input: {
     )
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
-  const deleteRows = input.sqlite.prepare(
-    "DELETE FROM local_route_schedule_stop WHERE source_year = ? AND route_id = ?",
-  );
 
   let written = 0;
   input.sqlite.transaction(() => {
-    deleteRows.run(input.sourceYear, input.routeId);
     for (const [index, row] of input.rows.entries()) {
       const routeId = textValue(row.route_id);
       const scheduleDate = textValue(row.schedule_date);
@@ -232,7 +417,7 @@ function writeRouteRows(input: {
       insert.run(
         input.sourceYear,
         routeId,
-        index + 1,
+        input.rowRankStart + index,
         scheduleDate,
         dayType,
         direction,
@@ -268,50 +453,125 @@ export async function runRouteSchedulesIngest(
     inputs.manifestText ??
     (await Bun.file(fromRepoRoot("knowledge/raw/source_manifest.yaml")).text());
   const source = getSocrataSource(parseSourceManifest(manifestText), sourceId);
-  const client = SocrataClient.fromSource(source, { fetcher: inputs.fetcher });
+  const pageSize = inputs.pageSize ?? DEFAULT_ROUTE_PAGE_SIZE;
+  const client = SocrataClient.fromSource(source, {
+    fetcher: inputs.fetcher,
+    pageSize,
+    retryCount: inputs.fetchRetryCount ?? DEFAULT_FETCH_RETRY_COUNT,
+    retryDelayMs: 1_000,
+    timeoutMs: inputs.fetchTimeoutMs ?? DEFAULT_FETCH_TIMEOUT_MS,
+  });
   const routeIds =
     inputs.routes.length === 0
       ? await listSourceRoutes({ client, sourceYear: inputs.sourceYear })
       : [...new Set(inputs.routes.map((route) => route.toUpperCase()))].sort();
   const routeConcurrency = inputs.routeConcurrency ?? DEFAULT_ROUTE_CONCURRENCY;
+  const routePageConcurrency = inputs.routePageConcurrency ?? DEFAULT_ROUTE_PAGE_CONCURRENCY;
 
   let fetchedRowCount = 0;
   let writtenRowCount = 0;
   let skippedRouteCount = 0;
+  const failedRoutes: string[] = [];
+  const pendingRouteIds: string[] = [];
 
-  for (const routeChunk of chunkArray(routeIds, routeConcurrency)) {
+  for (const routeId of routeIds) {
+    if (
+      (inputs.skipExisting ?? true) &&
+      isExistingRouteComplete(inputs.sqlite, inputs.sourceYear, routeId)
+    ) {
+      skippedRouteCount += 1;
+      emitProgress(inputs, {
+        kind: "route_skipped",
+        sourceYear: inputs.sourceYear,
+        routeId,
+      });
+      continue;
+    }
+
+    pendingRouteIds.push(routeId);
+  }
+
+  for (const routeChunk of chunkArray(pendingRouteIds, routeConcurrency)) {
     const results = await Promise.all(
       routeChunk.map(async (routeId) => {
-        if (
-          (inputs.skipExisting ?? true) &&
-          existingRowCount(inputs.sqlite, inputs.sourceYear, routeId) > 0
-        ) {
-          return { routeId, rows: null as RawScheduleStopRow[] | null };
-        }
-        return {
-          routeId,
-          rows: await fetchRouteScheduleRows({
-            client,
+        try {
+          emitProgress(inputs, {
+            kind: "route_fetching",
             sourceYear: inputs.sourceYear,
             routeId,
-          }),
-        };
+          });
+          const routeResult = await fetchAndWriteRouteScheduleRows({
+            client,
+            sqlite: inputs.sqlite,
+            sourceYear: inputs.sourceYear,
+            routeId,
+            pageConcurrency: routePageConcurrency,
+            pageSize,
+            onPageWritten: (event) =>
+              emitProgress(inputs, {
+                kind: "route_page_written",
+                sourceYear: inputs.sourceYear,
+                routeId,
+                offset: event.offset,
+                rowCount: event.rowCount,
+              }),
+          });
+          return {
+            routeId,
+            ...routeResult,
+            error: null,
+          };
+        } catch (error) {
+          const message = errorMessage(error);
+          deleteRouteRows(inputs.sqlite, inputs.sourceYear, routeId);
+          markRouteStatus({
+            sqlite: inputs.sqlite,
+            sourceYear: inputs.sourceYear,
+            routeId,
+            status: "failed",
+            rowCount: 0,
+            error: message,
+          });
+          return {
+            routeId,
+            fetchedRowCount: 0,
+            writtenRowCount: 0,
+            error,
+          };
+        }
       }),
     );
 
     for (const result of results) {
-      if (result.rows === null) {
-        skippedRouteCount += 1;
+      if (result.error !== null) {
+        const message = errorMessage(result.error);
+        failedRoutes.push(result.routeId);
+        emitProgress(inputs, {
+          kind: "route_failed",
+          sourceYear: inputs.sourceYear,
+          routeId: result.routeId,
+          error: message,
+        });
         continue;
       }
-      fetchedRowCount += result.rows.length;
-      writtenRowCount += writeRouteRows({
-        sqlite: inputs.sqlite,
+      fetchedRowCount += result.fetchedRowCount;
+      writtenRowCount += result.writtenRowCount;
+      emitProgress(inputs, {
+        kind: "route_written",
         sourceYear: inputs.sourceYear,
         routeId: result.routeId,
-        rows: result.rows,
+        rowCount: result.writtenRowCount,
       });
     }
+  }
+
+  if (failedRoutes.length > 0) {
+    throw new Error(
+      [
+        `Failed to fetch ${failedRoutes.length} route schedule(s) for ${inputs.sourceYear}: ${failedRoutes.join(", ")}`,
+        `wrote ${writtenRowCount} rows and skipped ${skippedRouteCount} existing route(s) before failing`,
+      ].join("; "),
+    );
   }
 
   return {
@@ -321,6 +581,8 @@ export async function runRouteSchedulesIngest(
     skippedRouteCount,
     fetchedRowCount,
     writtenRowCount,
+    failedRouteCount: 0,
+    failedRoutes: [],
   };
 }
 
@@ -342,6 +604,26 @@ export default defineCommand({
         .positiveInt()
         .default(DEFAULT_ROUTE_CONCURRENCY)
         .describe("Number of route-level Socrata schedule queries to run concurrently"),
+      routePageConcurrency: arg
+        .positiveInt()
+        .default(DEFAULT_ROUTE_PAGE_CONCURRENCY)
+        .describe("Number of Socrata pages to fetch concurrently within each route"),
+      pageSize: arg
+        .positiveInt()
+        .default(DEFAULT_ROUTE_PAGE_SIZE)
+        .describe("Socrata page size for route schedule stop rows"),
+      fetchTimeoutMs: arg
+        .positiveInt()
+        .default(DEFAULT_FETCH_TIMEOUT_MS)
+        .describe("Timeout per Socrata request before retrying"),
+      fetchRetryCount: arg
+        .positiveInt()
+        .default(DEFAULT_FETCH_RETRY_COUNT)
+        .describe("Retry count for route schedule Socrata requests"),
+      logProgress: z.coerce
+        .boolean()
+        .default(true)
+        .describe("Write per-route ingest progress events to stderr"),
       skipExisting: z.coerce
         .boolean()
         .default(true)
@@ -360,6 +642,8 @@ export default defineCommand({
     skippedRouteCount: z.number(),
     fetchedRowCount: z.number(),
     writtenRowCount: z.number(),
+    failedRouteCount: z.number(),
+    failedRoutes: z.array(z.string()),
   }),
   async run({ input }) {
     const dbPath =
@@ -374,6 +658,20 @@ export default defineCommand({
             ? input.options.routes
             : [...input.options.routes, input.options.route],
         routeConcurrency: input.options.routeConcurrency,
+        routePageConcurrency: input.options.routePageConcurrency,
+        pageSize: input.options.pageSize,
+        fetchTimeoutMs: input.options.fetchTimeoutMs,
+        fetchRetryCount: input.options.fetchRetryCount,
+        progress: input.options.logProgress
+          ? (event) => {
+              console.error(
+                JSON.stringify({
+                  event: "route_schedules_ingest_progress",
+                  ...event,
+                }),
+              );
+            }
+          : undefined,
         skipExisting: input.options.skipExisting,
       });
     } finally {

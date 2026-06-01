@@ -34,6 +34,7 @@ type SourceBundle = JsonObject & {
   recordCount?: number;
   unattachedCandidateCount?: number;
   droppedNoInterventionEvidenceCount?: number;
+  mergeProvenance?: { label: string; artifactPath: string };
   buckets?: Array<{ status?: string; bucketId?: string; error?: unknown }>;
   error?: unknown;
 };
@@ -259,9 +260,13 @@ function collapseStatusHistory(record: InterventionRecord): number {
     ].sort();
   }
 
-  const collapsed = order.map((key) => grouped.get(key)).filter(Boolean);
+  const collapsed = order
+    .map((key) => grouped.get(key))
+    .filter((entry): entry is NonNullable<InterventionRecord["statusHistory"]>[number] =>
+      entry !== undefined,
+    );
   const removed = record.statusHistory.length - collapsed.length;
-  if (removed > 0) record.statusHistory = collapsed as InterventionRecord["statusHistory"];
+  if (removed > 0) record.statusHistory = collapsed;
   return removed;
 }
 
@@ -430,7 +435,7 @@ const droppedNoInterventionEvidenceCount = sources.reduce(
   0,
 );
 if (droppedNoInterventionEvidenceCount > 0) {
-  recordQualityIssueCounts.phase3_record_dropped_no_intervention_evidence =
+  recordQualityIssueCounts["phase3_record_dropped_no_intervention_evidence"] =
     droppedNoInterventionEvidenceCount;
 }
 

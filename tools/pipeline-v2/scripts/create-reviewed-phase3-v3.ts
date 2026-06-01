@@ -33,6 +33,7 @@ type JsonObject = Record<string, unknown>;
 type SourceBundle = JsonObject & {
   sourceId: string;
   recordCount?: number;
+  manualReviewRejectedRecordCount?: number;
 };
 
 type InterventionRecord = JsonObject & {

@@ -10,46 +10,47 @@ import { Buffer } from "node:buffer";
 import { mkdir, readdir } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 import { PDFDocument } from "pdf-lib";
+import { writeJson } from "../../../lib/json.ts";
+import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";
 import {
   callOpenRouterToolCallViaPi,
-  postOpenRouterChatCompletions,
+  callPioneerToolCallDirect,
   openRouterErrorMessage,
+  postOpenRouterChatCompletions,
   servedServiceTier,
 } from "./_llm-clients.ts";
-import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";
-import { writeJson } from "../../../lib/json.ts";
 import {
   artifactKey,
+  type CliOption,
   DEFAULT_OCR_MAX_TOKENS,
   DEFAULT_OCR_MODEL,
   defaultFetch,
   executableExists,
   extractToolCallArguments,
+  type FetchLike,
   frontmatterValue,
   latestDocsRunId,
   mapWithConcurrency,
   normalizeOcrPageMarkdownRootName,
-  ocrPlanPath,
   OCR_PAGE_MARKDOWN_TOOL_NAME,
+  type OcrTier2PageMarkdownArgs,
   ocrPageMarkdownSourceRoot,
+  ocrPlanPath,
   pageMarkdownOutputPaths,
   pageMarkdownToolResult,
   parseCliOptions,
   pdfInfoPageCount,
   sha256,
-  trueOption,
-  type CliOption,
-  type FetchLike,
-  type OcrTier2PageMarkdownArgs,
   type Tier2OcrPageInputPreference,
   type Tier2OcrPageMarkdownManifest,
   type Tier2OcrPageMarkdownPage,
   type Tier2OcrPageMarkdownSource,
   type Tier2OcrPlan,
   type Tier2OcrPlanSource,
+  trueOption,
 } from "./_shared.ts";
 
-const OCR_PAGE_MARKDOWN_PROMPT_VERSION = "page-markdown-v3";
+const OCR_PAGE_MARKDOWN_PROMPT_VERSION = "page-markdown-v4";
 
 function parsePageRange(range: string, pageCount: number): number[] {
   if (pageCount < 1) {
@@ -88,10 +89,14 @@ async function renderPdfPageToPng(input: {
   pageNumber: number;
   renderPageNumber: number;
 }): Promise<{ artifactPath: string; byteLength: number; sha256: string } | null> {
+  const prefix = join(input.outputDir, `page-${String(input.pageNumber).padStart(4, "0")}-render`);
+  const existing = await readRenderedPng(input.outputDir, prefix);
+  if (existing !== null) {
+    return existing;
+  }
   if (!(await executableExists("pdftoppm"))) {
     return null;
   }
-  const prefix = join(input.outputDir, `page-${String(input.pageNumber).padStart(4, "0")}-render`);
   const proc = Bun.spawn(
     [
       "pdftoppm",
@@ -110,21 +115,33 @@ async function renderPdfPageToPng(input: {
       stderr: "pipe",
     },
   );
-  const [exitCode, stderr] = await Promise.all([
-    proc.exited,
-    new Response(proc.stderr).text(),
-  ]);
+  const [exitCode, stderr] = await Promise.all([proc.exited, new Response(proc.stderr).text()]);
   if (exitCode !== 0) {
     throw new Error(`pdftoppm failed for page ${input.pageNumber}: ${stderr.trim()}`);
   }
-  const outputNames = (await readdir(input.outputDir)).filter(
+  const rendered = await readRenderedPng(input.outputDir, prefix);
+  if (rendered === null) {
+    throw new Error(`pdftoppm did not produce a PNG for page ${input.pageNumber}.`);
+  }
+  return rendered;
+}
+
+async function readRenderedPng(
+  outputDir: string,
+  prefix: string,
+): Promise<{ artifactPath: string; byteLength: number; sha256: string } | null> {
+  const outputNames = (await readdir(outputDir)).filter(
     (name) => name.startsWith(`${basename(prefix)}-`) && name.endsWith(".png"),
   );
-  const outputPath = outputNames.length === 1 ? join(input.outputDir, outputNames[0]!) : null;
+  const outputName = outputNames.length === 1 ? outputNames[0] : undefined;
+  const outputPath = outputName === undefined ? null : join(outputDir, outputName);
   if (outputPath === null) {
-    throw new Error(`pdftoppm did not produce exactly one PNG for page ${input.pageNumber}.`);
+    return null;
   }
   const bytes = new Uint8Array(await Bun.file(outputPath).arrayBuffer());
+  if (bytes.byteLength === 0) {
+    return null;
+  }
   return {
     artifactPath: outputPath,
     byteLength: bytes.byteLength,
@@ -167,18 +184,12 @@ async function preparePageMarkdownInputs(input: {
   const shouldUseRenderedImageInput =
     input.pageInputPreference === "image" ||
     (input.pageInputPreference === "auto" && supportsRenderedImageOcrInput(input.model));
-  const renderAvailable = shouldUseRenderedImageInput
-    ? await executableExists("pdftoppm")
-    : false;
-  if (input.pageInputPreference === "image" && !renderAvailable) {
-    throw new Error("PDF page image rendering requested, but pdftoppm is not available.");
-  }
+  const renderAvailable = shouldUseRenderedImageInput ? await executableExists("pdftoppm") : false;
 
   let rawBytes: Uint8Array | null = null;
   let pdf: PDFDocument | null = null;
-  let pdfPageCount = shouldUseRenderedImageInput && renderAvailable
-    ? await pdfInfoPageCount(rawPath)
-    : null;
+  let pdfPageCount =
+    shouldUseRenderedImageInput && renderAvailable ? await pdfInfoPageCount(rawPath) : null;
   if (pdfPageCount === null) {
     try {
       rawBytes = new Uint8Array(await Bun.file(rawPath).arrayBuffer());
@@ -314,9 +325,15 @@ function buildOcrPageMarkdownPrompt(input: {
     "Use Markdown tables when the page has tables.",
     "If a chart or figure contains readable labels and numeric values, transcribe the chart title and visible values into a Markdown table near the chart position. Do not put chart values only in image alt text.",
     "Use image placeholders only for non-textual visual content that cannot be represented as text or a table.",
+    "Image placeholders must be brief alt text only; do not add separate visual-analysis notes, object lists, or inferred scene descriptions.",
     "Ignore repeated slide footers, page numbers, and decorative artifacts unless they carry source meaning. Never repeat the same visible footer or page number more than once.",
     "Use normal Markdown line breaks and sections. Do not collapse the whole page into one paragraph.",
-    "Do not summarize, reinterpret, or add facts that are not visible on the page. Mark unreadable text as [unclear].",
+    "Sparse pages are valid OCR outputs. If the page is a cover, divider, map-only page, or mostly decorative image, transcribe only the visible text and use a short image placeholder.",
+    "A sparse page can produce a short markdown field. Do not pad the answer to make it look complete.",
+    "Never infer report sections, examples, route impacts, benefits, tables, footnotes, or metrics that are not visibly printed on this exact page.",
+    "The source metadata below is for routing and validation only. Do not copy Source ID, Title, Publisher, Source group, or Page into the markdown field unless those exact words are visibly printed on the page image.",
+    "If no table is visible on the page, do not create a table and set containsTables to false.",
+    "Do not summarize, reinterpret, or add facts that are not visible on the page. Omit unreadable background signs, decorative text, and tiny labels; do not emit [unclear], [illegible], or lists of unreadable items.",
     `You must call the ${OCR_PAGE_MARKDOWN_TOOL_NAME} tool. Put the full Markdown transcription in the markdown field.`,
     `In the tool call, pageNumber must be exactly ${input.pageNumber}. This is the PDF page ordinal supplied by the pipeline; do not replace it with a printed page number visible on the document.`,
     "Use the hint fields only for indexing and later search. Do not include pipeline metadata or YAML frontmatter; the host pipeline will add that.",
@@ -393,7 +410,7 @@ function markdownWithFrontmatter(input: {
   pdfPageCount: number;
   generatedAt: string;
   model: string;
-  provider: string;
+  provider: Tier2OcrPageMarkdownManifest["provider"];
   serviceTier: string;
   pdfEngine: string;
   promptVersion: string;
@@ -475,6 +492,7 @@ function supportsRenderedImageOcrInput(model: string): boolean {
 
 export async function callOpenRouterPageMarkdownOcr(input: {
   apiKey: string;
+  provider?: Tier2OcrPageMarkdownManifest["provider"];
   model: string;
   pdfEngine: Tier2OcrPageMarkdownManifest["pdfEngine"];
   serviceTier: Tier2OcrPageMarkdownManifest["serviceTier"];
@@ -493,6 +511,7 @@ export async function callOpenRouterPageMarkdownOcr(input: {
     pageNumber: input.pageNumber,
     pdfPageCount: input.pdfPageCount,
   });
+  const provider = input.provider ?? "openrouter";
 
   // Canonical (rendered-image) OCR path: route the vision tool call through the
   // pi harness. pi-ai serializes the `{type:"image"}` block to OpenRouter's
@@ -506,23 +525,30 @@ export async function callOpenRouterPageMarkdownOcr(input: {
       description: string;
       parameters: Record<string, unknown>;
     };
-    return callOpenRouterToolCallViaPi({
+    const toolCallInput = {
       apiKey: input.apiKey,
       model: input.model,
       maxTokens: input.maxTokens,
       toolName: OCR_PAGE_MARKDOWN_TOOL_NAME,
       messages: [
         {
-          role: "user",
+          role: "user" as const,
           content: [
-            { type: "text", text: prompt },
-            { type: "image", data: base64, mimeType: "image/png" },
+            { type: "text" as const, text: prompt },
+            { type: "image" as const, data: base64, mimeType: "image/png" },
           ],
         },
       ],
       tools: [tool],
       fetcher: input.fetcher,
-    });
+    };
+    return provider === "pioneer"
+      ? callPioneerToolCallDirect(toolCallInput)
+      : callOpenRouterToolCallViaPi(toolCallInput);
+  }
+
+  if (provider === "pioneer") {
+    throw new Error("Pioneer OCR only supports rendered-image page inputs.");
   }
 
   // Non-vision `pdf_page` fallback: pi-ai cannot express OpenRouter's
@@ -670,7 +696,7 @@ async function ocrPageMarkdownPage(input: {
   runRoot: string;
   generatedAt: string;
   model: string;
-  provider: string;
+  provider: Tier2OcrPageMarkdownManifest["provider"];
   pdfEngine: Tier2OcrPageMarkdownManifest["pdfEngine"];
   serviceTier: Tier2OcrPageMarkdownManifest["serviceTier"];
   maxTokens: number;
@@ -729,12 +755,17 @@ async function ocrPageMarkdownPage(input: {
   }
 
   if (input.apiKey === undefined || input.apiKey.length === 0) {
-    throw new Error("OPENROUTER_API_KEY is required for docs:ocr --page-markdown --execute.");
+    throw new Error(
+      input.provider === "pioneer"
+        ? "PIONEER_API_KEY is required for docs:tier2:ocr --provider pioneer --execute."
+        : "OPENROUTER_API_KEY is required for docs:tier2:ocr --execute.",
+    );
   }
 
   const paths = pageMarkdownOutputPaths(input.page.pageRoot);
   const openRouter = await callOpenRouterPageMarkdownOcr({
     apiKey: input.apiKey,
+    provider: input.provider,
     model: input.model,
     pdfEngine: input.pdfEngine,
     serviceTier: input.serviceTier,
@@ -754,7 +785,8 @@ async function ocrPageMarkdownPage(input: {
 
   const providerErrorMessage = openRouterErrorMessage(openRouter.body);
   if (!openRouter.response.ok || providerErrorMessage !== null) {
-    const httpErrorMessage = `OpenRouter HTTP ${openRouter.response.status} ${openRouter.response.statusText}`;
+    const providerLabel = input.provider === "pioneer" ? "Pioneer" : "OpenRouter";
+    const httpErrorMessage = `${providerLabel} HTTP ${openRouter.response.status} ${openRouter.response.statusText}`;
     const errorMessage =
       providerErrorMessage === null
         ? httpErrorMessage
@@ -801,7 +833,9 @@ async function ocrPageMarkdownPage(input: {
   let result: ReturnType<typeof pageMarkdownToolResult>;
   try {
     if (toolArgs === null) {
-      throw new Error(`OpenRouter response did not include required ${OCR_PAGE_MARKDOWN_TOOL_NAME} tool call.`);
+      throw new Error(
+        `OpenRouter response did not include required ${OCR_PAGE_MARKDOWN_TOOL_NAME} tool call.`,
+      );
     }
     result = pageMarkdownToolResult(toolArgs);
     if (result.sourceId !== input.source.sourceId) {
@@ -910,6 +944,7 @@ async function ocrPageMarkdownSource(input: {
   pageConcurrency: number;
   generatedAt: string;
   model: string;
+  provider: Tier2OcrPageMarkdownManifest["provider"];
   pdfEngine: Tier2OcrPageMarkdownManifest["pdfEngine"];
   serviceTier: Tier2OcrPageMarkdownManifest["serviceTier"];
   maxTokens: number;
@@ -930,25 +965,22 @@ async function ocrPageMarkdownSource(input: {
       pageInputPreference: input.pageInputPreference,
       model: input.model,
     });
-    const pages = await mapWithConcurrency(
-      prepared.pages,
-      input.pageConcurrency,
-      async (page) =>
-        ocrPageMarkdownPage({
-          source: input.source,
-          page,
-          runRoot: input.runRoot,
-          generatedAt: input.generatedAt,
-          model: input.model,
-          provider: "openrouter",
-          pdfEngine: input.pdfEngine,
-          serviceTier: input.serviceTier,
-          maxTokens: input.maxTokens,
-          execute: input.execute,
-          fetcher: input.fetcher,
-          apiKey: input.apiKey,
-          pdfPageCount: prepared.pdfPageCount,
-        }),
+    const pages = await mapWithConcurrency(prepared.pages, input.pageConcurrency, async (page) =>
+      ocrPageMarkdownPage({
+        source: input.source,
+        page,
+        runRoot: input.runRoot,
+        generatedAt: input.generatedAt,
+        model: input.model,
+        provider: input.provider,
+        pdfEngine: input.pdfEngine,
+        serviceTier: input.serviceTier,
+        maxTokens: input.maxTokens,
+        execute: input.execute,
+        fetcher: input.fetcher,
+        apiKey: input.apiKey,
+        pdfPageCount: prepared.pdfPageCount,
+      }),
     );
     const failedPageCount = pages.filter((page) => page.status === "ocr_failed").length;
     const completePageCount = pages.filter((page) => page.status === "ocr_complete").length;
@@ -1014,6 +1046,7 @@ export async function ocrTier2PageMarkdown(
   const plan = (await Bun.file(args.ocrPlanPath).json()) as Tier2OcrPlan;
   const runRoot = dirname(plan.captureManifestPath);
   const model = args.model ?? process.env["OPENROUTER_OCR_MODEL"] ?? DEFAULT_OCR_MODEL;
+  const provider = args.provider ?? "openrouter";
   const allPages = args.allPages ?? args.pageLimit === undefined;
   const pageLimit: number | null = allPages ? null : (args.pageLimit ?? 10);
   if (pageLimit !== null && (!Number.isInteger(pageLimit) || pageLimit < 1)) {
@@ -1058,12 +1091,17 @@ export async function ocrTier2PageMarkdown(
         pageConcurrency,
         generatedAt,
         model,
+        provider,
         pdfEngine,
         serviceTier,
         maxTokens,
         execute,
         fetcher,
-        apiKey: args.apiKey ?? process.env["OPENROUTER_API_KEY"],
+        apiKey:
+          args.apiKey ??
+          (provider === "pioneer"
+            ? process.env["PIONEER_API_KEY"]
+            : process.env["OPENROUTER_API_KEY"]),
       }),
     );
   }
@@ -1077,7 +1115,7 @@ export async function ocrTier2PageMarkdown(
     captureManifestPath: plan.captureManifestPath,
     outputPath: args.outputPath ?? null,
     runtime: "pi-mono",
-    provider: "openrouter",
+    provider,
     model,
     api: "chat.completions",
     pdfEngine,
@@ -1124,6 +1162,7 @@ type OcrPageMarkdownRenderCliArgs = {
   runId?: string;
   outputPath?: string;
   model?: string;
+  provider?: Tier2OcrPageMarkdownManifest["provider"];
   pdfEngine?: Tier2OcrPageMarkdownManifest["pdfEngine"];
   serviceTier?: Tier2OcrPageMarkdownManifest["serviceTier"];
   maxTokens?: number;
@@ -1171,15 +1210,24 @@ function parseOcrTier2PageMarkdownCliArgs(args: string[]): OcrPageMarkdownRender
       },
     },
     {
+      flags: ["--provider"],
+      apply: (output, value) => {
+        if (value !== undefined)
+          output.provider = value as Tier2OcrPageMarkdownManifest["provider"];
+      },
+    },
+    {
       flags: ["--pdf-engine"],
       apply: (output, value) => {
-        if (value !== undefined) output.pdfEngine = value as Tier2OcrPageMarkdownManifest["pdfEngine"];
+        if (value !== undefined)
+          output.pdfEngine = value as Tier2OcrPageMarkdownManifest["pdfEngine"];
       },
     },
     {
       flags: ["--service-tier"],
       apply: (output, value) => {
-        if (value !== undefined) output.serviceTier = value as Tier2OcrPageMarkdownManifest["serviceTier"];
+        if (value !== undefined)
+          output.serviceTier = value as Tier2OcrPageMarkdownManifest["serviceTier"];
       },
     },
     {
@@ -1256,7 +1304,13 @@ export async function ocrTier2PageMarkdownFromCli(
   args: string[],
 ): Promise<Tier2OcrPageMarkdownManifest> {
   const parsed = parseOcrTier2PageMarkdownCliArgs(args);
-  const { artifactRoot: _artifactRoot, runId: _runId, ocrPlanPath: _ocrPlanFlag, outputPath, ...rest } = parsed;
+  const {
+    artifactRoot: _artifactRoot,
+    runId: _runId,
+    ocrPlanPath: _ocrPlanFlag,
+    outputPath,
+    ...rest
+  } = parsed;
   const resolvedOcrPlanPath = await resolveRenderOcrPlanPath(parsed);
   return ocrTier2PageMarkdown({
     ...rest,
@@ -1265,3 +1319,30 @@ export async function ocrTier2PageMarkdownFromCli(
   });
 }
 
+export async function prepareTier2PageMarkdownInputsFromCli(
+  args: string[],
+): Promise<Tier2OcrPageMarkdownManifest> {
+  const parsed = parseOcrTier2PageMarkdownCliArgs(args);
+  if (parsed.execute === true) {
+    throw new Error(
+      "docs:tier2:ocr-prepare never submits OCR LLM requests. Use docs:tier2:ocr --execute after review.",
+    );
+  }
+  const {
+    artifactRoot: _artifactRoot,
+    runId: _runId,
+    ocrPlanPath: _ocrPlanFlag,
+    outputPath,
+    ...rest
+  } = parsed;
+  const resolvedOcrPlanPath = await resolveRenderOcrPlanPath(parsed);
+  const plan = (await Bun.file(resolvedOcrPlanPath).json()) as Tier2OcrPlan;
+  return ocrTier2PageMarkdown({
+    ...rest,
+    execute: false,
+    pageInputPreference: rest.pageInputPreference ?? "image",
+    limit: rest.limit ?? plan.sources.length,
+    ocrPlanPath: resolvedOcrPlanPath,
+    outputPath: outputPath ?? join(dirname(resolvedOcrPlanPath), "ocr-page-markdown-prepare.json"),
+  });
+}

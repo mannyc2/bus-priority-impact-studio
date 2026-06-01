@@ -77,6 +77,38 @@ describe("Socrata row queries", () => {
     expect(requestedOffsets).toEqual([0, 0, 2]);
   });
 
+  test("retries thrown Socrata transport failures", async () => {
+    const requestedOffsets: number[] = [];
+    let failedFirstPage = false;
+
+    const rows = await fetchAllSocrataRows({
+      domain: "data.ny.gov",
+      datasetId: SocrataDatasetIdSchema.parse("4fnn-qsea"),
+      pageSize: 2,
+      retryCount: 1,
+      retryDelayMs: 0,
+      fetcher: async (input) => {
+        const url = new URL(String(input));
+        const offset = Number(url.searchParams.get("$offset"));
+        requestedOffsets.push(offset);
+
+        if (offset === 0 && !failedFirstPage) {
+          failedFirstPage = true;
+          throw new Error("ECONNRESET");
+        }
+
+        if (offset === 0) {
+          return Response.json([{ route_id: "B61" }, { route_id: "B61" }]);
+        }
+
+        return Response.json([]);
+      },
+    });
+
+    expect(rows).toEqual([{ route_id: "B61" }, { route_id: "B61" }]);
+    expect(requestedOffsets).toEqual([0, 0, 2]);
+  });
+
   test("client binds a dataset endpoint for rows, metadata, columns, and counts", async () => {
     const datasetId = SocrataDatasetIdSchema.parse("kufs-yh3x");
     const requestedPaths: string[] = [];

@@ -35,35 +35,31 @@ import { mkdir, readdir, unlink } from "node:fs/promises";
 import { basename, dirname, join, relative } from "node:path";
 import { replaceTier2InterventionStagingRows } from "@bp/db/local";
 import {
+  type DocumentEvidenceCandidateDraft,
   DocumentEvidenceCandidateDraftSchema,
   DocumentEvidenceCandidateDraftToolSchema,
-  DocumentInterventionRecordsToolResponseSchema,
-  DocumentMetricNameSchema,
-  DocumentServiceChangeKindSchema,
-  DocumentTreatmentTypeSchema,
-  toProjectJsonSchema,
-  type DocumentEvidenceCandidateDraft,
   type DocumentEvidenceCandidateType,
   type DocumentFactClassification,
   type DocumentInterventionRecord,
   type DocumentInterventionRecordKind,
   type DocumentInterventionRecordsToolResponse,
+  DocumentInterventionRecordsToolResponseSchema,
   type DocumentInterventionStatus,
+  DocumentMetricNameSchema,
   type DocumentNegativeEvidenceFlag,
+  DocumentServiceChangeKindSchema,
+  DocumentTreatmentTypeSchema,
+  toProjectJsonSchema,
 } from "@bp/domain";
 import { PDFDocument } from "pdf-lib";
 import * as z from "zod";
+import { writeJson } from "../../../lib/json.ts";
 import {
   defaultLocalPipelineDbPath,
-  openLocalPipelineDb,
   type OpenLocalPipelineDb,
+  openLocalPipelineDb,
 } from "../../../lib/local-db.ts";
-import {
-  defaultArtifactRootPath,
-  fromCliPath,
-  fromRepoRoot,
-} from "../../../lib/paths.ts";
-import { writeJson } from "../../../lib/json.ts";
+import { defaultArtifactRootPath, fromCliPath, fromRepoRoot } from "../../../lib/paths.ts";
 
 // v1's lib/cli-args.js (kept inline; the FromCli parsers below still want it).
 export type CliOption<T> = {
@@ -72,11 +68,7 @@ export type CliOption<T> = {
   apply: (output: T, value: string | undefined) => void;
 };
 
-export function parseCliOptions<T>(
-  args: string[],
-  output: T,
-  options: readonly CliOption<T>[],
-): T {
+export function parseCliOptions<T>(args: string[], output: T, options: readonly CliOption<T>[]): T {
   for (let index = 0; index < args.length; index += 1) {
     const a = args[index];
     if (a === undefined) {
@@ -315,7 +307,7 @@ export type Tier2OcrPageMarkdownManifest = {
   captureManifestPath: string;
   outputPath: string | null;
   runtime: "pi-mono";
-  provider: "openrouter";
+  provider: "openrouter" | "pioneer";
   model: string;
   api: "chat.completions";
   pdfEngine: "cloudflare-ai" | "mistral-ocr" | "native";
@@ -548,7 +540,6 @@ export type Tier2OcrQualityReview = {
   sources: Tier2OcrQualityReviewSource[];
 };
 
-
 export type Tier2CandidateValidationState =
   | "unvalidated"
   | "validated"
@@ -625,11 +616,12 @@ export type Tier2InterventionRecordQualityRepairCode =
   | "phase3_record_label_conflict_repaired"
   | "phase3_record_merged_from_route_buckets";
 
-const INTERVENTION_RECORD_QUALITY_ISSUE_CODES: readonly Tier2InterventionRecordQualityIssueCode[] = [
-  "metric_value_numeric_not_supported_by_evidence_refs",
-  "corridor_extent_endpoints_not_supported_by_evidence",
-  "phase3_record_dropped_no_intervention_evidence",
-];
+const INTERVENTION_RECORD_QUALITY_ISSUE_CODES: readonly Tier2InterventionRecordQualityIssueCode[] =
+  [
+    "metric_value_numeric_not_supported_by_evidence_refs",
+    "corridor_extent_endpoints_not_supported_by_evidence",
+    "phase3_record_dropped_no_intervention_evidence",
+  ];
 
 const INTERVENTION_RECORD_QUALITY_REPAIR_CODES: readonly Tier2InterventionRecordQualityRepairCode[] =
   [
@@ -1265,6 +1257,7 @@ export type OcrTier2PageMarkdownArgs = {
   outputPath?: string;
   generatedAt?: string;
   model?: string;
+  provider?: Tier2OcrPageMarkdownManifest["provider"];
   pdfEngine?: Tier2OcrPageMarkdownManifest["pdfEngine"];
   serviceTier?: Tier2OcrPageMarkdownManifest["serviceTier"];
   maxTokens?: number;
@@ -1736,7 +1729,10 @@ function captureHeaders(init: RequestInit | undefined, userAgent: string): Heade
   return headers;
 }
 
-export async function defaultFetch(input: string | URL | Request, init?: RequestInit): Promise<Response> {
+export async function defaultFetch(
+  input: string | URL | Request,
+  init?: RequestInit,
+): Promise<Response> {
   const primary = await fetch(input, {
     ...init,
     headers: captureHeaders(init, "BusPriorityImpactStudio/0.1 (+https://github.com/)"),
@@ -2084,7 +2080,10 @@ async function writeRawArtifacts(input: {
   };
 }
 
-export async function writeSourceMetadata(runRoot: string, source: Tier2CapturedSource): Promise<void> {
+export async function writeSourceMetadata(
+  runRoot: string,
+  source: Tier2CapturedSource,
+): Promise<void> {
   const sourceRoot = join(runRoot, "sources", source.sourceId);
   await mkdir(sourceRoot, { recursive: true });
   await writeJson(join(sourceRoot, "metadata.json"), source);
@@ -2769,7 +2768,9 @@ export function normalizeOcrArtifactRootName(input: {
 }): string {
   const rootName = input.value ?? input.defaultName;
   if (!/^[a-z0-9][a-z0-9_-]*$/.test(rootName)) {
-    throw new Error(`${input.flagName} must use lowercase letters, numbers, dashes, or underscores.`);
+    throw new Error(
+      `${input.flagName} must use lowercase letters, numbers, dashes, or underscores.`,
+    );
   }
   return rootName;
 }
@@ -2813,10 +2814,7 @@ export async function pdfInfoPageCount(pdfPath: string): Promise<number | null> 
     stdout: "pipe",
     stderr: "pipe",
   });
-  const [exitCode, stdout] = await Promise.all([
-    proc.exited,
-    new Response(proc.stdout).text(),
-  ]);
+  const [exitCode, stdout] = await Promise.all([proc.exited, new Response(proc.stdout).text()]);
   if (exitCode !== 0) {
     return null;
   }
@@ -2886,10 +2884,7 @@ async function renderPdfPageToPng(input: {
       stderr: "pipe",
     },
   );
-  const [exitCode, stderr] = await Promise.all([
-    proc.exited,
-    new Response(proc.stderr).text(),
-  ]);
+  const [exitCode, stderr] = await Promise.all([proc.exited, new Response(proc.stderr).text()]);
   if (exitCode !== 0) {
     throw new Error(`pdftoppm failed for page ${input.pageNumber}: ${stderr.trim()}`);
   }
@@ -2943,18 +2938,15 @@ async function preparePageMarkdownInputs(input: {
   const shouldUseRenderedImageInput =
     input.pageInputPreference === "image" ||
     (input.pageInputPreference === "auto" && supportsRenderedImageOcrInput(input.model));
-  const renderAvailable = shouldUseRenderedImageInput
-    ? await executableExists("pdftoppm")
-    : false;
+  const renderAvailable = shouldUseRenderedImageInput ? await executableExists("pdftoppm") : false;
   if (input.pageInputPreference === "image" && !renderAvailable) {
     throw new Error("PDF page image rendering requested, but pdftoppm is not available.");
   }
 
   let rawBytes: Uint8Array | null = null;
   let pdf: PDFDocument | null = null;
-  let pdfPageCount = shouldUseRenderedImageInput && renderAvailable
-    ? await pdfInfoPageCount(rawPath)
-    : null;
+  let pdfPageCount =
+    shouldUseRenderedImageInput && renderAvailable ? await pdfInfoPageCount(rawPath) : null;
   if (pdfPageCount === null) {
     try {
       rawBytes = new Uint8Array(await Bun.file(rawPath).arrayBuffer());
@@ -4115,7 +4107,9 @@ async function ocrPageMarkdownPage(input: {
   let result: ReturnType<typeof pageMarkdownToolResult>;
   try {
     if (toolArgs === null) {
-      throw new Error(`OpenRouter response did not include required ${OCR_PAGE_MARKDOWN_TOOL_NAME} tool call.`);
+      throw new Error(
+        `OpenRouter response did not include required ${OCR_PAGE_MARKDOWN_TOOL_NAME} tool call.`,
+      );
     }
     result = pageMarkdownToolResult(toolArgs);
     if (result.sourceId !== input.source.sourceId) {
@@ -4244,25 +4238,22 @@ async function ocrPageMarkdownSource(input: {
       pageInputPreference: input.pageInputPreference,
       model: input.model,
     });
-    const pages = await mapWithConcurrency(
-      prepared.pages,
-      input.pageConcurrency,
-      async (page) =>
-        ocrPageMarkdownPage({
-          source: input.source,
-          page,
-          runRoot: input.runRoot,
-          generatedAt: input.generatedAt,
-          model: input.model,
-          provider: "openrouter",
-          pdfEngine: input.pdfEngine,
-          serviceTier: input.serviceTier,
-          maxTokens: input.maxTokens,
-          execute: input.execute,
-          fetcher: input.fetcher,
-          apiKey: input.apiKey,
-          pdfPageCount: prepared.pdfPageCount,
-        }),
+    const pages = await mapWithConcurrency(prepared.pages, input.pageConcurrency, async (page) =>
+      ocrPageMarkdownPage({
+        source: input.source,
+        page,
+        runRoot: input.runRoot,
+        generatedAt: input.generatedAt,
+        model: input.model,
+        provider: "openrouter",
+        pdfEngine: input.pdfEngine,
+        serviceTier: input.serviceTier,
+        maxTokens: input.maxTokens,
+        execute: input.execute,
+        fetcher: input.fetcher,
+        apiKey: input.apiKey,
+        pdfPageCount: prepared.pdfPageCount,
+      }),
     );
     const failedPageCount = pages.filter((page) => page.status === "ocr_failed").length;
     const completePageCount = pages.filter((page) => page.status === "ocr_complete").length;
@@ -4505,12 +4496,7 @@ async function auditOcrPageMarkdownPage(input: {
   pageNumber: number;
 }): Promise<Tier2OcrPageMarkdownAuditPage> {
   const paths = pageMarkdownOutputPaths(input.pageRoot);
-  const [
-    markdownExists,
-    toolCallExists,
-    responseExists,
-    errorExists,
-  ] = await Promise.all([
+  const [markdownExists, toolCallExists, responseExists, errorExists] = await Promise.all([
     Bun.file(paths.markdownPath).exists(),
     Bun.file(paths.toolCallPath).exists(),
     Bun.file(paths.responsePath).exists(),
@@ -4560,7 +4546,11 @@ async function auditOcrPageMarkdownPage(input: {
     publisher: input.source.publisher,
     sourceGroup: input.source.sourceGroup,
     pageNumber: input.pageNumber,
-    status: errorExists ? "ocr_failed" : markdownExists && toolCallExists ? "ocr_complete" : "missing",
+    status: errorExists
+      ? "ocr_failed"
+      : markdownExists && toolCallExists
+        ? "ocr_complete"
+        : "missing",
     markdownArtifactKey: markdownExists ? artifactKey(paths.markdownPath, input.runRoot) : null,
     toolCallArtifactKey: toolCallExists ? artifactKey(paths.toolCallPath, input.runRoot) : null,
     responseArtifactKey: responseExists ? artifactKey(paths.responsePath, input.runRoot) : null,
@@ -4574,7 +4564,10 @@ async function auditOcrPageMarkdownPage(input: {
     containsCharts,
     blankPageLikely,
     needsVisualReview:
-      visualReviewHints.length > 0 || containsTables === true || containsMaps === true || containsCharts === true,
+      visualReviewHints.length > 0 ||
+      containsTables === true ||
+      containsMaps === true ||
+      containsCharts === true,
     routesMentioned: result?.routesMentioned ?? [],
     corridorsMentioned: result?.corridorsMentioned ?? [],
     datesMentioned: result?.datesMentioned ?? [],
@@ -4728,10 +4721,10 @@ const OCR_MARKDOWN_CANDIDATE_SYSTEM_PROMPT = [
   "Every candidate must cite a short, contiguous, verbatim excerpt from the supplied Markdown (evidenceQuote) and the page numbers that contain that exact excerpt (evidencePageRefs).",
   "Copy evidenceQuote exactly as it appears in the Markdown. Preserve Markdown table pipes, emphasis markers, footnote digits, punctuation, line breaks inside tables, and OCR oddities. Do not insert ellipses, flatten tables, clean up wording, normalize punctuation, or stitch non-adjacent text.",
   "For tables, evidenceQuote must be an exact Markdown table block or exact contiguous table row block copied from the source, not a prose-like pipe-separated rewrite.",
-  "Use valueNumeric only when that exact value appears in evidenceQuote, allowing direct unit wording such as \"1.1 million\" for 1100000. If the source gives a range, keep the range in valueQualifier and do not invent a midpoint.",
+  'Use valueNumeric only when that exact value appears in evidenceQuote, allowing direct unit wording such as "1.1 million" for 1100000. If the source gives a range, keep the range in valueQualifier and do not invent a midpoint.',
   "For third-party evaluations, audits, consultant reports, advocacy reports, and oversight reports, classify extracted facts or judgments as third_party_evaluation unless the quoted sentence itself is explicitly an official MTA/DOT/NYC agency fact being cited.",
-  "Recommendations, goals, planned work, proposed routes, future expected work, and \"should\" statements must use negativeEvidenceFlag \"proposed_only\" unless the quote also says the item was implemented or completed.",
-  "Do not infer treatment components from a branded program name. If a quote says only \"SBS route\" or \"bus improvement\" but does not name bus lanes, off-board fare collection, all-door boarding, TSP, camera enforcement, or another bus-priority treatment, do not add a treatment_component candidate.",
+  'Recommendations, goals, planned work, proposed routes, future expected work, and "should" statements must use negativeEvidenceFlag "proposed_only" unless the quote also says the item was implemented or completed.',
+  'Do not infer treatment components from a branded program name. If a quote says only "SBS route" or "bus improvement" but does not name bus lanes, off-board fare collection, all-door boarding, TSP, camera enforcement, or another bus-priority treatment, do not add a treatment_component candidate.',
   "document_treatment_component_candidate is only for bus-priority street/operations treatments. Do not use it for subway elevators, subway turnstiles, bike lanes, generic parking enforcement, curb regulation text, pedestrian-only work, or plan prose unless the quote explicitly ties it to bus service or a bus-priority treatment.",
   "Route redesign profile pages and stop tables usually describe service changes, not treatment components. Use document_service_change_candidate for route_added, route_discontinued, route_modified, stop_added, stop_removed, frequency_change, headway_change, terminus_change, branch_added, or branch_discontinued when those changes are explicit.",
   "For large route-profile stop tables, do not emit one candidate per row. Prefer a small number of exact contiguous row-block candidates for meaningful Add/New/Remove/routing spans, or skip the table if it would only duplicate many row-level stop facts.",
@@ -4741,7 +4734,7 @@ const OCR_MARKDOWN_CANDIDATE_SYSTEM_PROMPT = [
   "The tool's parameter schema defines the candidate types, their fields, and when to use them. Follow the per-type guidance there; do not invent fields outside the documented ones unless the source clearly demands them.",
   "Skip boilerplate pages: title pages, table of contents, copyright notices, and publication-info pages do not produce candidates. Section headings alone are not candidates; only emit a candidate when the section contains a concrete claim, metric, or treatment description.",
   "For optional fields you don't know, omit the key entirely. Do not emit empty strings or empty arrays as placeholders.",
-  "Route mentions go in routeMentions as bare MTA route IDs (e.g. \"B44\", \"M15\"). Put service-mode information (SBS, Limited, Local) in the relevant per-type field (e.g. serviceMode on a treatment component), not in the route ID.",
+  'Route mentions go in routeMentions as bare MTA route IDs (e.g. "B44", "M15"). Put service-mode information (SBS, Limited, Local) in the relevant per-type field (e.g. serviceMode on a treatment component), not in the route ID.',
 ].join("\n");
 
 function buildOcrMarkdownCandidatePrompt(input: {
@@ -4775,10 +4768,7 @@ function ocrMarkdownCandidateSourceRoot(input: {
   );
 }
 
-function ocrMarkdownCandidateWindowPaths(input: {
-  sourceRoot: string;
-  pages: number[];
-}): {
+function ocrMarkdownCandidateWindowPaths(input: { sourceRoot: string; pages: number[] }): {
   windowRoot: string;
   responsePath: string;
   toolCallPath: string;
@@ -4871,22 +4861,31 @@ const NUMBER_WORDS: Record<string, number> = {
 };
 
 const TREATMENT_TYPE_QUOTE_PATTERNS: Record<string, RegExp> = {
-  bus_lane: /\b(?:bus lane|bus lanes|dedicated lane|dedicated lanes|offset lane|curbside lane|center-running lane|median lane|red lane)\b/i,
+  bus_lane:
+    /\b(?:bus lane|bus lanes|dedicated lane|dedicated lanes|offset lane|curbside lane|center-running lane|median lane|red lane)\b/i,
   busway: /\b(?:busway|transitway|transit and truck priority|ttp)\b/i,
-  transit_signal_priority: /\b(?:transit signal priority|signal priority|\btsp\b|green signal|green time|signal timing|signal retiming|signal changes?)\b/i,
+  transit_signal_priority:
+    /\b(?:transit signal priority|signal priority|\btsp\b|green signal|green time|signal timing|signal retiming|signal changes?)\b/i,
   queue_jump: /\b(?:queue jump|queue-jump|queue bypass)\b/i,
-  stop_consolidation: /\b(?:stop consolidation|consolidat(?:e|ed|ion).*stops?|fewer stops?|removed stops?|stop spacing|changed from limited to local only)\b/i,
-  stop_relocation: /\b(?:stop relocation|relocat(?:e|ed|ion).*stops?|station locations?|stations? were added|stops? were added)\b/i,
+  stop_consolidation:
+    /\b(?:stop consolidation|consolidat(?:e|ed|ion).*stops?|fewer stops?|removed stops?|stop spacing|changed from limited to local only)\b/i,
+  stop_relocation:
+    /\b(?:stop relocation|relocat(?:e|ed|ion).*stops?|station locations?|stations? were added|stops? were added)\b/i,
   bus_bulb: /\b(?:bus bulb|bus bulbs|boarding bulb|bulb station)\b/i,
   neckdown: /\b(?:neckdown|neckdowns|curb extension|curb extensions)\b/i,
   red_paint: /\b(?:red paint|red-painted|red bus lane)\b/i,
-  off_board_fare_collection: /\b(?:off-board fare|off board fare|fare machines?|pay before boarding|pre-board fare)\b/i,
-  all_door_boarding: /\b(?:all-door boarding|all door boarding|board(?:ing)? through any door|proof-of-payment)\b/i,
+  off_board_fare_collection:
+    /\b(?:off-board fare|off board fare|fare machines?|pay before boarding|pre-board fare)\b/i,
+  all_door_boarding:
+    /\b(?:all-door boarding|all door boarding|board(?:ing)? through any door|proof-of-payment)\b/i,
   ace: /\b(?:automated camera enforcement|\bace\b|camera-enforced|bus-mounted cameras?|stationary cameras?|bus lane camera|camera enforcement)\b/i,
   able: /\b(?:automated bus lane enforcement|\bable\b|bus lane enforcement cameras?)\b/i,
-  reroute: /\b(?:rerout(?:e|ed|ing)|route modified|moved to|instead of traveling|route change|route extension|extend(?:ing)? .*route)\b/i,
-  pedestrian_improvement: /\b(?:pedestrian|crosswalk|sidewalk|plaza|traffic calming|pedestrian island|shorten crossing|public space)\b/i,
-  signal_retiming: /\b(?:signal retiming|signal timing|signal changes?|green time|coordination of the signals|traffic signal)\b/i,
+  reroute:
+    /\b(?:rerout(?:e|ed|ing)|route modified|moved to|instead of traveling|route change|route extension|extend(?:ing)? .*route)\b/i,
+  pedestrian_improvement:
+    /\b(?:pedestrian|crosswalk|sidewalk|plaza|traffic calming|pedestrian island|shorten crossing|public space)\b/i,
+  signal_retiming:
+    /\b(?:signal retiming|signal timing|signal changes?|green time|coordination of the signals|traffic signal)\b/i,
 };
 
 function pageMarkdownByNumber(input: {
@@ -5020,7 +5019,9 @@ function normalizeRouteMentions(routeMentions: string[]): {
 }
 
 function normalizeNumericText(value: number): string {
-  return Number.isInteger(value) ? String(value) : String(value).replace(/0+$/, "").replace(/\.$/, "");
+  return Number.isInteger(value)
+    ? String(value)
+    : String(value).replace(/0+$/, "").replace(/\.$/, "");
 }
 
 function numericQuoteVariants(value: number): string[] {
@@ -5147,9 +5148,7 @@ function normalizeEvidenceQuoteForSearch(text: string): string {
 }
 
 function pageBoundarySearchText(markdown: string): string {
-  return markdown
-    .replace(/^---\n[\s\S]*?\n---\n?/, "")
-    .replace(/^#\s+Page\s+\d+\s*$/gim, "");
+  return markdown.replace(/^---\n[\s\S]*?\n---\n?/, "").replace(/^#\s+Page\s+\d+\s*$/gim, "");
 }
 
 function adjacentPageBoundaryHits(input: {
@@ -5560,12 +5559,8 @@ function evidenceCandidateFromMarkdownDraft(input: {
       pageMarkdownRootName: input.pageMarkdownRootName,
       candidateRootName: input.candidateRootName,
       windowPages: [...input.windowPages],
-      ...(input.quality?.issues.length
-        ? { qualityIssues: [...input.quality.issues] }
-        : {}),
-      ...(input.quality?.repairs.length
-        ? { qualityRepairs: [...input.quality.repairs] }
-        : {}),
+      ...(input.quality?.issues.length ? { qualityIssues: [...input.quality.issues] } : {}),
+      ...(input.quality?.repairs.length ? { qualityRepairs: [...input.quality.repairs] } : {}),
     },
     validationState: input.quality?.validationState ?? "unvalidated",
     reviewReason: input.quality?.reviewReason ?? DEFAULT_OCR_MARKDOWN_CANDIDATE_REVIEW_REASON,
@@ -5681,7 +5676,10 @@ async function extractOcrMarkdownCandidateWindow(input: {
   candidates: Tier2DocumentEvidenceCandidate[];
 }> {
   const pageNumbers = input.pages.map((page) => page.pageNumber);
-  const paths = ocrMarkdownCandidateWindowPaths({ sourceRoot: input.sourceRoot, pages: pageNumbers });
+  const paths = ocrMarkdownCandidateWindowPaths({
+    sourceRoot: input.sourceRoot,
+    pages: pageNumbers,
+  });
   await mkdir(paths.windowRoot, { recursive: true });
   const existing = await readExistingMarkdownCandidateWindow({
     paths,
@@ -5757,7 +5755,11 @@ async function extractOcrMarkdownCandidateWindow(input: {
       toolName: OCR_MARKDOWN_CANDIDATE_TOOL_NAME,
       maxTokens: input.maxTokens,
     });
-    await writeJson(paths.errorPath, { sourceId: input.source.sourceId, pages: pageNumbers, error: errorMessage });
+    await writeJson(paths.errorPath, {
+      sourceId: input.source.sourceId,
+      pages: pageNumbers,
+      error: errorMessage,
+    });
     return {
       window: {
         sourceId: input.source.sourceId,
@@ -6073,7 +6075,8 @@ async function resolveOcrPageMarkdownAuditPaths(
   if (args.ocrPlanPath !== undefined) {
     return {
       ocrPlanPath: args.ocrPlanPath,
-      outputPath: args.outputPath ?? join(dirname(args.ocrPlanPath), "ocr-page-markdown-audit.json"),
+      outputPath:
+        args.outputPath ?? join(dirname(args.ocrPlanPath), "ocr-page-markdown-audit.json"),
     };
   }
   const artifactRoot = args.artifactRoot ?? defaultArtifactRootPath();
@@ -6083,7 +6086,8 @@ async function resolveOcrPageMarkdownAuditPaths(
   }
   return {
     ocrPlanPath: ocrPlanPath(artifactRoot, runId),
-    outputPath: args.outputPath ?? join(runArtifactRoot(artifactRoot, runId), "ocr-page-markdown-audit.json"),
+    outputPath:
+      args.outputPath ?? join(runArtifactRoot(artifactRoot, runId), "ocr-page-markdown-audit.json"),
   };
 }
 
@@ -6528,8 +6532,7 @@ export async function normalizeTextMarkdown(
   }
 
   const outputPath = args.outputPath ?? join(runRoot, "text-page-markdown-audit.json");
-  const phase2CompatPlanPath =
-    args.phase2CompatPlanPath ?? join(runRoot, "text-ocr-plan-v1.json");
+  const phase2CompatPlanPath = args.phase2CompatPlanPath ?? join(runRoot, "text-ocr-plan-v1.json");
   const phase2CompatAuditPath =
     args.phase2CompatAuditPath ?? join(runRoot, "text-page-markdown-phase2-audit.json");
 
@@ -6546,10 +6549,7 @@ export async function normalizeTextMarkdown(
     summary: {
       sourceCount: sources.length,
       pageCount: sources.reduce((sum, source) => sum + source.pageCount, 0),
-      completePageCount: sources.reduce(
-        (sum, source) => sum + source.completePageCount,
-        0,
-      ),
+      completePageCount: sources.reduce((sum, source) => sum + source.completePageCount, 0),
       tooShortSourceCount: sources.filter((source) => source.quality === "too_short").length,
       totalOriginalLength: sources.reduce((sum, source) => sum + source.originalLength, 0),
     },
@@ -6663,9 +6663,7 @@ async function resolveNormalizeTextMarkdownPaths(
   return { captureManifestPath: captureManifestPath(artifactRoot, runId) };
 }
 
-export async function normalizeTextMarkdownFromCli(
-  args: string[],
-): Promise<TextPageMarkdownAudit> {
+export async function normalizeTextMarkdownFromCli(args: string[]): Promise<TextPageMarkdownAudit> {
   const parsed = parseNormalizeTextMarkdownCliArgs(args);
   const paths = await resolveNormalizeTextMarkdownPaths(parsed);
   return normalizeTextMarkdown({
@@ -6980,9 +6978,7 @@ async function resolveRecapturePaths(
   return { captureManifestPath: captureManifestPath(artifactRoot, runId) };
 }
 
-export async function recaptureFailedSourcesFromCli(
-  args: string[],
-): Promise<RecaptureAudit> {
+export async function recaptureFailedSourcesFromCli(args: string[]): Promise<RecaptureAudit> {
   const parsed = parseRecaptureCliArgs(args);
   const paths = await resolveRecapturePaths(parsed);
   return recaptureFailedSources({
@@ -7110,7 +7106,8 @@ async function resolveOcrMarkdownCandidatesPaths(
   args: OcrMarkdownCandidatesCliArgs,
 ): Promise<{ ocrPlanPath: string; pageMarkdownAuditPath: string; outputPath: string }> {
   const artifactRoot = args.artifactRoot ?? defaultArtifactRootPath();
-  const runId = args.runId ?? (args.ocrPlanPath === undefined ? await latestDocsRunId(artifactRoot) : null);
+  const runId =
+    args.runId ?? (args.ocrPlanPath === undefined ? await latestDocsRunId(artifactRoot) : null);
   const baseDir =
     args.ocrPlanPath !== undefined
       ? dirname(args.ocrPlanPath)
@@ -7251,9 +7248,9 @@ const INTERVENTION_RECORDS_SYSTEM_PROMPT = [
   "A source can produce zero, one, or several records: zero if the candidates describe no actionable intervention (pure methodology paper, opinion piece); several if the source covers separate changes (e.g. an SBS launch and a later RTPI install).",
   "Treatment-component candidates, metric candidates, project-status candidates, service-change candidates, treatment maps, and corridor-defining quotes typically belong inside one of the records.",
   "Tables, figures, methodology, source_gap, caveat, and review_question candidates either attach as evidence to a specific record component (e.g. a metric's evidenceRefs) or land in unattachedCandidateIds when they don't belong to any record.",
-  "Every record must populate statusHistory with at least one observation. When candidates carry an explicit status (e.g. fields.implementationStatus: \"proposed\", fields.status: \"complete\"), emit a matching statusHistory entry pointing at the supporting candidateId. When candidates disagree (one says \"implementing\", another says \"complete\"), emit both as separate entries with their respective evidence.",
-  "If every supporting candidate is flagged proposed-only (negativeEvidenceFlag: \"proposed_only\" or fields.implementationStatus: \"proposed\"), the record represents a recommendation; reflect that with a statusHistory entry whose status is \"proposed\".",
-  "If all cited evidence is proposed-only, recommendation-only, or future-tense, the record's statusHistory must be \"proposed\" only — do not promote it to \"implementing\" or \"complete\" unless a separate non-proposed candidate explicitly states the intervention was implemented or completed.",
+  'Every record must populate statusHistory with at least one observation. When candidates carry an explicit status (e.g. fields.implementationStatus: "proposed", fields.status: "complete"), emit a matching statusHistory entry pointing at the supporting candidateId. When candidates disagree (one says "implementing", another says "complete"), emit both as separate entries with their respective evidence.',
+  'If every supporting candidate is flagged proposed-only (negativeEvidenceFlag: "proposed_only" or fields.implementationStatus: "proposed"), the record represents a recommendation; reflect that with a statusHistory entry whose status is "proposed".',
+  'If all cited evidence is proposed-only, recommendation-only, or future-tense, the record\'s statusHistory must be "proposed" only — do not promote it to "implementing" or "complete" unless a separate non-proposed candidate explicitly states the intervention was implemented or completed.',
   "Do not create records for context-only mentions. A record requires the source to describe a specific change to bus service. Routes mentioned only as context (worst-performer rankings, performance tables, fare-policy descriptions, network statistics, ridership counts) are not records on their own — place those candidates in unattachedCandidateIds or attach them as evidence to a record that does describe an intervention.",
   "Do not create bus-priority intervention records for fare policy, fare enforcement, subway accessibility, station improvements, or other unrelated agency programs unless the cited evidence directly ties them to a bus-priority or bus-service intervention.",
   "Only populate corridor.extentEndpoints when a supporting candidate quote explicitly names the start and end points. Do not infer endpoints from route descriptions, general geography, or the route catalog. If unsure, omit extentEndpoints and keep only corridor.streets.",
@@ -7269,7 +7266,9 @@ function interventionRecordsTool(): Record<string, unknown> {
     typeof responseSchema !== "object" ||
     Array.isArray(responseSchema)
   ) {
-    throw new Error("DocumentInterventionRecordsToolResponseSchema did not produce an object schema.");
+    throw new Error(
+      "DocumentInterventionRecordsToolResponseSchema did not produce an object schema.",
+    );
   }
   const { ["$schema"]: _ignored, ...parameters } = responseSchema as Record<string, unknown>;
   return {
@@ -7363,10 +7362,7 @@ function interventionRecordsSourceRoot(input: {
   );
 }
 
-function interventionRecordsSourcePaths(input: {
-  sourceRoot: string;
-  bucketId?: string;
-}): {
+function interventionRecordsSourcePaths(input: { sourceRoot: string; bucketId?: string }): {
   responsePath: string;
   toolCallPath: string;
   errorPath: string;
@@ -7438,9 +7434,7 @@ export function repairInterventionRecordsAliases(toolArgs: unknown): {
       // Fix (audit follow-up): filter out null/undefined array elements so
       // things like `customTreatments: [null]` don't fail strict parse on
       // the schema's `z.string().min(1)` element constraint.
-      return value
-        .map((item) => stripNullsDeep(item))
-        .filter((item) => item !== undefined);
+      return value.map((item) => stripNullsDeep(item)).filter((item) => item !== undefined);
     }
     if (typeof value === "object") {
       const out: Record<string, unknown> = {};
@@ -7478,7 +7472,11 @@ export function repairInterventionRecordsAliases(toolArgs: unknown): {
             !Array.isArray(existingNested)
               ? { ...(existingNested as Record<string, unknown>) }
               : {};
-          if (typeof startVal === "string" && startVal.length > 0 && nestedObj["start"] === undefined) {
+          if (
+            typeof startVal === "string" &&
+            startVal.length > 0 &&
+            nestedObj["start"] === undefined
+          ) {
             nestedObj["start"] = startVal;
           }
           if (typeof endVal === "string" && endVal.length > 0 && nestedObj["end"] === undefined) {
@@ -7519,8 +7517,7 @@ export function repairInterventionRecordsAliases(toolArgs: unknown): {
       }
       const streets = corridorObj["streets"];
       const streetsEmpty =
-        streets === undefined ||
-        (Array.isArray(streets) && streets.length === 0);
+        streets === undefined || (Array.isArray(streets) && streets.length === 0);
       if (streetsEmpty || Object.keys(corridorObj).length === 0) {
         delete record["corridor"];
       }
@@ -7530,20 +7527,18 @@ export function repairInterventionRecordsAliases(toolArgs: unknown): {
     // which are not in the enum but obviously map to a real value.
     const statusHistoryRaw = record["statusHistory"];
     if (Array.isArray(statusHistoryRaw)) {
-      record["statusHistory"] = statusHistoryRaw
-        .map((rawEntry) => {
-          if (rawEntry === null || typeof rawEntry !== "object" || Array.isArray(rawEntry)) {
-            return rawEntry;
-          }
-          const entry = { ...(rawEntry as Record<string, unknown>) };
-          const status = entry["status"];
-          const statusKey =
-            typeof status === "string" ? normalizeStatusSynonymKey(status) : null;
-          if (statusKey !== null && STATUS_SYNONYM_MAP[statusKey] !== undefined) {
-            entry["status"] = STATUS_SYNONYM_MAP[statusKey];
-          }
-          return entry;
-        });
+      record["statusHistory"] = statusHistoryRaw.map((rawEntry) => {
+        if (rawEntry === null || typeof rawEntry !== "object" || Array.isArray(rawEntry)) {
+          return rawEntry;
+        }
+        const entry = { ...(rawEntry as Record<string, unknown>) };
+        const status = entry["status"];
+        const statusKey = typeof status === "string" ? normalizeStatusSynonymKey(status) : null;
+        if (statusKey !== null && STATUS_SYNONYM_MAP[statusKey] !== undefined) {
+          entry["status"] = STATUS_SYNONYM_MAP[statusKey];
+        }
+        return entry;
+      });
     }
     if (recordRepaired) {
       repairedRecordIndices.push(recordIndex);
@@ -7664,9 +7659,7 @@ function applyEnumPatches(
     }
 
     if (isPrimaryTreatmentElementPath && typeof invalidValue === "string") {
-      const record = readAtPath(clone, path.slice(0, 2)) as
-        | Record<string, unknown>
-        | undefined;
+      const record = readAtPath(clone, path.slice(0, 2)) as Record<string, unknown> | undefined;
       if (record !== undefined) {
         const existing = record["customTreatments"];
         if (Array.isArray(existing)) {
@@ -7722,11 +7715,7 @@ function applyEnumPatches(
   // Pass 2: drop treatmentComponents and metrics that have neither a
   // canonical nor a custom label after repair — they are unlabeled
   // noise and should not survive into the corpus.
-  if (
-    filtered !== null &&
-    typeof filtered === "object" &&
-    !Array.isArray(filtered)
-  ) {
+  if (filtered !== null && typeof filtered === "object" && !Array.isArray(filtered)) {
     const records = (filtered as Record<string, unknown>)["interventionRecords"];
     if (Array.isArray(records)) {
       for (const rawRecord of records) {
@@ -7881,9 +7870,7 @@ function canonicalTreatmentLabel(value: string): string | null {
   return DOCUMENT_TREATMENT_TYPES.has(normalized) ? normalized : null;
 }
 
-function repairDraftLabelConflicts(
-  draft: import("@bp/domain").DocumentInterventionRecordDraft,
-): {
+function repairDraftLabelConflicts(draft: import("@bp/domain").DocumentInterventionRecordDraft): {
   draft: import("@bp/domain").DocumentInterventionRecordDraft;
   repaired: boolean;
 } {
@@ -7937,7 +7924,9 @@ function repairDraftLabelConflicts(
   };
 }
 
-function collectEvidenceRefs(draft: import("@bp/domain").DocumentInterventionRecordDraft): string[] {
+function collectEvidenceRefs(
+  draft: import("@bp/domain").DocumentInterventionRecordDraft,
+): string[] {
   const refs = new Set<string>();
   for (const obs of draft.statusHistory) {
     for (const id of obs.evidenceRefs) refs.add(id);
@@ -8005,9 +7994,7 @@ export function backfillStatusHistory(input: {
   coercedFromProposedOnly: boolean;
 } {
   const existing = input.draft.statusHistory;
-  const seenKeys = new Set(
-    existing.map((entry) => `${entry.status}|${entry.asOfDate ?? ""}`),
-  );
+  const seenKeys = new Set(existing.map((entry) => `${entry.status}|${entry.asOfDate ?? ""}`));
   const inferred: import("@bp/domain").DocumentInterventionRecordDraft["statusHistory"] = [];
   let coercedFromProposedOnly = false;
   for (const candidate of input.recordCandidates) {
@@ -8051,21 +8038,13 @@ export function inferRecordKind(input: {
   // that may have slipped through from contradictory candidate fields.
   if (
     input.recordCandidates.length > 0 &&
-    input.recordCandidates.every(
-      (candidate) => candidate.negativeEvidenceFlag === "proposed_only",
-    )
+    input.recordCandidates.every((candidate) => candidate.negativeEvidenceFlag === "proposed_only")
   ) {
     return "proposed";
   }
   const statuses = new Set(input.statusHistory.map((entry) => entry.status));
-  if (
-    statuses.has("complete") ||
-    statuses.has("monitoring") ||
-    statuses.has("implementing")
-  ) {
-    return statuses.has("complete") || statuses.has("monitoring")
-      ? "implemented"
-      : "in_progress";
+  if (statuses.has("complete") || statuses.has("monitoring") || statuses.has("implementing")) {
+    return statuses.has("complete") || statuses.has("monitoring") ? "implemented" : "in_progress";
   }
   if (statuses.has("planning") || statuses.has("canceled") || statuses.has("superseded")) {
     return "in_progress";
@@ -8196,7 +8175,7 @@ export function normalizeCorridorText(value: string): string {
     .replace(/[‘’]/g, "'")
     .replace(/[“”]/g, '"')
     .replace(/[–—]/g, "-")
-    .replace(/[.,;:!?()\[\]{}"']/g, " ");
+    .replace(/[.,;:!?()[\]{}"']/g, " ");
   for (const [pattern, replacement] of CORRIDOR_SUFFIX_EXPANSIONS) {
     normalized = normalized.replace(pattern, replacement);
   }
@@ -8296,9 +8275,7 @@ function candidateCombinedText(candidate: Tier2DocumentEvidenceCandidate): strin
   return `${candidate.summary ?? ""}\n${candidate.evidenceQuote ?? ""}`;
 }
 
-function candidateHasTypedTreatmentField(
-  candidate: Tier2DocumentEvidenceCandidate,
-): boolean {
+function candidateHasTypedTreatmentField(candidate: Tier2DocumentEvidenceCandidate): boolean {
   const treatmentTypes = candidate.fields["treatmentTypes"];
   if (Array.isArray(treatmentTypes) && treatmentTypes.length > 0) return true;
   const customTreatmentType = candidate.fields["customTreatmentType"];
@@ -8308,18 +8285,14 @@ function candidateHasTypedTreatmentField(
   return false;
 }
 
-function candidateHasTypedBusPriorityField(
-  candidate: Tier2DocumentEvidenceCandidate,
-): boolean {
+function candidateHasTypedBusPriorityField(candidate: Tier2DocumentEvidenceCandidate): boolean {
   if (candidateHasTypedTreatmentField(candidate)) return true;
   const changeTypes = candidate.fields["changeTypes"];
   if (Array.isArray(changeTypes) && changeTypes.length > 0) return true;
   return false;
 }
 
-export function candidateHasBusPrioritySignal(
-  candidate: Tier2DocumentEvidenceCandidate,
-): boolean {
+export function candidateHasBusPrioritySignal(candidate: Tier2DocumentEvidenceCandidate): boolean {
   if (candidateHasTypedBusPriorityField(candidate)) return true;
   return BUS_PRIORITY_QUOTE_SIGNAL.test(candidate.evidenceQuote);
 }
@@ -8329,13 +8302,9 @@ export function candidateHasBusPrioritySignal(
 // bus regex matched "bus" before the fare pattern could reject). Run both
 // checks: if the quote matches a fare/subway/unrelated pattern and the
 // candidate doesn't carry a typed bus-priority field, reject it.
-function candidateIsFareOrUnrelatedOnly(
-  candidate: Tier2DocumentEvidenceCandidate,
-): boolean {
+function candidateIsFareOrUnrelatedOnly(candidate: Tier2DocumentEvidenceCandidate): boolean {
   const text = candidateCombinedText(candidate);
-  const farePatternMatch = FARE_OR_UNRELATED_ONLY_PATTERNS.some((pattern) =>
-    pattern.test(text),
-  );
+  const farePatternMatch = FARE_OR_UNRELATED_ONLY_PATTERNS.some((pattern) => pattern.test(text));
   if (!farePatternMatch) return false;
   // A typed treatment component from Phase 2 is a strong bus-priority signal
   // (for example off-board fare collection on SBS). A service-change enum by
@@ -8346,9 +8315,7 @@ function candidateIsFareOrUnrelatedOnly(
   return true;
 }
 
-function candidateIsNoChangeOrDeclinedOnly(
-  candidate: Tier2DocumentEvidenceCandidate,
-): boolean {
+function candidateIsNoChangeOrDeclinedOnly(candidate: Tier2DocumentEvidenceCandidate): boolean {
   if (candidateHasTypedTreatmentField(candidate)) return false;
   const text = candidateCombinedText(candidate);
   return NO_CHANGE_OR_DECLINED_ONLY_PATTERNS.some((pattern) => pattern.test(text));
@@ -8370,9 +8337,7 @@ function candidateHasProjectAnchor(candidate: Tier2DocumentEvidenceCandidate): b
   return false;
 }
 
-function candidateIsGenericToolkitOnly(
-  candidate: Tier2DocumentEvidenceCandidate,
-): boolean {
+function candidateIsGenericToolkitOnly(candidate: Tier2DocumentEvidenceCandidate): boolean {
   if (candidateHasProjectAnchor(candidate)) return false;
   const text = candidateCombinedText(candidate);
   if (
@@ -8509,9 +8474,7 @@ const SOURCE_WIDE_CANDIDATE_TYPES: ReadonlySet<string> = new Set([
   "document_evidence_link_candidate",
 ]);
 
-function normalizedRoutesForBucketing(
-  candidate: Tier2DocumentEvidenceCandidate,
-): string[] {
+function normalizedRoutesForBucketing(candidate: Tier2DocumentEvidenceCandidate): string[] {
   const normalized = new Set<string>();
   for (const mention of candidate.routeMentions) {
     for (const routeId of expandRouteMention(mention)) {
@@ -8521,9 +8484,7 @@ function normalizedRoutesForBucketing(
   return [...normalized].sort();
 }
 
-function isRouteHeavyServiceChangeSource(
-  candidates: Tier2DocumentEvidenceCandidate[],
-): boolean {
+function isRouteHeavyServiceChangeSource(candidates: Tier2DocumentEvidenceCandidate[]): boolean {
   const routes = new Set<string>();
   let routeScopedServiceChangeCount = 0;
   for (const candidate of candidates) {
@@ -8558,9 +8519,7 @@ function candidateOrderKey(candidate: Tier2DocumentEvidenceCandidate): string {
 function sortCandidatesForBucket(
   candidates: Tier2DocumentEvidenceCandidate[],
 ): Tier2DocumentEvidenceCandidate[] {
-  return [...candidates].sort((a, b) =>
-    candidateOrderKey(a).localeCompare(candidateOrderKey(b)),
-  );
+  return [...candidates].sort((a, b) => candidateOrderKey(a).localeCompare(candidateOrderKey(b)));
 }
 
 function estimateBucketPromptChars(input: {
@@ -8592,9 +8551,7 @@ export function splitBucketByPageRange(input: {
   routeCatalog: Map<string, RouteCatalogEntry>;
 }): InterventionRecordsBucket[] {
   const sorted = sortCandidatesForBucket(input.candidates);
-  const charsForCandidates = (
-    candidates: Tier2DocumentEvidenceCandidate[],
-  ): number => {
+  const charsForCandidates = (candidates: Tier2DocumentEvidenceCandidate[]): number => {
     const snippet = buildRouteCatalogSnippet({
       catalog: input.routeCatalog,
       candidates,
@@ -8929,23 +8886,17 @@ export function mergeRecordCluster(input: {
       } else {
         treatmentComponentsByKey.set(key, {
           ...existing,
-          evidenceRefs: [
-            ...new Set([...existing.evidenceRefs, ...component.evidenceRefs]),
-          ].sort(),
+          evidenceRefs: [...new Set([...existing.evidenceRefs, ...component.evidenceRefs])].sort(),
         });
       }
     }
   }
 
-  const metricsByKey = new Map<
-    string,
-    Tier2DocumentInterventionRecord["metrics"][number]
-  >();
+  const metricsByKey = new Map<string, Tier2DocumentInterventionRecord["metrics"][number]>();
   for (const record of input.records) {
     for (const metric of record.metrics) {
       const nameKey = metric.metricName ?? metric.customMetricName ?? "";
-      const valueKey =
-        metric.valueNumeric === undefined ? "" : String(metric.valueNumeric);
+      const valueKey = metric.valueNumeric === undefined ? "" : String(metric.valueNumeric);
       const qualifierKey = metric.valueQualifier ?? "";
       const key = `${nameKey}|${valueKey}|${qualifierKey}`;
       const existing = metricsByKey.get(key);
@@ -8954,18 +8905,13 @@ export function mergeRecordCluster(input: {
       } else {
         metricsByKey.set(key, {
           ...existing,
-          evidenceRefs: [
-            ...new Set([...existing.evidenceRefs, ...metric.evidenceRefs]),
-          ].sort(),
+          evidenceRefs: [...new Set([...existing.evidenceRefs, ...metric.evidenceRefs])].sort(),
         });
       }
     }
   }
 
-  const caveatsByKey = new Map<
-    string,
-    Tier2DocumentInterventionRecord["caveats"][number]
-  >();
+  const caveatsByKey = new Map<string, Tier2DocumentInterventionRecord["caveats"][number]>();
   for (const record of input.records) {
     for (const caveat of record.caveats) {
       const key = caveat.description.toLowerCase();
@@ -8975,15 +8921,15 @@ export function mergeRecordCluster(input: {
       } else {
         caveatsByKey.set(key, {
           ...existing,
-          evidenceRefs: [
-            ...new Set([...existing.evidenceRefs, ...caveat.evidenceRefs]),
-          ].sort(),
+          evidenceRefs: [...new Set([...existing.evidenceRefs, ...caveat.evidenceRefs])].sort(),
         });
       }
     }
   }
 
-  const firstDefined = <T,>(getter: (record: Tier2DocumentInterventionRecord) => T | undefined): T | undefined => {
+  const firstDefined = <T>(
+    getter: (record: Tier2DocumentInterventionRecord) => T | undefined,
+  ): T | undefined => {
     for (const record of input.records) {
       const value = getter(record);
       if (value !== undefined) return value;
@@ -9000,9 +8946,7 @@ export function mergeRecordCluster(input: {
   const mergedStatusHistory = [...statusHistoryByKey.values()];
   const mergedRecordCandidates = evidenceCandidateIds
     .map((id) => input.candidateById.get(id))
-    .filter(
-      (candidate): candidate is Tier2DocumentEvidenceCandidate => candidate !== undefined,
-    );
+    .filter((candidate): candidate is Tier2DocumentEvidenceCandidate => candidate !== undefined);
   const recordKind = inferRecordKind({
     statusHistory: mergedStatusHistory,
     recordCandidates: mergedRecordCandidates,
@@ -9094,9 +9038,7 @@ export function dedupeInterventionRecordsByEvidenceOverlap(input: {
     if (indices === undefined || indices.length === 0) continue;
     const clusterRecords = indices
       .map((i) => input.records[i])
-      .filter(
-        (record): record is Tier2DocumentInterventionRecord => record !== undefined,
-      );
+      .filter((record): record is Tier2DocumentInterventionRecord => record !== undefined);
     if (clusterRecords.length === 1) {
       const single = clusterRecords[0];
       if (single !== undefined) merged.push(single);
@@ -9168,12 +9110,13 @@ export function processInterventionRecordsToolArgs(input: {
   candidateRootName: string;
   synthesisRootName: string;
 }): ProcessInterventionRecordsToolArgsResult {
-  const { patched: aliasRepairedArgs, repairedRecordIndices } =
-    repairInterventionRecordsAliases(input.toolArgs);
-  const { patched: repairedToolArgs, recordIndicesWithStrippedEnums } =
-    repairInvalidEnumValues(aliasRepairedArgs, (value) =>
-      DocumentInterventionRecordsToolResponseSchema.safeParse(value),
-    );
+  const { patched: aliasRepairedArgs, repairedRecordIndices } = repairInterventionRecordsAliases(
+    input.toolArgs,
+  );
+  const { patched: repairedToolArgs, recordIndicesWithStrippedEnums } = repairInvalidEnumValues(
+    aliasRepairedArgs,
+    (value) => DocumentInterventionRecordsToolResponseSchema.safeParse(value),
+  );
   const parsed = DocumentInterventionRecordsToolResponseSchema.safeParse(repairedToolArgs);
   if (!parsed.success) {
     const issues = parsed.error.issues.slice(0, 8).map((issue) => ({
@@ -9205,14 +9148,10 @@ export function processInterventionRecordsToolArgs(input: {
   for (let recordIndex = 0; recordIndex < response.interventionRecords.length; recordIndex += 1) {
     const draft = response.interventionRecords[recordIndex];
     if (draft === undefined) continue;
-    const modelEvidenceIds = collectEvidenceRefs(draft).filter((id) =>
-      validCandidateIds.has(id),
-    );
+    const modelEvidenceIds = collectEvidenceRefs(draft).filter((id) => validCandidateIds.has(id));
     const recordCandidates = modelEvidenceIds
       .map((id) => candidateById.get(id))
-      .filter(
-        (candidate): candidate is Tier2DocumentEvidenceCandidate => candidate !== undefined,
-      );
+      .filter((candidate): candidate is Tier2DocumentEvidenceCandidate => candidate !== undefined);
     if (!recordHasInterventionEvidence(recordCandidates)) {
       droppedNoEvidenceCount += 1;
       continue;
@@ -9256,12 +9195,12 @@ export function processInterventionRecordsToolArgs(input: {
       recordQualityRepairs.push("status_history_coerced_to_proposed_only");
     }
     const repairedMetrics = labelRepair.draft.metrics
-      .map((metric) =>
-        validateMetricValueNumericSupport({ metric, candidateById }),
-      )
+      .map((metric) => validateMetricValueNumericSupport({ metric, candidateById }))
       .map(({ metric, unsupportedValueNumericRemoved }) => {
         if (unsupportedValueNumericRemoved) {
-          if (!recordQualityIssues.includes("metric_value_numeric_not_supported_by_evidence_refs")) {
+          if (
+            !recordQualityIssues.includes("metric_value_numeric_not_supported_by_evidence_refs")
+          ) {
             recordQualityIssues.push("metric_value_numeric_not_supported_by_evidence_refs");
           }
         }
@@ -9300,9 +9239,7 @@ export function processInterventionRecordsToolArgs(input: {
       statusHistory: finalStatusHistory,
       recordCandidates,
     });
-    const evidenceIds = collectEvidenceRefs(finalDraft).filter((id) =>
-      validCandidateIds.has(id),
-    );
+    const evidenceIds = collectEvidenceRefs(finalDraft).filter((id) => validCandidateIds.has(id));
     const recordId = recordIdForDraft({
       sourceId,
       routes: finalDraft.routes,
@@ -9478,8 +9415,7 @@ export async function extractTier2DocumentInterventionRecords(
   if (execute && (apiKey === undefined || apiKey === "")) {
     throw new Error("DEEPSEEK_API_KEY is required for docs:intervention-records --execute.");
   }
-  const routeCatalogPath =
-    args.routeCatalogPath ?? DEFAULT_INTERVENTION_RECORDS_ROUTE_CATALOG_PATH;
+  const routeCatalogPath = args.routeCatalogPath ?? DEFAULT_INTERVENTION_RECORDS_ROUTE_CATALOG_PATH;
   const routeCatalog = (await Bun.file(routeCatalogPath).exists())
     ? await loadRouteCatalog(routeCatalogPath)
     : new Map<string, RouteCatalogEntry>();
@@ -9597,8 +9533,7 @@ export async function extractTier2DocumentInterventionRecords(
           result.responsePath === null ? null : artifactKey(result.responsePath, runRoot),
         toolCallArtifactKey:
           result.toolCallPath === null ? null : artifactKey(result.toolCallPath, runRoot),
-        errorArtifactKey:
-          result.errorPath === null ? null : artifactKey(result.errorPath, runRoot),
+        errorArtifactKey: result.errorPath === null ? null : artifactKey(result.errorPath, runRoot),
         error: result.status === "failed" ? result.error : null,
       });
       if (result.status === "extracted") {
@@ -9845,7 +9780,9 @@ export async function extractTier2DocumentInterventionRecordsFromCli(
   const paths = await resolveInterventionRecordsPaths(parsed);
   return extractTier2DocumentInterventionRecords({
     ...paths,
-    ...(parsed.synthesisRootName !== undefined ? { synthesisRootName: parsed.synthesisRootName } : {}),
+    ...(parsed.synthesisRootName !== undefined
+      ? { synthesisRootName: parsed.synthesisRootName }
+      : {}),
     ...(parsed.model !== undefined ? { model: parsed.model } : {}),
     ...(parsed.serviceTier !== undefined ? { serviceTier: parsed.serviceTier } : {}),
     ...(parsed.maxTokens !== undefined ? { maxTokens: parsed.maxTokens } : {}),
@@ -10447,7 +10384,6 @@ export async function verifyTier2ManualInterventions(
 
   return verification;
 }
-
 
 function duplicateFingerprint(event: Tier2CanonicalInterventionEvent): string {
   return [
@@ -12193,7 +12129,7 @@ export async function promotePublishableInterventions(
       if (candidate === undefined) continue;
       evidencePreviews.push({
         candidateId,
-        sourceLabel: candidate.sourceRef?.title ?? raw["sourceId"] as string,
+        sourceLabel: candidate.sourceRef?.title ?? (raw["sourceId"] as string),
         sourceUrl: candidate.sourceRef?.sourceUrl ?? null,
         quote: candidate.evidenceQuote,
       });
@@ -12212,8 +12148,7 @@ export async function promotePublishableInterventions(
       customTreatments: (raw["customTreatments"] as string[] | undefined) ?? [],
       corridor: (raw["corridor"] as Record<string, unknown> | undefined) ?? null,
       effectiveDate: (raw["effectiveDate"] as string | undefined) ?? null,
-      datePrecision:
-        (raw["datePrecision"] as "day" | "month" | "year" | undefined) ?? null,
+      datePrecision: (raw["datePrecision"] as "day" | "month" | "year" | undefined) ?? null,
       statusHistory: (raw["statusHistory"] as unknown[] | undefined) ?? [],
       treatmentComponents: (raw["treatmentComponents"] as unknown[] | undefined) ?? [],
       metrics: (raw["metrics"] as unknown[] | undefined) ?? [],
@@ -12248,10 +12183,8 @@ export async function promotePublishableInterventions(
   }
 
   const generatedAt = args.generatedAt ?? new Date().toISOString();
-  const outputPath = args.outputPath ?? join(
-    dirname(args.reviewedCorpusPath),
-    "intervention-publishable-v1.json",
-  );
+  const outputPath =
+    args.outputPath ?? join(dirname(args.reviewedCorpusPath), "intervention-publishable-v1.json");
 
   const artifact: PromotionArtifact = {
     version: 1,
@@ -12339,7 +12272,11 @@ function parsePromotePublishableInterventionsCliArgs(
 
 export type StudioInterventionShape = {
   candidateId?: string;
-  timelineLayer?: "canonical_milestone" | "treatment_component" | "planned_or_proposed" | "evaluation";
+  timelineLayer?:
+    | "canonical_milestone"
+    | "treatment_component"
+    | "planned_or_proposed"
+    | "evaluation";
   qualityTier?:
     | "canonical_milestone"
     | "implemented_treatment_component"
@@ -12375,9 +12312,7 @@ export type ProjectPublishableInterventionsArtifact = {
 };
 
 function titleCase(value: string): string {
-  return value
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+  return value.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 function projectionRouteKey(routeId: string): string {
@@ -12425,15 +12360,11 @@ function deriveTone(status: PromotedInterventionStatus): "good" | "warn" {
   return status === "implemented" ? "good" : "warn";
 }
 
-function deriveQualityTier(
-  layer: PromotionLayer,
-): "canonical_milestone" | "planned_or_proposed" {
+function deriveQualityTier(layer: PromotionLayer): "canonical_milestone" | "planned_or_proposed" {
   return layer;
 }
 
-function deriveSourceLinks(
-  record: PromotedIntervention,
-): Array<{ label: string; url: string }> {
+function deriveSourceLinks(record: PromotedIntervention): Array<{ label: string; url: string }> {
   const byUrl = new Map<string, { label: string; url: string }>();
   for (const preview of record.evidencePreviews) {
     if (preview.sourceUrl === null || preview.sourceUrl.length === 0) continue;
@@ -12473,8 +12404,7 @@ export function projectPublishableInterventionToStudio(
     title: deriveTitle(record, routeId),
     detail: deriveDetail(record),
     tone: deriveTone(record.status),
-    sourceLabel:
-      record.evidencePreviews[0]?.sourceLabel ?? `Source: ${record.sourceId}`,
+    sourceLabel: record.evidencePreviews[0]?.sourceLabel ?? `Source: ${record.sourceId}`,
     sourceDetail: `${evidenceCount.toLocaleString("en-US")} evidence preview${
       evidenceCount === 1 ? "" : "s"
     } from ${record.sourceId}`,
@@ -12491,9 +12421,7 @@ export type ProjectPublishableInterventionsArgs = {
 export async function projectPublishableInterventions(
   args: ProjectPublishableInterventionsArgs,
 ): Promise<ProjectPublishableInterventionsArtifact> {
-  const publishable = (await Bun.file(
-    args.publishableArtifactPath,
-  ).json()) as PromotionArtifact;
+  const publishable = (await Bun.file(args.publishableArtifactPath).json()) as PromotionArtifact;
   const interventionsByRoute: StudioInterventionsByRoute = {};
   let projectedInterventionEntryCount = 0;
   let droppedNoRoutesCount = 0;
@@ -12516,10 +12444,7 @@ export async function projectPublishableInterventions(
   const generatedAt = args.generatedAt ?? new Date().toISOString();
   const outputPath =
     args.outputPath ??
-    join(
-      dirname(args.publishableArtifactPath),
-      "intervention-publishable-v1-by-route.json",
-    );
+    join(dirname(args.publishableArtifactPath), "intervention-publishable-v1-by-route.json");
   const artifact: ProjectPublishableInterventionsArtifact = {
     version: 1,
     generatedAt,

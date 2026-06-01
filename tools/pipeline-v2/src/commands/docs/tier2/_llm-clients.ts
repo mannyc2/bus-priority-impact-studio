@@ -13,11 +13,12 @@
 // *type* (erased at runtime); the pi harness adapter pulls only from `lib/llm.ts`,
 // so there is no import cycle.
 import {
+  type CompleteToolCallResult,
   completeToolCall,
   deepSeekModel,
   getDeepSeekCatalogModel,
   openRouterModel,
-  type CompleteToolCallResult,
+  pioneerBaseUrl,
   type ToolCallMessage,
 } from "../../../lib/llm.ts";
 import type { FetchLike } from "./_shared.ts";
@@ -51,11 +52,15 @@ export type OpenRouterCallResult = { response: Response; body: unknown };
  * absent; the OCR consumer treats a missing service tier / empty annotations as a
  * no-op, and `usage` is the reshaped pi-ai counts.
  */
-export function synthesizeOpenRouterCallResult(result: CompleteToolCallResult): OpenRouterCallResult {
+export function synthesizeOpenRouterCallResult(
+  result: CompleteToolCallResult,
+): OpenRouterCallResult {
   if (result.stopReason === "error" || result.toolCall === null) {
     const message =
       result.errorMessage ??
-      (result.toolCall === null ? "LLM response did not include a tool call." : "LLM provider error.");
+      (result.toolCall === null
+        ? "LLM response did not include a tool call."
+        : "LLM provider error.");
     const body = { error: { message } };
     return {
       response: new Response(JSON.stringify(body), {
@@ -166,6 +171,60 @@ export async function callOpenRouterToolCallViaPi(input: {
   return synthesizeOpenRouterCallResult(result);
 }
 
+function pioneerChatCompletionsUrl(): string {
+  return `${pioneerBaseUrl()}/chat/completions`;
+}
+
+function toPioneerMessage(message: ToolCallMessage): Record<string, unknown> {
+  return {
+    role: message.role,
+    content:
+      typeof message.content === "string"
+        ? message.content
+        : message.content.map((block) =>
+            block.type === "text"
+              ? { type: "text", text: block.text }
+              : {
+                  type: "image_url",
+                  image_url: { url: `data:${block.mimeType};base64,${block.data}` },
+                },
+          ),
+  };
+}
+
+export async function callPioneerToolCallDirect(input: {
+  apiKey: string;
+  model: string;
+  maxTokens: number;
+  toolName: string;
+  messages: ToolCallMessage[];
+  tools: Array<{ name: string; description: string; parameters: Record<string, unknown> }>;
+  fetcher: FetchLike;
+}): Promise<OpenRouterCallResult> {
+  return postPioneerChatCompletions({
+    apiKey: input.apiKey,
+    body: {
+      model: input.model,
+      max_tokens: input.maxTokens,
+      messages: input.messages.map(toPioneerMessage),
+      tools: input.tools.map((tool) => ({
+        type: "function",
+        function: {
+          name: tool.name,
+          description: tool.description,
+          parameters: tool.parameters,
+        },
+      })),
+      tool_choice: {
+        type: "function",
+        function: { name: input.toolName },
+      },
+      temperature: 0,
+    },
+    fetcher: input.fetcher,
+  });
+}
+
 function openRouterErrorCode(body: unknown): string | null {
   if (body === null || typeof body !== "object" || Array.isArray(body) || !("error" in body)) {
     return null;
@@ -236,6 +295,44 @@ export async function postOpenRouterChatCompletions(input: {
   }
   if (lastResult === null) {
     throw new Error("OpenRouter request loop exited without a response.");
+  }
+  return lastResult;
+}
+
+export async function postPioneerChatCompletions(input: {
+  apiKey: string;
+  body: Record<string, unknown>;
+  fetcher: FetchLike;
+  maxAttempts?: number;
+}): Promise<OpenRouterCallResult> {
+  const maxAttempts = input.maxAttempts ?? DEFAULT_OPENROUTER_MAX_ATTEMPTS;
+  let lastResult: OpenRouterCallResult | null = null;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const response = await input.fetcher(pioneerChatCompletionsUrl(), {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${input.apiKey}`,
+        "X-API-Key": input.apiKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(input.body),
+    });
+    const text = await response.text();
+    let body: unknown;
+    try {
+      body = JSON.parse(text);
+    } catch {
+      body = { rawText: text };
+    }
+    const result = { response, body };
+    lastResult = result;
+    if (attempt >= maxAttempts || !isTransientOpenRouterFailure(result)) {
+      return result;
+    }
+    await sleepMs(500 * attempt);
+  }
+  if (lastResult === null) {
+    throw new Error("Pioneer request loop exited without a response.");
   }
   return lastResult;
 }

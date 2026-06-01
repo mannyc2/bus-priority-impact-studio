@@ -1,6 +1,6 @@
 import { defineCommand, z } from "@liche/core";
 import { optionsToArgs } from "./_cli-bridge.ts";
-import { ocrTier2PageMarkdownFromCli } from "./_ocr-render.ts";
+import { prepareTier2PageMarkdownInputsFromCli } from "./_ocr-render.ts";
 
 const optionsSchema = z.object({
   ocrPlan: z.string().optional(),
@@ -18,9 +18,7 @@ const optionsSchema = z.object({
   limit: z.coerce.number().int().positive().optional(),
   sourceId: z.string().optional(),
   allPages: z.boolean().optional(),
-  execute: z.boolean().optional(),
   output: z.string().optional(),
-  provider: z.enum(["openrouter", "pioneer"]).optional(),
 });
 
 const flagMap: Record<string, string> = {
@@ -39,21 +37,20 @@ const flagMap: Record<string, string> = {
   limit: "--limit",
   sourceId: "--source-id",
   allPages: "--all-pages",
-  execute: "--execute",
   output: "--output",
-  provider: "--provider",
 };
 
-export async function runDocsTier2Ocr(input: z.infer<typeof optionsSchema>) {
-  return ocrTier2PageMarkdownFromCli(optionsToArgs(input, flagMap));
+export async function runDocsTier2OcrPrepare(input: z.infer<typeof optionsSchema>) {
+  return prepareTier2PageMarkdownInputsFromCli(optionsToArgs(input, flagMap));
 }
 
 export default defineCommand({
-  path: ["docs", "tier2", "ocr"],
-  summary: "Render page-level OCR Markdown for planned Tier 2 documents via the pi harness.",
+  path: ["docs", "tier2", "ocr-prepare"],
+  summary:
+    "Prepare resumable page-level OCR inputs for Tier 2 PDFs without submitting LLM requests.",
   input: { options: optionsSchema },
   output: z.unknown(),
   async run({ input }) {
-    return runDocsTier2Ocr(input.options);
+    return runDocsTier2OcrPrepare(input.options);
   },
 });
