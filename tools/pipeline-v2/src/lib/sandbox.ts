@@ -23,14 +23,14 @@ export type SandboxOptions = {
   ralphDir?: string;
 };
 
-const DEFAULTS = {
+const DEFAULTS: Required<Omit<SandboxOptions, "ralphDir">> & { timeoutSecMax: number } = {
   timeoutSec: 30,
   timeoutSecMax: 120,
   maxStdoutBytes: 256 * 1024,
   maxStderrBytes: 64 * 1024,
   memoryMb: 1024,
   image: "bp-sandbox:latest",
-} satisfies Required<Omit<SandboxOptions, "ralphDir">>;
+};
 
 type ResolvedSandboxOptions = Required<Omit<SandboxOptions, "timeoutSec" | "ralphDir">> & {
   ralphDir?: string;

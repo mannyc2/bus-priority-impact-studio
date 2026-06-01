@@ -42,7 +42,7 @@ export function buildStderrEventSink(options: { prefix?: string } = {}): ToolLoo
       const idShort = event.toolCallId.slice(0, 8);
       const errSuffix = event.isError ? " ERROR" : "";
 
-      // Sandbox tools (python_exec, bash_exec) attach a SandboxResult on
+      // Sandbox tools (ts_exec, bash_exec) attach a SandboxResult on
       // result.details. Print exit + stdout bytes. For other extraTools, fall
       // back to the result's first text block — caller-defined tools (e.g.
       // findings' submit_finding_proposals) put a human-readable summary there.

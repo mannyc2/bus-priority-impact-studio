@@ -1,5 +1,5 @@
 // Codemode layer — generic AgentHarness adapter for codemode-style agents
-// (sandboxed python_exec + bash_exec, deterministic-gated evidence refs).
+// (sandboxed ts_exec + bash_exec, deterministic-gated evidence refs).
 // Decoupled from findings so other agents (brief, intervention rank) can
 // reuse the same harness wiring.
 //
@@ -18,6 +18,7 @@ export {
   type HarnessLike,
   type MakeToolLoopRunnerArgs,
   type ModelToolLoop,
+  type SandboxToolName,
   type ToolExecutor,
   type ToolLoopEventSink,
   type ToolLoopInput,

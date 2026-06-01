@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { runBash, runPython } from "../../src/lib/sandbox.ts";
+import { runBash, runTypeScript } from "../../src/lib/sandbox.ts";
 
 const TEST_IMAGE = "bp-sandbox:latest";
 
@@ -80,9 +80,9 @@ maybe("sandbox.runBash", () => {
   });
 });
 
-maybe("sandbox.runPython", () => {
-  test("runs Python and prints to stdout", async () => {
-    const r = await runPython("print(1 + 1)", {
+maybe("sandbox.runTypeScript", () => {
+  test("runs TypeScript and prints to stdout", async () => {
+    const r = await runTypeScript("console.log(1 + 1)", {
       image: TEST_IMAGE,
       timeoutSec: 10,
     });
@@ -90,22 +90,25 @@ maybe("sandbox.runPython", () => {
     expect(r.stdout).toBe("2\n");
   });
 
-  test("bp_corpus is importable through the bind-mount", async () => {
-    const r = await runPython(
-      "from bp_corpus import routes\nprint(len(routes.ids('2026-03')))",
+  test("analytics registry is importable through the bind-mount", async () => {
+    const r = await runTypeScript(
+      [
+        "import { listAnalyticsDetectors } from '@bp/analytics/registry';",
+        "console.log(listAnalyticsDetectors().length);",
+      ].join("\n"),
       { image: TEST_IMAGE, timeoutSec: 15 },
     );
     expect(r.exitCode).toBe(0);
-    expect(Number(r.stdout.trim())).toBeGreaterThan(100);
+    expect(Number(r.stdout.trim())).toBeGreaterThan(10);
   });
 
-  test("propagates non-zero exit on Python error", async () => {
-    const r = await runPython(
-      "raise ValueError('boom')",
+  test("propagates non-zero exit on TypeScript error", async () => {
+    const r = await runTypeScript(
+      "throw new Error('boom')",
       { image: TEST_IMAGE, timeoutSec: 10 },
     );
     expect(r.exitCode).not.toBe(0);
-    expect(r.stderr).toContain("ValueError");
+    expect(r.stderr).toContain("Error");
     expect(r.stderr).toContain("boom");
   });
 });

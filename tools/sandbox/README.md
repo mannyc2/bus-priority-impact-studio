@@ -1,11 +1,13 @@
 # bp-sandbox
 
-Read-only Python + bash Docker sandbox for the Bus Priority Studio
-findings-agent codemode runs (see `docs/decisions/0010-python-in-sandbox.md`).
+Read-only Bun/TypeScript + bash Docker sandbox for Bus Priority Studio
+findings-agent codemode runs.
 
-The agent's code is piped over stdin to `python3 -` or `bash -s` inside this
-container. The corpus and `bp_corpus` helper library are bind-mounted at
-runtime; nothing project-specific is baked into the image.
+The agent's TypeScript is piped over stdin, written to `/tmp/codemode/main.ts`,
+and executed with Bun. The runtime creates temporary workspace symlinks so
+agent code can import `@bp/analytics`, `@bp/analytics/registry`, and
+`@bp/domain` while keeping the repo bind-mounted read-only. Bash remains
+available for deterministic file slicing with `rg`, `jq`, and core shell tools.
 
 ## Build
 
@@ -22,52 +24,29 @@ git SHA so downstream tools can pin to a known revision.
 
 | Change | Rebuild needed? |
 |---|---|
-| `Dockerfile`                            | yes |
-| `requirements.in` or `requirements.txt` | yes |
-| `tools/agent-corpus-lib/**` (the lib)   | **no** — bind-mounted at runtime |
-| Corpus artifacts under `data/`          | **no** — bind-mounted at runtime |
-| Anything else                           | no |
-
-## Updating Python dependencies
-
-```bash
-# 1. Edit requirements.in (loose pins, the source of truth).
-# 2. Regenerate the hash-pinned lockfile:
-cd tools/sandbox
-uv pip compile requirements.in --generate-hashes --python-version 3.12 -o requirements.txt
-# 3. Rebuild and run the pipeline-v2 sandbox tests:
-bun run sandbox:build
-bun test tools/pipeline-v2/test/lib/sandbox.test.ts
-```
-
-## Updating the base image
-
-```bash
-docker pull python:3.12-slim
-docker inspect python:3.12-slim --format '{{index .RepoDigests 0}}'
-# Paste the printed digest into the FROM line of Dockerfile.
-```
+| `Dockerfile` | yes |
+| Corpus artifacts under `data/` | no - bind-mounted read-only |
+| `packages/analytics/**` or `packages/domain/**` | no - bind-mounted read-only |
+| Codemode skill text | no - inlined by the host harness |
 
 ## What lives in the image
 
-- Python 3.12 (slim debian:bookworm base)
-- `pandas`, `duckdb`, `pyarrow` (hash-pinned via `requirements.txt`)
-- `ripgrep`, `jq` (apt)
-- A non-root `agent` user (UID 1000)
-- `PYTHONPATH=/work/agent-corpus-lib` so `import bp_corpus` resolves to the
-  bind-mounted library
+- Bun 1.3.13 on Debian.
+- `ripgrep` and `jq`.
+- The base image's non-root UID 1000 user, with `/home/agent` mounted as tmpfs
+  at runtime.
 
 ## What does NOT live in the image
 
-- The corpus (`data/`) — bind-mounted read-only at runtime
-- The `bp_corpus` Python lib (`tools/agent-corpus-lib/`) — bind-mounted r/o at runtime
-- The pipeline TypeScript code — never executed inside the sandbox
-- Network access — disabled at run time with `--network=none`
+- The corpus (`data/`) - bind-mounted read-only at runtime.
+- `packages/analytics` and `packages/domain` - bind-mounted read-only at runtime.
+- Python, pandas, duckdb, or pyarrow.
+- Network access - disabled at runtime with `--network=none`.
 
 ## Runtime invocation
 
 Driven by `tools/pipeline-v2/src/lib/sandbox.ts`. The runtime flags applied to
-every `docker run` (verified by `test/lib/sandbox.test.ts`):
+every `docker run`:
 
 - `--network=none`
 - `--read-only`
@@ -77,8 +56,7 @@ every `docker run` (verified by `test/lib/sandbox.test.ts`):
 - `--user 1000:1000`
 - Per-call wall-time enforced by the host (`SIGKILL` from `sandbox.ts`)
 
-## Image size
-
-~470 MB uncompressed. Dominated by pandas + pyarrow wheels. Multi-stage build
-would not help — the wheels are pre-built and there are no compile-time deps
-to discard.
+The sandbox mounts `/work/data/artifacts`, `/work/data/raw`, `/work/data/local`,
+and `/work/knowledge` read-only. It also mounts the analytics/domain packages
+and root `node_modules` read-only under `/work/repo` so TypeScript evidence code
+uses the same deterministic analytics kernel as the pipeline.

@@ -24,36 +24,25 @@ describe("sha256Hex", () => {
 // ---------------------------------------------------------------------------
 // checkDeterminism
 
-describe("checkDeterminism (python)", () => {
-  test("rejects datetime.now / utcnow / today", () => {
-    expect(checkDeterminism("from datetime import datetime\nprint(datetime.now())", "python")).not.toBeNull();
-    expect(checkDeterminism("import datetime\nprint(datetime.datetime.utcnow())", "python")).not.toBeNull();
-    expect(checkDeterminism("from datetime import date\nprint(date.today())", "python")).not.toBeNull();
+describe("checkDeterminism (typescript)", () => {
+  test("rejects clock and randomness APIs", () => {
+    expect(checkDeterminism("console.log(Date.now())", "typescript")).not.toBeNull();
+    expect(checkDeterminism("console.log(new Date())", "typescript")).not.toBeNull();
+    expect(checkDeterminism("console.log(Math.random())", "typescript")).not.toBeNull();
+    expect(checkDeterminism("console.log(crypto.randomUUID())", "typescript")).not.toBeNull();
   });
 
-  test("rejects time module non-determinism", () => {
-    expect(checkDeterminism("import time\nprint(time.time())", "python")).not.toBeNull();
-    expect(checkDeterminism("import time\nprint(time.monotonic())", "python")).not.toBeNull();
-    expect(checkDeterminism("import time\nprint(time.perf_counter())", "python")).not.toBeNull();
-  });
-
-  test("rejects random and secrets", () => {
-    expect(checkDeterminism("import random\nprint(random.randint(1, 5))", "python")).not.toBeNull();
-    expect(checkDeterminism("from random import choice\nprint(choice([1, 2]))", "python")).not.toBeNull();
-    expect(checkDeterminism("import secrets\nprint(secrets.token_hex(4))", "python")).not.toBeNull();
-  });
-
-  test("accepts deterministic pandas + literals", () => {
+  test("accepts deterministic analytics imports and literals", () => {
     expect(checkDeterminism(
-      "import pandas as pd\nfrom bp_corpus import signals\ndf = signals.features_df('2026-03')\nprint(df['routeId'].nunique())",
-      "python",
+      "import { listAnalyticsDetectors } from '@bp/analytics/registry';\nconsole.log(listAnalyticsDetectors().length)",
+      "typescript",
     )).toBeNull();
   });
 
-  test("accepts datetime parsing of a literal", () => {
+  test("accepts date parsing of a literal", () => {
     expect(checkDeterminism(
-      "from datetime import datetime\nprint(datetime.fromisoformat('2026-01-01').year)",
-      "python",
+      "console.log(Date.parse('2026-01-01T00:00:00Z'))",
+      "typescript",
     )).toBeNull();
   });
 });
@@ -137,7 +126,7 @@ function proposalWithCode(code: string, stdoutHash = "a".repeat(64)): AgentFindi
     evidenceRefs: [
       {
         kind: "code_execution",
-        language: "python",
+        language: "typescript",
         code,
         stdoutHash,
       },
@@ -155,8 +144,8 @@ function proposalWithCode(code: string, stdoutHash = "a".repeat(64)): AgentFindi
 }
 
 maybe("preExecuteCodeRefs (real sandbox)", () => {
-  test("runs python and returns matching stdoutHash", async () => {
-    const code = "print(1 + 1)";
+  test("runs TypeScript and returns matching stdoutHash", async () => {
+    const code = "console.log(1 + 1)";
     const proposal = proposalWithCode(code);
     const cache = await preExecuteCodeRefs(proposal);
     const entry = cache.get(sha256Hex(code));
@@ -167,7 +156,7 @@ maybe("preExecuteCodeRefs (real sandbox)", () => {
   });
 
   test("populates an error entry for determinism-lint rejection (no sandbox call)", async () => {
-    const code = "import time\nprint(time.time())";
+    const code = "console.log(Date.now())";
     const proposal = proposalWithCode(code);
     const cache = await preExecuteCodeRefs(proposal);
     const entry = cache.get(sha256Hex(code));
@@ -175,11 +164,11 @@ maybe("preExecuteCodeRefs (real sandbox)", () => {
   });
 
   test("deduplicates identical code across refs", async () => {
-    const code = "print(42)";
+    const code = "console.log(42)";
     const proposal = proposalWithCode(code);
     proposal.counterEvidenceRefs.push({
       kind: "code_execution",
-      language: "python",
+      language: "typescript",
       code,
       stdoutHash: "b".repeat(64),
     });
@@ -188,7 +177,7 @@ maybe("preExecuteCodeRefs (real sandbox)", () => {
   });
 
   test("captures non-zero exit as error", async () => {
-    const code = "raise SystemExit(2)";
+    const code = "process.exit(2)";
     const proposal = proposalWithCode(code);
     const cache = await preExecuteCodeRefs(proposal);
     const entry = cache.get(sha256Hex(code));

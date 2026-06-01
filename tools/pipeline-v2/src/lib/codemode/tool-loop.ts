@@ -26,20 +26,21 @@ import {
   type Usage,
 } from "@earendil-works/pi-ai";
 
-import { runBash, runPython, type SandboxResult } from "../sandbox.ts";
+import { providerHeaders } from "../llm.ts";
+import { runBash, runTypeScript, type SandboxOptions, type SandboxResult } from "../sandbox.ts";
 
 // ---------------------------------------------------------------------------
 // Tools — typebox schemas via pi-ai's re-exported `Type`. Each tool is an
 // `AgentTool` (extends pi-ai's `Tool` with label + execute) which AgentHarness
 // dispatches inside the loop.
 
-const pythonExecParams = Type.Object(
+const tsExecParams = Type.Object(
   {
     code: Type.String({
       minLength: 1,
-      maxLength: 8000,
+      maxLength: 10000,
       description:
-        "Python source. Runs inside the bp-sandbox container with bp_corpus on PYTHONPATH, no network, read-only mounts on /work/data and /work/knowledge.",
+        "TypeScript source. Runs with Bun inside the bp-sandbox container. Can import @bp/analytics, @bp/analytics/registry, and @bp/domain; no network; read-only mounts on /work/data, /work/knowledge, and analytics/domain packages.",
     }),
     timeoutSec: Type.Optional(
       Type.Integer({
@@ -58,7 +59,7 @@ const bashExecParams = Type.Object(
       minLength: 1,
       maxLength: 4000,
       description:
-        "Bash command(s). Same sandbox constraints as python_exec. Useful for `ls`, `rg`, `jq` over the corpus.",
+        "Bash command(s). Same sandbox constraints as ts_exec. Useful for `ls`, `rg`, and `jq` over the corpus.",
     }),
     timeoutSec: Type.Optional(
       Type.Integer({
@@ -71,14 +72,14 @@ const bashExecParams = Type.Object(
   { additionalProperties: false },
 );
 
-type PythonExecArgs = Static<typeof pythonExecParams>;
+type TsExecArgs = Static<typeof tsExecParams>;
 type BashExecArgs = Static<typeof bashExecParams>;
 
-const PYTHON_EXEC_DESCRIPTION =
-  "Run Python in the sandbox. Returns stdout/stderr/exitCode. Use this to slice the corpus via bp_corpus and to compute values you intend to cite. Code you cite via `code_execution` evidenceRefs will be re-executed at validation — keep it deterministic (no datetime.now, random, time.time).";
+const TS_EXEC_DESCRIPTION =
+  "Run TypeScript with Bun in the sandbox. Returns stdout/stderr/exitCode. Use this to import @bp/analytics, inspect the corpus, and compute values you intend to cite. Code you cite via `code_execution` evidenceRefs will be re-executed at validation — keep it deterministic (no Date.now, new Date(), Math.random, crypto randomness, or clock APIs).";
 
 const BASH_EXEC_DESCRIPTION =
-  "Run bash in the sandbox. Same determinism rules as python_exec apply for any code you intend to cite.";
+  "Run bash in the sandbox. Same determinism rules as ts_exec apply for any code you intend to cite.";
 
 // ---------------------------------------------------------------------------
 // Caller-facing types — kept stable across the AgentHarness migration so
@@ -86,7 +87,7 @@ const BASH_EXEC_DESCRIPTION =
 
 export type ToolUseTraceEntry = {
   toolCallId: string;
-  tool: "python_exec" | "bash_exec";
+  tool: SandboxToolName;
   code: string;
   timeoutSec: number | undefined;
   exitCode: number;
@@ -110,7 +111,7 @@ export interface CodemodeTerminationSignal {
 export type ToolLoopInput = {
   systemPrompt: string;
   userMessage: string;
-  // Extra agent tools added on top of python_exec + bash_exec for this
+  // Extra agent tools added on top of ts_exec + bash_exec for this
   // specific run. The caller owns lifecycle: any state the tool captures
   // (e.g. a results buffer) lives in the caller's closure.
   extraTools?: AgentTool[];
@@ -156,9 +157,11 @@ export { DEFAULT_COMPACTION_SETTINGS };
 // the loop.
 export type ToolLoopEventSink = (event: AgentHarnessEvent) => void;
 
+export type SandboxToolName = "ts_exec" | "bash_exec";
+
 // Test seam — lets unit tests run the loop without docker.
 export type ToolExecutor = (
-  toolName: "python_exec" | "bash_exec",
+  toolName: SandboxToolName,
   args: { code: string; timeoutSec?: number },
 ) => Promise<SandboxResult>;
 
@@ -194,11 +197,15 @@ const STDOUT_PREVIEW_BYTES = 4000;
 const STDERR_PREVIEW_BYTES = 1000;
 
 async function defaultExecutor(
-  toolName: "python_exec" | "bash_exec",
+  toolName: SandboxToolName,
   args: { code: string; timeoutSec?: number },
+  sandboxOptions: SandboxOptions = {},
 ): Promise<SandboxResult> {
-  const opts = args.timeoutSec === undefined ? {} : { timeoutSec: args.timeoutSec };
-  return toolName === "python_exec" ? runPython(args.code, opts) : runBash(args.code, opts);
+  const opts = {
+    ...sandboxOptions,
+    ...(args.timeoutSec === undefined ? {} : { timeoutSec: args.timeoutSec }),
+  };
+  return toolName === "ts_exec" ? runTypeScript(args.code, opts) : runBash(args.code, opts);
 }
 
 function formatToolResultText(r: SandboxResult): string {
@@ -264,6 +271,13 @@ export type MakeToolLoopRunnerArgs = {
   // the read-only docker sandbox). Skills are also passed via
   // `resources.skills` for use by explicit `harness.skill(name)` calls.
   skillsRoot?: string;
+  // Optional persistent workspace mounted read-write at /work/.ralph for Ralph
+  // iterations. Cited code_execution validation intentionally does not pass
+  // this option, so cited code must remain clean-room reproducible.
+  ralphDir?: string;
+  // Kept as a caller-facing no-op during the Bun refactor. A future executor can
+  // reuse this flag to pool containers without changing command call sites.
+  warmContainer?: boolean;
   // Test seams
   executor?: ToolExecutor;
   env?: ExecutionEnv;
@@ -276,7 +290,10 @@ export function makeToolLoopRunner(args: MakeToolLoopRunnerArgs): ModelToolLoop 
   const maxWallTimeMs = args.maxWallTimeMs ?? 4 * 60 * 1000;
   const maxRetries = args.maxRetries ?? 3;
   const maxRetryDelayMs = args.maxRetryDelayMs ?? 30000;
-  const executor = args.executor ?? defaultExecutor;
+  const sandboxOptions: SandboxOptions = {
+    ...(args.ralphDir === undefined ? {} : { ralphDir: args.ralphDir }),
+  };
+  const executor = args.executor ?? ((toolName, toolArgs) => defaultExecutor(toolName, toolArgs, sandboxOptions));
   const createHarness = args.harnessFactory ?? defaultHarnessFactory;
 
   return async (input) => {
@@ -297,13 +314,13 @@ export function makeToolLoopRunner(args: MakeToolLoopRunnerArgs): ModelToolLoop 
       costUsd: 0,
     };
 
-    const pythonTool: AgentTool<typeof pythonExecParams, SandboxResult> = {
-      name: "python_exec",
-      label: "Python",
-      description: PYTHON_EXEC_DESCRIPTION,
-      parameters: pythonExecParams,
-      execute: async (_toolCallId, params: PythonExecArgs) => {
-        const r = await executor("python_exec", params);
+    const tsTool: AgentTool<typeof tsExecParams, SandboxResult> = {
+      name: "ts_exec",
+      label: "TypeScript",
+      description: TS_EXEC_DESCRIPTION,
+      parameters: tsExecParams,
+      execute: async (_toolCallId, params: TsExecArgs) => {
+        const r = await executor("ts_exec", params);
         return sandboxToAgentResult(r);
       },
     };
@@ -348,7 +365,7 @@ export function makeToolLoopRunner(args: MakeToolLoopRunnerArgs): ModelToolLoop 
           ].join("\n\n");
 
     const extraTools = input.extraTools ?? [];
-    const sandboxToolNames = new Set<string>(["python_exec", "bash_exec"]);
+    const sandboxToolNames = new Set<string>(["ts_exec", "bash_exec"]);
     for (const t of extraTools) {
       if (sandboxToolNames.has(t.name)) {
         throw new Error(
@@ -361,9 +378,15 @@ export function makeToolLoopRunner(args: MakeToolLoopRunnerArgs): ModelToolLoop 
       env,
       session,
       model: args.model,
-      tools: [pythonTool, bashTool, ...extraTools],
+      tools: [tsTool, bashTool, ...extraTools],
       systemPrompt: composedSystemPrompt,
-      getApiKeyAndHeaders: async () => ({ apiKey: args.apiKey }),
+      getApiKeyAndHeaders: async (model) => {
+        const headers = providerHeaders(model.provider, args.apiKey);
+        return {
+          apiKey: args.apiKey,
+          ...(headers === undefined ? {} : { headers }),
+        };
+      },
       // Delegate transient-error retry to pi-ai's HTTP layer (rate limits,
       // 5xx, network). Replaces the custom retry loop the slice ran before
       // phase 1b. The retries field on ToolLoopResult is now always 0 since
@@ -390,7 +413,7 @@ export function makeToolLoopRunner(args: MakeToolLoopRunnerArgs): ModelToolLoop 
       }
       const details = event.details as SandboxResult | null;
       if (details === null || details === undefined) return undefined;
-      const toolName = event.toolName as "python_exec" | "bash_exec";
+      const toolName = event.toolName as SandboxToolName;
       const inputArgs = event.input as { code: string; timeoutSec?: number };
 
       toolCalls += 1;

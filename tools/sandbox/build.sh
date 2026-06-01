@@ -36,14 +36,16 @@ DOCKER_BUILDKIT=1 docker build \
 echo "==> Smoke-testing ${IMAGE_NAME}:latest"
 output=$(docker run --rm --network=none --read-only \
   --tmpfs /tmp:rw,size=8m \
+  --tmpfs /home/agent:rw,size=8m \
+  -e HOME=/home/agent \
   --user 1000:1000 \
   --cap-drop=ALL \
   --security-opt=no-new-privileges \
   "${IMAGE_NAME}:latest" \
-  python3 -c 'import pandas, duckdb, pyarrow; print(f"pandas={pandas.__version__} duckdb={duckdb.__version__} pyarrow={pyarrow.__version__}")')
+  bun -e 'console.log(`bun=${Bun.version}`)')
 echo "    ${output}"
 
-if ! echo "${output}" | grep -q "pandas="; then
+if ! echo "${output}" | grep -q "bun="; then
   echo "build.sh: smoke test failed" >&2
   exit 2
 fi

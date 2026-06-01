@@ -17,6 +17,8 @@ import {
   getDeepSeekCatalogModel,
   getOpenRouterCatalogModel,
   openRouterModel,
+  pioneerModel,
+  providerHeaders,
 } from "../../lib/llm.ts";
 
 import {
@@ -68,7 +70,17 @@ function defaultCorpusPaths(input: {
   };
 }
 
-type LlmProvider = "openrouter" | "deepseek";
+type LlmProvider = "openrouter" | "deepseek" | "pioneer";
+
+function resolveLlmModel(provider: LlmProvider, modelId: string): Model<Api> {
+  if (provider === "deepseek") {
+    return getDeepSeekCatalogModel(modelId) ?? deepSeekModel(modelId);
+  }
+  if (provider === "pioneer") {
+    return pioneerModel(modelId);
+  }
+  return getOpenRouterCatalogModel(modelId) ?? openRouterModel(modelId);
+}
 
 function buildLlmRunner(input: {
   provider: LlmProvider;
@@ -85,12 +97,7 @@ function buildLlmRunner(input: {
   // thinkingFormat: "deepseek", correct max_tokens field) come along. Falls
   // back to a custom Model<> for ids the catalog does not know (e.g. the
   // legacy "deepseek-chat" / "deepseek-reasoner" V3 ids).
-  let model: Model<Api>;
-  if (input.provider === "deepseek") {
-    model = getDeepSeekCatalogModel(input.modelId) ?? deepSeekModel(input.modelId);
-  } else {
-    model = getOpenRouterCatalogModel(input.modelId) ?? openRouterModel(input.modelId);
-  }
+  const model = resolveLlmModel(input.provider, input.modelId);
   return async ({ systemPrompt, userMessage }) => {
     const context: Context = {
       systemPrompt,
@@ -132,6 +139,7 @@ function buildLlmRunner(input: {
       ...(input.reasoning !== null && !useDeepSeekDirectThinking
         ? { reasoning: input.reasoning }
         : {}),
+      headers: providerHeaders(input.provider, input.apiKey),
       appName: "bp-findings-agent-propose",
     });
     input.counter.tokens += 1;
@@ -186,17 +194,17 @@ export default defineCommand({
           "Path to a tier 2 corpus dir under data/artifacts/docs/. Provides intervention-publishable-v1.json + intervention-records.json + v5 document candidates. Omit to skip tier 2 context.",
         ),
       provider: z
-        .enum(["openrouter", "deepseek"])
-        .default("openrouter")
+        .enum(["openrouter", "deepseek", "pioneer"])
+        .default("pioneer")
         .describe(
-          "LLM provider. `openrouter` proxies to many models via OPENROUTER_API_KEY; `deepseek` calls DeepSeek's API directly via DEEPSEEK_API_KEY.",
+          "LLM provider. `pioneer` uses PIONEER_API_KEY/PIONEER_BASE_URL; `openrouter` proxies to many models via OPENROUTER_API_KEY; `deepseek` calls DeepSeek's API directly via DEEPSEEK_API_KEY.",
         ),
       model: z
         .string()
         .min(1)
-        .default("deepseek/deepseek-v4-flash")
+        .default("gpt-5.5")
         .describe(
-          "Model ID. Defaults to `deepseek/deepseek-v4-flash` (via openrouter — has a pi-ai catalog entry with thinkingLevelMap and proper cost data). With --provider openrouter use e.g. `deepseek/deepseek-v4-flash`, `deepseek/deepseek-chat-v3-0324`, or `anthropic/claude-3.5-sonnet`. With --provider deepseek use e.g. `deepseek-chat` or `deepseek-reasoner`.",
+          "Model ID. Defaults to `gpt-5.5` through Pioneer. With --provider openrouter use e.g. `deepseek/deepseek-v4-flash`, `deepseek/deepseek-chat-v3-0324`, or `anthropic/claude-3.5-sonnet`. With --provider deepseek use e.g. `deepseek-chat` or `deepseek-reasoner`.",
         ),
       maxProposalsPerRoute: z.coerce
         .number()
@@ -238,7 +246,7 @@ export default defineCommand({
         .union([z.boolean(), z.string()])
         .default(false)
         .describe(
-          "Run the agent with python_exec + bash_exec tools backed by the bp-sandbox Docker image. Inlines the corpus-navigation skill (tools/agent-corpus-lib/skills/) into the system prompt. Requires the image to be built (`bun run sandbox:build`). Cited code_execution evidence refs are re-executed at validation time.",
+          "Run the agent with ts_exec + bash_exec tools backed by the bp-sandbox Docker image. Inlines the TypeScript corpus-navigation skill into the system prompt. Requires the image to be built (`bun run sandbox:build`). Cited code_execution evidence refs are re-executed at validation time.",
         ),
       persistSessions: z
         .union([z.boolean(), z.string()])
@@ -253,7 +261,7 @@ export default defineCommand({
         .max(200)
         .default(40)
         .describe(
-          "Codemode tool-call budget per route. Counts python_exec + bash_exec calls; submit_finding_proposals does not count. Default 40.",
+          "Codemode tool-call budget per route. Counts ts_exec + bash_exec calls; submit_finding_proposals does not count. Default 40.",
         ),
     }),
   },
@@ -351,7 +359,10 @@ export default defineCommand({
       };
     }
 
-    const envName = options.provider === "deepseek" ? "DEEPSEEK_API_KEY" : "OPENROUTER_API_KEY";
+    const envName =
+      options.provider === "deepseek" ? "DEEPSEEK_API_KEY"
+      : options.provider === "pioneer" ? "PIONEER_API_KEY"
+      : "OPENROUTER_API_KEY";
     const apiKey = process.env[envName]?.trim() ?? "";
     if (apiKey.length === 0) {
       throw new Error(`${envName} is required for findings:agent-propose --execute.`);
@@ -381,10 +392,7 @@ export default defineCommand({
 
     let modelToolLoop: ModelToolLoop | undefined;
     if (enableCodemodeFlag) {
-      const baseModel: Model<Api> =
-        options.provider === "deepseek"
-          ? (getDeepSeekCatalogModel(options.model) ?? deepSeekModel(options.model))
-          : (getOpenRouterCatalogModel(options.model) ?? openRouterModel(options.model));
+      const baseModel = resolveLlmModel(options.provider, options.model);
       const onEvent: ToolLoopEventSink = buildStderrEventSink();
       const sessionsRoot = persistSessionsFlag
         ? join(agentProposalsDir(monthIso, runId), "sessions")
@@ -393,11 +401,11 @@ export default defineCommand({
         await mkdir(sessionsRoot, { recursive: true });
         console.log(`  sessions=${sessionsRoot}`);
       }
-      // SKILL.md files at tools/agent-corpus-lib/skills/ are inlined into the
+      // SKILL.md files at tools/agent-codemode/skills/ are inlined into the
       // system prompt by lib/codemode (replaces the prior ad-hoc read of
       // knowledge/wiki/data/agent_corpus_map.md). To customize, point
       // skillsRoot at another directory or set it to undefined to suppress.
-      const skillsRoot = fromRepoRoot("tools/agent-corpus-lib/skills");
+      const skillsRoot = fromRepoRoot("tools/agent-codemode/skills");
       modelToolLoop = makeToolLoopRunner({
         model: baseModel,
         apiKey,

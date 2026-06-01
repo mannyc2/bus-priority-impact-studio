@@ -3,9 +3,10 @@ import { createHash } from "node:crypto";
 import type {
   AgentFindingProposal,
   AgentFindingProposalEvidenceRef,
+  CodeExecutionLanguage,
 } from "@bp/domain";
 
-import { runBash, runPython, type SandboxResult } from "../../lib/sandbox.ts";
+import { runBash, runTypeScript, type SandboxResult } from "../../lib/sandbox.ts";
 
 // ---------------------------------------------------------------------------
 // Cache shape
@@ -42,22 +43,17 @@ export function sha256Hex(input: string): string {
 // most common non-deterministic patterns up front so the agent gets a clear
 // error instead of mysterious stdoutHash mismatches on the second run.
 // Tighter rules are easy to add — the goal here is to catch the obvious
-// `datetime.now()` / `$RANDOM` cases.
+// `Date.now()` / `$RANDOM` cases.
 
-const PY_FORBIDDEN: ReadonlyArray<RegExp> = [
-  /\bimport\s+random\b/,
-  /\bfrom\s+random\s+import\b/,
-  /\bimport\s+secrets\b/,
-  /\bfrom\s+secrets\s+import\b/,
-  /\.now\s*\(/,
-  /\.utcnow\s*\(/,
-  /\.today\s*\(/,
-  /\btime\.time\s*\(\s*\)/,
-  /\btime\.monotonic\s*\(/,
-  /\btime\.perf_counter\s*\(/,
-  /\bos\.urandom\s*\(/,
-  /\b\.uuid1\s*\(/,
-  /\b\.uuid4\s*\(/,
+const TS_FORBIDDEN: ReadonlyArray<RegExp> = [
+  /\bMath\.random\s*\(/,
+  /\bDate\.now\s*\(/,
+  /\bnew\s+Date\s*\(\s*\)/,
+  /\bperformance\.now\s*\(/,
+  /\bprocess\.hrtime\b/,
+  /\bcrypto\.randomUUID\s*\(/,
+  /\bcrypto\.getRandomValues\s*\(/,
+  /\bBun\.randomUUIDv7\s*\(/,
 ];
 
 const SH_FORBIDDEN: ReadonlyArray<RegExp> = [
@@ -69,9 +65,9 @@ const SH_FORBIDDEN: ReadonlyArray<RegExp> = [
 
 export function checkDeterminism(
   code: string,
-  language: "python" | "bash",
+  language: CodeExecutionLanguage,
 ): string | null {
-  const patterns = language === "python" ? PY_FORBIDDEN : SH_FORBIDDEN;
+  const patterns = language === "typescript" ? TS_FORBIDDEN : SH_FORBIDDEN;
   for (const pat of patterns) {
     const m = code.match(pat);
     if (m) {
@@ -90,8 +86,8 @@ export function checkDeterminism(
 
 function collectCodeRefs(
   proposal: AgentFindingProposal,
-): Array<{ key: string; code: string; language: "python" | "bash" }> {
-  const out = new Map<string, { code: string; language: "python" | "bash" }>();
+): Array<{ key: string; code: string; language: CodeExecutionLanguage }> {
+  const out = new Map<string, { code: string; language: CodeExecutionLanguage }>();
   const allRefs: AgentFindingProposalEvidenceRef[] = [
     ...proposal.evidenceRefs,
     ...proposal.counterEvidenceRefs,
@@ -142,7 +138,7 @@ export async function preExecuteCodeRefs(
         });
         return;
       }
-      const r = language === "python" ? await runPython(code) : await runBash(code);
+      const r = language === "typescript" ? await runTypeScript(code) : await runBash(code);
       cache.set(key, entryFromSandbox(r));
     }),
   );

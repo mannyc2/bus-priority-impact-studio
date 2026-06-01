@@ -36,7 +36,7 @@ const dummyModel = {
 } as unknown as Model<Api>;
 
 type ScriptedCall = {
-  tool: "python_exec" | "bash_exec";
+  tool: "ts_exec" | "bash_exec";
   args: { code: string; timeoutSec?: number };
   toolCallId: string;
 };
@@ -178,7 +178,7 @@ describe("makeToolLoopRunner (AgentHarness)", () => {
       ]),
       harnessFactory: mkHarnessFactory(
         [
-          { tool: "python_exec", args: { code: "print('first')" }, toolCallId: "tc-1" },
+          { tool: "ts_exec", args: { code: "console.log('first')" }, toolCallId: "tc-1" },
           { tool: "bash_exec", args: { code: "echo second" }, toolCallId: "tc-2" },
         ],
         "done",
@@ -187,8 +187,8 @@ describe("makeToolLoopRunner (AgentHarness)", () => {
     const r = await loop({ systemPrompt: "sys", userMessage: "user" });
     expect(r.finalText).toBe("done");
     expect(r.toolUseTrace.length).toBe(2);
-    expect(r.toolUseTrace[0]!.tool).toBe("python_exec");
-    expect(r.toolUseTrace[0]!.code).toBe("print('first')");
+    expect(r.toolUseTrace[0]!.tool).toBe("ts_exec");
+    expect(r.toolUseTrace[0]!.code).toBe("console.log('first')");
     expect(r.toolUseTrace[0]!.stdoutPreview).toBe("first\n");
     expect(r.toolUseTrace[1]!.tool).toBe("bash_exec");
     expect(r.toolUseTrace[1]!.code).toBe("echo second");
@@ -206,8 +206,8 @@ describe("makeToolLoopRunner (AgentHarness)", () => {
       ]),
       harnessFactory: mkHarnessFactory(
         [
-          { tool: "python_exec", args: { code: "x" }, toolCallId: "tc-1" },
-          { tool: "python_exec", args: { code: "y" }, toolCallId: "tc-2" },
+          { tool: "ts_exec", args: { code: "x" }, toolCallId: "tc-1" },
+          { tool: "ts_exec", args: { code: "y" }, toolCallId: "tc-2" },
         ],
         "should-not-reach",
       ),
@@ -227,7 +227,7 @@ describe("makeToolLoopRunner (AgentHarness)", () => {
         seenEvents.push(event.type);
       },
       harnessFactory: mkHarnessFactory(
-        [{ tool: "python_exec", args: { code: "x" }, toolCallId: "tc-1" }],
+        [{ tool: "ts_exec", args: { code: "x" }, toolCallId: "tc-1" }],
         "done",
       ),
     });
@@ -268,7 +268,7 @@ describe("makeToolLoopRunner (AgentHarness)", () => {
       maxTotalStdoutBytes: 1024,
       executor: scriptedExecutor([mkSandboxResult({ stdout: big })]),
       harnessFactory: mkHarnessFactory(
-        [{ tool: "python_exec", args: { code: "print(big)" }, toolCallId: "tc-1" }],
+        [{ tool: "ts_exec", args: { code: "console.log(big)" }, toolCallId: "tc-1" }],
         "should-not-reach",
       ),
     });

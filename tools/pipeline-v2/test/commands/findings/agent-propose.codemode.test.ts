@@ -8,7 +8,7 @@ import type { LoadedCorpus } from "../../../src/commands/findings/_corpus.ts";
 import { runAgentPropose } from "../../../src/commands/findings/_runner.ts";
 import type { SubmitResultDetails } from "../../../src/commands/findings/_submit_tool.ts";
 import type { ModelToolLoop } from "../../../src/lib/codemode/index.ts";
-import { runPython } from "../../../src/lib/sandbox.ts";
+import { runTypeScript } from "../../../src/lib/sandbox.ts";
 
 // Helper for the codemode tests: invoke the submit_finding_proposals tool
 // that runAgentPropose adds to extraTools, capture its response, and return
@@ -103,11 +103,11 @@ const model: AgentFindingProposalModelMeta = {
 };
 
 // Helper: pre-compute a stdoutHash by running the cited code through the real
-// sandbox. In a real run the agent would observe stdout via `python_exec` and
+// sandbox. In a real run the agent would observe stdout via `ts_exec` and
 // declare the matching hash in its proposal. Here we shortcut the loop and
 // just pre-run to get the value the model would have seen.
 async function captureHash(code: string): Promise<string> {
-  const r = await runPython(code);
+  const r = await runTypeScript(code);
   if (r.exitCode !== 0) {
     throw new Error(
       `captureHash: code exited ${r.exitCode}: stderr=${r.stderr.slice(0, 200)}`,
@@ -119,7 +119,7 @@ async function captureHash(code: string): Promise<string> {
 maybe("runAgentPropose codemode (mock loop + real sandbox)", () => {
   test("a valid code_execution submission is accepted end-to-end", async () => {
     const corpus = emptyCorpus();
-    const code = "print(42)";
+    const code = "console.log(42)";
     const stdoutHash = await captureHash(code);
 
     const seenSystemPrompts: string[] = [];
@@ -137,7 +137,7 @@ maybe("runAgentPropose codemode (mock loop + real sandbox)", () => {
             "Observation: a sandbox computation reports value 42 for this route's reference probe.",
           claimStrength: "observation",
           evidenceRefs: [
-            { kind: "code_execution", language: "python", code, stdoutHash },
+            { kind: "code_execution", language: "typescript", code, stdoutHash },
           ],
           counterEvidenceRefs: [],
           interventionRecordIds: [],
@@ -149,7 +149,7 @@ maybe("runAgentPropose codemode (mock loop + real sandbox)", () => {
               units: null,
               evidenceRef: {
                 kind: "code_execution",
-                language: "python",
+                language: "typescript",
                 code,
                 stdoutHash,
               },
@@ -174,7 +174,7 @@ maybe("runAgentPropose codemode (mock loop + real sandbox)", () => {
       },
       enableCodemode: true,
       modelToolLoop,
-      corpusMapMarkdown: "# Test corpus map\nbp_corpus is available.",
+      corpusMapMarkdown: "# Test corpus map\n@bp/analytics is available.",
     });
 
     expect(seenSystemPrompts.length).toBe(1);
@@ -189,7 +189,7 @@ maybe("runAgentPropose codemode (mock loop + real sandbox)", () => {
 
   test("a code_execution ref with a tampered stdoutHash is rejected by the submit tool", async () => {
     const corpus = emptyCorpus();
-    const code = "print(42)";
+    const code = "console.log(42)";
 
     let captured: SubmitResultDetails | undefined;
     const modelToolLoop: ModelToolLoop = async ({ extraTools }) => {
@@ -205,7 +205,7 @@ maybe("runAgentPropose codemode (mock loop + real sandbox)", () => {
           evidenceRefs: [
             {
               kind: "code_execution",
-              language: "python",
+              language: "typescript",
               code,
               stdoutHash: "0".repeat(64),
             },
@@ -244,7 +244,7 @@ maybe("runAgentPropose codemode (mock loop + real sandbox)", () => {
 
   test("non-deterministic code is rejected by the submit tool before sandbox exec", async () => {
     const corpus = emptyCorpus();
-    const code = "import time\nprint(time.time())";
+    const code = "console.log(Date.now())";
 
     let captured: SubmitResultDetails | undefined;
     const modelToolLoop: ModelToolLoop = async ({ extraTools }) => {
@@ -260,7 +260,7 @@ maybe("runAgentPropose codemode (mock loop + real sandbox)", () => {
           evidenceRefs: [
             {
               kind: "code_execution",
-              language: "python",
+              language: "typescript",
               code,
               stdoutHash: "0".repeat(64),
             },
