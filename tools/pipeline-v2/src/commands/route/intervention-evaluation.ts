@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import {
   type LocalAceRoute,
   type LocalBusLane,
@@ -10,6 +12,7 @@ import {
   listRouteStops,
   replaceRouteInterventionEvaluationRows,
 } from "@bp/db/local";
+import { type OperationalDateAssertion, OperationalDateAssertionSchema } from "@bp/domain";
 import { arg, defineCommand, z } from "@liche/core";
 import { isoMonth } from "../../lib/dates.ts";
 import {
@@ -18,13 +21,25 @@ import {
   type OpenLocalPipelineDb,
   withLocalDb,
 } from "../../lib/local-db.ts";
+import { fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
 import { busLaneMatches } from "./brief-metrics.ts";
 
 const sourceId = "mta_ace_routes";
 const busLaneSourceId = "nyc_dot_bus_lanes";
+export const documentOperationalDateSourceId = "tier2_document_operational_date_assertions";
 const defaultWindowMonths = 3;
 const defaultMinSampleMonths = 1;
 const defaultComparisonRouteCount = 10;
+const defaultDocumentOperationalDateAssertionsPath = fromRepoRoot(
+  join(
+    "data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/document-derived-surfaces-v1",
+    "document-operational-date-assertions-v1.json",
+  ),
+);
+const detectorReadyDocumentRouteResolutionTiers = new Set([
+  "direct_event_text",
+  "source_single_route_context",
+]);
 
 export type RouteInterventionEvaluationResult = {
   isoMonth: string;
@@ -32,6 +47,8 @@ export type RouteInterventionEvaluationResult = {
   routeCount: number;
   eventCount: number;
   comparisonCount: number;
+  documentAnchorEventCount: number;
+  documentAnchorComparisonCount: number;
   evaluatedComparisonCount: number;
   futureComparisonCount: number;
   insufficientComparisonCount: number;
@@ -85,6 +102,10 @@ type BusLaneDateGroup = {
   implementationDate: string;
   lanes: LocalBusLane[];
   sourceValues: Set<string>;
+};
+
+type DocumentOperationalDateAssertionsArtifact = {
+  rows?: unknown[];
 };
 
 function round(value: number, decimals = 4): number {
@@ -464,6 +485,150 @@ function busLaneDatedEventRow(input: {
   };
 }
 
+function documentAnchorInterventionType(family: string): string {
+  switch (family) {
+    case "busway_or_transitway":
+      return "busway";
+    case "bus_lane":
+    case "offset_or_curbside_bus_lane":
+      return "bus_lane_infrastructure";
+    case "camera_enforcement":
+      return "automated_bus_lane_enforcement";
+    case "transit_signal_priority":
+      return "transit_signal_priority";
+    case "queue_jump":
+      return "queue_jump";
+    case "select_bus_service":
+      return "select_bus_service";
+    case "stop_consolidation":
+      return "stop_consolidation";
+    case "route_redesign_or_service_pattern":
+      return "route_redesign_or_service_pattern";
+    case "curb_management":
+      return "curb_management";
+    case "street_design_or_turn_restriction":
+      return "street_design_or_turn_restriction";
+    default:
+      return "documented_bus_priority_intervention";
+  }
+}
+
+function documentAnchorLabel(row: OperationalDateAssertion): string {
+  return (
+    row.eventName ??
+    row.displayLabel ??
+    row.treatmentText ??
+    row.locationText ??
+    row.interventionFamily
+  );
+}
+
+function documentAnchorDescription(row: OperationalDateAssertion, routeId: string): string {
+  const sourceSummary =
+    row.sourceCount > 1 ? `${row.sourceCount} document sources` : (row.sourceTitle ?? row.sourceId);
+  return `Document-derived ${row.interventionFamily} anchor for ${routeId}: ${documentAnchorLabel(row)}; source-stated operational date ${row.operationalDate ?? row.effectiveDateStart}; confidence ${row.confidence}; ${sourceSummary}.`;
+}
+
+function compareDocumentAnchorRows(
+  left: OperationalDateAssertion,
+  right: OperationalDateAssertion,
+): number {
+  return (
+    right.confidence - left.confidence ||
+    right.sourceCount - left.sourceCount ||
+    (left.effectiveDateStart ?? "").localeCompare(right.effectiveDateStart ?? "") ||
+    left.surfaceId.localeCompare(right.surfaceId)
+  );
+}
+
+export function buildDocumentAnchorEventsForRouteEvaluation(input: {
+  assertions: readonly OperationalDateAssertion[];
+  publicRouteIds: ReadonlySet<string>;
+  analysisMonth: string;
+}): InterventionEventRow[] {
+  const bestByRouteIntervention = new Map<
+    string,
+    { routeId: string; assertion: OperationalDateAssertion }
+  >();
+
+  for (const assertion of input.assertions) {
+    if (
+      !assertion.causalAnchorEligible ||
+      assertion.implementationMonth === null ||
+      assertion.effectiveDateStart === null ||
+      !detectorReadyDocumentRouteResolutionTiers.has(assertion.routeResolutionTier ?? "")
+    ) {
+      continue;
+    }
+    for (const routeId of assertion.routeIds) {
+      if (!input.publicRouteIds.has(routeId)) continue;
+      const key = `${routeId}|${assertion.interventionId}`;
+      const existing = bestByRouteIntervention.get(key);
+      if (existing === undefined || compareDocumentAnchorRows(assertion, existing.assertion) < 0) {
+        bestByRouteIntervention.set(key, { routeId, assertion });
+      }
+    }
+  }
+
+  return [...bestByRouteIntervention.values()]
+    .toSorted((left, right) =>
+      `${left.routeId}|${left.assertion.implementationMonth}|${left.assertion.interventionId}`.localeCompare(
+        `${right.routeId}|${right.assertion.implementationMonth}|${right.assertion.interventionId}`,
+      ),
+    )
+    .map(({ routeId, assertion }) => ({
+      routeId,
+      assertion,
+      effectiveDateStart: assertion.effectiveDateStart,
+      implementationMonth: assertion.implementationMonth,
+    }))
+    .filter(
+      (
+        entry,
+      ): entry is {
+        routeId: string;
+        assertion: OperationalDateAssertion;
+        effectiveDateStart: string;
+        implementationMonth: string;
+      } => entry.effectiveDateStart !== null && entry.implementationMonth !== null,
+    )
+    .map(({ routeId, assertion, effectiveDateStart, implementationMonth }) => ({
+      eventId: `doc-anchor:${routeId}:${assertion.interventionId}`,
+      routeId,
+      interventionType: documentAnchorInterventionType(assertion.interventionFamily),
+      sourceId: documentOperationalDateSourceId,
+      program: "Tier 2 document operational dates",
+      implementationDate: effectiveDateStart,
+      implementationMonth,
+      eventStatus:
+        monthIndex(implementationMonth) <= monthIndex(input.analysisMonth)
+          ? "implemented"
+          : "future",
+      description: documentAnchorDescription(assertion, routeId),
+    }));
+}
+
+async function loadDocumentOperationalDateAssertions(
+  path: string,
+): Promise<OperationalDateAssertion[]> {
+  if (!existsSync(path)) return [];
+  const artifact = (await Bun.file(path).json()) as DocumentOperationalDateAssertionsArtifact;
+  const rows = Array.isArray(artifact.rows) ? artifact.rows : [];
+  const assertions: OperationalDateAssertion[] = [];
+  for (const row of rows) {
+    if (
+      typeof row !== "object" ||
+      row === null ||
+      (row as { causalAnchorEligible?: unknown }).causalAnchorEligible !== true
+    ) {
+      continue;
+    }
+    const parsed = OperationalDateAssertionSchema.safeParse(row);
+    if (parsed.success) assertions.push(parsed.data);
+  }
+  return assertions;
+}
+
 function buildComparison(input: {
   event: InterventionEventRow;
   analysisMonth: string;
@@ -694,6 +859,7 @@ export async function runRouteInterventionEvaluation(inputs: {
   windowMonths: number;
   minSampleMonths: number;
   comparisonRouteCount: number;
+  documentOperationalDateAssertionsPath?: string | undefined;
 }): Promise<RouteInterventionEvaluationResult> {
   const month = isoMonth(inputs.year, inputs.month);
   const routeUniverseMonth = isoMonth(
@@ -717,14 +883,25 @@ export async function runRouteInterventionEvaluation(inputs: {
     .filter((brief) => brief.publicVisible && brief.busLaneMatchedLaneCount > 0)
     .map((brief) => brief.routeId);
   const relevantAceRoutes = aceRoutes.filter((route) => publicRouteIds.has(route.routeId));
-  const excludedComparisonRouteIds = new Set(
-    relevantAceRoutes
+  const documentAnchorAssertions = await loadDocumentOperationalDateAssertions(
+    inputs.documentOperationalDateAssertionsPath ?? defaultDocumentOperationalDateAssertionsPath,
+  );
+  const documentAnchorEvents = buildDocumentAnchorEventsForRouteEvaluation({
+    assertions: documentAnchorAssertions,
+    publicRouteIds,
+    analysisMonth: month,
+  });
+  const excludedComparisonRouteIds = new Set([
+    ...relevantAceRoutes
       .filter(
         (route) =>
           monthIndex(implementationMonthFromDate(route.implementationDate)) <= monthIndex(month),
       )
       .map((route) => route.routeId),
-  );
+    ...documentAnchorEvents
+      .filter((event) => monthIndex(event.implementationMonth) <= monthIndex(month))
+      .map((event) => event.routeId),
+  ]);
   const trendsByRouteMonth = new Map(
     trends.map((trend) => [trendKey(trend.routeId, trend.month), trend]),
   );
@@ -776,9 +953,21 @@ export async function runRouteInterventionEvaluation(inputs: {
           trendsByRouteMonth,
         }),
   );
+  const documentAnchorComparisons = documentAnchorEvents.map((event) =>
+    buildComparison({
+      event,
+      analysisMonth: month,
+      windowMonths,
+      minSampleMonths,
+      comparisonRouteCount,
+      candidateRouteIds: [...publicRouteIds],
+      excludedComparisonRouteIds,
+      trendsByRouteMonth,
+    }),
+  );
 
-  const events = [...aceEvents, ...busLaneEvents];
-  const comparisons = [...aceComparisons, ...busLaneComparisons];
+  const events = [...aceEvents, ...busLaneEvents, ...documentAnchorEvents];
+  const comparisons = [...aceComparisons, ...busLaneComparisons, ...documentAnchorComparisons];
 
   const aceRows = {
     events: events.filter((event) => event.sourceId === sourceId),
@@ -788,6 +977,12 @@ export async function runRouteInterventionEvaluation(inputs: {
     events: events.filter((event) => event.sourceId === busLaneSourceId),
     comparisons: comparisons.filter((comparison) => comparison.sourceId === busLaneSourceId),
   };
+  const documentAnchorRows = {
+    events: events.filter((event) => event.sourceId === documentOperationalDateSourceId),
+    comparisons: comparisons.filter(
+      (comparison) => comparison.sourceId === documentOperationalDateSourceId,
+    ),
+  };
 
   await replaceRouteInterventionEvaluationRows(inputs.local.db, month, sourceId, aceRows);
   await replaceRouteInterventionEvaluationRows(
@@ -796,6 +991,12 @@ export async function runRouteInterventionEvaluation(inputs: {
     busLaneSourceId,
     busLaneRows,
   );
+  await replaceRouteInterventionEvaluationRows(
+    inputs.local.db,
+    month,
+    documentOperationalDateSourceId,
+    documentAnchorRows,
+  );
 
   return {
     isoMonth: month,
@@ -803,6 +1004,8 @@ export async function runRouteInterventionEvaluation(inputs: {
     routeCount: publicRouteIds.size,
     eventCount: events.length,
     comparisonCount: comparisons.length,
+    documentAnchorEventCount: documentAnchorEvents.length,
+    documentAnchorComparisonCount: documentAnchorComparisons.length,
     evaluatedComparisonCount: comparisons.filter(
       (comparison) => comparison.comparisonStatus === "evaluated",
     ).length,
@@ -820,7 +1023,8 @@ export async function runRouteInterventionEvaluation(inputs: {
 
 export default defineCommand({
   path: ["route", "intervention-evaluation"],
-  summary: "Evaluate route-level before/after for ACE and bus-lane interventions.",
+  summary:
+    "Evaluate route-level before/after for ACE, bus-lane, and document-anchor interventions.",
   input: {
     options: dbOptions.extend({
       year: arg.positiveInt().default(2026).describe("Calendar year"),
@@ -833,6 +1037,10 @@ export default defineCommand({
         .positiveInt()
         .optional()
         .describe("Month for route universe/treatment inventory; defaults to analysis month"),
+      documentOperationalDateAssertionsPath: z
+        .string()
+        .optional()
+        .describe("Anchor-ready Tier 2 operational-date assertions artifact path"),
       windowMonths: arg
         .positiveInt()
         .default(defaultWindowMonths)
@@ -854,6 +1062,8 @@ export default defineCommand({
     routeCount: z.number(),
     eventCount: z.number(),
     comparisonCount: z.number(),
+    documentAnchorEventCount: z.number(),
+    documentAnchorComparisonCount: z.number(),
     evaluatedComparisonCount: z.number(),
     futureComparisonCount: z.number(),
     insufficientComparisonCount: z.number(),
@@ -869,6 +1079,10 @@ export default defineCommand({
       windowMonths: input.options.windowMonths,
       minSampleMonths: input.options.minSampleMonths,
       comparisonRouteCount: input.options.comparisonRouteCount,
+      documentOperationalDateAssertionsPath:
+        input.options.documentOperationalDateAssertionsPath === undefined
+          ? undefined
+          : fromCliPath(input.options.documentOperationalDateAssertionsPath),
     });
   },
 });
