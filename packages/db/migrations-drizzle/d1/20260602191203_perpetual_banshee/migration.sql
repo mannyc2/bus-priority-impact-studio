@@ -1,0 +1,1 @@
+-- Snapshot-only catch-up for D1 tables that already exist in flat Wrangler migrations.

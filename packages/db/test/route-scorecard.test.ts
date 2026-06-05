@@ -38,7 +38,8 @@ async function createTestDb(): Promise<{ db: D1ServingDb; sqlite: Database }> {
   sqlite.exec(migrationSql);
 
   return {
-    db: drizzle(sqlite, {
+    db: drizzle({
+      client: sqlite,
       schema: { routeScorecard, routeScorecardCitation },
     }) as unknown as D1ServingDb,
     sqlite,

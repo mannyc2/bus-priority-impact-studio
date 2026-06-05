@@ -1,13 +1,13 @@
 import type { Database } from "bun:sqlite";
-import { type BunSQLiteDatabase, drizzle } from "drizzle-orm/bun-sqlite";
+import { drizzle, type SQLiteBunDatabase } from "drizzle-orm/bun-sqlite";
 import type { SQLiteInsertValue, SQLiteTable } from "drizzle-orm/sqlite-core";
 import * as schema from "./schema.js";
 
 export type LocalPipelineSchema = typeof schema;
-export type LocalPipelineDb = BunSQLiteDatabase<LocalPipelineSchema>;
+export type LocalPipelineDb = SQLiteBunDatabase<LocalPipelineSchema>;
 
 export function createLocalPipelineDb(database: Database): LocalPipelineDb {
-  return drizzle(database, { schema });
+  return drizzle({ client: database, schema });
 }
 
 const INSERT_BATCH_SIZE = 500;

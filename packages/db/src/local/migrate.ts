@@ -8,7 +8,7 @@ import { createLocalPipelineDb } from "./client.js";
 const defaultDbPath = fileURLToPath(
   new URL("../../../../data/local/pipeline.sqlite", import.meta.url),
 );
-const migrationsFolder = fileURLToPath(new URL("../../migrations/local", import.meta.url));
+const migrationsFolder = fileURLToPath(new URL("../../migrations-drizzle/local", import.meta.url));
 const env = Bun.env as { BP_LOCAL_DB_PATH?: string };
 
 export async function migrateLocalPipelineDb(path = env.BP_LOCAL_DB_PATH ?? defaultDbPath) {

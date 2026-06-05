@@ -1,5 +1,7 @@
-import type { D1Database } from "@cloudflare/workers-types";
+import { and, desc, eq, gt, inArray, isNull, or, sql } from "drizzle-orm";
 import * as z from "zod";
+import type { D1ServingDb } from "../client.js";
+import { identity, identitySession, studioActorRole } from "../schema.js";
 
 export const IdentitySessionKindSchema = z.enum(["magic_pending", "session", "legacy_bearer"]);
 export type IdentitySessionKind = z.output<typeof IdentitySessionKindSchema>;
@@ -62,26 +64,32 @@ function parseScopes(scopesJson: string): StudioActorScope[] {
 }
 
 export async function getIdentityBySessionTokenHash(
-  database: D1Database,
+  db: D1ServingDb,
   tokenHash: string,
   now: string,
 ): Promise<{ identity: IdentityRecord; session: IdentitySessionRecord } | null> {
-  const row = await database
-    .prepare(
-      `select s.session_id, s.identity_id, s.kind,
-              i.email, i.display_name, i.active as identity_active
-         from identity_session s
-         join identity i on i.identity_id = s.identity_id
-        where s.token_hash = ?
-          and s.revoked_at is null
-          and s.consumed_at is null
-          and s.kind in ('session', 'legacy_bearer')
-          and (s.expires_at is null or s.expires_at > ?)
-        limit 1`,
+  const [row] = await db
+    .select({
+      session_id: identitySession.sessionId,
+      identity_id: identitySession.identityId,
+      kind: identitySession.kind,
+      email: identity.email,
+      display_name: identity.displayName,
+      identity_active: sql<number>`${identity.active}`,
+    })
+    .from(identitySession)
+    .innerJoin(identity, eq(identity.identityId, identitySession.identityId))
+    .where(
+      and(
+        eq(identitySession.tokenHash, tokenHash),
+        isNull(identitySession.revokedAt),
+        isNull(identitySession.consumedAt),
+        inArray(identitySession.kind, ["session", "legacy_bearer"]),
+        or(isNull(identitySession.expiresAt), gt(identitySession.expiresAt, now)),
+      ),
     )
-    .bind(tokenHash, now)
-    .first();
-  if (row === null) return null;
+    .limit(1);
+  if (row === undefined) return null;
   const parsed = IdentitySessionLookupRowSchema.parse(row);
   if (parsed.identity_active !== 1) return null;
   return {
@@ -99,19 +107,20 @@ export async function getIdentityBySessionTokenHash(
 }
 
 export async function getOperatorRoleForIdentity(
-  database: D1Database,
+  db: D1ServingDb,
   identityId: string,
 ): Promise<OperatorRoleRecord | null> {
-  const row = await database
-    .prepare(
-      `select role_id, identity_id, workspace_id, scopes_json
-         from studio_actor_role
-        where identity_id = ? and active = 1
-        limit 1`,
-    )
-    .bind(identityId)
-    .first();
-  if (row === null) return null;
+  const [row] = await db
+    .select({
+      role_id: studioActorRole.roleId,
+      identity_id: studioActorRole.identityId,
+      workspace_id: studioActorRole.workspaceId,
+      scopes_json: studioActorRole.scopesJson,
+    })
+    .from(studioActorRole)
+    .where(and(eq(studioActorRole.identityId, identityId), eq(studioActorRole.active, true)))
+    .limit(1);
+  if (row === undefined) return null;
   const parsed = OperatorRoleRowSchema.parse(row);
   return {
     roleId: parsed.role_id,
@@ -122,13 +131,13 @@ export async function getOperatorRoleForIdentity(
 }
 
 export async function recordSessionUse(
-  database: D1Database,
+  db: D1ServingDb,
   input: { sessionId: string; usedAt: string },
 ): Promise<void> {
-  await database
-    .prepare("update identity_session set last_used_at = ? where session_id = ?")
-    .bind(input.usedAt, input.sessionId)
-    .run();
+  await db
+    .update(identitySession)
+    .set({ lastUsedAt: input.usedAt })
+    .where(eq(identitySession.sessionId, input.sessionId));
 }
 
 const IdentityRowSchema = z
@@ -140,19 +149,19 @@ const IdentityRowSchema = z
   .strict();
 
 export async function getIdentityById(
-  database: D1Database,
+  db: D1ServingDb,
   identityId: string,
 ): Promise<IdentityRecord | null> {
-  const row = await database
-    .prepare(
-      `select identity_id, email, display_name
-         from identity
-        where identity_id = ? and active = 1
-        limit 1`,
-    )
-    .bind(identityId)
-    .first();
-  if (row === null) return null;
+  const [row] = await db
+    .select({
+      identity_id: identity.identityId,
+      email: identity.email,
+      display_name: identity.displayName,
+    })
+    .from(identity)
+    .where(and(eq(identity.identityId, identityId), eq(identity.active, true)))
+    .limit(1);
+  if (row === undefined) return null;
   const parsed = IdentityRowSchema.parse(row);
   return {
     identityId: parsed.identity_id,
@@ -162,19 +171,19 @@ export async function getIdentityById(
 }
 
 export async function getIdentityByEmailNormalized(
-  database: D1Database,
+  db: D1ServingDb,
   emailNormalized: string,
 ): Promise<IdentityRecord | null> {
-  const row = await database
-    .prepare(
-      `select identity_id, email, display_name
-         from identity
-        where email_normalized = ? and active = 1
-        limit 1`,
-    )
-    .bind(emailNormalized)
-    .first();
-  if (row === null) return null;
+  const [row] = await db
+    .select({
+      identity_id: identity.identityId,
+      email: identity.email,
+      display_name: identity.displayName,
+    })
+    .from(identity)
+    .where(and(eq(identity.emailNormalized, emailNormalized), eq(identity.active, true)))
+    .limit(1);
+  if (row === undefined) return null;
   const parsed = IdentityRowSchema.parse(row);
   return {
     identityId: parsed.identity_id,
@@ -184,7 +193,7 @@ export async function getIdentityByEmailNormalized(
 }
 
 export async function createMagicLinkRequest(
-  database: D1Database,
+  db: D1ServingDb,
   input: {
     identityId: string;
     email: string;
@@ -195,28 +204,31 @@ export async function createMagicLinkRequest(
   },
 ): Promise<{ identityId: string; created: boolean }> {
   const normalized = input.email.trim().toLowerCase();
-  const existing = await getIdentityByEmailNormalized(database, normalized);
-  let identityId = existing?.identityId ?? input.identityId;
+  const existing = await getIdentityByEmailNormalized(db, normalized);
+  const identityId = existing?.identityId ?? input.identityId;
   let created = false;
-  if (existing === null) {
-    await database
-      .prepare(
-        `insert into identity (identity_id, email, email_normalized, display_name,
-                               active, created_at, updated_at)
-                       values (?, ?, ?, NULL, 1, ?, ?)`,
-      )
-      .bind(identityId, input.email.trim(), normalized, input.now, input.now)
-      .run();
-    created = true;
-  }
-  await database
-    .prepare(
-      `insert into identity_session (session_id, identity_id, kind, token_hash,
-                                     expires_at, created_at)
-                              values (?, ?, 'magic_pending', ?, ?, ?)`,
-    )
-    .bind(input.sessionId, identityId, input.tokenHash, input.expiresAt, input.now)
-    .run();
+  await db.transaction(async (tx) => {
+    if (existing === null) {
+      await tx.insert(identity).values({
+        identityId,
+        email: input.email.trim(),
+        emailNormalized: normalized,
+        displayName: null,
+        active: true,
+        createdAt: input.now,
+        updatedAt: input.now,
+      });
+      created = true;
+    }
+    await tx.insert(identitySession).values({
+      sessionId: input.sessionId,
+      identityId,
+      kind: "magic_pending",
+      tokenHash: input.tokenHash,
+      expiresAt: input.expiresAt,
+      createdAt: input.now,
+    });
+  });
   return { identityId, created };
 }
 
@@ -231,38 +243,43 @@ const MagicConsumeRowSchema = z
   .strict();
 
 export async function consumeMagicLinkRequest(
-  database: D1Database,
+  db: D1ServingDb,
   input: { tokenHash: string; now: string },
 ): Promise<{ identityId: string } | null> {
-  const row = await database
-    .prepare(
-      `select session_id, identity_id, expires_at, consumed_at, revoked_at
-         from identity_session
-        where token_hash = ? and kind = 'magic_pending'
-        limit 1`,
+  const [row] = await db
+    .select({
+      session_id: identitySession.sessionId,
+      identity_id: identitySession.identityId,
+      expires_at: identitySession.expiresAt,
+      consumed_at: identitySession.consumedAt,
+      revoked_at: identitySession.revokedAt,
+    })
+    .from(identitySession)
+    .where(
+      and(
+        eq(identitySession.tokenHash, input.tokenHash),
+        eq(identitySession.kind, "magic_pending"),
+      ),
     )
-    .bind(input.tokenHash)
-    .first();
-  if (row === null) return null;
+    .limit(1);
+  if (row === undefined) return null;
   const parsed = MagicConsumeRowSchema.parse(row);
   if (parsed.consumed_at !== null) return null;
   if (parsed.revoked_at !== null) return null;
   if (parsed.expires_at !== null && parsed.expires_at <= input.now) return null;
-  const result = await database
-    .prepare(
-      `update identity_session
-          set consumed_at = ?
-        where session_id = ? and consumed_at is null`,
-    )
-    .bind(input.now, parsed.session_id)
-    .run();
+  const result = await db
+    .update(identitySession)
+    .set({ consumedAt: input.now })
+    .where(
+      and(eq(identitySession.sessionId, parsed.session_id), isNull(identitySession.consumedAt)),
+    );
   const meta = (result as { meta?: { changes?: number } }).meta;
   if (meta?.changes === 0) return null;
   return { identityId: parsed.identity_id };
 }
 
 export async function createSession(
-  database: D1Database,
+  db: D1ServingDb,
   input: {
     sessionId: string;
     identityId: string;
@@ -273,49 +290,43 @@ export async function createSession(
     now: string;
   },
 ): Promise<void> {
-  await database
-    .prepare(
-      `insert into identity_session (session_id, identity_id, kind, token_hash,
-                                     user_agent, ip_hash, expires_at, created_at, last_used_at)
-                              values (?, ?, 'session', ?, ?, ?, ?, ?, ?)`,
-    )
-    .bind(
-      input.sessionId,
-      input.identityId,
-      input.tokenHash,
-      input.userAgent,
-      input.ipHash,
-      input.expiresAt,
-      input.now,
-      input.now,
-    )
-    .run();
+  await db.insert(identitySession).values({
+    sessionId: input.sessionId,
+    identityId: input.identityId,
+    kind: "session",
+    tokenHash: input.tokenHash,
+    userAgent: input.userAgent,
+    ipHash: input.ipHash,
+    expiresAt: input.expiresAt,
+    createdAt: input.now,
+    lastUsedAt: input.now,
+  });
 }
 
 export async function revokeSession(
-  database: D1Database,
+  db: D1ServingDb,
   input: { sessionId: string; now: string },
 ): Promise<void> {
-  await database
-    .prepare(
-      `update identity_session set revoked_at = ?
-        where session_id = ? and revoked_at is null`,
-    )
-    .bind(input.now, input.sessionId)
-    .run();
+  await db
+    .update(identitySession)
+    .set({ revokedAt: input.now })
+    .where(and(eq(identitySession.sessionId, input.sessionId), isNull(identitySession.revokedAt)));
 }
 
 export async function revokeAllSessionsForIdentity(
-  database: D1Database,
+  db: D1ServingDb,
   input: { identityId: string; now: string },
 ): Promise<void> {
-  await database
-    .prepare(
-      `update identity_session set revoked_at = ?
-        where identity_id = ? and kind = 'session' and revoked_at is null`,
-    )
-    .bind(input.now, input.identityId)
-    .run();
+  await db
+    .update(identitySession)
+    .set({ revokedAt: input.now })
+    .where(
+      and(
+        eq(identitySession.identityId, input.identityId),
+        eq(identitySession.kind, "session"),
+        isNull(identitySession.revokedAt),
+      ),
+    );
 }
 
 const IdentitySessionListRowSchema = z
@@ -339,21 +350,27 @@ export type IdentitySessionListEntry = {
 };
 
 export async function listSessionsForIdentity(
-  database: D1Database,
+  db: D1ServingDb,
   identityId: string,
 ): Promise<IdentitySessionListEntry[]> {
-  const result = await database
-    .prepare(
-      `select session_id, kind, user_agent, expires_at, created_at, last_used_at
-         from identity_session
-        where identity_id = ?
-          and revoked_at is null
-          and kind in ('session', 'legacy_bearer')
-        order by created_at desc`,
+  const rows = await db
+    .select({
+      session_id: identitySession.sessionId,
+      kind: identitySession.kind,
+      user_agent: identitySession.userAgent,
+      expires_at: identitySession.expiresAt,
+      created_at: identitySession.createdAt,
+      last_used_at: identitySession.lastUsedAt,
+    })
+    .from(identitySession)
+    .where(
+      and(
+        eq(identitySession.identityId, identityId),
+        isNull(identitySession.revokedAt),
+        inArray(identitySession.kind, ["session", "legacy_bearer"]),
+      ),
     )
-    .bind(identityId)
-    .all();
-  const rows = (result.results ?? []) as unknown[];
+    .orderBy(desc(identitySession.createdAt));
   return rows.map((row) => {
     const parsed = IdentitySessionListRowSchema.parse(row);
     return {
@@ -368,13 +385,11 @@ export async function listSessionsForIdentity(
 }
 
 export async function updateIdentityDisplayName(
-  database: D1Database,
+  db: D1ServingDb,
   input: { identityId: string; displayName: string | null; now: string },
 ): Promise<void> {
-  await database
-    .prepare(
-      "update identity set display_name = ?, updated_at = ? where identity_id = ?",
-    )
-    .bind(input.displayName, input.now, input.identityId)
-    .run();
+  await db
+    .update(identity)
+    .set({ displayName: input.displayName, updatedAt: input.now })
+    .where(eq(identity.identityId, input.identityId));
 }

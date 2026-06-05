@@ -1,5 +1,4 @@
-import type { D1Database } from "@cloudflare/workers-types";
-
+import type { D1ServingDb } from "../client.js";
 import {
   getIdentityBySessionTokenHash,
   getOperatorRoleForIdentity,
@@ -19,7 +18,7 @@ export type StudioActorAuth = {
 };
 
 export async function getStudioActorAuthByTokenHash(
-  database: D1Database,
+  database: D1ServingDb,
   tokenHash: string,
 ): Promise<StudioActorAuth | null> {
   const resolved = await getIdentityBySessionTokenHash(
@@ -41,7 +40,7 @@ export async function getStudioActorAuthByTokenHash(
 }
 
 export async function markStudioActorTokenUsed(
-  database: D1Database,
+  database: D1ServingDb,
   input: { tokenId: string; usedAt: string },
 ): Promise<void> {
   await recordSessionUse(database, { sessionId: input.tokenId, usedAt: input.usedAt });

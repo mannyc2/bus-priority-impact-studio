@@ -3,13 +3,15 @@ import { describe, expect, test } from "bun:test";
 import { readdir } from "node:fs/promises";
 import type { D1Database } from "@cloudflare/workers-types";
 import {
+  createD1ServingDb,
+  type D1ServingDb,
   deleteStudioBriefDraftBlock,
   deleteStudioBriefDraftClaim,
   getStudioBriefAgentProposal,
   getStudioBriefAgentRun,
+  getStudioBriefDraftRecord,
   getStudioBriefDraftVersion,
   getStudioBriefDraftVersionSnapshot,
-  getStudioBriefDraftRecord,
   getStudioBriefReviewComment,
   getStudioBriefWriteIdempotency,
   insertStudioBriefAgentProposal,
@@ -75,6 +77,14 @@ class SqliteD1Statement {
     const result = this.database.query(this.query).run(...(this.values as never[]));
     return { meta: { changes: result.changes } };
   }
+
+  async raw(): Promise<unknown[][]> {
+    return this.database.query(this.query).values(...(this.values as never[]));
+  }
+
+  isSelect(): boolean {
+    return this.query.trimStart().toLowerCase().startsWith("select");
+  }
 }
 
 class SqliteD1Database {
@@ -83,9 +93,22 @@ class SqliteD1Database {
   prepare(query: string): SqliteD1Statement {
     return new SqliteD1Statement(this.database, query);
   }
+
+  async batch(statements: SqliteD1Statement[]): Promise<unknown[]> {
+    const results: unknown[] = [];
+    for (const statement of statements) {
+      if (statement.isSelect()) {
+        const { results: rows } = await statement.all();
+        results.push({ results: rows });
+      } else {
+        results.push(await statement.run());
+      }
+    }
+    return results;
+  }
 }
 
-async function createTestD1(): Promise<{ database: D1Database; sqlite: Database }> {
+async function createTestD1(): Promise<{ database: D1ServingDb; sqlite: Database }> {
   const sqlite = new Database(":memory:");
   const migrationsDir = new URL("../migrations/d1/", import.meta.url);
   const filenames = (await readdir(migrationsDir))
@@ -94,10 +117,13 @@ async function createTestD1(): Promise<{ database: D1Database; sqlite: Database 
   for (const filename of filenames) {
     sqlite.exec(await Bun.file(new URL(filename, migrationsDir)).text());
   }
-  return { database: new SqliteD1Database(sqlite) as unknown as D1Database, sqlite };
+  return {
+    database: createD1ServingDb(new SqliteD1Database(sqlite) as unknown as D1Database),
+    sqlite,
+  };
 }
 
-async function seedDraft(database: D1Database, now = "2026-05-31T00:00:00.000Z") {
+async function seedDraft(database: D1ServingDb, now = "2026-05-31T00:00:00.000Z") {
   await insertStudioBriefDraft(database, {
     briefId: "brief-m15",
     routeSlug: "m15-sbs",

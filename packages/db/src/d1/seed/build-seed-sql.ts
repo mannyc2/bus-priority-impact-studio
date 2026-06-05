@@ -130,7 +130,7 @@ export type D1SeedSqlResult = {
   routeScorecardCitationRowCount: number;
 };
 
-const seedDb = drizzle(new Database(":memory:"));
+const seedDb = drizzle({ client: new Database(":memory:") });
 const sqliteDialect = new SQLiteSyncDialect();
 
 function renderQuery(query: SQLWrapper): string {

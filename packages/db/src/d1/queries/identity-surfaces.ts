@@ -1,5 +1,7 @@
-import type { D1Database } from "@cloudflare/workers-types";
+import { and, desc, eq, like, or, sql } from "drizzle-orm";
 import * as z from "zod";
+import type { D1ServingDb } from "../client.js";
+import { alert, identity, publicComment, savedSearch, studioActorRole } from "../schema.js";
 
 const AlertKindSchema = z.enum(["route", "segment", "search"]);
 export type AlertKind = z.output<typeof AlertKindSchema>;
@@ -45,7 +47,7 @@ function rowToAlert(row: z.output<typeof AlertRowSchema>): AlertRecord {
 }
 
 export async function insertAlert(
-  database: D1Database,
+  db: D1ServingDb,
   input: {
     alertId: string;
     identityId: string;
@@ -54,50 +56,51 @@ export async function insertAlert(
     now: string;
   },
 ): Promise<void> {
-  await database
-    .prepare(
-      `insert into alert (alert_id, identity_id, kind, payload_json, active, created_at, updated_at)
-                  values (?, ?, ?, ?, 1, ?, ?)`,
-    )
-    .bind(
-      input.alertId,
-      input.identityId,
-      input.kind,
-      JSON.stringify(input.payload),
-      input.now,
-      input.now,
-    )
-    .run();
+  await db.insert(alert).values({
+    alertId: input.alertId,
+    identityId: input.identityId,
+    kind: input.kind,
+    payloadJson: JSON.stringify(input.payload),
+    active: true,
+    createdAt: input.now,
+    updatedAt: input.now,
+  });
 }
 
 export async function listAlertsForIdentity(
-  database: D1Database,
+  db: D1ServingDb,
   identityId: string,
 ): Promise<AlertRecord[]> {
-  const result = await database
-    .prepare(
-      `select alert_id, identity_id, kind, payload_json, active, created_at, updated_at
-         from alert
-        where identity_id = ? and active = 1
-        order by created_at desc`,
-    )
-    .bind(identityId)
-    .all();
-  const rows = (result.results ?? []) as unknown[];
+  const rows = await db
+    .select({
+      alert_id: alert.alertId,
+      identity_id: alert.identityId,
+      kind: alert.kind,
+      payload_json: alert.payloadJson,
+      active: sql<number>`${alert.active}`,
+      created_at: alert.createdAt,
+      updated_at: alert.updatedAt,
+    })
+    .from(alert)
+    .where(and(eq(alert.identityId, identityId), eq(alert.active, true)))
+    .orderBy(desc(alert.createdAt));
   return rows.map((row) => rowToAlert(AlertRowSchema.parse(row)));
 }
 
 export async function deactivateAlert(
-  database: D1Database,
+  db: D1ServingDb,
   input: { alertId: string; identityId: string; now: string },
 ): Promise<boolean> {
-  const result = await database
-    .prepare(
-      `update alert set active = 0, updated_at = ?
-        where alert_id = ? and identity_id = ? and active = 1`,
-    )
-    .bind(input.now, input.alertId, input.identityId)
-    .run();
+  const result = await db
+    .update(alert)
+    .set({ active: false, updatedAt: input.now })
+    .where(
+      and(
+        eq(alert.alertId, input.alertId),
+        eq(alert.identityId, input.identityId),
+        eq(alert.active, true),
+      ),
+    );
   const meta = (result as { meta?: { changes?: number } }).meta;
   return (meta?.changes ?? 0) > 0;
 }
@@ -140,7 +143,7 @@ function rowToSavedSearch(row: z.output<typeof SavedSearchRowSchema>): SavedSear
 }
 
 export async function insertSavedSearch(
-  database: D1Database,
+  db: D1ServingDb,
   input: {
     savedSearchId: string;
     identityId: string;
@@ -149,47 +152,47 @@ export async function insertSavedSearch(
     now: string;
   },
 ): Promise<void> {
-  await database
-    .prepare(
-      `insert into saved_search (saved_search_id, identity_id, label, query_json, created_at, updated_at)
-                         values (?, ?, ?, ?, ?, ?)`,
-    )
-    .bind(
-      input.savedSearchId,
-      input.identityId,
-      input.label,
-      JSON.stringify(input.query),
-      input.now,
-      input.now,
-    )
-    .run();
+  await db.insert(savedSearch).values({
+    savedSearchId: input.savedSearchId,
+    identityId: input.identityId,
+    label: input.label,
+    queryJson: JSON.stringify(input.query),
+    createdAt: input.now,
+    updatedAt: input.now,
+  });
 }
 
 export async function listSavedSearchesForIdentity(
-  database: D1Database,
+  db: D1ServingDb,
   identityId: string,
 ): Promise<SavedSearchRecord[]> {
-  const result = await database
-    .prepare(
-      `select saved_search_id, identity_id, label, query_json, created_at, updated_at
-         from saved_search
-        where identity_id = ?
-        order by created_at desc`,
-    )
-    .bind(identityId)
-    .all();
-  const rows = (result.results ?? []) as unknown[];
+  const rows = await db
+    .select({
+      saved_search_id: savedSearch.savedSearchId,
+      identity_id: savedSearch.identityId,
+      label: savedSearch.label,
+      query_json: savedSearch.queryJson,
+      created_at: savedSearch.createdAt,
+      updated_at: savedSearch.updatedAt,
+    })
+    .from(savedSearch)
+    .where(eq(savedSearch.identityId, identityId))
+    .orderBy(desc(savedSearch.createdAt));
   return rows.map((row) => rowToSavedSearch(SavedSearchRowSchema.parse(row)));
 }
 
 export async function deleteSavedSearch(
-  database: D1Database,
+  db: D1ServingDb,
   input: { savedSearchId: string; identityId: string },
 ): Promise<boolean> {
-  const result = await database
-    .prepare("delete from saved_search where saved_search_id = ? and identity_id = ?")
-    .bind(input.savedSearchId, input.identityId)
-    .run();
+  const result = await db
+    .delete(savedSearch)
+    .where(
+      and(
+        eq(savedSearch.savedSearchId, input.savedSearchId),
+        eq(savedSearch.identityId, input.identityId),
+      ),
+    );
   const meta = (result as { meta?: { changes?: number } }).meta;
   return (meta?.changes ?? 0) > 0;
 }
@@ -217,7 +220,7 @@ export type PublicCommentRecord = {
 };
 
 export async function insertPublicComment(
-  database: D1Database,
+  db: D1ServingDb,
   input: {
     commentId: string;
     briefId: string;
@@ -226,31 +229,33 @@ export async function insertPublicComment(
     now: string;
   },
 ): Promise<void> {
-  await database
-    .prepare(
-      `insert into public_comment (comment_id, brief_id, identity_id, body, created_at)
-                          values (?, ?, ?, ?, ?)`,
-    )
-    .bind(input.commentId, input.briefId, input.identityId, input.body, input.now)
-    .run();
+  await db.insert(publicComment).values({
+    commentId: input.commentId,
+    briefId: input.briefId,
+    identityId: input.identityId,
+    body: input.body,
+    createdAt: input.now,
+  });
 }
 
 export async function listPublicCommentsForBrief(
-  database: D1Database,
+  db: D1ServingDb,
   briefId: string,
 ): Promise<PublicCommentRecord[]> {
-  const result = await database
-    .prepare(
-      `select c.comment_id, c.brief_id, c.identity_id, c.body,
-              c.created_at, c.deleted_at, i.display_name
-         from public_comment c
-         left join identity i on i.identity_id = c.identity_id
-        where c.brief_id = ? and c.deleted_at is null
-        order by c.created_at asc`,
-    )
-    .bind(briefId)
-    .all();
-  const rows = (result.results ?? []) as unknown[];
+  const rows = await db
+    .select({
+      comment_id: publicComment.commentId,
+      brief_id: publicComment.briefId,
+      identity_id: publicComment.identityId,
+      body: publicComment.body,
+      created_at: publicComment.createdAt,
+      deleted_at: publicComment.deletedAt,
+      display_name: identity.displayName,
+    })
+    .from(publicComment)
+    .leftJoin(identity, eq(identity.identityId, publicComment.identityId))
+    .where(and(eq(publicComment.briefId, briefId), sql`${publicComment.deletedAt} is null`))
+    .orderBy(publicComment.createdAt);
   return rows.map((row) => {
     const parsed = PublicCommentRowSchema.parse(row);
     return {
@@ -285,48 +290,48 @@ export type IdentityWithRoleRecord = {
 };
 
 export async function listIdentitiesWithRoles(
-  database: D1Database,
+  db: D1ServingDb,
   input: { query?: string | undefined; limit?: number | undefined },
 ): Promise<IdentityWithRoleRecord[]> {
   const limit = Math.max(1, Math.min(input.limit ?? 50, 200));
   const search = input.query?.trim() ?? "";
   const matchPattern = `%${search.toLowerCase()}%`;
-  const statement =
-    search.length > 0
-      ? database
-          .prepare(
-            `select i.identity_id, i.email, i.display_name,
-                    r.role_id, r.workspace_id, r.scopes_json,
-                    r.active as role_active
-               from identity i
-               left join studio_actor_role r on r.identity_id = i.identity_id and r.active = 1
-              where i.active = 1
-                and (lower(i.email) like ? or lower(coalesce(i.display_name, '')) like ?)
-              order by i.created_at desc
-              limit ?`,
+  const rows = await db
+    .select({
+      identity_id: identity.identityId,
+      email: identity.email,
+      display_name: identity.displayName,
+      role_id: studioActorRole.roleId,
+      workspace_id: studioActorRole.workspaceId,
+      scopes_json: studioActorRole.scopesJson,
+      role_active: sql<number>`${studioActorRole.active}`,
+    })
+    .from(identity)
+    .leftJoin(
+      studioActorRole,
+      and(eq(studioActorRole.identityId, identity.identityId), eq(studioActorRole.active, true)),
+    )
+    .where(
+      search.length > 0
+        ? and(
+            eq(identity.active, true),
+            or(
+              like(sql`lower(${identity.email})`, matchPattern),
+              like(sql`lower(coalesce(${identity.displayName}, ''))`, matchPattern),
+            ),
           )
-          .bind(matchPattern, matchPattern, limit)
-      : database
-          .prepare(
-            `select i.identity_id, i.email, i.display_name,
-                    r.role_id, r.workspace_id, r.scopes_json,
-                    r.active as role_active
-               from identity i
-               left join studio_actor_role r on r.identity_id = i.identity_id and r.active = 1
-              where i.active = 1
-              order by i.created_at desc
-              limit ?`,
-          )
-          .bind(limit);
-  const result = await statement.all();
-  const rows = (result.results ?? []) as unknown[];
+        : eq(identity.active, true),
+    )
+    .orderBy(desc(identity.createdAt))
+    .limit(limit);
   return rows.map((row) => {
     const parsed = IdentityWithRoleRowSchema.parse(row);
     let scopes: string[] = [];
     if (parsed.scopes_json !== null) {
       try {
         const arr: unknown = JSON.parse(parsed.scopes_json);
-        if (Array.isArray(arr)) scopes = arr.filter((entry): entry is string => typeof entry === "string");
+        if (Array.isArray(arr))
+          scopes = arr.filter((entry): entry is string => typeof entry === "string");
       } catch {
         scopes = [];
       }
@@ -348,7 +353,7 @@ export async function listIdentitiesWithRoles(
 }
 
 export async function upsertStudioActorRole(
-  database: D1Database,
+  db: D1ServingDb,
   input: {
     roleId: string;
     identityId: string;
@@ -358,53 +363,59 @@ export async function upsertStudioActorRole(
   },
 ): Promise<void> {
   const scopesJson = JSON.stringify(input.scopes);
-  await database
-    .prepare(
-      `insert into studio_actor_role
-         (role_id, identity_id, workspace_id, scopes_json, active, created_at, updated_at)
-       values (?, ?, ?, ?, 1, ?, ?)
-       on conflict (identity_id, workspace_id) do update set
-         scopes_json = excluded.scopes_json,
-         active = 1,
-         updated_at = excluded.updated_at`,
-    )
-    .bind(
-      input.roleId,
-      input.identityId,
-      input.workspaceId,
+  await db
+    .insert(studioActorRole)
+    .values({
+      roleId: input.roleId,
+      identityId: input.identityId,
+      workspaceId: input.workspaceId,
       scopesJson,
-      input.now,
-      input.now,
-    )
-    .run();
+      active: true,
+      createdAt: input.now,
+      updatedAt: input.now,
+    })
+    .onConflictDoUpdate({
+      target: [studioActorRole.identityId, studioActorRole.workspaceId],
+      set: {
+        scopesJson,
+        active: true,
+        updatedAt: input.now,
+      },
+    });
 }
 
 export async function revokeStudioActorRole(
-  database: D1Database,
+  db: D1ServingDb,
   input: { identityId: string; workspaceId: string; now: string },
 ): Promise<boolean> {
-  const result = await database
-    .prepare(
-      `update studio_actor_role set active = 0, updated_at = ?
-        where identity_id = ? and workspace_id = ? and active = 1`,
-    )
-    .bind(input.now, input.identityId, input.workspaceId)
-    .run();
+  const result = await db
+    .update(studioActorRole)
+    .set({ active: false, updatedAt: input.now })
+    .where(
+      and(
+        eq(studioActorRole.identityId, input.identityId),
+        eq(studioActorRole.workspaceId, input.workspaceId),
+        eq(studioActorRole.active, true),
+      ),
+    );
   const meta = (result as { meta?: { changes?: number } }).meta;
   return (meta?.changes ?? 0) > 0;
 }
 
 export async function softDeletePublicComment(
-  database: D1Database,
+  db: D1ServingDb,
   input: { commentId: string; identityId: string; now: string },
 ): Promise<boolean> {
-  const result = await database
-    .prepare(
-      `update public_comment set deleted_at = ?
-        where comment_id = ? and identity_id = ? and deleted_at is null`,
-    )
-    .bind(input.now, input.commentId, input.identityId)
-    .run();
+  const result = await db
+    .update(publicComment)
+    .set({ deletedAt: input.now })
+    .where(
+      and(
+        eq(publicComment.commentId, input.commentId),
+        eq(publicComment.identityId, input.identityId),
+        sql`${publicComment.deletedAt} is null`,
+      ),
+    );
   const meta = (result as { meta?: { changes?: number } }).meta;
   return (meta?.changes ?? 0) > 0;
 }

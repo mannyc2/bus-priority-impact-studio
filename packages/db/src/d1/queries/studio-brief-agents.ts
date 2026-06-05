@@ -1,5 +1,12 @@
-import type { D1Database } from "@cloudflare/workers-types";
+import { and, desc, eq } from "drizzle-orm";
 import * as z from "zod";
+import type { D1ServingDb } from "../client.js";
+import {
+  studioBriefAgentProposal,
+  studioBriefAgentRun,
+  studioBriefDraftVersion,
+  studioBriefDraftVersionSnapshot,
+} from "../schema.js";
 
 const AgentRunStatusSchema = z.enum([
   "queued",
@@ -129,43 +136,75 @@ export type StudioBriefDraftVersionSnapshotRow = z.output<
   typeof StudioBriefDraftVersionSnapshotRowSchema
 >;
 
-type D1Value = string | number | boolean | null;
+const agentRunSelection = {
+  run_id: studioBriefAgentRun.runId,
+  brief_id: studioBriefAgentRun.briefId,
+  workspace_id: studioBriefAgentRun.workspaceId,
+  status: studioBriefAgentRun.status,
+  intent: studioBriefAgentRun.intent,
+  base_version_id: studioBriefAgentRun.baseVersionId,
+  base_content_hash: studioBriefAgentRun.baseContentHash,
+  trigger_json: studioBriefAgentRun.triggerJson,
+  actor_id: studioBriefAgentRun.actorId,
+  actor_display_name: studioBriefAgentRun.actorDisplayName,
+  model_provider: studioBriefAgentRun.modelProvider,
+  model_id: studioBriefAgentRun.modelId,
+  prompt_hash: studioBriefAgentRun.promptHash,
+  proposal_id: studioBriefAgentRun.proposalId,
+  error_code: studioBriefAgentRun.errorCode,
+  error_message: studioBriefAgentRun.errorMessage,
+  created_at: studioBriefAgentRun.createdAt,
+  updated_at: studioBriefAgentRun.updatedAt,
+  started_at: studioBriefAgentRun.startedAt,
+  completed_at: studioBriefAgentRun.completedAt,
+} as const;
 
-async function first<TSchema extends z.ZodType>(
-  database: D1Database,
-  query: string,
-  schema: TSchema,
-  values: D1Value[] = [],
-): Promise<z.output<TSchema> | null> {
-  const row = await database
-    .prepare(query)
-    .bind(...values)
-    .first();
-  return row === null ? null : schema.parse(row);
-}
+const agentProposalSelection = {
+  proposal_id: studioBriefAgentProposal.proposalId,
+  run_id: studioBriefAgentProposal.runId,
+  brief_id: studioBriefAgentProposal.briefId,
+  status: studioBriefAgentProposal.status,
+  base_version_id: studioBriefAgentProposal.baseVersionId,
+  base_content_hash: studioBriefAgentProposal.baseContentHash,
+  title: studioBriefAgentProposal.title,
+  summary: studioBriefAgentProposal.summary,
+  operations_json: studioBriefAgentProposal.operationsJson,
+  validation_json: studioBriefAgentProposal.validationJson,
+  preview_hash: studioBriefAgentProposal.previewHash,
+  provenance_json: studioBriefAgentProposal.provenanceJson,
+  accepted_operation_ids_json: studioBriefAgentProposal.acceptedOperationIdsJson,
+  created_at: studioBriefAgentProposal.createdAt,
+  updated_at: studioBriefAgentProposal.updatedAt,
+  applied_at: studioBriefAgentProposal.appliedAt,
+  rejected_at: studioBriefAgentProposal.rejectedAt,
+} as const;
 
-async function all<TSchema extends z.ZodType>(
-  database: D1Database,
-  query: string,
-  schema: TSchema,
-  values: D1Value[] = [],
-): Promise<z.output<TSchema>[]> {
-  const rows = await database
-    .prepare(query)
-    .bind(...values)
-    .all();
-  return rows.results.map((row) => schema.parse(row));
-}
+const draftVersionSelection = {
+  version_id: studioBriefDraftVersion.versionId,
+  brief_id: studioBriefDraftVersion.briefId,
+  parent_version_id: studioBriefDraftVersion.parentVersionId,
+  content_hash: studioBriefDraftVersion.contentHash,
+  actor_id: studioBriefDraftVersion.actorId,
+  actor_type: studioBriefDraftVersion.actorType,
+  reason: studioBriefDraftVersion.reason,
+  source_run_id: studioBriefDraftVersion.sourceRunId,
+  source_proposal_id: studioBriefDraftVersion.sourceProposalId,
+  validation_score: studioBriefDraftVersion.validationScore,
+  snapshot_storage: studioBriefDraftVersion.snapshotStorage,
+  snapshot_key: studioBriefDraftVersion.snapshotKey,
+  snapshot_sha256: studioBriefDraftVersion.snapshotSha256,
+  created_at: studioBriefDraftVersion.createdAt,
+} as const;
 
-async function run(database: D1Database, query: string, values: D1Value[] = []): Promise<void> {
-  await database
-    .prepare(query)
-    .bind(...values)
-    .run();
-}
+const draftVersionSnapshotSelection = {
+  snapshot_key: studioBriefDraftVersionSnapshot.snapshotKey,
+  brief_id: studioBriefDraftVersionSnapshot.briefId,
+  snapshot_json: studioBriefDraftVersionSnapshot.snapshotJson,
+  created_at: studioBriefDraftVersionSnapshot.createdAt,
+} as const;
 
 export async function insertStudioBriefAgentRun(
-  database: D1Database,
+  db: D1ServingDb,
   input: {
     runId: string;
     briefId: string;
@@ -186,57 +225,49 @@ export async function insertStudioBriefAgentRun(
     completedAt?: string | null;
   },
 ): Promise<void> {
-  await run(
-    database,
-    `insert into studio_brief_agent_run
-      (run_id, brief_id, workspace_id, status, intent, base_version_id, base_content_hash,
-       trigger_json, actor_id, actor_display_name, model_provider, model_id, prompt_hash,
-       proposal_id, error_code, error_message, created_at, updated_at, started_at, completed_at)
-      values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      input.runId,
-      input.briefId,
-      input.workspaceId,
-      input.status,
-      input.intent,
-      input.baseVersionId,
-      input.baseContentHash,
-      input.triggerJson,
-      input.actorId,
-      input.actorDisplayName,
-      input.modelProvider ?? null,
-      input.modelId ?? null,
-      input.promptHash ?? null,
-      null,
-      null,
-      null,
-      input.createdAt,
-      input.updatedAt,
-      input.startedAt ?? null,
-      input.completedAt ?? null,
-    ],
-  );
+  await db.insert(studioBriefAgentRun).values({
+    runId: input.runId,
+    briefId: input.briefId,
+    workspaceId: input.workspaceId,
+    status: input.status,
+    intent: input.intent,
+    baseVersionId: input.baseVersionId,
+    baseContentHash: input.baseContentHash,
+    triggerJson: input.triggerJson,
+    actorId: input.actorId,
+    actorDisplayName: input.actorDisplayName,
+    modelProvider: input.modelProvider ?? null,
+    modelId: input.modelId ?? null,
+    promptHash: input.promptHash ?? null,
+    proposalId: null,
+    errorCode: null,
+    errorMessage: null,
+    createdAt: input.createdAt,
+    updatedAt: input.updatedAt,
+    startedAt: input.startedAt ?? null,
+    completedAt: input.completedAt ?? null,
+  });
 }
 
 export async function getStudioBriefAgentRun(
-  database: D1Database,
+  db: D1ServingDb,
   input: { briefId: string; runId: string },
 ): Promise<StudioBriefAgentRunRow | null> {
-  return first(
-    database,
-    `select run_id, brief_id, workspace_id, status, intent, base_version_id, base_content_hash,
-            trigger_json, actor_id, actor_display_name, model_provider, model_id, prompt_hash,
-            proposal_id, error_code, error_message, created_at, updated_at, started_at,
-            completed_at
-       from studio_brief_agent_run
-      where brief_id = ? and run_id = ?`,
-    StudioBriefAgentRunRowSchema,
-    [input.briefId, input.runId],
-  );
+  const [row] = await db
+    .select(agentRunSelection)
+    .from(studioBriefAgentRun)
+    .where(
+      and(
+        eq(studioBriefAgentRun.briefId, input.briefId),
+        eq(studioBriefAgentRun.runId, input.runId),
+      ),
+    )
+    .limit(1);
+  return row === undefined ? null : StudioBriefAgentRunRowSchema.parse(row);
 }
 
 export async function updateStudioBriefAgentRunStatus(
-  database: D1Database,
+  db: D1ServingDb,
   input: {
     runId: string;
     briefId: string;
@@ -249,40 +280,38 @@ export async function updateStudioBriefAgentRunStatus(
     completedAt?: string | null;
   },
 ): Promise<void> {
-  const assignments = ["status = ?", "updated_at = ?"];
-  const values: D1Value[] = [input.status, input.updatedAt];
+  const values: Partial<typeof studioBriefAgentRun.$inferInsert> = {
+    status: input.status,
+    updatedAt: input.updatedAt,
+  };
   if (input.proposalId !== undefined) {
-    assignments.push("proposal_id = ?");
-    values.push(input.proposalId);
+    values.proposalId = input.proposalId;
   }
   if (input.errorCode !== undefined) {
-    assignments.push("error_code = ?");
-    values.push(input.errorCode);
+    values.errorCode = input.errorCode;
   }
   if (input.errorMessage !== undefined) {
-    assignments.push("error_message = ?");
-    values.push(input.errorMessage);
+    values.errorMessage = input.errorMessage;
   }
   if (input.startedAt !== undefined) {
-    assignments.push("started_at = ?");
-    values.push(input.startedAt);
+    values.startedAt = input.startedAt;
   }
   if (input.completedAt !== undefined) {
-    assignments.push("completed_at = ?");
-    values.push(input.completedAt);
+    values.completedAt = input.completedAt;
   }
-  values.push(input.briefId, input.runId);
-  await run(
-    database,
-    `update studio_brief_agent_run
-        set ${assignments.join(", ")}
-      where brief_id = ? and run_id = ?`,
-    values,
-  );
+  await db
+    .update(studioBriefAgentRun)
+    .set(values)
+    .where(
+      and(
+        eq(studioBriefAgentRun.briefId, input.briefId),
+        eq(studioBriefAgentRun.runId, input.runId),
+      ),
+    );
 }
 
 export async function insertStudioBriefAgentProposal(
-  database: D1Database,
+  db: D1ServingDb,
   input: {
     proposalId: string;
     runId: string;
@@ -300,70 +329,58 @@ export async function insertStudioBriefAgentProposal(
     updatedAt: string;
   },
 ): Promise<void> {
-  await run(
-    database,
-    `insert into studio_brief_agent_proposal
-      (proposal_id, run_id, brief_id, status, base_version_id, base_content_hash, title,
-       summary, operations_json, validation_json, preview_hash, provenance_json,
-       accepted_operation_ids_json, created_at, updated_at, applied_at, rejected_at)
-      values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      input.proposalId,
-      input.runId,
-      input.briefId,
-      input.status,
-      input.baseVersionId,
-      input.baseContentHash,
-      input.title,
-      input.summary,
-      input.operationsJson,
-      input.validationJson,
-      input.previewHash,
-      input.provenanceJson,
-      null,
-      input.createdAt,
-      input.updatedAt,
-      null,
-      null,
-    ],
-  );
+  await db.insert(studioBriefAgentProposal).values({
+    proposalId: input.proposalId,
+    runId: input.runId,
+    briefId: input.briefId,
+    status: input.status,
+    baseVersionId: input.baseVersionId,
+    baseContentHash: input.baseContentHash,
+    title: input.title,
+    summary: input.summary,
+    operationsJson: input.operationsJson,
+    validationJson: input.validationJson,
+    previewHash: input.previewHash,
+    provenanceJson: input.provenanceJson,
+    acceptedOperationIdsJson: null,
+    createdAt: input.createdAt,
+    updatedAt: input.updatedAt,
+    appliedAt: null,
+    rejectedAt: null,
+  });
 }
 
 export async function getStudioBriefAgentProposal(
-  database: D1Database,
+  db: D1ServingDb,
   input: { briefId: string; proposalId: string },
 ): Promise<StudioBriefAgentProposalRow | null> {
-  return first(
-    database,
-    `select proposal_id, run_id, brief_id, status, base_version_id, base_content_hash,
-            title, summary, operations_json, validation_json, preview_hash, provenance_json,
-            accepted_operation_ids_json, created_at, updated_at, applied_at, rejected_at
-       from studio_brief_agent_proposal
-      where brief_id = ? and proposal_id = ?`,
-    StudioBriefAgentProposalRowSchema,
-    [input.briefId, input.proposalId],
-  );
+  const [row] = await db
+    .select(agentProposalSelection)
+    .from(studioBriefAgentProposal)
+    .where(
+      and(
+        eq(studioBriefAgentProposal.briefId, input.briefId),
+        eq(studioBriefAgentProposal.proposalId, input.proposalId),
+      ),
+    )
+    .limit(1);
+  return row === undefined ? null : StudioBriefAgentProposalRowSchema.parse(row);
 }
 
 export async function listStudioBriefAgentProposals(
-  database: D1Database,
+  db: D1ServingDb,
   briefId: string,
 ): Promise<StudioBriefAgentProposalRow[]> {
-  return all(
-    database,
-    `select proposal_id, run_id, brief_id, status, base_version_id, base_content_hash,
-            title, summary, operations_json, validation_json, preview_hash, provenance_json,
-            accepted_operation_ids_json, created_at, updated_at, applied_at, rejected_at
-       from studio_brief_agent_proposal
-      where brief_id = ?
-      order by created_at desc, proposal_id desc`,
-    StudioBriefAgentProposalRowSchema,
-    [briefId],
-  );
+  const rows = await db
+    .select(agentProposalSelection)
+    .from(studioBriefAgentProposal)
+    .where(eq(studioBriefAgentProposal.briefId, briefId))
+    .orderBy(desc(studioBriefAgentProposal.createdAt), desc(studioBriefAgentProposal.proposalId));
+  return rows.map((row) => StudioBriefAgentProposalRowSchema.parse(row));
 }
 
 export async function updateStudioBriefAgentProposalStatus(
-  database: D1Database,
+  db: D1ServingDb,
   input: {
     proposalId: string;
     briefId: string;
@@ -374,34 +391,33 @@ export async function updateStudioBriefAgentProposalStatus(
     acceptedOperationIds?: string[] | null;
   },
 ): Promise<void> {
-  const assignments = ["status = ?", "updated_at = ?"];
-  const values: D1Value[] = [input.status, input.updatedAt];
+  const values: Partial<typeof studioBriefAgentProposal.$inferInsert> = {
+    status: input.status,
+    updatedAt: input.updatedAt,
+  };
   if (input.appliedAt !== undefined) {
-    assignments.push("applied_at = ?");
-    values.push(input.appliedAt);
+    values.appliedAt = input.appliedAt;
   }
   if (input.rejectedAt !== undefined) {
-    assignments.push("rejected_at = ?");
-    values.push(input.rejectedAt);
+    values.rejectedAt = input.rejectedAt;
   }
   if (input.acceptedOperationIds !== undefined) {
-    assignments.push("accepted_operation_ids_json = ?");
-    values.push(
-      input.acceptedOperationIds === null ? null : JSON.stringify(input.acceptedOperationIds),
-    );
+    values.acceptedOperationIdsJson =
+      input.acceptedOperationIds === null ? null : JSON.stringify(input.acceptedOperationIds);
   }
-  values.push(input.briefId, input.proposalId);
-  await run(
-    database,
-    `update studio_brief_agent_proposal
-        set ${assignments.join(", ")}
-      where brief_id = ? and proposal_id = ?`,
-    values,
-  );
+  await db
+    .update(studioBriefAgentProposal)
+    .set(values)
+    .where(
+      and(
+        eq(studioBriefAgentProposal.briefId, input.briefId),
+        eq(studioBriefAgentProposal.proposalId, input.proposalId),
+      ),
+    );
 }
 
 export async function insertStudioBriefDraftVersion(
-  database: D1Database,
+  db: D1ServingDb,
   input: {
     versionId: string;
     briefId: string;
@@ -419,67 +435,55 @@ export async function insertStudioBriefDraftVersion(
     createdAt: string;
   },
 ): Promise<void> {
-  await run(
-    database,
-    `insert into studio_brief_draft_version
-      (version_id, brief_id, parent_version_id, content_hash, actor_id, actor_type, reason,
-       source_run_id, source_proposal_id, validation_score, snapshot_storage, snapshot_key,
-       snapshot_sha256, created_at)
-      values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      input.versionId,
-      input.briefId,
-      input.parentVersionId,
-      input.contentHash,
-      input.actorId,
-      input.actorType,
-      input.reason,
-      input.sourceRunId ?? null,
-      input.sourceProposalId ?? null,
-      input.validationScore ?? null,
-      input.snapshotStorage,
-      input.snapshotKey,
-      input.snapshotSha256,
-      input.createdAt,
-    ],
-  );
+  await db.insert(studioBriefDraftVersion).values({
+    versionId: input.versionId,
+    briefId: input.briefId,
+    parentVersionId: input.parentVersionId,
+    contentHash: input.contentHash,
+    actorId: input.actorId,
+    actorType: input.actorType,
+    reason: input.reason,
+    sourceRunId: input.sourceRunId ?? null,
+    sourceProposalId: input.sourceProposalId ?? null,
+    validationScore: input.validationScore ?? null,
+    snapshotStorage: input.snapshotStorage,
+    snapshotKey: input.snapshotKey,
+    snapshotSha256: input.snapshotSha256,
+    createdAt: input.createdAt,
+  });
 }
 
 export async function getStudioBriefDraftVersion(
-  database: D1Database,
+  db: D1ServingDb,
   input: { briefId: string; versionId: string },
 ): Promise<StudioBriefDraftVersionRow | null> {
-  return first(
-    database,
-    `select version_id, brief_id, parent_version_id, content_hash, actor_id, actor_type,
-            reason, source_run_id, source_proposal_id, validation_score, snapshot_storage,
-            snapshot_key, snapshot_sha256, created_at
-       from studio_brief_draft_version
-      where brief_id = ? and version_id = ?`,
-    StudioBriefDraftVersionRowSchema,
-    [input.briefId, input.versionId],
-  );
+  const [row] = await db
+    .select(draftVersionSelection)
+    .from(studioBriefDraftVersion)
+    .where(
+      and(
+        eq(studioBriefDraftVersion.briefId, input.briefId),
+        eq(studioBriefDraftVersion.versionId, input.versionId),
+      ),
+    )
+    .limit(1);
+  return row === undefined ? null : StudioBriefDraftVersionRowSchema.parse(row);
 }
 
 export async function listStudioBriefDraftVersions(
-  database: D1Database,
+  db: D1ServingDb,
   briefId: string,
 ): Promise<StudioBriefDraftVersionRow[]> {
-  return all(
-    database,
-    `select version_id, brief_id, parent_version_id, content_hash, actor_id, actor_type,
-            reason, source_run_id, source_proposal_id, validation_score, snapshot_storage,
-            snapshot_key, snapshot_sha256, created_at
-       from studio_brief_draft_version
-      where brief_id = ?
-      order by created_at desc, version_id desc`,
-    StudioBriefDraftVersionRowSchema,
-    [briefId],
-  );
+  const rows = await db
+    .select(draftVersionSelection)
+    .from(studioBriefDraftVersion)
+    .where(eq(studioBriefDraftVersion.briefId, briefId))
+    .orderBy(desc(studioBriefDraftVersion.createdAt), desc(studioBriefDraftVersion.versionId));
+  return rows.map((row) => StudioBriefDraftVersionRowSchema.parse(row));
 }
 
 export async function insertStudioBriefDraftVersionSnapshot(
-  database: D1Database,
+  db: D1ServingDb,
   input: {
     snapshotKey: string;
     briefId: string;
@@ -487,25 +491,27 @@ export async function insertStudioBriefDraftVersionSnapshot(
     createdAt: string;
   },
 ): Promise<void> {
-  await run(
-    database,
-    `insert into studio_brief_draft_version_snapshot
-      (snapshot_key, brief_id, snapshot_json, created_at)
-      values (?, ?, ?, ?)`,
-    [input.snapshotKey, input.briefId, input.snapshotJson, input.createdAt],
-  );
+  await db.insert(studioBriefDraftVersionSnapshot).values({
+    snapshotKey: input.snapshotKey,
+    briefId: input.briefId,
+    snapshotJson: input.snapshotJson,
+    createdAt: input.createdAt,
+  });
 }
 
 export async function getStudioBriefDraftVersionSnapshot(
-  database: D1Database,
+  db: D1ServingDb,
   input: { snapshotKey: string; briefId: string },
 ): Promise<StudioBriefDraftVersionSnapshotRow | null> {
-  return first(
-    database,
-    `select snapshot_key, brief_id, snapshot_json, created_at
-       from studio_brief_draft_version_snapshot
-      where snapshot_key = ? and brief_id = ?`,
-    StudioBriefDraftVersionSnapshotRowSchema,
-    [input.snapshotKey, input.briefId],
-  );
+  const [row] = await db
+    .select(draftVersionSnapshotSelection)
+    .from(studioBriefDraftVersionSnapshot)
+    .where(
+      and(
+        eq(studioBriefDraftVersionSnapshot.snapshotKey, input.snapshotKey),
+        eq(studioBriefDraftVersionSnapshot.briefId, input.briefId),
+      ),
+    )
+    .limit(1);
+  return row === undefined ? null : StudioBriefDraftVersionSnapshotRowSchema.parse(row);
 }

@@ -1,0 +1,2581 @@
+{
+  "dialect": "sqlite",
+  "id": "c2e7e997-ec08-4cc6-bdbe-21cf504cc3b9",
+  "prevIds": [
+    "c52ff3ad-c131-48c9-9473-0951a4f4554b"
+  ],
+  "version": "7",
+  "ddl": [
+    {
+      "name": "local_route_artifact",
+      "entityType": "tables"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "route_id",
+      "table": "local_route_artifact",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "month",
+      "table": "local_route_artifact",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "artifact_name",
+      "table": "local_route_artifact",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "artifact_key",
+      "table": "local_route_artifact",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "content_type",
+      "table": "local_route_artifact",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "byte_length",
+      "table": "local_route_artifact",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "sha256",
+      "table": "local_route_artifact",
+      "entityType": "columns"
+    },
+    {
+      "columns": [
+        "route_id",
+        "month",
+        "artifact_name"
+      ],
+      "nameExplicit": false,
+      "name": "local_route_artifact_route_id_month_artifact_name_pk",
+      "table": "local_route_artifact",
+      "entityType": "pks"
+    },
+    {
+      "name": "local_route_batch_built_route",
+      "entityType": "tables"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "month",
+      "table": "local_route_batch_built_route",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "route_rank",
+      "table": "local_route_batch_built_route",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "route_id",
+      "table": "local_route_batch_built_route",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "artifact_count",
+      "table": "local_route_batch_built_route",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "status",
+      "table": "local_route_batch_built_route",
+      "entityType": "columns"
+    },
+    {
+      "columns": [
+        "month",
+        "route_rank"
+      ],
+      "nameExplicit": false,
+      "name": "local_route_batch_built_route_month_route_rank_pk",
+      "table": "local_route_batch_built_route",
+      "entityType": "pks"
+    },
+    {
+      "name": "local_route_batch_issue",
+      "entityType": "tables"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "month",
+      "table": "local_route_batch_issue",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "issue_rank",
+      "table": "local_route_batch_issue",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "route_id",
+      "table": "local_route_batch_issue",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "severity",
+      "table": "local_route_batch_issue",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "issue_code",
+      "table": "local_route_batch_issue",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "message",
+      "table": "local_route_batch_issue",
+      "entityType": "columns"
+    },
+    {
+      "columns": [
+        "month",
+        "issue_rank"
+      ],
+      "nameExplicit": false,
+      "name": "local_route_batch_issue_month_issue_rank_pk",
+      "table": "local_route_batch_issue",
+      "entityType": "pks"
+    },
+    {
+      "name": "local_route_batch_status",
+      "entityType": "tables"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "month",
+      "table": "local_route_batch_status",
+      "entityType": "columns"
+    },
+    {
+      "columns": [
+        "month"
+      ],
+      "nameExplicit": false,
+      "name": "local_route_batch_status_pk",
+      "table": "local_route_batch_status",
+      "entityType": "pks"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "generated_at",
+      "table": "local_route_batch_status",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "status",
+      "table": "local_route_batch_status",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "route_count",
+      "table": "local_route_batch_status",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "artifact_count",
+      "table": "local_route_batch_status",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "missing_artifact_count",
+      "table": "local_route_batch_status",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "hash_mismatch_count",
+      "table": "local_route_batch_status",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "byte_length_mismatch_count",
+      "table": "local_route_batch_status",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "total_byte_length",
+      "table": "local_route_batch_status",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "issue_count",
+      "table": "local_route_batch_status",
+      "entityType": "columns"
+    },
+    {
+      "name": "local_route_brief_peak_window",
+      "entityType": "tables"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "route_id",
+      "table": "local_route_brief_peak_window",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "month",
+      "table": "local_route_brief_peak_window",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "window_rank",
+      "table": "local_route_brief_peak_window",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "day_of_week",
+      "table": "local_route_brief_peak_window",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "hour_of_day",
+      "table": "local_route_brief_peak_window",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "ridership",
+      "table": "local_route_brief_peak_window",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "transfers",
+      "table": "local_route_brief_peak_window",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "matched_observation_count",
+      "table": "local_route_brief_peak_window",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "bus_trip_count",
+      "table": "local_route_brief_peak_window",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "weighted_average_speed_mph",
+      "table": "local_route_brief_peak_window",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "slow_observation_share",
+      "table": "local_route_brief_peak_window",
+      "entityType": "columns"
+    },
+    {
+      "columns": [
+        "route_id",
+        "month",
+        "window_rank"
+      ],
+      "nameExplicit": false,
+      "name": "local_route_brief_peak_window_route_id_month_window_rank_pk",
+      "table": "local_route_brief_peak_window",
+      "entityType": "pks"
+    },
+    {
+      "name": "local_route_brief_slowest_window",
+      "entityType": "tables"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "route_id",
+      "table": "local_route_brief_slowest_window",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "month",
+      "table": "local_route_brief_slowest_window",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "window_rank",
+      "table": "local_route_brief_slowest_window",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "day_of_week",
+      "table": "local_route_brief_slowest_window",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "hour_of_day",
+      "table": "local_route_brief_slowest_window",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "observation_count",
+      "table": "local_route_brief_slowest_window",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "bus_trip_count",
+      "table": "local_route_brief_slowest_window",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "segment_count",
+      "table": "local_route_brief_slowest_window",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "weighted_average_speed_mph",
+      "table": "local_route_brief_slowest_window",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "weighted_average_travel_time_minutes",
+      "table": "local_route_brief_slowest_window",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "slow_observation_share",
+      "table": "local_route_brief_slowest_window",
+      "entityType": "columns"
+    },
+    {
+      "columns": [
+        "route_id",
+        "month",
+        "window_rank"
+      ],
+      "nameExplicit": false,
+      "name": "local_route_brief_slowest_window_route_id_month_window_rank_pk",
+      "table": "local_route_brief_slowest_window",
+      "entityType": "pks"
+    },
+    {
+      "name": "local_route_brief_summary",
+      "entityType": "tables"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "route_id",
+      "table": "local_route_brief_summary",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "month",
+      "table": "local_route_brief_summary",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "route_score",
+      "table": "local_route_brief_summary",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "public_visible",
+      "table": "local_route_brief_summary",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "public_visibility_reason",
+      "table": "local_route_brief_summary",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "average_speed_mph",
+      "table": "local_route_brief_summary",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "hotspot_count",
+      "table": "local_route_brief_summary",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "total_ridership",
+      "table": "local_route_brief_summary",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "total_transfers",
+      "table": "local_route_brief_summary",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "ace_active",
+      "table": "local_route_brief_summary",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "ace_violation_count",
+      "table": "local_route_brief_summary",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "bus_lane_matched_lane_count",
+      "table": "local_route_brief_summary",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "schedule_match_rate",
+      "table": "local_route_brief_summary",
+      "entityType": "columns"
+    },
+    {
+      "columns": [
+        "route_id",
+        "month"
+      ],
+      "nameExplicit": false,
+      "name": "local_route_brief_summary_route_id_month_pk",
+      "table": "local_route_brief_summary",
+      "entityType": "pks"
+    },
+    {
+      "name": "local_route_build_plan",
+      "entityType": "tables"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "route_id",
+      "table": "local_route_build_plan",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "month",
+      "table": "local_route_build_plan",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "route_short_name",
+      "table": "local_route_build_plan",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "route_long_name",
+      "table": "local_route_build_plan",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "candidate_rank",
+      "table": "local_route_build_plan",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "plan_status",
+      "table": "local_route_build_plan",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "selected_for_next_batch",
+      "table": "local_route_build_plan",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "already_built",
+      "table": "local_route_build_plan",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "build_eligible",
+      "table": "local_route_build_plan",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "priority_score",
+      "table": "local_route_build_plan",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "readiness_status",
+      "table": "local_route_build_plan",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "readiness_score",
+      "table": "local_route_build_plan",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "speed_observation_count",
+      "table": "local_route_build_plan",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "speed_bus_trip_count",
+      "table": "local_route_build_plan",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "average_speed_mph",
+      "table": "local_route_build_plan",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "schedule_timepoint_count",
+      "table": "local_route_build_plan",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "shape_count",
+      "table": "local_route_build_plan",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "stop_count",
+      "table": "local_route_build_plan",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "timepoint_stop_count",
+      "table": "local_route_build_plan",
+      "entityType": "columns"
+    },
+    {
+      "columns": [
+        "route_id",
+        "month"
+      ],
+      "nameExplicit": false,
+      "name": "local_route_build_plan_route_id_month_pk",
+      "table": "local_route_build_plan",
+      "entityType": "pks"
+    },
+    {
+      "name": "local_route_catalog",
+      "entityType": "tables"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "route_id",
+      "table": "local_route_catalog",
+      "entityType": "columns"
+    },
+    {
+      "columns": [
+        "route_id"
+      ],
+      "nameExplicit": false,
+      "name": "local_route_catalog_pk",
+      "table": "local_route_catalog",
+      "entityType": "pks"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "route_short_name",
+      "table": "local_route_catalog",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "route_long_name",
+      "table": "local_route_catalog",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "shape_count",
+      "table": "local_route_catalog",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "stop_count",
+      "table": "local_route_catalog",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "timepoint_stop_count",
+      "table": "local_route_catalog",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "latitude_min",
+      "table": "local_route_catalog",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "latitude_max",
+      "table": "local_route_catalog",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "longitude_min",
+      "table": "local_route_catalog",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "longitude_max",
+      "table": "local_route_catalog",
+      "entityType": "columns"
+    },
+    {
+      "name": "local_route_catalog_type",
+      "entityType": "tables"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "route_id",
+      "table": "local_route_catalog_type",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "type_rank",
+      "table": "local_route_catalog_type",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "route_type",
+      "table": "local_route_catalog_type",
+      "entityType": "columns"
+    },
+    {
+      "columns": [
+        "route_id",
+        "type_rank"
+      ],
+      "nameExplicit": false,
+      "name": "local_route_catalog_type_route_id_type_rank_pk",
+      "table": "local_route_catalog_type",
+      "entityType": "pks"
+    },
+    {
+      "name": "local_route_comparison_rank",
+      "entityType": "tables"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "month",
+      "table": "local_route_comparison_rank",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "rank",
+      "table": "local_route_comparison_rank",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "route_id",
+      "table": "local_route_comparison_rank",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "route_score",
+      "table": "local_route_comparison_rank",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "average_speed_mph",
+      "table": "local_route_comparison_rank",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "total_ridership",
+      "table": "local_route_comparison_rank",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "ace_violation_count",
+      "table": "local_route_comparison_rank",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "bus_lane_matched_lane_count",
+      "table": "local_route_comparison_rank",
+      "entityType": "columns"
+    },
+    {
+      "columns": [
+        "month",
+        "rank"
+      ],
+      "nameExplicit": false,
+      "name": "local_route_comparison_rank_month_rank_pk",
+      "table": "local_route_comparison_rank",
+      "entityType": "pks"
+    },
+    {
+      "name": "local_route_direction",
+      "entityType": "tables"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "route_id",
+      "table": "local_route_direction",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "direction_rank",
+      "table": "local_route_direction",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "direction_name",
+      "table": "local_route_direction",
+      "entityType": "columns"
+    },
+    {
+      "columns": [
+        "route_id",
+        "direction_rank"
+      ],
+      "nameExplicit": false,
+      "name": "local_route_direction_route_id_direction_rank_pk",
+      "table": "local_route_direction",
+      "entityType": "pks"
+    },
+    {
+      "name": "local_route_equity_context",
+      "entityType": "tables"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "route_id",
+      "table": "local_route_equity_context",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "month",
+      "table": "local_route_equity_context",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "acs_year",
+      "table": "local_route_equity_context",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "assignment_geography",
+      "table": "local_route_equity_context",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "assigned_county_fips",
+      "table": "local_route_equity_context",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "assigned_county_name",
+      "table": "local_route_equity_context",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "assignment_method",
+      "table": "local_route_equity_context",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "tract_count",
+      "table": "local_route_equity_context",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "total_population",
+      "table": "local_route_equity_context",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "occupied_housing_units",
+      "table": "local_route_equity_context",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "no_vehicle_households",
+      "table": "local_route_equity_context",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "no_vehicle_household_share",
+      "table": "local_route_equity_context",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "median_household_income",
+      "table": "local_route_equity_context",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "poverty_rate",
+      "table": "local_route_equity_context",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "public_transit_commuter_share",
+      "table": "local_route_equity_context",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "hispanic_share",
+      "table": "local_route_equity_context",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "non_hispanic_white_share",
+      "table": "local_route_equity_context",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "non_hispanic_black_share",
+      "table": "local_route_equity_context",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "non_hispanic_asian_share",
+      "table": "local_route_equity_context",
+      "entityType": "columns"
+    },
+    {
+      "columns": [
+        "route_id",
+        "month"
+      ],
+      "nameExplicit": false,
+      "name": "local_route_equity_context_route_id_month_pk",
+      "table": "local_route_equity_context",
+      "entityType": "pks"
+    },
+    {
+      "name": "local_route_hourly_ridership",
+      "entityType": "tables"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "route_id",
+      "table": "local_route_hourly_ridership",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "month",
+      "table": "local_route_hourly_ridership",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "day_of_week",
+      "table": "local_route_hourly_ridership",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "hour_of_day",
+      "table": "local_route_hourly_ridership",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "ridership",
+      "table": "local_route_hourly_ridership",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "transfers",
+      "table": "local_route_hourly_ridership",
+      "entityType": "columns"
+    },
+    {
+      "columns": [
+        "route_id",
+        "month",
+        "day_of_week",
+        "hour_of_day"
+      ],
+      "nameExplicit": false,
+      "name": "local_route_hourly_ridership_route_id_month_day_of_week_hour_of_day_pk",
+      "table": "local_route_hourly_ridership",
+      "entityType": "pks"
+    },
+    {
+      "name": "local_route_month_coverage",
+      "entityType": "tables"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "route_id",
+      "table": "local_route_month_coverage",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "month",
+      "table": "local_route_month_coverage",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "speed_observation_count",
+      "table": "local_route_month_coverage",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "speed_bus_trip_count",
+      "table": "local_route_month_coverage",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "average_speed_mph",
+      "table": "local_route_month_coverage",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "schedule_timepoint_count",
+      "table": "local_route_month_coverage",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "has_speed_data",
+      "table": "local_route_month_coverage",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "has_schedule_data",
+      "table": "local_route_month_coverage",
+      "entityType": "columns"
+    },
+    {
+      "columns": [
+        "route_id",
+        "month"
+      ],
+      "nameExplicit": false,
+      "name": "local_route_month_coverage_route_id_month_pk",
+      "table": "local_route_month_coverage",
+      "entityType": "pks"
+    },
+    {
+      "name": "local_route_month_source_status",
+      "entityType": "tables"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "route_id",
+      "table": "local_route_month_source_status",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "month",
+      "table": "local_route_month_source_status",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "source_scope",
+      "table": "local_route_month_source_status",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "source_id",
+      "table": "local_route_month_source_status",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "status",
+      "table": "local_route_month_source_status",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "row_count",
+      "table": "local_route_month_source_status",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "snapshot_id",
+      "table": "local_route_month_source_status",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "note",
+      "table": "local_route_month_source_status",
+      "entityType": "columns"
+    },
+    {
+      "columns": [
+        "route_id",
+        "month",
+        "source_scope",
+        "source_id"
+      ],
+      "nameExplicit": false,
+      "name": "local_route_month_source_status_route_id_month_source_scope_source_id_pk",
+      "table": "local_route_month_source_status",
+      "entityType": "pks"
+    },
+    {
+      "name": "local_route_month_trend",
+      "entityType": "tables"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "route_id",
+      "table": "local_route_month_trend",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "month",
+      "table": "local_route_month_trend",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "speed_observation_count",
+      "table": "local_route_month_trend",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "speed_bus_trip_count",
+      "table": "local_route_month_trend",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "average_speed_mph",
+      "table": "local_route_month_trend",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "ridership",
+      "table": "local_route_month_trend",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "transfers",
+      "table": "local_route_month_trend",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "has_speed_trend",
+      "table": "local_route_month_trend",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "has_ridership_trend",
+      "table": "local_route_month_trend",
+      "entityType": "columns"
+    },
+    {
+      "columns": [
+        "route_id",
+        "month"
+      ],
+      "nameExplicit": false,
+      "name": "local_route_month_trend_route_id_month_pk",
+      "table": "local_route_month_trend",
+      "entityType": "pks"
+    },
+    {
+      "name": "local_route_readiness",
+      "entityType": "tables"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "route_id",
+      "table": "local_route_readiness",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "month",
+      "table": "local_route_readiness",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "route_short_name",
+      "table": "local_route_readiness",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "route_long_name",
+      "table": "local_route_readiness",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "readiness_status",
+      "table": "local_route_readiness",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "build_eligible",
+      "table": "local_route_readiness",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "readiness_score",
+      "table": "local_route_readiness",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "speed_observation_count",
+      "table": "local_route_readiness",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "speed_bus_trip_count",
+      "table": "local_route_readiness",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "average_speed_mph",
+      "table": "local_route_readiness",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "schedule_timepoint_count",
+      "table": "local_route_readiness",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "shape_count",
+      "table": "local_route_readiness",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "stop_count",
+      "table": "local_route_readiness",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "timepoint_stop_count",
+      "table": "local_route_readiness",
+      "entityType": "columns"
+    },
+    {
+      "columns": [
+        "route_id",
+        "month"
+      ],
+      "nameExplicit": false,
+      "name": "local_route_readiness_route_id_month_pk",
+      "table": "local_route_readiness",
+      "entityType": "pks"
+    },
+    {
+      "name": "local_route_readiness_missing_input",
+      "entityType": "tables"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "route_id",
+      "table": "local_route_readiness_missing_input",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "month",
+      "table": "local_route_readiness_missing_input",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "input_rank",
+      "table": "local_route_readiness_missing_input",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "input_name",
+      "table": "local_route_readiness_missing_input",
+      "entityType": "columns"
+    },
+    {
+      "columns": [
+        "route_id",
+        "month",
+        "input_rank"
+      ],
+      "nameExplicit": false,
+      "name": "local_route_readiness_missing_input_route_id_month_input_rank_pk",
+      "table": "local_route_readiness_missing_input",
+      "entityType": "pks"
+    },
+    {
+      "name": "local_route_reliability_baseline",
+      "entityType": "tables"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "route_id",
+      "table": "local_route_reliability_baseline",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "month",
+      "table": "local_route_reliability_baseline",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "reliability_status",
+      "table": "local_route_reliability_baseline",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "scheduled_timepoint_count",
+      "table": "local_route_reliability_baseline",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "stop_headway_group_count",
+      "table": "local_route_reliability_baseline",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "headway_sample_count",
+      "table": "local_route_reliability_baseline",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "median_scheduled_headway_minutes",
+      "table": "local_route_reliability_baseline",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "p90_scheduled_headway_minutes",
+      "table": "local_route_reliability_baseline",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "max_scheduled_headway_minutes",
+      "table": "local_route_reliability_baseline",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "scheduled_short_headway_share",
+      "table": "local_route_reliability_baseline",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "scheduled_long_gap_share",
+      "table": "local_route_reliability_baseline",
+      "entityType": "columns"
+    },
+    {
+      "columns": [
+        "route_id",
+        "month"
+      ],
+      "nameExplicit": false,
+      "name": "local_route_reliability_baseline_route_id_month_pk",
+      "table": "local_route_reliability_baseline",
+      "entityType": "pks"
+    },
+    {
+      "name": "local_route_reliability_gap_window",
+      "entityType": "tables"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "route_id",
+      "table": "local_route_reliability_gap_window",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "month",
+      "table": "local_route_reliability_gap_window",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "window_rank",
+      "table": "local_route_reliability_gap_window",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "day_type",
+      "table": "local_route_reliability_gap_window",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "direction_id",
+      "table": "local_route_reliability_gap_window",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "stop_id",
+      "table": "local_route_reliability_gap_window",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "stop_name",
+      "table": "local_route_reliability_gap_window",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "sample_count",
+      "table": "local_route_reliability_gap_window",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "median_headway_minutes",
+      "table": "local_route_reliability_gap_window",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "p90_headway_minutes",
+      "table": "local_route_reliability_gap_window",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "max_headway_minutes",
+      "table": "local_route_reliability_gap_window",
+      "entityType": "columns"
+    },
+    {
+      "columns": [
+        "route_id",
+        "month",
+        "window_rank"
+      ],
+      "nameExplicit": false,
+      "name": "local_route_reliability_gap_window_route_id_month_window_rank_pk",
+      "table": "local_route_reliability_gap_window",
+      "entityType": "pks"
+    },
+    {
+      "name": "local_route_scorecard",
+      "entityType": "tables"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "route_id",
+      "table": "local_route_scorecard",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "month",
+      "table": "local_route_scorecard",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "route_score",
+      "table": "local_route_scorecard",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "coverage_status",
+      "table": "local_route_scorecard",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "average_speed_mph",
+      "table": "local_route_scorecard",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "hotspot_count",
+      "table": "local_route_scorecard",
+      "entityType": "columns"
+    },
+    {
+      "columns": [
+        "route_id",
+        "month"
+      ],
+      "nameExplicit": false,
+      "name": "local_route_scorecard_route_id_month_pk",
+      "table": "local_route_scorecard",
+      "entityType": "pks"
+    },
+    {
+      "name": "local_route_segment_speed",
+      "entityType": "tables"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "route_id",
+      "table": "local_route_segment_speed",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "month",
+      "table": "local_route_segment_speed",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "row_rank",
+      "table": "local_route_segment_speed",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "timestamp",
+      "table": "local_route_segment_speed",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "day_of_week",
+      "table": "local_route_segment_speed",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "hour_of_day",
+      "table": "local_route_segment_speed",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "direction",
+      "table": "local_route_segment_speed",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "borough",
+      "table": "local_route_segment_speed",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "route_type",
+      "table": "local_route_segment_speed",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "stop_order",
+      "table": "local_route_segment_speed",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "timepoint_stop_id",
+      "table": "local_route_segment_speed",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "timepoint_stop_name",
+      "table": "local_route_segment_speed",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "timepoint_stop_latitude",
+      "table": "local_route_segment_speed",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "timepoint_stop_longitude",
+      "table": "local_route_segment_speed",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "next_timepoint_stop_id",
+      "table": "local_route_segment_speed",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "next_timepoint_stop_name",
+      "table": "local_route_segment_speed",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "next_timepoint_stop_latitude",
+      "table": "local_route_segment_speed",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "next_timepoint_stop_longitude",
+      "table": "local_route_segment_speed",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "road_distance_miles",
+      "table": "local_route_segment_speed",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "average_travel_time_minutes",
+      "table": "local_route_segment_speed",
+      "entityType": "columns"
+    },
+    {
+      "type": "real",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "average_road_speed_mph",
+      "table": "local_route_segment_speed",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "bus_trip_count",
+      "table": "local_route_segment_speed",
+      "entityType": "columns"
+    },
+    {
+      "columns": [
+        "route_id",
+        "month",
+        "row_rank"
+      ],
+      "nameExplicit": false,
+      "name": "local_route_segment_speed_route_id_month_row_rank_pk",
+      "table": "local_route_segment_speed",
+      "entityType": "pks"
+    }
+  ],
+  "renames": []
+}

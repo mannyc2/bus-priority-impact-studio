@@ -1,0 +1,121 @@
+CREATE TABLE `local_311_service_request` (
+	`unique_key` text PRIMARY KEY NOT NULL,
+	`era` text NOT NULL,
+	`created_date` text NOT NULL,
+	`closed_date` text,
+	`agency` text,
+	`agency_name` text,
+	`complaint_type` text,
+	`descriptor` text,
+	`location_type` text,
+	`incident_zip` text,
+	`incident_address` text,
+	`street_name` text,
+	`cross_street_1` text,
+	`cross_street_2` text,
+	`city` text,
+	`status` text,
+	`resolution_description` text,
+	`community_board` text,
+	`latitude` real,
+	`longitude` real
+);
+--> statement-breakpoint
+CREATE TABLE `local_dot_street_permit` (
+	`permit_number` text PRIMARY KEY NOT NULL,
+	`permit_kind` text NOT NULL,
+	`application_tracking_id` text,
+	`permit_type_id` text,
+	`permit_type_desc` text,
+	`permit_status_id` text,
+	`permit_status_desc` text,
+	`permit_series_id` text,
+	`permit_series_desc` text,
+	`application_type_short_desc` text,
+	`equipment_type_desc` text,
+	`number_of_zones` integer,
+	`linear_feet` real,
+	`total_sq_feet` real,
+	`estimated_number_of_cuts` integer,
+	`permit_issue_date` text,
+	`emergency_issue_date` text,
+	`issued_work_start_date` text,
+	`issued_work_end_date` text,
+	`borough_name` text
+);
+--> statement-breakpoint
+CREATE TABLE `local_dot_traffic_volume_count` (
+	`request_id` integer NOT NULL,
+	`segment_id` integer NOT NULL,
+	`sampled_at` text NOT NULL,
+	`borough` text,
+	`street` text,
+	`from_street` text,
+	`to_street` text,
+	`direction` text,
+	`volume` integer NOT NULL,
+	`wkt_geom` text,
+	PRIMARY KEY(`request_id`, `segment_id`, `sampled_at`)
+);
+--> statement-breakpoint
+CREATE TABLE `local_lion_segment` (
+	`physical_id` text PRIMARY KEY NOT NULL,
+	`street_code_master` text,
+	`street_name` text,
+	`borough` text,
+	`l_zip` text,
+	`r_zip` text,
+	`segment_type_code` text,
+	`segment_type_desc` text,
+	`rw_type_code` text,
+	`rw_type_desc` text,
+	`from_node_id` text,
+	`to_node_id` text,
+	`traffic_dir` text,
+	`from_level_code` text,
+	`to_level_code` text,
+	`shape_length` real,
+	`wkt_geom` text
+);
+--> statement-breakpoint
+CREATE TABLE `local_nypd_collision` (
+	`collision_id` text PRIMARY KEY NOT NULL,
+	`crash_date` text NOT NULL,
+	`crash_time` text,
+	`borough` text,
+	`zip_code` text,
+	`latitude` real,
+	`longitude` real,
+	`on_street_name` text,
+	`off_street_name` text,
+	`cross_street_name` text,
+	`persons_injured` integer,
+	`persons_killed` integer,
+	`pedestrians_injured` integer,
+	`pedestrians_killed` integer,
+	`cyclist_injured` integer,
+	`cyclist_killed` integer,
+	`motorist_injured` integer,
+	`motorist_killed` integer,
+	`contributing_factor_vehicle_1` text,
+	`contributing_factor_vehicle_2` text
+);
+--> statement-breakpoint
+CREATE TABLE `local_parking_violation` (
+	`summons_number` text PRIMARY KEY NOT NULL,
+	`issue_date` text NOT NULL,
+	`violation_code` integer NOT NULL,
+	`violation_description` text,
+	`plate_id` text,
+	`registration_state` text,
+	`plate_type` text,
+	`vehicle_body_type` text,
+	`vehicle_make` text,
+	`issuing_agency` text,
+	`violation_location` text,
+	`violation_precinct` integer,
+	`violation_county` text,
+	`house_number` text,
+	`street_name` text,
+	`violation_time` text
+);
