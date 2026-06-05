@@ -2251,6 +2251,128 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = DataProductManifestSch
       ],
     },
     {
+      id: "tier2_document_derived_surfaces_v1",
+      label: "Tier 2 document-derived surfaces v1",
+      kind: "artifact_family",
+      owner: "tools/pipeline-v2/docs/tier2",
+      grain: "source-grounded document surface row",
+      producerCommand: "docs tier2 derive-surfaces",
+      expectedUniverse: {
+        description:
+          "Normalized research substrate derived from canonical Tier 2 discovery candidates, preserving source/page/block-line evidence, raw candidate payloads, lifecycle states, and typed entities, metric claims, events, tables, claims, context signals, review questions, and relation placeholders.",
+      },
+      requiredInputs: [
+        "tier2_ocr_page_markdown_corpus",
+        "document-discovery-normalized-candidates-canonical-v1",
+      ],
+      downstreamConsumers: [
+        "applied_research_pulse_candidate_set",
+        "detector review packets",
+        "finding evidence corpus",
+        "source-gap review queue",
+        "Studio reviewed document timeline projections",
+      ],
+      freshnessPolicy: { cadence: "manual" },
+      checks: [
+        {
+          id: "manifest",
+          label: "Document-derived surfaces manifest",
+          type: "json_artifact",
+          pathTemplate:
+            "{artifactRoot}/docs/tier2-full-corpus-2026-05-24-pass2/document-derived-surfaces-v1/manifest.json",
+          requiredJsonValues: [
+            {
+              path: "artifactKind",
+              equals: "bp.document_derived_surfaces.v1",
+            },
+          ],
+        },
+        {
+          id: "surface_files",
+          label: "Document-derived surface JSONL files",
+          type: "artifact_glob",
+          rootTemplate:
+            "{artifactRoot}/docs/tier2-full-corpus-2026-05-24-pass2/document-derived-surfaces-v1",
+          pattern: "*.jsonl",
+          minFiles: 8,
+        },
+      ],
+    },
+    {
+      id: "tier2_document_event_route_resolution_v1",
+      label: "Tier 2 document event route resolution v1",
+      kind: "artifact_family",
+      owner: "tools/pipeline-v2/docs/tier2",
+      grain: "document event surface row with timeline eligibility and route-resolution evidence",
+      producerCommand: "docs tier2 event-route-resolution",
+      expectedUniverse: {
+        description:
+          "Deterministic audit over document-derived event surfaces. It gates process/evaluation/context rows away from intervention timelines, resolves route identity through direct event text, single-route source context, and current-GTFS stop-street gazetteer matches, and explicitly marks event-date validation as requiring historical GTFS.",
+      },
+      requiredInputs: [
+        "tier2_document_derived_surfaces_v1",
+        "local_route_catalog",
+        "local_route_stop",
+      ],
+      downstreamConsumers: [
+        "route-specific Tier 2 review queues",
+        "applied_research_pulse_candidate_set",
+        "historical GTFS validation backlog",
+        "Studio reviewed document timeline projections",
+      ],
+      freshnessPolicy: { cadence: "manual" },
+      checks: [
+        {
+          id: "route_resolution_artifact",
+          label: "Document event route-resolution artifact",
+          type: "json_artifact",
+          pathTemplate:
+            "{artifactRoot}/docs/tier2-full-corpus-2026-05-24-pass2/document-derived-surfaces-v1/document-event-route-resolution-v1.json",
+          requiredJsonValues: [
+            {
+              path: "artifactKind",
+              equals: "bp.tier2_document_event_route_resolution.v1",
+            },
+          ],
+        },
+      ],
+    },
+    {
+      id: "tier2_route_review_queue_v1",
+      label: "Tier 2 route review queue v1",
+      kind: "artifact_family",
+      owner: "tools/pipeline-v2/docs/tier2",
+      grain: "route-specific review queue item derived from document event route resolution",
+      producerCommand: "docs tier2 route-review-queue",
+      expectedUniverse: {
+        description:
+          "Reviewer-facing queue that fans route-resolved document intervention candidates into one row per route/event pair. Items preserve route-resolution evidence, source refs, review tasks, decision options, priority bands, and the required historical-GTFS date-validation caveat.",
+      },
+      requiredInputs: ["tier2_document_event_route_resolution_v1"],
+      downstreamConsumers: [
+        "route-specific Tier 2 review sessions",
+        "historical GTFS validation backlog",
+        "Studio reviewed document timeline projections",
+        "applied_research_pulse_candidate_set",
+      ],
+      freshnessPolicy: { cadence: "manual" },
+      checks: [
+        {
+          id: "route_review_queue_artifact",
+          label: "Document route review queue artifact",
+          type: "json_artifact",
+          pathTemplate:
+            "{artifactRoot}/docs/tier2-full-corpus-2026-05-24-pass2/document-derived-surfaces-v1/document-route-review-queue-v1.json",
+          requiredJsonValues: [
+            {
+              path: "artifactKind",
+              equals: "bp.tier2_route_review_queue.v1",
+            },
+          ],
+        },
+      ],
+    },
+    {
       id: "tier2_docs_pipeline_status",
       label: "Tier 2 docs selected publishable gate",
       kind: "release_manifest",
@@ -2575,7 +2697,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = DataProductManifestSch
       id: "raw_r2_gtfs_rt_mirror_manifests",
       label: "Raw R2 GTFS-RT mirror manifests",
       kind: "artifact_family",
-      owner: "apps/web/worker/source-refresh",
+      owner: "packages/studio-api/source-refresh",
       grain: "GTFS-RT feed snapshot manifest",
       producerCommand: "Worker scheduled source refresh to GTFS_RT_RAW R2",
       expectedUniverse: {
