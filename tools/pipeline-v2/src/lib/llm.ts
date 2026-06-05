@@ -250,6 +250,7 @@ export type CompleteToolCallOptions = {
   tools: Array<{ name: string; description: string; parameters: Record<string, unknown> }>;
   maxOutputTokens?: number | undefined;
   reasoning?: ThinkingLevel | undefined;
+  providerOptions?: Record<string, unknown> | undefined;
   headers?: Record<string, string> | undefined;
   /**
    * Swap `globalThis.fetch` for the duration of the call. The pi-ai transport
@@ -335,6 +336,7 @@ export async function completeToolCall(
         maxRetries: 0,
         ...(options.maxOutputTokens === undefined ? {} : { maxTokens: options.maxOutputTokens }),
         ...(options.reasoning === undefined ? {} : { reasoning: options.reasoning }),
+        ...(options.providerOptions === undefined ? {} : { providerOptions: options.providerOptions }),
         ...(options.headers === undefined ? {} : { headers: options.headers }),
       } as never);
 

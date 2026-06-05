@@ -19,6 +19,8 @@ import {
   getDeepSeekCatalogModel,
   openRouterModel,
   pioneerBaseUrl,
+  pioneerModel,
+  providerHeaders,
   type ToolCallMessage,
 } from "../../../lib/llm.ts";
 import type { FetchLike } from "./_shared.ts";
@@ -34,7 +36,144 @@ function sleepMs(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export type OpenRouterCallResult = { response: Response; body: unknown };
+export type LlmHttpAttemptTrace = {
+  attempt: number;
+  startedAt: string;
+  endedAt: string;
+  latencyMs: number;
+  httpStatus: number | null;
+  statusText: string | null;
+  headers: Record<string, string>;
+  transient: boolean;
+  errorMessage: string | null;
+  providerRequestIds: string[];
+  responseBodyShape: string;
+  usage: unknown | null;
+};
+
+export type OpenRouterCallResult = {
+  response: Response;
+  body: unknown;
+  attempts?: LlmHttpAttemptTrace[];
+};
+
+function providerErrorResult(message: string): OpenRouterCallResult {
+  const body = { error: { message } };
+  return {
+    response: new Response(JSON.stringify(body), {
+      status: 502,
+      statusText: "Bad Gateway",
+      headers: { "Content-Type": "application/json" },
+    }),
+    body,
+  };
+}
+
+function nowIso(): string {
+  return new Date().toISOString();
+}
+
+function headersRecord(headers: Headers): Record<string, string> {
+  return Object.fromEntries(
+    [...headers.entries()].sort(([left], [right]) => left.localeCompare(right)),
+  );
+}
+
+function responseBodyShape(body: unknown): string {
+  if (body === null) return "null";
+  if (typeof body !== "object" || Array.isArray(body)) return typeof body;
+  const record = body as Record<string, unknown>;
+  if (typeof record["rawText"] === "string") return "raw_text";
+  if (Array.isArray(record["choices"])) return "chat_completion";
+  if (record["error"] !== undefined) return "error_object";
+  return "json_object";
+}
+
+function usageFromBody(body: unknown): unknown | null {
+  if (body === null || typeof body !== "object" || Array.isArray(body)) return null;
+  return (body as Record<string, unknown>)["usage"] ?? null;
+}
+
+function decodeHtmlEntities(value: string): string {
+  return value.replaceAll("&#x3D;", "=").replaceAll("&#61;", "=").replaceAll("&amp;", "&").trim();
+}
+
+function providerRequestIds(input: { body: unknown; headers: Record<string, string> }): string[] {
+  const ids = new Set<string>();
+  const headerKeys = [
+    "cf-ray",
+    "request-id",
+    "x-amzn-requestid",
+    "x-amzn-trace-id",
+    "x-cloud-trace-context",
+    "x-openai-request-id",
+    "x-request-id",
+    "x-socrata-requestid",
+  ];
+  for (const key of headerKeys) {
+    const value = input.headers[key];
+    if (value !== undefined && value.trim().length > 0) ids.add(value.trim());
+  }
+  if (input.body !== null && typeof input.body === "object" && !Array.isArray(input.body)) {
+    const record = input.body as Record<string, unknown>;
+    const rawText = record["rawText"];
+    if (typeof rawText === "string") {
+      for (const match of rawText.matchAll(/Request ID:\s*([^<\n]+)/g)) {
+        ids.add(decodeHtmlEntities(match[1] ?? ""));
+      }
+    }
+  }
+  return [...ids].filter((id) => id.length > 0).sort();
+}
+
+function attemptTrace(input: {
+  attempt: number;
+  startedAt: string;
+  endedAt: string;
+  response: Response | null;
+  body: unknown;
+  transient: boolean;
+  errorMessage: string | null;
+}): LlmHttpAttemptTrace {
+  const headers = input.response === null ? {} : headersRecord(input.response.headers);
+  return {
+    attempt: input.attempt,
+    startedAt: input.startedAt,
+    endedAt: input.endedAt,
+    latencyMs: Math.max(0, Date.parse(input.endedAt) - Date.parse(input.startedAt)),
+    httpStatus: input.response?.status ?? null,
+    statusText: input.response?.statusText ?? null,
+    headers,
+    transient: input.transient,
+    errorMessage: input.errorMessage,
+    providerRequestIds: providerRequestIds({ body: input.body, headers }),
+    responseBodyShape: responseBodyShape(input.body),
+    usage: usageFromBody(input.body),
+  };
+}
+
+async function fetchWithOptionalTimeout(
+  fetcher: FetchLike,
+  input: string | URL | Request,
+  init: RequestInit,
+  timeoutMs: number | undefined,
+): Promise<Response> {
+  if (timeoutMs === undefined) {
+    return fetcher(input, init);
+  }
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetcher(input, { ...init, signal: controller.signal });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error(`LLM request timed out after ${timeoutMs}ms.`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
 
 /**
  * Reconstruct the legacy `{response, body}` contract from a pi-harness
@@ -125,7 +264,7 @@ export async function callDeepSeekToolCallViaPi(input: {
   toolName: string;
   messages: ToolCallMessage[];
   tools: Array<{ name: string; description: string; parameters: Record<string, unknown> }>;
-  fetcher: FetchLike;
+  fetcher?: FetchLike;
 }): Promise<OpenRouterCallResult> {
   const model = getDeepSeekCatalogModel(input.model) ?? deepSeekModel(input.model);
   const result = await completeToolCall(model, {
@@ -136,7 +275,10 @@ export async function callDeepSeekToolCallViaPi(input: {
     messages: input.messages,
     tools: input.tools,
     maxOutputTokens: input.maxTokens,
-    fetch: input.fetcher as unknown as typeof globalThis.fetch,
+    providerOptions: { thinking: { type: "disabled" } },
+    ...(input.fetcher === undefined
+      ? {}
+      : { fetch: input.fetcher as unknown as typeof globalThis.fetch }),
   });
   return synthesizeOpenRouterCallResult(result);
 }
@@ -155,7 +297,7 @@ export async function callOpenRouterToolCallViaPi(input: {
   toolName: string;
   messages: ToolCallMessage[];
   tools: Array<{ name: string; description: string; parameters: Record<string, unknown> }>;
-  fetcher: FetchLike;
+  fetcher?: FetchLike;
 }): Promise<OpenRouterCallResult> {
   const model = openRouterModel(input.model);
   const result = await completeToolCall(model, {
@@ -166,7 +308,35 @@ export async function callOpenRouterToolCallViaPi(input: {
     messages: input.messages,
     tools: input.tools,
     maxOutputTokens: input.maxTokens,
-    fetch: input.fetcher as unknown as typeof globalThis.fetch,
+    ...(input.fetcher === undefined
+      ? {}
+      : { fetch: input.fetcher as unknown as typeof globalThis.fetch }),
+  });
+  return synthesizeOpenRouterCallResult(result);
+}
+
+export async function callPioneerToolCallViaPi(input: {
+  apiKey: string;
+  model: string;
+  maxTokens: number;
+  toolName: string;
+  messages: ToolCallMessage[];
+  tools: Array<{ name: string; description: string; parameters: Record<string, unknown> }>;
+  fetcher?: FetchLike;
+}): Promise<OpenRouterCallResult> {
+  const model = pioneerModel(input.model);
+  const result = await completeToolCall(model, {
+    apiKey: input.apiKey,
+    timeoutMs: PI_CALL_TIMEOUT_MS,
+    maxAttempts: PI_TOOL_CALL_MAX_ATTEMPTS,
+    toolName: input.toolName,
+    messages: input.messages,
+    tools: input.tools,
+    maxOutputTokens: input.maxTokens,
+    headers: providerHeaders("pioneer", input.apiKey),
+    ...(input.fetcher === undefined
+      ? {}
+      : { fetch: input.fetcher as unknown as typeof globalThis.fetch }),
   });
   return synthesizeOpenRouterCallResult(result);
 }
@@ -196,10 +366,13 @@ export async function callPioneerToolCallDirect(input: {
   apiKey: string;
   model: string;
   maxTokens: number;
+  temperature?: number;
+  maxAttempts?: number;
   toolName: string;
   messages: ToolCallMessage[];
   tools: Array<{ name: string; description: string; parameters: Record<string, unknown> }>;
   fetcher: FetchLike;
+  timeoutMs?: number;
 }): Promise<OpenRouterCallResult> {
   return postPioneerChatCompletions({
     apiKey: input.apiKey,
@@ -219,9 +392,57 @@ export async function callPioneerToolCallDirect(input: {
         type: "function",
         function: { name: input.toolName },
       },
-      temperature: 0,
+      temperature: input.temperature ?? 0,
     },
     fetcher: input.fetcher,
+    ...(input.maxAttempts === undefined ? {} : { maxAttempts: input.maxAttempts }),
+    timeoutMs: input.timeoutMs ?? PI_CALL_TIMEOUT_MS,
+  });
+}
+
+function deepSeekChatCompletionsUrl(): string {
+  return `${(process.env["DEEPSEEK_BASE_URL"]?.trim() || "https://api.deepseek.com/v1").replace(
+    /\/+$/,
+    "",
+  )}/chat/completions`;
+}
+
+export async function callDeepSeekToolCallDirect(input: {
+  apiKey: string;
+  model: string;
+  maxTokens: number;
+  temperature?: number;
+  maxAttempts?: number;
+  toolName: string;
+  messages: ToolCallMessage[];
+  tools: Array<{ name: string; description: string; parameters: Record<string, unknown> }>;
+  fetcher: FetchLike;
+  timeoutMs?: number;
+}): Promise<OpenRouterCallResult> {
+  return postDeepSeekChatCompletions({
+    apiKey: input.apiKey,
+    body: {
+      model: input.model,
+      max_tokens: input.maxTokens,
+      messages: input.messages.map(toPioneerMessage),
+      tools: input.tools.map((tool) => ({
+        type: "function",
+        function: {
+          name: tool.name,
+          description: tool.description,
+          parameters: tool.parameters,
+        },
+      })),
+      tool_choice: {
+        type: "function",
+        function: { name: input.toolName },
+      },
+      temperature: input.temperature ?? 0,
+      thinking: { type: "disabled" },
+    },
+    fetcher: input.fetcher,
+    ...(input.maxAttempts === undefined ? {} : { maxAttempts: input.maxAttempts }),
+    timeoutMs: input.timeoutMs ?? PI_CALL_TIMEOUT_MS,
   });
 }
 
@@ -267,8 +488,10 @@ export async function postOpenRouterChatCompletions(input: {
   maxAttempts?: number;
 }): Promise<OpenRouterCallResult> {
   const maxAttempts = input.maxAttempts ?? DEFAULT_OPENROUTER_MAX_ATTEMPTS;
+  const attempts: LlmHttpAttemptTrace[] = [];
   let lastResult: OpenRouterCallResult | null = null;
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const startedAt = nowIso();
     const response = await input.fetcher("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -286,9 +509,22 @@ export async function postOpenRouterChatCompletions(input: {
     } catch {
       body = { rawText: text };
     }
-    const result = { response, body };
+    const bareResult = { response, body };
+    const transient = isTransientOpenRouterFailure(bareResult);
+    attempts.push(
+      attemptTrace({
+        attempt,
+        startedAt,
+        endedAt: nowIso(),
+        response,
+        body,
+        transient: transient && attempt < maxAttempts,
+        errorMessage: openRouterErrorMessage(body) ?? (response.ok ? null : response.statusText),
+      }),
+    );
+    const result = { ...bareResult, attempts: [...attempts] };
     lastResult = result;
-    if (attempt >= maxAttempts || !isTransientOpenRouterFailure(result)) {
+    if (attempt >= maxAttempts || !transient) {
       return result;
     }
     await sleepMs(500 * attempt);
@@ -304,19 +540,52 @@ export async function postPioneerChatCompletions(input: {
   body: Record<string, unknown>;
   fetcher: FetchLike;
   maxAttempts?: number;
+  timeoutMs?: number;
 }): Promise<OpenRouterCallResult> {
   const maxAttempts = input.maxAttempts ?? DEFAULT_OPENROUTER_MAX_ATTEMPTS;
+  const attempts: LlmHttpAttemptTrace[] = [];
   let lastResult: OpenRouterCallResult | null = null;
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    const response = await input.fetcher(pioneerChatCompletionsUrl(), {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${input.apiKey}`,
-        "X-API-Key": input.apiKey,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(input.body),
-    });
+    const startedAt = nowIso();
+    let response: Response;
+    try {
+      response = await fetchWithOptionalTimeout(
+        input.fetcher,
+        pioneerChatCompletionsUrl(),
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${input.apiKey}`,
+            "X-API-Key": input.apiKey,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(input.body),
+        },
+        input.timeoutMs,
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const bareResult = providerErrorResult(message);
+      const transient = isTransientOpenRouterFailure(bareResult);
+      attempts.push(
+        attemptTrace({
+          attempt,
+          startedAt,
+          endedAt: nowIso(),
+          response: null,
+          body: bareResult.body,
+          transient: transient && attempt < maxAttempts,
+          errorMessage: message,
+        }),
+      );
+      const result = { ...bareResult, attempts: [...attempts] };
+      lastResult = result;
+      if (attempt >= maxAttempts || !transient) {
+        return result;
+      }
+      await sleepMs(500 * attempt);
+      continue;
+    }
     const text = await response.text();
     let body: unknown;
     try {
@@ -324,15 +593,111 @@ export async function postPioneerChatCompletions(input: {
     } catch {
       body = { rawText: text };
     }
-    const result = { response, body };
+    const bareResult = { response, body };
+    const transient = isTransientOpenRouterFailure(bareResult);
+    attempts.push(
+      attemptTrace({
+        attempt,
+        startedAt,
+        endedAt: nowIso(),
+        response,
+        body,
+        transient: transient && attempt < maxAttempts,
+        errorMessage: openRouterErrorMessage(body) ?? (response.ok ? null : response.statusText),
+      }),
+    );
+    const result = { ...bareResult, attempts: [...attempts] };
     lastResult = result;
-    if (attempt >= maxAttempts || !isTransientOpenRouterFailure(result)) {
+    if (attempt >= maxAttempts || !transient) {
       return result;
     }
     await sleepMs(500 * attempt);
   }
   if (lastResult === null) {
     throw new Error("Pioneer request loop exited without a response.");
+  }
+  return lastResult;
+}
+
+export async function postDeepSeekChatCompletions(input: {
+  apiKey: string;
+  body: Record<string, unknown>;
+  fetcher: FetchLike;
+  maxAttempts?: number;
+  timeoutMs?: number;
+}): Promise<OpenRouterCallResult> {
+  const maxAttempts = input.maxAttempts ?? DEFAULT_OPENROUTER_MAX_ATTEMPTS;
+  const attempts: LlmHttpAttemptTrace[] = [];
+  let lastResult: OpenRouterCallResult | null = null;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const startedAt = nowIso();
+    let response: Response;
+    try {
+      response = await fetchWithOptionalTimeout(
+        input.fetcher,
+        deepSeekChatCompletionsUrl(),
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${input.apiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(input.body),
+        },
+        input.timeoutMs,
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const bareResult = providerErrorResult(message);
+      const transient = isTransientOpenRouterFailure(bareResult);
+      attempts.push(
+        attemptTrace({
+          attempt,
+          startedAt,
+          endedAt: nowIso(),
+          response: null,
+          body: bareResult.body,
+          transient: transient && attempt < maxAttempts,
+          errorMessage: message,
+        }),
+      );
+      const result = { ...bareResult, attempts: [...attempts] };
+      lastResult = result;
+      if (attempt >= maxAttempts || !transient) {
+        return result;
+      }
+      await sleepMs(500 * attempt);
+      continue;
+    }
+    const text = await response.text();
+    let body: unknown;
+    try {
+      body = JSON.parse(text);
+    } catch {
+      body = { rawText: text };
+    }
+    const bareResult = { response, body };
+    const transient = isTransientOpenRouterFailure(bareResult);
+    attempts.push(
+      attemptTrace({
+        attempt,
+        startedAt,
+        endedAt: nowIso(),
+        response,
+        body,
+        transient: transient && attempt < maxAttempts,
+        errorMessage: openRouterErrorMessage(body) ?? (response.ok ? null : response.statusText),
+      }),
+    );
+    const result = { ...bareResult, attempts: [...attempts] };
+    lastResult = result;
+    if (attempt >= maxAttempts || !transient) {
+      return result;
+    }
+    await sleepMs(500 * attempt);
+  }
+  if (lastResult === null) {
+    throw new Error("DeepSeek request loop exited without a response.");
   }
   return lastResult;
 }
