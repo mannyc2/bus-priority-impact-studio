@@ -36,6 +36,7 @@ data/ops/backfills/
 # Local databases and analysis outputs.
 *.sqlite
 *.sqlite3
+*.db
 *.duckdb
 *.parquet
 *.jsonl

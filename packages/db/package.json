@@ -30,7 +30,6 @@
   "dependencies": {
     "@bp/domain": "workspace:*",
     "drizzle-orm": "catalog:",
-    "drizzle-zod": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {

@@ -14,7 +14,8 @@
       "@bp/analytics/*": ["./packages/analytics/src/*/index.ts"],
       "@bp/applied-research": ["./packages/applied-research/src/index.ts"],
       "@bp/applied-research/*": ["./packages/applied-research/src/*/index.ts"],
-      "@bp/db": ["./packages/db/src/index.ts"]
+      "@bp/db": ["./packages/db/src/index.ts"],
+      "@bp/studio-api": ["./packages/studio-api/src/index.ts"]
     },
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
