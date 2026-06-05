@@ -6,10 +6,10 @@ import {
   type NormalizedStop,
   normalizeRouteShapeRows,
   normalizeStopRows,
-  type SocrataRow,
-} from "@bp/sources";
-import { fromRepoRoot } from "../../lib/paths.ts";
+} from "@bp/sources/adapters/mta/routes-stops";
+import type { SocrataRow } from "@bp/sources/clients/socrata";
 import { openLocalPipelineDb } from "../../lib/local-db.ts";
+import { fromRepoRoot } from "../../lib/paths.ts";
 import type {
   BBox,
   BusLanePath,
@@ -132,7 +132,9 @@ export function longNameEndpoints(routeLongName: string | null, fallback: string
   };
 }
 
-export function groupByRouteId<T extends { routeId: string }>(rows: readonly T[]): Map<string, T[]> {
+export function groupByRouteId<T extends { routeId: string }>(
+  rows: readonly T[],
+): Map<string, T[]> {
   const result = new Map<string, T[]>();
   for (const row of rows) {
     const group = result.get(row.routeId) ?? [];
@@ -872,6 +874,6 @@ export async function segmentLaneOverlapIndex(args: {
   return output;
 }
 
+export type { SocrataRow };
 // Re-exports used by other release helpers
 export { readdir, readFile };
-export type { SocrataRow };

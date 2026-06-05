@@ -119,16 +119,23 @@ describe("scheduled source refresh", () => {
       {
         ARTIFACTS: bucket as unknown as R2Bucket,
         LAST_BUILT_SPEED_MONTH: "2026-02",
+        SOCRATA_APP_TOKEN: "app-token",
       },
       {
         now: new Date("2026-05-17T12:00:00.000Z"),
         minSpeedRoutes: 2,
-        fetcher: async (input) => {
+        fetcher: async (input, init) => {
           const url = new URL(String(input));
           expect(url.hostname).toBe("data.ny.gov");
-          expect(url.pathname).toBe("/resource/kufs-yh3x.json");
-          expect(url.searchParams.get("$group")).toBe("year,month,route_id");
-          expect(url.searchParams.get("$limit")).toBe("50000");
+          expect(url.pathname).toBe("/api/v3/views/kufs-yh3x/query.json");
+          expect(init?.method).toBe("POST");
+          const headers = new Headers(init?.headers);
+          expect(headers.get("X-App-Token")).toBe("app-token");
+          expect(headers.get("Content-Type")).toBe("application/json");
+          const body = JSON.parse(String(init?.body));
+          expect(body.includeSynthetic).toBe(false);
+          expect(body.query).toContain("GROUP BY year,month,route_id");
+          expect(body.query).toContain("LIMIT 50000");
 
           return Response.json([
             {
@@ -179,6 +186,26 @@ describe("scheduled source refresh", () => {
       expect.objectContaining({
         status: "skipped",
         reason: "ARTIFACTS R2 binding is not configured.",
+        latestCompleteMonth: null,
+        lastBuiltMonth: "2026-03",
+        shouldRebuild: false,
+      }),
+    );
+  });
+
+  it("skips route-speed publication checks when the Socrata token is not configured", async () => {
+    const result = await runRouteSpeedMonthlyWatcher(
+      {
+        ARTIFACTS: new FakeR2Bucket() as unknown as R2Bucket,
+        LAST_BUILT_SPEED_MONTH: "2026-03",
+      },
+      { now: new Date("2026-05-17T12:00:00.000Z") },
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        status: "skipped",
+        reason: "SOCRATA_APP_TOKEN secret is not configured.",
         latestCompleteMonth: null,
         lastBuiltMonth: "2026-03",
         shouldRebuild: false,

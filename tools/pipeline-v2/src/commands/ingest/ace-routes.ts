@@ -1,14 +1,9 @@
 import { join } from "node:path";
-import { defineCommand, z } from "@liche/core";
 import { replaceAceRoutes } from "@bp/db/local";
-import {
-  getSocrataSource,
-  normalizeAceRouteRows,
-  parseSourceManifest,
-  type SocrataFetch,
-  type SocrataRow,
-  SocrataClient,
-} from "@bp/sources";
+import { normalizeAceRouteRows } from "@bp/sources/adapters/mta/ace";
+import { getSocrataSource } from "@bp/sources/registry";
+import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
+import { defineCommand, z } from "@liche/core";
 import {
   dbOptions,
   localDbFromCtx,
@@ -16,6 +11,7 @@ import {
   withLocalDb,
 } from "../../lib/local-db.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
+import { fetchSoda3RowsForSource, type SocrataFetch, type SocrataRow } from "../../lib/soda3.ts";
 import { writeRawSourceSnapshot } from "../../lib/source-snapshots.ts";
 
 const sourceId = "ace_routes";
@@ -42,14 +38,16 @@ export async function runAceRoutesIngest(
   const manifestText =
     inputs.manifestText ??
     (await Bun.file(fromRepoRoot("knowledge/raw/source_manifest.yaml")).text());
-  const source = getSocrataSource(parseSourceManifest(manifestText), sourceId);
+  const source = getSocrataSource(loadSourceManifestYaml(manifestText), sourceId);
   const fetchedAt = (inputs.fetchedAt ?? new Date()).toISOString();
   const rawPath =
     inputs.snapshotPath ?? fromRepoRoot(join("data/raw/interventions/ace-routes.json"));
 
-  const rawRows: SocrataRow[] = await SocrataClient.fromSource(source, {
-    fetcher: inputs.fetcher,
-  }).rows(query);
+  const rawRows: SocrataRow[] = [
+    ...(await fetchSoda3RowsForSource(source, query, {
+      fetcher: inputs.fetcher,
+    })),
+  ];
   const normalizedRows = normalizeAceRouteRows(rawRows);
 
   await replaceAceRoutes(inputs.local.db, normalizedRows);

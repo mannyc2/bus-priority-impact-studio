@@ -1,14 +1,12 @@
 import { join } from "node:path";
-import {
-  getSocrataSource,
-  parseSourceManifest,
-  type SocrataFetch,
-  type SocrataManifestSource,
-} from "@bp/sources";
+import { buildSoda3ExportUrl } from "@bp/sources/clients/socrata";
+import { getSocrataSource, type SocrataManifestSource } from "@bp/sources/registry";
+import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { defineCommand, z } from "@liche/core";
 import { downloadHttpFile } from "../../lib/http-file-download.ts";
 import { fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
 import { fetchWithSocrataAppToken } from "../../lib/socrata-token.ts";
+import type { SocrataFetch } from "../../lib/soda3.ts";
 
 export type SocrataCsvSnapshotProgressEvent =
   | {
@@ -73,9 +71,18 @@ async function downloadRowsCsv(input: {
   fetcher?: SocrataFetch | undefined;
   progress?: ((event: SocrataCsvSnapshotProgressEvent) => void) | undefined;
 }): Promise<{ downloaded: boolean; bytes: number }> {
+  const url = buildSoda3ExportUrl(input.source.domain, input.source.dataset_id, "csv").href;
   return downloadHttpFile({
-    url: input.source.rows_csv,
+    url,
     outputPath: input.outputPath,
+    requestInit: {
+      method: "POST",
+      headers: {
+        Accept: "text/csv",
+        "Content-Type": "application/json",
+      },
+      body: "{}",
+    },
     force: input.force,
     retryCount: input.retryCount,
     retryDelayMs: input.retryDelayMs,
@@ -125,7 +132,7 @@ export async function runSocrataCsvSnapshot(
   const manifestText =
     inputs.manifestText ??
     (await Bun.file(fromRepoRoot("knowledge/raw/source_manifest.yaml")).text());
-  const source = getSocrataSource(parseSourceManifest(manifestText), inputs.sourceId);
+  const source = getSocrataSource(loadSourceManifestYaml(manifestText), inputs.sourceId);
   const outputPath = inputs.outputPath ?? defaultOutputPath(source.id);
   const result = await downloadRowsCsv({
     source,

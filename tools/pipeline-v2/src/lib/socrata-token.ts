@@ -1,13 +1,17 @@
-import type { SocrataFetch } from "@bp/sources";
+import type { SocrataFetch } from "@bp/sources/clients/socrata";
 
 type SocrataHeadersInit = ConstructorParameters<typeof Headers>[0];
 
 export function socrataAppTokenFromEnv(): string | null {
-  const token = process.env["SOCRATA_APP_TOKEN"]?.trim();
+  const socrataAppTokenEnv = "SOCRATA_APP_TOKEN";
+  const token = process.env[socrataAppTokenEnv]?.trim();
   return token === undefined || token.length === 0 ? null : token;
 }
 
-function headersWithSocrataAppToken(headers: SocrataHeadersInit | undefined, token: string): Headers {
+function headersWithSocrataAppToken(
+  headers: SocrataHeadersInit | undefined,
+  token: string,
+): Headers {
   const nextHeaders = new Headers(headers);
   if (!nextHeaders.has("X-App-Token")) {
     nextHeaders.set("X-App-Token", token);

@@ -1,6 +1,6 @@
+import { canonicalBoroughCode, normalizeStreetName } from "@bp/sources/clients/geoclient";
 import { arg, defineCommand, z } from "@liche/core";
-import { canonicalBoroughCode, normalizeStreetName } from "@bp/sources/nyc-geoclient";
-import { createGeoclientFromEnv, Geocoder } from "../../lib/geocoder.ts";
+import { createGeoclientFromEnv, type GeocodeOutcome, Geocoder } from "../../lib/geocoder.ts";
 import {
   dbOptions,
   localDbFromCtx,
@@ -114,7 +114,7 @@ export async function runGeocodeParkingViolations(
     if (rows.length === 0) break;
     for (const row of rows) {
       scanned += row.row_count;
-      let outcome;
+      let outcome: GeocodeOutcome;
       if (inputs.streetOnly === true && row.street_name) {
         const street = normalizeStreetName(row.street_name);
         const borough = canonicalBoroughCode(row.violation_county);

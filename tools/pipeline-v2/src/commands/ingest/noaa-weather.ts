@@ -1,7 +1,7 @@
 import { join } from "node:path";
-import { defineCommand, z } from "@liche/core";
 import { upsertWeatherObservations } from "@bp/db/local";
-import { NOAA_NYC_STATIONS, parseGhcnDailyCsv } from "@bp/sources";
+import { NOAA_NYC_STATIONS, parseGhcnDailyCsv } from "@bp/sources/adapters/noaa/ghcn-daily";
+import { defineCommand, z } from "@liche/core";
 import {
   dbOptions,
   localDbFromCtx,

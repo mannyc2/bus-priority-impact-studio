@@ -14,9 +14,14 @@ sources:
     domain: data.ny.gov
     dataset_id: t4bz-xqa9
     url: https://data.ny.gov/Transportation/MTA-Bus-Schedules-2025/t4bz-xqa9
-    api_json: https://data.ny.gov/resource/t4bz-xqa9.json
-    columns_json: https://data.ny.gov/api/views/t4bz-xqa9/columns.json
-    rows_csv: https://data.ny.gov/api/views/t4bz-xqa9/rows.csv?accessType=DOWNLOAD
+    api: soda3
+    default_access:
+      kind: query
+      format: json
+    backfill:
+      kind: soda3_export
+      format: csv
+      supportsByteRange: false
     purpose: Test source.
     status: active
 `;

@@ -1,15 +1,8 @@
 import { type LocalRouteSegmentSpeed, replaceRouteSegmentSpeeds } from "@bp/db/local";
-import {
-  getSocrataSource,
-  normalizeSegmentSpeedRows,
-  parseSourceManifest,
-  SocrataClient,
-  type SocrataFetch,
-  type SocrataRow,
-  type SocrataRowsQuery,
-  soqlIn,
-  soqlYearMonthRange,
-} from "@bp/sources";
+import { normalizeSegmentSpeedRows } from "@bp/sources/adapters/mta/bus-speeds";
+import { soqlIn, soqlYearMonthRange } from "@bp/sources/clients/socrata/soql";
+import { getSocrataSource } from "@bp/sources/registry";
+import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { arg, defineCommand, z } from "@liche/core";
 import { isoMonth } from "../../lib/dates.ts";
 import {
@@ -19,6 +12,13 @@ import {
   withLocalDb,
 } from "../../lib/local-db.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
+import {
+  createSoda3SourceClient,
+  type PipelineSoda3Client,
+  type SocrataFetch,
+  type SocrataRow,
+  type Soda3SoqlQuery,
+} from "../../lib/soda3.ts";
 
 type SegmentSpeedSourceId = "bus_segment_speeds_2023_2024" | "bus_segment_speeds_2025";
 
@@ -81,10 +81,10 @@ function sortSegmentRows(left: LocalRouteSegmentSpeed, right: LocalRouteSegmentS
 }
 
 export function normalizeRouteSegmentSpeedRows(
-  rows: SocrataRow[],
+  rows: readonly SocrataRow[],
   expectedMonth: string,
 ): LocalRouteSegmentSpeed[] {
-  return normalizeSegmentSpeedRows(rows)
+  return normalizeSegmentSpeedRows([...rows])
     .filter((row) => row.isoMonth === expectedMonth)
     .map(({ schemaVersion: _schemaVersion, ...row }) => row)
     .sort(
@@ -93,7 +93,7 @@ export function normalizeRouteSegmentSpeedRows(
 }
 
 async function listSourceRoutes(input: {
-  client: SocrataClient;
+  client: PipelineSoda3Client;
   year: number;
   month: number;
 }): Promise<string[]> {
@@ -107,7 +107,7 @@ async function listSourceRoutes(input: {
 }
 
 async function fetchRouteSegmentSpeedRows(input: {
-  client: SocrataClient;
+  client: PipelineSoda3Client;
   year: number;
   monthNumber: number;
   isoMonth: string;
@@ -117,7 +117,7 @@ async function fetchRouteSegmentSpeedRows(input: {
   rawRowCount: number;
   normalizedRows: LocalRouteSegmentSpeed[];
 }> {
-  const query: SocrataRowsQuery = {
+  const query: Soda3SoqlQuery = {
     where: [
       soqlYearMonthRange(input.year, input.monthNumber, input.year, input.monthNumber),
       soqlIn("route_id", [input.routeId]),
@@ -140,9 +140,9 @@ export async function runRouteSegmentSpeedsIngest(
   const manifestText =
     inputs.manifestText ??
     (await Bun.file(fromRepoRoot("knowledge/raw/source_manifest.yaml")).text());
-  const manifest = parseSourceManifest(manifestText);
+  const manifest = loadSourceManifestYaml(manifestText);
   const source = getSocrataSource(manifest, sourceId);
-  const client = SocrataClient.fromSource(source, { fetcher: inputs.fetcher });
+  const client = createSoda3SourceClient(source, { fetcher: inputs.fetcher });
   const routeIds =
     inputs.routes.length > 0
       ? [...new Set(inputs.routes)].sort()

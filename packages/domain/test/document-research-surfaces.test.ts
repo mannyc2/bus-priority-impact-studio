@@ -34,6 +34,7 @@ const evidenceHandles: DocumentResearchEvidenceHandle[] = [
     lineStart: 12,
     lineEnd: 13,
     quoteText: "The M15 Select Bus Service route received new bus lane treatments.",
+    extractionMethod: "ocr_markdown",
   },
 ];
 
@@ -41,6 +42,7 @@ const routeLookup: DocumentResearchLookupResult = {
   lookupKind: "route",
   lookupHandle: "route-lookup-m15-sbs",
   rawText: "M15 SBS",
+  ambiguityNotes: [],
   candidates: [
     {
       routeId: "M15",
@@ -50,6 +52,7 @@ const routeLookup: DocumentResearchLookupResult = {
       routeFamily: "M15",
       serviceVariants: ["sbs"],
       resolutionTier: "catalog_alias",
+      requiresReview: false,
       score: 0.96,
     },
   ],
@@ -85,6 +88,8 @@ function baseDraft(overrides: Partial<DocumentResearchSurfaceDraftV2> = {}) {
         evidenceHandles: ["evidence-route-m15"],
       },
     ],
+    parentSurfaceIds: [],
+    priorHintUses: [],
     requestedUses: ["detector_evidence"],
     agentConfidence: "high",
     ...overrides,

@@ -1,20 +1,22 @@
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { defineCommand, z } from "@liche/core";
 import {
-  getSocrataSource,
   type NormalizedExpressBusCapacity,
   NormalizedExpressBusCapacitySchema,
-  parseSourceManifest,
-  SocrataClient,
-  type SocrataFetch,
-  type SocrataRow,
-  type SocrataRowsQuery,
-  soqlIn,
-} from "@bp/sources";
+} from "@bp/sources/adapters/mta/express-bus-capacity";
+import { soqlIn } from "@bp/sources/clients/socrata/soql";
+import { getSocrataSource, type SocrataManifestSource } from "@bp/sources/registry";
+import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
+import { defineCommand, z } from "@liche/core";
 import { isoMonth } from "../../lib/dates.ts";
 import { writeJson } from "../../lib/json.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
+import {
+  fetchSoda3RowsForSource,
+  type SocrataFetch,
+  type SocrataRow,
+  type Soda3SoqlQuery,
+} from "../../lib/soda3.ts";
 import { defaultExpressBusCapacityNormalizedPath } from "../ingest/express-bus-capacity.ts";
 
 const schemaVersion = 1;
@@ -402,7 +404,7 @@ function chunkArray<T>(values: readonly T[], size: number): T[][] {
 }
 
 async function fetchSpeedRows(input: {
-  source: Parameters<typeof SocrataClient.fromSource>[0];
+  source: SocrataManifestSource;
   routeIds: string[];
   months: string[];
   fetcher?: SocrataFetch;
@@ -419,7 +421,7 @@ async function fetchSpeedRows(input: {
     }
 
     for (const routeChunk of routeChunks) {
-      const query: SocrataRowsQuery = {
+      const query: Soda3SoqlQuery = {
         select:
           "route_id,year,month,direction,day_of_week,hour_of_day,count(*) as observation_count,sum(bus_trip_count) as bus_trip_count,avg(average_road_speed) as average_speed_mph",
         where: [
@@ -432,10 +434,10 @@ async function fetchSpeedRows(input: {
         order: "route_id,year,month,direction,day_of_week,hour_of_day",
       };
       rows.push(
-        ...(await SocrataClient.fromSource(input.source, {
+        ...(await fetchSoda3RowsForSource(input.source, query, {
           fetcher: input.fetcher,
           pageSize: 50_000,
-        }).rows(query)),
+        })),
       );
     }
   }
@@ -756,7 +758,7 @@ export async function buildExpressRouteAnalysis(
   const capacityRows = summarizeCapacityRows(capacityInputRows);
   const routeIds = [...new Set(capacityRows.map((row) => row.routeId))].sort();
   const months = [...new Set(capacityRows.map((row) => row.isoMonth))].sort();
-  const manifest = parseSourceManifest(await readManifest(args));
+  const manifest = loadSourceManifestYaml(await readManifest(args));
   const speedSource = getSocrataSource(manifest, "bus_segment_speeds_2023_2024");
   const rawSpeedRows =
     routeIds.length === 0

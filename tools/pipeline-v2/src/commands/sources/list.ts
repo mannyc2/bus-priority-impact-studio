@@ -1,5 +1,5 @@
+import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { defineCommand, z } from "@liche/core";
-import { parseSourceManifest } from "@bp/sources";
 import { fromRepoRoot } from "../../lib/paths.ts";
 
 export default defineCommand({
@@ -9,7 +9,7 @@ export default defineCommand({
   output: z.object({ sources: z.array(z.string()) }),
   async run() {
     const text = await Bun.file(fromRepoRoot("knowledge/raw/source_manifest.yaml")).text();
-    const manifest = parseSourceManifest(text);
+    const manifest = loadSourceManifestYaml(text);
     return { sources: manifest.sources.map((s) => s.id) };
   },
 });

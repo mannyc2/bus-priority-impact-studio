@@ -1,15 +1,8 @@
-import { arg, defineCommand, z } from "@liche/core";
 import { listRouteBuildPlan, replaceRouteMonthTrends } from "@bp/db/local";
-import {
-  getSocrataSource,
-  parseSourceManifest,
-  type SocrataFetch,
-  type SocrataRow,
-  type SocrataRowsQuery,
-  SocrataClient,
-  soqlIn,
-  soqlYearMonthRange,
-} from "@bp/sources";
+import { soqlIn, soqlYearMonthRange } from "@bp/sources/clients/socrata/soql";
+import { getSocrataSource } from "@bp/sources/registry";
+import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
+import { arg, defineCommand, z } from "@liche/core";
 import { isoMonth, isoMonthStart, monthRange, nextIsoMonthStart } from "../../lib/dates.ts";
 import {
   dbOptions,
@@ -18,6 +11,12 @@ import {
   withLocalDb,
 } from "../../lib/local-db.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
+import {
+  fetchSoda3RowsForSource,
+  type SocrataFetch,
+  type SocrataRow,
+  type Soda3SoqlQuery,
+} from "../../lib/soda3.ts";
 
 const schemaVersion = 1;
 
@@ -136,7 +135,11 @@ function sourceWindows<TSourceId extends RouteTrendSourceId>(
 }
 
 function expandSourceWindowsByMonth<TSourceId extends RouteTrendSourceId>(
-  windows: { sourceId: TSourceId; start: { year: number; month: number }; end: { year: number; month: number } }[],
+  windows: {
+    sourceId: TSourceId;
+    start: { year: number; month: number };
+    end: { year: number; month: number };
+  }[],
 ) {
   return windows.flatMap((w) =>
     monthRange(w.start.year, w.start.month, w.end.year, w.end.month).map((m) => ({
@@ -247,7 +250,10 @@ export async function runRouteTrendsIngest(
   if (inputs.routes.length > 0) {
     routeIds = [...new Set(inputs.routes)].sort();
   } else {
-    const plan = await listRouteBuildPlan(inputs.local.db, isoMonth(inputs.endYear, inputs.endMonth));
+    const plan = await listRouteBuildPlan(
+      inputs.local.db,
+      isoMonth(inputs.endYear, inputs.endMonth),
+    );
     routeIds = [...new Set(plan.map((r) => r.routeId))].sort();
   }
   if (routeIds.length === 0) {
@@ -257,7 +263,7 @@ export async function runRouteTrendsIngest(
   const manifestText =
     inputs.manifestText ??
     (await Bun.file(fromRepoRoot("knowledge/raw/source_manifest.yaml")).text());
-  const manifest = parseSourceManifest(manifestText);
+  const manifest = loadSourceManifestYaml(manifestText);
 
   const speedWindows = expandSourceWindowsByMonth(
     sourceWindows(start.isoMonth, end.isoMonth, [
@@ -268,7 +274,11 @@ export async function runRouteTrendsIngest(
   const ridershipWindows = inputs.includeRidership
     ? expandSourceWindowsByMonth(
         sourceWindows(start.isoMonth, end.isoMonth, [
-          { sourceId: "bus_hourly_ridership_2020_2024", startMonth: "2020-01", endMonth: "2024-12" },
+          {
+            sourceId: "bus_hourly_ridership_2020_2024",
+            startMonth: "2020-01",
+            endMonth: "2024-12",
+          },
           { sourceId: "bus_hourly_ridership_2025", startMonth: "2025-01", endMonth: null },
         ]),
       )
@@ -283,16 +293,14 @@ export async function runRouteTrendsIngest(
       soqlYearMonthRange(window.start.year, window.start.month, window.end.year, window.end.month),
     ];
     if (routeIds.length <= 50) whereParts.push(soqlIn("route_id", routeIds));
-    const query: SocrataRowsQuery = {
+    const query: Soda3SoqlQuery = {
       select:
         "route_id,year,month,count(*) as observation_count,sum(bus_trip_count) as bus_trip_count,avg(average_road_speed) as average_speed_mph",
       where: whereParts.join(" AND "),
       group: "route_id,year,month",
       order: "route_id,year,month",
     };
-    speedRows.push(
-      ...(await SocrataClient.fromSource(source, { fetcher: inputs.fetcher }).rows(query)),
-    );
+    speedRows.push(...(await fetchSoda3RowsForSource(source, query, { fetcher: inputs.fetcher })));
   }
 
   const ridershipFetches = ridershipWindows.flatMap((window) =>
@@ -300,7 +308,7 @@ export async function runRouteTrendsIngest(
   );
   const ridershipRowBatches = await mapWithConcurrency(ridershipFetches, 4, async (f) => {
     const source = getSocrataSource(manifest, f.window.sourceId);
-    const query: SocrataRowsQuery = {
+    const query: Soda3SoqlQuery = {
       select:
         "bus_route,date_extract_y(transit_timestamp) as year,date_extract_m(transit_timestamp) as month,sum(ridership) as ridership,sum(transfers) as transfers",
       where: [
@@ -311,7 +319,7 @@ export async function runRouteTrendsIngest(
       group: "bus_route,date_extract_y(transit_timestamp),date_extract_m(transit_timestamp)",
       order: "bus_route,year,month",
     };
-    return SocrataClient.fromSource(source, { fetcher: inputs.fetcher }).rows(query);
+    return fetchSoda3RowsForSource(source, query, { fetcher: inputs.fetcher });
   });
   const ridershipRows: SocrataRow[] = ridershipRowBatches.flat();
 
@@ -345,7 +353,8 @@ export async function runRouteTrendsIngest(
     rowCount: rows.length,
     speedRowCount: rows.filter((r) => r.trendCoverage.speed).length,
     ridershipRowCount: rows.filter((r) => r.trendCoverage.ridership).length,
-    completeTrendRowCount: rows.filter((r) => r.trendCoverage.speed && r.trendCoverage.ridership).length,
+    completeTrendRowCount: rows.filter((r) => r.trendCoverage.speed && r.trendCoverage.ridership)
+      .length,
   };
 }
 

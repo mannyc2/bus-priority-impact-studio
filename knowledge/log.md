@@ -2,6 +2,37 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-05] engineering | Sources adapter cutover gates closed
+
+Closed the remaining sources-adapter cutover gates after the Phase 1 hard export/import migration.
+`@bp/sources/probes` is split into contracts, HTTP metadata transport, Socrata, realtime, redaction,
+and orchestration modules; GTFS Realtime decoding now hides `gtfs-realtime-bindings` behind a
+private vendor wrapper and injectable decoder; and the SODA3 client has explicit fixture coverage
+for JSON/CSV/GeoJSON exports, app-token headers, range headers, retry, paging, metadata, columns,
+and row counts. Added `sources soda3-range-probe`, a dry-run-by-default pipeline command with
+`--execute` gated on `SOCRATA_APP_TOKEN`, so provider byte-range behavior can be recorded before
+resumable archival backfills rely on it. The full source manifest now parses through the v2 CLI
+while still rejecting old `api_json`/`rows_csv` fields. Verification passed for repo-wide
+`check:types`, `@bp/sources` tests/typecheck, `@bp/pipeline-v2` and `@bp/studio-api` typechecks,
+Studio source-refresh tests, production-boundary tests, the migrated Socrata pipeline slice, the
+new range-probe fixture tests, and targeted Biome over touched TypeScript files. Full
+`check:style` still has unrelated pre-existing app accessibility/format diagnostics outside this
+cutover.
+
+## [2026-06-05] engineering | Sources adapter SODA3-only phase 1 implemented
+
+Implemented the Phase 1 hard cutover from the sources adapter plan. `@bp/sources` no longer has a
+root export or broad family exports; Socrata support is SODA3-only through
+`/api/v3/views/<dataset_id>/query.json` and `/export.<format>` helpers; the source manifest now
+declares `api: soda3`, `default_access`, and SODA3 export backfill metadata instead of SODA2 row
+URLs; and `tools/pipeline-v2` callers use focused sources subpaths plus the shared pipeline SODA3
+client/token wrapper. The Studio route-speed watcher now uses the SODA3 query endpoint with
+`SOCRATA_APP_TOKEN` gating rather than a direct `/resource/...` read. Verification passed for
+`@bp/sources` tests/typecheck, the source-refresh Worker-facing tests, the production-boundary
+harness, targeted Biome over cutover files, and the migrated pipeline Socrata command slice. The
+full repo typecheck is still blocked by unrelated document-research fixture and
+`normalize-agentic-payloads.ts` errors.
+
 ## [2026-06-05] engineering | Sources adapter SODA3-only cutover decision recorded
 
 Added [[wiki/engineering/sources_adapter_cutover_plan|Sources Adapter Cutover Plan]] as the Phase 1

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { canonicalBoroughCode, canonicalBoroughName } from "../src/nyc-geoclient/index.js";
+import { canonicalBoroughCode, canonicalBoroughName } from "@bp/sources/clients/geoclient";
 
 describe("NYC Geoclient normalization", () => {
   test("normalizes NYC county and borough abbreviations used by source rows", () => {

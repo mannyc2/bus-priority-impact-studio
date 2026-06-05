@@ -1,7 +1,6 @@
 import { Database } from "bun:sqlite";
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { basename, dirname, join, resolve } from "node:path";
-import { defineCommand, z } from "@liche/core";
 import {
   listRouteArtifacts,
   listRouteBriefSummaries,
@@ -31,19 +30,31 @@ import {
   type StudioReleasePayload,
   StudioReleasePayloadSchema,
 } from "@bp/domain";
-import {
-  normalizeHourlyRidershipRows,
-  normalizeScheduleTimepointRows,
-  normalizeSegmentSpeedRows,
-} from "@bp/sources";
+import { normalizeHourlyRidershipRows } from "@bp/sources/adapters/mta/bus-ridership";
+import { normalizeSegmentSpeedRows } from "@bp/sources/adapters/mta/bus-speeds";
+import { normalizeScheduleTimepointRows } from "@bp/sources/adapters/mta/schedules";
+import type { SocrataRow } from "@bp/sources/clients/socrata";
+import { defineCommand, z } from "@liche/core";
+import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.ts";
+import { fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
 import { buildSourceCoverageLedger } from "../audit/source-coverage.ts";
 import { buildRouteBriefSegmentUniverse } from "../route/brief-model.ts";
 import {
-  defaultLocalPipelineDbPath,
-  openLocalPipelineDb,
-} from "../../lib/local-db.ts";
-import { fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
+  assertGeneratedBriefReferenceIntegrity,
+  buildBrief,
+  docsSections,
+  docsSourceFromGeneratedReleaseSource,
+  docsSourceFromLedgerEntry,
+  methodDatasetsFromDocsSources,
+} from "./_release-briefs.ts";
 import {
+  addFindingContextAppendix,
+  buildReviewedFinding,
+  readDetectorFindingsFromReviewQueue,
+  readPromotedFindingsFromArtifact,
+} from "./_release-findings.ts";
+import {
+  assertRouteGeometryCoverage,
   readJsonIfExists,
   routeGeometryIndex,
   segmentLaneOverlapIndex,
@@ -51,12 +62,10 @@ import {
   unknownTspEvidence,
 } from "./_release-geometry.ts";
 import {
-  buildSegmentAnalystNote,
-  buildRouteSegmentEvidence,
-  buildSegments,
-  enhanceSegmentAiNotesWithLlm,
-  withSparsePublicSegmentNotes,
-} from "./_release-segments.ts";
+  buildRouteInterventions,
+  manualInterventionIndex,
+  tier2DocumentChunkIndex,
+} from "./_release-interventions.ts";
 import {
   buildRoute,
   buildRouteArtifactRef,
@@ -67,25 +76,12 @@ import {
   speedPercentilesForSummaries,
 } from "./_release-routes.ts";
 import {
-  buildRouteInterventions,
-  manualInterventionIndex,
-  tier2DocumentChunkIndex,
-} from "./_release-interventions.ts";
-import {
-  addFindingContextAppendix,
-  buildReviewedFinding,
-  readDetectorFindingsFromReviewQueue,
-  readPromotedFindingsFromArtifact,
-} from "./_release-findings.ts";
-import {
-  assertGeneratedBriefReferenceIntegrity,
-  buildBrief,
-  docsSections,
-  docsSourceFromGeneratedReleaseSource,
-  docsSourceFromLedgerEntry,
-  methodDatasetsFromDocsSources,
-} from "./_release-briefs.ts";
-import { assertRouteGeometryCoverage } from "./_release-geometry.ts";
+  buildRouteSegmentEvidence,
+  buildSegmentAnalystNote,
+  buildSegments,
+  enhanceSegmentAiNotesWithLlm,
+  withSparsePublicSegmentNotes,
+} from "./_release-segments.ts";
 import type {
   CliOptions,
   FindingContextAppendixArtifact,
@@ -98,7 +94,6 @@ import type {
   StudioSegment,
   Tier2ManualInterventionCandidatesArtifact,
 } from "./_release-types.ts";
-import type { SocrataRow } from "@bp/sources";
 
 const defaultMonth = "2026-03";
 const defaultOutputPath = "data/artifacts/studio/v1/release.json";
@@ -435,10 +430,7 @@ async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> 
       ),
     );
     const publicNoteSegments = withSparsePublicSegmentNotes(deterministicSegments, options.month);
-    const segments = await enhanceSegmentAiNotesWithLlm(
-      publicNoteSegments,
-      options.segmentNoteLlm,
-    );
+    const segments = await enhanceSegmentAiNotesWithLlm(publicNoteSegments, options.segmentNoteLlm);
     const routeSegmentEvidence = routes.flatMap((route) =>
       (routeInputsByRoute.get(route.routeId) ?? [routeInputs.get(route.routeId) ?? null]).flatMap(
         (input) =>
@@ -591,10 +583,7 @@ function analystNotesOutputPath(outputDir: string): string {
   return resolve(outputDir, "..", "internal", basename(outputDir), "segment-analyst-notes.json");
 }
 
-async function writeProjections(
-  outputPath: string,
-  release: StudioReleasePayload,
-): Promise<void> {
+async function writeProjections(outputPath: string, release: StudioReleasePayload): Promise<void> {
   const outputDir = dirname(resolve(outputPath));
 
   await rm(outputDir, { recursive: true, force: true });
@@ -726,9 +715,7 @@ export async function runStudioRelease(
 
   const outputPath = fromRepoRoot(options.outputPath);
   const release = await buildRelease(options);
-  const publicNoteCount = release.segments.filter(
-    (segment) => segment.aiNote !== undefined,
-  ).length;
+  const publicNoteCount = release.segments.filter((segment) => segment.aiNote !== undefined).length;
 
   await writeProjections(outputPath, release);
 
@@ -823,6 +810,7 @@ export default defineCommand({
   }),
   async run({ input }) {
     const env = process.env as {
+      OPENROUTER_API_KEY?: string;
       STUDIO_SEGMENT_NOTE_MODEL?: string;
       STUDIO_LLM_MODEL?: string;
     };
@@ -840,8 +828,7 @@ export default defineCommand({
       defaultSegmentNoteModel;
     return runStudioRelease({
       month: input.options.month,
-      outputPath:
-        input.options.output === undefined ? undefined : input.options.output,
+      outputPath: input.options.output === undefined ? undefined : input.options.output,
       schemaPath: input.options.schema === undefined ? undefined : input.options.schema,
       seedPath: input.options.seed === undefined ? undefined : input.options.seed,
       routeLimit: input.options.limit,
@@ -867,7 +854,7 @@ export default defineCommand({
         maxTokens: input.options.segmentNoteMaxTokens ?? 900,
         timeoutMs: input.options.segmentNoteTimeoutMs ?? defaultSegmentNoteLlmTimeoutMs,
         maxAttempts: input.options.segmentNoteAttempts ?? defaultSegmentNoteLlmAttempts,
-        apiKey: process.env["OPENROUTER_API_KEY"],
+        apiKey: env.OPENROUTER_API_KEY,
         fetcher: fetch,
       },
     });

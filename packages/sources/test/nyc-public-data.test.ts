@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { normalizeLionSegmentRows, normalizeParkingViolationRows } from "../src/index.js";
+import { normalizeLionSegmentRows } from "@bp/sources/adapters/nyc-open-data/lion-centerline";
+import { normalizeParkingViolationRows } from "@bp/sources/adapters/nyc-open-data/parking-violations";
 
 describe("NYC public data normalization", () => {
   test("keeps parking street codes and intersecting street fields", () => {

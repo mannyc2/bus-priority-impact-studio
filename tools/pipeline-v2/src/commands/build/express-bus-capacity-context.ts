@@ -1,10 +1,10 @@
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { defineCommand, z } from "@liche/core";
 import {
   type NormalizedExpressBusCapacity,
   NormalizedExpressBusCapacitySchema,
-} from "@bp/sources";
+} from "@bp/sources/adapters/mta/express-bus-capacity";
+import { defineCommand, z } from "@liche/core";
 import { writeJson } from "../../lib/json.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
 import { defaultExpressBusCapacityNormalizedPath } from "../ingest/express-bus-capacity.ts";
@@ -142,8 +142,7 @@ export async function buildExpressBusCapacityContext(
 
 export default defineCommand({
   path: ["build", "express-bus-capacity-context"],
-  summary:
-    "Aggregate the normalized Express Bus Capacity rows into a route/hour summary artifact.",
+  summary: "Aggregate the normalized Express Bus Capacity rows into a route/hour summary artifact.",
   input: {
     options: z.object({
       input: z.string().optional().describe("Path to normalized rows artifact"),

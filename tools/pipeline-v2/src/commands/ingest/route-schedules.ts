@@ -1,16 +1,17 @@
 import type { Database } from "bun:sqlite";
 import { Database as BunDatabase } from "bun:sqlite";
-import {
-  getSocrataSource,
-  parseSourceManifest,
-  SocrataClient,
-  type SocrataFetch,
-  type SocrataRowsQuery,
-  soqlIn,
-} from "@bp/sources";
+import { soqlIn } from "@bp/sources/clients/socrata/soql";
+import { getSocrataSource } from "@bp/sources/registry";
+import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { arg, defineCommand, z } from "@liche/core";
 import { dbOptions, defaultLocalPipelineDbPath } from "../../lib/local-db.ts";
 import { fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
+import {
+  createSoda3SourceClient,
+  type PipelineSoda3Client,
+  type SocrataFetch,
+  type Soda3SoqlQuery,
+} from "../../lib/soda3.ts";
 
 export type BusScheduleSourceId =
   | "bus_schedules_2023"
@@ -265,7 +266,7 @@ export function deleteRouteRows(sqlite: Database, sourceYear: number, routeId: s
 }
 
 async function listSourceRoutes(input: {
-  client: SocrataClient;
+  client: PipelineSoda3Client;
   sourceYear: number;
 }): Promise<string[]> {
   const rows = (await input.client.rows({
@@ -281,7 +282,7 @@ async function listSourceRoutes(input: {
 }
 
 async function fetchAndWriteRouteScheduleRows(input: {
-  client: SocrataClient;
+  client: PipelineSoda3Client;
   sqlite: Database;
   sourceYear: number;
   routeId: string;
@@ -317,7 +318,7 @@ async function fetchAndWriteRouteScheduleRows(input: {
     return { fetchedRowCount: 0, writtenRowCount: 0 };
   }
 
-  const baseQuery: SocrataRowsQuery = {
+  const baseQuery: Soda3SoqlQuery = {
     select:
       "schedule_date,day_type,direction,shape_id,route_id,stop_sequence,stop_id,stop_name,schedule_time,distance_from_start,trip_headsign,block_id,bundle,timepoint,revenue_stop,origin,destination",
     where,
@@ -452,9 +453,9 @@ export async function runRouteSchedulesIngest(
   const manifestText =
     inputs.manifestText ??
     (await Bun.file(fromRepoRoot("knowledge/raw/source_manifest.yaml")).text());
-  const source = getSocrataSource(parseSourceManifest(manifestText), sourceId);
+  const source = getSocrataSource(loadSourceManifestYaml(manifestText), sourceId);
   const pageSize = inputs.pageSize ?? DEFAULT_ROUTE_PAGE_SIZE;
-  const client = SocrataClient.fromSource(source, {
+  const client = createSoda3SourceClient(source, {
     fetcher: inputs.fetcher,
     pageSize,
     retryCount: inputs.fetchRetryCount ?? DEFAULT_FETCH_RETRY_COUNT,

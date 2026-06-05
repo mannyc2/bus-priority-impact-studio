@@ -13,9 +13,14 @@ sources:
     domain: data.ny.gov
     dataset_id: h2wf-afav
     url: https://data.ny.gov/Transportation/MTA-Current-Bus-Routes/h2wf-afav
-    api_json: https://data.ny.gov/resource/h2wf-afav.json
-    columns_json: https://data.ny.gov/api/views/h2wf-afav/columns.json
-    rows_csv: https://data.ny.gov/api/views/h2wf-afav/rows.csv?accessType=DOWNLOAD
+    api: soda3
+    default_access:
+      kind: query
+      format: json
+    backfill:
+      kind: soda3_export
+      format: csv
+      supportsByteRange: false
     purpose: Test source.
     status: active
 `;
@@ -34,8 +39,9 @@ afterEach(async () => {
 
 describe("runSocrataCsvSnapshot", () => {
   test("sends a Socrata app token when available", async () => {
-    const originalToken = process.env["SOCRATA_APP_TOKEN"];
-    process.env["SOCRATA_APP_TOKEN"] = "test-app-token";
+    const socrataAppTokenEnv = "SOCRATA_APP_TOKEN";
+    const originalToken = process.env[socrataAppTokenEnv];
+    process.env[socrataAppTokenEnv] = "test-app-token";
     try {
       const tempDir = await makeTempDir();
       const outputPath = join(tempDir, "rows.csv");
@@ -55,9 +61,9 @@ describe("runSocrataCsvSnapshot", () => {
       expect(String(observedToken)).toBe("test-app-token");
     } finally {
       if (originalToken === undefined) {
-        delete process.env["SOCRATA_APP_TOKEN"];
+        delete process.env[socrataAppTokenEnv];
       } else {
-        process.env["SOCRATA_APP_TOKEN"] = originalToken;
+        process.env[socrataAppTokenEnv] = originalToken;
       }
     }
   });

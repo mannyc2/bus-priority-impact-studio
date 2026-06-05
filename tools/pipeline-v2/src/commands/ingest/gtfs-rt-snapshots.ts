@@ -1,10 +1,10 @@
-import { defineCommand, z } from "@liche/core";
 import {
   type GtfsRtFeedType,
   listGtfsRtFeedSnapshots,
   replaceGtfsRtParsedSnapshot,
 } from "@bp/db/local";
-import { parseGtfsRtFeed } from "@bp/sources";
+import { parseGtfsRealtimeFeed } from "@bp/sources/gtfs-realtime";
+import { defineCommand, z } from "@liche/core";
 import {
   dbOptions,
   localDbFromCtx,
@@ -66,7 +66,7 @@ export async function runIngestGtfsRtSnapshots(
     }
     try {
       const bytes = new Uint8Array(await Bun.file(snapshot.rawPath).arrayBuffer());
-      const feed = parseGtfsRtFeed(bytes);
+      const feed = parseGtfsRealtimeFeed(bytes);
       const feedType = snapshot.feedType as GtfsRtFeedType;
       await replaceGtfsRtParsedSnapshot(inputs.local.db, {
         parsedSnapshot: {

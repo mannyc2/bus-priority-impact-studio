@@ -1,13 +1,7 @@
-import { arg, defineCommand, z } from "@liche/core";
 import { replaceRouteMonthCoverage } from "@bp/db/local";
-import {
-  getSocrataSource,
-  parseSourceManifest,
-  type SocrataFetch,
-  type SocrataRow,
-  type SocrataRowsQuery,
-  SocrataClient,
-} from "@bp/sources";
+import { getSocrataSource } from "@bp/sources/registry";
+import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
+import { arg, defineCommand, z } from "@liche/core";
 import { isoMonth } from "../../lib/dates.ts";
 import {
   dbOptions,
@@ -16,6 +10,12 @@ import {
   withLocalDb,
 } from "../../lib/local-db.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
+import {
+  fetchSoda3RowsForSource,
+  type SocrataFetch,
+  type SocrataRow,
+  type Soda3SoqlQuery,
+} from "../../lib/soda3.ts";
 
 const schemaVersion = 1;
 
@@ -63,7 +63,10 @@ export type RouteCoverageIngestResult = {
   dbPath: string;
 };
 
-function normalizeSpeedCoverage(rows: SocrataRow[], month: string): Map<string, CoverageEntry> {
+function normalizeSpeedCoverage(
+  rows: readonly SocrataRow[],
+  month: string,
+): Map<string, CoverageEntry> {
   const entries = new Map<string, CoverageEntry>();
   for (const row of rows) {
     const parsed = RawSpeedCoverageRowSchema.parse(row);
@@ -85,7 +88,7 @@ function normalizeSpeedCoverage(rows: SocrataRow[], month: string): Map<string, 
 
 function addScheduleCoverage(
   entries: Map<string, CoverageEntry>,
-  rows: SocrataRow[],
+  rows: readonly SocrataRow[],
   month: string,
 ): void {
   for (const row of rows) {
@@ -117,25 +120,25 @@ export async function runRouteCoverageIngest(
   const manifestText =
     inputs.manifestText ??
     (await Bun.file(fromRepoRoot("knowledge/raw/source_manifest.yaml")).text());
-  const manifest = parseSourceManifest(manifestText);
+  const manifest = loadSourceManifestYaml(manifestText);
   const speedSource = getSocrataSource(manifest, "bus_segment_speeds_2025");
   const scheduleSource = getSocrataSource(manifest, "bus_schedules_2026");
-  const speedQuery: SocrataRowsQuery = {
+  const speedQuery: Soda3SoqlQuery = {
     select:
       "route_id,count(*) as observation_count,sum(bus_trip_count) as bus_trip_count,avg(average_road_speed) as average_speed_mph",
     where: `year=${inputs.year} AND month=${inputs.month}`,
     group: "route_id",
     order: "route_id",
   };
-  const scheduleQuery: SocrataRowsQuery = {
+  const scheduleQuery: Soda3SoqlQuery = {
     select: "route_id,count(*) as timepoint_count",
     where: "timepoint='1' AND route_id IS NOT NULL",
     group: "route_id",
     order: "route_id",
   };
   const [speedRows, scheduleRows] = await Promise.all([
-    SocrataClient.fromSource(speedSource, { fetcher: inputs.fetcher }).rows(speedQuery),
-    SocrataClient.fromSource(scheduleSource, { fetcher: inputs.fetcher }).rows(scheduleQuery),
+    fetchSoda3RowsForSource(speedSource, speedQuery, { fetcher: inputs.fetcher }),
+    fetchSoda3RowsForSource(scheduleSource, scheduleQuery, { fetcher: inputs.fetcher }),
   ]);
   const entries = normalizeSpeedCoverage(speedRows, monthKey);
   addScheduleCoverage(entries, scheduleRows, monthKey);

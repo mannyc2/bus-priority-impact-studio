@@ -4,6 +4,6 @@ export {
   isSocrataManifestSource,
   listSocrataSources,
   ManifestSourceSchema,
-  parseSourceManifest,
+  parseSourceManifestObject,
   SourceManifestSchema,
 } from "./manifest.js";

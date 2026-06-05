@@ -1,20 +1,19 @@
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { RouteIdCodec } from "@bp/domain";
+import { getSocrataSource, type SocrataManifestSource } from "@bp/sources/registry";
+import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { arg, defineCommand, z } from "@liche/core";
 import * as zodLib from "zod";
-import { RouteIdCodec } from "@bp/domain";
-import {
-  getSocrataSource,
-  parseSourceManifest,
-  type SocrataFetch,
-  type SocrataManifestSource,
-  type SocrataRow,
-  type SocrataRowsQuery,
-  SocrataClient,
-} from "@bp/sources";
 import { isoMonth } from "../../lib/dates.ts";
 import { writeJson } from "../../lib/json.ts";
 import { defaultArtifactRootPath, fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
+import {
+  fetchSoda3RowsForSource,
+  type SocrataFetch,
+  type SocrataRow,
+  type Soda3SoqlQuery,
+} from "../../lib/soda3.ts";
 
 export const RouteSpeedAvailabilitySourceId = "bus_segment_speeds_2025" as const;
 export type RouteSpeedAvailabilitySourceId = typeof RouteSpeedAvailabilitySourceId;
@@ -63,7 +62,7 @@ const RawRowSchema = z
   .passthrough();
 
 function summarizeSpeedMonths(
-  rows: SocrataRow[],
+  rows: readonly SocrataRow[],
   minSpeedRoutes: number,
 ): RouteSpeedAvailabilityMonth[] {
   const monthRows = new Map<
@@ -98,8 +97,7 @@ function summarizeSpeedMonths(
         routeCount,
         rowCount: value.rowCount,
         busTripCount: value.busTripCount,
-        status:
-          routeCount >= minSpeedRoutes ? "complete" : "insufficient_speed_routes",
+        status: routeCount >= minSpeedRoutes ? "complete" : "insufficient_speed_routes",
       } satisfies RouteSpeedAvailabilityMonth;
     })
     .sort((left, right) => right.isoMonth.localeCompare(left.isoMonth));
@@ -232,21 +230,21 @@ export async function runRouteSpeedAvailability(
   const source =
     opts.source ??
     getSocrataSource(
-      parseSourceManifest(
+      loadSourceManifestYaml(
         opts.manifestText ??
           (await Bun.file(fromRepoRoot("knowledge/raw/source_manifest.yaml")).text()),
       ),
       RouteSpeedAvailabilitySourceId,
     );
 
-  const query: SocrataRowsQuery = {
+  const query: Soda3SoqlQuery = {
     select: "year,month,route_id,count(*) as row_count,sum(bus_trip_count) as bus_trip_count",
     where: `year between ${startYear} and ${endYear}`,
     group: "year,month,route_id",
     order: "year DESC,month DESC,route_id",
   };
 
-  const rows = await SocrataClient.fromSource(source, { fetcher: opts.fetcher }).rows(query);
+  const rows = await fetchSoda3RowsForSource(source, query, { fetcher: opts.fetcher });
   const months = summarizeSpeedMonths(rows, minSpeedRoutes);
   const latestSpeedMonth = months.find((m) => m.status === "complete") ?? null;
   const requestedMonth =
@@ -283,15 +281,33 @@ export default defineCommand({
   summary: "Check Socrata bus segment speeds for a complete route-speed month.",
   input: {
     options: z.object({
-      startYear: arg.positiveInt().optional().describe("Start of year range (defaults to last year)"),
-      endYear: arg.positiveInt().optional().describe("End of year range (defaults to current year)"),
+      startYear: arg
+        .positiveInt()
+        .optional()
+        .describe("Start of year range (defaults to last year)"),
+      endYear: arg
+        .positiveInt()
+        .optional()
+        .describe("End of year range (defaults to current year)"),
       year: arg.positiveInt().optional().describe("Requested calendar year (with --month)"),
       month: arg.positiveInt().optional().describe("Requested calendar month, 1-12 (with --year)"),
-      lastBuiltYear: arg.positiveInt().optional().describe("Last built calendar year (with --last-built-month)"),
-      lastBuiltMonth: arg.positiveInt().optional().describe("Last built calendar month, 1-12 (with --last-built-year)"),
-      minSpeedRoutes: arg.positiveInt().default(1).describe("Minimum distinct route count for a 'complete' month"),
+      lastBuiltYear: arg
+        .positiveInt()
+        .optional()
+        .describe("Last built calendar year (with --last-built-month)"),
+      lastBuiltMonth: arg
+        .positiveInt()
+        .optional()
+        .describe("Last built calendar month, 1-12 (with --last-built-year)"),
+      minSpeedRoutes: arg
+        .positiveInt()
+        .default(1)
+        .describe("Minimum distinct route count for a 'complete' month"),
       output: z.string().optional().describe("Override path for the artifact JSON"),
-      artifactRoot: z.string().optional().describe("Artifact root directory (defaults to data/artifacts/)"),
+      artifactRoot: z
+        .string()
+        .optional()
+        .describe("Artifact root directory (defaults to data/artifacts/)"),
     }),
   },
   output: z.object({
@@ -322,8 +338,11 @@ export default defineCommand({
       lastBuiltMonth: input.options.lastBuiltMonth,
       minSpeedRoutes: input.options.minSpeedRoutes,
       artifactRoot:
-        input.options.artifactRoot === undefined ? undefined : fromCliPath(input.options.artifactRoot),
-      outputPath: input.options.output === undefined ? undefined : fromCliPath(input.options.output),
+        input.options.artifactRoot === undefined
+          ? undefined
+          : fromCliPath(input.options.artifactRoot),
+      outputPath:
+        input.options.output === undefined ? undefined : fromCliPath(input.options.output),
     });
   },
 });

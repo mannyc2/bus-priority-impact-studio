@@ -1,14 +1,15 @@
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import type { SocrataFetch } from "@bp/sources/clients/socrata";
+import type { SocrataManifestSource } from "@bp/sources/registry";
 import { arg, defineCommand, z } from "@liche/core";
-import type { SocrataFetch, SocrataManifestSource } from "@bp/sources";
-import {
-  runRouteSpeedAvailability,
-  type RouteSpeedAvailabilityResult,
-} from "../check/route-speed-availability.ts";
 import { isoMonth } from "../../lib/dates.ts";
 import { writeJson } from "../../lib/json.ts";
 import { defaultArtifactRootPath, fromCliPath } from "../../lib/paths.ts";
+import {
+  type RouteSpeedAvailabilityResult,
+  runRouteSpeedAvailability,
+} from "../check/route-speed-availability.ts";
 
 export type SourceRefreshPlanJob = {
   id: "gtfs_rt_collector" | "route_speed_monthly_watcher";
@@ -145,9 +146,7 @@ export async function runSourceRefreshPlan(
   });
 
   const requestedMonth =
-    opts.year !== undefined && opts.month !== undefined
-      ? isoMonth(opts.year, opts.month)
-      : null;
+    opts.year !== undefined && opts.month !== undefined ? isoMonth(opts.year, opts.month) : null;
   const lastBuiltMonth =
     opts.lastBuiltYear !== undefined && opts.lastBuiltMonth !== undefined
       ? isoMonth(opts.lastBuiltYear, opts.lastBuiltMonth)
@@ -184,8 +183,14 @@ export default defineCommand({
       month: arg.positiveInt().optional().describe("Requested calendar month, 1-12 (with --year)"),
       lastBuiltYear: arg.positiveInt().optional().describe("Last built calendar year"),
       lastBuiltMonth: arg.positiveInt().optional().describe("Last built calendar month"),
-      minSpeedRoutes: arg.positiveInt().default(1).describe("Minimum routes for a 'complete' month"),
-      gtfsRtSampleSeconds: arg.positiveInt().default(30).describe("GTFS-RT collector sample period"),
+      minSpeedRoutes: arg
+        .positiveInt()
+        .default(1)
+        .describe("Minimum routes for a 'complete' month"),
+      gtfsRtSampleSeconds: arg
+        .positiveInt()
+        .default(30)
+        .describe("GTFS-RT collector sample period"),
       output: z.string().optional().describe("Override path for the plan JSON"),
       artifactRoot: z.string().optional().describe("Artifact root directory"),
     }),
@@ -218,7 +223,9 @@ export default defineCommand({
       minSpeedRoutes: input.options.minSpeedRoutes,
       gtfsRtSampleSeconds: input.options.gtfsRtSampleSeconds,
       artifactRoot:
-        input.options.artifactRoot === undefined ? undefined : fromCliPath(input.options.artifactRoot),
+        input.options.artifactRoot === undefined
+          ? undefined
+          : fromCliPath(input.options.artifactRoot),
       outputPath:
         input.options.output === undefined ? undefined : fromCliPath(input.options.output),
     });

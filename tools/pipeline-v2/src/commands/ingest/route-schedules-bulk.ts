@@ -3,17 +3,15 @@ import { Database as BunDatabase } from "bun:sqlite";
 import { existsSync, statSync } from "node:fs";
 import { mkdir, rm } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
-import {
-  getSocrataSource,
-  parseSourceManifest,
-  type SocrataFetch,
-  type SocrataManifestSource,
-} from "@bp/sources";
+import { buildSoda3ExportUrl } from "@bp/sources/clients/socrata";
+import { getSocrataSource, type SocrataManifestSource } from "@bp/sources/registry";
+import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { arg, defineCommand, z } from "@liche/core";
 import { downloadHttpFile } from "../../lib/http-file-download.ts";
 import { dbOptions, defaultLocalPipelineDbPath } from "../../lib/local-db.ts";
 import { fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
 import { fetchWithSocrataAppToken } from "../../lib/socrata-token.ts";
+import type { SocrataFetch } from "../../lib/soda3.ts";
 import { readCsvRecords } from "../../lib/streaming-csv.ts";
 import {
   deleteRouteRows,
@@ -437,9 +435,18 @@ async function downloadCsvSnapshot(input: {
     throw new Error(`Bulk schedule CSV does not exist: ${input.csvPath}`);
   }
 
+  const url = buildSoda3ExportUrl(input.source.domain, input.source.dataset_id, "csv").href;
   return downloadHttpFile({
-    url: input.source.rows_csv,
+    url,
     outputPath: input.csvPath,
+    requestInit: {
+      method: "POST",
+      headers: {
+        Accept: "text/csv",
+        "Content-Type": "application/json",
+      },
+      body: "{}",
+    },
     force: input.forceDownload,
     retryCount: input.downloadRetryCount,
     retryDelayMs: input.downloadRetryDelayMs,
@@ -485,7 +492,10 @@ async function downloadCsvSnapshot(input: {
   });
 }
 
-function partitionManifestRowsCsvPaths(manifestPath: string, manifest: PartitionManifest): string[] {
+function partitionManifestRowsCsvPaths(
+  manifestPath: string,
+  manifest: PartitionManifest,
+): string[] {
   const manifestDir = dirname(manifestPath);
   const chunks = Array.isArray(manifest.chunks) ? manifest.chunks : [];
   const paths = chunks
@@ -770,7 +780,7 @@ export async function runRouteSchedulesBulkIngest(
   const manifestText =
     inputs.manifestText ??
     (await Bun.file(fromRepoRoot("knowledge/raw/source_manifest.yaml")).text());
-  const source = getSocrataSource(parseSourceManifest(manifestText), sourceId);
+  const source = getSocrataSource(loadSourceManifestYaml(manifestText), sourceId);
   const csvPath = inputs.csvPath ?? defaultCsvPath({ cacheDir: inputs.cacheDir, sourceId });
   const spoolDir = inputs.spoolDir ?? defaultSpoolDir(sourceId);
   const skipExisting = inputs.skipExisting ?? true;
@@ -860,19 +870,19 @@ export async function runRouteSchedulesBulkIngest(
       progress: (event) => emitProgress(inputs, event),
     });
 
-      return {
-        sourceYear: inputs.sourceYear,
-        sourceId,
-        csvPath: csvSnapshot.displayPath,
-        csvPathCount: csvSnapshot.csvPaths.length,
-        routeCount: importResult.routeCount,
-        skippedRouteCount: splitResult.skippedRouteIds.size,
-        spooledRowCount: splitResult.spooledRowCount,
-        writtenRowCount: importResult.writtenRowCount,
-        emptyRouteCount: importResult.emptyRouteCount,
-        downloaded: csvSnapshot.downloaded,
-        downloadOnly,
-      };
+    return {
+      sourceYear: inputs.sourceYear,
+      sourceId,
+      csvPath: csvSnapshot.displayPath,
+      csvPathCount: csvSnapshot.csvPaths.length,
+      routeCount: importResult.routeCount,
+      skippedRouteCount: splitResult.skippedRouteIds.size,
+      spooledRowCount: splitResult.spooledRowCount,
+      writtenRowCount: importResult.writtenRowCount,
+      emptyRouteCount: importResult.emptyRouteCount,
+      downloaded: csvSnapshot.downloaded,
+      downloadOnly,
+    };
   } finally {
     if (!(inputs.keepSpool ?? false)) {
       await rm(spoolDir, { recursive: true, force: true });

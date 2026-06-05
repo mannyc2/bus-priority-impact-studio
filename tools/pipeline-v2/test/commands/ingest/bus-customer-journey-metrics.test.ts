@@ -15,9 +15,14 @@ sources:
     domain: data.ny.gov
     dataset_id: 8mkn-d32t
     url: https://data.ny.gov/Transportation/MTA-Bus-Customer-Journey-Focused-Metrics-Beginning/8mkn-d32t
-    api_json: https://data.ny.gov/resource/8mkn-d32t.json
-    columns_json: https://data.ny.gov/api/views/8mkn-d32t/columns.json
-    rows_csv: https://data.ny.gov/api/views/8mkn-d32t/rows.csv?accessType=DOWNLOAD
+    api: soda3
+    default_access:
+      kind: query
+      format: json
+    backfill:
+      kind: soda3_export
+      format: csv
+      supportsByteRange: false
     purpose: Test source.
     status: active
 `;

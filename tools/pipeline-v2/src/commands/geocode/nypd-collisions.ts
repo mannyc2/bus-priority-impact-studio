@@ -1,11 +1,11 @@
-import { arg, defineCommand, z } from "@liche/core";
-import { parseHouseAddress } from "@bp/sources/nyc-geoclient";
 import { updateNypdCollisionGeocode } from "@bp/db/local";
+import { parseHouseAddress } from "@bp/sources/clients/geoclient";
+import { arg, defineCommand, z } from "@liche/core";
 import {
   createGeoclientFromEnv,
-  Geocoder,
   type GeocodeInput,
   type GeocodeOutcome,
+  Geocoder,
 } from "../../lib/geocoder.ts";
 import {
   dbOptions,
@@ -42,9 +42,7 @@ export type GeocodeResult = {
   cached: number;
 };
 
-export async function runGeocodeNypdCollisions(
-  inputs: GeocodeNypdInputs,
-): Promise<GeocodeResult> {
+export async function runGeocodeNypdCollisions(inputs: GeocodeNypdInputs): Promise<GeocodeResult> {
   const batchSize = inputs.batchSize ?? 500;
   const maxRows = inputs.maxRows ?? Number.POSITIVE_INFINITY;
   const geoclient = createGeoclientFromEnv();

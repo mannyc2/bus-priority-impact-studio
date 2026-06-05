@@ -1,14 +1,8 @@
-import { arg, defineCommand, z } from "@liche/core";
 import { listRouteMonthTrends, replaceRouteMonthTrends } from "@bp/db/local";
-import {
-  getSocrataSource,
-  parseSourceManifest,
-  type SocrataFetch,
-  type SocrataManifestSource,
-  type SocrataRowsQuery,
-  SocrataClient,
-  soqlQuote,
-} from "@bp/sources";
+import { soqlQuote } from "@bp/sources/clients/socrata/soql";
+import { getSocrataSource, type SocrataManifestSource } from "@bp/sources/registry";
+import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
+import { arg, defineCommand, z } from "@liche/core";
 import { isoMonth, isoMonthStart, nextIsoMonthStart } from "../../lib/dates.ts";
 import {
   dbOptions,
@@ -17,6 +11,11 @@ import {
   withLocalDb,
 } from "../../lib/local-db.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
+import {
+  fetchSoda3RowsForSource,
+  type SocrataFetch,
+  type Soda3SoqlQuery,
+} from "../../lib/soda3.ts";
 
 type TrendRow = Awaited<ReturnType<typeof listRouteMonthTrends>>[number];
 type RidershipSourceId = "bus_hourly_ridership_2020_2024" | "bus_hourly_ridership_2025";
@@ -91,7 +90,7 @@ async function fetchRidershipAggregates(input: {
   if (source === undefined) {
     throw new Error(`Missing ridership source: ${sourceId}`);
   }
-  const query: SocrataRowsQuery = {
+  const query: Soda3SoqlQuery = {
     select: "bus_route,sum(ridership) as ridership,sum(transfers) as transfers",
     where: [
       `bus_route in(${input.routeIds.map(soqlQuote).join(",")})`,
@@ -101,7 +100,7 @@ async function fetchRidershipAggregates(input: {
     group: "bus_route",
     order: "bus_route",
   };
-  const rows = await SocrataClient.fromSource(source, { fetcher: input.fetcher }).rows(query);
+  const rows = await fetchSoda3RowsForSource(source, query, { fetcher: input.fetcher });
   const output = new Map<string, { ridership: number; transfers: number }>();
   for (const row of rows) {
     const parsed = RawRidershipAggregateSchema.parse(row);
@@ -149,7 +148,7 @@ export async function runBackfillRouteRidershipTrends(
   const manifestText =
     inputs.manifestText ??
     (await Bun.file(fromRepoRoot("knowledge/raw/source_manifest.yaml")).text());
-  const manifest = parseSourceManifest(manifestText);
+  const manifest = loadSourceManifestYaml(manifestText);
   const sources = new Map<RidershipSourceId, SocrataManifestSource>([
     [
       "bus_hourly_ridership_2020_2024",

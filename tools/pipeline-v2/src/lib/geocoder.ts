@@ -13,7 +13,7 @@ import {
   type Geoclient,
   GeoclientHttpError,
   normalizeStreetName,
-} from "@bp/sources/nyc-geoclient";
+} from "@bp/sources/clients/geoclient";
 
 /**
  * Geocoder facade used by per-source geocode jobs. Wraps:
@@ -280,7 +280,8 @@ function boroughLetterFromCode(code: string | null): string | null {
 }
 
 export function createGeoclientFromEnv(): Geoclient | null {
-  const key = process.env["NYC_GEOCLIENT_KEY"];
+  const nycGeoclientKeyEnv = "NYC_GEOCLIENT_KEY";
+  const key = process.env[nycGeoclientKeyEnv];
   if (!key || key.length === 0) return null;
   return createGeoclient({ apiKey: key });
 }

@@ -1,16 +1,12 @@
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { normalizeExpressBusCapacityRows } from "@bp/sources/adapters/mta/express-bus-capacity";
+import { getSocrataSource } from "@bp/sources/registry";
+import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { defineCommand, z } from "@liche/core";
-import {
-  getSocrataSource,
-  normalizeExpressBusCapacityRows,
-  parseSourceManifest,
-  type SocrataFetch,
-  type SocrataRow,
-  SocrataClient,
-} from "@bp/sources";
 import { writeJson } from "../../lib/json.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
+import { fetchSoda3RowsForSource, type SocrataFetch, type SocrataRow } from "../../lib/soda3.ts";
 import { writeRawSourceSnapshot } from "../../lib/source-snapshots.ts";
 
 const sourceId = "mta_express_bus_capacity_2023";
@@ -49,15 +45,21 @@ export async function ingestExpressBusCapacity(
   const manifestText =
     args.manifestText ??
     (await Bun.file(fromRepoRoot("knowledge/raw/source_manifest.yaml")).text());
-  const source = getSocrataSource(parseSourceManifest(manifestText), sourceId);
+  const source = getSocrataSource(loadSourceManifestYaml(manifestText), sourceId);
   const rawPath = args.rawPath ?? defaultRawPath();
   const normalizedPath = args.normalizedPath ?? defaultExpressBusCapacityNormalizedPath();
   const fetchedAt = args.fetchedAt ?? new Date();
 
-  const rawRows: SocrataRow[] = await SocrataClient.fromSource(source, {
-    fetcher: args.fetcher,
-    pageSize: 50_000,
-  }).rows({ order: "route,direction,day_type,hour,week" });
+  const rawRows: SocrataRow[] = [
+    ...(await fetchSoda3RowsForSource(
+      source,
+      { order: "route,direction,day_type,hour,week" },
+      {
+        fetcher: args.fetcher,
+        pageSize: 50_000,
+      },
+    )),
+  ];
   const rows = normalizeExpressBusCapacityRows(rawRows);
 
   await writeRawSourceSnapshot({

@@ -3,16 +3,10 @@ import {
   listRouteMonthTrends,
   replaceRouteHourlyRidership,
 } from "@bp/db/local";
-import {
-  getSocrataSource,
-  normalizeHourlyRidershipRows,
-  parseSourceManifest,
-  SocrataClient,
-  type SocrataFetch,
-  type SocrataRow,
-  type SocrataRowsQuery,
-  soqlIn,
-} from "@bp/sources";
+import { normalizeHourlyRidershipRows } from "@bp/sources/adapters/mta/bus-ridership";
+import { soqlIn } from "@bp/sources/clients/socrata/soql";
+import { getSocrataSource } from "@bp/sources/registry";
+import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { arg, defineCommand, z } from "@liche/core";
 import { isoMonth, isoMonthStart, nextIsoMonthStart } from "../../lib/dates.ts";
 import {
@@ -22,6 +16,12 @@ import {
   withLocalDb,
 } from "../../lib/local-db.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
+import {
+  createSoda3SourceClient,
+  type SocrataFetch,
+  type SocrataRow,
+  type Soda3SoqlQuery,
+} from "../../lib/soda3.ts";
 
 type HourlyRidershipSourceId = "bus_hourly_ridership_2020_2024" | "bus_hourly_ridership_2025";
 
@@ -82,8 +82,9 @@ export function normalizeRouteHourlyRidershipRows(
 ): LocalRouteHourlyRidership[] {
   const month = isoMonth(args.year, args.month);
   const rowsByRawRoute = new Map<string, SocrataRow[]>();
+  const busRouteField = "bus_route";
   for (const row of rows) {
-    const routeId = row["bus_route"];
+    const routeId = row[busRouteField];
     if (typeof routeId !== "string" || routeId.length === 0) continue;
     rowsByRawRoute.set(routeId, [...(rowsByRawRoute.get(routeId) ?? []), row]);
   }
@@ -123,7 +124,7 @@ export async function runRouteHourlyRidershipIngest(
   const manifestText =
     inputs.manifestText ??
     (await Bun.file(fromRepoRoot("knowledge/raw/source_manifest.yaml")).text());
-  const manifest = parseSourceManifest(manifestText);
+  const manifest = loadSourceManifestYaml(manifestText);
   const source = getSocrataSource(manifest, sourceId);
   const routeIds = await routeIdsForMonth({
     local: inputs.local,
@@ -132,13 +133,13 @@ export async function runRouteHourlyRidershipIngest(
   });
   const routeChunkSize = inputs.routeChunkSize ?? DEFAULT_ROUTE_CHUNK_SIZE;
   const queryConcurrency = inputs.queryConcurrency ?? DEFAULT_QUERY_CONCURRENCY;
-  const client = SocrataClient.fromSource(source, { fetcher: inputs.fetcher });
+  const client = createSoda3SourceClient(source, { fetcher: inputs.fetcher });
   const rawRows: SocrataRow[] = [];
   const routeChunks = chunkArray(routeIds, routeChunkSize);
   for (const queryChunk of chunkArray(routeChunks, queryConcurrency)) {
     const rowGroups = await Promise.all(
       queryChunk.map((routeChunk) => {
-        const query: SocrataRowsQuery = {
+        const query: Soda3SoqlQuery = {
           select:
             "bus_route,date_extract_dow(transit_timestamp) as day_of_week_index,date_extract_hh(transit_timestamp) as hour_of_day,sum(ridership) as ridership,sum(transfers) as transfers",
           where: [

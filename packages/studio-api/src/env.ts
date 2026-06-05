@@ -13,6 +13,7 @@ export type StudioApiEnv = {
   ARTIFACTS?: R2Bucket;
   GTFS_RT_RAW?: R2Bucket;
   MTA_BUS_TIME_API_KEY?: string;
+  SOCRATA_APP_TOKEN?: string;
   AI?: Ai;
   BRIEF_AUTHOR_AGENT?: DurableObjectNamespace;
   BASELINE_MONTH?: string;

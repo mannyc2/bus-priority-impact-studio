@@ -1,7 +1,6 @@
 import { createHash } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { arg, defineCommand, z } from "@liche/core";
 import type { LocalBusLane, LocalRouteHotspot, LocalRouteSegmentSpeed } from "@bp/db/local";
 import {
   listBusLanes,
@@ -18,8 +17,9 @@ import {
   type NormalizedStop,
   normalizeRouteShapeRows,
   normalizeStopRows,
-  type SocrataRow,
-} from "@bp/sources";
+} from "@bp/sources/adapters/mta/routes-stops";
+import type { SocrataRow } from "@bp/sources/clients/socrata";
+import { arg, defineCommand, z } from "@liche/core";
 import { isoMonth } from "../../lib/dates.ts";
 import {
   dbOptions,
@@ -840,10 +840,7 @@ async function writeJsonArtifact(input: {
   };
 }
 
-async function readMapBuildRows(input: {
-  local: OpenLocalPipelineDb;
-  month: string;
-}): Promise<{
+async function readMapBuildRows(input: { local: OpenLocalPipelineDb; month: string }): Promise<{
   publicRouteIds: string[];
   busLanes: LocalBusLane[];
   routeRows: {

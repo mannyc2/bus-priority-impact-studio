@@ -1,15 +1,9 @@
 import { join } from "node:path";
-import { defineCommand, z } from "@liche/core";
 import { upsertLionSegments } from "@bp/db/local";
-import {
-  getSocrataSource,
-  normalizeLionSegmentRows,
-  parseSourceManifest,
-  type SocrataFetch,
-  type SocrataRow,
-  type SocrataRowsQuery,
-  SocrataClient,
-} from "@bp/sources";
+import { normalizeLionSegmentRows } from "@bp/sources/adapters/nyc-open-data/lion-centerline";
+import { getSocrataSource } from "@bp/sources/registry";
+import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
+import { defineCommand, z } from "@liche/core";
 import {
   dbOptions,
   localDbFromCtx,
@@ -17,6 +11,12 @@ import {
   withLocalDb,
 } from "../../lib/local-db.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
+import {
+  fetchSoda3RowsForSource,
+  type SocrataFetch,
+  type SocrataRow,
+  type Soda3SoqlQuery,
+} from "../../lib/soda3.ts";
 import { writeRawSourceSnapshot } from "../../lib/source-snapshots.ts";
 
 const sourceId = "nyc_lion_street_centerline";
@@ -42,7 +42,7 @@ export async function runLionCenterlineIngest(
   const manifestText =
     inputs.manifestText ??
     (await Bun.file(fromRepoRoot("knowledge/raw/source_manifest.yaml")).text());
-  const source = getSocrataSource(parseSourceManifest(manifestText), sourceId);
+  const source = getSocrataSource(loadSourceManifestYaml(manifestText), sourceId);
   const fetchedAt = (inputs.fetchedAt ?? new Date()).toISOString();
   const stamp = fetchedAt.slice(0, 10);
   const rawPath =
@@ -56,13 +56,15 @@ export async function runLionCenterlineIngest(
   // Default to currently-active segments only; status "2" historically means
   // "in service". Callers can override.
   whereClauses.push(`status = '${(inputs.status ?? "2").replace(/'/g, "''")}'`);
-  const query: SocrataRowsQuery = {
+  const query: Soda3SoqlQuery = {
     where: whereClauses.join(" AND "),
     order: "physicalid",
   };
-  const rawRows: SocrataRow[] = await SocrataClient.fromSource(source, {
-    fetcher: inputs.fetcher,
-  }).rows(query);
+  const rawRows: SocrataRow[] = [
+    ...(await fetchSoda3RowsForSource(source, query, {
+      fetcher: inputs.fetcher,
+    })),
+  ];
   const normalized = normalizeLionSegmentRows(rawRows);
   const rows = normalized.map((n) => ({
     physicalId: n.physicalId,

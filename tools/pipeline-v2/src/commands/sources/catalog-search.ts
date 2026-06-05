@@ -1,5 +1,6 @@
+import type { SocrataFetch } from "@bp/sources/clients/socrata";
+import { SocrataCatalogClient } from "@bp/sources/clients/socrata/catalog";
 import { defineCommand, z } from "@liche/core";
-import { SocrataCatalogClient, type SocrataFetch } from "@bp/sources";
 
 type SocrataCatalogSearchResponse = Awaited<ReturnType<SocrataCatalogClient["search"]>>;
 

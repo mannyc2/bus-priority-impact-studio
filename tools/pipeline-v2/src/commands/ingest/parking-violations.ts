@@ -1,16 +1,12 @@
 import { join } from "node:path";
-import { arg, defineCommand, z } from "@liche/core";
 import { upsertParkingViolations } from "@bp/db/local";
 import {
   BUS_RELEVANT_PARKING_CODES,
-  getSocrataSource,
   normalizeParkingViolationRows,
-  parseSourceManifest,
-  type SocrataFetch,
-  type SocrataRow,
-  type SocrataRowsQuery,
-  SocrataClient,
-} from "@bp/sources";
+} from "@bp/sources/adapters/nyc-open-data/parking-violations";
+import { getSocrataSource } from "@bp/sources/registry";
+import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
+import { arg, defineCommand, z } from "@liche/core";
 import { isoMonth, isoMonthStart, nextIsoMonthStart } from "../../lib/dates.ts";
 import {
   dbOptions,
@@ -20,6 +16,12 @@ import {
 } from "../../lib/local-db.ts";
 import { parkingLocationKey } from "../../lib/parking-location.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
+import {
+  fetchSoda3RowsForSource,
+  type SocrataFetch,
+  type SocrataRow,
+  type Soda3SoqlQuery,
+} from "../../lib/soda3.ts";
 import { writeRawSourceSnapshot } from "../../lib/source-snapshots.ts";
 
 const parkingFiscalYearSources = [
@@ -62,31 +64,32 @@ function parkingSourceIdForMonth(year: number, month: number): string {
 export async function runParkingViolationsIngest(
   inputs: ParkingViolationsRunInputs,
 ): Promise<ParkingViolationsIngestResult> {
-  const codes =
-    inputs.codes && inputs.codes.length > 0 ? inputs.codes : BUS_RELEVANT_PARKING_CODES;
+  const codes = inputs.codes && inputs.codes.length > 0 ? inputs.codes : BUS_RELEVANT_PARKING_CODES;
   const monthKey = isoMonth(inputs.year, inputs.month);
   const manifestText =
     inputs.manifestText ??
     (await Bun.file(fromRepoRoot("knowledge/raw/source_manifest.yaml")).text());
   const sourceId = parkingSourceIdForMonth(inputs.year, inputs.month);
-  const source = getSocrataSource(parseSourceManifest(manifestText), sourceId);
+  const source = getSocrataSource(loadSourceManifestYaml(manifestText), sourceId);
   const fetchedAt = (inputs.fetchedAt ?? new Date()).toISOString();
   const rawPath =
     inputs.snapshotPath ??
     fromRepoRoot(join("data/raw/parking-violations", `parking-violations-${monthKey}.json`));
 
   const codeList = codes.join(",");
-  const query: SocrataRowsQuery = {
+  const query: Soda3SoqlQuery = {
     where: [
       `issue_date >= '${isoMonthStart(inputs.year, inputs.month)}'`,
       `issue_date < '${nextIsoMonthStart(inputs.year, inputs.month)}'`,
       `violation_code IN (${codeList})`,
     ].join(" AND "),
   };
-  const rawRows: SocrataRow[] = await SocrataClient.fromSource(source, {
-    fetcher: inputs.fetcher,
-    pageSize: 50_000,
-  }).rows(query);
+  const rawRows: SocrataRow[] = [
+    ...(await fetchSoda3RowsForSource(source, query, {
+      fetcher: inputs.fetcher,
+      pageSize: 50_000,
+    })),
+  ];
   const rows = normalizeParkingViolationRows(rawRows).map((r) => ({
     ...r,
     // Geocode columns set by geocode job; preserved on re-ingest.

@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
+import { SocrataDatasetIdSchema } from "@bp/sources/clients/socrata";
 import {
   buildSocrataCatalogSearchUrl,
   parseSocrataCatalogSearchResponse,
-  SocrataDatasetIdSchema,
   SocrataCatalogClient,
-} from "../src/index.js";
+} from "@bp/sources/clients/socrata/catalog";
 
 const expressCapacityCatalogResult = {
   resource: {

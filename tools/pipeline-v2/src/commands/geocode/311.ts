@@ -1,11 +1,11 @@
-import { arg, defineCommand, z } from "@liche/core";
-import { parseHouseAddress } from "@bp/sources/nyc-geoclient";
 import { update311ServiceRequestGeocode } from "@bp/db/local";
+import { parseHouseAddress } from "@bp/sources/clients/geoclient";
+import { arg, defineCommand, z } from "@liche/core";
 import {
   createGeoclientFromEnv,
-  Geocoder,
   type GeocodeInput,
   type GeocodeOutcome,
+  Geocoder,
 } from "../../lib/geocoder.ts";
 import {
   dbOptions,
@@ -127,11 +127,7 @@ export async function runGeocode311(inputs: Geocode311Inputs): Promise<Geocode31
           borough,
         });
       }
-      if (
-        row.street_name &&
-        row.cross_street_2 &&
-        row.cross_street_2 !== row.cross_street_1
-      ) {
+      if (row.street_name && row.cross_street_2 && row.cross_street_2 !== row.cross_street_1) {
         attempts.push({
           kind: "intersection",
           crossStreetOne: row.street_name,

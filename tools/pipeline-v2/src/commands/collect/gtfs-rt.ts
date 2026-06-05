@@ -1,17 +1,15 @@
 import { createHash, randomUUID } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { arg, defineCommand, z } from "@liche/core";
 import {
   finishGtfsRtCollectionRun,
   type GtfsRtFeedType,
   insertGtfsRtCollectionRun,
   insertGtfsRtFeedSnapshot,
 } from "@bp/db/local";
-import {
-  type ManifestSource,
-  parseSourceManifest,
-} from "@bp/sources";
+import type { ManifestSource } from "@bp/sources/registry";
+import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
+import { arg, defineCommand, z } from "@liche/core";
 import {
   dbOptions,
   localDbFromCtx,
@@ -236,7 +234,8 @@ async function captureSnapshot(input: {
 export async function runCollectGtfsRt(
   inputs: CollectGtfsRtRunInputs,
 ): Promise<CollectGtfsRtResult> {
-  const apiKey = inputs.apiKey ?? Bun.env["MTA_BUS_TIME_API_KEY"];
+  const mtaBusTimeApiKeyEnv = "MTA_BUS_TIME_API_KEY";
+  const apiKey = inputs.apiKey ?? Bun.env[mtaBusTimeApiKeyEnv];
   if (apiKey === undefined || apiKey.length === 0) {
     throw new Error("Missing required environment variable: MTA_BUS_TIME_API_KEY");
   }
@@ -254,7 +253,7 @@ export async function runCollectGtfsRt(
   const manifestText =
     inputs.manifestText ??
     (await Bun.file(fromRepoRoot("knowledge/raw/source_manifest.yaml")).text());
-  const manifest = parseSourceManifest(manifestText);
+  const manifest = loadSourceManifestYaml(manifestText);
   const sources = findFeedSources(manifest.sources);
   const snapshots: Awaited<ReturnType<typeof captureSnapshot>>[] = [];
 
@@ -335,7 +334,11 @@ export default defineCommand({
   input: {
     options: dbOptions.extend({
       durationSeconds: arg.positiveInt().optional().describe("Collection duration in seconds"),
-      durationHours: z.coerce.number().positive().optional().describe("Collection duration in hours"),
+      durationHours: z.coerce
+        .number()
+        .positive()
+        .optional()
+        .describe("Collection duration in hours"),
       sampleSeconds: arg.positiveInt().default(30).describe("Sample period in seconds"),
       sampleCount: arg.positiveInt().optional().describe("Override sample count"),
       feedTypes: z

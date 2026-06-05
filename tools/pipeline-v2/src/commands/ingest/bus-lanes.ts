@@ -1,15 +1,12 @@
 import { join } from "node:path";
-import { defineCommand, z } from "@liche/core";
 import { geometryCoordinates, replaceBusLanes } from "@bp/db/local";
 import {
-  getSocrataSource,
   type NormalizedBusLane,
   normalizeBusLaneRows,
-  parseSourceManifest,
-  type SocrataFetch,
-  type SocrataRow,
-  SocrataClient,
-} from "@bp/sources";
+} from "@bp/sources/adapters/nyc-dot/bus-lanes";
+import { getSocrataSource } from "@bp/sources/registry";
+import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
+import { defineCommand, z } from "@liche/core";
 import {
   dbOptions,
   localDbFromCtx,
@@ -17,6 +14,7 @@ import {
   withLocalDb,
 } from "../../lib/local-db.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
+import { fetchSoda3RowsForSource, type SocrataFetch, type SocrataRow } from "../../lib/soda3.ts";
 import { writeRawSourceSnapshot } from "../../lib/source-snapshots.ts";
 
 const sourceId = "nyc_dot_bus_lanes_local_streets";
@@ -76,14 +74,21 @@ export async function runBusLanesIngest(inputs: BusLanesRunInputs): Promise<BusL
   const manifestText =
     inputs.manifestText ??
     (await Bun.file(fromRepoRoot("knowledge/raw/source_manifest.yaml")).text());
-  const source = getSocrataSource(parseSourceManifest(manifestText), sourceId);
+  const source = getSocrataSource(loadSourceManifestYaml(manifestText), sourceId);
   const fetchedAt = (inputs.fetchedAt ?? new Date()).toISOString();
   const rawPath =
-    inputs.snapshotPath ?? fromRepoRoot(join("data/raw/interventions/bus-lanes-local-streets.json"));
+    inputs.snapshotPath ??
+    fromRepoRoot(join("data/raw/interventions/bus-lanes-local-streets.json"));
 
-  const rawRows: SocrataRow[] = await SocrataClient.fromSource(source, {
-    fetcher: inputs.fetcher,
-  }).rows({ order: "street, segmentid" });
+  const rawRows: SocrataRow[] = [
+    ...(await fetchSoda3RowsForSource(
+      source,
+      { order: "street, segmentid" },
+      {
+        fetcher: inputs.fetcher,
+      },
+    )),
+  ];
   const normalizedRows = dedupeBusLaneRows(normalizeBusLaneRows(rawRows));
   const manhattanLaneCount = normalizedRows.filter((row) => row.borough === "MAN").length;
 

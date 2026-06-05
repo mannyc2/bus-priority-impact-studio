@@ -1,16 +1,12 @@
 import { join } from "node:path";
-import { arg, defineCommand, z } from "@liche/core";
 import { upsertDotStreetPermits } from "@bp/db/local";
 import {
-  getSocrataSource,
   normalizeDotStreetPermitRows,
-  parseSourceManifest,
   type PermitKind,
-  type SocrataFetch,
-  type SocrataRow,
-  type SocrataRowsQuery,
-  SocrataClient,
-} from "@bp/sources";
+} from "@bp/sources/adapters/nyc-dot/street-permits";
+import { getSocrataSource } from "@bp/sources/registry";
+import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
+import { arg, defineCommand, z } from "@liche/core";
 import { isoMonth, isoMonthStart, nextIsoMonthStart } from "../../lib/dates.ts";
 import {
   dbOptions,
@@ -19,6 +15,12 @@ import {
   withLocalDb,
 } from "../../lib/local-db.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
+import {
+  fetchSoda3RowsForSource,
+  type SocrataFetch,
+  type SocrataRow,
+  type Soda3SoqlQuery,
+} from "../../lib/soda3.ts";
 import { writeRawSourceSnapshot } from "../../lib/source-snapshots.ts";
 
 const sourceIdForKind: Record<PermitKind, string> = {
@@ -56,7 +58,7 @@ export async function runDotStreetPermitsIngest(
   const manifestText =
     inputs.manifestText ??
     (await Bun.file(fromRepoRoot("knowledge/raw/source_manifest.yaml")).text());
-  const source = getSocrataSource(parseSourceManifest(manifestText), sourceId);
+  const source = getSocrataSource(loadSourceManifestYaml(manifestText), sourceId);
   const fetchedAt = (inputs.fetchedAt ?? new Date()).toISOString();
   const rawPath =
     inputs.snapshotPath ??
@@ -67,14 +69,14 @@ export async function runDotStreetPermitsIngest(
     const snap = (await Bun.file(inputs.fromSnapshot).json()) as { rows?: unknown };
     rawRows = (Array.isArray(snap.rows) ? snap.rows : []) as SocrataRow[];
   } else {
-    const query: SocrataRowsQuery = {
+    const query: Soda3SoqlQuery = {
       where: [
         `permitissuedate >= '${isoMonthStart(inputs.year, inputs.month)}'`,
         `permitissuedate < '${nextIsoMonthStart(inputs.year, inputs.month)}'`,
       ].join(" AND "),
       order: "permitnumber",
     };
-    rawRows = await SocrataClient.fromSource(source, { fetcher: inputs.fetcher }).rows(query);
+    rawRows = [...(await fetchSoda3RowsForSource(source, query, { fetcher: inputs.fetcher }))];
   }
 
   const rows = normalizeDotStreetPermitRows(rawRows, kind).map((r) => ({

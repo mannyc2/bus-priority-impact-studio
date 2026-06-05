@@ -19,9 +19,14 @@ sources:
     domain: data.ny.gov
     dataset_id: 4tpr-3bvc
     url: https://data.ny.gov/d/4tpr-3bvc
-    api_json: https://data.ny.gov/resource/4tpr-3bvc.json
-    columns_json: https://data.ny.gov/api/views/4tpr-3bvc/columns.json
-    rows_csv: https://data.ny.gov/resource/4tpr-3bvc.csv
+    api: soda3
+    default_access:
+      kind: query
+      format: json
+    backfill:
+      kind: soda3_export
+      format: csv
+      supportsByteRange: false
   - id: bus_segment_speeds_2023_2024
     type: socrata_dataset
     priority: core
@@ -30,9 +35,14 @@ sources:
     domain: data.ny.gov
     dataset_id: 58t6-89vi
     url: https://data.ny.gov/d/58t6-89vi
-    api_json: https://data.ny.gov/resource/58t6-89vi.json
-    columns_json: https://data.ny.gov/api/views/58t6-89vi/columns.json
-    rows_csv: https://data.ny.gov/resource/58t6-89vi.csv
+    api: soda3
+    default_access:
+      kind: query
+      format: json
+    backfill:
+      kind: soda3_export
+      format: csv
+      supportsByteRange: false
 `;
 
 const root = fromRepoRoot(join("data/working/test-express-bus-capacity"));

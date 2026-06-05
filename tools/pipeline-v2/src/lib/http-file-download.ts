@@ -2,7 +2,7 @@ import { once } from "node:events";
 import { createWriteStream, existsSync, statSync, type WriteStream } from "node:fs";
 import { mkdir, rename, rm } from "node:fs/promises";
 import { dirname } from "node:path";
-import type { SocrataFetch } from "@bp/sources";
+import type { SocrataFetch } from "@bp/sources/clients/socrata";
 
 export type HttpFileDownloadProgressEvent =
   | {

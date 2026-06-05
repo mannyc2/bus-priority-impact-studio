@@ -1,8 +1,9 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import { defineCommand, z } from "@liche/core";
-import { parseSourceManifest } from "@bp/sources";
 import { probeSource, type SourceProbeOutput } from "@bp/sources/probes";
+import { fetchCurlHeadMetadata } from "@bp/sources/probes/transports/bun-curl";
+import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
+import { defineCommand, z } from "@liche/core";
 import { writeJson } from "../../lib/json.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
 
@@ -51,11 +52,14 @@ export default defineCommand({
   async run() {
     const metadataDir = fromRepoRoot("knowledge/raw/metadata");
     const manifestText = await Bun.file(fromRepoRoot("knowledge/raw/source_manifest.yaml")).text();
-    const manifest = parseSourceManifest(manifestText);
+    const manifest = loadSourceManifestYaml(manifestText);
 
-    const busTimeApiKey = process.env["MTA_BUS_TIME_API_KEY"]?.trim();
+    const mtaBusTimeApiKeyEnv = "MTA_BUS_TIME_API_KEY";
+    const busTimeApiKey = process.env[mtaBusTimeApiKeyEnv]?.trim();
     const probeOptions =
-      busTimeApiKey === undefined || busTimeApiKey === "" ? {} : { busTimeApiKey };
+      busTimeApiKey === undefined || busTimeApiKey === ""
+        ? { headFallback: fetchCurlHeadMetadata }
+        : { busTimeApiKey, headFallback: fetchCurlHeadMetadata };
 
     const outputs: SourceProbeOutput[] = [];
     for (const source of manifest.sources) {

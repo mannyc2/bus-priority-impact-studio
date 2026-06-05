@@ -1,11 +1,50 @@
 import { describe, expect, test } from "bun:test";
-import type { ManifestSource, SocrataManifestSource } from "../src/index.js";
-import { SocrataDatasetIdSchema } from "../src/index.js";
-import { parseCurlHeadOutput, probeSource } from "../src/probes/index.js";
+import { SocrataDatasetIdSchema } from "@bp/sources/clients/socrata";
+import { probeSource } from "@bp/sources/probes";
+import { parseCurlHeadOutput } from "@bp/sources/probes/transports/bun-curl";
+import type { ManifestSource, SocrataManifestSource } from "@bp/sources/registry";
+import { parseSourceManifestObject } from "@bp/sources/registry";
 
 const now = () => new Date("2026-04-27T00:00:00.000Z");
 
 describe("source probes", () => {
+  test("allows manifest notes without reopening old Socrata endpoint fields", () => {
+    const manifest = parseSourceManifestObject({
+      verified_at: "2026-06-05",
+      sources: [
+        {
+          id: "nyc_dot_street_opening_permits",
+          type: "socrata_dataset",
+          priority: "secondary",
+          domain: "data.cityofnewyork.us",
+          dataset_id: "9jic-byiu",
+          url: "https://data.cityofnewyork.us/Transportation/Street-Opening-Permits/9jic-byiu",
+          api: "soda3",
+          default_access: { kind: "query", format: "json" },
+          purpose: "Alias source with operator notes.",
+          status: "alias_of_construction_permits",
+          notes: "Do not double-ingest.",
+        },
+      ],
+    });
+
+    expect(manifest.sources[0]).toMatchObject({
+      id: "nyc_dot_street_opening_permits",
+      notes: "Do not double-ingest.",
+    });
+    expect(() =>
+      parseSourceManifestObject({
+        verified_at: "2026-06-05",
+        sources: [
+          {
+            ...manifest.sources[0],
+            api_json: "https://data.cityofnewyork.us/resource/9jic-byiu.json",
+          },
+        ],
+      }),
+    ).toThrow();
+  });
+
   test("probes Socrata metadata and row counts", async () => {
     const source: SocrataManifestSource = {
       id: "bus_segment_speeds_2025",
@@ -14,16 +53,16 @@ describe("source probes", () => {
       domain: "data.ny.gov",
       dataset_id: SocrataDatasetIdSchema.parse("kufs-yh3x"),
       url: "https://data.ny.gov/Transportation/example/kufs-yh3x",
-      api_json: "https://data.ny.gov/resource/kufs-yh3x.json",
-      columns_json: "https://data.ny.gov/api/views/kufs-yh3x/columns.json",
-      rows_csv: "https://data.ny.gov/api/views/kufs-yh3x/rows.csv?accessType=DOWNLOAD",
+      api: "soda3",
+      default_access: { kind: "query", format: "json" },
+      backfill: { kind: "soda3_export", format: "csv", supportsByteRange: false },
       purpose: "Core speed source.",
       status: "needs_schema_probe",
     };
 
     const output = await probeSource(source, {
       now,
-      fetcher: async (input) => {
+      fetcher: async (input, init) => {
         const url = String(input);
         if (url.endsWith("/api/views/kufs-yh3x")) {
           return Response.json({
@@ -41,7 +80,10 @@ describe("source probes", () => {
           ]);
         }
 
-        if (url.includes("/resource/kufs-yh3x.json")) {
+        if (url.endsWith("/api/v3/views/kufs-yh3x/query.json")) {
+          expect(init?.method).toBe("POST");
+          const body = JSON.parse(String(init?.body));
+          expect(body).toEqual({ query: "SELECT count(*)", includeSynthetic: false });
           return Response.json([{ count: "42" }]);
         }
 
@@ -52,6 +94,9 @@ describe("source probes", () => {
     expect(output.probeStatus).toBe("active");
     expect(output.socrata?.columnCount).toBe(2);
     expect(output.socrata?.rowCount).toBe(42);
+    expect(output.socrata?.rowsCsvUrl).toBe(
+      "https://data.ny.gov/api/v3/views/kufs-yh3x/export.csv",
+    );
   });
 
   test("uses lightweight HTTP metadata for web and static sources", async () => {

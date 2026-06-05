@@ -1,13 +1,12 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import { arg, defineCommand, z } from "@liche/core";
 import { replaceCensusTractEquityContext } from "@bp/db/local";
 import {
-  type CensusAcsFetch,
   censusAcsProfileVariables,
-  fetchCensusTractEquityContext,
   type NormalizedCensusTractEquityContext,
-} from "@bp/sources";
+} from "@bp/sources/adapters/census/acs-equity";
+import { type CensusAcsFetch, fetchCensusTractEquityContext } from "@bp/sources/clients/census";
+import { arg, defineCommand, z } from "@liche/core";
 import { writeJson } from "../../lib/json.ts";
 import {
   dbOptions,
@@ -50,7 +49,13 @@ export async function runEquityContextIngest(
   const rawDir = inputs.rawDir ?? fromRepoRoot(join("data/raw/equity"));
   const rawPath = join(rawDir, `acs5-profile-nyc-tracts-${inputs.year}.json`);
 
-  const fetched = await fetchCensusTractEquityContext({ year: inputs.year, fetcher });
+  const censusApiKeyEnv = "CENSUS_API_KEY";
+  const censusApiKey = process.env[censusApiKeyEnv]?.trim();
+  const fetched = await fetchCensusTractEquityContext({
+    year: inputs.year,
+    fetcher,
+    ...(censusApiKey === undefined || censusApiKey.length === 0 ? {} : { apiKey: censusApiKey }),
+  });
   await replaceCensusTractEquityContext(inputs.local.db, inputs.year, fetched.rows);
 
   const totalPopulation = sumDefined(fetched.rows, (row) => row.totalPopulation);

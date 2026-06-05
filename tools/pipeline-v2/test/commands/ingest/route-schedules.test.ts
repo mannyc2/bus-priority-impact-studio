@@ -11,9 +11,14 @@ sources:
     domain: data.ny.gov
     dataset_id: 4fnn-qsea
     url: https://data.ny.gov/Transportation/MTA-Bus-Schedules-2026/4fnn-qsea
-    api_json: https://data.ny.gov/resource/4fnn-qsea.json
-    columns_json: https://data.ny.gov/api/views/4fnn-qsea/columns.json
-    rows_csv: https://data.ny.gov/api/views/4fnn-qsea/rows.csv?accessType=DOWNLOAD
+    api: soda3
+    default_access:
+      kind: query
+      format: json
+    backfill:
+      kind: soda3_export
+      format: csv
+      supportsByteRange: false
     purpose: Test source.
     status: active
 `;
@@ -59,9 +64,33 @@ const m15Rows = [
   },
 ];
 
-function page<T>(rows: readonly T[], url: URL): readonly T[] {
-  const offset = Number(url.searchParams.get("$offset") ?? "0");
-  const limit = Number(url.searchParams.get("$limit") ?? "5000");
+type Soda3TestRequest = {
+  query: string;
+  offset: number;
+  limit: number;
+};
+
+function parseSoda3TestRequest(input: string | URL, init?: RequestInit): Soda3TestRequest {
+  const url = new URL(input);
+  expect(url.pathname).toBe("/api/v3/views/4fnn-qsea/query.json");
+  expect(init?.method).toBe("POST");
+  const body = JSON.parse(String(init?.body ?? "{}"));
+  const query = String(body.query ?? "");
+  const queryLimit = / LIMIT (\d+)/.exec(query);
+  const queryOffset = / OFFSET (\d+)/.exec(query);
+  const limit = Number(queryLimit?.[1] ?? body.page?.pageSize ?? 5000);
+  return {
+    query,
+    offset:
+      queryOffset?.[1] === undefined
+        ? (Number(body.page?.pageNumber ?? 1) - 1) * limit
+        : Number(queryOffset[1]),
+    limit,
+  };
+}
+
+function page<T>(rows: readonly T[], request: Soda3TestRequest): readonly T[] {
+  const { offset, limit } = request;
   return rows.slice(offset, offset + limit);
 }
 
@@ -70,28 +99,25 @@ describe("runRouteSchedulesIngest", () => {
     const sqlite = new Database(":memory:");
     const routeFetches: string[] = [];
     try {
-      const fetcher = async (input: string | URL) => {
-        const url = new URL(input);
-        const group = url.searchParams.get("$group");
-        if (group === "route_id") {
-          return Response.json(page([{ route_id: "B1" }, { route_id: "M15" }], url));
+      const fetcher = async (input: string | URL, init?: RequestInit) => {
+        const request = parseSoda3TestRequest(input, init);
+        if (request.query.includes("GROUP BY route_id")) {
+          return Response.json(page([{ route_id: "B1" }, { route_id: "M15" }], request));
         }
 
-        const select = url.searchParams.get("$select") ?? "";
-        const where = url.searchParams.get("$where") ?? "";
-        if (select === "count(*)" && where.includes("'M15'")) {
+        if (request.query.includes("SELECT count(*)") && request.query.includes("'M15'")) {
           return Response.json([{ count: m15Rows.length }]);
         }
-        if (select === "count(*)" && where.includes("'B1'")) {
+        if (request.query.includes("SELECT count(*)") && request.query.includes("'B1'")) {
           return Response.json([{ count: 0 }]);
         }
 
-        if (where.includes("'M15'")) {
+        if (request.query.includes("'M15'")) {
           routeFetches.push("M15");
-          return Response.json(page(m15Rows, url));
+          return Response.json(page(m15Rows, request));
         }
 
-        if (where.includes("'B1'")) {
+        if (request.query.includes("'B1'")) {
           routeFetches.push("B1");
           return Response.json([]);
         }
@@ -163,13 +189,12 @@ describe("runRouteSchedulesIngest", () => {
     const sqlite = new Database(":memory:");
     try {
       let hasRows = false;
-      const fetcher = async (input: string | URL) => {
-        const url = new URL(input);
-        const select = url.searchParams.get("$select") ?? "";
-        if (select === "count(*)") {
+      const fetcher = async (input: string | URL, init?: RequestInit) => {
+        const request = parseSoda3TestRequest(input, init);
+        if (request.query.includes("SELECT count(*)")) {
           return Response.json([{ count: hasRows ? m15Rows.length : 0 }]);
         }
-        return Response.json(hasRows ? page(m15Rows, url) : []);
+        return Response.json(hasRows ? page(m15Rows, request) : []);
       };
 
       const first = await runRouteSchedulesIngest({
@@ -239,19 +264,17 @@ describe("runRouteSchedulesIngest", () => {
     }));
     const routeOffsets: number[] = [];
     try {
-      const fetcher = async (input: string | URL) => {
-        const url = new URL(input);
-        const group = url.searchParams.get("$group");
-        const select = url.searchParams.get("$select") ?? "";
-        if (group === "route_id") {
-          return Response.json(page([{ route_id: "M15" }], url));
+      const fetcher = async (input: string | URL, init?: RequestInit) => {
+        const request = parseSoda3TestRequest(input, init);
+        if (request.query.includes("GROUP BY route_id")) {
+          return Response.json(page([{ route_id: "M15" }], request));
         }
-        if (select === "count(*)") {
+        if (request.query.includes("SELECT count(*)")) {
           return Response.json([{ count: rows.length }]);
         }
 
-        routeOffsets.push(Number(url.searchParams.get("$offset") ?? "0"));
-        return Response.json(page(rows, url));
+        routeOffsets.push(request.offset);
+        return Response.json(page(rows, request));
       };
 
       const result = await runRouteSchedulesIngest({
@@ -295,23 +318,21 @@ describe("runRouteSchedulesIngest", () => {
     const sqlite = new Database(":memory:");
     const progressEvents: string[] = [];
     try {
-      const fetcher = async (input: string | URL) => {
-        const url = new URL(input);
-        const select = url.searchParams.get("$select") ?? "";
-        const where = url.searchParams.get("$where") ?? "";
+      const fetcher = async (input: string | URL, init?: RequestInit) => {
+        const request = parseSoda3TestRequest(input, init);
 
-        if (select === "count(*)" && where.includes("'B1'")) {
+        if (request.query.includes("SELECT count(*)") && request.query.includes("'B1'")) {
           return Response.json([{ count: 2 }]);
         }
-        if (select === "count(*)" && where.includes("'M15'")) {
+        if (request.query.includes("SELECT count(*)") && request.query.includes("'M15'")) {
           return Response.json([{ count: m15Rows.length }]);
         }
 
-        if (where.includes("'B1'")) {
+        if (request.query.includes("'B1'")) {
           throw new Error("socket closed");
         }
-        if (where.includes("'M15'")) {
-          return Response.json(page(m15Rows, url));
+        if (request.query.includes("'M15'")) {
+          return Response.json(page(m15Rows, request));
         }
 
         return Response.json([]);

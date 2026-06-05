@@ -12,18 +12,23 @@ sources:
     domain: data.ny.gov
     dataset_id: kufs-yh3x
     url: https://data.ny.gov/x
-    api_json: https://data.ny.gov/resource/kufs-yh3x.json
-    columns_json: https://data.ny.gov/api/views/kufs-yh3x/columns.json
-    rows_csv: https://data.ny.gov/api/views/kufs-yh3x/rows.csv
+    api: soda3
+    default_access:
+      kind: query
+      format: json
+    backfill:
+      kind: soda3_export
+      format: csv
+      supportsByteRange: false
     purpose: test
     status: active
 `;
 
 function fakeFetcher(rows: readonly unknown[]) {
-  return async (input: string | URL) => {
-    const url = new URL(input);
-    const offset = Number(url.searchParams.get("$offset") ?? "0");
-    const limit = Number(url.searchParams.get("$limit") ?? "5000");
+  return async (_input: string | URL, init?: RequestInit) => {
+    const body = JSON.parse(String(init?.body ?? "{}"));
+    const limit = Number(body.page?.pageSize ?? 5000);
+    const offset = (Number(body.page?.pageNumber ?? 1) - 1) * limit;
     return new Response(JSON.stringify(rows.slice(offset, offset + limit)), {
       headers: { "content-type": "application/json" },
     });

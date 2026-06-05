@@ -8,6 +8,7 @@ type SourceRefreshEnv = Pick<
   | "GTFS_RT_SAMPLE_SECONDS"
   | "LAST_BUILT_SPEED_MONTH"
   | "MTA_BUS_TIME_API_KEY"
+  | "SOCRATA_APP_TOKEN"
 >;
 
 export const ROUTE_SPEED_WATCHER_CRON = "17 10 * * *";
@@ -306,19 +307,40 @@ export async function runRouteSpeedMonthlyWatcher(
     };
   }
 
+  const appToken = env.SOCRATA_APP_TOKEN?.trim();
+  if (appToken === undefined || appToken.length === 0) {
+    return {
+      status: "skipped",
+      reason: "SOCRATA_APP_TOKEN secret is not configured.",
+      latestCompleteMonth: null,
+      lastBuiltMonth: parseBuiltMonth(env.LAST_BUILT_SPEED_MONTH),
+      shouldRebuild: false,
+      artifactKey: null,
+      checkedAt,
+    };
+  }
+
   const fetcher = options.fetcher ?? fetch;
   const year = now.getUTCFullYear();
-  const url = new URL("https://data.ny.gov/resource/kufs-yh3x.json");
-  url.searchParams.set(
-    "$select",
-    "year,month,route_id,count(*) as row_count,sum(bus_trip_count) as bus_trip_count",
-  );
-  url.searchParams.set("$where", `year between ${year - 1} and ${year}`);
-  url.searchParams.set("$group", "year,month,route_id");
-  url.searchParams.set("$order", "year DESC,month DESC,route_id");
-  url.searchParams.set("$limit", "50000");
-
-  const response = await fetcher(url);
+  const url = new URL("https://data.ny.gov/api/v3/views/kufs-yh3x/query.json");
+  const response = await fetcher(url, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "X-App-Token": appToken,
+    },
+    body: JSON.stringify({
+      query: [
+        "SELECT year,month,route_id,count(*) as row_count,sum(bus_trip_count) as bus_trip_count",
+        `WHERE year between ${year - 1} and ${year}`,
+        "GROUP BY year,month,route_id",
+        "ORDER BY year DESC,month DESC,route_id",
+        "LIMIT 50000",
+      ].join(" "),
+      includeSynthetic: false,
+    }),
+  });
   if (!response.ok) {
     return {
       status: "failed",

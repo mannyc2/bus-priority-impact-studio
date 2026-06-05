@@ -1,17 +1,13 @@
 import { join } from "node:path";
-import { arg, defineCommand, z } from "@liche/core";
 import { upsert311ServiceRequests } from "@bp/db/local";
 import {
   BUS_RELEVANT_311_COMPLAINTS,
-  getSocrataSource,
   normalize311ServiceRequestRows,
-  parseSourceManifest,
   type ServiceRequestEra,
-  type SocrataFetch,
-  type SocrataRow,
-  type SocrataRowsQuery,
-  SocrataClient,
-} from "@bp/sources";
+} from "@bp/sources/adapters/nyc-open-data/service-requests-311";
+import { getSocrataSource } from "@bp/sources/registry";
+import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
+import { arg, defineCommand, z } from "@liche/core";
 import { isoMonth, isoMonthStart, nextIsoMonthStart } from "../../lib/dates.ts";
 import {
   dbOptions,
@@ -20,6 +16,12 @@ import {
   withLocalDb,
 } from "../../lib/local-db.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
+import {
+  fetchSoda3RowsForSource,
+  type SocrataFetch,
+  type SocrataRow,
+  type Soda3SoqlQuery,
+} from "../../lib/soda3.ts";
 import { writeRawSourceSnapshot } from "../../lib/source-snapshots.ts";
 
 const sourceIdForEra: Record<ServiceRequestEra, string> = {
@@ -62,12 +64,12 @@ export async function runNyc311Ingest(inputs: Nyc311IngestRunInputs): Promise<Ny
   const manifestText =
     inputs.manifestText ??
     (await Bun.file(fromRepoRoot("knowledge/raw/source_manifest.yaml")).text());
-  const source = getSocrataSource(parseSourceManifest(manifestText), sourceId);
+  const source = getSocrataSource(loadSourceManifestYaml(manifestText), sourceId);
   const fetchedAt = (inputs.fetchedAt ?? new Date()).toISOString();
   const rawPath =
     inputs.snapshotPath ?? fromRepoRoot(join("data/raw/311", `311-${era}-${monthKey}.json`));
 
-  const query: SocrataRowsQuery = {
+  const query: Soda3SoqlQuery = {
     where: [
       `created_date >= '${isoMonthStart(inputs.year, inputs.month)}'`,
       `created_date < '${nextIsoMonthStart(inputs.year, inputs.month)}'`,
@@ -75,10 +77,12 @@ export async function runNyc311Ingest(inputs: Nyc311IngestRunInputs): Promise<Ny
     ].join(" AND "),
     order: "unique_key",
   };
-  const rawRows: SocrataRow[] = await SocrataClient.fromSource(source, {
-    fetcher: inputs.fetcher,
-    pageSize: 50_000,
-  }).rows(query);
+  const rawRows: SocrataRow[] = [
+    ...(await fetchSoda3RowsForSource(source, query, {
+      fetcher: inputs.fetcher,
+      pageSize: 50_000,
+    })),
+  ];
   const rows = normalize311ServiceRequestRows(rawRows, era).map((r) => ({
     ...r,
     // Geocode columns set by geocode job; preserved on re-ingest.

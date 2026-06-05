@@ -1,15 +1,12 @@
 import { mkdir } from "node:fs/promises";
 import { join, relative } from "node:path";
-import {
-  getSocrataSource,
-  parseSourceManifest,
-  type SocrataFetch,
-  type SocrataManifestSource,
-} from "@bp/sources";
+import { getSocrataSource, type SocrataManifestSource } from "@bp/sources/registry";
+import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { defineCommand, z } from "@liche/core";
 import { downloadHttpFile } from "../../lib/http-file-download.ts";
 import { fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
 import { fetchWithSocrataAppToken } from "../../lib/socrata-token.ts";
+import type { SocrataFetch } from "../../lib/soda3.ts";
 
 type PartitionInterval = "day" | "month" | "year";
 
@@ -282,7 +279,7 @@ export async function runSocrataPartitionedCsvSnapshot(
   const manifestText =
     inputs.manifestText ??
     (await Bun.file(fromRepoRoot("knowledge/raw/source_manifest.yaml")).text());
-  const source = getSocrataSource(parseSourceManifest(manifestText), inputs.sourceId);
+  const source = getSocrataSource(loadSourceManifestYaml(manifestText), inputs.sourceId);
   const outputDir = inputs.outputDir ?? defaultOutputDir(source.id);
   const manifestPath = join(outputDir, "partition-manifest.json");
   const interval = inputs.interval ?? "month";
@@ -412,8 +409,7 @@ export async function runSocrataPartitionedCsvSnapshot(
 
 export default defineCommand({
   path: ["ingest", "socrata-partitioned-csv-snapshot"],
-  summary:
-    "Download or reuse authenticated SODA3 CSV exports partitioned by a timestamp column.",
+  summary: "Download or reuse authenticated SODA3 CSV exports partitioned by a timestamp column.",
   input: {
     options: z.object({
       sourceId: z
@@ -423,10 +419,7 @@ export default defineCommand({
       partitionField: z.string().min(1).describe("Timestamp field to partition on"),
       startDate: DateOnlySchema.describe("Inclusive partition start date, YYYY-MM-DD"),
       endDate: DateOnlySchema.describe("Exclusive partition end date, YYYY-MM-DD"),
-      interval: z
-        .enum(["day", "month", "year"])
-        .default("month")
-        .describe("Partition interval"),
+      interval: z.enum(["day", "month", "year"]).default("month").describe("Partition interval"),
       outputDir: z
         .string()
         .optional()

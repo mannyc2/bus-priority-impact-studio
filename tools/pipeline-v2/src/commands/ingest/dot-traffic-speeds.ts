@@ -1,15 +1,9 @@
 import { join } from "node:path";
-import { arg, defineCommand, z } from "@liche/core";
 import { insertDotTrafficSpeedSnapshot } from "@bp/db/local";
-import {
-  getSocrataSource,
-  normalizeDotTrafficSpeedRows,
-  parseSourceManifest,
-  type SocrataFetch,
-  type SocrataRow,
-  type SocrataRowsQuery,
-  SocrataClient,
-} from "@bp/sources";
+import { normalizeDotTrafficSpeedRows } from "@bp/sources/adapters/nyc-dot/traffic-speeds";
+import { getSocrataSource } from "@bp/sources/registry";
+import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
+import { arg, defineCommand, z } from "@liche/core";
 import {
   dbOptions,
   localDbFromCtx,
@@ -17,6 +11,12 @@ import {
   withLocalDb,
 } from "../../lib/local-db.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
+import {
+  fetchSoda3RowsForSource,
+  type SocrataFetch,
+  type SocrataRow,
+  type Soda3SoqlQuery,
+} from "../../lib/soda3.ts";
 import { writeRawSourceSnapshot } from "../../lib/source-snapshots.ts";
 
 const sourceId = "nyc_dot_traffic_speeds";
@@ -49,7 +49,7 @@ export async function runDotTrafficSpeedsIngest(
   const manifestText =
     inputs.manifestText ??
     (await Bun.file(fromRepoRoot("knowledge/raw/source_manifest.yaml")).text());
-  const source = getSocrataSource(parseSourceManifest(manifestText), sourceId);
+  const source = getSocrataSource(loadSourceManifestYaml(manifestText), sourceId);
   const fetchedAtDate = inputs.fetchedAt ?? new Date();
   const fetchedAt = fetchedAtDate.toISOString();
   const fetchedDayStamp = fetchedAt.slice(0, 19).replace(/[:T]/g, "-");
@@ -59,19 +59,19 @@ export async function runDotTrafficSpeedsIngest(
 
   const sinceHours = inputs.sinceHours ?? 1;
   const maxRows = inputs.maxRows ?? 10_000;
-  const lowerBound = toSocrataTimestamp(
-    new Date(fetchedAtDate.getTime() - sinceHours * 3_600_000),
-  );
-  const query: SocrataRowsQuery = {
+  const lowerBound = toSocrataTimestamp(new Date(fetchedAtDate.getTime() - sinceHours * 3_600_000));
+  const query: Soda3SoqlQuery = {
     select:
       "link_id,data_as_of,speed,travel_time,status,owner,borough,link_name,link_points,transcom_id",
     where: `data_as_of > '${lowerBound}' AND link_id IS NOT NULL`,
     order: "data_as_of DESC",
     limit: maxRows,
   };
-  const rawRows: SocrataRow[] = await SocrataClient.fromSource(source, {
-    fetcher: inputs.fetcher,
-  }).rows(query);
+  const rawRows: SocrataRow[] = [
+    ...(await fetchSoda3RowsForSource(source, query, {
+      fetcher: inputs.fetcher,
+    })),
+  ];
   const allRows = normalizeDotTrafficSpeedRows(rawRows);
 
   // Latest snapshot only: keep the most recent sampledAt per linkId. Drop
@@ -93,7 +93,8 @@ export async function runDotTrafficSpeedsIngest(
       geocodeConfidence: null,
     }));
 
-  const sampledAt = rows.length > 0 ? rows.map((r) => r.sampledAt).sort().at(-1)! : fetchedAt;
+  const sampledAtCandidates = rows.map((r) => r.sampledAt).sort();
+  const sampledAt = sampledAtCandidates.at(-1) ?? fetchedAt;
 
   await insertDotTrafficSpeedSnapshot(inputs.local.db, rows);
 

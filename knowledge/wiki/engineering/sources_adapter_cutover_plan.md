@@ -1,7 +1,7 @@
 ---
 title: Sources Adapter Cutover Plan
 type: engineering
-status: active
+status: completed
 last_updated: 2026-06-05
 owner: codex
 source_count: 3
@@ -147,7 +147,7 @@ Forbidden public imports after the cutover:
 @bp/sources/nyc-geoclient
 ```
 
-## Current blockers found on 2026-06-05
+## Initial blockers found on 2026-06-05
 
 - `packages/sources/src/socrata/client.ts` still builds `/resource/<dataset_id>.json` URLs and
   exposes `fetchSocrataRowsPage`, `fetchAllSocrataRows`, `SocrataRowsQuery`, and
@@ -162,6 +162,74 @@ Forbidden public imports after the cutover:
 - `tools/pipeline-v2` has many broad `@bp/sources` imports that must be replaced with focused
   subpaths.
 - Source and pipeline tests still assert old `/resource/...` URLs.
+
+## Phase 1 implementation status on 2026-06-05
+
+The hard cutover is implemented for package exports, manifest shape, pipeline callers, and the
+Studio route-speed watcher.
+
+- `@bp/sources` exposes focused subpaths only; the root export and old broad family subpaths are
+  gone.
+- The Socrata client path is SODA3-only for query and export helpers, app-token headers, retry,
+  timeout, pagination, and range-header forwarding.
+- `knowledge/raw/source_manifest.yaml` Socrata records declare `api: soda3`, `default_access`, and
+  SODA3 export backfill metadata rather than old `api_json`, `columns_json`, or `rows_csv` URLs.
+- `tools/pipeline-v2` imports `@bp/sources` only through explicit subpaths and uses the shared
+  pipeline SODA3 wrapper for row queries and CSV/partitioned exports.
+- `packages/studio-api` does not import `@bp/sources`; its route-speed watcher posts directly to
+  the SODA3 query endpoint and skips when `SOCRATA_APP_TOKEN` is absent.
+- The runtime scan over `packages/sources/src`, `tools/pipeline-v2/src`, `packages/studio-api/src`,
+  and the manifest found no legacy `api_json`, `columns_json`, `rows_csv`, `/resource/`,
+  `SocrataClient`, `fetchAllSocrataRows`, or `buildSocrataRowsUrl` paths.
+
+Remaining caveat: byte-range export behavior is fixture-covered at the client/header boundary, but
+provider-level resumable export support still needs the opt-in integration proof described above
+before archival backfills rely on resume behavior.
+
+## Completion status on 2026-06-05
+
+The implementation gates are closed for the source-adapter cutover.
+
+- Package exports are explicit subpaths only, with no root `@bp/sources` export and no old broad
+  family exports.
+- Socrata access is SODA3-only. Runtime scans over `packages/sources/src`, `tools/pipeline-v2/src`,
+  `packages/studio-api/src`, `apps/web/src`, and `knowledge/raw/source_manifest.yaml` found no
+  legacy `api_json`, `columns_json`, `rows_csv`, `/resource/`, `SocrataClient`,
+  `fetchAllSocrataRows`, or `buildSocrataRowsUrl` paths.
+- SODA3 query/export helpers cover JSON, CSV, and GeoJSON, return raw export `Response` objects,
+  forward app-token and byte-range headers, and have fixture-backed tests for paging, retry,
+  metadata, columns, row counts, export bodies, and range headers.
+- The source manifest parses through `tools/pipeline-v2` and allows operator `notes` while still
+  rejecting old SODA2 endpoint fields.
+- `packages/studio-api` and `apps/web` have zero runtime `@bp/sources` imports and zero direct
+  SODA2 `/resource/...` reads.
+- Probes are split into contracts, HTTP metadata transport, Socrata, realtime, redaction, and
+  orchestration modules. `Bun.spawn` remains isolated in
+  `@bp/sources/probes/transports/bun-curl`.
+- GTFS Realtime decoding now hides `gtfs-realtime-bindings` behind a private vendor wrapper and
+  accepts an injected decoder for tests/protocol fixtures.
+- `tools/pipeline-v2` has `sources soda3-range-probe`, a dry-run-by-default opt-in command for
+  recording provider range behavior. The command requires `SOCRATA_APP_TOKEN` for `--execute`; this
+  workspace did not have that token configured, so only the dry-run and fixture-backed execute path
+  were run here.
+
+Verification completed:
+
+```bash
+bun --filter @bp/sources typecheck
+bun --filter @bp/sources test
+bun --filter @bp/pipeline-v2 typecheck
+bun --filter @bp/studio-api typecheck
+bun run check:types
+bun run check:web-architecture
+bun test packages/studio-api/test/source-refresh.test.ts --timeout 5000
+bun test tools/pipeline-v2/test/commands/sources/soda3-range-probe.test.ts --timeout 5000
+bun --filter @bp/pipeline-v2 cli -- sources soda3-range-probe --source current_bus_routes --format csv --rangeEnd 63 --json
+```
+
+Full `bun run check:style` is not yet a cutover-clean signal because it still reports unrelated
+pre-existing app accessibility/format diagnostics outside the sources/pipeline/studio files touched
+for this work.
 
 ## Non-goals
 

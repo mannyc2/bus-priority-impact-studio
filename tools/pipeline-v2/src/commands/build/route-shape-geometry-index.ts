@@ -1,5 +1,5 @@
+import { normalizeRouteShapeRows } from "@bp/sources/adapters/mta/routes-stops";
 import { defineCommand, z } from "@liche/core";
-import { normalizeRouteShapeRows } from "@bp/sources";
 import {
   dbOptions,
   localDbFromCtx,

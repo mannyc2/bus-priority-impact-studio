@@ -1,11 +1,11 @@
-import { arg, defineCommand, z } from "@liche/core";
 import {
   type GtfsRtFeedType,
   replaceGtfsRtCollectionRun,
   replaceGtfsRtFeedSnapshots,
   replaceGtfsRtParsedSnapshot,
 } from "@bp/db/local";
-import { normalizeGtfsRtRouteId } from "@bp/sources";
+import { normalizeGtfsRealtimeRouteId } from "@bp/sources/gtfs-realtime";
+import { arg, defineCommand, z } from "@liche/core";
 import { isoMonth } from "../../lib/dates.ts";
 import {
   dbOptions,
@@ -162,7 +162,7 @@ function normalizeRouteId(row: Record<string, string>): {
   const explicitRouteId = textOrNull(get(row, "route_id_normalized", "routeId"));
   if (explicitRouteId !== null) return { sourceRouteId, routeId: explicitRouteId };
   if (sourceRouteId === null) return { sourceRouteId, routeId: null };
-  return { sourceRouteId, routeId: normalizeGtfsRtRouteId(sourceRouteId) };
+  return { sourceRouteId, routeId: normalizeGtfsRealtimeRouteId(sourceRouteId) };
 }
 
 function parseCanonicalRow(headers: string[], line: string): CanonicalBusObservatoryRow {
@@ -458,7 +458,8 @@ export async function runImportBusObservatoryGtfsRt(
 
 export default defineCommand({
   path: ["import", "bus-observatory-gtfs-rt"],
-  summary: "Import a canonicalized Bus Observatory recovered GTFS-RT CSV into the local pipeline DB.",
+  summary:
+    "Import a canonicalized Bus Observatory recovered GTFS-RT CSV into the local pipeline DB.",
   input: {
     options: dbOptions.extend({
       runId: z.string().min(1).describe("Stable run identifier"),

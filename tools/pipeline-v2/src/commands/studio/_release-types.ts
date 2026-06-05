@@ -2,17 +2,15 @@ import type { LocalBusLane } from "@bp/db/local";
 import type {
   ClaimCaveat as DomainClaimCaveat,
   ClaimEvidence as DomainClaimEvidence,
-  StudioAiPublicNote,
+  StudioBrief as DomainStudioBrief,
   StudioFinding as DomainStudioFinding,
   StudioIntervention as DomainStudioIntervention,
   StudioRoute as DomainStudioRoute,
   StudioSegment as DomainStudioSegment,
-  StudioBrief as DomainStudioBrief,
+  StudioAiPublicNote,
   StudioSpeedPercentileContext,
 } from "@bp/domain";
-import type {
-  SocrataRow,
-} from "@bp/sources";
+import type { SocrataRow } from "@bp/sources/clients/socrata";
 
 // The Studio release pipeline annotates the canonical domain Route/Segment/Brief
 // shapes with additional provenance fields (lane source, TSP source-snapshot
@@ -90,10 +88,7 @@ export type StudioClaimCaveat = DomainClaimCaveat & {
   id: string;
 };
 
-export type StudioBrief = Omit<
-  DomainStudioBrief,
-  "evidence" | "caveats" | "citationCount"
-> & {
+export type StudioBrief = Omit<DomainStudioBrief, "evidence" | "caveats" | "citationCount"> & {
   evidence: StudioClaimEvidence[];
   caveats: StudioClaimCaveat[];
   citationCount?: number;
@@ -214,6 +209,7 @@ export type RouteBriefTopStopBoardings = {
 // produces and the StudioRouteSegmentEvidence schema accepts. Re-export the
 // schema-derived type so downstream consumers stay aligned.
 export type { RouteBriefHourlyPassengerDelay } from "../route/brief-model.ts";
+
 import type { RouteBriefHourlyPassengerDelay as _RouteBriefHourlyPassengerDelay } from "../route/brief-model.ts";
 
 export type RouteBriefSegment = {

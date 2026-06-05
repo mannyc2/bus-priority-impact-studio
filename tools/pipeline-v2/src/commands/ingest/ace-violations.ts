@@ -1,15 +1,9 @@
 import { join } from "node:path";
-import { arg, defineCommand, z } from "@liche/core";
 import { replaceAceViolationSummaries } from "@bp/db/local";
-import {
-  getSocrataSource,
-  normalizeAceViolationSummaryRows,
-  parseSourceManifest,
-  type SocrataFetch,
-  type SocrataRow,
-  type SocrataRowsQuery,
-  SocrataClient,
-} from "@bp/sources";
+import { normalizeAceViolationSummaryRows } from "@bp/sources/adapters/mta/ace";
+import { getSocrataSource } from "@bp/sources/registry";
+import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
+import { arg, defineCommand, z } from "@liche/core";
 import { isoMonth, isoMonthStart, nextIsoMonthStart } from "../../lib/dates.ts";
 import {
   dbOptions,
@@ -18,10 +12,17 @@ import {
   withLocalDb,
 } from "../../lib/local-db.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
+import {
+  fetchSoda3RowsForSource,
+  type SocrataFetch,
+  type SocrataRow,
+  type Soda3SoqlQuery,
+} from "../../lib/soda3.ts";
 import { writeRawSourceSnapshot } from "../../lib/source-snapshots.ts";
 
 const sourceId = "ace_violations";
 const ROUTE_ID_PATTERN = /^[A-Z][A-Z0-9+-]*$/;
+const busRouteIdField = "bus_route_id";
 
 export type AceViolationsRunInputs = {
   local: OpenLocalPipelineDb;
@@ -49,13 +50,13 @@ export async function runAceViolationsIngest(
   const manifestText =
     inputs.manifestText ??
     (await Bun.file(fromRepoRoot("knowledge/raw/source_manifest.yaml")).text());
-  const source = getSocrataSource(parseSourceManifest(manifestText), sourceId);
+  const source = getSocrataSource(loadSourceManifestYaml(manifestText), sourceId);
   const fetchedAt = (inputs.fetchedAt ?? new Date()).toISOString();
   const rawPath =
     inputs.snapshotPath ??
     fromRepoRoot(join("data/raw/interventions", `ace-violations-${monthKey}.json`));
 
-  const query: SocrataRowsQuery = {
+  const query: Soda3SoqlQuery = {
     select: "bus_route_id,violation_type,violation_status,count(*) as violation_count",
     where: [
       `first_occurrence >= '${isoMonthStart(inputs.year, inputs.month)}'`,
@@ -67,13 +68,14 @@ export async function runAceViolationsIngest(
     group: "bus_route_id,violation_type,violation_status",
     order: "bus_route_id,violation_type,violation_status",
   };
-  const rawRows: SocrataRow[] = await SocrataClient.fromSource(source, {
-    fetcher: inputs.fetcher,
-  }).rows(query);
+  const rawRows: SocrataRow[] = [
+    ...(await fetchSoda3RowsForSource(source, query, {
+      fetcher: inputs.fetcher,
+    })),
+  ];
   const filteredRawRows = rawRows.filter((row) => {
-    const id = typeof row["bus_route_id"] === "string"
-      ? row["bus_route_id"].trim().toUpperCase()
-      : "";
+    const routeId = row[busRouteIdField];
+    const id = typeof routeId === "string" ? routeId.trim().toUpperCase() : "";
     return ROUTE_ID_PATTERN.test(id);
   });
   const skippedMalformedRouteIdCount = rawRows.length - filteredRawRows.length;

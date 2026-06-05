@@ -91,6 +91,10 @@ function hasWildcardReExport(text: string): boolean {
   return /export\s+\*\s+(?:as\s+\w+\s+)?from\s+["'][^"']+["']/.test(text);
 }
 
+async function fileExists(path: string): Promise<boolean> {
+  return Bun.file(path).exists();
+}
+
 async function findSrcTestFiles(): Promise<string[]> {
   const testFileGlob = new Bun.Glob("**/*.{test,spec}.ts");
   const roots = ["apps", "packages", "tools"];
@@ -118,7 +122,8 @@ describe("production boundary harness", () => {
     };
 
     expect(pipelinePackage.name).toBe("@bp/pipeline-v2");
-    expect(pipelinePackage.scripts?.cli).toBe("bun run src/cli.ts");
+    const pipelineCliScript = "cli";
+    expect(pipelinePackage.scripts?.[pipelineCliScript]).toBe("bun run src/cli.ts");
 
     for (const [script, command] of Object.entries(requiredRootScripts)) {
       expect(rootPackage.scripts?.[script], `root package ${script} drifted`).toBe(command);
@@ -284,6 +289,87 @@ describe("production boundary harness", () => {
       const text = await Bun.file(path).text();
 
       expect(hasWildcardReExport(text), `${path} uses a wildcard barrel export`).toBe(false);
+    }
+  });
+
+  test("@bp/sources exposes only intentional subpath exports", async () => {
+    const packageJson = (await Bun.file("packages/sources/package.json").json()) as {
+      exports?: Record<string, Record<string, string>>;
+    };
+    const exportsMap = packageJson.exports ?? {};
+    const removedExports = ["./mta", "./socrata", "./nyc-public-data", "./nyc-geoclient"];
+
+    expect(exportsMap["."], "@bp/sources must not expose a root barrel").toBeUndefined();
+    for (const exportKey of removedExports) {
+      expect(exportsMap[exportKey], `@bp/sources still exposes ${exportKey}`).toBeUndefined();
+    }
+
+    for (const [exportKey, conditions] of Object.entries(exportsMap)) {
+      for (const [condition, target] of Object.entries(conditions)) {
+        expect(
+          await fileExists(`packages/sources/${target.replace(/^\.\//, "")}`),
+          `@bp/sources export ${exportKey}.${condition} points at missing ${target}`,
+        ).toBe(true);
+      }
+    }
+  });
+
+  test("@bp/sources is SODA3-only and keeps Bun/runtime adapters isolated", async () => {
+    const files = await readFiles("packages/sources/src");
+    const bunAllowed = new Set([
+      "packages/sources/src/registry/loaders/bun-yaml.ts",
+      "packages/sources/src/probes/transports/bun-curl.ts",
+    ]);
+    const gtfsRealtimeBindingsAllowed =
+      "packages/sources/src/gtfs-realtime/vendor/gtfs-realtime-bindings.ts";
+    const forbiddenImports = ["apps/", "tools/", "knowledge/", "@bp/db", "@bp/analytics"];
+
+    for (const file of files) {
+      expect(file.text.includes("process.env"), `${file.path} reads process.env`).toBe(false);
+      expect(file.text.includes("/resource/"), `${file.path} contains a SODA2 /resource path`).toBe(
+        false,
+      );
+      expect(file.text.includes("buildSocrataRowsUrl"), `${file.path} exposes SODA2 rows URL`).toBe(
+        false,
+      );
+      expect(
+        file.text.includes("SocrataClient.fromSource"),
+        `${file.path} exposes old client`,
+      ).toBe(false);
+
+      if (!bunAllowed.has(file.path)) {
+        expect(file.text.includes("Bun."), `${file.path} uses Bun outside an adapter`).toBe(false);
+      }
+
+      if (file.path !== gtfsRealtimeBindingsAllowed) {
+        expect(
+          extractModuleSpecifiers(file.text).includes("gtfs-realtime-bindings"),
+          `${file.path} imports GTFS-RT vendor bindings directly`,
+        ).toBe(false);
+      }
+
+      for (const forbiddenImport of forbiddenImports) {
+        expect(
+          importsForbiddenSpecifier(file.text, forbiddenImport),
+          `${file.path} imports ${forbiddenImport}`,
+        ).toBe(false);
+      }
+    }
+  });
+
+  test("repo code imports @bp/sources through explicit subpaths only", async () => {
+    const files = [
+      ...(await readFiles("apps")),
+      ...(await readFiles("packages")),
+      ...(await readFiles("tools")),
+      ...(await readFiles("tests")),
+    ];
+
+    for (const file of files) {
+      expect(
+        extractModuleSpecifiers(file.text).includes("@bp/sources"),
+        `${file.path} imports the @bp/sources root barrel`,
+      ).toBe(false);
     }
   });
 

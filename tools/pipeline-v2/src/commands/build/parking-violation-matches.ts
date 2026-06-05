@@ -1,8 +1,8 @@
 import { mkdir, readdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import type { Geoclient } from "@bp/sources/clients/geoclient";
+import { canonicalBoroughCode, normalizeStreetName } from "@bp/sources/clients/geoclient";
 import { arg, defineCommand, z } from "@liche/core";
-import type { Geoclient } from "@bp/sources/nyc-geoclient";
-import { canonicalBoroughCode, normalizeStreetName } from "@bp/sources/nyc-geoclient";
 import { createGeoclientFromEnv, Geocoder } from "../../lib/geocoder.ts";
 import { writeJson } from "../../lib/json.ts";
 import {
@@ -641,8 +641,7 @@ function resolveStreetCodeHouseGroup(args: {
   if (physicalIds.length === 0) return null;
   const routes = routesForPhysicalIds(args.local, physicalIds, args.physicalRouteCache);
   if (routes.length === 0) return null;
-  const confidence =
-    physicalIds.length <= 2 ? "high" : physicalIds.length <= 6 ? "medium" : "low";
+  const confidence = physicalIds.length <= 2 ? "high" : physicalIds.length <= 6 ? "medium" : "low";
   return {
     locationKey: args.group.location_key,
     matchKind: "street_code_house_range",
@@ -768,11 +767,7 @@ function buildStreetRouteIndex(local: OpenLocalPipelineDb): Map<string, RouteCan
   return index;
 }
 
-function insertMatch(
-  local: OpenLocalPipelineDb,
-  match: MatchInsert,
-  computedAt: string,
-): void {
+function insertMatch(local: OpenLocalPipelineDb, match: MatchInsert, computedAt: string): void {
   const weightBase =
     match.matchKind === "street_code_house_range"
       ? match.confidence === "high"
@@ -880,8 +875,7 @@ function textValue(input: unknown): string | null {
 }
 
 function numberValue(input: unknown): number | null {
-  const value =
-    typeof input === "number" ? input : typeof input === "string" ? Number(input) : NaN;
+  const value = typeof input === "number" ? input : typeof input === "string" ? Number(input) : NaN;
   return Number.isFinite(value) ? Math.round(value) : null;
 }
 

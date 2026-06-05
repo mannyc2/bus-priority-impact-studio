@@ -1,15 +1,9 @@
 import { join } from "node:path";
-import { arg, defineCommand, z } from "@liche/core";
 import { replaceBusWaitAssessmentRows } from "@bp/db/local";
-import {
-  getSocrataSource,
-  normalizeBusWaitAssessmentRows,
-  parseSourceManifest,
-  type SocrataFetch,
-  type SocrataRow,
-  type SocrataRowsQuery,
-  SocrataClient,
-} from "@bp/sources";
+import { normalizeBusWaitAssessmentRows } from "@bp/sources/adapters/mta/bus-wait-assessment";
+import { getSocrataSource } from "@bp/sources/registry";
+import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
+import { arg, defineCommand, z } from "@liche/core";
 import { isoMonth, isoMonthStart, nextIsoMonthStart } from "../../lib/dates.ts";
 import {
   dbOptions,
@@ -18,6 +12,12 @@ import {
   withLocalDb,
 } from "../../lib/local-db.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
+import {
+  fetchSoda3RowsForSource,
+  type SocrataFetch,
+  type SocrataRow,
+  type Soda3SoqlQuery,
+} from "../../lib/soda3.ts";
 import { writeRawSourceSnapshot } from "../../lib/source-snapshots.ts";
 
 const sourceId = "bus_wait_assessment";
@@ -46,13 +46,13 @@ export async function runBusWaitAssessmentIngest(
   const manifestText =
     inputs.manifestText ??
     (await Bun.file(fromRepoRoot("knowledge/raw/source_manifest.yaml")).text());
-  const source = getSocrataSource(parseSourceManifest(manifestText), sourceId);
+  const source = getSocrataSource(loadSourceManifestYaml(manifestText), sourceId);
   const fetchedAt = (inputs.fetchedAt ?? new Date()).toISOString();
   const rawPath =
     inputs.snapshotPath ??
     fromRepoRoot(join("data/raw/reliability", `bus-wait-assessment-${monthKey}.json`));
 
-  const query: SocrataRowsQuery = {
+  const query: Soda3SoqlQuery = {
     select:
       "month,borough,day_type,trip_type,route_id,period,number_of_trips_passing_wait,number_of_scheduled_trips,wait_assessment",
     where: [
@@ -63,9 +63,11 @@ export async function runBusWaitAssessmentIngest(
     ].join(" AND "),
     order: "route_id,day_type,trip_type,period",
   };
-  const rawRows: SocrataRow[] = await SocrataClient.fromSource(source, {
-    fetcher: inputs.fetcher,
-  }).rows(query);
+  const rawRows: SocrataRow[] = [
+    ...(await fetchSoda3RowsForSource(source, query, {
+      fetcher: inputs.fetcher,
+    })),
+  ];
   const rows = normalizeBusWaitAssessmentRows(rawRows).filter((row) => row.month === monthKey);
   const routeIds = [...new Set(rows.map((row) => row.routeId))].sort();
 

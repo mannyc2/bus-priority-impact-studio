@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { canonicalBoroughCode, normalizeStreetName } from "@bp/sources/nyc-geoclient";
+import { canonicalBoroughCode, normalizeStreetName } from "@bp/sources/clients/geoclient";
 
 export type ParsedParkingCameraLocation = {
   direction: string | null;

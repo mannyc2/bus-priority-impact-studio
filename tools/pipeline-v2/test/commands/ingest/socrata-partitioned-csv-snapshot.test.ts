@@ -17,14 +17,20 @@ sources:
     domain: data.ny.gov
     dataset_id: gxb3-akrn
     url: https://data.ny.gov/Transportation/MTA-Bus-Hourly-Ridership-2025/gxb3-akrn
-    api_json: https://data.ny.gov/resource/gxb3-akrn.json
-    columns_json: https://data.ny.gov/api/views/gxb3-akrn/columns.json
-    rows_csv: https://data.ny.gov/api/views/gxb3-akrn/rows.csv?accessType=DOWNLOAD
+    api: soda3
+    default_access:
+      kind: query
+      format: json
+    backfill:
+      kind: soda3_export
+      format: csv
+      supportsByteRange: false
     purpose: Test source.
     status: active
 `;
 
 const tempDirs: string[] = [];
+const socrataAppTokenEnv = "SOCRATA_APP_TOKEN";
 
 async function makeTempDir(): Promise<string> {
   const dir = await mkdtemp(join(tmpdir(), "bp-socrata-partitioned-csv-snapshot-"));
@@ -33,13 +39,13 @@ async function makeTempDir(): Promise<string> {
 }
 
 function withTemporaryToken<T>(token: string, run: () => Promise<T>): Promise<T> {
-  const originalToken = process.env["SOCRATA_APP_TOKEN"];
-  process.env["SOCRATA_APP_TOKEN"] = token;
+  const originalToken = process.env[socrataAppTokenEnv];
+  process.env[socrataAppTokenEnv] = token;
   return run().finally(() => {
     if (originalToken === undefined) {
-      delete process.env["SOCRATA_APP_TOKEN"];
+      delete process.env[socrataAppTokenEnv];
     } else {
-      process.env["SOCRATA_APP_TOKEN"] = originalToken;
+      process.env[socrataAppTokenEnv] = originalToken;
     }
   });
 }
@@ -62,10 +68,14 @@ describe("runSocrataPartitionedCsvSnapshot", () => {
       ["2025-02-01", "2025-03-01"],
       ["2025-03-01", "2025-04-01"],
     ]);
+    const firstChunk = chunks[0];
+    if (firstChunk === undefined) {
+      throw new Error("Expected at least one partition chunk.");
+    }
     expect(
       buildSocrataPartitionQuery({
         partitionField: "transit_timestamp",
-        chunk: chunks[0]!,
+        chunk: firstChunk,
         where: "bus_route = 'M15'",
         limit: 10,
       }),

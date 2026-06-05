@@ -1,15 +1,9 @@
 import type { Database } from "bun:sqlite";
 import { isAbsolute, join, relative } from "node:path";
 import { replaceBusCustomerJourneyMetricRows } from "@bp/db/local";
-import {
-  getSocrataSource,
-  normalizeBusCustomerJourneyMetricRows,
-  parseSourceManifest,
-  SocrataClient,
-  type SocrataFetch,
-  type SocrataRow,
-  type SocrataRowsQuery,
-} from "@bp/sources";
+import { normalizeBusCustomerJourneyMetricRows } from "@bp/sources/adapters/mta/bus-customer-journey-metrics";
+import { getSocrataSource } from "@bp/sources/registry";
+import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { arg, defineCommand, z } from "@liche/core";
 import { isoMonth, isoMonthStart, monthRange, nextIsoMonthStart } from "../../lib/dates.ts";
 import {
@@ -19,6 +13,12 @@ import {
   withLocalDb,
 } from "../../lib/local-db.ts";
 import { fromRepoRoot, repoRoot } from "../../lib/paths.ts";
+import {
+  fetchSoda3RowsForSource,
+  type SocrataFetch,
+  type SocrataRow,
+  type Soda3SoqlQuery,
+} from "../../lib/soda3.ts";
 import { writeRawSourceSnapshot } from "../../lib/source-snapshots.ts";
 
 const sourceId = "bus_customer_journey_metrics";
@@ -80,7 +80,7 @@ export async function runBusCustomerJourneyMetricsIngest(
   const manifestText =
     inputs.manifestText ??
     (await Bun.file(fromRepoRoot("knowledge/raw/source_manifest.yaml")).text());
-  const source = getSocrataSource(parseSourceManifest(manifestText), sourceId);
+  const source = getSocrataSource(loadSourceManifestYaml(manifestText), sourceId);
   const fetchedAt = (inputs.fetchedAt ?? new Date()).toISOString();
   const rawPath =
     inputs.snapshotPath ??
@@ -93,7 +93,7 @@ export async function runBusCustomerJourneyMetricsIngest(
       ),
     );
 
-  const query: SocrataRowsQuery = {
+  const query: Soda3SoqlQuery = {
     select:
       "month,borough,trip_type,route_id,period,number_of_customers,additional_bus_stop_time,additional_travel_time,customer_journey_time",
     where: [
@@ -104,9 +104,11 @@ export async function runBusCustomerJourneyMetricsIngest(
     ].join(" AND "),
     order: "month,route_id,trip_type,period",
   };
-  const rawRows: SocrataRow[] = await SocrataClient.fromSource(source, {
-    fetcher: inputs.fetcher,
-  }).rows(query);
+  const rawRows: SocrataRow[] = [
+    ...(await fetchSoda3RowsForSource(source, query, {
+      fetcher: inputs.fetcher,
+    })),
+  ];
   const monthSet = new Set(months.map((month) => month.isoMonth));
   const rows = normalizeBusCustomerJourneyMetricRows(rawRows).filter((row) =>
     monthSet.has(row.month),

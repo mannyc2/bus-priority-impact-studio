@@ -1,17 +1,14 @@
 import { join } from "node:path";
-import { defineCommand, z } from "@liche/core";
 import { replaceRouteCatalog } from "@bp/db/local";
 import {
-  getSocrataSource,
   type NormalizedRouteShape,
   type NormalizedStop,
   normalizeRouteShapeRows,
   normalizeStopRows,
-  parseSourceManifest,
-  type SocrataFetch,
-  type SocrataRow,
-  SocrataClient,
-} from "@bp/sources";
+} from "@bp/sources/adapters/mta/routes-stops";
+import { getSocrataSource } from "@bp/sources/registry";
+import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
+import { defineCommand, z } from "@liche/core";
 import {
   dbOptions,
   localDbFromCtx,
@@ -19,6 +16,7 @@ import {
   withLocalDb,
 } from "../../lib/local-db.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
+import { fetchSoda3RowsForSource, type SocrataFetch } from "../../lib/soda3.ts";
 import { writeRawSourceSnapshot } from "../../lib/source-snapshots.ts";
 
 const schemaVersion = 1;
@@ -212,10 +210,7 @@ function buildCatalogEntry(
     routeTypes: uniqueSorted(shapes.map((s) => s.routeType)),
     tripTypes: uniqueSorted(shapes.map((s) => s.tripType)),
     bundles: uniqueSorted(shapes.map((s) => s.bundle)),
-    directions: uniqueSorted([
-      ...shapes.map((s) => s.direction),
-      ...stops.map((s) => s.direction),
-    ]),
+    directions: uniqueSorted([...shapes.map((s) => s.direction), ...stops.map((s) => s.direction)]),
     shapeCount: shapes.length,
     stopCount: stops.length,
     timepointStopCount: stops.filter((s) => s.timepoint).length,
@@ -244,7 +239,7 @@ export async function runRouteCatalogIngest(
   const manifestText =
     inputs.manifestText ??
     (await Bun.file(fromRepoRoot("knowledge/raw/source_manifest.yaml")).text());
-  const manifest = parseSourceManifest(manifestText);
+  const manifest = loadSourceManifestYaml(manifestText);
   const routeSource = getSocrataSource(manifest, "current_bus_routes");
   const stopSource = getSocrataSource(manifest, "current_bus_stops");
   const fetchedAt = (inputs.fetchedAt ?? new Date()).toISOString();
@@ -252,15 +247,11 @@ export async function runRouteCatalogIngest(
   const routeQuery = { where: "in_effect='true'", order: "route_id,direction_id,shape_id" };
   const stopQuery = { where: "in_effect='true'", order: "route_id,direction_id,stop_id" };
   const [routeRows, stopRows] = await Promise.all([
-    SocrataClient.fromSource(routeSource, { fetcher: inputs.fetcher }).rows(routeQuery) as Promise<
-      SocrataRow[]
-    >,
-    SocrataClient.fromSource(stopSource, { fetcher: inputs.fetcher }).rows(stopQuery) as Promise<
-      SocrataRow[]
-    >,
+    fetchSoda3RowsForSource(routeSource, routeQuery, { fetcher: inputs.fetcher }),
+    fetchSoda3RowsForSource(stopSource, stopQuery, { fetcher: inputs.fetcher }),
   ]);
-  const routeShapes = normalizeRouteShapeRows(routeRows);
-  const stops = normalizeStopRows(stopRows);
+  const routeShapes = normalizeRouteShapeRows([...routeRows]);
+  const stops = normalizeStopRows([...stopRows]);
   const catalog = buildCatalog(routeShapes, stops);
   const timepointStopCount = stops.filter((s) => s.timepoint).length;
 
@@ -272,14 +263,14 @@ export async function runRouteCatalogIngest(
       sourceId: "current_bus_routes",
       fetchedAt,
       query: routeQuery,
-      rows: routeRows,
+      rows: [...routeRows],
     }),
     writeRawSourceSnapshot({
       path: join(rawDir, "current_bus_stops.json"),
       sourceId: "current_bus_stops",
       fetchedAt,
       query: stopQuery,
-      rows: stopRows,
+      rows: [...stopRows],
     }),
   ]);
 
@@ -295,7 +286,8 @@ export async function runRouteCatalogIngest(
 
 export default defineCommand({
   path: ["ingest", "route-catalog"],
-  summary: "Build the route catalog from Socrata routes + stops, with terminus and length summaries.",
+  summary:
+    "Build the route catalog from Socrata routes + stops, with terminus and length summaries.",
   input: { options: dbOptions },
   middleware: [withLocalDb()],
   output: z.object({
