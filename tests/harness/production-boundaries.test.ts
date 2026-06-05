@@ -55,6 +55,18 @@ function importsForbiddenSpecifier(text: string, forbiddenSpecifier: string): bo
   });
 }
 
+function importsForbiddenPathSpecifier(text: string, forbiddenPath: string): boolean {
+  return extractModuleSpecifiers(text).some((specifier) => {
+    const normalized = specifier.replaceAll("\\", "/");
+    return (
+      normalized === forbiddenPath ||
+      normalized.startsWith(`${forbiddenPath}/`) ||
+      normalized.includes(`/${forbiddenPath}/`) ||
+      normalized.endsWith(`/${forbiddenPath}`)
+    );
+  });
+}
+
 function importsProductionFixture(text: string): string | null {
   return (
     extractModuleSpecifiers(text).find(
@@ -106,7 +118,7 @@ describe("production boundary harness", () => {
     };
 
     expect(pipelinePackage.name).toBe("@bp/pipeline-v2");
-    expect(pipelinePackage.scripts?.["cli"]).toBe("bun run src/cli.ts");
+    expect(pipelinePackage.scripts?.cli).toBe("bun run src/cli.ts");
 
     for (const [script, command] of Object.entries(requiredRootScripts)) {
       expect(rootPackage.scripts?.[script], `root package ${script} drifted`).toBe(command);
@@ -226,6 +238,45 @@ describe("production boundary harness", () => {
     }
   });
 
+  test("Studio API package stays a Cloudflare runtime boundary without UI, pipeline, analytics, or source fetchers", async () => {
+    const files = await readFiles("packages/studio-api/src");
+    const forbiddenImports = [
+      "@/",
+      "@bp/analytics",
+      "@bp/applied-research",
+      "@bp/db/local",
+      "@bp/sources",
+      "@bp/pipeline",
+      "@bp/pipeline-v2",
+      "@bp/studio-api",
+      "@tanstack/react-router",
+      "@tanstack/router-plugin",
+      "@vitejs/plugin-react",
+      "maplibre-gl",
+      "react",
+      "react-dom",
+      "vite",
+      "wrangler",
+    ];
+    const forbiddenPaths = ["apps", "tools", "knowledge"];
+
+    for (const file of files) {
+      for (const forbiddenImport of forbiddenImports) {
+        expect(
+          importsForbiddenSpecifier(file.text, forbiddenImport),
+          `${file.path} imports ${forbiddenImport}`,
+        ).toBe(false);
+      }
+
+      for (const forbiddenPath of forbiddenPaths) {
+        expect(
+          importsForbiddenPathSpecifier(file.text, forbiddenPath),
+          `${file.path} imports ${forbiddenPath}`,
+        ).toBe(false);
+      }
+    }
+  });
+
   test("package root barrels use explicit re-exports", async () => {
     const glob = new Bun.Glob("packages/*/src/index.ts");
 
@@ -238,5 +289,16 @@ describe("production boundary harness", () => {
 
   test("tests stay out of production src trees", async () => {
     expect(await findSrcTestFiles()).toEqual([]);
+  });
+
+  test("new D1 query modules use Drizzle repositories instead of raw D1 prepare calls", async () => {
+    const files = await readFiles("packages/db/src/d1/queries");
+
+    for (const file of files) {
+      expect(
+        file.text.includes(".prepare("),
+        `${file.path} uses raw D1 prepare instead of the Drizzle repository surface`,
+      ).toBe(false);
+    }
   });
 });

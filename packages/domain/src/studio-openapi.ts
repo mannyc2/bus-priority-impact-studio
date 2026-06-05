@@ -1,9 +1,9 @@
 import {
-  studioBriefAgentProposalResponseJsonSchema,
   studioBriefAgentProposalApplyRequestJsonSchema,
   studioBriefAgentProposalApplyResponseJsonSchema,
   studioBriefAgentProposalRejectRequestJsonSchema,
   studioBriefAgentProposalRejectResponseJsonSchema,
+  studioBriefAgentProposalResponseJsonSchema,
   studioBriefAgentProposeEditRequestJsonSchema,
   studioBriefAgentProposeEditResultJsonSchema,
   studioBriefAgentRunCreateRequestJsonSchema,
@@ -35,10 +35,10 @@ import {
   studioBriefDraftRetractRequestJsonSchema,
   studioBriefDraftReviewRequestJsonSchema,
   studioBriefDraftValidationResponseJsonSchema,
+  studioBriefDraftVerdictRequestJsonSchema,
   studioBriefDraftVersionRestoreRequestJsonSchema,
   studioBriefDraftVersionRestoreResponseJsonSchema,
   studioBriefDraftVersionsResponseJsonSchema,
-  studioBriefDraftVerdictRequestJsonSchema,
   studioBriefGenerationJobResponseJsonSchema,
 } from "./studio-brief-draft-schemas.js";
 import {
@@ -56,6 +56,7 @@ import {
   studioRouteLadderResponseJsonSchema,
   studioRoutesResponseJsonSchema,
   studioSearchResponseJsonSchema,
+  studioSnapshotResponseJsonSchema,
 } from "./studio-schemas.js";
 
 type HttpMethod = "get" | "post" | "put" | "patch" | "delete";
@@ -293,6 +294,13 @@ const paths: Record<string, Partial<Record<HttpMethod, Operation>>> = {
           description: "Free-text Studio query.",
         },
       ],
+    ),
+  },
+  "/api/v1/studio/snapshot": {
+    get: getOperation(
+      "getStudioSnapshot",
+      "Fetch the active Studio release/projection manifest.",
+      studioSnapshotResponseJsonSchema,
     ),
   },
   "/api/v1/studio/routes/{routeId}": {

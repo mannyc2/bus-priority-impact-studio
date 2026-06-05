@@ -6,8 +6,8 @@ import {
   buildStudioRouteProjection,
   buildStudioRoutesProjection,
   StudioBriefAgentProposalApplyResponseSchema,
-  StudioBriefAgentProposalResponseSchema,
   StudioBriefAgentProposalRejectResponseSchema,
+  StudioBriefAgentProposalResponseSchema,
   StudioBriefAgentProposeEditResultSchema,
   StudioBriefAgentRunResponseSchema,
   StudioBriefCreateResponseSchema,
@@ -114,6 +114,53 @@ type Row = {
   [key: string]: unknown;
 };
 
+function insertedRow(normalized: string, bound: unknown[]): Row {
+  const columnStart = normalized.indexOf("(");
+  const columnEnd = normalized.indexOf(")", columnStart);
+  const valuesStart = normalized.indexOf("(", normalized.indexOf(" values "));
+  const valuesEnd = normalized.indexOf(")", valuesStart);
+  const columns = normalized
+    .slice(columnStart + 1, columnEnd)
+    .split(",")
+    .map((column) => column.trim());
+  const valueTokens = normalized
+    .slice(valuesStart + 1, valuesEnd)
+    .split(",")
+    .map((value) => value.trim());
+  let boundIndex = 0;
+  return Object.fromEntries(
+    columns.map((column, index) => {
+      const token = valueTokens[index];
+      if (token === "?") return [column, bound[boundIndex++]];
+      if (token === "null") return [column, null];
+      if (token?.startsWith("'") && token.endsWith("'")) return [column, token.slice(1, -1)];
+      return [column, token ?? null];
+    }),
+  );
+}
+
+function assignmentValues(normalized: string, bound: unknown[]): Row {
+  const setStart = normalized.indexOf(" set ") + 5;
+  const whereStart = normalized.indexOf(" where ", setStart);
+  const assignments = normalized
+    .slice(setStart, whereStart)
+    .split(",")
+    .map((assignment) => assignment.trim());
+  let boundIndex = 0;
+  return Object.fromEntries(
+    assignments.map((assignment) => {
+      const [columnPart, valuePart] = assignment.split("=").map((part) => part.trim());
+      const column = columnPart ?? "";
+      if (valuePart === "?") return [column, bound[boundIndex++]];
+      if (valuePart === "null") return [column, null];
+      if (valuePart?.startsWith("'") && valuePart.endsWith("'")) {
+        return [column, valuePart.slice(1, -1)];
+      }
+      return [column, valuePart ?? null];
+    }),
+  );
+}
+
 class FakeR2Object {
   readonly httpEtag = '"test-etag"';
   readonly body: ReadableStream<Uint8Array>;
@@ -182,10 +229,11 @@ class FakeStudioDraftDb {
   idempotency: Row[] = [];
 
   prepare(query: string) {
-    const normalized = query.toLowerCase();
+    const normalized = query.toLowerCase().replaceAll('"', "");
     const captureSelf = this;
     let bound: unknown[] = [];
     return {
+      queryText: normalized,
       bind(...values: unknown[]) {
         bound = values;
         return this;
@@ -197,16 +245,37 @@ class FakeStudioDraftDb {
       async all() {
         return { results: captureSelf.rowsForQuery(normalized, bound) };
       },
+      async raw() {
+        return captureSelf.rowsForQuery(normalized, bound).map((row) => Object.values(row));
+      },
       async run() {
         return { meta: captureSelf.runQuery(normalized, bound) };
       },
     };
   }
 
+  async batch(
+    statements: Array<{
+      queryText: string;
+      all(): Promise<{ results: Row[] }>;
+      run(): Promise<{ meta: { changes: number } }>;
+    }>,
+  ): Promise<unknown[]> {
+    const results: unknown[] = [];
+    for (const statement of statements) {
+      if (statement.queryText.trimStart().startsWith("select")) {
+        results.push(await statement.all());
+      } else {
+        results.push(await statement.run());
+      }
+    }
+    return results;
+  }
+
   private rowsForQuery(normalized: string, bound: unknown[]): Row[] {
-    if (normalized.includes("from identity_session s") && normalized.includes("join identity i")) {
+    if (normalized.includes("from identity_session") && normalized.includes("join identity")) {
       const tokenHash = bound[0] as string;
-      const nowStr = bound[1] as string;
+      const nowStr = (bound.length > 3 ? bound[3] : bound[1]) as string;
       const session = this.session.find(
         (row) =>
           row.token_hash === tokenHash &&
@@ -217,7 +286,7 @@ class FakeStudioDraftDb {
       );
       if (session === undefined) return [];
       const identity = this.identity.find((row) => row.identity_id === session.identity_id);
-      if (identity === undefined || identity.active !== 1) return [];
+      if (identity === undefined || (identity.active !== 1 && identity.active !== true)) return [];
       return [
         {
           session_id: session.session_id,
@@ -231,7 +300,9 @@ class FakeStudioDraftDb {
     }
     if (normalized.includes("from studio_actor_role")) {
       const identityId = bound[0] as string;
-      const role = this.role.find((row) => row.identity_id === identityId && row.active === 1);
+      const role = this.role.find(
+        (row) => row.identity_id === identityId && (row.active === 1 || row.active === true),
+      );
       return role === undefined
         ? []
         : [
@@ -279,6 +350,23 @@ class FakeStudioDraftDb {
           (row) =>
             row.brief_id === briefId && (commentId === undefined || row.comment_id === commentId),
         )
+        .map((row) => ({
+          comment_id: row.comment_id,
+          brief_id: row.brief_id,
+          parent_comment_id: row.parent_comment_id ?? null,
+          reviewer: row["reviewer"],
+          reviewer_display_name: row["reviewer_display_name"] ?? null,
+          message: row.message,
+          kind:
+            row.kind === "change-requested" || row.kind === "suggested-edit" ? row.kind : "comment",
+          status: row.status === "resolved" || row.status === "dismissed" ? row.status : "open",
+          anchor_json: row.anchor_json ?? null,
+          suggestion_json: row.suggestion_json ?? null,
+          created_at: row.created_at ?? row.updated_at,
+          updated_at: row.updated_at ?? row.created_at,
+          resolved_at: row.resolved_at ?? null,
+          resolved_by: row.resolved_by ?? null,
+        }))
         .sort((left, right) => String(left.created_at).localeCompare(String(right.created_at)));
     }
     if (normalized.includes("from studio_brief_history_event")) {
@@ -332,7 +420,45 @@ class FakeStudioDraftDb {
     if (normalized.includes("from studio_brief_draft")) {
       const briefId = bound[0] as string;
       const row = this.draft.find((entry) => entry.brief_id === briefId);
-      return row === undefined ? [] : [row];
+      return row === undefined
+        ? []
+        : [
+            {
+              brief_id: row.brief_id,
+              route_slug: row["route_slug"],
+              workspace_id: row.workspace_id ?? null,
+              source_brief_id: row["source_brief_id"] ?? null,
+              from_finding_id: row["from_finding_id"] ?? null,
+              status: row.status,
+              title: row.title,
+              dek: row.dek,
+              summary: row.summary,
+              body_md: row.body_md ?? null,
+              version: row.version,
+              job_id: row.job_id,
+              job_status: row.job_status,
+              job_generation_mode: row.job_generation_mode,
+              job_llm_status: row.job_llm_status,
+              job_llm_provider: row.job_llm_provider ?? null,
+              job_llm_model: row.job_llm_model ?? null,
+              job_started_at: row.job_started_at ?? null,
+              job_completed_at: row.job_completed_at ?? null,
+              job_error: row.job_error ?? null,
+              validation_score: row.validation_score ?? null,
+              validation_weak_claims_json: row.validation_weak_claims_json ?? null,
+              validation_missing_evidence_json: row.validation_missing_evidence_json ?? null,
+              validation_blocking_issues_json: row.validation_blocking_issues_json ?? null,
+              last_validated_at: row.last_validated_at ?? null,
+              created_at: row.created_at,
+              updated_at: row.updated_at,
+              published_at: row.published_at ?? null,
+              promotion_candidate_id: row.promotion_candidate_id ?? null,
+              promotion_target_brief_id: row.promotion_target_brief_id ?? null,
+              promotion_artifact_key: row.promotion_artifact_key ?? null,
+              promotion_artifact_sha256: row.promotion_artifact_sha256 ?? null,
+              promotion_recorded_at: row.promotion_recorded_at ?? null,
+            },
+          ];
     }
     return [];
   }
@@ -343,7 +469,10 @@ class FakeStudioDraftDb {
       if (session !== undefined) session.last_used_at = bound[0];
       return { changes: session === undefined ? 0 : 1 };
     }
-    if (normalized.startsWith("insert or ignore into studio_brief_write_idempotency")) {
+    if (
+      normalized.startsWith("insert or ignore into studio_brief_write_idempotency") ||
+      normalized.startsWith("insert into studio_brief_write_idempotency")
+    ) {
       const [idempotencyKey, method, path, statusCode, responseJson, createdAt] = bound;
       if (
         this.idempotency.some(
@@ -443,14 +572,14 @@ class FakeStudioDraftDb {
       const runId = bound.at(-1) as string;
       const run = this.agentRun.find((row) => row.brief_id === briefId && row.run_id === runId);
       if (run === undefined) return { changes: 0 };
-      let index = 2;
-      run.status = bound[0];
-      run.updated_at = bound[1];
-      if (normalized.includes("proposal_id = ?")) run.proposal_id = bound[index++];
-      if (normalized.includes("error_code = ?")) run.error_code = bound[index++];
-      if (normalized.includes("error_message = ?")) run.error_message = bound[index++];
-      if (normalized.includes("started_at = ?")) run.started_at = bound[index++];
-      if (normalized.includes("completed_at = ?")) run.completed_at = bound[index++];
+      const assignments = normalized
+        .slice(normalized.indexOf(" set ") + 5, normalized.indexOf(" where "))
+        .split(",")
+        .map((assignment) => assignment.trim().split(" ")[0])
+        .filter((column): column is string => column !== undefined && column.length > 0);
+      assignments.forEach((column, index) => {
+        run[column] = bound[index];
+      });
       return { changes: 1 };
     }
     if (normalized.startsWith("update studio_brief_agent_proposal")) {
@@ -460,45 +589,25 @@ class FakeStudioDraftDb {
         (row) => row.brief_id === briefId && row.proposal_id === proposalId,
       );
       if (proposal === undefined) return { changes: 0 };
-      let index = 2;
-      proposal.status = bound[0];
-      proposal.updated_at = bound[1];
-      if (normalized.includes("applied_at = ?")) proposal.applied_at = bound[index++];
-      if (normalized.includes("rejected_at = ?")) proposal.rejected_at = bound[index++];
-      if (normalized.includes("accepted_operation_ids_json = ?")) {
-        proposal.accepted_operation_ids_json = bound[index++];
-      }
+      const assignments = normalized
+        .slice(normalized.indexOf(" set ") + 5, normalized.indexOf(" where "))
+        .split(",")
+        .map((assignment) => assignment.trim().split(" ")[0])
+        .filter((column): column is string => column !== undefined && column.length > 0);
+      assignments.forEach((column, index) => {
+        proposal[column] = bound[index];
+      });
       return { changes: 1 };
     }
-    if (normalized.startsWith("insert into studio_brief_draft\n")) {
+    if (normalized.startsWith("insert into studio_brief_draft ")) {
+      const row = insertedRow(normalized, bound);
       this.draft.push({
-        brief_id: bound[0],
-        route_slug: bound[1],
-        workspace_id: bound[2],
-        source_brief_id: bound[3],
-        from_finding_id: bound[4],
-        status: bound[5],
-        title: bound[6],
-        dek: bound[7],
-        summary: bound[8],
-        body_md: bound[9],
-        version: bound[10],
-        job_id: bound[11],
-        job_status: bound[12],
-        job_generation_mode: bound[13],
-        job_llm_status: bound[14],
-        job_llm_provider: bound[15],
-        job_llm_model: bound[16],
-        job_started_at: bound[17],
-        job_completed_at: bound[18],
-        job_error: bound[19],
+        ...row,
         validation_score: null,
         validation_weak_claims_json: null,
         validation_missing_evidence_json: null,
         validation_blocking_issues_json: null,
         last_validated_at: null,
-        created_at: bound[20],
-        updated_at: bound[21],
         published_at: null,
         promotion_candidate_id: null,
         promotion_target_brief_id: null,
@@ -509,73 +618,56 @@ class FakeStudioDraftDb {
       return { changes: 1 };
     }
     if (normalized.startsWith("insert into studio_brief_draft_claim")) {
-      this.claim.push({
-        brief_id: bound[0],
-        claim_n: bound[1],
-        title: bound[2],
-        body: bound[3],
-        strength: bound[4],
-        evidence_ids_json: bound[5],
-        caveat_ids_json: bound[6],
-        state: bound[7],
-        created_at: bound[8],
-        updated_at: bound[9],
-      });
+      this.claim.push(insertedRow(normalized, bound));
       return { changes: 1 };
     }
     if (normalized.startsWith("insert into studio_brief_draft_block")) {
-      this.block.push({
-        brief_id: bound[0],
-        block_id: bound[1],
-        block_type: bound[2],
-        block_json: bound[3],
-        created_at: bound[4],
-        updated_at: bound[5],
-      });
+      this.block.push(insertedRow(normalized, bound));
       return { changes: 1 };
     }
     if (normalized.startsWith("insert into studio_brief_draft_ref")) {
-      this.ref.push({
-        brief_id: bound[0],
-        ref_id: bound[1],
-        ref_kind: bound[2],
-        ref_json: bound[3],
-        created_at: bound[4],
-        updated_at: bound[5],
-      });
+      this.ref.push(insertedRow(normalized, bound));
       return { changes: 1 };
     }
     if (normalized.startsWith("insert into studio_brief_history_event")) {
-      this.history.push({
-        event_id: bound[0],
-        brief_id: bound[1],
-        event_seq: bound[2],
-        action: bound[3],
-        actor: bound[4],
-        summary: bound[5],
-        draft_version: bound[6],
-        snapshot_json: bound[7],
-        created_at: bound[8],
-      });
+      this.history.push(insertedRow(normalized, bound));
       return { changes: 1 };
     }
     if (normalized.startsWith("insert into studio_brief_review_comment")) {
-      this.reviewComment.push({
-        comment_id: bound[0],
-        brief_id: bound[1],
-        parent_comment_id: bound[2],
-        reviewer: bound[3],
-        reviewer_display_name: bound[4],
-        message: bound[5],
-        kind: bound[6],
-        status: bound[7],
-        anchor_json: bound[8],
-        suggestion_json: bound[9],
-        created_at: bound[10],
-        updated_at: bound[11],
-        resolved_at: bound[12],
-        resolved_by: bound[13],
-      });
+      this.reviewComment.push(insertedRow(normalized, bound));
+      return { changes: 1 };
+    }
+    if (normalized.startsWith("update studio_brief_review_comment set ")) {
+      const briefId = bound.at(-2) as string;
+      const commentId = bound.at(-1) as string;
+      const comment = this.reviewComment.find(
+        (row) => row.brief_id === briefId && row.comment_id === commentId,
+      );
+      if (comment === undefined) return { changes: 0 };
+      Object.assign(comment, assignmentValues(normalized, bound));
+      return { changes: 1 };
+    }
+    if (normalized.startsWith("update studio_brief_draft set ")) {
+      const briefId = bound.at(-1) as string;
+      const draft = this.findDraft(briefId);
+      if (draft === undefined) return { changes: 0 };
+      Object.assign(draft, assignmentValues(normalized, bound));
+      return { changes: 1 };
+    }
+    if (normalized.startsWith("update studio_brief_draft_claim set ")) {
+      const briefId = bound.at(-2) as string;
+      const claimN = bound.at(-1) as number;
+      const claim = this.claim.find((row) => row.brief_id === briefId && row.claim_n === claimN);
+      if (claim === undefined) return { changes: 0 };
+      Object.assign(claim, assignmentValues(normalized, bound));
+      return { changes: 1 };
+    }
+    if (normalized.startsWith("update studio_brief_draft_block set ")) {
+      const briefId = bound.at(-2) as string;
+      const blockId = bound.at(-1) as string;
+      const block = this.block.find((row) => row.brief_id === briefId && row.block_id === blockId);
+      if (block === undefined) return { changes: 0 };
+      Object.assign(block, assignmentValues(normalized, bound));
       return { changes: 1 };
     }
     if (normalized.startsWith("update studio_brief_review_comment")) {

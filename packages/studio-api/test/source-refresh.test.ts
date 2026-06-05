@@ -1,11 +1,12 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import {
+  handleStudioScheduled,
   ROUTE_SPEED_WATCHER_CRON,
   runRouteSpeedMonthlyWatcher,
   runScheduledGtfsRtCaptureBatch,
   runScheduledProductionRefresh,
   runScheduledSourceRefresh,
-} from "../../src/worker/source-refresh.js";
+} from "../src/index.js";
 
 class FakeR2Bucket {
   readonly writes = new Map<string, ArrayBuffer | string>();
@@ -215,6 +216,25 @@ describe("scheduled source refresh", () => {
           sampleCount: 1,
           capturedCount: 0,
         }),
+        routeSpeed: expect.objectContaining({
+          status: "skipped",
+          shouldRebuild: false,
+        }),
+      }),
+    );
+  });
+
+  it("delegates scheduled events through the Studio API scheduled facade", async () => {
+    const artifactsBucket = new FakeR2Bucket();
+    await handleStudioScheduled({ cron: "* * * * *" } as ScheduledController, {
+      ARTIFACTS: artifactsBucket as unknown as R2Bucket,
+      LAST_BUILT_SPEED_MONTH: "2026-03",
+    });
+
+    const status = JSON.parse(String(artifactsBucket.writes.get("source-refresh/latest.json")));
+    expect(status).toEqual(
+      expect.objectContaining({
+        cron: "* * * * *",
         routeSpeed: expect.objectContaining({
           status: "skipped",
           shouldRebuild: false,

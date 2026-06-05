@@ -1,9 +1,27 @@
+import { describe, expect, it } from "bun:test";
 import type { D1Database } from "@cloudflare/workers-types";
-import { describe, expect, it } from "vitest";
-import type { Env } from "../../src/worker/index.js";
-import worker from "../../src/worker/index.js";
+import { handleStudioApiRequest, type StudioApiEnv } from "../src/index.js";
 
-type Row = Record<string, unknown>;
+type Row = {
+  active?: unknown;
+  consumed_at?: unknown;
+  created_at?: unknown;
+  display_name?: unknown;
+  email?: unknown;
+  email_normalized?: unknown;
+  expires_at?: unknown;
+  identity_active?: unknown;
+  identity_id?: unknown;
+  ip_hash?: unknown;
+  kind?: unknown;
+  label?: unknown;
+  last_used_at?: unknown;
+  revoked_at?: unknown;
+  session_id?: unknown;
+  token_hash?: unknown;
+  updated_at?: unknown;
+  user_agent?: unknown;
+};
 
 class FakeIdentityDb {
   identity: Row[] = [];
@@ -11,7 +29,7 @@ class FakeIdentityDb {
   role: Row[] = [];
 
   prepare(query: string) {
-    const normalized = query.toLowerCase();
+    const normalized = query.toLowerCase().replaceAll('"', "");
     const captureSelf = this;
     let bound: unknown[] = [];
     return {
@@ -26,6 +44,9 @@ class FakeIdentityDb {
       async all() {
         return { results: captureSelf.rowsForQuery(normalized, bound) };
       },
+      async raw() {
+        return captureSelf.rowsForQuery(normalized, bound).map((row) => Object.values(row));
+      },
       async run() {
         return { meta: captureSelf.runQuery(normalized, bound) };
       },
@@ -33,84 +54,83 @@ class FakeIdentityDb {
   }
 
   private rowsForQuery(normalized: string, bound: unknown[]): Row[] {
-    if (
-      normalized.includes("from identity_session s") &&
-      normalized.includes("join identity i")
-    ) {
+    if (normalized.includes("from identity_session") && normalized.includes("join identity")) {
       const tokenHash = bound[0] as string;
-      const nowStr = bound[1] as string;
+      const nowStr = (bound.length > 3 ? bound[3] : bound[1]) as string;
       const session = this.session.find(
         (row) =>
-          row["token_hash"] === tokenHash &&
-          row["revoked_at"] === null &&
-          row["consumed_at"] === null &&
-          (row["kind"] === "session" || row["kind"] === "legacy_bearer") &&
-          (row["expires_at"] === null || (row["expires_at"] as string) > nowStr),
+          row.token_hash === tokenHash &&
+          row.revoked_at === null &&
+          row.consumed_at === null &&
+          (row.kind === "session" || row.kind === "legacy_bearer") &&
+          (row.expires_at === null || (row.expires_at as string) > nowStr),
       );
       if (session === undefined) return [];
-      const identity = this.identity.find(
-        (row) => row["identity_id"] === session["identity_id"],
-      );
-      if (identity === undefined || identity["active"] !== 1) return [];
+      const identity = this.identity.find((row) => row.identity_id === session.identity_id);
+      if (identity === undefined || (identity.active !== 1 && identity.active !== true)) {
+        return [];
+      }
       return [
         {
-          session_id: session["session_id"],
-          identity_id: identity["identity_id"],
-          kind: session["kind"],
-          email: identity["email"],
-          display_name: identity["display_name"],
-          identity_active: identity["active"],
+          session_id: session.session_id,
+          identity_id: identity.identity_id,
+          kind: session.kind,
+          email: identity.email,
+          display_name: identity.display_name,
+          identity_active: identity.active,
         },
       ];
     }
     if (normalized.includes("from studio_actor_role")) {
       const identityId = bound[0] as string;
       const role = this.role.find(
-        (row) => row["identity_id"] === identityId && row["active"] === 1,
+        (row) => row.identity_id === identityId && (row.active === 1 || row.active === true),
       );
       return role === undefined ? [] : [role];
     }
-    if (normalized.includes("from identity_session") && normalized.includes("where token_hash")) {
+    if (normalized.includes("from identity_session") && normalized.includes("token_hash")) {
       const tokenHash = bound[0] as string;
       const row = this.session.find(
-        (entry) => entry["token_hash"] === tokenHash && entry["kind"] === "magic_pending",
+        (entry) => entry.token_hash === tokenHash && entry.kind === "magic_pending",
       );
       if (row === undefined) return [];
       return [
         {
-          session_id: row["session_id"],
-          identity_id: row["identity_id"],
-          expires_at: row["expires_at"],
-          consumed_at: row["consumed_at"],
-          revoked_at: row["revoked_at"],
+          session_id: row.session_id,
+          identity_id: row.identity_id,
+          expires_at: row.expires_at,
+          consumed_at: row.consumed_at,
+          revoked_at: row.revoked_at,
         },
       ];
     }
-    if (normalized.includes("from identity") && normalized.includes("where identity_id")) {
+    if (normalized.includes("from identity") && normalized.includes("identity_id")) {
       const identityId = bound[0] as string;
       const row = this.identity.find(
-        (entry) => entry["identity_id"] === identityId && entry["active"] === 1,
+        (entry) =>
+          entry.identity_id === identityId && (entry.active === 1 || entry.active === true),
       );
       if (row === undefined) return [];
       return [
         {
-          identity_id: row["identity_id"],
-          email: row["email"],
-          display_name: row["display_name"],
+          identity_id: row.identity_id,
+          email: row.email,
+          display_name: row.display_name,
         },
       ];
     }
-    if (normalized.includes("from identity") && normalized.includes("where email_normalized")) {
+    if (normalized.includes("from identity") && normalized.includes("email_normalized")) {
       const emailNorm = bound[0] as string;
       const row = this.identity.find(
-        (entry) => entry["email_normalized"] === emailNorm && entry["active"] === 1,
+        (entry) =>
+          entry.email_normalized === emailNorm && (entry.active === 1 || entry.active === true),
       );
       if (row === undefined) return [];
       return [
         {
-          identity_id: row["identity_id"],
-          email: row["email"],
-          display_name: row["display_name"],
+          identity_id: row.identity_id,
+          email: row.email,
+          display_name: row.display_name,
         },
       ];
     }
@@ -119,27 +139,39 @@ class FakeIdentityDb {
 
   private runQuery(normalized: string, bound: unknown[]): { changes: number } {
     if (normalized.startsWith("update identity_session set last_used_at")) {
-      const session = this.session.find((row) => row["session_id"] === bound[1]);
-      if (session !== undefined) session["last_used_at"] = bound[0];
+      const session = this.session.find((row) => row.session_id === bound[1]);
+      if (session !== undefined) session.last_used_at = bound[0];
       return { changes: session === undefined ? 0 : 1 };
     }
-    if (normalized.startsWith("update identity_session\n          set consumed_at")) {
+    if (normalized.startsWith("update identity_session") && normalized.includes("consumed_at")) {
       const session = this.session.find(
-        (row) => row["session_id"] === bound[1] && row["consumed_at"] === null,
+        (row) => row.session_id === bound[1] && row.consumed_at === null,
       );
       if (session === undefined) return { changes: 0 };
-      session["consumed_at"] = bound[0];
+      session.consumed_at = bound[0];
       return { changes: 1 };
     }
     if (normalized.startsWith("update identity_session set revoked_at")) {
       const session = this.session.find(
-        (row) => row["session_id"] === bound[1] && row["revoked_at"] === null,
+        (row) => row.session_id === bound[1] && row.revoked_at === null,
       );
       if (session === undefined) return { changes: 0 };
-      session["revoked_at"] = bound[0];
+      session.revoked_at = bound[0];
       return { changes: 1 };
     }
     if (normalized.startsWith("insert into identity ")) {
+      if (bound.length >= 7) {
+        this.identity.push({
+          identity_id: bound[0],
+          email: bound[1],
+          email_normalized: bound[2],
+          display_name: bound[3],
+          active: bound[4],
+          created_at: bound[5],
+          updated_at: bound[6],
+        });
+        return { changes: 1 };
+      }
       this.identity.push({
         identity_id: bound[0],
         email: bound[1],
@@ -152,36 +184,71 @@ class FakeIdentityDb {
       return { changes: 1 };
     }
     if (normalized.startsWith("insert into identity_session ")) {
-      const isMagic = normalized.includes("'magic_pending'");
+      const boundKind = bound[2] as string | undefined;
+      const isMagic = normalized.includes("'magic_pending'") || boundKind === "magic_pending";
       if (isMagic) {
+        if (bound.length >= 12) {
+          this.session.push({
+            session_id: bound[0],
+            identity_id: bound[1],
+            kind: "magic_pending",
+            token_hash: bound[3],
+            label: bound[4],
+            user_agent: bound[5],
+            ip_hash: bound[6],
+            expires_at: bound[7],
+            consumed_at: bound[8],
+            revoked_at: bound[9],
+            created_at: bound[10],
+            last_used_at: bound[11],
+          });
+          return { changes: 1 };
+        }
         this.session.push({
           session_id: bound[0],
           identity_id: bound[1],
           kind: "magic_pending",
-          token_hash: bound[2],
+          token_hash: boundKind === "magic_pending" ? bound[3] : bound[2],
           label: null,
           user_agent: null,
           ip_hash: null,
-          expires_at: bound[3],
+          expires_at: boundKind === "magic_pending" ? bound[4] : bound[3],
           consumed_at: null,
           revoked_at: null,
-          created_at: bound[4],
+          created_at: boundKind === "magic_pending" ? bound[5] : bound[4],
           last_used_at: null,
         });
       } else {
+        if (bound.length >= 12) {
+          this.session.push({
+            session_id: bound[0],
+            identity_id: bound[1],
+            kind: "session",
+            token_hash: bound[3],
+            label: bound[4],
+            user_agent: bound[5],
+            ip_hash: bound[6],
+            expires_at: bound[7],
+            consumed_at: bound[8],
+            revoked_at: bound[9],
+            created_at: bound[10],
+            last_used_at: bound[11],
+          });
+          return { changes: 1 };
+        }
         this.session.push({
           session_id: bound[0],
           identity_id: bound[1],
           kind: "session",
-          token_hash: bound[2],
+          token_hash: boundKind === "session" ? bound[3] : bound[2],
           label: null,
-          user_agent: bound[3],
-          ip_hash: bound[4],
-          expires_at: bound[5],
+          user_agent: boundKind === "session" ? bound[4] : bound[3],
+          ip_hash: boundKind === "session" ? bound[5] : bound[4],
+          expires_at: boundKind === "session" ? bound[6] : bound[5],
           consumed_at: null,
           revoked_at: null,
-          created_at: bound[6],
-          last_used_at: bound[7],
+          created_at: boundKind === "session" ? bound[7] : bound[6],
+          last_used_at: boundKind === "session" ? bound[8] : bound[7],
         });
       }
       return { changes: 1 };
@@ -190,13 +257,13 @@ class FakeIdentityDb {
   }
 }
 
-function buildEnv(db: FakeIdentityDb, overrides: Partial<Env> = {}): Env {
+function buildEnv(db: FakeIdentityDb, overrides: Partial<StudioApiEnv> = {}): StudioApiEnv {
   return {
     DB: db as unknown as D1Database,
     AUTH_EMAIL_FROM: "auth@example.test",
     ENVIRONMENT: "development",
     ...overrides,
-  } as Env;
+  };
 }
 
 function postJson(path: string, body: unknown, headers: HeadersInit = {}): Request {
@@ -207,11 +274,19 @@ function postJson(path: string, body: unknown, headers: HeadersInit = {}): Reque
   });
 }
 
+async function fetchApi(request: Request, env: StudioApiEnv): Promise<Response> {
+  const response = await handleStudioApiRequest(request, env);
+  if (response === null) {
+    throw new Error(`Expected API response for ${request.url}`);
+  }
+  return response;
+}
+
 describe("magic-link auth", () => {
   it("returns 204 for invalid email shapes without leaking", async () => {
     const db = new FakeIdentityDb();
     const env = buildEnv(db);
-    const response = await worker.fetch(
+    const response = await fetchApi(
       postJson("/api/v1/auth/magic-link/request", { email: "not-an-email" }),
       env,
     );
@@ -222,7 +297,7 @@ describe("magic-link auth", () => {
   it("creates an identity + magic_pending session on request (dev mode echoes link)", async () => {
     const db = new FakeIdentityDb();
     const env = buildEnv(db);
-    const response = await worker.fetch(
+    const response = await fetchApi(
       postJson("/api/v1/auth/magic-link/request", { email: "alice@example.test" }),
       env,
     );
@@ -232,20 +307,52 @@ describe("magic-link auth", () => {
     expect(db.identity).toHaveLength(1);
     const session = db.session[0];
     expect(session).toBeDefined();
-    expect(session?.["kind"]).toBe("magic_pending");
+    expect(session?.kind).toBe("magic_pending");
+  });
+
+  it("carries same-origin next paths through the dev magic link", async () => {
+    const db = new FakeIdentityDb();
+    const env = buildEnv(db);
+    const response = await fetchApi(
+      postJson("/api/v1/auth/magic-link/request", {
+        email: "alice@example.test",
+        next: "/briefs/new?route=m15-sbs",
+      }),
+      env,
+    );
+    expect(response.status).toBe(202);
+    const body = (await response.json()) as { __devMagicLink?: string };
+    const link = new URL(body.__devMagicLink ?? "");
+    expect(link.searchParams.get("next")).toBe("/briefs/new?route=m15-sbs");
+  });
+
+  it("drops cross-origin next paths from the dev magic link", async () => {
+    const db = new FakeIdentityDb();
+    const env = buildEnv(db);
+    const response = await fetchApi(
+      postJson("/api/v1/auth/magic-link/request", {
+        email: "alice@example.test",
+        next: "https://evil.example/briefs/new",
+      }),
+      env,
+    );
+    expect(response.status).toBe(202);
+    const body = (await response.json()) as { __devMagicLink?: string };
+    const link = new URL(body.__devMagicLink ?? "");
+    expect(link.searchParams.has("next")).toBe(false);
   });
 
   it("consumes a fresh token, sets cookie, returns identity (no operator)", async () => {
     const db = new FakeIdentityDb();
     const env = buildEnv(db);
-    const requestResponse = await worker.fetch(
+    const requestResponse = await fetchApi(
       postJson("/api/v1/auth/magic-link/request", { email: "bob@example.test" }),
       env,
     );
     const { __devMagicLink } = (await requestResponse.json()) as { __devMagicLink: string };
     const token = new URL(__devMagicLink).searchParams.get("token");
     expect(token).toBeTruthy();
-    const consumeResponse = await worker.fetch(
+    const consumeResponse = await fetchApi(
       postJson("/api/v1/auth/magic-link/consume", { token }),
       env,
     );
@@ -267,39 +374,33 @@ describe("magic-link auth", () => {
   it("rejects a consumed magic-link token on second use", async () => {
     const db = new FakeIdentityDb();
     const env = buildEnv(db);
-    const requestResponse = await worker.fetch(
+    const requestResponse = await fetchApi(
       postJson("/api/v1/auth/magic-link/request", { email: "carol@example.test" }),
       env,
     );
     const { __devMagicLink } = (await requestResponse.json()) as { __devMagicLink: string };
     const token = new URL(__devMagicLink).searchParams.get("token");
-    const first = await worker.fetch(
-      postJson("/api/v1/auth/magic-link/consume", { token }),
-      env,
-    );
+    const first = await fetchApi(postJson("/api/v1/auth/magic-link/consume", { token }), env);
     expect(first.status).toBe(200);
-    const second = await worker.fetch(
-      postJson("/api/v1/auth/magic-link/consume", { token }),
-      env,
-    );
+    const second = await fetchApi(postJson("/api/v1/auth/magic-link/consume", { token }), env);
     expect(second.status).toBe(401);
   });
 
   it("rejects an expired magic-link token", async () => {
     const db = new FakeIdentityDb();
     const env = buildEnv(db);
-    await worker.fetch(
+    await fetchApi(
       postJson("/api/v1/auth/magic-link/request", { email: "dave@example.test" }),
       env,
     );
     const magic = db.session[0];
     expect(magic).toBeDefined();
-    magic!["expires_at"] = "1970-01-01T00:00:00.000Z";
-    const consumeResponse = await worker.fetch(
-      postJson(
-        "/api/v1/auth/magic-link/consume",
-        { token: "x".repeat(40) /* wrong token; just make sure shape passes */ },
-      ),
+    if (magic === undefined) throw new Error("expected magic-link session");
+    magic.expires_at = "1970-01-01T00:00:00.000Z";
+    const consumeResponse = await fetchApi(
+      postJson("/api/v1/auth/magic-link/consume", {
+        token: "x".repeat(40) /* wrong token; just make sure shape passes */,
+      }),
       env,
     );
     expect(consumeResponse.status).toBe(401);
@@ -308,10 +409,7 @@ describe("magic-link auth", () => {
   it("/api/v1/me returns anonymous shape without a cookie", async () => {
     const db = new FakeIdentityDb();
     const env = buildEnv(db);
-    const response = await worker.fetch(
-      new Request("https://example.test/api/v1/me"),
-      env,
-    );
+    const response = await fetchApi(new Request("https://example.test/api/v1/me"), env);
     expect(response.status).toBe(200);
     const body = (await response.json()) as { identity: unknown; operator: unknown };
     expect(body.identity).toBeNull();
@@ -321,20 +419,20 @@ describe("magic-link auth", () => {
   it("/api/v1/me returns the signed-in identity when a session cookie is presented", async () => {
     const db = new FakeIdentityDb();
     const env = buildEnv(db);
-    const requestResponse = await worker.fetch(
+    const requestResponse = await fetchApi(
       postJson("/api/v1/auth/magic-link/request", { email: "eve@example.test" }),
       env,
     );
     const { __devMagicLink } = (await requestResponse.json()) as { __devMagicLink: string };
     const token = new URL(__devMagicLink).searchParams.get("token");
-    const consumeResponse = await worker.fetch(
+    const consumeResponse = await fetchApi(
       postJson("/api/v1/auth/magic-link/consume", { token }),
       env,
     );
     const cookie = consumeResponse.headers.get("set-cookie") ?? "";
     const cookieValue = cookie.match(/bp_session=([^;]+)/)?.[1] ?? "";
     expect(cookieValue.length).toBeGreaterThan(0);
-    const meResponse = await worker.fetch(
+    const meResponse = await fetchApi(
       new Request("https://example.test/api/v1/me", {
         headers: { Cookie: `bp_session=${cookieValue}` },
       }),
@@ -348,19 +446,19 @@ describe("magic-link auth", () => {
   it("signout revokes the session and subsequent /me returns anonymous", async () => {
     const db = new FakeIdentityDb();
     const env = buildEnv(db);
-    const requestResponse = await worker.fetch(
+    const requestResponse = await fetchApi(
       postJson("/api/v1/auth/magic-link/request", { email: "frank@example.test" }),
       env,
     );
     const { __devMagicLink } = (await requestResponse.json()) as { __devMagicLink: string };
     const token = new URL(__devMagicLink).searchParams.get("token");
-    const consumeResponse = await worker.fetch(
+    const consumeResponse = await fetchApi(
       postJson("/api/v1/auth/magic-link/consume", { token }),
       env,
     );
     const cookieValue =
       (consumeResponse.headers.get("set-cookie") ?? "").match(/bp_session=([^;]+)/)?.[1] ?? "";
-    const signoutResponse = await worker.fetch(
+    const signoutResponse = await fetchApi(
       new Request("https://example.test/api/v1/auth/signout", {
         method: "POST",
         headers: { Cookie: `bp_session=${cookieValue}` },
@@ -368,7 +466,7 @@ describe("magic-link auth", () => {
       env,
     );
     expect(signoutResponse.status).toBe(204);
-    const meResponse = await worker.fetch(
+    const meResponse = await fetchApi(
       new Request("https://example.test/api/v1/me", {
         headers: { Cookie: `bp_session=${cookieValue}` },
       }),

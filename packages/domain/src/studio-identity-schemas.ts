@@ -66,7 +66,9 @@ export const StudioActorMeResponseSchema = z
   .strict();
 export type StudioActorMeResponse = z.output<typeof StudioActorMeResponseSchema>;
 
-export const MagicLinkRequestSchema = z.object({ email: z.string().email() }).strict();
+export const MagicLinkRequestSchema = z
+  .object({ email: z.string().email(), next: z.string().optional() })
+  .strict();
 export type MagicLinkRequest = z.output<typeof MagicLinkRequestSchema>;
 
 export const MagicLinkConsumeRequestSchema = z.object({ token: z.string().min(1) }).strict();
@@ -97,9 +99,7 @@ export const AdminGrantOperatorRequestSchema = z
   .strict();
 export type AdminGrantOperatorRequest = z.output<typeof AdminGrantOperatorRequestSchema>;
 
-export const AdminRevokeOperatorRequestSchema = z
-  .object({ workspaceId: z.string() })
-  .strict();
+export const AdminRevokeOperatorRequestSchema = z.object({ workspaceId: z.string() }).strict();
 export type AdminRevokeOperatorRequest = z.output<typeof AdminRevokeOperatorRequestSchema>;
 
 // --- Alerts ---
@@ -127,9 +127,7 @@ export const AlertResponseSchema = z
   .strict();
 export type AlertResponse = z.output<typeof AlertResponseSchema>;
 
-export const AlertsListResponseSchema = z
-  .object({ alerts: z.array(AlertResponseSchema) })
-  .strict();
+export const AlertsListResponseSchema = z.object({ alerts: z.array(AlertResponseSchema) }).strict();
 export type AlertsListResponse = z.output<typeof AlertsListResponseSchema>;
 
 // --- Saved searches ---
@@ -160,9 +158,7 @@ export type SavedSearchesListResponse = z.output<typeof SavedSearchesListRespons
 
 // --- Public comments on briefs ---
 
-export const PublicCommentCreateRequestSchema = z
-  .object({ body: z.string() })
-  .strict();
+export const PublicCommentCreateRequestSchema = z.object({ body: z.string() }).strict();
 export type PublicCommentCreateRequest = z.output<typeof PublicCommentCreateRequestSchema>;
 
 export const PublicCommentResponseSchema = z

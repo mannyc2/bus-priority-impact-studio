@@ -1,11 +1,14 @@
-type SourceRefreshEnv = {
-  MTA_BUS_TIME_API_KEY?: string;
-  GTFS_RT_RAW?: R2Bucket;
-  ARTIFACTS?: R2Bucket;
-  LAST_BUILT_SPEED_MONTH?: string;
-  GTFS_RT_SAMPLES_PER_CRON?: string;
-  GTFS_RT_SAMPLE_SECONDS?: string;
-};
+import type { StudioApiEnv } from "./env.js";
+
+type SourceRefreshEnv = Pick<
+  StudioApiEnv,
+  | "ARTIFACTS"
+  | "GTFS_RT_RAW"
+  | "GTFS_RT_SAMPLES_PER_CRON"
+  | "GTFS_RT_SAMPLE_SECONDS"
+  | "LAST_BUILT_SPEED_MONTH"
+  | "MTA_BUS_TIME_API_KEY"
+>;
 
 export const ROUTE_SPEED_WATCHER_CRON = "17 10 * * *";
 

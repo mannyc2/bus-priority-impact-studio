@@ -46,17 +46,25 @@ const StudioInterventionComparisonCohortSchema = z
   })
   .strict();
 
-export const StudioInterventionSchema = z
-  .object({
-    year: z.string(),
-    title: z.string(),
-    detail: z.string(),
-    tone: z.enum(["accent", "good", "warn", "bad"]).optional(),
-    sourceLabel: z.string().optional(),
-    sourceDetail: z.string().optional(),
-    comparisonCohort: StudioInterventionComparisonCohortSchema.optional(),
-  })
-  .strict();
+export const StudioInterventionSchema = z.preprocess(
+  (value) => {
+    if (typeof value !== "object" || value === null) return value;
+    const { year, title, detail, tone, sourceLabel, sourceDetail, comparisonCohort } =
+      value as Record<string, unknown>;
+    return { year, title, detail, tone, sourceLabel, sourceDetail, comparisonCohort };
+  },
+  z
+    .object({
+      year: z.string(),
+      title: z.string(),
+      detail: z.string(),
+      tone: z.enum(["accent", "good", "warn", "bad"]).optional(),
+      sourceLabel: z.string().optional(),
+      sourceDetail: z.string().optional(),
+      comparisonCohort: StudioInterventionComparisonCohortSchema.optional(),
+    })
+    .strict(),
+);
 
 export const ComparableRouteSchema = z
   .object({
@@ -86,65 +94,154 @@ export const StudioObservedReliabilitySchema = z
   })
   .strict();
 
-export const StudioRouteSchema = z
-  .object({
-    slug: z.string(),
-    routeId: z.string(),
-    label: z.string(),
-    corridor: z.string(),
-    corridorFull: z.string(),
-    borough: z.string(),
-    sbs: z.boolean(),
-    speedMph: z.number(),
-    scheduledMph: z.number(),
-    weightedAvgSpeed: z.number(),
-    speedPercentile: z.number(),
-    dailyRiders: z.number(),
-    ridersYoyPct: z.number(),
-    riderHoursLost: z.number(),
-    laneCoverage: z.number(),
-    aceStatus: z.enum(["active", "none"]),
-    aceSince: z.string().nullable(),
-    tspCoverage: z.enum(["yes", "partial", "none"]),
-    reliability: z.string(),
-    observedReliability: StudioObservedReliabilitySchema.nullable(),
-    diagnosis: z.string(),
-    spark: z.array(z.number()),
-    termini: z
-      .object({
-        north: z.string(),
-        south: z.string(),
-      })
-      .strict(),
-    miles: z.number(),
-    stops: z.number(),
-    flags: z.array(z.string()),
-    peerSlug: z.string().nullable(),
-    interventions: z.array(StudioInterventionSchema),
-  })
-  .strict();
+function legacyTspCoverage(value: unknown): "yes" | "partial" | "none" {
+  if (value === "yes" || value === "partial" || value === "none") return value;
+  if (value === "installed") return "yes";
+  if (value === "candidate") return "partial";
+  return "none";
+}
 
-export const StudioSegmentSchema = z
-  .object({
-    id: z.string(),
-    routeSlug: z.string(),
-    direction: z.enum(["NB", "SB", "EB", "WB"]),
-    from: z.string(),
-    to: z.string(),
-    speedMph: z.number(),
-    scheduledMph: z.number(),
-    riderHours: z.number(),
-    lane: z.enum(["yes", "partial", "minimal", "none"]),
-    ace: z.boolean(),
-    tsp: z.boolean(),
-    hours: z.array(z.number()),
-    miles: z.number().optional(),
-    timepoints: z.number().optional(),
-    flagged: z.boolean().optional(),
-    aiNote: z.string().optional(),
-    suggestedSeeds: z.array(z.string()).optional(),
-  })
-  .strict();
+type StudioRouteCompatInput = Record<string, unknown> & {
+  dailyRiders?: unknown;
+  diagnosis?: unknown;
+  endpoints?: unknown;
+  label?: unknown;
+  speedMph?: unknown;
+  termini?: unknown;
+  tspCoverage?: unknown;
+  tspStatus?: unknown;
+};
+
+type StudioSegmentCompatInput = Record<string, unknown> & {
+  aiNote?: unknown;
+  tsp?: unknown;
+  tspStatus?: unknown;
+};
+
+function legacyDiagnosis(route: StudioRouteCompatInput): string {
+  const { dailyRiders, diagnosis, label: labelValue, speedMph: speedValue } = route;
+  if (typeof diagnosis === "string" && diagnosis.length > 0) return diagnosis;
+  const label = typeof labelValue === "string" ? labelValue : "This route";
+  const speed =
+    typeof speedValue === "number"
+      ? `${speedValue} mph observed speed`
+      : "available observed speed";
+  const riders =
+    typeof dailyRiders === "number"
+      ? `${Math.round(dailyRiders).toLocaleString("en-US")} daily riders`
+      : "available ridership";
+  return `${label} is summarized from the current Studio release with ${speed} and ${riders}.`;
+}
+
+function legacyTermini(route: StudioRouteCompatInput): { north: string; south: string } {
+  const { termini } = route;
+  if (
+    typeof termini === "object" &&
+    termini !== null &&
+    typeof (termini as { north?: unknown }).north === "string" &&
+    typeof (termini as { south?: unknown }).south === "string"
+  ) {
+    return termini as { north: string; south: string };
+  }
+  const endpointsValue = route.endpoints;
+  const endpoints =
+    typeof endpointsValue === "object" && endpointsValue !== null
+      ? (endpointsValue as { end?: unknown; start?: unknown })
+      : {};
+  return {
+    north: typeof endpoints.start === "string" ? endpoints.start : "Route start",
+    south: typeof endpoints.end === "string" ? endpoints.end : "Route end",
+  };
+}
+
+export const StudioRouteSchema = z.preprocess(
+  (value) => {
+    if (typeof value !== "object" || value === null) return value;
+    const route = value as StudioRouteCompatInput;
+    return {
+      ...route,
+      tspCoverage: legacyTspCoverage(route.tspCoverage ?? route.tspStatus),
+      diagnosis: legacyDiagnosis(route),
+      termini: legacyTermini(route),
+    };
+  },
+  z
+    .object({
+      slug: z.string(),
+      routeId: z.string(),
+      label: z.string(),
+      corridor: z.string(),
+      corridorFull: z.string(),
+      borough: z.string(),
+      sbs: z.boolean(),
+      speedMph: z.number(),
+      scheduledMph: z.number(),
+      weightedAvgSpeed: z.number(),
+      speedPercentile: z.number(),
+      dailyRiders: z.number(),
+      ridersYoyPct: z.number(),
+      riderHoursLost: z.number(),
+      laneCoverage: z.number(),
+      aceStatus: z.enum(["active", "none"]),
+      aceSince: z.string().nullable(),
+      tspCoverage: z.enum(["yes", "partial", "none"]),
+      reliability: z.string(),
+      observedReliability: StudioObservedReliabilitySchema.nullable(),
+      diagnosis: z.string(),
+      spark: z.array(z.number()),
+      termini: z
+        .object({
+          north: z.string(),
+          south: z.string(),
+        })
+        .strict(),
+      miles: z.number(),
+      stops: z.number(),
+      flags: z.array(z.string()),
+      peerSlug: z.string().nullable(),
+      interventions: z.array(StudioInterventionSchema),
+    })
+    .strip(),
+);
+
+export const StudioSegmentSchema = z.preprocess(
+  (value) => {
+    if (typeof value !== "object" || value === null) return value;
+    const segment = value as StudioSegmentCompatInput;
+    const { aiNote } = segment;
+    return {
+      ...segment,
+      tsp: typeof segment.tsp === "boolean" ? segment.tsp : segment.tspStatus === "installed",
+      aiNote:
+        typeof aiNote === "object" &&
+        aiNote !== null &&
+        typeof (aiNote as { body?: unknown }).body === "string"
+          ? (aiNote as { body: string }).body
+          : aiNote,
+    };
+  },
+  z
+    .object({
+      id: z.string(),
+      routeSlug: z.string(),
+      direction: z.enum(["NB", "SB", "EB", "WB"]),
+      from: z.string(),
+      to: z.string(),
+      speedMph: z.number(),
+      scheduledMph: z.number(),
+      riderHours: z.number(),
+      lane: z.enum(["yes", "partial", "minimal", "none"]),
+      ace: z.boolean(),
+      tsp: z.boolean(),
+      hours: z.array(z.number()),
+      miles: z.number().optional(),
+      timepoints: z.number().optional(),
+      flagged: z.boolean().optional(),
+      aiNote: z.string().optional(),
+      suggestedSeeds: z.array(z.string()).optional(),
+    })
+    .strip(),
+);
 
 export const StudioRouteArtifactRefSchema = z
   .object({
@@ -219,7 +316,7 @@ export const StudioFindingSchema = z
         title: z.string(),
         body: z.string(),
       })
-      .strict(),
+      .strip(),
     comparableRoutes: z.array(ComparableRouteSchema),
     review: StudioFindingReviewSchema.optional(),
   })
@@ -232,14 +329,14 @@ export const ClaimEvidenceSchema = z
     title: z.string(),
     detail: z.string(),
   })
-  .strict();
+  .strip();
 
 export const ClaimCaveatSchema = z
   .object({
     title: z.string(),
     body: z.string(),
   })
-  .strict();
+  .strip();
 
 const StudioVersionSchema = z
   .object({
@@ -556,28 +653,48 @@ const StudioBriefKpiSchema = z
   })
   .strict();
 
-export const StudioBriefSchema = z
-  .object({
-    id: z.string(),
-    routeSlug: z.string(),
-    title: z.string(),
-    status: z.enum(["Published", "Generated", "Draft", "In review"]),
-    version: z.string(),
-    generated: z.string(),
-    authors: z.array(z.string()),
-    citationCount: z.number(),
-    summary: z.string(),
-    dek: z.string(),
-    kpis: z.array(StudioBriefKpiSchema),
-    sections: z.array(StudioBriefSectionSchema),
-    claims: z.array(StudioClaimSchema),
-    evidence: z.array(ClaimEvidenceSchema),
-    caveats: z.array(ClaimCaveatSchema),
-    bodyMd: z.string().optional(),
-    blocks: z.array(StudioBriefBlockSchema).optional(),
-    refs: z.array(StudioBriefRefSchema).optional(),
-  })
-  .strict();
+type StudioBriefCompatInput = Record<string, unknown> & {
+  citationCount?: unknown;
+  evidenceRefCount?: unknown;
+};
+
+export const StudioBriefSchema = z.preprocess(
+  (value) => {
+    if (typeof value !== "object" || value === null) return value;
+    const brief = value as StudioBriefCompatInput;
+    return {
+      ...brief,
+      citationCount:
+        typeof brief.citationCount === "number"
+          ? brief.citationCount
+          : typeof brief.evidenceRefCount === "number"
+            ? brief.evidenceRefCount
+            : 0,
+    };
+  },
+  z
+    .object({
+      id: z.string(),
+      routeSlug: z.string(),
+      title: z.string(),
+      status: z.enum(["Published", "Generated", "Draft", "In review"]),
+      version: z.string(),
+      generated: z.string(),
+      authors: z.array(z.string()),
+      citationCount: z.number(),
+      summary: z.string(),
+      dek: z.string(),
+      kpis: z.array(StudioBriefKpiSchema),
+      sections: z.array(StudioBriefSectionSchema),
+      claims: z.array(StudioClaimSchema),
+      evidence: z.array(ClaimEvidenceSchema),
+      caveats: z.array(ClaimCaveatSchema),
+      bodyMd: z.string().optional(),
+      blocks: z.array(StudioBriefBlockSchema).optional(),
+      refs: z.array(StudioBriefRefSchema).optional(),
+    })
+    .strip(),
+);
 
 export const StudioFindingCardSchema = z
   .object({
@@ -735,7 +852,7 @@ export const StudioMethodDatasetSchema = z
     grain: z.string(),
     cadence: z.string(),
   })
-  .strict();
+  .strip();
 
 export const StudioMethodsResponseSchema = z
   .object({
@@ -752,7 +869,7 @@ export const StudioDocsEndpointSchema = z
     path: z.string(),
     body: z.string(),
   })
-  .strict();
+  .strip();
 
 export const StudioDocsSourceLinkSchema = z
   .object({
@@ -811,6 +928,39 @@ export const StudioDocsResponseSchema = z
     endpoints: z.array(StudioDocsEndpointSchema),
     quality: StudioQualitySchema,
   })
+  .strip();
+
+export const StudioSnapshotProjectionSchema = z
+  .object({
+    resource: z.enum(["routes", "findings", "briefs", "methods", "docs"]),
+    path: z.string(),
+    itemCount: z.number().int().nonnegative(),
+    generatedAt: z.string().nullable(),
+  })
+  .strict();
+
+export const StudioSnapshotResponseSchema = z
+  .object({
+    schemaVersion: z.literal(1),
+    generatedAt: z.string(),
+    releaseId: z.string(),
+    projectionPrefix: z.string(),
+    releaseKey: z.string(),
+    baselineMonth: z.string().nullable(),
+    lastBuiltSpeedMonth: z.string().nullable(),
+    counts: z
+      .object({
+        routes: z.number().int().nonnegative(),
+        findings: z.number().int().nonnegative(),
+        briefs: z.number().int().nonnegative(),
+        methods: z.number().int().nonnegative(),
+        docsSections: z.number().int().nonnegative(),
+        docsEndpoints: z.number().int().nonnegative(),
+      })
+      .strict(),
+    projections: z.array(StudioSnapshotProjectionSchema),
+    quality: StudioQualitySchema,
+  })
   .strict();
 
 export const StudioReleasePayloadSchema = z
@@ -852,6 +1002,7 @@ export const studioBriefHistoryResponseJsonSchema = toProjectJsonSchema(
 );
 export const studioMethodsResponseJsonSchema = toProjectJsonSchema(StudioMethodsResponseSchema);
 export const studioDocsResponseJsonSchema = toProjectJsonSchema(StudioDocsResponseSchema);
+export const studioSnapshotResponseJsonSchema = toProjectJsonSchema(StudioSnapshotResponseSchema);
 export const studioReleasePayloadJsonSchema = toProjectJsonSchema(StudioReleasePayloadSchema);
 
 export type StudioQuality = z.output<typeof StudioQualitySchema>;
@@ -892,6 +1043,8 @@ export type StudioBriefEvidenceResponse = z.output<typeof StudioBriefEvidenceRes
 export type StudioBriefHistoryResponse = z.output<typeof StudioBriefHistoryResponseSchema>;
 export type StudioMethodsResponse = z.output<typeof StudioMethodsResponseSchema>;
 export type StudioDocsResponse = z.output<typeof StudioDocsResponseSchema>;
+export type StudioSnapshotProjection = z.output<typeof StudioSnapshotProjectionSchema>;
+export type StudioSnapshotResponse = z.output<typeof StudioSnapshotResponseSchema>;
 export type StudioMethodDataset = z.output<typeof StudioMethodDatasetSchema>;
 export type StudioDocsSection = z.output<typeof StudioDocsSectionSchema>;
 export type StudioDocsEndpoint = z.output<typeof StudioDocsEndpointSchema>;

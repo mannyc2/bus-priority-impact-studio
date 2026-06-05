@@ -1,0 +1,28 @@
+{
+  "name": "@bp/studio-api",
+  "private": true,
+  "type": "module",
+  "description": "Cloudflare Worker runtime helpers and handlers for Studio API resources.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./authoring": "./src/authoring.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json --noEmit --pretty false",
+    "typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
+    "test": "bun test ./test --timeout 5000"
+  },
+  "dependencies": {
+    "@bp/db": "workspace:*",
+    "@bp/domain": "workspace:*",
+    "@cloudflare/think": "catalog:",
+    "ai": "catalog:",
+    "workers-ai-provider": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "catalog:",
+    "@types/bun": "catalog:",
+    "typescript": "catalog:"
+  }
+}
