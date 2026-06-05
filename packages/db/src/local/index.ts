@@ -112,6 +112,14 @@ export {
   getGeocodeCacheRow,
   upsertGeocodeCacheRow,
 } from "./repositories/geocode-cache.js";
+export type { LocalGeocodeUpdate } from "./repositories/geocode-updates.js";
+export {
+  update311ServiceRequestGeocode,
+  updateDotStreetPermitGeocode,
+  updateNypdCollisionGeocode,
+  updateTrafficSpeedGeocode,
+  updateTrafficVolumeGeocode,
+} from "./repositories/geocode-updates.js";
 export type {
   LocalContextEvent,
   LocalContextEventRouteTouch,

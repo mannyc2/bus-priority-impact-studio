@@ -1,4 +1,5 @@
 import { arg, defineCommand, z } from "@liche/core";
+import { updateDotStreetPermitGeocode } from "@bp/db/local";
 import {
   createGeoclientFromEnv,
   Geocoder,
@@ -52,12 +53,6 @@ export async function runGeocodePermits(
   let hits = 0;
   let misses = 0;
   let cached = 0;
-
-  const update = local.sqlite.prepare(
-    `UPDATE local_dot_street_permit
-        SET physical_id = ?, geocode_confidence = ?
-      WHERE permit_number = ?`,
-  );
 
   while (scanned < maxRows) {
     const remaining = Math.min(batchSize, maxRows - scanned);
@@ -122,7 +117,10 @@ export async function runGeocodePermits(
         outcome = await geocoder.resolve(attempt);
         if (outcome.physicalId) break;
       }
-      update.run(outcome.physicalId, outcome.confidence, row.permit_number);
+      await updateDotStreetPermitGeocode(local.db, row.permit_number, {
+        physicalId: outcome.physicalId,
+        confidence: outcome.confidence,
+      });
       if (outcome.cached) cached += 1;
       if (outcome.physicalId) hits += 1;
       else misses += 1;

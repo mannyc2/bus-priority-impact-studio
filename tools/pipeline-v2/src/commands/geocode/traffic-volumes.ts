@@ -1,4 +1,5 @@
 import { arg, defineCommand, z } from "@liche/core";
+import { updateTrafficVolumeGeocode } from "@bp/db/local";
 import {
   createGeoclientFromEnv,
   Geocoder,
@@ -53,12 +54,6 @@ export async function runGeocodeTrafficVolumes(
   let misses = 0;
   let cached = 0;
 
-  const update = local.sqlite.prepare(
-    `UPDATE local_dot_traffic_volume_count
-        SET physical_id = ?, geocode_confidence = ?
-      WHERE request_id = ? AND segment_id = ? AND sampled_at = ?`,
-  );
-
   while (scanned < maxRows) {
     const remaining = Math.min(batchSize, maxRows - scanned);
     if (remaining <= 0) break;
@@ -111,12 +106,14 @@ export async function runGeocodeTrafficVolumes(
         outcome = await geocoder.resolve(attempt);
         if (outcome.physicalId) break;
       }
-      update.run(
-        outcome.physicalId,
-        outcome.confidence,
-        row.request_id,
-        row.segment_id,
-        row.sampled_at,
+      await updateTrafficVolumeGeocode(
+        local.db,
+        {
+          requestId: row.request_id,
+          segmentId: row.segment_id,
+          sampledAt: row.sampled_at,
+        },
+        { physicalId: outcome.physicalId, confidence: outcome.confidence },
       );
       if (outcome.cached) cached += 1;
       if (outcome.physicalId) hits += 1;

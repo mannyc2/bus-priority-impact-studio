@@ -1,5 +1,6 @@
 import { arg, defineCommand, z } from "@liche/core";
 import { parseHouseAddress } from "@bp/sources/nyc-geoclient";
+import { updateNypdCollisionGeocode } from "@bp/db/local";
 import {
   createGeoclientFromEnv,
   Geocoder,
@@ -60,12 +61,6 @@ export async function runGeocodeNypdCollisions(
   let hits = 0;
   let misses = 0;
   let cached = 0;
-
-  const update = local.sqlite.prepare(
-    `UPDATE local_nypd_collision
-        SET physical_id = ?, geocode_confidence = ?
-      WHERE collision_id = ?`,
-  );
 
   while (scanned < maxRows) {
     const remaining = Math.min(batchSize, maxRows - scanned);
@@ -148,7 +143,10 @@ export async function runGeocodeNypdCollisions(
         outcome = await geocoder.resolve(attempt);
         if (outcome.physicalId) break;
       }
-      update.run(outcome.physicalId, outcome.confidence, row.collision_id);
+      await updateNypdCollisionGeocode(local.db, row.collision_id, {
+        physicalId: outcome.physicalId,
+        confidence: outcome.confidence,
+      });
       if (outcome.cached) cached += 1;
       if (outcome.physicalId) hits += 1;
       else misses += 1;
