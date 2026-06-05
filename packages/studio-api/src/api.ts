@@ -1,6 +1,7 @@
 import { handleAuthRoutes } from "./auth-routes.js";
 import type { StudioApiEnv } from "./env.js";
-import { isApiPath, isStudioApiPath } from "./http/routing.js";
+import { errorResponse } from "./http/errors.js";
+import { allowedApiMethodsForPath, isApiPath, isStudioApiPath } from "./http/routing.js";
 import { withServerTiming } from "./http/timing.js";
 import { handleObservabilityRoutes } from "./observability.js";
 import { handlePublicApiRoutes } from "./public-api.js";
@@ -16,6 +17,17 @@ export async function handleStudioApiRequest(
   const url = new URL(request.url);
   if (!isApiPath(url.pathname)) {
     return null;
+  }
+
+  const allowedMethods = allowedApiMethodsForPath(url.pathname);
+  if (allowedMethods.length > 0 && !allowedMethods.includes(request.method)) {
+    const response = errorResponse(
+      405,
+      "Method is not allowed for this API route.",
+      "METHOD_NOT_ALLOWED",
+    );
+    response.headers.set("Allow", allowedMethods.join(", "));
+    return response;
   }
 
   const authResponse = await handleAuthRoutes(request, env, url);
@@ -68,5 +80,5 @@ export async function handleStudioApiRequest(
     return publicApiResponse;
   }
 
-  return new Response("Not found", { status: 404 });
+  return errorResponse(404, "API route was not found.", "NOT_FOUND");
 }

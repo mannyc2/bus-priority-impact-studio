@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
+import { handleStudioApiRequest, type StudioApiEnv } from "@bp/studio-api/server";
 import type { D1Database } from "@cloudflare/workers-types";
-import { handleStudioApiRequest, type StudioApiEnv } from "../src/index.js";
 
 type Row = {
   active?: unknown;

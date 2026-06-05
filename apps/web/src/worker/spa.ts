@@ -1,4 +1,4 @@
-import { isApiPath } from "@bp/studio-api";
+import { isApiPath } from "@bp/studio-api/contracts";
 import { getStudioSeoMetadata, injectSeoIntoHtml } from "../studio/seo.js";
 
 export function isLocalDevHost(hostname: string): boolean {

@@ -1,3 +1,8 @@
+import {
+  createStudioApiClient,
+  type PathBuildInput,
+  type StudioApiRouteId,
+} from "@bp/studio-api/client";
 import type * as z from "zod";
 import type {
   StudioBriefAgentProposalApplyRequest,
@@ -26,8 +31,8 @@ import type {
 } from "./api-contract.js";
 import {
   StudioBriefAgentProposalApplyResponseSchema,
-  StudioBriefAgentProposalResponseSchema,
   StudioBriefAgentProposalRejectResponseSchema,
+  StudioBriefAgentProposalResponseSchema,
   StudioBriefAgentProposeEditResultSchema,
   StudioBriefAgentRunResponseSchema,
   StudioBriefCreateResponseSchema,
@@ -39,9 +44,9 @@ import {
   StudioBriefDraftPromotionReceiptResponseSchema,
   StudioBriefDraftRefsResolveResponseSchema,
   StudioBriefDraftRefsResponseSchema,
-  StudioBriefDraftVersionsResponseSchema,
-  StudioBriefDraftVersionRestoreResponseSchema,
   StudioBriefDraftValidationResponseSchema,
+  StudioBriefDraftVersionRestoreResponseSchema,
+  StudioBriefDraftVersionsResponseSchema,
   StudioBriefEvidenceResponseSchema,
   StudioBriefGenerationJobResponseSchema,
   StudioBriefHistoryResponseSchema,
@@ -68,6 +73,12 @@ type StudioApiErrorBody = {
 type StudioMutationOptions = {
   idempotencyKey?: string;
 };
+
+const studioApiClient = createStudioApiClient();
+
+function studioPath(routeId: StudioApiRouteId, input: PathBuildInput = {}): string {
+  return studioApiClient.path(routeId, input);
+}
 
 export class StudioApiError extends Error {
   override readonly name = "StudioApiError";
@@ -178,74 +189,75 @@ function studioMutationIdempotencyKey(): string {
 }
 
 export function fetchStudioRoutes() {
-  return loadStudioJson("/api/v1/studio/routes", StudioRoutesResponseSchema);
+  return loadStudioJson(studioPath("studio.routes"), StudioRoutesResponseSchema);
 }
 
 export function fetchStudioSearch(query: string) {
-  const params = new URLSearchParams({ q: query });
-  return loadStudioJson(`/api/v1/studio/search?${params.toString()}`, StudioSearchResponseSchema);
+  return loadStudioJson(
+    studioPath("studio.search", { query: { q: query } }),
+    StudioSearchResponseSchema,
+  );
 }
 
 export function fetchStudioRoute(routeId: string) {
   return loadNullableStudioJson(
-    `/api/v1/studio/routes/${encodeURIComponent(routeId)}`,
+    studioPath("studio.route", { params: { routeId } }),
     StudioRouteDetailResponseSchema,
   );
 }
 
 export function fetchStudioRouteLadder(routeId: string) {
   return loadNullableStudioJson(
-    `/api/v1/studio/routes/${encodeURIComponent(routeId)}/ladder`,
+    studioPath("studio.routeLadder", { params: { routeId } }),
     StudioRouteLadderResponseSchema,
   );
 }
 
 export function fetchStudioCompare(a: string, b: string) {
-  const params = new URLSearchParams({ a, b });
   return loadNullableStudioJson(
-    `/api/v1/studio/compare?${params.toString()}`,
+    studioPath("studio.compare", { query: { a, b } }),
     StudioCompareResponseSchema,
   );
 }
 
 export function fetchStudioFindings() {
-  return loadStudioJson("/api/v1/studio/findings", StudioFindingsResponseSchema);
+  return loadStudioJson(studioPath("studio.findings"), StudioFindingsResponseSchema);
 }
 
 export function fetchStudioFinding(findingId: string) {
   return loadNullableStudioJson(
-    `/api/v1/studio/findings/${encodeURIComponent(findingId)}`,
+    studioPath("studio.finding", { params: { findingId } }),
     StudioFindingResponseSchema,
   );
 }
 
 export function fetchStudioBriefs() {
-  return loadStudioJson("/api/v1/studio/briefs", StudioBriefsResponseSchema);
+  return loadStudioJson(studioPath("studio.briefs"), StudioBriefsResponseSchema);
 }
 
 export function fetchStudioBrief(briefId: string) {
   return loadNullableStudioJson(
-    `/api/v1/studio/briefs/${encodeURIComponent(briefId)}`,
+    studioPath("studio.brief", { params: { briefId } }),
     StudioBriefResponseSchema,
   );
 }
 
 export function fetchStudioBriefEvidence(briefId: string) {
   return loadNullableStudioJson(
-    `/api/v1/studio/briefs/${encodeURIComponent(briefId)}/evidence`,
+    studioPath("studio.briefEvidence", { params: { briefId } }),
     StudioBriefEvidenceResponseSchema,
   );
 }
 
 export function fetchStudioBriefHistory(briefId: string) {
   return loadNullableStudioJson(
-    `/api/v1/studio/briefs/${encodeURIComponent(briefId)}/history`,
+    studioPath("studio.briefHistory", { params: { briefId } }),
     StudioBriefHistoryResponseSchema,
   );
 }
 
 export function fetchStudioDocs() {
-  return loadStudioJson("/api/v1/studio/docs", StudioDocsResponseSchema);
+  return loadStudioJson(studioPath("studio.docs"), StudioDocsResponseSchema);
 }
 
 async function sendStudioJson(
@@ -296,16 +308,12 @@ async function mutateStudioVoid(
   await sendStudioJson(path, method, body, options);
 }
 
-function draftBase(briefId: string): string {
-  return `/api/v1/studio/briefs/${encodeURIComponent(briefId)}/draft`;
-}
-
 export function createStudioBriefDraft(
   input: StudioBriefCreateRequest,
   options?: StudioMutationOptions,
 ) {
   return mutateStudioJson(
-    "/api/v1/studio/briefs",
+    studioPath("studio.briefs.create"),
     "POST",
     input,
     StudioBriefCreateResponseSchema,
@@ -318,7 +326,12 @@ export function updateStudioBriefDraft(
   input: StudioBriefDraftPatchRequest,
   options?: StudioMutationOptions,
 ) {
-  return mutateStudioVoid(draftBase(briefId), "PATCH", input, options);
+  return mutateStudioVoid(
+    studioPath("studio.briefDraft", { params: { briefId } }),
+    "PATCH",
+    input,
+    options,
+  );
 }
 
 export function generateStudioBriefDraft(
@@ -327,7 +340,7 @@ export function generateStudioBriefDraft(
   options?: StudioMutationOptions,
 ) {
   return mutateStudioJson(
-    `${draftBase(briefId)}/generate`,
+    studioPath("studio.briefDraft.generate", { params: { briefId } }),
     "POST",
     input,
     StudioBriefGenerationJobResponseSchema,
@@ -341,7 +354,7 @@ export function createStudioBriefAgentRun(
   options?: StudioMutationOptions,
 ) {
   return mutateStudioJson(
-    `${draftBase(briefId)}/agent-runs`,
+    studioPath("studio.briefAgentRuns.create", { params: { briefId } }),
     "POST",
     input,
     StudioBriefAgentRunResponseSchema,
@@ -351,7 +364,7 @@ export function createStudioBriefAgentRun(
 
 export function fetchStudioBriefAgentRun(briefId: string, runId: string) {
   return loadStudioJson(
-    `${draftBase(briefId)}/agent-runs/${encodeURIComponent(runId)}`,
+    studioPath("studio.briefAgentRun", { params: { briefId, runId } }),
     StudioBriefAgentRunResponseSchema,
   );
 }
@@ -363,7 +376,7 @@ export function proposeStudioBriefAgentEdit(
   options?: StudioMutationOptions,
 ) {
   return mutateStudioJson(
-    `${draftBase(briefId)}/agent-runs/${encodeURIComponent(runId)}/propose-edit`,
+    studioPath("studio.briefAgentRun.proposeEdit", { params: { briefId, runId } }),
     "POST",
     input,
     StudioBriefAgentProposeEditResultSchema,
@@ -373,7 +386,7 @@ export function proposeStudioBriefAgentEdit(
 
 export function fetchStudioBriefAgentProposal(briefId: string, proposalId: string) {
   return loadStudioJson(
-    `${draftBase(briefId)}/proposals/${encodeURIComponent(proposalId)}`,
+    studioPath("studio.briefAgentProposal", { params: { briefId, proposalId } }),
     StudioBriefAgentProposalResponseSchema,
   );
 }
@@ -385,7 +398,7 @@ export function applyStudioBriefAgentProposal(
   options?: StudioMutationOptions,
 ) {
   return mutateStudioJson(
-    `${draftBase(briefId)}/proposals/${encodeURIComponent(proposalId)}/apply`,
+    studioPath("studio.briefAgentProposal.apply", { params: { briefId, proposalId } }),
     "POST",
     input,
     StudioBriefAgentProposalApplyResponseSchema,
@@ -400,7 +413,7 @@ export function rejectStudioBriefAgentProposal(
   options?: StudioMutationOptions,
 ) {
   return mutateStudioJson(
-    `${draftBase(briefId)}/proposals/${encodeURIComponent(proposalId)}/reject`,
+    studioPath("studio.briefAgentProposal.reject", { params: { briefId, proposalId } }),
     "POST",
     input,
     StudioBriefAgentProposalRejectResponseSchema,
@@ -410,7 +423,7 @@ export function rejectStudioBriefAgentProposal(
 
 export function listStudioBriefDraftVersions(briefId: string) {
   return loadStudioJson(
-    `${draftBase(briefId)}/versions`,
+    studioPath("studio.briefDraftVersions", { params: { briefId } }),
     StudioBriefDraftVersionsResponseSchema,
   );
 }
@@ -422,7 +435,7 @@ export function restoreStudioBriefDraftVersion(
   options?: StudioMutationOptions,
 ) {
   return mutateStudioJson(
-    `${draftBase(briefId)}/versions/${encodeURIComponent(versionId)}/restore`,
+    studioPath("studio.briefDraftVersion.restore", { params: { briefId, versionId } }),
     "POST",
     input,
     StudioBriefDraftVersionRestoreResponseSchema,
@@ -436,7 +449,7 @@ export function addStudioBriefDraftClaim(
   options?: StudioMutationOptions,
 ) {
   return mutateStudioJson(
-    `${draftBase(briefId)}/claims`,
+    studioPath("studio.briefDraftClaims.create", { params: { briefId } }),
     "POST",
     input,
     StudioBriefDraftClaimResponseSchema,
@@ -450,7 +463,7 @@ export function addStudioBriefDraftBlock(
   options?: StudioMutationOptions,
 ) {
   return mutateStudioJson(
-    `${draftBase(briefId)}/blocks`,
+    studioPath("studio.briefDraftBlocks.create", { params: { briefId } }),
     "POST",
     input,
     StudioBriefDraftBlockResponseSchema,
@@ -465,7 +478,7 @@ export function updateStudioBriefDraftBlock(
   options?: StudioMutationOptions,
 ) {
   return mutateStudioVoid(
-    `${draftBase(briefId)}/blocks/${encodeURIComponent(blockId)}`,
+    studioPath("studio.briefDraftBlock.patch", { params: { briefId, blockId } }),
     "PATCH",
     input,
     options,
@@ -478,7 +491,7 @@ export function deleteStudioBriefDraftBlock(
   options?: StudioMutationOptions,
 ) {
   return mutateStudioVoid(
-    `${draftBase(briefId)}/blocks/${encodeURIComponent(blockId)}`,
+    studioPath("studio.briefDraftBlock.delete", { params: { briefId, blockId } }),
     "DELETE",
     undefined,
     options,
@@ -491,7 +504,7 @@ export function resolveStudioBriefDraftRefs(
   options?: StudioMutationOptions,
 ) {
   return mutateStudioJson(
-    `${draftBase(briefId)}/refs/resolve`,
+    studioPath("studio.briefDraftRefs.resolve", { params: { briefId } }),
     "POST",
     input,
     StudioBriefDraftRefsResolveResponseSchema,
@@ -500,7 +513,10 @@ export function resolveStudioBriefDraftRefs(
 }
 
 export function fetchStudioBriefDraftRefs(briefId: string) {
-  return loadStudioJson(`${draftBase(briefId)}/refs`, StudioBriefDraftRefsResponseSchema);
+  return loadStudioJson(
+    studioPath("studio.briefDraftRefs", { params: { briefId } }),
+    StudioBriefDraftRefsResponseSchema,
+  );
 }
 
 export function replaceStudioBriefDraftRefs(
@@ -509,7 +525,7 @@ export function replaceStudioBriefDraftRefs(
   options?: StudioMutationOptions,
 ) {
   return mutateStudioJson(
-    `${draftBase(briefId)}/refs`,
+    studioPath("studio.briefDraftRefs.replace", { params: { briefId } }),
     "PUT",
     input,
     StudioBriefDraftRefsResponseSchema,
@@ -523,7 +539,7 @@ export function attachStudioBriefDraftBlock(
   options?: StudioMutationOptions,
 ) {
   return mutateStudioJson(
-    `${draftBase(briefId)}/attach`,
+    studioPath("studio.briefDraft.attach", { params: { briefId } }),
     "POST",
     input,
     StudioBriefDraftAttachResponseSchema,
@@ -537,7 +553,7 @@ export function recordStudioBriefPromotionReceipt(
   options?: StudioMutationOptions,
 ) {
   return mutateStudioJson(
-    `${draftBase(briefId)}/promotion-receipt`,
+    studioPath("studio.briefDraft.promotionReceipt", { params: { briefId } }),
     "POST",
     input,
     StudioBriefDraftPromotionReceiptResponseSchema,
@@ -546,7 +562,10 @@ export function recordStudioBriefPromotionReceipt(
 }
 
 export function listStudioBriefDraftComments(briefId: string) {
-  return loadStudioJson(`${draftBase(briefId)}/comments`, StudioBriefDraftCommentsResponseSchema);
+  return loadStudioJson(
+    studioPath("studio.briefDraftComments", { params: { briefId } }),
+    StudioBriefDraftCommentsResponseSchema,
+  );
 }
 
 export function createStudioBriefDraftComment(
@@ -555,7 +574,7 @@ export function createStudioBriefDraftComment(
   options?: StudioMutationOptions,
 ) {
   return mutateStudioJson(
-    `${draftBase(briefId)}/comments`,
+    studioPath("studio.briefDraftComments.create", { params: { briefId } }),
     "POST",
     input,
     StudioBriefDraftCommentResponseSchema,
@@ -570,7 +589,7 @@ export function replyStudioBriefDraftComment(
   options?: StudioMutationOptions,
 ) {
   return mutateStudioJson(
-    `${draftBase(briefId)}/comments/${encodeURIComponent(commentId)}/replies`,
+    studioPath("studio.briefDraftComment.reply", { params: { briefId, commentId } }),
     "POST",
     input,
     StudioBriefDraftCommentResponseSchema,
@@ -585,7 +604,7 @@ export function updateStudioBriefDraftComment(
   options?: StudioMutationOptions,
 ) {
   return mutateStudioJson(
-    `${draftBase(briefId)}/comments/${encodeURIComponent(commentId)}`,
+    studioPath("studio.briefDraftComment.patch", { params: { briefId, commentId } }),
     "PATCH",
     input,
     StudioBriefDraftCommentResponseSchema,
@@ -599,7 +618,7 @@ export function acceptStudioBriefDraftSuggestion(
   options?: StudioMutationOptions,
 ) {
   return mutateStudioVoid(
-    `${draftBase(briefId)}/comments/${encodeURIComponent(commentId)}/accept-suggestion`,
+    studioPath("studio.briefDraftComment.acceptSuggestion", { params: { briefId, commentId } }),
     "POST",
     {},
     options,
@@ -612,7 +631,12 @@ export function updateStudioBriefDraftClaim(
   input: StudioBriefDraftClaimPatchRequest,
   options?: StudioMutationOptions,
 ) {
-  return mutateStudioVoid(`${draftBase(briefId)}/claims/${claimN}`, "PATCH", input, options);
+  return mutateStudioVoid(
+    studioPath("studio.briefDraftClaim.patch", { params: { briefId, claimN } }),
+    "PATCH",
+    input,
+    options,
+  );
 }
 
 export function deleteStudioBriefDraftClaim(
@@ -620,12 +644,17 @@ export function deleteStudioBriefDraftClaim(
   claimN: number,
   options?: StudioMutationOptions,
 ) {
-  return mutateStudioVoid(`${draftBase(briefId)}/claims/${claimN}`, "DELETE", undefined, options);
+  return mutateStudioVoid(
+    studioPath("studio.briefDraftClaim.delete", { params: { briefId, claimN } }),
+    "DELETE",
+    undefined,
+    options,
+  );
 }
 
 export function validateStudioBriefDraft(briefId: string, options?: StudioMutationOptions) {
   return mutateStudioJson(
-    `${draftBase(briefId)}/validate`,
+    studioPath("studio.briefDraft.validate", { params: { briefId } }),
     "POST",
     {},
     StudioBriefDraftValidationResponseSchema,
@@ -638,7 +667,12 @@ export function requestStudioBriefDraftReview(
   input: StudioBriefDraftReviewRequest,
   options?: StudioMutationOptions,
 ) {
-  return mutateStudioVoid(`${draftBase(briefId)}/review`, "POST", input, options);
+  return mutateStudioVoid(
+    studioPath("studio.briefDraft.review", { params: { briefId } }),
+    "POST",
+    input,
+    options,
+  );
 }
 
 export function submitStudioBriefDraftVerdict(
@@ -646,7 +680,12 @@ export function submitStudioBriefDraftVerdict(
   input: StudioBriefDraftVerdictRequest,
   options?: StudioMutationOptions,
 ) {
-  return mutateStudioVoid(`${draftBase(briefId)}/verdict`, "POST", input, options);
+  return mutateStudioVoid(
+    studioPath("studio.briefDraft.verdict", { params: { briefId } }),
+    "POST",
+    input,
+    options,
+  );
 }
 
 export function publishStudioBriefDraftCandidate(
@@ -654,7 +693,12 @@ export function publishStudioBriefDraftCandidate(
   input: StudioBriefDraftPublishRequest,
   options?: StudioMutationOptions,
 ) {
-  return mutateStudioVoid(`${draftBase(briefId)}/publish`, "POST", input, options);
+  return mutateStudioVoid(
+    studioPath("studio.briefDraft.publish", { params: { briefId } }),
+    "POST",
+    input,
+    options,
+  );
 }
 
 export function retractStudioBriefDraftCandidate(
@@ -662,12 +706,17 @@ export function retractStudioBriefDraftCandidate(
   input: StudioBriefDraftRetractRequest,
   options?: StudioMutationOptions,
 ) {
-  return mutateStudioVoid(`${draftBase(briefId)}/retract`, "POST", input, options);
+  return mutateStudioVoid(
+    studioPath("studio.briefDraft.retract", { params: { briefId } }),
+    "POST",
+    input,
+    options,
+  );
 }
 
 export function fetchStudioBriefPublishCandidateExport(briefId: string) {
   return loadStudioJson(
-    `${draftBase(briefId)}/publish-candidate-export`,
+    studioPath("studio.briefDraft.publishCandidateExport", { params: { briefId } }),
     StudioBriefPublishCandidateExportResponseSchema,
   );
 }

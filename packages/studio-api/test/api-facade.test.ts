@@ -12,7 +12,7 @@ import {
   StudioDocsResponseSchema,
   StudioRoutesResponseSchema,
 } from "@bp/domain";
-import { handleStudioApiRequest, type StudioApiEnv } from "../src/index.js";
+import { handleStudioApiRequest, type StudioApiEnv } from "@bp/studio-api/server";
 
 type D1Value = string | number | boolean | null;
 
@@ -258,7 +258,28 @@ describe("Studio API facade", () => {
     const response = await fetchApi("/api/missing");
 
     expect(response.status).toBe(404);
-    expect(await response.text()).toBe("Not found");
+    await expect(response.json()).resolves.toEqual({
+      error: {
+        code: "NOT_FOUND",
+        message: "API route was not found.",
+      },
+    });
+  });
+
+  it("returns method-aware JSON errors for known API paths", async () => {
+    const response = await handleStudioApiRequest(
+      new Request("https://example.test/api/v1/studio/routes", { method: "POST" }),
+      {},
+    );
+
+    expect(response?.status).toBe(405);
+    expect(response?.headers.get("Allow")).toBe("GET");
+    await expect(response?.json()).resolves.toEqual({
+      error: {
+        code: "METHOD_NOT_ALLOWED",
+        message: "Method is not allowed for this API route.",
+      },
+    });
   });
 
   it("serves a D1-backed route scorecard", async () => {

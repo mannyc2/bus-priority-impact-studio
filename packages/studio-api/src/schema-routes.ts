@@ -7,8 +7,8 @@ import {
   routeListResponseJsonSchema,
   routeProfileResponseJsonSchema,
   routeScorecardJsonSchema,
-  studioOpenApiDocument,
 } from "@bp/domain";
+import { studioOpenApiDocument } from "./contracts/openapi.js";
 import { jsonResponse as json } from "./http/json.js";
 
 export function handleSchemaRoutes(url: URL): Response | null {

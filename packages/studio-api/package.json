@@ -2,10 +2,19 @@
   "name": "@bp/studio-api",
   "private": true,
   "type": "module",
-  "description": "Cloudflare Worker runtime helpers and handlers for Studio API resources.",
+  "description": "Framework-neutral Studio REST contracts, client, and explicit Cloudflare server entrypoints.",
   "exports": {
-    ".": "./src/index.ts",
-    "./authoring": "./src/authoring.ts"
+    "./contracts": "./src/contracts/index.ts",
+    "./contracts/openapi": "./src/contracts/openapi.ts",
+    "./client": "./src/client/index.ts",
+    "./client/fetch": "./src/client/fetch.ts",
+    "./server": "./src/server/index.ts",
+    "./server/worker": "./src/server/worker.ts",
+    "./server/scheduled": "./src/server/scheduled.ts",
+    "./server/auth": "./src/server/resources/auth/index.ts",
+    "./server/authoring": "./src/server/resources/authoring/index.ts",
+    "./server/authoring/agent": "./src/server/resources/authoring/agent/index.ts",
+    "./server/testing": "./src/server/testing/index.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json --noEmit --pretty false",

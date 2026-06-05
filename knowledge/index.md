@@ -101,7 +101,7 @@ mutations, and Codemode deferred until a workflow needs it.
 - [[wiki/engineering/data_pipeline_2023_present_completion_audit|Data Pipeline 2023-present completion audit]] — Evidence checklist for the reframed 2023-04 through latest-complete-speed-month corpus.
 - [[wiki/engineering/cloudflare_operations_runbook|Cloudflare operations runbook]] — Production D1/R2 bindings, serving publish, Worker deploy, scheduled GTFS-RT capture verification, and R2-to-pipeline handoff.
 - [[wiki/engineering/web_api_endpoint_architecture|Web API endpoint architecture]] — Website-facing Worker API plan for route cards, profiles, hotspots, compare, map manifests, and completeness-aware status.
-- [[wiki/engineering/studio_api_refactor_plan|Studio API refactor plan]] — Package-first, app-later plan for extracting `/api/*`, cron, auth, and authoring runtime code while keeping SSR optional.
+- [[wiki/engineering/studio-api-refactor|Studio API hard-cutover refactor]] — Canonical plan to replace the broad `@bp/studio-api` root export with explicit contracts/client/server subpaths, generated route/OpenAPI ownership, and no legacy compatibility path.
 - [[wiki/engineering/serving_storage_split_plan|Serving storage split plan]] — Resource-first D1/R2 storage split, page-shaped projection rules, endpoint backing targets, and migration phases.
 - [[wiki/engineering/website_data_support_audit|Website data support audit]] — Current frontend/Worker data paths, mocked-vs-real status, Studio projection coverage gaps, and immediate support queue.
 - [[wiki/engineering/website_data_expansion_plan|Website data expansion plan]] — Serving Snapshot 2.0 plan for richer route pages, Tier 2 timelines, evidence catalog, context strips, and coverage manifests from the already-extracted corpus.

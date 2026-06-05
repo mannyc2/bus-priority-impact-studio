@@ -1,14 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { StudioSnapshotResponseSchema } from "@bp/domain";
-import {
-  handleStudioApiRequest,
-  handleStudioReadRequest,
-  isApiPath,
-  isStudioApiPath,
-  studioProjectionKey,
-  studioProjectionPrefix,
-  studioRouteTemplate,
-} from "../src/index.js";
+import { isApiPath, isStudioApiPath, studioRouteTemplate } from "@bp/studio-api/contracts";
+import { handleStudioApiRequest } from "@bp/studio-api/server";
+import { studioProjectionKey, studioProjectionPrefix } from "../src/studio/projections.js";
+import { handleStudioReadRequest } from "../src/studio/read-handlers.js";
 
 const quality = {
   releaseLayer: "baseline_release",
@@ -80,7 +75,7 @@ describe("Studio API HTTP helpers", () => {
       "/api/v1/studio/routes/:routeId/ladder",
     );
     expect(studioRouteTemplate("/api/v1/studio/briefs/brief-m15/draft/blocks")).toBe(
-      "/api/v1/studio/briefs/:briefId/draft*",
+      "/api/v1/studio/briefs/:briefId/draft/blocks",
     );
     expect(studioRouteTemplate("/api/v1/studio/unknown")).toBe("/api/v1/studio/*");
   });

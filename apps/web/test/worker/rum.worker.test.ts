@@ -47,6 +47,7 @@ describe("POST /api/v1/rum web-vitals beacon", () => {
   it("does not respond to GET (method guard)", async () => {
     const response = await worker.fetch(new Request("https://example.test/api/v1/rum"));
 
-    expect(response.status).toBe(404);
+    expect(response.status).toBe(405);
+    expect(response.headers.get("Allow")).toBe("POST");
   });
 });

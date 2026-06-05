@@ -1,12 +1,12 @@
 import { describe, expect, it } from "bun:test";
+import { handleStudioScheduled } from "@bp/studio-api/server/scheduled";
 import {
-  handleStudioScheduled,
   ROUTE_SPEED_WATCHER_CRON,
   runRouteSpeedMonthlyWatcher,
   runScheduledGtfsRtCaptureBatch,
   runScheduledProductionRefresh,
   runScheduledSourceRefresh,
-} from "../src/index.js";
+} from "../src/server/jobs/source-refresh.js";
 
 class FakeR2Bucket {
   readonly writes = new Map<string, ArrayBuffer | string>();

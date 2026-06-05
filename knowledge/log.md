@@ -2,6 +2,26 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-05] engineering | Studio API public import cutover completed
+
+Completed the hard public import cutover for `@bp/studio-api`: the old source barrels
+`src/index.ts` and `src/authoring.ts` are deleted, the package has no root export and no
+`./authoring` export, `apps/web` Worker imports use only `contracts` and `server/*` subpaths, and
+the browser Studio API client now derives Studio paths from `@bp/studio-api/client` instead of
+hand-building `/api/v1/studio/*` URLs. The API facade now returns JSON error envelopes for unknown
+API routes and registry-backed `405` responses with `Allow` for known paths with the wrong method.
+The deeper resource split of `brief-drafts.ts` remains a follow-up refactor, but no legacy public
+package entrypoint remains.
+
+## [2026-06-05] engineering | Studio API explicit subpath cutover started
+
+Started the hard-cutover implementation for `@bp/studio-api`. The package export map now removes
+the root `.` entry and old `./authoring` entry, replacing them with explicit `./contracts`,
+`./client`, and `./server/*` subpaths. `apps/web` Worker imports now use
+`@bp/studio-api/contracts` for API path classification and `@bp/studio-api/server/*` for Worker,
+scheduled, env, and `BriefAuthorAgent` types. The first contract registry and client shell exist,
+and package tests now verify that legacy entrypoints are not importable.
+
 ## [2026-06-05] engineering | Sources adapter cutover gates closed
 
 Closed the remaining sources-adapter cutover gates after the Phase 1 hard export/import migration.

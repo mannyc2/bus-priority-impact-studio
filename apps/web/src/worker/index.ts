@@ -1,4 +1,6 @@
-import { handleStudioApiRequest, handleStudioScheduled, isApiPath } from "@bp/studio-api";
+import { isApiPath } from "@bp/studio-api/contracts";
+import { handleStudioScheduled } from "@bp/studio-api/server/scheduled";
+import { buildHealthResponse, handleStudioFetch } from "@bp/studio-api/server/worker";
 import type { Env } from "./env.js";
 import {
   canServeSpaFallback,
@@ -8,8 +10,8 @@ import {
   serveSpaFallback,
 } from "./spa.js";
 
-export { buildHealthResponse } from "@bp/studio-api";
 export type { Env } from "./env.js";
+export { buildHealthResponse };
 
 export default {
   async fetch(request: Request, env: Env = {}, ctx?: ExecutionContext): Promise<Response> {
@@ -17,8 +19,7 @@ export default {
 
     if (isApiPath(url.pathname)) {
       return (
-        (await handleStudioApiRequest(request, env, ctx)) ??
-        new Response("Not found", { status: 404 })
+        (await handleStudioFetch(request, env, ctx)) ?? new Response("Not found", { status: 404 })
       );
     }
 
