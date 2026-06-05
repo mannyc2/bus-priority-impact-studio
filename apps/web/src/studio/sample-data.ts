@@ -1374,7 +1374,7 @@ export const studioDocsSections: StudioDocsSection[] = [
   {
     title: "Changelog",
     body: [
-      "2026-05-18: hard cutover planning started. The route-first site, schema-first API, and future CLI now share one implementation plan.",
+      "2026-05-18: route-first Studio planning started. The website, API, and future CLI now share one implementation plan.",
     ],
   },
 ];
@@ -1497,7 +1497,7 @@ export const studioReleaseQuality: StudioQuality = {
   completenessStatus: "complete",
   confidence: "medium",
   caveats: [
-    "Studio pages consume RESTful /api/v1/studio/* resources backed by versioned serving projections during the hard cutover.",
+    "Studio pages consume RESTful /api/v1/studio/* resources backed by versioned serving projections.",
   ],
 };
 

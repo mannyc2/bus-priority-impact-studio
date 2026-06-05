@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { routeHead } from "../lib/head.js";
+import { requireAuthenticatedRoute } from "../lib/route-auth.js";
 import type {
   AdminIdentitiesListResponse,
   AdminIdentityEntry,
@@ -17,6 +18,8 @@ const ALL_SCOPES: StudioActorScope[] = [
 ];
 
 export const Route = createFileRoute("/admin/identities")({
+  beforeLoad: ({ location }) =>
+    requireAuthenticatedRoute({ location, scopes: ["admin:identities"] }),
   head: () => routeHead("Admin · Identities", "Grant operator scopes to public identities."),
   component: AdminIdentitiesRoute,
 });
@@ -98,9 +101,7 @@ function AdminIdentitiesContent({ defaultWorkspaceId }: { defaultWorkspaceId: st
           Search
         </button>
       </form>
-      {error !== null ? (
-        <p className="text-[12px] text-[var(--bp-color-bad)]">{error}</p>
-      ) : null}
+      {error !== null ? <p className="text-[12px] text-[var(--bp-color-bad)]">{error}</p> : null}
       {identities === null ? (
         <p className="text-[12px] text-[var(--bp-color-muted)]">Loading…</p>
       ) : identities.length === 0 ? (

@@ -20,6 +20,7 @@ import { Route as BriefsRouteImport } from "./routes/briefs"
 import { Route as AccountRouteImport } from "./routes/account"
 import { Route as SplatRouteImport } from "./routes/$"
 import { Route as IndexRouteImport } from "./routes/index"
+import { Route as RoutesIndexRouteImport } from "./routes/routes/index"
 import { Route as RoutesRouteIdRouteImport } from "./routes/routes/$routeId"
 import { Route as FindingsFindingIdRouteImport } from "./routes/findings/$findingId"
 import { Route as DocsPageRouteImport } from "./routes/docs/$page"
@@ -87,6 +88,11 @@ const SplatRoute = SplatRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: "/",
   path: "/",
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RoutesIndexRoute = RoutesIndexRouteImport.update({
+  id: "/routes/",
+  path: "/routes/",
   getParentRoute: () => rootRouteImport,
 } as any)
 const RoutesRouteIdRoute = RoutesRouteIdRouteImport.update({
@@ -174,6 +180,7 @@ export interface FileRoutesByFullPath {
   "/docs/$page": typeof DocsPageRoute
   "/findings/$findingId": typeof FindingsFindingIdRoute
   "/routes/$routeId": typeof RoutesRouteIdRouteWithChildren
+  "/routes/": typeof RoutesIndexRoute
   "/briefs/$briefId/edit": typeof BriefsBriefIdEditRoute
   "/briefs/$briefId/evidence": typeof BriefsBriefIdEvidenceRoute
   "/briefs/$briefId/history": typeof BriefsBriefIdHistoryRoute
@@ -200,6 +207,7 @@ export interface FileRoutesByTo {
   "/docs/$page": typeof DocsPageRoute
   "/findings/$findingId": typeof FindingsFindingIdRoute
   "/routes/$routeId": typeof RoutesRouteIdRouteWithChildren
+  "/routes": typeof RoutesIndexRoute
   "/briefs/$briefId/edit": typeof BriefsBriefIdEditRoute
   "/briefs/$briefId/evidence": typeof BriefsBriefIdEvidenceRoute
   "/briefs/$briefId/history": typeof BriefsBriefIdHistoryRoute
@@ -227,6 +235,7 @@ export interface FileRoutesById {
   "/docs/$page": typeof DocsPageRoute
   "/findings/$findingId": typeof FindingsFindingIdRoute
   "/routes/$routeId": typeof RoutesRouteIdRouteWithChildren
+  "/routes/": typeof RoutesIndexRoute
   "/briefs/$briefId/edit": typeof BriefsBriefIdEditRoute
   "/briefs/$briefId/evidence": typeof BriefsBriefIdEvidenceRoute
   "/briefs/$briefId/history": typeof BriefsBriefIdHistoryRoute
@@ -255,6 +264,7 @@ export interface FileRouteTypes {
     | "/docs/$page"
     | "/findings/$findingId"
     | "/routes/$routeId"
+    | "/routes/"
     | "/briefs/$briefId/edit"
     | "/briefs/$briefId/evidence"
     | "/briefs/$briefId/history"
@@ -281,6 +291,7 @@ export interface FileRouteTypes {
     | "/docs/$page"
     | "/findings/$findingId"
     | "/routes/$routeId"
+    | "/routes"
     | "/briefs/$briefId/edit"
     | "/briefs/$briefId/evidence"
     | "/briefs/$briefId/history"
@@ -307,6 +318,7 @@ export interface FileRouteTypes {
     | "/docs/$page"
     | "/findings/$findingId"
     | "/routes/$routeId"
+    | "/routes/"
     | "/briefs/$briefId/edit"
     | "/briefs/$briefId/evidence"
     | "/briefs/$briefId/history"
@@ -330,6 +342,7 @@ export interface RootRouteChildren {
   AdminIdentitiesRoute: typeof AdminIdentitiesRoute
   AuthConsumeRoute: typeof AuthConsumeRoute
   RoutesRouteIdRoute: typeof RoutesRouteIdRouteWithChildren
+  RoutesIndexRoute: typeof RoutesIndexRoute
 }
 
 declare module "@tanstack/react-router" {
@@ -409,6 +422,13 @@ declare module "@tanstack/react-router" {
       path: "/"
       fullPath: "/"
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    "/routes/": {
+      id: "/routes/"
+      path: "/routes"
+      fullPath: "/routes/"
+      preLoaderRoute: typeof RoutesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     "/routes/$routeId": {
@@ -587,6 +607,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminIdentitiesRoute: AdminIdentitiesRoute,
   AuthConsumeRoute: AuthConsumeRoute,
   RoutesRouteIdRoute: RoutesRouteIdRouteWithChildren,
+  RoutesIndexRoute: RoutesIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

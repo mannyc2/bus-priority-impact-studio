@@ -1,13 +1,24 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { safeAppRedirect } from "../lib/auth-redirect.js";
 import { routeHead } from "../lib/head.js";
 
+type SignInSearch = {
+  redirect?: string;
+};
+
 export const Route = createFileRoute("/signin")({
+  validateSearch: (search: { redirect?: unknown }): SignInSearch => {
+    const redirect =
+      typeof search.redirect === "string" ? safeAppRedirect(search.redirect) : undefined;
+    return redirect === undefined ? {} : { redirect };
+  },
   head: () => routeHead("Sign in", "Sign in to save alerts, searches, and comment on briefs."),
   component: SignInRoute,
 });
 
 function SignInRoute() {
+  const { redirect } = Route.useSearch();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
@@ -21,7 +32,7 @@ function SignInRoute() {
       const response = await fetch("/api/v1/auth/magic-link/request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, ...(redirect === undefined ? {} : { next: redirect }) }),
       });
       if (response.status === 204) {
         setStatus("sent");

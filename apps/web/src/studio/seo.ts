@@ -16,7 +16,8 @@ export type PublicStudioRoute = {
 };
 
 export const PUBLIC_STUDIO_ROUTES: readonly PublicStudioRoute[] = [
-  { path: "/", label: "Routes home", expectedTitleText: "Routes" },
+  { path: "/", label: "Home", expectedTitleText: "Bus Priority Impact Studio" },
+  { path: "/routes", label: "Routes home", expectedTitleText: "Routes" },
   { path: "/search?q=manhattan+ace", label: "Search", expectedTitleText: "Search" },
   { path: "/routes/m15-sbs", label: "Route detail", expectedTitleText: "M15" },
   { path: "/routes/m15-sbs/ladder", label: "Route ladder", expectedTitleText: "M15" },
@@ -73,9 +74,17 @@ export function getStudioSeoMetadata(input: URL | string): StudioSeoMetadata | n
 
   if (pathname === "/") {
     return metadata(
+      "Bus Priority Impact Studio",
+      "Track every NYC bus route the city's speed-up program has touched — route by route, in plain numbers, from public MTA and NYC DOT data.",
+      "/",
+    );
+  }
+
+  if (pathname === "/routes") {
+    return metadata(
       "Routes",
       "Search NYC bus routes and open evidence-backed route pages in Bus Priority Impact Studio.",
-      "/",
+      "/routes",
     );
   }
 

@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { safeAppRedirect } from "../lib/auth-redirect.js";
 import { routeHead } from "../lib/head.js";
 
 export const Route = createFileRoute("/auth/consume")({
@@ -33,7 +34,7 @@ function AuthConsumeRoute() {
     })
       .then(async (response) => {
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        navigate({ to: next ?? "/", replace: true });
+        navigate({ to: safeAppRedirect(next) ?? "/", replace: true });
       })
       .catch((caught: unknown) => {
         setError(caught instanceof Error ? caught.message : "Sign-in failed.");

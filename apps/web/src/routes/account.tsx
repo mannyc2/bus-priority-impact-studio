@@ -1,9 +1,11 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { routeHead } from "../lib/head.js";
+import { requireAuthenticatedRoute } from "../lib/route-auth.js";
 import { isSignedIn, useIdentity } from "../studio/hooks/use-identity.js";
 
 export const Route = createFileRoute("/account")({
+  beforeLoad: ({ location }) => requireAuthenticatedRoute({ location }),
   head: () => routeHead("Account", "Manage your account."),
   component: AccountRoute,
 });

@@ -128,7 +128,7 @@ export function RouteDetailPage({ data }: { data: StudioRouteDetailResponse | nu
             />
           </div>
         ) : null}
-        <Tabs defaultValue="slow-segments" className="flex min-h-0 flex-1 flex-col gap-0">
+        <Tabs defaultValue="overview" className="flex min-h-0 flex-1 flex-col gap-0">
           <div className="shrink-0 bg-[var(--bp-color-card)] px-7 shadow-[inset_0_-1px_0_var(--bp-color-rule)]">
             <TabsList
               variant="line"
