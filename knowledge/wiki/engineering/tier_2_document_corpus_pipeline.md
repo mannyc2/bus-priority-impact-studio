@@ -22,6 +22,12 @@ The design question is whether to use a wiki compiler pattern, such as
 compiler pattern for synthesis and navigation, but make the detector-facing layer typed,
 auditable, and validation-first.
 
+The current next-step contract for turning OCR Markdown page/window files into validated claims,
+tables, events, context signals, review questions, and applied-research inputs is
+[[wiki/engineering/tier2_structured_extraction_harness_plan|Tier 2 Structured Extraction Harness
+Plan]]. Treat this page as the broader pipeline doctrine and the structured-extraction page as the
+current implementation target for the post-OCR harness.
+
 ## Decision
 
 Do not adopt a general wiki compiler as the canonical finding-detector input.

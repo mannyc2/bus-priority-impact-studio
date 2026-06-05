@@ -2,7 +2,7 @@
 title: Tier 2 Document Corpus
 type: data
 status: active
-last_updated: 2026-05-30
+last_updated: 2026-06-01
 owner: codex
 tags: [tier2, interventions, ocr, documents, studio]
 ---
@@ -18,6 +18,9 @@ document prose become the source of metric truth.
 
 - Extraction architecture, candidate contracts, validation gates, and the quality-tier doctrine live
   in [[wiki/engineering/tier_2_document_corpus_pipeline|Tier 2 document corpus pipeline]].
+- The next structured-extraction harness, including old-artifact review, page/window schemas,
+  validator gates, and applied-research outputs, lives in
+  [[wiki/engineering/tier2_structured_extraction_harness_plan|Tier 2 structured extraction harness plan]].
 - Source families, coverage, and acquisition gaps live in
   [[wiki/data/intervention_source_coverage|Intervention source coverage]].
 
@@ -60,8 +63,31 @@ Current artifacts under `data/artifacts/docs/gap-roadmap-docs-2026-05-25/`:
 - `intervention-publishable-v1.json` — promoted publishable subset
 - `intervention-publishable-v1-by-route.json` — per-route Studio projection
 
+Use `bun --filter @bp/pipeline-v2 cli audit tier2-structured-data` to inventory historical and
+current structured Tier 2 artifacts. The audit classifies candidate bundles, raw Phase 3 tool calls,
+reviewed intervention records, staging events, manual candidates, publishable projections, LLM
+traces, and report/provenance files. It also identifies the best current research substrate and the
+best serving projection.
+
+As of the 2026-06-01 inventory, the best research substrate is
+`gap-roadmap-docs-2026-05-25/intervention-records-corpus-v3-reviewed-2026-05-27.json`: 310 reviewed
+records across 36 sources and 285 route IDs, with all 310 records parsing as the current
+`bp.document_intervention_record.v1` contract. The best serving projection remains
+`gap-roadmap-docs-2026-05-25/intervention-publishable-v1.json`. The audit's next action is to
+backfill the full-corpus reviewed intervention-record layer; the current reviewed records are from
+the smaller curated subset, while `tier2-full-corpus-2026-05-24-pass2` currently has candidate and
+staging artifacts rather than a reviewed full-corpus record corpus.
+
+The reviewed intervention-record layer is not the final shape for applied research. It is a strong
+curated substrate for intervention timeline work, but the next harness must preserve page/window
+claims, tables, raw mentions, validated entity refs, service changes, context signals, review
+questions, metric-authority caveats, and research-use tags before synthesizing events. That richer
+contract is what lets Tier 2 feed detector packets, causal panels, forecasting context, event-family
+response-drift studies, source-gap queues, and gold-set labels without treating document prose as
+computed metric truth.
+
 Active v2 commands: `docs:ocr-plan`, `docs:ocr-page-audit`, `docs:ocr-markdown-candidates`,
-`docs:extract`, `docs:intervention-records`.
+`docs tier2 structured-extract`, `docs:extract`, `docs:intervention-records`.
 
 > **Preservation note.** The 2026-05-31 OCR preservation reconciliation found that the
 > `tier2-full-corpus-2026-05-24-pass2` fixed-point backlog had dropped 31 OCR-backed seed sources

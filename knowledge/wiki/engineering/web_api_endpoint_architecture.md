@@ -80,6 +80,40 @@ that resource to whichever D1/R2 inputs back it.
 The pipeline still owns expensive work: source fetches, GTFS-RT parsing, geospatial construction,
 hotspot scoring, intervention evaluation, route brief generation, artifact builds, and D1/R2 export.
 
+## API Package Refactor
+
+The next backend refactor should be **package-first, app-later**. See
+[[wiki/engineering/studio_api_refactor_plan|Studio API Refactor Plan]].
+
+Planned shape:
+
+```text
+apps/web Worker
+  -> assets, SPA fallback, edge SEO
+  -> delegates /api/* to packages/studio-api
+  -> delegates scheduled refresh to packages/studio-api
+  -> re-exports BriefAuthorAgent from packages/studio-api
+```
+
+This keeps the current deployment simple while making the API portable. A future `apps/api` Worker
+should be a thin wrapper around the same package only after SSR, least-privilege binding separation,
+independent API deploys, or external API versioning justifies the extra Cloudflare routing and
+cookie surface.
+
+`packages/studio-api` is allowed to be Cloudflare-edge runtime code. It may depend on
+`@bp/domain`, `@bp/db`, Workers request/response primitives, D1, R2, Workers AI, cookies, and
+headers. It must not import React, TanStack Router route modules, `apps/*`, `tools/*`,
+`knowledge/*`, `@bp/sources`, `@bp/analytics`, or `@bp/applied-research`.
+
+The extraction order should be:
+
+1. Move HTTP helpers, projection readers, cache headers, request-id, structured logging, and
+   app/D1/R2 `Server-Timing` helpers.
+2. Move Studio read endpoints, including the planned `GET /api/v1/studio/snapshot`.
+3. Move auth and brief authoring write endpoints.
+4. Move source-refresh cron and `BriefAuthorAgent` exports.
+5. Add `apps/api` only if the gates above are met.
+
 ## Hard Cutover Rules
 
 - Production Studio pages call `/api/v1/studio/*` only.
@@ -425,11 +459,12 @@ observability and Lighthouse gate plan.
 - Current slice: `bun run build:studio-release` writes the current
   `data/artifacts/studio/v1/release.json` audit artifact plus page-shaped endpoint projections for
   R2 upload, and the serving publish script includes `data/artifacts/studio/*`.
-- Next: split the Studio handler into `apps/web/src/worker/studio/` modules and add shared
-  `Cache-Control`, request-id, and D1/R2 timing helpers.
+- Next: extract the Studio API into `packages/studio-api` before creating any separate `apps/api`
+  deployment. Start with shared `Cache-Control`, request-id, app/D1/R2 timing, structured logging,
+  and R2 projection helpers.
 - Next: generate the page-shaped `studio/v1/*.json` projections from D1/R2 sources instead of the
   local seed.
-- Add Worker tests for `bootstrap` once bootstrap/nav metadata is introduced.
+- Add Worker tests for `GET /api/v1/studio/snapshot` once snapshot/nav metadata is introduced.
 
 ### Step 3: Hard-Cutover Frontend Reads
 

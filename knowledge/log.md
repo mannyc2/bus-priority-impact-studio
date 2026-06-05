@@ -2,6 +2,534 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-05] engineering | Sources adapter SODA3-only cutover decision recorded
+
+Added [[wiki/engineering/sources_adapter_cutover_plan|Sources Adapter Cutover Plan]] as the Phase 1
+decision record for hard-cutting `@bp/sources` into a focused internal source adapter SDK. The plan
+locks SODA3 as the only first-class Socrata path: query/export under
+`/api/v3/views/<dataset_id>/...`, app-token/header identification, no public SODA2 compatibility
+helpers, and no root `@bp/sources` export. A repo inventory found 31 current Socrata manifest
+records and no policy reason to preserve SODA2, but it also surfaced concrete cutover blockers:
+old `/resource/...` manifest fields, old Socrata client helpers, broad `tools/pipeline-v2` imports,
+old URL assertions in tests, and one Studio source-refresh runtime read. Byte-range/resumable export
+support remains a project requirement, but official docs reviewed for this decision do not clearly
+document byte-range semantics, so the implementation phase must prove it with fixture-backed tests
+and an opt-in integration probe before resumable archival backfills rely on it.
+
+## [2026-06-05] engineering | Tier 2 agentic self-healing architecture started
+
+Added [[wiki/engineering/tier2_agentic_self_healing_architecture|Tier 2 Agentic Self-Healing Architecture]]
+and the first artifact-producing planner for agentic extraction runs. The runner now has an
+explicit lane model for clean, pending/in-progress, worker retry, provider transient retry,
+tool-response retry, validator-feedback retry, source-tool enrichment, and quarantine outcomes.
+The policy is intentionally bounded: provider and tool-call failures can retry, validator failures
+can retry with prior feedback, missing-data/absence claims require source-shell/PDF search evidence,
+and unexplained blockers quarantine instead of being silently coerced into passing rows.
+
+## [2026-06-04] planning | Website data expansion plan started
+
+Added [[wiki/engineering/website_data_expansion_plan|Website Data Expansion Plan]] to turn the
+"show more data" goal into a Serving Snapshot 2.0 roadmap. The plan assumes Tier 2 is done and the
+local corpus is already broadly extracted, so the first priority is not more ingestion; it is richer
+audited serving projections and UI surfaces over existing data. Initial lanes are a release-level
+snapshot manifest, richer route-detail data (real maps, hour/daypart profiles, direction splits,
+headway histograms, context strips), Tier 2 route timelines, an evidence/source catalog, expanded
+promoted findings, and later cohort-aware compare views. The plan keeps D1 as compact index/control
+plane, R2 as immutable artifact plane, `/api/v1/studio/*` as the public contract, and
+observed/reviewed/proxy/unavailable/research-only posture as the gate for every displayed field.
+
+Follow-up clarification: the plan now treats NYC DOT bus lanes as a first-class corpus surface, not
+only a fixed route-linked list. The snapshot manifest should count source lane rows, mappable lane
+features, route-linked lane features, and unlinked lane features; the website should add
+`/api/v1/studio/data/bus-lanes*` resources, an all-bus-lanes map layer, and route-linked
+highlighting as a derived view. The current local citywide bus-lane GeoJSON has 3,048 mappable
+features, so the first expansion slice can start from existing lane artifacts before new ingestion.
+
+Second clarification: the primary product baseline is the full served MTA bus-route universe. The
+website should show every public route with route-level corpus data, not a curated sample, fixed demo
+list, or route set defined by bus-lane links. Bus lanes are a supporting layer; route index, search,
+detail URLs, and per-route availability states should be driven from the full route universe
+projection.
+
+## [2026-06-04] engineering | Agentic authority gate implemented and canary-audited
+
+Implemented the source-statement authority contract in the Tier 2 agentic extraction
+harness. `metric_observation`, `claim`, and `causal_claim` rows now receive canonical
+`sourceClaimAuthority`, `truthStatus`, and `publicationWordingGate` fields through
+deterministic repair from explicit payload authority first, then stable official source
+metadata such as `nyc_dot_*` source ids/groups. The audit now blocks source-statement
+rows missing those fields and blocks agentic rows that try to self-label as
+`deterministic_project_metric`.
+
+Confirmation runs used the patched runner against real prior model outputs: B44/Nostrand
+page 24 replay accepted 22/22 drafts with 9/9 source-statement rows labeled
+`official_nyc_dot`; BX6 page 9 replay accepted 18/18 with 8/8 source-statement rows
+labeled `official_nyc_dot`; Woodhaven page 19 replay accepted 15/15 with 5/5
+source-statement rows labeled `official_nyc_dot`. All three audits had 0 blockers, and
+manual source checks matched the supported OCR block/line evidence for the key
+metrics/claims. A fresh one-window Woodhaven live attempt after the patch produced
+`llm_provider_failed` and was audit-blocked, so full-run readiness still depends on
+retry queues/provider sharding rather than fire-and-forget execution.
+
+## [2026-06-04] engineering | SSR (TanStack Start) migration sketch for the public web app
+
+Scoped whether to move `apps/web` from its current client-rendered TanStack Router SPA to SSR.
+Grounded the decision in the actual stack: the Worker already injects per-route `<head>` SEO at the
+edge (`withSpaSeo`/`injectSeoIntoHtml`), so meta-tag SEO is not the reason. The one
+architecture-specific benefit is collapsing the browser→Worker `/api/*` data round-trip on content
+pages into an in-process D1 read, because the renderer and the database would share the same Worker
+— a direct LCP win on `/`, `/findings`, `/briefs`, `/compare`, `/routes/$`. SSR does not shrink the
+JS budget and adds render CPU on the request path; map/auth/studio routes stay client-rendered.
+Recorded the recommended shape (TanStack Start, per-route opt-in), what the migration touches
+(client/server entries, the worker asset/SSR branch split, which loaders move server-side reusing
+existing `@bp/db/d1` functions), phasing, and verification in
+`knowledge/wiki/engineering/web_ssr_tanstack_start_migration_plan.md`.
+
+Refined the topology after discussion: SSR and worker-count are orthogonal. Leaning toward a
+**two-worker split** — a site worker (SSR + assets, D1/R2 **read** only) and an API/data worker
+(`/api/*`, cron, `BriefAuthorAgent` DO, AI, read+write). A D1 database binds to multiple Workers, so
+the site worker reads D1 **directly** in SSR loaders without losing the LCP win (the win was avoiding
+the browser→Worker hop, not API co-location). Keep `/api/*` same-origin (path-route or service
+binding) to preserve the `SameSite=Lax` `bp_session` cookie and avoid CORS. Prefer a split-first,
+still-SPA phase before adding SSR. Draft only; an ADR follows once a one-route spike proves the LCP
+delta and the topology choice.
+
+## [2026-06-04] engineering | Agentic Tier 2 downstream use and field-support contract clarified
+
+Clarified that the agentic Tier 2 corpus is not merely a brief-generation input. Its first-order
+use is a reviewable document-evidence layer for detector official context, detector caveats,
+counter-evidence, source-gap queues, treatment/date inventories, causal-study windows, gold-label
+seeds, review packets, promoted findings, and only then route/corridor briefs. Raw accepted
+agentic outputs remain research surfaces; detectors still decide candidate structure from typed
+feature corpora, while document surfaces explain, corroborate, contradict, or fill official-source
+gaps around those candidates.
+
+Also recorded the `evidenceByField` stability contract. Current keys are
+`document-research-draft-v2-dotpath` paths into `DocumentResearchSurfaceDraftV2`, such as
+`rawText`, `displayLabel`, and `rawPayload.routeTextRaw`, validated by the deterministic resolver
+and materialized into accepted `fieldSupport` rows. Future field-id helpers must either preserve
+that path scheme or add an explicit resolver version plus migration; downstream consumers should
+read verifier-materialized `fieldSupport`, not rebuild support through ad hoc string parsing.
+
+Follow-up authority audit: a strict, line-backed extraction from official MTA/DOT material should
+be treated as authoritative for what the agency source states, even though it is not automatically a
+Studio-computed metric or causal conclusion. The current clean agentic canary has 27 deduped
+audit-clean NYC DOT windows and 449 accepted surfaces; 98/99 metric observations have exact
+verified `rawText` support and 65/67 claim surfaces carry authority-like payload fields. The gap is
+canonical authority typing: 0/99 metric observations currently carry the canonical
+`metricAuthority`/`truthStatus` fields in the accepted agentic surface, even when source authority
+appears as ad hoc `authorityRaw`, and only 20/99 metric observations have separately verified
+metric-value field paths. Before full unattended scale, require or deterministically derive
+canonical `sourceClaimAuthority`, `truthStatus`, and `publicationWordingGate` fields for
+source-stated metrics/effect claims.
+
+## [2026-06-04] engineering | Agentic Tier 2 canary passed controlled-run gate
+
+Expanded the agentic Tier 2 extraction harness from the initial smoke into a broader live canary.
+Added explicit live-run controls (`timeoutMs`, `maxAttempts`), provider-failure preservation as
+audit-blocked artifacts, and deterministic normalization of empty optional tool/draft notes before
+schema parsing. The empty-note fix salvaged otherwise-valid BX6/B82/Fordham-style outputs that had
+previously forced repair calls and timeouts.
+
+Current evidence: 27 audit-clean live windows and 449 accepted surfaces across the smoke, main
+canary, failed-window rerun, and extra canary, with 0 final rejected drafts, 0 validation issues,
+and 0 audit blockers on the clean outputs. The only persistent residual is
+`nyc_dot_bus_priority_document_pdf_lower_montauk_final_report_jan2018:218`, a rail-study
+station/time table and O&M methodology page with no bus route lookup, which still times out as a
+single-window run. Treat the harness as ready for a controlled full run with audit-driven retry
+queues and residual review, not as a fire-and-forget unattended run.
+
+## [2026-06-04] engineering | Agentic Tier 2 extraction harness live smoke
+
+Implemented the first runnable agentic Tier 2 extraction loop in `tools/pipeline-v2`.
+The batch command builds source-window requests from discovery block indexes, OCR evidence
+handles, evidence-backed route lookup text, and prior discovery context marked as hint-only.
+The audit command deterministically blocks final validation failures, unsupported route lookup
+text, non-canonical route field paths, missing-data claims without search transcripts, unresolved
+evidence paths, and unresolved route raw-text paths. The runner also fills missing
+`rawPayload.routeTextRaw` from evidence-backed lookup text when the model selected validated route
+IDs but omitted the raw field.
+
+Live smoke results: M34/M34A newsletter pages 1-4 produced 58 accepted surfaces with zero blockers;
+a cross-source Nostrand/Woodhaven/Flatbush sample produced 56 accepted surfaces with zero blockers.
+The combined clean smoke is 7 windows, 114 accepted surfaces, 0 rejected, 0 validation issues, and
+0 audit blockers. Before a full run, run a larger 25-50 window canary and decide whether/how to add
+document-level route context for pages whose local block text does not name routes.
+
+## [2026-06-04] engineering | Agentic Tier 2 extraction harness goal added
+
+Added [[wiki/engineering/agentic_tier2_extraction_harness_goal|Agentic Tier 2 extraction harness
+goal]] after auditing the discovery, structured extraction, intervention-record, research-audit,
+derived-surface, operational-date, proof-harness, detector, and brief-validation paths. The new
+goal reframes the next pass as a source-scoped investigation harness rather than another broad
+prompt: agents get OCR/PDF/source tools for page, line, table, route, metric, and prior-candidate
+inspection; the runner records every tool call and hash; outputs are rich document research
+surfaces plus a field-support matrix; and deterministic verification gates every research,
+detector, brief, source-gap, timeline, and causal use. The core lesson is that prior extracted data
+should improve recall as context, but only source/page/block/line/table-cell support can promote a
+field into usable downstream data.
+
+## [2026-06-04] engineering | Tier 2 operational-date proof harness
+
+Added `docs tier2 proof-harness`, a dry-run-first LLM proof harness for the causal-anchor-eligible
+Tier 2 operational-date rows. It builds one request per candidate from
+`document-operational-date-assertions-v1.json`, can attach full source markdown from a page-markdown
+manifest/root or a supplied document/corpus context file, and optionally executes a Pioneer forced
+tool call.
+
+The proof contract is intentionally strict: a `proven` result must classify the claim type, route
+scope, date, treatment, and operational status, and every supporting quote must resolve against the
+provided document context. Planned launches, study/design, meetings, post-implementation
+observations, vague corridor scope, missing context, and fabricated quotes are rejected or left as
+ambiguous/not-found proof results.
+The validator also treats candidate date/month mismatch, expected-route mismatch, unsupported
+treatment family, lowercase `able`/substring camera-enforcement claims, and rail/subway-only route
+scope as invalid proof.
+
+Ran the harness against the current deterministic anchors. A full dry-run over all 240
+causal-anchor-eligible rows found source markdown context for all 240. Live proofing was then run
+on a 5-candidate smoke batch and a 9-family stratified batch. Revalidated results: smoke `3/5`
+valid proven; stratified `4/9` valid proven plus one valid ambiguous stop-consolidation case. The
+invalids were useful quality signals: upstream family/date/route problems, vague operational-by
+evidence, non-verbatim quotes, and treatment-family mismatches.
+
+Ran the full 240-candidate live proof pass with cached per-candidate request/response/tool-call
+artifacts under `document-operational-date-proof-requests-live-full-v1`. The initial live artifact
+had 240/240 contexts and zero provider errors; after validator hardening and no-new-LLM cache
+revalidation, `document-operational-date-proof-harness-live-full-revalidated-v3.json` accepts 88
+valid proven proof rows across 42 distinct interventions, plus 23 valid ambiguous, 3 valid
+contradicted, and 2 valid not-found outcomes. The validator now proves from exact resolved spans
+only, treats unresolved extra context spans as warnings when core proof is already exact, supports
+execute concurrency plus cached response reuse, and rejects ACE/ABLE/camera, signal-timing,
+stop-change, and ancillary-label candidates that upstream metadata mislabeled as generic SBS or
+bus-lane anchors.
+
+## [2026-06-04] engineering | Tier 2 anchors wired into intervention-event-study input
+
+Regenerated the full-corpus Tier 2 route-resolution and route-review-queue artifacts from the
+populated v2 local DB (`data/local/pipeline.sqlite`, route-stop month `2026-03`), removing the stale
+blanket `requires_historical_gtfs` validation state. The queue now defaults 1,856 route items to
+route-timeline approval, 5,157 to supporting context, and 424 to manual curation.
+
+Added the first detector bridge in `route intervention-evaluation`: it reads
+`document-operational-date-assertions-v1.json`, dedupes causal-anchor-eligible rows into per-route
+document treatment events, and writes them under source id
+`tier2_document_operational_date_assertions` into the same local intervention tables read by
+`intervention_event_study`. The bridge only admits direct event-text and single-route source-context
+route links; ambiguous/current-corridor-only links remain review-queue material.
+
+Loaded March 2026 into local v2 SQLite through a direct existing-DB open because normal CLI startup
+is blocked by a local Drizzle migration-journal replay mismatch. Result: 168 document-anchor
+event/comparison rows alongside 78 ACE and 495 bus-lane rows; document-anchor statuses are
+`evaluated=3` and `insufficient_pre_data=165`. A direct detector-function check read all 168
+document-anchor features as coverage/no-hit rows under current thresholds.
+
+## [2026-06-03] engineering | Tier 2 operational-date assertions audited + hardened to anchor-ready
+
+A 15-agent independent audit scored the first deterministic version 651/1000
+(`ship_with_fixes`); applied-research fitness was the weak point (430) because the
+artifact was a research substrate, not a causal treatment table. Fixed the verified
+defects deterministically and added the adapter layer: `ace`/`able` word-boundary
+matcher (false `camera_enforcement` 305→36), negated/disjunctive status guard,
+expanded rail-mode/design/observation veto, a recall rescue (operational `familyRaw`
+overrides a noisy `eventKind`), `parseOperationalDate` (normalized ISO date +
+`implementationMonth` + precision; fixes US-slash dates and rejects non-dates), and
+a route-join + cross-source dedup (`interventionId`) + `confidence` + `causalAnchorEligible`
+adapter. Result: 1,157 trusted dates, **240 causal-anchor-eligible rows → 109 distinct
+interventions** (realized + month-or-finer + route-linked), ~99% precise on re-review.
+49 domain + 341 pipeline tests pass; both typecheck clean. Still gated before sqlite:
+rebuild local DB → regenerate resolution/review-queue → wire into the detector path.
+Deterministic-first per decision; an LLM re-extraction remains the escalation for
+date-block provenance + residual `eventKind` mislabels. See
+[[wiki/engineering/tier2_operational_date_extraction_review|the review]].
+
+## [2026-06-03] engineering | Tier 2 operational-date assertions built deterministically + reviewed
+
+Implemented the operational-date layer the handoff asked another session to design — deterministically,
+no LLM rerun, no re-extraction. `classifyOperationalDate()` in `@bp/domain` derives a source-stated
+operational date from the source's own `statusRaw` (operational-state axis) and `eventKind`
+(intervention axis), with a `familyRaw`/`subtypeRaw` veto for outreach/meeting/planning/study events
+and a digit-required date guard. New `docs tier2 operational-date-assertions` builder emits
+`document-operational-date-assertions-v1`; `dateValidationState` in event-route-resolution and the
+route-review-queue is now derived from the same classifier instead of blanket `requires_historical_gtfs`.
+Ran over the full 8,428-event corpus → 929 trusted operational dates. Extensive pre-sqlite review found
+and fixed three precision defects (process/meeting false positives, design/study name leakage,
+placeholder dates). See [[wiki/engineering/tier2_operational_date_extraction_review|the review]].
+Nothing loaded to sqlite yet — gated on sign-off; resolution/review-queue artifacts await a local-DB
+rebuild. Marks [[wiki/engineering/tier2_operational_date_extraction_audit_handoff]] superseded.
+
+## [2026-06-03] engineering | Tier 2 operational-date extraction audit handoff added
+
+Added [[wiki/engineering/tier2_operational_date_extraction_audit_handoff|Tier 2 operational-date
+extraction audit handoff]] to turn the current date-validation problem into a concrete audit and
+implementation prompt. The handoff reframes historical GTFS as a route/service existence and
+exposure validator, not a universal intervention-date validator, and asks the next audit to design
+source-backed operational-date assertions for installation, launch, activation, enforcement,
+planning, and evaluation dates.
+
+## [2026-06-03] engineering | Tier 2 event route-resolution audit added
+
+Added `docs tier2 event-route-resolution` and registered
+`tier2_document_event_route_resolution_v1` as a tracked data product. The deterministic pass
+classifies document-derived events into intervention/process/evaluation/context buckets, resolves
+route identity with direct route text, source-level single-route context, and a current-GTFS
+stop-street gazetteer, and explicitly keeps every event date at
+`requires_historical_gtfs`. The first full-corpus run over
+`tier2-full-corpus-2026-05-24-pass2` found 8,428 events, 5,020 intervention candidates, and 2,960
+route-resolved candidates promotable to route review; date/occurrence validation remains blocked
+on historical GTFS archive ingest.
+
+## [2026-06-03] engineering | Tier 2 route review queue added
+
+Added `docs tier2 route-review-queue` and registered `tier2_route_review_queue_v1`. The queue
+fans route-resolved document events into one review item per route/event pair with evidence refs,
+route-resolution evidence, review tasks, decision options, and priority bands. The first
+full-corpus run produced 250 route queues and 7,472 route-specific review items from 2,960 source
+event rows; all default to `needs_historical_gtfs_date_validation`, preserving the guardrail that
+current GTFS confirms route identity but not historical occurrence dates.
+
+## [2026-06-03] engineering | Tier 2 document-derived surfaces contract added
+
+Added [[wiki/engineering/document_derived_surfaces_v1|Document-derived surfaces v1]] as the
+final storage contract for data derived from Tier 2 OCR Markdown and discovery candidates. The
+contract separates the evidence substrate, recall substrate, and research substrate; preserves raw
+candidate payloads; keeps subway/PATH/LIRR/NJ Transit/Amtrak entities distinct from bus routes;
+and requires lifecycle/review gates before serving, causal, or forecasting use.
+
+## [2026-06-03] engineering | Tier 2 normalization workbench loop added
+
+Added `docs tier2 normalization-workbench` to group canonical discovery candidates, persist
+breadth-balanced model-review batches, apply only approved deterministic seed rules, and emit
+denormalized document surfaces plus unresolved review queues. The first full-corpus dry run covered
+155,886 normalized candidate rows, 23,584 groups, 6 approved seed rules, and 38,769 review-queue
+rows. A first live `claude-opus-4-5` shard reviewed 28 groups and returned 12 proposed rules plus 3
+review questions; those rules remain proposed until reviewed and converted into deterministic
+approved rules.
+
+## [2026-06-03] engineering | Tier 2 Opus research audit shards added
+
+Added `docs tier2 research-audit` for deterministic fixture-pack construction and Pioneer/Opus
+forced-tool review of Tier 2 discovery outputs. The harness now supports focused `--focus`
+shards (`schema`, `gold`, `adversarial`, `causal`) after monolithic all-in-one review proved too
+output-heavy. First live `claude-opus-4-5` shard outputs were written under
+`data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/` for schema, gold fixtures,
+adversarial risks, and causal-study scouting. The shard results converge on document-claimed
+metric provenance, proposal/implementation status gates, bus-vs-rail entity mode separation,
+table-family refinement, geography/methodology fields, and causal-claim gating.
+
+## [2026-06-02] engineering | Tier 2 discovery final reconciliation and canonical curation
+
+Classified the latest Tier 2 discovery coverage snapshot into 8,848 discovered windows, 79 runnable
+failed windows, and 335 blocked windows across 18 OCR-complete sources absent from `ocr-plan.json`.
+Added failure and blocked-source reconciliation artifacts under
+`tier2-full-corpus-2026-05-24-pass2/`, then added `docs tier2 curate-discovery
+--canonical-per-window` so curation can select one canonical extraction per source/page window by
+root priority. The canonical curation artifact now has 8,848 extractions, 368 sources, 7 source
+groups, and 155,886 normalized candidate rows.
+
+## [2026-06-02] engineering | Tier 2 discovery output audit and final-schema plan
+
+Regenerated broad Tier 2 discovery curation across all non-empty discovery roots and documented the
+output audit in [[wiki/engineering/tier2_structured_extraction_harness_plan|Tier 2 Structured
+Extraction Harness Plan]]. The current review corpus has 8,657 extraction artifacts from 364
+sources, 150,558 normalized candidate rows, nearly universal evidence refs, and seven source groups.
+The audit concludes the discovery layer is valuable but recall-heavy: final structured extraction
+should first move to block-line evidence refs, expanded typed entities, document-claimed metric
+observations, table-cell coordinates, stricter event status/date roles, usefulness-gated context and
+review questions, deduped one-window curation, and held-out fixture scorecards before a full final
+run.
+
+## [2026-06-02] engineering | Simple geocode updates moved to Drizzle
+
+Moved the simple pipeline geocode update statements for DOT traffic speeds, DOT traffic volumes,
+NYPD collisions, DOT street permits, and 311 service requests into local Drizzle repository helpers.
+The pipeline raw prepare audit now reports 35 remaining `tools/pipeline-v2` prepares, down from 40.
+The remaining geocode prepares are the parking-violation address lookup and null-safe grouped
+update, which stay raw pending a more careful grouped-predicate/performance slice.
+
+## [2026-06-02] engineering | Drizzle modernization completion audit
+
+Added [[wiki/engineering/drizzle_modernization_completion_audit|Drizzle modernization completion
+audit]] and marked [[wiki/engineering/drizzle_query_modernization_plan|Drizzle query modernization
+plan]] complete. The audit maps the original goal to concrete evidence: Drizzle RC pins,
+`drizzle-zod` removal, the 164 GB backup, zero app-side D1 direct prepares, a production-boundary
+guardrail, the separate pipeline raw prepare audit, clean Drizzle generation, local-only migration
+smokes, package tests, Worker tests, typecheck, and web build.
+
+## [2026-06-02] engineering | Pipeline raw prepare audit
+
+Added [[wiki/engineering/pipeline_raw_prepare_audit|Pipeline raw prepare audit]] as the separate
+local SQLite follow-up to the D1 Drizzle modernization. The initial audit recorded 40 direct
+`bun:sqlite` `.prepare()` calls under `tools/pipeline-v2/src`, zero under
+`packages/db/src/local`, and classifies them as spatial/SpatiaLite paths, bulk-ingest hot loops,
+parking/geocode matching loops, and realistic Drizzle follow-up candidates. It recommends keeping
+app-side D1 at a zero direct-prepare allowlist while modernizing local pipeline prepares only with
+fixture-backed performance checks and schema ownership decisions.
+
+## [2026-06-02] engineering | D1 raw prepare modernization
+
+Removed the remaining direct `.prepare()` usage from `packages/db/src/d1/queries`. Identity,
+identity surface, and Studio agent query modules now use Drizzle builders; Studio draft queries now
+take `D1ServingDb` and execute their legacy helper SQL through Drizzle `sql` rather than direct
+`D1Database.prepare()`. The production boundary harness now has a zero-entry D1 prepare allowlist.
+Pipeline-local `tools/pipeline-v2` SQLite prepares remain out of scope for this app-side D1 slice.
+
+## [2026-06-02] engineering | Tier 2 discovery retry observability patched
+
+Patched the Tier 2 discovery LLM runner so future cleanup/retry failures persist per-attempt
+transport traces in `error.json`: attempt number, started/ended timestamps, latency, HTTP
+status/text, response headers, extracted provider request ids, response body shape, raw usage, and
+transient retry flag. Discovery failures now distinguish malformed/truncated tool arguments as
+`tool_arguments_unparseable` instead of reporting them as a missing tool call, while provider
+gateway failures are classified as `provider_http_error`. The active
+`tier2-discovery-pioneer-resume-v2` tmux process was not restarted, so this applies to subsequent
+cleanup retry passes.
+
+## [2026-06-02] operations | Tier 2 Pioneer discovery concurrency doubled
+
+Stopped `tier2-discovery-pioneer-resume-v1` after it finalized 215 windows with 0 errors. Re-ran
+coverage across all discovery roots and wrote `document-discovery-missing-windows-pioneer-resume-v2`
+with 7,017 runnable windows remaining. Started tmux session
+`tier2-discovery-pioneer-resume-v2` using Pioneer `deepseek-ai/DeepSeek-V4-Flash`,
+`--window-concurrency 24`, and `--max-estimated-cost-usd 100`. Initial stability check showed 16
+finalized v2 windows, 16 responses, and 0 errors.
+
+## [2026-06-02] operations | Tier 2 Pioneer error observability audited
+
+Audited `document-discovery-pioneer-resume-v2` error observability and wrote
+`document-discovery-pioneer-resume-v2-error-observability-audit.json`. At the audit snapshot there
+were 43 failed windows: 39 Gateway Timeout responses and 4 malformed/truncated tool-argument
+responses. Every failed window had `discovery-request.json`, `block-index.json`,
+`discovery-response.json`, and `error.json`, so prompt, source block index, and final provider body
+are reproducible. Gaps: no per-attempt retry trace, no separate persisted HTTP status/headers, no
+promoted CloudFront request id in `error.json`, misleading missing-tool-call wording for malformed
+tool arguments, and no per-window latency timestamps.
+
+## [2026-06-02] operations | Tier 2 discovery backfill switched to Pioneer
+
+Stopped the direct DeepSeek Tier 2 discovery backfill after it finalized 1,105
+`document-discovery.json` windows with 0 error artifacts. Re-ran `docs tier2 discovery-coverage`
+across the run's discovery roots and wrote a fresh Pioneer resume manifest with 7,232 runnable
+remaining windows. Started tmux session `tier2-discovery-pioneer-resume-v1` using Pioneer
+`deepseek-ai/DeepSeek-V4-Flash`, `--window-concurrency 12`, and `--max-estimated-cost-usd 100`.
+Initial stability check showed 13 finalized Pioneer windows, 13 responses, and 0 errors.
+
+## [2026-06-02] engineering | Pioneer provider capability check added
+
+Added `check:pioneer-provider`, an explicit live provider qualification script that loads
+repo-local `.env` keys through `scripts/with-repo-env.sh`, checks the live Pioneer model catalog,
+runs a forced structured tool call, and probes OpenAI-compatible cache usage shape. The latest
+`deepseek-ai/DeepSeek-V4-Flash` check passed all four checks in about 7 seconds, including a forced
+tool call and an observed `prompt_tokens_details.cached_tokens` cache read on a repeated short
+prompt. A representative 12-window Tier 2 discovery canary then ran through Pioneer at concurrency
+8 and completed 12/12 windows with 0 failures, 0 validation errors, and 0 validation warnings. The
+canary produced 113 entities, 52 metrics, 12 events, 8 tables, 26 claims, 18 context signals, and
+23 review questions from 125,870 total tokens, with local estimated cost about $0.024. The canary's
+full extraction responses did not expose cache-read counters, so cache observability remains
+run/model/prompt-shape specific rather than a blocker for Pioneer use.
+
+## [2026-06-02] engineering | Pioneer DeepSeek Flash smoke validated
+
+Verified the repo-local Pioneer setup for Tier 2 discovery extraction. `bun run env:check:llm`
+and `scripts/with-repo-env.sh --check-llm` now confirm `PIONEER_API_KEY`,
+`OPENROUTER_API_KEY`, and `DEEPSEEK_API_KEY` from gitignored `.env` files, avoiding the
+false-negative `printenv` checks that previously made agents think provider keys were missing.
+The live Pioneer catalog includes `deepseek-ai/DeepSeek-V4-Flash`; a direct forced-tool smoke
+passed, a one-window Tier 2 discovery smoke passed, and a four-window concurrency smoke passed
+with zero validation issues. Raw Pioneer responses for this model currently expose only
+`prompt_tokens`, `completion_tokens`, `total_tokens`, and `prompt_tokens_details: null`; two
+identical sequential cache probes also returned no cache read/write counters. This is scoped to the
+OpenAI-compatible DeepSeek Flash path. Anthropic/Opus streaming can expose cache event counters such
+as `cache_creation_input_tokens` and `cache_read_input_tokens`, but those events may still omit the
+ordinary uncached `input_tokens` needed for exact local cost reconciliation. Treat cache accounting
+as provider/model/transport-specific, persist raw usage events where available, and budget
+pessimistically when uncached input token counts are absent.
+
+## [2026-06-02] engineering | Tier 2 discovery coverage loop added
+
+Added `docs tier2 discovery-coverage` to audit page/window coverage across OCR Markdown and
+discovery extraction roots, classify windows as current, old-schema, failed, missing, OCR-blocked,
+or plan-blocked, and write a runnable missing-window manifest. `docs tier2 discovery-extract` now
+accepts `--window-manifest` so refactored discovery can target incomplete windows without rerunning
+complete ones. The extraction runner also canonicalizes evidence-ref block hashes from the
+deterministic block index, allowing models to omit `blockHash` while preserving reproducible
+evidence refs. The discovery tool schema strips provider-hostile JSON Schema grammar hints such as
+`format` and `propertyNames` before sending tool calls, after Pioneer-hosted providers rejected the
+raw schema despite valid project contracts.
+
+## [2026-06-02] engineering | Tier 2 assertion curation completed
+
+Audited the only remaining `other_claim` / generic `assertion` row in the normalized Tier 2
+discovery corpus. The row was a 116th Street CB11 June 2025 page-9 ridership statement backed by
+daily on-bus ridership bins, October 2024 weekday context, and MTA leave-load data, so it now maps
+to `performance_observation` while preserving raw family `assertion`. Regenerated the curation
+audit, rules seed, and normalized candidate artifact; unresolved family counts are now 0 entities,
+0 metrics, 0 claims, and 0 tables.
+
+## [2026-06-02] engineering | Tier 2 normalized discovery candidate surface added
+
+Extended `docs tier2 curate-discovery` so the curation pass now writes
+`document-discovery-normalized-candidates-v1.json` in addition to the audit, Markdown summary, and
+manual rules seed. The normalized artifact emits one source-grounded row per raw discovery
+candidate, preserving raw labels and payloads while adding canonical family, stable row ID, cluster
+key, and evidence refs. The first generated artifact contains 11,368 rows across entities, metrics,
+events, tables, claims, context signals, and review questions. This gives the final normalized
+extraction schema work a concrete corpus surface rather than relying on the raw LLM windows alone.
+
+## [2026-06-02] engineering | Tier 2 discovery curation audit added
+
+Added `docs tier2 curate-discovery` to audit and curate the raw Tier 2 discovery extraction
+vocabulary. The command groups source coverage, validation issues, candidate counts, normalization
+families, duplicate pressure, evidence policy, alias seeds, and unresolved review queues. The first
+curation pass covers 582 extraction windows across 37 sources and reduces unresolved discovery
+families to 0 entities, 0 metrics, 0 tables, and one intentionally generic claim kind
+(`assertion`). The structured-extraction harness plan now records the curation command, artifact
+names, and normalization decisions for the final schema design.
+
+## [2026-06-02] engineering | Tier 2 document discovery layer started
+
+Added the discovery-first document extraction layer before final normalization. The domain package
+now has `bp.document_discovery_extraction_tool_response.v1` and
+`bp.document_discovery_extraction.v1` schemas for raw entities, metrics, events, tables, claims,
+context signals, review questions, and block/page/line evidence refs. Pipeline-v2 now exposes
+`docs tier2 discovery-extract`, which writes resumable per-window block indexes and request
+artifacts in dry-run mode and can execute forced-tool extraction with DeepSeek or Pioneer when
+`--execute` is used. This deliberately preserves raw candidate vocabulary so the later
+normalization layer can be designed from observed candidate distributions.
+
+## [2026-06-01] engineering | Tier 2 structured extraction harness scaffolded
+
+Implemented the first scaffold for the post-OCR Tier 2 structured extraction harness. The domain
+package now has `bp.structured_document_extraction_tool_response.v1` and
+`bp.structured_document_extraction.v1` schemas for page/window evidence spans, entity mentions,
+claims, tables, intervention events, service changes, context signals, review questions, and
+validation issues. Pipeline-v2 now exposes `docs tier2 structured-extract`, defaulting to
+prepare/resume mode with one-page windows, and supports Pi-harness Pioneer-first / DeepSeek fallback
+execution when `--execute` is used. The initial validator checks schema shape, source/page refs,
+quote containment, evidence refs, metric value support, metric-authority discipline, and
+planned-vs-implemented gates.
+
+## [2026-06-01] planning | Tier 2 structured extraction harness planned
+
+Added [[wiki/engineering/tier2_structured_extraction_harness_plan|Tier 2 Structured Extraction
+Harness Plan]] after reviewing old OCR-to-structured artifacts, current domain schemas, manual
+intervention candidates, reviewed Phase 3 records, and representative OCR Markdown pages. The plan
+defines a page/window forced-tool submission shape for evidence spans, entity mentions, claims,
+tables, intervention events, service changes, context signals, review questions, and extraction
+audits. It also records validator gates, an extraction-quality scorecard, and implementation slices
+for a fixture pack, schemas, validators, pipeline command, evaluation command, synthesis bridge,
+coverage audit integration, and full-corpus backfill.
+
+## [2026-06-01] engineering | Tier 2 structured artifact inventory added
+
+Added `audit tier2-structured-data` to inventory historical and current Tier 2 structured document
+artifacts. The audit classifies candidate bundles, raw intervention-record tool calls, reviewed
+intervention records, staging events, manual candidates, publishable projections, OCR candidate
+drafts, LLM traces, and report/provenance files. It identifies the current best research substrate
+as the reviewed Phase 3 v3 intervention-record corpus and the best serving projection as
+`intervention-publishable-v1.json`, while preserving the full-corpus reviewed-record layer as the
+remaining structured-extraction gap.
+
 ## [2026-06-01] engineering | Analysis dependency closure audit added
 
 Added `audit detector-closure` as the first dependency-closure control plane for analysis units.
@@ -357,6 +885,32 @@ Verification: focused GTFS static ingest, route-schedule audit, route-schedule i
 stop-direction-hour EWT tests pass. Pipeline CLI help now loads without command-discovery skip
 warnings. Full pipeline typecheck remains blocked by existing domain/studio export drift and the
 pre-existing Ralph `ralphDir` tool-loop type mismatch.
+
+## [2026-06-02] engineering | Drizzle 1.0 RC modernization
+
+Started the Drizzle query modernization end-to-end pass. Verified the current npm `rc` dist-tags for
+`drizzle-orm` and `drizzle-kit` still resolve to `1.0.0-rc.3`, pinned both exact versions in the Bun
+catalog, removed `drizzle-zod`, and moved D1 row validation imports to `drizzle-orm/zod`.
+
+Before migration work, backed up local SQLite and Miniflare D1/R2/cache database state to
+`/home/cjpher/backups/bus-reliability-tracker/drizzle-modernization-20260602T185845Z`
+(81 SQLite/sidecar files, 164 GB).
+
+Drizzle 1.0 RC rejects the old flat `meta/_journal.json` migration layout, while Wrangler D1 still
+expects flat SQL files. The repo now keeps flat D1 SQL under `packages/db/migrations/d1` for
+Wrangler/export readers and adds `packages/db/migrations-drizzle/{d1,local}` for Drizzle RC
+generation and the Bun SQLite migrator. Local generation needed one catch-up migration for
+`local_bus_customer_journey_metric`; the generated snapshot also records local Tier 2 tables that
+were already present in hand-written migrations. The D1 schema now mirrors the write-side Studio,
+identity, alert, saved-search, and public-comment tables from the later D1 migrations. Added an
+architecture guardrail blocking new raw D1 `.prepare()` calls outside the current identity/Studio
+allowlist.
+
+Verification so far: `bun --filter @bp/db test`, `bun --filter @bp/db typecheck`,
+`bun --filter @bp/db db:generate:d1`, `bun --filter @bp/db db:generate:local`,
+disposable `BP_LOCAL_DB_PATH=... bun run db:local:migrate`, `bun run db:d1:migrate:local`, and
+`bun test tests/harness/production-boundaries.test.ts --timeout 5000` pass locally. Remote D1
+migrations were not run.
 
 ## [2026-05-31] planning | Drizzle 1.0 RC modernization plan
 
@@ -2242,6 +2796,45 @@ partial: `source_gap` is intentionally data-quality-only, and `persistent_speed_
 real grain/lineage mismatch because segment candidates are backed by route-level coverage rows.
 The detector evaluation harness now consumes the review-packet coverage artifact, so packet-covered
 counts no longer treat partial packets as complete.
+
+## [2026-06-02] engineering | Drizzle draft repository batch and builder pass
+
+Reviewed Drizzle's D1 batch, transaction, dynamic query building, and `sql` template guidance, then
+applied the next Studio draft repository modernization slice. Simple idempotency, draft, claim,
+block, ref, history, validation, promotion, and review-comment operations now use Drizzle builders
+instead of the legacy SQL bridge where practical. Grouped draft-record reads, replacement writes,
+and review-comment status writes now use D1 `db.batch()` for sequential batched execution. The
+remaining SQL bridge in `studio-brief-drafts.ts` is explicitly named `legacySqlStatement` and kept
+for expression-heavy cases such as `coalesce(max(event_seq), 0) + 1`, claim renumbering arithmetic,
+and `json_extract` cleanup.
+
+## [2026-06-05] engineering | Studio API package refactor start
+
+Started the package-first Studio API refactor. Added `@bp/studio-api` as the Cloudflare-edge runtime
+package that will absorb `/api/*` helpers, Studio projection reads, bounded authoring writes,
+source-refresh cron, and `BriefAuthorAgent` exports while keeping `apps/web` as the only deployed
+Worker for now. The package starts with HTTP JSON/error helpers, route-template classification,
+Server-Timing helpers, and R2 Studio projection loading. Updated the package-structure rules and
+production-boundary harness so `@bp/studio-api` may import only `@bp/domain` and `@bp/db`, and must
+not import UI, source adapters, analytics, pipeline code, or wiki files.
+
+## [2026-06-05] engineering | Studio API read router extraction
+
+Moved the Studio route classification, shared JSON/error/no-store/Server-Timing helpers, typed R2
+projection readers, D1-backed Studio route listing fallback, and projection-backed
+`/api/v1/studio/*` read router into `@bp/studio-api`. `apps/web/src/worker/index.ts` now delegates
+public Studio reads to `handleStudioReadRequest`, while retaining the brief create/draft/auth/agent
+write paths as local callbacks for draft-only and operator-overlaid brief reads. Added package tests
+for route classification, projection key construction, and a projection-backed methods response.
+
+## [2026-06-05] engineering | Studio API authoring runtime extraction
+
+Moved Studio brief create/draft write handlers, draft projection overlay hooks, session/cookie
+identity helpers, and the `BriefAuthorAgent` runtime into `@bp/studio-api`. The package root keeps
+lightweight HTTP/read/auth helpers, while the Think-backed draft handlers and Durable Object class
+live on the focused `@bp/studio-api/authoring` subpath so Bun package tests do not load Worker-only
+AI dependencies. `apps/web/src/worker/index.ts` now acts as the adapter for magic-link email/session
+issuance, asset/SEO fallback, and Studio API dispatch.
 
 ## [2026-06-01] engineering | Packet coverage gate and persistent-speed coverage repair
 

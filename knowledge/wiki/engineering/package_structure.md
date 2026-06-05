@@ -2,7 +2,7 @@
 title: Repo Package Structure
 type: engineering
 status: active
-last_updated: 2026-06-01
+last_updated: 2026-06-05
 owner: codex
 source_count: 28
 tags: [repo-structure, typescript, bun, zod, drizzle, cloudflare, clean-architecture, d1, postgres, hyperdrive, r2]
@@ -75,6 +75,7 @@ bus-priority-impact-studio/
 
   packages/
     domain/
+    studio-api/
     sources/
     analytics/
     applied-research/
@@ -107,6 +108,7 @@ bus-priority-impact-studio/
 |---|---|---|---|---|
 | `apps/web` | `@bp/web` | React/Vite UI and Cloudflare Worker API | `@bp/domain`, `@bp/db` | `@bp/analytics`, `@bp/sources`, `tools/*`, `knowledge/*` |
 | `packages/domain` | `@bp/domain` | Pure domain types, metric names, score input/output shapes, small pure functions | nothing local | Cloudflare, React, D1, R2, filesystem, network |
+| `packages/studio-api` | `@bp/studio-api` | Cloudflare Worker runtime API helpers and handlers for Studio REST resources, auth, bounded authoring writes, source-refresh cron, and agent runtime exports | `@bp/domain`, `@bp/db` | React, TanStack Router route modules, UI assets, `@bp/analytics`, `@bp/applied-research`, `@bp/sources`, `tools/*`, `knowledge/*` |
 | `packages/sources` | `@bp/sources` | Socrata/MTA/NYC DOT/Census adapters, source metadata probe adapters, raw DTO parsing | `@bp/domain` | UI, D1 repositories, route scoring, local artifact writes |
 | `packages/analytics` | `@bp/analytics` | Deterministic transforms, hotspot scoring, route score computation, ACE impact calculations | `@bp/domain`, `@bp/sources` | React, Worker handlers |
 | `packages/applied-research` | `@bp/applied-research` | Corpus-backed research workflows over analytics: detector studies, score vectors, review packets, evaluation artifacts, causal panels, forecasting backtests | `@bp/domain`, `@bp/analytics`, focused `@bp/db/local` adapters | apps, tools, source fetching, publishing, React |
@@ -230,7 +232,8 @@ Rules:
 Allowed import direction:
 
 ```text
-apps/web              -> packages/domain, packages/db
+apps/web              -> packages/domain, packages/db, packages/studio-api
+packages/studio-api   -> packages/domain, packages/db
 packages/db           -> packages/domain
 packages/analytics    -> packages/domain, packages/sources
 packages/applied-research -> packages/domain, packages/analytics, packages/db
@@ -246,6 +249,12 @@ apps/web              -> tools/pipeline
 apps/web              -> packages/analytics
 apps/web              -> packages/applied-research
 apps/web              -> packages/sources
+packages/studio-api   -> apps/*
+packages/studio-api   -> tools/*
+packages/studio-api   -> packages/analytics
+packages/studio-api   -> packages/applied-research
+packages/studio-api   -> packages/sources
+packages/studio-api   -> knowledge/*
 packages/domain       -> any local package
 packages/applied-research -> apps/*
 packages/applied-research -> tools/*

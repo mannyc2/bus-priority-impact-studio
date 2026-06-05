@@ -1,8 +1,8 @@
 ---
 title: Drizzle Query Modernization Plan
 type: engineering
-status: draft
-last_updated: 2026-05-31
+status: complete
+last_updated: 2026-06-02
 owner: codex
 source_count: 5
 tags: [drizzle, d1, sqlite, zod, validation, query-style, migrations]
@@ -50,6 +50,18 @@ Facts from the 2026-05-31 repo inventory:
 ## Upgrade Decision
 
 Upgrade to Drizzle 1.0 RC, not just to the beta tag.
+
+Implementation update, 2026-06-02: the official `rc` dist-tag still resolved to `1.0.0-rc.3` for
+both `drizzle-orm` and `drizzle-kit`, so the repo now pins those exact versions in the Bun catalog.
+`drizzle-zod` has been removed in favor of `drizzle-orm/zod`.
+
+Before migration work, local SQLite and Miniflare D1/R2/cache state was backed up to:
+
+```text
+/home/cjpher/backups/bus-reliability-tracker/drizzle-modernization-20260602T185845Z
+```
+
+The archive contains 81 SQLite/sidecar files and is 164 GB.
 
 At implementation time, verify the registry tags again with:
 
@@ -148,6 +160,21 @@ Verification:
 
 Do not run remote D1 migrations during this slice.
 
+Implementation update, 2026-06-02: Drizzle 1.0 RC requires the new folder-per-migration format for
+Drizzle generation and the Bun SQLite migrator, but Wrangler D1 migrations still need the flat SQL
+folder. The repo therefore uses a deliberate split:
+
+- `packages/db/migrations/d1` stays flat and Wrangler-compatible.
+- `packages/db/migrations/local` stays as the historical flat local migration record.
+- `packages/db/migrations-drizzle/d1` is the Drizzle-owned D1 generation folder.
+- `packages/db/migrations-drizzle/local` is the Drizzle-owned local SQLite generation/migrator
+  folder.
+
+`packages/db/drizzle.config.d1.ts`, `packages/db/drizzle.config.local.ts`, and
+`packages/db/src/local/migrate.ts` now point at `migrations-drizzle/**`. The D1 Wrangler config
+continues to point at `./migrations/d1`. A local-only `wrangler d1 migrations apply` smoke passed;
+remote D1 migrations were not run.
+
 ### Slice 3: Type and Driver Fixes
 
 Update driver/client types only where TypeScript forces it.
@@ -197,6 +224,11 @@ Immediate D1 schema mirror backlog:
 - `alert`
 - `saved_search`
 - `public_comment`
+
+Implementation update, 2026-06-02: the backlog tables above, plus the adjacent Studio block/ref,
+agent proposal, version, and legacy actor/token tables from the D1 migration history, are now
+mirrored in `packages/db/src/d1/schema.ts`. `db:generate:d1` reports no remaining schema drift
+against the Drizzle-owned D1 snapshot folder.
 
 Verification:
 
@@ -312,8 +344,25 @@ When raw SQL remains:
 After the D1 conversion slices land, add an architecture test that blocks new
 `D1Database.prepare()` calls under `packages/db/src/d1/queries/` unless the file is allowlisted.
 
-Later, add a non-blocking audit for `tools/pipeline-v2` direct `.prepare()` and `.query()` calls so
-raw SQL reduction can be tracked without blocking spatial and bulk-import work too early.
+Implementation update, 2026-06-02: the production-boundary harness now blocks all raw
+`.prepare()` calls under `packages/db/src/d1/queries/`; the allowlist has been removed.
+`identity.ts`, `identity-surfaces.ts`, and `studio-brief-agents.ts` now use Drizzle builders.
+`studio-brief-drafts.ts` now accepts `D1ServingDb` and routes its legacy helper SQL through Drizzle
+`sql` execution instead of direct `D1Database.prepare()`.
+
+Implementation update, 2026-06-02: after reviewing the Drizzle docs for `db.batch()`,
+transactions, dynamic query building, and the `sql` template, the draft repository was tightened
+again. Simple draft CRUD and conditional updates now use Drizzle builders, grouped draft-record
+reads and replacement writes use D1 `db.batch()`, and the remaining bridge is named
+`legacySqlStatement` to distinguish Drizzle-parameterized SQL fragments from raw D1 prepare calls.
+The remaining bridge uses are limited to expression-heavy cases where `sql` is the documented
+Drizzle escape hatch.
+
+Implementation update, 2026-06-02: the non-blocking audit for `tools/pipeline-v2` direct
+`.prepare()` calls is complete in [[wiki/engineering/pipeline_raw_prepare_audit|Pipeline Raw
+Prepare Audit]]. It records 40 remaining pipeline-local prepared statements, all outside app-side
+D1, and classifies them as spatial/SpatiaLite paths, bulk-ingest hot loops, parking/geocode
+matching loops, and realistic Drizzle follow-up candidates.
 
 ## Verification Matrix
 
@@ -356,4 +405,3 @@ Do not claim the upgrade is done until:
 - Drizzle Relational Queries v1 to v2 docs — https://orm.drizzle.team/docs/rqb-v1-to-v2 — verified_at: 2026-05-31
 - Drizzle ORM GitHub releases — https://github.com/drizzle-team/drizzle-orm/releases — verified_at: 2026-05-31
 - Cloudflare D1 migrations docs — https://developers.cloudflare.com/d1/reference/migrations/ — verified_at: 2026-05-31
-

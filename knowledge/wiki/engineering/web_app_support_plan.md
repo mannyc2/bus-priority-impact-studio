@@ -102,6 +102,25 @@ staleTime: 10 * 60 * 1000,
 Use `loaderDeps` narrowly. Include only search params that the loader uses. For example, `/compare`
 should depend on `a` and `b`, while UI-only view state should stay out of loader deps.
 
+### Router Docs Implications
+
+The TanStack Router docs supplied during API-refactor planning reinforce these implementation rules:
+
+- Keep the UI route tree file-based. Code-based routing is not the normal path for this app.
+- Treat virtual file routes only as a migration escape hatch if an SSR/site split needs a custom
+  route tree while preserving the current route files.
+- Use the router cache for read-mostly Studio projections before adding TanStack Query. The built-in
+  cache already supports loader dedupe, preload freshness, stale-while-revalidate, and background
+  stale reloads.
+- Use object-form loaders when setting route-specific `staleReloadMode`; use `"background"` for
+  monthly release projections and reserve `"blocking"` for data that must be fresh before route
+  commit.
+- Pass `abortController.signal` to every API helper that fetches Studio resources. Abandoned route
+  transitions should cancel HTTP/R2 work.
+- Use `router.subscribe` for imperative navigation telemetry rather than rendering state:
+  `onBeforeNavigate` or `onBeforeLoad` starts timing, `onResolved` records pageviews and cleanup,
+  and `onRendered` is reserved for DOM-dependent post-render checks.
+
 ### Deferred Data
 
 Use deferred loader values for slow, non-critical data:
@@ -262,6 +281,8 @@ Worker rules:
 7. Add web performance checks that fail on route-loader waterfalls where a page serially fetches
    independent projections.
 8. Update `/docs` and generated OpenAPI after each public contract change.
+9. Route navigation telemetry through router events so API/package refactors can measure whether
+   loader cancellation, stale reloads, and deferred panels are actually reducing user-visible waits.
 
 ## Verification
 
