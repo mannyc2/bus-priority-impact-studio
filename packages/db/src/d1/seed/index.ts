@@ -1,6 +1,7 @@
 export type {
   D1AppendixSeedInput,
   D1AppendixSeedSqlResult,
+  D1RouteTimelineIndexInput,
   D1SeedInput,
   D1SeedSqlResult,
 } from "./build-seed-sql.js";

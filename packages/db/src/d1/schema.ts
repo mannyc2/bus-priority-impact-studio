@@ -411,6 +411,84 @@ export const routeMonthTrend = sqliteTable(
   (table) => [primaryKey({ columns: [table.routeId, table.month] })],
 );
 
+export const routeTimelineIndex = sqliteTable(
+  "route_timeline_index",
+  {
+    routeId: text("route_id").notNull(),
+    month: text("month").notNull(),
+    supportLevel: text("support_level", {
+      enum: ["timeline_ready", "timeline_sparse", "timeline_review_only", "invalid"],
+    }).notNull(),
+    qualityFlagsJson: text("quality_flags_json").notNull(),
+    defaultEventCount: integer("default_event_count").notNull(),
+    secondaryEventCount: integer("secondary_event_count").notNull(),
+    reviewOnlyEventCount: integer("review_only_event_count").notNull(),
+    eventCount: integer("event_count").notNull(),
+    sourceBackedEventCount: integer("source_backed_event_count").notNull(),
+    dateAssertionBackedEventCount: integer("date_assertion_backed_event_count").notNull(),
+    unresolvedDateEventCount: integer("unresolved_date_event_count").notNull(),
+    lowConfidenceEventCount: integer("low_confidence_event_count").notNull(),
+    unaccountedCandidateCount: integer("unaccounted_candidate_count").notNull(),
+    validationErrorCount: integer("validation_error_count").notNull(),
+    validationWarningCount: integer("validation_warning_count").notNull(),
+    totalTokens: integer("total_tokens"),
+    defaultEventsJson: text("default_events_json").notNull(),
+    bundleArtifactKey: text("bundle_artifact_key").notNull(),
+    bundleArtifactSha256: text("bundle_artifact_sha256").notNull(),
+    bundleArtifactByteLength: integer("bundle_artifact_byte_length").notNull(),
+    sourceBundlePath: text("source_bundle_path").notNull(),
+    generatedAt: text("generated_at").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.routeId, table.month] }),
+    index("route_timeline_index_month_support_idx").on(table.month, table.supportLevel),
+  ],
+);
+
+export const routeSpeedHistoryCoverage = sqliteTable(
+  "route_speed_history_coverage",
+  {
+    routeId: text("route_id").notNull(),
+    month: text("month").notNull(),
+    routeSlug: text("route_slug").notNull(),
+    historyStartMonth: text("history_start_month").notNull(),
+    historyEndMonth: text("history_end_month").notNull(),
+    artifactPath: text("artifact_path").notNull(),
+    artifactStatus: text("artifact_status").notNull(),
+    monthCount: integer("month_count").notNull(),
+    segmentCount: integer("segment_count").notNull(),
+    cellCount: integer("cell_count").notNull(),
+    availableCellCount: integer("available_cell_count").notNull(),
+    missingCellCount: integer("missing_cell_count").notNull(),
+    generatedAt: text("generated_at").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.routeId, table.month] }),
+    index("route_speed_history_coverage_month_idx").on(table.month),
+  ],
+);
+
+export const sourceMonthCoverage = sqliteTable(
+  "source_month_coverage",
+  {
+    sourceId: text("source_id").notNull(),
+    month: text("month").notNull(),
+    label: text("label").notNull(),
+    sourceKind: text("source_kind").notNull(),
+    grain: text("grain").notNull(),
+    status: text("status").notNull(),
+    rowCount: integer("row_count"),
+    routeCount: integer("route_count"),
+    note: text("note"),
+    generatedAt: text("generated_at").notNull(),
+    artifactPath: text("artifact_path"),
+  },
+  (table) => [
+    primaryKey({ columns: [table.sourceId, table.month] }),
+    index("source_month_coverage_month_idx").on(table.month),
+  ],
+);
+
 export const routeEquityContext = sqliteTable(
   "route_equity_context",
   {
@@ -580,6 +658,10 @@ export const studioBriefDraft = sqliteTable("studio_brief_draft", {
   promotionArtifactKey: text("promotion_artifact_key"),
   promotionArtifactSha256: text("promotion_artifact_sha256"),
   promotionRecordedAt: text("promotion_recorded_at"),
+  ownerKind: text("owner_kind").notNull().default("workspace"),
+  ownerIdentityId: text("owner_identity_id"),
+  guestTokenHash: text("guest_token_hash"),
+  guestClaimedAt: text("guest_claimed_at"),
 });
 
 export const studioBriefDraftClaim = sqliteTable(

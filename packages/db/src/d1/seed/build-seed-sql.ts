@@ -63,7 +63,65 @@ import {
   routeReliabilityGapWindow,
   routeScorecard,
   routeScorecardCitation,
+  routeSpeedHistoryCoverage,
+  routeTimelineIndex,
+  sourceMonthCoverage,
 } from "../schema.js";
+
+export type D1RouteSpeedHistoryCoverageInput = {
+  routeId: string;
+  month: string;
+  routeSlug: string;
+  historyStartMonth: string;
+  historyEndMonth: string;
+  artifactPath: string;
+  artifactStatus: string;
+  monthCount: number;
+  segmentCount: number;
+  cellCount: number;
+  availableCellCount: number;
+  missingCellCount: number;
+  generatedAt: string;
+};
+
+export type D1SourceMonthCoverageInput = {
+  sourceId: string;
+  month: string;
+  label: string;
+  sourceKind: string;
+  grain: string;
+  status: string;
+  rowCount: number | null;
+  routeCount: number | null;
+  note: string | null;
+  generatedAt: string;
+  artifactPath: string | null;
+};
+
+export type D1RouteTimelineIndexInput = {
+  routeId: string;
+  month: string;
+  supportLevel: "timeline_ready" | "timeline_sparse" | "timeline_review_only" | "invalid";
+  qualityFlags: string[];
+  defaultEventCount: number;
+  secondaryEventCount: number;
+  reviewOnlyEventCount: number;
+  eventCount: number;
+  sourceBackedEventCount: number;
+  dateAssertionBackedEventCount: number;
+  unresolvedDateEventCount: number;
+  lowConfidenceEventCount: number;
+  unaccountedCandidateCount: number;
+  validationErrorCount: number;
+  validationWarningCount: number;
+  totalTokens: number | null;
+  defaultEvents: unknown[];
+  bundleArtifactKey: string;
+  bundleArtifactSha256: string;
+  bundleArtifactByteLength: number;
+  sourceBundlePath: string;
+  generatedAt: string;
+};
 
 export type D1SeedInput = {
   month: string;
@@ -85,6 +143,9 @@ export type D1SeedInput = {
   corridorHotspots: LocalCorridorHotspot[];
   routeMonthSourceStatuses: LocalRouteMonthSourceStatus[];
   routeMonthTrends: LocalRouteMonthTrend[];
+  routeTimelineIndex: D1RouteTimelineIndexInput[];
+  routeSpeedHistoryCoverage: D1RouteSpeedHistoryCoverageInput[];
+  sourceMonthCoverage: D1SourceMonthCoverageInput[];
   routeEquityContext: LocalRouteEquityContext[];
   routeScorecards: LocalRouteScorecard[];
   routeBriefSummaries: LocalRouteBriefSummary[];
@@ -121,6 +182,7 @@ export type D1SeedSqlResult = {
   corridorHotspotRowCount: number;
   routeMonthSourceStatusRowCount: number;
   routeMonthTrendRowCount: number;
+  routeTimelineIndexRowCount: number;
   routeEquityContextRowCount: number;
   routeBatchStatusRowCount: number;
   routeBatchBuiltRouteRowCount: number;
@@ -128,6 +190,8 @@ export type D1SeedSqlResult = {
   routeBriefPeakWindowRowCount: number;
   routeBriefSlowestWindowRowCount: number;
   routeScorecardCitationRowCount: number;
+  routeSpeedHistoryCoverageRowCount: number;
+  sourceMonthCoverageRowCount: number;
 };
 
 const seedDb = drizzle({ client: new Database(":memory:") });
@@ -181,6 +245,11 @@ export function buildD1SeedSql(input: D1SeedInput): D1SeedSqlResult {
       seedDb.delete(routeReliabilityBaseline).where(eq(routeReliabilityBaseline.month, month)),
     ),
     renderQuery(seedDb.delete(routeMonthTrend)),
+    renderQuery(seedDb.delete(routeTimelineIndex).where(eq(routeTimelineIndex.month, month))),
+    renderQuery(
+      seedDb.delete(routeSpeedHistoryCoverage).where(eq(routeSpeedHistoryCoverage.month, month)),
+    ),
+    renderQuery(seedDb.delete(sourceMonthCoverage)),
     renderQuery(seedDb.delete(routeEquityContext).where(eq(routeEquityContext.month, month))),
     renderQuery(
       seedDb.delete(routeScorecardCitation).where(eq(routeScorecardCitation.month, month)),
@@ -636,6 +705,79 @@ export function buildD1SeedSql(input: D1SeedInput): D1SeedSqlResult {
     );
   }
 
+  for (const row of input.routeTimelineIndex) {
+    statements.push(
+      renderQuery(
+        seedDb.insert(routeTimelineIndex).values({
+          routeId: row.routeId,
+          month: row.month,
+          supportLevel: row.supportLevel,
+          qualityFlagsJson: JSON.stringify(row.qualityFlags),
+          defaultEventCount: row.defaultEventCount,
+          secondaryEventCount: row.secondaryEventCount,
+          reviewOnlyEventCount: row.reviewOnlyEventCount,
+          eventCount: row.eventCount,
+          sourceBackedEventCount: row.sourceBackedEventCount,
+          dateAssertionBackedEventCount: row.dateAssertionBackedEventCount,
+          unresolvedDateEventCount: row.unresolvedDateEventCount,
+          lowConfidenceEventCount: row.lowConfidenceEventCount,
+          unaccountedCandidateCount: row.unaccountedCandidateCount,
+          validationErrorCount: row.validationErrorCount,
+          validationWarningCount: row.validationWarningCount,
+          totalTokens: row.totalTokens,
+          defaultEventsJson: JSON.stringify(row.defaultEvents),
+          bundleArtifactKey: row.bundleArtifactKey,
+          bundleArtifactSha256: row.bundleArtifactSha256,
+          bundleArtifactByteLength: row.bundleArtifactByteLength,
+          sourceBundlePath: row.sourceBundlePath,
+          generatedAt: row.generatedAt,
+        }),
+      ),
+    );
+  }
+
+  for (const row of input.routeSpeedHistoryCoverage) {
+    statements.push(
+      renderQuery(
+        seedDb.insert(routeSpeedHistoryCoverage).values({
+          routeId: row.routeId,
+          month: row.month,
+          routeSlug: row.routeSlug,
+          historyStartMonth: row.historyStartMonth,
+          historyEndMonth: row.historyEndMonth,
+          artifactPath: row.artifactPath,
+          artifactStatus: row.artifactStatus,
+          monthCount: row.monthCount,
+          segmentCount: row.segmentCount,
+          cellCount: row.cellCount,
+          availableCellCount: row.availableCellCount,
+          missingCellCount: row.missingCellCount,
+          generatedAt: row.generatedAt,
+        }),
+      ),
+    );
+  }
+
+  for (const row of input.sourceMonthCoverage) {
+    statements.push(
+      renderQuery(
+        seedDb.insert(sourceMonthCoverage).values({
+          sourceId: row.sourceId,
+          month: row.month,
+          label: row.label,
+          sourceKind: row.sourceKind,
+          grain: row.grain,
+          status: row.status,
+          rowCount: row.rowCount,
+          routeCount: row.routeCount,
+          note: row.note,
+          generatedAt: row.generatedAt,
+          artifactPath: row.artifactPath,
+        }),
+      ),
+    );
+  }
+
   for (const row of input.routeEquityContext) {
     statements.push(
       renderQuery(
@@ -835,6 +977,7 @@ export function buildD1SeedSql(input: D1SeedInput): D1SeedSqlResult {
     corridorHotspotRowCount: input.corridorHotspots.length,
     routeMonthSourceStatusRowCount,
     routeMonthTrendRowCount: input.routeMonthTrends.length,
+    routeTimelineIndexRowCount: input.routeTimelineIndex.length,
     routeEquityContextRowCount: input.routeEquityContext.length,
     routeBatchStatusRowCount: input.routeBatchStatus === null ? 0 : 1,
     routeBatchBuiltRouteRowCount,
@@ -842,6 +985,8 @@ export function buildD1SeedSql(input: D1SeedInput): D1SeedSqlResult {
     routeBriefPeakWindowRowCount,
     routeBriefSlowestWindowRowCount,
     routeScorecardCitationRowCount,
+    routeSpeedHistoryCoverageRowCount: input.routeSpeedHistoryCoverage.length,
+    sourceMonthCoverageRowCount: input.sourceMonthCoverage.length,
   };
 }
 

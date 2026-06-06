@@ -34,6 +34,7 @@ const LlmGenerationStatusSchema = z.enum([
   "succeeded",
   "failed",
 ]);
+const DraftOwnerKindSchema = z.enum(["workspace", "identity", "guest"]);
 const StringArrayJsonSchema = z.array(z.string());
 const NumberArrayJsonSchema = z.array(z.number().int().positive());
 
@@ -72,6 +73,10 @@ const StudioBriefDraftRowSchema = z
     promotion_artifact_key: z.string().nullable(),
     promotion_artifact_sha256: z.string().nullable(),
     promotion_recorded_at: z.string().nullable(),
+    owner_kind: DraftOwnerKindSchema,
+    owner_identity_id: z.string().nullable(),
+    guest_token_hash: z.string().nullable(),
+    guest_claimed_at: z.string().nullable(),
   })
   .strict();
 
@@ -162,6 +167,7 @@ export type StudioBriefReviewCommentStatus = z.output<typeof ReviewCommentStatus
 export type StudioBriefGenerationJobStatus = z.output<typeof GenerationJobStatusSchema>;
 export type StudioBriefGenerationMode = z.output<typeof GenerationModeSchema>;
 export type StudioBriefLlmGenerationStatus = z.output<typeof LlmGenerationStatusSchema>;
+export type StudioBriefDraftOwnerKind = z.output<typeof DraftOwnerKindSchema>;
 export type StudioBriefDraftRow = z.output<typeof StudioBriefDraftRowSchema>;
 export type StudioBriefDraftClaimRow = z.output<typeof StudioBriefDraftClaimRowSchema>;
 export type StudioBriefDraftBlockRow = z.output<typeof StudioBriefDraftBlockRowSchema>;
@@ -258,6 +264,10 @@ const draftSelection = {
   promotion_artifact_key: studioBriefDraft.promotionArtifactKey,
   promotion_artifact_sha256: studioBriefDraft.promotionArtifactSha256,
   promotion_recorded_at: studioBriefDraft.promotionRecordedAt,
+  owner_kind: studioBriefDraft.ownerKind,
+  owner_identity_id: studioBriefDraft.ownerIdentityId,
+  guest_token_hash: studioBriefDraft.guestTokenHash,
+  guest_claimed_at: studioBriefDraft.guestClaimedAt,
 };
 
 const claimSelection = {
@@ -494,6 +504,10 @@ export async function insertStudioBriefDraft(
     routeSlug: string;
     sourceBriefId: string | null;
     workspaceId?: string | null;
+    ownerKind?: StudioBriefDraftOwnerKind;
+    ownerIdentityId?: string | null;
+    guestTokenHash?: string | null;
+    guestClaimedAt?: string | null;
     fromFindingId: string | null;
     status: StudioBriefDraftStatus;
     title: string;
@@ -518,6 +532,10 @@ export async function insertStudioBriefDraft(
     briefId: input.briefId,
     routeSlug: input.routeSlug,
     workspaceId: input.workspaceId ?? null,
+    ownerKind: input.ownerKind ?? "workspace",
+    ownerIdentityId: input.ownerIdentityId ?? null,
+    guestTokenHash: input.guestTokenHash ?? null,
+    guestClaimedAt: input.guestClaimedAt ?? null,
     sourceBriefId: input.sourceBriefId,
     fromFindingId: input.fromFindingId,
     status: input.status,
@@ -660,6 +678,26 @@ export async function updateStudioBriefDraftJobStatus(
   await database
     .update(studioBriefDraft)
     .set(values)
+    .where(eq(studioBriefDraft.briefId, input.briefId));
+}
+
+export async function claimStudioBriefGuestDraft(
+  database: D1ServingDb,
+  input: {
+    briefId: string;
+    ownerIdentityId: string;
+    claimedAt: string;
+  },
+): Promise<void> {
+  await database
+    .update(studioBriefDraft)
+    .set({
+      ownerKind: "identity",
+      ownerIdentityId: input.ownerIdentityId,
+      guestTokenHash: null,
+      guestClaimedAt: input.claimedAt,
+      updatedAt: input.claimedAt,
+    })
     .where(eq(studioBriefDraft.briefId, input.briefId));
 }
 

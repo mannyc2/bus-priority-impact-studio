@@ -1,4 +1,4 @@
-import { type RouteScorecard, RouteScorecardSchema } from "@bp/domain";
+import { type RouteScorecard, RouteScorecardSchema } from "@bp/domain/routes";
 import { and, asc, eq } from "drizzle-orm";
 import type { D1ServingDb } from "../client.js";
 import { routeScorecard, routeScorecardCitation } from "../schema.js";

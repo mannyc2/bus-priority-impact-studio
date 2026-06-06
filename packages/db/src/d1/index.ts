@@ -24,6 +24,23 @@ export {
   recordSessionUse,
   revokeSession,
 } from "./queries/identity.js";
+export type {
+  AlertKind,
+  AlertRecord,
+  PublicCommentRecord,
+  SavedSearchRecord,
+} from "./queries/identity-surfaces.js";
+export {
+  deactivateAlert,
+  deleteSavedSearch,
+  insertAlert,
+  insertPublicComment,
+  insertSavedSearch,
+  listAlertsForIdentity,
+  listPublicCommentsForBrief,
+  listSavedSearchesForIdentity,
+  softDeletePublicComment,
+} from "./queries/identity-surfaces.js";
 export type { RouteBatchStatus, RouteBatchStatusRow } from "./queries/route-batch-status.js";
 export { getRouteBatchStatus } from "./queries/route-batch-status.js";
 export type {
@@ -61,6 +78,12 @@ export { listRouteInterventionComparisons } from "./queries/route-intervention-c
 export type { RouteMonthTrend, RouteMonthTrendRow } from "./queries/route-month-trends.js";
 export { listRouteMonthTrends } from "./queries/route-month-trends.js";
 export type {
+  RouteTimelineIndex,
+  RouteTimelineIndexRow,
+  RouteTimelineSupportLevel,
+} from "./queries/route-timelines.js";
+export { getRouteTimelineIndex, listRouteTimelineIndex } from "./queries/route-timelines.js";
+export type {
   RouteObservedReliabilitySummary,
   RouteObservedReliabilitySummaryRow,
 } from "./queries/route-observed-reliability.js";
@@ -82,6 +105,18 @@ export {
   serializeRouteScorecard,
   serializeRouteScorecardCitations,
 } from "./queries/route-scorecard.js";
+export type { StudioRouteIndexSourceRow } from "./queries/studio-route-index.js";
+export { listStudioRouteIndexSourceRows } from "./queries/studio-route-index.js";
+export type {
+  RouteSpeedHistoryCoverage,
+  RouteSpeedHistoryCoverageRow,
+  SourceMonthCoverage,
+  SourceMonthCoverageRow,
+} from "./queries/snapshot-coverage.js";
+export {
+  listRouteSpeedHistoryCoverage,
+  listSourceMonthCoverage,
+} from "./queries/snapshot-coverage.js";
 export type { StudioActorAuth } from "./queries/studio-auth.js";
 export { getStudioActorAuthByTokenHash, markStudioActorTokenUsed } from "./queries/studio-auth.js";
 export type {
@@ -113,6 +148,7 @@ export {
 export type {
   StudioBriefDraftBlockRow,
   StudioBriefDraftClaimRow,
+  StudioBriefDraftOwnerKind,
   StudioBriefDraftRecord,
   StudioBriefDraftRefRow,
   StudioBriefDraftRow,
@@ -127,6 +163,7 @@ export type {
   StudioBriefWriteIdempotencyRow,
 } from "./queries/studio-brief-drafts.js";
 export {
+  claimStudioBriefGuestDraft,
   deleteStudioBriefDraftBlock,
   deleteStudioBriefDraftClaim,
   deleteStudioBriefDraftClaims,
