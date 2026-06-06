@@ -1,10 +1,4 @@
 import {
-  buildStudioBriefProjection,
-  buildStudioBriefsProjection,
-  buildStudioFindingProjection,
-  buildStudioFindingsProjection,
-  buildStudioRouteProjection,
-  buildStudioRoutesProjection,
   StudioBriefAgentProposalApplyResponseSchema,
   StudioBriefAgentProposalRejectResponseSchema,
   StudioBriefAgentProposalResponseSchema,
@@ -21,7 +15,15 @@ import {
   StudioBriefDraftVersionRestoreResponseSchema,
   StudioBriefPublishCandidateExportResponseSchema,
   StudioBriefResponseSchema,
-} from "@bp/domain";
+} from "@bp/domain/studio/briefs";
+import {
+  buildStudioBriefProjection,
+  buildStudioBriefsProjection,
+  buildStudioFindingProjection,
+  buildStudioFindingsProjection,
+  buildStudioRouteProjection,
+  buildStudioRoutesProjection,
+} from "@bp/domain/studio/projections";
 import type { D1Database } from "@cloudflare/workers-types";
 import { describe, expect, it } from "vitest";
 import { studioReleaseSeed } from "../../src/studio/sample-data.js";
@@ -53,6 +55,7 @@ type Row = {
   error_code?: unknown;
   error_message?: unknown;
   expires_at?: unknown;
+  from_finding_id?: unknown;
   idempotency_key?: unknown;
   identity_id?: unknown;
   job_completed_at?: unknown;
@@ -80,6 +83,10 @@ type Row = {
   promotion_candidate_id?: unknown;
   promotion_recorded_at?: unknown;
   promotion_target_brief_id?: unknown;
+  guest_claimed_at?: unknown;
+  guest_token_hash?: unknown;
+  owner_identity_id?: unknown;
+  owner_kind?: unknown;
   response_json?: unknown;
   ref_id?: unknown;
   ref_json?: unknown;
@@ -88,7 +95,10 @@ type Row = {
   revoked_at?: unknown;
   resolved_at?: unknown;
   resolved_by?: unknown;
+  reviewer?: unknown;
+  reviewer_display_name?: unknown;
   role_id?: unknown;
+  route_slug?: unknown;
   run_id?: unknown;
   scopes_json?: unknown;
   session_id?: unknown;
@@ -110,6 +120,7 @@ type Row = {
   version?: unknown;
   version_id?: unknown;
   snapshot_key?: unknown;
+  source_brief_id?: unknown;
   workspace_id?: unknown;
   [key: string]: unknown;
 };
@@ -354,8 +365,8 @@ class FakeStudioDraftDb {
           comment_id: row.comment_id,
           brief_id: row.brief_id,
           parent_comment_id: row.parent_comment_id ?? null,
-          reviewer: row["reviewer"],
-          reviewer_display_name: row["reviewer_display_name"] ?? null,
+          reviewer: row.reviewer,
+          reviewer_display_name: row.reviewer_display_name ?? null,
           message: row.message,
           kind:
             row.kind === "change-requested" || row.kind === "suggested-edit" ? row.kind : "comment",
@@ -425,10 +436,10 @@ class FakeStudioDraftDb {
         : [
             {
               brief_id: row.brief_id,
-              route_slug: row["route_slug"],
+              route_slug: row.route_slug,
               workspace_id: row.workspace_id ?? null,
-              source_brief_id: row["source_brief_id"] ?? null,
-              from_finding_id: row["from_finding_id"] ?? null,
+              source_brief_id: row.source_brief_id ?? null,
+              from_finding_id: row.from_finding_id ?? null,
               status: row.status,
               title: row.title,
               dek: row.dek,
@@ -457,6 +468,10 @@ class FakeStudioDraftDb {
               promotion_artifact_key: row.promotion_artifact_key ?? null,
               promotion_artifact_sha256: row.promotion_artifact_sha256 ?? null,
               promotion_recorded_at: row.promotion_recorded_at ?? null,
+              owner_kind: row.owner_kind ?? "workspace",
+              owner_identity_id: row.owner_identity_id ?? null,
+              guest_token_hash: row.guest_token_hash ?? null,
+              guest_claimed_at: row.guest_claimed_at ?? null,
             },
           ];
     }
@@ -614,6 +629,10 @@ class FakeStudioDraftDb {
         promotion_artifact_key: null,
         promotion_artifact_sha256: null,
         promotion_recorded_at: null,
+        owner_kind: row.owner_kind ?? "workspace",
+        owner_identity_id: row.owner_identity_id ?? null,
+        guest_token_hash: row.guest_token_hash ?? null,
+        guest_claimed_at: row.guest_claimed_at ?? null,
       });
       return { changes: 1 };
     }
@@ -856,14 +875,22 @@ async function sha256Hex(input: string): Promise<string> {
 async function seedOperator(
   db: FakeStudioDraftDb,
   scopes: string[],
+  options: {
+    identityId?: string;
+    sessionToken?: string;
+    email?: string;
+    displayName?: string;
+    workspaceId?: string;
+  } = {},
 ): Promise<{ cookie: string; identityId: string }> {
-  const identityId = "identity-1";
-  const sessionToken = "session-token";
+  const identityId = options.identityId ?? "identity-1";
+  const sessionToken = options.sessionToken ?? "session-token";
+  const email = options.email ?? "operator@example.test";
   db.identity.push({
     identity_id: identityId,
-    email: "operator@example.test",
-    email_normalized: "operator@example.test",
-    display_name: "Studio Operator",
+    email,
+    email_normalized: email.toLowerCase(),
+    display_name: options.displayName ?? "Studio Operator",
     active: 1,
   });
   db.session.push({
@@ -876,11 +903,42 @@ async function seedOperator(
     revoked_at: null,
   });
   db.role.push({
-    role_id: "role-1",
+    role_id: `role-${identityId}`,
     identity_id: identityId,
-    workspace_id: "workspace-1",
+    workspace_id: options.workspaceId ?? "workspace-1",
     scopes_json: JSON.stringify(scopes),
     active: 1,
+  });
+  return { cookie: `bp_session=${sessionToken}`, identityId };
+}
+
+async function seedIdentity(
+  db: FakeStudioDraftDb,
+  options: {
+    identityId?: string;
+    sessionToken?: string;
+    email?: string;
+    displayName?: string;
+  } = {},
+): Promise<{ cookie: string; identityId: string }> {
+  const identityId = options.identityId ?? "identity-public";
+  const sessionToken = options.sessionToken ?? "public-session-token";
+  const email = options.email ?? "public@example.test";
+  db.identity.push({
+    identity_id: identityId,
+    email,
+    email_normalized: email.toLowerCase(),
+    display_name: options.displayName ?? "Public User",
+    active: 1,
+  });
+  db.session.push({
+    session_id: `session-${identityId}`,
+    identity_id: identityId,
+    kind: "session",
+    token_hash: await sha256Hex(sessionToken),
+    expires_at: "2999-01-01T00:00:00.000Z",
+    consumed_at: null,
+    revoked_at: null,
   });
   return { cookie: `bp_session=${sessionToken}`, identityId };
 }
@@ -955,10 +1013,19 @@ function jsonRequest(
   });
 }
 
+function responseCookie(response: Response, name: string): string {
+  const setCookie = response.headers.get("Set-Cookie") ?? "";
+  const match = new RegExp(`(?:^|,\\s*)(${name}=[^;]+)`).exec(setCookie);
+  if (match?.[1] === undefined) {
+    throw new Error(`expected ${name} Set-Cookie header, received: ${setCookie}`);
+  }
+  return match[1];
+}
+
 describe("Studio brief draft Worker endpoints", () => {
   const briefId = studioReleaseSeed.briefs[0]?.id ?? "brief-missing";
 
-  it("requires sign-in for draft authoring endpoints", async () => {
+  it("creates and overlays a guest-owned manual draft without sign-in", async () => {
     const db = new FakeStudioDraftDb();
     const env = createStudioDraftEnv(db);
 
@@ -974,22 +1041,207 @@ describe("Studio brief draft Worker endpoints", () => {
       env,
     );
 
-    expect(response.status).toBe(401);
-    expect(db.draft).toHaveLength(0);
+    expect(response.status).toBe(204);
+    const guestCookie = responseCookie(response, "bp_guest");
+    expect(db.draft).toHaveLength(1);
+    expect(db.draft[0]?.owner_kind).toBe("guest");
+    expect(db.draft[0]?.guest_token_hash).toEqual(expect.stringMatching(/^[a-f0-9]{64}$/));
+    expect(db.draft[0]?.title).toBe("Draft title");
+
+    const guestBriefResponse = await worker.fetch(
+      jsonRequest(`/api/v1/studio/briefs/${briefId}`, "GET", undefined, {
+        Cookie: guestCookie,
+      }),
+      env,
+    );
+    expect(guestBriefResponse.status).toBe(200);
+    const guestBrief = StudioBriefResponseSchema.parse(await guestBriefResponse.json());
+    expect(guestBrief.brief.title).toBe("Draft title");
+    expect(guestBrief.draftStatus).toBe("draft");
+
+    const publicResponse = await worker.fetch(
+      jsonRequest(`/api/v1/studio/briefs/${briefId}`, "GET"),
+      env,
+    );
+    expect(publicResponse.status).toBe(200);
+    const publicBrief = StudioBriefResponseSchema.parse(await publicResponse.json());
+    expect(publicBrief.brief.title).not.toBe("Draft title");
+    expect(publicBrief.draftStatus).toBeNull();
   });
 
-  it("gates draft mutations by operator scope", async () => {
+  it("blocks guest draft authors from AI, review, and publish actions", async () => {
     const db = new FakeStudioDraftDb();
-    const { cookie } = await seedOperator(db, ["read:briefs"]);
     const env = createStudioDraftEnv(db);
+
+    const patchResponse = await worker.fetch(
+      jsonRequest(
+        `/api/v1/studio/briefs/${briefId}/draft`,
+        "PATCH",
+        { title: "Guest-only draft" },
+        {
+          "Idempotency-Key": "guest-privileged-setup",
+        },
+      ),
+      env,
+    );
+    expect(patchResponse.status).toBe(204);
+    const guestCookie = responseCookie(patchResponse, "bp_guest");
+
+    const generateResponse = await worker.fetch(
+      jsonRequest(
+        `/api/v1/studio/briefs/${briefId}/draft/generate`,
+        "POST",
+        {},
+        {
+          Cookie: guestCookie,
+          "Idempotency-Key": "guest-generate",
+        },
+      ),
+      env,
+    );
+    const reviewResponse = await worker.fetch(
+      jsonRequest(
+        `/api/v1/studio/briefs/${briefId}/draft/review`,
+        "POST",
+        { message: "Please review this." },
+        {
+          Cookie: guestCookie,
+          "Idempotency-Key": "guest-review",
+        },
+      ),
+      env,
+    );
+    const publishResponse = await worker.fetch(
+      jsonRequest(
+        `/api/v1/studio/briefs/${briefId}/draft/publish`,
+        "POST",
+        {},
+        {
+          Cookie: guestCookie,
+          "Idempotency-Key": "guest-publish",
+        },
+      ),
+      env,
+    );
+
+    expect(generateResponse.status).toBe(401);
+    expect(reviewResponse.status).toBe(401);
+    expect(publishResponse.status).toBe(401);
+    expect(db.agentRun).toHaveLength(0);
+    expect(db.draft[0]?.status).toBe("draft");
+    expect(db.draft[0]?.published_at).toBeNull();
+  });
+
+  it("lets a signed-in identity claim a guest draft and revokes the guest credential", async () => {
+    const db = new FakeStudioDraftDb();
+    const env = createStudioDraftEnv(db);
+    const routeSlug = studioReleaseSeed.routes[0]?.slug ?? "m15-sbs";
+
+    const createResponse = await worker.fetch(
+      jsonRequest(
+        "/api/v1/studio/briefs",
+        "POST",
+        {
+          routeSlug,
+          title: "Guest draft to claim",
+          summary: "Claimable summary.",
+          bodyMd: "## Claimable summary",
+        },
+        {
+          "Idempotency-Key": "guest-create-claimable",
+        },
+      ),
+      env,
+    );
+    expect(createResponse.status).toBe(200);
+    const guestCookie = responseCookie(createResponse, "bp_guest");
+    const created = StudioBriefCreateResponseSchema.parse(await createResponse.json());
+    expect(db.draft[0]?.owner_kind).toBe("guest");
+
+    const { cookie: identityCookie, identityId } = await seedIdentity(db);
+    const claimResponse = await worker.fetch(
+      jsonRequest(
+        `/api/v1/studio/briefs/${created.draft.briefId}/draft/claim`,
+        "POST",
+        {},
+        {
+          Cookie: `${guestCookie}; ${identityCookie}`,
+          "Idempotency-Key": "guest-claim",
+        },
+      ),
+      env,
+    );
+
+    expect(claimResponse.status).toBe(200);
+    expect(claimResponse.headers.get("Set-Cookie")).toContain("bp_guest=;");
+    expect(db.draft[0]?.owner_kind).toBe("identity");
+    expect(db.draft[0]?.owner_identity_id).toBe(identityId);
+    expect(db.draft[0]?.guest_token_hash).toBeNull();
+    expect(db.draft[0]?.guest_claimed_at).toEqual(expect.any(String));
+
+    const staleGuestPatch = await worker.fetch(
+      jsonRequest(
+        `/api/v1/studio/briefs/${created.draft.briefId}/draft`,
+        "PATCH",
+        { title: "Stale guest title" },
+        {
+          Cookie: guestCookie,
+          "Idempotency-Key": "stale-guest-patch",
+        },
+      ),
+      env,
+    );
+    expect(staleGuestPatch.status).toBe(403);
+
+    const identityPatch = await worker.fetch(
+      jsonRequest(
+        `/api/v1/studio/briefs/${created.draft.briefId}/draft`,
+        "PATCH",
+        { title: "Claimed identity title" },
+        {
+          Cookie: identityCookie,
+          "Idempotency-Key": "identity-claimed-patch",
+        },
+      ),
+      env,
+    );
+    expect(identityPatch.status).toBe(204);
+    expect(db.draft[0]?.title).toBe("Claimed identity title");
+  });
+
+  it("does not let a read-only operator mutate a workspace-owned draft", async () => {
+    const db = new FakeStudioDraftDb();
+    const { cookie: writerCookie } = await seedOperator(db, ["read:briefs", "write:briefs"]);
+    const { cookie: readerCookie } = await seedOperator(db, ["read:briefs"], {
+      identityId: "identity-2",
+      sessionToken: "reader-session-token",
+      email: "reader@example.test",
+      displayName: "Read Only Operator",
+    });
+    const env = createStudioDraftEnv(db);
+
+    const writerResponse = await worker.fetch(
+      jsonRequest(
+        `/api/v1/studio/briefs/${briefId}/draft`,
+        "PATCH",
+        { title: "Workspace draft title" },
+        {
+          Cookie: writerCookie,
+          "Idempotency-Key": "workspace-patch",
+        },
+      ),
+      env,
+    );
+    expect(writerResponse.status).toBe(204);
+    expect(db.draft[0]?.owner_kind).toBe("workspace");
 
     const response = await worker.fetch(
       jsonRequest(
         `/api/v1/studio/briefs/${briefId}/draft`,
         "PATCH",
-        { title: "Draft title" },
+        { title: "Forbidden title" },
         {
-          Cookie: cookie,
+          Cookie: readerCookie,
           "Idempotency-Key": "forbidden-patch",
         },
       ),
@@ -997,7 +1249,8 @@ describe("Studio brief draft Worker endpoints", () => {
     );
 
     expect(response.status).toBe(403);
-    expect(db.draft).toHaveLength(0);
+    expect(db.draft).toHaveLength(1);
+    expect(db.draft[0]?.title).toBe("Workspace draft title");
   });
 
   it("requires an idempotency key for authenticated draft mutations", async () => {

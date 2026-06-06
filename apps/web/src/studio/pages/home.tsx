@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { type FormEvent, type ReactNode, useMemo, useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 import { RouteBadge } from "@/components/RouteBadge";
+import { type AutocompleteSuggestion, SearchAutocomplete } from "@/components/SearchAutocomplete";
 import { Spark } from "@/components/Spark";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { StudioRoute } from "../api-contract.js";
@@ -296,7 +297,6 @@ function RoleCard({ role, body, links }: { role: string; body: string; links: re
 export function HomePage({ routes }: { routes: readonly StudioRoute[] }) {
   const navigate = useNavigate();
   const [borough, setBorough] = useState("All boroughs");
-  const [query, setQuery] = useState("");
 
   const slugByLabel = useMemo(() => {
     const map = new Map<string, string>();
@@ -310,6 +310,22 @@ export function HomePage({ routes }: { routes: readonly StudioRoute[] }) {
   const byRidership = useMemo(
     () => [...routes].sort((a, b) => b.dailyRiders - a.dailyRiders),
     [routes],
+  );
+
+  const heroSuggestions = useMemo<AutocompleteSuggestion[]>(
+    () =>
+      byRidership.map((route) => ({
+        id: route.slug,
+        primary: (
+          <span className="inline-flex items-center gap-2.5">
+            <RouteBadge route={route.label} sbs={route.sbs} size="sm" />
+            <span>{route.corridorFull}</span>
+          </span>
+        ),
+        meta: `${formatRiders(route.dailyRiders)} daily riders`,
+        haystack: `${route.label} ${route.corridor} ${route.corridorFull} ${route.borough}`,
+      })),
+    [byRidership],
   );
 
   const boroughs = [
@@ -329,16 +345,6 @@ export function HomePage({ routes }: { routes: readonly StudioRoute[] }) {
 
   const heroChips = byRidership.slice(0, 5);
 
-  function onSearch(event: FormEvent) {
-    event.preventDefault();
-    const q = query.trim();
-    if (q.length === 0) {
-      navigate({ to: "/routes" });
-      return;
-    }
-    navigate({ to: "/search", search: { q } });
-  }
-
   return (
     <main className="min-h-full bg-[var(--bp-color-paper)]">
       {/* ── HERO ─────────────────────────────────────────────── */}
@@ -352,10 +358,10 @@ export function HomePage({ routes }: { routes: readonly StudioRoute[] }) {
               We track every bus route in New York that should be moving faster than it is.
             </h1>
             <p className="mt-5.5 max-w-[720px] text-pretty text-[18px] leading-[1.55] text-[var(--bp-color-ink-70)]">
-              The city has spent the last fifteen years building tools to speed up its slowest
-              buses — bus lanes, automated camera enforcement, signal priority. Some routes have
-              moved faster because of it. Others have kept slowing down. This site tells the story
-              of every route the program has touched, route by route, in plain numbers, from public
+              The city has spent the last fifteen years building tools to speed up its slowest buses
+              — bus lanes, automated camera enforcement, signal priority. Some routes have moved
+              faster because of it. Others have kept slowing down. This site tells the story of
+              every route the program has touched, route by route, in plain numbers, from public
               data.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3.5">
@@ -385,30 +391,12 @@ export function HomePage({ routes }: { routes: readonly StudioRoute[] }) {
             <div className="mb-3.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--bp-color-ink-55)]">
               Find a route
             </div>
-            <form
-              onSubmit={onSearch}
-              className="flex items-center gap-2.5 rounded-[4px] border-[1.5px] border-[var(--bp-color-ink)] bg-[var(--bp-color-card)] px-3.5 py-3 shadow-[0_2px_0_var(--bp-color-ink)]"
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 18 18"
-                fill="none"
-                stroke="var(--bp-color-ink)"
-                strokeWidth="1.8"
-                aria-hidden
-              >
-                <circle cx="8" cy="8" r="5.5" />
-                <path d="M12.5 12.5L16 16" strokeLinecap="round" />
-              </svg>
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                className="flex-1 border-none bg-transparent text-[14px] text-[var(--bp-color-ink)] outline-none"
-                placeholder="Route number, street, or borough…"
-                aria-label="Search routes"
-              />
-            </form>
+            <SearchAutocomplete
+              placeholder="Route number, street, or borough…"
+              suggestions={heroSuggestions}
+              onSelect={(slug) => navigate({ to: "/routes/$routeId", params: { routeId: slug } })}
+              onSubmitQuery={(q) => navigate({ to: "/search", search: { q } })}
+            />
             <div className="mb-2 mt-3 text-[11.5px] leading-[1.5] text-[var(--bp-color-ink-55)]">
               Try one of these:
             </div>
@@ -482,7 +470,11 @@ export function HomePage({ routes }: { routes: readonly StudioRoute[] }) {
         />
         <div className="grid grid-cols-3 gap-4.5 max-lg:grid-cols-1">
           {FEATURED.map((item) => (
-            <FeaturedCard key={item.label} item={item} slug={slugByLabel.get(item.label.toLowerCase())} />
+            <FeaturedCard
+              key={item.label}
+              item={item}
+              slug={slugByLabel.get(item.label.toLowerCase())}
+            />
           ))}
         </div>
       </section>
@@ -593,7 +585,11 @@ export function HomePage({ routes }: { routes: readonly StudioRoute[] }) {
           <RoleCard
             role="If you ride the bus"
             body="Look up your route. Each route page tells you how fast it's moving now, how that compares to what the schedule promises, and where on the line the worst slowdowns happen."
-            links={["Find your route", "Browse routes by borough", "See what's changing this month"]}
+            links={[
+              "Find your route",
+              "Browse routes by borough",
+              "See what's changing this month",
+            ]}
           />
           <RoleCard
             role="If you cover transit"
@@ -603,7 +599,11 @@ export function HomePage({ routes }: { routes: readonly StudioRoute[] }) {
           <RoleCard
             role="If you work in city government"
             body="The data is the same one your agencies publish — we've just made it route-shaped and comparable. Each route page identifies the segments where time is being lost, and the interventions already in place."
-            links={["Compare routes side-by-side", "Intervention timelines", "Get in touch about a brief"]}
+            links={[
+              "Compare routes side-by-side",
+              "Intervention timelines",
+              "Get in touch about a brief",
+            ]}
           />
         </div>
       </section>
@@ -641,10 +641,22 @@ export function HomePage({ routes }: { routes: readonly StudioRoute[] }) {
           {/* Project-level stats */}
           <div className="mb-14 grid grid-cols-4 gap-6 max-lg:grid-cols-2 max-sm:grid-cols-1">
             {[
-              { v: "142", l: "Findings published since launch", s: "All reviewed by a named analyst." },
-              { v: "327", l: "Routes covered by at least one brief", s: "Every MTA local and Select Bus route." },
+              {
+                v: "142",
+                l: "Findings published since launch",
+                s: "All reviewed by a named analyst.",
+              },
+              {
+                v: "327",
+                l: "Routes covered by at least one brief",
+                s: "Every MTA local and Select Bus route.",
+              },
               { v: "4", l: "Analysts on staff", s: "Disclosure of priors in each byline." },
-              { v: "6", l: "Public datasets ingested weekly", s: "MTA Open Data + NYC DOT GIS feeds." },
+              {
+                v: "6",
+                l: "Public datasets ingested weekly",
+                s: "MTA Open Data + NYC DOT GIS feeds.",
+              },
             ].map((k) => (
               <div key={k.v}>
                 <div className="font-mono text-[48px] font-semibold tabular-nums leading-none tracking-[-0.03em]">
@@ -732,9 +744,19 @@ export function HomePage({ routes }: { routes: readonly StudioRoute[] }) {
               <div className="flex flex-col gap-3.5">
                 {[
                   { i: "MO", n: "Maya Okafor", r: "Senior Analyst", note: "Routes, methodology" },
-                  { i: "DR", n: "Diego Ramirez", r: "Senior Analyst", note: "Enforcement, findings" },
+                  {
+                    i: "DR",
+                    n: "Diego Ramirez",
+                    r: "Senior Analyst",
+                    note: "Enforcement, findings",
+                  },
                   { i: "AC", n: "Anika Chen", r: "Data Engineer", note: "Pipelines, GTFS, GIS" },
-                  { i: "JB", n: "Jordan Bellamy", r: "Editor at Large", note: "Briefs, public writing" },
+                  {
+                    i: "JB",
+                    n: "Jordan Bellamy",
+                    r: "Editor at Large",
+                    note: "Briefs, public writing",
+                  },
                 ].map((p) => (
                   <div
                     key={p.i}
@@ -746,7 +768,10 @@ export function HomePage({ routes }: { routes: readonly StudioRoute[] }) {
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="text-[13.5px] font-semibold">{p.n}</div>
-                      <div className="mt-0.5 text-[11.5px]" style={{ color: "rgba(244,241,234,.6)" }}>
+                      <div
+                        className="mt-0.5 text-[11.5px]"
+                        style={{ color: "rgba(244,241,234,.6)" }}
+                      >
                         {p.r} · {p.note}
                       </div>
                     </div>
@@ -785,7 +810,10 @@ export function HomePage({ routes }: { routes: readonly StudioRoute[] }) {
                 ].map((s) => (
                   <div key={s.src} className="text-[12.5px] leading-[1.4]">
                     <div className="font-medium">{s.src}</div>
-                    <div className="mt-0.5 text-[11.5px]" style={{ color: "rgba(244,241,234,.55)" }}>
+                    <div
+                      className="mt-0.5 text-[11.5px]"
+                      style={{ color: "rgba(244,241,234,.55)" }}
+                    >
                       {s.sub}
                     </div>
                   </div>
@@ -815,7 +843,10 @@ export function HomePage({ routes }: { routes: readonly StudioRoute[] }) {
                 }}
               >
                 <div className="mb-3.5 font-mono text-[13px]">studio@buspriority.nyc</div>
-                <div className="text-[11.5px] leading-[1.6]" style={{ color: "rgba(244,241,234,.7)" }}>
+                <div
+                  className="text-[11.5px] leading-[1.6]"
+                  style={{ color: "rgba(244,241,234,.7)" }}
+                >
                   Story tips welcome. We respond to error reports within 48 hours and publish a
                   correction at the top of the affected page until repaired.
                 </div>

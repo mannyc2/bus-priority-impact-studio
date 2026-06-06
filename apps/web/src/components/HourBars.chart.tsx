@@ -9,7 +9,6 @@ import {
 export type HourBarsProps = {
   data: readonly number[];
   sched?: number;
-  width?: number;
   height?: number;
   min?: number;
   max?: number;
@@ -26,8 +25,10 @@ function barColor(value: number): string {
   return "var(--bp-color-ink-40)";
 }
 
-export function HourBarsChart({ data, sched, width = 600, height = 200, min, max }: HourBarsProps) {
-  const rows = data.slice(0, 24).map((value, hour) => ({ hour, value }));
+export function HourBarsChart({ data, sched, height = 200, min, max }: HourBarsProps) {
+  const rows = data
+    .slice(0, 24)
+    .map((value, hour) => ({ hour: String(hour), value: Number(value.toFixed(1)) }));
   const lo = min ?? Math.floor(Math.min(...data, sched ?? Number.POSITIVE_INFINITY) - 0.5);
   const hi = max ?? Math.ceil(Math.max(...data, sched ?? Number.NEGATIVE_INFINITY) + 0.5);
 
@@ -35,7 +36,7 @@ export function HourBarsChart({ data, sched, width = 600, height = 200, min, max
     <ChartContainer
       config={config}
       className="aspect-auto w-full"
-      style={{ height, minWidth: width }}
+      style={{ height }}
     >
       <BarChart accessibilityLayer data={rows} margin={{ top: 12, right: 12, bottom: 4, left: 0 }}>
         <CartesianGrid vertical={false} />

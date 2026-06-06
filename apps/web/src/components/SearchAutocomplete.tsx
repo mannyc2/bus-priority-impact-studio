@@ -1,10 +1,6 @@
 import { Search } from "lucide-react";
-import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-} from "@/components/ui/input-group";
+import { type KeyboardEvent, type ReactNode, useEffect, useId, useRef, useState } from "react";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Kbd } from "@/components/ui/kbd";
 import { cn } from "@/lib/utils";
 
@@ -22,22 +18,32 @@ export function SearchAutocomplete({
   suggestions,
   recent,
   onSelect,
+  onSubmitQuery,
   className,
   defaultValue = "",
+  size = "lg",
+  autoFocus = false,
 }: {
   placeholder?: string;
   shortcut?: ReactNode;
   suggestions: readonly AutocompleteSuggestion[];
   recent?: ReactNode;
   onSelect: (id: string) => void;
+  /** Free-text submit (Enter with no suggestion highlighted). When set, nothing is preselected. */
+  onSubmitQuery?: (query: string) => void;
   className?: string;
   defaultValue?: string;
+  size?: "lg" | "sm";
+  autoFocus?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const listboxId = useId();
   const [query, setQuery] = useState(defaultValue);
-  const [activeIndex, setActiveIndex] = useState(0);
+  // With a free-text submit handler, start with nothing preselected so Enter submits
+  // the query; otherwise preselect the first suggestion (pick-a-suggestion surfaces).
+  const restingIndex = onSubmitQuery ? -1 : 0;
+  const [activeIndex, setActiveIndex] = useState(restingIndex);
   const [open, setOpen] = useState(false);
 
   const filtered = query.trim()
@@ -45,12 +51,13 @@ export function SearchAutocomplete({
     : suggestions.slice(0, 4);
 
   useEffect(() => {
+    // Only page-level search fields (which advertise a shortcut) grab the global focus key,
+    // so contextual instances like the compare picker don't hijack "/" or Cmd+K.
+    if (!shortcut) return;
     function handler(event: globalThis.KeyboardEvent) {
       const target = event.target as HTMLElement | null;
       const inField =
-        target?.tagName === "INPUT" ||
-        target?.tagName === "TEXTAREA" ||
-        target?.isContentEditable;
+        target?.tagName === "INPUT" || target?.tagName === "TEXTAREA" || target?.isContentEditable;
       const isCmdK = (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k";
       const isSlash = event.key === "/" && !inField;
       if (isCmdK || isSlash) {
@@ -60,11 +67,11 @@ export function SearchAutocomplete({
     }
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, []);
+  }, [shortcut]);
 
   useEffect(() => {
-    setActiveIndex(0);
-  }, [query]);
+    setActiveIndex(restingIndex);
+  }, [restingIndex]);
 
   useEffect(() => {
     function onDocClick(event: MouseEvent) {
@@ -93,7 +100,13 @@ export function SearchAutocomplete({
       setActiveIndex((i) => Math.max(0, i - 1));
     } else if (event.key === "Enter") {
       event.preventDefault();
-      commit(activeIndex);
+      if (activeIndex >= 0 && filtered[activeIndex]) {
+        commit(activeIndex);
+      } else if (onSubmitQuery && query.trim()) {
+        onSubmitQuery(query.trim());
+        setOpen(false);
+        inputRef.current?.blur();
+      }
     } else if (event.key === "Escape") {
       setOpen(false);
       inputRef.current?.blur();
@@ -101,12 +114,14 @@ export function SearchAutocomplete({
   }
 
   const showList = open && filtered.length > 0;
+  const hasActive = showList && activeIndex >= 0;
 
   return (
     <div ref={containerRef} className={cn("relative", className)}>
       <InputGroup
         className={cn(
-          "h-auto rounded-[4px] border-[1.5px] border-[var(--bp-color-ink)] bg-[#fff]! px-[12px] py-[10px] shadow-[0_2px_0_var(--bp-color-ink)]",
+          "h-auto rounded-[4px] border-[1.5px] border-[var(--bp-color-ink)] bg-[#fff]! shadow-[0_2px_0_var(--bp-color-ink)]",
+          size === "sm" ? "px-2.5 py-1.5" : "px-[12px] py-[10px]",
           // Focus: keep the resting ink border, hard-kill the shadcn accent (blue) ring. The `!`
           // is required because the base InputGroup's has-[…:focus-visible]:ring-3/ring-ring/50
           // is an arbitrary variant tailwind-merge won't reliably collapse.
@@ -115,16 +130,20 @@ export function SearchAutocomplete({
         )}
       >
         <InputGroupAddon align="inline-start" className="text-[var(--bp-color-ink)]">
-          <Search size={18} strokeWidth={1.8} aria-hidden />
+          <Search size={size === "sm" ? 15 : 18} strokeWidth={1.8} aria-hidden />
         </InputGroupAddon>
         <InputGroupInput
           ref={inputRef}
           type="search"
           role="combobox"
+          autoFocus={autoFocus}
           aria-expanded={showList}
           aria-controls={listboxId}
-          aria-activedescendant={showList ? `${listboxId}-${activeIndex}` : undefined}
-          className="appearance-none px-1 text-[17px] text-[var(--bp-color-ink)] placeholder:text-[var(--bp-color-ink-40)] outline-none! focus:outline-none! focus-visible:outline-none! md:text-[17px] [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none"
+          aria-activedescendant={hasActive ? `${listboxId}-${activeIndex}` : undefined}
+          className={cn(
+            "appearance-none px-1 text-[var(--bp-color-ink)] placeholder:text-[var(--bp-color-ink-40)] outline-none! focus:outline-none! focus-visible:outline-none! [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none",
+            size === "sm" ? "text-[13px]" : "text-[17px] md:text-[17px]",
+          )}
           placeholder={placeholder}
           value={query}
           onChange={(e) => {

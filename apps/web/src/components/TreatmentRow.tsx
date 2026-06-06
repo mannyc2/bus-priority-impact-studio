@@ -1,24 +1,26 @@
 import type { CSSProperties } from "react";
 
-import { DotGlyph } from "@/components/DotGlyph";
-import { LaneGlyph, type LaneState } from "@/components/LaneGlyph";
+import type { LaneState } from "@/components/LaneGlyph";
+import { TreatmentBadgeStrip } from "@/components/TreatmentBadge";
+import { legacyToTreatments, type TreatmentItem } from "@/studio/treatment-model";
 
 export function TreatmentRow({
   lane = "none",
   ace = false,
   tsp = false,
+  treatments,
   align = "flex-end",
 }: {
   lane?: LaneState;
   ace?: boolean;
   tsp?: boolean;
+  treatments?: readonly TreatmentItem[] | undefined;
   align?: CSSProperties["justifyContent"];
 }) {
+  const normalized =
+    treatments && treatments.length > 0 ? treatments : legacyToTreatments({ lane, ace, tsp });
+
   return (
-    <div className="flex items-start gap-3.5" style={{ justifyContent: align }}>
-      <LaneGlyph state={lane} />
-      <DotGlyph label="ACE" on={ace} tone="accent" />
-      <DotGlyph label="TSP" on={tsp} tone="good" />
-    </div>
+    <TreatmentBadgeStrip treatments={normalized} size="xs" align={align} showFamilyLabels={false} />
   );
 }

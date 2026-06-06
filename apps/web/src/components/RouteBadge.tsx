@@ -1,10 +1,10 @@
 type RouteBadgeSize = "sm" | "md" | "lg" | "xl";
 
 const badgeSizes = {
-  sm: { h: 18, fs: 10.5, gap: 3, r: 3, w: [24, 32, 40, 50], sbsW: 32 },
-  md: { h: 22, fs: 12.5, gap: 4, r: 3, w: [30, 40, 50, 62], sbsW: 40 },
-  lg: { h: 28, fs: 15, gap: 5, r: 3, w: [38, 51, 64, 79], sbsW: 51 },
-  xl: { h: 36, fs: 19, gap: 6, r: 4, w: [48, 65, 81, 100], sbsW: 65 },
+  sm: { h: 18, fs: 10.5, pad: 5, r: 3, w: [24, 32, 40, 50] },
+  md: { h: 22, fs: 12.5, pad: 6, r: 3, w: [30, 40, 50, 62] },
+  lg: { h: 28, fs: 15, pad: 7, r: 3, w: [38, 51, 64, 79] },
+  xl: { h: 36, fs: 19, pad: 9, r: 4, w: [48, 65, 81, 100] },
 } as const;
 
 function badgeWidth(widths: readonly [number, number, number, number], charCount: number): number {
@@ -39,44 +39,32 @@ export function RouteBadge({
   express?: boolean;
 }) {
   const badge = badgeSizes[size];
-  const background = routeColor(route, express);
-  const baseClass =
-    "inline-flex items-center justify-center font-sans font-bold leading-none tracking-[0.01em] tabular-nums";
-  const baseStyle = {
-    borderRadius: badge.r,
-    boxSizing: "border-box" as const,
-    fontSize: badge.fs,
-    height: badge.h,
-  };
+  // SBS arrives inconsistently across data sources: sometimes only via the `sbs`
+  // flag, sometimes baked into the name ("Q44 SBS" / "Q44-SBS"). Normalize to the
+  // bare route number, then render the MTA-style "Q44-SBS" as a single roundel -
+  // no separate SBS pill, and never doubled.
+  const base = route.replace(/[\s-]?SBS$/i, "").trim();
+  const isSbs = sbs || base !== route;
+  const display = isSbs ? `${base}-SBS` : base;
+  const background = routeColor(base, express);
 
   return (
-    <span className="inline-flex items-center align-middle" style={{ gap: badge.gap }}>
-      <span
-        className={baseClass}
-        style={{
-          ...baseStyle,
-          background,
-          color: "white",
-          width: badgeWidth(badge.w, route.length),
-        }}
-      >
-        {route}
-      </span>
-      {sbs ? (
-        <span
-          className={baseClass}
-          style={{
-            ...baseStyle,
-            background: "white",
-            border: `1.5px solid ${background}`,
-            color: background,
-            letterSpacing: "0.06em",
-            width: badge.sbsW,
-          }}
-        >
-          SBS
-        </span>
-      ) : null}
+    <span
+      className="inline-flex shrink-0 items-center justify-center whitespace-nowrap align-middle font-sans font-bold leading-none tracking-[0.01em] tabular-nums"
+      style={{
+        borderRadius: badge.r,
+        boxSizing: "border-box",
+        fontSize: badge.fs,
+        height: badge.h,
+        background,
+        color: "white",
+        // Bare numbers keep their fixed-width roundel; SBS names grow with padding.
+        ...(isSbs
+          ? { minWidth: badgeWidth(badge.w, base.length), paddingInline: badge.pad }
+          : { width: badgeWidth(badge.w, base.length) }),
+      }}
+    >
+      {display}
     </span>
   );
 }

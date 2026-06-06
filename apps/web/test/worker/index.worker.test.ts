@@ -1,4 +1,4 @@
-import { HealthResponseSchema } from "@bp/domain";
+import { HealthResponseSchema } from "@bp/domain/routes";
 import { describe, expect, it } from "vitest";
 import type { Env } from "../../src/worker/index.js";
 import worker from "../../src/worker/index.js";

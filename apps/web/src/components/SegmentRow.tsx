@@ -5,6 +5,7 @@ import { HourStrip } from "@/components/HourStrip";
 import type { LaneState } from "@/components/LaneGlyph";
 import { TreatmentRow } from "@/components/TreatmentRow";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { TreatmentItem } from "@/studio/treatment-model";
 
 export function SegmentRowHeader({ showSched = true }: { showSched?: boolean }) {
   return (
@@ -38,6 +39,7 @@ export function SegmentRow({
   lane = "none",
   ace = false,
   tsp = false,
+  treatments,
   flag,
   hasNote = false,
   noteOpen = false,
@@ -53,6 +55,7 @@ export function SegmentRow({
   lane?: LaneState;
   ace?: boolean;
   tsp?: boolean;
+  treatments?: readonly TreatmentItem[] | undefined;
   flag?: "top";
   hasNote?: boolean;
   noteOpen?: boolean;
@@ -108,7 +111,7 @@ export function SegmentRow({
         {riderHours.toLocaleString()}
       </div>
       <HourStrip hours={hours} />
-      <TreatmentRow lane={lane} ace={ace} tsp={tsp} />
+      <TreatmentRow lane={lane} ace={ace} tsp={tsp} treatments={treatments} />
     </>
   );
 

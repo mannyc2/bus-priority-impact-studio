@@ -10,7 +10,7 @@ export function ChartsDemo() {
         <Heatmap rows={demoHeatmap.rows} cols={demoHeatmap.cols} values={demoHeatmap.values} />
       </ChartFrame>
       <ChartFrame title="PM peak profile" source="March 2026 baseline">
-        <HourBars data={demoHourBars} sched={7.1} width={420} />
+        <HourBars data={demoHourBars} sched={7.1} />
       </ChartFrame>
     </div>
   );

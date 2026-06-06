@@ -1,3 +1,4 @@
+import { Dialog } from "@base-ui/react/dialog";
 import { useNavigate } from "@tanstack/react-router";
 import { ArrowRight, Plus, X } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -27,9 +28,9 @@ type Destination = {
 const NEW_BRIEF = "__new__";
 
 /**
- * The "Send to brief" capture sheet — the one surface that takes any studio
+ * The "Send to brief" capture dialog — the one surface that takes any studio
  * object (here, a slow segment) and routes it into a brief. The captured object
- * is the subject of the sheet; the choice is where it lands. Existing briefs are
+ * is the subject of the dialog; the choice is where it lands. Existing briefs are
  * the live brief list; the route-matching brief is the ◆ AI MATCH. Confirming
  * opens the destination in the composer (creating from the route for a new one),
  * where the capture becomes a figure via "insert from the corpus".
@@ -66,14 +67,6 @@ export function SendToBriefSheet({
     };
   }, [source.routeSlug]);
 
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
   const chosen = destinations?.find((row) => row.id === selected) ?? null;
 
   function confirm() {
@@ -85,101 +78,106 @@ export function SendToBriefSheet({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center">
-      <button
-        type="button"
-        aria-label="Close"
-        onClick={onClose}
-        className="absolute inset-0 bg-[rgba(22,20,15,0.34)]"
-      />
-      <div className="relative z-10 mt-24 w-[520px] max-w-[calc(100vw-32px)] overflow-hidden rounded-[7px] bg-[var(--bp-color-card-raised)] shadow-[0_24px_64px_rgba(22,20,15,.32)]">
-        {/* Header — the captured object is the subject of the sheet */}
-        <div className="px-6 pb-4 pt-[17px] shadow-[inset_0_-1px_0_var(--bp-color-rule)]">
-          <div className="mb-3 flex items-center">
-            <span className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-[var(--bp-color-ink-55)]">
-              Send to brief
+    <Dialog.Root
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
+      <Dialog.Portal>
+        <Dialog.Backdrop className="fixed inset-0 z-50 bg-[rgba(22,20,15,0.34)] duration-100 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0" />
+        <Dialog.Popup className="fixed top-1/2 left-1/2 z-50 flex max-h-[calc(100dvh-48px)] w-[520px] max-w-[calc(100vw-32px)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[7px] bg-[var(--bp-color-card-raised)] shadow-[0_24px_64px_rgba(22,20,15,.32)] outline-none duration-100 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95">
+          {/* Header — the captured object is the subject of the dialog */}
+          <div className="shrink-0 px-6 pb-4 pt-[17px] shadow-[inset_0_-1px_0_var(--bp-color-rule)]">
+            <div className="mb-3 flex items-center">
+              <Dialog.Title
+                render={<span />}
+                className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-[var(--bp-color-ink-55)]"
+              >
+                Send to brief
+              </Dialog.Title>
+              <span className="flex-1" />
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Cancel"
+                className="text-[var(--bp-color-ink-40)] hover:text-[var(--bp-color-ink)]"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div className="flex items-center gap-3">
+              <RouteBadge route={source.routeLabel} sbs={source.routeSbs} size="md" />
+              <DirIndicator dir={source.dir} />
+              <span className="min-w-0 flex-1 truncate text-[16.5px] font-semibold tracking-[-0.012em]">
+                {source.from} <span className="text-[var(--bp-color-ink-40)]">→</span> {source.to}
+              </span>
+              <span className="font-mono text-[20px] font-semibold tracking-[-0.02em] text-[var(--bp-color-bad)]">
+                {source.mph.toFixed(1)}
+                <span className="ml-[3px] text-[11px] font-medium text-[var(--bp-color-ink-55)]">
+                  mph
+                </span>
+              </span>
+            </div>
+          </div>
+
+          {/* Body — choose a destination (scrolls when the list is long) */}
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-[18px] pt-4">
+            <div className="mb-2 px-1.5 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-[var(--bp-color-ink-55)]">
+              Add to
+            </div>
+            {destinations === null ? (
+              <div className="px-2 py-6 text-center text-[12px] text-[var(--bp-color-ink-40)]">
+                Loading briefs…
+              </div>
+            ) : (
+              <div role="radiogroup" className="flex flex-col">
+                {destinations.map((dest) => (
+                  <DestRow
+                    key={dest.id}
+                    title={dest.title}
+                    sub={dest.sub}
+                    segs={dest.segs}
+                    recommended={dest.recommended}
+                    selected={selected === dest.id}
+                    onSelect={() => setSelected(dest.id)}
+                  />
+                ))}
+                <DestRow
+                  isNew
+                  title="New brief"
+                  suggestion={`The ${source.routeLabel} ${source.from.split("/")[0]?.trim() ?? ""} corridor`}
+                  selected={selected === NEW_BRIEF}
+                  onSelect={() => setSelected(NEW_BRIEF)}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="flex shrink-0 items-center gap-3 bg-[var(--bp-color-card)] px-6 py-[13px] shadow-[inset_0_1px_0_var(--bp-color-rule)]">
+            <span className="flex-1 text-[10.5px] leading-[1.4] text-[var(--bp-color-ink-40)]">
+              Also on findings, metrics, and charts across the studio.
             </span>
-            <span className="flex-1" />
             <button
               type="button"
               onClick={onClose}
-              aria-label="Cancel"
-              className="text-[var(--bp-color-ink-40)] hover:text-[var(--bp-color-ink)]"
+              className="rounded-[3px] px-3 py-1.5 text-[12.5px] font-medium text-[var(--bp-color-ink-55)] hover:text-[var(--bp-color-ink)]"
             >
-              <X size={16} />
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={confirm}
+              className="inline-flex items-center gap-1.5 rounded-[3px] bg-[var(--bp-color-ink)] px-3.5 py-1.5 text-[12.5px] font-medium text-[var(--bp-color-paper)]"
+            >
+              {selected === NEW_BRIEF ? "Create brief" : `Add to ${chosen?.title ?? "brief"}`}
+              <ArrowRight size={14} />
             </button>
           </div>
-          <div className="flex items-center gap-3">
-            <RouteBadge route={source.routeLabel} sbs={source.routeSbs} size="md" />
-            <DirIndicator dir={source.dir} />
-            <span className="min-w-0 flex-1 truncate text-[16.5px] font-semibold tracking-[-0.012em]">
-              {source.from} <span className="text-[var(--bp-color-ink-40)]">→</span> {source.to}
-            </span>
-            <span className="font-mono text-[20px] font-semibold tracking-[-0.02em] text-[var(--bp-color-bad)]">
-              {source.mph.toFixed(1)}
-              <span className="ml-[3px] text-[11px] font-medium text-[var(--bp-color-ink-55)]">
-                mph
-              </span>
-            </span>
-          </div>
-        </div>
-
-        {/* Body — choose a destination */}
-        <div className="px-4 pb-[18px] pt-4">
-          <div className="mb-2 px-1.5 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-[var(--bp-color-ink-55)]">
-            Add to
-          </div>
-          {destinations === null ? (
-            <div className="px-2 py-6 text-center text-[12px] text-[var(--bp-color-ink-40)]">
-              Loading briefs…
-            </div>
-          ) : (
-            <div role="radiogroup" className="flex flex-col">
-              {destinations.map((dest) => (
-                <DestRow
-                  key={dest.id}
-                  title={dest.title}
-                  sub={dest.sub}
-                  segs={dest.segs}
-                  recommended={dest.recommended}
-                  selected={selected === dest.id}
-                  onSelect={() => setSelected(dest.id)}
-                />
-              ))}
-              <DestRow
-                isNew
-                title="New brief"
-                suggestion={`The ${source.routeLabel} ${source.from.split("/")[0]?.trim() ?? ""} corridor`}
-                selected={selected === NEW_BRIEF}
-                onSelect={() => setSelected(NEW_BRIEF)}
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="flex items-center gap-3 bg-[var(--bp-color-card)] px-6 py-[13px] shadow-[inset_0_1px_0_var(--bp-color-rule)]">
-          <span className="flex-1 text-[10.5px] leading-[1.4] text-[var(--bp-color-ink-40)]">
-            Also on findings, metrics, and charts across the studio.
-          </span>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-[3px] px-3 py-1.5 text-[12.5px] font-medium text-[var(--bp-color-ink-55)] hover:text-[var(--bp-color-ink)]"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={confirm}
-            className="inline-flex items-center gap-1.5 rounded-[3px] bg-[var(--bp-color-ink)] px-3.5 py-1.5 text-[12.5px] font-medium text-[var(--bp-color-paper)]"
-          >
-            {selected === NEW_BRIEF ? "Create brief" : `Add to ${chosen?.title ?? "brief"}`}
-            <ArrowRight size={14} />
-          </button>
-        </div>
-      </div>
-    </div>
+        </Dialog.Popup>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }
 

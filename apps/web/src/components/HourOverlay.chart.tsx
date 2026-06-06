@@ -17,18 +17,22 @@ type Series = {
 export type HourOverlayProps = {
   a: Series;
   b: Series;
-  width?: number;
   height?: number;
 };
 
-export function HourOverlayChart({ a, b, width = 520, height = 180 }: HourOverlayProps) {
+export function HourOverlayChart({ a, b, height = 180 }: HourOverlayProps) {
   const n = Math.min(a.hours.length, b.hours.length);
   if (n === 0) return null;
 
   const rows = Array.from({ length: n }, (_, hour) => {
-    const av = a.hours[hour] ?? 0;
-    const bv = b.hours[hour] ?? 0;
-    return { hour, a: av, b: bv, band: [Math.min(av, bv), Math.max(av, bv)] as [number, number] };
+    const av = Number((a.hours[hour] ?? 0).toFixed(1));
+    const bv = Number((b.hours[hour] ?? 0).toFixed(1));
+    return {
+      hour: String(hour),
+      a: av,
+      b: bv,
+      band: [Math.min(av, bv), Math.max(av, bv)] as [number, number],
+    };
   });
 
   const config = {
@@ -37,11 +41,7 @@ export function HourOverlayChart({ a, b, width = 520, height = 180 }: HourOverla
   } satisfies ChartConfig;
 
   return (
-    <ChartContainer
-      config={config}
-      className="aspect-auto w-full"
-      style={{ height, minWidth: width }}
-    >
+    <ChartContainer config={config} className="aspect-auto w-full" style={{ height }}>
       <ComposedChart data={rows} margin={{ top: 8, right: 12, bottom: 4, left: 0 }}>
         <XAxis
           dataKey="hour"
@@ -75,6 +75,7 @@ export function HourOverlayChart({ a, b, width = 520, height = 180 }: HourOverla
           name={b.label}
           stroke="var(--color-b)"
           strokeWidth={1.8}
+          strokeDasharray="5 3"
           dot={false}
           isAnimationActive={false}
         />

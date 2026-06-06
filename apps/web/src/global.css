@@ -26,6 +26,10 @@
   --bp-color-rule: rgba(22, 20, 15, 0.14);
   --bp-color-accent: oklch(0.42 0.13 252);
   --bp-color-accent-bg: oklch(0.95 0.04 252);
+  /* Neutral A/B pair for two-route compare overlays - deliberately not good/bad,
+     since which route is "better" flips per metric. Reinforced by line style. */
+  --bp-color-series-a: oklch(0.42 0.13 252);
+  --bp-color-series-b: oklch(0.48 0.15 300);
   --bp-color-bad: oklch(0.52 0.16 28);
   --bp-color-bad-bg: oklch(0.95 0.05 28);
   --bp-color-warn: oklch(0.48 0.13 70);

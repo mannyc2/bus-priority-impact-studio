@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { RouteScorecardSchema } from "@bp/domain";
+import { RouteScorecardSchema } from "@bp/domain/routes";
 import { routeScorecardFixtures } from "../../src/fixtures/route-scorecards.js";
 
 describe("route scorecard fixtures", () => {

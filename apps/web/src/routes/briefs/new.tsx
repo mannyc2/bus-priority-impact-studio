@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { routeHead } from "../../lib/head.js";
-import { requireAuthenticatedRoute } from "../../lib/route-auth.js";
 import { fetchStudioBrief, fetchStudioFinding, fetchStudioRoute } from "../../studio/api-client.js";
 import { BriefComposerPage } from "../../studio/pages/brief-workflows.js";
 
@@ -10,7 +9,6 @@ type NewBriefSearch = {
 };
 
 export const Route = createFileRoute("/briefs/new")({
-  beforeLoad: ({ location }) => requireAuthenticatedRoute({ location, scopes: ["write:briefs"] }),
   validateSearch: (search: { route?: unknown; finding?: unknown }): NewBriefSearch => {
     const next: NewBriefSearch = {};
     if (typeof search.route === "string") next.route = search.route;

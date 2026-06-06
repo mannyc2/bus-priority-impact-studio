@@ -1,4 +1,4 @@
-import { type RouteScorecard, RouteScorecardSchema } from "@bp/domain";
+import { type RouteScorecard, RouteScorecardSchema } from "@bp/domain/routes";
 
 export const routeScorecardFixtures: readonly RouteScorecard[] = [
   RouteScorecardSchema.parse({

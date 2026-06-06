@@ -58,7 +58,10 @@ import {
   StudioFindingResponseSchema,
   StudioFindingsResponseSchema,
   StudioRouteDetailResponseSchema,
+  StudioRouteHistoryResponseSchema,
+  StudioRouteIndex2ResponseSchema,
   StudioRouteLadderResponseSchema,
+  StudioRouteSectionsResponseSchema,
   StudioRoutesResponseSchema,
   StudioSearchResponseSchema,
 } from "./api-contract.js";
@@ -138,6 +141,7 @@ async function loadStudioJson<TSchema extends z.ZodType>(
   schema: TSchema,
 ): Promise<z.output<TSchema>> {
   const response = await fetch(path, {
+    credentials: "same-origin",
     headers: {
       Accept: "application/json",
     },
@@ -160,6 +164,7 @@ async function loadNullableStudioJson<TSchema extends z.ZodType>(
   schema: TSchema,
 ): Promise<z.output<TSchema> | null> {
   const response = await fetch(path, {
+    credentials: "same-origin",
     headers: {
       Accept: "application/json",
     },
@@ -192,6 +197,17 @@ export function fetchStudioRoutes() {
   return loadStudioJson(studioPath("studio.routes"), StudioRoutesResponseSchema);
 }
 
+export function fetchStudioRouteIndex2() {
+  return loadStudioJson(
+    studioPath("studio.routes", { query: { schema: 2 } }),
+    StudioRouteIndex2ResponseSchema,
+  );
+}
+
+export function fetchStudioRouteSections() {
+  return loadStudioJson(studioPath("studio.routeSections"), StudioRouteSectionsResponseSchema);
+}
+
 export function fetchStudioSearch(query: string) {
   return loadStudioJson(
     studioPath("studio.search", { query: { q: query } }),
@@ -203,6 +219,13 @@ export function fetchStudioRoute(routeId: string) {
   return loadNullableStudioJson(
     studioPath("studio.route", { params: { routeId } }),
     StudioRouteDetailResponseSchema,
+  );
+}
+
+export function fetchStudioRouteHistory(routeId: string) {
+  return loadNullableStudioJson(
+    studioPath("studio.routeHistory", { params: { routeId } }),
+    StudioRouteHistoryResponseSchema,
   );
 }
 
@@ -268,6 +291,7 @@ async function sendStudioJson(
 ): Promise<Response> {
   const response = await fetch(path, {
     method,
+    credentials: "same-origin",
     headers: {
       Accept: "application/json",
       "Idempotency-Key": options.idempotencyKey ?? studioMutationIdempotencyKey(),

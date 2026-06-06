@@ -10,7 +10,9 @@ export function PublicCommentsThread({ briefId }: { briefId: string }) {
   const [submitting, setSubmitting] = useState(false);
 
   async function load(): Promise<void> {
-    const response = await fetch(`/api/v1/briefs/${encodeURIComponent(briefId)}/public-comments`);
+    const response = await fetch(`/api/v1/briefs/${encodeURIComponent(briefId)}/public-comments`, {
+      credentials: "same-origin",
+    });
     if (!response.ok) return;
     const data = (await response.json()) as { comments: PublicCommentResponse[] };
     setComments(data.comments);

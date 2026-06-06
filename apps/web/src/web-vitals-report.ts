@@ -3,7 +3,7 @@
 // is recorded as a structured log in Workers Observability. Dev console output
 // lives in web-vitals-debug.ts; this module is the production data path.
 
-import type { RumReport } from "@bp/domain";
+import type { RumReport } from "@bp/domain/studio/rum";
 
 const RUM_ENDPOINT = "/api/v1/rum";
 
