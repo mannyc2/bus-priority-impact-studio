@@ -3,10 +3,10 @@ import {
   classifyOperationalDate,
   computeCausalAnchorEligibility,
   normalizeStatedStatus,
-  operationalDateConfidence,
   OperationalDateAssertionSchema,
+  operationalDateConfidence,
   parseOperationalDate,
-} from "../src/index.js";
+} from "@bp/domain/documents/operational-date";
 
 describe("normalizeStatedStatus", () => {
   test("maps done-ish raw statuses", () => {
@@ -107,7 +107,13 @@ describe("classifyOperationalDate", () => {
 
   test("source family veto: an operational-kind event whose source family is a meeting/outreach is non-operational", () => {
     // eventKind mislabels these as service_change, but familyRaw is faithful.
-    for (const familyRaw of ["community_engagement", "public_outreach", "community_board_meeting", "project_phase", "corridor_selection"]) {
+    for (const familyRaw of [
+      "community_engagement",
+      "public_outreach",
+      "community_board_meeting",
+      "project_phase",
+      "corridor_selection",
+    ]) {
       const r = classifyOperationalDate({
         statusRaw: "completed",
         dateText: "2015",
@@ -121,7 +127,13 @@ describe("classifyOperationalDate", () => {
   });
 
   test("source family veto does NOT fire on genuine implementation/launch families", () => {
-    for (const familyRaw of ["service_launch", "busway_implementation", "tsp_deployment", "capital_project", "service_change"]) {
+    for (const familyRaw of [
+      "service_launch",
+      "busway_implementation",
+      "tsp_deployment",
+      "capital_project",
+      "service_change",
+    ]) {
       const r = classifyOperationalDate({
         statusRaw: "completed",
         dateText: "2019",
@@ -216,8 +228,12 @@ test("OperationalDateAssertionSchema accepts a fully-formed assertion row", () =
     dateBasis: "source_stated_plan",
     validationState: "source_stated_planned_date",
     trustedOperationalDate: true,
-    classificationReasons: ["source states a planned/scheduled operational date (trusted per source)"],
-    evidenceRefs: [{ blockId: "B0001", pageNumber: 1, lineStart: 2, lineEnd: 2, roleRaw: "start_date" }],
+    classificationReasons: [
+      "source states a planned/scheduled operational date (trusted per source)",
+    ],
+    evidenceRefs: [
+      { blockId: "B0001", pageNumber: 1, lineStart: 2, lineEnd: 2, roleRaw: "start_date" },
+    ],
     effectiveDateStart: "2019-10-03",
     effectiveDateEnd: "2019-10-03",
     implementationMonth: "2019-10",
@@ -237,23 +253,57 @@ test("OperationalDateAssertionSchema accepts a fully-formed assertion row", () =
 
 describe("parseOperationalDate", () => {
   test("US-slash dates -> day precision (fixes the upstream year/unknown bug)", () => {
-    expect(parseOperationalDate("7/3/16")).toMatchObject({ effectiveDateStart: "2016-07-03", precision: "day", implementationMonth: "2016-07" });
-    expect(parseOperationalDate("07/26/2024")).toMatchObject({ effectiveDateStart: "2024-07-26", precision: "day" });
-    expect(parseOperationalDate("10/01/18")).toMatchObject({ effectiveDateStart: "2018-10-01", precision: "day" });
+    expect(parseOperationalDate("7/3/16")).toMatchObject({
+      effectiveDateStart: "2016-07-03",
+      precision: "day",
+      implementationMonth: "2016-07",
+    });
+    expect(parseOperationalDate("07/26/2024")).toMatchObject({
+      effectiveDateStart: "2024-07-26",
+      precision: "day",
+    });
+    expect(parseOperationalDate("10/01/18")).toMatchObject({
+      effectiveDateStart: "2018-10-01",
+      precision: "day",
+    });
   });
   test("month-name and ISO forms", () => {
-    expect(parseOperationalDate("October 3, 2019")).toMatchObject({ effectiveDateStart: "2019-10-03", precision: "day" });
-    expect(parseOperationalDate("June 2013")).toMatchObject({ implementationMonth: "2013-06", precision: "month" });
-    expect(parseOperationalDate("2010-05-17")).toMatchObject({ effectiveDateStart: "2010-05-17", precision: "day" });
+    expect(parseOperationalDate("October 3, 2019")).toMatchObject({
+      effectiveDateStart: "2019-10-03",
+      precision: "day",
+    });
+    expect(parseOperationalDate("June 2013")).toMatchObject({
+      implementationMonth: "2013-06",
+      precision: "month",
+    });
+    expect(parseOperationalDate("2010-05-17")).toMatchObject({
+      effectiveDateStart: "2010-05-17",
+      precision: "day",
+    });
   });
   test("year, range, and season precision", () => {
-    expect(parseOperationalDate("2010")).toMatchObject({ precision: "year", implementationMonth: null });
+    expect(parseOperationalDate("2010")).toMatchObject({
+      precision: "year",
+      implementationMonth: null,
+    });
     expect(parseOperationalDate("by 2022")).toMatchObject({ precision: "year" });
-    expect(parseOperationalDate("2015-2016")).toMatchObject({ precision: "range", effectiveDateStart: "2015-01-01", effectiveDateEnd: "2016-12-31" });
+    expect(parseOperationalDate("2015-2016")).toMatchObject({
+      precision: "range",
+      effectiveDateStart: "2015-01-01",
+      effectiveDateEnd: "2016-12-31",
+    });
     expect(parseOperationalDate("Spring/Summer 2017")).toMatchObject({ precision: "season" });
   });
   test("non-dates -> unknown (rejected as anchors)", () => {
-    for (const text of ["concurrent with Bx41 SBS launch", "Over the next 6 months", "Map Date", "future", "during start-up period", "TBD", ""]) {
+    for (const text of [
+      "concurrent with Bx41 SBS launch",
+      "Over the next 6 months",
+      "Map Date",
+      "future",
+      "during start-up period",
+      "TBD",
+      "",
+    ]) {
       expect(parseOperationalDate(text).precision).toBe("unknown");
     }
   });
@@ -261,14 +311,50 @@ describe("parseOperationalDate", () => {
 
 describe("anchor adapter helpers", () => {
   test("causalAnchorEligible requires realized + month-or-finer + a route", () => {
-    expect(computeCausalAnchorEligibility({ trustedOperationalDate: true, isRealizedOnset: true, normalizedPrecision: "month", routeCount: 2 })).toBe(true);
-    expect(computeCausalAnchorEligibility({ trustedOperationalDate: true, isRealizedOnset: true, normalizedPrecision: "year", routeCount: 2 })).toBe(false);
-    expect(computeCausalAnchorEligibility({ trustedOperationalDate: true, isRealizedOnset: false, normalizedPrecision: "day", routeCount: 2 })).toBe(false);
-    expect(computeCausalAnchorEligibility({ trustedOperationalDate: true, isRealizedOnset: true, normalizedPrecision: "day", routeCount: 0 })).toBe(false);
+    expect(
+      computeCausalAnchorEligibility({
+        trustedOperationalDate: true,
+        isRealizedOnset: true,
+        normalizedPrecision: "month",
+        routeCount: 2,
+      }),
+    ).toBe(true);
+    expect(
+      computeCausalAnchorEligibility({
+        trustedOperationalDate: true,
+        isRealizedOnset: true,
+        normalizedPrecision: "year",
+        routeCount: 2,
+      }),
+    ).toBe(false);
+    expect(
+      computeCausalAnchorEligibility({
+        trustedOperationalDate: true,
+        isRealizedOnset: false,
+        normalizedPrecision: "day",
+        routeCount: 2,
+      }),
+    ).toBe(false);
+    expect(
+      computeCausalAnchorEligibility({
+        trustedOperationalDate: true,
+        isRealizedOnset: true,
+        normalizedPrecision: "day",
+        routeCount: 0,
+      }),
+    ).toBe(false);
   });
   test("confidence is bounded and rewards realized + day-precision + direct route text", () => {
-    const hi = operationalDateConfidence({ dateBasis: "source_stated_complete", normalizedPrecision: "day", routeResolutionTier: "direct_event_text" });
-    const lo = operationalDateConfidence({ dateBasis: "not_operational", normalizedPrecision: "unknown", routeResolutionTier: null });
+    const hi = operationalDateConfidence({
+      dateBasis: "source_stated_complete",
+      normalizedPrecision: "day",
+      routeResolutionTier: "direct_event_text",
+    });
+    const lo = operationalDateConfidence({
+      dateBasis: "not_operational",
+      normalizedPrecision: "unknown",
+      routeResolutionTier: null,
+    });
     expect(hi).toBeGreaterThan(lo);
     expect(hi).toBeLessThanOrEqual(1);
     expect(lo).toBeGreaterThanOrEqual(0);

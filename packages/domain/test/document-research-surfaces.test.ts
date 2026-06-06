@@ -6,7 +6,7 @@ import {
   type DocumentResearchSurfaceDraftV2,
   submitDocumentResearchSurfaceDrafts,
   validateDocumentResearchSurfaceDraft,
-} from "../src/index.js";
+} from "@bp/domain/documents/research-surfaces";
 
 const source: DocumentResearchSourceContext = {
   sourceId: "mta-m15-fixture",

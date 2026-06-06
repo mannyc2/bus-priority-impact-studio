@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { buildStudioInterventionsFromComparisons } from "../src/index.js";
+import { buildStudioInterventionsFromComparisons } from "@bp/domain/studio/interventions";
 
 describe("Studio intervention timeline projection", () => {
   test("keeps dated interventions and drops source-gap evidence rows", () => {

@@ -1,5 +1,5 @@
 import * as z from "zod";
-import { registerProjectSchema } from "./schema-registry.js";
+import { registerProjectSchema } from "../../schema-registry.js";
 
 export const DocumentDiscoveryValidationStateSchema = z.enum([
   "unvalidated",
@@ -94,9 +94,7 @@ export const DocumentDiscoveryEvidenceRefSchema = z
     snippet: z.string().min(1).max(400).optional(),
   })
   .strict();
-export type DocumentDiscoveryEvidenceRef = z.output<
-  typeof DocumentDiscoveryEvidenceRefSchema
->;
+export type DocumentDiscoveryEvidenceRef = z.output<typeof DocumentDiscoveryEvidenceRefSchema>;
 
 export const DocumentDiscoveryPageProfileSchema = z
   .object({
@@ -108,9 +106,7 @@ export const DocumentDiscoveryPageProfileSchema = z
     summary: z.string().min(1).optional(),
   })
   .strict();
-export type DocumentDiscoveryPageProfile = z.output<
-  typeof DocumentDiscoveryPageProfileSchema
->;
+export type DocumentDiscoveryPageProfile = z.output<typeof DocumentDiscoveryPageProfileSchema>;
 
 const attributesSchema = z.record(z.string(), z.unknown()).default({});
 const evidenceRefsSchema = z.array(DocumentDiscoveryEvidenceRefSchema).min(1);
@@ -319,6 +315,4 @@ export const DocumentDiscoveryExtractionSchema = registerProjectSchema(
     stability: "draft",
   },
 );
-export type DocumentDiscoveryExtraction = z.output<
-  typeof DocumentDiscoveryExtractionSchema
->;
+export type DocumentDiscoveryExtraction = z.output<typeof DocumentDiscoveryExtractionSchema>;

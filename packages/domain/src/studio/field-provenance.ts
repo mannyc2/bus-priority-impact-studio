@@ -1,4 +1,4 @@
-import type { StudioRoute, StudioSegment } from "./studio-schemas.js";
+import type { StudioRoute, StudioSegment } from "./routes/index.js";
 
 export const StudioFieldProvenanceKind = [
   "observed",

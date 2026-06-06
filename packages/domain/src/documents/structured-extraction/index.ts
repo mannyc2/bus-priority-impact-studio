@@ -1,5 +1,5 @@
 import * as z from "zod";
-import { registerProjectSchema } from "./schema-registry.js";
+import { registerProjectSchema } from "../../schema-registry.js";
 
 export const DocumentSourceDateStateSchema = z.enum([
   "known",
@@ -209,12 +209,7 @@ export const StructuredDateRoleSchema = z.enum([
 ]);
 export type StructuredDateRole = z.output<typeof StructuredDateRoleSchema>;
 
-export const StructuredRouteRoleSchema = z.enum([
-  "affected",
-  "comparison",
-  "context",
-  "unknown",
-]);
+export const StructuredRouteRoleSchema = z.enum(["affected", "comparison", "context", "unknown"]);
 export type StructuredRouteRole = z.output<typeof StructuredRouteRoleSchema>;
 
 export const StructuredTreatmentComponentTypeSchema = z.enum([
@@ -322,9 +317,7 @@ export const StructuredDocumentPageProfileSchema = z
     skipReason: z.string().min(1).optional(),
   })
   .strict();
-export type StructuredDocumentPageProfile = z.output<
-  typeof StructuredDocumentPageProfileSchema
->;
+export type StructuredDocumentPageProfile = z.output<typeof StructuredDocumentPageProfileSchema>;
 
 export const StructuredEvidenceSpanSchema = z
   .object({
@@ -425,9 +418,7 @@ export const StructuredTreatmentComponentSchema = z
     evidenceSpanIds: z.array(z.string().min(1)).min(1),
   })
   .strict();
-export type StructuredTreatmentComponent = z.output<
-  typeof StructuredTreatmentComponentSchema
->;
+export type StructuredTreatmentComponent = z.output<typeof StructuredTreatmentComponentSchema>;
 
 const StructuredRouteRoleRefSchema = z
   .object({
@@ -584,6 +575,4 @@ export const StructuredDocumentExtractionSchema = registerProjectSchema(
     stability: "draft",
   },
 );
-export type StructuredDocumentExtraction = z.output<
-  typeof StructuredDocumentExtractionSchema
->;
+export type StructuredDocumentExtraction = z.output<typeof StructuredDocumentExtractionSchema>;

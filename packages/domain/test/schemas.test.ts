@@ -1,22 +1,20 @@
 import { describe, expect, test } from "bun:test";
-import * as z from "zod";
 import {
   AgentFindingProposalEvidenceRefSchema,
-  buildStudioRouteProjection,
   FindingEvidenceLinkSchema,
   FindingPromotionQueueArtifactSchema,
   FindingReviewDecisionsArtifactSchema,
   FindingReviewPacketsArtifactSchema,
-  HealthResponseSchema,
-  healthResponseJsonSchema,
   PromotedFindingsArtifactSchema,
-  RouteIdCodec,
-  RouteScorecardSchema,
-  StudioFindingSchema,
-  StudioReleasePayloadSchema,
-  StudioRouteDetailResponseSchema,
-  studioReleasePayloadJsonSchema,
-} from "../src/index.js";
+} from "@bp/domain/findings";
+import { healthResponseJsonSchema, studioReleasePayloadJsonSchema } from "@bp/domain/json-schema";
+import { RouteIdCodec } from "@bp/domain/primitives";
+import { HealthResponseSchema, RouteScorecardSchema } from "@bp/domain/routes";
+import { StudioFindingSchema } from "@bp/domain/studio/findings";
+import { buildStudioRouteProjection } from "@bp/domain/studio/projections";
+import { StudioReleasePayloadSchema } from "@bp/domain/studio/release";
+import { StudioRouteDetailResponseSchema } from "@bp/domain/studio/routes";
+import * as z from "zod";
 
 describe("domain schemas", () => {
   test("normalizes route IDs at the boundary with a Zod codec", () => {

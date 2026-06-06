@@ -1,16 +1,15 @@
 import * as z from "zod";
-import { toProjectJsonSchema } from "./schema-registry.js";
 import {
   StudioBriefBlockSchema,
   StudioBriefDraftStatusSchema,
   StudioBriefRefSchema,
   StudioClaimSchema,
-} from "./studio-schemas.js";
+} from "./read-model.js";
 
 // Brief composer workspace contracts. Shapes mirror the D1 persistence layer in
 // @bp/db (studio-brief-drafts.ts) without importing it — the domain package stays
 // infra-free. The draft record is the parsed (not raw-JSON) projection consumers read.
-// StudioBriefDraftStatus lives in studio-schemas.ts (also used by StudioBriefResponse).
+// StudioBriefDraftStatus lives in the Studio brief read-model contracts.
 
 const GenerationJobStatusSchema = z.enum(["queued", "running", "succeeded", "failed"]);
 const GenerationModeSchema = z.enum(["deterministic_seed", "llm_assisted"]);
@@ -448,9 +447,7 @@ export const StudioBriefAgentProposalStatusSchema = z.enum([
   "rejected",
   "stale",
 ]);
-export type StudioBriefAgentProposalStatus = z.output<
-  typeof StudioBriefAgentProposalStatusSchema
->;
+export type StudioBriefAgentProposalStatus = z.output<typeof StudioBriefAgentProposalStatusSchema>;
 
 export const StudioBriefAgentTriggerSchema = z
   .object({
@@ -529,9 +526,7 @@ export const StudioBriefAgentProposalErrorSchema = z
     retryable: z.boolean(),
   })
   .strict();
-export type StudioBriefAgentProposalError = z.output<
-  typeof StudioBriefAgentProposalErrorSchema
->;
+export type StudioBriefAgentProposalError = z.output<typeof StudioBriefAgentProposalErrorSchema>;
 
 export const StudioBriefAgentRunSchema = z
   .object({
@@ -782,128 +777,3 @@ export const StudioBriefDraftPromotionReceiptResponseSchema = z
 export type StudioBriefDraftPromotionReceiptResponse = z.output<
   typeof StudioBriefDraftPromotionReceiptResponseSchema
 >;
-
-export const studioBriefDraftJsonSchema = toProjectJsonSchema(StudioBriefDraftSchema);
-export const studioBriefDraftValidationResponseJsonSchema = toProjectJsonSchema(
-  StudioBriefDraftValidationResponseSchema,
-);
-export const studioBriefDraftGenerateRequestJsonSchema = toProjectJsonSchema(
-  StudioBriefDraftGenerateRequestSchema,
-);
-export const studioBriefGenerationJobResponseJsonSchema = toProjectJsonSchema(
-  StudioBriefGenerationJobResponseSchema,
-);
-export const studioBriefCreateRequestJsonSchema = toProjectJsonSchema(
-  StudioBriefCreateRequestSchema,
-);
-export const studioBriefCreateResponseJsonSchema = toProjectJsonSchema(
-  StudioBriefCreateResponseSchema,
-);
-export const studioBriefDraftPatchRequestJsonSchema = toProjectJsonSchema(
-  StudioBriefDraftPatchRequestSchema,
-);
-export const studioBriefDraftClaimCreateRequestJsonSchema = toProjectJsonSchema(
-  StudioBriefDraftClaimCreateRequestSchema,
-);
-export const studioBriefDraftClaimPatchRequestJsonSchema = toProjectJsonSchema(
-  StudioBriefDraftClaimPatchRequestSchema,
-);
-export const studioBriefDraftClaimResponseJsonSchema = toProjectJsonSchema(
-  StudioBriefDraftClaimResponseSchema,
-);
-export const studioBriefDraftBlockCreateRequestJsonSchema = toProjectJsonSchema(
-  StudioBriefDraftBlockCreateRequestSchema,
-);
-export const studioBriefDraftBlockPatchRequestJsonSchema = toProjectJsonSchema(
-  StudioBriefDraftBlockPatchRequestSchema,
-);
-export const studioBriefDraftBlockResponseJsonSchema = toProjectJsonSchema(
-  StudioBriefDraftBlockResponseSchema,
-);
-export const studioBriefDraftRefsResolveRequestJsonSchema = toProjectJsonSchema(
-  StudioBriefDraftRefsResolveRequestSchema,
-);
-export const studioBriefDraftRefsResolveResponseJsonSchema = toProjectJsonSchema(
-  StudioBriefDraftRefsResolveResponseSchema,
-);
-export const studioBriefDraftRefsReplaceRequestJsonSchema = toProjectJsonSchema(
-  StudioBriefDraftRefsReplaceRequestSchema,
-);
-export const studioBriefDraftRefsResponseJsonSchema = toProjectJsonSchema(
-  StudioBriefDraftRefsResponseSchema,
-);
-export const studioBriefDraftAttachRequestJsonSchema = toProjectJsonSchema(
-  StudioBriefDraftAttachRequestSchema,
-);
-export const studioBriefDraftAttachResponseJsonSchema = toProjectJsonSchema(
-  StudioBriefDraftAttachResponseSchema,
-);
-export const studioBriefDraftCommentsResponseJsonSchema = toProjectJsonSchema(
-  StudioBriefDraftCommentsResponseSchema,
-);
-export const studioBriefDraftCommentCreateRequestJsonSchema = toProjectJsonSchema(
-  StudioBriefDraftCommentCreateRequestSchema,
-);
-export const studioBriefDraftCommentReplyRequestJsonSchema = toProjectJsonSchema(
-  StudioBriefDraftCommentReplyRequestSchema,
-);
-export const studioBriefDraftCommentPatchRequestJsonSchema = toProjectJsonSchema(
-  StudioBriefDraftCommentPatchRequestSchema,
-);
-export const studioBriefDraftCommentResponseJsonSchema = toProjectJsonSchema(
-  StudioBriefDraftCommentResponseSchema,
-);
-export const studioBriefDraftReviewRequestJsonSchema = toProjectJsonSchema(
-  StudioBriefDraftReviewRequestSchema,
-);
-export const studioBriefDraftVerdictRequestJsonSchema = toProjectJsonSchema(
-  StudioBriefDraftVerdictRequestSchema,
-);
-export const studioBriefDraftPublishRequestJsonSchema = toProjectJsonSchema(
-  StudioBriefDraftPublishRequestSchema,
-);
-export const studioBriefDraftRetractRequestJsonSchema = toProjectJsonSchema(
-  StudioBriefDraftRetractRequestSchema,
-);
-export const studioBriefDraftPromotionReceiptRequestJsonSchema = toProjectJsonSchema(
-  StudioBriefDraftPromotionReceiptRequestSchema,
-);
-export const studioBriefDraftPromotionReceiptResponseJsonSchema = toProjectJsonSchema(
-  StudioBriefDraftPromotionReceiptResponseSchema,
-);
-export const studioBriefAgentRunCreateRequestJsonSchema = toProjectJsonSchema(
-  StudioBriefAgentRunCreateRequestSchema,
-);
-export const studioBriefAgentRunResponseJsonSchema = toProjectJsonSchema(
-  StudioBriefAgentRunResponseSchema,
-);
-export const studioBriefAgentProposeEditRequestJsonSchema = toProjectJsonSchema(
-  StudioBriefAgentProposeEditRequestSchema,
-);
-export const studioBriefAgentProposeEditResultJsonSchema = toProjectJsonSchema(
-  StudioBriefAgentProposeEditResultSchema,
-);
-export const studioBriefAgentProposalResponseJsonSchema = toProjectJsonSchema(
-  StudioBriefAgentProposalResponseSchema,
-);
-export const studioBriefAgentProposalApplyRequestJsonSchema = toProjectJsonSchema(
-  StudioBriefAgentProposalApplyRequestSchema,
-);
-export const studioBriefAgentProposalApplyResponseJsonSchema = toProjectJsonSchema(
-  StudioBriefAgentProposalApplyResponseSchema,
-);
-export const studioBriefAgentProposalRejectRequestJsonSchema = toProjectJsonSchema(
-  StudioBriefAgentProposalRejectRequestSchema,
-);
-export const studioBriefAgentProposalRejectResponseJsonSchema = toProjectJsonSchema(
-  StudioBriefAgentProposalRejectResponseSchema,
-);
-export const studioBriefDraftVersionsResponseJsonSchema = toProjectJsonSchema(
-  StudioBriefDraftVersionsResponseSchema,
-);
-export const studioBriefDraftVersionRestoreRequestJsonSchema = toProjectJsonSchema(
-  StudioBriefDraftVersionRestoreRequestSchema,
-);
-export const studioBriefDraftVersionRestoreResponseJsonSchema = toProjectJsonSchema(
-  StudioBriefDraftVersionRestoreResponseSchema,
-);

@@ -1,5 +1,5 @@
 import * as z from "zod";
-import { registerProjectSchema } from "./schema-registry.js";
+import { registerProjectSchema } from "../../schema-registry.js";
 
 export const DocumentDerivedSurfaceKindSchema = z.enum([
   "entity",
@@ -11,9 +11,7 @@ export const DocumentDerivedSurfaceKindSchema = z.enum([
   "review_question",
   "relation",
 ]);
-export type DocumentDerivedSurfaceKind = z.output<
-  typeof DocumentDerivedSurfaceKindSchema
->;
+export type DocumentDerivedSurfaceKind = z.output<typeof DocumentDerivedSurfaceKindSchema>;
 
 export const DocumentDerivedLifecycleStateSchema = z.enum([
   "candidate",
@@ -24,9 +22,7 @@ export const DocumentDerivedLifecycleStateSchema = z.enum([
   "suppressed",
   "needs_review",
 ]);
-export type DocumentDerivedLifecycleState = z.output<
-  typeof DocumentDerivedLifecycleStateSchema
->;
+export type DocumentDerivedLifecycleState = z.output<typeof DocumentDerivedLifecycleStateSchema>;
 
 export const DocumentDerivedValidationStateSchema = z.enum([
   "unvalidated",
@@ -34,9 +30,7 @@ export const DocumentDerivedValidationStateSchema = z.enum([
   "needs_review",
   "rejected",
 ]);
-export type DocumentDerivedValidationState = z.output<
-  typeof DocumentDerivedValidationStateSchema
->;
+export type DocumentDerivedValidationState = z.output<typeof DocumentDerivedValidationStateSchema>;
 
 export const DocumentDerivedPromotionStateSchema = z.enum([
   "research_only",
@@ -45,9 +39,7 @@ export const DocumentDerivedPromotionStateSchema = z.enum([
   "public_projection",
   "suppressed",
 ]);
-export type DocumentDerivedPromotionState = z.output<
-  typeof DocumentDerivedPromotionStateSchema
->;
+export type DocumentDerivedPromotionState = z.output<typeof DocumentDerivedPromotionStateSchema>;
 
 export const DocumentDerivedReviewStateSchema = z.enum([
   "unreviewed",
@@ -56,9 +48,7 @@ export const DocumentDerivedReviewStateSchema = z.enum([
   "reviewed_rejected",
   "waived",
 ]);
-export type DocumentDerivedReviewState = z.output<
-  typeof DocumentDerivedReviewStateSchema
->;
+export type DocumentDerivedReviewState = z.output<typeof DocumentDerivedReviewStateSchema>;
 
 export const DocumentDerivedTruthStatusSchema = z.enum([
   "document_claim_only",
@@ -69,9 +59,7 @@ export const DocumentDerivedTruthStatusSchema = z.enum([
   "disputed",
   "unknown",
 ]);
-export type DocumentDerivedTruthStatus = z.output<
-  typeof DocumentDerivedTruthStatusSchema
->;
+export type DocumentDerivedTruthStatus = z.output<typeof DocumentDerivedTruthStatusSchema>;
 
 export const DocumentDerivedMetricAuthoritySchema = z.enum([
   "document_claim_only",
@@ -82,9 +70,7 @@ export const DocumentDerivedMetricAuthoritySchema = z.enum([
   "deterministic_project_metric",
   "unknown",
 ]);
-export type DocumentDerivedMetricAuthority = z.output<
-  typeof DocumentDerivedMetricAuthoritySchema
->;
+export type DocumentDerivedMetricAuthority = z.output<typeof DocumentDerivedMetricAuthoritySchema>;
 
 export const DocumentDerivedEntityModeSchema = z.enum([
   "bus_route",
@@ -109,9 +95,7 @@ export const DocumentDerivedEntityModeSchema = z.enum([
   "other",
   "unknown",
 ]);
-export type DocumentDerivedEntityMode = z.output<
-  typeof DocumentDerivedEntityModeSchema
->;
+export type DocumentDerivedEntityMode = z.output<typeof DocumentDerivedEntityModeSchema>;
 
 export const DocumentDerivedEventStatusSchema = z.enum([
   "proposed",
@@ -121,9 +105,7 @@ export const DocumentDerivedEventStatusSchema = z.enum([
   "historical_context",
   "unclear",
 ]);
-export type DocumentDerivedEventStatus = z.output<
-  typeof DocumentDerivedEventStatusSchema
->;
+export type DocumentDerivedEventStatus = z.output<typeof DocumentDerivedEventStatusSchema>;
 
 export const DocumentDerivedDatePrecisionSchema = z.enum([
   "day",
@@ -132,9 +114,7 @@ export const DocumentDerivedDatePrecisionSchema = z.enum([
   "range",
   "unknown",
 ]);
-export type DocumentDerivedDatePrecision = z.output<
-  typeof DocumentDerivedDatePrecisionSchema
->;
+export type DocumentDerivedDatePrecision = z.output<typeof DocumentDerivedDatePrecisionSchema>;
 
 export const DocumentDerivedPrioritySchema = z.enum(["high", "medium", "low", "unknown"]);
 export type DocumentDerivedPriority = z.output<typeof DocumentDerivedPrioritySchema>;
@@ -151,9 +131,7 @@ export const DocumentDerivedEvidenceRefSchema = z
     snippet: z.string().min(1).max(400).optional(),
   })
   .strict();
-export type DocumentDerivedEvidenceRef = z.output<
-  typeof DocumentDerivedEvidenceRefSchema
->;
+export type DocumentDerivedEvidenceRef = z.output<typeof DocumentDerivedEvidenceRefSchema>;
 
 export const DocumentDerivedSourceCandidateRefSchema = z
   .object({
@@ -215,9 +193,7 @@ export const DocumentDerivedEntitySurfaceSchema = DocumentDerivedSurfaceBaseSche
     .strict()
     .optional(),
 }).strict();
-export type DocumentDerivedEntitySurface = z.output<
-  typeof DocumentDerivedEntitySurfaceSchema
->;
+export type DocumentDerivedEntitySurface = z.output<typeof DocumentDerivedEntitySurfaceSchema>;
 
 export const DocumentDerivedMetricClaimSurfaceSchema = DocumentDerivedSurfaceBaseSchema.extend({
   surfaceKind: z.literal("metric_claim"),
@@ -251,9 +227,7 @@ export const DocumentDerivedEventSurfaceSchema = DocumentDerivedSurfaceBaseSchem
   affectedEntitiesRaw: z.array(z.string().min(1)).default([]),
   linkedEntityCandidateIds: z.array(z.string().min(1)).default([]),
 }).strict();
-export type DocumentDerivedEventSurface = z.output<
-  typeof DocumentDerivedEventSurfaceSchema
->;
+export type DocumentDerivedEventSurface = z.output<typeof DocumentDerivedEventSurfaceSchema>;
 
 export const DocumentDerivedTableSurfaceSchema = DocumentDerivedSurfaceBaseSchema.extend({
   surfaceKind: z.literal("table"),
@@ -266,9 +240,7 @@ export const DocumentDerivedTableSurfaceSchema = DocumentDerivedSurfaceBaseSchem
   importantEntityCandidateIds: z.array(z.string().min(1)).default([]),
   importantMetricCandidateIds: z.array(z.string().min(1)).default([]),
 }).strict();
-export type DocumentDerivedTableSurface = z.output<
-  typeof DocumentDerivedTableSurfaceSchema
->;
+export type DocumentDerivedTableSurface = z.output<typeof DocumentDerivedTableSurfaceSchema>;
 
 export const DocumentDerivedClaimSurfaceSchema = DocumentDerivedSurfaceBaseSchema.extend({
   surfaceKind: z.literal("claim"),
@@ -281,9 +253,7 @@ export const DocumentDerivedClaimSurfaceSchema = DocumentDerivedSurfaceBaseSchem
   linkedEventCandidateIds: z.array(z.string().min(1)).default([]),
   researchUseTagsRaw: z.array(z.string().min(1)).default([]),
 }).strict();
-export type DocumentDerivedClaimSurface = z.output<
-  typeof DocumentDerivedClaimSurfaceSchema
->;
+export type DocumentDerivedClaimSurface = z.output<typeof DocumentDerivedClaimSurfaceSchema>;
 
 export const DocumentDerivedContextSignalSurfaceSchema = DocumentDerivedSurfaceBaseSchema.extend({
   surfaceKind: z.literal("context_signal"),
@@ -296,13 +266,12 @@ export type DocumentDerivedContextSignalSurface = z.output<
   typeof DocumentDerivedContextSignalSurfaceSchema
 >;
 
-export const DocumentDerivedReviewQuestionSurfaceSchema =
-  DocumentDerivedSurfaceBaseSchema.extend({
-    surfaceKind: z.literal("review_question"),
-    question: z.string().min(1),
-    questionKind: z.string().min(1),
-    priority: DocumentDerivedPrioritySchema,
-  }).strict();
+export const DocumentDerivedReviewQuestionSurfaceSchema = DocumentDerivedSurfaceBaseSchema.extend({
+  surfaceKind: z.literal("review_question"),
+  question: z.string().min(1),
+  questionKind: z.string().min(1),
+  priority: DocumentDerivedPrioritySchema,
+}).strict();
 export type DocumentDerivedReviewQuestionSurface = z.output<
   typeof DocumentDerivedReviewQuestionSurfaceSchema
 >;
@@ -314,9 +283,7 @@ export const DocumentDerivedRelationSurfaceSchema = DocumentDerivedSurfaceBaseSc
   toSurfaceId: z.string().min(1),
   confidence: z.enum(["high", "medium", "low", "unknown"]).default("unknown"),
 }).strict();
-export type DocumentDerivedRelationSurface = z.output<
-  typeof DocumentDerivedRelationSurfaceSchema
->;
+export type DocumentDerivedRelationSurface = z.output<typeof DocumentDerivedRelationSurfaceSchema>;
 
 export const DocumentDerivedSurfaceRowSchema = z.discriminatedUnion("surfaceKind", [
   DocumentDerivedEntitySurfaceSchema,
@@ -328,9 +295,7 @@ export const DocumentDerivedSurfaceRowSchema = z.discriminatedUnion("surfaceKind
   DocumentDerivedReviewQuestionSurfaceSchema,
   DocumentDerivedRelationSurfaceSchema,
 ]);
-export type DocumentDerivedSurfaceRow = z.output<
-  typeof DocumentDerivedSurfaceRowSchema
->;
+export type DocumentDerivedSurfaceRow = z.output<typeof DocumentDerivedSurfaceRowSchema>;
 
 export const DocumentDerivedSurfaceFileSchema = z
   .object({
@@ -340,9 +305,7 @@ export const DocumentDerivedSurfaceFileSchema = z
     schemaId: z.string().min(1),
   })
   .strict();
-export type DocumentDerivedSurfaceFile = z.output<
-  typeof DocumentDerivedSurfaceFileSchema
->;
+export type DocumentDerivedSurfaceFile = z.output<typeof DocumentDerivedSurfaceFileSchema>;
 
 export const DocumentDerivedSurfacesManifestSchema = registerProjectSchema(
   z

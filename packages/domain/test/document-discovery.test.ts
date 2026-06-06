@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   DocumentDiscoveryExtractionToolResponseSchema,
   DocumentDiscoveryMetricCandidateSchema,
-} from "../src/index.js";
+} from "@bp/domain/documents/discovery";
 
 const evidenceRef = {
   blockId: "B0001",
@@ -137,7 +137,9 @@ describe("document discovery schemas", () => {
       },
     });
 
-    expect(parsed.attributes["candidateCanonicalFamily"]).toBe("delay_cost");
+    const attributes = parsed.attributes as { candidateCanonicalFamily?: unknown };
+
+    expect(attributes.candidateCanonicalFamily).toBe("delay_cost");
     expect(parsed.valueRaw).toBe("roughly 12,500 per weekday");
   });
 });

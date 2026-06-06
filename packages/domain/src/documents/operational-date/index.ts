@@ -41,9 +41,7 @@ export const OperationalDateValidationStateSchema = z.enum([
   // Operational-looking intervention with ambiguous status — needs human review.
   "needs_review",
 ]);
-export type OperationalDateValidationState = z.output<
-  typeof OperationalDateValidationStateSchema
->;
+export type OperationalDateValidationState = z.output<typeof OperationalDateValidationStateSchema>;
 
 export const OperationalDateBasisSchema = z.enum([
   "source_stated_complete",
@@ -179,9 +177,7 @@ function isProcessOrPlanningFamily(
   subtypeRaw: string | null | undefined,
   eventName?: string | null | undefined,
 ): boolean {
-  const familyText = `${familyRaw ?? ""} ${subtypeRaw ?? ""}`
-    .toLowerCase()
-    .replace(/[_/-]+/g, " ");
+  const familyText = `${familyRaw ?? ""} ${subtypeRaw ?? ""}`.toLowerCase().replace(/[_/-]+/g, " ");
   // The broad token veto runs only on the source's structured family/subtype,
   // not the free-text name, to avoid vetoing real launches whose names mention
   // outreach in passing.
@@ -237,9 +233,7 @@ function isOperationalFamily(
   familyRaw: string | null | undefined,
   subtypeRaw: string | null | undefined,
 ): boolean {
-  const text = `${familyRaw ?? ""} ${subtypeRaw ?? ""}`
-    .toLowerCase()
-    .replace(/[_/-]+/g, " ");
+  const text = `${familyRaw ?? ""} ${subtypeRaw ?? ""}`.toLowerCase().replace(/[_/-]+/g, " ");
   const tokens = text.split(/\s+/).filter((token) => token.length > 0);
   if (tokens.some((token) => OPERATIONAL_FAMILY_TOKENS.has(token))) return true;
   return OPERATIONAL_FAMILY_PHRASES.some((phrase) => text.includes(phrase));
@@ -328,11 +322,12 @@ const EXISTING_STATUSES = new Set<string>([
 ]);
 
 /** Map the source's raw status string to a coarse operational-state bucket. */
-export function normalizeStatedStatus(
-  raw: string | null | undefined,
-): SourceStatedStatus {
+export function normalizeStatedStatus(raw: string | null | undefined): SourceStatedStatus {
   if (raw == null) return "unknown";
-  const key = raw.trim().toLowerCase().replace(/[\s/-]+/g, "_");
+  const key = raw
+    .trim()
+    .toLowerCase()
+    .replace(/[\s/-]+/g, "_");
   if (key.length === 0) return "unknown";
   // Negated / cancelled statuses are not operational; treat as proposed (-> non
   // operational) and stop before the substring fallback would mis-map them.
@@ -357,13 +352,37 @@ export function normalizeStatedStatus(
 }
 
 const MONTH_NUMBERS: Record<string, number> = {
-  january: 1, jan: 1, february: 2, feb: 2, march: 3, mar: 3, april: 4, apr: 4,
-  may: 5, june: 6, jun: 6, july: 7, jul: 7, august: 8, aug: 8,
-  september: 9, sep: 9, sept: 9, october: 10, oct: 10, november: 11, nov: 11,
-  december: 12, dec: 12,
+  january: 1,
+  jan: 1,
+  february: 2,
+  feb: 2,
+  march: 3,
+  mar: 3,
+  april: 4,
+  apr: 4,
+  may: 5,
+  june: 6,
+  jun: 6,
+  july: 7,
+  jul: 7,
+  august: 8,
+  aug: 8,
+  september: 9,
+  sep: 9,
+  sept: 9,
+  october: 10,
+  oct: 10,
+  november: 11,
+  nov: 11,
+  december: 12,
+  dec: 12,
 };
 const SEASON_MONTHS: Record<string, number> = {
-  winter: 12, spring: 3, summer: 6, fall: 9, autumn: 9,
+  winter: 12,
+  spring: 3,
+  summer: 6,
+  fall: 9,
+  autumn: 9,
 };
 
 export type NormalizedDatePrecision = "day" | "month" | "year" | "range" | "season" | "unknown";
@@ -432,25 +451,55 @@ export function parseOperationalDate(text: string | null | undefined): ParsedOpe
   // ISO day YYYY-MM-DD
   let m = t.match(/\b(\d{4})-(\d{1,2})-(\d{1,2})\b/);
   if (m) {
-    const y = +m[1]!, mo = +m[2]!, d = +m[3]!;
-    if (mo >= 1 && mo <= 12 && d >= 1 && d <= 31) return dayResult(y, mo, d);
+    const yearRaw = m[1];
+    const monthRaw = m[2];
+    const dayRaw = m[3];
+
+    if (yearRaw !== undefined && monthRaw !== undefined && dayRaw !== undefined) {
+      const y = +yearRaw;
+      const mo = +monthRaw;
+      const d = +dayRaw;
+      if (mo >= 1 && mo <= 12 && d >= 1 && d <= 31) return dayResult(y, mo, d);
+    }
   }
   // US-slash day M/D/YY(YY)
   m = t.match(/\b(\d{1,2})\/(\d{1,2})\/(\d{2,4})\b/);
   if (m) {
-    const mo = +m[1]!, d = +m[2]!, y = expandTwoDigitYear(+m[3]!);
-    if (mo >= 1 && mo <= 12 && d >= 1 && d <= 31) return dayResult(y, mo, d);
+    const monthRaw = m[1];
+    const dayRaw = m[2];
+    const yearRaw = m[3];
+
+    if (monthRaw !== undefined && dayRaw !== undefined && yearRaw !== undefined) {
+      const mo = +monthRaw;
+      const d = +dayRaw;
+      const y = expandTwoDigitYear(+yearRaw);
+      if (mo >= 1 && mo <= 12 && d >= 1 && d <= 31) return dayResult(y, mo, d);
+    }
   }
   // Month name + day + year ("October 3, 2019")
   m = t.match(/\b([a-z]+)\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})\b/);
-  if (m && MONTH_NUMBERS[m[1]!]) {
-    const mo = MONTH_NUMBERS[m[1]!]!, d = +m[2]!, y = +m[3]!;
-    if (d >= 1 && d <= 31) return dayResult(y, mo, d);
+  if (m) {
+    const monthRaw = m[1];
+    const dayRaw = m[2];
+    const yearRaw = m[3];
+    const mo = monthRaw === undefined ? undefined : MONTH_NUMBERS[monthRaw];
+
+    if (mo !== undefined && dayRaw !== undefined && yearRaw !== undefined) {
+      const d = +dayRaw;
+      const y = +yearRaw;
+      if (d >= 1 && d <= 31) return dayResult(y, mo, d);
+    }
   }
   // Year range ("2015-2016", "2024/2025", "2016 to 2017")
   m = t.match(/\b(19\d{2}|20\d{2})\s*(?:-|–|—|\/|to|through|and)\s*(19\d{2}|20\d{2})\b/);
   if (m) {
-    const y1 = +m[1]!, y2 = +m[2]!;
+    const startYearRaw = m[1];
+    const endYearRaw = m[2];
+
+    if (startYearRaw === undefined || endYearRaw === undefined) return NO_DATE;
+
+    const y1 = +startYearRaw;
+    const y2 = +endYearRaw;
     return {
       effectiveDateStart: isoDate(Math.min(y1, y2), 1, 1),
       effectiveDateEnd: isoDate(Math.max(y1, y2), 12, 31),
@@ -461,31 +510,58 @@ export function parseOperationalDate(text: string | null | undefined): ParsedOpe
   // ISO month YYYY-MM (not followed by another -digit)
   m = t.match(/\b(\d{4})-(\d{1,2})\b(?!-\d)/);
   if (m) {
-    const y = +m[1]!, mo = +m[2]!;
-    if (mo >= 1 && mo <= 12) return monthResult(y, mo);
+    const yearRaw = m[1];
+    const monthRaw = m[2];
+
+    if (yearRaw !== undefined && monthRaw !== undefined) {
+      const y = +yearRaw;
+      const mo = +monthRaw;
+      if (mo >= 1 && mo <= 12) return monthResult(y, mo);
+    }
   }
   // US-slash month M/YYYY
   m = t.match(/\b(\d{1,2})\/(\d{4})\b/);
   if (m) {
-    const mo = +m[1]!, y = +m[2]!;
-    if (mo >= 1 && mo <= 12) return monthResult(y, mo);
+    const monthRaw = m[1];
+    const yearRaw = m[2];
+
+    if (monthRaw !== undefined && yearRaw !== undefined) {
+      const mo = +monthRaw;
+      const y = +yearRaw;
+      if (mo >= 1 && mo <= 12) return monthResult(y, mo);
+    }
   }
   // Month-name range within a year ("late March/April 2025", "March-April 2025")
   m = t.match(/\b([a-z]+)\s*(?:-|–|\/|to|and)\s*([a-z]+)\s+(\d{4})\b/);
-  if (m && MONTH_NUMBERS[m[1]!] && MONTH_NUMBERS[m[2]!]) {
-    const a = MONTH_NUMBERS[m[1]!]!, b = MONTH_NUMBERS[m[2]!]!, y = +m[3]!;
-    const lo = Math.min(a, b), hi = Math.max(a, b);
-    return {
-      effectiveDateStart: isoDate(y, lo, 1),
-      effectiveDateEnd: isoDate(y, hi, lastDayOfMonth(y, hi)),
-      implementationMonth: null,
-      precision: "range",
-    };
+  if (m) {
+    const startMonthRaw = m[1];
+    const endMonthRaw = m[2];
+    const yearRaw = m[3];
+    const a = startMonthRaw === undefined ? undefined : MONTH_NUMBERS[startMonthRaw];
+    const b = endMonthRaw === undefined ? undefined : MONTH_NUMBERS[endMonthRaw];
+
+    if (a !== undefined && b !== undefined && yearRaw !== undefined) {
+      const y = +yearRaw;
+      const lo = Math.min(a, b),
+        hi = Math.max(a, b);
+      return {
+        effectiveDateStart: isoDate(y, lo, 1),
+        effectiveDateEnd: isoDate(y, hi, lastDayOfMonth(y, hi)),
+        implementationMonth: null,
+        precision: "range",
+      };
+    }
   }
   // Season + year ("Spring 2016", "Spring/Summer 2017")
   m = t.match(/\b(winter|spring|summer|fall|autumn)\b[\s\S]*?\b(19\d{2}|20\d{2})\b/);
   if (m) {
-    const mo = SEASON_MONTHS[m[1]!]!, y = +m[2]!;
+    const seasonRaw = m[1];
+    const yearRaw = m[2];
+    const mo = seasonRaw === undefined ? undefined : SEASON_MONTHS[seasonRaw];
+
+    if (mo === undefined || yearRaw === undefined) return NO_DATE;
+
+    const y = +yearRaw;
     return {
       effectiveDateStart: isoDate(y, mo, 1),
       effectiveDateEnd: isoDate(y, mo, lastDayOfMonth(y, mo)),
@@ -495,13 +571,22 @@ export function parseOperationalDate(text: string | null | undefined): ParsedOpe
   }
   // Month name + year ("June 2013", "Nov 2011")
   m = t.match(/\b([a-z]+)\.?\s+(19\d{2}|20\d{2})\b/);
-  if (m && MONTH_NUMBERS[m[1]!]) {
-    return monthResult(+m[2]!, MONTH_NUMBERS[m[1]!]!);
+  if (m) {
+    const monthRaw = m[1];
+    const yearRaw = m[2];
+    const mo = monthRaw === undefined ? undefined : MONTH_NUMBERS[monthRaw];
+
+    if (mo !== undefined && yearRaw !== undefined) {
+      return monthResult(+yearRaw, mo);
+    }
   }
   // Bare year, possibly with a qualifier ("2010", "by 2022", "late 2019")
   m = t.match(/\b(19\d{2}|20\d{2})\b/);
   if (m) {
-    const y = +m[1]!;
+    const yearRaw = m[1];
+    if (yearRaw === undefined) return NO_DATE;
+
+    const y = +yearRaw;
     return {
       effectiveDateStart: isoDate(y, 1, 1),
       effectiveDateEnd: isoDate(y, 12, 31),
@@ -728,7 +813,8 @@ export function operationalDateConfidence(input: {
   else if (input.dateBasis === "source_stated_plan") score += 0.1;
   if (input.normalizedPrecision === "day") score += 0.2;
   else if (input.normalizedPrecision === "month") score += 0.15;
-  else if (input.normalizedPrecision === "range" || input.normalizedPrecision === "season") score += 0.05;
+  else if (input.normalizedPrecision === "range" || input.normalizedPrecision === "season")
+    score += 0.05;
   if (input.routeResolutionTier === "direct_event_text") score += 0.2;
   else if (input.routeResolutionTier === "source_single_route_context") score += 0.1;
   else if (input.routeResolutionTier === "corridor_gazetteer") score += 0.05;

@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   StructuredDocumentExtractionSchema,
   StructuredDocumentExtractionToolResponseSchema,
-} from "../src/index.js";
+} from "@bp/domain/documents/structured-extraction";
 
 const TOOL_RESPONSE = {
   source: {

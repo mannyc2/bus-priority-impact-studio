@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   MapRouteSegmentFeatureCollectionSchema,
   MapRouteSegmentFeatureSchema,
-} from "../src/index.js";
+} from "@bp/domain/maps";
 
 describe("map route segment schemas", () => {
   test("accepts a strict route-segment feature collection", () => {

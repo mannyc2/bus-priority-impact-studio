@@ -1,4 +1,3 @@
-import { studioOpenApiDocument } from "./studio-openapi.js";
 import {
   type StudioBrief,
   type StudioBriefCard,
@@ -10,20 +9,27 @@ import {
   StudioBriefResponseSchema,
   type StudioBriefsResponse,
   StudioBriefsResponseSchema,
-  type StudioCompareResponse,
-  StudioCompareResponseSchema,
-  type StudioDocsEndpoint,
+} from "./briefs/read-model.js";
+import {
   type StudioDocsResponse,
   StudioDocsResponseSchema,
+  type StudioMethodsResponse,
+  StudioMethodsResponseSchema,
+} from "./docs/index.js";
+import {
   type StudioFinding,
   type StudioFindingCard,
   type StudioFindingResponse,
   StudioFindingResponseSchema,
   type StudioFindingsResponse,
   StudioFindingsResponseSchema,
-  type StudioMethodsResponse,
-  StudioMethodsResponseSchema,
+} from "./findings/index.js";
+import {
+  type StudioCompareResponse,
+  StudioCompareResponseSchema,
   type StudioReleasePayload,
+} from "./release.js";
+import {
   type StudioRoute,
   type StudioRouteDetailResponse,
   StudioRouteDetailResponseSchema,
@@ -31,9 +37,7 @@ import {
   StudioRouteLadderResponseSchema,
   type StudioRoutesResponse,
   StudioRoutesResponseSchema,
-} from "./studio-schemas.js";
-
-const studioDocsHttpMethods = ["get", "post", "patch"] as const;
+} from "./routes/index.js";
 
 export function getStudioRoute(
   release: Pick<StudioReleasePayload, "routes">,
@@ -73,27 +77,6 @@ export function buildStudioBriefCards(
   return briefs.flatMap((brief) => {
     const route = getStudioRoute(release, brief.routeSlug);
     return route === undefined ? [] : [{ brief, route }];
-  });
-}
-
-export function buildStudioDocsEndpointsFromOpenApi(): StudioDocsEndpoint[] {
-  return Object.entries(studioOpenApiDocument.paths).flatMap(([path, operations]) => {
-    const operationsByMethod = operations as Partial<
-      Record<(typeof studioDocsHttpMethods)[number], { summary: string }>
-    >;
-
-    return studioDocsHttpMethods.flatMap((method) => {
-      const operation = operationsByMethod[method];
-      return operation === undefined
-        ? []
-        : [
-            {
-              method: method.toUpperCase(),
-              path: path.replace(/\{([^}]+)\}/g, ":$1"),
-              body: operation.summary,
-            },
-          ];
-    });
   });
 }
 
@@ -290,7 +273,7 @@ export function buildStudioDocsProjection(release: StudioReleasePayload): Studio
     schemaVersion: 1,
     generatedAt: release.generatedAt,
     sections: release.docsSections,
-    endpoints: buildStudioDocsEndpointsFromOpenApi(),
+    endpoints: release.docsEndpoints,
     quality: release.quality,
   });
 }

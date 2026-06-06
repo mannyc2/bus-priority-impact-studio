@@ -1,4 +1,53 @@
-import type { StudioIntervention } from "./studio-schemas.js";
+import * as z from "zod";
+
+const StudioInterventionWindowSchema = z
+  .object({
+    from: z.string(),
+    to: z.string(),
+    sampleMonths: z.number().int().nonnegative(),
+  })
+  .strict();
+
+const StudioInterventionComparisonCohortSchema = z
+  .object({
+    method: z.string(),
+    causalInterpretation: z.string(),
+    methodLimitations: z.array(z.string()),
+    routeIds: z.array(z.string()),
+    routeCount: z.number().int().nonnegative(),
+    preWindow: StudioInterventionWindowSchema.nullable(),
+    postWindow: StudioInterventionWindowSchema.nullable(),
+    routeSpeedDeltaMph: z.number().nullable(),
+    comparisonSpeedDeltaMph: z.number().nullable(),
+    adjustedSpeedDeltaMph: z.number().nullable(),
+    caveat: z.string(),
+  })
+  .strict();
+
+export const StudioInterventionSchema = z.preprocess(
+  (value) => {
+    if (typeof value !== "object" || value === null) return value;
+    const { year, title, detail, tone, sourceLabel, sourceDetail, comparisonCohort } =
+      value as Record<string, unknown>;
+    return { year, title, detail, tone, sourceLabel, sourceDetail, comparisonCohort };
+  },
+  z
+    .object({
+      year: z.string(),
+      title: z.string(),
+      detail: z.string(),
+      tone: z.enum(["accent", "good", "warn", "bad"]).optional(),
+      sourceLabel: z.string().optional(),
+      sourceDetail: z.string().optional(),
+      comparisonCohort: StudioInterventionComparisonCohortSchema.optional(),
+    })
+    .strict(),
+);
+
+export type StudioInterventionComparisonCohort = z.output<
+  typeof StudioInterventionComparisonCohortSchema
+>;
+export type StudioIntervention = z.output<typeof StudioInterventionSchema>;
 
 export type StudioInterventionComparisonInput = {
   eventId: string;

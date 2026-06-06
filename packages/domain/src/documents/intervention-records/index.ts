@@ -1,9 +1,6 @@
 import * as z from "zod";
-import {
-  DocumentMetricNameSchema,
-  DocumentTreatmentTypeSchema,
-} from "./document-candidates.js";
-import { registerProjectSchema } from "./schema-registry.js";
+import { registerProjectSchema } from "../../schema-registry.js";
+import { DocumentMetricNameSchema, DocumentTreatmentTypeSchema } from "../candidates/index.js";
 
 // ---------------------------------------------------------------------------
 // Tier 2 document intervention records (Phase 3 output)
@@ -31,12 +28,7 @@ export const DocumentInterventionStatusSchema = z.enum([
 ]);
 export type DocumentInterventionStatus = z.output<typeof DocumentInterventionStatusSchema>;
 
-export const DocumentInterventionServiceModeSchema = z.enum([
-  "sbs",
-  "local",
-  "limited",
-  "express",
-]);
+export const DocumentInterventionServiceModeSchema = z.enum(["sbs", "local", "limited", "express"]);
 export type DocumentInterventionServiceMode = z.output<
   typeof DocumentInterventionServiceModeSchema
 >;
@@ -56,9 +48,60 @@ export const DocumentInterventionRecordKindSchema = z.enum([
   "in_progress",
   "proposed",
 ]);
-export type DocumentInterventionRecordKind = z.output<
-  typeof DocumentInterventionRecordKindSchema
->;
+export type DocumentInterventionRecordKind = z.output<typeof DocumentInterventionRecordKindSchema>;
+
+// ---------------------------------------------------------------------------
+// Intervention-record quality vocabulary
+//
+// Closed sets of issue/repair codes emitted by the deterministic
+// intervention-records policy (`@bp/applied-research/intervention-records`)
+// and consumed by the pipeline's artifact-summary counters. Promoted here so
+// the policy and the counters share a single source of truth.
+// ---------------------------------------------------------------------------
+
+export type Tier2InterventionRecordQualityIssueCode =
+  | "metric_value_numeric_not_supported_by_evidence_refs"
+  | "corridor_extent_endpoints_not_supported_by_evidence"
+  // Source-level signal: a model-emitted record was dropped before
+  // persistence because its supporting candidates were context-only
+  // (methodology, claims, fare policy, etc.). Surfaced via the source's
+  // droppedNoInterventionEvidenceCount summary, not on any persisted record.
+  | "phase3_record_dropped_no_intervention_evidence";
+
+export type Tier2InterventionRecordQualityRepairCode =
+  | "status_history_coerced_to_proposed_only"
+  | "phase3_record_schema_alias_repaired"
+  | "phase3_record_invalid_enum_stripped"
+  | "phase3_record_label_conflict_repaired"
+  | "phase3_record_merged_from_route_buckets";
+
+export const INTERVENTION_RECORD_QUALITY_ISSUE_CODES: readonly Tier2InterventionRecordQualityIssueCode[] =
+  [
+    "metric_value_numeric_not_supported_by_evidence_refs",
+    "corridor_extent_endpoints_not_supported_by_evidence",
+    "phase3_record_dropped_no_intervention_evidence",
+  ];
+
+export const INTERVENTION_RECORD_QUALITY_REPAIR_CODES: readonly Tier2InterventionRecordQualityRepairCode[] =
+  [
+    "status_history_coerced_to_proposed_only",
+    "phase3_record_schema_alias_repaired",
+    "phase3_record_invalid_enum_stripped",
+    "phase3_record_label_conflict_repaired",
+    "phase3_record_merged_from_route_buckets",
+  ];
+
+export function isInterventionRecordQualityIssueCode(
+  value: string,
+): value is Tier2InterventionRecordQualityIssueCode {
+  return (INTERVENTION_RECORD_QUALITY_ISSUE_CODES as readonly string[]).includes(value);
+}
+
+export function isInterventionRecordQualityRepairCode(
+  value: string,
+): value is Tier2InterventionRecordQualityRepairCode {
+  return (INTERVENTION_RECORD_QUALITY_REPAIR_CODES as readonly string[]).includes(value);
+}
 
 const evidenceRefList = z
   .array(z.string().min(1))
@@ -109,10 +152,7 @@ const PeriodDraftSchema = z
       .string()
       .optional()
       .describe("ISO date or YYYY-MM. Omit if the source gives no start."),
-    end: z
-      .string()
-      .optional()
-      .describe("ISO date or YYYY-MM. Omit if the source gives no end."),
+    end: z.string().optional().describe("ISO date or YYYY-MM. Omit if the source gives no end."),
   })
   .strict();
 
@@ -133,9 +173,9 @@ const MetricDraftSchema = z
       .string()
       .optional()
       .describe(
-        "Range or qualifier such as \"15-31%\" or \"up to 10 minutes\". Use when valueNumeric alone loses meaning.",
+        'Range or qualifier such as "15-31%" or "up to 10 minutes". Use when valueNumeric alone loses meaning.',
       ),
-    unit: z.string().optional().describe("Unit such as \"percent\", \"minutes\", \"mph\"."),
+    unit: z.string().optional().describe('Unit such as "percent", "minutes", "mph".'),
     baselinePeriod: PeriodDraftSchema.optional().describe(
       "Pre-intervention period for the comparison. Omit the whole object if the source gives no baseline period.",
     ),
@@ -145,7 +185,7 @@ const MetricDraftSchema = z
     geographyScope: z
       .string()
       .optional()
-      .describe("Scope of the metric, e.g. \"B44 corridor\" or \"Brooklyn-wide\"."),
+      .describe('Scope of the metric, e.g. "B44 corridor" or "Brooklyn-wide".'),
     methodology: z
       .string()
       .optional()
@@ -156,10 +196,7 @@ const MetricDraftSchema = z
 
 const CaveatDraftSchema = z
   .object({
-    description: z
-      .string()
-      .min(1)
-      .describe("One short sentence stating the caveat or limitation."),
+    description: z.string().min(1).describe("One short sentence stating the caveat or limitation."),
     evidenceRefs: evidenceRefList,
   })
   .strict();
@@ -177,7 +214,7 @@ const CorridorDraftSchema = z
       .strict()
       .optional()
       .describe(
-        "Named start/end of the corridor when the source gives one. E.g. start \"Avenue U\", end \"Williamsburg Bridge Plaza\".",
+        'Named start/end of the corridor when the source gives one. E.g. start "Avenue U", end "Williamsburg Bridge Plaza".',
       ),
     intersections: z
       .array(z.string().min(1))
@@ -191,7 +228,7 @@ export const DocumentInterventionRecordDraftSchema = z
     routes: z
       .array(z.string().min(1))
       .describe(
-        "Bare MTA route IDs this intervention touches, e.g. [\"B44\"] or [\"M15\", \"M14A\"]. Do not append SBS, Limited, or Local.",
+        'Bare MTA route IDs this intervention touches, e.g. ["B44"] or ["M15", "M14A"]. Do not append SBS, Limited, or Local.',
       ),
     serviceMode: DocumentInterventionServiceModeSchema.optional().describe(
       "Bus service mode this intervention applies to, when the source distinguishes.",
@@ -199,14 +236,12 @@ export const DocumentInterventionRecordDraftSchema = z
     primaryTreatments: z
       .array(DocumentTreatmentTypeSchema)
       .describe(
-        "The headline treatments that define this intervention. Typically 1-3 entries; this is the coarse \"what kind of intervention is this\" tag.",
+        'The headline treatments that define this intervention. Typically 1-3 entries; this is the coarse "what kind of intervention is this" tag.',
       ),
     customTreatments: z
       .array(z.string().min(1))
       .optional()
-      .describe(
-        "Free-text headline treatments for anything not in the enum. Use sparingly.",
-      ),
+      .describe("Free-text headline treatments for anything not in the enum. Use sparingly."),
     corridor: CorridorDraftSchema.optional().describe(
       "Where the intervention is. Omit if the source genuinely has no geographic scope (rare).",
     ),

@@ -1,5 +1,5 @@
 import * as z from "zod";
-import { registerProjectSchema } from "./schema-registry.js";
+import { registerProjectSchema } from "../../schema-registry.js";
 
 export const DocumentResearchSurfaceKindSchema = z.enum([
   "source_note",

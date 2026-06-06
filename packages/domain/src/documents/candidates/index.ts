@@ -1,5 +1,5 @@
 import * as z from "zod";
-import { registerProjectSchema } from "./schema-registry.js";
+import { registerProjectSchema } from "../../schema-registry.js";
 
 export const DocumentCandidateValidationStateSchema = z.enum([
   "unvalidated",
@@ -88,9 +88,7 @@ export const DocumentEvidenceCandidateDraftSchema = registerProjectSchema(
   },
 );
 
-export type DocumentEvidenceCandidateDraft = z.output<
-  typeof DocumentEvidenceCandidateDraftSchema
->;
+export type DocumentEvidenceCandidateDraft = z.output<typeof DocumentEvidenceCandidateDraftSchema>;
 
 export const DocumentEvidenceCandidateSchema = registerProjectSchema(
   DocumentEvidenceCandidateDraftObjectSchema.extend({
@@ -113,6 +111,89 @@ export const DocumentEvidenceCandidateSchema = registerProjectSchema(
 export type DocumentEvidenceCandidate = z.output<typeof DocumentEvidenceCandidateSchema>;
 
 // ---------------------------------------------------------------------------
+// Tier 2 OCR-markdown evidence-candidate extraction shape
+//
+// Richer, extraction-time superset of `DocumentEvidenceCandidate` emitted by
+// the Tier 2 OCR pipeline (`tools/pipeline-v2` docs tier2 steps) and consumed
+// by the deterministic intervention-records policy in
+// `@bp/applied-research/intervention-records`. It carries an object `sourceRef`
+// (vs the persisted candidate's `sourceId`) plus an `extraction` provenance
+// block. Promoted out of the pipeline `_shared.ts` monolith so the policy can
+// live in a package without depending on the tool.
+//
+// FOLLOW-UP: formalize as a registered zod schema and reconcile with
+// `DocumentEvidenceCandidate` once the upstream candidate-extraction steps are
+// themselves cut over.
+// ---------------------------------------------------------------------------
+
+export type Tier2CandidateValidationState = DocumentCandidateValidationState;
+
+export type Tier2CandidateSourceRef = {
+  sourceId: string;
+  sourceUrl: string;
+  title: string;
+  publisher: string;
+  documentDate: string | null;
+  sourceGroup: string;
+  artifactKeys: {
+    raw: string | null;
+    text: string | null;
+    ocrText: string | null;
+    ocrJson: string | null;
+    ocrAnnotations: string | null;
+  };
+  pages: number[];
+};
+
+export type Tier2OcrMarkdownCandidateQualityIssueCode =
+  | "evidence_quote_not_exact"
+  | "evidence_quote_spans_page_boundary"
+  | "evidence_quote_uses_ellipsis"
+  | "evidence_quote_flattened_table"
+  | "metric_value_numeric_not_supported_by_quote"
+  | "treatment_type_not_supported_by_quote"
+  | "treatment_candidate_without_supported_type"
+  | "service_change_candidate_without_change_type"
+  | "project_status_is_document_milestone"
+  | "project_status_spans_multiple_projects"
+  | "project_status_spans_multiple_statuses";
+
+export type Tier2OcrMarkdownCandidateQualityRepairCode =
+  | "evidence_quote_repaired_to_source_substring"
+  | "evidence_page_refs_trimmed_to_quote_pages"
+  | "evidence_page_refs_repaired_to_window_quote_pages"
+  | "metric_value_numeric_removed_as_derived"
+  | "negative_evidence_flag_set_proposed_only"
+  | "negative_evidence_flag_set_presentation_date_not_implementation"
+  | "fact_classification_set_third_party_evaluation"
+  | "unsupported_treatment_types_removed"
+  | "unsupported_service_change_types_removed"
+  | "route_mentions_normalized";
+
+export type Tier2DocumentEvidenceCandidate = {
+  candidateType: DocumentEvidenceCandidateType;
+  candidateId: string;
+  sourceRef: Tier2CandidateSourceRef;
+  factClassification: DocumentFactClassification;
+  negativeEvidenceFlag: DocumentNegativeEvidenceFlag;
+  routeMentions: string[];
+  corridorMentions: string[];
+  evidencePageRefs: number[];
+  evidenceQuote: string;
+  summary: string;
+  fields: Record<string, unknown>;
+  extraction: {
+    pageMarkdownRootName: string;
+    candidateRootName: string;
+    windowPages: number[];
+    qualityIssues?: Tier2OcrMarkdownCandidateQualityIssueCode[];
+    qualityRepairs?: Tier2OcrMarkdownCandidateQualityRepairCode[];
+  };
+  validationState: Tier2CandidateValidationState;
+  reviewReason: string;
+};
+
+// ---------------------------------------------------------------------------
 // Tool-facing draft schema
 //
 // `DocumentEvidenceCandidateDraftToolSchema` is a discriminated union over
@@ -128,19 +209,19 @@ const sharedDraftFields = {
     "How this fact relates to its source: official_fact and official_claim come from the publishing agency; third_party_evaluation is an outside assessment; context and caveat narrate; methodology describes how a metric was computed; source_gap is an explicit absence.",
   ),
   negativeEvidenceFlag: DocumentNegativeEvidenceFlagSchema.default("none").describe(
-    "Reason this candidate is negative or weak evidence, when applicable. Use \"none\" otherwise.",
+    'Reason this candidate is negative or weak evidence, when applicable. Use "none" otherwise.',
   ),
   routeMentions: z
     .array(z.string().min(1))
     .default([])
     .describe(
-      "Bare MTA route IDs as they appear in the route catalog, e.g. [\"B44\", \"M15\"]. Do not append service-mode suffixes like SBS, Limited, or Local; those go on per-type fields when relevant. Use the empty array when no route is named.",
+      'Bare MTA route IDs as they appear in the route catalog, e.g. ["B44", "M15"]. Do not append service-mode suffixes like SBS, Limited, or Local; those go on per-type fields when relevant. Use the empty array when no route is named.',
     ),
   corridorMentions: z
     .array(z.string().min(1))
     .default([])
     .describe(
-      "Street or avenue names mentioned in the supporting quote, e.g. [\"Nostrand Avenue\", \"14th Street\"]. Use the empty array when no corridor is named.",
+      'Street or avenue names mentioned in the supporting quote, e.g. ["Nostrand Avenue", "14th Street"]. Use the empty array when no corridor is named.',
     ),
   evidencePageRefs: z
     .array(z.number().int().positive())
@@ -149,7 +230,9 @@ const sharedDraftFields = {
   evidenceQuote: z
     .string()
     .min(1)
-    .describe("A short verbatim excerpt from the provided OCR Markdown that supports this candidate."),
+    .describe(
+      "A short verbatim excerpt from the provided OCR Markdown that supports this candidate.",
+    ),
   summary: z
     .string()
     .min(1)
@@ -257,9 +340,9 @@ const metricClaimFields = z
       .string()
       .optional()
       .describe(
-        "Qualifier such as \"approximately\", \"up to\", or a range like \"15-31%\" when the source gives a range rather than a single number.",
+        'Qualifier such as "approximately", "up to", or a range like "15-31%" when the source gives a range rather than a single number.',
       ),
-    unit: z.string().optional().describe("Unit such as \"percent\", \"minutes\", \"mph\", \"riders/day\"."),
+    unit: z.string().optional().describe('Unit such as "percent", "minutes", "mph", "riders/day".'),
     baselinePeriodStart: z.string().optional().describe(OPTIONAL_PERIOD_DESCRIPTION),
     baselinePeriodEnd: z.string().optional().describe(OPTIONAL_PERIOD_DESCRIPTION),
     comparisonPeriodStart: z.string().optional().describe(OPTIONAL_PERIOD_DESCRIPTION),
@@ -267,7 +350,7 @@ const metricClaimFields = z
     geographyScope: z
       .string()
       .optional()
-      .describe("Scope of the metric, e.g. \"B44 corridor\", \"Brooklyn\", \"system-wide\"."),
+      .describe('Scope of the metric, e.g. "B44 corridor", "Brooklyn", "system-wide".'),
     methodology: z
       .string()
       .optional()
@@ -324,9 +407,7 @@ const projectStatusFields = z
     statusAsOfDate: z
       .string()
       .optional()
-      .describe(
-        "Date the status was reported. ISO date or YYYY-MM. Omit when no date is given.",
-      ),
+      .describe("Date the status was reported. ISO date or YYYY-MM. Omit when no date is given."),
     phase: z
       .string()
       .optional()
@@ -399,7 +480,7 @@ const sourceGapFields = z
     sourceGapSubject: z
       .string()
       .optional()
-      .describe("What is missing, e.g. \"no stop-level table\" or \"no TSP inventory\"."),
+      .describe('What is missing, e.g. "no stop-level table" or "no TSP inventory".'),
   })
   .passthrough();
 
@@ -424,11 +505,7 @@ const reviewQuestionFields = z
   .passthrough();
 
 export const DocumentEvidenceCandidateDraftToolSchema = z.discriminatedUnion("candidateType", [
-  draftVariant(
-    "document_claim_candidate",
-    "A single source-backed non-metric claim.",
-    claimFields,
-  ),
+  draftVariant("document_claim_candidate", "A single source-backed non-metric claim.", claimFields),
   draftVariant(
     "document_metric_claim_candidate",
     "A metric value with unit, baseline/comparison windows, scope, and methodology or caveats when present.",
