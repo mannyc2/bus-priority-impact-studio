@@ -7,7 +7,7 @@ import {
   routeListResponseJsonSchema,
   routeProfileResponseJsonSchema,
   routeScorecardJsonSchema,
-} from "@bp/domain";
+} from "@bp/domain/json-schema";
 import { studioOpenApiDocument } from "./contracts/openapi.js";
 import { jsonResponse as json } from "./http/json.js";
 

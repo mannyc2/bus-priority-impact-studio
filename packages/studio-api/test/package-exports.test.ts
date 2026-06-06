@@ -59,6 +59,9 @@ describe("Studio API package exports", () => {
     expect(buildRoutePath(route, { params: { routeId: "M15-SBS" } })).toBe(
       "/api/v1/studio/routes/M15-SBS",
     );
+    expect(buildRoutePath(getStudioApiRoute("studio.routeSections"))).toBe(
+      "/api/v1/studio/routes/sections",
+    );
 
     const client = createStudioApiClient();
     expect(client.path("studio.brief", { params: { briefId: "brief-m15" } })).toBe(

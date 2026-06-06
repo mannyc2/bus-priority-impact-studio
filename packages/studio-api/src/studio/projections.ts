@@ -1,17 +1,21 @@
 import {
-  getStudioRoute,
   type StudioBriefResponse,
   StudioBriefResponseSchema,
   StudioBriefsResponseSchema,
+} from "@bp/domain/studio/briefs";
+import {
   type StudioFindingResponse,
   StudioFindingResponseSchema,
   StudioFindingsResponseSchema,
+} from "@bp/domain/studio/findings";
+import { getStudioRoute } from "@bp/domain/studio/projections";
+import {
   type StudioRoute,
   type StudioRouteDetailResponse,
   StudioRouteDetailResponseSchema,
   type StudioRoutesResponse,
   StudioRoutesResponseSchema,
-} from "@bp/domain";
+} from "@bp/domain/studio/routes";
 import type * as z from "zod";
 import type { StudioApiEnv } from "../env.js";
 import { errorResponse } from "../http/errors.js";

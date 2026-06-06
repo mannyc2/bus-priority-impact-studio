@@ -1,4 +1,5 @@
 import {
+  claimStudioBriefGuestDraft,
   createD1ServingDb,
   type D1ServingDb,
   type StudioBriefAgentProposalRow as D1StudioBriefAgentProposalRow,
@@ -49,7 +50,6 @@ import {
   updateStudioBriefReviewComment,
 } from "@bp/db/d1";
 import {
-  type StudioActorScope,
   type StudioBrief,
   type StudioBriefAgentOperation,
   StudioBriefAgentOperationSchema,
@@ -115,10 +115,13 @@ import {
   type StudioBriefResponse,
   StudioBriefResponseSchema,
   type StudioClaim,
-  type StudioRoute,
-  type StudioRouteDetailResponse,
-  type StudioRoutesResponse,
-} from "@bp/domain";
+} from "@bp/domain/studio/briefs";
+import type { StudioActorScope } from "@bp/domain/studio/identity";
+import type {
+  StudioRoute,
+  StudioRouteDetailResponse,
+  StudioRoutesResponse,
+} from "@bp/domain/studio/routes";
 import type {
   ChatResponseResult,
   PrepareStepContext,
@@ -139,8 +142,12 @@ import {
 } from "../http/json.js";
 import {
   authError,
+  GUEST_COOKIE,
+  GUEST_MAX_AGE_SECONDS,
+  guestCookie,
   type ResolvedIdentity,
   randomToken,
+  readCookie,
   resolveIdentity,
   sha256Hex,
 } from "./auth.js";
@@ -199,6 +206,23 @@ type StudioOperatorSession = {
   identity: NonNullable<ResolvedIdentity["identity"]>;
   operator: NonNullable<ResolvedIdentity["operator"]>;
 };
+type StudioGuestSession = {
+  tokenHash: string;
+};
+type DraftAccessSession =
+  | {
+      kind: "operator";
+      identity: NonNullable<ResolvedIdentity["identity"]>;
+      operator: NonNullable<ResolvedIdentity["operator"]>;
+    }
+  | {
+      kind: "identity";
+      identity: NonNullable<ResolvedIdentity["identity"]>;
+    }
+  | {
+      kind: "guest";
+      guest: StudioGuestSession;
+    };
 type DraftOperatorScope = Extract<
   StudioActorScope,
   "read:briefs" | "write:briefs" | "review:briefs" | "publish:briefs"
@@ -277,6 +301,32 @@ async function requireStudioOperatorWithAnyScope(
   return { identity: resolved.identity, operator };
 }
 
+async function resolveGuestSession(request: Request): Promise<StudioGuestSession | null> {
+  const token = readCookie(request, GUEST_COOKIE);
+  if (token === null || token.length === 0) return null;
+  return { tokenHash: await sha256Hex(token) };
+}
+
+async function resolveDraftAccessSession(
+  request: Request,
+  env: Env,
+): Promise<DraftAccessSession | null> {
+  const resolved = await resolveIdentity(request, env);
+  if (resolved.identity !== null) {
+    if (resolved.operator !== null) {
+      return {
+        kind: "operator",
+        identity: resolved.identity,
+        operator: resolved.operator,
+      };
+    }
+    return { kind: "identity", identity: resolved.identity };
+  }
+
+  const guest = await resolveGuestSession(request);
+  return guest === null ? null : { kind: "guest", guest };
+}
+
 function requireD1Database(env: Env): D1ServingDb | Response {
   return env.DB === undefined
     ? errorJson(503, "D1 binding is not configured.")
@@ -288,6 +338,7 @@ function canReadDraftForOperator(
   operator: StudioOperatorSession["operator"],
 ): boolean {
   return (
+    record.draft.owner_kind === "workspace" &&
     hasStudioScope(operator, "read:briefs") &&
     (record.draft.workspace_id === null || record.draft.workspace_id === operator.workspaceId)
   );
@@ -297,7 +348,126 @@ function canWriteDraftForOperator(
   record: D1StudioBriefDraftRecord,
   operator: StudioOperatorSession["operator"],
 ): boolean {
-  return record.draft.workspace_id === null || record.draft.workspace_id === operator.workspaceId;
+  return (
+    record.draft.owner_kind === "workspace" &&
+    (record.draft.workspace_id === null || record.draft.workspace_id === operator.workspaceId)
+  );
+}
+
+function canAccessDraftForSession(
+  record: D1StudioBriefDraftRecord,
+  session: DraftAccessSession,
+  access: "read" | "write",
+): boolean {
+  if (record.draft.owner_kind === "identity" && session.kind !== "guest") {
+    return record.draft.owner_identity_id === session.identity.identityId;
+  }
+
+  if (session.kind === "operator") {
+    return access === "read"
+      ? canReadDraftForOperator(record, session.operator)
+      : hasStudioScope(session.operator, "write:briefs") &&
+          canWriteDraftForOperator(record, session.operator);
+  }
+
+  if (record.draft.owner_kind === "guest" && session.kind === "guest") {
+    return (
+      record.draft.guest_claimed_at === null &&
+      record.draft.guest_token_hash !== null &&
+      record.draft.guest_token_hash === session.guest.tokenHash
+    );
+  }
+
+  return false;
+}
+
+function accessSessionActorName(session: DraftAccessSession): string {
+  if (session.kind === "operator") return actorName(session);
+  if (session.kind === "identity") return session.identity.displayName ?? session.identity.email;
+  return "Guest draft author";
+}
+
+type DraftWriteContext = {
+  session: DraftAccessSession;
+  guestTokenToSet: string | null;
+};
+
+async function resolveDraftWriteContext(
+  request: Request,
+  env: Env,
+): Promise<DraftWriteContext | Response> {
+  if (env.DB === undefined) {
+    return errorJson(503, "D1 binding is not configured.");
+  }
+
+  const resolved = await resolveIdentity(request, env);
+  if (
+    resolved.identity !== null &&
+    resolved.operator !== null &&
+    hasStudioScope(resolved.operator, "write:briefs")
+  ) {
+    return {
+      session: { kind: "operator", identity: resolved.identity, operator: resolved.operator },
+      guestTokenToSet: null,
+    };
+  }
+
+  if (resolved.identity !== null) {
+    return {
+      session: { kind: "identity", identity: resolved.identity },
+      guestTokenToSet: null,
+    };
+  }
+
+  const existingGuestToken = readCookie(request, GUEST_COOKIE);
+  const guestToken =
+    existingGuestToken === null || existingGuestToken.length === 0
+      ? randomToken(32)
+      : existingGuestToken;
+  return {
+    session: { kind: "guest", guest: { tokenHash: await sha256Hex(guestToken) } },
+    guestTokenToSet:
+      existingGuestToken === null || existingGuestToken.length === 0 ? guestToken : null,
+  };
+}
+
+function draftOwnershipForSession(session: DraftAccessSession): {
+  workspaceId: string | null;
+  ownerKind: "workspace" | "identity" | "guest";
+  ownerIdentityId: string | null;
+  guestTokenHash: string | null;
+} {
+  if (session.kind === "operator") {
+    return {
+      workspaceId: session.operator.workspaceId,
+      ownerKind: "workspace",
+      ownerIdentityId: null,
+      guestTokenHash: null,
+    };
+  }
+
+  if (session.kind === "identity") {
+    return {
+      workspaceId: null,
+      ownerKind: "identity",
+      ownerIdentityId: session.identity.identityId,
+      guestTokenHash: null,
+    };
+  }
+
+  return {
+    workspaceId: null,
+    ownerKind: "guest",
+    ownerIdentityId: null,
+    guestTokenHash: session.guest.tokenHash,
+  };
+}
+
+function appendGuestCookieIfNeeded(response: Response, guestTokenToSet: string | null): Response {
+  if (guestTokenToSet !== null) {
+    response.headers.append("Set-Cookie", guestCookie(guestTokenToSet, GUEST_MAX_AGE_SECONDS));
+  }
+  return response;
 }
 
 function briefSectionsToMarkdown(sections: StudioBrief["sections"]): string {
@@ -595,14 +765,14 @@ export async function maybeOverlayStudioBriefDraft(
     return projection;
   }
 
-  const resolved = await resolveIdentity(request, env);
-  if (resolved.identity === null || resolved.operator === null) {
+  const session = await resolveDraftAccessSession(request, env);
+  if (session === null) {
     return projection;
   }
 
   const database = createD1ServingDb(env.DB);
   const record = await getStudioBriefDraftRecord(database, projection.brief.id);
-  if (record === null || !canReadDraftForOperator(record, resolved.operator)) {
+  if (record === null || !canAccessDraftForSession(record, session, "read")) {
     return projection;
   }
 
@@ -616,12 +786,12 @@ export async function maybeLoadDraftOnlyBriefProjection(
 ): Promise<StudioBriefProjection | Response | null> {
   if (env.DB === undefined) return null;
 
-  const resolved = await resolveIdentity(request, env);
-  if (resolved.identity === null || resolved.operator === null) return null;
+  const session = await resolveDraftAccessSession(request, env);
+  if (session === null) return null;
 
   const database = createD1ServingDb(env.DB);
   const record = await getStudioBriefDraftRecord(database, briefId);
-  if (record === null || !canReadDraftForOperator(record, resolved.operator)) return null;
+  if (record === null || !canAccessDraftForSession(record, session, "read")) return null;
 
   const route = await loadStudioRouteProjection(env, record.draft.route_slug);
   if (!route.ok) return route.response;
@@ -750,6 +920,88 @@ async function ensureStudioBriefDraftRecord(
   return created;
 }
 
+async function ensureAccessibleStudioBriefDraftRecord(
+  env: Env,
+  session: DraftAccessSession,
+  briefId: string,
+  now: string,
+): Promise<D1StudioBriefDraftRecord | Response> {
+  if (env.DB === undefined) {
+    return errorJson(503, "D1 binding is not configured.");
+  }
+
+  const database = createD1ServingDb(env.DB);
+  const existing = await getStudioBriefDraftRecord(database, briefId);
+  if (existing !== null) {
+    if (!canAccessDraftForSession(existing, session, "write")) {
+      return authError(403, "FORBIDDEN", "This draft belongs to a different Studio owner.");
+    }
+    return existing;
+  }
+
+  const projection = await loadStudioBriefProjection(env, briefId);
+  if (!projection.ok) {
+    return projection.response;
+  }
+
+  const ownership = draftOwnershipForSession(session);
+  await insertStudioBriefDraft(database, {
+    briefId,
+    routeSlug: projection.data.brief.routeSlug,
+    sourceBriefId: briefId,
+    workspaceId: ownership.workspaceId,
+    ownerKind: ownership.ownerKind,
+    ownerIdentityId: ownership.ownerIdentityId,
+    guestTokenHash: ownership.guestTokenHash,
+    guestClaimedAt: null,
+    fromFindingId: null,
+    status: "draft",
+    title: projection.data.brief.title,
+    dek: projection.data.brief.dek,
+    summary: projection.data.brief.summary,
+    bodyMd: projection.data.brief.bodyMd ?? briefSectionsToMarkdown(projection.data.brief.sections),
+    version: projection.data.brief.version,
+    jobId: randomToken(12),
+    jobStatus: "succeeded",
+    jobGenerationMode: "deterministic_seed",
+    jobLlmStatus: "not_configured",
+    jobStartedAt: now,
+    jobCompletedAt: now,
+    jobError: null,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  for (const claim of projection.data.brief.claims) {
+    await insertStudioBriefDraftClaim(database, {
+      briefId,
+      claimN: claim.n,
+      title: claim.title,
+      body: claim.body ?? null,
+      strength: claim.strength,
+      evidenceIds: claim.evidenceIds,
+      caveatIds: claim.caveatIds,
+      state: claim.state ?? "active",
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+
+  const created = await getStudioBriefDraftRecord(database, briefId);
+  if (created === null) {
+    return errorJson(503, "Studio brief draft could not be initialized.");
+  }
+  await appendStudioBriefDraftHistoryForActor(
+    env,
+    created,
+    accessSessionActorName(session),
+    "draft.created",
+    "Draft initialized.",
+    now,
+  );
+  return created;
+}
+
 async function getRequiredDraftRecord(
   env: Env,
   session: StudioOperatorSession,
@@ -765,6 +1017,26 @@ async function getRequiredDraftRecord(
   }
   if (!canWriteDraftForOperator(record, session.operator)) {
     return authError(403, "FORBIDDEN", "This draft belongs to a different Studio workspace.");
+  }
+  return record;
+}
+
+async function getRequiredAccessibleDraftRecord(
+  env: Env,
+  session: DraftAccessSession,
+  briefId: string,
+  access: "read" | "write",
+): Promise<D1StudioBriefDraftRecord | Response> {
+  if (env.DB === undefined) {
+    return errorJson(503, "D1 binding is not configured.");
+  }
+  const database = createD1ServingDb(env.DB);
+  const record = await getStudioBriefDraftRecord(database, briefId);
+  if (record === null) {
+    return errorJson(404, "Studio brief draft was not found.");
+  }
+  if (!canAccessDraftForSession(record, session, access)) {
+    return authError(403, "FORBIDDEN", "This draft belongs to a different Studio owner.");
   }
   return record;
 }
@@ -869,8 +1141,6 @@ export async function handleStudioBriefCreate(
   env: Env,
   url: URL,
 ): Promise<Response> {
-  const session = await requireStudioOperator(request, env, "write:briefs");
-  if (session instanceof Response) return session;
   const database = requireD1Database(env);
   if (database instanceof Response) return database;
   const body = await parseJsonRequest(request, StudioBriefCreateRequestSchema);
@@ -880,12 +1150,49 @@ export async function handleStudioBriefCreate(
     const now = new Date().toISOString();
     const seed = await resolveStudioBriefCreateSeed(env, body.data);
     if (seed instanceof Response) return seed;
+    const resolved = await resolveIdentity(request, env);
+    let session: DraftAccessSession;
+    let workspaceId: string | null = null;
+    let ownerKind: "workspace" | "identity" | "guest";
+    let ownerIdentityId: string | null = null;
+    let guestTokenHash: string | null = null;
+    let guestTokenToSet: string | null = null;
+
+    if (
+      resolved.identity !== null &&
+      resolved.operator !== null &&
+      hasStudioScope(resolved.operator, "write:briefs")
+    ) {
+      session = { kind: "operator", identity: resolved.identity, operator: resolved.operator };
+      workspaceId = resolved.operator.workspaceId;
+      ownerKind = "workspace";
+    } else if (resolved.identity !== null) {
+      session = { kind: "identity", identity: resolved.identity };
+      ownerKind = "identity";
+      ownerIdentityId = resolved.identity.identityId;
+    } else {
+      const existingGuestToken = readCookie(request, GUEST_COOKIE);
+      const guestToken =
+        existingGuestToken === null || existingGuestToken.length === 0
+          ? randomToken(32)
+          : existingGuestToken;
+      guestTokenToSet =
+        existingGuestToken === null || existingGuestToken.length === 0 ? guestToken : null;
+      guestTokenHash = await sha256Hex(guestToken);
+      session = { kind: "guest", guest: { tokenHash: guestTokenHash } };
+      ownerKind = "guest";
+    }
+
     const briefId = seededBriefId(seed.route.slug);
     await insertStudioBriefDraft(database, {
       briefId,
       routeSlug: seed.route.slug,
       sourceBriefId: seed.sourceBriefId,
-      workspaceId: session.operator.workspaceId,
+      workspaceId,
+      ownerKind,
+      ownerIdentityId,
+      guestTokenHash,
+      guestClaimedAt: null,
       fromFindingId: seed.fromFindingId,
       status: "draft",
       title: seed.title,
@@ -919,19 +1226,23 @@ export async function handleStudioBriefCreate(
       });
     }
 
-    const created = await getRequiredDraftRecord(env, session, briefId);
+    const created = await getRequiredAccessibleDraftRecord(env, session, briefId, "read");
     if (created instanceof Response) return created;
-    await appendStudioBriefDraftHistory(
+    await appendStudioBriefDraftHistoryForActor(
       env,
       created,
-      session,
+      accessSessionActorName(session),
       "draft.created",
       "Draft brief created.",
       now,
     );
-    return draftJson(
+    const response = draftJson(
       StudioBriefCreateResponseSchema.parse({ draft: draftRecordToStudioDraft(created) }),
     );
+    if (guestTokenToSet !== null) {
+      response.headers.append("Set-Cookie", guestCookie(guestTokenToSet, GUEST_MAX_AGE_SECONDS));
+    }
+    return response;
   });
 }
 
@@ -2794,15 +3105,20 @@ export async function handleBriefDraftRoutes(
   }
 
   if (request.method === "PATCH" && suffix === "") {
-    const session = await requireStudioOperator(request, env, "write:briefs");
-    if (session instanceof Response) return session;
+    const context = await resolveDraftWriteContext(request, env);
+    if (context instanceof Response) return context;
     const database = requireD1Database(env);
     if (database instanceof Response) return database;
     const body = await parseJsonRequest(request, StudioBriefDraftPatchRequestSchema);
     if (!body.ok) return body.response;
     return withStudioBriefDraftIdempotency(request, env, url, async () => {
       const now = new Date().toISOString();
-      const record = await ensureStudioBriefDraftRecord(env, session, briefId, now);
+      const record = await ensureAccessibleStudioBriefDraftRecord(
+        env,
+        context.session,
+        briefId,
+        now,
+      );
       if (record instanceof Response) return record;
       await updateStudioBriefDraftMetadata(database, {
         briefId,
@@ -2813,17 +3129,68 @@ export async function handleBriefDraftRoutes(
         ...(body.data.bodyMd === undefined ? {} : { bodyMd: body.data.bodyMd }),
         ...(body.data.status === undefined ? {} : { status: body.data.status }),
       });
-      const updated = await getRequiredDraftRecord(env, session, briefId);
+      const updated = await getRequiredAccessibleDraftRecord(env, context.session, briefId, "read");
       if (updated instanceof Response) return updated;
-      await appendStudioBriefDraftHistory(
+      await appendStudioBriefDraftHistoryForActor(
         env,
         updated,
-        session,
+        accessSessionActorName(context.session),
         "draft.updated",
         "Draft metadata updated.",
         now,
       );
-      return noContent();
+      return appendGuestCookieIfNeeded(noContent(), context.guestTokenToSet);
+    });
+  }
+
+  if (request.method === "POST" && suffix === "claim") {
+    const resolved = await resolveIdentity(request, env);
+    const identity = resolved.identity;
+    if (identity === null) {
+      return authError(401, "UNAUTHORIZED", "Sign in is required to claim a guest draft.");
+    }
+    const guest = await resolveGuestSession(request);
+    if (guest === null) {
+      return authError(403, "FORBIDDEN", "A guest draft cookie is required to claim this draft.");
+    }
+    const database = requireD1Database(env);
+    if (database instanceof Response) return database;
+    const body = await parseJsonRequest(request, EmptyObjectSchema);
+    if (!body.ok) return body.response;
+    return withStudioBriefDraftIdempotency(request, env, url, async () => {
+      const now = new Date().toISOString();
+      const record = await getStudioBriefDraftRecord(database, briefId);
+      if (record === null) return errorJson(404, "Studio brief draft was not found.");
+      if (
+        record.draft.owner_kind !== "guest" ||
+        record.draft.guest_claimed_at !== null ||
+        record.draft.guest_token_hash === null ||
+        record.draft.guest_token_hash !== guest.tokenHash
+      ) {
+        return authError(403, "FORBIDDEN", "This guest draft cannot be claimed by this session.");
+      }
+
+      await claimStudioBriefGuestDraft(database, {
+        briefId,
+        ownerIdentityId: identity.identityId,
+        claimedAt: now,
+      });
+      const identitySession: DraftAccessSession = { kind: "identity", identity };
+      const updated = await getRequiredAccessibleDraftRecord(env, identitySession, briefId, "read");
+      if (updated instanceof Response) return updated;
+      await appendStudioBriefDraftHistoryForActor(
+        env,
+        updated,
+        accessSessionActorName(identitySession),
+        "draft.claimed",
+        "Guest draft claimed.",
+        now,
+      );
+      const response = draftJson(
+        StudioBriefCreateResponseSchema.parse({ draft: draftRecordToStudioDraft(updated) }),
+      );
+      response.headers.append("Set-Cookie", guestCookie("", 0));
+      return response;
     });
   }
 
@@ -2957,15 +3324,20 @@ export async function handleBriefDraftRoutes(
   }
 
   if (request.method === "POST" && suffix === "claims") {
-    const session = await requireStudioOperator(request, env, "write:briefs");
-    if (session instanceof Response) return session;
+    const context = await resolveDraftWriteContext(request, env);
+    if (context instanceof Response) return context;
     const database = requireD1Database(env);
     if (database instanceof Response) return database;
     const body = await parseJsonRequest(request, StudioBriefDraftClaimCreateRequestSchema);
     if (!body.ok) return body.response;
     return withStudioBriefDraftIdempotency(request, env, url, async () => {
       const now = new Date().toISOString();
-      const record = await ensureStudioBriefDraftRecord(env, session, briefId, now);
+      const record = await ensureAccessibleStudioBriefDraftRecord(
+        env,
+        context.session,
+        briefId,
+        now,
+      );
       if (record instanceof Response) return record;
       const claimN = Math.max(0, ...record.claims.map((claim) => claim.claim_n)) + 1;
       await insertStudioBriefDraftClaim(database, {
@@ -2980,30 +3352,35 @@ export async function handleBriefDraftRoutes(
         createdAt: now,
         updatedAt: now,
       });
-      const updated = await getRequiredDraftRecord(env, session, briefId);
+      const updated = await getRequiredAccessibleDraftRecord(env, context.session, briefId, "read");
       if (updated instanceof Response) return updated;
-      await appendStudioBriefDraftHistory(
+      await appendStudioBriefDraftHistoryForActor(
         env,
         updated,
-        session,
+        accessSessionActorName(context.session),
         "draft.claim.created",
         `Claim ${claimN} created.`,
         now,
       );
-      return claimResponse(updated, claimN);
+      return appendGuestCookieIfNeeded(claimResponse(updated, claimN), context.guestTokenToSet);
     });
   }
 
   if (request.method === "POST" && suffix === "blocks") {
-    const session = await requireStudioOperator(request, env, "write:briefs");
-    if (session instanceof Response) return session;
+    const context = await resolveDraftWriteContext(request, env);
+    if (context instanceof Response) return context;
     const database = requireD1Database(env);
     if (database instanceof Response) return database;
     const body = await parseJsonRequest(request, StudioBriefDraftBlockCreateRequestSchema);
     if (!body.ok) return body.response;
     return withStudioBriefDraftIdempotency(request, env, url, async () => {
       const now = new Date().toISOString();
-      const record = await ensureStudioBriefDraftRecord(env, session, briefId, now);
+      const record = await ensureAccessibleStudioBriefDraftRecord(
+        env,
+        context.session,
+        briefId,
+        now,
+      );
       if (record instanceof Response) return record;
       if (record.blocks.some((block) => block.block_id === body.data.block.id)) {
         return errorJson(409, "Studio brief draft block already exists.");
@@ -3017,25 +3394,28 @@ export async function handleBriefDraftRoutes(
         updatedAt: now,
       });
       await updateStudioBriefDraftMetadata(database, { briefId, updatedAt: now });
-      const updated = await getRequiredDraftRecord(env, session, briefId);
+      const updated = await getRequiredAccessibleDraftRecord(env, context.session, briefId, "read");
       if (updated instanceof Response) return updated;
-      await appendStudioBriefDraftHistory(
+      await appendStudioBriefDraftHistoryForActor(
         env,
         updated,
-        session,
+        accessSessionActorName(context.session),
         "draft.block.created",
         `Block ${body.data.block.id} created.`,
         now,
       );
-      return blockResponse(updated, body.data.block.id);
+      return appendGuestCookieIfNeeded(
+        blockResponse(updated, body.data.block.id),
+        context.guestTokenToSet,
+      );
     });
   }
 
   const blockMatch = suffix.match(/^blocks\/([^/]+)$/);
   if (blockMatch !== null && request.method === "PATCH") {
     const blockId = decodeURIComponent(blockMatch[1] ?? "");
-    const session = await requireStudioOperator(request, env, "write:briefs");
-    if (session instanceof Response) return session;
+    const context = await resolveDraftWriteContext(request, env);
+    if (context instanceof Response) return context;
     const database = requireD1Database(env);
     if (database instanceof Response) return database;
     const body = await parseJsonRequest(request, StudioBriefDraftBlockPatchRequestSchema);
@@ -3045,7 +3425,7 @@ export async function handleBriefDraftRoutes(
     }
     return withStudioBriefDraftIdempotency(request, env, url, async () => {
       const now = new Date().toISOString();
-      const record = await getRequiredDraftRecord(env, session, briefId);
+      const record = await getRequiredAccessibleDraftRecord(env, context.session, briefId, "write");
       if (record instanceof Response) return record;
       if (!record.blocks.some((block) => block.block_id === blockId)) {
         return errorJson(404, "Studio brief draft block was not found.");
@@ -3058,29 +3438,29 @@ export async function handleBriefDraftRoutes(
         updatedAt: now,
       });
       await updateStudioBriefDraftMetadata(database, { briefId, updatedAt: now });
-      const updated = await getRequiredDraftRecord(env, session, briefId);
+      const updated = await getRequiredAccessibleDraftRecord(env, context.session, briefId, "read");
       if (updated instanceof Response) return updated;
-      await appendStudioBriefDraftHistory(
+      await appendStudioBriefDraftHistoryForActor(
         env,
         updated,
-        session,
+        accessSessionActorName(context.session),
         "draft.block.updated",
         `Block ${blockId} updated.`,
         now,
       );
-      return noContent();
+      return appendGuestCookieIfNeeded(noContent(), context.guestTokenToSet);
     });
   }
 
   if (blockMatch !== null && request.method === "DELETE") {
     const blockId = decodeURIComponent(blockMatch[1] ?? "");
-    const session = await requireStudioOperator(request, env, "write:briefs");
-    if (session instanceof Response) return session;
+    const context = await resolveDraftWriteContext(request, env);
+    if (context instanceof Response) return context;
     const database = requireD1Database(env);
     if (database instanceof Response) return database;
     return withStudioBriefDraftIdempotency(request, env, url, async () => {
       const now = new Date().toISOString();
-      const record = await getRequiredDraftRecord(env, session, briefId);
+      const record = await getRequiredAccessibleDraftRecord(env, context.session, briefId, "write");
       if (record instanceof Response) return record;
       if (!record.blocks.some((block) => block.block_id === blockId)) {
         return errorJson(404, "Studio brief draft block was not found.");
@@ -3088,49 +3468,59 @@ export async function handleBriefDraftRoutes(
       await deleteStudioBriefDraftBlock(database, { briefId, blockId });
       await deleteStudioBriefDraftRefsForBlock(database, { briefId, blockId });
       await updateStudioBriefDraftMetadata(database, { briefId, updatedAt: now });
-      const updated = await getRequiredDraftRecord(env, session, briefId);
+      const updated = await getRequiredAccessibleDraftRecord(env, context.session, briefId, "read");
       if (updated instanceof Response) return updated;
-      await appendStudioBriefDraftHistory(
+      await appendStudioBriefDraftHistoryForActor(
         env,
         updated,
-        session,
+        accessSessionActorName(context.session),
         "draft.block.deleted",
         `Block ${blockId} deleted.`,
         now,
       );
-      return noContent();
+      return appendGuestCookieIfNeeded(noContent(), context.guestTokenToSet);
     });
   }
 
   if (request.method === "POST" && suffix === "refs/resolve") {
-    const session = await requireStudioOperator(request, env, "write:briefs");
-    if (session instanceof Response) return session;
+    const context = await resolveDraftWriteContext(request, env);
+    if (context instanceof Response) return context;
     const body = await parseJsonRequest(request, StudioBriefDraftRefsResolveRequestSchema);
     if (!body.ok) return body.response;
     return withStudioBriefDraftIdempotency(request, env, url, async () => {
       const now = new Date().toISOString();
-      const record = await ensureStudioBriefDraftRecord(env, session, briefId, now);
+      const record = await ensureAccessibleStudioBriefDraftRecord(
+        env,
+        context.session,
+        briefId,
+        now,
+      );
       if (record instanceof Response) return record;
       const projection = await loadProjectionForDraftRefs(env, record);
       if (!projection.ok) return projection.response;
       const routeDetail = await maybeLoadStudioRouteDetailProjection(env, record.draft.route_slug);
-      return draftJson(
-        StudioBriefDraftRefsResolveResponseSchema.parse(
-          resolveStudioBriefDraftRefs({
-            refs: body.data.refs,
-            record,
-            projection: projection.data,
-            routeDetail,
-          }),
+      return appendGuestCookieIfNeeded(
+        draftJson(
+          StudioBriefDraftRefsResolveResponseSchema.parse(
+            resolveStudioBriefDraftRefs({
+              refs: body.data.refs,
+              record,
+              projection: projection.data,
+              routeDetail,
+            }),
+          ),
         ),
+        context.guestTokenToSet,
       );
     });
   }
 
   if (request.method === "GET" && suffix === "refs") {
-    const session = await requireStudioOperator(request, env, "read:briefs");
-    if (session instanceof Response) return session;
-    const record = await getRequiredDraftRecord(env, session, briefId);
+    const session = await resolveDraftAccessSession(request, env);
+    if (session === null) {
+      return authError(401, "UNAUTHORIZED", "Sign in or a guest draft cookie is required.");
+    }
+    const record = await getRequiredAccessibleDraftRecord(env, session, briefId, "read");
     if (record instanceof Response) return record;
     return draftJson(
       StudioBriefDraftRefsResponseSchema.parse({ refs: storedDraftRefs(record), unresolved: [] }),
@@ -3138,15 +3528,20 @@ export async function handleBriefDraftRoutes(
   }
 
   if (request.method === "PUT" && suffix === "refs") {
-    const session = await requireStudioOperator(request, env, "write:briefs");
-    if (session instanceof Response) return session;
+    const context = await resolveDraftWriteContext(request, env);
+    if (context instanceof Response) return context;
     const database = requireD1Database(env);
     if (database instanceof Response) return database;
     const body = await parseJsonRequest(request, StudioBriefDraftRefsReplaceRequestSchema);
     if (!body.ok) return body.response;
     return withStudioBriefDraftIdempotency(request, env, url, async () => {
       const now = new Date().toISOString();
-      const record = await ensureStudioBriefDraftRecord(env, session, briefId, now);
+      const record = await ensureAccessibleStudioBriefDraftRecord(
+        env,
+        context.session,
+        briefId,
+        now,
+      );
       if (record instanceof Response) return record;
       const projection = await loadProjectionForDraftRefs(env, record);
       if (!projection.ok) return projection.response;
@@ -3159,30 +3554,38 @@ export async function handleBriefDraftRoutes(
       });
       await replaceResolvedDraftRefs(database, { briefId, refs: resolved.refs, updatedAt: now });
       await updateStudioBriefDraftMetadata(database, { briefId, updatedAt: now });
-      const updated = await getRequiredDraftRecord(env, session, briefId);
+      const updated = await getRequiredAccessibleDraftRecord(env, context.session, briefId, "read");
       if (updated instanceof Response) return updated;
-      await appendStudioBriefDraftHistory(
+      await appendStudioBriefDraftHistoryForActor(
         env,
         updated,
-        session,
+        accessSessionActorName(context.session),
         "draft.refs.replaced",
         `Draft refs replaced (${resolved.refs.length}).`,
         now,
       );
-      return draftJson(StudioBriefDraftRefsResponseSchema.parse(resolved));
+      return appendGuestCookieIfNeeded(
+        draftJson(StudioBriefDraftRefsResponseSchema.parse(resolved)),
+        context.guestTokenToSet,
+      );
     });
   }
 
   if (request.method === "POST" && suffix === "attach") {
-    const session = await requireStudioOperator(request, env, "write:briefs");
-    if (session instanceof Response) return session;
+    const context = await resolveDraftWriteContext(request, env);
+    if (context instanceof Response) return context;
     const database = requireD1Database(env);
     if (database instanceof Response) return database;
     const body = await parseJsonRequest(request, StudioBriefDraftAttachRequestSchema);
     if (!body.ok) return body.response;
     return withStudioBriefDraftIdempotency(request, env, url, async () => {
       const now = new Date().toISOString();
-      const record = await ensureStudioBriefDraftRecord(env, session, briefId, now);
+      const record = await ensureAccessibleStudioBriefDraftRecord(
+        env,
+        context.session,
+        briefId,
+        now,
+      );
       if (record instanceof Response) return record;
       if (record.blocks.some((block) => block.block_id === body.data.block.id)) {
         return errorJson(409, "Studio brief draft block already exists.");
@@ -3233,22 +3636,25 @@ export async function handleBriefDraftRoutes(
           ? { bodyMd: appendDirectiveToBody(record.draft.body_md, directive) }
           : {}),
       });
-      const updated = await getRequiredDraftRecord(env, session, briefId);
+      const updated = await getRequiredAccessibleDraftRecord(env, context.session, briefId, "read");
       if (updated instanceof Response) return updated;
-      await appendStudioBriefDraftHistory(
+      await appendStudioBriefDraftHistoryForActor(
         env,
         updated,
-        session,
+        accessSessionActorName(context.session),
         "draft.attachment.created",
         `Attached block ${body.data.block.id}.`,
         now,
       );
-      return draftJson(
-        StudioBriefDraftAttachResponseSchema.parse({
-          draft: draftRecordToStudioDraft(updated),
-          block: body.data.block,
-          refs: resolved.refs,
-        }),
+      return appendGuestCookieIfNeeded(
+        draftJson(
+          StudioBriefDraftAttachResponseSchema.parse({
+            draft: draftRecordToStudioDraft(updated),
+            block: body.data.block,
+            refs: resolved.refs,
+          }),
+        ),
+        context.guestTokenToSet,
       );
     });
   }
@@ -3450,15 +3856,20 @@ export async function handleBriefDraftRoutes(
   if (claimMatch !== null && request.method === "PATCH") {
     const claimN = parseClaimN(claimMatch[1]);
     if (claimN instanceof Response) return claimN;
-    const session = await requireStudioOperator(request, env, "write:briefs");
-    if (session instanceof Response) return session;
+    const context = await resolveDraftWriteContext(request, env);
+    if (context instanceof Response) return context;
     const database = requireD1Database(env);
     if (database instanceof Response) return database;
     const body = await parseJsonRequest(request, StudioBriefDraftClaimPatchRequestSchema);
     if (!body.ok) return body.response;
     return withStudioBriefDraftIdempotency(request, env, url, async () => {
       const now = new Date().toISOString();
-      const record = await ensureStudioBriefDraftRecord(env, session, briefId, now);
+      const record = await ensureAccessibleStudioBriefDraftRecord(
+        env,
+        context.session,
+        briefId,
+        now,
+      );
       if (record instanceof Response) return record;
       if (!record.claims.some((claim) => claim.claim_n === claimN)) {
         return errorJson(404, "Studio brief draft claim was not found.");
@@ -3474,73 +3885,86 @@ export async function handleBriefDraftRoutes(
         ...(body.data.caveatIds === undefined ? {} : { caveatIds: body.data.caveatIds }),
         ...(body.data.state === undefined ? {} : { state: body.data.state }),
       });
-      const updated = await getRequiredDraftRecord(env, session, briefId);
+      const updated = await getRequiredAccessibleDraftRecord(env, context.session, briefId, "read");
       if (updated instanceof Response) return updated;
-      await appendStudioBriefDraftHistory(
+      await appendStudioBriefDraftHistoryForActor(
         env,
         updated,
-        session,
+        accessSessionActorName(context.session),
         "draft.claim.updated",
         `Claim ${claimN} updated.`,
         now,
       );
-      return noContent();
+      return appendGuestCookieIfNeeded(noContent(), context.guestTokenToSet);
     });
   }
 
   if (claimMatch !== null && request.method === "DELETE") {
     const claimN = parseClaimN(claimMatch[1]);
     if (claimN instanceof Response) return claimN;
-    const session = await requireStudioOperator(request, env, "write:briefs");
-    if (session instanceof Response) return session;
+    const context = await resolveDraftWriteContext(request, env);
+    if (context instanceof Response) return context;
     const database = requireD1Database(env);
     if (database instanceof Response) return database;
     return withStudioBriefDraftIdempotency(request, env, url, async () => {
       const now = new Date().toISOString();
-      const record = await ensureStudioBriefDraftRecord(env, session, briefId, now);
+      const record = await ensureAccessibleStudioBriefDraftRecord(
+        env,
+        context.session,
+        briefId,
+        now,
+      );
       if (record instanceof Response) return record;
       if (!record.claims.some((claim) => claim.claim_n === claimN)) {
         return errorJson(404, "Studio brief draft claim was not found.");
       }
       await deleteStudioBriefDraftClaim(database, { briefId, claimN, updatedAt: now });
-      const updated = await getRequiredDraftRecord(env, session, briefId);
+      const updated = await getRequiredAccessibleDraftRecord(env, context.session, briefId, "read");
       if (updated instanceof Response) return updated;
-      await appendStudioBriefDraftHistory(
+      await appendStudioBriefDraftHistoryForActor(
         env,
         updated,
-        session,
+        accessSessionActorName(context.session),
         "draft.claim.deleted",
         `Claim ${claimN} deleted.`,
         now,
       );
-      return noContent();
+      return appendGuestCookieIfNeeded(noContent(), context.guestTokenToSet);
     });
   }
 
   if (request.method === "POST" && suffix === "validate") {
-    const session = await requireStudioOperator(request, env, "write:briefs");
-    if (session instanceof Response) return session;
+    const context = await resolveDraftWriteContext(request, env);
+    if (context instanceof Response) return context;
     const database = requireD1Database(env);
     if (database instanceof Response) return database;
     const body = await parseJsonRequest(request, EmptyObjectSchema);
     if (!body.ok) return body.response;
     return withStudioBriefDraftIdempotency(request, env, url, async () => {
       const now = new Date().toISOString();
-      const record = await ensureStudioBriefDraftRecord(env, session, briefId, now);
+      const record = await ensureAccessibleStudioBriefDraftRecord(
+        env,
+        context.session,
+        briefId,
+        now,
+      );
       if (record instanceof Response) return record;
       const validation = calculateStudioBriefDraftValidation(record, now);
       await updateStudioBriefDraftValidation(database, { briefId, ...validation });
-      const updated = await getRequiredDraftRecord(env, session, briefId);
+      const updated = await getRequiredAccessibleDraftRecord(env, context.session, briefId, "read");
       if (updated instanceof Response) return updated;
-      await appendStudioBriefDraftHistory(
+      await appendStudioBriefDraftHistoryForActor(
         env,
         updated,
-        session,
+        accessSessionActorName(context.session),
         "draft.validated",
         "Draft validation refreshed.",
         now,
       );
-      return draftJson(StudioBriefDraftValidationResponseSchema.parse({ validation }));
+      return appendGuestCookieIfNeeded(
+        draftJson(StudioBriefDraftValidationResponseSchema.parse({ validation })),
+        context.guestTokenToSet,
+      );
     });
   }
 

@@ -8,7 +8,7 @@ import {
   getOperatorRoleForIdentity,
   revokeSession,
 } from "@bp/db/d1";
-import { MagicLinkConsumeRequestSchema, MagicLinkRequestSchema } from "@bp/domain";
+import { MagicLinkConsumeRequestSchema, MagicLinkRequestSchema } from "@bp/domain/studio/identity";
 import type { StudioApiEnv } from "./env.js";
 import { jsonResponse as json } from "./http/json.js";
 import {

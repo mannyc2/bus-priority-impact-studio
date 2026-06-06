@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { StudioSnapshotResponseSchema } from "@bp/domain";
+import { StudioSnapshotResponseSchema } from "@bp/domain/studio/snapshots";
 import { isApiPath, isStudioApiPath, studioRouteTemplate } from "@bp/studio-api/contracts";
 import { handleStudioApiRequest } from "@bp/studio-api/server";
 import { studioProjectionKey, studioProjectionPrefix } from "../src/studio/projections.js";
@@ -68,6 +68,9 @@ describe("Studio API HTTP helpers", () => {
 
   test("returns stable route templates for Studio resources", () => {
     expect(studioRouteTemplate("/api/v1/studio/routes")).toBe("/api/v1/studio/routes");
+    expect(studioRouteTemplate("/api/v1/studio/routes/sections")).toBe(
+      "/api/v1/studio/routes/sections",
+    );
     expect(studioRouteTemplate("/api/v1/studio/routes/m15-sbs")).toBe(
       "/api/v1/studio/routes/:routeId",
     );

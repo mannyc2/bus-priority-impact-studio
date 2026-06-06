@@ -3,6 +3,7 @@ import type { StudioApiEnv } from "./env.js";
 import { errorResponse } from "./http/errors.js";
 import { allowedApiMethodsForPath, isApiPath, isStudioApiPath } from "./http/routing.js";
 import { withServerTiming } from "./http/timing.js";
+import { handleIdentitySurfaceRoutes } from "./identity-surface-routes.js";
 import { handleObservabilityRoutes } from "./observability.js";
 import { handlePublicApiRoutes } from "./public-api.js";
 import { handleSchemaRoutes } from "./schema-routes.js";
@@ -38,6 +39,11 @@ export async function handleStudioApiRequest(
   const observabilityResponse = await handleObservabilityRoutes(request, url);
   if (observabilityResponse !== null) {
     return observabilityResponse;
+  }
+
+  const identitySurfaceResponse = await handleIdentitySurfaceRoutes(request, env, url);
+  if (identitySurfaceResponse !== null) {
+    return identitySurfaceResponse;
   }
 
   const schemaResponse = handleSchemaRoutes(url);

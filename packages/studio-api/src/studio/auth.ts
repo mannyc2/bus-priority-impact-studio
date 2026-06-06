@@ -8,7 +8,9 @@ import type { StudioApiEnv } from "../env.js";
 import { jsonResponse } from "../http/json.js";
 
 export const SESSION_COOKIE = "bp_session";
+export const GUEST_COOKIE = "bp_guest";
 export const SESSION_MAX_AGE_SECONDS = 2592000;
+export const GUEST_MAX_AGE_SECONDS = 2592000;
 
 export type ResolvedIdentity = {
   identity: { identityId: string; email: string; displayName: string | null } | null;
@@ -49,6 +51,10 @@ export function readCookie(request: Request, name: string): string | null {
 
 export function sessionCookie(value: string, maxAgeSeconds: number): string {
   return `${SESSION_COOKIE}=${value}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${maxAgeSeconds}`;
+}
+
+export function guestCookie(value: string, maxAgeSeconds: number): string {
+  return `${GUEST_COOKIE}=${value}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${maxAgeSeconds}`;
 }
 
 export function authError(status: number, code: string, message: string): Response {

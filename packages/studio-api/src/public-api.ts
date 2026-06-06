@@ -10,17 +10,16 @@ import {
   listRouteComparisonRanks,
   listRouteObservedReliabilitySummaries,
 } from "@bp/db/d1";
+import { MapManifestResponseSchema } from "@bp/domain/maps";
+import { IsoMonthSchema, RouteIdCodec } from "@bp/domain/primitives";
 import {
   HotspotListResponseSchema,
-  IsoMonthSchema,
-  MapManifestResponseSchema,
   ReleaseStatusResponseSchema,
   RouteCompareResponseSchema,
-  RouteIdCodec,
   RouteListResponseSchema,
   RouteProfileResponseSchema,
   RouteScorecardSchema,
-} from "@bp/domain";
+} from "@bp/domain/routes";
 import * as z from "zod";
 import type { StudioApiEnv } from "./env.js";
 import { errorResponse as errorJson } from "./http/errors.js";

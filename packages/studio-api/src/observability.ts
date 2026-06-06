@@ -1,4 +1,5 @@
-import { HealthResponseSchema, RumReportSchema } from "@bp/domain";
+import { HealthResponseSchema } from "@bp/domain/routes";
+import { RumReportSchema } from "@bp/domain/studio/rum";
 import { errorResponse as errorJson } from "./http/errors.js";
 import { jsonResponse as json } from "./http/json.js";
 
