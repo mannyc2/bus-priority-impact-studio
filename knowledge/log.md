@@ -2,6 +2,626 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-06] engineering | Route treatment summary materializer planned
+
+Added `knowledge/wiki/engineering/route_treatment_summary_materializer_plan.md` to define the
+deterministic resolver between existing Tier 2 intervention work and public treatment-state read
+models. The plan explicitly says this is not a new broad LLM extraction pass: it merges reviewed
+Tier 2 interventions, local intervention events/comparison rows, ACE/ABLE, DOT bus-lane
+route-shape overlap, dated TSP source-snapshot evidence, and source-gap posture into
+`route_treatment_summary`, `route_segment_treatment_summary`, and
+`route_treatment_source_gap`. It records the canonical treatment vocabulary, status semantics,
+TSP-specific mapping rules, merge strength order, D1/API/UI phases, detector integration, tests, and
+acceptance gates. Linked it from the wiki index, Website Surface Data Plan, and Serving Snapshot 2.0
+Surface Manifest.
+
+## [2026-06-06] data | Recurring MTA meeting discovery expands the available corpus
+
+Added `docs tier2 discover-meetings` (`tools/pipeline-v2/src/commands/docs/tier2/discover-meetings.ts`
+plus pure parser/builder `_discover-meetings.ts` and a fixture test). It walks MTA's recurring
+monthly board/committee meeting pages
+(`https://www.mta.info/transparency/board-and-committee-meetings/<month>-<year>`, enumerable by
+month) and indexes every meeting's assets into the available source backlog: committee/board book
+PDFs (`/document/<id>` links with titles) and the meeting's YouTube recording. **Indexing only — no
+downloads** (registers URL + metadata), so it sidesteps the disk-full constraint; capture/OCR of the
+new docs is a separate, disk-budgeted step. MTA 403s plain fetches; the working bypass is a full
+browser header set (`MTA_BROWSER_HEADERS`: Safari UA + `Accept`/`Accept-Language`/`Sec-Fetch-*`/
+`Upgrade-Insecure-Requests`), verified for both meeting pages and document PDFs via Bun fetch.
+
+First live run (2021-01 → 2026-06): 61 months with meetings → **2,270 new sources (2,129 PDFs + 141
+YouTube recordings)**, 5 dedup hits against the existing backlog. That grows the *available* universe
+from 485 → 2,755 and populates the previously-empty media lane (0 → 141 videos). Re-running
+`audit tier2-source-coverage` against the merged backlog reframes the funnel honestly: 2,755
+available → 445 captured (~16%) → 368 OCR-derived → 175 verified → 19 promoted, with 0 of 141 meeting
+videos captured (transcription deferred). Merged backlog + discovery artifact live under
+`data/artifacts/docs/mta-meeting-discovery/`. Recorded in
+[[wiki/data/tier2_document_corpus|Tier 2 document corpus]].
+
+## [2026-06-06] data | Tier 2 source-asset coverage audit
+
+Added `audit tier2-source-coverage` (`tools/pipeline-v2/src/commands/audit/tier2-source-coverage.ts`
+plus pure builder `_tier2-source-coverage.ts` and a fixture test). It is the first source-grain
+inventory of the Tier 2 corpus: it joins the *available* universe (the 485-source augmented backlog)
+against what we *have* at each stage — captured (445), OCR-derived surfaces (368), verified/
+materialized (175), reviewed into intervention records (29), and promoted to publishable (19) — and
+writes `data/artifacts/audits/tier2-source-coverage.{json,md}`. The OCR-derived stage is distinct
+from the verified layer on purpose: 368 of 386 captured PDFs (95%) have `document-derived-surfaces-v1`
+OCR output, with 175 a strict subset promoted to the verified layer, so the real OCR gap is only 18
+captured PDFs (not the ~270 captured-not-verified) and 40 sources are not successfully captured
+(31 not attempted + 9 failed). Existing audits did not answer this:
+`audit tier2-structured-data` indexes extraction *artifacts* and `docs tier2 discovery-coverage`
+works at the OCR page-window grain. Two findings the audit surfaces: (1) **Media is an empty lane** —
+content types are only pdf/html/json; YouTube/audio/video are now first-class recognized types
+(`MEDIA_CONTENT_TYPES`) but zero are ingested, and transcription is intentionally deferred, so the
+lane reports as known-but-empty rather than being invisible. (2) **Cross-run sourceId drift** — the
+extracted layer (`agentic-runs-20260604`) and the reviewed/promoted layer (`gap-roadmap-docs-2026-05-25`)
+come from different runs with disjoint namespaces, so extracted ∩ reviewed = 0 and 7 reviewed + 4
+promoted source IDs are not in the available/capture universe at all; a reconciliation block reports
+this instead of silently undercounting. Recorded in
+[[wiki/data/tier2_document_corpus|Tier 2 document corpus]].
+
+## [2026-06-06] project | Opportunity data map documented
+
+Added `knowledge/wiki/project/opportunity_data_map.md` to capture the June business-problem
+research synthesis: the product wedge is route/corridor diagnostics plus bus-priority intervention
+evaluation and evidence/narrative packaging, not generic dashboarding. The page records priority
+data gaps, strict TSP evidence statuses, detector priorities, the recommended route evidence loop,
+and Snapshot 2.0 serving implications. Linked it from the wiki index and the website surface data
+plan so future UI/data work starts from the business question rather than raw table availability.
+
+## [2026-06-06] data | TSP acquisition plan documented
+
+Added `knowledge/wiki/data/tsp_data_acquisition.md` from the June TSP research output. The page
+records the current conclusion that NYC's authoritative active TSP inventory is a source gap, not a
+public dataset; distinguishes historical/corridor evidence, annual aggregate counts, candidates,
+and unsafe inference from speed outcomes; lists public evidence leads, candidate corridors, archive
+leads, FOIL/agency record classes, and recommended internal entities (`tsp_location`, `tsp_event`,
+`tsp_source`, `tsp_effect_estimate`, `tsp_candidate`). Linked the page from the wiki index, source
+registry backlog, and opportunity data map.
+Updated it with the follow-up deep-research report's more specific aggregate/procurement leads:
+MTA's 2021 annual-report count of 626 added intersections and 2,156 TSP-enabled intersections,
+NYCT's 2026 intelligent-TSP procurement lead, DOT PMMR/testimony study leads, the explicit
+Green-Means-Go post-2017 candidate corridor list, and the warning that 34th Street/Grand Avenue
+toolkit language should remain `under_consideration` unless deployment evidence is found.
+
+## [2026-06-06] engineering | Studio coverage audit applied-research cutover
+
+Moved `audit studio-coverage` route brief input and Studio route projection policy into
+`@bp/applied-research/evaluation`. Applied-research now owns route brief input completeness checks
+for schedule comparisons, ridership exposure, and 24-bin hourly slow-window coverage, plus Studio
+route projection checks for DOT bus-lane geometry, trend month labels, route-level ridership
+profiles, route-shape geometry, TSP source evidence, public AI note shape/density, route-segment
+rider-delay evidence, and route-segment coverage metadata. The pipeline command now keeps local D1
+reads, projection list/directory scanning, generated presentation text scanning, report status
+assembly, and JSON writes. Added direct applied-research fixture tests and a pipeline boundary guard
+against command-local Studio projection validators.
+
+## [2026-06-06] engineering | Tier 2 structured-data audit applied-research cutover
+
+Moved Tier 2 structured artifact layer/trust classification, count extraction, reviewed-record
+schema validity checks, summary extraction, research-substrate warnings, inventory summary, best
+research/serving artifact ranking, next-action policy, and Markdown rendering into
+`@bp/applied-research/evaluation`. The `audit tier2-structured-data` pipeline command now keeps
+filesystem scanning, JSON parsing, unreadable-file handling, and output writes. Added direct package
+tests for research/serving/discovery classification, schema-validity counts, warning policy,
+inventory ranking, next actions, and Markdown output plus a pipeline boundary guard against
+command-local domain-schema parsing, count helpers, ranking policy, and Markdown rendering.
+
+## [2026-06-06] engineering | Route brief model planning applied-research cutover
+
+Moved route brief-model route-universe planning, duplicate requested-route handling, unknown-route
+issue construction, comparison-rank eligibility, and final serving visibility projection into
+`@bp/applied-research/route-briefs`. The pipeline command now consumes the package plan/projection
+and keeps local SQLite reads/writes, hotspot projection error capture, route-slice artifact writes,
+CLI parsing, and run summary reporting. Added direct package coverage for all-routes/requested-route
+planning and route-slice visibility metrics plus a pipeline boundary guard against command-local
+route planning and visibility mutation.
+
+## [2026-06-06] engineering | Route timeline D1 and API integration landed
+
+Folded the Tier 2 route-timeline serving projection into the canonical serving path. Added the D1
+`route_timeline_index` schema/migration, seed/export plumbing for
+`--route-timeline-projection-path`, route-timeline D1 query helpers, loaded-D1 table-count
+verification, OpenAPI/registry coverage, and `GET /api/v1/studio/routes/:routeId/timeline`, which
+resolves a route slug through D1 and serves the immutable R2 timeline bundle. The Studio route index
+now marks the timeline surface available and emits a `route_timeline` projection ref when a
+`route_timeline_bundle` artifact is indexed. The March 2026 local export with the B46/B82/BX41/M15
+pilot produced 4 `route_timeline_index` rows and 4 `route_timeline_bundle` route-artifact refs.
+Export input assembly now also hydrates missing month-scoped source-gap `intervention_event` rows
+from source-gap `route_intervention_comparison` rows, while still failing on missing non-source-gap
+event refs. That fixes the stale local inventory/comparison mismatch from later-month intervention
+runs: the March 2026 export now has 913 intervention events, 741 intervention comparisons, and
+`verify d1` passes with 0 issues.
+
+## [2026-06-06] engineering | Route timeline serving projection pilot added
+
+Added `docs tier2 route-timeline-serving-projection`, a deterministic projection from the
+route-timeline bundle index into serving-addressable rows. The command emits a compact
+`route_timeline_index` schema/seed, `route_artifact` refs named `route_timeline_bundle`, an R2 copy
+plan, JSON/Markdown summaries, and SHA-256/byte-length metadata for each timeline bundle. The
+B46/B82/BX41/M15 pilot generated 4 timeline-index rows, 4 artifact refs, 3 `timeline_ready` routes,
+1 `timeline_sparse` route, 13 default events, 72 total events, 0 validation warnings/errors, and
+345,542 bundle bytes. The generated SQL was replayed into an in-memory SQLite database as a serving
+projection sanity check.
+
+## [2026-06-06] engineering | Route speed availability applied-research cutover
+
+Moved `check route-speed-availability` month parsing, route normalization, month status
+classification, requested-month fallback, rebuild-decision policy, result construction, and artifact
+path naming into `@bp/applied-research/evaluation` and `@bp/applied-research/artifacts`. The
+pipeline command now keeps source manifest loading, Socrata query/fetch plumbing, CLI validation,
+compatibility artifact reads, and JSON writes.
+
+## [2026-06-06] engineering | Evaluation artifacts applied-research cutover
+
+Moved `evaluation artifacts` payload construction, intervention-event filtering, artifact path/key
+naming, manifest construction, SHA-256/byte-count metadata, manifest parsing, payload contract
+checks, file hash verification, and expected-row-count policy into
+`@bp/applied-research/evaluation` and `@bp/applied-research/artifacts`. The pipeline command now
+keeps local SQLite row reads, CLI option handling, and JSON file writes. Added fixture coverage for
+valid artifact manifests, tampered payload detection, row-count mismatches, and a pipeline boundary
+guard against command-local hashing and manifest policy.
+
+## [2026-06-06] engineering | Map artifact manifest applied-research cutover
+
+Moved `map artifacts` path/key naming, JSON/GeoJSON content-type constants, SHA-256 metadata,
+artifact-entry construction, manifest construction, manifest parsing, required-artifact checks,
+route-segment payload validation, file hash verification, and expected public-route coverage policy
+into `@bp/applied-research/artifacts` and `@bp/applied-research/evaluation`. The pipeline command
+still owns source snapshot reads, local route/segment/bus-lane row reads, spatial projection, and
+JSON file writes. Added direct package tests for valid manifests, tampered files, and missing public
+route-segment artifacts, plus a pipeline boundary test against command-local manifest policy.
+
+## [2026-06-06] engineering | Brief artifact renderer applied-research cutover
+
+Moved route/corridor brief artifact key naming, source-reference policy, observed-reliability
+window grouping/ranking, JSON/Markdown/HTML rendering, content-type assignment, file byte counts,
+and SHA-256 metadata into `@bp/applied-research/route-briefs`. The `brief artifacts` command now
+keeps local SQLite row loading, artifact file writes, and route/corridor artifact DB replacement.
+Added direct package tests for route/corridor brief files and reliability windows plus a pipeline
+boundary test against command-local rendering, hashing, and window ranking.
+
+## [2026-06-06] engineering | Express route analysis applied-research cutover
+
+Moved express bus capacity context aggregation and express load/speed screening policy out of
+`tools/pipeline-v2`. `@bp/applied-research/feature-history` now owns normalized capacity row
+contracts, route/hour capacity summaries, capacity-window and speed-window aggregation, load/speed
+banding thresholds, screening candidate flags, route summaries, analysis artifact validation, and
+audit issue construction. `@bp/applied-research/artifacts` owns the express capacity summary,
+load/speed context, and audit artifact paths. Pipeline commands now keep normalized artifact
+loading, Socrata speed-query fetching, route filtering, CLI options, and JSON writes.
+
+## [2026-06-06] engineering | Route timeline date-ref repair
+
+Added a deterministic `docs tier2 route-timeline-curation-repair` step for route timeline curation
+outputs. The repair reads the source curation pack and accepted tool-call output, uses the existing
+validator's unambiguous date-resolution suggestions, and backfills omitted `dateAssertionRefs`
+without asking the LLM to rewrite dates or timeline events. The B46 ref-first pilot repaired 7
+events, added 26 date assertion refs, and reduced validation warnings from 7 to 0 before rebuilding
+the frontend-ready timeline bundle. Display dates/layers stayed unchanged; only the date source
+changed from implicit backfill to explicit `date_assertion_ref`.
+Added `docs tier2 route-timeline-bundle-index` as the deterministic route-level manifest over
+timeline bundles. The pilot index for B46, B82, BX41, and M15 has 4 valid bundles, 3
+`timeline_ready` routes, 1 `timeline_sparse` route, 13 default events, 72 total events, 0 validation
+warnings/errors, and 118,079 source-run LLM tokens recorded from the curation artifacts.
+
+## [2026-06-06] engineering | Parking location helper cutover
+
+Moved deterministic parking-location normalization helpers into `@bp/applied-research/local-db`.
+The package now owns parking borough/street normalization, camera and street-code-house location
+keys, camera-location parsing, street corridor keys, numeric house-number parsing, and stable match
+evidence hashes without importing `@bp/sources`. `tools/pipeline-v2/src/lib/parking-location.ts` is
+now a compatibility re-export, and `build parking-violation-matches` imports the package-owned
+helpers while retaining geocoder/env setup, raw snapshot file loading, SQL matching, and audit
+writes.
+The parking violation match audit path convention now lives in `@bp/applied-research/artifacts`.
+Parking violation match audit summary SQL and audit artifact shaping also moved into
+`@bp/applied-research/local-db`, along with the audit-only location-group count probe, location-key
+refresh, camera/address match-group selectors, and match-table clear/insert persistence with match
+weighting. LION segment lookup, physical-id route loading, and street-corridor route indexing for
+parking matches also moved to the package. The package now owns deterministic street-code-house
+match resolution and house-number range policy. Raw parking and LION field hydration transforms now
+live in applied-research too; the pipeline command keeps raw snapshot file discovery/JSON loading,
+Geoclient setup, run counts, and artifact writes. Camera match request construction and match policy
+also moved into applied-research using a plain geocode outcome object, so the command only performs
+the injected Geocoder call. The local DB rebuild loop now lives in applied-research too: it clears
+matches, scans camera/address groups, calls the injected camera geocoder callback, resolves package
+matches, inserts match rows, and returns scanned counts.
+
+## [2026-06-06] engineering | Data-product registry applied-research cutover
+
+Moved the data-product manifest schema, parser, and release manifest from
+`tools/pipeline-v2/src/registry` into `@bp/applied-research/data-products`, using `zod` directly
+instead of the pipeline CLI framework. The pipeline registry path is now a compatibility re-export,
+and audit commands that need the manifest import it from applied-research. The default
+data-product completeness artifact path also moved to `@bp/applied-research/artifacts`.
+Data-product completeness status, reason, gap-class, dependency root-cause, count, and coverage
+summary policy now lives in `@bp/applied-research/data-products`. Data-product route-universe
+derivation, latest GTFS run selection, and local SQLite table check evaluation now live in
+`@bp/applied-research/local-db`; the pipeline command keeps source-year waiver/artifact and
+filesystem-backed checks, delegates score-vector route parsing and JSON artifact semantic reasons
+to `@bp/applied-research/data-products`, then delegates product classification.
+
+## [2026-06-06] engineering | Observed headways applied-research cutover
+
+Moved `build observed-headways` derivation and persistence orchestration out of `tools/pipeline-v2`.
+`@bp/applied-research/local-db` now owns GTFS-RT vehicle-position stop-event deduplication,
+successive-vehicle observed headway construction, and the local observed-headway DB write wrapper.
+The pipeline command remains the Bun CLI adapter: it opens the local DB, validates options, delegates
+to applied-research, and returns the run counts.
+
+Moved `route observed-reliability` into the same observed-reliability package surface. The
+route/month summary builder, month filtering, route grouping, bunching/long-gap thresholds,
+expected-wait metrics, source-status rows, and local observed-reliability DB write wrapper now live
+in `@bp/applied-research/local-db`. The route command now only adapts CLI flags and local DB context
+before delegating to applied-research.
+
+Moved `route reliability-baseline` scheduled-headway baseline construction into
+`@bp/applied-research/local-db`. The package now owns timepoint grouping, scheduled headway interval
+construction, route-level baseline summaries, long-gap windows, source-status rows, and the local
+reliability baseline DB write wrapper. The route command remains the CLI/local DB adapter.
+
+Moved `route readiness` build-readiness scoring into `@bp/applied-research/local-db`. The package
+now owns missing-input detection, readiness status classification, scoring, deterministic row
+ordering, and the local route-readiness DB write wrapper. The route command remains the CLI/local DB
+adapter and output shaper.
+
+Moved `route build-plan` next-batch ranking into `@bp/applied-research/local-db`. The package now
+owns priority scoring, candidate ordering, selected/backlog/already-built/blocked classification,
+count rollups, and the local route-build-plan DB write wrapper. The route command remains the
+CLI/local DB adapter and output shaper.
+
+Moved `route equity-context` county-proxy ACS enrichment into `@bp/applied-research/local-db`. The
+package now owns route-prefix county assignment, county-level ACS tract aggregation, route equity row
+construction, source-status rows, and the local route-equity DB write wrapper. The route command
+remains the CLI/local DB adapter.
+
+Moved `build context-events` source-row normalization into `@bp/applied-research/local-db`. The
+package now owns context-event ID construction, parking/collision/permit/traffic/311/ACE event
+mapping, ACE monthly route aggregation, and the local context-event DB write wrapper. The build
+command remains the CLI/local DB adapter.
+
+Moved `build route-lion-link` spatial route-to-LION matching into `@bp/applied-research/local-db`.
+The package now owns route allowlist query construction, buffer conversion, SpatialIndex-backed
+route/LION intersection queries, per-route replacement writes, and run counts. The build command
+remains the spatial local DB CLI adapter.
+
+Moved `route intervention-evaluation` event-study orchestration into
+`@bp/applied-research/local-db`. The package now owns ACE, bus-lane, and document-anchor treatment
+event construction, bus-lane open-date parsing, source-gap event handling, peer/descriptive
+before-after comparison construction, local route/brief/trend/bus-lane row loading, and local
+intervention evaluation DB writes. The pipeline command remains the CLI adapter and document-anchor
+artifact loader.
+
+Moved `build lion-geometry-index` LION geometry materialization into
+`@bp/applied-research/local-db`. The package now owns GeoJSON feature unwrapping, Spatialite
+geometry-column/index helpers, WKT/GeoJSON insertion, skip-rate enforcement, and run counts. The
+LION command remains the spatial local DB CLI adapter, and `build route-shape-geometry-index` now
+uses the package-owned route-shape geometry helper while retaining source snapshot normalization in
+the pipeline.
+
+Moved `export route-speed-history-coverage-index` local coverage-table materialization into
+`@bp/applied-research/local-db`. The package now owns the
+`local_route_speed_history_coverage` table contract, route-id normalization, release-month row
+replacement, count rollups, and null metric defaults. The export command remains responsible for
+route speed-history manifest parsing, artifact path resolution, existence checks, and CLI wiring.
+
+Moved the Studio route-speed spine artifact builder out of the pipeline command. The stable
+timepoint-node clustering, segment construction, month coverage, validation issues, route slugging,
+and source-row contract now live in `@bp/applied-research/feature-history`; the speed-spine artifact
+path lives in `@bp/applied-research/artifacts`; and the local `local_route_segment_speed` aggregate
+row loader lives in `@bp/applied-research/local-db`. The pipeline commands now open SQLite, resolve
+paths, delegate to the package APIs, and write JSON artifacts/manifests. The all-route
+speed-spines manifest now also delegates readiness classification to feature-history, manifest path
+naming to artifacts, and candidate/catalog route probes to local-db.
+Moved the Studio route-speed history artifact builder into the same package-owned surface. Segment
+/daypart cell construction, expected-service derivation from schedule stop pairs, speed-history
+artifact path naming, and local speed/schedule row loading now live in
+`@bp/applied-research/feature-history`, `@bp/applied-research/artifacts`, and
+`@bp/applied-research/local-db`; the pipeline command reads the spine artifact, opens SQLite,
+delegates to those APIs, and writes JSON.
+
+## [2026-06-06] engineering | Review-packet local DB hard cutover
+
+Moved `findings review-packets` local row selection into `@bp/applied-research/local-db`. The
+pipeline command now opens the local SQLite database, reads any existing packet-id artifact, passes
+package-owned candidate/evidence/coverage rows into `@bp/applied-research/review-packets`, and
+writes the detector specs, review packets, promotion queue, review queue, and coverage artifacts.
+Added applied-research coverage for the SQLite row loader and a pipeline boundary test to keep
+finding-table SQL and domain schema parsing out of the command.
+
+Extended the same cutover to `findings coverage-audit`: detector coverage artifact construction now
+lives under `@bp/applied-research/evaluation`, and local finding summary/top-candidate row loading
+lives under `@bp/applied-research/local-db`. The pipeline command now only opens SQLite, delegates
+to the package APIs, and writes `detector-coverage-audit.json`.
+
+Moved `audit review-packet-coverage` gate policy into `@bp/applied-research/evaluation`. The
+package now owns review-packet coverage status, severity, summary, and gap evaluation; the pipeline
+command is reduced to release-month/path resolution, JSON input loading, package delegation, and CLI
+output shaping.
+
+Moved `evaluate detectors` artifact path conventions into `@bp/applied-research/artifacts`. The
+package now owns the detector-evaluation output/markdown path and the full input artifact path
+bundle for review decisions, packets, queues, coverage, score vectors, labels, grain audits, and
+readiness. The evaluation command now resolves CLI roots/months, delegates path construction, reads
+the JSON inputs, and writes the evaluation JSON/Markdown.
+
+Moved `build context-event-route-touches` route-touch materialization into
+`@bp/applied-research/local-db`. The package now owns direct route, LION-link, and parking-location
+route-touch SQL plus source/event-kind audit rollups, while `@bp/applied-research/artifacts` owns
+the audit path convention. The pipeline command remains the local DB/CLI shell and JSON writer.
+
+Moved `build intervention-panel` into the applied-research causal surface. Local
+`local_route_intervention_comparison` row loading now lives in `@bp/applied-research/local-db`, the
+associational intervention-panel artifact builder lives in `@bp/applied-research/causal`, and the
+artifact path convention lives in `@bp/applied-research/artifacts`. The pipeline command now opens
+SQLite, delegates row loading and artifact construction, and writes the JSON.
+
+Added the `@bp/applied-research/feature-history` subpath and moved `build route-hourly-profile` to
+it. Local `local_route_hourly_ridership` profile row loading now lives in
+`@bp/applied-research/local-db`, compact route-month hourly profile artifact construction lives in
+`@bp/applied-research/feature-history`, and the route-hourly profile path convention lives in
+`@bp/applied-research/artifacts`.
+
+Moved `build segment-daypart-history` to the same feature-history boundary. Local
+`local_route_segment_speed` segment/daypart aggregation now lives in `@bp/applied-research/local-db`,
+the compact segment-daypart history artifact builder lives in `@bp/applied-research/feature-history`,
+and the segment-daypart history path convention lives in `@bp/applied-research/artifacts`.
+
+Continued the score-vector cutover for `build ewt-score-vectors`: local route-month reliability row
+loading and customer-journey ABST enrichment now live under `@bp/applied-research/local-db`, the EWT
+study wrapper lives under `@bp/applied-research/score-vectors`, and the artifact path convention
+lives under `@bp/applied-research/artifacts`. The pipeline command now only parses flags, opens the
+local DB, delegates to applied-research, and writes the EWT score-vector JSON.
+
+Moved `build speed-pace-score-vectors` to the same shell shape. Local segment-speed month discovery
+and row loading now live under `@bp/applied-research/local-db`, the score-vector study wrapper lives
+under `@bp/applied-research/score-vectors`, and the path convention lives under
+`@bp/applied-research/artifacts`. Added package coverage for the local SQLite study path and a
+pipeline boundary test to keep segment-speed SQL out of the command.
+
+Moved `build runtime-trend-score-vectors` to the same shell shape. Local observed-runtime,
+scheduled-stop, and route-metric history row loading now live under `@bp/applied-research/local-db`,
+the runtime/trend score-vector study wrapper lives under `@bp/applied-research/score-vectors`, and
+the path convention lives under `@bp/applied-research/artifacts`. Added package coverage for the
+local SQLite study path and a pipeline boundary test to keep runtime/schedule/history SQL out of the
+command.
+
+Moved `build detector-evaluation-labels` to the same shell shape. Local coverage-label source row
+selection now lives under `@bp/applied-research/local-db`, deterministic label-set construction
+stays under `@bp/applied-research/evaluation`, and the artifact path convention lives under
+`@bp/applied-research/artifacts`. Added package coverage for the local SQLite selector and a
+pipeline boundary test to keep coverage-audit SQL out of the command.
+
+Moved `findings repair-persistent-speed-coverage` repair construction and missing-segment row
+selection into `@bp/applied-research`. `@bp/applied-research/evaluation` now builds the exact
+segment-scope coverage repair rows, `@bp/applied-research/local-db` owns the local
+candidate/evidence/coverage selector, and the pipeline command retains only CLI parsing, DB opening,
+optional insert transaction, and count reporting.
+
+Moved `audit speed-pace-shadow` and `audit route-month-shadow` to the package-owned detector shadow
+audit surface. `@bp/applied-research/evaluation` now builds both shadow-audit artifacts,
+`@bp/applied-research/local-db` owns their local coverage/candidate row selectors, and
+`@bp/applied-research/artifacts` owns the detector-shadow-audit path conventions. The pipeline
+commands now parse flags, open SQLite, delegate to applied-research, and write the JSON artifacts.
+
+Started the `audit detector-corpus-grain` cutover by moving release-month candidate and coverage
+count selection out of the command. `@bp/applied-research/local-db` now owns the
+`local_finding_candidate` and `local_finding_coverage_audit` count loaders, including missing-reason
+rollups and absent-table handling. The pipeline audit builder now receives package-loaded coverage
+maps instead of issuing finding-table SQL itself.
+
+Finished the next `audit detector-corpus-grain` hard-cutover slice: `@bp/applied-research/evaluation`
+now owns the corpus-grain audit builder, release checks, feature-grain profiles, and markdown
+renderer. `tools/pipeline-v2` is reduced to CLI parsing, manifest/completeness/shadow-artifact
+loading, local SQLite opening, package delegation, and JSON/Markdown writes for this audit.
+
+Moved `build stop-direction-hour-ewt-features` to the same package shell. GTFS static calendar
+expansion, Socrata/timepoint schedule row loading, observed-headway row loading, and SQLite-backed
+artifact construction now live in `@bp/applied-research/local-db`; the default artifact path helper
+lives in `@bp/applied-research/artifacts`. The pipeline command now parses options, opens SQLite,
+delegates to applied-research, and writes the feature artifact.
+
+Moved `build detector-gold-set-evaluation` out of pipeline analytics orchestration. Gold-set
+expectation construction, promoted/flagged scope matching, missing-data discovery scope assembly,
+and calibration evaluation now live in `@bp/applied-research/evaluation`; the default artifact path
+lives in `@bp/applied-research/artifacts`. The pipeline command now only resolves paths, reads the
+input artifacts, delegates to applied-research, and writes `gold-set-evaluation.json`.
+
+Moved `audit analytics-corpus-profile` to the same package shell. Local corpus observation SQL row
+loading now lives in `@bp/applied-research/local-db`; profile artifact construction and doctrine
+live in `@bp/applied-research/evaluation`; path naming lives in
+`@bp/applied-research/artifacts`. The pipeline command now parses flags, opens SQLite, delegates,
+and writes `profile.json`.
+
+Moved `audit analytics-backfill-coverage` to the same package boundary. Local backfill surface row
+loading now lives in `@bp/applied-research/local-db`; coverage audit construction, thresholds, and
+next-action logic live in `@bp/applied-research/evaluation`; path naming lives in
+`@bp/applied-research/artifacts`. `audit analytics-detector-readiness` now imports that package
+surface for its nested backfill coverage artifact instead of reaching into the backfill command.
+
+Moved `audit detector-closure` out of pipeline evaluation orchestration. Analysis dependency
+closure construction, planned research-unit dependency policy, status rollups, and Markdown
+rendering now live in `@bp/applied-research/evaluation`; closure JSON/Markdown path naming lives in
+`@bp/applied-research/artifacts`. The pipeline command now resolves paths, parses the data-product
+manifest, reads prerequisite artifacts, delegates to applied-research, and writes JSON/Markdown.
+
+Moved `audit route-schedule-progress` SQLite aggregation out of the pipeline command. Socrata
+schedule progress and GTFS static run summaries now live in `@bp/applied-research/local-db`; the
+pipeline command now only resolves the local DB path, opens SQLite, delegates to applied-research,
+and returns the audit payload.
+
+Moved `findings lattice-review-bundles` preview orchestration out of pipeline. Route input shaping
+from review packets and signal features, lattice preview artifact construction, and Markdown/HTML
+rendering now live in `@bp/applied-research/review-packets`; the pipeline command resolves paths,
+reads artifacts, delegates, and writes JSON/Markdown/HTML.
+
+Moved `audit analytics-detector-readiness` out of pipeline analytics orchestration. Detector
+calibration-policy readiness joins, required-surface status rollups, and next-action construction now
+live in `@bp/applied-research/evaluation`; direct observed-headway, bus-wait, GTFS schedule,
+permit-touch, and 311-touch surface probes now live in `@bp/applied-research/local-db`; readiness
+path naming lives in `@bp/applied-research/artifacts`. The pipeline command opens SQLite, builds the
+nested backfill coverage through package APIs, delegates readiness construction, and writes JSON.
+
+Tightened `findings repair-persistent-speed-coverage` so the pipeline command no longer imports
+`@bp/analytics` directly for the persistent-speed detector id. The repair-specific detector id is
+now exposed by `@bp/applied-research/evaluation`, keeping detector constants and repair construction
+behind the applied-research package boundary while the command remains the optional local insert
+shell.
+
+Moved `audit analytics-materialization-coverage` out of pipeline audit orchestration. Route universe
+probing, local route-table coverage checks, route-slice/brief/EWT artifact discovery, score-vector
+route extraction, materialization status rollups, and next-action construction now live in
+`@bp/applied-research/evaluation`; materialization coverage path naming lives in
+`@bp/applied-research/artifacts`. The pipeline command now adapts data-product manifest metadata,
+opens SQLite, delegates the audit, and writes JSON.
+
+## [2026-06-06] engineering | Applied-research detector study hard cutover
+
+Moved the `findings run-detector` research implementation out of `tools/pipeline-v2` and into
+`@bp/applied-research`. The new `@bp/applied-research/detector-runs` study runner owns
+detector-specific feature resolution, analytics-registry dispatch, and registry run-artifact
+construction. `@bp/applied-research/local-db` now owns local SQLite row selectors for registry
+detector studies, and `@bp/applied-research/artifacts` owns stop-direction-hour EWT feature artifact
+loading.
+
+`tools/pipeline-v2/src/commands/findings/run-detector.ts` is now a CLI/I/O shell: it parses flags,
+opens the local DB, calls applied-research, optionally replaces local findings rows, and writes the
+artifact. Added regression coverage so the command no longer imports `@bp/analytics` detector
+functions directly. Updated applied-research/package-structure wiki implementation status to record
+the hard cutover.
+
+Continued the same hard cutover for `build detector-score-vectors`: the command now delegates local
+coverage/candidate row loading to `@bp/applied-research/local-db`, detector score-vector study
+construction to `@bp/applied-research/score-vectors`, and artifact path naming to
+`@bp/applied-research/artifacts`. Added applied-research coverage for the study wrapper and local
+SQLite row loader, plus a pipeline boundary test that keeps SQL and score-vector artifact assembly
+out of the command.
+
+## [2026-06-06] engineering | Domain contract package refactor implemented
+
+Completed the `@bp/domain` contract-package refactor. The root export and root TS path alias are
+gone, along with the old `src/index.ts`, `src/schemas.ts`, top-level `document-*.ts`, and top-level
+`studio-*.ts` monolith compatibility files. Contracts now live in explicit source areas and package
+subpaths for primitives, routes, maps, findings, documents, Studio, JSON Schema, and schema registry,
+with nested document and Studio exports for focused consumers.
+
+Moved Studio OpenAPI assembly into `@bp/studio-api/contracts/openapi`, centralized JSON Schema
+generation in `@bp/domain/json-schema`, added package-shape tests for the new public surface, and
+migrated repo consumers off root and aggregate document/Studio imports. Verification passed for
+domain typecheck/test/typechecked tests, repo typecheck, unit/web/Worker tests, and the production
+boundary harness. Full repo style still fails on existing app/pipeline formatting and accessibility
+debt outside the domain refactor surface.
+
+## [2026-06-06] engineering | Studio API refactor + auth-gating implementation-status audit
+
+Audited both plans against the current branch and recorded status addenda in
+[[wiki/engineering/studio-api-refactor|the Studio API hard-cutover plan]] and
+`docs/architecture/public-access-auth-gating-plan.md`.
+
+The Studio API refactor's public surface landed (explicit `contracts`/`client`/`server` subpaths, no
+root or `./authoring` export, route registry), but the internal decomposition did not:
+`studio/brief-drafts.ts` is still 4,202 lines and `studio/read-handlers.ts` 1,284 lines, and the
+`server/*` subpaths are re-export shims over the original monoliths. The centralized dispatcher
+(Phase 3) was never built — `api.ts` still uses chained handlers and hand-written route regexes.
+
+The auth-gating plan's product/data layer largely shipped (auth taxonomy plus refined operator scopes
+in the registry, `bp_guest` guest-draft ownership with claim columns, alerts/saved-searches/public-comments
+surfaces, de-gated public readers). But the registry's `auth`/`cache`/`idempotency` fields are
+declarative only: no request-path code reads `route.auth`; enforcement is hand-wired in the monoliths
+and OpenAPI security is hand-maintained in `packages/domain/src/studio-openapi.ts`. That leaves three
+auth sources of truth that can drift (idempotency declares `428` but returns `400`). The shared
+keystone for both plans is the metadata-driven dispatcher; it should be the next slice before more
+route surface is added.
+
+## [2026-06-06] planning | Website surface data plan added
+
+Added [[wiki/engineering/website_surface_data_plan|Website Surface Data Plan]] as the surface-first
+planning layer for Serving Snapshot 2.0. The plan translates the broad public-facing data catalog
+into product contracts for `/routes`, route detail tabs, and compare: each surface now has a product
+question, primary answer, supporting data, D1/R2 placement, empty-state posture, and implementation
+phase. It defines a shared route metric spine, proposes a first-class Reliability tab, expands
+`/routes` from one list into multiple ranked tables (Needs Attention, Worsening Fast, Reliability
+Watch, Treatment Gaps, Evidence Ready, Sparse / Partial Data, and later sections), and sketches
+compare v2 around pair deltas, route history, peer cohorts, dayparts, reliability, treatments, and
+evidence readiness. The plan keeps heavy ranking, history, segment persistence, detector coverage,
+and evidence linking in pipeline-v2, with D1 as compact query/index storage and R2 as dense artifact
+storage.
+
+## [2026-06-06] planning | Domain contract package refactor plan recorded
+
+Added [[wiki/engineering/domain_contract_package_refactor_plan|Domain Contract Package Refactor Plan]]
+after auditing an uploaded static review of `packages/domain` against the repo's TypeScript-only,
+Bun-first package rules. The plan accepts the contract-package direction and the need for explicit
+subpaths, but revises the migration for this repo: no `export *` barrels, source subpath exports
+before any `dist`/npm packaging lane, side-effect-free only after schema registry import-order
+behavior is explicit, JSON Schema generation moved under a dedicated subpath, Studio OpenAPI
+assembly coordinated with `@bp/studio-api/contracts`, and root `@bp/domain` either removed or
+shrunk to a tiny primitives-only surface after consumers move.
+
+## [2026-06-05] engineering | Snapshot 2.0 full-route API slice implemented
+
+Implemented the first Serving Snapshot 2.0 addressability slice: domain contracts now cover
+`StudioRouteIndex2`, support levels, surface flags, source-month states, projection refs, and the
+nested snapshot v2 manifest; D1 reads now start from the full route catalog/readiness/summary/artifact
+tables; Studio API reads expose `GET /api/v1/studio/routes?schema=2`, embed `snapshot.v2`, return
+partial catalog route details instead of rich-artifact-only 404s, and serve compact
+`GET /api/v1/studio/routes/:routeId/history` rows from `route_month_trend`. The web route detail
+loader can consume the history endpoint, but sparse/partial semantics are intentionally kept as API
+metadata and code comments rather than visible prototype UI states.
+
+Moved the Snapshot 2.0 addressability acceptance gate into
+`packages/studio-api/test/api-facade.test.ts` so the route-universe, sparse-route,
+search/detail/ladder, and history-coverage invariants run in the normal fixture-backed test suite.
+
+## [2026-06-05] planning | Snapshot 2.0 visualization + multi-year expansion and charting decision
+
+Added two planning pages on top of the Serving Snapshot 2.0 baseline. (1)
+[[wiki/engineering/serving_snapshot_2_visualization_and_multiyear|Visualization & multi-year
+expansion]] promotes the served speed store from the single `2026-03` baseline to a multi-year
+monthly panel (2023→present), defines three new served artifacts (`route_segment_speed_series`
+decimated + full-res, `signal_month_coverage_matrix` as an honesty surface, precomputed
+`natural_experiment_case` payloads), adds `series_ready`/`case_ready` support levels and surface
+flags, and lays out a figure catalog organized around the curb-pulse case-study arc (pulse strip,
+event-study CI, the network-vs-segment "flip", robustness forest reusing the dumbbell, episode↔permit
+overlay, RD pre-registration) plus operational views (multi-year hour×month heatmap, delay bands,
+small multiples). Heavy joins/event-studies stay offline in pipeline-v2; D1/R2 serve precomputed
+results only. (2) [[wiki/engineering/charting_library_evaluation|Charting library evaluation]]
+recommends owning a thin D3-primitive layer (d3-scale/shape/array + React SVG) for bespoke argument
+figures — generalizing the hand-drawn dumbbell already in `CorridorProfile.chart.tsx` over Recharts 3
+scale hooks — with uPlot (~20 KB Canvas) for dense multi-year time-series and maplibre for spatial;
+visx is down-ranked on maintenance risk (React 19 only in a stalled 4.0 alpha), Recharts becomes an
+incremental migration bridge to retire. Decision is exploratory/planning, not yet an ADR.
+
+## [2026-06-05] planning | Serving Snapshot 2.0 historical and detector surfaces clarified
+
+Updated [[wiki/engineering/serving_snapshot_2_full_route_baseline|Serving Snapshot 2.0 full-route baseline]]
+so the full-route contract does not imply a route-directory-only product. Snapshot 2.0 should serve
+reviewed projections from the multi-year corpus: route history summaries, detector coverage/no-hit
+ledgers, detector score-vector refs, promoted findings, route/corridor timelines, evidence bundles,
+and source-coverage caveats. Raw detector candidates, raw score vectors, and raw Tier 2 surfaces
+remain internal/review material until promotion and publication-wording gates pass.
+
+## [2026-06-05] data | Segment-speed methodology and cadence wording audit
+
+Reviewed the official `MTA_BusRouteSegmentSpeeds_Overview.pdf` attachment for `kufs-yh3x` and updated
+the MTA Bus Route Segment Speeds wiki page with BM2/GPS methodology, timepoint and multi-path
+caveats, holiday/coarse-estimate cautions, and source-specific release-note context. Clarified that
+the project should describe April/May gaps as observed source availability from
+`check route-speed-availability`, not as an MTA-published "1-2 month lag" SLA. The 2026-06-05 live
+availability artifact still reports March 2026 as the latest complete public speed month and May 2026
+as `missing_speed`.
+
+## [2026-06-05] engineering | Tier 2 processing resume runbook recorded
+
+Added [[wiki/engineering/tier2_processing_status_and_resume|Tier 2 processing status and resume runbook]]
+as the durable handoff for the current Tier 2 qv8/qv9/qv10 processing state. It records the
+canonical merge and raw-field graduation artifact paths, the family-aware vocab synthesis queue
+root, completed usable maps (`metricUnit`, `tableKind`, `eventFamily`, `claimKind`), partial and
+untouched keys, remaining chunk counts, the Pioneer 429/funds stop condition, the chunk-level
+resume contract, tmux resume commands, and the provider/model provenance caveat before using
+DeepSeek or any non-current model in the same output root.
+
 ## [2026-06-05] engineering | Studio API public import cutover completed
 
 Completed the hard public import cutover for `@bp/studio-api`: the old source barrels
@@ -52,6 +672,46 @@ client/token wrapper. The Studio route-speed watcher now uses the SODA3 query en
 harness, targeted Biome over cutover files, and the migrated pipeline Socrata command slice. The
 full repo typecheck is still blocked by unrelated document-research fixture and
 `normalize-agentic-payloads.ts` errors.
+
+## [2026-06-05] engineering | Tier 2 raw-field graduation planner added
+
+Added `docs tier2 raw-field-graduation`, a safe additive planner for agentic
+`DocumentResearchSurface` outputs. The command preserves `rawPayload` as source wording, inventories
+raw fields, classifies category-like fields for LLM-designed vocabulary maps, keeps routes/dates/
+values/geography/evidence on deterministic catalog/parser paths, and writes both a full review plan
+and compact LLM batch artifact. The qv8+qv9 run over 1,839 artifacts and 16,453 accepted surfaces
+found 12 core vocabulary keys, one secondary treatment-family lane, 973 raw fields, and 7,871
+distinct graduation values.
+
+## [2026-06-05] engineering | Tier 2 agentic canonical merge artifact added
+
+Added `docs tier2 agentic-canonical-merge`, a deterministic supersession pass for agentic extraction
+self-heal plans. The command merges qv8 base, qv9 provider retries, and qv10 validator-feedback
+repairs by stable `windowId`: only clean, audit-valid, zero-rejection candidates can enter the
+canonical set; later clean retries replace earlier attempts; later failed retries never displace an
+earlier clean artifact. The qv8+qv9+qv10 merge produced 1,339 canonical windows from 1,374 unique
+windows, 15,925 accepted surfaces, 451 superseded candidate records, and 35 unresolved windows
+remaining in retry/source-tool lanes.
+
+## [2026-06-05] engineering | Tier 2 canonical raw-field graduation rerun completed
+
+Extended `docs tier2 raw-field-graduation` to accept `--canonical-merge`, so vocabulary graduation
+can read exactly the selected `canonicalArtifacts[].artifactPath` set instead of walking dirty retry
+folders. The canonical qv8+qv9+qv10 rerun used 1,339 selected artifacts and 15,925 accepted surfaces,
+matching the canonical merge surface-kind counts exactly. It found 956 raw fields, 13 graduation
+keys, 22 LLM-vocabulary source fields, and 7,729 distinct graduation values; the canonical LLM batch
+artifact was generated with no per-key value omissions.
+
+## [2026-06-05] engineering | Studio API hard-cutover refactor plan recorded
+
+Added [[wiki/engineering/studio-api-refactor|Studio API hard-cutover refactor]] as the canonical
+successor to the earlier package-first extraction plan. The new plan makes the cutover explicit:
+remove the `@bp/studio-api` root export, remove the old `@bp/studio-api/authoring` export, split
+browser-safe `contracts` and `client` from Worker/server-only subpaths, generate route matching and
+OpenAPI from one registry, replace duplicated `apps/web` route/client logic, and delete legacy
+surfaces after the app and Worker imports are updated. The plan also makes cache, CSRF,
+idempotency, JSON error envelopes, import smoke tests, Worker runtime tests, and LOC reduction part
+of the completion definition rather than optional cleanup.
 
 ## [2026-06-05] engineering | Sources adapter SODA3-only cutover decision recorded
 
@@ -2848,6 +3508,15 @@ real grain/lineage mismatch because segment candidates are backed by route-level
 The detector evaluation harness now consumes the review-packet coverage artifact, so packet-covered
 counts no longer treat partial packets as complete.
 
+## [2026-06-05] engineering | Route-month history API slice
+
+Added the first Serving Snapshot 2.0 history slice: `GET /api/v1/studio/routes/:routeId/history`
+now returns D1-backed route-month speed/ridership history from `route_month_trend`, with explicit
+coverage counts for total points, speed months, and ridership months. This exposes the multi-year
+route-level facts already in the serving database while keeping segment-level carpets gated on the
+future stable segment spine. Added the contract schema, OpenAPI/route registry entry, web client
+helper, and Studio API facade coverage.
+
 ## [2026-06-02] engineering | Drizzle draft repository batch and builder pass
 
 Reviewed Drizzle's D1 batch, transaction, dynamic query building, and `sql` template guidance, then
@@ -2878,6 +3547,80 @@ public Studio reads to `handleStudioReadRequest`, while retaining the brief crea
 write paths as local callbacks for draft-only and operator-overlaid brief reads. Added package tests
 for route classification, projection key construction, and a projection-backed methods response.
 
+## [2026-06-06] engineering | Source coverage audit applied-research cutover
+
+Moved `audit source-coverage` ledger construction out of `tools/pipeline-v2`. The
+`@bp/applied-research/local-db` package now owns source coverage policy, SQLite table/column/range
+probes, geocode/join summaries, readiness classification, evidence eligibility, and summary rollups.
+The source-coverage artifact path convention now lives in `@bp/applied-research/artifacts`, and the
+pipeline command is reduced to CLI option parsing, local DB opening, and JSON writes.
+
+## [2026-06-06] engineering | Route shape geometry index applied-research cutover
+
+Moved the normalized route-shape geometry grouping and `local_route_shape_geom` write path out of
+`tools/pipeline-v2`. The pipeline command still reads the current-bus-routes snapshot and uses the
+source adapter to normalize rows, while `@bp/applied-research/local-db` now owns LineString/
+MultiLineString extraction, MultiLineString GeoJSON construction, Spatialite table preparation,
+upsert execution, and inserted/skipped run counts.
+
+## [2026-06-06] engineering | Route source reconciliation applied-research cutover
+
+Moved `audit route-source-reconciliation` route-universe reconciliation out of `tools/pipeline-v2`.
+`@bp/applied-research/local-db` now owns local route catalog/source-set queries, canonical route
+matching, source-year schedule waiver classification, route source classification, alias candidate
+construction, eligible-product assignment, and reconciliation artifact assembly. The pipeline
+command now opens the local DB, resolves paths, and writes JSON.
+
+## [2026-06-06] engineering | Source month coverage matrix applied-research cutover
+
+Moved the source-month coverage matrix portion of `audit data-product-completeness` into
+`@bp/applied-research`. The package now owns local month/source table probes, source-year schedule
+ingest rollups, source/derived/upstream status classification, status counts, and matrix artifact
+construction. The pipeline command still owns the broader data-product registry audit for now, but
+delegates matrix path naming to `@bp/applied-research/artifacts` and matrix construction to
+`@bp/applied-research/local-db`.
+
+## [2026-06-06] engineering | Route brief model applied-research cutover
+
+Moved the route brief analytics/model builder out of `tools/pipeline-v2`. The new
+`@bp/applied-research/route-briefs` subpath owns route-score brief construction, hotspot
+projection, segment-universe assembly, schedule comparisons, ridership/speed profiles,
+bus-lane/ACE intervention summaries, visibility adjustment, and comparison-rank rows. The
+`route brief-model` pipeline command now retains local DB reads/writes, route-slice artifact writes,
+CLI parsing, and run summary reporting. Studio release code now imports route-brief segment universe
+types/builders from the package surface instead of the pipeline command.
+Follow-up cleanup removed the duplicate `tools/pipeline-v2/src/commands/route/brief-metrics.ts`
+implementation; the remaining bus-lane matching consumers now import the package-owned
+`busLaneMatches` helper from `@bp/applied-research/route-briefs`.
+
+## [2026-06-06] engineering | Route-speed histories batch manifest cutover
+
+Moved the `studio route-speed-histories` batch manifest policy out of `tools/pipeline-v2`. The
+`@bp/applied-research/feature-history` surface now owns the default speed-spine readiness filter,
+readiness-list parsing, batch route/manifest contracts, summary rollups, and manifest construction,
+while `@bp/applied-research/artifacts` owns the speed-history batch manifest path. The pipeline
+command now keeps spine-manifest reading, route selection, existing-artifact probing, per-route
+history orchestration, and JSON writes.
+
+## [2026-06-06] engineering | Evidence corpus audit applied-research cutover
+
+Moved `audit evidence-corpus` policy construction out of `tools/pipeline-v2`. The
+`@bp/applied-research/evaluation` package now owns the evidence-corpus audit builder that summarizes
+source evidence eligibility, route-month signal feature materialization, detector candidate/evidence
+/coverage counts, review-queue linkage, gap detection, and pass/warn/fail status. The pipeline
+command now resolves artifact paths, reads the prerequisite JSON artifacts, delegates audit
+construction, validates the command output shape, and writes the report.
+
+## [2026-06-06] engineering | Data-product completeness check cutover
+
+Moved the source-year route coverage, route artifact coverage, score-vector route coverage,
+JSON/file artifact, and artifact-glob evaluators for `audit data-product-completeness` into
+`@bp/applied-research/local-db`. The pipeline command now supplies repo/artifact template values,
+SQLite handles, generated timestamps, and path display formatting, while applied-research owns the
+waiver parsing, source-year status diagnostics, route-id artifact filename variants, score-vector
+route coverage, semantic duplicate/month/run checks, JSON artifact semantic validation, staleness
+checks, and glob minimum-file coverage. Added direct applied-research tests for those evaluators.
+
 ## [2026-06-05] engineering | Studio API authoring runtime extraction
 
 Moved Studio brief create/draft write handlers, draft projection overlay hooks, session/cookie
@@ -2886,6 +3629,14 @@ lightweight HTTP/read/auth helpers, while the Think-backed draft handlers and Du
 live on the focused `@bp/studio-api/authoring` subpath so Bun package tests do not load Worker-only
 AI dependencies. `apps/web/src/worker/index.ts` now acts as the adapter for magic-link email/session
 issuance, asset/SEO fallback, and Studio API dispatch.
+
+## [2026-06-06] engineering | Detector corpus grain artifact boundary
+
+Continued the applied-research hard cutover for `audit detector-corpus-grain`. Detector-corpus
+artifact path naming and detector-specific score-vector artifact discovery now live in
+`@bp/applied-research/artifacts`, alongside the existing local candidate/coverage count selectors in
+`@bp/applied-research/local-db`. At that slice boundary, `tools/pipeline-v2` still owned the
+corpus-grain audit builder, markdown renderer, manifest loading, and file writes.
 
 ## [2026-06-01] engineering | Packet coverage gate and persistent-speed coverage repair
 

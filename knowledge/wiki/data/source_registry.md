@@ -71,6 +71,7 @@ These sources are **not** active registry entries yet and are not counted in `so
 | 311 Service Requests, 2010-2019 | `76ig-c548` | Historical 311 baseline after the current table split | Candidate; unprobed |
 | Parking Violations Issued, current fiscal year | `pvqr-7yc4` | Curb-pressure and illegal-standing proxy after code/location filtering | Candidate; unprobed |
 | NYC LION / street centerline | DCP LION page | Stable street segment IDs and street geometry joins across context sources | Candidate; unprobed |
+| Current Transit Signal Priority inventory | unknown DOT/MTA records; see [[wiki/data/tsp_data_acquisition|TSP data acquisition]] | Authoritative current TSP intersection/route/status/activation layer | Source gap; likely FOIL/agency records |
 
 ## Socrata probe summary
 

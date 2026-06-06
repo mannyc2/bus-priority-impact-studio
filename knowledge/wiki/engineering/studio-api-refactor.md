@@ -2,7 +2,7 @@
 title: Studio API hard-cutover refactor
 type: engineering
 status: planning
-last_updated: 2026-06-05
+last_updated: 2026-06-06
 owner: codex
 source_count: 0
 tags: [studio-api, api, cloudflare, worker, hard-cutover, contracts, client, authoring]
@@ -15,6 +15,39 @@ This is the canonical plan for refactoring `@bp/studio-api`.
 It supersedes [[wiki/engineering/studio_api_refactor_plan|Studio API Refactor Plan]], which described
 the first package extraction. The package now exists, but its public surface is too broad. The next
 move is a hard cutover to the intended architecture, not a compatibility migration.
+
+## Implementation status (2026-06-06)
+
+Audited against the current branch. The **public import surface landed; the internal decomposition
+and centralized enforcement did not.** The `server/*` subpaths are re-export shims over the original
+monoliths.
+
+| Phase | Status | Evidence |
+|---|---|---|
+| 1. Skeleton + export map | Done | `contracts/`, `client/`, `server/` exist; no root `src/index.ts`; no `./authoring` export. `import "@bp/studio-api"` fails as intended. |
+| 2. Route registry | Partial | `contracts/registry.ts` (~850 lines), path builders, cache/idempotency metadata exist. `contracts/openapi.ts` is a stub; OpenAPI is still hand-owned in `packages/domain/src/studio-openapi.ts`. Registry feeds only path-building and the `405 Allow` table. |
+| 3. Centralized dispatcher | Not done | `api.ts` is still the chained-handler + hand-written route-regex dispatcher. Auth/CSRF/idempotency/cache are not enforced from route metadata. The JSON `404`/`405` envelopes did land. |
+| 4. Move/split resources | Not done | `studio/brief-drafts.ts` = 4,202 lines, `studio/read-handlers.ts` = 1,284 lines — never split. `server/resources/{public,studio-read,observability,schema}` do not exist; `authoring/`, `auth/`, `jobs/` are re-export stubs. |
+| 5. Cut over app/Worker imports | Partial | `apps/web` uses `createStudioApiClient()`, but `apps/web/src/studio/api-client.ts` (~740 lines) still does raw `fetch(path, …)` in places. |
+| 6. Delete legacy | Not done | All original files remain (`api.ts`, `public-api.ts`, `auth-routes.ts`, `scheduled.ts`, `source-refresh.ts`, `studio/*`, `http/*`). Legacy was wrapped, not deleted. |
+
+### Declared-but-not-enforced gap
+
+The registry's `auth`, `cache`, and `idempotency` fields are **declarative only** — no code in the
+request path reads `route.auth` for enforcement (`api.ts`, `public-api.ts`, and `read-handlers.ts`
+never reference it). Enforcement lives imperatively inside the monoliths (~20 auth sites in
+`brief-drafts.ts`). Policies drift from their declarations: the registry declares idempotency
+`required` → `428`, but the handler hand-returns `400`. This leaves three sources of truth that can
+silently diverge — the registry, the handler bodies, and the hand-maintained OpenAPI security in
+`packages/domain/src/studio-openapi.ts`.
+
+### Keystone
+
+Phase 3 (a dispatcher that enforces auth/cache/idempotency from registry metadata) is the missing
+keystone shared with the auth-gating plan
+(`docs/architecture/public-access-auth-gating-plan.md`). It is what would both collapse the monoliths
+and make the auth matrix authoritative. The remaining refactor work should start there, scoped to
+enforcement, before more route surface is added.
 
 ## Goals
 

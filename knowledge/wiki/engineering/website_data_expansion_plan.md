@@ -18,6 +18,14 @@ route-first serving snapshot from the data products that already exist.
 
 This page turns that direction into an implementation plan.
 
+The companion [[wiki/engineering/website_surface_data_plan|Website Surface Data Plan]] translates
+the same direction into product contracts for `/routes`, route detail tabs, compare, shared metrics,
+and D1/R2 read models. Use this page for implementation lanes; use the surface plan to decide what
+each page should answer and which data it needs. The
+[[wiki/engineering/serving_snapshot_2_surface_manifest|Serving Snapshot 2.0 Surface Manifest]]
+turns that product framing into a page/tab-shaped checklist of specific read models, grains,
+stores, empty states, and deferred research lanes.
+
 ## Planning assumptions
 
 - Treat Tier 2 as done for planning purposes: reviewed/promoted document-derived intervention,

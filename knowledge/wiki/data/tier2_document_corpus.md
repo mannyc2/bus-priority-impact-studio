@@ -69,6 +69,49 @@ reviewed intervention records, staging events, manual candidates, publishable pr
 traces, and report/provenance files. It also identifies the best current research substrate and the
 best serving projection.
 
+Use `bun --filter @bp/pipeline-v2 cli audit tier2-source-coverage` for the complementary *source*
+view: a source-grain "available vs have" inventory that joins the augmented backlog (available
+universe) against capture, verified extraction, reviewed records, and publishable promotion, then
+writes `data/artifacts/audits/tier2-source-coverage.{json,md}`. As of the 2026-06-06 run the funnel
+is 485 available → 445 captured → 368 OCR-derived surfaces → 175 verified/materialized → 29 reviewed
+→ 19 promoted in-universe (40 sources not successfully captured: 31 not attempted + 9 failed). OCR
+coverage is the key correction: the `document-derived-surfaces-v1` layer has OCR-derived surfaces for
+368 of 386 captured PDFs (95%), and the 175 verified/materialized sources are a strict subset of
+those 368. So the real OCR gap is only 18 captured PDFs with no derived surface; the larger
+"captured but not in the verified layer" set (193 OCR-derived-not-verified) is a promotion gap, not an
+OCR gap.
+The audit exposes two structural facts. First, **media is a first-class but empty lane**: content
+types are only pdf (416)/html (66)/json (3); YouTube/audio/video are recognized content types but
+zero are ingested and transcription is deferred, so the lane is reported explicitly rather than left
+invisible — add a backlog source with `expectedContentType=youtube|audio|video` to register one.
+Second, **cross-run sourceId drift**: the extracted layer (`agentic-runs-20260604`) and the
+reviewed/promoted layer (`gap-roadmap-docs-2026-05-25`) come from different runs with disjoint
+sourceId namespaces, so extracted ∩ reviewed = 0 and 7 reviewed + 4 promoted source IDs are absent
+from the available/capture universe. The audit's `reconciliation` block reports this rather than
+silently undercounting; it reinforces that a unified full-corpus reviewed layer keyed to the captured
+sources is still the missing piece.
+
+### Expanding the available universe: recurring MTA meetings
+
+The 485-source backlog was a discovery fixed point over reviewed seeds and crawled HTML; it did not
+include MTA's recurring board/committee meeting record, which publishes one page per month at
+`https://www.mta.info/transparency/board-and-committee-meetings/<month>-<year>` aggregating every
+committee's book (`/document/<id>` PDFs) plus the meeting's YouTube recording.
+`bun --filter @bp/pipeline-v2 cli docs tier2 discover-meetings --from <YYYY-MM> --to <YYYY-MM>`
+indexes those assets into the backlog — **indexing only, no downloads** — so it grows the *available*
+universe without spending disk; capture/OCR is a separate, disk-budgeted step. MTA 403s plain
+fetches, so the command sends a full browser header set (`MTA_BROWSER_HEADERS`); both meeting pages
+and document PDFs return 200 under it. PDFs register as `expectedContentType=pdf`; the meeting video
+registers in the media lane as `expectedContentType=youtube` with `transcription_deferred`.
+
+The first run (2021-01 → 2026-06) added 2,270 sources (2,129 PDFs + 141 meeting videos) across 61
+meeting months, growing the available universe from 485 → 2,755 and populating the media lane
+(0 → 141). Against that fuller universe the funnel is 2,755 available → 445 captured (~16%) → 368
+OCR-derived → 175 verified → 19 promoted, with 0 of 141 meeting videos captured. Artifacts live under
+`data/artifacts/docs/mta-meeting-discovery/` (`mta-meeting-sources.json` plus an optional merged
+backlog). The meeting-expanded backlog is the more complete *available* set; promoting it to the
+canonical capture/coverage input is a deliberate next step gated on a capture disk/OCR budget.
+
 As of the 2026-06-01 inventory, the best research substrate is
 `gap-roadmap-docs-2026-05-25/intervention-records-corpus-v3-reviewed-2026-05-27.json`: 310 reviewed
 records across 36 sources and 285 route IDs, with all 310 records parsing as the current
@@ -110,6 +153,27 @@ Optional follow-up:
 - Improve route/corridor/date/source-span validators and reconsider the deferred candidates.
 - Add full-page chunk browsing/search if reviewers need more than compact timeline excerpts.
 - Acquire board/committee packets outside the fixed-point HTML/PDF discovery loop.
+- Expand the route-timeline date model beyond the B46 pilot. The current route-timeline pack now
+  emits deterministic date assertions for exact dates, months, seasons, bare years, year ranges,
+  and explicit unknowns such as `TBD`; `docs tier2 route-timeline-curation-repair` backfills
+  omitted `dateAssertionRefs` from validator suggestions before `docs tier2 route-timeline-bundle`
+  hydrates display dates and analysis windows. `docs tier2 route-timeline-bundle-index` then
+  summarizes route readiness and default-event headlines across bundles for serving/UI planning. If
+  deterministic coverage stalls on broader route runs, use a narrow reviewed
+  `rawDateText -> normalizedDateAssertion` codec; do not ask a general curation model to rewrite
+  dates as public facts.
+- Project route-timeline bundles into serving-addressable rows. `docs tier2
+  route-timeline-serving-projection` reads the bundle index and emits a pilot
+  `route_timeline_index` D1 read model, matching `route_artifact` refs named
+  `route_timeline_bundle`, and an R2 copy plan. The 2026-06-06 pilot over B46, B82, BX41, and M15
+  produced 4 timeline-index rows, 4 artifact refs, 3 `timeline_ready` routes, 1 `timeline_sparse`
+  route, and 0 validation warnings/errors. That shape is now folded into the canonical D1
+  migration/export and Worker route API: `export d1 --route-timeline-projection-path ...` writes the
+  4 `route_timeline_index` rows plus 4 `route_timeline_bundle` artifact refs, and
+  `/api/v1/studio/routes/:routeId/timeline` serves the R2 bundle after D1 lookup. The canonical
+  March 2026 D1 verify now passes with 0 issues; export input assembly deterministically hydrates
+  the 172 month-scoped source-gap intervention event refs needed by the March comparison rows and
+  still fails on missing non-source-gap event refs.
 
 Open product questions:
 

@@ -53,6 +53,7 @@ mutations, and Codemode deferred until a workflow needs it.
 
 - [[wiki/project/overview|Project overview]] — Product thesis, goals, and non-goals.
 - [[wiki/project/business_problem|Business problem]] — Why bus priority / reliability intervention ranking is the right MTA-shaped problem.
+- [[wiki/project/opportunity_data_map|Opportunity data map]] — Business-opportunity-to-data map for route/corridor diagnostics, intervention evaluation, TSP source gaps, detector priorities, and Snapshot 2.0 serving implications.
 - [[wiki/project/mvp|MVP]] — First build scope, P0/P1 features, demo route selection.
 - [[wiki/project/ai_interaction_model|AI interaction model]] — Product doctrine for non-chat LLM surfaces, analyst-in-the-loop mechanics, visual conventions, and deterministic boundaries.
 - [[wiki/project/metrics|Metrics]] — Speed, travel time, ridership weighting, bunching, reliability, intervention scoring.
@@ -71,6 +72,7 @@ mutations, and Codemode deferred until a workflow needs it.
 - [[wiki/data/mta_bus_time_realtime|MTA Bus Time Realtime]] — Optional collection of vehicle positions/trip updates/headways.
 - [[wiki/data/ace_enforcement|ACE routes and violations]] — Intervention history and enforcement outcomes.
 - [[wiki/data/nyc_dot_bus_lanes|NYC DOT bus lanes]] — Street-level bus-lane presence.
+- [[wiki/data/tsp_data_acquisition|Transit Signal Priority data acquisition]] — Source-gap doctrine, public evidence leads, candidate corridors, FOIL record classes, and safe product claims for TSP.
 - [[wiki/data/service_alerts_and_planned_changes|Service alerts and planned changes]] — Disruption/context filters.
 - [[wiki/data/policy_docs_corpus|Policy/docs corpus]] — Board materials, open-data plans, press releases, MTA blog posts, and LLM-assisted candidate extraction.
 - [[wiki/data/agent_corpus_map|Agent corpus map]] — Codemode sandbox layout for `ts_exec`/`bash_exec`, read-only analytics access, and deterministic `code_execution` evidence.
@@ -78,6 +80,7 @@ mutations, and Codemode deferred until a workflow needs it.
 ## Engineering pages
 
 - [[wiki/engineering/package_structure|Repo package structure]] — TypeScript-only monorepo layout, package boundaries, Drizzle adoption boundaries, wiki relocation, and Python/PostGIS/VPS escalation rules.
+- [[wiki/engineering/domain_contract_package_refactor_plan|Domain contract package refactor plan]] — Audit-backed plan to split `@bp/domain` into explicit contract subpaths, shrink the root barrel, move JSON Schema/OpenAPI generation out of core schema imports, and add package-shape gates.
 - [[wiki/engineering/ambitious_analytics_workstreams|Ambitious analytics workstreams]] — Ranked high-value analytics/serving/corpus work packages with copy-ready prompts for one or more Codex sessions.
 - [[wiki/engineering/analytics_architecture|Analytics architecture]] — Pure `packages/analytics` detector kernel architecture, feature contracts, registry doctrine, and migration plan.
 - [[wiki/engineering/applied_research_architecture|Applied research architecture]] — Plan for `packages/applied-research` as the corpus-backed research engine for detector studies, causal inference, forecasting, score vectors, and review artifacts, with `pipeline-v2` as a thin CLI consumer.
@@ -105,6 +108,12 @@ mutations, and Codemode deferred until a workflow needs it.
 - [[wiki/engineering/serving_storage_split_plan|Serving storage split plan]] — Resource-first D1/R2 storage split, page-shaped projection rules, endpoint backing targets, and migration phases.
 - [[wiki/engineering/website_data_support_audit|Website data support audit]] — Current frontend/Worker data paths, mocked-vs-real status, Studio projection coverage gaps, and immediate support queue.
 - [[wiki/engineering/website_data_expansion_plan|Website data expansion plan]] — Serving Snapshot 2.0 plan for richer route pages, Tier 2 timelines, evidence catalog, context strips, and coverage manifests from the already-extracted corpus.
+- [[wiki/engineering/website_surface_data_plan|Website surface data plan]] — Surface-first data contract for `/routes`, route detail tabs, compare, shared route metrics, D1/R2 read models, and phased implementation.
+- [[wiki/engineering/route_treatment_summary_materializer_plan|Route treatment summary materializer plan]] — Deterministic plan to merge Tier 2 interventions, ACE/ABLE, bus-lane overlap, TSP source posture, local events, and source gaps into route/segment treatment read models.
+- [[wiki/engineering/serving_snapshot_2_surface_manifest|Serving Snapshot 2.0 surface manifest]] — Page/tab-shaped serving manifest for Snapshot 2.0: route sections, route detail tabs, compare, evidence/data notes, D1/R2 grains, empty states, and the non-public opportunity-lab lane.
+- [[wiki/engineering/serving_snapshot_2_full_route_baseline|Serving Snapshot 2.0 full-route baseline]] — Minimum all-route support contract: 381 route index, partial route pages, surface flags, D1/R2 split, and acceptance gates before richer 2.0 pages.
+- [[wiki/engineering/serving_snapshot_2_visualization_and_multiyear|Serving Snapshot 2.0 visualization & multi-year expansion]] — Multi-year speed panels + signal-month coverage, the case-study figure catalog (curb-pulse arc), `series_ready`/`case_ready` support levels, and the prototype sequence.
+- [[wiki/engineering/charting_library_evaluation|Charting library evaluation]] — Post-Recharts rendering decision: own a D3-primitive layer for argument figures, uPlot/Canvas for dense views, maplibre for spatial; comparison table, migration path, and first prototypes.
 - [[wiki/engineering/web_app_support_plan|Web app support plan]] — Briefs, composer workflows, route-loader caching, deferred evidence payloads, and TanStack Router data-loading policy.
 - [[wiki/engineering/agent_author_api|Agent-Author API]] — Write-side spec for agents-as-authors, canonical brief-composition walkthrough, draft body/block/ref endpoints, async job semantics, idempotency, and dogfeed test.
 - [[wiki/engineering/studio_brief_draft_authoring_worker_plan|Studio brief-draft authoring Worker plan]] — Step-by-step plan for D1-backed draft endpoints, authz, idempotency, draft-status overlays, generation-job recording, tests, OpenAPI, and docs.
@@ -119,6 +128,7 @@ mutations, and Codemode deferred until a workflow needs it.
 - [[wiki/engineering/tier2_structured_extraction_harness_plan|Tier 2 structured extraction harness plan]] — Next-page/window schema and evaluation harness for turning OCR Markdown into validated claims, events, context signals, review questions, and applied-research inputs.
 - [[wiki/engineering/agentic_tier2_extraction_harness_goal|Agentic Tier 2 extraction harness goal]] — Improved source-scoped extraction harness goal: controlled PDF/source tools, prior-candidate context, field-level evidence support, deterministic verification, and downstream brief/finding/detector/causal projections.
 - [[wiki/engineering/tier2_agentic_self_healing_architecture|Tier 2 agentic self-healing architecture]] — Audit-driven retry lanes, adaptive retry policy, source-tool enrichment gate, and quarantine contract for agentic extraction runs.
+- [[wiki/engineering/tier2_processing_status_and_resume|Tier 2 processing status and resume runbook]] — Current qv8/qv9/qv10 canonical merge, raw-field graduation, vocab synthesis progress, exact artifact paths, remaining chunks, provider caveats, and resumable queue commands.
 - [[wiki/engineering/document_derived_surfaces_v1|Document-derived surfaces v1]] — Final storage contract for Tier 2 OCR/discovery outputs as source-grounded research surfaces, with lifecycle gates before review, serving, causal, or forecasting use.
 - [[wiki/engineering/tier2_operational_date_extraction_review|Tier 2 operational-date assertions — build & review]] — Deterministic source-stated operational-date layer (trust official MTA/DOT status + date; no LLM). 929 trusted dates; review found/fixed three precision defects. Gated before sqlite load.
 - [[wiki/engineering/tier2_operational_date_extraction_audit_handoff|Tier 2 operational-date extraction audit handoff]] — SUPERSEDED by the review above; solved deterministically rather than handed to another audit session.

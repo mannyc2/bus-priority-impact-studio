@@ -216,6 +216,7 @@ dataset pages and source registry.
 - [[wiki/engineering/web_api_endpoint_architecture|Web API Endpoint Architecture]]
 - [[wiki/engineering/serving_storage_split_plan|Serving Storage Split Plan]]
 - [[wiki/engineering/website_data_support_audit|Website Data Support Audit]]
+- [[wiki/engineering/website_surface_data_plan|Website Surface Data Plan]]
 - [[wiki/engineering/synthetic_data_inventory|Synthetic Data Inventory]]
 - [[wiki/project/ai_interaction_model|AI Interaction Model]]
 - MTA Open Data Program — https://www.mta.info/open-data — verified_at: 2026-04-26

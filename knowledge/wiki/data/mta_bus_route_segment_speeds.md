@@ -2,9 +2,9 @@
 title: MTA Bus Route Segment Speeds
 type: data
 status: active
-last_updated: 2026-04-27
+last_updated: 2026-06-05
 owner: codex
-source_count: 5
+source_count: 6
 tags: [mta, bus, speeds, performance, core]
 ---
 
@@ -24,6 +24,12 @@ Datasets:
 MTA describes this dataset as measuring how fast buses travel between pairs of subsequent timepoints, the major stops on a route. It includes average speed, average travel time, road distance, number of bus trips, route/trip type, borough, timepoint names, coordinates, and stop-sequence order. It is aggregated by month, day of week, and hour of day.
 
 MTA’s methodology note says speed calculations include real rider-experience factors such as dwell time, stoplights, reliefs, road closures, delivery vehicles, and traffic slowdowns.
+
+The official overview attachment says the source uses GPS pings from BusTime and MTA's Bus Matching
+2.0 route-matching process to build stop-arrival records, remove impossible or duplicate pings,
+filter non-revenue trips, and combine those arrivals with road distance to calculate travel speed
+between timepoint stops. Treat this as an observed customer travel-time measure, not an in-motion
+traffic-speed measure.
 
 MTA’s 2026 blog says the speed dataset is tabular and does not include true segment line geometry; the route geometry must be constructed by projecting stops onto route shapes and deriving the path between them.
 
@@ -66,16 +72,29 @@ Probe completed 2026-04-27. Metadata files:
 
 This dataset is monthly aggregate evidence, not a realtime feed. Recent route schedules may appear before segment-speed rows for the same month, so `ingest:route-coverage` can show scheduled routes with `0` speed routes until MTA publishes the processed speed data. Strict v1 should wait for the monthly speed rows that match the collected GTFS-RT month.
 
+Do not treat "1-2 month lag" as an MTA-published SLA. The official overview attachment records
+release notes, including the initial release and a documentation update, but does not promise a
+fixed publication delay. In product copy and release gates, phrase this as observed source
+availability from `check route-speed-availability`; for example, the 2026-06-05 live check found
+March 2026 as the latest complete public speed month and May 2026 as `missing_speed`.
+
 ## Caveats
 
 - Speeds represent customer travel-time factors, not free-flow traffic speed.
 - Timepoint-to-timepoint segments are coarser than stop-to-stop segments.
+- The timepoint set can change from schedule to schedule because timepoint selection is tied to bus
+  scheduling, not only to public stop importance.
+- Multiple travel paths can exist between the same pair of timepoints for a route/direction, so
+  distance and speed rows are not always one physical street segment.
 - Timepoint names may not be stable join keys across data releases; prefer IDs where available.
+- The official overview warns that holidays and GPS/sensor issues can make speeds coarse estimates,
+  and notes rare GTFS typo cases such as a mislabeled January 2025 M101 stop.
 - Segment geometry construction must follow actual route shape, not straight lines.
 
 ## Sources
 
 - https://data.ny.gov/Transportation/MTA-Bus-Route-Segment-Speeds-Beginning-2025/kufs-yh3x — verified_at: 2026-04-26
+- https://data.ny.gov/api/views/kufs-yh3x/files/40a05f94-c74b-464c-a5f9-96205ac2c6f8?filename=MTA_BusRouteSegmentSpeeds_Overview.pdf — verified_at: 2026-06-05
 - https://data.ny.gov/Transportation/MTA-Bus-Route-Segment-Speeds-2023-2024/58t6-89vi — verified_at: 2026-04-26
 - https://data.ny.gov/Transportation/MTA-Central-Business-District-Bus-Speeds-Beginning/r6db-kkzj — verified_at: 2026-04-27
 - https://www.mta.info/article/beyond-route-introducing-granular-mta-bus-speed-data — verified_at: 2026-04-26

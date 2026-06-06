@@ -2,7 +2,7 @@
 title: Applied Research Architecture
 type: engineering
 status: draft
-last_updated: 2026-06-01
+last_updated: 2026-06-06
 owner: codex
 source_count: 0
 tags: [applied-research, analytics, detectors, causal-inference, forecasting, pipeline-v2, architecture]
@@ -153,9 +153,12 @@ Recommended package exports:
     "./core": "./src/core/index.ts",
     "./detector-runs": "./src/detector-runs/index.ts",
     "./evaluation": "./src/evaluation/index.ts",
+    "./feature-history": "./src/feature-history/index.ts",
+    "./treatments": "./src/treatments/index.ts",
     "./causal": "./src/causal/index.ts",
     "./forecasting": "./src/forecasting/index.ts",
     "./artifacts": "./src/artifacts/index.ts",
+    "./route-briefs": "./src/route-briefs/index.ts",
     "./local-db": "./src/local-db/index.ts"
   }
 }
@@ -165,20 +168,274 @@ Recommended package exports:
 be fixture-testable without opening a database. `./local-db` may depend on `@bp/db` and adapt
 repositories into the pure ports.
 
-Implementation status, 2026-06-01: the package is scaffolded and now owns the shared research
+`./treatments` owns deterministic treatment-state materialization: canonical treatment vocabulary,
+source-family status mapping, merge policy, route/segment treatment rows, source-gap rows, and
+validation summaries. Detectors, causal panels, route briefs, and serving projections consume this
+materialized treatment layer; they do not rebuild it.
+
+Implementation status, 2026-06-06: the package is scaffolded and now owns the shared research
 quality score, detector-evaluation report contracts, detector-evaluation markdown rendering,
 deterministic detector-evaluation label-set construction, generic detector score-vector artifact
 construction, speed/pace feature + score-vector construction, route runtime/history feature
 resolution, runtime/trend score-vector construction, EWT route-month score-vector construction,
 raw stop-direction-hour EWT feature artifact construction, and registry detector-run artifact
-assembly. `tools/pipeline-v2` is being kept as the local DB/artifact I/O shell for these surfaces:
-it selects rows, handles paths, and writes outputs while the detector-grade artifact builders live
-in the research package. The first local corpus ports now live under `@bp/applied-research/local-db`
-for EWT route-month rows and stop-direction-hour EWT inputs; pipeline-v2 adapts SQLite queries into
-those ports rather than making the artifact builders know about the database. The causal and
-forecasting subpaths now expose initial study contracts and scoring/readiness helpers so future
-estimators and models build on the same headless study architecture rather than returning to CLI
-implementation.
+assembly. The first hard-cutover detector-study path now lives in the package:
+`@bp/applied-research/detector-runs` owns registry detector study execution, detector-specific
+feature resolution, analytics-registry dispatch, and run-artifact construction for
+`findings run-detector`. `@bp/applied-research/local-db` owns the local SQLite row selectors for
+that study family, while `@bp/applied-research/artifacts` owns stop-direction-hour EWT feature
+artifact loading. The generic detector score-vector builder has also hard-cut over:
+`@bp/applied-research/score-vectors` owns the study wrapper, `@bp/applied-research/local-db` owns
+the `local_finding_coverage_audit` and `local_finding_candidate` row selectors, and
+`@bp/applied-research/artifacts` owns the detector-score-vector artifact path convention.
+`findings review-packets` has also cut over: `@bp/applied-research/review-packets` owns the packet,
+queue, and coverage artifact construction, while `@bp/applied-research/local-db` owns the local
+SQLite selectors and domain-schema parsing for `local_finding_candidate`,
+`local_finding_evidence_link`, and `local_finding_coverage_audit`.
+`findings lattice-review-bundles` now follows that review-packet boundary:
+`@bp/applied-research/review-packets` owns route input shaping from review packets and signal
+features, lattice preview artifact construction, and Markdown/HTML rendering.
+`findings coverage-audit` now follows the same boundary:
+`@bp/applied-research/evaluation` owns detector coverage-audit artifact construction, and
+`@bp/applied-research/local-db` owns summary and top-candidate selectors over the local finding
+tables.
+`audit review-packet-coverage` now follows the package-owned gate boundary:
+`@bp/applied-research/evaluation` owns review-packet coverage status, severity, summary, and gap
+evaluation, while the pipeline command retains release-month/path resolution and JSON input loading.
+`build detector-evaluation-labels` also follows the package boundary:
+`@bp/applied-research/evaluation` owns deterministic label-set construction,
+`@bp/applied-research/local-db` owns coverage-label source row selection, and
+`@bp/applied-research/artifacts` owns the artifact path convention.
+`build detector-gold-set-evaluation` follows the same evaluation boundary:
+`@bp/applied-research/evaluation` owns gold-set expectation construction, promoted/flagged scope
+matching, missing-data discovery scope assembly, and calibration evaluation, while
+`@bp/applied-research/artifacts` owns the default artifact path convention.
+`audit analytics-corpus-profile` now follows the package-owned corpus profiling boundary:
+`@bp/applied-research/local-db` owns local corpus observation row loading,
+`@bp/applied-research/evaluation` owns profile construction and doctrine, and
+`@bp/applied-research/artifacts` owns the profile path convention.
+`audit analytics-backfill-coverage` now follows the same package-owned audit boundary:
+`@bp/applied-research/local-db` owns local backfill surface row loading,
+`@bp/applied-research/evaluation` owns coverage construction, thresholds, and next-action logic,
+and `@bp/applied-research/artifacts` owns the coverage path convention. Detector-readiness audit
+code now builds that nested coverage through the package surface.
+`audit analytics-detector-readiness` now follows the same package-owned readiness boundary:
+`@bp/applied-research/evaluation` owns detector calibration-policy readiness joins, required-surface
+status rollups, and next-action construction; `@bp/applied-research/local-db` owns the direct
+observed-headway, bus-wait, GTFS schedule, permit-touch, and 311-touch surface probes; and
+`@bp/applied-research/artifacts` owns readiness path naming.
+`audit analytics-materialization-coverage` now follows the package-owned audit boundary:
+`@bp/applied-research/evaluation` owns route universe probing, local route-table coverage checks,
+route-slice/brief/EWT artifact discovery, score-vector route extraction, materialization status
+rollups, and next-action construction; `@bp/applied-research/artifacts` owns coverage path naming.
+`route brief-model` now follows the same hard-cutover boundary for route brief analytics:
+`@bp/applied-research/route-briefs` owns route-score brief construction, hotspot projection,
+segment-universe assembly, schedule comparisons, ridership/speed profiles, bus-lane/ACE summaries,
+visibility adjustment, route-universe planning, unknown-route issue construction, and
+comparison-rank rows. It also owns final serving projection so visibility policy is applied once to
+route brief rows and route-slice metrics. The pipeline command retains local DB reads/writes,
+hotspot projection error capture, route-slice artifact writes, CLI parsing, and run summary
+reporting.
+`audit evidence-corpus` now follows the package-owned evaluation boundary:
+`@bp/applied-research/evaluation` owns source evidence eligibility summaries, route-month
+signal-feature readiness, detector candidate/evidence/coverage counts, review-queue linkage, gap
+detection, and pass/warn/fail status. The pipeline command retains artifact path resolution, JSON
+reads, output validation, and report writes.
+`audit detector-closure` now follows the package-owned evaluation boundary:
+`@bp/applied-research/evaluation` owns analysis dependency closure construction, planned
+research-unit dependency policy, status rollups, and Markdown rendering, while
+`@bp/applied-research/artifacts` owns closure JSON/Markdown path conventions.
+`audit tier2-structured-data` now follows the same evaluation boundary:
+`@bp/applied-research/evaluation` owns structured-document artifact layer/trust classification,
+count extraction, reviewed-record schema validity checks, summary extraction, and
+research-substrate warning policy. It also owns inventory summary construction, best research/serving
+artifact ranking, next-action policy, and Markdown rendering. The pipeline command retains docs-root
+scanning, JSON reads, unreadable-file handling, and output writes.
+`audit studio-coverage` now follows the package-owned Studio projection evaluation boundary:
+`@bp/applied-research/evaluation` owns route brief input completeness checks and Studio route
+projection validators for schedule comparisons, ridership exposure, hourly bins, DOT lane geometry,
+trend-month labels, route-level ridership profiles, route-shape geometry, TSP source evidence,
+public AI note shape/density, rider-delay evidence, and route-segment coverage metadata. The
+pipeline command retains local D1 reads, projection list/directory scanning, presentation-text
+scanning, status assembly, and report writes.
+`evaluate detectors` now follows the package-owned artifact-path boundary:
+`@bp/applied-research/artifacts` owns the detector-evaluation JSON/Markdown path and the input
+artifact path bundle for release review artifacts, coverage audits, readiness, score vectors,
+labels, and grain audits.
+`evaluation artifacts` now follows the package-owned static serving boundary:
+`@bp/applied-research/evaluation` owns public evaluation payload construction, intervention-event
+reference filtering, manifest construction, SHA-256/byte metadata, manifest parsing, payload
+contract checks, file verification, and expected-row-count policy, while
+`@bp/applied-research/artifacts` owns evaluation artifact key/path naming. The pipeline command
+retains local SQLite row reads, CLI adaptation, and JSON file writes before those files are promoted
+to R2.
+`map artifacts` now follows that same static serving boundary:
+`@bp/applied-research/artifacts` owns map artifact key/path naming, and
+`@bp/applied-research/evaluation` owns JSON/GeoJSON content-type constants, artifact-entry
+construction, manifest construction, SHA-256/byte metadata, manifest parsing, required-artifact
+checks, route-segment payload validation, file verification, and expected public-route coverage
+policy. The pipeline command retains source snapshot reads, local DB row reads, route geometry
+projection, CLI adaptation, and JSON file writes before R2 promotion.
+`brief artifacts` now follows the route-brief package boundary:
+`@bp/applied-research/route-briefs` owns route/corridor brief artifact key naming, source-reference
+policy, observed-reliability window grouping/ranking, JSON/Markdown/HTML rendering, content-type
+assignment, byte counts, and SHA-256 metadata. The pipeline command retains local SQLite row
+loading, artifact file writes, route/corridor artifact table replacement, and route-batch status
+writes.
+`audit route-schedule-progress` now follows the local research boundary:
+`@bp/applied-research/local-db` owns Socrata schedule-progress and GTFS static run aggregation,
+while the pipeline command retains DB opening and CLI output.
+`findings repair-persistent-speed-coverage` now follows the same local-research boundary:
+`@bp/applied-research/evaluation` builds exact segment-scope coverage repair rows, and
+`@bp/applied-research/local-db` owns the local candidate/evidence/coverage selector.
+`audit speed-pace-shadow` and `audit route-month-shadow` also now follow that boundary:
+`@bp/applied-research/evaluation` builds the detector shadow-audit artifacts,
+`@bp/applied-research/local-db` owns the local coverage/candidate selectors, and
+`@bp/applied-research/artifacts` owns the detector-shadow-audit path conventions.
+`audit detector-corpus-grain` now follows the same package-owned audit boundary: release-month
+candidate and coverage count loading for local finding tables lives in `@bp/applied-research/local-db`,
+detector-corpus artifact path naming and detector-specific score-vector artifact discovery live in
+`@bp/applied-research/artifacts`, and the corpus-grain audit builder, release checks, feature-grain
+profiles, and markdown renderer live in `@bp/applied-research/evaluation`. The pipeline command
+retains manifest loading, local DB opening, package delegation, and output writes.
+`build stop-direction-hour-ewt-features` is now package-owned at the local research boundary:
+`@bp/applied-research/local-db` owns GTFS static calendar expansion, Socrata/timepoint schedule row
+loading, observed-headway row loading, and SQLite-backed feature artifact construction, while
+`@bp/applied-research/artifacts` owns the default stop-direction-hour EWT artifact path convention.
+`build context-event-route-touches` now follows the same local research boundary:
+`@bp/applied-research/local-db` owns direct-route, LION-link, and parking-location route-touch
+materialization plus source/event-kind audit rollups, while `@bp/applied-research/artifacts` owns
+the route-touch audit path convention.
+`build intervention-panel` now follows the causal research boundary:
+`@bp/applied-research/local-db` owns local intervention-comparison row loading,
+`@bp/applied-research/causal` owns associational intervention-panel artifact construction, and
+`@bp/applied-research/artifacts` owns the default intervention-panel path convention.
+`build route-hourly-profile` now follows the feature-history boundary:
+`@bp/applied-research/local-db` owns local route-hourly ridership profile row loading,
+`@bp/applied-research/feature-history` owns compact route-month hourly profile artifact construction,
+and `@bp/applied-research/artifacts` owns the default route-hourly profile path convention.
+`build segment-daypart-history` now follows the same feature-history boundary:
+`@bp/applied-research/local-db` owns segment/daypart aggregation over local route segment speeds,
+`@bp/applied-research/feature-history` owns compact segment-daypart history artifact construction,
+and `@bp/applied-research/artifacts` owns the default segment-daypart history path convention.
+`build observed-headways` now delegates GTFS-RT vehicle-position stop-event deduplication,
+successive-vehicle headway construction, and observed-headway local DB writes to
+`@bp/applied-research/local-db`; the pipeline command is only the DB-opening and CLI output adapter.
+`route observed-reliability` now delegates route/month observed-headway summarization, reliability
+status classification, bunching/long-gap and wait-reliability metric construction, source-status row
+construction, and local DB writes to `@bp/applied-research/local-db`.
+`route reliability-baseline` now delegates scheduled-headway grouping, route-level baseline
+summaries, long-gap windows, source-status row construction, and local DB writes to
+`@bp/applied-research/local-db`.
+`route readiness` now delegates missing-input detection, readiness status classification, scoring,
+row ordering, and local DB writes to `@bp/applied-research/local-db`.
+`route build-plan` now delegates priority scoring, candidate ordering, selected/backlog/already-built
+/blocked classification, count rollups, and local DB writes to `@bp/applied-research/local-db`.
+`route equity-context` now delegates route-prefix county assignment, county-level ACS tract
+aggregation, route equity row construction, source-status rows, and local DB writes to
+`@bp/applied-research/local-db`.
+`build context-events` now delegates context-event ID construction, source-row normalization,
+parking/collision/permit/traffic/311/ACE event mapping, ACE monthly route aggregation, and local
+context-event DB writes to `@bp/applied-research/local-db`.
+`build parking-violation-matches` now uses package-owned parking-location normalization:
+`@bp/applied-research/local-db` owns borough/street normalization, parking location keys, camera
+location parsing, corridor keys, house-number parsing, and deterministic evidence hashes. The
+package also owns match audit summary SQL, audit-only group count probes, location-key refresh,
+camera/address match-group selectors, match-table clear/insert persistence with match weighting, and
+LION/route candidate selectors for physical-id and street-corridor matching. Audit artifact shaping
+and deterministic street-code-house match resolution are package-owned, while the parking violation
+match audit path convention lives in `@bp/applied-research/artifacts`. The pipeline command still
+owns Geoclient/env setup, raw snapshot file discovery/JSON loading, and audit writes for that
+command. Raw parking and LION hydration transforms are package-owned. Camera intersection/corridor
+match policy is package-owned; the command only builds the package-requested Geocoder call and
+passes back a plain geocode outcome. The local DB rebuild loop is also package-owned, including
+clearing stale matches, scanning camera/address groups, invoking the injected camera geocoder
+callback, resolving matches, inserting rows, and returning scanned counts.
+`build route-lion-link` now delegates route allowlist query construction, buffer conversion,
+SpatialIndex-backed route/LION intersection queries, per-route replacement writes, and run counts to
+`@bp/applied-research/local-db`.
+`route intervention-evaluation` now delegates ACE, bus-lane, and document-anchor treatment event
+construction, bus-lane open-date parsing, source-gap handling, peer/descriptive before-after
+comparison construction, local route/brief/trend/bus-lane row loading, and local DB writes to
+`@bp/applied-research/local-db`.
+`build lion-geometry-index` now delegates GeoJSON feature unwrapping, Spatialite geometry-column
+and spatial-index helpers, WKT/GeoJSON insertion, skip-rate enforcement, and run counts to
+`@bp/applied-research/local-db`. `build route-shape-geometry-index` also uses the package-owned
+route-shape geometry helper while retaining source snapshot normalization in the pipeline.
+The route-shape command now also delegates normalized shape grouping, LineString/MultiLineString
+extraction, MultiLineString GeoJSON construction, Spatialite upserts, and inserted/skipped counts to
+`@bp/applied-research/local-db`.
+`build express-bus-capacity-context` and `build express-route-analysis` now delegate route/hour
+capacity summaries, capacity-window aggregation, speed-window aggregation, load/speed banding,
+screening candidate flags, route summaries, analysis artifact validation, audit issue construction,
+and express analysis path naming to `@bp/applied-research/feature-history` and
+`@bp/applied-research/artifacts`. Pipeline retains normalized artifact loading, Socrata speed-query
+fetching, route filtering, CLI options, and JSON writes.
+`check route-speed-availability` now delegates source row parsing, route normalization, month status
+classification, requested-month fallback, rebuild-decision policy, result construction, and artifact
+path naming to `@bp/applied-research/evaluation` and `@bp/applied-research/artifacts`. Pipeline
+retains source manifest loading, Socrata query/fetch plumbing, CLI validation, compatibility
+artifact reads, and JSON writes.
+`export route-speed-history-coverage-index` now delegates the
+`local_route_speed_history_coverage` table contract, route-id normalization, release-month row
+replacement, count rollups, and null metric defaults to `@bp/applied-research/local-db`, leaving
+manifest parsing, artifact path resolution, existence checks, and CLI wiring in the pipeline.
+`studio route-speed-spine` now delegates stable timepoint-node clustering, spine segment
+construction, month coverage, validation issues, and route speed-spine source-row contracts to
+`@bp/applied-research/feature-history`; artifact path naming to `@bp/applied-research/artifacts`;
+and local `local_route_segment_speed` row aggregation to `@bp/applied-research/local-db`. The Studio
+pipeline commands retain SQLite opening, path resolution, JSON writes, and manifest orchestration.
+The `studio route-speed-spines` manifest path, readiness classification, candidate route probe, and
+current-catalog route probe are also package-owned.
+`studio route-speed-history` now delegates segment/daypart cell construction, expected-service
+derivation from schedule stop pairs, route speed-history artifact path naming, and local
+speed/schedule row loading to applied-research. The command remains a spine-artifact reader,
+SQLite/path adapter, and JSON writer.
+`studio route-speed-histories` now delegates default readiness policy, readiness-list parsing,
+batch route/manifest contracts, manifest path naming, and batch summary construction to
+`@bp/applied-research/feature-history` and `@bp/applied-research/artifacts`. The command remains the
+spine-manifest reader, route filter/limit adapter, per-route job orchestrator, and JSON writer.
+`audit source-coverage` now delegates source coverage policy, SQLite table/column/range probes,
+geocode and context-event join summaries, readiness classification, evidence eligibility, and
+summary rollups to `@bp/applied-research/local-db`, with path naming in
+`@bp/applied-research/artifacts`.
+`audit route-source-reconciliation` now delegates local route catalog/source-set queries, canonical
+route matching, source-year schedule waiver classification, route source classification, alias
+candidate construction, eligible-product assignment, and reconciliation artifact assembly to
+`@bp/applied-research/local-db`, with path naming in `@bp/applied-research/artifacts`.
+The source-month matrix emitted by `audit data-product-completeness` now delegates local
+month/source table probes, source-year schedule ingest rollups, source/derived/upstream status
+classification, status counts, and matrix artifact construction to `@bp/applied-research/local-db`,
+with path naming in `@bp/applied-research/artifacts`.
+The data-product manifest schema, parser, and release manifest now live under
+`@bp/applied-research/data-products`; `tools/pipeline-v2/src/registry/data-products.ts` is a
+compatibility re-export while command code imports the registry from the package owner. The default
+data-product completeness artifact path is also package-owned under `@bp/applied-research/artifacts`.
+The same data-products subpath owns data-product completeness status/reason derivation, gap-class
+classification, dependency root-cause propagation, score-vector route parsing, JSON artifact
+semantic reasons, count rollups, and coverage summary buckets.
+`@bp/applied-research/local-db` owns data-product route-universe derivation and latest GTFS run
+selection for that audit, plus the month-table, table-route, table-row count, source-year route,
+route artifact, score-vector route, JSON/file artifact, and artifact-glob completeness checks.
+`tools/pipeline-v2 audit data-product-completeness` now retains CLI parsing, local DB opening,
+template value wiring, raw reliability snapshot probes, and artifact writes, then delegates
+route-universe probing, local/source-year/artifact checks, artifact semantics, and product
+classification to applied-research.
+`build ewt-score-vectors` is also now package-owned: `@bp/applied-research/local-db` loads and
+enriches route-month reliability rows from the local SQLite corpus, `@bp/applied-research/score-vectors`
+owns the EWT study wrapper, and `@bp/applied-research/artifacts` owns the artifact path convention.
+`build speed-pace-score-vectors` has the same boundary: local segment-speed month and row loading
+lives under `@bp/applied-research/local-db`, the speed/pace study wrapper lives under
+`@bp/applied-research/score-vectors`, and path naming lives under `@bp/applied-research/artifacts`.
+`build runtime-trend-score-vectors` now follows the same boundary: local observed-runtime,
+scheduled-stop, and route-metric history row loading lives under `@bp/applied-research/local-db`,
+the runtime/trend study wrapper lives under `@bp/applied-research/score-vectors`, and path naming
+lives under `@bp/applied-research/artifacts`.
+`tools/pipeline-v2` is now the local DB/artifact I/O shell for these paths: it parses flags, opens
+stores, passes package-owned study inputs into applied research, optionally replaces local finding
+tables where applicable, and writes output artifacts. The causal and forecasting subpaths now expose
+initial study contracts and scoring/readiness helpers so future estimators and models build on the
+same headless study architecture rather than returning to CLI implementation.
 
 ## Target Internal Layout
 
@@ -207,10 +464,28 @@ packages/applied-research/src/
     candidate-coverage.ts
     missing-data-summary.ts
 
+  data-products/
+    registry.ts
+
+  treatments/
+    vocabulary.ts
+    status-policy.ts
+    source-rows.ts
+    materializer.ts
+    validation.ts
+
   review-packets/
     packet-builder.ts
     packet-coverage.ts
     evidence-role-policy.ts
+
+  feature-history/
+    route-hourly-profile.ts
+    segment-daypart-history.ts
+
+  route-briefs/
+    model.ts
+    metrics.ts
 
   score-vectors/
     generic.ts
@@ -226,7 +501,6 @@ packages/applied-research/src/
     corpus-grain-audit.ts
 
   causal/
-    treatment-inventory.ts
     panel-builder.ts
     event-family-panel.ts
     response-drift.ts
@@ -549,11 +823,84 @@ SQLite queries, path resolution, and artifact writes. The speed/pace segment-day
 resolver and `speed_pace_hotspot` historical score-vector builder also now live in
 `@bp/applied-research`; `pipeline-v2 build speed-pace-score-vectors` retains month/row queries,
 path resolution, and artifact writes. Review-packet artifact assembly now lives under
-`@bp/applied-research/review-packets`; `pipeline-v2 findings review-packets` remains the SQLite
-reader, path resolver, resume-id loader, and artifact writer. Detector-family feature resolvers for
+`@bp/applied-research/review-packets`; `pipeline-v2 findings review-packets` now retains local DB
+opening, path resolution, resume-id artifact loading, and artifact writes. Detector-family feature
+resolvers for
 rider-weighted EWT, positive deviance, intervention panels, and delay concentration now live under
 `@bp/applied-research/feature-resolvers`; `pipeline-v2 findings run-detector` retains SQLite reads
 and detector execution orchestration.
+`pipeline-v2 findings coverage-audit` now retains only local DB opening, path resolution, and
+artifact writes while `@bp/applied-research/evaluation` and `@bp/applied-research/local-db` own the
+artifact builder and local row selection.
+`pipeline-v2 build detector-evaluation-labels` now retains only CLI parsing, local DB opening, path
+resolution, and output writes while `@bp/applied-research/evaluation`,
+`@bp/applied-research/local-db`, and `@bp/applied-research/artifacts` own label construction, row
+selection, and path naming.
+`pipeline-v2 build detector-gold-set-evaluation` now retains only CLI parsing, artifact path
+resolution, JSON input loading, and output writes while applied-research owns expectation/flagged
+scope assembly and gold-set calibration evaluation.
+`pipeline-v2 findings repair-persistent-speed-coverage` now retains CLI parsing, local DB opening,
+the optional insert transaction, and count reporting while applied-research owns repair construction
+and missing-row selection.
+`pipeline-v2 audit speed-pace-shadow` and `pipeline-v2 audit route-month-shadow` now retain only
+CLI parsing, local DB opening, path resolution, and output writes while applied-research owns
+shadow-audit artifact construction, row selection, and detector-shadow path naming.
+`pipeline-v2 audit detector-corpus-grain` now retains CLI parsing, manifest/completeness/shadow
+artifact loading, local DB opening, and output writes while applied-research owns local row
+selection, path naming, score-vector artifact discovery, audit construction, release checks, and
+markdown rendering.
+`pipeline-v2 build stop-direction-hour-ewt-features` now retains only CLI parsing, local DB opening,
+and output writes while applied-research owns schedule/observed row loading, GTFS service-date
+expansion, artifact construction, and path naming.
+`pipeline-v2 build ewt-score-vectors` now retains only CLI parsing, local DB opening, path
+resolution, and output writes; the EWT study wrapper, ABST enrichment, reliability-row loading, and
+path convention live under `@bp/applied-research`.
+`pipeline-v2 build speed-pace-score-vectors` now retains the same shell responsibilities while
+applied-research owns segment-speed row loading, score-vector study construction, and path naming.
+`pipeline-v2 build runtime-trend-score-vectors` now retains the same shell responsibilities while
+applied-research owns observed-runtime, scheduled-stop, and route-metric history row loading,
+runtime/trend score-vector study construction, and path naming.
+`pipeline-v2 audit analytics-corpus-profile` now retains CLI parsing, local DB opening, path
+resolution, and output writes while applied-research owns corpus observation SQL loading, profile
+artifact construction, doctrine, and path naming.
+`pipeline-v2 audit analytics-backfill-coverage` now retains the same shell responsibilities while
+applied-research owns backfill surface SQL loading, coverage audit construction, thresholds,
+next-action logic, and path naming.
+`pipeline-v2 audit analytics-detector-readiness` now retains CLI parsing, local DB opening, nested
+backfill coverage delegation, path display normalization, and output writes while applied-research
+owns direct readiness surface probes and detector policy readiness construction.
+`pipeline-v2 audit analytics-materialization-coverage` now retains CLI parsing, data-product
+manifest metadata adaptation, local DB opening, path display normalization, and output writes while
+applied-research owns route/table/artifact probing and materialization audit construction.
+`pipeline-v2 route brief-model` now retains CLI parsing, route-list resolution, local DB
+reads/writes, hotspot projection error capture, route-slice artifact writes, and run summary
+reporting while applied-research owns route brief analytics, route-universe planning, unknown-route
+issue construction, hotspot projection, segment universe construction, visibility adjustment, and
+comparison-rank row construction, including the final serving projection that mirrors visibility
+into route-slice metrics.
+`pipeline-v2 audit evidence-corpus` now retains artifact path resolution, JSON reads, output
+validation, and report writes while applied-research owns evidence-corpus summary and gap/status
+policy construction.
+`pipeline-v2 audit detector-closure` now retains CLI parsing, data-product manifest parsing,
+prerequisite artifact reads, path display normalization, and output writes while applied-research
+owns dependency-closure artifact construction and Markdown rendering.
+`pipeline-v2 audit studio-coverage` now retains local D1 reads, generated artifact path/list
+scanning, presentation-term scanning, status assembly, and report writes while applied-research owns
+route brief input completeness and Studio route projection validation policy.
+`pipeline-v2 audit route-schedule-progress` now retains only local DB path resolution, SQLite
+opening, and command output while applied-research owns schedule-progress SQL aggregation.
+`pipeline-v2 findings lattice-review-bundles` now retains CLI path resolution, artifact reads, and
+JSON/Markdown/HTML writes while applied-research owns route input shaping, preview artifact
+construction, and renderers.
+`pipeline-v2 studio route-speed-histories` now retains route selection, existing-artifact probing,
+per-route history orchestration, and output writes while applied-research owns the batch manifest
+path, readiness defaults/parsing, batch manifest contract, and summary rollups.
+`pipeline-v2 build express-route-analysis` now retains source manifest loading, Socrata speed-query
+fetching, route filtering, and output writes while applied-research owns the express capacity/speed
+window shaping, screening thresholds, summaries, artifact contract, audit policy, and path naming.
+`pipeline-v2 check route-speed-availability` now retains Socrata source probing and output writes
+while applied-research owns source-row parsing, route/month availability classification,
+requested-month fallback, rebuild-decision policy, result construction, and path naming.
 
 ### R3: Repository Ports And Local DB Adapter
 
