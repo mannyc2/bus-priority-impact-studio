@@ -33,7 +33,7 @@ import {
   getFindingDetectorSpec,
   listAnalyticsDetectors,
 } from "@bp/analytics/registry";
-import { KNOWN_DETECTOR_IDS, KNOWN_FINDING_REASON_CODES } from "@bp/domain";
+import { KNOWN_DETECTOR_IDS, KNOWN_FINDING_REASON_CODES } from "@bp/domain/findings";
 
 const EXPECTED_DETECTOR_IDS = [
   SOURCE_GAP_DETECTOR_ID,

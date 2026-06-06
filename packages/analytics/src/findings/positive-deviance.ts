@@ -6,9 +6,8 @@ import {
   type FindingCoverageAudit,
   type FindingEvidenceLink,
   FindingReasonCodeSchema,
-  IsoMonthSchema,
-  RouteIdSchema,
-} from "@bp/domain";
+} from "@bp/domain/findings";
+import { IsoMonthSchema, RouteIdSchema } from "@bp/domain/primitives";
 import { buildCoverageAudit } from "../core/coverage.js";
 import { buildEvidenceLink } from "../core/evidence.js";
 import { stableId } from "../core/ids.js";
@@ -291,8 +290,9 @@ export function detectPositiveDeviance(
           peerGroupId: feature.peerGroupId,
           peerCount: feature.peerCount,
           periodCount: feature.periods.length,
-          qualifyingPeriodCount: feature.periods.filter((period) => periodQualifies(period, thresholds))
-            .length,
+          qualifyingPeriodCount: feature.periods.filter((period) =>
+            periodQualifies(period, thresholds),
+          ).length,
           reciprocalMetricWarnings: reciprocalWarnings(feature),
           quality: feature.quality,
         },

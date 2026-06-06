@@ -9,10 +9,9 @@ import {
   type FindingEvidenceLink,
   FindingEvidenceLinkSchema,
   FindingReasonCodeSchema,
-  IsoMonthSchema,
-  RouteIdSchema,
   type RouteMonthSignalFeature,
-} from "@bp/domain";
+} from "@bp/domain/findings";
+import { IsoMonthSchema, RouteIdSchema } from "@bp/domain/primitives";
 
 export const PERMIT_CORRELATED_SLOWDOWN_DETECTOR_ID = "permit_correlated_slowdown";
 

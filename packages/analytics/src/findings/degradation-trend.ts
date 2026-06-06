@@ -6,9 +6,8 @@ import {
   type FindingCoverageAudit,
   type FindingEvidenceLink,
   FindingReasonCodeSchema,
-  IsoMonthSchema,
-  RouteIdSchema,
-} from "@bp/domain";
+} from "@bp/domain/findings";
+import { IsoMonthSchema, RouteIdSchema } from "@bp/domain/primitives";
 import { robustZScore, theilSenSlope } from "../baselines/history.js";
 import { buildCoverageAudit } from "../core/coverage.js";
 import { buildEvidenceLink } from "../core/evidence.js";
@@ -37,10 +36,7 @@ export type DegradationTrendThresholds = {
   candidateLimit: number;
 };
 
-export const DEFAULT_DEGRADATION_TREND_METRIC_DIRECTIONS: Record<
-  string,
-  TrendMetricDirection
-> = {
+export const DEFAULT_DEGRADATION_TREND_METRIC_DIRECTIONS: Record<string, TrendMetricDirection> = {
   average_speed_mph: "lower_is_worse",
   buffer_index: "higher_is_worse",
   excess_wait_minutes: "higher_is_worse",

@@ -8,12 +8,8 @@ import {
   type FindingEvidenceLink,
   FindingEvidenceLinkSchema,
   FindingReasonCodeSchema,
-  IsoMonthSchema,
-  RouteIdSchema,
-} from "@bp/domain";
-import { stableId } from "../core/ids.js";
-import { mergeThresholds, round } from "../core/numbers.js";
-import { severityFromScore } from "../core/scoring.js";
+} from "@bp/domain/findings";
+import { IsoMonthSchema, RouteIdSchema } from "@bp/domain/primitives";
 import {
   giniCoefficient,
   median,
@@ -22,6 +18,9 @@ import {
   percentileRank,
   topItemsShare,
 } from "../concentration.js";
+import { stableId } from "../core/ids.js";
+import { mergeThresholds, round } from "../core/numbers.js";
+import { severityFromScore } from "../core/scoring.js";
 
 export const DELAY_CONCENTRATION_DETECTOR_ID = "delay_concentration";
 
@@ -200,9 +199,7 @@ export function detectDelayConcentration(
     if (concentration === null) {
       outcome = "skipped_missing_input";
     } else {
-      giniFleetPercentile = hasBenchmark
-        ? percentileRank(concentration.gini, giniDistribution)
-        : 0;
+      giniFleetPercentile = hasBenchmark ? percentileRank(concentration.gini, giniDistribution) : 0;
       delayFleetPercentile = hasBenchmark
         ? percentileRank(concentration.totalExcessDelayMin, delayDistribution)
         : 0;

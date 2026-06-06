@@ -6,9 +6,8 @@ import {
   type FindingCoverageAudit,
   type FindingEvidenceLink,
   FindingReasonCodeSchema,
-  IsoMonthSchema,
-  RouteIdSchema,
-} from "@bp/domain";
+} from "@bp/domain/findings";
+import { IsoMonthSchema, RouteIdSchema } from "@bp/domain/primitives";
 import { percentile } from "../concentration.js";
 import { buildCoverageAudit } from "../core/coverage.js";
 import { buildEvidenceLink } from "../core/evidence.js";
@@ -98,42 +97,37 @@ function skipReason(
   feature: RiderWeightedExcessWaitFeature,
   thresholds: RiderWeightedExcessWaitThresholds,
 ): SkippedFeature | null {
-  const ewtQualitySkip = qualitySkipReason(
-    feature.quality,
-    {
-      coverage: {
-        reasonCode: "low_coverage",
-        reason: "Excess-wait coverage is too low to compute rider-weighted wait cost.",
-      },
-      freshness: {
-        reasonCode: "feed_stale",
-        reason: "Excess-wait source freshness is too stale to compute rider-weighted wait cost.",
-      },
-      sample: {
-        reasonCode: "insufficient_headways",
-        reason: "Excess-wait sample support is below the detector minimum.",
-      },
+  const ewtQualitySkip = qualitySkipReason(feature.quality, {
+    coverage: {
+      reasonCode: "low_coverage",
+      reason: "Excess-wait coverage is too low to compute rider-weighted wait cost.",
     },
-  );
+    freshness: {
+      reasonCode: "feed_stale",
+      reason: "Excess-wait source freshness is too stale to compute rider-weighted wait cost.",
+    },
+    sample: {
+      reasonCode: "insufficient_headways",
+      reason: "Excess-wait sample support is below the detector minimum.",
+    },
+  });
   if (ewtQualitySkip !== null) return ewtQualitySkip;
 
-  const ridershipQualitySkip = qualitySkipReason(
-    feature.ridershipQuality,
-    {
-      coverage: {
-        reasonCode: "ridership_proxy_unavailable",
-        reason: "Ridership/APC proxy coverage is not strong enough to compute rider-weighted wait cost.",
-      },
-      freshness: {
-        reasonCode: "ridership_proxy_unavailable",
-        reason: "Ridership/APC proxy freshness is too stale to compute rider-weighted wait cost.",
-      },
-      sample: {
-        reasonCode: "ridership_proxy_unavailable",
-        reason: "Ridership/APC proxy sample support is below the detector minimum.",
-      },
+  const ridershipQualitySkip = qualitySkipReason(feature.ridershipQuality, {
+    coverage: {
+      reasonCode: "ridership_proxy_unavailable",
+      reason:
+        "Ridership/APC proxy coverage is not strong enough to compute rider-weighted wait cost.",
     },
-  );
+    freshness: {
+      reasonCode: "ridership_proxy_unavailable",
+      reason: "Ridership/APC proxy freshness is too stale to compute rider-weighted wait cost.",
+    },
+    sample: {
+      reasonCode: "ridership_proxy_unavailable",
+      reason: "Ridership/APC proxy sample support is below the detector minimum.",
+    },
+  });
   if (ridershipQualitySkip !== null) return ridershipQualitySkip;
 
   if (
@@ -198,8 +192,7 @@ function evaluateFeature(
   if (weightedExcessWaitRiderMinutes < thresholds.minWeightedExcessWaitRiderMinutes) return null;
 
   const weightedSignal = clamp(
-    weightedExcessWaitRiderMinutes /
-      Math.max(thresholds.minWeightedExcessWaitRiderMinutes * 4, 1),
+    weightedExcessWaitRiderMinutes / Math.max(thresholds.minWeightedExcessWaitRiderMinutes * 4, 1),
     0,
     1,
   );
@@ -208,7 +201,11 @@ function evaluateFeature(
     0,
     1,
   );
-  const boardingSignal = clamp(boardings / Math.max(thresholds.highConfidenceRiderMinutes, 1), 0, 1);
+  const boardingSignal = clamp(
+    boardings / Math.max(thresholds.highConfidenceRiderMinutes, 1),
+    0,
+    1,
+  );
   const detectorScore = Math.round(
     55 + 45 * (0.6 * weightedSignal + 0.25 * excessSignal + 0.15 * boardingSignal),
   );

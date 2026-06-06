@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { RouteIdCodec } from "@bp/domain";
+import { RouteIdCodec } from "@bp/domain/primitives";
 import * as z from "zod";
 import { calculateRouteScore } from "../src/index.js";
 

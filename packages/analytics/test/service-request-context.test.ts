@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { type RouteMonthSignalFeature, RouteMonthSignalFeatureSchema } from "@bp/domain";
+import { type RouteMonthSignalFeature, RouteMonthSignalFeatureSchema } from "@bp/domain/findings";
 import { detectServiceRequestContext } from "../src/findings/service-request-context.js";
 
 const RUN_ID = "service-request-context-test-run";

@@ -6,9 +6,8 @@ import {
   type FindingCoverageAudit,
   type FindingEvidenceLink,
   FindingReasonCodeSchema,
-  IsoMonthSchema,
-  RouteIdSchema,
-} from "@bp/domain";
+} from "@bp/domain/findings";
+import { IsoMonthSchema, RouteIdSchema } from "@bp/domain/primitives";
 import { bufferIndex } from "../baselines/runtime.js";
 import { buildCoverageAudit } from "../core/coverage.js";
 import { buildEvidenceLink } from "../core/evidence.js";
@@ -67,7 +66,10 @@ function skipReason(
   feature: RouteDirectionDaypartFeature,
   thresholds: TravelTimeVariabilityThresholds,
 ): SkippedFeature | null {
-  const qualitySkip = featureQualitySkipReason(feature.quality, "insufficient_runtime_observations");
+  const qualitySkip = featureQualitySkipReason(
+    feature.quality,
+    "insufficient_runtime_observations",
+  );
   if (qualitySkip !== null) return qualitySkip;
 
   if (feature.observedTripCount < thresholds.minObservedTrips) {

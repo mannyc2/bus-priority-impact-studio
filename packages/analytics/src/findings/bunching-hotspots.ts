@@ -6,9 +6,8 @@ import {
   type FindingCoverageAudit,
   type FindingEvidenceLink,
   FindingReasonCodeSchema,
-  IsoMonthSchema,
-  RouteIdSchema,
-} from "@bp/domain";
+} from "@bp/domain/findings";
+import { IsoMonthSchema, RouteIdSchema } from "@bp/domain/primitives";
 import { headwayIrregularityRates } from "../baselines/headway.js";
 import { buildCoverageAudit } from "../core/coverage.js";
 import { buildEvidenceLink } from "../core/evidence.js";

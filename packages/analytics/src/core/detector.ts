@@ -4,7 +4,7 @@ import type {
   FindingCoverageAudit,
   FindingDetectorSpec,
   FindingEvidenceLink,
-} from "@bp/domain";
+} from "@bp/domain/findings";
 
 export type DetectorOutput = {
   candidates: FindingCandidate[];

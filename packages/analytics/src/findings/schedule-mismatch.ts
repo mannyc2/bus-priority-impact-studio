@@ -6,9 +6,8 @@ import {
   type FindingCoverageAudit,
   type FindingEvidenceLink,
   FindingReasonCodeSchema,
-  IsoMonthSchema,
-  RouteIdSchema,
-} from "@bp/domain";
+} from "@bp/domain/findings";
+import { IsoMonthSchema, RouteIdSchema } from "@bp/domain/primitives";
 import { runtimeDeviation } from "../baselines/runtime.js";
 import { buildCoverageAudit } from "../core/coverage.js";
 import { buildEvidenceLink } from "../core/evidence.js";
@@ -69,7 +68,10 @@ function skipReason(
   feature: RouteDirectionDaypartFeature,
   thresholds: ScheduleMismatchThresholds,
 ): SkippedFeature | null {
-  const qualitySkip = featureQualitySkipReason(feature.quality, "insufficient_runtime_observations");
+  const qualitySkip = featureQualitySkipReason(
+    feature.quality,
+    "insufficient_runtime_observations",
+  );
   if (qualitySkip !== null) return qualitySkip;
 
   if (feature.observedTripCount < thresholds.minObservedTrips) {
@@ -90,7 +92,10 @@ function skipReason(
     };
   }
 
-  if (feature.observedRuntimeP50Minutes === null || !Number.isFinite(feature.observedRuntimeP50Minutes)) {
+  if (
+    feature.observedRuntimeP50Minutes === null ||
+    !Number.isFinite(feature.observedRuntimeP50Minutes)
+  ) {
     return {
       reasonCode: "missing_runtime_metric",
       reason: "Observed median runtime is unavailable.",
@@ -104,7 +109,10 @@ function evaluateFeature(
   feature: RouteDirectionDaypartFeature,
   thresholds: ScheduleMismatchThresholds,
 ): EvaluatedFeature | null {
-  const deviation = runtimeDeviation(feature.observedRuntimeP50Minutes, feature.scheduledRuntimeMinutes);
+  const deviation = runtimeDeviation(
+    feature.observedRuntimeP50Minutes,
+    feature.scheduledRuntimeMinutes,
+  );
   if (deviation.ratio === null || deviation.signedPercent === null) return null;
   if (Math.abs(deviation.signedPercent) < thresholds.minAbsoluteSignedPercent) return null;
 

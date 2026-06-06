@@ -6,9 +6,8 @@ import {
   type FindingCoverageAudit,
   type FindingEvidenceLink,
   FindingReasonCodeSchema,
-  IsoMonthSchema,
-  RouteIdSchema,
-} from "@bp/domain";
+} from "@bp/domain/findings";
+import { IsoMonthSchema, RouteIdSchema } from "@bp/domain/primitives";
 import { paceSlownessIndex, positiveDelayComponent } from "../baselines/runtime.js";
 import { buildCoverageAudit } from "../core/coverage.js";
 import { buildEvidenceLink } from "../core/evidence.js";
@@ -98,7 +97,10 @@ function skipReason(
     };
   }
 
-  if (feature.spatialConfidence === null || feature.spatialConfidence < thresholds.minSpatialConfidence) {
+  if (
+    feature.spatialConfidence === null ||
+    feature.spatialConfidence < thresholds.minSpatialConfidence
+  ) {
     return {
       reasonCode: "spatial_join_uncertain",
       reason: "Spatial confidence is too low for segment pace scoring.",
@@ -106,7 +108,9 @@ function skipReason(
     };
   }
 
-  if (paceSlownessIndex(feature.medianPaceMinutesPerMile, feature.freeFlowPaceMinutesPerMile) === null) {
+  if (
+    paceSlownessIndex(feature.medianPaceMinutesPerMile, feature.freeFlowPaceMinutesPerMile) === null
+  ) {
     return {
       reasonCode: "baseline_unavailable",
       reason: "Median pace or free-flow pace baseline is unavailable.",

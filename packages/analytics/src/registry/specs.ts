@@ -5,7 +5,7 @@ import {
   FindingDetectorSpecsArtifactSchema,
   type FindingDetectorSpecTemplate,
   FindingDetectorSpecTemplateSchema,
-} from "@bp/domain";
+} from "@bp/domain/findings";
 
 import { BUNCHING_HOTSPOTS_DETECTOR_ID } from "../findings/bunching-hotspots.js";
 import { DEGRADATION_TREND_DETECTOR_ID } from "../findings/degradation-trend.js";

@@ -9,9 +9,8 @@ import {
   type FindingEvidenceLink,
   FindingEvidenceLinkSchema,
   FindingReasonCodeSchema,
-  IsoMonthSchema,
-  RouteIdSchema,
-} from "@bp/domain";
+} from "@bp/domain/findings";
+import { IsoMonthSchema, RouteIdSchema } from "@bp/domain/primitives";
 
 export const PERSISTENT_SPEED_HOTSPOT_DETECTOR_ID = "persistent_speed_hotspot";
 
@@ -114,7 +113,7 @@ export function detectPersistentSpeedHotspots(
         const speedDelta = left.weightedAverageSpeedMph - right.weightedAverageSpeedMph;
         if (speedDelta !== 0) return speedDelta;
         return left.hotspotRank - right.hotspotRank;
-      })
+      });
     const eligible = qualified.slice(0, thresholds.candidateLimitPerRoute);
     const eligibleSegmentIds = new Set(eligible.map((hotspot) => hotspot.segmentId));
 

@@ -1,7 +1,4 @@
-import {
-  type FindingEvidenceLink,
-  FindingEvidenceLinkSchema,
-} from "@bp/domain";
+import { type FindingEvidenceLink, FindingEvidenceLinkSchema } from "@bp/domain/findings";
 
 export type EvidenceRefPayload = string | Record<string, unknown>;
 

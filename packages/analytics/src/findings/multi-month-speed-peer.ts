@@ -9,9 +9,8 @@ import {
   type FindingEvidenceLink,
   FindingEvidenceLinkSchema,
   FindingReasonCodeSchema,
-  IsoMonthSchema,
-  RouteIdSchema,
-} from "@bp/domain";
+} from "@bp/domain/findings";
+import { IsoMonthSchema, RouteIdSchema } from "@bp/domain/primitives";
 
 export const MULTI_MONTH_SPEED_PEER_DETECTOR_ID = "multi_month_speed_peer";
 

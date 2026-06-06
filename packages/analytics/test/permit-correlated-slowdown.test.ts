@@ -3,7 +3,7 @@ import {
   FindingReasonCodeSchema,
   type RouteMonthSignalFeature,
   RouteMonthSignalFeatureSchema,
-} from "@bp/domain";
+} from "@bp/domain/findings";
 import { detectPermitCorrelatedSlowdowns } from "../src/index.js";
 
 const GENERATED_AT = "2026-05-20T12:00:00.000Z";

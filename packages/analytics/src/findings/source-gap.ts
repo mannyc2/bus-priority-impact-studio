@@ -9,9 +9,8 @@ import {
   type FindingEvidenceLink,
   FindingEvidenceLinkSchema,
   FindingReasonCodeSchema,
-  IsoMonthSchema,
-  RouteIdSchema,
-} from "@bp/domain";
+} from "@bp/domain/findings";
+import { IsoMonthSchema, RouteIdSchema } from "@bp/domain/primitives";
 
 // Pure source-gap detector. Given coverage facts for a release month, emit:
 //   - a finding candidate per missing source (claim_safe_label = insufficient_evidence)

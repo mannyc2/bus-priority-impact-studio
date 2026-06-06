@@ -9,9 +9,8 @@ import {
   type FindingEvidenceLink,
   FindingEvidenceLinkSchema,
   FindingReasonCodeSchema,
-  IsoMonthSchema,
-  RouteIdSchema,
-} from "@bp/domain";
+} from "@bp/domain/findings";
+import { IsoMonthSchema, RouteIdSchema } from "@bp/domain/primitives";
 
 export const INTERVENTION_UNDERPERFORMANCE_DETECTOR_ID = "intervention_underperformance";
 

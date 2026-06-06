@@ -19,7 +19,7 @@ import {
 } from "@bp/analytics/core";
 import { DEFAULT_DELAY_CONCENTRATION_THRESHOLDS } from "@bp/analytics/detectors";
 import { routeMonthFeatureKey } from "@bp/analytics/features";
-import { IsoMonthSchema, RouteIdSchema } from "@bp/domain";
+import { IsoMonthSchema, RouteIdSchema } from "@bp/domain/primitives";
 
 describe("analytics architecture primitives", () => {
   test("creates stable ids from ordered parts", () => {
@@ -80,16 +80,25 @@ describe("analytics architecture primitives", () => {
     });
     expect(quantileCutoff([4, 8, 10], 0.5)).toBe(8);
     expect(distributionRank(8, [4, 8, 10])).toBeCloseTo(2 / 3, 10);
-    expect(peerMedianBaseline([{ scopeId: "M15", value: 5 }, { scopeId: "M14", value: null }]))
-      .toEqual({ peerCount: 1, peerMedian: 5, peerScopeIds: ["M15"] });
+    expect(
+      peerMedianBaseline([
+        { scopeId: "M15", value: 5 },
+        { scopeId: "M14", value: null },
+      ]),
+    ).toEqual({ peerCount: 1, peerMedian: 5, peerScopeIds: ["M15"] });
     expect(historicalDelta(12, 10)).toEqual({
       current: 12,
       baseline: 10,
       delta: 2,
       percentDelta: 0.2,
     });
-    expect(interventionWindowDelta({ preValue: 10, postValue: 9, peerDelta: 0.5 }))
-      .toEqual({ preValue: 10, postValue: 9, rawDelta: -1, peerDelta: 0.5, adjustedDelta: -1.5 });
+    expect(interventionWindowDelta({ preValue: 10, postValue: 9, peerDelta: 0.5 })).toEqual({
+      preValue: 10,
+      postValue: 9,
+      rawDelta: -1,
+      peerDelta: 0.5,
+      adjustedDelta: -1.5,
+    });
     expect(sourceCoverageBaseline({ expectedCount: 10, observedCount: 7 })).toEqual({
       expectedCount: 10,
       observedCount: 7,

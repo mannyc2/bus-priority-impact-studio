@@ -1,4 +1,4 @@
-import type { RouteMonthSignalFeature } from "@bp/domain";
+import type { RouteMonthSignalFeature } from "@bp/domain/findings";
 
 export type RouteMonthFeature = RouteMonthSignalFeature;
 

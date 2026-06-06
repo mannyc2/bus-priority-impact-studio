@@ -1,7 +1,4 @@
-import {
-  type FindingCoverageAudit,
-  FindingCoverageAuditSchema,
-} from "@bp/domain";
+import { type FindingCoverageAudit, FindingCoverageAuditSchema } from "@bp/domain/findings";
 
 export type CoveragePayload = string | Record<string, unknown> | null;
 

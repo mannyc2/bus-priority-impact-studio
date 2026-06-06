@@ -1,10 +1,9 @@
+import type { RouteId, SourceCitation } from "@bp/domain/primitives";
 import {
   type RouteCoverageStatus,
-  type RouteId,
   type RouteScorecard,
   RouteScorecardSchema,
-  type SourceCitation,
-} from "@bp/domain";
+} from "@bp/domain/routes";
 
 export type RouteScoreInput = {
   routeId: RouteId;

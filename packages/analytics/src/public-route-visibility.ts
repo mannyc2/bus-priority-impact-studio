@@ -11,7 +11,8 @@ type PublicRouteVisibilityInput = {
 export type PublicRouteVisibilityReason =
   | "standard_route"
   | "temporary_shuttle_without_observed_speed"
-  | "placeholder_without_public_metadata";
+  | "placeholder_without_public_metadata"
+  | "missing_ridership_exposure";
 
 export type PublicRouteVisibility = {
   publicVisible: boolean;
