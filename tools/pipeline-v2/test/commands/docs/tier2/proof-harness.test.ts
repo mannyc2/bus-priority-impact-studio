@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdir, rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import type { OperationalDateAssertion } from "@bp/domain";
+import type { OperationalDateAssertion } from "@bp/domain/documents/operational-date";
 import {
   buildTier2ProofCandidates,
   runTier2ProofHarness,

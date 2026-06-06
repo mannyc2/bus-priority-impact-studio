@@ -7,7 +7,7 @@ import {
   type FindingCategory,
   type FindingScopeKind,
   type FindingSeverity,
-} from "@bp/domain";
+} from "@bp/domain/findings";
 import * as z from "zod";
 
 import type { ModelToolLoop, ToolUseTraceEntry } from "../../lib/codemode/index.ts";

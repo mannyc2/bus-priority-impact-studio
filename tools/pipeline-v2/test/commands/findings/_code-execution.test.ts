@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import type { AgentFindingProposal } from "@bp/domain";
+import type { AgentFindingProposal } from "@bp/domain/findings";
 
 import {
   checkDeterminism,
@@ -33,17 +33,18 @@ describe("checkDeterminism (typescript)", () => {
   });
 
   test("accepts deterministic analytics imports and literals", () => {
-    expect(checkDeterminism(
-      "import { listAnalyticsDetectors } from '@bp/analytics/registry';\nconsole.log(listAnalyticsDetectors().length)",
-      "typescript",
-    )).toBeNull();
+    expect(
+      checkDeterminism(
+        "import { listAnalyticsDetectors } from '@bp/analytics/registry';\nconsole.log(listAnalyticsDetectors().length)",
+        "typescript",
+      ),
+    ).toBeNull();
   });
 
   test("accepts date parsing of a literal", () => {
-    expect(checkDeterminism(
-      "console.log(Date.parse('2026-01-01T00:00:00Z'))",
-      "typescript",
-    )).toBeNull();
+    expect(
+      checkDeterminism("console.log(Date.parse('2026-01-01T00:00:00Z'))", "typescript"),
+    ).toBeNull();
   });
 });
 
@@ -60,7 +61,12 @@ describe("checkDeterminism (bash)", () => {
   });
 
   test("accepts plain jq / ripgrep", () => {
-    expect(checkDeterminism("jq '.features | length' /work/data/artifacts/findings/2026-03/signal-features.json", "bash")).toBeNull();
+    expect(
+      checkDeterminism(
+        "jq '.features | length' /work/data/artifacts/findings/2026-03/signal-features.json",
+        "bash",
+      ),
+    ).toBeNull();
   });
 });
 

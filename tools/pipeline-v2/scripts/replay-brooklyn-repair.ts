@@ -1,11 +1,13 @@
-import { DocumentInterventionRecordsToolResponseSchema } from "@bp/domain";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
-  INTERVENTION_RECORDS_TOOL_NAME,
-  extractToolCallArguments,
   repairInterventionRecordsAliases,
   repairInvalidEnumValues,
+} from "@bp/applied-research/intervention-records";
+import { DocumentInterventionRecordsToolResponseSchema } from "@bp/domain/documents/intervention-records";
+import {
+  extractToolCallArguments,
+  INTERVENTION_RECORDS_TOOL_NAME,
 } from "../src/commands/docs/tier2/_shared.ts";
 
 const bucketsRoot =

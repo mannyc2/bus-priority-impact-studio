@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import type { AgentFindingProposalModelMeta } from "@bp/domain";
+import type { AgentFindingProposalModelMeta } from "@bp/domain/findings";
 
 import type { LoadedCorpus } from "../../../src/commands/findings/_corpus.ts";
 import { runAgentPropose } from "../../../src/commands/findings/_runner.ts";
@@ -71,9 +71,7 @@ describe("runAgentPropose (mock model)", () => {
               claimText:
                 "Observed long-gap share remained in the elevated tier for the third consecutive month.",
               claimStrength: "observation",
-              evidenceRefs: [
-                { kind: "review_packet_link", packetId: "pkt-1", linkId: "link-1" },
-              ],
+              evidenceRefs: [{ kind: "review_packet_link", packetId: "pkt-1", linkId: "link-1" }],
               counterEvidenceRefs: [],
               interventionRecordIds: [],
               documentCandidateIds: [],
@@ -117,9 +115,7 @@ describe("runAgentPropose (mock model)", () => {
               confidence: "high",
               claimText: "The bus lane caused speed gains on Main Street.",
               claimStrength: "qualified_claim",
-              evidenceRefs: [
-                { kind: "review_packet_link", packetId: "pkt-1", linkId: "link-1" },
-              ],
+              evidenceRefs: [{ kind: "review_packet_link", packetId: "pkt-1", linkId: "link-1" }],
             },
           ],
         }),
@@ -152,9 +148,7 @@ describe("runAgentPropose (mock model)", () => {
               claimText:
                 "Long-gap share is computable but no peer comparison was triggered this month.",
               claimStrength: "observation",
-              evidenceRefs: [
-                { kind: "review_packet_link", packetId: "pkt-1", linkId: "link-1" },
-              ],
+              evidenceRefs: [{ kind: "review_packet_link", packetId: "pkt-1", linkId: "link-1" }],
             },
           ],
         })}\n\`\`\``,

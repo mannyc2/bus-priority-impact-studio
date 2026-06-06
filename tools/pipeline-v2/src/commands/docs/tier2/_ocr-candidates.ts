@@ -11,56 +11,56 @@ import {
   DocumentEvidenceCandidateDraftToolSchema,
   DocumentServiceChangeKindSchema,
   DocumentTreatmentTypeSchema,
-  toProjectJsonSchema,
-} from "@bp/domain";
-import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";
+  type Tier2CandidateSourceRef,
+  type Tier2CandidateValidationState,
+  type Tier2DocumentEvidenceCandidate,
+  type Tier2OcrMarkdownCandidateQualityIssueCode,
+  type Tier2OcrMarkdownCandidateQualityRepairCode,
+} from "@bp/domain/documents/candidates";
+import { toProjectJsonSchema } from "@bp/domain/json-schema";
 import { writeJson } from "../../../lib/json.ts";
+import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";
 import {
   callDeepSeekToolCallViaPi,
-  openRouterErrorMessage,
   type OpenRouterCallResult,
+  openRouterErrorMessage,
 } from "./_llm-clients.ts";
 import { expandRouteMention, quoteSupportsNumericValue } from "./_patterns.ts";
 import {
   artifactKey,
+  type CliOption,
   DEFAULT_OCR_MAX_TOKENS,
   DEFAULT_TEXT_MODEL,
   defaultFetch,
+  type ExtractTier2OcrMarkdownCandidatesArgs,
   extractToolCallArguments,
+  type FetchLike,
   latestDocsRunId,
   mapWithConcurrency,
   markdownBody,
   missingToolCallErrorMessage,
   normalizeOcrArtifactRootName,
   normalizeOcrPageMarkdownRootName,
-  ocrEvidenceCandidateDrafts,
   OCR_MARKDOWN_CANDIDATE_QUALITY_ISSUE_CODES,
   OCR_MARKDOWN_CANDIDATE_QUALITY_REPAIR_CODES,
+  type OcrEvidenceCandidateDraft,
+  type OcrMarkdownCandidatesCliArgs,
+  ocrEvidenceCandidateDrafts,
   ocrPlanPath,
   parseCliOptions,
   parseSourceIds,
   runArtifactRoot,
   shortHash,
-  trueOption,
-  unknownRecord,
-  type CliOption,
-  type ExtractTier2OcrMarkdownCandidatesArgs,
-  type FetchLike,
-  type OcrEvidenceCandidateDraft,
-  type OcrMarkdownCandidatesCliArgs,
-  type Tier2CandidateSourceRef,
-  type Tier2CandidateValidationState,
-  type Tier2CaptureManifest,
   type Tier2CapturedSource,
-  type Tier2DocumentEvidenceCandidate,
+  type Tier2CaptureManifest,
   type Tier2OcrMarkdownCandidateExtraction,
-  type Tier2OcrMarkdownCandidateQualityIssueCode,
-  type Tier2OcrMarkdownCandidateQualityRepairCode,
   type Tier2OcrMarkdownCandidateWindow,
   type Tier2OcrPageMarkdownAudit,
   type Tier2OcrPageMarkdownAuditPage,
   type Tier2OcrPlan,
   type Tier2OcrPlanSource,
+  trueOption,
+  unknownRecord,
 } from "./_shared.ts";
 
 const OCR_MARKDOWN_CANDIDATE_TOOL_NAME = "record_tier2_ocr_markdown_candidates";
@@ -112,10 +112,10 @@ const OCR_MARKDOWN_CANDIDATE_SYSTEM_PROMPT = [
   "Every candidate must cite a short, contiguous, verbatim excerpt from the supplied Markdown (evidenceQuote) and the page numbers that contain that exact excerpt (evidencePageRefs).",
   "Copy evidenceQuote exactly as it appears in the Markdown. Preserve Markdown table pipes, emphasis markers, footnote digits, punctuation, line breaks inside tables, and OCR oddities. Do not insert ellipses, flatten tables, clean up wording, normalize punctuation, or stitch non-adjacent text.",
   "For tables, evidenceQuote must be an exact Markdown table block or exact contiguous table row block copied from the source, not a prose-like pipe-separated rewrite.",
-  "Use valueNumeric only when that exact value appears in evidenceQuote, allowing direct unit wording such as \"1.1 million\" for 1100000. If the source gives a range, keep the range in valueQualifier and do not invent a midpoint.",
+  'Use valueNumeric only when that exact value appears in evidenceQuote, allowing direct unit wording such as "1.1 million" for 1100000. If the source gives a range, keep the range in valueQualifier and do not invent a midpoint.',
   "For third-party evaluations, audits, consultant reports, advocacy reports, and oversight reports, classify extracted facts or judgments as third_party_evaluation unless the quoted sentence itself is explicitly an official MTA/DOT/NYC agency fact being cited.",
-  "Recommendations, goals, planned work, proposed routes, future expected work, and \"should\" statements must use negativeEvidenceFlag \"proposed_only\" unless the quote also says the item was implemented or completed.",
-  "Do not infer treatment components from a branded program name. If a quote says only \"SBS route\" or \"bus improvement\" but does not name bus lanes, off-board fare collection, all-door boarding, TSP, camera enforcement, or another bus-priority treatment, do not add a treatment_component candidate.",
+  'Recommendations, goals, planned work, proposed routes, future expected work, and "should" statements must use negativeEvidenceFlag "proposed_only" unless the quote also says the item was implemented or completed.',
+  'Do not infer treatment components from a branded program name. If a quote says only "SBS route" or "bus improvement" but does not name bus lanes, off-board fare collection, all-door boarding, TSP, camera enforcement, or another bus-priority treatment, do not add a treatment_component candidate.',
   "document_treatment_component_candidate is only for bus-priority street/operations treatments. Do not use it for subway elevators, subway turnstiles, bike lanes, generic parking enforcement, curb regulation text, pedestrian-only work, or plan prose unless the quote explicitly ties it to bus service or a bus-priority treatment.",
   "Route redesign profile pages and stop tables usually describe service changes, not treatment components. Use document_service_change_candidate for route_added, route_discontinued, route_modified, stop_added, stop_removed, frequency_change, headway_change, terminus_change, branch_added, or branch_discontinued when those changes are explicit.",
   "For large route-profile stop tables, do not emit one candidate per row. Prefer a small number of exact contiguous row-block candidates for meaningful Add/New/Remove/routing spans, or skip the table if it would only duplicate many row-level stop facts.",
@@ -125,7 +125,7 @@ const OCR_MARKDOWN_CANDIDATE_SYSTEM_PROMPT = [
   "The tool's parameter schema defines the candidate types, their fields, and when to use them. Follow the per-type guidance there; do not invent fields outside the documented ones unless the source clearly demands them.",
   "Skip boilerplate pages: title pages, table of contents, copyright notices, and publication-info pages do not produce candidates. Section headings alone are not candidates; only emit a candidate when the section contains a concrete claim, metric, or treatment description.",
   "For optional fields you don't know, omit the key entirely. Do not emit empty strings or empty arrays as placeholders.",
-  "Route mentions go in routeMentions as bare MTA route IDs (e.g. \"B44\", \"M15\"). Put service-mode information (SBS, Limited, Local) in the relevant per-type field (e.g. serviceMode on a treatment component), not in the route ID.",
+  'Route mentions go in routeMentions as bare MTA route IDs (e.g. "B44", "M15"). Put service-mode information (SBS, Limited, Local) in the relevant per-type field (e.g. serviceMode on a treatment component), not in the route ID.',
 ].join("\n");
 
 function buildOcrMarkdownCandidatePrompt(input: {
@@ -159,10 +159,7 @@ function ocrMarkdownCandidateSourceRoot(input: {
   );
 }
 
-function ocrMarkdownCandidateWindowPaths(input: {
-  sourceRoot: string;
-  pages: number[];
-}): {
+function ocrMarkdownCandidateWindowPaths(input: { sourceRoot: string; pages: number[] }): {
   windowRoot: string;
   responsePath: string;
   toolCallPath: string;
@@ -226,22 +223,31 @@ const REJECTING_QUALITY_ISSUES = new Set<Tier2OcrMarkdownCandidateQualityIssueCo
 ]);
 
 const TREATMENT_TYPE_QUOTE_PATTERNS: Record<string, RegExp> = {
-  bus_lane: /\b(?:bus lane|bus lanes|dedicated lane|dedicated lanes|offset lane|curbside lane|center-running lane|median lane|red lane)\b/i,
+  bus_lane:
+    /\b(?:bus lane|bus lanes|dedicated lane|dedicated lanes|offset lane|curbside lane|center-running lane|median lane|red lane)\b/i,
   busway: /\b(?:busway|transitway|transit and truck priority|ttp)\b/i,
-  transit_signal_priority: /\b(?:transit signal priority|signal priority|\btsp\b|green signal|green time|signal timing|signal retiming|signal changes?)\b/i,
+  transit_signal_priority:
+    /\b(?:transit signal priority|signal priority|\btsp\b|green signal|green time|signal timing|signal retiming|signal changes?)\b/i,
   queue_jump: /\b(?:queue jump|queue-jump|queue bypass)\b/i,
-  stop_consolidation: /\b(?:stop consolidation|consolidat(?:e|ed|ion).*stops?|fewer stops?|removed stops?|stop spacing|changed from limited to local only)\b/i,
-  stop_relocation: /\b(?:stop relocation|relocat(?:e|ed|ion).*stops?|station locations?|stations? were added|stops? were added)\b/i,
+  stop_consolidation:
+    /\b(?:stop consolidation|consolidat(?:e|ed|ion).*stops?|fewer stops?|removed stops?|stop spacing|changed from limited to local only)\b/i,
+  stop_relocation:
+    /\b(?:stop relocation|relocat(?:e|ed|ion).*stops?|station locations?|stations? were added|stops? were added)\b/i,
   bus_bulb: /\b(?:bus bulb|bus bulbs|boarding bulb|bulb station)\b/i,
   neckdown: /\b(?:neckdown|neckdowns|curb extension|curb extensions)\b/i,
   red_paint: /\b(?:red paint|red-painted|red bus lane)\b/i,
-  off_board_fare_collection: /\b(?:off-board fare|off board fare|fare machines?|pay before boarding|pre-board fare)\b/i,
-  all_door_boarding: /\b(?:all-door boarding|all door boarding|board(?:ing)? through any door|proof-of-payment)\b/i,
+  off_board_fare_collection:
+    /\b(?:off-board fare|off board fare|fare machines?|pay before boarding|pre-board fare)\b/i,
+  all_door_boarding:
+    /\b(?:all-door boarding|all door boarding|board(?:ing)? through any door|proof-of-payment)\b/i,
   ace: /\b(?:automated camera enforcement|\bace\b|camera-enforced|bus-mounted cameras?|stationary cameras?|bus lane camera|camera enforcement)\b/i,
   able: /\b(?:automated bus lane enforcement|\bable\b|bus lane enforcement cameras?)\b/i,
-  reroute: /\b(?:rerout(?:e|ed|ing)|route modified|moved to|instead of traveling|route change|route extension|extend(?:ing)? .*route)\b/i,
-  pedestrian_improvement: /\b(?:pedestrian|crosswalk|sidewalk|plaza|traffic calming|pedestrian island|shorten crossing|public space)\b/i,
-  signal_retiming: /\b(?:signal retiming|signal timing|signal changes?|green time|coordination of the signals|traffic signal)\b/i,
+  reroute:
+    /\b(?:rerout(?:e|ed|ing)|route modified|moved to|instead of traveling|route change|route extension|extend(?:ing)? .*route)\b/i,
+  pedestrian_improvement:
+    /\b(?:pedestrian|crosswalk|sidewalk|plaza|traffic calming|pedestrian island|shorten crossing|public space)\b/i,
+  signal_retiming:
+    /\b(?:signal retiming|signal timing|signal changes?|green time|coordination of the signals|traffic signal)\b/i,
 };
 
 function pageMarkdownByNumber(input: {
@@ -418,9 +424,7 @@ function normalizeEvidenceQuoteForSearch(text: string): string {
 }
 
 function pageBoundarySearchText(markdown: string): string {
-  return markdown
-    .replace(/^---\n[\s\S]*?\n---\n?/, "")
-    .replace(/^#\s+Page\s+\d+\s*$/gim, "");
+  return markdown.replace(/^---\n[\s\S]*?\n---\n?/, "").replace(/^#\s+Page\s+\d+\s*$/gim, "");
 }
 
 function adjacentPageBoundaryHits(input: {
@@ -833,12 +837,8 @@ function evidenceCandidateFromMarkdownDraft(input: {
       pageMarkdownRootName: input.pageMarkdownRootName,
       candidateRootName: input.candidateRootName,
       windowPages: [...input.windowPages],
-      ...(input.quality?.issues.length
-        ? { qualityIssues: [...input.quality.issues] }
-        : {}),
-      ...(input.quality?.repairs.length
-        ? { qualityRepairs: [...input.quality.repairs] }
-        : {}),
+      ...(input.quality?.issues.length ? { qualityIssues: [...input.quality.issues] } : {}),
+      ...(input.quality?.repairs.length ? { qualityRepairs: [...input.quality.repairs] } : {}),
     },
     validationState: input.quality?.validationState ?? "unvalidated",
     reviewReason: input.quality?.reviewReason ?? DEFAULT_OCR_MARKDOWN_CANDIDATE_REVIEW_REASON,
@@ -954,7 +954,10 @@ async function extractOcrMarkdownCandidateWindow(input: {
   candidates: Tier2DocumentEvidenceCandidate[];
 }> {
   const pageNumbers = input.pages.map((page) => page.pageNumber);
-  const paths = ocrMarkdownCandidateWindowPaths({ sourceRoot: input.sourceRoot, pages: pageNumbers });
+  const paths = ocrMarkdownCandidateWindowPaths({
+    sourceRoot: input.sourceRoot,
+    pages: pageNumbers,
+  });
   await mkdir(paths.windowRoot, { recursive: true });
   const existing = await readExistingMarkdownCandidateWindow({
     paths,
@@ -1030,7 +1033,11 @@ async function extractOcrMarkdownCandidateWindow(input: {
       toolName: OCR_MARKDOWN_CANDIDATE_TOOL_NAME,
       maxTokens: input.maxTokens,
     });
-    await writeJson(paths.errorPath, { sourceId: input.source.sourceId, pages: pageNumbers, error: errorMessage });
+    await writeJson(paths.errorPath, {
+      sourceId: input.source.sourceId,
+      pages: pageNumbers,
+      error: errorMessage,
+    });
     return {
       window: {
         sourceId: input.source.sourceId,
@@ -1363,7 +1370,8 @@ async function resolveOcrMarkdownCandidatesPaths(
   args: OcrMarkdownCandidatesCliArgs,
 ): Promise<{ ocrPlanPath: string; pageMarkdownAuditPath: string; outputPath: string }> {
   const artifactRoot = args.artifactRoot ?? defaultArtifactRootPath();
-  const runId = args.runId ?? (args.ocrPlanPath === undefined ? await latestDocsRunId(artifactRoot) : null);
+  const runId =
+    args.runId ?? (args.ocrPlanPath === undefined ? await latestDocsRunId(artifactRoot) : null);
   const baseDir =
     args.ocrPlanPath !== undefined
       ? dirname(args.ocrPlanPath)

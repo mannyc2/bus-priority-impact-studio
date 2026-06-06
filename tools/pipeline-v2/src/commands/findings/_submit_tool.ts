@@ -1,12 +1,11 @@
-import * as z from "zod";
-
 import {
   type AgentFindingProposal,
   AgentFindingProposalSchema,
   type AgentFindingProposalValidationArtifact,
-} from "@bp/domain";
+} from "@bp/domain/findings";
 import type { AgentTool, AgentToolResult } from "@earendil-works/pi-agent-core";
 import { type Static, Type } from "@earendil-works/pi-ai";
+import * as z from "zod";
 
 import type { CodemodeTerminationSignal } from "../../lib/codemode/index.ts";
 

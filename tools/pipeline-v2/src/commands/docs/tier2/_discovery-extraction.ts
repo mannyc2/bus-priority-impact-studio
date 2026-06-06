@@ -7,19 +7,20 @@ import {
   type DocumentDiscoveryExtractionToolResponse,
   DocumentDiscoveryExtractionToolResponseSchema,
   type DocumentDiscoveryValidationIssue,
-  toProjectJsonSchema,
-} from "@bp/domain";
+} from "@bp/domain/documents/discovery";
+import { toProjectJsonSchema } from "@bp/domain/json-schema";
 import { writeJson } from "../../../lib/json.ts";
-import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";
 import type { ToolCallMessage } from "../../../lib/llm.ts";
+import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";
 import {
   callDeepSeekToolCallDirect,
   callPioneerToolCallDirect,
-  openRouterErrorMessage,
   type OpenRouterCallResult,
+  openRouterErrorMessage,
 } from "./_llm-clients.ts";
 import {
   artifactKey,
+  type CliOption,
   defaultFetch,
   extractToolCallArguments,
   type FetchLike,
@@ -30,7 +31,6 @@ import {
   parseSourceIds,
   readRequiredJsonArtifact,
   runArtifactRoot,
-  type CliOption,
   type Tier2OcrPageMarkdownAudit,
   type Tier2OcrPageMarkdownAuditPage,
   type Tier2OcrPlan,
@@ -315,10 +315,7 @@ function firstFinishReason(responseJson: unknown): string | null {
   return null;
 }
 
-function inspectToolArguments(input: {
-  responseJson: unknown;
-  toolName: string;
-}): {
+function inspectToolArguments(input: { responseJson: unknown; toolName: string }): {
   errorClass: "tool_arguments_unparseable" | "tool_call_missing";
   details: DiscoveryWindowErrorDetails;
 } {
@@ -390,8 +387,7 @@ function inspectToolArguments(input: {
             argumentLength: rawArgs.length,
             argumentTail: rawArgs.slice(-800),
             parseError: null,
-            note:
-              "Matching tool call arguments parsed as JSON but could not be extracted by the shared parser.",
+            note: "Matching tool call arguments parsed as JSON but could not be extracted by the shared parser.",
           },
         };
       }
@@ -544,8 +540,7 @@ function estimateUsage(input: {
     numericField(usage, "total_tokens") ||
     promptTokens + completionTokens + cacheReadTokens + cacheWriteTokens;
   const price =
-    MODEL_PRICES[`${input.provider}:${input.model}`] ??
-    MODEL_PRICES["deepseek:deepseek-v4-flash"]!;
+    MODEL_PRICES[`${input.provider}:${input.model}`] ?? MODEL_PRICES["deepseek:deepseek-v4-flash"]!;
   const billablePromptTokens = Math.max(0, promptTokens - cacheReadTokens - cacheWriteTokens);
   const estimatedCostUsd = roundCost(
     (billablePromptTokens * price.inputUsdPerMillion +
@@ -598,9 +593,7 @@ function issue(
   return { severity, code, path, message };
 }
 
-function countIssues(
-  issues: DocumentDiscoveryValidationIssue[],
-): Record<string, number> {
+function countIssues(issues: DocumentDiscoveryValidationIssue[]): Record<string, number> {
   const counts: Record<string, number> = {};
   for (const current of issues) {
     counts[current.code] = (counts[current.code] ?? 0) + 1;
@@ -816,8 +809,10 @@ export function validateDiscoveryExtraction(input: {
   }
 
   const blocksById = new Map(input.blocks.map((block) => [block.blockId, block]));
-  const checkRefs = (refs: DocumentDiscoveryExtractionToolResponse["entities"][number]["evidenceRefs"], path: string) =>
-    checkEvidenceRefs({ refs, path, blocksById, issues });
+  const checkRefs = (
+    refs: DocumentDiscoveryExtractionToolResponse["entities"][number]["evidenceRefs"],
+    path: string,
+  ) => checkEvidenceRefs({ refs, path, blocksById, issues });
 
   checkDuplicateIds(
     input.extraction.entities.map((candidate) => candidate.entityId),
@@ -1024,9 +1019,7 @@ async function mapWithConcurrency<T, U>(
       results[index] = await fn(items[index]!);
     }
   }
-  await Promise.all(
-    Array.from({ length: Math.min(concurrency, items.length) }, () => worker()),
-  );
+  await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, () => worker()));
   return results;
 }
 
@@ -1138,11 +1131,7 @@ function parseProviderDiscoveryResponse(input: {
             responseJson: input.body,
             maxTokens: input.maxTokens,
           });
-    throw new DiscoveryWindowError(
-      message,
-      inspection.errorClass,
-      inspection.details,
-    );
+    throw new DiscoveryWindowError(message, inspection.errorClass, inspection.details);
   }
   const canonicalToolArgs = canonicalizeDiscoveryToolArgs({
     toolArgs,

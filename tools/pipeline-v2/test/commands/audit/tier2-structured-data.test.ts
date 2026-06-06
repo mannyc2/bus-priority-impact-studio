@@ -1,7 +1,7 @@
-import { mkdtemp, mkdir, rm } from "node:fs/promises";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
 import { describe, expect, test } from "bun:test";
+import { mkdir, mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
   buildTier2StructuredDataInventory,
   classifyTier2StructuredArtifact,
@@ -40,6 +40,25 @@ const VALID_RECORD = {
 };
 
 describe("audit tier2-structured-data", () => {
+  test("delegates artifact classification and value summaries to applied-research", async () => {
+    const commandSource = await Bun.file(
+      join(import.meta.dir, "../../../src/commands/audit/tier2-structured-data.ts"),
+    ).text();
+
+    expect(commandSource).toContain('from "@bp/applied-research/evaluation"');
+    expect(commandSource).toContain("summarizeTier2StructuredArtifactValue({");
+    expect(commandSource).toContain("buildTier2StructuredDataInventoryFromArtifacts({");
+    expect(commandSource).toContain("renderTier2StructuredDataInventoryMarkdown(inventory)");
+    expect(commandSource).not.toContain('from "@bp/domain/documents/intervention-records"');
+    expect(commandSource).not.toContain("DocumentInterventionRecordSchema");
+    expect(commandSource).not.toContain("function flattenRouteValues");
+    expect(commandSource).not.toContain("function summarizeCounts");
+    expect(commandSource).not.toContain("function artifactRank");
+    expect(commandSource).not.toContain("function nextActionsForInventory");
+    expect(commandSource).not.toContain("function renderTier2StructuredDataInventoryMarkdown");
+    expect(commandSource).not.toContain("# Tier 2 Structured Data Inventory");
+  });
+
   test("classifies the current research and serving layers", () => {
     expect(
       classifyTier2StructuredArtifact({
@@ -98,11 +117,7 @@ describe("audit tier2-structured-data", () => {
     try {
       await mkdir(join(root, "gap-roadmap-docs-2026-05-25"), { recursive: true });
       await Bun.write(
-        join(
-          root,
-          "gap-roadmap-docs-2026-05-25",
-          "intervention-records-corpus-v3-reviewed.json",
-        ),
+        join(root, "gap-roadmap-docs-2026-05-25", "intervention-records-corpus-v3-reviewed.json"),
         JSON.stringify({ documentInterventionRecords: [VALID_RECORD] }),
       );
       await Bun.write(

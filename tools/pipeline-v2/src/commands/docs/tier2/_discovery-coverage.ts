@@ -1,23 +1,26 @@
 import { mkdir, readdir, stat } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
-import { type DocumentDiscoveryExtraction, DocumentDiscoveryExtractionSchema } from "@bp/domain";
+import {
+  type DocumentDiscoveryExtraction,
+  DocumentDiscoveryExtractionSchema,
+} from "@bp/domain/documents/discovery";
 import { Glob } from "bun";
 import { writeJson } from "../../../lib/json.ts";
 import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";
+import { DISCOVERY_EXTRACTION_PROMPT_VERSION } from "./_discovery-extraction.ts";
 import {
   artifactKey,
+  type CliOption,
   latestDocsRunId,
   ocrPlanPath,
   parseCliOptions,
   parseSourceIds,
   readRequiredJsonArtifact,
   runArtifactRoot,
-  type CliOption,
   type Tier2OcrPageMarkdownAudit,
   type Tier2OcrPageMarkdownAuditPage,
   type Tier2OcrPlan,
 } from "./_shared.ts";
-import { DISCOVERY_EXTRACTION_PROMPT_VERSION } from "./_discovery-extraction.ts";
 
 type DiscoveryCoverageStatus =
   | "discovered"
@@ -163,7 +166,9 @@ async function indexDiscoveryDirectory(rootPath: string, index: DiscoveryRootInd
   const glob = new Glob("**/{document-discovery,error}.json");
   for await (const relativePath of glob.scan(rootPath)) {
     const path = join(rootPath, relativePath);
-    const json = await Bun.file(path).json().catch(() => null);
+    const json = await Bun.file(path)
+      .json()
+      .catch(() => null);
     if (json === null) continue;
     if (relativePath.endsWith("document-discovery.json")) {
       const parsed = DocumentDiscoveryExtractionSchema.safeParse(json);
@@ -194,7 +199,9 @@ async function indexDiscoveryDirectory(rootPath: string, index: DiscoveryRootInd
 
 async function indexDiscoveryArtifact(rootPath: string, index: DiscoveryRootIndex): Promise<void> {
   const root = basename(rootPath);
-  const json = await Bun.file(rootPath).json().catch(() => null);
+  const json = await Bun.file(rootPath)
+    .json()
+    .catch(() => null);
   const record = json !== null && typeof json === "object" ? (json as Record<string, unknown>) : {};
   const extractions = Array.isArray(record["extractions"]) ? record["extractions"] : [];
   for (const extractionJson of extractions) {
@@ -331,7 +338,8 @@ export async function buildTier2DiscoveryCoverage(args: {
   );
   const sourceFilter = args.sourceIds === undefined ? null : new Set(args.sourceIds);
   const planSourceIndex = new Map(plan.sources.map((source, index) => [source.sourceId, index]));
-  const discoveryRoots = args.discoveryRoots ?? (await defaultDiscoveryRoots(dirname(args.ocrPlanPath)));
+  const discoveryRoots =
+    args.discoveryRoots ?? (await defaultDiscoveryRoots(dirname(args.ocrPlanPath)));
   const rootIndex = await indexDiscoveryRoots(discoveryRoots);
   const windows: Tier2DiscoveryCoverageWindow[] = [];
 
@@ -533,8 +541,7 @@ async function resolveDiscoveryCoverageCliPaths(args: DiscoveryCoverageCliArgs):
     ocrPlanPath: args.ocrPlanPath ?? ocrPlanPath(artifactRoot, runId!),
     pageMarkdownAuditPath:
       args.pageMarkdownAuditPath ?? join(baseDir, "ocr-page-markdown-audit.json"),
-    outputPath:
-      args.outputPath ?? join(baseDir, "document-discovery-coverage-refactored-v1.json"),
+    outputPath: args.outputPath ?? join(baseDir, "document-discovery-coverage-refactored-v1.json"),
     missingWindowManifestPath:
       args.missingWindowManifestPath ??
       join(baseDir, "document-discovery-missing-windows-refactored-v1.json"),

@@ -1,12 +1,8 @@
 import { describe, expect, test } from "bun:test";
 
-import type {
-  AgentFindingProposalModelMeta,
-  PromotedFinding,
-} from "@bp/domain";
-
-import type { LoadedCorpus } from "../../../src/commands/findings/_corpus.ts";
+import type { AgentFindingProposalModelMeta, PromotedFinding } from "@bp/domain/findings";
 import { runAgentBriefPropose } from "../../../src/commands/findings/_brief_runner.ts";
+import type { LoadedCorpus } from "../../../src/commands/findings/_corpus.ts";
 
 function corpusWithPromoted(routeId: string, findingId: string): LoadedCorpus {
   const finding = {
@@ -111,9 +107,7 @@ describe("runAgentBriefPropose (mock model)", () => {
           evidenceProvenance: [
             {
               evidenceId: "ev-1",
-              citedRefs: [
-                { kind: "promoted_finding", promotedFindingId: "pf-1" },
-              ],
+              citedRefs: [{ kind: "promoted_finding", promotedFindingId: "pf-1" }],
               metricClaims: [],
             },
           ],
@@ -176,16 +170,12 @@ describe("runAgentBriefPropose (mock model)", () => {
                 detail: "Fake source.",
               },
             ],
-            caveats: [
-              { id: "cv-1", title: "Caveat", body: "Note." },
-            ],
+            caveats: [{ id: "cv-1", title: "Caveat", body: "Note." }],
           },
           evidenceProvenance: [
             {
               evidenceId: "ev-1",
-              citedRefs: [
-                { kind: "promoted_finding", promotedFindingId: "pf-fabricated" },
-              ],
+              citedRefs: [{ kind: "promoted_finding", promotedFindingId: "pf-fabricated" }],
               metricClaims: [],
             },
           ],

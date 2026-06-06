@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import { buildExpressBusCapacityContext } from "../../../src/commands/build/express-bus-capacity-context.ts";
@@ -97,6 +98,26 @@ const fixtureRows = [
 ];
 
 describe("express bus capacity pipeline artifacts", () => {
+  test("keeps express capacity analysis policy in applied-research", () => {
+    const contextSource = readFileSync(
+      fromRepoRoot("tools/pipeline-v2/src/commands/build/express-bus-capacity-context.ts"),
+      "utf8",
+    );
+    const analysisSource = readFileSync(
+      fromRepoRoot("tools/pipeline-v2/src/commands/build/express-route-analysis.ts"),
+      "utf8",
+    );
+
+    expect(contextSource).toContain('from "@bp/applied-research/feature-history"');
+    expect(contextSource).not.toContain("function groupKey");
+    expect(contextSource).not.toContain("function roundLoad");
+    expect(analysisSource).toContain('from "@bp/applied-research/feature-history"');
+    expect(analysisSource).not.toContain("function joinWindows");
+    expect(analysisSource).not.toContain("function routeSummaries");
+    expect(analysisSource).not.toContain("function auditArtifact");
+    expect(analysisSource).not.toContain("const highLoadThreshold");
+  });
+
   test("ingests optional source rows and builds route-hour capacity context", async () => {
     await rm(root, { force: true, recursive: true });
 

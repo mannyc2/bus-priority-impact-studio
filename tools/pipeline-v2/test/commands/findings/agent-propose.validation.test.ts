@@ -1,15 +1,14 @@
 import { describe, expect, test } from "bun:test";
-
+import type { DocumentEvidenceCandidate } from "@bp/domain/documents/candidates";
+import type { DocumentInterventionRecord } from "@bp/domain/documents/intervention-records";
 import type {
   AgentFindingProposal,
   AgentFindingProposalEvidenceRef,
-  DocumentEvidenceCandidate,
-  DocumentInterventionRecord,
   FindingEvidenceLink,
   FindingReviewPacket,
   PromotedFinding,
   RouteMonthSignalFeature,
-} from "@bp/domain";
+} from "@bp/domain/findings";
 
 import type { LoadedCorpus } from "../../../src/commands/findings/_corpus.ts";
 import {
@@ -44,9 +43,7 @@ type CorpusSeed = {
   reviewPackets?: Array<{
     packetId: string;
     routeId: string | null;
-    linkIds: ReadonlyArray<
-      string | { linkId: string; payload?: Record<string, unknown> }
-    >;
+    linkIds: ReadonlyArray<string | { linkId: string; payload?: Record<string, unknown> }>;
   }>;
   promotedFindings?: Array<{
     promotedFindingId: string;
@@ -83,8 +80,7 @@ function buildCorpus(seed: CorpusSeed): LoadedCorpus {
     for (const entry of pkt.linkIds) {
       const linkId = typeof entry === "string" ? entry : entry.linkId;
       const payload = typeof entry === "string" ? undefined : entry.payload;
-      const evidenceRef =
-        payload === undefined ? "" : JSON.stringify(payload);
+      const evidenceRef = payload === undefined ? "" : JSON.stringify(payload);
       evidenceLinks.set(linkId, {
         linkId,
         evidenceRef,
@@ -140,10 +136,9 @@ function buildCorpus(seed: CorpusSeed): LoadedCorpus {
 
   const documentCandidates = new Map<string, DocumentEvidenceCandidate>();
   for (const c of seed.documentCandidates ?? []) {
-    documentCandidates.set(
-      c.candidateId,
-      { candidateId: c.candidateId } as unknown as DocumentEvidenceCandidate,
-    );
+    documentCandidates.set(c.candidateId, {
+      candidateId: c.candidateId,
+    } as unknown as DocumentEvidenceCandidate);
   }
 
   const contextAppendixByRoute = new Map<string, { routeId: string }>();
@@ -194,7 +189,7 @@ function buildProposal(
   return {
     proposalId: "proposal-1",
     runId: "run-1",
-    routeId: ("B44" as unknown) as AgentFindingProposal["routeId"],
+    routeId: "B44" as unknown as AgentFindingProposal["routeId"],
     scopeKind: "route" as never,
     category: "reliability" as never,
     severity: "moderate" as never,
@@ -223,17 +218,11 @@ describe("validateEvidenceRefsResolve", () => {
     const corpus = buildCorpus({
       routes: ["B44"],
       reviewPackets: [{ packetId: "pkt-1", routeId: "B44", linkIds: ["link-1"] }],
-      promotedFindings: [
-        { promotedFindingId: "pf-1", routeId: "B44", claimText: "" },
-      ],
-      interventionRecords: [
-        { recordId: "ir-1", routes: ["B44"], recordKind: "implemented" },
-      ],
+      promotedFindings: [{ promotedFindingId: "pf-1", routeId: "B44", claimText: "" }],
+      interventionRecords: [{ recordId: "ir-1", routes: ["B44"], recordKind: "implemented" }],
       documentCandidates: [{ candidateId: "dc-1" }],
       contextAppendixRoutes: ["B44"],
-      signalRows: [
-        { routeId: "B44", window: "weekday_peak", fields: { speedMph: 7.5 } },
-      ],
+      signalRows: [{ routeId: "B44", window: "weekday_peak", fields: { speedMph: 7.5 } }],
     });
     const proposal = buildProposal({
       evidenceRefs: [
@@ -296,9 +285,7 @@ describe("validateEvidenceRefsResolve", () => {
 describe("validateMetricConsistency", () => {
   test("passes when the cited signal column matches", () => {
     const corpus = buildCorpus({
-      signalRows: [
-        { routeId: "B44", window: "weekday_peak", fields: { speedMph: 7.5 } },
-      ],
+      signalRows: [{ routeId: "B44", window: "weekday_peak", fields: { speedMph: 7.5 } }],
     });
     const proposal = buildProposal({
       metricClaims: [
@@ -321,9 +308,7 @@ describe("validateMetricConsistency", () => {
 
   test("fails when the cited signal column disagrees", () => {
     const corpus = buildCorpus({
-      signalRows: [
-        { routeId: "B44", window: "weekday_peak", fields: { speedMph: 7.5 } },
-      ],
+      signalRows: [{ routeId: "B44", window: "weekday_peak", fields: { speedMph: 7.5 } }],
     });
     const proposal = buildProposal({
       metricClaims: [
@@ -463,9 +448,7 @@ describe("validateProseNumberCoverage", () => {
     const proposal = buildProposal({
       claimText: "Observed long-gap share elevated relative to peer routes.",
     });
-    expect(
-      validateProseNumberCoverage({ corpus: buildCorpus({}), proposal }).passed,
-    ).toBe(true);
+    expect(validateProseNumberCoverage({ corpus: buildCorpus({}), proposal }).passed).toBe(true);
   });
 
   test("passes when every prose number has a backing metricClaim", () => {
@@ -486,9 +469,7 @@ describe("validateProseNumberCoverage", () => {
         },
       ],
     });
-    expect(
-      validateProseNumberCoverage({ corpus: buildCorpus({}), proposal }).passed,
-    ).toBe(true);
+    expect(validateProseNumberCoverage({ corpus: buildCorpus({}), proposal }).passed).toBe(true);
   });
 
   test("fails when a prose number has no backing metricClaim", () => {
@@ -506,13 +487,10 @@ describe("validateProseNumberCoverage", () => {
 
   test("ignores street numbers like '138 ST/37 AV'", () => {
     const proposal = buildProposal({
-      claimText:
-        "Hotspot between 138 ST/37 AV and 3 AV with no quantitative figures.",
+      claimText: "Hotspot between 138 ST/37 AV and 3 AV with no quantitative figures.",
       metricClaims: [],
     });
-    expect(
-      validateProseNumberCoverage({ corpus: buildCorpus({}), proposal }).passed,
-    ).toBe(true);
+    expect(validateProseNumberCoverage({ corpus: buildCorpus({}), proposal }).passed).toBe(true);
   });
 
   test("ignores NYC service codes (311, 911) standalone", () => {
@@ -520,9 +498,7 @@ describe("validateProseNumberCoverage", () => {
       claimText: "Month had substantial 311 service-request context.",
       metricClaims: [],
     });
-    expect(
-      validateProseNumberCoverage({ corpus: buildCorpus({}), proposal }).passed,
-    ).toBe(true);
+    expect(validateProseNumberCoverage({ corpus: buildCorpus({}), proposal }).passed).toBe(true);
   });
 
   test("matches a prose percentage against a proportion-form metricClaim", () => {
@@ -537,9 +513,7 @@ describe("validateProseNumberCoverage", () => {
         },
       ],
     });
-    expect(
-      validateProseNumberCoverage({ corpus: buildCorpus({}), proposal }).passed,
-    ).toBe(true);
+    expect(validateProseNumberCoverage({ corpus: buildCorpus({}), proposal }).passed).toBe(true);
   });
 
   test("ignores year-month, year, 32-hex IDs, route IDs, and time strings", () => {
@@ -573,9 +547,7 @@ describe("validateRouteRefs", () => {
   test("fails when an intervention record does not list the proposal route", () => {
     const corpus = buildCorpus({
       routes: ["B44"],
-      interventionRecords: [
-        { recordId: "ir-1", routes: ["Q65"], recordKind: "implemented" },
-      ],
+      interventionRecords: [{ recordId: "ir-1", routes: ["Q65"], recordKind: "implemented" }],
     });
     const proposal = buildProposal({ interventionRecordIds: ["ir-1"] });
     const result = validateRouteRefs({ corpus, proposal });
@@ -590,9 +562,7 @@ describe("validateRouteRefs", () => {
 describe("validateInterventionSupport", () => {
   test("passes when no status word is in the claim", () => {
     const corpus = buildCorpus({
-      interventionRecords: [
-        { recordId: "ir-1", routes: ["B44"], recordKind: "proposed" },
-      ],
+      interventionRecords: [{ recordId: "ir-1", routes: ["B44"], recordKind: "proposed" }],
     });
     const proposal = buildProposal({
       claimText: "Long-gap share remains elevated peak hours.",
@@ -603,9 +573,7 @@ describe("validateInterventionSupport", () => {
 
   test("fails when claim says 'implemented' but record is proposed-only", () => {
     const corpus = buildCorpus({
-      interventionRecords: [
-        { recordId: "ir-1", routes: ["B44"], recordKind: "proposed" },
-      ],
+      interventionRecords: [{ recordId: "ir-1", routes: ["B44"], recordKind: "proposed" }],
     });
     const proposal = buildProposal({
       claimText: "Bus lane on Main implemented but speeds unchanged.",
@@ -618,9 +586,7 @@ describe("validateInterventionSupport", () => {
 
   test("passes when claim says 'planned' and record is in_progress", () => {
     const corpus = buildCorpus({
-      interventionRecords: [
-        { recordId: "ir-1", routes: ["B44"], recordKind: "in_progress" },
-      ],
+      interventionRecords: [{ recordId: "ir-1", routes: ["B44"], recordKind: "in_progress" }],
     });
     const proposal = buildProposal({
       claimText: "Planned bus lane intersects elevated permit activity.",
@@ -706,9 +672,7 @@ describe("validateScopeBlockedClaims", () => {
     const proposal = buildProposal({
       claimText: "Long-gap share elevated; no intervention claim asserted.",
     });
-    expect(
-      validateScopeBlockedClaims({ corpus: buildCorpus({}), proposal }).passed,
-    ).toBe(true);
+    expect(validateScopeBlockedClaims({ corpus: buildCorpus({}), proposal }).passed).toBe(true);
   });
 
   test("fails when claiming 'promoted finding' status", () => {
@@ -722,9 +686,7 @@ describe("validateScopeBlockedClaims", () => {
   test("fails on 'implemented' with proposed-only intervention support", () => {
     const corpus = buildCorpus({
       routes: ["B44"],
-      interventionRecords: [
-        { recordId: "ir-1", routes: ["B44"], recordKind: "proposed" },
-      ],
+      interventionRecords: [{ recordId: "ir-1", routes: ["B44"], recordKind: "proposed" }],
     });
     const proposal = buildProposal({
       claimText: "Bus lane implemented but speeds unchanged.",
@@ -744,9 +706,7 @@ describe("validateProposal", () => {
       reviewPackets: [{ packetId: "pkt-1", routeId: "B44", linkIds: ["link-1"] }],
     });
     const proposal = buildProposal({
-      evidenceRefs: [
-        { kind: "review_packet_link", packetId: "pkt-1", linkId: "link-1" },
-      ],
+      evidenceRefs: [{ kind: "review_packet_link", packetId: "pkt-1", linkId: "link-1" }],
     });
     const record = await validateProposal(corpus, proposal);
     expect(record.validationState).toBe("valid");
@@ -762,8 +722,6 @@ describe("validateProposal", () => {
     const record = await validateProposal(corpus, proposal);
     expect(record.validationState).toBe("rejected");
     expect(record.errors.some((e) => e.startsWith("[language]"))).toBe(true);
-    expect(record.errors.some((e) => e.startsWith("[evidence_refs_resolve]"))).toBe(
-      true,
-    );
+    expect(record.errors.some((e) => e.startsWith("[evidence_refs_resolve]"))).toBe(true);
   });
 });

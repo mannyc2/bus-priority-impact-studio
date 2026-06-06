@@ -16,6 +16,7 @@ import {
   withLocalDb,
 } from "../../lib/local-db.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
+import { mergeRoutesWithFile } from "../../lib/route-list.ts";
 import {
   createSoda3SourceClient,
   type SocrataFetch,
@@ -187,6 +188,7 @@ export default defineCommand({
         .array(z.string())
         .default([])
         .describe("Specific route IDs (default: all routes in source month)"),
+      routesFile: z.string().optional().describe("JSON file containing route IDs"),
       routeChunkSize: arg
         .positiveInt()
         .default(DEFAULT_ROUTE_CHUNK_SIZE)
@@ -206,14 +208,17 @@ export default defineCommand({
     routeCount: z.number(),
   }),
   async run({ ctx, input }) {
+    const routes = await mergeRoutesWithFile(
+      input.options.route === undefined
+        ? input.options.routes
+        : [...input.options.routes, input.options.route],
+      input.options.routesFile,
+    );
     return runRouteHourlyRidershipIngest({
       local: localDbFromCtx(ctx),
       year: input.options.year,
       month: input.options.month,
-      routes:
-        input.options.route === undefined
-          ? input.options.routes
-          : [...input.options.routes, input.options.route],
+      routes,
       routeChunkSize: input.options.routeChunkSize,
       queryConcurrency: input.options.queryConcurrency,
     });

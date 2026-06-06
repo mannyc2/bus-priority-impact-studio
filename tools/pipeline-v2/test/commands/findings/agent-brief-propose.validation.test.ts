@@ -7,10 +7,8 @@ import type {
   FindingEvidenceLink,
   FindingReviewPacket,
   PromotedFinding,
-  StudioBrief,
-} from "@bp/domain";
-
-import type { LoadedCorpus } from "../../../src/commands/findings/_corpus.ts";
+} from "@bp/domain/findings";
+import type { StudioBrief } from "@bp/domain/studio/briefs";
 import {
   validateBriefDuplicate,
   validateBriefKpiGrounding,
@@ -23,6 +21,7 @@ import {
   validateBriefSectionCoverage,
   validateEvidenceProvenanceResolves,
 } from "../../../src/commands/findings/_brief_validation.ts";
+import type { LoadedCorpus } from "../../../src/commands/findings/_corpus.ts";
 
 // ---------------------------------------------------------------------------
 // Test corpus builder — minimal LoadedCorpus stub. Same approach as the
@@ -57,8 +56,7 @@ function buildBriefCorpus(seed: CorpusSeed): LoadedCorpus {
     for (const entry of pkt.linkIds) {
       const linkId = typeof entry === "string" ? entry : entry.linkId;
       const payload = typeof entry === "string" ? undefined : entry.payload;
-      const evidenceRef =
-        payload === undefined ? "" : JSON.stringify(payload);
+      const evidenceRef = payload === undefined ? "" : JSON.stringify(payload);
       evidenceLinks.set(linkId, {
         linkId,
         evidenceRef,
@@ -125,9 +123,7 @@ function buildBriefCorpus(seed: CorpusSeed): LoadedCorpus {
   };
 }
 
-function buildBriefDraft(
-  overrides: Partial<AgentBriefDraft> = {},
-): AgentBriefDraft {
+function buildBriefDraft(overrides: Partial<AgentBriefDraft> = {}): AgentBriefDraft {
   return {
     routeSlug: "b44",
     title: "B44 reliability draft",
@@ -259,9 +255,7 @@ describe("validateBriefReferenceIntegrity", () => {
 describe("validateEvidenceProvenanceResolves", () => {
   test("passes when every provenance evidenceId + ref resolves", () => {
     const corpus = buildBriefCorpus({
-      promotedFindings: [
-        { promotedFindingId: "pf-1", routeId: "B44", claimText: "..." },
-      ],
+      promotedFindings: [{ promotedFindingId: "pf-1", routeId: "B44", claimText: "..." }],
     });
     const proposal = buildBriefProposal({
       evidenceProvenance: [
@@ -272,16 +266,12 @@ describe("validateEvidenceProvenanceResolves", () => {
         },
       ],
     });
-    expect(
-      validateEvidenceProvenanceResolves({ corpus, proposal }).passed,
-    ).toBe(true);
+    expect(validateEvidenceProvenanceResolves({ corpus, proposal }).passed).toBe(true);
   });
 
   test("fails when a provenance evidenceId is not in brief.evidence", () => {
     const corpus = buildBriefCorpus({
-      promotedFindings: [
-        { promotedFindingId: "pf-1", routeId: "B44", claimText: "..." },
-      ],
+      promotedFindings: [{ promotedFindingId: "pf-1", routeId: "B44", claimText: "..." }],
     });
     const proposal = buildBriefProposal({
       evidenceProvenance: [
@@ -354,9 +344,7 @@ describe("validateBriefProseNumberCoverage", () => {
         },
       ],
     });
-    expect(
-      validateBriefProseNumberCoverage({ corpus, proposal }).passed,
-    ).toBe(true);
+    expect(validateBriefProseNumberCoverage({ corpus, proposal }).passed).toBe(true);
   });
 
   test("fails when a prose number has no backing metricClaim", () => {
@@ -483,9 +471,7 @@ describe("validateBriefDuplicate", () => {
 
   test("passes when no peer brief shares the routeSlug", () => {
     const proposal = buildBriefProposal();
-    expect(
-      validateBriefDuplicate({ corpus: buildBriefCorpus({}), proposal }).passed,
-    ).toBe(true);
+    expect(validateBriefDuplicate({ corpus: buildBriefCorpus({}), proposal }).passed).toBe(true);
   });
 });
 
@@ -626,9 +612,7 @@ describe("validateBriefKpiGrounding", () => {
 describe("validateBriefProposal", () => {
   test("returns valid state when every check passes", () => {
     const corpus = buildBriefCorpus({
-      promotedFindings: [
-        { promotedFindingId: "pf-1", routeId: "B44", claimText: "..." },
-      ],
+      promotedFindings: [{ promotedFindingId: "pf-1", routeId: "B44", claimText: "..." }],
     });
     const proposal = buildBriefProposal({
       evidenceProvenance: [
@@ -654,8 +638,6 @@ describe("validateBriefProposal", () => {
     const record = validateBriefProposal(buildBriefCorpus({}), proposal);
     expect(record.validationState).toBe("rejected");
     expect(record.errors.some((e) => e.startsWith("[language]"))).toBe(true);
-    expect(record.errors.some((e) => e.startsWith("[section_coverage]"))).toBe(
-      true,
-    );
+    expect(record.errors.some((e) => e.startsWith("[section_coverage]"))).toBe(true);
   });
 });

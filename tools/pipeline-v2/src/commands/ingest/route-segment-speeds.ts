@@ -12,6 +12,7 @@ import {
   withLocalDb,
 } from "../../lib/local-db.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
+import { mergeRoutesWithFile } from "../../lib/route-list.ts";
 import {
   createSoda3SourceClient,
   type PipelineSoda3Client,
@@ -197,6 +198,7 @@ export default defineCommand({
         .array(z.string())
         .default([])
         .describe("Specific route IDs (default: all routes in source month)"),
+      routesFile: z.string().optional().describe("JSON file containing route IDs"),
       routeConcurrency: arg
         .positiveInt()
         .default(DEFAULT_ROUTE_CONCURRENCY)
@@ -212,14 +214,17 @@ export default defineCommand({
     routeCount: z.number(),
   }),
   async run({ ctx, input }) {
+    const routes = await mergeRoutesWithFile(
+      input.options.route === undefined
+        ? input.options.routes
+        : [...input.options.routes, input.options.route],
+      input.options.routesFile,
+    );
     return runRouteSegmentSpeedsIngest({
       local: localDbFromCtx(ctx),
       year: input.options.year,
       month: input.options.month,
-      routes:
-        input.options.route === undefined
-          ? input.options.routes
-          : [...input.options.routes, input.options.route],
+      routes,
       routeConcurrency: input.options.routeConcurrency,
     });
   },

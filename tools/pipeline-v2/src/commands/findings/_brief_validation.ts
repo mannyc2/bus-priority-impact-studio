@@ -6,7 +6,7 @@ import type {
   AgentFindingProposalEvidenceRef,
   AgentFindingProposalMetricClaim,
   AgentFindingProposalValidationState,
-} from "@bp/domain";
+} from "@bp/domain/findings";
 
 import type { LoadedCorpus } from "./_corpus.ts";
 import { findNumericField, resolveEvidencePayload } from "./_evidence_payload.ts";
@@ -14,8 +14,8 @@ import {
   EVIDENCE_OVERLAP_THRESHOLD,
   extractProseNumberTokens,
   FORBIDDEN_LANGUAGE_PATTERNS,
-  jaccard,
   JACCARD_THRESHOLD,
+  jaccard,
   METRIC_TOLERANCE,
   metricTolerance,
   tokenize,
@@ -82,9 +82,7 @@ function collectProseFields(brief: AgentBriefDraft): ProseField[] {
   return out;
 }
 
-function flattenMetricClaims(
-  proposal: AgentBriefProposal,
-): AgentFindingProposalMetricClaim[] {
+function flattenMetricClaims(proposal: AgentBriefProposal): AgentFindingProposalMetricClaim[] {
   const out: AgentFindingProposalMetricClaim[] = [];
   for (const provenance of proposal.evidenceProvenance) {
     for (const claim of provenance.metricClaims) out.push(claim);
@@ -121,16 +119,12 @@ export function validateBriefReferenceIntegrity(
   for (const claim of ctx.proposal.brief.claims) {
     for (const evidenceId of claim.evidenceIds) {
       if (!evidenceIds.has(evidenceId)) {
-        errors.push(
-          `claim #${claim.n} references missing evidence id ${evidenceId}`,
-        );
+        errors.push(`claim #${claim.n} references missing evidence id ${evidenceId}`);
       }
     }
     for (const caveatId of claim.caveatIds) {
       if (!caveatIds.has(caveatId)) {
-        errors.push(
-          `claim #${claim.n} references missing caveat id ${caveatId}`,
-        );
+        errors.push(`claim #${claim.n} references missing caveat id ${caveatId}`);
       }
     }
   }
@@ -178,9 +172,7 @@ export function validateEvidenceProvenanceResolves(
   ctx: BriefValidatorContext,
 ): AgentBriefProposalValidationCheck {
   const errors: string[] = [];
-  const briefEvidenceIds = new Set(
-    ctx.proposal.brief.evidence.map((e) => e.id),
-  );
+  const briefEvidenceIds = new Set(ctx.proposal.brief.evidence.map((e) => e.id));
   for (const provenance of ctx.proposal.evidenceProvenance) {
     if (!briefEvidenceIds.has(provenance.evidenceId)) {
       errors.push(
@@ -231,13 +223,9 @@ export function validateBriefProseNumberCoverage(
   for (const field of collectProseFields(ctx.proposal.brief)) {
     const tokens = extractProseNumberTokens(field.text, routes);
     for (const token of tokens) {
-      const candidates = token.isPercentage
-        ? [token.value, token.value / 100]
-        : [token.value];
+      const candidates = token.isPercentage ? [token.value, token.value / 100] : [token.value];
       if (!candidates.some(matchesAny)) {
-        const display = token.isPercentage
-          ? `${token.value}%`
-          : `${token.value}`;
+        const display = token.isPercentage ? `${token.value}%` : `${token.value}`;
         errors.push(
           `${field.path} contains number ${display} not covered by any provenance metricClaim`,
         );
@@ -353,14 +341,10 @@ function findBriefDuplicate(
 ): { briefId: string; reason: string } | null {
   const peers = ctx.corpus.briefsByRouteSlug.get(ctx.proposal.brief.routeSlug);
   if (!peers || peers.length === 0) return null;
-  const proposalTokens = tokenize(
-    `${ctx.proposal.brief.title} ${ctx.proposal.brief.summary}`,
-  );
+  const proposalTokens = tokenize(`${ctx.proposal.brief.title} ${ctx.proposal.brief.summary}`);
   const proposalFindingIds = new Set(ctx.proposal.selectedFindingIds);
   for (const peer of peers) {
-    const peerTokens = tokenize(
-      `${peer.title ?? ""} ${peer.summary ?? ""}`,
-    );
+    const peerTokens = tokenize(`${peer.title ?? ""} ${peer.summary ?? ""}`);
     const sim = jaccard(proposalTokens, peerTokens);
     if (sim >= JACCARD_THRESHOLD) {
       return {
@@ -371,8 +355,7 @@ function findBriefDuplicate(
     // Peer brief.evidence[].sourceRefId of form "promoted_finding:..." would
     // give us a structural overlap signal; if the deterministic builder ever
     // stores them, fold that in here. For now treat as best-effort.
-    const peerEvidence = (peer as { evidence?: ReadonlyArray<{ sourceRefId?: string }> })
-      .evidence;
+    const peerEvidence = (peer as { evidence?: ReadonlyArray<{ sourceRefId?: string }> }).evidence;
     let overlap = 0;
     if (peerEvidence) {
       for (const ev of peerEvidence) {
@@ -470,9 +453,7 @@ export function validateBriefKpiGrounding(
       }),
     );
     if (!matched) {
-      errors.push(
-        `kpis[${i}] (${kpi.label}) value ${kpi.value} has no backing metricClaim`,
-      );
+      errors.push(`kpis[${i}] (${kpi.label}) value ${kpi.value} has no backing metricClaim`);
     }
   }
   return { name: "kpi_grounding", passed: errors.length === 0, errors };
@@ -498,8 +479,8 @@ export function validateBriefProposal(
   proposal: AgentBriefProposal,
 ): AgentBriefProposalValidationRecord {
   const ctx: BriefValidatorContext = { corpus, proposal };
-  const checks: AgentBriefProposalValidationCheck[] = ALL_BRIEF_VALIDATORS.map(
-    (validator) => validator(ctx),
+  const checks: AgentBriefProposalValidationCheck[] = ALL_BRIEF_VALIDATORS.map((validator) =>
+    validator(ctx),
   );
   const errors = checks.flatMap((check) =>
     check.errors.map((message) => `[${check.name}] ${message}`),

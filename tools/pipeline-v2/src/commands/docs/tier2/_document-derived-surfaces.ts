@@ -2,24 +2,19 @@ import { createHash } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import {
-  DocumentDerivedSurfaceRowSchema,
-  DocumentDerivedSurfacesManifestSchema,
   type DocumentDerivedEntityMode,
   type DocumentDerivedEventStatus,
   type DocumentDerivedMetricAuthority,
   type DocumentDerivedPriority,
   type DocumentDerivedSurfaceKind,
   type DocumentDerivedSurfaceRow,
+  DocumentDerivedSurfaceRowSchema,
   type DocumentDerivedSurfacesManifest,
-} from "@bp/domain";
+  DocumentDerivedSurfacesManifestSchema,
+} from "@bp/domain/documents/derived-surfaces";
 import { writeJson } from "../../../lib/json.ts";
 import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";
-import {
-  latestDocsRunId,
-  parseCliOptions,
-  runArtifactRoot,
-  type CliOption,
-} from "./_shared.ts";
+import { type CliOption, latestDocsRunId, parseCliOptions, runArtifactRoot } from "./_shared.ts";
 
 const ARTIFACT_KIND = "bp.document_derived_surfaces.v1";
 const EXTRACTION_VERSION = "document-discovery-canonical-v1";
@@ -92,7 +87,10 @@ function shortHash(value: string, length = 16): string {
 }
 
 function compact(value: unknown): string {
-  return String(value ?? "").toLowerCase().replace(/\s+/g, " ").trim();
+  return String(value ?? "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -160,7 +158,10 @@ function surfaceFileName(kind: DocumentDerivedSurfaceKind): string {
   }
 }
 
-function stableSurfaceId(row: NormalizedCandidateRow, surfaceKind: DocumentDerivedSurfaceKind): string {
+function stableSurfaceId(
+  row: NormalizedCandidateRow,
+  surfaceKind: DocumentDerivedSurfaceKind,
+): string {
   return `docsurf_${shortHash(
     JSON.stringify({
       sourceId: row.sourceId,
@@ -179,7 +180,10 @@ function stableSurfaceId(row: NormalizedCandidateRow, surfaceKind: DocumentDeriv
   )}`;
 }
 
-function classifyEntityMode(row: NormalizedCandidateRow, raw: Record<string, unknown>): DocumentDerivedEntityMode {
+function classifyEntityMode(
+  row: NormalizedCandidateRow,
+  raw: Record<string, unknown>,
+): DocumentDerivedEntityMode {
   const text = `${row.displayLabel} ${row.rawFamily} ${row.canonicalFamily} ${optionalString(raw["rawKind"]) ?? ""}`;
   if (includesAny(text, ["amtrak"])) return "amtrak_service";
   if (includesAny(text, ["nj transit", "njt"])) return "nj_transit_line";
@@ -252,7 +256,11 @@ function classifyDatePrecision(dateText: string | undefined) {
     return "range" as const;
   }
   if (/\b\d{4}-\d{2}-\d{2}\b/.test(text)) return "day" as const;
-  if (/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\s+\d{1,2},?\s+\d{4}\b/.test(text)) {
+  if (
+    /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\s+\d{1,2},?\s+\d{4}\b/.test(
+      text,
+    )
+  ) {
     return "day" as const;
   }
   if (/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\s+\d{4}\b/.test(text)) {
@@ -330,7 +338,10 @@ function baseRow(
   };
 }
 
-function toSurfaceRow(row: NormalizedCandidateRow, inputSnapshotHash: string): DocumentDerivedSurfaceRow {
+function toSurfaceRow(
+  row: NormalizedCandidateRow,
+  inputSnapshotHash: string,
+): DocumentDerivedSurfaceRow {
   const surfaceKind = surfaceKindForCandidate(row.candidateType);
   const raw = asRecord(row.rawCandidate);
   const base = baseRow(row, surfaceKind, inputSnapshotHash);
@@ -341,9 +352,13 @@ function toSurfaceRow(row: NormalizedCandidateRow, inputSnapshotHash: string): D
         ...base,
         surfaceKind,
         rawText: optionalString(raw["rawText"]) ?? row.displayLabel,
-        ...(optionalString(raw["rawKind"]) === undefined ? {} : { rawKind: optionalString(raw["rawKind"]) }),
+        ...(optionalString(raw["rawKind"]) === undefined
+          ? {}
+          : { rawKind: optionalString(raw["rawKind"]) }),
         entityMode: classifyEntityMode(row, raw),
-        ...(optionalString(raw["roleRaw"]) === undefined ? {} : { roleRaw: optionalString(raw["roleRaw"]) }),
+        ...(optionalString(raw["roleRaw"]) === undefined
+          ? {}
+          : { roleRaw: optionalString(raw["roleRaw"]) }),
         ...(optionalString(normalizedRef["refTypeRaw"]) === undefined ||
         optionalString(normalizedRef["refIdRaw"]) === undefined
           ? {}
@@ -364,15 +379,33 @@ function toSurfaceRow(row: NormalizedCandidateRow, inputSnapshotHash: string): D
         truthStatus: metricTruthStatus(metricAuthority),
         metricLabel: optionalString(raw["labelRaw"]) ?? row.displayLabel,
         metricAuthority,
-        ...(optionalString(raw["valueRaw"]) === undefined ? {} : { valueText: optionalString(raw["valueRaw"]) }),
-        ...(optionalNumber(raw["valueNumeric"]) === undefined ? {} : { valueNumeric: optionalNumber(raw["valueNumeric"]) }),
-        ...(optionalString(raw["unitRaw"]) === undefined ? {} : { unit: optionalString(raw["unitRaw"]) }),
-        ...(optionalString(raw["valueKind"]) === undefined ? {} : { valueKind: optionalString(raw["valueKind"]) }),
-        ...(optionalString(raw["directionRaw"]) === undefined ? {} : { directionText: optionalString(raw["directionRaw"]) }),
-        ...(optionalString(raw["subjectRaw"]) === undefined ? {} : { subjectText: optionalString(raw["subjectRaw"]) }),
-        ...(optionalString(raw["geographyRaw"]) === undefined ? {} : { geographyText: optionalString(raw["geographyRaw"]) }),
-        ...(optionalString(raw["periodRaw"]) === undefined ? {} : { periodText: optionalString(raw["periodRaw"]) }),
-        ...(optionalString(raw["comparisonRaw"]) === undefined ? {} : { comparisonText: optionalString(raw["comparisonRaw"]) }),
+        ...(optionalString(raw["valueRaw"]) === undefined
+          ? {}
+          : { valueText: optionalString(raw["valueRaw"]) }),
+        ...(optionalNumber(raw["valueNumeric"]) === undefined
+          ? {}
+          : { valueNumeric: optionalNumber(raw["valueNumeric"]) }),
+        ...(optionalString(raw["unitRaw"]) === undefined
+          ? {}
+          : { unit: optionalString(raw["unitRaw"]) }),
+        ...(optionalString(raw["valueKind"]) === undefined
+          ? {}
+          : { valueKind: optionalString(raw["valueKind"]) }),
+        ...(optionalString(raw["directionRaw"]) === undefined
+          ? {}
+          : { directionText: optionalString(raw["directionRaw"]) }),
+        ...(optionalString(raw["subjectRaw"]) === undefined
+          ? {}
+          : { subjectText: optionalString(raw["subjectRaw"]) }),
+        ...(optionalString(raw["geographyRaw"]) === undefined
+          ? {}
+          : { geographyText: optionalString(raw["geographyRaw"]) }),
+        ...(optionalString(raw["periodRaw"]) === undefined
+          ? {}
+          : { periodText: optionalString(raw["periodRaw"]) }),
+        ...(optionalString(raw["comparisonRaw"]) === undefined
+          ? {}
+          : { comparisonText: optionalString(raw["comparisonRaw"]) }),
         needsDeterministicMetric: true,
       });
     }
@@ -381,14 +414,22 @@ function toSurfaceRow(row: NormalizedCandidateRow, inputSnapshotHash: string): D
       return DocumentDerivedSurfaceRowSchema.parse({
         ...base,
         surfaceKind,
-        ...(optionalString(raw["nameRaw"]) === undefined ? {} : { eventName: optionalString(raw["nameRaw"]) }),
+        ...(optionalString(raw["nameRaw"]) === undefined
+          ? {}
+          : { eventName: optionalString(raw["nameRaw"]) }),
         eventFamily: optionalString(raw["familyRaw"]) ?? row.canonicalFamily,
-        ...(optionalString(raw["subtypeRaw"]) === undefined ? {} : { eventSubtype: optionalString(raw["subtypeRaw"]) }),
+        ...(optionalString(raw["subtypeRaw"]) === undefined
+          ? {}
+          : { eventSubtype: optionalString(raw["subtypeRaw"]) }),
         eventStatus: classifyEventStatus(raw),
         ...(dateText === undefined ? {} : { dateText }),
         datePrecision: classifyDatePrecision(dateText),
-        ...(optionalString(raw["locationRaw"]) === undefined ? {} : { locationText: optionalString(raw["locationRaw"]) }),
-        ...(optionalString(raw["treatmentRaw"]) === undefined ? {} : { treatmentText: optionalString(raw["treatmentRaw"]) }),
+        ...(optionalString(raw["locationRaw"]) === undefined
+          ? {}
+          : { locationText: optionalString(raw["locationRaw"]) }),
+        ...(optionalString(raw["treatmentRaw"]) === undefined
+          ? {}
+          : { treatmentText: optionalString(raw["treatmentRaw"]) }),
         affectedEntitiesRaw: stringArray(raw["affectedEntitiesRaw"]),
         linkedEntityCandidateIds: stringArray(raw["entityCandidateIds"]),
       });
@@ -397,12 +438,20 @@ function toSurfaceRow(row: NormalizedCandidateRow, inputSnapshotHash: string): D
       return DocumentDerivedSurfaceRowSchema.parse({
         ...base,
         surfaceKind,
-        ...(optionalString(raw["titleRaw"]) === undefined ? {} : { tableTitle: optionalString(raw["titleRaw"]) }),
+        ...(optionalString(raw["titleRaw"]) === undefined
+          ? {}
+          : { tableTitle: optionalString(raw["titleRaw"]) }),
         tableKind: optionalString(raw["tableKindRaw"]) ?? row.canonicalFamily,
         headers: stringArray(raw["headerTextsRaw"]),
-        ...(optionalNumber(raw["rowCount"]) === undefined ? {} : { rowCount: optionalNumber(raw["rowCount"]) }),
-        ...(optionalNumber(raw["columnCount"]) === undefined ? {} : { columnCount: optionalNumber(raw["columnCount"]) }),
-        ...(optionalString(raw["semanticNotes"]) === undefined ? {} : { semanticNotes: optionalString(raw["semanticNotes"]) }),
+        ...(optionalNumber(raw["rowCount"]) === undefined
+          ? {}
+          : { rowCount: optionalNumber(raw["rowCount"]) }),
+        ...(optionalNumber(raw["columnCount"]) === undefined
+          ? {}
+          : { columnCount: optionalNumber(raw["columnCount"]) }),
+        ...(optionalString(raw["semanticNotes"]) === undefined
+          ? {}
+          : { semanticNotes: optionalString(raw["semanticNotes"]) }),
         importantEntityCandidateIds: stringArray(raw["importantEntityCandidateIds"]),
         importantMetricCandidateIds: stringArray(raw["importantMetricCandidateIds"]),
       });
@@ -413,7 +462,9 @@ function toSurfaceRow(row: NormalizedCandidateRow, inputSnapshotHash: string): D
         surfaceKind,
         claimText,
         claimKind: optionalString(raw["claimKindRaw"]) ?? row.canonicalFamily,
-        ...(optionalString(raw["authorityRaw"]) === undefined ? {} : { authorityText: optionalString(raw["authorityRaw"]) }),
+        ...(optionalString(raw["authorityRaw"]) === undefined
+          ? {}
+          : { authorityText: optionalString(raw["authorityRaw"]) }),
         causalClaimFlag: causalClaimFlag(claimText),
         linkedEntityCandidateIds: stringArray(raw["entityCandidateIds"]),
         linkedMetricCandidateIds: stringArray(raw["metricCandidateIds"]),
@@ -427,8 +478,12 @@ function toSurfaceRow(row: NormalizedCandidateRow, inputSnapshotHash: string): D
         surfaceKind,
         signalText: optionalString(raw["signalText"]) ?? row.displayLabel,
         contextKind: optionalString(raw["contextKindRaw"]) ?? row.canonicalFamily,
-        ...(optionalString(raw["geographyRaw"]) === undefined ? {} : { geographyText: optionalString(raw["geographyRaw"]) }),
-        ...(optionalString(raw["periodRaw"]) === undefined ? {} : { periodText: optionalString(raw["periodRaw"]) }),
+        ...(optionalString(raw["geographyRaw"]) === undefined
+          ? {}
+          : { geographyText: optionalString(raw["geographyRaw"]) }),
+        ...(optionalString(raw["periodRaw"]) === undefined
+          ? {}
+          : { periodText: optionalString(raw["periodRaw"]) }),
       });
     case "review_question":
       return DocumentDerivedSurfaceRowSchema.parse({
@@ -456,7 +511,10 @@ function emptyBuckets(): SurfaceBuckets {
   };
 }
 
-async function writeJsonLines(path: string, rows: readonly DocumentDerivedSurfaceRow[]): Promise<void> {
+async function writeJsonLines(
+  path: string,
+  rows: readonly DocumentDerivedSurfaceRow[],
+): Promise<void> {
   await mkdir(dirname(path), { recursive: true });
   const writer = Bun.file(path).writer({ highWaterMark: 1024 * 1024 });
   for (const row of rows) {

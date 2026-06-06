@@ -1,6 +1,24 @@
-import { createHash } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import {
+  mapArtifactKey,
+  mapArtifactManifestPath,
+  mapArtifactPath,
+  routeSegmentMapArtifactKey,
+} from "@bp/applied-research/artifacts";
+import {
+  buildMapArtifactManifest,
+  buildMapJsonArtifact,
+  MAP_ARTIFACT_GEOJSON_CONTENT_TYPE,
+  MAP_ARTIFACT_JSON_CONTENT_TYPE,
+  MAP_ARTIFACT_SCHEMA_VERSION,
+  type MapArtifactEntry,
+  type MapArtifactManifest,
+  type MapArtifactVerification,
+  mapArtifactSha256,
+  readMapArtifactManifest,
+  verifyMapArtifactManifest,
+} from "@bp/applied-research/evaluation";
 import type { LocalBusLane, LocalRouteHotspot, LocalRouteSegmentSpeed } from "@bp/db/local";
 import {
   listBusLanes,
@@ -11,7 +29,7 @@ import {
 import {
   type MapRouteSegmentFeatureCollection,
   MapRouteSegmentFeatureCollectionSchema,
-} from "@bp/domain";
+} from "@bp/domain/maps";
 import {
   type NormalizedRouteShape,
   type NormalizedStop,
@@ -29,9 +47,6 @@ import {
 } from "../../lib/local-db.ts";
 import { defaultArtifactRootPath, fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
 
-const schemaVersion = 1;
-const contentTypeJson = "application/json" as const;
-const contentTypeGeoJson = "application/geo+json" as const;
 const displayRouteTypes = new Set(["Local", "Limited", "SBS"]);
 
 type Coordinate = {
@@ -100,53 +115,8 @@ type PointGeometry = {
   coordinates: [number, number];
 };
 
-type MapArtifactKind =
-  | "map_source_snapshot"
-  | "map_route_shapes_geojson"
-  | "map_timepoint_stops_geojson"
-  | "map_bus_lanes_geojson"
-  | "map_route_segments_geojson";
-
-type MapArtifactEntry = {
-  artifactKind: MapArtifactKind;
-  artifactKey: string;
-  contentType: typeof contentTypeJson | typeof contentTypeGeoJson;
-  byteLength: number;
-  sha256: string;
-  featureCount: number;
-  routeId: string | null;
-};
-
-export type MapArtifactManifest = {
-  schemaVersion: typeof schemaVersion;
-  artifactKind: "map_artifact_manifest";
-  analysisPeriod: string;
-  generatedAt: string;
-  status: "pass";
-  artifactCount: number;
-  routeSegmentArtifactCount: number;
-  totalFeatureCount: number;
-  totalByteLength: number;
-  issueCount: 0;
-  artifacts: MapArtifactEntry[];
-};
-
-type MapArtifactIssue = {
-  code: string;
-  message: string;
-  artifactKey?: string;
-};
-
-export type MapArtifactVerification = {
-  status: "pass" | "fail";
-  manifestPath: string;
-  artifactCount: number;
-  routeSegmentArtifactCount: number;
-  totalFeatureCount: number;
-  totalByteLength: number;
-  issueCount: number;
-  issues: MapArtifactIssue[];
-};
+export type { MapArtifactManifest, MapArtifactVerification };
+export { mapArtifactManifestPath, readMapArtifactManifest, verifyMapArtifactManifest };
 
 export type MapArtifactsResult = {
   isoMonth: string;
@@ -180,20 +150,6 @@ type StopSnapshot = {
   stops: NormalizedStop[];
 };
 
-type ManifestCandidate = {
-  schemaVersion?: unknown;
-  artifactKind?: unknown;
-  analysisPeriod?: unknown;
-  generatedAt?: unknown;
-  status?: unknown;
-  artifactCount?: unknown;
-  routeSegmentArtifactCount?: unknown;
-  totalFeatureCount?: unknown;
-  totalByteLength?: unknown;
-  issueCount?: unknown;
-  artifacts?: unknown;
-};
-
 function defaultRouteShapeSnapshotPath(): string {
   return fromRepoRoot("data/raw/network/current_bus_routes.json");
 }
@@ -206,28 +162,8 @@ function defaultBusLaneSnapshotPath(): string {
   return fromRepoRoot("data/raw/interventions/bus-lanes-local-streets.json");
 }
 
-function mapArtifactKey(...parts: string[]): string {
-  return join("map", ...parts);
-}
-
-function mapArtifactPath(artifactRoot: string, ...parts: string[]): string {
-  return join(artifactRoot, mapArtifactKey(...parts));
-}
-
-export function mapArtifactManifestPath(artifactRoot: string, month: string): string {
-  return mapArtifactPath(artifactRoot, month, "manifest.json");
-}
-
-function routeSegmentArtifactKey(routeId: string, month: string): string {
-  return mapArtifactKey("route-segments", routeId.toLowerCase(), month, "all-day.geojson");
-}
-
 function isJsonObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function hashBytes(bytes: Uint8Array): string {
-  return createHash("sha256").update(bytes).digest("hex");
 }
 
 function routeSegmentIdFor(
@@ -758,7 +694,7 @@ async function readSnapshotMetadata(input: {
       status: "available",
       fetchedAt: typeof parsed.fetchedAt === "string" ? parsed.fetchedAt : null,
       rowCount: rows.length,
-      sha256: hashBytes(bytes),
+      sha256: mapArtifactSha256(bytes),
     },
     rows,
   };
@@ -819,25 +755,17 @@ function directionIdsByRouteDirection(shapes: readonly RouteShapePath[]): Map<st
 async function writeJsonArtifact(input: {
   path: string;
   artifactKey: string;
-  artifactKind: MapArtifactKind;
-  contentType: typeof contentTypeJson | typeof contentTypeGeoJson;
+  artifactKind: MapArtifactEntry["artifactKind"];
+  contentType: MapArtifactEntry["contentType"];
   routeId: string | null;
   payload: unknown;
   featureCount: number;
 }): Promise<MapArtifactEntry> {
-  const bytes = new TextEncoder().encode(`${JSON.stringify(input.payload, null, 2)}\n`);
+  const artifact = buildMapJsonArtifact(input);
   await mkdir(dirname(input.path), { recursive: true });
-  await Bun.write(input.path, bytes);
+  await Bun.write(input.path, artifact.bytes);
 
-  return {
-    artifactKind: input.artifactKind,
-    artifactKey: input.artifactKey,
-    contentType: input.contentType,
-    byteLength: bytes.byteLength,
-    sha256: hashBytes(bytes),
-    featureCount: input.featureCount,
-    routeId: input.routeId,
-  };
+  return artifact.entry;
 }
 
 async function readMapBuildRows(input: { local: OpenLocalPipelineDb; month: string }): Promise<{
@@ -899,7 +827,7 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
   const shapesByDirection = shapesByRouteDirection(routeShapeSnapshot.shapes);
   const directionIdByDirection = directionIdsByRouteDirection(routeShapeSnapshot.shapes);
   const sourcePayload = {
-    schemaVersion,
+    schemaVersion: MAP_ARTIFACT_SCHEMA_VERSION,
     artifactKind: "map_source_snapshot",
     analysisPeriod: options.isoMonth,
     generatedAt,
@@ -915,7 +843,7 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
       path: mapArtifactPath(artifactRoot, "sources", "source-snapshot.json"),
       artifactKey: mapArtifactKey("sources", "source-snapshot.json"),
       artifactKind: "map_source_snapshot",
-      contentType: contentTypeJson,
+      contentType: MAP_ARTIFACT_JSON_CONTENT_TYPE,
       routeId: null,
       payload: sourcePayload,
       featureCount: sourcePayload.sources.length,
@@ -926,7 +854,7 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
       path: mapArtifactPath(artifactRoot, "routes", "current-local-limited-sbs.min.geojson"),
       artifactKey: mapArtifactKey("routes", "current-local-limited-sbs.min.geojson"),
       artifactKind: "map_route_shapes_geojson",
-      contentType: contentTypeGeoJson,
+      contentType: MAP_ARTIFACT_GEOJSON_CONTENT_TYPE,
       routeId: null,
       payload: routeShapes,
       featureCount: routeShapes.features.length,
@@ -937,7 +865,7 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
       path: mapArtifactPath(artifactRoot, "stops", "current-timepoints.min.geojson"),
       artifactKey: mapArtifactKey("stops", "current-timepoints.min.geojson"),
       artifactKind: "map_timepoint_stops_geojson",
-      contentType: contentTypeGeoJson,
+      contentType: MAP_ARTIFACT_GEOJSON_CONTENT_TYPE,
       routeId: null,
       payload: stops,
       featureCount: stops.features.length,
@@ -948,7 +876,7 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
       path: mapArtifactPath(artifactRoot, "bus-lanes", "local-streets.min.geojson"),
       artifactKey: mapArtifactKey("bus-lanes", "local-streets.min.geojson"),
       artifactKind: "map_bus_lanes_geojson",
-      contentType: contentTypeGeoJson,
+      contentType: MAP_ARTIFACT_GEOJSON_CONTENT_TYPE,
       routeId: null,
       payload: busLanes,
       featureCount: busLanes.features.length,
@@ -984,13 +912,13 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
       hotspots: route.hotspots,
       shapesByDirection: routeShapes,
     });
-    const artifactKey = routeSegmentArtifactKey(route.routeId, options.isoMonth);
+    const artifactKey = routeSegmentMapArtifactKey(route.routeId, options.isoMonth);
     artifacts.push(
       await writeJsonArtifact({
         path: join(artifactRoot, artifactKey),
         artifactKey,
         artifactKind: "map_route_segments_geojson",
-        contentType: contentTypeGeoJson,
+        contentType: MAP_ARTIFACT_GEOJSON_CONTENT_TYPE,
         routeId: route.routeId,
         payload,
         featureCount: payload.features.length,
@@ -998,27 +926,14 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
     );
   }
 
-  const totalByteLength = artifacts.reduce((sum, row) => sum + row.byteLength, 0);
-  const totalFeatureCount = artifacts.reduce((sum, row) => sum + row.featureCount, 0);
-  const routeSegmentArtifactCount = artifacts.filter(
-    (row) => row.artifactKind === "map_route_segments_geojson",
-  ).length;
   const routeSegmentFeatureCount = artifacts
     .filter((row) => row.artifactKind === "map_route_segments_geojson")
     .reduce((sum, row) => sum + row.featureCount, 0);
-  const manifest: MapArtifactManifest = {
-    schemaVersion,
-    artifactKind: "map_artifact_manifest",
-    analysisPeriod: options.isoMonth,
+  const manifest = buildMapArtifactManifest({
+    month: options.isoMonth,
     generatedAt,
-    status: "pass",
-    artifactCount: artifacts.length,
-    routeSegmentArtifactCount,
-    totalFeatureCount,
-    totalByteLength,
-    issueCount: 0,
     artifacts,
-  };
+  });
   const manifestPath = mapArtifactManifestPath(artifactRoot, options.isoMonth);
   await mkdir(dirname(manifestPath), { recursive: true });
   await Bun.write(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
@@ -1026,285 +941,12 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
   return {
     isoMonth: options.isoMonth,
     manifestPath,
-    artifactCount: artifacts.length,
-    routeSegmentArtifactCount,
+    artifactCount: manifest.artifactCount,
+    routeSegmentArtifactCount: manifest.routeSegmentArtifactCount,
     routeSegmentFeatureCount,
-    totalFeatureCount,
-    totalByteLength,
+    totalFeatureCount: manifest.totalFeatureCount,
+    totalByteLength: manifest.totalByteLength,
     publicRouteCount: rows.publicRouteIds.length,
-  };
-}
-
-export async function readMapArtifactManifest(input: {
-  artifactRoot: string;
-  month: string;
-}): Promise<MapArtifactManifest | null> {
-  const file = Bun.file(mapArtifactManifestPath(input.artifactRoot, input.month));
-  if (!(await file.exists())) {
-    return null;
-  }
-
-  try {
-    const parsed = await file.json();
-    return isMapArtifactManifest(parsed) ? parsed : null;
-  } catch {
-    return null;
-  }
-}
-
-function isMapArtifactManifest(value: unknown): value is MapArtifactManifest {
-  if (!isJsonObject(value)) {
-    return false;
-  }
-
-  const candidate = value as ManifestCandidate;
-  return (
-    candidate.schemaVersion === schemaVersion &&
-    candidate.artifactKind === "map_artifact_manifest" &&
-    typeof candidate.analysisPeriod === "string" &&
-    typeof candidate.generatedAt === "string" &&
-    candidate.status === "pass" &&
-    typeof candidate.artifactCount === "number" &&
-    typeof candidate.routeSegmentArtifactCount === "number" &&
-    typeof candidate.totalFeatureCount === "number" &&
-    typeof candidate.totalByteLength === "number" &&
-    candidate.issueCount === 0 &&
-    Array.isArray(candidate.artifacts)
-  );
-}
-
-function featureCountForPayload(payload: unknown): number | null {
-  if (!isJsonObject(payload)) {
-    return null;
-  }
-  const candidate = payload as { features?: unknown };
-  const features = candidate.features;
-  return Array.isArray(features) ? features.length : null;
-}
-
-function artifactPayloadIssues(input: {
-  artifact: MapArtifactEntry;
-  payload: unknown;
-  month: string;
-}): MapArtifactIssue[] {
-  const issues: MapArtifactIssue[] = [];
-  const expectedFeatureCount = featureCountForPayload(input.payload);
-  if (input.artifact.artifactKind !== "map_source_snapshot" && expectedFeatureCount === null) {
-    issues.push({
-      code: "map_artifact_payload_features_missing",
-      artifactKey: input.artifact.artifactKey,
-      message: `Map artifact ${input.artifact.artifactKey} does not include a GeoJSON features array.`,
-    });
-  }
-  if (expectedFeatureCount !== null && expectedFeatureCount !== input.artifact.featureCount) {
-    issues.push({
-      code: "map_artifact_payload_feature_count_mismatch",
-      artifactKey: input.artifact.artifactKey,
-      message: `Map artifact ${input.artifact.artifactKey} manifest featureCount is ${input.artifact.featureCount}, but payload has ${expectedFeatureCount}.`,
-    });
-  }
-  if (input.artifact.artifactKind === "map_route_segments_geojson") {
-    const result = MapRouteSegmentFeatureCollectionSchema.safeParse(input.payload);
-    if (!result.success) {
-      issues.push({
-        code: "map_route_segment_payload_invalid",
-        artifactKey: input.artifact.artifactKey,
-        message: `Map route-segment artifact ${input.artifact.artifactKey} failed the domain GeoJSON contract.`,
-      });
-    } else {
-      const monthMismatches = result.data.features.filter(
-        (feature) => feature.properties.month !== input.month,
-      );
-      if (monthMismatches.length > 0) {
-        issues.push({
-          code: "map_route_segment_payload_month_mismatch",
-          artifactKey: input.artifact.artifactKey,
-          message: `Map route-segment artifact ${input.artifact.artifactKey} has ${monthMismatches.length} feature(s) outside ${input.month}.`,
-        });
-      }
-      const routeMismatches =
-        input.artifact.routeId === null
-          ? []
-          : result.data.features.filter(
-              (feature) => feature.properties.routeId !== input.artifact.routeId,
-            );
-      if (routeMismatches.length > 0) {
-        issues.push({
-          code: "map_route_segment_payload_route_mismatch",
-          artifactKey: input.artifact.artifactKey,
-          message: `Map route-segment artifact ${input.artifact.artifactKey} has ${routeMismatches.length} feature(s) for a different route.`,
-        });
-      }
-    }
-  }
-
-  return issues;
-}
-
-async function verifyArtifactFile(input: {
-  artifactRoot: string;
-  month: string;
-  artifact: MapArtifactEntry;
-}): Promise<MapArtifactIssue[]> {
-  const path = join(input.artifactRoot, input.artifact.artifactKey);
-  const file = Bun.file(path);
-  if (!(await file.exists())) {
-    return [
-      {
-        code: "map_artifact_file_missing",
-        artifactKey: input.artifact.artifactKey,
-        message: `Missing map artifact file ${input.artifact.artifactKey}.`,
-      },
-    ];
-  }
-
-  const bytes = new Uint8Array(await file.arrayBuffer());
-  const issues: MapArtifactIssue[] = [];
-  if (bytes.byteLength !== input.artifact.byteLength) {
-    issues.push({
-      code: "map_artifact_byte_length_mismatch",
-      artifactKey: input.artifact.artifactKey,
-      message: `Map artifact ${input.artifact.artifactKey} expected ${input.artifact.byteLength} bytes but found ${bytes.byteLength}.`,
-    });
-  }
-  if (hashBytes(bytes) !== input.artifact.sha256) {
-    issues.push({
-      code: "map_artifact_hash_mismatch",
-      artifactKey: input.artifact.artifactKey,
-      message: `Map artifact ${input.artifact.artifactKey} failed SHA-256 verification.`,
-    });
-  }
-
-  let payload: unknown = null;
-  try {
-    payload = JSON.parse(new TextDecoder().decode(bytes));
-  } catch {
-    issues.push({
-      code: "map_artifact_payload_invalid_json",
-      artifactKey: input.artifact.artifactKey,
-      message: `Map artifact ${input.artifact.artifactKey} could not be parsed as JSON.`,
-    });
-  }
-  issues.push(...artifactPayloadIssues({ ...input, payload }));
-
-  return issues;
-}
-
-export async function verifyMapArtifactManifest(input: {
-  artifactRoot: string;
-  month: string;
-  expectedRouteIds?: readonly string[];
-}): Promise<MapArtifactVerification> {
-  const manifestPath = mapArtifactManifestPath(input.artifactRoot, input.month);
-  const manifest = await readMapArtifactManifest(input);
-  if (manifest === null) {
-    return {
-      status: "fail",
-      manifestPath,
-      artifactCount: 0,
-      routeSegmentArtifactCount: 0,
-      totalFeatureCount: 0,
-      totalByteLength: 0,
-      issueCount: 1,
-      issues: [
-        {
-          code: "map_artifact_manifest_missing",
-          message: `Missing or invalid map artifact manifest for ${input.month}.`,
-        },
-      ],
-    };
-  }
-
-  const issues: MapArtifactIssue[] = [];
-  if (manifest.analysisPeriod !== input.month) {
-    issues.push({
-      code: "map_artifact_manifest_month_mismatch",
-      message: `Map artifact manifest is for ${manifest.analysisPeriod}, expected ${input.month}.`,
-    });
-  }
-
-  const requiredKinds: MapArtifactKind[] = [
-    "map_source_snapshot",
-    "map_route_shapes_geojson",
-    "map_timepoint_stops_geojson",
-    "map_bus_lanes_geojson",
-  ];
-  for (const kind of requiredKinds) {
-    if (!manifest.artifacts.some((row) => row.artifactKind === kind)) {
-      issues.push({
-        code: "map_artifact_manifest_required_artifact_missing",
-        message: `Map artifact manifest lacks required artifact kind ${kind}.`,
-      });
-    }
-  }
-
-  const routeSegmentArtifacts = manifest.artifacts.filter(
-    (row) => row.artifactKind === "map_route_segments_geojson",
-  );
-  if (manifest.routeSegmentArtifactCount !== routeSegmentArtifacts.length) {
-    issues.push({
-      code: "map_artifact_manifest_route_segment_count_mismatch",
-      message: `Map artifact manifest routeSegmentArtifactCount is ${manifest.routeSegmentArtifactCount}; actual rows ${routeSegmentArtifacts.length}.`,
-    });
-  }
-  if (input.expectedRouteIds !== undefined) {
-    const actualRouteIds = new Set(
-      routeSegmentArtifacts
-        .map((row) => row.routeId)
-        .filter((routeId): routeId is string => routeId !== null),
-    );
-    const missingRoutes = input.expectedRouteIds.filter((routeId) => !actualRouteIds.has(routeId));
-    if (missingRoutes.length > 0) {
-      issues.push({
-        code: "map_route_segment_artifact_routes_missing",
-        message: `${missingRoutes.length} public route(s) lack map route-segment artifacts: ${missingRoutes.slice(0, 5).join(", ")}.`,
-      });
-    }
-  }
-
-  const fileIssues = (
-    await Promise.all(
-      manifest.artifacts.map((artifact) =>
-        verifyArtifactFile({
-          artifactRoot: input.artifactRoot,
-          month: input.month,
-          artifact,
-        }),
-      ),
-    )
-  ).flat();
-  issues.push(...fileIssues);
-
-  const totalByteLength = manifest.artifacts.reduce((sum, row) => sum + row.byteLength, 0);
-  const totalFeatureCount = manifest.artifacts.reduce((sum, row) => sum + row.featureCount, 0);
-  if (manifest.artifactCount !== manifest.artifacts.length) {
-    issues.push({
-      code: "map_artifact_manifest_count_mismatch",
-      message: `Map artifact manifest artifactCount is ${manifest.artifactCount}; actual rows ${manifest.artifacts.length}.`,
-    });
-  }
-  if (manifest.totalByteLength !== totalByteLength) {
-    issues.push({
-      code: "map_artifact_manifest_byte_total_mismatch",
-      message: `Map artifact manifest totalByteLength is ${manifest.totalByteLength}; artifact rows total ${totalByteLength}.`,
-    });
-  }
-  if (manifest.totalFeatureCount !== totalFeatureCount) {
-    issues.push({
-      code: "map_artifact_manifest_feature_total_mismatch",
-      message: `Map artifact manifest totalFeatureCount is ${manifest.totalFeatureCount}; artifact rows total ${totalFeatureCount}.`,
-    });
-  }
-
-  return {
-    status: issues.length === 0 ? "pass" : "fail",
-    manifestPath,
-    artifactCount: manifest.artifacts.length,
-    routeSegmentArtifactCount: routeSegmentArtifacts.length,
-    totalFeatureCount,
-    totalByteLength,
-    issueCount: issues.length,
-    issues,
   };
 }
 

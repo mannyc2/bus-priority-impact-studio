@@ -1,11 +1,14 @@
 import { createHash } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
-import { type DocumentDiscoveryExtraction, DocumentDiscoveryExtractionSchema } from "@bp/domain";
+import {
+  type DocumentDiscoveryExtraction,
+  DocumentDiscoveryExtractionSchema,
+} from "@bp/domain/documents/discovery";
 import { Glob } from "bun";
 import { writeJson } from "../../../lib/json.ts";
 import { defaultArtifactRootPath, fromCliPath, fromRepoRoot } from "../../../lib/paths.ts";
-import { parseCliOptions, trueOption, type CliOption } from "./_shared.ts";
+import { type CliOption, parseCliOptions, trueOption } from "./_shared.ts";
 
 type CandidateType =
   | "entity"
@@ -243,12 +246,7 @@ function normalizedRowId(input: {
   candidateId: string;
 }): string {
   return sha256Hex(
-    [
-      input.inputLabel,
-      input.extractionId,
-      input.candidateType,
-      input.candidateId,
-    ].join("|"),
+    [input.inputLabel, input.extractionId, input.candidateType, input.candidateId].join("|"),
   );
 }
 
@@ -318,7 +316,9 @@ function extractionCandidateCount(extraction: DocumentDiscoveryExtraction): numb
 }
 
 function rootPriorityIndex(inputLabel: string, priority: string[]): number {
-  const index = priority.findIndex((label) => label === inputLabel || basename(label) === inputLabel);
+  const index = priority.findIndex(
+    (label) => label === inputLabel || basename(label) === inputLabel,
+  );
   return index === -1 ? priority.length : index;
 }
 
@@ -369,15 +369,11 @@ function normalizedSummary(
     context_signal: 0,
     review_question: 0,
   };
-  const byFamily = new Map<
-    CandidateType,
-    Map<string, { count: number; sourceIds: Set<string> }>
-  >();
+  const byFamily = new Map<CandidateType, Map<string, { count: number; sourceIds: Set<string> }>>();
   for (const row of rows) {
     byCandidateType[row.candidateType] += 1;
     const families = byFamily.get(row.candidateType) ?? new Map();
-    const family =
-      families.get(row.canonicalFamily) ?? { count: 0, sourceIds: new Set<string>() };
+    const family = families.get(row.canonicalFamily) ?? { count: 0, sourceIds: new Set<string>() };
     family.count += 1;
     family.sourceIds.add(row.sourceId);
     families.set(row.canonicalFamily, family);
@@ -393,8 +389,7 @@ function normalizedSummary(
         }))
         .sort(
           (left, right) =>
-            right.count - left.count ||
-            left.canonicalFamily.localeCompare(right.canonicalFamily),
+            right.count - left.count || left.canonicalFamily.localeCompare(right.canonicalFamily),
         );
       return [candidateType, rowsForType];
     }),
@@ -485,11 +480,14 @@ function canonicalEntityFamily(input: {
   const kindText = compactLabel(`${input.kindHint ?? ""} ${input.rawKind ?? ""}`);
   const rawText = compactLabel(input.rawText);
   const fullText = compactLabel(`${kindText} ${input.rawText ?? ""}`);
-  if (includesAny(fullText, ["lirr", "path", "nj transit", "amtrak", "commuter rail", "rail service"])) {
+  if (
+    includesAny(fullText, ["lirr", "path", "nj transit", "amtrak", "commuter rail", "rail service"])
+  ) {
     return "rail_service";
   }
   if (includesAny(fullText, ["subway", "transit line", "bus route pattern"])) return "transit_line";
-  if (includesAny(kindText, ["bus route", "sbs route", "local bus", "express bus"])) return "bus_route";
+  if (includesAny(kindText, ["bus route", "sbs route", "local bus", "express bus"]))
+    return "bus_route";
   if (includesAny(kindText, ["community board", "cb "])) return "community_board";
   if (includesAny(kindText, ["program", "project", "capital project"])) return "program";
   if (includesAny(kindText, ["agency", "authority", "nyc dot", "mta", "nyct", "consultant"])) {
@@ -499,10 +497,14 @@ function canonicalEntityFamily(input: {
   if (includesAny(kindText, ["pedestrian", "cyclist", "road user", "road_user_group"])) {
     return "vehicle_or_user_class";
   }
-  if (includesAny(kindText, ["treatment", "bus lane", "queue jump", "signal", "turn restriction"])) {
+  if (
+    includesAny(kindText, ["treatment", "bus lane", "queue jump", "signal", "turn restriction"])
+  ) {
     return "treatment_or_design_element";
   }
-  if (includesAny(kindText, ["design element", "curb", "lane", "sidewalk", "median", "bike lane"])) {
+  if (
+    includesAny(kindText, ["design element", "curb", "lane", "sidewalk", "median", "bike lane"])
+  ) {
     return "treatment_or_design_element";
   }
   if (includesAny(kindText, ["intersection", "corner"])) return "intersection";
@@ -515,35 +517,82 @@ function canonicalEntityFamily(input: {
   if (includesAny(kindText, ["time period", "hours", "am", "pm"])) return "time_period";
   if (includesAny(kindText, ["metric"])) return "metric_subject";
   if (includesAny(kindText, ["person"])) return "person";
-  if (includesAny(kindText, ["landmark", "destination", "venue", "cultural destination", "point of interest"])) {
+  if (
+    includesAny(kindText, [
+      "landmark",
+      "destination",
+      "venue",
+      "cultural destination",
+      "point of interest",
+    ])
+  ) {
     return "place_or_destination";
   }
   if (includesAny(kindText, ["organization", "committee", "stakeholder", "outreach method"])) {
     return "public_engagement_actor";
   }
-  if (includesAny(kindText, ["section heading", "agenda section", "drawing reference", "map symbol", "map legend"])) {
+  if (
+    includesAny(kindText, [
+      "section heading",
+      "agenda section",
+      "drawing reference",
+      "map symbol",
+      "map legend",
+    ])
+  ) {
     return "document_metadata";
   }
-  if (includesAny(kindText, ["infrastructure", "bridge", "building", "park", "tunnel", "material"])) {
+  if (
+    includesAny(kindText, ["infrastructure", "bridge", "building", "park", "tunnel", "material"])
+  ) {
     return "infrastructure_or_asset";
   }
-  if (includesAny(kindText, ["business type", "delivery service", "fare media", "service type", "technology"])) {
+  if (
+    includesAny(kindText, [
+      "business type",
+      "delivery service",
+      "fare media",
+      "service type",
+      "technology",
+    ])
+  ) {
     return "domain_concept";
   }
-  if (includesAny(kindText, ["business", "software", "concept", "acronym", "url", "existing condition"])) {
+  if (
+    includesAny(kindText, [
+      "business",
+      "software",
+      "concept",
+      "acronym",
+      "url",
+      "existing condition",
+    ])
+  ) {
     return "domain_concept";
   }
   if (includesAny(kindText, ["direction"])) return "direction";
   if (includesAny(kindText, ["community feedback theme"])) return "public_feedback_theme";
   if (includesAny(kindText, ["data source"])) return "data_source";
-  if (includesAny(kindText, ["document", "document title", "report title", "appendix", "section title"])) {
+  if (
+    includesAny(kindText, [
+      "document",
+      "document title",
+      "report title",
+      "appendix",
+      "section title",
+    ])
+  ) {
     return "document_metadata";
   }
-  if (includesAny(kindText, ["map", "proposal number", "section subheading"])) return "document_metadata";
-  if (includesAny(kindText, ["meeting", "event", "survey", "study"])) return "public_engagement_artifact";
-  if (includesAny(kindText, ["government official", "staff role"])) return "public_engagement_actor";
+  if (includesAny(kindText, ["map", "proposal number", "section subheading"]))
+    return "document_metadata";
+  if (includesAny(kindText, ["meeting", "event", "survey", "study"]))
+    return "public_engagement_artifact";
+  if (includesAny(kindText, ["government official", "staff role"]))
+    return "public_engagement_actor";
   if (includesAny(kindText, ["address"])) return "street";
-  if (includesAny(kindText, ["geography", "location", "administrative boundary"])) return "geography";
+  if (includesAny(kindText, ["geography", "location", "administrative boundary"]))
+    return "geography";
   if (includesAny(kindText, ["boundary", "country", "county", "geographic"])) return "geography";
   if (includesAny(kindText, ["entrance", "facility", "school"])) return "infrastructure_or_asset";
   if (includesAny(kindText, ["rider"])) return "vehicle_or_user_class";
@@ -642,7 +691,8 @@ function canonicalMetricFamily(labelRaw: string | undefined): string {
     return "reliability_or_dwell";
   }
   if (includesAny(label, ["headway", "wait", "frequency"])) return "service_frequency_or_wait";
-  if (includesAny(label, ["minutes away", "stops away", "next bus", "real time bus arrival"])) return "realtime_arrival_info";
+  if (includesAny(label, ["minutes away", "stops away", "next bus", "real time bus arrival"]))
+    return "realtime_arrival_info";
   if (
     includesAny(label, [
       "bus routes connected",
@@ -684,7 +734,8 @@ function canonicalMetricFamily(labelRaw: string | undefined): string {
   ) {
     return "stop_inventory";
   }
-  if (includesAny(label, ["vehicle speed", "vehicle speeds", "traffic speed"])) return "traffic_speed";
+  if (includesAny(label, ["vehicle speed", "vehicle speeds", "traffic speed"]))
+    return "traffic_speed";
   if (includesAny(label, ["taxi speeds", "speed scale"])) return "traffic_speed";
   if (includesAny(label, ["vehicle volume", "traffic volume", "turning movement"])) {
     return "traffic_volume";
@@ -802,7 +853,14 @@ function canonicalMetricFamily(labelRaw: string | undefined): string {
   ) {
     return "document_or_project_metadata";
   }
-  if (includesAny(label, ["proposed hours", "hours of operation", "operating hours", "bus lane hours"])) {
+  if (
+    includesAny(label, [
+      "proposed hours",
+      "hours of operation",
+      "operating hours",
+      "bus lane hours",
+    ])
+  ) {
     return "operating_hours";
   }
   if (includesAny(label, ["parking", "loading", "curb", "occupancy"])) return "curb_or_parking";
@@ -855,7 +913,8 @@ function canonicalMetricFamily(labelRaw: string | undefined): string {
   ) {
     return "public_feedback";
   }
-  if (includesAny(label, ["faster bus service", "improved performance"])) return "performance_claim";
+  if (includesAny(label, ["faster bus service", "improved performance"]))
+    return "performance_claim";
   if (
     includesAny(label, [
       "all electric buses",
@@ -887,7 +946,8 @@ function canonicalEventFamily(value: string | undefined): string {
   if (includesAny(text, ["workshop", "meeting", "community board", "open house", "hearing"])) {
     return "public_engagement";
   }
-  if (includesAny(text, ["evaluation", "report", "progress", "monitoring"])) return "evaluation_report";
+  if (includesAny(text, ["evaluation", "report", "progress", "monitoring"]))
+    return "evaluation_report";
   if (includesAny(text, ["enforcement", "restriction", "rule"])) return "regulatory_or_enforcement";
   if (includesAny(text, ["service change", "route change", "redesign"])) return "service_change";
   return "other_event";
@@ -917,16 +977,21 @@ function canonicalTableFamily(value: string | undefined): string {
   }
   if (includesAny(text, ["route inventory"])) return "service_or_ridership";
   if (includesAny(text, ["bicycle volume"])) return "performance_comparison";
-  if (includesAny(text, ["feature list", "project location", "image grid"])) return "document_metadata";
+  if (includesAny(text, ["feature list", "project location", "image grid"]))
+    return "document_metadata";
   if (includesAny(text, ["real time", "arrival board", "departure board", "sign display"])) {
     return "realtime_arrival_info";
   }
   if (includesAny(text, ["injury", "fatality", "crash", "safety"])) return "safety";
   if (includesAny(text, ["enforcement", "violations", "camera"])) return "enforcement";
   if (includesAny(text, ["cost", "budget"])) return "cost_or_budget";
-  if (includesAny(text, ["demographic", "mode share", "mode split"])) return "public_or_demographic_context";
+  if (includesAny(text, ["demographic", "mode share", "mode split"]))
+    return "public_or_demographic_context";
   if (includesAny(text, ["survey", "respondent", "comment"])) return "public_feedback";
-  if (includesAny(text, ["timeline", "schedule", "milestone", "project status", "hours of operation"])) return "timeline";
+  if (
+    includesAny(text, ["timeline", "schedule", "milestone", "project status", "hours of operation"])
+  )
+    return "timeline";
   if (includesAny(text, ["entry", "exit", "turn"])) return "access_rule";
   return "other_table";
 }
@@ -936,7 +1001,15 @@ function canonicalClaimFamily(value: string | undefined): string {
   if (includesAny(text, ["causal attribution", "caused", "attributed to"])) {
     return "causal_or_effect_claim";
   }
-  if (includesAny(text, ["methodology", "methodological", "data source", "data limitation", "data sources"])) {
+  if (
+    includesAny(text, [
+      "methodology",
+      "methodological",
+      "data source",
+      "data limitation",
+      "data sources",
+    ])
+  ) {
     return "methodology_or_source_note";
   }
   if (
@@ -1044,7 +1117,9 @@ function canonicalClaimFamily(value: string | undefined): string {
   if (includesAny(text, ["agency response", "action commitment", "implementation action"])) {
     return "implementation_or_planning";
   }
-  if (includesAny(text, ["planning statement", "implementation statement", "implementation fact"])) {
+  if (
+    includesAny(text, ["planning statement", "implementation statement", "implementation fact"])
+  ) {
     return "implementation_or_planning";
   }
   if (
@@ -1124,7 +1199,14 @@ function canonicalClaimFamily(value: string | undefined): string {
   ) {
     return "performance_observation";
   }
-  if (includesAny(text, ["value statement", "efficiency argument", "stated purpose", "project rationale"])) {
+  if (
+    includesAny(text, [
+      "value statement",
+      "efficiency argument",
+      "stated purpose",
+      "project rationale",
+    ])
+  ) {
     return "expected_benefit";
   }
   if (
@@ -1139,7 +1221,14 @@ function canonicalClaimFamily(value: string | undefined): string {
   ) {
     return "problem_statement";
   }
-  if (includesAny(text, ["demographic profile", "equity claim", "equity justification", "growth context"])) {
+  if (
+    includesAny(text, [
+      "demographic profile",
+      "equity claim",
+      "equity justification",
+      "growth context",
+    ])
+  ) {
     return "public_feedback";
   }
   if (includesAny(text, ["directional pattern", "headline fact", "factual context"])) {
@@ -1159,9 +1248,12 @@ function canonicalClaimFamily(value: string | undefined): string {
     return "regulatory_restriction";
   }
   if (includesAny(text, ["community", "feedback", "comment"])) return "public_feedback";
-  if (includesAny(text, ["scope", "corridor", "project description", "project extent"])) return "project_scope";
-  if (includesAny(text, ["project feature", "project inventory"])) return "infrastructure_inventory";
-  if (includesAny(text, ["qualification", "usage description"])) return "methodology_or_source_note";
+  if (includesAny(text, ["scope", "corridor", "project description", "project extent"]))
+    return "project_scope";
+  if (includesAny(text, ["project feature", "project inventory"]))
+    return "infrastructure_inventory";
+  if (includesAny(text, ["qualification", "usage description"]))
+    return "methodology_or_source_note";
   if (includesAny(text, ["regulation clarification"])) return "policy_or_operations_statement";
   if (includesAny(text, ["vehicle ownership statistic"])) return "public_feedback";
   return "other_claim";
@@ -1251,28 +1343,45 @@ function mappingRows(
       sourceCount: sourceCount(value.refs),
       rawValues: counterRows(value.raw).slice(0, MAX_RAW_VALUES_PER_MAPPING),
     }))
-    .sort((left, right) => right.count - left.count || left.canonicalFamily.localeCompare(right.canonicalFamily));
+    .sort(
+      (left, right) =>
+        right.count - left.count || left.canonicalFamily.localeCompare(right.canonicalFamily),
+    );
 }
 
 function addCluster(
-  clusters: Map<string, { canonicalFamily: string; displayLabel: string; raw: Map<string, number>; refs: Map<string, CandidateRef> }>,
+  clusters: Map<
+    string,
+    {
+      canonicalFamily: string;
+      displayLabel: string;
+      raw: Map<string, number>;
+      refs: Map<string, CandidateRef>;
+    }
+  >,
   input: CandidateClusterInput,
 ): void {
-  const cluster =
-    clusters.get(input.clusterKey) ??
-    {
-      canonicalFamily: input.canonicalFamily,
-      displayLabel: input.displayLabel,
-      raw: new Map<string, number>(),
-      refs: new Map<string, CandidateRef>(),
-    };
+  const cluster = clusters.get(input.clusterKey) ?? {
+    canonicalFamily: input.canonicalFamily,
+    displayLabel: input.displayLabel,
+    raw: new Map<string, number>(),
+    refs: new Map<string, CandidateRef>(),
+  };
   addCounter(cluster.raw, input.rawVariant);
   cluster.refs.set(refKey(input.ref), input.ref);
   clusters.set(input.clusterKey, cluster);
 }
 
 function clusterRows(
-  clusters: Map<string, { canonicalFamily: string; displayLabel: string; raw: Map<string, number>; refs: Map<string, CandidateRef> }>,
+  clusters: Map<
+    string,
+    {
+      canonicalFamily: string;
+      displayLabel: string;
+      raw: Map<string, number>;
+      refs: Map<string, CandidateRef>;
+    }
+  >,
   limit: number,
 ): ClusterSummary[] {
   return [...clusters.entries()]
@@ -1288,7 +1397,9 @@ function clusterRows(
         rawVariants: counterRows(value.raw).slice(0, 20),
       };
     })
-    .sort((left, right) => right.count - left.count || left.clusterKey.localeCompare(right.clusterKey))
+    .sort(
+      (left, right) => right.count - left.count || left.clusterKey.localeCompare(right.clusterKey),
+    )
     .slice(0, limit);
 }
 
@@ -1346,7 +1457,9 @@ function renderMarkdown(audit: Tier2DiscoveryCurationAudit): string {
         .slice(0, 5)
         .map((value) => `${value.value} (${value.count})`)
         .join("; ");
-      lines.push(`| ${row.canonicalFamily} | ${row.count} | ${row.sourceCount} | ${raw.replace(/\|/g, "/")} |`);
+      lines.push(
+        `| ${row.canonicalFamily} | ${row.count} | ${row.sourceCount} | ${raw.replace(/\|/g, "/")} |`,
+      );
     }
     lines.push("");
   }
@@ -1365,7 +1478,9 @@ function renderMarkdown(audit: Tier2DiscoveryCurationAudit): string {
     lines.push("| Count | Sources | Family | Label |");
     lines.push("|---:|---:|---|---|");
     for (const row of rows.slice(0, 15)) {
-      lines.push(`| ${row.count} | ${row.sourceCount} | ${row.canonicalFamily} | ${row.displayLabel.replace(/\|/g, "/")} |`);
+      lines.push(
+        `| ${row.count} | ${row.sourceCount} | ${row.canonicalFamily} | ${row.displayLabel.replace(/\|/g, "/")} |`,
+      );
     }
     lines.push("");
   }
@@ -1387,9 +1502,8 @@ function buildManualCurationSeed(input: {
       (row) => row.canonicalFamily === "other_metric",
     )?.rawValues ?? [];
   const otherEntityValues =
-    input.audit.normalizationSeed.entityKindMappings.find(
-      (row) => row.canonicalFamily === "other",
-    )?.rawValues ?? [];
+    input.audit.normalizationSeed.entityKindMappings.find((row) => row.canonicalFamily === "other")
+      ?.rawValues ?? [];
   const otherClaimValues =
     input.audit.normalizationSeed.claimFamilyMappings.find(
       (row) => row.canonicalFamily === "other_claim",
@@ -1595,13 +1709,69 @@ export async function buildTier2DiscoveryCurationAudit(args: {
   const contextMappings = new Map<string, { raw: Map<string, number>; refs: CandidateRef[] }>();
   const questionMappings = new Map<string, { raw: Map<string, number>; refs: CandidateRef[] }>();
 
-  const entityClusters = new Map<string, { canonicalFamily: string; displayLabel: string; raw: Map<string, number>; refs: Map<string, CandidateRef> }>();
-  const metricClusters = new Map<string, { canonicalFamily: string; displayLabel: string; raw: Map<string, number>; refs: Map<string, CandidateRef> }>();
-  const eventClusters = new Map<string, { canonicalFamily: string; displayLabel: string; raw: Map<string, number>; refs: Map<string, CandidateRef> }>();
-  const tableClusters = new Map<string, { canonicalFamily: string; displayLabel: string; raw: Map<string, number>; refs: Map<string, CandidateRef> }>();
-  const claimClusters = new Map<string, { canonicalFamily: string; displayLabel: string; raw: Map<string, number>; refs: Map<string, CandidateRef> }>();
-  const contextClusters = new Map<string, { canonicalFamily: string; displayLabel: string; raw: Map<string, number>; refs: Map<string, CandidateRef> }>();
-  const questionClusters = new Map<string, { canonicalFamily: string; displayLabel: string; raw: Map<string, number>; refs: Map<string, CandidateRef> }>();
+  const entityClusters = new Map<
+    string,
+    {
+      canonicalFamily: string;
+      displayLabel: string;
+      raw: Map<string, number>;
+      refs: Map<string, CandidateRef>;
+    }
+  >();
+  const metricClusters = new Map<
+    string,
+    {
+      canonicalFamily: string;
+      displayLabel: string;
+      raw: Map<string, number>;
+      refs: Map<string, CandidateRef>;
+    }
+  >();
+  const eventClusters = new Map<
+    string,
+    {
+      canonicalFamily: string;
+      displayLabel: string;
+      raw: Map<string, number>;
+      refs: Map<string, CandidateRef>;
+    }
+  >();
+  const tableClusters = new Map<
+    string,
+    {
+      canonicalFamily: string;
+      displayLabel: string;
+      raw: Map<string, number>;
+      refs: Map<string, CandidateRef>;
+    }
+  >();
+  const claimClusters = new Map<
+    string,
+    {
+      canonicalFamily: string;
+      displayLabel: string;
+      raw: Map<string, number>;
+      refs: Map<string, CandidateRef>;
+    }
+  >();
+  const contextClusters = new Map<
+    string,
+    {
+      canonicalFamily: string;
+      displayLabel: string;
+      raw: Map<string, number>;
+      refs: Map<string, CandidateRef>;
+    }
+  >();
+  const questionClusters = new Map<
+    string,
+    {
+      canonicalFamily: string;
+      displayLabel: string;
+      raw: Map<string, number>;
+      refs: Map<string, CandidateRef>;
+    }
+  >();
   const normalizedRows: Tier2DiscoveryNormalizedCandidateRow[] = [];
 
   for (const { inputLabel, extraction } of extractionsWithLabel) {
@@ -1614,9 +1784,12 @@ export async function buildTier2DiscoveryCurationAudit(args: {
 
     for (const issue of extraction.validationIssues) {
       const key = `${issue.code}|${issue.path}`;
-      const group =
-        validationIssueGroups.get(key) ??
-        { code: issue.code, path: issue.path, count: 0, sampleMessages: new Set<string>() };
+      const group = validationIssueGroups.get(key) ?? {
+        code: issue.code,
+        path: issue.path,
+        count: 0,
+        sampleMessages: new Set<string>(),
+      };
       group.count += 1;
       if (group.sampleMessages.size < 3) group.sampleMessages.add(issue.message);
       validationIssueGroups.set(key, group);
@@ -1864,13 +2037,22 @@ export async function buildTier2DiscoveryCurationAudit(args: {
   ) as Record<CandidateType, number>;
 
   const duplicateClusterCounts = {
-    entity: clusterRows(entityClusters, Number.MAX_SAFE_INTEGER).filter((row) => row.count > 1).length,
-    metric: clusterRows(metricClusters, Number.MAX_SAFE_INTEGER).filter((row) => row.count > 1).length,
-    event: clusterRows(eventClusters, Number.MAX_SAFE_INTEGER).filter((row) => row.count > 1).length,
-    table: clusterRows(tableClusters, Number.MAX_SAFE_INTEGER).filter((row) => row.count > 1).length,
-    claim: clusterRows(claimClusters, Number.MAX_SAFE_INTEGER).filter((row) => row.count > 1).length,
-    context_signal: clusterRows(contextClusters, Number.MAX_SAFE_INTEGER).filter((row) => row.count > 1).length,
-    review_question: clusterRows(questionClusters, Number.MAX_SAFE_INTEGER).filter((row) => row.count > 1).length,
+    entity: clusterRows(entityClusters, Number.MAX_SAFE_INTEGER).filter((row) => row.count > 1)
+      .length,
+    metric: clusterRows(metricClusters, Number.MAX_SAFE_INTEGER).filter((row) => row.count > 1)
+      .length,
+    event: clusterRows(eventClusters, Number.MAX_SAFE_INTEGER).filter((row) => row.count > 1)
+      .length,
+    table: clusterRows(tableClusters, Number.MAX_SAFE_INTEGER).filter((row) => row.count > 1)
+      .length,
+    claim: clusterRows(claimClusters, Number.MAX_SAFE_INTEGER).filter((row) => row.count > 1)
+      .length,
+    context_signal: clusterRows(contextClusters, Number.MAX_SAFE_INTEGER).filter(
+      (row) => row.count > 1,
+    ).length,
+    review_question: clusterRows(questionClusters, Number.MAX_SAFE_INTEGER).filter(
+      (row) => row.count > 1,
+    ).length,
   };
 
   const validationIssues = [...validationIssueGroups.values()]
@@ -1892,9 +2074,8 @@ export async function buildTier2DiscoveryCurationAudit(args: {
         (sum, input) => sum + input.summary.invalidExtractionCount,
         0,
       ),
-      sourceCount: new Set(
-        extractionsWithLabel.map(({ extraction }) => extraction.source.sourceId),
-      ).size,
+      sourceCount: new Set(extractionsWithLabel.map(({ extraction }) => extraction.source.sourceId))
+        .size,
       sourceGroupCount: sourcesByGroup.size,
       validationIssueCount: validationIssues.reduce((sum, issue) => sum + issue.count, 0),
       candidateCounts,
@@ -2043,15 +2224,10 @@ export async function buildTier2DiscoveryCurationAuditFromCli(args: string[]) {
   const parsed = parseDiscoveryCurationCliArgs(args);
   const artifactRoot = defaultArtifactRootPath();
   const defaultBase = join(artifactRoot, "docs", "tier2-full-corpus-2026-05-24-pass2");
-  const roots =
-    parsed.discoveryRoots ??
-    DEFAULT_DISCOVERY_ROOTS.map((root) => fromRepoRoot(root));
-  const output =
-    parsed.output ?? join(defaultBase, "document-discovery-curation-audit-v1.json");
-  const markdown =
-    parsed.markdown ?? join(defaultBase, "document-discovery-curation-audit-v1.md");
-  const rules =
-    parsed.rules ?? join(defaultBase, "document-discovery-curation-rules-v1.json");
+  const roots = parsed.discoveryRoots ?? DEFAULT_DISCOVERY_ROOTS.map((root) => fromRepoRoot(root));
+  const output = parsed.output ?? join(defaultBase, "document-discovery-curation-audit-v1.json");
+  const markdown = parsed.markdown ?? join(defaultBase, "document-discovery-curation-audit-v1.md");
+  const rules = parsed.rules ?? join(defaultBase, "document-discovery-curation-rules-v1.json");
   const normalized =
     parsed.normalized ?? join(defaultBase, "document-discovery-normalized-candidates-v1.json");
   const audit = await buildTier2DiscoveryCurationAudit({

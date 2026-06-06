@@ -1,11 +1,8 @@
 import { extname, join, normalize } from "node:path";
-import {
-  buildStudioCompareProjection,
-  getStudioRoute,
-  type StudioBriefsResponse,
-  type StudioFindingsResponse,
-  type StudioRoutesResponse,
-} from "@bp/domain";
+import type { StudioBriefsResponse } from "@bp/domain/studio/briefs";
+import type { StudioFindingsResponse } from "@bp/domain/studio/findings";
+import { buildStudioCompareProjection, getStudioRoute } from "@bp/domain/studio/projections";
+import type { StudioRoutesResponse } from "@bp/domain/studio/routes";
 
 const distRoot = "apps/web/dist/client";
 const artifactRoot = "data/artifacts/studio/v1";

@@ -1,6 +1,7 @@
 import { Database } from "bun:sqlite";
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { basename, dirname, join, resolve } from "node:path";
+import { buildRouteBriefSegmentUniverse } from "@bp/applied-research/route-briefs";
 import {
   listRouteArtifacts,
   listRouteBriefSummaries,
@@ -13,6 +14,8 @@ import {
   type RouteMonthTrend,
 } from "@bp/db";
 import { createBunSqliteServingDb } from "@bp/db/d1/bun-sqlite";
+import type { StudioAiPublicNote } from "@bp/domain/studio/briefs";
+import type { StudioIntervention } from "@bp/domain/studio/interventions";
 import {
   buildStudioBriefEvidenceProjection,
   buildStudioBriefHistoryProjection,
@@ -25,11 +28,8 @@ import {
   buildStudioRouteLadderProjection,
   buildStudioRouteProjection,
   buildStudioRoutesProjection,
-  type StudioAiPublicNote,
-  type StudioIntervention,
-  type StudioReleasePayload,
-  StudioReleasePayloadSchema,
-} from "@bp/domain";
+} from "@bp/domain/studio/projections";
+import { type StudioReleasePayload, StudioReleasePayloadSchema } from "@bp/domain/studio/release";
 import { normalizeHourlyRidershipRows } from "@bp/sources/adapters/mta/bus-ridership";
 import { normalizeSegmentSpeedRows } from "@bp/sources/adapters/mta/bus-speeds";
 import { normalizeScheduleTimepointRows } from "@bp/sources/adapters/mta/schedules";
@@ -38,7 +38,6 @@ import { defineCommand, z } from "@liche/core";
 import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
 import { buildSourceCoverageLedger } from "../audit/source-coverage.ts";
-import { buildRouteBriefSegmentUniverse } from "../route/brief-model.ts";
 import {
   assertGeneratedBriefReferenceIntegrity,
   buildBrief,

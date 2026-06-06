@@ -1,12 +1,14 @@
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { arg, defineCommand, z } from "@liche/core";
+import { parseBusLaneOpenDates } from "@bp/applied-research/local-db";
+import { busLaneMatches } from "@bp/applied-research/route-briefs";
 import {
   listBusLanes,
   listRouteBriefSummaries,
   listRouteMonthCoverage,
   listRouteStops,
 } from "@bp/db/local";
+import { arg, defineCommand, z } from "@liche/core";
 import { isoMonth } from "../../lib/dates.ts";
 import { writeJson } from "../../lib/json.ts";
 import {
@@ -17,22 +19,20 @@ import {
 } from "../../lib/local-db.ts";
 import { defaultArtifactRootPath, fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
 import {
-  readBusObservatoryAvailabilityArtifact,
   type BusObservatoryAvailabilityResult,
+  readBusObservatoryAvailabilityArtifact,
 } from "../check/bus-observatory-gtfs-rt.ts";
 import {
-  readRouteSpeedAvailabilityArtifact,
-  type RouteSpeedAvailabilityResult,
-} from "../check/route-speed-availability.ts";
-import {
+  type PipelineV1CheckResult,
   runCheckPipelineV1,
   runCheckPipelineV1WithDbPath,
-  type PipelineV1CheckResult,
 } from "../check/pipeline-v1.ts";
-import { runGtfsRtPreflight, type GtfsRtPreflightResult } from "../gtfs-rt/preflight.ts";
+import {
+  type RouteSpeedAvailabilityResult,
+  readRouteSpeedAvailabilityArtifact,
+} from "../check/route-speed-availability.ts";
+import { type GtfsRtPreflightResult, runGtfsRtPreflight } from "../gtfs-rt/preflight.ts";
 import { readSourceRefreshPlanArtifact, type SourceRefreshPlan } from "../plan/source-refresh.ts";
-import { busLaneMatches } from "../route/brief-metrics.ts";
-import { parseBusLaneOpenDates } from "../route/intervention-evaluation.ts";
 
 type RequirementStatus = "pass" | "partial" | "blocked";
 
@@ -842,14 +842,16 @@ export default defineCommand({
     }),
   },
   middleware: [withLocalDb()],
-  output: z.object({
-    status: z.enum(["pass", "partial", "blocked"]),
-    publicMonth: z.string(),
-    realtimeMonth: z.string(),
-    outputPath: z.string(),
-    checklist: z.array(z.unknown()),
-    gates: z.unknown(),
-  }).passthrough(),
+  output: z
+    .object({
+      status: z.enum(["pass", "partial", "blocked"]),
+      publicMonth: z.string(),
+      realtimeMonth: z.string(),
+      outputPath: z.string(),
+      checklist: z.array(z.unknown()),
+      gates: z.unknown(),
+    })
+    .passthrough(),
   async run({ ctx, input }) {
     return runAuditPipelineV1({
       local: localDbFromCtx(ctx),

@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { ANALYTICS_DETECTOR_REGISTRY } from "@bp/analytics/registry";
+import { buildReviewPacketArtifacts } from "@bp/applied-research/review-packets";
 import {
   type FindingCandidate,
   FindingCandidateSchema,
@@ -7,8 +8,7 @@ import {
   FindingCoverageAuditSchema,
   type FindingEvidenceLink,
   FindingEvidenceLinkSchema,
-} from "@bp/domain";
-import { buildReviewPacketArtifacts } from "@bp/applied-research/review-packets";
+} from "@bp/domain/findings";
 
 const generatedAt = "2026-06-01T00:00:00.000Z";
 const month = "2026-03";

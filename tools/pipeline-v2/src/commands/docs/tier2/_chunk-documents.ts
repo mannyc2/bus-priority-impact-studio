@@ -5,6 +5,7 @@
 // core module; the core module never imports back here.
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import type { Tier2CandidateSourceRef } from "@bp/domain/documents/candidates";
 import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";
 import { writeJson } from "../../../lib/json.ts";
 import {
@@ -19,7 +20,6 @@ import {
   type ChunkTier2DocumentsArgs,
   type CliOption,
   type Tier2CandidateBundle,
-  type Tier2CandidateSourceRef,
   type Tier2DocumentChunk,
   type Tier2DocumentChunksArtifact,
 } from "./_shared.ts";

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
-import { DocumentDerivedSurfaceRowSchema } from "@bp/domain";
+import { DocumentDerivedSurfaceRowSchema } from "@bp/domain/documents/derived-surfaces";
 import { runTier2DocumentDerivedSurfaces } from "../../../../src/commands/docs/tier2/_document-derived-surfaces.ts";
 import { writeJson } from "../../../../src/lib/json.ts";
 

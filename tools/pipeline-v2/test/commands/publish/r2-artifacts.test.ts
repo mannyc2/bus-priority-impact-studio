@@ -41,6 +41,12 @@ async function seedArtifacts(root: string, month: string): Promise<void> {
   await writeFile(join(root, "studio", "index.json"), '{"v":1}');
 }
 
+async function seedStudioSpeedHistoryArtifact(root: string): Promise<void> {
+  const dir = join(root, "studio", "v2", "routes", "m15-sbs");
+  await mkdir(dir, { recursive: true });
+  await writeFile(join(dir, "speed-history.json"), '{"artifactKind":"studio_route_speed_history"}');
+}
+
 const MONTH = "2026-03";
 
 function baseOptions(input: {
@@ -94,6 +100,27 @@ describe("runPublishR2Artifacts", () => {
       const putKeys = calls.filter((c) => c.kind === "put").map((c) => c.key).sort();
       expect(statKeys).toEqual([`map/${MONTH}/tiles.geojson`, "studio/index.json"]);
       expect(putKeys).toEqual([`map/${MONTH}/tiles.geojson`, "studio/index.json"]);
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it("includes nested Studio v2 route speed-history artifacts under the default studio prefix", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "publish-r2-studio-v2-"));
+    try {
+      const artifactRoot = join(tmp, "artifacts");
+      const outputPath = join(tmp, "report.json");
+      await seedArtifacts(artifactRoot, MONTH);
+      await seedStudioSpeedHistoryArtifact(artifactRoot);
+
+      const { driver, calls } = recordingDriver(new Map());
+      const report = await runPublishR2Artifacts(
+        baseOptions({ artifactRoot, outputPath, driver, dryRun: true }),
+      );
+
+      expect(report.status).toBe("pass");
+      expect(report.candidateCount).toBe(3);
+      expect(calls.map((c) => c.key)).toContain("studio/v2/routes/m15-sbs/speed-history.json");
     } finally {
       rmSync(tmp, { recursive: true, force: true });
     }

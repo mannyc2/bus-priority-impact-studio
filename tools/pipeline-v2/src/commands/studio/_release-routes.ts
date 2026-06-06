@@ -6,15 +6,10 @@ import type {
   RouteObservedReliabilitySummary,
   RouteReadiness,
 } from "@bp/db";
-import type {
-  StudioObservedReliability,
-  StudioRouteArtifactRef,
-  StudioSpeedPercentileContext,
-} from "@bp/domain";
-import {
-  routeRiderDelayHours,
-  routeScheduledSpeedMph,
-} from "./_release-segments.ts";
+import type { StudioSpeedPercentileContext } from "@bp/domain/studio/docs";
+import type { StudioObservedReliability, StudioRouteArtifactRef } from "@bp/domain/studio/routes";
+import { longNameEndpoints } from "./_release-geometry.ts";
+import { routeRiderDelayHours, routeScheduledSpeedMph } from "./_release-segments.ts";
 import type {
   RouteBriefInputArtifact,
   RouteBriefTopStopBoardings,
@@ -25,7 +20,6 @@ import type {
   StudioSegment,
   TspEvidence,
 } from "./_release-types.ts";
-import { longNameEndpoints } from "./_release-geometry.ts";
 
 export function routeIdToSlug(routeId: string): string {
   return routeId

@@ -1,76 +1,21 @@
-import { Database as BunDatabase, type Database } from "bun:sqlite";
+import { Database as BunDatabase } from "bun:sqlite";
 import { mkdir } from "node:fs/promises";
-import { dirname, isAbsolute, join, relative } from "node:path";
-import {
-  buildSpeedPaceScoreVectorArtifact,
-  type SegmentDaypartSpeedSourceRow,
-} from "@bp/applied-research/score-vectors";
+import { dirname, isAbsolute, relative } from "node:path";
+import { speedPaceScoreVectorPath } from "@bp/applied-research/artifacts";
+import { loadSpeedPaceScoreVectorLocalDbRows } from "@bp/applied-research/local-db";
+import { buildSpeedPaceScoreVectorStudy } from "@bp/applied-research/score-vectors";
 import { arg, defineCommand, z } from "@liche/core";
 import { isoMonth } from "../../lib/dates.ts";
 import { writeJson } from "../../lib/json.ts";
 import { dbOptions, defaultLocalPipelineDbPath } from "../../lib/local-db.ts";
 import { defaultArtifactRootPath, fromCliPath, repoRoot } from "../../lib/paths.ts";
+
+export { speedPaceScoreVectorPath } from "@bp/applied-research/artifacts";
+
 function repoDisplayPath(path: string): string {
   if (!isAbsolute(path)) return path;
   const relativePath = relative(repoRoot, path);
   return relativePath.startsWith("..") ? path : relativePath;
-}
-
-function text(value: unknown): string | null {
-  return typeof value === "string" && value.length > 0 ? value : null;
-}
-
-function queryMonths(sqlite: Database, startMonth: string, endMonth: string): string[] {
-  const rows = sqlite
-    .query(
-      `
-        SELECT DISTINCT month
-        FROM local_route_segment_speed
-        WHERE month >= ? AND month <= ?
-        ORDER BY month
-      `,
-    )
-    .all(startMonth, endMonth) as Array<{ month?: unknown }>;
-  return rows.map((row) => text(row.month)).filter((month): month is string => month !== null);
-}
-
-function queryRowsForMonth(sqlite: Database, month: string): SegmentDaypartSpeedSourceRow[] {
-  return sqlite
-    .query(
-      `
-        SELECT
-          route_id,
-          month,
-          hour_of_day,
-          direction,
-          stop_order,
-          timepoint_stop_id,
-          next_timepoint_stop_id,
-          road_distance_miles,
-          average_travel_time_minutes,
-          average_road_speed_mph,
-          bus_trip_count
-        FROM local_route_segment_speed
-        WHERE month = ?
-        ORDER BY route_id, direction, stop_order, timepoint_stop_id, next_timepoint_stop_id, hour_of_day
-      `,
-    )
-    .all(month) as SegmentDaypartSpeedSourceRow[];
-}
-
-export function speedPaceScoreVectorPath(input: {
-  artifactRoot: string;
-  startMonth: string;
-  endMonth: string;
-  releaseMonth: string;
-}): string {
-  return join(
-    input.artifactRoot,
-    "speed-pace-score-vectors",
-    `${input.startMonth}_to_${input.endMonth}`,
-    input.releaseMonth,
-    "speed-pace-score-vectors.json",
-  );
 }
 
 export default defineCommand({
@@ -112,25 +57,21 @@ export default defineCommand({
     const sqlite = new BunDatabase(dbPath, { readonly: true });
     try {
       sqlite.exec("PRAGMA busy_timeout = 5000");
-      const months = queryMonths(sqlite, startMonth, endMonth);
-      const rowsByMonth = new Map<string, SegmentDaypartSpeedSourceRow[]>();
-      for (const month of months) {
-        rowsByMonth.set(month, queryRowsForMonth(sqlite, month));
-      }
-      const buildInput = {
-        rowsByMonth,
-        months,
-        startMonth,
-        endMonth,
-        releaseMonth,
-        generatedAt: new Date().toISOString(),
-        dbPath: repoDisplayPath(dbPath),
-        artifactPath: repoDisplayPath(outputPath),
-        ...(input.options.candidateLimit === undefined
-          ? {}
-          : { candidateLimit: input.options.candidateLimit }),
-      };
-      const artifact = buildSpeedPaceScoreVectorArtifact(buildInput);
+      const rows = loadSpeedPaceScoreVectorLocalDbRows({ sqlite, startMonth, endMonth });
+      const artifact = buildSpeedPaceScoreVectorStudy({
+        rows,
+        metadata: {
+          startMonth,
+          endMonth,
+          releaseMonth,
+          generatedAt: new Date().toISOString(),
+          dbPath: repoDisplayPath(dbPath),
+          artifactPath: repoDisplayPath(outputPath),
+          ...(input.options.candidateLimit === undefined
+            ? {}
+            : { candidateLimit: input.options.candidateLimit }),
+        },
+      });
       await mkdir(dirname(outputPath), { recursive: true });
       await writeJson(outputPath, artifact);
       return {

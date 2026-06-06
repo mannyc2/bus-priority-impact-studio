@@ -1,9 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import type {
-  AgentFindingProposal,
-  PromotedFinding,
-} from "@bp/domain";
+import type { AgentFindingProposal, PromotedFinding } from "@bp/domain/findings";
 
 import type { LoadedCorpus } from "../../../src/commands/findings/_corpus.ts";
 import { validateDuplicate } from "../../../src/commands/findings/_validation.ts";
@@ -26,9 +23,7 @@ function buildCorpusWithPromoted(
       }) as unknown as PromotedFinding,
   );
   const byRoute = new Map<string, PromotedFinding[]>([[routeId, findings]]);
-  const byId = new Map<string, PromotedFinding>(
-    findings.map((f) => [f.promotedFindingId, f]),
-  );
+  const byId = new Map<string, PromotedFinding>(findings.map((f) => [f.promotedFindingId, f]));
   return {
     month: "2026-03" as never,
     paths: {

@@ -3,13 +3,10 @@
 import { readFileSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
-import { DocumentInterventionRecordSchema } from "@bp/domain";
+import { DocumentInterventionRecordSchema } from "@bp/domain/documents/intervention-records";
 
 const repoRoot = join(import.meta.dir, "../../..");
-const corpusDir = join(
-  repoRoot,
-  "data/artifacts/docs/gap-roadmap-docs-2026-05-25",
-);
+const corpusDir = join(repoRoot, "data/artifacts/docs/gap-roadmap-docs-2026-05-25");
 const corpusPath = join(
   corpusDir,
   process.argv[2] ?? "intervention-records-corpus-v3-reviewed-2026-05-27.json",
@@ -20,8 +17,7 @@ const candidatesPath = join(
 );
 const reportPath = join(
   corpusDir,
-  process.argv[3] ??
-    `${basename(corpusPath, ".json")}-sanity-report.json`,
+  process.argv[3] ?? `${basename(corpusPath, ".json")}-sanity-report.json`,
 );
 
 const MIN_PLAUSIBLE_YEAR = 2000;
@@ -224,7 +220,8 @@ const duplicateStatusHistoryBuckets = records.flatMap((record) => {
   const duplicates: Array<{ recordId: string; sourceId: string; key: string }> = [];
   for (const entry of record.statusHistory ?? []) {
     const key = `${entry.status ?? ""}|${entry.asOfDate ?? ""}`;
-    if (seen.has(key)) duplicates.push({ recordId: record.recordId, sourceId: record.sourceId, key });
+    if (seen.has(key))
+      duplicates.push({ recordId: record.recordId, sourceId: record.sourceId, key });
     seen.add(key);
   }
   return duplicates;

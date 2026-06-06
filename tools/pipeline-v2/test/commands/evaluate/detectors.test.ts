@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { ANALYTICS_DETECTOR_REGISTRY } from "@bp/analytics/registry";
-import { buildDetectorEvaluationArtifact } from "@bp/applied-research/evaluation";
 import {
   detectorEvaluationArtifactPath,
   detectorEvaluationMarkdownPath,
-} from "../../../src/commands/evaluate/detectors.ts";
+} from "@bp/applied-research/artifacts";
+import { buildDetectorEvaluationArtifact } from "@bp/applied-research/evaluation";
 
 describe("evaluate detectors", () => {
   test("emits scorecards for every registered detector and flags positive-only labels", () => {
@@ -428,7 +428,11 @@ describe("evaluate detectors", () => {
   });
 
   test("places default artifacts under the detector-evaluation namespace", () => {
-    const jsonPath = detectorEvaluationArtifactPath("data/artifacts", "2023-04", "2026-03");
+    const jsonPath = detectorEvaluationArtifactPath({
+      artifactRoot: "data/artifacts",
+      historyStartMonth: "2023-04",
+      releaseMonth: "2026-03",
+    });
     expect(jsonPath).toBe(
       "data/artifacts/detector-evaluation/2023-04_to_2026-03/2026-03/detector-evaluation.json",
     );

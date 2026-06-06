@@ -4,9 +4,9 @@
 // module never imports back here, keeping the DAG acyclic.
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import type { DocumentInterventionRecordKind } from "@bp/domain";
-import { fromCliPath } from "../../../lib/paths.ts";
+import type { DocumentInterventionRecordKind } from "@bp/domain/documents/intervention-records";
 import { writeJson } from "../../../lib/json.ts";
+import { fromCliPath } from "../../../lib/paths.ts";
 import { type CliOption, parseCliOptions } from "./_shared.ts";
 
 // ---------------------------------------------------------------------------
@@ -210,7 +210,7 @@ export async function promotePublishableInterventions(
       if (candidate === undefined) continue;
       evidencePreviews.push({
         candidateId,
-        sourceLabel: candidate.sourceRef?.title ?? raw["sourceId"] as string,
+        sourceLabel: candidate.sourceRef?.title ?? (raw["sourceId"] as string),
         sourceUrl: candidate.sourceRef?.sourceUrl ?? null,
         quote: candidate.evidenceQuote,
       });
@@ -229,8 +229,7 @@ export async function promotePublishableInterventions(
       customTreatments: (raw["customTreatments"] as string[] | undefined) ?? [],
       corridor: (raw["corridor"] as Record<string, unknown> | undefined) ?? null,
       effectiveDate: (raw["effectiveDate"] as string | undefined) ?? null,
-      datePrecision:
-        (raw["datePrecision"] as "day" | "month" | "year" | undefined) ?? null,
+      datePrecision: (raw["datePrecision"] as "day" | "month" | "year" | undefined) ?? null,
       statusHistory: (raw["statusHistory"] as unknown[] | undefined) ?? [],
       treatmentComponents: (raw["treatmentComponents"] as unknown[] | undefined) ?? [],
       metrics: (raw["metrics"] as unknown[] | undefined) ?? [],
@@ -265,10 +264,8 @@ export async function promotePublishableInterventions(
   }
 
   const generatedAt = args.generatedAt ?? new Date().toISOString();
-  const outputPath = args.outputPath ?? join(
-    dirname(args.reviewedCorpusPath),
-    "intervention-publishable-v1.json",
-  );
+  const outputPath =
+    args.outputPath ?? join(dirname(args.reviewedCorpusPath), "intervention-publishable-v1.json");
 
   const artifact: PromotionArtifact = {
     version: 1,
@@ -356,7 +353,11 @@ function parsePromotePublishableInterventionsCliArgs(
 
 export type StudioInterventionShape = {
   candidateId?: string;
-  timelineLayer?: "canonical_milestone" | "treatment_component" | "planned_or_proposed" | "evaluation";
+  timelineLayer?:
+    | "canonical_milestone"
+    | "treatment_component"
+    | "planned_or_proposed"
+    | "evaluation";
   qualityTier?:
     | "canonical_milestone"
     | "implemented_treatment_component"
@@ -392,9 +393,7 @@ export type ProjectPublishableInterventionsArtifact = {
 };
 
 function titleCase(value: string): string {
-  return value
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+  return value.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 function projectionRouteKey(routeId: string): string {
@@ -442,15 +441,11 @@ function deriveTone(status: PromotedInterventionStatus): "good" | "warn" {
   return status === "implemented" ? "good" : "warn";
 }
 
-function deriveQualityTier(
-  layer: PromotionLayer,
-): "canonical_milestone" | "planned_or_proposed" {
+function deriveQualityTier(layer: PromotionLayer): "canonical_milestone" | "planned_or_proposed" {
   return layer;
 }
 
-function deriveSourceLinks(
-  record: PromotedIntervention,
-): Array<{ label: string; url: string }> {
+function deriveSourceLinks(record: PromotedIntervention): Array<{ label: string; url: string }> {
   const byUrl = new Map<string, { label: string; url: string }>();
   for (const preview of record.evidencePreviews) {
     if (preview.sourceUrl === null || preview.sourceUrl.length === 0) continue;
@@ -490,8 +485,7 @@ export function projectPublishableInterventionToStudio(
     title: deriveTitle(record, routeId),
     detail: deriveDetail(record),
     tone: deriveTone(record.status),
-    sourceLabel:
-      record.evidencePreviews[0]?.sourceLabel ?? `Source: ${record.sourceId}`,
+    sourceLabel: record.evidencePreviews[0]?.sourceLabel ?? `Source: ${record.sourceId}`,
     sourceDetail: `${evidenceCount.toLocaleString("en-US")} evidence preview${
       evidenceCount === 1 ? "" : "s"
     } from ${record.sourceId}`,
@@ -508,9 +502,7 @@ export type ProjectPublishableInterventionsArgs = {
 export async function projectPublishableInterventions(
   args: ProjectPublishableInterventionsArgs,
 ): Promise<ProjectPublishableInterventionsArtifact> {
-  const publishable = (await Bun.file(
-    args.publishableArtifactPath,
-  ).json()) as PromotionArtifact;
+  const publishable = (await Bun.file(args.publishableArtifactPath).json()) as PromotionArtifact;
   const interventionsByRoute: StudioInterventionsByRoute = {};
   let projectedInterventionEntryCount = 0;
   let droppedNoRoutesCount = 0;
@@ -533,10 +525,7 @@ export async function projectPublishableInterventions(
   const generatedAt = args.generatedAt ?? new Date().toISOString();
   const outputPath =
     args.outputPath ??
-    join(
-      dirname(args.publishableArtifactPath),
-      "intervention-publishable-v1-by-route.json",
-    );
+    join(dirname(args.publishableArtifactPath), "intervention-publishable-v1-by-route.json");
   const artifact: ProjectPublishableInterventionsArtifact = {
     version: 1,
     generatedAt,

@@ -1,15 +1,12 @@
+import type { DocumentEvidenceCandidate } from "@bp/domain/documents/candidates";
+import type { DocumentInterventionRecord } from "@bp/domain/documents/intervention-records";
 import type {
-  DocumentEvidenceCandidate,
-  DocumentInterventionRecord,
   FindingReviewPacket,
   PromotedFinding,
   RouteMonthSignalFeature,
-} from "@bp/domain";
+} from "@bp/domain/findings";
 
-import type {
-  LoadedCorpus,
-  PublishableIntervention,
-} from "./_corpus.ts";
+import type { LoadedCorpus, PublishableIntervention } from "./_corpus.ts";
 
 // Pure-function queries over a LoadedCorpus. These are the read-only "tools"
 // the harness exposes — for the first cut we slice them into a prompt rather
@@ -131,9 +128,7 @@ function summarizePromotedFinding(finding: PromotedFinding): PromotedFindingSumm
   };
 }
 
-function summarizeInterventionRecord(
-  record: DocumentInterventionRecord,
-): InterventionSummary {
+function summarizeInterventionRecord(record: DocumentInterventionRecord): InterventionSummary {
   return {
     recordId: record.recordId,
     recordKind: record.recordKind,
@@ -167,10 +162,7 @@ export function listRoutes(corpus: LoadedCorpus): string[] {
   return [...corpus.routes].sort();
 }
 
-export function getRouteContextDigest(
-  corpus: LoadedCorpus,
-  routeId: string,
-): RouteContextDigest {
+export function getRouteContextDigest(corpus: LoadedCorpus, routeId: string): RouteContextDigest {
   const reviewPackets = (corpus.reviewPacketsByRoute.get(routeId as never) ?? [])
     .slice()
     .sort((a, b) => a.reviewRank - b.reviewRank)
@@ -178,9 +170,9 @@ export function getRouteContextDigest(
   const signalRows = (corpus.signalFeaturesByRoute.get(routeId as never) ?? []).map(
     summarizeSignalRow,
   );
-  const promotedFindings = (
-    corpus.promotedFindingsByRoute.get(routeId as never) ?? []
-  ).map(summarizePromotedFinding);
+  const promotedFindings = (corpus.promotedFindingsByRoute.get(routeId as never) ?? []).map(
+    summarizePromotedFinding,
+  );
   const interventions = (corpus.interventionRecordsByRoute.get(routeId as never) ?? []).map(
     summarizeInterventionRecord,
   );

@@ -1,72 +1,24 @@
 import { describe, expect, test } from "bun:test";
-import { buildPersistentSpeedSegmentCoverageRepairs } from "../../../src/commands/findings/repair-persistent-speed-coverage.ts";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
-describe("findings repair-persistent-speed-coverage", () => {
-  test("builds exact segment-scope hit coverage rows for missing persistent-speed candidates", () => {
-    const repairs = buildPersistentSpeedSegmentCoverageRepairs({
-      generatedAt: "2026-06-01T00:00:00.000Z",
-      rows: [
-        {
-          candidate_id: "candidate-1",
-          detector_run_id: "persistent-speed-run",
-          detector_id: "persistent_speed_hotspot",
-          month: "2026-03",
-          scope_kind: "segment",
-          scope_id: "M15:0:1",
-          route_id: "M15",
-          evidence_ref: '{"weightedAverageSpeedMph":5.2}',
-          created_at: "2026-05-20T12:00:00.000Z",
-        },
-      ],
-    });
+const commandPath = join(
+  import.meta.dir,
+  "../../../src/commands/findings/repair-persistent-speed-coverage.ts",
+);
 
-    expect(repairs).toHaveLength(1);
-    expect(repairs[0]?.detectorId as string).toBe("persistent_speed_hotspot");
-    expect(repairs[0]?.scopeKind as string).toBe("segment");
-    expect(repairs[0]?.scopeId).toBe("M15:0:1");
-    expect(repairs[0]?.outcome as string).toBe("hit");
-    expect(JSON.parse(repairs[0]?.inputsExpectedJson ?? "{}")).toEqual({
-      scopeKind: "segment",
-      detectorCandidate: "persistent_speed_hotspot",
-      exactScopeCoverageRequired: true,
-    });
-    expect(JSON.parse(repairs[0]?.inputsSeenJson ?? "{}")).toMatchObject({
-      candidateId: "candidate-1",
-      routeId: "M15",
-      repairedFrom: "local_finding_candidate",
-      primaryEvidence: { weightedAverageSpeedMph: 5.2 },
-    });
-  });
+describe("findings repair-persistent-speed-coverage boundary", () => {
+  test("keeps repair construction and row loading out of the command", () => {
+    const text = readFileSync(commandPath, "utf8");
 
-  test("skips malformed and non-segment rows", () => {
-    const repairs = buildPersistentSpeedSegmentCoverageRepairs({
-      generatedAt: "2026-06-01T00:00:00.000Z",
-      rows: [
-        {
-          candidate_id: "candidate-1",
-          detector_run_id: "persistent-speed-run",
-          detector_id: "persistent_speed_hotspot",
-          month: "2026-03",
-          scope_kind: "route",
-          scope_id: "M15",
-          route_id: "M15",
-          evidence_ref: null,
-          created_at: "2026-05-20T12:00:00.000Z",
-        },
-        {
-          candidate_id: "",
-          detector_run_id: "persistent-speed-run",
-          detector_id: "persistent_speed_hotspot",
-          month: "2026-03",
-          scope_kind: "segment",
-          scope_id: "M15:0:1",
-          route_id: "M15",
-          evidence_ref: null,
-          created_at: "2026-05-20T12:00:00.000Z",
-        },
-      ],
-    });
-
-    expect(repairs).toHaveLength(0);
+    expect(text).toContain('from "@bp/applied-research/evaluation"');
+    expect(text).toContain('from "@bp/applied-research/local-db"');
+    expect(text).toContain("PERSISTENT_SPEED_SEGMENT_COVERAGE_REPAIR_DETECTOR_ID");
+    expect(text).not.toContain("@bp/analytics");
+    expect(text).not.toContain("local_finding_candidate c");
+    expect(text).not.toContain("local_finding_evidence_link");
+    expect(text).not.toContain("FindingCoverageAuditSchema");
+    expect(text).not.toContain("stableId");
+    expect(text).not.toContain("parseEvidenceRef");
   });
 });

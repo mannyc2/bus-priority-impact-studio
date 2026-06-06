@@ -1,12 +1,17 @@
 import { mkdir } from "node:fs/promises";
-import { dirname, isAbsolute, join, relative } from "node:path";
+import { dirname, isAbsolute, relative } from "node:path";
+import {
+  detectorEvaluationArtifactPath,
+  detectorEvaluationInputArtifactPaths,
+  detectorEvaluationMarkdownPath,
+} from "@bp/applied-research/artifacts";
 import {
   buildDetectorEvaluationArtifact,
-  detectorEvaluationMarkdownReport,
   type CandidateQueueArtifact,
   type DetectorCoverageAuditArtifact,
   type DetectorEvaluationLabelInputArtifact,
   type DetectorGrainAuditArtifact,
+  detectorEvaluationMarkdownReport,
   type EwtScoreVectorArtifact,
   type GenericDetectorScoreVectorArtifact,
   type GoldSetEvaluationArtifact,
@@ -33,24 +38,6 @@ function repoDisplayPath(path: string): string {
 
 function inputArtifactPath(path: string): string {
   return repoDisplayPath(path);
-}
-
-export function detectorEvaluationArtifactPath(
-  artifactRoot: string,
-  historyStartMonth: string,
-  releaseMonth: string,
-): string {
-  return join(
-    artifactRoot,
-    "detector-evaluation",
-    `${historyStartMonth}_to_${releaseMonth}`,
-    releaseMonth,
-    "detector-evaluation.json",
-  );
-}
-
-export function detectorEvaluationMarkdownPath(jsonPath: string): string {
-  return jsonPath.replace(/\.json$/, ".md");
 }
 
 export default defineCommand({
@@ -85,74 +72,22 @@ export default defineCommand({
         : fromCliPath(input.options.artifactRoot);
     const outputPath =
       input.options.output === undefined
-        ? detectorEvaluationArtifactPath(
+        ? detectorEvaluationArtifactPath({
             artifactRoot,
-            input.options.historyStartMonth,
+            historyStartMonth: input.options.historyStartMonth,
             releaseMonth,
-          )
+          })
         : fromCliPath(input.options.output);
     const markdownOutputPath =
       input.options.markdownOutput === undefined
         ? detectorEvaluationMarkdownPath(outputPath)
         : fromCliPath(input.options.markdownOutput);
 
-    const findingsRoot = join(artifactRoot, "findings", releaseMonth);
-    const reviewDecisionsPath = join(findingsRoot, "review-decisions.json");
-    const promotedFindingsPath = join(findingsRoot, "promoted-findings.json");
-    const reviewPacketsPath = join(findingsRoot, "review-packets.json");
-    const reviewPacketCoveragePath = join(findingsRoot, "review-packet-coverage.json");
-    const reviewQueuePath = join(findingsRoot, "review-queue.json");
-    const promotionQueuePath = join(findingsRoot, "promotion-queue.json");
-    const goldSetEvaluationPath = join(findingsRoot, "gold-set-evaluation.json");
-    const detectorCoverageAuditPath = join(findingsRoot, "detector-coverage-audit.json");
-    const ewtScoreVectorsPath = join(
+    const artifactPaths = detectorEvaluationInputArtifactPaths({
       artifactRoot,
-      "analytics-ewt-score-vectors",
-      `${input.options.historyStartMonth}_to_${releaseMonth}`,
+      historyStartMonth: input.options.historyStartMonth,
       releaseMonth,
-      "ewt-route-month-score-vectors.json",
-    );
-    const detectorScoreVectorsPath = join(
-      artifactRoot,
-      "detector-score-vectors",
-      `${input.options.historyStartMonth}_to_${releaseMonth}`,
-      releaseMonth,
-      "detector-score-vectors.json",
-    );
-    const speedPaceScoreVectorsPath = join(
-      artifactRoot,
-      "speed-pace-score-vectors",
-      `${input.options.historyStartMonth}_to_${releaseMonth}`,
-      releaseMonth,
-      "speed-pace-score-vectors.json",
-    );
-    const runtimeTrendScoreVectorsPath = join(
-      artifactRoot,
-      "runtime-trend-score-vectors",
-      `${input.options.historyStartMonth}_to_${releaseMonth}`,
-      releaseMonth,
-      "runtime-trend-score-vectors.json",
-    );
-    const evaluationLabelsPath = join(
-      artifactRoot,
-      "detector-evaluation",
-      `${input.options.historyStartMonth}_to_${releaseMonth}`,
-      releaseMonth,
-      "detector-evaluation-labels.json",
-    );
-    const grainAuditPath = join(
-      artifactRoot,
-      "detector-corpus-grain",
-      `${input.options.historyStartMonth}_to_${releaseMonth}`,
-      releaseMonth,
-      "grain-audit.json",
-    );
-    const readinessPath = join(
-      artifactRoot,
-      "analytics-detector-readiness",
-      `${input.options.historyStartMonth}_to_${releaseMonth}`,
-      "readiness.json",
-    );
+    });
 
     const artifact = buildDetectorEvaluationArtifact({
       releaseMonth,
@@ -160,44 +95,55 @@ export default defineCommand({
       generatedAt: new Date().toISOString(),
       runId: input.options.runId ?? `bus-observatory-${releaseMonth}`,
       inputArtifacts: {
-        reviewDecisions: inputArtifactPath(reviewDecisionsPath),
-        promotedFindings: inputArtifactPath(promotedFindingsPath),
-        reviewPackets: inputArtifactPath(reviewPacketsPath),
-        reviewPacketCoverage: inputArtifactPath(reviewPacketCoveragePath),
-        reviewQueue: inputArtifactPath(reviewQueuePath),
-        promotionQueue: inputArtifactPath(promotionQueuePath),
-        goldSetEvaluation: inputArtifactPath(goldSetEvaluationPath),
-        readiness: inputArtifactPath(readinessPath),
-        detectorCoverageAudit: inputArtifactPath(detectorCoverageAuditPath),
-        ewtScoreVectors: inputArtifactPath(ewtScoreVectorsPath),
-        speedPaceScoreVectors: inputArtifactPath(speedPaceScoreVectorsPath),
-        runtimeTrendScoreVectors: inputArtifactPath(runtimeTrendScoreVectorsPath),
-        detectorScoreVectors: inputArtifactPath(detectorScoreVectorsPath),
-        evaluationLabels: inputArtifactPath(evaluationLabelsPath),
-        grainAudit: inputArtifactPath(grainAuditPath),
+        reviewDecisions: inputArtifactPath(artifactPaths.reviewDecisions),
+        promotedFindings: inputArtifactPath(artifactPaths.promotedFindings),
+        reviewPackets: inputArtifactPath(artifactPaths.reviewPackets),
+        reviewPacketCoverage: inputArtifactPath(artifactPaths.reviewPacketCoverage),
+        reviewQueue: inputArtifactPath(artifactPaths.reviewQueue),
+        promotionQueue: inputArtifactPath(artifactPaths.promotionQueue),
+        goldSetEvaluation: inputArtifactPath(artifactPaths.goldSetEvaluation),
+        readiness: inputArtifactPath(artifactPaths.readiness),
+        detectorCoverageAudit: inputArtifactPath(artifactPaths.detectorCoverageAudit),
+        ewtScoreVectors: inputArtifactPath(artifactPaths.ewtScoreVectors),
+        speedPaceScoreVectors: inputArtifactPath(artifactPaths.speedPaceScoreVectors),
+        runtimeTrendScoreVectors: inputArtifactPath(artifactPaths.runtimeTrendScoreVectors),
+        detectorScoreVectors: inputArtifactPath(artifactPaths.detectorScoreVectors),
+        evaluationLabels: inputArtifactPath(artifactPaths.evaluationLabels),
+        grainAudit: inputArtifactPath(artifactPaths.grainAudit),
       },
-      reviewDecisions: (await readJsonIfExists<ReviewDecisionArtifact>(reviewDecisionsPath)) ?? {},
+      reviewDecisions:
+        (await readJsonIfExists<ReviewDecisionArtifact>(artifactPaths.reviewDecisions)) ?? {},
       promotedFindings:
-        (await readJsonIfExists<PromotedFindingsArtifact>(promotedFindingsPath)) ?? {},
-      reviewPackets: await readJsonIfExists<ReviewPacketArtifact>(reviewPacketsPath),
-      reviewPacketCoverage:
-        await readJsonIfExists<ReviewPacketCoverageArtifact>(reviewPacketCoveragePath),
-      reviewQueue: await readJsonIfExists<CandidateQueueArtifact>(reviewQueuePath),
-      promotionQueue: await readJsonIfExists<CandidateQueueArtifact>(promotionQueuePath),
-      goldSetEvaluation: await readJsonIfExists<GoldSetEvaluationArtifact>(goldSetEvaluationPath),
-      readiness: await readJsonIfExists<ReadinessArtifact>(readinessPath),
-      detectorCoverageAudit:
-        await readJsonIfExists<DetectorCoverageAuditArtifact>(detectorCoverageAuditPath),
-      ewtScoreVectors: await readJsonIfExists<EwtScoreVectorArtifact>(ewtScoreVectorsPath),
-      speedPaceScoreVectors:
-        await readJsonIfExists<SpeedPaceScoreVectorArtifact>(speedPaceScoreVectorsPath),
-      runtimeTrendScoreVectors:
-        await readJsonIfExists<RuntimeTrendScoreVectorArtifact>(runtimeTrendScoreVectorsPath),
-      detectorScoreVectors:
-        await readJsonIfExists<GenericDetectorScoreVectorArtifact>(detectorScoreVectorsPath),
-      evaluationLabels:
-        await readJsonIfExists<DetectorEvaluationLabelInputArtifact>(evaluationLabelsPath),
-      grainAudit: await readJsonIfExists<DetectorGrainAuditArtifact>(grainAuditPath),
+        (await readJsonIfExists<PromotedFindingsArtifact>(artifactPaths.promotedFindings)) ?? {},
+      reviewPackets: await readJsonIfExists<ReviewPacketArtifact>(artifactPaths.reviewPackets),
+      reviewPacketCoverage: await readJsonIfExists<ReviewPacketCoverageArtifact>(
+        artifactPaths.reviewPacketCoverage,
+      ),
+      reviewQueue: await readJsonIfExists<CandidateQueueArtifact>(artifactPaths.reviewQueue),
+      promotionQueue: await readJsonIfExists<CandidateQueueArtifact>(artifactPaths.promotionQueue),
+      goldSetEvaluation: await readJsonIfExists<GoldSetEvaluationArtifact>(
+        artifactPaths.goldSetEvaluation,
+      ),
+      readiness: await readJsonIfExists<ReadinessArtifact>(artifactPaths.readiness),
+      detectorCoverageAudit: await readJsonIfExists<DetectorCoverageAuditArtifact>(
+        artifactPaths.detectorCoverageAudit,
+      ),
+      ewtScoreVectors: await readJsonIfExists<EwtScoreVectorArtifact>(
+        artifactPaths.ewtScoreVectors,
+      ),
+      speedPaceScoreVectors: await readJsonIfExists<SpeedPaceScoreVectorArtifact>(
+        artifactPaths.speedPaceScoreVectors,
+      ),
+      runtimeTrendScoreVectors: await readJsonIfExists<RuntimeTrendScoreVectorArtifact>(
+        artifactPaths.runtimeTrendScoreVectors,
+      ),
+      detectorScoreVectors: await readJsonIfExists<GenericDetectorScoreVectorArtifact>(
+        artifactPaths.detectorScoreVectors,
+      ),
+      evaluationLabels: await readJsonIfExists<DetectorEvaluationLabelInputArtifact>(
+        artifactPaths.evaluationLabels,
+      ),
+      grainAudit: await readJsonIfExists<DetectorGrainAuditArtifact>(artifactPaths.grainAudit),
     });
 
     await mkdir(dirname(outputPath), { recursive: true });

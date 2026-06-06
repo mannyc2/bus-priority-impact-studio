@@ -1,13 +1,13 @@
 import { describe, expect, test } from "bun:test";
+import { runRegistryDetectorStudy } from "@bp/applied-research/detector-runs";
 import {
   buildRouteDirectionDaypartFeatures,
   buildRouteMetricHistoryFeatures,
   type SegmentDaypartSpeedSourceRow,
 } from "@bp/applied-research/feature-resolvers";
-import {
-  buildSpeedPaceHotspotRunArtifact,
-  detectorRunArtifactPath,
-} from "../../../src/commands/findings/run-detector.ts";
+import { detectorRunArtifactPath } from "../../../src/commands/findings/run-detector.ts";
+
+const FEATURE_COUNT_SUMMARY_KEY = "featureCount";
 
 function speedRow(input: {
   routeId?: string;
@@ -33,17 +33,23 @@ function speedRow(input: {
 
 describe("findings run-detector", () => {
   test("runs speed_pace_hotspot through feature contracts", () => {
-    const { artifact, output } = buildSpeedPaceHotspotRunArtifact({
-      rows: [
-        speedRow({ hour: 8, travelTime: 16, speed: 3.75 }),
-        speedRow({ hour: 12, travelTime: 5, speed: 12 }),
-      ],
-      detectorRunId: "speed_pace_hotspot-2026-03-test",
-      releaseMonth: "2026-03",
-      generatedAt: "2026-06-01T00:00:00.000Z",
-      dbPath: "data/local/pipeline.sqlite",
-      artifactPath: "data/artifacts/detector-runs/2026-03/speed_pace_hotspot-run.json",
-      wroteDb: false,
+    const { artifact, output } = runRegistryDetectorStudy({
+      metadata: {
+        detectorId: "speed_pace_hotspot",
+        detectorRunId: "speed_pace_hotspot-2026-03-test",
+        releaseMonth: "2026-03",
+        historyStartMonth: "2023-04",
+        generatedAt: "2026-06-01T00:00:00.000Z",
+        dbPath: "data/local/pipeline.sqlite",
+        artifactPath: "data/artifacts/detector-runs/2026-03/speed_pace_hotspot-run.json",
+        wroteDb: false,
+      },
+      rows: {
+        speedRows: [
+          speedRow({ hour: 8, travelTime: 16, speed: 3.75 }),
+          speedRow({ hour: 12, travelTime: 5, speed: 12 }),
+        ],
+      },
     });
 
     expect(artifact.artifactKind).toBe("registry_detector_run");
@@ -52,7 +58,7 @@ describe("findings run-detector", () => {
       "resolved",
       "satisfied_by_feature_quality",
     ]);
-    expect(artifact.inputSummary["featureCount"]).toBe(2);
+    expect(artifact.inputSummary[FEATURE_COUNT_SUMMARY_KEY]).toBe(2);
     expect(artifact.outputSummary.candidateCount).toBe(1);
     expect(artifact.outputSummary.coverageCount).toBe(2);
     expect(artifact.outputSummary.hitCount).toBe(1);

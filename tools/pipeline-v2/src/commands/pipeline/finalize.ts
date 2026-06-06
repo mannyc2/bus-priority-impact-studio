@@ -8,19 +8,17 @@ import {
 } from "../../lib/local-db.ts";
 import { fromCliPath } from "../../lib/paths.ts";
 import {
-  runBackfillRouteRidershipTrends,
   type BackfillRouteRidershipTrendsResult,
+  runBackfillRouteRidershipTrends,
 } from "../backfill/route-ridership-trends.ts";
-import { runBuildObservedHeadways } from "../build/observed-headways.ts";
 import { runBriefArtifacts } from "../brief/artifacts.ts";
-import {
-  runCheckPipelineV1,
-  type PipelineV1CheckResult,
-} from "../check/pipeline-v1.ts";
+import { runBuildObservedHeadways } from "../build/observed-headways.ts";
+import { type PipelineV1CheckResult, runCheckPipelineV1 } from "../check/pipeline-v1.ts";
 import { runCorridorModel } from "../corridor/model.ts";
 import { runEvaluationArtifacts } from "../evaluation/artifacts.ts";
 import { runRouteTrendsIngest } from "../ingest/route-trends.ts";
 import { runMapArtifacts } from "../map/artifacts.ts";
+import { runRouteBriefModel } from "../route/brief-model.ts";
 import { runRouteInterventionEvaluation } from "../route/intervention-evaluation.ts";
 import { runRouteObservedReliability } from "../route/observed-reliability.ts";
 import { runVerifyD1Export } from "../verify/d1.ts";
@@ -76,6 +74,7 @@ export type PipelineFinalizeResult = {
   observedHeadways: Awaited<ReturnType<typeof runBuildObservedHeadways>> | null;
   observedReliability: Awaited<ReturnType<typeof runRouteObservedReliability>>;
   interventionEvaluation: Awaited<ReturnType<typeof runRouteInterventionEvaluation>>;
+  routeBriefModel: Awaited<ReturnType<typeof runRouteBriefModel>>;
   corridorModel: Awaited<ReturnType<typeof runCorridorModel>>;
   evaluationArtifacts: Awaited<ReturnType<typeof runEvaluationArtifacts>>;
   mapArtifacts: Awaited<ReturnType<typeof runMapArtifacts>>;
@@ -91,9 +90,7 @@ function requireGtfsRtRunId(input: {
 }): string {
   if (input.runId !== undefined && input.runId.length > 0) return input.runId;
   if (input.allowInsufficientGtfsRt) return `insufficient-gtfs-rt-${input.isoMonth}`;
-  throw new Error(
-    "Missing required argument: --run-id, or pass --allow-insufficient-gtfs-rt.",
-  );
+  throw new Error("Missing required argument: --run-id, or pass --allow-insufficient-gtfs-rt.");
 }
 
 export async function runPipelineFinalize(
@@ -118,8 +115,7 @@ export async function runPipelineFinalize(
     allowInsufficientGtfsRt: inputs.allowInsufficientGtfsRt,
     isoMonth: monthKey,
   });
-  const shouldBuildObservedHeadways =
-    inputs.buildObservedHeadways ?? inputs.runId !== undefined;
+  const shouldBuildObservedHeadways = inputs.buildObservedHeadways ?? inputs.runId !== undefined;
   const strictGtfsRt = inputs.allowInsufficientGtfsRt !== true;
 
   const trendRefresh = refreshTrends
@@ -168,6 +164,13 @@ export async function runPipelineFinalize(
     minSampleMonths: inputs.interventionMinSampleMonths ?? defaultInterventionMinSampleMonths,
     comparisonRouteCount:
       inputs.interventionComparisonRouteCount ?? defaultInterventionComparisonRouteCount,
+  });
+  const routeBriefModel = await runRouteBriefModel({
+    local: inputs.local,
+    year: inputs.year,
+    month: inputs.month,
+    routes: [],
+    artifactRoot: inputs.artifactRoot,
   });
   const corridorModel = await runCorridorModel({
     local: inputs.local,
@@ -230,6 +233,7 @@ export async function runPipelineFinalize(
     observedHeadways,
     observedReliability,
     interventionEvaluation,
+    routeBriefModel,
     corridorModel,
     evaluationArtifacts,
     mapArtifacts,
@@ -241,7 +245,8 @@ export async function runPipelineFinalize(
 
 export default defineCommand({
   path: ["pipeline", "finalize"],
-  summary: "Run the full pipeline v1 finalization (trends, observed, intervention, briefs, D1, check).",
+  summary:
+    "Run the full pipeline v1 finalization (trends, observed, intervention, briefs, D1, check).",
   input: {
     options: dbOptions.extend({
       year: arg.positiveInt().default(2026).describe("Calendar year"),
@@ -271,11 +276,13 @@ export default defineCommand({
     }),
   },
   middleware: [withLocalDb()],
-  output: z.object({
-    isoMonth: z.string(),
-    gtfsRtRunId: z.string(),
-    strictGtfsRt: z.boolean(),
-  }).passthrough(),
+  output: z
+    .object({
+      isoMonth: z.string(),
+      gtfsRtRunId: z.string(),
+      strictGtfsRt: z.boolean(),
+    })
+    .passthrough(),
   async run({ ctx, input }) {
     return runPipelineFinalize({
       local: localDbFromCtx(ctx),
@@ -295,8 +302,7 @@ export default defineCommand({
       minObservedRouteShare: input.options.minObservedRouteShare,
       minGtfsRtCollectionHours: input.options.minGtfsRtCollectionHours,
       maxGtfsRtSampleSeconds: input.options.maxGtfsRtSampleSeconds,
-      minGtfsRtVehiclePositionSnapshotShare:
-        input.options.minGtfsRtVehiclePositionSnapshotShare,
+      minGtfsRtVehiclePositionSnapshotShare: input.options.minGtfsRtVehiclePositionSnapshotShare,
       observedReliabilityMinSamples: input.options.observedReliabilityMinSamples,
       interventionWindowMonths: input.options.interventionWindowMonths,
       interventionMinSampleMonths: input.options.interventionMinSampleMonths,

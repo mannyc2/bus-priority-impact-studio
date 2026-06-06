@@ -15,16 +15,11 @@ import { join } from "node:path";
 import type {
   DocumentDerivedEventSurface,
   DocumentDerivedMetricClaimSurface,
-} from "@bp/domain";
+} from "@bp/domain/documents/derived-surfaces";
 import { writeJson } from "../../../lib/json.ts";
 import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";
 import { normalizeRouteIdText } from "../../../lib/route-ids.ts";
-import {
-  latestDocsRunId,
-  parseCliOptions,
-  runArtifactRoot,
-  type CliOption,
-} from "./_shared.ts";
+import { type CliOption, latestDocsRunId, parseCliOptions, runArtifactRoot } from "./_shared.ts";
 
 // ---------------------------------------------------------------------------
 // Route-family resolution
@@ -61,16 +56,28 @@ function inRouteFamily(token: string, target: string): boolean {
 // ---------------------------------------------------------------------------
 
 const TYPE_RULES: ReadonlyArray<readonly [string, RegExp]> = [
-  ["automated_bus_lane_enforcement", /\b(ace|able|camera enforcement|automated.{0,20}enforcement|bus lane camera)\b/i],
-  ["busway", /\b(busway|transit (?:and|&|\/) truck priority|transit\/truck priority|truck priority)\b/i],
+  [
+    "automated_bus_lane_enforcement",
+    /\b(ace|able|camera enforcement|automated.{0,20}enforcement|bus lane camera)\b/i,
+  ],
+  [
+    "busway",
+    /\b(busway|transit (?:and|&|\/) truck priority|transit\/truck priority|truck priority)\b/i,
+  ],
   ["select_bus_service", /\b(select bus service|sbs|brt|bus rapid transit)\b/i],
   ["transit_signal_priority", /\b(transit signal priority|tsp|signal priority)\b/i],
   ["bus_lane_infrastructure", /\b(bus lane|red lane|offset lane|bus[- ]only lane|painted lane)\b/i],
   ["all_door_boarding", /\b(all[- ]door boarding|off[- ]board fare)\b/i],
   ["queue_jump", /\bqueue jump\b/i],
-  ["stop_consolidation", /\b(stop consolidation|stop removal|stop balancing|stop spacing|stop relocation)\b/i],
+  [
+    "stop_consolidation",
+    /\b(stop consolidation|stop removal|stop balancing|stop spacing|stop relocation)\b/i,
+  ],
   ["route_redesign", /\b(route redesign|network redesign|bus network redesign)\b/i],
-  ["service_change", /\b(frequenc|headway|span of service|service increase|more frequent|route extension|reroute)\b/i],
+  [
+    "service_change",
+    /\b(frequenc|headway|span of service|service increase|more frequent|route extension|reroute)\b/i,
+  ],
   ["curb_management", /\b(curb|loading zone|daylighting|parking regulation)\b/i],
 ];
 
@@ -113,8 +120,19 @@ const INTERVENTION_FAMILIES = new Set([
 // ---------------------------------------------------------------------------
 
 const MONTHS: Record<string, number> = {
-  jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
-  jul: 7, aug: 8, sep: 9, sept: 9, oct: 10, nov: 11, dec: 12,
+  jan: 1,
+  feb: 2,
+  mar: 3,
+  apr: 4,
+  may: 5,
+  jun: 6,
+  jul: 7,
+  aug: 8,
+  sep: 9,
+  sept: 9,
+  oct: 10,
+  nov: 11,
+  dec: 12,
 };
 // Representative month for a season label so timeline ordering works.
 const SEASONS: Record<string, number> = { winter: 1, spring: 4, summer: 7, fall: 10, autumn: 10 };
@@ -133,7 +151,13 @@ function parseEventDate(dateText: string | undefined): ParsedDate | null {
   const text = dateText.toLowerCase();
 
   const iso = text.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);
-  if (iso) return { date: `${iso[1]}-${iso[2]}-${iso[3]}`, month: `${iso[1]}-${iso[2]}`, precision: "day", approximate: false };
+  if (iso)
+    return {
+      date: `${iso[1]}-${iso[2]}-${iso[3]}`,
+      month: `${iso[1]}-${iso[2]}`,
+      precision: "day",
+      approximate: false,
+    };
 
   const monthDay = text.match(
     /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\s+(\d{1,2}),?\s+(\d{4})\b/,
@@ -141,15 +165,27 @@ function parseEventDate(dateText: string | undefined): ParsedDate | null {
   if (monthDay) {
     const mo = MONTHS[monthDay[1] ?? ""];
     if (mo !== undefined) {
-      return { date: `${monthDay[3]}-${pad2(mo)}-${pad2(Number(monthDay[2]))}`, month: `${monthDay[3]}-${pad2(mo)}`, precision: "day", approximate: false };
+      return {
+        date: `${monthDay[3]}-${pad2(mo)}-${pad2(Number(monthDay[2]))}`,
+        month: `${monthDay[3]}-${pad2(mo)}`,
+        precision: "day",
+        approximate: false,
+      };
     }
   }
 
-  const monthYear = text.match(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\s+(\d{4})\b/);
+  const monthYear = text.match(
+    /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\s+(\d{4})\b/,
+  );
   if (monthYear) {
     const mo = MONTHS[monthYear[1] ?? ""];
     if (mo !== undefined) {
-      return { date: `${monthYear[2]}-${pad2(mo)}-01`, month: `${monthYear[2]}-${pad2(mo)}`, precision: "month", approximate: false };
+      return {
+        date: `${monthYear[2]}-${pad2(mo)}-01`,
+        month: `${monthYear[2]}-${pad2(mo)}`,
+        precision: "month",
+        approximate: false,
+      };
     }
   }
 
@@ -157,12 +193,23 @@ function parseEventDate(dateText: string | undefined): ParsedDate | null {
   if (season) {
     const mo = SEASONS[season[1] ?? ""];
     if (mo !== undefined) {
-      return { date: `${season[2]}-${pad2(mo)}-01`, month: `${season[2]}-${pad2(mo)}`, precision: "month", approximate: true };
+      return {
+        date: `${season[2]}-${pad2(mo)}-01`,
+        month: `${season[2]}-${pad2(mo)}`,
+        precision: "month",
+        approximate: true,
+      };
     }
   }
 
   const year = text.match(/\b(?:19|20)\d{2}\b/);
-  if (year) return { date: `${year[0]}-01-01`, month: `${year[0]}-01`, precision: "year", approximate: true };
+  if (year)
+    return {
+      date: `${year[0]}-01-01`,
+      month: `${year[0]}-01`,
+      precision: "year",
+      approximate: true,
+    };
 
   return null;
 }
@@ -198,7 +245,13 @@ function routeMatchText(event: DocumentDerivedEventSurface): string {
 // name (affectedEntitiesRaw), so a route called "M14 A/D Select Bus Service"
 // does not force every one of its events to classify as select_bus_service.
 function interventionTypeText(event: DocumentDerivedEventSurface): string {
-  return [event.treatmentText, event.eventName, event.displayLabel, event.eventSubtype, event.locationText]
+  return [
+    event.treatmentText,
+    event.eventName,
+    event.displayLabel,
+    event.eventSubtype,
+    event.locationText,
+  ]
     .filter((value): value is string => typeof value === "string" && value.length > 0)
     .join(" :: ")
     .replace(/[_-]+/g, " "); // snake_case treatments (e.g. transit_and_truck_priority) -> matchable words
@@ -252,7 +305,10 @@ type MilestoneAccumulator = {
   citationsBySource: Map<string, Citation>;
 };
 
-function citationKeyMerge(accumulator: MilestoneAccumulator, event: DocumentDerivedEventSurface): void {
+function citationKeyMerge(
+  accumulator: MilestoneAccumulator,
+  event: DocumentDerivedEventSurface,
+): void {
   for (const ref of event.evidenceRefs ?? []) {
     const existing = accumulator.citationsBySource.get(event.sourceId);
     if (existing === undefined) {
@@ -265,7 +321,8 @@ function citationKeyMerge(accumulator: MilestoneAccumulator, event: DocumentDeri
       });
     } else {
       if (!existing.pageNumbers.includes(ref.pageNumber)) existing.pageNumbers.push(ref.pageNumber);
-      if (existing.snippet === undefined && ref.snippet !== undefined) existing.snippet = ref.snippet;
+      if (existing.snippet === undefined && ref.snippet !== undefined)
+        existing.snippet = ref.snippet;
     }
   }
   // Guarantee at least a page-level citation even when evidenceRefs is empty.
@@ -403,9 +460,15 @@ export async function runRouteTimeline(args: RunRouteTimelineArgs): Promise<Rout
         pageNumbers: citation.pageNumbers.toSorted((a, b) => a - b),
       }));
       const routeIds = [...accumulator.routeIds].toSorted();
-      const title = mostCommon(accumulator.titleCandidates) ?? typeLabel(accumulator.interventionType);
+      const title =
+        mostCommon(accumulator.titleCandidates) ?? typeLabel(accumulator.interventionType);
       const milestoneId = `tl_${shortHash(
-        [accumulator.interventionType, accumulator.parsed.month, accumulator.eventStatus, routeIds.join(",")].join("|"),
+        [
+          accumulator.interventionType,
+          accumulator.parsed.month,
+          accumulator.eventStatus,
+          routeIds.join(","),
+        ].join("|"),
       )}`;
       return {
         milestoneId,
@@ -417,15 +480,25 @@ export async function runRouteTimeline(args: RunRouteTimelineArgs): Promise<Rout
         dateApproximate: accumulator.parsed.approximate,
         routeIds,
         title,
-        ...(accumulator.treatmentText === undefined ? {} : { treatmentText: accumulator.treatmentText }),
-        ...(accumulator.locationText === undefined ? {} : { locationText: accumulator.locationText }),
+        ...(accumulator.treatmentText === undefined
+          ? {}
+          : { treatmentText: accumulator.treatmentText }),
+        ...(accumulator.locationText === undefined
+          ? {}
+          : { locationText: accumulator.locationText }),
         memberCount: accumulator.memberSurfaceIds.length,
         memberSurfaceIds: accumulator.memberSurfaceIds,
         sourceCount: citations.length,
         citations: citations.toSorted((a, b) => b.pageNumbers.length - a.pageNumbers.length),
       } satisfies Milestone;
     })
-    .toSorted((a, b) => (a.month < b.month ? -1 : a.month > b.month ? 1 : a.interventionType.localeCompare(b.interventionType)));
+    .toSorted((a, b) =>
+      a.month < b.month
+        ? -1
+        : a.month > b.month
+          ? 1
+          : a.interventionType.localeCompare(b.interventionType),
+    );
 
   // Corroborating metric claims: best-effort textual match on the route family.
   let metricRows = 0;
@@ -433,7 +506,13 @@ export async function runRouteTimeline(args: RunRouteTimelineArgs): Promise<Rout
   const byFamily: Record<string, number> = {};
   const byAuthority: Record<string, number> = {};
   const examples: RouteTimelineReport["corroboratingMetrics"]["examples"] = [];
-  const exampleFamilies = new Set(["bus_speed", "travel_time", "ridership", "reliability_or_dwell", "safety_outcome"]);
+  const exampleFamilies = new Set([
+    "bus_speed",
+    "travel_time",
+    "ridership",
+    "reliability_or_dwell",
+    "safety_outcome",
+  ]);
   for await (const metric of readSurfaceLines<DocumentDerivedMetricClaimSurface>(metricsPath)) {
     if (metric.surfaceKind !== "metric_claim") continue;
     metricRows += 1;
@@ -456,8 +535,13 @@ export async function runRouteTimeline(args: RunRouteTimelineArgs): Promise<Rout
     }
   }
 
-  const collapsedFromEventRows = milestones.reduce((sum, milestone) => sum + milestone.memberCount, 0);
-  const sourceCount = new Set(milestones.flatMap((milestone) => milestone.citations.map((c) => c.sourceId))).size;
+  const collapsedFromEventRows = milestones.reduce(
+    (sum, milestone) => sum + milestone.memberCount,
+    0,
+  );
+  const sourceCount = new Set(
+    milestones.flatMap((milestone) => milestone.citations.map((c) => c.sourceId)),
+  ).size;
 
   const report: RouteTimelineReport = {
     version: 1,
@@ -470,7 +554,10 @@ export async function runRouteTimeline(args: RunRouteTimelineArgs): Promise<Rout
       milestoneCount: milestones.length,
       collapsedFromEventRows,
       sourceCount,
-      compressionRatio: milestones.length === 0 ? 0 : Number((collapsedFromEventRows / milestones.length).toFixed(2)),
+      compressionRatio:
+        milestones.length === 0
+          ? 0
+          : Number((collapsedFromEventRows / milestones.length).toFixed(2)),
       milestones,
     },
     excluded: { undatedEventRows, contextEventRows },
@@ -540,13 +627,18 @@ function renderMarkdown(report: RouteTimelineReport): string {
     lines.push(
       `date ${milestone.date} (${milestone.datePrecision}) · ${milestone.memberCount} candidate rows · ${milestone.sourceCount} sources`,
     );
-    if (milestone.treatmentText !== undefined) lines.push(`treatment: ${milestone.treatmentText}  `);
+    if (milestone.treatmentText !== undefined)
+      lines.push(`treatment: ${milestone.treatmentText}  `);
     for (const citation of milestone.citations.slice(0, 6)) {
       const pages = citation.pageNumbers.length > 0 ? ` p.${citation.pageNumbers.join(",")}` : "";
-      const snippet = citation.snippet !== undefined ? ` — "${citation.snippet.replace(/\s+/g, " ").trim()}"` : "";
+      const snippet =
+        citation.snippet !== undefined
+          ? ` — "${citation.snippet.replace(/\s+/g, " ").trim()}"`
+          : "";
       lines.push(`- ${citation.sourceTitle}${pages}${snippet}`);
     }
-    if (milestone.citations.length > 6) lines.push(`- …and ${milestone.citations.length - 6} more sources`);
+    if (milestone.citations.length > 6)
+      lines.push(`- …and ${milestone.citations.length - 6} more sources`);
     lines.push("");
   }
 
@@ -556,7 +648,9 @@ function renderMarkdown(report: RouteTimelineReport): string {
     `${report.corroboratingMetrics.matchedRows} metric-claim rows textually mention ${report.route}. ` +
       `These are source-stated, not deterministic Studio metrics.`,
   );
-  const families = Object.entries(report.corroboratingMetrics.byFamily).toSorted((a, b) => b[1] - a[1]);
+  const families = Object.entries(report.corroboratingMetrics.byFamily).toSorted(
+    (a, b) => b[1] - a[1],
+  );
   if (families.length > 0) {
     lines.push("");
     lines.push("| family | rows |");
@@ -567,7 +661,9 @@ function renderMarkdown(report: RouteTimelineReport): string {
     lines.push("");
     lines.push("Examples:");
     for (const example of report.corroboratingMetrics.examples) {
-      const value = example.valueText ?? (example.valueNumeric !== undefined ? String(example.valueNumeric) : "");
+      const value =
+        example.valueText ??
+        (example.valueNumeric !== undefined ? String(example.valueNumeric) : "");
       const unit = example.unit !== undefined ? ` ${example.unit}` : "";
       lines.push(
         `- **${example.metricLabel}** = ${value}${unit} (${example.metricAuthority}; ${example.canonicalFamily}) — ${example.sourceTitle}`,
@@ -595,12 +691,42 @@ type CliArgs = {
 
 function parseArgs(argv: string[]): CliArgs {
   const options: CliOption<CliArgs>[] = [
-    { flags: ["--surfaces-dir"], apply: (output, value) => { if (value !== undefined) output.surfacesDir = fromCliPath(value); } },
-    { flags: ["--route"], apply: (output, value) => { if (value !== undefined) output.route = value; } },
-    { flags: ["--artifact-root"], apply: (output, value) => { if (value !== undefined) output.artifactRoot = fromCliPath(value); } },
-    { flags: ["--run-id"], apply: (output, value) => { if (value !== undefined) output.runId = value; } },
-    { flags: ["--output-dir"], apply: (output, value) => { if (value !== undefined) output.outputDir = fromCliPath(value); } },
-    { flags: ["--generated-at"], apply: (output, value) => { if (value !== undefined) output.generatedAt = value; } },
+    {
+      flags: ["--surfaces-dir"],
+      apply: (output, value) => {
+        if (value !== undefined) output.surfacesDir = fromCliPath(value);
+      },
+    },
+    {
+      flags: ["--route"],
+      apply: (output, value) => {
+        if (value !== undefined) output.route = value;
+      },
+    },
+    {
+      flags: ["--artifact-root"],
+      apply: (output, value) => {
+        if (value !== undefined) output.artifactRoot = fromCliPath(value);
+      },
+    },
+    {
+      flags: ["--run-id"],
+      apply: (output, value) => {
+        if (value !== undefined) output.runId = value;
+      },
+    },
+    {
+      flags: ["--output-dir"],
+      apply: (output, value) => {
+        if (value !== undefined) output.outputDir = fromCliPath(value);
+      },
+    },
+    {
+      flags: ["--generated-at"],
+      apply: (output, value) => {
+        if (value !== undefined) output.generatedAt = value;
+      },
+    },
   ];
   return parseCliOptions(argv, {}, options);
 }

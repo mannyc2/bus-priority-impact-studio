@@ -1,5 +1,9 @@
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import {
+  type EvidenceCorpusAudit as AppliedEvidenceCorpusAudit,
+  buildEvidenceCorpusAudit,
+} from "@bp/applied-research/evaluation";
 import { arg, defineCommand, z } from "@liche/core";
 import { isoMonth } from "../../lib/dates.ts";
 import { writeJson } from "../../lib/json.ts";
@@ -12,16 +16,6 @@ function signalFeaturesArtifactPath(artifactRoot: string, month: string): string
 function sourceCoverageLedgerPath(artifactRoot: string, month: string): string {
   return join(artifactRoot, "source-coverage", month, "ledger.json");
 }
-
-type JsonRecord = Record<string, unknown> & {
-  sources?: unknown;
-  evidence?: unknown;
-  summary?: unknown;
-  detectors?: unknown;
-  primaryEvidenceAllowed?: unknown;
-  automaticPromotionAllowed?: unknown;
-  detectorEligibility?: unknown;
-};
 
 const AuditStatusSchema = z.enum(["pass", "warn", "fail"]);
 
@@ -70,25 +64,12 @@ const EvidenceCorpusAuditSchema = z
   })
   .strict();
 
-export type EvidenceCorpusAudit = z.output<typeof EvidenceCorpusAuditSchema>;
+export type { EvidenceCorpusAudit } from "@bp/applied-research/evaluation";
 
 async function readJsonIfExists(path: string): Promise<unknown | null> {
   const file = Bun.file(path);
   if (!(await file.exists())) return null;
   return file.json();
-}
-
-function asRecord(value: unknown): JsonRecord {
-  return typeof value === "object" && value !== null ? (value as JsonRecord) : {};
-}
-
-function asArray(value: unknown): unknown[] {
-  return Array.isArray(value) ? value : [];
-}
-
-function numberField(record: Record<string, unknown>, key: string): number {
-  const value = record[key];
-  return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
 
 export function evidenceCorpusAuditPath(artifactRoot: string, month: string): string {
@@ -100,7 +81,7 @@ export async function runAuditEvidenceCorpus(args: {
   month: number;
   artifactRoot?: string | undefined;
   output?: string | undefined;
-}): Promise<EvidenceCorpusAudit> {
+}): Promise<AppliedEvidenceCorpusAudit> {
   const month = isoMonth(args.year, args.month);
   const artifactRoot = args.artifactRoot ?? defaultArtifactRootPath();
   const outputPath = args.output ?? evidenceCorpusAuditPath(artifactRoot, month);
@@ -115,107 +96,17 @@ export async function runAuditEvidenceCorpus(args: {
     readJsonIfExists(join(artifactRoot, "findings", context.isoMonth, "review-queue.json")),
   ]);
 
-  const gaps: string[] = [];
-  if (sourceLedger === null) gaps.push("source coverage/evidence ledger is missing");
-  if (signalFeatures === null) gaps.push("route-month signal feature artifact is missing");
-  if (detectorAudit === null) gaps.push("detector coverage audit artifact is missing");
-  if (reviewQueue === null) gaps.push("finding review queue artifact is missing");
-
-  const sourceRows = asArray(asRecord(sourceLedger).sources);
-  const sourceEvidence = sourceRows.map((source) => asRecord(asRecord(source).evidence));
-  const featureSummary = asRecord(asRecord(signalFeatures).summary);
-  const detectors = asArray(asRecord(detectorAudit).detectors).map(asRecord);
-  const reviewQueueRecord = asRecord(reviewQueue);
-
-  const primaryEvidenceAllowedCount = sourceEvidence.filter(
-    (evidence) => evidence.primaryEvidenceAllowed === true,
-  ).length;
-  const automaticPromotionAllowedCount = sourceEvidence.filter(
-    (evidence) => evidence.automaticPromotionAllowed === true,
-  ).length;
-  const manualReviewPrimaryCount = sourceEvidence.filter(
-    (evidence) => evidence.detectorEligibility === "manual_review_primary",
-  ).length;
-  const contextOnlyCount = sourceEvidence.filter(
-    (evidence) =>
-      evidence.detectorEligibility === "context_only" ||
-      evidence.detectorEligibility === "current_signal_only",
-  ).length;
-  const blockedCount = sourceEvidence.filter(
-    (evidence) =>
-      evidence.detectorEligibility === "blocked" ||
-      evidence.detectorEligibility === "missing_data_only",
-  ).length;
-  const detectorCandidateCount = detectors.reduce(
-    (total, detector) => total + numberField(detector, "candidateCount"),
-    0,
+  const audit = EvidenceCorpusAuditSchema.parse(
+    buildEvidenceCorpusAudit({
+      generatedAt: new Date().toISOString(),
+      month: context.isoMonth,
+      outputPath,
+      sourceLedger,
+      signalFeatures,
+      detectorAudit,
+      reviewQueue,
+    }),
   );
-  const detectorEvidenceCount = detectors.reduce(
-    (total, detector) => total + numberField(detector, "evidenceCount"),
-    0,
-  );
-  const detectorCoverageCount = detectors.reduce(
-    (total, detector) => total + numberField(detector, "coverageCount"),
-    0,
-  );
-  const reviewUnlinked = numberField(reviewQueueRecord, "unlinkedCandidateCount");
-  if (sourceRows.length > 0 && primaryEvidenceAllowedCount === 0) {
-    gaps.push("no source is currently eligible for primary evidence");
-  }
-  if (numberField(featureSummary, "contextSourceCount") === 0) {
-    gaps.push("no context source features were materialized");
-  }
-  if (detectorCandidateCount > 0 && detectorEvidenceCount === 0) {
-    gaps.push("detector candidates have no evidence links");
-  }
-  if (reviewUnlinked > 0) {
-    gaps.push(`${reviewUnlinked} review-queue candidates have no evidence links`);
-  }
-
-  const status =
-    sourceLedger === null ||
-    signalFeatures === null ||
-    detectorAudit === null ||
-    reviewQueue === null
-      ? "fail"
-      : gaps.length > 0
-        ? "warn"
-        : "pass";
-
-  const audit = EvidenceCorpusAuditSchema.parse({
-    schemaVersion: 1,
-    generatedAt: new Date().toISOString(),
-    month: context.isoMonth,
-    status,
-    sources: {
-      sourceCount: sourceRows.length,
-      primaryEvidenceAllowedCount,
-      automaticPromotionAllowedCount,
-      manualReviewPrimaryCount,
-      contextOnlyCount,
-      blockedCount,
-    },
-    features: {
-      featureCount: numberField(featureSummary, "featureCount"),
-      contextTouchedFeatureCount: numberField(featureSummary, "contextTouchedFeatureCount"),
-      contextSourceCount: numberField(featureSummary, "contextSourceCount"),
-    },
-    detectors: {
-      detectorCount: detectors.length,
-      candidateCount: detectorCandidateCount,
-      evidenceCount: detectorEvidenceCount,
-      coverageCount: detectorCoverageCount,
-    },
-    reviewQueue: {
-      totalCandidateCount: numberField(reviewQueueRecord, "totalCandidateCount"),
-      candidateCount: numberField(reviewQueueRecord, "candidateCount"),
-      evidenceLinkedCandidateCount: numberField(reviewQueueRecord, "evidenceLinkedCandidateCount"),
-      unlinkedCandidateCount: reviewUnlinked,
-      omittedCandidateCount: numberField(reviewQueueRecord, "omittedCandidateCount"),
-    },
-    gaps,
-    outputPath,
-  });
 
   await mkdir(dirname(outputPath), { recursive: true });
   await writeJson(outputPath, audit);
@@ -233,11 +124,13 @@ export default defineCommand({
       output: z.string().optional().describe("Override output path for audit JSON"),
     }),
   },
-  output: z.object({
-    status: z.string(),
-    month: z.string(),
-    outputPath: z.string(),
-  }).passthrough(),
+  output: z
+    .object({
+      status: z.string(),
+      month: z.string(),
+      outputPath: z.string(),
+    })
+    .passthrough(),
   async run({ input }) {
     return runAuditEvidenceCorpus({
       year: input.options.year,

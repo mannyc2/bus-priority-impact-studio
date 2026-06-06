@@ -1,11 +1,11 @@
-import { complete } from "@earendil-works/pi-ai";
 import {
   type StudioAiAnalystNote,
   StudioAiAnalystNoteSchema,
   type StudioAiPublicNote,
   StudioAiPublicNoteSchema,
   type StudioRouteSegmentEvidence,
-} from "@bp/domain";
+} from "@bp/domain/studio/briefs";
+import { complete } from "@earendil-works/pi-ai";
 import { openRouterModel } from "../../lib/llm.ts";
 import {
   tspMatchMethodForSegment,
@@ -678,30 +678,32 @@ async function callOpenRouterSegmentNote(input: {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), input.options.timeoutMs);
     try {
-      const result = await complete(model, {
-        systemPrompt:
-          "You write evidence-bounded public transit analysis notes. You improve analyst usefulness without inventing facts or causal claims.",
-        messages: [
-          {
-            role: "user",
-            content: buildSegmentNoteLlmPrompt(input.segment, previousError),
-            timestamp: Date.now(),
-          },
-        ],
-      }, {
-        apiKey: input.options.apiKey,
-        signal: controller.signal,
-        maxOutputTokens: input.options.maxTokens,
-        providerOptions: { response_format: { type: "json_object" }, temperature: 0.2 },
-      });
+      const result = await complete(
+        model,
+        {
+          systemPrompt:
+            "You write evidence-bounded public transit analysis notes. You improve analyst usefulness without inventing facts or causal claims.",
+          messages: [
+            {
+              role: "user",
+              content: buildSegmentNoteLlmPrompt(input.segment, previousError),
+              timestamp: Date.now(),
+            },
+          ],
+        },
+        {
+          apiKey: input.options.apiKey,
+          signal: controller.signal,
+          maxOutputTokens: input.options.maxTokens,
+          providerOptions: { response_format: { type: "json_object" }, temperature: 0.2 },
+        },
+      );
       const text = result.content
         .filter((block): block is { type: "text"; text: string } => block.type === "text")
         .map((block) => block.text)
         .join("");
       if (text.trim().length === 0) {
-        throw new Error(
-          `LLM segment note for ${input.segment.id} returned no text content.`,
-        );
+        throw new Error(`LLM segment note for ${input.segment.id} returned no text content.`);
       }
       return applyStudioLlmSegmentNoteOutput(input.segment, text);
     } catch (error) {

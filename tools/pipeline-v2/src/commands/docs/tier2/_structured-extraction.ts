@@ -7,19 +7,20 @@ import {
   type StructuredDocumentExtractionToolResponse,
   StructuredDocumentExtractionToolResponseSchema,
   type StructuredExtractionValidationIssue,
-  toProjectJsonSchema,
-} from "@bp/domain";
+} from "@bp/domain/documents/structured-extraction";
+import { toProjectJsonSchema } from "@bp/domain/json-schema";
 import { writeJson } from "../../../lib/json.ts";
-import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";
 import type { ToolCallMessage } from "../../../lib/llm.ts";
+import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";
 import {
   callDeepSeekToolCallViaPi,
   callPioneerToolCallDirect,
-  openRouterErrorMessage,
   type OpenRouterCallResult,
+  openRouterErrorMessage,
 } from "./_llm-clients.ts";
 import {
   artifactKey,
+  type CliOption,
   defaultFetch,
   extractToolCallArguments,
   type FetchLike,
@@ -32,7 +33,6 @@ import {
   parseSourceIds,
   readRequiredJsonArtifact,
   runArtifactRoot,
-  type CliOption,
   type Tier2OcrPageMarkdownAudit,
   type Tier2OcrPageMarkdownAuditPage,
   type Tier2OcrPlan,
@@ -40,10 +40,8 @@ import {
   trueOption,
 } from "./_shared.ts";
 
-export const STRUCTURED_DOCUMENT_EXTRACTION_TOOL_NAME =
-  "submit_structured_document_extraction";
-export const STRUCTURED_DOCUMENT_EXTRACTION_PROMPT_VERSION =
-  "tier2-structured-extraction-v2";
+export const STRUCTURED_DOCUMENT_EXTRACTION_TOOL_NAME = "submit_structured_document_extraction";
+export const STRUCTURED_DOCUMENT_EXTRACTION_PROMPT_VERSION = "tier2-structured-extraction-v2";
 export const DEFAULT_STRUCTURED_EXTRACTION_PROVIDER = "auto";
 export const DEFAULT_PIONEER_STRUCTURED_MODEL = "deepseek-ai/DeepSeek-V4-Flash";
 export const DEFAULT_DEEPSEEK_STRUCTURED_MODEL = "deepseek-v4-pro";
@@ -263,7 +261,10 @@ function usageRecord(body: unknown): Record<string, unknown> | null {
   return recordOrNull(root["usage"]);
 }
 
-function usagePrice(input: { provider: "pioneer" | "deepseek"; model: string }): StructuredExtractionPrice {
+function usagePrice(input: {
+  provider: "pioneer" | "deepseek";
+  model: string;
+}): StructuredExtractionPrice {
   return MODEL_PRICES[`${input.provider}:${input.model}`] ?? DEFAULT_PRICE;
 }
 
@@ -339,10 +340,7 @@ function addUsage(
 }
 
 function attemptCost(attempts: ProviderAttempt[]): Tier2StructuredExtractionUsage {
-  return attempts.reduce(
-    (sum, attempt) => addUsage(sum, attempt.usage),
-    emptyUsage(),
-  );
+  return attempts.reduce((sum, attempt) => addUsage(sum, attempt.usage), emptyUsage());
 }
 
 function persistedUsage(value: unknown): Tier2StructuredExtractionUsage | null {
@@ -595,9 +593,7 @@ function issue(
   return { severity, code, path, message };
 }
 
-function countIssues(
-  issues: StructuredExtractionValidationIssue[],
-): Record<string, number> {
+function countIssues(issues: StructuredExtractionValidationIssue[]): Record<string, number> {
   const counts: Record<string, number> = {};
   for (const current of issues) {
     counts[current.code] = (counts[current.code] ?? 0) + 1;
@@ -605,10 +601,7 @@ function countIssues(
   return counts;
 }
 
-function supportTextFor(
-  spanIds: string[],
-  spansById: Map<string, string>,
-): string {
+function supportTextFor(spanIds: string[], spansById: Map<string, string>): string {
   return spanIds.map((spanId) => spansById.get(spanId) ?? "").join("\n");
 }
 
@@ -671,12 +664,7 @@ export function validateStructuredExtraction(input: {
     for (const spanId of spanIds) {
       if (!spansById.has(spanId)) {
         issues.push(
-          issue(
-            "error",
-            "unknown_evidence_span_ref",
-            path,
-            `Unknown evidenceSpanId ${spanId}.`,
-          ),
+          issue("error", "unknown_evidence_span_ref", path, `Unknown evidenceSpanId ${spanId}.`),
         );
       }
     }
@@ -810,9 +798,10 @@ function structuredExtractionTool(): {
     name: STRUCTURED_DOCUMENT_EXTRACTION_TOOL_NAME,
     description:
       "Submit structured, quote-backed extraction for one OCR Markdown page or page window. Use only the supplied Markdown and source metadata.",
-    parameters: toProjectJsonSchema(
-      StructuredDocumentExtractionToolResponseSchema,
-    ) as Record<string, unknown>,
+    parameters: toProjectJsonSchema(StructuredDocumentExtractionToolResponseSchema) as Record<
+      string,
+      unknown
+    >,
   };
 }
 
@@ -970,9 +959,7 @@ async function mapWithConcurrency<T, U>(
       results[index] = await fn(items[index]!);
     }
   }
-  await Promise.all(
-    Array.from({ length: Math.min(concurrency, items.length) }, () => worker()),
-  );
+  await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, () => worker()));
   return results;
 }
 
@@ -1045,20 +1032,13 @@ function arrayLength(value: unknown): number {
   return Array.isArray(value) ? value.length : 0;
 }
 
-function enumOr<T extends string>(
-  value: unknown,
-  allowed: readonly T[],
-  fallback: T,
-): T {
+function enumOr<T extends string>(value: unknown, allowed: readonly T[], fallback: T): T {
   return typeof value === "string" && (allowed as readonly string[]).includes(value)
     ? (value as T)
     : fallback;
 }
 
-function optionalEnum<T extends string>(
-  value: unknown,
-  allowed: readonly T[],
-): T | undefined {
+function optionalEnum<T extends string>(value: unknown, allowed: readonly T[]): T | undefined {
   return typeof value === "string" && (allowed as readonly string[]).includes(value)
     ? (value as T)
     : undefined;
@@ -1134,15 +1114,29 @@ function normalizeEvidenceSpans(value: unknown): unknown {
   });
 }
 
-function inferEntityKind(input: { rawText: unknown; entityKind: unknown }): (typeof ENTITY_KINDS)[number] {
-  if (typeof input.entityKind === "string" && (ENTITY_KINDS as readonly string[]).includes(input.entityKind)) {
+function inferEntityKind(input: {
+  rawText: unknown;
+  entityKind: unknown;
+}): (typeof ENTITY_KINDS)[number] {
+  if (
+    typeof input.entityKind === "string" &&
+    (ENTITY_KINDS as readonly string[]).includes(input.entityKind)
+  ) {
     return input.entityKind as (typeof ENTITY_KINDS)[number];
   }
   const rawText = typeof input.rawText === "string" ? input.rawText : "";
-  if (/^B[0-9]{1,3}\\w?$|^M[0-9]{1,3}\\w?$|^Q[0-9]{1,3}\\w?$|^S[0-9]{1,3}\\w?$|^Bx[0-9]{1,3}\\w?$/i.test(rawText.trim())) {
+  if (
+    /^B[0-9]{1,3}\\w?$|^M[0-9]{1,3}\\w?$|^Q[0-9]{1,3}\\w?$|^S[0-9]{1,3}\\w?$|^Bx[0-9]{1,3}\\w?$/i.test(
+      rawText.trim(),
+    )
+  ) {
     return "route";
   }
-  if (/\\b(st|street|ave|avenue|blvd|boulevard|road|rd|drive|dr|parkway|pkwy|place|pl)\\b/i.test(rawText)) {
+  if (
+    /\\b(st|street|ave|avenue|blvd|boulevard|road|rd|drive|dr|parkway|pkwy|place|pl)\\b/i.test(
+      rawText,
+    )
+  ) {
     return "street";
   }
   if (/\\b(20\\d{2}|19\\d{2}|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\\b/i.test(rawText)) {
@@ -1228,18 +1222,22 @@ function normalizeMetric(value: unknown): unknown {
   if (metric === null || typeof metric["valueText"] !== "string") return undefined;
   const metricName = enumOr(metric["metricName"], METRIC_NAMES, "custom");
   const direction = optionalEnum(metric["direction"], METRIC_DIRECTIONS);
-  const { metricName: _metricName, direction: _direction, metricAuthority: _metricAuthority, ...metricRest } = metric;
+  const {
+    metricName: _metricName,
+    direction: _direction,
+    metricAuthority: _metricAuthority,
+    ...metricRest
+  } = metric;
   return {
     ...metricRest,
     metricName,
     ...(metricName === "custom" && typeof metric["customMetricName"] !== "string"
-      ? { customMetricName: typeof metric["metricName"] === "string" ? metric["metricName"] : "custom" }
+      ? {
+          customMetricName:
+            typeof metric["metricName"] === "string" ? metric["metricName"] : "custom",
+        }
       : {}),
-    metricAuthority: enumOr(
-      metric["metricAuthority"],
-      METRIC_AUTHORITIES,
-      "document_claim_only",
-    ),
+    metricAuthority: enumOr(metric["metricAuthority"], METRIC_AUTHORITIES, "document_claim_only"),
     ...(direction === undefined ? {} : { direction }),
   };
 }
@@ -1267,9 +1265,10 @@ function normalizeTables(value: unknown): unknown {
       if (cells.length === 0) return [];
       return [
         {
-          rowIndex: typeof row["rowIndex"] === "number" && Number.isInteger(row["rowIndex"])
-            ? row["rowIndex"]
-            : index,
+          rowIndex:
+            typeof row["rowIndex"] === "number" && Number.isInteger(row["rowIndex"])
+              ? row["rowIndex"]
+              : index,
           cells,
           entityMentionIds: stringArray(row["entityMentionIds"]),
           extractedClaimIds: stringArray(row["extractedClaimIds"]),
@@ -1285,7 +1284,11 @@ function normalizeTables(value: unknown): unknown {
         headers: stringArray(table["headers"]),
         rows,
         footnotes: stringArray(table["footnotes"]),
-        tableCompleteness: enumOr(table["tableCompleteness"], TABLE_COMPLETENESS, "contiguous_slice"),
+        tableCompleteness: enumOr(
+          table["tableCompleteness"],
+          TABLE_COMPLETENESS,
+          "contiguous_slice",
+        ),
       },
     ];
   });
@@ -1309,7 +1312,8 @@ function normalizeInterventionEvents(value: unknown): unknown {
       components: normalizeTreatmentComponents(event["components"] ?? []),
       researchUseTags: normalizeResearchUseTags(event["researchUseTags"]),
       duplicateFingerprint:
-        typeof event["duplicateFingerprint"] === "string" && event["duplicateFingerprint"].length > 0
+        typeof event["duplicateFingerprint"] === "string" &&
+        event["duplicateFingerprint"].length > 0
           ? event["duplicateFingerprint"]
           : shortHash(JSON.stringify(event)),
       ...(datePrecision === undefined ? {} : { datePrecision }),
@@ -1454,9 +1458,7 @@ function withDeterministicExtractionEnvelope(input: {
         ? extractionAudit["skippedReasons"]
         : [],
       modelNotes:
-        typeof extractionAudit["modelNotes"] === "string"
-          ? extractionAudit["modelNotes"]
-          : "",
+        typeof extractionAudit["modelNotes"] === "string" ? extractionAudit["modelNotes"] : "",
     },
   };
 }
@@ -1663,7 +1665,10 @@ async function extractWindow(input: {
   pioneerApiKey: string | undefined;
   deepseekApiKey: string | undefined;
   generatedAt: string;
-}): Promise<{ window: Tier2StructuredExtractionWindow; extraction: StructuredDocumentExtraction | null }> {
+}): Promise<{
+  window: Tier2StructuredExtractionWindow;
+  extraction: StructuredDocumentExtraction | null;
+}> {
   const paths = windowPaths({
     sourceRoot: input.sourceRoot,
     pages: input.pages.map((page) => page.pageNumber),
@@ -1912,12 +1917,7 @@ async function extractWindow(input: {
         usage: null,
         validationIssueCounts: {},
         validationIssues: [
-          issue(
-            "error",
-            "structured_extraction_failed",
-            "window",
-            payload.message,
-          ),
+          issue("error", "structured_extraction_failed", "window", payload.message),
         ],
         evidenceSpanCount: 0,
         claimCount: 0,
@@ -1953,9 +1953,7 @@ function budgetSkippedWindow(input: {
       estimatedCostUsd: 0,
       usage: null,
       validationIssueCounts: {},
-      validationIssues: [
-        issue("warning", "budget_limit_reached", "window", input.reason),
-      ],
+      validationIssues: [issue("warning", "budget_limit_reached", "window", input.reason)],
       evidenceSpanCount: 0,
       claimCount: 0,
       tableCount: 0,
@@ -1972,10 +1970,7 @@ function artifactSummary(
   extractions: StructuredDocumentExtraction[],
   selectedSourceCount: number,
 ): Tier2StructuredExtractionArtifact["summary"] {
-  const usage = windows.reduce(
-    (sum, window) => addUsage(sum, window.usage),
-    emptyUsage(),
-  );
+  const usage = windows.reduce((sum, window) => addUsage(sum, window.usage), emptyUsage());
   const validationErrorCount = windows.reduce(
     (sum, window) =>
       sum + window.validationIssues.filter((current) => current.severity === "error").length,
@@ -2002,7 +1997,10 @@ function artifactSummary(
     estimatedCostUsd: usage.estimatedCostUsd,
     validationErrorCount,
     validationWarningCount,
-    evidenceSpanCount: extractions.reduce((sum, extraction) => sum + extraction.evidenceSpans.length, 0),
+    evidenceSpanCount: extractions.reduce(
+      (sum, extraction) => sum + extraction.evidenceSpans.length,
+      0,
+    ),
     claimCount: extractions.reduce((sum, extraction) => sum + extraction.claims.length, 0),
     tableCount: extractions.reduce((sum, extraction) => sum + extraction.tables.length, 0),
     interventionEventCount: extractions.reduce(
@@ -2099,9 +2097,7 @@ export async function extractTier2StructuredDocuments(
         deepseekApiKey: args.deepseekApiKey ?? process.env["DEEPSEEK_API_KEY"],
         generatedAt,
       });
-      runEstimatedCostUsd = roundCost(
-        runEstimatedCostUsd + result.window.estimatedCostUsd,
-      );
+      runEstimatedCostUsd = roundCost(runEstimatedCostUsd + result.window.estimatedCostUsd);
       return result;
     });
     for (const result of extracted) {

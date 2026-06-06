@@ -1,11 +1,14 @@
-import * as z from "zod";
+import {
+  type DocumentEvidenceCandidate,
+  DocumentEvidenceCandidateSchema,
+} from "@bp/domain/documents/candidates";
+import {
+  type DocumentInterventionRecord,
+  DocumentInterventionRecordSchema,
+} from "@bp/domain/documents/intervention-records";
 
 import {
   type AgentFindingProposalCorpusPaths,
-  type DocumentEvidenceCandidate,
-  DocumentEvidenceCandidateSchema,
-  type DocumentInterventionRecord,
-  DocumentInterventionRecordSchema,
   type FindingEvidenceLink,
   type FindingPromotionQueueArtifact,
   FindingPromotionQueueArtifactSchema,
@@ -13,24 +16,20 @@ import {
   FindingReviewPacketsArtifactSchema,
   type FindingSignalFeaturesArtifact,
   FindingSignalFeaturesArtifactSchema,
-  type IsoMonth,
-  IsoMonthSchema,
   type PromotedFinding,
   PromotedFindingsArtifactSchema,
-  type RouteId,
-  RouteIdSchema,
   type RouteMonthSignalFeature,
-  type StudioBrief,
-} from "@bp/domain";
+} from "@bp/domain/findings";
+import { type IsoMonth, IsoMonthSchema, type RouteId, RouteIdSchema } from "@bp/domain/primitives";
+import type { StudioBrief } from "@bp/domain/studio/briefs";
+import * as z from "zod";
 
 import { readOptionalJsonArtifact } from "../../lib/json.ts";
 
 // Minimal shape we read out of context-appendix.json. The full appendix has
 // many optional per-route sections; we only need routeId + the raw payload so
 // agent tools can return whatever section was requested.
-const ContextAppendixRouteSchema = z
-  .object({ routeId: z.string().min(1) })
-  .catchall(z.unknown());
+const ContextAppendixRouteSchema = z.object({ routeId: z.string().min(1) }).catchall(z.unknown());
 
 const ContextAppendixArtifactSchema = z
   .object({
@@ -162,11 +161,7 @@ function parseRouteId(value: string | null | undefined): RouteId | null {
   return parsed.success ? parsed.data : null;
 }
 
-function pushByRoute<T>(
-  index: Map<RouteId, T[]>,
-  routeId: RouteId | null,
-  value: T,
-): void {
+function pushByRoute<T>(index: Map<RouteId, T[]>, routeId: RouteId | null, value: T): void {
   if (routeId === null) return;
   const existing = index.get(routeId);
   if (existing) {
@@ -215,10 +210,7 @@ export async function loadCorpus(input: CorpusPathInput): Promise<LoadedCorpus> 
     input.documentCandidatesPath ?? null,
     DocumentCandidatesArtifactSchema,
   );
-  const briefsRaw = await readOptionalJsonArtifact(
-    input.briefsPath ?? null,
-    BriefsArtifactSchema,
-  );
+  const briefsRaw = await readOptionalJsonArtifact(input.briefsPath ?? null, BriefsArtifactSchema);
 
   const reviewPackets = new Map<string, FindingReviewPacket>();
   const reviewPacketsByRoute = new Map<RouteId, FindingReviewPacket[]>();
@@ -264,9 +256,7 @@ export async function loadCorpus(input: CorpusPathInput): Promise<LoadedCorpus> 
   const interventionRecordsByRoute = new Map<RouteId, DocumentInterventionRecord[]>();
   for (const raw of interventionRecordList) {
     const parsed = DocumentInterventionRecordSchema.safeParse(raw);
-    const record = parsed.success
-      ? parsed.data
-      : (raw as unknown as DocumentInterventionRecord);
+    const record = parsed.success ? parsed.data : (raw as unknown as DocumentInterventionRecord);
     const recordId = (raw["recordId"] as string | undefined) ?? null;
     if (!recordId) continue;
     interventionRecords.set(recordId, record);
@@ -287,9 +277,7 @@ export async function loadCorpus(input: CorpusPathInput): Promise<LoadedCorpus> 
     const candidateId = (raw["candidateId"] as string | undefined) ?? null;
     if (!candidateId) continue;
     const parsed = DocumentEvidenceCandidateSchema.safeParse(raw);
-    const candidate = parsed.success
-      ? parsed.data
-      : (raw as unknown as DocumentEvidenceCandidate);
+    const candidate = parsed.success ? parsed.data : (raw as unknown as DocumentEvidenceCandidate);
     documentCandidates.set(candidateId, candidate);
   }
 

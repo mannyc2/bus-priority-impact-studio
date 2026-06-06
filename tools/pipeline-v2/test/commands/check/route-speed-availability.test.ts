@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from "bun:test";
+import { readFileSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -44,6 +45,20 @@ afterEach(async () => {
 });
 
 describe("runRouteSpeedAvailability", () => {
+  it("keeps availability classification and artifact path policy in applied-research", () => {
+    const source = readFileSync(
+      "tools/pipeline-v2/src/commands/check/route-speed-availability.ts",
+      "utf8",
+    );
+
+    expect(source).toContain('from "@bp/applied-research/artifacts"');
+    expect(source).toContain('from "@bp/applied-research/evaluation"');
+    expect(source).not.toContain("function summarizeSpeedMonths");
+    expect(source).not.toContain("function requestedStatus");
+    expect(source).not.toContain("function releaseDecision");
+    expect(source).not.toContain("const RawRowSchema");
+  });
+
   it("marks the most recent complete month and recommends a rebuild when newer than lastBuilt", async () => {
     tmp = await mkdtemp(join(tmpdir(), "bp-v2-rsa-"));
     // Two months: 2026-03 with 3 routes (complete) and 2026-02 with 2 routes (complete).

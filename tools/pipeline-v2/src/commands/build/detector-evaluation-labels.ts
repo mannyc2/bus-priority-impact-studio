@@ -1,11 +1,12 @@
-import type { Database } from "bun:sqlite";
 import { Database as BunDatabase } from "bun:sqlite";
 import { mkdir } from "node:fs/promises";
-import { dirname, isAbsolute, join, relative } from "node:path";
+import { dirname, isAbsolute, relative } from "node:path";
+import { detectorEvaluationLabelsPath } from "@bp/applied-research/artifacts";
+import { buildDetectorEvaluationLabelSetArtifact } from "@bp/applied-research/evaluation";
 import {
-  buildDetectorEvaluationLabelSetArtifact,
-  type DetectorEvaluationCoverageRow,
-} from "@bp/applied-research/evaluation";
+  type DetectorEvaluationLabelLocalDbRows,
+  loadDetectorEvaluationLabelLocalDbRows,
+} from "@bp/applied-research/local-db";
 import { arg, defineCommand, z } from "@liche/core";
 import { isoMonth } from "../../lib/dates.ts";
 import { writeJson } from "../../lib/json.ts";
@@ -18,77 +19,7 @@ function repoDisplayPath(path: string): string {
   return relativePath.startsWith("..") ? path : relativePath;
 }
 
-function queryCoverageRows(input: {
-  sqlite: Database;
-  releaseMonth: string;
-  maxCleanNoHitPerDetector: number | null;
-  maxMissingDataScopesPerDetector: number;
-}): DetectorEvaluationCoverageRow[] {
-  const cleanLimit = input.maxCleanNoHitPerDetector ?? 2_147_483_647;
-  return input.sqlite
-    .query(
-      `
-        WITH ranked AS (
-          SELECT
-            detector_id,
-            month,
-            scope_kind,
-            scope_id,
-            outcome,
-            reason_code,
-            reason,
-            inputs_seen_json,
-            inputs_expected_json,
-            ROW_NUMBER() OVER (
-              PARTITION BY detector_id, outcome
-              ORDER BY scope_kind, scope_id
-            ) AS row_number
-          FROM local_finding_coverage_audit
-          WHERE month = ?
-            AND outcome IN (
-              'clean_no_hit',
-              'skipped_missing_input',
-              'skipped_failed_join',
-              'source_lag'
-            )
-        )
-        SELECT
-          detector_id,
-          month,
-          scope_kind,
-          scope_id,
-          outcome,
-          reason_code,
-          reason,
-          inputs_seen_json,
-          inputs_expected_json
-        FROM ranked
-        WHERE
-          (outcome = 'clean_no_hit' AND row_number <= ?)
-          OR (outcome <> 'clean_no_hit' AND row_number <= ?)
-        ORDER BY detector_id, outcome, scope_kind, scope_id
-      `,
-    )
-    .all(
-      input.releaseMonth,
-      cleanLimit,
-      input.maxMissingDataScopesPerDetector,
-    ) as DetectorEvaluationCoverageRow[];
-}
-
-export function detectorEvaluationLabelsPath(
-  artifactRoot: string,
-  historyStartMonth: string,
-  releaseMonth: string,
-): string {
-  return join(
-    artifactRoot,
-    "detector-evaluation",
-    `${historyStartMonth}_to_${releaseMonth}`,
-    releaseMonth,
-    "detector-evaluation-labels.json",
-  );
-}
+export { detectorEvaluationLabelsPath } from "@bp/applied-research/artifacts";
 
 export default defineCommand({
   path: ["build", "detector-evaluation-labels"],
@@ -120,20 +51,24 @@ export default defineCommand({
         : fromCliPath(input.options.artifactRoot);
     const outputPath =
       input.options.output === undefined
-        ? detectorEvaluationLabelsPath(artifactRoot, input.options.historyStartMonth, releaseMonth)
+        ? detectorEvaluationLabelsPath({
+            artifactRoot,
+            historyStartMonth: input.options.historyStartMonth,
+            releaseMonth,
+          })
         : fromCliPath(input.options.output);
     const dbPath =
       input.options.db === undefined ? defaultLocalPipelineDbPath() : fromCliPath(input.options.db);
     const sqlite = new BunDatabase(dbPath, { readonly: true });
     sqlite.exec("PRAGMA busy_timeout = 5000");
-    let rows: DetectorEvaluationCoverageRow[];
+    let rows: DetectorEvaluationLabelLocalDbRows["rows"];
     try {
-      rows = queryCoverageRows({
+      ({ rows } = loadDetectorEvaluationLabelLocalDbRows({
         sqlite,
         releaseMonth,
         maxCleanNoHitPerDetector: input.options.maxCleanNoHitPerDetector,
         maxMissingDataScopesPerDetector: input.options.maxMissingDataScopesPerDetector,
-      });
+      }));
     } finally {
       sqlite.close();
     }

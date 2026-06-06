@@ -246,6 +246,10 @@ export type MakeToolLoopRunnerArgs = {
   apiKey: string;
   maxOutputTokens?: number;
   reasoning?: ThinkingLevel;
+  // Most codemode callers need the generic sandbox inspection tools. Narrow
+  // submit-only harnesses can disable them to avoid schema/prompt overhead and
+  // accidental exploratory turns.
+  includeSandboxTools?: boolean;
   // Caps
   maxToolCalls?: number;
   maxTotalStdoutBytes?: number;
@@ -364,8 +368,11 @@ export function makeToolLoopRunner(args: MakeToolLoopRunnerArgs): ModelToolLoop 
             ...skills.map((s) => `# Skill: ${s.name}\n\n${s.content}`),
           ].join("\n\n");
 
+    const includeSandboxTools = args.includeSandboxTools !== false;
     const extraTools = input.extraTools ?? [];
-    const sandboxToolNames = new Set<string>(["ts_exec", "bash_exec"]);
+    const sandboxToolNames = new Set<string>(
+      includeSandboxTools ? ["ts_exec", "bash_exec"] : [],
+    );
     for (const t of extraTools) {
       if (sandboxToolNames.has(t.name)) {
         throw new Error(
@@ -378,7 +385,7 @@ export function makeToolLoopRunner(args: MakeToolLoopRunnerArgs): ModelToolLoop 
       env,
       session,
       model: args.model,
-      tools: [tsTool, bashTool, ...extraTools],
+      tools: includeSandboxTools ? [tsTool, bashTool, ...extraTools] : extraTools,
       systemPrompt: composedSystemPrompt,
       getApiKeyAndHeaders: async (model) => {
         const headers = providerHeaders(model.provider, args.apiKey);

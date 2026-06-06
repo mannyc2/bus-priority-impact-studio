@@ -1,114 +1,21 @@
 import { describe, expect, test } from "bun:test";
-import { evaluateReviewPacketCoverageGate } from "../../../src/commands/audit/review-packet-coverage.ts";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 
-describe("audit review-packet-coverage", () => {
-  test("passes when all candidate-bearing detectors are complete", () => {
-    const gate = evaluateReviewPacketCoverageGate({
-      releaseMonth: "2026-03",
-      artifactPath: "review-packet-coverage.json",
-      failOnPartial: false,
-      artifact: {
-        summary: {
-          candidateCount: 2,
-          packetCount: 2,
-          missingPacketCandidateCount: 0,
-          packetCompleteDetectorCount: 1,
-          packetPartialDetectorCount: 0,
-          packetMissingDetectorCount: 0,
-          noCandidateDetectorCount: 17,
-        },
-        detectors: [
-          {
-            detectorId: "speed_pace_hotspot",
-            candidateCount: 2,
-            packetCount: 2,
-            missingPacketCount: 0,
-            packetsWithoutPrimaryEvidence: 0,
-            packetsWithoutCounterEvidence: 0,
-            packetsWithoutCoverage: 0,
-            status: "complete",
-          },
-        ],
-      },
-    });
+const commandPath = join(import.meta.dir, "../../../src/commands/audit/review-packet-coverage.ts");
 
-    expect(gate.status).toBe("pass");
-    expect(gate.gaps).toHaveLength(0);
-  });
+describe("audit review-packet-coverage boundary", () => {
+  test("keeps review packet coverage gate policy in applied-research", async () => {
+    const source = await readFile(commandPath, "utf8");
 
-  test("warns on counter-evidence-only partials unless strict mode is enabled", () => {
-    const partialArtifact = {
-      summary: {
-        candidateCount: 1,
-        packetCount: 1,
-        missingPacketCandidateCount: 0,
-        packetCompleteDetectorCount: 0,
-        packetPartialDetectorCount: 1,
-        packetMissingDetectorCount: 0,
-        noCandidateDetectorCount: 17,
-      },
-      detectors: [
-        {
-          detectorId: "observed_reliability",
-          candidateCount: 1,
-          packetCount: 1,
-          missingPacketCount: 0,
-          packetsWithoutPrimaryEvidence: 0,
-          packetsWithoutCounterEvidence: 1,
-          packetsWithoutCoverage: 0,
-          status: "partial",
-        },
-      ],
-    };
+    expect(source).toContain('from "@bp/applied-research/evaluation"');
+    expect(source).toContain("evaluateReviewPacketCoverageGate({");
 
-    const loose = evaluateReviewPacketCoverageGate({
-      releaseMonth: "2026-03",
-      artifactPath: "review-packet-coverage.json",
-      failOnPartial: false,
-      artifact: partialArtifact,
-    });
-    const strict = evaluateReviewPacketCoverageGate({
-      releaseMonth: "2026-03",
-      artifactPath: "review-packet-coverage.json",
-      failOnPartial: true,
-      artifact: partialArtifact,
-    });
-
-    expect(loose.status).toBe("warn");
-    expect(strict.status).toBe("fail");
-  });
-
-  test("fails when candidates are missing packets or primary/coverage evidence", () => {
-    const gate = evaluateReviewPacketCoverageGate({
-      releaseMonth: "2026-03",
-      artifactPath: "review-packet-coverage.json",
-      failOnPartial: false,
-      artifact: {
-        summary: {
-          candidateCount: 1,
-          packetCount: 0,
-          missingPacketCandidateCount: 1,
-          packetCompleteDetectorCount: 0,
-          packetPartialDetectorCount: 0,
-          packetMissingDetectorCount: 1,
-          noCandidateDetectorCount: 17,
-        },
-        detectors: [
-          {
-            detectorId: "speed_pace_hotspot",
-            candidateCount: 1,
-            packetCount: 0,
-            missingPacketCount: 1,
-            packetsWithoutPrimaryEvidence: 0,
-            packetsWithoutCounterEvidence: 0,
-            packetsWithoutCoverage: 0,
-            status: "missing",
-          },
-        ],
-      },
-    });
-
-    expect(gate.status).toBe("fail");
-    expect(gate.gaps[0]?.detectorId).toBe("speed_pace_hotspot");
+    expect(source).not.toContain("function numberValue");
+    expect(source).not.toContain("function text");
+    expect(source).not.toContain("missingPacketCount > 0");
+    expect(source).not.toContain("packetsWithoutPrimaryEvidence > 0");
+    expect(source).not.toContain("packetsWithoutCoverage > 0");
+    expect(source).not.toContain('status === "partial"');
   });
 });

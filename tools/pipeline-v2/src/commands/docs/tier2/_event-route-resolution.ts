@@ -1,10 +1,13 @@
+import { Database } from "bun:sqlite";
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { Database } from "bun:sqlite";
+import {
+  classifyOperationalDate,
+  type OperationalDateValidationState,
+} from "@bp/domain/documents/operational-date";
 import { writeJson } from "../../../lib/json.ts";
 import { defaultLocalPipelineDbPath } from "../../../lib/local-db.ts";
 import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";
-import { classifyOperationalDate, type OperationalDateValidationState } from "@bp/domain";
 import { latestDocsRunId, runArtifactRoot } from "./_shared.ts";
 
 const ARTIFACT_KIND = "bp.tier2_document_event_route_resolution.v1";
@@ -324,7 +327,10 @@ const PHYSICAL_TERMS = [
 ] as const;
 
 function compact(value: unknown): string {
-  return String(value ?? "").toLowerCase().replace(/\s+/g, " ").trim();
+  return String(value ?? "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function upperCompact(value: unknown): string {
@@ -444,7 +450,15 @@ export function classifyTier2Event(event: DocumentDerivedEventSurface): EventCla
     eventKind = "funding_or_approval";
   } else if (includesAnyWord(allText, CAMERA_ENFORCEMENT_TERMS)) {
     eventKind = "enforcement_or_regulatory_change";
-  } else if (includesAny(allText, ["service change", "route redesign", "service launch", "select bus service", "sbs"])) {
+  } else if (
+    includesAny(allText, [
+      "service change",
+      "route redesign",
+      "service launch",
+      "select bus service",
+      "sbs",
+    ])
+  ) {
     eventKind = "service_change";
   } else if (includesAny(allText, PHYSICAL_TERMS)) {
     eventKind = "physical_bus_priority_change";
@@ -453,7 +467,9 @@ export function classifyTier2Event(event: DocumentDerivedEventSurface): EventCla
   }
 
   let interventionFamily: InterventionFamily = "none";
-  if (includesAny(allText, ["busway", "transitway", "transit and truck priority", "truck priority"])) {
+  if (
+    includesAny(allText, ["busway", "transitway", "transit and truck priority", "truck priority"])
+  ) {
     interventionFamily = "busway_or_transitway";
   } else if (includesAny(allText, ["offset bus lane"])) {
     interventionFamily = "offset_or_curbside_bus_lane";
@@ -475,7 +491,9 @@ export function classifyTier2Event(event: DocumentDerivedEventSurface): EventCla
     interventionFamily = "curb_management";
   } else if (includesAny(allText, ["turn restriction", "street improvement", "street design"])) {
     interventionFamily = "street_design_or_turn_restriction";
-  } else if (includesAny(allText, ["route redesign", "service pattern", "service change", "service launch"])) {
+  } else if (
+    includesAny(allText, ["route redesign", "service pattern", "service change", "service launch"])
+  ) {
     interventionFamily = "route_redesign_or_service_pattern";
   } else if (timelineEligibility === "intervention_timeline_candidate") {
     interventionFamily = "other_bus_priority";
@@ -547,7 +565,8 @@ export function buildRouteAliasIndex(routes: readonly RouteCatalogEntry[]): Rout
 
 function slashedRouteMentions(text: string, index: RouteAliasIndex): Set<string> {
   const routeIds = new Set<string>();
-  const pattern = /\b(BX|SIM|[MBQS])\s*(\d{1,3})\s*([A-Z])?\s*\/\s*(?:(BX|SIM|[MBQS])\s*)?(\d{1,3})?\s*([A-Z])?\b/gi;
+  const pattern =
+    /\b(BX|SIM|[MBQS])\s*(\d{1,3})\s*([A-Z])?\s*\/\s*(?:(BX|SIM|[MBQS])\s*)?(\d{1,3})?\s*([A-Z])?\b/gi;
   let match: RegExpExecArray | null;
   while ((match = pattern.exec(text)) !== null) {
     const prefixA = match[1]?.toUpperCase();
@@ -651,7 +670,10 @@ export function buildStreetRouteGazetteer(stops: readonly RouteStopEntry[]): Str
   return { streetRoutes, streetKeys };
 }
 
-function findCorridorMatches(text: string, gazetteer: StreetRouteGazetteer): RouteResolutionEvidence[] {
+function findCorridorMatches(
+  text: string,
+  gazetteer: StreetRouteGazetteer,
+): RouteResolutionEvidence[] {
   const normalizedText = normalizeStreetName(text);
   const matches: RouteResolutionEvidence[] = [];
   const seen = new Set<string>();
@@ -729,7 +751,11 @@ function resolveRoutes(input: {
     };
   }
 
-  const corridorText = [input.event.locationText, input.event.displayLabel, input.event.treatmentText]
+  const corridorText = [
+    input.event.locationText,
+    input.event.displayLabel,
+    input.event.treatmentText,
+  ]
     .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
     .join(" ");
   const corridorMatches = findCorridorMatches(corridorText, input.gazetteer).sort(
@@ -775,7 +801,9 @@ async function* readJsonl<T>(path: string): AsyncGenerator<T> {
 }
 
 function latestRouteStopMonth(sqlite: Database): string | null {
-  const row = sqlite.query<{ month: string | null }, []>("SELECT max(month) AS month FROM local_route_stop").get();
+  const row = sqlite
+    .query<{ month: string | null }, []>("SELECT max(month) AS month FROM local_route_stop")
+    .get();
   return row?.month ?? null;
 }
 
@@ -808,19 +836,20 @@ function readRouteStops(sqlite: Database, month: string | null): RouteStopEntry[
           ORDER BY route_id, stop_name`;
   const rows =
     month === null
-      ? sqlite.query<{ route_id: string; route_short_name: string; stop_name: string }, []>(sql).all()
+      ? sqlite
+          .query<{ route_id: string; route_short_name: string; stop_name: string }, []>(sql)
+          .all()
       : sqlite
           .query<
             { route_id: string; route_short_name: string; stop_name: string },
             { $month: string }
           >(sql)
           .all({ $month: month });
-  return rows
-    .map((row) => ({
-      routeId: row.route_id,
-      routeShortName: row.route_short_name,
-      stopName: row.stop_name,
-    }));
+  return rows.map((row) => ({
+    routeId: row.route_id,
+    routeShortName: row.route_short_name,
+    stopName: row.stop_name,
+  }));
 }
 
 async function buildSourceRouteContext(
@@ -850,7 +879,10 @@ async function buildSourceRouteContext(
   }
 
   return new Map(
-    Array.from(routesBySource.entries()).map(([sourceId, routes]) => [sourceId, Array.from(routes).sort()]),
+    Array.from(routesBySource.entries()).map(([sourceId, routes]) => [
+      sourceId,
+      Array.from(routes).sort(),
+    ]),
   );
 }
 
@@ -872,8 +904,10 @@ function eventRow(input: {
     dateText: input.event.dateText ?? null,
     datePrecision: input.event.datePrecision ?? null,
     eventKind: input.classification.eventKind,
-    familyRaw: typeof rawFamilyValue === "string" ? rawFamilyValue : (input.event.eventFamily ?? null),
-    subtypeRaw: typeof rawSubtypeValue === "string" ? rawSubtypeValue : (input.event.eventSubtype ?? null),
+    familyRaw:
+      typeof rawFamilyValue === "string" ? rawFamilyValue : (input.event.eventFamily ?? null),
+    subtypeRaw:
+      typeof rawSubtypeValue === "string" ? rawSubtypeValue : (input.event.eventSubtype ?? null),
     eventName: input.event.eventName ?? null,
     eventStatus: input.event.eventStatus ?? null,
   });
@@ -900,7 +934,9 @@ function eventRow(input: {
     // non_operational_milestone: not a treatment-date event, so no date caveat.
   }
   if (input.routeResolution.tier === "source_single_route_context") {
-    promotionCaveats.push("route resolution came from source-level single-route context, not direct event text");
+    promotionCaveats.push(
+      "route resolution came from source-level single-route context, not direct event text",
+    );
   }
   if (input.routeResolution.tier === "corridor_gazetteer") {
     promotionCaveats.push("route resolution came from current-snapshot corridor gazetteer");
@@ -969,11 +1005,13 @@ function buildSummary(input: {
   return {
     inputEventCount: input.rows.length,
     interventionCandidateCount: interventionCandidates.length,
-    routeResolvedEventCount: input.rows.filter((row) => row.routeResolutionState === "resolved").length,
+    routeResolvedEventCount: input.rows.filter((row) => row.routeResolutionState === "resolved")
+      .length,
     routeResolvedInterventionCandidateCount: interventionCandidates.filter(
       (row) => row.routeResolutionState === "resolved",
     ).length,
-    promotableToRouteReviewQueueCount: input.rows.filter((row) => row.promotableToRouteReviewQueue).length,
+    promotableToRouteReviewQueueCount: input.rows.filter((row) => row.promotableToRouteReviewQueue)
+      .length,
     ambiguousInterventionCandidateCount: interventionCandidates.filter(
       (row) => row.routeResolutionState === "ambiguous",
     ).length,
@@ -992,7 +1030,9 @@ function buildSummary(input: {
   };
 }
 
-function sampleRows(rows: readonly EventRouteResolutionRow[]): EventRouteResolutionArtifact["samples"] {
+function sampleRows(
+  rows: readonly EventRouteResolutionRow[],
+): EventRouteResolutionArtifact["samples"] {
   return {
     promotable: rows.filter((row) => row.promotableToRouteReviewQueue).slice(0, 20),
     ambiguous: rows.filter((row) => row.routeResolutionState === "ambiguous").slice(0, 20),
@@ -1110,7 +1150,9 @@ function parseCliOptions(args: string[]): CliArgs {
 
 export async function runTier2DocumentEventRouteResolutionFromCli(args: string[]) {
   const parsed = parseCliOptions(args);
-  const artifactRoot = parsed.artifactRoot ? fromCliPath(parsed.artifactRoot) : defaultArtifactRootPath();
+  const artifactRoot = parsed.artifactRoot
+    ? fromCliPath(parsed.artifactRoot)
+    : defaultArtifactRootPath();
   const runId = parsed.runId ?? (await latestDocsRunId(artifactRoot));
   if (runId === null && parsed.surfacesDir === undefined && parsed.eventsPath === undefined) {
     throw new Error("No Tier 2 run found. Pass --surfaces-dir or --run-id.");

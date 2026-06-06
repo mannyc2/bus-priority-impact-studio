@@ -1,8 +1,5 @@
-import {
-  type PromotedFinding,
-  PromotedFindingsArtifactSchema,
-  type ReasoningStep,
-} from "@bp/domain";
+import { type PromotedFinding, PromotedFindingsArtifactSchema } from "@bp/domain/findings";
+import type { ReasoningStep } from "@bp/domain/studio/findings";
 import { fromRepoRoot } from "../../lib/paths.ts";
 import { readJsonIfExists } from "./_release-geometry.ts";
 import type {

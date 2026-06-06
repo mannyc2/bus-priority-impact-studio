@@ -1,10 +1,6 @@
-import type { AgentFindingProposalEvidenceRef } from "@bp/domain";
+import type { AgentFindingProposalEvidenceRef } from "@bp/domain/findings";
 
-import {
-  type CodeExecutionCache,
-  extractFromStdout,
-  sha256Hex,
-} from "./_code_execution.ts";
+import { type CodeExecutionCache, extractFromStdout, sha256Hex } from "./_code_execution.ts";
 import type { LoadedCorpus } from "./_corpus.ts";
 
 export type EvidencePayload = Record<string, unknown>;
@@ -91,10 +87,7 @@ export function resolveEvidencePayload(
  * are rare in our payloads, and validation still requires the value to match —
  * a false-positive name hit with the wrong value still gets rejected.
  */
-export function findNumericField(
-  payload: EvidencePayload,
-  variable: string,
-): number | undefined {
+export function findNumericField(payload: EvidencePayload, variable: string): number | undefined {
   const stack: unknown[] = [payload];
   while (stack.length > 0) {
     const current = stack.pop();

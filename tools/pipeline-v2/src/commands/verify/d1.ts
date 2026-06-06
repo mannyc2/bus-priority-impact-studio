@@ -55,6 +55,7 @@ function expectedTableCounts(exportResult: D1SeedOutputResult): Record<string, n
     corridor_hotspot: exportResult.corridorHotspotRowCount,
     route_month_source_status: exportResult.routeMonthSourceStatusRowCount,
     route_month_trend: exportResult.routeMonthTrendRowCount,
+    route_timeline_index: exportResult.routeTimelineIndexRowCount,
     route_equity_context: exportResult.routeEquityContextRowCount,
     route_scorecard: exportResult.routeCount,
     route_scorecard_citation: exportResult.routeScorecardCitationRowCount,
@@ -65,6 +66,8 @@ function expectedTableCounts(exportResult: D1SeedOutputResult): Record<string, n
     route_batch_status: exportResult.routeBatchStatusRowCount,
     route_batch_built_route: exportResult.routeBatchBuiltRouteRowCount,
     route_batch_issue: exportResult.routeBatchIssueRowCount,
+    route_speed_history_coverage: exportResult.routeSpeedHistoryCoverageRowCount,
+    source_month_coverage: exportResult.sourceMonthCoverageRowCount,
   };
 }
 
@@ -73,6 +76,7 @@ export type VerifyD1Inputs = {
   year: number;
   month: number;
   exportRoot?: string | undefined;
+  routeTimelineProjectionPath?: string | undefined;
 };
 
 export async function runVerifyD1Export(inputs: VerifyD1Inputs): Promise<D1VerifyResult> {
@@ -82,6 +86,7 @@ export async function runVerifyD1Export(inputs: VerifyD1Inputs): Promise<D1Verif
     year: inputs.year,
     month: inputs.month,
     exportRoot: inputs.exportRoot,
+    routeTimelineProjectionPath: inputs.routeTimelineProjectionPath,
   });
 
   const schemaSql = await Bun.file(exportResult.schemaPath).text();
@@ -123,6 +128,10 @@ export default defineCommand({
       year: arg.positiveInt().default(2026).describe("Calendar year"),
       month: arg.positiveInt().default(3).describe("Calendar month, 1-12"),
       exportRoot: z.string().optional().describe("Override export root directory"),
+      routeTimelineProjectionPath: z
+        .string()
+        .optional()
+        .describe("Optional route timeline serving projection JSON to fold into D1 verification"),
     }),
   },
   middleware: [withLocalDb()],
@@ -146,6 +155,10 @@ export default defineCommand({
       month: input.options.month,
       exportRoot:
         input.options.exportRoot === undefined ? undefined : fromCliPath(input.options.exportRoot),
+      routeTimelineProjectionPath:
+        input.options.routeTimelineProjectionPath === undefined
+          ? undefined
+          : fromCliPath(input.options.routeTimelineProjectionPath),
     });
   },
 });

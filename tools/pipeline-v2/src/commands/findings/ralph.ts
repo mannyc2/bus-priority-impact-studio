@@ -1,11 +1,11 @@
-import { defineCommand, z } from "@liche/core";
 import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import type { AgentFindingProposal } from "@bp/domain/findings";
 
 import type { Api, Model } from "@earendil-works/pi-ai";
-
-import { findingsArtifactDir, fromRepoRoot } from "../../lib/paths.ts";
+import { defineCommand, z } from "@liche/core";
+import { buildStderrEventSink, makeToolLoopRunner } from "../../lib/codemode/index.ts";
 import { writeJson } from "../../lib/json.ts";
 import {
   deepSeekModel,
@@ -14,17 +14,12 @@ import {
   openRouterModel,
   pioneerModel,
 } from "../../lib/llm.ts";
-import {
-  buildStderrEventSink,
-  makeToolLoopRunner,
-} from "../../lib/codemode/index.ts";
+import { findingsArtifactDir, fromRepoRoot } from "../../lib/paths.ts";
 import { runTypeScript } from "../../lib/sandbox.ts";
-
 import { loadCorpus } from "./_corpus.ts";
+import { buildRalphFsTools } from "./_fs_tools.ts";
 import { buildProposal, COMMON_RULES } from "./_runner.ts";
 import { buildSubmitFindingProposalsTool, type ProposalStore } from "./_submit_tool.ts";
-import { buildRalphFsTools } from "./_fs_tools.ts";
-import type { AgentFindingProposal } from "@bp/domain";
 
 type LlmProvider = "openrouter" | "deepseek" | "pioneer";
 
@@ -77,8 +72,7 @@ function ledgerSummary(ledger: AgentFindingProposal[]): string {
   if (ledger.length === 0) return "(none yet — you are the first iteration)";
   return ledger
     .map(
-      (p, i) =>
-        `${i + 1}. [${p.category}/${p.severity}] route ${p.routeId ?? "—"}: ${p.claimText}`,
+      (p, i) => `${i + 1}. [${p.category}/${p.severity}] route ${p.routeId ?? "—"}: ${p.claimText}`,
     )
     .join("\n");
 }
@@ -110,9 +104,7 @@ export default defineCommand({
     options: z.object({
       year: z.coerce.number().int().min(2000).max(2100).describe("Findings year, e.g. 2026."),
       month: z.coerce.number().int().min(1).max(12).describe("Findings month 1-12."),
-      route: z
-        .string()
-        .describe("Route ID scope for this loop (e.g. B44). One route in v0."),
+      route: z.string().describe("Route ID scope for this loop (e.g. B44). One route in v0."),
       iterations: z.coerce
         .number()
         .int()
@@ -132,13 +124,25 @@ export default defineCommand({
         .min(1)
         .default("gpt-5.5")
         .describe("Model ID. Default gpt-5.5 through Pioneer."),
-      maxToolCalls: z.coerce.number().int().positive().default(300).describe("Tool-call budget per iteration."),
-      maxWallTimeSec: z.coerce.number().int().positive().default(1800).describe("Wall-time cap per iteration."),
+      maxToolCalls: z.coerce
+        .number()
+        .int()
+        .positive()
+        .default(300)
+        .describe("Tool-call budget per iteration."),
+      maxWallTimeSec: z.coerce
+        .number()
+        .int()
+        .positive()
+        .default(1800)
+        .describe("Wall-time cap per iteration."),
       maxOutputTokens: z.coerce.number().int().positive().default(8000),
       outRoot: z
         .string()
         .default("/tmp/bp-ralph")
-        .describe("Host dir for run outputs + the agent's .ralph workspace. Defaults to /tmp (the repo volume may be full); move to data/working/ralph once space frees up."),
+        .describe(
+          "Host dir for run outputs + the agent's .ralph workspace. Defaults to /tmp (the repo volume may be full); move to data/working/ralph once space frees up.",
+        ),
       execute: z
         .union([z.boolean(), z.string()])
         .default(false)
@@ -180,7 +184,9 @@ export default defineCommand({
     if (!executeFlag) {
       console.log("findings:ralph (dry run)");
       console.log(`  month=${monthIso} route=${o.route}`);
-      console.log(`  model=${o.provider}/${o.model} iterations=${o.iterations} dryStop=${o.dryStop}`);
+      console.log(
+        `  model=${o.provider}/${o.model} iterations=${o.iterations} dryStop=${o.dryStop}`,
+      );
       console.log(`  budget/iter: ${o.maxToolCalls} tool calls, ${o.maxWallTimeSec}s`);
       console.log("  pass --execute to run the loop (writes to data/working/ralph/<runId>/).");
       return {
@@ -198,11 +204,14 @@ export default defineCommand({
     }
 
     const envName =
-      o.provider === "deepseek" ? "DEEPSEEK_API_KEY"
-      : o.provider === "pioneer" ? "PIONEER_API_KEY"
-      : "OPENROUTER_API_KEY";
+      o.provider === "deepseek"
+        ? "DEEPSEEK_API_KEY"
+        : o.provider === "pioneer"
+          ? "PIONEER_API_KEY"
+          : "OPENROUTER_API_KEY";
     const apiKey = process.env[envName]?.trim() ?? "";
-    if (apiKey.length === 0) throw new Error(`${envName} is required for findings:ralph --execute.`);
+    if (apiKey.length === 0)
+      throw new Error(`${envName} is required for findings:ralph --execute.`);
 
     const runId = makeRunId();
     // Per-SCOPE dir persists across cooks (the compounding artifact): the agent
@@ -226,13 +235,16 @@ export default defineCommand({
     const ledger: AgentFindingProposal[] = [];
     if (existsSync(ledgerPath)) {
       try {
-        const prior = JSON.parse(await readFile(ledgerPath, "utf8")) as { ledger?: AgentFindingProposal[] };
+        const prior = JSON.parse(await readFile(ledgerPath, "utf8")) as {
+          ledger?: AgentFindingProposal[];
+        };
         if (Array.isArray(prior.ledger)) ledger.push(...prior.ledger);
       } catch {
         // corrupt/partial prior ledger — start fresh rather than fail the run.
       }
     }
-    if (ledger.length > 0) console.log(`[ralph] loaded ${ledger.length} prior accepted finding(s) from earlier cooks`);
+    if (ledger.length > 0)
+      console.log(`[ralph] loaded ${ledger.length} prior accepted finding(s) from earlier cooks`);
 
     const baseModel = resolveLlmModel(o.provider, o.model);
 
@@ -255,23 +267,28 @@ export default defineCommand({
     // failure.
     let apiRef = "";
     try {
-      const r = await runTypeScript([
-        "import { listAnalyticsDetectors } from '@bp/analytics/registry';",
-        "const detectors = listAnalyticsDetectors().map((d) => ({ detectorId: d.detectorId, claimTier: d.claimTier, featureGrains: d.featureGrains }));",
-        "console.log('# Analytics registry available in ts_exec');",
-        "console.log(JSON.stringify({ detectorCount: detectors.length, detectors }, null, 2));",
-      ].join("\n"));
+      const r = await runTypeScript(
+        [
+          "import { listAnalyticsDetectors } from '@bp/analytics/registry';",
+          "const detectors = listAnalyticsDetectors().map((d) => ({ detectorId: d.detectorId, claimTier: d.claimTier, featureGrains: d.featureGrains }));",
+          "console.log('# Analytics registry available in ts_exec');",
+          "console.log(JSON.stringify({ detectorCount: detectors.length, detectors }, null, 2));",
+        ].join("\n"),
+      );
       if (r.exitCode === 0 && r.stdout.trim().length > 0) apiRef = r.stdout.trim();
     } catch {
       // non-fatal — fall back to the skill's hand-written API section
     }
-    const systemPrompt = apiRef
-      ? `${RALPH_SYSTEM_PROMPT}\n\n${apiRef}`
-      : RALPH_SYSTEM_PROMPT;
+    const systemPrompt = apiRef ? `${RALPH_SYSTEM_PROMPT}\n\n${apiRef}` : RALPH_SYSTEM_PROMPT;
 
     const scope = `route ${o.route}, month ${monthIso}`;
     const fsTools = buildRalphFsTools(workspaceDir);
-    const perIteration: Array<{ iteration: number; accepted: number; submitAttempts: number; capsHit: string | null }> = [];
+    const perIteration: Array<{
+      iteration: number;
+      accepted: number;
+      submitAttempts: number;
+      capsHit: string | null;
+    }> = [];
     let dryStreak = 0;
     let failStreak = 0;
     let iterationsRun = 0;
@@ -279,7 +296,9 @@ export default defineCommand({
 
     for (let iter = 1; iter <= o.iterations; iter += 1) {
       iterationsRun = iter;
-      console.log(`\n[ralph] iteration ${iter}/${o.iterations} — ledger has ${ledger.length} accepted`);
+      console.log(
+        `\n[ralph] iteration ${iter}/${o.iterations} — ledger has ${ledger.length} accepted`,
+      );
       const store: ProposalStore = { proposals: [], validations: [], attempts: 0 };
       const submitTool = buildSubmitFindingProposalsTool({
         runId,
@@ -318,7 +337,9 @@ export default defineCommand({
         // Hit the cap / wall-time without ever submitting — a failed iteration,
         // NOT a genuine dry result. Don't let it masquerade as loop-until-dry.
         failStreak += 1;
-        console.log(`[ralph] iteration submitted nothing (capsHit=${loopResult.capsHit ?? "—"}, fail streak ${failStreak})`);
+        console.log(
+          `[ralph] iteration submitted nothing (capsHit=${loopResult.capsHit ?? "—"}, fail streak ${failStreak})`,
+        );
         if (failStreak >= 2) {
           stoppedReason = "repeated-submit-failure";
           break;
@@ -326,7 +347,9 @@ export default defineCommand({
       } else {
         // Submitted, but nothing novel survived validation — genuinely dry.
         dryStreak += 1;
-        console.log(`[ralph] submitted, no new accepted finding (dry streak ${dryStreak}/${o.dryStop})`);
+        console.log(
+          `[ralph] submitted, no new accepted finding (dry streak ${dryStreak}/${o.dryStop})`,
+        );
         if (dryStreak >= o.dryStop) {
           stoppedReason = "loop-until-dry";
           break;
@@ -334,7 +357,9 @@ export default defineCommand({
       }
     }
 
-    console.log(`\n[ralph] done: ${ledger.length} accepted over ${iterationsRun} iterations (${stoppedReason}).`);
+    console.log(
+      `\n[ralph] done: ${ledger.length} accepted over ${iterationsRun} iterations (${stoppedReason}).`,
+    );
     return {
       command: "findings:ralph" as const,
       runId,

@@ -6,13 +6,9 @@ import type {
   AgentFindingProposalValidationState,
   PromotedFinding,
   RouteMonthSignalFeature,
-} from "@bp/domain";
+} from "@bp/domain/findings";
 
-import {
-  type CodeExecutionCache,
-  preExecuteCodeRefs,
-  sha256Hex,
-} from "./_code_execution.ts";
+import { type CodeExecutionCache, preExecuteCodeRefs, sha256Hex } from "./_code_execution.ts";
 import type { LoadedCorpus } from "./_corpus.ts";
 import { findNumericField, resolveEvidencePayload } from "./_evidence_payload.ts";
 
@@ -164,16 +160,12 @@ export function validateMetricConsistency(
   for (const claim of ctx.proposal.metricClaims) {
     const payload = resolveEvidencePayload(ctx.corpus, claim.evidenceRef, ctx.codeExecutionCache);
     if (!payload) {
-      errors.push(
-        `metricClaim ${claim.variable}: cited evidenceRef does not resolve to a payload`,
-      );
+      errors.push(`metricClaim ${claim.variable}: cited evidenceRef does not resolve to a payload`);
       continue;
     }
     const actual = findNumericField(payload, claim.variable);
     if (actual === undefined) {
-      errors.push(
-        `metricClaim ${claim.variable}: field name not found in cited evidence payload`,
-      );
+      errors.push(`metricClaim ${claim.variable}: field name not found in cited evidence payload`);
       continue;
     }
     if (Math.abs(actual - claim.value) > metricTolerance(actual)) {
@@ -203,10 +195,7 @@ export type ProseNumberToken = { value: number; isPercentage: boolean };
 // metrics: street numbers in addresses ("138 ST"), service-code identifiers
 // ("311 service request"), ISO dates / years, 32-char hex IDs, HH:MM times,
 // and known route IDs from the corpus.
-function scrubNonQuantityNumerics(
-  claimText: string,
-  routes: ReadonlySet<string>,
-): string {
+function scrubNonQuantityNumerics(claimText: string, routes: ReadonlySet<string>): string {
   let scrub = claimText;
   // Thousand separators inside numerics ("1,234" → "1234").
   while (/(\d),(\d)/.test(scrub)) {
@@ -261,10 +250,7 @@ export function extractProseNumberTokens(
 }
 
 // Back-compat for tests that just want the raw values.
-export function extractProseNumbers(
-  claimText: string,
-  routes: ReadonlySet<string>,
-): number[] {
+export function extractProseNumbers(claimText: string, routes: ReadonlySet<string>): number[] {
   return extractProseNumberTokens(claimText, routes).map((t) => t.value);
 }
 
@@ -286,9 +272,7 @@ export function validateProseNumberCoverage(
       return Math.abs(v - n) <= tol;
     });
   for (const token of tokens) {
-    const candidates = token.isPercentage
-      ? [token.value, token.value / 100]
-      : [token.value];
+    const candidates = token.isPercentage ? [token.value, token.value / 100] : [token.value];
     if (!candidates.some(matchesAny)) {
       const display = token.isPercentage ? `${token.value}%` : `${token.value}`;
       errors.push(
@@ -302,18 +286,13 @@ export function validateProseNumberCoverage(
 // ---------------------------------------------------------------------------
 // 3. route_refs
 
-export function validateRouteRefs(
-  ctx: ValidatorContext,
-): AgentFindingProposalValidationCheck {
+export function validateRouteRefs(ctx: ValidatorContext): AgentFindingProposalValidationCheck {
   const errors: string[] = [];
   if (ctx.proposal.routeId && !ctx.corpus.routes.has(ctx.proposal.routeId)) {
     errors.push(`proposal.routeId ${ctx.proposal.routeId} not in corpus`);
   }
   const refs: Array<{ routeId: string }> = [];
-  for (const ref of [
-    ...ctx.proposal.evidenceRefs,
-    ...ctx.proposal.counterEvidenceRefs,
-  ]) {
+  for (const ref of [...ctx.proposal.evidenceRefs, ...ctx.proposal.counterEvidenceRefs]) {
     if (ref.kind === "signal_feature" || ref.kind === "context_appendix") {
       refs.push({ routeId: ref.routeId });
     }
@@ -453,9 +432,7 @@ export function jaccard(a: Set<string>, b: Set<string>): number {
   return union === 0 ? 0 : intersect / union;
 }
 
-function evidenceRefStrings(
-  refs: ReadonlyArray<AgentFindingProposalEvidenceRef>,
-): Set<string> {
+function evidenceRefStrings(refs: ReadonlyArray<AgentFindingProposalEvidenceRef>): Set<string> {
   const out = new Set<string>();
   for (const ref of refs) {
     switch (ref.kind) {
@@ -513,9 +490,7 @@ function findDuplicateMatch(
   return null;
 }
 
-export function validateDuplicate(
-  ctx: ValidatorContext,
-): AgentFindingProposalValidationCheck {
+export function validateDuplicate(ctx: ValidatorContext): AgentFindingProposalValidationCheck {
   const match = findDuplicateMatch(ctx);
   if (match === null) {
     return { name: "duplicate", passed: true, errors: [] };
@@ -523,9 +498,7 @@ export function validateDuplicate(
   return {
     name: "duplicate",
     passed: false,
-    errors: [
-      `duplicate of promoted finding ${match.promotedFindingId}: ${match.reason}`,
-    ],
+    errors: [`duplicate of promoted finding ${match.promotedFindingId}: ${match.reason}`],
   };
 }
 
@@ -573,10 +546,7 @@ export function validateScopeBlockedClaims(
       "claimText asserts implementation, but every cited intervention record is proposed-only",
     );
   }
-  if (
-    ctx.proposal.claimStrength === "qualified_claim" &&
-    allCitedInterventionsAreProposed(ctx)
-  ) {
+  if (ctx.proposal.claimStrength === "qualified_claim" && allCitedInterventionsAreProposed(ctx)) {
     errors.push(
       "claimStrength=qualified_claim with proposed-only intervention support: downgrade to observation",
     );
@@ -610,9 +580,9 @@ export async function validateProposal(
   const errors = checks.flatMap((check) =>
     check.errors.map((message) => `[${check.name}] ${message}`),
   );
-  const state: AgentFindingProposalValidationState = (errors.length === 0
-    ? "valid"
-    : "rejected") as AgentFindingProposalValidationState;
+  const state: AgentFindingProposalValidationState = (
+    errors.length === 0 ? "valid" : "rejected"
+  ) as AgentFindingProposalValidationState;
   return {
     proposalId: proposal.proposalId,
     validationState: state,

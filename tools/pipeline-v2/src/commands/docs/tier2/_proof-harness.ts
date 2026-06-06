@@ -5,8 +5,8 @@ import { basename, dirname, join } from "node:path";
 import {
   type OperationalDateAssertion,
   OperationalDateAssertionSchema,
-  toProjectJsonSchema,
-} from "@bp/domain";
+} from "@bp/domain/documents/operational-date";
+import { toProjectJsonSchema } from "@bp/domain/json-schema";
 import { z } from "zod";
 import { writeJson } from "../../../lib/json.ts";
 import type { ToolCallMessage } from "../../../lib/llm.ts";

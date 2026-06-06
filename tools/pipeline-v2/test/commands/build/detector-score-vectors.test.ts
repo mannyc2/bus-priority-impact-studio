@@ -1,66 +1,29 @@
 import { describe, expect, test } from "bun:test";
-import { buildGenericDetectorScoreVectorArtifact } from "@bp/applied-research/score-vectors";
+import { detectorScoreVectorsPath } from "../../../src/commands/build/detector-score-vectors.ts";
 
-describe("build generic detector score vectors", () => {
-  test("joins coverage rows to candidate scores and falls back for clean no-hit rows", () => {
-    const artifact = buildGenericDetectorScoreVectorArtifact({
-      coverageRows: [
-        {
-          detector_id: "persistent_speed_hotspot",
-          month: "2026-03",
-          scope_kind: "route",
-          scope_id: "M15",
-          outcome: "hit",
-          reason_code: "slow_segment",
-        },
-        {
-          detector_id: "persistent_speed_hotspot",
-          month: "2026-03",
-          scope_kind: "route",
-          scope_id: "M16",
-          outcome: "clean_no_hit",
-          reason_code: "below_threshold",
-        },
-      ],
-      candidateRows: [
-        {
-          candidate_id: "c1",
-          detector_id: "persistent_speed_hotspot",
-          month: "2026-03",
-          scope_kind: "route",
-          scope_id: "M15",
-          route_id: "M15",
-          detector_score: 87,
-          reason_code: "slow_segment",
-          confidence: 0.9,
-          severity: 0.8,
-        },
-      ],
-      startMonth: "2026-03",
-      endMonth: "2026-03",
-      releaseMonth: "2026-03",
-      generatedAt: "2026-06-01T00:00:00.000Z",
-      dbPath: "data/local/pipeline.sqlite",
-      artifactPath: "data/artifacts/detector-score-vectors.json",
-    });
+describe("build detector-score-vectors boundary", () => {
+  test("keeps score-vector research logic out of the pipeline command", async () => {
+    const text = await Bun.file(
+      new URL("../../../src/commands/build/detector-score-vectors.ts", import.meta.url),
+    ).text();
 
-    expect(artifact.summary.detectorCount).toBeGreaterThan(1);
-    expect(artifact.summary.entryCount).toBe(2);
-    expect(artifact.summary.flaggedCount).toBe(1);
-    expect(artifact.summary.cleanNoHitCount).toBe(1);
+    expect(text).toContain("@bp/applied-research/local-db");
+    expect(text).toContain("@bp/applied-research/score-vectors");
+    expect(text).not.toContain("local_finding_coverage_audit");
+    expect(text).not.toContain("local_finding_candidate");
+    expect(text).not.toContain("buildGenericDetectorScoreVectorArtifact");
+  });
 
-    const vector = artifact.detectors.find(
-      (detector) => detector.detectorId === "persistent_speed_hotspot",
-    );
-    expect(vector?.status).toBe("available");
-    expect(vector?.featureGrains).toEqual(["route_segment_month"]);
-    expect(vector?.summary.maxScore).toBe(87);
-    expect(vector?.entries[0]?.candidateId).toBe("c1");
-    expect(vector?.entries[0]?.hasCandidateScore).toBe(true);
-    expect(vector?.entries[1]?.score).toBe(0);
-    expect(vector?.entries[1]?.hasCandidateScore).toBe(false);
+  test("uses the applied-research detector score-vector artifact namespace", () => {
     expect(
-      artifact.detectors.some((detector) => detector.status === "missing_execution_coverage"),
-    ).toBe(true);
+      detectorScoreVectorsPath({
+        artifactRoot: "data/artifacts",
+        startMonth: "2023-04",
+        endMonth: "2026-03",
+        releaseMonth: "2026-03",
+      }),
+    ).toBe(
+      "data/artifacts/detector-score-vectors/2023-04_to_2026-03/2026-03/detector-score-vectors.json",
+    );
   });
 });

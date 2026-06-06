@@ -1,20 +1,14 @@
-import * as z from "zod";
-
 import {
   type AgentBriefProposal,
   AgentBriefProposalSchema,
   type AgentBriefProposalsArtifact,
   type AgentBriefProposalValidationArtifact,
   type AgentFindingProposalModelMeta,
-} from "@bp/domain";
-
-import type { LoadedCorpus } from "./_corpus.ts";
+} from "@bp/domain/findings";
+import * as z from "zod";
+import { getRouteBriefDigest, type RouteBriefDigest, routeIdToBriefSlug } from "./_brief_tools.ts";
 import { validateBriefProposal } from "./_brief_validation.ts";
-import {
-  getRouteBriefDigest,
-  type RouteBriefDigest,
-  routeIdToBriefSlug,
-} from "./_brief_tools.ts";
+import type { LoadedCorpus } from "./_corpus.ts";
 
 // ---------------------------------------------------------------------------
 // Model seam — same shape as _runner.ts. The smoke test injects a canned
@@ -25,9 +19,7 @@ export type BriefModelCompletionInput = {
   userMessage: string;
 };
 
-export type BriefModelCompletion = (
-  input: BriefModelCompletionInput,
-) => Promise<string>;
+export type BriefModelCompletion = (input: BriefModelCompletionInput) => Promise<string>;
 
 // ---------------------------------------------------------------------------
 // Model output shape — permissive front-end. The runner narrows each draft
@@ -118,9 +110,7 @@ Return JSON only:
 
 Return nothing else. No commentary, no markdown, no preamble.`;
 
-function buildBriefUserMessage(input: {
-  digests: RouteBriefDigest[];
-}): string {
+function buildBriefUserMessage(input: { digests: RouteBriefDigest[] }): string {
   const header = [
     `Generate one brief proposal per route below.`,
     "If a route has zero promoted findings, skip it — a brief without findings has nothing to anchor to.",
@@ -171,8 +161,8 @@ function buildProposalFromDraft(input: {
     proposalId: draft.proposalId ?? makeProposalId(input.runId),
     runId: input.runId,
     brief: draft.brief as AgentBriefProposal["brief"],
-    evidenceProvenance:
-      (draft.evidenceProvenance ?? []) as AgentBriefProposal["evidenceProvenance"],
+    evidenceProvenance: (draft.evidenceProvenance ??
+      []) as AgentBriefProposal["evidenceProvenance"],
     selectedFindingIds: draft.selectedFindingIds ?? [],
     selectedInterventionRecordIds: draft.selectedInterventionRecordIds ?? [],
     curationRationale: draft.curationRationale,
@@ -192,9 +182,7 @@ export async function runAgentBriefPropose(
   input: RunBriefProposalsInput,
 ): Promise<RunBriefProposalsResult> {
   const start = Date.now();
-  const digests = input.routes.map((routeId) =>
-    getRouteBriefDigest(input.corpus, routeId),
-  );
+  const digests = input.routes.map((routeId) => getRouteBriefDigest(input.corpus, routeId));
   const userMessage = buildBriefUserMessage({ digests });
   const text = await input.modelComplete({
     systemPrompt: BRIEF_SYSTEM_PROMPT,

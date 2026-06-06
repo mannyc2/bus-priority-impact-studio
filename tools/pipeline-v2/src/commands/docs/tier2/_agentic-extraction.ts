@@ -14,9 +14,9 @@ import {
   type DocumentResearchSurfaceDraftValidation,
   type SubmitDocumentResearchSurfaceDraftsResult,
   submitDocumentResearchSurfaceDrafts,
-  toProjectJsonSchema,
   validateDocumentResearchSurfaceDraft,
-} from "@bp/domain";
+} from "@bp/domain/documents/research-surfaces";
+import { toProjectJsonSchema } from "@bp/domain/json-schema";
 import * as z from "zod";
 import { writeJson } from "../../../lib/json.ts";
 import type { ToolCallMessage } from "../../../lib/llm.ts";
@@ -641,10 +641,7 @@ export async function buildTier2AgenticExtractionRequestFromDiscovery(
     extraction,
   });
   const routeContext = routeLookupsFromBlocks(blockIndex.blocks);
-  const priorContext = [
-    ...priorContextFromDiscovery(extraction),
-    ...(args.priorContext ?? []),
-  ];
+  const priorContext = [...priorContextFromDiscovery(extraction), ...(args.priorContext ?? [])];
   return Tier2AgenticExtractionRequestSchema.parse({
     schemaVersion: 1,
     runId,
@@ -1669,7 +1666,8 @@ export function auditTier2AgenticExtractionArtifact(input: {
     summary: input.artifact.summary,
     attemptSummary: input.artifact.llmAttempts.map((attempt) => ({
       status: attempt.status,
-      temperature: attempt.temperature ?? input.artifact.temperature ?? DEFAULT_AGENTIC_EXTRACTION_TEMPERATURE,
+      temperature:
+        attempt.temperature ?? input.artifact.temperature ?? DEFAULT_AGENTIC_EXTRACTION_TEMPERATURE,
       draftCount: attempt.draftCount,
       acceptedCount: attempt.acceptedCount,
       rejectedCount: attempt.rejectedCount,

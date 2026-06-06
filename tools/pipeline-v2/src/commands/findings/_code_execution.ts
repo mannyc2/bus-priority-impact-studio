@@ -1,10 +1,7 @@
 import { createHash } from "node:crypto";
 
-import type {
-  AgentFindingProposal,
-  AgentFindingProposalEvidenceRef,
-  CodeExecutionLanguage,
-} from "@bp/domain";
+import type { AgentFindingProposal, AgentFindingProposalEvidenceRef } from "@bp/domain/findings";
+import type { CodeExecutionLanguage } from "@bp/domain/primitives";
 
 import { runBash, runTypeScript, type SandboxResult } from "../../lib/sandbox.ts";
 
@@ -63,10 +60,7 @@ const SH_FORBIDDEN: ReadonlyArray<RegExp> = [
   /\bmktemp\b/,
 ];
 
-export function checkDeterminism(
-  code: string,
-  language: CodeExecutionLanguage,
-): string | null {
+export function checkDeterminism(code: string, language: CodeExecutionLanguage): string | null {
   const patterns = language === "typescript" ? TS_FORBIDDEN : SH_FORBIDDEN;
   for (const pat of patterns) {
     const m = code.match(pat);
@@ -110,11 +104,13 @@ function entryFromSandbox(r: SandboxResult): CodeExecutionCacheEntry {
     durationMs: r.durationMs,
     timedOut: r.timedOut,
     truncated: r.stdoutTruncated,
-    error:
-      r.timedOut ? "execution timed out"
-      : r.stdoutTruncated ? "stdout truncated at sandbox cap"
-      : r.exitCode !== 0 ? `non-zero exit ${r.exitCode}: ${r.stderr.slice(0, 200).trim()}`
-      : null,
+    error: r.timedOut
+      ? "execution timed out"
+      : r.stdoutTruncated
+        ? "stdout truncated at sandbox cap"
+        : r.exitCode !== 0
+          ? `non-zero exit ${r.exitCode}: ${r.stderr.slice(0, 200).trim()}`
+          : null,
   };
 }
 

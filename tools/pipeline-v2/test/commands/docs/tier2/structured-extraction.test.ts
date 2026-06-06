@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdir, rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { StructuredDocumentExtractionToolResponseSchema } from "@bp/domain";
+import { StructuredDocumentExtractionToolResponseSchema } from "@bp/domain/documents/structured-extraction";
 import {
   extractTier2StructuredDocuments,
   validateStructuredExtraction,

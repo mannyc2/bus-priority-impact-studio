@@ -14,7 +14,9 @@ import {
   listRouteMonthTrends,
   listRouteObservedReliabilitySummaries,
   listRouteReliabilityBaselines,
+  listRouteSpeedHistoryCoverage,
   listSelectedRouteBuildCandidates,
+  listSourceMonthCoverage,
 } from "@bp/db/d1";
 import { createBunSqliteServingDb } from "@bp/db/d1/bun-sqlite";
 import type { D1SeedOutputResult } from "../export/d1.ts";
@@ -37,6 +39,8 @@ export type RepositoryCheckResult = {
   corridorInterventionContextRows: number;
   corridorArtifactRows: number;
   routeMonthTrendRows: number;
+  routeSpeedHistoryCoverageRows: number;
+  sourceMonthCoverageRows: number;
   routeEquityContextRows: number;
   firstRouteId: string | null;
 };
@@ -85,6 +89,9 @@ const COUNTED_TABLES = [
   "corridor_hotspot",
   "route_month_source_status",
   "route_month_trend",
+  "route_timeline_index",
+  "route_speed_history_coverage",
+  "source_month_coverage",
   "route_equity_context",
   "route_scorecard",
   "route_scorecard_citation",
@@ -144,6 +151,12 @@ const TABLE_COUNT_EXPECTATIONS: ReadonlyArray<{
   { table: "corridor_hotspot", pick: (r) => r.corridorHotspotRowCount },
   { table: "route_month_source_status", pick: (r) => r.routeMonthSourceStatusRowCount },
   { table: "route_month_trend", pick: (r) => r.routeMonthTrendRowCount },
+  { table: "route_timeline_index", pick: (r) => r.routeTimelineIndexRowCount },
+  {
+    table: "route_speed_history_coverage",
+    pick: (r) => r.routeSpeedHistoryCoverageRowCount,
+  },
+  { table: "source_month_coverage", pick: (r) => r.sourceMonthCoverageRowCount },
   { table: "route_equity_context", pick: (r) => r.routeEquityContextRowCount },
   { table: "route_scorecard", pick: (r) => r.routeCount },
   { table: "route_scorecard_citation", pick: (r) => r.routeScorecardCitationRowCount },
@@ -184,6 +197,8 @@ export async function runD1RepositoryChecks(input: {
   const routeObservedReliability = await listRouteObservedReliabilitySummaries(input.db, input.month);
   const routeInterventionComparisons = await listRouteInterventionComparisons(input.db, input.month);
   const routeArtifacts = await listRouteArtifacts(input.db, input.month);
+  const routeSpeedHistoryCoverage = await listRouteSpeedHistoryCoverage(input.db, input.month);
+  const sourceMonthCoverage = await listSourceMonthCoverage(input.db);
   const corridorSummaries = await listCorridorSummaries(input.db, input.month);
   const corridorArtifacts = await listCorridorArtifacts(input.db, input.month);
   const corridorInterventionContextRows = corridorSummaries.reduce(
@@ -211,6 +226,8 @@ export async function runD1RepositoryChecks(input: {
     corridorInterventionContextRows,
     corridorArtifactRows: corridorArtifacts.length,
     routeMonthTrendRows: routeMonthTrends.length,
+    routeSpeedHistoryCoverageRows: routeSpeedHistoryCoverage.length,
+    sourceMonthCoverageRows: sourceMonthCoverage.length,
     routeEquityContextRows: routeEquityContexts.length,
     firstRouteId,
   };
@@ -272,6 +289,19 @@ export function verifyD1RepositoryChecks(input: {
   if (input.checks.corridorArtifactRows !== input.exportResult.corridorArtifactRowCount) {
     input.issues.push(
       `repository:corridorArtifactRows_expected_${input.exportResult.corridorArtifactRowCount}_actual_${input.checks.corridorArtifactRows}`,
+    );
+  }
+  if (
+    input.checks.routeSpeedHistoryCoverageRows !==
+    input.exportResult.routeSpeedHistoryCoverageRowCount
+  ) {
+    input.issues.push(
+      `repository:routeSpeedHistoryCoverageRows_expected_${input.exportResult.routeSpeedHistoryCoverageRowCount}_actual_${input.checks.routeSpeedHistoryCoverageRows}`,
+    );
+  }
+  if (input.checks.sourceMonthCoverageRows !== input.exportResult.sourceMonthCoverageRowCount) {
+    input.issues.push(
+      `repository:sourceMonthCoverageRows_expected_${input.exportResult.sourceMonthCoverageRowCount}_actual_${input.checks.sourceMonthCoverageRows}`,
     );
   }
 }

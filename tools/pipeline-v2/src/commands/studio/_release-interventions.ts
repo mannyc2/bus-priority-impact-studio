@@ -1,9 +1,5 @@
-import {
-  buildStudioInterventionsFromComparisons,
-} from "@bp/domain";
-import type {
-  RouteInterventionComparison,
-} from "@bp/db";
+import type { RouteInterventionComparison } from "@bp/db";
+import { buildStudioInterventionsFromComparisons } from "@bp/domain/studio/interventions";
 import { routeKey } from "./_release-routes.ts";
 import type {
   StudioIntervention,
@@ -169,7 +165,9 @@ export async function tier2DocumentChunkIndex(
   if (!(await file.exists())) {
     return new Map();
   }
-  const artifact = (await file.json()) as { chunks: Array<{ chunkId: string; pageRefs: number[]; excerpt: string }> };
+  const artifact = (await file.json()) as {
+    chunks: Array<{ chunkId: string; pageRefs: number[]; excerpt: string }>;
+  };
   return new Map(
     artifact.chunks.map((chunk) => [
       chunk.chunkId,

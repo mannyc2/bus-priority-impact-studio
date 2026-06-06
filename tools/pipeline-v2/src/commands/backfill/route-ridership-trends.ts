@@ -11,6 +11,7 @@ import {
   withLocalDb,
 } from "../../lib/local-db.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
+import { mergeRoutesWithFile } from "../../lib/route-list.ts";
 import {
   fetchSoda3RowsForSource,
   type SocrataFetch,
@@ -236,6 +237,7 @@ export default defineCommand({
       endYear: arg.positiveInt().default(2026).describe("End year"),
       endMonth: arg.positiveInt().default(3).describe("End month, 1-12"),
       routes: z.array(z.string()).default([]).describe("Specific route IDs (default: all)"),
+      routesFile: z.string().optional().describe("JSON file containing route IDs"),
       limit: arg.positiveInt().optional().describe("Cap on candidate rows"),
       concurrency: arg.positiveInt().default(4).describe("Concurrent Socrata fetches"),
     }),
@@ -250,13 +252,14 @@ export default defineCommand({
     remainingRidershipMissingCount: z.number(),
   }),
   async run({ ctx, input }) {
+    const routes = await mergeRoutesWithFile(input.options.routes, input.options.routesFile);
     return runBackfillRouteRidershipTrends({
       local: localDbFromCtx(ctx),
       startYear: input.options.startYear,
       startMonth: input.options.startMonth,
       endYear: input.options.endYear,
       endMonth: input.options.endMonth,
-      routes: input.options.routes.length === 0 ? undefined : input.options.routes,
+      routes: routes.length === 0 ? undefined : routes,
       limit: input.options.limit,
       concurrency: input.options.concurrency,
     });

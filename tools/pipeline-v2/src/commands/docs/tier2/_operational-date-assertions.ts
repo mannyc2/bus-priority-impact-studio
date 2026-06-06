@@ -4,16 +4,13 @@ import { dirname, join } from "node:path";
 import {
   classifyOperationalDate,
   computeCausalAnchorEligibility,
+  type OperationalDateAssertion,
   operationalDateConfidence,
   parseOperationalDate,
-  type OperationalDateAssertion,
-} from "@bp/domain";
+} from "@bp/domain/documents/operational-date";
 import { writeJson } from "../../../lib/json.ts";
 import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";
-import {
-  classifyTier2Event,
-  type DocumentDerivedEventSurface,
-} from "./_event-route-resolution.ts";
+import { classifyTier2Event, type DocumentDerivedEventSurface } from "./_event-route-resolution.ts";
 import { latestDocsRunId, runArtifactRoot } from "./_shared.ts";
 
 const ARTIFACT_KIND = "bp.tier2_document_operational_date_assertions.v1";
@@ -48,7 +45,9 @@ async function loadRouteMap(path: string): Promise<Map<string, RouteJoinInfo>> {
     map.set(surfaceId, {
       routeIds,
       routeIdentityValidationState:
-        typeof row["routeIdentityValidationState"] === "string" ? row["routeIdentityValidationState"] : null,
+        typeof row["routeIdentityValidationState"] === "string"
+          ? row["routeIdentityValidationState"]
+          : null,
       routeResolutionTier:
         typeof row["routeResolutionTier"] === "string" ? row["routeResolutionTier"] : null,
     });
@@ -162,8 +161,8 @@ export function buildOperationalDateAssertion(
   const classification = classifyTier2Event(event);
   const raw: Record<string, unknown> = event.rawCandidate ?? {};
   const statusRaw = strOrNull(raw["statusRaw"]);
-  const familyRaw = strOrNull(raw["familyRaw"]) ?? (event.eventFamily ?? null);
-  const subtypeRaw = strOrNull(raw["subtypeRaw"]) ?? (event.eventSubtype ?? null);
+  const familyRaw = strOrNull(raw["familyRaw"]) ?? event.eventFamily ?? null;
+  const subtypeRaw = strOrNull(raw["subtypeRaw"]) ?? event.eventSubtype ?? null;
   const operationalDate = classifyOperationalDate({
     statusRaw,
     dateText: event.dateText ?? null,
@@ -259,9 +258,7 @@ function addCount(counts: Record<string, number>, key: string): void {
   counts[key] = (counts[key] ?? 0) + 1;
 }
 
-function buildSummary(
-  rows: readonly OperationalDateAssertion[],
-): OperationalDateAssertionsSummary {
+function buildSummary(rows: readonly OperationalDateAssertion[]): OperationalDateAssertionsSummary {
   const countsByValidationState: Record<string, number> = {};
   const countsBySourceStatedStatus: Record<string, number> = {};
   const countsByEventKind: Record<string, number> = {};
@@ -328,7 +325,9 @@ export async function runTier2OperationalDateAssertions(
 
   const rows: OperationalDateAssertion[] = [];
   for await (const event of readJsonl<DocumentDerivedEventSurface>(eventsPath)) {
-    rows.push(buildOperationalDateAssertion(event, routeMap.get(event.surfaceId) ?? EMPTY_ROUTE_JOIN));
+    rows.push(
+      buildOperationalDateAssertion(event, routeMap.get(event.surfaceId) ?? EMPTY_ROUTE_JOIN),
+    );
   }
   applyCrossSourceDedup(rows);
 
@@ -397,7 +396,9 @@ function parseCliOptions(args: string[]): CliArgs {
 
 export async function runTier2OperationalDateAssertionsFromCli(args: string[]) {
   const parsed = parseCliOptions(args);
-  const artifactRoot = parsed.artifactRoot ? fromCliPath(parsed.artifactRoot) : defaultArtifactRootPath();
+  const artifactRoot = parsed.artifactRoot
+    ? fromCliPath(parsed.artifactRoot)
+    : defaultArtifactRootPath();
   const runId = parsed.runId ?? (await latestDocsRunId(artifactRoot));
   if (runId === null && parsed.surfacesDir === undefined && parsed.eventsPath === undefined) {
     throw new Error("No Tier 2 run found. Pass --surfaces-dir or --run-id.");
@@ -414,7 +415,9 @@ export async function runTier2OperationalDateAssertionsFromCli(args: string[]) {
     surfacesDir,
     outputPath,
     ...(parsed.eventsPath ? { eventsPath: fromCliPath(parsed.eventsPath) } : {}),
-    ...(parsed.routeResolutionPath ? { routeResolutionPath: fromCliPath(parsed.routeResolutionPath) } : {}),
+    ...(parsed.routeResolutionPath
+      ? { routeResolutionPath: fromCliPath(parsed.routeResolutionPath) }
+      : {}),
     ...(parsed.generatedAt ? { generatedAt: parsed.generatedAt } : {}),
   });
 }

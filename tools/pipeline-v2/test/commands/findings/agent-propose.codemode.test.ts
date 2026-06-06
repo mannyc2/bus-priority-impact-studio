@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import type { AgentFindingProposalModelMeta } from "@bp/domain";
+import type { AgentFindingProposalModelMeta } from "@bp/domain/findings";
 import type { AgentToolResult } from "@earendil-works/pi-agent-core";
 
 import { sha256Hex } from "../../../src/commands/findings/_code_execution.ts";
@@ -20,10 +20,9 @@ async function invokeSubmit(
 ): Promise<{ details: SubmitResultDetails | undefined; result: AgentToolResult<unknown> }> {
   const submitTool = extraTools.find((t) => t.name === "submit_finding_proposals");
   if (!submitTool) throw new Error("submit_finding_proposals tool not in extraTools");
-  const result = (await submitTool.execute(
-    "tc-submit-1",
-    { proposals },
-  )) as AgentToolResult<unknown>;
+  const result = (await submitTool.execute("tc-submit-1", {
+    proposals,
+  })) as AgentToolResult<unknown>;
   return {
     details: result.details as SubmitResultDetails | undefined,
     result,
@@ -35,7 +34,14 @@ function emptyLoopResult() {
     finalText: "",
     toolUseTrace: [],
     capsHit: null,
-    usage: { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, totalTokens: 0, costUsd: 0 },
+    usage: {
+      inputTokens: 0,
+      outputTokens: 0,
+      cacheReadTokens: 0,
+      cacheWriteTokens: 0,
+      totalTokens: 0,
+      costUsd: 0,
+    },
     retries: 0,
     iterations: 1,
   };
@@ -109,9 +115,7 @@ const model: AgentFindingProposalModelMeta = {
 async function captureHash(code: string): Promise<string> {
   const r = await runTypeScript(code);
   if (r.exitCode !== 0) {
-    throw new Error(
-      `captureHash: code exited ${r.exitCode}: stderr=${r.stderr.slice(0, 200)}`,
-    );
+    throw new Error(`captureHash: code exited ${r.exitCode}: stderr=${r.stderr.slice(0, 200)}`);
   }
   return sha256Hex(r.stdout);
 }
@@ -136,9 +140,7 @@ maybe("runAgentPropose codemode (mock loop + real sandbox)", () => {
           claimText:
             "Observation: a sandbox computation reports value 42 for this route's reference probe.",
           claimStrength: "observation",
-          evidenceRefs: [
-            { kind: "code_execution", language: "typescript", code, stdoutHash },
-          ],
+          evidenceRefs: [{ kind: "code_execution", language: "typescript", code, stdoutHash }],
           counterEvidenceRefs: [],
           interventionRecordIds: [],
           documentCandidateIds: [],
@@ -237,7 +239,9 @@ maybe("runAgentPropose codemode (mock loop + real sandbox)", () => {
 
     expect(captured?.outcome).toBe("rejected");
     expect(captured?.terminateLoop).toBe(false);
-    expect(captured?.errorsByIndex[0]?.errors.some((e) => e.includes("stdout hash mismatch"))).toBe(true);
+    expect(captured?.errorsByIndex[0]?.errors.some((e) => e.includes("stdout hash mismatch"))).toBe(
+      true,
+    );
     // Rejected proposals are not committed to the artifact under the new flow.
     expect(result.proposals.length).toBe(0);
   });
@@ -291,7 +295,9 @@ maybe("runAgentPropose codemode (mock loop + real sandbox)", () => {
     });
 
     expect(captured?.outcome).toBe("rejected");
-    expect(captured?.errorsByIndex[0]?.errors.some((e) => e.includes("non-deterministic"))).toBe(true);
+    expect(captured?.errorsByIndex[0]?.errors.some((e) => e.includes("non-deterministic"))).toBe(
+      true,
+    );
     expect(result.proposals.length).toBe(0);
   });
 });

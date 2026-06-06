@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import type { AgentFindingProposal } from "@bp/domain";
+import type { AgentFindingProposal } from "@bp/domain/findings";
 
 import { buildBridgedReviewQueue } from "../../../src/commands/findings/agent-proposals-to-review.ts";
 
@@ -8,16 +8,14 @@ function makeProposal(overrides: Partial<AgentFindingProposal>): AgentFindingPro
   return {
     proposalId: "prop-1",
     runId: "run-1",
-    routeId: ("B44" as unknown) as AgentFindingProposal["routeId"],
+    routeId: "B44" as unknown as AgentFindingProposal["routeId"],
     scopeKind: "route" as never,
     category: "reliability" as never,
     severity: "medium" as never,
     confidence: "medium" as never,
     claimText: "Observed long-gap share elevated for the third month.",
     claimStrength: "observation" as never,
-    evidenceRefs: [
-      { kind: "review_packet_link", packetId: "pkt-1", linkId: "link-1" },
-    ],
+    evidenceRefs: [{ kind: "review_packet_link", packetId: "pkt-1", linkId: "link-1" }],
     counterEvidenceRefs: [],
     interventionRecordIds: [],
     documentCandidateIds: [],
@@ -117,9 +115,21 @@ describe("buildBridgedReviewQueue", () => {
   });
 
   test("summary tallies category and severity counts", () => {
-    const a = makeProposal({ proposalId: "a", category: "reliability" as never, severity: "high" as never });
-    const b = makeProposal({ proposalId: "b", category: "reliability" as never, severity: "low" as never });
-    const c = makeProposal({ proposalId: "c", category: "speed" as never, severity: "high" as never });
+    const a = makeProposal({
+      proposalId: "a",
+      category: "reliability" as never,
+      severity: "high" as never,
+    });
+    const b = makeProposal({
+      proposalId: "b",
+      category: "reliability" as never,
+      severity: "low" as never,
+    });
+    const c = makeProposal({
+      proposalId: "c",
+      category: "speed" as never,
+      severity: "high" as never,
+    });
     const artifact = buildBridgedReviewQueue({
       month: "2026-03",
       runId: "run-1",

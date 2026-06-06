@@ -1,14 +1,12 @@
-import { defineCommand, z } from "@liche/core";
 import { join } from "node:path";
-
 import {
   type AgentFindingProposal,
   AgentFindingProposalsArtifactSchema,
   AgentFindingProposalValidationArtifactSchema,
-} from "@bp/domain";
-
-import { agentProposalsDir } from "../../lib/paths.ts";
+} from "@bp/domain/findings";
+import { defineCommand, z } from "@liche/core";
 import { readJsonArtifact, writeJson } from "../../lib/json.ts";
+import { agentProposalsDir } from "../../lib/paths.ts";
 
 // One bridged-queue candidate matches the structural shape of the existing
 // ReviewQueueCandidate (studio/_release-types.ts:468) so reviewer tooling can

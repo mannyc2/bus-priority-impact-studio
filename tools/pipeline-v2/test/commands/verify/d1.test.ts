@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { D1SeedOutputResult } from "../../../src/commands/export/d1.ts";
+import { type D1SeedOutputResult, estimateD1ExportCost } from "../../../src/commands/export/d1.ts";
 import {
   collectD1TableCounts,
   loadD1Database,
@@ -28,6 +28,9 @@ const schemaSql = `
   CREATE TABLE corridor_hotspot (corridor_id TEXT, month TEXT);
   CREATE TABLE route_month_source_status (route_id TEXT, month TEXT, source_id TEXT);
   CREATE TABLE route_month_trend (route_id TEXT);
+  CREATE TABLE route_timeline_index (route_id TEXT, month TEXT);
+  CREATE TABLE route_speed_history_coverage (route_id TEXT, month TEXT);
+  CREATE TABLE source_month_coverage (source_id TEXT, month TEXT);
   CREATE TABLE route_equity_context (route_id TEXT, month TEXT);
   CREATE TABLE route_scorecard (route_id TEXT, month TEXT);
   CREATE TABLE route_scorecard_citation (route_id TEXT, month TEXT, claim TEXT);
@@ -57,6 +60,12 @@ function emptyExportResult(): D1SeedOutputResult {
     seedPath: "/tmp/seed.sql",
     schemaFile: { path: "/tmp/schema.sql", byteLength: 0, sha256: "x" },
     seedFile: { path: "/tmp/seed.sql", byteLength: 0, sha256: "x" },
+    costEstimate: estimateD1ExportCost({
+      schemaPath: "/tmp/schema.sql",
+      schemaSql,
+      seedPath: "/tmp/seed.sql",
+      seedSql,
+    }),
     routeCount: 1,
     comparisonRowCount: 0,
     routeCatalogRowCount: 1,
@@ -80,6 +89,9 @@ function emptyExportResult(): D1SeedOutputResult {
     corridorHotspotRowCount: 0,
     routeMonthSourceStatusRowCount: 0,
     routeMonthTrendRowCount: 0,
+    routeTimelineIndexRowCount: 0,
+    routeSpeedHistoryCoverageRowCount: 0,
+    sourceMonthCoverageRowCount: 0,
     routeEquityContextRowCount: 0,
     routeBatchStatusRowCount: 0,
     routeBatchBuiltRouteRowCount: 0,
@@ -93,13 +105,17 @@ function emptyExportResult(): D1SeedOutputResult {
 describe("verify d1 helpers", () => {
   it("collectD1TableCounts counts loaded rows including public_visible briefs", () => {
     const { database } = loadD1Database(schemaSql, seedSql);
+    const routeCatalogTable = "route_catalog";
+    const routeBriefSummaryTable = "route_brief_summary";
+    const routeScorecardTable = "route_scorecard";
+    const routeArtifactTable = "route_artifact";
     try {
       const { tableCounts, publicTableCounts } = collectD1TableCounts(database);
-      expect(tableCounts["route_catalog"]).toBe(1);
-      expect(tableCounts["route_brief_summary"]).toBe(1);
-      expect(tableCounts["route_scorecard"]).toBe(1);
-      expect(tableCounts["route_artifact"]).toBe(0);
-      expect(publicTableCounts.route_brief_summary).toBe(1);
+      expect(tableCounts[routeCatalogTable]).toBe(1);
+      expect(tableCounts[routeBriefSummaryTable]).toBe(1);
+      expect(tableCounts[routeScorecardTable]).toBe(1);
+      expect(tableCounts[routeArtifactTable]).toBe(0);
+      expect(publicTableCounts[routeBriefSummaryTable]).toBe(1);
     } finally {
       database.close();
     }

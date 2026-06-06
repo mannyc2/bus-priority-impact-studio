@@ -1,6 +1,11 @@
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { dirname, relative, resolve, sep } from "node:path";
-import { defineCommand, z } from "@liche/core";
+import {
+  type StudioBrief,
+  type StudioBriefPublishCandidateExportResponse,
+  StudioBriefPublishCandidateExportResponseSchema,
+  type StudioComment,
+} from "@bp/domain/studio/briefs";
 import {
   buildStudioBriefEvidenceProjection,
   buildStudioBriefHistoryProjection,
@@ -13,13 +18,9 @@ import {
   buildStudioRouteLadderProjection,
   buildStudioRouteProjection,
   buildStudioRoutesProjection,
-  type StudioBrief,
-  type StudioBriefPublishCandidateExportResponse,
-  StudioBriefPublishCandidateExportResponseSchema,
-  type StudioComment,
-  type StudioReleasePayload,
-  StudioReleasePayloadSchema,
-} from "@bp/domain";
+} from "@bp/domain/studio/projections";
+import { type StudioReleasePayload, StudioReleasePayloadSchema } from "@bp/domain/studio/release";
+import { defineCommand, z } from "@liche/core";
 import { fromCliPath } from "../../lib/paths.ts";
 
 const defaultReleasePath = "data/artifacts/studio/v1/release.json";
@@ -268,10 +269,7 @@ export default defineCommand({
       release: z.string().optional().describe("Path to the existing Studio release JSON"),
       output: z.string().optional().describe("Path to write the promoted release JSON"),
       replaceBriefId: z.string().optional().describe("Explicit target brief id to replace"),
-      execute: z.coerce
-        .boolean()
-        .default(false)
-        .describe("Write projections (default is dry-run)"),
+      execute: z.coerce.boolean().default(false).describe("Write projections (default is dry-run)"),
     }),
   },
   output: z.object({

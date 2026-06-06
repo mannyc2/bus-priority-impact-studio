@@ -36,7 +36,7 @@ import {
   DocumentDerivedEventStatusSchema,
   DocumentDerivedMetricAuthoritySchema,
   DocumentDerivedPrioritySchema,
-} from "@bp/domain";
+} from "@bp/domain/documents/derived-surfaces";
 
 // ---------------------------------------------------------------------------
 // CLI

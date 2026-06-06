@@ -11,6 +11,7 @@ import {
   withLocalDb,
 } from "../../lib/local-db.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
+import { mergeRoutesWithFile } from "../../lib/route-list.ts";
 import {
   fetchSoda3RowsForSource,
   type SocrataFetch,
@@ -371,6 +372,7 @@ export default defineCommand({
         .array(z.string())
         .default([])
         .describe("Specific route IDs (default: read from build plan)"),
+      routesFile: z.string().optional().describe("JSON file containing route IDs"),
       skipRidership: z.coerce.boolean().default(false).describe("Skip the ridership trend fetch"),
     }),
   },
@@ -386,13 +388,14 @@ export default defineCommand({
     completeTrendRowCount: z.number(),
   }),
   async run({ ctx, input }) {
+    const routes = await mergeRoutesWithFile(input.options.routes, input.options.routesFile);
     return runRouteTrendsIngest({
       local: localDbFromCtx(ctx),
       startYear: input.options.startYear,
       startMonth: input.options.startMonth,
       endYear: input.options.endYear,
       endMonth: input.options.endMonth,
-      routes: input.options.routes,
+      routes,
       includeRidership: !input.options.skipRidership,
     });
   },

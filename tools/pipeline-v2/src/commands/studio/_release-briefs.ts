@@ -1,9 +1,6 @@
+import type { StudioDocsSource, StudioMethodDataset } from "@bp/domain/studio/docs";
+import type { StudioRouteArtifactRef } from "@bp/domain/studio/routes";
 import type { SourceCoverageLedgerEntry } from "../audit/source-coverage.ts";
-import type {
-  StudioDocsSource,
-  StudioMethodDataset,
-  StudioRouteArtifactRef,
-} from "@bp/domain";
 import type { StudioBrief, StudioFinding, StudioRoute } from "./_release-types.ts";
 
 function formatMonthRange(months: readonly string[]): string {
@@ -324,10 +321,7 @@ const sourceDisplayMeta: Record<string, SourceDisplayMeta> = {
   },
 };
 
-export function sourceHrefForSourceLink(
-  sourceId: string,
-  preferredLabelIncludes?: string,
-): string {
+export function sourceHrefForSourceLink(sourceId: string, preferredLabelIncludes?: string): string {
   const links = sourceDisplayMeta[sourceId]?.sourceLinks ?? [];
   const selected =
     preferredLabelIncludes === undefined

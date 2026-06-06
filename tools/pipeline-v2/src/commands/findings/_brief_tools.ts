@@ -1,4 +1,5 @@
-import type { PromotedFinding, StudioBrief } from "@bp/domain";
+import type { PromotedFinding } from "@bp/domain/findings";
+import type { StudioBrief } from "@bp/domain/studio/briefs";
 
 import type { LoadedCorpus, PublishableIntervention } from "./_corpus.ts";
 import {
@@ -73,10 +74,7 @@ function existingBriefHint(brief: StudioBrief): ExistingBriefHint {
   };
 }
 
-export function getRouteBriefDigest(
-  corpus: LoadedCorpus,
-  routeId: string,
-): RouteBriefDigest {
+export function getRouteBriefDigest(corpus: LoadedCorpus, routeId: string): RouteBriefDigest {
   // Reuse the finding-side digest to fill the common bits, then enrich.
   const baseRaw = getRouteContextDigest(corpus, routeId) as RouteContextDigest;
   const routeSlug = routeIdToBriefSlug(routeId);

@@ -1,17 +1,25 @@
 import { Database } from "bun:sqlite";
 import { describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, utimesSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, utimesSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { buildDataProductCompletenessAudit } from "../../../src/commands/audit/data-product-completeness.ts";
+import {
+  DATA_PRODUCT_MANIFEST,
+  parseDataProductManifest,
+} from "@bp/applied-research/data-products";
 import {
   MATERIALIZATION_COVERAGE_REGISTRY_PRODUCT_BY_SURFACE,
   MATERIALIZATION_COVERAGE_REGISTRY_PRODUCT_IDS,
 } from "../../../src/commands/audit/analytics-materialization-coverage.ts";
 import {
-  DATA_PRODUCT_MANIFEST,
-  parseDataProductManifest,
-} from "../../../src/registry/data-products.ts";
+  buildDataProductCompletenessAudit,
+  buildSourceMonthCoverageMatrix,
+} from "../../../src/commands/audit/data-product-completeness.ts";
+
+const commandPath = join(
+  import.meta.dir,
+  "../../../src/commands/audit/data-product-completeness.ts",
+);
 
 function createDb(): Database {
   const sqlite = new Database(":memory:");
@@ -57,6 +65,19 @@ function createDb(): Database {
       "INSERT INTO local_route_observed_reliability_summary (route_id, month, run_id) VALUES (?, ?, ?)",
     )
     .run("M2", "2026-03", "other-run");
+  return sqlite;
+}
+
+function createRouteCatalogDb(routeIds: readonly string[]): Database {
+  const sqlite = new Database(":memory:");
+  sqlite.exec(`
+    CREATE TABLE local_route_catalog (
+      route_id TEXT NOT NULL
+    );
+  `);
+  for (const routeId of routeIds) {
+    sqlite.query("INSERT INTO local_route_catalog (route_id) VALUES (?)").run(routeId);
+  }
   return sqlite;
 }
 
@@ -341,9 +362,21 @@ describe("data product completeness audit", () => {
       expect(audit.summary.blockedProductCount).toBe(1);
       expect(audit.summary.fetchingProductCount).toBe(1);
       expect(audit.summary.downstreamBlockedProductCount).toBe(6);
+      expect(audit.summary.gapClassCounts).toMatchObject({
+        none: 3,
+        available_not_fetched: 2,
+        derived_not_built: 1,
+        planned_blocked: 1,
+        fetching: 1,
+        waived: 1,
+        stale: 1,
+      });
+      expect(audit.coverage.needsFetch.count).toBe(2);
+      expect(audit.coverage.needsBuild.count).toBe(1);
 
       const speed = audit.products.find((product) => product.productId === "segment_speed_history");
       expect(speed?.status).toBe("partial");
+      expect(speed?.gapClass).toBe("available_not_fetched");
       expect(speed?.checks[0]?.sampleMissing).toEqual(["2026-03"]);
       expect(speed?.checks[0]?.samplePartial).toEqual([
         "2026-02:below_min_row_count+below_min_route_count",
@@ -351,20 +384,20 @@ describe("data product completeness audit", () => {
 
       const briefs = audit.products.find((product) => product.productId === "route_briefs");
       expect(briefs?.status).toBe("partial");
+      expect(briefs?.gapClass).toBe("derived_not_built");
       expect(briefs?.checks[0]?.sampleMissing).toEqual(["M3"]);
 
       const stale = audit.products.find((product) => product.productId === "stale_map_manifest");
       expect(stale?.status).toBe("stale");
+      expect(stale?.gapClass).toBe("stale");
       expect(stale?.checks[0]?.reasons).toContain("artifact_stale");
 
       const mirror = audit.products.find((product) => product.productId === "raw_mirror_manifests");
       expect(mirror?.status).toBe("complete");
       expect(mirror?.checks[0]?.observedCount).toBe(2);
-      expect(mirror?.checks[0]?.sampleObserved.map((path) => path.slice(path.indexOf("mirror/"))))
-        .toEqual([
-        "mirror/2026-03-01/first.json",
-        "mirror/2026-03-02/second.json",
-      ]);
+      expect(
+        mirror?.checks[0]?.sampleObserved.map((path) => path.slice(path.indexOf("mirror/"))),
+      ).toEqual(["mirror/2026-03-01/first.json", "mirror/2026-03-02/second.json"]);
 
       const observed = audit.products.find(
         (product) => product.productId === "observed_reliability",
@@ -374,6 +407,7 @@ describe("data product completeness audit", () => {
 
       const waived = audit.products.find((product) => product.productId === "waived_product");
       expect(waived?.status).toBe("waived");
+      expect(waived?.gapClass).toBe("waived");
       expect(audit.downstreamBlockers.map((blocker) => blocker.productId)).not.toContain(
         "waived_product",
       );
@@ -381,6 +415,258 @@ describe("data product completeness audit", () => {
       sqlite.close();
       rmSync(artifactRoot, { recursive: true, force: true });
     }
+  });
+
+  test("resolves SBS plus route ids to Studio artifact slugs", async () => {
+    const sqlite = createRouteCatalogDb(["B44+"]);
+    const artifactRoot = mkdtempSync(join(tmpdir(), "bp-data-products-sbs-"));
+    try {
+      await writeFixture(join(artifactRoot, "studio/v2/routes/b44-sbs/speed-history.json"));
+      const manifest = parseDataProductManifest({
+        version: 1,
+        products: [
+          {
+            id: "studio_route_speed_history_artifacts",
+            label: "Studio route speed history artifacts",
+            kind: "artifact_family",
+            owner: "test",
+            grain: "route x month",
+            producerCommand: "test route speed histories",
+            expectedUniverse: {
+              description: "all catalog routes",
+              routes: "route_catalog",
+              months: "history_window",
+            },
+            requiredInputs: ["segment speed history"],
+            downstreamConsumers: ["route detail history"],
+            freshnessPolicy: { cadence: "historical_window" },
+            checks: [
+              {
+                id: "files",
+                label: "Route speed history files",
+                type: "route_artifact_coverage",
+                pathTemplate: "{artifactRoot}/studio/v2/routes/{routeId}/speed-history.json",
+                expectedRoutes: "route_catalog",
+              },
+            ],
+          },
+        ],
+      });
+
+      const audit = await buildDataProductCompletenessAudit({
+        sqlite,
+        manifest,
+        releaseMonth: "2026-03",
+        historyStartMonth: "2026-01",
+        runId: "test-run",
+        gtfsRunId: null,
+        artifactRoot,
+        generatedAt: "2026-06-06T00:00:00.000Z",
+        dbPath: null,
+        artifactPath: join(artifactRoot, "completeness.json"),
+      });
+
+      const product = audit.products[0];
+      expect(product?.status).toBe("complete");
+      expect(product?.checks[0]?.expectedCount).toBe(1);
+      expect(product?.checks[0]?.observedCount).toBe(1);
+      expect(product?.checks[0]?.missingCount).toBe(0);
+      expect(product?.checks[0]?.sampleObserved).toEqual(["B44+"]);
+      expect(product?.checks[0]?.sampleMissing).toEqual([]);
+    } finally {
+      sqlite.close();
+      rmSync(artifactRoot, { recursive: true, force: true });
+    }
+  });
+
+  test("audits speed-history artifacts against all historical speed routes", async () => {
+    const sqlite = new Database(":memory:");
+    sqlite.exec(`
+      CREATE TABLE local_route_catalog (
+        route_id TEXT NOT NULL
+      );
+      CREATE TABLE local_route_segment_speed (
+        route_id TEXT NOT NULL,
+        month TEXT NOT NULL
+      );
+    `);
+    sqlite.query("INSERT INTO local_route_catalog (route_id) VALUES (?)").run("M1");
+    sqlite
+      .query("INSERT INTO local_route_segment_speed (route_id, month) VALUES (?, ?)")
+      .run("M1", "2026-03");
+    sqlite
+      .query("INSERT INTO local_route_segment_speed (route_id, month) VALUES (?, ?)")
+      .run("OLD1", "2023-04");
+
+    const artifactRoot = mkdtempSync(join(tmpdir(), "bp-data-products-history-"));
+    try {
+      await writeFixture(join(artifactRoot, "studio/v2/routes/m1/speed-history.json"));
+      await writeFixture(join(artifactRoot, "studio/v2/routes/old1/speed-history.json"));
+      const manifest = parseDataProductManifest({
+        version: 1,
+        products: [
+          {
+            id: "historical_speed_history_artifacts",
+            label: "Historical speed-history artifacts",
+            kind: "artifact_family",
+            owner: "test",
+            grain: "historical route x month",
+            producerCommand: "test route speed histories",
+            expectedUniverse: {
+              description: "all historical speed routes",
+              routes: "historical_speed_source_routes",
+              months: "history_window",
+            },
+            requiredInputs: ["segment speed history"],
+            downstreamConsumers: ["route history QA"],
+            freshnessPolicy: { cadence: "historical_window" },
+            checks: [
+              {
+                id: "files",
+                label: "Historical route speed-history files",
+                type: "route_artifact_coverage",
+                pathTemplate: "{artifactRoot}/studio/v2/routes/{routeId}/speed-history.json",
+                expectedRoutes: "historical_speed_source_routes",
+              },
+            ],
+          },
+        ],
+      });
+
+      const audit = await buildDataProductCompletenessAudit({
+        sqlite,
+        manifest,
+        releaseMonth: "2026-03",
+        historyStartMonth: "2023-04",
+        runId: "test-run",
+        gtfsRunId: null,
+        artifactRoot,
+        generatedAt: "2026-06-06T00:00:00.000Z",
+        dbPath: null,
+        artifactPath: join(artifactRoot, "completeness.json"),
+      });
+
+      expect(audit.routeUniverses.historical_speed_source_routes.routeCount).toBe(2);
+      expect(audit.routeUniverses.speed_source_routes.routeCount).toBe(1);
+      expect(audit.routeUniverses.route_catalog.routeCount).toBe(1);
+      expect(audit.products[0]?.status).toBe("complete");
+      expect(audit.products[0]?.checks[0]?.expectedCount).toBe(2);
+      expect(audit.products[0]?.checks[0]?.observedCount).toBe(2);
+      expect(audit.products[0]?.checks[0]?.sampleObserved).toEqual(["M1", "OLD1"]);
+    } finally {
+      sqlite.close();
+      rmSync(artifactRoot, { recursive: true, force: true });
+    }
+  });
+
+  test("builds a source-month coverage matrix with source and derived statuses", () => {
+    const sqlite = new Database(":memory:");
+    try {
+      sqlite.exec(`
+        CREATE TABLE local_route_segment_speed (
+          route_id TEXT NOT NULL,
+          month TEXT NOT NULL
+        );
+        CREATE TABLE local_route_hourly_ridership (
+          route_id TEXT NOT NULL,
+          month TEXT NOT NULL
+        );
+        CREATE TABLE local_route_month_trend (
+          route_id TEXT NOT NULL,
+          month TEXT NOT NULL
+        );
+        CREATE TABLE local_route_schedule_stop (
+          source_year INTEGER NOT NULL,
+          route_id TEXT NOT NULL
+        );
+      `);
+      sqlite
+        .query("INSERT INTO local_route_segment_speed (route_id, month) VALUES (?, ?)")
+        .run("M1", "2026-01");
+      sqlite
+        .query("INSERT INTO local_route_hourly_ridership (route_id, month) VALUES (?, ?)")
+        .run("M1", "2026-01");
+      sqlite
+        .query("INSERT INTO local_route_month_trend (route_id, month) VALUES (?, ?)")
+        .run("M1", "2026-01");
+      sqlite
+        .query("INSERT INTO local_route_schedule_stop (source_year, route_id) VALUES (?, ?)")
+        .run(2026, "M1");
+
+      const matrix = buildSourceMonthCoverageMatrix({
+        sqlite,
+        historyStartMonth: "2026-01",
+        releaseMonth: "2026-02",
+        generatedAt: "2026-06-06T00:00:00.000Z",
+        dbPath: null,
+        artifactPath: "coverage-matrix.json",
+      });
+
+      expect(matrix.summary).toMatchObject({
+        sourceCount: 6,
+        cellCount: 12,
+      });
+      const speed = matrix.sources.find(
+        (source) => source.sourceId === "local_route_segment_speed",
+      );
+      expect(speed?.months.map((month) => [month.month, month.status])).toEqual([
+        ["2026-01", "available"],
+        ["2026-02", "available_not_fetched"],
+      ]);
+      const routeTrend = matrix.sources.find(
+        (source) => source.sourceId === "local_route_month_trend",
+      );
+      expect(routeTrend?.months.map((month) => [month.month, month.status])).toEqual([
+        ["2026-01", "available"],
+        ["2026-02", "derived_not_built"],
+      ]);
+      const sourceStatusRows = matrix.sources.find(
+        (source) => source.sourceId === "local_route_month_source_status",
+      );
+      expect(sourceStatusRows?.months.map((month) => month.status)).toEqual([
+        "source_absent",
+        "source_absent",
+      ]);
+      const gtfs = matrix.sources.find(
+        (source) => source.sourceId === "historical_gtfs_static_bundle_snapshots",
+      );
+      expect(gtfs?.months.map((month) => month.status)).toEqual([
+        "upstream_blocked",
+        "upstream_blocked",
+      ]);
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  test("keeps source-month coverage matrix construction in applied-research", () => {
+    const source = readFileSync(commandPath, "utf8");
+
+    expect(source).toContain('from "@bp/applied-research/local-db"');
+    expect(source).toContain('from "@bp/applied-research/artifacts"');
+    expect(source).toContain('from "@bp/applied-research/data-products"');
+    expect(source).toContain("classifyDataProductCompleteness({");
+    expect(source).toContain("dataProductCompletenessPath");
+    expect(source).toContain("buildSourceMonthCoverageMatrix({");
+    expect(source).not.toContain("function monthStatsFromTable");
+    expect(source).not.toContain("function sourceMonthSummary");
+    expect(source).not.toContain("historicalGtfsBlockedSource");
+    expect(source).not.toContain("source_month_coverage_matrix");
+    expect(source).not.toContain("function dataProductCompletenessPath");
+    expect(source).not.toContain("function classifyProducts");
+    expect(source).not.toContain("function directGapClassification");
+    expect(source).not.toContain("const REQUIRED_INPUT_PRODUCT_ALIASES");
+  });
+
+  test("keeps data-product registry ownership in applied-research", () => {
+    const registrySource = readFileSync(
+      join(import.meta.dir, "../../../src/registry/data-products.ts"),
+      "utf8",
+    );
+
+    expect(registrySource).toContain('from "@bp/applied-research/data-products"');
+    expect(registrySource).not.toContain("DataProductManifestSchema = z");
+    expect(registrySource).not.toContain("DATA_PRODUCT_MANIFEST: DataProductManifest");
   });
 
   test("materialization coverage surfaces stay tied to registered data products", () => {
@@ -399,6 +685,383 @@ describe("data product completeness audit", () => {
     ]);
     for (const productId of MATERIALIZATION_COVERAGE_REGISTRY_PRODUCT_IDS) {
       expect(productIds.has(productId)).toBe(true);
+    }
+  });
+
+  test("reports website-facing historical GTFS needs as real upstream blockers", async () => {
+    const sqlite = new Database(":memory:");
+    const artifactRoot = mkdtempSync(join(tmpdir(), "bp-website-needs-"));
+    try {
+      sqlite.exec(`
+        CREATE TABLE local_route_catalog (route_id TEXT NOT NULL);
+      `);
+      sqlite.query("INSERT INTO local_route_catalog (route_id) VALUES (?)").run("M1");
+
+      const manifest = parseDataProductManifest({
+        version: 1,
+        products: [
+          {
+            id: "historical_gtfs_static_bundle_snapshots",
+            label: "Historical GTFS static bundle snapshots",
+            kind: "artifact_family",
+            owner: "test",
+            grain: "GTFS static bundle x historical service month",
+            producerCommand: "test historical gtfs",
+            expectedUniverse: {
+              description: "month-addressable historical GTFS bundles",
+              months: "history_window",
+            },
+            requiredInputs: ["source_manifest:mta_archived_bus_gtfs_static"],
+            downstreamConsumers: ["planned_service_baseline_history"],
+            freshnessPolicy: { cadence: "historical_window" },
+            lifecycle: {
+              status: "blocked",
+              gapClass: "upstream_blocked",
+              reason: "no audited historical GTFS source",
+            },
+            checks: [
+              {
+                id: "bundles",
+                label: "Historical GTFS bundles",
+                type: "artifact_glob",
+                rootTemplate: "{artifactRoot}/historical-gtfs",
+                pattern: "*.zip",
+              },
+            ],
+          },
+          {
+            id: "planned_service_baseline_history",
+            label: "Historical planned-service baseline",
+            kind: "serving_projection",
+            owner: "test",
+            grain: "route x month x daypart planned service",
+            producerCommand: "test planned service",
+            expectedUniverse: {
+              description: "website scheduled-service baseline",
+              routes: "route_catalog",
+              months: "history_window",
+            },
+            requiredInputs: ["historical_gtfs_static_bundle_snapshots"],
+            downstreamConsumers: ["scheduled-speed gap"],
+            freshnessPolicy: { cadence: "historical_window" },
+            checks: [
+              {
+                id: "monthly",
+                label: "Monthly planned service",
+                type: "month_table_coverage",
+                tableName: "local_route_planned_service_baseline",
+                monthColumn: "month",
+                routeColumn: "route_id",
+                expectedMonths: "history_window",
+              },
+            ],
+          },
+        ],
+      });
+
+      const audit = await buildDataProductCompletenessAudit({
+        sqlite,
+        manifest,
+        releaseMonth: "2026-03",
+        historyStartMonth: "2026-01",
+        runId: "test-run",
+        gtfsRunId: null,
+        artifactRoot,
+        generatedAt: "2026-06-06T00:00:00.000Z",
+        dbPath: null,
+        artifactPath: join(artifactRoot, "audit.json"),
+      });
+
+      const gtfs = audit.products.find(
+        (product) => product.productId === "historical_gtfs_static_bundle_snapshots",
+      );
+      expect(gtfs?.status).toBe("blocked");
+      expect(gtfs?.gapClass).toBe("upstream_blocked");
+
+      const plannedService = audit.products.find(
+        (product) => product.productId === "planned_service_baseline_history",
+      );
+      expect(plannedService?.status).toBe("missing");
+      expect(plannedService?.gapClass).toBe("derived_from_upstream_blocked");
+      expect(plannedService?.rootCauses.map((rootCause) => rootCause.productId)).toContain(
+        "historical_gtfs_static_bundle_snapshots",
+      );
+      expect(audit.coverage.upstreamBlocked.count).toBe(2);
+      expect(audit.coverage.needsBuild.count).toBe(0);
+    } finally {
+      sqlite.close();
+      rmSync(artifactRoot, { recursive: true, force: true });
+    }
+  });
+
+  test("classifies speed publication gaps separately from derived downstream gaps", async () => {
+    const sqlite = new Database(":memory:");
+    const artifactRoot = mkdtempSync(join(tmpdir(), "bp-gap-classes-"));
+    try {
+      sqlite.exec(`
+        CREATE TABLE local_route_catalog (route_id TEXT NOT NULL);
+        CREATE TABLE local_route_segment_speed (
+          route_id TEXT NOT NULL,
+          month TEXT NOT NULL
+        );
+      `);
+      for (const routeId of ["M1", "M2"]) {
+        sqlite.query("INSERT INTO local_route_catalog (route_id) VALUES (?)").run(routeId);
+        sqlite
+          .query("INSERT INTO local_route_segment_speed (route_id, month) VALUES (?, ?)")
+          .run(routeId, "2026-03");
+      }
+
+      const manifest = parseDataProductManifest({
+        version: 1,
+        products: [
+          {
+            id: "local_route_segment_speed_history",
+            label: "Route segment speed history",
+            kind: "local_table",
+            owner: "test",
+            grain: "route x month",
+            producerCommand: "ingest route-trends",
+            expectedUniverse: { description: "speed history", months: "history_window" },
+            requiredInputs: ["source_manifest:bus_segment_speeds_2025"],
+            downstreamConsumers: ["route brief metrics"],
+            freshnessPolicy: { cadence: "historical_window" },
+            checks: [
+              {
+                id: "monthly",
+                label: "Monthly speed rows",
+                type: "month_table_coverage",
+                tableName: "local_route_segment_speed",
+                monthColumn: "month",
+                routeColumn: "route_id",
+                expectedMonths: "history_window",
+                minRowsPerMonth: 2,
+                minRoutesPerMonth: 2,
+              },
+            ],
+          },
+          {
+            id: "studio_route_hotspot_summaries",
+            label: "Studio route hotspot summaries",
+            kind: "serving_projection",
+            owner: "test",
+            grain: "route x month",
+            producerCommand: "build serving snapshot",
+            expectedUniverse: {
+              description: "route catalog",
+              routes: "route_catalog",
+              months: "release_month",
+            },
+            requiredInputs: ["local_route_segment_speed"],
+            downstreamConsumers: ["route detail"],
+            freshnessPolicy: { cadence: "release_month" },
+            checks: [
+              {
+                id: "routes",
+                label: "Hotspot rows",
+                type: "table_route_coverage",
+                tableName: "local_route_hotspot_summary",
+                monthColumn: "month",
+                routeColumn: "route_id",
+                expectedRoutes: "route_catalog",
+              },
+            ],
+          },
+          {
+            id: "studio_route_slowest_windows",
+            label: "Studio slowest route windows",
+            kind: "serving_projection",
+            owner: "test",
+            grain: "route x month",
+            producerCommand: "build serving snapshot",
+            expectedUniverse: {
+              description: "speed routes",
+              routes: "speed_source_routes",
+              months: "release_month",
+            },
+            requiredInputs: [],
+            downstreamConsumers: ["route detail"],
+            freshnessPolicy: { cadence: "release_month" },
+            checks: [
+              {
+                id: "routes",
+                label: "Slowest rows",
+                type: "table_route_coverage",
+                tableName: "local_route_slowest_window",
+                monthColumn: "month",
+                routeColumn: "route_id",
+                expectedRoutes: "speed_source_routes",
+              },
+            ],
+          },
+        ],
+      });
+
+      const audit = await buildDataProductCompletenessAudit({
+        sqlite,
+        manifest,
+        releaseMonth: "2026-04",
+        historyStartMonth: "2026-03",
+        runId: "test-run",
+        gtfsRunId: null,
+        artifactRoot,
+        generatedAt: "2026-06-01T00:00:00.000Z",
+        dbPath: null,
+        artifactPath: join(artifactRoot, "audit.json"),
+      });
+
+      const speed = audit.products.find(
+        (product) => product.productId === "local_route_segment_speed_history",
+      );
+      expect(speed?.status).toBe("partial");
+      expect(speed?.gapClass).toBe("upstream_blocked");
+      expect(speed?.rootCauses[0]?.reasons).toContain("release_month_source_unavailable:2026-04");
+
+      const hotspots = audit.products.find(
+        (product) => product.productId === "studio_route_hotspot_summaries",
+      );
+      expect(hotspots?.status).toBe("missing");
+      expect(hotspots?.gapClass).toBe("derived_from_upstream_blocked");
+      expect(hotspots?.gapClasses).toContain("derived_not_built");
+      expect(hotspots?.rootCauses.map((rootCause) => rootCause.productId)).toContain(
+        "local_route_segment_speed_history",
+      );
+
+      const slowest = audit.products.find(
+        (product) => product.productId === "studio_route_slowest_windows",
+      );
+      expect(slowest?.status).toBe("blocked");
+      expect(slowest?.gapClass).toBe("derived_from_upstream_blocked");
+      expect(slowest?.rootCauses.map((rootCause) => rootCause.productId)).toContain(
+        "local_route_segment_speed_history",
+      );
+      expect(audit.summary.gapClassCounts.upstream_blocked).toBe(1);
+      expect(audit.summary.gapClassCounts.derived_from_upstream_blocked).toBe(2);
+    } finally {
+      sqlite.close();
+      rmSync(artifactRoot, { recursive: true, force: true });
+    }
+  });
+
+  test("classifies fetched zero-row release-month source snapshots as upstream blocked", async () => {
+    const sqlite = new Database(":memory:");
+    const artifactRoot = mkdtempSync(join(tmpdir(), "bp-zero-row-sources-"));
+    const rawReliabilityRoot = join(artifactRoot, "raw-reliability");
+    try {
+      mkdirSync(rawReliabilityRoot, { recursive: true });
+      sqlite.exec(`
+        CREATE TABLE local_route_catalog (route_id TEXT NOT NULL);
+        CREATE TABLE local_bus_wait_assessment (
+          route_id TEXT NOT NULL,
+          month TEXT NOT NULL
+        );
+        CREATE TABLE local_bus_customer_journey_metric (
+          route_id TEXT NOT NULL,
+          month TEXT NOT NULL
+        );
+      `);
+      sqlite.query("INSERT INTO local_route_catalog (route_id) VALUES (?)").run("M1");
+      sqlite
+        .query("INSERT INTO local_bus_wait_assessment (route_id, month) VALUES (?, ?)")
+        .run("M1", "2026-04");
+      sqlite
+        .query("INSERT INTO local_bus_customer_journey_metric (route_id, month) VALUES (?, ?)")
+        .run("M1", "2026-04");
+
+      await Bun.write(
+        join(rawReliabilityRoot, "bus-wait-assessment-2026-05.json"),
+        JSON.stringify({ sourceId: "bus_wait_assessment", isoMonth: "2026-05", rows: [] }),
+      );
+      await Bun.write(
+        join(rawReliabilityRoot, "bus-customer-journey-metrics-2026-04_to_2026-05.json"),
+        JSON.stringify({
+          sourceId: "bus_customer_journey_metrics",
+          startMonth: "2026-04",
+          endMonth: "2026-05",
+          rows: [{ month: "2026-04-01T00:00:00.000", route_id: "M1" }],
+        }),
+      );
+
+      const manifest = parseDataProductManifest({
+        version: 1,
+        products: [
+          {
+            id: "local_bus_wait_assessment_history",
+            label: "Bus Wait Assessment history",
+            kind: "local_table",
+            owner: "test",
+            grain: "route x month",
+            producerCommand: "ingest bus-wait-assessment",
+            expectedUniverse: { description: "wait history", months: "history_window" },
+            requiredInputs: ["source_manifest:bus_wait_assessment"],
+            downstreamConsumers: ["reliability context"],
+            freshnessPolicy: { cadence: "historical_window" },
+            checks: [
+              {
+                id: "monthly",
+                label: "Monthly wait rows",
+                type: "month_table_coverage",
+                tableName: "local_bus_wait_assessment",
+                monthColumn: "month",
+                routeColumn: "route_id",
+                expectedMonths: "history_window",
+                minRowsPerMonth: 1,
+                minRoutesPerMonth: 1,
+              },
+            ],
+          },
+          {
+            id: "local_bus_customer_journey_metrics_history",
+            label: "Bus customer journey metric history",
+            kind: "local_table",
+            owner: "test",
+            grain: "route x month",
+            producerCommand: "ingest bus-customer-journey-metrics",
+            expectedUniverse: { description: "journey history", months: "history_window" },
+            requiredInputs: ["source_manifest:bus_customer_journey_metrics"],
+            downstreamConsumers: ["reliability context"],
+            freshnessPolicy: { cadence: "historical_window" },
+            checks: [
+              {
+                id: "monthly",
+                label: "Monthly customer journey rows",
+                type: "month_table_coverage",
+                tableName: "local_bus_customer_journey_metric",
+                monthColumn: "month",
+                routeColumn: "route_id",
+                expectedMonths: "history_window",
+                minRowsPerMonth: 1,
+                minRoutesPerMonth: 1,
+              },
+            ],
+          },
+        ],
+      });
+
+      const audit = await buildDataProductCompletenessAudit({
+        sqlite,
+        manifest,
+        releaseMonth: "2026-05",
+        historyStartMonth: "2026-04",
+        runId: "test-run",
+        gtfsRunId: null,
+        artifactRoot,
+        generatedAt: "2026-06-05T00:00:00.000Z",
+        dbPath: null,
+        artifactPath: join(artifactRoot, "audit.json"),
+        rawReliabilityRoot,
+      });
+
+      expect(audit.summary.gapClassCounts.upstream_blocked).toBe(2);
+      expect(audit.summary.gapClassCounts.available_not_fetched).toBe(0);
+      for (const product of audit.products) {
+        expect(product.status).toBe("partial");
+        expect(product.gapClass).toBe("upstream_blocked");
+        expect(product.rootCauses[0]?.reasons).toContain("release_month_source_zero_rows:2026-05");
+      }
+    } finally {
+      sqlite.close();
+      rmSync(artifactRoot, { recursive: true, force: true });
     }
   });
 

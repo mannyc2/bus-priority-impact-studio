@@ -168,6 +168,41 @@ describe("makeToolLoopRunner (AgentHarness)", () => {
     expect(r.capsHit).toBeNull();
   });
 
+  test("can omit generic sandbox tools for submit-only loops", async () => {
+    let toolNames: string[] = [];
+    const submitTool = {
+      name: "submit_fixture",
+      label: "Submit fixture",
+      description: "Fixture submit tool.",
+      parameters: {
+        type: "object",
+        additionalProperties: false,
+        properties: {},
+      },
+      execute: async () => ({
+        content: [{ type: "text", text: "accepted" }],
+        details: null,
+      }),
+    } as AgentTool;
+    const loop = makeToolLoopRunner({
+      model: dummyModel,
+      apiKey: "test-key",
+      includeSandboxTools: false,
+      executor: scriptedExecutor([]),
+      harnessFactory: (opts) => {
+        toolNames = (opts.tools ?? []).map((tool) => tool.name);
+        return mkHarnessFactory([], "done")(opts);
+      },
+    });
+    const r = await loop({
+      systemPrompt: "sys",
+      userMessage: "user",
+      extraTools: [submitTool],
+    });
+    expect(r.finalText).toBe("done");
+    expect(toolNames).toEqual(["submit_fixture"]);
+  });
+
   test("records a trace entry per executed tool call", async () => {
     const loop = makeToolLoopRunner({
       model: dummyModel,

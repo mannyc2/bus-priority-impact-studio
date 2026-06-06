@@ -1,8 +1,9 @@
 import { createHash } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import { arg, defineCommand, z } from "@liche/core";
 import { buildD1AppendixSeedSql, buildD1SeedSql } from "@bp/db/d1/seed";
+import { arg, defineCommand, z } from "@liche/core";
+import { type CloudflareCostSummary, estimateD1PaidCost } from "../../lib/cloudflare-costs.ts";
 import { isoMonth } from "../../lib/dates.ts";
 import {
   dbOptions,
@@ -10,19 +11,52 @@ import {
   type OpenLocalPipelineDb,
   withLocalDb,
 } from "../../lib/local-db.ts";
-import { defaultExportRootPath, fromCliPath } from "../../lib/paths.ts";
-import { readD1MigrationSql } from "./d1-migrations.ts";
+import { defaultArtifactRootPath, defaultExportRootPath, fromCliPath } from "../../lib/paths.ts";
 import {
   type D1AppendixInputs,
   type D1CanonicalInputs,
   readLocalD1AppendixInputs,
   readLocalD1Inputs,
 } from "./d1-inputs.ts";
+import { readD1MigrationSql } from "./d1-migrations.ts";
 
 type D1FileContract = {
   path: string;
   byteLength: number;
   sha256: string;
+};
+
+type D1SqlFileCostFacts = {
+  path: string;
+  byteLength: number;
+  statementCount: number;
+  insertStatementCount: number;
+  deleteStatementCount: number;
+  updateStatementCount: number;
+  ddlStatementCount: number;
+};
+
+type D1ExportCostEstimate = {
+  schemaVersion: 1;
+  operation: "d1-seed-export";
+  exactRowsWrittenKnownBeforeExecution: false;
+  seedSql: D1SqlFileCostFacts;
+  schemaSql: D1SqlFileCostFacts;
+  usageEstimate: {
+    freshRowsWrittenLowerBound: number;
+    replacementRowsWrittenEstimate: number;
+    indexedRowsWrittenEstimate: number;
+    replacementIndexedRowsWrittenEstimate: number;
+    freeDailyRowsWrittenLimit: number;
+    freshWithinWorkersFreeDailyLimit: boolean;
+    replacementIndexedWithinWorkersFreeDailyLimit: boolean;
+  };
+  paidPlanCost: {
+    fresh: CloudflareCostSummary;
+    replacement: CloudflareCostSummary;
+    replacementIndexed: CloudflareCostSummary;
+  };
+  notes: string[];
 };
 
 export type D1SeedOutputResult = {
@@ -35,6 +69,7 @@ export type D1SeedOutputResult = {
   seedPath: string;
   schemaFile: D1FileContract;
   seedFile: D1FileContract;
+  costEstimate: D1ExportCostEstimate;
   routeCount: number;
   comparisonRowCount: number;
   routeCatalogRowCount: number;
@@ -58,6 +93,7 @@ export type D1SeedOutputResult = {
   corridorHotspotRowCount: number;
   routeMonthSourceStatusRowCount: number;
   routeMonthTrendRowCount: number;
+  routeTimelineIndexRowCount: number;
   routeEquityContextRowCount: number;
   routeBatchStatusRowCount: number;
   routeBatchBuiltRouteRowCount: number;
@@ -65,6 +101,8 @@ export type D1SeedOutputResult = {
   routeBriefPeakWindowRowCount: number;
   routeBriefSlowestWindowRowCount: number;
   routeScorecardCitationRowCount: number;
+  routeSpeedHistoryCoverageRowCount: number;
+  sourceMonthCoverageRowCount: number;
 };
 
 export type D1AppendixSeedOutputResult = {
@@ -75,6 +113,7 @@ export type D1AppendixSeedOutputResult = {
   summaryPath: string;
   seedPath: string;
   seedFile: D1FileContract;
+  costEstimate: D1ExportCostEstimate;
   routeObservedReliabilitySummaryRowCount: number;
   routeMonthSourceStatusRowCount: number;
 };
@@ -88,11 +127,90 @@ function fileContract(path: string, content: string): D1FileContract {
   };
 }
 
+function countMatches(sql: string, pattern: RegExp): number {
+  return sql.match(pattern)?.length ?? 0;
+}
+
+function countStatements(sql: string): number {
+  return sql
+    .split(/;|-->\s*statement-breakpoint/g)
+    .map((statement) => statement.trim())
+    .filter((statement) => statement.length > 0 && !statement.startsWith("-->")).length;
+}
+
+function sqlCostFacts(path: string, content: string): D1SqlFileCostFacts {
+  return {
+    path,
+    byteLength: new TextEncoder().encode(content).byteLength,
+    statementCount: countStatements(content),
+    insertStatementCount: countMatches(content, /\binsert\s+into\b/gi),
+    deleteStatementCount: countMatches(content, /\bdelete\s+from\b/gi),
+    updateStatementCount: countMatches(content, /\bupdate\b/gi),
+    ddlStatementCount: countMatches(content, /\b(create|alter|drop)\s+(table|index)\b/gi),
+  };
+}
+
+export function estimateD1ExportCost(input: {
+  seedPath: string;
+  seedSql: string;
+  schemaPath: string;
+  schemaSql: string;
+}): D1ExportCostEstimate {
+  const seedSql = sqlCostFacts(input.seedPath, input.seedSql);
+  const schemaSql = sqlCostFacts(input.schemaPath, input.schemaSql);
+  const freshRowsWrittenLowerBound = seedSql.insertStatementCount + seedSql.updateStatementCount;
+  const replacementRowsWrittenEstimate =
+    freshRowsWrittenLowerBound +
+    (seedSql.deleteStatementCount > 0 ? freshRowsWrittenLowerBound : 0);
+  const indexedRowsWrittenEstimate = freshRowsWrittenLowerBound * 2;
+  const replacementIndexedRowsWrittenEstimate = replacementRowsWrittenEstimate * 2;
+  const freeDailyRowsWrittenLimit = 100_000;
+
+  return {
+    schemaVersion: 1,
+    operation: "d1-seed-export",
+    exactRowsWrittenKnownBeforeExecution: false,
+    seedSql,
+    schemaSql,
+    usageEstimate: {
+      freshRowsWrittenLowerBound,
+      replacementRowsWrittenEstimate,
+      indexedRowsWrittenEstimate,
+      replacementIndexedRowsWrittenEstimate,
+      freeDailyRowsWrittenLimit,
+      freshWithinWorkersFreeDailyLimit: freshRowsWrittenLowerBound <= freeDailyRowsWrittenLimit,
+      replacementIndexedWithinWorkersFreeDailyLimit:
+        replacementIndexedRowsWrittenEstimate <= freeDailyRowsWrittenLimit,
+    },
+    paidPlanCost: {
+      fresh: estimateD1PaidCost({ rowsWritten: freshRowsWrittenLowerBound }, [
+        "Fresh estimate counts seed INSERT/UPDATE statements and excludes scoped DELETE statements that may affect zero existing rows on first publish.",
+      ]),
+      replacement: estimateD1PaidCost({ rowsWritten: replacementRowsWrittenEstimate }, [
+        "Replacement estimate assumes scoped DELETE statements remove roughly the same number of rows the seed inserts.",
+      ]),
+      replacementIndexed: estimateD1PaidCost(
+        { rowsWritten: replacementIndexedRowsWrittenEstimate },
+        [
+          "Replacement indexed estimate doubles the replacement estimate to account for primary-key/index maintenance. Cloudflare rows_written metrics are authoritative after remote execution.",
+        ],
+      ),
+    },
+    notes: [
+      "D1 export cost estimates are pre-execution estimates. Wrangler output, D1 query metadata, Cloudflare GraphQL analytics, or the dashboard are authoritative after publish.",
+      "DDL/schema execution may contribute a mix of reads and writes; schema statement counts are recorded here, but seed write estimates drive release-publish cost.",
+      "Workers Free has a 100k rows-written daily limit. Workers Paid includes monthly D1 rows-written allowance before paid overage.",
+    ],
+  };
+}
+
 export type ExportD1Inputs = {
   local: OpenLocalPipelineDb;
   year: number;
   month: number;
   exportRoot?: string | undefined;
+  artifactRoot?: string | undefined;
+  routeTimelineProjectionPath?: string | undefined;
   inputs?: D1CanonicalInputs | undefined;
 };
 
@@ -103,7 +221,13 @@ export async function runExportD1Seed(inputs: ExportD1Inputs): Promise<D1SeedOut
   const schemaPath = join(exportDir, "schema.sql");
   const seedPath = join(exportDir, "seed.sql");
 
-  const d1Inputs = inputs.inputs ?? (await readLocalD1Inputs(inputs.local.db, month));
+  const d1Inputs =
+    inputs.inputs ??
+    (await readLocalD1Inputs(inputs.local.db, month, {
+      sqlite: inputs.local.sqlite,
+      artifactRoot: inputs.artifactRoot ?? defaultArtifactRootPath(),
+      routeTimelineProjectionPath: inputs.routeTimelineProjectionPath,
+    }));
   const schemaSql = await readD1MigrationSql();
   const seed = buildD1SeedSql({ month, ...d1Inputs });
   const generatedAt = new Date().toISOString();
@@ -118,6 +242,12 @@ export async function runExportD1Seed(inputs: ExportD1Inputs): Promise<D1SeedOut
     seedPath,
     schemaFile: fileContract(schemaPath, schemaSql),
     seedFile: fileContract(seedPath, seed.seedSql),
+    costEstimate: estimateD1ExportCost({
+      seedPath,
+      seedSql: seed.seedSql,
+      schemaPath,
+      schemaSql,
+    }),
     routeCount: seed.routeCount,
     comparisonRowCount: seed.comparisonRowCount,
     routeCatalogRowCount: seed.routeCatalogRowCount,
@@ -141,6 +271,7 @@ export async function runExportD1Seed(inputs: ExportD1Inputs): Promise<D1SeedOut
     corridorHotspotRowCount: seed.corridorHotspotRowCount,
     routeMonthSourceStatusRowCount: seed.routeMonthSourceStatusRowCount,
     routeMonthTrendRowCount: seed.routeMonthTrendRowCount,
+    routeTimelineIndexRowCount: seed.routeTimelineIndexRowCount,
     routeEquityContextRowCount: seed.routeEquityContextRowCount,
     routeBatchStatusRowCount: seed.routeBatchStatusRowCount,
     routeBatchBuiltRouteRowCount: seed.routeBatchBuiltRouteRowCount,
@@ -148,6 +279,8 @@ export async function runExportD1Seed(inputs: ExportD1Inputs): Promise<D1SeedOut
     routeBriefPeakWindowRowCount: seed.routeBriefPeakWindowRowCount,
     routeBriefSlowestWindowRowCount: seed.routeBriefSlowestWindowRowCount,
     routeScorecardCitationRowCount: seed.routeScorecardCitationRowCount,
+    routeSpeedHistoryCoverageRowCount: seed.routeSpeedHistoryCoverageRowCount,
+    sourceMonthCoverageRowCount: seed.sourceMonthCoverageRowCount,
   };
 
   await mkdir(exportDir, { recursive: true });
@@ -186,6 +319,12 @@ export async function runExportD1AppendixSeed(
     summaryPath,
     seedPath,
     seedFile: fileContract(seedPath, seed.seedSql),
+    costEstimate: estimateD1ExportCost({
+      seedPath,
+      seedSql: seed.seedSql,
+      schemaPath: join(exportDir, "schema.sql"),
+      schemaSql: "",
+    }),
     routeObservedReliabilitySummaryRowCount: seed.routeObservedReliabilitySummaryRowCount,
     routeMonthSourceStatusRowCount: seed.routeMonthSourceStatusRowCount,
   };
@@ -210,6 +349,11 @@ export default defineCommand({
         .default("canonical")
         .describe("Canonical full export or observed-reliability appendix"),
       exportRoot: z.string().optional().describe("Override export root directory"),
+      artifactRoot: z.string().optional().describe("Override generated artifact root directory"),
+      routeTimelineProjectionPath: z
+        .string()
+        .optional()
+        .describe("Optional route timeline serving projection JSON to fold into D1 seed output"),
     }),
   },
   middleware: [withLocalDb()],
@@ -221,6 +365,14 @@ export default defineCommand({
     const local = localDbFromCtx(ctx);
     const exportRoot =
       input.options.exportRoot === undefined ? undefined : fromCliPath(input.options.exportRoot);
+    const artifactRoot =
+      input.options.artifactRoot === undefined
+        ? undefined
+        : fromCliPath(input.options.artifactRoot);
+    const routeTimelineProjectionPath =
+      input.options.routeTimelineProjectionPath === undefined
+        ? undefined
+        : fromCliPath(input.options.routeTimelineProjectionPath);
     if (input.options.mode === "appendix") {
       return runExportD1AppendixSeed({
         local,
@@ -234,6 +386,8 @@ export default defineCommand({
       year: input.options.year,
       month: input.options.month,
       exportRoot,
+      artifactRoot,
+      routeTimelineProjectionPath,
     });
   },
 });

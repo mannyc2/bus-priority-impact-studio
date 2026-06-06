@@ -2,17 +2,21 @@ import { existsSync, readFileSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative } from "node:path";
 import {
-  INTERVENTION_RECORDS_TOOL_NAME,
-  buildInterventionRecordsBuckets,
   dedupeInterventionRecordsByEvidenceOverlap,
-  extractToolCallArguments,
   processInterventionRecordsToolArgs,
-  recordQualityIssueCounts,
-  recordQualityRepairCounts,
-  type Tier2DocumentEvidenceCandidate,
-  type Tier2DocumentInterventionRecord,
+} from "@bp/applied-research/intervention-records";
+import type { Tier2DocumentEvidenceCandidate } from "@bp/domain/documents/candidates";
+import {
+  buildInterventionRecordsBuckets,
   type Tier2InterventionRecordsBucketSummary,
   type Tier2InterventionRecordsExtraction,
+} from "../src/commands/docs/tier2/_intervention-records.ts";
+import {
+  INTERVENTION_RECORDS_TOOL_NAME,
+  extractToolCallArguments,
+  recordQualityIssueCounts,
+  recordQualityRepairCounts,
+  type Tier2DocumentInterventionRecord,
 } from "../src/commands/docs/tier2/_shared.ts";
 
 const repoRoot = join(import.meta.dir, "../../..");

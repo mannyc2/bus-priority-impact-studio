@@ -3,13 +3,15 @@ import type {
   ClaimCaveat as DomainClaimCaveat,
   ClaimEvidence as DomainClaimEvidence,
   StudioBrief as DomainStudioBrief,
-  StudioFinding as DomainStudioFinding,
-  StudioIntervention as DomainStudioIntervention,
+  StudioAiPublicNote,
+} from "@bp/domain/studio/briefs";
+import type { StudioSpeedPercentileContext } from "@bp/domain/studio/docs";
+import type { StudioFinding as DomainStudioFinding } from "@bp/domain/studio/findings";
+import type { StudioIntervention as DomainStudioIntervention } from "@bp/domain/studio/interventions";
+import type {
   StudioRoute as DomainStudioRoute,
   StudioSegment as DomainStudioSegment,
-  StudioAiPublicNote,
-  StudioSpeedPercentileContext,
-} from "@bp/domain";
+} from "@bp/domain/studio/routes";
 import type { SocrataRow } from "@bp/sources/clients/socrata";
 
 // The Studio release pipeline annotates the canonical domain Route/Segment/Brief
@@ -205,12 +207,12 @@ export type RouteBriefTopStopBoardings = {
   }>;
 };
 
-// The artifact stores the same hourly passenger delay shape as the v2 brief-model
-// produces and the StudioRouteSegmentEvidence schema accepts. Re-export the
-// schema-derived type so downstream consumers stay aligned.
-export type { RouteBriefHourlyPassengerDelay } from "../route/brief-model.ts";
+// The artifact stores the same hourly passenger delay shape as the applied
+// research route-brief model produces and the StudioRouteSegmentEvidence schema
+// accepts. Re-export the schema-derived type so downstream consumers stay aligned.
+export type { RouteBriefHourlyPassengerDelay } from "@bp/applied-research/route-briefs";
 
-import type { RouteBriefHourlyPassengerDelay as _RouteBriefHourlyPassengerDelay } from "../route/brief-model.ts";
+import type { RouteBriefHourlyPassengerDelay as _RouteBriefHourlyPassengerDelay } from "@bp/applied-research/route-briefs";
 
 export type RouteBriefSegment = {
   segmentId: string;
@@ -477,9 +479,9 @@ export type ReviewQueueCandidate = {
   severity: string;
   confidence: string;
   detectorScore: number;
-  claimSafeLabel?: import("@bp/domain").StudioFindingReview["claimSafeLabel"];
+  claimSafeLabel?: import("@bp/domain/studio/findings").StudioFindingReview["claimSafeLabel"];
   claimText: string;
-  reviewState?: import("@bp/domain").StudioFindingReview["reviewState"];
+  reviewState?: import("@bp/domain/studio/findings").StudioFindingReview["reviewState"];
   evidenceRefCount?: number;
   evidenceRefs?: string[];
 };
@@ -506,7 +508,7 @@ export type FindingContextAppendixArtifact = {
 export type SegmentAnalystNoteRecord = {
   routeSlug: string;
   segmentId: string;
-  note: import("@bp/domain").StudioAiAnalystNote;
+  note: import("@bp/domain/studio/briefs").StudioAiAnalystNote;
 };
 
 export type SegmentAnalystNotesArtifact = {
