@@ -1,12 +1,19 @@
 import type { ResearchGrain } from "../core/grain";
 import type { HistoryWindow, IsoMonthString } from "../core/windows";
 
-export type CausalStudyMethod = "event_study" | "interrupted_time_series" | "difference_in_differences" | "synthetic_control";
+export {
+  buildInterventionPanelArtifact,
+  type InterventionPanelArtifact,
+  type InterventionPanelRow,
+} from "./intervention-panel";
 
-export type CausalClaimTier =
-  | "associational"
-  | "candidate_causal_needs_review"
-  | "approved_causal";
+export type CausalStudyMethod =
+  | "event_study"
+  | "interrupted_time_series"
+  | "difference_in_differences"
+  | "synthetic_control";
+
+export type CausalClaimTier = "associational" | "candidate_causal_needs_review" | "approved_causal";
 
 export type CausalValidityGates = {
   readonly hasTreatmentInventory: boolean;
@@ -49,9 +56,7 @@ const PROMOTION_GATES: readonly (keyof CausalValidityGates)[] = [
   "controlledAndUncontrolledDivergenceFlagged",
 ];
 
-export function evaluateCausalStudyReadiness(
-  gates: CausalValidityGates,
-): CausalStudyReadiness {
+export function evaluateCausalStudyReadiness(gates: CausalValidityGates): CausalStudyReadiness {
   const failedGates = PROMOTION_GATES.filter((gate) => !gates[gate]);
   const passedGateCount = PROMOTION_GATES.length - failedGates.length;
   const claimTier =

@@ -1,0 +1,48 @@
+export type {
+  ClassifyDataProductCompletenessInput,
+  DataProductCheckAudit,
+  DataProductCompletenessProductAudit,
+  DataProductCompletenessProductAuditBase,
+  DataProductCompletenessRouteUniverseSets,
+  DataProductCoverageBucket,
+  DataProductCoverageProductSummary,
+  DataProductCoverageSummary,
+  DataProductDownstreamBlocker,
+  DataProductGapClass,
+  DataProductRootCause,
+  DataProductScoreVectorRouteParseResult,
+} from "./completeness";
+export {
+  classifyDataProductCompleteness,
+  DATA_PRODUCT_COMPLETENESS_STATUS_ORDER,
+  DATA_PRODUCT_GAP_CLASS_ORDER,
+  dataProductCoverageSummary,
+  dataProductGapClassCounts,
+  dataProductJsonSemanticReasons,
+  dataProductReasons,
+  dataProductScoreVectorRouteIds,
+  dataProductStatus,
+  dataProductStatusCounts,
+} from "./completeness";
+export type {
+  DataProduct,
+  DataProductCheck,
+  DataProductCompletenessStatus,
+  DataProductKind,
+  DataProductManifest,
+  DataProductRouteUniverse,
+} from "./registry";
+export {
+  DATA_PRODUCT_MANIFEST,
+  DataProductCheckSchema,
+  DataProductCompletenessStatusSchema,
+  DataProductExpectedUniverseSchema,
+  DataProductFreshnessPolicySchema,
+  DataProductKindSchema,
+  DataProductLifecycleSchema,
+  DataProductManifestSchema,
+  DataProductRouteUniverseSchema,
+  DataProductSchema,
+  parseDataProductManifest,
+  parseDataProductManifestText,
+} from "./registry";

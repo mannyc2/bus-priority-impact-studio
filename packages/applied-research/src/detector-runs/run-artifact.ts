@@ -1,6 +1,10 @@
 import { featureContractsForGrains } from "@bp/analytics/features";
 import { getAnalyticsDetector } from "@bp/analytics/registry";
-import type { FindingCandidate, FindingCoverageAudit, FindingEvidenceLink } from "@bp/domain";
+import type {
+  FindingCandidate,
+  FindingCoverageAudit,
+  FindingEvidenceLink,
+} from "@bp/domain/findings";
 
 export type ContractSatisfaction = {
   featureGrain: string;

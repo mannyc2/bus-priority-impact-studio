@@ -5,17 +5,17 @@ import {
   listAnalyticsDetectors,
 } from "@bp/analytics/registry";
 import {
-  FindingPromotionQueueArtifactSchema,
-  FindingReviewPacketsArtifactSchema,
   type FindingCandidate,
   type FindingCoverageAudit,
   type FindingEvidenceLink,
   type FindingPromotionNextAction,
   type FindingPromotionQueueArtifact,
+  FindingPromotionQueueArtifactSchema,
   type FindingPromotionReadiness,
   type FindingReviewPacket,
   type FindingReviewPacketsArtifact,
-} from "@bp/domain";
+  FindingReviewPacketsArtifactSchema,
+} from "@bp/domain/findings";
 
 export type FindingReviewPacketCoverageArtifact = {
   artifactKind: "finding_review_packet_coverage";
@@ -164,11 +164,7 @@ const REVIEWER_DECISION_OPTIONS = [
   },
 ] as const;
 
-const PROMOTION_READINESS_VALUES = [
-  "ready_for_review",
-  "needs_enrichment",
-  "blocked",
-] as const;
+const PROMOTION_READINESS_VALUES = ["ready_for_review", "needs_enrichment", "blocked"] as const;
 
 const PROMOTION_NEXT_ACTION_VALUES = [
   "review_for_promotion",
@@ -392,10 +388,16 @@ function readinessForPacket(packet: FindingReviewPacket): FindingPromotionReadin
 }
 
 function nextActionForPacket(packet: FindingReviewPacket): FindingPromotionNextAction {
-  if (packet.candidate.detectorId === "source_gap" || packet.candidate.category === "data_quality") {
+  if (
+    packet.candidate.detectorId === "source_gap" ||
+    packet.candidate.category === "data_quality"
+  ) {
     return "keep_as_data_quality" as FindingPromotionNextAction;
   }
-  if (!packet.packetCompleteness.hasPrimaryEvidence || !packet.packetCompleteness.hasCoverageAudit) {
+  if (
+    !packet.packetCompleteness.hasPrimaryEvidence ||
+    !packet.packetCompleteness.hasCoverageAudit
+  ) {
     return "enrich_before_promotion" as FindingPromotionNextAction;
   }
   if (!packet.packetCompleteness.hasCounterEvidence) {
@@ -561,7 +563,8 @@ function reviewQueueFromPackets(input: {
     })
     .sort(
       (left, right) =>
-        right.topReviewPriority - left.topReviewPriority || left.routeId.localeCompare(right.routeId),
+        right.topReviewPriority - left.topReviewPriority ||
+        left.routeId.localeCompare(right.routeId),
     );
   const surfacedRouteIds = surfaced
     .map((candidate) => candidate.routeId)
@@ -596,8 +599,9 @@ function reviewQueueFromPackets(input: {
     month: input.month,
     totalCandidateCount: allCandidates.length,
     candidateCount: surfaced.length,
-    evidenceLinkedCandidateCount: allCandidates.filter((candidate) => candidate.evidenceRefCount > 0)
-      .length,
+    evidenceLinkedCandidateCount: allCandidates.filter(
+      (candidate) => candidate.evidenceRefCount > 0,
+    ).length,
     unlinkedCandidateCount: allCandidates.filter((candidate) => candidate.evidenceRefCount === 0)
       .length,
     omittedCandidateCount,
@@ -615,8 +619,9 @@ function reviewQueueFromPackets(input: {
           .map((candidate) => candidate.reviewPriorityBand),
         ["critical", "high", "medium", "low"] as const,
       ),
-      multiDetectorRouteCount: [...detectorSetsByRoute.values()].filter((detectors) => detectors.size > 1)
-        .length,
+      multiDetectorRouteCount: [...detectorSetsByRoute.values()].filter(
+        (detectors) => detectors.size > 1,
+      ).length,
       criticalRouteGroupCount: routeGroups.filter(
         (group) => group.topReviewPriorityBand === "critical",
       ).length,
@@ -674,14 +679,18 @@ function packetCoverageArtifact(input: {
     candidateCount.set(candidate.detectorId, (candidateCount.get(candidate.detectorId) ?? 0) + 1);
   }
   for (const packet of input.packets) {
-    packetCount.set(packet.candidate.detectorId, (packetCount.get(packet.candidate.detectorId) ?? 0) + 1);
+    packetCount.set(
+      packet.candidate.detectorId,
+      (packetCount.get(packet.candidate.detectorId) ?? 0) + 1,
+    );
   }
   const candidateDetectorById = new Map(
     input.candidates.map((candidate) => [candidate.candidateId, candidate.detectorId] as const),
   );
   for (const link of input.evidenceLinks) {
     const detectorId = candidateDetectorById.get(link.candidateId);
-    if (detectorId !== undefined) evidenceCount.set(detectorId, (evidenceCount.get(detectorId) ?? 0) + 1);
+    if (detectorId !== undefined)
+      evidenceCount.set(detectorId, (evidenceCount.get(detectorId) ?? 0) + 1);
   }
   for (const row of input.coverageRows) {
     if (row.outcome === "hit") {
@@ -697,13 +706,11 @@ function packetCoverageArtifact(input: {
     }
   >();
   for (const packet of input.packets) {
-    const current =
-      packetMetricsByDetector.get(packet.candidate.detectorId) ??
-      {
-        withoutPrimary: 0,
-        withoutCounterEvidence: 0,
-        withoutCoverage: 0,
-      };
+    const current = packetMetricsByDetector.get(packet.candidate.detectorId) ?? {
+      withoutPrimary: 0,
+      withoutCounterEvidence: 0,
+      withoutCoverage: 0,
+    };
     if (!packet.packetCompleteness.hasPrimaryEvidence) current.withoutPrimary += 1;
     if (
       !packet.packetCompleteness.hasCounterEvidence &&

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { FindingCandidateSchema, FindingCoverageAuditSchema } from "@bp/domain";
+import { FindingCandidateSchema, FindingCoverageAuditSchema } from "@bp/domain/findings";
 import { buildRegistryDetectorRunArtifact } from "../src/detector-runs";
 
 describe("detector run artifacts", () => {

@@ -1,14 +1,16 @@
+import { Database } from "bun:sqlite";
 import { describe, expect, test } from "bun:test";
 import { ANALYTICS_DETECTOR_REGISTRY } from "@bp/analytics/registry";
 import {
-  FindingCandidateSchema,
-  FindingCoverageAuditSchema,
   DetectorIdSchema,
-  FindingEvidenceLinkSchema,
   type FindingCandidate,
+  FindingCandidateSchema,
   type FindingCoverageAudit,
+  FindingCoverageAuditSchema,
   type FindingEvidenceLink,
-} from "@bp/domain";
+  FindingEvidenceLinkSchema,
+} from "@bp/domain/findings";
+import { loadReviewPacketLocalDbRows } from "../src/local-db";
 import { buildReviewPacketArtifacts } from "../src/review-packets";
 
 const generatedAt = "2026-06-01T00:00:00.000Z";
@@ -172,7 +174,9 @@ describe("review packet artifacts", () => {
 
     expect(artifacts.detectorSpecs.detectorCount).toBe(ANALYTICS_DETECTOR_REGISTRY.length);
     expect(artifacts.reviewPackets.packetCount).toBe(2);
-    expect(artifacts.reviewPackets.summary.detectorCounts[DetectorIdSchema.parse("speed_pace_hotspot")]).toBe(1);
+    expect(
+      artifacts.reviewPackets.summary.detectorCounts[DetectorIdSchema.parse("speed_pace_hotspot")],
+    ).toBe(1);
     const persistentPacket = artifacts.reviewPackets.packets.find(
       (packet) => packet.candidate.candidateId === persistent.candidateId,
     );
@@ -201,7 +205,9 @@ describe("review packet artifacts", () => {
 
     const artifacts = build({
       candidates: [observed],
-      evidenceLinks: [evidence({ linkId: "e1", candidateId: observed.candidateId, role: "primary" })],
+      evidenceLinks: [
+        evidence({ linkId: "e1", candidateId: observed.candidateId, role: "primary" }),
+      ],
       coverageRows: [],
     });
 
@@ -255,5 +261,169 @@ describe("review packet artifacts", () => {
     );
     expect(gapCoverage?.status).toBe("complete");
     expect(gapCoverage?.packetsWithoutCounterEvidence).toBe(0);
+  });
+});
+
+describe("review packet local DB rows", () => {
+  test("loads candidate, evidence, and coverage rows for one release month", () => {
+    const sqlite = new Database(":memory:");
+    try {
+      sqlite.exec(`
+        CREATE TABLE local_finding_candidate (
+          candidate_id TEXT PRIMARY KEY,
+          detector_id TEXT NOT NULL,
+          detector_run_id TEXT NOT NULL,
+          month TEXT NOT NULL,
+          scope_kind TEXT NOT NULL,
+          scope_id TEXT NOT NULL,
+          route_id TEXT,
+          physical_id TEXT,
+          category TEXT NOT NULL,
+          severity TEXT NOT NULL,
+          confidence TEXT NOT NULL,
+          detector_score REAL NOT NULL,
+          reason_code TEXT NOT NULL,
+          claim_safe_label TEXT NOT NULL,
+          claim_text TEXT NOT NULL,
+          status TEXT NOT NULL,
+          review_state TEXT NOT NULL,
+          window_start TEXT,
+          window_end TEXT,
+          created_at TEXT NOT NULL
+        );
+        CREATE TABLE local_finding_evidence_link (
+          link_id TEXT PRIMARY KEY,
+          candidate_id TEXT NOT NULL,
+          evidence_kind TEXT NOT NULL,
+          evidence_role TEXT NOT NULL,
+          evidence_ref TEXT NOT NULL,
+          evidence_weight REAL,
+          note TEXT
+        );
+        CREATE TABLE local_finding_coverage_audit (
+          audit_id TEXT PRIMARY KEY,
+          detector_run_id TEXT NOT NULL,
+          detector_id TEXT NOT NULL,
+          month TEXT NOT NULL,
+          scope_kind TEXT NOT NULL,
+          scope_id TEXT NOT NULL,
+          outcome TEXT NOT NULL,
+          reason_code TEXT,
+          reason TEXT,
+          inputs_seen_json TEXT,
+          inputs_expected_json TEXT,
+          created_at TEXT NOT NULL
+        );
+      `);
+      sqlite
+        .query(
+          `
+            INSERT INTO local_finding_candidate (
+              candidate_id,
+              detector_id,
+              detector_run_id,
+              month,
+              scope_kind,
+              scope_id,
+              route_id,
+              physical_id,
+              category,
+              severity,
+              confidence,
+              detector_score,
+              reason_code,
+              claim_safe_label,
+              claim_text,
+              status,
+              review_state,
+              window_start,
+              window_end,
+              created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `,
+        )
+        .run(
+          "c-speed",
+          "speed_pace_hotspot",
+          "speed_pace_hotspot-2026-03-test",
+          "2026-03",
+          "segment",
+          "M15:0:s1:s2",
+          "M15",
+          null,
+          "speed",
+          "high",
+          "medium",
+          91,
+          "slow_pace_hotspot",
+          "issue_needs_review",
+          "M15 segment is slower than peer pace.",
+          "open",
+          "needs_review",
+          "2026-03-01T00:00:00.000Z",
+          "2026-03-31T23:59:59.000Z",
+          generatedAt,
+        );
+      sqlite
+        .query(
+          `
+            INSERT INTO local_finding_evidence_link (
+              link_id,
+              candidate_id,
+              evidence_kind,
+              evidence_role,
+              evidence_ref,
+              evidence_weight,
+              note
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+          `,
+        )
+        .run("e-speed", "c-speed", "metric", "primary", '{"metric":"pace"}', 1, null);
+      sqlite
+        .query(
+          `
+            INSERT INTO local_finding_coverage_audit (
+              audit_id,
+              detector_run_id,
+              detector_id,
+              month,
+              scope_kind,
+              scope_id,
+              outcome,
+              reason_code,
+              reason,
+              inputs_seen_json,
+              inputs_expected_json,
+              created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `,
+        )
+        .run(
+          "a-speed",
+          "speed_pace_hotspot-2026-03-test",
+          "speed_pace_hotspot",
+          "2026-03",
+          "segment",
+          "M15:0:s1:s2",
+          "hit",
+          "slow_pace_hotspot",
+          null,
+          "{}",
+          "{}",
+          generatedAt,
+        );
+
+      const rows = loadReviewPacketLocalDbRows({ sqlite, month: "2026-03" });
+
+      expect(rows.candidates).toHaveLength(1);
+      expect(rows.candidates[0]?.candidateId).toBe("c-speed");
+      expect(rows.candidates[0]?.detectorScore).toBe(91);
+      expect(rows.evidenceLinks).toHaveLength(1);
+      expect(rows.evidenceLinks[0]?.candidateId).toBe("c-speed");
+      expect(rows.coverageRows).toHaveLength(1);
+      expect(rows.coverageRows[0]?.outcome).toBe("hit");
+    } finally {
+      sqlite.close();
+    }
   });
 });
