@@ -1,4 +1,4 @@
-import { RouteIdCodec } from "@bp/domain";
+import { RouteIdCodec } from "@bp/domain/primitives";
 import * as z from "zod";
 import type { SocrataRow } from "../../clients/socrata/index.js";
 import { schemaVersion } from "../../core/index.js";
@@ -31,7 +31,8 @@ const RawBusWaitAssessmentRowSchema = z
     number_of_trips_passing_wait: z.coerce.number().int().nonnegative(),
     number_of_scheduled_trips: z.coerce.number().int().nonnegative(),
     wait_assessment: z
-      .union([z.null(), z.undefined(), z.coerce.number()])
+      .union([z.null(), z.coerce.number()])
+      .optional()
       .transform((value) => (value === undefined ? null : value)),
   })
   .passthrough();

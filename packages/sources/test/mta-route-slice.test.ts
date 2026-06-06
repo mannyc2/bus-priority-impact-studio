@@ -3,6 +3,7 @@ import {
   normalizeAceRouteRows,
   normalizeAceViolationSummaryRows,
 } from "@bp/sources/adapters/mta/ace";
+import { normalizeBusWaitAssessmentRows } from "@bp/sources/adapters/mta/bus-wait-assessment";
 import { normalizeHourlyRidershipRows } from "@bp/sources/adapters/mta/bus-ridership";
 import { normalizeSegmentSpeedRows } from "@bp/sources/adapters/mta/bus-speeds";
 import { normalizeRouteShapeRows, normalizeStopRows } from "@bp/sources/adapters/mta/routes-stops";
@@ -48,6 +49,29 @@ describe("MTA route slice normalization", () => {
         averageTravelTimeMinutes: 14.08056,
         averageRoadSpeedMph: 9.357582368883058,
         busTripCount: 12,
+      }),
+    ]);
+  });
+
+  test("normalizes bus wait assessment rows when Socrata omits null assessment fields", () => {
+    const rows = normalizeBusWaitAssessmentRows([
+      {
+        month: "2026-04-01T00:00:00.000",
+        borough: "Brooklyn",
+        day_type: "1",
+        trip_type: "UNKNOWN",
+        route_id: "B1",
+        period: "Peak",
+        number_of_trips_passing_wait: "0",
+        number_of_scheduled_trips: "0",
+      },
+    ]);
+
+    expect(rows).toEqual([
+      expect.objectContaining({
+        month: "2026-04",
+        routeId: "B1",
+        waitAssessment: null,
       }),
     ]);
   });

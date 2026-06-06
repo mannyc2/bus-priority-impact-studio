@@ -1,4 +1,4 @@
-import { RouteIdCodec } from "@bp/domain";
+import { RouteIdCodec } from "@bp/domain/primitives";
 import * as z from "zod";
 import type { SocrataRow } from "../../clients/socrata/index.js";
 import { isoCalendarDateTime, schemaVersion } from "../../core/index.js";
