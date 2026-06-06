@@ -7,7 +7,14 @@
     "lib": ["ES2023"],
     "paths": {
       "@/*": ["./apps/web/src/*"],
-      "@bp/domain": ["./packages/domain/src/index.ts"],
+      "@bp/domain/primitives": ["./packages/domain/src/primitives/index.ts"],
+      "@bp/domain/routes": ["./packages/domain/src/routes/index.ts"],
+      "@bp/domain/maps": ["./packages/domain/src/maps/index.ts"],
+      "@bp/domain/findings": ["./packages/domain/src/findings/index.ts"],
+      "@bp/domain/documents": ["./packages/domain/src/documents/index.ts"],
+      "@bp/domain/studio": ["./packages/domain/src/studio/index.ts"],
+      "@bp/domain/json-schema": ["./packages/domain/src/json-schema/index.ts"],
+      "@bp/domain/schema-registry": ["./packages/domain/src/schema-registry/index.ts"],
       "@bp/sources/*": ["./packages/sources/src/*"],
       "@bp/analytics": ["./packages/analytics/src/index.ts"],
       "@bp/analytics/*": ["./packages/analytics/src/*/index.ts"],
@@ -28,7 +35,36 @@
       "@bp/studio-api/server/authoring/agent": [
         "./packages/studio-api/src/server/resources/authoring/agent/index.ts"
       ],
-      "@bp/studio-api/server/testing": ["./packages/studio-api/src/server/testing/index.ts"]
+      "@bp/studio-api/server/testing": ["./packages/studio-api/src/server/testing/index.ts"],
+      "@bp/domain/documents/candidates": ["./packages/domain/src/documents/candidates/index.ts"],
+      "@bp/domain/documents/derived-surfaces": [
+        "./packages/domain/src/documents/derived-surfaces/index.ts"
+      ],
+      "@bp/domain/documents/discovery": ["./packages/domain/src/documents/discovery/index.ts"],
+      "@bp/domain/documents/intervention-records": [
+        "./packages/domain/src/documents/intervention-records/index.ts"
+      ],
+      "@bp/domain/documents/operational-date": [
+        "./packages/domain/src/documents/operational-date/index.ts"
+      ],
+      "@bp/domain/documents/research-surfaces": [
+        "./packages/domain/src/documents/research-surfaces/index.ts"
+      ],
+      "@bp/domain/documents/structured-extraction": [
+        "./packages/domain/src/documents/structured-extraction/index.ts"
+      ],
+      "@bp/domain/studio/briefs": ["./packages/domain/src/studio/briefs/index.ts"],
+      "@bp/domain/studio/docs": ["./packages/domain/src/studio/docs/index.ts"],
+      "@bp/domain/studio/findings": ["./packages/domain/src/studio/findings/index.ts"],
+      "@bp/domain/studio/identity": ["./packages/domain/src/studio/identity/index.ts"],
+      "@bp/domain/studio/interventions": ["./packages/domain/src/studio/interventions.ts"],
+      "@bp/domain/studio/release": ["./packages/domain/src/studio/release.ts"],
+      "@bp/domain/studio/routes": ["./packages/domain/src/studio/routes/index.ts"],
+      "@bp/domain/studio/rum": ["./packages/domain/src/studio/rum.ts"],
+      "@bp/domain/studio/snapshots": ["./packages/domain/src/studio/snapshots.ts"],
+      "@bp/domain/studio/shared": ["./packages/domain/src/studio/shared.ts"],
+      "@bp/domain/studio/field-provenance": ["./packages/domain/src/studio/field-provenance.ts"],
+      "@bp/domain/studio/projections": ["./packages/domain/src/studio/projections.ts"]
     },
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,

@@ -83,6 +83,7 @@
         "@bp/analytics": "workspace:*",
         "@bp/db": "workspace:*",
         "@bp/domain": "workspace:*",
+        "zod": "catalog:",
       },
       "devDependencies": {
         "@types/bun": "catalog:",

@@ -12,3 +12,8 @@ saveTextLockfile = true
 # Do not enable frozenLockfile globally; CI and release commands pass
 # --frozen-lockfile explicitly after bun.lock exists.
 frozenLockfile = false
+
+[test]
+# Worker runtime tests must run through @cloudflare/vitest-pool-workers, not Bun's
+# native runner. This keeps `bun test` useful without collecting Cloudflare-only files.
+pathIgnorePatterns = ["apps/web/test/worker/**"]

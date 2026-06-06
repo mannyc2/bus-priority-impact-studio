@@ -3,10 +3,10 @@ set -eu
 
 bucket="${1:-bus-priority-artifacts}"
 config="${2:-apps/web/wrangler.jsonc}"
-root="data/artifacts/studio/v1"
+root="data/artifacts/studio"
 
 if [ ! -d "$root" ]; then
-  printf 'Missing Studio projections at %s. Run: bun run pipeline studio release\n' "$root" >&2
+  printf 'Missing Studio artifacts at %s. Run the Studio release/export pipeline first.\n' "$root" >&2
   exit 1
 fi
 
@@ -20,4 +20,4 @@ done
 
 count="$(cat /tmp/bp-local-studio-r2-count 2>/dev/null || printf '0')"
 rm -f /tmp/bp-local-studio-r2-count
-printf 'Seeded %s Studio projection objects into local R2 bucket %s using %s\n' "$count" "$bucket" "$config"
+printf 'Seeded %s Studio artifact objects into local R2 bucket %s using %s\n' "$count" "$bucket" "$config"
