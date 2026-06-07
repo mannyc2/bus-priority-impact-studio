@@ -4,9 +4,9 @@ import {
   type RouteObservedReliabilitySummary as D1RouteObservedReliabilitySummary,
   type SourceMonthCoverage as D1SourceMonthCoverage,
   getRouteTimelineIndex,
-  listSourceMonthCoverage,
   listRouteMonthTrends,
   listRouteObservedReliabilitySummaries,
+  listSourceMonthCoverage,
   listStudioRouteIndexSourceRows,
   type StudioRouteIndexSourceRow,
 } from "@bp/db/d1";
@@ -46,8 +46,10 @@ import {
   StudioRouteSpeedHistoryResponseSchema,
   type StudioRoutesResponse,
   StudioRoutesResponseSchema,
+  StudioSegmentsResponseSchema,
 } from "@bp/domain/studio/routes";
 import {
+  STUDIO_MODEL_ARTIFACT_SERVING_PROJECTION_KEY,
   type StudioRouteFamily,
   type StudioRouteIndex2Response,
   StudioRouteIndex2ResponseSchema,
@@ -58,6 +60,7 @@ import {
   StudioSnapshotResponseSchema,
   type StudioSourceMonthState,
 } from "@bp/domain/studio/snapshots";
+import * as z from "zod";
 import type { StudioApiEnv } from "../env.js";
 import { errorResponse } from "../http/errors.js";
 import {
@@ -148,6 +151,46 @@ type Tier2MaterializedViewsArtifact = {
 };
 
 const TIER2_MATERIALIZED_VIEWS_KEY = "studio/v2/tier2/vocab-materialized-views.json";
+
+const ModelArtifactServingProjectionSchema = z
+  .object({
+    artifactKind: z.literal("model_artifact_serving_projection"),
+    schemaVersion: z.literal(1),
+    generatedAt: z.string(),
+    releaseMonth: z.string(),
+    historyWindow: z
+      .object({
+        startMonth: z.string(),
+        endMonth: z.string(),
+      })
+      .strict(),
+    summary: z
+      .object({
+        modelCount: z.number().int().nonnegative(),
+        availableModelCount: z.number().int().nonnegative(),
+        missingModelCount: z.number().int().nonnegative(),
+        detectorConsumerCount: z.number().int().nonnegative(),
+      })
+      .strict(),
+    models: z.array(
+      z
+        .object({
+          modelId: z.string().min(1),
+          status: z.enum(["available", "missing"]),
+          panelId: z.string().nullable(),
+          releaseMonth: z.string().nullable(),
+          modeledReleaseRowCount: z.number().int().nonnegative(),
+          routeCount: z.number().int().nonnegative(),
+          segmentCount: z.number().int().nonnegative(),
+          detectorConsumers: z.array(z.string()),
+          limitations: z.array(z.string()),
+        })
+        .strict(),
+    ),
+  })
+  .passthrough();
+
+type ModelArtifactServingProjection = z.output<typeof ModelArtifactServingProjectionSchema>;
 
 function realtimeSourceForRunId(
   runId: string | null,
@@ -689,6 +732,24 @@ async function loadTier2MaterializedViews(
     return null;
   }
   return candidate as Tier2MaterializedViewsArtifact;
+}
+
+async function loadModelArtifactServingProjection(
+  env: StudioReadEnv,
+): Promise<ModelArtifactServingProjection | null> {
+  if (env.ARTIFACTS === undefined) return null;
+  const object = await env.ARTIFACTS.get(STUDIO_MODEL_ARTIFACT_SERVING_PROJECTION_KEY);
+  if (object === null) return null;
+
+  let payload: unknown;
+  try {
+    payload = await object.json();
+  } catch {
+    return null;
+  }
+
+  const parsed = ModelArtifactServingProjectionSchema.safeParse(payload);
+  return parsed.success ? parsed.data : null;
 }
 
 function metricRows(input: {
@@ -1511,7 +1572,9 @@ export async function buildStudioRouteSpeedHistoryResponse(
   return { ok: true, speedHistory: parsed.data };
 }
 
-function jsonObject(value: unknown): Record<string, unknown> | null {
+function jsonObject(
+  value: unknown,
+): (Record<string, unknown> & { artifactKind?: unknown; routeId?: unknown }) | null {
   return value !== null && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : null;
@@ -1582,8 +1645,8 @@ export async function buildStudioRouteTimelineResponse(
   const record = jsonObject(payload);
   if (
     record === null ||
-    record["artifactKind"] !== "bp.tier2_route_timeline_bundle.v1" ||
-    record["routeId"] !== row.routeId
+    record.artifactKind !== "bp.tier2_route_timeline_bundle.v1" ||
+    record.routeId !== row.routeId
   ) {
     return {
       ok: false,
@@ -1649,6 +1712,7 @@ function sourceMonthStates(input: {
   sourceMonthCoverage: readonly D1SourceMonthCoverage[];
   lastBuiltSpeedMonth: string | undefined;
   tier2Views: Tier2MaterializedViewsArtifact | null;
+  modelProjection: ModelArtifactServingProjection | null;
 }): StudioSourceMonthState[] {
   const tier2EvidenceState: StudioSourceMonthState = {
     sourceId: "tier2_evidence_catalog",
@@ -1670,6 +1734,20 @@ function sourceMonthStates(input: {
         : "Tier 2 vocabulary-normalized route evidence bundles are published to R2.",
     producerCommand: "docs tier2 vocab-materialized-views",
   };
+  const modelArtifactState: StudioSourceMonthState = {
+    sourceId: "detector_model_artifact_status",
+    label: "Detector model artifact status",
+    month: input.routeIndex.baselineMonth,
+    status: input.modelProjection === null ? "derived_not_built" : "available",
+    rowCount: input.modelProjection?.summary.modelCount ?? null,
+    routeCount: null,
+    grain: input.modelProjection === null ? null : "model_artifact_status",
+    reason:
+      input.modelProjection === null
+        ? "Safe model-serving projection is not published to R2."
+        : "Safe model-serving projection is published to R2 without raw model rows.",
+    producerCommand: "evaluate detectors",
+  };
 
   if (input.sourceMonthCoverage.length > 0) {
     const rows = input.sourceMonthCoverage.map((row) => ({
@@ -1683,9 +1761,14 @@ function sourceMonthStates(input: {
       reason: row.note,
       producerCommand: "audit data-product-completeness",
     }));
-    return rows.some((row) => row.sourceId === "tier2_evidence_catalog")
+    const withTier2 = rows.some((row) => row.sourceId === "tier2_evidence_catalog")
       ? rows.map((row) => (row.sourceId === "tier2_evidence_catalog" ? tier2EvidenceState : row))
       : [...rows, tier2EvidenceState];
+    return withTier2.some((row) => row.sourceId === "detector_model_artifact_status")
+      ? withTier2.map((row) =>
+          row.sourceId === "detector_model_artifact_status" ? modelArtifactState : row,
+        )
+      : [...withTier2, modelArtifactState];
   }
 
   const speedMonthCount = input.routeIndex.routes.reduce(
@@ -1745,6 +1828,9 @@ function sourceMonthStates(input: {
     {
       ...tier2EvidenceState,
     },
+    {
+      ...modelArtifactState,
+    },
   ];
 }
 
@@ -1755,6 +1841,7 @@ function buildSnapshot2(input: {
   briefsCount: number;
   lastBuiltSpeedMonth: string | undefined;
   tier2Views: Tier2MaterializedViewsArtifact | null;
+  modelProjection: ModelArtifactServingProjection | null;
 }): StudioSnapshot2 {
   const { routes } = input.routeIndex;
   const artifactReadyRouteCount = routes.filter(
@@ -1836,6 +1923,29 @@ function buildSnapshot2(input: {
         end: sourceCoverageMonths.at(-1) ?? null,
       },
     },
+    {
+      id: "detector_model_status",
+      status:
+        input.modelProjection === null
+          ? "not_built"
+          : input.modelProjection.summary.missingModelCount > 0
+            ? "partial"
+            : "available",
+      schemaVersion: 1,
+      grain: "model_artifact_status",
+      storage: "r2",
+      path: STUDIO_MODEL_ARTIFACT_SERVING_PROJECTION_KEY,
+      months:
+        input.modelProjection === null
+          ? {
+              start: input.routeIndex.baselineMonth,
+              end: input.routeIndex.baselineMonth,
+            }
+          : {
+              start: input.modelProjection.historyWindow.startMonth,
+              end: input.modelProjection.historyWindow.endMonth,
+            },
+    },
   ];
 
   return {
@@ -1857,6 +1967,7 @@ function buildSnapshot2(input: {
       sourceMonthCoverage: input.sourceMonthCoverage,
       lastBuiltSpeedMonth: input.lastBuiltSpeedMonth,
       tier2Views: input.tier2Views,
+      modelProjection: input.modelProjection,
     }),
     counts: {
       routes: routes.length,
@@ -1871,20 +1982,25 @@ function buildSnapshot2(input: {
     caveats: [
       "Snapshot 2.0 is an addressability and coverage manifest, not the final route-page payload model.",
       "Route support levels describe which public surfaces are present; sparse catalog routes should still resolve to route shells.",
+      input.modelProjection === null
+        ? "Detector model status is not yet published as a safe serving projection."
+        : "Detector model status is published as a compact R2 projection; raw model rows remain internal.",
     ],
     projections,
   };
 }
 
 async function buildStudioSnapshotResponse(env: StudioReadEnv): Promise<Response> {
-  const [routesResult, findings, briefs, methods, docs, tier2Views] = await Promise.all([
-    buildStudioRoutesResponse(env),
-    loadStudioProjection(env, "findings.json", StudioFindingsResponseSchema),
-    loadStudioProjection(env, "briefs.json", StudioBriefsResponseSchema),
-    loadStudioProjection(env, "methods.json", StudioMethodsResponseSchema),
-    loadStudioProjection(env, "docs.json", StudioDocsResponseSchema),
-    loadTier2MaterializedViews(env),
-  ]);
+  const [routesResult, findings, briefs, methods, docs, tier2Views, modelProjection] =
+    await Promise.all([
+      buildStudioRoutesResponse(env),
+      loadStudioProjection(env, "findings.json", StudioFindingsResponseSchema),
+      loadStudioProjection(env, "briefs.json", StudioBriefsResponseSchema),
+      loadStudioProjection(env, "methods.json", StudioMethodsResponseSchema),
+      loadStudioProjection(env, "docs.json", StudioDocsResponseSchema),
+      loadTier2MaterializedViews(env),
+      loadModelArtifactServingProjection(env),
+    ]);
   if (!routesResult.ok) return routesResult.response;
   if (findings instanceof Response) return findings;
   if (briefs instanceof Response) return briefs;
@@ -1908,6 +2024,7 @@ async function buildStudioSnapshotResponse(env: StudioReadEnv): Promise<Response
           briefsCount: briefs.briefs.length,
           lastBuiltSpeedMonth: env.LAST_BUILT_SPEED_MONTH,
           tier2Views,
+          modelProjection,
         })
       : undefined;
   const projections: StudioSnapshotProjection[] = [
@@ -2004,17 +2121,26 @@ export async function handleStudioReadRequest<TEnv extends StudioReadEnv>(
   }
 
   if (url.pathname === "/api/v1/studio/search") {
-    const [routesResult, findings, briefs] = await Promise.all([
+    const [routesResult, findings, briefs, segments, methods, docs] = await Promise.all([
       buildStudioRoutesResponse(env),
       loadStudioProjection(env, "findings.json", StudioFindingsResponseSchema),
       loadStudioProjection(env, "briefs.json", StudioBriefsResponseSchema),
+      loadStudioProjection(env, "segments.json", StudioSegmentsResponseSchema),
+      loadStudioProjection(env, "methods.json", StudioMethodsResponseSchema),
+      loadStudioProjection(env, "docs.json", StudioDocsResponseSchema),
     ]);
     if (!routesResult.ok) return routesResult.response;
     if (findings instanceof Response) return findings;
     if (briefs instanceof Response) return briefs;
+    // Segments, methods, and docs enrich the result groups but are not load-bearing
+    // for search: a missing projection degrades to an empty group rather than a 5xx.
+    const segmentList = segments instanceof Response ? [] : segments.segments;
+    const datasets = methods instanceof Response ? [] : methods.datasets;
+    const docSections = docs instanceof Response ? [] : docs.sections;
 
     const query = url.searchParams.get("q")?.trim() ?? "";
     const terms = searchTerms(query);
+    const routeBySlug = new Map(routesResult.routes.map((route) => [route.slug, route]));
     const matchedRoutes = routesResult.routes.filter((route) =>
       textIncludesAnyTerm(
         [
@@ -2030,6 +2156,23 @@ export async function handleStudioReadRequest<TEnv extends StudioReadEnv>(
         terms,
       ),
     );
+    const matchedSegments = segmentList.flatMap((segment) => {
+      const route = routeBySlug.get(segment.routeSlug);
+      if (route === undefined) return [];
+      const matches = textIncludesAnyTerm(
+        [
+          segment.from,
+          segment.to,
+          segment.direction,
+          segment.routeSlug,
+          route.label,
+          route.corridor,
+          route.borough,
+        ].join(" "),
+        terms,
+      );
+      return matches ? [{ segment, route }] : [];
+    });
     const matchedFindings = findings.findings.filter(({ finding }) =>
       textIncludesAnyTerm(
         [
@@ -2051,6 +2194,35 @@ export async function handleStudioReadRequest<TEnv extends StudioReadEnv>(
         terms,
       ),
     );
+    const docNotes = docSections.flatMap((section, index) =>
+      textIncludesAnyTerm([section.title, ...section.body].join(" "), terms)
+        ? [
+            {
+              id: `docs:${index}`,
+              title: section.title,
+              where: "Methods / Notes",
+              preview: section.body[0] ?? "",
+              href: "/docs",
+            },
+          ]
+        : [],
+    );
+    const datasetNotes = datasets.flatMap((dataset) =>
+      textIncludesAnyTerm(
+        [dataset.name, dataset.publisher, dataset.grain, dataset.cadence].join(" "),
+        terms,
+      )
+        ? [
+            {
+              id: `dataset:${dataset.name}`,
+              title: dataset.name,
+              where: "Methods / Datasets",
+              preview: `${dataset.publisher} · ${dataset.grain} · ${dataset.cadence}`,
+              href: "/methods",
+            },
+          ]
+        : [],
+    );
 
     return studioJsonResponse(
       StudioSearchResponseSchema.parse({
@@ -2058,8 +2230,10 @@ export async function handleStudioReadRequest<TEnv extends StudioReadEnv>(
         generatedAt: routesResult.generatedAt,
         query,
         routes: matchedRoutes,
+        segments: matchedSegments,
         findings: matchedFindings,
         briefs: matchedBriefs,
+        notes: [...docNotes, ...datasetNotes],
         quality: routesResult.quality,
       }),
       env,
