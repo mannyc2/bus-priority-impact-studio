@@ -129,7 +129,8 @@ contract is what lets Tier 2 feed detector packets, causal panels, forecasting c
 response-drift studies, source-gap queues, and gold-set labels without treating document prose as
 computed metric truth.
 
-Active v2 commands: `docs:ocr-plan`, `docs:ocr-page-audit`, `docs:ocr-markdown-candidates`,
+Active v2 commands: `docs:ocr-plan`, `docs tier2 tesseract-ocr`,
+`docs tier2 ocr-similarity`, `docs:ocr-page-audit`, `docs:ocr-markdown-candidates`,
 `docs tier2 structured-extract`, `docs:extract`, `docs:intervention-records`.
 
 > **Preservation note.** The 2026-05-31 OCR preservation reconciliation found that the

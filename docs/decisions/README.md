@@ -20,3 +20,4 @@ Create a new ADR before introducing Python, hosted Postgres/PostGIS, a VPS, or a
 - `0014-brief-draft-live-write-serving.md` - D1-backed Studio draft write API, operator authz, idempotency, and projection overlay model.
 - `0015-brief-markdown-and-primitives.md` - Brief markdown plus typed primitive block/ref content model.
 - `0016-studio-brief-author-agent-runtime.md` - Cloudflare Think / Workers AI runtime for queued Studio brief authoring proposals.
+- `0017-mixed-freshness-publication-model.md` - Product/data doctrine replacing the broad "monthly release" slogan with historical corpus, baseline month, current signal, source snapshot, serving projection, and deliberate publication gates.

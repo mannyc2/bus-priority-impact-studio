@@ -4,7 +4,7 @@ type: data
 status: planning
 last_updated: 2026-06-06
 owner: codex
-source_count: 0
+source_count: 20
 tags: [tsp, transit-signal-priority, interventions, source-gap, foil, bus-priority]
 ---
 
@@ -68,6 +68,28 @@ source-backed validation before it can become a public claim.
 | DOT PMMR/testimony/budget-consultation materials | Ongoing study/implementation activity, including study counts and route-study references. | `under_consideration`, `source_gap` | "Studying" or "expected to study" is not installed/active TSP. |
 | MTA Bus Route Segment Speeds and CBD speeds | Effect evaluation after known intervention dates. | Candidate/evaluation support only | Timepoint-level speed includes many confounders. |
 | MTA GTFS, Bus Time, Bus Stops/Routes, ridership | Geometry, schedule, live/recovered performance, and controls. | Candidate/evaluation support only | Current/live or aggregate sources, not TSP records. |
+
+## Indexed Source Backlog
+
+The 2026-06-06 indexing pass promoted the research memo's highest-value public leads into the
+durable Tier 2 seed backlog. `knowledge/raw/tier2_document_backlog.json` now has 81 seed sources,
+including 20 TSP/source-gap additions. Of those additions, 18 were not previously present in the
+meeting-expanded backlog by URL; two high-value corridor PDFs were already present through recent
+discovery and are now also durable reviewed seeds.
+
+Generated inventory artifacts:
+
+- `data/ops/docs/tsp-recommended-sources-20260606/recommended-source-index.json`
+- `data/ops/docs/tsp-recommended-sources-20260606/recommended-source-index.md`
+- `data/ops/docs/tsp-recommended-sources-20260606/augmented-backlog-with-tsp-recommended.json`
+- `data/ops/docs/tsp-recommended-sources-20260606/tier2-source-coverage.json`
+
+The merged available universe is now 2,779 sources: 455 captured, 368 OCR-derived, 175 verified/
+materialized, 29 reviewed, and 19 promoted. For the 20 new durable TSP leads specifically, two are
+already captured, 18 are not captured, and MTA-hosted document/press endpoints remain locally blocked
+by HTTP 403 in the current capture environment. Stale public snippets for the legacy standalone
+Victory Boulevard TSP fact sheet and guessed 2023/2024 Streets Plan PDF URLs were not added as
+capture targets; the pass instead indexed live substitute/summary sources where available.
 
 ## Current Aggregate Leads
 

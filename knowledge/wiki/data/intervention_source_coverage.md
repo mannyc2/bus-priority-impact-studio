@@ -184,8 +184,26 @@ Implemented corpus acquisition:
   provenance, and writes a merged discovered backlog for the next capture pass.
 - `docs:capture` fetches the backlog into ignored `data/artifacts/docs/<run_id>/`, records per-source
   metadata/checksums, stores HTML/JSON/PDF raw artifacts, and extracts basic HTML text.
+  On 2026-06-07 the capture transport gained a native `curl` browser-navigation fallback for MTA
+  pages that keep returning 403 through Bun fetch. Run `mta-backlog-curl-capture-2026-06-07`
+  captured the 10-source MTA backlog completely: 8 HTML text artifacts, 2 OCR-required PDFs, and 0
+  failures. A companion local OCR pass wrote page Markdown for both PDFs under
+  `ocr-page-markdown-tesseract-mta-backlog-20260607`; its audit reports 113 complete pages, 0
+  failed/missing pages, and one short page for review.
 - `docs:ocr-plan` reads the capture manifest and writes the Pi/OpenRouter OCR plan for
   `ocr_required` PDFs before any model call.
+- `docs tier2 tesseract-ocr` is the preferred local text renderer for new PDF passes. It consumes
+  the same OCR plan, writes OCR-compatible per-page Markdown artifacts, prefers a usable
+  `pdftotext` text layer, and falls back to source-level batched `pdftoppm` renders plus per-page
+  `tesseract` for scanned pages. Its output audit can be passed directly to
+  `docs tier2 discovery-extract` or `docs tier2 structured-extract`; it does not normalize dates or
+  classify operational status.
+- `docs tier2 ocr-similarity` compares local `pdftotext`/Tesseract page output against already
+  reviewed page-Markdown OCR. It reports token overlap, character n-gram similarity, and route/date/
+  number recall plus page-level recommendations (`local_ok`, `local_ok_with_review`,
+  `local_failed_needs_triage`, `vision_escalation_candidate`,
+  `no_paid_vision_low_value_visual`) so engine choice can be made by document/page class rather than
+  by assumption.
 - `docs:ocr` slices each queued PDF to pages `1-10` or all pages when shorter, prepares ignored
   triage input artifacts, and sends one PDF at a time through OpenRouter with `service_tier = "flex"`
   and `max_tokens = 4096` by default when `--execute` is passed. The request includes the
@@ -229,11 +247,16 @@ Implemented corpus acquisition:
   filtered capture manifest that reuses the already-downloaded May 25 artifacts.
 
 OCR runs after corpus capture. Tier 2 should first fetch the reviewed corpus, prefer HTML and
-text-layer PDFs, classify scanned or explicitly reviewed PDFs as `ocr_required`, then run a separate
-OCR pass over that subset through the project-local Pi harness and OpenRouter, using a configured
-multimodal model such as `google/gemini-3.5-flash`. The current full-corpus OCR plan totals 1,778.58 MB
-across 368 PDFs and uses first-10-page triage before focused extraction. OCR-derived claims require
-quality review plus source-span validation before promotion.
+text-layer PDFs, classify scanned or explicitly reviewed PDFs as `ocr_required`, then run local page
+text extraction with `docs tier2 tesseract-ocr --execute`. Paid multimodal OCR is not a broad retry
+path for images alone; use it only for `vision_escalation_candidate` pages where the local pass misses
+substantive route/date/number or table content. Short visual misses should stay
+`no_paid_vision_low_value_visual` for skip/manual review. The local pass preserves source-stated text
+only; date strings stay raw until the deterministic `document-operational-date-assertions-v1` layer
+normalizes them.
+The historical full-corpus OCR plan totals 1,778.58 MB across 368 PDFs and uses first-10-page triage
+before focused extraction. OCR-derived claims require quality review plus source-span validation
+before promotion.
 
 Current OCR quality status for `tier2-full-corpus-2026-05-24-pass2`: all 368 planned PDFs have
 parsed first-10-page triage JSON after the Gemini Flash completion pass (`351 good`, `17 partial`,

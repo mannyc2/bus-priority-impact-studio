@@ -113,7 +113,7 @@ The TanStack Router docs supplied during API-refactor planning reinforce these i
   cache already supports loader dedupe, preload freshness, stale-while-revalidate, and background
   stale reloads.
 - Use object-form loaders when setting route-specific `staleReloadMode`; use `"background"` for
-  monthly release projections and reserve `"blocking"` for data that must be fresh before route
+  baseline/serving projections and reserve `"blocking"` for data that must be fresh before route
   commit.
 - Pass `abortController.signal` to every API helper that fetches Studio resources. Abandoned route
   transitions should cancel HTTP/R2 work.

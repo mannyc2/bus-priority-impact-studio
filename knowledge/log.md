@@ -2,6 +2,417 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-07] architecture | Mixed freshness publication doctrine
+
+Added ADR 0017 (`docs/decisions/0017-mixed-freshness-publication-model.md`) to retire "the product
+is a monthly release" as product doctrine. The canonical framing is now: a multi-year evidence
+system with versioned baselines, current signals, and audited publication gates. The ADR defines
+historical corpus, baseline month, current signal, source-capture snapshot, pipeline artifact corpus,
+serving projection, and publication/promotion.
+
+Updated the corpus overview and pipeline finish plan to point at the doctrine, and corrected newer
+planning text that had used monthly release language too broadly. Monthly cadence remains valid for
+monthly source grains, release-keyed detector output, and same-month observed-release promotion
+gates; it is no longer the mental model for the whole product or route page freshness.
+
+## [2026-06-07] engineering | Customer journey shortfall detector plan revised
+
+Revised the plan after review. Replaced the "monthly release" output rationale with ADR 0017's
+mixed-freshness model: output is keyed on a resolved CJTP `asOfMonth` (latest complete source month
+or selected snapshot) for reviewability/stable snapshotting, decision uses the historical panel, and
+serving shows multi-year history with current highlights. Flagged that the runner currently keys
+reads off the global `releaseMonth`, which would ignore CJTP's fresher 2026-04 data, so the detector
+must resolve its own `asOfMonth`. Added a cohort-safe route-filtering constraint:
+`loadDetectorStudyLocalDbRows()` pushes `routeId` into the SQL `WHERE`, so a `--routeId` run would
+compute the within-cohort percentile on a cohort of one; the resolver must load the whole cohort and
+filter after scoring (with a test invariant). Corrected the over-optimistic seam claim — the
+assembler dispatches only artifact/model inputs, not generic `sqlite_table` contracts — and chose to
+add a generic SQLite resolver registry keyed on `resolverId` rather than another hand-written branch.
+Added a route-level rollup goal (worst cohort, customer-weighted CJTP, dominant side, persistence
+count, exposed customers) and a reproducible data-grounding SQL block.
+
+## [2026-06-07] engineering | Customer journey shortfall detector plan
+
+Drafted [[wiki/engineering/customer_journey_shortfall_detector_plan|Customer journey shortfall
+detector plan]] — the first detector to consume MTA CJTP (`local_bus_customer_journey_metric`, 25,041
+rows, 2023-04..2026-04, zero nulls), which no analytics code reads today. It flags routes with poor
+customer journey-time performance for the release month and decomposes the shortfall into wait-side
+(`additional_bus_stop_time`) vs in-vehicle-side (`additional_travel_time`) so the implicated lever is
+visible. Recorded a load-bearing correction: the `customerJourneyTimeMinutes` column is a misnomer —
+CJTP is a 0..1 performance share (% of customers within 5 minutes of schedule), not minutes, and
+negative additional-time means better than schedule.
+
+Settled the "this month vs all months" scope: output stays release-month because review packets,
+coverage, and publication gates need one actionable baseline month at a time, while per-month
+emission across 37 months is a ~37x un-actionable flood. The hit is persistence-gated using
+all-months history as baseline (release month + trailing-N and/or same-month-prior-year) so a
+one-month dip cannot promote. Cross-month "getting worse" is left to `degradation-trend` as a
+follow-on (feed CJTP into the metric-history grain), not overloaded onto this detector. Placement
+follows the authoring guide: pure rule in `@bp/analytics`, SQLite read + resolver in
+`@bp/applied-research`, reuse the existing `local_bus_customer_journey_metrics_history` data product,
+thin pipeline command. Status draft; thresholds (exposure floor, percentile, persistence rule) still
+to lock before implementation.
+
+## [2026-06-07] engineering | Detector input resolver seam and Socrata monthly factory
+
+Simplified `findings run-detector` by moving detector-specific artifact input assembly out of the
+CLI and into `@bp/applied-research/detector-runs`. The new `assembleDetectorStudySourceRows()`
+walks detector registry metadata, feature contracts, and model artifacts, then dispatches to shared
+resolvers for model artifacts, stop-direction-hour EWT features, route treatment summaries, and
+treatment event panels. The CLI now loads local rows, calls the assembler, runs the registry
+detector study, and writes the output. Added fixture coverage proving model artifact rows are loaded
+through the resolver registry with route filtering.
+
+Added `defineSocrataMonthlyIngest()` as the first bounded factory for the repeated Socrata monthly
+ingest shape: source lookup, Soda3 query, fetch, normalize, replace, raw snapshot, and summary.
+Converted `ingest bus-wait-assessment` to use the factory and added a fixture-backed helper test.
+While smoke-testing the real detector command, made the local month-first index migrations
+idempotent with `CREATE INDEX IF NOT EXISTS`; the live route-scoped smoke for B41 then completed
+without writing detector rows to SQLite.
+
+## [2026-06-07] engineering | Tier 2 extraction best practices recorded
+
+Added [[wiki/engineering/tier2_extraction_best_practices|Tier 2 extraction best practices]] as the
+durable operating memo for future Tier 2 queues and normalization passes. It records the qv1-qv10
+lessons from the canonical merge and vocab repair work: qv8-qv10 were a repair subset, not the full
+corpus; category-like raw paths were not fully stable across queue waves; event-family missing
+projection is now fixed but residual debt remains in metric/entity/narrative vocab; rawText-derived
+event-family suggestions stay review-only unless a policy explicitly authorizes fallback
+canonicalization; and raw payloads remain immutable with additive canonical projection. The page also
+sets future queue/run rules: declare queue role and corpus inventory before launch, run canonical
+merge and raw-field graduation before projection, split `missing_projection` from `preserve_raw` and
+`unresolved`, and prove key completion with direct projection-index checks before expanding the
+corpus.
+
+## [2026-06-07] engineering | Applied research and detector authoring guide
+
+Added [[wiki/engineering/applied_research_detector_authoring]] as the operational guide for new
+detectors and new applied-research units. The guide records the current ownership split:
+`@bp/analytics` for pure detector/statistical logic, `@bp/applied-research` for corpus-backed
+panels/models/evaluation artifacts, `@bp/applied-research/local-db` for explicit local SQLite
+research reads, `@bp/db` for storage/table mechanics, and `tools/pipeline-v2` as thin command
+orchestration. It includes step-by-step detector and applied-research checklists, common failure
+modes, and verification commands.
+
+## [2026-06-07] engineering | Serving-safe model projection and query baselines
+
+Completed Phases 5 and 6 of the analytics/local-db first-principles plan. `evaluate detectors` now
+writes the compact `model_artifact_serving_projection` to both the canonical research artifact path
+and the publishable `studio/v2/detectors/model-artifacts.json` R2 key. Snapshot 2.0 validates that
+safe R2 artifact from the Studio API, exposes a `detector_model_status` projection ref, and adds a
+`detector_model_artifact_status` source-month state without importing `@bp/applied-research` or
+serving raw model rows.
+
+Added `local_db_hot_query_baselines` in `@bp/applied-research/local-db` plus
+`audit local-db-query-baselines`, which records row counts, elapsed milliseconds, EXPLAIN plan
+lines, index-use flags, and full-scan warnings for the hot local panel reads. A March 2026 live
+read-only smoke run found the local DB had schema-declared month-first indexes missing; applied
+`CREATE INDEX IF NOT EXISTS` for `local_route_segment_speed`, `local_route_hourly_ridership`,
+`local_route_month_trend`, and `local_route_intervention_comparison`. The rerun reported 10
+queries, 9 measured SQL reads, 1 artifact-backed source-gap panel, 0 errors, and 0 full-scan
+warnings. The full 2023-04 to 2026-03 baseline also passed with 0 full-scan warnings; the largest
+measured reads were segment-daypart (520,825 rows, 20.3s), pulse fingerprint (3,015,641 rows,
+16.4s), and segment-month (153,479 rows, 14.8s).
+
+## [2026-06-07] engineering | Model-backed detector input gate
+
+Finished the Phase 4 detector-run contract for the 100x analytics/local-db plan. Registry detector
+runs now evaluate declared `modelArtifacts` before dispatch; missing model rows emit an explicit
+`skipped_missing_input` coverage row with `reasonCode=missing_model_artifact` instead of rebuilding
+ad hoc raw fallbacks. Run artifacts now include `dataProductDependencies` and per-run
+`modelDependencies` with status and row counts. `findings run-detector` loads the canonical model
+artifacts for segment daypart residuals, route peer residuals, segment speed residuals,
+intervention scope fit, reliability exposure, source gaps, and treatment event panels when present.
+No live SQLite writes were performed.
+
+## [2026-06-07] engineering | Panel spec and local DB resolver contracts
+
+Completed the Phase 3 analytics/local-db slice for first-class panel specs. `@bp/applied-research`
+now exports runtime `PanelSpec`/`PanelManifest` schemas plus `builtInPanelModelSpecsV1()`, a catalog
+covering the nine current model artifacts and their required data-product dependencies. The local DB
+panel adapters now have manifest-returning `load*PanelV1Resolution()` wrappers for segment-month,
+segment-daypart, route-peer residual, reliability-exposure ridership, pulse fingerprint,
+decoupling, and treatment-event rows, while preserving the existing bare row loaders for command
+compatibility. High-value aggregate SQL outputs parse through focused Zod row schemas before
+returning typed panel rows. Verification used in-memory SQLite fixtures only; the live
+`data/local/pipeline.sqlite` file was not modified.
+
+## [2026-06-07] engineering | Data-product dependency input resolver
+
+Made data-product `requiredInputs` auditable instead of relying on private classifier aliases. The
+applied-research data-product completeness module now exports a required-input resolver, reviewed
+product-alias map, and explicit external-ref list. Dependency propagation uses the same resolver,
+and the manifest test now fails any required input that is neither a manifest product ID,
+`source_manifest:*`, a reviewed alias to existing product IDs, nor an approved external ref. This
+keeps product-completeness closure from silently skipping legacy table names or prose artifact
+nicknames.
+
+## [2026-06-07] engineering | Read-only local DB audit handles
+
+Tightened the local SQLite safety posture for read-only pipeline work. `audit source-coverage`,
+`audit studio-coverage`, and `verify d1` now use `withLocalDb({ readonly: true })`, so they skip
+local migrations and open the DB through Bun SQLite's read-only mode while still writing their
+JSON/SQL artifacts outside the database. Added command-boundary assertions for those three commands
+so audit/verification paths do not drift back to writable handles.
+
+## [2026-06-07] engineering | Data-product completeness artifact schema
+
+Added a package-owned `DataProductCompletenessArtifactSchema` under
+`@bp/applied-research/data-products` covering completeness products, checks, coverage buckets,
+root causes, downstream blockers, route universes, and summary counts. `audit
+data-product-completeness` now parses the full artifact through that schema immediately before
+writing `completeness.json`, turning the canonical coverage artifact into a validated publication
+boundary rather than a TypeScript-only object shape.
+
+## [2026-06-07] engineering | Narrow coverage audit demotion
+
+Made the route-materialization audit explicit about its narrower scope. The
+`analytics_materialization_coverage` artifact now carries `auditScope.role =
+"route_surface_materialization_audit"` and points readers to `audit data-product-completeness` for
+canonical product gap classes. The CLI summary uses the same wording. Downstream
+`detector-corpus-grain` and `detector-closure` now parse the canonical completeness artifact through
+`DataProductCompletenessArtifactSchema` when it is present instead of accepting arbitrary JSON.
+
+## [2026-06-07] engineering | Hardened the local SQLite / Drizzle write path
+
+Made the `@bp/db/local` repository helpers correct and faster without changing their public
+call sites. Every multi-statement `replace*` helper (~30 across projection, route-network,
+route-slice, interventions, corridors, gtfs-rt, findings, corpus-context, observed-reliability,
+equity, tier2) now runs inside a single synchronous `db.transaction((tx) => …)` so a crash or
+constraint violation mid-replace rolls back instead of leaving canonical build state half-wiped.
+The helpers dropped `async` (bun-sqlite is synchronous; callers' existing `await` still works).
+Added `insertAll(tx, table, rows)` — a sync, transaction-aware chunked insert — and routed every
+multi-row insert through it, closing a latent `too many SQL variables` crash on wide tables.
+
+Added month covering indexes to the 10 projection/serving tables read `WHERE month = ?` whose PK
+leads with `routeId`/`corridorId` (scorecard, brief summary, readiness, month coverage, build plan,
+reliability baseline, equity context, observed reliability summary, corridor month summary, and
+month source status on `(month, source_scope)`). `EXPLAIN QUERY PLAN` confirmed each flipped
+`SCAN` → `SEARCH … USING INDEX`. Migration: `migrations-drizzle/local/20260607113608_quick_omega_red`.
+
+Centralized the SQLite pragmas in `applyLocalPragmas()` (exported from `@bp/db/local`), used by
+`openLocalPipelineDb`, which also gained a `readonly` open mode and `synchronous = NORMAL` for
+faster local bulk writes. Removed the speculative, unused `@bp/db/pg` subpath (schema, config,
+export, generate script) per the MVP "no Postgres without a documented requirement" rule.
+
+Decided to **defer** a broad foreign-key + `ON DELETE CASCADE` rollout: the atomicity goal is now
+met by transactions, the one cascade that mattered (`finding_candidate` → `finding_evidence_link`)
+already exists, the corridor group is incompatible (its replace deletes the whole corridor catalog),
+and the rest would require SQLite table-rebuild migrations. FK enforcement remains a future option.
+
+Known pre-existing drift (not touched): the test migration record `packages/db/migrations/local/`
+(read by the local repo tests) lags the runtime `migrations-drizzle/local/` journal (37 vs 39); the
+new month-index migration lives only in the runtime journal, which is fine because the indexes are
+perf-only and tests do not depend on them.
+
+## [2026-06-07] engineering | Reliability exposure panel added to model projection
+
+Built `reliability_exposure_panel_v1` as the first rider-exposure reliability model artifact. The
+March 2026 artifact joins stop-direction-hour EWT features with route-hour ridership proxy rows and
+writes
+`data/artifacts/analytics-models/reliability-exposure-panel-v1/2026-03/bus-observatory-2026-03/reliability-exposure-panel.json`:
+650,264 panel rows, 311,924 rows with both rider exposure and computable EWT, 350 routes, 22,800
+stops, about 5.53M estimated boardings, and about 252.8M estimated rider-delay minutes. Its
+manifest is explicit that route-hour ridership is allocated over stop-direction-hour rows and is not
+observed stop-level boardings.
+
+Wired the artifact into detector evaluation and the model-serving projection. `rider_weighted_excess_wait`
+now declares `reliability_exposure_panel_v1` as a model dependency; rerunning
+`evaluate detectors --year 2026 --month 3 --historyStartMonth 2023-04` produced 20 scorecards,
+0 model-backed evaluation-loss blocked detectors, a portfolio gated score of 825.9, and, after the
+treatment-event panel addition below, a serving-safe projection with 7 available models, 0 missing
+models, and 10 detector consumers.
+
+Follow-up runtime wiring now makes `findings run-detector --detector-id rider_weighted_excess_wait`
+prefer `reliability_exposure_panel_v1` when present, with the older stop-hour EWT plus route-hour
+ridership resolver kept as fallback. The real March run used
+`sourceKind=rider_weighted_excess_wait_from_reliability_exposure_panel_v1`, read 650,264 panel rows,
+and emitted 7 review candidates with 650,264 coverage rows.
+
+`source_gap` now has the same model-runtime discipline for treatment/TSP source gaps. The detector
+accepts source-gap model rows as optional input, and `findings run-detector --detector-id source_gap`
+loads `source_gap_model_v1` when present. The real March run used
+`sourceKind=source_gap_from_source_gap_model_v1`, read 381 model rows, and emitted 381
+`tsp_current_inventory_missing` review candidates with 381 coverage rows.
+
+`intervention_gap` now consumes the same `source_gap_model_v1` rows directly at runtime. The real
+March run used `sourceKind=intervention_gap_from_source_gap_model_v1`, read the 381-route model
+surface, and emitted 8 review candidates with 381 coverage rows. The older raw source-gap resolver
+path remains only as a model-building fallback when the artifact is absent.
+
+Added `treatment_event_panel_v1` as the seventh model artifact in the 100x analytics track. The
+March 2026 artifact at
+`data/artifacts/analytics-models/treatment-event-panel-v1/2023-04_to_2026-03/2026-03/treatment-event-panel.json`
+contains 741 event-panel rows across 327 routes, 236 supported comparison rows, 236 rows with
+effect estimates, and 0 rows eligible for causal language under the current gates. Rerunning
+`evaluate detectors --year 2026 --month 3 --historyStartMonth 2023-04` produced a serving-safe
+model projection with 7 available models, 0 missing models, and 10 detector consumers.
+
+`intervention_event_study` now declares and consumes `treatment_event_panel_v1` at runtime when the
+artifact is present. The real March run used
+`sourceKind=intervention_panel_from_treatment_event_panel_v1`, read 741 panel rows, and emitted 100
+capped association-screening candidates with 741 coverage rows. The artifact intentionally blocks
+causal/effect language until pre-trend, placebo, autocorrelation, method-divergence, and human
+review gates are stronger.
+
+Added route-month-speed screening diagnostics to `treatment_event_panel_v1`. The March artifact now
+computes gate statuses where public monthly speed history and comparison rows are sufficient, using
+longer pre-intervention route history when the persisted comparison window is too short: pre-trend
+231 pass / 1 fail / 509 not tested; placebo-in-time 211 pass / 8 fail / 522 not tested;
+placebo-in-space 145 pass / 85 fail / 511 not tested; autocorrelation 171 pass / 60 fail / 510 not
+tested; method-divergence 224 pass / 12 fail / 505 not tested. The refreshed
+`intervention_event_study-run.json` records these `gateStatusCounts` and
+`candidateCausalEligibleFeatureCount=102`, while preserving association-pending-review claim
+language until human methodology approval.
+
+The treatment-event build now also writes
+`data/artifacts/analytics-models/treatment-event-panel-v1/2023-04_to_2026-03/2026-03/candidate-causal-review.json`,
+a compact methodology-review projection for those 102 candidate-causal-eligible rows. It spans 93
+routes, records event/window/effect/gate fields, and sets `reviewDisposition=needs_methodology_review`
+plus `publicClaimAllowed=false` for every row. The projection omits raw model rows and raw artifact
+paths.
+
+## [2026-06-07] data | MTA backlog browser-style capture fallback
+
+Added a native `curl` fallback to the Tier 2 document capture transport for GET requests that still
+return 403 after the normal project fetch and browser-header Bun fetch. The fallback keeps capture
+read-only, uses browser navigation headers, follows redirects, and records the curl effective URL
+for manifest bookkeeping.
+
+Reran the MTA missing-source backlog as `mta-backlog-curl-capture-2026-06-07`. The clean capture
+downloaded all 10 MTA backlog sources: 8 HTML pages were converted to text artifacts and 2 official
+PDFs were stored as `ocr_required`, with 0 remaining failures.
+
+Generated the companion OCR plan at
+`data/ops/docs/mta-backlog-curl-capture-20260607/mta-backlog-ocr-plan.json` and local page Markdown
+artifacts under `ocr-page-markdown-tesseract-mta-backlog-20260607`. The audit covers both PDFs, 113
+pages total, with 113 complete pages, 0 failed/missing pages, 113 tool-call/response artifacts, and
+one short page for review.
+
+## [2026-06-07] engineering | Treatment scope gap detector and review artifacts
+
+Added `treatment_scope_gap` as the complement to `treatment_scope_mismatch`: mismatch asks whether
+a bus-lane-overlap segment remains slow, while gap asks whether a treated route's slowest eligible
+segment appears uncovered or weakly covered by known bus-lane geometry. Added same-segment
+historical speed context to mismatch evidence, specialized scope-gap review packet context, capped
+route treatment source refs, detector registry/spec/policy rows, local DB feature loading, and
+focused tests.
+
+Regenerated March 2026 artifacts. `treatment_scope_gap` emits 95 candidates across 4,140 segment
+scopes; `treatment_scope_mismatch` remains 100 capped candidates across 4,134 segment scopes.
+Review packets now cover 1,564/1,564 candidates across 20 detector families with 0 missing packets;
+generic score vectors cover 1,982,890 scopes with 1,473 flagged. The detector evaluation report now
+has 20 scorecards. Both treatment-scope detectors are `watch`: evidence quality and claim
+discipline are strong, but human-reviewed precision/usefulness labels are still needed before
+promotion.
+
+## [2026-06-07] engineering | Treatment scope mismatch calibration and packet context
+
+Hardened `treatment_scope_mismatch` after auditing the first real packets. The detector now joins
+route-segment treatment rows to all-day segment speed, daypart speed profile, same-route current
+month rank, network current-month rank, and segment length. The score now uses speed, bus-lane
+overlap, and descriptive route/network slowness rank; packets get a structured `reviewContext`
+summary with evidence highlights, caution flags, and suggested reviewer checks.
+
+The audit caught a concrete false-positive class: the initial top Q65/Q17/Q12 examples were
+16-32 ft timepoint segments whose 0.1-1.3 mph speeds were dominated by tiny-distance/travel-time
+math. The detector now applies a 300 ft minimum segment-length gate, matching speed-pace detector
+discipline. Those scopes are skipped as `segment_too_short` instead of queued. Final March 2026
+artifacts: 4,134 treatment-scope segment rows, 100 capped candidates, 735 clean no-hits, 3,299
+skipped rows, 100 complete packets, 300 treatment-scope evidence links, and complete packet
+coverage. The generic detector score-vector artifact is rebuilt for all 19 detectors; the
+`treatment_scope_mismatch` scorecard now has calibration stability 651 and no
+`score_vector_unavailable` flag, but remains `watch` until reviewed labels exist.
+
+## [2026-06-06] engineering | Treatment scope mismatch detector slice
+
+Added `treatment_scope_mismatch`, a segment-scope detector for slow observed segments that overlap
+DOT bus-lane geometry. The detector is deliberately cautious: it emits review seeds for scope,
+enforcement, and peer-context inspection, not failure claims. The applied-research detector runner
+now resolves segment speed summaries against `route_segment_treatment_summary`; the detector is
+registered, policy-gated, exported, and covered by analytics, applied-research, and pipeline command
+tests.
+
+Real March 2026 runs now persist three treatment-aware detector families:
+`intervention_gap` (8 candidates), `intervention_underperformance` (28 candidates), and
+`treatment_scope_mismatch` (100 capped segment candidates over 4,134 segment rows). Refreshed review
+packets cover 1,469 candidates across 19 candidate-bearing detectors with 0 missing packets; the new
+detector has 100 complete packets, 200 evidence links, and 0 packets missing primary evidence,
+counter-evidence, or coverage. The detector evaluation now has 19 scorecards and a portfolio gated
+score of 831.2. `treatment_scope_mismatch` is `watch` because reviewed labels and score-vector
+artifacts are not available yet, while packet completeness, missing-data discipline, novelty, and
+claim discipline all score cleanly.
+
+## [2026-06-06] engineering | Treatment-aware detector runner slice
+
+Added detector-native treatment input constructors for `intervention_gap` and
+`intervention_underperformance` in `@bp/applied-research`. `findings run-detector` now loads
+route-pain rows, route/segment treatment features, TSP/source-gap posture, and intervention
+comparison rows for those detector families. March 2026 real runs produced 8 intervention-gap
+candidates and 28 intervention-underperformance candidates over the 381-route universe, with
+treatment source refs capped in evidence payloads while preserving full source-ref counts.
+
+## [2026-06-06] engineering | Local Tesseract OCR path added
+
+Added `docs tier2 tesseract-ocr` for Tier 2 PDF page text extraction without an OCR LLM. The command
+consumes the existing `ocr-plan.json`, writes the same per-page Markdown + compatibility JSON shape
+used by downstream extraction, prefers a usable Poppler `pdftotext` text layer, and falls back to
+`pdftoppm` + `tesseract` for scanned pages. It emits a Tesseract-specific page audit that can be fed
+to `docs tier2 discovery-extract` / `structured-extract`. Date extraction guidance was clarified:
+OCR preserves source wording, regular LLM extraction carries raw date/status/family fields, and
+`parseOperationalDate()` / `classifyOperationalDate()` remain the only normalization gate.
+
+Added `docs tier2 ocr-similarity` to evaluate the local path against already-OCR'd page Markdown
+before changing corpus defaults. The report records token overlap, character 5-gram cosine, and
+route/date/number recall per page. A real smoke run over five
+`gap-roadmap-docs-2026-05-25` TSP-report pages wrote
+`data/ops/docs/ocr-similarity-20260606/gap-roadmap-text-layer-smoke.json`: 3/5 pages compared via
+PDF text layer with mean token Jaccard 0.980, mean token recall 0.994, and perfect date/number recall
+on compared pages; 2/5 cover/visual pages required the missing local `tesseract` binary and were
+reported as local OCR failures.
+
+2026-06-07 follow-up: installed native Tesseract 5.3.4 (`tesseract-ocr`, `tesseract-ocr-eng`,
+`tesseract-ocr-osd`) on Ubuntu. A clean forced-Tesseract smoke over the same five pages wrote
+`data/ops/docs/ocr-similarity-20260606/gap-roadmap-tesseract-forced-smoke.json`: 5/5 pages completed
+with no local OCR failures, but quality was mixed. Dense text pages 3-5 scored high
+(`tokenJaccard` 0.990, 0.985, 0.934; route/date/number recall perfect where applicable); cover/
+visual pages 1-2 scored zero token overlap and missed route/date/number anchors. Default similarity
+roots are now mode-specific so `prefer` and forced-Tesseract runs do not accidentally reuse each
+other's page artifacts. The evaluator now emits cost-aware recommendations per page:
+`local_ok`, `local_ok_with_review`, `local_failed_needs_triage`, `vision_escalation_candidate`, or
+`no_paid_vision_low_value_visual`. Paid vision OCR is escalation-only; short/image-heavy pages that
+do not carry enough substantive text should be skipped or manually reviewed instead of retried
+through the expensive multimodal path.
+
+2026-06-07 follow-up: added Markdown-normalized plain-text metrics to `docs tier2 ocr-similarity`
+so LLM page Markdown can be compared against embedded PDF text without over-penalizing tables,
+headings, and list punctuation. A 120-page `gap-roadmap-docs-2026-05-25` sample wrote
+`data/ops/docs/ocr-similarity-20260607/gap-roadmap-llm-md-vs-pdf-text-layer-120p.json`: 119/120
+pages compared (`118` PDF text-layer, `1` Tesseract fallback, `1` local failure). Raw mean token
+recall was `0.840`; Markdown-normalized mean token recall was `0.863`. Raw mean character 5-gram
+cosine was `0.756`; Markdown-normalized mean cosine was `0.835`, confirming that Markdown formatting
+noise is material but manageable. Recommendation counts were `69 local_ok`, `24 local_ok_with_review`,
+`14 vision_escalation_candidate`, `12 no_paid_vision_low_value_visual`, and `1 local_failed_needs_triage`.
+
+2026-06-07 follow-up: improved the local PDF-to-PNG/Tesseract path. `docs tier2 tesseract-ocr` now
+checks existing per-page outputs first, tries embedded PDF text next, then renders only fallback
+pages into a source-level PNG cache grouped by contiguous page ranges. This keeps the downstream
+per-page Markdown contract while avoiding one `pdftoppm` process per page on scanned PDFs.
+
+## [2026-06-06] data | TSP recommended sources indexed
+
+Promoted the June TSP research memo's highest-value public leads into the durable Tier 2 document
+seed backlog. `knowledge/raw/tier2_document_backlog.json` now has 81 sources, with 20 new
+TSP/source-gap entries covering NYC Administrative Code §19-199.1, Victory/Sustainable Streets,
+Hylan, MTA/DOT aggregate press releases, DOT Streets Plan/testimony materials, Connecting to the
+Core, Flatbush/M14/Northern/21st Street corridor PDFs, the MTA 2021 annual report, NYCT's 2026 ITSP
+solicitation notice, and two dataset dictionaries (`w76s-c5u4`, `wa2y-rh4b`). Generated
+`data/ops/docs/tsp-recommended-sources-20260606/` with a recommended-source index, a meeting/TSP
+merged backlog, a combined capture manifest, and a Tier 2 source-coverage audit. The merged available
+universe is 2,779 sources: 455 captured, 368 OCR-derived, 175 verified/materialized, 29 reviewed, and
+19 promoted. The index records stale/unresolved leads separately (legacy Victory standalone PDF,
+guessed 2023/2024 Streets Plan PDFs, Bus-Data-NYC, and FOIL-only current TSP inventory).
+
 ## [2026-06-06] engineering | Route treatment summary materializer planned
 
 Added `knowledge/wiki/engineering/route_treatment_summary_materializer_plan.md` to define the
@@ -3602,6 +4013,37 @@ while `@bp/applied-research/artifacts` owns the speed-history batch manifest pat
 command now keeps spine-manifest reading, route selection, existing-artifact probing, per-route
 history orchestration, and JSON writes.
 
+## [2026-06-07] engineering | 100x analytics plan
+
+Added `knowledge/wiki/engineering/analytics_100x_plan.md` as the architecture plan for moving from
+threshold-heavy detector runs to declarative panel specs, versioned statistical model artifacts,
+detector model dependencies, evaluation-loss gates, and serving projections. The plan keeps
+`packages/analytics` pure, places dataframe-backed panel/model building in `@bp/applied-research`,
+uses SQLite for heavy pre-aggregation, and treats `segment_speed_residuals_v1` as the first
+vertical slice to harden before expanding into daypart residuals, peer residuals, intervention
+event panels, pulse fingerprints, and decoupling models.
+
+## [2026-06-07] engineering | 100x analytics implementation slice
+
+Added generic `PanelSpec`/`PanelManifest` contracts in `@bp/applied-research/feature-resolvers`,
+attached panel manifests to `segment_speed_residuals_v1`, and built the next model artifacts,
+`segment_daypart_residuals_v1` and `route_peer_residuals_v1`. The March 2026 residual artifacts now
+report 3,102 segment-month release rows, 12,625 segment-daypart release rows, and 348 route-peer
+release rows. `evaluate detectors` now includes model artifact diagnostics in the standard
+detector-evaluation JSON/Markdown report, showing `segment_speed_residuals_v1` as consumed by
+`treatment_scope_mismatch`, `segment_daypart_residuals_v1` as available but not yet wired to a
+detector, and `route_peer_residuals_v1` as available for `multi_month_speed_peer`,
+`degradation_trend`, and `positive_deviance`.
+
+## [2026-06-07] engineering | Detector model dependency metadata
+
+Added registry-level `modelArtifacts` metadata for residual-backed detectors. The registry now
+declares `segment_speed_residuals_v1` for `treatment_scope_mismatch`,
+`segment_daypart_residuals_v1` for `speed_pace_hotspot`, and `route_peer_residuals_v1` for
+`multi_month_speed_peer`, `degradation_trend`, and `positive_deviance`. Detector evaluation now
+derives model artifact consumer lists from the registry instead of hard-coded report strings, and
+`detectorVersions[]` includes each detector's declared model artifact dependencies.
+
 ## [2026-06-06] engineering | Evidence corpus audit applied-research cutover
 
 Moved `audit evidence-corpus` policy construction out of `tools/pipeline-v2`. The
@@ -3620,6 +4062,233 @@ SQLite handles, generated timestamps, and path display formatting, while applied
 waiver parsing, source-year status diagnostics, route-id artifact filename variants, score-vector
 route coverage, semantic duplicate/month/run checks, JSON artifact semantic validation, staleness
 checks, and glob minimum-file coverage. Added direct applied-research tests for those evaluators.
+
+## [2026-06-07] engineering | Intervention scope-fit model artifact
+
+Added `intervention_scope_fit_v1` in `@bp/applied-research` to separate covered, partial-confirmed,
+true-uncovered, route-only, geometry-unavailable, source-gap-blocked, and not-applicable treatment
+scope states. The March 2026 artifact has 4,486 rows across 359 routes: 1,111 covered, 938 partial
+confirmed, 2,085 true uncovered, 345 route-only, and 7 source-gap-blocked rows.
+
+The detector registry now declares `intervention_scope_fit_v1` for `treatment_scope_gap` and
+`treatment_scope_mismatch`, and `evaluate detectors` reports it alongside the residual artifacts.
+Focused typechecks and tests pass for `@bp/analytics`, `@bp/applied-research`, `@bp/pipeline-v2`,
+the scope-fit fixture, detector evaluation fixtures, and registry metadata.
+
+## [2026-06-07] engineering | Source-gap model artifact
+
+Added `source_gap_model_v1` in `@bp/applied-research` to make source gaps and blocked-claim labels
+first-class model context. The March 2026 artifact has 381 route rows, all for
+`transit_signal_priority` / `current_inventory_missing`, and blocks absence, current-confirmed
+route TSP, and intersection-level TSP coverage claims.
+
+The detector registry now declares `source_gap_model_v1` for `source_gap` and `intervention_gap`.
+`evaluate detectors` loads the artifact and reports it in the standard model-artifact table with
+381 release rows and 381 routes.
+
+## [2026-06-07] engineering | Model-backed evaluation gates and serving projection
+
+Added a `model_backed_evaluation_loss` hard gate to detector evaluation scorecards. For detectors
+that declare `modelArtifacts`, reviewed primary positives must survive and reviewed-negative
+precision must stay above the current floor. The March 2026 detector evaluation has 0
+model-backed evaluation-loss blocked detectors.
+
+`evaluate detectors` now also writes
+`data/artifacts/model-artifact-serving-projection/2023-04_to_2026-03/2026-03/model-artifacts.json`,
+a serving-safe model summary projection with 5 available models and 8 detector consumers. The
+projection intentionally excludes raw model rows, raw `analytics-models/` artifact paths, and
+residual scalar fields.
+
+## [2026-06-07] engineering | Analytics/local DB first-principles ownership plan
+
+Added [[wiki/engineering/analytics_local_db_first_principles_plan]] to clarify that the existing
+package split is mechanically real but needs stronger accountability boundaries. The plan assigns
+storage truth to `@bp/db`, corpus-to-panel extraction to `@bp/applied-research/local-db`, model and
+data-product artifacts to `@bp/applied-research`, pure detector/statistical contracts to
+`@bp/analytics`, and orchestration/file mutation to `tools/pipeline-v2`.
+
+The plan folds in the current local DB audit recommendations: live migration journals for repo
+tests, D1 seed validation, local/D1 drift checks, canonical data-product completeness, focused raw
+SQL result validation, query-plan/perf gates, and package-boundary enforcement. Its key distinction
+is that helper extraction alone only reduces duplication; mistake prevention requires owned
+contracts, manifests, coverage/gap classes, and validation gates.
+
+Follow-up implementation slice: moved local SQLite repository tests onto a shared in-memory helper
+that uses the live `migrations-drizzle/local` journal, added a guardrail test against returning to
+the stale flat `migrations/local` root, and wired D1 seed preflight validation for key
+public-serving rows plus observed-reliability appendix rows. This work does not touch or migrate the
+live `data/local/pipeline.sqlite`; it only uses in-memory SQLite test databases.
+
+Added the local/D1 mirrored schema drift test for the serving boundary. It compares shared columns
+across local and D1 projection table pairs for physical column name, type, nullability, default
+presence, and enum values, while making compact-serving exclusions and D1-derived columns explicit.
+
+## [2026-06-07] engineering | Decoupling quadrants internal-lab artifact
+
+Added `decoupling_quadrants_v1` as a route-level internal-lab pattern-mining artifact for
+speed/ridership/reliability splits. The March 2026 build writes
+`data/artifacts/analytics-models/decoupling-quadrants-v1/2023-04_to_2026-03/2026-03/decoupling-quadrants.json`
+with 367 route rows, 346 speed/ridership-supported rows, 346 reliability-supported rows, and
+`publicClaimAllowed=false` for every row.
+
+Historical `excess_wait_minutes` is only populated for the release month in the current observed
+reliability table, so the artifact now uses excess-wait deltas when available and deterministically
+falls back to observed long-gap-share deltas for historical reliability trend. Current pattern
+counts are 271 coupled-or-weak, 37 reliability-worse/speed-stable, 18 speed-better/ridership-down,
+15 speed-worse/ridership-resilient, 12 fast-but-unreliable, 11 slow-but-reliable, and 3
+speed-worse/reliability-stable-or-better.
+
+Added `pulse_fingerprint_v1` as the companion route-direction hour-of-week pattern artifact. The
+March 2026 build writes
+`data/artifacts/analytics-models/pulse-fingerprint-v1/2023-04_to_2026-03/2026-03/pulse-fingerprint.json`
+with 699 route-direction rows across 353 routes and 404 supported pulse rows. The model compares
+release-month hour-of-week speed cells against prior-month medians for the same route-direction
+cell, with minimum gates of 12 historical months and 20 release-month trips. Current pattern counts
+are 295 flat/weak, 183 worst-hour-of-week, 102 weekend pulses, 97 rush-hour pulses, and 22 off-peak
+pulses. The artifact is internal-lab only: every row has `publicClaimAllowed=false` because it
+identifies timing fingerprints, not causes.
+
+Regenerated `evaluate detectors` so the serving-safe model projection includes both internal-lab
+pattern artifacts. The March 2026
+`data/artifacts/model-artifact-serving-projection/2023-04_to_2026-03/2026-03/model-artifacts.json`
+now has 9 available models, 0 missing models, and 10 detector consumers. `pulse_fingerprint_v1` and
+`decoupling_quadrants_v1` appear with empty `detectorConsumers` lists; the projection still omits raw
+model paths, row arrays, and residual scalar fields.
+
+Added a first-class `qualityLab` block to
+`data/artifacts/detector-evaluation/2023-04_to_2026-03/2026-03/detector-evaluation.json`. The March
+2026 evaluation now exposes reviewed-decision count, reviewer approval share, promoted-finding
+yield, false-positive root counts, model-backed detector count, model-backed evaluation-loss blocks,
+score-vector availability, and a threshold/rank-stability coverage status. Current values are 200
+reviewed decisions, 200 promoted findings, 10 model-backed detectors, 0 model-backed blocked
+detectors, 20 score-vector-backed detectors, 0 score-vector-unavailable detectors, and
+`thresholdAndRankStabilityStatus=available`. The compact rank-stability check inspects detector
+score-vector score distributions without copying raw vectors into the evaluation artifact; the real
+run checked 20 detectors, marked 4 as fragile under current top-rank concentration / near-threshold
+sensitivity rules, and recorded `maxTopTenShare=1` plus `maxThresholdSensitivityShare=0`.
+
+## [2026-06-07] engineering | Treatment scope-gap consumes scope-fit model
+
+`treatment_scope_gap` now accepts `treatmentScopeFitContext` on segment inputs. The detector uses
+that model context before local geometry heuristics, suppressing uncovered-scope claims when
+`intervention_scope_fit_v1` says a segment is covered, partial-confirmed, geometry-unavailable, or
+source-gap-blocked.
+
+The applied-research resolver attaches `intervention_scope_fit_v1` rows to scope-gap detector
+inputs, and `findings run-detector --detector-id treatment_scope_gap` loads the generated
+scope-fit artifact. The March 2026 run loaded 4,486 scope-fit rows, attached context to 4,134
+segment inputs, and produced the requested 20-candidate capped run artifact.
+
+Follow-up calibration reruns now preserve full candidate summaries when a detector run is invoked
+with a higher `candidateLimit`. `treatment_scope_gap` also consumes
+`segment_speed_residuals_v1` context and suppresses true-uncovered candidates that are not worse
+than modeled expectation on an already chronically slow route. The post-model-gate audit lives at
+`data/artifacts/findings/2026-03/treatment-scope-review-set/CALIBRATION-AUDIT-AFTER-MODEL-GATES.md`.
+Against the adversarial 50-packet review set, all 6 reviewed primary findings survived, 37 reviewed
+packets dropped, no suppress-labeled reviewed packet still emits, and 4 reviewer-only packets remain
+as internal calibration debt.
+
+## [2026-06-07] engineering | Context-event payload contract
+
+Added an explicit Zod contract for `local_context_event.payload_json` in
+`@bp/applied-research/local-db`. Context-event builders now serialize source-specific payloads
+through a single validated helper before `@bp/db/local` upserts them, preserving the mechanical split:
+the DB package owns persistence and applied-research owns source semantics. Added focused tests for
+valid payload parsing and malformed payload rejection. This continues the Analytics / Local DB
+first-principles cleanup without touching the live `data/local/pipeline.sqlite` file.
+
+Added `listRouteCatalogIds()` to `@bp/db/local` as the canonical route-universe ID read, with an
+in-memory live-migration-backed repository test. Raw `bun:sqlite` consumers still need incremental
+port cleanup, but new code has a package-owned helper instead of repeating the route catalog query.
+
+Added a shared `routeLionLinkFanoutCte()` helper in `@bp/applied-research/local-db` and routed the
+context-event route-touch and parking-violation match fanout queries through it. The duplicated
+`local_route_lion_link` `physical_id -> route_fanout` aggregate now has one source. Also marked
+`local_parking_violation_match`, `local_lion_segment_geom`, and `local_route_shape_geom` as
+intentional raw-only tables in the DB schema/README, and moved several read-only pipeline opens
+(Studio release/geometry helpers, pipeline-v1 check, treatment-review artifact generation) onto
+`openLocalPipelineDb(..., { readonly: true })`.
+
+Expanded the D1 seed preflight from a few public-serving rows to the full rendered seed surface:
+route catalog/type/direction, route inventory/readiness/build-plan rows, reliability rows,
+interventions, corridor rows, timeline/speed/source coverage, equity, scorecards, brief windows,
+rankings, and route-batch rows now validate against their Drizzle insert schemas before SQL is
+emitted. Added a route-catalog negative test alongside the existing scorecard and appendix
+reliability tests.
+
+Aligned the data-product completeness gap vocabulary with the first-principles coverage plan by
+adding explicit `source_absent` support to the manifest lifecycle schema, classifier, coverage
+summary buckets, and pipeline command output schema. A focused test now proves source-absent
+products remain distinguishable from `available_not_fetched` and still roll up under upstream
+blocked coverage.
+
+Centralized the small data-product completeness artifact reader as
+`dataProductCompletenessStatusMap()` in `@bp/applied-research/data-products`. Detector corpus-grain
+and analysis dependency-closure now consume that shared parser instead of carrying separate local
+status/reason extractors, reducing coverage vocabulary drift between downstream audits.
+
+Added explicit data-product refs to analytics detector-readiness surfaces. Backfill surfaces and
+direct surfaces now carry `registryProductId`, with
+`DETECTOR_READINESS_REGISTRY_PRODUCT_BY_SURFACE` tying policy surface IDs like
+`observed_headways`, `gtfs_schedule_runtime`, and context route-touch checks back to
+`DATA_PRODUCT_MANIFEST`. The GTFS schedule fallback distinguishes current release timepoints from
+the source-year schedule-stop backfill product. Focused readiness/materialization tests now assert
+the mapping is registered.
+
+Moved `route-schedules-bulk --only-missing-current-routes` off its local raw
+`SELECT DISTINCT route_id FROM local_route_catalog` query and onto the `@bp/db/local`
+`listRouteCatalogIds()` helper through `createLocalPipelineDb(sqlite)`, preserving the existing
+missing-table error and in-memory ingest behavior.
+
+Closed a product-manifest drift seam in the new panel/model layer. Built-in `PanelSpec`
+`requiredProducts` now use canonical `DATA_PRODUCT_MANIFEST` IDs instead of raw table/artifact
+nicknames, with new manifest products for `local_intervention_events_release` and
+`route_treatment_summary_artifact`. Analytics detector registry entries now expose
+`requiredDataProducts` derived from their feature grains, and applied-research tests assert both
+panel and detector product refs resolve to registered products. Detector evaluation artifacts now
+copy those data-product dependencies into `detectorVersions[]` next to each detector's model
+artifacts, so downstream gates can see both dependency classes without re-inferencing them.
+
+Added Phase 7 boundary enforcement and docs for the Analytics / Local DB split. The production
+boundary harness now rejects `@bp/analytics` imports of `@bp/db`, `@bp/applied-research`,
+filesystem/SQLite, and dataframe runtimes, and public app runtime imports of
+`@bp/applied-research`. Package READMEs now spell out `@bp/db` storage truth,
+`@bp/applied-research/local-db` corpus-to-panel ownership, data-product completeness ownership, and
+analytics purity. `knowledge/wiki/engineering/package_structure.md` now has the review checklist
+for expected universe, product/gap state, validation boundary, surface class, package home, and
+SQLite safety.
+
+Added the first Phase 6 query-plan guard for hot segment-speed panel reads. The local schema now
+declares `local_route_segment_speed_month_route_idx` on `(month, route_id)`, with a matching local
+Drizzle migration file, and `@bp/applied-research/local-db` exports the segment-month and
+segment-daypart SQL handles so tests can run `EXPLAIN QUERY PLAN` directly. The focused in-memory
+test asserts month-range panel reads use an index and do not fall back to a full
+`local_route_segment_speed` scan; route-filtered reads are allowed to use the table primary key.
+
+Expanded the Phase 6 query-plan guard to the next model-panel readers: pulse fingerprints,
+reliability exposure ridership rows, decoupling route trends, decoupling reliability rows, and the
+intervention panel. Added month-first local indexes for `local_route_hourly_ridership`,
+`local_route_month_trend`, and `local_route_intervention_comparison`, plus a matching migration
+file under `migrations-drizzle/local`. The in-memory planner test now asserts those broad
+month/range panel reads use the intended indexes and do not regress to full table scans.
+
+Hardened the data-product completeness manifest against vague route coverage. Historical segment
+speed, hourly ridership, and route intervention comparison products now declare concrete route
+universes, and the data-product registry test fails any route-bearing or month-bearing coverage
+check whose product omits the matching `expectedUniverse.routes` or `expectedUniverse.months`. This
+keeps "complete" tied to an explicit searched universe instead of a row-count proxy.
+
+Added JSON validation for finding coverage-audit payloads at the `@bp/db/local` repository boundary.
+`insertCoverageAudit`, `replaceFindingsForMonth`, and `replaceFindingRun` now reject malformed
+`inputsSeenJson` or `inputsExpectedJson`; the replace paths validate before deleting existing
+candidate/coverage rows. This closes the Phase 1 follow-up for coverage-audit JSON payloads without
+touching the live SQLite database.
+
+Moved `findings repair-persistent-speed-coverage` off its direct
+`local_finding_coverage_audit` `INSERT OR IGNORE` SQL. `@bp/db/local` now exposes
+`insertCoverageAuditIgnore`, which preserves duplicate-ignore behavior while applying the same JSON
+payload validation as the other findings repository write paths. The command boundary test now
+asserts the command imports `@bp/db/local` and does not spell the coverage table insert directly.
 
 ## [2026-06-05] engineering | Studio API authoring runtime extraction
 

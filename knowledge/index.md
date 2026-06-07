@@ -31,7 +31,9 @@ for route ⇄ LION corridor joins; 0012 defines the registry-first,
 agent-assisted detector authoring plan after the analytics refactor; 0014 defines the D1 live-write
 serving model for Studio brief-draft authoring endpoints; 0015 adopts a lazy-loaded markdown
 pipeline + typed `BriefBlock` primitives for rendering brief prose with embeddable figures; 0016
-records the Cloudflare Think / Workers AI runtime for queued brief-author proposals. Draft
+records the Cloudflare Think / Workers AI runtime for queued brief-author proposals; 0017 retires
+the broad "monthly release" slogan in favor of a mixed-freshness model: historical corpus, baseline
+month, current signal, source-capture snapshot, serving projection, and deliberate publication gate. Draft
 creation, verdicts, body markdown, authoring ref resolution/persistence, draft-private review
 threads, send-to-brief attachment, candidate export audit wiring, and promotion receipt have landed.
 The remaining authoring/promotion follow-ups are tracked in
@@ -83,13 +85,16 @@ mutations, and Codemode deferred until a workflow needs it.
 - [[wiki/engineering/domain_contract_package_refactor_plan|Domain contract package refactor plan]] — Audit-backed plan to split `@bp/domain` into explicit contract subpaths, shrink the root barrel, move JSON Schema/OpenAPI generation out of core schema imports, and add package-shape gates.
 - [[wiki/engineering/ambitious_analytics_workstreams|Ambitious analytics workstreams]] — Ranked high-value analytics/serving/corpus work packages with copy-ready prompts for one or more Codex sessions.
 - [[wiki/engineering/analytics_architecture|Analytics architecture]] — Pure `packages/analytics` detector kernel architecture, feature contracts, registry doctrine, and migration plan.
+- [[wiki/engineering/analytics_100x_plan|100x analytics plan]] — Declarative panel specs, dataframe-backed model artifacts, detector model dependencies, evaluation loss, and serving projection doctrine for the next analytics leap.
 - [[wiki/engineering/applied_research_architecture|Applied research architecture]] — Plan for `packages/applied-research` as the corpus-backed research engine for detector studies, causal inference, forecasting, score vectors, and review artifacts, with `pipeline-v2` as a thin CLI consumer.
+- [[wiki/engineering/applied_research_detector_authoring|Applied research and detector authoring]] — Practical guide for deciding whether work belongs in detectors, applied-research panels, local SQLite adapters, DB, or pipeline commands, with implementation and verification checklists.
 - [[wiki/engineering/sources_adapter_cutover_plan|Sources adapter cutover plan]] — Hard-cutover decision for turning `@bp/sources` into a focused internal source adapter SDK, with SODA3-only Socrata clients, no root export, no SODA2 compatibility path, and explicit pipeline/app boundary gates.
 - [[wiki/engineering/curb_pulse_natural_experiment_plan|Curb pulse natural experiment plan]] — Applied-research workbench plan for segment/daypart travel-time pulses, event-window overlaps, mechanism corroboration, placebo checks, and falsifiable curb-management case studies.
 - [[wiki/engineering/analytics_corpus_profile|Analytics corpus profile]] — Release snapshot versus historical detector-window doctrine, corpus readiness, and Ralph input policy.
 - [[wiki/engineering/detector_corpus_grain_audit_plan|Detector corpus grain audit plan]] — Plan to make detector inputs use the rich local analytical corpus and detector-native grains instead of a single coarse route-month substrate.
 - [[wiki/engineering/analytics_detector_calibration|Analytics detector calibration]] — Baseline windows, seasonality rules, minimum-history gates, and score-vector path for detector calibration.
 - [[wiki/engineering/detector_evaluation_harness_plan|Detector evaluation harness plan]] — Release-cycle plan for detector quality scoring, negative/near-miss sets, false-positive roots, novelty, elegance, and Ralph evaluation gates.
+- [[wiki/engineering/customer_journey_shortfall_detector_plan|Customer journey shortfall detector plan]] — Plan for the first detector over MTA CJTP (`local_bus_customer_journey_metric`): release-month output with all-months persistence gating, wait-vs-in-vehicle shortfall decomposition, the CJTP-is-a-percentage-not-minutes correction, and applied-research seam placement.
 - [[wiki/engineering/analytics_backfill_runbook|Analytics backfill runbook]] — Monitoring, restart, resume, and verification plan for local analytics corpus backfills.
 - [[wiki/engineering/data_model|Data model]] — D1/SQLite serving model, Drizzle schema split, JSON cleanup plan, local artifacts, and migration path to Postgres/Hyperdrive.
 - [[wiki/engineering/etl_plan|ETL plan]] — Ingestion order, Drizzle/D1 migration workflow, local backfill rules, transformation rules, and QA.
@@ -97,6 +102,8 @@ mutations, and Codemode deferred until a workflow needs it.
 - [[wiki/engineering/drizzle_query_modernization_plan|Drizzle query modernization plan]] — Drizzle 1.0 RC upgrade path, `drizzle-orm/zod` validation policy, table/query/relation rules, and raw-SQL exception boundaries.
 - [[wiki/engineering/drizzle_modernization_completion_audit|Drizzle modernization completion audit]] — Prompt-to-artifact completion audit for the Drizzle RC upgrade, D1 prepare elimination, migration safety, pipeline raw prepare audit, and verification gates.
 - [[wiki/engineering/pipeline_raw_prepare_audit|Pipeline raw prepare audit]] — Separate audit of the remaining 35 `tools/pipeline-v2` local SQLite prepares, with spatial, bulk-ingest, and Drizzle-candidate classifications.
+- [[wiki/engineering/local_db_usage_audit|Local database usage audit]] — Current-state audit of how the local SQLite DB is used (acquisition, read/write split, Drizzle vs raw `bun:sqlite` styles) and the roles of Drizzle and drizzle-zod, with ranked improvement opportunities (notably: drizzle-zod is unused; test/runtime migration drift).
+- [[wiki/engineering/analytics_local_db_first_principles_plan|Analytics / Local DB first-principles plan]] — Ownership model for `@bp/db`, `@bp/applied-research/local-db`, `@bp/applied-research`, `@bp/analytics`, pipeline orchestration, data-product completeness, validation gates, and serving boundaries.
 - [[wiki/engineering/data_pipeline_v1_completion_plan|Data Pipeline v1 completion plan]] — Approved v1 finish line for GTFS-RT reliability, intervention evaluation, corridors, briefs, exports, and QA gates.
 - [[wiki/engineering/data_infrastructure_v1_finish_plan|Data Infrastructure v1 finish plan]] — Remaining recovered GTFS-RT integration, D1/R2 publish, scheduling, and website unfixture gates.
 - [[wiki/engineering/data_pipeline_finish_plan_v2|Data Pipeline Finish Plan v2]] — Current plan for source coverage, historical corpus completion, context features, manual PC rebuilds, and lightweight Worker refresh operations.
@@ -129,6 +136,7 @@ mutations, and Codemode deferred until a workflow needs it.
 - [[wiki/engineering/agentic_tier2_extraction_harness_goal|Agentic Tier 2 extraction harness goal]] — Improved source-scoped extraction harness goal: controlled PDF/source tools, prior-candidate context, field-level evidence support, deterministic verification, and downstream brief/finding/detector/causal projections.
 - [[wiki/engineering/tier2_agentic_self_healing_architecture|Tier 2 agentic self-healing architecture]] — Audit-driven retry lanes, adaptive retry policy, source-tool enrichment gate, and quarantine contract for agentic extraction runs.
 - [[wiki/engineering/tier2_processing_status_and_resume|Tier 2 processing status and resume runbook]] — Current qv8/qv9/qv10 canonical merge, raw-field graduation, vocab synthesis progress, exact artifact paths, remaining chunks, provider caveats, and resumable queue commands.
+- [[wiki/engineering/tier2_extraction_best_practices|Tier 2 extraction best practices]] — qv1–qv10 lessons, raw-field alias pitfalls, missing-projection policy, and future queue/normalization rules.
 - [[wiki/engineering/document_derived_surfaces_v1|Document-derived surfaces v1]] — Final storage contract for Tier 2 OCR/discovery outputs as source-grounded research surfaces, with lifecycle gates before review, serving, causal, or forecasting use.
 - [[wiki/engineering/tier2_operational_date_extraction_review|Tier 2 operational-date assertions — build & review]] — Deterministic source-stated operational-date layer (trust official MTA/DOT status + date; no LLM). 929 trusted dates; review found/fixed three precision defects. Gated before sqlite load.
 - [[wiki/engineering/tier2_operational_date_extraction_audit_handoff|Tier 2 operational-date extraction audit handoff]] — SUPERSEDED by the review above; solved deterministically rather than handed to another audit session.
@@ -146,6 +154,7 @@ mutations, and Codemode deferred until a workflow needs it.
 - [[wiki/analysis/methodology_validation|Methodology validation]] — Code-level audit of analysis correctness, limitations, and gaps.
 - [[wiki/analysis/finding_coverage_and_corpus_expansion|Finding coverage and corpus expansion]] — Post-v1 plan for missed-finding risk, detector coverage, source-gap findings, and data-corpus expansion.
 - [[wiki/analysis/ideal_detector_system|Ideal detector system]] — Registry-first detector doctrine for questions, evidence packets, claim tiers, promotion, calibration, LLM boundaries, and practical limits.
+- [[wiki/analysis/treatment_informed_detector_plan|Treatment-informed detector plan]] — High-quality detector plan for consuming route/segment treatment state, TSP source gaps, bus-lane scope matches, and underperformance guardrails.
 
 ## Templates
 

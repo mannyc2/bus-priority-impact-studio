@@ -724,7 +724,9 @@ A VPS is still not required for the MVP. Concrete triggers:
 - `src/d1/validation.ts` exposes Drizzle-Zod row schemas for DB boundary validation.
 - `wrangler.d1.jsonc` points Wrangler D1 migrations at `migrations/d1`.
 - the local D1 export path reads the Drizzle migration journal instead of duplicating table SQL strings.
-- `@bp/db/d1`, `@bp/db/pg`, and `@bp/db/shared` are explicit subpath surfaces.
+- `@bp/db/d1`, `@bp/db/local`, and `@bp/db/shared` are explicit subpath surfaces. (A
+  speculative `@bp/db/pg` surface was removed; Postgres remains deferred per the MVP rule and
+  would be reintroduced only behind a documented requirement / ADR.)
 - D1 serving query modules live under `src/d1/queries/`; most read through Drizzle query builders,
   while Worker-facing prepared-statement helpers such as `studio-brief-drafts.ts` and
   `studio-auth.ts` are exported explicitly from `@bp/db/d1` for Cloudflare D1 bindings.
@@ -788,6 +790,27 @@ packages/db/
   mutate Studio drafts only through Worker-local tools and `@bp/db/d1` helpers, never by importing
   pipeline, analytics, or `knowledge/` runtime code.
 - `apps/web` must not import `@bp/db/local`.
+
+### Analytics / Local DB Review Checklist
+
+Use this checklist when reviewing new analytics, local DB, data-product, detector, or serving
+projection work:
+
+- **Expected universe:** Which route/month/entity universe is declared before the query or model
+  runs?
+- **Product state:** Which `DATA_PRODUCT_MANIFEST` product IDs are required, and what gap classes
+  can they emit (`available_not_fetched`, `source_absent`, `upstream_blocked`,
+  `derived_not_built`, downstream blocked, etc.)?
+- **Validation boundary:** What validates the crossing: source DTO, local table repository, focused
+  raw-SQL row parser, panel manifest, D1 seed schema, public API schema, or artifact verifier?
+- **Surface class:** Is the output local-only, internal-lab, review artifact, serving projection, or
+  public route/page data?
+- **Package home:** Is this storage truth (`@bp/db`), corpus-to-panel extraction
+  (`@bp/applied-research/local-db`), data-product/model/review artifact work
+  (`@bp/applied-research`), pure detector/statistical logic (`@bp/analytics`), or pipeline
+  orchestration?
+- **SQLite safety:** Does the change mutate the live local DB? If so, is it scoped, transactional,
+  and non-destructive; or does it require a copied DB on the large storage volume first?
 
 ### Stable migration path for package code
 

@@ -288,6 +288,28 @@ The word is overloaded. Four distinct meanings live in this corpus:
 
 When clarifying, say which axis you mean.
 
+## Mixed Freshness Doctrine
+
+ADR [0017](../decisions/0017-mixed-freshness-publication-model.md) is the canonical doctrine:
+
+> The product is a multi-year evidence system with versioned baselines, current signals, and audited
+> publication gates.
+
+Avoid using "monthly release" as a product slogan. Use the narrower terms instead:
+
+| Term | What it answers |
+|---|---|
+| **Historical corpus** | What history do we have for trends, baselines, detector calibration, and route visuals? |
+| **Baseline month** | What reviewed complete public monthly performance month anchors current route cards? |
+| **Current signal** | What fresher evidence can be shown as an explicitly labeled appendix? |
+| **Source-capture snapshot** | What raw upstream state did we preserve before it changed or expired? |
+| **Pipeline artifact corpus** | What deterministic derived products can be reviewed and promoted? |
+| **Serving projection** | What D1/R2 package can the public app read quickly and honestly? |
+| **Publication / promotion** | Which reviewed mutation moved a projection to production? |
+
+Monthly cadence remains valid for monthly source grains and release-keyed review output. It is not
+the whole product model.
+
 ## Release Snapshot Versus Analysis Corpus
 
 The release month is not the analytical universe. It is the serving snapshot. Historical local
@@ -302,6 +324,8 @@ Current policy:
 - Fine-grain historical sources must pass coverage audits before detectors use them as default
   baseline substrates.
 - D1/R2 serving outputs should not expand just because the local analytical corpus expands.
+- Public pages and APIs should expose mixed freshness explicitly: baseline month, history window,
+  current signals, source coverage, projection freshness, and section-level support flags.
 
 See `knowledge/wiki/engineering/analytics_corpus_profile.md` for the full-history detector-window
 policy and the post-backfill coverage gate.

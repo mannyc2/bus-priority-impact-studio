@@ -95,6 +95,15 @@ the honest distribution but found real defects, all since fixed:
   `isRealizedOnset`, `confidence`, and `causalAnchorEligible` (realized AND
   month-or-finer AND route-linked).
 
+## OCR / extraction boundary (2026-06-06)
+
+The local `docs tier2 tesseract-ocr` path changes how page text is produced, not how operational
+dates are decided. OCR should preserve faithful page text and lightweight hints only. The normal LLM
+extraction step should continue to carry source-stated raw fields (`statusRaw`, `familyRaw`,
+`subtypeRaw`, `dateRaw` / event `dateText`, and evidence refs). Date normalization and operational
+classification remain downstream in `parseOperationalDate()` + `classifyOperationalDate()` so OCR
+errors or model phrasing do not rewrite dates into public facts.
+
 ## Final distribution (full corpus, 8,428 events)
 
 | validationState | rows |
