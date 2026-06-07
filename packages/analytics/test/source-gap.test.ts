@@ -197,6 +197,48 @@ describe("detectSourceGaps", () => {
     ).toBe("source_lag");
   });
 
+  test("emits TSP current-inventory candidates from source-gap model rows", () => {
+    const out = detectSourceGaps({
+      detectorRunId: RUN_ID,
+      month: MONTH,
+      generatedAt: GENERATED_AT,
+      routes: [baseRoute()],
+      treatmentSourceGaps: [
+        {
+          routeId: "M15",
+          treatmentType: "transit_signal_priority",
+          gapKind: "current_inventory_missing",
+          sourceGapCount: 1,
+          blocksClaims: ["coverage", "current_confirmed_route"],
+          sourceRefs: ["source_gap:tsp_current_route_intersection_inventory"],
+          publicStatements: ["Current route/intersection inventory missing from public sources."],
+        },
+      ],
+    });
+
+    const modelCandidate = out.candidates.find(
+      (candidate) => candidate.reasonCode === "tsp_current_inventory_missing",
+    );
+    expect(modelCandidate).toMatchObject({
+      routeId: "M15",
+      scopeKind: "route",
+      scopeId: "M15",
+      claimSafeLabel: "insufficient_evidence",
+    });
+    expect(
+      out.evidence.find((link) => link.candidateId === modelCandidate?.candidateId),
+    ).toMatchObject({
+      evidenceKind: "missing_data",
+      evidenceRole: "missing_data",
+    });
+    expect(
+      out.coverage.find((row) => row.reasonCode === "tsp_current_inventory_missing"),
+    ).toMatchObject({
+      outcome: "hit",
+      reason: "Treatment source-gap model row is present.",
+    });
+  });
+
   test("emits stable candidate IDs across runs with same run id", () => {
     const args = {
       detectorRunId: RUN_ID,

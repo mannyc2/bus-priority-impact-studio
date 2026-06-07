@@ -54,3 +54,6 @@ detector cannot ship without a matching spec.
   reproducible from their inputs.
 - Operate on prepared feature rows; source fetching and raw cleaning belong in
   `packages/sources` and `tools/pipeline-v2`.
+- Do not import `@bp/db`, `@bp/applied-research`, filesystem APIs, SQLite clients, or dataframe
+  runtimes. Panel construction and dataframe-backed model building belong in
+  `@bp/applied-research`; this package owns pure detector/statistical contracts.

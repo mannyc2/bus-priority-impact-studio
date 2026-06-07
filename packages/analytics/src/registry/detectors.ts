@@ -10,7 +10,10 @@ import {
   ROUTE_METRIC_HISTORY_FEATURE_GRAIN,
   ROUTE_MONTH_FEATURE_GRAIN,
   ROUTE_RELIABILITY_FEATURE_GRAIN,
+  ROUTE_SEGMENT_TREATMENT_SUMMARY_FEATURE_GRAIN,
   ROUTE_SEGMENT_MONTH_FEATURE_GRAIN,
+  ROUTE_TREATMENT_SOURCE_GAP_FEATURE_GRAIN,
+  ROUTE_TREATMENT_SUMMARY_FEATURE_GRAIN,
   SEGMENT_DAYPART_FEATURE_GRAIN,
   SOURCE_COVERAGE_FEATURE_GRAIN,
   STOP_DIRECTION_HOUR_FEATURE_GRAIN,
@@ -50,6 +53,16 @@ import {
   INTERVENTION_UNDERPERFORMANCE_DETECTOR_ID,
   type InterventionUnderperformanceDetectorInput,
 } from "../findings/intervention-underperformance.js";
+import {
+  detectTreatmentScopeGaps,
+  TREATMENT_SCOPE_GAP_DETECTOR_ID,
+  type TreatmentScopeGapDetectorInput,
+} from "../findings/treatment-scope-gap.js";
+import {
+  detectTreatmentScopeMismatch,
+  TREATMENT_SCOPE_MISMATCH_DETECTOR_ID,
+  type TreatmentScopeMismatchDetectorInput,
+} from "../findings/treatment-scope-mismatch.js";
 import {
   detectMultiMonthSpeedPeerDeficits,
   MULTI_MONTH_SPEED_PEER_DETECTOR_ID,
@@ -162,7 +175,80 @@ function specFor(detectorId: string) {
   return spec;
 }
 
-export const ANALYTICS_DETECTOR_REGISTRY: RegisteredAnalyticsDetector[] = [
+const FEATURE_GRAIN_REQUIRED_DATA_PRODUCTS: Readonly<Record<string, readonly string[]>> = {
+  [CONTEXT_SOURCE_FEATURE_GRAIN]: [
+    "local_context_event_route_touches_history",
+    "local_ace_enforcement_context_history",
+  ],
+  [FEED_HEALTH_FEATURE_GRAIN]: [
+    "analytics_backfill_coverage_audit",
+    "bus_observatory_gtfs_rt_availability",
+  ],
+  [INTERVENTION_PANEL_FEATURE_GRAIN]: [
+    "intervention_panel_artifact",
+    "local_route_intervention_comparison_history",
+  ],
+  [INTERVENTION_WINDOW_FEATURE_GRAIN]: ["local_route_intervention_comparison_history"],
+  [POSITIVE_DEVIANCE_FEATURE_GRAIN]: [
+    "route_hourly_profile_artifact",
+    "local_route_month_trends_history",
+  ],
+  [RIDER_WEIGHTED_EXCESS_WAIT_FEATURE_GRAIN]: [
+    "stop_direction_hour_ewt_features",
+    "route_hourly_profile_artifact",
+    "ewt_route_month_score_vectors",
+  ],
+  [ROUTE_DIRECTION_DAYPART_FEATURE_GRAIN]: [
+    "local_route_schedule_timepoints_release",
+    "local_observed_headway_samples_run",
+    "local_route_reliability_baseline_release",
+  ],
+  [ROUTE_METRIC_HISTORY_FEATURE_GRAIN]: [
+    "local_route_month_trends_history",
+    "local_route_observed_reliability_summary_release",
+    "local_bus_wait_assessment_history",
+  ],
+  [ROUTE_MONTH_FEATURE_GRAIN]: [
+    "local_route_month_coverage_release",
+    "local_route_month_trends_history",
+    "analytics_corpus_profile_artifact",
+  ],
+  [ROUTE_RELIABILITY_FEATURE_GRAIN]: [
+    "local_route_observed_reliability_summary_release",
+    "local_route_reliability_baseline_release",
+    "local_bus_wait_assessment_history",
+  ],
+  [ROUTE_SEGMENT_MONTH_FEATURE_GRAIN]: [
+    "local_route_segment_speed_history",
+    "studio_route_hotspot_summaries",
+  ],
+  [ROUTE_SEGMENT_TREATMENT_SUMMARY_FEATURE_GRAIN]: ["route_treatment_summary_artifact"],
+  [ROUTE_TREATMENT_SOURCE_GAP_FEATURE_GRAIN]: ["route_treatment_summary_artifact"],
+  [ROUTE_TREATMENT_SUMMARY_FEATURE_GRAIN]: ["route_treatment_summary_artifact"],
+  [SEGMENT_DAYPART_FEATURE_GRAIN]: [
+    "segment_daypart_history_artifact",
+    "local_route_segment_speed_history",
+  ],
+  [SOURCE_COVERAGE_FEATURE_GRAIN]: [
+    "studio_route_source_status_rows",
+    "local_route_month_coverage_release",
+  ],
+  [STOP_DIRECTION_HOUR_FEATURE_GRAIN]: [
+    "stop_direction_hour_ewt_features",
+    "local_observed_headway_samples_run",
+    "local_route_schedule_timepoints_release",
+  ],
+};
+
+function requiredProductsForFeatureGrains(featureGrains: readonly string[]): string[] {
+  return [
+    ...new Set(featureGrains.flatMap((featureGrain) => FEATURE_GRAIN_REQUIRED_DATA_PRODUCTS[featureGrain] ?? [])),
+  ].sort();
+}
+
+const ANALYTICS_DETECTOR_REGISTRY_DEFINITIONS: Array<
+  Omit<RegisteredAnalyticsDetector, "requiredDataProducts">
+> = [
   {
     detectorId: specFor(SOURCE_GAP_DETECTOR_ID).detectorId,
     version: "1.0.0",
@@ -171,10 +257,12 @@ export const ANALYTICS_DETECTOR_REGISTRY: RegisteredAnalyticsDetector[] = [
       SOURCE_COVERAGE_FEATURE_GRAIN,
       FEED_HEALTH_FEATURE_GRAIN,
       ROUTE_RELIABILITY_FEATURE_GRAIN,
+      ROUTE_TREATMENT_SOURCE_GAP_FEATURE_GRAIN,
     ],
     scope: { kind: "route", description: "Route/source scope coverage and source gaps." },
     claimTier: "descriptive",
     baselineFamilies: ["source_coverage"],
+    modelArtifacts: ["source_gap_model_v1"],
     promotionGates: [
       {
         kind: "coverage",
@@ -196,6 +284,8 @@ export const ANALYTICS_DETECTOR_REGISTRY: RegisteredAnalyticsDetector[] = [
       "failed_context_join",
       "bus_lane_date_gap",
       "source_lag",
+      "tsp_current_inventory_missing",
+      "treatment_source_gap",
       "low_coverage",
       "feed_stale",
       "validator_errors",
@@ -233,6 +323,7 @@ export const ANALYTICS_DETECTOR_REGISTRY: RegisteredAnalyticsDetector[] = [
     scope: { kind: "segment", description: "Segment-daypart pace versus free-flow baseline." },
     claimTier: "descriptive",
     baselineFamilies: ["free_flow", "source_coverage"],
+    modelArtifacts: ["segment_daypart_residuals_v1"],
     promotionGates: [
       ...DESCRIPTIVE_GATES,
       {
@@ -267,6 +358,7 @@ export const ANALYTICS_DETECTOR_REGISTRY: RegisteredAnalyticsDetector[] = [
     scope: { kind: "route", description: "Route multi-month speed trend versus peer baseline." },
     claimTier: "associational",
     baselineFamilies: ["peer", "own_history", "source_coverage"],
+    modelArtifacts: ["route_peer_residuals_v1"],
     promotionGates: [
       ...DESCRIPTIVE_GATES,
       {
@@ -386,6 +478,7 @@ export const ANALYTICS_DETECTOR_REGISTRY: RegisteredAnalyticsDetector[] = [
     },
     claimTier: "associational",
     baselineFamilies: ["schedule", "source_coverage"],
+    modelArtifacts: ["reliability_exposure_panel_v1"],
     promotionGates: [
       ...DESCRIPTIVE_GATES,
       {
@@ -472,6 +565,7 @@ export const ANALYTICS_DETECTOR_REGISTRY: RegisteredAnalyticsDetector[] = [
     scope: { kind: "route", description: "Metric-history worsening trend by scope." },
     claimTier: "associational",
     baselineFamilies: ["own_history", "source_coverage"],
+    modelArtifacts: ["route_peer_residuals_v1"],
     promotionGates: [
       ...DESCRIPTIVE_GATES,
       {
@@ -500,6 +594,7 @@ export const ANALYTICS_DETECTOR_REGISTRY: RegisteredAnalyticsDetector[] = [
     scope: { kind: "route", description: "Peer-adjusted positive deviance by scope." },
     claimTier: "descriptive",
     baselineFamilies: ["peer", "source_coverage"],
+    modelArtifacts: ["route_peer_residuals_v1"],
     promotionGates: [
       ...DESCRIPTIVE_GATES,
       {
@@ -523,12 +618,23 @@ export const ANALYTICS_DETECTOR_REGISTRY: RegisteredAnalyticsDetector[] = [
     detectorId: specFor(INTERVENTION_GAP_DETECTOR_ID).detectorId,
     version: "1.0.0",
     spec: specFor(INTERVENTION_GAP_DETECTOR_ID),
-    featureGrains: [ROUTE_MONTH_FEATURE_GRAIN, INTERVENTION_WINDOW_FEATURE_GRAIN],
+    featureGrains: [
+      ROUTE_MONTH_FEATURE_GRAIN,
+      INTERVENTION_WINDOW_FEATURE_GRAIN,
+      ROUTE_TREATMENT_SUMMARY_FEATURE_GRAIN,
+      ROUTE_TREATMENT_SOURCE_GAP_FEATURE_GRAIN,
+    ],
     scope: { kind: "route", description: "Route pain signals versus intervention inventory." },
     claimTier: "associational",
     baselineFamilies: ["source_coverage", "intervention_window"],
+    modelArtifacts: ["source_gap_model_v1"],
     promotionGates: INTERVENTION_GATES,
-    missingDataStates: ["missing_pain_signal", "thin_source_gap", "future_only"],
+    missingDataStates: [
+      "missing_pain_signal",
+      "thin_source_gap",
+      "future_only",
+      "treatment_source_gap",
+    ],
     evidenceSchemaVersion: EVIDENCE_SCHEMA_VERSION,
     retirementStatus: "active",
     run: (input) => detectInterventionGaps(input as InterventionGapDetectorInput),
@@ -541,6 +647,7 @@ export const ANALYTICS_DETECTOR_REGISTRY: RegisteredAnalyticsDetector[] = [
     scope: { kind: "route", description: "Intervention event-study association panels." },
     claimTier: "associational",
     baselineFamilies: ["intervention_window", "control_routes", "synthetic_control"],
+    modelArtifacts: ["treatment_event_panel_v1"],
     promotionGates: [
       ...INTERVENTION_GATES,
       {
@@ -579,16 +686,76 @@ export const ANALYTICS_DETECTOR_REGISTRY: RegisteredAnalyticsDetector[] = [
     detectorId: specFor(INTERVENTION_UNDERPERFORMANCE_DETECTOR_ID).detectorId,
     version: "1.0.0",
     spec: specFor(INTERVENTION_UNDERPERFORMANCE_DETECTOR_ID),
-    featureGrains: [ROUTE_MONTH_FEATURE_GRAIN, INTERVENTION_WINDOW_FEATURE_GRAIN],
+    featureGrains: [
+      ROUTE_MONTH_FEATURE_GRAIN,
+      INTERVENTION_WINDOW_FEATURE_GRAIN,
+      ROUTE_TREATMENT_SUMMARY_FEATURE_GRAIN,
+      ROUTE_SEGMENT_TREATMENT_SUMMARY_FEATURE_GRAIN,
+    ],
     scope: { kind: "route", description: "Route treatment comparison and current pain." },
     claimTier: "associational",
     baselineFamilies: ["intervention_window", "peer", "control_routes"],
     promotionGates: INTERVENTION_GATES,
-    missingDataStates: ["missing_pain_signal", "missing_evaluated_intervention"],
+    missingDataStates: [
+      "missing_pain_signal",
+      "missing_evaluated_intervention",
+      "treatment_segment_gap",
+    ],
     evidenceSchemaVersion: EVIDENCE_SCHEMA_VERSION,
     retirementStatus: "active",
     run: (input) =>
       detectInterventionUnderperformance(input as InterventionUnderperformanceDetectorInput),
+  },
+  {
+    detectorId: specFor(TREATMENT_SCOPE_MISMATCH_DETECTOR_ID).detectorId,
+    version: "1.0.0",
+    spec: specFor(TREATMENT_SCOPE_MISMATCH_DETECTOR_ID),
+    featureGrains: [ROUTE_SEGMENT_TREATMENT_SUMMARY_FEATURE_GRAIN, ROUTE_SEGMENT_MONTH_FEATURE_GRAIN],
+    scope: {
+      kind: "segment",
+      description: "Bus-lane-overlap segment speed and treatment scope review.",
+    },
+    claimTier: "associational",
+    baselineFamilies: ["source_coverage", "intervention_window"],
+    modelArtifacts: ["segment_speed_residuals_v1", "intervention_scope_fit_v1"],
+    promotionGates: INTERVENTION_GATES,
+    missingDataStates: [
+      "missing_speed",
+      "insufficient_speed_observations",
+      "spatial_join_uncertain",
+      "treatment_segment_gap",
+    ],
+    evidenceSchemaVersion: EVIDENCE_SCHEMA_VERSION,
+    retirementStatus: "active",
+    run: (input) => detectTreatmentScopeMismatch(input as TreatmentScopeMismatchDetectorInput),
+  },
+  {
+    detectorId: specFor(TREATMENT_SCOPE_GAP_DETECTOR_ID).detectorId,
+    version: "1.0.0",
+    spec: specFor(TREATMENT_SCOPE_GAP_DETECTOR_ID),
+    featureGrains: [
+      ROUTE_TREATMENT_SUMMARY_FEATURE_GRAIN,
+      ROUTE_SEGMENT_TREATMENT_SUMMARY_FEATURE_GRAIN,
+      ROUTE_SEGMENT_MONTH_FEATURE_GRAIN,
+    ],
+    scope: {
+      kind: "segment",
+      description: "Treated route with slow uncovered or weakly covered segment.",
+    },
+    claimTier: "associational",
+    baselineFamilies: ["source_coverage", "intervention_window"],
+    modelArtifacts: ["segment_speed_residuals_v1", "intervention_scope_fit_v1"],
+    promotionGates: INTERVENTION_GATES,
+    missingDataStates: [
+      "missing_speed",
+      "insufficient_speed_observations",
+      "segment_too_short",
+      "spatial_join_uncertain",
+      "treatment_segment_gap",
+    ],
+    evidenceSchemaVersion: EVIDENCE_SCHEMA_VERSION,
+    retirementStatus: "active",
+    run: (input) => detectTreatmentScopeGaps(input as TreatmentScopeGapDetectorInput),
   },
   {
     detectorId: specFor(PERMIT_CORRELATED_SLOWDOWN_DETECTOR_ID).detectorId,
@@ -642,6 +809,12 @@ export const ANALYTICS_DETECTOR_REGISTRY: RegisteredAnalyticsDetector[] = [
     run: (input) => detectDelayConcentration(input as DelayConcentrationDetectorInput),
   },
 ];
+
+export const ANALYTICS_DETECTOR_REGISTRY: RegisteredAnalyticsDetector[] =
+  ANALYTICS_DETECTOR_REGISTRY_DEFINITIONS.map((detector) => ({
+    ...detector,
+    requiredDataProducts: requiredProductsForFeatureGrains(detector.featureGrains),
+  }));
 
 export function listAnalyticsDetectors(): RegisteredAnalyticsDetector[] {
   return [...ANALYTICS_DETECTOR_REGISTRY];

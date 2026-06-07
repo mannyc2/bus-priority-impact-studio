@@ -10,12 +10,14 @@ export type {
   DetectorClaimTier,
   DetectorPromotionGate,
   DetectorPromotionGateKind,
+  DetectorModelArtifactId,
   DetectorRegistryMetadata,
   DetectorRetirementStatus,
 } from "./metadata.js";
 export {
   DETECTOR_BASELINE_FAMILIES,
   DETECTOR_CLAIM_TIERS,
+  DETECTOR_MODEL_ARTIFACT_IDS,
   DETECTOR_PROMOTION_GATE_KINDS,
   DETECTOR_RETIREMENT_STATUSES,
 } from "./metadata.js";

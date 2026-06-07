@@ -49,6 +49,16 @@ export type SourceGapFreshnessInput = {
   expectedLagDays: number;
 };
 
+export type SourceGapTreatmentSourceInput = {
+  routeId: string | null;
+  treatmentType: string;
+  gapKind: string;
+  sourceGapCount: number;
+  blocksClaims: readonly string[];
+  sourceRefs: readonly string[];
+  publicStatements: readonly string[];
+};
+
 export type SourceGapThresholds = {
   minGtfsRtHeadwaySamples: number;
   minContextJoinRate: number;
@@ -92,6 +102,7 @@ export type SourceGapDetectorInput = {
   contextJoins?: ReadonlyArray<SourceGapContextJoinInput>;
   busLaneDates?: ReadonlyArray<SourceGapBusLaneDateInput>;
   sourceFreshness?: ReadonlyArray<SourceGapFreshnessInput>;
+  treatmentSourceGaps?: ReadonlyArray<SourceGapTreatmentSourceInput>;
   thresholds?: Partial<SourceGapThresholds>;
 };
 
@@ -243,6 +254,21 @@ function checkSourceLag(
     },
     inputsExpected: { observedLagDays: `<=${maxAllowedLagDays}` },
   };
+}
+
+function treatmentSourceGapReason(row: SourceGapTreatmentSourceInput): string {
+  return row.treatmentType === "transit_signal_priority" &&
+    row.gapKind === "current_inventory_missing"
+    ? "tsp_current_inventory_missing"
+    : "treatment_source_gap";
+}
+
+function treatmentSourceGapClaimText(row: SourceGapTreatmentSourceInput): string {
+  const routeText = row.routeId === null ? "The route universe" : `Route ${row.routeId}`;
+  if (treatmentSourceGapReason(row) === "tsp_current_inventory_missing") {
+    return `${routeText} has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources.`;
+  }
+  return `${routeText} has ${row.sourceGapCount} public source gap row(s) for ${row.treatmentType}/${row.gapKind}.`;
 }
 
 function stableId(...parts: string[]): string {
@@ -548,6 +574,90 @@ export function detectSourceGaps(input: SourceGapDetectorInput): SourceGapDetect
         }),
         inputsExpectedJson: JSON.stringify({
           observedLagDays: `<=${source.expectedLagDays + thresholds.sourceLagGraceDays}`,
+        }),
+        createdAt: input.generatedAt,
+      }),
+    );
+  }
+
+  for (const row of input.treatmentSourceGaps ?? []) {
+    if (row.sourceGapCount <= 0) continue;
+    const routeId = row.routeId === null ? null : RouteIdSchema.parse(row.routeId);
+    const scopeId =
+      routeId === null
+        ? `treatment_source_gap:${row.treatmentType}:${row.gapKind}`
+        : routeId;
+    const reasonCode = treatmentSourceGapReason(row);
+    const candidateId = stableId(detectorRunId, "candidate", scopeId, reasonCode);
+    candidates.push(
+      FindingCandidateSchema.parse({
+        candidateId,
+        detectorId,
+        detectorRunId,
+        month,
+        scopeKind: routeId === null ? "system" : "route",
+        scopeId,
+        routeId,
+        physicalId: null,
+        category: "data_quality",
+        severity: "medium",
+        confidence: "high",
+        detectorScore: reasonCode === "tsp_current_inventory_missing" ? 75 : 65,
+        reasonCode: FindingReasonCodeSchema.parse(reasonCode),
+        claimSafeLabel: "insufficient_evidence",
+        claimText: treatmentSourceGapClaimText(row),
+        status: "open",
+        reviewState: "unreviewed",
+        windowStart: null,
+        windowEnd: null,
+        createdAt: input.generatedAt,
+      }),
+    );
+    evidence.push(
+      FindingEvidenceLinkSchema.parse({
+        linkId: stableId(candidateId, "evidence", "source-gap-model"),
+        candidateId,
+        evidenceKind: "missing_data",
+        evidenceRole: "missing_data",
+        evidenceRef: JSON.stringify({
+          scopeKind: routeId === null ? "system" : "route",
+          scopeId,
+          month,
+          reasonCode,
+          sourceGapModel: {
+            treatmentType: row.treatmentType,
+            gapKind: row.gapKind,
+            sourceGapCount: row.sourceGapCount,
+            blocksClaims: row.blocksClaims,
+            sourceRefs: row.sourceRefs,
+            publicStatements: row.publicStatements,
+          },
+        }),
+        evidenceWeight: 1,
+        note: "Source-gap model row blocks stronger treatment/TSP coverage language until public inventory evidence exists.",
+      }),
+    );
+    coverage.push(
+      FindingCoverageAuditSchema.parse({
+        auditId: stableId(detectorRunId, "audit", scopeId, reasonCode),
+        detectorRunId,
+        detectorId,
+        month,
+        scopeKind: routeId === null ? "system" : "route",
+        scopeId,
+        outcome: "hit",
+        reasonCode: FindingReasonCodeSchema.parse(reasonCode),
+        reason: "Treatment source-gap model row is present.",
+        inputsSeenJson: JSON.stringify({
+          treatmentType: row.treatmentType,
+          gapKind: row.gapKind,
+          sourceGapCount: row.sourceGapCount,
+          blocksClaims: row.blocksClaims,
+          sourceRefs: row.sourceRefs,
+        }),
+        inputsExpectedJson: JSON.stringify({
+          sourceGapCount: 0,
+          publicInventoryEvidence: "available",
         }),
         createdAt: input.generatedAt,
       }),

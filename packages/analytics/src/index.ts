@@ -95,6 +95,28 @@ export {
   INTERVENTION_UNDERPERFORMANCE_DETECTOR_ID,
 } from "./findings/intervention-underperformance.js";
 export type {
+  TreatmentScopeGapDetectorInput,
+  TreatmentScopeGapDetectorOutput,
+  TreatmentScopeGapSegmentInput,
+  TreatmentScopeGapThresholds,
+} from "./findings/treatment-scope-gap.js";
+export {
+  DEFAULT_TREATMENT_SCOPE_GAP_THRESHOLDS,
+  detectTreatmentScopeGaps,
+  TREATMENT_SCOPE_GAP_DETECTOR_ID,
+} from "./findings/treatment-scope-gap.js";
+export type {
+  TreatmentScopeMismatchDetectorInput,
+  TreatmentScopeMismatchDetectorOutput,
+  TreatmentScopeMismatchSegmentInput,
+  TreatmentScopeMismatchThresholds,
+} from "./findings/treatment-scope-mismatch.js";
+export {
+  DEFAULT_TREATMENT_SCOPE_MISMATCH_THRESHOLDS,
+  detectTreatmentScopeMismatch,
+  TREATMENT_SCOPE_MISMATCH_DETECTOR_ID,
+} from "./findings/treatment-scope-mismatch.js";
+export type {
   LatticeOpportunityAssessmentOutcome,
   LatticeOpportunityAssessmentReasonCode,
   LatticeOpportunityBundle,

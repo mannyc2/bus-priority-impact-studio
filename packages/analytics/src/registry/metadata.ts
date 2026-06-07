@@ -44,6 +44,20 @@ export type DetectorPromotionGate = {
   requiredFor: readonly DetectorClaimTier[];
 };
 
+export const DETECTOR_MODEL_ARTIFACT_IDS = [
+  "segment_speed_residuals_v1",
+  "segment_daypart_residuals_v1",
+  "route_peer_residuals_v1",
+  "reliability_exposure_panel_v1",
+  "intervention_scope_fit_v1",
+  "source_gap_model_v1",
+  "treatment_event_panel_v1",
+  "pulse_fingerprint_v1",
+  "decoupling_quadrants_v1",
+] as const;
+
+export type DetectorModelArtifactId = (typeof DETECTOR_MODEL_ARTIFACT_IDS)[number];
+
 export const DETECTOR_RETIREMENT_STATUSES = [
   "active",
   "experimental",
@@ -56,6 +70,8 @@ export type DetectorRetirementStatus = (typeof DETECTOR_RETIREMENT_STATUSES)[num
 export type DetectorRegistryMetadata = {
   claimTier: DetectorClaimTier;
   baselineFamilies: readonly DetectorBaselineFamily[];
+  requiredDataProducts: readonly string[];
+  modelArtifacts?: readonly DetectorModelArtifactId[];
   promotionGates: readonly DetectorPromotionGate[];
   missingDataStates: readonly string[];
   evidenceSchemaVersion: string;

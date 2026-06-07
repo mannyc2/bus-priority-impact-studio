@@ -7,6 +7,8 @@ import {
   INTERVENTION_EVENT_STUDY_DETECTOR_ID,
   INTERVENTION_GAP_DETECTOR_ID,
   INTERVENTION_UNDERPERFORMANCE_DETECTOR_ID,
+  TREATMENT_SCOPE_GAP_DETECTOR_ID,
+  TREATMENT_SCOPE_MISMATCH_DETECTOR_ID,
   MULTI_MONTH_SPEED_PEER_DETECTOR_ID,
   OBSERVED_RELIABILITY_DETECTOR_ID,
   PERMIT_CORRELATED_SLOWDOWN_DETECTOR_ID,
@@ -26,6 +28,7 @@ import {
   buildFindingDetectorSpecsArtifact,
   DETECTOR_BASELINE_FAMILIES,
   DETECTOR_CLAIM_TIERS,
+  DETECTOR_MODEL_ARTIFACT_IDS,
   DETECTOR_PROMOTION_GATE_KINDS,
   DETECTOR_RETIREMENT_STATUSES,
   FINDING_DETECTOR_SPECS,
@@ -51,6 +54,8 @@ const EXPECTED_DETECTOR_IDS = [
   INTERVENTION_GAP_DETECTOR_ID,
   INTERVENTION_EVENT_STUDY_DETECTOR_ID,
   INTERVENTION_UNDERPERFORMANCE_DETECTOR_ID,
+  TREATMENT_SCOPE_MISMATCH_DETECTOR_ID,
+  TREATMENT_SCOPE_GAP_DETECTOR_ID,
   PERMIT_CORRELATED_SLOWDOWN_DETECTOR_ID,
   SERVICE_REQUEST_CONTEXT_DETECTOR_ID,
   DELAY_CONCENTRATION_DETECTOR_ID,
@@ -83,6 +88,7 @@ describe("analytics detector registry", () => {
   test("keeps detector metadata useful for agent-facing design and review", () => {
     const claimTiers = new Set<string>(DETECTOR_CLAIM_TIERS);
     const baselineFamilies = new Set<string>(DETECTOR_BASELINE_FAMILIES);
+    const modelArtifactIds = new Set<string>(DETECTOR_MODEL_ARTIFACT_IDS);
     const gateKinds = new Set<string>(DETECTOR_PROMOTION_GATE_KINDS);
     const retirementStatuses = new Set<string>(DETECTOR_RETIREMENT_STATUSES);
 
@@ -103,6 +109,17 @@ describe("analytics detector registry", () => {
       expect(detector.baselineFamilies.length).toBeGreaterThan(0);
       expect(new Set(detector.baselineFamilies).size).toBe(detector.baselineFamilies.length);
       expect(detector.baselineFamilies.every((family) => baselineFamilies.has(family))).toBe(true);
+      expect(detector.requiredDataProducts.length).toBeGreaterThan(0);
+      expect(new Set(detector.requiredDataProducts).size).toBe(
+        detector.requiredDataProducts.length,
+      );
+      expect(detector.requiredDataProducts).toEqual([...detector.requiredDataProducts].sort());
+      expect(new Set(detector.modelArtifacts ?? []).size).toBe(
+        (detector.modelArtifacts ?? []).length,
+      );
+      expect((detector.modelArtifacts ?? []).every((modelId) => modelArtifactIds.has(modelId))).toBe(
+        true,
+      );
       expect(detector.promotionGates.length).toBeGreaterThan(0);
       for (const gate of detector.promotionGates) {
         expect(gateKinds.has(gate.kind)).toBe(true);
@@ -154,6 +171,9 @@ describe("analytics detector registry", () => {
     expect(getAnalyticsDetector(INTERVENTION_UNDERPERFORMANCE_DETECTOR_ID)?.claimTier).toBe(
       "associational",
     );
+    expect(getAnalyticsDetector(TREATMENT_SCOPE_MISMATCH_DETECTOR_ID)?.claimTier).toBe(
+      "associational",
+    );
     expect(getAnalyticsDetector(INTERVENTION_EVENT_STUDY_DETECTOR_ID)?.claimTier).toBe(
       "associational",
     );
@@ -162,6 +182,41 @@ describe("analytics detector registry", () => {
         (detector) => detector.claimTier === "candidate_causal_needs_review",
       ),
     ).toBe(false);
+  });
+
+  test("declares model artifact dependencies for residual-backed detectors", () => {
+    expect(getAnalyticsDetector(SOURCE_GAP_DETECTOR_ID)?.modelArtifacts).toEqual([
+      "source_gap_model_v1",
+    ]);
+    expect(getAnalyticsDetector(INTERVENTION_GAP_DETECTOR_ID)?.modelArtifacts).toEqual([
+      "source_gap_model_v1",
+    ]);
+    expect(getAnalyticsDetector(TREATMENT_SCOPE_MISMATCH_DETECTOR_ID)?.modelArtifacts).toEqual([
+      "segment_speed_residuals_v1",
+      "intervention_scope_fit_v1",
+    ]);
+    expect(getAnalyticsDetector(TREATMENT_SCOPE_GAP_DETECTOR_ID)?.modelArtifacts).toEqual([
+      "segment_speed_residuals_v1",
+      "intervention_scope_fit_v1",
+    ]);
+    expect(getAnalyticsDetector(SPEED_PACE_HOTSPOT_DETECTOR_ID)?.modelArtifacts).toEqual([
+      "segment_daypart_residuals_v1",
+    ]);
+    expect(getAnalyticsDetector(MULTI_MONTH_SPEED_PEER_DETECTOR_ID)?.modelArtifacts).toEqual([
+      "route_peer_residuals_v1",
+    ]);
+    expect(getAnalyticsDetector(DEGRADATION_TREND_DETECTOR_ID)?.modelArtifacts).toEqual([
+      "route_peer_residuals_v1",
+    ]);
+    expect(getAnalyticsDetector(POSITIVE_DEVIANCE_DETECTOR_ID)?.modelArtifacts).toEqual([
+      "route_peer_residuals_v1",
+    ]);
+    expect(getAnalyticsDetector(RIDER_WEIGHTED_EXCESS_WAIT_DETECTOR_ID)?.modelArtifacts).toEqual([
+      "reliability_exposure_panel_v1",
+    ]);
+    expect(getAnalyticsDetector(INTERVENTION_EVENT_STUDY_DETECTOR_ID)?.modelArtifacts).toEqual([
+      "treatment_event_panel_v1",
+    ]);
   });
 
   test("builds a schema-validated detector-spec artifact", () => {

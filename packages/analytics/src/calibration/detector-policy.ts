@@ -5,6 +5,8 @@ import { HEADWAY_RELIABILITY_EWT_DETECTOR_ID } from "../findings/headway-reliabi
 import { INTERVENTION_EVENT_STUDY_DETECTOR_ID } from "../findings/intervention-event-study.js";
 import { INTERVENTION_GAP_DETECTOR_ID } from "../findings/intervention-gap.js";
 import { INTERVENTION_UNDERPERFORMANCE_DETECTOR_ID } from "../findings/intervention-underperformance.js";
+import { TREATMENT_SCOPE_GAP_DETECTOR_ID } from "../findings/treatment-scope-gap.js";
+import { TREATMENT_SCOPE_MISMATCH_DETECTOR_ID } from "../findings/treatment-scope-mismatch.js";
 import { MULTI_MONTH_SPEED_PEER_DETECTOR_ID } from "../findings/multi-month-speed-peer.js";
 import { OBSERVED_RELIABILITY_DETECTOR_ID } from "../findings/observed-reliability.js";
 import { PERSISTENT_SPEED_HOTSPOT_DETECTOR_ID } from "../findings/persistent-speed-hotspot.js";
@@ -888,6 +890,96 @@ export const DETECTOR_CALIBRATION_POLICIES = [
     ],
     validationExpectation:
       "Keep underperformance associational: peer-adjusted deltas require review for window choice, controls, and route changes before any effect language.",
+  },
+  {
+    detectorId: TREATMENT_SCOPE_MISMATCH_DETECTOR_ID,
+    detectorName: "Treatment scope mismatch",
+    releaseOutputWindow: "releaseMonth",
+    baselineWindowIds: ["releaseMonth", "lookback12", "prePostInterventionWindow"],
+    seasonalityRules: [ROUTE_VERSION_BREAK, CONTROL_PRETREND],
+    minimumHistoryGates: [
+      {
+        gateId: "treatment_scope_mismatch_speed_support",
+        description:
+          "Slow treated-segment screens need current segment-speed support before bus-lane context can be interpreted.",
+        minimumCompleteMonths: 1,
+        minimumCoverageShare: 0.75,
+        minimumObservations: 50,
+        missingDataState: "insufficient_speed_observations",
+      },
+      {
+        gateId: "treatment_scope_mismatch_geometry_support",
+        description:
+          "Segment-scope treatment review needs a route-shape bus-lane overlap row with enough overlap share.",
+        minimumCompleteMonths: 1,
+        minimumCoverageShare: 0.75,
+        minimumObservations: 1,
+        missingDataState: "spatial_join_uncertain",
+      },
+    ],
+    postBackfillValidation: [
+      {
+        surfaceId: "route_segment_speeds",
+        required: true,
+        expectation:
+          "Current segment-speed summaries exist for bus-lane-overlap route segments.",
+        failureState: "insufficient_speed_observations",
+      },
+      {
+        surfaceId: "intervention_comparisons",
+        required: false,
+        expectation:
+          "Peer or before/after comparisons should be attached before any underperformance language.",
+        failureState: "no_counterfactual",
+      },
+    ],
+    validationExpectation:
+      "Keep scope-mismatch candidates segment-scoped and review-only until peer/daypart or before/after baselines show whether the treatment actually underperformed.",
+  },
+  {
+    detectorId: TREATMENT_SCOPE_GAP_DETECTOR_ID,
+    detectorName: "Treatment scope gap",
+    releaseOutputWindow: "releaseMonth",
+    baselineWindowIds: ["releaseMonth", "lookback12", "prePostInterventionWindow"],
+    seasonalityRules: [ROUTE_VERSION_BREAK, CONTROL_PRETREND],
+    minimumHistoryGates: [
+      {
+        gateId: "treatment_scope_gap_speed_support",
+        description:
+          "Scope-gap screens need current segment-speed support before uncovered treatment context can be interpreted.",
+        minimumCompleteMonths: 1,
+        minimumCoverageShare: 0.75,
+        minimumObservations: 50,
+        missingDataState: "insufficient_speed_observations",
+      },
+      {
+        gateId: "treatment_scope_gap_route_treatment_support",
+        description:
+          "A route must have positive bus-lane treatment evidence before uncovered slow segments can be reviewed as possible scope gaps.",
+        minimumCompleteMonths: 1,
+        minimumCoverageShare: 0.75,
+        minimumObservations: 1,
+        missingDataState: "treatment_segment_gap",
+      },
+    ],
+    postBackfillValidation: [
+      {
+        surfaceId: "route_segment_speeds",
+        required: true,
+        expectation:
+          "Current segment-speed summaries exist for treated routes across all candidate route segments.",
+        failureState: "insufficient_speed_observations",
+      },
+      {
+        surfaceId: "intervention_comparisons",
+        required: false,
+        expectation:
+          "Peer or before/after comparisons should be attached before any treatment-effect language.",
+        failureState: "no_counterfactual",
+      },
+    ],
+    validationExpectation:
+      "Keep scope-gap candidates as geometry/source-review prompts: a weak public overlap can mean missing inventory, intentional treatment scope, or a real uncovered bottleneck.",
   },
   {
     detectorId: PERMIT_CORRELATED_SLOWDOWN_DETECTOR_ID,

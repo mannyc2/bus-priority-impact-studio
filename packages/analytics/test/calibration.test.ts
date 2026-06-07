@@ -205,6 +205,8 @@ describe("detector calibration helpers", () => {
       "source_gap",
       "speed_pace_hotspot",
       "travel_time_variability",
+      "treatment_scope_gap",
+      "treatment_scope_mismatch",
     ]);
 
     expect(getCalibrationWindowConfig("lookback36")).toMatchObject({

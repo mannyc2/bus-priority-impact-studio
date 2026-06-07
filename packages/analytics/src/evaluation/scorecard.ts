@@ -43,6 +43,7 @@ export type DetectorEvaluationHardGateId =
   | "missing_primary_evidence_schema"
   | "clean_no_hit_grain_mismatch"
   | "precision_below_auto_publish_floor"
+  | "model_backed_evaluation_loss"
   | "no_negative_or_near_miss_set_available"
   | "detector_readiness_not_ready";
 

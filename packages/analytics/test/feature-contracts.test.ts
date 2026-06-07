@@ -5,6 +5,7 @@ import {
   type FeatureQuality,
   type FeedHealthFeature,
   feedHealthFeatureKey,
+  getFeatureContract,
   hasFeatureQuality,
   INTERVENTION_PANEL_FEATURE_GRAIN,
   type InterventionPanelFeature,
@@ -27,6 +28,9 @@ import {
   type StopDirectionHourFeature,
   segmentDaypartFeatureKey,
   stopDirectionHourFeatureKey,
+  ROUTE_SEGMENT_TREATMENT_SUMMARY_FEATURE_GRAIN,
+  ROUTE_TREATMENT_SOURCE_GAP_FEATURE_GRAIN,
+  ROUTE_TREATMENT_SUMMARY_FEATURE_GRAIN,
 } from "@bp/analytics/features";
 import { getAnalyticsDetector } from "@bp/analytics/registry";
 
@@ -51,6 +55,11 @@ describe("R1 reliability feature contracts", () => {
     expect(FEED_HEALTH_FEATURE_GRAIN).toBe("feed_health");
     expect(POSITIVE_DEVIANCE_FEATURE_GRAIN).toBe("positive_deviance");
     expect(RIDER_WEIGHTED_EXCESS_WAIT_FEATURE_GRAIN).toBe("rider_weighted_excess_wait");
+    expect(ROUTE_TREATMENT_SUMMARY_FEATURE_GRAIN).toBe("route_treatment_summary");
+    expect(ROUTE_SEGMENT_TREATMENT_SUMMARY_FEATURE_GRAIN).toBe(
+      "route_segment_treatment_summary",
+    );
+    expect(ROUTE_TREATMENT_SOURCE_GAP_FEATURE_GRAIN).toBe("route_treatment_source_gap");
   });
 
   test("builds deterministic feature keys for each new grain", () => {
@@ -212,8 +221,33 @@ describe("R1 reliability feature contracts", () => {
     const sourceGap = getAnalyticsDetector(SOURCE_GAP_DETECTOR_ID);
 
     expect(sourceGap?.featureGrains).toContain(FEED_HEALTH_FEATURE_GRAIN);
+    expect(sourceGap?.featureGrains).toContain(ROUTE_TREATMENT_SOURCE_GAP_FEATURE_GRAIN);
     expect(sourceGap?.missingDataStates).toEqual(
-      expect.arrayContaining(["low_coverage", "feed_stale", "validator_errors"]),
+      expect.arrayContaining([
+        "low_coverage",
+        "feed_stale",
+        "validator_errors",
+        "tsp_current_inventory_missing",
+        "treatment_source_gap",
+      ]),
     );
+  });
+
+  test("declares treatment-state feature contracts for detector consumers", () => {
+    expect(getFeatureContract(ROUTE_TREATMENT_SUMMARY_FEATURE_GRAIN)).toMatchObject({
+      resolverId: "artifact.route_treatment_summary.route.v1",
+      grainKeys: ["routeId", "month", "treatmentType", "geographyScope"],
+      routeMonthUsage: "screening_only",
+    });
+    expect(getFeatureContract(ROUTE_SEGMENT_TREATMENT_SUMMARY_FEATURE_GRAIN)).toMatchObject({
+      resolverId: "artifact.route_treatment_summary.segment.v1",
+      grainKeys: ["routeId", "month", "segmentId", "directionId", "treatmentType"],
+      routeMonthUsage: "not_route_month",
+    });
+    expect(getFeatureContract(ROUTE_TREATMENT_SOURCE_GAP_FEATURE_GRAIN)).toMatchObject({
+      resolverId: "artifact.route_treatment_summary.source_gap.v1",
+      grainKeys: ["routeId", "month", "treatmentType", "gapKind"],
+      routeMonthUsage: "screening_only",
+    });
   });
 });

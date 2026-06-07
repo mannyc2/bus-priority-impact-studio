@@ -76,3 +76,13 @@ export type {
   StopDirectionHourScheduleBaseline,
 } from "./stop-direction-hour-ewt.js";
 export { buildStopDirectionHourEwtFeatures } from "./stop-direction-hour-ewt.js";
+export type {
+  RouteSegmentTreatmentSummaryFeature,
+  RouteTreatmentSourceGapFeature,
+  RouteTreatmentSummaryFeature,
+} from "./treatments.js";
+export {
+  ROUTE_SEGMENT_TREATMENT_SUMMARY_FEATURE_GRAIN,
+  ROUTE_TREATMENT_SOURCE_GAP_FEATURE_GRAIN,
+  ROUTE_TREATMENT_SUMMARY_FEATURE_GRAIN,
+} from "./treatments.js";

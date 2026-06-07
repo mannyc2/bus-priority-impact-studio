@@ -14,6 +14,8 @@ import { HEADWAY_RELIABILITY_EWT_DETECTOR_ID } from "../findings/headway-reliabi
 import { INTERVENTION_EVENT_STUDY_DETECTOR_ID } from "../findings/intervention-event-study.js";
 import { INTERVENTION_GAP_DETECTOR_ID } from "../findings/intervention-gap.js";
 import { INTERVENTION_UNDERPERFORMANCE_DETECTOR_ID } from "../findings/intervention-underperformance.js";
+import { TREATMENT_SCOPE_GAP_DETECTOR_ID } from "../findings/treatment-scope-gap.js";
+import { TREATMENT_SCOPE_MISMATCH_DETECTOR_ID } from "../findings/treatment-scope-mismatch.js";
 import { MULTI_MONTH_SPEED_PEER_DETECTOR_ID } from "../findings/multi-month-speed-peer.js";
 import { OBSERVED_RELIABILITY_DETECTOR_ID } from "../findings/observed-reliability.js";
 import { PERMIT_CORRELATED_SLOWDOWN_DETECTOR_ID } from "../findings/permit-correlated-slowdown.js";
@@ -445,6 +447,61 @@ const specs = [
     knownFailureModes: [
       "Overstating descriptive peer-adjusted deltas as causal impact.",
       "Ignoring route changes or construction windows in the comparison.",
+    ],
+  },
+  {
+    detectorId: TREATMENT_SCOPE_MISMATCH_DETECTOR_ID,
+    name: "Treatment scope mismatch",
+    question: "Which bus-lane-overlap segments remain slow enough to review for scope mismatch?",
+    claimTemplate:
+      "A segment overlaps bus-lane geometry but remains slow; scope, enforcement, and peer context need review.",
+    allowedClaimStrength: 2,
+    primaryEvidenceRequired: [
+      "Segment speed summary, observation support, bus-lane treatment status, match method, overlap share, and source refs.",
+    ],
+    supportingEvidenceExpected: [
+      "Route-level treatment context, adjacent segment speed, peer/daypart baselines, and geometry caveats.",
+    ],
+    counterEvidenceRequired: [
+      "Overlap-geometry limits, missing lane-mile audit, and the possibility that the treatment still improved the segment versus peers or history.",
+    ],
+    promotionChecklist: [
+      "Keep the claim segment-scoped.",
+      "Do not say the bus lane failed without before/after or peer baseline evidence.",
+      "Review lane geometry, operating hours, enforcement, and adjacent merge/loading constraints.",
+    ],
+    knownFailureModes: [
+      "Treating route-shape overlap as audited lane coverage.",
+      "Calling a slow treated segment a failure without a counterfactual.",
+      "Ignoring whether the slow point is just outside the actual intervention geography.",
+    ],
+  },
+  {
+    detectorId: TREATMENT_SCOPE_GAP_DETECTOR_ID,
+    name: "Treatment scope gap",
+    question:
+      "Which treated routes have a slow segment that appears outside or weakly covered by known bus-lane geometry?",
+    claimTemplate:
+      "A treated route has a slow uncovered segment that may be a treatment-scope miss.",
+    allowedClaimStrength: 2,
+    primaryEvidenceRequired: [
+      "Route-level bus-lane treatment evidence, segment speed support, segment coverage status, and source refs.",
+    ],
+    supportingEvidenceExpected: [
+      "Route/network peer rank, daypart profile, treatment source refs, and nearby treatment context.",
+    ],
+    counterEvidenceRequired: [
+      "Geometry/source inventory limits and the possibility that the treatment was intentionally scoped elsewhere.",
+    ],
+    promotionChecklist: [
+      "Keep the claim framed as a scope-review candidate, not proof of a missing bus lane.",
+      "Verify treatment geometry and route-shape join quality before promotion.",
+      "Check whether the slow segment is a terminal, layover, or very short segment artifact.",
+    ],
+    knownFailureModes: [
+      "Treating incomplete public treatment geometry as proof the segment was untreated.",
+      "Promoting a route-level treatment gap from one uncovered segment without checking route context.",
+      "Ignoring planned, time-restricted, or direction-specific treatment scope.",
     ],
   },
   {
