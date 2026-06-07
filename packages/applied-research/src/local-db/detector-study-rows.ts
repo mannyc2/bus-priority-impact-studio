@@ -2,7 +2,11 @@ import type { Database } from "bun:sqlite";
 import {
   DEGRADATION_TREND_DETECTOR_ID,
   DELAY_CONCENTRATION_DETECTOR_ID,
+  INTERVENTION_GAP_DETECTOR_ID,
   INTERVENTION_EVENT_STUDY_DETECTOR_ID,
+  INTERVENTION_UNDERPERFORMANCE_DETECTOR_ID,
+  TREATMENT_SCOPE_GAP_DETECTOR_ID,
+  TREATMENT_SCOPE_MISMATCH_DETECTOR_ID,
   POSITIVE_DEVIANCE_DETECTOR_ID,
   RIDER_WEIGHTED_EXCESS_WAIT_DETECTOR_ID,
   SCHEDULE_MISMATCH_DETECTOR_ID,
@@ -21,12 +25,19 @@ import type {
   ScheduledRuntimeSourceRow,
 } from "../feature-resolvers/runtime-history";
 import type { SegmentDaypartSpeedSourceRow } from "../feature-resolvers/segment-daypart-speed";
+import type {
+  RoutePainSourceRow,
+  RouteSegmentDaypartSpeedSummarySourceRow,
+  RouteSegmentHistoricalSpeedSummarySourceRow,
+  RouteSegmentSpeedSummarySourceRow,
+} from "../feature-resolvers/treatment-detector-inputs";
 
 export type DetectorStudyLocalDbQuery = {
   readonly sqlite: Database;
   readonly detectorId: string;
   readonly releaseMonth: string;
   readonly historyStartMonth: string;
+  readonly observedRunId?: string;
   readonly routeId?: string;
 };
 
@@ -284,6 +295,177 @@ function queryDelayConcentrationSegmentRows(input: {
   ) as DelayConcentrationSegmentSourceRow[];
 }
 
+function queryRoutePainRows(input: {
+  sqlite: Database;
+  month: string;
+  observedRunId: string;
+  routeId?: string;
+}): RoutePainSourceRow[] {
+  const routeFilter = input.routeId === undefined ? "" : "AND b.route_id = ?";
+  const query = input.sqlite.query(
+    `
+      SELECT
+        b.route_id,
+        b.month,
+        b.route_score,
+        b.public_visible,
+        b.public_visibility_reason,
+        b.average_speed_mph,
+        b.hotspot_count,
+        r.reliability_status,
+        r.min_sample_threshold,
+        r.sample_count,
+        r.observed_long_gap_share,
+        r.excess_wait_minutes,
+        r.wait_reliability_ratio
+      FROM local_route_brief_summary b
+      LEFT JOIN local_route_observed_reliability_summary r
+        ON r.route_id = b.route_id
+       AND r.month = b.month
+       AND r.run_id = ?
+      WHERE b.month = ?
+        ${routeFilter}
+      ORDER BY b.route_id
+    `,
+  );
+  return (
+    input.routeId === undefined
+      ? query.all(input.observedRunId, input.month)
+      : query.all(input.observedRunId, input.month, input.routeId)
+  ) as RoutePainSourceRow[];
+}
+
+function queryRouteSegmentSpeedSummaryRows(input: {
+  sqlite: Database;
+  month: string;
+  routeId?: string;
+}): RouteSegmentSpeedSummarySourceRow[] {
+  const routeFilter = input.routeId === undefined ? "" : "AND route_id = ?";
+  const query = input.sqlite.query(
+    `
+      SELECT
+        route_id,
+        month,
+        route_id || ':' || month || ':' || direction || ':' || stop_order || ':' ||
+          timepoint_stop_id || ':' || next_timepoint_stop_id AS segment_id,
+        direction,
+        stop_order,
+        SUM(average_road_speed_mph * bus_trip_count) / NULLIF(SUM(bus_trip_count), 0)
+          AS average_speed_mph,
+        AVG(road_distance_miles) * 5280 AS segment_length_feet,
+        COUNT(*) AS observation_count,
+        SUM(bus_trip_count) AS bus_trip_count
+      FROM local_route_segment_speed
+      WHERE month = ?
+        ${routeFilter}
+      GROUP BY
+        route_id,
+        month,
+        direction,
+        stop_order,
+        timepoint_stop_id,
+        next_timepoint_stop_id
+      ORDER BY route_id, direction, stop_order
+    `,
+  );
+  return (
+    input.routeId === undefined ? query.all(input.month) : query.all(input.month, input.routeId)
+  ) as RouteSegmentSpeedSummarySourceRow[];
+}
+
+function queryRouteSegmentDaypartSpeedSummaryRows(input: {
+  sqlite: Database;
+  month: string;
+  routeId?: string;
+}): RouteSegmentDaypartSpeedSummarySourceRow[] {
+  const routeFilter = input.routeId === undefined ? "" : "AND route_id = ?";
+  const query = input.sqlite.query(
+    `
+      SELECT
+        route_id,
+        month,
+        route_id || ':' || month || ':' || direction || ':' || stop_order || ':' ||
+          timepoint_stop_id || ':' || next_timepoint_stop_id AS segment_id,
+        direction,
+        stop_order,
+        CASE
+          WHEN hour_of_day BETWEEN 6 AND 9 THEN 'am_peak'
+          WHEN hour_of_day BETWEEN 10 AND 15 THEN 'midday'
+          WHEN hour_of_day BETWEEN 16 AND 19 THEN 'pm_peak'
+          ELSE 'off_peak'
+        END AS daypart,
+        SUM(average_road_speed_mph * bus_trip_count) / NULLIF(SUM(bus_trip_count), 0)
+          AS average_speed_mph,
+        COUNT(*) AS observation_count,
+        SUM(bus_trip_count) AS bus_trip_count
+      FROM local_route_segment_speed
+      WHERE month = ?
+        ${routeFilter}
+      GROUP BY
+        route_id,
+        month,
+        direction,
+        stop_order,
+        timepoint_stop_id,
+        next_timepoint_stop_id,
+        CASE
+          WHEN hour_of_day BETWEEN 6 AND 9 THEN 'am_peak'
+          WHEN hour_of_day BETWEEN 10 AND 15 THEN 'midday'
+          WHEN hour_of_day BETWEEN 16 AND 19 THEN 'pm_peak'
+          ELSE 'off_peak'
+        END
+      ORDER BY route_id, direction, stop_order, daypart
+    `,
+  );
+  return (
+    input.routeId === undefined ? query.all(input.month) : query.all(input.month, input.routeId)
+  ) as RouteSegmentDaypartSpeedSummarySourceRow[];
+}
+
+function queryRouteSegmentHistoricalSpeedSummaryRows(input: {
+  sqlite: Database;
+  startMonth: string;
+  endMonth: string;
+  routeId?: string;
+}): RouteSegmentHistoricalSpeedSummarySourceRow[] {
+  const routeFilter = input.routeId === undefined ? "" : "AND route_id = ?";
+  const query = input.sqlite.query(
+    `
+      SELECT
+        route_id,
+        month,
+        route_id || ':' || month || ':' || direction || ':' || stop_order || ':' ||
+          timepoint_stop_id || ':' || next_timepoint_stop_id AS segment_id,
+        route_id || ':' || direction || ':' || stop_order || ':' ||
+          timepoint_stop_id || ':' || next_timepoint_stop_id AS stable_segment_key,
+        direction,
+        stop_order,
+        SUM(average_road_speed_mph * bus_trip_count) / NULLIF(SUM(bus_trip_count), 0)
+          AS average_speed_mph,
+        AVG(road_distance_miles) * 5280 AS segment_length_feet,
+        COUNT(*) AS observation_count,
+        SUM(bus_trip_count) AS bus_trip_count
+      FROM local_route_segment_speed
+      WHERE month >= ?
+        AND month <= ?
+        ${routeFilter}
+      GROUP BY
+        route_id,
+        month,
+        direction,
+        stop_order,
+        timepoint_stop_id,
+        next_timepoint_stop_id
+      ORDER BY route_id, direction, stop_order, month
+    `,
+  );
+  return (
+    input.routeId === undefined
+      ? query.all(input.startMonth, input.endMonth)
+      : query.all(input.startMonth, input.endMonth, input.routeId)
+  ) as RouteSegmentHistoricalSpeedSummarySourceRow[];
+}
+
 export function loadDetectorStudyLocalDbRows(
   input: DetectorStudyLocalDbQuery,
 ): DetectorStudySourceRows {
@@ -344,6 +526,62 @@ export function loadDetectorStudyLocalDbRows(
       interventionComparisonRows: queryInterventionComparisonRows({
         sqlite: input.sqlite,
         month: input.releaseMonth,
+        ...(input.routeId === undefined ? {} : { routeId: input.routeId }),
+      }),
+      routeMetricHistoryRows: queryRouteMetricHistoryRows({
+        sqlite: input.sqlite,
+        startMonth: input.historyStartMonth,
+        endMonth: input.releaseMonth,
+      }),
+    };
+  }
+
+  if (input.detectorId === INTERVENTION_GAP_DETECTOR_ID) {
+    return {
+      routePainRows: queryRoutePainRows({
+        sqlite: input.sqlite,
+        month: input.releaseMonth,
+        observedRunId: input.observedRunId ?? `bus-observatory-${input.releaseMonth}`,
+        ...(input.routeId === undefined ? {} : { routeId: input.routeId }),
+      }),
+    };
+  }
+
+  if (input.detectorId === INTERVENTION_UNDERPERFORMANCE_DETECTOR_ID) {
+    return {
+      routePainRows: queryRoutePainRows({
+        sqlite: input.sqlite,
+        month: input.releaseMonth,
+        observedRunId: input.observedRunId ?? `bus-observatory-${input.releaseMonth}`,
+        ...(input.routeId === undefined ? {} : { routeId: input.routeId }),
+      }),
+      interventionComparisonRows: queryInterventionComparisonRows({
+        sqlite: input.sqlite,
+        month: input.releaseMonth,
+        ...(input.routeId === undefined ? {} : { routeId: input.routeId }),
+      }),
+    };
+  }
+
+  if (
+    input.detectorId === TREATMENT_SCOPE_MISMATCH_DETECTOR_ID ||
+    input.detectorId === TREATMENT_SCOPE_GAP_DETECTOR_ID
+  ) {
+    return {
+      routeSegmentSpeedSummaryRows: queryRouteSegmentSpeedSummaryRows({
+        sqlite: input.sqlite,
+        month: input.releaseMonth,
+        ...(input.routeId === undefined ? {} : { routeId: input.routeId }),
+      }),
+      routeSegmentDaypartSpeedSummaryRows: queryRouteSegmentDaypartSpeedSummaryRows({
+        sqlite: input.sqlite,
+        month: input.releaseMonth,
+        ...(input.routeId === undefined ? {} : { routeId: input.routeId }),
+      }),
+      routeSegmentHistoricalSpeedSummaryRows: queryRouteSegmentHistoricalSpeedSummaryRows({
+        sqlite: input.sqlite,
+        startMonth: input.historyStartMonth,
+        endMonth: input.releaseMonth,
         ...(input.routeId === undefined ? {} : { routeId: input.routeId }),
       }),
     };

@@ -10,12 +10,22 @@ export type RouteTreatmentCatalogRow = {
   route_id: string;
 };
 
+export type RouteTreatmentSegmentUniverseRow = {
+  route_id: string;
+  month: string;
+  direction: string;
+  stop_order: number;
+  timepoint_stop_id: string;
+  next_timepoint_stop_id: string;
+};
+
 export type RouteTreatmentSummaryLocalDbRows = {
   routeRows: readonly RouteTreatmentCatalogRow[];
   aceRows: readonly RouteTreatmentAceRow[];
   routeBriefRows: readonly RouteTreatmentBriefSummaryRow[];
   interventionEventRows: readonly RouteTreatmentInterventionEventRow[];
   tier2EventRows: readonly RouteTreatmentTier2EventRow[];
+  segmentUniverseRows: readonly RouteTreatmentSegmentUniverseRow[];
   missingTables: readonly string[];
 };
 
@@ -28,6 +38,7 @@ const REQUIRED_TABLES = [
   "local_route_catalog",
   "local_ace_route",
   "local_route_brief_summary",
+  "local_route_segment_speed",
   "local_intervention_event",
   "local_tier2_intervention_event",
   "local_tier2_intervention_event_route",
@@ -143,6 +154,35 @@ export function loadRouteTreatmentSummaryLocalDbRows(
             )
             .all()
         : [],
+    segmentUniverseRows: loadRows<RouteTreatmentSegmentUniverseRow>(
+      input.sqlite,
+      "local_route_segment_speed",
+      `
+        SELECT
+          route_id,
+          month,
+          direction,
+          stop_order,
+          timepoint_stop_id,
+          next_timepoint_stop_id
+        FROM local_route_segment_speed
+        WHERE month = ?
+        GROUP BY
+          route_id,
+          month,
+          direction,
+          stop_order,
+          timepoint_stop_id,
+          next_timepoint_stop_id
+        ORDER BY
+          route_id,
+          direction,
+          stop_order,
+          timepoint_stop_id,
+          next_timepoint_stop_id
+      `,
+      input.month,
+    ),
     missingTables: missing,
   };
 }

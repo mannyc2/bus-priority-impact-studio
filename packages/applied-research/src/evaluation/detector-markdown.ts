@@ -24,6 +24,7 @@ export function detectorEvaluationMarkdownReport(artifact: DetectorEvaluationArt
     `- Claim-discipline violations: ${artifact.claimsDiscipline.violationCount}`,
     `- Insufficient-label detectors: ${artifact.summary.insufficientLabelDetectorCount}`,
     `- Hard-gate blocked detectors: ${artifact.summary.hardGateBlockedDetectorCount}`,
+    `- Model-backed evaluation-loss blocked detectors: ${artifact.summary.modelBackedEvaluationLossBlockedDetectorCount}`,
     `- Grain-policy warning detectors: ${artifact.summary.grainPolicyWarningDetectorCount}`,
     `- Clean no-hit grain review required: ${artifact.summary.cleanNoHitGrainReviewRequiredDetectorCount}`,
     `- False-negative shadow audits unavailable: ${artifact.summary.falseNegativeShadowAuditUnavailableDetectorCount}`,
@@ -40,6 +41,25 @@ export function detectorEvaluationMarkdownReport(artifact: DetectorEvaluationArt
         scorecard.gatedScore ?? "n/a"
       } | ${scorecard.recommendation} | ${scorecard.flags.join(", ") || "none"} |`,
     );
+  }
+
+  lines.push("", "## Model Artifacts", "");
+  if (artifact.modelArtifacts.length === 0) {
+    lines.push("- none");
+  } else {
+    lines.push(
+      "| Model | Status | Panel | Release rows | Routes | Segments | Median residual | Consumers |",
+      "|---|---|---|---:|---:|---:|---:|---|",
+    );
+    for (const model of artifact.modelArtifacts) {
+      lines.push(
+        `| ${model.modelId} | ${model.status} | ${model.panelId ?? "n/a"} | ${
+          model.modeledReleaseRowCount
+        } | ${model.routeCount} | ${model.segmentCount} | ${
+          model.medianResidualMph ?? "n/a"
+        } | ${model.detectorConsumers.join(", ") || "none"} |`,
+      );
+    }
   }
 
   lines.push("", "## Residual Risks", "");

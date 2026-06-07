@@ -4,7 +4,10 @@ import type {
   AnalyticsBackfillCoverageAudit,
   SurfaceMonthCoverage,
 } from "../evaluation/analytics-backfill-coverage";
-import type { PolicySurfaceCoverageSummary } from "../evaluation/analytics-detector-readiness";
+import {
+  detectorReadinessRegistryProductId,
+  type PolicySurfaceCoverageSummary,
+} from "../evaluation/analytics-detector-readiness";
 
 type DirectSurfaceConfig = {
   surfaceId: BackfillValidationSurfaceId;
@@ -145,12 +148,15 @@ function summarizeCoverage(input: {
   months: readonly SurfaceMonthCoverage[];
   label?: string;
   tableName?: string;
+  registryProductId?: string;
 }): PolicySurfaceCoverageSummary {
   const presentRows = input.months.filter((row) => row.rowCount > 0);
   const rowCounts = presentRows.map((row) => row.rowCount).sort((left, right) => left - right);
   const routeCounts = presentRows.map((row) => row.routeCount).sort((left, right) => left - right);
   return {
     surfaceId: input.config.surfaceId,
+    registryProductId:
+      input.registryProductId ?? detectorReadinessRegistryProductId(input.config.surfaceId),
     label: input.label ?? input.config.label,
     tableName: input.tableName ?? input.config.tableName,
     expectedMonthCount: input.months.length,
@@ -258,6 +264,7 @@ function scheduleStopSourceYearCoverage(
     months: coverageMonths,
     label: "Source-year schedule stop rows",
     tableName: "local_route_schedule_stop",
+    registryProductId: "local_route_schedule_stop_source_backfill",
   });
 }
 

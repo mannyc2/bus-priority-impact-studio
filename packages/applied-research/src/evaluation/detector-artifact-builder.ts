@@ -7,6 +7,7 @@ import {
   buildDetectorEvaluationScorecard,
   componentScore,
   type DetectorEvaluationFlag,
+  type DetectorEvaluationHardGate,
   type DetectorEvaluationScorecard,
   detectorReadinessHardGate,
   goldSetEvaluationFlags,
@@ -15,6 +16,17 @@ import {
 } from "@bp/analytics/evaluation";
 import { listAnalyticsDetectors } from "@bp/analytics/registry";
 import type { DetectorEvaluationArtifact } from "./detector-artifact";
+import type {
+  DecouplingQuadrantsArtifactV1,
+  InterventionScopeFitArtifactV1,
+  PulseFingerprintArtifactV1,
+  ReliabilityExposurePanelArtifactV1,
+  RoutePeerResidualArtifactV1,
+  SegmentDaypartResidualArtifactV1,
+  SegmentSpeedResidualArtifactV1,
+  SourceGapModelArtifactV1,
+  TreatmentEventPanelArtifactV1,
+} from "../feature-resolvers";
 import type {
   RuntimeTrendScoreVectorArtifact,
   SpeedPaceScoreVectorArtifact,
@@ -176,6 +188,13 @@ export type GenericDetectorScoreVectorArtifact = {
   }>;
 };
 
+type RankStabilitySummary = {
+  checkedDetectorCount: number;
+  fragileDetectorCount: number;
+  maxTopTenShare: number | null;
+  maxThresholdSensitivityShare: number | null;
+};
+
 export type DetectorGrainAuditStatus = "pass" | "warn" | "block" | "not_applicable" | "unknown";
 
 export type DetectorGrainAuditRow = {
@@ -326,6 +345,15 @@ export type BuildDetectorEvaluationArtifactInput = {
   detectorScoreVectors: GenericDetectorScoreVectorArtifact | null;
   evaluationLabels: DetectorEvaluationLabelInputArtifact | null;
   grainAudit: DetectorGrainAuditArtifact | null;
+  segmentSpeedResiduals: SegmentSpeedResidualArtifactV1 | null;
+  segmentDaypartResiduals: SegmentDaypartResidualArtifactV1 | null;
+  routePeerResiduals: RoutePeerResidualArtifactV1 | null;
+  reliabilityExposurePanel: ReliabilityExposurePanelArtifactV1 | null;
+  interventionScopeFit: InterventionScopeFitArtifactV1 | null;
+  sourceGapModel: SourceGapModelArtifactV1 | null;
+  treatmentEventPanel: TreatmentEventPanelArtifactV1 | null;
+  pulseFingerprint: PulseFingerprintArtifactV1 | null;
+  decouplingQuadrants: DecouplingQuadrantsArtifactV1 | null;
 };
 
 function text(value: unknown): string | null {
@@ -348,6 +376,330 @@ function booleanValue(value: unknown): boolean {
 
 function arrayValue<T = unknown>(value: unknown): T[] {
   return Array.isArray(value) ? (value as T[]) : [];
+}
+
+function modelArtifactDiagnostics(input: {
+  readonly inputArtifacts: DetectorEvaluationArtifact["inputArtifacts"];
+  readonly segmentSpeedResiduals: SegmentSpeedResidualArtifactV1 | null;
+  readonly segmentDaypartResiduals: SegmentDaypartResidualArtifactV1 | null;
+  readonly routePeerResiduals: RoutePeerResidualArtifactV1 | null;
+  readonly reliabilityExposurePanel: ReliabilityExposurePanelArtifactV1 | null;
+  readonly interventionScopeFit: InterventionScopeFitArtifactV1 | null;
+  readonly sourceGapModel: SourceGapModelArtifactV1 | null;
+  readonly treatmentEventPanel: TreatmentEventPanelArtifactV1 | null;
+  readonly pulseFingerprint: PulseFingerprintArtifactV1 | null;
+  readonly decouplingQuadrants: DecouplingQuadrantsArtifactV1 | null;
+}): DetectorEvaluationArtifact["modelArtifacts"] {
+  const diagnostics: DetectorEvaluationArtifact["modelArtifacts"] = [];
+  const detectorConsumersByModel = new Map<string, string[]>();
+  for (const detector of listAnalyticsDetectors()) {
+    for (const modelId of detector.modelArtifacts ?? []) {
+      const consumers = detectorConsumersByModel.get(modelId) ?? [];
+      consumers.push(detector.detectorId);
+      detectorConsumersByModel.set(modelId, consumers);
+    }
+  }
+  const consumersFor = (modelId: string): string[] =>
+    (detectorConsumersByModel.get(modelId) ?? []).sort((left, right) => left.localeCompare(right));
+  const segmentSpeedResiduals = input.segmentSpeedResiduals;
+  if (segmentSpeedResiduals === null) {
+    diagnostics.push({
+      modelId: "segment_speed_residuals_v1",
+      status: "missing",
+      artifactPath: input.inputArtifacts.segmentSpeedResiduals,
+      panelId: null,
+      releaseMonth: null,
+      panelRowCount: 0,
+      modeledReleaseRowCount: 0,
+      routeCount: 0,
+      segmentCount: 0,
+      medianResidualMph: null,
+      detectorConsumers: consumersFor("segment_speed_residuals_v1"),
+      limitations: ["Model artifact was unavailable to the detector evaluation builder."],
+    });
+  } else {
+    diagnostics.push({
+      modelId: segmentSpeedResiduals.artifactKind,
+      status: "available",
+      artifactPath: input.inputArtifacts.segmentSpeedResiduals,
+      panelId: segmentSpeedResiduals.panelManifest.panelId,
+      releaseMonth: segmentSpeedResiduals.releaseMonth,
+      panelRowCount: segmentSpeedResiduals.summary.panelRowCount,
+      modeledReleaseRowCount: segmentSpeedResiduals.summary.modeledReleaseRowCount,
+      routeCount: segmentSpeedResiduals.summary.routeCount,
+      segmentCount: segmentSpeedResiduals.summary.segmentCount,
+      medianResidualMph: segmentSpeedResiduals.summary.releaseMonthResidualMedianMph,
+      detectorConsumers: consumersFor(segmentSpeedResiduals.artifactKind),
+      limitations: segmentSpeedResiduals.panelManifest.limitations,
+    });
+  }
+
+  const segmentDaypartResiduals = input.segmentDaypartResiduals;
+  if (segmentDaypartResiduals === null) {
+    diagnostics.push({
+      modelId: "segment_daypart_residuals_v1",
+      status: "missing",
+      artifactPath: input.inputArtifacts.segmentDaypartResiduals,
+      panelId: null,
+      releaseMonth: null,
+      panelRowCount: 0,
+      modeledReleaseRowCount: 0,
+      routeCount: 0,
+      segmentCount: 0,
+      medianResidualMph: null,
+      detectorConsumers: consumersFor("segment_daypart_residuals_v1"),
+      limitations: ["Model artifact was unavailable to the detector evaluation builder."],
+    });
+  } else {
+    diagnostics.push({
+      modelId: segmentDaypartResiduals.artifactKind,
+      status: "available",
+      artifactPath: input.inputArtifacts.segmentDaypartResiduals,
+      panelId: segmentDaypartResiduals.panelManifest.panelId,
+      releaseMonth: segmentDaypartResiduals.releaseMonth,
+      panelRowCount: segmentDaypartResiduals.summary.panelRowCount,
+      modeledReleaseRowCount: segmentDaypartResiduals.summary.modeledReleaseRowCount,
+      routeCount: segmentDaypartResiduals.summary.routeCount,
+      segmentCount: segmentDaypartResiduals.summary.segmentCount,
+      medianResidualMph: segmentDaypartResiduals.summary.releaseMonthResidualMedianMph,
+      detectorConsumers: consumersFor(segmentDaypartResiduals.artifactKind),
+      limitations: segmentDaypartResiduals.panelManifest.limitations,
+    });
+  }
+
+  const routePeerResiduals = input.routePeerResiduals;
+  if (routePeerResiduals === null) {
+    diagnostics.push({
+      modelId: "route_peer_residuals_v1",
+      status: "missing",
+      artifactPath: input.inputArtifacts.routePeerResiduals,
+      panelId: null,
+      releaseMonth: null,
+      panelRowCount: 0,
+      modeledReleaseRowCount: 0,
+      routeCount: 0,
+      segmentCount: 0,
+      medianResidualMph: null,
+      detectorConsumers: consumersFor("route_peer_residuals_v1"),
+      limitations: ["Model artifact was unavailable to the detector evaluation builder."],
+    });
+  } else {
+    diagnostics.push({
+      modelId: routePeerResiduals.artifactKind,
+      status: "available",
+      artifactPath: input.inputArtifacts.routePeerResiduals,
+      panelId: routePeerResiduals.panelManifest.panelId,
+      releaseMonth: routePeerResiduals.releaseMonth,
+      panelRowCount: routePeerResiduals.summary.panelRowCount,
+      modeledReleaseRowCount: routePeerResiduals.summary.modeledReleaseRowCount,
+      routeCount: routePeerResiduals.summary.routeCount,
+      segmentCount: 0,
+      medianResidualMph: routePeerResiduals.summary.releaseMonthResidualMedianMph,
+      detectorConsumers: consumersFor(routePeerResiduals.artifactKind),
+      limitations: routePeerResiduals.panelManifest.limitations,
+    });
+  }
+
+  const reliabilityExposurePanel = input.reliabilityExposurePanel;
+  if (reliabilityExposurePanel === null) {
+    diagnostics.push({
+      modelId: "reliability_exposure_panel_v1",
+      status: "missing",
+      artifactPath: input.inputArtifacts.reliabilityExposurePanel,
+      panelId: null,
+      releaseMonth: null,
+      panelRowCount: 0,
+      modeledReleaseRowCount: 0,
+      routeCount: 0,
+      segmentCount: 0,
+      medianResidualMph: null,
+      detectorConsumers: consumersFor("reliability_exposure_panel_v1"),
+      limitations: ["Model artifact was unavailable to the detector evaluation builder."],
+    });
+  } else {
+    diagnostics.push({
+      modelId: reliabilityExposurePanel.artifactKind,
+      status: "available",
+      artifactPath: input.inputArtifacts.reliabilityExposurePanel,
+      panelId: reliabilityExposurePanel.panelManifest.panelId,
+      releaseMonth: reliabilityExposurePanel.releaseMonth,
+      panelRowCount: reliabilityExposurePanel.summary.panelRowCount,
+      modeledReleaseRowCount: reliabilityExposurePanel.summary.supportedRowCount,
+      routeCount: reliabilityExposurePanel.summary.routeCount,
+      segmentCount: reliabilityExposurePanel.summary.stopCount,
+      medianResidualMph: null,
+      detectorConsumers: consumersFor(reliabilityExposurePanel.artifactKind),
+      limitations: reliabilityExposurePanel.panelManifest.limitations,
+    });
+  }
+
+  const interventionScopeFit = input.interventionScopeFit;
+  if (interventionScopeFit === null) {
+    diagnostics.push({
+      modelId: "intervention_scope_fit_v1",
+      status: "missing",
+      artifactPath: input.inputArtifacts.interventionScopeFit,
+      panelId: null,
+      releaseMonth: null,
+      panelRowCount: 0,
+      modeledReleaseRowCount: 0,
+      routeCount: 0,
+      segmentCount: 0,
+      medianResidualMph: null,
+      detectorConsumers: consumersFor("intervention_scope_fit_v1"),
+      limitations: ["Model artifact was unavailable to the detector evaluation builder."],
+    });
+  } else {
+    diagnostics.push({
+      modelId: interventionScopeFit.artifactKind,
+      status: "available",
+      artifactPath: input.inputArtifacts.interventionScopeFit,
+      panelId: interventionScopeFit.panelManifest.panelId,
+      releaseMonth: interventionScopeFit.month,
+      panelRowCount: interventionScopeFit.summary.rowCount,
+      modeledReleaseRowCount: interventionScopeFit.summary.rowCount,
+      routeCount: interventionScopeFit.summary.routeCount,
+      segmentCount: interventionScopeFit.summary.segmentRowCount,
+      medianResidualMph: null,
+      detectorConsumers: consumersFor(interventionScopeFit.artifactKind),
+      limitations: interventionScopeFit.panelManifest.limitations,
+    });
+  }
+
+  const sourceGapModel = input.sourceGapModel;
+  if (sourceGapModel === null) {
+    diagnostics.push({
+      modelId: "source_gap_model_v1",
+      status: "missing",
+      artifactPath: input.inputArtifacts.sourceGapModel,
+      panelId: null,
+      releaseMonth: null,
+      panelRowCount: 0,
+      modeledReleaseRowCount: 0,
+      routeCount: 0,
+      segmentCount: 0,
+      medianResidualMph: null,
+      detectorConsumers: consumersFor("source_gap_model_v1"),
+      limitations: ["Model artifact was unavailable to the detector evaluation builder."],
+    });
+  } else {
+    diagnostics.push({
+      modelId: sourceGapModel.artifactKind,
+      status: "available",
+      artifactPath: input.inputArtifacts.sourceGapModel,
+      panelId: sourceGapModel.panelManifest.panelId,
+      releaseMonth: sourceGapModel.month,
+      panelRowCount: sourceGapModel.summary.rowCount,
+      modeledReleaseRowCount: sourceGapModel.summary.rowCount,
+      routeCount: sourceGapModel.summary.routeCount,
+      segmentCount: 0,
+      medianResidualMph: null,
+      detectorConsumers: consumersFor(sourceGapModel.artifactKind),
+      limitations: sourceGapModel.panelManifest.limitations,
+    });
+  }
+
+  const treatmentEventPanel = input.treatmentEventPanel;
+  if (treatmentEventPanel === null) {
+    diagnostics.push({
+      modelId: "treatment_event_panel_v1",
+      status: "missing",
+      artifactPath: input.inputArtifacts.treatmentEventPanel,
+      panelId: null,
+      releaseMonth: null,
+      panelRowCount: 0,
+      modeledReleaseRowCount: 0,
+      routeCount: 0,
+      segmentCount: 0,
+      medianResidualMph: null,
+      detectorConsumers: consumersFor("treatment_event_panel_v1"),
+      limitations: ["Model artifact was unavailable to the detector evaluation builder."],
+    });
+  } else {
+    diagnostics.push({
+      modelId: treatmentEventPanel.artifactKind,
+      status: "available",
+      artifactPath: input.inputArtifacts.treatmentEventPanel,
+      panelId: treatmentEventPanel.panelManifest.panelId,
+      releaseMonth: treatmentEventPanel.releaseMonth,
+      panelRowCount: treatmentEventPanel.summary.panelRowCount,
+      modeledReleaseRowCount: treatmentEventPanel.summary.supportedRowCount,
+      routeCount: treatmentEventPanel.summary.routeCount,
+      segmentCount: 0,
+      medianResidualMph: null,
+      detectorConsumers: consumersFor(treatmentEventPanel.artifactKind),
+      limitations: treatmentEventPanel.panelManifest.limitations,
+    });
+  }
+
+  const pulseFingerprint = input.pulseFingerprint;
+  if (pulseFingerprint === null) {
+    diagnostics.push({
+      modelId: "pulse_fingerprint_v1",
+      status: "missing",
+      artifactPath: input.inputArtifacts.pulseFingerprint,
+      panelId: null,
+      releaseMonth: null,
+      panelRowCount: 0,
+      modeledReleaseRowCount: 0,
+      routeCount: 0,
+      segmentCount: 0,
+      medianResidualMph: null,
+      detectorConsumers: consumersFor("pulse_fingerprint_v1"),
+      limitations: ["Model artifact was unavailable to the detector evaluation builder."],
+    });
+  } else {
+    diagnostics.push({
+      modelId: pulseFingerprint.artifactKind,
+      status: "available",
+      artifactPath: input.inputArtifacts.pulseFingerprint,
+      panelId: pulseFingerprint.panelManifest.panelId,
+      releaseMonth: pulseFingerprint.releaseMonth,
+      panelRowCount: pulseFingerprint.summary.panelRowCount,
+      modeledReleaseRowCount: pulseFingerprint.summary.supportedPulseRowCount,
+      routeCount: pulseFingerprint.summary.routeCount,
+      segmentCount: 0,
+      medianResidualMph: null,
+      detectorConsumers: consumersFor(pulseFingerprint.artifactKind),
+      limitations: pulseFingerprint.panelManifest.limitations,
+    });
+  }
+
+  const decouplingQuadrants = input.decouplingQuadrants;
+  if (decouplingQuadrants === null) {
+    diagnostics.push({
+      modelId: "decoupling_quadrants_v1",
+      status: "missing",
+      artifactPath: input.inputArtifacts.decouplingQuadrants,
+      panelId: null,
+      releaseMonth: null,
+      panelRowCount: 0,
+      modeledReleaseRowCount: 0,
+      routeCount: 0,
+      segmentCount: 0,
+      medianResidualMph: null,
+      detectorConsumers: consumersFor("decoupling_quadrants_v1"),
+      limitations: ["Model artifact was unavailable to the detector evaluation builder."],
+    });
+  } else {
+    diagnostics.push({
+      modelId: decouplingQuadrants.artifactKind,
+      status: "available",
+      artifactPath: input.inputArtifacts.decouplingQuadrants,
+      panelId: decouplingQuadrants.panelManifest.panelId,
+      releaseMonth: decouplingQuadrants.releaseMonth,
+      panelRowCount: decouplingQuadrants.summary.panelRowCount,
+      modeledReleaseRowCount:
+        decouplingQuadrants.summary.supportedSpeedRidershipRowCount,
+      routeCount: decouplingQuadrants.summary.routeCount,
+      segmentCount: 0,
+      medianResidualMph: null,
+      detectorConsumers: consumersFor(decouplingQuadrants.artifactKind),
+      limitations: decouplingQuadrants.panelManifest.limitations,
+    });
+  }
+
+  return diagnostics;
 }
 
 function reviewPacketCoverageStatus(
@@ -953,6 +1305,45 @@ function adjustedCoverageRobustnessScore(input: {
   return Math.max(0, readinessScore - skippedPenalty);
 }
 
+function modelBackedEvaluationLossHardGate(input: {
+  modelArtifacts: readonly string[];
+  confusion: DetectorConfusion;
+}): DetectorEvaluationHardGate {
+  const hasModels = input.modelArtifacts.length > 0;
+  const precision = ratio(
+    input.confusion.truePositive,
+    input.confusion.truePositive + input.confusion.falsePositive,
+  );
+  const primarySurvivalPassed =
+    input.confusion.confirmedPositiveCount === 0 || input.confusion.falseNegative === 0;
+  const precisionPassed =
+    input.confusion.confirmedNegativeCount === 0 || precision === null || precision >= 0.5;
+  const passed = !hasModels || (primarySurvivalPassed && precisionPassed);
+  const reasons: string[] = [];
+  if (!hasModels) {
+    reasons.push("Detector does not declare model artifacts, so this gate is not applicable.");
+  } else {
+    reasons.push(`Model artifacts: ${input.modelArtifacts.join(", ")}.`);
+    reasons.push(
+      primarySurvivalPassed
+        ? "Reviewed primary-positive survival passed."
+        : `${input.confusion.falseNegative} reviewed primary-positive scope(s) were not flagged.`,
+    );
+    reasons.push(
+      precisionPassed
+        ? "Reviewed negative precision floor passed."
+        : `Reviewed precision ${precision === null ? "n/a" : precision.toFixed(3)} is below 0.5.`,
+    );
+  }
+  return {
+    gateId: "model_backed_evaluation_loss",
+    label: "Model-backed evaluation loss",
+    passed,
+    multiplier: 0,
+    reason: reasons.join(" "),
+  };
+}
+
 function flagsForConfusion(input: {
   confusion: DetectorConfusion;
   nearMissCount: number;
@@ -1053,6 +1444,10 @@ function scorecardForDetector(input: {
       holdoutAvailable: input.auxiliary.holdoutAvailable,
     }),
     hardGates: [
+      modelBackedEvaluationLossHardGate({
+        modelArtifacts: input.detector.modelArtifacts ?? [],
+        confusion: input.confusion,
+      }),
       negativeOrNearMissHardGate({
         evaluation: input.confusion,
         nearMissCount: input.auxiliary.queue.nearMissCount,
@@ -1222,6 +1617,106 @@ function falsePositiveRootCauses(
   );
 }
 
+function rankStabilitySummary(
+  scoreVectors: GenericDetectorScoreVectorArtifact | null,
+): RankStabilitySummary {
+  const detectors = scoreVectors?.detectors ?? [];
+  let checkedDetectorCount = 0;
+  let fragileDetectorCount = 0;
+  let maxTopTenShare: number | null = null;
+  let maxThresholdSensitivityShare: number | null = null;
+  for (const detector of detectors) {
+    const entries = arrayValue<Record<string, unknown>>(detector.entries);
+    const scored = entries
+      .map((entry) => ({
+        score: numberValue(entry["score"]),
+        flagged: booleanValue(entry["flagged"]),
+      }))
+      .filter((entry): entry is { score: number; flagged: boolean } => entry.score > 0);
+    const flagged = scored.filter((entry) => entry.flagged);
+    if (scored.length === 0 || flagged.length === 0) continue;
+    checkedDetectorCount += 1;
+    const sortedScores = scored.map((entry) => entry.score).sort((left, right) => right - left);
+    const topTenScoreSum = sortedScores.slice(0, 10).reduce((sum, score) => sum + score, 0);
+    const totalScoreSum = sortedScores.reduce((sum, score) => sum + score, 0);
+    const topTenShare = totalScoreSum === 0 ? 0 : topTenScoreSum / totalScoreSum;
+    const flaggedScores = flagged.map((entry) => entry.score).sort((left, right) => left - right);
+    const cutoff = flaggedScores[0] ?? 0;
+    const nearCutoffCount = scored.filter(
+      (entry) => entry.score >= cutoff * 0.9 && entry.score < cutoff,
+    ).length;
+    const thresholdSensitivityShare = nearCutoffCount / Math.max(1, flagged.length);
+    maxTopTenShare = maxTopTenShare === null ? topTenShare : Math.max(maxTopTenShare, topTenShare);
+    maxThresholdSensitivityShare =
+      maxThresholdSensitivityShare === null
+        ? thresholdSensitivityShare
+        : Math.max(maxThresholdSensitivityShare, thresholdSensitivityShare);
+    if (topTenShare >= 0.75 || thresholdSensitivityShare >= 0.5) fragileDetectorCount += 1;
+  }
+  return {
+    checkedDetectorCount,
+    fragileDetectorCount,
+    maxTopTenShare: maxTopTenShare === null ? null : Math.round(maxTopTenShare * 1000) / 1000,
+    maxThresholdSensitivityShare:
+      maxThresholdSensitivityShare === null
+        ? null
+        : Math.round(maxThresholdSensitivityShare * 1000) / 1000,
+  };
+}
+
+function qualityLabSummary(input: {
+  reviewDecisions: ReviewDecisionArtifact;
+  promotedFindings: PromotedFindingsArtifact;
+  falsePositiveRegister: DetectorEvaluationArtifact["falsePositiveRegister"];
+  scorecards: readonly DetectorEvaluationScorecard[];
+  detectors: ReturnType<typeof listAnalyticsDetectors>;
+  detectorScoreVectors: GenericDetectorScoreVectorArtifact | null;
+}): DetectorEvaluationArtifact["qualityLab"] {
+  const decisions = input.reviewDecisions.decisions ?? [];
+  const reviewedDecisionCount = decisions.length;
+  const reviewerApprovedDecisionCount = decisions.filter((decision) =>
+    shouldFlag(text(decision.decision) ?? ""),
+  ).length;
+  const promotedFindingCount = input.promotedFindings.findings?.length ?? 0;
+  const modelBackedDetectorCount = input.detectors.filter(
+    (detector) => (detector.modelArtifacts ?? []).length > 0,
+  ).length;
+  const modelBackedEvaluationLossBlockedDetectorCount = input.scorecards.filter((scorecard) =>
+    scorecard.hardGates.some(
+      (gate) => gate.gateId === "model_backed_evaluation_loss" && !gate.passed,
+    ),
+  ).length;
+  const scoreVectorUnavailableDetectorCount = input.scorecards.filter((scorecard) =>
+    scorecard.flags.includes("score_vector_unavailable"),
+  ).length;
+  const scoreVectorAvailableDetectorCount = input.scorecards.length - scoreVectorUnavailableDetectorCount;
+  const thresholdAndRankStabilityStatus =
+    scoreVectorAvailableDetectorCount === 0
+      ? "missing"
+      : scoreVectorUnavailableDetectorCount === 0
+        ? "available"
+        : "partial";
+  const rankStability = rankStabilitySummary(input.detectorScoreVectors);
+  return {
+    reviewedDecisionCount,
+    reviewerApprovedDecisionCount,
+    reviewerApprovalShare: ratio(reviewerApprovedDecisionCount, reviewedDecisionCount),
+    promotedFindingCount,
+    primaryFindingYield: ratio(promotedFindingCount, reviewedDecisionCount),
+    falsePositiveRootCount: input.falsePositiveRegister.reduce((sum, row) => sum + row.count, 0),
+    falsePositiveRootKindCount: input.falsePositiveRegister.length,
+    modelBackedDetectorCount,
+    modelBackedEvaluationLossBlockedDetectorCount,
+    scoreVectorAvailableDetectorCount,
+    scoreVectorUnavailableDetectorCount,
+    thresholdAndRankStabilityStatus,
+    rankStabilityCheckedDetectorCount: rankStability.checkedDetectorCount,
+    rankStabilityFragileDetectorCount: rankStability.fragileDetectorCount,
+    maxTopTenShare: rankStability.maxTopTenShare,
+    maxThresholdSensitivityShare: rankStability.maxThresholdSensitivityShare,
+  };
+}
+
 export function buildDetectorEvaluationArtifact(
   input: BuildDetectorEvaluationArtifactInput,
 ): DetectorEvaluationArtifact {
@@ -1384,6 +1879,8 @@ export function buildDetectorEvaluationArtifact(
       detectorVersion: detector.version,
       detectorName: detector.spec.name,
       claimTier: detector.claimTier,
+      requiredDataProducts: [...detector.requiredDataProducts],
+      modelArtifacts: [...(detector.modelArtifacts ?? [])],
     })),
     inputArtifacts: input.inputArtifacts,
     evaluationSets: {
@@ -1408,6 +1905,11 @@ export function buildDetectorEvaluationArtifact(
       qualityOverclaimedDetectorCount,
       hardGateBlockedDetectorCount: scorecards.filter((scorecard) =>
         scorecard.hardGates.some((gate) => !gate.passed && gate.multiplier === 0),
+      ).length,
+      modelBackedEvaluationLossBlockedDetectorCount: scorecards.filter((scorecard) =>
+        scorecard.hardGates.some(
+          (gate) => gate.gateId === "model_backed_evaluation_loss" && !gate.passed,
+        ),
       ).length,
       grainPolicyWarningDetectorCount: scorecards.filter((scorecard) =>
         scorecard.flags.includes("grain_policy_warning"),
@@ -1443,7 +1945,27 @@ export function buildDetectorEvaluationArtifact(
       uniqueScopeCount,
       duplicateScopeCount,
     },
+    qualityLab: qualityLabSummary({
+      reviewDecisions: input.reviewDecisions,
+      promotedFindings: input.promotedFindings,
+      falsePositiveRegister,
+      scorecards,
+      detectors,
+      detectorScoreVectors: input.detectorScoreVectors,
+    }),
     packetCoverage,
+    modelArtifacts: modelArtifactDiagnostics({
+      inputArtifacts: input.inputArtifacts,
+      segmentSpeedResiduals: input.segmentSpeedResiduals,
+      segmentDaypartResiduals: input.segmentDaypartResiduals,
+      routePeerResiduals: input.routePeerResiduals,
+      reliabilityExposurePanel: input.reliabilityExposurePanel,
+      interventionScopeFit: input.interventionScopeFit,
+      sourceGapModel: input.sourceGapModel,
+      treatmentEventPanel: input.treatmentEventPanel,
+      pulseFingerprint: input.pulseFingerprint,
+      decouplingQuadrants: input.decouplingQuadrants,
+    }),
     detectorScorecards: scorecards,
     residualRisks: [
       "Confirmed negatives are currently derived from clean no-hit coverage rows, not manual review.",

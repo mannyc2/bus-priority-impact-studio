@@ -1,4 +1,13 @@
 import type { Database } from "bun:sqlite";
+import { z } from "zod";
+import {
+  type SegmentDaypartPanelSpec,
+  segmentDaypartPanelSpecV1,
+} from "../feature-resolvers/segment-daypart-residuals";
+import {
+  buildLocalDbPanelResolutionManifest,
+  type LocalDbPanelResolution,
+} from "./panel-resolution";
 
 export type SegmentDaypartHistoryRow = {
   route_id: string;
@@ -19,12 +28,44 @@ export type SegmentDaypartHistoryLocalDbQuery = {
   readonly endMonth: string;
 };
 
-export function loadSegmentDaypartHistoryLocalDbRows(
-  input: SegmentDaypartHistoryLocalDbQuery,
+export type SegmentDaypartPanelLocalDbResolutionQuery = {
+  readonly sqlite: Database;
+  readonly spec: SegmentDaypartPanelSpec;
+  readonly generatedAt?: string | null;
+  readonly dbPath?: string;
+};
+
+const SqlNumberSchema = z.union([
+  z.number(),
+  z.bigint().transform(Number),
+  z.string().pipe(z.coerce.number()),
+]);
+
+const SqlNullableNumberSchema = z.preprocess(
+  (value) => (value === null || value === undefined || value === "" ? null : value),
+  SqlNumberSchema.nullable(),
+);
+
+export const SegmentDaypartHistoryRowSchema = z.strictObject({
+  route_id: z.string().min(1),
+  month: z.string().regex(/^\d{4}-\d{2}$/),
+  segment_id: z.string().min(1),
+  direction: z.string().min(1),
+  daypart: z.string().min(1),
+  observation_count: SqlNumberSchema,
+  traversal_count: SqlNumberSchema,
+  average_speed_mph: SqlNullableNumberSchema,
+  average_travel_time_minutes: SqlNullableNumberSchema,
+  average_road_distance_miles: SqlNullableNumberSchema,
+});
+
+export function parseSegmentDaypartHistoryRows(
+  rows: readonly unknown[],
 ): readonly SegmentDaypartHistoryRow[] {
-  return input.sqlite
-    .query<SegmentDaypartHistoryRow, [string, string]>(
-      `
+  return z.array(SegmentDaypartHistoryRowSchema).parse(rows) as SegmentDaypartHistoryRow[];
+}
+
+export const SEGMENT_DAYPART_HISTORY_SQL = `
         SELECT
           route_id,
           month,
@@ -46,7 +87,50 @@ export function loadSegmentDaypartHistoryLocalDbRows(
         WHERE month >= ? AND month <= ?
         GROUP BY route_id, month, segment_id, direction, daypart
         ORDER BY month, route_id, direction, segment_id, daypart
-      `,
-    )
-    .all(input.startMonth, input.endMonth);
+      `;
+
+export function loadSegmentDaypartHistoryLocalDbRows(
+  input: SegmentDaypartHistoryLocalDbQuery,
+): readonly SegmentDaypartHistoryRow[] {
+  return parseSegmentDaypartHistoryRows(
+    input.sqlite
+      .query<SegmentDaypartHistoryRow, [string, string]>(SEGMENT_DAYPART_HISTORY_SQL)
+      .all(input.startMonth, input.endMonth),
+  );
+}
+
+export function loadSegmentDaypartPanelV1Resolution(
+  input: SegmentDaypartPanelLocalDbResolutionQuery,
+): LocalDbPanelResolution<SegmentDaypartHistoryRow> {
+  const rows = loadSegmentDaypartHistoryLocalDbRows({
+    sqlite: input.sqlite,
+    startMonth: input.spec.startMonth,
+    endMonth: input.spec.endMonth,
+  }).filter((row) => input.spec.routeId === undefined || row.route_id === input.spec.routeId);
+  const panelSpec = segmentDaypartPanelSpecV1(input.spec);
+  return {
+    rows,
+    panelManifest: buildLocalDbPanelResolutionManifest({
+      panelSpec,
+      generatedAt: input.generatedAt,
+      inputRefs: [
+        {
+          refKind: "query",
+          refId: "SEGMENT_DAYPART_HISTORY_SQL",
+          role: "local_db_segment_daypart_panel_rows",
+          path: input.dbPath ?? "data/local/pipeline.sqlite",
+        },
+        {
+          refKind: "local_table",
+          refId: "local_route_segment_speed",
+          role: "primary_daypart_speed_panel_source",
+          path: input.dbPath ?? "data/local/pipeline.sqlite",
+        },
+      ],
+      sourceRowCount: rows.length,
+      routeIds: rows.map((row) => row.route_id),
+      entityIds: rows.map((row) => [row.segment_id, row.daypart].join(":")),
+      months: rows.map((row) => row.month),
+    }),
+  };
 }

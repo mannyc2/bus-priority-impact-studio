@@ -85,6 +85,20 @@ export type SegmentTreatmentSummaryRow = RouteTreatmentSummaryRow & {
   overlapShare: number | null;
 };
 
+export type RouteSegmentLaneOverlapInput = {
+  routeId: string;
+  month: string;
+  segmentId: string;
+  directionId: string | null;
+  segmentOrder: number | null;
+  laneSource: "dot_bus_lanes_geometry" | "geometry_unavailable";
+  laneOverlapShare: number;
+  laneMatchedCount: number;
+  laneTypes: readonly string[];
+  laneOperatingHours: readonly string[];
+  laneOperatingDays: readonly string[];
+};
+
 export type RouteTreatmentSourceGapRow = {
   routeId: string | null;
   month: string;
@@ -124,6 +138,7 @@ export type RouteTreatmentArtifactSource = {
     routeCatalogRowCount: number;
     sourceEvidenceRowCount: number;
     sourceGapRowCount: number;
+    segmentUniverseRowCount: number;
     segmentTreatmentRowCount: number;
     publishableInterventionCount: number;
   };
@@ -179,6 +194,7 @@ export type RouteTreatmentSummaryInput = {
   checkedTreatmentTypes?: readonly RouteTreatmentType[];
   includeNoDataRows?: boolean;
   includeTspCurrentInventorySourceGap?: boolean;
+  segmentUniverseRowCount?: number;
 };
 
 export type RouteTreatmentAceRow = {
@@ -405,6 +421,37 @@ function positiveEvidenceStatus(status: RouteTreatmentStatus): boolean {
   );
 }
 
+function segmentLaneEvidenceConfidence(
+  row: RouteSegmentLaneOverlapInput,
+): RouteTreatmentConfidence {
+  if (row.laneSource === "geometry_unavailable") return "low";
+  if (row.laneOverlapShare >= 0.6) return "high";
+  if (row.laneOverlapShare >= 0.2) return "medium";
+  return "low";
+}
+
+function segmentLaneEvidenceStatus(row: RouteSegmentLaneOverlapInput): RouteTreatmentStatus {
+  if (row.laneSource === "geometry_unavailable") return "source_gap";
+  if (row.laneOverlapShare > 0 && row.laneMatchedCount > 0) return "current_confirmed";
+  return "not_found";
+}
+
+function segmentLaneEvidenceLabel(
+  row: RouteSegmentLaneOverlapInput,
+): RouteTreatmentEvidenceLabel {
+  if (row.laneSource === "geometry_unavailable") return "aggregate_source_gap";
+  if (row.laneOverlapShare > 0 && row.laneMatchedCount > 0) return "deterministic_source";
+  return "not_found";
+}
+
+function segmentLaneMatchMethod(
+  row: RouteSegmentLaneOverlapInput,
+): SegmentTreatmentSummaryRow["matchMethod"] {
+  if (row.laneSource === "geometry_unavailable") return "source_only";
+  if (row.laneOverlapShare > 0 && row.laneMatchedCount > 0) return "route_shape_overlap";
+  return "not_matched";
+}
+
 function rowFromEvidence(input: {
   evidence: RouteTreatmentEvidenceInput;
   defaultMonth: string;
@@ -593,6 +640,56 @@ export function routeTreatmentSourceRowsFromRouteBriefSummaries(input: {
     }));
 }
 
+export function segmentTreatmentRowsFromLaneOverlaps(input: {
+  rows: readonly RouteSegmentLaneOverlapInput[];
+}): SegmentTreatmentSummaryRow[] {
+  return input.rows.map((row) => {
+    const status = segmentLaneEvidenceStatus(row);
+    const positive = status === "current_confirmed";
+    const unavailable = row.laneSource === "geometry_unavailable";
+    const overlapPercent = Math.round(row.laneOverlapShare * 100);
+    return {
+      routeId: normalizeRouteId(row.routeId),
+      month: row.month,
+      treatmentType: "bus_lane",
+      rawTreatmentType: "bus_lane",
+      status,
+      statusAsOf: row.month,
+      effectiveDate: null,
+      datePrecision: "unknown",
+      geographyScope: "segment",
+      sourceRefs: uniqueSorted([
+        `local_route_segment_speed_segment:${row.segmentId}`,
+        unavailable
+          ? `route_shape_geometry_unavailable:${normalizeRouteId(row.routeId)}:${row.month}`
+          : "nyc_dot_bus_lanes_geometry:route_shape_overlap",
+        ...row.laneTypes.map((laneType) => `nyc_dot_bus_lane_type:${laneType}`),
+      ]),
+      evidenceLabel: segmentLaneEvidenceLabel(row),
+      confidence: segmentLaneEvidenceConfidence(row),
+      caveats: uniqueSorted([
+        unavailable
+          ? "Could not resolve route-shape coordinates for this observed timepoint segment; segment-level bus-lane overlap cannot be determined."
+          : positive
+            ? `DOT bus-lane geometry overlaps about ${overlapPercent.toLocaleString("en-US")}% of this observed route timepoint segment.`
+            : "No DOT bus-lane geometry overlap was detected for this observed route timepoint segment.",
+        ...row.laneOperatingHours.map((hours) => `Matched lane operating hours: ${hours}.`),
+        ...row.laneOperatingDays.map((days) => `Matched lane operating days: ${days}.`),
+      ]),
+      methodLimitations: [
+        "Segment treatment state is derived from route-shape overlap with DOT bus-lane geometry, not audited lane-mile inventory.",
+        "Observed segment ids include the analysis month and are not yet the stable cross-year geographic spine.",
+      ],
+      relatedEventIds: [],
+      segmentId: row.segmentId,
+      directionId: row.directionId,
+      segmentOrder: row.segmentOrder,
+      matchMethod: segmentLaneMatchMethod(row),
+      overlapShare: unavailable ? null : row.laneOverlapShare,
+    };
+  });
+}
+
 export function routeTreatmentSourceRowsFromInterventionEvents(input: {
   rows: readonly RouteTreatmentInterventionEventRow[];
   month: string;
@@ -759,12 +856,23 @@ export function buildRouteTreatmentSummaryArtifact(
   }
 
   const routeTreatmentRows = mergeRouteTreatmentRows(rows);
-  const segmentTreatmentRows = [...(input.segmentTreatmentRows ?? [])].sort(
-    (left, right) =>
-      left.routeId.localeCompare(right.routeId) ||
-      left.segmentId.localeCompare(right.segmentId) ||
-      left.treatmentType.localeCompare(right.treatmentType),
-  );
+  const skippedSegmentRouteIds = new Set<string>();
+  const segmentTreatmentRows = (input.segmentTreatmentRows ?? [])
+    .flatMap((row) => {
+      const routeId = canonicalRouteId(row.routeId, routeUniverse);
+      if (routeId === null) {
+        const normalized = normalizeRouteId(row.routeId);
+        if (normalized.length > 0) skippedSegmentRouteIds.add(normalized);
+        return [];
+      }
+      return [{ ...row, routeId }];
+    })
+    .sort(
+      (left, right) =>
+        left.routeId.localeCompare(right.routeId) ||
+        left.segmentId.localeCompare(right.segmentId) ||
+        left.treatmentType.localeCompare(right.treatmentType),
+    );
   const issues: RouteTreatmentSummaryValidationIssue[] = [];
   if (routeIds.length === 0) {
     issues.push({
@@ -795,6 +903,14 @@ export function buildRouteTreatmentSummaryArtifact(
       message: `${skippedEvidenceRouteIds.size.toLocaleString("en-US")} source route id(s) were not in the current route catalog and could not be safely aliased: ${sample}.`,
     });
   }
+  if (skippedSegmentRouteIds.size > 0) {
+    const sample = [...skippedSegmentRouteIds].sort().slice(0, 12).join(", ");
+    issues.push({
+      severity: "warn",
+      code: "non_catalog_segment_route_ids_skipped",
+      message: `${skippedSegmentRouteIds.size.toLocaleString("en-US")} segment route id(s) were not in the current route catalog and could not be safely aliased: ${sample}.`,
+    });
+  }
 
   const positiveRoutes = new Set(
     routeTreatmentRows
@@ -822,6 +938,8 @@ export function buildRouteTreatmentSummaryArtifact(
         routeCatalogRowCount: routeIds.length,
         sourceEvidenceRowCount: input.evidenceRows.length,
         sourceGapRowCount: sourceGapRows.length,
+        segmentUniverseRowCount:
+          input.segmentUniverseRowCount ?? input.segmentTreatmentRows?.length ?? 0,
         segmentTreatmentRowCount: segmentTreatmentRows.length,
         publishableInterventionCount: input.publishableInterventionCount ?? 0,
       },
@@ -888,7 +1006,10 @@ export function routeTreatmentSummaryMarkdown(artifact: RouteTreatmentSummaryArt
     `- Route treatment rows: ${artifact.summary.routeTreatmentRowCount.toLocaleString("en-US")}`,
     `- Positive-evidence routes: ${artifact.summary.routeWithPositiveEvidenceCount.toLocaleString("en-US")}`,
     `- Source-gap routes: ${artifact.summary.routeWithSourceGapCount.toLocaleString("en-US")}`,
+    `- Segment universe rows: ${artifact.source.inputs.segmentUniverseRowCount.toLocaleString("en-US")}`,
     `- Segment treatment rows: ${artifact.summary.segmentTreatmentRowCount.toLocaleString("en-US")}`,
+    `- Source evidence rows: ${artifact.source.inputs.sourceEvidenceRowCount.toLocaleString("en-US")}`,
+    `- Publishable intervention rows: ${artifact.source.inputs.publishableInterventionCount.toLocaleString("en-US")}`,
     "",
     "## Status Counts",
     "",

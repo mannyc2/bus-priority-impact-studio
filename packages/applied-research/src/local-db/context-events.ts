@@ -1,6 +1,7 @@
 import type { Database } from "bun:sqlite";
 import { createHash } from "node:crypto";
 import { type LocalContextEvent, type LocalPipelineDb, upsertContextEvents } from "@bp/db/local";
+import { z } from "zod";
 
 export type BuildContextEventsResult = {
   inserted311: number;
@@ -25,6 +26,121 @@ type AceViolationSummaryRow = {
   violation_status: string;
   violation_count: number;
 };
+
+const nullableString = z.string().nullable();
+const nullableNumber = z.number().nullable();
+
+export const ContextEventPayloadSchemaByKind = {
+  "311_complaint": z
+    .object({
+      complaintType: nullableString,
+      descriptor: nullableString,
+      status: nullableString,
+      incidentAddress: nullableString,
+      streetName: nullableString,
+    })
+    .strict(),
+  collision: z
+    .object({
+      borough: nullableString,
+      onStreetName: nullableString,
+      crossStreetName: nullableString,
+      personsInjured: nullableNumber,
+      personsKilled: nullableNumber,
+      pedestriansInjured: nullableNumber,
+      pedestriansKilled: nullableNumber,
+      cyclistInjured: nullableNumber,
+      cyclistKilled: nullableNumber,
+    })
+    .strict(),
+  parking_violation: z
+    .object({
+      violationCode: z.number().int(),
+      violationDescription: nullableString,
+      violationCounty: nullableString,
+      houseNumber: nullableString,
+      streetName: nullableString,
+      intersectingStreet: nullableString,
+      streetCode1: nullableString,
+      streetCode2: nullableString,
+      streetCode3: nullableString,
+    })
+    .strict(),
+  permit: z
+    .object({
+      permitKind: z.string().min(1),
+      permitTypeDesc: nullableString,
+      permitStatusDesc: nullableString,
+      permitSeriesDesc: nullableString,
+      applicationTypeShortDesc: nullableString,
+      equipmentTypeDesc: nullableString,
+      borough: nullableString,
+      houseNumber: nullableString,
+      onStreetName: nullableString,
+      fromStreetName: nullableString,
+      toStreetName: nullableString,
+      purposeComments: nullableString,
+    })
+    .strict(),
+  traffic_volume: z
+    .object({
+      requestId: z.number().int(),
+      segmentId: z.number().int(),
+      borough: nullableString,
+      street: nullableString,
+      fromStreet: nullableString,
+      toStreet: nullableString,
+      direction: nullableString,
+      volume: z.number(),
+    })
+    .strict(),
+  traffic_speed: z
+    .object({
+      linkId: z.string().min(1),
+      linkName: nullableString,
+      borough: nullableString,
+      speed: nullableNumber,
+      travelTime: nullableNumber,
+      statusCode: z.string().min(1),
+    })
+    .strict(),
+  ace_violation_aggregate: z
+    .object({
+      month: z.string().regex(/^\d{4}-\d{2}$/),
+      totalViolations: z.number().int().nonnegative(),
+      breakdown: z.array(
+        z
+          .object({
+            type: z.string().min(1),
+            status: z.string().min(1),
+            count: z.number().int().nonnegative(),
+          })
+          .strict(),
+      ),
+    })
+    .strict(),
+} as const;
+
+export type ContextEventPayloadKind = keyof typeof ContextEventPayloadSchemaByKind;
+
+export function parseContextEventPayloadJson(input: {
+  eventKind: string;
+  payloadJson: string;
+}): unknown {
+  const schema =
+    ContextEventPayloadSchemaByKind[input.eventKind as ContextEventPayloadKind] ?? null;
+  if (schema === null) {
+    throw new Error(`No context-event payload schema for event kind ${input.eventKind}`);
+  }
+  return schema.parse(JSON.parse(input.payloadJson));
+}
+
+function contextEventPayloadJson<K extends ContextEventPayloadKind>(
+  eventKind: K,
+  payload: z.input<(typeof ContextEventPayloadSchemaByKind)[K]>,
+): string {
+  return JSON.stringify(ContextEventPayloadSchemaByKind[eventKind].parse(payload));
+}
 
 export function contextEventId(sourceId: string, sourceRowId: string): string {
   return createHash("sha1").update(`${sourceId}|${sourceRowId}`).digest("hex");
@@ -92,7 +208,7 @@ export function buildAceViolationAggregateEvents(input: {
     lat: null,
     lng: null,
     routeId: group.routeId,
-    payloadJson: JSON.stringify({
+    payloadJson: contextEventPayloadJson("ace_violation_aggregate", {
       month: group.month,
       totalViolations: group.total,
       breakdown: group.breakdown,
@@ -141,7 +257,7 @@ export async function runBuildContextEvents(inputs: {
     lat: row.latitude,
     lng: row.longitude,
     routeId: null,
-    payloadJson: JSON.stringify({
+    payloadJson: contextEventPayloadJson("311_complaint", {
       complaintType: row.complaint_type,
       descriptor: row.descriptor,
       status: row.status,
@@ -194,7 +310,7 @@ export async function runBuildContextEvents(inputs: {
       lat: row.latitude,
       lng: row.longitude,
       routeId: null,
-      payloadJson: JSON.stringify({
+      payloadJson: contextEventPayloadJson("collision", {
         borough: row.borough,
         onStreetName: row.on_street_name,
         crossStreetName: row.cross_street_name,
@@ -247,7 +363,7 @@ export async function runBuildContextEvents(inputs: {
     lat: null,
     lng: null,
     routeId: null,
-    payloadJson: JSON.stringify({
+    payloadJson: contextEventPayloadJson("parking_violation", {
       violationCode: row.violation_code,
       violationDescription: row.violation_description,
       violationCounty: row.violation_county,
@@ -303,7 +419,7 @@ export async function runBuildContextEvents(inputs: {
     lat: null,
     lng: null,
     routeId: null,
-    payloadJson: JSON.stringify({
+    payloadJson: contextEventPayloadJson("permit", {
       permitKind: row.permit_kind,
       permitTypeDesc: row.permit_type_desc,
       permitStatusDesc: row.permit_status_desc,
@@ -356,7 +472,7 @@ export async function runBuildContextEvents(inputs: {
     lat: null,
     lng: null,
     routeId: null,
-    payloadJson: JSON.stringify({
+    payloadJson: contextEventPayloadJson("traffic_volume", {
       requestId: row.request_id,
       segmentId: row.segment_id,
       borough: row.borough,
@@ -400,7 +516,7 @@ export async function runBuildContextEvents(inputs: {
     lat: null,
     lng: null,
     routeId: null,
-    payloadJson: JSON.stringify({
+    payloadJson: contextEventPayloadJson("traffic_speed", {
       linkId: row.link_id,
       linkName: row.link_name,
       borough: row.borough,

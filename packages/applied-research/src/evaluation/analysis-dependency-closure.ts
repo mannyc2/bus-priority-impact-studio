@@ -1,4 +1,9 @@
 import { listAnalyticsDetectors, type RegisteredAnalyticsDetector } from "@bp/analytics/registry";
+import {
+  dataProductCompletenessStatusMap,
+  type DataProductCompletenessRef,
+  type DataProductCompletenessStatus as CanonicalDataProductCompletenessStatus,
+} from "../data-products";
 
 export type AnalysisKind = "detector" | "causal_study" | "forecasting" | "response_drift_study";
 
@@ -11,14 +16,7 @@ export type AnalysisDependencyKind =
   | "evaluation"
   | "validation_gate";
 
-export type DataProductCompletenessStatus =
-  | "complete"
-  | "partial"
-  | "missing"
-  | "stale"
-  | "waived"
-  | "blocked"
-  | "fetching";
+export type DataProductCompletenessStatus = CanonicalDataProductCompletenessStatus;
 
 export type AnalysisDependencyStatus =
   | DataProductCompletenessStatus
@@ -112,10 +110,7 @@ export type AnalysisDependencyDataProductManifest = {
   readonly products: readonly AnalysisDependencyDataProduct[];
 };
 
-type ProductCompletenessRef = {
-  readonly status: DataProductCompletenessStatus;
-  readonly reasons: readonly string[];
-};
+type ProductCompletenessRef = DataProductCompletenessRef;
 
 type ArtifactInputs = {
   readonly dataProductCompleteness: unknown | null;
@@ -195,16 +190,6 @@ const PLANNED_ANALYSIS_UNITS: readonly PlannedAnalysisUnitDefinition[] = [
   },
 ];
 
-const DATA_PRODUCT_STATUSES: readonly DataProductCompletenessStatus[] = [
-  "complete",
-  "partial",
-  "missing",
-  "stale",
-  "waived",
-  "blocked",
-  "fetching",
-];
-
 function text(value: unknown): string | null {
   return typeof value === "string" && value.length > 0 ? value : null;
 }
@@ -225,32 +210,6 @@ function asObject(value: unknown): Record<string, unknown> | null {
 
 function asArray(value: unknown): unknown[] {
   return Array.isArray(value) ? value : [];
-}
-
-function productCompletenessStatusMap(
-  productCompleteness: unknown | null,
-): Map<string, ProductCompletenessRef> {
-  const root = asObject(productCompleteness);
-  if (root === null) return new Map();
-  const statuses = new Map<string, ProductCompletenessRef>();
-  for (const rawProduct of asArray(root["products"])) {
-    const product = asObject(rawProduct);
-    if (product === null) continue;
-    const productId = text(product["productId"]);
-    const status = DATA_PRODUCT_STATUSES.includes(
-      product["status"] as DataProductCompletenessStatus,
-    )
-      ? (product["status"] as DataProductCompletenessStatus)
-      : null;
-    if (productId === null || status === null) continue;
-    statuses.set(productId, {
-      status,
-      reasons: asArray(product["reasons"])
-        .map((reason) => text(reason))
-        .filter((reason): reason is string => reason !== null),
-    });
-  }
-  return statuses;
 }
 
 function artifactDetectorRows(artifact: unknown | null): Map<string, Record<string, unknown>> {
@@ -745,7 +704,7 @@ export function buildAnalysisDependencyClosure(
     a.detectorId.localeCompare(b.detectorId),
   );
   const productsById = new Map(input.manifest.products.map((product) => [product.id, product]));
-  const productStatusById = productCompletenessStatusMap(input.dataProductCompleteness);
+  const productStatusById = dataProductCompletenessStatusMap(input.dataProductCompleteness);
   const readinessRows = artifactDetectorRows(input.detectorReadiness);
   const grainRows = artifactDetectorRows(input.detectorCorpusGrain);
   const reviewRows = artifactDetectorRows(input.reviewPacketCoverage);

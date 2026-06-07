@@ -181,6 +181,7 @@ describe("review packet artifacts", () => {
       (packet) => packet.candidate.candidateId === persistent.candidateId,
     );
     expect(persistentPacket?.packetId).toBe("old-packet-id");
+    expect(persistentPacket?.reviewContext?.summary).toContain("persistent_speed_hotspot");
     expect(artifacts.promotionQueue.summary.readyForReviewCount).toBe(2);
     expect(artifacts.reviewQueue.totalCandidateCount).toBe(2);
     expect(artifacts.reviewQueue.candidates[0]?.evidenceRefCount).toBe(2);
@@ -261,6 +262,91 @@ describe("review packet artifacts", () => {
     );
     expect(gapCoverage?.status).toBe("complete");
     expect(gapCoverage?.packetsWithoutCounterEvidence).toBe(0);
+  });
+
+  test("adds treatment-scope reviewer context from parsed evidence objects", () => {
+    const treatment = candidate({
+      candidateId: "c-treatment-scope",
+      detectorId: "treatment_scope_mismatch",
+      detectorRunId: "treatment_scope_mismatch-2026-03-test",
+      scopeKind: "segment",
+      scopeId: "M96:2026-03:W:10:401965:903004",
+      routeId: "M96",
+      category: "intervention",
+      detectorScore: 90,
+      reasonCode: "bus_lane_slow_segment",
+    });
+
+    const artifacts = build({
+      candidates: [treatment],
+      evidenceLinks: [
+        FindingEvidenceLinkSchema.parse({
+          linkId: "e-primary",
+          candidateId: treatment.candidateId,
+          evidenceKind: "metric",
+          evidenceRole: "primary",
+          evidenceRef: JSON.stringify({
+            routeId: "M96",
+            averageSpeedMph: 4.9,
+            observationCount: 90,
+            busTripCount: 300,
+            overlapShare: 0.7,
+            matchMethod: "route_shape_overlap",
+            treatmentStatus: "current_confirmed",
+            treatmentSourceRefs: ["bus-lane-segment:M96"],
+          }),
+          evidenceWeight: 1,
+          note: null,
+        }),
+        FindingEvidenceLinkSchema.parse({
+          linkId: "e-context",
+          candidateId: treatment.candidateId,
+          evidenceKind: "metric",
+          evidenceRole: "context",
+          evidenceRef: JSON.stringify({
+            slowestDaypart: "am_peak",
+            slowestDaypartAverageSpeedMph: 4.3,
+            routePeerContext: {
+              speedRankAscending: 1,
+              segmentCount: 20,
+              medianSegmentSpeedMph: 7.2,
+              slownessPercentile: 1,
+            },
+            networkPeerContext: {
+              speedRankAscending: 100,
+              segmentCount: 4000,
+              medianSegmentSpeedMph: 8.1,
+              slownessPercentile: 0.98,
+            },
+          }),
+          evidenceWeight: 0.8,
+          note: null,
+        }),
+        evidence({
+          linkId: "e-counter",
+          candidateId: treatment.candidateId,
+          role: "counter_evidence",
+        }),
+      ],
+      coverageRows: [
+        coverage({
+          auditId: "a-treatment",
+          detectorRunId: treatment.detectorRunId,
+          detectorId: treatment.detectorId,
+          scopeKind: treatment.scopeKind,
+          scopeId: treatment.scopeId,
+        }),
+      ],
+    });
+
+    const packet = artifacts.reviewPackets.packets[0];
+    expect(packet?.reviewContext?.summary).toContain("bus-lane overlap plus 4.9 mph");
+    expect(packet?.reviewContext?.evidenceHighlights).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("Route peer context: 1/20 slowest"),
+        expect.stringContaining("Slowest daypart: am_peak"),
+      ]),
+    );
   });
 });
 

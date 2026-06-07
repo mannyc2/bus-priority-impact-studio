@@ -30,6 +30,15 @@ describe("detector evaluation artifacts", () => {
         detectorScoreVectors: "detector-score-vectors.json",
         evaluationLabels: "detector-evaluation-labels.json",
         grainAudit: "detector-corpus-grain.json",
+        segmentSpeedResiduals: "segment-speed-residuals.json",
+        segmentDaypartResiduals: "segment-daypart-residuals.json",
+        routePeerResiduals: "route-peer-residuals.json",
+        reliabilityExposurePanel: "reliability-exposure-panel.json",
+        interventionScopeFit: "intervention-scope-fit.json",
+        sourceGapModel: "source-gap-model.json",
+        treatmentEventPanel: "treatment-event-panel.json",
+        pulseFingerprint: "pulse-fingerprint.json",
+        decouplingQuadrants: "decoupling-quadrants.json",
       },
       evaluationSets: {
         confirmedPositiveCount: 3,
@@ -47,6 +56,7 @@ describe("detector evaluation artifacts", () => {
         qualityUnratedDetectorCount: 0,
         qualityOverclaimedDetectorCount: 0,
         hardGateBlockedDetectorCount: 0,
+        modelBackedEvaluationLossBlockedDetectorCount: 0,
         grainPolicyWarningDetectorCount: 1,
         cleanNoHitGrainReviewRequiredDetectorCount: 1,
         falseNegativeShadowAuditUnavailableDetectorCount: 0,
@@ -65,6 +75,24 @@ describe("detector evaluation artifacts", () => {
         uniqueScopeCount: 1,
         duplicateScopeCount: 0,
       },
+      qualityLab: {
+        reviewedDecisionCount: 1,
+        reviewerApprovedDecisionCount: 1,
+        reviewerApprovalShare: 1,
+        promotedFindingCount: 1,
+        primaryFindingYield: 1,
+        falsePositiveRootCount: 0,
+        falsePositiveRootKindCount: 0,
+        modelBackedDetectorCount: 1,
+        modelBackedEvaluationLossBlockedDetectorCount: 0,
+        scoreVectorAvailableDetectorCount: 1,
+        scoreVectorUnavailableDetectorCount: 0,
+        thresholdAndRankStabilityStatus: "available",
+        rankStabilityCheckedDetectorCount: 1,
+        rankStabilityFragileDetectorCount: 0,
+        maxTopTenShare: 0.5,
+        maxThresholdSensitivityShare: 0,
+      },
       packetCoverage: [
         {
           detectorId: "observed_reliability",
@@ -72,6 +100,22 @@ describe("detector evaluation artifacts", () => {
           packetCount: 1,
           candidateCount: 1,
           status: "available",
+        },
+      ],
+      modelArtifacts: [
+        {
+          modelId: "route_peer_residuals_v1",
+          status: "available",
+          artifactPath: "route-peer-residuals.json",
+          panelId: "route_month_peer_panel_v1",
+          releaseMonth: "2026-03",
+          panelRowCount: 10,
+          modeledReleaseRowCount: 2,
+          routeCount: 2,
+          segmentCount: 0,
+          medianResidualMph: -0.1,
+          detectorConsumers: ["observed_reliability"],
+          limitations: ["Fixture model artifact."],
         },
       ],
       detectorScorecards: [
@@ -97,6 +141,12 @@ describe("detector evaluation artifacts", () => {
     );
     expect(detectorEvaluationMarkdownReport(artifact)).toContain(
       "- Confirmed positives / negatives: 3 / 7",
+    );
+    expect(detectorEvaluationMarkdownReport(artifact)).toContain(
+      "- Model-backed evaluation-loss blocked detectors: 0",
+    );
+    expect(detectorEvaluationMarkdownReport(artifact)).toContain(
+      "| route_peer_residuals_v1 | available | route_month_peer_panel_v1 | 2 | 2 | 0 | -0.1 | observed_reliability |",
     );
   });
 });

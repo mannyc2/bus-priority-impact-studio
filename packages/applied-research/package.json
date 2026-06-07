@@ -30,6 +30,7 @@
     "@bp/analytics": "workspace:*",
     "@bp/db": "workspace:*",
     "@bp/domain": "workspace:*",
+    "@tidy-ts/dataframe": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {

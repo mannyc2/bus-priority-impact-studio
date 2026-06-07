@@ -4,6 +4,14 @@ import type {
   DataProductCompletenessStatus,
   DataProductRouteUniverse,
 } from "./registry";
+import {
+  DataProductCompletenessStatusSchema,
+  DataProductExpectedUniverseSchema,
+  DataProductFreshnessPolicySchema,
+  DataProductKindSchema,
+  DataProductLifecycleSchema,
+} from "./registry";
+import { z } from "zod";
 
 export type DataProductCheckAudit = {
   checkId: string;
@@ -27,6 +35,7 @@ export type DataProductGapClass =
   | "upstream_blocked"
   | "downstream_blocked"
   | "available_not_fetched"
+  | "source_absent"
   | "derived_not_built"
   | "derived_from_available_not_fetched"
   | "derived_from_upstream_blocked"
@@ -41,6 +50,11 @@ export type DataProductRootCause = {
   label: string;
   status: DataProductCompletenessStatus;
   gapClass: DataProductGapClass;
+  reasons: string[];
+};
+
+export type DataProductCompletenessRef = {
+  status: DataProductCompletenessStatus;
   reasons: string[];
 };
 
@@ -108,6 +122,7 @@ export type DataProductCoverageSummary = {
   stale: DataProductCoverageBucket;
   waived: DataProductCoverageBucket;
   unknown: DataProductCoverageBucket;
+  sourceAbsent: DataProductCoverageBucket;
 };
 
 export type DataProductCompletenessRouteUniverseSets = Record<
@@ -144,6 +159,7 @@ export const DATA_PRODUCT_GAP_CLASS_ORDER: readonly DataProductGapClass[] = [
   "upstream_blocked",
   "downstream_blocked",
   "available_not_fetched",
+  "source_absent",
   "derived_not_built",
   "derived_from_available_not_fetched",
   "derived_from_upstream_blocked",
@@ -154,8 +170,195 @@ export const DATA_PRODUCT_GAP_CLASS_ORDER: readonly DataProductGapClass[] = [
   "unknown",
 ];
 
+export const DataProductGapClassSchema = z.enum([
+  "none",
+  "upstream_blocked",
+  "downstream_blocked",
+  "available_not_fetched",
+  "source_absent",
+  "derived_not_built",
+  "derived_from_available_not_fetched",
+  "derived_from_upstream_blocked",
+  "planned_blocked",
+  "fetching",
+  "waived",
+  "stale",
+  "unknown",
+]);
+
+const DataProductCheckAuditTypeSchema = z.enum([
+  "month_table_coverage",
+  "table_route_coverage",
+  "table_row_count",
+  "source_year_route_coverage",
+  "route_artifact_coverage",
+  "score_vector_routes",
+  "json_artifact",
+  "file_artifact",
+  "artifact_glob",
+]);
+
+export const DataProductCheckAuditSchema = z
+  .object({
+    checkId: z.string().min(1),
+    label: z.string().min(1),
+    type: DataProductCheckAuditTypeSchema,
+    status: DataProductCompletenessStatusSchema,
+    tableName: z.string().min(1).nullable(),
+    path: z.string().min(1).nullable(),
+    expectedCount: z.number().int().nonnegative(),
+    observedCount: z.number().int().nonnegative(),
+    missingCount: z.number().int().nonnegative(),
+    observedShare: z.number().min(0).max(1).nullable(),
+    sampleObserved: z.array(z.string()),
+    sampleMissing: z.array(z.string()),
+    samplePartial: z.array(z.string()),
+    reasons: z.array(z.string()),
+  })
+  .strict();
+
+export const DataProductRootCauseSchema = z
+  .object({
+    productId: z.string().min(1),
+    label: z.string().min(1),
+    status: DataProductCompletenessStatusSchema,
+    gapClass: DataProductGapClassSchema,
+    reasons: z.array(z.string()),
+  })
+  .strict();
+
+export const DataProductCompletenessProductAuditSchema = z
+  .object({
+    productId: z.string().min(1),
+    label: z.string().min(1),
+    kind: DataProductKindSchema,
+    owner: z.string().min(1),
+    grain: z.string().min(1),
+    producerCommand: z.string().min(1),
+    expectedUniverse: DataProductExpectedUniverseSchema,
+    requiredInputs: z.array(z.string().min(1)),
+    downstreamConsumers: z.array(z.string().min(1)),
+    freshnessPolicy: DataProductFreshnessPolicySchema,
+    lifecycle: DataProductLifecycleSchema,
+    status: DataProductCompletenessStatusSchema,
+    checks: z.array(DataProductCheckAuditSchema),
+    reasons: z.array(z.string()),
+    gapClass: DataProductGapClassSchema,
+    gapClasses: z.array(DataProductGapClassSchema),
+    rootCauses: z.array(DataProductRootCauseSchema),
+  })
+  .strict();
+
+export const DataProductCoverageProductSummarySchema = z
+  .object({
+    productId: z.string().min(1),
+    label: z.string().min(1),
+    kind: DataProductKindSchema,
+    status: DataProductCompletenessStatusSchema,
+    gapClass: DataProductGapClassSchema,
+    gapClasses: z.array(DataProductGapClassSchema),
+    reasons: z.array(z.string()),
+    rootCauses: z.array(DataProductRootCauseSchema),
+    downstreamConsumers: z.array(z.string().min(1)),
+  })
+  .strict();
+
+export const DataProductCoverageBucketSchema = z
+  .object({
+    count: z.number().int().nonnegative(),
+    products: z.array(DataProductCoverageProductSummarySchema),
+  })
+  .strict();
+
+export const DataProductCoverageSummarySchema = z
+  .object({
+    complete: DataProductCoverageBucketSchema,
+    needsFetch: DataProductCoverageBucketSchema,
+    needsBuild: DataProductCoverageBucketSchema,
+    upstreamBlocked: DataProductCoverageBucketSchema,
+    downstreamBlocked: DataProductCoverageBucketSchema,
+    plannedBlocked: DataProductCoverageBucketSchema,
+    fetching: DataProductCoverageBucketSchema,
+    stale: DataProductCoverageBucketSchema,
+    waived: DataProductCoverageBucketSchema,
+    unknown: DataProductCoverageBucketSchema,
+    sourceAbsent: DataProductCoverageBucketSchema,
+  })
+  .strict();
+
+export const DataProductCompletenessArtifactSchema = z
+  .object({
+    artifactKind: z.literal("data_product_completeness"),
+    generatedAt: z.string().min(1),
+    dbPath: z.string().min(1).nullable(),
+    artifactPath: z.string().min(1),
+    manifestVersion: z.number().int().positive(),
+    releaseMonth: z.string().regex(/^\d{4}-\d{2}$/),
+    runId: z.string().min(1),
+    gtfsRunId: z.string().min(1).nullable(),
+    historyWindow: z
+      .object({
+        startMonth: z.string().regex(/^\d{4}-\d{2}$/),
+        endMonth: z.string().regex(/^\d{4}-\d{2}$/),
+        monthCount: z.number().int().positive(),
+      })
+      .strict(),
+    routeUniverses: z.record(
+      z.string(),
+      z
+        .object({
+          routeCount: z.number().int().nonnegative(),
+          sampleRoutes: z.array(z.string()),
+        })
+        .strict(),
+    ),
+    summary: z
+      .object({
+        productCount: z.number().int().nonnegative(),
+        checkCount: z.number().int().nonnegative(),
+        completeProductCount: z.number().int().nonnegative(),
+        partialProductCount: z.number().int().nonnegative(),
+        missingProductCount: z.number().int().nonnegative(),
+        staleProductCount: z.number().int().nonnegative(),
+        waivedProductCount: z.number().int().nonnegative(),
+        blockedProductCount: z.number().int().nonnegative(),
+        fetchingProductCount: z.number().int().nonnegative(),
+        downstreamBlockedProductCount: z.number().int().nonnegative(),
+        gapClassCounts: z.record(DataProductGapClassSchema, z.number().int().nonnegative()),
+      })
+      .strict(),
+    coverage: DataProductCoverageSummarySchema,
+    products: z.array(DataProductCompletenessProductAuditSchema),
+    downstreamBlockers: z.array(
+      z
+        .object({
+          productId: z.string().min(1),
+          status: DataProductCompletenessStatusSchema,
+          gapClass: DataProductGapClassSchema,
+          gapClasses: z.array(DataProductGapClassSchema),
+          downstreamConsumers: z.array(z.string().min(1)),
+          rootCauses: z.array(DataProductRootCauseSchema),
+          reasons: z.array(z.string()),
+        })
+        .strict(),
+    ),
+    nextActions: z.array(z.string().min(1)),
+  })
+  .strict();
+
+export type DataProductCompletenessArtifact = z.output<
+  typeof DataProductCompletenessArtifactSchema
+>;
+
+export function parseDataProductCompletenessArtifact(
+  input: unknown,
+): DataProductCompletenessArtifact {
+  return DataProductCompletenessArtifactSchema.parse(input);
+}
+
 const GAP_CLASS_PRIORITY: readonly DataProductGapClass[] = [
   "upstream_blocked",
+  "source_absent",
   "derived_from_upstream_blocked",
   "available_not_fetched",
   "derived_from_available_not_fetched",
@@ -188,23 +391,126 @@ const SPEED_RELEASE_ROUTE_UNIVERSES = new Set<DataProductRouteUniverse>([
   "public_visible_routes",
 ]);
 
-const REQUIRED_INPUT_PRODUCT_ALIASES: Record<string, readonly string[]> = {
+export type DataProductRequiredInputResolution =
+  | {
+      input: string;
+      kind: "product";
+      productIds: string[];
+    }
+  | {
+      input: string;
+      kind: "source_manifest" | "external";
+      productIds: [];
+    }
+  | {
+      input: string;
+      kind: "unresolved";
+      productIds: [];
+    };
+
+export const DATA_PRODUCT_REQUIRED_INPUT_PRODUCT_ALIASES: Record<string, readonly string[]> = {
+  local_route_artifact: ["studio_route_artifact_index"],
+  local_route_brief_summary: ["studio_route_brief_summaries"],
+  local_route_catalog: ["local_route_catalog_release"],
+  local_route_hotspot_summary: ["studio_route_hotspot_summaries"],
   local_route_segment_speed: ["local_route_segment_speed_history"],
   local_route_hourly_ridership: ["local_route_hourly_ridership_history"],
   local_route_month_trend: ["local_route_month_trends_history"],
+  local_route_month_coverage: ["local_route_month_coverage_release"],
+  local_route_observed_reliability_summary: [
+    "local_route_observed_reliability_summary_release",
+  ],
+  local_route_readiness: ["local_route_readiness_release"],
+  local_route_intervention_comparison: ["local_route_intervention_comparison_history"],
   local_route_schedule_stop: ["local_route_schedule_stop_source_backfill"],
   local_route_schedule_timepoint: ["local_route_schedule_timepoints_release"],
+  local_route_stop: ["local_route_stops_release"],
   local_route_stops: ["local_route_stops_release"],
   local_route_reliability_baseline: ["local_route_reliability_baseline_release"],
+  local_observed_headway_sample: ["local_observed_headway_samples_run"],
+  local_gtfs_static_stop_time: ["local_gtfs_static_bundle_support"],
+  d1_serving_export: ["d1_serving_export_artifacts"],
   route_brief_artifacts: ["generated_route_briefs"],
   route_brief_input_slices: ["route_brief_input_slices"],
   route_brief_metrics: ["studio_route_scorecards"],
+  route_slices: ["route_brief_input_slices"],
   "route brief artifacts": ["generated_route_briefs"],
   "route brief input slices": ["route_brief_input_slices"],
   "route brief metrics": ["studio_route_scorecards"],
+  "D1 serving export": ["d1_serving_export_artifacts"],
+  "route-slices": ["route_brief_input_slices"],
   promoted_findings: ["detector_review_promotion_artifacts"],
   "promoted findings": ["detector_review_promotion_artifacts"],
 };
+
+export const DATA_PRODUCT_REQUIRED_INPUT_EXTERNAL_REFS: readonly string[] = [
+  "bus lane geometry",
+  "Cloudflare R2 raw bucket",
+  "context source products",
+  "corridor intervention context",
+  "current route shape snapshots",
+  "detector candidates",
+  "detector score vectors",
+  "document-discovery-normalized-candidates-canonical-v1",
+  "generated corridor briefs",
+  "LLM OCR runs",
+  "local_context_event",
+  "local_corridor",
+  "local_corridor_intervention_context",
+  "local_corridor_route_member",
+  "local_gtfs_rt_trip_update",
+  "local_gtfs_rt_vehicle_position",
+  "local_parking_violation_match",
+  "local_route_hotspot",
+  "local_route_lion_link",
+  "MTA Bus Time GTFS-RT vehicle positions",
+  "older OCR Markdown corpus",
+  "R2 GTFS-RT raw snapshots",
+  "rendered per-page PNGs",
+  "reviewer decision expansion",
+  "reviewer decisions",
+  "route geometry",
+  "segment speed artifacts",
+  "selected Tier 2 docs run artifacts",
+  "source event registries",
+  "source metadata captures",
+  "speed_pace score vectors",
+  "Tier 2 source registry/backlog",
+  "Worker GTFS-RT manifests",
+];
+
+const DATA_PRODUCT_REQUIRED_INPUT_EXTERNAL_REF_SET = new Set(
+  DATA_PRODUCT_REQUIRED_INPUT_EXTERNAL_REFS,
+);
+
+export function resolveDataProductRequiredInput(
+  requiredInput: string,
+  productIds: ReadonlySet<string>,
+): DataProductRequiredInputResolution {
+  if (productIds.has(requiredInput)) {
+    return { input: requiredInput, kind: "product", productIds: [requiredInput] };
+  }
+  if (requiredInput.startsWith("source_manifest:")) {
+    return { input: requiredInput, kind: "source_manifest", productIds: [] };
+  }
+  if (DATA_PRODUCT_REQUIRED_INPUT_EXTERNAL_REF_SET.has(requiredInput)) {
+    return { input: requiredInput, kind: "external", productIds: [] };
+  }
+
+  const normalized = requiredInput.trim().toLowerCase().replaceAll(" ", "_");
+  const aliases =
+    DATA_PRODUCT_REQUIRED_INPUT_PRODUCT_ALIASES[requiredInput] ??
+    DATA_PRODUCT_REQUIRED_INPUT_PRODUCT_ALIASES[normalized];
+  const productAliases = (aliases ?? []).filter((productId) => productIds.has(productId));
+  if (productAliases.length > 0) {
+    return {
+      input: requiredInput,
+      kind: "product",
+      productIds: [...new Set(productAliases)].sort(),
+    };
+  }
+  return { input: requiredInput, kind: "unresolved", productIds: [] };
+}
 
 export function dataProductStatus(
   product: DataProduct,
@@ -558,6 +864,7 @@ function gapClassForDependency(
     case "waived":
       return "none";
     case "upstream_blocked":
+    case "source_absent":
     case "derived_from_upstream_blocked":
       return "derived_from_upstream_blocked";
     case "available_not_fetched":
@@ -582,15 +889,10 @@ function resolvedProductDependencyIds(
   productById: ReadonlyMap<string, DataProductCompletenessProductAuditBase>,
 ): string[] {
   const resolved = new Set<string>();
+  const productIds = new Set(productById.keys());
   for (const requiredInput of requiredInputs) {
-    if (productById.has(requiredInput)) {
-      resolved.add(requiredInput);
-      continue;
-    }
-    const normalized = requiredInput.trim().toLowerCase().replaceAll(" ", "_");
-    const aliases =
-      REQUIRED_INPUT_PRODUCT_ALIASES[requiredInput] ?? REQUIRED_INPUT_PRODUCT_ALIASES[normalized];
-    for (const productId of aliases ?? []) {
+    const resolution = resolveDataProductRequiredInput(requiredInput, productIds);
+    for (const productId of resolution.productIds) {
       if (productById.has(productId)) resolved.add(productId);
     }
   }
@@ -764,8 +1066,10 @@ export function dataProductCoverageSummary(
       products,
       (product) =>
         product.gapClass === "upstream_blocked" ||
+        product.gapClass === "source_absent" ||
         product.gapClass === "derived_from_upstream_blocked",
     ),
+    sourceAbsent: coverageBucket(products, (product) => product.gapClass === "source_absent"),
     downstreamBlocked: coverageBucket(
       products,
       (product) => product.gapClass === "downstream_blocked",
@@ -776,4 +1080,37 @@ export function dataProductCoverageSummary(
     waived: coverageBucket(products, (product) => product.gapClass === "waived"),
     unknown: coverageBucket(products, (product) => product.gapClass === "unknown"),
   };
+}
+
+function asObject(value: unknown): Record<string, unknown> | null {
+  return value !== null && typeof value === "object" ? (value as Record<string, unknown>) : null;
+}
+
+function asArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function isDataProductCompletenessStatus(value: unknown): value is DataProductCompletenessStatus {
+  return DATA_PRODUCT_COMPLETENESS_STATUS_ORDER.includes(value as DataProductCompletenessStatus);
+}
+
+export function dataProductCompletenessStatusMap(
+  productCompleteness: unknown | null,
+): Map<string, DataProductCompletenessRef> {
+  const root = asObject(productCompleteness);
+  if (root === null) return new Map();
+  const statuses = new Map<string, DataProductCompletenessRef>();
+  for (const rawProduct of asArray(root["products"])) {
+    const product = asObject(rawProduct);
+    if (product === null) continue;
+    const productId = textValue(product["productId"]);
+    if (productId === null || !isDataProductCompletenessStatus(product["status"])) continue;
+    statuses.set(productId, {
+      status: product["status"],
+      reasons: asArray(product["reasons"])
+        .map((reason) => textValue(reason))
+        .filter((reason): reason is string => reason !== null),
+    });
+  }
+  return statuses;
 }

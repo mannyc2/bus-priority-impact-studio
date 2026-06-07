@@ -12,6 +12,7 @@ export {
   routeTreatmentSourceRowsFromPublishableInterventions,
   routeTreatmentSourceRowsFromRouteBriefSummaries,
   routeTreatmentSourceRowsFromTier2Events,
+  segmentTreatmentRowsFromLaneOverlaps,
   type DatePrecision,
   type GeographyScope,
   type PublishableInterventionLike,
@@ -31,5 +32,6 @@ export {
   type RouteTreatmentSummaryValidationIssue,
   type RouteTreatmentTier2EventRow,
   type RouteTreatmentType,
+  type RouteSegmentLaneOverlapInput,
   type SegmentTreatmentSummaryRow,
 } from "./materializer";

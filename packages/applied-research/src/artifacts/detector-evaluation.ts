@@ -1,4 +1,5 @@
 import { join } from "node:path";
+import { STUDIO_MODEL_ARTIFACT_SERVING_PROJECTION_KEY } from "@bp/domain/studio/snapshots";
 
 export type DetectorEvaluationInputArtifactPaths = {
   readonly reviewDecisions: string;
@@ -16,6 +17,15 @@ export type DetectorEvaluationInputArtifactPaths = {
   readonly detectorScoreVectors: string;
   readonly evaluationLabels: string;
   readonly grainAudit: string;
+  readonly segmentSpeedResiduals: string;
+  readonly segmentDaypartResiduals: string;
+  readonly routePeerResiduals: string;
+  readonly reliabilityExposurePanel: string;
+  readonly interventionScopeFit: string;
+  readonly sourceGapModel: string;
+  readonly treatmentEventPanel: string;
+  readonly pulseFingerprint: string;
+  readonly decouplingQuadrants: string;
 };
 
 export function detectorEvaluationArtifactPath(input: {
@@ -34,6 +44,26 @@ export function detectorEvaluationArtifactPath(input: {
 
 export function detectorEvaluationMarkdownPath(jsonPath: string): string {
   return jsonPath.replace(/\.json$/, ".md");
+}
+
+export function modelArtifactServingProjectionPath(input: {
+  readonly artifactRoot: string;
+  readonly historyStartMonth: string;
+  readonly releaseMonth: string;
+}): string {
+  return join(
+    input.artifactRoot,
+    "model-artifact-serving-projection",
+    `${input.historyStartMonth}_to_${input.releaseMonth}`,
+    input.releaseMonth,
+    "model-artifacts.json",
+  );
+}
+
+export function modelArtifactServingProjectionStudioPath(input: {
+  readonly artifactRoot: string;
+}): string {
+  return join(input.artifactRoot, STUDIO_MODEL_ARTIFACT_SERVING_PROJECTION_KEY);
 }
 
 export function detectorEvaluationInputArtifactPaths(input: {
@@ -100,6 +130,76 @@ export function detectorEvaluationInputArtifactPaths(input: {
       historyWindow,
       input.releaseMonth,
       "grain-audit.json",
+    ),
+    segmentSpeedResiduals: join(
+      input.artifactRoot,
+      "analytics-models",
+      "segment-speed-residuals-v1",
+      historyWindow,
+      input.releaseMonth,
+      "segment-speed-residuals.json",
+    ),
+    segmentDaypartResiduals: join(
+      input.artifactRoot,
+      "analytics-models",
+      "segment-daypart-residuals-v1",
+      historyWindow,
+      input.releaseMonth,
+      "segment-daypart-residuals.json",
+    ),
+    routePeerResiduals: join(
+      input.artifactRoot,
+      "analytics-models",
+      "route-peer-residuals-v1",
+      historyWindow,
+      input.releaseMonth,
+      "route-peer-residuals.json",
+    ),
+    reliabilityExposurePanel: join(
+      input.artifactRoot,
+      "analytics-models",
+      "reliability-exposure-panel-v1",
+      input.releaseMonth,
+      `bus-observatory-${input.releaseMonth}`,
+      "reliability-exposure-panel.json",
+    ),
+    interventionScopeFit: join(
+      input.artifactRoot,
+      "analytics-models",
+      "intervention-scope-fit-v1",
+      input.releaseMonth,
+      "intervention-scope-fit.json",
+    ),
+    sourceGapModel: join(
+      input.artifactRoot,
+      "analytics-models",
+      "source-gap-model-v1",
+      input.releaseMonth,
+      "source-gap-model.json",
+    ),
+    treatmentEventPanel: join(
+      input.artifactRoot,
+      "analytics-models",
+      "treatment-event-panel-v1",
+      historyWindow,
+      input.releaseMonth,
+      "treatment-event-panel.json",
+    ),
+    pulseFingerprint: join(
+      input.artifactRoot,
+      "analytics-models",
+      "pulse-fingerprint-v1",
+      historyWindow,
+      input.releaseMonth,
+      "pulse-fingerprint.json",
+    ),
+    decouplingQuadrants: join(
+      input.artifactRoot,
+      "analytics-models",
+      "decoupling-quadrants-v1",
+      historyWindow,
+      input.releaseMonth,
+      "decoupling-quadrants.json",
     ),
   };
 }

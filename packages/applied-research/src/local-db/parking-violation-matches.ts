@@ -8,6 +8,7 @@ import {
   stableMatchEvidenceHash,
   streetCorridorKey,
 } from "./parking-location";
+import { routeLionLinkFanoutCte } from "./route-lion-link-fanout";
 
 export type ParkingViolationMatchGroup = {
   location_key: string;
@@ -460,12 +461,7 @@ export function loadParkingViolationRoutesForPhysicalIds(
           },
           [string, string]
         >(
-          `WITH fanout AS (
-             SELECT physical_id, count(*) AS route_fanout
-               FROM local_route_lion_link
-              WHERE physical_id = ?
-              GROUP BY physical_id
-           )
+          `WITH ${routeLionLinkFanoutCte({ physicalIdFilter: true })}
            SELECT l.route_id,
                   l.overlap_meters,
                   l.buffer_meters,
@@ -510,11 +506,7 @@ export function buildParkingViolationStreetRouteIndex(
       },
       []
     >(
-      `WITH fanout AS (
-         SELECT physical_id, count(*) AS route_fanout
-           FROM local_route_lion_link
-          GROUP BY physical_id
-       )
+      `WITH ${routeLionLinkFanoutCte()}
        SELECT l.route_id,
               l.physical_id,
               l.overlap_meters,

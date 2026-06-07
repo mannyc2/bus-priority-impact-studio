@@ -1,4 +1,5 @@
 import type { Database } from "bun:sqlite";
+import { routeLionLinkFanoutCte } from "./route-lion-link-fanout";
 
 export type ContextEventRouteTouchKind =
   | "direct_route"
@@ -74,11 +75,7 @@ export function materializeContextEventRouteTouches(input: {
 
     input.sqlite
       .prepare(
-        `WITH fanout AS (
-           SELECT physical_id, count(*) AS route_fanout
-             FROM local_route_lion_link
-            GROUP BY physical_id
-         )
+        `WITH ${routeLionLinkFanoutCte()}
          INSERT INTO local_context_event_route_touch
            (event_id, route_id, source_id, event_kind, occurred_at, ended_at,
             physical_id, touch_kind, evidence_role, overlap_meters, buffer_meters,

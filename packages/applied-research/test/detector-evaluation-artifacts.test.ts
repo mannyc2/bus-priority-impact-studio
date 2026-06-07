@@ -42,6 +42,23 @@ describe("detector evaluation artifact paths", () => {
         "data/artifacts/detector-evaluation/2023-04_to_2026-03/2026-03/detector-evaluation-labels.json",
       grainAudit:
         "data/artifacts/detector-corpus-grain/2023-04_to_2026-03/2026-03/grain-audit.json",
+      segmentSpeedResiduals:
+        "data/artifacts/analytics-models/segment-speed-residuals-v1/2023-04_to_2026-03/2026-03/segment-speed-residuals.json",
+      segmentDaypartResiduals:
+        "data/artifacts/analytics-models/segment-daypart-residuals-v1/2023-04_to_2026-03/2026-03/segment-daypart-residuals.json",
+      routePeerResiduals:
+        "data/artifacts/analytics-models/route-peer-residuals-v1/2023-04_to_2026-03/2026-03/route-peer-residuals.json",
+      reliabilityExposurePanel:
+        "data/artifacts/analytics-models/reliability-exposure-panel-v1/2026-03/bus-observatory-2026-03/reliability-exposure-panel.json",
+      interventionScopeFit:
+        "data/artifacts/analytics-models/intervention-scope-fit-v1/2026-03/intervention-scope-fit.json",
+      sourceGapModel: "data/artifacts/analytics-models/source-gap-model-v1/2026-03/source-gap-model.json",
+      treatmentEventPanel:
+        "data/artifacts/analytics-models/treatment-event-panel-v1/2023-04_to_2026-03/2026-03/treatment-event-panel.json",
+      pulseFingerprint:
+        "data/artifacts/analytics-models/pulse-fingerprint-v1/2023-04_to_2026-03/2026-03/pulse-fingerprint.json",
+      decouplingQuadrants:
+        "data/artifacts/analytics-models/decoupling-quadrants-v1/2023-04_to_2026-03/2026-03/decoupling-quadrants.json",
     });
   });
 });

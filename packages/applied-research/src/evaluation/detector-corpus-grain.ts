@@ -1,5 +1,10 @@
 import { isAbsolute, relative } from "node:path";
 import { listAnalyticsDetectors, type RegisteredAnalyticsDetector } from "@bp/analytics/registry";
+import {
+  dataProductCompletenessStatusMap,
+  type DataProductCompletenessRef,
+  type DataProductCompletenessStatus,
+} from "../data-products";
 import type { DetectorCorpusGrainCoverageCounts } from "../local-db";
 import type { RouteMonthShadowAuditArtifact } from "./detector-shadow-audits";
 
@@ -14,14 +19,6 @@ type CorpusStatus =
   | "waived"
   | "fetching"
   | "registry_only";
-type DataProductCompletenessStatus =
-  | "complete"
-  | "partial"
-  | "missing"
-  | "stale"
-  | "waived"
-  | "blocked"
-  | "fetching";
 type ProductAuditStatus = DataProductCompletenessStatus | "not_audited";
 
 type FeatureGrainProfile = {
@@ -174,10 +171,7 @@ export type DetectorCorpusGrainAudit = {
   nextActions: string[];
 };
 
-type ProductCompletenessRef = {
-  status: DataProductCompletenessStatus;
-  reasons: string[];
-};
+type ProductCompletenessRef = DataProductCompletenessRef;
 
 export type BuildDetectorCorpusGrainAuditInput = {
   detectors?: readonly RegisteredAnalyticsDetector[];
@@ -198,16 +192,6 @@ export type BuildDetectorCorpusGrainAuditInput = {
   routeMonthShadowAudit?: RouteMonthShadowAuditArtifact | null;
   routeMonthShadowAuditPath?: string | null;
 };
-
-const DATA_PRODUCT_COMPLETENESS_STATUSES: readonly DataProductCompletenessStatus[] = [
-  "complete",
-  "partial",
-  "missing",
-  "stale",
-  "waived",
-  "blocked",
-  "fetching",
-];
 
 const RISK_ORDER: readonly GranularityRisk[] = ["low", "medium", "high", "unknown"];
 
@@ -444,14 +428,6 @@ function displayPath(path: string, displayRoot: string | null | undefined): stri
   return relativePath.startsWith("..") ? path : relativePath;
 }
 
-function textValue(value: unknown): string | null {
-  return typeof value === "string" && value.length > 0 ? value : null;
-}
-
-function isDataProductCompletenessStatus(value: unknown): value is DataProductCompletenessStatus {
-  return DATA_PRODUCT_COMPLETENESS_STATUSES.includes(value as DataProductCompletenessStatus);
-}
-
 function zeroCoverageCounts(): DetectorCorpusGrainCoverageCounts {
   return {
     total: 0,
@@ -462,29 +438,6 @@ function zeroCoverageCounts(): DetectorCorpusGrainCoverageCounts {
     sourceLag: 0,
     missingReasonCounts: {},
   };
-}
-
-function productCompletenessStatusMap(
-  productCompleteness: unknown | null,
-): Map<string, ProductCompletenessRef> {
-  if (productCompleteness === null || typeof productCompleteness !== "object") return new Map();
-  const rawProducts = (productCompleteness as { products?: unknown }).products;
-  if (!Array.isArray(rawProducts)) return new Map();
-
-  const statuses = new Map<string, ProductCompletenessRef>();
-  for (const rawProduct of rawProducts) {
-    if (typeof rawProduct !== "object" || rawProduct === null) continue;
-    const product = rawProduct as { productId?: unknown; status?: unknown; reasons?: unknown };
-    const productId = textValue(product.productId);
-    if (productId === null || !isDataProductCompletenessStatus(product.status)) continue;
-    const reasons = Array.isArray(product.reasons)
-      ? product.reasons
-          .map((reason) => textValue(reason))
-          .filter((reason): reason is string => reason !== null)
-      : [];
-    statuses.set(productId, { status: product.status, reasons });
-  }
-  return statuses;
 }
 
 function profileForFeatureGrain(featureGrain: string): FeatureGrainProfile {
@@ -1019,7 +972,7 @@ export function buildDetectorCorpusGrainAudit(
     a.detectorId.localeCompare(b.detectorId),
   );
   const productsById = new Map(input.manifest.products.map((product) => [product.id, product]));
-  const statusByProductId = productCompletenessStatusMap(input.productCompleteness ?? null);
+  const statusByProductId = dataProductCompletenessStatusMap(input.productCompleteness ?? null);
 
   const detectorAudits: DetectorCorpusGrainDetectorAudit[] = detectors.map((detector) => {
     const featureGrainAudits = detector.featureGrains.map((featureGrain) =>

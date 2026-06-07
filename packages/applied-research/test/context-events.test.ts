@@ -3,6 +3,7 @@ import {
   buildAceViolationAggregateEvents,
   contextEventId,
   normalizeContextEventTime,
+  parseContextEventPayloadJson,
 } from "../src/local-db/context-events";
 
 describe("context event local-db transforms", () => {
@@ -63,5 +64,43 @@ describe("context event local-db transforms", () => {
       ],
     });
     expect(events[1]?.sourceRowId).toBe("2026-05-Bx12");
+  });
+
+  test("parses context event payloads with the event-kind contract", () => {
+    const parsed = parseContextEventPayloadJson({
+      eventKind: "parking_violation",
+      payloadJson: JSON.stringify({
+        violationCode: 14,
+        violationDescription: "No Standing",
+        violationCounty: "K",
+        houseNumber: null,
+        streetName: "FULTON ST",
+        intersectingStreet: null,
+        streetCode1: "123",
+        streetCode2: null,
+        streetCode3: null,
+      }),
+    });
+
+    expect(parsed).toMatchObject({
+      violationCode: 14,
+      streetName: "FULTON ST",
+    });
+  });
+
+  test("rejects malformed context event payloads before they become evidence", () => {
+    expect(() =>
+      parseContextEventPayloadJson({
+        eventKind: "traffic_speed",
+        payloadJson: JSON.stringify({
+          linkId: "123",
+          linkName: null,
+          borough: null,
+          speed: "fast",
+          travelTime: null,
+          statusCode: "0",
+        }),
+      }),
+    ).toThrow();
   });
 });

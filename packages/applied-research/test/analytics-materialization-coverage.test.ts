@@ -101,6 +101,12 @@ describe("analytics materialization coverage", () => {
         registryProducts: fixtureRegistryProducts(),
       });
 
+      expect(audit.auditScope).toEqual({
+        role: "route_surface_materialization_audit",
+        canonicalCompletenessArtifactKind: "data_product_completeness",
+        canonicalCompletenessCommand: "audit data-product-completeness",
+        note: expect.stringContaining("not the canonical product-completeness ledger"),
+      });
       expect(audit.routeUniverse).toEqual({
         routeCatalogCount: 3,
         gtfsStaticRouteCount: 2,

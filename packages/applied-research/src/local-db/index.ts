@@ -53,6 +53,21 @@ export {
   latestDataProductGtfsRunId,
 } from "./data-product-route-universes";
 export {
+  type DecouplingQuadrantsLocalDbQuery,
+  type DecouplingQuadrantsLocalDbResolutionQuery,
+  type DecouplingQuadrantsLocalDbRows,
+  type DecouplingReliabilitySourceRow,
+  DecouplingReliabilitySourceRowSchema,
+  type DecouplingRouteTrendSourceRow,
+  DecouplingRouteTrendSourceRowSchema,
+  decouplingReliabilitySql,
+  decouplingRouteTrendSql,
+  loadDecouplingQuadrantsLocalDbRows,
+  loadDecouplingQuadrantsPanelV1Resolution,
+  parseDecouplingReliabilitySourceRows,
+  parseDecouplingRouteTrendSourceRows,
+} from "./decoupling-quadrants-rows";
+export {
   type DetectorCorpusGrainCoverageCounts,
   type DetectorCorpusGrainLocalDbQuery,
   type DetectorCorpusGrainLocalDbRows,
@@ -91,9 +106,21 @@ export {
   loadGenericDetectorScoreVectorLocalDbRows,
 } from "./generic-detector-score-vector-rows";
 export {
+  buildLocalDbHotQueryBaselines,
+  type LocalDbHotQueryBaselineRow,
+  type LocalDbHotQueryBaselineStatus,
+  type LocalDbHotQueryBaselinesArtifact,
+  type LocalDbHotQueryId,
+} from "./hot-query-baselines";
+export {
+  INTERVENTION_PANEL_SQL,
   type InterventionComparisonRow,
+  InterventionComparisonRowSchema,
   type InterventionPanelLocalDbQuery,
   loadInterventionPanelLocalDbRows,
+  loadTreatmentEventPanelV1Resolution,
+  parseInterventionComparisonRows,
+  type TreatmentEventPanelLocalDbResolutionQuery,
 } from "./intervention-panel-rows";
 export {
   type BuildLionGeometryIndexInputs,
@@ -109,6 +136,11 @@ export {
   type ObservedStopEvent,
   runBuildObservedHeadways,
 } from "./observed-headways";
+export {
+  buildLocalDbPanelResolutionManifest,
+  type LocalDbPanelResolution,
+  uniqueSortedStrings,
+} from "./panel-resolution";
 export {
   canonicalParkingBoroughCode,
   normalizeParkingStreetCode,
@@ -160,6 +192,26 @@ export {
   type PersistentSpeedSegmentCoverageRepairLocalDbRows,
 } from "./persistent-speed-coverage-repair-rows";
 export {
+  loadPulseFingerprintLocalDbRows,
+  loadPulseFingerprintPanelV1Resolution,
+  type PulseFingerprintLocalDbQuery,
+  type PulseFingerprintLocalDbResolutionQuery,
+  type PulseFingerprintLocalDbRows,
+  type PulseFingerprintSourceRow,
+  PulseFingerprintSourceRowSchema,
+  parsePulseFingerprintSourceRows,
+  pulseFingerprintSql,
+} from "./pulse-fingerprint-rows";
+export {
+  loadReliabilityExposurePanelRidershipRows,
+  loadReliabilityExposureRidershipPanelV1Resolution,
+  parseRouteHourlyRidershipSourceRows,
+  type ReliabilityExposurePanelLocalDbQuery,
+  type ReliabilityExposureRidershipLocalDbResolutionQuery,
+  RouteHourlyRidershipSourceRowSchema,
+  reliabilityExposurePanelRidershipSql,
+} from "./reliability-exposure-panel-rows";
+export {
   loadReviewPacketLocalDbRows,
   type ReviewPacketLocalDbQuery,
   type ReviewPacketLocalDbRows,
@@ -206,6 +258,7 @@ export {
   routeLionLinkRouteRowsQuery,
   runBuildRouteLionLink,
 } from "./route-lion-link";
+export { routeLionLinkFanoutCte } from "./route-lion-link-fanout";
 export {
   buildSummary,
   defaultObservedReliabilityMinSampleThreshold,
@@ -214,6 +267,15 @@ export {
   type RouteReliabilitySummary,
   runRouteObservedReliability,
 } from "./route-observed-reliability";
+export {
+  loadRoutePeerResidualPanelLocalDbRows,
+  loadRoutePeerResidualPanelV1Resolution,
+  parseRouteMetricHistorySourceRows,
+  RouteMetricHistorySourceRowSchema,
+  type RoutePeerResidualPanelLocalDbQuery,
+  type RoutePeerResidualPanelLocalDbResolutionQuery,
+  routePeerResidualPanelSql,
+} from "./route-peer-residual-rows";
 export {
   buildReadinessRows,
   missingRouteReadinessInputs,
@@ -269,21 +331,36 @@ export {
   type RouteSpeedSpineCandidate,
 } from "./route-speed-spine-rows";
 export {
+  loadRouteTreatmentSummaryLocalDbRows,
+  type RouteTreatmentCatalogRow,
+  type RouteTreatmentSegmentUniverseRow,
+  type RouteTreatmentSummaryLocalDbQuery,
+  type RouteTreatmentSummaryLocalDbRows,
+} from "./route-treatment-summary-rows";
+export {
   loadRuntimeTrendScoreVectorLocalDbRows,
   type RuntimeTrendScoreVectorLocalDbQuery,
   type RuntimeTrendScoreVectorLocalDbRows,
 } from "./runtime-trend-score-vector-rows";
 export {
-  loadRouteTreatmentSummaryLocalDbRows,
-  type RouteTreatmentCatalogRow,
-  type RouteTreatmentSummaryLocalDbQuery,
-  type RouteTreatmentSummaryLocalDbRows,
-} from "./route-treatment-summary-rows";
-export {
   loadSegmentDaypartHistoryLocalDbRows,
+  loadSegmentDaypartPanelV1Resolution,
+  parseSegmentDaypartHistoryRows,
+  SEGMENT_DAYPART_HISTORY_SQL,
   type SegmentDaypartHistoryLocalDbQuery,
   type SegmentDaypartHistoryRow,
+  SegmentDaypartHistoryRowSchema,
+  type SegmentDaypartPanelLocalDbResolutionQuery,
 } from "./segment-daypart-history-rows";
+export {
+  loadSegmentMonthPanelV1Resolution,
+  loadSegmentMonthPanelV1Rows,
+  parseSegmentMonthPanelSourceRows,
+  type SegmentMonthPanelLocalDbQuery,
+  type SegmentMonthPanelLocalDbResolutionQuery,
+  SegmentMonthPanelSourceRowSchema,
+  segmentMonthPanelV1Sql,
+} from "./segment-month-panel-rows";
 export {
   buildSourceCoverageLedger,
   type DetectorEligibility,
@@ -320,6 +397,11 @@ export {
   type StopDirectionHourEwtFeatureArtifactFromDbInput,
   type StopDirectionHourEwtFeatureLocalDbQuery,
 } from "./stop-direction-hour-ewt-feature-rows";
+export {
+  loadTreatmentDetectorReviewLocalDbRows,
+  type TreatmentDetectorReviewLocalDbQuery,
+  type TreatmentDetectorReviewLocalDbRows,
+} from "./treatment-detector-review-rows";
 
 export const LOCAL_PIPELINE_SQLITE_CORPUS = "local-pipeline-sqlite";
 

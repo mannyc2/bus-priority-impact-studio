@@ -1,9 +1,11 @@
 import { Database } from "bun:sqlite";
 import { describe, expect, it } from "bun:test";
 import { listAnalyticsDetectors } from "@bp/analytics/registry";
+import { DATA_PRODUCT_MANIFEST } from "../src/data-products";
 import {
   buildAnalyticsBackfillCoverageAudit,
   buildAnalyticsDetectorReadinessAudit,
+  DETECTOR_READINESS_REGISTRY_PRODUCT_BY_SURFACE,
 } from "../src/evaluation";
 import {
   loadAnalyticsBackfillCoverageLocalDbRows,
@@ -161,6 +163,13 @@ function buildReadinessAudit(db: Database) {
 }
 
 describe("analytics detector readiness", () => {
+  it("keeps detector readiness surfaces tied to registered data products", () => {
+    const productIds = new Set(DATA_PRODUCT_MANIFEST.products.map((product) => product.id));
+    for (const productId of Object.values(DETECTOR_READINESS_REGISTRY_PRODUCT_BY_SURFACE)) {
+      expect(productIds.has(productId)).toBe(true);
+    }
+  });
+
   it("joins detector policies to audited surface coverage", () => {
     const db = createDb();
     try {
@@ -173,7 +182,7 @@ describe("analytics detector readiness", () => {
 
       expect(audit.summary.detectorCount).toBe(listAnalyticsDetectors().length);
       expect(audit.summary.readyDetectorCount).toBe(3);
-      expect(audit.summary.blockedDetectorCount).toBe(15);
+      expect(audit.summary.blockedDetectorCount).toBe(17);
       expect(audit.summary.policyPendingDetectorCount).toBe(0);
 
       const ewt = audit.detectors.find(
@@ -183,6 +192,7 @@ describe("analytics detector readiness", () => {
       expect(ewt?.requirements).toEqual([
         expect.objectContaining({
           surfaceId: "observed_headways",
+          registryProductId: "local_route_observed_reliability_summary_release",
           status: "ready",
           usableMonthCount: 8,
           minimumCompleteMonths: 8,
@@ -194,6 +204,14 @@ describe("analytics detector readiness", () => {
       );
       expect(bunching?.status).toBe("ready");
       expect(bunching?.requiredSurfaceIds).toEqual(["observed_headways", "gtfs_schedule_runtime"]);
+      expect(bunching?.requirements).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            surfaceId: "gtfs_schedule_runtime",
+            registryProductId: "local_route_schedule_timepoints_release",
+          }),
+        ]),
+      );
 
       const speed = audit.detectors.find(
         (detector) => detector.detectorId === "speed_pace_hotspot",
@@ -257,6 +275,7 @@ describe("analytics detector readiness", () => {
         (surface) => surface.surfaceId === "gtfs_schedule_runtime",
       );
       expect(scheduleSurface).toMatchObject({
+        registryProductId: "local_route_schedule_stop_source_backfill",
         label: "Source-year schedule stop rows",
         tableName: "local_route_schedule_stop",
         presentMonthCount: 8,

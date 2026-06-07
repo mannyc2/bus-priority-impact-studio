@@ -9,6 +9,7 @@ export { analyticsDetectorReadinessPath } from "./analytics-detector-readiness";
 export { analyticsMaterializationCoveragePath } from "./analytics-materialization-coverage";
 export { contextEventRouteTouchAuditPath } from "./context-event-route-touches";
 export { dataProductCompletenessPath } from "./data-product-completeness";
+export { decouplingQuadrantsArtifactPath } from "./decoupling-quadrants";
 export {
   detectDetectorSpecificScoreVectorIds,
   detectorCorpusGrainAuditMarkdownPath,
@@ -19,6 +20,8 @@ export {
   detectorEvaluationArtifactPath,
   detectorEvaluationInputArtifactPaths,
   detectorEvaluationMarkdownPath,
+  modelArtifactServingProjectionPath,
+  modelArtifactServingProjectionStudioPath,
 } from "./detector-evaluation";
 export { detectorEvaluationLabelsPath } from "./detector-evaluation-labels";
 export { detectorGoldSetEvaluationPath } from "./detector-gold-set";
@@ -36,6 +39,8 @@ export {
   expressRouteAnalysisPath,
 } from "./express-route-analysis";
 export { interventionPanelArtifactPath } from "./intervention-panel";
+export { interventionScopeFitArtifactPath } from "./intervention-scope-fit";
+export { localDbQueryBaselinesArtifactPath } from "./local-db-query-baselines";
 export {
   mapArtifactKey,
   mapArtifactManifestPath,
@@ -43,7 +48,10 @@ export {
   routeSegmentMapArtifactKey,
 } from "./map-artifacts";
 export { parkingViolationMatchAuditPath } from "./parking-violation-matches";
+export { pulseFingerprintArtifactPath } from "./pulse-fingerprint";
+export { reliabilityExposurePanelArtifactPath } from "./reliability-exposure-panel";
 export { routeHourlyProfileArtifactPath } from "./route-hourly-profile";
+export { routePeerResidualsArtifactPath } from "./route-peer-residuals";
 export { routeSourceReconciliationPath } from "./route-source-reconciliation";
 export { routeSpeedAvailabilityArtifactPath } from "./route-speed-availability";
 export {
@@ -52,12 +60,17 @@ export {
 } from "./route-speed-history";
 export { routeSpeedSpineArtifactPath, routeSpeedSpineManifestPath } from "./route-speed-spine";
 export {
+  type LoadedRouteTreatmentFeatures,
+  loadRouteTreatmentFeaturesFromArtifact,
   routeTreatmentSummaryArtifactPath,
   routeTreatmentSummaryMarkdownPath,
 } from "./route-treatment-summary";
 export { runtimeTrendScoreVectorPath } from "./runtime-trend-score-vectors";
 export { segmentDaypartHistoryArtifactPath } from "./segment-daypart-history";
+export { segmentDaypartResidualsArtifactPath } from "./segment-daypart-residuals";
+export { segmentSpeedResidualsArtifactPath } from "./segment-speed-residuals";
 export { sourceCoverageLedgerPath } from "./source-coverage";
+export { sourceGapModelArtifactPath } from "./source-gap-model";
 export { sourceMonthCoverageMatrixPath } from "./source-month-coverage";
 export { speedPaceScoreVectorPath } from "./speed-pace-score-vectors";
 export {
@@ -65,3 +78,7 @@ export {
   loadStopDirectionHourFeaturesFromArtifacts,
   stopDirectionHourEwtFeatureArtifactPath,
 } from "./stop-direction-hour-features";
+export {
+  treatmentEventCandidateCausalReviewPath,
+  treatmentEventPanelArtifactPath,
+} from "./treatment-event-panel";

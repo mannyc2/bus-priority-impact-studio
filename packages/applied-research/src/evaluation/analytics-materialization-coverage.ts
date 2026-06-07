@@ -30,6 +30,12 @@ export type MaterializationCoverageSurface = {
 
 export type AnalyticsMaterializationCoverageAudit = {
   artifactKind: "analytics_materialization_coverage";
+  auditScope: {
+    role: "route_surface_materialization_audit";
+    canonicalCompletenessArtifactKind: "data_product_completeness";
+    canonicalCompletenessCommand: "audit data-product-completeness";
+    note: string;
+  };
   generatedAt: string;
   month: string;
   runId: string;
@@ -576,6 +582,12 @@ export async function buildAnalyticsMaterializationCoverageAudit(
 
   return {
     artifactKind: "analytics_materialization_coverage",
+    auditScope: {
+      role: "route_surface_materialization_audit",
+      canonicalCompletenessArtifactKind: "data_product_completeness",
+      canonicalCompletenessCommand: "audit data-product-completeness",
+      note: "This artifact audits selected route-level table/artifact materialization surfaces. It is not the canonical product-completeness ledger; join it to data-product completeness by registryProductId when product gap classes are needed.",
+    },
     generatedAt: input.generatedAt,
     month: input.month,
     runId: input.runId,

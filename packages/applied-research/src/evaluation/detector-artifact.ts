@@ -16,6 +16,15 @@ export type DetectorEvaluationInputArtifacts = {
   readonly detectorScoreVectors: string;
   readonly evaluationLabels: string;
   readonly grainAudit: string;
+  readonly segmentSpeedResiduals: string;
+  readonly segmentDaypartResiduals: string;
+  readonly routePeerResiduals: string;
+  readonly reliabilityExposurePanel: string;
+  readonly interventionScopeFit: string;
+  readonly sourceGapModel: string;
+  readonly treatmentEventPanel: string;
+  readonly pulseFingerprint: string;
+  readonly decouplingQuadrants: string;
 };
 
 export type DetectorEvaluationPacketCoverageStatus =
@@ -39,6 +48,8 @@ export type DetectorEvaluationArtifact = {
     readonly detectorVersion: string;
     readonly detectorName: string;
     readonly claimTier: string;
+    readonly requiredDataProducts: readonly string[];
+    readonly modelArtifacts: readonly string[];
   }>;
   readonly inputArtifacts: DetectorEvaluationInputArtifacts;
   readonly evaluationSets: {
@@ -57,6 +68,7 @@ export type DetectorEvaluationArtifact = {
     readonly qualityUnratedDetectorCount: number;
     readonly qualityOverclaimedDetectorCount: number;
     readonly hardGateBlockedDetectorCount: number;
+    readonly modelBackedEvaluationLossBlockedDetectorCount: number;
     readonly grainPolicyWarningDetectorCount: number;
     readonly cleanNoHitGrainReviewRequiredDetectorCount: number;
     readonly falseNegativeShadowAuditUnavailableDetectorCount: number;
@@ -79,12 +91,44 @@ export type DetectorEvaluationArtifact = {
     readonly uniqueScopeCount: number;
     readonly duplicateScopeCount: number;
   };
+  readonly qualityLab: {
+    readonly reviewedDecisionCount: number;
+    readonly reviewerApprovedDecisionCount: number;
+    readonly reviewerApprovalShare: number | null;
+    readonly promotedFindingCount: number;
+    readonly primaryFindingYield: number | null;
+    readonly falsePositiveRootCount: number;
+    readonly falsePositiveRootKindCount: number;
+    readonly modelBackedDetectorCount: number;
+    readonly modelBackedEvaluationLossBlockedDetectorCount: number;
+    readonly scoreVectorAvailableDetectorCount: number;
+    readonly scoreVectorUnavailableDetectorCount: number;
+    readonly thresholdAndRankStabilityStatus: "available" | "partial" | "missing";
+    readonly rankStabilityCheckedDetectorCount: number;
+    readonly rankStabilityFragileDetectorCount: number;
+    readonly maxTopTenShare: number | null;
+    readonly maxThresholdSensitivityShare: number | null;
+  };
   readonly packetCoverage: Array<{
     readonly detectorId: string;
     readonly detectorName: string;
     readonly packetCount: number;
     readonly candidateCount: number;
     readonly status: DetectorEvaluationPacketCoverageStatus;
+  }>;
+  readonly modelArtifacts: Array<{
+    readonly modelId: string;
+    readonly status: "available" | "missing";
+    readonly artifactPath: string;
+    readonly panelId: string | null;
+    readonly releaseMonth: string | null;
+    readonly panelRowCount: number;
+    readonly modeledReleaseRowCount: number;
+    readonly routeCount: number;
+    readonly segmentCount: number;
+    readonly medianResidualMph: number | null;
+    readonly detectorConsumers: readonly string[];
+    readonly limitations: readonly string[];
   }>;
   readonly detectorScorecards: DetectorEvaluationScorecard[];
   readonly residualRisks: string[];

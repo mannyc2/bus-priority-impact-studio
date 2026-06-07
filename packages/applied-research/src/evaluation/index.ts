@@ -36,9 +36,11 @@ export {
   type AnalyticsDetectorReadinessAudit,
   type BuildAnalyticsDetectorReadinessAuditInput,
   buildAnalyticsDetectorReadinessAudit,
+  DETECTOR_READINESS_REGISTRY_PRODUCT_BY_SURFACE,
   type DetectorReadinessStatus,
   type DetectorReadinessSummary,
   type DetectorSurfaceReadiness,
+  detectorReadinessRegistryProductId,
   type PolicySurfaceCoverageSummary,
 } from "./analytics-detector-readiness";
 export {
@@ -115,6 +117,11 @@ export {
   type DetectorEvaluationMissingDataScope,
 } from "./detector-labels";
 export { detectorEvaluationMarkdownReport } from "./detector-markdown";
+export {
+  buildModelArtifactServingProjection,
+  type ModelArtifactServingProjection,
+  type ModelArtifactServingProjectionRow,
+} from "./model-serving-projection";
 export {
   buildRouteMonthShadowAudit,
   buildSpeedPaceRouteMonthShadowAudit,

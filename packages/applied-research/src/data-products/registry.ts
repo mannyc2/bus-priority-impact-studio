@@ -51,10 +51,15 @@ export const DataProductLifecycleSchema = z
       .enum([
         "upstream_blocked",
         "available_not_fetched",
+        "source_absent",
+        "derived_not_built",
         "derived_from_available_not_fetched",
         "derived_from_upstream_blocked",
         "planned_blocked",
         "downstream_blocked",
+        "fetching",
+        "waived",
+        "stale",
         "unknown",
       ])
       .optional(),
@@ -380,6 +385,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = DataProductManifestSch
       producerCommand: "ingest route-segment-speeds",
       expectedUniverse: {
         description: "Every month in the historical detector window with enough route coverage.",
+        routes: "historical_speed_source_routes",
         months: "history_window",
       },
       requiredInputs: [
@@ -415,6 +421,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = DataProductManifestSch
       producerCommand: "ingest route-hourly-ridership",
       expectedUniverse: {
         description: "Every month in the historical detector window with enough route coverage.",
+        routes: "ridership_source_routes",
         months: "history_window",
       },
       requiredInputs: [
@@ -442,6 +449,38 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = DataProductManifestSch
       ],
     },
     {
+      id: "local_intervention_events_release",
+      label: "Release intervention event rows",
+      kind: "local_table",
+      owner: "tools/pipeline-v2/route",
+      grain: "intervention event",
+      producerCommand: "route intervention-evaluation; docs tier2 promote-interventions",
+      expectedUniverse: {
+        description:
+          "Intervention event rows used to date and type route/corridor treatment comparisons.",
+        months: "release_month",
+      },
+      requiredInputs: [
+        "source_manifest:intervention_seed_events",
+        "tier2_structured_intervention_extraction_full_corpus",
+      ],
+      downstreamConsumers: [
+        "local_route_intervention_comparison_history",
+        "treatment_event_panel_v1",
+        "route_treatment_summary_artifact",
+      ],
+      freshnessPolicy: { cadence: "manual" },
+      checks: [
+        {
+          id: "row_count",
+          label: "Rows in local_intervention_event",
+          type: "table_row_count",
+          tableName: "local_intervention_event",
+          minRows: 1,
+        },
+      ],
+    },
+    {
       id: "local_route_intervention_comparison_history",
       label: "Route intervention comparison history",
       kind: "local_table",
@@ -450,12 +489,13 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = DataProductManifestSch
       producerCommand: "route intervention-evaluation",
       expectedUniverse: {
         description: "Every month in the historical detector window with evaluated route panels.",
+        routes: "route_catalog",
         months: "history_window",
       },
       requiredInputs: [
-        "local_route_segment_speed",
-        "local_route_hourly_ridership",
-        "local_intervention_event",
+        "local_route_segment_speed_history",
+        "local_route_hourly_ridership_history",
+        "local_intervention_events_release",
       ],
       downstreamConsumers: [
         "intervention association detectors",
@@ -825,6 +865,42 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = DataProductManifestSch
           type: "table_row_count",
           tableName: "local_context_event_route_touch",
           minRows: 1,
+        },
+      ],
+    },
+    {
+      id: "route_treatment_summary_artifact",
+      label: "Route treatment summary artifact",
+      kind: "artifact_family",
+      owner: "tools/pipeline-v2/studio",
+      grain: "route x month x treatment source/segment/source-gap summary",
+      producerCommand: "studio route-treatment-summary",
+      expectedUniverse: {
+        description:
+          "Deterministic route treatment, segment overlap, and source-gap summary rows for the release month.",
+        routes: "route_catalog",
+        months: "release_month",
+      },
+      requiredInputs: [
+        "local_intervention_events_release",
+        "local_context_event_route_touches_history",
+        "map_base_geojson_artifacts",
+        "tier2_structured_intervention_extraction_full_corpus",
+      ],
+      downstreamConsumers: [
+        "intervention_scope_fit_v1",
+        "source_gap_model_v1",
+        "treatment-scope detectors",
+      ],
+      freshnessPolicy: { cadence: "release_month" },
+      checks: [
+        {
+          id: "summary_json",
+          label: "Route treatment summary JSON",
+          type: "json_artifact",
+          pathTemplate:
+            "{artifactRoot}/studio/v2/route-treatment-summary/{releaseMonth}/route-treatment-summary.json",
+          validateReleaseMonth: true,
         },
       ],
     },

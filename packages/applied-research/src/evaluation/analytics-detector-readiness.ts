@@ -17,10 +17,12 @@ export type DetectorReadinessStatus = "ready" | "partial" | "blocked" | "policy_
 
 export type PolicySurfaceCoverageSummary = Omit<SurfaceCoverageSummary, "surfaceId"> & {
   surfaceId: BackfillValidationSurfaceId;
+  registryProductId: string | null;
 };
 
 export type DetectorSurfaceReadiness = {
   surfaceId: BackfillValidationSurfaceId;
+  registryProductId: string | null;
   label: string;
   tableName: string;
   required: boolean;
@@ -88,15 +90,34 @@ const BACKFILL_SURFACE_TO_POLICY_SURFACE: ReadonlyMap<string, BackfillValidation
     ["intervention_comparisons", "intervention_comparisons"],
   ]);
 
+export const DETECTOR_READINESS_REGISTRY_PRODUCT_BY_SURFACE = {
+  bus_wait_assessment: "local_bus_wait_assessment_history",
+  dot_permit_route_touches: "local_context_event_route_touches_history",
+  gtfs_schedule_runtime: "local_route_schedule_timepoints_release",
+  intervention_comparisons: "local_route_intervention_comparison_history",
+  observed_headways: "local_route_observed_reliability_summary_release",
+  route_hourly_ridership: "local_route_hourly_ridership_history",
+  route_segment_speeds: "local_route_segment_speed_history",
+  service_request_route_touches: "local_context_event_route_touches_history",
+} as const satisfies Record<BackfillValidationSurfaceId, string>;
+
+export function detectorReadinessRegistryProductId(
+  surfaceId: BackfillValidationSurfaceId,
+): string {
+  return DETECTOR_READINESS_REGISTRY_PRODUCT_BY_SURFACE[surfaceId];
+}
+
 function policySurfaceCoverage(
   backfillCoverage: AnalyticsBackfillCoverageAudit,
   directCoverage: readonly PolicySurfaceCoverageSummary[],
 ): PolicySurfaceCoverageSummary[] {
   const backfillSurfaces = backfillCoverage.surfaces.map((surface) => {
     const policySurfaceId = BACKFILL_SURFACE_TO_POLICY_SURFACE.get(surface.surfaceId);
+    const surfaceId = policySurfaceId ?? (surface.surfaceId as BackfillValidationSurfaceId);
     return {
       ...surface,
-      surfaceId: policySurfaceId ?? (surface.surfaceId as BackfillValidationSurfaceId),
+      surfaceId,
+      registryProductId: detectorReadinessRegistryProductId(surfaceId),
     };
   });
   return [...backfillSurfaces, ...directCoverage];
@@ -124,6 +145,7 @@ function surfaceReadiness(input: {
   if (input.surface === undefined) {
     return {
       surfaceId: input.expectation.surfaceId,
+      registryProductId: detectorReadinessRegistryProductId(input.expectation.surfaceId),
       label: input.expectation.surfaceId,
       tableName: "",
       required: input.expectation.required,
@@ -157,6 +179,9 @@ function surfaceReadiness(input: {
 
   return {
     surfaceId: input.expectation.surfaceId,
+    registryProductId:
+      input.surface.registryProductId ??
+      detectorReadinessRegistryProductId(input.expectation.surfaceId),
     label: input.surface.label,
     tableName: input.surface.tableName,
     required: input.expectation.required,

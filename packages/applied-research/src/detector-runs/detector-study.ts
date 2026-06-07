@@ -1,3 +1,4 @@
+import { summarizeInterventionGates } from "@bp/analytics/calibration";
 import {
   BUNCHING_HOTSPOTS_DETECTOR_ID,
   DEFAULT_BUNCHING_HOTSPOTS_THRESHOLDS,
@@ -5,32 +6,57 @@ import {
   DEFAULT_DELAY_CONCENTRATION_THRESHOLDS,
   DEFAULT_HEADWAY_RELIABILITY_EWT_THRESHOLDS,
   DEFAULT_INTERVENTION_EVENT_STUDY_THRESHOLDS,
+  DEFAULT_INTERVENTION_GAP_THRESHOLDS,
+  DEFAULT_INTERVENTION_UNDERPERFORMANCE_THRESHOLDS,
   DEFAULT_POSITIVE_DEVIANCE_THRESHOLDS,
   DEFAULT_RIDER_WEIGHTED_EXCESS_WAIT_THRESHOLDS,
   DEFAULT_SCHEDULE_MISMATCH_THRESHOLDS,
   DEFAULT_SPEED_PACE_HOTSPOT_THRESHOLDS,
   DEFAULT_TRAVEL_TIME_VARIABILITY_THRESHOLDS,
+  DEFAULT_TREATMENT_SCOPE_GAP_THRESHOLDS,
+  DEFAULT_TREATMENT_SCOPE_MISMATCH_THRESHOLDS,
   DEGRADATION_TREND_DETECTOR_ID,
   DELAY_CONCENTRATION_DETECTOR_ID,
   HEADWAY_RELIABILITY_EWT_DETECTOR_ID,
   INTERVENTION_EVENT_STUDY_DETECTOR_ID,
+  INTERVENTION_GAP_DETECTOR_ID,
+  INTERVENTION_UNDERPERFORMANCE_DETECTOR_ID,
   POSITIVE_DEVIANCE_DETECTOR_ID,
   RIDER_WEIGHTED_EXCESS_WAIT_DETECTOR_ID,
   SCHEDULE_MISMATCH_DETECTOR_ID,
+  SOURCE_GAP_DETECTOR_ID,
   SPEED_PACE_HOTSPOT_DETECTOR_ID,
   TRAVEL_TIME_VARIABILITY_DETECTOR_ID,
+  TREATMENT_SCOPE_GAP_DETECTOR_ID,
+  TREATMENT_SCOPE_MISMATCH_DETECTOR_ID,
 } from "@bp/analytics/detectors";
-import type { StopDirectionHourFeature } from "@bp/analytics/features";
+import type { InterventionPanelFeature, StopDirectionHourFeature } from "@bp/analytics/features";
+import {
+  ROUTE_SEGMENT_TREATMENT_SUMMARY_FEATURE_GRAIN,
+  ROUTE_TREATMENT_SOURCE_GAP_FEATURE_GRAIN,
+  ROUTE_TREATMENT_SUMMARY_FEATURE_GRAIN,
+  type RouteSegmentTreatmentSummaryFeature,
+  type RouteTreatmentSourceGapFeature,
+  type RouteTreatmentSummaryFeature,
+} from "@bp/analytics/features";
+import type { DetectorModelArtifactId } from "@bp/analytics/registry";
 import { getAnalyticsDetector } from "@bp/analytics/registry";
+import { FindingCoverageAuditSchema, FindingReasonCodeSchema } from "@bp/domain/findings";
+import type { DecouplingQuadrantRow } from "../feature-resolvers/decoupling-quadrants";
 import {
   buildDelayConcentrationRoutes,
-  buildInterventionPanelFeatures,
   buildPositiveDevianceFeatures,
-  buildRiderWeightedExcessWaitFeatures,
   type DelayConcentrationSegmentSourceRow,
   type InterventionComparisonSourceRow,
   type RouteHourlyRidershipSourceRow,
 } from "../feature-resolvers/detector-family-features";
+import type { InterventionScopeFitRow } from "../feature-resolvers/intervention-scope-fit";
+import type { PulseFingerprintRow } from "../feature-resolvers/pulse-fingerprint";
+import {
+  buildRiderWeightedExcessWaitFeaturesFromReliabilityExposurePanelRows,
+  type ReliabilityExposurePanelRow,
+} from "../feature-resolvers/reliability-exposure-panel";
+import type { RoutePeerResidualRow } from "../feature-resolvers/route-peer-residuals";
 import {
   buildRouteDirectionDaypartFeatures,
   buildRouteMetricHistoryFeatures,
@@ -38,13 +64,27 @@ import {
   type RouteMetricHistorySourceRow,
   type ScheduledRuntimeSourceRow,
 } from "../feature-resolvers/runtime-history";
+import type { SegmentDaypartResidualRow } from "../feature-resolvers/segment-daypart-residuals";
 import {
   buildSegmentDaypartFeaturesFromSpeedRows,
   type SegmentDaypartSpeedSourceRow,
 } from "../feature-resolvers/segment-daypart-speed";
+import type { SegmentSpeedResidualRow } from "../feature-resolvers/segment-month-panel";
+import type { SourceGapModelRow } from "../feature-resolvers/source-gap-model";
+import {
+  buildInterventionGapRoutesFromSourceGapModelRows,
+  buildInterventionUnderperformanceRoutesFromTreatmentFeatures,
+  buildTreatmentScopeGapSegmentsFromTreatmentFeatures,
+  buildTreatmentScopeMismatchSegmentsFromTreatmentFeatures,
+  type RoutePainSourceRow,
+  type RouteSegmentDaypartSpeedSummarySourceRow,
+  type RouteSegmentHistoricalSpeedSummarySourceRow,
+  type RouteSegmentSpeedSummarySourceRow,
+} from "../feature-resolvers/treatment-detector-inputs";
 import {
   buildRegistryDetectorRunArtifact,
   type DetectorOutput,
+  type ModelArtifactDependency,
   type RegistryDetectorRunArtifact,
 } from "./run-artifact";
 
@@ -73,11 +113,28 @@ export type DetectorStudySourceRows = {
   readonly stopDirectionHourFeatures?: readonly StopDirectionHourFeature[];
   readonly stopDirectionHourSummary?: Record<string, unknown>;
   readonly routeHourlyRidershipRows?: readonly RouteHourlyRidershipSourceRow[];
+  readonly reliabilityExposurePanelRows?: readonly ReliabilityExposurePanelRow[];
   readonly observedRuntimeRows?: readonly ObservedRuntimeSourceRow[];
   readonly scheduledRuntimeRows?: readonly ScheduledRuntimeSourceRow[];
   readonly routeMetricHistoryRows?: readonly RouteMetricHistorySourceRow[];
   readonly interventionComparisonRows?: readonly InterventionComparisonSourceRow[];
+  readonly treatmentEventPanelRows?: readonly InterventionPanelFeature[];
   readonly delayConcentrationSegmentRows?: readonly DelayConcentrationSegmentSourceRow[];
+  readonly routePainRows?: readonly RoutePainSourceRow[];
+  readonly routeSegmentSpeedSummaryRows?: readonly RouteSegmentSpeedSummarySourceRow[];
+  readonly routeSegmentDaypartSpeedSummaryRows?: readonly RouteSegmentDaypartSpeedSummarySourceRow[];
+  readonly routeSegmentHistoricalSpeedSummaryRows?: readonly RouteSegmentHistoricalSpeedSummarySourceRow[];
+  readonly segmentSpeedResidualRows?: readonly SegmentSpeedResidualRow[];
+  readonly segmentDaypartResidualRows?: readonly SegmentDaypartResidualRow[];
+  readonly routePeerResidualRows?: readonly RoutePeerResidualRow[];
+  readonly routeTreatmentFeatures?: readonly RouteTreatmentSummaryFeature[];
+  readonly routeSegmentTreatmentFeatures?: readonly RouteSegmentTreatmentSummaryFeature[];
+  readonly routeTreatmentSourceGapFeatures?: readonly RouteTreatmentSourceGapFeature[];
+  readonly interventionScopeFitRows?: readonly InterventionScopeFitRow[];
+  readonly sourceGapModelRows?: readonly SourceGapModelRow[];
+  readonly pulseFingerprintRows?: readonly PulseFingerprintRow[];
+  readonly decouplingQuadrantRows?: readonly DecouplingQuadrantRow[];
+  readonly routeTreatmentFeatureSummary?: Record<string, unknown>;
 };
 
 export type RegistryDetectorStudyResult = {
@@ -87,6 +144,17 @@ export type RegistryDetectorStudyResult = {
 
 export function detectorStudyNeedsStopDirectionHourFeatures(detectorId: string): boolean {
   return STOP_DIRECTION_HOUR_DETECTOR_IDS.has(detectorId);
+}
+
+export function detectorStudyNeedsRouteTreatmentFeatures(detectorId: string): boolean {
+  const detector = getAnalyticsDetector(detectorId);
+  if (detector === null) return false;
+  return detector.featureGrains.some(
+    (grain) =>
+      grain === ROUTE_TREATMENT_SUMMARY_FEATURE_GRAIN ||
+      grain === ROUTE_SEGMENT_TREATMENT_SUMMARY_FEATURE_GRAIN ||
+      grain === ROUTE_TREATMENT_SOURCE_GAP_FEATURE_GRAIN,
+  );
 }
 
 function requireRows<T>(
@@ -108,6 +176,7 @@ function artifactFor(input: {
   readonly metadata: DetectorStudyMetadata;
   readonly inputSummary: Record<string, unknown>;
   readonly output: DetectorOutput;
+  readonly modelDependencies?: readonly ModelArtifactDependency[];
 }): RegistryDetectorRunArtifact {
   return buildRegistryDetectorRunArtifact({
     detectorId: input.metadata.detectorId,
@@ -119,7 +188,115 @@ function artifactFor(input: {
     wroteDb: input.metadata.wroteDb,
     inputSummary: input.inputSummary,
     output: input.output,
+    ...(input.modelDependencies === undefined
+      ? {}
+      : { modelDependencies: input.modelDependencies }),
+    ...(input.metadata.candidateLimit === undefined
+      ? {}
+      : { candidateSampleLimit: input.metadata.candidateLimit }),
   });
+}
+
+function modelRowsFor(input: {
+  readonly modelId: DetectorModelArtifactId | string;
+  readonly rows: DetectorStudySourceRows;
+}): { readonly fieldName: string; readonly rows: readonly unknown[] | undefined } | null {
+  switch (input.modelId) {
+    case "segment_speed_residuals_v1":
+      return { fieldName: "segmentSpeedResidualRows", rows: input.rows.segmentSpeedResidualRows };
+    case "segment_daypart_residuals_v1":
+      return {
+        fieldName: "segmentDaypartResidualRows",
+        rows: input.rows.segmentDaypartResidualRows,
+      };
+    case "route_peer_residuals_v1":
+      return { fieldName: "routePeerResidualRows", rows: input.rows.routePeerResidualRows };
+    case "reliability_exposure_panel_v1":
+      return {
+        fieldName: "reliabilityExposurePanelRows",
+        rows: input.rows.reliabilityExposurePanelRows,
+      };
+    case "intervention_scope_fit_v1":
+      return { fieldName: "interventionScopeFitRows", rows: input.rows.interventionScopeFitRows };
+    case "source_gap_model_v1":
+      return { fieldName: "sourceGapModelRows", rows: input.rows.sourceGapModelRows };
+    case "treatment_event_panel_v1":
+      return { fieldName: "treatmentEventPanelRows", rows: input.rows.treatmentEventPanelRows };
+    case "pulse_fingerprint_v1":
+      return { fieldName: "pulseFingerprintRows", rows: input.rows.pulseFingerprintRows };
+    case "decoupling_quadrants_v1":
+      return { fieldName: "decouplingQuadrantRows", rows: input.rows.decouplingQuadrantRows };
+    default:
+      return null;
+  }
+}
+
+export function detectorModelDependencySatisfaction(input: {
+  readonly detectorId: string;
+  readonly rows: DetectorStudySourceRows;
+}): ModelArtifactDependency[] {
+  const detector = getAnalyticsDetector(input.detectorId);
+  if (detector === null) throw new Error(`Unknown detector: ${input.detectorId}`);
+  return (detector.modelArtifacts ?? []).map((modelId) => {
+    const modelRows = modelRowsFor({ modelId, rows: input.rows });
+    if (modelRows === null) {
+      return {
+        modelId,
+        status: "missing",
+        rowCount: null,
+        reason: `No registry runner row slot is registered for required model artifact ${modelId}.`,
+      };
+    }
+    if (modelRows.rows === undefined) {
+      return {
+        modelId,
+        status: "missing",
+        rowCount: null,
+        reason: `Required model artifact ${modelId} was not supplied as ${modelRows.fieldName}.`,
+      };
+    }
+    return {
+      modelId,
+      status: "available",
+      rowCount: modelRows.rows.length,
+      reason: `Required model artifact ${modelId} was supplied as ${modelRows.fieldName}.`,
+    };
+  });
+}
+
+function missingModelDependencyOutput(input: {
+  readonly metadata: DetectorStudyMetadata;
+  readonly modelDependencies: readonly ModelArtifactDependency[];
+}): DetectorOutput {
+  const missingModelArtifacts = input.modelDependencies
+    .filter((dependency) => dependency.status === "missing")
+    .map((dependency) => dependency.modelId);
+  const availableModelArtifacts = input.modelDependencies
+    .filter((dependency) => dependency.status === "available")
+    .map((dependency) => dependency.modelId);
+  return {
+    candidates: [],
+    evidence: [],
+    coverage: [
+      FindingCoverageAuditSchema.parse({
+        auditId: `${input.metadata.detectorRunId}:audit:model_dependencies`,
+        detectorRunId: input.metadata.detectorRunId,
+        detectorId: input.metadata.detectorId,
+        month: input.metadata.releaseMonth,
+        scopeKind: "system",
+        scopeId: "model_dependencies",
+        outcome: "skipped_missing_input",
+        reasonCode: FindingReasonCodeSchema.parse("missing_model_artifact"),
+        reason: `Missing required model artifact(s): ${missingModelArtifacts.join(", ")}.`,
+        inputsSeenJson: JSON.stringify({ availableModelArtifacts }),
+        inputsExpectedJson: JSON.stringify({
+          requiredModelArtifacts: input.modelDependencies.map((dependency) => dependency.modelId),
+          missingModelArtifacts,
+        }),
+        createdAt: input.metadata.generatedAt,
+      }),
+    ],
+  };
 }
 
 function candidateLimitThreshold(input: {
@@ -131,11 +308,79 @@ function candidateLimitThreshold(input: {
   };
 }
 
+function countStrings(values: readonly string[]): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const value of values) counts[value] = (counts[value] ?? 0) + 1;
+  return Object.fromEntries(
+    Object.entries(counts).sort(([left], [right]) => left.localeCompare(right)),
+  );
+}
+
+function interventionPanelGateStatusCounts(
+  rows: readonly InterventionPanelFeature[],
+): Record<string, Record<string, number>> {
+  return {
+    preTrendStatus: countStrings(rows.map((row) => row.preTrendStatus)),
+    placeboInTimeStatus: countStrings(
+      rows.map((row) => row.placeboInTimeStatus ?? row.placeboStatus),
+    ),
+    placeboInSpaceStatus: countStrings(
+      rows.map((row) => row.placeboInSpaceStatus ?? row.placeboStatus),
+    ),
+    autocorrelationStatus: countStrings(
+      rows.map((row) => row.autocorrelationStatus ?? "not_tested"),
+    ),
+    methodDivergenceStatus: countStrings(
+      rows.map((row) => row.methodDivergenceStatus ?? "not_tested"),
+    ),
+  };
+}
+
+function interventionPanelCandidateCausalEligibleCount(
+  rows: readonly InterventionPanelFeature[],
+): number {
+  return rows.filter(
+    (row) =>
+      summarizeInterventionGates({
+        controlEligibilityStatus: row.controlEligibilityStatus,
+        preTrendStatus: row.preTrendStatus,
+        placeboInTimeStatus: row.placeboInTimeStatus ?? row.placeboStatus,
+        placeboInSpaceStatus: row.placeboInSpaceStatus ?? row.placeboStatus,
+        autocorrelationStatus: row.autocorrelationStatus ?? "not_tested",
+        methodDivergenceStatus: row.methodDivergenceStatus ?? "not_tested",
+      }).candidateCausalEligible,
+  ).length;
+}
+
 export function runRegistryDetectorStudy(input: {
   readonly metadata: DetectorStudyMetadata;
   readonly rows: DetectorStudySourceRows;
 }): RegistryDetectorStudyResult {
   const { metadata, rows } = input;
+  const modelDependencies = detectorModelDependencySatisfaction({
+    detectorId: metadata.detectorId,
+    rows,
+  });
+  const missingModelDependencies = modelDependencies.filter(
+    (dependency) => dependency.status === "missing",
+  );
+  if (missingModelDependencies.length > 0) {
+    const output = missingModelDependencyOutput({ metadata, modelDependencies });
+    return {
+      output,
+      artifact: artifactFor({
+        metadata,
+        inputSummary: {
+          sourceKind: "blocked_missing_model_artifacts",
+          featureCount: 0,
+          requiredModelArtifacts: modelDependencies.map((dependency) => dependency.modelId),
+          missingModelArtifacts: missingModelDependencies.map((dependency) => dependency.modelId),
+        },
+        output,
+        modelDependencies,
+      }),
+    };
+  }
 
   if (metadata.detectorId === SPEED_PACE_HOTSPOT_DETECTOR_ID) {
     const resolved = buildSegmentDaypartFeaturesFromSpeedRows({
@@ -151,7 +396,15 @@ export function runRegistryDetectorStudy(input: {
         ? {}
         : { thresholds: { candidateLimit: metadata.candidateLimit } }),
     });
-    return { output, artifact: artifactFor({ metadata, inputSummary: resolved.summary, output }) };
+    return {
+      output,
+      artifact: artifactFor({
+        metadata,
+        inputSummary: resolved.summary,
+        output,
+        modelDependencies,
+      }),
+    };
   }
 
   if (
@@ -183,22 +436,17 @@ export function runRegistryDetectorStudy(input: {
         metadata,
         inputSummary: rows.stopDirectionHourSummary ?? { featureCount: features.length },
         output,
+        modelDependencies,
       }),
     };
   }
 
   if (metadata.detectorId === RIDER_WEIGHTED_EXCESS_WAIT_DETECTOR_ID) {
-    const stopFeatures = requireRows(
-      rows.stopDirectionHourFeatures,
-      metadata.detectorId,
-      "stop-direction-hour features",
-    );
-    const resolved = buildRiderWeightedExcessWaitFeatures({
-      stopFeatures,
-      ridershipRows: requireRows(
-        rows.routeHourlyRidershipRows,
+    const resolved = buildRiderWeightedExcessWaitFeaturesFromReliabilityExposurePanelRows({
+      rows: requireRows(
+        rows.reliabilityExposurePanelRows,
         metadata.detectorId,
-        "route-hourly ridership rows",
+        "reliability exposure panel rows",
       ),
     });
     const output = runDetector(metadata.detectorId, {
@@ -217,6 +465,7 @@ export function runRegistryDetectorStudy(input: {
         metadata,
         inputSummary: { ...(rows.stopDirectionHourSummary ?? {}), ...resolved.summary },
         output,
+        modelDependencies,
       }),
     };
   }
@@ -255,7 +504,15 @@ export function runRegistryDetectorStudy(input: {
         defaultLimit,
       }),
     });
-    return { output, artifact: artifactFor({ metadata, inputSummary: resolved.summary, output }) };
+    return {
+      output,
+      artifact: artifactFor({
+        metadata,
+        inputSummary: resolved.summary,
+        output,
+        modelDependencies,
+      }),
+    };
   }
 
   if (metadata.detectorId === DEGRADATION_TREND_DETECTOR_ID) {
@@ -279,7 +536,15 @@ export function runRegistryDetectorStudy(input: {
         defaultLimit: DEFAULT_DEGRADATION_TREND_THRESHOLDS.candidateLimit,
       }),
     });
-    return { output, artifact: artifactFor({ metadata, inputSummary: resolved.summary, output }) };
+    return {
+      output,
+      artifact: artifactFor({
+        metadata,
+        inputSummary: resolved.summary,
+        output,
+        modelDependencies,
+      }),
+    };
   }
 
   if (metadata.detectorId === POSITIVE_DEVIANCE_DETECTOR_ID) {
@@ -303,17 +568,42 @@ export function runRegistryDetectorStudy(input: {
         defaultLimit: DEFAULT_POSITIVE_DEVIANCE_THRESHOLDS.candidateLimit,
       }),
     });
-    return { output, artifact: artifactFor({ metadata, inputSummary: resolved.summary, output }) };
+    return {
+      output,
+      artifact: artifactFor({
+        metadata,
+        inputSummary: resolved.summary,
+        output,
+        modelDependencies,
+      }),
+    };
   }
 
   if (metadata.detectorId === INTERVENTION_EVENT_STUDY_DETECTOR_ID) {
-    const resolved = buildInterventionPanelFeatures({
-      rows: requireRows(
-        rows.interventionComparisonRows,
-        metadata.detectorId,
-        "intervention comparison rows",
-      ),
-    });
+    const treatmentEventPanelRows = requireRows(
+      rows.treatmentEventPanelRows,
+      metadata.detectorId,
+      "treatment event panel rows",
+    );
+    const resolved = {
+      features: [...treatmentEventPanelRows],
+      summary: {
+        sourceKind: "intervention_panel_from_treatment_event_panel_v1",
+        featureCount: treatmentEventPanelRows.length,
+        supportedFeatureCount: treatmentEventPanelRows.filter(
+          (row) => row.quality.sampleStatus === "supported",
+        ).length,
+        eligibleControlFeatureCount: treatmentEventPanelRows.filter(
+          (row) => row.controlEligibilityStatus === "eligible",
+        ).length,
+        featureWithEffectEstimateCount: treatmentEventPanelRows.filter(
+          (row) => row.eventStudyEstimate !== null && row.eventStudyEstimate !== undefined,
+        ).length,
+        candidateCausalEligibleFeatureCount:
+          interventionPanelCandidateCausalEligibleCount(treatmentEventPanelRows),
+        gateStatusCounts: interventionPanelGateStatusCounts(treatmentEventPanelRows),
+      },
+    };
     const output = runDetector(metadata.detectorId, {
       detectorRunId: metadata.detectorRunId,
       month: metadata.releaseMonth,
@@ -324,7 +614,249 @@ export function runRegistryDetectorStudy(input: {
         defaultLimit: DEFAULT_INTERVENTION_EVENT_STUDY_THRESHOLDS.candidateLimit,
       }),
     });
-    return { output, artifact: artifactFor({ metadata, inputSummary: resolved.summary, output }) };
+    return {
+      output,
+      artifact: artifactFor({
+        metadata,
+        inputSummary: {
+          ...resolved.summary,
+          treatmentEventPanelSummary: { panelRowCount: treatmentEventPanelRows.length },
+        },
+        output,
+        modelDependencies,
+      }),
+    };
+  }
+
+  if (metadata.detectorId === INTERVENTION_GAP_DETECTOR_ID) {
+    const routePainRows = requireRows(rows.routePainRows, metadata.detectorId, "route pain rows");
+    const routeTreatmentFeatures = requireRows(
+      rows.routeTreatmentFeatures,
+      metadata.detectorId,
+      "route treatment features",
+    );
+    const sourceGapModelRows = requireRows(
+      rows.sourceGapModelRows,
+      metadata.detectorId,
+      "source gap model rows",
+    );
+    const resolved = buildInterventionGapRoutesFromSourceGapModelRows({
+      routePainRows,
+      routeTreatmentFeatures,
+      sourceGapModelRows,
+    });
+    const output = runDetector(metadata.detectorId, {
+      detectorRunId: metadata.detectorRunId,
+      month: metadata.releaseMonth,
+      generatedAt: metadata.generatedAt,
+      routes: resolved.routes,
+      thresholds: candidateLimitThreshold({
+        candidateLimit: metadata.candidateLimit,
+        defaultLimit: DEFAULT_INTERVENTION_GAP_THRESHOLDS.candidateLimit,
+      }),
+    });
+    return {
+      output,
+      artifact: artifactFor({
+        metadata,
+        inputSummary: { ...(rows.routeTreatmentFeatureSummary ?? {}), ...resolved.summary },
+        output,
+        modelDependencies,
+      }),
+    };
+  }
+
+  if (metadata.detectorId === INTERVENTION_UNDERPERFORMANCE_DETECTOR_ID) {
+    const resolved = buildInterventionUnderperformanceRoutesFromTreatmentFeatures({
+      routePainRows: requireRows(rows.routePainRows, metadata.detectorId, "route pain rows"),
+      interventionComparisonRows: requireRows(
+        rows.interventionComparisonRows,
+        metadata.detectorId,
+        "intervention comparison rows",
+      ),
+      routeTreatmentFeatures: requireRows(
+        rows.routeTreatmentFeatures,
+        metadata.detectorId,
+        "route treatment features",
+      ),
+      routeSegmentTreatmentFeatures: requireRows(
+        rows.routeSegmentTreatmentFeatures,
+        metadata.detectorId,
+        "route-segment treatment features",
+      ),
+    });
+    const output = runDetector(metadata.detectorId, {
+      detectorRunId: metadata.detectorRunId,
+      month: metadata.releaseMonth,
+      generatedAt: metadata.generatedAt,
+      routes: resolved.routes,
+      thresholds: candidateLimitThreshold({
+        candidateLimit: metadata.candidateLimit,
+        defaultLimit: DEFAULT_INTERVENTION_UNDERPERFORMANCE_THRESHOLDS.candidateLimit,
+      }),
+    });
+    return {
+      output,
+      artifact: artifactFor({
+        metadata,
+        inputSummary: { ...(rows.routeTreatmentFeatureSummary ?? {}), ...resolved.summary },
+        output,
+        modelDependencies,
+      }),
+    };
+  }
+
+  if (metadata.detectorId === SOURCE_GAP_DETECTOR_ID) {
+    const sourceGapModelRows = requireRows(
+      rows.sourceGapModelRows,
+      metadata.detectorId,
+      "source gap model rows",
+    );
+    const sourceGapCount = sourceGapModelRows.reduce((sum, row) => sum + row.sourceGapCount, 0);
+    const output = runDetector(metadata.detectorId, {
+      detectorRunId: metadata.detectorRunId,
+      month: metadata.releaseMonth,
+      generatedAt: metadata.generatedAt,
+      routes: [],
+      treatmentSourceGaps: sourceGapModelRows,
+    });
+    return {
+      output,
+      artifact: artifactFor({
+        metadata,
+        inputSummary: {
+          ...(rows.routeTreatmentFeatureSummary ?? {}),
+          sourceKind: "source_gap_from_source_gap_model_v1",
+          featureCount: sourceGapModelRows.length,
+          sourceGapModelRowCount: sourceGapModelRows.length,
+          sourceGapModelSourceGapCount: sourceGapCount,
+        },
+        output,
+        modelDependencies,
+      }),
+    };
+  }
+
+  if (metadata.detectorId === TREATMENT_SCOPE_MISMATCH_DETECTOR_ID) {
+    const segmentHistoricalSpeedRows = requireRows(
+      rows.routeSegmentHistoricalSpeedSummaryRows,
+      metadata.detectorId,
+      "route-segment historical speed summary rows",
+    );
+    const segmentSpeedResidualRows = requireRows(
+      rows.segmentSpeedResidualRows,
+      metadata.detectorId,
+      "segment speed residual rows",
+    );
+    const interventionScopeFitRows = requireRows(
+      rows.interventionScopeFitRows,
+      metadata.detectorId,
+      "intervention scope fit rows",
+    );
+    const resolved = buildTreatmentScopeMismatchSegmentsFromTreatmentFeatures({
+      segmentSpeedRows: requireRows(
+        rows.routeSegmentSpeedSummaryRows,
+        metadata.detectorId,
+        "route-segment speed summary rows",
+      ),
+      segmentDaypartSpeedRows: requireRows(
+        rows.routeSegmentDaypartSpeedSummaryRows,
+        metadata.detectorId,
+        "route-segment daypart speed summary rows",
+      ),
+      segmentHistoricalSpeedRows,
+      segmentSpeedResidualRows,
+      routeSegmentTreatmentFeatures: requireRows(
+        rows.routeSegmentTreatmentFeatures,
+        metadata.detectorId,
+        "route-segment treatment features",
+      ),
+    });
+    const output = runDetector(metadata.detectorId, {
+      detectorRunId: metadata.detectorRunId,
+      month: metadata.releaseMonth,
+      generatedAt: metadata.generatedAt,
+      segments: resolved.segments,
+      thresholds: candidateLimitThreshold({
+        candidateLimit: metadata.candidateLimit,
+        defaultLimit: DEFAULT_TREATMENT_SCOPE_MISMATCH_THRESHOLDS.candidateLimit,
+      }),
+    });
+    return {
+      output,
+      artifact: artifactFor({
+        metadata,
+        inputSummary: {
+          ...(rows.routeTreatmentFeatureSummary ?? {}),
+          ...resolved.summary,
+          interventionScopeFitSummary: { modeledReleaseRowCount: interventionScopeFitRows.length },
+          segmentSpeedResidualSummary: { modeledReleaseRowCount: segmentSpeedResidualRows.length },
+        },
+        output,
+        modelDependencies,
+      }),
+    };
+  }
+
+  if (metadata.detectorId === TREATMENT_SCOPE_GAP_DETECTOR_ID) {
+    const segmentSpeedResidualRows = requireRows(
+      rows.segmentSpeedResidualRows,
+      metadata.detectorId,
+      "segment speed residual rows",
+    );
+    const interventionScopeFitRows = requireRows(
+      rows.interventionScopeFitRows,
+      metadata.detectorId,
+      "intervention scope fit rows",
+    );
+    const resolved = buildTreatmentScopeGapSegmentsFromTreatmentFeatures({
+      segmentSpeedRows: requireRows(
+        rows.routeSegmentSpeedSummaryRows,
+        metadata.detectorId,
+        "route-segment speed summary rows",
+      ),
+      segmentDaypartSpeedRows: requireRows(
+        rows.routeSegmentDaypartSpeedSummaryRows,
+        metadata.detectorId,
+        "route-segment daypart speed summary rows",
+      ),
+      segmentSpeedResidualRows,
+      routeTreatmentFeatures: requireRows(
+        rows.routeTreatmentFeatures,
+        metadata.detectorId,
+        "route treatment features",
+      ),
+      routeSegmentTreatmentFeatures: requireRows(
+        rows.routeSegmentTreatmentFeatures,
+        metadata.detectorId,
+        "route-segment treatment features",
+      ),
+      interventionScopeFitRows,
+    });
+    const output = runDetector(metadata.detectorId, {
+      detectorRunId: metadata.detectorRunId,
+      month: metadata.releaseMonth,
+      generatedAt: metadata.generatedAt,
+      segments: resolved.segments,
+      thresholds: candidateLimitThreshold({
+        candidateLimit: metadata.candidateLimit,
+        defaultLimit: DEFAULT_TREATMENT_SCOPE_GAP_THRESHOLDS.candidateLimit,
+      }),
+    });
+    return {
+      output,
+      artifact: artifactFor({
+        metadata,
+        inputSummary: {
+          ...(rows.routeTreatmentFeatureSummary ?? {}),
+          ...resolved.summary,
+          interventionScopeFitSummary: { modeledReleaseRowCount: interventionScopeFitRows.length },
+          segmentSpeedResidualSummary: { modeledReleaseRowCount: segmentSpeedResidualRows.length },
+        },
+        output,
+        modelDependencies,
+      }),
+    };
   }
 
   if (metadata.detectorId === DELAY_CONCENTRATION_DETECTOR_ID) {
@@ -342,7 +874,15 @@ export function runRegistryDetectorStudy(input: {
       routes: resolved.routes,
       thresholds: DEFAULT_DELAY_CONCENTRATION_THRESHOLDS,
     });
-    return { output, artifact: artifactFor({ metadata, inputSummary: resolved.summary, output }) };
+    return {
+      output,
+      artifact: artifactFor({
+        metadata,
+        inputSummary: resolved.summary,
+        output,
+        modelDependencies,
+      }),
+    };
   }
 
   throw new Error(`Registry detector study does not yet support ${metadata.detectorId}`);

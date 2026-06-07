@@ -278,6 +278,306 @@ function evidenceObjects(
   };
 }
 
+type PacketReviewContext = NonNullable<FindingReviewPacket["reviewContext"]>;
+
+function objectValue(value: unknown): Record<string, unknown> | null {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function textValue(value: unknown): string | null {
+  return typeof value === "string" && value.length > 0 ? value : null;
+}
+
+function numberValue(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "bigint") return Number(value);
+  if (typeof value === "string" && value.length > 0) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return null;
+}
+
+function formatNumber(value: number, digits = 1): string {
+  return Number.isInteger(value) ? String(value) : value.toFixed(digits).replace(/\.0+$/, "");
+}
+
+function firstObject(values: readonly unknown[]): Record<string, unknown> | null {
+  for (const value of values) {
+    const object = objectValue(value);
+    if (object !== null) return object;
+  }
+  return null;
+}
+
+function rankHighlight(input: {
+  label: string;
+  rank: number | null;
+  count: number | null;
+  medianSpeedMph: number | null;
+  slownessPercentile: number | null;
+}): string | null {
+  if (input.rank === null || input.count === null) return null;
+  const parts = [`${input.label}: ${input.rank}/${input.count} slowest by current-month speed`];
+  if (input.medianSpeedMph !== null) {
+    parts.push(`median ${formatNumber(input.medianSpeedMph)} mph`);
+  }
+  if (input.slownessPercentile !== null) {
+    parts.push(`slowness percentile ${formatNumber(input.slownessPercentile * 100, 0)}%`);
+  }
+  return parts.join("; ");
+}
+
+function treatmentScopeMismatchReviewContext(input: {
+  candidate: FindingCandidate;
+  evidenceObjects: FindingReviewPacket["evidenceObjects"];
+}): PacketReviewContext {
+  const primary = firstObject(input.evidenceObjects.primary) ?? {};
+  const context = firstObject(input.evidenceObjects.context) ?? {};
+  const routePeerContext = objectValue(context["routePeerContext"]) ?? {};
+  const networkPeerContext = objectValue(context["networkPeerContext"]) ?? {};
+  const routeId = input.candidate.routeId ?? textValue(primary["routeId"]) ?? "unknown route";
+  const speed = numberValue(primary["averageSpeedMph"]) ?? numberValue(context["averageSpeedMph"]);
+  const segmentLengthFeet =
+    numberValue(primary["segmentLengthFeet"]) ?? numberValue(context["segmentLengthFeet"]);
+  const observations = numberValue(primary["observationCount"]);
+  const trips = numberValue(primary["busTripCount"]);
+  const segmentOrder = numberValue(primary["segmentOrder"]);
+  const overlap = numberValue(primary["overlapShare"]);
+  const matchMethod = textValue(primary["matchMethod"]);
+  const treatmentStatus = textValue(primary["treatmentStatus"]);
+  const slowestDaypart = textValue(context["slowestDaypart"]);
+  const slowestDaypartSpeed = numberValue(context["slowestDaypartAverageSpeedMph"]);
+  const sourceRefs = Array.isArray(primary["treatmentSourceRefs"])
+    ? primary["treatmentSourceRefs"]
+    : [];
+
+  const evidenceHighlights: string[] = [];
+  if (speed !== null) {
+    evidenceHighlights.push(
+      `Observed current speed ${formatNumber(speed)} mph${
+        observations === null ? "" : ` from ${observations} segment-hour rows`
+      }${trips === null ? "" : ` and ${formatNumber(trips, 0)} bus trips`}.`,
+    );
+  }
+  if (segmentLengthFeet !== null) {
+    evidenceHighlights.push(`Segment length ${formatNumber(segmentLengthFeet, 0)} ft.`);
+  }
+  if (overlap !== null) {
+    evidenceHighlights.push(
+      `Bus-lane overlap share ${formatNumber(overlap * 100, 0)}%${
+        matchMethod === null ? "" : ` via ${matchMethod}`
+      }${treatmentStatus === null ? "" : `; status ${treatmentStatus}`}.`,
+    );
+  }
+  const routeRank = rankHighlight({
+    label: "Route peer context",
+    rank: numberValue(routePeerContext["speedRankAscending"]),
+    count: numberValue(routePeerContext["segmentCount"]),
+    medianSpeedMph: numberValue(routePeerContext["medianSegmentSpeedMph"]),
+    slownessPercentile: numberValue(routePeerContext["slownessPercentile"]),
+  });
+  if (routeRank !== null) evidenceHighlights.push(routeRank);
+  const networkRank = rankHighlight({
+    label: "Network peer context",
+    rank: numberValue(networkPeerContext["speedRankAscending"]),
+    count: numberValue(networkPeerContext["segmentCount"]),
+    medianSpeedMph: numberValue(networkPeerContext["medianSegmentSpeedMph"]),
+    slownessPercentile: numberValue(networkPeerContext["slownessPercentile"]),
+  });
+  if (networkRank !== null) evidenceHighlights.push(networkRank);
+  if (slowestDaypart !== null && slowestDaypartSpeed !== null) {
+    evidenceHighlights.push(
+      `Slowest daypart: ${slowestDaypart} at ${formatNumber(slowestDaypartSpeed)} mph.`,
+    );
+  }
+  if (sourceRefs.length > 0) {
+    evidenceHighlights.push(`${sourceRefs.length} treatment/source reference(s) attached.`);
+  }
+
+  const cautionFlags = [
+    "Route-shape bus-lane overlap is context, not audited lane-mile inventory.",
+    "Current low speed does not prove the treatment failed; the segment may still have improved versus history or comparable peers.",
+    "Keep any public language segment-scoped unless broader route evidence is attached.",
+  ];
+  if (speed !== null && speed < 1) {
+    cautionFlags.push(
+      "Extremely low reported speed may reflect terminal delay, dwell/layover, very short segment geometry, or source aggregation artifacts; verify before promotion.",
+    );
+  }
+  if (segmentLengthFeet !== null && segmentLengthFeet < 500) {
+    cautionFlags.push(
+      "Segment is above the detector minimum but still short enough that stop spacing and dwell can dominate speed interpretation.",
+    );
+  }
+  if (segmentOrder === 1) {
+    cautionFlags.push(
+      "This is the first observed timepoint segment, so terminal effects can contaminate running-speed interpretation.",
+    );
+  }
+
+  return {
+    summary:
+      speed === null
+        ? `Segment-scope treatment review for ${routeId}: inspect bus-lane overlap, speed support, and peer/daypart context before promotion.`
+        : `Segment-scope treatment review for ${routeId}: bus-lane overlap plus ${formatNumber(speed)} mph current speed; use peer/daypart context before any underperformance language.`,
+    evidenceHighlights,
+    cautionFlags,
+    suggestedChecks: [
+      "Verify the segment geometry and bus-lane source refs before promotion.",
+      "Compare daypart profile against the claim: do not generalize a peak-only problem to all day.",
+      "Review route/network rank as descriptive calibration, not causal control evidence.",
+      "Look for construction, enforcement, stop activity, or loading conflicts before writing a cause.",
+    ],
+  };
+}
+
+function treatmentScopeGapReviewContext(input: {
+  candidate: FindingCandidate;
+  evidenceObjects: FindingReviewPacket["evidenceObjects"];
+}): PacketReviewContext {
+  const primary = firstObject(input.evidenceObjects.primary) ?? {};
+  const context = firstObject(input.evidenceObjects.context) ?? {};
+  const routePeerContext = objectValue(context["routePeerContext"]) ?? {};
+  const networkPeerContext = objectValue(context["networkPeerContext"]) ?? {};
+  const routeId = input.candidate.routeId ?? textValue(primary["routeId"]) ?? "unknown route";
+  const speed = numberValue(primary["averageSpeedMph"]);
+  const segmentLengthFeet = numberValue(primary["segmentLengthFeet"]);
+  const observations = numberValue(primary["observationCount"]);
+  const trips = numberValue(primary["busTripCount"]);
+  const overlap = numberValue(primary["overlapShare"]);
+  const matchMethod = textValue(primary["matchMethod"]);
+  const treatmentStatus = textValue(primary["treatmentStatus"]);
+  const routeTreatmentCount = numberValue(primary["positiveRouteTreatmentCount"]);
+  const segmentTreatmentCount = numberValue(primary["positiveSegmentTreatmentCount"]);
+  const slowestDaypart = textValue(context["slowestDaypart"]);
+  const slowestDaypartSpeed = numberValue(context["slowestDaypartAverageSpeedMph"]);
+  const routeSourceRefs = Array.isArray(primary["routeTreatmentSourceRefs"])
+    ? primary["routeTreatmentSourceRefs"]
+    : [];
+
+  const evidenceHighlights: string[] = [];
+  if (routeTreatmentCount !== null) {
+    evidenceHighlights.push(
+      `${routeId} has ${routeTreatmentCount} positive route-level bus-lane treatment signal(s).`,
+    );
+  }
+  if (speed !== null) {
+    evidenceHighlights.push(
+      `Candidate uncovered/weakly covered segment runs ${formatNumber(speed)} mph${
+        observations === null ? "" : ` from ${observations} segment-hour rows`
+      }${trips === null ? "" : ` and ${formatNumber(trips, 0)} bus trips`}.`,
+    );
+  }
+  if (segmentLengthFeet !== null) {
+    evidenceHighlights.push(`Segment length ${formatNumber(segmentLengthFeet, 0)} ft.`);
+  }
+  evidenceHighlights.push(
+    `Segment treatment support: ${segmentTreatmentCount ?? 0} positive segment-level signal(s); overlap ${
+      overlap === null ? "missing" : `${formatNumber(overlap * 100, 0)}%`
+    }${matchMethod === null ? "" : ` via ${matchMethod}`}${
+      treatmentStatus === null ? "" : `; status ${treatmentStatus}`
+    }.`,
+  );
+  const routeRank = rankHighlight({
+    label: "Route peer context",
+    rank: numberValue(routePeerContext["speedRankAscending"]),
+    count: numberValue(routePeerContext["segmentCount"]),
+    medianSpeedMph: numberValue(routePeerContext["medianSegmentSpeedMph"]),
+    slownessPercentile: numberValue(routePeerContext["slownessPercentile"]),
+  });
+  if (routeRank !== null) evidenceHighlights.push(routeRank);
+  const networkRank = rankHighlight({
+    label: "Network peer context",
+    rank: numberValue(networkPeerContext["speedRankAscending"]),
+    count: numberValue(networkPeerContext["segmentCount"]),
+    medianSpeedMph: numberValue(networkPeerContext["medianSegmentSpeedMph"]),
+    slownessPercentile: numberValue(networkPeerContext["slownessPercentile"]),
+  });
+  if (networkRank !== null) evidenceHighlights.push(networkRank);
+  if (slowestDaypart !== null && slowestDaypartSpeed !== null) {
+    evidenceHighlights.push(
+      `Slowest daypart: ${slowestDaypart} at ${formatNumber(slowestDaypartSpeed)} mph.`,
+    );
+  }
+  if (routeSourceRefs.length > 0) {
+    evidenceHighlights.push(
+      `${routeSourceRefs.length} capped route treatment/source reference(s) attached.`,
+    );
+  }
+
+  const cautionFlags = [
+    "This is a treatment-scope review prompt, not proof that the segment lacks a bus lane.",
+    "Weak or missing public overlap can reflect incomplete geometry inventory, route-shape mismatch, or direction/time restrictions.",
+    "Keep any public language segment-scoped and route-contextual unless reviewed geometry supports a broader claim.",
+  ];
+  if (segmentLengthFeet !== null && segmentLengthFeet < 500) {
+    cautionFlags.push(
+      "Segment is above the detector minimum but still short enough that stop spacing and dwell can dominate speed interpretation.",
+    );
+  }
+  if (numberValue(primary["segmentOrder"]) === 1) {
+    cautionFlags.push(
+      "This is the first observed timepoint segment, so terminal effects can contaminate running-speed interpretation.",
+    );
+  }
+
+  return {
+    summary:
+      speed === null
+        ? `Treatment-scope gap review for ${routeId}: route-level bus-lane evidence exists, but this segment needs geometry/source verification.`
+        : `Treatment-scope gap review for ${routeId}: route-level bus-lane evidence exists, but a slow segment at ${formatNumber(speed)} mph appears uncovered or weakly covered.`,
+    evidenceHighlights,
+    cautionFlags,
+    suggestedChecks: [
+      "Verify route-level treatment refs and segment-level geometry before promotion.",
+      "Check whether treatment scope is directional, time-restricted, planned, or intentionally elsewhere.",
+      "Compare route/network rank as descriptive calibration, not causal control evidence.",
+      "Look for terminal, loading, enforcement, or construction explanations before writing a cause.",
+    ],
+  };
+}
+
+function genericReviewContext(input: {
+  candidate: FindingCandidate;
+  evidence: FindingReviewPacket["evidence"];
+}): PacketReviewContext {
+  return {
+    summary: `${input.candidate.detectorId}/${input.candidate.reasonCode} packet for ${input.candidate.scopeKind} ${input.candidate.scopeId}.`,
+    evidenceHighlights: [
+      `${input.evidence.primary.length} primary, ${input.evidence.context.length} context, ${input.evidence.counterEvidence.length} counter-evidence, ${input.evidence.missingData.length} missing-data evidence link(s).`,
+    ],
+    cautionFlags: [
+      input.candidate.claimSafeLabel === "issue_clean"
+        ? "Claim text is detector-generated; reviewer still needs to confirm scope and evidence."
+        : "Claim is explicitly marked needs-review; revise or enrich before public promotion.",
+    ],
+    suggestedChecks: COMMON_REVIEW_CHECKLIST.slice(0, 3),
+  };
+}
+
+function packetReviewContext(input: {
+  candidate: FindingCandidate;
+  evidence: FindingReviewPacket["evidence"];
+  evidenceObjects: FindingReviewPacket["evidenceObjects"];
+}): PacketReviewContext {
+  if (input.candidate.detectorId === "treatment_scope_mismatch") {
+    return treatmentScopeMismatchReviewContext({
+      candidate: input.candidate,
+      evidenceObjects: input.evidenceObjects,
+    });
+  }
+  if (input.candidate.detectorId === "treatment_scope_gap") {
+    return treatmentScopeGapReviewContext({
+      candidate: input.candidate,
+      evidenceObjects: input.evidenceObjects,
+    });
+  }
+  return genericReviewContext({ candidate: input.candidate, evidence: input.evidence });
+}
+
 function reviewChecklist(input: {
   candidate: FindingCandidate;
   detectorChecklist: readonly string[];
@@ -327,6 +627,7 @@ function buildPacket(input: {
     throw new Error(`Missing detector spec for ${input.candidate.detectorId}`);
   }
   const evidence = roleGroups(input.evidenceLinks);
+  const parsedEvidenceObjects = evidenceObjects(evidence);
   const checklist = reviewChecklist({
     candidate: input.candidate,
     detectorChecklist: detectorSpec.promotionChecklist,
@@ -346,8 +647,13 @@ function buildPacket(input: {
     detectorSpec,
     priority: candidatePriority(input.candidate),
     evidence,
-    evidenceObjects: evidenceObjects(evidence),
+    evidenceObjects: parsedEvidenceObjects,
     coverage: [...input.coverage],
+    reviewContext: packetReviewContext({
+      candidate: input.candidate,
+      evidence,
+      evidenceObjects: parsedEvidenceObjects,
+    }),
     derivedMetricWarnings: [],
     promotionBlockers: promotionBlockers({
       candidate: input.candidate,
