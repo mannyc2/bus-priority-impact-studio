@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 const forbiddenRuntimeImports = [
   "@bp/analytics",
+  "@bp/applied-research",
   "@bp/sources",
   "@bp/pipeline",
   "@bp/pipeline-v2",
@@ -207,6 +208,28 @@ describe("production boundary harness", () => {
       "react",
       "fs",
       "node:",
+    ];
+
+    for (const file of files) {
+      for (const forbiddenImport of forbiddenImports) {
+        expect(
+          importsForbiddenSpecifier(file.text, forbiddenImport),
+          `${file.path} imports ${forbiddenImport}`,
+        ).toBe(false);
+      }
+    }
+  });
+
+  test("@bp/analytics stays pure and does not import storage, applied-research, filesystem, or dataframe runtimes", async () => {
+    const files = await readFiles("packages/analytics/src");
+    const forbiddenImports = [
+      "@bp/db",
+      "@bp/applied-research",
+      "bun:sqlite",
+      "fs",
+      "node:fs",
+      "node:fs/",
+      "@tidy-ts/dataframe",
     ];
 
     for (const file of files) {
