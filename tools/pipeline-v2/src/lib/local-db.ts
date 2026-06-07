@@ -1,7 +1,12 @@
 import { Database } from "bun:sqlite";
 import { join } from "node:path";
 import { middleware, z } from "@liche/core";
-import { createLocalPipelineDb, type LocalPipelineDb, migrateLocalPipelineDb } from "@bp/db/local";
+import {
+  applyLocalPragmas,
+  createLocalPipelineDb,
+  type LocalPipelineDb,
+  migrateLocalPipelineDb,
+} from "@bp/db/local";
 import { fromRepoRoot } from "./paths.ts";
 import { loadSpatialite } from "./spatialite.ts";
 
@@ -14,6 +19,8 @@ export type OpenLocalPipelineDb = {
 
 export type OpenLocalDbOptions = {
   spatial?: boolean;
+  /** Open read-only: skip migration and WAL/sync pragmas, keep foreign keys + busy timeout. */
+  readonly?: boolean;
 };
 
 export const dbOptions = z.object({
@@ -29,12 +36,12 @@ export async function openLocalPipelineDb(
   options: OpenLocalDbOptions = {},
 ): Promise<OpenLocalPipelineDb> {
   const resolved = path ?? defaultLocalPipelineDbPath();
-  await migrateLocalPipelineDb(resolved);
+  if (!options.readonly) {
+    await migrateLocalPipelineDb(resolved);
+  }
 
-  const sqlite = new Database(resolved);
-  sqlite.exec("PRAGMA journal_mode = WAL");
-  sqlite.exec("PRAGMA busy_timeout = 5000");
-  sqlite.exec("PRAGMA foreign_keys = ON");
+  const sqlite = new Database(resolved, options.readonly ? { readonly: true } : undefined);
+  applyLocalPragmas(sqlite, { readonly: options.readonly ?? false });
 
   let spatialite: { path: string; version: string } | null = null;
   if (options.spatial) {

@@ -134,7 +134,7 @@ export default defineCommand({
         .describe("Optional route timeline serving projection JSON to fold into D1 verification"),
     }),
   },
-  middleware: [withLocalDb()],
+  middleware: [withLocalDb({ readonly: true })],
   output: z.object({
     schemaVersion: z.number(),
     isoMonth: z.string(),

@@ -4,9 +4,12 @@ import {
   detectorEvaluationArtifactPath,
   detectorEvaluationInputArtifactPaths,
   detectorEvaluationMarkdownPath,
+  modelArtifactServingProjectionPath,
+  modelArtifactServingProjectionStudioPath,
 } from "@bp/applied-research/artifacts";
 import {
   buildDetectorEvaluationArtifact,
+  buildModelArtifactServingProjection,
   type CandidateQueueArtifact,
   type DetectorCoverageAuditArtifact,
   type DetectorEvaluationLabelInputArtifact,
@@ -21,6 +24,17 @@ import {
   type ReviewPacketArtifact,
   type ReviewPacketCoverageArtifact,
 } from "@bp/applied-research/evaluation";
+import type {
+  DecouplingQuadrantsArtifactV1,
+  InterventionScopeFitArtifactV1,
+  PulseFingerprintArtifactV1,
+  ReliabilityExposurePanelArtifactV1,
+  RoutePeerResidualArtifactV1,
+  SegmentDaypartResidualArtifactV1,
+  SegmentSpeedResidualArtifactV1,
+  SourceGapModelArtifactV1,
+  TreatmentEventPanelArtifactV1,
+} from "@bp/applied-research/feature-resolvers";
 import type {
   RuntimeTrendScoreVectorArtifact,
   SpeedPaceScoreVectorArtifact,
@@ -58,6 +72,8 @@ export default defineCommand({
     releaseMonth: z.string(),
     outputPath: z.string(),
     markdownOutputPath: z.string(),
+    modelProjectionOutputPath: z.string(),
+    studioModelProjectionOutputPath: z.string(),
     detectorCount: z.number().int().nonnegative(),
     scorecardCount: z.number().int().nonnegative(),
     positiveOnlyGoldSet: z.boolean(),
@@ -82,6 +98,14 @@ export default defineCommand({
       input.options.markdownOutput === undefined
         ? detectorEvaluationMarkdownPath(outputPath)
         : fromCliPath(input.options.markdownOutput);
+    const modelProjectionOutputPath = modelArtifactServingProjectionPath({
+      artifactRoot,
+      historyStartMonth: input.options.historyStartMonth,
+      releaseMonth,
+    });
+    const studioModelProjectionOutputPath = modelArtifactServingProjectionStudioPath({
+      artifactRoot,
+    });
 
     const artifactPaths = detectorEvaluationInputArtifactPaths({
       artifactRoot,
@@ -110,6 +134,15 @@ export default defineCommand({
         detectorScoreVectors: inputArtifactPath(artifactPaths.detectorScoreVectors),
         evaluationLabels: inputArtifactPath(artifactPaths.evaluationLabels),
         grainAudit: inputArtifactPath(artifactPaths.grainAudit),
+        segmentSpeedResiduals: inputArtifactPath(artifactPaths.segmentSpeedResiduals),
+        segmentDaypartResiduals: inputArtifactPath(artifactPaths.segmentDaypartResiduals),
+        routePeerResiduals: inputArtifactPath(artifactPaths.routePeerResiduals),
+        reliabilityExposurePanel: inputArtifactPath(artifactPaths.reliabilityExposurePanel),
+        interventionScopeFit: inputArtifactPath(artifactPaths.interventionScopeFit),
+        sourceGapModel: inputArtifactPath(artifactPaths.sourceGapModel),
+        treatmentEventPanel: inputArtifactPath(artifactPaths.treatmentEventPanel),
+        pulseFingerprint: inputArtifactPath(artifactPaths.pulseFingerprint),
+        decouplingQuadrants: inputArtifactPath(artifactPaths.decouplingQuadrants),
       },
       reviewDecisions:
         (await readJsonIfExists<ReviewDecisionArtifact>(artifactPaths.reviewDecisions)) ?? {},
@@ -144,17 +177,54 @@ export default defineCommand({
         artifactPaths.evaluationLabels,
       ),
       grainAudit: await readJsonIfExists<DetectorGrainAuditArtifact>(artifactPaths.grainAudit),
+      segmentSpeedResiduals: await readJsonIfExists<SegmentSpeedResidualArtifactV1>(
+        artifactPaths.segmentSpeedResiduals,
+      ),
+      segmentDaypartResiduals: await readJsonIfExists<SegmentDaypartResidualArtifactV1>(
+        artifactPaths.segmentDaypartResiduals,
+      ),
+      routePeerResiduals: await readJsonIfExists<RoutePeerResidualArtifactV1>(
+        artifactPaths.routePeerResiduals,
+      ),
+      reliabilityExposurePanel: await readJsonIfExists<ReliabilityExposurePanelArtifactV1>(
+        artifactPaths.reliabilityExposurePanel,
+      ),
+      interventionScopeFit: await readJsonIfExists<InterventionScopeFitArtifactV1>(
+        artifactPaths.interventionScopeFit,
+      ),
+      sourceGapModel: await readJsonIfExists<SourceGapModelArtifactV1>(
+        artifactPaths.sourceGapModel,
+      ),
+      treatmentEventPanel: await readJsonIfExists<TreatmentEventPanelArtifactV1>(
+        artifactPaths.treatmentEventPanel,
+      ),
+      pulseFingerprint: await readJsonIfExists<PulseFingerprintArtifactV1>(
+        artifactPaths.pulseFingerprint,
+      ),
+      decouplingQuadrants: await readJsonIfExists<DecouplingQuadrantsArtifactV1>(
+        artifactPaths.decouplingQuadrants,
+      ),
     });
 
     await mkdir(dirname(outputPath), { recursive: true });
     await writeJson(outputPath, artifact);
     await mkdir(dirname(markdownOutputPath), { recursive: true });
     await Bun.write(markdownOutputPath, detectorEvaluationMarkdownReport(artifact));
+    const modelProjection = buildModelArtifactServingProjection({
+      evaluation: artifact,
+      sourceEvaluationPath: repoDisplayPath(outputPath),
+    });
+    await mkdir(dirname(modelProjectionOutputPath), { recursive: true });
+    await writeJson(modelProjectionOutputPath, modelProjection);
+    await mkdir(dirname(studioModelProjectionOutputPath), { recursive: true });
+    await writeJson(studioModelProjectionOutputPath, modelProjection);
 
     return {
       releaseMonth,
       outputPath: repoDisplayPath(outputPath),
       markdownOutputPath: repoDisplayPath(markdownOutputPath),
+      modelProjectionOutputPath: repoDisplayPath(modelProjectionOutputPath),
+      studioModelProjectionOutputPath: repoDisplayPath(studioModelProjectionOutputPath),
       detectorCount: artifact.summary.detectorCount,
       scorecardCount: artifact.summary.scorecardCount,
       positiveOnlyGoldSet: artifact.summary.positiveOnlyGoldSet,

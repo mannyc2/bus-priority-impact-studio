@@ -7,6 +7,7 @@ describe("analysis dependency closure audit boundary", () => {
   test("keeps dependency closure construction and markdown rendering in applied-research", () => {
     const source = readFileSync(COMMAND_PATH, "utf8");
 
+    expect(source).toContain("parseDataProductCompletenessArtifact");
     expect(source).toContain('from "@bp/applied-research/evaluation"');
     expect(source).toContain('from "@bp/applied-research/artifacts"');
     expect(source).toContain("buildAnalysisDependencyClosure({");

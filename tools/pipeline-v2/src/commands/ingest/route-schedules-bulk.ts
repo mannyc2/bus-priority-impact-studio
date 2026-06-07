@@ -3,6 +3,7 @@ import { Database as BunDatabase } from "bun:sqlite";
 import { existsSync, statSync } from "node:fs";
 import { mkdir, rm } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
+import { createLocalPipelineDb, listRouteCatalogIds } from "@bp/db/local";
 import { buildSoda3ExportUrl } from "@bp/sources/clients/socrata";
 import { getSocrataSource, type SocrataManifestSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
@@ -381,31 +382,26 @@ function localTableExists(sqlite: Database, tableName: string): boolean {
   return row !== null;
 }
 
-function currentCatalogRouteIds(sqlite: Database): string[] {
+async function currentCatalogRouteIds(sqlite: Database): Promise<string[]> {
   if (!localTableExists(sqlite, "local_route_catalog")) {
     throw new Error(
       "--only-missing-current-routes requires local_route_catalog to be present in the local DB",
     );
   }
 
-  return (
-    sqlite
-      .query("SELECT DISTINCT route_id FROM local_route_catalog ORDER BY route_id")
-      .all() as Array<{ route_id?: unknown }>
-  )
-    .map((row) => textValue(row.route_id))
-    .filter((routeId): routeId is string => routeId !== null)
-    .map((routeId) => routeId.toUpperCase());
+  return (await listRouteCatalogIds(createLocalPipelineDb(sqlite))).map((routeId) =>
+    routeId.toUpperCase(),
+  );
 }
 
-function missingCurrentRouteIds(input: {
+async function missingCurrentRouteIds(input: {
   sqlite: Database;
   sourceYear: number;
   explicitRoutes: readonly string[];
-}): string[] {
+}): Promise<string[]> {
   const explicitRoutes = normalizeRouteIds(input.explicitRoutes);
   const explicitSet = explicitRoutes.length > 0 ? new Set(explicitRoutes) : null;
-  return currentCatalogRouteIds(input.sqlite).filter(
+  return (await currentCatalogRouteIds(input.sqlite)).filter(
     (routeId) =>
       routeMatchesFilter(routeId, explicitSet) &&
       !isExistingRouteComplete(input.sqlite, input.sourceYear, routeId),
@@ -787,7 +783,7 @@ export async function runRouteSchedulesBulkIngest(
   const batchSize = inputs.batchSize ?? defaultBatchSize;
   const downloadOnly = inputs.downloadOnly ?? false;
   const routes = inputs.onlyMissingCurrentRoutes
-    ? missingCurrentRouteIds({
+    ? await missingCurrentRouteIds({
         sqlite: inputs.sqlite,
         sourceYear: inputs.sourceYear,
         explicitRoutes: inputs.routes,

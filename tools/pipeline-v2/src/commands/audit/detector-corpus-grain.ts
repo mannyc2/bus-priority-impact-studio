@@ -9,6 +9,7 @@ import {
 } from "@bp/applied-research/artifacts";
 import {
   DATA_PRODUCT_MANIFEST,
+  parseDataProductCompletenessArtifact,
   parseDataProductManifestText,
 } from "@bp/applied-research/data-products";
 import {
@@ -44,6 +45,11 @@ async function readOptionalJson(path: string | null): Promise<unknown | null> {
   const file = Bun.file(path);
   if (!(await file.exists())) return null;
   return await file.json();
+}
+
+async function readOptionalDataProductCompleteness(path: string | null): Promise<unknown | null> {
+  const json = await readOptionalJson(path);
+  return json === null ? null : parseDataProductCompletenessArtifact(json);
 }
 
 function asRouteMonthShadowAudit(value: unknown): RouteMonthShadowAuditArtifact | null {
@@ -131,7 +137,9 @@ export default defineCommand({
       input.options.dataProductCompleteness === undefined
         ? null
         : fromCliPath(input.options.dataProductCompleteness);
-    const productCompleteness = await readOptionalJson(dataProductCompletenessPath);
+    const productCompleteness = await readOptionalDataProductCompleteness(
+      dataProductCompletenessPath,
+    );
     const routeMonthShadowPath =
       input.options.routeMonthShadowAudit === undefined
         ? routeMonthShadowAuditPath({ artifactRoot, releaseMonth })

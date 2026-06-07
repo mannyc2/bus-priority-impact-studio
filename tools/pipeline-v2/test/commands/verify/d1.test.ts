@@ -1,10 +1,14 @@
 import { describe, expect, it } from "bun:test";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { type D1SeedOutputResult, estimateD1ExportCost } from "../../../src/commands/export/d1.ts";
 import {
   collectD1TableCounts,
   loadD1Database,
   verifyD1TableCounts,
 } from "../../../src/commands/verify/d1-loaded.ts";
+
+const commandPath = join(import.meta.dir, "../../../src/commands/verify/d1.ts");
 
 const schemaSql = `
   CREATE TABLE route_catalog (route_id TEXT PRIMARY KEY);
@@ -103,6 +107,12 @@ function emptyExportResult(): D1SeedOutputResult {
 }
 
 describe("verify d1 helpers", () => {
+  it("opens the local SQLite database read-only", () => {
+    const source = readFileSync(commandPath, "utf8");
+
+    expect(source).toContain("withLocalDb({ readonly: true })");
+  });
+
   it("collectD1TableCounts counts loaded rows including public_visible briefs", () => {
     const { database } = loadD1Database(schemaSql, seedSql);
     const routeCatalogTable = "route_catalog";

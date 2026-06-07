@@ -11,6 +11,7 @@ describe("audit studio-coverage command boundary", () => {
   test("delegates Studio route and brief coverage policy to applied research", async () => {
     const source = await readFile(commandPath, "utf8");
 
+    expect(source).toContain("withLocalDb({ readonly: true })");
     expect(source).toContain('from "@bp/applied-research/evaluation"');
     expect(source).toContain("auditRouteBriefInputHourlyBins");
     expect(source).toContain("auditProjectionSegmentHourBins");

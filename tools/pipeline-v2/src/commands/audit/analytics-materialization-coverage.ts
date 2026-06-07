@@ -64,7 +64,7 @@ const surfaceSummarySchema = z.object({
 export default defineCommand({
   path: ["audit", "analytics-materialization-coverage"],
   summary:
-    "Audit derived route artifact/table materialization coverage for a month and GTFS-RT run.",
+    "Audit selected route-level table/artifact materialization surfaces; canonical product completeness is audit data-product-completeness.",
   input: {
     options: dbOptions.extend({
       year: arg.positiveInt().default(2026).describe("Materialization calendar year"),

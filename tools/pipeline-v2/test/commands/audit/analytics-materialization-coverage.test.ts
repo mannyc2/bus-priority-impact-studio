@@ -12,6 +12,7 @@ describe("analytics materialization coverage audit boundary", () => {
 
     expect(source).toContain('from "@bp/applied-research/artifacts"');
     expect(source).toContain('from "@bp/applied-research/evaluation"');
+    expect(source).toContain("canonical product completeness is audit data-product-completeness");
     expect(source).toContain("buildAnalyticsMaterializationCoverageAudit({");
     expect(source).toContain("registryProducts: materializationCoverageRegistryProducts()");
     expect(source).not.toContain("local_route_segment_speed");

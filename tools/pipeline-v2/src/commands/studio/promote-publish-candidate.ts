@@ -18,6 +18,7 @@ import {
   buildStudioRouteLadderProjection,
   buildStudioRouteProjection,
   buildStudioRoutesProjection,
+  buildStudioSegmentsProjection,
 } from "@bp/domain/studio/projections";
 import { type StudioReleasePayload, StudioReleasePayloadSchema } from "@bp/domain/studio/release";
 import { defineCommand, z } from "@liche/core";
@@ -166,6 +167,8 @@ async function writeProjectionSet(
   await writeJson(outputPath, release);
   wroteProjectionCount += 1;
   await writeJson(resolve(outputDir, "routes.json"), buildStudioRoutesProjection(release));
+  wroteProjectionCount += 1;
+  await writeJson(resolve(outputDir, "segments.json"), buildStudioSegmentsProjection(release));
   wroteProjectionCount += 1;
   await writeJson(resolve(outputDir, "findings.json"), buildStudioFindingsProjection(release));
   wroteProjectionCount += 1;

@@ -180,6 +180,8 @@ function parseShard(value: unknown, index: number): QueueShard {
 function primaryLaneFor(input: {
   readonly manifestExists: boolean;
   readonly workerErrorExists: boolean;
+  readonly artifactMissing: boolean;
+  readonly auditMissing: boolean;
   readonly providerFailed: boolean;
   readonly toolResponseFailed: boolean;
   readonly sourceToolRequired: boolean;
@@ -195,6 +197,7 @@ function primaryLaneFor(input: {
   if (input.toolResponseFailed) return "tool_response_retry";
   if (input.sourceToolRequired) return "source_tool_enrichment";
   if (input.validatorFailed) return "validator_feedback_retry";
+  if (input.artifactMissing || input.auditMissing) return "quarantine";
   if (input.clean) return "clean";
   return input.auditBlockerCount > 0 ? "quarantine" : "clean";
 }
@@ -234,6 +237,54 @@ function recommendedWorkerCount(input: {
   if (providerFailureRate >= 0.4) return Math.max(4, Math.floor(input.planned / 2));
   if (providerFailureRate >= 0.2) return Math.max(8, Math.floor(input.planned * 0.75));
   return input.planned;
+}
+
+type WindowCandidate = {
+  readonly windowId: string;
+  readonly sourceIds: string[];
+  readonly artifactPath: string | null;
+  readonly auditPath: string | null;
+  readonly auditBlockerCount: number | null;
+  readonly summary: Record<string, unknown> | null;
+};
+
+function windowCandidatesFrom(input: {
+  readonly manifest: Record<string, unknown> | null;
+  readonly shard: QueueShard;
+}): WindowCandidate[] {
+  const manifestWindows = input.manifest === null ? [] : arrayValue(input.manifest["windows"]);
+  if (manifestWindows.length > 0) {
+    return manifestWindows.flatMap((window, index) => {
+      const object = objectValue(window);
+      if (object === null) return [];
+      const windowId =
+        stringValue(object["windowId"]) ??
+        input.shard.windowIds[index] ??
+        `${input.shard.shardId}:window-${index + 1}`;
+      const sourceId = stringValue(object["sourceId"]);
+      return [
+        {
+          windowId,
+          sourceIds: sourceId === null ? input.shard.sourceIds : [sourceId],
+          artifactPath: stringValue(object["artifactPath"]),
+          auditPath: stringValue(object["auditPath"]),
+          auditBlockerCount: numberValue(object["auditBlockerCount"]),
+          summary: objectValue(object["summary"]),
+        },
+      ];
+    });
+  }
+
+  const fallbackWindowIds =
+    input.shard.windowIds.length > 0 ? input.shard.windowIds : [`${input.shard.shardId}:unknown`];
+  return fallbackWindowIds.map((windowId) => ({
+    windowId,
+    sourceIds: input.shard.sourceIds,
+    artifactPath: null,
+    auditPath: null,
+    auditBlockerCount: null,
+    summary: null,
+  }));
 }
 
 export async function buildTier2AgenticSelfHealPlan(
@@ -290,120 +341,128 @@ export async function buildTier2AgenticSelfHealPlan(
     const claimExists = await fileExists(claimPath);
     if (workerErrorExists) workerErrorCount += 1;
 
-    let artifactPath: string | null = null;
-    let auditPath: string | null = null;
-    let artifact: Record<string, unknown> | null = null;
-    let audit: Record<string, unknown> | null = null;
     if (manifest !== null) {
       completedShardCount += 1;
-      const window = objectValue(arrayValue(manifest["windows"])[0]);
-      artifactPath = window === null ? null : stringValue(window["artifactPath"]);
-      auditPath = window === null ? null : stringValue(window["auditPath"]);
-      artifact = artifactPath === null ? null : objectValue(await readJsonIfExists(artifactPath));
-      audit = auditPath === null ? null : objectValue(await readJsonIfExists(auditPath));
     }
 
-    const attempts = artifact === null ? [] : arrayValue(artifact["llmAttempts"]);
-    const lastAttempt = objectValue(attempts.at(-1));
-    const lastAttemptStatus = lastAttempt === null ? null : stringValue(lastAttempt["status"]);
-    const lastHttpStatus = lastAttempt === null ? null : numberValue(lastAttempt["httpStatus"]);
-    if (lastHttpStatus !== null) increment(httpStatusCounts, String(lastHttpStatus));
-
-    const submitResult = artifact === null ? null : objectValue(artifact["submitResult"]);
-    const submitState = submitResult === null ? null : stringValue(submitResult["state"]);
-    const summary = artifact === null ? null : objectValue(artifact["summary"]);
-    const draftCount = summary === null ? 0 : (numberValue(summary["draftCount"]) ?? 0);
-    const acceptedCount = summary === null ? 0 : (numberValue(summary["acceptedCount"]) ?? 0);
-    const rejectedCount = summary === null ? 0 : (numberValue(summary["rejectedCount"]) ?? 0);
-    const artifactValidationIssues =
-      summary === null ? 0 : (numberValue(summary["validationIssueCount"]) ?? 0);
-    acceptedSurfaceCount += acceptedCount;
-    rejectedDraftCount += rejectedCount;
-    validationIssueCount += artifactValidationIssues;
-
-    const auditIssues = audit === null ? [] : arrayValue(audit["issues"]);
-    const issueCodes = auditIssues.flatMap((issue) => {
-      const code = stringValue(objectValue(issue)?.["code"]);
-      return code === null ? [] : [code];
-    });
-    for (const code of issueCodes) increment(issueCodeCounts, code);
-
-    const auditBlockers =
-      audit === null ? 0 : (numberValue(audit["blockerCount"]) ?? 0);
-    auditBlockerCount += auditBlockers;
-
-    const providerFailed =
-      lastAttemptStatus === "provider_failed" || issueCodes.includes("llm_provider_failed");
-    const toolResponseFailed =
-      lastAttemptStatus === "tool_response_parse_failed" ||
-      issueCodes.includes("llm_no_parseable_tool_response");
-    const sourceToolRequired = issueCodes.includes("missing_data_requires_search_transcript");
-    const validatorFailed =
-      rejectedCount > 0 ||
-      artifactValidationIssues > 0 ||
-      issueCodes.includes("artifact_has_validation_failures") ||
-      issueCodes.includes("route_selection_field_path_not_canonical") ||
-      issueCodes.includes("evidence_field_path_not_found");
-    if (providerFailed) providerFailureCount += 1;
-    if (toolResponseFailed) toolResponseFailureCount += 1;
-    if (validatorFailed) validatorFailureCount += 1;
-
     const manifestExists = manifest !== null;
-    const clean =
-      manifestExists &&
-      !workerErrorExists &&
-      auditBlockers === 0 &&
-      rejectedCount === 0 &&
-      artifactValidationIssues === 0 &&
-      lastAttemptStatus !== "provider_failed" &&
-      lastAttemptStatus !== "tool_response_parse_failed";
-    const primaryLane = primaryLaneFor({
-      manifestExists,
-      workerErrorExists,
-      providerFailed,
-      toolResponseFailed,
-      sourceToolRequired,
-      validatorFailed,
-      clean,
-      auditBlockerCount: auditBlockers,
-    });
-    addLaneCount(laneCounts, primaryLane);
-    retryWindowIdsByLane[primaryLane].push(...shard.windowIds);
+    for (const window of windowCandidatesFrom({ manifest, shard })) {
+      const artifact =
+        window.artifactPath === null ? null : objectValue(await readJsonIfExists(window.artifactPath));
+      const audit =
+        window.auditPath === null ? null : objectValue(await readJsonIfExists(window.auditPath));
 
-    const reasons = [
-      ...(manifestExists ? [] : ["manifest_missing"]),
-      ...(claimExists && !manifestExists ? ["claimed_without_manifest"] : []),
-      ...(workerErrorExists ? ["worker_error"] : []),
-      ...(providerFailed ? ["provider_failed"] : []),
-      ...(toolResponseFailed ? ["tool_response_parse_failed"] : []),
-      ...(sourceToolRequired ? ["source_shell_required"] : []),
-      ...(validatorFailed ? ["validator_failed"] : []),
-      ...(auditBlockers > 0 ? ["audit_blocked"] : []),
-    ];
+      const attempts = artifact === null ? [] : arrayValue(artifact["llmAttempts"]);
+      const lastAttempt = objectValue(attempts.at(-1));
+      const lastAttemptStatus = lastAttempt === null ? null : stringValue(lastAttempt["status"]);
+      const lastHttpStatus = lastAttempt === null ? null : numberValue(lastAttempt["httpStatus"]);
+      if (lastHttpStatus !== null) increment(httpStatusCounts, String(lastHttpStatus));
 
-    items.push({
-      shardId: shard.shardId,
-      windowIds: shard.windowIds,
-      sourceIds: shard.sourceIds,
-      outputDir: shard.outputDir,
-      primaryLane,
-      decision: decisionFor(primaryLane),
-      reasons,
-      manifestPath,
-      artifactPath,
-      auditPath,
-      workerErrorPath: workerErrorExists ? workerErrorPath : null,
-      claimPath: claimExists ? claimPath : null,
-      lastAttemptStatus,
-      lastHttpStatus,
-      submitState,
-      auditBlockerCount: auditBlockers,
-      validationIssueCount: artifactValidationIssues,
-      rejectedCount,
-      acceptedCount,
-      draftCount,
-      issueCodes,
-    });
+      const submitResult = artifact === null ? null : objectValue(artifact["submitResult"]);
+      const submitState = submitResult === null ? null : stringValue(submitResult["state"]);
+      const summary = artifact === null ? window.summary : objectValue(artifact["summary"]);
+      const draftCount = summary === null ? 0 : (numberValue(summary["draftCount"]) ?? 0);
+      const acceptedCount = summary === null ? 0 : (numberValue(summary["acceptedCount"]) ?? 0);
+      const rejectedCount = summary === null ? 0 : (numberValue(summary["rejectedCount"]) ?? 0);
+      const artifactValidationIssues =
+        summary === null ? 0 : (numberValue(summary["validationIssueCount"]) ?? 0);
+      acceptedSurfaceCount += acceptedCount;
+      rejectedDraftCount += rejectedCount;
+      validationIssueCount += artifactValidationIssues;
+
+      const auditIssues = audit === null ? [] : arrayValue(audit["issues"]);
+      const issueCodes = auditIssues.flatMap((issue) => {
+        const code = stringValue(objectValue(issue)?.["code"]);
+        return code === null ? [] : [code];
+      });
+      for (const code of issueCodes) increment(issueCodeCounts, code);
+
+      const auditBlockers =
+        audit === null
+          ? (window.auditBlockerCount ?? 0)
+          : (numberValue(audit["blockerCount"]) ?? 0);
+      auditBlockerCount += auditBlockers;
+
+      const artifactMissing = manifestExists && artifact === null;
+      const auditMissing = manifestExists && audit === null;
+      const providerFailed =
+        lastAttemptStatus === "provider_failed" || issueCodes.includes("llm_provider_failed");
+      const toolResponseFailed =
+        lastAttemptStatus === "tool_response_parse_failed" ||
+        issueCodes.includes("llm_no_parseable_tool_response");
+      const sourceToolRequired = issueCodes.includes("missing_data_requires_search_transcript");
+      const validatorFailed =
+        rejectedCount > 0 ||
+        artifactValidationIssues > 0 ||
+        issueCodes.includes("artifact_has_validation_failures") ||
+        issueCodes.includes("route_selection_field_path_not_canonical") ||
+        issueCodes.includes("evidence_field_path_not_found");
+      if (providerFailed) providerFailureCount += 1;
+      if (toolResponseFailed) toolResponseFailureCount += 1;
+      if (validatorFailed) validatorFailureCount += 1;
+
+      const clean =
+        manifestExists &&
+        !workerErrorExists &&
+        !artifactMissing &&
+        !auditMissing &&
+        auditBlockers === 0 &&
+        rejectedCount === 0 &&
+        artifactValidationIssues === 0 &&
+        lastAttemptStatus !== "provider_failed" &&
+        lastAttemptStatus !== "tool_response_parse_failed";
+      const primaryLane = primaryLaneFor({
+        manifestExists,
+        workerErrorExists,
+        artifactMissing,
+        auditMissing,
+        providerFailed,
+        toolResponseFailed,
+        sourceToolRequired,
+        validatorFailed,
+        clean,
+        auditBlockerCount: auditBlockers,
+      });
+      addLaneCount(laneCounts, primaryLane);
+      retryWindowIdsByLane[primaryLane].push(window.windowId);
+
+      const reasons = [
+        ...(manifestExists ? [] : ["manifest_missing"]),
+        ...(claimExists && !manifestExists ? ["claimed_without_manifest"] : []),
+        ...(workerErrorExists ? ["worker_error"] : []),
+        ...(artifactMissing ? ["artifact_missing"] : []),
+        ...(auditMissing ? ["audit_missing"] : []),
+        ...(providerFailed ? ["provider_failed"] : []),
+        ...(toolResponseFailed ? ["tool_response_parse_failed"] : []),
+        ...(sourceToolRequired ? ["source_shell_required"] : []),
+        ...(validatorFailed ? ["validator_failed"] : []),
+        ...(auditBlockers > 0 ? ["audit_blocked"] : []),
+      ];
+
+      items.push({
+        shardId: shard.shardId,
+        windowIds: [window.windowId],
+        sourceIds: window.sourceIds,
+        outputDir: shard.outputDir,
+        primaryLane,
+        decision: decisionFor(primaryLane),
+        reasons,
+        manifestPath,
+        artifactPath: window.artifactPath,
+        auditPath: window.auditPath,
+        workerErrorPath: workerErrorExists ? workerErrorPath : null,
+        claimPath: claimExists ? claimPath : null,
+        lastAttemptStatus,
+        lastHttpStatus,
+        submitState,
+        auditBlockerCount: auditBlockers,
+        validationIssueCount: artifactValidationIssues,
+        rejectedCount,
+        acceptedCount,
+        draftCount,
+        issueCodes,
+      });
+    }
   }
 
   const plannedWorkerCount =

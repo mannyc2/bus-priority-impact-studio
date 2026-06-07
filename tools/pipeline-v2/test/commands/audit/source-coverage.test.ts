@@ -8,6 +8,7 @@ describe("source coverage audit boundary", () => {
   test("keeps source coverage ledger construction in applied-research", () => {
     const source = readFileSync(commandPath, "utf8");
 
+    expect(source).toContain("withLocalDb({ readonly: true })");
     expect(source).toContain('from "@bp/applied-research/local-db"');
     expect(source).toContain("buildSourceCoverageLedger({");
     expect(source).not.toContain("function tableExists");

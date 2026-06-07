@@ -32,7 +32,7 @@ export default defineCommand({
       output: z.string().optional().describe("Override output path for ledger JSON"),
     }),
   },
-  middleware: [withLocalDb()],
+  middleware: [withLocalDb({ readonly: true })],
   output: z.object({
     month: z.string(),
     outputPath: z.string(),

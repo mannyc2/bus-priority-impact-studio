@@ -25,6 +25,7 @@ import {
   dataProductReasons,
   dataProductStatus,
   dataProductStatusCounts,
+  parseDataProductCompletenessArtifact,
   parseDataProductManifestText,
 } from "@bp/applied-research/data-products";
 import {
@@ -460,6 +461,7 @@ const productSummarySchema = z.object({
     "upstream_blocked",
     "downstream_blocked",
     "available_not_fetched",
+    "source_absent",
     "derived_not_built",
     "derived_from_available_not_fetched",
     "derived_from_upstream_blocked",
@@ -475,6 +477,7 @@ const productSummarySchema = z.object({
       "upstream_blocked",
       "downstream_blocked",
       "available_not_fetched",
+      "source_absent",
       "derived_not_built",
       "derived_from_available_not_fetched",
       "derived_from_upstream_blocked",
@@ -496,6 +499,7 @@ const productSummarySchema = z.object({
         "upstream_blocked",
         "downstream_blocked",
         "available_not_fetched",
+        "source_absent",
         "derived_not_built",
         "derived_from_available_not_fetched",
         "derived_from_upstream_blocked",
@@ -554,6 +558,7 @@ export default defineCommand({
       upstream_blocked: z.number().int().nonnegative(),
       downstream_blocked: z.number().int().nonnegative(),
       available_not_fetched: z.number().int().nonnegative(),
+      source_absent: z.number().int().nonnegative(),
       derived_not_built: z.number().int().nonnegative(),
       derived_from_available_not_fetched: z.number().int().nonnegative(),
       derived_from_upstream_blocked: z.number().int().nonnegative(),
@@ -574,6 +579,7 @@ export default defineCommand({
       stale: coverageBucketSchema,
       waived: coverageBucketSchema,
       unknown: coverageBucketSchema,
+      sourceAbsent: coverageBucketSchema,
     }),
     products: z.array(productSummarySchema),
   }),
@@ -638,26 +644,29 @@ export default defineCommand({
     }
 
     await mkdir(dirname(outputPath), { recursive: true });
-    await writeJson(outputPath, audit);
+    const validatedAudit = parseDataProductCompletenessArtifact(
+      audit,
+    ) as DataProductCompletenessAudit;
+    await writeJson(outputPath, validatedAudit);
 
     return {
       releaseMonth,
       historyStartMonth,
       runId,
-      gtfsRunId: audit.gtfsRunId,
+      gtfsRunId: validatedAudit.gtfsRunId,
       outputPath: repoDisplayPath(outputPath),
-      productCount: audit.summary.productCount,
-      completeProductCount: audit.summary.completeProductCount,
-      partialProductCount: audit.summary.partialProductCount,
-      missingProductCount: audit.summary.missingProductCount,
-      staleProductCount: audit.summary.staleProductCount,
-      waivedProductCount: audit.summary.waivedProductCount,
-      blockedProductCount: audit.summary.blockedProductCount,
-      fetchingProductCount: audit.summary.fetchingProductCount,
-      downstreamBlockedProductCount: audit.summary.downstreamBlockedProductCount,
-      gapClassCounts: audit.summary.gapClassCounts,
-      coverage: audit.coverage,
-      products: audit.products.map((product) => ({
+      productCount: validatedAudit.summary.productCount,
+      completeProductCount: validatedAudit.summary.completeProductCount,
+      partialProductCount: validatedAudit.summary.partialProductCount,
+      missingProductCount: validatedAudit.summary.missingProductCount,
+      staleProductCount: validatedAudit.summary.staleProductCount,
+      waivedProductCount: validatedAudit.summary.waivedProductCount,
+      blockedProductCount: validatedAudit.summary.blockedProductCount,
+      fetchingProductCount: validatedAudit.summary.fetchingProductCount,
+      downstreamBlockedProductCount: validatedAudit.summary.downstreamBlockedProductCount,
+      gapClassCounts: validatedAudit.summary.gapClassCounts,
+      coverage: validatedAudit.coverage,
+      products: validatedAudit.products.map((product) => ({
         productId: product.productId,
         label: product.label,
         kind: product.kind,

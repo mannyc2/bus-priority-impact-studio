@@ -735,7 +735,7 @@ export default defineCommand({
       output: z.string().optional().describe("Override output path for audit JSON"),
     }),
   },
-  middleware: [withLocalDb()],
+  middleware: [withLocalDb({ readonly: true })],
   output: z
     .object({
       status: z.enum(["pass", "warn", "fail"]),

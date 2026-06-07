@@ -1,55 +1,14 @@
-import { Database, type Database as SqliteDatabase } from "bun:sqlite";
+import { Database } from "bun:sqlite";
 import {
   buildPersistentSpeedSegmentCoverageRepairs,
   PERSISTENT_SPEED_SEGMENT_COVERAGE_REPAIR_DETECTOR_ID,
 } from "@bp/applied-research/evaluation";
 import { loadPersistentSpeedSegmentCoverageRepairLocalDbRows } from "@bp/applied-research/local-db";
-import type { FindingCoverageAudit } from "@bp/domain/findings";
+import { createLocalPipelineDb, insertCoverageAuditIgnore } from "@bp/db/local";
 import { arg, defineCommand, z } from "@liche/core";
 import { isoMonth } from "../../lib/dates.ts";
 import { dbOptions, defaultLocalPipelineDbPath } from "../../lib/local-db.ts";
 import { fromCliPath } from "../../lib/paths.ts";
-
-function insertCoverage(sqlite: SqliteDatabase, rows: readonly FindingCoverageAudit[]): void {
-  const insert = sqlite.query(
-    `
-      INSERT OR IGNORE INTO local_finding_coverage_audit (
-        audit_id,
-        detector_run_id,
-        detector_id,
-        month,
-        scope_kind,
-        scope_id,
-        outcome,
-        reason_code,
-        reason,
-        inputs_seen_json,
-        inputs_expected_json,
-        created_at
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `,
-  );
-  const transaction = sqlite.transaction((coverageRows: readonly FindingCoverageAudit[]) => {
-    for (const row of coverageRows) {
-      insert.run(
-        row.auditId,
-        row.detectorRunId,
-        row.detectorId,
-        row.month,
-        row.scopeKind,
-        row.scopeId,
-        row.outcome,
-        row.reasonCode,
-        row.reason,
-        row.inputsSeenJson,
-        row.inputsExpectedJson,
-        row.createdAt,
-      );
-    }
-  });
-  transaction(rows);
-}
 
 export default defineCommand({
   path: ["findings", "repair-persistent-speed-coverage"],
@@ -75,6 +34,7 @@ export default defineCommand({
     const sqlite = new Database(dbPath);
     try {
       sqlite.exec("PRAGMA busy_timeout = 30000");
+      const localDb = createLocalPipelineDb(sqlite);
       const repairs = buildPersistentSpeedSegmentCoverageRepairs({
         generatedAt: new Date().toISOString(),
         rows: loadPersistentSpeedSegmentCoverageRepairLocalDbRows({
@@ -82,7 +42,7 @@ export default defineCommand({
           month: releaseMonth,
         }).rows,
       });
-      if (input.options.execute) insertCoverage(sqlite, repairs);
+      if (input.options.execute) await insertCoverageAuditIgnore(localDb, repairs);
       return {
         releaseMonth,
         detectorId: PERSISTENT_SPEED_SEGMENT_COVERAGE_REPAIR_DETECTOR_ID,

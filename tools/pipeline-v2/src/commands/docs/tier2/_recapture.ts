@@ -30,7 +30,8 @@ import {
 // ---------------------------------------------------------------------------
 // Phase 1c: Wayback recapture for sources that failed initial capture
 //
-// Some MTA pages 403 even after the Chrome-UA fallback in defaultFetch. This
+// Some MTA pages can still fail direct capture even after the native curl
+// browser-navigation fallback in defaultFetch. This
 // job targets those sources, queries the Internet Archive's CDX API for the
 // most recent successful snapshot, fetches the original HTML via the `id_`
 // Wayback flavor (no IA UI chrome), strips it to text using the same

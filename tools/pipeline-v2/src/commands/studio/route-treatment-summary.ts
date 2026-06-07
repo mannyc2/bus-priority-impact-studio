@@ -4,7 +4,10 @@ import {
   routeTreatmentSummaryArtifactPath,
   routeTreatmentSummaryMarkdownPath,
 } from "@bp/applied-research/artifacts";
-import { loadRouteTreatmentSummaryLocalDbRows } from "@bp/applied-research/local-db";
+import {
+  loadRouteTreatmentSummaryLocalDbRows,
+  type RouteTreatmentSegmentUniverseRow,
+} from "@bp/applied-research/local-db";
 import {
   buildRouteTreatmentSummaryArtifact,
   routeTreatmentSourceRowsFromAce,
@@ -13,7 +16,9 @@ import {
   routeTreatmentSourceRowsFromRouteBriefSummaries,
   routeTreatmentSourceRowsFromTier2Events,
   routeTreatmentSummaryMarkdown,
+  segmentTreatmentRowsFromLaneOverlaps,
   type PublishableInterventionLike,
+  type RouteSegmentLaneOverlapInput,
 } from "@bp/applied-research/treatments";
 import { arg, defineCommand, z } from "@liche/core";
 import { isoMonth } from "../../lib/dates.ts";
@@ -25,10 +30,14 @@ import {
   withLocalDb,
 } from "../../lib/local-db.ts";
 import { defaultArtifactRootPath, fromCliPath, fromRepoRoot, repoRoot } from "../../lib/paths.ts";
+import { segmentLaneOverlapIndex } from "./_release-geometry.ts";
+import type { RouteBriefInputArtifact } from "./_release-types.ts";
 
 const defaultPublishableInterventionsPath = fromRepoRoot(
   "data/artifacts/docs/gap-roadmap-docs-2026-05-25/intervention-publishable-v1.json",
 );
+const defaultRouteShapeSnapshotPath = "data/raw/network/current_bus_routes.json";
+const defaultStopSnapshotPath = "data/raw/network/current_bus_stops.json";
 
 type PublishableInterventionsArtifactLike = {
   publishableInterventions?: PublishableInterventionLike[];
@@ -48,6 +57,77 @@ async function loadPublishableInterventions(
   return Array.isArray(artifact?.publishableInterventions) ? artifact.publishableInterventions : [];
 }
 
+function segmentIdFromUniverseRow(row: RouteTreatmentSegmentUniverseRow): string {
+  return [
+    row.route_id,
+    row.month,
+    row.direction,
+    row.stop_order,
+    row.timepoint_stop_id,
+    row.next_timepoint_stop_id,
+  ].join(":");
+}
+
+function routeBriefInputsFromSegmentUniverse(
+  rows: readonly RouteTreatmentSegmentUniverseRow[],
+): ReadonlyMap<string, RouteBriefInputArtifact | null> {
+  const byRoute = new Map<string, RouteBriefInputArtifact>();
+  for (const row of rows) {
+    const existing =
+      byRoute.get(row.route_id) ??
+      ({
+        analysisPeriod: row.month,
+        segments: [],
+      } satisfies RouteBriefInputArtifact);
+    existing.segments = [
+      ...(existing.segments ?? []),
+      {
+        segmentId: segmentIdFromUniverseRow(row),
+        direction: row.direction,
+        stopOrder: row.stop_order,
+      },
+    ];
+    byRoute.set(row.route_id, existing);
+  }
+  return byRoute;
+}
+
+async function segmentLaneTreatmentInputs(input: {
+  localDbPath: string;
+  month: string;
+  routeShapeSnapshotPath: string;
+  stopSnapshotPath: string;
+  segmentUniverseRows: readonly RouteTreatmentSegmentUniverseRow[];
+}): Promise<RouteSegmentLaneOverlapInput[]> {
+  if (input.segmentUniverseRows.length === 0) return [];
+  const routeInputs = routeBriefInputsFromSegmentUniverse(input.segmentUniverseRows);
+  const overlapsByRoute = await segmentLaneOverlapIndex({
+    localDbPath: input.localDbPath,
+    isoMonth: input.month,
+    routeShapeSnapshotPath: input.routeShapeSnapshotPath,
+    stopSnapshotPath: input.stopSnapshotPath,
+    routeInputs,
+  });
+
+  return input.segmentUniverseRows.map((row) => {
+    const segmentId = segmentIdFromUniverseRow(row);
+    const overlap = overlapsByRoute.get(row.route_id)?.get(segmentId);
+    return {
+      routeId: row.route_id,
+      month: row.month,
+      segmentId,
+      directionId: row.direction,
+      segmentOrder: row.stop_order,
+      laneSource: overlap?.laneSource ?? "geometry_unavailable",
+      laneOverlapShare: overlap?.laneOverlapShare ?? 0,
+      laneMatchedCount: overlap?.laneMatchedCount ?? 0,
+      laneTypes: overlap?.laneTypes ?? [],
+      laneOperatingHours: overlap?.laneOperatingHours ?? [],
+      laneOperatingDays: overlap?.laneOperatingDays ?? [],
+    };
+  });
+}
+
 export async function runRouteTreatmentSummary(input: {
   local: OpenLocalPipelineDb;
   month: string;
@@ -55,6 +135,8 @@ export async function runRouteTreatmentSummary(input: {
   output?: string | undefined;
   summaryOutput?: string | undefined;
   publishableInterventionsPath?: string | null | undefined;
+  routeShapeSnapshotPath?: string | undefined;
+  stopSnapshotPath?: string | undefined;
   generatedAt?: string | undefined;
 }): Promise<{
   month: string;
@@ -90,6 +172,15 @@ export async function runRouteTreatmentSummary(input: {
     sqlite: input.local.sqlite,
     month: input.month,
   });
+  const segmentTreatmentRows = segmentTreatmentRowsFromLaneOverlaps({
+    rows: await segmentLaneTreatmentInputs({
+      localDbPath: input.local.path,
+      month: input.month,
+      routeShapeSnapshotPath: input.routeShapeSnapshotPath ?? defaultRouteShapeSnapshotPath,
+      stopSnapshotPath: input.stopSnapshotPath ?? defaultStopSnapshotPath,
+      segmentUniverseRows: localRows.segmentUniverseRows,
+    }),
+  });
   const publishableInterventions = await loadPublishableInterventions(publishablePath ?? null);
   const evidenceRows = [
     ...routeTreatmentSourceRowsFromAce({ rows: localRows.aceRows, month: input.month }),
@@ -121,6 +212,8 @@ export async function runRouteTreatmentSummary(input: {
     summaryPath: repoDisplayPath(summaryOutputPath),
     localMissingTables: localRows.missingTables,
     publishableInterventionCount: publishableInterventions.length,
+    segmentUniverseRowCount: localRows.segmentUniverseRows.length,
+    segmentTreatmentRows,
   });
 
   await mkdir(dirname(outputPath), { recursive: true });
@@ -156,6 +249,14 @@ export default defineCommand({
         .string()
         .optional()
         .describe("Reviewed Tier 2 publishable intervention artifact path"),
+      routeShapeSnapshot: z
+        .string()
+        .default(defaultRouteShapeSnapshotPath)
+        .describe("Current bus route shape snapshot used for segment bus-lane overlap checks"),
+      stopSnapshot: z
+        .string()
+        .default(defaultStopSnapshotPath)
+        .describe("Current bus stop snapshot used for segment bus-lane overlap checks"),
       skipPublishableInterventions: z
         .boolean()
         .default(false)
@@ -191,6 +292,8 @@ export default defineCommand({
         : input.options.publishableInterventions === undefined
           ? undefined
           : fromCliPath(input.options.publishableInterventions),
+      routeShapeSnapshotPath: input.options.routeShapeSnapshot,
+      stopSnapshotPath: input.options.stopSnapshot,
     });
   },
 });

@@ -231,7 +231,7 @@ export async function routeSegmentEndpointIndex(args: {
   isoMonth: string;
   routeIds: readonly string[];
 }): Promise<Map<string, Map<string, SegmentEndpoints>>> {
-  const local = await openLocalPipelineDb(args.localDbPath);
+  const local = await openLocalPipelineDb(args.localDbPath, { readonly: true });
   try {
     const entries = await Promise.all(
       args.routeIds.map(async (routeId) => {
@@ -723,7 +723,7 @@ export async function routeGeometryIndex(
   stopSnapshotPath: string,
   localDbPath: string,
 ): Promise<Map<string, RouteGeometrySummary>> {
-  const local = await openLocalPipelineDb(localDbPath);
+  const local = await openLocalPipelineDb(localDbPath, { readonly: true });
   let lanes: LocalBusLane[];
   try {
     lanes = [...(await listBusLanes(local.db))];
@@ -799,7 +799,7 @@ export async function segmentLaneOverlapIndex(args: {
   routeInputs: ReadonlyMap<string, RouteBriefInputArtifact | null>;
 }): Promise<Map<string, Map<string, SegmentLaneOverlap>>> {
   const routeIds = [...args.routeInputs.keys()].sort();
-  const local = await openLocalPipelineDb(args.localDbPath);
+  const local = await openLocalPipelineDb(args.localDbPath, { readonly: true });
   let lanes: LocalBusLane[];
   try {
     lanes = [...(await listBusLanes(local.db))];

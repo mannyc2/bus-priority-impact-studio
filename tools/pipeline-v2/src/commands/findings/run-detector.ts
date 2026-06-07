@@ -1,9 +1,8 @@
 import { mkdir } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative } from "node:path";
-import { loadStopDirectionHourFeaturesFromArtifacts } from "@bp/applied-research/artifacts";
 import {
+  assembleDetectorStudySourceRows,
   DEFAULT_REGISTRY_DETECTOR_STUDY_ID,
-  detectorStudyNeedsStopDirectionHourFeatures,
   runRegistryDetectorStudy,
 } from "@bp/applied-research/detector-runs";
 import { loadDetectorStudyLocalDbRows } from "@bp/applied-research/local-db";
@@ -94,16 +93,20 @@ export default defineCommand({
         detectorId,
         releaseMonth,
         historyStartMonth: input.options.historyStartMonth,
+        observedRunId,
         ...(input.options.routeId === undefined ? {} : { routeId: input.options.routeId }),
       });
-      const stopDirectionHourRows = detectorStudyNeedsStopDirectionHourFeatures(detectorId)
-        ? await loadStopDirectionHourFeaturesFromArtifacts({
-            artifactRoot,
-            month: releaseMonth,
-            runId: observedRunId,
-            ...(input.options.routeId === undefined ? {} : { routeId: input.options.routeId }),
-          })
-        : null;
+      const assembledRows = await assembleDetectorStudySourceRows({
+        context: {
+          detectorId,
+          artifactRoot,
+          releaseMonth,
+          historyStartMonth: input.options.historyStartMonth,
+          observedRunId,
+          ...(input.options.routeId === undefined ? {} : { routeId: input.options.routeId }),
+        },
+        localRows,
+      });
       const { artifact, output } = runRegistryDetectorStudy({
         metadata: {
           detectorId,
@@ -118,15 +121,7 @@ export default defineCommand({
             ? {}
             : { candidateLimit: input.options.candidateLimit }),
         },
-        rows: {
-          ...localRows,
-          ...(stopDirectionHourRows === null
-            ? {}
-            : {
-                stopDirectionHourFeatures: stopDirectionHourRows.features,
-                stopDirectionHourSummary: stopDirectionHourRows.summary,
-              }),
-        },
+        rows: assembledRows,
       });
       if (input.options.writeDb) {
         await replaceFindingsForMonth(local.db, {

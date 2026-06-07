@@ -1346,7 +1346,7 @@ export async function runCheckPipelineV1(
 export async function runCheckPipelineV1WithDbPath(
   inputs: Omit<CheckPipelineV1Inputs, "local"> & { dbPath?: string | undefined },
 ): Promise<PipelineV1CheckResult> {
-  const opened = await openLocalPipelineDb(inputs.dbPath);
+  const opened = await openLocalPipelineDb(inputs.dbPath, { readonly: true });
   try {
     return await runCheckPipelineV1({ ...inputs, local: opened });
   } finally {

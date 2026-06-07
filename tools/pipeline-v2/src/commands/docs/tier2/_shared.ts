@@ -31,7 +31,8 @@
 // content/option model can express.
 import { Buffer } from "node:buffer";
 import { createHash } from "node:crypto";
-import { mkdir, readdir } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { basename, dirname, join, relative } from "node:path";
 import { replaceTier2InterventionStagingRows } from "@bp/db/local";
 import {
@@ -546,7 +547,6 @@ export type Tier2OcrQualityReview = {
   sources: Tier2OcrQualityReviewSource[];
 };
 
-
 export const OCR_MARKDOWN_CANDIDATE_QUALITY_ISSUE_CODES: readonly Tier2OcrMarkdownCandidateQualityIssueCode[] =
   [
     "evidence_quote_not_exact",
@@ -575,8 +575,6 @@ export const OCR_MARKDOWN_CANDIDATE_QUALITY_REPAIR_CODES: readonly Tier2OcrMarkd
     "unsupported_service_change_types_removed",
     "route_mentions_normalized",
   ];
-
-
 
 export type Tier2DocumentSourceCandidate = {
   candidateType: "document_source_candidate";
@@ -651,7 +649,6 @@ export type Tier2DocumentInterventionSeed = {
   validationState: Tier2CandidateValidationState;
   reviewReason: string;
 };
-
 
 export type Tier2ReviewQuestionCandidate = {
   candidateType: "review_question_candidate";
@@ -1622,15 +1619,144 @@ function textExtractionStatusFor(
   return "metadata_only";
 }
 
-function captureHeaders(init: RequestInit | undefined, userAgent: string): Headers {
+const PROJECT_FETCH_USER_AGENT = "BusPriorityImpactStudio/0.1 (+https://github.com/)";
+const BROWSER_FETCH_USER_AGENT =
+  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
+const CURL_EFFECTIVE_URL_HEADER = "x-bp-effective-url";
+const CURL_TRANSPORT_HEADER = "x-bp-fetch-transport";
+
+function captureHeaders(input: {
+  init: RequestInit | undefined;
+  userAgent: string;
+  browserNavigation: boolean;
+}): Headers {
+  const { init, userAgent, browserNavigation } = input;
   const headers = new Headers(init?.headers);
   headers.set(
     "Accept",
-    "text/html,application/xhtml+xml,application/xml;q=0.9,application/pdf,application/json;q=0.8,*/*;q=0.7",
+    browserNavigation
+      ? "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8"
+      : "text/html,application/xhtml+xml,application/xml;q=0.9,application/pdf,application/json;q=0.8,*/*;q=0.7",
   );
   headers.set("Accept-Language", "en-US,en;q=0.9");
   headers.set("User-Agent", userAgent);
+  if (browserNavigation) {
+    headers.set("Cache-Control", "no-cache");
+    headers.set("Pragma", "no-cache");
+    headers.set("Sec-Fetch-Dest", "document");
+    headers.set("Sec-Fetch-Mode", "navigate");
+    headers.set("Sec-Fetch-Site", "none");
+    headers.set("Sec-Fetch-User", "?1");
+    headers.set("Upgrade-Insecure-Requests", "1");
+  }
   return headers;
+}
+
+function captureRequestUrl(input: string | URL | Request): string {
+  if (typeof input === "string") {
+    return input;
+  }
+  if (input instanceof URL) {
+    return input.toString();
+  }
+  return input.url;
+}
+
+function captureRequestMethod(
+  input: string | URL | Request,
+  init: RequestInit | undefined,
+): string {
+  const method = init?.method ?? (input instanceof Request ? input.method : "GET");
+  return method.toUpperCase();
+}
+
+function curlBrowserHeaderArgs(headers: Headers): string[] {
+  const args: string[] = [];
+  for (const [name, value] of headers) {
+    args.push("-H", `${name}: ${value}`);
+  }
+  return args;
+}
+
+async function curlBrowserFetch(
+  input: string | URL | Request,
+  init: RequestInit | undefined,
+): Promise<Response | null> {
+  if (captureRequestMethod(input, init) !== "GET" || init?.body !== undefined) {
+    return null;
+  }
+  if (!(await executableExists("curl"))) {
+    return null;
+  }
+
+  const url = captureRequestUrl(input);
+  const tmpRoot = await mkdtemp(join(tmpdir(), "bp-tier2-curl-fetch-"));
+  const bodyPath = join(tmpRoot, "body.bin");
+  const marker = "BP_TIER2_CURL_FETCH";
+  const browserHeaders = captureHeaders({
+    init,
+    userAgent: BROWSER_FETCH_USER_AGENT,
+    browserNavigation: true,
+  });
+  const args = [
+    "-L",
+    "-sS",
+    "--connect-timeout",
+    "20",
+    "--max-time",
+    "60",
+    "-o",
+    bodyPath,
+    "-w",
+    `\n${marker}_HTTP_CODE:%{http_code}\n${marker}_EFFECTIVE_URL:%{url_effective}\n${marker}_CONTENT_TYPE:%{content_type}\n`,
+    ...curlBrowserHeaderArgs(browserHeaders),
+    url,
+  ];
+
+  try {
+    const proc = Bun.spawn(["curl", ...args], {
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    const [exitCode, stdout] = await Promise.all([
+      proc.exited,
+      new Response(proc.stdout).text(),
+      new Response(proc.stderr).text(),
+    ]);
+    if (exitCode !== 0) {
+      return null;
+    }
+
+    const statusMatch = stdout.match(new RegExp(`${marker}_HTTP_CODE:(\\d{3})`));
+    const effectiveUrlMatch = stdout.match(new RegExp(`${marker}_EFFECTIVE_URL:(.*)`));
+    const contentTypeMatch = stdout.match(new RegExp(`${marker}_CONTENT_TYPE:(.*)`));
+    const status = statusMatch === null ? Number.NaN : Number.parseInt(statusMatch[1]!, 10);
+    if (!Number.isInteger(status) || status < 200 || status > 599) {
+      return null;
+    }
+
+    const bytes = await readFile(bodyPath);
+    const responseHeaders = new Headers();
+    const contentType = contentTypeMatch?.[1]?.trim();
+    const effectiveUrl = effectiveUrlMatch?.[1]?.trim();
+    if (contentType !== undefined && contentType.length > 0) {
+      responseHeaders.set("content-type", contentType);
+    }
+    if (effectiveUrl !== undefined && effectiveUrl.length > 0) {
+      responseHeaders.set(CURL_EFFECTIVE_URL_HEADER, effectiveUrl);
+    }
+    responseHeaders.set(CURL_TRANSPORT_HEADER, "curl");
+
+    return new Response(bytes, {
+      status,
+      statusText: status >= 200 && status < 300 ? "OK" : "",
+      headers: responseHeaders,
+    });
+  } catch {
+    return null;
+  } finally {
+    await rm(tmpRoot, { recursive: true, force: true });
+  }
 }
 
 export async function defaultFetch(
@@ -1639,20 +1765,31 @@ export async function defaultFetch(
 ): Promise<Response> {
   const primary = await fetch(input, {
     ...init,
-    headers: captureHeaders(init, "BusPriorityImpactStudio/0.1 (+https://github.com/)"),
+    headers: captureHeaders({
+      init,
+      userAgent: PROJECT_FETCH_USER_AGENT,
+      browserNavigation: false,
+    }),
   });
 
   if (primary.status !== 403) {
     return primary;
   }
 
-  return fetch(input, {
+  const browser = await fetch(input, {
     ...init,
-    headers: captureHeaders(
+    headers: captureHeaders({
       init,
-      "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
-    ),
+      userAgent: BROWSER_FETCH_USER_AGENT,
+      browserNavigation: true,
+    }),
   });
+  if (browser.status !== 403) {
+    return browser;
+  }
+
+  const curl = await curlBrowserFetch(input, init);
+  return curl ?? browser;
 }
 
 export async function readBacklog(path: string): Promise<Tier2Backlog> {
@@ -2016,7 +2153,13 @@ async function captureSource(input: {
 
   try {
     const response = await input.fetcher(source.url, { redirect: "follow" });
-    const finalUrl = response.url.length > 0 ? response.url : source.url;
+    const effectiveUrl = response.headers.get(CURL_EFFECTIVE_URL_HEADER);
+    const finalUrl =
+      effectiveUrl !== null && effectiveUrl.length > 0
+        ? effectiveUrl
+        : response.url.length > 0
+          ? response.url
+          : source.url;
     const contentType = response.headers.get("content-type");
 
     if (!response.ok) {
@@ -6577,7 +6720,8 @@ export async function normalizeTextMarkdownFromCli(args: string[]): Promise<Text
 // ---------------------------------------------------------------------------
 // Phase 1c: Wayback recapture for sources that failed initial capture
 //
-// Some MTA pages 403 even after the Chrome-UA fallback in defaultFetch. This
+// Some MTA pages can still fail direct capture even after the native curl
+// browser-navigation fallback in defaultFetch. This
 // job targets those sources, queries the Internet Archive's CDX API for the
 // most recent successful snapshot, fetches the original HTML via the `id_`
 // Wayback flavor (no IA UI chrome), strips it to text using the same

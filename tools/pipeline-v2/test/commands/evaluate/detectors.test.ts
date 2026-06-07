@@ -3,6 +3,7 @@ import { ANALYTICS_DETECTOR_REGISTRY } from "@bp/analytics/registry";
 import {
   detectorEvaluationArtifactPath,
   detectorEvaluationMarkdownPath,
+  modelArtifactServingProjectionPath,
 } from "@bp/applied-research/artifacts";
 import { buildDetectorEvaluationArtifact } from "@bp/applied-research/evaluation";
 
@@ -35,6 +36,24 @@ describe("evaluate detectors", () => {
           "data/artifacts/detector-evaluation/2023-04_to_2026-03/2026-03/detector-evaluation-labels.json",
         grainAudit:
           "data/artifacts/detector-corpus-grain/2023-04_to_2026-03/2026-03/grain-audit.json",
+        segmentSpeedResiduals:
+          "data/artifacts/analytics-models/segment-speed-residuals-v1/2023-04_to_2026-03/2026-03/segment-speed-residuals.json",
+        segmentDaypartResiduals:
+          "data/artifacts/analytics-models/segment-daypart-residuals-v1/2023-04_to_2026-03/2026-03/segment-daypart-residuals.json",
+        routePeerResiduals:
+          "data/artifacts/analytics-models/route-peer-residuals-v1/2023-04_to_2026-03/2026-03/route-peer-residuals.json",
+        reliabilityExposurePanel:
+          "data/artifacts/analytics-models/reliability-exposure-panel-v1/2026-03/bus-observatory-2026-03/reliability-exposure-panel.json",
+        interventionScopeFit:
+          "data/artifacts/analytics-models/intervention-scope-fit-v1/2026-03/intervention-scope-fit.json",
+        sourceGapModel:
+          "data/artifacts/analytics-models/source-gap-model-v1/2026-03/source-gap-model.json",
+        treatmentEventPanel:
+          "data/artifacts/analytics-models/treatment-event-panel-v1/2023-04_to_2026-03/2026-03/treatment-event-panel.json",
+        pulseFingerprint:
+          "data/artifacts/analytics-models/pulse-fingerprint-v1/2023-04_to_2026-03/2026-03/pulse-fingerprint.json",
+        decouplingQuadrants:
+          "data/artifacts/analytics-models/decoupling-quadrants-v1/2023-04_to_2026-03/2026-03/decoupling-quadrants.json",
       },
       reviewDecisions: {
         decisions: [
@@ -84,6 +103,15 @@ describe("evaluate detectors", () => {
       detectorScoreVectors: null,
       evaluationLabels: null,
       grainAudit: null,
+      segmentSpeedResiduals: null,
+      segmentDaypartResiduals: null,
+      routePeerResiduals: null,
+      reliabilityExposurePanel: null,
+      interventionScopeFit: null,
+      sourceGapModel: null,
+      treatmentEventPanel: null,
+      pulseFingerprint: null,
+      decouplingQuadrants: null,
     });
 
     expect(artifact.artifactKind).toBe("detector_evaluation_harness");
@@ -91,6 +119,48 @@ describe("evaluate detectors", () => {
     expect(artifact.summary.scorecardCount).toBe(ANALYTICS_DETECTOR_REGISTRY.length);
     expect(artifact.summary.positiveOnlyGoldSet).toBe(true);
     expect(artifact.summary.qualityOverclaimedDetectorCount).toBe(0);
+    expect(artifact.modelArtifacts).toContainEqual(
+      expect.objectContaining({
+        modelId: "segment_speed_residuals_v1",
+        status: "missing",
+        detectorConsumers: ["treatment_scope_gap", "treatment_scope_mismatch"],
+      }),
+    );
+    expect(artifact.modelArtifacts).toContainEqual(
+      expect.objectContaining({
+        modelId: "reliability_exposure_panel_v1",
+        status: "missing",
+        detectorConsumers: ["rider_weighted_excess_wait"],
+      }),
+    );
+    expect(artifact.modelArtifacts).toContainEqual(
+      expect.objectContaining({
+        modelId: "segment_daypart_residuals_v1",
+        status: "missing",
+        detectorConsumers: ["speed_pace_hotspot"],
+      }),
+    );
+    expect(artifact.modelArtifacts).toContainEqual(
+      expect.objectContaining({
+        modelId: "route_peer_residuals_v1",
+        status: "missing",
+        detectorConsumers: ["degradation_trend", "multi_month_speed_peer", "positive_deviance"],
+      }),
+    );
+    expect(artifact.modelArtifacts).toContainEqual(
+      expect.objectContaining({
+        modelId: "intervention_scope_fit_v1",
+        status: "missing",
+        detectorConsumers: ["treatment_scope_gap", "treatment_scope_mismatch"],
+      }),
+    );
+    expect(artifact.modelArtifacts).toContainEqual(
+      expect.objectContaining({
+        modelId: "source_gap_model_v1",
+        status: "missing",
+        detectorConsumers: ["intervention_gap", "source_gap"],
+      }),
+    );
 
     const observed = artifact.detectorScorecards.find(
       (scorecard) => scorecard.detectorId === "observed_reliability",
@@ -130,6 +200,15 @@ describe("evaluate detectors", () => {
         detectorScoreVectors: "detector-score-vectors.json",
         evaluationLabels: "detector-evaluation-labels.json",
         grainAudit: "grain-audit.json",
+        segmentSpeedResiduals: "segment-speed-residuals.json",
+        segmentDaypartResiduals: "segment-daypart-residuals.json",
+        routePeerResiduals: "route-peer-residuals.json",
+        reliabilityExposurePanel: "reliability-exposure-panel.json",
+        interventionScopeFit: "intervention-scope-fit.json",
+        sourceGapModel: "source-gap-model.json",
+        treatmentEventPanel: "treatment-event-panel.json",
+        pulseFingerprint: "pulse-fingerprint.json",
+        decouplingQuadrants: "decoupling-quadrants.json",
       },
       reviewDecisions: {
         decisions: [
@@ -219,6 +298,15 @@ describe("evaluate detectors", () => {
       detectorScoreVectors: null,
       evaluationLabels: null,
       grainAudit: null,
+      segmentSpeedResiduals: null,
+      segmentDaypartResiduals: null,
+      routePeerResiduals: null,
+      reliabilityExposurePanel: null,
+      interventionScopeFit: null,
+      sourceGapModel: null,
+      treatmentEventPanel: null,
+      pulseFingerprint: null,
+      decouplingQuadrants: null,
     });
 
     const observed = artifact.detectorScorecards.find(
@@ -255,6 +343,15 @@ describe("evaluate detectors", () => {
         detectorScoreVectors: "detector-score-vectors.json",
         evaluationLabels: "detector-evaluation-labels.json",
         grainAudit: "grain-audit.json",
+        segmentSpeedResiduals: "segment-speed-residuals.json",
+        segmentDaypartResiduals: "segment-daypart-residuals.json",
+        routePeerResiduals: "route-peer-residuals.json",
+        reliabilityExposurePanel: "reliability-exposure-panel.json",
+        interventionScopeFit: "intervention-scope-fit.json",
+        sourceGapModel: "source-gap-model.json",
+        treatmentEventPanel: "treatment-event-panel.json",
+        pulseFingerprint: "pulse-fingerprint.json",
+        decouplingQuadrants: "decoupling-quadrants.json",
       },
       reviewDecisions: {
         decisions: [
@@ -397,6 +494,15 @@ describe("evaluate detectors", () => {
           },
         ],
       },
+      segmentSpeedResiduals: null,
+      segmentDaypartResiduals: null,
+      routePeerResiduals: null,
+      reliabilityExposurePanel: null,
+      interventionScopeFit: null,
+      sourceGapModel: null,
+      treatmentEventPanel: null,
+      pulseFingerprint: null,
+      decouplingQuadrants: null,
     });
 
     expect(artifact.evaluationSets.confirmedPositiveCount).toBe(1);
@@ -438,6 +544,15 @@ describe("evaluate detectors", () => {
     );
     expect(detectorEvaluationMarkdownPath(jsonPath)).toBe(
       "data/artifacts/detector-evaluation/2023-04_to_2026-03/2026-03/detector-evaluation.md",
+    );
+    expect(
+      modelArtifactServingProjectionPath({
+        artifactRoot: "data/artifacts",
+        historyStartMonth: "2023-04",
+        releaseMonth: "2026-03",
+      }),
+    ).toBe(
+      "data/artifacts/model-artifact-serving-projection/2023-04_to_2026-03/2026-03/model-artifacts.json",
     );
   });
 });

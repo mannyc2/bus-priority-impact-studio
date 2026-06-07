@@ -145,7 +145,13 @@ async function captureSource(input: {
 
   try {
     const response = await input.fetcher(source.url, { redirect: "follow" });
-    const finalUrl = response.url.length > 0 ? response.url : source.url;
+    const effectiveUrl = response.headers.get("x-bp-effective-url");
+    const finalUrl =
+      effectiveUrl !== null && effectiveUrl.length > 0
+        ? effectiveUrl
+        : response.url.length > 0
+          ? response.url
+          : source.url;
     const contentType = response.headers.get("content-type");
 
     if (!response.ok) {
@@ -286,4 +292,3 @@ function parseCaptureCliArgs(args: string[]): CaptureCliArgs {
 export async function captureTier2DocsFromCli(args: string[]): Promise<Tier2CaptureManifest> {
   return captureTier2Docs(parseCaptureCliArgs(args));
 }
-

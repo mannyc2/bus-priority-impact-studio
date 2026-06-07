@@ -28,6 +28,7 @@ import {
   buildStudioRouteLadderProjection,
   buildStudioRouteProjection,
   buildStudioRoutesProjection,
+  buildStudioSegmentsProjection,
 } from "@bp/domain/studio/projections";
 import { type StudioReleasePayload, StudioReleasePayloadSchema } from "@bp/domain/studio/release";
 import { normalizeHourlyRidershipRows } from "@bp/sources/adapters/mta/bus-ridership";
@@ -313,7 +314,7 @@ async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> 
     );
     const tspEvidenceByRoute = await tspEvidenceIndex(options.tspSourcePath);
     const sourceCoverageDocsSources = await (async () => {
-      const local = await openLocalPipelineDb(options.localDbPath);
+      const local = await openLocalPipelineDb(options.localDbPath, { readonly: true });
       try {
         return buildSourceCoverageLedger({
           sqlite: local.sqlite,
@@ -589,6 +590,7 @@ async function writeProjections(outputPath: string, release: StudioReleasePayloa
   await writeJson(outputPath, release);
   await writeJson(analystNotesOutputPath(outputDir), buildSegmentAnalystNotesArtifact(release));
   await writeJson(resolve(outputDir, "routes.json"), buildStudioRoutesProjection(release));
+  await writeJson(resolve(outputDir, "segments.json"), buildStudioSegmentsProjection(release));
   await writeJson(resolve(outputDir, "findings.json"), buildStudioFindingsProjection(release));
   await writeJson(resolve(outputDir, "briefs.json"), buildStudioBriefsProjection(release));
   await writeJson(resolve(outputDir, "methods.json"), buildStudioMethodsProjection(release));

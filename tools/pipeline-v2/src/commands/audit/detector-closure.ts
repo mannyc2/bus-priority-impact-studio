@@ -8,6 +8,7 @@ import {
 } from "@bp/applied-research/artifacts";
 import {
   DATA_PRODUCT_MANIFEST,
+  parseDataProductCompletenessArtifact,
   parseDataProductManifestText,
 } from "@bp/applied-research/data-products";
 import {
@@ -65,6 +66,11 @@ function repoDisplayPath(path: string): string {
   if (!isAbsolute(path)) return path;
   const relativePath = relative(repoRoot, path);
   return relativePath.startsWith("..") ? path : relativePath;
+}
+
+async function readDataProductCompletenessIfExists(path: string): Promise<unknown | null> {
+  const json = await readJsonIfExists(path);
+  return json === null ? null : parseDataProductCompletenessArtifact(json);
 }
 
 export default defineCommand({
@@ -166,7 +172,9 @@ export default defineCommand({
         reviewPacketCoverage: repoDisplayPath(reviewPacketCoverageInputPath),
         detectorEvaluation: repoDisplayPath(detectorEvaluationInputPath),
       },
-      dataProductCompleteness: await readJsonIfExists(dataProductCompletenessInputPath),
+      dataProductCompleteness: await readDataProductCompletenessIfExists(
+        dataProductCompletenessInputPath,
+      ),
       detectorReadiness: await readJsonIfExists(detectorReadinessInputPath),
       detectorCorpusGrain: await readJsonIfExists(detectorCorpusGrainInputPath),
       reviewPacketCoverage: await readJsonIfExists(reviewPacketCoverageInputPath),
