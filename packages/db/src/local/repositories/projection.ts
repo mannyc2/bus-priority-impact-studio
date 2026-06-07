@@ -1,5 +1,5 @@
 import { and, asc, eq } from "drizzle-orm";
-import type { LocalPipelineDb } from "../client.js";
+import { insertAll, type LocalPipelineDb } from "../client.js";
 import {
   localRouteArtifact,
   localRouteBatchBuiltRoute,
@@ -37,16 +37,19 @@ export type PersistedRouteBatchProgress = {
   issues: LocalRouteBatchIssue[];
 };
 
-export async function replaceRouteScorecard(
+export function replaceRouteScorecard(
   db: LocalPipelineDb,
   row: typeof localRouteScorecard.$inferInsert,
-): Promise<void> {
-  await db
-    .delete(localRouteScorecard)
-    .where(
-      and(eq(localRouteScorecard.routeId, row.routeId), eq(localRouteScorecard.month, row.month)),
-    );
-  await db.insert(localRouteScorecard).values(row);
+): void {
+  db.transaction((tx) => {
+    tx
+      .delete(localRouteScorecard)
+      .where(
+        and(eq(localRouteScorecard.routeId, row.routeId), eq(localRouteScorecard.month, row.month)),
+      )
+      .run();
+    tx.insert(localRouteScorecard).values(row).run();
+  });
 }
 
 export async function listRouteScorecards(
@@ -60,15 +63,15 @@ export async function listRouteScorecards(
     .orderBy(asc(localRouteScorecard.routeId));
 }
 
-export async function replaceRouteArtifactsForMonth(
+export function replaceRouteArtifactsForMonth(
   db: LocalPipelineDb,
   month: string,
   rows: readonly (typeof localRouteArtifact.$inferInsert)[],
-): Promise<void> {
-  await db.delete(localRouteArtifact).where(eq(localRouteArtifact.month, month));
-  if (rows.length > 0) {
-    await db.insert(localRouteArtifact).values([...rows]);
-  }
+): void {
+  db.transaction((tx) => {
+    tx.delete(localRouteArtifact).where(eq(localRouteArtifact.month, month)).run();
+    insertAll(tx, localRouteArtifact, [...rows]);
+  });
 }
 
 export async function listRouteArtifacts(
@@ -82,43 +85,44 @@ export async function listRouteArtifacts(
     .orderBy(asc(localRouteArtifact.routeId), asc(localRouteArtifact.artifactName));
 }
 
-export async function replaceRouteBriefRows(
+export function replaceRouteBriefRows(
   db: LocalPipelineDb,
   input: {
     summary: typeof localRouteBriefSummary.$inferInsert;
     peakWindows: readonly (typeof localRouteBriefPeakWindow.$inferInsert)[];
     slowestWindows: readonly (typeof localRouteBriefSlowestWindow.$inferInsert)[];
   },
-): Promise<void> {
+): void {
   const { routeId, month } = input.summary;
-  await db
-    .delete(localRouteBriefPeakWindow)
-    .where(
-      and(
-        eq(localRouteBriefPeakWindow.routeId, routeId),
-        eq(localRouteBriefPeakWindow.month, month),
-      ),
-    );
-  await db
-    .delete(localRouteBriefSlowestWindow)
-    .where(
-      and(
-        eq(localRouteBriefSlowestWindow.routeId, routeId),
-        eq(localRouteBriefSlowestWindow.month, month),
-      ),
-    );
-  await db
-    .delete(localRouteBriefSummary)
-    .where(
-      and(eq(localRouteBriefSummary.routeId, routeId), eq(localRouteBriefSummary.month, month)),
-    );
-  await db.insert(localRouteBriefSummary).values(input.summary);
-  if (input.peakWindows.length > 0) {
-    await db.insert(localRouteBriefPeakWindow).values([...input.peakWindows]);
-  }
-  if (input.slowestWindows.length > 0) {
-    await db.insert(localRouteBriefSlowestWindow).values([...input.slowestWindows]);
-  }
+  db.transaction((tx) => {
+    tx
+      .delete(localRouteBriefPeakWindow)
+      .where(
+        and(
+          eq(localRouteBriefPeakWindow.routeId, routeId),
+          eq(localRouteBriefPeakWindow.month, month),
+        ),
+      )
+      .run();
+    tx
+      .delete(localRouteBriefSlowestWindow)
+      .where(
+        and(
+          eq(localRouteBriefSlowestWindow.routeId, routeId),
+          eq(localRouteBriefSlowestWindow.month, month),
+        ),
+      )
+      .run();
+    tx
+      .delete(localRouteBriefSummary)
+      .where(
+        and(eq(localRouteBriefSummary.routeId, routeId), eq(localRouteBriefSummary.month, month)),
+      )
+      .run();
+    tx.insert(localRouteBriefSummary).values(input.summary).run();
+    insertAll(tx, localRouteBriefPeakWindow, [...input.peakWindows]);
+    insertAll(tx, localRouteBriefSlowestWindow, [...input.slowestWindows]);
+  });
 }
 
 export async function listRouteBriefSummaries(
@@ -157,15 +161,15 @@ export async function listRouteBriefSlowestWindows(
     );
 }
 
-export async function replaceRouteComparisonRanks(
+export function replaceRouteComparisonRanks(
   db: LocalPipelineDb,
   month: string,
   rows: readonly (typeof localRouteComparisonRank.$inferInsert)[],
-): Promise<void> {
-  await db.delete(localRouteComparisonRank).where(eq(localRouteComparisonRank.month, month));
-  if (rows.length > 0) {
-    await db.insert(localRouteComparisonRank).values([...rows]);
-  }
+): void {
+  db.transaction((tx) => {
+    tx.delete(localRouteComparisonRank).where(eq(localRouteComparisonRank.month, month)).run();
+    insertAll(tx, localRouteComparisonRank, [...rows]);
+  });
 }
 
 export async function listRouteComparisonRanks(
@@ -179,26 +183,28 @@ export async function listRouteComparisonRanks(
     .orderBy(asc(localRouteComparisonRank.rank));
 }
 
-export async function replaceRouteBatch(
+export function replaceRouteBatch(
   db: LocalPipelineDb,
   input: {
     status: typeof localRouteBatchStatus.$inferInsert;
     builtRoutes: readonly (typeof localRouteBatchBuiltRoute.$inferInsert)[];
     issues: readonly (typeof localRouteBatchIssue.$inferInsert)[];
   },
-): Promise<void> {
-  await db
-    .delete(localRouteBatchBuiltRoute)
-    .where(eq(localRouteBatchBuiltRoute.month, input.status.month));
-  await db.delete(localRouteBatchIssue).where(eq(localRouteBatchIssue.month, input.status.month));
-  await db.delete(localRouteBatchStatus).where(eq(localRouteBatchStatus.month, input.status.month));
-  await db.insert(localRouteBatchStatus).values(input.status);
-  if (input.builtRoutes.length > 0) {
-    await db.insert(localRouteBatchBuiltRoute).values([...input.builtRoutes]);
-  }
-  if (input.issues.length > 0) {
-    await db.insert(localRouteBatchIssue).values([...input.issues]);
-  }
+): void {
+  db.transaction((tx) => {
+    tx
+      .delete(localRouteBatchBuiltRoute)
+      .where(eq(localRouteBatchBuiltRoute.month, input.status.month))
+      .run();
+    tx.delete(localRouteBatchIssue).where(eq(localRouteBatchIssue.month, input.status.month)).run();
+    tx
+      .delete(localRouteBatchStatus)
+      .where(eq(localRouteBatchStatus.month, input.status.month))
+      .run();
+    tx.insert(localRouteBatchStatus).values(input.status).run();
+    insertAll(tx, localRouteBatchBuiltRoute, [...input.builtRoutes]);
+    insertAll(tx, localRouteBatchIssue, [...input.issues]);
+  });
 }
 
 export async function getRouteBatchStatus(
@@ -251,7 +257,7 @@ export async function getPersistedRouteBatchProgress(
   };
 }
 
-export async function replaceRouteReliabilityRows(
+export function replaceRouteReliabilityRows(
   db: LocalPipelineDb,
   month: string,
   input: {
@@ -259,30 +265,29 @@ export async function replaceRouteReliabilityRows(
     gapWindows: readonly (typeof localRouteReliabilityGapWindow.$inferInsert)[];
     sourceStatuses: readonly (typeof localRouteMonthSourceStatus.$inferInsert)[];
   },
-): Promise<void> {
-  await db
-    .delete(localRouteReliabilityGapWindow)
-    .where(eq(localRouteReliabilityGapWindow.month, month));
-  await db
-    .delete(localRouteMonthSourceStatus)
-    .where(
-      and(
-        eq(localRouteMonthSourceStatus.month, month),
-        eq(localRouteMonthSourceStatus.sourceScope, "reliability"),
-      ),
-    );
-  await db
-    .delete(localRouteReliabilityBaseline)
-    .where(eq(localRouteReliabilityBaseline.month, month));
-  if (input.baselines.length > 0) {
-    await db.insert(localRouteReliabilityBaseline).values([...input.baselines]);
-  }
-  if (input.gapWindows.length > 0) {
-    await db.insert(localRouteReliabilityGapWindow).values([...input.gapWindows]);
-  }
-  if (input.sourceStatuses.length > 0) {
-    await db.insert(localRouteMonthSourceStatus).values([...input.sourceStatuses]);
-  }
+): void {
+  db.transaction((tx) => {
+    tx
+      .delete(localRouteReliabilityGapWindow)
+      .where(eq(localRouteReliabilityGapWindow.month, month))
+      .run();
+    tx
+      .delete(localRouteMonthSourceStatus)
+      .where(
+        and(
+          eq(localRouteMonthSourceStatus.month, month),
+          eq(localRouteMonthSourceStatus.sourceScope, "reliability"),
+        ),
+      )
+      .run();
+    tx
+      .delete(localRouteReliabilityBaseline)
+      .where(eq(localRouteReliabilityBaseline.month, month))
+      .run();
+    insertAll(tx, localRouteReliabilityBaseline, [...input.baselines]);
+    insertAll(tx, localRouteReliabilityGapWindow, [...input.gapWindows]);
+    insertAll(tx, localRouteMonthSourceStatus, [...input.sourceStatuses]);
+  });
 }
 
 export async function listRouteReliabilityBaselines(
@@ -310,18 +315,14 @@ export async function listRouteReliabilityGapWindows(
     );
 }
 
-export async function replaceRouteMonthTrends(
+export function replaceRouteMonthTrends(
   db: LocalPipelineDb,
   rows: readonly (typeof localRouteMonthTrend.$inferInsert)[],
-): Promise<void> {
-  await db.delete(localRouteMonthTrend);
-  const chunkSize = 500;
-  for (let index = 0; index < rows.length; index += chunkSize) {
-    const chunk = rows.slice(index, index + chunkSize);
-    if (chunk.length > 0) {
-      await db.insert(localRouteMonthTrend).values([...chunk]);
-    }
-  }
+): void {
+  db.transaction((tx) => {
+    tx.delete(localRouteMonthTrend).run();
+    insertAll(tx, localRouteMonthTrend, [...rows]);
+  });
 }
 
 export async function listRouteMonthTrends(db: LocalPipelineDb): Promise<LocalRouteMonthTrend[]> {
@@ -331,29 +332,28 @@ export async function listRouteMonthTrends(db: LocalPipelineDb): Promise<LocalRo
     .orderBy(asc(localRouteMonthTrend.routeId), asc(localRouteMonthTrend.month));
 }
 
-export async function replaceRouteEquityRows(
+export function replaceRouteEquityRows(
   db: LocalPipelineDb,
   month: string,
   input: {
     rows: readonly (typeof localRouteEquityContext.$inferInsert)[];
     sourceStatuses: readonly (typeof localRouteMonthSourceStatus.$inferInsert)[];
   },
-): Promise<void> {
-  await db.delete(localRouteEquityContext).where(eq(localRouteEquityContext.month, month));
-  await db
-    .delete(localRouteMonthSourceStatus)
-    .where(
-      and(
-        eq(localRouteMonthSourceStatus.month, month),
-        eq(localRouteMonthSourceStatus.sourceScope, "equity_context"),
-      ),
-    );
-  if (input.rows.length > 0) {
-    await db.insert(localRouteEquityContext).values([...input.rows]);
-  }
-  if (input.sourceStatuses.length > 0) {
-    await db.insert(localRouteMonthSourceStatus).values([...input.sourceStatuses]);
-  }
+): void {
+  db.transaction((tx) => {
+    tx.delete(localRouteEquityContext).where(eq(localRouteEquityContext.month, month)).run();
+    tx
+      .delete(localRouteMonthSourceStatus)
+      .where(
+        and(
+          eq(localRouteMonthSourceStatus.month, month),
+          eq(localRouteMonthSourceStatus.sourceScope, "equity_context"),
+        ),
+      )
+      .run();
+    insertAll(tx, localRouteEquityContext, [...input.rows]);
+    insertAll(tx, localRouteMonthSourceStatus, [...input.sourceStatuses]);
+  });
 }
 
 export async function listRouteEquityContexts(

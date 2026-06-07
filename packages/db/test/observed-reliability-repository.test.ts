@@ -1,28 +1,9 @@
 import { Database } from "bun:sqlite";
 import { describe, expect, test } from "bun:test";
-import { readdir } from "node:fs/promises";
 import { sql } from "drizzle-orm";
-import { createLocalPipelineDb, type LocalPipelineDb } from "../src/local/client.js";
 import { replaceRouteObservedReliabilityRows } from "../src/local/repositories/observed-reliability.js";
 import { localRouteObservedReliabilitySummary } from "../src/local/schema.js";
-
-async function createTestLocalDb(): Promise<{ db: LocalPipelineDb; sqlite: Database }> {
-  const sqlite = new Database(":memory:");
-  const migrationsDir = new URL("../migrations/local/", import.meta.url);
-  const filenames = (await readdir(migrationsDir))
-    .filter((filename) => filename.endsWith(".sql"))
-    .sort();
-  for (const filename of filenames) {
-    const body = await Bun.file(new URL(filename, migrationsDir)).text();
-    for (const statement of body.split("--> statement-breakpoint")) {
-      const trimmed = statement.trim();
-      if (trimmed.length > 0) {
-        sqlite.exec(trimmed);
-      }
-    }
-  }
-  return { db: createLocalPipelineDb(sqlite), sqlite };
-}
+import { createTestLocalDb } from "./local-test-db.js";
 
 function summaryRow(month: string, runId: string, routeId: string) {
   return {
@@ -65,7 +46,7 @@ function sourceStatusRow(month: string, routeId: string, sourceId: string) {
 
 describe("replaceRouteObservedReliabilityRows", () => {
   test("scoped delete preserves rows for the same month under a different runId", async () => {
-    const { db, sqlite } = await createTestLocalDb();
+    const { db, sqlite } = createTestLocalDb();
     try {
       await replaceRouteObservedReliabilityRows(db, "2026-03", "bus-observatory-2026-03", {
         summaries: [summaryRow("2026-03", "bus-observatory-2026-03", "M15+")],
@@ -85,7 +66,7 @@ describe("replaceRouteObservedReliabilityRows", () => {
   });
 
   test("does not delete rows for a different month", async () => {
-    const { db, sqlite } = await createTestLocalDb();
+    const { db, sqlite } = createTestLocalDb();
     try {
       await replaceRouteObservedReliabilityRows(db, "2026-03", "run-mar", {
         summaries: [summaryRow("2026-03", "run-mar", "M15+")],
@@ -108,28 +89,28 @@ describe("replaceRouteObservedReliabilityRows", () => {
   });
 
   test("rejects summary rows whose month does not match the scope", async () => {
-    const { db, sqlite } = await createTestLocalDb();
+    const { db, sqlite } = createTestLocalDb();
     try {
-      await expect(
+      expect(() =>
         replaceRouteObservedReliabilityRows(db, "2026-03", "run-mar", {
           summaries: [summaryRow("2026-05", "run-mar", "M15+")],
           sourceStatuses: [],
         }),
-      ).rejects.toThrow(/does not match scope/);
+      ).toThrow(/does not match scope/);
     } finally {
       sqlite.close();
     }
   });
 
   test("rejects summary rows whose runId does not match the scope", async () => {
-    const { db, sqlite } = await createTestLocalDb();
+    const { db, sqlite } = createTestLocalDb();
     try {
-      await expect(
+      expect(() =>
         replaceRouteObservedReliabilityRows(db, "2026-03", "run-a", {
           summaries: [summaryRow("2026-03", "run-b", "M15+")],
           sourceStatuses: [],
         }),
-      ).rejects.toThrow(/does not match scope/);
+      ).toThrow(/does not match scope/);
     } finally {
       sqlite.close();
     }

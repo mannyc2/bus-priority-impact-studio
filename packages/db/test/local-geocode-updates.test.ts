@@ -1,7 +1,5 @@
-import { Database } from "bun:sqlite";
+import type { Database } from "bun:sqlite";
 import { describe, expect, test } from "bun:test";
-import { readdir } from "node:fs/promises";
-import { createLocalPipelineDb, type LocalPipelineDb } from "../src/local/client.js";
 import {
   update311ServiceRequestGeocode,
   updateDotStreetPermitGeocode,
@@ -9,22 +7,7 @@ import {
   updateTrafficSpeedGeocode,
   updateTrafficVolumeGeocode,
 } from "../src/local/repositories/geocode-updates.js";
-
-async function createTestLocalDb(): Promise<{ db: LocalPipelineDb; sqlite: Database }> {
-  const sqlite = new Database(":memory:");
-  const migrationsDir = new URL("../migrations/local/", import.meta.url);
-  const filenames = (await readdir(migrationsDir))
-    .filter((filename) => filename.endsWith(".sql"))
-    .sort();
-  for (const filename of filenames) {
-    const body = await Bun.file(new URL(filename, migrationsDir)).text();
-    for (const statement of body.split("--> statement-breakpoint")) {
-      const trimmed = statement.trim();
-      if (trimmed.length > 0) sqlite.exec(trimmed);
-    }
-  }
-  return { db: createLocalPipelineDb(sqlite), sqlite };
-}
+import { createTestLocalDb } from "./local-test-db.js";
 
 function geocodeColumns(sqlite: Database, tableName: string): {
   physical_id: string | null;
@@ -39,7 +22,7 @@ function geocodeColumns(sqlite: Database, tableName: string): {
 
 describe("local geocode update repository", () => {
   test("updates simple geocode targets by their source keys", async () => {
-    const { db, sqlite } = await createTestLocalDb();
+    const { db, sqlite } = createTestLocalDb();
     try {
       sqlite
         .query(

@@ -3,7 +3,7 @@
 // See knowledge/wiki/analysis/finding_coverage_and_corpus_expansion.md.
 
 import { and, asc, desc, eq, gte, sql } from "drizzle-orm";
-import { batchInsert, type LocalPipelineDb } from "../client.js";
+import { insertAll, type LocalPipelineDb } from "../client.js";
 import {
   local311ServiceRequest,
   localBusCustomerJourneyMetric,
@@ -43,11 +43,11 @@ export type LocalBusWaitAssessment = {
   waitAssessment: number | null;
 };
 
-export async function replaceBusWaitAssessmentRows(
+export function replaceBusWaitAssessmentRows(
   db: LocalPipelineDb,
   month: string,
   rows: readonly LocalBusWaitAssessment[],
-): Promise<void> {
+): void {
   for (const row of rows) {
     if (row.month !== month) {
       throw new Error(
@@ -56,11 +56,10 @@ export async function replaceBusWaitAssessmentRows(
     }
   }
 
-  await db.delete(localBusWaitAssessment).where(eq(localBusWaitAssessment.month, month));
-
-  if (rows.length === 0) return;
-
-  await batchInsert(db, localBusWaitAssessment, [...rows]);
+  db.transaction((tx) => {
+    tx.delete(localBusWaitAssessment).where(eq(localBusWaitAssessment.month, month)).run();
+    insertAll(tx, localBusWaitAssessment, [...rows]);
+  });
 }
 
 export async function listBusWaitAssessmentRowsForMonth(
@@ -115,11 +114,11 @@ export type LocalBusCustomerJourneyMetric = {
   customerJourneyTimeMinutes: number | null;
 };
 
-export async function replaceBusCustomerJourneyMetricRows(
+export function replaceBusCustomerJourneyMetricRows(
   db: LocalPipelineDb,
   month: string,
   rows: readonly LocalBusCustomerJourneyMetric[],
-): Promise<void> {
+): void {
   for (const row of rows) {
     if (row.month !== month) {
       throw new Error(
@@ -128,13 +127,10 @@ export async function replaceBusCustomerJourneyMetricRows(
     }
   }
 
-  await db
-    .delete(localBusCustomerJourneyMetric)
-    .where(eq(localBusCustomerJourneyMetric.month, month));
-
-  if (rows.length === 0) return;
-
-  await batchInsert(db, localBusCustomerJourneyMetric, [...rows]);
+  db.transaction((tx) => {
+    tx.delete(localBusCustomerJourneyMetric).where(eq(localBusCustomerJourneyMetric.month, month)).run();
+    insertAll(tx, localBusCustomerJourneyMetric, [...rows]);
+  });
 }
 
 export async function listBusCustomerJourneyMetricRowsForMonth(

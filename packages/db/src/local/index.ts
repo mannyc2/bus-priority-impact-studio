@@ -1,5 +1,5 @@
-export type { LocalPipelineDb, LocalPipelineSchema } from "./client.js";
-export { batchInsert, createLocalPipelineDb } from "./client.js";
+export type { LocalPipelineDb, LocalPipelineSchema, LocalPipelineTx } from "./client.js";
+export { applyLocalPragmas, batchInsert, createLocalPipelineDb, insertAll } from "./client.js";
 export { migrateLocalPipelineDb } from "./migrate.js";
 export type {
   LocalCorridor,
@@ -132,6 +132,7 @@ export type {
 export {
   countContextEvents,
   insertCoverageAudit,
+  insertCoverageAuditIgnore,
   insertFindingCandidate,
   insertFindingEvidenceLinks,
   listCandidatesByRoute,
@@ -208,6 +209,7 @@ export {
   listBuildEligibleRouteIds,
   listRouteBuildPlan,
   listRouteCatalog,
+  listRouteCatalogIds,
   listRouteIdsWithLionLink,
   listRouteMonthCoverage,
   listRouteReadiness,

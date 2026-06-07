@@ -1,5 +1,5 @@
 import { and, asc, eq } from "drizzle-orm";
-import { batchInsert, type LocalPipelineDb } from "../client.js";
+import { insertAll, type LocalPipelineDb } from "../client.js";
 import {
   localGtfsRtAlert,
   localGtfsRtCollectionRun,
@@ -26,12 +26,14 @@ export async function insertGtfsRtCollectionRun(
   await db.insert(localGtfsRtCollectionRun).values(row);
 }
 
-export async function replaceGtfsRtCollectionRun(
+export function replaceGtfsRtCollectionRun(
   db: LocalPipelineDb,
   row: typeof localGtfsRtCollectionRun.$inferInsert,
-): Promise<void> {
-  await db.delete(localGtfsRtCollectionRun).where(eq(localGtfsRtCollectionRun.runId, row.runId));
-  await db.insert(localGtfsRtCollectionRun).values(row);
+): void {
+  db.transaction((tx) => {
+    tx.delete(localGtfsRtCollectionRun).where(eq(localGtfsRtCollectionRun.runId, row.runId)).run();
+    tx.insert(localGtfsRtCollectionRun).values(row).run();
+  });
 }
 
 export async function finishGtfsRtCollectionRun(
@@ -55,15 +57,15 @@ export async function insertGtfsRtFeedSnapshot(
   await db.insert(localGtfsRtFeedSnapshot).values(row);
 }
 
-export async function replaceGtfsRtFeedSnapshots(
+export function replaceGtfsRtFeedSnapshots(
   db: LocalPipelineDb,
   runId: string,
   rows: readonly (typeof localGtfsRtFeedSnapshot.$inferInsert)[],
-): Promise<void> {
-  await db.delete(localGtfsRtFeedSnapshot).where(eq(localGtfsRtFeedSnapshot.runId, runId));
-  if (rows.length > 0) {
-    await batchInsert(db, localGtfsRtFeedSnapshot, [...rows]);
-  }
+): void {
+  db.transaction((tx) => {
+    tx.delete(localGtfsRtFeedSnapshot).where(eq(localGtfsRtFeedSnapshot.runId, runId)).run();
+    insertAll(tx, localGtfsRtFeedSnapshot, [...rows]);
+  });
 }
 
 export async function listGtfsRtCollectionRuns(
@@ -86,7 +88,7 @@ export async function listGtfsRtFeedSnapshots(
     .orderBy(asc(localGtfsRtFeedSnapshot.sampleIndex), asc(localGtfsRtFeedSnapshot.feedType));
 }
 
-export async function replaceGtfsRtParsedSnapshot(
+export function replaceGtfsRtParsedSnapshot(
   db: LocalPipelineDb,
   input: {
     parsedSnapshot: typeof localGtfsRtParsedSnapshot.$inferInsert;
@@ -95,7 +97,7 @@ export async function replaceGtfsRtParsedSnapshot(
     stopTimeUpdates: readonly (typeof localGtfsRtStopTimeUpdate.$inferInsert)[];
     alerts: readonly (typeof localGtfsRtAlert.$inferInsert)[];
   },
-): Promise<void> {
+): void {
   const { runId, feedType, sampleIndex } = input.parsedSnapshot;
   const snapshotFilter = and(
     eq(localGtfsRtParsedSnapshot.runId, runId),
@@ -123,25 +125,19 @@ export async function replaceGtfsRtParsedSnapshot(
     eq(localGtfsRtAlert.sampleIndex, sampleIndex),
   );
 
-  await db.delete(localGtfsRtParsedSnapshot).where(snapshotFilter);
-  await db.delete(localGtfsRtVehiclePosition).where(parsedRowFilter);
-  await db.delete(localGtfsRtTripUpdate).where(tripRowFilter);
-  await db.delete(localGtfsRtStopTimeUpdate).where(stopRowFilter);
-  await db.delete(localGtfsRtAlert).where(alertRowFilter);
-  await db.insert(localGtfsRtParsedSnapshot).values(input.parsedSnapshot);
+  db.transaction((tx) => {
+    tx.delete(localGtfsRtParsedSnapshot).where(snapshotFilter).run();
+    tx.delete(localGtfsRtVehiclePosition).where(parsedRowFilter).run();
+    tx.delete(localGtfsRtTripUpdate).where(tripRowFilter).run();
+    tx.delete(localGtfsRtStopTimeUpdate).where(stopRowFilter).run();
+    tx.delete(localGtfsRtAlert).where(alertRowFilter).run();
+    tx.insert(localGtfsRtParsedSnapshot).values(input.parsedSnapshot).run();
 
-  if (input.vehiclePositions.length > 0) {
-    await batchInsert(db, localGtfsRtVehiclePosition, [...input.vehiclePositions]);
-  }
-  if (input.tripUpdates.length > 0) {
-    await batchInsert(db, localGtfsRtTripUpdate, [...input.tripUpdates]);
-  }
-  if (input.stopTimeUpdates.length > 0) {
-    await batchInsert(db, localGtfsRtStopTimeUpdate, [...input.stopTimeUpdates]);
-  }
-  if (input.alerts.length > 0) {
-    await batchInsert(db, localGtfsRtAlert, [...input.alerts]);
-  }
+    insertAll(tx, localGtfsRtVehiclePosition, [...input.vehiclePositions]);
+    insertAll(tx, localGtfsRtTripUpdate, [...input.tripUpdates]);
+    insertAll(tx, localGtfsRtStopTimeUpdate, [...input.stopTimeUpdates]);
+    insertAll(tx, localGtfsRtAlert, [...input.alerts]);
+  });
 }
 
 export async function listGtfsRtParsedSnapshots(

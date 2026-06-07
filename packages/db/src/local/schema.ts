@@ -45,7 +45,10 @@ export const localRouteMonthCoverage = sqliteTable(
     hasSpeedData: integer("has_speed_data", { mode: "boolean" }).notNull(),
     hasScheduleData: integer("has_schedule_data", { mode: "boolean" }).notNull(),
   },
-  (table) => [primaryKey({ columns: [table.routeId, table.month] })],
+  (table) => [
+    primaryKey({ columns: [table.routeId, table.month] }),
+    index("local_route_month_coverage_month_idx").on(table.month),
+  ],
 );
 
 export const localRouteReadiness = sqliteTable(
@@ -66,7 +69,10 @@ export const localRouteReadiness = sqliteTable(
     stopCount: integer("stop_count").notNull(),
     timepointStopCount: integer("timepoint_stop_count").notNull(),
   },
-  (table) => [primaryKey({ columns: [table.routeId, table.month] })],
+  (table) => [
+    primaryKey({ columns: [table.routeId, table.month] }),
+    index("local_route_readiness_month_idx").on(table.month),
+  ],
 );
 
 export const localRouteReadinessMissingInput = sqliteTable(
@@ -103,7 +109,10 @@ export const localRouteBuildPlan = sqliteTable(
     stopCount: integer("stop_count").notNull(),
     timepointStopCount: integer("timepoint_stop_count").notNull(),
   },
-  (table) => [primaryKey({ columns: [table.routeId, table.month] })],
+  (table) => [
+    primaryKey({ columns: [table.routeId, table.month] }),
+    index("local_route_build_plan_month_idx").on(table.month),
+  ],
 );
 
 export const localRouteReliabilityBaseline = sqliteTable(
@@ -121,7 +130,10 @@ export const localRouteReliabilityBaseline = sqliteTable(
     scheduledShortHeadwayShare: real("scheduled_short_headway_share"),
     scheduledLongGapShare: real("scheduled_long_gap_share"),
   },
-  (table) => [primaryKey({ columns: [table.routeId, table.month] })],
+  (table) => [
+    primaryKey({ columns: [table.routeId, table.month] }),
+    index("local_route_reliability_baseline_month_idx").on(table.month),
+  ],
 );
 
 export const localRouteReliabilityGapWindow = sqliteTable(
@@ -395,7 +407,10 @@ export const localRouteObservedReliabilitySummary = sqliteTable(
     excessWaitMinutes: real("excess_wait_minutes"),
     waitReliabilityRatio: real("wait_reliability_ratio"),
   },
-  (table) => [primaryKey({ columns: [table.routeId, table.month, table.runId] })],
+  (table) => [
+    primaryKey({ columns: [table.routeId, table.month, table.runId] }),
+    index("local_route_observed_reliability_summary_month_idx").on(table.month),
+  ],
 );
 
 export const localRouteMonthSourceStatus = sqliteTable(
@@ -412,6 +427,7 @@ export const localRouteMonthSourceStatus = sqliteTable(
   },
   (table) => [
     primaryKey({ columns: [table.routeId, table.month, table.sourceScope, table.sourceId] }),
+    index("local_route_month_source_status_month_scope_idx").on(table.month, table.sourceScope),
   ],
 );
 
@@ -428,7 +444,10 @@ export const localRouteMonthTrend = sqliteTable(
     hasSpeedTrend: integer("has_speed_trend", { mode: "boolean" }).notNull(),
     hasRidershipTrend: integer("has_ridership_trend", { mode: "boolean" }).notNull(),
   },
-  (table) => [primaryKey({ columns: [table.routeId, table.month] })],
+  (table) => [
+    primaryKey({ columns: [table.routeId, table.month] }),
+    index("local_route_month_trend_month_route_idx").on(table.month, table.routeId),
+  ],
 );
 
 export const localRouteSegmentSpeed = sqliteTable(
@@ -457,7 +476,10 @@ export const localRouteSegmentSpeed = sqliteTable(
     averageRoadSpeedMph: real("average_road_speed_mph").notNull(),
     busTripCount: integer("bus_trip_count").notNull(),
   },
-  (table) => [primaryKey({ columns: [table.routeId, table.month, table.rowRank] })],
+  (table) => [
+    primaryKey({ columns: [table.routeId, table.month, table.rowRank] }),
+    index("local_route_segment_speed_month_route_idx").on(table.month, table.routeId),
+  ],
 );
 
 export const localRouteHourlyRidership = sqliteTable(
@@ -472,6 +494,7 @@ export const localRouteHourlyRidership = sqliteTable(
   },
   (table) => [
     primaryKey({ columns: [table.routeId, table.month, table.dayOfWeek, table.hourOfDay] }),
+    index("local_route_hourly_ridership_month_route_idx").on(table.month, table.routeId),
   ],
 );
 
@@ -876,6 +899,9 @@ export const localParkingViolation = sqliteTable(
   ],
 );
 
+// Deliberately raw-only applied-research read model. Parking matching builds
+// and reads weighted route candidates with raw SQL because the matching logic
+// depends on custom fanout/evidence aggregation rather than CRUD-style rows.
 export const localParkingViolationMatch = sqliteTable(
   "local_parking_violation_match",
   {
@@ -932,17 +958,18 @@ export const localLionSegment = sqliteTable("local_lion_segment", {
   wktGeom: text("wkt_geom"),
 });
 
-// Spatialite-backed companion to local_lion_segment. The `geom` column is
-// added at runtime via `AddGeometryColumn('local_lion_segment_geom','geom',
-// 4326,'GEOMETRY','XY')`; drizzle only knows about the PK so the spatial
-// column stays opaque to non-geo code paths.
+// Deliberately raw-only Spatialite-backed companion to local_lion_segment. The
+// `geom` column is added at runtime via
+// `AddGeometryColumn('local_lion_segment_geom','geom', 4326,'GEOMETRY','XY')`;
+// drizzle only knows about the PK so the spatial column stays opaque to
+// non-geo code paths.
 export const localLionSegmentGeom = sqliteTable("local_lion_segment_geom", {
   physicalId: text("physical_id").primaryKey(),
   builtAt: text("built_at").notNull(),
 });
 
-// Spatialite-backed route shape geometry. One row per (routeId, shapeId).
-// Geometry column added via AddGeometryColumn at runtime.
+// Deliberately raw-only Spatialite-backed route shape geometry. One row per
+// (routeId, shapeId). Geometry column added via AddGeometryColumn at runtime.
 export const localRouteShapeGeom = sqliteTable(
   "local_route_shape_geom",
   {
@@ -1202,7 +1229,10 @@ export const localRouteInterventionComparison = sqliteTable(
     adjustedRidershipDelta: real("adjusted_ridership_delta"),
     caveat: text("caveat").notNull(),
   },
-  (table) => [primaryKey({ columns: [table.routeId, table.month, table.eventId] })],
+  (table) => [
+    primaryKey({ columns: [table.routeId, table.month, table.eventId] }),
+    index("local_route_intervention_comparison_month_route_idx").on(table.month, table.routeId),
+  ],
 );
 
 export const localCorridor = sqliteTable("local_corridor", {
@@ -1251,7 +1281,10 @@ export const localCorridorMonthSummary = sqliteTable(
       "evaluated_intervention_comparison_count",
     ).notNull(),
   },
-  (table) => [primaryKey({ columns: [table.corridorId, table.month] })],
+  (table) => [
+    primaryKey({ columns: [table.corridorId, table.month] }),
+    index("local_corridor_month_summary_month_idx").on(table.month),
+  ],
 );
 
 export const localCorridorInterventionContext = sqliteTable(
@@ -1359,7 +1392,10 @@ export const localRouteEquityContext = sqliteTable(
     nonHispanicBlackShare: real("non_hispanic_black_share"),
     nonHispanicAsianShare: real("non_hispanic_asian_share"),
   },
-  (table) => [primaryKey({ columns: [table.routeId, table.month] })],
+  (table) => [
+    primaryKey({ columns: [table.routeId, table.month] }),
+    index("local_route_equity_context_month_idx").on(table.month),
+  ],
 );
 
 export const localRouteScorecard = sqliteTable(
@@ -1372,7 +1408,10 @@ export const localRouteScorecard = sqliteTable(
     averageSpeedMph: real("average_speed_mph").notNull(),
     hotspotCount: integer("hotspot_count").notNull(),
   },
-  (table) => [primaryKey({ columns: [table.routeId, table.month] })],
+  (table) => [
+    primaryKey({ columns: [table.routeId, table.month] }),
+    index("local_route_scorecard_month_idx").on(table.month),
+  ],
 );
 
 export const localRouteBriefSummary = sqliteTable(
@@ -1392,7 +1431,10 @@ export const localRouteBriefSummary = sqliteTable(
     busLaneMatchedLaneCount: integer("bus_lane_matched_lane_count").notNull(),
     scheduleMatchRate: real("schedule_match_rate").notNull(),
   },
-  (table) => [primaryKey({ columns: [table.routeId, table.month] })],
+  (table) => [
+    primaryKey({ columns: [table.routeId, table.month] }),
+    index("local_route_brief_summary_month_idx").on(table.month),
+  ],
 );
 
 export const localRouteBriefPeakWindow = sqliteTable(

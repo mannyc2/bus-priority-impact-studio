@@ -1,4 +1,4 @@
-import { type LocalPipelineDb } from "../client.js";
+import { insertAll, type LocalPipelineDb } from "../client.js";
 import {
   localTier2InterventionEvent,
   localTier2InterventionEventRoute,
@@ -33,24 +33,20 @@ export type LocalTier2InterventionStagingEventSourceSpan = {
   chunkId: string;
 };
 
-export async function replaceTier2InterventionStagingRows(
+export function replaceTier2InterventionStagingRows(
   db: LocalPipelineDb,
   input: {
     events: readonly LocalTier2InterventionStagingEvent[];
     routes: readonly LocalTier2InterventionStagingEventRoute[];
     sourceSpans: readonly LocalTier2InterventionStagingEventSourceSpan[];
   },
-): Promise<void> {
-  await db.delete(localTier2InterventionEventSourceSpan);
-  await db.delete(localTier2InterventionEventRoute);
-  await db.delete(localTier2InterventionEvent);
-  if (input.events.length > 0) {
-    await db.insert(localTier2InterventionEvent).values([...input.events]);
-  }
-  if (input.routes.length > 0) {
-    await db.insert(localTier2InterventionEventRoute).values([...input.routes]);
-  }
-  if (input.sourceSpans.length > 0) {
-    await db.insert(localTier2InterventionEventSourceSpan).values([...input.sourceSpans]);
-  }
+): void {
+  db.transaction((tx) => {
+    tx.delete(localTier2InterventionEventSourceSpan).run();
+    tx.delete(localTier2InterventionEventRoute).run();
+    tx.delete(localTier2InterventionEvent).run();
+    insertAll(tx, localTier2InterventionEvent, [...input.events]);
+    insertAll(tx, localTier2InterventionEventRoute, [...input.routes]);
+    insertAll(tx, localTier2InterventionEventSourceSpan, [...input.sourceSpans]);
+  });
 }

@@ -1,5 +1,5 @@
 import { and, asc, eq } from "drizzle-orm";
-import { batchInsert, type LocalPipelineDb } from "../client.js";
+import { insertAll, type LocalPipelineDb } from "../client.js";
 import {
   localRouteHotspot,
   localRouteHotspotSummary,
@@ -116,50 +116,46 @@ export type LocalRouteHotspot = {
   riderImpactScore?: number | undefined;
 };
 
-export async function replaceRouteSegmentSpeeds(
+export function replaceRouteSegmentSpeeds(
   db: LocalPipelineDb,
   routeId: string,
   month: string,
   rows: readonly LocalRouteSegmentSpeed[],
-): Promise<void> {
-  await db
-    .delete(localRouteSegmentSpeed)
-    .where(
-      and(eq(localRouteSegmentSpeed.routeId, routeId), eq(localRouteSegmentSpeed.month, month)),
-    );
+): void {
+  const values = rows.map((row, index) => ({
+    routeId: row.routeId,
+    month: row.isoMonth,
+    rowRank: index + 1,
+    timestamp: row.timestamp,
+    dayOfWeek: row.dayOfWeek,
+    hourOfDay: row.hourOfDay,
+    direction: row.direction,
+    borough: row.borough,
+    routeType: row.routeType,
+    stopOrder: row.stopOrder,
+    timepointStopId: row.timepointStopId,
+    timepointStopName: row.timepointStopName,
+    timepointStopLatitude: row.timepointStopLatitude,
+    timepointStopLongitude: row.timepointStopLongitude,
+    nextTimepointStopId: row.nextTimepointStopId,
+    nextTimepointStopName: row.nextTimepointStopName,
+    nextTimepointStopLatitude: row.nextTimepointStopLatitude,
+    nextTimepointStopLongitude: row.nextTimepointStopLongitude,
+    roadDistanceMiles: row.roadDistanceMiles,
+    averageTravelTimeMinutes: row.averageTravelTimeMinutes,
+    averageRoadSpeedMph: row.averageRoadSpeedMph,
+    busTripCount: row.busTripCount,
+  }));
 
-  if (rows.length === 0) {
-    return;
-  }
-
-  await batchInsert(
-    db,
-    localRouteSegmentSpeed,
-    rows.map((row, index) => ({
-      routeId: row.routeId,
-      month: row.isoMonth,
-      rowRank: index + 1,
-      timestamp: row.timestamp,
-      dayOfWeek: row.dayOfWeek,
-      hourOfDay: row.hourOfDay,
-      direction: row.direction,
-      borough: row.borough,
-      routeType: row.routeType,
-      stopOrder: row.stopOrder,
-      timepointStopId: row.timepointStopId,
-      timepointStopName: row.timepointStopName,
-      timepointStopLatitude: row.timepointStopLatitude,
-      timepointStopLongitude: row.timepointStopLongitude,
-      nextTimepointStopId: row.nextTimepointStopId,
-      nextTimepointStopName: row.nextTimepointStopName,
-      nextTimepointStopLatitude: row.nextTimepointStopLatitude,
-      nextTimepointStopLongitude: row.nextTimepointStopLongitude,
-      roadDistanceMiles: row.roadDistanceMiles,
-      averageTravelTimeMinutes: row.averageTravelTimeMinutes,
-      averageRoadSpeedMph: row.averageRoadSpeedMph,
-      busTripCount: row.busTripCount,
-    })),
-  );
+  db.transaction((tx) => {
+    tx
+      .delete(localRouteSegmentSpeed)
+      .where(
+        and(eq(localRouteSegmentSpeed.routeId, routeId), eq(localRouteSegmentSpeed.month, month)),
+      )
+      .run();
+    insertAll(tx, localRouteSegmentSpeed, values);
+  });
 }
 
 export async function listRouteSegmentSpeeds(
@@ -200,37 +196,33 @@ export async function listRouteSegmentSpeeds(
   }));
 }
 
-export async function replaceRouteHourlyRidership(
+export function replaceRouteHourlyRidership(
   db: LocalPipelineDb,
   routeId: string,
   month: string,
   rows: readonly LocalRouteHourlyRidership[],
-): Promise<void> {
-  await db
-    .delete(localRouteHourlyRidership)
-    .where(
-      and(
-        eq(localRouteHourlyRidership.routeId, routeId),
-        eq(localRouteHourlyRidership.month, month),
-      ),
-    );
+): void {
+  const values = rows.map((row) => ({
+    routeId: row.routeId,
+    month: row.isoMonth,
+    dayOfWeek: row.dayOfWeek,
+    hourOfDay: row.hourOfDay,
+    ridership: row.ridership,
+    transfers: row.transfers,
+  }));
 
-  if (rows.length === 0) {
-    return;
-  }
-
-  await batchInsert(
-    db,
-    localRouteHourlyRidership,
-    rows.map((row) => ({
-      routeId: row.routeId,
-      month: row.isoMonth,
-      dayOfWeek: row.dayOfWeek,
-      hourOfDay: row.hourOfDay,
-      ridership: row.ridership,
-      transfers: row.transfers,
-    })),
-  );
+  db.transaction((tx) => {
+    tx
+      .delete(localRouteHourlyRidership)
+      .where(
+        and(
+          eq(localRouteHourlyRidership.routeId, routeId),
+          eq(localRouteHourlyRidership.month, month),
+        ),
+      )
+      .run();
+    insertAll(tx, localRouteHourlyRidership, values);
+  });
 }
 
 export async function listRouteHourlyRidership(
@@ -259,46 +251,42 @@ export async function listRouteHourlyRidership(
   }));
 }
 
-export async function replaceRouteSchedules(
+export function replaceRouteSchedules(
   db: LocalPipelineDb,
   routeId: string,
   month: string,
   rows: readonly LocalRouteScheduleTimepoint[],
-): Promise<void> {
-  await db
-    .delete(localRouteScheduleTimepoint)
-    .where(
-      and(
-        eq(localRouteScheduleTimepoint.routeId, routeId),
-        eq(localRouteScheduleTimepoint.month, month),
-      ),
-    );
+): void {
+  const values = rows.map((row, index) => ({
+    routeId: row.routeId,
+    month: row.isoMonth,
+    rowRank: index + 1,
+    scheduleDate: row.scheduleDate,
+    dayType: row.dayType,
+    direction: row.direction,
+    shapeId: row.shapeId,
+    stopSequence: row.stopSequence,
+    stopId: row.stopId,
+    stopName: row.stopName ?? null,
+    scheduleTime: row.scheduleTime,
+    distanceFromStart: row.distanceFromStart ?? null,
+    tripHeadsign: row.tripHeadsign ?? null,
+    blockId: row.blockId,
+    bundle: row.bundle ?? null,
+  }));
 
-  if (rows.length === 0) {
-    return;
-  }
-
-  await batchInsert(
-    db,
-    localRouteScheduleTimepoint,
-    rows.map((row, index) => ({
-      routeId: row.routeId,
-      month: row.isoMonth,
-      rowRank: index + 1,
-      scheduleDate: row.scheduleDate,
-      dayType: row.dayType,
-      direction: row.direction,
-      shapeId: row.shapeId,
-      stopSequence: row.stopSequence,
-      stopId: row.stopId,
-      stopName: row.stopName ?? null,
-      scheduleTime: row.scheduleTime,
-      distanceFromStart: row.distanceFromStart ?? null,
-      tripHeadsign: row.tripHeadsign ?? null,
-      blockId: row.blockId,
-      bundle: row.bundle ?? null,
-    })),
-  );
+  db.transaction((tx) => {
+    tx
+      .delete(localRouteScheduleTimepoint)
+      .where(
+        and(
+          eq(localRouteScheduleTimepoint.routeId, routeId),
+          eq(localRouteScheduleTimepoint.month, month),
+        ),
+      )
+      .run();
+    insertAll(tx, localRouteScheduleTimepoint, values);
+  });
 }
 
 export async function listRouteSchedules(
@@ -348,37 +336,33 @@ export async function listRouteSchedules(
   });
 }
 
-export async function replaceRouteStops(
+export function replaceRouteStops(
   db: LocalPipelineDb,
   routeId: string,
   month: string,
   rows: readonly LocalRouteStop[],
-): Promise<void> {
-  await db
-    .delete(localRouteStop)
-    .where(and(eq(localRouteStop.routeId, routeId), eq(localRouteStop.month, month)));
+): void {
+  const values = rows.map((row) => ({
+    routeId: row.routeId,
+    month: row.isoMonth,
+    routeShortName: row.routeShortName,
+    stopId: row.stopId,
+    stopName: row.stopName,
+    inEffect: row.inEffect,
+    directionId: row.directionId,
+    direction: row.direction,
+    timepoint: row.timepoint,
+    latitude: row.latitude,
+    longitude: row.longitude,
+  }));
 
-  if (rows.length === 0) {
-    return;
-  }
-
-  await batchInsert(
-    db,
-    localRouteStop,
-    rows.map((row) => ({
-      routeId: row.routeId,
-      month: row.isoMonth,
-      routeShortName: row.routeShortName,
-      stopId: row.stopId,
-      stopName: row.stopName,
-      inEffect: row.inEffect,
-      directionId: row.directionId,
-      direction: row.direction,
-      timepoint: row.timepoint,
-      latitude: row.latitude,
-      longitude: row.longitude,
-    })),
-  );
+  db.transaction((tx) => {
+    tx
+      .delete(localRouteStop)
+      .where(and(eq(localRouteStop.routeId, routeId), eq(localRouteStop.month, month)))
+      .run();
+    insertAll(tx, localRouteStop, values);
+  });
 }
 
 export async function listRouteStops(
@@ -407,76 +391,79 @@ export async function listRouteStops(
   }));
 }
 
-export async function replaceRouteHotspots(
+export function replaceRouteHotspots(
   db: LocalPipelineDb,
   summary: LocalRouteHotspotSummary,
   hotspots: readonly LocalRouteHotspot[],
-): Promise<void> {
-  await db
-    .delete(localRouteHotspot)
-    .where(
-      and(
-        eq(localRouteHotspot.routeId, summary.routeId),
-        eq(localRouteHotspot.month, summary.isoMonth),
-      ),
-    );
-  await db
-    .delete(localRouteHotspotSummary)
-    .where(
-      and(
-        eq(localRouteHotspotSummary.routeId, summary.routeId),
-        eq(localRouteHotspotSummary.month, summary.isoMonth),
-      ),
-    );
+): void {
+  const hotspotValues = hotspots.map((hotspot, index) => ({
+    routeId: hotspot.routeId,
+    month: hotspot.isoMonth,
+    hotspotRank: index + 1,
+    segmentId: hotspot.segmentId,
+    direction: hotspot.direction,
+    stopOrder: hotspot.stopOrder,
+    timepointStopId: hotspot.timepointStopId,
+    timepointStopName: hotspot.timepointStopName,
+    nextTimepointStopId: hotspot.nextTimepointStopId,
+    nextTimepointStopName: hotspot.nextTimepointStopName,
+    observationCount: hotspot.observationCount,
+    busTripCount: hotspot.busTripCount,
+    weightedAverageSpeedMph: hotspot.weightedAverageSpeedMph,
+    weightedAverageTravelTimeMinutes: hotspot.weightedAverageTravelTimeMinutes,
+    averageRoadDistanceMiles: hotspot.averageRoadDistanceMiles,
+    slowWindowShare: hotspot.slowWindowShare,
+    speedSeverity: hotspot.speedSeverity,
+    hotspotScore: hotspot.hotspotScore,
+    ridershipExposure: hotspot.ridershipExposure ?? null,
+    transferExposure: hotspot.transferExposure ?? null,
+    riderDelayIndex: hotspot.riderDelayIndex ?? null,
+    riderImpactShare: hotspot.riderImpactShare ?? null,
+    riderWeightedSpeedSeverity: hotspot.riderWeightedSpeedSeverity ?? null,
+    riderWeightedSlowWindowShare: hotspot.riderWeightedSlowWindowShare ?? null,
+    riderImpactScore: hotspot.riderImpactScore ?? null,
+  }));
 
-  await db.insert(localRouteHotspotSummary).values({
-    routeId: summary.routeId,
-    month: summary.isoMonth,
-    generatedAt: summary.generatedAt,
-    routeWeightedAverageSpeedMph: summary.routeWeightedAverageSpeedMph,
-    observationCount: summary.observationCount,
-    busTripCount: summary.busTripCount,
-    ridershipWeighted: summary.ridershipWeighted,
-    ridershipWindowCount: summary.ridershipWindowCount,
-    ridershipMatchedObservationCount: summary.ridershipMatchedObservationCount,
-    ridershipExposure: summary.ridershipExposure,
-    segmentCount: summary.segmentCount,
-    hotspotCount: summary.hotspotCount,
+  db.transaction((tx) => {
+    tx
+      .delete(localRouteHotspot)
+      .where(
+        and(
+          eq(localRouteHotspot.routeId, summary.routeId),
+          eq(localRouteHotspot.month, summary.isoMonth),
+        ),
+      )
+      .run();
+    tx
+      .delete(localRouteHotspotSummary)
+      .where(
+        and(
+          eq(localRouteHotspotSummary.routeId, summary.routeId),
+          eq(localRouteHotspotSummary.month, summary.isoMonth),
+        ),
+      )
+      .run();
+
+    tx
+      .insert(localRouteHotspotSummary)
+      .values({
+        routeId: summary.routeId,
+        month: summary.isoMonth,
+        generatedAt: summary.generatedAt,
+        routeWeightedAverageSpeedMph: summary.routeWeightedAverageSpeedMph,
+        observationCount: summary.observationCount,
+        busTripCount: summary.busTripCount,
+        ridershipWeighted: summary.ridershipWeighted,
+        ridershipWindowCount: summary.ridershipWindowCount,
+        ridershipMatchedObservationCount: summary.ridershipMatchedObservationCount,
+        ridershipExposure: summary.ridershipExposure,
+        segmentCount: summary.segmentCount,
+        hotspotCount: summary.hotspotCount,
+      })
+      .run();
+
+    insertAll(tx, localRouteHotspot, hotspotValues);
   });
-
-  if (hotspots.length === 0) {
-    return;
-  }
-
-  await db.insert(localRouteHotspot).values(
-    hotspots.map((hotspot, index) => ({
-      routeId: hotspot.routeId,
-      month: hotspot.isoMonth,
-      hotspotRank: index + 1,
-      segmentId: hotspot.segmentId,
-      direction: hotspot.direction,
-      stopOrder: hotspot.stopOrder,
-      timepointStopId: hotspot.timepointStopId,
-      timepointStopName: hotspot.timepointStopName,
-      nextTimepointStopId: hotspot.nextTimepointStopId,
-      nextTimepointStopName: hotspot.nextTimepointStopName,
-      observationCount: hotspot.observationCount,
-      busTripCount: hotspot.busTripCount,
-      weightedAverageSpeedMph: hotspot.weightedAverageSpeedMph,
-      weightedAverageTravelTimeMinutes: hotspot.weightedAverageTravelTimeMinutes,
-      averageRoadDistanceMiles: hotspot.averageRoadDistanceMiles,
-      slowWindowShare: hotspot.slowWindowShare,
-      speedSeverity: hotspot.speedSeverity,
-      hotspotScore: hotspot.hotspotScore,
-      ridershipExposure: hotspot.ridershipExposure ?? null,
-      transferExposure: hotspot.transferExposure ?? null,
-      riderDelayIndex: hotspot.riderDelayIndex ?? null,
-      riderImpactShare: hotspot.riderImpactShare ?? null,
-      riderWeightedSpeedSeverity: hotspot.riderWeightedSpeedSeverity ?? null,
-      riderWeightedSlowWindowShare: hotspot.riderWeightedSlowWindowShare ?? null,
-      riderImpactScore: hotspot.riderImpactScore ?? null,
-    })),
-  );
 }
 
 export async function getRouteHotspotSummary(

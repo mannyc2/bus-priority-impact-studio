@@ -1,5 +1,5 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
-import { batchInsert, type LocalPipelineDb } from "../client.js";
+import { insertAll, type LocalPipelineDb } from "../client.js";
 import {
   localObservedHeadwaySample,
   localObservedVehicleStopEvent,
@@ -12,25 +12,24 @@ export type LocalObservedHeadwaySample = typeof localObservedHeadwaySample.$infe
 export type LocalRouteObservedReliabilitySummary =
   typeof localRouteObservedReliabilitySummary.$inferSelect;
 
-export async function replaceObservedHeadwayRows(
+export function replaceObservedHeadwayRows(
   db: LocalPipelineDb,
   runId: string,
   input: {
     stopEvents: readonly (typeof localObservedVehicleStopEvent.$inferInsert)[];
     headwaySamples: readonly (typeof localObservedHeadwaySample.$inferInsert)[];
   },
-): Promise<void> {
-  await db.delete(localObservedHeadwaySample).where(eq(localObservedHeadwaySample.runId, runId));
-  await db
-    .delete(localObservedVehicleStopEvent)
-    .where(eq(localObservedVehicleStopEvent.runId, runId));
+): void {
+  db.transaction((tx) => {
+    tx.delete(localObservedHeadwaySample).where(eq(localObservedHeadwaySample.runId, runId)).run();
+    tx
+      .delete(localObservedVehicleStopEvent)
+      .where(eq(localObservedVehicleStopEvent.runId, runId))
+      .run();
 
-  if (input.stopEvents.length > 0) {
-    await batchInsert(db, localObservedVehicleStopEvent, [...input.stopEvents]);
-  }
-  if (input.headwaySamples.length > 0) {
-    await batchInsert(db, localObservedHeadwaySample, [...input.headwaySamples]);
-  }
+    insertAll(tx, localObservedVehicleStopEvent, [...input.stopEvents]);
+    insertAll(tx, localObservedHeadwaySample, [...input.headwaySamples]);
+  });
 }
 
 export async function listObservedVehicleStopEvents(
@@ -57,7 +56,7 @@ export async function listObservedHeadwaySamples(
 
 const observedReliabilitySourceIds = ["observedHeadways", "bunching", "waitTimeReliability"];
 
-export async function replaceRouteObservedReliabilityRows(
+export function replaceRouteObservedReliabilityRows(
   db: LocalPipelineDb,
   month: string,
   runId: string,
@@ -65,7 +64,7 @@ export async function replaceRouteObservedReliabilityRows(
     summaries: readonly (typeof localRouteObservedReliabilitySummary.$inferInsert)[];
     sourceStatuses: readonly (typeof localRouteMonthSourceStatus.$inferInsert)[];
   },
-): Promise<void> {
+): void {
   for (const row of input.summaries) {
     if (row.month !== month || row.runId !== runId) {
       throw new Error(
@@ -81,30 +80,30 @@ export async function replaceRouteObservedReliabilityRows(
     }
   }
 
-  await db
-    .delete(localRouteObservedReliabilitySummary)
-    .where(
-      and(
-        eq(localRouteObservedReliabilitySummary.month, month),
-        eq(localRouteObservedReliabilitySummary.runId, runId),
-      ),
-    );
-  await db
-    .delete(localRouteMonthSourceStatus)
-    .where(
-      and(
-        eq(localRouteMonthSourceStatus.month, month),
-        eq(localRouteMonthSourceStatus.sourceScope, "reliability"),
-        inArray(localRouteMonthSourceStatus.sourceId, observedReliabilitySourceIds),
-      ),
-    );
+  db.transaction((tx) => {
+    tx
+      .delete(localRouteObservedReliabilitySummary)
+      .where(
+        and(
+          eq(localRouteObservedReliabilitySummary.month, month),
+          eq(localRouteObservedReliabilitySummary.runId, runId),
+        ),
+      )
+      .run();
+    tx
+      .delete(localRouteMonthSourceStatus)
+      .where(
+        and(
+          eq(localRouteMonthSourceStatus.month, month),
+          eq(localRouteMonthSourceStatus.sourceScope, "reliability"),
+          inArray(localRouteMonthSourceStatus.sourceId, observedReliabilitySourceIds),
+        ),
+      )
+      .run();
 
-  if (input.summaries.length > 0) {
-    await batchInsert(db, localRouteObservedReliabilitySummary, [...input.summaries]);
-  }
-  if (input.sourceStatuses.length > 0) {
-    await batchInsert(db, localRouteMonthSourceStatus, [...input.sourceStatuses]);
-  }
+    insertAll(tx, localRouteObservedReliabilitySummary, [...input.summaries]);
+    insertAll(tx, localRouteMonthSourceStatus, [...input.sourceStatuses]);
+  });
 }
 
 export async function listRouteObservedReliabilitySummaries(

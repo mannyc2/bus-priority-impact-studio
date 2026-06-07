@@ -2,6 +2,7 @@ import { Database } from "bun:sqlite";
 import { and, eq, inArray, type SQLWrapper } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { SQLiteSyncDialect } from "drizzle-orm/sqlite-core";
+import type { z } from "zod";
 import type {
   LocalCorridor,
   LocalCorridorArtifact,
@@ -67,6 +68,41 @@ import {
   routeTimelineIndex,
   sourceMonthCoverage,
 } from "../schema.js";
+import {
+  CorridorArtifactInsertSchema,
+  CorridorHotspotInsertSchema,
+  CorridorInsertSchema,
+  CorridorInterventionContextInsertSchema,
+  CorridorMonthSummaryInsertSchema,
+  CorridorRouteMemberInsertSchema,
+  InterventionEventInsertSchema,
+  RouteBriefSummaryInsertSchema,
+  RouteBriefPeakWindowInsertSchema,
+  RouteBriefSlowestWindowInsertSchema,
+  RouteArtifactInsertSchema,
+  RouteBatchBuiltRouteInsertSchema,
+  RouteBatchIssueInsertSchema,
+  RouteBatchStatusInsertSchema,
+  RouteBuildPlanInsertSchema,
+  RouteCatalogInsertSchema,
+  RouteCatalogTypeInsertSchema,
+  RouteComparisonRankInsertSchema,
+  RouteDirectionInsertSchema,
+  RouteEquityContextInsertSchema,
+  RouteInterventionComparisonInsertSchema,
+  RouteMonthCoverageInsertSchema,
+  RouteMonthSourceStatusInsertSchema,
+  RouteMonthTrendInsertSchema,
+  RouteObservedReliabilitySummaryInsertSchema,
+  RouteReadinessInsertSchema,
+  RouteReadinessMissingInputInsertSchema,
+  RouteReliabilityBaselineInsertSchema,
+  RouteReliabilityGapWindowInsertSchema,
+  RouteScorecardInsertSchema,
+  RouteSpeedHistoryCoverageInsertSchema,
+  RouteTimelineIndexInsertSchema,
+  SourceMonthCoverageInsertSchema,
+} from "../validation.js";
 
 export type D1RouteSpeedHistoryCoverageInput = {
   routeId: string;
@@ -201,7 +237,374 @@ function renderQuery(query: SQLWrapper): string {
   return `${sqliteDialect.sqlToQuery(query.getSQL().inlineParams()).sql};`;
 }
 
+function validateSeedRow(schema: z.ZodType, tableName: string, row: unknown): void {
+  const result = schema.safeParse(row);
+  if (result.success) return;
+
+  const details = result.error.issues
+    .map((issue) => `${issue.path.join(".") || "<row>"}: ${issue.message}`)
+    .join("; ");
+  throw new Error(`D1 seed row failed validation for ${tableName}: ${details}`);
+}
+
+function validateD1SeedRows(input: D1SeedInput): void {
+  const { month } = input;
+
+  for (const route of input.routeCatalog) {
+    validateSeedRow(RouteCatalogInsertSchema, "route_catalog", {
+      routeId: route.routeId,
+      routeShortName: route.routeShortName,
+      routeLongName: route.routeLongName,
+      shapeCount: route.shapeCount,
+      stopCount: route.stopCount,
+      timepointStopCount: route.timepointStopCount,
+      latitudeMin: route.latitudeMin,
+      latitudeMax: route.latitudeMax,
+      longitudeMin: route.longitudeMin,
+      longitudeMax: route.longitudeMax,
+    });
+    route.routeTypes.forEach((routeType, index) => {
+      validateSeedRow(RouteCatalogTypeInsertSchema, "route_catalog_type", {
+        routeId: route.routeId,
+        typeRank: index + 1,
+        routeType,
+      });
+    });
+    route.directions.forEach((directionName, index) => {
+      validateSeedRow(RouteDirectionInsertSchema, "route_direction", {
+        routeId: route.routeId,
+        directionId: index,
+        directionName,
+      });
+    });
+  }
+
+  for (const row of input.routeCoverage) {
+    validateSeedRow(RouteMonthCoverageInsertSchema, "route_month_coverage", {
+      routeId: row.routeId,
+      month,
+      speedObservationCount: row.speedObservationCount,
+      speedBusTripCount: row.speedBusTripCount,
+      averageSpeedMph: row.averageSpeedMph,
+      scheduleTimepointCount: row.scheduleTimepointCount,
+      hasSpeedData: row.hasSpeedData,
+      hasScheduleData: row.hasScheduleData,
+    });
+  }
+
+  for (const row of input.routeReadiness) {
+    validateSeedRow(RouteReadinessInsertSchema, "route_readiness", {
+      routeId: row.routeId,
+      month,
+      routeShortName: row.routeShortName,
+      routeLongName: row.routeLongName,
+      readinessStatus: row.readinessStatus,
+      buildEligible: row.buildEligible,
+      readinessScore: row.readinessScore,
+      speedObservationCount: row.speedObservationCount,
+      speedBusTripCount: row.speedBusTripCount,
+      averageSpeedMph: row.averageSpeedMph,
+      scheduleTimepointCount: row.scheduleTimepointCount,
+      shapeCount: row.shapeCount,
+      stopCount: row.stopCount,
+      timepointStopCount: row.timepointStopCount,
+    });
+  }
+
+  for (const row of input.routeReadiness) {
+    row.missingInputs.forEach((inputName, index) => {
+      validateSeedRow(RouteReadinessMissingInputInsertSchema, "route_readiness_missing_input", {
+        routeId: row.routeId,
+        month,
+        inputRank: index + 1,
+        inputName,
+        severity: "blocking",
+        note: null,
+      });
+    });
+  }
+
+  for (const row of input.routeBuildPlan) {
+    validateSeedRow(RouteBuildPlanInsertSchema, "route_build_plan", {
+      routeId: row.routeId,
+      month,
+      routeShortName: row.routeShortName,
+      routeLongName: row.routeLongName,
+      candidateRank: row.candidateRank,
+      planStatus: row.planStatus,
+      selectedForNextBatch: row.selectedForNextBatch,
+      alreadyBuilt: row.alreadyBuilt,
+      buildEligible: row.buildEligible,
+      priorityScore: row.priorityScore,
+      readinessStatus: row.readinessStatus,
+      readinessScore: row.readinessScore,
+      speedObservationCount: row.speedObservationCount,
+      speedBusTripCount: row.speedBusTripCount,
+      averageSpeedMph: row.averageSpeedMph,
+      scheduleTimepointCount: row.scheduleTimepointCount,
+    });
+  }
+
+  for (const row of input.routeReliabilityBaseline) {
+    validateSeedRow(RouteReliabilityBaselineInsertSchema, "route_reliability_baseline", {
+      routeId: row.routeId,
+      month: row.month,
+      reliabilityStatus: row.reliabilityStatus,
+      scheduledTimepointCount: row.scheduledTimepointCount,
+      stopHeadwayGroupCount: row.stopHeadwayGroupCount,
+      headwaySampleCount: row.headwaySampleCount,
+      medianScheduledHeadwayMinutes: row.medianScheduledHeadwayMinutes,
+      p90ScheduledHeadwayMinutes: row.p90ScheduledHeadwayMinutes,
+      maxScheduledHeadwayMinutes: row.maxScheduledHeadwayMinutes,
+      scheduledShortHeadwayShare: row.scheduledShortHeadwayShare,
+      scheduledLongGapShare: row.scheduledLongGapShare,
+    });
+  }
+
+  for (const row of input.routeReliabilityGapWindows) {
+    validateSeedRow(RouteReliabilityGapWindowInsertSchema, "route_reliability_gap_window", {
+      routeId: row.routeId,
+      month: row.month,
+      windowRank: row.windowRank,
+      dayType: row.dayType,
+      directionId: row.directionId,
+      stopId: row.stopId,
+      stopName: row.stopName,
+      sampleCount: row.sampleCount,
+      medianHeadwayMinutes: row.medianHeadwayMinutes,
+      p90HeadwayMinutes: row.p90HeadwayMinutes,
+      maxHeadwayMinutes: row.maxHeadwayMinutes,
+    });
+  }
+
+  for (const row of input.routeObservedReliabilitySummaries) {
+    validateObservedReliabilitySeedRow(row);
+  }
+
+  for (const row of input.interventionEvents) {
+    validateSeedRow(InterventionEventInsertSchema, "intervention_event", {
+      eventId: row.eventId,
+      routeId: row.routeId,
+      interventionType: row.interventionType,
+      sourceId: row.sourceId,
+      program: row.program,
+      implementationDate: row.implementationDate,
+      implementationMonth: row.implementationMonth,
+      eventStatus: row.eventStatus,
+      description: row.description,
+    });
+  }
+
+  for (const row of input.routeInterventionComparisons) {
+    validateSeedRow(RouteInterventionComparisonInsertSchema, "route_intervention_comparison", {
+      routeId: row.routeId,
+      month: row.month,
+      eventId: row.eventId,
+      interventionType: row.interventionType,
+      sourceId: row.sourceId,
+      evaluationLevel: row.evaluationLevel,
+      comparisonStatus: row.comparisonStatus,
+      preStartMonth: row.preStartMonth,
+      preEndMonth: row.preEndMonth,
+      postStartMonth: row.postStartMonth,
+      postEndMonth: row.postEndMonth,
+      requestedPreMonthCount: row.requestedPreMonthCount,
+      requestedPostMonthCount: row.requestedPostMonthCount,
+      preSampleMonthCount: row.preSampleMonthCount,
+      postSampleMonthCount: row.postSampleMonthCount,
+      preSpeedObservationCount: row.preSpeedObservationCount,
+      postSpeedObservationCount: row.postSpeedObservationCount,
+      preAverageSpeedMph: row.preAverageSpeedMph,
+      postAverageSpeedMph: row.postAverageSpeedMph,
+      speedDeltaMph: row.speedDeltaMph,
+      preAverageMonthlyRidership: row.preAverageMonthlyRidership,
+      postAverageMonthlyRidership: row.postAverageMonthlyRidership,
+      ridershipDelta: row.ridershipDelta,
+      comparisonRouteCount: row.comparisonRouteCount,
+      comparisonRouteIds: row.comparisonRouteIds,
+      comparisonPreAverageSpeedMph: row.comparisonPreAverageSpeedMph,
+      comparisonPostAverageSpeedMph: row.comparisonPostAverageSpeedMph,
+      comparisonSpeedDeltaMph: row.comparisonSpeedDeltaMph,
+      adjustedSpeedDeltaMph: row.adjustedSpeedDeltaMph,
+      comparisonPreAverageMonthlyRidership: row.comparisonPreAverageMonthlyRidership,
+      comparisonPostAverageMonthlyRidership: row.comparisonPostAverageMonthlyRidership,
+      comparisonRidershipDelta: row.comparisonRidershipDelta,
+      adjustedRidershipDelta: row.adjustedRidershipDelta,
+      caveat: row.caveat,
+    });
+  }
+
+  for (const row of input.routeArtifacts) {
+    validateSeedRow(RouteArtifactInsertSchema, "route_artifact", row);
+  }
+
+  for (const row of input.corridors) {
+    validateSeedRow(CorridorInsertSchema, "corridor", row);
+  }
+
+  for (const row of input.corridorArtifacts) {
+    validateSeedRow(CorridorArtifactInsertSchema, "corridor_artifact", row);
+  }
+
+  for (const row of input.corridorRouteMembers) {
+    validateSeedRow(CorridorRouteMemberInsertSchema, "corridor_route_member", row);
+  }
+
+  for (const row of input.corridorMonthSummaries) {
+    validateSeedRow(CorridorMonthSummaryInsertSchema, "corridor_month_summary", row);
+  }
+
+  for (const row of input.corridorInterventionContexts) {
+    validateSeedRow(CorridorInterventionContextInsertSchema, "corridor_intervention_context", row);
+  }
+
+  for (const row of input.corridorHotspots) {
+    validateSeedRow(CorridorHotspotInsertSchema, "corridor_hotspot", row);
+  }
+
+  for (const row of input.routeMonthSourceStatuses) {
+    validateRouteMonthSourceStatusSeedRow(row);
+  }
+
+  for (const row of input.routeMonthTrends) {
+    validateSeedRow(RouteMonthTrendInsertSchema, "route_month_trend", row);
+  }
+
+  for (const row of input.routeTimelineIndex) {
+    validateSeedRow(RouteTimelineIndexInsertSchema, "route_timeline_index", {
+      routeId: row.routeId,
+      month: row.month,
+      supportLevel: row.supportLevel,
+      qualityFlagsJson: JSON.stringify(row.qualityFlags),
+      defaultEventCount: row.defaultEventCount,
+      secondaryEventCount: row.secondaryEventCount,
+      reviewOnlyEventCount: row.reviewOnlyEventCount,
+      eventCount: row.eventCount,
+      sourceBackedEventCount: row.sourceBackedEventCount,
+      dateAssertionBackedEventCount: row.dateAssertionBackedEventCount,
+      unresolvedDateEventCount: row.unresolvedDateEventCount,
+      lowConfidenceEventCount: row.lowConfidenceEventCount,
+      unaccountedCandidateCount: row.unaccountedCandidateCount,
+      validationErrorCount: row.validationErrorCount,
+      validationWarningCount: row.validationWarningCount,
+      totalTokens: row.totalTokens,
+      defaultEventsJson: JSON.stringify(row.defaultEvents),
+      bundleArtifactKey: row.bundleArtifactKey,
+      bundleArtifactSha256: row.bundleArtifactSha256,
+      bundleArtifactByteLength: row.bundleArtifactByteLength,
+      sourceBundlePath: row.sourceBundlePath,
+      generatedAt: row.generatedAt,
+    });
+  }
+
+  for (const row of input.routeSpeedHistoryCoverage) {
+    validateSeedRow(RouteSpeedHistoryCoverageInsertSchema, "route_speed_history_coverage", row);
+  }
+
+  for (const row of input.sourceMonthCoverage) {
+    validateSeedRow(SourceMonthCoverageInsertSchema, "source_month_coverage", row);
+  }
+
+  for (const row of input.routeEquityContext) {
+    validateSeedRow(RouteEquityContextInsertSchema, "route_equity_context", row);
+  }
+
+  for (const row of input.routeScorecards) {
+    validateSeedRow(RouteScorecardInsertSchema, "route_scorecard", {
+      routeId: row.routeId,
+      month: row.month,
+      routeScore: row.routeScore,
+      coverageStatus: row.coverageStatus,
+      averageSpeedMph: row.averageSpeedMph,
+      hotspotCount: row.hotspotCount,
+    });
+  }
+
+  for (const row of input.routeBriefSummaries) {
+    validateSeedRow(RouteBriefSummaryInsertSchema, "route_brief_summary", {
+      routeId: row.routeId,
+      month: row.month,
+      routeScore: row.routeScore,
+      publicVisible: row.publicVisible,
+      publicVisibilityReason: row.publicVisibilityReason,
+      averageSpeedMph: row.averageSpeedMph,
+      hotspotCount: row.hotspotCount,
+      totalRidership: row.totalRidership,
+      totalTransfers: row.totalTransfers,
+      aceActive: row.aceActive,
+      aceViolationCount: row.aceViolationCount,
+      busLaneMatchedLaneCount: row.busLaneMatchedLaneCount,
+      scheduleMatchRate: row.scheduleMatchRate,
+    });
+  }
+
+  for (const row of input.routeBriefPeakWindows) {
+    validateSeedRow(RouteBriefPeakWindowInsertSchema, "route_brief_peak_window", row);
+  }
+
+  for (const row of input.routeBriefSlowestWindows) {
+    validateSeedRow(RouteBriefSlowestWindowInsertSchema, "route_brief_slowest_window", row);
+  }
+
+  for (const row of input.routeComparisonRanks) {
+    validateSeedRow(RouteComparisonRankInsertSchema, "route_comparison_rank", row);
+  }
+
+  if (input.routeBatchStatus !== null) {
+    validateSeedRow(RouteBatchStatusInsertSchema, "route_batch_status", input.routeBatchStatus);
+  }
+
+  for (const row of input.routeBatchBuiltRoutes) {
+    validateSeedRow(RouteBatchBuiltRouteInsertSchema, "route_batch_built_route", row);
+  }
+
+  for (const row of input.routeBatchIssues) {
+    validateSeedRow(RouteBatchIssueInsertSchema, "route_batch_issue", row);
+  }
+}
+
+function validateObservedReliabilitySeedRow(row: LocalRouteObservedReliabilitySummary): void {
+  validateSeedRow(RouteObservedReliabilitySummaryInsertSchema, "route_observed_reliability_summary", {
+    routeId: row.routeId,
+    month: row.month,
+    runId: row.runId,
+    reliabilityStatus: row.reliabilityStatus,
+    minSampleThreshold: row.minSampleThreshold,
+    sampleCount: row.sampleCount,
+    stopCount: row.stopCount,
+    directionCount: row.directionCount,
+    averageObservedHeadwayMinutes: row.averageObservedHeadwayMinutes,
+    medianObservedHeadwayMinutes: row.medianObservedHeadwayMinutes,
+    p90ObservedHeadwayMinutes: row.p90ObservedHeadwayMinutes,
+    maxObservedHeadwayMinutes: row.maxObservedHeadwayMinutes,
+    scheduledMedianHeadwayMinutes: row.scheduledMedianHeadwayMinutes,
+    bunchingThresholdMinutes: row.bunchingThresholdMinutes,
+    longGapThresholdMinutes: row.longGapThresholdMinutes,
+    observedBunchingShare: row.observedBunchingShare,
+    observedLongGapShare: row.observedLongGapShare,
+    expectedWaitMinutes: row.expectedWaitMinutes,
+    scheduledExpectedWaitMinutes: row.scheduledExpectedWaitMinutes,
+    excessWaitMinutes: row.excessWaitMinutes,
+    waitReliabilityRatio: row.waitReliabilityRatio,
+  });
+}
+
+function validateRouteMonthSourceStatusSeedRow(row: LocalRouteMonthSourceStatus): void {
+  validateSeedRow(RouteMonthSourceStatusInsertSchema, "route_month_source_status", {
+    routeId: row.routeId,
+    month: row.month,
+    sourceScope: row.sourceScope,
+    sourceId: row.sourceId,
+    status: row.status,
+    rowCount: row.rowCount,
+    snapshotId: row.snapshotId,
+    note: row.note,
+  });
+}
+
 export function buildD1SeedSql(input: D1SeedInput): D1SeedSqlResult {
+  validateD1SeedRows(input);
+
   const { month } = input;
   const statements: string[] = [
     renderQuery(seedDb.delete(routeCatalogType)),
@@ -1011,6 +1414,13 @@ export function buildD1AppendixSeedSql(input: D1AppendixSeedInput): D1AppendixSe
     (row) =>
       row.sourceScope === "reliability" && observedReliabilitySourceIds.includes(row.sourceId),
   );
+  for (const row of input.routeObservedReliabilitySummaries) {
+    validateObservedReliabilitySeedRow(row);
+  }
+  for (const row of reliabilityStatuses) {
+    validateRouteMonthSourceStatusSeedRow(row);
+  }
+
   const statements: string[] = [
     renderQuery(
       seedDb
