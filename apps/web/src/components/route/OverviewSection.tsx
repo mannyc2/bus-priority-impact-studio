@@ -55,14 +55,12 @@ export function OverviewSection({
         </div>
       </div>
 
-      <div>
+      <div className="rounded-[3px] bg-[var(--bp-color-card)] px-5 py-4 shadow-[0_0_0_1px_var(--bp-color-rule)]">
         <SectionHeader
           title="The corridor"
           sub="Observed weekday bus speed across visible timepoint segments. The dashed line is scheduled speed; the rails show the segment-varying treatments available in this release."
         />
-        <div className="rounded-[3px] bg-[var(--bp-color-card)] px-5 py-4 shadow-[0_0_0_1px_var(--bp-color-rule)]">
-          <CorridorProfile route={route} segments={segments} highlightId={slowest?.id} />
-        </div>
+        <CorridorProfile route={route} segments={segments} highlightId={slowest?.id} />
       </div>
 
       <div className="grid grid-cols-2 gap-5 max-xl:grid-cols-1">
@@ -95,6 +93,7 @@ export function OverviewSection({
             height={150}
             min={Math.max(0, Math.floor(Math.min(...hourProfile) - 1))}
             max={Math.ceil(Math.max(route.scheduledMph, ...hourProfile) + 1)}
+            legend
           />
         </ChartFrame>
       </div>

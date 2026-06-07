@@ -250,7 +250,9 @@ export type { StudioIntervention } from "@bp/domain/studio/interventions";
 export type {
   StudioCompareResponse,
   StudioReleasePayload,
+  StudioSearchNote,
   StudioSearchResponse,
+  StudioSearchSegmentCard,
 } from "@bp/domain/studio/release";
 export {
   StudioCompareResponseSchema,

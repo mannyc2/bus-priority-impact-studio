@@ -8,18 +8,27 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { type ChartConfig, ChartContainer, ChartTooltip } from "@/components/ui/chart";
+import {
+  bandColor,
+  type ChartBand,
+  type ChartConfig,
+  ChartContainer,
+  ChartLegendContent,
+  ChartTooltip,
+} from "@/components/ui/chart";
 import type { CorridorRow } from "./CorridorProfile";
 
 const config = {
   observed: { label: "Observed mph", color: "var(--bp-color-ink)" },
 } satisfies ChartConfig;
 
-const SEVERITY_COLOR = {
-  bad: "var(--bp-color-bad)",
-  warn: "var(--bp-color-warn)",
-  good: "var(--bp-color-good)",
-} as const;
+// Single source of truth for the speed-band encoding: drives the bar fills, the
+// tooltip accent, and the legend below the chart.
+const SPEED_BANDS: ChartBand[] = [
+  { label: "6.5+ mph", color: "var(--bp-color-good)", test: (v) => v >= 6.5 },
+  { label: "5–6.5 mph", color: "var(--bp-color-warn)", test: (v) => v >= 5 },
+  { label: "< 5 mph", color: "var(--bp-color-bad)", test: () => true },
+];
 
 const ROW_HEIGHT = 34;
 const MARGIN = { top: 18, right: 44, bottom: 4, left: 4 } as const;
@@ -37,60 +46,69 @@ export function CorridorProfileChart({ rows, lo, hi, scheduledTarget }: Corridor
   const height = Math.max(170, rows.length * ROW_HEIGHT + 56);
 
   return (
-    <ChartContainer config={config} className="aspect-auto w-full" style={{ height }}>
-      <BarChart accessibilityLayer layout="vertical" data={[...rows]} margin={MARGIN}>
-        <CartesianGrid horizontal={false} />
-        <XAxis
-          type="number"
-          domain={[lo, hi]}
-          tickLine={false}
-          axisLine={false}
-          tickMargin={8}
-          allowDecimals={false}
-          tickCount={5}
-        />
-        <YAxis
-          type="category"
-          dataKey="label"
-          width={Y_AXIS_WIDTH}
-          interval={0}
-          tickLine={false}
-          axisLine={false}
-          tick={<StopTick worstLabel={worstLabel} />}
-        />
-        <ChartTooltip cursor={{ fill: "var(--bp-color-ink-06)" }} content={<CorridorTooltip />} />
-        <Bar dataKey="observed" radius={[0, 3, 3, 0]} isAnimationActive={false} barSize={14}>
-          {rows.map((row) => (
-            <Cell
-              key={row.key}
-              fill={SEVERITY_COLOR[row.severity]}
-              fillOpacity={row.isWorst ? 1 : 0.85}
-            />
-          ))}
-          <LabelList
-            dataKey="observed"
-            position="right"
-            offset={8}
-            fontSize={10.5}
-            className="fill-[var(--bp-color-ink-70)] font-mono tabular-nums"
-            formatter={(value) => (typeof value === "number" ? value.toFixed(1) : value)}
+    <div className="flex flex-col gap-1">
+      <ChartContainer config={config} className="aspect-auto w-full" style={{ height }}>
+        <BarChart accessibilityLayer layout="vertical" data={[...rows]} margin={MARGIN}>
+          <CartesianGrid horizontal={false} />
+          <XAxis
+            type="number"
+            domain={[lo, hi]}
+            tickLine={false}
+            axisLine={false}
+            tickMargin={8}
+            allowDecimals={false}
+            tickCount={5}
           />
-        </Bar>
-        <ReferenceLine
-          x={scheduledTarget}
-          stroke="var(--bp-color-ink-55)"
-          strokeDasharray="4 3"
-          strokeWidth={1.25}
-          label={{
-            value: `scheduled ${scheduledTarget.toFixed(1)}`,
-            position: "top",
-            fill: "var(--bp-color-ink-55)",
-            fontSize: 10,
-            fontWeight: 600,
-          }}
-        />
-      </BarChart>
-    </ChartContainer>
+          <YAxis
+            type="category"
+            dataKey="label"
+            width={Y_AXIS_WIDTH}
+            interval={0}
+            tickLine={false}
+            axisLine={false}
+            tick={<StopTick worstLabel={worstLabel} />}
+          />
+          <ChartTooltip cursor={{ fill: "var(--bp-color-ink-06)" }} content={<CorridorTooltip />} />
+          <Bar dataKey="observed" radius={[0, 3, 3, 0]} isAnimationActive={false} barSize={14}>
+            {rows.map((row) => (
+              <Cell
+                key={row.key}
+                fill={bandColor(SPEED_BANDS, row.observed)}
+                fillOpacity={row.isWorst ? 1 : 0.85}
+              />
+            ))}
+            <LabelList
+              dataKey="observed"
+              position="right"
+              offset={8}
+              fontSize={10.5}
+              className="fill-[var(--bp-color-ink-70)] font-mono tabular-nums"
+              formatter={(value) => (typeof value === "number" ? value.toFixed(1) : value)}
+            />
+          </Bar>
+          <ReferenceLine
+            x={scheduledTarget}
+            stroke="var(--bp-color-ink-55)"
+            strokeDasharray="4 3"
+            strokeWidth={1.25}
+            label={{
+              value: `scheduled ${scheduledTarget.toFixed(1)}`,
+              position: "top",
+              fill: "var(--bp-color-ink-55)",
+              fontSize: 10,
+              fontWeight: 600,
+            }}
+          />
+        </BarChart>
+      </ChartContainer>
+      <ChartLegendContent
+        className="flex-wrap"
+        items={[
+          ...SPEED_BANDS,
+          { label: "scheduled", shape: "dashed", color: "var(--bp-color-ink-55)" },
+        ]}
+      />
+    </div>
   );
 }
 
@@ -143,7 +161,7 @@ function CorridorTooltip({ active, payload }: TooltipLike) {
       <Stat
         label="Observed"
         value={`${row.observed.toFixed(1)} mph`}
-        color={SEVERITY_COLOR[row.severity]}
+        color={bandColor(SPEED_BANDS, row.observed)}
       />
       <Stat label="Scheduled" value={`${row.scheduled.toFixed(1)} mph`} />
       <Stat label="vs scheduled" value={`${delta >= 0 ? "+" : ""}${delta.toFixed(1)} mph`} />

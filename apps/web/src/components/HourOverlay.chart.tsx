@@ -1,12 +1,4 @@
-import { Area, ComposedChart, Line, XAxis, YAxis } from "recharts";
-import {
-  type ChartConfig,
-  ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
+import { OverlayChart } from "@/components/OverlayChart";
 
 type Series = {
   label: string;
@@ -35,56 +27,19 @@ export function HourOverlayChart({ a, b, height = 180 }: HourOverlayProps) {
     };
   });
 
-  const config = {
-    a: { label: a.label, color: a.color },
-    b: { label: b.label, color: b.color },
-  } satisfies ChartConfig;
-
   return (
-    <ChartContainer config={config} className="aspect-auto w-full" style={{ height }}>
-      <ComposedChart data={rows} margin={{ top: 8, right: 12, bottom: 4, left: 0 }}>
-        <XAxis
-          dataKey="hour"
-          interval={3}
-          tickFormatter={(hour) => `${hour}:00`}
-          tickLine={false}
-          axisLine={false}
-          tickMargin={8}
-        />
-        <YAxis width={30} domain={[0, "auto"]} tickLine={false} axisLine={false} tickMargin={6} />
-        {/* Band between the two series — excluded from tooltip/legend. */}
-        <Area
-          dataKey="band"
-          stroke="none"
-          fill="var(--bp-color-accent-bg)"
-          fillOpacity={0.7}
-          tooltipType="none"
-          legendType="none"
-          isAnimationActive={false}
-        />
-        <Line
-          dataKey="a"
-          name={a.label}
-          stroke="var(--color-a)"
-          strokeWidth={1.8}
-          dot={false}
-          isAnimationActive={false}
-        />
-        <Line
-          dataKey="b"
-          name={b.label}
-          stroke="var(--color-b)"
-          strokeWidth={1.8}
-          strokeDasharray="5 3"
-          dot={false}
-          isAnimationActive={false}
-        />
-        <ChartTooltip
-          cursor={{ stroke: "var(--bp-color-ink-20)" }}
-          content={<ChartTooltipContent labelFormatter={(value) => `${value}:00`} />}
-        />
-        <ChartLegend content={<ChartLegendContent />} />
-      </ComposedChart>
-    </ChartContainer>
+    <OverlayChart
+      rows={rows}
+      series={[
+        { key: "a", label: a.label, color: a.color },
+        { key: "b", label: b.label, color: b.color, dashed: true },
+      ]}
+      xKey="hour"
+      xInterval={3}
+      xTickFormatter={(hour) => `${hour}:00`}
+      tooltipLabel={(value) => `${value}:00`}
+      yDomain={[0, "auto"]}
+      height={height}
+    />
   );
 }

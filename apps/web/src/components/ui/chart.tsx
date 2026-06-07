@@ -251,23 +251,71 @@ function ChartTooltipContent({
 
 const ChartLegend = RechartsPrimitive.Legend;
 
+// An explicit legend entry, for encodings that aren't series (threshold color
+// bands, reference lines). `shape` picks the swatch. Used via the `items` prop.
+export type ChartLegendItem = {
+  label: React.ReactNode;
+  color?: string;
+  shape?: "square" | "dot" | "line" | "dashed";
+};
+
+// A threshold band: a legend entry plus the predicate that assigns a datum to
+// it. Define a chart's bands once, then drive both its marks (<Cell fill> via
+// `bandColor`) and its legend (ChartLegendContent `items`) from the same array,
+// so the legend key can never drift from the mark colors.
+export type ChartBand = Omit<ChartLegendItem, "color"> & {
+  color: string;
+  test: (value: number) => boolean;
+};
+
+// Resolve a datum's color from its band scale. Bands are tested in order, so
+// list them most-specific first with a catch-all (`test: () => true`) last.
+export function bandColor(bands: readonly ChartBand[], value: number): string {
+  const band = bands.find((b) => b.test(value)) ?? bands.at(-1);
+  return band?.color ?? "transparent";
+}
+
+function LegendSwatch({
+  shape = "square",
+  color,
+}: {
+  shape?: ChartLegendItem["shape"];
+  color?: string | undefined;
+}) {
+  if (shape === "dot") {
+    return <span className="size-2 shrink-0 rounded-full" style={{ background: color }} />;
+  }
+  if (shape === "line" || shape === "dashed") {
+    return (
+      <span
+        className={cn(
+          "inline-block h-0 w-4 shrink-0 border-t-[1.5px]",
+          shape === "dashed" && "border-dashed",
+        )}
+        style={{ borderColor: color }}
+      />
+    );
+  }
+  return <span className="h-2 w-2 shrink-0 rounded-[2px]" style={{ background: color }} />;
+}
+
 function ChartLegendContent({
   className,
   hideIcon = false,
   payload,
   verticalAlign = "bottom",
   nameKey,
+  items,
 }: React.ComponentProps<"div"> & {
   hideIcon?: boolean;
   nameKey?: string;
-} & RechartsPrimitive.DefaultLegendContentProps) {
-  const { config } = useChart();
+  // Explicit entries for non-series legends. When set, these are rendered
+  // instead of the Recharts series `payload`, and no ChartContainer is needed.
+  items?: readonly ChartLegendItem[];
+} & Partial<RechartsPrimitive.DefaultLegendContentProps>) {
+  const config = React.useContext(ChartContext)?.config ?? {};
 
-  if (!payload?.length) {
-    return null;
-  }
-
-  return (
+  const wrap = (children: React.ReactNode) => (
     <div
       className={cn(
         "flex items-center justify-center gap-4 text-[11px] text-[var(--bp-color-ink-70)]",
@@ -275,34 +323,48 @@ function ChartLegendContent({
         className,
       )}
     >
-      {payload
-        .filter((item) => item.type !== "none")
-        .map((item, index) => {
-          const key = `${nameKey ?? item.dataKey ?? "value"}`;
-          const itemConfig = getPayloadConfigFromPayload(config, item, key);
-
-          return (
-            <div
-              key={index}
-              className={cn(
-                "flex items-center gap-1.5 [&>svg]:h-3 [&>svg]:w-3 [&>svg]:text-[var(--bp-color-ink-55)]",
-              )}
-            >
-              {itemConfig?.icon && !hideIcon ? (
-                <itemConfig.icon />
-              ) : (
-                <div
-                  className="h-2 w-2 shrink-0 rounded-[2px]"
-                  style={{
-                    backgroundColor: item.color,
-                  }}
-                />
-              )}
-              {itemConfig?.label}
-            </div>
-          );
-        })}
+      {children}
     </div>
+  );
+
+  if (items?.length) {
+    return wrap(
+      items.map((item, index) => (
+        <div key={index} className="flex items-center gap-1.5">
+          <LegendSwatch shape={item.shape} color={item.color} />
+          {item.label}
+        </div>
+      )),
+    );
+  }
+
+  if (!payload?.length) {
+    return null;
+  }
+
+  return wrap(
+    payload
+      .filter((item) => item.type !== "none")
+      .map((item, index) => {
+        const key = `${nameKey ?? item.dataKey ?? "value"}`;
+        const itemConfig = getPayloadConfigFromPayload(config, item, key);
+
+        return (
+          <div
+            key={index}
+            className={cn(
+              "flex items-center gap-1.5 [&>svg]:h-3 [&>svg]:w-3 [&>svg]:text-[var(--bp-color-ink-55)]",
+            )}
+          >
+            {itemConfig?.icon && !hideIcon ? (
+              <itemConfig.icon />
+            ) : (
+              <LegendSwatch color={item.color} />
+            )}
+            {itemConfig?.label ?? item.value}
+          </div>
+        );
+      }),
   );
 }
 

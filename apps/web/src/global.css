@@ -97,7 +97,6 @@
   --bp-section-block: clamp(3rem, 7vw, 7rem);
 
   /* --- View transitions --- */
-  --duration-exit: 120ms;
   --duration-enter: 180ms;
   --duration-move: 220ms;
   --background: var(--bp-color-canvas);
@@ -205,50 +204,24 @@ body {
   }
 }
 
-@keyframes bpi-fade-out {
-  to {
-    opacity: 0;
-  }
-}
-
-@keyframes bpi-slide-up {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-}
-
-@keyframes bpi-slide-down {
-  to {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-}
-
 @media (prefers-reduced-motion: no-preference) {
+  /* Pages share almost all of their structure (nav, header, tab bar, grid),
+     so the data is what changes, not the layout. Keep motion to match: hold
+     the outgoing page in place (no fade-out, no slide) and dissolve the
+     incoming page in on top of it. No translate means stable text never
+     jiggles; the held base means no cross-fade ghosting. The nav is its own
+     group, so it stays put across every navigation. */
   ::view-transition-old(root) {
-    animation: bpi-fade-out var(--duration-exit) ease both;
+    animation: none;
   }
 
   ::view-transition-new(root) {
-    animation: bpi-slide-up var(--duration-enter) ease both;
+    animation: bpi-fade-in var(--duration-enter) ease both;
   }
 
   ::view-transition-group(persistent-nav) {
     animation-duration: var(--duration-move);
     animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
-  }
-
-  ::view-transition-old(route-page),
-  ::view-transition-old(brief-page),
-  ::view-transition-old(finding-page) {
-    animation: bpi-slide-down var(--duration-exit) ease both;
-  }
-
-  ::view-transition-new(route-page),
-  ::view-transition-new(brief-page),
-  ::view-transition-new(finding-page) {
-    animation: bpi-slide-up var(--duration-enter) ease both;
   }
 }
 

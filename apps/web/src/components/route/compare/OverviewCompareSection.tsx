@@ -6,7 +6,6 @@ import { CompareRouteTag } from "@/components/route/compare/CompareRouteTag";
 import { compareSpeedSeries } from "@/components/route/compare/derived";
 import { COMPARE_SERIES, seriesLabel } from "@/components/route/compare/series";
 import type { CompareSides } from "@/components/route/compare/types";
-import { RouteDeltaStrip } from "@/components/route/RouteDeltaStrip";
 import { RouteVitalsCard } from "@/components/route/RouteVitalsCard";
 import { averageHourlySpeed } from "@/components/route/route-derived";
 import { SectionHeader } from "@/components/SectionHeader";
@@ -22,8 +21,6 @@ export function OverviewCompareSection({ a, b, historyA, historyB }: CompareSide
         <DiagnosisCard route={ra} />
         <DiagnosisCard route={rb} />
       </div>
-
-      <RouteDeltaStrip a={ra} b={rb} />
 
       <div>
         <SectionHeader

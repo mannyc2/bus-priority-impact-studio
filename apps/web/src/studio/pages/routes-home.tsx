@@ -241,7 +241,9 @@ export function RoutesHomePage({
         placeholder="Search by route number, street, or borough..."
         shortcut="⌘K"
         suggestions={suggestions}
-        onSelect={(id) => navigate({ to: "/routes/$routeId", params: { routeId: id } })}
+        onSelect={(id) =>
+          navigate({ to: "/routes/$routeId", params: { routeId: id }, viewTransition: true })
+        }
         recent={
           <div className="flex items-center gap-2.5 text-[12px] text-[var(--bp-color-ink-55)]">
             <span>Recent:</span>
