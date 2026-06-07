@@ -37,6 +37,8 @@ import {
   StudioRouteLadderResponseSchema,
   type StudioRoutesResponse,
   StudioRoutesResponseSchema,
+  type StudioSegmentsResponse,
+  StudioSegmentsResponseSchema,
 } from "./routes/index.js";
 
 export function getStudioRoute(
@@ -112,6 +114,17 @@ export function buildStudioRoutesProjection(release: StudioReleasePayload): Stud
     schemaVersion: 1,
     generatedAt: release.generatedAt,
     routes: release.routes,
+    quality: release.quality,
+  });
+}
+
+export function buildStudioSegmentsProjection(
+  release: StudioReleasePayload,
+): StudioSegmentsResponse {
+  return StudioSegmentsResponseSchema.parse({
+    schemaVersion: 1,
+    generatedAt: release.generatedAt,
+    segments: release.segments,
     quality: release.quality,
   });
 }

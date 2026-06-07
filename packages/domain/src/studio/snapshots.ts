@@ -2,6 +2,9 @@ import * as z from "zod";
 import { StudioRouteHistoryCoverageSchema } from "./routes/index.js";
 import { StudioQualitySchema } from "./shared.js";
 
+export const STUDIO_MODEL_ARTIFACT_SERVING_PROJECTION_KEY =
+  "studio/v2/detectors/model-artifacts.json";
+
 export const StudioSnapshotProjectionSchema = z
   .object({
     resource: z.enum(["routes", "findings", "briefs", "methods", "docs"]),

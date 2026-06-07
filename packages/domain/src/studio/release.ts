@@ -18,14 +18,33 @@ import {
 } from "./routes/index.js";
 import { StudioQualitySchema } from "./shared.js";
 
+export const StudioSearchSegmentCardSchema = z
+  .object({
+    segment: StudioSegmentSchema,
+    route: StudioRouteSchema,
+  })
+  .strict();
+
+export const StudioSearchNoteSchema = z
+  .object({
+    id: z.string(),
+    title: z.string(),
+    where: z.string(),
+    preview: z.string(),
+    href: z.string(),
+  })
+  .strict();
+
 export const StudioSearchResponseSchema = z
   .object({
     schemaVersion: z.literal(1),
     generatedAt: z.string(),
     query: z.string(),
     routes: z.array(StudioRouteSchema),
+    segments: z.array(StudioSearchSegmentCardSchema),
     findings: z.array(StudioFindingCardSchema),
     briefs: z.array(StudioBriefCardSchema),
+    notes: z.array(StudioSearchNoteSchema),
     quality: StudioQualitySchema,
   })
   .strict();
@@ -64,6 +83,8 @@ export const StudioReleasePayloadSchema = z
   })
   .strict();
 
+export type StudioSearchSegmentCard = z.output<typeof StudioSearchSegmentCardSchema>;
+export type StudioSearchNote = z.output<typeof StudioSearchNoteSchema>;
 export type StudioSearchResponse = z.output<typeof StudioSearchResponseSchema>;
 export type StudioCompareResponse = z.output<typeof StudioCompareResponseSchema>;
 export type StudioReleasePayload = z.output<typeof StudioReleasePayloadSchema>;

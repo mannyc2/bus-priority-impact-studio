@@ -42,6 +42,8 @@ export const KNOWN_DETECTOR_IDS = [
   "intervention_gap",
   "intervention_event_study",
   "intervention_underperformance",
+  "treatment_scope_mismatch",
+  "treatment_scope_gap",
   "permit_correlated_slowdown",
   "service_request_context",
   "delay_concentration",
@@ -191,6 +193,8 @@ export const KNOWN_FINDING_REASON_CODES = [
   "intervention_gap",
   "intervention_association",
   "negative_peer_adjusted_delta",
+  "bus_lane_slow_segment",
+  "treated_route_uncovered_slow_segment",
   "permit_correlated_slowdown",
   "service_request_context_slowdown",
   // Missing-data and coverage reason codes.
@@ -210,6 +214,13 @@ export const KNOWN_FINDING_REASON_CODES = [
   "insufficient_traversals",
   "segment_too_short",
   "spatial_join_uncertain",
+  "terminal_or_layover",
+  "partial_confirmed_coverage",
+  "geometry_unavailable",
+  "historically_stable_slow_segment",
+  "residual_not_worse_than_expected",
+  "duplicate_physical_segment",
+  "route_treatment_refs_too_broad",
   "baseline_unavailable",
   "unsupported_frequency",
   "unsupported_window",
@@ -237,6 +248,9 @@ export const KNOWN_FINDING_REASON_CODES = [
   "missing_current_trend_month",
   "thin_source_gap",
   "future_only",
+  "tsp_current_inventory_missing",
+  "treatment_source_gap",
+  "treatment_segment_gap",
 ] as const;
 
 export const FindingDetectorScoreSchema = registerProjectSchema(z.number().min(0).max(100), {
@@ -491,6 +505,15 @@ export const FindingReviewPacketSchema = registerProjectSchema(
         })
         .strict(),
       coverage: z.array(FindingCoverageAuditSchema),
+      reviewContext: z
+        .object({
+          summary: z.string().min(1).max(700),
+          evidenceHighlights: z.array(z.string().min(1).max(500)),
+          cautionFlags: z.array(z.string().min(1).max(500)),
+          suggestedChecks: z.array(z.string().min(1).max(500)),
+        })
+        .strict()
+        .optional(),
       derivedMetricWarnings: z.array(z.string().min(1).max(500)),
       promotionBlockers: z.array(z.string().min(1).max(500)),
       reviewChecklist: z.array(z.string().min(1).max(500)),

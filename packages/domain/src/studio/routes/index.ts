@@ -189,6 +189,15 @@ export const StudioRoutesResponseSchema = z
   })
   .strict();
 
+export const StudioSegmentsResponseSchema = z
+  .object({
+    schemaVersion: z.literal(1),
+    generatedAt: z.string(),
+    segments: z.array(StudioSegmentSchema),
+    quality: StudioQualitySchema,
+  })
+  .strict();
+
 export const StudioRouteDetailResponseSchema = z
   .object({
     schemaVersion: z.literal(1),
@@ -426,6 +435,7 @@ export type StudioRoute = z.output<typeof StudioRouteSchema>;
 export type StudioSegment = z.output<typeof StudioSegmentSchema>;
 export type StudioRouteArtifactRef = z.output<typeof StudioRouteArtifactRefSchema>;
 export type StudioRoutesResponse = z.output<typeof StudioRoutesResponseSchema>;
+export type StudioSegmentsResponse = z.output<typeof StudioSegmentsResponseSchema>;
 export type StudioRouteDetailResponse = z.output<typeof StudioRouteDetailResponseSchema>;
 export type StudioRouteHistoryPoint = z.output<typeof StudioRouteHistoryPointSchema>;
 export type StudioRouteHistoryCoverage = z.output<typeof StudioRouteHistoryCoverageSchema>;

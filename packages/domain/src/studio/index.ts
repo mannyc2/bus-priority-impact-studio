@@ -296,12 +296,16 @@ export {
 export type {
   StudioCompareResponse,
   StudioReleasePayload,
+  StudioSearchNote,
   StudioSearchResponse,
+  StudioSearchSegmentCard,
 } from "./release.js";
 export {
   StudioCompareResponseSchema,
   StudioReleasePayloadSchema,
+  StudioSearchNoteSchema,
   StudioSearchResponseSchema,
+  StudioSearchSegmentCardSchema,
 } from "./release.js";
 export type {
   StudioObservedReliability,
@@ -323,6 +327,7 @@ export type {
   StudioRouteSpeedHistoryResponse,
   StudioRoutesResponse,
   StudioSegment,
+  StudioSegmentsResponse,
 } from "./routes/index.js";
 export {
   StudioObservedReliabilitySchema,
@@ -344,6 +349,7 @@ export {
   StudioRouteSpeedHistoryResponseSchema,
   StudioRoutesResponseSchema,
   StudioSegmentSchema,
+  StudioSegmentsResponseSchema,
 } from "./routes/index.js";
 export type { RumReport } from "./rum.js";
 export { RumReportSchema } from "./rum.js";
