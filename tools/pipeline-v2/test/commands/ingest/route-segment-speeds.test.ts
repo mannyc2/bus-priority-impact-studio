@@ -77,9 +77,9 @@ function terminalRow(year: string, month: string) {
     average_road_speed: "6.1",
     bus_trip_count: "3",
   });
-  delete row.next_timepoint_stop_name;
-  delete row.next_timepoint_stop_latitude;
-  delete row.next_timepoint_stop_longitude;
+  delete row["next_timepoint_stop_name"];
+  delete row["next_timepoint_stop_latitude"];
+  delete row["next_timepoint_stop_longitude"];
   return row;
 }
 

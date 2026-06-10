@@ -8,6 +8,9 @@ import {
   replaceRouteSegmentSpeedCells,
 } from "@bp/db/local";
 import routeMonthSpeedGoldenDiff from "../../../src/commands/build/route-month-speed-golden-diff.ts";
+
+const runGoldenDiff = routeMonthSpeedGoldenDiff.run;
+if (runGoldenDiff === undefined) throw new Error("golden-diff command has no run handler");
 import { openLocalPipelineDb } from "../../../src/lib/local-db.ts";
 
 function cell(overrides: Partial<LocalRouteSegmentSpeedCell>): LocalRouteSegmentSpeedCell {
@@ -63,7 +66,7 @@ describe("build route-month-speed-golden-diff", () => {
       ]);
       local.sqlite.close();
 
-      const result = await routeMonthSpeedGoldenDiff.run({
+      const result = await runGoldenDiff({
         ctx: {},
         input: { options: { db: dbPath, output: outputPath } },
       } as never);
@@ -104,7 +107,7 @@ describe("build route-month-speed-golden-diff", () => {
       ]);
       local.sqlite.close();
 
-      const result = await routeMonthSpeedGoldenDiff.run({
+      const result = await runGoldenDiff({
         ctx: {},
         input: { options: { db: dbPath, output: join(tmp, "out.json") } },
       } as never);
