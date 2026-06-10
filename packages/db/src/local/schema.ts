@@ -1139,7 +1139,15 @@ export const localFindingEvidenceLink = sqliteTable("local_finding_evidence_link
     enum: ["metric", "context_event", "source_row", "missing_data", "source_doc", "coverage_audit"],
   }).notNull(),
   evidenceRole: text("evidence_role", {
-    enum: ["primary", "context", "counter_evidence", "caveat", "missing_data", "coverage_audit"],
+    enum: [
+      "primary",
+      "context",
+      "official_context",
+      "counter_evidence",
+      "caveat",
+      "missing_data",
+      "coverage_audit",
+    ],
   }).notNull(),
   evidenceRef: text("evidence_ref").notNull(),
   evidenceWeight: real("evidence_weight"),
@@ -1162,7 +1170,14 @@ export const localFindingCoverageAudit = sqliteTable(
     }).notNull(),
     scopeId: text("scope_id").notNull(),
     outcome: text("outcome", {
-      enum: ["hit", "clean_no_hit", "skipped_missing_input", "skipped_failed_join", "source_lag"],
+      enum: [
+        "hit",
+        "clean_no_hit",
+        "skipped_missing_input",
+        "skipped_failed_join",
+        "source_lag",
+        "deferred_not_in_scope",
+      ],
     }).notNull(),
     reasonCode: text("reason_code"),
     reason: text("reason"),

@@ -48,7 +48,7 @@ describe("D1 seed validation", () => {
         coverageStatus: "bogus",
         averageSpeedMph: 6.5,
         hotspotCount: 2,
-      } as D1SeedInput["routeScorecards"][number],
+      } as unknown as D1SeedInput["routeScorecards"][number],
     ];
 
     expect(() => buildD1SeedSql(input)).toThrow(
@@ -107,7 +107,7 @@ describe("D1 seed validation", () => {
             scheduledExpectedWaitMinutes: null,
             excessWaitMinutes: null,
             waitReliabilityRatio: null,
-          } as D1SeedInput["routeObservedReliabilitySummaries"][number],
+          } as unknown as D1SeedInput["routeObservedReliabilitySummaries"][number],
         ],
         routeMonthSourceStatuses: [],
       }),

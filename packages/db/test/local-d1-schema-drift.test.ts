@@ -11,7 +11,7 @@ type ColumnLike = {
   enumValues?: readonly string[];
 };
 
-type TableLike = Record<string, unknown>;
+type TableLike = object;
 
 type MirroredTablePair = {
   label: string;

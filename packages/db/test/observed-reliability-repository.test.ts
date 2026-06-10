@@ -1,4 +1,3 @@
-import { Database } from "bun:sqlite";
 import { describe, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
 import { replaceRouteObservedReliabilityRows } from "../src/local/repositories/observed-reliability.js";
