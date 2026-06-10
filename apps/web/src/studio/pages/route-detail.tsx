@@ -13,6 +13,7 @@ import {
 } from "@/components/route/RouteDetailShell";
 import { HonestEmptySection } from "@/components/route/HonestEmptySection";
 import { RouteHeader } from "@/components/route/RouteHeader";
+import { RouteJudgedKpiStrip } from "@/components/route/RouteJudgedKpiStrip";
 import { sectionPresentation } from "@/components/route/section-registry";
 import { SlowSegmentsSection } from "@/components/route/SlowSegments";
 import { TimelineSection } from "@/components/route/TimelineSection";
@@ -70,6 +71,14 @@ export function RouteDetailPage({ data }: { data: StudioRouteDetailResponse | nu
         header={
           <RouteHeader
             route={route}
+            metricStrip={
+              <RouteJudgedKpiStrip
+                route={route}
+                dossier={data.dossier}
+                capability={data.capability}
+                onNavigate={(tab) => setActiveTab(tab as RouteDetailTabValue)}
+              />
+            }
             actions={
               <>
                 {peer ? (
@@ -102,7 +111,7 @@ export function RouteDetailPage({ data }: { data: StudioRouteDetailResponse | nu
         {section("overview", () => (
           <OverviewSection data={data} />
         ))}
-        {section("slow-segments", () => (
+        {section("where-when", () => (
           <SlowSegmentsSection
             route={route}
             segments={segments}
@@ -113,17 +122,13 @@ export function RouteDetailPage({ data }: { data: StudioRouteDetailResponse | nu
         {section("riders", () => (
           <RidersSection data={data} />
         ))}
-        {section("interventions", () => (
-          <InterventionsSection
-            route={route}
-            segments={segments}
-            onShowTimeline={() => setActiveTab("timeline")}
-          />
+        {section("treatments", () => (
+          <div className="flex flex-col gap-11">
+            <InterventionsSection route={route} segments={segments} />
+            <TimelineSection data={data} />
+          </div>
         ))}
-        {section("timeline", () => (
-          <TimelineSection data={data} />
-        ))}
-        {section("data-notes", () => (
+        {section("evidence", () => (
           <DataNotesSection data={data} />
         ))}
       </RouteDetailShell>

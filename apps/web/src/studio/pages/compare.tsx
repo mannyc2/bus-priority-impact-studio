@@ -59,19 +59,19 @@ function CompareView(sides: CompareSides) {
         <TabsContent value="overview">
           <OverviewCompareSection {...sides} />
         </TabsContent>
-        <TabsContent value="slow-segments">
+        <TabsContent value="where-when">
           <SlowSegmentsCompareSection {...sides} />
         </TabsContent>
         <TabsContent value="riders">
           <RidersCompareSection {...sides} />
         </TabsContent>
-        <TabsContent value="interventions">
-          <InterventionsCompareSection {...sides} />
+        <TabsContent value="treatments">
+          <div className="flex flex-col gap-11">
+            <InterventionsCompareSection {...sides} />
+            <TimelineCompareSection {...sides} />
+          </div>
         </TabsContent>
-        <TabsContent value="timeline">
-          <TimelineCompareSection {...sides} />
-        </TabsContent>
-        <TabsContent value="data-notes">
+        <TabsContent value="evidence">
           <DataNotesCompareSection {...sides} />
         </TabsContent>
       </RouteDetailShell>

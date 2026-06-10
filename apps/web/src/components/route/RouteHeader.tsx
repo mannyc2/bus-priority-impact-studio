@@ -12,7 +12,16 @@ import type { StudioRoute } from "@/studio/api-contract";
  * route-detail page. Rendered inside RouteDetailShell's flush header card.
  * `actions` is the page-owned slot for the right-side buttons (compare / brief).
  */
-export function RouteHeader({ route, actions }: { route: StudioRoute; actions?: ReactNode }) {
+export function RouteHeader({
+  route,
+  actions,
+  metricStrip,
+}: {
+  route: StudioRoute;
+  actions?: ReactNode;
+  /** Override for the KPI strip — the detail page passes the judged §4.1 strip. */
+  metricStrip?: ReactNode;
+}) {
   return (
     <>
       <div className="mb-[18px] flex items-start gap-[18px]">
@@ -21,7 +30,7 @@ export function RouteHeader({ route, actions }: { route: StudioRoute; actions?: 
         </div>
         {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
       </div>
-      <RouteMetricStrip route={route} />
+      {metricStrip ?? <RouteMetricStrip route={route} />}
     </>
   );
 }

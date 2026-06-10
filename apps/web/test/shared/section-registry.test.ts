@@ -55,33 +55,32 @@ const sparse = capability({
 });
 
 describe("sectionPresentation (frontend §8.1 registry)", () => {
-  test("overview and data-notes are unconditional on every contrast route", () => {
+  test("overview and evidence are unconditional on every contrast route", () => {
     for (const cap of [rich, clean, sparse, null]) {
       expect(sectionPresentation(cap, "overview")).toEqual({ mode: "render" });
-      expect(sectionPresentation(cap, "data-notes")).toEqual({ mode: "render" });
+      expect(sectionPresentation(cap, "evidence")).toEqual({ mode: "render" });
     }
   });
 
   test("rich route renders every section", () => {
-    for (const tab of ["slow-segments", "riders", "interventions", "timeline"]) {
+    for (const tab of ["where-when", "riders", "treatments"]) {
       expect(sectionPresentation(rich, tab)).toEqual({ mode: "render" });
     }
   });
 
   test("clean route shows checked_clean as an affirmative empty state, hides not_applicable", () => {
-    expect(sectionPresentation(clean, "slow-segments")).toEqual({
+    expect(sectionPresentation(clean, "where-when")).toEqual({
       mode: "empty",
       state: "checked_clean",
       reason: "because checked_clean",
       dataAsOf: "2026-03",
     });
     expect(sectionPresentation(clean, "riders")).toEqual({ mode: "render" });
-    expect(sectionPresentation(clean, "interventions")).toEqual({ mode: "hidden" });
-    expect(sectionPresentation(clean, "timeline")).toEqual({ mode: "hidden" });
+    expect(sectionPresentation(clean, "treatments")).toEqual({ mode: "hidden" });
   });
 
   test("sparse route gets the honest-empty vocabulary, not blank sections", () => {
-    expect(sectionPresentation(sparse, "slow-segments")).toMatchObject({
+    expect(sectionPresentation(sparse, "where-when")).toMatchObject({
       mode: "empty",
       state: "building",
     });
@@ -90,14 +89,14 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
       state: "insufficient_data",
       dataAsOf: null,
     });
-    expect(sectionPresentation(sparse, "interventions")).toMatchObject({
+    expect(sectionPresentation(sparse, "treatments")).toMatchObject({
       mode: "empty",
       state: "blocked",
     });
   });
 
   test("null capability (legacy fallback) renders everything", () => {
-    for (const tab of ["slow-segments", "riders", "interventions", "timeline"]) {
+    for (const tab of ["where-when", "riders", "treatments"]) {
       expect(sectionPresentation(null, tab)).toEqual({ mode: "render" });
     }
   });

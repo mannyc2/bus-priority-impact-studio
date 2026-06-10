@@ -3,15 +3,17 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export type RouteDetailTab = { value: string; label: string };
 
-/** The route-section tabs, shared verbatim by route-detail and compare so the
- * two pages stay structurally identical. */
+/** The question-shaped route-section tabs (frontend §4.3), shared verbatim by
+ * route-detail and compare so the two pages stay structurally identical.
+ * Treatments & history absorbs the old Interventions and Timeline tabs;
+ * Evidence absorbs Data notes. A Reliability tab joins when the reliability
+ * capability surface leaves `building` (Track B Wave 1). */
 export const ROUTE_DETAIL_TABS = [
   { value: "overview", label: "Overview" },
-  { value: "slow-segments", label: "Slow segments" },
+  { value: "where-when", label: "Where & when" },
   { value: "riders", label: "Riders" },
-  { value: "interventions", label: "Interventions" },
-  { value: "timeline", label: "Timeline" },
-  { value: "data-notes", label: "Data notes" },
+  { value: "treatments", label: "Treatments & history" },
+  { value: "evidence", label: "Evidence" },
 ] as const satisfies readonly RouteDetailTab[];
 
 export type RouteDetailTabValue = (typeof ROUTE_DETAIL_TABS)[number]["value"];

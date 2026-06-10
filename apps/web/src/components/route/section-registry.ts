@@ -7,16 +7,15 @@ import type { RouteSurfaceCapability, StudioRouteCapability } from "@/studio/api
  * (§8.2), or disappears entirely. This is what kills the uniform page — a
  * sparse route and a flagship route no longer pretend to have the same dossier.
  *
- * `overview` and `data-notes` are unconditional: the verdict and the
+ * `overview` and `evidence` are unconditional: the verdict and the
  * provenance story must render for every route, however thin.
  */
 const TAB_SURFACES: Record<string, readonly string[]> = {
   overview: [],
-  "slow-segments": ["speedHistory"],
+  "where-when": ["speedHistory"],
   riders: ["ridership"],
-  interventions: ["treatment"],
-  timeline: ["treatment"],
-  "data-notes": [],
+  treatments: ["treatment"],
+  evidence: [],
 };
 
 /** The four honest-empty visual states (§8.2). */
