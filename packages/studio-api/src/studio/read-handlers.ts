@@ -11,6 +11,13 @@ import {
   type StudioRouteIndexSourceRow,
 } from "@bp/db/d1";
 import {
+  buildRouteInsightsFromDetectorReadiness,
+  buildStudioCompareProjection,
+  type DetectorReadinessServingManifestForInsights,
+  DetectorReadinessServingManifestForInsightsSchema,
+  getStudioRoute,
+} from "@bp/domain/studio";
+import {
   StudioBriefEvidenceResponseSchema,
   StudioBriefHistoryResponseSchema,
   type StudioBriefResponse,
@@ -21,7 +28,6 @@ import {
   StudioFindingResponseSchema,
   StudioFindingsResponseSchema,
 } from "@bp/domain/studio/findings";
-import { buildStudioCompareProjection, getStudioRoute } from "@bp/domain/studio/projections";
 import {
   StudioCompareResponseSchema,
   type StudioReleasePayload,
@@ -46,10 +52,12 @@ import {
   StudioRouteSpeedHistoryResponseSchema,
   type StudioRoutesResponse,
   StudioRoutesResponseSchema,
+  type StudioSegment,
   StudioSegmentsResponseSchema,
 } from "@bp/domain/studio/routes";
 import {
   STUDIO_MODEL_ARTIFACT_SERVING_PROJECTION_KEY,
+  STUDIO_ROUTE_DETECTOR_READINESS_MANIFEST_KEY,
   type StudioRouteFamily,
   type StudioRouteIndex2Response,
   StudioRouteIndex2ResponseSchema,
@@ -191,6 +199,45 @@ const ModelArtifactServingProjectionSchema = z
   .passthrough();
 
 type ModelArtifactServingProjection = z.output<typeof ModelArtifactServingProjectionSchema>;
+
+const RouteSpeedSpineArtifactForSegmentsSchema = z
+  .object({
+    artifactKind: z.string(),
+    routeId: z.string(),
+    routeSlug: z.string(),
+    segments: z.array(
+      z
+        .object({
+          segmentId: z.string(),
+          direction: z.string(),
+          displayOrder: z.number(),
+          label: z.string(),
+          averageRoadDistanceMiles: z.number().nullable().optional(),
+          averageSpeedMph: z.number().nullable().optional(),
+          raw: z
+            .object({
+              sourceStopPairs: z.array(
+                z
+                  .object({
+                    fromStopId: z.string(),
+                    fromStopName: z.string(),
+                    toStopId: z.string(),
+                    toStopName: z.string(),
+                    stopOrders: z.array(z.number()),
+                  })
+                  .passthrough(),
+              ),
+            })
+            .passthrough(),
+        })
+        .passthrough(),
+    ),
+  })
+  .passthrough();
+
+type RouteSpeedSpineArtifactForSegments = z.output<typeof RouteSpeedSpineArtifactForSegmentsSchema>;
+
+type RouteSpeedSpineSegmentForSegments = RouteSpeedSpineArtifactForSegments["segments"][number];
 
 function realtimeSourceForRunId(
   runId: string | null,
@@ -708,6 +755,11 @@ function routeEvidenceBundleRouteCandidates(bundle: Tier2RouteEvidenceBundle): s
   return routeIdAliases(bundle.routeId);
 }
 
+function routeDetailSlugCandidates(routeId: string, requestedSlug: string): string[] {
+  const candidates = [requestedSlug, ...routeIdAliases(routeId).map(routeIdToStudioSlug)];
+  return [...new Set(candidates)];
+}
+
 async function loadTier2MaterializedViews(
   env: StudioReadEnv,
 ): Promise<Tier2MaterializedViewsArtifact | null> {
@@ -750,6 +802,262 @@ async function loadModelArtifactServingProjection(
 
   const parsed = ModelArtifactServingProjectionSchema.safeParse(payload);
   return parsed.success ? parsed.data : null;
+}
+
+async function loadDetectorReadinessServingManifest(
+  env: StudioReadEnv,
+): Promise<DetectorReadinessServingManifestForInsights | null> {
+  if (env.ARTIFACTS === undefined) return null;
+  const object = await env.ARTIFACTS.get(STUDIO_ROUTE_DETECTOR_READINESS_MANIFEST_KEY);
+  if (object === null) return null;
+
+  let payload: unknown;
+  try {
+    payload = await object.json();
+  } catch {
+    return null;
+  }
+
+  const parsed = DetectorReadinessServingManifestForInsightsSchema.safeParse(payload);
+  return parsed.success ? parsed.data : null;
+}
+
+async function loadRouteSpeedSpineForSegments(
+  env: StudioReadEnv,
+  routeSlug: string,
+): Promise<RouteSpeedSpineArtifactForSegments | null> {
+  if (env.ARTIFACTS === undefined) return null;
+  const object = await env.ARTIFACTS.get(`studio/v2/routes/${routeSlug}/speed-spine.json`);
+  if (object === null) return null;
+
+  let payload: unknown;
+  try {
+    payload = await object.json();
+  } catch {
+    return null;
+  }
+
+  const parsed = RouteSpeedSpineArtifactForSegmentsSchema.safeParse(payload);
+  return parsed.success ? parsed.data : null;
+}
+
+async function loadRouteSpeedSpineCandidatesForSegments(input: {
+  env: StudioReadEnv;
+  routeId: string;
+  requestedSlug: string;
+}): Promise<RouteSpeedSpineArtifactForSegments[]> {
+  const slugs = routeDetailSlugCandidates(input.routeId, input.requestedSlug);
+  const spines = await Promise.all(
+    slugs.map((slug) => loadRouteSpeedSpineForSegments(input.env, slug)),
+  );
+  return spines.filter((spine): spine is RouteSpeedSpineArtifactForSegments => spine !== null);
+}
+
+function routeDetailWithInsights(input: {
+  routeDetail: StudioRouteDetailResponse;
+  manifest: DetectorReadinessServingManifestForInsights | null;
+}): StudioRouteDetailResponse {
+  // Even without a manifest, guarantee the `insights` invariant so every
+  // downstream consumer (and the serialized response) sees an array.
+  if (input.manifest === null) {
+    return { ...input.routeDetail, insights: input.routeDetail.insights ?? [] };
+  }
+  return StudioRouteDetailResponseSchema.parse({
+    ...input.routeDetail,
+    insights: buildRouteInsightsFromDetectorReadiness({
+      manifest: input.manifest,
+      routeId: input.routeDetail.route.routeId,
+    }),
+  });
+}
+
+type RawTreatmentTarget = {
+  routeId: string;
+  month: string;
+  direction: string;
+  segmentOrder: number;
+  fromNodeId: string;
+  toNodeId: string;
+};
+
+function rawTreatmentTarget(segmentId: string): RawTreatmentTarget | null {
+  const [routeId, month, direction, rawSegmentOrder, fromNodeId, toNodeId] = segmentId.split(":");
+  if (
+    routeId === undefined ||
+    month === undefined ||
+    direction === undefined ||
+    rawSegmentOrder === undefined ||
+    fromNodeId === undefined ||
+    toNodeId === undefined
+  ) {
+    return null;
+  }
+  const segmentOrder = Number(rawSegmentOrder);
+  if (!Number.isInteger(segmentOrder) || segmentOrder < 0) return null;
+  return { routeId, month, direction, segmentOrder, fromNodeId, toNodeId };
+}
+
+function spineSegmentMatchesRawTarget(
+  segment: RouteSpeedSpineSegmentForSegments,
+  target: RawTreatmentTarget,
+): boolean {
+  if (segment.direction !== target.direction) return false;
+  return segment.raw.sourceStopPairs.some(
+    (pair) =>
+      pair.fromStopId === target.fromNodeId &&
+      pair.toStopId === target.toNodeId &&
+      pair.stopOrders.includes(target.segmentOrder),
+  );
+}
+
+function studioDirectionFromRaw(value: string): StudioSegment["direction"] {
+  if (value === "N") return "NB";
+  if (value === "S") return "SB";
+  if (value === "E") return "EB";
+  if (value === "W") return "WB";
+  return "NB";
+}
+
+function segmentLabelParts(
+  segment: RouteSpeedSpineSegmentForSegments,
+  target: RawTreatmentTarget,
+): { from: string; to: string } {
+  const sourcePair = segment.raw.sourceStopPairs.find(
+    (pair) =>
+      pair.fromStopId === target.fromNodeId &&
+      pair.toStopId === target.toNodeId &&
+      pair.stopOrders.includes(target.segmentOrder),
+  );
+  if (sourcePair !== undefined) {
+    return { from: sourcePair.fromStopName, to: sourcePair.toStopName };
+  }
+  const [from, to] = segment.label.split(" to ");
+  return {
+    from: from?.trim() || "Segment start",
+    to: to?.trim() || "Segment end",
+  };
+}
+
+function segmentFromSpeedSpineTarget(input: {
+  routeSlug: string;
+  routeScheduledMph: number;
+  targetId: string;
+  target: RawTreatmentTarget;
+  segment: RouteSpeedSpineSegmentForSegments;
+}): StudioSegment {
+  const { from, to } = segmentLabelParts(input.segment, input.target);
+  const speedMph =
+    input.segment.averageSpeedMph === null || input.segment.averageSpeedMph === undefined
+      ? 0
+      : Number(input.segment.averageSpeedMph.toFixed(1));
+  return {
+    id: input.targetId,
+    routeSlug: input.routeSlug,
+    direction: studioDirectionFromRaw(input.target.direction),
+    from,
+    to,
+    speedMph,
+    scheduledMph: input.routeScheduledMph,
+    riderHours: 0,
+    lane: "none",
+    ace: false,
+    tsp: false,
+    hours: Array.from({ length: 24 }, () => 0),
+    ...(input.segment.averageRoadDistanceMiles === null ||
+    input.segment.averageRoadDistanceMiles === undefined
+      ? {}
+      : { miles: input.segment.averageRoadDistanceMiles }),
+  };
+}
+
+function insightTargetSegmentRows(input: {
+  routeDetail: StudioRouteDetailResponse;
+  spines: readonly RouteSpeedSpineArtifactForSegments[];
+}): StudioSegment[] {
+  const existingIds = new Set(input.routeDetail.segments.map((segment) => segment.id));
+  const output: StudioSegment[] = [];
+  const emittedIds = new Set<string>();
+
+  // `insights` is `.default([])` in the schema, so a routeDetail that bypassed a
+  // schema parse (e.g. routeDetailWithInsights' manifest-null early return) can
+  // arrive without it. Treat absence as "no insights" rather than crashing.
+  for (const insight of input.routeDetail.insights ?? []) {
+    if (insight.placement !== "map_segment") continue;
+    for (const targetId of insight.target?.segmentIds ?? []) {
+      if (existingIds.has(targetId) || emittedIds.has(targetId)) continue;
+      const target = rawTreatmentTarget(targetId);
+      if (target === null || target.routeId !== input.routeDetail.route.routeId) continue;
+      const spineSegment = input.spines
+        .flatMap((spine) => spine.segments)
+        .find((segment) => spineSegmentMatchesRawTarget(segment, target));
+      if (spineSegment === undefined) continue;
+
+      output.push(
+        segmentFromSpeedSpineTarget({
+          routeSlug: input.routeDetail.route.slug,
+          routeScheduledMph: input.routeDetail.route.scheduledMph,
+          targetId,
+          target,
+          segment: spineSegment,
+        }),
+      );
+      emittedIds.add(targetId);
+      break;
+    }
+  }
+
+  return output;
+}
+
+function routeDetailWithInsightTargetSegments(input: {
+  routeDetail: StudioRouteDetailResponse;
+  spines: readonly RouteSpeedSpineArtifactForSegments[];
+}): StudioRouteDetailResponse {
+  const targetSegments = insightTargetSegmentRows(input);
+  if (targetSegments.length === 0) return input.routeDetail;
+  return StudioRouteDetailResponseSchema.parse({
+    ...input.routeDetail,
+    segments: [...input.routeDetail.segments, ...targetSegments],
+    quality: {
+      ...input.routeDetail.quality,
+      caveats: [
+        ...input.routeDetail.quality.caveats,
+        "Some detector insight segment rows are aligned from the route speed-spine provenance so detector refs attach to visible route rows.",
+      ],
+    },
+  });
+}
+
+async function maybeLoadAliasedStudioRouteDetailProjection(input: {
+  env: StudioReadEnv;
+  routeId: string;
+  requestedSlug: string;
+}): Promise<StudioRouteDetailResponse | null> {
+  for (const candidateSlug of routeDetailSlugCandidates(input.routeId, input.requestedSlug)) {
+    const detail = await maybeLoadStudioRouteDetailProjection(input.env, candidateSlug);
+    if (detail !== null) return detail;
+  }
+  return null;
+}
+
+function aliasedRouteDetailForD1Row(input: {
+  row: StudioRouteIndexSourceRow;
+  observed: D1RouteObservedReliabilitySummary | undefined;
+  richDetail: StudioRouteDetailResponse;
+}): StudioRouteDetailResponse {
+  return StudioRouteDetailResponseSchema.parse({
+    ...input.richDetail,
+    route: buildStudioRouteCardFromIndexRow(input.row, input.observed),
+    segments: input.richDetail.segments,
+    artifactRefs: input.richDetail.artifactRefs,
+    quality: {
+      ...input.richDetail.quality,
+      caveats: [
+        ...input.richDetail.quality.caveats,
+        "Segment rows are loaded from an equivalent base/SBS route artifact so detector segment refs can attach deterministically.",
+      ],
+    },
+  });
 }
 
 function metricRows(input: {
@@ -1009,7 +1317,8 @@ function buildDataCoverageRows(input: {
       const route = input.routeById.get(row.routeId);
       if (route === undefined) return [];
       const reasons: string[] = [];
-      if (route.surfaceFlags.summary !== "available") reasons.push(`summary ${route.surfaceFlags.summary}`);
+      if (route.surfaceFlags.summary !== "available")
+        reasons.push(`summary ${route.surfaceFlags.summary}`);
       if (route.surfaceFlags.routeDetailArtifact !== "available") {
         reasons.push(`detail artifact ${route.surfaceFlags.routeDetailArtifact}`);
       }
@@ -1160,7 +1469,8 @@ export async function buildStudioRouteSectionsResponse(
       title: "Needs Attention",
       productQuestion: "Which routes combine slow speed, rider impact, and recurring hotspots?",
       status: "available",
-      rankMeaning: "Higher scores combine lower route scores, slower observed speed, more hotspots, and more riders.",
+      rankMeaning:
+        "Higher scores combine lower route scores, slower observed speed, more hotspots, and more riders.",
       minCoverageRule: "Requires a baseline route summary row.",
       rows: buildNeedsAttentionRows({ rows, routeById }),
       caveats: ["This is a transparent triage rank, not a detector finding."],
@@ -1170,7 +1480,8 @@ export async function buildStudioRouteSectionsResponse(
       title: "Worsening Fast",
       productQuestion: "Which routes are getting slower against their own observed history?",
       status: "partial",
-      rankMeaning: "Higher scores mean larger observed speed declines across available route-month history.",
+      rankMeaning:
+        "Higher scores mean larger observed speed declines across available route-month history.",
       minCoverageRule:
         "Requires at least six route-month speed history points and a latest speed point in the baseline speed month.",
       rows: buildWorseningFastRows({
@@ -1185,10 +1496,13 @@ export async function buildStudioRouteSectionsResponse(
     section({
       sectionId: "treatment_gaps",
       title: "Treatment Gaps",
-      productQuestion: "Where is rider pain high while currently indexed priority treatments are thin?",
+      productQuestion:
+        "Where is rider pain high while currently indexed priority treatments are thin?",
       status: "partial",
-      rankMeaning: "Higher scores combine ridership, slow speed, and hotspots, then subtract indexed bus-lane and ACE treatment credit.",
-      minCoverageRule: "Requires a baseline route summary row; treatment coverage is current serving-summary context.",
+      rankMeaning:
+        "Higher scores combine ridership, slow speed, and hotspots, then subtract indexed bus-lane and ACE treatment credit.",
+      minCoverageRule:
+        "Requires a baseline route summary row; treatment coverage is current serving-summary context.",
       rows: buildTreatmentGapRows({ rows, routeById }),
       caveats: [
         "Bus-lane matches are route-shape overlap context, not audited regulatory lane-mile claims.",
@@ -1209,9 +1523,11 @@ export async function buildStudioRouteSectionsResponse(
       title: "Reliability Watch",
       productQuestion: "Where are headways and wait pain worst?",
       status: "not_built",
-      rankMeaning: "Will rank routes by observed excess wait, long gaps, bunching, and sample coverage.",
+      rankMeaning:
+        "Will rank routes by observed excess wait, long gaps, bunching, and sample coverage.",
       minCoverageRule: "Requires route reliability summary rows.",
-      notBuiltReason: "Route reliability summary projection is not yet served for Snapshot 2.0 sections.",
+      notBuiltReason:
+        "Route reliability summary projection is not yet served for Snapshot 2.0 sections.",
     }),
     tier2Views === null
       ? section({
@@ -1221,9 +1537,9 @@ export async function buildStudioRouteSectionsResponse(
           status: "not_built",
           rankMeaning:
             "Will rank routes by reviewed findings, promoted timeline events, and stable public evidence ids.",
-          minCoverageRule:
-            "Requires the Tier 2 route evidence materialized-view artifact in R2.",
-          notBuiltReason: "Route evidence index has not been published to the serving artifact bucket.",
+          minCoverageRule: "Requires the Tier 2 route evidence materialized-view artifact in R2.",
+          notBuiltReason:
+            "Route evidence index has not been published to the serving artifact bucket.",
         })
       : section({
           sectionId: "evidence_ready",
@@ -1320,11 +1636,51 @@ async function buildStudioRouteDetailResponseFromD1(
   if (row.artifactNames.length > 0) {
     const richDetail = await maybeLoadStudioRouteDetailProjection(env, slug);
     if (richDetail !== null) {
-      return { ok: true, routeDetail: richDetail };
+      const [manifest, spines] = await Promise.all([
+        loadDetectorReadinessServingManifest(env),
+        loadRouteSpeedSpineCandidatesForSegments({
+          env,
+          routeId: row.routeId,
+          requestedSlug: slug,
+        }),
+      ]);
+      const routeDetail = routeDetailWithInsights({ routeDetail: richDetail, manifest });
+      return {
+        ok: true,
+        routeDetail: routeDetailWithInsightTargetSegments({ routeDetail, spines }),
+      };
     }
   }
 
-  const observed = await findObservedReliabilityRow({ env, baselineMonth, routeId: row.routeId });
+  const [observed, manifest, aliasedRichDetail, spines] = await Promise.all([
+    findObservedReliabilityRow({ env, baselineMonth, routeId: row.routeId }),
+    loadDetectorReadinessServingManifest(env),
+    maybeLoadAliasedStudioRouteDetailProjection({
+      env,
+      routeId: row.routeId,
+      requestedSlug: slug,
+    }),
+    loadRouteSpeedSpineCandidatesForSegments({
+      env,
+      routeId: row.routeId,
+      requestedSlug: slug,
+    }),
+  ]);
+  if (aliasedRichDetail !== null) {
+    const routeDetail = routeDetailWithInsights({
+      manifest,
+      routeDetail: aliasedRouteDetailForD1Row({
+        row,
+        observed,
+        richDetail: aliasedRichDetail,
+      }),
+    });
+    return {
+      ok: true,
+      routeDetail: routeDetailWithInsightTargetSegments({ routeDetail, spines }),
+    };
+  }
+
   const caveats = [
     "This is a partial route detail built from the all-route index; rich map, ladder, segment, finding, and evidence sections may be unavailable.",
     ...routeIndexCaveats(row),
@@ -1335,8 +1691,8 @@ async function buildStudioRouteDetailResponseFromD1(
       : []),
   ];
 
-  return {
-    ok: true,
+  const partialRouteDetail = routeDetailWithInsights({
+    manifest,
     routeDetail: StudioRouteDetailResponseSchema.parse({
       schemaVersion: 1,
       generatedAt: new Date().toISOString(),
@@ -1349,6 +1705,14 @@ async function buildStudioRouteDetailResponseFromD1(
         confidence: row.summary === null ? "low" : "medium",
         caveats,
       },
+    }),
+  });
+
+  return {
+    ok: true,
+    routeDetail: routeDetailWithInsightTargetSegments({
+      spines,
+      routeDetail: partialRouteDetail,
     }),
   };
 }
@@ -1849,8 +2213,8 @@ function buildSnapshot2(input: {
   ).length;
   const evidenceReadyRouteCount = supportLevelCount(routes, "evidence_ready");
   const routeHistoryRows = routes.reduce((sum, route) => sum + route.historyCoverage.pointCount, 0);
-  const routeSpeedHistoryCoverageRows = routes.filter(
-    (route) => route.projectionRefs.some((ref) => ref.id === "route_speed_history"),
+  const routeSpeedHistoryCoverageRows = routes.filter((route) =>
+    route.projectionRefs.some((ref) => ref.id === "route_speed_history"),
   ).length;
   const sourceCoverageMonths = input.sourceMonthCoverage.map((row) => row.month).sort();
   const projections: StudioSnapshot2ProjectionRef[] = [

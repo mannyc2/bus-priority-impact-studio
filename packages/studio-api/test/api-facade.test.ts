@@ -558,7 +558,8 @@ function createSparseStudioRouteDb(): FakeDb {
         route_count: 350,
         note: null,
         generated_at: "2026-06-06T00:00:00.000Z",
-        artifact_path: "data/artifacts/source-month-coverage/2023-04_to_2026-03/coverage-matrix.json",
+        artifact_path:
+          "data/artifacts/source-month-coverage/2023-04_to_2026-03/coverage-matrix.json",
       },
       {
         source_id: "local_route_schedule_stop_source_year",
@@ -571,7 +572,8 @@ function createSparseStudioRouteDb(): FakeDb {
         route_count: 375,
         note: "Source-year schedule stop rows for 375/386 status routes in 2026.",
         generated_at: "2026-06-06T00:00:00.000Z",
-        artifact_path: "data/artifacts/source-month-coverage/2023-04_to_2026-03/coverage-matrix.json",
+        artifact_path:
+          "data/artifacts/source-month-coverage/2023-04_to_2026-03/coverage-matrix.json",
       },
     ],
     route_observed_reliability_summary: [],
@@ -1077,6 +1079,279 @@ describe("Studio API facade", () => {
     );
   });
 
+  it("enriches Studio route detail with frontend-safe route insights", async () => {
+    const env = {
+      ARTIFACTS: new FakeR2Bucket({
+        "studio/v1/routes/m15-sbs/index.json": new FakeR2Object(
+          JSON.stringify({
+            schemaVersion: 1,
+            generatedAt: "2026-06-05T00:00:00.000Z",
+            route,
+            segments: [],
+            artifactRefs: [
+              {
+                routeId: "M15+",
+                month: "2026-03",
+                name: "detector_readiness_manifest",
+                key: "studio/v2/detectors/route-detector-readiness-manifest.json",
+                contentType: "application/json",
+                byteLength: 1234,
+                sha256: "a".repeat(64),
+              },
+            ],
+            quality,
+          }),
+          "application/json",
+        ),
+        "studio/v2/detectors/route-detector-readiness-manifest.json": new FakeR2Object(
+          JSON.stringify({
+            artifactKind: "detector_readiness_serving_manifest",
+            schemaVersion: 1,
+            routes: [
+              {
+                routeId: "M15+",
+                publicFindingCandidateRefs: [
+                  {
+                    detectorId: "customer_journey_shortfall",
+                    routeId: "M15+",
+                    scopeId: "M15+:2026-04:Peak:SBS",
+                    month: "2026-04",
+                    asOfMonth: "2026-04",
+                    bucket: "public_finding_candidate",
+                    evidenceRefPath: "cjtp.json#scope:m15-peak",
+                    sourceProjectionPath: "cjtp.json",
+                    caveats: ["true_customer_impact", "wait_component_driven"],
+                  },
+                  {
+                    detectorId: "treatment_scope_gap",
+                    routeId: "M15+",
+                    scopeId: "M15+:2026-03:N:1:stop-a:stop-b",
+                    month: "2026-03",
+                    asOfMonth: null,
+                    bucket: "public_finding_candidate",
+                    evidenceRefPath: "treatment.json#scope:m15-gap",
+                    sourceProjectionPath: "treatment.json",
+                    caveats: ["fit_status:true_uncovered", "genuine_slowness"],
+                  },
+                ],
+                routeContextRefs: [],
+                reviewQueueCounts: { customer_journey_shortfall: 2 },
+                suppressedCounts: { customer_journey_shortfall: 1 },
+              },
+            ],
+          }),
+          "application/json",
+        ),
+      }) as unknown as R2Bucket,
+      BASELINE_MONTH: "2026-03",
+      DB: createSparseStudioRouteDb() as unknown as D1Database,
+    } satisfies StudioApiEnv;
+
+    const response = await fetchApi("/api/v1/studio/routes/m15-sbs", env);
+    const detail = StudioRouteDetailResponseSchema.parse(await response.json());
+
+    expect(detail.insights).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: "customer_journey",
+          placement: "overview",
+          title: "Customer journey shortfall",
+          shortText:
+            "Customer journey shortfall appears in peak service, mainly on the wait-time side.",
+        }),
+        expect.objectContaining({
+          kind: "treatment_scope",
+          placement: "map_segment",
+          title: "Possible treatment coverage gap",
+          shortText: "This slow segment appears outside the confirmed treatment coverage.",
+        }),
+      ]),
+    );
+    expect(JSON.stringify(detail.insights)).not.toContain("reviewQueueCounts");
+    expect(JSON.stringify(detail.insights)).not.toContain("suppressedCounts");
+    expect(JSON.stringify(detail.insights)).not.toContain("reviewed signals");
+  });
+
+  it("loads alias route segment artifacts so treatment insights can attach to visible rows", async () => {
+    const bx12Route = {
+      ...route,
+      slug: "bx12-sbs",
+      routeId: "BX12+",
+      label: "Bx12",
+      corridor: "Bay Plaza - Inwood",
+      corridorFull: "Bay Plaza - Inwood",
+      borough: "Bronx",
+      sbs: true,
+    } as const;
+    const richSegmentId = "BX12+:2026-03:W:1:802025:103255";
+    const targetSegmentId = "BX12:2026-03:W:19:103999:104235";
+    const env = {
+      ARTIFACTS: new FakeR2Bucket({
+        "studio/v1/routes/bx12-sbs/index.json": new FakeR2Object(
+          JSON.stringify({
+            schemaVersion: 1,
+            generatedAt: "2026-06-05T00:00:00.000Z",
+            route: bx12Route,
+            segments: [
+              {
+                id: richSegmentId,
+                routeSlug: "bx12-sbs",
+                direction: "WB",
+                from: "Fixture start",
+                to: "Fixture end",
+                speedMph: 6.4,
+                scheduledMph: 8.7,
+                riderHours: 14,
+                lane: "yes",
+                ace: false,
+                tsp: false,
+                hours: Array.from({ length: 24 }, () => 0),
+              },
+            ],
+            artifactRefs: [],
+            quality,
+          }),
+          "application/json",
+        ),
+        "studio/v2/routes/bx12/speed-spine.json": new FakeR2Object(
+          JSON.stringify({
+            artifactKind: "bp.route_speed_spine.v1",
+            routeId: "BX12",
+            routeSlug: "bx12",
+            segments: [
+              {
+                segmentId: "bx12-w-node-005-node-007",
+                direction: "W",
+                displayOrder: 19,
+                label: "E FORDHAM RD/WEBSTERAV to E FORDHAM RD/VALENTINE AV",
+                averageRoadDistanceMiles: 0.42,
+                averageSpeedMph: 5.9,
+                raw: {
+                  sourceStopPairs: [
+                    {
+                      fromStopId: "103999",
+                      fromStopName: "E FORDHAM RD/WEBSTERAV",
+                      toStopId: "104235",
+                      toStopName: "E FORDHAM RD/VALENTINE AV",
+                      stopOrders: [19],
+                    },
+                  ],
+                },
+              },
+            ],
+          }),
+          "application/json",
+        ),
+        "studio/v2/detectors/route-detector-readiness-manifest.json": new FakeR2Object(
+          JSON.stringify({
+            artifactKind: "detector_readiness_serving_manifest",
+            schemaVersion: 1,
+            routes: [
+              {
+                routeId: "BX12",
+                publicFindingCandidateRefs: [
+                  {
+                    detectorId: "treatment_scope_mismatch",
+                    routeId: "BX12",
+                    scopeId: targetSegmentId,
+                    month: "2026-03",
+                    asOfMonth: null,
+                    bucket: "public_finding_candidate",
+                    caveats: ["mismatch_overlap_confirmed"],
+                  },
+                ],
+                routeContextRefs: [],
+              },
+            ],
+          }),
+          "application/json",
+        ),
+      }) as unknown as R2Bucket,
+      BASELINE_MONTH: "2026-03",
+      DB: new FakeDb({
+        route_artifact: [],
+        route_brief_summary: [
+          {
+            route_id: "BX12",
+            month: "2026-03",
+            public_visible: true,
+            public_visibility_reason: "public",
+            route_score: 32,
+            average_speed_mph: 8.6,
+            hotspot_count: 10,
+            total_ridership: 4000,
+            total_transfers: 0,
+            ace_active: false,
+            ace_violation_count: 0,
+            bus_lane_matched_lane_count: 8,
+            schedule_match_rate: 0.98,
+          },
+        ],
+        route_catalog: [
+          {
+            route_id: "BX12",
+            route_short_name: "Bx12",
+            route_long_name: "Bay Plaza - Inwood",
+            shape_count: 2,
+            stop_count: 58,
+            timepoint_stop_count: 12,
+          },
+        ],
+        route_catalog_type: [
+          {
+            route_id: "BX12",
+            type_rank: 1,
+            route_type: "Select Bus Service",
+          },
+        ],
+        route_month_trend: [],
+        route_speed_history_coverage: [],
+        route_timeline_index: [],
+        source_month_coverage: [],
+        route_observed_reliability_summary: [],
+        route_readiness: [
+          {
+            route_id: "BX12",
+            month: "2026-03",
+            readiness_status: "ready",
+            build_eligible: true,
+            readiness_score: 100,
+            speed_observation_count: 4000,
+            speed_bus_trip_count: 70000,
+            average_speed_mph: 8.6,
+            schedule_timepoint_count: 12,
+            shape_count: 2,
+            stop_count: 58,
+            timepoint_stop_count: 12,
+          },
+        ],
+      }) as unknown as D1Database,
+    } satisfies StudioApiEnv;
+
+    const response = await fetchApi("/api/v1/studio/routes/bx12", env);
+    const detail = StudioRouteDetailResponseSchema.parse(await response.json());
+
+    expect(detail.route.routeId).toBe("BX12");
+    expect(detail.route.slug).toBe("bx12");
+    expect(detail.segments.map((segment) => segment.id)).toEqual([richSegmentId, targetSegmentId]);
+    expect(detail.insights).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          scopeId: targetSegmentId,
+          target: expect.objectContaining({
+            segmentIds: expect.arrayContaining([targetSegmentId]),
+          }),
+        }),
+      ]),
+    );
+    expect(detail.quality.caveats).toContain(
+      "Segment rows are loaded from an equivalent base/SBS route artifact so detector segment refs can attach deterministically.",
+    );
+    expect(detail.quality.caveats).toContain(
+      "Some detector insight segment rows are aligned from the route speed-spine provenance so detector refs attach to visible route rows.",
+    );
+  });
+
   it("serves a D1-backed Studio route index v2 from the full catalog", async () => {
     const db = new FakeDb({
       route_artifact: [
@@ -1489,9 +1764,7 @@ describe("Studio API facade", () => {
       "evidence_ready",
     ]);
 
-    const sections = new Map(
-      routeSections.sections.map((section) => [section.sectionId, section]),
-    );
+    const sections = new Map(routeSections.sections.map((section) => [section.sectionId, section]));
     expect(sections.get("needs_attention")).toEqual(
       expect.objectContaining({
         status: "available",
@@ -1538,10 +1811,18 @@ describe("Studio API facade", () => {
       }),
     );
     expect(sections.get("reliability_watch")).toEqual(
-      expect.objectContaining({ status: "not_built", rows: [], notBuiltReason: expect.any(String) }),
+      expect.objectContaining({
+        status: "not_built",
+        rows: [],
+        notBuiltReason: expect.any(String),
+      }),
     );
     expect(sections.get("evidence_ready")).toEqual(
-      expect.objectContaining({ status: "not_built", rows: [], notBuiltReason: expect.any(String) }),
+      expect.objectContaining({
+        status: "not_built",
+        rows: [],
+        notBuiltReason: expect.any(String),
+      }),
     );
   });
 
