@@ -2,6 +2,874 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-10] calibration | S2.3 feature-field audit (spatialConfidence + lane-type typed field)
+
+Two honest-field fixes, both DB-verified behavior-neutral.
+
+Part 1 — spatialConfidence inert gate. The segment_daypart resolver hard-coded `spatialConfidence: 1`
+(rows are pre-joined to GTFS timepoint stop pairs, so there is no real spatial-join confidence), which
+made speed_pace_hotspot's `minSpatialConfidence` gate and the readiness `geometry_unconfirmed`
+promotion blocker inert — claiming a verification that never happened. Marked unsupported: resolver
+now emits `spatialConfidence: null`; removed the detector skip gate + `minSpatialConfidence` threshold
++ the readiness promotion blocker + `spatialConfidence` from the segment_daypart contract
+requiredFields. DB eval: speed-pace survival 26/27, suppress leak 0, emitted 1,134 — identical to S2.1
+(the gate never fired at 1.0, so removal is neutral).
+
+Part 2 — bus-lane vs Enhanced-Bus-Stop split as a typed field. Lane type was re-derived gate-side by
+two inconsistent string-parsers (resolver exact-match on `nyc_dot_bus_lane_type:` refs; mismatch
+detector substring + an incomplete exclusion list). Added typed `laneTypes` to
+`RouteSegmentTreatmentSummaryFeature` (+ materializer row + contract requiredFields) and one shared
+authority `isEnhancedBusStopOnlyLaneTypes()` in `@bp/analytics/features`; resolver gate and mismatch
+detector now both call it. The feature builder prefers the materializer's typed field and falls back to
+parsing `nyc_dot_bus_lane_type:` sourceRefs for artifacts materialized before the field existed (so no
+regeneration needed; forward+backward compatible). DB verify: gap 30 candidates unchanged; mismatch
+EBS classification diverged on 0 / 4,134 segments → identical detector output; reviewed-gold eval
+(primary 6/6 survive, suppress 0/9 emitted) preserved. Verify: analytics 179/0, applied-research
+360/0, domain 68/0, pipeline-v2 461/0, typecheck clean, biome clean, `git diff --check` clean.
+
+(Investigation note: a `git stash`/`git checkout HEAD` baseline run misleadingly showed mismatch 69 vs
+28 — that 69 was the older *committed* detector, before the working tree's uncommitted
+worsening-history gates; the in-detector diverge=0 instrumentation proved my change neutral.)
+
+## [2026-06-10] calibration | S2.1 terminal/layover flag as a feature field + speed-pace gate
+
+Promoted terminal suppression from readiness-only into the speed_pace_hotspot detector gate. Added
+`isTerminal` to `SegmentDaypartFeature` + `RouteSegmentMonthFeature` (`@bp/analytics/features`) and to
+the `segment_daypart` / `route_segment_month` contract `requiredFields`; derived it in
+`segment-daypart-speed.ts` from `stop_order` vs the per-(route, month, direction) max
+(`stopOrder <= 1 || stopOrder >= max`, matching the established `segment-month-panel.ts` rule);
+`speed-pace-hotspot.ts` `skipReason` now returns `terminal_or_layover` for terminal segments. Updated
+fixtures (feature-contracts, r3-detectors +terminal gate test, speed-pace-score-vectors,
+detector-study, pipeline-v2 run-detector) to realistic multi-segment shapes so the tested slow segment
+is interior.
+
+DB eval (470,462 2026-03 rows → resolver → detector → review-queue → reviewed-gold eval against the v2
+labels): **reviewed primary survival 26/27 (held); suppress leakage 1 → 0** — the `QM11:E:1`
+express-terminal leak the v2 NOTE flagged ("detector still has no terminal flag to gate on") is now
+`skipped_failed_join`/`emitted=false`. Emitted 1,396 → 1,134; the one dropped primary (`M103:S:24`
+midday) is the pre-existing per-route-cap tail-clip, not a terminal-gate regression. All 27 primaries
+are interior (closest `B46:S:48` vs dir-max 50). Record:
+`data/artifacts/detector-calibration-speed-pace-v3-terminal-gate/` (evaluation.json + summary.json +
+NOTE.md). Verify: analytics 180/0, applied-research 360/0, pipeline-v2 461/0, typecheck clean, biome
+clean, `git diff --check` clean. Unblocks delay_concentration (S2.1 prerequisite now met).
+
+## [2026-06-10] infra | S5.4 official_context evidence-role split
+
+Built Phase 5 S5.4 — split agency-record evidence out of the generic `context` evidence role. Added
+`"official_context"` to `FindingEvidenceRoleSchema` (`@bp/domain` findings) with a description noting
+it's the agency-record evidence the publication wording depends on (matters most for the Wave 3
+intervention family). Threaded a distinct `officialContext` partition through both `.strict()` packet
+objects (`FindingReviewPacket.evidence` + `.evidenceObjects`) and the packet builder `roleGroups` /
+`evidenceObjects` in `@bp/applied-research/review-packets/artifacts.ts`. Updated the domain schema
+fixture (two literal packet objects) and extended the treatment-scope packet test to assert an
+`official_context` link lands in `officialContext`, not `context`. Generic associational `context`
+stays a separate bucket; existing emitters are unchanged (no re-calibration). Verify: domain 68/0,
+applied-research 360/0, typecheck domain/applied-research/studio-api clean, biome clean,
+`git diff --check` clean. Phase 5 (S5.1–S5.4) complete.
+
+## [2026-06-10] infra | S5.2 confidence decomposition (component fields, single published label)
+
+Built Phase 5 S5.2 — `buildConfidenceDecomposition` + `summarizeConfidenceComponentCompleteness` in
+`@bp/applied-research/evaluation` (`confidence-decomposition.ts`). Decomposes confidence into the seven
+independent component axes (`source_sufficiency`, `join_confidence`, `temporal_alignment`,
+`metric_stability`, `peer_context`, `counterfactual_strength`, `review_readiness`): a family supplies
+the components it can support and omits the rest (recorded `null`). These are review-packet fields; the
+collapse to a single coarse `publishedLabel` (insufficient/low/medium/high from the mean of present
+components) keeps the public surface single-valued. The evaluator summary reports per-component
+populate-share + mean component completeness as the maturity signal. Pure; clamps 0..1; non-finite
+treated as absent. 4 fixture tests. Verify: applied-research 360/0, typecheck clean, biome clean,
+`git diff --check` clean. Remaining in the plan: Phase 5 S5.4 (official_context evidence-role split);
+Phase 2 S2.1/S2.3 stay DB-eval-gated.
+
+## [2026-06-10] infra | S5.1 decomposed review-priority scoring (severity != confidence)
+
+Built Phase 5 S5.1 — `buildReviewPriorityScore` + `compareByReviewPriority` in
+`@bp/applied-research/evaluation`. Splits the single review-queue sort key into review-packet fields:
+`severityScore` (severity map), `evidenceScore` (source/sample sufficiency = the confidence axis),
+`specificityScore` (scope narrowness), `persistenceScore` (multi-period support), and a weighted
+`reviewPriorityScore` (default weights severity .4 / evidence .25 / specificity .2 / persistence .15).
+Severity and confidence are independent inputs — a high-severity/low-evidence candidate sorts
+differently from a low-severity/high-evidence one — and the comparator tie-breaks on the decomposed
+fields so queue order is explainable, not a single opaque score. Public UI keeps the simple
+severity/confidence pair; these are reviewer fields. Pure + fixture-tested
+(`test/review-priority-score.test.ts`, 3 tests: decomposition, severity≠confidence reordering,
+clamping/weight validation). Verify: applied-research 356/0 + typecheck clean; git diff --check clean.
+Remaining Phase 5: S5.2 (confidence decomposition component fields), S5.4 (official_context
+evidence-role split).
+
+## [2026-06-10] infra | S5.3 evidence-packet completeness eval metric
+
+Built Phase 5 S5.3 — `buildEvidencePacketCompleteness` in `@bp/applied-research/evaluation`. Reports,
+per detector family + overall, the share of emitted candidates carrying primary / counter-evidence /
+missing-evidence links, a `matureShare` (primary + counter-evidence), and a `bareHitCount`
+(primary-only, no counter and no missing-evidence section — "just a hit, not mature"). Thresholds are
+reported in the artifact, **not enforced silently** — the metric surfaces packet quality; promotion
+gating stays in the reviewed-gold/readiness layer. Pure + fixture-tested
+(`test/evidence-packet-completeness.test.ts`, 2 tests incl. empty-input no-divide-by-zero). Verify:
+applied-research 353/0 + typecheck clean; git diff --check clean. Remaining Phase 5: S5.1
+(severity≠confidence scoring decomposition), S5.2 (confidence decomposition fields), S5.4
+(official_context evidence-role split).
+
+## [2026-06-10] infra | S2.4 feature-grain materialization coverage
+
+Built Phase 2 S2.4 (per feature-grain × release-month materialization coverage — distinct from the
+existing R2-surface `analytics-materialization-coverage`). Added
+`buildFeatureGrainMaterializationCoverage` in `@bp/applied-research/evaluation`: per grain,
+{scopesMaterialized, fleetUniverse, coverageShare, status} where **an unknown denominator can never
+read as `complete`** (capped at `partial`) so a sparse grain cannot masquerade as fully covered. Pure
++ fixture-tested (`test/feature-grain-materialization-coverage.test.ts`). Generated the real 2026-03
+artifact at `data/artifacts/materialization-coverage/feature-grain-materialization-coverage-2026-03.json`
+(+ NOTE) from this session's no-write `featureCount`s and the ~381-route source_gap fleet: 8 grains,
+1 complete (route_reliability_month 381/381), 7 partial (3 route-scoped ~0.96; 5 with unenumerated
+universes capped at partial, incl. stop_direction_hour 650,264 — its fleet-readiness claims must cite
+this gap). This is the precondition for honest stop-hour fleet-readiness and the agreement-audit
+baseline for the source_gap coverage authority (S4.3). Verify: applied-research 351/0 + typecheck
+clean; git diff --check clean. Follow-up: a DB-counting pipeline-v2 command + per-grain fleet-universe
+enumeration. Remaining Phase 2: S2.1 + S2.3 (both gated on the DB-backed detector eval). Remaining:
+Phase 5 S5.1-S5.4.
+
+## [2026-06-10] infra | S4.3 consolidated calibration register — Phase 4 complete
+
+Built Phase 4 S4.3 (consolidated calibration register), which closes Phase 4 (S4.1–S4.4 all done).
+Added `buildDetectorCalibrationRegister` in `@bp/applied-research/evaluation` — one queryable record
+per detector id+version: calibration disposition (machinery_built / internal_only / coverage_authority
+/ inventory_blocked / superseded / deferred / pending), gold/NOTE artifact paths, reviewed-label
+count, and false-positive root-cause tags. Pure + fixture-tested
+(`test/detector-calibration-register.test.ts`). Generated the real register at
+`data/artifacts/detector-calibration-register.json` (+ NOTE) from the registry + existing
+`detector-calibration-*` dirs **without hand-editing them**: 21 detectors, 0 pending —
+machinery_built 15, internal_only 2 (positive_deviance, intervention_event_study), coverage_authority
+1 (source_gap), inventory_blocked 1 (rider_weighted), superseded 1 (persistent_speed_hotspot),
+deferred 1 (delay_concentration); retirementStatus active 18 / deprecated 1 / experimental 2.
+`reviewedLabelCount` is 0 until human review populates the gold sets (the schema carries them).
+Verify: applied-research 349/0; git diff --check clean. **Phase 4 governance complete.** Remaining:
+Phase 2 S2.1/S2.3/S2.4, Phase 5 S5.1–S5.4.
+
+## [2026-06-10] infra | S4.4 score-vector novelty stats (Spearman + spread)
+
+Added Phase 4 S4.4 pure helpers to `packages/analytics/src/calibration/score-vectors.ts`:
+`spearmanRankCorrelation` (average-rank ties; null on <2 points or zero variance),
+`scoreSpreadStats` (min/max/range/mean/median/stdDev/p25/p75/iqr), and `detectorScoreNovelty` —
+for each peer, the Spearman rank correlation + flagged-set Jaccard over shared scopes, yielding
+`maxAbsRankCorrelation` and `noveltyScore = 1 - max|rho|` (1.0 = no comparable peer / fully novel
+ranking). This answers the ideal-doc/audit ask for rank-correlation novelty stats: a detector that
+re-ranks scopes the way an existing one does is redundant; low correlation = new information. Exported
+from `@bp/analytics/calibration`; focused unit tests in `test/score-vector-novelty.test.ts` (4 tests,
+monotonic/reversed/ties/degenerate + redundant-vs-independent peer + disjoint-peer cases). Verify:
+analytics 179/0 + typecheck clean; applied-research 347/0; git diff --check clean. Remaining Phase 4:
+S4.3 (consolidated calibration register).
+
+## [2026-06-10] decision | S4.2 lifecycle records + persistent_speed_hotspot supersession executed
+
+Built Phase 4 S4.2 (lifecycle records) and executed the OD-2 supersession the maintainer approved
+("persistent_speed_hotspot: supersede; execute via S4.2; no calibration machinery"). Added pure
+record builders to `packages/analytics/src/calibration/detector-lifecycle.ts`:
+`buildDetectorLifecycleRecord` (event kinds introduced/version_change/demoted/superseded/retired;
+validates successor-id rules) + `buildDetectorLifecycleLog`, exported from `@bp/analytics/calibration`,
+fixture-tested in `detector-lifecycle-record.test.ts` (3 tests). Executed the supersession:
+(1) flipped `persistent_speed_hotspot` registry `retirementStatus` `active`→`deprecated` (superseded
+by `speed_pace_hotspot` + `delay_concentration`); (2) persisted the machine-readable record at
+`data/artifacts/detector-lifecycle/detector-lifecycle-log.json` (+ NOTE); (3) updated the catalog
+Current Set + Maintenance Rule (`knowledge/wiki/analysis/detector_catalog.md`) to require a lifecycle
+record on every retirementStatus change. Verify: analytics 175/0 + typecheck clean; applied-research
+347/0; `bun run check:knowledge` passes; git diff --check clean. Follow-up: a dedicated fixture-backed
+pipeline-v2 `findings lifecycle` command (this artifact was written via the pure builder). Remaining
+Phase 4: S4.3 (consolidated calibration register), S4.4 (score-vector novelty stats).
+
+## [2026-06-10] infra | S4.1 serving readiness gate enforced + tested
+
+Closed today's named OPEN serving gap (Phase 4 S4.1). `buildRouteInsightsFromDetectorReadiness` in
+`@bp/domain/studio/route-insights.ts` now filters both public and route-context refs through the
+exported `STUDIO_ROUTE_INSIGHT_DETECTOR_IDS` allowlist before building insights — previously the
+allowlist was exported but **unenforced** (unknown ids were only excluded implicitly via the
+copy-map). Combined with the manifest schema (which already enum-constrains `bucket` to
+`public_finding_candidate`/`route_context`), an uncalibrated/unknown detector id that lands in a
+public bucket is now structurally excluded from public surfaces. Added S4.1 tests in
+`packages/domain/test/studio-route-insights.test.ts`: (1) the allowlist is a subset of the
+`@bp/domain` `KNOWN_DETECTOR_IDS` registry; (2) a synthetic violation (a fabricated uncalibrated
+detector id in a public bucket) produces NO insight while an allowlisted detector still surfaces, and
+every surfaced id is on the allowlist. Verify: `@bp/domain` test 68/0 + typecheck clean; `@bp/web`
+typecheck clean; production-boundaries harness 15/0. S4.2 (lifecycle records, incl. the
+persistent_speed_hotspot supersession), S4.3 (register), S4.4 (novelty stats) remain.
+
+## [2026-06-10] infra | S2.5 deferred_not_in_scope coverage state
+
+Added the missing silence state to the coverage vocabulary (Phase 2 S2.5). `FindingCoverageOutcomeSchema`
+in `@bp/domain/findings` gains `deferred_not_in_scope` — a scope the detector intentionally does not
+apply to (e.g. EWT on a low-frequency route), kept distinct from `clean_no_hit` (detector applied,
+found nothing) so intentionally-not-applicable scopes stop blending into clean no-hits. Additive: no
+exhaustive switch on the outcome enum exists (the one `switch(outcome)` is on upload results, not
+coverage), so all consumers count by string equality. Made the state observable in the run-artifact
+`outputSummary` (`deferredNotInScopeCount`, so silent gaps cannot hide) and added an S2.5 test in
+`detector-run-artifact.test.ts`. Verify: domain + analytics + applied-research + studio-api typecheck
+clean; analytics 172/0; applied-research 347/0. Detectors emitting the state for specific
+not-applicable scopes is the follow-up (per-detector, label-backed).
+
+## [2026-06-10] evaluation | Source gap disposition (Wave 4 #15, coverage authority — no machinery)
+
+Recorded the ADR-0018 disposition for `source_gap` under
+`data/artifacts/detector-calibration-source-gap/NOTE.md`. Family adaptation = **coverage authority**:
+`source_gap` emits a deterministic data-quality state per scope (admission gates on other detectors'
+claims), so per the plan it has **no gold-set precision frame** and **no review-queue/reviewed-gold
+machinery was built** (would misrepresent deterministic coverage states as a reviewable finding
+population — same disposition shape as `rider_weighted_excess_wait`). Inventory: 381 emitted = 381
+qualifying (exhaustive, no cap suppression); for March 2026 all 381 are `tsp_current_inventory_missing`
+— the true, documented systemic TSP-inventory absence (Missing-Spaces "defer" decision), not false
+positives. Calibration path = (1) agreement audit vs the S2.4 materialization artifact — **blocked on
+S2.4 (Phase 2, not yet built)**; (2) wire its states as admission inputs to other detectors' readiness
+(ideal-doc family-1). **This closes the per-detector disposition for all 15 product-facing detectors**
+(11 with calibration machinery this session + the prior 4; source_gap + rider_weighted by coverage/
+internal disposition; persistent_speed_hotspot dropped per Open Decision 2; delay_concentration the
+only build still pending, gated on S2.1).
+
+## [2026-06-10] evaluation | 311 service-request context slice (Wave 4 #14, associational context)
+
+Built the ADR-0018 machinery for `service_request_context` (route grain, category context, standard
+5-bucket vocab) under `data/artifacts/detector-calibration-service-request-context/`. Same
+associational-context adaptation as permit (`primary_finding` rare by design; eval lens is leakage
+INTO findings via `findingsLeakageCount`). Inventory: 380 routes, **27 emitted, 27 qualifying → no cap
+suppression** (323 clean, 30 skipped); Manhattan-heavy. Review-queue stratifies `high_route_fanout`,
+`low_match_weight`, and `thin_high_confidence_touches` (read from the `serviceRequestContext` in
+coverage/evidence); tags cover the complaint-type allowlist, reporting bias, temporal misalignment,
+and `not_a_causal_attribution`; borough-spread = fairness lens. Uses the S2.2 cap-policy helper.
+Fixture-tested. applied-research 346/0. Wave 4 now 3 of 4 done (positive_deviance + permit + 311);
+`source_gap` remains (coverage-authority adaptation), `rider_weighted` internal-only documented.
+
+## [2026-06-10] evaluation | Permit-correlated slowdown slice (Wave 4 #13, associational context)
+
+Built the ADR-0018 machinery for `permit_correlated_slowdown` (route grain, category context, standard
+5-bucket vocab) under `data/artifacts/detector-calibration-permit-correlated-slowdown/`. Family
+adaptation (associational context): `primary_finding` rare by design, so the eval lens is leakage INTO
+findings (`findingsLeakageCount`, should stay ~0), not primary survival. Inventory: 380 routes, **28
+emitted, 28 qualifying → no cap suppression** (322 clean, 30 skipped); Manhattan-heavy. Review-queue
+stratifies the association risks — `high_route_fanout` (route-LION fanout, weak/non-specific) and
+`low_match_weight` (weak permit-to-route join), read from the counter-evidence `permitContext`; tags
+cover temporal misalignment, unrelated work type, and `not_a_causal_attribution`. Uses the S2.2
+cap-policy helper. Fixture-tested. applied-research 344/0. Wave 4: positive_deviance + permit done;
+service_request_context + source_gap remain (rider_weighted internal-only documented).
+
+## [2026-06-10] evaluation | Intervention event study slice (Wave 3 #12, candidate-causal internal-only)
+
+Built the ADR-0018 machinery for `intervention_event_study` under
+`data/artifacts/detector-calibration-intervention-event-study/` — **completes Wave 3**. Family
+adaptation (candidate-causal): internal/methodology-review-only vocabulary
+(`methodology_review_candidate` / `associational_context` / `needs_more_evidence` / `suppress`); the
+readiness projection structurally cannot reach a public bucket (review_queue + suppressed only) and
+the eval carries `publicLeakageCount: 0` — effect language never reaches a public surface without
+human methodology approval. Inventory: 100 emitted at the cap, **236 qualifying → 136 cap-suppressed
+(57.6%)** (real cap bias), borough-diverse; 505 skipped. Review-queue stratifies the methodology
+gates (`gate_pass`, `pretrend_or_placebo_risk`, `method_divergence`) read from the evidence/coverage
+`gateSummary`, plus rank-based cap-suppressed + borough controls; `emittedByGateStatus` summary; uses
+the S2.2 cap-policy helper. Calibration = labeling panel quality, not effect truth. Fixture-tested.
+applied-research 342/0. **Wave 3 complete (underperformance + gap + event_study).**
+
+## [2026-06-10] evaluation | Intervention gap calibration slice (Wave 3 #11)
+
+Built the ADR-0018 machinery for `intervention_gap` (route grain, standard 5-bucket vocab) under
+`data/artifacts/detector-calibration-intervention-gap/`. Inventory: 381 routes, **8 emitted, 8
+qualifying → no cap suppression** (342 clean, 31 skipped); borough-spread emitted set. The claim is a
+scope-review candidate only as honest as the treatment inventory, so the queue forces the weaker
+`thin_source_gap` evidence class into review (vs `absent`), records `emittedByEvidenceStatus`, and
+samples borough-spread controls as the pain-threshold fairness lens. Calibration tags make the
+"missing date ≠ no intervention" honesty explicit (`not_proof_of_absence`,
+`future_or_undated_treatment_possible`, `treatment_inventory_incomplete`). Uses the S2.2 cap-policy
+helper. Fixture-tested. applied-research 340/0. Wave 3 now has 2 of 3 (underperformance + gap);
+`intervention_event_study` (causal, readiness caps at review_queue) remains.
+
+## [2026-06-10] evaluation | Intervention underperformance calibration slice (Wave 3 #10)
+
+Built the ADR-0018 machinery for `intervention_underperformance` (route grain, standard 5-bucket
+vocab) under `data/artifacts/detector-calibration-intervention-underperformance/` — first of the
+Wave 3 intervention family (highest claim risk). Inventory: 381 routes, **28 emitted, 28 qualifying →
+no cap suppression** (166 clean, 187 skipped); Manhattan-heavy. The deltas are descriptive
+peer-adjusted comparisons, not causal estimates, so the queue stratifies `thin_comparison_peers`
+(< 3 comparison routes) and `thin_treatment_evidence` (zero/undated treatment source refs —
+"missing date ≠ no intervention"); calibration tags include route-change/window confound,
+positive-comparisons-present, and the explicit "not a causal impact" label. Reviewers expected to land
+most labels at route_context. Uses the S2.2 cap-policy helper. Fixture-tested. applied-research 338/0.
+
+## [2026-06-10] evaluation | Multi-month speed peer calibration slice (Wave 2 #6)
+
+Built the ADR-0018 machinery for `multi_month_speed_peer` (route grain, standard 5-bucket vocab)
+under `data/artifacts/detector-calibration-multi-month-speed-peer/`. Inventory: 367 routes,
+**8 emitted, 8 qualifying at the high limit → no cap suppression** (337 clean, 22 skipped);
+Manhattan-heavy emitted set. Dominant risk is peer-group transparency for the rankings surface, so
+the queue stratifies `fallback_peers` (non-strong peer method) and `thin_months` (< 6 supported
+months) alongside the standard strata; `hasStrongPeerGroup` derived from emitted peer-group methods;
+uses the S2.2 cap-policy helper. Calibration tags cover reciprocal-metric (mph vs pace) artifacts,
+seasonal/service-pattern confounds, and the "matched peers are not a causal control" caveat.
+Full-census review of the 8 recommended. Fixture-tested. applied-research 336/0. This completes
+Wave 2 calibration coverage except the supersession-decision `persistent_speed_hotspot` (dropped, Open
+Decision 2) and `delay_concentration` (Wave 1, deferred to S2.1).
+
+## [2026-06-10] evaluation | Degradation trend calibration slice (Wave 2 #5)
+
+Built the ADR-0018 machinery for `degradation_trend` (route_metric_history grain, route/segment
+scope, standard 5-bucket vocab) under `data/artifacts/detector-calibration-degradation-trend/`.
+Inventory: 367 scopes, **6 emitted, 6 qualifying at the high limit → no cap suppression** (only 6 of
+348 supported scopes clear robust-z ≥ 3 + positive slope; 341 clean, 20 skipped). Dominant review
+risk is history confidence (thin history / short prior baseline / route-version breaks / seasonality),
+not the cap — recommend a full-census review of the 6 plus stratified controls. Review-queue strata:
+top_score, near_threshold, thin_history, short_baseline, segment_scope, borough_spread,
+cap_suppressed_control (rank-based, empty this month), clean/skipped controls; uses the S2.2
+cap-policy helper. Fixture-tested review-queue + reviewed-gold. applied-research 334/0.
+
+## [2026-06-10] note | S2.1 (terminal flag) attempted, deferred with findings
+
+Attempted Phase 2 S2.1 (terminal/layover flag as a feature field). Found it is not a clean
+single-slice change: the kernel `RouteSegmentMonthFeature` type is not actually consumed by the
+delay_concentration/persistent_speed detector path (those use divergent input shapes built in
+`feature-resolvers/detector-family-features.ts` + `treatment-detector-inputs.ts`), and the
+gate-promotion half's required verification is the DB-backed speed-pace 26/27 eval, which is blocked
+on the same full-output review-queue-writer gap noted across the reliability slices. The terminal
+heuristic today lives in `evaluation/speed-pace-review-queue.ts` (`terminalPosition` parses stop
+sequence from `segmentId`). Deferred rather than ship an unverified change to a calibrated detector;
+needs its own slice once the full-output eval writer exists. Proceeded with verifiable Wave 2 work
+instead (degradation_trend).
+
+## [2026-06-10] infra | S1.1 seam closure — hand-rolled satisfaction map deleted
+
+Completed Phase 1 (the seam is now fully closed). Deleted the hand-rolled
+`featureContractSupportReason()` grain→prose switch in
+`packages/applied-research/src/detector-runs/detector-study.ts` (≈110 lines, 18 cases). Satisfaction
+now derives from a single source of truth keyed by the kernel contract's `resolverId`:
+`detector-runs/feature-resolver-support.ts` records which resolvers the applied-research layer
+implements (artifact resolvers in detector-input-assembly + local-db loaders) and the two
+quality-carried grains (`embedded.feature_quality.v1`=feed_health, `sqlite.source_coverage.v1`=
+source_coverage). `detectorStudyFeatureContractSatisfaction` consults it via `featureResolverSupport`.
+A new guard test (`feature-resolver-support.test.ts`) asserts every kernel `listFeatureContracts()`
+resolverId is covered (no declared grain falls through to `unsupported`), so a future grain cannot
+ship reporting `resolved` without a resolver registered here — the drift the prose switch invited.
+Per-grain **statuses unchanged** (the existing detector-study/run-artifact/run-detector tests assert
+status only; no golden fixture pinned the prose reasons, which are now uniform/derived). Removed 15
+now-unused grain-constant imports. applied-research **332 pass / 0 fail**, pipeline-v2 **461 / 0**,
+typecheck clean. (The `runResolvedDetectorStudy` fake-resolver indirection that carries pre-assembled
+branch input through the runner port remains — fully collapsing it is the larger A2/A3 work, not
+required to delete the satisfaction map.)
+
+## [2026-06-10] infra | Phase 0 + S1.2 seam closure (verification floor + pipeline-v2 boundary)
+
+Closed Phase 0 and Phase 1 S1.2 from `backend-goal-finish-detectors.md`.
+
+- **S0.1**: the 5 cwd-dependent pipeline-v2 boundary tests (`brief/map/evaluation artifacts`,
+  `check/route-speed-availability`, `studio/route-speed-histories`) read command-source paths
+  relative to cwd, so they failed under `bun --filter` (package cwd) and passed only from repo root.
+  Wrapped each path in `fromRepoRoot()` (the existing cwd-independent helper in
+  `tools/pipeline-v2/src/lib/paths.ts`, already used by the passing express-bus-capacity test).
+  `bun --filter @bp/pipeline-v2 test` now **461 pass / 0 fail** (was 456/5); the 5 also pass from
+  repo root.
+- **S0.2**: fixed the stale verification default — CLAUDE.md said `bun --filter @bp/pipeline test`
+  (no such package; only `@bp/pipeline-v2` exists) → `@bp/pipeline-v2`. Also fixed the one-line
+  `knowledge/AGENTS.md` "Pipeline package" claim. Root scripts + the `pipeline` alias already used
+  `@bp/pipeline-v2`. The wiki `cli_commands.md` v1-command rewrite is separately-tracked doc-debt
+  and `log.md` is the historical record — both left as-is.
+- **S1.2**: closed the last direct kernel import from pipeline-v2
+  (`commands/build/treatment-event-panel.ts` imported `INTERVENTION_EVENT_STUDY_DETECTOR_ID` from
+  `@bp/analytics/detectors`). Repointed to source the id from the `@bp/domain` `KNOWN_DETECTOR_IDS`
+  allowlist (compile-error if the id is ever dropped; zero new API). Extended
+  `tests/harness/production-boundaries.test.ts` with a test that scans `tools/pipeline-v2/src` for
+  `@bp/analytics` import statements (codemode prose strings + the packages/analytics symlink are not
+  imports and are intentionally allowed). Demonstrated red on a planted import, green after removal.
+
+Remaining Phase 1: **S1.1** (delete the hand-rolled `featureContractSupportReason` prose switch +
+thin fake resolver in `detector-study.ts`; derive grain satisfaction from the real resolver wiring
+through the kernel runner port). Sized but deferred to its own slice: the kernel `FEATURE_CONTRACTS`
+resolverIds do not line up 1:1 with applied-research `FEATURE_RESOLVERS`, and static
+`detectorStudyFeatureContractSatisfaction` tests assert specific per-grain statuses with no rows — so
+it needs care to preserve the golden run-artifact invariant.
+
+## [2026-06-10] decision | Three open decisions resolved (GTFS-RT archival, supersession, KPIs)
+
+Maintainer resolved three plan-blocking decisions, recorded inline in the plan docs:
+
+1. **Master-plan OD-1 (continuous GTFS-RT collection): deferred — rely on the archival source.**
+   The Bus Observatory `busobservatory-lake` S3 archive captures the feed (March 2026 verified
+   complete: 32 Parquet files, 3.59 GB, `full_month_candidate`), so the "every deferred month is
+   unrecoverable" urgency no longer holds. A8 is effectively answered; remaining work is row-level
+   QA + a `third_party_recovered` importer. Priority goes to finishing the other tracks.
+2. **Finish-detectors OD-2 (`persistent_speed_hotspot`): supersede.** Execute via the S4.2
+   lifecycle-record slice; no calibration machinery will be built for it.
+3. **Frontend O3 (header KPI set): approved as specified** (Condition / Trend / Reliability /
+   Riders / Treatment posture). Hard-cutover slice C2 (dossier schema) is unblocked.
+
+## [2026-06-10] infra | S2.2 shared cap-policy helper extracted
+
+Added `packages/applied-research/src/evaluation/cap-policy.ts` (Phase 2 S2.2 from
+`backend-goal-finish-detectors.md`): the three primitives every per-detector review-queue had been
+re-deriving — `boroughPrefix()`, `rankByDetectorScore()` (detector-scope identity → 1-based rank for
+rank-based cap-suppression detection), and a generic `roundRobinByBorough<T>()` for borough-spread
+control sampling. Unit-tested in `test/cap-policy.test.ts`. Refactored the three new Wave-2/Wave-4
+review-queues (`travel_time_variability`, `schedule_mismatch`, `positive_deviance`) to import these
+instead of copying them. Detector-specific qualification predicates stay per-detector. The prior
+shipped slices (`headway_reliability_ewt`, `bunching_hotspots`, `observed_reliability`) still carry
+local copies — migrating them is a follow-up. The full run-artifact cap-accounting half of S2.2
+(capped-out distribution recorded in every no-write run artifact, validated against the
+observed_reliability 100-vs-220 probe) is still pending.
+
+## [2026-06-10] evaluation | Positive deviance slice (Wave 4 inverted, internal-only)
+
+Built the ADR-0018 machinery for `positive_deviance` under
+`data/artifacts/detector-calibration-positive-deviance/` with the **Wave 4 family adaptation**:
+inverted, internal-only vocabulary (`learning_candidate` / `watchlist` / `reviewer_only` /
+`suppress`=false-deviant). The readiness projection structurally cannot reach a public bucket
+(`review_queue` + `suppressed` only) and the evaluation carries a `publicLeakageCount: 0` invariant.
+Inventory: 365 scopes, 48 emitted, 48 qualifying at the high limit → **no cap suppression**; 317
+skipped (insufficient peers/periods/reciprocal-warning gates). Dominant review risk is peer
+construction, not the cap. Fixture-tested review-queue + reviewed-gold.
+
+## [2026-06-10] evaluation | Schedule mismatch calibration slice (Wave 2 #8)
+
+Built the ADR-0018 machinery for `schedule_mismatch` (route-direction-daypart) under
+`data/artifacts/detector-calibration-schedule-mismatch/`. Inventory: 2,537 cells, 100 emitted under
+the default cap, **2,434 qualifying at the high limit → 2,334 cap-suppressed (95.9%)** — the most
+cap-biased reliability detector so far; the top-100 sample is saturated at score 100 and
+Brooklyn-skewed while the qualifying population spans every borough (Queens-heavy, 709). The queue
+forces a `padding_review` stratum so the rarer `schedule_padding_review` reason class is reviewed
+alongside `schedule_too_tight`; cap suppression is computed directly from coverage
+(scheduled+observed+trips). Per the plan, expect readiness to cap at `route_context` until
+route-version rules strengthen — a valid calibration outcome. Fixture-tested.
+
+## [2026-06-10] evaluation | Travel-time variability calibration slice (Wave 2 #7)
+
+Built the ADR-0018 machinery for `travel_time_variability` (route-direction-daypart) under
+`data/artifacts/detector-calibration-travel-time-variability/`. Inventory: 2,537 cells, 100 emitted,
+**144 qualifying at the high limit → 44 cap-suppressed (30.6%)**; top sample skews Brooklyn/Bronx
+while the qualifying population is borough-diverse and Queens-heavy. Buffer index `(P95-P50)/P50`;
+cap suppression computed directly from coverage. Strata include `incident_outlier_suspect` (extreme
+buffer index = likely one-off incident inflating P95) and `service_pattern_caveat`. Fixture-tested.
+
+## [2026-06-10] planning | Hard-cutover execution plan + planning-doc hierarchy
+
+Added `docs/research/hard-cutover-dossier-contract.md`: the slice-level execution plan (C0–C4) for
+the frontend goal's §16-D1 hard cutover — de-monthing the public contract per ADR 0017
+(capability manifest → dossier response → de-monthed network surfaces → freshness doctrine), with
+an explicit boundary of what monthly keying survives (source grains, release-keyed detector
+output, publication gates). Its §0 records the planning-document hierarchy for the first time:
+ADR 0017/0018 doctrine → `master-plan-product-questions.md` umbrella (Tracks A–G) → Track B =
+`backend-goal-finish-detectors.md`, Tracks E/F consumer side = `frontend-goal-data-serving.md`.
+Marked `backend-goal-seam-calibration.md` superseded (banner added): Phase A landed, Phase B
+absorbed into finish-detectors Phase 3 waves. Ordering correction recorded: next Wave 1 detector
+is `delay_concentration`, not the Wave 2 detectors.
+
+## [2026-06-10] evaluation | Rider-weighted excess wait is coverage-blocked (inventory only)
+
+Ran the ADR-0018 no-write inventory for `rider_weighted_excess_wait` (March 2026) under
+`data/artifacts/detector-calibration-rider-weighted-excess-wait/`. The detector is **blocked on
+ridership-proxy coverage**: of 650,264 stop-direction-hour cells only 50.6% carry a ridership proxy
+and only 176 (0.027%) clear the combined EWT-quality + ridership-quality + boardings skip gates.
+Emission is degenerate — 7 candidates, all on Q17, Saturday, hour 19. A high-limit probe
+(`--candidate-limit 20000`) also emitted exactly 7, so there is **no cap suppression**; the binding
+gate is the top-decile weighted-rider-minutes cutoff over a tiny evaluable set, plus ridership
+starvation.
+
+Per ADR-0018, no reviewed-gold/review-queue machinery was added (no real population/false-positive
+class to label). Recommended state: hold at `needs_more_evidence` until APC/ridership-proxy coverage
+improves; do not lower `minWeightedExcessWaitRiderMinutes`/`topPercentile`/ridership-quality gates to
+manufacture a queue. Revisit after the base EWT detector is calibrated (rider-weighting is downstream
+of EWT and inherits its coverage).
+
+## [2026-06-10] evaluation | Bunching hotspots calibration inventory
+
+Started the ADR-0018 loop for `bunching_hotspots` (March 2026) under
+`data/artifacts/detector-calibration-bunching-hotspots/`. Stop-direction-hour grain: 650,264 cells,
+14,628 ready, 100 emitted under the default cap, 646,333 skipped. A high-limit probe found 3,048
+cells qualify, so the top-100 cap suppresses 2,948 (96.7%). Emitted top-100 over-represents Staten
+Island (~48%) while the SI express family (SIM, 682 cells) and the Bronx (BX, 92) are absent/near
+absent at the cap. Recorded as a finding, not fixed (no cap/threshold changes).
+
+Added deterministic, fixture-tested applied-research machinery: `buildBunchingHotspotsReviewQueue()`
+(strata incl. a dedicated `gap_dominant` class so the long-gap reason is reviewed alongside bunching,
+plus cap-suppressed/borough-spread controls; cap suppression via score rank vs the production cap) and
+reviewed-gold/evaluation/readiness builders with stop-direction-hour identity and both reason classes
+in the calibration vocabulary. Inventory + machinery only; full-output queue writer still pending.
+
+## [2026-06-10] evaluation | Headway reliability EWT calibration inventory
+
+Started the ADR-0018 loop for `headway_reliability_ewt` (the next reliability-family slice after
+`observed_reliability`) with a March 2026 no-write inventory under
+`data/artifacts/detector-calibration-headway-reliability-ewt/`. The detector scores
+stop-direction-hour cells: 650,264 cells, 14,628 ready, 100 emitted under the default cap, 648,506
+skipped (mostly insufficient headways).
+
+A high-limit cap probe (`--candidate-limit 20000`) found 1,698 cells qualify above the emission
+threshold, so the default top-100 cap suppresses 1,598 (94.1%). The detector score saturates at 100
+and is sorted by score only, so the cap fills with an input-order tie-break: **all 100 emitted
+candidates are Brooklyn local routes**, while the 1,598 cap-suppressed cells span every other borough
+(Queens 606, SI/SIM 291, Manhattan 118, Bronx/BXM 177, express families). Recorded as a finding, not
+fixed in this slice (no cap/threshold changes).
+
+Added deterministic, fixture-tested applied-research machinery:
+`buildHeadwayReliabilityEwtReviewQueue()` (strata incl. cap-suppressed/borough-spread controls; cap
+suppression derived from score rank vs the production cap because non-emitted coverage rows lack the
+computed EWT/LoS metrics) and reviewed-gold/evaluation/readiness builders with stop-direction-hour
+identity. Inventory + machinery only; not public-ready until the queue is stratified, labels reviewed,
+and suppress leakage is zero. Full-output queue writer still pending (same gap as `observed_reliability`).
+
+## [2026-06-09] evaluation | Observed reliability review queue stratification
+
+Added a deterministic `buildObservedReliabilityReviewQueue()` builder in
+`@bp/applied-research/evaluation` for ADR-0018 review-queue construction. The queue enriches
+candidate/evidence/coverage rows into support-risk and control strata: top score, near threshold, low
+GTFS-RT samples, weak scheduled-baseline support, weak BWA support, BWA conflict, borough spread,
+cap-suppressed controls, clean controls, and skipped controls.
+
+Ran a high-limit no-write cap probe for March 2026:
+`observed_reliability` emitted 220 candidates with `--candidateLimit 1000` versus 100 under the
+default cap, with the same 381 coverage rows and 39 skipped rows. This confirms the default top-100
+cap suppresses 120 threshold-qualifying route-month rows; final reviewer queue generation should use
+the full output and preserve cap-suppressed controls by borough/route-prefix spread.
+
+## [2026-06-09] evaluation | Observed reliability calibration inventory
+
+Started the ADR-0018 loop for `observed_reliability` with a March 2026 no-write run under
+`data/artifacts/detector-calibration-observed-reliability/`. The detector resolved 381 route-month
+features, emitted 100 candidates under the default cap, produced 381 coverage rows, and skipped 39
+rows. This is inventory only; the sampled run artifact does not prove cap fairness or public
+readiness.
+
+Added deterministic applied-research scaffolding for observed-reliability reviewed-gold labels,
+suppress-leakage/primary-survival evaluation, and readiness projection buckets. The next slice should
+build the full stratified review queue, label emitted/skipped/clean-control strata, and require zero
+suppress leakage before any serving promotion.
+
+## [2026-06-09] engineering | Analytics detector runner seam
+
+Started Phase A of the backend detector-completion plan by making the analytics kernel runnable
+through an explicit `FeatureResolver` port instead of only through ad hoc registry dispatch. The pure
+`@bp/analytics/core` runner now accepts a detector, run context, and resolver, then returns the
+detector output plus structured per-feature-grain satisfaction data.
+
+Moved the detector-study grain satisfaction mapping out of `run-artifact.ts` and into the
+applied-research resolver layer, so registry run artifacts keep the same emitted contract while
+deriving `featureContracts` from resolver data instead of a hand-written artifact prose map. Added a
+small applied-research detector catalog seam and a `pipeline-v2` boundary test so pipeline commands
+do not import `@bp/analytics/registry` directly for detector studies.
+
+## [2026-06-08] engineering | speed_pace_hotspot reviewed-gold calibration (v1)
+
+Ran the ADR-0018 calibration loop for `speed_pace_hotspot` (2026-03). Built reusable infra in
+`@bp/applied-research/evaluation`: `speed-pace-review-queue.ts` (enrich + stratify a no-write run into
+a reviewer-ready queue) and `speed-pace-reviewed-gold.ts` (gold builder, evaluator, promotion gates,
+readiness projection), reusing the shared `detector-readiness-projection` identity/bucket helpers.
+Tests in `packages/applied-research/test/speed-pace-reviewed-gold.test.ts` (6 pass).
+
+No-write run: 13,928 segment-daypart features, 100 emitted candidates (== the 100 cap), 144 skipped
+(only `segment_too_short` 33 + `insufficient_speed_observations` 111; the traversal, spatial, and
+baseline gates were inert — `spatialConfidence == 1.0` everywhere). Key finding: the `candidateLimit`
+cap is a **biased sampler** — 2,014 segment-dayparts clear the slowness floor but are dropped by the
+top-100, skewing emission to Manhattan trunk corridors (78/100 Manhattan locals) and hiding most
+outer-borough slow segments (suppressed-by-cap by route-id prefix: Brooklyn `B` 748 / Bronx `BX` 253 /
+Queens `Q` 316 / Staten Island `S` 68, with only 15/1/1/1 emitted respectively).
+
+First agent-reviewed gold batch: 66 stratified labels (27 primary / 11 route_context / 9
+reviewer_only / 2 needs_more / 17 suppress). Eval: 0 suppress leakage, 25/27 reviewed primaries
+emitted, **2 reviewed primaries + 11 reviewer-emittable scopes dropped by the cap** (recall loss).
+Readiness: **14** public-finding candidates (after terminal/low-obs/baseline/geometry gates + physical
+**node-pair** dedupe), 18 route_context, 79 review_queue, 17 suppressed. The dedupe keys on the
+directed stop pair `fromStop:toStop` (not `segmentId`, which embeds route/dir/order), so the 11
+stop-pairs emitted under multiple routes (M101/M102/M103 share Lex/Madison blocks) collapse to one
+canonical public candidate each. Terminal suppression currently lives only in the readiness projection
+because `SegmentDaypartFeature` has no terminal flag (feature/resolver gap). Artifacts + audit/eval
+notes under `data/artifacts/detector-calibration-speed-pace-v1/`.
+
+Then **implemented the cap fix** (v2): replaced the global top-100 cap in
+`packages/analytics/src/findings/speed-pace-hotspot.ts` with a per-route cap (`candidateLimitPerRoute`
+= 12, mirroring `persistent_speed_hotspot`) plus a `maxSegmentLengthFeet` = 15000 gate
+(`segment_too_long`) for express/highway segments where pace-vs-free-flow can't localize. Slowness
+floor and other gates unchanged. Before/after on the v1 gold labels: emitted **100 → 1,396**,
+Manhattan share **78% → 24%** (Brooklyn 15→462, Bronx 1→198, Queens 1→255, SI 1→56), both cap-dropped
+reviewed primaries recovered (reviewed primary survival 25/27 → 26/27). Honest costs: 1 reviewed
+primary clipped (`M103:S:24`, an over-represented trunk route now capped at 12) and 1 suppress leak
+(`QM11` express **terminal** — under the length gate and un-gateable without a terminal flag; caught
+by readiness). Length gate cuts only ~65 of ~2,149 qualifying segments (top ~3% by length). Focused
+analytics tests added in `r3-detectors.test.ts`. v2 artifacts + before/after under
+`data/artifacts/detector-calibration-speed-pace-v2/`.
+
+Fixed a live-dangerous CLI footgun: `findings run-detector` used `z.coerce.boolean()` for `--writeDb`,
+so `--writeDb false` coerced to `true` and wrote the DB (a route-filtered write clobbers the month's
+full citywide findings via `replaceFindingsForMonth` — which happened once during this work and was
+restored). Replaced with a strict `writeDbFlagSchema` (only explicit `true`/`1`/boolean true enables);
+covered by a focused parser test.
+
+## [2026-06-08] engineering | Detector calibration readiness ADR
+
+Added `docs/decisions/0018-detector-calibration-readiness-loop.md` to make the treatment-scope and
+CJTP detector loop an accepted architecture decision. The ADR requires no-write detector
+inventories, stratified review queues, stable reviewed-gold labels, suppress-leakage/primary-survival
+evaluation, label-backed deterministic gates, and readiness projections before detector output can
+influence product surfaces. It also clarifies package ownership: `@bp/analytics` owns deterministic
+detectors, `@bp/applied-research` owns review/eval/readiness artifacts, and public serving reads only
+promoted projections.
+
+## [2026-06-07] engineering | Treatment-scope terminal gate calibration
+
+Tightened the treatment-scope detector terminal gate. `treatment_scope_gap` and
+`treatment_scope_mismatch` now suppress first/last direction segments as `terminal_or_layover`
+coverage rows instead of allowing long or daypart-contrasty route-end segments to become treatment
+scope candidates. Focused analytics tests cover the stricter first-segment behavior.
+
+Reran both detectors for March 2026 with canonical model artifacts and `writeDb=false`, writing
+isolated outputs under `data/artifacts/detector-calibration-terminal-gate/`. Candidate counts fell
+from 54 to 44 for `treatment_scope_gap` and from 69 to 46 for `treatment_scope_mismatch`; all six
+reviewed primary treatment-scope findings still survive. Remaining reviewed survivors are narrow:
+gap keeps three route-context caveat rows, while mismatch keeps two reviewer-only
+`not_false_positive` rows. The note at
+`data/artifacts/detector-calibration-terminal-gate/NOTE.md` records the run/eval summary and next
+detector work.
+
+## [2026-06-07] engineering | Treatment-scope reviewed-gold calibration
+
+Converted the 50-packet adversarial treatment-scope review set into reusable package-owned gold
+labels. `@bp/applied-research/evaluation` now builds a `treatment_scope_reviewed_gold` artifact from
+`decisions.json` plus `packets-index.json` and evaluates regenerated detector candidates by stable
+`detectorId + scopeId` identity instead of candidate row order or regenerated candidate ids.
+
+Implemented the remaining route/source evidence gate for `treatment_scope_gap`: route-level
+positive treatment evidence now requires usable segment bus-lane support, Enhanced Bus Stop-only
+geometry is not counted as bus-lane support for gap route eligibility, and explicit
+`local_intervention_event:bus-lane-source-gap:<route>` refs block absence/scope-gap claims. The
+other treatment-scope gates remain covered in tests: physical node-pair dedupe, mismatch historical
+stability, gap join-state split, and terminal suppression.
+
+Reran March 2026 with `writeDb=false`. `treatment_scope_gap` fell from 44 post-terminal candidates
+to 30; `treatment_scope_mismatch` stayed at 46. The reviewed-gold evaluation reports 50 labels, 8
+reviewed packets still emitted, 42 dropped, 6/6 reviewed primary findings surviving, and 0/9
+suppress labels still emitted. All reviewed false-positive classes except `not_false_positive` now
+drop to zero emitted examples. Details and commands are in
+`data/artifacts/detector-calibration-reviewed-gold/NOTE.md`.
+
+## [2026-06-07] engineering | Treatment-scope expanded gold review
+
+Expanded the treatment-scope reviewed gold set from 50 to 118 March 2026 labels by triaging the 68
+current emitted candidates that were still unreviewed after the reviewed-gold calibration. The second
+batch has light labels for every candidate and adversarial checks for 42 high-risk rows, preserving
+batch provenance (`original_50` vs `second_expansion_68`) and review depth in the reusable gold
+artifact/evaluator.
+
+Implemented one scoped deterministic fix from the expansion: `treatment_scope_mismatch` no longer
+counts Enhanced Bus Stop-only refs as bus-lane mismatch evidence. The after-fix March rerun with
+`writeDb=false` reports `treatment_scope_gap` at 30 candidates and `treatment_scope_mismatch` at 45
+candidates. The combined 118-label eval reports 12/12 reviewed primary labels surviving, 0
+unreviewed emitted candidates, and 13/23 suppress labels still leaking; the remaining leakage is
+mostly short-history or improving-but-still-slow mismatch candidates that need a better
+history-confidence gate rather than a brittle single-threshold rule. Details are in
+`data/artifacts/detector-calibration-expanded-gold/NOTE.md`.
+
+## [2026-06-07] engineering | Treatment-scope mismatch history gates
+
+Used the 118-label expanded treatment-scope gold set to calibrate `treatment_scope_mismatch` without
+expanding labels again. The remaining 13 suppress leaks were all `speed_not_actually_bad` mismatch
+rows where the segment was slow but not historically worsening. Added short-history,
+historical-worsening, improving/stable, and physical-sibling spillover gates so slow absolute speed
+alone no longer emits a mismatch candidate.
+
+After the March 2026 `writeDb=false` rerun, `treatment_scope_gap` stayed at 30 candidates and
+`treatment_scope_mismatch` fell from 45 to 28. The combined 118-label eval reports 12/12 reviewed
+primary labels surviving, 0/23 suppress labels still emitted, and 0 unreviewed emitted candidates.
+Remaining non-primary emissions are context/reviewer/needs-more-evidence rows, so treatment-scope is
+still review/route-context ready rather than automatic public-finding ready. Details are in
+`data/artifacts/detector-calibration-history-gates/NOTE.md`.
+
+## [2026-06-07] engineering | Treatment-scope readiness projection
+
+Added a deterministic treatment-scope readiness projection over the locked 118-label gold set. The
+projection separates current detector output into `public_finding_candidate`, `route_context`,
+`review_queue`, and `suppressed` buckets using reviewed labels plus current geometry/source state.
+For March 2026 it reports 12 public-finding candidates, 27 route-context rows, 19 review-queue rows,
+and 60 suppressed rows. This is a promotion/readiness layer rather than another treatment-scope
+heuristic pass; the gold labels are unchanged.
+
+Audited the mismatch history threshold without changing the default. A sweep over
+`minWorseningDeltaMph` values 0, -0.1, -0.25, and -0.5 shows that the current 0 mph threshold keeps
+12/12 reviewed primaries alive with 0/23 suppress leakage, while stricter thresholds immediately
+drop primary survival to 10/12, 8/12, and 7/12. Production out-of-sample detector runs for 2026-02
+and 2026-04 are dependency-blocked because treatment/model artifacts currently exist only for
+2026-03; a clearly labeled synthetic smoke remapped March static treatment geometry onto 2026-01 and
+2026-02 speed/history rows and produced nonzero candidate counts for shape checking only. Details
+are in `data/artifacts/detector-readiness-treatment-scope/NOTE.md`.
+
+## [2026-06-07] engineering | Customer journey readiness queue
+
+Applied the treatment-scope readiness/eval pattern to `customer_journey_shortfall` as the next
+detector family. The audit confirms its claim grain is route/month/period/trip-type over MTA CJTP:
+poor customer journey-time performance for the resolved source snapshot, with wait-side vs
+in-vehicle-side evidence carried as interpretation rather than causal truth.
+
+Added a small reusable readiness helper for stable `detectorId + scopeId` identity and shared
+readiness bucket counts, while leaving detector-specific label schemas in their owning modules.
+Also fixed a concrete detector bug: `minHistoryMonths` was declared but not enforced, so adjacent-
+month or same-month-prior-year persistence could promote rows with too little valid history. The
+detector now requires valid history support and does not count low-exposure/invalid rows toward
+history.
+
+The March global no-write run resolves CJTP `asOfMonth=2026-04`, loads 25,041 features and 351 route
+rollups, and emits 100 capped candidates with 697 coverage rows after the gate. An uncapped smoke
+with `candidateLimit=1000` emits 136 candidates. The first gold-set review queue is stratified to 70
+rows: 41 emitted candidates, 19 skipped controls, and 10 borderline clean-no-hit controls. No public
+readiness is claimed because there are no reviewed CJTP labels yet. Details are in
+`data/artifacts/detector-readiness-customer-journey/NOTE.md`.
+
+## [2026-06-07] engineering | Customer journey reviewed gold calibration
+
+Built the first reviewed gold set for `customer_journey_shortfall` from the 70-row CJTP review
+queue. The label set has 16 primary findings, 33 route-context rows, 1 reviewer-only row, 3
+needs-more-evidence rows, and 17 suppress rows, with 41 adversarial reviews and 29 light reviews.
+The package-owned CJTP evaluator uses stable `detectorId + scopeId` identity and reports primary
+survival, suppress leakage, context/reviewer leakage, unreviewed emitted candidates, and root-cause
+breakdowns.
+
+The first label-backed deterministic fix is a stronger exposure floor: default `minCustomers` is now
+2,500. Before the gate, the 70-label eval had 16/16 primary survival but 5/17 suppress labels still
+emitted, all sparse-denominator rows. After the gate, the March 2026 no-write rerun still fills the
+default 100-candidate cap, the uncapped count drops from 136 to 127, reviewed primary survival stays
+16/16, and suppress leakage falls to 0/17. The remaining 65 emitted candidates are unreviewed, so
+CJTP is ready for route context/internal review and reviewed public-finding-candidate queues, not
+automatic public publication. Details are in
+`data/artifacts/detector-calibration-customer-journey-gold-v1/NOTE.md`.
+
+## [2026-06-08] engineering | Customer journey reviewed gold v2 expansion
+
+Expanded CJTP gold labels from 70 to 135 by reviewing the 65 default-cap emitted candidates that
+remained unreviewed after the first customer-journey calibration. The second batch was stratified by
+score band, route type, borough/route prefix, dominant component, exposure, CJTP band, and repeated
+route cohorts. Combined v2 labels now include 33 primary findings, 75 route-context rows, 1
+reviewer-only row, 7 needs-more-evidence rows, and 19 suppress rows; the default-cap March 2026
+evaluation reports 33/33 primary survival, 2/19 suppress leakage, 65/83 context/reviewer emissions,
+and 0 unreviewed emitted candidates.
+
+No new detector gate was added because the only remaining suppress leakage is two near-floor
+denominator rows and the current exposure gate is being held fixed. The readiness projection now
+separates reviewed suppressed labels from skipped coverage state with explicit
+`reviewedSuppressedCount`, `coverageSkippedCount`, and `unreviewedSuppressedCoverageCount` fields,
+and CJTP labels distinguish `shouldEmitSignal`, `shouldEmitFindingCandidate`, and
+`shouldPromotePrimary`. An uncapped run emits 127 candidates, so the default cap hides 27 lower-score
+rows and leaves 24 uncapped emitted candidates beyond v2 labels. Details are in
+`data/artifacts/detector-calibration-customer-journey-gold-v2/NOTE.md`.
+
+## [2026-06-07] engineering | Tier 2 extraction target spec added
+
+Added [[wiki/engineering/tier2_extraction_target_spec]] as the concrete product-facing answer to
+"what data do we need extracted from Tier 2?" The spec separates document facts from computed
+Studio metrics, defines the common `evidenceByField` contract, lists the P0 feature sections for the
+vNext harness, and adds the product-question-driven P1 targets that the older harness plan did not
+fully encode: cost/value evidence, service-delivery and CJTP-component claims, ridership/demand
+trend claims, geographic/equity context, and explicit TSP evidence/source-gap posture. It also maps
+accepted observations to downstream route timelines, intervention catalogs, evidence cards,
+source-gap findings, cost packets, service-delivery packets, geographic context packets, and route
+diagnosis context.
+
+## [2026-06-07] analysis | Product question gap audit incorporated
+
+Updated [[wiki/analysis/product_question_inventory]] and
+[[wiki/analysis/product_question_discovery_crosswalk]] from the adversarial product-family gap
+audit. Promoted four missing product-question families: `cost_effectiveness`,
+`geographic_rollup`, `service_delivery`, and `equity_incidence`. The docs now treat
+`expected_baseline` and `measurement_integrity` as cross-cutting substrates rather than standalone
+families, and they route enforcement ROI and capital/project prioritization through the new
+cost-effectiveness family instead of leaving cost/value hidden inside corridor evaluation.
+Follow-up tightening demoted `brief_authoring_workflow` from a product-question family to a product
+workflow surface, assigned shared route/area allocation to `geographic_rollup` for
+`equity_incidence` reuse, assigned CJTP decomposition ownership to `service_delivery`, explicitly
+folded ridership/demand trend into `history_change`, and clarified that `cost_effectiveness`
+composes into corridor evaluation, board reporting, and compliance packages.
+
+## [2026-06-07] analysis | Product question discovery crosswalk added
+
+Added [[wiki/analysis/product_question_discovery_crosswalk]] to make missing-family discovery
+traceable instead of self-referential. The crosswalk defines a source-doc and built-surface
+procedure: declare source set, extract product jobs, classify each as `promote_family`,
+`map_existing`, `absorb_subcase`, `defer_adjacent`, or `non_goal`, then update the inventory only
+when a family id, user question, mapping, or status changes. It covers product thesis docs,
+business-research docs, frontend surface plans, authoring/review architecture, current app surfaces,
+and data/research plans. The procedure exposed one missing family, now added to
+[[wiki/analysis/product_question_inventory]]: `brief_authoring_workflow`, the non-detector workflow
+that turns route/segment/finding/source evidence into edited, reviewed, versioned, and publishable
+briefs.
+
+## [2026-06-07] analysis | Product question inventory expanded from business research
+
+Expanded [[wiki/analysis/product_question_inventory]] after checking the two June 2026
+business-problem research docs against the existing family list. Added canonical families for
+`root_cause_diagnosis`, `corridor_project_evaluation`, `board_reporting_package`, and
+`compliance_package`, plus a deferred adjacent `service_change_coordination` family. The doc now
+also records research opportunities that should not be split into separate families yet, such as
+stop-decision workbenches, enforcement ROI, redesign decision logs, premium-service SLA monitoring,
+capital/project prioritization, and real-time operations dashboards.
+
+## [2026-06-07] analysis | Product question inventory user lens added
+
+Revised [[wiki/analysis/product_question_inventory]] with a primary user lens from two June 2026
+business-problem research passes. The primary user is now explicitly the route/corridor evidence
+author: an agency, consultant, oversight, advocacy, or reporting analyst who must turn fragmented
+performance, intervention, timeline, and source-gap signals into a defensible meeting-ready,
+board-ready, public-brief, audit, or corridor-evaluation artifact. The doc now distinguishes those
+users from dispatchers, consumer trip planners, generic BI users, and enforcement hardware
+operators, and it tightens the product relevance rule: a question family matters when it feeds a
+defensible explanation, route surface, review packet, brief, scorecard, or source-gap finding.
+
+## [2026-06-07] analysis | Product question inventory added
+
+Added [[wiki/analysis/product_question_inventory]] as the product-facing complement to the detector
+catalog. It turns the research and frontend surface-data docs into canonical question families:
+route attention, headline condition, rider pain, slow segments, reliability/wait, history/peer
+context, schedule/runtime gaps, treatment inventory/gaps/effects, timelines, document claims, source
+completeness, evidence readiness, external context, multi-year patterns, and compare/cohort. The doc
+explicitly records that the total possible detector universe is open-ended; completeness should be
+measured against product question coverage, required data substrates, claim posture, and current
+detector/applied-research/serving support.
+
+## [2026-06-07] analysis | Detector catalog added
+
+Added [[wiki/analysis/detector_catalog]] as the compact human-readable detector tracker. The
+registry remains the source of truth, while the catalog summarizes the current 21 detectors,
+similarity clusters, duplicate warnings, feature-grain reuse, model-artifact consumers, missing
+spaces, and the checklist to run before adding another detector. This gives auto-research and Codex
+sessions a short context surface for deciding whether proposed work is a new detector, a feature or
+model artifact, calibration, review-packet enrichment, or a serving projection.
+
+## [2026-06-07] engineering | Customer journey shortfall detector implemented
+
+Implemented `customer_journey_shortfall` as the first detector over
+`local_bus_customer_journey_metric` / MTA CJTP. The detector is registered as descriptive, uses a
+new pure `customer_journey` feature grain, ranks within month/period/trip-type cohorts, applies
+route filters only after cohort scoring, and carries the unit warning that CJTP is a 0..1
+performance share rather than minutes. Applied-research now has a generic SQLite-table resolver path
+for detector input assembly, a CJTP local DB reader that resolves the latest source month, row-to-
+feature transforms, and route-level customer-weighted rollups.
+
+Verification: grounding artifact written to
+`data/artifacts/cjtp-grounding/customer-journey-metric-grounding.json` with 25,041 rows,
+2023-04..2026-04, 362 routes, and zero nulls on the three metric columns. A March global
+`findings run-detector` emitted the CJTP detector against as-of month 2026-04 with 25,041 loaded
+features, 351 route rollups, 5 sampled candidates, and 697 coverage rows.
+
+## [2026-06-07] engineering | Tier 2 machine-verifiable feature harness plan
+
+Added [[wiki/engineering/tier2_machine_verifiable_feature_harness_plan|Tier 2 machine-verifiable
+feature harness plan]] to make "no row-by-row human review" an explicit Tier 2 design constraint.
+The plan turns the existing qv1-qv10 canonical merge, manual vocab application, agentic harness,
+self-heal lanes, structured validator, and operational-date proof harness into a compiler-style
+promotion architecture: accepted surfaces become feature candidates, vocab maps normalize observed
+fields, deterministic feature-family validators emit a proof ledger, and only proof-backed fields
+can feed detector evidence, briefs, public timelines, source-gap findings, or causal treatment
+inventory. Human input is scoped to policy, vocab aliases, fallback rules, public wording, and small
+gold/adversarial fixtures, not corpus-scale row inspection.
+
+Follow-up scope added the operational loop: staged validation errors become structured feedback
+packets for bounded LLM retries, while promotion failures downgrade/quarantine rather than asking
+the model to argue with the verifier. The page now separates what the LLM submits from what the
+runner fills deterministically, calls for feature-family tool schemas and precomputed resolver
+handles to avoid late post-processing debt, and defines replay/live/detector-production E2E sample
+tests with zero unproven publishable fields as the core gate.
+
+Second follow-up promoted three sufficiency conditions into hard gates: define a strict
+`tier2_extraction_contract_vNext`, require queue manifests to declare full-corpus vs repair/backfill
+roles, and add adversarial replay fixtures for the known bad collapses (generic lane width, taxi or
+all-vehicle speed, all-vehicle travel time, parking/curb criticality, title-as-kind fallback, and
+source-stated effects masquerading as project metrics). Updated the qv1-qv10 vocab foundation counts
+to the current inventory: 93,893 mapped fields, 21,474 `preserve_raw`, 672 unresolved, 0 missing
+projections, and 0 target conflicts.
+
 ## [2026-06-07] architecture | Mixed freshness publication doctrine
 
 Added ADR 0017 (`docs/decisions/0017-mixed-freshness-publication-model.md`) to retire "the product
@@ -4289,6 +5157,31 @@ Moved `findings repair-persistent-speed-coverage` off its direct
 `insertCoverageAuditIgnore`, which preserves duplicate-ignore behavior while applying the same JSON
 payload validation as the other findings repository write paths. The command boundary test now
 asserts the command imports `@bp/db/local` and does not spell the coverage table insert directly.
+
+## [2026-06-08] engineering | Detector readiness serving manifest
+
+Added a serving-oriented detector readiness manifest builder in `@bp/applied-research`. It consumes
+calibrated readiness projections and emits route-addressable summaries with public finding refs,
+route-context refs, internal review/suppressed counts, source months, caveats, evidence refs, and
+readiness reasons without exposing raw detector candidate or label blobs.
+
+Built the first combined 2026-03 manifest from treatment-scope readiness and CJTP v2 readiness at
+`data/artifacts/detector-serving-readiness-manifest/2026-03/route-detector-readiness-manifest.json`.
+The manifest covers 159 routes with 45 public finding refs, 102 route-context refs, 27 review-queue
+items, and 79 reviewed suppressed items; global skipped coverage counts remain summary-only because
+the source readiness projections do not route-address every skipped coverage row.
+
+Wired the manifest into Snapshot 2.0 serving artifacts as one shared R2 object at
+`studio/v2/detectors/route-detector-readiness-manifest.json` plus compact per-route
+`route_artifact` refs named `detector_readiness_manifest`. The March D1 export stages the safe
+manifest under `data/artifacts/studio/v2/detectors/`, emits 159 detector-readiness route refs, and
+records `detectorReadinessManifestAvailable` so missing manifests remain non-fatal.
+
+Added a frontend-safe route insight projection over the detector readiness manifest. Route detail
+responses now expose polished `insights` objects with product language for customer journey and
+treatment-scope patterns while keeping detector ids, readiness buckets, review queue counts,
+suppressed counts, raw candidates, and gold/eval terminology out of public copy. The Studio API
+enriches route detail responses from the staged Snapshot 2.0 manifest when it is available.
 
 ## [2026-06-05] engineering | Studio API authoring runtime extraction
 

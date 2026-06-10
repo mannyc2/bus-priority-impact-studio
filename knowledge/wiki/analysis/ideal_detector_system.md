@@ -35,7 +35,8 @@ The detector layer has moved beyond the early March 2026 "8 detector" state this
 described. The 2026-05-30 analytics refactor established `packages/analytics` as the detector
 kernel:
 
-- 18 detectors are registered in `ANALYTICS_DETECTOR_REGISTRY`.
+- 21 detectors are registered in `ANALYTICS_DETECTOR_REGISTRY`; see
+  [[wiki/analysis/detector_catalog]] for the compact catalog and duplicate-check map.
 - Every registered detector has an `AnalyticsDetector<TInput>` contract: detector id, version,
   `FindingDetectorSpec`, feature grains, scope metadata, and a pure `run(input)` function.
 - The registry carries analytics-only metadata: `claimTier`, `baselineFamilies`,
@@ -44,8 +45,8 @@ kernel:
   not the source of truth.
 - `@bp/analytics/features` defines typed feature grains for route/month, segment/month,
   stop-direction-hour, segment-daypart, route-direction-daypart, route metric history,
-  intervention panels, feed health, positive deviance, rider-weighted EWT, source coverage, and
-  context sources.
+  intervention panels, customer journey, feed health, positive deviance, rider-weighted EWT, source
+  coverage, and context sources.
 - `@bp/analytics/baselines` and `@bp/analytics/calibration` contain pure helpers for headway/EWT,
   pace/runtime, robust trends, intervention gates, score vectors, overlap, gold sets, range
   precision/recall, reviewer summaries, retirement recommendations, and false-positive root-cause
@@ -56,12 +57,13 @@ The current registry covers these detector families:
 - source and feed coverage: `source_gap`;
 - route/segment speed: `persistent_speed_hotspot`, `speed_pace_hotspot`,
   `delay_concentration`;
-- reliability and schedule: `observed_reliability`, `headway_reliability_ewt`,
-  `bunching_hotspots`, `travel_time_variability`, `schedule_mismatch`,
-  `rider_weighted_excess_wait`;
+- reliability, schedule, and rider experience: `observed_reliability`,
+  `headway_reliability_ewt`, `bunching_hotspots`, `travel_time_variability`,
+  `schedule_mismatch`, `rider_weighted_excess_wait`, `customer_journey_shortfall`;
 - history and peers: `multi_month_speed_peer`, `degradation_trend`, `positive_deviance`;
-- intervention inventory and panels: `intervention_gap`, `intervention_underperformance`,
-  `intervention_event_study`;
+- intervention inventory, panels, and treatment scope: `intervention_gap`,
+  `intervention_underperformance`, `intervention_event_study`, `treatment_scope_mismatch`,
+  `treatment_scope_gap`;
 - context association: `permit_correlated_slowdown`, `service_request_context`.
 
 The lattice idea now sits outside the registry as a local `findings lattice-review-bundles`

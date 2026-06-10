@@ -33,8 +33,11 @@ serving model for Studio brief-draft authoring endpoints; 0015 adopts a lazy-loa
 pipeline + typed `BriefBlock` primitives for rendering brief prose with embeddable figures; 0016
 records the Cloudflare Think / Workers AI runtime for queued brief-author proposals; 0017 retires
 the broad "monthly release" slogan in favor of a mixed-freshness model: historical corpus, baseline
-month, current signal, source-capture snapshot, serving projection, and deliberate publication gate. Draft
-creation, verdicts, body markdown, authoring ref resolution/persistence, draft-private review
+month, current signal, source-capture snapshot, serving projection, and deliberate publication gate;
+0018 records the detector calibration/readiness loop: reviewed gold labels, suppress-leakage
+evaluation, deterministic gates, and readiness buckets must separate detector signals from public
+finding eligibility. Draft creation, verdicts, body markdown, authoring ref resolution/persistence,
+draft-private review
 threads, send-to-brief attachment, candidate export audit wiring, and promotion receipt have landed.
 The remaining authoring/promotion follow-ups are tracked in
 `docs/architecture/studio-review-collaboration-and-promotion.md` alongside
@@ -84,7 +87,7 @@ mutations, and Codemode deferred until a workflow needs it.
 - [[wiki/engineering/package_structure|Repo package structure]] — TypeScript-only monorepo layout, package boundaries, Drizzle adoption boundaries, wiki relocation, and Python/PostGIS/VPS escalation rules.
 - [[wiki/engineering/domain_contract_package_refactor_plan|Domain contract package refactor plan]] — Audit-backed plan to split `@bp/domain` into explicit contract subpaths, shrink the root barrel, move JSON Schema/OpenAPI generation out of core schema imports, and add package-shape gates.
 - [[wiki/engineering/ambitious_analytics_workstreams|Ambitious analytics workstreams]] — Ranked high-value analytics/serving/corpus work packages with copy-ready prompts for one or more Codex sessions.
-- [[wiki/engineering/analytics_architecture|Analytics architecture]] — Pure `packages/analytics` detector kernel architecture, feature contracts, registry doctrine, and migration plan.
+- [[wiki/engineering/analytics_architecture|Analytics architecture]] — Pure `packages/analytics` detector kernel architecture, feature contracts, registry doctrine, FeatureResolver runner seam, and migration plan.
 - [[wiki/engineering/analytics_100x_plan|100x analytics plan]] — Declarative panel specs, dataframe-backed model artifacts, detector model dependencies, evaluation loss, and serving projection doctrine for the next analytics leap.
 - [[wiki/engineering/applied_research_architecture|Applied research architecture]] — Plan for `packages/applied-research` as the corpus-backed research engine for detector studies, causal inference, forecasting, score vectors, and review artifacts, with `pipeline-v2` as a thin CLI consumer.
 - [[wiki/engineering/applied_research_detector_authoring|Applied research and detector authoring]] — Practical guide for deciding whether work belongs in detectors, applied-research panels, local SQLite adapters, DB, or pipeline commands, with implementation and verification checklists.
@@ -134,6 +137,8 @@ mutations, and Codemode deferred until a workflow needs it.
 - [[wiki/engineering/tier_2_document_corpus_pipeline|Tier 2 document corpus pipeline]] — Plan for intervention/policy document capture, extraction, validation, and detector integration.
 - [[wiki/engineering/tier2_structured_extraction_harness_plan|Tier 2 structured extraction harness plan]] — Next-page/window schema and evaluation harness for turning OCR Markdown into validated claims, events, context signals, review questions, and applied-research inputs.
 - [[wiki/engineering/agentic_tier2_extraction_harness_goal|Agentic Tier 2 extraction harness goal]] — Improved source-scoped extraction harness goal: controlled PDF/source tools, prior-candidate context, field-level evidence support, deterministic verification, and downstream brief/finding/detector/causal projections.
+- [[wiki/engineering/tier2_extraction_target_spec|Tier 2 extraction target spec]] — Product-facing target schema for what Tier 2 documents must extract: evidence-by-field, route/date/treatment/timeline/metric/table/source-gap basics plus cost, service-delivery, ridership-demand, geographic/equity, and TSP posture fields.
+- [[wiki/engineering/tier2_machine_verifiable_feature_harness_plan|Tier 2 machine-verifiable feature harness plan]] — Compiler-style proof layer over qv1-qv10 + vocab artifacts: feature-family validators, proof ledger, promotion gates, and no row-by-row human review.
 - [[wiki/engineering/tier2_agentic_self_healing_architecture|Tier 2 agentic self-healing architecture]] — Audit-driven retry lanes, adaptive retry policy, source-tool enrichment gate, and quarantine contract for agentic extraction runs.
 - [[wiki/engineering/tier2_processing_status_and_resume|Tier 2 processing status and resume runbook]] — Current qv8/qv9/qv10 canonical merge, raw-field graduation, vocab synthesis progress, exact artifact paths, remaining chunks, provider caveats, and resumable queue commands.
 - [[wiki/engineering/tier2_extraction_best_practices|Tier 2 extraction best practices]] — qv1–qv10 lessons, raw-field alias pitfalls, missing-projection policy, and future queue/normalization rules.
@@ -154,6 +159,9 @@ mutations, and Codemode deferred until a workflow needs it.
 - [[wiki/analysis/methodology_validation|Methodology validation]] — Code-level audit of analysis correctness, limitations, and gaps.
 - [[wiki/analysis/finding_coverage_and_corpus_expansion|Finding coverage and corpus expansion]] — Post-v1 plan for missed-finding risk, detector coverage, source-gap findings, and data-corpus expansion.
 - [[wiki/analysis/ideal_detector_system|Ideal detector system]] — Registry-first detector doctrine for questions, evidence packets, claim tiers, promotion, calibration, LLM boundaries, and practical limits.
+- [[wiki/analysis/detector_catalog|Detector catalog]] — Human-readable map of the current detector registry, similarity clusters, duplicate warnings, feature grains, model artifacts, and new-detector intake checklist.
+- [[wiki/analysis/product_question_inventory|Product question inventory]] — Product-question family map that ties frontend surfaces, detectors, applied-research panels, serving projections, evidence readiness, and missing detector spaces together.
+- [[wiki/analysis/product_question_discovery_crosswalk|Product question discovery crosswalk]] — Source-doc and app-surface crosswalk that extracts product jobs, maps them to question families, and classifies missing-family candidates as promote, absorb, defer, or non-goal.
 - [[wiki/analysis/treatment_informed_detector_plan|Treatment-informed detector plan]] — High-quality detector plan for consuming route/segment treatment state, TSP source gaps, bus-lane scope matches, and underperformance guardrails.
 
 ## Templates

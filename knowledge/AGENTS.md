@@ -147,6 +147,6 @@ a global chatbot.
 - Project: `Bus Priority Impact Studio`.
 - Root repo package: `bus-priority-impact-studio`.
 - Public app package: `@bp/web`.
-- Pipeline package: `@bp/pipeline`.
+- Pipeline package: `@bp/pipeline-v2`.
 - Core route score: `bus_priority_need_score`.
 - Intervention evaluation: `ace_impact_event_study`.
