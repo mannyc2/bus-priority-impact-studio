@@ -6,6 +6,9 @@ export type RouteSegmentMonthFeature = {
   segmentId: string;
   direction: string;
   stopOrder: number;
+  // First/last direction segment (stopOrder === 1 or stopOrder >= the per-direction max). Exposed so
+  // segment-grain detectors can gate terminal/layover dwell instead of re-deriving it (S2.1).
+  isTerminal: boolean;
   timepointStopName: string;
   nextTimepointStopName: string;
   observationCount: number;

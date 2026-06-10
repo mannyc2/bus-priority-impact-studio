@@ -1,16 +1,15 @@
 import { BUNCHING_HOTSPOTS_DETECTOR_ID } from "../findings/bunching-hotspots.js";
+import { CUSTOMER_JOURNEY_SHORTFALL_DETECTOR_ID } from "../findings/customer-journey-shortfall.js";
 import { DEGRADATION_TREND_DETECTOR_ID } from "../findings/degradation-trend.js";
 import { DELAY_CONCENTRATION_DETECTOR_ID } from "../findings/delay-concentration.js";
 import { HEADWAY_RELIABILITY_EWT_DETECTOR_ID } from "../findings/headway-reliability-ewt.js";
 import { INTERVENTION_EVENT_STUDY_DETECTOR_ID } from "../findings/intervention-event-study.js";
 import { INTERVENTION_GAP_DETECTOR_ID } from "../findings/intervention-gap.js";
 import { INTERVENTION_UNDERPERFORMANCE_DETECTOR_ID } from "../findings/intervention-underperformance.js";
-import { TREATMENT_SCOPE_GAP_DETECTOR_ID } from "../findings/treatment-scope-gap.js";
-import { TREATMENT_SCOPE_MISMATCH_DETECTOR_ID } from "../findings/treatment-scope-mismatch.js";
 import { MULTI_MONTH_SPEED_PEER_DETECTOR_ID } from "../findings/multi-month-speed-peer.js";
 import { OBSERVED_RELIABILITY_DETECTOR_ID } from "../findings/observed-reliability.js";
-import { PERSISTENT_SPEED_HOTSPOT_DETECTOR_ID } from "../findings/persistent-speed-hotspot.js";
 import { PERMIT_CORRELATED_SLOWDOWN_DETECTOR_ID } from "../findings/permit-correlated-slowdown.js";
+import { PERSISTENT_SPEED_HOTSPOT_DETECTOR_ID } from "../findings/persistent-speed-hotspot.js";
 import { POSITIVE_DEVIANCE_DETECTOR_ID } from "../findings/positive-deviance.js";
 import { RIDER_WEIGHTED_EXCESS_WAIT_DETECTOR_ID } from "../findings/rider-weighted-excess-wait.js";
 import { SCHEDULE_MISMATCH_DETECTOR_ID } from "../findings/schedule-mismatch.js";
@@ -18,6 +17,8 @@ import { SERVICE_REQUEST_CONTEXT_DETECTOR_ID } from "../findings/service-request
 import { SOURCE_GAP_DETECTOR_ID } from "../findings/source-gap.js";
 import { SPEED_PACE_HOTSPOT_DETECTOR_ID } from "../findings/speed-pace-hotspot.js";
 import { TRAVEL_TIME_VARIABILITY_DETECTOR_ID } from "../findings/travel-time-variability.js";
+import { TREATMENT_SCOPE_GAP_DETECTOR_ID } from "../findings/treatment-scope-gap.js";
+import { TREATMENT_SCOPE_MISMATCH_DETECTOR_ID } from "../findings/treatment-scope-mismatch.js";
 
 export type CalibrationWindowId =
   | "releaseMonth"
@@ -66,7 +67,8 @@ export type BackfillValidationSurfaceId =
   | "route_hourly_ridership"
   | "intervention_comparisons"
   | "gtfs_schedule_runtime"
-  | "service_request_route_touches";
+  | "service_request_route_touches"
+  | "customer_journey_metrics";
 
 export type DetectorPostBackfillValidationExpectation = {
   surfaceId: BackfillValidationSurfaceId;
@@ -499,8 +501,7 @@ export const DETECTOR_CALIBRATION_POLICIES = [
       {
         surfaceId: "gtfs_schedule_runtime",
         required: true,
-        expectation:
-          "Schedule baselines are present before excess-wait minutes can be derived.",
+        expectation: "Schedule baselines are present before excess-wait minutes can be derived.",
         failureState: "missing_excess_wait",
       },
       {
@@ -921,8 +922,7 @@ export const DETECTOR_CALIBRATION_POLICIES = [
       {
         surfaceId: "route_segment_speeds",
         required: true,
-        expectation:
-          "Current segment-speed summaries exist for bus-lane-overlap route segments.",
+        expectation: "Current segment-speed summaries exist for bus-lane-overlap route segments.",
         failureState: "insufficient_speed_observations",
       },
       {
@@ -1056,8 +1056,7 @@ export const DETECTOR_CALIBRATION_POLICIES = [
       {
         surfaceId: "route_segment_speeds",
         required: true,
-        expectation:
-          "Route-month speed signals are present before 311 context can be evaluated.",
+        expectation: "Route-month speed signals are present before 311 context can be evaluated.",
         failureState: "insufficient_speed_observations",
       },
       {
@@ -1070,6 +1069,44 @@ export const DETECTOR_CALIBRATION_POLICIES = [
     ],
     validationExpectation:
       "311 context remains an associational caveat with reporting-bias limits; route-touch volume can corroborate context but cannot identify operational cause.",
+  },
+  {
+    detectorId: CUSTOMER_JOURNEY_SHORTFALL_DETECTOR_ID,
+    detectorName: "Customer journey shortfall",
+    releaseOutputWindow: "releaseMonth",
+    baselineWindowIds: ["releaseMonth", "lookback12", "seasonalPeerWindow"],
+    seasonalityRules: [SAME_MONTH_PRIOR_YEAR, ADJACENT_MONTH_GUARD, SERVICE_PERIOD_BREAK],
+    minimumHistoryGates: [
+      {
+        gateId: "customer_journey_snapshot_support",
+        description:
+          "The resolved CJTP as-of month must contain enough customer-exposed route/period/trip-type rows.",
+        minimumCompleteMonths: 1,
+        minimumCoverageShare: 0.8,
+        minimumObservations: 500,
+        missingDataState: "missing_customer_journey_metric",
+      },
+      {
+        gateId: "customer_journey_persistence_support",
+        description:
+          "CJTP shortfalls need enough trailing and seasonal history before a one-month dip is promoted.",
+        minimumCompleteMonths: 4,
+        minimumCoverageShare: 0.75,
+        minimumObservations: null,
+        missingDataState: "failed_persistence",
+      },
+    ],
+    postBackfillValidation: [
+      {
+        surfaceId: "customer_journey_metrics",
+        required: true,
+        expectation:
+          "The CJTP history surface is present through the detector-resolved as-of month and carries customer exposure plus wait/travel decomposition.",
+        failureState: "missing_customer_journey_metric",
+      },
+    ],
+    validationExpectation:
+      "Treat releaseMonth as the detector-resolved CJTP as-of month when this policy is used; CJTP is a performance share/percent, not minutes.",
   },
   {
     detectorId: DELAY_CONCENTRATION_DETECTOR_ID,

@@ -25,19 +25,29 @@ export const SPEED_PACE_HOTSPOT_DETECTOR_ID = "speed_pace_hotspot";
 export type SpeedPaceHotspotThresholds = {
   minTraversals: number;
   minSegmentLengthFeet: number;
-  minSpatialConfidence: number;
+  maxSegmentLengthFeet: number;
   minSlownessIndex: number;
   highConfidenceTraversals: number;
+  // Per-route cap on emitted candidates. The detector keeps each route's own worst segments so no
+  // single corridor monopolizes output — a flat global top-N skewed emission to Manhattan trunk
+  // routes and hid most outer-borough slow segments (see ADR-0018 calibration note).
+  candidateLimitPerRoute: number;
+  // Global safety ceiling across all routes. Set well above realistic per-month volume so it never
+  // acts as the primary limiter (that is the slowness floor + per-route cap); it only backstops a
+  // runaway run. Overridable via the CLI `--candidateLimit`.
   candidateLimit: number;
 };
 
 export const DEFAULT_SPEED_PACE_HOTSPOT_THRESHOLDS: SpeedPaceHotspotThresholds = {
   minTraversals: 15,
   minSegmentLengthFeet: 300,
-  minSpatialConfidence: 0.7,
+  // Segments longer than this are express/highway runs where median-pace-vs-free-flow is not a
+  // localizable "slow segment"; reviewed labels marked such multi-mile segments geometry_ambiguous.
+  maxSegmentLengthFeet: 15000,
   minSlownessIndex: 1.5,
   highConfidenceTraversals: 50,
-  candidateLimit: 100,
+  candidateLimitPerRoute: 12,
+  candidateLimit: 2000,
 };
 
 export type SpeedPaceHotspotDetectorInput = {
@@ -84,6 +94,15 @@ function skipReason(
     };
   }
 
+  if (feature.isTerminal) {
+    return {
+      reasonCode: "terminal_or_layover",
+      reason:
+        "First/last direction segment can be dominated by terminal, layover, or route-end dwell; pace-versus-free-flow there reflects dwell, not a localizable slow segment. Keep it as review context instead of a slow-pace candidate.",
+      coverageOutcome: "skipped_failed_join",
+    };
+  }
+
   const minSegmentLength = feature.minSegmentLengthFeet ?? thresholds.minSegmentLengthFeet;
   if (
     feature.segmentLengthFeet !== null &&
@@ -98,12 +117,14 @@ function skipReason(
   }
 
   if (
-    feature.spatialConfidence === null ||
-    feature.spatialConfidence < thresholds.minSpatialConfidence
+    feature.segmentLengthFeet !== null &&
+    Number.isFinite(feature.segmentLengthFeet) &&
+    feature.segmentLengthFeet > thresholds.maxSegmentLengthFeet
   ) {
     return {
-      reasonCode: "spatial_join_uncertain",
-      reason: "Spatial confidence is too low for segment pace scoring.",
+      reasonCode: "segment_too_long",
+      reason:
+        "Segment spans an express/highway run too long for pace-versus-free-flow to localize a slow segment.",
       coverageOutcome: "skipped_failed_join",
     };
   }
@@ -163,12 +184,25 @@ export function detectSpeedPaceHotspots(
   const candidates: FindingCandidate[] = [];
   const evidence: FindingEvidenceLink[] = [];
   const coverage: FindingCoverageAudit[] = [];
+  // Qualifying segments, capped per route so no single corridor dominates, then a global safety
+  // ceiling. Ordering within a route and globally is by detector score, with featureKey as a stable
+  // tiebreak so the selection is deterministic across equal scores.
+  const byScoreThenKey = (left: EvaluatedFeature, right: EvaluatedFeature) =>
+    right.detectorScore - left.detectorScore || left.featureKey.localeCompare(right.featureKey);
+  const qualifiedByRoute = new Map<string, EvaluatedFeature[]>();
+  for (const feature of input.features) {
+    if (skipReason(feature, thresholds) !== null) continue;
+    const evaluated = evaluateFeature(feature, thresholds);
+    if (evaluated === null) continue;
+    const route = evaluated.feature.routeId;
+    const list = qualifiedByRoute.get(route) ?? [];
+    list.push(evaluated);
+    qualifiedByRoute.set(route, list);
+  }
   const selected = new Map(
-    input.features
-      .filter((feature) => skipReason(feature, thresholds) === null)
-      .map((feature) => evaluateFeature(feature, thresholds))
-      .filter((feature): feature is EvaluatedFeature => feature !== null)
-      .sort((left, right) => right.detectorScore - left.detectorScore)
+    [...qualifiedByRoute.values()]
+      .flatMap((list) => list.sort(byScoreThenKey).slice(0, thresholds.candidateLimitPerRoute))
+      .sort(byScoreThenKey)
       .slice(0, thresholds.candidateLimit)
       .map((feature) => [feature.featureKey, feature] as const),
   );
@@ -289,9 +323,9 @@ export function detectSpeedPaceHotspots(
         },
         inputsExpectedJson: {
           traversalCount: `>=${thresholds.minTraversals}`,
-          segmentLengthFeet: `>=${thresholds.minSegmentLengthFeet}`,
-          spatialConfidence: `>=${thresholds.minSpatialConfidence}`,
+          segmentLengthFeet: `${thresholds.minSegmentLengthFeet}..${thresholds.maxSegmentLengthFeet}`,
           slownessIndex: `>=${thresholds.minSlownessIndex}`,
+          candidateLimitPerRoute: thresholds.candidateLimitPerRoute,
           coverageStatus: "complete_or_partial",
           freshnessStatus: "fresh_or_not_expected",
         },

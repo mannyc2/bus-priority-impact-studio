@@ -20,7 +20,24 @@ export type RouteSegmentTreatmentSummaryFeature = RouteTreatmentSummaryFeature &
   segmentOrder: number | null;
   matchMethod: string;
   overlapShare: number | null;
+  // DOT bus-lane facility types overlapping this segment (e.g. "Curbside", "Enhanced Bus Stop"),
+  // carried as a typed field so detectors classify the bus-lane vs Enhanced-Bus-Stop split here
+  // instead of re-deriving it by string-parsing `sourceRefs` at each gate (S2.3).
+  laneTypes: readonly string[];
 };
+
+/**
+ * A segment is Enhanced-Bus-Stop-only when it has lane-type evidence and every facility is an
+ * Enhanced Bus Stop — a stop-level treatment without running-lane geometry. Any other facility
+ * (Curbside, Busway, Offset, Bus Only, Shoulder, …) means real bus-lane geometry is present. This is
+ * the single authority for the split; detectors and resolvers must call it rather than re-deriving.
+ */
+export function isEnhancedBusStopOnlyLaneTypes(laneTypes: readonly string[]): boolean {
+  return (
+    laneTypes.length > 0 &&
+    laneTypes.every((laneType) => laneType.toLowerCase() === "enhanced bus stop")
+  );
+}
 
 export type RouteTreatmentSourceGapFeature = {
   routeId: string | null;
@@ -31,4 +48,3 @@ export type RouteTreatmentSourceGapFeature = {
   publicStatement: string;
   blocksClaims: readonly string[];
 };
-

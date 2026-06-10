@@ -6,6 +6,15 @@ export {
   getFeatureContract,
   listFeatureContracts,
 } from "./contracts.js";
+export type {
+  CustomerJourneyFeature,
+  CustomerJourneyPeriod,
+  CustomerJourneyTripType,
+} from "./customer-journey.js";
+export {
+  CUSTOMER_JOURNEY_FEATURE_GRAIN,
+  customerJourneyFeatureKey,
+} from "./customer-journey.js";
 export type { FeedHealthFeature } from "./feed-health.js";
 export { FEED_HEALTH_FEATURE_GRAIN, feedHealthFeatureKey } from "./feed-health.js";
 export type { InterventionWindowFeature } from "./intervention.js";
@@ -82,6 +91,7 @@ export type {
   RouteTreatmentSummaryFeature,
 } from "./treatments.js";
 export {
+  isEnhancedBusStopOnlyLaneTypes,
   ROUTE_SEGMENT_TREATMENT_SUMMARY_FEATURE_GRAIN,
   ROUTE_TREATMENT_SOURCE_GAP_FEATURE_GRAIN,
   ROUTE_TREATMENT_SUMMARY_FEATURE_GRAIN,

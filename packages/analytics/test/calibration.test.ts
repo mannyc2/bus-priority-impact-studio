@@ -188,6 +188,7 @@ describe("detector calibration helpers", () => {
     const policies = listDetectorCalibrationPolicies();
     expect(policies.map((policy) => policy.detectorId).sort()).toEqual([
       "bunching_hotspots",
+      "customer_journey_shortfall",
       "degradation_trend",
       "delay_concentration",
       "headway_reliability_ewt",
@@ -236,6 +237,9 @@ describe("detector calibration helpers", () => {
       "gtfs_schedule_runtime",
       "observed_headways",
       "route_hourly_ridership",
+    ]);
+    expect(requiredBackfillSurfacesForDetector("customer_journey_shortfall")).toEqual([
+      "customer_journey_metrics",
     ]);
     expect(requiredBackfillSurfacesForDetector("intervention_event_study")).toEqual([
       "intervention_comparisons",

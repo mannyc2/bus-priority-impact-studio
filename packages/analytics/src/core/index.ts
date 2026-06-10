@@ -4,6 +4,17 @@ export type {
   AnalyticsDetectorScopeKind,
   DetectorOutput,
 } from "./detector.js";
+export type {
+  AnalyticsDetectorRunContext,
+  AnalyticsDetectorRunResult,
+  FeatureContractSatisfaction,
+  FeatureResolutionStatus,
+  FeatureResolver,
+  FeatureResolverRequest,
+  FeatureResolverResult,
+  FeatureResolverScope,
+} from "./runner.js";
+export { runAnalyticsDetector } from "./runner.js";
 export type { BuildCoverageAuditInput, CoveragePayload } from "./coverage.js";
 export { buildCoverageAudit } from "./coverage.js";
 export type { BuildEvidenceLinkInput, EvidenceRefPayload } from "./evidence.js";

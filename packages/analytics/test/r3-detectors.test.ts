@@ -1,4 +1,9 @@
 import { describe, expect, test } from "bun:test";
+import type {
+  FeatureQuality,
+  RouteDirectionDaypartFeature,
+  SegmentDaypartFeature,
+} from "@bp/analytics/features";
 import {
   detectScheduleMismatch,
   detectSpeedPaceHotspots,
@@ -7,11 +12,6 @@ import {
   type SpeedPaceHotspotDetectorInput,
   type TravelTimeVariabilityDetectorInput,
 } from "../src/index.js";
-import type {
-  FeatureQuality,
-  RouteDirectionDaypartFeature,
-  SegmentDaypartFeature,
-} from "@bp/analytics/features";
 
 const GENERATED_AT = "2026-05-30T12:00:00.000Z";
 const MONTH = "2026-03";
@@ -47,12 +47,15 @@ function segmentFeature(over: Partial<SegmentDaypartFeature> = {}): SegmentDaypa
     systematicDelayMinutesPerMile: 5,
     stochasticDelayMinutesPerMile: 1.5,
     spatialConfidence: 0.9,
+    isTerminal: false,
     quality: quality(),
     ...over,
   };
 }
 
-function routeDaypart(over: Partial<RouteDirectionDaypartFeature> = {}): RouteDirectionDaypartFeature {
+function routeDaypart(
+  over: Partial<RouteDirectionDaypartFeature> = {},
+): RouteDirectionDaypartFeature {
   return {
     routeId: "M15",
     month: MONTH,
@@ -122,12 +125,56 @@ describe("detectSpeedPaceHotspots", () => {
     expect(out.coverage[0]?.outcome as string).toBe("hit");
   });
 
-  test("skips speed pace cells with uncertain spatial joins", () => {
-    const out = runSpeedPace(segmentFeature({ spatialConfidence: 0.4 }));
+  test("gates first/last terminal segments so terminal/layover dwell is not a slow-pace candidate", () => {
+    const out = runSpeedPace(segmentFeature({ isTerminal: true }));
 
     expect(out.candidates).toHaveLength(0);
     expect(out.coverage[0]?.outcome as string).toBe("skipped_failed_join");
-    expect(out.coverage[0]?.reasonCode as string).toBe("spatial_join_uncertain");
+    expect(out.coverage[0]?.reasonCode as string).toBe("terminal_or_layover");
+  });
+
+  test("skips express/highway segments longer than the max length gate", () => {
+    const out = runSpeedPace(segmentFeature({ segmentId: "X1:N:5", segmentLengthFeet: 30_000 }));
+
+    expect(out.candidates).toHaveLength(0);
+    expect(out.coverage[0]?.outcome as string).toBe("skipped_failed_join");
+    expect(out.coverage[0]?.reasonCode as string).toBe("segment_too_long");
+  });
+
+  test("caps candidates per route so no single route monopolizes output", () => {
+    // Three qualifying segments each on two routes; with a per-route cap of 2 every route keeps its
+    // own worst two, so a high-scoring route cannot crowd out another route entirely.
+    const seg = (routeId: string, n: number, pace: number): SegmentDaypartFeature =>
+      segmentFeature({
+        routeId,
+        segmentId: `${routeId}:N:${n}`,
+        medianPaceMinutesPerMile: pace,
+      });
+    const out = detectSpeedPaceHotspots({
+      detectorRunId: RUN_ID,
+      month: MONTH,
+      generatedAt: GENERATED_AT,
+      thresholds: { candidateLimitPerRoute: 2 },
+      features: [
+        // Route M15 has the most extreme slowness across the board.
+        seg("M15", 1, 30),
+        seg("M15", 2, 28),
+        seg("M15", 3, 26),
+        // Route B46 is slower than the floor but less extreme than M15.
+        seg("B46", 1, 16),
+        seg("B46", 2, 15),
+        seg("B46", 3, 14),
+      ],
+    });
+
+    expect(out.candidates).toHaveLength(4); // 2 per route, not 4 from M15 + 0 from B46
+    const byRoute = new Map<string, number>();
+    for (const candidate of out.candidates) {
+      const routeId = candidate.routeId as string;
+      byRoute.set(routeId, (byRoute.get(routeId) ?? 0) + 1);
+    }
+    expect(byRoute.get("M15")).toBe(2);
+    expect(byRoute.get("B46")).toBe(2);
   });
 });
 
@@ -143,7 +190,9 @@ describe("detectTravelTimeVariability", () => {
   });
 
   test("emits clean coverage when buffer index stays below threshold", () => {
-    const out = runVariability(routeDaypart({ observedRuntimeP50Minutes: 50, observedRuntimeP95Minutes: 65 }));
+    const out = runVariability(
+      routeDaypart({ observedRuntimeP50Minutes: 50, observedRuntimeP95Minutes: 65 }),
+    );
 
     expect(out.candidates).toHaveLength(0);
     expect(out.coverage[0]?.outcome as string).toBe("clean_no_hit");
@@ -152,7 +201,9 @@ describe("detectTravelTimeVariability", () => {
 
 describe("detectScheduleMismatch", () => {
   test("flags tight schedules with neutral schedule-review language", () => {
-    const out = runSchedule(routeDaypart({ observedRuntimeP50Minutes: 60, scheduledRuntimeMinutes: 50 }));
+    const out = runSchedule(
+      routeDaypart({ observedRuntimeP50Minutes: 60, scheduledRuntimeMinutes: 50 }),
+    );
 
     expect(out.candidates).toHaveLength(1);
     expect(out.candidates[0]?.detectorId as string).toBe("schedule_mismatch");
@@ -162,7 +213,9 @@ describe("detectScheduleMismatch", () => {
   });
 
   test("flags schedule-padding review candidates when observed runtime is far shorter", () => {
-    const out = runSchedule(routeDaypart({ observedRuntimeP50Minutes: 40, scheduledRuntimeMinutes: 50 }));
+    const out = runSchedule(
+      routeDaypart({ observedRuntimeP50Minutes: 40, scheduledRuntimeMinutes: 50 }),
+    );
 
     expect(out.candidates).toHaveLength(1);
     expect(out.candidates[0]?.reasonCode as string).toBe("schedule_padding_review");

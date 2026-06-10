@@ -17,11 +17,19 @@ export type SegmentDaypartFeature = {
   systematicDelayMinutesPerMile: number | null;
   stochasticDelayMinutesPerMile: number | null;
   spatialConfidence: number | null;
+  // First/last direction segment: pace there can be dominated by terminal, layover, or route-end
+  // dwell rather than a localizable slow segment. Derived in the resolver from stop order vs the
+  // per-(route, month, direction) max, and gated by the speed-pace detector (S2.1).
+  isTerminal: boolean;
   quality: FeatureQuality;
 };
 
 export function segmentDaypartFeatureKey(feature: SegmentDaypartFeature): string {
-  return [feature.routeId, feature.month, feature.direction, feature.segmentId, feature.daypart].join(
-    ":",
-  );
+  return [
+    feature.routeId,
+    feature.month,
+    feature.direction,
+    feature.segmentId,
+    feature.daypart,
+  ].join(":");
 }

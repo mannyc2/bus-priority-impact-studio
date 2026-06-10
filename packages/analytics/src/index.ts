@@ -17,6 +17,15 @@ export {
   listFeatureContracts,
 } from "./features/contracts.js";
 export type {
+  CustomerJourneyFeature,
+  CustomerJourneyPeriod,
+  CustomerJourneyTripType,
+} from "./features/customer-journey.js";
+export {
+  CUSTOMER_JOURNEY_FEATURE_GRAIN,
+  customerJourneyFeatureKey,
+} from "./features/customer-journey.js";
+export type {
   BunchingHotspotsDetectorInput,
   BunchingHotspotsDetectorOutput,
   BunchingHotspotsThresholds,
@@ -26,6 +35,16 @@ export {
   DEFAULT_BUNCHING_HOTSPOTS_THRESHOLDS,
   detectBunchingHotspots,
 } from "./findings/bunching-hotspots.js";
+export type {
+  CustomerJourneyShortfallDetectorInput,
+  CustomerJourneyShortfallDetectorOutput,
+  CustomerJourneyShortfallThresholds,
+} from "./findings/customer-journey-shortfall.js";
+export {
+  CUSTOMER_JOURNEY_SHORTFALL_DETECTOR_ID,
+  DEFAULT_CUSTOMER_JOURNEY_SHORTFALL_THRESHOLDS,
+  detectCustomerJourneyShortfall,
+} from "./findings/customer-journey-shortfall.js";
 export type {
   DegradationTrendDetectorInput,
   DegradationTrendDetectorOutput,
@@ -94,28 +113,6 @@ export {
   detectInterventionUnderperformance,
   INTERVENTION_UNDERPERFORMANCE_DETECTOR_ID,
 } from "./findings/intervention-underperformance.js";
-export type {
-  TreatmentScopeGapDetectorInput,
-  TreatmentScopeGapDetectorOutput,
-  TreatmentScopeGapSegmentInput,
-  TreatmentScopeGapThresholds,
-} from "./findings/treatment-scope-gap.js";
-export {
-  DEFAULT_TREATMENT_SCOPE_GAP_THRESHOLDS,
-  detectTreatmentScopeGaps,
-  TREATMENT_SCOPE_GAP_DETECTOR_ID,
-} from "./findings/treatment-scope-gap.js";
-export type {
-  TreatmentScopeMismatchDetectorInput,
-  TreatmentScopeMismatchDetectorOutput,
-  TreatmentScopeMismatchSegmentInput,
-  TreatmentScopeMismatchThresholds,
-} from "./findings/treatment-scope-mismatch.js";
-export {
-  DEFAULT_TREATMENT_SCOPE_MISMATCH_THRESHOLDS,
-  detectTreatmentScopeMismatch,
-  TREATMENT_SCOPE_MISMATCH_DETECTOR_ID,
-} from "./findings/treatment-scope-mismatch.js";
 export type {
   LatticeOpportunityAssessmentOutcome,
   LatticeOpportunityAssessmentReasonCode,
@@ -257,6 +254,28 @@ export {
   detectTravelTimeVariability,
   TRAVEL_TIME_VARIABILITY_DETECTOR_ID,
 } from "./findings/travel-time-variability.js";
+export type {
+  TreatmentScopeGapDetectorInput,
+  TreatmentScopeGapDetectorOutput,
+  TreatmentScopeGapSegmentInput,
+  TreatmentScopeGapThresholds,
+} from "./findings/treatment-scope-gap.js";
+export {
+  DEFAULT_TREATMENT_SCOPE_GAP_THRESHOLDS,
+  detectTreatmentScopeGaps,
+  TREATMENT_SCOPE_GAP_DETECTOR_ID,
+} from "./findings/treatment-scope-gap.js";
+export type {
+  TreatmentScopeMismatchDetectorInput,
+  TreatmentScopeMismatchDetectorOutput,
+  TreatmentScopeMismatchSegmentInput,
+  TreatmentScopeMismatchThresholds,
+} from "./findings/treatment-scope-mismatch.js";
+export {
+  DEFAULT_TREATMENT_SCOPE_MISMATCH_THRESHOLDS,
+  detectTreatmentScopeMismatch,
+  TREATMENT_SCOPE_MISMATCH_DETECTOR_ID,
+} from "./findings/treatment-scope-mismatch.js";
 export type {
   HotspotOptions,
   HotspotResult,

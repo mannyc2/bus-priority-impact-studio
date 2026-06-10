@@ -1,6 +1,7 @@
 import type { AnalyticsDetector, DetectorOutput } from "../core/detector.js";
 import {
   CONTEXT_SOURCE_FEATURE_GRAIN,
+  CUSTOMER_JOURNEY_FEATURE_GRAIN,
   FEED_HEALTH_FEATURE_GRAIN,
   INTERVENTION_PANEL_FEATURE_GRAIN,
   INTERVENTION_WINDOW_FEATURE_GRAIN,
@@ -10,8 +11,8 @@ import {
   ROUTE_METRIC_HISTORY_FEATURE_GRAIN,
   ROUTE_MONTH_FEATURE_GRAIN,
   ROUTE_RELIABILITY_FEATURE_GRAIN,
-  ROUTE_SEGMENT_TREATMENT_SUMMARY_FEATURE_GRAIN,
   ROUTE_SEGMENT_MONTH_FEATURE_GRAIN,
+  ROUTE_SEGMENT_TREATMENT_SUMMARY_FEATURE_GRAIN,
   ROUTE_TREATMENT_SOURCE_GAP_FEATURE_GRAIN,
   ROUTE_TREATMENT_SUMMARY_FEATURE_GRAIN,
   SEGMENT_DAYPART_FEATURE_GRAIN,
@@ -23,6 +24,11 @@ import {
   type BunchingHotspotsDetectorInput,
   detectBunchingHotspots,
 } from "../findings/bunching-hotspots.js";
+import {
+  CUSTOMER_JOURNEY_SHORTFALL_DETECTOR_ID,
+  type CustomerJourneyShortfallDetectorInput,
+  detectCustomerJourneyShortfall,
+} from "../findings/customer-journey-shortfall.js";
 import {
   DEGRADATION_TREND_DETECTOR_ID,
   type DegradationTrendDetectorInput,
@@ -53,16 +59,6 @@ import {
   INTERVENTION_UNDERPERFORMANCE_DETECTOR_ID,
   type InterventionUnderperformanceDetectorInput,
 } from "../findings/intervention-underperformance.js";
-import {
-  detectTreatmentScopeGaps,
-  TREATMENT_SCOPE_GAP_DETECTOR_ID,
-  type TreatmentScopeGapDetectorInput,
-} from "../findings/treatment-scope-gap.js";
-import {
-  detectTreatmentScopeMismatch,
-  TREATMENT_SCOPE_MISMATCH_DETECTOR_ID,
-  type TreatmentScopeMismatchDetectorInput,
-} from "../findings/treatment-scope-mismatch.js";
 import {
   detectMultiMonthSpeedPeerDeficits,
   MULTI_MONTH_SPEED_PEER_DETECTOR_ID,
@@ -118,6 +114,16 @@ import {
   TRAVEL_TIME_VARIABILITY_DETECTOR_ID,
   type TravelTimeVariabilityDetectorInput,
 } from "../findings/travel-time-variability.js";
+import {
+  detectTreatmentScopeGaps,
+  TREATMENT_SCOPE_GAP_DETECTOR_ID,
+  type TreatmentScopeGapDetectorInput,
+} from "../findings/treatment-scope-gap.js";
+import {
+  detectTreatmentScopeMismatch,
+  TREATMENT_SCOPE_MISMATCH_DETECTOR_ID,
+  type TreatmentScopeMismatchDetectorInput,
+} from "../findings/treatment-scope-mismatch.js";
 import type { DetectorPromotionGate, DetectorRegistryMetadata } from "./metadata.js";
 import { FINDING_DETECTOR_SPECS, getFindingDetectorSpec } from "./specs.js";
 
@@ -180,6 +186,7 @@ const FEATURE_GRAIN_REQUIRED_DATA_PRODUCTS: Readonly<Record<string, readonly str
     "local_context_event_route_touches_history",
     "local_ace_enforcement_context_history",
   ],
+  [CUSTOMER_JOURNEY_FEATURE_GRAIN]: ["local_bus_customer_journey_metrics_history"],
   [FEED_HEALTH_FEATURE_GRAIN]: [
     "analytics_backfill_coverage_audit",
     "bus_observatory_gtfs_rt_availability",
@@ -242,7 +249,11 @@ const FEATURE_GRAIN_REQUIRED_DATA_PRODUCTS: Readonly<Record<string, readonly str
 
 function requiredProductsForFeatureGrains(featureGrains: readonly string[]): string[] {
   return [
-    ...new Set(featureGrains.flatMap((featureGrain) => FEATURE_GRAIN_REQUIRED_DATA_PRODUCTS[featureGrain] ?? [])),
+    ...new Set(
+      featureGrains.flatMap(
+        (featureGrain) => FEATURE_GRAIN_REQUIRED_DATA_PRODUCTS[featureGrain] ?? [],
+      ),
+    ),
   ].sort();
 }
 
@@ -312,7 +323,10 @@ const ANALYTICS_DETECTOR_REGISTRY_DEFINITIONS: Array<
     ],
     missingDataStates: ["missing_speed", "insufficient_speed_observations"],
     evidenceSchemaVersion: EVIDENCE_SCHEMA_VERSION,
-    retirementStatus: "active",
+    // Superseded by speed_pace_hotspot + delay_concentration (Open Decision 2, resolved 2026-06-10;
+    // S4.2 lifecycle record under data/artifacts/detector-lifecycle/). No calibration machinery is
+    // built for it; kept callable but deprecated, slated for retirement.
+    retirementStatus: "deprecated",
     run: (input) => detectPersistentSpeedHotspots(input as PersistentSpeedHotspotDetectorInput),
   },
   {
@@ -341,6 +355,7 @@ const ANALYTICS_DETECTOR_REGISTRY_DEFINITIONS: Array<
       "insufficient_speed_observations",
       "insufficient_traversals",
       "segment_too_short",
+      "segment_too_long",
       "spatial_join_uncertain",
       "baseline_unavailable",
       "low_coverage",
@@ -502,6 +517,37 @@ const ANALYTICS_DETECTOR_REGISTRY_DEFINITIONS: Array<
     evidenceSchemaVersion: EVIDENCE_SCHEMA_VERSION,
     retirementStatus: "experimental",
     run: (input) => detectRiderWeightedExcessWait(input as RiderWeightedExcessWaitDetectorInput),
+  },
+  {
+    detectorId: specFor(CUSTOMER_JOURNEY_SHORTFALL_DETECTOR_ID).detectorId,
+    version: "1.0.0",
+    spec: specFor(CUSTOMER_JOURNEY_SHORTFALL_DETECTOR_ID),
+    featureGrains: [CUSTOMER_JOURNEY_FEATURE_GRAIN, FEED_HEALTH_FEATURE_GRAIN],
+    scope: {
+      kind: "route",
+      description: "Route x period x trip-type customer journey performance shortfall.",
+    },
+    claimTier: "descriptive",
+    baselineFamilies: ["own_history", "peer", "source_coverage"],
+    promotionGates: [
+      ...DESCRIPTIVE_GATES,
+      {
+        kind: "baseline_available",
+        description: "CJTP history must support the persistence gate before promotion.",
+        requiredFor: ["descriptive", "associational", "candidate_causal_needs_review"],
+      },
+    ],
+    missingDataStates: [
+      "missing_customer_journey_metric",
+      "low_customer_exposure",
+      "insufficient_customer_journey_cohort",
+      "failed_persistence",
+      "low_coverage",
+      "feed_stale",
+    ],
+    evidenceSchemaVersion: EVIDENCE_SCHEMA_VERSION,
+    retirementStatus: "experimental",
+    run: (input) => detectCustomerJourneyShortfall(input as CustomerJourneyShortfallDetectorInput),
   },
   {
     detectorId: specFor(TRAVEL_TIME_VARIABILITY_DETECTOR_ID).detectorId,
@@ -710,7 +756,10 @@ const ANALYTICS_DETECTOR_REGISTRY_DEFINITIONS: Array<
     detectorId: specFor(TREATMENT_SCOPE_MISMATCH_DETECTOR_ID).detectorId,
     version: "1.0.0",
     spec: specFor(TREATMENT_SCOPE_MISMATCH_DETECTOR_ID),
-    featureGrains: [ROUTE_SEGMENT_TREATMENT_SUMMARY_FEATURE_GRAIN, ROUTE_SEGMENT_MONTH_FEATURE_GRAIN],
+    featureGrains: [
+      ROUTE_SEGMENT_TREATMENT_SUMMARY_FEATURE_GRAIN,
+      ROUTE_SEGMENT_MONTH_FEATURE_GRAIN,
+    ],
     scope: {
       kind: "segment",
       description: "Bus-lane-overlap segment speed and treatment scope review.",

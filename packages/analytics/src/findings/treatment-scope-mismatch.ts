@@ -13,6 +13,7 @@ import { IsoMonthSchema, RouteIdSchema } from "@bp/domain/primitives";
 import { stableId } from "../core/ids.js";
 import { clamp, mergeThresholds, round } from "../core/numbers.js";
 import { severityFromScore } from "../core/scoring.js";
+import { isEnhancedBusStopOnlyLaneTypes } from "../features/treatments.js";
 
 export const TREATMENT_SCOPE_MISMATCH_DETECTOR_ID = "treatment_scope_mismatch";
 
@@ -28,6 +29,7 @@ export type TreatmentScopeMismatchSegmentInput = {
   overlapShare: number | null;
   treatmentConfidence: string;
   treatmentSourceRefs: readonly string[];
+  laneTypes: readonly string[];
   averageSpeedMph: number | null;
   segmentLengthFeet: number | null;
   observationCount: number | null;
@@ -81,6 +83,8 @@ export type TreatmentScopeMismatchThresholds = {
   terminalLongSegmentFeet: number;
   terminalMinPeakOffPeakGradientMph: number;
   historicalStableDeltaMph: number;
+  minWorseningHistoryMonths: number;
+  minWorseningDeltaMph: number;
   residualMinHistoryMonths: number;
   residualMaxExpectedSlowMph: number;
   candidateLimit: number;
@@ -96,6 +100,8 @@ export const DEFAULT_TREATMENT_SCOPE_MISMATCH_THRESHOLDS: TreatmentScopeMismatch
   terminalLongSegmentFeet: 1500,
   terminalMinPeakOffPeakGradientMph: 1,
   historicalStableDeltaMph: 0,
+  minWorseningHistoryMonths: 3,
+  minWorseningDeltaMph: 0,
   residualMinHistoryMonths: 12,
   residualMaxExpectedSlowMph: 0,
   candidateLimit: 100,
@@ -123,6 +129,7 @@ type SegmentHit = {
 function isPositiveBusLaneSegment(segment: TreatmentScopeMismatchSegmentInput): boolean {
   return (
     segment.treatmentType === "bus_lane" &&
+    !isEnhancedBusStopOnlyLaneTypes(segment.laneTypes) &&
     segment.matchMethod === "route_shape_overlap" &&
     (segment.treatmentStatus === "current_confirmed" ||
       segment.treatmentStatus === "implemented" ||
@@ -130,35 +137,11 @@ function isPositiveBusLaneSegment(segment: TreatmentScopeMismatchSegmentInput): 
   );
 }
 
-function daypartSpeed(segment: TreatmentScopeMismatchSegmentInput, daypart: string): number | null {
-  return segment.daypartSpeeds.find((row) => row.daypart === daypart)?.averageSpeedMph ?? null;
-}
-
-function hasPeakOffPeakGradient(
-  segment: TreatmentScopeMismatchSegmentInput,
-  thresholds: TreatmentScopeMismatchThresholds,
-): boolean {
-  const peakSpeeds = [daypartSpeed(segment, "am_peak"), daypartSpeed(segment, "pm_peak")].filter(
-    (value): value is number => value !== null && Number.isFinite(value),
-  );
-  const offPeakSpeed = daypartSpeed(segment, "off_peak") ?? daypartSpeed(segment, "midday");
-  if (peakSpeeds.length === 0 || offPeakSpeed === null) return false;
-  return offPeakSpeed - Math.min(...peakSpeeds) >= thresholds.terminalMinPeakOffPeakGradientMph;
-}
-
-function isTerminalOrLayoverLikeSegment(
-  segment: TreatmentScopeMismatchSegmentInput,
-  thresholds: TreatmentScopeMismatchThresholds,
-): boolean {
+function isTerminalOrLayoverLikeSegment(segment: TreatmentScopeMismatchSegmentInput): boolean {
   const order = segment.segmentOrder;
   if (order === null) return false;
   const maxOrder = segment.directionMaxSegmentOrder ?? null;
-  const isTerminal = order === 1 || (maxOrder !== null && order >= maxOrder);
-  if (!isTerminal) return false;
-  return (
-    (segment.segmentLengthFeet ?? 0) < thresholds.terminalLongSegmentFeet ||
-    !hasPeakOffPeakGradient(segment, thresholds)
-  );
+  return order === 1 || (maxOrder !== null && order >= maxOrder);
 }
 
 function isHistoricallyStableSlowSegment(
@@ -167,12 +150,35 @@ function isHistoricallyStableSlowSegment(
 ): boolean {
   const context = segment.historicalSpeedContext;
   if (context === null) return false;
-  if (context.prior12MedianSpeedMph === null || context.releaseVsPrior12DeltaMph === null) return false;
+  if (context.prior12MedianSpeedMph === null || context.releaseVsPrior12DeltaMph === null)
+    return false;
   return (
     context.monthCount >= 12 &&
     context.prior12MedianSpeedMph <= thresholds.maxAverageSpeedMph &&
     context.releaseVsPrior12DeltaMph >= thresholds.historicalStableDeltaMph
   );
+}
+
+function hasInsufficientWorseningHistory(
+  segment: TreatmentScopeMismatchSegmentInput,
+  thresholds: TreatmentScopeMismatchThresholds,
+): boolean {
+  const context = segment.historicalSpeedContext;
+  if (context === null) return true;
+  if (context.prior12MedianSpeedMph === null || context.releaseVsPrior12DeltaMph === null) {
+    return true;
+  }
+  return context.monthCount < thresholds.minWorseningHistoryMonths;
+}
+
+function lacksCredibleHistoricalWorsening(
+  segment: TreatmentScopeMismatchSegmentInput,
+  thresholds: TreatmentScopeMismatchThresholds,
+): boolean {
+  const context = segment.historicalSpeedContext;
+  if (context === null || context.releaseVsPrior12DeltaMph === null) return false;
+  if (context.monthCount < thresholds.minWorseningHistoryMonths) return false;
+  return context.releaseVsPrior12DeltaMph >= thresholds.minWorseningDeltaMph;
 }
 
 function isResidualExpectedSlowSegment(
@@ -197,11 +203,23 @@ function physicalSegmentKey(segmentId: string): string {
 function skipReason(
   segment: TreatmentScopeMismatchSegmentInput,
   thresholds: TreatmentScopeMismatchThresholds,
-): { reasonCode: string; reason: string; outcome: "skipped_missing_input" | "skipped_failed_join" } | null {
+): {
+  reasonCode: string;
+  reason: string;
+  outcome: "skipped_missing_input" | "skipped_failed_join";
+} | null {
   if (segment.treatmentType !== "bus_lane") {
     return {
       reasonCode: "treatment_segment_gap",
       reason: "Segment treatment row is not a bus-lane context row.",
+      outcome: "skipped_missing_input",
+    };
+  }
+  if (isEnhancedBusStopOnlyLaneTypes(segment.laneTypes)) {
+    return {
+      reasonCode: "treatment_segment_gap",
+      reason:
+        "Segment lane types describe Enhanced Bus Stop infrastructure without bus-lane geometry support.",
       outcome: "skipped_missing_input",
     };
   }
@@ -241,15 +259,32 @@ function skipReason(
   if (segment.segmentLengthFeet < thresholds.minSegmentLengthFeet) {
     return {
       reasonCode: "segment_too_short",
-      reason: "Segment is shorter than the configured minimum for reliable treatment-scope speed review.",
+      reason:
+        "Segment is shorter than the configured minimum for reliable treatment-scope speed review.",
       outcome: "skipped_failed_join",
     };
   }
-  if (isTerminalOrLayoverLikeSegment(segment, thresholds)) {
+  if (isTerminalOrLayoverLikeSegment(segment)) {
     return {
       reasonCode: "terminal_or_layover",
       reason:
-        "First/last direction segment lacks enough length and peak/off-peak contrast to separate bus-lane underperformance from terminal or layover dwell.",
+        "First/last direction segment can be dominated by terminal, layover, or route-end dwell; keep it as review context instead of a bus-lane underperformance candidate.",
+      outcome: "skipped_failed_join",
+    };
+  }
+  if (hasInsufficientWorseningHistory(segment, thresholds)) {
+    return {
+      reasonCode: "insufficient_history",
+      reason:
+        "Treatment-scope mismatch requires a usable prior-window history before slow absolute speed can become a mismatch candidate.",
+      outcome: "skipped_failed_join",
+    };
+  }
+  if (lacksCredibleHistoricalWorsening(segment, thresholds)) {
+    return {
+      reasonCode: "historically_stable_slow_segment",
+      reason:
+        "Segment is slow but not worse than its prior-window speed, so mismatch language should remain review/context-only.",
       outcome: "skipped_failed_join",
     };
   }
@@ -332,6 +367,23 @@ export function detectTreatmentScopeMismatch(
   const month = IsoMonthSchema.parse(input.month);
   const reasonCode = FindingReasonCodeSchema.parse("bus_lane_slow_segment");
   const thresholds = mergeThresholds(DEFAULT_TREATMENT_SCOPE_MISMATCH_THRESHOLDS, input.thresholds);
+  const historyBlockedPhysicalSpeeds = new Map<string, number>();
+  for (const segment of input.segments) {
+    const skip = skipReason(segment, thresholds);
+    if (
+      skip?.reasonCode !== "historically_stable_slow_segment" &&
+      skip?.reasonCode !== "insufficient_history"
+    ) {
+      continue;
+    }
+    const speed = segment.averageSpeedMph;
+    if (speed === null) continue;
+    const physicalKey = physicalSegmentKey(segment.segmentId);
+    historyBlockedPhysicalSpeeds.set(
+      physicalKey,
+      Math.min(historyBlockedPhysicalSpeeds.get(physicalKey) ?? Number.POSITIVE_INFINITY, speed),
+    );
+  }
 
   const selectedHits: SegmentHit[] = [];
   const seenPhysicalSegments = new Set<string>();
@@ -345,6 +397,13 @@ export function detectTreatmentScopeMismatch(
         left.segment.segmentId.localeCompare(right.segment.segmentId),
     )) {
     const physicalKey = physicalSegmentKey(hit.segment.segmentId);
+    const blockedSiblingSpeed = historyBlockedPhysicalSpeeds.get(physicalKey);
+    if (
+      blockedSiblingSpeed !== undefined &&
+      blockedSiblingSpeed <= (hit.segment.averageSpeedMph ?? Number.POSITIVE_INFINITY)
+    ) {
+      continue;
+    }
     if (seenPhysicalSegments.has(physicalKey)) continue;
     selectedHits.push(hit);
     seenPhysicalSegments.add(physicalKey);
@@ -360,12 +419,7 @@ export function detectTreatmentScopeMismatch(
     const routeId = RouteIdSchema.parse(segment.routeId);
     const skip = skipReason(segment, thresholds);
     const hit = selected.get(segment.segmentId);
-    const outcome =
-      skip !== null
-        ? skip.outcome
-        : hit === undefined
-          ? "clean_no_hit"
-          : "hit";
+    const outcome = skip !== null ? skip.outcome : hit === undefined ? "clean_no_hit" : "hit";
 
     if (hit !== undefined) {
       const candidateId = stableId(detectorRunId, "candidate", routeId, segment.segmentId);
@@ -465,8 +519,7 @@ export function detectTreatmentScopeMismatch(
             },
           }),
           evidenceWeight: 0.8,
-          note:
-            "Peer/daypart context for reviewer calibration: ranks are descriptive current-month baselines, not causal controls.",
+          note: "Peer/daypart context for reviewer calibration: ranks are descriptive current-month baselines, not causal controls.",
         }),
         FindingEvidenceLinkSchema.parse({
           linkId: stableId(candidateId, "evidence", "scope_limits"),
@@ -517,6 +570,7 @@ export function detectTreatmentScopeMismatch(
           observationCount: `>=${thresholds.minObservationCount}`,
           peerDaypartContext: "descriptive_current_month_rank_and_daypart_profile",
           historicalSpeedContext: "same_segment_monthly_speed_summary_when_available",
+          worseningGate: `requires >=${thresholds.minWorseningHistoryMonths} history months and release-vs-prior-window delta < ${thresholds.minWorseningDeltaMph} mph`,
           speedResidualContext:
             "segment_speed_residuals_v1 expected-speed/residual context when available",
           residualGate: `skip when history months >=${thresholds.residualMinHistoryMonths} and residual >=${thresholds.residualMaxExpectedSlowMph} mph`,

@@ -1,14 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import {
   BUNCHING_HOTSPOTS_DETECTOR_ID,
+  CUSTOMER_JOURNEY_SHORTFALL_DETECTOR_ID,
   DEGRADATION_TREND_DETECTOR_ID,
   DELAY_CONCENTRATION_DETECTOR_ID,
   HEADWAY_RELIABILITY_EWT_DETECTOR_ID,
   INTERVENTION_EVENT_STUDY_DETECTOR_ID,
   INTERVENTION_GAP_DETECTOR_ID,
   INTERVENTION_UNDERPERFORMANCE_DETECTOR_ID,
-  TREATMENT_SCOPE_GAP_DETECTOR_ID,
-  TREATMENT_SCOPE_MISMATCH_DETECTOR_ID,
   MULTI_MONTH_SPEED_PEER_DETECTOR_ID,
   OBSERVED_RELIABILITY_DETECTOR_ID,
   PERMIT_CORRELATED_SLOWDOWN_DETECTOR_ID,
@@ -20,6 +19,8 @@ import {
   SOURCE_GAP_DETECTOR_ID,
   SPEED_PACE_HOTSPOT_DETECTOR_ID,
   TRAVEL_TIME_VARIABILITY_DETECTOR_ID,
+  TREATMENT_SCOPE_GAP_DETECTOR_ID,
+  TREATMENT_SCOPE_MISMATCH_DETECTOR_ID,
 } from "@bp/analytics/detectors";
 import { getFeatureContract } from "@bp/analytics/features";
 import {
@@ -47,6 +48,7 @@ const EXPECTED_DETECTOR_IDS = [
   HEADWAY_RELIABILITY_EWT_DETECTOR_ID,
   BUNCHING_HOTSPOTS_DETECTOR_ID,
   RIDER_WEIGHTED_EXCESS_WAIT_DETECTOR_ID,
+  CUSTOMER_JOURNEY_SHORTFALL_DETECTOR_ID,
   TRAVEL_TIME_VARIABILITY_DETECTOR_ID,
   SCHEDULE_MISMATCH_DETECTOR_ID,
   DEGRADATION_TREND_DETECTOR_ID,
@@ -117,9 +119,9 @@ describe("analytics detector registry", () => {
       expect(new Set(detector.modelArtifacts ?? []).size).toBe(
         (detector.modelArtifacts ?? []).length,
       );
-      expect((detector.modelArtifacts ?? []).every((modelId) => modelArtifactIds.has(modelId))).toBe(
-        true,
-      );
+      expect(
+        (detector.modelArtifacts ?? []).every((modelId) => modelArtifactIds.has(modelId)),
+      ).toBe(true);
       expect(detector.promotionGates.length).toBeGreaterThan(0);
       for (const gate of detector.promotionGates) {
         expect(gateKinds.has(gate.kind)).toBe(true);
@@ -154,6 +156,9 @@ describe("analytics detector registry", () => {
     expect(getAnalyticsDetector(BUNCHING_HOTSPOTS_DETECTOR_ID)?.claimTier).toBe("descriptive");
     expect(getAnalyticsDetector(RIDER_WEIGHTED_EXCESS_WAIT_DETECTOR_ID)?.claimTier).toBe(
       "associational",
+    );
+    expect(getAnalyticsDetector(CUSTOMER_JOURNEY_SHORTFALL_DETECTOR_ID)?.claimTier).toBe(
+      "descriptive",
     );
     expect(getAnalyticsDetector(PERSISTENT_SPEED_HOTSPOT_DETECTOR_ID)?.claimTier).toBe(
       "descriptive",

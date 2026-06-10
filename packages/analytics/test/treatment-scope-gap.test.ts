@@ -183,6 +183,28 @@ describe("detectTreatmentScopeGaps", () => {
     expect(out.coverage[0]?.reasonCode as string).toBe("terminal_or_layover");
   });
 
+  test("suppresses first segments even when length and daypart contrast look plausible", () => {
+    const out = detectTreatmentScopeGaps({
+      detectorRunId: RUN_ID,
+      month: MONTH,
+      generatedAt: GENERATED_AT,
+      segments: [
+        segment({
+          segmentOrder: 1,
+          segmentLengthFeet: 2200,
+          daypartSpeeds: [
+            { daypart: "am_peak", averageSpeedMph: 3.8, observationCount: 60, busTripCount: 180 },
+            { daypart: "midday", averageSpeedMph: 6.1, observationCount: 60, busTripCount: 190 },
+          ],
+        }),
+      ],
+    });
+
+    expect(out.candidates).toHaveLength(0);
+    expect(out.coverage[0]?.outcome as string).toBe("skipped_failed_join");
+    expect(out.coverage[0]?.reasonCode as string).toBe("terminal_or_layover");
+  });
+
   test("dedupes the same physical node-pair across co-located routes", () => {
     const out = detectTreatmentScopeGaps({
       detectorRunId: RUN_ID,

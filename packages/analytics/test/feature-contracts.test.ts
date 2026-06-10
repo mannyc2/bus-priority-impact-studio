@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { SOURCE_GAP_DETECTOR_ID } from "@bp/analytics/detectors";
 import {
+  CUSTOMER_JOURNEY_FEATURE_GRAIN,
+  type CustomerJourneyFeature,
+  customerJourneyFeatureKey,
   FEED_HEALTH_FEATURE_GRAIN,
   type FeatureQuality,
   type FeedHealthFeature,
@@ -17,6 +20,9 @@ import {
   type RiderWeightedExcessWaitFeature,
   ROUTE_DIRECTION_DAYPART_FEATURE_GRAIN,
   ROUTE_METRIC_HISTORY_FEATURE_GRAIN,
+  ROUTE_SEGMENT_TREATMENT_SUMMARY_FEATURE_GRAIN,
+  ROUTE_TREATMENT_SOURCE_GAP_FEATURE_GRAIN,
+  ROUTE_TREATMENT_SUMMARY_FEATURE_GRAIN,
   type RouteDirectionDaypartFeature,
   type RouteMetricHistoryFeature,
   riderWeightedExcessWaitFeatureKey,
@@ -28,9 +34,6 @@ import {
   type StopDirectionHourFeature,
   segmentDaypartFeatureKey,
   stopDirectionHourFeatureKey,
-  ROUTE_SEGMENT_TREATMENT_SUMMARY_FEATURE_GRAIN,
-  ROUTE_TREATMENT_SOURCE_GAP_FEATURE_GRAIN,
-  ROUTE_TREATMENT_SUMMARY_FEATURE_GRAIN,
 } from "@bp/analytics/features";
 import { getAnalyticsDetector } from "@bp/analytics/registry";
 
@@ -55,10 +58,9 @@ describe("R1 reliability feature contracts", () => {
     expect(FEED_HEALTH_FEATURE_GRAIN).toBe("feed_health");
     expect(POSITIVE_DEVIANCE_FEATURE_GRAIN).toBe("positive_deviance");
     expect(RIDER_WEIGHTED_EXCESS_WAIT_FEATURE_GRAIN).toBe("rider_weighted_excess_wait");
+    expect(CUSTOMER_JOURNEY_FEATURE_GRAIN).toBe("customer_journey");
     expect(ROUTE_TREATMENT_SUMMARY_FEATURE_GRAIN).toBe("route_treatment_summary");
-    expect(ROUTE_SEGMENT_TREATMENT_SUMMARY_FEATURE_GRAIN).toBe(
-      "route_segment_treatment_summary",
-    );
+    expect(ROUTE_SEGMENT_TREATMENT_SUMMARY_FEATURE_GRAIN).toBe("route_segment_treatment_summary");
     expect(ROUTE_TREATMENT_SOURCE_GAP_FEATURE_GRAIN).toBe("route_treatment_source_gap");
   });
 
@@ -94,6 +96,7 @@ describe("R1 reliability feature contracts", () => {
       systematicDelayMinutesPerMile: 3.41,
       stochasticDelayMinutesPerMile: 1.2,
       spatialConfidence: 0.9,
+      isTerminal: false,
       quality: QUALITY,
     };
     const routeDaypart: RouteDirectionDaypartFeature = {
@@ -183,6 +186,17 @@ describe("R1 reliability feature contracts", () => {
       quality: QUALITY,
       ridershipQuality: QUALITY,
     };
+    const customerJourney: CustomerJourneyFeature = {
+      routeId: "M15",
+      month: "2026-04",
+      period: "Peak",
+      tripType: "LCL/LTD",
+      customers: 12000,
+      additionalWaitMinutes: 3.2,
+      additionalTravelMinutes: 1.1,
+      journeyTimePerformance: 0.55,
+      quality: QUALITY,
+    };
     expect(stopDirectionHourFeatureKey(stopHour)).toBe("M15:N:401234:2026-03-05:08");
     expect(segmentDaypartFeatureKey(segmentDaypart)).toBe("M15:2026-03:N:M15:N:10:am_peak");
     expect(routeDirectionDaypartFeatureKey(routeDaypart)).toBe("M15:2026-03:N:am_peak");
@@ -195,6 +209,7 @@ describe("R1 reliability feature contracts", () => {
       "route:M15:average_speed_mph:manhattan_local:1",
     );
     expect(riderWeightedExcessWaitFeatureKey(riderWeightedEwt)).toBe("M15:N:401234:2026-03-05:08");
+    expect(customerJourneyFeatureKey(customerJourney)).toBe("M15:2026-04:Peak:LCL/LTD");
   });
 
   test("requires quality fields on new feature rows", () => {

@@ -1,6 +1,11 @@
 export type { BootstrapMeanInterval, BootstrapMeanIntervalInput } from "./bootstrap.js";
 export { bootstrapMeanInterval } from "./bootstrap.js";
 export type {
+  BuildDetectorLifecycleRecordInput,
+  DetectorLifecycleEventKind,
+  DetectorLifecycleLog,
+  DetectorLifecycleRecord,
+  DetectorLifecycleRetirementStatus,
   DetectorRetirementPolicy,
   DetectorRetirementRecommendation,
   DetectorReviewCycleSummary,
@@ -11,6 +16,8 @@ export type {
   FalsePositiveRootCauseSummary,
 } from "./detector-lifecycle.js";
 export {
+  buildDetectorLifecycleLog,
+  buildDetectorLifecycleRecord,
   compareDetectorVersions,
   recommendDetectorRetirement,
   summarizeDetectorReviewCycle,
@@ -59,8 +66,22 @@ export type { LabeledRange, RangePrecisionRecall } from "./range-precision-recal
 export { evaluateRangePrecisionRecall } from "./range-precision-recall.js";
 export type { ReviewerDecisionSummary, ReviewerDecisionSummaryInput } from "./reviewer-feedback.js";
 export { summarizeReviewerDecisions } from "./reviewer-feedback.js";
-export type { DetectorScoreVectorEntry, DetectorScoreVectorSummary } from "./score-vectors.js";
-export { flaggedSet, jaccardOverlap, summarizeScoreVector } from "./score-vectors.js";
+export type {
+  DetectorScoreNovelty,
+  DetectorScoreNoveltyComparison,
+  DetectorScoreVectorEntry,
+  DetectorScoreVectorRef,
+  DetectorScoreVectorSummary,
+  ScoreSpreadStats,
+} from "./score-vectors.js";
+export {
+  detectorScoreNovelty,
+  flaggedSet,
+  jaccardOverlap,
+  scoreSpreadStats,
+  spearmanRankCorrelation,
+  summarizeScoreVector,
+} from "./score-vectors.js";
 export type {
   SegmentedRegressionPoint,
   SegmentedRegressionSummary,

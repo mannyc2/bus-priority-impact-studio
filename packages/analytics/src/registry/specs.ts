@@ -8,14 +8,13 @@ import {
 } from "@bp/domain/findings";
 
 import { BUNCHING_HOTSPOTS_DETECTOR_ID } from "../findings/bunching-hotspots.js";
+import { CUSTOMER_JOURNEY_SHORTFALL_DETECTOR_ID } from "../findings/customer-journey-shortfall.js";
 import { DEGRADATION_TREND_DETECTOR_ID } from "../findings/degradation-trend.js";
 import { DELAY_CONCENTRATION_DETECTOR_ID } from "../findings/delay-concentration.js";
 import { HEADWAY_RELIABILITY_EWT_DETECTOR_ID } from "../findings/headway-reliability-ewt.js";
 import { INTERVENTION_EVENT_STUDY_DETECTOR_ID } from "../findings/intervention-event-study.js";
 import { INTERVENTION_GAP_DETECTOR_ID } from "../findings/intervention-gap.js";
 import { INTERVENTION_UNDERPERFORMANCE_DETECTOR_ID } from "../findings/intervention-underperformance.js";
-import { TREATMENT_SCOPE_GAP_DETECTOR_ID } from "../findings/treatment-scope-gap.js";
-import { TREATMENT_SCOPE_MISMATCH_DETECTOR_ID } from "../findings/treatment-scope-mismatch.js";
 import { MULTI_MONTH_SPEED_PEER_DETECTOR_ID } from "../findings/multi-month-speed-peer.js";
 import { OBSERVED_RELIABILITY_DETECTOR_ID } from "../findings/observed-reliability.js";
 import { PERMIT_CORRELATED_SLOWDOWN_DETECTOR_ID } from "../findings/permit-correlated-slowdown.js";
@@ -27,6 +26,8 @@ import { SERVICE_REQUEST_CONTEXT_DETECTOR_ID } from "../findings/service-request
 import { SOURCE_GAP_DETECTOR_ID } from "../findings/source-gap.js";
 import { SPEED_PACE_HOTSPOT_DETECTOR_ID } from "../findings/speed-pace-hotspot.js";
 import { TRAVEL_TIME_VARIABILITY_DETECTOR_ID } from "../findings/travel-time-variability.js";
+import { TREATMENT_SCOPE_GAP_DETECTOR_ID } from "../findings/treatment-scope-gap.js";
+import { TREATMENT_SCOPE_MISMATCH_DETECTOR_ID } from "../findings/treatment-scope-mismatch.js";
 
 export const DETECTOR_SPEC_TEMPLATE: FindingDetectorSpecTemplate =
   FindingDetectorSpecTemplateSchema.parse({
@@ -261,6 +262,36 @@ const specs = [
       "Treating imputed or low-coverage ridership as measured boardings.",
       "Over-ranking busy stops when the underlying EWT evidence is weak.",
       "Publishing rider-minute estimates without naming proxy limitations.",
+    ],
+  },
+  {
+    detectorId: CUSTOMER_JOURNEY_SHORTFALL_DETECTOR_ID,
+    name: "Customer journey shortfall",
+    question:
+      "Which routes deliver poor customer journey-time performance for the resolved CJTP snapshot month, and is the shortfall wait-side or in-vehicle-side?",
+    claimTemplate:
+      "A route-period-trip-type cohort has low CJTP: percent of customers completing within 5 minutes of schedule.",
+    allowedClaimStrength: 3,
+    primaryEvidenceRequired: [
+      "CJTP performance share, customer exposure, wait-side additional minutes, in-vehicle additional minutes, cohort percentile, and persistence summary.",
+    ],
+    supportingEvidenceExpected: [
+      "Resolved CJTP as-of month, route/period/trip-type cohort, clean no-hit coverage rows, and the route-level rollup.",
+    ],
+    counterEvidenceRequired: [
+      "Sub-floor customers, missing snapshot month, one-month dip without persistence, negative additional-time values, and the 5-minute binary caveat.",
+    ],
+    promotionChecklist: [
+      "Confirm CJTP is described as a 0..1 performance share or percent, never minutes.",
+      "Confirm the route was ranked against the full month/period/trip-type cohort even when a route filter was requested.",
+      "Treat wait-vs-travel decomposition as a lever hint, not a causal diagnosis.",
+    ],
+    knownFailureModes: [
+      "Treating CJTP as minutes because the local DB column name ends in minutes.",
+      "Computing percentiles on a route-filtered cohort.",
+      "Scoring the global release month instead of the resolved CJTP as-of month.",
+      "Ranking across period or trip-type cohorts.",
+      "Promoting a one-month dip without historical persistence.",
     ],
   },
   {

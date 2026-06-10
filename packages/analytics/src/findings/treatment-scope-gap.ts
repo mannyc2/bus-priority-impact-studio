@@ -173,35 +173,11 @@ function isTrueUncoveredSegment(segment: TreatmentScopeGapSegmentInput): boolean
   );
 }
 
-function daypartSpeed(segment: TreatmentScopeGapSegmentInput, daypart: string): number | null {
-  return segment.daypartSpeeds.find((row) => row.daypart === daypart)?.averageSpeedMph ?? null;
-}
-
-function hasPeakOffPeakGradient(
-  segment: TreatmentScopeGapSegmentInput,
-  thresholds: TreatmentScopeGapThresholds,
-): boolean {
-  const peakSpeeds = [daypartSpeed(segment, "am_peak"), daypartSpeed(segment, "pm_peak")].filter(
-    (value): value is number => value !== null && Number.isFinite(value),
-  );
-  const offPeakSpeed = daypartSpeed(segment, "off_peak") ?? daypartSpeed(segment, "midday");
-  if (peakSpeeds.length === 0 || offPeakSpeed === null) return false;
-  return offPeakSpeed - Math.min(...peakSpeeds) >= thresholds.terminalMinPeakOffPeakGradientMph;
-}
-
-function isTerminalOrLayoverLikeSegment(
-  segment: TreatmentScopeGapSegmentInput,
-  thresholds: TreatmentScopeGapThresholds,
-): boolean {
+function isTerminalOrLayoverLikeSegment(segment: TreatmentScopeGapSegmentInput): boolean {
   const order = segment.segmentOrder;
   if (order === null) return false;
   const maxOrder = segment.directionMaxSegmentOrder ?? null;
-  const isTerminal = order === 1 || (maxOrder !== null && order >= maxOrder);
-  if (!isTerminal) return false;
-  return (
-    (segment.segmentLengthFeet ?? 0) < thresholds.terminalLongSegmentFeet ||
-    !hasPeakOffPeakGradient(segment, thresholds)
-  );
+  return order === 1 || (maxOrder !== null && order >= maxOrder);
 }
 
 function isResidualExpectedSlowSegment(
@@ -227,7 +203,11 @@ function physicalSegmentKey(segmentId: string): string {
 function skipReason(
   segment: TreatmentScopeGapSegmentInput,
   thresholds: TreatmentScopeGapThresholds,
-): { reasonCode: string; reason: string; outcome: "skipped_missing_input" | "skipped_failed_join" } | null {
+): {
+  reasonCode: string;
+  reason: string;
+  outcome: "skipped_missing_input" | "skipped_failed_join";
+} | null {
   if (segment.positiveRouteTreatmentCount < thresholds.minRouteTreatmentCount) {
     return {
       reasonCode: "treatment_segment_gap",
@@ -261,11 +241,11 @@ function skipReason(
       outcome: "skipped_failed_join",
     };
   }
-  if (isTerminalOrLayoverLikeSegment(segment, thresholds)) {
+  if (isTerminalOrLayoverLikeSegment(segment)) {
     return {
       reasonCode: "terminal_or_layover",
       reason:
-        "First/last direction segment lacks enough length and peak/off-peak contrast to separate curb friction from terminal or layover dwell.",
+        "First/last direction segment can be dominated by terminal, layover, or route-end dwell; keep it as review context instead of an uncovered-scope candidate.",
       outcome: "skipped_failed_join",
     };
   }
@@ -312,21 +292,24 @@ function skipReason(
   if (isCoveredByPositiveSegmentTreatment(segment, thresholds)) {
     return {
       reasonCode: "spatial_join_uncertain",
-      reason: "Segment already has positive bus-lane overlap; use treatment_scope_mismatch instead.",
+      reason:
+        "Segment already has positive bus-lane overlap; use treatment_scope_mismatch instead.",
       outcome: "skipped_failed_join",
     };
   }
   if (isPartialPositiveSegmentTreatment(segment, thresholds)) {
     return {
       reasonCode: "partial_confirmed_coverage",
-      reason: "Segment has confirmed partial bus-lane overlap; treat as context, not an uncovered scope gap.",
+      reason:
+        "Segment has confirmed partial bus-lane overlap; treat as context, not an uncovered scope gap.",
       outcome: "skipped_failed_join",
     };
   }
   if (hasGeometryUnavailable(segment)) {
     return {
       reasonCode: "geometry_unavailable",
-      reason: "Segment treatment geometry is unavailable or source-only, so uncovered-scope language is unsafe.",
+      reason:
+        "Segment treatment geometry is unavailable or source-only, so uncovered-scope language is unsafe.",
       outcome: "skipped_failed_join",
     };
   }
@@ -367,7 +350,9 @@ function evaluateSegment(
   return {
     segment,
     detectorScore: Math.round(
-      52 + 48 * (0.5 * speedSignal + 0.2 * routePeerSignal + 0.15 * networkPeerSignal + 0.15 * gapSignal),
+      52 +
+        48 *
+          (0.5 * speedSignal + 0.2 * routePeerSignal + 0.15 * networkPeerSignal + 0.15 * gapSignal),
     ),
   };
 }
@@ -377,7 +362,10 @@ function confidenceFor(
   thresholds: TreatmentScopeGapThresholds,
 ): "low" | "medium" | "high" {
   const observations = hit.segment.observationCount ?? 0;
-  if (observations >= thresholds.highConfidenceObservationCount && hit.segment.overlapShare === null) {
+  if (
+    observations >= thresholds.highConfidenceObservationCount &&
+    hit.segment.overlapShare === null
+  ) {
     return "high";
   }
   return observations >= thresholds.minObservationCount ? "medium" : "low";
@@ -518,8 +506,7 @@ export function detectTreatmentScopeGaps(
             speedResidualContext: hit.segment.speedResidualContext ?? null,
           }),
           evidenceWeight: 0.8,
-          note:
-            "Peer/daypart context for reviewer calibration: this identifies a possible treatment-scope miss, not a causal failure.",
+          note: "Peer/daypart context for reviewer calibration: this identifies a possible treatment-scope miss, not a causal failure.",
         }),
         FindingEvidenceLinkSchema.parse({
           linkId: stableId(candidateId, "evidence", "scope_limits"),
