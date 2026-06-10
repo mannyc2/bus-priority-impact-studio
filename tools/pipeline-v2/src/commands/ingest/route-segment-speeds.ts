@@ -1,5 +1,13 @@
-import { type LocalRouteSegmentSpeed, replaceRouteSegmentSpeeds } from "@bp/db/local";
-import { normalizeSegmentSpeedRows } from "@bp/sources/adapters/mta/bus-speeds";
+import {
+  type LocalRouteSegmentSpeed,
+  type LocalRouteSegmentSpeedCell,
+  replaceRouteSegmentSpeedCells,
+  replaceRouteSegmentSpeeds,
+} from "@bp/db/local";
+import {
+  normalizeSegmentSpeedCellRows,
+  normalizeSegmentSpeedRows,
+} from "@bp/sources/adapters/mta/bus-speeds";
 import { soqlIn, soqlYearMonthRange } from "@bp/sources/clients/socrata/soql";
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
@@ -40,6 +48,7 @@ export type RouteSegmentSpeedsIngestResult = {
   sourceId: SegmentSpeedSourceId;
   fetchedRowCount: number;
   normalizedRowCount: number;
+  cellRowCount: number;
   routeCount: number;
 };
 
@@ -81,6 +90,15 @@ function sortSegmentRows(left: LocalRouteSegmentSpeed, right: LocalRouteSegmentS
   );
 }
 
+export function normalizeRouteSegmentSpeedCellRows(
+  rows: readonly SocrataRow[],
+  expectedMonth: string,
+): LocalRouteSegmentSpeedCell[] {
+  return normalizeSegmentSpeedCellRows([...rows])
+    .filter((row) => row.isoMonth === expectedMonth)
+    .map(({ schemaVersion: _schemaVersion, ...row }) => row);
+}
+
 export function normalizeRouteSegmentSpeedRows(
   rows: readonly SocrataRow[],
   expectedMonth: string,
@@ -117,6 +135,7 @@ async function fetchRouteSegmentSpeedRows(input: {
   routeId: string;
   rawRowCount: number;
   normalizedRows: LocalRouteSegmentSpeed[];
+  cellRows: LocalRouteSegmentSpeedCell[];
 }> {
   const query: Soda3SoqlQuery = {
     where: [
@@ -130,6 +149,7 @@ async function fetchRouteSegmentSpeedRows(input: {
     routeId: input.routeId,
     rawRowCount: rawRows.length,
     normalizedRows: normalizeRouteSegmentSpeedRows(rawRows, input.isoMonth),
+    cellRows: normalizeRouteSegmentSpeedCellRows(rawRows, input.isoMonth),
   };
 }
 
@@ -152,6 +172,7 @@ export async function runRouteSegmentSpeedsIngest(
 
   let fetchedRowCount = 0;
   let normalizedRowCount = 0;
+  let cellRowCount = 0;
   let writtenRouteCount = 0;
   for (const routeChunk of chunkArray(routeIds, routeConcurrency)) {
     const results = await Promise.all(
@@ -169,10 +190,17 @@ export async function runRouteSegmentSpeedsIngest(
     for (const result of results) {
       fetchedRowCount += result.rawRowCount;
       normalizedRowCount += result.normalizedRows.length;
+      cellRowCount += result.cellRows.length;
 
       const byRoute = rowsByRoute(result.normalizedRows);
       const rows = byRoute.get(result.routeId) ?? [];
       await replaceRouteSegmentSpeeds(inputs.local.db, result.routeId, month, rows);
+      replaceRouteSegmentSpeedCells(
+        inputs.local.db,
+        result.routeId,
+        month,
+        result.cellRows.filter((row) => row.routeId === result.routeId),
+      );
       writtenRouteCount += 1;
     }
   }
@@ -182,6 +210,7 @@ export async function runRouteSegmentSpeedsIngest(
     sourceId,
     fetchedRowCount,
     normalizedRowCount,
+    cellRowCount,
     routeCount: writtenRouteCount,
   };
 }
@@ -211,6 +240,7 @@ export default defineCommand({
     sourceId: z.enum(["bus_segment_speeds_2023_2024", "bus_segment_speeds_2025"]),
     fetchedRowCount: z.number(),
     normalizedRowCount: z.number(),
+    cellRowCount: z.number(),
     routeCount: z.number(),
   }),
   async run({ ctx, input }) {
