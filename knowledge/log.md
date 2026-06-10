@@ -2,6 +2,28 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-10] engineering | Track A1: native segment-speed cell grain preserved, route-month proven as a projection
+
+Master-plan §3 A1. Audit premise was partially stale: `local_route_segment_speed` already held
+native grain (17.47M rows, 385 routes, 2023-04→2026-03); the real losses were (a) the adapter's
+`hasUsableTimepointSegment` filter silently dropping source rows lacking next-timepoint metadata
+(12 routes affected — Q7/Q19/Q37/Q47/Q60/Q63/Q64/Q66/Q74/Q100/Q104/Q109, 148 route-months), and
+(b) `local_route_month_trend` speeds coming from an independent server-side Socrata aggregation.
+Landed: `local_route_segment_speed_cell` (nullable timepoint metadata, keyed
+route_id×month×cell_rank — the plan's natural cell key is NOT unique in the source: verified
+duplicate rows with identical geometry but different trip counts, likely service-pattern
+variants), unfiltered `normalizeSegmentSpeedCellRows`, the `ingest route-segment-speeds` command
+now writes both tables from one fetch, and `build route-month-speed-golden-diff` projects
+route-month speed aggregates from cells (count/sum/`Math.round(avg*1e4)/1e4`) and byte-compares
+against the trend table. Backfill: 17.27M rows seeded from the legacy table for route-months whose
+counts already matched (proof nothing was dropped), 148 route-months re-fetched live; final
+17,494,571 cells, ~5 GB. Golden diff on the real DB: 12,075/12,075 rows byte-identical, 0
+mismatches. Artifacts: `data/artifacts/a1-segment-speed-cell-probe.json` (live Q60 2025-03 probe:
+Socrata 2,681 rows = local cells; legacy filter drops 197) and
+`data/artifacts/route-month-speed-golden-diff.json`. Route-month speed columns are now derivable
+locally; the Socrata aggregate path in `route-trends` can be swapped to the projection when Track
+A goes continuous.
+
 ## [2026-06-10] engineering | Frontend §8.1 registry + §4.1/§4.3 structural redesign land on the cutover floor
 
 First consumers of the C1–C4 contract. §8.1: `apps/web/src/components/route/section-registry.ts`

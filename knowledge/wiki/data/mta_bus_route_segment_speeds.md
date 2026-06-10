@@ -64,7 +64,14 @@ Probe completed 2026-04-27. Metadata files:
 1. Use the generated schema metadata under `knowledge/raw/metadata/`.
 2. Use `bun run ingest:route-coverage -- --year YYYY --month M` to verify whether a month has speed rows before treating it as a v1 candidate.
 3. Use `bun run build:network -- --year YYYY --month M` for the full-network route/month build; route-specific commands remain useful for fixtures and debugging.
-4. Build normalized rows in `local_route_segment_speed`.
+4. Build normalized rows in `local_route_segment_speed` (filtered: rows lacking usable
+   timepoint metadata are dropped) and `local_route_segment_speed_cell` (unfiltered native
+   grain, nullable timepoint metadata; written by the same `ingest route-segment-speeds`
+   fetch). The natural cell key (route x direction x timepoint-pair x month x day-of-week x
+   hour) is not unique in the source — duplicate rows with identical geometry but different
+   trip counts exist — so both tables key on a per-route-month rank.
+   `build route-month-speed-golden-diff` proves the route-month speed aggregates in
+   `local_route_month_trend` are a byte-identical projection of the cell table.
 5. Use trip-count-weighted averages when aggregating across hours or days.
 6. Build segment geometry as a transformation, not as a source field.
 
