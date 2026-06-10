@@ -47,15 +47,12 @@ function legacyDiagnosis(route: StudioRouteCompatInput): string {
   const { dailyRiders, diagnosis, label: labelValue, speedMph: speedValue } = route;
   if (typeof diagnosis === "string" && diagnosis.length > 0) return diagnosis;
   const label = typeof labelValue === "string" ? labelValue : "This route";
-  const speed =
-    typeof speedValue === "number"
-      ? `${speedValue} mph observed speed`
-      : "available observed speed";
+  const speed = typeof speedValue === "number" ? `${speedValue} mph` : "an unrecorded speed";
   const riders =
     typeof dailyRiders === "number"
       ? `${Math.round(dailyRiders).toLocaleString("en-US")} daily riders`
-      : "available ridership";
-  return `${label} is summarized from the current Studio release with ${speed} and ${riders}.`;
+      : "unrecorded ridership";
+  return `${label} runs at ${speed} and carries ${riders}.`;
 }
 
 function legacyTermini(route: StudioRouteCompatInput): { north: string; south: string } {
@@ -180,6 +177,57 @@ export const StudioRouteArtifactRefSchema = z
   })
   .strict();
 
+export const StudioRouteInsightKindSchema = z.enum([
+  "customer_journey",
+  "treatment_scope",
+  "timeline_annotation",
+  "map_segment",
+  "performance_annotation",
+]);
+
+export const StudioRouteInsightPlacementSchema = z.enum([
+  "overview",
+  "chart_annotation",
+  "map_segment",
+  "timeline",
+]);
+
+export const StudioRouteInsightSeveritySchema = z.enum(["low", "medium", "high"]);
+
+export const StudioRouteInsightSchema = z
+  .object({
+    routeId: z.string(),
+    kind: StudioRouteInsightKindSchema,
+    placement: StudioRouteInsightPlacementSchema,
+    title: z.string(),
+    shortText: z.string(),
+    severity: StudioRouteInsightSeveritySchema,
+    month: z.string().optional(),
+    asOfMonth: z.string().nullable().optional(),
+    scopeId: z.string().optional(),
+    target: z
+      .object({
+        segmentIds: z.array(z.string()).optional(),
+        direction: z.string().optional(),
+        segmentIndex: z.number().int().nonnegative().optional(),
+        fromNodeId: z.string().optional(),
+        toNodeId: z.string().optional(),
+      })
+      .strict()
+      .optional(),
+    detectorId: z.string(),
+    refs: z.array(
+      z
+        .object({
+          evidenceRefPath: z.string().optional(),
+          sourceProjectionPath: z.string().optional(),
+        })
+        .strict(),
+    ),
+    caveatsForTooltip: z.array(z.string()).optional(),
+  })
+  .strict();
+
 export const StudioRoutesResponseSchema = z
   .object({
     schemaVersion: z.literal(1),
@@ -206,6 +254,7 @@ export const StudioRouteDetailResponseSchema = z
     peerRoute: StudioRouteSchema.optional(),
     segments: z.array(StudioSegmentSchema),
     artifactRefs: z.array(StudioRouteArtifactRefSchema),
+    insights: z.array(StudioRouteInsightSchema).default([]),
     quality: StudioQualitySchema,
   })
   .strict();
@@ -374,11 +423,7 @@ export const StudioRouteSectionIdSchema = z.enum([
   "evidence_ready",
 ]);
 
-export const StudioRouteSectionStatusSchema = z.enum([
-  "available",
-  "partial",
-  "not_built",
-]);
+export const StudioRouteSectionStatusSchema = z.enum(["available", "partial", "not_built"]);
 
 export const StudioRouteSectionMetricSchema = z
   .object({
@@ -434,6 +479,10 @@ export type StudioObservedReliability = z.output<typeof StudioObservedReliabilit
 export type StudioRoute = z.output<typeof StudioRouteSchema>;
 export type StudioSegment = z.output<typeof StudioSegmentSchema>;
 export type StudioRouteArtifactRef = z.output<typeof StudioRouteArtifactRefSchema>;
+export type StudioRouteInsight = z.output<typeof StudioRouteInsightSchema>;
+export type StudioRouteInsightKind = z.output<typeof StudioRouteInsightKindSchema>;
+export type StudioRouteInsightPlacement = z.output<typeof StudioRouteInsightPlacementSchema>;
+export type StudioRouteInsightSeverity = z.output<typeof StudioRouteInsightSeveritySchema>;
 export type StudioRoutesResponse = z.output<typeof StudioRoutesResponseSchema>;
 export type StudioSegmentsResponse = z.output<typeof StudioSegmentsResponseSchema>;
 export type StudioRouteDetailResponse = z.output<typeof StudioRouteDetailResponseSchema>;

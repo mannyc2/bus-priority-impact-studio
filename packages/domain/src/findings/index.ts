@@ -35,6 +35,7 @@ export const KNOWN_DETECTOR_IDS = [
   "headway_reliability_ewt",
   "bunching_hotspots",
   "rider_weighted_excess_wait",
+  "customer_journey_shortfall",
   "travel_time_variability",
   "schedule_mismatch",
   "degradation_trend",
@@ -185,6 +186,7 @@ export const KNOWN_FINDING_REASON_CODES = [
   "bunching_hotspot",
   "headway_gap_hotspot",
   "rider_weighted_excess_wait",
+  "customer_journey_shortfall",
   "high_travel_time_variability",
   "schedule_too_tight",
   "schedule_padding_review",
@@ -209,10 +211,15 @@ export const KNOWN_FINDING_REASON_CODES = [
   "insufficient_headway_pairs",
   "missing_excess_wait",
   "ridership_proxy_unavailable",
+  "missing_customer_journey_metric",
+  "low_customer_exposure",
+  "insufficient_customer_journey_cohort",
+  "failed_persistence",
   "insufficient_runtime_observations",
   "missing_runtime_metric",
   "insufficient_traversals",
   "segment_too_short",
+  "segment_too_long",
   "spatial_join_uncertain",
   "terminal_or_layover",
   "partial_confirmed_coverage",
@@ -278,13 +285,21 @@ export type FindingEvidenceKind = z.output<typeof FindingEvidenceKindSchema>;
 
 export const FindingEvidenceRoleSchema = registerProjectSchema(
   z
-    .enum(["primary", "context", "counter_evidence", "caveat", "missing_data", "coverage_audit"])
+    .enum([
+      "primary",
+      "context",
+      "official_context",
+      "counter_evidence",
+      "caveat",
+      "missing_data",
+      "coverage_audit",
+    ])
     .brand<"FindingEvidenceRole">(),
   {
     id: "bp.finding.evidence_role",
     title: "Finding Evidence Role",
     description:
-      "Role evidence plays in the candidate (primary signal, context, counter-evidence, caveat, or audit support).",
+      "Role evidence plays in the candidate: primary signal, generic context, official_context (agency-record evidence the publication wording depends on), counter-evidence, caveat, or audit support.",
     stability: "draft",
   },
 );
@@ -293,13 +308,20 @@ export type FindingEvidenceRole = z.output<typeof FindingEvidenceRoleSchema>;
 
 export const FindingCoverageOutcomeSchema = registerProjectSchema(
   z
-    .enum(["hit", "clean_no_hit", "skipped_missing_input", "skipped_failed_join", "source_lag"])
+    .enum([
+      "hit",
+      "clean_no_hit",
+      "deferred_not_in_scope",
+      "skipped_missing_input",
+      "skipped_failed_join",
+      "source_lag",
+    ])
     .brand<"FindingCoverageOutcome">(),
   {
     id: "bp.finding.coverage_outcome",
     title: "Finding Coverage Outcome",
     description:
-      "Per-scope outcome of a detector pass. Required for every considered scope so silent gaps cannot hide.",
+      "Per-scope outcome of a detector pass. Required for every considered scope so silent gaps cannot hide. `deferred_not_in_scope` marks a scope the detector intentionally does not apply to (e.g. EWT on a low-frequency route), keeping it distinct from a `clean_no_hit` where the detector applied and found nothing.",
     stability: "draft",
   },
 );
@@ -488,6 +510,7 @@ export const FindingReviewPacketSchema = registerProjectSchema(
         .object({
           primary: z.array(FindingEvidenceLinkSchema),
           context: z.array(FindingEvidenceLinkSchema),
+          officialContext: z.array(FindingEvidenceLinkSchema),
           counterEvidence: z.array(FindingEvidenceLinkSchema),
           caveats: z.array(FindingEvidenceLinkSchema),
           missingData: z.array(FindingEvidenceLinkSchema),
@@ -498,6 +521,7 @@ export const FindingReviewPacketSchema = registerProjectSchema(
         .object({
           primary: z.array(z.unknown()),
           context: z.array(z.unknown()),
+          officialContext: z.array(z.unknown()),
           counterEvidence: z.array(z.unknown()),
           caveats: z.array(z.unknown()),
           missingData: z.array(z.unknown()),

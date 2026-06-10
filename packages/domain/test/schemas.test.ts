@@ -219,6 +219,7 @@ describe("domain schemas", () => {
           evidence: {
             primary: [primary],
             context: [],
+            officialContext: [],
             counterEvidence: [counter],
             caveats: [],
             missingData: [],
@@ -227,6 +228,7 @@ describe("domain schemas", () => {
           evidenceObjects: {
             primary: [{}],
             context: [],
+            officialContext: [],
             counterEvidence: [{}],
             caveats: [],
             missingData: [],

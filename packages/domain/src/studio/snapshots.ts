@@ -5,6 +5,9 @@ import { StudioQualitySchema } from "./shared.js";
 export const STUDIO_MODEL_ARTIFACT_SERVING_PROJECTION_KEY =
   "studio/v2/detectors/model-artifacts.json";
 
+export const STUDIO_ROUTE_DETECTOR_READINESS_MANIFEST_KEY =
+  "studio/v2/detectors/route-detector-readiness-manifest.json";
+
 export const StudioSnapshotProjectionSchema = z
   .object({
     resource: z.enum(["routes", "findings", "briefs", "methods", "docs"]),
