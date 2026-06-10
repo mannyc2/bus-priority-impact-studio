@@ -104,6 +104,7 @@ function emptyExportResult(): D1SeedOutputResult {
     routeBriefSlowestWindowRowCount: 0,
     routeScorecardCitationRowCount: 0,
     detectorReadinessManifestAvailable: false,
+    routeCapabilityManifestRouteCount: 0,
   };
 }
 

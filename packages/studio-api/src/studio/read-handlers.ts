@@ -16,6 +16,11 @@ import {
   type DetectorReadinessServingManifestForInsights,
   DetectorReadinessServingManifestForInsightsSchema,
   getStudioRoute,
+  type RouteCapabilityManifestForIndex,
+  RouteCapabilityManifestForIndexSchema,
+  type RouteSurfaceState,
+  STUDIO_ROUTE_CAPABILITY_MANIFEST_KEY,
+  type StudioRouteCapability,
 } from "@bp/domain/studio";
 import {
   StudioBriefEvidenceResponseSchema,
@@ -280,67 +285,70 @@ function routeFamilyForIndexRow(row: StudioRouteIndexSourceRow): StudioRouteFami
   return "unknown";
 }
 
-function supportLevelForIndexRow(
-  row: StudioRouteIndexSourceRow,
-): StudioRouteIndex2Row["supportLevel"] {
-  if (row.artifactNames.length > 0) return "artifact_ready";
-  if (row.summary !== null) return "summary_ready";
-  return "index_only";
-}
-
 function routeProjectionRef(ref: StudioSnapshot2ProjectionRef): StudioSnapshot2ProjectionRef {
   return ref;
-}
-
-function speedHistorySurfaceStatus(
-  row: StudioRouteIndexSourceRow,
-): StudioRouteIndex2Row["surfaceFlags"]["speedHistory"] {
-  if (row.speedHistoryCoverage !== null) {
-    return row.speedHistoryCoverage.missingCellCount > 0 ? "partial" : "available";
-  }
-  return row.historyCoverage.speedMonthCount > 0 ? "not_built" : "missing";
 }
 
 function hasRouteTimelineBundle(row: StudioRouteIndexSourceRow): boolean {
   return row.artifactNames.includes("route_timeline_bundle");
 }
 
-function routeSurfaceFlags(row: StudioRouteIndexSourceRow): StudioRouteIndex2Row["surfaceFlags"] {
-  const hasSummary = row.summary !== null;
-  const hasArtifact = row.artifactNames.length > 0;
-  const hasRidershipHistory = row.historyCoverage.ridershipMonthCount > 0;
-  const hasSchedule = row.readiness !== null && row.readiness.scheduleTimepointCount > 0;
-  const hasBusLane = (row.summary?.busLaneMatchedLaneCount ?? 0) > 0;
-  const hasAce = row.summary?.aceActive === true;
-  const speedHistoryStatus = speedHistorySurfaceStatus(row);
-  const hasMultiYearHistory = row.historyCoverage.pointCount > 0;
+// Capability now arrives pre-built from the pipeline `route_capability_manifest`
+// (frontend §7.1 / C1). When a route is absent from the manifest, fall back to the
+// honest empty state rather than computing surface states in the Worker.
+const FALLBACK_ROUTE_CAPABILITY: StudioRouteCapability = {
+  overallState: "insufficient_data",
+  surfaces: {},
+  caveats: [],
+};
 
-  return {
-    routePage: "available",
-    summary: hasSummary ? "available" : row.readiness === null ? "missing" : "partial",
-    map: "missing",
-    ladder: "missing",
-    routeDetailArtifact: hasArtifact ? "available" : "missing",
-    speedHistory: speedHistoryStatus,
-    ridershipHistory: hasRidershipHistory ? "available" : "missing",
-    multiYearHistory:
-      hasMultiYearHistory && speedHistoryStatus === "partial"
-        ? "partial"
-        : hasMultiYearHistory
-          ? "available"
-          : "missing",
-    scheduleBaseline: hasSchedule ? "available" : "missing",
-    observedReliability: "missing",
-    detectorCoverage: "not_built",
-    detectorFindings: "not_built",
-    detectorScoreVectors: "not_built",
-    busLaneLinks: hasBusLane ? "available" : hasSummary ? "none" : "missing",
-    interventions: hasAce ? "available" : hasSummary ? "none" : "missing",
-    findings: "none",
-    briefs: hasArtifact ? "available" : hasSummary ? "none" : "missing",
-    timeline: hasRouteTimelineBundle(row) ? "available" : "not_built",
-    evidenceCards: "not_built",
-  };
+// The legacy four-tier support level survives only as a derived label on the
+// "needs attention" section rows. The mapping is exact: the manifest `overallState`
+// was rolled up from the same summary/artifact/finding signals the old tiers used.
+const SUPPORT_LEVEL_BY_OVERALL_STATE: Record<
+  RouteSurfaceState,
+  "index_only" | "summary_ready" | "artifact_ready" | "evidence_ready"
+> = {
+  insufficient_data: "index_only",
+  blocked: "index_only",
+  building: "summary_ready",
+  partial: "artifact_ready",
+  checked_clean: "artifact_ready",
+  not_applicable: "artifact_ready",
+  ready: "evidence_ready",
+};
+
+function supportLevelLabel(
+  capability: StudioRouteCapability,
+): "index_only" | "summary_ready" | "artifact_ready" | "evidence_ready" {
+  return SUPPORT_LEVEL_BY_OVERALL_STATE[capability.overallState];
+}
+
+// Core surfaces whose gaps drive the data-coverage ranking. A surface is a "gap"
+// when it is neither serving (`ready`) nor honestly empty after looking
+// (`checked_clean` / `not_applicable`).
+const CORE_COVERAGE_SURFACES: readonly { key: string; label: string }[] = [
+  { key: "condition", label: "summary" },
+  { key: "detectorFindings", label: "detector findings" },
+  { key: "speedHistory", label: "speed history" },
+  { key: "ridership", label: "ridership history" },
+  { key: "scheduleBaseline", label: "schedule baseline" },
+];
+
+function isCoverageGap(state: RouteSurfaceState | undefined): boolean {
+  return (
+    state !== undefined &&
+    state !== "ready" &&
+    state !== "checked_clean" &&
+    state !== "not_applicable"
+  );
+}
+
+function coverageGaps(capability: StudioRouteCapability): { label: string; state: string }[] {
+  return CORE_COVERAGE_SURFACES.flatMap(({ key, label }) => {
+    const state = capability.surfaces[key]?.state;
+    return isCoverageGap(state) ? [{ label, state: state as string }] : [];
+  });
 }
 
 function routeIndexCaveats(row: StudioRouteIndexSourceRow): string[] {
@@ -456,6 +464,7 @@ function buildStudioRouteIndex2Row(input: {
   generatedAt: string;
   lastBuiltSpeedMonth: string | undefined;
   row: StudioRouteIndexSourceRow;
+  capability: StudioRouteCapability;
 }): StudioRouteIndex2Row {
   const slug = routeIdToStudioSlug(input.row.routeId);
   return {
@@ -468,8 +477,7 @@ function buildStudioRouteIndex2Row(input: {
     borough: boroughForRouteId(input.row.routeId) as StudioRouteIndex2Row["borough"],
     routeFamily: routeFamilyForIndexRow(input.row),
     publicUrl: `/routes/${slug}`,
-    supportLevel: supportLevelForIndexRow(input.row),
-    surfaceFlags: routeSurfaceFlags(input.row),
+    capability: input.capability,
     historyCoverage: input.row.historyCoverage,
     caveats: routeIndexCaveats(input.row),
     projectionRefs: routeProjectionRefs({
@@ -678,7 +686,11 @@ async function buildStudioRouteIndex2Response(
 
   const generatedAt = new Date().toISOString();
   const releaseId = releaseIdForPrefix(studioProjectionPrefix(env));
-  const rows = await listStudioRouteIndexSourceRows(createD1ServingDb(env.DB), baselineMonth);
+  const [rows, capabilityManifest] = await Promise.all([
+    listStudioRouteIndexSourceRows(createD1ServingDb(env.DB), baselineMonth),
+    loadRouteCapabilityManifest(env),
+  ]);
+  const capabilityByRoute = routeCapabilityByRouteId(capabilityManifest);
   const routes = rows.map((row) =>
     buildStudioRouteIndex2Row({
       releaseId,
@@ -686,6 +698,7 @@ async function buildStudioRouteIndex2Response(
       generatedAt,
       lastBuiltSpeedMonth: env.LAST_BUILT_SPEED_MONTH,
       row,
+      capability: capabilityByRoute.get(row.routeId) ?? FALLBACK_ROUTE_CAPABILITY,
     }),
   );
 
@@ -820,6 +833,39 @@ async function loadDetectorReadinessServingManifest(
 
   const parsed = DetectorReadinessServingManifestForInsightsSchema.safeParse(payload);
   return parsed.success ? parsed.data : null;
+}
+
+async function loadRouteCapabilityManifest(
+  env: StudioReadEnv,
+): Promise<RouteCapabilityManifestForIndex | null> {
+  if (env.ARTIFACTS === undefined) return null;
+  const object = await env.ARTIFACTS.get(STUDIO_ROUTE_CAPABILITY_MANIFEST_KEY);
+  if (object === null) return null;
+
+  let payload: unknown;
+  try {
+    payload = await object.json();
+  } catch {
+    return null;
+  }
+
+  const parsed = RouteCapabilityManifestForIndexSchema.safeParse(payload);
+  return parsed.success ? parsed.data : null;
+}
+
+function routeCapabilityByRouteId(
+  manifest: RouteCapabilityManifestForIndex | null,
+): ReadonlyMap<string, StudioRouteCapability> {
+  const byRoute = new Map<string, StudioRouteCapability>();
+  if (manifest === null) return byRoute;
+  for (const route of manifest.routes) {
+    byRoute.set(route.routeId, {
+      overallState: route.overallState,
+      surfaces: route.surfaces,
+      caveats: route.caveats,
+    });
+  }
+  return byRoute;
 }
 
 async function loadRouteSpeedSpineForSegments(
@@ -1096,7 +1142,7 @@ function metricRows(input: {
       slug: candidate.route.slug,
       label: candidate.route.label,
       borough: candidate.route.borough,
-      supportLevel: candidate.route.supportLevel,
+      supportLevel: supportLevelLabel(candidate.route.capability),
       score: candidate.score,
       scoreLabel: input.scoreLabel(candidate.score),
       reasons: input.reasons(candidate.row),
@@ -1301,50 +1347,18 @@ function buildDataCoverageRows(input: {
     score(row) {
       const route = input.routeById.get(row.routeId);
       if (route === undefined) return null;
-      const coreStatuses = [
-        route.surfaceFlags.summary,
-        route.surfaceFlags.routeDetailArtifact,
-        route.surfaceFlags.speedHistory,
-        route.surfaceFlags.ridershipHistory,
-        route.surfaceFlags.scheduleBaseline,
-      ];
-      const issueCount = coreStatuses.filter(
-        (status) => status !== "available" && status !== "none",
-      ).length;
-      return issueCount === 0 ? null : issueCount * 10 + (row.summary === null ? 15 : 0);
+      const gaps = coverageGaps(route.capability);
+      const noSummary = route.capability.surfaces["condition"]?.state === "insufficient_data";
+      return gaps.length === 0 ? null : gaps.length * 10 + (noSummary ? 15 : 0);
     },
     reasons(row) {
       const route = input.routeById.get(row.routeId);
       if (route === undefined) return [];
-      const reasons: string[] = [];
-      if (route.surfaceFlags.summary !== "available")
-        reasons.push(`summary ${route.surfaceFlags.summary}`);
-      if (route.surfaceFlags.routeDetailArtifact !== "available") {
-        reasons.push(`detail artifact ${route.surfaceFlags.routeDetailArtifact}`);
-      }
-      if (route.surfaceFlags.speedHistory !== "available") {
-        reasons.push(`speed history ${route.surfaceFlags.speedHistory}`);
-      }
-      if (route.surfaceFlags.ridershipHistory !== "available") {
-        reasons.push(`ridership history ${route.surfaceFlags.ridershipHistory}`);
-      }
-      if (route.surfaceFlags.scheduleBaseline !== "available") {
-        reasons.push(`schedule baseline ${route.surfaceFlags.scheduleBaseline}`);
-      }
-      return reasons;
+      return coverageGaps(route.capability).map((gap) => `${gap.label} ${gap.state}`);
     },
     metrics(row) {
       const route = input.routeById.get(row.routeId);
-      const missingCoreCount =
-        route === undefined
-          ? 0
-          : [
-              route.surfaceFlags.summary,
-              route.surfaceFlags.routeDetailArtifact,
-              route.surfaceFlags.speedHistory,
-              route.surfaceFlags.ridershipHistory,
-              route.surfaceFlags.scheduleBaseline,
-            ].filter((status) => status !== "available" && status !== "none").length;
+      const missingCoreCount = route === undefined ? 0 : coverageGaps(route.capability).length;
       return [
         metric({
           id: "core_surface_issues",
@@ -1448,10 +1462,12 @@ export async function buildStudioRouteSectionsResponse(
 
   const generatedAt = new Date().toISOString();
   const releaseId = releaseIdForPrefix(studioProjectionPrefix(env));
-  const [rows, tier2Views] = await Promise.all([
+  const [rows, tier2Views, capabilityManifest] = await Promise.all([
     listStudioRouteIndexSourceRows(createD1ServingDb(env.DB), baselineMonth),
     loadTier2MaterializedViews(env),
+    loadRouteCapabilityManifest(env),
   ]);
+  const capabilityByRoute = routeCapabilityByRouteId(capabilityManifest);
   const routes = rows.map((row) =>
     buildStudioRouteIndex2Row({
       releaseId,
@@ -1459,6 +1475,7 @@ export async function buildStudioRouteSectionsResponse(
       generatedAt,
       lastBuiltSpeedMonth: env.LAST_BUILT_SPEED_MONTH,
       row,
+      capability: capabilityByRoute.get(row.routeId) ?? FALLBACK_ROUTE_CAPABILITY,
     }),
   );
   const routeById = new Map(routes.map((route) => [route.routeId, route]));
@@ -2049,11 +2066,22 @@ function projectionPath(
   return options.d1Backed ? "d1:studio-routes" : studioProjectionKey(env, path);
 }
 
-function supportLevelCount(
-  routes: readonly StudioRouteIndex2Row[],
-  supportLevel: StudioRouteIndex2Row["supportLevel"],
-): number {
-  return routes.filter((route) => route.supportLevel === supportLevel).length;
+// Legacy support-tier counts, re-derived from the capability rollup (see
+// SUPPORT_LEVEL_BY_OVERALL_STATE): summaryReady = anything past insufficient_data,
+// artifactReady = an artifact is present, evidenceReady = a public finding surfaced.
+function summaryReadyRouteCount(routes: readonly StudioRouteIndex2Row[]): number {
+  return routes.filter((route) => route.capability.overallState !== "insufficient_data").length;
+}
+
+function artifactReadyRouteCount(routes: readonly StudioRouteIndex2Row[]): number {
+  return routes.filter(
+    (route) => SUPPORT_LEVEL_BY_OVERALL_STATE[route.capability.overallState] !== "index_only"
+      && SUPPORT_LEVEL_BY_OVERALL_STATE[route.capability.overallState] !== "summary_ready",
+  ).length;
+}
+
+function evidenceReadyRouteCount(routes: readonly StudioRouteIndex2Row[]): number {
+  return routes.filter((route) => route.capability.overallState === "ready").length;
 }
 
 function sourceMonthStatus(value: string): StudioSourceMonthState["status"] {
@@ -2208,10 +2236,8 @@ function buildSnapshot2(input: {
   modelProjection: ModelArtifactServingProjection | null;
 }): StudioSnapshot2 {
   const { routes } = input.routeIndex;
-  const artifactReadyRouteCount = routes.filter(
-    (route) => route.supportLevel === "artifact_ready" || route.supportLevel === "evidence_ready",
-  ).length;
-  const evidenceReadyRouteCount = supportLevelCount(routes, "evidence_ready");
+  const artifactReadyCount = artifactReadyRouteCount(routes);
+  const evidenceReadyCount = evidenceReadyRouteCount(routes);
   const routeHistoryRows = routes.reduce((sum, route) => sum + route.historyCoverage.pointCount, 0);
   const routeSpeedHistoryCoverageRows = routes.filter((route) =>
     route.projectionRefs.some((ref) => ref.id === "route_speed_history"),
@@ -2257,7 +2283,7 @@ function buildSnapshot2(input: {
       id: "route_speed_history",
       status:
         routeSpeedHistoryCoverageRows > 0
-          ? routes.some((route) => route.surfaceFlags.speedHistory === "partial")
+          ? routes.some((route) => route.capability.surfaces["speedHistory"]?.state === "partial")
             ? "partial"
             : "available"
           : "missing",
@@ -2322,9 +2348,9 @@ function buildSnapshot2(input: {
       source: "route_catalog",
       routeCount: routes.length,
       indexedRouteCount: routes.length,
-      summaryReadyRouteCount: supportLevelCount(routes, "summary_ready") + artifactReadyRouteCount,
-      artifactReadyRouteCount,
-      evidenceReadyRouteCount,
+      summaryReadyRouteCount: summaryReadyRouteCount(routes),
+      artifactReadyRouteCount: artifactReadyCount,
+      evidenceReadyRouteCount: evidenceReadyCount,
     },
     sourceMonths: sourceMonthStates({
       routeIndex: input.routeIndex,
@@ -2335,7 +2361,7 @@ function buildSnapshot2(input: {
     }),
     counts: {
       routes: routes.length,
-      routeDetails: artifactReadyRouteCount,
+      routeDetails: artifactReadyCount,
       routeHistoryRows,
       routeIndexRows: routes.length,
       routeSpeedHistoryCoverageRows,

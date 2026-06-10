@@ -223,6 +223,12 @@ export {
   sortedDetectorBucketRecord,
 } from "./detector-readiness-projection";
 export {
+  type BuildRouteCapabilityManifestInput,
+  buildRouteCapabilityManifest,
+  type RouteCapabilityInputRow,
+  type RouteCapabilitySourceStatus,
+} from "./build-route-capability-manifest";
+export {
   type BuildDetectorReadinessServingManifestInput,
   buildDetectorReadinessServingManifest,
   type DetectorReadinessProjectionItemLike,

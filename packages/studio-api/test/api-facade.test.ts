@@ -134,6 +134,63 @@ class FakeR2Bucket {
   }
 }
 
+const CAPABILITY_MANIFEST_KEY = "studio/v2/routes/route-capability-manifest.json";
+
+function capabilitySurface(state: string, reason: string | null = null) {
+  return { state, reason, depth: null, dataAsOf: null, freshness: "unknown" };
+}
+
+function capabilityManifestArtifact(
+  routes: { routeId: string; overallState: string; surfaces: Record<string, unknown>; caveats?: string[] }[],
+): FakeR2Object {
+  return new FakeR2Object(
+    JSON.stringify({
+      artifactKind: "route_capability_manifest",
+      schemaVersion: 1,
+      generatedAt: "2026-06-10T00:00:00.000Z",
+      releaseMonth: "2026-03",
+      routes: routes.map((route) => ({ caveats: [], ...route })),
+    }),
+    "application/json",
+  );
+}
+
+// Standard contrast routes for the snapshot/index/sections handler tests: a rich route
+// with surfaced findings + partial speed history, and a sparse summary-only route.
+const STANDARD_ROUTE_CAPABILITIES = [
+  {
+    routeId: "M15+",
+    overallState: "ready",
+    surfaces: {
+      condition: capabilitySurface("ready"),
+      speedHistory: capabilitySurface("partial", "16 cells missing"),
+      detectorFindings: capabilitySurface("ready"),
+      reliability: capabilitySurface("building"),
+      ridership: capabilitySurface("ready"),
+      scheduleBaseline: capabilitySurface("ready"),
+    },
+  },
+  {
+    routeId: "Q1",
+    overallState: "checked_clean",
+    surfaces: {
+      condition: capabilitySurface("ready"),
+      detectorFindings: capabilitySurface("checked_clean"),
+      ridership: capabilitySurface("ready"),
+    },
+  },
+  {
+    routeId: "B99",
+    overallState: "building",
+    surfaces: {
+      condition: capabilitySurface("ready"),
+      detectorFindings: capabilitySurface("insufficient_data"),
+      speedHistory: capabilitySurface("insufficient_data"),
+      ridership: capabilitySurface("insufficient_data"),
+    },
+  },
+];
+
 const route = {
   slug: "m15-sbs",
   routeId: "M15+",
@@ -193,6 +250,7 @@ const scorecard = RouteScorecardSchema.parse({
 function createStudioProjectionEnv(): StudioApiEnv {
   return {
     ARTIFACTS: new FakeR2Bucket({
+      [CAPABILITY_MANIFEST_KEY]: capabilityManifestArtifact(STANDARD_ROUTE_CAPABILITIES),
       "studio/v1/briefs.json": new FakeR2Object(
         JSON.stringify({
           schemaVersion: 1,
@@ -1491,6 +1549,9 @@ describe("Studio API facade", () => {
     });
 
     const response = await fetchApi("/api/v1/studio/routes?schema=2", {
+      ARTIFACTS: new FakeR2Bucket({
+        [CAPABILITY_MANIFEST_KEY]: capabilityManifestArtifact(STANDARD_ROUTE_CAPABILITIES),
+      }) as unknown as R2Bucket,
       BASELINE_MONTH: "2026-03",
       DB: db as unknown as D1Database,
       LAST_BUILT_SPEED_MONTH: "2026-03",
@@ -1500,12 +1561,12 @@ describe("Studio API facade", () => {
     const index = StudioRouteIndex2ResponseSchema.parse(await response.json());
     expect(index.routes.map((route) => route.routeId)).toEqual(["M15+", "B99"]);
     const richRoute = index.routes.find((route) => route.routeId === "M15+");
-    expect(richRoute?.supportLevel).toBe("artifact_ready");
-    expect(richRoute?.surfaceFlags.speedHistory).toBe("partial");
+    // Capability is joined from the pipeline manifest, not computed in the Worker.
+    expect(richRoute?.capability.overallState).toBe("ready");
+    expect(richRoute?.capability.surfaces["speedHistory"]?.state).toBe("partial");
     const sparse = index.routes.find((route) => route.routeId === "B99");
-    expect(sparse?.supportLevel).toBe("summary_ready");
-    expect(sparse?.surfaceFlags.routePage).toBe("available");
-    expect(sparse?.surfaceFlags.routeDetailArtifact).toBe("missing");
+    expect(sparse?.capability.overallState).toBe("building");
+    expect(sparse?.capability.surfaces["detectorFindings"]?.state).toBe("insufficient_data");
     expect(sparse?.caveats).toContain(
       "A baseline summary exists, but the rich public artifact gate is not satisfied.",
     );
@@ -1748,6 +1809,9 @@ describe("Studio API facade", () => {
     });
 
     const response = await fetchApi("/api/v1/studio/routes/sections", {
+      ARTIFACTS: new FakeR2Bucket({
+        [CAPABILITY_MANIFEST_KEY]: capabilityManifestArtifact(STANDARD_ROUTE_CAPABILITIES),
+      }) as unknown as R2Bucket,
       BASELINE_MONTH: "2026-03",
       DB: db as unknown as D1Database,
       LAST_BUILT_SPEED_MONTH: "2026-03",
@@ -1802,9 +1866,9 @@ describe("Studio API facade", () => {
           expect.objectContaining({
             routeId: "B99",
             reasons: expect.arrayContaining([
-              "detail artifact missing",
-              "speed history missing",
-              "ridership history missing",
+              "detector findings insufficient_data",
+              "speed history insufficient_data",
+              "ridership history insufficient_data",
             ]),
           }),
         ]),
@@ -2061,18 +2125,13 @@ describe("Studio API facade", () => {
     expect(uniqueValues(routeIndexSlugs)).toHaveLength(routeIndex.routes.length);
 
     const sparseRoute = routeIndex.routes.find(
-      (route) => route.supportLevel !== "artifact_ready" && route.supportLevel !== "evidence_ready",
+      (route) => route.capability.overallState === "building",
     );
     if (sparseRoute === undefined) {
       throw new Error("Expected fixture to include a sparse Snapshot 2.0 route.");
     }
-    expect(sparseRoute).toEqual(
-      expect.objectContaining({
-        slug: "b99",
-        supportLevel: "summary_ready",
-        surfaceFlags: expect.objectContaining({ routeDetailArtifact: "missing" }),
-      }),
-    );
+    expect(sparseRoute.slug).toBe("b99");
+    expect(sparseRoute.capability.surfaces["detectorFindings"]?.state).toBe("insufficient_data");
 
     const historyRoute = routeIndex.routes.find(
       (route) => route.historyCoverage.speedMonthCount > 0,

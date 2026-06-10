@@ -1,4 +1,5 @@
 import * as z from "zod";
+import { StudioRouteCapabilitySchema } from "./route-capability.js";
 import { StudioRouteHistoryCoverageSchema } from "./routes/index.js";
 import { StudioQualitySchema } from "./shared.js";
 
@@ -16,13 +17,6 @@ export const StudioSnapshotProjectionSchema = z
     generatedAt: z.string().nullable(),
   })
   .strict();
-
-export const StudioRouteSupportLevelSchema = z.enum([
-  "index_only",
-  "summary_ready",
-  "artifact_ready",
-  "evidence_ready",
-]);
 
 export const StudioRouteSurfaceStatusSchema = z.enum([
   "available",
@@ -53,29 +47,6 @@ export const StudioSourceMonthStatusSchema = z.enum([
   "source_absent",
 ]);
 
-export const StudioRouteSurfaceFlagsSchema = z
-  .object({
-    routePage: StudioRouteSurfaceStatusSchema,
-    summary: StudioRouteSurfaceStatusSchema,
-    map: StudioRouteSurfaceStatusSchema,
-    ladder: StudioRouteSurfaceStatusSchema,
-    routeDetailArtifact: StudioRouteSurfaceStatusSchema,
-    speedHistory: StudioRouteSurfaceStatusSchema,
-    ridershipHistory: StudioRouteSurfaceStatusSchema,
-    multiYearHistory: StudioRouteSurfaceStatusSchema,
-    scheduleBaseline: StudioRouteSurfaceStatusSchema,
-    observedReliability: StudioRouteSurfaceStatusSchema,
-    detectorCoverage: StudioRouteSurfaceStatusSchema,
-    detectorFindings: StudioRouteSurfaceStatusSchema,
-    detectorScoreVectors: StudioRouteSurfaceStatusSchema,
-    busLaneLinks: StudioRouteSurfaceStatusSchema,
-    interventions: StudioRouteSurfaceStatusSchema,
-    findings: StudioRouteSurfaceStatusSchema,
-    briefs: StudioRouteSurfaceStatusSchema,
-    timeline: StudioRouteSurfaceStatusSchema,
-    evidenceCards: StudioRouteSurfaceStatusSchema,
-  })
-  .strict();
 
 export const StudioProjectionStorageSchema = z.enum(["d1", "r2", "worker", "computed"]);
 
@@ -114,8 +85,7 @@ export const StudioRouteIndex2RowSchema = z
     borough: z.enum(["Bronx", "Brooklyn", "Manhattan", "Queens", "Staten Island"]),
     routeFamily: StudioRouteFamilySchema,
     publicUrl: z.string(),
-    supportLevel: StudioRouteSupportLevelSchema,
-    surfaceFlags: StudioRouteSurfaceFlagsSchema,
+    capability: StudioRouteCapabilitySchema,
     historyCoverage: StudioRouteHistoryCoverageSchema,
     caveats: z.array(z.string()),
     projectionRefs: z.array(StudioSnapshot2ProjectionRefSchema),
@@ -215,11 +185,9 @@ export const StudioSnapshotResponseSchema = z
   .strict();
 
 export type StudioSnapshotProjection = z.output<typeof StudioSnapshotProjectionSchema>;
-export type StudioRouteSupportLevel = z.output<typeof StudioRouteSupportLevelSchema>;
 export type StudioRouteSurfaceStatus = z.output<typeof StudioRouteSurfaceStatusSchema>;
 export type StudioRouteFamily = z.output<typeof StudioRouteFamilySchema>;
 export type StudioSourceMonthStatus = z.output<typeof StudioSourceMonthStatusSchema>;
-export type StudioRouteSurfaceFlags = z.output<typeof StudioRouteSurfaceFlagsSchema>;
 export type StudioSnapshot2ProjectionRef = z.output<typeof StudioSnapshot2ProjectionRefSchema>;
 export type StudioRouteIndex2Row = z.output<typeof StudioRouteIndex2RowSchema>;
 export type StudioSourceMonthState = z.output<typeof StudioSourceMonthStateSchema>;

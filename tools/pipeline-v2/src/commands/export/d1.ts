@@ -20,6 +20,10 @@ import {
   readLocalD1Inputs,
 } from "./d1-inputs.ts";
 import { readD1MigrationSql } from "./d1-migrations.ts";
+import {
+  buildAndWriteRouteCapabilityManifest,
+  readDetectorReadinessRouteSummaries,
+} from "./route-capability-manifest.ts";
 
 type D1FileContract = {
   path: string;
@@ -105,6 +109,7 @@ export type D1SeedOutputResult = {
   routeSpeedHistoryCoverageRowCount: number;
   sourceMonthCoverageRowCount: number;
   detectorReadinessManifestAvailable: boolean;
+  routeCapabilityManifestRouteCount: number;
 };
 
 export type D1AppendixSeedOutputResult = {
@@ -254,6 +259,18 @@ export async function runExportD1Seed(inputs: ExportD1Inputs): Promise<D1SeedOut
   const seed = buildD1SeedSql({ month, ...d1Inputs });
   const generatedAt = new Date().toISOString();
 
+  const readinessSummaries = await readDetectorReadinessRouteSummaries({
+    manifestPath: inputs.detectorReadinessManifestPath,
+    month,
+  });
+  const capabilityManifest = await buildAndWriteRouteCapabilityManifest({
+    d1Inputs,
+    readinessSummaries,
+    artifactRoot,
+    releaseMonth: month,
+    generatedAt,
+  });
+
   const result: D1SeedOutputResult = {
     schemaVersion: 1,
     isoMonth: month,
@@ -304,6 +321,7 @@ export async function runExportD1Seed(inputs: ExportD1Inputs): Promise<D1SeedOut
     routeSpeedHistoryCoverageRowCount: seed.routeSpeedHistoryCoverageRowCount,
     sourceMonthCoverageRowCount: seed.sourceMonthCoverageRowCount,
     detectorReadinessManifestAvailable: d1Inputs.detectorReadinessManifestAvailable,
+    routeCapabilityManifestRouteCount: capabilityManifest.routeCount,
   };
 
   await mkdir(exportDir, { recursive: true });

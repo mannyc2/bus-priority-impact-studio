@@ -66,6 +66,7 @@
     "publish:serving-release": "scripts/publish-serving-release.sh",
     "seed:local-studio-r2": "sh scripts/seed-local-studio-r2.sh",
     "seed:local-detector-r2": "sh scripts/seed-local-studio-r2.sh bus-priority-artifacts apps/web/wrangler.jsonc data/artifacts/studio/v2/detectors/route-detector-readiness-manifest.json",
+    "seed:local-capability-r2": "sh scripts/seed-local-studio-r2.sh bus-priority-artifacts apps/web/wrangler.jsonc data/artifacts/studio/v2/routes/route-capability-manifest.json",
     "hooks:install": "sh scripts/install-git-hooks.sh",
     "check": "bun run check:types && bun run check:style && bun run check:architecture && bun run test",
     "check:types": "tsc -p tsconfig.typecheck.json --noEmit --pretty false",

@@ -307,6 +307,27 @@ export {
   StudioSearchResponseSchema,
   StudioSearchSegmentCardSchema,
 } from "./release.js";
+export type {
+  RouteCapabilityFreshness,
+  RouteCapabilityManifest,
+  RouteCapabilityManifestForIndex,
+  RouteCapabilityManifestRow,
+  RouteSurfaceCapability,
+  RouteSurfaceDepth,
+  RouteSurfaceState,
+  StudioRouteCapability,
+} from "./route-capability.js";
+export {
+  RouteCapabilityFreshnessSchema,
+  RouteCapabilityManifestForIndexSchema,
+  RouteCapabilityManifestRowSchema,
+  RouteCapabilityManifestSchema,
+  RouteSurfaceCapabilitySchema,
+  RouteSurfaceDepthSchema,
+  RouteSurfaceStateSchema,
+  STUDIO_ROUTE_CAPABILITY_MANIFEST_KEY,
+  StudioRouteCapabilitySchema,
+} from "./route-capability.js";
 export type { DetectorReadinessServingManifestForInsights } from "./route-insights.js";
 export {
   buildRouteInsightsFromDetectorReadiness,
@@ -373,8 +394,6 @@ export type {
   StudioRouteFamily,
   StudioRouteIndex2Response,
   StudioRouteIndex2Row,
-  StudioRouteSupportLevel,
-  StudioRouteSurfaceFlags,
   StudioRouteSurfaceStatus,
   StudioSnapshot2,
   StudioSnapshot2ProjectionRef,
@@ -388,8 +407,6 @@ export {
   StudioRouteFamilySchema,
   StudioRouteIndex2ResponseSchema,
   StudioRouteIndex2RowSchema,
-  StudioRouteSupportLevelSchema,
-  StudioRouteSurfaceFlagsSchema,
   StudioRouteSurfaceStatusSchema,
   StudioSnapshot2ProjectionRefSchema,
   StudioSnapshot2Schema,

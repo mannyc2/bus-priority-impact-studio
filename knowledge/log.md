@@ -2,6 +2,28 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-10] engineering | Hard-cutover C1: route_capability_manifest replaces supportLevel/surfaceFlags
+
+Executed `docs/research/hard-cutover-dossier-contract.md` §3-C1. Deleted the orphaned per-route
+`supportLevel` (4-tier enum) + `surfaceFlags` (19-surface struct, ~13 dead constants) that were
+computed in the Worker, and replaced them with a pipeline-built `route_capability_manifest`: per
+surface a 7-state machine (`ready/partial/building/insufficient_data/checked_clean/not_applicable/
+blocked`) + reason + depth (months, grains) + `dataAsOf` + freshness. Eight KPI-aligned surfaces
+(`condition`, `trend`, `speedHistory`, `reliability`, `ridership`, `treatment`, `scheduleBaseline`,
+`detectorFindings`) keyed as a string map so S2.4 + Tier 2 coverage plug in later with no reshape.
+
+Pattern mirrors the detector readiness manifest: pure builder
+`packages/applied-research/src/evaluation/build-route-capability-manifest.ts` → built during
+`export d1` from `readLocalD1Inputs` (`tools/pipeline-v2/.../export/route-capability-manifest.ts`)
+→ written to `studio/v2/routes/route-capability-manifest.json` → Worker reads it by key
+(`@bp/domain` `RouteCapabilityManifestForIndexSchema`, `.passthrough()`) and joins per-route in
+`read-handlers.ts`. The route-level `overallState` rollup maps exactly onto the legacy support
+tiers, so `summaryReady/artifactReady/evidenceReady` snapshot counts re-derive without the enum.
+Committed fixture: 381 routes (159 with detector coverage → 36 `ready` + 123 `checked_clean`;
+reliability honestly `building` for all until Track B calibrates it). Reliability/ridership go
+`blocked` from `route_month_source_status`; speed/schedule have no source there. `env.BASELINE_MONTH`
+still shapes the index list (C3), but per-surface freshness now has its own clock.
+
 ## [2026-06-10] calibration | S2.3 feature-field audit (spatialConfidence + lane-type typed field)
 
 Two honest-field fixes, both DB-verified behavior-neutral.
