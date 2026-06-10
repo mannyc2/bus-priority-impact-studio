@@ -318,6 +318,7 @@ export type {
   StudioRouteCapability,
 } from "./route-capability.js";
 export {
+  freshnessForDataAsOf,
   RouteCapabilityFreshnessSchema,
   RouteCapabilityManifestForIndexSchema,
   RouteCapabilityManifestRowSchema,

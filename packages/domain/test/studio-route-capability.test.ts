@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+  freshnessForDataAsOf,
   RouteCapabilityManifestForIndexSchema,
   RouteCapabilityManifestSchema,
   STUDIO_ROUTE_CAPABILITY_MANIFEST_KEY,
@@ -88,5 +89,22 @@ describe("route capability manifest contract", () => {
     };
     const parsed = RouteCapabilityManifestForIndexSchema.parse(forward);
     expect(parsed.routes[0]?.surfaces["materializationCoverage"]?.state).toBe("building");
+  });
+});
+
+describe("freshnessForDataAsOf (C4 shared freshness vocabulary)", () => {
+  test("classifies current / recent / stale / unknown", () => {
+    expect(freshnessForDataAsOf("2026-03", "2026-03")).toBe("current");
+    expect(freshnessForDataAsOf("2026-05", "2026-03")).toBe("current");
+    expect(freshnessForDataAsOf("2026-01", "2026-03")).toBe("recent");
+    expect(freshnessForDataAsOf("2025-12", "2026-03")).toBe("recent");
+    expect(freshnessForDataAsOf("2025-11", "2026-03")).toBe("stale");
+    expect(freshnessForDataAsOf(null, "2026-03")).toBe("unknown");
+    expect(freshnessForDataAsOf("not-a-month", "2026-03")).toBe("unknown");
+  });
+
+  test("crosses year boundaries by month arithmetic, not string compare", () => {
+    expect(freshnessForDataAsOf("2025-12", "2026-02")).toBe("recent");
+    expect(freshnessForDataAsOf("2025-02", "2026-01")).toBe("stale");
   });
 });

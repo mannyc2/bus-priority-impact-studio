@@ -41,6 +41,30 @@ export type RouteSurfaceState = z.output<typeof RouteSurfaceStateSchema>;
 export const RouteCapabilityFreshnessSchema = z.enum(["current", "recent", "stale", "unknown"]);
 export type RouteCapabilityFreshness = z.output<typeof RouteCapabilityFreshnessSchema>;
 
+/** A `dataAsOf` within this many months of the reference month is "recent"; older is "stale". */
+const RECENT_DATA_AS_OF_WINDOW_MONTHS = 3;
+
+/**
+ * Freshness of a `dataAsOf` month against a reference month (hard-cutover C4).
+ * The single vocabulary shared by the pipeline manifest builder and the UI's
+ * `DataAsOf` component, so the freshness states never diverge.
+ */
+export function freshnessForDataAsOf(
+  dataAsOf: string | null,
+  referenceMonth: string,
+): RouteCapabilityFreshness {
+  const parse = (month: string): number | null => {
+    const match = /^(\d{4})-(\d{2})$/.exec(month);
+    return match === null ? null : Number(match[1]) * 12 + Number(match[2]);
+  };
+  if (dataAsOf === null) return "unknown";
+  const dataIdx = parse(dataAsOf);
+  const referenceIdx = parse(referenceMonth);
+  if (dataIdx === null || referenceIdx === null) return "unknown";
+  if (dataIdx >= referenceIdx) return "current";
+  return referenceIdx - dataIdx <= RECENT_DATA_AS_OF_WINDOW_MONTHS ? "recent" : "stale";
+}
+
 export const RouteSurfaceDepthSchema = z
   .object({
     monthsCovered: z.number().int().nonnegative(),

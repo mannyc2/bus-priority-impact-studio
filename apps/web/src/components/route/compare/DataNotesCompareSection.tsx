@@ -1,3 +1,4 @@
+import { DataAsOf } from "@/components/DataAsOf";
 import { CompareRouteTag } from "@/components/route/compare/CompareRouteTag";
 import { COMPARE_SERIES } from "@/components/route/compare/series";
 import type { CompareSides } from "@/components/route/compare/types";
@@ -37,7 +38,6 @@ function QualityCard({
     ["Route-month rows", history ? String(history.coverage.pointCount) : "—"],
     ["Timepoint segments", String(segments.length)],
     ["Quality confidence", quality.confidence],
-    ["Generated", detail.generatedAt.slice(0, 10)],
   ];
   return (
     <div className="rounded-[3px] bg-[var(--bp-color-card)] p-4 shadow-[0_0_0_1px_var(--bp-color-rule)]">
@@ -53,6 +53,10 @@ function QualityCard({
           <span className="text-right text-[12.5px] font-semibold">{value}</span>
         </div>
       ))}
+      <div className="flex items-baseline justify-between gap-4 py-2">
+        <span className="text-[12px] text-[var(--bp-color-ink-55)]">Freshness</span>
+        <DataAsOf dataAsOf={detail.dossier?.dataAsOf ?? null} />
+      </div>
       {quality.caveats.length > 0 ? (
         <p className="m-0 mt-3 text-[11.5px] leading-[1.5] text-[var(--bp-color-ink-55)]">
           {quality.caveats.join("; ")}

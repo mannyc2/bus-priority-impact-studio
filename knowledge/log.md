@@ -2,6 +2,21 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-10] engineering | Hard-cutover C4: one freshness vocabulary; generatedAt leaves the render paths
+
+Executed `docs/research/hard-cutover-dossier-contract.md` §3-C4, completing the cutover plan
+(C0–C4 all landed 2026-06-10). One shared `DataAsOf` component (`apps/web/src/components/DataAsOf.tsx`)
+renders `dataAsOf` + a freshness dot wherever a data block declares its clock; freshness comes from
+a single domain helper `freshnessForDataAsOf` (`route-capability.ts`, unit-tested), which the C1
+manifest builder in @bp/applied-research now also uses — pipeline and UI cannot diverge on the
+current/recent/stale/unknown vocabulary. Replaced render paths: route DataNotes (generatedAt
+fallback removed; honest "unknown" freshness instead), compare DataNotes ("Generated" row →
+Freshness row from the dossier), routes-home rankings line. `grep -rn generatedAt apps/web/src`
+shows no user-facing render hits — the remaining references are the brief publish-candidate export
+panel (artifact metadata, explicitly kept per the plan) and a code comment. Visual QA in a live
+browser was NOT performed this slice (would need local R2 re-seeded with the v2 artifacts);
+contract coverage is via tests + build.
+
 ## [2026-06-10] engineering | Hard-cutover C3: network surfaces de-monthed; env months stop shaping public responses
 
 Executed `docs/research/hard-cutover-dossier-contract.md` §3-C3. All studio public read paths now

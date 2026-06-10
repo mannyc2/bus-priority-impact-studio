@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { DataAsOf } from "@/components/DataAsOf";
 import { EmptyState } from "@/components/EmptyState";
 import { FilterChips } from "@/components/FilterChips";
 import { RouteBadge } from "@/components/RouteBadge";
@@ -85,8 +86,8 @@ function RouteDiscoverySections({
             Route discovery
           </h2>
           <p className="mt-1 max-w-[680px] text-[12.5px] leading-normal text-[var(--bp-color-ink-70)]">
-            Data as of {routeSections.dataAsOf}: ranks from current route summaries, history, and
-            coverage flags.
+            <DataAsOf dataAsOf={routeSections.dataAsOf} /> — ranks from current route summaries,
+            history, and coverage flags.
           </p>
         </div>
         <div className="whitespace-nowrap text-[11px] font-medium text-[var(--bp-color-ink-55)]">

@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { DataAsOf } from "@/components/DataAsOf";
 import {
   dossierMetricMonthCount,
   dossierMetricWindow,
@@ -60,11 +61,15 @@ export function DataNotesSection({ data }: { data: StudioRouteDetailResponse }) 
           sub={quality.completenessStatus.replace(/_/g, " ")}
           good={quality.confidence === "high"}
         />
-        <DataWindow
-          label="Data as of"
-          value={dossier?.dataAsOf ?? data.generatedAt.slice(0, 10)}
-          sub={dossier?.dataAsOf ? "latest input month" : "last updated"}
-        />
+        <div className="max-w-[280px]">
+          <div className="mb-1 font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--bp-color-ink-55)]">
+            Freshness
+          </div>
+          <DataAsOf dataAsOf={dossier?.dataAsOf ?? null} className="text-[13px]" />
+          <div className="mt-0.5 text-[11px] leading-[1.35] text-[var(--bp-color-ink-55)]">
+            latest input month
+          </div>
+        </div>
         <div className="ml-auto">
           <Link
             to="/docs/$page"

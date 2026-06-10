@@ -1,9 +1,9 @@
-import type {
-  RouteCapabilityFreshness,
-  RouteCapabilityManifest,
-  RouteCapabilityManifestRow,
-  RouteSurfaceCapability,
-  RouteSurfaceState,
+import {
+  freshnessForDataAsOf,
+  type RouteCapabilityManifest,
+  type RouteCapabilityManifestRow,
+  type RouteSurfaceCapability,
+  type RouteSurfaceState,
 } from "@bp/domain/studio";
 
 /**
@@ -83,24 +83,6 @@ export type BuildRouteCapabilityManifestInput = {
   readonly rows: readonly RouteCapabilityInputRow[];
 };
 
-/** A surface is "current" at its release month, "recent" within this many months, else "stale". */
-const RECENT_FRESHNESS_WINDOW_MONTHS = 3;
-
-function monthIndex(month: string): number | null {
-  const match = /^(\d{4})-(\d{2})$/.exec(month);
-  if (match === null) return null;
-  return Number(match[1]) * 12 + Number(match[2]);
-}
-
-function freshnessFor(dataAsOf: string | null, releaseMonth: string): RouteCapabilityFreshness {
-  if (dataAsOf === null) return "unknown";
-  const dataIdx = monthIndex(dataAsOf);
-  const releaseIdx = monthIndex(releaseMonth);
-  if (dataIdx === null || releaseIdx === null) return "unknown";
-  if (dataIdx >= releaseIdx) return "current";
-  return releaseIdx - dataIdx <= RECENT_FRESHNESS_WINDOW_MONTHS ? "recent" : "stale";
-}
-
 function latestMonth(months: readonly string[]): string | null {
   let latest: string | null = null;
   for (const month of months) {
@@ -123,7 +105,7 @@ function surface(
     reason: input.reason,
     depth: input.depth,
     dataAsOf: input.dataAsOf,
-    freshness: freshnessFor(input.dataAsOf, releaseMonth),
+    freshness: freshnessForDataAsOf(input.dataAsOf, releaseMonth),
   };
 }
 
