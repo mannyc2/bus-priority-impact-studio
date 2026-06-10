@@ -6,6 +6,7 @@ build/
 !tools/pipeline-v2/test/commands/build/
 !tools/pipeline-v2/test/commands/build/**
 .wrangler/
+test-results/
 .dev.vars
 .env
 .env.*

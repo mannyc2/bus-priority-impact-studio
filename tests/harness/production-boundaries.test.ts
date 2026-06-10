@@ -305,6 +305,17 @@ describe("production boundary harness", () => {
     }
   });
 
+  test("pipeline-v2 commands reach detectors through applied-research, never importing @bp/analytics directly", async () => {
+    const files = await readFiles("tools/pipeline-v2/src");
+
+    for (const file of files) {
+      expect(
+        importsForbiddenSpecifier(file.text, "@bp/analytics"),
+        `${file.path} imports @bp/analytics directly; route detector access through @bp/applied-research and detector-id constants through @bp/domain. (Codemode sandbox prose strings and the packages/analytics symlink are not imports and are allowed.)`,
+      ).toBe(false);
+    }
+  });
+
   test("package root barrels use explicit re-exports", async () => {
     const glob = new Bun.Glob("packages/*/src/index.ts");
 
