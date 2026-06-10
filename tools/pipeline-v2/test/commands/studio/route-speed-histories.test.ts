@@ -17,6 +17,7 @@ import {
 } from "@bp/applied-research/feature-history";
 import { runRouteSpeedHistories } from "../../../src/commands/studio/route-speed-histories.ts";
 import { writeJson } from "../../../src/lib/json.ts";
+import { fromRepoRoot } from "../../../src/lib/paths.ts";
 import type { OpenLocalPipelineDb } from "../../../src/lib/local-db.ts";
 
 function sourceRow(input: { month: string; hourOfDay: number; speedMph: number }) {
@@ -139,7 +140,7 @@ async function seedSpineManifest(input: {
 describe("studio route speed histories manifest", () => {
   test("keeps batch manifest policy in applied-research", () => {
     const source = readFileSync(
-      "tools/pipeline-v2/src/commands/studio/route-speed-histories.ts",
+      fromRepoRoot("tools/pipeline-v2/src/commands/studio/route-speed-histories.ts"),
       "utf8",
     );
 

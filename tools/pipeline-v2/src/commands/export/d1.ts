@@ -1,7 +1,8 @@
 import { createHash } from "node:crypto";
 import { mkdir } from "node:fs/promises";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { buildD1AppendixSeedSql, buildD1SeedSql } from "@bp/db/d1/seed";
+import { STUDIO_ROUTE_DETECTOR_READINESS_MANIFEST_KEY } from "@bp/domain/studio/snapshots";
 import { arg, defineCommand, z } from "@liche/core";
 import { type CloudflareCostSummary, estimateD1PaidCost } from "../../lib/cloudflare-costs.ts";
 import { isoMonth } from "../../lib/dates.ts";
@@ -103,6 +104,7 @@ export type D1SeedOutputResult = {
   routeScorecardCitationRowCount: number;
   routeSpeedHistoryCoverageRowCount: number;
   sourceMonthCoverageRowCount: number;
+  detectorReadinessManifestAvailable: boolean;
 };
 
 export type D1AppendixSeedOutputResult = {
@@ -125,6 +127,18 @@ function fileContract(path: string, content: string): D1FileContract {
     byteLength: bytes.byteLength,
     sha256: createHash("sha256").update(bytes).digest("hex"),
   };
+}
+
+async function stageDetectorReadinessManifest(input: {
+  manifestPath?: string | undefined;
+  artifactRoot: string;
+}): Promise<void> {
+  if (input.manifestPath === undefined) return;
+  const file = Bun.file(input.manifestPath);
+  if (!(await file.exists())) return;
+  const outputPath = join(input.artifactRoot, STUDIO_ROUTE_DETECTOR_READINESS_MANIFEST_KEY);
+  await mkdir(dirname(outputPath), { recursive: true });
+  await Bun.write(outputPath, await file.text());
 }
 
 function countMatches(sql: string, pattern: RegExp): number {
@@ -211,6 +225,7 @@ export type ExportD1Inputs = {
   exportRoot?: string | undefined;
   artifactRoot?: string | undefined;
   routeTimelineProjectionPath?: string | undefined;
+  detectorReadinessManifestPath?: string | undefined;
   inputs?: D1CanonicalInputs | undefined;
 };
 
@@ -220,13 +235,20 @@ export async function runExportD1Seed(inputs: ExportD1Inputs): Promise<D1SeedOut
   const summaryPath = join(exportDir, "export-summary.json");
   const schemaPath = join(exportDir, "schema.sql");
   const seedPath = join(exportDir, "seed.sql");
+  const artifactRoot = inputs.artifactRoot ?? defaultArtifactRootPath();
+
+  await stageDetectorReadinessManifest({
+    manifestPath: inputs.detectorReadinessManifestPath,
+    artifactRoot,
+  });
 
   const d1Inputs =
     inputs.inputs ??
     (await readLocalD1Inputs(inputs.local.db, month, {
       sqlite: inputs.local.sqlite,
-      artifactRoot: inputs.artifactRoot ?? defaultArtifactRootPath(),
+      artifactRoot,
       routeTimelineProjectionPath: inputs.routeTimelineProjectionPath,
+      detectorReadinessManifestPath: inputs.detectorReadinessManifestPath,
     }));
   const schemaSql = await readD1MigrationSql();
   const seed = buildD1SeedSql({ month, ...d1Inputs });
@@ -281,6 +303,7 @@ export async function runExportD1Seed(inputs: ExportD1Inputs): Promise<D1SeedOut
     routeScorecardCitationRowCount: seed.routeScorecardCitationRowCount,
     routeSpeedHistoryCoverageRowCount: seed.routeSpeedHistoryCoverageRowCount,
     sourceMonthCoverageRowCount: seed.sourceMonthCoverageRowCount,
+    detectorReadinessManifestAvailable: d1Inputs.detectorReadinessManifestAvailable,
   };
 
   await mkdir(exportDir, { recursive: true });
@@ -354,6 +377,12 @@ export default defineCommand({
         .string()
         .optional()
         .describe("Optional route timeline serving projection JSON to fold into D1 seed output"),
+      detectorReadinessManifestPath: z
+        .string()
+        .optional()
+        .describe(
+          "Optional detector readiness serving manifest JSON to fold into D1 route artifact refs",
+        ),
     }),
   },
   middleware: [withLocalDb()],
@@ -373,6 +402,10 @@ export default defineCommand({
       input.options.routeTimelineProjectionPath === undefined
         ? undefined
         : fromCliPath(input.options.routeTimelineProjectionPath);
+    const detectorReadinessManifestPath =
+      input.options.detectorReadinessManifestPath === undefined
+        ? undefined
+        : fromCliPath(input.options.detectorReadinessManifestPath);
     if (input.options.mode === "appendix") {
       return runExportD1AppendixSeed({
         local,
@@ -388,6 +421,7 @@ export default defineCommand({
       exportRoot,
       artifactRoot,
       routeTimelineProjectionPath,
+      detectorReadinessManifestPath,
     });
   },
 });

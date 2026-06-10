@@ -1,5 +1,12 @@
+import type { Database } from "bun:sqlite";
+import { createHash } from "node:crypto";
+import type { Dirent } from "node:fs";
+import { readdir } from "node:fs/promises";
+import { join } from "node:path";
+import type { D1RouteTimelineIndexInput } from "@bp/db/d1/seed";
 import {
   getRouteBatchStatus,
+  type LocalPipelineDb,
   listCorridorArtifacts,
   listCorridorHotspots,
   listCorridorInterventionContexts,
@@ -26,12 +33,9 @@ import {
   listRouteReliabilityBaselines,
   listRouteReliabilityGapWindows,
   listRouteScorecards,
-  type LocalPipelineDb,
 } from "@bp/db/local";
-import type { D1RouteTimelineIndexInput } from "@bp/db/d1/seed";
-import type { Database } from "bun:sqlite";
+import { STUDIO_ROUTE_DETECTOR_READINESS_MANIFEST_KEY } from "@bp/domain/studio/snapshots";
 import * as z from "zod";
-import { join } from "node:path";
 import { defaultArtifactRootPath } from "../../lib/paths.ts";
 
 const DEFAULT_HISTORY_START_MONTH = "2023-04";
@@ -74,6 +78,7 @@ const RouteTimelineSupportLevelSchema = z.enum([
 const RouteTimelineServingProjectionSchema = z
   .object({
     releaseMonth: z.string(),
+    generatedAt: z.string().min(1).optional(),
     routeTimelineIndexRows: z.array(
       z
         .object({
@@ -118,6 +123,29 @@ const RouteTimelineServingProjectionSchema = z
   })
   .passthrough();
 
+const DetectorReadinessServingManifestSchema = z
+  .object({
+    artifactKind: z.literal("detector_readiness_serving_manifest"),
+    schemaVersion: z.literal(1),
+    releaseMonth: z.string().min(1),
+    routes: z.array(
+      z
+        .object({
+          routeId: z.string().min(1),
+          counts: z
+            .object({
+              public_finding_candidate: z.number().int().nonnegative(),
+              route_context: z.number().int().nonnegative(),
+              review_queue: z.number().int().nonnegative(),
+              suppressed: z.number().int().nonnegative(),
+            })
+            .passthrough(),
+        })
+        .passthrough(),
+    ),
+  })
+  .passthrough();
+
 export type D1CanonicalInputs = Awaited<ReturnType<typeof readLocalD1Inputs>>;
 export type D1AppendixInputs = Awaited<ReturnType<typeof readLocalD1AppendixInputs>>;
 
@@ -126,6 +154,7 @@ type ReadLocalD1InputOptions = {
   artifactRoot?: string | undefined;
   historyStartMonth?: string | undefined;
   routeTimelineProjectionPath?: string | undefined;
+  detectorReadinessManifestPath?: string | undefined;
 };
 
 type RawRouteSpeedHistoryCoverageRow = {
@@ -329,17 +358,24 @@ function completeInterventionEventsForComparisons(
 
 async function readRouteTimelineProjectionRows(input: {
   projectionPath?: string | undefined;
+  artifactRoot: string;
   month: string;
 }): Promise<{
   routeTimelineIndex: D1RouteTimelineIndexInput[];
   routeArtifacts: RouteArtifactLike[];
 }> {
-  if (input.projectionPath === undefined) {
+  const projectionPath =
+    input.projectionPath ??
+    (await findDefaultRouteTimelineProjectionPath({
+      artifactRoot: input.artifactRoot,
+      month: input.month,
+    }));
+  if (projectionPath === undefined) {
     return { routeTimelineIndex: [], routeArtifacts: [] };
   }
-  const file = Bun.file(input.projectionPath);
+  const file = Bun.file(projectionPath);
   if (!(await file.exists())) {
-    throw new Error(`Route timeline serving projection not found: ${input.projectionPath}`);
+    throw new Error(`Route timeline serving projection not found: ${projectionPath}`);
   }
   const projection = RouteTimelineServingProjectionSchema.parse(await file.json());
   if (projection.releaseMonth !== input.month) {
@@ -365,6 +401,97 @@ async function readRouteTimelineProjectionRows(input: {
     routeTimelineIndex: projection.routeTimelineIndexRows,
     routeArtifacts: projection.routeArtifactRows,
   };
+}
+
+async function findFilesNamed(root: string, fileName: string): Promise<string[]> {
+  let entries: Dirent<string>[];
+  try {
+    entries = await readdir(root, { withFileTypes: true });
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") return [];
+    throw error;
+  }
+
+  const files: string[] = [];
+  for (const entry of entries) {
+    const path = join(root, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...(await findFilesNamed(path, fileName)));
+      continue;
+    }
+    if (entry.isFile() && entry.name === fileName) {
+      files.push(path);
+    }
+  }
+  return files;
+}
+
+async function findDefaultRouteTimelineProjectionPath(input: {
+  artifactRoot: string;
+  month: string;
+}): Promise<string | undefined> {
+  const candidates = await findFilesNamed(
+    join(input.artifactRoot, "docs"),
+    "route-timeline-serving-projection.json",
+  );
+  const matching: Array<{ path: string; generatedAt: string }> = [];
+  for (const path of candidates) {
+    const projection = RouteTimelineServingProjectionSchema.safeParse(await Bun.file(path).json());
+    if (!projection.success || projection.data.releaseMonth !== input.month) continue;
+    matching.push({
+      path,
+      generatedAt: projection.data.generatedAt ?? "",
+    });
+  }
+  return matching.sort(
+    (left, right) => right.generatedAt.localeCompare(left.generatedAt) || right.path.localeCompare(left.path),
+  )[0]?.path;
+}
+
+async function readDetectorReadinessManifestRouteArtifacts(input: {
+  manifestPath?: string | undefined;
+  month: string;
+}): Promise<{ routeArtifacts: RouteArtifactLike[]; manifestAvailable: boolean }> {
+  if (input.manifestPath === undefined) {
+    return { routeArtifacts: [], manifestAvailable: false };
+  }
+
+  const file = Bun.file(input.manifestPath);
+  if (!(await file.exists())) {
+    return { routeArtifacts: [], manifestAvailable: false };
+  }
+
+  const body = await file.text();
+  const manifest = DetectorReadinessServingManifestSchema.parse(JSON.parse(body));
+  if (manifest.releaseMonth !== input.month) {
+    throw new Error(
+      `Detector readiness serving manifest month ${manifest.releaseMonth} does not match export month ${input.month}.`,
+    );
+  }
+
+  const byteLength = new TextEncoder().encode(body).byteLength;
+  const sha256 = createHash("sha256").update(body).digest("hex");
+  const routeArtifacts = manifest.routes
+    .filter(
+      (route) =>
+        route.counts.public_finding_candidate > 0 ||
+        route.counts.route_context > 0 ||
+        route.counts.review_queue > 0 ||
+        route.counts.suppressed > 0,
+    )
+    .map(
+      (route): RouteArtifactLike => ({
+        routeId: route.routeId,
+        month: input.month,
+        artifactName: "detector_readiness_manifest",
+        artifactKey: STUDIO_ROUTE_DETECTOR_READINESS_MANIFEST_KEY,
+        contentType: "application/json",
+        byteLength,
+        sha256,
+      }),
+    );
+
+  return { routeArtifacts, manifestAvailable: true };
 }
 
 export async function readLocalD1Inputs(
@@ -402,6 +529,7 @@ export async function readLocalD1Inputs(
     routeBatchIssues,
     sourceMonthCoverage,
     routeTimelineProjection,
+    detectorReadinessManifest,
   ] = await Promise.all([
     listRouteCatalog(db),
     listRouteMonthCoverage(db, month),
@@ -437,6 +565,11 @@ export async function readLocalD1Inputs(
     }),
     readRouteTimelineProjectionRows({
       projectionPath: options.routeTimelineProjectionPath,
+      artifactRoot: options.artifactRoot ?? defaultArtifactRootPath(),
+      month,
+    }),
+    readDetectorReadinessManifestRouteArtifacts({
+      manifestPath: options.detectorReadinessManifestPath,
       month,
     }),
   ]);
@@ -455,7 +588,10 @@ export async function readLocalD1Inputs(
       routeInterventionComparisons,
     ),
     routeInterventionComparisons,
-    routeArtifacts: mergeRouteArtifacts(routeArtifacts, routeTimelineProjection.routeArtifacts),
+    routeArtifacts: mergeRouteArtifacts(routeArtifacts, [
+      ...routeTimelineProjection.routeArtifacts,
+      ...detectorReadinessManifest.routeArtifacts,
+    ]),
     corridors,
     corridorArtifacts,
     corridorRouteMembers,
@@ -476,6 +612,7 @@ export async function readLocalD1Inputs(
     routeBatchIssues,
     routeSpeedHistoryCoverage,
     sourceMonthCoverage,
+    detectorReadinessManifestAvailable: detectorReadinessManifest.manifestAvailable,
   };
 }
 

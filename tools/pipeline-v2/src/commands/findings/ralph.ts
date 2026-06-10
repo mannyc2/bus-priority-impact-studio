@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { listDetectorStudyCatalogRows } from "@bp/applied-research/detector-runs";
 import type { AgentFindingProposal } from "@bp/domain/findings";
 
 import type { Api, Model } from "@earendil-works/pi-ai";
@@ -15,7 +16,6 @@ import {
   pioneerModel,
 } from "../../lib/llm.ts";
 import { findingsArtifactDir, fromRepoRoot } from "../../lib/paths.ts";
-import { runTypeScript } from "../../lib/sandbox.ts";
 import { loadCorpus } from "./_corpus.ts";
 import { buildRalphFsTools } from "./_fs_tools.ts";
 import { buildProposal, COMMON_RULES } from "./_runner.ts";
@@ -261,24 +261,13 @@ export default defineCommand({
       warmContainer: true,
     });
 
-    // Generated analytics/corpus surface, injected into the system prompt
-    // (Codemode generateTypes): the model gets deterministic package entry
-    // points and registered detector IDs up front. One sandbox call; tolerate
-    // failure.
-    let apiRef = "";
-    try {
-      const r = await runTypeScript(
-        [
-          "import { listAnalyticsDetectors } from '@bp/analytics/registry';",
-          "const detectors = listAnalyticsDetectors().map((d) => ({ detectorId: d.detectorId, claimTier: d.claimTier, featureGrains: d.featureGrains }));",
-          "console.log('# Analytics registry available in ts_exec');",
-          "console.log(JSON.stringify({ detectorCount: detectors.length, detectors }, null, 2));",
-        ].join("\n"),
-      );
-      if (r.exitCode === 0 && r.stdout.trim().length > 0) apiRef = r.stdout.trim();
-    } catch {
-      // non-fatal — fall back to the skill's hand-written API section
-    }
+    // Generated analytics/corpus surface, injected into the system prompt:
+    // deterministic package entry points and registered detector IDs up front.
+    const detectors = listDetectorStudyCatalogRows();
+    const apiRef = [
+      "# Analytics detector catalog available in ts_exec",
+      JSON.stringify({ detectorCount: detectors.length, detectors }, null, 2),
+    ].join("\n");
     const systemPrompt = apiRef ? `${RALPH_SYSTEM_PROMPT}\n\n${apiRef}` : RALPH_SYSTEM_PROMPT;
 
     const scope = `route ${o.route}, month ${monthIso}`;

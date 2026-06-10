@@ -1,7 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
+import { fromRepoRoot } from "../../../src/lib/paths.ts";
 
-const commandPath = "tools/pipeline-v2/src/commands/map/artifacts.ts";
+const commandPath = fromRepoRoot("tools/pipeline-v2/src/commands/map/artifacts.ts");
 
 describe("map artifacts command boundary", () => {
   test("delegates manifest, path, and hash policy to applied-research", () => {

@@ -1,9 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
+import { fromRepoRoot } from "../../../src/lib/paths.ts";
 
 describe("evaluation artifacts command boundary", () => {
   test("keeps payload, manifest, hashing, and verification policy in applied-research", () => {
-    const source = readFileSync("tools/pipeline-v2/src/commands/evaluation/artifacts.ts", "utf8");
+    const source = readFileSync(
+      fromRepoRoot("tools/pipeline-v2/src/commands/evaluation/artifacts.ts"),
+      "utf8",
+    );
 
     expect(source).toContain('from "@bp/applied-research/artifacts"');
     expect(source).toContain('from "@bp/applied-research/evaluation"');

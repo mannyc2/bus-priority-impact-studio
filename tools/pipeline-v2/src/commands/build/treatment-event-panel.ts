@@ -10,12 +10,18 @@ import {
   buildTreatmentEventPanelArtifactV1,
 } from "@bp/applied-research/feature-resolvers";
 import { loadDetectorStudyLocalDbRows } from "@bp/applied-research/local-db";
-import { INTERVENTION_EVENT_STUDY_DETECTOR_ID } from "@bp/analytics/detectors";
+import { KNOWN_DETECTOR_IDS } from "@bp/domain/findings";
 import { arg, defineCommand, z } from "@liche/core";
 import { isoMonth } from "../../lib/dates.ts";
 import { writeJson } from "../../lib/json.ts";
 import { dbOptions, defaultLocalPipelineDbPath } from "../../lib/local-db.ts";
 import { defaultArtifactRootPath, fromCliPath, repoRoot } from "../../lib/paths.ts";
+
+// Detector id sourced from the @bp/domain allowlist; pipeline-v2 must not import @bp/analytics
+// directly (production-boundaries harness enforces this). The annotation makes it a compile error if
+// the id is ever dropped from KNOWN_DETECTOR_IDS.
+const INTERVENTION_EVENT_STUDY_DETECTOR_ID: (typeof KNOWN_DETECTOR_IDS)[number] =
+  "intervention_event_study";
 
 function repoDisplayPath(path: string): string {
   if (!isAbsolute(path)) return path;

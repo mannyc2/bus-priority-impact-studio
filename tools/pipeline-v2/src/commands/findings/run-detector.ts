@@ -18,6 +18,15 @@ export type { RegistryDetectorRunArtifact } from "@bp/applied-research/detector-
 const FEATURE_COUNT_SUMMARY_KEY = "featureCount";
 const LOADED_FEATURE_COUNT_SUMMARY_KEY = "loadedFeatureCount";
 
+// Strict boolean flag for destructive DB writes. `z.coerce.boolean()` is unsafe here because
+// `Boolean("false") === true`, so `--writeDb false` would silently write the DB. Only an explicit
+// true/1 (or a real boolean) enables the write; everything else — "false", "0", "", omitted — is
+// false. Exported for focused parser tests.
+export const writeDbFlagSchema = z
+  .union([z.boolean(), z.string()])
+  .default(false)
+  .transform((value) => value === true || value === "true" || value === "1");
+
 function repoDisplayPath(path: string): string {
   if (!isAbsolute(path)) return path;
   const relativePath = relative(repoRoot, path);
@@ -54,7 +63,7 @@ export default defineCommand({
       routeId: z.string().optional(),
       artifactRoot: z.string().optional(),
       output: z.string().optional(),
-      writeDb: z.coerce.boolean().default(false),
+      writeDb: writeDbFlagSchema,
       candidateLimit: arg.positiveInt().optional(),
     }),
   },
@@ -103,6 +112,7 @@ export default defineCommand({
           releaseMonth,
           historyStartMonth: input.options.historyStartMonth,
           observedRunId,
+          sqlite: local.sqlite,
           ...(input.options.routeId === undefined ? {} : { routeId: input.options.routeId }),
         },
         localRows,

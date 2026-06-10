@@ -1,5 +1,5 @@
-import { describe, expect, it } from "bun:test";
 import { Database } from "bun:sqlite";
+import { describe, expect, it } from "bun:test";
 import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -173,7 +173,7 @@ describe("runExportD1Seed", () => {
 
       const schemaSql = await Bun.file(result.schemaPath).text();
       const seedSql = await Bun.file(result.seedPath).text();
-      expect(seedSql).toContain("insert into \"route_timeline_index\"");
+      expect(seedSql).toContain('insert into "route_timeline_index"');
       expect(seedSql).toContain("route_timeline_bundle");
 
       const db = new Database(":memory:");
@@ -191,6 +191,174 @@ describe("runExportD1Seed", () => {
       } finally {
         db.close();
       }
+    } finally {
+      local.sqlite.close();
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it("folds detector readiness manifest route refs into canonical seed output", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "export-d1-detector-readiness-"));
+    const dbPath = join(tmp, "pipeline.sqlite");
+    const exportRoot = join(tmp, "exports");
+    const artifactRoot = join(tmp, "artifacts");
+    const manifestPath = join(
+      artifactRoot,
+      "detector-serving-readiness-manifest",
+      "2026-03",
+      "route-detector-readiness-manifest.json",
+    );
+
+    const manifest = {
+      artifactKind: "detector_readiness_serving_manifest",
+      schemaVersion: 1,
+      generatedAt: "2026-06-08T00:00:00.000Z",
+      releaseMonth: "2026-03",
+      sourceProjections: [],
+      sourceEvaluations: [],
+      summary: {
+        routeCount: 2,
+        omittedNoRouteItemCount: 0,
+        publicFindingCandidateRefCount: 1,
+        routeContextRefCount: 1,
+        reviewQueueItemCount: 0,
+        suppressedItemCount: 0,
+        coverageSkippedCount: 0,
+        unreviewedSuppressedCoverageCount: 0,
+        byBucket: {
+          public_finding_candidate: 1,
+          route_context: 1,
+          review_queue: 0,
+          suppressed: 0,
+        },
+        byDetector: {},
+      },
+      routes: [
+        {
+          routeId: "B46",
+          counts: {
+            public_finding_candidate: 1,
+            route_context: 0,
+            review_queue: 0,
+            suppressed: 0,
+            coverageSkipped: 0,
+            unreviewedSuppressedCoverage: 0,
+          },
+          byDetector: {},
+          sourceMonths: [],
+          publicFindingCandidateRefs: [],
+          routeContextRefs: [],
+          reviewQueueCounts: {},
+          suppressedCounts: {},
+          caveats: [],
+        },
+        {
+          routeId: "M15",
+          counts: {
+            public_finding_candidate: 0,
+            route_context: 1,
+            review_queue: 0,
+            suppressed: 0,
+            coverageSkipped: 0,
+            unreviewedSuppressedCoverage: 0,
+          },
+          byDetector: {},
+          sourceMonths: [],
+          publicFindingCandidateRefs: [],
+          routeContextRefs: [],
+          reviewQueueCounts: {},
+          suppressedCounts: {},
+          caveats: [],
+        },
+      ],
+    };
+
+    await Bun.write(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+
+    const local = await openLocalPipelineDb(dbPath);
+    try {
+      const result = await runExportD1Seed({
+        local,
+        year: 2026,
+        month: 3,
+        exportRoot,
+        artifactRoot,
+        detectorReadinessManifestPath: manifestPath,
+      });
+
+      expect(result.detectorReadinessManifestAvailable).toBe(true);
+      expect(result.routeArtifactRowCount).toBe(2);
+
+      const stagedPath = join(
+        artifactRoot,
+        "studio",
+        "v2",
+        "detectors",
+        "route-detector-readiness-manifest.json",
+      );
+      expect(existsSync(stagedPath)).toBe(true);
+
+      const schemaSql = await Bun.file(result.schemaPath).text();
+      const seedSql = await Bun.file(result.seedPath).text();
+      expect(seedSql).toContain("detector_readiness_manifest");
+      expect(seedSql).toContain("studio/v2/detectors/route-detector-readiness-manifest.json");
+
+      const db = new Database(":memory:");
+      try {
+        db.exec(schemaSql);
+        db.exec(seedSql);
+        const rows = db
+          .query<{ route_id: string; artifact_name: string; artifact_key: string }, []>(
+            "SELECT route_id, artifact_name, artifact_key FROM route_artifact ORDER BY route_id",
+          )
+          .all();
+        expect(rows).toEqual([
+          {
+            route_id: "B46",
+            artifact_name: "detector_readiness_manifest",
+            artifact_key: "studio/v2/detectors/route-detector-readiness-manifest.json",
+          },
+          {
+            route_id: "M15",
+            artifact_name: "detector_readiness_manifest",
+            artifact_key: "studio/v2/detectors/route-detector-readiness-manifest.json",
+          },
+        ]);
+        expect(rows.find((row) => row.route_id === "Q99")).toBeUndefined();
+      } finally {
+        db.close();
+      }
+    } finally {
+      local.sqlite.close();
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it("keeps detector readiness manifest support non-fatal when the manifest is missing", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "export-d1-detector-readiness-missing-"));
+    const dbPath = join(tmp, "pipeline.sqlite");
+    const exportRoot = join(tmp, "exports");
+    const artifactRoot = join(tmp, "artifacts");
+    const missingManifestPath = join(tmp, "missing", "route-detector-readiness-manifest.json");
+
+    const local = await openLocalPipelineDb(dbPath);
+    try {
+      const result = await runExportD1Seed({
+        local,
+        year: 2026,
+        month: 3,
+        exportRoot,
+        artifactRoot,
+        detectorReadinessManifestPath: missingManifestPath,
+      });
+
+      expect(result.detectorReadinessManifestAvailable).toBe(false);
+      expect(result.routeArtifactRowCount).toBe(0);
+      expect(
+        existsSync(
+          join(artifactRoot, "studio", "v2", "detectors", "route-detector-readiness-manifest.json"),
+        ),
+      ).toBe(false);
     } finally {
       local.sqlite.close();
       rmSync(tmp, { recursive: true, force: true });
@@ -297,10 +465,7 @@ describe("runExportD1Seed", () => {
         db.exec(schemaSql);
         db.exec(seedSql);
         const event = db
-          .query<
-            { implementation_month: string; event_status: string; program: string },
-            []
-          >(
+          .query<{ implementation_month: string; event_status: string; program: string }, []>(
             `
               SELECT implementation_month, event_status, program
               FROM intervention_event

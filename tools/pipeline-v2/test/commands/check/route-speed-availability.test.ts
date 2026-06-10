@@ -4,6 +4,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runRouteSpeedAvailability } from "../../../src/commands/check/route-speed-availability.ts";
+import { fromRepoRoot } from "../../../src/lib/paths.ts";
 
 const manifestYaml = `verified_at: 2026-01-01
 sources:
@@ -47,7 +48,7 @@ afterEach(async () => {
 describe("runRouteSpeedAvailability", () => {
   it("keeps availability classification and artifact path policy in applied-research", () => {
     const source = readFileSync(
-      "tools/pipeline-v2/src/commands/check/route-speed-availability.ts",
+      fromRepoRoot("tools/pipeline-v2/src/commands/check/route-speed-availability.ts"),
       "utf8",
     );
 

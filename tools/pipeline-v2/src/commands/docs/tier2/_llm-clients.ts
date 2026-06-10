@@ -261,6 +261,8 @@ export async function callDeepSeekToolCallViaPi(input: {
   apiKey: string;
   model: string;
   maxTokens: number;
+  timeoutMs?: number;
+  maxAttempts?: number;
   toolName: string;
   messages: ToolCallMessage[];
   tools: Array<{ name: string; description: string; parameters: Record<string, unknown> }>;
@@ -269,8 +271,8 @@ export async function callDeepSeekToolCallViaPi(input: {
   const model = getDeepSeekCatalogModel(input.model) ?? deepSeekModel(input.model);
   const result = await completeToolCall(model, {
     apiKey: input.apiKey,
-    timeoutMs: PI_CALL_TIMEOUT_MS,
-    maxAttempts: PI_TOOL_CALL_MAX_ATTEMPTS,
+    timeoutMs: input.timeoutMs ?? PI_CALL_TIMEOUT_MS,
+    maxAttempts: input.maxAttempts ?? PI_TOOL_CALL_MAX_ATTEMPTS,
     toolName: input.toolName,
     messages: input.messages,
     tools: input.tools,
@@ -294,6 +296,8 @@ export async function callOpenRouterToolCallViaPi(input: {
   apiKey: string;
   model: string;
   maxTokens: number;
+  timeoutMs?: number;
+  maxAttempts?: number;
   toolName: string;
   messages: ToolCallMessage[];
   tools: Array<{ name: string; description: string; parameters: Record<string, unknown> }>;
@@ -302,8 +306,8 @@ export async function callOpenRouterToolCallViaPi(input: {
   const model = openRouterModel(input.model);
   const result = await completeToolCall(model, {
     apiKey: input.apiKey,
-    timeoutMs: PI_CALL_TIMEOUT_MS,
-    maxAttempts: PI_TOOL_CALL_MAX_ATTEMPTS,
+    timeoutMs: input.timeoutMs ?? PI_CALL_TIMEOUT_MS,
+    maxAttempts: input.maxAttempts ?? PI_TOOL_CALL_MAX_ATTEMPTS,
     toolName: input.toolName,
     messages: input.messages,
     tools: input.tools,
@@ -319,6 +323,8 @@ export async function callPioneerToolCallViaPi(input: {
   apiKey: string;
   model: string;
   maxTokens: number;
+  timeoutMs?: number;
+  maxAttempts?: number;
   toolName: string;
   messages: ToolCallMessage[];
   tools: Array<{ name: string; description: string; parameters: Record<string, unknown> }>;
@@ -327,8 +333,8 @@ export async function callPioneerToolCallViaPi(input: {
   const model = pioneerModel(input.model);
   const result = await completeToolCall(model, {
     apiKey: input.apiKey,
-    timeoutMs: PI_CALL_TIMEOUT_MS,
-    maxAttempts: PI_TOOL_CALL_MAX_ATTEMPTS,
+    timeoutMs: input.timeoutMs ?? PI_CALL_TIMEOUT_MS,
+    maxAttempts: input.maxAttempts ?? PI_TOOL_CALL_MAX_ATTEMPTS,
     toolName: input.toolName,
     messages: input.messages,
     tools: input.tools,

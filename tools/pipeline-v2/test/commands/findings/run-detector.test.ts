@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   assembleDetectorStudySourceRows,
-  detectorFeatureContractSatisfaction,
+  detectorStudyFeatureContractSatisfaction,
   detectorStudyNeedsRouteTreatmentFeatures,
   runRegistryDetectorStudy,
 } from "@bp/applied-research/detector-runs";
@@ -18,7 +18,24 @@ import {
   type SegmentSpeedResidualRow,
   type SourceGapModelRow,
 } from "@bp/applied-research/feature-resolvers";
-import { detectorRunArtifactPath } from "../../../src/commands/findings/run-detector.ts";
+import { RouteMonthSignalFeatureSchema } from "@bp/domain/findings";
+import {
+  detectorRunArtifactPath,
+  writeDbFlagSchema,
+} from "../../../src/commands/findings/run-detector.ts";
+
+describe("writeDb flag parsing", () => {
+  test("only explicit true/1 (or boolean true) enables the destructive write", () => {
+    expect(writeDbFlagSchema.parse(undefined)).toBe(false);
+    expect(writeDbFlagSchema.parse("false")).toBe(false); // the footgun: must NOT be true
+    expect(writeDbFlagSchema.parse("0")).toBe(false);
+    expect(writeDbFlagSchema.parse("")).toBe(false);
+    expect(writeDbFlagSchema.parse(false)).toBe(false);
+    expect(writeDbFlagSchema.parse("true")).toBe(true);
+    expect(writeDbFlagSchema.parse("1")).toBe(true);
+    expect(writeDbFlagSchema.parse(true)).toBe(true);
+  });
+});
 
 const FEATURE_COUNT_SUMMARY_KEY = "featureCount";
 
@@ -44,6 +61,17 @@ function speedRow(input: {
   };
 }
 
+// Highest-stop-order segment: free-flowing, so it is gated as terminal and emits no candidate, while
+// keeping the s1->s2 segment interior (non-terminal) so the slow-pace gate still applies there.
+function downstreamSpeedRow(input: { hour: number }): SegmentDaypartSpeedSourceRow {
+  return {
+    ...speedRow({ hour: input.hour, travelTime: 5, speed: 12 }),
+    stop_order: 20,
+    timepoint_stop_id: "s2",
+    next_timepoint_stop_id: "s3",
+  };
+}
+
 function routePainRow(over: Partial<RoutePainSourceRow> = {}): RoutePainSourceRow {
   return {
     route_id: "M57",
@@ -61,6 +89,74 @@ function routePainRow(over: Partial<RoutePainSourceRow> = {}): RoutePainSourceRo
     wait_reliability_ratio: 12,
     ...over,
   };
+}
+
+function routeMonthSignalFeature(routeId: string) {
+  return RouteMonthSignalFeatureSchema.parse({
+    scope: "route",
+    scopeId: routeId,
+    routeId,
+    month: "2026-03",
+    window: "all_day",
+    direction: null,
+    routeWeightedAverageSpeedMph: 4.75,
+    speedObservationCount: 900,
+    hotspotCount: 4,
+    maxHotspotScore: 91,
+    ridershipExposure: 10_000,
+    permitTouchedEventCount: 40,
+    permitTouchCount: 50,
+    permitRouteCount: 2,
+    permitSources: ["dot_street_permits"],
+    contextTouchedEventCount: 80,
+    contextTouchCount: 110,
+    contextPrimaryTouchCount: 65,
+    contextHighConfidenceTouchCount: 30,
+    contextEventCounts: [
+      {
+        sourceId: "dot_street_permits",
+        eventKind: "permit",
+        touchedEventCount: 40,
+        touchCount: 50,
+        primaryTouchCount: 35,
+        contextTouchCount: 15,
+        highConfidenceTouchCount: 20,
+        matchWeightSum: 25,
+        averageMatchWeight: 0.5,
+        maxRouteFanout: 2,
+      },
+      {
+        sourceId: "nyc_311_service_requests_current",
+        eventKind: "311_complaint",
+        touchedEventCount: 40,
+        touchCount: 60,
+        primaryTouchCount: 30,
+        contextTouchCount: 30,
+        highConfidenceTouchCount: 10,
+        matchWeightSum: 30,
+        averageMatchWeight: 0.5,
+        maxRouteFanout: 3,
+      },
+    ],
+    sampleSupport: 900,
+    uncertainty: {
+      speedObservationCount: 900,
+      permitTouchedEventCount: 40,
+      contextTouchedEventCount: 80,
+      contextHighConfidenceTouchCount: 30,
+    },
+    provenance: {
+      featureComputedAt: "2026-06-01T00:00:00.000Z",
+      derivationVersion: "test",
+      sourceRefs: [`local_route_month_trend:${routeId}:2026-03`],
+    },
+    coverage: {
+      isComputable: true,
+      skippedReasonCode: null,
+      inputsSeenJson: "{}",
+      inputsExpectedJson: "{}",
+    },
+  });
 }
 
 function segmentDaypartResidualRow(
@@ -200,6 +296,62 @@ describe("findings run-detector", () => {
     }
   });
 
+  test("assembles route-month signal features through the detector resolver registry", async () => {
+    const artifactRoot = await mkdtemp(join(tmpdir(), "bp-signal-feature-assembly-"));
+    try {
+      await Bun.write(
+        join(artifactRoot, "findings", "2026-03", "signal-features.json"),
+        JSON.stringify({
+          artifactKind: "finding_signal_features",
+          schemaVersion: 1,
+          month: "2026-03",
+          generatedAt: "2026-06-01T00:00:00.000Z",
+          featureGrain: {
+            scope: ["route"],
+            window: ["all_day"],
+            direction: "nullable",
+          },
+          summary: {
+            featureCount: 2,
+            computableFeatureCount: 2,
+            permitTouchedFeatureCount: 2,
+            contextTouchedFeatureCount: 2,
+            contextSourceCount: 2,
+            detectorCandidateCount: 0,
+          },
+          features: [routeMonthSignalFeature("M15"), routeMonthSignalFeature("B41")],
+          detectorPreview: {
+            candidates: [],
+            evidence: [],
+            coverage: [],
+          },
+        }),
+      );
+
+      const rows = await assembleDetectorStudySourceRows({
+        context: {
+          detectorId: "service_request_context",
+          artifactRoot,
+          releaseMonth: "2026-03",
+          historyStartMonth: "2023-04",
+          observedRunId: "bus-observatory-2026-03",
+          routeId: "B41",
+        },
+        localRows: {},
+      });
+
+      expect(rows.routeMonthSignalFeatures?.map((feature) => `${feature.routeId}`)).toEqual([
+        "B41",
+      ]);
+      expect(rows.routeMonthSignalFeatureSummary?.["sourceKind"]).toBe(
+        "route_month_signal_features_artifact",
+      );
+      expect(rows.routeMonthSignalFeatureSummary?.["featureCount"]).toBe(2);
+    } finally {
+      await rm(artifactRoot, { recursive: true, force: true });
+    }
+  });
+
   test("runs speed_pace_hotspot through feature contracts", () => {
     const { artifact, output } = runRegistryDetectorStudy({
       metadata: {
@@ -217,6 +369,8 @@ describe("findings run-detector", () => {
         speedRows: [
           speedRow({ hour: 8, travelTime: 16, speed: 3.75 }),
           speedRow({ hour: 12, travelTime: 5, speed: 12 }),
+          downstreamSpeedRow({ hour: 8 }),
+          downstreamSpeedRow({ hour: 12 }),
         ],
       },
     });
@@ -227,9 +381,9 @@ describe("findings run-detector", () => {
       "resolved",
       "satisfied_by_feature_quality",
     ]);
-    expect(artifact.inputSummary[FEATURE_COUNT_SUMMARY_KEY]).toBe(2);
+    expect(artifact.inputSummary[FEATURE_COUNT_SUMMARY_KEY]).toBe(4);
     expect(artifact.outputSummary.candidateCount).toBe(1);
-    expect(artifact.outputSummary.coverageCount).toBe(2);
+    expect(artifact.outputSummary.coverageCount).toBe(4);
     expect(artifact.outputSummary.hitCount).toBe(1);
     expect(output.candidates[0]?.scopeKind as string | undefined).toBe("segment");
     expect(output.evidence.map((row) => row.evidenceRole as string)).toEqual([
@@ -254,16 +408,18 @@ describe("findings run-detector", () => {
     expect(detectorStudyNeedsRouteTreatmentFeatures("source_gap")).toBe(true);
     expect(detectorStudyNeedsRouteTreatmentFeatures("speed_pace_hotspot")).toBe(false);
 
-    const interventionGapContracts = detectorFeatureContractSatisfaction("intervention_gap");
+    const interventionGapContracts = detectorStudyFeatureContractSatisfaction({
+      detectorId: "intervention_gap",
+    });
     expect(
       interventionGapContracts
         .filter((contract) => contract.featureGrain.startsWith("route_treatment"))
         .map((contract) => contract.status),
     ).toEqual(["resolved", "resolved"]);
 
-    const underperformanceContracts = detectorFeatureContractSatisfaction(
-      "intervention_underperformance",
-    );
+    const underperformanceContracts = detectorStudyFeatureContractSatisfaction({
+      detectorId: "intervention_underperformance",
+    });
     expect(
       underperformanceContracts
         .filter((contract) => contract.featureGrain.includes("treatment_summary"))
@@ -435,12 +591,36 @@ describe("findings run-detector", () => {
         routeSegmentHistoricalSpeedSummaryRows: [
           {
             route_id: "M96",
-            month: "2025-03",
-            segment_id: "M96:2025-03:W:10:401965:903004",
+            month: "2025-12",
+            segment_id: "M96:2025-12:W:10:401965:903004",
             stable_segment_key: "M96:W:10:401965:903004",
             direction: "W",
             stop_order: 10,
-            average_speed_mph: 8.1,
+            average_speed_mph: 8.2,
+            segment_length_feet: 500,
+            observation_count: 120,
+            bus_trip_count: 360,
+          },
+          {
+            route_id: "M96",
+            month: "2026-01",
+            segment_id: "M96:2026-01:W:10:401965:903004",
+            stable_segment_key: "M96:W:10:401965:903004",
+            direction: "W",
+            stop_order: 10,
+            average_speed_mph: 8,
+            segment_length_feet: 500,
+            observation_count: 120,
+            bus_trip_count: 360,
+          },
+          {
+            route_id: "M96",
+            month: "2026-02",
+            segment_id: "M96:2026-02:W:10:401965:903004",
+            stable_segment_key: "M96:W:10:401965:903004",
+            direction: "W",
+            stop_order: 10,
+            average_speed_mph: 7.8,
             segment_length_feet: 500,
             observation_count: 120,
             bus_trip_count: 360,
@@ -473,6 +653,7 @@ describe("findings run-detector", () => {
             segmentOrder: 10,
             matchMethod: "route_shape_overlap",
             overlapShare: 0.7,
+            laneTypes: [],
           },
         ],
         segmentSpeedResidualRows: [segmentSpeedResidualRow()],

@@ -47,6 +47,15 @@ async function seedStudioSpeedHistoryArtifact(root: string): Promise<void> {
   await writeFile(join(dir, "speed-history.json"), '{"artifactKind":"studio_route_speed_history"}');
 }
 
+async function seedStudioDetectorReadinessManifest(root: string): Promise<void> {
+  const dir = join(root, "studio", "v2", "detectors");
+  await mkdir(dir, { recursive: true });
+  await writeFile(
+    join(dir, "route-detector-readiness-manifest.json"),
+    '{"artifactKind":"detector_readiness_serving_manifest","schemaVersion":1}',
+  );
+}
+
 const MONTH = "2026-03";
 
 function baseOptions(input: {
@@ -86,9 +95,7 @@ describe("runPublishR2Artifacts", () => {
       await seedArtifacts(artifactRoot, MONTH);
 
       const { driver, calls } = recordingDriver(new Map());
-      const report = await runPublishR2Artifacts(
-        baseOptions({ artifactRoot, outputPath, driver }),
-      );
+      const report = await runPublishR2Artifacts(baseOptions({ artifactRoot, outputPath, driver }));
 
       expect(report.status).toBe("pass");
       expect(report.candidateCount).toBe(2);
@@ -96,8 +103,14 @@ describe("runPublishR2Artifacts", () => {
       expect(report.skippedCount).toBe(0);
       expect(report.failedCount).toBe(0);
       expect(report.r2ClassBOperationCount).toBe(2);
-      const statKeys = calls.filter((c) => c.kind === "stat").map((c) => c.key).sort();
-      const putKeys = calls.filter((c) => c.kind === "put").map((c) => c.key).sort();
+      const statKeys = calls
+        .filter((c) => c.kind === "stat")
+        .map((c) => c.key)
+        .sort();
+      const putKeys = calls
+        .filter((c) => c.kind === "put")
+        .map((c) => c.key)
+        .sort();
       expect(statKeys).toEqual([`map/${MONTH}/tiles.geojson`, "studio/index.json"]);
       expect(putKeys).toEqual([`map/${MONTH}/tiles.geojson`, "studio/index.json"]);
     } finally {
@@ -126,6 +139,28 @@ describe("runPublishR2Artifacts", () => {
     }
   });
 
+  it("includes the staged Studio v2 detector readiness manifest under the default studio prefix", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "publish-r2-studio-v2-detectors-"));
+    try {
+      const artifactRoot = join(tmp, "artifacts");
+      const outputPath = join(tmp, "report.json");
+      await seedArtifacts(artifactRoot, MONTH);
+      await seedStudioDetectorReadinessManifest(artifactRoot);
+
+      const { driver, calls } = recordingDriver(new Map());
+      const report = await runPublishR2Artifacts(
+        baseOptions({ artifactRoot, outputPath, driver, dryRun: true }),
+      );
+
+      expect(report.status).toBe("pass");
+      expect(calls.map((c) => c.key)).toContain(
+        "studio/v2/detectors/route-detector-readiness-manifest.json",
+      );
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
   it("skips uploads when remote etag matches local md5 and size", async () => {
     const tmp = mkdtempSync(join(tmpdir(), "publish-r2-skip-"));
     try {
@@ -140,9 +175,7 @@ describe("runPublishR2Artifacts", () => {
       ]);
 
       const { driver } = recordingDriver(remote);
-      const report = await runPublishR2Artifacts(
-        baseOptions({ artifactRoot, outputPath, driver }),
-      );
+      const report = await runPublishR2Artifacts(baseOptions({ artifactRoot, outputPath, driver }));
 
       expect(report.uploadedCount).toBe(1);
       expect(report.skippedCount).toBe(1);
