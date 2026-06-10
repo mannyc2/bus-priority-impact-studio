@@ -25,7 +25,7 @@ export function TimelineSection({
       <InterventionHistory
         events={route.interventions}
         title="The corridor's history"
-        sub={`${route.interventions.length} dated intervention records for ${route.label}${route.sbs ? " SBS" : ""}. Sequence matters for attribution.`}
+        sub={`${route.interventions.length} recorded changes on ${route.label}${route.sbs ? " SBS" : ""}. Read them in order alongside the speed trend.`}
         right={<TimelineLegend />}
       />
       <div className="grid grid-cols-[minmax(0,1fr)_420px] items-start gap-6 max-xl:grid-cols-1">
@@ -33,8 +33,8 @@ export function TimelineSection({
           title={hasSpeedHistory ? "Route speed history" : "Speed since recent changes"}
           source={
             hasSpeedHistory
-              ? `D1 route-month trend rows${routeHistoryWindow(history) ? `, ${routeHistoryWindow(history)}` : ""}.`
-              : "Route sparkline from current Studio projection; dashed line is scheduled speed."
+              ? `Monthly average speed${routeHistoryWindow(history) ? `, ${routeHistoryWindow(history)}` : ""}.`
+              : "Recent trend estimate; the dashed line is the schedule."
           }
           height={196}
           right={
@@ -159,9 +159,9 @@ function TimelineCaveat({ route }: { route: StudioRouteDetailResponse["route"] }
     <Alert variant="info">
       <AlertTitle variant="info">Timeline interpretation</AlertTitle>
       <AlertDescription>
-        {route.label} has {route.interventions.length} dated intervention records in this release.
-        Use the sequence as route context, not as causal proof, until a before/after window is
-        attached.
+        {route.label} has {route.interventions.length} recorded changes. Read them as background,
+        not proof that any single change moved the numbers, until before-and-after speeds are
+        compared.
       </AlertDescription>
     </Alert>
   );

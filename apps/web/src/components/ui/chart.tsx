@@ -110,6 +110,16 @@ ${colorConfig
 
 const ChartTooltip = RechartsPrimitive.Tooltip;
 
+// Tooltip standard across charts:
+// - Cartesian charts use <ChartTooltip content={<ChartTooltipContent .../>} />.
+//   The swatch color resolves from item.payload.fill → item.color → config color,
+//   so line/area charts get the series stroke and bar charts get the bar's fill.
+// - Band/per-datum bar charts (HourBars, HourExposure) must put the resolved
+//   color on each datum as `fill` (not only on <Cell>), so the swatch matches.
+// - Line/area charts pass `hideLabel` when the x value is a bare index; bar
+//   charts pass a `labelFormatter` to render the category as the header.
+// - Rich multi-stat tooltips (CorridorProfile) use a custom content component
+//   but reuse the same container styling and the gap-4 label↔value rhythm.
 function ChartTooltipContent({
   active,
   payload,
@@ -181,7 +191,7 @@ function ChartTooltipContent({
           .map((item, index) => {
             const key = `${nameKey ?? item.name ?? item.dataKey ?? "value"}`;
             const itemConfig = getPayloadConfigFromPayload(config, item, key);
-            const indicatorColor = color ?? item.payload?.fill ?? item.color;
+            const indicatorColor = color ?? item.payload?.fill ?? item.color ?? itemConfig?.color;
 
             return (
               <div
@@ -221,7 +231,11 @@ function ChartTooltipContent({
                     )}
                     <div
                       className={cn(
-                        "flex flex-1 justify-between leading-none",
+                        // gap-4 guarantees a minimum name↔value gap so the value
+                        // never collides with a long series name (matches the
+                        // CorridorProfile Stat row). The tooltip grows past its
+                        // min-width when needed rather than jamming the two.
+                        "flex flex-1 justify-between gap-4 leading-none",
                         nestLabel ? "items-end" : "items-center",
                       )}
                     >

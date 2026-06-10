@@ -48,7 +48,7 @@ export function OverviewCompareSection({ a, b, historyA, historyB }: CompareSide
       <div className="grid grid-cols-2 gap-5 max-xl:grid-cols-1">
         <ChartFrame
           title="Speed history"
-          source="Route-month speed trend for both routes; falls back to the route sparkline where history is absent."
+          source="Monthly average speed for both routes, where available."
           height={180}
         >
           <TrendOverlay
@@ -69,7 +69,7 @@ export function OverviewCompareSection({ a, b, historyA, historyB }: CompareSide
         </ChartFrame>
         <ChartFrame
           title="Speed by hour of day"
-          source="Derived from each route's segment hourly severity."
+          source="Average speed by time of day, each route."
           height={180}
         >
           <HourOverlay

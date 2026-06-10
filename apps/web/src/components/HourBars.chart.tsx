@@ -34,9 +34,12 @@ const SPEED_BANDS: ChartBand[] = [
 ];
 
 export function HourBarsChart({ data, sched, height = 200, min, max, legend }: HourBarsProps) {
-  const rows = data
-    .slice(0, 24)
-    .map((value, hour) => ({ hour: String(hour), value: Number(value.toFixed(1)) }));
+  // Thread each bar's band color into the datum as `fill` so the shared tooltip
+  // swatch resolves it (item.payload.fill) and matches the bar.
+  const rows = data.slice(0, 24).map((value, hour) => {
+    const v = Number(value.toFixed(1));
+    return { hour: String(hour), value: v, fill: bandColor(SPEED_BANDS, v) };
+  });
   const lo = min ?? Math.floor(Math.min(...data, sched ?? Number.POSITIVE_INFINITY) - 0.5);
   const hi = max ?? Math.ceil(Math.max(...data, sched ?? Number.NEGATIVE_INFINITY) + 0.5);
 
@@ -89,7 +92,7 @@ export function HourBarsChart({ data, sched, height = 200, min, max, legend }: H
           ) : null}
           <Bar dataKey="value" radius={[2, 2, 0, 0]} isAnimationActive={false}>
             {rows.map((row) => (
-              <Cell key={row.hour} fill={bandColor(SPEED_BANDS, row.value)} />
+              <Cell key={row.hour} fill={row.fill} />
             ))}
           </Bar>
         </BarChart>

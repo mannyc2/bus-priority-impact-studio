@@ -10,6 +10,8 @@ import {
 import {
   type ChartConfig,
   ChartContainer,
+  ChartLegendContent,
+  type ChartLegendItem,
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
@@ -23,6 +25,8 @@ export type SpeedTrendProps = {
   /** Label next to the dashed baseline. */
   scheduledLabel?: string;
   tone?: string;
+  /** Show the observed-line + scheduled-baseline key below the chart. */
+  legend?: boolean;
 };
 
 export function SpeedTrendChart({
@@ -32,6 +36,7 @@ export function SpeedTrendChart({
   seriesLabel = "Speed (mph)",
   scheduledLabel = "scheduled",
   tone = "var(--bp-color-bad)",
+  legend = false,
 }: SpeedTrendProps) {
   const rows = data.map((value, index) => ({ period: index + 1, value }));
   const lo = Math.floor(Math.min(...data, scheduled) - 0.5);
@@ -39,7 +44,12 @@ export function SpeedTrendChart({
   const last = rows.at(-1);
   const config = { value: { label: seriesLabel, color: tone } } satisfies ChartConfig;
 
-  return (
+  const legendItems: ChartLegendItem[] = [
+    { label: seriesLabel, shape: "line", color: tone },
+    { label: scheduledLabel, shape: "dashed", color: "var(--bp-color-ink-40)" },
+  ];
+
+  const chart = (
     <ChartContainer config={config} className="aspect-auto w-full" style={{ height }}>
       <ComposedChart data={rows} margin={{ top: 14, right: 12, bottom: 4, left: 0 }}>
         <defs>
@@ -101,5 +111,14 @@ export function SpeedTrendChart({
         ) : null}
       </ComposedChart>
     </ChartContainer>
+  );
+
+  if (!legend) return chart;
+
+  return (
+    <div className="flex flex-col gap-1">
+      {chart}
+      <ChartLegendContent className="flex-wrap" items={legendItems} />
+    </div>
   );
 }

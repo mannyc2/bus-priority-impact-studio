@@ -12,7 +12,7 @@ export function TimelineCompareSection({ a, b, historyA, historyB }: CompareSide
       <div>
         <SectionHeader
           title="Intervention history"
-          sub="Both routes' dated interventions on one shared timeline - who acted on this corridor, and when. Hover a marker for detail."
+          sub="Both routes' recorded changes on one timeline - who acted on this corridor, and when. Hover a marker for detail."
         />
         <InterventionOverlay
           a={{
@@ -31,7 +31,7 @@ export function TimelineCompareSection({ a, b, historyA, historyB }: CompareSide
       <div>
         <SectionHeader
           title="Speed history"
-          sub="Route-month speed trend for both routes; the gap is the divergence to read against the intervention timeline above."
+          sub="Monthly average speed for both routes; the gap is the divergence to read against the timeline above."
         />
         <ChartFrame height={196}>
           <TrendOverlay

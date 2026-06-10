@@ -1,4 +1,5 @@
 import { ChartFrame } from "@/components/ChartFrame";
+import { HourExposure } from "@/components/HourExposure";
 import {
   averageHourlySeverity,
   formatCompact,
@@ -51,11 +52,11 @@ export function RidersSection({
 
       <div className="grid grid-cols-2 items-start gap-5 max-xl:grid-cols-1">
         <ChartFrame
-          title={hasRidershipHistory ? "Monthly ridership history" : "Daily riders trend proxy"}
+          title={hasRidershipHistory ? "Monthly ridership" : "Estimated daily riders"}
           source={
             hasRidershipHistory
-              ? `D1 route-month trend ridership rows${routeHistoryWindow(history) ? `, ${routeHistoryWindow(history)}` : ""}.`
-              : "Current route sparkline scaled to boardings until monthly boarding series is exposed."
+              ? `Monthly ridership${routeHistoryWindow(history) ? `, ${routeHistoryWindow(history)}` : ""}.`
+              : "Estimated from the route's current trend until monthly ridership is available."
           }
           height={148}
           right={
@@ -73,7 +74,7 @@ export function RidersSection({
         <div>
           <SectionHeader
             title="Top rider-impact segments"
-            sub="Segment rider-hours lost, used as the route-level rider impact frame."
+            sub="Where riders lose the most time, by segment."
           />
           <div className="rounded-[3px] bg-[var(--bp-color-card)] shadow-[0_0_0_1px_var(--bp-color-rule)]">
             {topSegments.map((segment) => (
@@ -103,10 +104,10 @@ export function RidersSection({
 
       <ChartFrame
         title="Rider exposure by hour"
-        source="Peak exposure inferred from segment severity timing; red bars mark the AM/PM windows where rider-delay risk is highest."
+        source="When delays affect the most riders; red marks the AM and PM rush."
         height={112}
       >
-        <HourlyExposureBars data={hourlyExposure} />
+        <HourExposure data={hourlyExposure} />
       </ChartFrame>
 
       <Alert variant="info">
@@ -173,53 +174,5 @@ function RouteBoardingsTrend({
       scheduledLabel="baseline"
       tone="var(--bp-color-accent)"
     />
-  );
-}
-
-function HourlyExposureBars({ data }: { data: readonly number[] }) {
-  const width = 980;
-  const height = 112;
-  const padL = 28;
-  const padR = 8;
-  const padT = 12;
-  const padB = 22;
-  const max = Math.max(...data, 1);
-  const cw = (width - padL - padR) / 24;
-  const barMaxH = height - padT - padB;
-
-  return (
-    <svg
-      viewBox={`0 0 ${width} ${height}`}
-      className="block h-[112px] w-full font-mono"
-      aria-hidden="true"
-    >
-      {data.slice(0, 24).map((value, index) => {
-        const barHeight = (value / max) * barMaxH;
-        const peak = (index >= 7 && index <= 9) || (index >= 16 && index <= 19);
-        return (
-          <rect
-            key={`${index}-${value}`}
-            x={padL + index * cw + 1.5}
-            width={cw - 3}
-            y={height - padB - barHeight}
-            height={barHeight}
-            fill={peak ? "var(--bp-color-bad)" : "var(--bp-color-ink-40)"}
-            opacity={peak ? 0.72 : 0.42}
-          />
-        );
-      })}
-      {[0, 6, 12, 18].map((hour) => (
-        <text
-          key={hour}
-          x={padL + hour * cw + cw / 2}
-          y={height - 8}
-          fontSize="10"
-          textAnchor="middle"
-          fill="var(--bp-color-ink-55)"
-        >
-          {hour}:00
-        </text>
-      ))}
-    </svg>
   );
 }

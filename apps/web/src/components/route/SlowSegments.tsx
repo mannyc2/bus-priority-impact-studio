@@ -3,20 +3,31 @@ import { useState } from "react";
 import { type CaptureSource, SendToBriefSheet } from "@/components/brief/SendToBriefSheet.js";
 import { CorridorMap } from "@/components/CorridorMap";
 import { FilterChips } from "@/components/FilterChips";
+import {
+  insightTargetsSegment,
+  routeInsightPlacements,
+  safeInsightCaveats,
+} from "@/components/route/route-insight-placement";
 import { SectionHeader } from "@/components/SectionHeader";
 import { SegmentRow, SegmentRowHeader } from "@/components/SegmentRow";
 import { TreatmentBadgeRow } from "@/components/TreatmentBadge";
 import { Badge } from "@/components/ui/badge";
-import type { StudioRouteDetailResponse, StudioSegment } from "@/studio/api-contract";
+import type {
+  StudioRouteDetailResponse,
+  StudioRouteInsight,
+  StudioSegment,
+} from "@/studio/api-contract";
 import { legacyToTreatments } from "@/studio/treatment-model";
 
 export function SlowSegmentsSection({
   route,
   segments,
+  insights,
   flaggedId,
 }: {
   route: StudioRouteDetailResponse["route"];
   segments: readonly StudioSegment[];
+  insights: readonly StudioRouteInsight[];
   flaggedId?: string;
 }) {
   const [openId, setOpenId] = useState<string | null>(flaggedId ?? null);
@@ -32,11 +43,29 @@ export function SlowSegmentsSection({
     to: sendSeg.to,
     mph: sendSeg.speedMph,
   };
-  const visible = (
-    direction === "all" ? segments : segments.filter((s) => s.direction === direction)
-  ).slice(0, 5);
+  const mapInsights = routeInsightPlacements(insights).mapSegment;
+  const segmentInsight = (segment: StudioSegment) =>
+    mapInsights.find((insight) => insightTargetsSegment(insight, segment.id)) ?? null;
+  const directionSegments =
+    direction === "all" ? segments : segments.filter((segment) => segment.direction === direction);
+  const topVisible = directionSegments.slice(0, 5);
+  const matchedInsightSegments = directionSegments.filter((segment) => segmentInsight(segment));
+  const visible = [
+    ...new Map(
+      [...topVisible, ...matchedInsightSegments].map((segment) => [segment.id, segment]),
+    ).values(),
+  ];
   const featured = visible.slice(0, 3);
   const tableRows = visible.slice(3);
+  const visibleMatchedInsightIds = new Set(
+    visible.flatMap((segment) => {
+      const insight = segmentInsight(segment);
+      return insight === null ? [] : [`${insight.detectorId}:${insight.scopeId ?? ""}`];
+    }),
+  );
+  const unmatchedMapInsightCount = mapInsights.filter(
+    (insight) => !visibleMatchedInsightIds.has(`${insight.detectorId}:${insight.scopeId ?? ""}`),
+  ).length;
 
   return (
     <section className="flex flex-col gap-5">
@@ -67,6 +96,7 @@ export function SlowSegmentsSection({
               route={route}
               segments={segments}
               segment={segment}
+              insight={segmentInsight(segment)}
               index={index}
               onSend={() => setSendSeg(segment)}
             />
@@ -105,6 +135,9 @@ export function SlowSegmentsSection({
                       }
                     : {})}
                 />
+                {segmentInsight(segment) ? (
+                  <SegmentInsightNote insight={segmentInsight(segment) as StudioRouteInsight} />
+                ) : null}
                 {isOpen && segment.aiNote ? (
                   <div className="flex items-start gap-2 bg-[var(--bp-color-accent-bg)] px-3 py-[11px] shadow-[inset_0_-1px_0_oklch(0.88_0.07_252)]">
                     <span className="mt-[2px] shrink-0 font-mono text-[10px] font-bold text-[var(--bp-color-accent)]">
@@ -132,6 +165,13 @@ export function SlowSegmentsSection({
       </div>
       <div className="mt-3 text-[11.5px] text-[var(--bp-color-ink-55)]">
         Showing {visible.length} of {segments.length} timepoint segments in this direction filter.
+        {unmatchedMapInsightCount > 0 ? (
+          <span>
+            {" "}
+            Some detector notes are available but are not tied to the visible segment rows in this
+            release.
+          </span>
+        ) : null}
       </div>
       {capture ? <SendToBriefSheet source={capture} onClose={() => setSendSeg(null)} /> : null}
     </section>
@@ -142,12 +182,14 @@ function SlowSegmentCard({
   route,
   segments,
   segment,
+  insight,
   index,
   onSend,
 }: {
   route: StudioRouteDetailResponse["route"];
   segments: readonly StudioSegment[];
   segment: StudioSegment;
+  insight: StudioRouteInsight | null;
   index: number;
   onSend: () => void;
 }) {
@@ -210,6 +252,8 @@ function SlowSegmentCard({
         </p>
       )}
 
+      {insight ? <SegmentInsightNote insight={insight} compact /> : null}
+
       <button
         type="button"
         onClick={onSend}
@@ -219,5 +263,34 @@ function SlowSegmentCard({
         <ArrowRight size={13} />
       </button>
     </article>
+  );
+}
+
+function SegmentInsightNote({
+  insight,
+  compact = false,
+}: {
+  insight: StudioRouteInsight;
+  compact?: boolean;
+}) {
+  const caveats = safeInsightCaveats(insight, 2);
+  return (
+    <div
+      className={
+        compact
+          ? "mt-3 rounded-[3px] bg-[var(--bp-color-accent-bg)] px-3 py-2 text-[12px] leading-[1.5] text-[var(--bp-color-ink-70)]"
+          : "flex items-start gap-2 bg-[var(--bp-color-accent-bg)] px-3 py-[10px] shadow-[inset_0_-1px_0_oklch(0.88_0.07_252)]"
+      }
+    >
+      <span className="font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--bp-color-accent)]">
+        Detector note
+      </span>
+      <span className={compact ? "mt-1 block" : "text-[12px] leading-[1.55]"}>
+        {insight.shortText}
+        {caveats.length > 0 ? (
+          <span className="text-[var(--bp-color-ink-55)]"> {caveats.slice(0, 2).join(" ")}</span>
+        ) : null}
+      </span>
+    </div>
   );
 }

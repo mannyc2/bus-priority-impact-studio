@@ -1,5 +1,14 @@
 import type { StudioRouteDetailResponse, StudioSegment } from "@/studio/api-contract";
 
+// The serving artifact stores reliability as an internal triage band
+// ("Studio lower-attention band"); show a plain label instead.
+function reliabilityLabel(value: string): string {
+  if (value.includes("high-attention")) return "High attention";
+  if (value.includes("watch")) return "Watch";
+  if (value.includes("lower-attention")) return "Lower attention";
+  return value;
+}
+
 export function RouteVitalsCard({
   route,
   segments,
@@ -12,7 +21,7 @@ export function RouteVitalsCard({
     ["Length", `${route.miles} mi`],
     ["Stops", String(route.stops)],
     ["Service type", route.sbs ? "Select Bus Service" : "Local"],
-    ["Reliability", route.reliability],
+    ["Reliability", reliabilityLabel(route.reliability)],
     ["Visible segments", String(segments.length)],
   ] as const;
 

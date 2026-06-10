@@ -86,6 +86,7 @@ export function RouteDetailPage({
           <SlowSegmentsSection
             route={route}
             segments={segments}
+            insights={data.insights}
             {...(flagged?.id ? { flaggedId: flagged.id } : {})}
           />
         </TabsContent>
