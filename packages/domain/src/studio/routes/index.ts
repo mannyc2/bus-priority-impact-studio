@@ -124,6 +124,9 @@ export const StudioRouteSchema = z.preprocess(
       flags: z.array(z.string()),
       peerSlug: z.string().nullable(),
       interventions: z.array(StudioInterventionSchema),
+      /** §16-D3 trend baseline (C3): % speed change vs 6/12 months before the latest speed month. */
+      movement6mPct: z.number().nullable().default(null),
+      context12mPct: z.number().nullable().default(null),
     })
     .strip(),
 );
@@ -459,6 +462,10 @@ export const StudioRouteSectionRowSchema = z
     scoreLabel: z.string().min(1),
     reasons: z.array(z.string().min(1)),
     metrics: z.array(StudioRouteSectionMetricSchema),
+    /** §16-D3 trend baseline: % speed change vs 6 months before the latest speed month. */
+    movement6mPct: z.number().nullable(),
+    /** 12-month context companion to the 6-month movement. */
+    context12mPct: z.number().nullable(),
   })
   .strict();
 
@@ -481,7 +488,10 @@ export const StudioRouteSectionsResponseSchema = z
     schemaVersion: z.literal(1),
     generatedAt: z.string(),
     releaseId: z.string(),
+    /** Serving month the sections were built from (provenance; resolved internally — C3). */
     baselineMonth: z.string().regex(/^\d{4}-\d{2}$/),
+    /** Latest data month behind the rankings — the user-facing freshness label (C3). */
+    dataAsOf: z.string().regex(/^\d{4}-\d{2}$/),
     sections: z.array(StudioRouteSectionSchema),
     quality: StudioQualitySchema,
   })

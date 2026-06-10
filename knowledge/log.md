@@ -2,6 +2,26 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-10] engineering | Hard-cutover C3: network surfaces de-monthed; env months stop shaping public responses
+
+Executed `docs/research/hard-cutover-dossier-contract.md` §3-C3. All studio public read paths now
+resolve their months through one internal resolver (`resolveServingMonths` in read-handlers →
+`findLatestStudioServingMonth` + new `findLatestSpeedTrendMonth` in @bp/db); `BASELINE_MONTH` /
+`LAST_BUILT_SPEED_MONTH` were removed from the `StudioReadEnv` Pick entirely, so the read layer
+cannot read them (grep-verifiable). Index2/sections responses keep `baselineMonth` as resolver-fed
+provenance and add a user-facing `dataAsOf`; search/compare/findings responses declare
+`dataAsOf` (nullable, defaulted for older projections); the snapshot diagnostics months are now
+data-derived. `public-api.ts`'s explicit `?month` query param contract is intentionally out of
+scope (month is caller-chosen there, not env-shaped).
+
+§16-D3 movement baseline: route cards (`StudioRoute`) and every section row now carry
+`movement6mPct` + `context12mPct` (% speed change vs exactly 6/12 months before the latest speed
+month), computed in the @bp/db index grouping for D1-backed reads and in `_release-routes.ts`
+(`routeSpeedMovementPct`) for release-built cards; Tier 2 evidence-ready rows carry honest nulls
+(bundles have no route-month trend). `routes-home` shows "Data as of {dataAsOf}". UI consumption
+of the movement fields lands with the §4 redesign; D4 (ladder deletion) was noted but is not this
+slice — ladder is de-monthed, not deleted.
+
 ## [2026-06-10] engineering | Hard-cutover C2: route detail becomes the de-monthed evidence dossier
 
 Executed `docs/research/hard-cutover-dossier-contract.md` §3-C2. `StudioRouteDetailResponse` is now

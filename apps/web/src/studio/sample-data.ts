@@ -90,6 +90,8 @@ export const studioRoutes: StudioRoute[] = [
     stops: 33,
     flags: ["ACE active", "Bus lane", "TSP partial"],
     peerSlug: "m15-local",
+    movement6mPct: null,
+    context12mPct: null,
     interventions: [
       {
         year: "2010",
@@ -147,6 +149,8 @@ export const studioRoutes: StudioRoute[] = [
     stops: 29,
     flags: ["ACE active", "Concrete lane", "TSP active"],
     peerSlug: "m15-sbs",
+    movement6mPct: null,
+    context12mPct: null,
     interventions: [
       {
         year: "2013",
@@ -204,6 +208,8 @@ export const studioRoutes: StudioRoute[] = [
     stops: 38,
     flags: ["Bus lane partial"],
     peerSlug: "m15-sbs",
+    movement6mPct: null,
+    context12mPct: null,
     interventions: [
       {
         year: "2018",
@@ -246,6 +252,8 @@ export const studioRoutes: StudioRoute[] = [
     stops: 36,
     flags: ["Lane minimal"],
     peerSlug: "b46-sbs",
+    movement6mPct: null,
+    context12mPct: null,
     interventions: [
       {
         year: "2021",
@@ -283,6 +291,8 @@ export const studioRoutes: StudioRoute[] = [
     stops: 31,
     flags: ["ACE active", "Lane partial"],
     peerSlug: "bx12-sbs",
+    movement6mPct: null,
+    context12mPct: null,
     interventions: [
       { year: "2016", title: "SBS launches", detail: "Utica corridor selected for fast bus." },
       { year: "2021", title: "ACE begins", detail: "Camera enforcement active on Utica Av." },
@@ -322,6 +332,8 @@ export const studioRoutes: StudioRoute[] = [
     stops: 47,
     flags: ["No bus lane", "No ACE"],
     peerSlug: "bx12-sbs",
+    movement6mPct: null,
+    context12mPct: null,
     interventions: [],
   },
   {
@@ -353,6 +365,8 @@ export const studioRoutes: StudioRoute[] = [
     stops: 14,
     flags: ["Busway", "ACE active"],
     peerSlug: "m14d-sbs",
+    movement6mPct: null,
+    context12mPct: null,
     interventions: [
       {
         year: "2019",
@@ -394,6 +408,8 @@ export const studioRoutes: StudioRoute[] = [
     stops: 14,
     flags: ["Busway", "ACE active"],
     peerSlug: "m14a-sbs",
+    movement6mPct: null,
+    context12mPct: null,
     interventions: [
       {
         year: "2019",

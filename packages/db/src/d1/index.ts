@@ -107,6 +107,7 @@ export {
 } from "./queries/route-scorecard.js";
 export type { StudioRouteIndexSourceRow } from "./queries/studio-route-index.js";
 export {
+  findLatestSpeedTrendMonth,
   findLatestStudioServingMonth,
   listStudioRouteIndexSourceRows,
 } from "./queries/studio-route-index.js";

@@ -1820,6 +1820,22 @@ describe("Studio API facade", () => {
         },
         {
           route_id: "M15+",
+          month: "2025-03",
+          average_speed_mph: 7.6,
+          ridership: 880000,
+          has_speed_trend: true,
+          has_ridership_trend: true,
+        },
+        {
+          route_id: "M15+",
+          month: "2025-09",
+          average_speed_mph: 7.5,
+          ridership: 890000,
+          has_speed_trend: true,
+          has_ridership_trend: true,
+        },
+        {
+          route_id: "M15+",
           month: "2026-03",
           average_speed_mph: 7.2,
           ridership: 900000,
@@ -1925,6 +1941,9 @@ describe("Studio API facade", () => {
 
     expect(response.status).toBe(200);
     const routeSections = StudioRouteSectionsResponseSchema.parse(await response.json());
+    // C3: months are resolved internally from D1, and rankings declare their freshness.
+    expect(routeSections.baselineMonth).toBe("2026-03");
+    expect(routeSections.dataAsOf).toBe("2026-03");
     expect(routeSections.sections.map((section) => section.sectionId)).toEqual([
       "needs_attention",
       "worsening_fast",
@@ -1950,6 +1969,9 @@ describe("Studio API facade", () => {
           expect.objectContaining({
             routeId: "M15+",
             reasons: expect.arrayContaining(["-1.0 mph from 2023-04 to 2026-03"]),
+            // §16-D3: every section row carries 6-month movement + 12-month context.
+            movement6mPct: expect.any(Number),
+            context12mPct: expect.any(Number),
           }),
         ]),
       }),

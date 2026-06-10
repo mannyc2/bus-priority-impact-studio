@@ -85,7 +85,7 @@ function RouteDiscoverySections({
             Route discovery
           </h2>
           <p className="mt-1 max-w-[680px] text-[12.5px] leading-normal text-[var(--bp-color-ink-70)]">
-            Snapshot {routeSections.baselineMonth} ranks from current route summaries, history, and
+            Data as of {routeSections.dataAsOf}: ranks from current route summaries, history, and
             coverage flags.
           </p>
         </div>

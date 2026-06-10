@@ -80,6 +80,12 @@ export const StudioFindingsResponseSchema = z
   .object({
     schemaVersion: z.literal(1),
     generatedAt: z.string(),
+    /** Latest data month behind this response; null when the projection predates C3. */
+    dataAsOf: z
+      .string()
+      .regex(/^\d{4}-\d{2}$/)
+      .nullable()
+      .default(null),
     findings: z.array(StudioFindingCardSchema),
     quality: StudioQualitySchema,
   })

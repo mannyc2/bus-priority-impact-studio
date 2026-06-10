@@ -289,6 +289,30 @@ export function earliestAceInterventionMonth(
   );
 }
 
+/** §16-D3 (C3): % speed change vs exactly `monthsBack` months before the latest speed month. */
+export function routeSpeedMovementPct(
+  routeTrends: readonly RouteMonthTrend[],
+  upToMonth: string,
+  monthsBack: number,
+): number | null {
+  const speeds = new Map<string, number>();
+  let latestMonth: string | null = null;
+  for (const row of routeTrends) {
+    if (row.month > upToMonth || !row.hasSpeedTrend || row.averageSpeedMph === null) continue;
+    speeds.set(row.month, row.averageSpeedMph);
+    if (latestMonth === null || row.month > latestMonth) latestMonth = row.month;
+  }
+  if (latestMonth === null) return null;
+  const match = /^(\d{4})-(\d{2})$/.exec(latestMonth);
+  if (match === null) return null;
+  const index = Number(match[1]) * 12 + (Number(match[2]) - 1) - monthsBack;
+  const priorMonth = `${Math.floor(index / 12)}-${String((index % 12) + 1).padStart(2, "0")}`;
+  const latest = speeds.get(latestMonth);
+  const prior = speeds.get(priorMonth);
+  if (latest === undefined || prior === undefined || prior === 0) return null;
+  return Number((((latest - prior) / prior) * 100).toFixed(1));
+}
+
 export function routeSpeedSpark(
   routeTrends: readonly RouteMonthTrend[],
   month: string,
@@ -398,6 +422,8 @@ export function buildRoute(
           : "TSP unknown",
     ],
     peerSlug,
+    movement6mPct: routeSpeedMovementPct(routeTrends, summary.month, 6),
+    context12mPct: routeSpeedMovementPct(routeTrends, summary.month, 12),
     interventions: buildInterventions(interventionComparisons, manualInterventions),
   };
 }

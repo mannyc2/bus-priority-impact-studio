@@ -155,6 +155,9 @@ export type StudioRouteIndexSourceRow = {
     latestRidershipMonth: string | null;
     latestRidership: number | null;
     ridershipChange: number | null;
+    /** §16-D3 trend baseline: % speed change vs exactly 6/12 months before the latest speed month. */
+    speedMovement6mPct: number | null;
+    speedMovement12mPct: number | null;
   };
   speedHistoryCoverage: {
     routeSlug: string;
@@ -202,7 +205,13 @@ function groupHistoryCoverage(rows: readonly RouteMonthTrendIndexRow[]) {
       stats: StudioRouteIndexSourceRow["historyStats"];
     }
   >();
+  const speedsByRoute = new Map<string, Map<string, number>>();
   for (const row of rows) {
+    if (bool(row.has_speed_trend) && row.average_speed_mph !== null) {
+      const speeds = speedsByRoute.get(row.route_id) ?? new Map<string, number>();
+      speeds.set(row.month, row.average_speed_mph);
+      speedsByRoute.set(row.route_id, speeds);
+    }
     const group = output.get(row.route_id) ?? {
       coverage: {
         startMonth: null,
@@ -222,6 +231,8 @@ function groupHistoryCoverage(rows: readonly RouteMonthTrendIndexRow[]) {
         latestRidershipMonth: null,
         latestRidership: null,
         ridershipChange: null,
+        speedMovement6mPct: null,
+        speedMovement12mPct: null,
       },
     };
     group.coverage.startMonth =
@@ -263,7 +274,28 @@ function groupHistoryCoverage(rows: readonly RouteMonthTrendIndexRow[]) {
     }
     output.set(row.route_id, group);
   }
+  for (const [routeId, group] of output) {
+    const speeds = speedsByRoute.get(routeId);
+    const latestMonth = group.stats.latestSpeedMonth;
+    const latest = group.stats.latestAverageSpeedMph;
+    if (speeds === undefined || latestMonth === null || latest === null) continue;
+    group.stats.speedMovement6mPct = movementPct(latest, speeds.get(monthsBefore(latestMonth, 6)));
+    group.stats.speedMovement12mPct = movementPct(latest, speeds.get(monthsBefore(latestMonth, 12)));
+  }
   return output;
+}
+
+/** `YYYY-MM` minus `count` months; empty string (never a key) when the input is malformed. */
+function monthsBefore(month: string, count: number): string {
+  const match = /^(\d{4})-(\d{2})$/.exec(month);
+  if (match === null) return "";
+  const index = Number(match[1]) * 12 + (Number(match[2]) - 1) - count;
+  return `${Math.floor(index / 12)}-${String((index % 12) + 1).padStart(2, "0")}`;
+}
+
+function movementPct(latest: number, prior: number | undefined): number | null {
+  if (prior === undefined || prior === 0) return null;
+  return ((latest - prior) / prior) * 100;
 }
 
 function groupSpeedHistoryCoverage(rows: readonly RouteSpeedHistoryCoverageIndexRow[]) {
@@ -308,6 +340,8 @@ function emptyHistoryStats(): StudioRouteIndexSourceRow["historyStats"] {
     latestRidershipMonth: null,
     latestRidership: null,
     ridershipChange: null,
+    speedMovement6mPct: null,
+    speedMovement12mPct: null,
   };
 }
 
@@ -347,6 +381,18 @@ export async function findLatestStudioServingMonth(db: D1ServingDb): Promise<str
     .select({ month: routeBriefSummary.month })
     .from(routeBriefSummary)
     .orderBy(desc(routeBriefSummary.month))
+    .limit(1);
+  const month = rows[0]?.month;
+  return typeof month === "string" && IsoMonthSchema.safeParse(month).success ? month : null;
+}
+
+/** Latest month with a speed trend row — replaces env.LAST_BUILT_SPEED_MONTH in public reads (C3). */
+export async function findLatestSpeedTrendMonth(db: D1ServingDb): Promise<string | null> {
+  const rows = await db
+    .select({ month: routeMonthTrend.month })
+    .from(routeMonthTrend)
+    .where(eq(routeMonthTrend.hasSpeedTrend, true))
+    .orderBy(desc(routeMonthTrend.month))
     .limit(1);
   const month = rows[0]?.month;
   return typeof month === "string" && IsoMonthSchema.safeParse(month).success ? month : null;

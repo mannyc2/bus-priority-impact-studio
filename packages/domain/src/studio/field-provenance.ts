@@ -157,6 +157,16 @@ export const studioRouteFieldProvenance = {
     source: "reviewed intervention source events",
     note: "Only source-backed promoted intervention events are surfaced.",
   },
+  movement6mPct: {
+    kind: "derived",
+    source: "route_month_trend speed series",
+    note: "Percent speed change vs exactly 6 months before the latest speed month (§16-D3).",
+  },
+  context12mPct: {
+    kind: "derived",
+    source: "route_month_trend speed series",
+    note: "Percent speed change vs exactly 12 months before the latest speed month (§16-D3).",
+  },
 } satisfies Record<keyof StudioRoute, StudioFieldProvenance>;
 
 export const studioSegmentFieldProvenance = {

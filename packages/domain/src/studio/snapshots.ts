@@ -115,7 +115,10 @@ export const StudioRouteIndex2ResponseSchema = z
     schemaVersion: z.literal(2),
     generatedAt: z.string(),
     releaseId: z.string(),
+    /** Serving month the index was built from (provenance; resolved internally, never from env — C3). */
     baselineMonth: z.string().regex(/^\d{4}-\d{2}$/),
+    /** Latest data month behind the index — the user-facing freshness label (C3). */
+    dataAsOf: z.string().regex(/^\d{4}-\d{2}$/),
     routes: z.array(StudioRouteIndex2RowSchema),
     quality: StudioQualitySchema,
   })
