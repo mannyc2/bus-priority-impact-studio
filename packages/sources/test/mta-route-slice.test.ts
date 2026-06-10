@@ -5,7 +5,10 @@ import {
 } from "@bp/sources/adapters/mta/ace";
 import { normalizeBusWaitAssessmentRows } from "@bp/sources/adapters/mta/bus-wait-assessment";
 import { normalizeHourlyRidershipRows } from "@bp/sources/adapters/mta/bus-ridership";
-import { normalizeSegmentSpeedRows } from "@bp/sources/adapters/mta/bus-speeds";
+import {
+  normalizeSegmentSpeedCellRows,
+  normalizeSegmentSpeedRows,
+} from "@bp/sources/adapters/mta/bus-speeds";
 import { normalizeRouteShapeRows, normalizeStopRows } from "@bp/sources/adapters/mta/routes-stops";
 import { normalizeScheduleTimepointRows } from "@bp/sources/adapters/mta/schedules";
 import { normalizeBusLaneRows } from "@bp/sources/adapters/nyc-dot/bus-lanes";
@@ -130,6 +133,46 @@ describe("MTA route slice normalization", () => {
     ]);
 
     expect(rows).toEqual([]);
+  });
+
+  test("keeps segment speed cell rows that the filtered normalizer drops", () => {
+    const rows = normalizeSegmentSpeedCellRows([
+      {
+        year: "2026",
+        month: "3",
+        timestamp: "2026-03-01T08:00:00.000",
+        day_of_week: "Weekday",
+        hour_of_day: "8",
+        route_id: "Q63",
+        direction: "N",
+        borough: "Queens",
+        route_type: "Local",
+        stop_order: "22",
+        timepoint_stop_id: "921855",
+        timepoint_stop_name: "39 AV/MAIN ST",
+        timepoint_stop_latitude: "40.7601",
+        timepoint_stop_longitude: "-73.8301",
+        next_timepoint_stop_id: "982491",
+        road_distance: "0.52",
+        average_travel_time: "4.2",
+        average_road_speed: "7.4",
+        bus_trip_count: "6",
+      },
+    ]);
+
+    expect(rows).toEqual([
+      expect.objectContaining({
+        routeId: "Q63",
+        isoMonth: "2026-03",
+        timepointStopId: "921855",
+        nextTimepointStopId: "982491",
+        nextTimepointStopName: null,
+        nextTimepointStopLatitude: null,
+        nextTimepointStopLongitude: null,
+        averageRoadSpeedMph: 7.4,
+        busTripCount: 6,
+      }),
+    ]);
   });
 
   test("normalizes route shapes and stops without losing geometry payloads", () => {
