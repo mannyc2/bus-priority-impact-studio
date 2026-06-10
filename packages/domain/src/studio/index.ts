@@ -328,6 +328,25 @@ export {
   STUDIO_ROUTE_CAPABILITY_MANIFEST_KEY,
   StudioRouteCapabilitySchema,
 } from "./route-capability.js";
+export type {
+  RouteDossierEvent,
+  RouteDossierMetricSummary,
+  RouteDossierSeriesPoint,
+  RouteDossierSummary,
+  RouteDossierSummaryForDetail,
+  RouteDossierTreatmentPosture,
+  RouteDossierWorstSegment,
+} from "./route-dossier.js";
+export {
+  RouteDossierEventSchema,
+  RouteDossierMetricSummarySchema,
+  RouteDossierSeriesPointSchema,
+  routeDossierSummaryKey,
+  RouteDossierSummaryForDetailSchema,
+  RouteDossierSummarySchema,
+  RouteDossierTreatmentPostureSchema,
+  RouteDossierWorstSegmentSchema,
+} from "./route-dossier.js";
 export type { DetectorReadinessServingManifestForInsights } from "./route-insights.js";
 export {
   buildRouteInsightsFromDetectorReadiness,

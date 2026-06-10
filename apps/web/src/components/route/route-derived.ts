@@ -1,9 +1,44 @@
-import type { StudioRoute, StudioRouteHistoryResponse, StudioSegment } from "@/studio/api-contract";
+import type {
+  RouteDossierMetricSummary,
+  RouteDossierSummaryForDetail,
+  StudioRoute,
+  StudioRouteHistoryResponse,
+  StudioSegment,
+} from "@/studio/api-contract";
 
 /**
  * Pure derived-series helpers shared by the route detail sections. No JSX or
  * chart imports so the route loaders that pull these in stay light.
  */
+
+// C2 dossier series: the detail response embeds monthly sparkline vectors, so the
+// sections read them off `data.dossier` (no separate history fetch on this page).
+
+export function dossierSpeedSeries(dossier: RouteDossierSummaryForDetail | null): number[] {
+  return (
+    dossier?.speed.sparkline.flatMap((point) =>
+      point.value === null ? [] : [Number(point.value.toFixed(2))],
+    ) ?? []
+  );
+}
+
+export function dossierRidershipSeries(dossier: RouteDossierSummaryForDetail | null): number[] {
+  return (
+    dossier?.ridership.sparkline.flatMap((point) =>
+      point.value === null ? [] : [Number((point.value / 1000).toFixed(1))],
+    ) ?? []
+  );
+}
+
+export function dossierMetricMonthCount(metric: RouteDossierMetricSummary | undefined): number {
+  return metric?.sparkline.filter((point) => point.value !== null).length ?? 0;
+}
+
+export function dossierMetricWindow(metric: RouteDossierMetricSummary | undefined): string | null {
+  const months = metric?.sparkline.flatMap((point) => (point.value === null ? [] : [point.month]));
+  if (months === undefined || months.length === 0) return null;
+  return `${months[0]} to ${months[months.length - 1]}`;
+}
 
 export function routeHistorySpeedSeries(history: StudioRouteHistoryResponse | null): number[] {
   return (

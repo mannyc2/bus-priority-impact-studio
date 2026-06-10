@@ -133,8 +133,10 @@ export function buildStudioRouteProjection(
   release: StudioReleasePayload,
   route: StudioRoute,
 ): StudioRouteDetailResponse {
+  // capability + dossier default to null here; the Worker joins the pipeline-built
+  // capability row and dossier summary at read time (hard-cutover C2).
   return StudioRouteDetailResponseSchema.parse({
-    schemaVersion: 1,
+    schemaVersion: 2,
     generatedAt: release.generatedAt,
     route,
     ...(route.peerSlug ? { peerRoute: getStudioRoute(release, route.peerSlug) } : {}),

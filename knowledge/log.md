@@ -2,6 +2,30 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-10] engineering | Hard-cutover C2: route detail becomes the de-monthed evidence dossier
+
+Executed `docs/research/hard-cutover-dossier-contract.md` §3-C2. `StudioRouteDetailResponse` is now
+schemaVersion 2: identity + segments + the embedded per-route `capability` row (C1 manifest) +
+a pipeline-built `dossier` summary — 36-month speed/ridership sparkline vectors with current value,
+6-month movement, and cross-route peer percentile; worst segment with consecutive-month persistence
+(derived from the per-route speed-history artifacts); treatment posture with latest intervention
+events; per-block `dataAsOf`. One Tier-1 fetch renders the page: the route detail loader dropped its
+separate `/history` fetch (the `/history` endpoint survives for compare), and a 60 KB-gzip payload
+budget is asserted in a studio-api test (real worst case ~5.3 KB gz).
+
+Pattern mirrors C1: pure builder `packages/applied-research/.../build-route-dossier-summary.ts`
+(peer percentiles computed across the row set) → joined in `export d1`
+(`tools/pipeline-v2/.../export/route-dossier-summaries.ts`) → written to
+`studio/v2/routes/{slug}/dossier.json` (381 routes regenerated from the local DB) → Worker embeds it
+plus the capability row in `read-handlers.ts`. `env.BASELINE_MONTH` is gone from the detail path:
+the partial D1 fallback resolves its month internally via the new
+`findLatestStudioServingMonth` (@bp/db, max route_brief_summary month). The 12 local rich
+`routes/{slug}/index.json` projections were migrated in place to v2; `buildStudioRouteProjection`
+emits v2 with null capability/dossier (Worker joins at read time). Index/ladder/history/sections
+still read env months — that is C3. apps/web sections (Overview/Riders/Timeline/DataNotes) consume
+`data.dossier` series via new `dossier*` helpers in `route-derived.ts`; DataNotes now shows
+`dataAsOf` ("latest input month") instead of leading with `generatedAt` (full sweep is C4).
+
 ## [2026-06-10] engineering | Hard-cutover C1: route_capability_manifest replaces supportLevel/surfaceFlags
 
 Executed `docs/research/hard-cutover-dossier-contract.md` §3-C1. Deleted the orphaned per-route

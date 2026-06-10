@@ -304,7 +304,7 @@ describe("route insight projection", () => {
 
   test("route detail contract defaults insights for older artifacts", () => {
     const detail = StudioRouteDetailResponseSchema.parse({
-      schemaVersion: 1,
+      schemaVersion: 2,
       generatedAt: "2026-06-08T00:00:00.000Z",
       route: {
         slug: "b47",

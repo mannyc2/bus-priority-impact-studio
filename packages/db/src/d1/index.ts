@@ -106,7 +106,10 @@ export {
   serializeRouteScorecardCitations,
 } from "./queries/route-scorecard.js";
 export type { StudioRouteIndexSourceRow } from "./queries/studio-route-index.js";
-export { listStudioRouteIndexSourceRows } from "./queries/studio-route-index.js";
+export {
+  findLatestStudioServingMonth,
+  listStudioRouteIndexSourceRows,
+} from "./queries/studio-route-index.js";
 export type {
   RouteSpeedHistoryCoverage,
   RouteSpeedHistoryCoverageRow,

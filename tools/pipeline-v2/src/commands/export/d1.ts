@@ -24,6 +24,7 @@ import {
   buildAndWriteRouteCapabilityManifest,
   readDetectorReadinessRouteSummaries,
 } from "./route-capability-manifest.ts";
+import { buildAndWriteRouteDossierSummaries } from "./route-dossier-summaries.ts";
 
 type D1FileContract = {
   path: string;
@@ -110,6 +111,7 @@ export type D1SeedOutputResult = {
   sourceMonthCoverageRowCount: number;
   detectorReadinessManifestAvailable: boolean;
   routeCapabilityManifestRouteCount: number;
+  routeDossierSummaryRouteCount: number;
 };
 
 export type D1AppendixSeedOutputResult = {
@@ -270,6 +272,12 @@ export async function runExportD1Seed(inputs: ExportD1Inputs): Promise<D1SeedOut
     releaseMonth: month,
     generatedAt,
   });
+  const dossierSummaries = await buildAndWriteRouteDossierSummaries({
+    d1Inputs,
+    artifactRoot,
+    releaseMonth: month,
+    generatedAt,
+  });
 
   const result: D1SeedOutputResult = {
     schemaVersion: 1,
@@ -322,6 +330,7 @@ export async function runExportD1Seed(inputs: ExportD1Inputs): Promise<D1SeedOut
     sourceMonthCoverageRowCount: seed.sourceMonthCoverageRowCount,
     detectorReadinessManifestAvailable: d1Inputs.detectorReadinessManifestAvailable,
     routeCapabilityManifestRouteCount: capabilityManifest.routeCount,
+    routeDossierSummaryRouteCount: dossierSummaries.routeCount,
   };
 
   await mkdir(exportDir, { recursive: true });

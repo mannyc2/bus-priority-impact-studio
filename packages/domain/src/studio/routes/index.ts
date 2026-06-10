@@ -1,5 +1,7 @@
 import * as z from "zod";
 import { StudioInterventionSchema } from "../interventions.js";
+import { StudioRouteCapabilitySchema } from "../route-capability.js";
+import { RouteDossierSummaryForDetailSchema } from "../route-dossier.js";
 import { StudioQualitySchema } from "../shared.js";
 
 export const StudioObservedReliabilitySchema = z
@@ -246,15 +248,25 @@ export const StudioSegmentsResponseSchema = z
   })
   .strict();
 
+/**
+ * Route detail v2 (frontend §7.2 / hard-cutover C2): the route evidence dossier.
+ * Identity + segments + the pipeline-built capability row and dossier summary
+ * (series-shaped, per-block dataAsOf). One Tier-1 fetch renders the page; cell-grain
+ * data stays in lazy artifacts referenced by `artifactRefs`. `capability` and
+ * `dossier` are null only on the partial D1 fallback for routes without rich
+ * artifacts — the UI renders the honest building/insufficient states from that.
+ */
 export const StudioRouteDetailResponseSchema = z
   .object({
-    schemaVersion: z.literal(1),
+    schemaVersion: z.literal(2),
     generatedAt: z.string(),
     route: StudioRouteSchema,
     peerRoute: StudioRouteSchema.optional(),
     segments: z.array(StudioSegmentSchema),
     artifactRefs: z.array(StudioRouteArtifactRefSchema),
     insights: z.array(StudioRouteInsightSchema).default([]),
+    capability: StudioRouteCapabilitySchema.nullable().default(null),
+    dossier: RouteDossierSummaryForDetailSchema.nullable().default(null),
     quality: StudioQualitySchema,
   })
   .strict();

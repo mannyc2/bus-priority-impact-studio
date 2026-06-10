@@ -18,7 +18,7 @@ import { SegmentRowHeader, SegmentRowSkeleton } from "@/components/SegmentRow";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TabsContent } from "@/components/ui/tabs";
 import { pushRecentRoute } from "@/lib/recent-routes";
-import type { StudioRouteDetailResponse, StudioRouteHistoryResponse } from "../api-contract.js";
+import type { StudioRouteDetailResponse } from "../api-contract.js";
 import { StudioPage } from "../page.js";
 import { NotFoundPage } from "./not-found.js";
 
@@ -29,13 +29,7 @@ function TrackRecentRoute({ slug }: { slug: string }) {
   return null;
 }
 
-export function RouteDetailPage({
-  data,
-  history,
-}: {
-  data: StudioRouteDetailResponse | null;
-  history?: StudioRouteHistoryResponse | null;
-}) {
+export function RouteDetailPage({ data }: { data: StudioRouteDetailResponse | null }) {
   if (data === null) return <NotFoundPage />;
 
   const { route, segments } = data;
@@ -80,7 +74,7 @@ export function RouteDetailPage({
         onValueChange={(value) => setActiveTab(value as RouteDetailTabValue)}
       >
         <TabsContent value="overview">
-          <OverviewSection data={data} history={history ?? null} />
+          <OverviewSection data={data} />
         </TabsContent>
         <TabsContent value="slow-segments">
           <SlowSegmentsSection
@@ -91,7 +85,7 @@ export function RouteDetailPage({
           />
         </TabsContent>
         <TabsContent value="riders">
-          <RidersSection data={data} history={history ?? null} />
+          <RidersSection data={data} />
         </TabsContent>
         <TabsContent value="interventions">
           <InterventionsSection
@@ -101,10 +95,10 @@ export function RouteDetailPage({
           />
         </TabsContent>
         <TabsContent value="timeline">
-          <TimelineSection data={data} history={history ?? null} />
+          <TimelineSection data={data} />
         </TabsContent>
         <TabsContent value="data-notes">
-          <DataNotesSection data={data} history={history ?? null} />
+          <DataNotesSection data={data} />
         </TabsContent>
       </RouteDetailShell>
     </StudioPage>

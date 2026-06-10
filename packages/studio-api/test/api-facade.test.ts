@@ -155,6 +155,58 @@ function capabilityManifestArtifact(
   );
 }
 
+function dossierSummaryArtifact(routeId: string, routeSlug: string): FakeR2Object {
+  return new FakeR2Object(
+    JSON.stringify({
+      artifactKind: "studio_route_dossier_summary",
+      schemaVersion: 1,
+      generatedAt: "2026-06-10T00:00:00.000Z",
+      routeId,
+      routeSlug,
+      releaseMonth: "2026-03",
+      dataAsOf: "2026-03",
+      speed: {
+        current: 6.9,
+        movement6mPct: -8,
+        peerPercentile: 12,
+        sparkline: [
+          { month: "2026-02", value: 7 },
+          { month: "2026-03", value: 6.9 },
+        ],
+        dataAsOf: "2026-03",
+      },
+      ridership: {
+        current: 42000,
+        movement6mPct: 3.5,
+        peerPercentile: 96,
+        sparkline: [
+          { month: "2026-02", value: 41500 },
+          { month: "2026-03", value: 42000 },
+        ],
+        dataAsOf: "2026-03",
+      },
+      worstSegment: {
+        segmentId: "seg-1",
+        direction: "NB",
+        label: "14th–23rd",
+        averageSpeedMph: 3.7,
+        persistenceMonths: 3,
+        dataAsOf: "2026-03",
+      },
+      treatmentPosture: {
+        aceActive: true,
+        aceSince: "2024-06-01",
+        busLaneMatchedLaneCount: 5,
+        latestEvents: [
+          { date: "2024-06-01", kind: "ace_enforcement", label: "ACE enforcement began" },
+        ],
+        dataAsOf: "2026-03",
+      },
+    }),
+    "application/json",
+  );
+}
+
 // Standard contrast routes for the snapshot/index/sections handler tests: a rich route
 // with surfaced findings + partial speed history, and a sparse summary-only route.
 const STANDARD_ROUTE_CAPABILITIES = [
@@ -251,6 +303,7 @@ function createStudioProjectionEnv(): StudioApiEnv {
   return {
     ARTIFACTS: new FakeR2Bucket({
       [CAPABILITY_MANIFEST_KEY]: capabilityManifestArtifact(STANDARD_ROUTE_CAPABILITIES),
+      "studio/v2/routes/m15-sbs/dossier.json": dossierSummaryArtifact("M15+", "m15-sbs"),
       "studio/v1/briefs.json": new FakeR2Object(
         JSON.stringify({
           schemaVersion: 1,
@@ -306,7 +359,7 @@ function createStudioProjectionEnv(): StudioApiEnv {
       ),
       "studio/v1/routes/m15-sbs/index.json": new FakeR2Object(
         JSON.stringify({
-          schemaVersion: 1,
+          schemaVersion: 2,
           generatedAt: "2026-06-05T00:00:00.000Z",
           route,
           segments: [],
@@ -1097,9 +1150,17 @@ describe("Studio API facade", () => {
     expect(StudioRoutesResponseSchema.parse(await routesResponse.json()).routes[0]?.slug).toBe(
       "m15-sbs",
     );
+    // C2: the detail response embeds the pipeline-built capability row + dossier summary.
     expect((await detailResponse.json()) as unknown).toEqual(
       expect.objectContaining({
+        schemaVersion: 2,
         route: expect.objectContaining({ slug: "m15-sbs" }),
+        capability: expect.objectContaining({ overallState: "ready" }),
+        dossier: expect.objectContaining({
+          routeSlug: "m15-sbs",
+          speed: expect.objectContaining({ current: 6.9, movement6mPct: -8, peerPercentile: 12 }),
+          worstSegment: expect.objectContaining({ segmentId: "seg-1", persistenceMonths: 3 }),
+        }),
       }),
     );
     const speedHistory = StudioRouteSpeedHistoryResponseSchema.parse(
@@ -1111,6 +1172,51 @@ describe("Studio API facade", () => {
     expect(StudioDocsResponseSchema.parse(await docsResponse.json()).endpoints).toEqual(
       expect.arrayContaining([expect.objectContaining({ path: "/api/v1/studio/routes" })]),
     );
+  });
+
+  it("keeps the Tier-1 route dossier response within the 60 KB gzip budget (C2)", async () => {
+    // Worst-case-shaped payload: full 36-month sparklines, every capability surface,
+    // and far more segments/insights than any real route carries today (real worst
+    // case measured 2026-06-10: ~5.3 KB gz across the 12 rich routes).
+    const env = createStudioProjectionEnv();
+    const response = await fetchApi("/api/v1/studio/routes/m15-sbs", env);
+    const detail = StudioRouteDetailResponseSchema.parse(await response.json());
+    const padded = {
+      ...detail,
+      segments: Array.from({ length: 60 }, (_, i) => ({
+        id: `M15+:2026-03:N:${i}:node-${i}:node-${i + 1}`,
+        routeSlug: "m15-sbs",
+        direction: "NB",
+        from: `Cross street number ${i} with a realistically long name`,
+        to: `Cross street number ${i + 1} with a realistically long name`,
+        speedMph: 6.5,
+        scheduledMph: 8.2,
+        riderHours: 1234.5,
+        lane: "partial",
+        ace: true,
+        tsp: false,
+        hours: Array.from({ length: 24 }, (_, h) => 5 + (h % 7)),
+      })),
+      dossier: {
+        ...(detail.dossier ?? {}),
+        speed: {
+          ...(detail.dossier?.speed ?? {}),
+          sparkline: Array.from({ length: 36 }, (_, i) => ({
+            month: `${2023 + Math.floor(i / 12)}-${String((i % 12) + 1).padStart(2, "0")}`,
+            value: 6.123456 + i * 0.01,
+          })),
+        },
+        ridership: {
+          ...(detail.dossier?.ridership ?? {}),
+          sparkline: Array.from({ length: 36 }, (_, i) => ({
+            month: `${2023 + Math.floor(i / 12)}-${String((i % 12) + 1).padStart(2, "0")}`,
+            value: 40000 + i * 137,
+          })),
+        },
+      },
+    };
+    const gzippedBytes = Bun.gzipSync(JSON.stringify(padded)).byteLength;
+    expect(gzippedBytes).toBeLessThanOrEqual(60 * 1024);
   });
 
   it("serves a D1/R2-backed Studio route timeline bundle", async () => {
@@ -1142,7 +1248,7 @@ describe("Studio API facade", () => {
       ARTIFACTS: new FakeR2Bucket({
         "studio/v1/routes/m15-sbs/index.json": new FakeR2Object(
           JSON.stringify({
-            schemaVersion: 1,
+            schemaVersion: 2,
             generatedAt: "2026-06-05T00:00:00.000Z",
             route,
             segments: [],
@@ -1247,7 +1353,7 @@ describe("Studio API facade", () => {
       ARTIFACTS: new FakeR2Bucket({
         "studio/v1/routes/bx12-sbs/index.json": new FakeR2Object(
           JSON.stringify({
-            schemaVersion: 1,
+            schemaVersion: 2,
             generatedAt: "2026-06-05T00:00:00.000Z",
             route: bx12Route,
             segments: [

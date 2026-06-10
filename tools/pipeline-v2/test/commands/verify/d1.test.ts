@@ -105,6 +105,7 @@ function emptyExportResult(): D1SeedOutputResult {
     routeScorecardCitationRowCount: 0,
     detectorReadinessManifestAvailable: false,
     routeCapabilityManifestRouteCount: 0,
+    routeDossierSummaryRouteCount: 0,
   };
 }
 

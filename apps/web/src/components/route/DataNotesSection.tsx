@@ -1,30 +1,29 @@
 import { Link } from "@tanstack/react-router";
-import { formatCompact, routeHistoryWindow } from "@/components/route/route-derived";
+import {
+  dossierMetricMonthCount,
+  dossierMetricWindow,
+  formatCompact,
+} from "@/components/route/route-derived";
 import { SectionHeader } from "@/components/SectionHeader";
-import type { StudioRouteDetailResponse, StudioRouteHistoryResponse } from "@/studio/api-contract";
+import type { StudioRouteDetailResponse } from "@/studio/api-contract";
 
-export function DataNotesSection({
-  data,
-  history,
-}: {
-  data: StudioRouteDetailResponse;
-  history: StudioRouteHistoryResponse | null;
-}) {
-  const { route, quality, segments } = data;
-  const historyWindow = routeHistoryWindow(history);
+export function DataNotesSection({ data }: { data: StudioRouteDetailResponse }) {
+  const { route, quality, segments, dossier } = data;
+  const historyWindow = dossierMetricWindow(dossier?.speed);
+  const ridershipMonthCount = dossierMetricMonthCount(dossier?.ridership);
   const datasets = [
     ["Bus segment speeds", "MTA Open Data", `${segments.length} timepoint segments`, 14],
     [
       "Route speed history",
-      "D1 route-month trend",
-      historyWindow ?? "not loaded for this route",
-      history?.coverage.speedMonthCount ?? 0,
+      "Pipeline dossier projection",
+      historyWindow ?? "not built for this route",
+      dossierMetricMonthCount(dossier?.speed),
     ],
     [
       "Ridership and rider-hours",
       "MTA / Studio projection",
-      history?.coverage.ridershipMonthCount
-        ? `${history.coverage.ridershipMonthCount} monthly ridership rows`
+      ridershipMonthCount > 0
+        ? `${ridershipMonthCount} monthly ridership rows`
         : `${formatCompact(route.dailyRiders)} weekday riders`,
       9,
     ],
@@ -50,8 +49,8 @@ export function DataNotesSection({
           label="Primary window"
           value={historyWindow ?? "Current projection"}
           sub={
-            history
-              ? `${history.coverage.pointCount} route-month rows`
+            dossier
+              ? `${dossier.speed.sparkline.length} route-month rows`
               : `${segments.length} segments in route detail`
           }
         />
@@ -62,9 +61,9 @@ export function DataNotesSection({
           good={quality.confidence === "high"}
         />
         <DataWindow
-          label="Last generated"
-          value={data.generatedAt.slice(0, 10)}
-          sub="last updated"
+          label="Data as of"
+          value={dossier?.dataAsOf ?? data.generatedAt.slice(0, 10)}
+          sub={dossier?.dataAsOf ? "latest input month" : "last updated"}
         />
         <div className="ml-auto">
           <Link

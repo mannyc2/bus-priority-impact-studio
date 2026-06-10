@@ -229,6 +229,13 @@ export {
   type RouteCapabilitySourceStatus,
 } from "./build-route-capability-manifest";
 export {
+  type BuildRouteDossierSummariesInput,
+  buildRouteDossierSummaries,
+  type RouteDossierInputRow,
+  type RouteDossierTrendPoint,
+  type RouteDossierWorstSegmentMonth,
+} from "./build-route-dossier-summary";
+export {
   type BuildDetectorReadinessServingManifestInput,
   buildDetectorReadinessServingManifest,
   type DetectorReadinessProjectionItemLike,

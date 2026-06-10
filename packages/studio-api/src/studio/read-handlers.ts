@@ -1,5 +1,6 @@
 import {
   createD1ServingDb,
+  findLatestStudioServingMonth,
   type RouteMonthTrend as D1RouteMonthTrend,
   type RouteObservedReliabilitySummary as D1RouteObservedReliabilitySummary,
   type SourceMonthCoverage as D1SourceMonthCoverage,
@@ -18,6 +19,9 @@ import {
   getStudioRoute,
   type RouteCapabilityManifestForIndex,
   RouteCapabilityManifestForIndexSchema,
+  type RouteDossierSummaryForDetail,
+  RouteDossierSummaryForDetailSchema,
+  routeDossierSummaryKey,
   type RouteSurfaceState,
   STUDIO_ROUTE_CAPABILITY_MANIFEST_KEY,
   type StudioRouteCapability,
@@ -868,6 +872,47 @@ function routeCapabilityByRouteId(
   return byRoute;
 }
 
+async function loadRouteDossierSummaryForDetail(input: {
+  env: StudioReadEnv;
+  routeId: string;
+  requestedSlug: string;
+}): Promise<RouteDossierSummaryForDetail | null> {
+  if (input.env.ARTIFACTS === undefined) return null;
+  for (const slug of routeDetailSlugCandidates(input.routeId, input.requestedSlug)) {
+    const object = await input.env.ARTIFACTS.get(routeDossierSummaryKey(slug));
+    if (object === null) continue;
+
+    let payload: unknown;
+    try {
+      payload = await object.json();
+    } catch {
+      continue;
+    }
+
+    const parsed = RouteDossierSummaryForDetailSchema.safeParse(payload);
+    if (parsed.success) return parsed.data;
+  }
+  return null;
+}
+
+/**
+ * Embeds the pipeline-built capability row and dossier summary into the detail
+ * response (hard-cutover C2). Both stay null when the artifacts are unavailable —
+ * the honest partial state the UI renders from.
+ */
+function routeDetailWithCapabilityAndDossier(input: {
+  routeDetail: StudioRouteDetailResponse;
+  capability: StudioRouteCapability | null;
+  dossier: RouteDossierSummaryForDetail | null;
+}): StudioRouteDetailResponse {
+  if (input.capability === null && input.dossier === null) return input.routeDetail;
+  return StudioRouteDetailResponseSchema.parse({
+    ...input.routeDetail,
+    capability: input.capability,
+    dossier: input.dossier,
+  });
+}
+
 async function loadRouteSpeedSpineForSegments(
   env: StudioReadEnv,
   routeSlug: string,
@@ -1627,25 +1672,40 @@ async function findObservedReliabilityRow(input: {
   return observed.find((row) => row.routeId === input.routeId);
 }
 
+function routeCapabilityForRouteId(
+  manifest: RouteCapabilityManifestForIndex | null,
+  routeId: string,
+): StudioRouteCapability | null {
+  const byRoute = routeCapabilityByRouteId(manifest);
+  for (const alias of routeIdAliases(routeId)) {
+    const capability = byRoute.get(alias);
+    if (capability !== undefined) return capability;
+  }
+  return null;
+}
+
+// De-monthed (hard-cutover C2): the detail path never reads env.BASELINE_MONTH —
+// the serving month for the partial D1 fallback resolves internally from D1, and
+// the rich path is pure R2 projections (detail + capability row + dossier summary).
 async function buildStudioRouteDetailResponseFromD1(
   env: StudioReadEnv,
   slug: string,
 ): Promise<BuildStudioRouteDetailResponseResult> {
-  const baselineMonth = env.BASELINE_MONTH ?? env.LAST_BUILT_SPEED_MONTH;
   if (env.DB === undefined) {
     return {
       ok: false,
       response: errorResponse(503, "D1 DB binding is required for Studio route detail."),
     };
   }
-  if (baselineMonth === undefined) {
+  const servingMonth = await findLatestStudioServingMonth(createD1ServingDb(env.DB));
+  if (servingMonth === null) {
     return {
       ok: false,
-      response: errorResponse(503, "BASELINE_MONTH or LAST_BUILT_SPEED_MONTH is required."),
+      response: errorResponse(503, "No serving month is available in D1."),
     };
   }
 
-  const row = await findStudioRouteIndexSourceRow({ env, slug, baselineMonth });
+  const row = await findStudioRouteIndexSourceRow({ env, slug, baselineMonth: servingMonth });
   if (row === null) {
     return { ok: false, response: errorResponse(404, "Studio route was not found.") };
   }
@@ -1653,15 +1713,21 @@ async function buildStudioRouteDetailResponseFromD1(
   if (row.artifactNames.length > 0) {
     const richDetail = await maybeLoadStudioRouteDetailProjection(env, slug);
     if (richDetail !== null) {
-      const [manifest, spines] = await Promise.all([
+      const [manifest, spines, capabilityManifest, dossier] = await Promise.all([
         loadDetectorReadinessServingManifest(env),
         loadRouteSpeedSpineCandidatesForSegments({
           env,
           routeId: row.routeId,
           requestedSlug: slug,
         }),
+        loadRouteCapabilityManifest(env),
+        loadRouteDossierSummaryForDetail({ env, routeId: row.routeId, requestedSlug: slug }),
       ]);
-      const routeDetail = routeDetailWithInsights({ routeDetail: richDetail, manifest });
+      const routeDetail = routeDetailWithCapabilityAndDossier({
+        routeDetail: routeDetailWithInsights({ routeDetail: richDetail, manifest }),
+        capability: routeCapabilityForRouteId(capabilityManifest, row.routeId),
+        dossier,
+      });
       return {
         ok: true,
         routeDetail: routeDetailWithInsightTargetSegments({ routeDetail, spines }),
@@ -1669,28 +1735,36 @@ async function buildStudioRouteDetailResponseFromD1(
     }
   }
 
-  const [observed, manifest, aliasedRichDetail, spines] = await Promise.all([
-    findObservedReliabilityRow({ env, baselineMonth, routeId: row.routeId }),
-    loadDetectorReadinessServingManifest(env),
-    maybeLoadAliasedStudioRouteDetailProjection({
-      env,
-      routeId: row.routeId,
-      requestedSlug: slug,
-    }),
-    loadRouteSpeedSpineCandidatesForSegments({
-      env,
-      routeId: row.routeId,
-      requestedSlug: slug,
-    }),
-  ]);
-  if (aliasedRichDetail !== null) {
-    const routeDetail = routeDetailWithInsights({
-      manifest,
-      routeDetail: aliasedRouteDetailForD1Row({
-        row,
-        observed,
-        richDetail: aliasedRichDetail,
+  const [observed, manifest, aliasedRichDetail, spines, capabilityManifest, dossier] =
+    await Promise.all([
+      findObservedReliabilityRow({ env, baselineMonth: servingMonth, routeId: row.routeId }),
+      loadDetectorReadinessServingManifest(env),
+      maybeLoadAliasedStudioRouteDetailProjection({
+        env,
+        routeId: row.routeId,
+        requestedSlug: slug,
       }),
+      loadRouteSpeedSpineCandidatesForSegments({
+        env,
+        routeId: row.routeId,
+        requestedSlug: slug,
+      }),
+      loadRouteCapabilityManifest(env),
+      loadRouteDossierSummaryForDetail({ env, routeId: row.routeId, requestedSlug: slug }),
+    ]);
+  const capability = routeCapabilityForRouteId(capabilityManifest, row.routeId);
+  if (aliasedRichDetail !== null) {
+    const routeDetail = routeDetailWithCapabilityAndDossier({
+      routeDetail: routeDetailWithInsights({
+        manifest,
+        routeDetail: aliasedRouteDetailForD1Row({
+          row,
+          observed,
+          richDetail: aliasedRichDetail,
+        }),
+      }),
+      capability,
+      dossier,
     });
     return {
       ok: true,
@@ -1711,11 +1785,13 @@ async function buildStudioRouteDetailResponseFromD1(
   const partialRouteDetail = routeDetailWithInsights({
     manifest,
     routeDetail: StudioRouteDetailResponseSchema.parse({
-      schemaVersion: 1,
+      schemaVersion: 2,
       generatedAt: new Date().toISOString(),
       route: buildStudioRouteCardFromIndexRow(row, observed),
       segments: [],
       artifactRefs: [],
+      capability,
+      dossier,
       quality: {
         releaseLayer: "baseline_release",
         completenessStatus: row.summary === null ? "unavailable" : "partial_public_monthly_only",
@@ -2633,7 +2709,7 @@ export async function handleStudioReadRequest<TEnv extends StudioReadEnv>(
   const routeMatch = url.pathname.match(/^\/api\/v1\/studio\/routes\/([^/]+)$/);
   if (routeMatch) {
     const slug = decodeURIComponent(routeMatch[1] ?? "");
-    if (env.DB !== undefined && (env.BASELINE_MONTH ?? env.LAST_BUILT_SPEED_MONTH) !== undefined) {
+    if (env.DB !== undefined) {
       const result = await buildStudioRouteDetailResponseFromD1(env, slug);
       return result.ok ? studioJsonResponse(result.routeDetail, env) : result.response;
     }
@@ -2649,7 +2725,23 @@ export async function handleStudioReadRequest<TEnv extends StudioReadEnv>(
       `routes/${slug}/index.json`,
       StudioRouteDetailResponseSchema,
     );
-    return route instanceof Response ? route : studioJsonResponse(route, env);
+    if (route instanceof Response) return route;
+    const [capabilityManifest, dossier] = await Promise.all([
+      loadRouteCapabilityManifest(env),
+      loadRouteDossierSummaryForDetail({
+        env,
+        routeId: route.route.routeId,
+        requestedSlug: slug,
+      }),
+    ]);
+    return studioJsonResponse(
+      routeDetailWithCapabilityAndDossier({
+        routeDetail: route,
+        capability: routeCapabilityForRouteId(capabilityManifest, route.route.routeId),
+        dossier,
+      }),
+      env,
+    );
   }
 
   const historyMatch = url.pathname.match(/^\/api\/v1\/studio\/routes\/([^/]+)\/history$/);

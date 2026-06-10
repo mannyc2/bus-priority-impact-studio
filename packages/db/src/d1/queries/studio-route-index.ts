@@ -1,4 +1,4 @@
-import { asc, eq } from "drizzle-orm";
+import { asc, desc, eq } from "drizzle-orm";
 import * as z from "zod";
 import type { D1ServingDb } from "../client.js";
 import {
@@ -336,6 +336,20 @@ function toSummary(row: RouteBriefSummaryIndexRow): StudioRouteIndexSourceRow["s
     aceActive: bool(row.ace_active),
     busLaneMatchedLaneCount: row.bus_lane_matched_lane_count,
   };
+}
+
+/**
+ * Latest month with route brief summaries — the internal serving-month resolver
+ * (hard-cutover C2). Public read paths use this instead of env.BASELINE_MONTH.
+ */
+export async function findLatestStudioServingMonth(db: D1ServingDb): Promise<string | null> {
+  const rows = await db
+    .select({ month: routeBriefSummary.month })
+    .from(routeBriefSummary)
+    .orderBy(desc(routeBriefSummary.month))
+    .limit(1);
+  const month = rows[0]?.month;
+  return typeof month === "string" && IsoMonthSchema.safeParse(month).success ? month : null;
 }
 
 export async function listStudioRouteIndexSourceRows(

@@ -1,11 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { lazy, Suspense } from "react";
 import { routeHead } from "../../lib/head.js";
-import {
-  fetchStudioRoute,
-  fetchStudioRouteHistory,
-  StudioApiError,
-} from "../../studio/api-client.js";
+import { fetchStudioRoute } from "../../studio/api-client.js";
 
 const RouteDetailPage = lazy(() =>
   import("../../studio/pages/route-detail.js").then((module) => ({
@@ -14,31 +10,18 @@ const RouteDetailPage = lazy(() =>
 );
 
 export const Route = createFileRoute("/routes/$routeId")({
-  loader: ({ params }) =>
-    Promise.all([fetchStudioRoute(params.routeId), fetchOptionalRouteHistory(params.routeId)]).then(
-      ([detail, history]) => ({ detail, history }),
-    ),
+  // One Tier-1 fetch (C2): history series ride in on the detail dossier.
+  loader: ({ params }) => fetchStudioRoute(params.routeId).then((detail) => ({ detail })),
   pendingComponent: RouteDetailRouteFallback,
   head: ({ params }) => routeHead(`${params.routeId} Route Detail`),
   component: RouteDetailRoute,
 });
 
-async function fetchOptionalRouteHistory(routeId: string) {
-  try {
-    return await fetchStudioRouteHistory(routeId);
-  } catch (error) {
-    if (error instanceof StudioApiError && (error.status === 404 || error.status === 503)) {
-      return null;
-    }
-    throw error;
-  }
-}
-
 function RouteDetailRoute() {
   const data = Route.useLoaderData();
   return (
     <Suspense fallback={<RouteDetailRouteFallback />}>
-      <RouteDetailPage data={data.detail} history={data.history} />
+      <RouteDetailPage data={data.detail} />
     </Suspense>
   );
 }

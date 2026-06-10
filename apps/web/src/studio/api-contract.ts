@@ -248,6 +248,11 @@ export {
 } from "@bp/domain/studio/identity";
 export type { StudioIntervention } from "@bp/domain/studio/interventions";
 export type {
+  RouteDossierMetricSummary,
+  RouteDossierSummaryForDetail,
+  StudioRouteCapability,
+} from "@bp/domain/studio";
+export type {
   StudioCompareResponse,
   StudioReleasePayload,
   StudioSearchNote,

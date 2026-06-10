@@ -2,22 +2,20 @@ import type { ReactNode } from "react";
 import { BeforeAfter } from "@/components/BeforeAfter";
 import { ChartFrame } from "@/components/ChartFrame";
 import { InterventionTimeline } from "@/components/InterventionTimeline";
-import { routeHistorySpeedSeries, routeHistoryWindow } from "@/components/route/route-derived";
+import {
+  dossierMetricMonthCount,
+  dossierMetricWindow,
+  dossierSpeedSeries,
+} from "@/components/route/route-derived";
 import { SectionHeader } from "@/components/SectionHeader";
 import { SpeedTrend } from "@/components/SpeedTrend";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import type { StudioRouteDetailResponse, StudioRouteHistoryResponse } from "@/studio/api-contract";
+import type { StudioRouteDetailResponse } from "@/studio/api-contract";
 
-export function TimelineSection({
-  data,
-  history,
-}: {
-  data: StudioRouteDetailResponse;
-  history: StudioRouteHistoryResponse | null;
-}) {
+export function TimelineSection({ data }: { data: StudioRouteDetailResponse }) {
   const { route } = data;
-  const historySpeeds = routeHistorySpeedSeries(history);
+  const historySpeeds = dossierSpeedSeries(data.dossier);
   const hasSpeedHistory = historySpeeds.length > 0;
   const speedTrendData = hasSpeedHistory ? historySpeeds : route.spark;
   return (
@@ -33,14 +31,14 @@ export function TimelineSection({
           title={hasSpeedHistory ? "Route speed history" : "Speed since recent changes"}
           source={
             hasSpeedHistory
-              ? `Monthly average speed${routeHistoryWindow(history) ? `, ${routeHistoryWindow(history)}` : ""}.`
+              ? `Monthly average speed${dossierMetricWindow(data.dossier?.speed) ? `, ${dossierMetricWindow(data.dossier?.speed)}` : ""}.`
               : "Recent trend estimate; the dashed line is the schedule."
           }
           height={196}
           right={
             <Badge variant={route.weightedAvgSpeed < 6 ? "bad" : "warn"}>
               {hasSpeedHistory
-                ? `${history?.coverage.speedMonthCount ?? speedTrendData.length} months`
+                ? `${dossierMetricMonthCount(data.dossier?.speed) || speedTrendData.length} months`
                 : `${route.weightedAvgSpeed.toFixed(1)} mph now`}
             </Badge>
           }

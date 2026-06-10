@@ -2,28 +2,23 @@ import { ChartFrame } from "@/components/ChartFrame";
 import { HourExposure } from "@/components/HourExposure";
 import {
   averageHourlySeverity,
+  dossierMetricMonthCount,
+  dossierMetricWindow,
+  dossierRidershipSeries,
   formatCompact,
-  routeHistoryRidershipSeries,
-  routeHistoryWindow,
 } from "@/components/route/route-derived";
 import { SectionHeader } from "@/components/SectionHeader";
 import { SpeedTrend } from "@/components/SpeedTrend";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import type { StudioRouteDetailResponse, StudioRouteHistoryResponse } from "@/studio/api-contract";
+import type { StudioRouteDetailResponse } from "@/studio/api-contract";
 
-export function RidersSection({
-  data,
-  history,
-}: {
-  data: StudioRouteDetailResponse;
-  history: StudioRouteHistoryResponse | null;
-}) {
+export function RidersSection({ data }: { data: StudioRouteDetailResponse }) {
   const { route, segments } = data;
   const topSegments = [...segments].sort((a, b) => b.riderHours - a.riderHours).slice(0, 6);
   const maxRiderHours = Math.max(...topSegments.map((s) => s.riderHours), 1);
   const hourlyExposure = averageHourlySeverity(segments);
-  const ridershipHistory = routeHistoryRidershipSeries(history);
+  const ridershipHistory = dossierRidershipSeries(data.dossier);
   const hasRidershipHistory = ridershipHistory.length > 0;
 
   return (
@@ -55,13 +50,13 @@ export function RidersSection({
           title={hasRidershipHistory ? "Monthly ridership" : "Estimated daily riders"}
           source={
             hasRidershipHistory
-              ? `Monthly ridership${routeHistoryWindow(history) ? `, ${routeHistoryWindow(history)}` : ""}.`
+              ? `Monthly ridership${dossierMetricWindow(data.dossier?.ridership) ? `, ${dossierMetricWindow(data.dossier?.ridership)}` : ""}.`
               : "Estimated from the route's current trend until monthly ridership is available."
           }
           height={148}
           right={
             hasRidershipHistory ? (
-              <Badge variant="neutral">{history?.coverage.ridershipMonthCount ?? 0} months</Badge>
+              <Badge variant="neutral">{dossierMetricMonthCount(data.dossier?.ridership)} months</Badge>
             ) : null
           }
         >

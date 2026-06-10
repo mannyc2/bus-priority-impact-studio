@@ -5,8 +5,9 @@ import { RouteBadge } from "@/components/RouteBadge";
 import { RouteVitalsCard } from "@/components/route/RouteVitalsCard";
 import {
   averageHourlySpeed,
-  routeHistorySpeedSeries,
-  routeHistoryWindow,
+  dossierMetricMonthCount,
+  dossierMetricWindow,
+  dossierSpeedSeries,
 } from "@/components/route/route-derived";
 import {
   routeInsightPlacements,
@@ -17,18 +18,12 @@ import { SpeedTrend } from "@/components/SpeedTrend";
 import { TreatmentBadgeRow, TreatmentInventory } from "@/components/TreatmentBadge";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import type { StudioRouteDetailResponse, StudioRouteHistoryResponse } from "@/studio/api-contract";
+import type { StudioRouteDetailResponse } from "@/studio/api-contract";
 import { routeTreatments } from "@/studio/treatment-model";
 
-export function OverviewSection({
-  data,
-  history,
-}: {
-  data: StudioRouteDetailResponse;
-  history: StudioRouteHistoryResponse | null;
-}) {
+export function OverviewSection({ data }: { data: StudioRouteDetailResponse }) {
   const { route, segments } = data;
-  const historySpeeds = routeHistorySpeedSeries(history);
+  const historySpeeds = dossierSpeedSeries(data.dossier);
   const hasSpeedHistory = historySpeeds.length > 0;
   const slowest = [...segments].sort((a, b) => b.riderHours - a.riderHours)[0];
   const hourProfile = averageHourlySpeed(route, segments);
@@ -98,14 +93,14 @@ export function OverviewSection({
           title={hasSpeedHistory ? "Multi-month speed history" : "Speed trend"}
           source={
             hasSpeedHistory
-              ? `Monthly average speed${routeHistoryWindow(history) ? `, ${routeHistoryWindow(history)}` : ""}.`
+              ? `Monthly average speed${dossierMetricWindow(data.dossier?.speed) ? `, ${dossierMetricWindow(data.dossier?.speed)}` : ""}.`
               : "Recent trend estimate; the dashed line is the schedule."
           }
           height={150}
           right={
             <Badge variant={route.weightedAvgSpeed < 6 ? "bad" : "warn"}>
               {hasSpeedHistory
-                ? `${history?.coverage.speedMonthCount ?? speedTrendData.length} months`
+                ? `${dossierMetricMonthCount(data.dossier?.speed) || speedTrendData.length} months`
                 : `${route.weightedAvgSpeed.toFixed(1)} mph now`}
             </Badge>
           }
