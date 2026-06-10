@@ -6,6 +6,7 @@ import {
   localRouteHourlyRidership,
   localRouteScheduleTimepoint,
   localRouteSegmentSpeed,
+  localRouteSegmentSpeedCell,
   localRouteStop,
 } from "../schema.js";
 
@@ -31,6 +32,30 @@ export type LocalRouteSegmentSpeed = {
   averageTravelTimeMinutes: number;
   averageRoadSpeedMph: number;
   busTripCount: number;
+};
+
+export type LocalRouteSegmentSpeedCell = {
+  routeId: string;
+  isoMonth: string;
+  timestamp: string;
+  dayOfWeek: string;
+  hourOfDay: number;
+  direction: string;
+  borough: string;
+  routeType: string;
+  stopOrder: number;
+  timepointStopId: string | null;
+  timepointStopName: string | null;
+  timepointStopLatitude: number | null;
+  timepointStopLongitude: number | null;
+  nextTimepointStopId: string | null;
+  nextTimepointStopName: string | null;
+  nextTimepointStopLatitude: number | null;
+  nextTimepointStopLongitude: number | null;
+  roadDistanceMiles: number | null;
+  averageTravelTimeMinutes: number | null;
+  averageRoadSpeedMph: number | null;
+  busTripCount: number | null;
 };
 
 export type LocalRouteHourlyRidership = {
@@ -193,6 +218,73 @@ export async function listRouteSegmentSpeeds(
     averageTravelTimeMinutes: row.averageTravelTimeMinutes,
     averageRoadSpeedMph: row.averageRoadSpeedMph,
     busTripCount: row.busTripCount,
+  }));
+}
+
+export function replaceRouteSegmentSpeedCells(
+  db: LocalPipelineDb,
+  routeId: string,
+  month: string,
+  rows: readonly LocalRouteSegmentSpeedCell[],
+): void {
+  const values = rows.map((row, index) => ({
+    routeId: row.routeId,
+    month: row.isoMonth,
+    cellRank: index + 1,
+    timestamp: row.timestamp,
+    dayOfWeek: row.dayOfWeek,
+    hourOfDay: row.hourOfDay,
+    direction: row.direction,
+    borough: row.borough,
+    routeType: row.routeType,
+    stopOrder: row.stopOrder,
+    timepointStopId: row.timepointStopId,
+    timepointStopName: row.timepointStopName,
+    timepointStopLatitude: row.timepointStopLatitude,
+    timepointStopLongitude: row.timepointStopLongitude,
+    nextTimepointStopId: row.nextTimepointStopId,
+    nextTimepointStopName: row.nextTimepointStopName,
+    nextTimepointStopLatitude: row.nextTimepointStopLatitude,
+    nextTimepointStopLongitude: row.nextTimepointStopLongitude,
+    roadDistanceMiles: row.roadDistanceMiles,
+    averageTravelTimeMinutes: row.averageTravelTimeMinutes,
+    averageRoadSpeedMph: row.averageRoadSpeedMph,
+    busTripCount: row.busTripCount,
+  }));
+
+  db.transaction((tx) => {
+    tx
+      .delete(localRouteSegmentSpeedCell)
+      .where(
+        and(
+          eq(localRouteSegmentSpeedCell.routeId, routeId),
+          eq(localRouteSegmentSpeedCell.month, month),
+        ),
+      )
+      .run();
+    insertAll(tx, localRouteSegmentSpeedCell, values);
+  });
+}
+
+export async function listRouteSegmentSpeedCells(
+  db: LocalPipelineDb,
+  routeId: string,
+  month: string,
+): Promise<LocalRouteSegmentSpeedCell[]> {
+  const rows = await db
+    .select()
+    .from(localRouteSegmentSpeedCell)
+    .where(
+      and(
+        eq(localRouteSegmentSpeedCell.routeId, routeId),
+        eq(localRouteSegmentSpeedCell.month, month),
+      ),
+    )
+    .orderBy(asc(localRouteSegmentSpeedCell.cellRank));
+
+  return rows.map(({ month: isoMonth, cellRank: _cellRank, ...row }) => ({
+    ...row,
+    isoMonth,
   }));
 }
 

@@ -482,6 +482,38 @@ export const localRouteSegmentSpeed = sqliteTable(
   ],
 );
 
+export const localRouteSegmentSpeedCell = sqliteTable(
+  "local_route_segment_speed_cell",
+  {
+    routeId: text("route_id").notNull(),
+    month: text("month").notNull(),
+    cellRank: integer("cell_rank").notNull(),
+    timestamp: text("timestamp").notNull(),
+    dayOfWeek: text("day_of_week").notNull(),
+    hourOfDay: integer("hour_of_day").notNull(),
+    direction: text("direction").notNull(),
+    borough: text("borough").notNull(),
+    routeType: text("route_type").notNull(),
+    stopOrder: integer("stop_order").notNull(),
+    timepointStopId: text("timepoint_stop_id"),
+    timepointStopName: text("timepoint_stop_name"),
+    timepointStopLatitude: real("timepoint_stop_latitude"),
+    timepointStopLongitude: real("timepoint_stop_longitude"),
+    nextTimepointStopId: text("next_timepoint_stop_id"),
+    nextTimepointStopName: text("next_timepoint_stop_name"),
+    nextTimepointStopLatitude: real("next_timepoint_stop_latitude"),
+    nextTimepointStopLongitude: real("next_timepoint_stop_longitude"),
+    roadDistanceMiles: real("road_distance_miles"),
+    averageTravelTimeMinutes: real("average_travel_time_minutes"),
+    averageRoadSpeedMph: real("average_road_speed_mph"),
+    busTripCount: integer("bus_trip_count"),
+  },
+  (table) => [
+    primaryKey({ columns: [table.routeId, table.month, table.cellRank] }),
+    index("local_route_segment_speed_cell_month_route_idx").on(table.month, table.routeId),
+  ],
+);
+
 export const localRouteHourlyRidership = sqliteTable(
   "local_route_hourly_ridership",
   {

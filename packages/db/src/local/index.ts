@@ -225,6 +225,7 @@ export type {
   LocalRouteHourlyRidership,
   LocalRouteScheduleTimepoint,
   LocalRouteSegmentSpeed,
+  LocalRouteSegmentSpeedCell,
   LocalRouteStop,
 } from "./repositories/route-slice.js";
 export {
@@ -232,11 +233,13 @@ export {
   listRouteHotspots,
   listRouteHourlyRidership,
   listRouteSchedules,
+  listRouteSegmentSpeedCells,
   listRouteSegmentSpeeds,
   listRouteStops,
   replaceRouteHotspots,
   replaceRouteHourlyRidership,
   replaceRouteSchedules,
+  replaceRouteSegmentSpeedCells,
   replaceRouteSegmentSpeeds,
   replaceRouteStops,
 } from "./repositories/route-slice.js";
