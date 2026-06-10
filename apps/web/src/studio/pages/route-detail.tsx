@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { KPISkeleton } from "@/components/KPI";
 import { DataNotesSection } from "@/components/route/DataNotesSection";
 import { InterventionsSection } from "@/components/route/InterventionsSection";
@@ -11,7 +11,9 @@ import {
   RouteDetailShell,
   type RouteDetailTabValue,
 } from "@/components/route/RouteDetailShell";
+import { HonestEmptySection } from "@/components/route/HonestEmptySection";
 import { RouteHeader } from "@/components/route/RouteHeader";
+import { sectionPresentation } from "@/components/route/section-registry";
 import { SlowSegmentsSection } from "@/components/route/SlowSegments";
 import { TimelineSection } from "@/components/route/TimelineSection";
 import { SegmentRowHeader, SegmentRowSkeleton } from "@/components/SegmentRow";
@@ -36,6 +38,30 @@ export function RouteDetailPage({ data }: { data: StudioRouteDetailResponse | nu
   const flagged = segments.find((s) => s.flagged);
   const peer = data.peerRoute;
   const [activeTab, setActiveTab] = useState<RouteDetailTabValue>("overview");
+
+  const presentations = new Map(
+    ROUTE_DETAIL_TABS.map((tab) => [tab.value, sectionPresentation(data.capability, tab.value)]),
+  );
+  const visibleTabs = ROUTE_DETAIL_TABS.filter((tab) => {
+    return presentations.get(tab.value)?.mode !== "hidden";
+  });
+  const section = (tab: RouteDetailTabValue, render: () => ReactNode) => {
+    const presentation = presentations.get(tab);
+    if (presentation === undefined || presentation.mode === "hidden") return null;
+    return (
+      <TabsContent value={tab}>
+        {presentation.mode === "render" ? (
+          render()
+        ) : (
+          <HonestEmptySection
+            state={presentation.state}
+            reason={presentation.reason}
+            dataAsOf={presentation.dataAsOf}
+          />
+        )}
+      </TabsContent>
+    );
+  };
 
   return (
     <StudioPage flush>
@@ -69,37 +95,37 @@ export function RouteDetailPage({ data }: { data: StudioRouteDetailResponse | nu
             }
           />
         }
-        tabs={ROUTE_DETAIL_TABS}
-        value={activeTab}
+        tabs={visibleTabs}
+        value={visibleTabs.some((tab) => tab.value === activeTab) ? activeTab : "overview"}
         onValueChange={(value) => setActiveTab(value as RouteDetailTabValue)}
       >
-        <TabsContent value="overview">
+        {section("overview", () => (
           <OverviewSection data={data} />
-        </TabsContent>
-        <TabsContent value="slow-segments">
+        ))}
+        {section("slow-segments", () => (
           <SlowSegmentsSection
             route={route}
             segments={segments}
             insights={data.insights}
             {...(flagged?.id ? { flaggedId: flagged.id } : {})}
           />
-        </TabsContent>
-        <TabsContent value="riders">
+        ))}
+        {section("riders", () => (
           <RidersSection data={data} />
-        </TabsContent>
-        <TabsContent value="interventions">
+        ))}
+        {section("interventions", () => (
           <InterventionsSection
             route={route}
             segments={segments}
             onShowTimeline={() => setActiveTab("timeline")}
           />
-        </TabsContent>
-        <TabsContent value="timeline">
+        ))}
+        {section("timeline", () => (
           <TimelineSection data={data} />
-        </TabsContent>
-        <TabsContent value="data-notes">
+        ))}
+        {section("data-notes", () => (
           <DataNotesSection data={data} />
-        </TabsContent>
+        ))}
       </RouteDetailShell>
     </StudioPage>
   );

@@ -250,6 +250,7 @@ export type { StudioIntervention } from "@bp/domain/studio/interventions";
 export type {
   RouteDossierMetricSummary,
   RouteDossierSummaryForDetail,
+  RouteSurfaceCapability,
   StudioRouteCapability,
 } from "@bp/domain/studio";
 export type {
