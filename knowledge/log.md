@@ -2,6 +2,23 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-10] engineering | Frontend §8.1 registry + §4.1/§4.3 structural redesign land on the cutover floor
+
+First consumers of the C1–C4 contract. §8.1: `apps/web/src/components/route/section-registry.ts`
+maps each route-detail tab to its backing capability surfaces; the manifest now decides
+render / honest-empty (`HonestEmptySection`, the §8.2 four-state vocabulary with `checked_clean`
+styled affirmatively) / hidden (`not_applicable`); null capability keeps a render-everything
+fallback; three-contrast-route policy tests in `test/shared/section-registry.test.ts`. §4.1:
+`RouteJudgedKpiStrip` replaces the raw metric strip on the detail header — Condition with peer
+framing (dossier `peerPercentile`), 6-month Trend with sparkline (`movement6mPct`, previously
+unconsumed), Reliability as an honest-building column off the capability surface, Riders movement,
+Treatment posture — each KPI carries its own `dataAsOf` and clicks through to its tab. §4.3: tabs
+are question-shaped — Where & when / Treatments & history (absorbs Interventions + Timeline, whose
+cross-link banner was deleted) / Evidence (absorbs Data notes); compare follows the same tab
+structure but keeps the raw strip. Deliberately deferred to the design-handoff cycle (§4.4): the
+§4.2 verdict Overview, story strip, mini-map, Map tab (§6.1), and any Reliability tab until the
+surface leaves `building`.
+
 ## [2026-06-10] engineering | Hard-cutover C4: one freshness vocabulary; generatedAt leaves the render paths
 
 Executed `docs/research/hard-cutover-dossier-contract.md` §3-C4, completing the cutover plan
