@@ -5,7 +5,8 @@
   "description": "React + Vite public app with Cloudflare Worker API.",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && bun run check:bundle-budget",
+    "check:bundle-budget": "bun scripts/check-bundle-budget.ts",
     "build:studio-release": "bun ../../tools/pipeline-v2/src/cli.ts studio release",
     "deploy": "wrangler deploy",
     "preview": "vite preview",
