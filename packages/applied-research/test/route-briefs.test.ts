@@ -67,11 +67,11 @@ describe("route brief applied research model", () => {
     expect(projection.routeBriefRows.summary.publicVisibilityReason).toBe(
       "missing_ridership_exposure",
     );
-    expect(projection.briefInput.metrics).toEqual({
-      routeScore: 50,
-      publicVisible: false,
-      publicVisibilityReason: "missing_ridership_exposure",
-    });
+    expect(projection.briefInput.metrics.routeScore).toBe(50);
+    expect(projection.briefInput.metrics.publicVisible).toBe(false);
+    expect(projection.briefInput.metrics.publicVisibilityReason).toBe(
+      "missing_ridership_exposure",
+    );
   });
 
   test("ranks route brief summaries by score, speed, ridership, then route id", () => {
@@ -113,9 +113,36 @@ describe("route brief applied research model", () => {
   });
 
   test("plans route brief model route universe and unknown-route issues", () => {
-    const catalog = [{ routeId: "M2" }, { routeId: "M1" }] as Parameters<
-      typeof planRouteBriefModelRoutes
-    >[0]["catalog"];
+    const catalog: Parameters<typeof planRouteBriefModelRoutes>[0]["catalog"] = [
+      {
+        routeId: "M2",
+        routeShortName: "M2",
+        routeLongName: null,
+        routeTypes: ["local"],
+        directions: [],
+        shapeCount: 1,
+        stopCount: 10,
+        timepointStopCount: 4,
+        latitudeMin: null,
+        latitudeMax: null,
+        longitudeMin: null,
+        longitudeMax: null,
+      },
+      {
+        routeId: "M1",
+        routeShortName: "M1",
+        routeLongName: null,
+        routeTypes: ["local"],
+        directions: [],
+        shapeCount: 1,
+        stopCount: 10,
+        timepointStopCount: 4,
+        latitudeMin: null,
+        latitudeMax: null,
+        longitudeMin: null,
+        longitudeMax: null,
+      },
+    ];
 
     expect(
       planRouteBriefModelRoutes({

@@ -196,8 +196,8 @@ describe("data product registry", () => {
   });
 
   test("validates data-product completeness artifacts before publication", () => {
-    const artifact = {
-      artifactKind: "data_product_completeness",
+    const artifact: ReturnType<typeof parseDataProductCompletenessArtifact> = {
+      artifactKind: "data_product_completeness" as const,
       generatedAt: "2026-06-07T00:00:00.000Z",
       dbPath: "data/local/pipeline.sqlite",
       artifactPath: "data/artifacts/data-product-completeness/completeness.json",
@@ -579,12 +579,12 @@ describe("data product registry", () => {
     const baseCheck = {
       id: "artifact",
       label: "Artifact",
-      type: "json_artifact",
+      type: "json_artifact" as const,
       pathTemplate: "/tmp/artifact.json",
       validateReleaseMonth: true,
       validateRunId: true,
       requiredJsonValues: [{ path: "summary.status", equals: "pass" }],
-    } as const;
+    };
 
     expect(
       dataProductJsonSemanticReasons({

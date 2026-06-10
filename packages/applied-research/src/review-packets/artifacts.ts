@@ -258,6 +258,7 @@ function roleGroups(evidence: readonly FindingEvidenceLink[]): FindingReviewPack
   return {
     primary: evidence.filter((link) => link.evidenceRole === "primary"),
     context: evidence.filter((link) => link.evidenceRole === "context"),
+    officialContext: evidence.filter((link) => link.evidenceRole === "official_context"),
     counterEvidence: evidence.filter((link) => link.evidenceRole === "counter_evidence"),
     caveats: evidence.filter((link) => link.evidenceRole === "caveat"),
     missingData: evidence.filter((link) => link.evidenceRole === "missing_data"),
@@ -271,6 +272,7 @@ function evidenceObjects(
   return {
     primary: evidence.primary.map((link) => parseJsonRef(link.evidenceRef)),
     context: evidence.context.map((link) => parseJsonRef(link.evidenceRef)),
+    officialContext: evidence.officialContext.map((link) => parseJsonRef(link.evidenceRef)),
     counterEvidence: evidence.counterEvidence.map((link) => parseJsonRef(link.evidenceRef)),
     caveats: evidence.caveats.map((link) => parseJsonRef(link.evidenceRef)),
     missingData: evidence.missingData.map((link) => parseJsonRef(link.evidenceRef)),

@@ -1,4 +1,11 @@
 export {
+  buildCustomerJourneyFeaturesFromMetricRows,
+  buildCustomerJourneyRouteRollups,
+  type CustomerJourneyFeatureResolverResult,
+  type CustomerJourneyMetricSourceRow,
+  type CustomerJourneyRouteRollup,
+} from "./customer-journey";
+export {
   buildDecouplingQuadrantsArtifactV1,
   DECOUPLING_QUADRANTS_V1_ID,
   type DecouplingPattern,

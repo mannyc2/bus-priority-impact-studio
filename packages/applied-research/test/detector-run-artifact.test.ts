@@ -1,6 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { FindingCandidateSchema, FindingCoverageAuditSchema } from "@bp/domain/findings";
-import { buildRegistryDetectorRunArtifact, runRegistryDetectorStudy } from "../src/detector-runs";
+import {
+  buildRegistryDetectorRunArtifact,
+  detectorStudyFeatureContractSatisfaction,
+  runRegistryDetectorStudy,
+} from "../src/detector-runs";
 
 describe("detector run artifacts", () => {
   test("summarizes detector outputs and feature contract satisfaction", () => {
@@ -13,6 +17,9 @@ describe("detector run artifacts", () => {
       artifactPath: "speed_pace_hotspot-run.json",
       wroteDb: false,
       inputSummary: { featureCount: 1 },
+      featureContracts: detectorStudyFeatureContractSatisfaction({
+        detectorId: "speed_pace_hotspot",
+      }),
       output: {
         candidates: [
           FindingCandidateSchema.parse({
@@ -111,6 +118,9 @@ describe("detector run artifacts", () => {
       wroteDb: false,
       inputSummary: { featureCount: candidates.length },
       output: { candidates, evidence: [], coverage: [] },
+      featureContracts: detectorStudyFeatureContractSatisfaction({
+        detectorId: "speed_pace_hotspot",
+      }),
       candidateSampleLimit: 2,
     });
 
@@ -200,7 +210,7 @@ describe("detector run artifacts", () => {
     });
 
     expect(output.candidates).toHaveLength(1);
-    expect(output.candidates[0]?.reasonCode).toBe("tsp_current_inventory_missing");
+    expect(`${output.candidates[0]?.reasonCode}`).toBe("tsp_current_inventory_missing");
     expect(artifact.inputSummary).toMatchObject({
       sourceKind: "source_gap_from_source_gap_model_v1",
       featureCount: 1,
@@ -310,7 +320,7 @@ describe("detector run artifacts", () => {
     });
 
     expect(output.candidates).toHaveLength(1);
-    expect(output.candidates[0]?.reasonCode).toBe("intervention_gap");
+    expect(`${output.candidates[0]?.reasonCode}`).toBe("intervention_gap");
     expect(artifact.inputSummary).toMatchObject({
       sourceKind: "intervention_gap_from_source_gap_model_v1",
       featureCount: 1,
@@ -379,6 +389,55 @@ describe("detector run artifacts", () => {
       sourceKind: "intervention_panel_from_treatment_event_panel_v1",
       featureCount: 1,
       treatmentEventPanelSummary: { panelRowCount: 1 },
+    });
+  });
+
+  test("counts deferred_not_in_scope coverage distinctly from clean_no_hit (S2.5)", () => {
+    const coverageRow = (scopeId: string, outcome: string) =>
+      FindingCoverageAuditSchema.parse({
+        auditId: `audit-${scopeId}`,
+        detectorRunId: "speed_pace_hotspot-2026-03-test",
+        detectorId: "speed_pace_hotspot",
+        month: "2026-03",
+        scopeKind: "segment",
+        scopeId,
+        outcome,
+        reasonCode: null,
+        reason: null,
+        inputsSeenJson: JSON.stringify({ routeId: "M15" }),
+        inputsExpectedJson: JSON.stringify({}),
+        createdAt: "2026-06-01T00:00:00.000Z",
+      });
+
+    const artifact = buildRegistryDetectorRunArtifact({
+      detectorId: "speed_pace_hotspot",
+      detectorRunId: "speed_pace_hotspot-2026-03-test",
+      releaseMonth: "2026-03",
+      generatedAt: "2026-06-01T00:00:00.000Z",
+      dbPath: null,
+      artifactPath: "speed_pace_hotspot-run.json",
+      wroteDb: false,
+      inputSummary: { featureCount: 3 },
+      featureContracts: detectorStudyFeatureContractSatisfaction({
+        detectorId: "speed_pace_hotspot",
+      }),
+      output: {
+        candidates: [],
+        evidence: [],
+        coverage: [
+          coverageRow("seg-clean", "clean_no_hit"),
+          coverageRow("seg-deferred", "deferred_not_in_scope"),
+          coverageRow("seg-skipped", "skipped_missing_input"),
+        ],
+      },
+    });
+
+    // The deferred state is its own bucket — it does not blend into clean_no_hit or skipped.
+    expect(artifact.outputSummary).toMatchObject({
+      coverageCount: 3,
+      cleanNoHitCount: 1,
+      deferredNotInScopeCount: 1,
+      skippedCount: 1,
     });
   });
 });

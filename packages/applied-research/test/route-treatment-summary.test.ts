@@ -1,6 +1,10 @@
 import { Database } from "bun:sqlite";
 import { describe, expect, test } from "bun:test";
-import { routeTreatmentSummaryArtifactPath, routeTreatmentSummaryMarkdownPath } from "../src/artifacts";
+import {
+  routeTreatmentSummaryArtifactPath,
+  routeTreatmentSummaryMarkdownPath,
+} from "../src/artifacts";
+import { buildTreatmentScopeGapSegmentsFromTreatmentFeatures } from "../src/feature-resolvers";
 import { loadRouteTreatmentSummaryLocalDbRows } from "../src/local-db";
 import {
   buildRouteTreatmentSummaryArtifact,
@@ -87,8 +91,10 @@ describe("route treatment summary", () => {
       }),
       generatedAt: "2026-06-06T00:00:00.000Z",
       dbPath: "data/local/pipeline.sqlite",
-      artifactPath: "data/artifacts/studio/v2/route-treatment-summary/2026-03/route-treatment-summary.json",
-      summaryPath: "data/artifacts/studio/v2/route-treatment-summary/2026-03/route-treatment-summary.md",
+      artifactPath:
+        "data/artifacts/studio/v2/route-treatment-summary/2026-03/route-treatment-summary.json",
+      summaryPath:
+        "data/artifacts/studio/v2/route-treatment-summary/2026-03/route-treatment-summary.md",
     });
 
     expect(artifact.summary.routeCount).toBe(2);
@@ -111,8 +117,7 @@ describe("route treatment summary", () => {
     });
     expect(
       artifact.routeTreatmentRows.find(
-        (row) =>
-          row.routeId === "B41" && row.treatmentType === "automated_bus_lane_enforcement",
+        (row) => row.routeId === "B41" && row.treatmentType === "automated_bus_lane_enforcement",
       ),
     ).toMatchObject({
       status: "current_confirmed",
@@ -149,6 +154,104 @@ describe("route treatment summary", () => {
       }),
     );
     expect(routeTreatmentSummaryMarkdown(artifact)).toContain("Route Treatment Summary (2026-03)");
+  });
+
+  test("requires usable segment bus-lane evidence before scope-gap route positives count", () => {
+    const result = buildTreatmentScopeGapSegmentsFromTreatmentFeatures({
+      segmentSpeedRows: [
+        {
+          route_id: "B3",
+          month: "2026-03",
+          segment_id: "B3:2026-03:W:19:300259:300263",
+          direction: "W",
+          stop_order: 19,
+          average_speed_mph: 4.9,
+          segment_length_feet: 900,
+          observation_count: 120,
+          bus_trip_count: 900,
+        },
+      ],
+      routeTreatmentFeatures: [
+        {
+          routeId: "B3",
+          month: "2026-03",
+          treatmentType: "bus_lane",
+          status: "current_confirmed",
+          geographyScope: "route",
+          evidenceLabel: "deterministic_source",
+          confidence: "medium",
+          sourceRefs: ["local_intervention_event:bus-lane:B3:2024-09", "source:nyc_dot_bus_lanes"],
+        },
+      ],
+      routeSegmentTreatmentFeatures: [],
+    });
+
+    expect(result.segments[0]?.positiveRouteTreatmentCount).toBe(0);
+    expect(result.summary).toMatchObject({
+      routeWithUsablePositiveSegmentTreatmentCount: 0,
+    });
+  });
+
+  test("treats explicit bus-lane source-gap route refs as blocking gap absence claims", () => {
+    const result = buildTreatmentScopeGapSegmentsFromTreatmentFeatures({
+      segmentSpeedRows: [
+        {
+          route_id: "M20",
+          month: "2026-03",
+          segment_id: "M20:2026-03:N:39:403510:400858",
+          direction: "N",
+          stop_order: 39,
+          average_speed_mph: 4.4,
+          segment_length_feet: 1478,
+          observation_count: 131,
+          bus_trip_count: 1092,
+        },
+      ],
+      routeTreatmentFeatures: [
+        {
+          routeId: "M20",
+          month: "2026-03",
+          treatmentType: "bus_lane",
+          status: "current_confirmed",
+          geographyScope: "route",
+          evidenceLabel: "deterministic_source",
+          confidence: "medium",
+          sourceRefs: [
+            "local_intervention_event:bus-lane-source-gap:M20:2026-05",
+            "local_intervention_event:bus-lane:M20:2021-06",
+          ],
+        },
+      ],
+      routeSegmentTreatmentFeatures: [
+        {
+          routeId: "M20",
+          month: "2026-03",
+          treatmentType: "bus_lane",
+          status: "current_confirmed",
+          geographyScope: "segment",
+          evidenceLabel: "deterministic_source",
+          confidence: "high",
+          sourceRefs: [
+            "local_route_segment_speed_segment:M20:2026-03:N:31:404052:403510",
+            "nyc_dot_bus_lane_type:Curbside",
+            "nyc_dot_bus_lanes_geometry:route_shape_overlap",
+          ],
+          segmentId: "M20:2026-03:N:31:404052:403510",
+          directionId: "N",
+          segmentOrder: 31,
+          matchMethod: "route_shape_overlap",
+          overlapShare: 0.6,
+          laneTypes: [],
+        },
+      ],
+    });
+
+    expect(result.segments[0]?.positiveRouteTreatmentCount).toBe(0);
+    expect(result.segments[0]?.treatmentScopeFitContext).toMatchObject({
+      fitStatus: "source_gap_blocked",
+      sourceGapKinds: ["bus_lane_source_gap"],
+      blocksClaims: ["absence"],
+    });
   });
 
   test("projects segment lane overlap checks into positive, negative, and source-gap rows", () => {
@@ -196,11 +299,7 @@ describe("route treatment summary", () => {
       ],
     });
 
-    expect(rows.map((row) => row.status)).toEqual([
-      "current_confirmed",
-      "not_found",
-      "source_gap",
-    ]);
+    expect(rows.map((row) => row.status)).toEqual(["current_confirmed", "not_found", "source_gap"]);
     expect(rows[0]?.confidence).toBe("low");
     expect(rows.map((row) => row.matchMethod)).toEqual([
       "route_shape_overlap",
@@ -341,7 +440,8 @@ describe("route treatment summary", () => {
       }),
       generatedAt: "2026-06-06T00:00:00.000Z",
       dbPath: "data/local/pipeline.sqlite",
-      artifactPath: "data/artifacts/studio/v2/route-treatment-summary/2026-03/route-treatment-summary.json",
+      artifactPath:
+        "data/artifacts/studio/v2/route-treatment-summary/2026-03/route-treatment-summary.json",
     });
 
     expect(
@@ -361,11 +461,11 @@ describe("route treatment summary", () => {
   });
 
   test("uses the Studio v2 route treatment-summary namespace", () => {
-    expect(routeTreatmentSummaryArtifactPath({ artifactRoot: "data/artifacts", month: "2026-03" })).toBe(
-      "data/artifacts/studio/v2/route-treatment-summary/2026-03/route-treatment-summary.json",
-    );
-    expect(routeTreatmentSummaryMarkdownPath({ artifactRoot: "data/artifacts", month: "2026-03" })).toBe(
-      "data/artifacts/studio/v2/route-treatment-summary/2026-03/route-treatment-summary.md",
-    );
+    expect(
+      routeTreatmentSummaryArtifactPath({ artifactRoot: "data/artifacts", month: "2026-03" }),
+    ).toBe("data/artifacts/studio/v2/route-treatment-summary/2026-03/route-treatment-summary.json");
+    expect(
+      routeTreatmentSummaryMarkdownPath({ artifactRoot: "data/artifacts", month: "2026-03" }),
+    ).toBe("data/artifacts/studio/v2/route-treatment-summary/2026-03/route-treatment-summary.md");
   });
 });

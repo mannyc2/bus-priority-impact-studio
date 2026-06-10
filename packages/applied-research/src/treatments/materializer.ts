@@ -83,6 +83,9 @@ export type SegmentTreatmentSummaryRow = RouteTreatmentSummaryRow & {
     | "source_only"
     | "not_matched";
   overlapShare: number | null;
+  // DOT bus-lane facility types overlapping this segment (raw casing), surfaced as a typed field so
+  // the bus-lane vs Enhanced-Bus-Stop split is classified once instead of re-parsed from sourceRefs.
+  laneTypes: readonly string[];
 };
 
 export type RouteSegmentLaneOverlapInput = {
@@ -334,7 +337,10 @@ const DATE_PRECISION_RANK: Record<DatePrecision, number> = {
 };
 
 function normalizeText(value: string): string {
-  return value.trim().toLowerCase().replace(/[\s/-]+/g, "_");
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[\s/-]+/g, "_");
 }
 
 function monthIndex(month: string): number | null {
@@ -360,10 +366,7 @@ function normalizeRouteId(routeId: string): string {
   return routeId.trim().toUpperCase();
 }
 
-function canonicalRouteId(
-  routeId: string,
-  routeUniverse: ReadonlySet<string>,
-): string | null {
+function canonicalRouteId(routeId: string, routeUniverse: ReadonlySet<string>): string | null {
   const normalized = normalizeRouteId(routeId);
   if (normalized.length === 0) return null;
   if (routeUniverse.size === 0 || routeUniverse.has(normalized)) return normalized;
@@ -383,7 +386,10 @@ function routeTreatmentKey(
   return [row.routeId, row.month, row.treatmentType, row.geographyScope].join("|");
 }
 
-function countBy<T extends string>(values: readonly T[], universe: readonly T[]): Record<T, number> {
+function countBy<T extends string>(
+  values: readonly T[],
+  universe: readonly T[],
+): Record<T, number> {
   const counts = Object.fromEntries(universe.map((value) => [value, 0])) as Record<T, number>;
   for (const value of values) counts[value] += 1;
   return counts;
@@ -436,9 +442,7 @@ function segmentLaneEvidenceStatus(row: RouteSegmentLaneOverlapInput): RouteTrea
   return "not_found";
 }
 
-function segmentLaneEvidenceLabel(
-  row: RouteSegmentLaneOverlapInput,
-): RouteTreatmentEvidenceLabel {
+function segmentLaneEvidenceLabel(row: RouteSegmentLaneOverlapInput): RouteTreatmentEvidenceLabel {
   if (row.laneSource === "geometry_unavailable") return "aggregate_source_gap";
   if (row.laneOverlapShare > 0 && row.laneMatchedCount > 0) return "deterministic_source";
   return "not_found";
@@ -485,9 +489,13 @@ function betterRouteTreatmentRow(
   right: RouteTreatmentSummaryRow,
 ): RouteTreatmentSummaryRow {
   const leftScore =
-    STATUS_RANK[left.status] * 100 + CONFIDENCE_RANK[left.confidence] * 10 + DATE_PRECISION_RANK[left.datePrecision];
+    STATUS_RANK[left.status] * 100 +
+    CONFIDENCE_RANK[left.confidence] * 10 +
+    DATE_PRECISION_RANK[left.datePrecision];
   const rightScore =
-    STATUS_RANK[right.status] * 100 + CONFIDENCE_RANK[right.confidence] * 10 + DATE_PRECISION_RANK[right.datePrecision];
+    STATUS_RANK[right.status] * 100 +
+    CONFIDENCE_RANK[right.confidence] * 10 +
+    DATE_PRECISION_RANK[right.datePrecision];
   const winner = rightScore > leftScore ? right : left;
   const loser = winner === left ? right : left;
   return {
@@ -595,7 +603,9 @@ export function routeTreatmentSourceRowsFromAce(input: {
     const implementationMonth = isoMonthFromDateLike(row.implementation_date);
     const implementationIndex = monthIndex(implementationMonth ?? "");
     const status =
-      implementationIndex !== null && implementationIndex <= releaseIndex ? "current_confirmed" : "planned";
+      implementationIndex !== null && implementationIndex <= releaseIndex
+        ? "current_confirmed"
+        : "planned";
     return {
       routeId: row.route_id,
       month: input.month,
@@ -609,7 +619,9 @@ export function routeTreatmentSourceRowsFromAce(input: {
       evidenceLabel: "deterministic_source",
       confidence: "high",
       caveats: [`${row.program} route evidence is deterministic route-level enforcement state.`],
-      relatedEventIds: [`ace:${row.route_id}:${row.program}:${row.implementation_date.slice(0, 10)}`],
+      relatedEventIds: [
+        `ace:${row.route_id}:${row.program}:${row.implementation_date.slice(0, 10)}`,
+      ],
     };
   });
 }
@@ -686,6 +698,7 @@ export function segmentTreatmentRowsFromLaneOverlaps(input: {
       segmentOrder: row.segmentOrder,
       matchMethod: segmentLaneMatchMethod(row),
       overlapShare: unavailable ? null : row.laneOverlapShare,
+      laneTypes: [...row.laneTypes],
     };
   });
 }
@@ -783,7 +796,11 @@ export function routeTreatmentSourceRowsFromPublishableInterventions(input: {
         effectiveDate,
         datePrecision,
         geographyScope: "route",
-        sourceRefs: [`publishable_intervention:${recordId}`, `source:${sourceId}`, ...evidenceIds.map((id) => `candidate:${id}`)],
+        sourceRefs: [
+          `publishable_intervention:${recordId}`,
+          `source:${sourceId}`,
+          ...evidenceIds.map((id) => `candidate:${id}`),
+        ],
         evidenceLabel: "reviewed_document",
         confidence: row.timelineLayer === "canonical_milestone" ? "high" : "medium",
         caveats: ["Reviewed Tier 2 publishable intervention record."],
@@ -802,7 +819,9 @@ export function buildRouteTreatmentSummaryArtifact(
   const routeUniverse = new Set(routeIds);
   const sourceGapRows = [...(input.sourceGapRows ?? [])];
   if (input.includeTspCurrentInventorySourceGap !== false) {
-    sourceGapRows.push(...routeIds.map((routeId) => tspCurrentInventorySourceGap(routeId, input.month)));
+    sourceGapRows.push(
+      ...routeIds.map((routeId) => tspCurrentInventorySourceGap(routeId, input.month)),
+    );
   }
 
   const rows: RouteTreatmentSummaryRow[] = [];
@@ -949,7 +968,9 @@ export function buildRouteTreatmentSummaryArtifact(
       checkedTreatmentTypeCount: checkedTreatmentTypes.length,
       routeTreatmentRowCount: routeTreatmentRows.length,
       routeTreatmentCoverageShare:
-        expectedRouteTreatmentRows === 0 ? 0 : routeTreatmentRows.length / expectedRouteTreatmentRows,
+        expectedRouteTreatmentRows === 0
+          ? 0
+          : routeTreatmentRows.length / expectedRouteTreatmentRows,
       routeWithPositiveEvidenceCount: positiveRoutes.size,
       routeWithSourceGapCount: sourceGapRoutes.size,
       segmentTreatmentRowCount: segmentTreatmentRows.length,

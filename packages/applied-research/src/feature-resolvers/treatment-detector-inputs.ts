@@ -11,6 +11,7 @@ import type {
   RouteTreatmentSourceGapFeature,
   RouteTreatmentSummaryFeature,
 } from "@bp/analytics/features";
+import { isEnhancedBusStopOnlyLaneTypes } from "@bp/analytics/features";
 import type { InterventionComparisonSourceRow } from "./detector-family-features";
 import type { InterventionScopeFitRow } from "./intervention-scope-fit";
 import type { SegmentSpeedResidualRow } from "./segment-month-panel";
@@ -78,6 +79,7 @@ const FUTURE_TREATMENT_STATUSES = new Set([
   "candidate",
 ]);
 const MAX_TREATMENT_SOURCE_REFS_PER_ROUTE = 24;
+const BUS_LANE_SOURCE_GAP_REF_PATTERN = /^local_intervention_event:bus-lane-source-gap:/;
 
 function text(value: unknown): string | null {
   return typeof value === "string" && value.length > 0 ? value : null;
@@ -162,7 +164,9 @@ function round(value: number, digits = 4): number {
 }
 
 function median(values: readonly number[]): number | null {
-  const sorted = values.filter((value) => Number.isFinite(value)).sort((left, right) => left - right);
+  const sorted = values
+    .filter((value) => Number.isFinite(value))
+    .sort((left, right) => left - right);
   if (sorted.length === 0) return null;
   const middle = Math.floor(sorted.length / 2);
   if (sorted.length % 2 === 1) return sorted[middle] ?? null;
@@ -180,7 +184,10 @@ function slownessPercentileFromRank(rankAscending: number, count: number): numbe
 
 function rankAscendingBySpeed(
   rows: readonly { segmentId: string; averageSpeedMph: number | null }[],
-): Map<string, { rank: number; count: number; medianSpeedMph: number | null; slownessPercentile: number | null }> {
+): Map<
+  string,
+  { rank: number; count: number; medianSpeedMph: number | null; slownessPercentile: number | null }
+> {
   const supported = rows
     .filter(
       (row): row is { segmentId: string; averageSpeedMph: number } =>
@@ -188,7 +195,8 @@ function rankAscendingBySpeed(
     )
     .sort(
       (left, right) =>
-        left.averageSpeedMph - right.averageSpeedMph || left.segmentId.localeCompare(right.segmentId),
+        left.averageSpeedMph - right.averageSpeedMph ||
+        left.segmentId.localeCompare(right.segmentId),
     );
   const count = supported.length;
   const medianSpeedMph = median(supported.map((row) => row.averageSpeedMph));
@@ -242,6 +250,21 @@ function routeSpecificTreatmentSourceRefs(routeId: string, refs: readonly string
   );
 }
 
+function isRouteSourceGapRef(ref: string): boolean {
+  return BUS_LANE_SOURCE_GAP_REF_PATTERN.test(ref);
+}
+
+function isUsablePositiveSegmentTreatment(feature: RouteSegmentTreatmentSummaryFeature): boolean {
+  return (
+    feature.treatmentType === "bus_lane" &&
+    POSITIVE_TREATMENT_STATUSES.has(feature.status) &&
+    feature.matchMethod === "route_shape_overlap" &&
+    feature.overlapShare !== null &&
+    feature.overlapShare > 0 &&
+    !isEnhancedBusStopOnlyLaneTypes(feature.laneTypes ?? [])
+  );
+}
+
 function historicalSpeedContext(input: {
   rows: readonly RouteSegmentHistoricalSpeedSummarySourceRow[];
   releaseMonth: string;
@@ -254,9 +277,7 @@ function historicalSpeedContext(input: {
     }))
     .filter(
       (row): row is { month: string; averageSpeedMph: number } =>
-        row.month !== null &&
-        row.averageSpeedMph !== null &&
-        Number.isFinite(row.averageSpeedMph),
+        row.month !== null && row.averageSpeedMph !== null && Number.isFinite(row.averageSpeedMph),
     )
     .sort((left, right) => left.month.localeCompare(right.month));
   if (monthRows.length === 0) return null;
@@ -265,20 +286,19 @@ function historicalSpeedContext(input: {
   const prior12MedianSpeedMph = median(prior12Rows.map((row) => row.averageSpeedMph));
   const previous = priorRows.at(-1);
   const slowest = [...monthRows].sort(
-    (left, right) => left.averageSpeedMph - right.averageSpeedMph || left.month.localeCompare(right.month),
+    (left, right) =>
+      left.averageSpeedMph - right.averageSpeedMph || left.month.localeCompare(right.month),
   )[0];
   return {
     monthCount: monthRows.length,
-    priorMonthAverageSpeedMph:
-      previous === undefined ? null : round(previous.averageSpeedMph, 4),
+    priorMonthAverageSpeedMph: previous === undefined ? null : round(previous.averageSpeedMph, 4),
     prior12MedianSpeedMph: prior12MedianSpeedMph === null ? null : round(prior12MedianSpeedMph, 4),
     releaseVsPrior12DeltaMph:
       input.currentAverageSpeedMph === null || prior12MedianSpeedMph === null
         ? null
         : round(input.currentAverageSpeedMph - prior12MedianSpeedMph, 4),
     slowestMonth: slowest?.month ?? null,
-    slowestMonthAverageSpeedMph:
-      slowest === undefined ? null : round(slowest.averageSpeedMph, 4),
+    slowestMonthAverageSpeedMph: slowest === undefined ? null : round(slowest.averageSpeedMph, 4),
   };
 }
 
@@ -526,7 +546,7 @@ export function buildInterventionUnderperformanceRoutesFromTreatmentFeatures(inp
           left.eventId.localeCompare(right.eventId),
         ),
         routeTreatmentEvidenceCount: counts.positiveRouteTreatmentCount,
-      segmentTreatmentEvidenceCount: counts.positiveSegmentTreatmentCount,
+        segmentTreatmentEvidenceCount: counts.positiveSegmentTreatmentCount,
         treatmentSourceRefs: counts.sourceRefs.slice(0, MAX_TREATMENT_SOURCE_REFS_PER_ROUTE),
         treatmentSourceRefCount: counts.sourceRefs.length,
       };
@@ -558,8 +578,7 @@ export function buildInterventionUnderperformanceRoutesFromTreatmentFeatures(inp
         (route) => (route.segmentTreatmentEvidenceCount ?? 0) > 0,
       ).length,
       highPainWithEvaluatedComparisonCount: routesWithEvaluatedComparison.filter(
-        (route) =>
-          Math.max(route.speedPainScore ?? -1, route.reliabilityPainScore ?? -1) >= 85,
+        (route) => Math.max(route.speedPainScore ?? -1, route.reliabilityPainScore ?? -1) >= 85,
       ).length,
     },
   };
@@ -641,7 +660,10 @@ export function buildTreatmentScopeMismatchSegmentsFromTreatmentFeatures(input: 
       rows.sort((left, right) => left.daypart.localeCompare(right.daypart)),
     );
   }
-  const historicalRowsByStableKey = new Map<string, RouteSegmentHistoricalSpeedSummarySourceRow[]>();
+  const historicalRowsByStableKey = new Map<
+    string,
+    RouteSegmentHistoricalSpeedSummarySourceRow[]
+  >();
   for (const row of input.segmentHistoricalSpeedRows ?? []) {
     const stableKey = text(row.stable_segment_key);
     if (stableKey === null) continue;
@@ -662,7 +684,12 @@ export function buildTreatmentScopeMismatchSegmentsFromTreatmentFeatures(input: 
   }
   const routeRanks = new Map<
     string,
-    { rank: number; count: number; medianSpeedMph: number | null; slownessPercentile: number | null }
+    {
+      rank: number;
+      count: number;
+      medianSpeedMph: number | null;
+      slownessPercentile: number | null;
+    }
   >();
   for (const rows of routeRows.values()) {
     for (const [segmentId, rank] of rankAscendingBySpeed(rows).entries()) {
@@ -702,6 +729,7 @@ export function buildTreatmentScopeMismatchSegmentsFromTreatmentFeatures(input: 
         overlapShare: feature.overlapShare,
         treatmentConfidence: feature.confidence,
         treatmentSourceRefs: [...feature.sourceRefs],
+        laneTypes: [...(feature.laneTypes ?? [])],
         averageSpeedMph: currentAverageSpeedMph,
         segmentLengthFeet: speed?.segmentLengthFeet ?? null,
         observationCount: speed?.observationCount ?? null,
@@ -805,12 +833,25 @@ export function buildTreatmentScopeGapSegmentsFromTreatmentFeatures(input: {
   });
   const routeTreatmentRefs = new Map<string, string[]>();
   const positiveRouteTreatmentCounts = new Map<string, number>();
+  const sourceGapBlockedRoutes = new Set<string>();
+  const usablePositiveSegmentCountByRoute = new Map<string, number>();
+  for (const feature of input.routeSegmentTreatmentFeatures) {
+    if (!isUsablePositiveSegmentTreatment(feature)) continue;
+    usablePositiveSegmentCountByRoute.set(
+      feature.routeId,
+      (usablePositiveSegmentCountByRoute.get(feature.routeId) ?? 0) + 1,
+    );
+  }
   for (const feature of input.routeTreatmentFeatures) {
     if (feature.treatmentType !== "bus_lane" || !POSITIVE_TREATMENT_STATUSES.has(feature.status)) {
       continue;
     }
     const routeSpecificRefs = routeSpecificTreatmentSourceRefs(feature.routeId, feature.sourceRefs);
+    if (routeSpecificRefs.some(isRouteSourceGapRef)) {
+      sourceGapBlockedRoutes.add(feature.routeId);
+    }
     if (routeSpecificRefs.length === 0) continue;
+    if ((usablePositiveSegmentCountByRoute.get(feature.routeId) ?? 0) === 0) continue;
     positiveRouteTreatmentCounts.set(
       feature.routeId,
       (positiveRouteTreatmentCounts.get(feature.routeId) ?? 0) + 1,
@@ -871,35 +912,43 @@ export function buildTreatmentScopeGapSegmentsFromTreatmentFeatures(input: {
       };
       return [
         {
-        ...base,
-        routeId,
-        segmentId,
-        averageSpeedMph: numberValue(row.average_speed_mph),
-        segmentLengthFeet: numberValue(row.segment_length_feet),
-        observationCount: numberValue(row.observation_count),
-        busTripCount: numberValue(row.bus_trip_count),
-        treatmentType: strongestTreatment?.treatmentType ?? null,
-        treatmentStatus: strongestTreatment?.status ?? null,
-        matchMethod: strongestTreatment?.matchMethod ?? null,
-        overlapShare: strongestTreatment?.overlapShare ?? null,
-        routeTreatmentSourceRefs: (routeTreatmentRefs.get(routeId) ?? []).slice(
-          0,
-          MAX_TREATMENT_SOURCE_REFS_PER_ROUTE,
-        ),
-        segmentTreatmentSourceRefs: uniqueSorted(treatments.flatMap((feature) => feature.sourceRefs)),
-        positiveRouteTreatmentCount: positiveRouteTreatmentCounts.get(routeId) ?? 0,
-        positiveSegmentTreatmentCount: treatments.filter(
-          (feature) => feature.treatmentType === "bus_lane" && POSITIVE_TREATMENT_STATUSES.has(feature.status),
-          ).length,
-        treatmentScopeFitContext:
-          scopeFit === undefined
-            ? null
-            : {
-                fitStatus: scopeFit.fitStatus,
-                sourceGapCount: scopeFit.sourceGapCount,
-                sourceGapKinds: [...scopeFit.sourceGapKinds],
-                blocksClaims: [...scopeFit.blocksClaims],
-              },
+          ...base,
+          routeId,
+          segmentId,
+          averageSpeedMph: numberValue(row.average_speed_mph),
+          segmentLengthFeet: numberValue(row.segment_length_feet),
+          observationCount: numberValue(row.observation_count),
+          busTripCount: numberValue(row.bus_trip_count),
+          treatmentType: strongestTreatment?.treatmentType ?? null,
+          treatmentStatus: strongestTreatment?.status ?? null,
+          matchMethod: strongestTreatment?.matchMethod ?? null,
+          overlapShare: strongestTreatment?.overlapShare ?? null,
+          routeTreatmentSourceRefs: (routeTreatmentRefs.get(routeId) ?? []).slice(
+            0,
+            MAX_TREATMENT_SOURCE_REFS_PER_ROUTE,
+          ),
+          segmentTreatmentSourceRefs: uniqueSorted(
+            treatments.flatMap((feature) => feature.sourceRefs),
+          ),
+          positiveRouteTreatmentCount: sourceGapBlockedRoutes.has(routeId)
+            ? 0
+            : (positiveRouteTreatmentCounts.get(routeId) ?? 0),
+          positiveSegmentTreatmentCount: treatments.filter(isUsablePositiveSegmentTreatment).length,
+          treatmentScopeFitContext: sourceGapBlockedRoutes.has(routeId)
+            ? {
+                fitStatus: "source_gap_blocked",
+                sourceGapCount: 1,
+                sourceGapKinds: ["bus_lane_source_gap"],
+                blocksClaims: ["absence"],
+              }
+            : scopeFit === undefined
+              ? null
+              : {
+                  fitStatus: scopeFit.fitStatus,
+                  sourceGapCount: scopeFit.sourceGapCount,
+                  sourceGapKinds: [...scopeFit.sourceGapKinds],
+                  blocksClaims: [...scopeFit.blocksClaims],
+                },
         },
       ];
     })
@@ -912,6 +961,8 @@ export function buildTreatmentScopeGapSegmentsFromTreatmentFeatures(input: {
       sourceRowCount: input.segmentSpeedRows.length,
       routeTreatmentFeatureCount: input.routeTreatmentFeatures.length,
       routeSegmentTreatmentFeatureCount: input.routeSegmentTreatmentFeatures.length,
+      routeWithUsablePositiveSegmentTreatmentCount: usablePositiveSegmentCountByRoute.size,
+      sourceGapBlockedRouteCount: sourceGapBlockedRoutes.size,
       interventionScopeFitRowCount: input.interventionScopeFitRows?.length ?? 0,
       segmentWithScopeFitContextCount: segments.filter(
         (segment) => segment.treatmentScopeFitContext !== null,

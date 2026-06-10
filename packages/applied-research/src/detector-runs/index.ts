@@ -5,20 +5,26 @@ export {
 } from "./detector-input-assembly";
 export {
   DEFAULT_REGISTRY_DETECTOR_STUDY_ID,
+  type DetectorStudyCatalogRow,
   type DetectorStudyMetadata,
   type DetectorStudySourceRows,
   detectorModelDependencySatisfaction,
+  detectorStudyFeatureContractSatisfaction,
   detectorStudyNeedsRouteTreatmentFeatures,
   detectorStudyNeedsStopDirectionHourFeatures,
+  listDetectorStudyCatalogRows,
   type RegistryDetectorStudyResult,
   runRegistryDetectorStudy,
 } from "./detector-study";
+export {
+  type FeatureResolverSupport,
+  featureResolverSupport,
+} from "./feature-resolver-support";
 export {
   buildRegistryDetectorRunArtifact,
   type ContractSatisfaction,
   type DataProductDependency,
   type DetectorOutput,
-  detectorFeatureContractSatisfaction,
   type ModelArtifactDependency,
   type RegistryDetectorRunArtifact,
 } from "./run-artifact";

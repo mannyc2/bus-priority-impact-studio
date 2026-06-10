@@ -20,6 +20,8 @@ export {
   detectorEvaluationArtifactPath,
   detectorEvaluationInputArtifactPaths,
   detectorEvaluationMarkdownPath,
+  detectorReadinessServingManifestPath,
+  detectorReadinessServingManifestStudioPath,
   modelArtifactServingProjectionPath,
   modelArtifactServingProjectionStudioPath,
 } from "./detector-evaluation";

@@ -78,7 +78,7 @@ describe("route source reconciliation local DB builder", () => {
         artifactPath: "data/artifacts/reconciliation.json",
       });
 
-      expect(artifact.universes.route_catalog).toEqual({
+      expect(artifact.universes["route_catalog"]).toEqual({
         routeCount: 3,
         sampleRoutes: ["M1", "M2", "T1"],
       });

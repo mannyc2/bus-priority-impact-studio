@@ -1,4 +1,4 @@
-import { Database } from "bun:sqlite";
+import { Database, type SQLQueryBindings } from "bun:sqlite";
 import { describe, expect, test } from "bun:test";
 import { localDbQueryBaselinesArtifactPath } from "../src/artifacts";
 import {
@@ -17,7 +17,7 @@ type QueryPlanRow = {
   detail: string;
 };
 
-function queryPlan(sqlite: Database, sql: string, params: readonly unknown[]): string {
+function queryPlan(sqlite: Database, sql: string, params: readonly SQLQueryBindings[]): string {
   return (sqlite.query(`EXPLAIN QUERY PLAN ${sql}`).all(...params) as QueryPlanRow[])
     .map((row) => row.detail)
     .join("\n");

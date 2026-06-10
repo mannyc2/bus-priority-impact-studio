@@ -1,5 +1,8 @@
 import { join } from "node:path";
-import { STUDIO_MODEL_ARTIFACT_SERVING_PROJECTION_KEY } from "@bp/domain/studio/snapshots";
+import {
+  STUDIO_MODEL_ARTIFACT_SERVING_PROJECTION_KEY,
+  STUDIO_ROUTE_DETECTOR_READINESS_MANIFEST_KEY,
+} from "@bp/domain/studio/snapshots";
 
 export type DetectorEvaluationInputArtifactPaths = {
   readonly reviewDecisions: string;
@@ -64,6 +67,24 @@ export function modelArtifactServingProjectionStudioPath(input: {
   readonly artifactRoot: string;
 }): string {
   return join(input.artifactRoot, STUDIO_MODEL_ARTIFACT_SERVING_PROJECTION_KEY);
+}
+
+export function detectorReadinessServingManifestPath(input: {
+  readonly artifactRoot: string;
+  readonly releaseMonth: string;
+}): string {
+  return join(
+    input.artifactRoot,
+    "detector-serving-readiness-manifest",
+    input.releaseMonth,
+    "route-detector-readiness-manifest.json",
+  );
+}
+
+export function detectorReadinessServingManifestStudioPath(input: {
+  readonly artifactRoot: string;
+}): string {
+  return join(input.artifactRoot, STUDIO_ROUTE_DETECTOR_READINESS_MANIFEST_KEY);
 }
 
 export function detectorEvaluationInputArtifactPaths(input: {

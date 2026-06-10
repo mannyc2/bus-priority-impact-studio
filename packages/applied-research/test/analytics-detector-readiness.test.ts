@@ -182,7 +182,7 @@ describe("analytics detector readiness", () => {
 
       expect(audit.summary.detectorCount).toBe(listAnalyticsDetectors().length);
       expect(audit.summary.readyDetectorCount).toBe(3);
-      expect(audit.summary.blockedDetectorCount).toBe(17);
+      expect(audit.summary.blockedDetectorCount).toBe(18);
       expect(audit.summary.policyPendingDetectorCount).toBe(0);
 
       const ewt = audit.detectors.find(

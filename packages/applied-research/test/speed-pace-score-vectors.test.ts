@@ -43,6 +43,9 @@ function createDb(): Database {
   for (const month of ["2026-02", "2026-03"]) {
     insert.run("M15", month, 8, "0", 10, "s1", "s2", 1, 16, 3.75, 20);
     insert.run("M15", month, 12, "0", 10, "s1", "s2", 1, 5, 12, 20);
+    // Downstream terminal segment: free-flowing, gated as terminal, makes s1->s2 interior.
+    insert.run("M15", month, 8, "0", 20, "s2", "s3", 1, 5, 12, 20);
+    insert.run("M15", month, 12, "0", 20, "s2", "s3", 1, 5, 12, 20);
   }
   return sqlite;
 }
@@ -64,6 +67,21 @@ function row(overrides: Partial<SegmentDaypartSpeedSourceRow>): SegmentDaypartSp
   };
 }
 
+// Highest-stop-order segment in the direction: free-flowing, so it is gated as terminal and never a
+// candidate, while making the slower s1->s2 segment interior (non-terminal).
+function downstreamRow(
+  overrides: Partial<SegmentDaypartSpeedSourceRow>,
+): SegmentDaypartSpeedSourceRow {
+  return row({
+    stop_order: 20,
+    timepoint_stop_id: "s2",
+    next_timepoint_stop_id: "s3",
+    average_travel_time_minutes: 5,
+    average_road_speed_mph: 12,
+    ...overrides,
+  });
+}
+
 describe("speed pace score vectors", () => {
   test("summarizes historical speed_pace_hotspot feature and candidate support from row batches", () => {
     const rowsByMonth = new Map<string, SegmentDaypartSpeedSourceRow[]>([
@@ -72,6 +90,10 @@ describe("speed pace score vectors", () => {
         [
           row({ month: "2026-02", hour_of_day: 8, average_travel_time_minutes: 16 }),
           row({ month: "2026-02", hour_of_day: 12, average_travel_time_minutes: 5 }),
+          // Downstream terminal segment (highest stop order): present so the s1->s2 segment is
+          // interior, and itself gated as terminal (and not slow) so it emits no candidate.
+          downstreamRow({ month: "2026-02", hour_of_day: 8 }),
+          downstreamRow({ month: "2026-02", hour_of_day: 12 }),
         ],
       ],
       [
@@ -79,6 +101,8 @@ describe("speed pace score vectors", () => {
         [
           row({ month: "2026-03", hour_of_day: 8, average_travel_time_minutes: 16 }),
           row({ month: "2026-03", hour_of_day: 12, average_travel_time_minutes: 5 }),
+          downstreamRow({ month: "2026-03", hour_of_day: 8 }),
+          downstreamRow({ month: "2026-03", hour_of_day: 12 }),
         ],
       ],
     ]);
@@ -98,10 +122,10 @@ describe("speed pace score vectors", () => {
     expect(artifact.artifactKind).toBe("speed_pace_hotspot_score_vectors");
     expect(artifact.detectorId).toBe("speed_pace_hotspot");
     expect(artifact.summary.usableMonthCount).toBe(2);
-    expect(artifact.summary.totalFeatureCount).toBe(4);
+    expect(artifact.summary.totalFeatureCount).toBe(8);
     expect(artifact.summary.totalCandidateCount).toBe(2);
     expect(artifact.summary.routeCount).toBe(1);
-    expect(artifact.summary.releaseFeatureCount).toBe(2);
+    expect(artifact.summary.releaseFeatureCount).toBe(4);
     expect(artifact.summary.releaseCandidateCount).toBe(1);
     expect(artifact.monthly.map((month) => month.month)).toEqual(["2026-02", "2026-03"]);
     expect(artifact.releaseTopCandidates[0]?.routeId).toBe("M15");
@@ -131,10 +155,10 @@ describe("speed pace score vectors", () => {
       expect(artifact.artifactKind).toBe("speed_pace_hotspot_score_vectors");
       expect(artifact.detectorId).toBe("speed_pace_hotspot");
       expect(artifact.summary.usableMonthCount).toBe(2);
-      expect(artifact.summary.totalFeatureCount).toBe(4);
+      expect(artifact.summary.totalFeatureCount).toBe(8);
       expect(artifact.summary.totalCandidateCount).toBe(2);
       expect(artifact.summary.routeCount).toBe(1);
-      expect(artifact.summary.releaseFeatureCount).toBe(2);
+      expect(artifact.summary.releaseFeatureCount).toBe(4);
       expect(artifact.summary.releaseCandidateCount).toBe(1);
       expect(artifact.monthly.map((month) => month.month)).toEqual(["2026-02", "2026-03"]);
       expect(artifact.releaseTopCandidates[0]?.routeId).toBe("M15");

@@ -453,7 +453,6 @@ describe("repairInterventionRecordsAliases (Fix 6)", () => {
         bucketId: "test_source:single_call",
         bucketKind: "single_call",
         candidates: [candidate],
-        estimatedPromptChars: 1,
       },
       candidateExtractionRootName: "ocr-page-markdown",
       candidateRootName: "ocr-markdown-candidates",

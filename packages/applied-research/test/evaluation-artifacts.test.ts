@@ -108,7 +108,7 @@ describe("evaluation artifact manifest builders", () => {
         month,
         generatedAt: "2026-06-06T00:00:00.000Z",
         rows: {
-          observedReliability: [{ routeId: "B41", reliabilityStatus: "observed", sampleCount: 10 }],
+          observedReliability: [{ reliabilityStatus: "observed", sampleCount: 10 }],
           interventionEvents: [],
           interventionComparisons: [],
           corridorInterventionContexts: [],

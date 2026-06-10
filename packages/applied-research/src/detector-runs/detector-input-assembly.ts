@@ -1,5 +1,8 @@
+import type { Database } from "bun:sqlite";
+import { join } from "node:path";
 import { featureContractsForGrains } from "@bp/analytics/features";
 import { getAnalyticsDetector } from "@bp/analytics/registry";
+import { FindingSignalFeaturesArtifactSchema } from "@bp/domain/findings";
 import {
   interventionScopeFitArtifactPath,
   loadRouteTreatmentFeaturesFromArtifact,
@@ -20,6 +23,9 @@ import type {
   SourceGapModelArtifactV1,
   TreatmentEventPanelArtifactV1,
 } from "../feature-resolvers";
+import { buildCustomerJourneyFeaturesFromMetricRows } from "../feature-resolvers/customer-journey";
+import { loadCustomerJourneyMetricLocalDbRows } from "../local-db/customer-journey-rows";
+import { loadRouteMonthSignalFeatureLocalDbRows } from "../local-db/detector-study-rows";
 import type { DetectorStudySourceRows } from "./detector-study";
 
 export type DetectorInputAssemblyContext = {
@@ -29,6 +35,7 @@ export type DetectorInputAssemblyContext = {
   readonly historyStartMonth: string;
   readonly observedRunId: string;
   readonly routeId?: string;
+  readonly sqlite?: Database;
 };
 
 type MutableDetectorStudySourceRows = {
@@ -114,6 +121,10 @@ function modelArtifactPath(input: DetectorInputAssemblyContext, modelId: string)
     default:
       return null;
   }
+}
+
+function signalFeaturesArtifactPath(input: DetectorInputAssemblyContext): string {
+  return join(input.artifactRoot, "findings", input.releaseMonth, "signal-features.json");
 }
 
 const RELIABILITY_EXPOSURE_PANEL_RESOLVER: DetectorInputResolver = {
@@ -206,6 +217,50 @@ const MODEL_ARTIFACT_RESOLVERS: Readonly<Record<string, DetectorInputResolver>> 
 };
 
 const FEATURE_RESOLVERS: Readonly<Record<string, DetectorInputResolver>> = {
+  "artifact.signal_features.route_month.v1": {
+    resolverId: "artifact.signal_features.route_month.v1",
+    async resolve({ context, rows }) {
+      if (rows.routeMonthSignalFeatures !== undefined) return;
+      const file = Bun.file(signalFeaturesArtifactPath(context));
+      if (!(await file.exists())) return;
+      const artifact = FindingSignalFeaturesArtifactSchema.parse(await file.json());
+      rows.routeMonthSignalFeatures = artifact.features.filter(
+        (feature) => context.routeId === undefined || feature.routeId === context.routeId,
+      );
+      rows.routeMonthSignalFeatureSummary = {
+        sourceKind: "route_month_signal_features_artifact",
+        ...artifact.summary,
+      };
+    },
+  },
+  "sqlite.local_context_event_route_touch.month.v1": {
+    resolverId: "sqlite.local_context_event_route_touch.month.v1",
+    async resolve({ context, rows }) {
+      if (context.sqlite === undefined || rows.routeMonthSignalFeatures !== undefined) return;
+      const loaded = loadRouteMonthSignalFeatureLocalDbRows({
+        sqlite: context.sqlite,
+        month: context.releaseMonth,
+        ...(context.routeId === undefined ? {} : { routeId: context.routeId }),
+      });
+      rows.routeMonthSignalFeatures = loaded.features;
+      rows.routeMonthSignalFeatureSummary = loaded.summary;
+    },
+  },
+  "sqlite.local_bus_customer_journey_metric.v1": {
+    resolverId: "sqlite.local_bus_customer_journey_metric.v1",
+    async resolve({ context, rows }) {
+      if (context.sqlite === undefined || rows.customerJourneyFeatures !== undefined) return;
+      const sourceRows = loadCustomerJourneyMetricLocalDbRows({
+        sqlite: context.sqlite,
+        historyStartMonth: context.historyStartMonth,
+      });
+      const resolved = buildCustomerJourneyFeaturesFromMetricRows({ rows: sourceRows });
+      rows.customerJourneyMetricRows = sourceRows;
+      rows.customerJourneyFeatures = resolved.features;
+      rows.customerJourneyRouteRollups = resolved.rollups;
+      rows.customerJourneySummary = resolved.summary;
+    },
+  },
   "artifact.stop_direction_hour_ewt_features.v1": {
     resolverId: "artifact.stop_direction_hour_ewt_features.v1",
     async resolve({ context, rows }) {
@@ -277,7 +332,7 @@ function orderedResolverIds(input: {
     ...new Set([
       ...input.modelArtifacts,
       ...featureContractsForGrains(input.featureGrains)
-        .filter((contract) => contract.materializationKind !== "sqlite_table")
+        .filter((contract) => contract.materializationKind !== "embedded_quality_gate")
         .map((contract) => contract.resolverId),
     ]),
   ];

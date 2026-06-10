@@ -54,7 +54,14 @@ function candidate(input: {
 function evidence(input: {
   linkId: string;
   candidateId: string;
-  role: "primary" | "counter_evidence" | "context" | "caveat" | "missing_data" | "coverage_audit";
+  role:
+    | "primary"
+    | "counter_evidence"
+    | "context"
+    | "official_context"
+    | "caveat"
+    | "missing_data"
+    | "coverage_audit";
   kind?:
     | "metric"
     | "context_event"
@@ -327,6 +334,14 @@ describe("review packet artifacts", () => {
           candidateId: treatment.candidateId,
           role: "counter_evidence",
         }),
+        // S5.4: agency-record evidence the publication wording depends on -> official_context,
+        // split out from generic associational context.
+        evidence({
+          linkId: "e-official",
+          candidateId: treatment.candidateId,
+          role: "official_context",
+          kind: "source_doc",
+        }),
       ],
       coverageRows: [
         coverage({
@@ -340,6 +355,10 @@ describe("review packet artifacts", () => {
     });
 
     const packet = artifacts.reviewPackets.packets[0];
+    // S5.4: official_context is its own partition, distinct from generic context.
+    expect(packet?.evidence.officialContext.map((link) => link.linkId)).toEqual(["e-official"]);
+    expect(packet?.evidence.context.some((link) => link.linkId === "e-official")).toBe(false);
+    expect(packet?.evidenceObjects.officialContext).toHaveLength(1);
     expect(packet?.reviewContext?.summary).toContain("bus-lane overlap plus 4.9 mph");
     expect(packet?.reviewContext?.evidenceHighlights).toEqual(
       expect.arrayContaining([
@@ -507,7 +526,7 @@ describe("review packet local DB rows", () => {
       expect(rows.evidenceLinks).toHaveLength(1);
       expect(rows.evidenceLinks[0]?.candidateId).toBe("c-speed");
       expect(rows.coverageRows).toHaveLength(1);
-      expect(rows.coverageRows[0]?.outcome).toBe("hit");
+      expect(`${rows.coverageRows[0]?.outcome}`).toBe("hit");
     } finally {
       sqlite.close();
     }

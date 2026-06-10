@@ -33,12 +33,21 @@ type GroupAccumulator = {
   segmentId: string;
   direction: string;
   daypart: string;
+  stopOrder: number;
   paceValues: number[];
   speedValues: number[];
   distanceMiles: number[];
   sourceRowCount: number;
   traversalCount: number;
 };
+
+function directionMaxKey(input: {
+  readonly routeId: string;
+  readonly month: string;
+  readonly direction: string;
+}): string {
+  return [input.routeId, input.month, input.direction].join("\0");
+}
 
 function text(value: unknown): string | null {
   return typeof value === "string" && value.length > 0 ? value : null;
@@ -122,6 +131,8 @@ export function buildSegmentDaypartFeaturesFromSpeedRows(input: {
   const minSampleCount = input.minSampleCount ?? 15;
   const groups = new Map<string, GroupAccumulator>();
   const baselines = new Map<string, number[]>();
+  // Per-(route, month, direction) maximum stop order, used to flag first/last terminal segments.
+  const directionMaxStopOrder = new Map<string, number>();
   const routeIds = new Set<string>();
   const months = new Set<string>();
   let skippedInvalidRowCount = 0;
@@ -132,6 +143,7 @@ export function buildSegmentDaypartFeaturesFromSpeedRows(input: {
     const direction = text(row.direction);
     const hour = numberValue(row.hour_of_day);
     const segmentId = segmentIdForSpeedRow(row);
+    const stopOrder = numberValue(row.stop_order);
     const distance = numberValue(row.road_distance_miles);
     const travelTime = numberValue(row.average_travel_time_minutes);
     const speed = numberValue(row.average_road_speed_mph);
@@ -142,6 +154,7 @@ export function buildSegmentDaypartFeaturesFromSpeedRows(input: {
       direction === null ||
       hour === null ||
       segmentId === null ||
+      stopOrder === null ||
       distance === null ||
       travelTime === null ||
       distance <= 0 ||
@@ -154,6 +167,11 @@ export function buildSegmentDaypartFeaturesFromSpeedRows(input: {
     const pace = travelTime / distance;
     const key = groupKey({ routeId, month, direction, segmentId, daypart });
     const baseline = baselineKey({ routeId, month, direction, segmentId });
+    const maxKey = directionMaxStopOrder.get(directionMaxKey({ routeId, month, direction }));
+    directionMaxStopOrder.set(
+      directionMaxKey({ routeId, month, direction }),
+      Math.max(maxKey ?? stopOrder, stopOrder),
+    );
     const current =
       groups.get(key) ??
       ({
@@ -162,6 +180,7 @@ export function buildSegmentDaypartFeaturesFromSpeedRows(input: {
         segmentId,
         direction,
         daypart,
+        stopOrder,
         paceValues: [],
         speedValues: [],
         distanceMiles: [],
@@ -201,12 +220,21 @@ export function buildSegmentDaypartFeaturesFromSpeedRows(input: {
       const medianDistanceMiles = median(group.distanceMiles);
       const sampleStatus =
         group.traversalCount >= minSampleCount ? "supported" : "insufficient_samples";
+      const directionMax =
+        directionMaxStopOrder.get(
+          directionMaxKey({
+            routeId: group.routeId,
+            month: group.month,
+            direction: group.direction,
+          }),
+        ) ?? group.stopOrder;
       return {
         routeId: group.routeId,
         month: group.month,
         segmentId: group.segmentId,
         direction: group.direction,
         daypart: group.daypart,
+        isTerminal: group.stopOrder <= 1 || group.stopOrder >= directionMax,
         traversalCount: group.traversalCount,
         segmentLengthFeet:
           medianDistanceMiles === null ? null : Math.round(medianDistanceMiles * 5280 * 10) / 10,
@@ -218,7 +246,10 @@ export function buildSegmentDaypartFeaturesFromSpeedRows(input: {
           medianPace === null || freeFlowPace === null ? null : medianPace - freeFlowPace,
         stochasticDelayMinutesPerMile:
           p95Pace === null || medianPace === null ? null : Math.max(0, p95Pace - medianPace),
-        spatialConfidence: 1,
+        // Not computed: these rows are pre-joined to GTFS timepoint stop pairs, so there is no fuzzy
+        // spatial-join confidence to report. Left null (unsupported) rather than a placeholder 1.0
+        // that would claim a geometry verification that never happened (S2.3).
+        spatialConfidence: null,
         quality: {
           coverageStatus: "complete",
           observedCount: group.sourceRowCount,

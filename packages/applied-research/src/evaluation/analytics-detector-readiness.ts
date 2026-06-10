@@ -92,6 +92,7 @@ const BACKFILL_SURFACE_TO_POLICY_SURFACE: ReadonlyMap<string, BackfillValidation
 
 export const DETECTOR_READINESS_REGISTRY_PRODUCT_BY_SURFACE = {
   bus_wait_assessment: "local_bus_wait_assessment_history",
+  customer_journey_metrics: "local_bus_customer_journey_metrics_history",
   dot_permit_route_touches: "local_context_event_route_touches_history",
   gtfs_schedule_runtime: "local_route_schedule_timepoints_release",
   intervention_comparisons: "local_route_intervention_comparison_history",
@@ -101,9 +102,7 @@ export const DETECTOR_READINESS_REGISTRY_PRODUCT_BY_SURFACE = {
   service_request_route_touches: "local_context_event_route_touches_history",
 } as const satisfies Record<BackfillValidationSurfaceId, string>;
 
-export function detectorReadinessRegistryProductId(
-  surfaceId: BackfillValidationSurfaceId,
-): string {
+export function detectorReadinessRegistryProductId(surfaceId: BackfillValidationSurfaceId): string {
   return DETECTOR_READINESS_REGISTRY_PRODUCT_BY_SURFACE[surfaceId];
 }
 

@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
+  detectorReadinessServingManifestPath,
+  detectorReadinessServingManifestStudioPath,
   modelArtifactServingProjectionPath,
   modelArtifactServingProjectionStudioPath,
 } from "../src/artifacts";
@@ -176,6 +178,17 @@ describe("model artifact serving projection", () => {
     );
     expect(modelArtifactServingProjectionStudioPath({ artifactRoot: "data/artifacts" })).toBe(
       "data/artifacts/studio/v2/detectors/model-artifacts.json",
+    );
+    expect(
+      detectorReadinessServingManifestPath({
+        artifactRoot: "data/artifacts",
+        releaseMonth: "2026-03",
+      }),
+    ).toBe(
+      "data/artifacts/detector-serving-readiness-manifest/2026-03/route-detector-readiness-manifest.json",
+    );
+    expect(detectorReadinessServingManifestStudioPath({ artifactRoot: "data/artifacts" })).toBe(
+      "data/artifacts/studio/v2/detectors/route-detector-readiness-manifest.json",
     );
   });
 });

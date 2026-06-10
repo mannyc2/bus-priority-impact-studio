@@ -326,6 +326,7 @@ describe("detector-family feature resolvers", () => {
           segmentOrder: 1,
           matchMethod: "route_shape_overlap",
           overlapShare: 0.5,
+          laneTypes: [],
         },
       ],
     });
@@ -447,6 +448,7 @@ describe("detector-family feature resolvers", () => {
           segmentOrder: 10,
           matchMethod: "route_shape_overlap",
           overlapShare: 0.7,
+          laneTypes: [],
         },
       ],
     });
@@ -519,6 +521,7 @@ describe("detector-family feature resolvers", () => {
           segmentOrder: 12,
           matchMethod: "not_matched",
           overlapShare: 0,
+          laneTypes: [],
         },
       ],
       interventionScopeFitRows: [

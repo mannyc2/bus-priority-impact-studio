@@ -194,6 +194,7 @@ describe("data product local DB check evaluators", () => {
       sourceYearColumn: "source_year",
       routeColumn: "route_id",
       expectedRoutes: "public_visible_routes",
+      expectedYears: "history_window_years",
       statusTableName: "historical_schedule_status",
       statusSourceYearColumn: "source_year",
       statusRouteColumn: "route_id",

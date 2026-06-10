@@ -16,6 +16,21 @@ function routeMatches(routeId: string | null | undefined, filter: string | undef
   return filter === undefined || routeId === filter;
 }
 
+const LANE_TYPE_REF_PREFIX = "nyc_dot_bus_lane_type:";
+
+// Lane types for the typed feature field. Prefer the materializer's typed `laneTypes`; for artifacts
+// materialized before that field existed, recover them from the `nyc_dot_bus_lane_type:` sourceRefs
+// (the exact data the detectors used to string-parse at gate time) so behavior is unchanged (S2.3).
+function laneTypesForSegmentRow(row: {
+  laneTypes?: readonly string[];
+  sourceRefs: readonly string[];
+}): string[] {
+  if (Array.isArray(row.laneTypes)) return [...row.laneTypes];
+  return row.sourceRefs
+    .filter((ref) => ref.startsWith(LANE_TYPE_REF_PREFIX))
+    .map((ref) => ref.slice(LANE_TYPE_REF_PREFIX.length));
+}
+
 export function buildTreatmentFeaturesFromSummaryArtifact(input: {
   artifact: RouteTreatmentSummaryArtifact;
   routeId?: string;
@@ -49,6 +64,7 @@ export function buildTreatmentFeaturesFromSummaryArtifact(input: {
       segmentOrder: row.segmentOrder,
       matchMethod: row.matchMethod,
       overlapShare: row.overlapShare,
+      laneTypes: laneTypesForSegmentRow(row),
     }));
 
   const routeTreatmentSourceGapFeatures = input.artifact.sourceGapRows
@@ -85,4 +101,3 @@ export function buildTreatmentFeaturesFromSummaryArtifact(input: {
     },
   };
 }
-

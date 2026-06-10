@@ -33,6 +33,11 @@ export {
   runBuildContextEvents,
 } from "./context-events";
 export {
+  type CustomerJourneyMetricLocalDbQuery,
+  latestCustomerJourneyMetricMonth,
+  loadCustomerJourneyMetricLocalDbRows,
+} from "./customer-journey-rows";
+export {
   type DataProductCheckTemplateValues,
   evaluateDataProductArtifactGlobCheck,
   evaluateDataProductJsonOrFileArtifactCheck,

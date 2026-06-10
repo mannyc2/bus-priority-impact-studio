@@ -53,6 +53,7 @@ function segmentTreatment(input: {
     directionId: "N",
     matchMethod: input.matchMethod,
     overlapShare: input.overlapShare,
+    laneTypes: [],
     sourceRefs: input.sourceRefs ?? [`src:${input.segmentId}`],
   };
 }
