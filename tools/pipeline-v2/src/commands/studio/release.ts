@@ -25,7 +25,6 @@ import {
   buildStudioFindingProjection,
   buildStudioFindingsProjection,
   buildStudioMethodsProjection,
-  buildStudioRouteLadderProjection,
   buildStudioRouteProjection,
   buildStudioRoutesProjection,
   buildStudioSegmentsProjection,
@@ -600,10 +599,6 @@ async function writeProjections(outputPath: string, release: StudioReleasePayloa
     await writeJson(
       resolve(outputDir, "routes", route.slug, "index.json"),
       buildStudioRouteProjection(release, route),
-    );
-    await writeJson(
-      resolve(outputDir, "routes", route.slug, "ladder.json"),
-      buildStudioRouteLadderProjection(release, route),
     );
   }
 

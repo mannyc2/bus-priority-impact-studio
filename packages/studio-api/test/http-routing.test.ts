@@ -74,9 +74,6 @@ describe("Studio API HTTP helpers", () => {
     expect(studioRouteTemplate("/api/v1/studio/routes/m15-sbs")).toBe(
       "/api/v1/studio/routes/:routeId",
     );
-    expect(studioRouteTemplate("/api/v1/studio/routes/m15-sbs/ladder")).toBe(
-      "/api/v1/studio/routes/:routeId/ladder",
-    );
     expect(studioRouteTemplate("/api/v1/studio/briefs/brief-m15/draft/blocks")).toBe(
       "/api/v1/studio/briefs/:briefId/draft/blocks",
     );

@@ -67,7 +67,7 @@ ${renderEntries(manifest.briefs)}
 export function buildSitemapXml(origin: string, manifest: SeoTitleManifest): string {
   const paths = [...STATIC_PUBLIC_PATHS] as string[];
   for (const [slug] of manifest.routes) {
-    paths.push(`/routes/${slug}`, `/routes/${slug}/ladder`);
+    paths.push(`/routes/${slug}`);
   }
   for (const [id] of manifest.findings) {
     paths.push(`/findings/${id}`);

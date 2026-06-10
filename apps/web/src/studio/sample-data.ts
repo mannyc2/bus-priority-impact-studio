@@ -1408,11 +1408,6 @@ export const studioDocsEndpoints: StudioDocsEndpoint[] = [
   },
   {
     method: "GET",
-    path: "/api/v1/studio/routes/:routeId/ladder",
-    body: "Fetch the ordered route ladder and segment evidence.",
-  },
-  {
-    method: "GET",
     path: "/api/v1/studio/compare?a=&b=",
     body: "Compare two route-first Studio payloads by canonical route slug.",
   },

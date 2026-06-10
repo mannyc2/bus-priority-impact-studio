@@ -28,7 +28,6 @@ import { Route as BriefsNewRouteImport } from "./routes/briefs/new"
 import { Route as BriefsBriefIdRouteImport } from "./routes/briefs/$briefId"
 import { Route as AuthConsumeRouteImport } from "./routes/auth.consume"
 import { Route as AdminIdentitiesRouteImport } from "./routes/admin.identities"
-import { Route as RoutesRouteIdLadderRouteImport } from "./routes/routes/$routeId/ladder"
 import { Route as RoutesRouteIdAnnotateRouteImport } from "./routes/routes/$routeId/annotate"
 import { Route as BriefsBriefIdReviewRouteImport } from "./routes/briefs/$briefId/review"
 import { Route as BriefsBriefIdHistoryRouteImport } from "./routes/briefs/$briefId/history"
@@ -130,11 +129,6 @@ const AdminIdentitiesRoute = AdminIdentitiesRouteImport.update({
   path: "/admin/identities",
   getParentRoute: () => rootRouteImport,
 } as any)
-const RoutesRouteIdLadderRoute = RoutesRouteIdLadderRouteImport.update({
-  id: "/ladder",
-  path: "/ladder",
-  getParentRoute: () => RoutesRouteIdRoute,
-} as any)
 const RoutesRouteIdAnnotateRoute = RoutesRouteIdAnnotateRouteImport.update({
   id: "/annotate",
   path: "/annotate",
@@ -186,7 +180,6 @@ export interface FileRoutesByFullPath {
   "/briefs/$briefId/history": typeof BriefsBriefIdHistoryRoute
   "/briefs/$briefId/review": typeof BriefsBriefIdReviewRoute
   "/routes/$routeId/annotate": typeof RoutesRouteIdAnnotateRoute
-  "/routes/$routeId/ladder": typeof RoutesRouteIdLadderRoute
 }
 export interface FileRoutesByTo {
   "/": typeof IndexRoute
@@ -213,7 +206,6 @@ export interface FileRoutesByTo {
   "/briefs/$briefId/history": typeof BriefsBriefIdHistoryRoute
   "/briefs/$briefId/review": typeof BriefsBriefIdReviewRoute
   "/routes/$routeId/annotate": typeof RoutesRouteIdAnnotateRoute
-  "/routes/$routeId/ladder": typeof RoutesRouteIdLadderRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -241,7 +233,6 @@ export interface FileRoutesById {
   "/briefs/$briefId/history": typeof BriefsBriefIdHistoryRoute
   "/briefs/$briefId/review": typeof BriefsBriefIdReviewRoute
   "/routes/$routeId/annotate": typeof RoutesRouteIdAnnotateRoute
-  "/routes/$routeId/ladder": typeof RoutesRouteIdLadderRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -270,7 +261,6 @@ export interface FileRouteTypes {
     | "/briefs/$briefId/history"
     | "/briefs/$briefId/review"
     | "/routes/$routeId/annotate"
-    | "/routes/$routeId/ladder"
   fileRoutesByTo: FileRoutesByTo
   to:
     | "/"
@@ -297,7 +287,6 @@ export interface FileRouteTypes {
     | "/briefs/$briefId/history"
     | "/briefs/$briefId/review"
     | "/routes/$routeId/annotate"
-    | "/routes/$routeId/ladder"
   id:
     | "__root__"
     | "/"
@@ -324,7 +313,6 @@ export interface FileRouteTypes {
     | "/briefs/$briefId/history"
     | "/briefs/$briefId/review"
     | "/routes/$routeId/annotate"
-    | "/routes/$routeId/ladder"
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -480,13 +468,6 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AdminIdentitiesRouteImport
       parentRoute: typeof rootRouteImport
     }
-    "/routes/$routeId/ladder": {
-      id: "/routes/$routeId/ladder"
-      path: "/ladder"
-      fullPath: "/routes/$routeId/ladder"
-      preLoaderRoute: typeof RoutesRouteIdLadderRouteImport
-      parentRoute: typeof RoutesRouteIdRoute
-    }
     "/routes/$routeId/annotate": {
       id: "/routes/$routeId/annotate"
       path: "/annotate"
@@ -580,12 +561,10 @@ const FindingsRouteWithChildren = FindingsRoute._addFileChildren(
 
 interface RoutesRouteIdRouteChildren {
   RoutesRouteIdAnnotateRoute: typeof RoutesRouteIdAnnotateRoute
-  RoutesRouteIdLadderRoute: typeof RoutesRouteIdLadderRoute
 }
 
 const RoutesRouteIdRouteChildren: RoutesRouteIdRouteChildren = {
   RoutesRouteIdAnnotateRoute: RoutesRouteIdAnnotateRoute,
-  RoutesRouteIdLadderRoute: RoutesRouteIdLadderRoute,
 }
 
 const RoutesRouteIdRouteWithChildren = RoutesRouteIdRoute._addFileChildren(

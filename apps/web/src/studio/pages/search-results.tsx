@@ -420,7 +420,7 @@ export function SearchResultsPage({
               return (
                 <Link
                   key={segment.id}
-                  to="/routes/$routeId/ladder"
+                  to="/routes/$routeId"
                   params={{ routeId: route.slug }}
                   viewTransition
                   className="grid grid-cols-[28px_96px_1fr_80px_110px_132px] items-center gap-3.5 px-4 py-3.5 text-[var(--bp-color-ink)] no-underline shadow-[inset_0_-1px_0_var(--bp-color-rule)] last:shadow-none max-sm:grid-cols-[28px_1fr]"

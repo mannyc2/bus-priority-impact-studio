@@ -171,12 +171,9 @@ function studioArtifactPath(pathname: string): string | null {
     return "docs.json";
   }
 
-  const routeMatch = pathname.match(/^\/api\/v1\/studio\/routes\/([^/]+)(?:\/ladder)?$/);
+  const routeMatch = pathname.match(/^\/api\/v1\/studio\/routes\/([^/]+)$/);
   if (routeMatch) {
-    const slug = decodeURIComponent(routeMatch[1] ?? "");
-    return pathname.endsWith("/ladder")
-      ? `routes/${slug}/ladder.json`
-      : `routes/${slug}/index.json`;
+    return `routes/${decodeURIComponent(routeMatch[1] ?? "")}/index.json`;
   }
 
   const findingMatch = pathname.match(/^\/api\/v1\/studio\/findings\/([^/]+)$/);

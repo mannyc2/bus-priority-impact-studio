@@ -60,7 +60,6 @@ import {
   StudioRouteDetailResponseSchema,
   StudioRouteHistoryResponseSchema,
   StudioRouteIndex2ResponseSchema,
-  StudioRouteLadderResponseSchema,
   StudioRouteSectionsResponseSchema,
   StudioRoutesResponseSchema,
   StudioSearchResponseSchema,
@@ -226,13 +225,6 @@ export function fetchStudioRouteHistory(routeId: string) {
   return loadNullableStudioJson(
     studioPath("studio.routeHistory", { params: { routeId } }),
     StudioRouteHistoryResponseSchema,
-  );
-}
-
-export function fetchStudioRouteLadder(routeId: string) {
-  return loadNullableStudioJson(
-    studioPath("studio.routeLadder", { params: { routeId } }),
-    StudioRouteLadderResponseSchema,
   );
 }
 

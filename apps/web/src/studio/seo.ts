@@ -20,7 +20,6 @@ export const PUBLIC_STUDIO_ROUTES: readonly PublicStudioRoute[] = [
   { path: "/routes", label: "Routes home", expectedTitleText: "Routes" },
   { path: "/search?q=manhattan+ace", label: "Search", expectedTitleText: "Search" },
   { path: "/routes/m15-sbs", label: "Route detail", expectedTitleText: "M15" },
-  { path: "/routes/m15-sbs/ladder", label: "Route ladder", expectedTitleText: "M15" },
   { path: "/compare", label: "Compare", expectedTitleText: "Compare" },
   { path: "/findings", label: "Findings", expectedTitleText: "Findings" },
   {
@@ -104,17 +103,6 @@ export function getStudioSeoMetadata(input: URL | string): StudioSeoMetadata | n
     return metadata(
       `${title} Route Detail`,
       `Review bus priority evidence, rider impact, slow segments, and intervention context for ${title}.`,
-      pathname,
-    );
-  }
-
-  const routeLadderMatch = pathname.match(/^\/routes\/([^/]+)\/ladder$/);
-  if (routeLadderMatch) {
-    const slug = routeLadderMatch[1] ?? "";
-    const title = routeTitles.get(slug) ?? humanizeSlug(slug);
-    return metadata(
-      `${title} Route Ladder`,
-      `Scan slow segments, rider-hour impact, and treatment coverage along the ${title} route spine.`,
       pathname,
     );
   }

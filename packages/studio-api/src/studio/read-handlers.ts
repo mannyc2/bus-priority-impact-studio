@@ -50,8 +50,6 @@ import {
   StudioRouteDetailResponseSchema,
   type StudioRouteHistoryResponse,
   StudioRouteHistoryResponseSchema,
-  type StudioRouteLadderResponse,
-  StudioRouteLadderResponseSchema,
   type StudioRouteSection,
   type StudioRouteSectionId,
   type StudioRouteSectionMetric,
@@ -132,10 +130,6 @@ type BuildStudioRouteSpeedHistoryResponseResult =
 
 type BuildStudioRouteTimelineResponseResult =
   | { ok: true; timeline: unknown }
-  | { ok: false; response: Response };
-
-type BuildStudioRouteLadderResponseResult =
-  | { ok: true; ladder: StudioRouteLadderResponse }
   | { ok: false; response: Response };
 
 type BuildStudioRouteIndex2ResponseResult =
@@ -1801,7 +1795,7 @@ async function buildStudioRouteDetailResponseFromD1(
   }
 
   const caveats = [
-    "This is a partial route detail built from the all-route index; rich map, ladder, segment, finding, and evidence sections may be unavailable.",
+    "This is a partial route detail built from the all-route index; rich map, segment, finding, and evidence sections may be unavailable.",
     ...routeIndexCaveats(row),
     ...(row.artifactNames.length > 0
       ? [
@@ -1834,59 +1828,6 @@ async function buildStudioRouteDetailResponseFromD1(
     routeDetail: routeDetailWithInsightTargetSegments({
       spines,
       routeDetail: partialRouteDetail,
-    }),
-  };
-}
-
-async function buildStudioRouteLadderResponseFromD1(
-  env: StudioReadEnv,
-  slug: string,
-): Promise<BuildStudioRouteLadderResponseResult> {
-  if (env.DB === undefined) {
-    return {
-      ok: false,
-      response: errorResponse(503, "D1 DB binding is required for Studio route ladder."),
-    };
-  }
-  const months = await resolveServingMonths(env);
-  if (months === null) {
-    return { ok: false, response: errorResponse(503, NO_SERVING_MONTH_MESSAGE) };
-  }
-  const baselineMonth = months.servingMonth;
-
-  const row = await findStudioRouteIndexSourceRow({ env, slug, baselineMonth });
-  if (row === null) {
-    return { ok: false, response: errorResponse(404, "Studio route ladder was not found.") };
-  }
-
-  if (row.artifactNames.length > 0) {
-    const ladder = await loadStudioProjection(
-      env,
-      `routes/${slug}/ladder.json`,
-      StudioRouteLadderResponseSchema,
-    );
-    if (!(ladder instanceof Response)) {
-      return { ok: true, ladder };
-    }
-  }
-
-  const observed = await findObservedReliabilityRow({ env, baselineMonth, routeId: row.routeId });
-  return {
-    ok: true,
-    ladder: StudioRouteLadderResponseSchema.parse({
-      schemaVersion: 1,
-      generatedAt: new Date().toISOString(),
-      route: buildStudioRouteCardFromIndexRow(row, observed),
-      segments: [],
-      quality: {
-        releaseLayer: "baseline_release",
-        completenessStatus: row.summary === null ? "unavailable" : "partial_public_monthly_only",
-        confidence: row.summary === null ? "low" : "medium",
-        caveats: [
-          "No segment ladder is available for this route in the current rich route artifact set.",
-          ...routeIndexCaveats(row),
-        ],
-      },
     }),
   };
 }
@@ -2788,28 +2729,6 @@ export async function handleStudioReadRequest<TEnv extends StudioReadEnv>(
     const slug = decodeURIComponent(timelineMatch[1] ?? "");
     const result = await buildStudioRouteTimelineResponse(env, slug);
     return result.ok ? studioJsonResponse(result.timeline, env) : result.response;
-  }
-
-  const ladderMatch = url.pathname.match(/^\/api\/v1\/studio\/routes\/([^/]+)\/ladder$/);
-  if (ladderMatch) {
-    const slug = decodeURIComponent(ladderMatch[1] ?? "");
-    if (env.DB !== undefined) {
-      const result = await buildStudioRouteLadderResponseFromD1(env, slug);
-      return result.ok ? studioJsonResponse(result.ladder, env) : result.response;
-    }
-
-    const routes = await loadStudioProjection(env, "routes.json", StudioRoutesResponseSchema);
-    if (routes instanceof Response) return routes;
-    if (getStudioRoute(routes, slug) === undefined) {
-      return errorResponse(404, "Studio route ladder was not found.");
-    }
-
-    const ladder = await loadStudioProjection(
-      env,
-      `routes/${slug}/ladder.json`,
-      StudioRouteLadderResponseSchema,
-    );
-    return ladder instanceof Response ? ladder : studioJsonResponse(ladder, env);
   }
 
   if (url.pathname === "/api/v1/studio/compare") {

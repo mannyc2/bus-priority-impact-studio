@@ -33,8 +33,6 @@ import {
   type StudioRoute,
   type StudioRouteDetailResponse,
   StudioRouteDetailResponseSchema,
-  type StudioRouteLadderResponse,
-  StudioRouteLadderResponseSchema,
   type StudioRoutesResponse,
   StudioRoutesResponseSchema,
   type StudioSegmentsResponse,
@@ -142,19 +140,6 @@ export function buildStudioRouteProjection(
     ...(route.peerSlug ? { peerRoute: getStudioRoute(release, route.peerSlug) } : {}),
     segments: routeSegments(release, route.slug),
     artifactRefs: routeArtifactRefs(release, route.routeId),
-    quality: release.quality,
-  });
-}
-
-export function buildStudioRouteLadderProjection(
-  release: StudioReleasePayload,
-  route: StudioRoute,
-): StudioRouteLadderResponse {
-  return StudioRouteLadderResponseSchema.parse({
-    schemaVersion: 1,
-    generatedAt: release.generatedAt,
-    route,
-    segments: routeSegments(release, route.slug),
     quality: release.quality,
   });
 }

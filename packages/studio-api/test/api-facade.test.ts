@@ -15,7 +15,6 @@ import { StudioSearchResponseSchema } from "@bp/domain/studio/release";
 import {
   StudioRouteDetailResponseSchema,
   StudioRouteHistoryResponseSchema,
-  StudioRouteLadderResponseSchema,
   StudioRouteSectionsResponseSchema,
   StudioRouteSpeedHistoryResponseSchema,
   StudioRoutesResponseSchema,
@@ -2102,7 +2101,7 @@ describe("Studio API facade", () => {
     );
   });
 
-  it("resolves sparse catalog routes through list, search, detail, and ladder", async () => {
+  it("resolves sparse catalog routes through list, search, and detail", async () => {
     const env = {
       ...createStudioProjectionEnv(),
       BASELINE_MONTH: "2026-03",
@@ -2110,12 +2109,11 @@ describe("Studio API facade", () => {
       LAST_BUILT_SPEED_MONTH: "2026-03",
     };
 
-    const [routesResponse, searchResponse, detailResponse, ladderResponse, historyResponse] =
+    const [routesResponse, searchResponse, detailResponse, historyResponse] =
       await Promise.all([
         fetchApi("/api/v1/studio/routes", env),
         fetchApi("/api/v1/studio/search?q=late%20night", env),
         fetchApi("/api/v1/studio/routes/b99", env),
-        fetchApi("/api/v1/studio/routes/b99/ladder", env),
         fetchApi("/api/v1/studio/routes/b99/history", env),
       ]);
 
@@ -2136,15 +2134,7 @@ describe("Studio API facade", () => {
     expect(detail.segments).toEqual([]);
     expect(detail.artifactRefs).toEqual([]);
     expect(detail.quality.caveats).toContain(
-      "This is a partial route detail built from the all-route index; rich map, ladder, segment, finding, and evidence sections may be unavailable.",
-    );
-
-    expect(ladderResponse.status).toBe(200);
-    const ladder = StudioRouteLadderResponseSchema.parse(await ladderResponse.json());
-    expect(ladder.route.slug).toBe("b99");
-    expect(ladder.segments).toEqual([]);
-    expect(ladder.quality.caveats).toContain(
-      "No segment ladder is available for this route in the current rich route artifact set.",
+      "This is a partial route detail built from the all-route index; rich map, segment, finding, and evidence sections may be unavailable.",
     );
 
     expect(historyResponse.status).toBe(200);
@@ -2279,10 +2269,9 @@ describe("Studio API facade", () => {
       ]),
     );
 
-    const [searchResponse, detailResponse, ladderResponse, historyResponse] = await Promise.all([
+    const [searchResponse, detailResponse, historyResponse] = await Promise.all([
       fetchApi("/api/v1/studio/search?q=late%20night", env),
       fetchApi(`/api/v1/studio/routes/${sparseRoute.slug}`, env),
-      fetchApi(`/api/v1/studio/routes/${sparseRoute.slug}/ladder`, env),
       fetchApi(`/api/v1/studio/routes/${historyRoute.slug}/history`, env),
     ]);
 
@@ -2294,13 +2283,9 @@ describe("Studio API facade", () => {
     expect(detail.segments).toEqual([]);
     expect(detail.quality.caveats).toEqual(
       expect.arrayContaining([
-        "This is a partial route detail built from the all-route index; rich map, ladder, segment, finding, and evidence sections may be unavailable.",
+        "This is a partial route detail built from the all-route index; rich map, segment, finding, and evidence sections may be unavailable.",
       ]),
     );
-
-    const ladder = StudioRouteLadderResponseSchema.parse(await ladderResponse.json());
-    expect(ladder.route.slug).toBe(sparseRoute.slug);
-    expect(ladder.segments).toEqual([]);
 
     const history = StudioRouteHistoryResponseSchema.parse(await historyResponse.json());
     expect(history.route.slug).toBe(historyRoute.slug);

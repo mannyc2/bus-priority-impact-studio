@@ -52,7 +52,6 @@ import {
   studioMethodsResponseJsonSchema,
   studioRouteDetailResponseJsonSchema,
   studioRouteHistoryResponseJsonSchema,
-  studioRouteLadderResponseJsonSchema,
   studioRouteSectionsResponseJsonSchema,
   studioRouteSpeedHistoryResponseJsonSchema,
   studioRoutesResponseJsonSchema,
@@ -352,14 +351,6 @@ const paths: Record<string, Partial<Record<HttpMethod, Operation>>> = {
       "getStudioRouteTimeline",
       "Fetch a source-backed Tier 2 route timeline bundle.",
       studioRouteTimelineBundleJsonSchema,
-      [routeSlugParameter],
-    ),
-  },
-  "/api/v1/studio/routes/{routeId}/ladder": {
-    get: getOperation(
-      "getStudioRouteLadder",
-      "Fetch the ordered route ladder and segment severity.",
-      studioRouteLadderResponseJsonSchema,
       [routeSlugParameter],
     ),
   },

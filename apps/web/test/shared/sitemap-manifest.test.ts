@@ -14,10 +14,9 @@ const locs = new Set(
 );
 
 describe("sitemap.xml ↔ seo-manifest.gen.ts", () => {
-  it("lists every served route (detail + ladder)", () => {
+  it("lists every served route detail", () => {
     for (const slug of routeTitles.keys()) {
       expect(locs).toContain(`/routes/${slug}`);
-      expect(locs).toContain(`/routes/${slug}/ladder`);
     }
   });
 

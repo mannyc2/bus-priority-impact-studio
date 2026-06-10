@@ -419,16 +419,6 @@ export const StudioRouteSpeedHistoryResponseSchema = z
   })
   .strict();
 
-export const StudioRouteLadderResponseSchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    generatedAt: z.string(),
-    route: StudioRouteSchema,
-    segments: z.array(StudioSegmentSchema),
-    quality: StudioQualitySchema,
-  })
-  .strict();
-
 export const StudioRouteSectionIdSchema = z.enum([
   "needs_attention",
   "worsening_fast",
@@ -516,7 +506,6 @@ export type StudioRouteSpeedHistoryCell = z.output<typeof StudioRouteSpeedHistor
 export type StudioRouteSpeedHistoryResponse = z.output<
   typeof StudioRouteSpeedHistoryResponseSchema
 >;
-export type StudioRouteLadderResponse = z.output<typeof StudioRouteLadderResponseSchema>;
 export type StudioRouteSectionId = z.output<typeof StudioRouteSectionIdSchema>;
 export type StudioRouteSectionStatus = z.output<typeof StudioRouteSectionStatusSchema>;
 export type StudioRouteSectionMetric = z.output<typeof StudioRouteSectionMetricSchema>;

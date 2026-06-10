@@ -49,7 +49,6 @@ describe("buildSitemapXml", () => {
   it("includes static pages plus every served route, finding, and brief URL", () => {
     expect(xml).toContain(`<loc>${SITEMAP_ORIGIN}/</loc>`);
     expect(xml).toContain(`<loc>${SITEMAP_ORIGIN}/routes/m15-sbs</loc>`);
-    expect(xml).toContain(`<loc>${SITEMAP_ORIGIN}/routes/m15-sbs/ladder</loc>`);
     expect(xml).toContain(`<loc>${SITEMAP_ORIGIN}/findings/promoted-abc</loc>`);
     expect(xml).toContain(`<loc>${SITEMAP_ORIGIN}/briefs/bx12-treatment-benchmark</loc>`);
     expect(xml).toContain(`<loc>${SITEMAP_ORIGIN}/briefs/bx12-treatment-benchmark/evidence</loc>`);

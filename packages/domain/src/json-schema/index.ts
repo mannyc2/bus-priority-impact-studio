@@ -73,7 +73,6 @@ import {
 import {
   StudioRouteDetailResponseSchema,
   StudioRouteHistoryResponseSchema,
-  StudioRouteLadderResponseSchema,
   StudioRouteSectionsResponseSchema,
   StudioRouteSpeedHistoryResponseSchema,
   StudioRoutesResponseSchema,
@@ -235,9 +234,6 @@ export const studioRouteHistoryResponseJsonSchema = toProjectJsonSchema(
 );
 export const studioRouteSpeedHistoryResponseJsonSchema = toProjectJsonSchema(
   StudioRouteSpeedHistoryResponseSchema,
-);
-export const studioRouteLadderResponseJsonSchema = toProjectJsonSchema(
-  StudioRouteLadderResponseSchema,
 );
 export const studioCompareResponseJsonSchema = toProjectJsonSchema(StudioCompareResponseSchema);
 export const studioFindingsResponseJsonSchema = toProjectJsonSchema(StudioFindingsResponseSchema);

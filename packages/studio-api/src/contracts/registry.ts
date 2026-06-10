@@ -372,17 +372,6 @@ export const studioApiRoutes = [
     idempotency: noIdempotency,
   }),
   route({
-    id: "studio.routeLadder",
-    operationId: "getStudioRouteLadder",
-    method: "GET",
-    path: "/api/v1/studio/routes/:routeId/ladder",
-    tags: ["Studio"],
-    summary: "Return a Studio route ladder projection.",
-    auth: publicAuth,
-    cache: publicStudioCache,
-    idempotency: noIdempotency,
-  }),
-  route({
     id: "studio.compare",
     operationId: "getStudioCompare",
     method: "GET",
