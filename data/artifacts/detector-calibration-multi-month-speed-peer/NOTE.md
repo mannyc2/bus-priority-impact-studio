@@ -138,3 +138,41 @@ claim wording must be changed to an honest citywide-median comparison. Until the
 `route_context` routes are the ceiling, and the readiness projection (not threshold relaxation)
 stays the gate. The full-output review-queue writer gap is now closed for this slice via
 `--rows-output`.
+
+## Peer-group fix (2026-06-11)
+
+Root cause of the zero strong-method coverage: `buildMultiMonthSpeedPeerRoutesFromHistory` in
+`packages/applied-research/src/local-db/detector-study-rows.ts` hardcoded
+`peerGroupMethod: "system"` for every month — no matched-peer construction had ever been
+implemented. The detector's method vocabulary was wired but the input builder never used it.
+
+Fix: service-class-aware peer selection in `@bp/analytics`
+(`classifyMultiMonthSpeedPeerRoute` + `selectMultiMonthSpeedPeerGroup` in
+`packages/analytics/src/findings/multi-month-speed-peer.ts`), wired into the input builder.
+Service class is derived from the route id (SBS = trailing `+`; express = `BM`/`BXM`/`QM`/`SIM`/`X`
+prefix; local otherwise) and borough from the alpha prefix. Fallback chain with a minimum
+peer-group size (the detector's `minPeerRouteCount`, 10): borough + class
+(`route_family_type`) → class only (`route_type`) → system pool (`system`), with the method
+actually used recorded per month. `claimText` now matches the method per candidate
+("below the median of NN same-class peer routes" / mixed wording / explicit citywide framing when
+every month fell back to the system pool). No emission thresholds were changed.
+
+Re-run: `no-write-run-peerfix.json` + `run-rows-peerfix.json`; re-evaluation against the
+unchanged gold: `evaluation-peerfix.json` + `readiness-projection-peerfix.json`.
+
+| Metric | Before (2026-06-11 gold pass) | After peer fix |
+| --- | --- | --- |
+| Emitted candidates | 8 | 6 |
+| peerGroupMethods | `system` ×8 (all 36 months each) | `route_family_type` ×4 (M-local ×3, BX-local ×1), `route_type` ×2 (SBS) — zero `system` months |
+| Peer-group sizes | ~327 system pool | 32–33 (M local), 42–43 (BX local), 19 (SBS class-wide) |
+| M34+ / M34A+ | vs 8.83 mph mixed pool, deficits 3.08/2.89 | still emit vs the 19-route SBS pool (median 8.77), deficits 3.02/2.83 |
+| Dropped | — | M50, M8 (deficit vs honest M-local median 6.66 falls below the 1 mph floor) |
+| Suppress leakage | 0/16 | 0/16 |
+| Context/needs-more-evidence still emitted | 8/8 | 6/8 (M50, M8 no longer emit) |
+| Unreviewed emitted | 0 | 0 |
+
+Re-review recommendation: the six surviving routes (M57, M31, M42, BX2 route_context with matched
+borough-class peers; M34+, M34A+ needs_more_evidence now ranked against an SBS-only pool) are
+candidates for label **upgrade** in a future review batch — the fallback-peer-group blocker that
+capped them is resolved. Labels in `reviewed-gold.json` were not changed here; a new review batch
+must make that call. M50/M8 no longer emit and need no relabel to stay honest.

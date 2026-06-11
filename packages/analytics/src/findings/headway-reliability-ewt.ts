@@ -27,6 +27,7 @@ import {
   confidenceFromHeadwayQuality,
   effectiveScheduledHeadwayMinutes,
   featureQualitySkipReason,
+  observationSufficiencySignal,
   summarizeHeadwaysMinutes,
   validHeadwaysMinutes,
 } from "./headway-common.js";
@@ -72,6 +73,7 @@ type HeadwayReliabilityEwtMetrics = {
   excessWaitTimeMinutes: number;
   coefficientOfVariation: number;
   los: HeadwayLos;
+  observationSufficiency: number;
 };
 
 type SkippedFeature = {
@@ -168,7 +170,16 @@ function evaluateFeature(
     1,
   );
   const losSignal = clamp((HEADWAY_LOS_RANK[los] - 1) / 5, 0, 1);
-  const detectorScore = Math.round(60 + 40 * (0.65 * excessWaitSignal + 0.35 * losSignal));
+  // Sample-density-aware ranking (2026-06-11 calibration): severity saturates across qualifying
+  // cells, so the raw severity signal is scaled by observation sufficiency. Thin feed-gap cells
+  // still emit but rank below well-observed cells of equal raw severity.
+  const observationSufficiency = observationSufficiencySignal(
+    feature.quality,
+    headways.length,
+    thresholds.highConfidenceHeadways,
+  );
+  const severitySignal = 0.65 * excessWaitSignal + 0.35 * losSignal;
+  const detectorScore = round(60 + 40 * severitySignal * observationSufficiency, 2);
 
   return {
     feature,
@@ -180,6 +191,7 @@ function evaluateFeature(
       excessWaitTimeMinutes: wait.excessWaitTimeMinutes,
       coefficientOfVariation,
       los,
+      observationSufficiency,
     },
     detectorScore,
   };
@@ -202,7 +214,11 @@ export function detectHeadwayReliabilityEwt(
       .filter((feature) => skipReason(feature, thresholds) === null)
       .map((feature) => evaluateFeature(feature, thresholds))
       .filter((feature): feature is EvaluatedFeature => feature !== null)
-      .sort((left, right) => right.detectorScore - left.detectorScore)
+      .sort(
+        (left, right) =>
+          right.detectorScore - left.detectorScore ||
+          left.featureKey.localeCompare(right.featureKey),
+      )
       .slice(0, thresholds.candidateLimit)
       .map((feature) => [feature.featureKey, feature] as const),
   );
@@ -266,6 +282,7 @@ export function detectHeadwayReliabilityEwt(
             coefficientOfVariation: round(hit.metrics.coefficientOfVariation, 4),
             los: hit.metrics.los,
             observedHeadwayCount: hit.metrics.observedHeadwayCount,
+            observationSufficiency: round(hit.metrics.observationSufficiency, 4),
             scheduledBusesPerHour: feature.scheduledBusesPerHour,
             scheduledHeadwayMinutes: effectiveScheduledHeadwayMinutes(feature),
             headwayDistribution: summarizeHeadwaysMinutes(feature.observedHeadwaysMinutes),

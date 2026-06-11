@@ -186,3 +186,37 @@ high-headway-sample cells and tie-breaks deterministically with borough/route sp
 gold primaries are exactly the cells such a ranking would surface. Thin headway samples, borderline
 frequency, LoS-F feed gaps, overnight/terminal cells, and the unenumerated cell universe remain
 readiness gates, never threshold relaxations.
+
+## Ranking fix (2026-06-11)
+
+Implemented the label-backed fix direction in `packages/analytics/src/findings/headway-reliability-ewt.ts`
+(no floor/cap/threshold change; gold labels untouched):
+
+- `detectorScore = round(60 + 40 × severitySignal × observationSufficiency, 2)` where
+  `severitySignal` is the prior `0.65 × excessWaitSignal + 0.35 × losSignal` and
+  `observationSufficiency = min(1, observedHeadways / highConfidenceHeadways[30]) × (quality.coverageShare ?? 1)`
+  (shared helper `observationSufficiencySignal` in `headway-common.ts`; coverageShare is the
+  schedule-implied observed/expected share where expectedCount spans observed service dates only,
+  so neither factor alone suffices). Candidate sort tie-breaks deterministically by featureKey asc.
+- Thin cells still emit (high-limit candidate count unchanged at 1,698); they just rank lower.
+
+Re-run + re-evaluation (`no-write-run-rankfix.json`, `no-write-run-limit20000-rankfix.json`,
+`evaluation-rankfix.json`, `readiness-projection-rankfix.json`; rows file rebuilt and deleted):
+
+| Metric | Before | After |
+| --- | ---: | ---: |
+| Score saturation | 1,698 cells in [80,100]; 100+ at score 100 | gone — unique max 91.83, 391 cells ≥80, 408 in [60,70), top-100 spans 82.50–91.83 |
+| Q13:W:503910 hr6 (primary) rank | 593 | 216 |
+| QM11:W:403831 hr8 (primary) rank | 1,131 | 201 |
+| SIM1:N:404887 hr7 (primary) rank | 1,310 | 248 |
+| Suppress-labeled cells in top-100 | 2/23 (B11 hr6, B15 hr9) | **0/23** (worst suppress rank 670) |
+| Top-100 borough mix | 100% Brooklyn | Q 31, B 22, SIM 22, M 9, S 8, QM 4, BX 2, X 1, BXM 1 |
+| Top-100 observed-headway profile | thin (10–25 typical) | min 22, median 33.5; sufficiency min 0.56 / median 0.60 |
+
+Primaries improved strictly (593/1131/1310 → 201/216/248) but remain outside the top-100, so
+`evaluation-rankfix.json` still reports primary survival 0/3 (suppress leakage now 0/23). The cells
+that outrank them are unreviewed well-observed cells (33+ headways, coverage 0.56–0.80, saturated
+LoS-F severity) — by the gold criteria above (≥30 headways, gap-implausible magnitude) they are
+exactly the population the ranking should prefer, and the three primaries (sufficiency ~0.52) sit
+just below the new cutoff (0.5636). Pushing them inside would require overfitting the sufficiency
+curve to three labels; instead the new top-100 needs its own review pass before any promotion call.

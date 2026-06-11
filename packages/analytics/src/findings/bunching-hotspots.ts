@@ -22,6 +22,7 @@ import {
   confidenceFromHeadwayQuality,
   effectiveScheduledHeadwayMinutes,
   featureQualitySkipReason,
+  observationSufficiencySignal,
   summarizeHeadwaysMinutes,
   validHeadwaysMinutes,
 } from "./headway-common.js";
@@ -69,6 +70,7 @@ type BunchingHotspotMetrics = {
   bunchingShare: number;
   gapShare: number;
   dominantReasonCode: "bunching_hotspot" | "headway_gap_hotspot";
+  observationSufficiency: number;
 };
 
 type SkippedFeature = {
@@ -132,9 +134,17 @@ function evaluateFeature(
   const gapSignal = thresholds.minGapShare <= 0 ? 0 : rates.gapShare / thresholds.minGapShare;
   const dominantReasonCode =
     bunchingSignal >= gapSignal ? "bunching_hotspot" : "headway_gap_hotspot";
-  const detectorScore = Math.round(
-    60 + 40 * clamp((Math.max(bunchingSignal, gapSignal) - 1) / 2, 0, 1),
+  // Sample-density-aware ranking (2026-06-11 calibration): gap-class severity saturates on
+  // arrival-coverage artifacts (each missing arrival fabricates a "gap"), so the raw severity
+  // signal is scaled by observation sufficiency. Thin cells still emit but rank below
+  // well-observed cells of equal raw severity.
+  const observationSufficiency = observationSufficiencySignal(
+    feature.quality,
+    rates.pairCount,
+    thresholds.highConfidencePairs,
   );
+  const severitySignal = clamp((Math.max(bunchingSignal, gapSignal) - 1) / 2, 0, 1);
+  const detectorScore = round(60 + 40 * severitySignal * observationSufficiency, 2);
 
   return {
     feature,
@@ -146,6 +156,7 @@ function evaluateFeature(
       bunchingShare: rates.bunchingShare,
       gapShare: rates.gapShare,
       dominantReasonCode,
+      observationSufficiency,
     },
     detectorScore,
   };
@@ -167,7 +178,11 @@ export function detectBunchingHotspots(
       .filter((feature) => skipReason(feature, thresholds) === null)
       .map((feature) => evaluateFeature(feature, thresholds))
       .filter((feature): feature is EvaluatedFeature => feature !== null)
-      .sort((left, right) => right.detectorScore - left.detectorScore)
+      .sort(
+        (left, right) =>
+          right.detectorScore - left.detectorScore ||
+          left.featureKey.localeCompare(right.featureKey),
+      )
       .slice(0, thresholds.candidateLimit)
       .map((feature) => [feature.featureKey, feature] as const),
   );
@@ -237,6 +252,7 @@ export function detectBunchingHotspots(
             gapPairCount: hit.metrics.gapPairCount,
             bunchingShare: round(hit.metrics.bunchingShare, 4),
             gapShare: round(hit.metrics.gapShare, 4),
+            observationSufficiency: round(hit.metrics.observationSufficiency, 4),
             scheduledHeadwayMinutes: effectiveScheduledHeadwayMinutes(feature),
             headwayDistribution: summarizeHeadwaysMinutes(feature.observedHeadwaysMinutes),
             sourcePairCounts: {

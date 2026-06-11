@@ -199,3 +199,34 @@ not threshold relaxations): an arrival-coverage check against the scheduled base
 `headway_gap_hotspot` class, stop-pocket/corridor dedupe to a canonical cell, and a school-overlay
 baseline check for hour-level bunching claims. Serving promotion remains gated on the readiness
 manifest path (S4.1).
+
+## Ranking fix (2026-06-11)
+
+Implemented the sample-density-aware ranking in `packages/analytics/src/findings/bunching-hotspots.ts`
+(no floor/cap/threshold change; gold labels untouched):
+
+- `detectorScore = round(60 + 40 × severitySignal × observationSufficiency, 2)` where
+  `severitySignal` is the prior `clamp((max(bunchingSignal, gapSignal) − 1) / 2, 0, 1)` and
+  `observationSufficiency = min(1, pairCount / highConfidencePairs[50]) × (quality.coverageShare ?? 1)`
+  (shared `observationSufficiencySignal` helper in `headway-common.ts`). Candidate sort tie-breaks
+  deterministically by featureKey asc. Thin cells still emit (high-limit count unchanged at 3,048);
+  they just rank lower.
+
+Re-run + re-evaluation (`no-write-run-rankfix.json`, `no-write-run-limit20000-rankfix.json`,
+`evaluation-rankfix.json`, `readiness-projection-rankfix.json`; rows file rebuilt and deleted):
+
+| Metric | Before | After |
+| --- | ---: | ---: |
+| Score saturation | emitted range 92–100, heavy ties | gone — unique max 100, 19 cells ≥92, 41 cells ≥80, 899 distinct scores, top-100 spans 72.02–100 |
+| S54:N:201690 hr15 (primary) rank | in top-100 (survived) | **1** |
+| Suppress-labeled cells in top-100 | 14/46 | **5/46** |
+| Arrival-coverage gap artifacts in top-100 | 10 | 1 (B37:N:302903 at rank 93; the other 9 now rank 128–1,370) |
+| Reason mix in top-100 | gap-class dominated at high limit | 92 bunching / 8 gap |
+
+The 5 remaining leaks are B37:N:302903 (rank 93, the last feed-gap artifact, 30 pairs right at the
+sufficiency knee) plus 4 duplicate-pocket cells (Q11:N:553364 r4, Q11:N:550717 r9 — school-overlay
+baseline mismatch; S46:W:203087 r48; S54:N:201687 r70). Duplicate-pocket leakage is structurally
+out of reach of a sufficiency ranking — those cells are well-observed measurements of the same
+platoon — and stays assigned to the stop-pocket dedupe readiness gate (and school-overlay baseline
+check) already recommended above. Primary survival stays 1/1; `evaluation-rankfix.json` records
+suppress leakage 5/46 (was 14/46).

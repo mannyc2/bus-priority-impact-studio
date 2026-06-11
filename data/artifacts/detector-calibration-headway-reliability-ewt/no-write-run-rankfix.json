@@ -1,0 +1,545 @@
+{
+  "artifactKind": "registry_detector_run",
+  "schemaVersion": 1,
+  "generatedAt": "2026-06-11T17:40:47.096Z",
+  "detectorId": "headway_reliability_ewt",
+  "detectorVersion": "1.0.0",
+  "detectorRunId": "headway_reliability_ewt-2026-03",
+  "releaseMonth": "2026-03",
+  "dbPath": "data/local/pipeline.sqlite",
+  "artifactPath": "data/artifacts/detector-calibration-headway-reliability-ewt/no-write-run-rankfix.json",
+  "wroteDb": false,
+  "featureContracts": [
+    {
+      "featureGrain": "stop_direction_hour",
+      "resolverId": "artifact.stop_direction_hour_ewt_features.v1",
+      "status": "resolved",
+      "reason": "Supplied by a registered applied-research detector-input resolver or local-row loader."
+    },
+    {
+      "featureGrain": "feed_health",
+      "resolverId": "embedded.feature_quality.v1",
+      "status": "satisfied_by_feature_quality",
+      "reason": "Carried through feature-quality coverage/freshness/sample fields rather than a dedicated row resolver."
+    }
+  ],
+  "dataProductDependencies": [
+    {
+      "productId": "analytics_backfill_coverage_audit",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    },
+    {
+      "productId": "bus_observatory_gtfs_rt_availability",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    },
+    {
+      "productId": "local_observed_headway_samples_run",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    },
+    {
+      "productId": "local_route_schedule_timepoints_release",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    },
+    {
+      "productId": "stop_direction_hour_ewt_features",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    }
+  ],
+  "modelDependencies": [],
+  "inputSummary": {
+    "sourceKind": "stop_direction_hour_ewt_feature_artifacts",
+    "artifactCount": 350,
+    "featureCount": 650264,
+    "readyFeatureCount": 14628,
+    "baselineUnavailableCount": 39377,
+    "insufficientHeadwayCount": 550909,
+    "lowCoverageCount": 45350,
+    "observedHeadwaySampleCount": 2604283,
+    "loadedFeatureCount": 650264
+  },
+  "outputSummary": {
+    "candidateCount": 100,
+    "evidenceCount": 200,
+    "coverageCount": 650264,
+    "hitCount": 100,
+    "cleanNoHitCount": 1658,
+    "deferredNotInScopeCount": 0,
+    "skippedCount": 648506
+  },
+  "capAccounting": {
+    "mode": "global_candidate_limit",
+    "status": "at_production_cap",
+    "productionCandidateLimit": 100,
+    "runCandidateLimit": 100,
+    "qualifyingCandidateCount": 100,
+    "emittedWithinProductionCapCount": 100,
+    "cappedOutCount": 0,
+    "cappedOutByBoroughPrefix": {},
+    "cappedOutByRouteId": {},
+    "routeBreakdown": [
+      {
+        "routeId": "B16",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 9,
+        "emittedWithinProductionCapCount": 9,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "B17",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "B20",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 5,
+        "emittedWithinProductionCapCount": 5,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "B25",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "B52",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "B8",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 2,
+        "emittedWithinProductionCapCount": 2,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "B9",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 3,
+        "emittedWithinProductionCapCount": 3,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "BX38",
+        "boroughPrefix": "BX",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "BX8",
+        "boroughPrefix": "BX",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "BXM9",
+        "boroughPrefix": "BXM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "M11",
+        "boroughPrefix": "M",
+        "qualifyingCandidateCount": 5,
+        "emittedWithinProductionCapCount": 5,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "M3",
+        "boroughPrefix": "M",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "M4",
+        "boroughPrefix": "M",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "M98",
+        "boroughPrefix": "M",
+        "qualifyingCandidateCount": 2,
+        "emittedWithinProductionCapCount": 2,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "Q24",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 2,
+        "emittedWithinProductionCapCount": 2,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "Q31",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 2,
+        "emittedWithinProductionCapCount": 2,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "Q43",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "Q48",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 2,
+        "emittedWithinProductionCapCount": 2,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "Q76",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 6,
+        "emittedWithinProductionCapCount": 6,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "Q77",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 3,
+        "emittedWithinProductionCapCount": 3,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "Q88",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 15,
+        "emittedWithinProductionCapCount": 15,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "QM11",
+        "boroughPrefix": "QM",
+        "qualifyingCandidateCount": 2,
+        "emittedWithinProductionCapCount": 2,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "QM20",
+        "boroughPrefix": "QM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "QM7",
+        "boroughPrefix": "QM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "S54",
+        "boroughPrefix": "S",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "S78",
+        "boroughPrefix": "S",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "S91",
+        "boroughPrefix": "S",
+        "qualifyingCandidateCount": 3,
+        "emittedWithinProductionCapCount": 3,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "S94",
+        "boroughPrefix": "S",
+        "qualifyingCandidateCount": 3,
+        "emittedWithinProductionCapCount": 3,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "SIM10",
+        "boroughPrefix": "SIM",
+        "qualifyingCandidateCount": 5,
+        "emittedWithinProductionCapCount": 5,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "SIM11",
+        "boroughPrefix": "SIM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "SIM15",
+        "boroughPrefix": "SIM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "SIM2",
+        "boroughPrefix": "SIM",
+        "qualifyingCandidateCount": 3,
+        "emittedWithinProductionCapCount": 3,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "SIM22",
+        "boroughPrefix": "SIM",
+        "qualifyingCandidateCount": 3,
+        "emittedWithinProductionCapCount": 3,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "SIM3",
+        "boroughPrefix": "SIM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "SIM30",
+        "boroughPrefix": "SIM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "SIM4",
+        "boroughPrefix": "SIM",
+        "qualifyingCandidateCount": 3,
+        "emittedWithinProductionCapCount": 3,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "SIM5",
+        "boroughPrefix": "SIM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "SIM8",
+        "boroughPrefix": "SIM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "SIM9",
+        "boroughPrefix": "SIM",
+        "qualifyingCandidateCount": 2,
+        "emittedWithinProductionCapCount": 2,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "X37",
+        "boroughPrefix": "X",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      }
+    ],
+    "note": "Run uses production cap 100. This run reached the production cap; use a higher no-write candidate limit to observe suppressed candidates beyond it."
+  },
+  "candidateSamples": [
+    {
+      "candidateId": "259fede38b392bc43a17c98dee6b6ea8",
+      "routeId": "SIM9",
+      "scopeId": "SIM9:N:200132:2026-03:Weekday:07",
+      "detectorScore": 83,
+      "claimText": "Route SIM9 riders at LILY POND AV/McCLEAN AV experienced an estimated 15 minutes of excess wait in hour 7."
+    },
+    {
+      "candidateId": "a190c75478aa57d488c84b463061e61a",
+      "routeId": "SIM9",
+      "scopeId": "SIM9:N:203104:2026-03:Weekday:07",
+      "detectorScore": 83.5,
+      "claimText": "Route SIM9 riders at FATHER CAPODANNO BLVD/ATLANTIC AV experienced an estimated 14.5 minutes of excess wait in hour 7."
+    },
+    {
+      "candidateId": "735b59946ec2f10951e5406242af2e06",
+      "routeId": "SIM3",
+      "scopeId": "SIM3:S:203165:2026-03:Weekday:18",
+      "detectorScore": 82.67,
+      "claimText": "Route SIM3 riders at WATCHOGUE RD/SMITH CT experienced an estimated 13.1 minutes of excess wait in hour 18."
+    },
+    {
+      "candidateId": "99654ca492180bb1542af3987d83f083",
+      "routeId": "S94",
+      "scopeId": "S94:W:200437:2026-03:Weekday:18",
+      "detectorScore": 84,
+      "claimText": "Route S94 riders at RICHMOND AV/VEDDER AV experienced an estimated 15.2 minutes of excess wait in hour 18."
+    },
+    {
+      "candidateId": "a05dd0748cdc28960336b2b3a57f6625",
+      "routeId": "S94",
+      "scopeId": "S94:W:200886:2026-03:Weekday:17",
+      "detectorScore": 84,
+      "claimText": "Route S94 riders at HENDERSON AV/BARD AV experienced an estimated 11.3 minutes of excess wait in hour 17."
+    },
+    {
+      "candidateId": "160876a820e3791240c92dce9c4c4a02",
+      "routeId": "S94",
+      "scopeId": "S94:W:203693:2026-03:Weekday:18",
+      "detectorScore": 83.47,
+      "claimText": "Route S94 riders at RICHMOND AV/MONSEY PL experienced an estimated 17.4 minutes of excess wait in hour 18."
+    },
+    {
+      "candidateId": "7fd15b7247095cd1a3e9ad7cb4735468",
+      "routeId": "QM11",
+      "scopeId": "QM11:W:552966:2026-03:Weekday:07",
+      "detectorScore": 83,
+      "claimText": "Route QM11 riders at 63 RD/QUEENS BLVD experienced an estimated 6.3 minutes of excess wait in hour 7."
+    },
+    {
+      "candidateId": "4dc734d6534a4374ce28b65b283914a9",
+      "routeId": "QM11",
+      "scopeId": "QM11:W:553210:2026-03:Weekday:07",
+      "detectorScore": 82.93,
+      "claimText": "Route QM11 riders at 108 ST/63 RD experienced an estimated 6.1 minutes of excess wait in hour 7."
+    },
+    {
+      "candidateId": "7a341fef28963fa9b0a14b1afc9cf886",
+      "routeId": "SIM22",
+      "scopeId": "SIM22:N:200384:2026-03:Weekday:06",
+      "detectorScore": 83.11,
+      "claimText": "Route SIM22 riders at RICHMOND AV/BARLOW AV experienced an estimated 11.5 minutes of excess wait in hour 6."
+    },
+    {
+      "candidateId": "00bf7379e0280858fa26e86fba1336b3",
+      "routeId": "SIM22",
+      "scopeId": "SIM22:N:202855:2026-03:Weekday:06",
+      "detectorScore": 82.59,
+      "claimText": "Route SIM22 riders at RICHMOND AV/KOCH BLVD experienced an estimated 12 minutes of excess wait in hour 6."
+    },
+    {
+      "candidateId": "bb4dcb604cf9b95cc0f0c1d06c51847e",
+      "routeId": "SIM22",
+      "scopeId": "SIM22:N:805165:2026-03:Weekday:06",
+      "detectorScore": 83.11,
+      "claimText": "Route SIM22 riders at ELTINGVILLE/TRANSIT CENTER experienced an estimated 11.6 minutes of excess wait in hour 6."
+    },
+    {
+      "candidateId": "e55d1ac2e6e7bf947b831b7f4eb7ef6d",
+      "routeId": "B9",
+      "scopeId": "B9:E:300930:2026-03:Weekday:06",
+      "detectorScore": 83.7,
+      "claimText": "Route B9 riders at 60 ST/8 AV experienced an estimated 12.4 minutes of excess wait in hour 6."
+    },
+    {
+      "candidateId": "cd2f199931a518e09dd68c1bc61b238e",
+      "routeId": "B9",
+      "scopeId": "B9:E:300952:2026-03:Weekday:06",
+      "detectorScore": 84.92,
+      "claimText": "Route B9 riders at AVENUE M/E 9 ST experienced an estimated 15.9 minutes of excess wait in hour 6."
+    },
+    {
+      "candidateId": "0d8454edd37ab67ecd2a9073096e01cf",
+      "routeId": "B9",
+      "scopeId": "B9:E:306830:2026-03:Weekday:06",
+      "detectorScore": 84,
+      "claimText": "Route B9 riders at AVENUE L/BEDFORD AV experienced an estimated 7.8 minutes of excess wait in hour 6."
+    },
+    {
+      "candidateId": "c3319c16831bb80bbe3ab86c3725758d",
+      "routeId": "B20",
+      "scopeId": "B20:N:301956:2026-03:Weekday:07",
+      "detectorScore": 84,
+      "claimText": "Route B20 riders at PENNSYLVANIA AV/WORTMAN AV experienced an estimated 13.1 minutes of excess wait in hour 7."
+    },
+    {
+      "candidateId": "845b671e66caebb6d24b68cd57e28543",
+      "routeId": "B20",
+      "scopeId": "B20:S:300584:2026-03:Weekday:06",
+      "detectorScore": 85,
+      "claimText": "Route B20 riders at WORTMAN AV/PENNSYLVANIA AV experienced an estimated 12 minutes of excess wait in hour 6."
+    },
+    {
+      "candidateId": "36a2b0b0f13f7c098a27260fd04504a7",
+      "routeId": "B20",
+      "scopeId": "B20:S:301155:2026-03:Weekday:06",
+      "detectorScore": 82.78,
+      "claimText": "Route B20 riders at LINDEN BLVD/EUCLID AV experienced an estimated 12.5 minutes of excess wait in hour 6."
+    },
+    {
+      "candidateId": "8f66d6cc09607f177f3505547151a2bf",
+      "routeId": "B20",
+      "scopeId": "B20:S:302039:2026-03:Weekday:06",
+      "detectorScore": 82.5,
+      "claimText": "Route B20 riders at PENNSYLVANIA AV/LINDEN BLVD experienced an estimated 13.5 minutes of excess wait in hour 6."
+    },
+    {
+      "candidateId": "464039e3640140715d94216389620637",
+      "routeId": "B20",
+      "scopeId": "B20:S:307897:2026-03:Weekday:06",
+      "detectorScore": 84.44,
+      "claimText": "Route B20 riders at VAN SINDEREN AV/FULTON ST experienced an estimated 8.9 minutes of excess wait in hour 6."
+    },
+    {
+      "candidateId": "3ba4b6764f1d8772890c9597f09ef76e",
+      "routeId": "BX8",
+      "scopeId": "BX8:S:100541:2026-03:Weekday:08",
+      "detectorScore": 83.08,
+      "claimText": "Route BX8 riders at WILLIAMSBRIDGE RD/MORRIS PARK AV experienced an estimated 14.7 minutes of excess wait in hour 8."
+    },
+    {
+      "candidateId": "639f4e7f8f7a279a8ff849fb86f1b3c1",
+      "routeId": "Q43",
+      "scopeId": "Q43:W:500071:2026-03:Weekday:14",
+      "detectorScore": 84.36,
+      "claimText": "Route Q43 riders at HILLSIDE AV/212 ST experienced an estimated 24.4 minutes of excess wait in hour 14."
+    },
+    {
+      "candidateId": "c206276867139b6b146e6b4e72b29d87",
+      "routeId": "SIM4",
+      "scopeId": "SIM4:N:200395:2026-03:Weekday:06",
+      "detectorScore": 84,
+      "claimText": "Route SIM4 riders at RICHMOND AV/ROCKLAND AV experienced an estimated 10.1 minutes of excess wait in hour 6."
+    },
+    {
+      "candidateId": "043425e4453c69c7c7db0d0b6aacf075",
+      "routeId": "SIM4",
+      "scopeId": "SIM4:N:404887:2026-03:Weekday:07",
+      "detectorScore": 88.57,
+      "claimText": "Route SIM4 riders at GREENWICH ST/BATTERY PL experienced an estimated 17.5 minutes of excess wait in hour 7."
+    },
+    {
+      "candidateId": "2cca0334969e6fa27b0878af7000465a",
+      "routeId": "SIM4",
+      "scopeId": "SIM4:S:404238:2026-03:Weekday:16",
+      "detectorScore": 83.08,
+      "claimText": "Route SIM4 riders at BROADWAY/BARCLAY ST experienced an estimated 7.5 minutes of excess wait in hour 16."
+    },
+    {
+      "candidateId": "207afd7076ab66b0c93ffc7f1f75ca7c",
+      "routeId": "SIM10",
+      "scopeId": "SIM10:N:402145:2026-03:Weekday:09",
+      "detectorScore": 84.62,
+      "claimText": "Route SIM10 riders at E 23 ST / 3 AV experienced an estimated 13.3 minutes of excess wait in hour 9."
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 import { percentile } from "../concentration.js";
-import { round } from "../core/numbers.js";
+import { clamp, round } from "../core/numbers.js";
 import type { FeatureQuality } from "../features/quality.js";
 import {
   featureQualityHasCoverage,
@@ -81,6 +81,22 @@ export function featureQualitySkipReason(
     };
   }
   return null;
+}
+
+// Observation-sufficiency signal for ranking stop-direction-hour candidates. Thin-sample cells are
+// usually feed-gap artifacts (each missing arrival fabricates a long "headway"), so equal raw
+// severity must rank below well-observed cells. Blends absolute sample depth against the detector's
+// high-confidence sample count with the schedule-implied coverage share when the feature carries one
+// (expectedCount only spans observed service dates, so neither factor alone is sufficient).
+export function observationSufficiencySignal(
+  quality: FeatureQuality,
+  sampleCount: number,
+  highSampleCount: number,
+): number {
+  const sampleSufficiency = clamp(sampleCount / Math.max(highSampleCount, 1), 0, 1);
+  const coverageSufficiency =
+    quality.coverageShare === null ? 1 : clamp(quality.coverageShare, 0, 1);
+  return sampleSufficiency * coverageSufficiency;
 }
 
 export function confidenceFromHeadwayQuality(

@@ -15,6 +15,7 @@ import {
   POSITIVE_DEVIANCE_DETECTOR_ID,
   RIDER_WEIGHTED_EXCESS_WAIT_DETECTOR_ID,
   SCHEDULE_MISMATCH_DETECTOR_ID,
+  selectMultiMonthSpeedPeerGroup,
   SERVICE_REQUEST_CONTEXT_DETECTOR_ID,
   SPEED_PACE_HOTSPOT_DETECTOR_ID,
   TRAVEL_TIME_VARIABILITY_DETECTOR_ID,
@@ -71,18 +72,6 @@ function numberValue(value: unknown): number | null {
 
 function intValue(value: unknown, fallback = 0): number {
   return Math.trunc(numberValue(value) ?? fallback);
-}
-
-function median(values: readonly number[]): number | null {
-  const sorted = values
-    .filter((value) => Number.isFinite(value))
-    .sort((left, right) => left - right);
-  if (sorted.length === 0) return null;
-  const midpoint = Math.floor(sorted.length / 2);
-  if (sorted.length % 2 === 1) return sorted[midpoint] ?? null;
-  const left = sorted[midpoint - 1];
-  const right = sorted[midpoint];
-  return left === undefined || right === undefined ? null : (left + right) / 2;
 }
 
 function querySpeedRows(input: {
@@ -306,28 +295,28 @@ function buildMultiMonthSpeedPeerRoutesFromHistory(input: {
         .slice()
         .sort((left, right) => left.month.localeCompare(right.month))
         .map((row) => {
-          const peerRows = (rowsByMonth.get(row.month) ?? []).filter(
-            (peer) =>
-              peer.routeId !== routeId &&
-              peer.averageSpeedMph !== null &&
-              peer.speedObservationCount > 0,
-          );
-          const peerRouteIds = peerRows.map((peer) => peer.routeId).sort();
+          const peerGroup = selectMultiMonthSpeedPeerGroup({
+            routeId,
+            peers: (rowsByMonth.get(row.month) ?? [])
+              .filter(
+                (peer): peer is (typeof parsedRows)[number] & { averageSpeedMph: number } =>
+                  peer.routeId !== routeId &&
+                  peer.averageSpeedMph !== null &&
+                  peer.speedObservationCount > 0,
+              )
+              .map((peer) => ({ routeId: peer.routeId, averageSpeedMph: peer.averageSpeedMph })),
+          });
           return {
             month: row.month,
             hasSpeedTrend: row.averageSpeedMph !== null && row.speedObservationCount > 0,
             averageSpeedMph: row.averageSpeedMph,
             speedObservationCount: row.speedObservationCount,
-            peerMedianSpeedMph: median(
-              peerRows
-                .map((peer) => peer.averageSpeedMph)
-                .filter((speed): speed is number => speed !== null),
-            ),
-            peerRouteCount: peerRouteIds.length,
-            peerGroupId: "system",
-            peerGroupLabel: "System routes",
-            peerGroupMethod: "system" as const,
-            peerRouteIds,
+            peerMedianSpeedMph: peerGroup.peerMedianSpeedMph,
+            peerRouteCount: peerGroup.peerRouteCount,
+            peerGroupId: peerGroup.peerGroupId,
+            peerGroupLabel: peerGroup.peerGroupLabel,
+            peerGroupMethod: peerGroup.peerGroupMethod,
+            peerRouteIds: peerGroup.peerRouteIds,
           };
         }),
     });

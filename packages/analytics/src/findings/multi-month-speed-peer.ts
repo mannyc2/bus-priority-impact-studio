@@ -21,6 +21,137 @@ export type MultiMonthSpeedPeerGroupMethod =
   | "route_type"
   | "system";
 
+export type MultiMonthSpeedPeerServiceClass = "local" | "express" | "sbs";
+
+const EXPRESS_ROUTE_PREFIXES = new Set(["BM", "BXM", "QM", "SIM", "X"]);
+
+const BOROUGH_BY_ROUTE_PREFIX: Record<string, string> = {
+  B: "B",
+  BM: "B",
+  BX: "BX",
+  BXM: "BX",
+  M: "M",
+  Q: "Q",
+  QM: "Q",
+  S: "S",
+  SIM: "S",
+};
+
+const SERVICE_CLASS_LABELS: Record<MultiMonthSpeedPeerServiceClass, string> = {
+  local: "local",
+  express: "express",
+  sbs: "SBS",
+};
+
+export type MultiMonthSpeedPeerRouteClass = {
+  serviceClass: MultiMonthSpeedPeerServiceClass;
+  borough: string | null;
+};
+
+export function classifyMultiMonthSpeedPeerRoute(routeId: string): MultiMonthSpeedPeerRouteClass {
+  const normalized = routeId.trim().toUpperCase();
+  const prefix = /^[A-Z]+/.exec(normalized)?.[0] ?? "";
+  const serviceClass: MultiMonthSpeedPeerServiceClass = normalized.endsWith("+")
+    ? "sbs"
+    : EXPRESS_ROUTE_PREFIXES.has(prefix)
+      ? "express"
+      : "local";
+  return { serviceClass, borough: BOROUGH_BY_ROUTE_PREFIX[prefix] ?? null };
+}
+
+export type MultiMonthSpeedPeerCandidatePeer = {
+  routeId: string;
+  averageSpeedMph: number;
+};
+
+export type MultiMonthSpeedPeerGroupSelection = {
+  peerGroupId: string;
+  peerGroupLabel: string;
+  peerGroupMethod: MultiMonthSpeedPeerGroupMethod;
+  peerRouteIds: string[];
+  peerRouteCount: number;
+  peerMedianSpeedMph: number | null;
+};
+
+function medianOf(values: readonly number[]): number | null {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((left, right) => left - right);
+  const mid = Math.floor(sorted.length / 2);
+  const value =
+    sorted.length % 2 === 1
+      ? (sorted[mid] as number)
+      : ((sorted[mid - 1] as number) + (sorted[mid] as number)) / 2;
+  return Number(value.toFixed(2));
+}
+
+function groupSelection(
+  method: MultiMonthSpeedPeerGroupMethod,
+  groupId: string,
+  groupLabel: string,
+  peers: readonly MultiMonthSpeedPeerCandidatePeer[],
+): MultiMonthSpeedPeerGroupSelection {
+  const sorted = [...peers].sort((left, right) => left.routeId.localeCompare(right.routeId));
+  return {
+    peerGroupId: groupId,
+    peerGroupLabel: groupLabel,
+    peerGroupMethod: method,
+    peerRouteIds: sorted.map((peer) => peer.routeId),
+    peerRouteCount: sorted.length,
+    peerMedianSpeedMph: medianOf(sorted.map((peer) => peer.averageSpeedMph)),
+  };
+}
+
+/**
+ * Service-class-aware peer-group selection with a minimum-size fallback chain:
+ * borough + service class ("route_family_type") -> service class only ("route_type")
+ * -> system-wide fallback ("system"). The method actually used is always recorded.
+ */
+export function selectMultiMonthSpeedPeerGroup(input: {
+  routeId: string;
+  peers: ReadonlyArray<MultiMonthSpeedPeerCandidatePeer>;
+  minPeerRouteCount?: number;
+}): MultiMonthSpeedPeerGroupSelection {
+  const minPeerRouteCount =
+    input.minPeerRouteCount ?? DEFAULT_MULTI_MONTH_SPEED_PEER_THRESHOLDS.minPeerRouteCount;
+  const { serviceClass, borough } = classifyMultiMonthSpeedPeerRoute(input.routeId);
+  const classLabel = SERVICE_CLASS_LABELS[serviceClass];
+  const classPeers = input.peers.filter(
+    (peer) =>
+      peer.routeId !== input.routeId &&
+      classifyMultiMonthSpeedPeerRoute(peer.routeId).serviceClass === serviceClass,
+  );
+
+  if (borough !== null) {
+    const boroughPeers = classPeers.filter(
+      (peer) => classifyMultiMonthSpeedPeerRoute(peer.routeId).borough === borough,
+    );
+    if (boroughPeers.length >= minPeerRouteCount) {
+      return groupSelection(
+        "route_family_type",
+        `route_family_type:${borough}:${serviceClass}`,
+        `${borough} ${classLabel} routes`,
+        boroughPeers,
+      );
+    }
+  }
+
+  if (classPeers.length >= minPeerRouteCount) {
+    return groupSelection(
+      "route_type",
+      `route_type:${serviceClass}`,
+      `Systemwide ${classLabel} routes`,
+      classPeers,
+    );
+  }
+
+  return groupSelection(
+    "system",
+    "system",
+    "System routes",
+    input.peers.filter((peer) => peer.routeId !== input.routeId),
+  );
+}
+
 export type MultiMonthSpeedPeerObservation = {
   month: string;
   hasSpeedTrend: boolean;
@@ -106,6 +237,20 @@ function hasStrongPeerGroup(observation: MultiMonthSpeedPeerObservation): boolea
     observation.peerGroupMethod === "route_family_type_spatial" ||
     observation.peerGroupMethod === "route_family_type"
   );
+}
+
+function claimTextFor(routeId: string, eligible: readonly EligibleObservation[]): string {
+  const matched = eligible.filter((observation) => observation.peerGroupMethod !== "system");
+  if (matched.length === 0) {
+    return `Route ${routeId} has a multi-month low-speed pattern below the citywide median route speed (no matched peer group met the minimum size).`;
+  }
+  const typicalPeerCount = Math.round(
+    average(matched.map((observation) => observation.peerRouteCount)),
+  );
+  if (matched.length === eligible.length) {
+    return `Route ${routeId} has a multi-month low-speed pattern below the median of ${typicalPeerCount} same-class peer routes.`;
+  }
+  return `Route ${routeId} has a multi-month low-speed pattern below its peer median (${typicalPeerCount} same-class peer routes in ${matched.length} of ${eligible.length} months, citywide fallback otherwise).`;
 }
 
 function eligibleObservations(
@@ -229,7 +374,7 @@ export function detectMultiMonthSpeedPeerDeficits(
           detectorScore: hit.detectorScore,
           reasonCode,
           claimSafeLabel: "issue_needs_review",
-          claimText: `Route ${routeId} has a multi-month low-speed pattern below its matched peer median.`,
+          claimText: claimTextFor(routeId, hit.eligibleObservations),
           status: "open",
           reviewState: "needs_review",
           windowStart: null,
@@ -266,7 +411,7 @@ export function detectMultiMonthSpeedPeerDeficits(
             })),
           }),
           evidenceWeight: 1,
-          note: "Multi-month route speed trend compared with the monthly matched peer median.",
+          note: "Multi-month route speed trend compared with the monthly peer-group median (method recorded per month).",
         }),
         FindingEvidenceLinkSchema.parse({
           linkId: stableId(candidateId, "evidence", "peer_limits"),
@@ -289,7 +434,7 @@ export function detectMultiMonthSpeedPeerDeficits(
                 peerRouteCount: observation.peerRouteCount,
               })),
             peerGroupDescription:
-              "Peers are selected by route family, route type, and geography when enough supported routes exist; fallback groups are recorded per month.",
+              "Peers share the route's service class (local, SBS, or express), refined by borough when enough peers exist; months that fell back to a coarser group or the system-wide pool are recorded per month.",
             limitation:
               "Matched peer groups are descriptive comparisons, not causal controls; reviewers should inspect route geometry, service pattern, construction, and seasonal differences before promotion.",
           }),

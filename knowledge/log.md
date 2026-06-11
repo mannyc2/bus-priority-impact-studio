@@ -2,6 +2,28 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-11] engineering | Label-backed fixes: stop-hour sufficiency ranking + real speed-peer groups
+
+Implemented the two highest-leverage feature fixes named by the calibration sweep, verified against
+the untouched reviewed-gold sets. (1) Stop-hour ranking: `observationSufficiencySignal()` in
+headway-common blends each cell's sample count (vs the existing high-confidence thresholds) and
+schedule-implied coverage share into detectorScore for headway_reliability_ewt and
+bunching_hotspots — no emission gate added, no floors/caps touched, high-limit candidate counts
+unchanged. Score saturation is gone (unique max 91.83). Bunching: the S54 label-backed primary now
+ranks 1; suppress-labeled top-100 leakage fell 14→5 (arrival-coverage artifacts 10→1; the remaining
+4 are duplicate-pocket leaks owned by the future stop-pocket dedupe gate). Headway: suppress
+leakage in the top-100 fell 2→0 and the three label-backed primaries improved 593/1131/1310 →
+216/201/248 but remain outside the top-100 — the cells above them are unreviewed well-observed
+LoS-F cells that meet the gold's own criteria, so the curve was not overfit to force three labels
+in; recorded as the honest residual. (2) multi_month_speed_peer: root cause of the fallback-pool
+pathology was a wiring gap — `buildMultiMonthSpeedPeerRoutesFromHistory` hardcoded
+`peerGroupMethod: "system"`. New class-based peer construction (SBS/express/local × borough, min
+group size 10 with an honest fallback chain) plus claim wording that names the method actually
+used. March rerun: 6 emitted (M50/M8 fall below the floor against honest same-class medians),
+zero system-only candidates, SBS routes now compared within a 19-route SBS pool with deficits
+nearly unchanged (3.08→3.02 mph) — the signal was real, the framing wasn't. Suppress leakage held
+0/16; the 6 survivors are flagged for label upgrade in the next review batch.
+
 ## [2026-06-11] analysis | Full detector calibration sweep: 13 reviewed-gold sets, S4.1 serving gate, Phase 5 floor
 
 Completed the backend-goal-finish-detectors plan in one sweep. Every machinery_built and

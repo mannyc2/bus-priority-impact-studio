@@ -87,17 +87,23 @@ export {
   INTERVENTION_UNDERPERFORMANCE_DETECTOR_ID,
 } from "../findings/intervention-underperformance.js";
 export type {
+  MultiMonthSpeedPeerCandidatePeer,
   MultiMonthSpeedPeerDetectorInput,
   MultiMonthSpeedPeerDetectorOutput,
   MultiMonthSpeedPeerGroupMethod,
+  MultiMonthSpeedPeerGroupSelection,
   MultiMonthSpeedPeerObservation,
+  MultiMonthSpeedPeerRouteClass,
   MultiMonthSpeedPeerRouteInput,
+  MultiMonthSpeedPeerServiceClass,
   MultiMonthSpeedPeerThresholds,
 } from "../findings/multi-month-speed-peer.js";
 export {
+  classifyMultiMonthSpeedPeerRoute,
   DEFAULT_MULTI_MONTH_SPEED_PEER_THRESHOLDS,
   detectMultiMonthSpeedPeerDeficits,
   MULTI_MONTH_SPEED_PEER_DETECTOR_ID,
+  selectMultiMonthSpeedPeerGroup,
 } from "../findings/multi-month-speed-peer.js";
 export type {
   ObservedReliabilityDetectorInput,
