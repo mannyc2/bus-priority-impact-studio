@@ -106,6 +106,8 @@ export {
   type CurbFrictionTaxonomyAgreementCategory,
   CurbFrictionTaxonomyAgreementCategorySchema,
   type CurbFrictionTaxonomyAgreementInputRow,
+  type CurbFrictionTaxonomyAgreementJoinConfidence,
+  CurbFrictionTaxonomyAgreementJoinConfidenceSchema,
 } from "./curb-friction-taxonomy-agreement";
 export {
   type BuildCustomerJourneyReadinessProjectionInput,
