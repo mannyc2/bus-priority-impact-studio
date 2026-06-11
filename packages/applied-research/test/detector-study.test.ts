@@ -28,7 +28,9 @@ import {
   DEFAULT_REGISTRY_DETECTOR_STUDY_ID,
   type DetectorStudyMetadata,
   type DetectorStudySourceRows,
+  detectorStudyFeatureContractSatisfaction,
   runRegistryDetectorStudy,
+  runRegistryDetectorStudyFromResolverPath,
 } from "../src/detector-runs";
 
 const FEATURE_COUNT_SUMMARY_KEY = "featureCount";
@@ -346,6 +348,38 @@ describe("registry detector studies", () => {
     expect(result.output.candidates).toHaveLength(1);
     expect(`${result.output.candidates[0]?.reasonCode}`).toBe("slow_pace_hotspot");
     expect(result.output.coverage.map((row) => `${row.outcome}`)).toContain("hit");
+  });
+
+  test("runs through detector-input assembly and derives feature contracts from that resolver path", async () => {
+    const detectorId = DEFAULT_REGISTRY_DETECTOR_STUDY_ID;
+
+    const result = await runRegistryDetectorStudyFromResolverPath({
+      metadata: metadata(detectorId),
+      context: {
+        detectorId,
+        artifactRoot: "data/artifacts",
+        releaseMonth: RELEASE_MONTH,
+        historyStartMonth: "2023-04",
+        observedRunId: `bus-observatory-${RELEASE_MONTH}`,
+      },
+      localRows: minimalRowsForDetector(detectorId),
+    });
+
+    expect(result.artifact.featureContracts).toEqual(
+      detectorStudyFeatureContractSatisfaction({ detectorId }),
+    );
+    expect(
+      result.artifact.featureContracts.every((contract) => contract.status !== "unsupported"),
+    ).toBe(true);
+    expect(result.artifact.modelDependencies).toEqual([
+      {
+        modelId: "segment_daypart_residuals_v1",
+        status: "available",
+        rowCount: 0,
+        reason:
+          "Required model artifact segment_daypart_residuals_v1 was supplied as segmentDaypartResidualRows.",
+      },
+    ]);
   });
 
   test("skips explicitly when a model-backed detector is missing its model artifact rows", () => {

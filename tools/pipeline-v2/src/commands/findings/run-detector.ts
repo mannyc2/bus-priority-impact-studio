@@ -1,9 +1,8 @@
 import { mkdir } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative } from "node:path";
 import {
-  assembleDetectorStudyInput,
   DEFAULT_REGISTRY_DETECTOR_STUDY_ID,
-  runRegistryDetectorStudy,
+  runRegistryDetectorStudyFromResolverPath,
 } from "@bp/applied-research/detector-runs";
 import { loadDetectorStudyLocalDbRows } from "@bp/applied-research/local-db";
 import { replaceFindingsForMonth } from "@bp/db/local";
@@ -105,19 +104,7 @@ export default defineCommand({
         observedRunId,
         ...(input.options.routeId === undefined ? {} : { routeId: input.options.routeId }),
       });
-      const assembled = await assembleDetectorStudyInput({
-        context: {
-          detectorId,
-          artifactRoot,
-          releaseMonth,
-          historyStartMonth: input.options.historyStartMonth,
-          observedRunId,
-          sqlite: local.sqlite,
-          ...(input.options.routeId === undefined ? {} : { routeId: input.options.routeId }),
-        },
-        localRows,
-      });
-      const { artifact, output } = runRegistryDetectorStudy({
+      const { artifact, output } = await runRegistryDetectorStudyFromResolverPath({
         metadata: {
           detectorId,
           detectorRunId,
@@ -131,8 +118,16 @@ export default defineCommand({
             ? {}
             : { candidateLimit: input.options.candidateLimit }),
         },
-        rows: assembled.rows,
-        featureContracts: assembled.featureContracts,
+        context: {
+          detectorId,
+          artifactRoot,
+          releaseMonth,
+          historyStartMonth: input.options.historyStartMonth,
+          observedRunId,
+          sqlite: local.sqlite,
+          ...(input.options.routeId === undefined ? {} : { routeId: input.options.routeId }),
+        },
+        localRows,
       });
       if (input.options.writeDb) {
         await replaceFindingsForMonth(local.db, {

@@ -2,6 +2,38 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-11] infra | Track B Phase 0-2 checkpoint after resolver seam hardening
+
+After the S1.1 follow-up seam hardening, re-checked the rest of
+`backend-goal-finish-detectors.md` Phases 0-2 before moving into new detector calibration work.
+S1.2 is already closed in the current tree: `treatment-event-panel.ts` gets the
+`intervention_event_study` detector id through the `@bp/domain` allowlist, and
+`production-boundaries.test.ts` scans real `tools/pipeline-v2/src` import specifiers so prose
+strings and sandbox symlink commands do not mask direct `@bp/analytics` imports. The current
+Phase 2 state is also no longer the stale mid-plan state: S2.1 `isTerminal` and S2.3
+spatial-confidence/lane-type field fixes have current calibration log entries, S2.2 cap accounting
+and S2.4 materialization coverage are logged, and S2.5 `deferred_not_in_scope` is in the domain/db
+coverage vocabulary plus run-artifact summary accounting. Verification today:
+`bun test tests/harness/production-boundaries.test.ts --timeout 5000` (15 pass / 0 fail);
+`bun --filter @bp/pipeline-v2 test commands/build/treatment-event-panel` (474 pass / 0 fail; package
+runner executed the full suite); `bun --filter @bp/analytics test` (179 pass / 0 fail);
+`bun --filter @bp/analytics typecheck`; `bun --filter @bp/domain typecheck`;
+`bun --filter @bp/domain test` (74 pass / 0 fail).
+
+## [2026-06-11] infra | Track B S1.1 detector-run seam now uses the resolver path end to end
+
+Follow-up hardening on S1.1 after the first resolver-support slice: `runRegistryDetectorStudy`
+no longer accepts caller-supplied `featureContracts`, and the kernel `FeatureResolver` wrapper for
+already-built detector inputs now lives in `detector-input-assembly.ts`, where contract
+satisfaction is derived from the registered resolver/local-row/quality-carried support path. The
+pipeline `findings run-detector` command now calls `runRegistryDetectorStudyFromResolverPath`,
+which assembles inputs and runs the detector without re-passing a separate satisfaction map. Added
+a regression proving the assembly-backed run path emits the same resolver-derived contracts and
+model dependency audit. Verification: `bun --filter @bp/applied-research test detector-study
+feature-resolver-support` (381 pass / 0 fail; package runner executed the full suite);
+`bun --filter @bp/pipeline-v2 test commands/findings/run-detector` (474 pass / 0 fail; package
+runner executed the full suite).
+
 ## [2026-06-11] infra | Track B S2.2 run artifacts expose detector cap accounting
 
 Extended the shared S2.2 cap-policy discipline from review queues into registry detector run

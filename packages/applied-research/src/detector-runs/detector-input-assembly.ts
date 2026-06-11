@@ -1,6 +1,6 @@
 import type { Database } from "bun:sqlite";
 import { join } from "node:path";
-import type { FeatureContractSatisfaction } from "@bp/analytics/core";
+import type { FeatureContractSatisfaction, FeatureResolver } from "@bp/analytics/core";
 import { DEFAULT_POSITIVE_DEVIANCE_THRESHOLDS } from "@bp/analytics/detectors";
 import { featureContractsForGrains } from "@bp/analytics/features";
 import { getAnalyticsDetector } from "@bp/analytics/registry";
@@ -59,6 +59,34 @@ export type DetectorInputAssemblyResult = {
   readonly rows: DetectorStudySourceRows;
   readonly featureContracts: readonly FeatureContractSatisfaction[];
 };
+
+export type ResolvedDetectorStudyFeatureResolverInput = {
+  readonly detectorId: string;
+  readonly detectorInput: unknown;
+  readonly inputSummary: Record<string, unknown>;
+};
+
+export function buildResolvedDetectorStudyFeatureResolver(
+  input: ResolvedDetectorStudyFeatureResolverInput,
+): FeatureResolver<unknown> {
+  return {
+    resolverId: "applied_research.detector_input_assembly.v1",
+    resolve(request) {
+      if (request.detector.detectorId !== input.detectorId) {
+        throw new Error(
+          `Resolver request detector ${request.detector.detectorId} did not match ${input.detectorId}.`,
+        );
+      }
+      return {
+        detectorInput: input.detectorInput,
+        inputSummary: input.inputSummary,
+        featureContracts: detectorInputFeatureContractSatisfaction({
+          detectorId: request.detector.detectorId,
+        }),
+      };
+    },
+  };
+}
 
 function routeMatches(
   routeId: string | undefined,
