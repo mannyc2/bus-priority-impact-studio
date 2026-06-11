@@ -6,10 +6,10 @@ import {
   evaluateTreatmentScopeReviewedGold,
 } from "../src/evaluation";
 
-const REPO_ROOT = join(import.meta.dir, "../../..");
+const FIXTURE_ROOT = join(import.meta.dir, "fixtures/treatment-scope-reviewed-gold");
 
-function repoPath(path: string): string {
-  return join(REPO_ROOT, path);
+function fixturePath(file: string): string {
+  return join(FIXTURE_ROOT, file);
 }
 
 describe("treatment-scope reviewed gold artifact", () => {
@@ -118,13 +118,9 @@ describe("treatment-scope reviewed gold artifact", () => {
     });
   });
 
-  test("builds the March 2026 treatment-scope gold labels from the reviewed artifacts", async () => {
-    const decisionsPath = repoPath(
-      "data/artifacts/findings/2026-03/treatment-scope-review-set/decisions.json",
-    );
-    const packetIndexPath = repoPath(
-      "data/artifacts/findings/2026-03/treatment-scope-review-set/packets-index.json",
-    );
+  test("builds treatment-scope gold labels from tracked reviewed fixtures", async () => {
+    const decisionsPath = fixturePath("original-decisions.json");
+    const packetIndexPath = fixturePath("original-packets-index.json");
     const decisionsDoc = await Bun.file(decisionsPath).json();
     const packetIndex = await Bun.file(packetIndexPath).json();
 
@@ -135,56 +131,48 @@ describe("treatment-scope reviewed gold artifact", () => {
       packetIndexPath,
       decisions: decisionsDoc.decisions,
       packetIndex,
-      defaultReviewBatch: "original_50",
-      defaultReviewDepth: "adversarial",
+      defaultReviewBatch: "original_fixture",
+      defaultReviewDepth: "adversarial_fixture",
     });
 
     expect(gold.summary).toMatchObject({
-      labelCount: 50,
-      primaryFindingCount: 6,
-      contextCount: 22,
-      reviewerOnlyCount: 10,
-      needsMoreEvidenceCount: 3,
-      suppressCount: 9,
+      labelCount: 6,
+      primaryFindingCount: 2,
+      contextCount: 1,
+      reviewerOnlyCount: 1,
+      needsMoreEvidenceCount: 1,
+      suppressCount: 1,
       byReviewBatch: {
-        original_50: 50,
+        original_fixture: 6,
       },
       byReviewDepth: {
-        adversarial: 50,
+        adversarial_fixture: 6,
       },
     });
     expect(gold.summary.byDetector["treatment_scope_gap"]).toMatchObject({
-      labelCount: 25,
-      primaryFindingCount: 3,
-      suppressCount: 5,
+      labelCount: 3,
+      primaryFindingCount: 1,
+      suppressCount: 1,
     });
     expect(gold.summary.byDetector["treatment_scope_mismatch"]).toMatchObject({
-      labelCount: 25,
-      primaryFindingCount: 3,
-      suppressCount: 4,
+      labelCount: 3,
+      primaryFindingCount: 1,
+      suppressCount: 0,
     });
     expect(gold.summary.byFalsePositiveRootCause).toMatchObject({
-      terminal_or_layover: 14,
-      duplicate_or_less_specific: 7,
-      speed_not_actually_bad: 5,
-      source_inventory_gap: 4,
-      route_level_source_too_broad: 3,
+      duplicate_or_less_specific: 1,
+      geometry_join_bad: 1,
+      not_false_positive: 2,
+      source_inventory_gap: 1,
+      terminal_or_layover: 1,
     });
   });
 
-  test("builds the expanded March 2026 treatment-scope gold labels by review batch", async () => {
-    const originalDecisionsPath = repoPath(
-      "data/artifacts/findings/2026-03/treatment-scope-review-set/decisions.json",
-    );
-    const originalPacketIndexPath = repoPath(
-      "data/artifacts/findings/2026-03/treatment-scope-review-set/packets-index.json",
-    );
-    const expansionDecisionsPath = repoPath(
-      "data/artifacts/detector-calibration-expanded-gold/second-expansion-decisions.json",
-    );
-    const expansionPacketIndexPath = repoPath(
-      "data/artifacts/detector-calibration-expanded-gold/second-expansion-packets-index.json",
-    );
+  test("builds expanded treatment-scope gold labels by review batch", async () => {
+    const originalDecisionsPath = fixturePath("original-decisions.json");
+    const originalPacketIndexPath = fixturePath("original-packets-index.json");
+    const expansionDecisionsPath = fixturePath("second-expansion-decisions.json");
+    const expansionPacketIndexPath = fixturePath("second-expansion-packets-index.json");
     const originalDecisionsDoc = await Bun.file(originalDecisionsPath).json();
     const originalPacketIndex = await Bun.file(originalPacketIndexPath).json();
     const expansionDecisionsDoc = await Bun.file(expansionDecisionsPath).json();
@@ -198,8 +186,8 @@ describe("treatment-scope reviewed gold artifact", () => {
       decisions: [
         ...originalDecisionsDoc.decisions.map((decision: Record<string, unknown>) => ({
           ...decision,
-          reviewBatch: "original_50",
-          reviewDepth: "adversarial",
+          reviewBatch: "original_fixture",
+          reviewDepth: "adversarial_fixture",
         })),
         ...expansionDecisionsDoc.decisions,
       ],
@@ -207,27 +195,30 @@ describe("treatment-scope reviewed gold artifact", () => {
     });
 
     expect(gold.summary).toMatchObject({
-      labelCount: 118,
-      primaryFindingCount: 12,
-      suppressCount: 23,
+      labelCount: 10,
+      primaryFindingCount: 4,
+      contextCount: 2,
+      reviewerOnlyCount: 1,
+      needsMoreEvidenceCount: 1,
+      suppressCount: 2,
       byReviewBatch: {
-        original_50: 50,
-        second_expansion_68: 68,
+        original_fixture: 6,
+        second_expansion_fixture: 4,
       },
       byReviewDepth: {
-        adversarial: 92,
-        light: 26,
+        adversarial_fixture: 8,
+        light_fixture: 2,
       },
     });
     expect(gold.summary.byDetector["treatment_scope_gap"]).toMatchObject({
-      labelCount: 52,
-      primaryFindingCount: 7,
-      suppressCount: 5,
+      labelCount: 5,
+      primaryFindingCount: 2,
+      suppressCount: 1,
     });
     expect(gold.summary.byDetector["treatment_scope_mismatch"]).toMatchObject({
-      labelCount: 66,
-      primaryFindingCount: 5,
-      suppressCount: 18,
+      labelCount: 5,
+      primaryFindingCount: 2,
+      suppressCount: 1,
     });
   });
 

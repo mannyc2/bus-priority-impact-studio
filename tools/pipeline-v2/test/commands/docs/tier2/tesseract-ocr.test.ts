@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
 import { mkdir, readFile, rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
@@ -10,7 +10,7 @@ import {
 } from "../../../../src/commands/docs/tier2/_tesseract-ocr.ts";
 import { writeJson } from "../../../../src/lib/json.ts";
 
-const workingRoot = join(process.cwd(), "test", ".tmp-tesseract-ocr");
+const workingRoot = join(process.cwd(), "test", `.tmp-tesseract-ocr-${process.pid}`);
 
 function sha256(bytes: Uint8Array): string {
   return createHash("sha256").update(bytes).digest("hex");
@@ -77,11 +77,11 @@ async function seedOcrPlan(input: {
   return { runRoot, ocrPlanPath, sourceId: "fixture_pdf" };
 }
 
-beforeEach(async () => {
+beforeAll(async () => {
   await rm(workingRoot, { force: true, recursive: true });
 });
 
-afterEach(async () => {
+afterAll(async () => {
   await rm(workingRoot, { force: true, recursive: true });
 });
 

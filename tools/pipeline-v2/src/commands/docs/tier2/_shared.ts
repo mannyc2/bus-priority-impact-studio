@@ -2873,6 +2873,20 @@ export async function pdfInfoPageCount(pdfPath: string): Promise<number | null> 
   return Number.isFinite(pageCount) && pageCount > 0 ? pageCount : null;
 }
 
+async function pdfPageCountWithFallback(pdfPath: string): Promise<number | null> {
+  const fromPdfInfo = await pdfInfoPageCount(pdfPath);
+  if (fromPdfInfo !== null) return fromPdfInfo;
+
+  try {
+    const bytes = new Uint8Array(await Bun.file(pdfPath).arrayBuffer());
+    const pdf = await PDFDocument.load(bytes, { ignoreEncryption: true });
+    const pageCount = pdf.getPageCount();
+    return Number.isInteger(pageCount) && pageCount > 0 ? pageCount : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function mapWithConcurrency<T, R>(
   items: T[],
   concurrency: number,
@@ -4674,7 +4688,7 @@ export async function auditTier2OcrPageMarkdown(
       pageMarkdownRootName,
     });
     const rawPath = join(runRoot, source.rawArtifactKey);
-    const pdfPageCount = await pdfInfoPageCount(rawPath);
+    const pdfPageCount = await pdfPageCountWithFallback(rawPath);
     const pageCount = pdfPageCount ?? 0;
     const pages: Tier2OcrPageMarkdownAuditPage[] = [];
     for (let pageNumber = 1; pageNumber <= pageCount; pageNumber += 1) {

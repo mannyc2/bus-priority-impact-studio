@@ -1,0 +1,64 @@
+{
+  "decisions": [
+    {
+      "candidateId": "original-gap-primary",
+      "decision": "keep",
+      "action": "promote_primary",
+      "reviewerConfidence": "high",
+      "falsePositiveRootCause": "not_false_positive",
+      "frontendUse": "primary_finding",
+      "calibrationTags": ["strong_segment_speed_evidence"],
+      "rationale": "Fixture primary gap label."
+    },
+    {
+      "candidateId": "original-gap-context",
+      "decision": "keep",
+      "action": "frontend_context_only",
+      "reviewerConfidence": "medium",
+      "falsePositiveRootCause": "geometry_join_bad",
+      "frontendUse": "route_context",
+      "calibrationTags": ["review_context"],
+      "rationale": "Fixture context-only gap label."
+    },
+    {
+      "candidateId": "original-gap-suppress",
+      "decision": "reject",
+      "action": "suppress",
+      "reviewerConfidence": "high",
+      "falsePositiveRootCause": "terminal_or_layover",
+      "frontendUse": "suppress",
+      "calibrationTags": ["terminal_or_layover"],
+      "rationale": "Fixture suppressed terminal/layover label."
+    },
+    {
+      "candidateId": "original-mismatch-primary",
+      "decision": "keep",
+      "action": "promote_primary",
+      "reviewerConfidence": "high",
+      "falsePositiveRootCause": "not_false_positive",
+      "frontendUse": "primary_finding",
+      "calibrationTags": ["source_confirmed"],
+      "rationale": "Fixture primary mismatch label."
+    },
+    {
+      "candidateId": "original-mismatch-reviewer",
+      "decision": "keep",
+      "action": "reviewer_only",
+      "reviewerConfidence": "medium",
+      "falsePositiveRootCause": "duplicate_or_less_specific",
+      "frontendUse": "reviewer_only",
+      "calibrationTags": ["duplicate_or_less_specific"],
+      "rationale": "Fixture reviewer-only mismatch label."
+    },
+    {
+      "candidateId": "original-mismatch-evidence",
+      "decision": "needs_more_evidence",
+      "action": "needs_more_evidence",
+      "reviewerConfidence": "low",
+      "falsePositiveRootCause": "source_inventory_gap",
+      "frontendUse": "needs_more_evidence",
+      "calibrationTags": ["source_inventory_gap"],
+      "rationale": "Fixture evidence-gap mismatch label."
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+[
+  {
+    "candidateId": "expansion-gap-context",
+    "detectorId": "treatment_scope_gap",
+    "routeId": "B52",
+    "scopeId": "B52:2026-03:E:7:700:701",
+    "file": "fixtures/expansion-gap-context.json"
+  },
+  {
+    "candidateId": "expansion-gap-primary",
+    "detectorId": "treatment_scope_gap",
+    "routeId": "Q52+",
+    "scopeId": "Q52+:2026-03:S:8:800:801",
+    "file": "fixtures/expansion-gap-primary.json"
+  },
+  {
+    "candidateId": "expansion-mismatch-suppress",
+    "detectorId": "treatment_scope_mismatch",
+    "routeId": "M15+",
+    "scopeId": "M15+:2026-03:N:9:900:901",
+    "file": "fixtures/expansion-mismatch-suppress.json"
+  },
+  {
+    "candidateId": "expansion-mismatch-primary",
+    "detectorId": "treatment_scope_mismatch",
+    "routeId": "S79+",
+    "scopeId": "S79+:2026-03:W:10:1000:1001",
+    "file": "fixtures/expansion-mismatch-primary.json"
+  }
+]
