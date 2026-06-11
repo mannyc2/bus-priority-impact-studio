@@ -1,5 +1,5 @@
 import { listRouteBuildPlan, replaceRouteMonthTrends } from "@bp/db/local";
-import { soqlIn, soqlYearMonthRange } from "@bp/sources/clients/socrata/soql";
+import { soqlIn } from "@bp/sources/clients/socrata/soql";
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { arg, defineCommand, z } from "@liche/core";
@@ -21,11 +21,7 @@ import {
 
 const schemaVersion = 1;
 
-type RouteTrendSourceId =
-  | "bus_segment_speeds_2023_2024"
-  | "bus_segment_speeds_2025"
-  | "bus_hourly_ridership_2020_2024"
-  | "bus_hourly_ridership_2025";
+type RouteTrendSourceId = "bus_hourly_ridership_2020_2024" | "bus_hourly_ridership_2025";
 
 export type RouteTrendsRunInputs = {
   local: OpenLocalPipelineDb;
@@ -48,6 +44,7 @@ export type RouteTrendsIngestResult = {
   speedRowCount: number;
   ridershipRowCount: number;
   completeTrendRowCount: number;
+  monthsWithoutCellSpeedCoverage: string[];
 };
 
 type TrendRow = {
@@ -62,16 +59,13 @@ type TrendRow = {
   trendCoverage: { speed: boolean; ridership: boolean };
 };
 
-const RawSpeedTrendRowSchema = z
-  .object({
-    route_id: z.string().min(1),
-    year: z.coerce.number().int(),
-    month: z.coerce.number().int().min(1).max(12),
-    observation_count: z.coerce.number().int().nonnegative(),
-    bus_trip_count: z.coerce.number().int().nonnegative(),
-    average_speed_mph: z.coerce.number().nonnegative(),
-  })
-  .passthrough();
+type LocalSpeedTrendRow = {
+  route_id: string;
+  month: string;
+  observation_count: number;
+  bus_trip_count: number;
+  average_speed_mph: number | null;
+};
 
 const RawRidershipTrendRowSchema = z
   .object({
@@ -180,14 +174,13 @@ async function mapWithConcurrency<T, U>(
 
 function addSpeedRows(
   entries: Map<string, TrendRow>,
-  rows: SocrataRow[],
+  rows: readonly LocalSpeedTrendRow[],
   routeIdSet: ReadonlySet<string>,
 ): void {
-  for (const row of rows) {
-    const parsed = RawSpeedTrendRowSchema.parse(row);
+  for (const parsed of rows) {
     const routeId = parsed.route_id;
     if (!routeIdSet.has(routeId)) continue;
-    const month = isoMonth(parsed.year, parsed.month);
+    const month = parsed.month;
     const key = trendKey(routeId, month);
     const entry = entries.get(key) ?? {
       schemaVersion,
@@ -202,7 +195,10 @@ function addSpeedRows(
     };
     entry.speedObservationCount = parsed.observation_count;
     entry.speedBusTripCount = parsed.bus_trip_count;
-    entry.averageSpeedMph = Math.round(parsed.average_speed_mph * 10_000) / 10_000;
+    entry.averageSpeedMph =
+      parsed.average_speed_mph === null
+        ? null
+        : Math.round(parsed.average_speed_mph * 10_000) / 10_000;
     entry.trendCoverage.speed = true;
     entries.set(key, entry);
   }
@@ -266,12 +262,6 @@ export async function runRouteTrendsIngest(
     (await Bun.file(fromRepoRoot("knowledge/raw/source_manifest.yaml")).text());
   const manifest = loadSourceManifestYaml(manifestText);
 
-  const speedWindows = expandSourceWindowsByMonth(
-    sourceWindows(start.isoMonth, end.isoMonth, [
-      { sourceId: "bus_segment_speeds_2023_2024", startMonth: "2023-01", endMonth: "2024-12" },
-      { sourceId: "bus_segment_speeds_2025", startMonth: "2025-01", endMonth: null },
-    ]),
-  );
   const ridershipWindows = inputs.includeRidership
     ? expandSourceWindowsByMonth(
         sourceWindows(start.isoMonth, end.isoMonth, [
@@ -287,22 +277,25 @@ export async function runRouteTrendsIngest(
 
   const routeIdSet = new Set(routeIds);
 
-  const speedRows: SocrataRow[] = [];
-  for (const window of speedWindows) {
-    const source = getSocrataSource(manifest, window.sourceId);
-    const whereParts = [
-      soqlYearMonthRange(window.start.year, window.start.month, window.end.year, window.end.month),
-    ];
-    if (routeIds.length <= 50) whereParts.push(soqlIn("route_id", routeIds));
-    const query: Soda3SoqlQuery = {
-      select:
-        "route_id,year,month,count(*) as observation_count,sum(bus_trip_count) as bus_trip_count,avg(average_road_speed) as average_speed_mph",
-      where: whereParts.join(" AND "),
-      group: "route_id,year,month",
-      order: "route_id,year,month",
-    };
-    speedRows.push(...(await fetchSoda3RowsForSource(source, query, { fetcher: inputs.fetcher })));
-  }
+  // Speed aggregates are a projection of local_route_segment_speed_cell; the golden-diff
+  // command (build route-month-speed-golden-diff) proves byte-identity with the prior
+  // Socrata server-side aggregation.
+  const speedRows = inputs.local.sqlite
+    .query(
+      `SELECT route_id, month,
+              COUNT(*) AS observation_count,
+              SUM(bus_trip_count) AS bus_trip_count,
+              AVG(average_road_speed_mph) AS average_speed_mph
+       FROM local_route_segment_speed_cell
+       WHERE month >= ? AND month <= ?
+       GROUP BY route_id, month
+       ORDER BY route_id, month`,
+    )
+    .all(start.isoMonth, end.isoMonth) as LocalSpeedTrendRow[];
+  const coveredMonths = new Set(speedRows.map((row) => row.month));
+  const monthsWithoutCellSpeedCoverage = months
+    .map((m) => m.isoMonth)
+    .filter((m) => !coveredMonths.has(m));
 
   const ridershipFetches = ridershipWindows.flatMap((window) =>
     chunkArray(routeIds, 50).map((routeChunk) => ({ window, routeChunk })),
@@ -356,6 +349,7 @@ export async function runRouteTrendsIngest(
     ridershipRowCount: rows.filter((r) => r.trendCoverage.ridership).length,
     completeTrendRowCount: rows.filter((r) => r.trendCoverage.speed && r.trendCoverage.ridership)
       .length,
+    monthsWithoutCellSpeedCoverage,
   };
 }
 
@@ -386,6 +380,7 @@ export default defineCommand({
     speedRowCount: z.number(),
     ridershipRowCount: z.number(),
     completeTrendRowCount: z.number(),
+    monthsWithoutCellSpeedCoverage: z.array(z.string()),
   }),
   async run({ ctx, input }) {
     const routes = await mergeRoutesWithFile(input.options.routes, input.options.routesFile);
