@@ -4,11 +4,146 @@
   "type": "module",
   "description": "Pure domain schemas, branded types, and metric contracts.",
   "exports": {
-    ".": "./src/index.ts"
+    "./documents": {
+      "types": "./src/documents/index.ts",
+      "bun": "./src/documents/index.ts",
+      "import": "./src/documents/index.ts"
+    },
+    "./documents/candidates": {
+      "types": "./src/documents/candidates/index.ts",
+      "bun": "./src/documents/candidates/index.ts",
+      "import": "./src/documents/candidates/index.ts"
+    },
+    "./documents/derived-surfaces": {
+      "types": "./src/documents/derived-surfaces/index.ts",
+      "bun": "./src/documents/derived-surfaces/index.ts",
+      "import": "./src/documents/derived-surfaces/index.ts"
+    },
+    "./documents/discovery": {
+      "types": "./src/documents/discovery/index.ts",
+      "bun": "./src/documents/discovery/index.ts",
+      "import": "./src/documents/discovery/index.ts"
+    },
+    "./documents/intervention-records": {
+      "types": "./src/documents/intervention-records/index.ts",
+      "bun": "./src/documents/intervention-records/index.ts",
+      "import": "./src/documents/intervention-records/index.ts"
+    },
+    "./documents/operational-date": {
+      "types": "./src/documents/operational-date/index.ts",
+      "bun": "./src/documents/operational-date/index.ts",
+      "import": "./src/documents/operational-date/index.ts"
+    },
+    "./documents/research-surfaces": {
+      "types": "./src/documents/research-surfaces/index.ts",
+      "bun": "./src/documents/research-surfaces/index.ts",
+      "import": "./src/documents/research-surfaces/index.ts"
+    },
+    "./documents/structured-extraction": {
+      "types": "./src/documents/structured-extraction/index.ts",
+      "bun": "./src/documents/structured-extraction/index.ts",
+      "import": "./src/documents/structured-extraction/index.ts"
+    },
+    "./findings": {
+      "types": "./src/findings/index.ts",
+      "bun": "./src/findings/index.ts",
+      "import": "./src/findings/index.ts"
+    },
+    "./json-schema": {
+      "types": "./src/json-schema/index.ts",
+      "bun": "./src/json-schema/index.ts",
+      "import": "./src/json-schema/index.ts"
+    },
+    "./maps": {
+      "types": "./src/maps/index.ts",
+      "bun": "./src/maps/index.ts",
+      "import": "./src/maps/index.ts"
+    },
+    "./primitives": {
+      "types": "./src/primitives/index.ts",
+      "bun": "./src/primitives/index.ts",
+      "import": "./src/primitives/index.ts"
+    },
+    "./routes": {
+      "types": "./src/routes/index.ts",
+      "bun": "./src/routes/index.ts",
+      "import": "./src/routes/index.ts"
+    },
+    "./schema-registry": {
+      "types": "./src/schema-registry/index.ts",
+      "bun": "./src/schema-registry/index.ts",
+      "import": "./src/schema-registry/index.ts"
+    },
+    "./studio": {
+      "types": "./src/studio/index.ts",
+      "bun": "./src/studio/index.ts",
+      "import": "./src/studio/index.ts"
+    },
+    "./studio/briefs": {
+      "types": "./src/studio/briefs/index.ts",
+      "bun": "./src/studio/briefs/index.ts",
+      "import": "./src/studio/briefs/index.ts"
+    },
+    "./studio/docs": {
+      "types": "./src/studio/docs/index.ts",
+      "bun": "./src/studio/docs/index.ts",
+      "import": "./src/studio/docs/index.ts"
+    },
+    "./studio/field-provenance": {
+      "types": "./src/studio/field-provenance.ts",
+      "bun": "./src/studio/field-provenance.ts",
+      "import": "./src/studio/field-provenance.ts"
+    },
+    "./studio/findings": {
+      "types": "./src/studio/findings/index.ts",
+      "bun": "./src/studio/findings/index.ts",
+      "import": "./src/studio/findings/index.ts"
+    },
+    "./studio/identity": {
+      "types": "./src/studio/identity/index.ts",
+      "bun": "./src/studio/identity/index.ts",
+      "import": "./src/studio/identity/index.ts"
+    },
+    "./studio/interventions": {
+      "types": "./src/studio/interventions.ts",
+      "bun": "./src/studio/interventions.ts",
+      "import": "./src/studio/interventions.ts"
+    },
+    "./studio/projections": {
+      "types": "./src/studio/projections.ts",
+      "bun": "./src/studio/projections.ts",
+      "import": "./src/studio/projections.ts"
+    },
+    "./studio/release": {
+      "types": "./src/studio/release.ts",
+      "bun": "./src/studio/release.ts",
+      "import": "./src/studio/release.ts"
+    },
+    "./studio/routes": {
+      "types": "./src/studio/routes/index.ts",
+      "bun": "./src/studio/routes/index.ts",
+      "import": "./src/studio/routes/index.ts"
+    },
+    "./studio/rum": {
+      "types": "./src/studio/rum.ts",
+      "bun": "./src/studio/rum.ts",
+      "import": "./src/studio/rum.ts"
+    },
+    "./studio/shared": {
+      "types": "./src/studio/shared.ts",
+      "bun": "./src/studio/shared.ts",
+      "import": "./src/studio/shared.ts"
+    },
+    "./studio/snapshots": {
+      "types": "./src/studio/snapshots.ts",
+      "bun": "./src/studio/snapshots.ts",
+      "import": "./src/studio/snapshots.ts"
+    }
   },
   "scripts": {
     "build": "tsc -p tsconfig.json --noEmit --pretty false",
     "typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
+    "typecheck:test": "tsc -p tsconfig.test.json --noEmit --pretty false",
     "test": "bun test ./test --timeout 5000"
   },
   "dependencies": {

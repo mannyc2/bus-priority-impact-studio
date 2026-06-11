@@ -2,10 +2,10 @@
 title: Ideal Detector System
 type: analysis
 status: active
-last_updated: 2026-05-24
-owner: codex
+last_updated: 2026-05-31
+owner: packages/analytics
 source_count: 0
-tags: [findings, detectors, methodology, evidence, review]
+tags: [findings, detectors, methodology, evidence, review, registry, calibration]
 ---
 
 # Ideal Detector System
@@ -14,9 +14,10 @@ tags: [findings, detectors, methodology, evidence, review]
 
 This page defines the north star for the Bus Priority Impact Studio detector layer.
 
-The current detector system is useful, but primitive: it is a threshold-based triage system that
-emits candidates, evidence links, coverage rows, and review queues. That is a good spine. It is not
-yet a mature analytical engine.
+The current detector system has outgrown its first threshold-triage shape: it now has a registry,
+typed feature contracts, baseline helpers, review packets, promoted findings, and calibration
+primitives. That is a serious spine. It is still not a mature learning system until coverage,
+calibration, reviewer feedback, retirement, and supersession run as a release-cycle discipline.
 
 The ideal detector system should become a disciplined evidence machine:
 
@@ -30,45 +31,72 @@ the practical system must expose instead of hiding.
 
 ## Current Reality
 
-The implemented March 2026 detector pass has a real evidence spine:
+The detector layer has moved beyond the early March 2026 "8 detector" state this page originally
+described. The 2026-05-30 analytics refactor established `packages/analytics` as the detector
+kernel:
 
-- 12 source groups with evidence eligibility and promotion flags.
-- 381 route-month signal features.
-- 6 context sources represented in route-month features.
-- 8 detector families.
-- 673 detector candidates.
-- 1,811 evidence links.
-- 3,066 coverage rows.
-- 200 surfaced review-queue candidates.
-- 673 generated review packets.
-- 673 promotion-queue candidates, with 454 ready for human review, 21 needing enrichment, and 198
-  blocked source-gap/data-quality candidates.
+- 21 detectors are registered in `ANALYTICS_DETECTOR_REGISTRY`; see
+  [[wiki/analysis/detector_catalog]] for the compact catalog and duplicate-check map.
+- Every registered detector has an `AnalyticsDetector<TInput>` contract: detector id, version,
+  `FindingDetectorSpec`, feature grains, scope metadata, and a pure `run(input)` function.
+- The registry carries analytics-only metadata: `claimTier`, `baselineFamilies`,
+  `promotionGates`, `missingDataStates`, `evidenceSchemaVersion`, and `retirementStatus`.
+- `data/artifacts/findings/detector-specs.json` is now a projection generated from registry specs,
+  not the source of truth.
+- `@bp/analytics/features` defines typed feature grains for route/month, segment/month,
+  stop-direction-hour, segment-daypart, route-direction-daypart, route metric history,
+  intervention panels, customer journey, feed health, positive deviance, rider-weighted EWT, source
+  coverage, and context sources.
+- `@bp/analytics/baselines` and `@bp/analytics/calibration` contain pure helpers for headway/EWT,
+  pace/runtime, robust trends, intervention gates, score vectors, overlap, gold sets, range
+  precision/recall, reviewer summaries, retirement recommendations, and false-positive root-cause
+  summaries.
 
-The current detectors are intentionally cautious:
+The current registry covers these detector families:
 
-- `source_gap`
-- `persistent_speed_hotspot`
-- `multi_month_speed_peer`
-- `observed_reliability`
-- `intervention_gap`
-- `intervention_underperformance`
-- `permit_correlated_slowdown`
-- `service_request_context`
+- source and feed coverage: `source_gap`;
+- route/segment speed: `persistent_speed_hotspot`, `speed_pace_hotspot`,
+  `delay_concentration`;
+- reliability, schedule, and rider experience: `observed_reliability`,
+  `headway_reliability_ewt`, `bunching_hotspots`, `travel_time_variability`,
+  `schedule_mismatch`, `rider_weighted_excess_wait`, `customer_journey_shortfall`;
+- history and peers: `multi_month_speed_peer`, `degradation_trend`, `positive_deviance`;
+- intervention inventory, panels, and treatment scope: `intervention_gap`,
+  `intervention_underperformance`, `intervention_event_study`, `treatment_scope_mismatch`,
+  `treatment_scope_gap`;
+- context association: `permit_correlated_slowdown`, `service_request_context`.
 
-They mostly ask simple questions:
+The lattice idea now sits outside the registry as a local `findings lattice-review-bundles`
+workbench artifact. It can help inspect cross-signal review bundles, but it is not a detector,
+causal method, forecast, or public finding source.
 
-- Is a route missing required evidence?
-- Does a route have slow segment evidence?
-- Does a route have a multi-month speed deficit versus matched route-family/type/geography peers?
-- Does a route have observed reliability trouble?
-- Does a route have high pain and thin treatment evidence?
-- Does a route still look bad after a treatment?
-- Does a slow route also have many permit touches?
-- Does a slow route also have substantial 311 service-request context?
+The remaining weakness is no longer "we need a first detector spine." The weakness is integration
+and governance:
 
-This is useful, but not yet ideal. It is closer to a smoke alarm panel than an analyst. The next
-system should preserve that auditability while becoming more precise, comparative, historical, and
-review-aware.
+- pipeline/review tools still need to persist larger gold sets, reviewer-decision corpora,
+  false-positive registers, detector retirement logs, and supersession records;
+- score-vector novelty still needs Spearman/rank-correlation and richer spread statistics;
+- route/segment/stop-hour feature materialization is not uniformly fleet-complete;
+- Studio should continue reading reviewed/promoted projections, not raw detector candidates;
+- claim-tier and promotion-gate metadata must be enforced everywhere detector outputs become public.
+
+## Audit Findings, 2026-05-31
+
+This page's original doctrine was directionally right, but too static. The improvements needed are:
+
+1. **Treat the registry as the governing object.** The ideal system is not just a set of detector
+   ideas; it is a versioned registry whose entries can be run, compared, retired, superseded, and
+   projected into review artifacts.
+2. **Separate claim strength from detector score.** Allowed public language is bounded by
+   `FindingDetectorSpec.allowedClaimStrength`, registry `claimTier`, and `promotionGates`, not by
+   confidence alone.
+3. **Make silence auditable at the same grain as detection.** "No issue" is meaningful only when
+   the declared feature grain, scope universe, and missing-data states prove the detector looked.
+4. **Promote lifecycle over novelty.** New detectors matter less than improving or retiring weak
+   detector versions based on review outcomes and false-positive root causes.
+5. **Keep LLMs outside the detector-of-record path.** LLMs may draft or prototype detector
+   candidates, but the harness and pure analytics code compute values; review gates decide
+   publication.
 
 ## Ideal vs Perfect
 
@@ -194,8 +222,9 @@ Evidence must be typed by role, not just attached as JSON.
 | `counter_evidence` | Evidence against the candidate | Improved trend, normal peer residual, temporary one-day disruption |
 | `official_context` | Source document or agency record that anchors intervention meaning | DOT project page, MTA board note, ACE implementation reference |
 
-The current schema has most of this spine. The ideal system should add explicit
-`counter_evidence` and `official_context` roles instead of overloading context.
+The current schema has most of this spine, including explicit `counter_evidence`. The next
+evidence-role cleanup is to keep official intervention/source documents distinct from generic
+context where publication wording depends on an agency record.
 
 ## Confidence Is Multi-Dimensional
 
@@ -235,9 +264,12 @@ A mature detector must allow:
 The current score often mixes these. The ideal system separates them and then computes review
 priority from both.
 
-## Claim Strength Ladder
+## Claim Strength And Claim Tier
 
-Every detector output should be assigned to a claim-strength level.
+Every detector output needs two related but distinct controls.
+
+`FindingDetectorSpec.allowedClaimStrength` is the strongest claim ladder level the detector spec
+permits:
 
 | Level | Label | Meaning | Public wording |
 |---|---|---|---|
@@ -248,10 +280,18 @@ Every detector output should be assigned to a claim-strength level.
 | 4 | Intervention association | A treatment/context coincides with a change or current condition | "Needs review after treatment" |
 | 5 | Causal claim | A method supports effect language | Usually disallowed until methodology review |
 
-Most current detectors live at levels 0-3. `permit_correlated_slowdown` should remain level 1 or 2
-unless redesigned with stronger temporal and counterfactual evidence. Intervention evaluation may
-reach level 4 descriptively when peer-adjusted rows are strong, but should not reach level 5 without
-external methodology review.
+Registry `claimTier` is the detector-family posture:
+
+| Tier | Meaning | Gate posture |
+|---|---|---|
+| `descriptive` | Measures observed behavior or a data-quality state. | Can publish descriptive wording when sample, coverage, freshness, baseline, evidence, and review gates pass. |
+| `associational` | Relates a performance signal to context, peers, history, treatment, or exposure. | Requires cautious association language, explicit caveats, and reviewer approval before public use. |
+| `candidate_causal_needs_review` | Computes method fields that might support effect language. | May only create methodology-review candidates; causal/effect wording requires human methodology approval. |
+
+The public claim ceiling is the stricter of the spec strength and registry tier. A detector with a
+high numerical score but `associational` tier still cannot say "caused." A detector with level-4
+intervention evidence still cannot publish effect language unless its promotion gates and human
+methodology review allow it.
 
 ## The Detector Universe
 
@@ -285,25 +325,33 @@ For every detector and universe scope, the output must be one of:
 - `source_lag`;
 - `deferred_not_in_scope`.
 
-The current coverage audit has the first five outcomes. The ideal system should add explicit
-`deferred_not_in_scope` for detectors that are intentionally not applicable to a scope.
+The current domain coverage rows support the core hit/clean/skipped/source-lag pattern, while the
+registry now declares detector-specific `missingDataStates`. The ideal system should make
+`deferred_not_in_scope` explicit for detectors that intentionally do not apply to a scope, instead
+of blending those cases with missing input or clean no-hit.
 
 ## Feature Store Shape
 
 The ideal detector does not query raw tables directly. It reads a detector feature store built from
 local pipeline jobs.
 
-Core feature grains:
+Core feature grains now exist as analytics contracts and should be treated as the vocabulary for
+detector work:
 
 - route-month;
-- route-direction-month;
-- route-direction-daypart-month;
 - route-segment-month;
-- route-segment-daypart-month;
-- corridor-month;
-- route-intervention-window;
-- route-source-event-window;
-- source-month coverage.
+- route reliability;
+- intervention window;
+- context source;
+- source coverage;
+- feed health;
+- stop-direction-hour;
+- segment-daypart;
+- route-direction-daypart;
+- route metric history;
+- intervention panel;
+- positive deviance;
+- rider-weighted excess wait.
 
 Feature families:
 
@@ -328,206 +376,192 @@ Feature families:
 - document/intervention references;
 - equity or vulnerability context.
 
-The current `findings:signal-features` command is an early route-month version of this. It should
-grow into a typed feature-store layer rather than one route-month JSON artifact.
+The current split is healthy: analytics owns typed feature contracts, while pipeline jobs assemble
+concrete feature rows from SQLite/R2/source snapshots. The next maturity step is not moving
+pipeline IO into analytics; it is making materialization coverage visible for each feature grain and
+release month so a detector cannot quietly run on one route slice and be described as fleet-ready.
 
 ## Detector Families
 
-### 1. Source Sufficiency Detector
+The ideal system should organize detectors by analytical question, not by file history. The current
+registry already covers more families than the original version of this page listed.
+
+### 1. Source And Feed Sufficiency
 
 Question:
 
 > Can the system evaluate this scope honestly?
 
+Current registry:
+
+- `source_gap`.
+
 Ideal behavior:
 
+- Acts as the coverage authority for other detectors.
 - Emits missing-data candidates when source gaps block meaningful claims.
-- Emits clean coverage rows when evidence is sufficient.
-- Tracks source freshness, date range, row counts, join rates, and source eligibility.
+- Tracks source freshness, date ranges, row counts, join rates, feed health, and source eligibility.
 - Distinguishes missing data from true absence of a problem.
+- Exposes source-lag, low-coverage, validator-error, and join-failure states as detector outputs.
 
-Current status:
+Next maturity step: connect feed/source readiness directly to detector admission and promotion
+gates, so downstream detectors cannot silently treat missing source surfaces as clean no-hits.
 
-- Implemented as `source_gap`.
-- Good foundation.
-- Needs more source-specific missingness and freshness logic.
-
-### 2. Persistent Speed Detector
+### 2. Speed, Pace, And Delay Concentration
 
 Question:
 
-> Which segments are repeatedly slow and rider-exposed?
+> Which route segments or route corridors are repeatedly slow, rider-exposed, or delay-concentrated?
+
+Current registry:
+
+- `persistent_speed_hotspot`;
+- `speed_pace_hotspot`;
+- `delay_concentration`.
 
 Ideal behavior:
 
-- Evaluates every segment, direction, and daypart.
-- Uses multi-month persistence, not one month only.
-- Normalizes by route type, borough, route length, and peer segment class.
-- Separates average slowness, frequency, and rider exposure.
-- Detects both chronic slow corridors and acute regressions.
+- Evaluates every segment, direction, daypart, and supported corridor grain.
+- Separates level, pace relative to free-flow, systematic delay, stochastic variability, rider
+  exposure, and route-level delay concentration.
+- Uses multi-month persistence and near-miss audit rows, not release-month thresholds alone.
+- Treats short segments, uncertain geometry, and low traversal counts as caveats or missing-data
+  states.
 
-Current status:
+Next maturity step: make the legacy route-month and segment-month speed detectors consume the newer
+feature/baseline outputs where practical, while preserving historical comparability.
 
-- Implemented as `persistent_speed_hotspot`, but it is mostly a hotspot threshold pass.
-- Needs multi-month history, daypart/direction handling, peer residuals, and near-miss audit.
-
-### 3. Observed Reliability Detector
+### 3. Headway Reliability, Bunching, And Excess Wait
 
 Question:
 
 > Where do riders experience bunching, long gaps, and excess wait beyond the scheduled baseline?
 
+Current registry:
+
+- `observed_reliability`;
+- `headway_reliability_ewt`;
+- `bunching_hotspots`;
+- `rider_weighted_excess_wait`.
+
 Ideal behavior:
 
-- Uses observed GTFS-RT headways by route, direction, stop, weekday/weekend, and hour.
-- Joins scheduled baseline directly.
-- Cross-checks official Bus Wait Assessment.
+- Uses observed GTFS-RT headways by route, direction, stop, day type, and hour.
+- Joins scheduled baselines directly.
+- Cross-checks official Bus Wait Assessment and customer-journey ABST/EWT-like aggregates where
+  appropriate.
 - Flags insufficient sample coverage separately.
-- Identifies reliability pockets, not just route-level averages.
-- Produces stop/daypart review packets with top long-gap windows.
+- Identifies stop/hour pockets and route-level rollups without confusing the two.
+- Keeps rider-weighted EWT associational/experimental unless ridership/APC proxy quality is strong.
 
-Current status:
+Next maturity step: materialize stop-direction-hour features across the fleet and decide how
+`observed_reliability` should summarize or coexist with finer-grain EWT and bunching detectors.
 
-- Implemented at route-month level.
-- Good candidate source.
-- Needs finer grain, official/current provenance split, and schedule mismatch integration.
-
-### 4. Schedule Mismatch Detector
+### 4. Runtime Variability And Schedule Mismatch
 
 Question:
 
 > Where does observed travel time or headway diverge from scheduled expectations?
 
+Current registry:
+
+- `travel_time_variability`;
+- `schedule_mismatch`.
+
 Ideal behavior:
 
-- Compares observed segment/trip/headway behavior to schedule by daypart and direction.
+- Compares observed runtime and headway behavior to schedule by route, direction, and daypart.
 - Distinguishes planned slow service from unplanned unreliability.
-- Flags locations where schedules may be unrealistic.
-- Avoids blaming street operations for schedule design issues without evidence.
+- Flags locations where schedule review may be warranted without blaming street operations by
+  default.
+- Carries service-pattern and route-version break caveats.
 
-Current status:
+Next maturity step: strengthen schedule corpus completeness and route-version rules before
+promoting recurring mismatch claims.
 
-- Not implemented as a detector.
-- Some schedule comparison logic exists in route brief metrics.
-
-### 5. Intervention Gap Detector
+### 5. Trends, Peer Residuals, And Positive Deviance
 
 Question:
 
-> Where is rider pain high but bus-priority treatment evidence is absent, thin, future-only, or undated?
+> Which routes are changing, underperforming peers, or performing unusually well in ways one release
+> month hides?
+
+Current registry:
+
+- `multi_month_speed_peer`;
+- `degradation_trend`;
+- `positive_deviance`.
 
 Ideal behavior:
 
-- Uses pain from speed, reliability, ridership, persistence, and equity context.
-- Uses treatment inventory from ACE, ABLE, bus lanes, TSP, redesign docs, and DOT project pages.
+- Uses named historical windows, route-version breaks, seasonal guards, and robust trend helpers.
+- Defines peer groups transparently.
+- Emits residuals with uncertainty and reciprocal-metric warnings.
+- Produces both worsening and positive-deviance learning candidates.
+- Explains whether a pattern is new, chronic, seasonal, peer-relative, or data-limited.
+
+Next maturity step: grow gold sets and reviewer outcomes enough to tune thresholds without
+thrashing, especially for trend and peer-residual claims.
+
+### 6. Intervention Inventory, Underperformance, And Event Panels
+
+Question:
+
+> Where is rider pain high relative to treatment evidence, and where do treated scopes deserve
+> review after an intervention?
+
+Current registry:
+
+- `intervention_gap`;
+- `intervention_underperformance`;
+- `intervention_event_study`.
+
+Ideal behavior:
+
+- Uses treatment inventory from ACE, ABLE, bus lanes, TSP, redesign docs, DOT project pages, and
+  Tier 2 document records.
 - Treats missing implementation dates as source gaps, not "no intervention."
-- Explains whether the gap is real absence or source uncertainty.
-
-Current status:
-
-- Implemented as `intervention_gap`.
-- Useful but coarse.
-- Needs better treatment inventory, corridor geometry, and document corpus support.
-
-### 6. Intervention Underperformance Detector
-
-Question:
-
-> Which treated routes or corridors still show high pain, weak improvement, or negative peer-adjusted deltas?
-
-Ideal behavior:
-
-- Compares pre/post windows with peer baselines.
-- Checks treatment activation date, ramp-up period, enforcement period, and source confidence.
+- Compares pre/post windows with eligible controls where possible.
+- Requires pre-trend, placebo, autocorrelation, control-eligibility, method-divergence, and human
+  methodology gates before candidate-causal language.
 - Separates "treatment did not help" from "treatment happened but another problem remains."
-- Keeps claims descriptive unless methodology gate allows stronger language.
 
-Current status:
+Next maturity step: persist intervention gate summaries, reviewer methodology outcomes, and
+supersession records for treated corridors.
 
-- Implemented but very narrow.
-- March pass produced only one candidate.
-- Needs stronger treatment metadata, more peer matching, and review gold set.
-
-### 7. Context-Correlated Disruption Detector
+### 7. Context Association
 
 Question:
 
-> Is an issue plausibly temporary, source-specific, or context-heavy rather than chronic?
+> Is an issue plausibly temporary, source-specific, reporting-biased, or context-heavy rather than
+> chronic?
+
+Current registry:
+
+- `permit_correlated_slowdown`;
+- `service_request_context`.
 
 Ideal behavior:
 
-- Uses permits, collisions, 311, weather, traffic, parking, service alerts, and events as context.
+- Uses permits, 311, collisions, weather, traffic, parking, service alerts, and events as context
+  signals.
 - Normalizes event density by route length, street density, borough, source coverage, and fanout.
 - Matches time windows precisely where possible.
 - Produces caveats and review questions before producing primary claims.
 - Separates direct route evidence from route-LION-expanded context.
 
-Current status:
-
-- Only early `permit_correlated_slowdown` exists.
-- All normalized context sources are attached to candidates as context evidence.
-- Parking remains context-only.
-- Needs source-specific QA and promotion rules.
-
-### 8. Trend, Regression, And Change-Point Detector
-
-Question:
-
-> Which routes or segments are getting worse or better in ways that one release month hides?
-
-Ideal behavior:
-
-- Uses 2023-present speed and ridership history.
-- Handles seasonality.
-- Detects sustained degradation, abrupt changes, and recovery.
-- Produces both negative findings and positive-deviance findings.
-- Explains whether a trend is new, chronic, seasonal, or data-limited.
-
-Current status:
-
-- Not implemented as a detector.
-- Route trend data exists, but detector use is immature.
-
-### 9. Peer Residual Detector
-
-Question:
-
-> Which routes are worse than similar routes after controlling for route type, borough, ridership,
-> corridor density, and baseline speed?
-
-Ideal behavior:
-
-- Defines peer groups transparently.
-- Emits residuals with uncertainty.
-- Does not overfit.
-- Explains peer choice and shows comparable routes.
-
-Current status:
-
-- Peer logic exists for intervention evaluation.
-- Not yet a general detector.
-
-### 10. Positive Deviance Detector
-
-Question:
-
-> Which routes improved or perform better than expected, and what evidence might explain that?
-
-Ideal behavior:
-
-- Finds successful interventions, operational recoveries, and unusually resilient routes.
-- Provides examples for briefs and policy learning.
-- Avoids only surfacing bad news.
-
-Current status:
-
-- Not implemented.
+Next maturity step: keep all context detectors association-only until each source has an allowlist,
+fanout policy, temporal-alignment policy, and sampled false-positive review.
 
 ## Source-Specific Detector Maturity
 
 Every context source needs its own promotion path.
 
 ### 311
+
+Current status: `service_request_context` uses 311 as cautious associational context. The
+requirements below are for stronger promotion-grade or source-specific claims, not for merely
+attaching 311 as caveated context.
 
 Possible mature questions:
 
@@ -565,6 +599,10 @@ Required before detector-grade use:
 Parking should remain context-only until this is done.
 
 ### Permits
+
+Current status: `permit_correlated_slowdown` uses DOT permit touches as cautious associational
+context. It should remain context-only unless timing, work type, fanout, and counter-evidence are
+strong enough for a narrower review claim.
 
 Possible mature questions:
 
@@ -665,6 +703,9 @@ Detector candidates should not become public claims by default.
 
 Promotion requires:
 
+- detector registry entry is active or explicitly experimental for the target surface;
+- claim language is within both `allowedClaimStrength` and `claimTier`;
+- registry `promotionGates` pass for the requested claim tier;
 - primary evidence source is eligible for the claim level;
 - scope is precise enough for the wording;
 - source freshness is acceptable;
@@ -686,8 +727,10 @@ Promotion should produce:
 - date/time;
 - supersession key.
 
-The current Studio review provenance and `promotion-queue.json` are first guardrails. The ideal
-system still needs immutable promoted-finding records plus a demotion/supersession path.
+The current Studio review provenance, `promotion-queue.json`, reviewer decisions, and immutable
+`promoted-findings.json` are real guardrails. The ideal system still needs explicit
+demotion/supersession records, detector-version lifecycle records, and release-cycle retirement
+policy.
 
 ## Scoring Model
 
@@ -708,7 +751,7 @@ decomposition.
 
 ## Calibration And Backtesting
 
-The ideal system needs a recall-oriented test set.
+The ideal system needs a recall-oriented test set and a detector-version lifecycle loop.
 
 Gold-set rows should include:
 
@@ -733,12 +776,21 @@ Metrics:
 
 - recall by gold-set issue;
 - precision after human review;
+- range precision/recall for window and intervention detectors;
 - false-negative explanation rate;
 - evidence-link completeness;
 - counter-evidence completeness;
 - calibration of confidence labels;
 - review burden per approved finding;
 - stale-source and failed-join rates.
+
+Current pure helpers already cover score-vector summaries, flagged-set overlap, gold-set
+evaluation, range precision/recall, reviewer summaries, review-cycle confirmed rates, false-positive
+root-cause summaries, intervention gate summaries, and retirement recommendations. The largest gaps
+are persistence and policy: pipeline/review tooling must store gold sets, review outcomes,
+false-positive registers, detector retirement logs, and supersession records by detector id and
+version. Score-vector novelty also still needs Spearman/rank correlation and richer spread
+statistics.
 
 ## Handling Silence
 
@@ -763,6 +815,7 @@ LLMs should not be detectors of record.
 
 Allowed LLM roles:
 
+- propose detector candidates or implementation patches;
 - draft claim wording from deterministic candidates;
 - summarize evidence packets;
 - extract document-claim candidates;
@@ -778,10 +831,13 @@ Forbidden LLM roles:
 - decide source freshness;
 - make causal claims;
 - promote findings without deterministic validation;
+- become the accepted detector registry;
+- read `.ralph` memory or call a model from `packages/analytics`;
 - run public request-time analytics.
 
-The ideal system uses LLMs after deterministic detection and before human promotion, not as the
-canonical judge.
+The ideal system can also use LLMs before deterministic detection to draft a frozen candidate
+procedure. That candidate is still only a proposal: the harness computes, pure analytics code
+becomes the registry entry only after review, and publication remains gated by reviewer decisions.
 
 ## Ideal Architecture
 
@@ -830,145 +886,73 @@ The buildable system should keep these layers separate:
    - no heavy analytics;
    - no unapproved detector claims.
 
-The current package split already matches this direction. The main missing layer is a real typed
-feature store plus reviewed promotion decisions that turn promotion-queue candidates into immutable
-public findings.
+The current package split and promoted-finding path already match this direction. The main missing
+layer is release-cycle governance: materialization coverage by feature grain, calibration
+persistence, detector-version lifecycle records, demotion/supersession, and hard enforcement of
+claim-tier gates in every public projection.
+
+## Current Implementation Ledger
+
+The early detector-maturity slices are complete:
+
+- detector specs and generated spec artifacts exist;
+- review packets, promotion queues, reviewer decisions, and immutable promoted findings exist;
+- evidence links support `counter_evidence`;
+- Studio projections prefer approved promoted findings before detector review candidates;
+- context evidence can carry fanout, match weight, source freshness, and caveats;
+- `@bp/analytics` has registry, feature, baseline, detector, and calibration layers;
+- the literature-driven reliability, speed, trend, intervention, context, and positive-deviance
+  detector families are registered as pure analytics detectors.
+
+The detector layer is therefore mostly level 3 for packet shape, with level 4 hooks in analytics.
+It is not yet level 4 operationally until calibration artifacts, gold sets, reviewer decisions, and
+false-positive registers are persisted and used release over release.
 
 ## Concrete Next Build Steps
 
-### Implementation slices completed on 2026-05-23
+### Step 1: Enforce Registry-First Runs
 
-The first practical detector-maturity slice is now implemented in code:
+- Make pipeline detector selection registry-driven wherever it is not already.
+- Persist detector version, claim tier, promotion gates, missing-data states, feature grains, and
+  evidence schema version with every run artifact.
+- Verify generated detector-spec artifacts are projections from the registry.
 
-- detector specs now have a generated template/spec artifact at
-  `data/artifacts/findings/detector-specs.json`;
-- `@bp/domain` has strict review-packet contracts, and `findings:detect` writes
-  `data/artifacts/findings/{month}/review-packets.json`;
-- evidence links now support an explicit `counter_evidence` role;
-- `persistent_speed_hotspot` emits segment-scope counter-evidence so a segment hit does not silently
-  become a route-wide claim;
-- the first source-specific context detector, `service_request_context`, uses 311 route-month context
-  as cautious review-candidate evidence and emits fanout/match-weight counter-evidence;
-- `audit:findings-backtest` runs a tiny gold-set check against review packets, with optional
-  `--gold-set` input for route-specific known cases.
+### Step 2: Complete Feature Materialization Coverage
 
-The second slice added the first broad counter-evidence pass and started comparative history:
+- Use route-level materialization audits to distinguish source availability from derived artifact
+  availability.
+- Backfill fleet-scale stop-direction-hour EWT, segment-daypart, route-direction-daypart, and
+  route-metric-history surfaces before describing those detectors as network-complete.
+- Keep incomplete feature grains visible as missing-data states, not clean no-hits.
 
-- `observed_reliability` now emits counter-evidence for GTFS-RT sample support, scheduled-baseline
-  support, Bus Wait Assessment support, and route-month aggregation limits;
-- `intervention_gap` now emits counter-evidence that absent/thin local inventory evidence is not
-  proof of no treatment;
-- `intervention_underperformance` now emits counter-evidence for evaluated-comparison counts,
-  positive deltas, peer counts, and descriptive-not-causal limitations;
-- `permit_correlated_slowdown` now emits permit fanout/match-weight/work-type caveats as explicit
-  counter-evidence;
-- `multi_month_speed_peer` is now a starter detector over route-month speed trends. It compares each
-  route to a monthly peer median and emits peer-limit counter-evidence before any stronger peer
-  claim can be promoted.
+### Step 3: Build Calibration Persistence
 
-The third slice added promotion workflow artifacts and stronger matched peers:
+- Persist larger gold sets by detector family and release month.
+- Persist reviewer outcomes by detector id/version.
+- Persist false-positive root causes.
+- Add detector retirement and supersession logs.
+- Add Spearman/rank-correlation and richer score-vector spread helpers for detector novelty and
+  non-degeneracy.
 
-- `@bp/domain` now has strict promotion-readiness, promotion-decision, promotion-next-action, queue
-  item, and queue artifact contracts;
-- `findings:detect` writes `data/artifacts/findings/{month}/promotion-queue.json` from the review
-  packets so reviewers can see readiness, blockers, allowed claim strength, required actions,
-  evidence summaries, decision options, and the expected review response shape;
-- the March 2026 promotion proof has 673 candidates: 454 `ready_for_review`, 21
-  `needs_enrichment`, and 198 `blocked`;
-- recommended next actions separate 168 direct review candidates, 286 claim-revision candidates, 21
-  enrichment candidates, and 198 data-quality/source-gap candidates;
-- `multi_month_speed_peer` now selects matched peers by route family, primary route type, and
-  route geography when enough supported routes exist, then falls back to route family/type, route
-  family, route type, or system peers with the fallback method recorded per month;
-- the March 2026 matched-peer proof surfaces 3 peer-speed candidates, all using the strongest
-  `route_family_type_spatial` method.
+### Step 4: Harden Promotion And Demotion
 
-The fourth slice added reviewer decision capture, immutable promoted findings, and the first
-calibration loop:
+- Add demotion/supersession records for promoted findings.
+- Enforce claim-tier and promotion-gate checks wherever candidates become public projections.
+- Keep event-study and intervention-effect language behind methodology review.
+- Surface weak detector versions to engineering review rather than public UI.
 
-- `@bp/domain` now has strict reviewer-decision input, validated decision-record,
-  review-decisions artifact, promoted-finding, and promoted-findings artifact contracts;
-- `findings:promote -- --decisions <file>` reads reviewer decisions, validates approved evidence
-  refs against review packets, blocks promotion of candidates with promotion blockers, and writes
-  `review-decisions.json` plus immutable `promoted-findings.json`;
-- promoted findings carry stable decision, candidate snapshot, and promoted-finding hashes so a
-  changed reviewer decision or candidate snapshot creates a different promoted record;
-- `build:studio-release` now reads `promoted-findings.json` before the detector review queue, so
-  approved promoted findings replace their review candidates in public Studio while preserving
-  candidate, detector, decision, packet, reviewer, and hash provenance;
-- `audit:findings-backtest` now supports "should surface" and "should not surface" expectations,
-  minimum-confidence checks, and detector/confidence calibration buckets from captured reviewer
-  decisions.
+### Step 5: Add Agent-Assisted Detector Candidates Carefully
 
-This moves the detector layer from mostly level 2 toward level 3 for packet shape. It does not make
-all detectors promotion-ready: source-gap candidates still need source-resolution counter-evidence,
-and the new multi-month peer detector still needs calibrated backtests and reviewer validation
-before peer-comparison claims become publication-grade.
+- Follow ADR 0012: agents may propose detector candidates, specs, or patches, but the registry
+  remains the source of truth.
+- Keep candidate ledgers, `.ralph` memory, sandbox code, and admission packets outside analytics.
+- Require deterministic admission packets before any agent-authored detector patch is accepted.
 
-### Step 1: Write detector specs before adding detectors
+### Step 6: Evaluate Detector Mode Against Findings Mode
 
-For each detector, create a short spec with:
-
-- question;
-- scope universe;
-- required features;
-- primary evidence;
-- context evidence;
-- counter-evidence;
-- missing-data states;
-- thresholds;
-- review packet;
-- allowed claim strength;
-- tests.
-
-### Step 2: Add review packet schema
-
-Current status: review packets feed a promotion queue, reviewer decisions are captured in
-`review-decisions.json`, approved decisions produce immutable promoted-finding records, and Studio
-public projections prefer those approved records before review candidates. Next, add
-demotion/supersession records.
-
-### Step 3: Add counter-evidence role
-
-Before promoting more findings, add explicit counter-evidence support. This will prevent every
-threshold hit from becoming a one-sided story.
-
-Current status: implemented for persistent speed hotspots, observed reliability, intervention gap,
-intervention underperformance, permit context, 311 service-request context, and the starter
-multi-month peer-speed detector. Source-gap counter-evidence remains source-resolution oriented.
-
-### Step 4: Add source-specific context detectors carefully
-
-Start with 311 or permits before parking:
-
-- define allowlists;
-- normalize by route length and source volume;
-- cap fanout;
-- require temporal alignment;
-- produce review candidates, not approved findings.
-
-### Step 5: Add multi-month and peer detectors
-
-These are more important than more context sources:
-
-- trend/regression;
-- multi-month persistence;
-- peer residual;
-- positive deviance.
-
-These move the system from "bad this month" to "meaningfully unusual."
-
-Current status: the first `multi_month_speed_peer` detector is implemented as a conservative route
-trend starter with matched route-family/type/geography peers and recorded fallback groups. It is
-useful for review recall, but promotion-grade peer claims still need calibrated backtests and human
-validation of the peer set.
-
-### Step 6: Build a gold-set backtest
-
-Without a gold set, the detector layer will keep feeling primitive because there is no learning
-loop. The gold set can start small, but every detector should answer whether it found the known
-cases, whether it over-surfaced known false positives, whether the matched confidence was high
-enough, and how reviewer decisions calibrate detector confidence.
+- Compare equal-budget Ralph findings runs and detector-candidate runs.
+- Score them by promoted findings per dollar after review, distinct detector families improved,
+  false-positive reduction, coverage gains, and claim-tier downgrades that prevented overclaiming.
 
 ## Maturity Levels
 
@@ -982,10 +966,11 @@ enough, and how reviewer decisions calibrate detector confidence.
 | 5 | Promotion-ready detector | Approved candidates can become public claims under explicit rules |
 | 6 | Learning detector | Review outcomes feed threshold, feature, and source-quality improvements |
 
-Current system: mostly level 3 for packet shape and promotion triage, with the first level 4 hooks
-in place. It is not fully calibrated until the gold set and reviewer-decision corpus are much
-larger. The next target is a larger backtest/reviewer-feedback loop and promoted-finding projection
-into Studio.
+Current system: mostly level 3 for packet shape and promotion triage. Analytics has many level 4
+primitives, but the operational system is not fully calibrated until the gold-set,
+reviewer-decision, false-positive, retirement, and supersession corpora are larger and used in
+release decisions. The next target is a release-cycle feedback loop that can say which detector
+versions to keep, watch, revise, or retire.
 
 ## Non-Negotiables
 
@@ -998,6 +983,9 @@ into Studio.
 - Every causal-sounding claim is blocked unless the methodology gate allows it.
 - Every "no issue" state is backed by coverage, not absence of output.
 - Every promoted finding is traceable back to detector inputs and review decision.
+- Every detector version has registry metadata, feature-grain declarations, and lifecycle state.
+- Every detector improvement claim is backed by a fixture, gold set, reviewer outcome, or admission
+  packet.
 
 ## North Star
 

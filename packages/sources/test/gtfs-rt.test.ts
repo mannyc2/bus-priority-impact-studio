@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
+import { normalizeGtfsRealtimeRouteId, parseGtfsRealtimeFeed } from "@bp/sources/gtfs-realtime";
 import GtfsRealtimeBindings from "gtfs-realtime-bindings";
-import { normalizeGtfsRtRouteId, parseGtfsRtFeed } from "../src/mta/index.js";
 
 const { transit_realtime: rt } = GtfsRealtimeBindings;
 
@@ -47,7 +47,7 @@ describe("GTFS-RT parsing", () => {
       ],
     });
 
-    const parsed = parseGtfsRtFeed(bytes);
+    const parsed = parseGtfsRealtimeFeed(bytes);
 
     expect(parsed).toEqual(
       expect.objectContaining({
@@ -122,7 +122,7 @@ describe("GTFS-RT parsing", () => {
       ],
     });
 
-    const parsed = parseGtfsRtFeed(bytes);
+    const parsed = parseGtfsRealtimeFeed(bytes);
 
     expect(parsed.tripUpdates[0]).toEqual(
       expect.objectContaining({
@@ -156,8 +156,41 @@ describe("GTFS-RT parsing", () => {
   });
 
   test("normalizes common MTA route id prefixes", () => {
-    expect(normalizeGtfsRtRouteId("MTA NYCT_BX12+")).toBe("BX12+");
-    expect(normalizeGtfsRtRouteId("M1")).toBe("M1");
-    expect(normalizeGtfsRtRouteId(null)).toBeNull();
+    expect(normalizeGtfsRealtimeRouteId("MTA NYCT_BX12+")).toBe("BX12+");
+    expect(normalizeGtfsRealtimeRouteId("M1")).toBe("M1");
+    expect(normalizeGtfsRealtimeRouteId(null)).toBeNull();
+  });
+
+  test("accepts an injected decoder so vendor bindings stay private", () => {
+    const parsed = parseGtfsRealtimeFeed(new Uint8Array([1, 2, 3]), {
+      decoder: {
+        decodeFeedMessage() {
+          return {
+            header: {
+              gtfsRealtimeVersion: "2.0",
+              timestamp: 1_779_000_000,
+            },
+            entity: [
+              {
+                id: "vehicle-1",
+                vehicle: {
+                  trip: {
+                    routeId: "MTA NYCT_M1",
+                  },
+                },
+              },
+            ],
+          };
+        },
+      },
+    });
+
+    expect(parsed.vehiclePositions[0]).toEqual(
+      expect.objectContaining({
+        entityId: "vehicle-1",
+        sourceRouteId: "MTA NYCT_M1",
+        routeId: "M1",
+      }),
+    );
   });
 });

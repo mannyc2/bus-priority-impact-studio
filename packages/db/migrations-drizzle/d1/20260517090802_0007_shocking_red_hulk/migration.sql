@@ -1,0 +1,21 @@
+CREATE TABLE `corridor_intervention_context` (
+	`corridor_id` text NOT NULL,
+	`month` text NOT NULL,
+	`context_rank` integer NOT NULL,
+	`route_id` text NOT NULL,
+	`event_id` text NOT NULL,
+	`intervention_type` text NOT NULL,
+	`source_id` text NOT NULL,
+	`program` text NOT NULL,
+	`implementation_month` text NOT NULL,
+	`event_status` text NOT NULL,
+	`evaluation_level` text NOT NULL,
+	`comparison_status` text NOT NULL,
+	`speed_delta_mph` real,
+	`adjusted_speed_delta_mph` real,
+	`ridership_delta` real,
+	`adjusted_ridership_delta` real,
+	`comparison_route_count` integer DEFAULT 0 NOT NULL,
+	`caveat` text NOT NULL,
+	PRIMARY KEY(`corridor_id`, `month`, `context_rank`)
+);

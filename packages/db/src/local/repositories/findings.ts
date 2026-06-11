@@ -1,5 +1,5 @@
 import { and, asc, eq, inArray, lt, type SQL, sql } from "drizzle-orm";
-import type { LocalPipelineDb } from "../client.js";
+import { insertAll, type LocalPipelineDb } from "../client.js";
 import {
   localContextEvent,
   localContextEventRouteTouch,
@@ -90,6 +90,7 @@ export type LocalFindingEvidenceLink = {
   evidenceRole:
     | "primary"
     | "context"
+    | "official_context"
     | "counter_evidence"
     | "caveat"
     | "missing_data"
@@ -106,7 +107,13 @@ export type LocalFindingCoverageAudit = {
   month: string;
   scopeKind: "route" | "segment" | "corridor" | "system";
   scopeId: string;
-  outcome: "hit" | "clean_no_hit" | "skipped_missing_input" | "skipped_failed_join" | "source_lag";
+  outcome:
+    | "hit"
+    | "clean_no_hit"
+    | "skipped_missing_input"
+    | "skipped_failed_join"
+    | "source_lag"
+    | "deferred_not_in_scope";
   reasonCode: string | null;
   reason: string | null;
   inputsSeenJson: string | null;
@@ -119,6 +126,23 @@ const UPSERT_CHUNK = 250;
 async function chunked<T>(rows: readonly T[], run: (chunk: T[]) => Promise<void>): Promise<void> {
   for (let i = 0; i < rows.length; i += UPSERT_CHUNK) {
     await run(rows.slice(i, i + UPSERT_CHUNK));
+  }
+}
+
+function assertJsonText(value: string | null, field: string, auditId: string): void {
+  if (value === null) return;
+  try {
+    JSON.parse(value);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Invalid ${field} JSON for coverage audit ${auditId}: ${message}`);
+  }
+}
+
+function assertCoverageAuditJson(rows: readonly LocalFindingCoverageAudit[]): void {
+  for (const row of rows) {
+    assertJsonText(row.inputsSeenJson, "inputsSeenJson", row.auditId);
+    assertJsonText(row.inputsExpectedJson, "inputsExpectedJson", row.auditId);
   }
 }
 
@@ -211,8 +235,20 @@ export async function insertCoverageAudit(
   rows: readonly LocalFindingCoverageAudit[],
 ): Promise<void> {
   if (rows.length === 0) return;
+  assertCoverageAuditJson(rows);
   await chunked(rows, async (chunk) => {
     await db.insert(localFindingCoverageAudit).values(chunk);
+  });
+}
+
+export async function insertCoverageAuditIgnore(
+  db: LocalPipelineDb,
+  rows: readonly LocalFindingCoverageAudit[],
+): Promise<void> {
+  if (rows.length === 0) return;
+  assertCoverageAuditJson(rows);
+  await chunked(rows, async (chunk) => {
+    await db.insert(localFindingCoverageAudit).values(chunk).onConflictDoNothing();
   });
 }
 
@@ -249,58 +285,47 @@ export type ReplaceFindingsForMonthArgs = {
 // release month without churning unrelated detectors. Evidence rows cascade
 // via the FK on candidate_id, but we delete them explicitly so the call also
 // works when the caller wants to drop a detector entirely (candidates=[]).
-export async function replaceFindingsForMonth(
-  db: LocalPipelineDb,
-  args: ReplaceFindingsForMonthArgs,
-): Promise<void> {
+export function replaceFindingsForMonth(db: LocalPipelineDb, args: ReplaceFindingsForMonthArgs): void {
+  assertCoverageAuditJson(args.coverage);
   const candidateMatch = and(
     eq(localFindingCandidate.month, args.month),
     eq(localFindingCandidate.detectorId, args.detectorId),
   );
-  const existing = (await db
-    .select({ candidateId: localFindingCandidate.candidateId })
-    .from(localFindingCandidate)
-    .where(candidateMatch)) as Array<{ candidateId: string }>;
-  const existingIds = existing.map((row) => row.candidateId);
-  if (existingIds.length > 0) {
+  db.transaction((tx) => {
+    const existing = tx
+      .select({ candidateId: localFindingCandidate.candidateId })
+      .from(localFindingCandidate)
+      .where(candidateMatch)
+      .all() as Array<{ candidateId: string }>;
+    const existingIds = existing.map((row) => row.candidateId);
     for (let i = 0; i < existingIds.length; i += UPSERT_CHUNK) {
       const chunk = existingIds.slice(i, i + UPSERT_CHUNK);
-      await db
+      tx
         .delete(localFindingEvidenceLink)
-        .where(inArray(localFindingEvidenceLink.candidateId, chunk));
+        .where(inArray(localFindingEvidenceLink.candidateId, chunk))
+        .run();
     }
-  }
-  await db.delete(localFindingCandidate).where(candidateMatch);
-  await db
-    .delete(localFindingCoverageAudit)
-    .where(
-      and(
-        eq(localFindingCoverageAudit.month, args.month),
-        eq(localFindingCoverageAudit.detectorId, args.detectorId),
-      ),
-    );
+    tx.delete(localFindingCandidate).where(candidateMatch).run();
+    tx
+      .delete(localFindingCoverageAudit)
+      .where(
+        and(
+          eq(localFindingCoverageAudit.month, args.month),
+          eq(localFindingCoverageAudit.detectorId, args.detectorId),
+        ),
+      )
+      .run();
 
-  if (args.candidates.length > 0) {
-    await chunked(args.candidates, async (chunk) => {
-      await db.insert(localFindingCandidate).values(chunk);
-    });
-  }
-  if (args.evidence.length > 0) {
-    await chunked(args.evidence, async (chunk) => {
-      await db.insert(localFindingEvidenceLink).values(chunk);
-    });
-  }
-  if (args.coverage.length > 0) {
-    await chunked(args.coverage, async (chunk) => {
-      await db.insert(localFindingCoverageAudit).values(chunk);
-    });
-  }
+    insertAll(tx, localFindingCandidate, args.candidates);
+    insertAll(tx, localFindingEvidenceLink, args.evidence);
+    insertAll(tx, localFindingCoverageAudit, args.coverage);
+  });
 }
 
 // Replace every row tagged with a specific detector_run_id. Useful for
 // re-running a single audit pass without trusting (month, detector_id) as the
 // idempotency key (e.g. ad-hoc detector backtests).
-export async function replaceFindingRun(
+export function replaceFindingRun(
   db: LocalPipelineDb,
   args: {
     detectorRunId: string;
@@ -308,42 +333,33 @@ export async function replaceFindingRun(
     evidence: readonly LocalFindingEvidenceLink[];
     coverage: readonly LocalFindingCoverageAudit[];
   },
-): Promise<void> {
-  const existing = (await db
-    .select({ candidateId: localFindingCandidate.candidateId })
-    .from(localFindingCandidate)
-    .where(eq(localFindingCandidate.detectorRunId, args.detectorRunId))) as Array<{
-    candidateId: string;
-  }>;
-  const existingIds = existing.map((row) => row.candidateId);
-  if (existingIds.length > 0) {
+): void {
+  assertCoverageAuditJson(args.coverage);
+  db.transaction((tx) => {
+    const existing = tx
+      .select({ candidateId: localFindingCandidate.candidateId })
+      .from(localFindingCandidate)
+      .where(eq(localFindingCandidate.detectorRunId, args.detectorRunId))
+      .all() as Array<{ candidateId: string }>;
+    const existingIds = existing.map((row) => row.candidateId);
     for (let i = 0; i < existingIds.length; i += UPSERT_CHUNK) {
       const chunk = existingIds.slice(i, i + UPSERT_CHUNK);
-      await db
+      tx
         .delete(localFindingEvidenceLink)
-        .where(inArray(localFindingEvidenceLink.candidateId, chunk));
+        .where(inArray(localFindingEvidenceLink.candidateId, chunk))
+        .run();
     }
-  }
-  await db
-    .delete(localFindingCandidate)
-    .where(eq(localFindingCandidate.detectorRunId, args.detectorRunId));
-  await db
-    .delete(localFindingCoverageAudit)
-    .where(eq(localFindingCoverageAudit.detectorRunId, args.detectorRunId));
+    tx
+      .delete(localFindingCandidate)
+      .where(eq(localFindingCandidate.detectorRunId, args.detectorRunId))
+      .run();
+    tx
+      .delete(localFindingCoverageAudit)
+      .where(eq(localFindingCoverageAudit.detectorRunId, args.detectorRunId))
+      .run();
 
-  if (args.candidates.length > 0) {
-    await chunked(args.candidates, async (chunk) => {
-      await db.insert(localFindingCandidate).values(chunk);
-    });
-  }
-  if (args.evidence.length > 0) {
-    await chunked(args.evidence, async (chunk) => {
-      await db.insert(localFindingEvidenceLink).values(chunk);
-    });
-  }
-  if (args.coverage.length > 0) {
-    await chunked(args.coverage, async (chunk) => {
-      await db.insert(localFindingCoverageAudit).values(chunk);
-    });
-  }
+    insertAll(tx, localFindingCandidate, args.candidates);
+    insertAll(tx, localFindingEvidenceLink, args.evidence);
+    insertAll(tx, localFindingCoverageAudit, args.coverage);
+  });
 }

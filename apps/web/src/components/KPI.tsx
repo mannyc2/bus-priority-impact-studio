@@ -14,6 +14,36 @@ const toneColor: Record<Tone, string> = {
   bad: "var(--bp-color-bad)",
 };
 
+export function MetricValue({
+  value,
+  unit,
+  tone = "neutral",
+  valueSize = 26,
+  unitSize = 11,
+}: {
+  value: ReactNode;
+  unit?: string | undefined;
+  tone?: Tone;
+  valueSize?: number;
+  unitSize?: number;
+}) {
+  return (
+    <>
+      <div
+        className="font-mono font-semibold tabular-nums tracking-[-0.02em]"
+        style={{ color: toneColor[tone], fontSize: valueSize, lineHeight: 1 }}
+      >
+        {value}
+      </div>
+      {unit ? (
+        <div className="text-[var(--bp-color-ink-55)] tracking-[0.03em]" style={{ fontSize: unitSize }}>
+          {unit}
+        </div>
+      ) : null}
+    </>
+  );
+}
+
 export function KPI({
   label,
   value,
@@ -43,20 +73,13 @@ export function KPI({
         {label}
       </div>
       <div className="flex items-baseline gap-1">
-        <div
-          className="font-mono font-semibold tabular-nums tracking-[-0.02em]"
-          style={{ color: toneColor[tone], fontSize: sizes.value, lineHeight: 1 }}
-        >
-          {value}
-        </div>
-        {unit ? (
-          <div
-            className="text-[var(--bp-color-ink-55)] tracking-[0.03em]"
-            style={{ fontSize: sizes.unit }}
-          >
-            {unit}
-          </div>
-        ) : null}
+        <MetricValue
+          value={value}
+          unit={unit}
+          tone={tone}
+          valueSize={sizes.value}
+          unitSize={sizes.unit}
+        />
         {citeN ? <Cite n={citeN} /> : null}
         {trend ? <div className="ml-auto">{trend}</div> : null}
       </div>

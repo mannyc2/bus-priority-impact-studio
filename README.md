@@ -74,6 +74,20 @@ Bun runs local scripts, workspace filters, package tests, and pipeline commands.
 
 Set `MTA_BUS_TIME_API_KEY` for Bus Time GTFS-RT collection and source probes. GTFS-RT observed reliability is part of Data Pipeline v1 as a current observed layer; without the key, public static/open-data source probes and canonical monthly releases can still run, but realtime appendix and observed monthly promotion gates cannot pass. Do not commit local env files or secrets.
 
+LLM-backed local pipeline commands use gitignored `.env` keys such as `PIONEER_API_KEY`,
+`OPENROUTER_API_KEY`, and `DEEPSEEK_API_KEY`. Bun loads the repo-root `.env` for Bun-run commands,
+so `printenv` can incorrectly look empty while `bun` sees the keys. Check setup with:
+
+```bash
+bun run env:check:llm
+```
+
+For tmux sessions or other shell-launched jobs that need the same repo-local keys, wrap the command:
+
+```bash
+scripts/with-repo-env.sh -- bun --filter @bp/pipeline-v2 cli -- <command>
+```
+
 ## Current scaffold
 
 The current scaffold includes:

@@ -1,20 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { routeHead } from "../lib/head.js";
 import { fetchStudioRoutes } from "../studio/api-client.js";
-import { RoutesHomeLoadingPage, RoutesHomePage } from "../studio/pages/routes-home.js";
+import { HomeLoadingPage, HomePage } from "../studio/pages/home.js";
 
 export const Route = createFileRoute("/")({
   loader: fetchStudioRoutes,
-  pendingComponent: RoutesHomeLoadingPage,
+  pendingComponent: HomeLoadingPage,
   head: () =>
     routeHead(
-      "Routes",
-      "Search routes and open evidence-backed route pages in Bus Priority Impact Studio.",
+      "Bus Priority Impact Studio",
+      "Track every NYC bus route the city's speed-up program has touched — route by route, in plain numbers, from public MTA and NYC DOT data.",
     ),
-  component: RoutesHomeRoute,
+  component: HomeRoute,
 });
 
-function RoutesHomeRoute() {
+function HomeRoute() {
   const routes = Route.useLoaderData({ select: (data) => data.routes });
-  return <RoutesHomePage routes={routes} />;
+  return <HomePage routes={routes} />;
 }

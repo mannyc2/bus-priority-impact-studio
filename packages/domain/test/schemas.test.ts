@@ -1,21 +1,20 @@
 import { describe, expect, test } from "bun:test";
-import * as z from "zod";
 import {
-  buildStudioRouteProjection,
+  AgentFindingProposalEvidenceRefSchema,
   FindingEvidenceLinkSchema,
   FindingPromotionQueueArtifactSchema,
   FindingReviewDecisionsArtifactSchema,
   FindingReviewPacketsArtifactSchema,
-  HealthResponseSchema,
-  healthResponseJsonSchema,
   PromotedFindingsArtifactSchema,
-  RouteIdCodec,
-  RouteScorecardSchema,
-  StudioFindingSchema,
-  StudioReleasePayloadSchema,
-  StudioRouteDetailResponseSchema,
-  studioReleasePayloadJsonSchema,
-} from "../src/index.js";
+} from "@bp/domain/findings";
+import { healthResponseJsonSchema, studioReleasePayloadJsonSchema } from "@bp/domain/json-schema";
+import { RouteIdCodec } from "@bp/domain/primitives";
+import { HealthResponseSchema, RouteScorecardSchema } from "@bp/domain/routes";
+import { StudioFindingSchema } from "@bp/domain/studio/findings";
+import { buildStudioRouteProjection } from "@bp/domain/studio/projections";
+import { StudioReleasePayloadSchema } from "@bp/domain/studio/release";
+import { StudioRouteDetailResponseSchema } from "@bp/domain/studio/routes";
+import * as z from "zod";
 
 describe("domain schemas", () => {
   test("normalizes route IDs at the boundary with a Zod codec", () => {
@@ -220,6 +219,7 @@ describe("domain schemas", () => {
           evidence: {
             primary: [primary],
             context: [],
+            officialContext: [],
             counterEvidence: [counter],
             caveats: [],
             missingData: [],
@@ -228,6 +228,7 @@ describe("domain schemas", () => {
           evidenceObjects: {
             primary: [{}],
             context: [],
+            officialContext: [],
             counterEvidence: [{}],
             caveats: [],
             missingData: [],
@@ -556,5 +557,39 @@ describe("domain schemas", () => {
         extra: "not allowed",
       }),
     ).toThrow();
+  });
+
+  test("AgentFindingProposalEvidenceRefSchema accepts a code_execution ref", () => {
+    const parsed = AgentFindingProposalEvidenceRefSchema.parse({
+      kind: "code_execution",
+      language: "typescript",
+      code: "import { listAnalyticsDetectors } from '@bp/analytics/registry';\nconsole.log(listAnalyticsDetectors().length)",
+      stdoutHash: "a".repeat(64),
+      citedValuePath: "/lines/0",
+    });
+    expect(parsed.kind).toBe("code_execution");
+    if (parsed.kind === "code_execution") {
+      expect(parsed.language).toBe("typescript");
+    }
+  });
+
+  test("AgentFindingProposalEvidenceRefSchema rejects code_execution refs with bad stdoutHash", () => {
+    expect(() =>
+      AgentFindingProposalEvidenceRefSchema.parse({
+        kind: "code_execution",
+        language: "typescript",
+        code: "console.log(1)",
+        stdoutHash: "not-a-sha256",
+      }),
+    ).toThrow();
+  });
+
+  test("AgentFindingProposalEvidenceRefSchema still accepts existing review_packet_link kind", () => {
+    const parsed = AgentFindingProposalEvidenceRefSchema.parse({
+      kind: "review_packet_link",
+      packetId: "pkt-1",
+      linkId: "link-1",
+    });
+    expect(parsed.kind).toBe("review_packet_link");
   });
 });

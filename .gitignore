@@ -1,9 +1,12 @@
 node_modules/
 dist/
 build/
-!tools/pipeline/src/jobs/build/
-!tools/pipeline/src/jobs/build/**
+!tools/pipeline-v2/src/commands/build/
+!tools/pipeline-v2/src/commands/build/**
+!tools/pipeline-v2/test/commands/build/
+!tools/pipeline-v2/test/commands/build/**
 .wrangler/
+test-results/
 .dev.vars
 .env
 .env.*
@@ -22,6 +25,9 @@ data/working/*
 data/artifacts/*
 data/exports/*
 data/local/*
+# Operational run logs, PIDs, and scratch from local backfill runners.
+data/ops/*
+data/ops/backfills/
 !data/raw/.gitkeep
 !data/working/.gitkeep
 !data/artifacts/.gitkeep
@@ -31,6 +37,7 @@ data/local/*
 # Local databases and analysis outputs.
 *.sqlite
 *.sqlite3
+*.db
 *.duckdb
 *.parquet
 *.jsonl
@@ -52,6 +59,9 @@ data/local/*
 knowledge/raw/downloads/*
 !knowledge/raw/downloads/.gitkeep
 
+# TanStack Start local build cache.
+apps/web/.tanstack/
+
 # Tool caches.
 .cache/
 .temp/
@@ -64,3 +74,4 @@ tools/pipeline/test/.tmp-*/
 CLAUDE.local.md
 .claude/settings.local.json
 .claude/agent-memory-local/
+.gstack/

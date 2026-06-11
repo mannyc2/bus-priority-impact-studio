@@ -1,15 +1,67 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://buspriorityimpact.studio/</loc></url>
-  <url><loc>https://buspriorityimpact.studio/search?q=manhattan%20ace</loc></url>
-  <url><loc>https://buspriorityimpact.studio/routes/m15-sbs</loc></url>
-  <url><loc>https://buspriorityimpact.studio/routes/m15-sbs/ladder</loc></url>
   <url><loc>https://buspriorityimpact.studio/compare</loc></url>
   <url><loc>https://buspriorityimpact.studio/findings</loc></url>
-  <url><loc>https://buspriorityimpact.studio/findings/m15-full-treatment-still-declining</loc></url>
   <url><loc>https://buspriorityimpact.studio/briefs</loc></url>
-  <url><loc>https://buspriorityimpact.studio/briefs/m15-madison-corridor</loc></url>
-  <url><loc>https://buspriorityimpact.studio/briefs/m15-madison-corridor/evidence</loc></url>
   <url><loc>https://buspriorityimpact.studio/methods</loc></url>
   <url><loc>https://buspriorityimpact.studio/docs</loc></url>
+  <url><loc>https://buspriorityimpact.studio/routes/m15-sbs</loc></url>
+  <url><loc>https://buspriorityimpact.studio/routes/m15-sbs/ladder</loc></url>
+  <url><loc>https://buspriorityimpact.studio/routes/bx12-sbs</loc></url>
+  <url><loc>https://buspriorityimpact.studio/routes/bx12-sbs/ladder</loc></url>
+  <url><loc>https://buspriorityimpact.studio/routes/b25</loc></url>
+  <url><loc>https://buspriorityimpact.studio/routes/b25/ladder</loc></url>
+  <url><loc>https://buspriorityimpact.studio/routes/bx41</loc></url>
+  <url><loc>https://buspriorityimpact.studio/routes/bx41/ladder</loc></url>
+  <url><loc>https://buspriorityimpact.studio/routes/m101</loc></url>
+  <url><loc>https://buspriorityimpact.studio/routes/m101/ladder</loc></url>
+  <url><loc>https://buspriorityimpact.studio/routes/b41</loc></url>
+  <url><loc>https://buspriorityimpact.studio/routes/b41/ladder</loc></url>
+  <url><loc>https://buspriorityimpact.studio/routes/b46-sbs</loc></url>
+  <url><loc>https://buspriorityimpact.studio/routes/b46-sbs/ladder</loc></url>
+  <url><loc>https://buspriorityimpact.studio/routes/q58</loc></url>
+  <url><loc>https://buspriorityimpact.studio/routes/q58/ladder</loc></url>
+  <url><loc>https://buspriorityimpact.studio/routes/m14a-sbs</loc></url>
+  <url><loc>https://buspriorityimpact.studio/routes/m14a-sbs/ladder</loc></url>
+  <url><loc>https://buspriorityimpact.studio/routes/m14d-sbs</loc></url>
+  <url><loc>https://buspriorityimpact.studio/routes/m14d-sbs/ladder</loc></url>
+  <url><loc>https://buspriorityimpact.studio/routes/m57</loc></url>
+  <url><loc>https://buspriorityimpact.studio/routes/m57/ladder</loc></url>
+  <url><loc>https://buspriorityimpact.studio/routes/m42</loc></url>
+  <url><loc>https://buspriorityimpact.studio/routes/m42/ladder</loc></url>
+  <url><loc>https://buspriorityimpact.studio/findings/b25-fulton-corridor-reliability-permits</loc></url>
+  <url><loc>https://buspriorityimpact.studio/findings/bx41-webster-reliability-permits</loc></url>
+  <url><loc>https://buspriorityimpact.studio/findings/promoted-promoted_finding_fe444ebdbb538ef404ba9f69faf2077d</loc></url>
+  <url><loc>https://buspriorityimpact.studio/findings/promoted-promoted_finding_16e8194527e64bf71a38c7638a078983</loc></url>
+  <url><loc>https://buspriorityimpact.studio/findings/promoted-promoted_finding_fbf9eb6057ab6a177c77063e2dc08d99</loc></url>
+  <url><loc>https://buspriorityimpact.studio/findings/promoted-promoted_finding_40ecf94f0df83c550a7340d57a26edc6</loc></url>
+  <url><loc>https://buspriorityimpact.studio/findings/promoted-promoted_finding_072be6950457379ff1b4652d988be5dd</loc></url>
+  <url><loc>https://buspriorityimpact.studio/findings/promoted-promoted_finding_17297306bba862e94436e165f4e5dd3f</loc></url>
+  <url><loc>https://buspriorityimpact.studio/findings/promoted-promoted_finding_d1844cd48f54916449850cce2470c3ac</loc></url>
+  <url><loc>https://buspriorityimpact.studio/findings/promoted-promoted_finding_fb710c30c0b4e65d455e7eac44f93d88</loc></url>
+  <url><loc>https://buspriorityimpact.studio/briefs/m15-madison-corridor</loc></url>
+  <url><loc>https://buspriorityimpact.studio/briefs/m15-madison-corridor/evidence</loc></url>
+  <url><loc>https://buspriorityimpact.studio/briefs/bx12-treatment-benchmark</loc></url>
+  <url><loc>https://buspriorityimpact.studio/briefs/bx12-treatment-benchmark/evidence</loc></url>
+  <url><loc>https://buspriorityimpact.studio/briefs/brief-b25</loc></url>
+  <url><loc>https://buspriorityimpact.studio/briefs/brief-b25/evidence</loc></url>
+  <url><loc>https://buspriorityimpact.studio/briefs/brief-bx41</loc></url>
+  <url><loc>https://buspriorityimpact.studio/briefs/brief-bx41/evidence</loc></url>
+  <url><loc>https://buspriorityimpact.studio/briefs/brief-m101</loc></url>
+  <url><loc>https://buspriorityimpact.studio/briefs/brief-m101/evidence</loc></url>
+  <url><loc>https://buspriorityimpact.studio/briefs/brief-b41</loc></url>
+  <url><loc>https://buspriorityimpact.studio/briefs/brief-b41/evidence</loc></url>
+  <url><loc>https://buspriorityimpact.studio/briefs/brief-b46-sbs</loc></url>
+  <url><loc>https://buspriorityimpact.studio/briefs/brief-b46-sbs/evidence</loc></url>
+  <url><loc>https://buspriorityimpact.studio/briefs/brief-q58</loc></url>
+  <url><loc>https://buspriorityimpact.studio/briefs/brief-q58/evidence</loc></url>
+  <url><loc>https://buspriorityimpact.studio/briefs/brief-m14a-sbs</loc></url>
+  <url><loc>https://buspriorityimpact.studio/briefs/brief-m14a-sbs/evidence</loc></url>
+  <url><loc>https://buspriorityimpact.studio/briefs/brief-m14d-sbs</loc></url>
+  <url><loc>https://buspriorityimpact.studio/briefs/brief-m14d-sbs/evidence</loc></url>
+  <url><loc>https://buspriorityimpact.studio/briefs/brief-m57</loc></url>
+  <url><loc>https://buspriorityimpact.studio/briefs/brief-m57/evidence</loc></url>
+  <url><loc>https://buspriorityimpact.studio/briefs/brief-m42</loc></url>
+  <url><loc>https://buspriorityimpact.studio/briefs/brief-m42/evidence</loc></url>
 </urlset>

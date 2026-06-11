@@ -4,7 +4,7 @@ import {
   parseSocrataMetadata,
   SocrataDatasetIdSchema,
   summarizeSocrataMetadata,
-} from "../src/index.js";
+} from "@bp/sources/clients/socrata";
 
 describe("Socrata source contracts", () => {
   test("parses source metadata fixtures with extra Socrata fields", () => {

@@ -1,2 +1,3 @@
-export type { SourceProbeOutput } from "./source-probes.js";
-export { parseCurlHeadOutput, probeSocrataSource, probeSource } from "./source-probes.js";
+export type { HttpProbe, ProbeOptions, SourceProbeOutput } from "./contracts.js";
+export { probeSocrataSource } from "./socrata-probe.js";
+export { probeSource } from "./source-probe.js";

@@ -1,6 +1,7 @@
 import { Database } from "bun:sqlite";
 import { describe, expect, test } from "bun:test";
-import { RouteIdCodec, RouteScorecardSchema } from "@bp/domain";
+import { RouteIdCodec } from "@bp/domain/primitives";
+import { RouteScorecardSchema } from "@bp/domain/routes";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import * as z from "zod";
 import type { D1ServingDb } from "../src/d1/index.js";
@@ -38,7 +39,8 @@ async function createTestDb(): Promise<{ db: D1ServingDb; sqlite: Database }> {
   sqlite.exec(migrationSql);
 
   return {
-    db: drizzle(sqlite, {
+    db: drizzle({
+      client: sqlite,
       schema: { routeScorecard, routeScorecardCitation },
     }) as unknown as D1ServingDb,
     sqlite,

@@ -1,0 +1,4034 @@
+{
+  "schemaVersion": 1,
+  "sourceId": "nyc_parking_violations_fy2024",
+  "checkedAt": "2026-05-31T12:07:15.918Z",
+  "metadataUrl": "https://data.cityofnewyork.us/api/views/8zf9-spf8",
+  "metadata": {
+    "id": "8zf9-spf8",
+    "name": "Parking Violations Issued - Fiscal Year 2024",
+    "description": "This dataset provides data on Parking Violations Issued between July 1, 2023 to June 30, 2024.  In New York City, the fiscal year begins on July 1st of one calendar year and ends on June 30th of the following calendar year.  <a target=\"_blank\" href=\"https://www.nyc.gov/site/omb/faq/frequently-asked-questions.page#:~:text=our%20Careers%20page.-,The%20Expense%20Budget,-What%20is%20the\">Click here</a> to find out more about the NYC Fiscal Year.\n<br>Parking Violations Issuance datasets contain violations issued during the respective fiscal year. The Issuance datasets are not updated to reflect violation status, the information only represents the violation(s) at the time they are issued. Since appearing on an issuance dataset, a violation may have been paid, dismissed via a hearing, statutorily expired, or had other changes to its status. To see the current status of outstanding parking violations, please look at the <a target=\"_blank\" href=\"https://data.cityofnewyork.us/City-Government/Open-Parking-and-Camera-Violations/nc67-uf89\">Open Parking & Camera Violations</a> dataset.\n<br>You may find all of the Parking Violations Issued since fiscal year 2014 in this <a target=\"_blank\" href=\"https://data.cityofnewyork.us/browse?Data-Collection_Data-Collection=DOF+Parking+Violations+Issued&q=&sortBy=alpha&utf8=%E2%9C%93\">dataset collection</a>.",
+    "attribution": "Department of Finance (DOF)",
+    "rowsUpdatedAt": 1773355697,
+    "columns": [
+      {
+        "id": 628515323,
+        "name": "Summons Number",
+        "dataTypeName": "number",
+        "fieldName": "summons_number",
+        "description": "",
+        "position": 1,
+        "renderTypeName": "number",
+        "tableColumnId": 166117476,
+        "cachedContents": {
+          "non_null": "16101101",
+          "largest": "9140590471",
+          "null": "0",
+          "top": [
+            {
+              "item": "4031982719",
+              "count": "2"
+            },
+            {
+              "item": "9079205515",
+              "count": "2"
+            },
+            {
+              "item": "9081036233",
+              "count": "2"
+            },
+            {
+              "item": "4861070272",
+              "count": "2"
+            },
+            {
+              "item": "9074626142",
+              "count": "2"
+            },
+            {
+              "item": "9076403715",
+              "count": "2"
+            },
+            {
+              "item": "9073997513",
+              "count": "2"
+            },
+            {
+              "item": "1044537292",
+              "count": "1"
+            },
+            {
+              "item": "1044537280",
+              "count": "1"
+            },
+            {
+              "item": "1038843613",
+              "count": "1"
+            },
+            {
+              "item": "1064293293",
+              "count": "1"
+            },
+            {
+              "item": "1076851010",
+              "count": "1"
+            },
+            {
+              "item": "1081222839",
+              "count": "1"
+            },
+            {
+              "item": "1081222840",
+              "count": "1"
+            },
+            {
+              "item": "1064293281",
+              "count": "1"
+            },
+            {
+              "item": "1064293270",
+              "count": "1"
+            },
+            {
+              "item": "1044537279",
+              "count": "1"
+            },
+            {
+              "item": "1081223881",
+              "count": "1"
+            },
+            {
+              "item": "1081223900",
+              "count": "1"
+            },
+            {
+              "item": "1081223870",
+              "count": "1"
+            }
+          ],
+          "smallest": "1001716267",
+          "count": "16101101",
+          "cardinality": "16101101"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "noCommas": "true"
+        }
+      },
+      {
+        "id": 628515280,
+        "name": "Plate ID",
+        "dataTypeName": "text",
+        "fieldName": "plate_id",
+        "description": "",
+        "position": 2,
+        "renderTypeName": "text",
+        "tableColumnId": 165010284,
+        "cachedContents": {
+          "non_null": "16101100",
+          "largest": "ZZZZZZ1",
+          "null": "1",
+          "top": [
+            {
+              "item": "BLANKPLATE",
+              "count": "24930"
+            },
+            {
+              "item": "96091MA",
+              "count": "898"
+            },
+            {
+              "item": "54239MN",
+              "count": "876"
+            },
+            {
+              "item": "86145MM",
+              "count": "861"
+            },
+            {
+              "item": "54243MN",
+              "count": "779"
+            },
+            {
+              "item": "95408MD",
+              "count": "774"
+            },
+            {
+              "item": "91665MC",
+              "count": "739"
+            },
+            {
+              "item": "PAU1320",
+              "count": "738"
+            },
+            {
+              "item": "82547PC",
+              "count": "737"
+            },
+            {
+              "item": "AT376A",
+              "count": "735"
+            },
+            {
+              "item": "89406MJ",
+              "count": "726"
+            },
+            {
+              "item": "86171MM",
+              "count": "703"
+            },
+            {
+              "item": "64500MC",
+              "count": "684"
+            },
+            {
+              "item": "83460MH",
+              "count": "680"
+            },
+            {
+              "item": "46727MJ",
+              "count": "652"
+            },
+            {
+              "item": "63286MK",
+              "count": "652"
+            },
+            {
+              "item": "28673MH",
+              "count": "648"
+            },
+            {
+              "item": "90441NC",
+              "count": "646"
+            },
+            {
+              "item": "56253MG",
+              "count": "645"
+            },
+            {
+              "item": "52969MD",
+              "count": "640"
+            }
+          ],
+          "smallest": "0",
+          "count": "16101101",
+          "cardinality": "16101101"
+        },
+        "format": {}
+      },
+      {
+        "id": 628515281,
+        "name": "Registration State",
+        "dataTypeName": "text",
+        "fieldName": "registration_state",
+        "description": "",
+        "position": 3,
+        "renderTypeName": "text",
+        "tableColumnId": 165010267,
+        "cachedContents": {
+          "non_null": "16101101",
+          "largest": "YT",
+          "null": "0",
+          "top": [
+            {
+              "item": "NY",
+              "count": "11803634"
+            },
+            {
+              "item": "NJ",
+              "count": "1560874"
+            },
+            {
+              "item": "PA",
+              "count": "601457"
+            },
+            {
+              "item": "FL",
+              "count": "366732"
+            },
+            {
+              "item": "CT",
+              "count": "287220"
+            },
+            {
+              "item": "VA",
+              "count": "140148"
+            },
+            {
+              "item": "GA",
+              "count": "139688"
+            },
+            {
+              "item": "MA",
+              "count": "138018"
+            },
+            {
+              "item": "IN",
+              "count": "109638"
+            },
+            {
+              "item": "NC",
+              "count": "103969"
+            },
+            {
+              "item": "MD",
+              "count": "94043"
+            },
+            {
+              "item": "TX",
+              "count": "78799"
+            },
+            {
+              "item": "IL",
+              "count": "62663"
+            },
+            {
+              "item": "CA",
+              "count": "55337"
+            },
+            {
+              "item": "OH",
+              "count": "53243"
+            },
+            {
+              "item": "AZ",
+              "count": "45219"
+            },
+            {
+              "item": "SC",
+              "count": "42821"
+            },
+            {
+              "item": "ME",
+              "count": "40236"
+            },
+            {
+              "item": "99",
+              "count": "34785"
+            },
+            {
+              "item": "TN",
+              "count": "30346"
+            }
+          ],
+          "smallest": "99",
+          "count": "16101101",
+          "cardinality": "16101101"
+        },
+        "format": {}
+      },
+      {
+        "id": 628515282,
+        "name": "Plate Type",
+        "dataTypeName": "text",
+        "fieldName": "plate_type",
+        "description": "",
+        "position": 4,
+        "renderTypeName": "text",
+        "tableColumnId": 165010251,
+        "cachedContents": {
+          "non_null": "16101101",
+          "largest": "WUG",
+          "null": "0",
+          "top": [
+            {
+              "item": "PAS",
+              "count": "13317969"
+            },
+            {
+              "item": "COM",
+              "count": "1420509"
+            },
+            {
+              "item": "OMT",
+              "count": "576012"
+            },
+            {
+              "item": "SRF",
+              "count": "194345"
+            },
+            {
+              "item": "OMS",
+              "count": "189344"
+            },
+            {
+              "item": "999",
+              "count": "85214"
+            },
+            {
+              "item": "MOT",
+              "count": "53997"
+            },
+            {
+              "item": "ORG",
+              "count": "42080"
+            },
+            {
+              "item": "APP",
+              "count": "39153"
+            },
+            {
+              "item": "SPO",
+              "count": "26392"
+            },
+            {
+              "item": "MED",
+              "count": "20509"
+            },
+            {
+              "item": "OMR",
+              "count": "17138"
+            },
+            {
+              "item": "TRC",
+              "count": "13359"
+            },
+            {
+              "item": "PSD",
+              "count": "12855"
+            },
+            {
+              "item": "CMB",
+              "count": "12495"
+            },
+            {
+              "item": "LMB",
+              "count": "12171"
+            },
+            {
+              "item": "RGL",
+              "count": "10163"
+            },
+            {
+              "item": "SCL",
+              "count": "8916"
+            },
+            {
+              "item": "TOW",
+              "count": "8279"
+            },
+            {
+              "item": "OML",
+              "count": "7237"
+            }
+          ],
+          "smallest": "999",
+          "count": "16101101",
+          "cardinality": "16101101"
+        },
+        "format": {}
+      },
+      {
+        "id": 628515322,
+        "name": "Issue Date",
+        "dataTypeName": "calendar_date",
+        "fieldName": "issue_date",
+        "description": "",
+        "position": 5,
+        "renderTypeName": "calendar_date",
+        "tableColumnId": 166117475,
+        "cachedContents": {
+          "non_null": "16099641",
+          "largest": "2052-03-07T00:00:00.000",
+          "null": "1460",
+          "top": [
+            {
+              "item": "2023-11-24T00:00:00.000",
+              "count": "61062"
+            },
+            {
+              "item": "2023-07-20T00:00:00.000",
+              "count": "60565"
+            },
+            {
+              "item": "2023-07-06T00:00:00.000",
+              "count": "60249"
+            },
+            {
+              "item": "2023-07-13T00:00:00.000",
+              "count": "59025"
+            },
+            {
+              "item": "2023-10-19T00:00:00.000",
+              "count": "58412"
+            },
+            {
+              "item": "2023-07-07T00:00:00.000",
+              "count": "58347"
+            },
+            {
+              "item": "2023-08-03T00:00:00.000",
+              "count": "58309"
+            },
+            {
+              "item": "2023-07-11T00:00:00.000",
+              "count": "58291"
+            },
+            {
+              "item": "2024-06-04T00:00:00.000",
+              "count": "57613"
+            },
+            {
+              "item": "2024-03-12T00:00:00.000",
+              "count": "57019"
+            },
+            {
+              "item": "2023-11-16T00:00:00.000",
+              "count": "56692"
+            },
+            {
+              "item": "2023-10-05T00:00:00.000",
+              "count": "56619"
+            },
+            {
+              "item": "2023-09-14T00:00:00.000",
+              "count": "56450"
+            },
+            {
+              "item": "2023-08-22T00:00:00.000",
+              "count": "56449"
+            },
+            {
+              "item": "2024-05-07T00:00:00.000",
+              "count": "56333"
+            },
+            {
+              "item": "2023-11-02T00:00:00.000",
+              "count": "56316"
+            },
+            {
+              "item": "2023-07-17T00:00:00.000",
+              "count": "56286"
+            },
+            {
+              "item": "2023-09-12T00:00:00.000",
+              "count": "56108"
+            },
+            {
+              "item": "2023-08-08T00:00:00.000",
+              "count": "56012"
+            },
+            {
+              "item": "2024-03-07T00:00:00.000",
+              "count": "55921"
+            }
+          ],
+          "smallest": "1972-11-03T00:00:00.000",
+          "count": "16101101",
+          "cardinality": "16101101"
+        },
+        "format": {
+          "view": "date"
+        }
+      },
+      {
+        "id": 628515324,
+        "name": "Violation Code",
+        "dataTypeName": "number",
+        "fieldName": "violation_code",
+        "description": "",
+        "position": 6,
+        "renderTypeName": "number",
+        "tableColumnId": 166117477,
+        "cachedContents": {
+          "non_null": "16101101",
+          "largest": "99",
+          "null": "0",
+          "top": [
+            {
+              "item": "36",
+              "count": "5573363"
+            },
+            {
+              "item": "21",
+              "count": "1911484"
+            },
+            {
+              "item": "38",
+              "count": "1184031"
+            },
+            {
+              "item": "14",
+              "count": "806566"
+            },
+            {
+              "item": "7",
+              "count": "712369"
+            },
+            {
+              "item": "5",
+              "count": "677166"
+            },
+            {
+              "item": "40",
+              "count": "652479"
+            },
+            {
+              "item": "20",
+              "count": "626925"
+            },
+            {
+              "item": "71",
+              "count": "575492"
+            },
+            {
+              "item": "70",
+              "count": "401988"
+            },
+            {
+              "item": "46",
+              "count": "337617"
+            },
+            {
+              "item": "37",
+              "count": "274942"
+            },
+            {
+              "item": "31",
+              "count": "250982"
+            },
+            {
+              "item": "19",
+              "count": "244004"
+            },
+            {
+              "item": "74",
+              "count": "232809"
+            },
+            {
+              "item": "16",
+              "count": "225321"
+            },
+            {
+              "item": "69",
+              "count": "221117"
+            },
+            {
+              "item": "12",
+              "count": "202554"
+            },
+            {
+              "item": "17",
+              "count": "113842"
+            },
+            {
+              "item": "50",
+              "count": "88099"
+            }
+          ],
+          "smallest": "0",
+          "count": "16101101",
+          "cardinality": "16101101"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "noCommas": "true"
+        }
+      },
+      {
+        "id": 628515285,
+        "name": "Vehicle Body Type",
+        "dataTypeName": "text",
+        "fieldName": "vehicle_body_type",
+        "description": "",
+        "position": 7,
+        "renderTypeName": "text",
+        "tableColumnId": 165010245,
+        "cachedContents": {
+          "non_null": "16059621",
+          "largest": "ZHEJ",
+          "null": "41480",
+          "top": [
+            {
+              "item": "SUBN",
+              "count": "7230256"
+            },
+            {
+              "item": "4DSD",
+              "count": "3932215"
+            },
+            {
+              "item": "VAN",
+              "count": "1248634"
+            },
+            {
+              "item": "PICK",
+              "count": "506805"
+            },
+            {
+              "item": "DELV",
+              "count": "362082"
+            },
+            {
+              "item": "SPOR",
+              "count": "295513"
+            },
+            {
+              "item": "UT",
+              "count": "286908"
+            },
+            {
+              "item": "2DSD",
+              "count": "269193"
+            },
+            {
+              "item": "SDN",
+              "count": "254906"
+            },
+            {
+              "item": "SEDA",
+              "count": "195170"
+            },
+            {
+              "item": "SW",
+              "count": "158243"
+            },
+            {
+              "item": "SD",
+              "count": "136482"
+            },
+            {
+              "item": "4D",
+              "count": "131891"
+            },
+            {
+              "item": "REFG",
+              "count": "119802"
+            },
+            {
+              "item": "TRAC",
+              "count": "89928"
+            },
+            {
+              "item": "CONV",
+              "count": "68898"
+            },
+            {
+              "item": "TAXI",
+              "count": "56979"
+            },
+            {
+              "item": "MCY",
+              "count": "54981"
+            },
+            {
+              "item": "4S",
+              "count": "51468"
+            },
+            {
+              "item": "UTIL",
+              "count": "44187"
+            }
+          ],
+          "smallest": "`",
+          "count": "16101101",
+          "cardinality": "16101101"
+        },
+        "format": {}
+      },
+      {
+        "id": 628515286,
+        "name": "Vehicle Make",
+        "dataTypeName": "text",
+        "fieldName": "vehicle_make",
+        "description": "",
+        "position": 8,
+        "renderTypeName": "text",
+        "tableColumnId": 165010255,
+        "cachedContents": {
+          "non_null": "16085383",
+          "largest": "ZUZUK",
+          "null": "15718",
+          "top": [
+            {
+              "item": "TOYOT",
+              "count": "1897230"
+            },
+            {
+              "item": "HONDA",
+              "count": "1894727"
+            },
+            {
+              "item": "FORD",
+              "count": "1479965"
+            },
+            {
+              "item": "NISSA",
+              "count": "1264948"
+            },
+            {
+              "item": "CHEVR",
+              "count": "859667"
+            },
+            {
+              "item": "ME/BE",
+              "count": "832642"
+            },
+            {
+              "item": "BMW",
+              "count": "793194"
+            },
+            {
+              "item": "JEEP",
+              "count": "743969"
+            },
+            {
+              "item": "HYUND",
+              "count": "552212"
+            },
+            {
+              "item": "LEXUS",
+              "count": "400438"
+            },
+            {
+              "item": "ACURA",
+              "count": "356595"
+            },
+            {
+              "item": "SUBAR",
+              "count": "350031"
+            },
+            {
+              "item": "FRUEH",
+              "count": "346883"
+            },
+            {
+              "item": "KIA",
+              "count": "335415"
+            },
+            {
+              "item": "DODGE",
+              "count": "317059"
+            },
+            {
+              "item": "AUDI",
+              "count": "307570"
+            },
+            {
+              "item": "MAZDA",
+              "count": "296621"
+            },
+            {
+              "item": "VOLKS",
+              "count": "290563"
+            },
+            {
+              "item": "RAM",
+              "count": "244630"
+            },
+            {
+              "item": "INFIN",
+              "count": "235432"
+            }
+          ],
+          "smallest": "`",
+          "count": "16101101",
+          "cardinality": "16101101"
+        },
+        "format": {}
+      },
+      {
+        "id": 628515287,
+        "name": "Issuing Agency",
+        "dataTypeName": "text",
+        "fieldName": "issuing_agency",
+        "description": "",
+        "position": 9,
+        "renderTypeName": "text",
+        "tableColumnId": 165010243,
+        "cachedContents": {
+          "non_null": "16101101",
+          "largest": "Y",
+          "null": "0",
+          "top": [
+            {
+              "item": "T",
+              "count": "8023858"
+            },
+            {
+              "item": "V",
+              "count": "7166922"
+            },
+            {
+              "item": "S",
+              "count": "587197"
+            },
+            {
+              "item": "P",
+              "count": "271029"
+            },
+            {
+              "item": "K",
+              "count": "18709"
+            },
+            {
+              "item": "Y",
+              "count": "5663"
+            },
+            {
+              "item": "3",
+              "count": "4453"
+            },
+            {
+              "item": "8",
+              "count": "3237"
+            },
+            {
+              "item": "O",
+              "count": "3023"
+            },
+            {
+              "item": "A",
+              "count": "2833"
+            },
+            {
+              "item": "M",
+              "count": "2795"
+            },
+            {
+              "item": "L",
+              "count": "2071"
+            },
+            {
+              "item": "N",
+              "count": "2034"
+            },
+            {
+              "item": "R",
+              "count": "1880"
+            },
+            {
+              "item": "X",
+              "count": "1489"
+            },
+            {
+              "item": "C",
+              "count": "1315"
+            },
+            {
+              "item": "9",
+              "count": "702"
+            },
+            {
+              "item": "F",
+              "count": "557"
+            },
+            {
+              "item": "U",
+              "count": "325"
+            },
+            {
+              "item": "G",
+              "count": "251"
+            }
+          ],
+          "smallest": "1",
+          "count": "16101101",
+          "cardinality": "16101101"
+        },
+        "format": {}
+      },
+      {
+        "id": 628515325,
+        "name": "Street Code1",
+        "dataTypeName": "number",
+        "fieldName": "street_code1",
+        "description": "",
+        "position": 10,
+        "renderTypeName": "number",
+        "tableColumnId": 166117478,
+        "cachedContents": {
+          "non_null": "16101101",
+          "largest": "98290",
+          "null": "0",
+          "top": [
+            {
+              "item": "0",
+              "count": "7435754"
+            },
+            {
+              "item": "13610",
+              "count": "137714"
+            },
+            {
+              "item": "10210",
+              "count": "134571"
+            },
+            {
+              "item": "25390",
+              "count": "76036"
+            },
+            {
+              "item": "10110",
+              "count": "70426"
+            },
+            {
+              "item": "24890",
+              "count": "66207"
+            },
+            {
+              "item": "10410",
+              "count": "66157"
+            },
+            {
+              "item": "10010",
+              "count": "57524"
+            },
+            {
+              "item": "59990",
+              "count": "52808"
+            },
+            {
+              "item": "10510",
+              "count": "51635"
+            },
+            {
+              "item": "10810",
+              "count": "48464"
+            },
+            {
+              "item": "10610",
+              "count": "47145"
+            },
+            {
+              "item": "8790",
+              "count": "44939"
+            },
+            {
+              "item": "11710",
+              "count": "43360"
+            },
+            {
+              "item": "61090",
+              "count": "42776"
+            },
+            {
+              "item": "51090",
+              "count": "40263"
+            },
+            {
+              "item": "64290",
+              "count": "38584"
+            },
+            {
+              "item": "36420",
+              "count": "38219"
+            },
+            {
+              "item": "28830",
+              "count": "34782"
+            },
+            {
+              "item": "15710",
+              "count": "33718"
+            }
+          ],
+          "smallest": "0",
+          "count": "16101101",
+          "cardinality": "16101101"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "noCommas": "true"
+        }
+      },
+      {
+        "id": 628515326,
+        "name": "Street Code2",
+        "dataTypeName": "number",
+        "fieldName": "street_code2",
+        "description": "",
+        "position": 11,
+        "renderTypeName": "number",
+        "tableColumnId": 166117479,
+        "cachedContents": {
+          "non_null": "16101101",
+          "largest": "98310",
+          "null": "0",
+          "top": [
+            {
+              "item": "0",
+              "count": "8229714"
+            },
+            {
+              "item": "40404",
+              "count": "419634"
+            },
+            {
+              "item": "10410",
+              "count": "242231"
+            },
+            {
+              "item": "13610",
+              "count": "113984"
+            },
+            {
+              "item": "10610",
+              "count": "91817"
+            },
+            {
+              "item": "10510",
+              "count": "86420"
+            },
+            {
+              "item": "10210",
+              "count": "84498"
+            },
+            {
+              "item": "10110",
+              "count": "73919"
+            },
+            {
+              "item": "10810",
+              "count": "62012"
+            },
+            {
+              "item": "25390",
+              "count": "58393"
+            },
+            {
+              "item": "24890",
+              "count": "56350"
+            },
+            {
+              "item": "11710",
+              "count": "50933"
+            },
+            {
+              "item": "10910",
+              "count": "49454"
+            },
+            {
+              "item": "10010",
+              "count": "47322"
+            },
+            {
+              "item": "27790",
+              "count": "38152"
+            },
+            {
+              "item": "15710",
+              "count": "37355"
+            },
+            {
+              "item": "14510",
+              "count": "36990"
+            },
+            {
+              "item": "35780",
+              "count": "36586"
+            },
+            {
+              "item": "8790",
+              "count": "36330"
+            },
+            {
+              "item": "18630",
+              "count": "35796"
+            }
+          ],
+          "smallest": "0",
+          "count": "16101101",
+          "cardinality": "16101101"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "noCommas": "true"
+        }
+      },
+      {
+        "id": 628515327,
+        "name": "Street Code3",
+        "dataTypeName": "number",
+        "fieldName": "street_code3",
+        "description": "",
+        "position": 12,
+        "renderTypeName": "number",
+        "tableColumnId": 166117480,
+        "cachedContents": {
+          "non_null": "16101101",
+          "largest": "98280",
+          "null": "0",
+          "top": [
+            {
+              "item": "0",
+              "count": "8453836"
+            },
+            {
+              "item": "40404",
+              "count": "419634"
+            },
+            {
+              "item": "10510",
+              "count": "135697"
+            },
+            {
+              "item": "13610",
+              "count": "121672"
+            },
+            {
+              "item": "10610",
+              "count": "98430"
+            },
+            {
+              "item": "10810",
+              "count": "92842"
+            },
+            {
+              "item": "10110",
+              "count": "89933"
+            },
+            {
+              "item": "25390",
+              "count": "76854"
+            },
+            {
+              "item": "10010",
+              "count": "76639"
+            },
+            {
+              "item": "10210",
+              "count": "64142"
+            },
+            {
+              "item": "10910",
+              "count": "55004"
+            },
+            {
+              "item": "24890",
+              "count": "49179"
+            },
+            {
+              "item": "27790",
+              "count": "48207"
+            },
+            {
+              "item": "11710",
+              "count": "44534"
+            },
+            {
+              "item": "18630",
+              "count": "36940"
+            },
+            {
+              "item": "15710",
+              "count": "33845"
+            },
+            {
+              "item": "12550",
+              "count": "32273"
+            },
+            {
+              "item": "8790",
+              "count": "31842"
+            },
+            {
+              "item": "11010",
+              "count": "28842"
+            },
+            {
+              "item": "11110",
+              "count": "26607"
+            }
+          ],
+          "smallest": "0",
+          "count": "16101101",
+          "cardinality": "16101101"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "noCommas": "true"
+        }
+      },
+      {
+        "id": 628515328,
+        "name": "Vehicle Expiration Date",
+        "dataTypeName": "number",
+        "fieldName": "vehicle_expiration_date",
+        "description": "",
+        "position": 13,
+        "renderTypeName": "number",
+        "tableColumnId": 166117481,
+        "cachedContents": {
+          "non_null": "16101101",
+          "largest": "88888888",
+          "null": "0",
+          "top": [
+            {
+              "item": "0",
+              "count": "7499119"
+            },
+            {
+              "item": "88888888",
+              "count": "1566182"
+            },
+            {
+              "item": "20238888",
+              "count": "220087"
+            },
+            {
+              "item": "20248888",
+              "count": "213470"
+            },
+            {
+              "item": "20240930",
+              "count": "116285"
+            },
+            {
+              "item": "20240731",
+              "count": "80042"
+            },
+            {
+              "item": "20240531",
+              "count": "75251"
+            },
+            {
+              "item": "20240831",
+              "count": "72975"
+            },
+            {
+              "item": "20240430",
+              "count": "67823"
+            },
+            {
+              "item": "20241130",
+              "count": "65880"
+            },
+            {
+              "item": "20240630",
+              "count": "65034"
+            },
+            {
+              "item": "20241031",
+              "count": "62128"
+            },
+            {
+              "item": "20241231",
+              "count": "61876"
+            },
+            {
+              "item": "20240331",
+              "count": "60803"
+            },
+            {
+              "item": "20250228",
+              "count": "57610"
+            },
+            {
+              "item": "20250331",
+              "count": "57457"
+            },
+            {
+              "item": "20250430",
+              "count": "56276"
+            },
+            {
+              "item": "20250131",
+              "count": "55881"
+            },
+            {
+              "item": "20240228",
+              "count": "52862"
+            },
+            {
+              "item": "20250531",
+              "count": "51110"
+            }
+          ],
+          "smallest": "0",
+          "count": "16101101",
+          "cardinality": "16101101"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "noCommas": "true"
+        }
+      },
+      {
+        "id": 628515292,
+        "name": "Violation Location",
+        "dataTypeName": "text",
+        "fieldName": "violation_location",
+        "description": "",
+        "position": 14,
+        "renderTypeName": "text",
+        "tableColumnId": 165010247,
+        "cachedContents": {
+          "non_null": "8925649",
+          "largest": "99",
+          "null": "7175452",
+          "top": [
+            {
+              "item": "19",
+              "count": "417732"
+            },
+            {
+              "item": "114",
+              "count": "324881"
+            },
+            {
+              "item": "6",
+              "count": "312241"
+            },
+            {
+              "item": "13",
+              "count": "298995"
+            },
+            {
+              "item": "14",
+              "count": "274803"
+            },
+            {
+              "item": "109",
+              "count": "241171"
+            },
+            {
+              "item": "1",
+              "count": "230097"
+            },
+            {
+              "item": "18",
+              "count": "228892"
+            },
+            {
+              "item": "9",
+              "count": "211444"
+            },
+            {
+              "item": "115",
+              "count": "208807"
+            },
+            {
+              "item": "66",
+              "count": "176911"
+            },
+            {
+              "item": "61",
+              "count": "176618"
+            },
+            {
+              "item": "20",
+              "count": "176567"
+            },
+            {
+              "item": "112",
+              "count": "169998"
+            },
+            {
+              "item": "84",
+              "count": "166262"
+            },
+            {
+              "item": "70",
+              "count": "165249"
+            },
+            {
+              "item": "52",
+              "count": "163249"
+            },
+            {
+              "item": "108",
+              "count": "159851"
+            },
+            {
+              "item": "46",
+              "count": "157940"
+            },
+            {
+              "item": "103",
+              "count": "155017"
+            }
+          ],
+          "smallest": "1",
+          "count": "16101101",
+          "cardinality": "16101101"
+        },
+        "format": {}
+      },
+      {
+        "id": 628515329,
+        "name": "Violation Precinct",
+        "dataTypeName": "number",
+        "fieldName": "violation_precinct",
+        "description": "",
+        "position": 15,
+        "renderTypeName": "number",
+        "tableColumnId": 166117482,
+        "cachedContents": {
+          "non_null": "16101101",
+          "largest": "919",
+          "null": "0",
+          "top": [
+            {
+              "item": "0",
+              "count": "7175452"
+            },
+            {
+              "item": "19",
+              "count": "417732"
+            },
+            {
+              "item": "114",
+              "count": "324881"
+            },
+            {
+              "item": "6",
+              "count": "312241"
+            },
+            {
+              "item": "13",
+              "count": "298995"
+            },
+            {
+              "item": "14",
+              "count": "274803"
+            },
+            {
+              "item": "109",
+              "count": "241171"
+            },
+            {
+              "item": "1",
+              "count": "230097"
+            },
+            {
+              "item": "18",
+              "count": "228892"
+            },
+            {
+              "item": "9",
+              "count": "211444"
+            },
+            {
+              "item": "115",
+              "count": "208807"
+            },
+            {
+              "item": "66",
+              "count": "176911"
+            },
+            {
+              "item": "61",
+              "count": "176618"
+            },
+            {
+              "item": "20",
+              "count": "176567"
+            },
+            {
+              "item": "112",
+              "count": "169998"
+            },
+            {
+              "item": "84",
+              "count": "166262"
+            },
+            {
+              "item": "70",
+              "count": "165249"
+            },
+            {
+              "item": "52",
+              "count": "163249"
+            },
+            {
+              "item": "108",
+              "count": "159851"
+            },
+            {
+              "item": "46",
+              "count": "157940"
+            }
+          ],
+          "smallest": "0",
+          "count": "16101101",
+          "cardinality": "16101101"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "groupSeparator": ","
+        }
+      },
+      {
+        "id": 628515330,
+        "name": "Issuer Precinct",
+        "dataTypeName": "number",
+        "fieldName": "issuer_precinct",
+        "description": "",
+        "position": 16,
+        "renderTypeName": "number",
+        "tableColumnId": 166117483,
+        "cachedContents": {
+          "non_null": "16101101",
+          "largest": "998",
+          "null": "0",
+          "top": [
+            {
+              "item": "0",
+              "count": "7769355"
+            },
+            {
+              "item": "19",
+              "count": "409108"
+            },
+            {
+              "item": "114",
+              "count": "312342"
+            },
+            {
+              "item": "6",
+              "count": "309506"
+            },
+            {
+              "item": "13",
+              "count": "292156"
+            },
+            {
+              "item": "14",
+              "count": "273456"
+            },
+            {
+              "item": "109",
+              "count": "236023"
+            },
+            {
+              "item": "18",
+              "count": "228392"
+            },
+            {
+              "item": "1",
+              "count": "228291"
+            },
+            {
+              "item": "9",
+              "count": "209132"
+            },
+            {
+              "item": "115",
+              "count": "198865"
+            },
+            {
+              "item": "20",
+              "count": "172348"
+            },
+            {
+              "item": "61",
+              "count": "168155"
+            },
+            {
+              "item": "112",
+              "count": "164584"
+            },
+            {
+              "item": "66",
+              "count": "162804"
+            },
+            {
+              "item": "70",
+              "count": "157271"
+            },
+            {
+              "item": "84",
+              "count": "156389"
+            },
+            {
+              "item": "52",
+              "count": "154760"
+            },
+            {
+              "item": "10",
+              "count": "149238"
+            },
+            {
+              "item": "103",
+              "count": "147425"
+            }
+          ],
+          "smallest": "0",
+          "count": "16101101",
+          "cardinality": "16101101"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "groupSeparator": ","
+        }
+      },
+      {
+        "id": 628515331,
+        "name": "Issuer Code",
+        "dataTypeName": "number",
+        "fieldName": "issuer_code",
+        "description": "",
+        "position": 17,
+        "renderTypeName": "number",
+        "tableColumnId": 166117484,
+        "cachedContents": {
+          "non_null": "16101101",
+          "largest": "999978",
+          "null": "0",
+          "top": [
+            {
+              "item": "0",
+              "count": "7318902"
+            },
+            {
+              "item": "362237",
+              "count": "24210"
+            },
+            {
+              "item": "355542",
+              "count": "23488"
+            },
+            {
+              "item": "345534",
+              "count": "21825"
+            },
+            {
+              "item": "358632",
+              "count": "18159"
+            },
+            {
+              "item": "373728",
+              "count": "16809"
+            },
+            {
+              "item": "353177",
+              "count": "16210"
+            },
+            {
+              "item": "361387",
+              "count": "16145"
+            },
+            {
+              "item": "350438",
+              "count": "16005"
+            },
+            {
+              "item": "350435",
+              "count": "15724"
+            },
+            {
+              "item": "357093",
+              "count": "15638"
+            },
+            {
+              "item": "359295",
+              "count": "15441"
+            },
+            {
+              "item": "332107",
+              "count": "14533"
+            },
+            {
+              "item": "365813",
+              "count": "14500"
+            },
+            {
+              "item": "376965",
+              "count": "14059"
+            },
+            {
+              "item": "365824",
+              "count": "14012"
+            },
+            {
+              "item": "331331",
+              "count": "13928"
+            },
+            {
+              "item": "351343",
+              "count": "13711"
+            },
+            {
+              "item": "376939",
+              "count": "13440"
+            },
+            {
+              "item": "371705",
+              "count": "13174"
+            }
+          ],
+          "smallest": "0",
+          "count": "16101101",
+          "cardinality": "16101101"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "noCommas": "true"
+        }
+      },
+      {
+        "id": 628515296,
+        "name": "Issuer Command",
+        "dataTypeName": "text",
+        "fieldName": "issuer_command",
+        "description": "",
+        "position": 18,
+        "renderTypeName": "text",
+        "tableColumnId": 165214049,
+        "cachedContents": {
+          "non_null": "8934026",
+          "largest": "YSA8",
+          "null": "7167075",
+          "top": [
+            {
+              "item": "T103",
+              "count": "1196778"
+            },
+            {
+              "item": "T302",
+              "count": "1053755"
+            },
+            {
+              "item": "T401",
+              "count": "977999"
+            },
+            {
+              "item": "T102",
+              "count": "966533"
+            },
+            {
+              "item": "T201",
+              "count": "923111"
+            },
+            {
+              "item": "T402",
+              "count": "757646"
+            },
+            {
+              "item": "T301",
+              "count": "742953"
+            },
+            {
+              "item": "T105",
+              "count": "427408"
+            },
+            {
+              "item": "T106",
+              "count": "409595"
+            },
+            {
+              "item": "T303",
+              "count": "152202"
+            },
+            {
+              "item": "MTTF",
+              "count": "110630"
+            },
+            {
+              "item": "T802",
+              "count": "68762"
+            },
+            {
+              "item": "T803",
+              "count": "63497"
+            },
+            {
+              "item": "T801",
+              "count": "38292"
+            },
+            {
+              "item": "T501",
+              "count": "26848"
+            },
+            {
+              "item": "T730",
+              "count": "23722"
+            },
+            {
+              "item": "T800",
+              "count": "23520"
+            },
+            {
+              "item": "KS06",
+              "count": "21278"
+            },
+            {
+              "item": "MN12",
+              "count": "19775"
+            },
+            {
+              "item": "KN05",
+              "count": "17918"
+            }
+          ],
+          "smallest": "0000",
+          "count": "16101101",
+          "cardinality": "16101101"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "groupSeparator": ","
+        }
+      },
+      {
+        "id": 628515297,
+        "name": "Issuer Squad",
+        "dataTypeName": "text",
+        "fieldName": "issuer_squad",
+        "description": "",
+        "position": 19,
+        "renderTypeName": "text",
+        "tableColumnId": 165214050,
+        "cachedContents": {
+          "non_null": "8347166",
+          "largest": "Z",
+          "null": "7753935",
+          "top": [
+            {
+              "item": "A",
+              "count": "506273"
+            },
+            {
+              "item": "H",
+              "count": "456832"
+            },
+            {
+              "item": "L",
+              "count": "432732"
+            },
+            {
+              "item": "D",
+              "count": "413207"
+            },
+            {
+              "item": "N",
+              "count": "397592"
+            },
+            {
+              "item": "E",
+              "count": "394745"
+            },
+            {
+              "item": "Q",
+              "count": "388029"
+            },
+            {
+              "item": "B",
+              "count": "386883"
+            },
+            {
+              "item": "I",
+              "count": "382162"
+            },
+            {
+              "item": "G",
+              "count": "366509"
+            },
+            {
+              "item": "M",
+              "count": "349984"
+            },
+            {
+              "item": "C",
+              "count": "347010"
+            },
+            {
+              "item": "J",
+              "count": "326675"
+            },
+            {
+              "item": "0000",
+              "count": "325351"
+            },
+            {
+              "item": "R",
+              "count": "321916"
+            },
+            {
+              "item": "P",
+              "count": "308120"
+            },
+            {
+              "item": "F",
+              "count": "278866"
+            },
+            {
+              "item": "O",
+              "count": "278344"
+            },
+            {
+              "item": "K",
+              "count": "276242"
+            },
+            {
+              "item": "S",
+              "count": "232808"
+            }
+          ],
+          "smallest": "0000",
+          "count": "16101101",
+          "cardinality": "16101101"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "groupSeparator": ","
+        }
+      },
+      {
+        "id": 628515298,
+        "name": "Violation Time",
+        "dataTypeName": "text",
+        "fieldName": "violation_time",
+        "description": "",
+        "position": 20,
+        "renderTypeName": "text",
+        "tableColumnId": 165010261,
+        "cachedContents": {
+          "non_null": "16100570",
+          "largest": "8754P",
+          "null": "531",
+          "top": [
+            {
+              "item": "0836A",
+              "count": "30366"
+            },
+            {
+              "item": "0840A",
+              "count": "29701"
+            },
+            {
+              "item": "1140A",
+              "count": "29582"
+            },
+            {
+              "item": "0839A",
+              "count": "29510"
+            },
+            {
+              "item": "0838A",
+              "count": "29339"
+            },
+            {
+              "item": "1141A",
+              "count": "29268"
+            },
+            {
+              "item": "0906A",
+              "count": "29249"
+            },
+            {
+              "item": "1139A",
+              "count": "29189"
+            },
+            {
+              "item": "1142A",
+              "count": "29043"
+            },
+            {
+              "item": "1145A",
+              "count": "28976"
+            },
+            {
+              "item": "0841A",
+              "count": "28769"
+            },
+            {
+              "item": "1143A",
+              "count": "28747"
+            },
+            {
+              "item": "1138A",
+              "count": "28739"
+            },
+            {
+              "item": "0842A",
+              "count": "28611"
+            },
+            {
+              "item": "0837A",
+              "count": "28558"
+            },
+            {
+              "item": "1144A",
+              "count": "28530"
+            },
+            {
+              "item": "0908A",
+              "count": "28523"
+            },
+            {
+              "item": "0910A",
+              "count": "28457"
+            },
+            {
+              "item": "0909A",
+              "count": "28184"
+            },
+            {
+              "item": "1146A",
+              "count": "28158"
+            }
+          ],
+          "smallest": "0000A",
+          "count": "16101101",
+          "cardinality": "16101101"
+        },
+        "format": {}
+      },
+      {
+        "id": 628515299,
+        "name": "Time First Observed",
+        "dataTypeName": "text",
+        "fieldName": "time_first_observed",
+        "description": "",
+        "position": 21,
+        "renderTypeName": "text",
+        "tableColumnId": 165010244,
+        "cachedContents": {
+          "non_null": "977752",
+          "largest": "700A",
+          "null": "15123349",
+          "top": [
+            {
+              "item": "00000",
+              "count": "584087"
+            },
+            {
+              "item": "1100A",
+              "count": "6500"
+            },
+            {
+              "item": "1000A",
+              "count": "3822"
+            },
+            {
+              "item": "1030A",
+              "count": "2426"
+            },
+            {
+              "item": "1200P",
+              "count": "1808"
+            },
+            {
+              "item": "0100P",
+              "count": "1557"
+            },
+            {
+              "item": "0200P",
+              "count": "1475"
+            },
+            {
+              "item": "0101P",
+              "count": "1252"
+            },
+            {
+              "item": "1101A",
+              "count": "1172"
+            },
+            {
+              "item": "1257P",
+              "count": "1110"
+            },
+            {
+              "item": "0102P",
+              "count": "1108"
+            },
+            {
+              "item": "1201P",
+              "count": "1101"
+            },
+            {
+              "item": "1102A",
+              "count": "1089"
+            },
+            {
+              "item": "1258P",
+              "count": "1084"
+            },
+            {
+              "item": "1256P",
+              "count": "1075"
+            },
+            {
+              "item": "1230P",
+              "count": "1071"
+            },
+            {
+              "item": "0103P",
+              "count": "1052"
+            },
+            {
+              "item": "1103A",
+              "count": "1034"
+            },
+            {
+              "item": "0110P",
+              "count": "1030"
+            },
+            {
+              "item": "0104P",
+              "count": "1030"
+            }
+          ],
+          "smallest": "00000",
+          "count": "16101101",
+          "cardinality": "16101101"
+        },
+        "format": {}
+      },
+      {
+        "id": 628515300,
+        "name": "Violation County",
+        "dataTypeName": "text",
+        "fieldName": "violation_county",
+        "description": "",
+        "position": 22,
+        "renderTypeName": "text",
+        "tableColumnId": 165010276,
+        "cachedContents": {
+          "non_null": "15952844",
+          "largest": "VINIS",
+          "null": "148257",
+          "top": [
+            {
+              "item": "NY",
+              "count": "3330722"
+            },
+            {
+              "item": "QN",
+              "count": "2741826"
+            },
+            {
+              "item": "BK",
+              "count": "2059674"
+            },
+            {
+              "item": "BX",
+              "count": "2057723"
+            },
+            {
+              "item": "K",
+              "count": "1962949"
+            },
+            {
+              "item": "Q",
+              "count": "1904702"
+            },
+            {
+              "item": "MN",
+              "count": "697889"
+            },
+            {
+              "item": "ST",
+              "count": "532873"
+            },
+            {
+              "item": "Kings",
+              "count": "262352"
+            },
+            {
+              "item": "R",
+              "count": "159859"
+            },
+            {
+              "item": "Bronx",
+              "count": "150756"
+            },
+            {
+              "item": "Qns",
+              "count": "90337"
+            },
+            {
+              "item": "Rich",
+              "count": "1159"
+            },
+            {
+              "item": "QUEEN",
+              "count": "9"
+            },
+            {
+              "item": "QNS",
+              "count": "6"
+            },
+            {
+              "item": "KINGS",
+              "count": "2"
+            },
+            {
+              "item": "BRONX",
+              "count": "2"
+            },
+            {
+              "item": "RICH",
+              "count": "2"
+            },
+            {
+              "item": "N",
+              "count": "1"
+            },
+            {
+              "item": "VINIS",
+              "count": "1"
+            }
+          ],
+          "smallest": "BK",
+          "count": "16101101",
+          "cardinality": "16101101"
+        },
+        "format": {}
+      },
+      {
+        "id": 628515301,
+        "name": "Violation In Front Of Or Opposite",
+        "dataTypeName": "text",
+        "fieldName": "violation_in_front_of_or",
+        "description": "",
+        "position": 23,
+        "renderTypeName": "text",
+        "tableColumnId": 165010280,
+        "cachedContents": {
+          "non_null": "8851205",
+          "largest": "X",
+          "null": "7249896",
+          "top": [
+            {
+              "item": "F",
+              "count": "5373879"
+            },
+            {
+              "item": "O",
+              "count": "2015399"
+            },
+            {
+              "item": "I",
+              "count": "1450783"
+            },
+            {
+              "item": "X",
+              "count": "5798"
+            },
+            {
+              "item": "R",
+              "count": "5346"
+            }
+          ],
+          "smallest": "F",
+          "count": "16101101",
+          "cardinality": "16101101"
+        },
+        "format": {}
+      },
+      {
+        "id": 628515302,
+        "name": "House Number",
+        "dataTypeName": "text",
+        "fieldName": "house_number",
+        "description": "",
+        "position": 24,
+        "renderTypeName": "text",
+        "tableColumnId": 165214051,
+        "cachedContents": {
+          "non_null": "8785702",
+          "largest": "ZERO",
+          "null": "7315399",
+          "top": [
+            {
+              "item": "N",
+              "count": "388270"
+            },
+            {
+              "item": "S",
+              "count": "361270"
+            },
+            {
+              "item": "E",
+              "count": "329033"
+            },
+            {
+              "item": "W",
+              "count": "321744"
+            },
+            {
+              "item": "50",
+              "count": "23030"
+            },
+            {
+              "item": "100",
+              "count": "22955"
+            },
+            {
+              "item": "55",
+              "count": "22891"
+            },
+            {
+              "item": "1",
+              "count": "22245"
+            },
+            {
+              "item": "200",
+              "count": "21426"
+            },
+            {
+              "item": "60",
+              "count": "20899"
+            },
+            {
+              "item": "20",
+              "count": "20821"
+            },
+            {
+              "item": "15",
+              "count": "20298"
+            },
+            {
+              "item": "150",
+              "count": "20212"
+            },
+            {
+              "item": "120",
+              "count": "19719"
+            },
+            {
+              "item": "30",
+              "count": "19535"
+            },
+            {
+              "item": "25",
+              "count": "19467"
+            },
+            {
+              "item": "10",
+              "count": "18921"
+            },
+            {
+              "item": "2",
+              "count": "18712"
+            },
+            {
+              "item": "110",
+              "count": "17547"
+            },
+            {
+              "item": "160",
+              "count": "16855"
+            }
+          ],
+          "smallest": ".",
+          "count": "16101101",
+          "cardinality": "16101101"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "groupSeparator": ","
+        }
+      },
+      {
+        "id": 628515303,
+        "name": "Street Name",
+        "dataTypeName": "text",
+        "fieldName": "street_name",
+        "description": "",
+        "position": 25,
+        "renderTypeName": "text",
+        "tableColumnId": 165010273,
+        "cachedContents": {
+          "non_null": "16098851",
+          "largest": "ZZFD",
+          "null": "2250",
+          "top": [
+            {
+              "item": "WB N CONDUIT AVE @ 8",
+              "count": "247511"
+            },
+            {
+              "item": "Broadway",
+              "count": "167813"
+            },
+            {
+              "item": "3rd Ave",
+              "count": "122076"
+            },
+            {
+              "item": "WB JAMAICA AVE @ PAR",
+              "count": "105429"
+            },
+            {
+              "item": "5th Ave",
+              "count": "85576"
+            },
+            {
+              "item": "WB N CONDUIT AVE @ S",
+              "count": "82379"
+            },
+            {
+              "item": "Madison Ave",
+              "count": "75379"
+            },
+            {
+              "item": "Lexington Ave",
+              "count": "68378"
+            },
+            {
+              "item": "2nd Ave",
+              "count": "68043"
+            },
+            {
+              "item": "NB CROSS BAY BLVD @",
+              "count": "61008"
+            },
+            {
+              "item": "1st Ave",
+              "count": "57357"
+            },
+            {
+              "item": "EB QUEENS MIDTOWN EX",
+              "count": "56888"
+            },
+            {
+              "item": "6th Ave",
+              "count": "56384"
+            },
+            {
+              "item": "EB JAMAICA AVE @ MER",
+              "count": "52224"
+            },
+            {
+              "item": "Queens Blvd",
+              "count": "51397"
+            },
+            {
+              "item": "SB WOODHAVEN BLVD @",
+              "count": "50155"
+            },
+            {
+              "item": "EB BRUCKNER BLVD @ W",
+              "count": "49427"
+            },
+            {
+              "item": "7th Ave",
+              "count": "46401"
+            },
+            {
+              "item": "WB ASTORIA BLVD N @",
+              "count": "45077"
+            },
+            {
+              "item": "37th Ave",
+              "count": "44428"
+            }
+          ],
+          "smallest": "--",
+          "count": "16101101",
+          "cardinality": "16101101"
+        },
+        "format": {}
+      },
+      {
+        "id": 628515304,
+        "name": "Intersecting Street",
+        "dataTypeName": "text",
+        "fieldName": "intersecting_street",
+        "description": "",
+        "position": 26,
+        "renderTypeName": "text",
+        "tableColumnId": 165010242,
+        "cachedContents": {
+          "non_null": "8438807",
+          "largest": "ZUREGA",
+          "null": "7662294",
+          "top": [
+            {
+              "item": "ST",
+              "count": "326948"
+            },
+            {
+              "item": "8TH ST",
+              "count": "259904"
+            },
+            {
+              "item": "H ST",
+              "count": "120221"
+            },
+            {
+              "item": "AVE",
+              "count": "118068"
+            },
+            {
+              "item": "T",
+              "count": "105439"
+            },
+            {
+              "item": "SONS BLVD",
+              "count": "105429"
+            },
+            {
+              "item": "PRINGFIELD BLVD",
+              "count": "98549"
+            },
+            {
+              "item": "E",
+              "count": "96192"
+            },
+            {
+              "item": "TH ST",
+              "count": "76614"
+            },
+            {
+              "item": "HITE PLAINS RD",
+              "count": "72057"
+            },
+            {
+              "item": "PWY @ 69TH LN",
+              "count": "56888"
+            },
+            {
+              "item": "TH AVE",
+              "count": "55035"
+            },
+            {
+              "item": "N ST",
+              "count": "53537"
+            },
+            {
+              "item": "VE",
+              "count": "52989"
+            },
+            {
+              "item": "RICK BLVD",
+              "count": "52224"
+            },
+            {
+              "item": "159TH AVE",
+              "count": "46943"
+            },
+            {
+              "item": "42ND ST",
+              "count": "45297"
+            },
+            {
+              "item": "149TH ST",
+              "count": "42640"
+            },
+            {
+              "item": "@ JAMAICA AVE",
+              "count": "41073"
+            },
+            {
+              "item": "H AVE",
+              "count": "40211"
+            }
+          ],
+          "smallest": "000' E/O WEST 5 STRE",
+          "count": "16101101",
+          "cardinality": "16101101"
+        },
+        "format": {}
+      },
+      {
+        "id": 628515332,
+        "name": "Date First Observed",
+        "dataTypeName": "number",
+        "fieldName": "date_first_observed",
+        "description": "",
+        "position": 27,
+        "renderTypeName": "number",
+        "tableColumnId": 166117485,
+        "cachedContents": {
+          "non_null": "16101101",
+          "largest": "20331119",
+          "null": "0",
+          "top": [
+            {
+              "item": "0",
+              "count": "16020188"
+            },
+            {
+              "item": "20230927",
+              "count": "413"
+            },
+            {
+              "item": "20231011",
+              "count": "399"
+            },
+            {
+              "item": "20240320",
+              "count": "395"
+            },
+            {
+              "item": "20230809",
+              "count": "392"
+            },
+            {
+              "item": "20230817",
+              "count": "391"
+            },
+            {
+              "item": "20230816",
+              "count": "384"
+            },
+            {
+              "item": "20230815",
+              "count": "381"
+            },
+            {
+              "item": "20230717",
+              "count": "381"
+            },
+            {
+              "item": "20240221",
+              "count": "381"
+            },
+            {
+              "item": "20231108",
+              "count": "381"
+            },
+            {
+              "item": "20230822",
+              "count": "378"
+            },
+            {
+              "item": "20230808",
+              "count": "376"
+            },
+            {
+              "item": "20230830",
+              "count": "375"
+            },
+            {
+              "item": "20230803",
+              "count": "374"
+            },
+            {
+              "item": "20240509",
+              "count": "371"
+            },
+            {
+              "item": "20230823",
+              "count": "368"
+            },
+            {
+              "item": "20231115",
+              "count": "364"
+            },
+            {
+              "item": "20240612",
+              "count": "363"
+            },
+            {
+              "item": "20230829",
+              "count": "360"
+            }
+          ],
+          "smallest": "0",
+          "count": "16101101",
+          "cardinality": "16101101"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "groupSeparator": ","
+        }
+      },
+      {
+        "id": 628515333,
+        "name": "Law Section",
+        "dataTypeName": "number",
+        "fieldName": "law_section",
+        "description": "",
+        "position": 28,
+        "renderTypeName": "number",
+        "tableColumnId": 166117486,
+        "cachedContents": {
+          "non_null": "16101101",
+          "largest": "1180",
+          "null": "0",
+          "top": [
+            {
+              "item": "408",
+              "count": "8930014"
+            },
+            {
+              "item": "1180",
+              "count": "5573361"
+            },
+            {
+              "item": "1111",
+              "count": "1592078"
+            },
+            {
+              "item": "0",
+              "count": "2413"
+            },
+            {
+              "item": "385",
+              "count": "1483"
+            },
+            {
+              "item": "410",
+              "count": "879"
+            },
+            {
+              "item": "411",
+              "count": "873"
+            }
+          ],
+          "smallest": "0",
+          "count": "16101101",
+          "cardinality": "16101101"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "groupSeparator": ","
+        }
+      },
+      {
+        "id": 628515307,
+        "name": "Sub Division",
+        "dataTypeName": "text",
+        "fieldName": "sub_division",
+        "description": "",
+        "position": 29,
+        "renderTypeName": "text",
+        "tableColumnId": 165010266,
+        "cachedContents": {
+          "non_null": "16098341",
+          "largest": "P1",
+          "null": "2760",
+          "top": [
+            {
+              "item": "B",
+              "count": "5638415"
+            },
+            {
+              "item": "H1",
+              "count": "1711068"
+            },
+            {
+              "item": "C",
+              "count": "1677398"
+            },
+            {
+              "item": "D1",
+              "count": "1397134"
+            },
+            {
+              "item": "D",
+              "count": "1335575"
+            },
+            {
+              "item": "E2",
+              "count": "642364"
+            },
+            {
+              "item": "J6",
+              "count": "574814"
+            },
+            {
+              "item": "d1",
+              "count": "514421"
+            },
+            {
+              "item": "J3",
+              "count": "402087"
+            },
+            {
+              "item": "F1",
+              "count": "332658"
+            },
+            {
+              "item": "L3",
+              "count": "250208"
+            },
+            {
+              "item": "C3",
+              "count": "244150"
+            },
+            {
+              "item": "J2",
+              "count": "231692"
+            },
+            {
+              "item": "K2",
+              "count": "224734"
+            },
+            {
+              "item": "C4",
+              "count": "112903"
+            },
+            {
+              "item": "E5",
+              "count": "86691"
+            },
+            {
+              "item": "K7",
+              "count": "73968"
+            },
+            {
+              "item": "L2",
+              "count": "66508"
+            },
+            {
+              "item": "E9",
+              "count": "61806"
+            },
+            {
+              "item": "F2",
+              "count": "54138"
+            }
+          ],
+          "smallest": "11",
+          "count": "16101101",
+          "cardinality": "16101101"
+        },
+        "format": {}
+      },
+      {
+        "id": 628515308,
+        "name": "Violation Legal Code",
+        "dataTypeName": "text",
+        "fieldName": "violation_legal_code",
+        "description": "",
+        "position": 30,
+        "renderTypeName": "text",
+        "tableColumnId": 165010269,
+        "cachedContents": {
+          "non_null": "7166922",
+          "largest": "T",
+          "null": "8934179",
+          "top": [
+            {
+              "item": "T",
+              "count": "7166922"
+            }
+          ],
+          "smallest": "T",
+          "count": "16101101",
+          "cardinality": "16101101"
+        },
+        "format": {}
+      },
+      {
+        "id": 628515309,
+        "name": "Days Parking In Effect",
+        "dataTypeName": "text",
+        "fieldName": "days_parking_in_effect",
+        "description": "",
+        "position": 31,
+        "renderTypeName": "text",
+        "tableColumnId": 165010277,
+        "cachedContents": {
+          "non_null": "8784122",
+          "largest": "YYYYYYY",
+          "null": "7316979",
+          "top": [
+            {
+              "item": "YYYYYYY",
+              "count": "3828377"
+            },
+            {
+              "item": "YYYYYY",
+              "count": "1883567"
+            },
+            {
+              "item": "Y  Y",
+              "count": "970873"
+            },
+            {
+              "item": "YYYYY",
+              "count": "934592"
+            },
+            {
+              "item": "Y",
+              "count": "684331"
+            },
+            {
+              "item": "BBBBBBB",
+              "count": "307520"
+            },
+            {
+              "item": "SCHOOL",
+              "count": "78628"
+            },
+            {
+              "item": "Y Y Y",
+              "count": "35190"
+            },
+            {
+              "item": "YYYY",
+              "count": "16254"
+            },
+            {
+              "item": "YY YY",
+              "count": "11775"
+            },
+            {
+              "item": "YYYYYBB",
+              "count": "6440"
+            },
+            {
+              "item": "Y     Y",
+              "count": "3995"
+            },
+            {
+              "item": "Y Y",
+              "count": "3490"
+            },
+            {
+              "item": "Y YY",
+              "count": "3288"
+            },
+            {
+              "item": "YYYYYYB",
+              "count": "2653"
+            },
+            {
+              "item": "Y  YY",
+              "count": "2408"
+            },
+            {
+              "item": "Y   Y",
+              "count": "1404"
+            },
+            {
+              "item": "YY  Y",
+              "count": "810"
+            },
+            {
+              "item": "YY Y",
+              "count": "761"
+            },
+            {
+              "item": "YY",
+              "count": "759"
+            }
+          ],
+          "smallest": "BBBBBBB",
+          "count": "16101101",
+          "cardinality": "16101101"
+        },
+        "format": {}
+      },
+      {
+        "id": 628515310,
+        "name": "From Hours In Effect",
+        "dataTypeName": "text",
+        "fieldName": "from_hours_in_effect",
+        "description": "",
+        "position": 32,
+        "renderTypeName": "text",
+        "tableColumnId": 165010257,
+        "cachedContents": {
+          "non_null": "5158020",
+          "largest": "ALL",
+          "null": "10943081",
+          "top": [
+            {
+              "item": "0800A",
+              "count": "1071253"
+            },
+            {
+              "item": "0700A",
+              "count": "816908"
+            },
+            {
+              "item": "0900A",
+              "count": "805244"
+            },
+            {
+              "item": "0830A",
+              "count": "662598"
+            },
+            {
+              "item": "1130A",
+              "count": "402750"
+            },
+            {
+              "item": "ALL",
+              "count": "306158"
+            },
+            {
+              "item": "0930A",
+              "count": "272412"
+            },
+            {
+              "item": "1100A",
+              "count": "205136"
+            },
+            {
+              "item": "0730A",
+              "count": "157336"
+            },
+            {
+              "item": "1200A",
+              "count": "95412"
+            },
+            {
+              "item": "1000A",
+              "count": "78405"
+            },
+            {
+              "item": "0600A",
+              "count": "78053"
+            },
+            {
+              "item": "0400P",
+              "count": "36849"
+            },
+            {
+              "item": "0900P",
+              "count": "34009"
+            },
+            {
+              "item": "0600P",
+              "count": "23098"
+            },
+            {
+              "item": "0200P",
+              "count": "21701"
+            },
+            {
+              "item": "0300A",
+              "count": "21252"
+            },
+            {
+              "item": "1030A",
+              "count": "12298"
+            },
+            {
+              "item": "0700P",
+              "count": "9387"
+            },
+            {
+              "item": "1200P",
+              "count": "9006"
+            }
+          ],
+          "smallest": "0000",
+          "count": "16101101",
+          "cardinality": "16101101"
+        },
+        "format": {}
+      },
+      {
+        "id": 628515311,
+        "name": "To Hours In Effect",
+        "dataTypeName": "text",
+        "fieldName": "to_hours_in_effect",
+        "description": "",
+        "position": 33,
+        "renderTypeName": "text",
+        "tableColumnId": 165010272,
+        "cachedContents": {
+          "non_null": "5158005",
+          "largest": "ALL",
+          "null": "10943096",
+          "top": [
+            {
+              "item": "0700P",
+              "count": "1658153"
+            },
+            {
+              "item": "0600P",
+              "count": "571129"
+            },
+            {
+              "item": "0100P",
+              "count": "419186"
+            },
+            {
+              "item": "1000A",
+              "count": "341966"
+            },
+            {
+              "item": "ALL",
+              "count": "306172"
+            },
+            {
+              "item": "1100A",
+              "count": "260285"
+            },
+            {
+              "item": "1000P",
+              "count": "239690"
+            },
+            {
+              "item": "1030A",
+              "count": "202864"
+            },
+            {
+              "item": "0400P",
+              "count": "172442"
+            },
+            {
+              "item": "1230A",
+              "count": "160150"
+            },
+            {
+              "item": "0930A",
+              "count": "126654"
+            },
+            {
+              "item": "0800A",
+              "count": "109749"
+            },
+            {
+              "item": "0830A",
+              "count": "93021"
+            },
+            {
+              "item": "1200A",
+              "count": "80293"
+            },
+            {
+              "item": "0900A",
+              "count": "70576"
+            },
+            {
+              "item": "0300A",
+              "count": "57436"
+            },
+            {
+              "item": "0600A",
+              "count": "40991"
+            },
+            {
+              "item": "1230P",
+              "count": "38376"
+            },
+            {
+              "item": "0500A",
+              "count": "35060"
+            },
+            {
+              "item": "0130P",
+              "count": "32585"
+            }
+          ],
+          "smallest": "00",
+          "count": "16101101",
+          "cardinality": "16101101"
+        },
+        "format": {}
+      },
+      {
+        "id": 628515312,
+        "name": "Vehicle Color",
+        "dataTypeName": "text",
+        "fieldName": "vehicle_color",
+        "description": "",
+        "position": 34,
+        "renderTypeName": "text",
+        "tableColumnId": 165010263,
+        "cachedContents": {
+          "non_null": "14611044",
+          "largest": "ZOM",
+          "null": "1490057",
+          "top": [
+            {
+              "item": "GY",
+              "count": "3128089"
+            },
+            {
+              "item": "WH",
+              "count": "2912380"
+            },
+            {
+              "item": "BK",
+              "count": "2732195"
+            },
+            {
+              "item": "BL",
+              "count": "1029175"
+            },
+            {
+              "item": "WHITE",
+              "count": "933360"
+            },
+            {
+              "item": "BLACK",
+              "count": "613298"
+            },
+            {
+              "item": "RD",
+              "count": "588785"
+            },
+            {
+              "item": "GREY",
+              "count": "466446"
+            },
+            {
+              "item": "BLUE",
+              "count": "215066"
+            },
+            {
+              "item": "SILVE",
+              "count": "204940"
+            },
+            {
+              "item": "GR",
+              "count": "203306"
+            },
+            {
+              "item": "BROWN",
+              "count": "198864"
+            },
+            {
+              "item": "RED",
+              "count": "176922"
+            },
+            {
+              "item": "BLK",
+              "count": "128135"
+            },
+            {
+              "item": "TN",
+              "count": "104610"
+            },
+            {
+              "item": "YW",
+              "count": "101588"
+            },
+            {
+              "item": "BR",
+              "count": "101485"
+            },
+            {
+              "item": "GRY",
+              "count": "91972"
+            },
+            {
+              "item": "WHI",
+              "count": "78477"
+            },
+            {
+              "item": "GL",
+              "count": "58131"
+            }
+          ],
+          "smallest": "`",
+          "count": "16101101",
+          "cardinality": "16101101"
+        },
+        "format": {}
+      },
+      {
+        "id": 628515313,
+        "name": "Unregistered Vehicle?",
+        "dataTypeName": "text",
+        "fieldName": "unregistered_vehicle",
+        "description": "",
+        "position": 35,
+        "renderTypeName": "text",
+        "tableColumnId": 165214053,
+        "cachedContents": {
+          "non_null": "325420",
+          "largest": "0",
+          "null": "15775681",
+          "top": [
+            {
+              "item": "0",
+              "count": "325420"
+            }
+          ],
+          "smallest": "0",
+          "count": "16101101",
+          "cardinality": "16101101"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "groupSeparator": ","
+        }
+      },
+      {
+        "id": 628515334,
+        "name": "Vehicle Year",
+        "dataTypeName": "number",
+        "fieldName": "vehicle_year",
+        "description": "",
+        "position": 36,
+        "renderTypeName": "number",
+        "tableColumnId": 166117487,
+        "cachedContents": {
+          "non_null": "16101101",
+          "largest": "2069",
+          "null": "0",
+          "top": [
+            {
+              "item": "0",
+              "count": "2729846"
+            },
+            {
+              "item": "2023",
+              "count": "1328851"
+            },
+            {
+              "item": "2022",
+              "count": "1211463"
+            },
+            {
+              "item": "2021",
+              "count": "1180578"
+            },
+            {
+              "item": "2019",
+              "count": "1086550"
+            },
+            {
+              "item": "2020",
+              "count": "1006855"
+            },
+            {
+              "item": "2018",
+              "count": "895097"
+            },
+            {
+              "item": "2017",
+              "count": "832377"
+            },
+            {
+              "item": "2016",
+              "count": "707064"
+            },
+            {
+              "item": "2015",
+              "count": "668336"
+            },
+            {
+              "item": "2014",
+              "count": "531950"
+            },
+            {
+              "item": "2013",
+              "count": "516347"
+            },
+            {
+              "item": "2012",
+              "count": "436131"
+            },
+            {
+              "item": "2011",
+              "count": "402240"
+            },
+            {
+              "item": "2024",
+              "count": "364863"
+            },
+            {
+              "item": "2008",
+              "count": "330164"
+            },
+            {
+              "item": "2010",
+              "count": "328916"
+            },
+            {
+              "item": "2007",
+              "count": "302100"
+            },
+            {
+              "item": "2009",
+              "count": "268789"
+            },
+            {
+              "item": "2006",
+              "count": "242970"
+            }
+          ],
+          "smallest": "0",
+          "count": "16101101",
+          "cardinality": "16101101"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "noCommas": "true"
+        }
+      },
+      {
+        "id": 628515315,
+        "name": "Meter Number",
+        "dataTypeName": "text",
+        "fieldName": "meter_number",
+        "description": "",
+        "position": 37,
+        "renderTypeName": "text",
+        "tableColumnId": 165010249,
+        "cachedContents": {
+          "non_null": "2037346",
+          "largest": "na",
+          "null": "14063755",
+          "top": [
+            {
+              "item": "-",
+              "count": "325333"
+            },
+            {
+              "item": "469232",
+              "count": "4503"
+            },
+            {
+              "item": "444673",
+              "count": "3105"
+            },
+            {
+              "item": "342831",
+              "count": "2888"
+            },
+            {
+              "item": "109735",
+              "count": "2865"
+            },
+            {
+              "item": "469275",
+              "count": "2808"
+            },
+            {
+              "item": "434252",
+              "count": "2680"
+            },
+            {
+              "item": "105556",
+              "count": "2485"
+            },
+            {
+              "item": "504892",
+              "count": "2480"
+            },
+            {
+              "item": "101342",
+              "count": "2330"
+            },
+            {
+              "item": "525706",
+              "count": "2216"
+            },
+            {
+              "item": "417371",
+              "count": "2209"
+            },
+            {
+              "item": "104357",
+              "count": "2183"
+            },
+            {
+              "item": "444492",
+              "count": "2121"
+            },
+            {
+              "item": "416071",
+              "count": "2099"
+            },
+            {
+              "item": "426283",
+              "count": "2073"
+            },
+            {
+              "item": "400998",
+              "count": "2048"
+            },
+            {
+              "item": "104739",
+              "count": "2001"
+            },
+            {
+              "item": "100223",
+              "count": "1996"
+            },
+            {
+              "item": "113867",
+              "count": "1993"
+            }
+          ],
+          "smallest": "-",
+          "count": "16101101",
+          "cardinality": "16101101"
+        },
+        "format": {}
+      },
+      {
+        "id": 628515316,
+        "name": "Feet From Curb",
+        "dataTypeName": "number",
+        "fieldName": "feet_from_curb",
+        "description": "",
+        "position": 38,
+        "renderTypeName": "number",
+        "tableColumnId": 165010275,
+        "cachedContents": {
+          "non_null": "16101101",
+          "largest": "43",
+          "null": "0",
+          "top": [
+            {
+              "item": "0",
+              "count": "15848581"
+            },
+            {
+              "item": "5",
+              "count": "47738"
+            },
+            {
+              "item": "3",
+              "count": "41862"
+            },
+            {
+              "item": "2",
+              "count": "37427"
+            },
+            {
+              "item": "4",
+              "count": "33914"
+            },
+            {
+              "item": "1",
+              "count": "29547"
+            },
+            {
+              "item": "6",
+              "count": "26497"
+            },
+            {
+              "item": "7",
+              "count": "17246"
+            },
+            {
+              "item": "8",
+              "count": "11587"
+            },
+            {
+              "item": "9",
+              "count": "4815"
+            },
+            {
+              "item": "10",
+              "count": "1612"
+            },
+            {
+              "item": "11",
+              "count": "135"
+            },
+            {
+              "item": "12",
+              "count": "75"
+            },
+            {
+              "item": "15",
+              "count": "25"
+            },
+            {
+              "item": "13",
+              "count": "21"
+            },
+            {
+              "item": "14",
+              "count": "16"
+            },
+            {
+              "item": "21",
+              "count": "1"
+            },
+            {
+              "item": "40",
+              "count": "1"
+            },
+            {
+              "item": "43",
+              "count": "1"
+            }
+          ],
+          "smallest": "0",
+          "count": "16101101",
+          "cardinality": "16101101"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "groupSeparator": ","
+        }
+      },
+      {
+        "id": 628515317,
+        "name": "Violation Post Code",
+        "dataTypeName": "text",
+        "fieldName": "violation_post_code",
+        "description": "",
+        "position": 39,
+        "renderTypeName": "text",
+        "tableColumnId": 165010282,
+        "cachedContents": {
+          "non_null": "5543462",
+          "largest": "99",
+          "null": "10557639",
+          "top": [
+            {
+              "item": "1",
+              "count": "376198"
+            },
+            {
+              "item": "99",
+              "count": "359411"
+            },
+            {
+              "item": "3",
+              "count": "187130"
+            },
+            {
+              "item": "6",
+              "count": "186809"
+            },
+            {
+              "item": "9",
+              "count": "183205"
+            },
+            {
+              "item": "2",
+              "count": "173674"
+            },
+            {
+              "item": "5",
+              "count": "173076"
+            },
+            {
+              "item": "11",
+              "count": "167234"
+            },
+            {
+              "item": "8",
+              "count": "156001"
+            },
+            {
+              "item": "15",
+              "count": "149145"
+            },
+            {
+              "item": "7",
+              "count": "148622"
+            },
+            {
+              "item": "4",
+              "count": "148530"
+            },
+            {
+              "item": "17",
+              "count": "148397"
+            },
+            {
+              "item": "14",
+              "count": "141997"
+            },
+            {
+              "item": "10",
+              "count": "129090"
+            },
+            {
+              "item": "19",
+              "count": "127193"
+            },
+            {
+              "item": "12",
+              "count": "119010"
+            },
+            {
+              "item": "18",
+              "count": "111216"
+            },
+            {
+              "item": "20",
+              "count": "101694"
+            },
+            {
+              "item": "16",
+              "count": "96756"
+            }
+          ],
+          "smallest": "0",
+          "count": "16101101",
+          "cardinality": "16101101"
+        },
+        "format": {}
+      },
+      {
+        "id": 628515318,
+        "name": "Violation Description",
+        "dataTypeName": "text",
+        "fieldName": "violation_description",
+        "description": "",
+        "position": 40,
+        "renderTypeName": "text",
+        "tableColumnId": 165010279,
+        "cachedContents": {
+          "non_null": "15774420",
+          "largest": "Wrong Way",
+          "null": "326681",
+          "top": [
+            {
+              "item": "PHTO SCHOOL ZN SPEED VIOLATION",
+              "count": "5573361"
+            },
+            {
+              "item": "21-No Parking (street clean)",
+              "count": "1390194"
+            },
+            {
+              "item": "38-Failure to Dsplay Meter Rec",
+              "count": "1182440"
+            },
+            {
+              "item": "14-No Standing",
+              "count": "760997"
+            },
+            {
+              "item": "FAILURE TO STOP AT RED LIGHT",
+              "count": "712368"
+            },
+            {
+              "item": "BUS LANE VIOLATION",
+              "count": "677157"
+            },
+            {
+              "item": "40-Fire Hydrant",
+              "count": "584936"
+            },
+            {
+              "item": "No Parking Street Cleaning",
+              "count": "514421"
+            },
+            {
+              "item": "71A-Insp Sticker Expired (NYS)",
+              "count": "488330"
+            },
+            {
+              "item": "20A-No Parking (Non-COM)",
+              "count": "434307"
+            },
+            {
+              "item": "70A-Reg. Sticker Expired (NYS)",
+              "count": "327276"
+            },
+            {
+              "item": "37-Expired Parking Meter",
+              "count": "274778"
+            },
+            {
+              "item": "31-No Stand (Com. Mtr. Zone)",
+              "count": "250207"
+            },
+            {
+              "item": "19-No Stand (bus stop)",
+              "count": "229043"
+            },
+            {
+              "item": "69-Fail to Dsp Prking Mtr Rcpt",
+              "count": "221108"
+            },
+            {
+              "item": "MOBILE BUS LANE VIOLATION",
+              "count": "202553"
+            },
+            {
+              "item": "16A-No Std (Com Veh) Non-COM",
+              "count": "195288"
+            },
+            {
+              "item": "46A-Double Parking (Non-COM)",
+              "count": "168608"
+            },
+            {
+              "item": "20-No Parking (Com Plate)",
+              "count": "162241"
+            },
+            {
+              "item": "46B-Double Parking (Com-100Ft)",
+              "count": "124392"
+            }
+          ],
+          "smallest": "--",
+          "count": "16101101",
+          "cardinality": "16101101"
+        },
+        "format": {}
+      },
+      {
+        "id": 628515319,
+        "name": "No Standing or Stopping Violation",
+        "dataTypeName": "text",
+        "fieldName": "no_standing_or_stopping",
+        "description": "",
+        "position": 41,
+        "renderTypeName": "text",
+        "tableColumnId": 165010256,
+        "cachedContents": {
+          "non_null": "0",
+          "null": "16101101",
+          "count": "16101101",
+          "cardinality": "16101101"
+        },
+        "format": {}
+      },
+      {
+        "id": 628515320,
+        "name": "Hydrant Violation",
+        "dataTypeName": "text",
+        "fieldName": "hydrant_violation",
+        "description": "",
+        "position": 42,
+        "renderTypeName": "text",
+        "tableColumnId": 165010283,
+        "cachedContents": {
+          "non_null": "0",
+          "null": "16101101",
+          "count": "16101101",
+          "cardinality": "16101101"
+        },
+        "format": {}
+      },
+      {
+        "id": 628515321,
+        "name": "Double Parking Violation",
+        "dataTypeName": "text",
+        "fieldName": "double_parking_violation",
+        "description": "",
+        "position": 43,
+        "renderTypeName": "text",
+        "tableColumnId": 165010271,
+        "cachedContents": {
+          "non_null": "0",
+          "null": "16101101",
+          "count": "16101101",
+          "cardinality": "16101101"
+        },
+        "format": {}
+      }
+    ],
+    "assetType": "dataset",
+    "averageRating": 0,
+    "category": "City Government",
+    "createdAt": 1769788231,
+    "diciBackend": false,
+    "displayType": "table",
+    "downloadCount": 605,
+    "hideFromCatalog": false,
+    "hideFromDataJson": false,
+    "locked": false,
+    "newBackend": true,
+    "numberOfComments": 0,
+    "oid": 42004159,
+    "provenance": "official",
+    "publicationAppendEnabled": true,
+    "publicationDate": 1773360991,
+    "publicationGroup": 20258939,
+    "publicationStage": "published",
+    "rowsUpdatedBy": "d5dp-fses",
+    "tableId": 20307180,
+    "totalTimesRated": 0,
+    "viewCount": 875,
+    "viewLastModified": 1773360991,
+    "viewType": "tabular",
+    "approvals": [
+      {
+        "reviewedAt": 1771952682,
+        "reviewedAutomatically": false,
+        "state": "approved",
+        "submissionId": 7388543,
+        "submissionObject": "public_audience_request",
+        "submissionOutcome": "change_audience",
+        "submittedAt": 1771952650,
+        "targetAudience": "public",
+        "workflowId": 2285,
+        "reviewer": {
+          "id": "d5dp-fses",
+          "displayName": "afinkel"
+        },
+        "submissionDetails": {
+          "permissionType": "read"
+        },
+        "submissionOutcomeApplication": {
+          "endedAt": 1771952682,
+          "failureCount": 0,
+          "startedAt": 1771952682,
+          "status": "success"
+        },
+        "submitter": {
+          "id": "d5dp-fses",
+          "displayName": "afinkel"
+        }
+      }
+    ],
+    "clientContext": {
+      "clientContextVariables": [],
+      "inheritedVariables": {}
+    },
+    "grants": [
+      {
+        "inherited": false,
+        "type": "viewer",
+        "flags": [
+          "public"
+        ]
+      }
+    ],
+    "metadata": {
+      "attachments": [
+        {
+          "filename": "OpenDataPortalMonthlyIssuance20160920.xlsx",
+          "assetId": "92b9cc72-5fce-4e0a-b5fc-4f76aae9ae36",
+          "name": "OpenDataPortalMonthlyIssuance20160920.xlsx"
+        },
+        {
+          "filename": "ParkingViolationCodes_January2020.xlsx",
+          "assetId": "e81093fa-3004-4940-af83-cb974ec77540",
+          "name": "ParkingViolationCodes_January2020.xlsx"
+        }
+      ],
+      "custom_fields": {
+        "Data Collection": {
+          "Data Collection": "DOF Parking Violations Issued"
+        },
+        "Update": {
+          "Automation": "No",
+          "Date Made Public": "1/30/2026",
+          "Update Frequency": "Historical data"
+        },
+        "Dataset Information": {
+          "Agency": "Department of Finance (DOF)"
+        }
+      },
+      "rowLabel": "Parking Violations Issued",
+      "availableDisplayTypes": [
+        "table",
+        "fatrow",
+        "page"
+      ]
+    },
+    "owner": {
+      "id": "5fuc-pqz2",
+      "displayName": "NYC OpenData",
+      "profileImageUrlLarge": "/api/users/5fuc-pqz2/profile_images/LARGE",
+      "profileImageUrlMedium": "/api/users/5fuc-pqz2/profile_images/THUMB",
+      "profileImageUrlSmall": "/api/users/5fuc-pqz2/profile_images/TINY",
+      "screenName": "NYC OpenData",
+      "type": "interactive",
+      "flags": [
+        "acceptedEula",
+        "mayBeStoriesCoOwner"
+      ]
+    },
+    "query": {},
+    "rights": [
+      "read"
+    ],
+    "tableAuthor": {
+      "id": "5fuc-pqz2",
+      "displayName": "NYC OpenData",
+      "profileImageUrlLarge": "/api/users/5fuc-pqz2/profile_images/LARGE",
+      "profileImageUrlMedium": "/api/users/5fuc-pqz2/profile_images/THUMB",
+      "profileImageUrlSmall": "/api/users/5fuc-pqz2/profile_images/TINY",
+      "screenName": "NYC OpenData",
+      "type": "interactive",
+      "flags": [
+        "acceptedEula",
+        "mayBeStoriesCoOwner"
+      ]
+    },
+    "tags": [
+      "finance",
+      "tickets",
+      "violations. summons",
+      "parking tickets",
+      "parking violations issued  - fiscal year"
+    ],
+    "flags": [
+      "default",
+      "ownerMayBeContacted",
+      "restorable",
+      "restorePossibleForType"
+    ]
+  }
+}

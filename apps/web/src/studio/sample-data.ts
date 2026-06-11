@@ -90,6 +90,8 @@ export const studioRoutes: StudioRoute[] = [
     stops: 33,
     flags: ["ACE active", "Bus lane", "TSP partial"],
     peerSlug: "m15-local",
+    movement6mPct: null,
+    context12mPct: null,
     interventions: [
       {
         year: "2010",
@@ -147,6 +149,8 @@ export const studioRoutes: StudioRoute[] = [
     stops: 29,
     flags: ["ACE active", "Concrete lane", "TSP active"],
     peerSlug: "m15-sbs",
+    movement6mPct: null,
+    context12mPct: null,
     interventions: [
       {
         year: "2013",
@@ -204,6 +208,8 @@ export const studioRoutes: StudioRoute[] = [
     stops: 38,
     flags: ["Bus lane partial"],
     peerSlug: "m15-sbs",
+    movement6mPct: null,
+    context12mPct: null,
     interventions: [
       {
         year: "2018",
@@ -246,6 +252,8 @@ export const studioRoutes: StudioRoute[] = [
     stops: 36,
     flags: ["Lane minimal"],
     peerSlug: "b46-sbs",
+    movement6mPct: null,
+    context12mPct: null,
     interventions: [
       {
         year: "2021",
@@ -283,6 +291,8 @@ export const studioRoutes: StudioRoute[] = [
     stops: 31,
     flags: ["ACE active", "Lane partial"],
     peerSlug: "bx12-sbs",
+    movement6mPct: null,
+    context12mPct: null,
     interventions: [
       { year: "2016", title: "SBS launches", detail: "Utica corridor selected for fast bus." },
       { year: "2021", title: "ACE begins", detail: "Camera enforcement active on Utica Av." },
@@ -322,6 +332,8 @@ export const studioRoutes: StudioRoute[] = [
     stops: 47,
     flags: ["No bus lane", "No ACE"],
     peerSlug: "bx12-sbs",
+    movement6mPct: null,
+    context12mPct: null,
     interventions: [],
   },
   {
@@ -353,6 +365,8 @@ export const studioRoutes: StudioRoute[] = [
     stops: 14,
     flags: ["Busway", "ACE active"],
     peerSlug: "m14d-sbs",
+    movement6mPct: null,
+    context12mPct: null,
     interventions: [
       {
         year: "2019",
@@ -394,6 +408,8 @@ export const studioRoutes: StudioRoute[] = [
     stops: 14,
     flags: ["Busway", "ACE active"],
     peerSlug: "m14a-sbs",
+    movement6mPct: null,
+    context12mPct: null,
     interventions: [
       {
         year: "2019",
@@ -1374,7 +1390,7 @@ export const studioDocsSections: StudioDocsSection[] = [
   {
     title: "Changelog",
     body: [
-      "2026-05-18: hard cutover planning started. The route-first site, schema-first API, and future CLI now share one implementation plan.",
+      "2026-05-18: route-first Studio planning started. The website, API, and future CLI now share one implementation plan.",
     ],
   },
 ];
@@ -1392,11 +1408,6 @@ export const studioDocsEndpoints: StudioDocsEndpoint[] = [
   },
   {
     method: "GET",
-    path: "/api/v1/studio/routes/:routeId/ladder",
-    body: "Fetch the ordered route ladder and segment evidence.",
-  },
-  {
-    method: "GET",
     path: "/api/v1/studio/compare?a=&b=",
     body: "Compare two route-first Studio payloads by canonical route slug.",
   },
@@ -1408,12 +1419,87 @@ export const studioDocsEndpoints: StudioDocsEndpoint[] = [
   {
     method: "GET",
     path: "/api/openapi.json",
-    body: "Fetch the generated OpenAPI document for Studio read contracts.",
+    body: "Fetch the generated OpenAPI document for Studio read and draft-authoring contracts.",
+  },
+  {
+    method: "PATCH",
+    path: "/api/v1/studio/briefs/:briefId/draft",
+    body: "Update operator-scoped draft metadata; requires a Studio session and Idempotency-Key.",
   },
   {
     method: "POST",
-    path: "/api/v1/studio/briefs/:briefId/generate",
-    body: "Planned composing endpoint for staged draft generation from attached claims and evidence.",
+    path: "/api/v1/studio/briefs/:briefId/draft/generate",
+    body: "Queue a Cloudflare Think / Workers AI generation run that stores a proposal for approval.",
+  },
+  {
+    method: "POST",
+    path: "/api/v1/studio/briefs/:briefId/draft/agent-runs",
+    body: "Start an authoring agent run against the current draft version and content hash.",
+  },
+  {
+    method: "POST",
+    path: "/api/v1/studio/briefs/:briefId/draft/agent-runs/:runId/propose-edit",
+    body: "Submit structured agent edit operations; invalid output returns repair feedback instead of mutating the draft.",
+  },
+  {
+    method: "GET",
+    path: "/api/v1/studio/briefs/:briefId/draft/proposals/:proposalId",
+    body: "Fetch an agent proposal for preview and human approval.",
+  },
+  {
+    method: "POST",
+    path: "/api/v1/studio/briefs/:briefId/draft/proposals/:proposalId/apply",
+    body: "Apply all or selected approved proposal operations and create a draft version snapshot.",
+  },
+  {
+    method: "POST",
+    path: "/api/v1/studio/briefs/:briefId/draft/proposals/:proposalId/reject",
+    body: "Reject an agent proposal without mutating accepted draft content.",
+  },
+  {
+    method: "GET",
+    path: "/api/v1/studio/briefs/:briefId/draft/versions",
+    body: "List restoreable draft version milestones.",
+  },
+  {
+    method: "POST",
+    path: "/api/v1/studio/briefs/:briefId/draft/versions/:versionId/restore",
+    body: "Restore a D1-backed draft version snapshot as a new draft version.",
+  },
+  {
+    method: "POST",
+    path: "/api/v1/studio/briefs/:briefId/draft/claims",
+    body: "Add a claim to the operator-scoped draft.",
+  },
+  {
+    method: "PATCH/DELETE",
+    path: "/api/v1/studio/briefs/:briefId/draft/claims/:claimN",
+    body: "Edit or remove a draft claim by one-based claim number.",
+  },
+  {
+    method: "POST",
+    path: "/api/v1/studio/briefs/:briefId/draft/validate",
+    body: "Refresh deterministic validation for a draft before review or publication.",
+  },
+  {
+    method: "POST",
+    path: "/api/v1/studio/briefs/:briefId/draft/review",
+    body: "Request review for a draft and append a review comment.",
+  },
+  {
+    method: "POST",
+    path: "/api/v1/studio/briefs/:briefId/draft/publish",
+    body: "Mark a draft as a publish candidate.",
+  },
+  {
+    method: "POST",
+    path: "/api/v1/studio/briefs/:briefId/draft/retract",
+    body: "Retract a draft publish candidate without mutating the public release.",
+  },
+  {
+    method: "GET",
+    path: "/api/v1/studio/briefs/:briefId/draft/publish-candidate-export",
+    body: "Fetch the publish-candidate export payload for release review.",
   },
 ];
 
@@ -1422,7 +1508,7 @@ export const studioReleaseQuality: StudioQuality = {
   completenessStatus: "complete",
   confidence: "medium",
   caveats: [
-    "Studio pages consume RESTful /api/v1/studio/* resources backed by versioned serving projections during the hard cutover.",
+    "Studio pages consume RESTful /api/v1/studio/* resources backed by versioned serving projections.",
   ],
 };
 

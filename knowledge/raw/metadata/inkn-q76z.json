@@ -1,0 +1,3966 @@
+{
+  "schemaVersion": 1,
+  "sourceId": "nyc_lion_street_centerline",
+  "checkedAt": "2026-05-31T12:08:14.014Z",
+  "metadataUrl": "https://data.cityofnewyork.us/api/views/inkn-q76z",
+  "metadata": {
+    "id": "inkn-q76z",
+    "name": "Centerline",
+    "description": "The NYC Street Centerline (CSCL) is a road-bed representation of New York City streets containing address ranges and other information such as traffic directions, road types, segment types.",
+    "attribution": "Office of Technology and Innovation (OTI)",
+    "rowsUpdatedAt": 1779040664,
+    "columns": [
+      {
+        "id": 608668168,
+        "name": "the_geom",
+        "dataTypeName": "multiline",
+        "fieldName": "the_geom",
+        "description": "",
+        "position": 1,
+        "renderTypeName": "multiline",
+        "tableColumnId": 155993827,
+        "format": {}
+      },
+      {
+        "id": 608668169,
+        "name": "PHYSICALID",
+        "dataTypeName": "number",
+        "fieldName": "physicalid",
+        "description": "",
+        "position": 2,
+        "renderTypeName": "number",
+        "tableColumnId": 155993845,
+        "cachedContents": {
+          "non_null": "122257",
+          "largest": "207569",
+          "null": "0",
+          "top": [
+            {
+              "item": "105832",
+              "count": "5"
+            },
+            {
+              "item": "192746",
+              "count": "3"
+            },
+            {
+              "item": "105783",
+              "count": "3"
+            },
+            {
+              "item": "106727",
+              "count": "3"
+            },
+            {
+              "item": "206223",
+              "count": "3"
+            },
+            {
+              "item": "106139",
+              "count": "3"
+            },
+            {
+              "item": "167082",
+              "count": "3"
+            },
+            {
+              "item": "105787",
+              "count": "3"
+            },
+            {
+              "item": "105842",
+              "count": "3"
+            },
+            {
+              "item": "206286",
+              "count": "3"
+            },
+            {
+              "item": "205487",
+              "count": "3"
+            },
+            {
+              "item": "206217",
+              "count": "3"
+            },
+            {
+              "item": "205458",
+              "count": "3"
+            },
+            {
+              "item": "186403",
+              "count": "2"
+            },
+            {
+              "item": "203017",
+              "count": "2"
+            },
+            {
+              "item": "131224",
+              "count": "2"
+            },
+            {
+              "item": "207001",
+              "count": "2"
+            },
+            {
+              "item": "163456",
+              "count": "2"
+            },
+            {
+              "item": "203590",
+              "count": "2"
+            },
+            {
+              "item": "206030",
+              "count": "2"
+            }
+          ],
+          "smallest": "3",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668170,
+        "name": "L_LOW_HN",
+        "dataTypeName": "text",
+        "fieldName": "l_low_hn",
+        "description": "",
+        "position": 3,
+        "renderTypeName": "text",
+        "tableColumnId": 155993834,
+        "cachedContents": {
+          "non_null": "84478",
+          "largest": "999",
+          "null": "37779",
+          "top": [
+            {
+              "item": "0",
+              "count": "8277"
+            },
+            {
+              "item": "1",
+              "count": "2633"
+            },
+            {
+              "item": "2",
+              "count": "1624"
+            },
+            {
+              "item": "101",
+              "count": "574"
+            },
+            {
+              "item": "201",
+              "count": "558"
+            },
+            {
+              "item": "301",
+              "count": "491"
+            },
+            {
+              "item": "401",
+              "count": "441"
+            },
+            {
+              "item": "501",
+              "count": "320"
+            },
+            {
+              "item": "100",
+              "count": "307"
+            },
+            {
+              "item": "701",
+              "count": "304"
+            },
+            {
+              "item": "601",
+              "count": "298"
+            },
+            {
+              "item": "901",
+              "count": "268"
+            },
+            {
+              "item": "1001",
+              "count": "266"
+            },
+            {
+              "item": "1701",
+              "count": "256"
+            },
+            {
+              "item": "2001",
+              "count": "255"
+            },
+            {
+              "item": "1101",
+              "count": "250"
+            },
+            {
+              "item": "1201",
+              "count": "242"
+            },
+            {
+              "item": "801",
+              "count": "241"
+            },
+            {
+              "item": "1801",
+              "count": "239"
+            },
+            {
+              "item": "1501",
+              "count": "239"
+            }
+          ],
+          "smallest": "0",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668171,
+        "name": "L_HIGH_HN",
+        "dataTypeName": "text",
+        "fieldName": "l_high_hn",
+        "description": "",
+        "position": 4,
+        "renderTypeName": "text",
+        "tableColumnId": 155993830,
+        "cachedContents": {
+          "non_null": "84478",
+          "largest": "9999",
+          "null": "37779",
+          "top": [
+            {
+              "item": "0",
+              "count": "7691"
+            },
+            {
+              "item": "99",
+              "count": "654"
+            },
+            {
+              "item": "199",
+              "count": "587"
+            },
+            {
+              "item": "98",
+              "count": "507"
+            },
+            {
+              "item": "299",
+              "count": "494"
+            },
+            {
+              "item": "399",
+              "count": "478"
+            },
+            {
+              "item": "499",
+              "count": "388"
+            },
+            {
+              "item": "599",
+              "count": "309"
+            },
+            {
+              "item": "699",
+              "count": "295"
+            },
+            {
+              "item": "198",
+              "count": "267"
+            },
+            {
+              "item": "799",
+              "count": "259"
+            },
+            {
+              "item": "999",
+              "count": "255"
+            },
+            {
+              "item": "1199",
+              "count": "253"
+            },
+            {
+              "item": "1799",
+              "count": "251"
+            },
+            {
+              "item": "899",
+              "count": "248"
+            },
+            {
+              "item": "1699",
+              "count": "245"
+            },
+            {
+              "item": "1099",
+              "count": "242"
+            },
+            {
+              "item": "1999",
+              "count": "242"
+            },
+            {
+              "item": "1499",
+              "count": "239"
+            },
+            {
+              "item": "2099",
+              "count": "236"
+            }
+          ],
+          "smallest": "0",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668172,
+        "name": "R_LOW_HN",
+        "dataTypeName": "text",
+        "fieldName": "r_low_hn",
+        "description": "",
+        "position": 5,
+        "renderTypeName": "text",
+        "tableColumnId": 155993853,
+        "cachedContents": {
+          "non_null": "84478",
+          "largest": "999",
+          "null": "37779",
+          "top": [
+            {
+              "item": "0",
+              "count": "7914"
+            },
+            {
+              "item": "2",
+              "count": "2642"
+            },
+            {
+              "item": "1",
+              "count": "1632"
+            },
+            {
+              "item": "100",
+              "count": "543"
+            },
+            {
+              "item": "200",
+              "count": "480"
+            },
+            {
+              "item": "300",
+              "count": "453"
+            },
+            {
+              "item": "400",
+              "count": "421"
+            },
+            {
+              "item": "500",
+              "count": "321"
+            },
+            {
+              "item": "700",
+              "count": "301"
+            },
+            {
+              "item": "101",
+              "count": "294"
+            },
+            {
+              "item": "600",
+              "count": "284"
+            },
+            {
+              "item": "1000",
+              "count": "271"
+            },
+            {
+              "item": "900",
+              "count": "261"
+            },
+            {
+              "item": "2000",
+              "count": "253"
+            },
+            {
+              "item": "1100",
+              "count": "251"
+            },
+            {
+              "item": "1400",
+              "count": "246"
+            },
+            {
+              "item": "800",
+              "count": "244"
+            },
+            {
+              "item": "1700",
+              "count": "242"
+            },
+            {
+              "item": "201",
+              "count": "239"
+            },
+            {
+              "item": "1200",
+              "count": "233"
+            }
+          ],
+          "smallest": "0",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668173,
+        "name": "R_HIGH_HN",
+        "dataTypeName": "text",
+        "fieldName": "r_high_hn",
+        "description": "",
+        "position": 6,
+        "renderTypeName": "text",
+        "tableColumnId": 155993854,
+        "cachedContents": {
+          "non_null": "84478",
+          "largest": "9998",
+          "null": "37779",
+          "top": [
+            {
+              "item": "0",
+              "count": "7372"
+            },
+            {
+              "item": "98",
+              "count": "638"
+            },
+            {
+              "item": "99",
+              "count": "528"
+            },
+            {
+              "item": "198",
+              "count": "519"
+            },
+            {
+              "item": "398",
+              "count": "481"
+            },
+            {
+              "item": "298",
+              "count": "477"
+            },
+            {
+              "item": "498",
+              "count": "402"
+            },
+            {
+              "item": "598",
+              "count": "306"
+            },
+            {
+              "item": "698",
+              "count": "303"
+            },
+            {
+              "item": "199",
+              "count": "290"
+            },
+            {
+              "item": "798",
+              "count": "269"
+            },
+            {
+              "item": "998",
+              "count": "267"
+            },
+            {
+              "item": "1098",
+              "count": "249"
+            },
+            {
+              "item": "1198",
+              "count": "248"
+            },
+            {
+              "item": "898",
+              "count": "246"
+            },
+            {
+              "item": "1898",
+              "count": "244"
+            },
+            {
+              "item": "1998",
+              "count": "240"
+            },
+            {
+              "item": "1798",
+              "count": "239"
+            },
+            {
+              "item": "1698",
+              "count": "238"
+            },
+            {
+              "item": "299",
+              "count": "235"
+            }
+          ],
+          "smallest": "0",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668174,
+        "name": "L_ZIP",
+        "dataTypeName": "text",
+        "fieldName": "l_zip",
+        "description": "",
+        "position": 7,
+        "renderTypeName": "text",
+        "tableColumnId": 155993832,
+        "cachedContents": {
+          "non_null": "120894",
+          "largest": "11697",
+          "null": "1363",
+          "top": [
+            {
+              "item": "10314",
+              "count": "3244"
+            },
+            {
+              "item": "10312",
+              "count": "2045"
+            },
+            {
+              "item": "10306",
+              "count": "1972"
+            },
+            {
+              "item": "10305",
+              "count": "1775"
+            },
+            {
+              "item": "11234",
+              "count": "1747"
+            },
+            {
+              "item": "10309",
+              "count": "1667"
+            },
+            {
+              "item": "10465",
+              "count": "1565"
+            },
+            {
+              "item": "11385",
+              "count": "1524"
+            },
+            {
+              "item": "11368",
+              "count": "1499"
+            },
+            {
+              "item": "11434",
+              "count": "1459"
+            },
+            {
+              "item": "11101",
+              "count": "1443"
+            },
+            {
+              "item": "11377",
+              "count": "1381"
+            },
+            {
+              "item": "11413",
+              "count": "1367"
+            },
+            {
+              "item": "11235",
+              "count": "1344"
+            },
+            {
+              "item": "11236",
+              "count": "1315"
+            },
+            {
+              "item": "11375",
+              "count": "1309"
+            },
+            {
+              "item": "11207",
+              "count": "1293"
+            },
+            {
+              "item": "10304",
+              "count": "1283"
+            },
+            {
+              "item": "11357",
+              "count": "1271"
+            },
+            {
+              "item": "10301",
+              "count": "1261"
+            }
+          ],
+          "smallest": "00083",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668175,
+        "name": "R_ZIP",
+        "dataTypeName": "text",
+        "fieldName": "r_zip",
+        "description": "",
+        "position": 8,
+        "renderTypeName": "text",
+        "tableColumnId": 155993852,
+        "cachedContents": {
+          "non_null": "120972",
+          "largest": "11697",
+          "null": "1285",
+          "top": [
+            {
+              "item": "10314",
+              "count": "3244"
+            },
+            {
+              "item": "10312",
+              "count": "2045"
+            },
+            {
+              "item": "10306",
+              "count": "1972"
+            },
+            {
+              "item": "10305",
+              "count": "1775"
+            },
+            {
+              "item": "11234",
+              "count": "1749"
+            },
+            {
+              "item": "10309",
+              "count": "1667"
+            },
+            {
+              "item": "10465",
+              "count": "1585"
+            },
+            {
+              "item": "11385",
+              "count": "1490"
+            },
+            {
+              "item": "11368",
+              "count": "1485"
+            },
+            {
+              "item": "11434",
+              "count": "1460"
+            },
+            {
+              "item": "11101",
+              "count": "1449"
+            },
+            {
+              "item": "11377",
+              "count": "1370"
+            },
+            {
+              "item": "11413",
+              "count": "1367"
+            },
+            {
+              "item": "11235",
+              "count": "1348"
+            },
+            {
+              "item": "11375",
+              "count": "1321"
+            },
+            {
+              "item": "11236",
+              "count": "1314"
+            },
+            {
+              "item": "11207",
+              "count": "1290"
+            },
+            {
+              "item": "10304",
+              "count": "1284"
+            },
+            {
+              "item": "11357",
+              "count": "1271"
+            },
+            {
+              "item": "10301",
+              "count": "1262"
+            }
+          ],
+          "smallest": "00083",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668179,
+        "name": "STATUS",
+        "dataTypeName": "text",
+        "fieldName": "status",
+        "description": "",
+        "position": 12,
+        "renderTypeName": "text",
+        "tableColumnId": 155993828,
+        "cachedContents": {
+          "non_null": "122257",
+          "largest": "5",
+          "null": "0",
+          "top": [
+            {
+              "item": "2",
+              "count": "122214"
+            },
+            {
+              "item": "5",
+              "count": "36"
+            },
+            {
+              "item": "4",
+              "count": "7"
+            }
+          ],
+          "smallest": "2",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668180,
+        "name": "BIKE_LANE",
+        "dataTypeName": "text",
+        "fieldName": "bike_lane",
+        "description": "",
+        "position": 13,
+        "renderTypeName": "text",
+        "tableColumnId": 155993838,
+        "cachedContents": {
+          "non_null": "17145",
+          "largest": "9",
+          "null": "105112",
+          "top": [
+            {
+              "item": "2",
+              "count": "6793"
+            },
+            {
+              "item": "1",
+              "count": "5951"
+            },
+            {
+              "item": "3",
+              "count": "3636"
+            },
+            {
+              "item": "4",
+              "count": "276"
+            },
+            {
+              "item": "6",
+              "count": "191"
+            },
+            {
+              "item": "11",
+              "count": "138"
+            },
+            {
+              "item": "8",
+              "count": "54"
+            },
+            {
+              "item": "9",
+              "count": "52"
+            },
+            {
+              "item": "10",
+              "count": "31"
+            },
+            {
+              "item": "5",
+              "count": "23"
+            }
+          ],
+          "smallest": "1",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668185,
+        "name": "TRAFDIR",
+        "dataTypeName": "text",
+        "fieldName": "trafdir",
+        "description": "",
+        "position": 18,
+        "renderTypeName": "text",
+        "tableColumnId": 155993851,
+        "cachedContents": {
+          "non_null": "122253",
+          "largest": "TW",
+          "null": "4",
+          "top": [
+            {
+              "item": "TW",
+              "count": "59166"
+            },
+            {
+              "item": "FT",
+              "count": "28785"
+            },
+            {
+              "item": "TF",
+              "count": "25589"
+            },
+            {
+              "item": "NV",
+              "count": "8713"
+            }
+          ],
+          "smallest": "FT",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668186,
+        "name": "RW_TYPE",
+        "dataTypeName": "number",
+        "fieldName": "rw_type",
+        "description": "",
+        "position": 19,
+        "renderTypeName": "number",
+        "tableColumnId": 155993829,
+        "cachedContents": {
+          "non_null": "122257",
+          "largest": "14",
+          "null": "0",
+          "top": [
+            {
+              "item": "1",
+              "count": "99371"
+            },
+            {
+              "item": "6",
+              "count": "5920"
+            },
+            {
+              "item": "2",
+              "count": "4126"
+            },
+            {
+              "item": "10",
+              "count": "3835"
+            },
+            {
+              "item": "9",
+              "count": "3580"
+            },
+            {
+              "item": "3",
+              "count": "3358"
+            },
+            {
+              "item": "8",
+              "count": "811"
+            },
+            {
+              "item": "14",
+              "count": "425"
+            },
+            {
+              "item": "13",
+              "count": "304"
+            },
+            {
+              "item": "7",
+              "count": "247"
+            },
+            {
+              "item": "4",
+              "count": "171"
+            },
+            {
+              "item": "5",
+              "count": "101"
+            },
+            {
+              "item": "12",
+              "count": "8"
+            }
+          ],
+          "smallest": "1",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668192,
+        "name": "PRE_TYPE",
+        "dataTypeName": "text",
+        "fieldName": "pre_type",
+        "description": "",
+        "position": 25,
+        "renderTypeName": "text",
+        "tableColumnId": 155993843,
+        "cachedContents": {
+          "non_null": "2876",
+          "largest": "PT",
+          "null": "119381",
+          "top": [
+            {
+              "item": "AVE",
+              "count": "1711"
+            },
+            {
+              "item": "BCH",
+              "count": "1103"
+            },
+            {
+              "item": "PATH",
+              "count": "44"
+            },
+            {
+              "item": "ALY",
+              "count": "7"
+            },
+            {
+              "item": "CTR",
+              "count": "4"
+            },
+            {
+              "item": "PT",
+              "count": "4"
+            },
+            {
+              "item": "PLZ",
+              "count": "3"
+            }
+          ],
+          "smallest": "ALY",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668193,
+        "name": "POST_TYPE",
+        "dataTypeName": "text",
+        "fieldName": "post_type",
+        "description": "",
+        "position": 26,
+        "renderTypeName": "text",
+        "tableColumnId": 155993855,
+        "cachedContents": {
+          "non_null": "108547",
+          "largest": "XING",
+          "null": "13710",
+          "top": [
+            {
+              "item": "AVE",
+              "count": "37684"
+            },
+            {
+              "item": "ST",
+              "count": "32826"
+            },
+            {
+              "item": "RD",
+              "count": "7056"
+            },
+            {
+              "item": "BLVD",
+              "count": "6408"
+            },
+            {
+              "item": "PL",
+              "count": "3435"
+            },
+            {
+              "item": "PKWY",
+              "count": "3317"
+            },
+            {
+              "item": "PATH",
+              "count": "3170"
+            },
+            {
+              "item": "EXPY",
+              "count": "2995"
+            },
+            {
+              "item": "DR",
+              "count": "2343"
+            },
+            {
+              "item": "LN",
+              "count": "1273"
+            },
+            {
+              "item": "CT",
+              "count": "1246"
+            },
+            {
+              "item": "BRG",
+              "count": "991"
+            },
+            {
+              "item": "OPAS",
+              "count": "556"
+            },
+            {
+              "item": "TER",
+              "count": "462"
+            },
+            {
+              "item": "TPKE",
+              "count": "408"
+            },
+            {
+              "item": "RTE",
+              "count": "390"
+            },
+            {
+              "item": "DY",
+              "count": "362"
+            },
+            {
+              "item": "HWY",
+              "count": "333"
+            },
+            {
+              "item": "LOOP",
+              "count": "330"
+            },
+            {
+              "item": "CONC",
+              "count": "325"
+            }
+          ],
+          "smallest": "ALY",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668201,
+        "name": "OBJECTID",
+        "dataTypeName": "number",
+        "fieldName": "objectid",
+        "position": 27,
+        "renderTypeName": "number",
+        "tableColumnId": 157930420,
+        "cachedContents": {
+          "non_null": "122257",
+          "largest": "134799",
+          "null": "0",
+          "top": [
+            {
+              "item": "48498",
+              "count": "1"
+            },
+            {
+              "item": "105796",
+              "count": "1"
+            },
+            {
+              "item": "65792",
+              "count": "1"
+            },
+            {
+              "item": "21232",
+              "count": "1"
+            },
+            {
+              "item": "85241",
+              "count": "1"
+            },
+            {
+              "item": "88395",
+              "count": "1"
+            },
+            {
+              "item": "114416",
+              "count": "1"
+            },
+            {
+              "item": "120937",
+              "count": "1"
+            },
+            {
+              "item": "48621",
+              "count": "1"
+            },
+            {
+              "item": "99817",
+              "count": "1"
+            },
+            {
+              "item": "92845",
+              "count": "1"
+            },
+            {
+              "item": "42530",
+              "count": "1"
+            },
+            {
+              "item": "85687",
+              "count": "1"
+            },
+            {
+              "item": "108093",
+              "count": "1"
+            },
+            {
+              "item": "104177",
+              "count": "1"
+            },
+            {
+              "item": "131209",
+              "count": "1"
+            },
+            {
+              "item": "85366",
+              "count": "1"
+            },
+            {
+              "item": "70114",
+              "count": "1"
+            },
+            {
+              "item": "42317",
+              "count": "1"
+            },
+            {
+              "item": "83970",
+              "count": "1"
+            }
+          ],
+          "smallest": "1",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668202,
+        "name": "FCC",
+        "dataTypeName": "text",
+        "fieldName": "fcc",
+        "position": 28,
+        "renderTypeName": "text",
+        "tableColumnId": 157930421,
+        "cachedContents": {
+          "non_null": "8",
+          "largest": "10",
+          "null": "122249",
+          "top": [
+            {
+              "item": "10",
+              "count": "8"
+            }
+          ],
+          "smallest": "10",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668203,
+        "name": "Left side Block Face ID",
+        "dataTypeName": "number",
+        "fieldName": "l_blockfaceid",
+        "position": 29,
+        "renderTypeName": "number",
+        "tableColumnId": 157930422,
+        "cachedContents": {
+          "non_null": "109606",
+          "largest": "2022714345",
+          "null": "12651",
+          "top": [
+            {
+              "item": "0",
+              "count": "312"
+            },
+            {
+              "item": "82260406",
+              "count": "145"
+            },
+            {
+              "item": "1322600033",
+              "count": "137"
+            },
+            {
+              "item": "1322600458",
+              "count": "92"
+            },
+            {
+              "item": "212260125",
+              "count": "81"
+            },
+            {
+              "item": "22261046",
+              "count": "70"
+            },
+            {
+              "item": "72260485",
+              "count": "67"
+            },
+            {
+              "item": "102268025",
+              "count": "62"
+            },
+            {
+              "item": "72260557",
+              "count": "59"
+            },
+            {
+              "item": "42261145",
+              "count": "54"
+            },
+            {
+              "item": "92261000",
+              "count": "52"
+            },
+            {
+              "item": "1422604536",
+              "count": "52"
+            },
+            {
+              "item": "1422600469",
+              "count": "49"
+            },
+            {
+              "item": "82266591",
+              "count": "48"
+            },
+            {
+              "item": "1222600328",
+              "count": "42"
+            },
+            {
+              "item": "102261639",
+              "count": "41"
+            },
+            {
+              "item": "1522600532",
+              "count": "39"
+            },
+            {
+              "item": "82265420",
+              "count": "39"
+            },
+            {
+              "item": "1922606819",
+              "count": "39"
+            },
+            {
+              "item": "42260082",
+              "count": "36"
+            }
+          ],
+          "smallest": "0",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668204,
+        "name": "Right Side Block Face ID",
+        "dataTypeName": "number",
+        "fieldName": "r_blockfaceid",
+        "position": 30,
+        "renderTypeName": "number",
+        "tableColumnId": 157930423,
+        "cachedContents": {
+          "non_null": "109601",
+          "largest": "2022714353",
+          "null": "12656",
+          "top": [
+            {
+              "item": "0",
+              "count": "313"
+            },
+            {
+              "item": "22261048",
+              "count": "140"
+            },
+            {
+              "item": "82260409",
+              "count": "136"
+            },
+            {
+              "item": "1322600485",
+              "count": "94"
+            },
+            {
+              "item": "1322600174",
+              "count": "91"
+            },
+            {
+              "item": "212260008",
+              "count": "78"
+            },
+            {
+              "item": "1222600980",
+              "count": "71"
+            },
+            {
+              "item": "42260024",
+              "count": "63"
+            },
+            {
+              "item": "72260119",
+              "count": "62"
+            },
+            {
+              "item": "72260482",
+              "count": "56"
+            },
+            {
+              "item": "102268407",
+              "count": "53"
+            },
+            {
+              "item": "82264724",
+              "count": "52"
+            },
+            {
+              "item": "1422600380",
+              "count": "52"
+            },
+            {
+              "item": "1422609219",
+              "count": "52"
+            },
+            {
+              "item": "1922601998",
+              "count": "51"
+            },
+            {
+              "item": "1322600394",
+              "count": "46"
+            },
+            {
+              "item": "212262080",
+              "count": "41"
+            },
+            {
+              "item": "92261006",
+              "count": "39"
+            },
+            {
+              "item": "72260504",
+              "count": "35"
+            },
+            {
+              "item": "1522600519",
+              "count": "34"
+            }
+          ],
+          "smallest": "0",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668205,
+        "name": "Average Travel Time",
+        "dataTypeName": "number",
+        "fieldName": "avgtravtime",
+        "position": 31,
+        "renderTypeName": "number",
+        "tableColumnId": 157930424,
+        "cachedContents": {
+          "non_null": "0",
+          "null": "122257",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668206,
+        "name": "Roadway Jurisdiction",
+        "dataTypeName": "text",
+        "fieldName": "rwjurisdiction",
+        "position": 32,
+        "renderTypeName": "text",
+        "tableColumnId": 157930425,
+        "cachedContents": {
+          "non_null": "5018",
+          "largest": "5",
+          "null": "117239",
+          "top": [
+            {
+              "item": "3",
+              "count": "4981"
+            },
+            {
+              "item": "5",
+              "count": "37"
+            }
+          ],
+          "smallest": "3",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668207,
+        "name": "NOMINALDIR",
+        "dataTypeName": "text",
+        "fieldName": "nominaldir",
+        "position": 33,
+        "renderTypeName": "text",
+        "tableColumnId": 157930426,
+        "cachedContents": {
+          "non_null": "0",
+          "null": "122257",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668208,
+        "name": "ACCESSIBLE",
+        "dataTypeName": "text",
+        "fieldName": "accessible",
+        "position": 34,
+        "renderTypeName": "text",
+        "tableColumnId": 157930427,
+        "cachedContents": {
+          "non_null": "191",
+          "largest": "4",
+          "null": "122066",
+          "top": [
+            {
+              "item": "2",
+              "count": "156"
+            },
+            {
+              "item": "3",
+              "count": "24"
+            },
+            {
+              "item": "4",
+              "count": "6"
+            },
+            {
+              "item": "1",
+              "count": "5"
+            }
+          ],
+          "smallest": "1",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668209,
+        "name": "NONPED",
+        "dataTypeName": "text",
+        "fieldName": "nonped",
+        "position": 35,
+        "renderTypeName": "text",
+        "tableColumnId": 157930428,
+        "cachedContents": {
+          "non_null": "14163",
+          "largest": "V",
+          "null": "108094",
+          "top": [
+            {
+              "item": "V",
+              "count": "10204"
+            },
+            {
+              "item": "D",
+              "count": "3959"
+            }
+          ],
+          "smallest": "D",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668210,
+        "name": "Borough Code",
+        "dataTypeName": "text",
+        "fieldName": "boroughcode",
+        "position": 36,
+        "renderTypeName": "text",
+        "tableColumnId": 157930429,
+        "cachedContents": {
+          "non_null": "122257",
+          "largest": "5",
+          "null": "0",
+          "top": [
+            {
+              "item": "4",
+              "count": "45254"
+            },
+            {
+              "item": "3",
+              "count": "27667"
+            },
+            {
+              "item": "2",
+              "count": "18586"
+            },
+            {
+              "item": "5",
+              "count": "16725"
+            },
+            {
+              "item": "1",
+              "count": "14025"
+            }
+          ],
+          "smallest": "1",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668211,
+        "name": "Borough Indicator",
+        "dataTypeName": "text",
+        "fieldName": "borough_indicator",
+        "position": 37,
+        "renderTypeName": "text",
+        "tableColumnId": 157930430,
+        "cachedContents": {
+          "non_null": "90",
+          "largest": "2",
+          "null": "122167",
+          "top": [
+            {
+              "item": "2",
+              "count": "85"
+            },
+            {
+              "item": "1",
+              "count": "5"
+            }
+          ],
+          "smallest": "1",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668212,
+        "name": "Segloc Status",
+        "dataTypeName": "text",
+        "fieldName": "seglocstatus",
+        "position": 38,
+        "renderTypeName": "text",
+        "tableColumnId": 157930431,
+        "cachedContents": {
+          "non_null": "28756",
+          "largest": "X",
+          "null": "93501",
+          "top": [
+            {
+              "item": "X",
+              "count": "21836"
+            },
+            {
+              "item": "H",
+              "count": "3399"
+            },
+            {
+              "item": "I",
+              "count": "3392"
+            },
+            {
+              "item": "4",
+              "count": "90"
+            },
+            {
+              "item": "9",
+              "count": "39"
+            }
+          ],
+          "smallest": "4",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668213,
+        "name": "San District Inc",
+        "dataTypeName": "text",
+        "fieldName": "sandist_ind",
+        "position": 39,
+        "renderTypeName": "text",
+        "tableColumnId": 157930432,
+        "cachedContents": {
+          "non_null": "1145",
+          "largest": "2",
+          "null": "121112",
+          "top": [
+            {
+              "item": "2",
+              "count": "613"
+            },
+            {
+              "item": "1",
+              "count": "532"
+            }
+          ],
+          "smallest": "1",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668214,
+        "name": "Left Side Subset",
+        "dataTypeName": "text",
+        "fieldName": "lsubsect",
+        "position": 40,
+        "renderTypeName": "text",
+        "tableColumnId": 157930433,
+        "cachedContents": {
+          "non_null": "105290",
+          "largest": "8E",
+          "null": "16967",
+          "top": [
+            {
+              "item": "1C",
+              "count": "6075"
+            },
+            {
+              "item": "2C",
+              "count": "5601"
+            },
+            {
+              "item": "1B",
+              "count": "5487"
+            },
+            {
+              "item": "1D",
+              "count": "5327"
+            },
+            {
+              "item": "3C",
+              "count": "5301"
+            },
+            {
+              "item": "3E",
+              "count": "5188"
+            },
+            {
+              "item": "1E",
+              "count": "5185"
+            },
+            {
+              "item": "1A",
+              "count": "5046"
+            },
+            {
+              "item": "2E",
+              "count": "4947"
+            },
+            {
+              "item": "4C",
+              "count": "4773"
+            },
+            {
+              "item": "3D",
+              "count": "4766"
+            },
+            {
+              "item": "2D",
+              "count": "4714"
+            },
+            {
+              "item": "2A",
+              "count": "4700"
+            },
+            {
+              "item": "4E",
+              "count": "4028"
+            },
+            {
+              "item": "4D",
+              "count": "3941"
+            },
+            {
+              "item": "2B",
+              "count": "3882"
+            },
+            {
+              "item": "3B",
+              "count": "2994"
+            },
+            {
+              "item": "5C",
+              "count": "2388"
+            },
+            {
+              "item": "3A",
+              "count": "2382"
+            },
+            {
+              "item": "5E",
+              "count": "2285"
+            }
+          ],
+          "smallest": "1A",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668215,
+        "name": "Right Side Subset",
+        "dataTypeName": "text",
+        "fieldName": "rsubsect",
+        "position": 41,
+        "renderTypeName": "text",
+        "tableColumnId": 157930434,
+        "cachedContents": {
+          "non_null": "105436",
+          "largest": "8E",
+          "null": "16821",
+          "top": [
+            {
+              "item": "1C",
+              "count": "5998"
+            },
+            {
+              "item": "2C",
+              "count": "5612"
+            },
+            {
+              "item": "1B",
+              "count": "5547"
+            },
+            {
+              "item": "1D",
+              "count": "5395"
+            },
+            {
+              "item": "3C",
+              "count": "5333"
+            },
+            {
+              "item": "1E",
+              "count": "5258"
+            },
+            {
+              "item": "3E",
+              "count": "5193"
+            },
+            {
+              "item": "1A",
+              "count": "5071"
+            },
+            {
+              "item": "2E",
+              "count": "4935"
+            },
+            {
+              "item": "4C",
+              "count": "4783"
+            },
+            {
+              "item": "3D",
+              "count": "4771"
+            },
+            {
+              "item": "2D",
+              "count": "4764"
+            },
+            {
+              "item": "2A",
+              "count": "4738"
+            },
+            {
+              "item": "4E",
+              "count": "4064"
+            },
+            {
+              "item": "4D",
+              "count": "3967"
+            },
+            {
+              "item": "2B",
+              "count": "3847"
+            },
+            {
+              "item": "3B",
+              "count": "2927"
+            },
+            {
+              "item": "5C",
+              "count": "2379"
+            },
+            {
+              "item": "3A",
+              "count": "2357"
+            },
+            {
+              "item": "5E",
+              "count": "2316"
+            }
+          ],
+          "smallest": "1A",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668216,
+        "name": "Continuous Parity Flag",
+        "dataTypeName": "text",
+        "fieldName": "continuous_parity_flag",
+        "position": 42,
+        "renderTypeName": "text",
+        "tableColumnId": 157930435,
+        "cachedContents": {
+          "non_null": "739",
+          "largest": "2",
+          "null": "121518",
+          "top": [
+            {
+              "item": "2",
+              "count": "434"
+            },
+            {
+              "item": "1",
+              "count": "305"
+            }
+          ],
+          "smallest": "1",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668217,
+        "name": "Twisted Parity Flag",
+        "dataTypeName": "text",
+        "fieldName": "twisted_parity_flag",
+        "position": 43,
+        "renderTypeName": "text",
+        "tableColumnId": 157930436,
+        "cachedContents": {
+          "non_null": "122257",
+          "largest": "Y",
+          "null": "0",
+          "top": [
+            {
+              "item": "N",
+              "count": "122001"
+            },
+            {
+              "item": "Y",
+              "count": "256"
+            }
+          ],
+          "smallest": "N",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668218,
+        "name": "Posted Speed",
+        "dataTypeName": "number",
+        "fieldName": "posted_speed",
+        "position": 44,
+        "renderTypeName": "number",
+        "tableColumnId": 157930437,
+        "cachedContents": {
+          "non_null": "100780",
+          "largest": "50",
+          "null": "21477",
+          "top": [
+            {
+              "item": "25",
+              "count": "89378"
+            },
+            {
+              "item": "30",
+              "count": "3629"
+            },
+            {
+              "item": "50",
+              "count": "3242"
+            },
+            {
+              "item": "20",
+              "count": "2051"
+            },
+            {
+              "item": "35",
+              "count": "1089"
+            },
+            {
+              "item": "40",
+              "count": "718"
+            },
+            {
+              "item": "45",
+              "count": "644"
+            },
+            {
+              "item": "15",
+              "count": "29"
+            }
+          ],
+          "smallest": "15",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668219,
+        "name": "Segment Length",
+        "dataTypeName": "number",
+        "fieldName": "segmentlength",
+        "position": 45,
+        "renderTypeName": "number",
+        "tableColumnId": 157930438,
+        "cachedContents": {
+          "non_null": "119343",
+          "largest": "9438.94883082",
+          "null": "2914",
+          "top": [
+            {
+              "item": "350.66344087",
+              "count": "31"
+            },
+            {
+              "item": "78.18711981",
+              "count": "29"
+            },
+            {
+              "item": "253.76569674",
+              "count": "23"
+            },
+            {
+              "item": "250.78979846",
+              "count": "20"
+            },
+            {
+              "item": "333.38629174",
+              "count": "13"
+            },
+            {
+              "item": "1036.19789039",
+              "count": "11"
+            },
+            {
+              "item": "163.3591926",
+              "count": "10"
+            },
+            {
+              "item": "1793.33247169",
+              "count": "9"
+            },
+            {
+              "item": "144.8799158",
+              "count": "9"
+            },
+            {
+              "item": "108.66986452",
+              "count": "9"
+            },
+            {
+              "item": "1790.80618015",
+              "count": "9"
+            },
+            {
+              "item": "107.1901237",
+              "count": "9"
+            },
+            {
+              "item": "1232.98820605",
+              "count": "8"
+            },
+            {
+              "item": "75.78239348",
+              "count": "8"
+            },
+            {
+              "item": "703.45102303",
+              "count": "8"
+            },
+            {
+              "item": "694.16724651",
+              "count": "8"
+            },
+            {
+              "item": "1306.96778649",
+              "count": "8"
+            },
+            {
+              "item": "2922.74530592",
+              "count": "8"
+            },
+            {
+              "item": "401.62646219",
+              "count": "8"
+            },
+            {
+              "item": "2902.20995754",
+              "count": "8"
+            }
+          ],
+          "smallest": "3.07567612",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668220,
+        "name": "Street Width",
+        "dataTypeName": "number",
+        "fieldName": "streetwidth",
+        "position": 46,
+        "renderTypeName": "number",
+        "tableColumnId": 157930439,
+        "cachedContents": {
+          "non_null": "113649",
+          "largest": "300",
+          "null": "8608",
+          "top": [
+            {
+              "item": "30",
+              "count": "32578"
+            },
+            {
+              "item": "40",
+              "count": "7190"
+            },
+            {
+              "item": "34",
+              "count": "6254"
+            },
+            {
+              "item": "32",
+              "count": "6182"
+            },
+            {
+              "item": "20",
+              "count": "4493"
+            },
+            {
+              "item": "44",
+              "count": "4397"
+            },
+            {
+              "item": "50",
+              "count": "4361"
+            },
+            {
+              "item": "24",
+              "count": "4167"
+            },
+            {
+              "item": "36",
+              "count": "4134"
+            },
+            {
+              "item": "60",
+              "count": "3899"
+            },
+            {
+              "item": "42",
+              "count": "3636"
+            },
+            {
+              "item": "28",
+              "count": "3630"
+            },
+            {
+              "item": "22",
+              "count": "2874"
+            },
+            {
+              "item": "38",
+              "count": "2459"
+            },
+            {
+              "item": "26",
+              "count": "2261"
+            },
+            {
+              "item": "35",
+              "count": "2187"
+            },
+            {
+              "item": "18",
+              "count": "1932"
+            },
+            {
+              "item": "25",
+              "count": "1593"
+            },
+            {
+              "item": "70",
+              "count": "1484"
+            },
+            {
+              "item": "12",
+              "count": "1431"
+            }
+          ],
+          "smallest": "0",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668221,
+        "name": "Street Width IRR",
+        "dataTypeName": "text",
+        "fieldName": "streetwidth_irr",
+        "position": 47,
+        "renderTypeName": "text",
+        "tableColumnId": 157930440,
+        "cachedContents": {
+          "non_null": "0",
+          "null": "122257",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668222,
+        "name": "Special Disaster",
+        "dataTypeName": "text",
+        "fieldName": "special_disaster",
+        "position": 48,
+        "renderTypeName": "text",
+        "tableColumnId": 157930441,
+        "cachedContents": {
+          "non_null": "0",
+          "null": "122257",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668223,
+        "name": "Fire Lane",
+        "dataTypeName": "text",
+        "fieldName": "fire_lane",
+        "position": 49,
+        "renderTypeName": "text",
+        "tableColumnId": 157930442,
+        "cachedContents": {
+          "non_null": "0",
+          "null": "122257",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668224,
+        "name": "CREATED_DATE",
+        "dataTypeName": "date",
+        "fieldName": "created_date",
+        "position": 50,
+        "renderTypeName": "date",
+        "tableColumnId": 157930443,
+        "cachedContents": {
+          "non_null": "122129",
+          "largest": "2026-05-08T11:17:06.000Z",
+          "null": "128",
+          "top": [
+            {
+              "item": "2007-11-29T00:00:00.000Z",
+              "count": "108352"
+            },
+            {
+              "item": "2009-06-16T00:00:00.000Z",
+              "count": "2831"
+            },
+            {
+              "item": "2017-10-12T11:38:17.000Z",
+              "count": "70"
+            },
+            {
+              "item": "2008-06-15T00:00:00.000Z",
+              "count": "40"
+            },
+            {
+              "item": "2008-09-15T00:00:00.000Z",
+              "count": "18"
+            },
+            {
+              "item": "2011-07-12T13:00:15.000Z",
+              "count": "18"
+            },
+            {
+              "item": "2011-07-13T12:56:53.000Z",
+              "count": "11"
+            },
+            {
+              "item": "2009-05-15T00:00:00.000Z",
+              "count": "11"
+            },
+            {
+              "item": "2011-07-13T12:56:52.000Z",
+              "count": "10"
+            },
+            {
+              "item": "2011-07-13T12:56:54.000Z",
+              "count": "10"
+            },
+            {
+              "item": "2008-03-15T00:00:00.000Z",
+              "count": "10"
+            },
+            {
+              "item": "2011-07-12T14:53:49.000Z",
+              "count": "9"
+            },
+            {
+              "item": "2011-07-12T13:00:16.000Z",
+              "count": "8"
+            },
+            {
+              "item": "2011-07-10T12:03:38.000Z",
+              "count": "8"
+            },
+            {
+              "item": "2019-05-15T14:39:55.000Z",
+              "count": "8"
+            },
+            {
+              "item": "2011-07-07T10:49:29.000Z",
+              "count": "7"
+            },
+            {
+              "item": "2011-04-18T12:58:21.000Z",
+              "count": "7"
+            },
+            {
+              "item": "2015-07-17T09:47:06.000Z",
+              "count": "7"
+            },
+            {
+              "item": "2011-02-03T10:00:30.000Z",
+              "count": "7"
+            },
+            {
+              "item": "2008-12-15T00:00:00.000Z",
+              "count": "7"
+            }
+          ],
+          "smallest": "2007-11-29T00:00:00.000Z",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668225,
+        "name": "MODIFIED_DATE",
+        "dataTypeName": "date",
+        "fieldName": "modified_date",
+        "position": 51,
+        "renderTypeName": "date",
+        "tableColumnId": 157930444,
+        "cachedContents": {
+          "non_null": "121953",
+          "largest": "2026-05-08T15:43:12.000Z",
+          "null": "304",
+          "top": [
+            {
+              "item": "2020-08-28T20:49:50.000Z",
+              "count": "25409"
+            },
+            {
+              "item": "2024-04-10T13:15:28.000Z",
+              "count": "19784"
+            },
+            {
+              "item": "2025-10-14T12:37:33.000Z",
+              "count": "5423"
+            },
+            {
+              "item": "2024-04-21T22:21:10.000Z",
+              "count": "2064"
+            },
+            {
+              "item": "2024-04-14T10:14:14.000Z",
+              "count": "1557"
+            },
+            {
+              "item": "2022-05-02T16:20:19.000Z",
+              "count": "1301"
+            },
+            {
+              "item": "2025-10-28T13:25:31.000Z",
+              "count": "996"
+            },
+            {
+              "item": "2020-10-13T13:45:23.000Z",
+              "count": "686"
+            },
+            {
+              "item": "2024-10-10T10:09:48.000Z",
+              "count": "672"
+            },
+            {
+              "item": "2020-09-24T16:00:31.000Z",
+              "count": "655"
+            },
+            {
+              "item": "2025-08-25T11:36:47.000Z",
+              "count": "629"
+            },
+            {
+              "item": "2015-12-22T00:00:00.000Z",
+              "count": "581"
+            },
+            {
+              "item": "2024-04-20T19:45:17.000Z",
+              "count": "508"
+            },
+            {
+              "item": "2024-09-23T14:48:37.000Z",
+              "count": "398"
+            },
+            {
+              "item": "2020-09-23T16:26:56.000Z",
+              "count": "331"
+            },
+            {
+              "item": "2020-10-05T13:08:21.000Z",
+              "count": "318"
+            },
+            {
+              "item": "2023-10-04T11:34:25.000Z",
+              "count": "308"
+            },
+            {
+              "item": "2020-01-09T10:13:22.000Z",
+              "count": "306"
+            },
+            {
+              "item": "2021-10-14T11:10:35.000Z",
+              "count": "290"
+            },
+            {
+              "item": "2023-09-26T09:48:14.000Z",
+              "count": "285"
+            }
+          ],
+          "smallest": "2015-08-10T00:00:00.000Z",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668226,
+        "name": "WITHIN_BNDY_DIST",
+        "dataTypeName": "text",
+        "fieldName": "within_bndy_dist",
+        "position": 52,
+        "renderTypeName": "text",
+        "tableColumnId": 157930445,
+        "cachedContents": {
+          "non_null": "647",
+          "largest": "4",
+          "null": "121610",
+          "top": [
+            {
+              "item": "4",
+              "count": "365"
+            },
+            {
+              "item": "3",
+              "count": "282"
+            }
+          ],
+          "smallest": "3",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668227,
+        "name": "TRUCK ROUTE TYPE",
+        "dataTypeName": "text",
+        "fieldName": "truck_route_type",
+        "position": 53,
+        "renderTypeName": "text",
+        "tableColumnId": 157930446,
+        "cachedContents": {
+          "non_null": "23159",
+          "largest": "3",
+          "null": "99098",
+          "top": [
+            {
+              "item": "2",
+              "count": "14707"
+            },
+            {
+              "item": "3",
+              "count": "8283"
+            },
+            {
+              "item": "1",
+              "count": "169"
+            }
+          ],
+          "smallest": "1",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668228,
+        "name": "Collection Method",
+        "dataTypeName": "text",
+        "fieldName": "collectionmethod",
+        "position": 54,
+        "renderTypeName": "text",
+        "tableColumnId": 157930447,
+        "cachedContents": {
+          "non_null": "12944",
+          "largest": "F",
+          "null": "109313",
+          "top": [
+            {
+              "item": "F",
+              "count": "12944"
+            }
+          ],
+          "smallest": "F",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668229,
+        "name": "FROM_LEVEL_CODE",
+        "dataTypeName": "number",
+        "fieldName": "from_level_code",
+        "position": 55,
+        "renderTypeName": "number",
+        "tableColumnId": 157930448,
+        "cachedContents": {
+          "non_null": "122257",
+          "largest": "99",
+          "null": "0",
+          "top": [
+            {
+              "item": "13",
+              "count": "115499"
+            },
+            {
+              "item": "17",
+              "count": "4409"
+            },
+            {
+              "item": "9",
+              "count": "1377"
+            },
+            {
+              "item": "21",
+              "count": "568"
+            },
+            {
+              "item": "25",
+              "count": "166"
+            },
+            {
+              "item": "15",
+              "count": "113"
+            },
+            {
+              "item": "19",
+              "count": "36"
+            },
+            {
+              "item": "5",
+              "count": "19"
+            },
+            {
+              "item": "4",
+              "count": "12"
+            },
+            {
+              "item": "23",
+              "count": "11"
+            },
+            {
+              "item": "2",
+              "count": "8"
+            },
+            {
+              "item": "18",
+              "count": "8"
+            },
+            {
+              "item": "26",
+              "count": "7"
+            },
+            {
+              "item": "8",
+              "count": "7"
+            },
+            {
+              "item": "22",
+              "count": "6"
+            },
+            {
+              "item": "16",
+              "count": "4"
+            },
+            {
+              "item": "99",
+              "count": "3"
+            },
+            {
+              "item": "14",
+              "count": "2"
+            },
+            {
+              "item": "10",
+              "count": "2"
+            }
+          ],
+          "smallest": "2",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668230,
+        "name": "TO_LEVEL_CODE",
+        "dataTypeName": "number",
+        "fieldName": "to_level_code",
+        "position": 56,
+        "renderTypeName": "number",
+        "tableColumnId": 157930449,
+        "cachedContents": {
+          "non_null": "122257",
+          "largest": "99",
+          "null": "0",
+          "top": [
+            {
+              "item": "13",
+              "count": "115547"
+            },
+            {
+              "item": "17",
+              "count": "4385"
+            },
+            {
+              "item": "9",
+              "count": "1363"
+            },
+            {
+              "item": "21",
+              "count": "559"
+            },
+            {
+              "item": "25",
+              "count": "167"
+            },
+            {
+              "item": "15",
+              "count": "112"
+            },
+            {
+              "item": "19",
+              "count": "36"
+            },
+            {
+              "item": "5",
+              "count": "18"
+            },
+            {
+              "item": "4",
+              "count": "13"
+            },
+            {
+              "item": "23",
+              "count": "11"
+            },
+            {
+              "item": "2",
+              "count": "8"
+            },
+            {
+              "item": "18",
+              "count": "8"
+            },
+            {
+              "item": "26",
+              "count": "7"
+            },
+            {
+              "item": "8",
+              "count": "7"
+            },
+            {
+              "item": "22",
+              "count": "6"
+            },
+            {
+              "item": "16",
+              "count": "4"
+            },
+            {
+              "item": "14",
+              "count": "2"
+            },
+            {
+              "item": "10",
+              "count": "2"
+            },
+            {
+              "item": "99",
+              "count": "2"
+            }
+          ],
+          "smallest": "2",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668231,
+        "name": "B5SC",
+        "dataTypeName": "text",
+        "fieldName": "b5sc",
+        "position": 57,
+        "renderTypeName": "text",
+        "tableColumnId": 157930450,
+        "cachedContents": {
+          "non_null": "122257",
+          "largest": "597225",
+          "null": "0",
+          "top": [
+            {
+              "item": "413170",
+              "count": "2174"
+            },
+            {
+              "item": "312025",
+              "count": "1302"
+            },
+            {
+              "item": "213770",
+              "count": "695"
+            },
+            {
+              "item": "450290",
+              "count": "652"
+            },
+            {
+              "item": "447390",
+              "count": "475"
+            },
+            {
+              "item": "466290",
+              "count": "446"
+            },
+            {
+              "item": "459990",
+              "count": "445"
+            },
+            {
+              "item": "377030",
+              "count": "421"
+            },
+            {
+              "item": "323340",
+              "count": "420"
+            },
+            {
+              "item": "113610",
+              "count": "401"
+            },
+            {
+              "item": "465590",
+              "count": "391"
+            },
+            {
+              "item": "445890",
+              "count": "349"
+            },
+            {
+              "item": "356230",
+              "count": "328"
+            },
+            {
+              "item": "215920",
+              "count": "327"
+            },
+            {
+              "item": "236420",
+              "count": "325"
+            },
+            {
+              "item": "314540",
+              "count": "319"
+            },
+            {
+              "item": "534100",
+              "count": "316"
+            },
+            {
+              "item": "354050",
+              "count": "306"
+            },
+            {
+              "item": "440990",
+              "count": "303"
+            },
+            {
+              "item": "457790",
+              "count": "297"
+            }
+          ],
+          "smallest": "100009",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668232,
+        "name": "Snow Priority",
+        "dataTypeName": "text",
+        "fieldName": "snow_priority",
+        "position": 58,
+        "renderTypeName": "text",
+        "tableColumnId": 157930451,
+        "cachedContents": {
+          "non_null": "113277",
+          "largest": "V",
+          "null": "8980",
+          "top": [
+            {
+              "item": "C",
+              "count": "59854"
+            },
+            {
+              "item": "S",
+              "count": "28564"
+            },
+            {
+              "item": "V",
+              "count": "13341"
+            },
+            {
+              "item": "H",
+              "count": "11518"
+            }
+          ],
+          "smallest": "C",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668233,
+        "name": "JOINID",
+        "dataTypeName": "text",
+        "fieldName": "joinid",
+        "position": 59,
+        "renderTypeName": "text",
+        "tableColumnId": 157930452,
+        "cachedContents": {
+          "non_null": "0",
+          "null": "122257",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668234,
+        "name": "BPHYS_ID",
+        "dataTypeName": "number",
+        "fieldName": "bphys_id",
+        "position": 60,
+        "renderTypeName": "number",
+        "tableColumnId": 157930453,
+        "cachedContents": {
+          "non_null": "0",
+          "null": "122257",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668235,
+        "name": "Cartography Display Level",
+        "dataTypeName": "text",
+        "fieldName": "carto_display_level",
+        "position": 61,
+        "renderTypeName": "text",
+        "tableColumnId": 157930454,
+        "cachedContents": {
+          "non_null": "12704",
+          "largest": "30",
+          "null": "109553",
+          "top": [
+            {
+              "item": "10",
+              "count": "6824"
+            },
+            {
+              "item": "20",
+              "count": "4516"
+            },
+            {
+              "item": "30",
+              "count": "1364"
+            }
+          ],
+          "smallest": "10",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668236,
+        "name": "Number Travel Lanes",
+        "dataTypeName": "number",
+        "fieldName": "number_travel_lanes",
+        "position": 62,
+        "renderTypeName": "number",
+        "tableColumnId": 157930455,
+        "cachedContents": {
+          "non_null": "113652",
+          "largest": "10",
+          "null": "8605",
+          "top": [
+            {
+              "item": "2",
+              "count": "57123"
+            },
+            {
+              "item": "1",
+              "count": "40637"
+            },
+            {
+              "item": "4",
+              "count": "7864"
+            },
+            {
+              "item": "3",
+              "count": "7029"
+            },
+            {
+              "item": "0",
+              "count": "345"
+            },
+            {
+              "item": "5",
+              "count": "318"
+            },
+            {
+              "item": "6",
+              "count": "306"
+            },
+            {
+              "item": "7",
+              "count": "25"
+            },
+            {
+              "item": "8",
+              "count": "3"
+            },
+            {
+              "item": "9",
+              "count": "1"
+            },
+            {
+              "item": "10",
+              "count": "1"
+            }
+          ],
+          "smallest": "0",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668237,
+        "name": "Number Park Lanes",
+        "dataTypeName": "number",
+        "fieldName": "number_park_lanes",
+        "position": 63,
+        "renderTypeName": "number",
+        "tableColumnId": 157930456,
+        "cachedContents": {
+          "non_null": "113623",
+          "largest": "4",
+          "null": "8634",
+          "top": [
+            {
+              "item": "2",
+              "count": "66357"
+            },
+            {
+              "item": "0",
+              "count": "32951"
+            },
+            {
+              "item": "1",
+              "count": "14313"
+            },
+            {
+              "item": "4",
+              "count": "2"
+            }
+          ],
+          "smallest": "0",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668238,
+        "name": "Number Total Lane",
+        "dataTypeName": "number",
+        "fieldName": "number_total_lanes",
+        "position": 64,
+        "renderTypeName": "number",
+        "tableColumnId": 157930457,
+        "cachedContents": {
+          "non_null": "113612",
+          "largest": "10",
+          "null": "8645",
+          "top": [
+            {
+              "item": "4",
+              "count": "42498"
+            },
+            {
+              "item": "3",
+              "count": "35552"
+            },
+            {
+              "item": "2",
+              "count": "17283"
+            },
+            {
+              "item": "1",
+              "count": "11914"
+            },
+            {
+              "item": "6",
+              "count": "4489"
+            },
+            {
+              "item": "5",
+              "count": "1376"
+            },
+            {
+              "item": "0",
+              "count": "345"
+            },
+            {
+              "item": "7",
+              "count": "137"
+            },
+            {
+              "item": "8",
+              "count": "16"
+            },
+            {
+              "item": "9",
+              "count": "1"
+            },
+            {
+              "item": "10",
+              "count": "1"
+            }
+          ],
+          "smallest": "0",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668239,
+        "name": "Pre-Modifier",
+        "dataTypeName": "text",
+        "fieldName": "pre_modifier",
+        "position": 65,
+        "renderTypeName": "text",
+        "tableColumnId": 157930458,
+        "cachedContents": {
+          "non_null": "81",
+          "largest": "OLD",
+          "null": "122176",
+          "top": [
+            {
+              "item": "OLD",
+              "count": "74"
+            },
+            {
+              "item": "LITTLE",
+              "count": "7"
+            }
+          ],
+          "smallest": "LITTLE",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668240,
+        "name": "Pre-Directional",
+        "dataTypeName": "text",
+        "fieldName": "pre_directional",
+        "position": 66,
+        "renderTypeName": "text",
+        "tableColumnId": 157930459,
+        "cachedContents": {
+          "non_null": "10149",
+          "largest": "W",
+          "null": "112108",
+          "top": [
+            {
+              "item": "E",
+              "count": "6275"
+            },
+            {
+              "item": "W",
+              "count": "3033"
+            },
+            {
+              "item": "N",
+              "count": "464"
+            },
+            {
+              "item": "S",
+              "count": "377"
+            }
+          ],
+          "smallest": "E",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668241,
+        "name": "Post Directional",
+        "dataTypeName": "text",
+        "fieldName": "post_directional",
+        "position": 67,
+        "renderTypeName": "text",
+        "tableColumnId": 157930460,
+        "cachedContents": {
+          "non_null": "1478",
+          "largest": "W",
+          "null": "120779",
+          "top": [
+            {
+              "item": "S",
+              "count": "427"
+            },
+            {
+              "item": "W",
+              "count": "414"
+            },
+            {
+              "item": "E",
+              "count": "326"
+            },
+            {
+              "item": "N",
+              "count": "298"
+            },
+            {
+              "item": "SW",
+              "count": "13"
+            }
+          ],
+          "smallest": "E",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668242,
+        "name": "Post Modifier",
+        "dataTypeName": "text",
+        "fieldName": "post_modifier",
+        "position": 68,
+        "renderTypeName": "text",
+        "tableColumnId": 157930461,
+        "cachedContents": {
+          "non_null": "401",
+          "largest": "WB EXIT 41",
+          "null": "121856",
+          "top": [
+            {
+              "item": "BRIDGE",
+              "count": "99"
+            },
+            {
+              "item": "BOULEVARD",
+              "count": "70"
+            },
+            {
+              "item": "EXTENSION",
+              "count": "32"
+            },
+            {
+              "item": "DRIVEWAY",
+              "count": "28"
+            },
+            {
+              "item": "SR",
+              "count": "23"
+            },
+            {
+              "item": "PROMENADE",
+              "count": "21"
+            },
+            {
+              "item": "EXIT",
+              "count": "17"
+            },
+            {
+              "item": "LOOP",
+              "count": "16"
+            },
+            {
+              "item": "PATH",
+              "count": "13"
+            },
+            {
+              "item": "DRIVE",
+              "count": "12"
+            },
+            {
+              "item": "VIADUCT",
+              "count": "11"
+            },
+            {
+              "item": "CONNECTOR",
+              "count": "10"
+            },
+            {
+              "item": "APPROACH",
+              "count": "8"
+            },
+            {
+              "item": "ENTRANCE",
+              "count": "7"
+            },
+            {
+              "item": "WB EXIT 41",
+              "count": "7"
+            },
+            {
+              "item": "SQUARE",
+              "count": "5"
+            },
+            {
+              "item": "BOARDWALK",
+              "count": "4"
+            },
+            {
+              "item": "UNP",
+              "count": "4"
+            },
+            {
+              "item": "UNDERPASS",
+              "count": "2"
+            },
+            {
+              "item": "CIRCLE",
+              "count": "2"
+            }
+          ],
+          "smallest": "ALLEY",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668243,
+        "name": "Full Street Name",
+        "dataTypeName": "text",
+        "fieldName": "full_street_name",
+        "position": 69,
+        "renderTypeName": "text",
+        "tableColumnId": 157930462,
+        "cachedContents": {
+          "non_null": "122257",
+          "largest": "ZWICKY AVE",
+          "null": "0",
+          "top": [
+            {
+              "item": "ALLEY",
+              "count": "3835"
+            },
+            {
+              "item": "BROADWAY",
+              "count": "705"
+            },
+            {
+              "item": "CONNECTOR",
+              "count": "555"
+            },
+            {
+              "item": "PEDESTRIAN PATH",
+              "count": "543"
+            },
+            {
+              "item": "LINDEN BLVD",
+              "count": "493"
+            },
+            {
+              "item": "3 AVE",
+              "count": "491"
+            },
+            {
+              "item": "GRAND CENTRAL PKWY",
+              "count": "475"
+            },
+            {
+              "item": "QUEENS BLVD",
+              "count": "445"
+            },
+            {
+              "item": "UNION TPKE",
+              "count": "391"
+            },
+            {
+              "item": "DRIVEWAY",
+              "count": "387"
+            },
+            {
+              "item": "ATLANTIC AVE",
+              "count": "383"
+            },
+            {
+              "item": "CROSS BRONX EXPY",
+              "count": "370"
+            },
+            {
+              "item": "PARK AVE",
+              "count": "365"
+            },
+            {
+              "item": "LONG ISLAND EXPY",
+              "count": "365"
+            },
+            {
+              "item": "BELT PKWY",
+              "count": "356"
+            },
+            {
+              "item": "FRANCIS LEWIS BLVD",
+              "count": "349"
+            },
+            {
+              "item": "JAMAICA AVE",
+              "count": "326"
+            },
+            {
+              "item": "GRAND CONC",
+              "count": "325"
+            },
+            {
+              "item": "BRUCKNER BLVD",
+              "count": "322"
+            },
+            {
+              "item": "VAN WYCK EXPY",
+              "count": "317"
+            }
+          ],
+          "smallest": "100 AVE",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668244,
+        "name": "BIKE TRAFFIC DIRECTION",
+        "dataTypeName": "text",
+        "fieldName": "bike_trafdir",
+        "position": 70,
+        "renderTypeName": "text",
+        "tableColumnId": 157930463,
+        "cachedContents": {
+          "non_null": "17144",
+          "largest": "TW",
+          "null": "105113",
+          "top": [
+            {
+              "item": "TW",
+              "count": "8773"
+            },
+            {
+              "item": "FT",
+              "count": "4277"
+            },
+            {
+              "item": "TF",
+              "count": "4094"
+            }
+          ],
+          "smallest": "FT",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668245,
+        "name": "SHAPE__Length",
+        "dataTypeName": "number",
+        "fieldName": "shape_length",
+        "position": 71,
+        "renderTypeName": "number",
+        "tableColumnId": 157930464,
+        "cachedContents": {
+          "non_null": "122257",
+          "largest": "14728.43496022372",
+          "null": "0",
+          "top": [
+            {
+              "item": "61.695176881748282",
+              "count": "2"
+            },
+            {
+              "item": "98.264181606943993",
+              "count": "2"
+            },
+            {
+              "item": "153.90559569420276",
+              "count": "2"
+            },
+            {
+              "item": "60.14841699875106",
+              "count": "2"
+            },
+            {
+              "item": "16.736130463239959",
+              "count": "2"
+            },
+            {
+              "item": "45.417379309324666",
+              "count": "2"
+            },
+            {
+              "item": "99.685966766833673",
+              "count": "2"
+            },
+            {
+              "item": "24.24305387465742",
+              "count": "2"
+            },
+            {
+              "item": "512.37561896633565",
+              "count": "2"
+            },
+            {
+              "item": "135.54072167864811",
+              "count": "2"
+            },
+            {
+              "item": "88.243697992266362",
+              "count": "2"
+            },
+            {
+              "item": "147.96785871899246",
+              "count": "2"
+            },
+            {
+              "item": "19.176522194379714",
+              "count": "2"
+            },
+            {
+              "item": "218.00818424680639",
+              "count": "2"
+            },
+            {
+              "item": "116.74520143211828",
+              "count": "2"
+            },
+            {
+              "item": "77.189061312282348",
+              "count": "2"
+            },
+            {
+              "item": "264.20455922228706",
+              "count": "2"
+            },
+            {
+              "item": "9.74318727958051",
+              "count": "2"
+            },
+            {
+              "item": "368.20880838127636",
+              "count": "2"
+            },
+            {
+              "item": "227.69356569247481",
+              "count": "2"
+            }
+          ],
+          "smallest": "0.53886189638249282",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668246,
+        "name": "GlobalID",
+        "dataTypeName": "text",
+        "fieldName": "globalid",
+        "position": 72,
+        "renderTypeName": "text",
+        "tableColumnId": 157930465,
+        "cachedContents": {
+          "non_null": "122257",
+          "largest": "fffff56a-d806-45dd-a143-1a5711ba1996",
+          "null": "0",
+          "top": [
+            {
+              "item": "5b659666-ded9-427d-9c0d-36d8c694f753",
+              "count": "1"
+            },
+            {
+              "item": "c732cdfa-ba69-416c-aa06-d977b4aba9e7",
+              "count": "1"
+            },
+            {
+              "item": "cf75a4b1-6ebf-4a10-86e5-183129f6b414",
+              "count": "1"
+            },
+            {
+              "item": "77c2b3bd-91cd-4317-84c8-03df03075610",
+              "count": "1"
+            },
+            {
+              "item": "f640c90d-a5d8-4af1-a40b-966aa6e4fba1",
+              "count": "1"
+            },
+            {
+              "item": "47ed38ab-afe9-428c-ad6f-137abdbdd768",
+              "count": "1"
+            },
+            {
+              "item": "026f1171-9480-4a31-8de4-fb15558a4130",
+              "count": "1"
+            },
+            {
+              "item": "3ac83fa8-a9d2-42a2-86e5-8a34242ff724",
+              "count": "1"
+            },
+            {
+              "item": "98cc241b-1917-4a3c-b57f-d68e59fc3c1b",
+              "count": "1"
+            },
+            {
+              "item": "c68f6830-ca6d-4195-94e9-c2f1d40d588f",
+              "count": "1"
+            },
+            {
+              "item": "1a605485-43c7-446c-9b6d-db0a62a9f712",
+              "count": "1"
+            },
+            {
+              "item": "7f249eb8-a986-4494-80d7-a5549e67428c",
+              "count": "1"
+            },
+            {
+              "item": "0e2a870d-b62e-4929-a50d-82582dcf36b7",
+              "count": "1"
+            },
+            {
+              "item": "ae03cf82-ab00-4a20-a9ea-078b9580843f",
+              "count": "1"
+            },
+            {
+              "item": "b5bc2fdf-253e-49e2-8241-9b5ae8caa866",
+              "count": "1"
+            },
+            {
+              "item": "0cb96408-2c84-4c20-8c61-bbdc6c9d03b9",
+              "count": "1"
+            },
+            {
+              "item": "c2a543c6-314d-4cf0-8d10-c06332354f10",
+              "count": "1"
+            },
+            {
+              "item": "4cf0aefd-7f8a-45ba-95e5-b46bdce08dc9",
+              "count": "1"
+            },
+            {
+              "item": "2ea96c34-645d-4f99-9416-49666bc8585f",
+              "count": "1"
+            },
+            {
+              "item": "4c477b95-87bf-41ec-ae07-fc6b59fd5cac",
+              "count": "1"
+            }
+          ],
+          "smallest": "00023603-e8ce-43bc-a639-20711f602073",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668247,
+        "name": "SEGMENT_TYPE",
+        "dataTypeName": "text",
+        "fieldName": "segment_type",
+        "position": 73,
+        "renderTypeName": "text",
+        "tableColumnId": 157930466,
+        "cachedContents": {
+          "non_null": "0",
+          "null": "122257",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668248,
+        "name": "SEGMENT_TYPE_VALUE",
+        "dataTypeName": "text",
+        "fieldName": "segment_type_value",
+        "position": 74,
+        "renderTypeName": "text",
+        "tableColumnId": 157930467,
+        "cachedContents": {
+          "non_null": "0",
+          "null": "122257",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668249,
+        "name": "STREET NAME",
+        "dataTypeName": "text",
+        "fieldName": "street_name",
+        "position": 75,
+        "renderTypeName": "text",
+        "tableColumnId": 157930468,
+        "cachedContents": {
+          "non_null": "122257",
+          "largest": "ZWICKY",
+          "null": "0",
+          "top": [
+            {
+              "item": "ALLEY",
+              "count": "3840"
+            },
+            {
+              "item": "BROADWAY",
+              "count": "762"
+            },
+            {
+              "item": "3",
+              "count": "661"
+            },
+            {
+              "item": "PARK",
+              "count": "607"
+            },
+            {
+              "item": "PEDESTRIAN",
+              "count": "606"
+            },
+            {
+              "item": "UNION",
+              "count": "558"
+            },
+            {
+              "item": "CONNECTOR",
+              "count": "556"
+            },
+            {
+              "item": "LINDEN",
+              "count": "535"
+            },
+            {
+              "item": "QUEENS",
+              "count": "522"
+            },
+            {
+              "item": "BRUCKNER",
+              "count": "520"
+            },
+            {
+              "item": "GRAND",
+              "count": "499"
+            },
+            {
+              "item": "GRAND CENTRAL",
+              "count": "475"
+            },
+            {
+              "item": "5",
+              "count": "417"
+            },
+            {
+              "item": "ROCKAWAY",
+              "count": "404"
+            },
+            {
+              "item": "DRIVEWAY",
+              "count": "387"
+            },
+            {
+              "item": "ATLANTIC",
+              "count": "386"
+            },
+            {
+              "item": "4",
+              "count": "375"
+            },
+            {
+              "item": "CROSS BRONX",
+              "count": "370"
+            },
+            {
+              "item": "LONG ISLAND",
+              "count": "365"
+            },
+            {
+              "item": "RICHMOND",
+              "count": "364"
+            }
+          ],
+          "smallest": "1",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      },
+      {
+        "id": 608668250,
+        "name": "Street Name Label",
+        "dataTypeName": "text",
+        "fieldName": "stname_label",
+        "position": 76,
+        "renderTypeName": "text",
+        "tableColumnId": 157930469,
+        "cachedContents": {
+          "non_null": "122257",
+          "largest": "ZWICKY AVE",
+          "null": "0",
+          "top": [
+            {
+              "item": "ALLEY",
+              "count": "3835"
+            },
+            {
+              "item": "BROADWAY",
+              "count": "705"
+            },
+            {
+              "item": "CONNECTOR",
+              "count": "555"
+            },
+            {
+              "item": "PEDESTRIAN PATH",
+              "count": "543"
+            },
+            {
+              "item": "LINDEN BLVD",
+              "count": "493"
+            },
+            {
+              "item": "3 AVE",
+              "count": "491"
+            },
+            {
+              "item": "GRAND CENTRAL PKWY",
+              "count": "475"
+            },
+            {
+              "item": "QUEENS BLVD",
+              "count": "445"
+            },
+            {
+              "item": "UNION TPKE",
+              "count": "391"
+            },
+            {
+              "item": "DRIVEWAY",
+              "count": "387"
+            },
+            {
+              "item": "ATLANTIC AVE",
+              "count": "383"
+            },
+            {
+              "item": "CROSS BRONX EXPY",
+              "count": "370"
+            },
+            {
+              "item": "PARK AVE",
+              "count": "365"
+            },
+            {
+              "item": "LONG ISLAND EXPY",
+              "count": "365"
+            },
+            {
+              "item": "BELT PKWY",
+              "count": "356"
+            },
+            {
+              "item": "FRANCIS LEWIS BLVD",
+              "count": "349"
+            },
+            {
+              "item": "JAMAICA AVE",
+              "count": "326"
+            },
+            {
+              "item": "GRAND CONC",
+              "count": "325"
+            },
+            {
+              "item": "BRUCKNER BLVD",
+              "count": "322"
+            },
+            {
+              "item": "VAN WYCK EXPY",
+              "count": "317"
+            }
+          ],
+          "smallest": "100 AVE",
+          "count": "122257",
+          "cardinality": "122257"
+        },
+        "format": {}
+      }
+    ],
+    "assetType": "dataset",
+    "averageRating": 0,
+    "category": "City Government",
+    "createdAt": 1735063511,
+    "diciBackend": false,
+    "displayType": "table",
+    "downloadCount": 3139,
+    "hideFromCatalog": false,
+    "hideFromDataJson": false,
+    "locked": false,
+    "newBackend": true,
+    "numberOfComments": 0,
+    "oid": 41262181,
+    "provenance": "official",
+    "publicationAppendEnabled": false,
+    "publicationDate": 1744307237,
+    "publicationGroup": 19720812,
+    "publicationStage": "published",
+    "rowsUpdatedBy": "ft46-kupe",
+    "tableId": 19854636,
+    "totalTimesRated": 0,
+    "viewCount": 8193,
+    "viewLastModified": 1744725948,
+    "viewType": "tabular",
+    "approvals": [
+      {
+        "reviewedAt": 1735064698,
+        "reviewedAutomatically": false,
+        "state": "approved",
+        "submissionId": 6842415,
+        "submissionObject": "public_audience_request",
+        "submissionOutcome": "change_audience",
+        "submittedAt": 1735064669,
+        "targetAudience": "public",
+        "workflowId": 2285,
+        "reviewer": {
+          "id": "d5dp-fses",
+          "displayName": "afinkel"
+        },
+        "submissionDetails": {
+          "permissionType": "READ"
+        },
+        "submissionOutcomeApplication": {
+          "endedAt": 1735064698,
+          "failureCount": 0,
+          "startedAt": 1735064698,
+          "status": "success"
+        },
+        "submitter": {
+          "id": "d5dp-fses",
+          "displayName": "afinkel"
+        }
+      }
+    ],
+    "clientContext": {
+      "clientContextVariables": [],
+      "inheritedVariables": {}
+    },
+    "grants": [
+      {
+        "inherited": false,
+        "type": "viewer",
+        "flags": [
+          "public"
+        ]
+      }
+    ],
+    "metadata": {
+      "attachments": [
+        {
+          "filename": "Centerline.pdf",
+          "assetId": "4cff63bb-aeb0-4ca3-adb5-d6027dc133d5",
+          "name": "Centerline.pdf"
+        }
+      ],
+      "custom_fields": {
+        "Update": {
+          "Automation": "Yes",
+          "Date Made Public": "6/19/2014",
+          "Update Frequency": "Weekly"
+        },
+        "Dataset Information": {
+          "Agency": "Office of Technology and Innovation (OTI)"
+        }
+      },
+      "rowLabel": "single line representation of New York City street",
+      "availableDisplayTypes": [
+        "table",
+        "fatrow",
+        "page"
+      ]
+    },
+    "owner": {
+      "id": "5fuc-pqz2",
+      "displayName": "NYC OpenData",
+      "profileImageUrlLarge": "/api/users/5fuc-pqz2/profile_images/LARGE",
+      "profileImageUrlMedium": "/api/users/5fuc-pqz2/profile_images/THUMB",
+      "profileImageUrlSmall": "/api/users/5fuc-pqz2/profile_images/TINY",
+      "screenName": "NYC OpenData",
+      "type": "interactive",
+      "flags": [
+        "acceptedEula",
+        "mayBeStoriesCoOwner"
+      ]
+    },
+    "query": {},
+    "rights": [
+      "read"
+    ],
+    "tableAuthor": {
+      "id": "5fuc-pqz2",
+      "displayName": "NYC OpenData",
+      "profileImageUrlLarge": "/api/users/5fuc-pqz2/profile_images/LARGE",
+      "profileImageUrlMedium": "/api/users/5fuc-pqz2/profile_images/THUMB",
+      "profileImageUrlSmall": "/api/users/5fuc-pqz2/profile_images/TINY",
+      "screenName": "NYC OpenData",
+      "type": "interactive",
+      "flags": [
+        "acceptedEula",
+        "mayBeStoriesCoOwner"
+      ]
+    },
+    "tags": [
+      "centerline"
+    ],
+    "flags": [
+      "default",
+      "ownerMayBeContacted",
+      "restorable",
+      "restorePossibleForType"
+    ]
+  }
+}

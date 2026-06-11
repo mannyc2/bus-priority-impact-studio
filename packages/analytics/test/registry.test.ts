@@ -1,0 +1,239 @@
+import { describe, expect, test } from "bun:test";
+import {
+  BUNCHING_HOTSPOTS_DETECTOR_ID,
+  CUSTOMER_JOURNEY_SHORTFALL_DETECTOR_ID,
+  DEGRADATION_TREND_DETECTOR_ID,
+  DELAY_CONCENTRATION_DETECTOR_ID,
+  HEADWAY_RELIABILITY_EWT_DETECTOR_ID,
+  INTERVENTION_EVENT_STUDY_DETECTOR_ID,
+  INTERVENTION_GAP_DETECTOR_ID,
+  INTERVENTION_UNDERPERFORMANCE_DETECTOR_ID,
+  MULTI_MONTH_SPEED_PEER_DETECTOR_ID,
+  OBSERVED_RELIABILITY_DETECTOR_ID,
+  PERMIT_CORRELATED_SLOWDOWN_DETECTOR_ID,
+  PERSISTENT_SPEED_HOTSPOT_DETECTOR_ID,
+  POSITIVE_DEVIANCE_DETECTOR_ID,
+  RIDER_WEIGHTED_EXCESS_WAIT_DETECTOR_ID,
+  SCHEDULE_MISMATCH_DETECTOR_ID,
+  SERVICE_REQUEST_CONTEXT_DETECTOR_ID,
+  SOURCE_GAP_DETECTOR_ID,
+  SPEED_PACE_HOTSPOT_DETECTOR_ID,
+  TRAVEL_TIME_VARIABILITY_DETECTOR_ID,
+  TREATMENT_SCOPE_GAP_DETECTOR_ID,
+  TREATMENT_SCOPE_MISMATCH_DETECTOR_ID,
+} from "@bp/analytics/detectors";
+import { getFeatureContract } from "@bp/analytics/features";
+import {
+  ANALYTICS_DETECTOR_REGISTRY,
+  assertDetectorRegistryMatchesSpecs,
+  buildFindingDetectorSpecsArtifact,
+  DETECTOR_BASELINE_FAMILIES,
+  DETECTOR_CLAIM_TIERS,
+  DETECTOR_MODEL_ARTIFACT_IDS,
+  DETECTOR_PROMOTION_GATE_KINDS,
+  DETECTOR_RETIREMENT_STATUSES,
+  FINDING_DETECTOR_SPECS,
+  getAnalyticsDetector,
+  getFindingDetectorSpec,
+  listAnalyticsDetectors,
+} from "@bp/analytics/registry";
+import { KNOWN_DETECTOR_IDS, KNOWN_FINDING_REASON_CODES } from "@bp/domain/findings";
+
+const EXPECTED_DETECTOR_IDS = [
+  SOURCE_GAP_DETECTOR_ID,
+  PERSISTENT_SPEED_HOTSPOT_DETECTOR_ID,
+  SPEED_PACE_HOTSPOT_DETECTOR_ID,
+  MULTI_MONTH_SPEED_PEER_DETECTOR_ID,
+  OBSERVED_RELIABILITY_DETECTOR_ID,
+  HEADWAY_RELIABILITY_EWT_DETECTOR_ID,
+  BUNCHING_HOTSPOTS_DETECTOR_ID,
+  RIDER_WEIGHTED_EXCESS_WAIT_DETECTOR_ID,
+  CUSTOMER_JOURNEY_SHORTFALL_DETECTOR_ID,
+  TRAVEL_TIME_VARIABILITY_DETECTOR_ID,
+  SCHEDULE_MISMATCH_DETECTOR_ID,
+  DEGRADATION_TREND_DETECTOR_ID,
+  POSITIVE_DEVIANCE_DETECTOR_ID,
+  INTERVENTION_GAP_DETECTOR_ID,
+  INTERVENTION_EVENT_STUDY_DETECTOR_ID,
+  INTERVENTION_UNDERPERFORMANCE_DETECTOR_ID,
+  TREATMENT_SCOPE_MISMATCH_DETECTOR_ID,
+  TREATMENT_SCOPE_GAP_DETECTOR_ID,
+  PERMIT_CORRELATED_SLOWDOWN_DETECTOR_ID,
+  SERVICE_REQUEST_CONTEXT_DETECTOR_ID,
+  DELAY_CONCENTRATION_DETECTOR_ID,
+] as const;
+
+describe("analytics detector registry", () => {
+  test("registers every detector spec exactly once", () => {
+    expect(() => assertDetectorRegistryMatchesSpecs()).not.toThrow();
+
+    const registeredIds = ANALYTICS_DETECTOR_REGISTRY.map((detector) =>
+      String(detector.detectorId),
+    );
+    expect(registeredIds).toEqual([...EXPECTED_DETECTOR_IDS]);
+    expect(new Set(registeredIds).size).toBe(registeredIds.length);
+    expect(FINDING_DETECTOR_SPECS.map((spec) => String(spec.detectorId)).sort()).toEqual(
+      [...EXPECTED_DETECTOR_IDS].sort(),
+    );
+  });
+
+  test("returns defensive registry copies and detector lookup results", () => {
+    const copy = listAnalyticsDetectors();
+    copy.pop();
+
+    expect(copy).toHaveLength(ANALYTICS_DETECTOR_REGISTRY.length - 1);
+    expect(listAnalyticsDetectors()).toHaveLength(ANALYTICS_DETECTOR_REGISTRY.length);
+    expect(getAnalyticsDetector(PERSISTENT_SPEED_HOTSPOT_DETECTOR_ID)?.scope.kind).toBe("segment");
+    expect(getAnalyticsDetector("unknown_detector")).toBeNull();
+  });
+
+  test("keeps detector metadata useful for agent-facing design and review", () => {
+    const claimTiers = new Set<string>(DETECTOR_CLAIM_TIERS);
+    const baselineFamilies = new Set<string>(DETECTOR_BASELINE_FAMILIES);
+    const modelArtifactIds = new Set<string>(DETECTOR_MODEL_ARTIFACT_IDS);
+    const gateKinds = new Set<string>(DETECTOR_PROMOTION_GATE_KINDS);
+    const retirementStatuses = new Set<string>(DETECTOR_RETIREMENT_STATUSES);
+
+    for (const detector of ANALYTICS_DETECTOR_REGISTRY) {
+      expect(detector.version).toMatch(/^\d+\.\d+\.\d+$/);
+      expect(detector.featureGrains.length).toBeGreaterThan(0);
+      for (const featureGrain of detector.featureGrains) {
+        const contract = getFeatureContract(featureGrain);
+        expect(contract?.featureGrain).toBe(featureGrain);
+        expect(contract?.grainKeys.length).toBeGreaterThan(0);
+        expect(contract?.requiredFields.length).toBeGreaterThan(0);
+      }
+      expect(detector.spec.detectorId).toBe(detector.detectorId);
+      expect(detector.spec.primaryEvidenceRequired.length).toBeGreaterThan(0);
+      expect(detector.spec.counterEvidenceRequired.length).toBeGreaterThan(0);
+      expect(detector.spec.knownFailureModes.length).toBeGreaterThan(0);
+      expect(claimTiers.has(detector.claimTier)).toBe(true);
+      expect(detector.baselineFamilies.length).toBeGreaterThan(0);
+      expect(new Set(detector.baselineFamilies).size).toBe(detector.baselineFamilies.length);
+      expect(detector.baselineFamilies.every((family) => baselineFamilies.has(family))).toBe(true);
+      expect(detector.requiredDataProducts.length).toBeGreaterThan(0);
+      expect(new Set(detector.requiredDataProducts).size).toBe(
+        detector.requiredDataProducts.length,
+      );
+      expect(detector.requiredDataProducts).toEqual([...detector.requiredDataProducts].sort());
+      expect(new Set(detector.modelArtifacts ?? []).size).toBe(
+        (detector.modelArtifacts ?? []).length,
+      );
+      expect(
+        (detector.modelArtifacts ?? []).every((modelId) => modelArtifactIds.has(modelId)),
+      ).toBe(true);
+      expect(detector.promotionGates.length).toBeGreaterThan(0);
+      for (const gate of detector.promotionGates) {
+        expect(gateKinds.has(gate.kind)).toBe(true);
+        expect(gate.description.length).toBeGreaterThan(0);
+        expect(gate.requiredFor.length).toBeGreaterThan(0);
+        expect(gate.requiredFor.every((tier) => claimTiers.has(tier))).toBe(true);
+      }
+      expect(detector.missingDataStates.length).toBeGreaterThan(0);
+      expect(detector.evidenceSchemaVersion).toMatch(/^v\d+$/);
+      expect(retirementStatuses.has(detector.retirementStatus)).toBe(true);
+      expect(typeof detector.run).toBe("function");
+    }
+  });
+
+  test("keeps domain detector documentation aligned with the analytics registry", () => {
+    expect(KNOWN_DETECTOR_IDS.map(String)).toEqual([...EXPECTED_DETECTOR_IDS]);
+
+    const documentedReasonCodes = new Set<string>(KNOWN_FINDING_REASON_CODES);
+    for (const detector of ANALYTICS_DETECTOR_REGISTRY) {
+      for (const missingDataState of detector.missingDataStates) {
+        expect(documentedReasonCodes.has(missingDataState)).toBe(true);
+      }
+    }
+  });
+
+  test("classifies current detectors by safe claim tier", () => {
+    expect(getAnalyticsDetector(SOURCE_GAP_DETECTOR_ID)?.claimTier).toBe("descriptive");
+    expect(getAnalyticsDetector(OBSERVED_RELIABILITY_DETECTOR_ID)?.claimTier).toBe("descriptive");
+    expect(getAnalyticsDetector(HEADWAY_RELIABILITY_EWT_DETECTOR_ID)?.claimTier).toBe(
+      "descriptive",
+    );
+    expect(getAnalyticsDetector(BUNCHING_HOTSPOTS_DETECTOR_ID)?.claimTier).toBe("descriptive");
+    expect(getAnalyticsDetector(RIDER_WEIGHTED_EXCESS_WAIT_DETECTOR_ID)?.claimTier).toBe(
+      "associational",
+    );
+    expect(getAnalyticsDetector(CUSTOMER_JOURNEY_SHORTFALL_DETECTOR_ID)?.claimTier).toBe(
+      "descriptive",
+    );
+    expect(getAnalyticsDetector(PERSISTENT_SPEED_HOTSPOT_DETECTOR_ID)?.claimTier).toBe(
+      "descriptive",
+    );
+    expect(getAnalyticsDetector(SPEED_PACE_HOTSPOT_DETECTOR_ID)?.claimTier).toBe("descriptive");
+    expect(getAnalyticsDetector(TRAVEL_TIME_VARIABILITY_DETECTOR_ID)?.claimTier).toBe(
+      "descriptive",
+    );
+    expect(getAnalyticsDetector(SCHEDULE_MISMATCH_DETECTOR_ID)?.claimTier).toBe("descriptive");
+    expect(getAnalyticsDetector(DEGRADATION_TREND_DETECTOR_ID)?.claimTier).toBe("associational");
+    expect(getAnalyticsDetector(POSITIVE_DEVIANCE_DETECTOR_ID)?.claimTier).toBe("descriptive");
+    expect(getAnalyticsDetector(PERMIT_CORRELATED_SLOWDOWN_DETECTOR_ID)?.claimTier).toBe(
+      "associational",
+    );
+    expect(getAnalyticsDetector(INTERVENTION_UNDERPERFORMANCE_DETECTOR_ID)?.claimTier).toBe(
+      "associational",
+    );
+    expect(getAnalyticsDetector(TREATMENT_SCOPE_MISMATCH_DETECTOR_ID)?.claimTier).toBe(
+      "associational",
+    );
+    expect(getAnalyticsDetector(INTERVENTION_EVENT_STUDY_DETECTOR_ID)?.claimTier).toBe(
+      "associational",
+    );
+    expect(
+      ANALYTICS_DETECTOR_REGISTRY.some(
+        (detector) => detector.claimTier === "candidate_causal_needs_review",
+      ),
+    ).toBe(false);
+  });
+
+  test("declares model artifact dependencies for residual-backed detectors", () => {
+    expect(getAnalyticsDetector(SOURCE_GAP_DETECTOR_ID)?.modelArtifacts).toEqual([
+      "source_gap_model_v1",
+    ]);
+    expect(getAnalyticsDetector(INTERVENTION_GAP_DETECTOR_ID)?.modelArtifacts).toEqual([
+      "source_gap_model_v1",
+    ]);
+    expect(getAnalyticsDetector(TREATMENT_SCOPE_MISMATCH_DETECTOR_ID)?.modelArtifacts).toEqual([
+      "segment_speed_residuals_v1",
+      "intervention_scope_fit_v1",
+    ]);
+    expect(getAnalyticsDetector(TREATMENT_SCOPE_GAP_DETECTOR_ID)?.modelArtifacts).toEqual([
+      "segment_speed_residuals_v1",
+      "intervention_scope_fit_v1",
+    ]);
+    expect(getAnalyticsDetector(SPEED_PACE_HOTSPOT_DETECTOR_ID)?.modelArtifacts).toEqual([
+      "segment_daypart_residuals_v1",
+    ]);
+    expect(getAnalyticsDetector(MULTI_MONTH_SPEED_PEER_DETECTOR_ID)?.modelArtifacts).toEqual([
+      "route_peer_residuals_v1",
+    ]);
+    expect(getAnalyticsDetector(DEGRADATION_TREND_DETECTOR_ID)?.modelArtifacts).toEqual([
+      "route_peer_residuals_v1",
+    ]);
+    expect(getAnalyticsDetector(POSITIVE_DEVIANCE_DETECTOR_ID)?.modelArtifacts).toEqual([
+      "route_peer_residuals_v1",
+    ]);
+    expect(getAnalyticsDetector(RIDER_WEIGHTED_EXCESS_WAIT_DETECTOR_ID)?.modelArtifacts).toEqual([
+      "reliability_exposure_panel_v1",
+    ]);
+    expect(getAnalyticsDetector(INTERVENTION_EVENT_STUDY_DETECTOR_ID)?.modelArtifacts).toEqual([
+      "treatment_event_panel_v1",
+    ]);
+  });
+
+  test("builds a schema-validated detector-spec artifact", () => {
+    const artifact = buildFindingDetectorSpecsArtifact({
+      generatedAt: "2026-05-30T00:00:00.000Z",
+    });
+
+    expect(artifact.artifactKind).toBe("finding_detector_specs");
+    expect(artifact.detectorCount).toBe(EXPECTED_DETECTOR_IDS.length);
+    expect(artifact.detectors.map((spec) => String(spec.detectorId))).toEqual([
+      ...EXPECTED_DETECTOR_IDS,
+    ]);
+    expect(getFindingDetectorSpec(DELAY_CONCENTRATION_DETECTOR_ID)?.allowedClaimStrength).toBe(2);
+  });
+});

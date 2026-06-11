@@ -59,6 +59,6 @@ Run the smallest relevant checks after a change:
 - Type changes: `bun run check:types`
 - Package changes: `bun --filter <package> test`
 - Worker/app changes: `bun --filter @bp/web build`
-- Pipeline changes: `bun --filter @bp/pipeline test` and one fixture-backed command
+- Pipeline changes: `bun --filter @bp/pipeline-v2 test` and one fixture-backed command
 
 If a check cannot run, say exactly why.

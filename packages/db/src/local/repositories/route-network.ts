@@ -1,5 +1,5 @@
 import { asc, desc, eq, sql } from "drizzle-orm";
-import type { LocalPipelineDb } from "../client.js";
+import { insertAll, type LocalPipelineDb } from "../client.js";
 import {
   localRouteBuildPlan,
   localRouteCatalog,
@@ -123,32 +123,22 @@ const buildPlanStatusRank = sql<number>`case ${localRouteBuildPlan.planStatus}
   else 4
 end`;
 
-export async function replaceRouteCatalog(
+export function replaceRouteCatalog(
   db: LocalPipelineDb,
   rows: readonly LocalRouteCatalogEntry[],
-): Promise<void> {
-  await db.delete(localRouteCatalogType);
-  await db.delete(localRouteDirection);
-  await db.delete(localRouteCatalog);
-
-  if (rows.length === 0) {
-    return;
-  }
-
-  await db.insert(localRouteCatalog).values(
-    rows.map((row) => ({
-      routeId: row.routeId,
-      routeShortName: row.routeShortName,
-      routeLongName: row.routeLongName,
-      shapeCount: row.shapeCount,
-      stopCount: row.stopCount,
-      timepointStopCount: row.timepointStopCount,
-      latitudeMin: row.latitudeMin,
-      latitudeMax: row.latitudeMax,
-      longitudeMin: row.longitudeMin,
-      longitudeMax: row.longitudeMax,
-    })),
-  );
+): void {
+  const catalogValues = rows.map((row) => ({
+    routeId: row.routeId,
+    routeShortName: row.routeShortName,
+    routeLongName: row.routeLongName,
+    shapeCount: row.shapeCount,
+    stopCount: row.stopCount,
+    timepointStopCount: row.timepointStopCount,
+    latitudeMin: row.latitudeMin,
+    latitudeMax: row.latitudeMax,
+    longitudeMin: row.longitudeMin,
+    longitudeMax: row.longitudeMax,
+  }));
 
   const routeTypes = rows.flatMap((row) =>
     row.routeTypes.map((routeType, index) => ({
@@ -165,12 +155,14 @@ export async function replaceRouteCatalog(
     })),
   );
 
-  if (routeTypes.length > 0) {
-    await db.insert(localRouteCatalogType).values(routeTypes);
-  }
-  if (directions.length > 0) {
-    await db.insert(localRouteDirection).values(directions);
-  }
+  db.transaction((tx) => {
+    tx.delete(localRouteCatalogType).run();
+    tx.delete(localRouteDirection).run();
+    tx.delete(localRouteCatalog).run();
+    insertAll(tx, localRouteCatalog, catalogValues);
+    insertAll(tx, localRouteCatalogType, routeTypes);
+    insertAll(tx, localRouteDirection, directions);
+  });
 }
 
 // Distinct route_ids that have any LION segment link. Used by detectors to
@@ -181,6 +173,14 @@ export async function listRouteIdsWithLionLink(db: LocalPipelineDb): Promise<str
     .selectDistinct({ routeId: localRouteLionLink.routeId })
     .from(localRouteLionLink)
     .orderBy(asc(localRouteLionLink.routeId))) as Array<{ routeId: string }>;
+  return rows.map((row) => row.routeId);
+}
+
+export async function listRouteCatalogIds(db: LocalPipelineDb): Promise<string[]> {
+  const rows = await db
+    .select({ routeId: localRouteCatalog.routeId })
+    .from(localRouteCatalog)
+    .orderBy(asc(localRouteCatalog.routeId));
   return rows.map((row) => row.routeId);
 }
 
@@ -215,29 +215,26 @@ export async function listRouteCatalog(db: LocalPipelineDb): Promise<LocalRouteC
   }));
 }
 
-export async function replaceRouteMonthCoverage(
+export function replaceRouteMonthCoverage(
   db: LocalPipelineDb,
   month: string,
   rows: readonly LocalRouteMonthCoverage[],
-): Promise<void> {
-  await db.delete(localRouteMonthCoverage).where(eq(localRouteMonthCoverage.month, month));
+): void {
+  const values = rows.map((row) => ({
+    routeId: row.routeId,
+    month: row.isoMonth,
+    speedObservationCount: row.speedObservationCount,
+    speedBusTripCount: row.speedBusTripCount,
+    averageSpeedMph: row.averageSpeedMph,
+    scheduleTimepointCount: row.scheduleTimepointCount,
+    hasSpeedData: row.hasSpeedData,
+    hasScheduleData: row.hasScheduleData,
+  }));
 
-  if (rows.length === 0) {
-    return;
-  }
-
-  await db.insert(localRouteMonthCoverage).values(
-    rows.map((row) => ({
-      routeId: row.routeId,
-      month: row.isoMonth,
-      speedObservationCount: row.speedObservationCount,
-      speedBusTripCount: row.speedBusTripCount,
-      averageSpeedMph: row.averageSpeedMph,
-      scheduleTimepointCount: row.scheduleTimepointCount,
-      hasSpeedData: row.hasSpeedData,
-      hasScheduleData: row.hasScheduleData,
-    })),
-  );
+  db.transaction((tx) => {
+    tx.delete(localRouteMonthCoverage).where(eq(localRouteMonthCoverage.month, month)).run();
+    insertAll(tx, localRouteMonthCoverage, values);
+  });
 }
 
 export async function listRouteMonthCoverage(
@@ -262,38 +259,27 @@ export async function listRouteMonthCoverage(
   }));
 }
 
-export async function replaceRouteReadiness(
+export function replaceRouteReadiness(
   db: LocalPipelineDb,
   month: string,
   rows: readonly LocalRouteReadiness[],
-): Promise<void> {
-  await db
-    .delete(localRouteReadinessMissingInput)
-    .where(eq(localRouteReadinessMissingInput.month, month));
-  await db.delete(localRouteReadiness).where(eq(localRouteReadiness.month, month));
-
-  if (rows.length === 0) {
-    return;
-  }
-
-  await db.insert(localRouteReadiness).values(
-    rows.map((row) => ({
-      routeId: row.routeId,
-      month: row.isoMonth,
-      routeShortName: row.routeShortName,
-      routeLongName: row.routeLongName,
-      readinessStatus: row.readinessStatus,
-      buildEligible: row.buildEligible,
-      readinessScore: row.readinessScore,
-      speedObservationCount: row.speedObservationCount,
-      speedBusTripCount: row.speedBusTripCount,
-      averageSpeedMph: row.averageSpeedMph,
-      scheduleTimepointCount: row.scheduleTimepointCount,
-      shapeCount: row.shapeCount,
-      stopCount: row.stopCount,
-      timepointStopCount: row.timepointStopCount,
-    })),
-  );
+): void {
+  const readinessValues = rows.map((row) => ({
+    routeId: row.routeId,
+    month: row.isoMonth,
+    routeShortName: row.routeShortName,
+    routeLongName: row.routeLongName,
+    readinessStatus: row.readinessStatus,
+    buildEligible: row.buildEligible,
+    readinessScore: row.readinessScore,
+    speedObservationCount: row.speedObservationCount,
+    speedBusTripCount: row.speedBusTripCount,
+    averageSpeedMph: row.averageSpeedMph,
+    scheduleTimepointCount: row.scheduleTimepointCount,
+    shapeCount: row.shapeCount,
+    stopCount: row.stopCount,
+    timepointStopCount: row.timepointStopCount,
+  }));
 
   const missingInputs = rows.flatMap((row) =>
     row.missingInputs.map((inputName, index) => ({
@@ -304,9 +290,15 @@ export async function replaceRouteReadiness(
     })),
   );
 
-  if (missingInputs.length > 0) {
-    await db.insert(localRouteReadinessMissingInput).values(missingInputs);
-  }
+  db.transaction((tx) => {
+    tx
+      .delete(localRouteReadinessMissingInput)
+      .where(eq(localRouteReadinessMissingInput.month, month))
+      .run();
+    tx.delete(localRouteReadiness).where(eq(localRouteReadiness.month, month)).run();
+    insertAll(tx, localRouteReadiness, readinessValues);
+    insertAll(tx, localRouteReadinessMissingInput, missingInputs);
+  });
 }
 
 export async function listRouteReadiness(
@@ -355,40 +347,37 @@ export async function listRouteReadiness(
   }));
 }
 
-export async function replaceRouteBuildPlan(
+export function replaceRouteBuildPlan(
   db: LocalPipelineDb,
   month: string,
   rows: readonly LocalRouteBuildPlan[],
-): Promise<void> {
-  await db.delete(localRouteBuildPlan).where(eq(localRouteBuildPlan.month, month));
+): void {
+  const values = rows.map((row) => ({
+    routeId: row.routeId,
+    month: row.isoMonth,
+    routeShortName: row.routeShortName,
+    routeLongName: row.routeLongName,
+    candidateRank: row.candidateRank,
+    planStatus: row.planStatus,
+    selectedForNextBatch: row.selectedForNextBatch,
+    alreadyBuilt: row.alreadyBuilt,
+    buildEligible: row.buildEligible,
+    priorityScore: row.priorityScore,
+    readinessStatus: row.readinessStatus,
+    readinessScore: row.readinessScore,
+    speedObservationCount: row.speedObservationCount,
+    speedBusTripCount: row.speedBusTripCount,
+    averageSpeedMph: row.averageSpeedMph,
+    scheduleTimepointCount: row.scheduleTimepointCount,
+    shapeCount: row.shapeCount,
+    stopCount: row.stopCount,
+    timepointStopCount: row.timepointStopCount,
+  }));
 
-  if (rows.length === 0) {
-    return;
-  }
-
-  await db.insert(localRouteBuildPlan).values(
-    rows.map((row) => ({
-      routeId: row.routeId,
-      month: row.isoMonth,
-      routeShortName: row.routeShortName,
-      routeLongName: row.routeLongName,
-      candidateRank: row.candidateRank,
-      planStatus: row.planStatus,
-      selectedForNextBatch: row.selectedForNextBatch,
-      alreadyBuilt: row.alreadyBuilt,
-      buildEligible: row.buildEligible,
-      priorityScore: row.priorityScore,
-      readinessStatus: row.readinessStatus,
-      readinessScore: row.readinessScore,
-      speedObservationCount: row.speedObservationCount,
-      speedBusTripCount: row.speedBusTripCount,
-      averageSpeedMph: row.averageSpeedMph,
-      scheduleTimepointCount: row.scheduleTimepointCount,
-      shapeCount: row.shapeCount,
-      stopCount: row.stopCount,
-      timepointStopCount: row.timepointStopCount,
-    })),
-  );
+  db.transaction((tx) => {
+    tx.delete(localRouteBuildPlan).where(eq(localRouteBuildPlan.month, month)).run();
+    insertAll(tx, localRouteBuildPlan, values);
+  });
 }
 
 export async function listRouteBuildPlan(

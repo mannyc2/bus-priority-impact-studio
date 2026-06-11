@@ -1,0 +1,728 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Analytics, explained — Bus Priority Impact Studio</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#151b23; --panel2:#1b232d; --line:#2a3441;
+    --ink:#e7edf3; --ink2:#aab6c4; --ink3:#7d8b9b;
+    --teal:#4fd1c5; --amber:#f0b860; --violet:#a78bfa; --rose:#fb7185; --green:#56d364; --blue:#6cb6ff;
+    --mono:"SFMono-Regular",ui-monospace,Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;font-size:15px}
+  a{color:var(--teal);text-decoration:none}
+  a:hover{text-decoration:underline}
+  code,.mono{font-family:var(--mono);font-size:.86em}
+  .layout{display:grid;grid-template-columns:248px 1fr;max-width:1400px;margin:0 auto}
+  /* sidebar */
+  nav.side{position:sticky;top:0;height:100vh;overflow-y:auto;border-right:1px solid var(--line);padding:22px 16px;background:#0b0f14}
+  nav.side h1{font-size:14px;letter-spacing:.02em;margin:0 0 2px}
+  nav.side .sub{color:var(--ink3);font-size:11.5px;margin-bottom:18px}
+  nav.side a{display:block;color:var(--ink2);padding:6px 10px;border-radius:7px;font-size:13px;border-left:2px solid transparent}
+  nav.side a:hover{background:var(--panel);text-decoration:none;color:var(--ink)}
+  nav.side a.active{background:var(--panel);color:var(--teal);border-left-color:var(--teal)}
+  nav.side .navgroup{color:var(--ink3);font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;margin:16px 10px 6px}
+  /* main */
+  main{padding:46px 54px 120px;max-width:1000px}
+  section{margin-bottom:64px;scroll-margin-top:24px}
+  h2{font-size:26px;margin:0 0 6px;letter-spacing:-.01em}
+  h2 .num{color:var(--teal);font-family:var(--mono);font-size:18px;margin-right:10px}
+  h3{font-size:17px;margin:30px 0 10px;color:var(--ink)}
+  .lede{color:var(--ink2);font-size:16px;margin:0 0 18px;max-width:75ch}
+  p{max-width:75ch}
+  .muted{color:var(--ink3)}
+  .pill{display:inline-block;font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:20px;border:1px solid var(--line);color:var(--ink2);background:var(--panel)}
+  .tag{display:inline-block;font-family:var(--mono);font-size:10.5px;padding:1px 7px;border-radius:5px;margin:1px 2px}
+  .t-speed{background:rgba(108,182,255,.14);color:var(--blue)}
+  .t-reliability{background:rgba(79,209,197,.14);color:var(--teal)}
+  .t-intervention{background:rgba(167,139,250,.16);color:var(--violet)}
+  .t-context{background:rgba(240,184,96,.14);color:var(--amber)}
+  .t-data_quality{background:rgba(251,113,133,.14);color:var(--rose)}
+  .t-descriptive{background:rgba(86,211,100,.12);color:var(--green)}
+  .t-associational{background:rgba(240,184,96,.14);color:var(--amber)}
+  .t-candidate_causal_needs_review{background:rgba(251,113,133,.16);color:var(--rose)}
+  /* hero */
+  .hero{background:linear-gradient(135deg,#10171f,#13202a);border:1px solid var(--line);border-radius:16px;padding:30px 32px;margin-bottom:30px}
+  .hero .big{font-size:21px;line-height:1.45;font-weight:600;margin:0 0 14px;max-width:70ch}
+  .hero .big em{color:var(--teal);font-style:normal}
+  .spine{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+  .spine .chip{flex:1;min-width:180px;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:12px 14px}
+  .spine .chip b{font-family:var(--mono);font-size:13px}
+  .spine .chip.c1 b{color:var(--blue)} .spine .chip.c2 b{color:var(--amber)} .spine .chip.c3 b{color:var(--green)}
+  .spine .chip span{display:block;color:var(--ink3);font-size:12.5px;margin-top:4px}
+  /* cards / panels */
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .callout{border-left:3px solid var(--amber);background:rgba(240,184,96,.06);padding:12px 16px;border-radius:0 10px 10px 0;margin:16px 0;color:var(--ink2)}
+  .callout.teal{border-color:var(--teal);background:rgba(79,209,197,.06)}
+  .callout.rose{border-color:var(--rose);background:rgba(251,113,133,.06)}
+  .callout b{color:var(--ink)}
+  /* layer diagram */
+  .layers{display:flex;flex-direction:column;gap:8px}
+  .layer{border:1px solid var(--line);border-radius:12px;padding:16px 18px;cursor:pointer;background:var(--panel);transition:.12s;position:relative}
+  .layer:hover{border-color:var(--teal)}
+  .layer.open{border-color:var(--teal);background:var(--panel2)}
+  .layer .lh{display:flex;align-items:center;gap:12px}
+  .layer .ln{font-family:var(--mono);font-size:12px;color:var(--bg);background:var(--teal);border-radius:6px;padding:2px 8px;font-weight:700}
+  .layer h4{margin:0;font-size:15.5px}
+  .layer .path{font-family:var(--mono);font-size:11.5px;color:var(--ink3);margin-left:auto}
+  .layer .body{display:none;margin-top:14px;padding-top:14px;border-top:1px dashed var(--line)}
+  .layer.open .body{display:block}
+  .layer .body .row{display:grid;grid-template-columns:90px 1fr;gap:10px;margin:7px 0;font-size:13.5px}
+  .layer .body .row .k{color:var(--ink3);font-family:var(--mono);font-size:11.5px;padding-top:1px}
+  .layer .arrow{text-align:center;color:var(--ink3);font-size:16px;margin:-2px 0}
+  .ok{color:var(--green)} .no{color:var(--rose)}
+  /* flow */
+  .flow{display:flex;flex-direction:column;gap:0}
+  .step{display:flex;gap:14px;cursor:pointer}
+  .step .rail{display:flex;flex-direction:column;align-items:center}
+  .step .dot{width:30px;height:30px;border-radius:50%;background:var(--panel2);border:2px solid var(--line);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:12px;color:var(--ink2);flex:none;transition:.12s}
+  .step .line{width:2px;flex:1;background:var(--line);min-height:14px}
+  .step:last-child .line{display:none}
+  .step .content{padding-bottom:18px;flex:1}
+  .step .title{font-weight:600;font-size:14.5px;padding-top:4px}
+  .step .title .where{font-family:var(--mono);font-size:11px;color:var(--ink3);font-weight:400;margin-left:8px}
+  .step .detail{display:none;margin-top:8px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:13.5px;color:var(--ink2)}
+  .step.open .detail{display:block}
+  .step.open .dot{border-color:var(--teal);color:var(--teal)}
+  .step .detail code{color:var(--teal)}
+  /* glossary */
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+  input[type=search]{background:var(--panel);border:1px solid var(--line);color:var(--ink);border-radius:9px;padding:9px 13px;font-size:14px;width:280px;font-family:var(--sans)}
+  input[type=search]:focus{outline:none;border-color:var(--teal)}
+  .chips{display:flex;gap:6px;flex-wrap:wrap}
+  .filterchip{font-family:var(--mono);font-size:11.5px;padding:5px 11px;border-radius:20px;border:1px solid var(--line);background:var(--panel);color:var(--ink2);cursor:pointer;user-select:none}
+  .filterchip.on{background:var(--teal);color:var(--bg);border-color:var(--teal);font-weight:600}
+  .gterm{border:1px solid var(--line);border-radius:10px;padding:12px 15px;margin-bottom:9px;background:var(--panel)}
+  .gterm .gt{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .gterm .name{font-family:var(--mono);font-size:13.5px;color:var(--teal);font-weight:600}
+  .gterm .cat{font-family:var(--mono);font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em}
+  .gterm .def{color:var(--ink2);font-size:13.8px;margin-top:5px}
+  .gterm .where{color:var(--ink3);font-size:11.5px;font-family:var(--mono);margin-top:5px}
+  .gterm .where b{color:var(--ink2);font-weight:600}
+  /* detector cards */
+  .dcards{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .dcard{border:1px solid var(--line);border-radius:10px;padding:13px 15px;background:var(--panel)}
+  .dcard .did{font-family:var(--mono);font-size:13px;color:var(--ink);font-weight:600}
+  .dcard .meta{margin:6px 0}
+  .dcard .q{color:var(--ink2);font-size:13px;margin-top:6px}
+  /* ladder */
+  .ladder{display:flex;flex-direction:column-reverse;gap:4px;margin:14px 0}
+  .rung{display:grid;grid-template-columns:34px 200px 1fr;gap:14px;align-items:center;border:1px solid var(--line);border-radius:9px;padding:10px 14px;background:var(--panel);cursor:default}
+  .rung .lvl{font-family:var(--mono);font-weight:700;font-size:15px;text-align:center;border-radius:6px;padding:3px 0}
+  .rung .lab{font-weight:600;font-size:13.5px}
+  .rung .ex{color:var(--ink3);font-size:12.5px;font-family:var(--mono)}
+  .rung.r0 .lvl{background:rgba(125,139,155,.2);color:var(--ink3)}
+  .rung.r1 .lvl,.rung.r2 .lvl{background:rgba(86,211,100,.15);color:var(--green)}
+  .rung.r3 .lvl{background:rgba(240,184,96,.15);color:var(--amber)}
+  .rung.r4 .lvl{background:rgba(167,139,250,.18);color:var(--violet)}
+  .rung.r5 .lvl{background:rgba(251,113,133,.18);color:var(--rose)}
+  /* overloaded */
+  .acc{border:1px solid var(--line);border-radius:10px;margin-bottom:8px;overflow:hidden;background:var(--panel)}
+  .acc summary{cursor:pointer;padding:13px 16px;font-weight:600;font-size:14.5px;list-style:none;display:flex;align-items:center;gap:10px}
+  .acc summary::-webkit-details-marker{display:none}
+  .acc summary .word{font-family:var(--mono);color:var(--amber)}
+  .acc summary::before{content:"+";color:var(--teal);font-family:var(--mono);font-weight:700}
+  .acc[open] summary::before{content:"–"}
+  .acc .ac{padding:0 16px 14px 16px}
+  .acc table{width:100%;border-collapse:collapse;font-size:13.3px}
+  .acc td{padding:7px 8px;border-top:1px solid var(--line);vertical-align:top}
+  .acc td.m{font-family:var(--mono);color:var(--teal);white-space:nowrap;width:1%}
+  .acc td.w{font-family:var(--mono);color:var(--ink3);font-size:11px}
+  /* build status */
+  .status{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .statcol h4{margin:0 0 10px;font-size:14px}
+  .statcol ul{margin:0;padding-left:0;list-style:none}
+  .statcol li{padding:7px 0 7px 24px;position:relative;font-size:13.5px;color:var(--ink2);border-bottom:1px solid var(--line)}
+  .statcol.built li::before{content:"✓";position:absolute;left:0;color:var(--green);font-weight:700}
+  .statcol.gap li::before{content:"○";position:absolute;left:2px;color:var(--amber)}
+  .statcol li b{color:var(--ink);font-family:var(--mono);font-size:12.5px}
+  footer{border-top:1px solid var(--line);padding:24px 0;color:var(--ink3);font-size:12.5px;max-width:75ch}
+  @media(max-width:880px){
+    .layout{grid-template-columns:1fr}
+    nav.side{position:static;height:auto;border-right:none;border-bottom:1px solid var(--line)}
+    main{padding:30px 22px 80px}
+    .grid2,.grid3,.dcards,.status{grid-template-columns:1fr}
+    .rung{grid-template-columns:30px 1fr;}.rung .ex{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav class="side">
+    <h1>Analytics, explained</h1>
+    <div class="sub">Bus Priority Impact Studio · generated from your code · 2026-06-07</div>
+    <div class="navgroup">Mental model</div>
+    <a href="#start">The one idea</a>
+    <a href="#layers">① The four layers</a>
+    <a href="#flow">② End-to-end flow</a>
+    <div class="navgroup">The nouns</div>
+    <a href="#feature">③ Features &amp; resolvers</a>
+    <a href="#detector">④ Detectors</a>
+    <a href="#finding">⑤ Findings &amp; the lifecycle</a>
+    <a href="#posture">⑥ Claim posture</a>
+    <div class="navgroup">Reference</div>
+    <a href="#catalog">⑦ The 21 detectors</a>
+    <a href="#glossary">⑧ Full glossary</a>
+    <a href="#tier2">⑨ Tier 1 vs Tier 2</a>
+    <div class="navgroup">Survival</div>
+    <a href="#overloaded">⑩ Overloaded words</a>
+    <a href="#reality">⑪ Built vs aspirational</a>
+  </nav>
+
+  <main>
+    <!-- ===================== START ===================== -->
+    <section id="start">
+      <h2>Why you feel lost (and the fix)</h2>
+      <p class="lede">You're not confused because the system is bad. You're confused because <b>a few plain ideas got wrapped in many similar-sounding names</b>. This page teaches the handful of real ideas first, then hands you a decoder ring for every overloaded word. Everything here is pulled from your actual code, not generic transit theory.</p>
+
+      <div class="hero">
+        <p class="big">The whole analytics system does one thing: it turns messy public transit data into a <em>ranked, auditable list of hypotheses</em> that a careful reviewer can trust enough to inspect — and it is obsessive about being <em>honest about what it doesn't know</em>.</p>
+        <p style="margin:0 0 6px;color:var(--ink2)">Every detector, no matter what it looks for, returns exactly the same three-part output. Learn this triple and 70% of the confusion dissolves:</p>
+        <div class="spine">
+          <div class="chip c1"><b>candidates[]</b><span>"Here is a possible issue." A claim about a route/segment, with severity, confidence, and a score. Never published as-is.</span></div>
+          <div class="chip c2"><b>evidence[]</b><span>"Here's what backs it — and what argues against it." Typed links: primary, context, <i>counter-evidence</i>, caveat, missing-data.</span></div>
+          <div class="chip c3"><b>coverage[]</b><span>"Here is every place I looked, even where I found nothing." So silence is provable, not a gap.</span></div>
+        </div>
+      </div>
+
+      <div class="callout teal"><b>The honesty rule, in one line:</b> a route with no finding must be able to say <i>which</i> kind of nothing it is — "checked, no issue" vs. "couldn't check, data missing" vs. "source is stale." That's what <code>coverage[]</code> guarantees, and it's the spine of the whole design.</div>
+
+      <p>Read sections ① and ② for the mental model. ③–⑥ define the four real nouns (<b>feature, detector, finding, claim posture</b>). ⑦–⑨ are reference. <b>If you only read one thing while stuck, read ⑩ — the overloaded-words decoder.</b> That section exists specifically for the feeling you described.</p>
+    </section>
+
+    <!-- ===================== LAYERS ===================== -->
+    <section id="layers">
+      <h2><span class="num">①</span>The four layers</h2>
+      <p class="lede">The codebase is split into four rings. The split exists to answer one question: <b>"is this code allowed to touch the disk / network / the public?"</b> Click each layer to expand.</p>
+      <div class="layers" id="layerList"></div>
+      <div class="callout">The cardinal rule that explains the whole split: <b>math lives in the kernel and never does I/O; I/O lives in the pipeline and never does math; the public only ever sees <i>approved</i> output.</b> When you feel an abstraction is "pointless indirection," it's almost always enforcing one of these boundaries.</div>
+    </section>
+
+    <!-- ===================== FLOW ===================== -->
+    <section id="flow">
+      <h2><span class="num">②</span>End-to-end: from raw rows to a published claim</h2>
+      <p class="lede">This is the single most useful thing to internalize. One detector run walks down this staircase. Click any step to see what actually happens and which function does it.</p>
+      <div class="flow" id="flowList"></div>
+      <div class="callout teal">Notice the hard wall at step 10→11: <b>only a <code>PromotedFinding</code> — an immutable, hashed record traceable to a human decision — is allowed past it.</b> Raw <code>candidates</code> never reach the website. That wall is the reason for half the "extra" types you've been tripping over.</div>
+    </section>
+
+    <!-- ===================== FEATURE ===================== -->
+    <section id="feature">
+      <h2><span class="num">③</span>Features &amp; resolvers — typed, quality-tagged inputs</h2>
+      <p class="lede">A <b>feature</b> is the clean, typed input a detector eats. Raw SQLite rows are untyped and messy; a <b>FeatureResolver</b> turns them into a typed object at a declared <b>grain</b>, every one carrying a <code>quality</code> stamp.</p>
+
+      <div class="grid2">
+        <div class="panel">
+          <h3 style="margin-top:0">Grain = the unit of one row</h3>
+          <p class="muted" style="font-size:13.5px">A "grain" is what one feature row <i>is one of</i>. The contract also records which axes were <b>kept</b> and which were <b>collapsed</b> (averaged away) — so you always know what detail you can and can't claim.</p>
+          <p style="font-size:13px;margin-bottom:4px">Real grains in your registry:</p>
+          <div style="font-family:var(--mono);font-size:11.5px;color:var(--ink2);line-height:1.9">
+            <span class="pill">customer_journey</span> <span class="pill">segment_daypart</span> <span class="pill">route_month</span> <span class="pill">route_segment_month</span> <span class="pill">stop_direction_hour</span> <span class="pill">route_reliability_month</span> <span class="pill">rider_weighted_excess_wait</span> <span class="pill">route_direction_daypart</span> <span class="pill">route_metric_history</span> <span class="pill">feed_health</span> <span class="pill">intervention_window</span> <span class="pill">intervention_panel</span> <span class="pill">positive_deviance</span> <span class="pill">context_source</span> <span class="pill">route_treatment_summary</span>
+          </div>
+        </div>
+        <div class="panel">
+          <h3 style="margin-top:0">The <code>quality</code> stamp</h3>
+          <p class="muted" style="font-size:13.5px">Every feature carries data-quality flags so detectors can <i>skip honestly</i> instead of guessing on thin data:</p>
+          <div style="font-family:var(--mono);font-size:12.5px;line-height:2">
+            <div><span class="tag t-descriptive">coverageStatus</span> sufficient / insufficient</div>
+            <div><span class="tag t-reliability">freshnessStatus</span> fresh / stale</div>
+            <div><span class="tag t-context">sampleStatus</span> supported / insufficient</div>
+            <div><span class="tag t-speed">sampleCount</span> the raw N</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout"><b>FeatureContract vs FeatureResolver vs Feature.</b> The <i>contract</i> (in <code>packages/analytics</code>) is the spec — "this grain has these keys, these required fields, comes from these tables." The <i>resolver</i> (in <code>packages/applied-research</code>) is the function that actually reads SQLite and builds the typed object. The <i>feature</i> is the resulting object. Same noun, three roles: spec, builder, product.</p></div>
+    </section>
+
+    <!-- ===================== DETECTOR ===================== -->
+    <section id="detector">
+      <h2><span class="num">④</span>Detectors — pure functions that emit hypotheses</h2>
+      <p class="lede">A detector is a <b>pure, deterministic function</b>: same features in → same <code>{candidates, evidence, coverage}</code> out. No database, no network, no clock, no LLM. That purity is why detectors are trivially testable and why they live in the kernel.</p>
+
+      <div class="panel mono" style="font-size:12.5px;line-height:1.7;color:var(--ink2);overflow-x:auto">
+<span style="color:var(--ink3)">// the shape every detector satisfies (packages/analytics/src/core/detector.ts)</span>
+type AnalyticsDetector&lt;TInput&gt; = {
+  detectorId: DetectorId;            <span style="color:var(--ink3)">// "persistent_speed_hotspot"</span>
+  version: string;
+  spec: FindingDetectorSpec;         <span style="color:var(--ink3)">// the review contract (see ⑥)</span>
+  featureGrains: readonly string[];  <span style="color:var(--ink3)">// which grains it eats</span>
+  scope: { kind: "route"|"segment"|"corridor"|"system"; ... };
+  run(input: TInput): <span style="color:var(--green)">{ candidates, evidence, coverage }</span>;
+};</div>
+
+      <div class="grid2" style="margin-top:16px">
+        <div class="panel">
+          <h3 style="margin-top:0">The registry &amp; the spec</h3>
+          <p class="muted" style="font-size:13.5px">A detector isn't just its function. The <b>registry</b> (<code>ANALYTICS_DETECTOR_REGISTRY</code>) binds it to metadata: its <b>claim tier</b>, <b>baseline families</b>, required data products, <b>promotion gates</b>, and retirement status. The <b>spec</b> (<code>FindingDetectorSpec</code>) is the human review contract: the exact question, the strongest allowed claim, required evidence, and <i>known failure modes</i>. A test asserts registry and specs never drift apart.</p>
+        </div>
+        <div class="panel">
+          <h3 style="margin-top:0">Thresholds, not magic</h3>
+          <p class="muted" style="font-size:13.5px">Each detector ships <code>DEFAULT_*_THRESHOLDS</code> (e.g. <code>minHotspotScore: 60</code>). These are the tuning knobs. Your house rule (from memory): keep them <b>tight and calibrated to the real corpus</b> — don't loosen a <code>.max()</code> cap just to fit model drift.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== FINDING ===================== -->
+    <section id="finding">
+      <h2><span class="num">⑤</span>Findings &amp; the promotion lifecycle</h2>
+      <p class="lede">"Candidate" and "finding" are <b>not</b> synonyms — that confusion bites everyone. A <b>candidate</b> is raw detector output. A <b>promoted finding</b> is what survives human review. Here's the exact ladder a candidate climbs (all types are real, in <code>packages/domain/src/findings</code>):</p>
+
+      <div class="flow" id="lifeList"></div>
+
+      <div class="callout teal">Each <code>PromotedFinding</code> is <b>immutable and triple-hashed</b> (<code>decisionHash</code>, <code>candidateSnapshotHash</code>, <code>promotedFindingHash</code>) — it freezes the exact candidate + the exact human decision + the approved evidence refs. That's how a published claim stays traceable months later.</div>
+
+      <h3>Two label systems you'll see on candidates</h3>
+      <div class="grid2">
+        <div class="panel">
+          <p style="margin-top:0;font-size:13.5px"><b>severity</b> — how much would it matter <i>if true</i>?<br><span class="mono muted">info · low · medium · high</span></p>
+          <p style="font-size:13.5px"><b>confidence</b> — how strong is the <i>evidence</i> it's true?<br><span class="mono muted">insufficient · low · medium · high</span></p>
+          <p class="muted" style="font-size:12.8px;margin-bottom:0">These are independent. High-severity + low-confidence is still worth a look. Don't conflate them.</p>
+        </div>
+        <div class="panel">
+          <p style="margin-top:0;font-size:13.5px"><b>claimSafeLabel</b> — the reader-facing verdict that drives what the website is allowed to say:</p>
+          <div class="mono" style="font-size:12px;line-height:2">
+            <div><span class="tag t-descriptive">no_issue_clean</span> looked, all good</div>
+            <div><span class="tag t-reliability">issue_clean</span> real, well-supported</div>
+            <div><span class="tag t-context">issue_needs_review</span> borderline</div>
+            <div><span class="tag t-data_quality">insufficient_evidence</span> can't say</div>
+            <div><span class="tag t-data_quality">source_lag_expected</span> stale input</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== POSTURE ===================== -->
+    <section id="posture">
+      <h2><span class="num">⑥</span>Claim posture — how strong a thing you're allowed to say</h2>
+      <p class="lede">This is the moral core of the system, and the source of three more confusable words. The promise: <b>the system never says more than the evidence and the method allow.</b> It's enforced by <i>two</i> ceilings — and the stricter one always wins.</p>
+
+      <h3>Ceiling A — the claim-strength ladder (<code>spec.allowedClaimStrength</code>, 0–5)</h3>
+      <p class="muted" style="font-size:13.5px">Per-detector. The strongest wording a detector is ever allowed to produce, before review.</p>
+      <div class="ladder" id="ladderList"></div>
+
+      <h3>Ceiling B — the detector's claim tier (registry <code>claimTier</code>)</h3>
+      <div class="grid3">
+        <div class="panel"><span class="tag t-descriptive">descriptive</span><p style="font-size:13px;margin:8px 0 0;color:var(--ink2)">States an observed fact. "This segment is slow." Needs coverage + sample gates.</p></div>
+        <div class="panel"><span class="tag t-associational">associational</span><p style="font-size:13px;margin:8px 0 0;color:var(--ink2)">Relates a signal to peers / history / context / treatment. Needs cautious wording + reviewer approval.</p></div>
+        <div class="panel"><span class="tag t-candidate_causal_needs_review">candidate_causal_needs_review</span><p style="font-size:13px;margin:8px 0 0;color:var(--ink2)">Computes fields that <i>could</i> support "X caused Y." May only create a methodology-review candidate — never auto-publish causal language.</p></div>
+      </div>
+
+      <div class="callout rose"><b>The rule:</b> the public ceiling is the <i>stricter</i> of the spec strength and the registry tier, AND all <b>promotion gates</b> must pass, AND a human must approve. A high detector score cannot buy a stronger claim. This is why "did the bus lane <i>cause</i> the speedup?" is deliberately hard to ever say.</div>
+
+      <h3>Promotion gates (deterministic checks that unlock a tier)</h3>
+      <p class="muted" style="font-size:13px">Real gate kinds from your registry — each declares which tiers it's <code>requiredFor</code>:</p>
+      <div class="mono" style="font-size:11.5px;line-height:2">
+        <span class="pill">coverage</span> <span class="pill">sample_support</span> <span class="pill">spatial_confidence</span> <span class="pill">source_freshness</span> <span class="pill">control_eligibility</span> <span class="pill">reviewer_approval</span> <span class="pill">peer_count</span> <span class="pill">pre_trend</span> <span class="pill">placebo_in_time</span> <span class="pill">placebo_in_space</span> <span class="pill">autocorrelation</span> <span class="pill">method_divergence</span> <span class="pill">baseline_available</span>
+      </div>
+    </section>
+
+    <!-- ===================== CATALOG ===================== -->
+    <section id="catalog">
+      <h2><span class="num">⑦</span>The 21 detectors</h2>
+      <p class="lede">Every detector your kernel actually registers (<code>KNOWN_DETECTOR_IDS</code>). Filter by category. Tags show <span class="tag t-speed">category</span> and <span class="tag t-descriptive">claim tier</span>.</p>
+      <div class="toolbar"><div class="chips" id="dFilters"></div></div>
+      <div class="dcards" id="dCards"></div>
+    </section>
+
+    <!-- ===================== GLOSSARY ===================== -->
+    <section id="glossary">
+      <h2><span class="num">⑧</span>Full glossary</h2>
+      <p class="lede">Every term you'll hit, defined in one line, with where it lives. Search, or filter by area.</p>
+      <div class="toolbar">
+        <input type="search" id="gSearch" placeholder="Search terms… (e.g. coverage, resolver, promote)" />
+        <div class="chips" id="gFilters"></div>
+      </div>
+      <div id="gList"></div>
+      <p class="muted" id="gCount" style="font-size:12.5px"></p>
+    </section>
+
+    <!-- ===================== TIER2 ===================== -->
+    <section id="tier2">
+      <h2><span class="num">⑨</span>Tier 1 vs Tier 2 — the biggest naming trap</h2>
+      <p class="lede">There are <b>two completely different pipelines</b> that both use the words "feature," "candidate," and "promotion gate." Conflating them is probably 30% of your pain. Here's the clean split.</p>
+      <div class="grid2">
+        <div class="panel">
+          <h3 style="margin-top:0;color:var(--teal)">Tier 1 — Analytics detectors</h3>
+          <p style="font-size:13.5px;color:var(--ink2)">Input is <b>structured / real-time data</b> (speeds, headways, ridership). Pure deterministic functions. Output is the <code>{candidates, evidence, coverage}</code> triple. <b>No LLM anywhere.</b> Everything in ①–⑧ above is Tier 1.</p>
+          <p class="mono muted" style="font-size:11.5px">packages/analytics · packages/applied-research</p>
+        </div>
+        <div class="panel">
+          <h3 style="margin-top:0;color:var(--amber)">Tier 2 — Document feature harness</h3>
+          <p style="font-size:13.5px;color:var(--ink2)">Input is <b>written documents</b>. An LLM <i>proposes</i> extracted fields; deterministic validators <i>prove or reject</i> each one. A "feature" here = <b>one extracted field with a proof state</b> (verified / quarantined / …), nothing like a Tier-1 feature.</p>
+          <p class="mono muted" style="font-size:11.5px">tools/pipeline-v2/.../docs/tier2/feature-harness</p>
+        </div>
+      </div>
+      <h3>The Tier-2 harness pieces (compiler-style: propose → normalize → prove → gate)</h3>
+      <table style="width:100%;border-collapse:collapse;font-size:13.3px">
+        <tbody id="tier2rows"></tbody>
+      </table>
+      <div class="callout">Think of Tier 2 as a <b>compiler with a type-checker</b>: the LLM writes "source code," the validators are the type-checker, and the <b>promotion gate</b> refuses to "compile" (publish) if even one publishable field lacks proof (<code>publishableFieldWithoutProofCount === 0</code>). Verified Tier-2 fields then feed <i>into</i> Tier-1 detectors as evidence/context.</div>
+    </section>
+
+    <!-- ===================== OVERLOADED ===================== -->
+    <section id="overloaded">
+      <h2><span class="num">⑩</span>The overloaded-words decoder</h2>
+      <p class="lede"><b>This is the section for the feeling you described.</b> A handful of words mean 2–4 different things depending on where you are. When you're lost, you're almost always collapsing two of these. Expand each to disambiguate.</p>
+      <div id="overloadedList"></div>
+    </section>
+
+    <!-- ===================== REALITY ===================== -->
+    <section id="reality">
+      <h2><span class="num">⑪</span>Built vs aspirational (so you know what's load-bearing)</h2>
+      <p class="lede">Part of "abstraction hell" is that <b>some abstractions are real and wired, and some are scaffolding for a future that isn't connected yet.</b> Knowing which is which tells you what you can safely ignore. Your own note: <i>"weak analytics is an architecture problem, not a math problem."</i></p>
+      <div class="status">
+        <div class="statcol built">
+          <h4 class="ok">✓ Built &amp; wired</h4>
+          <ul>
+            <li>The <b>detector kernel</b>: 21 detectors, pure functions</li>
+            <li><b>Feature contracts</b> + SQLite <b>resolvers</b></li>
+            <li><b>Registry + specs</b> with drift assertion</li>
+            <li>The <b>candidate / evidence / coverage</b> spine</li>
+            <li><b>Review packet → promotion queue → decision → promoted finding</b> lifecycle</li>
+            <li><b>Detector readiness</b> audit (ready/partial/blocked)</li>
+            <li>Calibration <b>helpers</b> (score vectors, gold-set eval shapes)</li>
+            <li>Tier-2 <b>proof ledger + promotion gate</b> (in progress)</li>
+          </ul>
+        </div>
+        <div class="statcol gap">
+          <h4 style="color:var(--amber)">○ Aspirational / not connected</h4>
+          <ul>
+            <li><b>causal/</b> — synthetic control, DiD, validity gates: typed, <i>not wired into runs</i></li>
+            <li><b>forecasting/</b> — backtest/pinball scoring: types only</li>
+            <li><b>core/study</b> — StudyDefinition/StudyRun harness: defined, not orchestrating</li>
+            <li>Persistent <b>gold sets</b> &amp; <b>false-positive register</b></li>
+            <li>Detector <b>retirement / supersession</b> logs</li>
+            <li>Fleet-complete <b>feature materialization</b> across all grains</li>
+            <li>Hard guarantee Studio reads <i>only</i> promoted findings</li>
+          </ul>
+        </div>
+      </div>
+      <div class="callout teal">Practical takeaway: when you meet <code>causal/</code>, <code>forecasting/</code>, or <code>StudyRun</code> and can't see who calls them — that's expected. They're the planned ceiling, not the current floor. The live system is the detector spine in ①–⑥.</div>
+    </section>
+
+    <footer>
+      Static, self-contained teaching file — open it directly in a browser (no server needed). Generated <b>2026-06-07</b> from <code>packages/analytics</code>, <code>packages/applied-research</code>, <code>packages/domain</code>, <code>tools/pipeline-v2</code>, and <code>knowledge/wiki/analysis/</code>. If a detector, grain, or gate is added, this page is hand-maintained — re-generate it rather than trusting it blindly.
+    </footer>
+  </main>
+</div>
+
+<script>
+/* ---------- DATA (all grounded in the repo) ---------- */
+const LAYERS=[
+ {n:"1",name:"Pure Analytics Kernel",path:"packages/analytics",color:"var(--teal)",
+  what:"All the math. Feature contracts, the detect*() functions, the registry + specs, calibration primitives. Pure TypeScript types and pure functions.",
+  is:"Deterministic. Same input → same output. Fully unit-testable with no setup.",
+  isnt:"No filesystem, no DB client, no network, no React, no LLM, no pipeline dispatch. If it does I/O, it doesn't belong here.",
+  key:"detectPersistentSpeedHotspots() · ANALYTICS_DETECTOR_REGISTRY · FINDING_DETECTOR_SPECS · listFeatureContracts()"},
+ {n:"2",name:"Applied Research Bridge",path:"packages/applied-research",color:"var(--violet)",
+  what:"Applies the kernel to the real local corpus. FeatureResolvers (SQLite rows → typed features), detector input assembly, the detector study/run orchestration, readiness evaluation, local-db ports. Also home to the aspirational causal/ forecasting/ study/ modules.",
+  is:"Headless and corpus-backed. Knows how to load data and run a detector end-to-end.",
+  isnt:"Doesn't fetch sources from the internet, doesn't publish releases, doesn't own detector math, doesn't import apps/ or tools/.",
+  key:"buildCustomerJourneyFeaturesFromMetricRows() · assembleDetectorStudySourceRows() · runRegistryDetectorStudy() · buildAnalyticsDetectorReadinessAudit()"},
+ {n:"3",name:"Pipeline CLI",path:"tools/pipeline-v2",color:"var(--amber)",
+  what:"The command layer. Parses flags, opens SQLite, resolves paths, writes artifacts and D1 seeds. `findings run-detector` lives here. Also hosts the Tier-2 document harness commands.",
+  is:"Where all the I/O happens. Delegates every bit of research logic down to applied-research.",
+  isnt:"Shouldn't contain detector math. (Reality check: this is the large 'monolith' your notes flag — logic has leaked in over time and is being pulled back down.)",
+  key:"findings run-detector --detectorId … --writeDb · docs tier2 feature-promotion-gate · studio release"},
+ {n:"4",name:"Serving",path:"packages/db + apps/web",color:"var(--green)",
+  what:"The public surface. D1 read models, R2 artifacts, a read-only Cloudflare Worker, and the React app on :5173.",
+  is:"Reads compact, pre-approved projections. Fast, public, cacheable.",
+  isnt:"NEVER runs analytics in a request path, and NEVER shows a raw candidate — only promoted/approved findings reach it.",
+  key:"D1 read models · R2 artifacts · apps/web routes (/routes, /search, /findings)"},
+];
+
+const FLOW=[
+ {t:"SQLite corpus",w:"local-pipeline-sqlite",d:"The immutable local database the heavy pipeline already wrote. Read-only during an analytics run. This is the substrate everything reads from."},
+ {t:"Load raw rows",w:"applied-research/local-db",d:"e.g. <code>loadCustomerJourneyMetricLocalDbRows()</code> returns <code>*SourceRow[]</code> — raw, snake_case, effectively untyped until validated. Just tuples out of SQLite."},
+ {t:"Resolve to typed features",w:"FeatureResolver",d:"<code>buildCustomerJourneyFeaturesFromMetricRows()</code> → <code>CustomerJourneyFeature[]</code>: camelCase, validated, and each row carries a <code>quality</code> stamp (coverage/freshness/sample). This is the clean input detectors are allowed to see."},
+ {t:"Assemble detector inputs",w:"assembleDetectorStudySourceRows()",d:"Reads the <b>registry</b> to learn which feature grains + model artifacts THIS detector needs, then resolves each (FEATURE_RESOLVERS / MODEL_ARTIFACT_RESOLVERS) into one <code>DetectorStudySourceRows</code> bag. If a required model artifact is missing, it short-circuits with a 'missing_model_artifact' coverage row."},
+ {t:"Run the detector",w:"runRegistryDetectorStudy()",d:"Calls the pure <code>detect*()</code> kernel function. Returns <code>DetectorOutput = { candidates, evidence, coverage }</code> plus a run artifact summarizing inputs and model deps."},
+ {t:"Persist",w:"findings run-detector --writeDb",d:"Writes a JSON run artifact to <code>&lt;artifactRoot&gt;/detector-runs/&lt;month&gt;/</code>, and (if --writeDb) calls <code>replaceFindingsForMonth()</code> to store candidates/evidence/coverage rows in @bp/db."},
+ {t:"Build review packets",w:"FindingReviewPacket",d:"Bundles each candidate with its detector <b>spec</b>, grouped evidence (primary/context/counter/caveat/missing/coverage), a priority band, a review checklist, and explicit <b>promotionBlockers</b>. This is what a reviewer actually reads."},
+ {t:"Promotion queue",w:"FindingPromotionQueueItem",d:"Ranks packets and tags each with <b>readiness</b> (ready_for_review / needs_enrichment / blocked), a <code>maxPromotableClaimStrength</code>, and an explicit decision contract."},
+ {t:"Reviewer decision",w:"FindingReviewerDecisionRecord",d:"A human chooses: <code>approve</code> · <code>approve_with_revisions</code> · <code>defer</code> · <code>reject</code> · <code>downgrade_to_context</code>. Captured with rationale + a stable hash. LLMs may draft, but cannot make this call."},
+ {t:"Promoted finding",w:"PromotedFinding (immutable)",d:"Only approved decisions mint a <code>PromotedFinding</code>: a frozen, triple-hashed record tying the exact candidate snapshot to the exact decision and approved evidence refs."},
+ {t:"Studio projection",w:"packages/db → apps/web",d:"Promoted findings are projected into D1/R2 read models and rendered on the public site. Raw candidates never get here."},
+];
+
+const LIFECYCLE=[
+ {t:"FindingCandidate",w:"detector output",d:"The raw hypothesis. <code>status: open</code>, <code>reviewState: unreviewed</code>. Has severity, confidence, detectorScore, reasonCode, claimSafeLabel, claimText."},
+ {t:"FindingReviewPacket",w:"+ spec + grouped evidence",d:"Candidate wrapped with its review contract and evidence sorted into primary / context / counter-evidence / caveat / missing-data / coverage, plus checklist and blockers."},
+ {t:"FindingPromotionQueueItem",w:"ranked, with readiness",d:"readiness ∈ {ready_for_review, needs_enrichment, blocked}; carries promotionBlockers and the max claim strength a reviewer may approve."},
+ {t:"FindingReviewerDecisionRecord",w:"the human call",d:"approve / approve_with_revisions / defer / reject / downgrade_to_context — with rationale, reviewer, and a 64-char decisionHash."},
+ {t:"PromotedFinding",w:"immutable + hashed",d:"The only thing the public sees. Frozen candidate snapshot + decision + approved evidence, with decisionHash, candidateSnapshotHash, promotedFindingHash."},
+];
+
+const LADDER=[
+ {l:0,c:"r0",lab:"Missing evidence",ex:'"insufficient evidence"'},
+ {l:1,c:"r1",lab:"Context only",ex:'"nearby context exists"'},
+ {l:2,c:"r2",lab:"Descriptive issue",ex:'"this segment is observably slow"'},
+ {l:3,c:"r3",lab:"Comparative issue",ex:'"worse than comparable routes / its own history"'},
+ {l:4,c:"r4",lab:"Intervention association",ex:'"needs review after this treatment"'},
+ {l:5,c:"r5",lab:"Causal claim",ex:'"the treatment caused the change" — gated behind methodology review'},
+];
+
+const DETECTORS=[
+ {id:"source_gap",cat:"data_quality",scope:"route / system",tier:"descriptive",q:"Can we even evaluate this scope? Which required sources are missing, stale, or join-failed?"},
+ {id:"persistent_speed_hotspot",cat:"speed",scope:"segment",tier:"descriptive",q:"Which route segments have persistently slow speed evidence?"},
+ {id:"speed_pace_hotspot",cat:"speed",scope:"segment",tier:"descriptive",q:"Which segment/daypart cells are slow relative to free-flow pace?"},
+ {id:"delay_concentration",cat:"speed",scope:"route",tier:"descriptive",q:"How concentrated (Gini) is avoidable delay across a route's segments?"},
+ {id:"multi_month_speed_peer",cat:"speed",scope:"route",tier:"associational",q:"Is this route persistently slower than its peer group over several months?"},
+ {id:"observed_reliability",cat:"reliability",scope:"route",tier:"descriptive",q:"Where do riders see long headway gaps in observed service?"},
+ {id:"headway_reliability_ewt",cat:"reliability",scope:"stop·dir·hour",tier:"descriptive",q:"What is the excess wait time (EWT) and headway regularity at this stop/direction/hour?"},
+ {id:"bunching_hotspots",cat:"reliability",scope:"stop·dir·hour",tier:"descriptive",q:"Where are buses bunching or leaving big gaps?"},
+ {id:"rider_weighted_excess_wait",cat:"reliability",scope:"stop·dir·hour",tier:"associational",q:"Where is excess wait worst once weighted by how many riders actually feel it?"},
+ {id:"customer_journey_shortfall",cat:"reliability",scope:"route",tier:"descriptive",q:"Where is Customer Journey Time Performance (CJTP) falling short?"},
+ {id:"travel_time_variability",cat:"reliability",scope:"route",tier:"descriptive",q:"Where is runtime spread (P95–P50) unusually wide?"},
+ {id:"schedule_mismatch",cat:"reliability",scope:"route",tier:"descriptive",q:"Where does the published schedule diverge from observed runtime/headway?"},
+ {id:"degradation_trend",cat:"reliability",scope:"route",tier:"associational",q:"Which routes are on a worsening multi-month trend AND a current outlier?"},
+ {id:"positive_deviance",cat:"reliability",scope:"route",tier:"descriptive",q:"Which routes outperform peers unusually well (worth learning from)?"},
+ {id:"intervention_gap",cat:"intervention",scope:"route",tier:"associational",q:"Where is rider pain high but there's no bus-priority treatment evidence?"},
+ {id:"intervention_event_study",cat:"intervention",scope:"route",tier:"associational",q:"Did performance change around a dated intervention? (associational only)"},
+ {id:"intervention_underperformance",cat:"intervention",scope:"route",tier:"associational",q:"Was a route treated, yet still painful and worth re-review?"},
+ {id:"treatment_scope_mismatch",cat:"intervention",scope:"segment",tier:"associational",q:"Is a segment inside a bus-lane treatment but still slow?"},
+ {id:"treatment_scope_gap",cat:"intervention",scope:"segment",tier:"associational",q:"On a treated route, which slow segments are NOT covered by the treatment?"},
+ {id:"permit_correlated_slowdown",cat:"context",scope:"route",tier:"associational",q:"Is a slowdown co-located with DOT construction permits? (context only)"},
+ {id:"service_request_context",cat:"context",scope:"route",tier:"associational",q:"Does 311 complaint context accompany a slowdown?"},
+];
+
+const GLOSSARY=[
+ // Architecture
+ {n:"Kernel",cat:"architecture",d:"The pure analytics package — math and types, zero I/O.",w:"packages/analytics"},
+ {n:"Bridge / Applied research",cat:"architecture",d:"Layer that loads the corpus and runs the kernel against it.",w:"packages/applied-research"},
+ {n:"Serving projection",cat:"architecture",d:"Compact, approved read models served to the public; never live analytics.",w:"packages/db, apps/web"},
+ {n:"Artifact",cat:"architecture",d:"A deterministically generated output file (run JSON, review packets, specs, score vectors).",w:"data/artifacts"},
+ {n:"Corpus",cat:"architecture",d:"The local SQLite database of all ingested transit data the analytics reads from.",w:"local-pipeline-sqlite"},
+ // Feature
+ {n:"Feature",cat:"feature",d:"A clean, typed input row a detector consumes (e.g. CustomerJourneyFeature).",w:"analytics/features"},
+ {n:"Feature contract",cat:"feature",d:"The spec for a grain: keys, required fields, source tables, what axes are kept vs collapsed.",w:"features/contracts.ts"},
+ {n:"FeatureResolver",cat:"feature",d:"Function that turns raw SQLite rows into typed features at a grain.",w:"applied-research/feature-resolvers"},
+ {n:"Grain",cat:"feature",d:"The unit one feature row represents (route·month, segment·daypart, stop·dir·hour, …).",w:"features/contracts.ts"},
+ {n:"Retained / collapsed axes",cat:"feature",d:"Which dimensions a grain keeps vs averages away — bounds what you may claim.",w:"FeatureContract"},
+ {n:"Materialization kind",cat:"feature",d:"How a feature is stored: sqlite_table | artifact | embedded_quality_gate.",w:"FeatureContract"},
+ {n:"Quality stamp",cat:"feature",d:"Per-feature flags: coverageStatus, freshnessStatus, sampleStatus, sampleCount.",w:"FeatureQuality"},
+ {n:"Source row",cat:"feature",d:"A raw, untyped tuple straight out of SQLite, before resolution.",w:"*SourceRow types"},
+ {n:"Model artifact",cat:"feature",d:"A precomputed analytic input (peer residuals, intervention panels) a detector depends on.",w:"requiredDataProducts"},
+ {n:"Signal feature",cat:"feature",d:"A route/month/window artifact row (RouteMonthSignalFeature) — a third, distinct use of 'feature'. See ⑩.",w:"domain/findings"},
+ // Detector
+ {n:"Detector",cat:"detector",d:"Pure function: features → {candidates, evidence, coverage}. Deterministic, no I/O.",w:"analytics/findings/*"},
+ {n:"DetectorId",cat:"detector",d:"Stable snake_case slug, e.g. persistent_speed_hotspot.",w:"KNOWN_DETECTOR_IDS"},
+ {n:"DetectorRunId",cat:"detector",d:"One execution against a release month, e.g. source_gap-2026-03.",w:"domain/findings"},
+ {n:"Registry",cat:"detector",d:"Source of truth binding each detector to metadata (tier, gates, data products, status).",w:"registry/detectors.ts"},
+ {n:"Detector spec",cat:"detector",d:"Review contract: question, claimTemplate, allowedClaimStrength, required + counter-evidence, checklist, known failure modes.",w:"registry/specs.ts"},
+ {n:"Baseline family",cat:"detector",d:"Reference used for comparison: schedule, own_history, free_flow, peer, synthetic_control, …",w:"registry/metadata"},
+ {n:"Thresholds",cat:"detector",d:"Per-detector tuning knobs (DEFAULT_*_THRESHOLDS); kept tight to the real corpus.",w:"each detector file"},
+ {n:"Scope",cat:"detector",d:"Geometry a candidate is anchored to: route | segment | corridor | system.",w:"FindingScopeKind"},
+ {n:"Universe",cat:"detector",d:"The full declared search space before running — so silence is meaningful.",w:"ideal_detector_system"},
+ // Finding
+ {n:"Candidate",cat:"finding",d:"Raw detector hypothesis. NEVER published as-is. (FindingCandidate)",w:"domain/findings"},
+ {n:"Evidence link",cat:"finding",d:"Typed pointer from a candidate to a supporting/contradicting fact, with a role + weight.",w:"FindingEvidenceLink"},
+ {n:"Evidence role",cat:"finding",d:"primary | context | counter_evidence | caveat | missing_data | coverage_audit.",w:"FindingEvidenceRole"},
+ {n:"Counter-evidence",cat:"finding",d:"A fact that weakens the candidate. A candidate with none is considered immature.",w:"FindingEvidenceRole"},
+ {n:"Coverage audit",cat:"finding",d:"One row per scope considered, recording the outcome — required so gaps can't hide.",w:"FindingCoverageAudit"},
+ {n:"Coverage outcome",cat:"finding",d:"hit | clean_no_hit | skipped_missing_input | skipped_failed_join | source_lag.",w:"FindingCoverageOutcome"},
+ {n:"Reason code",cat:"finding",d:"Stable slug for why a candidate fired or a scope was skipped (missing_speed, segment_too_short, …).",w:"KNOWN_FINDING_REASON_CODES"},
+ {n:"Severity",cat:"finding",d:"How much it would matter if true: info | low | medium | high.",w:"FindingSeverity"},
+ {n:"Confidence",cat:"finding",d:"Strength of evidence it IS true (source/join quality), not rhetorical certainty.",w:"FindingConfidence"},
+ {n:"claimSafeLabel",cat:"finding",d:"Reader-facing verdict: no_issue_clean | issue_clean | issue_needs_review | insufficient_evidence | source_lag_expected.",w:"FindingClaimSafeLabel"},
+ {n:"Detector score",cat:"finding",d:"0–100 rank for sorting candidates WITHIN one detector. Not a confidence.",w:"FindingDetectorScore"},
+ // Lifecycle
+ {n:"Review packet",cat:"lifecycle",d:"Candidate + spec + grouped evidence + checklist + blockers, prepared for review.",w:"FindingReviewPacket"},
+ {n:"Promotion queue",cat:"lifecycle",d:"Ranked packets with readiness + blockers + max promotable claim strength.",w:"FindingPromotionQueueArtifact"},
+ {n:"Promotion readiness",cat:"lifecycle",d:"Is a candidate ready for a HUMAN: ready_for_review | needs_enrichment | blocked.",w:"FindingPromotionReadiness"},
+ {n:"Reviewer decision",cat:"lifecycle",d:"approve | approve_with_revisions | defer | reject | downgrade_to_context.",w:"FindingPromotionDecision"},
+ {n:"Promoted finding",cat:"lifecycle",d:"Immutable, triple-hashed approved record — the only thing the public sees.",w:"PromotedFinding"},
+ {n:"Status",cat:"lifecycle",d:"Candidate lifecycle: open | promoted | dismissed | superseded.",w:"FindingStatus"},
+ {n:"Review state",cat:"lifecycle",d:"unreviewed | needs_review | approved | rejected.",w:"FindingReviewState"},
+ {n:"Agent proposal",cat:"lifecycle",d:"An LLM-proposed finding (findings:agent-propose) — must pass deterministic validation before it can even enter the review queue.",w:"AgentFindingProposal"},
+ // Posture
+ {n:"Claim posture",cat:"posture",d:"The discipline of never saying more than evidence + method allow.",w:"ideal_detector_system"},
+ {n:"Claim strength",cat:"posture",d:"0–5 ladder ceiling, per detector (spec.allowedClaimStrength).",w:"FindingDetectorSpec"},
+ {n:"Claim tier",cat:"posture",d:"Detector-family ceiling: descriptive | associational | candidate_causal_needs_review.",w:"registry/metadata"},
+ {n:"Promotion gate",cat:"posture",d:"Deterministic check that must pass to unlock a tier (coverage, sample_support, pre_trend, placebo_in_time, reviewer_approval, …).",w:"DetectorPromotionGate"},
+ {n:"Gold set",cat:"posture",d:"Known real issues used to backtest detector precision/recall. (Aspirational: not yet persisted.)",w:"calibration"},
+ {n:"Calibration",cat:"posture",d:"Tuning thresholds against gold sets + reviewer outcomes without hiding evidence.",w:"analytics/calibration"},
+ // Readiness
+ {n:"Detector readiness",cat:"readiness",d:"Does a detector have enough DATA coverage to run in production: ready | partial | blocked | policy_pending.",w:"analytics-detector-readiness.ts"},
+ {n:"Calibration policy",cat:"readiness",d:"Per-detector rules: required surfaces, baseline windows, minimum complete months.",w:"DetectorCalibrationPolicy"},
+ {n:"Backfill validation surface",cat:"readiness",d:"A data layer (e.g. route_segment_speeds) audited for coverage/freshness.",w:"readiness audit"},
+ // Tier2
+ {n:"Tier 1",cat:"tier2",d:"Analytics detectors over structured/real-time data. No LLM.",w:"analytics + applied-research"},
+ {n:"Tier 2",cat:"tier2",d:"LLM document extraction → deterministic proof harness. Different 'feature'/'candidate'.",w:"pipeline-v2 docs/tier2"},
+ {n:"Feature family (Tier 2)",cat:"tier2",d:"Kind of extracted field: route_scope, operational_date_status, treatment, metric_claim, source_gap, …",w:"feature-harness"},
+ {n:"Proof state",cat:"tier2",d:"verified | support_missing | resolver_missing | ambiguous | quarantined.",w:"FeatureProofCandidate"},
+ {n:"Proof ledger",cat:"tier2",d:"Machine-readable record of every extracted field + its proof state + errors.",w:"feature-proof-ledger.ts"},
+ {n:"Feature promotion gate (Tier 2)",cat:"tier2",d:"Refuses to publish unless publishableFieldWithoutProofCount === 0 and every promoted field is verified.",w:"feature-promotion-gate.ts"},
+ {n:"Queue manifest gate",cat:"tier2",d:"Stops tail data (repairs/canaries) from masquerading as a full-corpus run.",w:"feature-queue-manifest-gate.ts"},
+ {n:"Smoke test (Tier 2)",cat:"tier2",d:"Runs a small fixture through the live LLM + validators to check the harness end-to-end.",w:"feature-smoke.ts"},
+];
+
+const TIER2_PIECES=[
+ ["Queue manifest gate","Validates the input queue is what it claims (full_corpus vs repair_subset vs canary) before anything runs.","feature-queue-manifest-gate.ts"],
+ ["LLM extraction","An LLM proposes fields grouped by feature family (route_scope, metric_claim, treatment, …), each citing an evidence handle.","feature-smoke.ts"],
+ ["Validators","Deterministic checks: does the quote exist in the source? does the date parse? does the route resolve? does the treatment term appear?","feature-harness/runner"],
+ ["Proof ledger","Records every field with a proof state (verified / ambiguous / quarantined / …) and any validation errors.","feature-proof-ledger.ts"],
+ ["Promotion gate","Hard gate: zero publishable fields without proof, every promoted field verified. Else: no publish.","feature-promotion-gate.ts"],
+];
+
+const OVERLOADED=[
+ {word:"\"feature\"",rows:[
+   ["Analytics feature","A typed detector input at a grain — CustomerJourneyFeature.","analytics/features"],
+   ["Tier-2 feature","One extracted document field with a proof state.","docs/tier2/feature-harness"],
+   ["Signal feature","A route/month artifact row, RouteMonthSignalFeature.","domain/findings"],
+   ["Product feature","A website capability. Totally unrelated — ignore in analytics context.",""],
+ ]},
+ {word:"\"candidate\"",rows:[
+   ["FindingCandidate","Raw output of a Tier-1 detector.","domain/findings"],
+   ["FeatureProofCandidate","One Tier-2 extracted field awaiting proof.","feature-harness"],
+   ["AgentFindingProposal","An LLM-proposed finding pre-validation.","findings:agent-propose"],
+ ]},
+ {word:"\"promotion\" / \"gate\"",rows:[
+   ["DetectorPromotionGate","Check that unlocks a stronger CLAIM TIER for a detector (pre_trend, placebo…).","registry/metadata"],
+   ["Promotion (lifecycle)","A reviewer approving a candidate → PromotedFinding.","domain/findings"],
+   ["Tier-2 promotion gate","Refuses to publish a document field ledger lacking proof.","feature-promotion-gate.ts"],
+ ]},
+ {word:"\"readiness\"",rows:[
+   ["Detector readiness","Does the DETECTOR have enough data to run? ready/partial/blocked.","analytics-detector-readiness.ts"],
+   ["Promotion readiness","Is a CANDIDATE ready for a human? ready_for_review/needs_enrichment/blocked.","FindingPromotionReadiness"],
+ ]},
+ {word:"\"study\" / \"run\"",rows:[
+   ["Detector study / run","ONE detector executing end-to-end on one month.","runRegistryDetectorStudy()"],
+   ["StudyDefinition / StudyRun","A higher-level research harness meant to coordinate many methods. Aspirational — not wired.","applied-research/core/study"],
+ ]},
+ {word:"claim strength vs tier vs label",rows:[
+   ["allowedClaimStrength","0–5 numeric ceiling, per detector spec.","FindingDetectorSpec"],
+   ["claimTier","Family ceiling: descriptive/associational/causal.","registry/metadata"],
+   ["claimSafeLabel","Reader-facing verdict shown on the site.","FindingClaimSafeLabel"],
+ ]},
+ {word:"\"coverage\"",rows:[
+   ["Coverage audit","Per-scope row proving a detector looked (hit/clean_no_hit/skipped…).","FindingCoverageAudit"],
+   ["coverageStatus (quality)","A feature's data sufficiency flag (sufficient/insufficient).","FeatureQuality"],
+   ["Backfill coverage","How many months of a data surface exist, used by readiness.","readiness audit"],
+ ]},
+];
+
+/* ---------- RENDER ---------- */
+const $=(s,el=document)=>el.querySelector(s);
+const ce=(t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e;};
+
+// layers
+const layerList=$("#layerList");
+LAYERS.forEach((L,i)=>{
+  const el=ce("div","layer");
+  el.innerHTML=`<div class="lh"><span class="ln" style="background:${L.color}">L${L.n}</span><h4>${L.name}</h4><span class="path">${L.path}</span></div>
+    <div class="body">
+      <div class="row"><span class="k">does</span><span>${L.what}</span></div>
+      <div class="row"><span class="k ok">is</span><span>${L.is}</span></div>
+      <div class="row"><span class="k no">is not</span><span>${L.isnt}</span></div>
+      <div class="row"><span class="k">key</span><span class="mono" style="font-size:11.5px;color:var(--ink2)">${L.key}</span></div>
+    </div>`;
+  el.addEventListener("click",()=>el.classList.toggle("open"));
+  layerList.appendChild(el);
+  if(i<LAYERS.length-1)layerList.appendChild(ce("div","arrow","↓"));
+});
+
+// flow + lifecycle (shared renderer)
+function renderSteps(host,arr){
+  arr.forEach((s,i)=>{
+    const step=ce("div","step");
+    step.innerHTML=`<div class="rail"><div class="dot">${i+1}</div><div class="line"></div></div>
+      <div class="content"><div class="title">${s.t}<span class="where">${s.w}</span></div><div class="detail">${s.d}</div></div>`;
+    step.addEventListener("click",()=>step.classList.toggle("open"));
+    host.appendChild(step);
+  });
+}
+renderSteps($("#flowList"),FLOW);
+renderSteps($("#lifeList"),LIFECYCLE);
+
+// ladder
+const ladderList=$("#ladderList");
+LADDER.forEach(r=>{
+  ladderList.appendChild(ce("div","rung "+r.c,
+    `<div class="lvl">${r.l}</div><div class="lab">${r.lab}</div><div class="ex">${r.ex}</div>`));
+});
+
+// detector catalog
+const CATS=[...new Set(DETECTORS.map(d=>d.cat))];
+const dFilters=$("#dFilters"), dCards=$("#dCards");
+let activeCat="all";
+function catLabel(c){return c.replace(/_/g," ");}
+function renderDetectors(){
+  dCards.innerHTML="";
+  DETECTORS.filter(d=>activeCat==="all"||d.cat===activeCat).forEach(d=>{
+    dCards.appendChild(ce("div","dcard",
+      `<div class="did">${d.id}</div>
+       <div class="meta"><span class="tag t-${d.cat}">${catLabel(d.cat)}</span><span class="tag t-${d.tier}">${d.tier}</span><span class="pill">${d.scope}</span></div>
+       <div class="q">${d.q}</div>`));
+  });
+}
+function mkChip(host,label,val,getActive,setActive,onChange){
+  const c=ce("div","filterchip"+(getActive()===val?" on":""),label);
+  c.addEventListener("click",()=>{setActive(val);[...host.children].forEach(x=>x.classList.remove("on"));c.classList.add("on");onChange();});
+  host.appendChild(c);
+}
+mkChip(dFilters,"all ("+DETECTORS.length+")","all",()=>activeCat,v=>activeCat=v,renderDetectors);
+CATS.forEach(c=>mkChip(dFilters,catLabel(c)+" ("+DETECTORS.filter(d=>d.cat===c).length+")",c,()=>activeCat,v=>activeCat=v,renderDetectors));
+renderDetectors();
+
+// glossary
+const GCATS=[...new Set(GLOSSARY.map(g=>g.cat))];
+const gList=$("#gList"),gSearch=$("#gSearch"),gFilters=$("#gFilters"),gCount=$("#gCount");
+let gCat="all",gQuery="";
+function renderGlossary(){
+  gList.innerHTML="";
+  const q=gQuery.toLowerCase();
+  const items=GLOSSARY.filter(g=>(gCat==="all"||g.cat===gCat)&&(!q||g.n.toLowerCase().includes(q)||g.d.toLowerCase().includes(q)||g.w.toLowerCase().includes(q)))
+    .sort((a,b)=>a.n.localeCompare(b.n));
+  items.forEach(g=>{
+    gList.appendChild(ce("div","gterm",
+      `<div class="gt"><span class="name">${g.n}</span><span class="cat">${g.cat}</span></div>
+       <div class="def">${g.d}</div>${g.w?`<div class="where"><b>where:</b> ${g.w}</div>`:""}`));
+  });
+  gCount.textContent=items.length+" of "+GLOSSARY.length+" terms";
+}
+mkChip(gFilters,"all","all",()=>gCat,v=>gCat=v,renderGlossary);
+GCATS.forEach(c=>mkChip(gFilters,c,c,()=>gCat,v=>gCat=v,renderGlossary));
+gSearch.addEventListener("input",e=>{gQuery=e.target.value;renderGlossary();});
+renderGlossary();
+
+// tier2 rows
+const t2=$("#tier2rows");
+TIER2_PIECES.forEach((p,i)=>{
+  t2.appendChild(ce("tr",null,
+    `<td class="m" style="white-space:nowrap;color:var(--teal);padding:8px;border-top:1px solid var(--line)">${i+1}. ${p[0]}</td>
+     <td style="padding:8px;border-top:1px solid var(--line);color:var(--ink2)">${p[1]}</td>
+     <td style="padding:8px;border-top:1px solid var(--line);font-family:var(--mono);font-size:11px;color:var(--ink3)">${p[2]}</td>`));
+});
+
+// overloaded
+const ol=$("#overloadedList");
+OVERLOADED.forEach(o=>{
+  const rows=o.rows.map(r=>`<tr><td class="m">${r[0]}</td><td>${r[1]}</td><td class="w">${r[2]||""}</td></tr>`).join("");
+  const d=ce("details","acc");
+  d.innerHTML=`<summary>When you read <span class="word">${o.word}</span>, which one?</summary><div class="ac"><table>${rows}</table></div>`;
+  ol.appendChild(d);
+});
+
+// scrollspy
+const navLinks=[...document.querySelectorAll("nav.side a")];
+const secs=navLinks.map(a=>document.querySelector(a.getAttribute("href"))).filter(Boolean);
+const spy=new IntersectionObserver(entries=>{
+  entries.forEach(en=>{
+    if(en.isIntersecting){
+      navLinks.forEach(a=>a.classList.toggle("active",a.getAttribute("href")==="#"+en.target.id));
+    }
+  });
+},{rootMargin:"-10% 0px -80% 0px"});
+secs.forEach(s=>spy.observe(s));
+</script>
+</body>
+</html>

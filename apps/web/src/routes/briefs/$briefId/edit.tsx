@@ -11,5 +11,5 @@ export const Route = createFileRoute("/briefs/$briefId/edit")({
 
 function BriefEditRoute() {
   const data = Route.useLoaderData();
-  return <BriefComposerPage data={data} />;
+  return <BriefComposerPage data={data} mode="edit" />;
 }

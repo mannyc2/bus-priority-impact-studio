@@ -4,6 +4,24 @@
   "account_id": "7aa7065a7e971d97435b3f22098d78b0",
   "main": "./src/worker/index.ts",
   "compatibility_date": "2026-04-27",
+  "compatibility_flags": ["nodejs_compat"],
+  "ai": {
+    "binding": "AI"
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "BRIEF_AUTHOR_AGENT",
+        "class_name": "BriefAuthorAgent"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1-brief-author-agent",
+      "new_sqlite_classes": ["BriefAuthorAgent"]
+    }
+  ],
   "assets": {
     "binding": "ASSETS",
     "directory": "./dist/client",

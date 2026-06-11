@@ -1,5 +1,5 @@
 import { asc, eq } from "drizzle-orm";
-import { batchInsert, type LocalPipelineDb } from "../client.js";
+import { insertAll, type LocalPipelineDb } from "../client.js";
 import { localCensusTractEquityContext } from "../schema.js";
 
 export type LocalCensusTractEquityContext = {
@@ -26,44 +26,43 @@ export type LocalCensusTractEquityContext = {
   };
 };
 
-export async function replaceCensusTractEquityContext(
+export function replaceCensusTractEquityContext(
   db: LocalPipelineDb,
   acsYear: number,
   rows: readonly LocalCensusTractEquityContext[],
-): Promise<void> {
-  await db
-    .delete(localCensusTractEquityContext)
-    .where(eq(localCensusTractEquityContext.acsYear, acsYear));
+): void {
+  db.transaction((tx) => {
+    tx
+      .delete(localCensusTractEquityContext)
+      .where(eq(localCensusTractEquityContext.acsYear, acsYear))
+      .run();
 
-  if (rows.length === 0) {
-    return;
-  }
-
-  await batchInsert(
-    db,
-    localCensusTractEquityContext,
-    rows.map((row) => ({
-      acsYear,
-      geoid: row.geoid,
-      stateFips: row.stateFips,
-      countyFips: row.countyFips,
-      tractCode: row.tractCode,
-      countyName: row.countyName,
-      tractName: row.tractName,
-      totalPopulation: row.totalPopulation,
-      occupiedHousingUnits: row.occupiedHousingUnits,
-      noVehicleHouseholds: row.noVehicleHouseholds,
-      noVehicleHouseholdShare: row.noVehicleHouseholdShare,
-      medianHouseholdIncome: row.medianHouseholdIncome,
-      povertyRate: row.povertyRate,
-      publicTransitCommuters: row.publicTransitCommuters,
-      publicTransitCommuterShare: row.publicTransitCommuterShare,
-      hispanicShare: row.raceEthnicityShare.hispanic,
-      nonHispanicWhiteShare: row.raceEthnicityShare.nonHispanicWhite,
-      nonHispanicBlackShare: row.raceEthnicityShare.nonHispanicBlack,
-      nonHispanicAsianShare: row.raceEthnicityShare.nonHispanicAsian,
-    })),
-  );
+    insertAll(
+      tx,
+      localCensusTractEquityContext,
+      rows.map((row) => ({
+        acsYear,
+        geoid: row.geoid,
+        stateFips: row.stateFips,
+        countyFips: row.countyFips,
+        tractCode: row.tractCode,
+        countyName: row.countyName,
+        tractName: row.tractName,
+        totalPopulation: row.totalPopulation,
+        occupiedHousingUnits: row.occupiedHousingUnits,
+        noVehicleHouseholds: row.noVehicleHouseholds,
+        noVehicleHouseholdShare: row.noVehicleHouseholdShare,
+        medianHouseholdIncome: row.medianHouseholdIncome,
+        povertyRate: row.povertyRate,
+        publicTransitCommuters: row.publicTransitCommuters,
+        publicTransitCommuterShare: row.publicTransitCommuterShare,
+        hispanicShare: row.raceEthnicityShare.hispanic,
+        nonHispanicWhiteShare: row.raceEthnicityShare.nonHispanicWhite,
+        nonHispanicBlackShare: row.raceEthnicityShare.nonHispanicBlack,
+        nonHispanicAsianShare: row.raceEthnicityShare.nonHispanicAsian,
+      })),
+    );
+  });
 }
 
 export async function listCensusTractEquityContext(

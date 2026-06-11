@@ -1,14 +1,18 @@
 import { describe, expect, test } from "bun:test";
 import {
-  buildSocrataRowsUrl,
-  fetchAllSocrataRows,
-  SocrataClient,
+  buildSoda3ExportUrl,
+  buildSoda3QueryUrl,
+  buildSoda3SoqlQuery,
+  createSoda3Client,
   SocrataDatasetIdSchema,
-} from "../src/index.js";
+  soda3RangeHeader,
+} from "@bp/sources/clients/socrata";
 
-describe("Socrata row queries", () => {
-  test("builds official resource API URLs with SoQL query parameters", () => {
-    const url = buildSocrataRowsUrl("data.ny.gov", SocrataDatasetIdSchema.parse("kufs-yh3x"), {
+describe("SODA3 Socrata queries", () => {
+  test("builds SODA3 query URLs and SoQL request bodies", () => {
+    const datasetId = SocrataDatasetIdSchema.parse("kufs-yh3x");
+    const url = buildSoda3QueryUrl("data.ny.gov", datasetId);
+    const query = buildSoda3SoqlQuery({
       select: "route_id,month,count(*)",
       where: "route_id='M1'",
       group: "route_id,month",
@@ -17,23 +21,26 @@ describe("Socrata row queries", () => {
       offset: 20,
     });
 
-    expect(url.toString()).toBe(
-      "https://data.ny.gov/resource/kufs-yh3x.json?%24select=route_id%2Cmonth%2Ccount%28*%29&%24where=route_id%3D%27M1%27&%24group=route_id%2Cmonth&%24order=month+DESC&%24limit=10&%24offset=20",
+    expect(url.toString()).toBe("https://data.ny.gov/api/v3/views/kufs-yh3x/query.json");
+    expect(query).toBe(
+      "SELECT route_id,month,count(*) WHERE route_id='M1' GROUP BY route_id,month ORDER BY month DESC LIMIT 10 OFFSET 20",
     );
   });
 
-  test("fetches rows across pages and stops on a short page", async () => {
-    const requestedOffsets: number[] = [];
-
-    const rows = await fetchAllSocrataRows({
+  test("fetches SODA3 rows across pages and stops on a short page", async () => {
+    const datasetId = SocrataDatasetIdSchema.parse("kufs-yh3x");
+    const requestedPages: number[] = [];
+    const client = createSoda3Client({
       domain: "data.ny.gov",
-      datasetId: SocrataDatasetIdSchema.parse("kufs-yh3x"),
       pageSize: 2,
-      fetcher: async (input) => {
+      fetcher: async (input, init) => {
         const url = new URL(String(input));
-        requestedOffsets.push(Number(url.searchParams.get("$offset")));
+        expect(url.pathname).toBe("/api/v3/views/kufs-yh3x/query.json");
+        expect(init?.method).toBe("POST");
+        const body = JSON.parse(String(init?.body));
+        requestedPages.push(body.page.pageNumber);
 
-        if (url.searchParams.get("$offset") === "0") {
+        if (body.page.pageNumber === 1) {
           return Response.json([{ route_id: "M1" }, { route_id: "M1" }]);
         }
 
@@ -41,80 +48,142 @@ describe("Socrata row queries", () => {
       },
     });
 
+    const rows = await client.queryAllRows({
+      datasetId,
+      body: { query: "SELECT route_id", includeSynthetic: false },
+    });
+
     expect(rows).toEqual([{ route_id: "M1" }, { route_id: "M1" }, { route_id: "M1" }]);
-    expect(requestedOffsets).toEqual([0, 2]);
+    expect(requestedPages).toEqual([1, 2]);
   });
 
-  test("retries transient Socrata page failures", async () => {
-    const requestedOffsets: number[] = [];
-    let failedFirstPage = false;
-
-    const rows = await fetchAllSocrataRows({
+  test("retries transient SODA3 failures", async () => {
+    const datasetId = SocrataDatasetIdSchema.parse("4fnn-qsea");
+    let attempt = 0;
+    const client = createSoda3Client({
       domain: "data.ny.gov",
-      datasetId: SocrataDatasetIdSchema.parse("4fnn-qsea"),
-      pageSize: 2,
       retryCount: 1,
       retryDelayMs: 0,
-      fetcher: async (input) => {
-        const url = new URL(String(input));
-        const offset = Number(url.searchParams.get("$offset"));
-        requestedOffsets.push(offset);
-
-        if (offset === 0 && !failedFirstPage) {
-          failedFirstPage = true;
+      fetcher: async () => {
+        attempt += 1;
+        if (attempt === 1) {
           return new Response("temporary Socrata failure", { status: 500 });
         }
-
-        if (offset === 0) {
-          return Response.json([{ route_id: "B61" }, { route_id: "B61" }]);
-        }
-
-        return Response.json([]);
+        return Response.json([{ route_id: "B61" }]);
       },
     });
 
-    expect(rows).toEqual([{ route_id: "B61" }, { route_id: "B61" }]);
-    expect(requestedOffsets).toEqual([0, 0, 2]);
+    await expect(
+      client.queryRows({
+        datasetId,
+        body: { query: "SELECT route_id", includeSynthetic: false },
+      }),
+    ).resolves.toEqual([{ route_id: "B61" }]);
+    expect(attempt).toBe(2);
   });
 
-  test("client binds a dataset endpoint for rows, metadata, columns, and counts", async () => {
+  test("posts SODA3 exports with app token and byte range headers", async () => {
     const datasetId = SocrataDatasetIdSchema.parse("kufs-yh3x");
     const requestedPaths: string[] = [];
-    const client = new SocrataClient(
-      { domain: "data.ny.gov", datasetId },
-      {
-        fetcher: async (input) => {
-          const url = new URL(String(input));
-          requestedPaths.push(`${url.pathname}${url.search}`);
-
-          if (url.pathname === "/api/views/kufs-yh3x") {
-            return Response.json({ id: "kufs-yh3x", name: "MTA Bus Speeds", columns: [] });
-          }
-
-          if (url.pathname === "/api/views/kufs-yh3x/columns.json") {
-            return Response.json([{ name: "route_id", fieldName: "route_id" }]);
-          }
-
-          if (url.searchParams.get("$select") === "count(*)") {
-            return Response.json([{ count: "42" }]);
-          }
-
-          return Response.json([{ route_id: "M1" }]);
-        },
+    const client = createSoda3Client({
+      domain: "data.ny.gov",
+      appToken: "app-token",
+      fetcher: async (input, init) => {
+        const url = new URL(String(input));
+        requestedPaths.push(url.pathname);
+        expect(url.toString()).toBe(buildSoda3ExportUrl("data.ny.gov", datasetId, "csv").href);
+        expect(init?.method).toBe("POST");
+        const headers = new Headers(init?.headers);
+        expect(headers.get("X-App-Token")).toBe("app-token");
+        expect(headers.get("Range")).toBe(soda3RangeHeader({ start: 0, endInclusive: 99 }));
+        expect(JSON.parse(String(init?.body))).toEqual({ query: "SELECT * LIMIT 10" });
+        return new Response("route_id\nM1\n");
       },
-    );
+    });
 
-    await expect(client.rows({ where: "route_id='M1'", limit: 1 })).resolves.toEqual([
-      { route_id: "M1" },
-    ]);
-    await expect(client.metadata()).resolves.toMatchObject({
+    const response = await client.export({
+      datasetId,
+      format: "csv",
+      body: { query: "SELECT * LIMIT 10" },
+      byteRange: { start: 0, endInclusive: 99 },
+    });
+
+    await expect(response.text()).resolves.toContain("M1");
+    expect(requestedPaths).toEqual(["/api/v3/views/kufs-yh3x/export.csv"]);
+  });
+
+  test("posts SODA3 GeoJSON exports with JSON accept headers", async () => {
+    const datasetId = SocrataDatasetIdSchema.parse("kufs-yh3x");
+    const client = createSoda3Client({
+      domain: "data.ny.gov",
+      fetcher: async (input, init) => {
+        const url = new URL(String(input));
+        expect(url.toString()).toBe(buildSoda3ExportUrl("data.ny.gov", datasetId, "geojson").href);
+        const headers = new Headers(init?.headers);
+        expect(headers.get("Accept")).toBe("application/geo+json, application/json");
+        expect(JSON.parse(String(init?.body))).toEqual({
+          query: "SELECT the_geom,route_id LIMIT 1",
+          serializationOptions: { bom: false },
+        });
+        return Response.json({ type: "FeatureCollection", features: [] });
+      },
+    });
+
+    const response = await client.export({
+      datasetId,
+      format: "geojson",
+      body: {
+        query: "SELECT the_geom,route_id LIMIT 1",
+        serializationOptions: { bom: false },
+      },
+    });
+
+    await expect(response.json()).resolves.toEqual({ type: "FeatureCollection", features: [] });
+  });
+
+  test("client binds metadata, columns, row counts, and query rows", async () => {
+    const datasetId = SocrataDatasetIdSchema.parse("kufs-yh3x");
+    const requestedPaths: string[] = [];
+    const client = createSoda3Client({
+      domain: "data.ny.gov",
+      fetcher: async (input, init) => {
+        const url = new URL(String(input));
+        requestedPaths.push(url.pathname);
+
+        if (url.pathname === "/api/views/kufs-yh3x") {
+          return Response.json({ id: "kufs-yh3x", name: "MTA Bus Speeds", columns: [] });
+        }
+
+        if (url.pathname === "/api/views/kufs-yh3x/columns.json") {
+          return Response.json([{ name: "route_id", fieldName: "route_id" }]);
+        }
+
+        const body = JSON.parse(String(init?.body));
+        if (body.query === "SELECT count(*) WHERE route_id='M1'") {
+          return Response.json([{ count: "42" }]);
+        }
+
+        return Response.json([{ route_id: "M1" }]);
+      },
+    });
+
+    await expect(
+      client.queryRows({
+        datasetId,
+        body: { query: "SELECT * WHERE route_id='M1' LIMIT 1", includeSynthetic: false },
+      }),
+    ).resolves.toEqual([{ route_id: "M1" }]);
+    await expect(client.metadata(datasetId)).resolves.toMatchObject({
       id: datasetId,
       name: "MTA Bus Speeds",
     });
-    await expect(client.columns()).resolves.toHaveLength(1);
-    await expect(client.rowCount()).resolves.toBe(42);
-    expect(requestedPaths).toContain(
-      "/resource/kufs-yh3x.json?%24where=route_id%3D%27M1%27&%24limit=1&%24offset=0",
-    );
+    await expect(client.columns(datasetId)).resolves.toHaveLength(1);
+    await expect(client.rowCount(datasetId, "route_id='M1'")).resolves.toBe(42);
+    expect(requestedPaths).toEqual([
+      "/api/v3/views/kufs-yh3x/query.json",
+      "/api/views/kufs-yh3x",
+      "/api/views/kufs-yh3x/columns.json",
+      "/api/v3/views/kufs-yh3x/query.json",
+    ]);
   });
 });

@@ -14,6 +14,33 @@ export type {
   CorridorSummary,
 } from "./queries/corridor-summaries.js";
 export { listCorridorSummaries } from "./queries/corridor-summaries.js";
+export {
+  consumeMagicLinkRequest,
+  createMagicLinkRequest,
+  createSession,
+  getIdentityById,
+  getIdentityBySessionTokenHash,
+  getOperatorRoleForIdentity,
+  recordSessionUse,
+  revokeSession,
+} from "./queries/identity.js";
+export type {
+  AlertKind,
+  AlertRecord,
+  PublicCommentRecord,
+  SavedSearchRecord,
+} from "./queries/identity-surfaces.js";
+export {
+  deactivateAlert,
+  deleteSavedSearch,
+  insertAlert,
+  insertPublicComment,
+  insertSavedSearch,
+  listAlertsForIdentity,
+  listPublicCommentsForBrief,
+  listSavedSearchesForIdentity,
+  softDeletePublicComment,
+} from "./queries/identity-surfaces.js";
 export type { RouteBatchStatus, RouteBatchStatusRow } from "./queries/route-batch-status.js";
 export { getRouteBatchStatus } from "./queries/route-batch-status.js";
 export type {
@@ -51,6 +78,12 @@ export { listRouteInterventionComparisons } from "./queries/route-intervention-c
 export type { RouteMonthTrend, RouteMonthTrendRow } from "./queries/route-month-trends.js";
 export { listRouteMonthTrends } from "./queries/route-month-trends.js";
 export type {
+  RouteTimelineIndex,
+  RouteTimelineIndexRow,
+  RouteTimelineSupportLevel,
+} from "./queries/route-timelines.js";
+export { getRouteTimelineIndex, listRouteTimelineIndex } from "./queries/route-timelines.js";
+export type {
   RouteObservedReliabilitySummary,
   RouteObservedReliabilitySummaryRow,
 } from "./queries/route-observed-reliability.js";
@@ -72,3 +105,99 @@ export {
   serializeRouteScorecard,
   serializeRouteScorecardCitations,
 } from "./queries/route-scorecard.js";
+export type { StudioRouteIndexSourceRow } from "./queries/studio-route-index.js";
+export {
+  findLatestSpeedTrendMonth,
+  findLatestStudioServingMonth,
+  listStudioRouteIndexSourceRows,
+} from "./queries/studio-route-index.js";
+export type {
+  RouteSpeedHistoryCoverage,
+  RouteSpeedHistoryCoverageRow,
+  SourceMonthCoverage,
+  SourceMonthCoverageRow,
+} from "./queries/snapshot-coverage.js";
+export {
+  listRouteSpeedHistoryCoverage,
+  listSourceMonthCoverage,
+} from "./queries/snapshot-coverage.js";
+export type { StudioActorAuth } from "./queries/studio-auth.js";
+export { getStudioActorAuthByTokenHash, markStudioActorTokenUsed } from "./queries/studio-auth.js";
+export type {
+  StudioBriefAgentProposalRow,
+  StudioBriefAgentProposalStatus,
+  StudioBriefAgentRunIntent,
+  StudioBriefAgentRunRow,
+  StudioBriefAgentRunStatus,
+  StudioBriefDraftVersionActorType,
+  StudioBriefDraftVersionReason,
+  StudioBriefDraftVersionRow,
+  StudioBriefDraftVersionSnapshotRow,
+  StudioBriefDraftVersionSnapshotStorage,
+} from "./queries/studio-brief-agents.js";
+export {
+  getStudioBriefAgentProposal,
+  getStudioBriefAgentRun,
+  getStudioBriefDraftVersion,
+  getStudioBriefDraftVersionSnapshot,
+  insertStudioBriefAgentProposal,
+  insertStudioBriefAgentRun,
+  insertStudioBriefDraftVersion,
+  insertStudioBriefDraftVersionSnapshot,
+  listStudioBriefAgentProposals,
+  listStudioBriefDraftVersions,
+  updateStudioBriefAgentProposalStatus,
+  updateStudioBriefAgentRunStatus,
+} from "./queries/studio-brief-agents.js";
+export type {
+  StudioBriefDraftBlockRow,
+  StudioBriefDraftClaimRow,
+  StudioBriefDraftOwnerKind,
+  StudioBriefDraftRecord,
+  StudioBriefDraftRefRow,
+  StudioBriefDraftRow,
+  StudioBriefDraftStatus,
+  StudioBriefGenerationJobStatus,
+  StudioBriefGenerationMode,
+  StudioBriefHistoryEventRow,
+  StudioBriefLlmGenerationStatus,
+  StudioBriefReviewCommentKind,
+  StudioBriefReviewCommentRow,
+  StudioBriefReviewCommentStatus,
+  StudioBriefWriteIdempotencyRow,
+} from "./queries/studio-brief-drafts.js";
+export {
+  claimStudioBriefGuestDraft,
+  deleteStudioBriefDraftBlock,
+  deleteStudioBriefDraftClaim,
+  deleteStudioBriefDraftClaims,
+  deleteStudioBriefDraftRefsForBlock,
+  getStudioBriefDraftRecord,
+  getStudioBriefDraftRecordByJobId,
+  getStudioBriefReviewComment,
+  getStudioBriefWriteIdempotency,
+  insertStudioBriefDraft,
+  insertStudioBriefDraftBlock,
+  insertStudioBriefDraftClaim,
+  insertStudioBriefHistoryEvent,
+  insertStudioBriefReviewComment,
+  insertStudioBriefReviewReply,
+  insertStudioBriefReviewThread,
+  listStudioBriefHistoryEvents,
+  markStudioBriefDraftPublishCandidate,
+  markStudioBriefDraftRetracted,
+  parseDraftNumberArray,
+  parseDraftStringArray,
+  recordStudioBriefPromotionReceipt,
+  recordStudioBriefWriteIdempotency,
+  replaceStudioBriefDraftBlocks,
+  replaceStudioBriefDraftClaims,
+  replaceStudioBriefDraftRefs,
+  updateStudioBriefDraftBlock,
+  updateStudioBriefDraftClaim,
+  updateStudioBriefDraftGeneration,
+  updateStudioBriefDraftJobStatus,
+  updateStudioBriefDraftMetadata,
+  updateStudioBriefDraftValidation,
+  updateStudioBriefReviewComment,
+} from "./queries/studio-brief-drafts.js";

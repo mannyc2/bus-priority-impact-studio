@@ -1,5 +1,5 @@
 import { asc, eq } from "drizzle-orm";
-import { batchInsert, type LocalPipelineDb } from "../client.js";
+import { insertAll, type LocalPipelineDb } from "../client.js";
 import {
   localCorridor,
   localCorridorArtifact,
@@ -16,7 +16,7 @@ export type LocalCorridorMonthSummary = typeof localCorridorMonthSummary.$inferS
 export type LocalCorridorInterventionContext = typeof localCorridorInterventionContext.$inferSelect;
 export type LocalCorridorHotspot = typeof localCorridorHotspot.$inferSelect;
 
-export async function replaceCorridorRows(
+export function replaceCorridorRows(
   db: LocalPipelineDb,
   month: string,
   input: {
@@ -26,43 +26,35 @@ export async function replaceCorridorRows(
     interventionContexts?: readonly (typeof localCorridorInterventionContext.$inferInsert)[];
     hotspots: readonly (typeof localCorridorHotspot.$inferInsert)[];
   },
-): Promise<void> {
-  await db.delete(localCorridorHotspot).where(eq(localCorridorHotspot.month, month));
-  await db.delete(localCorridorArtifact).where(eq(localCorridorArtifact.month, month));
-  await db
-    .delete(localCorridorInterventionContext)
-    .where(eq(localCorridorInterventionContext.month, month));
-  await db.delete(localCorridorMonthSummary).where(eq(localCorridorMonthSummary.month, month));
-  await db.delete(localCorridorRouteMember).where(eq(localCorridorRouteMember.month, month));
-  await db.delete(localCorridor);
+): void {
+  db.transaction((tx) => {
+    tx.delete(localCorridorHotspot).where(eq(localCorridorHotspot.month, month)).run();
+    tx.delete(localCorridorArtifact).where(eq(localCorridorArtifact.month, month)).run();
+    tx
+      .delete(localCorridorInterventionContext)
+      .where(eq(localCorridorInterventionContext.month, month))
+      .run();
+    tx.delete(localCorridorMonthSummary).where(eq(localCorridorMonthSummary.month, month)).run();
+    tx.delete(localCorridorRouteMember).where(eq(localCorridorRouteMember.month, month)).run();
+    tx.delete(localCorridor).run();
 
-  if (input.corridors.length > 0) {
-    await batchInsert(db, localCorridor, [...input.corridors]);
-  }
-  if (input.routeMembers.length > 0) {
-    await batchInsert(db, localCorridorRouteMember, [...input.routeMembers]);
-  }
-  if (input.summaries.length > 0) {
-    await batchInsert(db, localCorridorMonthSummary, [...input.summaries]);
-  }
-  const interventionContexts = input.interventionContexts ?? [];
-  if (interventionContexts.length > 0) {
-    await batchInsert(db, localCorridorInterventionContext, [...interventionContexts]);
-  }
-  if (input.hotspots.length > 0) {
-    await batchInsert(db, localCorridorHotspot, [...input.hotspots]);
-  }
+    insertAll(tx, localCorridor, [...input.corridors]);
+    insertAll(tx, localCorridorRouteMember, [...input.routeMembers]);
+    insertAll(tx, localCorridorMonthSummary, [...input.summaries]);
+    insertAll(tx, localCorridorInterventionContext, [...(input.interventionContexts ?? [])]);
+    insertAll(tx, localCorridorHotspot, [...input.hotspots]);
+  });
 }
 
-export async function replaceCorridorArtifacts(
+export function replaceCorridorArtifacts(
   db: LocalPipelineDb,
   month: string,
   rows: readonly (typeof localCorridorArtifact.$inferInsert)[],
-): Promise<void> {
-  await db.delete(localCorridorArtifact).where(eq(localCorridorArtifact.month, month));
-  if (rows.length > 0) {
-    await batchInsert(db, localCorridorArtifact, [...rows]);
-  }
+): void {
+  db.transaction((tx) => {
+    tx.delete(localCorridorArtifact).where(eq(localCorridorArtifact.month, month)).run();
+    insertAll(tx, localCorridorArtifact, [...rows]);
+  });
 }
 
 export async function listCorridors(db: LocalPipelineDb): Promise<LocalCorridor[]> {

@@ -11,6 +11,22 @@ Serving database layer.
 - Table contracts for R2 artifact keys.
 - Route catalog and route/month coverage serving rows for network-level inventory.
 
+## Storage Ownership
+
+`@bp/db` owns storage truth, not analytical interpretation.
+
+Use this package when the job is to define, migrate, read, or write a table safely:
+
+- Drizzle table definitions for local SQLite and D1.
+- Runtime local migrations from `migrations-drizzle/local`.
+- Local repository helpers for canonical source, derived, projection, review, and coverage tables.
+- D1 query helpers, seed SQL generation, and seed-row validation.
+- Atomic `replace*` writes, chunk-safe inserts, and small table-level invariants.
+
+Do not put panel eligibility policy, detector judgment, causal/statistical modeling, source fetches,
+or "is this data product complete enough?" decisions here. Those belong in `@bp/applied-research`
+or `@bp/analytics`.
+
 ## Rules
 
 - D1 is a serving database, not the analytics warehouse.
@@ -19,3 +35,13 @@ Serving database layer.
 - Large GeoJSON/JSON artifacts should live in R2 or `data/artifacts`, with D1 storing keys and metadata.
 - Keep Drizzle schemas and migrations in this package; expose explicit repository helpers to callers.
 - Keep D1 query modules under `src/d1/queries`; do not add root-level repository files.
+- Local `replace*` helpers (`@bp/db/local`) must wrap their delete+insert sequence in a single
+  synchronous `db.transaction((tx) => …)` and push multi-row inserts through `insertAll(tx, …)`
+  so writes stay atomic and never exceed SQLite's bind-parameter limit. They are sync (return
+  `void`); bun-sqlite is synchronous, so an `await` at the call site is a harmless no-op.
+- Some local tables are intentionally repo-less/raw-only:
+  `local_parking_violation_match` is an applied-research matching read model with custom
+  fanout/evidence aggregation, while `local_lion_segment_geom` and `local_route_shape_geom` are
+  SpatiaLite-backed companion tables whose geometry columns are added at runtime and stay opaque to
+  Drizzle. Do not add generic CRUD helpers for these unless a concrete caller needs a typed read
+  boundary; keep spatial SQL in the build/audit layer.

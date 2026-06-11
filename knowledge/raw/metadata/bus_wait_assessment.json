@@ -1,0 +1,1510 @@
+{
+  "schemaVersion": 1,
+  "sourceId": "bus_wait_assessment",
+  "sourceType": "socrata_dataset",
+  "sourcePriority": "secondary",
+  "manifestStatus": "active",
+  "checkedAt": "2026-05-25T21:34:05.725Z",
+  "probeStatus": "active",
+  "statusRecommendation": "active",
+  "url": "https://data.ny.gov/Transportation/MTA-Bus-Wait-Assessment-Beginning-2020/v4z4-2h6n",
+  "socrata": {
+    "datasetId": "v4z4-2h6n",
+    "domain": "data.ny.gov",
+    "metadataUrl": "https://data.ny.gov/api/views/v4z4-2h6n",
+    "columnsUrl": "https://data.ny.gov/api/views/v4z4-2h6n/columns.json",
+    "rowsCsvUrl": "https://data.ny.gov/api/views/v4z4-2h6n/rows.csv?accessType=DOWNLOAD",
+    "rowCountUrl": "https://data.ny.gov/resource/v4z4-2h6n.json?%24select=count%28*%29",
+    "name": "MTA Bus Wait Assessment: Beginning 2015",
+    "columnCount": 9,
+    "rowsUpdatedAt": 1778859076,
+    "rowsUpdatedAtIso": "2026-05-15T15:31:16.000Z",
+    "rowCount": 166191
+  },
+  "socrataDataset": {
+    "metadata": {
+      "id": "v4z4-2h6n",
+      "name": "MTA Bus Wait Assessment: Beginning 2015",
+      "description": "Wait Assessment measures how evenly buses are spaced.",
+      "attribution": "Metropolitan Transportation Authority",
+      "rowsUpdatedAt": 1778859076,
+      "columns": [
+        {
+          "id": 602051265,
+          "name": "month",
+          "dataTypeName": "calendar_date",
+          "fieldName": "month",
+          "description": "Represents the time period in which the wait assessment is being calculated (yyyy-mm-dd).",
+          "position": 1,
+          "renderTypeName": "calendar_date",
+          "tableColumnId": 155679154,
+          "cachedContents": {
+            "non_null": "166191",
+            "largest": "2026-04-01T00:00:00.000",
+            "null": "0",
+            "top": [
+              {
+                "item": "2024-11-01T00:00:00.000",
+                "count": "1442"
+              },
+              {
+                "item": "2022-11-01T00:00:00.000",
+                "count": "1438"
+              },
+              {
+                "item": "2026-01-01T00:00:00.000",
+                "count": "1403"
+              },
+              {
+                "item": "2023-01-01T00:00:00.000",
+                "count": "1399"
+              },
+              {
+                "item": "2025-01-01T00:00:00.000",
+                "count": "1397"
+              },
+              {
+                "item": "2024-01-01T00:00:00.000",
+                "count": "1395"
+              },
+              {
+                "item": "2022-01-01T00:00:00.000",
+                "count": "1383"
+              },
+              {
+                "item": "2020-01-01T00:00:00.000",
+                "count": "1379"
+              },
+              {
+                "item": "2021-01-01T00:00:00.000",
+                "count": "1375"
+              },
+              {
+                "item": "2026-02-01T00:00:00.000",
+                "count": "1329"
+              },
+              {
+                "item": "2025-06-01T00:00:00.000",
+                "count": "1327"
+              },
+              {
+                "item": "2024-02-01T00:00:00.000",
+                "count": "1317"
+              },
+              {
+                "item": "2023-02-01T00:00:00.000",
+                "count": "1317"
+              },
+              {
+                "item": "2025-02-01T00:00:00.000",
+                "count": "1317"
+              },
+              {
+                "item": "2022-02-01T00:00:00.000",
+                "count": "1313"
+              },
+              {
+                "item": "2020-02-01T00:00:00.000",
+                "count": "1297"
+              },
+              {
+                "item": "2021-02-01T00:00:00.000",
+                "count": "1297"
+              },
+              {
+                "item": "2019-01-01T00:00:00.000",
+                "count": "1287"
+              },
+              {
+                "item": "2025-08-01T00:00:00.000",
+                "count": "1278"
+              },
+              {
+                "item": "2025-07-01T00:00:00.000",
+                "count": "1276"
+              }
+            ],
+            "smallest": "2015-01-01T00:00:00.000",
+            "count": "166191",
+            "cardinality": "166191"
+          },
+          "format": {
+            "view": "iso_8601_date",
+            "align": "center"
+          }
+        },
+        {
+          "id": 602051266,
+          "name": "borough",
+          "dataTypeName": "text",
+          "fieldName": "borough",
+          "description": "Represents the five boroughs of New York City (Bronx, Brooklyn, Manhattan, Queens, Staten Island).",
+          "position": 2,
+          "renderTypeName": "text",
+          "tableColumnId": 155679155,
+          "cachedContents": {
+            "non_null": "166191",
+            "largest": "Staten Island",
+            "null": "0",
+            "top": [
+              {
+                "item": "Queens",
+                "count": "55327"
+              },
+              {
+                "item": "Brooklyn",
+                "count": "35160"
+              },
+              {
+                "item": "Bronx",
+                "count": "30329"
+              },
+              {
+                "item": "Manhattan",
+                "count": "23043"
+              },
+              {
+                "item": "Staten Island",
+                "count": "22332"
+              }
+            ],
+            "smallest": "Bronx",
+            "count": "166191",
+            "cardinality": "166191"
+          },
+          "format": {}
+        },
+        {
+          "id": 602051267,
+          "name": "day_type",
+          "dataTypeName": "number",
+          "fieldName": "day_type",
+          "description": "Represents 1 as weekday and 2 as weekend.",
+          "position": 3,
+          "renderTypeName": "number",
+          "tableColumnId": 155679156,
+          "cachedContents": {
+            "non_null": "166191",
+            "largest": "2",
+            "null": "0",
+            "top": [
+              {
+                "item": "1",
+                "count": "92439"
+              },
+              {
+                "item": "2",
+                "count": "73752"
+              }
+            ],
+            "smallest": "1",
+            "count": "166191",
+            "cardinality": "166191"
+          },
+          "format": {
+            "align": "center"
+          }
+        },
+        {
+          "id": 602051268,
+          "name": "trip_type",
+          "dataTypeName": "text",
+          "fieldName": "trip_type",
+          "description": "The type of bus service provided: EXP (Express), LCL/LTD (Local/Limited), SBS (Select Bus Service).",
+          "position": 4,
+          "renderTypeName": "text",
+          "tableColumnId": 155679157,
+          "cachedContents": {
+            "non_null": "166191",
+            "largest": "UNKNOWN",
+            "null": "0",
+            "top": [
+              {
+                "item": "UNKNOWN",
+                "count": "88026"
+              },
+              {
+                "item": "LCL/LTD",
+                "count": "62753"
+              },
+              {
+                "item": "EXP",
+                "count": "12062"
+              },
+              {
+                "item": "SBS",
+                "count": "3350"
+              }
+            ],
+            "smallest": "EXP",
+            "count": "166191",
+            "cardinality": "166191"
+          },
+          "format": {}
+        },
+        {
+          "id": 602051269,
+          "name": "route_id",
+          "dataTypeName": "text",
+          "fieldName": "route_id",
+          "description": "Identifies each individual bus route, as well as cumulative totals for all bus routes (identified as ALL).",
+          "position": 5,
+          "renderTypeName": "text",
+          "tableColumnId": 155679158,
+          "cachedContents": {
+            "non_null": "166191",
+            "largest": "X9",
+            "null": "0",
+            "top": [
+              {
+                "item": "B35",
+                "count": "848"
+              },
+              {
+                "item": "M2",
+                "count": "848"
+              },
+              {
+                "item": "M101",
+                "count": "848"
+              },
+              {
+                "item": "B41",
+                "count": "848"
+              },
+              {
+                "item": "BX1",
+                "count": "844"
+              },
+              {
+                "item": "B6",
+                "count": "840"
+              },
+              {
+                "item": "Q10",
+                "count": "816"
+              },
+              {
+                "item": "Q58",
+                "count": "808"
+              },
+              {
+                "item": "M5",
+                "count": "712"
+              },
+              {
+                "item": "BX15",
+                "count": "710"
+              },
+              {
+                "item": "B49",
+                "count": "710"
+              },
+              {
+                "item": "BX36",
+                "count": "710"
+              },
+              {
+                "item": "B38",
+                "count": "710"
+              },
+              {
+                "item": "M1",
+                "count": "700"
+              },
+              {
+                "item": "M4",
+                "count": "700"
+              },
+              {
+                "item": "Q6",
+                "count": "682"
+              },
+              {
+                "item": "Q25",
+                "count": "680"
+              },
+              {
+                "item": "Q65",
+                "count": "680"
+              },
+              {
+                "item": "Q85",
+                "count": "676"
+              },
+              {
+                "item": "Q83",
+                "count": "676"
+              }
+            ],
+            "smallest": "B1",
+            "count": "166191",
+            "cardinality": "166191"
+          },
+          "format": {
+            "align": "center"
+          }
+        },
+        {
+          "id": 602051270,
+          "name": "period",
+          "dataTypeName": "text",
+          "fieldName": "period",
+          "description": "Represents both the peak and off-peak service periods.",
+          "position": 6,
+          "renderTypeName": "text",
+          "tableColumnId": 155679159,
+          "cachedContents": {
+            "non_null": "166191",
+            "largest": "Peak",
+            "null": "0",
+            "top": [
+              {
+                "item": "Off-Peak",
+                "count": "83113"
+              },
+              {
+                "item": "Peak",
+                "count": "83078"
+              }
+            ],
+            "smallest": "Off-Peak",
+            "count": "166191",
+            "cardinality": "166191"
+          },
+          "format": {
+            "align": "center"
+          }
+        },
+        {
+          "id": 602051271,
+          "name": "number_of_trips_passing_wait",
+          "dataTypeName": "number",
+          "fieldName": "number_of_trips_passing_wait",
+          "description": "The number of trips that are no more than three minutes over their scheduled intervals for each bus route, monthly, during peak and off-peak hours.",
+          "position": 7,
+          "renderTypeName": "number",
+          "tableColumnId": 155679160,
+          "cachedContents": {
+            "non_null": "166191",
+            "largest": "53043",
+            "null": "0",
+            "top": [
+              {
+                "item": "0",
+                "count": "691"
+              },
+              {
+                "item": "2",
+                "count": "129"
+              },
+              {
+                "item": "3",
+                "count": "128"
+              },
+              {
+                "item": "6",
+                "count": "123"
+              },
+              {
+                "item": "1",
+                "count": "112"
+              },
+              {
+                "item": "4",
+                "count": "107"
+              },
+              {
+                "item": "5",
+                "count": "104"
+              },
+              {
+                "item": "7",
+                "count": "103"
+              },
+              {
+                "item": "34",
+                "count": "91"
+              },
+              {
+                "item": "35",
+                "count": "90"
+              },
+              {
+                "item": "38",
+                "count": "90"
+              },
+              {
+                "item": "8",
+                "count": "87"
+              },
+              {
+                "item": "56",
+                "count": "81"
+              },
+              {
+                "item": "39",
+                "count": "80"
+              },
+              {
+                "item": "24",
+                "count": "79"
+              },
+              {
+                "item": "21",
+                "count": "79"
+              },
+              {
+                "item": "20",
+                "count": "79"
+              },
+              {
+                "item": "604",
+                "count": "77"
+              },
+              {
+                "item": "28",
+                "count": "76"
+              },
+              {
+                "item": "36",
+                "count": "75"
+              }
+            ],
+            "smallest": "0",
+            "count": "166191",
+            "cardinality": "166191"
+          },
+          "format": {
+            "align": "right"
+          }
+        },
+        {
+          "id": 602051272,
+          "name": "number_of_scheduled_trips",
+          "dataTypeName": "number",
+          "fieldName": "number_of_scheduled_trips",
+          "description": "The number of scheduled trips for each bus route, monthly, during peak and off-peak hours.",
+          "position": 8,
+          "renderTypeName": "number",
+          "tableColumnId": 155679161,
+          "cachedContents": {
+            "non_null": "166191",
+            "largest": "67869",
+            "null": "0",
+            "top": [
+              {
+                "item": "0",
+                "count": "615"
+              },
+              {
+                "item": "3",
+                "count": "125"
+              },
+              {
+                "item": "8",
+                "count": "115"
+              },
+              {
+                "item": "38",
+                "count": "106"
+              },
+              {
+                "item": "2",
+                "count": "105"
+              },
+              {
+                "item": "40",
+                "count": "103"
+              },
+              {
+                "item": "7",
+                "count": "103"
+              },
+              {
+                "item": "76",
+                "count": "100"
+              },
+              {
+                "item": "72",
+                "count": "97"
+              },
+              {
+                "item": "95",
+                "count": "89"
+              },
+              {
+                "item": "6",
+                "count": "88"
+              },
+              {
+                "item": "60",
+                "count": "87"
+              },
+              {
+                "item": "1",
+                "count": "82"
+              },
+              {
+                "item": "5",
+                "count": "82"
+              },
+              {
+                "item": "63",
+                "count": "81"
+              },
+              {
+                "item": "80",
+                "count": "79"
+              },
+              {
+                "item": "4",
+                "count": "76"
+              },
+              {
+                "item": "42",
+                "count": "73"
+              },
+              {
+                "item": "114",
+                "count": "73"
+              },
+              {
+                "item": "41",
+                "count": "73"
+              }
+            ],
+            "smallest": "0",
+            "count": "166191",
+            "cardinality": "166191"
+          },
+          "format": {
+            "align": "right"
+          }
+        },
+        {
+          "id": 602051273,
+          "name": "wait_assessment",
+          "dataTypeName": "number",
+          "fieldName": "wait_assessment",
+          "description": "The percentage of trips that pass the wait assessment on each bus route, monthly, during peak and off-peak hours.",
+          "position": 9,
+          "renderTypeName": "number",
+          "tableColumnId": 155679162,
+          "cachedContents": {
+            "non_null": "165576",
+            "largest": "1.0",
+            "null": "615",
+            "top": [
+              {
+                "item": "1.0",
+                "count": "617"
+              },
+              {
+                "item": "0.75",
+                "count": "231"
+              },
+              {
+                "item": "0.8",
+                "count": "176"
+              },
+              {
+                "item": "0.6666666666666667",
+                "count": "146"
+              },
+              {
+                "item": "0.875",
+                "count": "134"
+              },
+              {
+                "item": "0.8333333333333333",
+                "count": "97"
+              },
+              {
+                "item": "0.9",
+                "count": "89"
+              },
+              {
+                "item": "0.833333333",
+                "count": "79"
+              },
+              {
+                "item": "0.5",
+                "count": "77"
+              },
+              {
+                "item": "0.0",
+                "count": "76"
+              },
+              {
+                "item": "0.7",
+                "count": "74"
+              },
+              {
+                "item": "0.7142857142857143",
+                "count": "62"
+              },
+              {
+                "item": "0.8571428571428571",
+                "count": "59"
+              },
+              {
+                "item": "0.6",
+                "count": "57"
+              },
+              {
+                "item": "0.7777777777777778",
+                "count": "54"
+              },
+              {
+                "item": "0.85",
+                "count": "50"
+              },
+              {
+                "item": "0.8125",
+                "count": "45"
+              },
+              {
+                "item": "0.857142857",
+                "count": "45"
+              },
+              {
+                "item": "0.888888889",
+                "count": "45"
+              },
+              {
+                "item": "0.888888888888889",
+                "count": "42"
+              }
+            ],
+            "smallest": "0.0",
+            "count": "166191",
+            "cardinality": "166191"
+          },
+          "format": {
+            "precisionStyle": "percentage",
+            "percentScale": "1",
+            "align": "right"
+          }
+        }
+      ],
+      "assetType": "dataset",
+      "attributionLink": "https://www.mta.info/open-data",
+      "averageRating": 0,
+      "category": "Transportation",
+      "createdAt": 1732213820,
+      "diciBackend": false,
+      "displayType": "table",
+      "downloadCount": 882,
+      "hideFromCatalog": false,
+      "hideFromDataJson": false,
+      "locked": false,
+      "newBackend": true,
+      "numberOfComments": 0,
+      "oid": 40972706,
+      "provenance": "official",
+      "publicationAppendEnabled": false,
+      "publicationDate": 1732214414,
+      "publicationGroup": 19700088,
+      "publicationStage": "published",
+      "rowClass": "",
+      "rowsUpdatedBy": "xzik-pf59",
+      "tableId": 19700088,
+      "totalTimesRated": 0,
+      "viewCount": 2519,
+      "viewLastModified": 1778859036,
+      "viewType": "tabular",
+      "approvals": [
+        {
+          "reviewedAt": 1739984638,
+          "reviewedAutomatically": true,
+          "state": "approved",
+          "submissionId": 6753921,
+          "submissionObject": "public_audience_request",
+          "submissionOutcome": "change_audience",
+          "submittedAt": 1739984638,
+          "targetAudience": "public",
+          "workflowId": 2254,
+          "submissionDetails": {
+            "permissionType": "READ"
+          },
+          "submissionOutcomeApplication": {
+            "endedAt": 1739984638,
+            "failureCount": 0,
+            "startedAt": 1739984638,
+            "status": "success"
+          },
+          "submitter": {
+            "id": "28jg-4c4u",
+            "displayName": "Open Data Administrator 1"
+          }
+        }
+      ],
+      "clientContext": {
+        "clientContextVariables": [],
+        "inheritedVariables": {}
+      },
+      "grants": [
+        {
+          "inherited": false,
+          "type": "viewer",
+          "flags": [
+            "public"
+          ]
+        }
+      ],
+      "metadata": {
+        "rdfSubject": "0",
+        "rdfClass": "",
+        "attachments": [
+          {
+            "filename": "MTA_BusWaitAssessment_Overview.pdf",
+            "assetId": "d019faed-a8ed-4849-aef9-bb464db6864a",
+            "name": "MTA_BusWaitAssessment_Overview.pdf"
+          },
+          {
+            "filename": "MTA_BusWaitAssessment_DataDictionary.pdf",
+            "assetId": "19af37ee-1646-49d0-9957-520515915dc3",
+            "name": "MTA_BusWaitAssessment_DataDictionary.pdf"
+          }
+        ],
+        "custom_fields": {
+          "Dataset Summary": {
+            "Posting Frequency": "Monthly",
+            "Organization": "New York City Transit, MTA Bus Company",
+            "Contact Information": "OpenData@mtahq.org",
+            "Time Period": "Beginning 2015",
+            "Coverage": "New York City",
+            "Granularity": "Bus route, month, borough, day type, trip type",
+            "Dataset Owner": "Metropolitan Transportation Authority"
+          },
+          "Additional Resources": {
+            "See Also": "http://metrics.mta.info/"
+          },
+          "Dataset Information": {
+            "Agency": "Metropolitan Transportation Authority"
+          }
+        },
+        "availableDisplayTypes": [
+          "table",
+          "fatrow",
+          "page"
+        ]
+      },
+      "owner": {
+        "id": "xzik-pf59",
+        "displayName": "NY Open Data",
+        "profileImageUrlLarge": "/api/users/xzik-pf59/profile_images/LARGE",
+        "profileImageUrlMedium": "/api/users/xzik-pf59/profile_images/THUMB",
+        "profileImageUrlSmall": "/api/users/xzik-pf59/profile_images/TINY",
+        "screenName": "NY Open Data",
+        "type": "interactive",
+        "flags": [
+          "acceptedEula",
+          "mayBeStoriesCoOwner"
+        ]
+      },
+      "query": {},
+      "rights": [
+        "read"
+      ],
+      "tableAuthor": {
+        "id": "xzik-pf59",
+        "displayName": "NY Open Data",
+        "profileImageUrlLarge": "/api/users/xzik-pf59/profile_images/LARGE",
+        "profileImageUrlMedium": "/api/users/xzik-pf59/profile_images/THUMB",
+        "profileImageUrlSmall": "/api/users/xzik-pf59/profile_images/TINY",
+        "screenName": "NY Open Data",
+        "type": "interactive",
+        "flags": [
+          "acceptedEula",
+          "mayBeStoriesCoOwner"
+        ]
+      },
+      "tags": [
+        "new york city transit",
+        "nyct",
+        "mta bus",
+        "mtabc",
+        "bus",
+        "monthly",
+        "service",
+        "performance",
+        "delays",
+        "route",
+        "bus route",
+        "waiting time",
+        "wait time",
+        "scheduled service",
+        "wait assessment",
+        "reliability"
+      ],
+      "flags": [
+        "default",
+        "ownerMayBeContacted",
+        "restorable",
+        "restorePossibleForType"
+      ]
+    },
+    "columns": [
+      {
+        "id": 602051265,
+        "name": "month",
+        "dataTypeName": "calendar_date",
+        "fieldName": "month",
+        "description": "Represents the time period in which the wait assessment is being calculated (yyyy-mm-dd).",
+        "position": 1,
+        "renderTypeName": "calendar_date",
+        "tableColumnId": 155679154,
+        "cachedContents": {
+          "non_null": "166191",
+          "largest": "2026-04-01T00:00:00.000",
+          "null": "0",
+          "top": [
+            {
+              "item": "2024-11-01T00:00:00.000",
+              "count": "1442"
+            },
+            {
+              "item": "2022-11-01T00:00:00.000",
+              "count": "1438"
+            },
+            {
+              "item": "2026-01-01T00:00:00.000",
+              "count": "1403"
+            },
+            {
+              "item": "2023-01-01T00:00:00.000",
+              "count": "1399"
+            },
+            {
+              "item": "2025-01-01T00:00:00.000",
+              "count": "1397"
+            },
+            {
+              "item": "2024-01-01T00:00:00.000",
+              "count": "1395"
+            },
+            {
+              "item": "2022-01-01T00:00:00.000",
+              "count": "1383"
+            },
+            {
+              "item": "2020-01-01T00:00:00.000",
+              "count": "1379"
+            },
+            {
+              "item": "2021-01-01T00:00:00.000",
+              "count": "1375"
+            },
+            {
+              "item": "2026-02-01T00:00:00.000",
+              "count": "1329"
+            },
+            {
+              "item": "2025-06-01T00:00:00.000",
+              "count": "1327"
+            },
+            {
+              "item": "2024-02-01T00:00:00.000",
+              "count": "1317"
+            },
+            {
+              "item": "2023-02-01T00:00:00.000",
+              "count": "1317"
+            },
+            {
+              "item": "2025-02-01T00:00:00.000",
+              "count": "1317"
+            },
+            {
+              "item": "2022-02-01T00:00:00.000",
+              "count": "1313"
+            },
+            {
+              "item": "2020-02-01T00:00:00.000",
+              "count": "1297"
+            },
+            {
+              "item": "2021-02-01T00:00:00.000",
+              "count": "1297"
+            },
+            {
+              "item": "2019-01-01T00:00:00.000",
+              "count": "1287"
+            },
+            {
+              "item": "2025-08-01T00:00:00.000",
+              "count": "1278"
+            },
+            {
+              "item": "2025-07-01T00:00:00.000",
+              "count": "1276"
+            }
+          ],
+          "smallest": "2015-01-01T00:00:00.000",
+          "count": "166191",
+          "cardinality": "166191"
+        },
+        "format": {
+          "view": "iso_8601_date",
+          "align": "center"
+        }
+      },
+      {
+        "id": 602051266,
+        "name": "borough",
+        "dataTypeName": "text",
+        "fieldName": "borough",
+        "description": "Represents the five boroughs of New York City (Bronx, Brooklyn, Manhattan, Queens, Staten Island).",
+        "position": 2,
+        "renderTypeName": "text",
+        "tableColumnId": 155679155,
+        "cachedContents": {
+          "non_null": "166191",
+          "largest": "Staten Island",
+          "null": "0",
+          "top": [
+            {
+              "item": "Queens",
+              "count": "55327"
+            },
+            {
+              "item": "Brooklyn",
+              "count": "35160"
+            },
+            {
+              "item": "Bronx",
+              "count": "30329"
+            },
+            {
+              "item": "Manhattan",
+              "count": "23043"
+            },
+            {
+              "item": "Staten Island",
+              "count": "22332"
+            }
+          ],
+          "smallest": "Bronx",
+          "count": "166191",
+          "cardinality": "166191"
+        },
+        "format": {}
+      },
+      {
+        "id": 602051267,
+        "name": "day_type",
+        "dataTypeName": "number",
+        "fieldName": "day_type",
+        "description": "Represents 1 as weekday and 2 as weekend.",
+        "position": 3,
+        "renderTypeName": "number",
+        "tableColumnId": 155679156,
+        "cachedContents": {
+          "non_null": "166191",
+          "largest": "2",
+          "null": "0",
+          "top": [
+            {
+              "item": "1",
+              "count": "92439"
+            },
+            {
+              "item": "2",
+              "count": "73752"
+            }
+          ],
+          "smallest": "1",
+          "count": "166191",
+          "cardinality": "166191"
+        },
+        "format": {
+          "align": "center"
+        }
+      },
+      {
+        "id": 602051268,
+        "name": "trip_type",
+        "dataTypeName": "text",
+        "fieldName": "trip_type",
+        "description": "The type of bus service provided: EXP (Express), LCL/LTD (Local/Limited), SBS (Select Bus Service).",
+        "position": 4,
+        "renderTypeName": "text",
+        "tableColumnId": 155679157,
+        "cachedContents": {
+          "non_null": "166191",
+          "largest": "UNKNOWN",
+          "null": "0",
+          "top": [
+            {
+              "item": "UNKNOWN",
+              "count": "88026"
+            },
+            {
+              "item": "LCL/LTD",
+              "count": "62753"
+            },
+            {
+              "item": "EXP",
+              "count": "12062"
+            },
+            {
+              "item": "SBS",
+              "count": "3350"
+            }
+          ],
+          "smallest": "EXP",
+          "count": "166191",
+          "cardinality": "166191"
+        },
+        "format": {}
+      },
+      {
+        "id": 602051269,
+        "name": "route_id",
+        "dataTypeName": "text",
+        "fieldName": "route_id",
+        "description": "Identifies each individual bus route, as well as cumulative totals for all bus routes (identified as ALL).",
+        "position": 5,
+        "renderTypeName": "text",
+        "tableColumnId": 155679158,
+        "cachedContents": {
+          "non_null": "166191",
+          "largest": "X9",
+          "null": "0",
+          "top": [
+            {
+              "item": "B35",
+              "count": "848"
+            },
+            {
+              "item": "M2",
+              "count": "848"
+            },
+            {
+              "item": "M101",
+              "count": "848"
+            },
+            {
+              "item": "B41",
+              "count": "848"
+            },
+            {
+              "item": "BX1",
+              "count": "844"
+            },
+            {
+              "item": "B6",
+              "count": "840"
+            },
+            {
+              "item": "Q10",
+              "count": "816"
+            },
+            {
+              "item": "Q58",
+              "count": "808"
+            },
+            {
+              "item": "M5",
+              "count": "712"
+            },
+            {
+              "item": "BX15",
+              "count": "710"
+            },
+            {
+              "item": "B49",
+              "count": "710"
+            },
+            {
+              "item": "BX36",
+              "count": "710"
+            },
+            {
+              "item": "B38",
+              "count": "710"
+            },
+            {
+              "item": "M1",
+              "count": "700"
+            },
+            {
+              "item": "M4",
+              "count": "700"
+            },
+            {
+              "item": "Q6",
+              "count": "682"
+            },
+            {
+              "item": "Q25",
+              "count": "680"
+            },
+            {
+              "item": "Q65",
+              "count": "680"
+            },
+            {
+              "item": "Q85",
+              "count": "676"
+            },
+            {
+              "item": "Q83",
+              "count": "676"
+            }
+          ],
+          "smallest": "B1",
+          "count": "166191",
+          "cardinality": "166191"
+        },
+        "format": {
+          "align": "center"
+        }
+      },
+      {
+        "id": 602051270,
+        "name": "period",
+        "dataTypeName": "text",
+        "fieldName": "period",
+        "description": "Represents both the peak and off-peak service periods.",
+        "position": 6,
+        "renderTypeName": "text",
+        "tableColumnId": 155679159,
+        "cachedContents": {
+          "non_null": "166191",
+          "largest": "Peak",
+          "null": "0",
+          "top": [
+            {
+              "item": "Off-Peak",
+              "count": "83113"
+            },
+            {
+              "item": "Peak",
+              "count": "83078"
+            }
+          ],
+          "smallest": "Off-Peak",
+          "count": "166191",
+          "cardinality": "166191"
+        },
+        "format": {
+          "align": "center"
+        }
+      },
+      {
+        "id": 602051271,
+        "name": "number_of_trips_passing_wait",
+        "dataTypeName": "number",
+        "fieldName": "number_of_trips_passing_wait",
+        "description": "The number of trips that are no more than three minutes over their scheduled intervals for each bus route, monthly, during peak and off-peak hours.",
+        "position": 7,
+        "renderTypeName": "number",
+        "tableColumnId": 155679160,
+        "cachedContents": {
+          "non_null": "166191",
+          "largest": "53043",
+          "null": "0",
+          "top": [
+            {
+              "item": "0",
+              "count": "691"
+            },
+            {
+              "item": "2",
+              "count": "129"
+            },
+            {
+              "item": "3",
+              "count": "128"
+            },
+            {
+              "item": "6",
+              "count": "123"
+            },
+            {
+              "item": "1",
+              "count": "112"
+            },
+            {
+              "item": "4",
+              "count": "107"
+            },
+            {
+              "item": "5",
+              "count": "104"
+            },
+            {
+              "item": "7",
+              "count": "103"
+            },
+            {
+              "item": "34",
+              "count": "91"
+            },
+            {
+              "item": "35",
+              "count": "90"
+            },
+            {
+              "item": "38",
+              "count": "90"
+            },
+            {
+              "item": "8",
+              "count": "87"
+            },
+            {
+              "item": "56",
+              "count": "81"
+            },
+            {
+              "item": "39",
+              "count": "80"
+            },
+            {
+              "item": "24",
+              "count": "79"
+            },
+            {
+              "item": "21",
+              "count": "79"
+            },
+            {
+              "item": "20",
+              "count": "79"
+            },
+            {
+              "item": "604",
+              "count": "77"
+            },
+            {
+              "item": "28",
+              "count": "76"
+            },
+            {
+              "item": "36",
+              "count": "75"
+            }
+          ],
+          "smallest": "0",
+          "count": "166191",
+          "cardinality": "166191"
+        },
+        "format": {
+          "align": "right"
+        }
+      },
+      {
+        "id": 602051272,
+        "name": "number_of_scheduled_trips",
+        "dataTypeName": "number",
+        "fieldName": "number_of_scheduled_trips",
+        "description": "The number of scheduled trips for each bus route, monthly, during peak and off-peak hours.",
+        "position": 8,
+        "renderTypeName": "number",
+        "tableColumnId": 155679161,
+        "cachedContents": {
+          "non_null": "166191",
+          "largest": "67869",
+          "null": "0",
+          "top": [
+            {
+              "item": "0",
+              "count": "615"
+            },
+            {
+              "item": "3",
+              "count": "125"
+            },
+            {
+              "item": "8",
+              "count": "115"
+            },
+            {
+              "item": "38",
+              "count": "106"
+            },
+            {
+              "item": "2",
+              "count": "105"
+            },
+            {
+              "item": "40",
+              "count": "103"
+            },
+            {
+              "item": "7",
+              "count": "103"
+            },
+            {
+              "item": "76",
+              "count": "100"
+            },
+            {
+              "item": "72",
+              "count": "97"
+            },
+            {
+              "item": "95",
+              "count": "89"
+            },
+            {
+              "item": "6",
+              "count": "88"
+            },
+            {
+              "item": "60",
+              "count": "87"
+            },
+            {
+              "item": "1",
+              "count": "82"
+            },
+            {
+              "item": "5",
+              "count": "82"
+            },
+            {
+              "item": "63",
+              "count": "81"
+            },
+            {
+              "item": "80",
+              "count": "79"
+            },
+            {
+              "item": "4",
+              "count": "76"
+            },
+            {
+              "item": "42",
+              "count": "73"
+            },
+            {
+              "item": "114",
+              "count": "73"
+            },
+            {
+              "item": "41",
+              "count": "73"
+            }
+          ],
+          "smallest": "0",
+          "count": "166191",
+          "cardinality": "166191"
+        },
+        "format": {
+          "align": "right"
+        }
+      },
+      {
+        "id": 602051273,
+        "name": "wait_assessment",
+        "dataTypeName": "number",
+        "fieldName": "wait_assessment",
+        "description": "The percentage of trips that pass the wait assessment on each bus route, monthly, during peak and off-peak hours.",
+        "position": 9,
+        "renderTypeName": "number",
+        "tableColumnId": 155679162,
+        "cachedContents": {
+          "non_null": "165576",
+          "largest": "1.0",
+          "null": "615",
+          "top": [
+            {
+              "item": "1.0",
+              "count": "617"
+            },
+            {
+              "item": "0.75",
+              "count": "231"
+            },
+            {
+              "item": "0.8",
+              "count": "176"
+            },
+            {
+              "item": "0.6666666666666667",
+              "count": "146"
+            },
+            {
+              "item": "0.875",
+              "count": "134"
+            },
+            {
+              "item": "0.8333333333333333",
+              "count": "97"
+            },
+            {
+              "item": "0.9",
+              "count": "89"
+            },
+            {
+              "item": "0.833333333",
+              "count": "79"
+            },
+            {
+              "item": "0.5",
+              "count": "77"
+            },
+            {
+              "item": "0.0",
+              "count": "76"
+            },
+            {
+              "item": "0.7",
+              "count": "74"
+            },
+            {
+              "item": "0.7142857142857143",
+              "count": "62"
+            },
+            {
+              "item": "0.8571428571428571",
+              "count": "59"
+            },
+            {
+              "item": "0.6",
+              "count": "57"
+            },
+            {
+              "item": "0.7777777777777778",
+              "count": "54"
+            },
+            {
+              "item": "0.85",
+              "count": "50"
+            },
+            {
+              "item": "0.8125",
+              "count": "45"
+            },
+            {
+              "item": "0.857142857",
+              "count": "45"
+            },
+            {
+              "item": "0.888888889",
+              "count": "45"
+            },
+            {
+              "item": "0.888888888888889",
+              "count": "42"
+            }
+          ],
+          "smallest": "0.0",
+          "count": "166191",
+          "cardinality": "166191"
+        },
+        "format": {
+          "precisionStyle": "percentage",
+          "percentScale": "1",
+          "align": "right"
+        }
+      }
+    ]
+  }
+}

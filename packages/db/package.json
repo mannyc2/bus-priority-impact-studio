@@ -12,15 +12,12 @@
     "./d1/validation": "./src/d1/validation.ts",
     "./local": "./src/local/index.ts",
     "./local/schema": "./src/local/schema.ts",
-    "./pg": "./src/pg/index.ts",
-    "./pg/schema": "./src/pg/schema.ts",
     "./shared": "./src/shared/index.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json --noEmit --pretty false",
     "db:generate:d1": "drizzle-kit generate --config drizzle.config.d1.ts",
     "db:generate:local": "drizzle-kit generate --config drizzle.config.local.ts",
-    "db:generate:pg": "drizzle-kit generate --config drizzle.config.pg.ts",
     "db:migrate:local": "bun run src/local/migrate.ts",
     "db:migrate:d1:local": "wrangler d1 migrations apply bus-priority-serving --local --config wrangler.d1.jsonc",
     "db:migrate:d1:remote": "wrangler d1 migrations apply bus-priority-serving --remote --config wrangler.d1.jsonc",
@@ -30,7 +27,6 @@
   "dependencies": {
     "@bp/domain": "workspace:*",
     "drizzle-orm": "catalog:",
-    "drizzle-zod": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {

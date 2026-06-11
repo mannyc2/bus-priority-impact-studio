@@ -1,5 +1,5 @@
 import { and, asc, eq } from "drizzle-orm";
-import { batchInsert, type LocalPipelineDb } from "../client.js";
+import { insertAll, type LocalPipelineDb } from "../client.js";
 import {
   localAceRoute,
   localAceViolationSummary,
@@ -80,17 +80,7 @@ export function geometryCoordinates(geometry: unknown): LocalBusLaneCoordinate[]
   return collectCoordinates((geometry as { coordinates?: unknown }).coordinates);
 }
 
-export async function replaceBusLanes(
-  db: LocalPipelineDb,
-  rows: readonly LocalBusLane[],
-): Promise<void> {
-  await db.delete(localBusLaneCoordinate);
-  await db.delete(localBusLane);
-
-  if (rows.length === 0) {
-    return;
-  }
-
+export function replaceBusLanes(db: LocalPipelineDb, rows: readonly LocalBusLane[]): void {
   // Deduplicate by segmentId — Socrata source can have multiple rows per segment.
   const deduped = [...new Map(rows.map((row) => [row.segmentId, row])).values()];
 
@@ -110,8 +100,6 @@ export async function replaceBusLanes(
     shapeLength: row.shapeLength ?? null,
   }));
 
-  await batchInsert(db, localBusLane, laneValues);
-
   const coordinates = deduped.flatMap((row) =>
     row.coordinates.map((coordinate, index) => ({
       segmentId: row.segmentId,
@@ -121,7 +109,12 @@ export async function replaceBusLanes(
     })),
   );
 
-  await batchInsert(db, localBusLaneCoordinate, coordinates);
+  db.transaction((tx) => {
+    tx.delete(localBusLaneCoordinate).run();
+    tx.delete(localBusLane).run();
+    insertAll(tx, localBusLane, laneValues);
+    insertAll(tx, localBusLaneCoordinate, coordinates);
+  });
 }
 
 export async function listBusLanes(db: LocalPipelineDb): Promise<LocalBusLane[]> {
@@ -158,17 +151,11 @@ export async function listBusLanes(db: LocalPipelineDb): Promise<LocalBusLane[]>
   }));
 }
 
-export async function replaceAceRoutes(
-  db: LocalPipelineDb,
-  rows: readonly LocalAceRoute[],
-): Promise<void> {
-  await db.delete(localAceRoute);
-
-  if (rows.length === 0) {
-    return;
-  }
-
-  await db.insert(localAceRoute).values([...rows]);
+export function replaceAceRoutes(db: LocalPipelineDb, rows: readonly LocalAceRoute[]): void {
+  db.transaction((tx) => {
+    tx.delete(localAceRoute).run();
+    insertAll(tx, localAceRoute, [...rows]);
+  });
 }
 
 export async function listAceRoutesForRoute(
@@ -189,18 +176,15 @@ export async function listAceRoutes(db: LocalPipelineDb): Promise<LocalAceRoute[
     .orderBy(asc(localAceRoute.routeId), asc(localAceRoute.implementationDate));
 }
 
-export async function replaceAceViolationSummaries(
+export function replaceAceViolationSummaries(
   db: LocalPipelineDb,
   month: string,
   rows: readonly LocalAceViolationSummary[],
-): Promise<void> {
-  await db.delete(localAceViolationSummary).where(eq(localAceViolationSummary.month, month));
-
-  if (rows.length === 0) {
-    return;
-  }
-
-  await db.insert(localAceViolationSummary).values([...rows]);
+): void {
+  db.transaction((tx) => {
+    tx.delete(localAceViolationSummary).where(eq(localAceViolationSummary.month, month)).run();
+    insertAll(tx, localAceViolationSummary, [...rows]);
+  });
 }
 
 export async function listAceViolationSummariesForRoute(
@@ -220,7 +204,7 @@ export async function listAceViolationSummariesForRoute(
     );
 }
 
-export async function replaceRouteInterventionEvaluationRows(
+export function replaceRouteInterventionEvaluationRows(
   db: LocalPipelineDb,
   month: string,
   sourceId: string,
@@ -228,23 +212,22 @@ export async function replaceRouteInterventionEvaluationRows(
     events: readonly (typeof localInterventionEvent.$inferInsert)[];
     comparisons: readonly (typeof localRouteInterventionComparison.$inferInsert)[];
   },
-): Promise<void> {
-  await db
-    .delete(localRouteInterventionComparison)
-    .where(
-      and(
-        eq(localRouteInterventionComparison.month, month),
-        eq(localRouteInterventionComparison.sourceId, sourceId),
-      ),
-    );
-  await db.delete(localInterventionEvent).where(eq(localInterventionEvent.sourceId, sourceId));
+): void {
+  db.transaction((tx) => {
+    tx
+      .delete(localRouteInterventionComparison)
+      .where(
+        and(
+          eq(localRouteInterventionComparison.month, month),
+          eq(localRouteInterventionComparison.sourceId, sourceId),
+        ),
+      )
+      .run();
+    tx.delete(localInterventionEvent).where(eq(localInterventionEvent.sourceId, sourceId)).run();
 
-  if (input.events.length > 0) {
-    await batchInsert(db, localInterventionEvent, [...input.events]);
-  }
-  if (input.comparisons.length > 0) {
-    await batchInsert(db, localRouteInterventionComparison, [...input.comparisons]);
-  }
+    insertAll(tx, localInterventionEvent, [...input.events]);
+    insertAll(tx, localRouteInterventionComparison, [...input.comparisons]);
+  });
 }
 
 export async function listInterventionEvents(

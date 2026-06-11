@@ -60,6 +60,21 @@ export function FindingsFeedPage({ data }: { data: StudioFindingsResponse }) {
     return true;
   });
 
+  const sorted = filtered.slice().sort((a, b) => {
+    if (sort === "confidence") {
+      const rank = (c: string) => (c === "high" ? 0 : 1);
+      return rank(a.finding.confidence) - rank(b.finding.confidence);
+    }
+    if (sort === "impact") {
+      const parse = (m: string) => {
+        const match = m.match(/-?\d+(?:\.\d+)?/);
+        return match ? Number(match[0]) : Number.NEGATIVE_INFINITY;
+      };
+      return parse(b.finding.metric) - parse(a.finding.metric);
+    }
+    return b.finding.id.localeCompare(a.finding.id);
+  });
+
   const typeCounts: Record<string, number> = {
     all: data.findings.length,
     Anomaly: data.findings.filter((f) => f.finding.category === "Anomaly").length,
@@ -164,14 +179,14 @@ export function FindingsFeedPage({ data }: { data: StudioFindingsResponse }) {
             </div>
           </Rail>
           <div className="flex flex-col gap-3.5 overflow-auto p-7 max-sm:p-4">
-            {filtered.length === 0 ? (
+            {sorted.length === 0 ? (
               <EmptyState
                 className="min-h-[360px] bg-[var(--bp-color-card)] shadow-[0_0_0_1px_var(--bp-color-rule)]"
                 title="No findings match these filters"
                 body="The feed is available, but this borough and finding-type combination has no reviewed findings. Broaden one filter to return to the evidence set."
               />
             ) : null}
-            {filtered.map(({ finding, route }) => {
+            {sorted.map(({ finding, route }) => {
               const borderColor = severityBorderColor(finding.category);
               const review = reviewBadge(finding);
               return (

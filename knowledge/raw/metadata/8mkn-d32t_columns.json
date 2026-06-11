@@ -1,0 +1,738 @@
+{
+  "schemaVersion": 1,
+  "sourceId": "bus_customer_journey_metrics",
+  "checkedAt": "2026-05-31T12:04:52.774Z",
+  "columnsUrl": "https://data.ny.gov/api/views/8mkn-d32t/columns.json",
+  "columns": [
+    {
+      "id": 622474088,
+      "name": "month",
+      "dataTypeName": "calendar_date",
+      "fieldName": "month",
+      "description": "Represents the time period in which the metrics are being calculated (yyyy-mm-dd).",
+      "position": 1,
+      "renderTypeName": "calendar_date",
+      "tableColumnId": 154626434,
+      "cachedContents": {
+        "non_null": "66564",
+        "largest": "2026-04-01T00:00:00.000",
+        "null": "0",
+        "top": [
+          {
+            "item": "2025-06-01T00:00:00.000",
+            "count": "709"
+          },
+          {
+            "item": "2026-04-01T00:00:00.000",
+            "count": "697"
+          },
+          {
+            "item": "2025-07-01T00:00:00.000",
+            "count": "694"
+          },
+          {
+            "item": "2025-08-01T00:00:00.000",
+            "count": "693"
+          },
+          {
+            "item": "2026-03-01T00:00:00.000",
+            "count": "690"
+          },
+          {
+            "item": "2025-10-01T00:00:00.000",
+            "count": "690"
+          },
+          {
+            "item": "2025-09-01T00:00:00.000",
+            "count": "690"
+          },
+          {
+            "item": "2025-11-01T00:00:00.000",
+            "count": "682"
+          },
+          {
+            "item": "2026-01-01T00:00:00.000",
+            "count": "682"
+          },
+          {
+            "item": "2026-02-01T00:00:00.000",
+            "count": "682"
+          },
+          {
+            "item": "2025-12-01T00:00:00.000",
+            "count": "681"
+          },
+          {
+            "item": "2023-01-01T00:00:00.000",
+            "count": "674"
+          },
+          {
+            "item": "2024-11-01T00:00:00.000",
+            "count": "672"
+          },
+          {
+            "item": "2023-09-01T00:00:00.000",
+            "count": "672"
+          },
+          {
+            "item": "2023-11-01T00:00:00.000",
+            "count": "672"
+          },
+          {
+            "item": "2023-08-01T00:00:00.000",
+            "count": "672"
+          },
+          {
+            "item": "2023-02-01T00:00:00.000",
+            "count": "672"
+          },
+          {
+            "item": "2023-10-01T00:00:00.000",
+            "count": "672"
+          },
+          {
+            "item": "2023-03-01T00:00:00.000",
+            "count": "672"
+          },
+          {
+            "item": "2025-03-01T00:00:00.000",
+            "count": "671"
+          }
+        ],
+        "smallest": "2017-08-01T00:00:00.000",
+        "count": "66564",
+        "cardinality": "66564"
+      },
+      "format": {
+        "view": "iso_8601_date",
+        "align": "center"
+      }
+    },
+    {
+      "id": 622474089,
+      "name": "borough",
+      "dataTypeName": "text",
+      "fieldName": "borough",
+      "description": "Represents the five boroughs of New York City (Bronx, Brooklyn, Manhattan, Queens, Staten Island). ",
+      "position": 2,
+      "renderTypeName": "text",
+      "tableColumnId": 140678391,
+      "cachedContents": {
+        "non_null": "66564",
+        "largest": "UNKNOWN",
+        "null": "0",
+        "top": [
+          {
+            "item": "Queens",
+            "count": "22356"
+          },
+          {
+            "item": "Brooklyn",
+            "count": "13138"
+          },
+          {
+            "item": "Staten Island",
+            "count": "11645"
+          },
+          {
+            "item": "Bronx",
+            "count": "11175"
+          },
+          {
+            "item": "Manhattan",
+            "count": "8249"
+          },
+          {
+            "item": "UNKNOWN",
+            "count": "1"
+          }
+        ],
+        "smallest": "Bronx",
+        "count": "66564",
+        "cardinality": "66564"
+      },
+      "format": {}
+    },
+    {
+      "id": 622474090,
+      "name": "trip_type",
+      "dataTypeName": "text",
+      "fieldName": "trip_type",
+      "description": "The type of bus service provided: EXP (Express), LCL/LTD (Local/Limited), SBS (Select Bus Service).",
+      "position": 3,
+      "renderTypeName": "text",
+      "tableColumnId": 140678390,
+      "cachedContents": {
+        "non_null": "66564",
+        "largest": "SBS",
+        "null": "0",
+        "top": [
+          {
+            "item": "LCL/LTD",
+            "count": "47342"
+          },
+          {
+            "item": "EXP",
+            "count": "15355"
+          },
+          {
+            "item": "SBS",
+            "count": "3867"
+          }
+        ],
+        "smallest": "EXP",
+        "count": "66564",
+        "cardinality": "66564"
+      },
+      "format": {
+        "align": "center"
+      }
+    },
+    {
+      "id": 622474091,
+      "name": "route_id",
+      "dataTypeName": "text",
+      "fieldName": "route_id",
+      "description": "Identifies each individual bus route, as well as cumulative totals for all bus routes (identified as ALL).",
+      "position": 4,
+      "renderTypeName": "text",
+      "tableColumnId": 140678389,
+      "cachedContents": {
+        "non_null": "66564",
+        "largest": "X9",
+        "null": "0",
+        "top": [
+          {
+            "item": "Q44+",
+            "count": "220"
+          },
+          {
+            "item": "B46+",
+            "count": "216"
+          },
+          {
+            "item": "B44+",
+            "count": "214"
+          },
+          {
+            "item": "S79+",
+            "count": "210"
+          },
+          {
+            "item": "BX12+",
+            "count": "200"
+          },
+          {
+            "item": "Q46",
+            "count": "200"
+          },
+          {
+            "item": "M4",
+            "count": "200"
+          },
+          {
+            "item": "BXM1",
+            "count": "200"
+          },
+          {
+            "item": "BX10",
+            "count": "200"
+          },
+          {
+            "item": "Q15",
+            "count": "200"
+          },
+          {
+            "item": "Q102",
+            "count": "200"
+          },
+          {
+            "item": "BXM4",
+            "count": "200"
+          },
+          {
+            "item": "BX21",
+            "count": "200"
+          },
+          {
+            "item": "Q3",
+            "count": "200"
+          },
+          {
+            "item": "B41",
+            "count": "200"
+          },
+          {
+            "item": "BXM9",
+            "count": "200"
+          },
+          {
+            "item": "M3",
+            "count": "200"
+          },
+          {
+            "item": "B38",
+            "count": "200"
+          },
+          {
+            "item": "B25",
+            "count": "200"
+          },
+          {
+            "item": "M15",
+            "count": "200"
+          }
+        ],
+        "smallest": "B1",
+        "count": "66564",
+        "cardinality": "66564"
+      },
+      "format": {
+        "align": "center"
+      }
+    },
+    {
+      "id": 622474092,
+      "name": "period",
+      "dataTypeName": "text",
+      "fieldName": "period",
+      "description": "Represents both the peak and off-peak service periods.",
+      "position": 5,
+      "renderTypeName": "text",
+      "tableColumnId": 140678388,
+      "cachedContents": {
+        "non_null": "66564",
+        "largest": "Peak",
+        "null": "0",
+        "top": [
+          {
+            "item": "Off-Peak",
+            "count": "33300"
+          },
+          {
+            "item": "Peak",
+            "count": "33264"
+          }
+        ],
+        "smallest": "Off-Peak",
+        "count": "66564",
+        "cardinality": "66564"
+      },
+      "format": {}
+    },
+    {
+      "id": 622474093,
+      "name": "number_of_customers",
+      "dataTypeName": "number",
+      "fieldName": "number_of_customers",
+      "description": "The total number of customers for each bus route, monthly, during peak and off-peak hours.",
+      "position": 6,
+      "renderTypeName": "number",
+      "tableColumnId": 140678387,
+      "cachedContents": {
+        "non_null": "66564",
+        "largest": "635106.4",
+        "null": "0",
+        "top": [
+          {
+            "item": "6.665999889373779",
+            "count": "3"
+          },
+          {
+            "item": "62.9979",
+            "count": "3"
+          },
+          {
+            "item": "365.3149070739746",
+            "count": "2"
+          },
+          {
+            "item": "3708.42",
+            "count": "2"
+          },
+          {
+            "item": "31838.32",
+            "count": "2"
+          },
+          {
+            "item": "3646.16",
+            "count": "2"
+          },
+          {
+            "item": "4906.35",
+            "count": "2"
+          },
+          {
+            "item": "86748.55",
+            "count": "2"
+          },
+          {
+            "item": "7459.94",
+            "count": "2"
+          },
+          {
+            "item": "83119.22",
+            "count": "2"
+          },
+          {
+            "item": "4471.01",
+            "count": "2"
+          },
+          {
+            "item": "13120.44",
+            "count": "2"
+          },
+          {
+            "item": "473.4029846191406",
+            "count": "2"
+          },
+          {
+            "item": "3398.5",
+            "count": "2"
+          },
+          {
+            "item": "386.49610221385956",
+            "count": "2"
+          },
+          {
+            "item": "3619.39",
+            "count": "2"
+          },
+          {
+            "item": "103.78940439224243",
+            "count": "2"
+          },
+          {
+            "item": "646.1879730224609",
+            "count": "2"
+          },
+          {
+            "item": "99.85599517822266",
+            "count": "2"
+          },
+          {
+            "item": "6763.3",
+            "count": "2"
+          }
+        ],
+        "smallest": "0.1429000049829483",
+        "count": "66564",
+        "cardinality": "66564"
+      },
+      "format": {
+        "align": "right"
+      }
+    },
+    {
+      "id": 622474094,
+      "name": "additional_bus_stop_time",
+      "dataTypeName": "number",
+      "fieldName": "additional_bus_stop_time",
+      "description": "The average additional bus stop time (in minutes) for each bus route, monthly, during peak and off-peak hours.",
+      "position": 7,
+      "renderTypeName": "number",
+      "tableColumnId": 140678386,
+      "cachedContents": {
+        "non_null": "66564",
+        "largest": "49.49875627061703",
+        "null": "0",
+        "top": [
+          {
+            "item": "1.222526",
+            "count": "2"
+          },
+          {
+            "item": "1.5674295",
+            "count": "2"
+          },
+          {
+            "item": "2.7801983004144413",
+            "count": "1"
+          },
+          {
+            "item": "4.276704777992713",
+            "count": "1"
+          },
+          {
+            "item": "4.842718679083292",
+            "count": "1"
+          },
+          {
+            "item": "1.846981118",
+            "count": "1"
+          },
+          {
+            "item": "1.783400689",
+            "count": "1"
+          },
+          {
+            "item": "3.401709357191226",
+            "count": "1"
+          },
+          {
+            "item": "1.7316391727615899",
+            "count": "1"
+          },
+          {
+            "item": "3.538285119417242",
+            "count": "1"
+          },
+          {
+            "item": "2.428601159061389",
+            "count": "1"
+          },
+          {
+            "item": "3.032646065691076",
+            "count": "1"
+          },
+          {
+            "item": "2.2645935651389655",
+            "count": "1"
+          },
+          {
+            "item": "1.2105317918320384",
+            "count": "1"
+          },
+          {
+            "item": "1.8843065175009244",
+            "count": "1"
+          },
+          {
+            "item": "3.473113",
+            "count": "1"
+          },
+          {
+            "item": "1.474495092",
+            "count": "1"
+          },
+          {
+            "item": "2.0086477615008884",
+            "count": "1"
+          },
+          {
+            "item": "2.8616378",
+            "count": "1"
+          },
+          {
+            "item": "2.1115176993728166",
+            "count": "1"
+          }
+        ],
+        "smallest": "-30.0",
+        "count": "66564",
+        "cardinality": "66564"
+      },
+      "format": {
+        "align": "right"
+      }
+    },
+    {
+      "id": 622474095,
+      "name": "additional_travel_time",
+      "dataTypeName": "number",
+      "fieldName": "additional_travel_time",
+      "description": "The average additional travel time (in minutes) for each bus route, monthly, during peak and off-peak hours.",
+      "position": 8,
+      "renderTypeName": "number",
+      "tableColumnId": 140678385,
+      "cachedContents": {
+        "non_null": "66564",
+        "largest": "21.456813380318902",
+        "null": "0",
+        "top": [
+          {
+            "item": "1.1795558",
+            "count": "2"
+          },
+          {
+            "item": "1.1686594",
+            "count": "2"
+          },
+          {
+            "item": "-2.159310731761395",
+            "count": "1"
+          },
+          {
+            "item": "0.8778364808909357",
+            "count": "1"
+          },
+          {
+            "item": "0.238250366575433",
+            "count": "1"
+          },
+          {
+            "item": "1.0078433068957962",
+            "count": "1"
+          },
+          {
+            "item": "1.1093332180954705",
+            "count": "1"
+          },
+          {
+            "item": "1.3446625998824389",
+            "count": "1"
+          },
+          {
+            "item": "2.1193137",
+            "count": "1"
+          },
+          {
+            "item": "1.5567506378653468",
+            "count": "1"
+          },
+          {
+            "item": "-2.778388469858214",
+            "count": "1"
+          },
+          {
+            "item": "0.9586890626688256",
+            "count": "1"
+          },
+          {
+            "item": "-0.8232096046469412",
+            "count": "1"
+          },
+          {
+            "item": "-2.220581461369363",
+            "count": "1"
+          },
+          {
+            "item": "1.1275568344164375",
+            "count": "1"
+          },
+          {
+            "item": "0.3813698714147587",
+            "count": "1"
+          },
+          {
+            "item": "7.5510354",
+            "count": "1"
+          },
+          {
+            "item": "0.26297528811027204",
+            "count": "1"
+          },
+          {
+            "item": "0.110305148458086",
+            "count": "1"
+          },
+          {
+            "item": "-0.06365382199112958",
+            "count": "1"
+          }
+        ],
+        "smallest": "-30.0",
+        "count": "66564",
+        "cardinality": "66564"
+      },
+      "format": {
+        "align": "right"
+      }
+    },
+    {
+      "id": 622474096,
+      "name": "customer_journey_time_performance",
+      "dataTypeName": "number",
+      "fieldName": "customer_journey_time",
+      "description": "The percentage of customers whose journeys are completed within 5 minutes of the scheduled time for each bus route, monthly, during peak and off-peak hours.",
+      "position": 9,
+      "renderTypeName": "number",
+      "tableColumnId": 140678384,
+      "cachedContents": {
+        "non_null": "66563",
+        "largest": "1.0",
+        "null": "1",
+        "top": [
+          {
+            "item": "1.0",
+            "count": "19"
+          },
+          {
+            "item": "0.0",
+            "count": "3"
+          },
+          {
+            "item": "0.5",
+            "count": "2"
+          },
+          {
+            "item": "0.60073096",
+            "count": "2"
+          },
+          {
+            "item": "0.7979607",
+            "count": "2"
+          },
+          {
+            "item": "0.6791453",
+            "count": "2"
+          },
+          {
+            "item": "0.67685145",
+            "count": "2"
+          },
+          {
+            "item": "0.7727307667060679",
+            "count": "1"
+          },
+          {
+            "item": "0.591428177",
+            "count": "1"
+          },
+          {
+            "item": "0.5663846621508453",
+            "count": "1"
+          },
+          {
+            "item": "0.653955089",
+            "count": "1"
+          },
+          {
+            "item": "0.8522717719672674",
+            "count": "1"
+          },
+          {
+            "item": "0.690428633",
+            "count": "1"
+          },
+          {
+            "item": "0.8837255135461382",
+            "count": "1"
+          },
+          {
+            "item": "0.5334600150892401",
+            "count": "1"
+          },
+          {
+            "item": "0.6876189912188093",
+            "count": "1"
+          },
+          {
+            "item": "0.5632753447480865",
+            "count": "1"
+          },
+          {
+            "item": "0.7365248152281637",
+            "count": "1"
+          },
+          {
+            "item": "0.6684027790112281",
+            "count": "1"
+          },
+          {
+            "item": "0.753342754",
+            "count": "1"
+          }
+        ],
+        "smallest": "0.0",
+        "count": "66564",
+        "cardinality": "66564"
+      },
+      "format": {
+        "precisionStyle": "percentage",
+        "percentScale": "1",
+        "align": "right"
+      }
+    }
+  ]
+}

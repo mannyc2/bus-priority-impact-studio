@@ -106,12 +106,6 @@ export function FindingDetailPage({ data }: { data: StudioFindingResponse | null
               >
                 Start brief from this finding
               </Link>
-              <button
-                type="button"
-                className="text-[11.5px] font-medium text-[var(--bp-color-ink-55)] underline-offset-2 hover:underline"
-              >
-                Save to workspace
-              </button>
             </div>
             {finding.comparableRoutes.length > 0 ? (
               <>

@@ -2,7 +2,7 @@
 title: Source Registry
 type: data
 status: active
-last_updated: 2026-05-18
+last_updated: 2026-06-06
 owner: codex
 source_count: 32
 tags: [sources, datasets, apis]
@@ -71,6 +71,10 @@ These sources are **not** active registry entries yet and are not counted in `so
 | 311 Service Requests, 2010-2019 | `76ig-c548` | Historical 311 baseline after the current table split | Candidate; unprobed |
 | Parking Violations Issued, current fiscal year | `pvqr-7yc4` | Curb-pressure and illegal-standing proxy after code/location filtering | Candidate; unprobed |
 | NYC LION / street centerline | DCP LION page | Stable street segment IDs and street geometry joins across context sources | Candidate; unprobed |
+| Current Transit Signal Priority inventory | unknown DOT/MTA records; see [[wiki/data/tsp_data_acquisition|TSP data acquisition]] | Authoritative current TSP intersection/route/status/activation layer | Source gap; likely FOIL/agency records |
+| Traffic Signal and All-Way Stop Study Requests | `w76s-c5u4` | Signal-related study/request context; not TSP proof | Candidate; indexed in Tier 2 as dataset dictionary |
+| Capital Project Detail Data - Dollars | `wa2y-rh4b` | Budget/capital traces for TSP or bus-priority program lines; no field inventory | Candidate; indexed in Tier 2 as dataset dictionary |
+| Bus-Data-NYC historical Bus Time archive | GitHub / public archive tooling | Optional historical bus-position validation/backtest input | Research lead; non-authoritative, not active registry |
 
 ## Socrata probe summary
 

@@ -1,0 +1,20 @@
+// Deterministic Tier 2 intervention-records synthesis policy.
+export {
+  type InterventionRecordsBucketInput,
+  type ProcessInterventionRecordsToolArgsResult,
+  type Tier2InterventionRecordsBucketKind,
+  backfillStatusHistory,
+  candidateHasBusPrioritySignal,
+  dedupeInterventionRecordsByEvidenceOverlap,
+  inferRecordKind,
+  mergeRecordCluster,
+  normalizeCorridorText,
+  processInterventionRecordsToolArgs,
+  recordHasInterventionEvidence,
+  recordsAreClusterCompatible,
+  repairInterventionRecordsAliases,
+  repairInvalidEnumValues,
+  sanitizeStatusHistoryForProposedOnly,
+  validateCorridorExtentEndpoints,
+  validateMetricValueNumericSupport,
+} from "./policy";

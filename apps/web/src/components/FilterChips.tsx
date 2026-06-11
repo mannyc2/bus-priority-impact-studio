@@ -32,7 +32,7 @@ export function FilterChips<T extends string>({
         const next = Array.isArray(v) ? v[0] : v;
         if (typeof next === "string" && next.length > 0) onChange(next as T);
       }}
-      className={cn("gap-1.5", className)}
+      className={cn("flex flex-wrap gap-1.5", className)}
     >
       {options.map((o) => (
         <ToggleGroupItem key={o.id} value={o.id} className={CHIP_CLASSNAME}>

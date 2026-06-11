@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { routeHead } from "../../lib/head.js";
-import { DocsPage, DOCS_PAGE_ORDER } from "../../studio/pages/docs.js";
+import { DOCS_PAGE_ORDER } from "../../studio/pages/docs-pages.js";
+import { DocsPage } from "../../studio/pages/docs.js";
 
 export const Route = createFileRoute("/docs/$page")({
   head: ({ params }) => {

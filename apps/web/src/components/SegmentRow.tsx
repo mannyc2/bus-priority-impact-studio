@@ -5,19 +5,24 @@ import { HourStrip } from "@/components/HourStrip";
 import type { LaneState } from "@/components/LaneGlyph";
 import { TreatmentRow } from "@/components/TreatmentRow";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { TreatmentItem } from "@/studio/treatment-model";
 
 export function SegmentRowHeader({ showSched = true }: { showSched?: boolean }) {
   return (
     <div className="grid grid-cols-[1fr_84px_92px_168px_132px] gap-[18px] px-3 pb-2 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--bp-color-ink-55)] shadow-[inset_0_-1px_0_var(--bp-color-rule)]">
       <span>Segment</span>
-      <span className="text-right">
+      <span className="text-right" title="Average speed vs scheduled speed (mph)">
         MPH
         {showSched ? (
-          <span className="font-medium text-[var(--bp-color-ink-40)]"> / sch</span>
+          <span className="font-medium text-[var(--bp-color-ink-40)]"> / sched</span>
         ) : null}
       </span>
-      <span className="text-right">RH / day</span>
-      <span>Severity by hour</span>
+      <span className="text-right" title="Rider-hours lost per day vs schedule">
+        Rider-hrs/day
+      </span>
+      <span title="Per-hour slowdown severity — taller bars = slower vs schedule">
+        Severity by hour
+      </span>
       <span className="text-right">Treatments</span>
     </div>
   );
@@ -34,6 +39,7 @@ export function SegmentRow({
   lane = "none",
   ace = false,
   tsp = false,
+  treatments,
   flag,
   hasNote = false,
   noteOpen = false,
@@ -49,6 +55,7 @@ export function SegmentRow({
   lane?: LaneState;
   ace?: boolean;
   tsp?: boolean;
+  treatments?: readonly TreatmentItem[] | undefined;
   flag?: "top";
   hasNote?: boolean;
   noteOpen?: boolean;
@@ -104,7 +111,7 @@ export function SegmentRow({
         {riderHours.toLocaleString()}
       </div>
       <HourStrip hours={hours} />
-      <TreatmentRow lane={lane} ace={ace} tsp={tsp} />
+      <TreatmentRow lane={lane} ace={ace} tsp={tsp} treatments={treatments} />
     </>
   );
 

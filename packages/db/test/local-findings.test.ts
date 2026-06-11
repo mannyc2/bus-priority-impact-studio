@@ -1,24 +1,14 @@
 import { Database } from "bun:sqlite";
 import { describe, expect, test } from "bun:test";
-import { readdir } from "node:fs/promises";
-import { createLocalPipelineDb } from "../src/local/client.js";
-import { type LocalPipelineDb, listContextEventRouteTouchesForWindow } from "../src/local/index.js";
-
-async function createLocalTestDb(): Promise<{ db: LocalPipelineDb; sqlite: Database }> {
-  const sqlite = new Database(":memory:");
-  const migrationsDir = new URL("../migrations/local/", import.meta.url);
-  const filenames = (await readdir(migrationsDir))
-    .filter((filename) => filename.endsWith(".sql"))
-    .sort();
-  for (const filename of filenames) {
-    sqlite.exec(await Bun.file(new URL(filename, migrationsDir)).text());
-  }
-
-  return {
-    db: createLocalPipelineDb(sqlite),
-    sqlite,
-  };
-}
+import {
+  insertCoverageAudit,
+  insertCoverageAuditIgnore,
+  listContextEventRouteTouchesForWindow,
+  replaceFindingRun,
+  replaceFindingsForMonth,
+  type LocalFindingCoverageAudit,
+} from "../src/local/index.js";
+import { createTestLocalDb } from "./local-test-db.js";
 
 type SqlValue = string | number | null;
 
@@ -32,9 +22,33 @@ function insertRouteTouch(sqlite: Database, row: Record<string, SqlValue>) {
     .run(...columns.map((column) => row[column] ?? null));
 }
 
+function coverageRow(input: Partial<LocalFindingCoverageAudit> = {}): LocalFindingCoverageAudit {
+  return {
+    auditId: input.auditId ?? "audit-1",
+    detectorRunId: input.detectorRunId ?? "run-1",
+    detectorId: input.detectorId ?? "detector-1",
+    month: input.month ?? "2026-03",
+    scopeKind: input.scopeKind ?? "route",
+    scopeId: input.scopeId ?? "M1",
+    outcome: input.outcome ?? "clean_no_hit",
+    reasonCode: input.reasonCode ?? null,
+    reason: input.reason ?? null,
+    inputsSeenJson: input.inputsSeenJson ?? "{}",
+    inputsExpectedJson: input.inputsExpectedJson ?? "{}",
+    createdAt: input.createdAt ?? "2026-06-07T00:00:00.000Z",
+  };
+}
+
+function coverageCount(sqlite: Database): number {
+  const row = sqlite
+    .query<{ count: number }, []>("SELECT COUNT(*) AS count FROM local_finding_coverage_audit")
+    .get();
+  return row?.count ?? 0;
+}
+
 describe("local findings repository", () => {
   test("lists route touches overlapping a detector window", async () => {
-    const local = await createLocalTestDb();
+    const local = createTestLocalDb();
     try {
       insertRouteTouch(local.sqlite, {
         event_id: "before-overlap",
@@ -130,7 +144,7 @@ describe("local findings repository", () => {
   });
 
   test("filters route touches by event kind and evidence role", async () => {
-    const local = await createLocalTestDb();
+    const local = createTestLocalDb();
     try {
       insertRouteTouch(local.sqlite, {
         event_id: "primary",
@@ -173,6 +187,100 @@ describe("local findings repository", () => {
       });
 
       expect(touches.map((touch) => touch.eventId)).toEqual(["context"]);
+    } finally {
+      local.sqlite.close();
+    }
+  });
+
+  test("rejects malformed coverage audit JSON before insert", async () => {
+    const local = createTestLocalDb();
+    try {
+      await expect(
+        insertCoverageAudit(local.db, [
+          coverageRow({
+            auditId: "bad-json",
+            inputsSeenJson: "{not json",
+          }),
+        ]),
+      ).rejects.toThrow("Invalid inputsSeenJson JSON for coverage audit bad-json");
+      expect(coverageCount(local.sqlite)).toBe(0);
+    } finally {
+      local.sqlite.close();
+    }
+  });
+
+  test("insert ignore validates coverage audit JSON and preserves existing rows", async () => {
+    const local = createTestLocalDb();
+    try {
+      await insertCoverageAuditIgnore(local.db, [coverageRow({ auditId: "duplicate" })]);
+      await insertCoverageAuditIgnore(local.db, [coverageRow({ auditId: "duplicate" })]);
+      expect(coverageCount(local.sqlite)).toBe(1);
+
+      await expect(
+        insertCoverageAuditIgnore(local.db, [
+          coverageRow({
+            auditId: "bad-ignore-json",
+            inputsExpectedJson: "{broken",
+          }),
+        ]),
+      ).rejects.toThrow("Invalid inputsExpectedJson JSON for coverage audit bad-ignore-json");
+      expect(coverageCount(local.sqlite)).toBe(1);
+    } finally {
+      local.sqlite.close();
+    }
+  });
+
+  test("validates coverage audit JSON before replacing existing month rows", async () => {
+    const local = createTestLocalDb();
+    try {
+      await insertCoverageAudit(local.db, [coverageRow({ auditId: "existing" })]);
+      expect(coverageCount(local.sqlite)).toBe(1);
+
+      expect(() =>
+        replaceFindingsForMonth(local.db, {
+          month: "2026-03",
+          detectorId: "detector-1",
+          candidates: [],
+          evidence: [],
+          coverage: [
+            coverageRow({
+              auditId: "bad-expected-json",
+              inputsExpectedJson: "{nope",
+            }),
+          ],
+        }),
+      ).toThrow("Invalid inputsExpectedJson JSON for coverage audit bad-expected-json");
+
+      expect(coverageCount(local.sqlite)).toBe(1);
+    } finally {
+      local.sqlite.close();
+    }
+  });
+
+  test("validates coverage audit JSON before replacing run-scoped rows", async () => {
+    const local = createTestLocalDb();
+    try {
+      await insertCoverageAudit(local.db, [
+        coverageRow({ auditId: "existing-run", detectorRunId: "run-1" }),
+      ]);
+      expect(coverageCount(local.sqlite)).toBe(1);
+
+      expect(() =>
+        replaceFindingRun(local.db, {
+          detectorRunId: "run-1",
+          candidates: [],
+          evidence: [],
+          coverage: [
+            coverageRow({
+              auditId: "bad-run-json",
+              detectorRunId: "run-1",
+              inputsSeenJson: "[",
+            }),
+          ],
+        }),
+      ).toThrow("Invalid inputsSeenJson JSON for coverage audit bad-run-json");
+
+      expect(coverageCount(local.sqlite)).toBe(1);
     } finally {
       local.sqlite.close();
     }

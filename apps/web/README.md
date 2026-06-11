@@ -16,7 +16,8 @@ src/
   global.css    # CSS custom properties and component styles
 ```
 
-Frontend tests live under `apps/web/test/`, not production `src/`.
+Frontend tests live under `apps/web/test/`, not production `src/`; see
+`apps/web/test/README.md` for the current test layout standard.
 
 ## Rules
 

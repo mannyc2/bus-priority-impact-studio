@@ -9,10 +9,9 @@ import {
   type FindingEvidenceLink,
   FindingEvidenceLinkSchema,
   FindingReasonCodeSchema,
-  IsoMonthSchema,
-  RouteIdSchema,
   type RouteMonthSignalFeature,
-} from "@bp/domain";
+} from "@bp/domain/findings";
+import { IsoMonthSchema, RouteIdSchema } from "@bp/domain/primitives";
 
 export const SERVICE_REQUEST_CONTEXT_DETECTOR_ID = "service_request_context";
 

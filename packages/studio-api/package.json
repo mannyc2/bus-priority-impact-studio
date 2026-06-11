@@ -1,0 +1,37 @@
+{
+  "name": "@bp/studio-api",
+  "private": true,
+  "type": "module",
+  "description": "Framework-neutral Studio REST contracts, client, and explicit Cloudflare server entrypoints.",
+  "exports": {
+    "./contracts": "./src/contracts/index.ts",
+    "./contracts/openapi": "./src/contracts/openapi.ts",
+    "./client": "./src/client/index.ts",
+    "./client/fetch": "./src/client/fetch.ts",
+    "./server": "./src/server/index.ts",
+    "./server/worker": "./src/server/worker.ts",
+    "./server/scheduled": "./src/server/scheduled.ts",
+    "./server/auth": "./src/server/resources/auth/index.ts",
+    "./server/authoring": "./src/server/resources/authoring/index.ts",
+    "./server/authoring/agent": "./src/server/resources/authoring/agent/index.ts",
+    "./server/testing": "./src/server/testing/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json --noEmit --pretty false",
+    "typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
+    "test": "bun test ./test --timeout 5000"
+  },
+  "dependencies": {
+    "@bp/db": "workspace:*",
+    "@bp/domain": "workspace:*",
+    "@cloudflare/think": "catalog:",
+    "ai": "catalog:",
+    "workers-ai-provider": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "catalog:",
+    "@types/bun": "catalog:",
+    "typescript": "catalog:"
+  }
+}

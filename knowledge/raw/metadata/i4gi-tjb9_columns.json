@@ -1,0 +1,1158 @@
+{
+  "schemaVersion": 1,
+  "sourceId": "nyc_dot_traffic_speeds",
+  "checkedAt": "2026-05-25T21:34:05.981Z",
+  "columnsUrl": "https://data.cityofnewyork.us/api/views/i4gi-tjb9/columns.json",
+  "columns": [
+    {
+      "id": 298355213,
+      "name": "ID",
+      "dataTypeName": "text",
+      "fieldName": "id",
+      "position": 1,
+      "renderTypeName": "text",
+      "tableColumnId": 46298995,
+      "width": 124,
+      "cachedContents": {
+        "largest": "453",
+        "non_null": "104074901",
+        "null": "0",
+        "top": [
+          {
+            "item": "1",
+            "count": "806046"
+          },
+          {
+            "item": "185",
+            "count": "806011"
+          },
+          {
+            "item": "129",
+            "count": "806005"
+          },
+          {
+            "item": "207",
+            "count": "805984"
+          },
+          {
+            "item": "2",
+            "count": "805976"
+          },
+          {
+            "item": "208",
+            "count": "805966"
+          },
+          {
+            "item": "258",
+            "count": "805965"
+          },
+          {
+            "item": "331",
+            "count": "805953"
+          },
+          {
+            "item": "315",
+            "count": "805953"
+          },
+          {
+            "item": "426",
+            "count": "805951"
+          },
+          {
+            "item": "145",
+            "count": "805944"
+          },
+          {
+            "item": "427",
+            "count": "805930"
+          },
+          {
+            "item": "4",
+            "count": "805926"
+          },
+          {
+            "item": "422",
+            "count": "805918"
+          },
+          {
+            "item": "159",
+            "count": "805895"
+          },
+          {
+            "item": "169",
+            "count": "805888"
+          },
+          {
+            "item": "3",
+            "count": "805864"
+          },
+          {
+            "item": "332",
+            "count": "805862"
+          },
+          {
+            "item": "199",
+            "count": "805742"
+          },
+          {
+            "item": "126",
+            "count": "805662"
+          }
+        ],
+        "not_null": "31745074",
+        "smallest": "1",
+        "count": "104074901",
+        "cardinality": "104074901"
+      },
+      "format": {}
+    },
+    {
+      "id": 298355214,
+      "name": "SPEED",
+      "dataTypeName": "text",
+      "fieldName": "speed",
+      "position": 2,
+      "renderTypeName": "text",
+      "tableColumnId": 46298996,
+      "width": 160,
+      "cachedContents": {
+        "largest": "99.41",
+        "non_null": "104074901",
+        "null": "0",
+        "top": [
+          {
+            "item": "0.00",
+            "count": "12048120"
+          },
+          {
+            "item": "0",
+            "count": "3801034"
+          },
+          {
+            "item": "50.95",
+            "count": "1852439"
+          },
+          {
+            "item": "51.57",
+            "count": "1840303"
+          },
+          {
+            "item": "52.19",
+            "count": "1821998"
+          },
+          {
+            "item": "50.33",
+            "count": "1814002"
+          },
+          {
+            "item": "52.81",
+            "count": "1778652"
+          },
+          {
+            "item": "49.08",
+            "count": "1747610"
+          },
+          {
+            "item": "53.43",
+            "count": "1717708"
+          },
+          {
+            "item": "48.46",
+            "count": "1711640"
+          },
+          {
+            "item": "47.84",
+            "count": "1671187"
+          },
+          {
+            "item": "54.05",
+            "count": "1643691"
+          },
+          {
+            "item": "47.22",
+            "count": "1638950"
+          },
+          {
+            "item": "54.68",
+            "count": "1560398"
+          },
+          {
+            "item": "49.70",
+            "count": "1521389"
+          },
+          {
+            "item": "45.98",
+            "count": "1516818"
+          },
+          {
+            "item": "45.36",
+            "count": "1433928"
+          },
+          {
+            "item": "55.92",
+            "count": "1396111"
+          },
+          {
+            "item": "44.73",
+            "count": "1359346"
+          },
+          {
+            "item": "46.60",
+            "count": "1331787"
+          }
+        ],
+        "not_null": "31745074",
+        "smallest": "0",
+        "count": "104074901",
+        "cardinality": "104074901"
+      },
+      "format": {}
+    },
+    {
+      "id": 298355215,
+      "name": "TRAVEL_TIME",
+      "dataTypeName": "text",
+      "fieldName": "travel_time",
+      "position": 3,
+      "renderTypeName": "text",
+      "tableColumnId": 46298997,
+      "width": 232,
+      "cachedContents": {
+        "largest": "9998",
+        "non_null": "104074901",
+        "null": "0",
+        "top": [
+          {
+            "item": "0",
+            "count": "15846568"
+          },
+          {
+            "item": "84",
+            "count": "624562"
+          },
+          {
+            "item": "85",
+            "count": "615264"
+          },
+          {
+            "item": "83",
+            "count": "612363"
+          },
+          {
+            "item": "48",
+            "count": "600723"
+          },
+          {
+            "item": "47",
+            "count": "599682"
+          },
+          {
+            "item": "51",
+            "count": "596593"
+          },
+          {
+            "item": "49",
+            "count": "595941"
+          },
+          {
+            "item": "50",
+            "count": "595554"
+          },
+          {
+            "item": "86",
+            "count": "594867"
+          },
+          {
+            "item": "82",
+            "count": "578532"
+          },
+          {
+            "item": "52",
+            "count": "575314"
+          },
+          {
+            "item": "46",
+            "count": "570376"
+          },
+          {
+            "item": "87",
+            "count": "566820"
+          },
+          {
+            "item": "88",
+            "count": "536913"
+          },
+          {
+            "item": "53",
+            "count": "528603"
+          },
+          {
+            "item": "81",
+            "count": "523947"
+          },
+          {
+            "item": "89",
+            "count": "508530"
+          },
+          {
+            "item": "45",
+            "count": "493847"
+          },
+          {
+            "item": "90",
+            "count": "480738"
+          }
+        ],
+        "not_null": "31745074",
+        "smallest": "0",
+        "count": "104074901",
+        "cardinality": "104074901"
+      },
+      "format": {}
+    },
+    {
+      "id": 298355216,
+      "name": "STATUS",
+      "dataTypeName": "text",
+      "fieldName": "status",
+      "position": 4,
+      "renderTypeName": "text",
+      "tableColumnId": 46298998,
+      "width": 172,
+      "cachedContents": {
+        "largest": "-101",
+        "non_null": "104074901",
+        "null": "0",
+        "top": [
+          {
+            "item": "0",
+            "count": "83540334"
+          },
+          {
+            "item": "-101",
+            "count": "20534567"
+          }
+        ],
+        "not_null": "31745074",
+        "smallest": "0",
+        "count": "104074901",
+        "cardinality": "104074901"
+      },
+      "format": {}
+    },
+    {
+      "id": 298355217,
+      "name": "DATA_AS_OF",
+      "dataTypeName": "calendar_date",
+      "fieldName": "data_as_of",
+      "position": 5,
+      "renderTypeName": "calendar_date",
+      "tableColumnId": 46298999,
+      "width": 220,
+      "cachedContents": {
+        "largest": "2026-01-19T22:53:11.000",
+        "non_null": "104074901",
+        "null": "0",
+        "top": [
+          {
+            "item": "2018-01-04T00:37:03.000",
+            "count": "112"
+          },
+          {
+            "item": "2018-01-04T01:10:03.000",
+            "count": "111"
+          },
+          {
+            "item": "2018-01-09T19:23:03.000",
+            "count": "111"
+          },
+          {
+            "item": "2018-01-04T01:07:03.000",
+            "count": "111"
+          },
+          {
+            "item": "2018-01-10T01:11:03.000",
+            "count": "110"
+          },
+          {
+            "item": "2018-01-11T02:18:03.000",
+            "count": "110"
+          },
+          {
+            "item": "2018-01-11T04:53:03.000",
+            "count": "110"
+          },
+          {
+            "item": "2018-01-06T14:07:03.000",
+            "count": "110"
+          },
+          {
+            "item": "2018-01-06T02:47:03.000",
+            "count": "110"
+          },
+          {
+            "item": "2018-01-10T00:23:03.000",
+            "count": "110"
+          },
+          {
+            "item": "2018-01-10T00:53:03.000",
+            "count": "110"
+          },
+          {
+            "item": "2018-01-07T02:57:03.000",
+            "count": "109"
+          },
+          {
+            "item": "2018-01-05T01:57:03.000",
+            "count": "109"
+          },
+          {
+            "item": "2018-01-05T01:12:03.000",
+            "count": "109"
+          },
+          {
+            "item": "2018-01-09T18:48:03.000",
+            "count": "108"
+          },
+          {
+            "item": "2018-01-05T04:52:03.000",
+            "count": "108"
+          },
+          {
+            "item": "2017-12-17T04:51:14.000",
+            "count": "108"
+          },
+          {
+            "item": "2018-01-05T02:02:03.000",
+            "count": "108"
+          },
+          {
+            "item": "2018-01-10T07:03:03.000",
+            "count": "107"
+          },
+          {
+            "item": "2018-01-10T18:13:03.000",
+            "count": "107"
+          }
+        ],
+        "not_null": "31745074",
+        "smallest": "1930-12-09T14:40:47.000",
+        "count": "104074901",
+        "cardinality": "104074901"
+      },
+      "format": {}
+    },
+    {
+      "id": 298355218,
+      "name": "LINK_ID",
+      "dataTypeName": "text",
+      "fieldName": "link_id",
+      "position": 6,
+      "renderTypeName": "text",
+      "tableColumnId": 46299000,
+      "width": 184,
+      "cachedContents": {
+        "largest": "4763657",
+        "non_null": "104074901",
+        "null": "0",
+        "top": [
+          {
+            "item": "4616337",
+            "count": "806046"
+          },
+          {
+            "item": "4616267",
+            "count": "806011"
+          },
+          {
+            "item": "4616246",
+            "count": "806005"
+          },
+          {
+            "item": "4616352",
+            "count": "805984"
+          },
+          {
+            "item": "4616325",
+            "count": "805976"
+          },
+          {
+            "item": "4616350",
+            "count": "805966"
+          },
+          {
+            "item": "4616220",
+            "count": "805965"
+          },
+          {
+            "item": "4616364",
+            "count": "805953"
+          },
+          {
+            "item": "4616353",
+            "count": "805953"
+          },
+          {
+            "item": "4616272",
+            "count": "805951"
+          },
+          {
+            "item": "4616342",
+            "count": "805944"
+          },
+          {
+            "item": "4616259",
+            "count": "805930"
+          },
+          {
+            "item": "4616338",
+            "count": "805926"
+          },
+          {
+            "item": "4616298",
+            "count": "805918"
+          },
+          {
+            "item": "4616252",
+            "count": "805895"
+          },
+          {
+            "item": "4616355",
+            "count": "805888"
+          },
+          {
+            "item": "4616324",
+            "count": "805864"
+          },
+          {
+            "item": "4616354",
+            "count": "805862"
+          },
+          {
+            "item": "4616351",
+            "count": "805742"
+          },
+          {
+            "item": "4616247",
+            "count": "805662"
+          }
+        ],
+        "not_null": "31745074",
+        "smallest": "4329472",
+        "count": "104074901",
+        "cardinality": "104074901"
+      },
+      "format": {}
+    },
+    {
+      "id": 298355219,
+      "name": "LINK_POINTS",
+      "dataTypeName": "text",
+      "fieldName": "link_points",
+      "position": 7,
+      "renderTypeName": "text",
+      "tableColumnId": 46299001,
+      "width": 232,
+      "cachedContents": {
+        "largest": "40.8859405,-73.89676 40.88698,-73.89528 40.8876205,-73.89407 40.8884506,-73.89185 40.8891906,-73.889041 40.88976,-73.88773 40.8907504,-73.886441 40.8938205,-73.883351 40.8966206,-73.88065 40.8978505,-73.879821 40.8992805,-73.879331 40.90706,-73.87806 40.9",
+        "non_null": "104074901",
+        "null": "0",
+        "top": [
+          {
+            "item": "40.63092,-74.14592 40.62975,-74.14593 40.62877,-74.14579 40.6279506,-74.145671 40.62713,-74.145681 40.62637,-74.14586 40.6254205,-74.14618 40.6247506,-74.146381 40.6241006,-74.146661 40.6234004,-74.14704 40.6226006,-74.147501 40.6217506,-74.148181 40.6208",
+            "count": "1603274"
+          },
+          {
+            "item": "40.77223,-73.919941 40.77367,-73.92198 40.7744206,-73.92278 40.77714,-73.924911 40.781071,-73.92788 40.78311,-73.929421 40.7837106,-73.929871 40.7842205,-73.93008 40.78477,-73.93017 40.78549,-73.93011 40.78604,-73.92991 40.78665,-73.92953 40.78972,-73.926",
+            "count": "1597106"
+          },
+          {
+            "item": "40.74047,-74.009251 40.74137,-74.00893 40.7431706,-74.008591 40.7462304,-74.00797 40.74812,-74.007651 40.748701,-74.007691 40.74971,-74.00819 40.75048,-74.008321 40.751611,-74.00789 40.7537504,-74.00704 40.75721,-74.00463 40.76003,-74.002631 40.7607405,-7",
+            "count": "806046"
+          },
+          {
+            "item": "40.8304204,-73.850811 40.83156,-73.854671 40.83238,-73.857341 40.83312,-73.859891 40.83335,-73.86046 40.83352,-73.86113 40.8337406,-73.862011 40.83415,-73.86333 40.8345205,-73.86458 40.8350406,-73.866311",
+            "count": "806011"
+          },
+          {
+            "item": "40.8240706,-73.874311 40.8247,-73.86959 40.8251906,-73.86596 40.82536,-73.86426 40.82587,-73.85961 40.8266006,-73.85424 40.8271806,-73.84994",
+            "count": "806005"
+          },
+          {
+            "item": "40.71426,-73.729261  40.7136604,-73.7292  40.7123906,-73.728861  40.71038,-73.72795  40.7091206,-73.72763  40.69798,-73.72709  40.6909405,-73.72678  40.6900905,-73.72678  40.68932,-73.72673  40.687321,-73.72641  40.68526,-73.726341  40.68526,-73.72634  40",
+            "count": "805984"
+          },
+          {
+            "item": "40.73933,-74.01004 40.73895,-74.01012 40.7376,-74.010021 40.7346,-74.01026 40.72912,-74.010781 40.72619,-74.011131",
+            "count": "805976"
+          },
+          {
+            "item": "40.74877,-73.73895  40.74799,-73.73784  40.74717,-73.73689  40.74625,-73.73597  40.74547,-73.7350  40.74466,-73.734  40.744,-73.73302  40.74372,-73.73251  40.74184,-73.72849  40.7406,-73.72642  40.7396,-73.72512  40.73889,-73.724471  40.7380804,-73.723981",
+            "count": "805966"
+          },
+          {
+            "item": "40.6162405,-74.02612 40.61923,-74.02361 40.62362,-74.019831 40.6248406,-74.019061 40.62579,-74.01859 40.6279004,-74.017721 40.63049,-74.01676 40.63239,-74.016061 40.63336,-74.01586",
+            "count": "805965"
+          },
+          {
+            "item": "40.68331006,-73.72663 40.68361,-73.72646 40.68417,-73.726 40.68465005,-73.72547 40.68503005,-73.72495 40.68503005,-73.72495 40.68523004,-73.72472 40.6857301,-73.72444 40.68613006,-73.7243301 40.68663,-73.7244 40.68687006,-73.7245201 40.68726,-73.72485 40.",
+            "count": "805953"
+          },
+          {
+            "item": "40.73744001,-73.85188001  40.737015,-73.85373001  40.73673,-73.85543001  40.736526,-73.85631001  40.735335,-73.86033  40.73384,-73.86514001  40.732064,-73.87065001  40.731755,-73.87178  40.730294,-73.87656001  40.72977,-73.87796",
+            "count": "805953"
+          },
+          {
+            "item": "40.7024204,-73.816481 40.700841,-73.815751 40.69726,-73.81382 40.6959105,-73.812981 40.68863,-73.808861 40.6775105,-73.803261 40.67445,-73.80181",
+            "count": "805951"
+          },
+          {
+            "item": "40.7081105,-73.99944 40.7084705,-73.99884 40.70868,-73.998331 40.70886,-73.997751 40.709,-73.99702 40.7091405,-73.99594",
+            "count": "805944"
+          },
+          {
+            "item": "40.7279205,-73.83298 40.7268904,-73.83239 40.72639,-73.832001 40.7257505,-73.83126 40.724951,-73.830031 40.724301,-73.829141 40.7236905,-73.82848 40.7229,-73.827801 40.7209605,-73.826541 40.7204005,-73.82634 40.71958,-73.82621 40.718861,-73.82634 40.71746",
+            "count": "805930"
+          },
+          {
+            "item": "40.7607,-74.002141 40.76212,-74.91 40.76335,-73.999271 40.76491,-73.99805 40.7667406,-73.996681 40.7693,-73.994801 40.7699605,-73.994521 40.7710104,-73.99438 40.7715106,-73.9942",
+            "count": "805926"
+          },
+          {
+            "item": "40.7278806,-73.832761 40.7270705,-73.83231 40.7265105,-73.831911 40.72603,-73.8314 40.724771,-73.829501 40.72428,-73.82886 40.72379,-73.828341 40.72326,-73.827851 40.7224605,-73.82729 40.721951,-73.82696 40.7215205,-73.826681 40.7209605,-73.826371 40.7204",
+            "count": "805918"
+          },
+          {
+            "item": "40.8563506,-73.87233 40.85219,-73.871371 40.85007,-73.87111 40.8469404,-73.87115 40.8459605,-73.871311 40.8424005,-73.87202 40.83961,-73.87273 40.8362404,-73.87372 40.8349506,-73.8739 40.8333606,-73.873831 40.8319705,-73.873681 40.82985,-73.87313 40.82683",
+            "count": "805895"
+          },
+          {
+            "item": "40.66639,-73.76248 40.66579,-73.75706 40.66574,-73.7563 40.66571,-73.7494 40.66542,-73.74244 40.66552,-73.74173 40.66564,-73.74133 40.66592,-73.74068 40.6661,-73.74033 40.66662,-73.73964 40.6671,-73.73915 40.66821,-73.7382 40.67221,-73.73551 40.6737,-73.7",
+            "count": "805888"
+          },
+          {
+            "item": "40.76375,-73.999191 40.763521,-73.99935 40.7620804,-74.00136 40.75985,-74.00306 40.75775,-74.00457 40.75775,-74.00457 40.75576,-74.00601 40.7544904,-74.006921 40.7538404,-74.007241 40.75415,-74.00712 40.7502804,-74.00848 40.74833,-74.007771 40.74114,-74.0",
+            "count": "805864"
+          },
+          {
+            "item": "40.683644,-73.72667001  40.68314,-73.72692  40.681365,-73.72806  40.678944,-73.72983  40.678236,-73.73047001  40.67642,-73.73234001  40.67526,-73.7334  40.673794,-73.73464001  40.672886,-73.73533  40.668966,-73.73805  40.668534,-73.73831  40.66749,-73.739",
+            "count": "805862"
+          }
+        ],
+        "not_null": "31745074",
+        "smallest": "40.52561,-74.23039 40.5258705,-74.22618 40.5263604,-74.22336 40.52734,-74.22338 40.5371,-74.2243 40.53931,-74.22418 40.5407805,-74.223981 40.54437,-74.22283 40.5466005,-74.22172 40.54831,-74.22059",
+        "count": "104074901",
+        "cardinality": "104074901"
+      },
+      "format": {}
+    },
+    {
+      "id": 298355220,
+      "name": "ENCODED_POLY_LINE",
+      "dataTypeName": "text",
+      "fieldName": "encoded_poly_line",
+      "position": 8,
+      "renderTypeName": "text",
+      "tableColumnId": 46299002,
+      "width": 304,
+      "cachedContents": {
+        "largest": "}zhxFryfbMfC_J~BqOlAgIZkFC_Hq@sZ[wb@ToV",
+        "non_null": "104074901",
+        "null": "0",
+        "top": [
+          {
+            "item": "mmdxFjq{aM}Bm\\aBwUa@sIeB_\\qCq`@sB{Y",
+            "count": "806005"
+          },
+          {
+            "item": "y{swFvavbMjANlGSvQn@fa@fBhQdA",
+            "count": "805976"
+          },
+          {
+            "item": "oz{vFffybMuQuNmZsVsFyC}D}AeLmDeO_E{JkCaEg@",
+            "count": "805965"
+          },
+          {
+            "item": "u}hwFlv~`M{@a@oB{A_BiBkAgB??g@m@cBw@oAUcBLo@VmA`AoEtEcBfAoBj@U???wI\\gD?_b@z@m`AjAyERaC\\{DfAoDxA",
+            "count": "805953"
+          },
+          {
+            "item": "culwF~gpaMzHqCjUaKlGgDnl@wXndA_b@bRaH",
+            "count": "805951"
+          },
+          {
+            "item": "uxmwFn_tbMgAwBi@eBc@sB[qC[wE",
+            "count": "805944"
+          },
+          {
+            "item": "kaxwFjptbM{GuFuFgIwHsFmJqG_OwJcCw@qE[cBc@",
+            "count": "805926"
+          },
+          {
+            "item": "}sewFnveaMvB{`@HwCDcj@x@oj@SmCWoAw@aCc@eAgBiC_BaB}E}D_XyOiHeFeIwGgTeS_TwMsFsCWE",
+            "count": "805888"
+          },
+          {
+            "item": "w_iwFtv~`MbBp@bJbFbN`JlC~BhJtJfFrEdHvFtDhCnW~OtAp@nE~CfB`BjBvBlCxGXlALrB}@xXCby@KpDyBva@",
+            "count": "805862"
+          },
+          {
+            "item": "}nnwFla_aM{GhBiBRwFNuDe@aEsAyB{AmJ_IsDqBaCy@yIsBwCe@mt@sJyHu@kCIwDP{CZwB`@gJrCaDnBgGfG}ClFsD~HyGnQeHlNmC~DyDxE{HvIwBxCmCvEqDjHmBtCyCdDsC`CgRpNyIrHwD~DcB`C",
+            "count": "805742"
+          },
+          {
+            "item": "w`exF~xvaMmBaSkCiSw@iLScPW}Hy@eH_BmHcDeIaIaO{DwHyBiG_CsF_C{BmDuAgDIcC`@gDbAgCZ",
+            "count": "805662"
+          },
+          {
+            "item": "gxhxFp{fbMpAiE`@kGhEm[L{FQqIUeKm@}^?gTB{FLgG",
+            "count": "805657"
+          },
+          {
+            "item": "{sexFn}vaMhC_MtAuDrC}Hj@cCTwBFqCIyD]sFwAwSo@uI_AyFe@wBmAmE}A}DwAsCyFqK{DmH}AuD{D_KeCiCiCmAuDQwC`@kH`B",
+            "count": "805652"
+          },
+          {
+            "item": "kngwFzjtbM{CjBiIzG}Ap@yBXeACuA[uBw@uDuAqVoJgK{DkK_E_Ba@yBEuBj@eCt@",
+            "count": "805603"
+          },
+          {
+            "item": "oqjwFt}sbMwCn@gABoBWkF{AaE}AaBm@mJoDaI}Co@UoAmAyAwBiBiDi@eBg@yB_@mBS{BAuCBeARoCb@{Ej@aA~@_@t@HVXD^C`@u@hBWl@qCtDgChDsH`KyKtNcNjQaCfDiBnCaCrD",
+            "count": "805597"
+          },
+          {
+            "item": "kdzwF`rsaMdFdKlEdGzIvHzHdEvAv@rBz@bATjAJdBAhAKjCu@",
+            "count": "805549"
+          },
+          {
+            "item": "iczwFlqsaMvBtEtBbEnChEvBfBxCdCnCjAjGtD`AZpBbAjAb@dARdBLnACz@MtBo@",
+            "count": "805411"
+          },
+          {
+            "item": "abyvFbxxcM~IxIrNvH~b@jLhGf@jBA",
+            "count": "805342"
+          },
+          {
+            "item": "wwvvFf{ycMnnA{PxFw@tKkApIBpD^`GpA~NbI`m@fm@",
+            "count": "805338"
+          },
+          {
+            "item": "w~mwFjisbMXnEXdCh@bCf@zAd@jA^r@",
+            "count": "805335"
+          }
+        ],
+        "not_null": "31745074",
+        "smallest": "aaawFdw}cMZyDKgMd@mF`GsN`FwJtAkCnBgDnGwKrBuD|DgJpFgMbGiNlQoa@hCgGnDwHbHeOpH}OzI{KnHmIzCaFpCaLlBsV",
+        "count": "104074901",
+        "cardinality": "104074901"
+      },
+      "format": {}
+    },
+    {
+      "id": 298355221,
+      "name": "ENCODED_POLY_LINE_LVLS",
+      "dataTypeName": "text",
+      "fieldName": "encoded_poly_line_lvls",
+      "position": 9,
+      "renderTypeName": "text",
+      "tableColumnId": 46299003,
+      "width": 364,
+      "cachedContents": {
+        "largest": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+        "non_null": "104074901",
+        "null": "0",
+        "top": [
+          {
+            "item": "BBBBBBBBBBBBBBB",
+            "count": "7442282"
+          },
+          {
+            "item": "BBBBBBB",
+            "count": "7223490"
+          },
+          {
+            "item": "BBBBBBBBB",
+            "count": "6412881"
+          },
+          {
+            "item": "BBBBBBBBBBBBBB",
+            "count": "6408652"
+          },
+          {
+            "item": "BBBBBBBBBB",
+            "count": "6407700"
+          },
+          {
+            "item": "BBBBBB",
+            "count": "5230869"
+          },
+          {
+            "item": "BBBBBBBBBBBBB",
+            "count": "4826105"
+          },
+          {
+            "item": "BBBBBBBBBBBBBBBBBBBBBBBBB",
+            "count": "4818846"
+          },
+          {
+            "item": "BBBBBBBBBBBBBBBB",
+            "count": "4782464"
+          },
+          {
+            "item": "BBBBBBBB",
+            "count": "4514382"
+          },
+          {
+            "item": "BBBBB",
+            "count": "3516675"
+          },
+          {
+            "item": "BBBBBBBBBBBBBBBBBBB",
+            "count": "3215198"
+          },
+          {
+            "item": "BBBB",
+            "count": "3193357"
+          },
+          {
+            "item": "BBBBBBBBBBBBBBBBBBBBBBB",
+            "count": "2546885"
+          },
+          {
+            "item": "BBBBBBBBBBBBBBBBBBBBBBBB",
+            "count": "2410881"
+          },
+          {
+            "item": "BBBBBBBBBBB",
+            "count": "2410439"
+          },
+          {
+            "item": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+            "count": "2408161"
+          },
+          {
+            "item": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+            "count": "2406483"
+          },
+          {
+            "item": "BBBBBBBBBBBBBBBBBBBBBBBBBB",
+            "count": "2064352"
+          },
+          {
+            "item": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+            "count": "1611016"
+          }
+        ],
+        "not_null": "31745074",
+        "smallest": "BB",
+        "count": "104074901",
+        "cardinality": "104074901"
+      },
+      "format": {}
+    },
+    {
+      "id": 298355222,
+      "name": "OWNER",
+      "dataTypeName": "text",
+      "fieldName": "owner",
+      "position": 10,
+      "renderTypeName": "text",
+      "tableColumnId": 46299004,
+      "width": 160,
+      "cachedContents": {
+        "largest": "Verrazano-Narrows-Bridge",
+        "non_null": "104074901",
+        "null": "0",
+        "top": [
+          {
+            "item": "NYC_DOT_LIC",
+            "count": "81649810"
+          },
+          {
+            "item": "MTA Bridges & Tunnels",
+            "count": "7180273"
+          },
+          {
+            "item": "NYC-DOT-Region 10",
+            "count": "4296152"
+          },
+          {
+            "item": "PA-GWBridge",
+            "count": "3994973"
+          },
+          {
+            "item": "Verrazano-Narrows-Bridge",
+            "count": "3617302"
+          },
+          {
+            "item": "PA -Lincoln Tunnel",
+            "count": "3193357"
+          },
+          {
+            "item": "NYC Thruway Tarrytown",
+            "count": "143032"
+          },
+          {
+            "item": "PA - LINCOLN TUNNEL",
+            "count": "2"
+          }
+        ],
+        "not_null": "31745074",
+        "smallest": "MTA Bridges & Tunnels",
+        "count": "104074901",
+        "cardinality": "104074901"
+      },
+      "format": {}
+    },
+    {
+      "id": 298355223,
+      "name": "TRANSCOM_ID",
+      "dataTypeName": "text",
+      "fieldName": "transcom_id",
+      "position": 11,
+      "renderTypeName": "text",
+      "tableColumnId": 46299005,
+      "width": 232,
+      "cachedContents": {
+        "largest": "4763657",
+        "non_null": "104074901",
+        "null": "0",
+        "top": [
+          {
+            "item": "4616337",
+            "count": "806046"
+          },
+          {
+            "item": "4616267",
+            "count": "806011"
+          },
+          {
+            "item": "4616246",
+            "count": "806005"
+          },
+          {
+            "item": "4616352",
+            "count": "805984"
+          },
+          {
+            "item": "4616325",
+            "count": "805976"
+          },
+          {
+            "item": "4616350",
+            "count": "805966"
+          },
+          {
+            "item": "4616220",
+            "count": "805965"
+          },
+          {
+            "item": "4616364",
+            "count": "805953"
+          },
+          {
+            "item": "4616353",
+            "count": "805953"
+          },
+          {
+            "item": "4616272",
+            "count": "805951"
+          },
+          {
+            "item": "4616342",
+            "count": "805944"
+          },
+          {
+            "item": "4616259",
+            "count": "805930"
+          },
+          {
+            "item": "4616338",
+            "count": "805926"
+          },
+          {
+            "item": "4616298",
+            "count": "805918"
+          },
+          {
+            "item": "4616252",
+            "count": "805895"
+          },
+          {
+            "item": "4616355",
+            "count": "805888"
+          },
+          {
+            "item": "4616324",
+            "count": "805864"
+          },
+          {
+            "item": "4616354",
+            "count": "805862"
+          },
+          {
+            "item": "4616351",
+            "count": "805742"
+          },
+          {
+            "item": "4616247",
+            "count": "805662"
+          }
+        ],
+        "not_null": "31745074",
+        "smallest": "4329472",
+        "count": "104074901",
+        "cardinality": "104074901"
+      },
+      "format": {}
+    },
+    {
+      "id": 298355224,
+      "name": "BOROUGH",
+      "dataTypeName": "text",
+      "fieldName": "borough",
+      "position": 12,
+      "renderTypeName": "text",
+      "tableColumnId": 46299006,
+      "width": 184,
+      "cachedContents": {
+        "largest": "Staten Island",
+        "non_null": "104074901",
+        "null": "0",
+        "top": [
+          {
+            "item": "Queens",
+            "count": "30882225"
+          },
+          {
+            "item": "Staten Island",
+            "count": "22272334"
+          },
+          {
+            "item": "Manhattan",
+            "count": "20788561"
+          },
+          {
+            "item": "Bronx",
+            "count": "18603791"
+          },
+          {
+            "item": "Brooklyn",
+            "count": "11121245"
+          },
+          {
+            "item": "Staten island",
+            "count": "406745"
+          }
+        ],
+        "not_null": "31745074",
+        "smallest": "Bronx",
+        "count": "104074901",
+        "cardinality": "104074901"
+      },
+      "format": {}
+    },
+    {
+      "id": 298355225,
+      "name": "LINK_NAME",
+      "dataTypeName": "text",
+      "fieldName": "link_name",
+      "position": 13,
+      "renderTypeName": "text",
+      "tableColumnId": 46299007,
+      "width": 208,
+      "cachedContents": {
+        "largest": "WSE S VICTORY BOULEVARD - ARDEN AVENUE",
+        "non_null": "104074901",
+        "null": "0",
+        "top": [
+          {
+            "item": "11th ave n ganservoort - 12th ave @ 40th st",
+            "count": "806046"
+          },
+          {
+            "item": "CBE W CASTLE HILL AVENUE - TAYLOR AVENUE",
+            "count": "806011"
+          },
+          {
+            "item": "BE N STRATFORD AVENUE - CASTLE HILL AVE",
+            "count": "806005"
+          },
+          {
+            "item": "CIP S Hempstead Tpk - Laurelton Pkwy @ SSP",
+            "count": "805984"
+          },
+          {
+            "item": "11th ave s ganservoort - west st @ spring st",
+            "count": "805976"
+          },
+          {
+            "item": "CIP S LIE - Hempstead Tpk",
+            "count": "805966"
+          },
+          {
+            "item": "GOW N 92ND STREET - 7TH AVENUE",
+            "count": "805965"
+          },
+          {
+            "item": "LIE W 108TH ST - 84TH ST",
+            "count": "805953"
+          },
+          {
+            "item": "Laurelton Pkwy N @ SSP - CIP N Hempstead Tpk",
+            "count": "805953"
+          },
+          {
+            "item": "VWE S MP4.63 (Exit 6 Jamaica Ave) - MP2.66 (Exit 2 Roackaway Blvd)",
+            "count": "805951"
+          },
+          {
+            "item": "BKN Bridge Manhattan Side - FDR N Catherine Slip",
+            "count": "805944"
+          },
+          {
+            "item": "VWE S MP6.39 (Exit 11 Jewel Ave) - MP4.63 (Exit 6 Jamaica Ave)",
+            "count": "805930"
+          },
+          {
+            "item": "12th Ave N 40th - 57th St",
+            "count": "805926"
+          },
+          {
+            "item": "VWE N MP4.63 (Exit 6 - Jamaica Ave) - MP6.39 (Exit 11 Jewel Ave)",
+            "count": "805918"
+          },
+          {
+            "item": "BRP N WATSON AVENUE - FORDHAM ROAD",
+            "count": "805895"
+          },
+          {
+            "item": "Belt Pkwy E 182nd St - Laurelton Pkwy N @ SSP",
+            "count": "805888"
+          },
+          {
+            "item": "12th ave @ 45th - 11 ave ganservoort st",
+            "count": "805864"
+          },
+          {
+            "item": "Laurelton Pkwy S @ SSP - Belt Pkwy W 182nd St",
+            "count": "805862"
+          },
+          {
+            "item": "CIP N Hempstead Tpk - LIE",
+            "count": "805742"
+          },
+          {
+            "item": "BE N Castle Hill Avenue - Griswold Ave",
+            "count": "805662"
+          }
+        ],
+        "not_null": "31745074",
+        "smallest": "11th ave n ganservoort - 12th ave @ 40th st",
+        "count": "104074901",
+        "cardinality": "104074901"
+      },
+      "format": {}
+    }
+  ]
+}

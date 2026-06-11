@@ -1,4 +1,12 @@
-import { integer, primaryKey, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import {
+  index,
+  integer,
+  primaryKey,
+  real,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from "drizzle-orm/sqlite-core";
 
 export const routeArtifact = sqliteTable(
   "route_artifact",
@@ -403,6 +411,84 @@ export const routeMonthTrend = sqliteTable(
   (table) => [primaryKey({ columns: [table.routeId, table.month] })],
 );
 
+export const routeTimelineIndex = sqliteTable(
+  "route_timeline_index",
+  {
+    routeId: text("route_id").notNull(),
+    month: text("month").notNull(),
+    supportLevel: text("support_level", {
+      enum: ["timeline_ready", "timeline_sparse", "timeline_review_only", "invalid"],
+    }).notNull(),
+    qualityFlagsJson: text("quality_flags_json").notNull(),
+    defaultEventCount: integer("default_event_count").notNull(),
+    secondaryEventCount: integer("secondary_event_count").notNull(),
+    reviewOnlyEventCount: integer("review_only_event_count").notNull(),
+    eventCount: integer("event_count").notNull(),
+    sourceBackedEventCount: integer("source_backed_event_count").notNull(),
+    dateAssertionBackedEventCount: integer("date_assertion_backed_event_count").notNull(),
+    unresolvedDateEventCount: integer("unresolved_date_event_count").notNull(),
+    lowConfidenceEventCount: integer("low_confidence_event_count").notNull(),
+    unaccountedCandidateCount: integer("unaccounted_candidate_count").notNull(),
+    validationErrorCount: integer("validation_error_count").notNull(),
+    validationWarningCount: integer("validation_warning_count").notNull(),
+    totalTokens: integer("total_tokens"),
+    defaultEventsJson: text("default_events_json").notNull(),
+    bundleArtifactKey: text("bundle_artifact_key").notNull(),
+    bundleArtifactSha256: text("bundle_artifact_sha256").notNull(),
+    bundleArtifactByteLength: integer("bundle_artifact_byte_length").notNull(),
+    sourceBundlePath: text("source_bundle_path").notNull(),
+    generatedAt: text("generated_at").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.routeId, table.month] }),
+    index("route_timeline_index_month_support_idx").on(table.month, table.supportLevel),
+  ],
+);
+
+export const routeSpeedHistoryCoverage = sqliteTable(
+  "route_speed_history_coverage",
+  {
+    routeId: text("route_id").notNull(),
+    month: text("month").notNull(),
+    routeSlug: text("route_slug").notNull(),
+    historyStartMonth: text("history_start_month").notNull(),
+    historyEndMonth: text("history_end_month").notNull(),
+    artifactPath: text("artifact_path").notNull(),
+    artifactStatus: text("artifact_status").notNull(),
+    monthCount: integer("month_count").notNull(),
+    segmentCount: integer("segment_count").notNull(),
+    cellCount: integer("cell_count").notNull(),
+    availableCellCount: integer("available_cell_count").notNull(),
+    missingCellCount: integer("missing_cell_count").notNull(),
+    generatedAt: text("generated_at").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.routeId, table.month] }),
+    index("route_speed_history_coverage_month_idx").on(table.month),
+  ],
+);
+
+export const sourceMonthCoverage = sqliteTable(
+  "source_month_coverage",
+  {
+    sourceId: text("source_id").notNull(),
+    month: text("month").notNull(),
+    label: text("label").notNull(),
+    sourceKind: text("source_kind").notNull(),
+    grain: text("grain").notNull(),
+    status: text("status").notNull(),
+    rowCount: integer("row_count"),
+    routeCount: integer("route_count"),
+    note: text("note"),
+    generatedAt: text("generated_at").notNull(),
+    artifactPath: text("artifact_path"),
+  },
+  (table) => [
+    primaryKey({ columns: [table.sourceId, table.month] }),
+    index("source_month_coverage_month_idx").on(table.month),
+  ],
+);
+
 export const routeEquityContext = sqliteTable(
   "route_equity_context",
   {
@@ -536,4 +622,370 @@ export const routeBatchIssue = sqliteTable(
     message: text("message").notNull(),
   },
   (table) => [primaryKey({ columns: [table.month, table.issueRank] })],
+);
+
+export const studioBriefDraft = sqliteTable("studio_brief_draft", {
+  briefId: text("brief_id").primaryKey(),
+  routeSlug: text("route_slug").notNull(),
+  sourceBriefId: text("source_brief_id"),
+  fromFindingId: text("from_finding_id"),
+  status: text("status").notNull(),
+  title: text("title").notNull(),
+  dek: text("dek").notNull(),
+  summary: text("summary").notNull(),
+  version: text("version").notNull(),
+  jobId: text("job_id").notNull(),
+  validationScore: integer("validation_score"),
+  validationWeakClaimsJson: text("validation_weak_claims_json"),
+  validationMissingEvidenceJson: text("validation_missing_evidence_json"),
+  validationBlockingIssuesJson: text("validation_blocking_issues_json"),
+  lastValidatedAt: text("last_validated_at"),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+  publishedAt: text("published_at"),
+  jobStatus: text("job_status").notNull().default("succeeded"),
+  jobStartedAt: text("job_started_at"),
+  jobCompletedAt: text("job_completed_at"),
+  jobError: text("job_error"),
+  workspaceId: text("workspace_id"),
+  jobGenerationMode: text("job_generation_mode").notNull().default("deterministic_seed"),
+  jobLlmStatus: text("job_llm_status").notNull().default("not_configured"),
+  jobLlmProvider: text("job_llm_provider"),
+  jobLlmModel: text("job_llm_model"),
+  bodyMd: text("body_md"),
+  promotionCandidateId: text("promotion_candidate_id"),
+  promotionTargetBriefId: text("promotion_target_brief_id"),
+  promotionArtifactKey: text("promotion_artifact_key"),
+  promotionArtifactSha256: text("promotion_artifact_sha256"),
+  promotionRecordedAt: text("promotion_recorded_at"),
+  ownerKind: text("owner_kind").notNull().default("workspace"),
+  ownerIdentityId: text("owner_identity_id"),
+  guestTokenHash: text("guest_token_hash"),
+  guestClaimedAt: text("guest_claimed_at"),
+});
+
+export const studioBriefDraftClaim = sqliteTable(
+  "studio_brief_draft_claim",
+  {
+    briefId: text("brief_id").notNull(),
+    claimN: integer("claim_n").notNull(),
+    title: text("title").notNull(),
+    body: text("body"),
+    strength: integer("strength").notNull(),
+    evidenceIdsJson: text("evidence_ids_json").notNull(),
+    caveatIdsJson: text("caveat_ids_json").notNull(),
+    state: text("state"),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.briefId, table.claimN] })],
+);
+
+export const studioBriefReviewComment = sqliteTable(
+  "studio_brief_review_comment",
+  {
+    commentId: text("comment_id").primaryKey(),
+    briefId: text("brief_id").notNull(),
+    reviewer: text("reviewer").notNull(),
+    message: text("message").notNull(),
+    createdAt: text("created_at").notNull(),
+    reviewerDisplayName: text("reviewer_display_name"),
+    parentCommentId: text("parent_comment_id"),
+    kind: text("kind").notNull().default("comment"),
+    status: text("status").notNull().default("open"),
+    anchorJson: text("anchor_json"),
+    suggestionJson: text("suggestion_json"),
+    updatedAt: text("updated_at"),
+    resolvedAt: text("resolved_at"),
+    resolvedBy: text("resolved_by"),
+  },
+  (table) => [
+    index("studio_brief_review_comment_brief_status_idx").on(
+      table.briefId,
+      table.status,
+      table.createdAt,
+    ),
+    index("studio_brief_review_comment_parent_idx").on(table.parentCommentId, table.createdAt),
+  ],
+);
+
+export const studioBriefWriteIdempotency = sqliteTable(
+  "studio_brief_write_idempotency",
+  {
+    idempotencyKey: text("idempotency_key").notNull(),
+    method: text("method").notNull(),
+    path: text("path").notNull(),
+    statusCode: integer("status_code").notNull(),
+    responseJson: text("response_json").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.idempotencyKey, table.method, table.path] })],
+);
+
+export const studioBriefHistoryEvent = sqliteTable(
+  "studio_brief_history_event",
+  {
+    eventId: text("event_id").primaryKey(),
+    briefId: text("brief_id").notNull(),
+    eventSeq: integer("event_seq").notNull(),
+    action: text("action").notNull(),
+    actor: text("actor").notNull(),
+    summary: text("summary").notNull(),
+    draftVersion: text("draft_version").notNull(),
+    snapshotJson: text("snapshot_json").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [index("studio_brief_history_event_brief_seq_idx").on(table.briefId, table.eventSeq)],
+);
+
+export const studioActor = sqliteTable("studio_actor", {
+  actorId: text("actor_id").primaryKey(),
+  email: text("email").notNull(),
+  displayName: text("display_name").notNull(),
+  workspaceId: text("workspace_id").notNull(),
+  scopesJson: text("scopes_json").notNull(),
+  active: integer("active", { mode: "boolean" }).notNull().default(true),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+});
+
+export const studioActorToken = sqliteTable(
+  "studio_actor_token",
+  {
+    tokenId: text("token_id").primaryKey(),
+    actorId: text("actor_id").notNull(),
+    tokenHash: text("token_hash").notNull(),
+    label: text("label").notNull(),
+    active: integer("active", { mode: "boolean" }).notNull().default(true),
+    createdAt: text("created_at").notNull(),
+    lastUsedAt: text("last_used_at"),
+  },
+  (table) => [index("studio_actor_token_hash_idx").on(table.tokenHash)],
+);
+
+export const identity = sqliteTable(
+  "identity",
+  {
+    identityId: text("identity_id").primaryKey(),
+    email: text("email").notNull(),
+    emailNormalized: text("email_normalized").notNull(),
+    displayName: text("display_name"),
+    active: integer("active", { mode: "boolean" }).notNull().default(true),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (table) => [uniqueIndex("identity_email_normalized_idx").on(table.emailNormalized)],
+);
+
+export const identitySession = sqliteTable(
+  "identity_session",
+  {
+    sessionId: text("session_id").primaryKey(),
+    identityId: text("identity_id").notNull(),
+    kind: text("kind").notNull(),
+    tokenHash: text("token_hash").notNull(),
+    label: text("label"),
+    userAgent: text("user_agent"),
+    ipHash: text("ip_hash"),
+    expiresAt: text("expires_at"),
+    consumedAt: text("consumed_at"),
+    revokedAt: text("revoked_at"),
+    createdAt: text("created_at").notNull(),
+    lastUsedAt: text("last_used_at"),
+  },
+  (table) => [
+    uniqueIndex("identity_session_token_hash_idx").on(table.tokenHash),
+    index("identity_session_identity_kind_idx").on(table.identityId, table.kind),
+  ],
+);
+
+export const studioActorRole = sqliteTable(
+  "studio_actor_role",
+  {
+    roleId: text("role_id").primaryKey(),
+    identityId: text("identity_id").notNull(),
+    workspaceId: text("workspace_id").notNull(),
+    scopesJson: text("scopes_json").notNull(),
+    active: integer("active", { mode: "boolean" }).notNull().default(true),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("studio_actor_role_identity_workspace_idx").on(table.identityId, table.workspaceId),
+  ],
+);
+
+export const alert = sqliteTable(
+  "alert",
+  {
+    alertId: text("alert_id").primaryKey(),
+    identityId: text("identity_id").notNull(),
+    kind: text("kind").notNull(),
+    payloadJson: text("payload_json").notNull(),
+    active: integer("active", { mode: "boolean" }).notNull().default(true),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (table) => [index("alert_identity_idx").on(table.identityId)],
+);
+
+export const savedSearch = sqliteTable(
+  "saved_search",
+  {
+    savedSearchId: text("saved_search_id").primaryKey(),
+    identityId: text("identity_id").notNull(),
+    label: text("label").notNull(),
+    queryJson: text("query_json").notNull(),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (table) => [index("saved_search_identity_idx").on(table.identityId)],
+);
+
+export const publicComment = sqliteTable(
+  "public_comment",
+  {
+    commentId: text("comment_id").primaryKey(),
+    briefId: text("brief_id").notNull(),
+    identityId: text("identity_id").notNull(),
+    body: text("body").notNull(),
+    createdAt: text("created_at").notNull(),
+    deletedAt: text("deleted_at"),
+  },
+  (table) => [
+    index("public_comment_brief_idx").on(table.briefId, table.createdAt),
+    index("public_comment_identity_idx").on(table.identityId),
+  ],
+);
+
+export const studioBriefDraftBlock = sqliteTable(
+  "studio_brief_draft_block",
+  {
+    briefId: text("brief_id").notNull(),
+    blockId: text("block_id").notNull(),
+    blockType: text("block_type").notNull(),
+    blockJson: text("block_json").notNull(),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.briefId, table.blockId] }),
+    index("studio_brief_draft_block_brief_type_idx").on(table.briefId, table.blockType),
+  ],
+);
+
+export const studioBriefDraftRef = sqliteTable(
+  "studio_brief_draft_ref",
+  {
+    briefId: text("brief_id").notNull(),
+    refId: text("ref_id").notNull(),
+    refKind: text("ref_kind").notNull(),
+    refJson: text("ref_json").notNull(),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.briefId, table.refId] }),
+    index("studio_brief_draft_ref_brief_kind_idx").on(table.briefId, table.refKind),
+  ],
+);
+
+export const studioBriefAgentRun = sqliteTable(
+  "studio_brief_agent_run",
+  {
+    runId: text("run_id").primaryKey(),
+    briefId: text("brief_id").notNull(),
+    workspaceId: text("workspace_id"),
+    status: text("status").notNull(),
+    intent: text("intent").notNull(),
+    baseVersionId: text("base_version_id").notNull(),
+    baseContentHash: text("base_content_hash").notNull(),
+    triggerJson: text("trigger_json").notNull(),
+    actorId: text("actor_id").notNull(),
+    actorDisplayName: text("actor_display_name"),
+    modelProvider: text("model_provider"),
+    modelId: text("model_id"),
+    promptHash: text("prompt_hash"),
+    proposalId: text("proposal_id"),
+    errorCode: text("error_code"),
+    errorMessage: text("error_message"),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+    startedAt: text("started_at"),
+    completedAt: text("completed_at"),
+  },
+  (table) => [
+    index("studio_brief_agent_run_brief_status_idx").on(
+      table.briefId,
+      table.status,
+      table.createdAt,
+    ),
+  ],
+);
+
+export const studioBriefAgentProposal = sqliteTable(
+  "studio_brief_agent_proposal",
+  {
+    proposalId: text("proposal_id").primaryKey(),
+    runId: text("run_id").notNull(),
+    briefId: text("brief_id").notNull(),
+    status: text("status").notNull(),
+    baseVersionId: text("base_version_id").notNull(),
+    baseContentHash: text("base_content_hash").notNull(),
+    title: text("title").notNull(),
+    summary: text("summary").notNull(),
+    operationsJson: text("operations_json").notNull(),
+    validationJson: text("validation_json"),
+    previewHash: text("preview_hash").notNull(),
+    provenanceJson: text("provenance_json").notNull(),
+    acceptedOperationIdsJson: text("accepted_operation_ids_json"),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+    appliedAt: text("applied_at"),
+    rejectedAt: text("rejected_at"),
+  },
+  (table) => [
+    index("studio_brief_agent_proposal_run_idx").on(table.runId),
+    index("studio_brief_agent_proposal_brief_status_idx").on(
+      table.briefId,
+      table.status,
+      table.createdAt,
+    ),
+  ],
+);
+
+export const studioBriefDraftVersion = sqliteTable(
+  "studio_brief_draft_version",
+  {
+    versionId: text("version_id").primaryKey(),
+    briefId: text("brief_id").notNull(),
+    parentVersionId: text("parent_version_id"),
+    contentHash: text("content_hash").notNull(),
+    actorId: text("actor_id").notNull(),
+    actorType: text("actor_type").notNull(),
+    reason: text("reason").notNull(),
+    sourceRunId: text("source_run_id"),
+    sourceProposalId: text("source_proposal_id"),
+    validationScore: integer("validation_score"),
+    snapshotStorage: text("snapshot_storage").notNull(),
+    snapshotKey: text("snapshot_key").notNull(),
+    snapshotSha256: text("snapshot_sha256").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    index("studio_brief_draft_version_brief_created_idx").on(table.briefId, table.createdAt),
+  ],
+);
+
+export const studioBriefDraftVersionSnapshot = sqliteTable(
+  "studio_brief_draft_version_snapshot",
+  {
+    snapshotKey: text("snapshot_key").primaryKey(),
+    briefId: text("brief_id").notNull(),
+    snapshotJson: text("snapshot_json").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    index("studio_brief_draft_version_snapshot_brief_idx").on(table.briefId, table.createdAt),
+  ],
 );

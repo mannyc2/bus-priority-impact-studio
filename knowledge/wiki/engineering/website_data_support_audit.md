@@ -2,7 +2,7 @@
 title: Website Data Support Audit
 type: engineering
 status: active
-last_updated: 2026-05-23
+last_updated: 2026-06-01
 owner: codex
 source_count: 0
 tags: [website, audit, studio-api, d1, r2, cutover, mocks]
@@ -34,7 +34,7 @@ Code inspection on 2026-05-18 and 2026-05-23 checked:
 - `packages/domain/src/studio-schemas.ts`
 - `packages/db/src/d1/queries/route-observed-reliability.ts`
 - `packages/db/src/local/repositories/observed-reliability.ts`
-- `tools/pipeline/src/checks/check-web-architecture.ts`
+- `tests/harness/production-boundaries.test.ts` through `bun run check:web-architecture`
 - `tests/harness/production-boundaries.test.ts`
 
 The production data-store counts below also incorporate the 2026-05-18 production cutover handoff
@@ -206,7 +206,7 @@ Impact:
   feature makes parking visible as evidence context without silently promoting it to primary
   detector evidence.
 
-**Verify fixed:** `bun --filter @bp/pipeline audit:evidence-corpus -- --year 2026 --month 3`
+**Verify fixed:** `bun --filter @bp/pipeline-v2 cli -- audit evidence-corpus --year 2026 --month 3`
 passes with 12 source eligibility rows, 381 route-month signal features, 6 context sources, 599
 detector candidates, 1,188 evidence links, 2,304 coverage rows, and 0 unlinked review-queue
 candidates.
@@ -235,7 +235,7 @@ Target:
 local serving export. `check-publish-completeness` uses the same manifest/D1 key model and fails if
 any referenced key lacks a local `data/artifacts/<key>` body.
 
-**Verify fixed:** `bun run tools/pipeline/src/checks/check-publish-completeness.ts --month 2026-03`
+**Verify fixed:** `bun run tools/pipeline-v2/src/checks/check-publish-completeness.ts --month 2026-03`
 passes with 3 manifests, 1,629 D1 artifact refs, 1,986 unique keys, and 0 missing files.
 
 ### 9. Brief feature is templated pipes around real metrics — no authoring infra yet
@@ -276,37 +276,47 @@ labeling problem.
 
 **What does not exist (the actual gap):**
 
-- **No write API.** The full spec for the agent-author write surface lives in
-  [[agent_author_api|Agent-Author API]] (status: draft) — `POST /studio/briefs`,
-  `PATCH /briefs/:id/claims/:n`, `POST /briefs/:id/validate`, `POST .../review`,
-  `POST .../publish`, `POST .../retract`. None of these endpoints exist in
-  `apps/web/src/worker/index.ts` today.
-- **No D1 tables for editorial state.** No `brief_draft`, no `brief_job`, no
-  `brief_version`, no `brief_claim`, no `brief_evidence_link`, no `brief_comment`, no
-  `brief_review`, no `brief_idempotency`. The schema in `packages/db/src/d1/schema.ts`
-  has only the read-side summary + artifact pointer tables.
-- **No async job runner.** `POST /briefs` is supposed to return `202 + jobId`; there is
-  no job queue, no worker-side polling endpoint, no agent-paced LLM draft step.
+- **Write API — mostly landed (ADR 0014/0015).** The agent-author draft surface
+  ([[agent_author_api|Agent-Author API]]) now exists under `…/briefs` and
+  `…/briefs/{id}/draft*`: draft-only brief creation, claim CRUD, typed block CRUD,
+  ref resolution, `validate`, `review`, `verdict`, `publish`, `retract` — all
+  idempotency-keyed where mutating.
+- **D1 editorial tables — partly landed (ADR 0014).** `studio_brief_draft*`,
+  `studio_brief_review_comment`, and `studio_brief_write_idempotency` now live in
+  `packages/db/src/d1/queries/studio-brief-drafts.ts` (not `schema.ts`). ADR 0015
+  also added `studio_brief_draft.body_md` and `studio_brief_draft_block` for typed
+  primitive blocks. **Still missing:** general anchored comment/reply/suggestion
+  tables.
+- **Async model runner backend exists, UI still missing.** `POST …/draft/generate` records a queued
+  job-shaped response, creates a D1 agent run, and signals the Cloudflare Think
+  `BriefAuthorAgent` to call Workers AI when bindings exist. The D1 agent run/proposal endpoints
+  under `…/draft/agent-runs*`, `…/draft/proposals*`, and `…/draft/versions*` support apply/reject
+  and D1-backed restore only after human approval. Still missing: composer proposal polling,
+  preview, and streaming progress UI.
 - **No mid-layer data endpoints.** The walkthrough in `agent_author_api.md` step 3-4 calls
   `/studio/routes/:slug/segments?from=…&grain=…` and `/studio/data/violations?…`. Neither
   exists.
 - **No evidence catalog.** Step 7 of the walkthrough (`GET /briefs/:id/evidence?search=…`)
   returns a *searchable additional-evidence* catalog. Today our `…/evidence` endpoint
   returns only the per-brief embedded `evidence[]` array.
-- **No validate/score gate.** Step 9 (`POST /briefs/:id/validate` → blocking issues +
-  weak claims + missing evidence) does not exist.
-- **No review/publish flow.** No reviewer assignment, no idempotency-keyed publish, no
-  retract.
+- **Validate / review / verdict / publish / retract — landed (ADR 0014)** with
+  idempotency keys (`POST …/draft/{validate,review,verdict,publish,retract}`). Anchored
+  draft-private comments, replies, suggestions, and suggestion acceptance have also
+  landed. **Still missing:** reviewer assignment and agent proposal apply/reject/restore
+  endpoints.
 
 **Verify gap:**
 
 ```bash
-# Look for any write-side brief routes in the worker — expect zero results:
-grep -nE 'POST.*/briefs|PATCH.*/briefs|/briefs/.*/(validate|review|publish|retract)' \
+# Draft write surface — now EXISTS post ADR 0014 (expect matches):
+grep -nE 'suffix === "(claims|validate|review|publish|retract)"|claimMatch' \
   apps/web/src/worker/index.ts
-# Look for editorial-state D1 tables — expect zero matches:
-grep -nE 'brief_(draft|job|version|claim|evidence_link|comment|review|idempotency)' \
-  packages/db/src/d1/schema.ts
+# Editorial-state D1 tables live in the draft query module (not schema.ts):
+grep -nE 'studio_brief_draft_claim|studio_brief_review_comment|studio_brief_write_idempotency' \
+  packages/db/src/d1/queries/studio-brief-drafts.ts
+# Still-absent write surfaces (expect zero):
+grep -nE '\bsuggest(From|To)\b|suggest_(from|to)' \
+  apps/web/src/worker/index.ts packages/domain/src/studio-schemas.ts
 ```
 
 **Plan of record (where the work is already designed):**
@@ -321,14 +331,15 @@ grep -nE 'brief_(draft|job|version|claim|evidence_link|comment|review|idempotenc
 **Fix outline (deferred, large):** implementing this is its own milestone; the gap below is
 captured so it is not mistaken for "polish needed on existing feature". Suggested order:
 
-1. Land editorial-state D1 schema (`brief_draft`, `brief_job`, `brief_version`,
-   `brief_claim`, `brief_evidence_link`, `brief_comment`, `brief_review`,
-   `brief_idempotency`).
-2. Land the async job runner and `POST /studio/briefs` (returns 202 + jobId).
-3. Land mid-layer data endpoints (`/studio/routes/:slug/segments`, `/studio/data/...`).
-4. Land evidence catalog (`/studio/briefs/:id/evidence?search=…` returns *findable*
+1. Land the async generation runner and polling/status surface.
+2. Land mid-layer data endpoints (`/studio/routes/:slug/segments`, `/studio/data/...`).
+3. Land evidence catalog (`/studio/briefs/:id/evidence?search=…` returns *findable*
    evidence, not just per-brief embedded).
-5. Land validate / review / publish / retract endpoints with idempotency keys.
+4. Land anchored comment/reply/resolve/suggest-edit writes using draft-private review threads
+   and quote-selector anchors.
+5. Harden publish-candidate export and the pipeline promotion command so draft-only briefs,
+   `bodyMd`, typed blocks, and stored refs become immutable public projections without copying
+   private review threads into public `comments[]`.
 6. Cut over the read-side `studio-release.ts` brief synthesis to instead read editorial
    state once human-authored briefs exist; keep the templated path as a fallback for routes
    with no editorial coverage.
@@ -338,6 +349,33 @@ captured so it is not mistaken for "polish needed on existing feature". Suggeste
 **Verify fixed:** running the canonical walkthrough from [[agent_author_api]] end-to-end
 against the production Worker (a coding agent can compose, validate, review, and publish a
 brief) is the acceptance test.
+
+## Missing brief write/authoring endpoints (current — post ADR 0014)
+
+The single actionable list of *what's still missing on the backend* for another agent to
+pick up. ADR 0014 (gap #9) landed brief/claim edits, validate, review-request, publish, and
+retract. On 2026-06-01 the Worker also landed draft-only brief creation (`POST /studio/briefs`),
+reviewer verdict transitions (`POST .../draft/verdict`), draft-private anchored review
+threads/replies/suggestions under `.../draft/comments*`, persisted draft refs, send-to-brief
+attachment, promotion receipt, and candidate/public projection coverage for `bodyMd`/`blocks`/`refs`.
+These are the remaining write-side gaps, in rough dependency order — each with where it surfaced and
+the primary file(s) to change.
+
+| # | Missing capability | Surfaced by | Primary files | Spec |
+|---|---|---|---|---|
+| 7 | Reviewer assignment/notification delivery | Review people UI can show participants, but the backend has no assignment/notify lifecycle beyond comments and verdicts | worker, `studio-brief-drafts.ts`, optional email binding | `docs/architecture/studio-review-collaboration-and-promotion.md` |
+
+Still-open from gap #9 (unchanged by ADR 0014): the async generation runner
+(`…/draft/generate` records a job nothing consumes), mid-layer data endpoints
+(`/studio/routes/:slug/segments`, `/studio/data/violations`), and a searchable evidence
+catalog (`…/evidence?search=` returns *findable* evidence, not just per-brief embedded).
+
+**Verify (still-absent surfaces — expect zero):**
+
+```bash
+grep -nE '\bsuggest(From|To)\b|suggest_(from|to)' \
+  apps/web/src/worker/index.ts packages/domain/src/studio-schemas.ts
+```
 
 ## Prerequisite Bug
 
@@ -361,7 +399,7 @@ first, smallest user-visible win next, then schema/projection expansion, then pu
 | 4 | Done | `observedReliability` and `artifactRefs` on Studio route detail | `packages/domain/src/studio-schemas.ts`, `packages/domain/src/studio-projections.ts`, `tools/pipeline/src/jobs/build/studio-release.ts` |
 | 5 | Done | D1-back `/api/v1/studio/routes` + `/api/v1/studio/search` route coverage | `apps/web/src/worker/index.ts`, `@bp/db/d1` queries |
 | 6 | Done | Split `StudioBriefEvidenceResponse` + `StudioBriefHistoryResponse` projections | `packages/domain/src/studio-projections.ts`, `tools/pipeline/src/jobs/build/studio-release.ts`, worker handlers |
-| 7 | Done | Manifest/D1-driven publish + completeness check | `tools/pipeline/src/lib/publish-artifact-keys.ts`, `tools/pipeline/src/checks/check-publish-completeness.ts`, `tools/pipeline/src/jobs/publish/publish-r2-artifacts.ts` |
+| 7 | Done | Manifest/D1-driven publish + completeness check | `tools/pipeline-v2/src/commands/publish/publish-artifact-keys.ts`, `tools/pipeline-v2/src/checks/check-publish-completeness.ts`, `tools/pipeline-v2/src/commands/publish/r2-artifacts.ts` |
 | 8 | Done | Worker tests for split brief projections and missing-projection fail-closed behavior | `apps/web/test/worker/index.worker.test.ts`, new fixture cases |
 
 Finding detector source expansion is now partly implemented through detector candidates, source

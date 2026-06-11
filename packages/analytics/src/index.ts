@@ -1,4 +1,95 @@
 export type {
+  EwtDistributionSummary,
+  EwtRouteBaseline,
+  EwtRouteMonthReliabilityRow,
+  EwtRouteMonthScoreVectorArtifact,
+  EwtScoreBasis,
+  EwtScoreVectorEntry,
+} from "./calibration/ewt-route-month-score-vectors.js";
+export {
+  buildEwtRouteMonthScoreVectorArtifact,
+  summarizeEwtDistribution,
+} from "./calibration/ewt-route-month-score-vectors.js";
+export type { FeatureContract, FeatureMaterializationKind } from "./features/contracts.js";
+export {
+  featureContractsForGrains,
+  getFeatureContract,
+  listFeatureContracts,
+} from "./features/contracts.js";
+export type {
+  CustomerJourneyFeature,
+  CustomerJourneyPeriod,
+  CustomerJourneyTripType,
+} from "./features/customer-journey.js";
+export {
+  CUSTOMER_JOURNEY_FEATURE_GRAIN,
+  customerJourneyFeatureKey,
+} from "./features/customer-journey.js";
+export type {
+  BunchingHotspotsDetectorInput,
+  BunchingHotspotsDetectorOutput,
+  BunchingHotspotsThresholds,
+} from "./findings/bunching-hotspots.js";
+export {
+  BUNCHING_HOTSPOTS_DETECTOR_ID,
+  DEFAULT_BUNCHING_HOTSPOTS_THRESHOLDS,
+  detectBunchingHotspots,
+} from "./findings/bunching-hotspots.js";
+export type {
+  CustomerJourneyShortfallDetectorInput,
+  CustomerJourneyShortfallDetectorOutput,
+  CustomerJourneyShortfallThresholds,
+} from "./findings/customer-journey-shortfall.js";
+export {
+  CUSTOMER_JOURNEY_SHORTFALL_DETECTOR_ID,
+  DEFAULT_CUSTOMER_JOURNEY_SHORTFALL_THRESHOLDS,
+  detectCustomerJourneyShortfall,
+} from "./findings/customer-journey-shortfall.js";
+export type {
+  DegradationTrendDetectorInput,
+  DegradationTrendDetectorOutput,
+  DegradationTrendThresholds,
+  TrendMetricDirection,
+} from "./findings/degradation-trend.js";
+export {
+  DEFAULT_DEGRADATION_TREND_METRIC_DIRECTIONS,
+  DEFAULT_DEGRADATION_TREND_THRESHOLDS,
+  DEGRADATION_TREND_DETECTOR_ID,
+  detectDegradationTrends,
+} from "./findings/degradation-trend.js";
+export type {
+  DelayConcentrationDetectorInput,
+  DelayConcentrationDetectorOutput,
+  DelayConcentrationRouteInput,
+  DelayConcentrationSegmentInput,
+  DelayConcentrationThresholds,
+} from "./findings/delay-concentration.js";
+export {
+  DEFAULT_DELAY_CONCENTRATION_THRESHOLDS,
+  DELAY_CONCENTRATION_DETECTOR_ID,
+  detectDelayConcentration,
+} from "./findings/delay-concentration.js";
+export type {
+  HeadwayReliabilityEwtDetectorInput,
+  HeadwayReliabilityEwtDetectorOutput,
+  HeadwayReliabilityEwtThresholds,
+} from "./findings/headway-reliability-ewt.js";
+export {
+  DEFAULT_HEADWAY_RELIABILITY_EWT_THRESHOLDS,
+  detectHeadwayReliabilityEwt,
+  HEADWAY_RELIABILITY_EWT_DETECTOR_ID,
+} from "./findings/headway-reliability-ewt.js";
+export type {
+  InterventionEventStudyDetectorInput,
+  InterventionEventStudyDetectorOutput,
+  InterventionEventStudyThresholds,
+} from "./findings/intervention-event-study.js";
+export {
+  DEFAULT_INTERVENTION_EVENT_STUDY_THRESHOLDS,
+  detectInterventionEventStudies,
+  INTERVENTION_EVENT_STUDY_DETECTOR_ID,
+} from "./findings/intervention-event-study.js";
+export type {
   InterventionEvidenceStatus,
   InterventionGapDetectorInput,
   InterventionGapDetectorOutput,
@@ -22,6 +113,26 @@ export {
   detectInterventionUnderperformance,
   INTERVENTION_UNDERPERFORMANCE_DETECTOR_ID,
 } from "./findings/intervention-underperformance.js";
+export type {
+  LatticeOpportunityAssessmentOutcome,
+  LatticeOpportunityAssessmentReasonCode,
+  LatticeOpportunityBundle,
+  LatticeOpportunityBundleInput,
+  LatticeOpportunityBundleOutput,
+  LatticeOpportunityInterventionStatus,
+  LatticeOpportunityRouteAssessment,
+  LatticeOpportunityRouteInput,
+  LatticeOpportunityScoringComponents,
+  LatticeOpportunitySourceScores,
+  LatticeOpportunityThresholds,
+  MtaOpportunityKind,
+} from "./findings/lattice-opportunity.js";
+export {
+  buildLatticeOpportunityBundles,
+  DEFAULT_LATTICE_OPPORTUNITY_THRESHOLDS,
+  LATTICE_REVIEW_BUNDLE_METHOD_ID,
+  MTA_OPPORTUNITY_KINDS,
+} from "./findings/lattice-opportunity.js";
 export type {
   MultiMonthSpeedPeerDetectorInput,
   MultiMonthSpeedPeerDetectorOutput,
@@ -69,6 +180,36 @@ export {
   PERSISTENT_SPEED_HOTSPOT_DETECTOR_ID,
 } from "./findings/persistent-speed-hotspot.js";
 export type {
+  PositiveDevianceDetectorInput,
+  PositiveDevianceDetectorOutput,
+  PositiveDevianceThresholds,
+} from "./findings/positive-deviance.js";
+export {
+  DEFAULT_POSITIVE_DEVIANCE_THRESHOLDS,
+  detectPositiveDeviance,
+  POSITIVE_DEVIANCE_DETECTOR_ID,
+} from "./findings/positive-deviance.js";
+export type {
+  RiderWeightedExcessWaitDetectorInput,
+  RiderWeightedExcessWaitDetectorOutput,
+  RiderWeightedExcessWaitThresholds,
+} from "./findings/rider-weighted-excess-wait.js";
+export {
+  DEFAULT_RIDER_WEIGHTED_EXCESS_WAIT_THRESHOLDS,
+  detectRiderWeightedExcessWait,
+  RIDER_WEIGHTED_EXCESS_WAIT_DETECTOR_ID,
+} from "./findings/rider-weighted-excess-wait.js";
+export type {
+  ScheduleMismatchDetectorInput,
+  ScheduleMismatchDetectorOutput,
+  ScheduleMismatchThresholds,
+} from "./findings/schedule-mismatch.js";
+export {
+  DEFAULT_SCHEDULE_MISMATCH_THRESHOLDS,
+  detectScheduleMismatch,
+  SCHEDULE_MISMATCH_DETECTOR_ID,
+} from "./findings/schedule-mismatch.js";
+export type {
   ServiceRequestContextDetectorInput,
   ServiceRequestContextDetectorOutput,
   ServiceRequestContextThresholds,
@@ -94,12 +235,63 @@ export {
   SOURCE_GAP_DETECTOR_ID,
 } from "./findings/source-gap.js";
 export type {
+  SpeedPaceHotspotDetectorInput,
+  SpeedPaceHotspotDetectorOutput,
+  SpeedPaceHotspotThresholds,
+} from "./findings/speed-pace-hotspot.js";
+export {
+  DEFAULT_SPEED_PACE_HOTSPOT_THRESHOLDS,
+  detectSpeedPaceHotspots,
+  SPEED_PACE_HOTSPOT_DETECTOR_ID,
+} from "./findings/speed-pace-hotspot.js";
+export type {
+  TravelTimeVariabilityDetectorInput,
+  TravelTimeVariabilityDetectorOutput,
+  TravelTimeVariabilityThresholds,
+} from "./findings/travel-time-variability.js";
+export {
+  DEFAULT_TRAVEL_TIME_VARIABILITY_THRESHOLDS,
+  detectTravelTimeVariability,
+  TRAVEL_TIME_VARIABILITY_DETECTOR_ID,
+} from "./findings/travel-time-variability.js";
+export type {
+  TreatmentScopeGapDetectorInput,
+  TreatmentScopeGapDetectorOutput,
+  TreatmentScopeGapSegmentInput,
+  TreatmentScopeGapThresholds,
+} from "./findings/treatment-scope-gap.js";
+export {
+  DEFAULT_TREATMENT_SCOPE_GAP_THRESHOLDS,
+  detectTreatmentScopeGaps,
+  TREATMENT_SCOPE_GAP_DETECTOR_ID,
+} from "./findings/treatment-scope-gap.js";
+export type {
+  TreatmentScopeMismatchDetectorInput,
+  TreatmentScopeMismatchDetectorOutput,
+  TreatmentScopeMismatchSegmentInput,
+  TreatmentScopeMismatchThresholds,
+} from "./findings/treatment-scope-mismatch.js";
+export {
+  DEFAULT_TREATMENT_SCOPE_MISMATCH_THRESHOLDS,
+  detectTreatmentScopeMismatch,
+  TREATMENT_SCOPE_MISMATCH_DETECTOR_ID,
+} from "./findings/treatment-scope-mismatch.js";
+export type {
   HotspotOptions,
   HotspotResult,
   SegmentHotspot,
   SegmentSpeedObservation,
 } from "./hotspots.js";
 export { detectSegmentHotspots } from "./hotspots.js";
+export type {
+  LatticeCandidate,
+  LatticeDeductionInput,
+  LatticeDeductionResult,
+  LatticePositionId,
+  LatticeSolution,
+  PowersetLatticeState,
+} from "./lattice-deduction.js";
+export { abstractSolutions, deducePowersetLattice } from "./lattice-deduction.js";
 export type {
   PublicRouteVisibility,
   PublicRouteVisibilityReason,

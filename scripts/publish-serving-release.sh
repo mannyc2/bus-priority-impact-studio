@@ -174,7 +174,7 @@ fi
 # Pre-flight: every R2 key declared by the brief/evaluation manifests must
 # exist locally. Fails closed: if a manifest entry has no local body we stop
 # before publishing rows that would point at missing R2 objects.
-if ! bun run tools/pipeline/src/checks/check-publish-completeness.ts --month "$month" >/dev/null; then
+if ! bun run tools/pipeline-v2/src/checks/check-publish-completeness.ts --month "$month" >/dev/null; then
   printf 'Publish completeness check failed for %s; aborting.\n' "$month" >&2
   exit 1
 fi
@@ -189,12 +189,12 @@ fi
 # R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY / R2_ENDPOINT). `bun run --cwd …`
 # changes the cwd before env loading and would miss it.
 if [ "$execute" -eq 0 ]; then
-  bun run tools/pipeline/src/cli.ts publish:r2-artifacts \
+  bun --filter @bp/pipeline-v2 cli -- publish r2-artifacts \
     --month "$month" \
     --bucket "$r2_bucket" \
     --dry-run
 else
-  bun run tools/pipeline/src/cli.ts publish:r2-artifacts \
+  bun --filter @bp/pipeline-v2 cli -- publish r2-artifacts \
     --month "$month" \
     --bucket "$r2_bucket"
 fi

@@ -2,18 +2,124 @@
   "name": "@bp/sources",
   "private": true,
   "type": "module",
-  "description": "Public data source adapters for MTA, Socrata, and NYC DOT.",
+  "description": "Internal source adapter SDK for Bus Priority Impact Studio ingestion.",
   "exports": {
-    ".": "./src/index.ts",
-    "./socrata": "./src/socrata/index.ts",
-    "./mta": "./src/mta/index.ts",
-    "./nyc-dot": "./src/nyc-dot/index.ts",
-    "./nyc-public-data": "./src/nyc-public-data/index.ts",
-    "./nyc-geoclient": "./src/nyc-geoclient/index.ts",
-    "./noaa": "./src/noaa/index.ts",
-    "./census": "./src/census/index.ts",
-    "./registry": "./src/registry/index.ts",
-    "./probes": "./src/probes/index.ts"
+    "./core": {
+      "types": "./src/core/index.ts",
+      "bun": "./src/core/index.ts"
+    },
+    "./registry": {
+      "types": "./src/registry/index.ts",
+      "bun": "./src/registry/index.ts"
+    },
+    "./registry/loaders/bun-yaml": {
+      "types": "./src/registry/loaders/bun-yaml.ts",
+      "bun": "./src/registry/loaders/bun-yaml.ts"
+    },
+    "./clients/socrata": {
+      "types": "./src/clients/socrata/index.ts",
+      "bun": "./src/clients/socrata/index.ts"
+    },
+    "./clients/socrata/catalog": {
+      "types": "./src/clients/socrata/catalog-client.ts",
+      "bun": "./src/clients/socrata/catalog-client.ts"
+    },
+    "./clients/socrata/soql": {
+      "types": "./src/clients/socrata/soql.ts",
+      "bun": "./src/clients/socrata/soql.ts"
+    },
+    "./clients/geoclient": {
+      "types": "./src/clients/geoclient/index.ts",
+      "bun": "./src/clients/geoclient/index.ts"
+    },
+    "./clients/census": {
+      "types": "./src/clients/census/index.ts",
+      "bun": "./src/clients/census/index.ts"
+    },
+    "./gtfs-realtime": {
+      "types": "./src/gtfs-realtime/index.ts",
+      "bun": "./src/gtfs-realtime/index.ts"
+    },
+    "./adapters/mta/ace": {
+      "types": "./src/adapters/mta/ace.ts",
+      "bun": "./src/adapters/mta/ace.ts"
+    },
+    "./adapters/mta/bus-customer-journey-metrics": {
+      "types": "./src/adapters/mta/bus-customer-journey-metrics.ts",
+      "bun": "./src/adapters/mta/bus-customer-journey-metrics.ts"
+    },
+    "./adapters/mta/bus-ridership": {
+      "types": "./src/adapters/mta/bus-ridership.ts",
+      "bun": "./src/adapters/mta/bus-ridership.ts"
+    },
+    "./adapters/mta/bus-speeds": {
+      "types": "./src/adapters/mta/bus-speeds.ts",
+      "bun": "./src/adapters/mta/bus-speeds.ts"
+    },
+    "./adapters/mta/bus-wait-assessment": {
+      "types": "./src/adapters/mta/bus-wait-assessment.ts",
+      "bun": "./src/adapters/mta/bus-wait-assessment.ts"
+    },
+    "./adapters/mta/express-bus-capacity": {
+      "types": "./src/adapters/mta/express-bus-capacity.ts",
+      "bun": "./src/adapters/mta/express-bus-capacity.ts"
+    },
+    "./adapters/mta/routes-stops": {
+      "types": "./src/adapters/mta/routes-stops.ts",
+      "bun": "./src/adapters/mta/routes-stops.ts"
+    },
+    "./adapters/mta/schedules": {
+      "types": "./src/adapters/mta/schedules.ts",
+      "bun": "./src/adapters/mta/schedules.ts"
+    },
+    "./adapters/nyc-dot/bus-lanes": {
+      "types": "./src/adapters/nyc-dot/bus-lanes.ts",
+      "bun": "./src/adapters/nyc-dot/bus-lanes.ts"
+    },
+    "./adapters/nyc-dot/street-permits": {
+      "types": "./src/adapters/nyc-dot/street-permits.ts",
+      "bun": "./src/adapters/nyc-dot/street-permits.ts"
+    },
+    "./adapters/nyc-dot/traffic-speeds": {
+      "types": "./src/adapters/nyc-dot/traffic-speeds.ts",
+      "bun": "./src/adapters/nyc-dot/traffic-speeds.ts"
+    },
+    "./adapters/nyc-dot/traffic-volume": {
+      "types": "./src/adapters/nyc-dot/traffic-volume.ts",
+      "bun": "./src/adapters/nyc-dot/traffic-volume.ts"
+    },
+    "./adapters/nyc-open-data/service-requests-311": {
+      "types": "./src/adapters/nyc-open-data/service-requests-311.ts",
+      "bun": "./src/adapters/nyc-open-data/service-requests-311.ts"
+    },
+    "./adapters/nyc-open-data/lion-centerline": {
+      "types": "./src/adapters/nyc-open-data/lion-centerline.ts",
+      "bun": "./src/adapters/nyc-open-data/lion-centerline.ts"
+    },
+    "./adapters/nyc-open-data/nypd-collisions": {
+      "types": "./src/adapters/nyc-open-data/nypd-collisions.ts",
+      "bun": "./src/adapters/nyc-open-data/nypd-collisions.ts"
+    },
+    "./adapters/nyc-open-data/parking-violations": {
+      "types": "./src/adapters/nyc-open-data/parking-violations.ts",
+      "bun": "./src/adapters/nyc-open-data/parking-violations.ts"
+    },
+    "./adapters/census/acs-equity": {
+      "types": "./src/adapters/census/acs-equity.ts",
+      "bun": "./src/adapters/census/acs-equity.ts"
+    },
+    "./adapters/noaa/ghcn-daily": {
+      "types": "./src/adapters/noaa/ghcn-daily.ts",
+      "bun": "./src/adapters/noaa/ghcn-daily.ts"
+    },
+    "./probes": {
+      "types": "./src/probes/index.ts",
+      "bun": "./src/probes/index.ts"
+    },
+    "./probes/transports/bun-curl": {
+      "types": "./src/probes/transports/bun-curl.ts",
+      "bun": "./src/probes/transports/bun-curl.ts"
+    }
   },
   "scripts": {
     "build": "tsc -p tsconfig.json --noEmit --pretty false",

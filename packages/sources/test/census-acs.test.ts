@@ -1,9 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import {
-  buildCensusAcsProfileUrl,
-  normalizeCensusTractEquityRows,
-  nycCountyCodes,
-} from "../src/index.js";
+import { normalizeCensusTractEquityRows } from "@bp/sources/adapters/census/acs-equity";
+import { buildCensusAcsProfileUrl, nycCountyCodes } from "@bp/sources/clients/census";
 
 describe("Census ACS equity context", () => {
   test("builds an ACS 5-year profile URL for NYC tracts", () => {

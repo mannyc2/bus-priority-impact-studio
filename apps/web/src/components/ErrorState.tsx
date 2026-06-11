@@ -16,12 +16,14 @@ export function ErrorState({
   body,
   retry,
   onRetry,
+  action,
   className,
 }: {
   title?: string;
   body?: ReactNode;
   retry?: ReactNode;
   onRetry?: () => void;
+  action?: ReactNode;
   className?: string;
 }) {
   return (
@@ -40,11 +42,13 @@ export function ErrorState({
           </EmptyDescription>
         ) : null}
       </EmptyHeader>
-      {retry ? (
+      {action ?? retry ? (
         <EmptyContent className="flex-row justify-center">
-          <Button size="sm" variant="secondary" onClick={onRetry}>
-            {retry}
-          </Button>
+          {action ?? (
+            <Button size="sm" variant="secondary" onClick={onRetry}>
+              {retry}
+            </Button>
+          )}
         </EmptyContent>
       ) : null}
     </Empty>

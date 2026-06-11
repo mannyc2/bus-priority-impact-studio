@@ -46,6 +46,11 @@ explicit source coverage
 5. **Worker cron is for lightweight operations.** It captures live GTFS-RT, checks public speed
    availability, and writes health/status. It does not run geospatial joins, route builds, D1
    exports, or artifact publication.
+6. **Product freshness is mixed, not one monthly clock.** ADR 0017 retires "the product is a
+   monthly release" as product doctrine. Use historical corpus, baseline month, current signal,
+   source-capture snapshot, serving projection, and publication gate when describing pipeline and
+   website behavior. Monthly cadence still applies to monthly source grains and release-keyed review
+   output.
 
 ## Current Picture
 

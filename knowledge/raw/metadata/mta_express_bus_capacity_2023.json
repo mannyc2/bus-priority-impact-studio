@@ -1,0 +1,1441 @@
+{
+  "schemaVersion": 1,
+  "sourceId": "mta_express_bus_capacity_2023",
+  "sourceType": "socrata_dataset",
+  "sourcePriority": "optional",
+  "manifestStatus": "needs_schema_probe",
+  "checkedAt": "2026-05-25T21:33:56.195Z",
+  "probeStatus": "active",
+  "statusRecommendation": "active",
+  "url": "https://data.ny.gov/Transportation/MTA-Express-Bus-Capacity-April-2023-September-2/4tpr-3bvc",
+  "socrata": {
+    "datasetId": "4tpr-3bvc",
+    "domain": "data.ny.gov",
+    "metadataUrl": "https://data.ny.gov/api/views/4tpr-3bvc",
+    "columnsUrl": "https://data.ny.gov/api/views/4tpr-3bvc/columns.json",
+    "rowsCsvUrl": "https://data.ny.gov/api/views/4tpr-3bvc/rows.csv?accessType=DOWNLOAD",
+    "rowCountUrl": "https://data.ny.gov/resource/4tpr-3bvc.json?%24select=count%28*%29",
+    "name": "MTA Express Bus Capacity: April 2023 - September 2023",
+    "columnCount": 8,
+    "rowsUpdatedAt": 1697226319,
+    "rowsUpdatedAtIso": "2023-10-13T19:45:19.000Z",
+    "rowCount": 49336
+  },
+  "socrataDataset": {
+    "metadata": {
+      "id": "4tpr-3bvc",
+      "name": "MTA Express Bus Capacity: April 2023 - September 2023",
+      "description": "This dataset provides the load percentage for each express bus route at its maximum load point (the bus stop where the highest number of passengers are on the bus) by direction, hour, day type (weekday, weekends and holidays), aggregated by week.",
+      "attribution": "Metropolitan Transportation Authority",
+      "rowsUpdatedAt": 1697226319,
+      "columns": [
+        {
+          "id": 582975642,
+          "name": "Week",
+          "dataTypeName": "calendar_date",
+          "fieldName": "week",
+          "description": "Represents the time period in which the metrics are being calculated, rounded to the week (month and year), represented as MM-DD-YYYY for the first day of the week.",
+          "position": 1,
+          "renderTypeName": "calendar_date",
+          "tableColumnId": 149256171,
+          "cachedContents": {
+            "non_null": "49336",
+            "largest": "2023-09-25T00:00:00.000",
+            "null": "0",
+            "top": [
+              {
+                "item": "2023-09-04T00:00:00.000",
+                "count": "1968"
+              },
+              {
+                "item": "2023-07-03T00:00:00.000",
+                "count": "1936"
+              },
+              {
+                "item": "2023-05-29T00:00:00.000",
+                "count": "1935"
+              },
+              {
+                "item": "2023-08-28T00:00:00.000",
+                "count": "1926"
+              },
+              {
+                "item": "2023-08-21T00:00:00.000",
+                "count": "1924"
+              },
+              {
+                "item": "2023-06-26T00:00:00.000",
+                "count": "1920"
+              },
+              {
+                "item": "2023-08-14T00:00:00.000",
+                "count": "1917"
+              },
+              {
+                "item": "2023-07-10T00:00:00.000",
+                "count": "1914"
+              },
+              {
+                "item": "2023-07-24T00:00:00.000",
+                "count": "1912"
+              },
+              {
+                "item": "2023-06-19T00:00:00.000",
+                "count": "1905"
+              },
+              {
+                "item": "2023-09-18T00:00:00.000",
+                "count": "1902"
+              },
+              {
+                "item": "2023-05-22T00:00:00.000",
+                "count": "1901"
+              },
+              {
+                "item": "2023-04-17T00:00:00.000",
+                "count": "1895"
+              },
+              {
+                "item": "2023-07-17T00:00:00.000",
+                "count": "1892"
+              },
+              {
+                "item": "2023-06-12T00:00:00.000",
+                "count": "1888"
+              },
+              {
+                "item": "2023-05-08T00:00:00.000",
+                "count": "1888"
+              },
+              {
+                "item": "2023-09-11T00:00:00.000",
+                "count": "1886"
+              },
+              {
+                "item": "2023-06-05T00:00:00.000",
+                "count": "1883"
+              },
+              {
+                "item": "2023-08-07T00:00:00.000",
+                "count": "1882"
+              },
+              {
+                "item": "2023-09-25T00:00:00.000",
+                "count": "1880"
+              }
+            ],
+            "smallest": "2023-04-03T00:00:00.000",
+            "count": "49336",
+            "cardinality": "26"
+          },
+          "format": {
+            "view": "date",
+            "align": "center"
+          }
+        },
+        {
+          "id": 582975638,
+          "name": "Day Type",
+          "dataTypeName": "text",
+          "fieldName": "day_type",
+          "description": "Whether the data is an average of weekly data for Weekdays and Weekends.",
+          "position": 2,
+          "renderTypeName": "text",
+          "tableColumnId": 149256167,
+          "cachedContents": {
+            "non_null": "49336",
+            "largest": "Weekend",
+            "null": "0",
+            "top": [
+              {
+                "item": "Weekday",
+                "count": "32221"
+              },
+              {
+                "item": "Weekend",
+                "count": "17115"
+              }
+            ],
+            "smallest": "Weekday",
+            "count": "49336",
+            "cardinality": "2"
+          },
+          "format": {}
+        },
+        {
+          "id": 582975637,
+          "name": "Borough",
+          "dataTypeName": "text",
+          "fieldName": "borough",
+          "description": "Represents the five boroughs of New York City (Bronx, Brooklyn, Manhattan, Queens, Staten Island).",
+          "position": 3,
+          "renderTypeName": "text",
+          "tableColumnId": 149256166,
+          "cachedContents": {
+            "non_null": "49336",
+            "largest": "Staten Island",
+            "null": "0",
+            "top": [
+              {
+                "item": "Bronx",
+                "count": "15742"
+              },
+              {
+                "item": "Staten Island",
+                "count": "14547"
+              },
+              {
+                "item": "Queens",
+                "count": "11049"
+              },
+              {
+                "item": "Brooklyn",
+                "count": "7998"
+              }
+            ],
+            "smallest": "Bronx",
+            "count": "49336",
+            "cardinality": "4"
+          },
+          "format": {
+            "align": "left"
+          }
+        },
+        {
+          "id": 582975636,
+          "name": "Route",
+          "dataTypeName": "text",
+          "fieldName": "route",
+          "description": "Identifies each individual bus route, as well as cumulative totals for all bus routes (identified as ALL).",
+          "position": 4,
+          "renderTypeName": "text",
+          "tableColumnId": 149256165,
+          "cachedContents": {
+            "non_null": "49336",
+            "largest": "X68",
+            "null": "0",
+            "top": [
+              {
+                "item": "SIM1C",
+                "count": "2432"
+              },
+              {
+                "item": "BXM7",
+                "count": "1944"
+              },
+              {
+                "item": "SIM33C",
+                "count": "1732"
+              },
+              {
+                "item": "BXM1",
+                "count": "1721"
+              },
+              {
+                "item": "BXM9",
+                "count": "1688"
+              },
+              {
+                "item": "BXM10",
+                "count": "1688"
+              },
+              {
+                "item": "SIM3C",
+                "count": "1676"
+              },
+              {
+                "item": "BXM11",
+                "count": "1644"
+              },
+              {
+                "item": "SIM4C",
+                "count": "1639"
+              },
+              {
+                "item": "BXM8",
+                "count": "1568"
+              },
+              {
+                "item": "X27",
+                "count": "1568"
+              },
+              {
+                "item": "X28",
+                "count": "1501"
+              },
+              {
+                "item": "BXM2",
+                "count": "1501"
+              },
+              {
+                "item": "QM2",
+                "count": "1384"
+              },
+              {
+                "item": "BXM6",
+                "count": "1366"
+              },
+              {
+                "item": "BXM3",
+                "count": "1289"
+              },
+              {
+                "item": "QM6",
+                "count": "1280"
+              },
+              {
+                "item": "QM5",
+                "count": "1220"
+              },
+              {
+                "item": "BXM4",
+                "count": "1189"
+              },
+              {
+                "item": "QM4",
+                "count": "1187"
+              }
+            ],
+            "smallest": "BM1",
+            "count": "49336",
+            "cardinality": "79"
+          },
+          "format": {}
+        },
+        {
+          "id": 582975635,
+          "name": "Direction",
+          "dataTypeName": "text",
+          "fieldName": "direction",
+          "description": "Represents the direction of travel (Northbound-NB, Southbound-SB, Eastbound-EB, or Westbound-WB)",
+          "position": 5,
+          "renderTypeName": "text",
+          "tableColumnId": 149256164,
+          "cachedContents": {
+            "non_null": "49336",
+            "largest": "WB",
+            "null": "0",
+            "top": [
+              {
+                "item": "SB",
+                "count": "17317"
+              },
+              {
+                "item": "NB",
+                "count": "16491"
+              },
+              {
+                "item": "EB",
+                "count": "8056"
+              },
+              {
+                "item": "WB",
+                "count": "7472"
+              }
+            ],
+            "smallest": "EB",
+            "count": "49336",
+            "cardinality": "4"
+          },
+          "format": {}
+        },
+        {
+          "id": 582975634,
+          "name": "Hour",
+          "dataTypeName": "number",
+          "fieldName": "hour",
+          "description": "The hour of the day (0-23).",
+          "position": 6,
+          "renderTypeName": "number",
+          "tableColumnId": 149256163,
+          "cachedContents": {
+            "non_null": "49336",
+            "largest": "23",
+            "null": "0",
+            "top": [
+              {
+                "item": "17",
+                "count": "3439"
+              },
+              {
+                "item": "18",
+                "count": "3328"
+              },
+              {
+                "item": "16",
+                "count": "3283"
+              },
+              {
+                "item": "15",
+                "count": "3160"
+              },
+              {
+                "item": "8",
+                "count": "3117"
+              },
+              {
+                "item": "7",
+                "count": "2931"
+              },
+              {
+                "item": "19",
+                "count": "2800"
+              },
+              {
+                "item": "14",
+                "count": "2691"
+              },
+              {
+                "item": "9",
+                "count": "2494"
+              },
+              {
+                "item": "6",
+                "count": "2486"
+              },
+              {
+                "item": "13",
+                "count": "2439"
+              },
+              {
+                "item": "12",
+                "count": "2388"
+              },
+              {
+                "item": "11",
+                "count": "2332"
+              },
+              {
+                "item": "10",
+                "count": "2303"
+              },
+              {
+                "item": "20",
+                "count": "2000"
+              },
+              {
+                "item": "21",
+                "count": "1785"
+              },
+              {
+                "item": "22",
+                "count": "1495"
+              },
+              {
+                "item": "5",
+                "count": "1491"
+              },
+              {
+                "item": "23",
+                "count": "1411"
+              },
+              {
+                "item": "0",
+                "count": "818"
+              }
+            ],
+            "smallest": "0",
+            "count": "49336",
+            "cardinality": "24"
+          },
+          "format": {
+            "decimalSeparator": ".",
+            "groupSeparator": ",",
+            "align": "right"
+          }
+        },
+        {
+          "id": 582975633,
+          "name": "Load Percentage",
+          "dataTypeName": "number",
+          "fieldName": "load_percentage",
+          "description": "The average percentage of seats, out of a total of 55, on buses occupied by riders during the hour.",
+          "position": 7,
+          "renderTypeName": "number",
+          "tableColumnId": 149256162,
+          "cachedContents": {
+            "non_null": "49336",
+            "largest": "1.0",
+            "null": "0",
+            "top": [
+              {
+                "item": "0.15",
+                "count": "1575"
+              },
+              {
+                "item": "0.25",
+                "count": "1460"
+              },
+              {
+                "item": "0.22",
+                "count": "1346"
+              },
+              {
+                "item": "0.16",
+                "count": "1327"
+              },
+              {
+                "item": "0.35",
+                "count": "1300"
+              },
+              {
+                "item": "0.24",
+                "count": "1294"
+              },
+              {
+                "item": "0.2",
+                "count": "1242"
+              },
+              {
+                "item": "0.18",
+                "count": "1226"
+              },
+              {
+                "item": "0.13",
+                "count": "1225"
+              },
+              {
+                "item": "0.27",
+                "count": "1222"
+              },
+              {
+                "item": "0.11",
+                "count": "1177"
+              },
+              {
+                "item": "0.33",
+                "count": "1168"
+              },
+              {
+                "item": "0.05",
+                "count": "1150"
+              },
+              {
+                "item": "0.29",
+                "count": "1146"
+              },
+              {
+                "item": "0.09",
+                "count": "1136"
+              },
+              {
+                "item": "0.31",
+                "count": "1100"
+              },
+              {
+                "item": "0.07",
+                "count": "1087"
+              },
+              {
+                "item": "0.36",
+                "count": "1028"
+              },
+              {
+                "item": "0.38",
+                "count": "990"
+              },
+              {
+                "item": "0.04",
+                "count": "941"
+              }
+            ],
+            "smallest": "0.02",
+            "count": "49336",
+            "cardinality": "98"
+          },
+          "format": {
+            "precisionStyle": "percentage",
+            "percentScale": "1",
+            "decimalSeparator": ".",
+            "groupSeparator": ",",
+            "align": "right"
+          }
+        },
+        {
+          "id": 582975632,
+          "name": "Trips with APC",
+          "dataTypeName": "number",
+          "fieldName": "trips_with_apc",
+          "description": "The number of trips used to calculate the Load Percentage",
+          "position": 8,
+          "renderTypeName": "number",
+          "tableColumnId": 149256161,
+          "cachedContents": {
+            "non_null": "49336",
+            "largest": "56",
+            "null": "0",
+            "top": [
+              {
+                "item": "1",
+                "count": "11453"
+              },
+              {
+                "item": "2",
+                "count": "7503"
+              },
+              {
+                "item": "3",
+                "count": "5282"
+              },
+              {
+                "item": "4",
+                "count": "4788"
+              },
+              {
+                "item": "5",
+                "count": "4094"
+              },
+              {
+                "item": "6",
+                "count": "2105"
+              },
+              {
+                "item": "7",
+                "count": "1723"
+              },
+              {
+                "item": "8",
+                "count": "1688"
+              },
+              {
+                "item": "9",
+                "count": "1481"
+              },
+              {
+                "item": "10",
+                "count": "1141"
+              },
+              {
+                "item": "11",
+                "count": "840"
+              },
+              {
+                "item": "12",
+                "count": "795"
+              },
+              {
+                "item": "13",
+                "count": "753"
+              },
+              {
+                "item": "14",
+                "count": "733"
+              },
+              {
+                "item": "15",
+                "count": "627"
+              },
+              {
+                "item": "16",
+                "count": "550"
+              },
+              {
+                "item": "17",
+                "count": "490"
+              },
+              {
+                "item": "18",
+                "count": "462"
+              },
+              {
+                "item": "19",
+                "count": "409"
+              },
+              {
+                "item": "20",
+                "count": "312"
+              }
+            ],
+            "smallest": "1",
+            "count": "49336",
+            "cardinality": "56"
+          },
+          "format": {
+            "decimalSeparator": ".",
+            "groupSeparator": ",",
+            "align": "right"
+          }
+        }
+      ],
+      "assetType": "dataset",
+      "attributionLink": "https://www.mta.info/open-data",
+      "averageRating": 0,
+      "category": "Transportation",
+      "createdAt": 1697224922,
+      "diciBackend": false,
+      "displayType": "table",
+      "downloadCount": 1110,
+      "hideFromCatalog": false,
+      "hideFromDataJson": false,
+      "locked": false,
+      "newBackend": true,
+      "numberOfComments": 0,
+      "oid": 40070063,
+      "provenance": "official",
+      "publicationAppendEnabled": false,
+      "publicationDate": 1697226332,
+      "publicationGroup": 19327080,
+      "publicationStage": "published",
+      "tableId": 19327080,
+      "totalTimesRated": 0,
+      "viewCount": 7970,
+      "viewLastModified": 1722293733,
+      "viewType": "tabular",
+      "approvals": [
+        {
+          "reviewedAt": 1697474282,
+          "reviewedAutomatically": true,
+          "state": "approved",
+          "submissionId": 5852577,
+          "submissionObject": "public_audience_request",
+          "submissionOutcome": "change_audience",
+          "submittedAt": 1697474282,
+          "targetAudience": "public",
+          "workflowId": 2254,
+          "submissionDetails": {
+            "permissionType": "READ"
+          },
+          "submissionOutcomeApplication": {
+            "endedAt": 1697474282,
+            "failureCount": 0,
+            "startedAt": 1697474282,
+            "status": "success"
+          },
+          "submitter": {
+            "id": "m7m8-qafi",
+            "displayName": "Open Data Administrator 2"
+          }
+        }
+      ],
+      "clientContext": {
+        "clientContextVariables": [],
+        "inheritedVariables": {}
+      },
+      "grants": [
+        {
+          "inherited": false,
+          "type": "viewer",
+          "flags": [
+            "public"
+          ]
+        }
+      ],
+      "metadata": {
+        "attachments": [
+          {
+            "filename": "MTA_ExpressBusCapacity_Overview.pdf",
+            "assetId": "4e46c1bc-ad8e-40e7-8b4f-74a5783b34c9",
+            "name": "MTA_ExpressBusCapacity_Overview.pdf"
+          },
+          {
+            "filename": "MTA_ExpressBusCapacity_DataDictionary.pdf",
+            "assetId": "0b31f624-c955-4213-8d9b-3862abb6c59a",
+            "name": "MTA_ExpressBusCapacity_DataDictionary.pdf"
+          }
+        ],
+        "custom_fields": {
+          "Dataset Summary": {
+            "Posting Frequency": "Static - Not Updated",
+            "Organization": "Metropolitan Transportation Authority",
+            "Contact Information": "OpenData@mtahq.org",
+            "Time Period": "April 2023 to September 2023",
+            "Coverage": "New York City",
+            "Granularity": "Bus route, hour, direction",
+            "Dataset Owner": "Metropolitan Transportation Authority"
+          },
+          "Additional Resources": {
+            "See Also": "https://metrics.mta.info/"
+          },
+          "Dataset Information": {
+            "Agency": "Metropolitan Transportation Authority"
+          }
+        },
+        "availableDisplayTypes": [
+          "table",
+          "fatrow",
+          "page"
+        ]
+      },
+      "owner": {
+        "id": "xzik-pf59",
+        "displayName": "NY Open Data",
+        "profileImageUrlLarge": "/api/users/xzik-pf59/profile_images/LARGE",
+        "profileImageUrlMedium": "/api/users/xzik-pf59/profile_images/THUMB",
+        "profileImageUrlSmall": "/api/users/xzik-pf59/profile_images/TINY",
+        "screenName": "NY Open Data",
+        "type": "interactive",
+        "flags": [
+          "acceptedEula",
+          "mayBeStoriesCoOwner"
+        ]
+      },
+      "query": {},
+      "rights": [
+        "read"
+      ],
+      "tableAuthor": {
+        "id": "xzik-pf59",
+        "displayName": "NY Open Data",
+        "profileImageUrlLarge": "/api/users/xzik-pf59/profile_images/LARGE",
+        "profileImageUrlMedium": "/api/users/xzik-pf59/profile_images/THUMB",
+        "profileImageUrlSmall": "/api/users/xzik-pf59/profile_images/TINY",
+        "screenName": "NY Open Data",
+        "type": "interactive",
+        "flags": [
+          "acceptedEula",
+          "mayBeStoriesCoOwner"
+        ]
+      },
+      "tags": [
+        "new york city transit",
+        "nyct",
+        "mta bus",
+        "mtabc",
+        "capacity",
+        "bus",
+        "express bus",
+        "ridership",
+        "passengers",
+        "customers",
+        "crowding",
+        "routes",
+        "bus routes"
+      ],
+      "flags": [
+        "default",
+        "ownerMayBeContacted",
+        "restorable",
+        "restorePossibleForType"
+      ]
+    },
+    "columns": [
+      {
+        "id": 582975642,
+        "name": "Week",
+        "dataTypeName": "calendar_date",
+        "fieldName": "week",
+        "description": "Represents the time period in which the metrics are being calculated, rounded to the week (month and year), represented as MM-DD-YYYY for the first day of the week.",
+        "position": 1,
+        "renderTypeName": "calendar_date",
+        "tableColumnId": 149256171,
+        "cachedContents": {
+          "non_null": "49336",
+          "largest": "2023-09-25T00:00:00.000",
+          "null": "0",
+          "top": [
+            {
+              "item": "2023-09-04T00:00:00.000",
+              "count": "1968"
+            },
+            {
+              "item": "2023-07-03T00:00:00.000",
+              "count": "1936"
+            },
+            {
+              "item": "2023-05-29T00:00:00.000",
+              "count": "1935"
+            },
+            {
+              "item": "2023-08-28T00:00:00.000",
+              "count": "1926"
+            },
+            {
+              "item": "2023-08-21T00:00:00.000",
+              "count": "1924"
+            },
+            {
+              "item": "2023-06-26T00:00:00.000",
+              "count": "1920"
+            },
+            {
+              "item": "2023-08-14T00:00:00.000",
+              "count": "1917"
+            },
+            {
+              "item": "2023-07-10T00:00:00.000",
+              "count": "1914"
+            },
+            {
+              "item": "2023-07-24T00:00:00.000",
+              "count": "1912"
+            },
+            {
+              "item": "2023-06-19T00:00:00.000",
+              "count": "1905"
+            },
+            {
+              "item": "2023-09-18T00:00:00.000",
+              "count": "1902"
+            },
+            {
+              "item": "2023-05-22T00:00:00.000",
+              "count": "1901"
+            },
+            {
+              "item": "2023-04-17T00:00:00.000",
+              "count": "1895"
+            },
+            {
+              "item": "2023-07-17T00:00:00.000",
+              "count": "1892"
+            },
+            {
+              "item": "2023-06-12T00:00:00.000",
+              "count": "1888"
+            },
+            {
+              "item": "2023-05-08T00:00:00.000",
+              "count": "1888"
+            },
+            {
+              "item": "2023-09-11T00:00:00.000",
+              "count": "1886"
+            },
+            {
+              "item": "2023-06-05T00:00:00.000",
+              "count": "1883"
+            },
+            {
+              "item": "2023-08-07T00:00:00.000",
+              "count": "1882"
+            },
+            {
+              "item": "2023-09-25T00:00:00.000",
+              "count": "1880"
+            }
+          ],
+          "smallest": "2023-04-03T00:00:00.000",
+          "count": "49336",
+          "cardinality": "26"
+        },
+        "format": {
+          "view": "date",
+          "align": "center"
+        }
+      },
+      {
+        "id": 582975638,
+        "name": "Day Type",
+        "dataTypeName": "text",
+        "fieldName": "day_type",
+        "description": "Whether the data is an average of weekly data for Weekdays and Weekends.",
+        "position": 2,
+        "renderTypeName": "text",
+        "tableColumnId": 149256167,
+        "cachedContents": {
+          "non_null": "49336",
+          "largest": "Weekend",
+          "null": "0",
+          "top": [
+            {
+              "item": "Weekday",
+              "count": "32221"
+            },
+            {
+              "item": "Weekend",
+              "count": "17115"
+            }
+          ],
+          "smallest": "Weekday",
+          "count": "49336",
+          "cardinality": "2"
+        },
+        "format": {}
+      },
+      {
+        "id": 582975637,
+        "name": "Borough",
+        "dataTypeName": "text",
+        "fieldName": "borough",
+        "description": "Represents the five boroughs of New York City (Bronx, Brooklyn, Manhattan, Queens, Staten Island).",
+        "position": 3,
+        "renderTypeName": "text",
+        "tableColumnId": 149256166,
+        "cachedContents": {
+          "non_null": "49336",
+          "largest": "Staten Island",
+          "null": "0",
+          "top": [
+            {
+              "item": "Bronx",
+              "count": "15742"
+            },
+            {
+              "item": "Staten Island",
+              "count": "14547"
+            },
+            {
+              "item": "Queens",
+              "count": "11049"
+            },
+            {
+              "item": "Brooklyn",
+              "count": "7998"
+            }
+          ],
+          "smallest": "Bronx",
+          "count": "49336",
+          "cardinality": "4"
+        },
+        "format": {
+          "align": "left"
+        }
+      },
+      {
+        "id": 582975636,
+        "name": "Route",
+        "dataTypeName": "text",
+        "fieldName": "route",
+        "description": "Identifies each individual bus route, as well as cumulative totals for all bus routes (identified as ALL).",
+        "position": 4,
+        "renderTypeName": "text",
+        "tableColumnId": 149256165,
+        "cachedContents": {
+          "non_null": "49336",
+          "largest": "X68",
+          "null": "0",
+          "top": [
+            {
+              "item": "SIM1C",
+              "count": "2432"
+            },
+            {
+              "item": "BXM7",
+              "count": "1944"
+            },
+            {
+              "item": "SIM33C",
+              "count": "1732"
+            },
+            {
+              "item": "BXM1",
+              "count": "1721"
+            },
+            {
+              "item": "BXM9",
+              "count": "1688"
+            },
+            {
+              "item": "BXM10",
+              "count": "1688"
+            },
+            {
+              "item": "SIM3C",
+              "count": "1676"
+            },
+            {
+              "item": "BXM11",
+              "count": "1644"
+            },
+            {
+              "item": "SIM4C",
+              "count": "1639"
+            },
+            {
+              "item": "BXM8",
+              "count": "1568"
+            },
+            {
+              "item": "X27",
+              "count": "1568"
+            },
+            {
+              "item": "X28",
+              "count": "1501"
+            },
+            {
+              "item": "BXM2",
+              "count": "1501"
+            },
+            {
+              "item": "QM2",
+              "count": "1384"
+            },
+            {
+              "item": "BXM6",
+              "count": "1366"
+            },
+            {
+              "item": "BXM3",
+              "count": "1289"
+            },
+            {
+              "item": "QM6",
+              "count": "1280"
+            },
+            {
+              "item": "QM5",
+              "count": "1220"
+            },
+            {
+              "item": "BXM4",
+              "count": "1189"
+            },
+            {
+              "item": "QM4",
+              "count": "1187"
+            }
+          ],
+          "smallest": "BM1",
+          "count": "49336",
+          "cardinality": "79"
+        },
+        "format": {}
+      },
+      {
+        "id": 582975635,
+        "name": "Direction",
+        "dataTypeName": "text",
+        "fieldName": "direction",
+        "description": "Represents the direction of travel (Northbound-NB, Southbound-SB, Eastbound-EB, or Westbound-WB)",
+        "position": 5,
+        "renderTypeName": "text",
+        "tableColumnId": 149256164,
+        "cachedContents": {
+          "non_null": "49336",
+          "largest": "WB",
+          "null": "0",
+          "top": [
+            {
+              "item": "SB",
+              "count": "17317"
+            },
+            {
+              "item": "NB",
+              "count": "16491"
+            },
+            {
+              "item": "EB",
+              "count": "8056"
+            },
+            {
+              "item": "WB",
+              "count": "7472"
+            }
+          ],
+          "smallest": "EB",
+          "count": "49336",
+          "cardinality": "4"
+        },
+        "format": {}
+      },
+      {
+        "id": 582975634,
+        "name": "Hour",
+        "dataTypeName": "number",
+        "fieldName": "hour",
+        "description": "The hour of the day (0-23).",
+        "position": 6,
+        "renderTypeName": "number",
+        "tableColumnId": 149256163,
+        "cachedContents": {
+          "non_null": "49336",
+          "largest": "23",
+          "null": "0",
+          "top": [
+            {
+              "item": "17",
+              "count": "3439"
+            },
+            {
+              "item": "18",
+              "count": "3328"
+            },
+            {
+              "item": "16",
+              "count": "3283"
+            },
+            {
+              "item": "15",
+              "count": "3160"
+            },
+            {
+              "item": "8",
+              "count": "3117"
+            },
+            {
+              "item": "7",
+              "count": "2931"
+            },
+            {
+              "item": "19",
+              "count": "2800"
+            },
+            {
+              "item": "14",
+              "count": "2691"
+            },
+            {
+              "item": "9",
+              "count": "2494"
+            },
+            {
+              "item": "6",
+              "count": "2486"
+            },
+            {
+              "item": "13",
+              "count": "2439"
+            },
+            {
+              "item": "12",
+              "count": "2388"
+            },
+            {
+              "item": "11",
+              "count": "2332"
+            },
+            {
+              "item": "10",
+              "count": "2303"
+            },
+            {
+              "item": "20",
+              "count": "2000"
+            },
+            {
+              "item": "21",
+              "count": "1785"
+            },
+            {
+              "item": "22",
+              "count": "1495"
+            },
+            {
+              "item": "5",
+              "count": "1491"
+            },
+            {
+              "item": "23",
+              "count": "1411"
+            },
+            {
+              "item": "0",
+              "count": "818"
+            }
+          ],
+          "smallest": "0",
+          "count": "49336",
+          "cardinality": "24"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "groupSeparator": ",",
+          "align": "right"
+        }
+      },
+      {
+        "id": 582975633,
+        "name": "Load Percentage",
+        "dataTypeName": "number",
+        "fieldName": "load_percentage",
+        "description": "The average percentage of seats, out of a total of 55, on buses occupied by riders during the hour.",
+        "position": 7,
+        "renderTypeName": "number",
+        "tableColumnId": 149256162,
+        "cachedContents": {
+          "non_null": "49336",
+          "largest": "1.0",
+          "null": "0",
+          "top": [
+            {
+              "item": "0.15",
+              "count": "1575"
+            },
+            {
+              "item": "0.25",
+              "count": "1460"
+            },
+            {
+              "item": "0.22",
+              "count": "1346"
+            },
+            {
+              "item": "0.16",
+              "count": "1327"
+            },
+            {
+              "item": "0.35",
+              "count": "1300"
+            },
+            {
+              "item": "0.24",
+              "count": "1294"
+            },
+            {
+              "item": "0.2",
+              "count": "1242"
+            },
+            {
+              "item": "0.18",
+              "count": "1226"
+            },
+            {
+              "item": "0.13",
+              "count": "1225"
+            },
+            {
+              "item": "0.27",
+              "count": "1222"
+            },
+            {
+              "item": "0.11",
+              "count": "1177"
+            },
+            {
+              "item": "0.33",
+              "count": "1168"
+            },
+            {
+              "item": "0.05",
+              "count": "1150"
+            },
+            {
+              "item": "0.29",
+              "count": "1146"
+            },
+            {
+              "item": "0.09",
+              "count": "1136"
+            },
+            {
+              "item": "0.31",
+              "count": "1100"
+            },
+            {
+              "item": "0.07",
+              "count": "1087"
+            },
+            {
+              "item": "0.36",
+              "count": "1028"
+            },
+            {
+              "item": "0.38",
+              "count": "990"
+            },
+            {
+              "item": "0.04",
+              "count": "941"
+            }
+          ],
+          "smallest": "0.02",
+          "count": "49336",
+          "cardinality": "98"
+        },
+        "format": {
+          "precisionStyle": "percentage",
+          "percentScale": "1",
+          "decimalSeparator": ".",
+          "groupSeparator": ",",
+          "align": "right"
+        }
+      },
+      {
+        "id": 582975632,
+        "name": "Trips with APC",
+        "dataTypeName": "number",
+        "fieldName": "trips_with_apc",
+        "description": "The number of trips used to calculate the Load Percentage",
+        "position": 8,
+        "renderTypeName": "number",
+        "tableColumnId": 149256161,
+        "cachedContents": {
+          "non_null": "49336",
+          "largest": "56",
+          "null": "0",
+          "top": [
+            {
+              "item": "1",
+              "count": "11453"
+            },
+            {
+              "item": "2",
+              "count": "7503"
+            },
+            {
+              "item": "3",
+              "count": "5282"
+            },
+            {
+              "item": "4",
+              "count": "4788"
+            },
+            {
+              "item": "5",
+              "count": "4094"
+            },
+            {
+              "item": "6",
+              "count": "2105"
+            },
+            {
+              "item": "7",
+              "count": "1723"
+            },
+            {
+              "item": "8",
+              "count": "1688"
+            },
+            {
+              "item": "9",
+              "count": "1481"
+            },
+            {
+              "item": "10",
+              "count": "1141"
+            },
+            {
+              "item": "11",
+              "count": "840"
+            },
+            {
+              "item": "12",
+              "count": "795"
+            },
+            {
+              "item": "13",
+              "count": "753"
+            },
+            {
+              "item": "14",
+              "count": "733"
+            },
+            {
+              "item": "15",
+              "count": "627"
+            },
+            {
+              "item": "16",
+              "count": "550"
+            },
+            {
+              "item": "17",
+              "count": "490"
+            },
+            {
+              "item": "18",
+              "count": "462"
+            },
+            {
+              "item": "19",
+              "count": "409"
+            },
+            {
+              "item": "20",
+              "count": "312"
+            }
+          ],
+          "smallest": "1",
+          "count": "49336",
+          "cardinality": "56"
+        },
+        "format": {
+          "decimalSeparator": ".",
+          "groupSeparator": ",",
+          "align": "right"
+        }
+      }
+    ]
+  }
+}

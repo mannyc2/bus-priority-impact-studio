@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "sourceId": "noaa_ghcn_daily_nyc",
+  "sourceType": "file_download",
+  "sourcePriority": "secondary",
+  "manifestStatus": "active",
+  "checkedAt": "2026-05-31T12:13:04.328Z",
+  "probeStatus": "active",
+  "statusRecommendation": "active",
+  "url": "https://www.ncei.noaa.gov/data/global-historical-climatology-network-daily/access/",
+  "stationFiles": [
+    {
+      "stationId": "USW00094728",
+      "stationName": "NY CITY CENTRAL PARK",
+      "url": "https://www.ncei.noaa.gov/data/global-historical-climatology-network-daily/access/USW00094728.csv",
+      "http": {
+        "method": "HEAD",
+        "transport": "fetch",
+        "status": 200,
+        "ok": true,
+        "finalUrl": "https://www.ncei.noaa.gov/data/global-historical-climatology-network-daily/access/USW00094728.csv",
+        "contentType": "text/csv",
+        "contentLengthBytes": 17786295,
+        "lastModified": "Sun, 31 May 2026 01:12:37 GMT",
+        "etag": "\"10f65b7-65312c6050b40\"",
+        "responseDate": "Sun, 31 May 2026 12:13:04 GMT"
+      }
+    },
+    {
+      "stationId": "USW00014732",
+      "stationName": "NY LA GUARDIA AP",
+      "url": "https://www.ncei.noaa.gov/data/global-historical-climatology-network-daily/access/USW00014732.csv",
+      "http": {
+        "method": "HEAD",
+        "transport": "fetch",
+        "status": 200,
+        "ok": true,
+        "finalUrl": "https://www.ncei.noaa.gov/data/global-historical-climatology-network-daily/access/USW00014732.csv",
+        "contentType": "text/csv",
+        "contentLengthBytes": 10899820,
+        "lastModified": "Sun, 31 May 2026 01:17:22 GMT",
+        "etag": "\"a6516c-65312d701cc80\"",
+        "responseDate": "Sun, 31 May 2026 12:13:04 GMT"
+      }
+    },
+    {
+      "stationId": "USW00094789",
+      "stationName": "JFK INTERNATIONAL",
+      "url": "https://www.ncei.noaa.gov/data/global-historical-climatology-network-daily/access/USW00094789.csv",
+      "http": {
+        "method": "HEAD",
+        "transport": "fetch",
+        "status": 200,
+        "ok": true,
+        "finalUrl": "https://www.ncei.noaa.gov/data/global-historical-climatology-network-daily/access/USW00094789.csv",
+        "contentType": "text/csv",
+        "contentLengthBytes": 10029383,
+        "lastModified": "Sun, 31 May 2026 01:41:11 GMT",
+        "etag": "\"990947-653132c2e9bc0\"",
+        "responseDate": "Sun, 31 May 2026 12:13:04 GMT"
+      }
+    }
+  ]
+}

@@ -1,6 +1,9 @@
 import type { ReactNode } from "react";
 import { ChartsDemo } from "@/dev/examples/charts-demo";
 import { ClaimsDemo } from "@/dev/examples/claims-demo";
+import { CompareHeaderDemo } from "@/dev/examples/compare-header-demo";
+import { CorridorDemo } from "@/dev/examples/corridor-demo";
+import { CorridorProfileDemo } from "@/dev/examples/corridor-profile-demo";
 import { FoundationsDemo } from "@/dev/examples/foundations-demo";
 import { MetricsDemo } from "@/dev/examples/metrics-demo";
 import { SegmentRowDemo } from "@/dev/examples/segment-row-demo";
@@ -15,8 +18,10 @@ const sections = [
   { id: "treatments", label: "Treatments" },
   { id: "segments", label: "Segment row" },
   { id: "charts", label: "Charts" },
+  { id: "corridor", label: "The corridor" },
   { id: "authoring", label: "Authoring" },
   { id: "states", label: "States" },
+  { id: "compare-header", label: "Compare header" },
   { id: "patterns", label: "Patterns" },
 ] as const;
 
@@ -89,18 +94,39 @@ export function SystemGallery() {
           <ChartsDemo />
         </GallerySection>
 
+        <GallerySection
+          id="corridor"
+          kicker="06"
+          title="The corridor"
+          sub="Two views of one corridor: the spatial speed profile (route Overview) reads geography left→right, and the temporal trend reads before/after a treatment. Both feed from Tier 2 evidence."
+        >
+          <div className="flex flex-col gap-6">
+            <CorridorProfileDemo />
+            <CorridorDemo />
+          </div>
+        </GallerySection>
+
         <div className="grid gap-8 xl:grid-cols-2">
-          <GallerySection id="authoring" kicker="06" title="Authoring pattern">
+          <GallerySection id="authoring" kicker="07" title="Authoring pattern">
             <ClaimsDemo />
           </GallerySection>
-          <GallerySection id="states" kicker="07" title="States">
+          <GallerySection id="states" kicker="08" title="States">
             <StatesDemo />
           </GallerySection>
         </div>
 
         <GallerySection
+          id="compare-header"
+          kicker="09"
+          title="Compare header — prototyping the &ldquo;vs&rdquo; layout"
+          sub="The single-route RouteMetricStrip and the two-route inline RouteCompareMetricStrip both build on the shared MetricColumns frame, so the inline 'vs' strip is a real variant (not a copy). Variants: baseline single, inline (both values per cell), and the delta strip. Dev-only — pick one and we extract a shared RouteHeader."
+        >
+          <CompareHeaderDemo />
+        </GallerySection>
+
+        <GallerySection
           id="patterns"
-          kicker="08"
+          kicker="10"
           title="Composite rules"
           sub="The gallery intentionally keeps these as product constraints, not theme controls."
         >

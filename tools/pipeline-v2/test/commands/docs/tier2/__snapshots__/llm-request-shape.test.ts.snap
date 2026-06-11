@@ -1,0 +1,162 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`Tier 2 LLM request shape (pi-harness migration) callOpenRouterPageMarkdownOcr — PDF page (inline file-parser fallback) keeps byte-exact wire shape 1`] = `
+{
+  "body": {
+    "max_tokens": 4096,
+    "messages": [
+      {
+        "content": [
+          {
+            "text": 
+"You are doing page-level OCR for Bus Priority Impact Studio.
+Convert only the attached page image to a complete, faithful GitHub-flavored Markdown transcription. The markdown field must not be title-only.
+Read the page top-to-bottom and include every visible heading, paragraph sentence, bullet/list item, footnote, chart title, chart axis label, legend label, and readable numeric value.
+Use Markdown tables when the page has tables.
+If a chart or figure contains readable labels and numeric values, transcribe the chart title and visible values into a Markdown table near the chart position. Do not put chart values only in image alt text.
+Use image placeholders only for non-textual visual content that cannot be represented as text or a table.
+Image placeholders must be brief alt text only; do not add separate visual-analysis notes, object lists, or inferred scene descriptions.
+Ignore repeated slide footers, page numbers, and decorative artifacts unless they carry source meaning. Never repeat the same visible footer or page number more than once.
+Use normal Markdown line breaks and sections. Do not collapse the whole page into one paragraph.
+Sparse pages are valid OCR outputs. If the page is a cover, divider, map-only page, or mostly decorative image, transcribe only the visible text and use a short image placeholder.
+A sparse page can produce a short markdown field. Do not pad the answer to make it look complete.
+Never infer report sections, examples, route impacts, benefits, tables, footnotes, or metrics that are not visibly printed on this exact page.
+The source metadata below is for routing and validation only. Do not copy Source ID, Title, Publisher, Source group, or Page into the markdown field unless those exact words are visibly printed on the page image.
+If no table is visible on the page, do not create a table and set containsTables to false.
+Do not summarize, reinterpret, or add facts that are not visible on the page. Omit unreadable background signs, decorative text, and tiny labels; do not emit [unclear], [illegible], or lists of unreadable items.
+You must call the record_tier2_ocr_page tool. Put the full Markdown transcription in the markdown field.
+In the tool call, pageNumber must be exactly 1. This is the PDF page ordinal supplied by the pipeline; do not replace it with a printed page number visible on the document.
+Use the hint fields only for indexing and later search. Do not include pipeline metadata or YAML frontmatter; the host pipeline will add that.
+
+Source ID: test_source
+Title: Test Source
+Publisher: NYC DOT
+Source group: test_group
+Page: 1 of 3"
+,
+            "type": "text",
+          },
+          {
+            "file": {
+              "file_data": "data:application/pdf;base64,AQIDBA==",
+              "filename": "test_source-page-1.pdf",
+            },
+            "type": "file",
+          },
+        ],
+        "role": "user",
+      },
+    ],
+    "model": "google/gemini-3.1-flash-lite",
+    "plugins": [
+      {
+        "id": "file-parser",
+        "pdf": {
+          "engine": "mistral-ocr",
+        },
+      },
+    ],
+    "service_tier": "flex",
+    "temperature": 0,
+    "tool_choice": {
+      "function": {
+        "name": "record_tier2_ocr_page",
+      },
+      "type": "function",
+    },
+    "tools": [
+      {
+        "function": {
+          "description": "Record a faithful page-level Markdown OCR transcription plus lightweight indexing hints.",
+          "name": "record_tier2_ocr_page",
+          "parameters": {
+            "additionalProperties": false,
+            "properties": {
+              "containsCharts": {
+                "type": "boolean",
+              },
+              "containsMaps": {
+                "type": "boolean",
+              },
+              "containsTables": {
+                "type": "boolean",
+              },
+              "corridorsMentioned": {
+                "items": {
+                  "type": "string",
+                },
+                "maxItems": 50,
+                "type": "array",
+              },
+              "datesMentioned": {
+                "items": {
+                  "type": "string",
+                },
+                "maxItems": 50,
+                "type": "array",
+              },
+              "markdown": {
+                "minLength": 1,
+                "type": "string",
+              },
+              "metricHints": {
+                "description": "Short visible metrics or table labels worth indexing, not unsupported analysis.",
+                "items": {
+                  "type": "string",
+                },
+                "maxItems": 50,
+                "type": "array",
+              },
+              "pageNumber": {
+                "description": "The pipeline-supplied PDF page ordinal, not the printed page number visible on the document.",
+                "minimum": 1,
+                "type": "integer",
+              },
+              "routesMentioned": {
+                "items": {
+                  "type": "string",
+                },
+                "maxItems": 50,
+                "type": "array",
+              },
+              "sourceId": {
+                "type": "string",
+              },
+              "visualReviewHints": {
+                "description": "Use for maps, charts, scanned tables, or illegible areas that need human visual review.",
+                "items": {
+                  "type": "string",
+                },
+                "maxItems": 20,
+                "type": "array",
+              },
+            },
+            "required": [
+              "sourceId",
+              "pageNumber",
+              "markdown",
+              "routesMentioned",
+              "corridorsMentioned",
+              "datesMentioned",
+              "metricHints",
+              "containsTables",
+              "containsMaps",
+              "containsCharts",
+              "visualReviewHints",
+            ],
+            "type": "object",
+          },
+        },
+        "type": "function",
+      },
+    ],
+  },
+  "headers": {
+    "Authorization": "Bearer test-key",
+    "Content-Type": "application/json",
+    "HTTP-Referer": "https://github.com/",
+    "X-Title": "Bus Priority Impact Studio Page OCR",
+  },
+  "url": "https://openrouter.ai/api/v1/chat/completions",
+}
+`;

@@ -1,5 +1,5 @@
-export type { LocalPipelineDb, LocalPipelineSchema } from "./client.js";
-export { batchInsert, createLocalPipelineDb } from "./client.js";
+export type { LocalPipelineDb, LocalPipelineSchema, LocalPipelineTx } from "./client.js";
+export { applyLocalPragmas, batchInsert, createLocalPipelineDb, insertAll } from "./client.js";
 export { migrateLocalPipelineDb } from "./migrate.js";
 export type {
   LocalCorridor,
@@ -72,6 +72,7 @@ export {
 } from "./repositories/interventions.js";
 export type {
   Local311ServiceRequest,
+  LocalBusCustomerJourneyMetric,
   LocalBusWaitAssessment,
   LocalDotStreetPermit,
   LocalDotTrafficSpeed,
@@ -91,10 +92,13 @@ export {
   countWeatherObservations,
   insertDotTrafficSpeedSnapshot,
   insertDotTrafficVolumeCounts,
+  listBusCustomerJourneyMetricRowsForMonth,
+  listBusCustomerJourneyMetricRowsForRoute,
   listBusWaitAssessmentRowsForMonth,
   listBusWaitAssessmentRowsForRoute,
   listDotTrafficSpeedsForLink,
   listLatestDotTrafficSpeeds,
+  replaceBusCustomerJourneyMetricRows,
   replaceBusWaitAssessmentRows,
   upsert311ServiceRequests,
   upsertDotStreetPermits,
@@ -108,6 +112,14 @@ export {
   getGeocodeCacheRow,
   upsertGeocodeCacheRow,
 } from "./repositories/geocode-cache.js";
+export type { LocalGeocodeUpdate } from "./repositories/geocode-updates.js";
+export {
+  update311ServiceRequestGeocode,
+  updateDotStreetPermitGeocode,
+  updateNypdCollisionGeocode,
+  updateTrafficSpeedGeocode,
+  updateTrafficVolumeGeocode,
+} from "./repositories/geocode-updates.js";
 export type {
   LocalContextEvent,
   LocalContextEventRouteTouch,
@@ -120,6 +132,7 @@ export type {
 export {
   countContextEvents,
   insertCoverageAudit,
+  insertCoverageAuditIgnore,
   insertFindingCandidate,
   insertFindingEvidenceLinks,
   listCandidatesByRoute,
@@ -196,6 +209,7 @@ export {
   listBuildEligibleRouteIds,
   listRouteBuildPlan,
   listRouteCatalog,
+  listRouteCatalogIds,
   listRouteIdsWithLionLink,
   listRouteMonthCoverage,
   listRouteReadiness,
@@ -211,6 +225,7 @@ export type {
   LocalRouteHourlyRidership,
   LocalRouteScheduleTimepoint,
   LocalRouteSegmentSpeed,
+  LocalRouteSegmentSpeedCell,
   LocalRouteStop,
 } from "./repositories/route-slice.js";
 export {
@@ -218,11 +233,20 @@ export {
   listRouteHotspots,
   listRouteHourlyRidership,
   listRouteSchedules,
+  listRouteSegmentSpeedCells,
   listRouteSegmentSpeeds,
   listRouteStops,
   replaceRouteHotspots,
   replaceRouteHourlyRidership,
   replaceRouteSchedules,
+  replaceRouteSegmentSpeedCells,
   replaceRouteSegmentSpeeds,
   replaceRouteStops,
 } from "./repositories/route-slice.js";
+
+export {
+  replaceTier2InterventionStagingRows,
+  type LocalTier2InterventionStagingEvent,
+  type LocalTier2InterventionStagingEventRoute,
+  type LocalTier2InterventionStagingEventSourceSpan,
+} from "./repositories/tier2-intervention-staging.js";

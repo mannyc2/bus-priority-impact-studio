@@ -10,7 +10,8 @@ const RouteDetailPage = lazy(() =>
 );
 
 export const Route = createFileRoute("/routes/$routeId")({
-  loader: ({ params }) => fetchStudioRoute(params.routeId),
+  // One Tier-1 fetch (C2): history series ride in on the detail dossier.
+  loader: ({ params }) => fetchStudioRoute(params.routeId).then((detail) => ({ detail })),
   pendingComponent: RouteDetailRouteFallback,
   head: ({ params }) => routeHead(`${params.routeId} Route Detail`),
   component: RouteDetailRoute,
@@ -20,7 +21,7 @@ function RouteDetailRoute() {
   const data = Route.useLoaderData();
   return (
     <Suspense fallback={<RouteDetailRouteFallback />}>
-      <RouteDetailPage data={data} />
+      <RouteDetailPage data={data.detail} />
     </Suspense>
   );
 }

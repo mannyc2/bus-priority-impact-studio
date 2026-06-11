@@ -1,0 +1,22 @@
+CREATE TABLE `local_census_tract_equity_context` (
+	`acs_year` integer NOT NULL,
+	`geoid` text NOT NULL,
+	`state_fips` text NOT NULL,
+	`county_fips` text NOT NULL,
+	`tract_code` text NOT NULL,
+	`county_name` text NOT NULL,
+	`tract_name` text NOT NULL,
+	`total_population` integer,
+	`occupied_housing_units` integer,
+	`no_vehicle_households` integer,
+	`no_vehicle_household_share` real,
+	`median_household_income` integer,
+	`poverty_rate` real,
+	`public_transit_commuters` integer,
+	`public_transit_commuter_share` real,
+	`hispanic_share` real,
+	`non_hispanic_white_share` real,
+	`non_hispanic_black_share` real,
+	`non_hispanic_asian_share` real,
+	PRIMARY KEY(`acs_year`, `geoid`)
+);

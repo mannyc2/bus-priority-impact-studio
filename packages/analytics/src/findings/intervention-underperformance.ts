@@ -9,9 +9,8 @@ import {
   type FindingEvidenceLink,
   FindingEvidenceLinkSchema,
   FindingReasonCodeSchema,
-  IsoMonthSchema,
-  RouteIdSchema,
-} from "@bp/domain";
+} from "@bp/domain/findings";
+import { IsoMonthSchema, RouteIdSchema } from "@bp/domain/primitives";
 
 export const INTERVENTION_UNDERPERFORMANCE_DETECTOR_ID = "intervention_underperformance";
 
@@ -28,6 +27,10 @@ export type InterventionUnderperformanceRouteInput = {
   speedPainScore: number | null;
   reliabilityPainScore: number | null;
   comparisons: ReadonlyArray<InterventionUnderperformanceComparisonInput>;
+  routeTreatmentEvidenceCount?: number;
+  segmentTreatmentEvidenceCount?: number;
+  treatmentSourceRefs?: readonly string[];
+  treatmentSourceRefCount?: number;
 };
 
 export type InterventionUnderperformanceThresholds = {
@@ -178,6 +181,11 @@ export function detectInterventionUnderperformance(
             reliabilityPainScore: route.reliabilityPainScore,
             adjustedSpeedDeltaMph: hit.comparison.adjustedSpeedDeltaMph,
             comparisonRouteCount: hit.comparison.comparisonRouteCount,
+            routeTreatmentEvidenceCount: route.routeTreatmentEvidenceCount ?? null,
+            segmentTreatmentEvidenceCount: route.segmentTreatmentEvidenceCount ?? null,
+            treatmentSourceRefs: route.treatmentSourceRefs ?? [],
+            treatmentSourceRefCount:
+              route.treatmentSourceRefCount ?? route.treatmentSourceRefs?.length ?? 0,
           }),
           evidenceWeight: 1,
           note: null,
@@ -196,6 +204,11 @@ export function detectInterventionUnderperformance(
             selectedComparisonRouteCount: hit.comparison.comparisonRouteCount,
             configuredMinComparisonRouteCount: thresholds.minComparisonRouteCount,
             reliabilityPainScore: route.reliabilityPainScore,
+            routeTreatmentEvidenceCount: route.routeTreatmentEvidenceCount ?? null,
+            segmentTreatmentEvidenceCount: route.segmentTreatmentEvidenceCount ?? null,
+            treatmentSourceRefs: route.treatmentSourceRefs ?? [],
+            treatmentSourceRefCount:
+              route.treatmentSourceRefCount ?? route.treatmentSourceRefs?.length ?? 0,
             evaluatedComparisons: evaluatedComparisons.map((comparison) => ({
               eventId: comparison.eventId,
               interventionType: comparison.interventionType,

@@ -1,0 +1,672 @@
+{
+  "schemaVersion": 1,
+  "sourceId": "nyc_dot_street_opening_permits",
+  "checkedAt": "2026-05-25T21:34:07.486Z",
+  "metadataUrl": "https://data.cityofnewyork.us/api/views/9jic-byiu",
+  "metadata": {
+    "id": "9jic-byiu",
+    "name": "Street Opening Permits",
+    "description": "DOT issues over 150 different types of sidewalk and roadway construction permits to utilities, contractors, government agencies and homeowners. Permits cover activities such as street openings, sidewalk construction and installing canopies over sidewalks.\r\nThe core permit data, including permittee, type of permit, date issued, location.",
+    "attribution": "Department of Transportation (DOT)",
+    "rowsUpdatedAt": 1779741752,
+    "columns": [
+      {
+        "id": 612298808,
+        "name": "PermitNumber",
+        "dataTypeName": "text",
+        "fieldName": "permitnumber",
+        "description": "",
+        "position": 1,
+        "renderTypeName": "text",
+        "tableColumnId": 74591112,
+        "width": 244,
+        "format": {
+          "align": "left"
+        }
+      },
+      {
+        "id": 612298809,
+        "name": "ApplicationTrackingID",
+        "dataTypeName": "text",
+        "fieldName": "applicationtrackingid",
+        "description": "",
+        "position": 2,
+        "renderTypeName": "text",
+        "tableColumnId": 74591113,
+        "width": 352,
+        "format": {
+          "align": "left"
+        }
+      },
+      {
+        "id": 612298810,
+        "name": "SequenceNumber",
+        "dataTypeName": "text",
+        "fieldName": "sequencenumber",
+        "description": "",
+        "position": 3,
+        "renderTypeName": "text",
+        "tableColumnId": 74591114,
+        "width": 268,
+        "format": {
+          "align": "left"
+        }
+      },
+      {
+        "id": 612298811,
+        "name": "ApplicationTypeShortDesc",
+        "dataTypeName": "text",
+        "fieldName": "applicationtypeshortdesc",
+        "description": "",
+        "position": 4,
+        "renderTypeName": "text",
+        "tableColumnId": 74591115,
+        "width": 388,
+        "format": {
+          "align": "left"
+        }
+      },
+      {
+        "id": 612298812,
+        "name": "PermitStatusID",
+        "dataTypeName": "text",
+        "fieldName": "permitstatusid",
+        "description": "",
+        "position": 5,
+        "renderTypeName": "text",
+        "tableColumnId": 74591116,
+        "width": 268,
+        "format": {
+          "align": "left"
+        }
+      },
+      {
+        "id": 612298813,
+        "name": "PermitStatusShortDesc",
+        "dataTypeName": "text",
+        "fieldName": "permitstatusshortdesc",
+        "description": "",
+        "position": 6,
+        "renderTypeName": "text",
+        "tableColumnId": 74591117,
+        "width": 352,
+        "format": {
+          "align": "left"
+        }
+      },
+      {
+        "id": 612298814,
+        "name": "PermitSeriesID",
+        "dataTypeName": "text",
+        "fieldName": "permitseriesid",
+        "description": "",
+        "position": 7,
+        "renderTypeName": "text",
+        "tableColumnId": 74591118,
+        "width": 268,
+        "format": {
+          "align": "left"
+        }
+      },
+      {
+        "id": 612298815,
+        "name": "PermitSeriesShortDesc",
+        "dataTypeName": "text",
+        "fieldName": "permitseriesshortdesc",
+        "description": "",
+        "position": 8,
+        "renderTypeName": "text",
+        "tableColumnId": 74591119,
+        "width": 352,
+        "format": {
+          "align": "left"
+        }
+      },
+      {
+        "id": 612298816,
+        "name": "PermitTypeID",
+        "dataTypeName": "text",
+        "fieldName": "permittypeid",
+        "description": "",
+        "position": 9,
+        "renderTypeName": "text",
+        "tableColumnId": 74591120,
+        "width": 244,
+        "format": {
+          "align": "left"
+        }
+      },
+      {
+        "id": 612298817,
+        "name": "PermitTypeDesc",
+        "dataTypeName": "text",
+        "fieldName": "permittypedesc",
+        "description": "",
+        "position": 10,
+        "renderTypeName": "text",
+        "tableColumnId": 74591121,
+        "width": 268,
+        "format": {
+          "align": "left"
+        }
+      },
+      {
+        "id": 612298818,
+        "name": "PermitNumberOfZones",
+        "dataTypeName": "number",
+        "fieldName": "permitnumberofzones",
+        "description": "",
+        "position": 11,
+        "renderTypeName": "number",
+        "tableColumnId": 74591122,
+        "width": 328,
+        "format": {
+          "precisionStyle": "standard",
+          "align": "left"
+        }
+      },
+      {
+        "id": 612298819,
+        "name": "PermitLinearFeet",
+        "dataTypeName": "number",
+        "fieldName": "permitlinearfeet",
+        "description": "",
+        "position": 12,
+        "renderTypeName": "number",
+        "tableColumnId": 74591123,
+        "width": 292,
+        "format": {
+          "precisionStyle": "standard",
+          "align": "left"
+        }
+      },
+      {
+        "id": 612298820,
+        "name": "PermitTotalSqFeet",
+        "dataTypeName": "number",
+        "fieldName": "permittotalsqfeet",
+        "description": "",
+        "position": 13,
+        "renderTypeName": "number",
+        "tableColumnId": 74591124,
+        "width": 304,
+        "format": {
+          "precisionStyle": "standard",
+          "align": "left"
+        }
+      },
+      {
+        "id": 612298821,
+        "name": "PermitEstimatedNumberOfCuts",
+        "dataTypeName": "number",
+        "fieldName": "permitestimatednumberofcuts",
+        "description": "",
+        "position": 14,
+        "renderTypeName": "number",
+        "tableColumnId": 74591125,
+        "width": 424,
+        "format": {
+          "precisionStyle": "standard",
+          "align": "left"
+        }
+      },
+      {
+        "id": 612298822,
+        "name": "EquipmentTypeDesc",
+        "dataTypeName": "text",
+        "fieldName": "equipmenttypedesc",
+        "description": "",
+        "position": 15,
+        "renderTypeName": "text",
+        "tableColumnId": 74591126,
+        "width": 304,
+        "format": {
+          "align": "left"
+        }
+      },
+      {
+        "id": 612298823,
+        "name": "NumberOfContainers",
+        "dataTypeName": "number",
+        "fieldName": "numberofcontainers",
+        "description": "",
+        "position": 16,
+        "renderTypeName": "number",
+        "tableColumnId": 74591127,
+        "width": 316,
+        "format": {
+          "precisionStyle": "standard",
+          "align": "left"
+        }
+      },
+      {
+        "id": 612298824,
+        "name": "NumberOfMiniContainers",
+        "dataTypeName": "number",
+        "fieldName": "numberofminicontainers",
+        "description": "",
+        "position": 17,
+        "renderTypeName": "number",
+        "tableColumnId": 74591128,
+        "width": 364,
+        "format": {
+          "precisionStyle": "standard",
+          "align": "left"
+        }
+      },
+      {
+        "id": 612298825,
+        "name": "SpecificStipulations",
+        "dataTypeName": "text",
+        "fieldName": "specificstipulations",
+        "description": "",
+        "position": 18,
+        "renderTypeName": "text",
+        "tableColumnId": 74591129,
+        "width": 340,
+        "format": {
+          "align": "left"
+        }
+      },
+      {
+        "id": 612298826,
+        "name": "PreviousPermitNumber",
+        "dataTypeName": "text",
+        "fieldName": "previouspermitnumber",
+        "description": "",
+        "position": 19,
+        "renderTypeName": "text",
+        "tableColumnId": 74591130,
+        "width": 340,
+        "format": {
+          "align": "left"
+        }
+      },
+      {
+        "id": 612298827,
+        "name": "NextPermitNumber",
+        "dataTypeName": "text",
+        "fieldName": "nextpermitnumber",
+        "description": "",
+        "position": 20,
+        "renderTypeName": "text",
+        "tableColumnId": 74591131,
+        "width": 292,
+        "format": {
+          "align": "left"
+        }
+      },
+      {
+        "id": 612298828,
+        "name": "EmergencyIssueDate",
+        "dataTypeName": "calendar_date",
+        "fieldName": "emergencyissuedate",
+        "description": "",
+        "position": 21,
+        "renderTypeName": "calendar_date",
+        "tableColumnId": 145029988,
+        "width": 316,
+        "format": {
+          "view": "date_time",
+          "align": "left"
+        }
+      },
+      {
+        "id": 612298829,
+        "name": "PermitIssueDate",
+        "dataTypeName": "calendar_date",
+        "fieldName": "permitissuedate",
+        "description": "",
+        "position": 22,
+        "renderTypeName": "calendar_date",
+        "tableColumnId": 145029986,
+        "width": 280,
+        "format": {
+          "view": "date_time",
+          "align": "left"
+        }
+      },
+      {
+        "id": 612298830,
+        "name": "IssuedWorkStartDate",
+        "dataTypeName": "calendar_date",
+        "fieldName": "issuedworkstartdate",
+        "description": "",
+        "position": 23,
+        "renderTypeName": "calendar_date",
+        "tableColumnId": 145029985,
+        "width": 328,
+        "format": {
+          "view": "date_time",
+          "align": "left"
+        }
+      },
+      {
+        "id": 612298831,
+        "name": "IssuedWorkEndDate",
+        "dataTypeName": "calendar_date",
+        "fieldName": "issuedworkenddate",
+        "description": "",
+        "position": 24,
+        "renderTypeName": "calendar_date",
+        "tableColumnId": 145029990,
+        "width": 304,
+        "format": {
+          "view": "date_time",
+          "align": "left"
+        }
+      },
+      {
+        "id": 612298832,
+        "name": "BoroughName",
+        "dataTypeName": "text",
+        "fieldName": "boroughname",
+        "description": "",
+        "position": 25,
+        "renderTypeName": "text",
+        "tableColumnId": 74591136,
+        "width": 232,
+        "format": {
+          "align": "left"
+        }
+      },
+      {
+        "id": 612298833,
+        "name": "PermitHouseNumber",
+        "dataTypeName": "text",
+        "fieldName": "permithousenumber",
+        "description": "",
+        "position": 26,
+        "renderTypeName": "text",
+        "tableColumnId": 74591137,
+        "width": 304,
+        "format": {
+          "align": "left"
+        }
+      },
+      {
+        "id": 612298834,
+        "name": "OnStreetName",
+        "dataTypeName": "text",
+        "fieldName": "onstreetname",
+        "description": "",
+        "position": 27,
+        "renderTypeName": "text",
+        "tableColumnId": 74591138,
+        "width": 244,
+        "format": {
+          "align": "left"
+        }
+      },
+      {
+        "id": 612298835,
+        "name": "FromStreetName",
+        "dataTypeName": "text",
+        "fieldName": "fromstreetname",
+        "description": "",
+        "position": 28,
+        "renderTypeName": "text",
+        "tableColumnId": 74591139,
+        "width": 268,
+        "format": {
+          "align": "left"
+        }
+      },
+      {
+        "id": 612298836,
+        "name": "ToStreetName",
+        "dataTypeName": "text",
+        "fieldName": "tostreetname",
+        "description": "",
+        "position": 29,
+        "renderTypeName": "text",
+        "tableColumnId": 74591140,
+        "width": 244,
+        "format": {
+          "align": "left"
+        }
+      },
+      {
+        "id": 612298837,
+        "name": "PermitteeName",
+        "dataTypeName": "text",
+        "fieldName": "permitteename",
+        "description": "",
+        "position": 30,
+        "renderTypeName": "text",
+        "tableColumnId": 74591141,
+        "width": 256,
+        "format": {
+          "align": "left"
+        }
+      },
+      {
+        "id": 612298838,
+        "name": "PermitPurposeComments",
+        "dataTypeName": "text",
+        "fieldName": "permitpurposecomments",
+        "description": "",
+        "position": 31,
+        "renderTypeName": "text",
+        "tableColumnId": 74591142,
+        "width": 352,
+        "format": {
+          "align": "left"
+        }
+      },
+      {
+        "id": 612298839,
+        "name": "PermitLocationComments",
+        "dataTypeName": "text",
+        "fieldName": "permitlocationcomments",
+        "description": "",
+        "position": 32,
+        "renderTypeName": "text",
+        "tableColumnId": 74591143,
+        "width": 364,
+        "format": {
+          "align": "left"
+        }
+      },
+      {
+        "id": 612298840,
+        "name": "PavementShortDesc",
+        "dataTypeName": "text",
+        "fieldName": "pavementshortdesc",
+        "description": "",
+        "position": 33,
+        "renderTypeName": "text",
+        "tableColumnId": 74591144,
+        "width": 304,
+        "format": {
+          "align": "left"
+        }
+      },
+      {
+        "id": 612298841,
+        "name": "SideWalkShortDesc",
+        "dataTypeName": "text",
+        "fieldName": "sidewalkshortdesc",
+        "description": "",
+        "position": 34,
+        "renderTypeName": "text",
+        "tableColumnId": 74591145,
+        "width": 304,
+        "format": {
+          "align": "left"
+        }
+      },
+      {
+        "id": 612298842,
+        "name": "CreatedOn",
+        "dataTypeName": "calendar_date",
+        "fieldName": "createdon",
+        "description": "",
+        "position": 35,
+        "renderTypeName": "calendar_date",
+        "tableColumnId": 145029989,
+        "width": 208,
+        "format": {
+          "view": "date_time",
+          "align": "left"
+        }
+      },
+      {
+        "id": 612298843,
+        "name": "ModifiedOn",
+        "dataTypeName": "calendar_date",
+        "fieldName": "modifiedon",
+        "description": "",
+        "position": 36,
+        "renderTypeName": "calendar_date",
+        "tableColumnId": 145029987,
+        "width": 220,
+        "format": {
+          "view": "date_time",
+          "align": "left"
+        }
+      }
+    ],
+    "assetType": "filter",
+    "averageRating": 0,
+    "category": "Transportation",
+    "createdAt": 1581525198,
+    "diciBackend": false,
+    "displayType": "table",
+    "downloadCount": 130,
+    "hideFromCatalog": true,
+    "hideFromDataJson": true,
+    "locked": false,
+    "modifyingViewUid": "tqtj-sjs8",
+    "newBackend": true,
+    "numberOfComments": 0,
+    "oid": 41390135,
+    "provenance": "community",
+    "publicationAppendEnabled": true,
+    "publicationDate": 1581525237,
+    "publicationGroup": 15775502,
+    "publicationStage": "published",
+    "queryString": "SELECT `permitnumber`, `applicationtrackingid`, `sequencenumber`, `applicationtypeshortdesc`, `permitstatusid`, `permitstatusshortdesc`, `permitseriesid`, `permitseriesshortdesc`, `permittypeid`, `permittypedesc`, `permitnumberofzones`, `permitlinearfeet`, `permittotalsqfeet`, `permitestimatednumberofcuts`, `equipmenttypedesc`, `numberofcontainers`, `numberofminicontainers`, `specificstipulations`, `previouspermitnumber`, `nextpermitnumber`, `emergencyissuedate`, `permitissuedate`, `issuedworkstartdate`, `issuedworkenddate`, `boroughname`, `permithousenumber`, `onstreetname`, `fromstreetname`, `tostreetname`, `permitteename`, `permitpurposecomments`, `permitlocationcomments`, `pavementshortdesc`, `sidewalkshortdesc`, `createdon`, `modifiedon`",
+    "rowsUpdatedBy": "5fuc-pqz2",
+    "tableId": 19927883,
+    "totalTimesRated": 0,
+    "viewCount": 3797,
+    "viewLastModified": 1739323669,
+    "viewType": "tabular",
+    "approvals": [
+      {
+        "reviewedAt": 1581525237,
+        "reviewedAutomatically": true,
+        "state": "approved",
+        "submissionId": 6927898,
+        "submissionObject": "public_audience_request",
+        "submissionOutcome": "change_audience",
+        "submittedAt": 1581525237,
+        "targetAudience": "public",
+        "workflowId": 2285,
+        "submissionDetails": {
+          "permissionType": "READ"
+        },
+        "submissionOutcomeApplication": {
+          "endedAt": 1581525237,
+          "failureCount": 0,
+          "startedAt": 1581525237,
+          "status": "success"
+        },
+        "submitter": {
+          "id": "k8x4-edj4",
+          "displayName": "objornsson"
+        }
+      }
+    ],
+    "clientContext": {
+      "clientContextVariables": [],
+      "inheritedVariables": {}
+    },
+    "grants": [
+      {
+        "inherited": false,
+        "type": "viewer",
+        "flags": [
+          "public"
+        ]
+      }
+    ],
+    "metadata": {
+      "rdfSubject": "0",
+      "attachments": [
+        {
+          "filename": "Street_Construction_Permit_Collections_Data_Dictionary.xlsx",
+          "assetId": "421bcc6a-f5b9-4193-a6f8-f9fd2c3e05cc",
+          "name": "Street_Construction_Permit_Collections_Data_Dictionary.xlsx"
+        }
+      ],
+      "custom_fields": {
+        "Data Collection": {
+          "Data Collection": "DOT Street Construction Permits"
+        },
+        "Update": {
+          "Automation": "Yes",
+          "Date Made Public": "12/27/2018",
+          "Update Frequency": "Monthly"
+        },
+        "Dataset Information": {
+          "Agency": "Department of Transportation (DOT)"
+        }
+      },
+      "availableDisplayTypes": [
+        "table",
+        "fatrow",
+        "page"
+      ],
+      "rowLabel": "Street Construction Permit ",
+      "renderTypeConfig": {
+        "visible": {
+          "table": true
+        }
+      }
+    },
+    "owner": {
+      "id": "k8x4-edj4",
+      "displayName": "objornsson",
+      "screenName": "objornsson",
+      "type": "interactive",
+      "flags": [
+        "acceptedEula"
+      ]
+    },
+    "query": {},
+    "rights": [
+      "read"
+    ],
+    "tableAuthor": {
+      "id": "5fuc-pqz2",
+      "displayName": "NYC OpenData",
+      "profileImageUrlLarge": "/api/users/5fuc-pqz2/profile_images/LARGE",
+      "profileImageUrlMedium": "/api/users/5fuc-pqz2/profile_images/THUMB",
+      "profileImageUrlSmall": "/api/users/5fuc-pqz2/profile_images/TINY",
+      "screenName": "NYC OpenData",
+      "type": "interactive",
+      "flags": [
+        "acceptedEula",
+        "mayBeStoriesCoOwner"
+      ]
+    },
+    "tags": [
+      "permit",
+      "street work",
+      "construction",
+      "cut",
+      "mosaics",
+      "nycstreets",
+      "ocmc"
+    ],
+    "flags": [
+      "calculatedView",
+      "ownerMayBeContacted",
+      "restorable",
+      "restorePossibleForType",
+      "soqlBasedView"
+    ]
+  }
+}

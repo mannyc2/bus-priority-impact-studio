@@ -58,7 +58,9 @@ describe("detectPersistentSpeedHotspots", () => {
     expect(out.evidence).toHaveLength(2);
     expect(out.evidence[0]?.evidenceKind as string).toBe("metric");
     expect(out.evidence.map((link) => link.evidenceRole as string)).toContain("counter_evidence");
-    expect(out.coverage[0]?.outcome as string).toBe("hit");
+    expect(out.coverage).toHaveLength(2);
+    expect(out.coverage.find((row) => row.scopeKind === "segment")?.outcome as string).toBe("hit");
+    expect(out.coverage.find((row) => row.scopeKind === "route")?.outcome as string).toBe("hit");
   });
 
   test("emits clean coverage when speed data exists but no hotspot crosses threshold", () => {
@@ -80,8 +82,13 @@ describe("detectPersistentSpeedHotspots", () => {
 
     expect(out.candidates).toHaveLength(0);
     expect(out.evidence).toHaveLength(0);
-    expect(out.coverage).toHaveLength(1);
-    expect(out.coverage[0]?.outcome as string).toBe("clean_no_hit");
+    expect(out.coverage).toHaveLength(2);
+    expect(out.coverage.find((row) => row.scopeKind === "segment")?.outcome as string).toBe(
+      "clean_no_hit",
+    );
+    expect(out.coverage.find((row) => row.scopeKind === "route")?.outcome as string).toBe(
+      "clean_no_hit",
+    );
   });
 
   test("skips routes without speed input instead of treating silence as clean", () => {

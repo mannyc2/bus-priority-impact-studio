@@ -30,9 +30,14 @@ sources:
     domain: data.ny.gov
     dataset_id: kufs-yh3x
     url: https://data.ny.gov/Transportation/MTA-Bus-Route-Segment-Speeds-Beginning-2025/kufs-yh3x
-    api_json: https://data.ny.gov/resource/kufs-yh3x.json
-    columns_json: https://data.ny.gov/api/views/kufs-yh3x/columns.json
-    rows_csv: https://data.ny.gov/api/views/kufs-yh3x/rows.csv?accessType=DOWNLOAD
+    api: soda3
+    default_access:
+      kind: query
+      format: json
+    backfill:
+      kind: soda3_export
+      format: csv
+      supportsByteRange: false
     purpose: Core observed bus speeds/travel times by route/timepoint/month/day/hour.
     status: active
 
@@ -42,9 +47,14 @@ sources:
     domain: data.ny.gov
     dataset_id: 58t6-89vi
     url: https://data.ny.gov/Transportation/MTA-Bus-Route-Segment-Speeds-2023-2024/58t6-89vi
-    api_json: https://data.ny.gov/resource/58t6-89vi.json
-    columns_json: https://data.ny.gov/api/views/58t6-89vi/columns.json
-    rows_csv: https://data.ny.gov/api/views/58t6-89vi/rows.csv?accessType=DOWNLOAD
+    api: soda3
+    default_access:
+      kind: query
+      format: json
+    backfill:
+      kind: soda3_export
+      format: csv
+      supportsByteRange: false
     purpose: Historical speed baseline for pre-2025 analysis.
     status: active
 
@@ -54,9 +64,14 @@ sources:
     domain: data.ny.gov
     dataset_id: r6db-kkzj
     url: https://data.ny.gov/Transportation/MTA-Central-Business-District-Bus-Speeds-Beginning/r6db-kkzj
-    api_json: https://data.ny.gov/resource/r6db-kkzj.json
-    columns_json: https://data.ny.gov/api/views/r6db-kkzj/columns.json
-    rows_csv: https://data.ny.gov/api/views/r6db-kkzj/rows.csv?accessType=DOWNLOAD
+    api: soda3
+    default_access:
+      kind: query
+      format: json
+    backfill:
+      kind: soda3_export
+      format: csv
+      supportsByteRange: false
     purpose: CBD-specific speed analysis, useful for congestion-zone context.
     status: active
 
@@ -66,9 +81,14 @@ sources:
     domain: data.ny.gov
     dataset_id: h2wf-afav
     url: https://data.ny.gov/Transportation/MTA-Current-Bus-Routes/h2wf-afav
-    api_json: https://data.ny.gov/resource/h2wf-afav.json
-    columns_json: https://data.ny.gov/api/views/h2wf-afav/columns.json
-    rows_csv: https://data.ny.gov/api/views/h2wf-afav/rows.csv?accessType=DOWNLOAD
+    api: soda3
+    default_access:
+      kind: query
+      format: json
+    backfill:
+      kind: soda3_export
+      format: csv
+      supportsByteRange: false
     purpose: Current route-shape polylines and route metadata.
     status: active
 
@@ -78,9 +98,14 @@ sources:
     domain: data.ny.gov
     dataset_id: ai5j-txmn
     url: https://data.ny.gov/Transportation/MTA-Current-Bus-Stops/ai5j-txmn
-    api_json: https://data.ny.gov/resource/ai5j-txmn.json
-    columns_json: https://data.ny.gov/api/views/ai5j-txmn/columns.json
-    rows_csv: https://data.ny.gov/api/views/ai5j-txmn/rows.csv?accessType=DOWNLOAD
+    api: soda3
+    default_access:
+      kind: query
+      format: json
+    backfill:
+      kind: soda3_export
+      format: csv
+      supportsByteRange: false
     purpose: Current stop points, timepoint flags, CBD flags, route/direction links.
     status: active
 
@@ -90,9 +115,14 @@ sources:
     domain: data.cityofnewyork.us
     dataset_id: gthc-hcne
     url: https://data.cityofnewyork.us/City-Government/Borough-Boundaries/gthc-hcne
-    api_json: https://data.cityofnewyork.us/resource/gthc-hcne.json
-    columns_json: https://data.cityofnewyork.us/api/views/gthc-hcne/columns.json
-    rows_csv: https://data.cityofnewyork.us/api/views/gthc-hcne/rows.csv?accessType=DOWNLOAD
+    api: soda3
+    default_access:
+      kind: query
+      format: json
+    backfill:
+      kind: soda3_export
+      format: csv
+      supportsByteRange: false
     purpose: NYC five-borough clipping and scope boundary; water areas excluded.
     status: active
 
@@ -102,9 +132,14 @@ sources:
     domain: data.ny.gov
     dataset_id: bzwk-3hb4
     url: https://data.ny.gov/Transportation/MTA-Bus-Routes/bzwk-3hb4
-    api_json: https://data.ny.gov/resource/bzwk-3hb4.json
-    columns_json: https://data.ny.gov/api/views/bzwk-3hb4/columns.json
-    rows_csv: https://data.ny.gov/api/views/bzwk-3hb4/rows.csv?accessType=DOWNLOAD
+    api: soda3
+    default_access:
+      kind: query
+      format: json
+    backfill:
+      kind: soda3_export
+      format: csv
+      supportsByteRange: false
     purpose: Route shapes across schedule bundles; useful for historical comparisons.
     status: active
 
@@ -114,9 +149,14 @@ sources:
     domain: data.ny.gov
     dataset_id: 2ucp-7wg5
     url: https://data.ny.gov/Transportation/MTA-Bus-Stops/2ucp-7wg5
-    api_json: https://data.ny.gov/resource/2ucp-7wg5.json
-    columns_json: https://data.ny.gov/api/views/2ucp-7wg5/columns.json
-    rows_csv: https://data.ny.gov/api/views/2ucp-7wg5/rows.csv?accessType=DOWNLOAD
+    api: soda3
+    default_access:
+      kind: query
+      format: json
+    backfill:
+      kind: soda3_export
+      format: csv
+      supportsByteRange: false
     purpose: Stop points across schedule bundles; useful for historical comparisons.
     status: active
 
@@ -126,9 +166,14 @@ sources:
     domain: data.ny.gov
     dataset_id: gxb3-akrn
     url: https://data.ny.gov/Transportation/MTA-Bus-Hourly-Ridership-Beginning-2025/gxb3-akrn
-    api_json: https://data.ny.gov/resource/gxb3-akrn.json
-    columns_json: https://data.ny.gov/api/views/gxb3-akrn/columns.json
-    rows_csv: https://data.ny.gov/api/views/gxb3-akrn/rows.csv?accessType=DOWNLOAD
+    api: soda3
+    default_access:
+      kind: query
+      format: json
+    backfill:
+      kind: soda3_export
+      format: csv
+      supportsByteRange: false
     purpose: Ridership weighting by route/hour/fare class.
     status: active
 
@@ -138,9 +183,14 @@ sources:
     domain: data.ny.gov
     dataset_id: kv7t-n8in
     url: https://data.ny.gov/Transportation/MTA-Bus-Hourly-Ridership-2020-2024/kv7t-n8in
-    api_json: https://data.ny.gov/resource/kv7t-n8in.json
-    columns_json: https://data.ny.gov/api/views/kv7t-n8in/columns.json
-    rows_csv: https://data.ny.gov/api/views/kv7t-n8in/rows.csv?accessType=DOWNLOAD
+    api: soda3
+    default_access:
+      kind: query
+      format: json
+    backfill:
+      kind: soda3_export
+      format: csv
+      supportsByteRange: false
     purpose: Historical ridership baseline.
     status: active
 
@@ -150,10 +200,66 @@ sources:
     domain: data.ny.gov
     dataset_id: 4fnn-qsea
     url: https://data.ny.gov/Transportation/MTA-Bus-Schedules-2026/4fnn-qsea
-    api_json: https://data.ny.gov/resource/4fnn-qsea.json
-    columns_json: https://data.ny.gov/api/views/4fnn-qsea/columns.json
-    rows_csv: https://data.ny.gov/api/views/4fnn-qsea/rows.csv?accessType=DOWNLOAD
+    api: soda3
+    default_access:
+      kind: query
+      format: json
+    backfill:
+      kind: soda3_export
+      format: csv
+      supportsByteRange: false
     purpose: Scheduled timepoint rows for planned travel times and schedule-adherence context.
+    status: active
+
+  - id: bus_schedules_2025
+    type: socrata_dataset
+    priority: core
+    domain: data.ny.gov
+    dataset_id: t4bz-xqa9
+    url: https://data.ny.gov/Transportation/MTA-Bus-Schedules-2025/t4bz-xqa9
+    api: soda3
+    default_access:
+      kind: query
+      format: json
+    backfill:
+      kind: soda3_export
+      format: csv
+      supportsByteRange: false
+    purpose: Historical full scheduled bus stop rows for 2025 raw schedule-derived EWT and schedule-mismatch features.
+    status: active
+
+  - id: bus_schedules_2024
+    type: socrata_dataset
+    priority: core
+    domain: data.ny.gov
+    dataset_id: udt9-hvjq
+    url: https://data.ny.gov/Transportation/MTA-Bus-Schedules-2024/udt9-hvjq
+    api: soda3
+    default_access:
+      kind: query
+      format: json
+    backfill:
+      kind: soda3_export
+      format: csv
+      supportsByteRange: false
+    purpose: Historical full scheduled bus stop rows for 2024 raw schedule-derived EWT and schedule-mismatch features.
+    status: active
+
+  - id: bus_schedules_2023
+    type: socrata_dataset
+    priority: core
+    domain: data.ny.gov
+    dataset_id: x5mx-4rfs
+    url: https://data.ny.gov/Transportation/MTA-Bus-Schedules-2023/x5mx-4rfs
+    api: soda3
+    default_access:
+      kind: query
+      format: json
+    backfill:
+      kind: soda3_export
+      format: csv
+      supportsByteRange: false
+    purpose: Historical full scheduled bus stop rows for 2023 raw schedule-derived EWT and schedule-mismatch features.
     status: active
 
   - id: ace_routes
@@ -162,9 +268,14 @@ sources:
     domain: data.ny.gov
     dataset_id: ki2b-sg5y
     url: https://data.ny.gov/Transportation/MTA-Bus-Automated-Camera-Enforced-Routes-Beginning/ki2b-sg5y
-    api_json: https://data.ny.gov/resource/ki2b-sg5y.json
-    columns_json: https://data.ny.gov/api/views/ki2b-sg5y/columns.json
-    rows_csv: https://data.ny.gov/api/views/ki2b-sg5y/rows.csv?accessType=DOWNLOAD
+    api: soda3
+    default_access:
+      kind: query
+      format: json
+    backfill:
+      kind: soda3_export
+      format: csv
+      supportsByteRange: false
     purpose: ACE/ABLE implementation dates by route.
     status: active
 
@@ -174,9 +285,14 @@ sources:
     domain: data.ny.gov
     dataset_id: kh8p-hcbm
     url: https://data.ny.gov/Transportation/MTA-Bus-Automated-Camera-Enforcement-Violations-Be/kh8p-hcbm
-    api_json: https://data.ny.gov/resource/kh8p-hcbm.json
-    columns_json: https://data.ny.gov/api/views/kh8p-hcbm/columns.json
-    rows_csv: https://data.ny.gov/api/views/kh8p-hcbm/rows.csv?accessType=DOWNLOAD
+    api: soda3
+    default_access:
+      kind: query
+      format: json
+    backfill:
+      kind: soda3_export
+      format: csv
+      supportsByteRange: false
     purpose: ACE violation records for enforcement intensity and blocked-lane/blocked-stop context.
     status: active
 
@@ -186,9 +302,14 @@ sources:
     domain: data.cityofnewyork.us
     dataset_id: ycrg-ses3
     url: https://data.cityofnewyork.us/Transportation/Bus-Lanes-Local-Streets/ycrg-ses3
-    api_json: https://data.cityofnewyork.us/resource/ycrg-ses3.json
-    columns_json: https://data.cityofnewyork.us/api/views/ycrg-ses3/columns.json
-    rows_csv: https://data.cityofnewyork.us/api/views/ycrg-ses3/rows.csv?accessType=DOWNLOAD
+    api: soda3
+    default_access:
+      kind: query
+      format: json
+    backfill:
+      kind: soda3_export
+      format: csv
+      supportsByteRange: false
     purpose: Local-street bus-lane segments based on NYC LION street segments.
     status: active
 
@@ -306,10 +427,32 @@ sources:
     domain: data.ny.gov
     dataset_id: v4z4-2h6n
     url: https://data.ny.gov/Transportation/MTA-Bus-Wait-Assessment-Beginning-2020/v4z4-2h6n
-    api_json: https://data.ny.gov/resource/v4z4-2h6n.json
-    columns_json: https://data.ny.gov/api/views/v4z4-2h6n/columns.json
-    rows_csv: https://data.ny.gov/api/views/v4z4-2h6n/rows.csv?accessType=DOWNLOAD
+    api: soda3
+    default_access:
+      kind: query
+      format: json
+    backfill:
+      kind: soda3_export
+      format: csv
+      supportsByteRange: false
     purpose: Official MTA monthly route-level wait assessment to cross-check GTFS-RT-derived reliability.
+    status: active
+
+  - id: bus_customer_journey_metrics
+    type: socrata_dataset
+    priority: secondary
+    domain: data.ny.gov
+    dataset_id: 8mkn-d32t
+    url: https://data.ny.gov/Transportation/MTA-Bus-Customer-Journey-Focused-Metrics-Beginning/8mkn-d32t
+    api: soda3
+    default_access:
+      kind: query
+      format: json
+    backfill:
+      kind: soda3_export
+      format: csv
+      supportsByteRange: false
+    purpose: Official MTA monthly route-level customer journey metrics; Additional Bus Stop Time (ABST) is the compact schedule-relative wait aggregate used for 36-month route-month EWT baseline priors.
     status: active
 
   - id: nyc_dot_traffic_speeds
@@ -318,9 +461,14 @@ sources:
     domain: data.cityofnewyork.us
     dataset_id: i4gi-tjb9
     url: https://data.cityofnewyork.us/Transportation/Real-Time-Traffic-Speed-Data/i4gi-tjb9
-    api_json: https://data.cityofnewyork.us/resource/i4gi-tjb9.json
-    columns_json: https://data.cityofnewyork.us/api/views/i4gi-tjb9/columns.json
-    rows_csv: https://data.cityofnewyork.us/api/views/i4gi-tjb9/rows.csv?accessType=DOWNLOAD
+    api: soda3
+    default_access:
+      kind: query
+      format: json
+    backfill:
+      kind: soda3_export
+      format: csv
+      supportsByteRange: false
     purpose: Real-time NYC DOT traffic-speed snapshot per street link (id, speed, travel time, link geometry) for road-congestion context near slow bus segments.
     status: active
 
@@ -330,9 +478,14 @@ sources:
     domain: data.cityofnewyork.us
     dataset_id: tqtj-sjs8
     url: https://data.cityofnewyork.us/Transportation/Street-Construction-Permits/tqtj-sjs8
-    api_json: https://data.cityofnewyork.us/resource/tqtj-sjs8.json
-    columns_json: https://data.cityofnewyork.us/api/views/tqtj-sjs8/columns.json
-    rows_csv: https://data.cityofnewyork.us/api/views/tqtj-sjs8/rows.csv?accessType=DOWNLOAD
+    api: soda3
+    default_access:
+      kind: query
+      format: json
+    backfill:
+      kind: soda3_export
+      format: csv
+      supportsByteRange: false
     purpose: NYC DOT street construction permits with effective work windows; explains hotspots near construction zones.
     status: active
 
@@ -342,9 +495,14 @@ sources:
     domain: data.cityofnewyork.us
     dataset_id: 9jic-byiu
     url: https://data.cityofnewyork.us/Transportation/Street-Opening-Permits/9jic-byiu
-    api_json: https://data.cityofnewyork.us/resource/9jic-byiu.json
-    columns_json: https://data.cityofnewyork.us/api/views/9jic-byiu/columns.json
-    rows_csv: https://data.cityofnewyork.us/api/views/9jic-byiu/rows.csv?accessType=DOWNLOAD
+    api: soda3
+    default_access:
+      kind: query
+      format: json
+    backfill:
+      kind: soda3_export
+      format: csv
+      supportsByteRange: false
     purpose: NYC DOT street opening (utility/excavation) permits with effective work windows.
     status: alias_of_construction_permits
     notes: |
@@ -360,9 +518,14 @@ sources:
     domain: data.cityofnewyork.us
     dataset_id: 7ym2-wayt
     url: https://data.cityofnewyork.us/Transportation/Automated-Traffic-Volume-Counts/7ym2-wayt
-    api_json: https://data.cityofnewyork.us/resource/7ym2-wayt.json
-    columns_json: https://data.cityofnewyork.us/api/views/7ym2-wayt/columns.json
-    rows_csv: https://data.cityofnewyork.us/api/views/7ym2-wayt/rows.csv?accessType=DOWNLOAD
+    api: soda3
+    default_access:
+      kind: query
+      format: json
+    backfill:
+      kind: soda3_export
+      format: csv
+      supportsByteRange: false
     purpose: NYC DOT automated traffic volume counts per street segment; structural traffic context.
     status: active
 
@@ -372,9 +535,14 @@ sources:
     domain: data.cityofnewyork.us
     dataset_id: h9gi-nx95
     url: https://data.cityofnewyork.us/Public-Safety/Motor-Vehicle-Collisions-Crashes/h9gi-nx95
-    api_json: https://data.cityofnewyork.us/resource/h9gi-nx95.json
-    columns_json: https://data.cityofnewyork.us/api/views/h9gi-nx95/columns.json
-    rows_csv: https://data.cityofnewyork.us/api/views/h9gi-nx95/rows.csv?accessType=DOWNLOAD
+    api: soda3
+    default_access:
+      kind: query
+      format: json
+    backfill:
+      kind: soda3_export
+      format: csv
+      supportsByteRange: false
     purpose: NYPD motor vehicle collisions; safety + crash-disruption context near bus hotspots.
     status: active
 
@@ -384,9 +552,14 @@ sources:
     domain: data.cityofnewyork.us
     dataset_id: erm2-nwe9
     url: https://data.cityofnewyork.us/Social-Services/311-Service-Requests-from-2020-present/erm2-nwe9
-    api_json: https://data.cityofnewyork.us/resource/erm2-nwe9.json
-    columns_json: https://data.cityofnewyork.us/api/views/erm2-nwe9/columns.json
-    rows_csv: https://data.cityofnewyork.us/api/views/erm2-nwe9/rows.csv?accessType=DOWNLOAD
+    api: soda3
+    default_access:
+      kind: query
+      format: json
+    backfill:
+      kind: soda3_export
+      format: csv
+      supportsByteRange: false
     purpose: 311 complaints filtered to bus-relevant types (Blocked Driveway, Illegal Parking, Traffic Signal Condition, Street Condition, Bus Stop Condition, Posted Parking Sign Violation).
     status: active
 
@@ -396,9 +569,14 @@ sources:
     domain: data.cityofnewyork.us
     dataset_id: 76ig-c548
     url: https://data.cityofnewyork.us/Social-Services/311-Service-Requests-from-2010-to-2019/76ig-c548
-    api_json: https://data.cityofnewyork.us/resource/76ig-c548.json
-    columns_json: https://data.cityofnewyork.us/api/views/76ig-c548/columns.json
-    rows_csv: https://data.cityofnewyork.us/api/views/76ig-c548/rows.csv?accessType=DOWNLOAD
+    api: soda3
+    default_access:
+      kind: query
+      format: json
+    backfill:
+      kind: soda3_export
+      format: csv
+      supportsByteRange: false
     purpose: 311 historical complaints (2010-2019), same filter set; longitudinal baseline.
     status: active
 
@@ -408,9 +586,14 @@ sources:
     domain: data.cityofnewyork.us
     dataset_id: 869v-vr48
     url: https://data.cityofnewyork.us/City-Government/Parking-Violations-Issued-Fiscal-Year-2023/869v-vr48
-    api_json: https://data.cityofnewyork.us/resource/869v-vr48.json
-    columns_json: https://data.cityofnewyork.us/api/views/869v-vr48/columns.json
-    rows_csv: https://data.cityofnewyork.us/api/views/869v-vr48/rows.csv?accessType=DOWNLOAD
+    api: soda3
+    default_access:
+      kind: query
+      format: json
+    backfill:
+      kind: soda3_export
+      format: csv
+      supportsByteRange: false
     purpose: Parking violations filtered to bus-relevant codes for fiscal year 2023.
     status: active
 
@@ -420,9 +603,14 @@ sources:
     domain: data.cityofnewyork.us
     dataset_id: 8zf9-spf8
     url: https://data.cityofnewyork.us/City-Government/Parking-Violations-Issued-Fiscal-Year-2024/8zf9-spf8
-    api_json: https://data.cityofnewyork.us/resource/8zf9-spf8.json
-    columns_json: https://data.cityofnewyork.us/api/views/8zf9-spf8/columns.json
-    rows_csv: https://data.cityofnewyork.us/api/views/8zf9-spf8/rows.csv?accessType=DOWNLOAD
+    api: soda3
+    default_access:
+      kind: query
+      format: json
+    backfill:
+      kind: soda3_export
+      format: csv
+      supportsByteRange: false
     purpose: Parking violations filtered to bus-relevant codes for fiscal year 2024.
     status: active
 
@@ -432,9 +620,14 @@ sources:
     domain: data.cityofnewyork.us
     dataset_id: m5vz-tzqv
     url: https://data.cityofnewyork.us/City-Government/Parking-Violations-Issued-Fiscal-Year-2025/m5vz-tzqv
-    api_json: https://data.cityofnewyork.us/resource/m5vz-tzqv.json
-    columns_json: https://data.cityofnewyork.us/api/views/m5vz-tzqv/columns.json
-    rows_csv: https://data.cityofnewyork.us/api/views/m5vz-tzqv/rows.csv?accessType=DOWNLOAD
+    api: soda3
+    default_access:
+      kind: query
+      format: json
+    backfill:
+      kind: soda3_export
+      format: csv
+      supportsByteRange: false
     purpose: Parking violations filtered to bus-relevant codes for fiscal year 2025.
     status: active
 
@@ -444,9 +637,14 @@ sources:
     domain: data.cityofnewyork.us
     dataset_id: pvqr-7yc4
     url: https://data.cityofnewyork.us/City-Government/Parking-Violations-Issued-Fiscal-Year-2026/pvqr-7yc4
-    api_json: https://data.cityofnewyork.us/resource/pvqr-7yc4.json
-    columns_json: https://data.cityofnewyork.us/api/views/pvqr-7yc4/columns.json
-    rows_csv: https://data.cityofnewyork.us/api/views/pvqr-7yc4/rows.csv?accessType=DOWNLOAD
+    api: soda3
+    default_access:
+      kind: query
+      format: json
+    backfill:
+      kind: soda3_export
+      format: csv
+      supportsByteRange: false
     purpose: Parking violations filtered to bus-relevant codes for fiscal year 2026 (5 bus lane, 14/31/67 bus stop / standing in bus stop, etc.).
     status: active
 
@@ -456,9 +654,14 @@ sources:
     domain: data.cityofnewyork.us
     dataset_id: inkn-q76z
     url: https://data.cityofnewyork.us/City-Government/Centerline/inkn-q76z
-    api_json: https://data.cityofnewyork.us/resource/inkn-q76z.json
-    columns_json: https://data.cityofnewyork.us/api/views/inkn-q76z/columns.json
-    rows_csv: https://data.cityofnewyork.us/api/views/inkn-q76z/rows.csv?accessType=DOWNLOAD
+    api: soda3
+    default_access:
+      kind: query
+      format: json
+    backfill:
+      kind: soda3_export
+      format: csv
+      supportsByteRange: false
     purpose: NYC Centerline (LION) street segments — stable physical_id for joining DOT permits, 311, parking, traffic volume, and bus-route street refs.
     status: active
 

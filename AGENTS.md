@@ -71,6 +71,28 @@ Forbidden:
 - Source registry and source captures: `knowledge/raw/`
 - Generated datasets/artifacts: `data/` with large files gitignored
 
+## Local environment and secrets
+
+Local secrets live in gitignored `.env` files. Bun loads the repo-root `.env` for Bun-run scripts,
+so pipeline commands can see keys even when a plain shell `printenv` reports them as missing.
+
+When checking provider setup, use a Bun preflight instead of raw shell environment checks:
+
+```sh
+bun run env:check:llm
+```
+
+Do not print secret values. If a long-running shell command or tmux session is launched through
+`bash`, either invoke `bun` from the repo root or source the gitignored env files before the Bun
+command. Prefer the repo-local wrapper when launching non-Bun shell commands:
+
+```sh
+scripts/with-repo-env.sh -- bun --filter @bp/pipeline-v2 cli -- <command>
+```
+
+Do not use `printenv` as the provider-readiness check; it reads only the parent shell environment
+and can report false missing values for keys that Bun will load from `.env`.
+
 ## Verification
 
 Before declaring implementation done, run the smallest relevant verification with Bun and the Cloudflare Worker harness where applicable. Prefer fixture-backed tests over live network tests. Do not fabricate test results.

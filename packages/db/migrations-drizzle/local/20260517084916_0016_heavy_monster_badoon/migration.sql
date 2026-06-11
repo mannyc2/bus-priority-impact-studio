@@ -1,0 +1,2 @@
+ALTER TABLE `local_corridor_route_member` ADD `matched_segment_count` integer DEFAULT 0 NOT NULL;--> statement-breakpoint
+ALTER TABLE `local_corridor_route_member` ADD `segment_evidence_score` real DEFAULT 0 NOT NULL;
