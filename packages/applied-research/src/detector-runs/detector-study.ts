@@ -53,10 +53,10 @@ import {
 import type {
   CustomerJourneyFeature,
   InterventionPanelFeature,
+  PositiveDevianceFeature,
   StopDirectionHourFeature,
 } from "@bp/analytics/features";
 import {
-  featureContractsForGrains,
   ROUTE_SEGMENT_TREATMENT_SUMMARY_FEATURE_GRAIN,
   ROUTE_TREATMENT_SOURCE_GAP_FEATURE_GRAIN,
   ROUTE_TREATMENT_SUMMARY_FEATURE_GRAIN,
@@ -118,7 +118,7 @@ import {
   type RouteSegmentHistoricalSpeedSummarySourceRow,
   type RouteSegmentSpeedSummarySourceRow,
 } from "../feature-resolvers/treatment-detector-inputs";
-import { featureResolverSupport } from "./feature-resolver-support";
+import { detectorInputFeatureContractSatisfaction } from "./detector-input-assembly";
 import {
   buildRegistryDetectorRunArtifact,
   type DetectorOutput,
@@ -176,6 +176,8 @@ export type DetectorStudySourceRows = {
   readonly customerJourneyFeatures?: readonly CustomerJourneyFeature[];
   readonly customerJourneyRouteRollups?: readonly CustomerJourneyRouteRollup[];
   readonly customerJourneySummary?: Record<string, unknown>;
+  readonly positiveDevianceFeatures?: readonly PositiveDevianceFeature[];
+  readonly positiveDevianceSummary?: Record<string, unknown>;
   readonly persistentSpeedHotspotRoutes?: readonly PersistentSpeedHotspotRouteInput[];
   readonly multiMonthSpeedPeerRoutes?: readonly MultiMonthSpeedPeerRouteInput[];
   readonly observedReliabilityRoutes?: readonly ObservedReliabilityRouteInput[];
@@ -230,17 +232,7 @@ function requireRows<T>(
 export function detectorStudyFeatureContractSatisfaction(input: {
   readonly detectorId: string;
 }): FeatureContractSatisfaction[] {
-  const detector = getAnalyticsDetector(input.detectorId);
-  if (detector === null) throw new Error(`Unknown detector: ${input.detectorId}`);
-  return featureContractsForGrains(detector.featureGrains).map((contract) => {
-    const support = featureResolverSupport(contract.resolverId);
-    return {
-      featureGrain: contract.featureGrain,
-      resolverId: contract.resolverId,
-      status: support.status,
-      reason: support.reason,
-    };
-  });
+  return detectorInputFeatureContractSatisfaction(input);
 }
 
 function detectorForStudy(detectorId: string): RegisteredAnalyticsDetector {
@@ -249,16 +241,18 @@ function detectorForStudy(detectorId: string): RegisteredAnalyticsDetector {
   return detector;
 }
 
-function runResolvedDetectorStudy(input: {
+type RunResolvedDetectorStudyInput = {
   readonly metadata: DetectorStudyMetadata;
   readonly detectorInput: unknown;
   readonly inputSummary: Record<string, unknown>;
   readonly modelDependencies: readonly ModelArtifactDependency[];
-}): RegistryDetectorStudyResult {
+  readonly featureContracts: readonly FeatureContractSatisfaction[];
+};
+
+function runResolvedDetectorStudy(
+  input: RunResolvedDetectorStudyInput,
+): RegistryDetectorStudyResult {
   const detector = detectorForStudy(input.metadata.detectorId);
-  const featureContracts = detectorStudyFeatureContractSatisfaction({
-    detectorId: input.metadata.detectorId,
-  });
   const resolver: FeatureResolver<unknown> = {
     resolverId: "applied_research.detector_study_rows.v1",
     resolve: (request) => {
@@ -270,7 +264,7 @@ function runResolvedDetectorStudy(input: {
       return {
         detectorInput: input.detectorInput,
         inputSummary: input.inputSummary,
-        featureContracts,
+        featureContracts: input.featureContracts,
       };
     },
   };
@@ -483,8 +477,21 @@ function interventionPanelCandidateCausalEligibleCount(
 export function runRegistryDetectorStudy(input: {
   readonly metadata: DetectorStudyMetadata;
   readonly rows: DetectorStudySourceRows;
+  readonly featureContracts?: readonly FeatureContractSatisfaction[];
 }): RegistryDetectorStudyResult {
   const { metadata, rows } = input;
+  const featureContracts =
+    input.featureContracts ??
+    detectorStudyFeatureContractSatisfaction({
+      detectorId: metadata.detectorId,
+    });
+  const runResolved = (
+    resolved: Omit<RunResolvedDetectorStudyInput, "featureContracts">,
+  ): RegistryDetectorStudyResult =>
+    runResolvedDetectorStudy({
+      ...resolved,
+      featureContracts,
+    });
   const modelDependencies = detectorModelDependencySatisfaction({
     detectorId: metadata.detectorId,
     rows,
@@ -505,9 +512,7 @@ export function runRegistryDetectorStudy(input: {
           missingModelArtifacts: missingModelDependencies.map((dependency) => dependency.modelId),
         },
         output,
-        featureContracts: detectorStudyFeatureContractSatisfaction({
-          detectorId: metadata.detectorId,
-        }),
+        featureContracts,
         modelDependencies,
       }),
     };
@@ -518,7 +523,7 @@ export function runRegistryDetectorStudy(input: {
       rows: requireRows(rows.speedRows, metadata.detectorId, "speed rows"),
       minSampleCount: DEFAULT_SPEED_PACE_HOTSPOT_THRESHOLDS.minTraversals,
     });
-    return runResolvedDetectorStudy({
+    return runResolved({
       metadata,
       detectorInput: {
         detectorRunId: metadata.detectorRunId,
@@ -540,7 +545,7 @@ export function runRegistryDetectorStudy(input: {
       metadata.detectorId,
       "persistent speed hotspot routes",
     );
-    return runResolvedDetectorStudy({
+    return runResolved({
       metadata,
       detectorInput: {
         detectorRunId: metadata.detectorRunId,
@@ -580,7 +585,7 @@ export function runRegistryDetectorStudy(input: {
       metadata.detectorId === HEADWAY_RELIABILITY_EWT_DETECTOR_ID
         ? DEFAULT_HEADWAY_RELIABILITY_EWT_THRESHOLDS.candidateLimit
         : DEFAULT_BUNCHING_HOTSPOTS_THRESHOLDS.candidateLimit;
-    return runResolvedDetectorStudy({
+    return runResolved({
       metadata,
       detectorInput: {
         detectorRunId: metadata.detectorRunId,
@@ -603,7 +608,7 @@ export function runRegistryDetectorStudy(input: {
       metadata.detectorId,
       "observed reliability routes",
     );
-    return runResolvedDetectorStudy({
+    return runResolved({
       metadata,
       detectorInput: {
         detectorRunId: metadata.detectorRunId,
@@ -639,7 +644,7 @@ export function runRegistryDetectorStudy(input: {
         "reliability exposure panel rows",
       ),
     });
-    return runResolvedDetectorStudy({
+    return runResolved({
       metadata,
       detectorInput: {
         detectorRunId: metadata.detectorRunId,
@@ -666,7 +671,7 @@ export function runRegistryDetectorStudy(input: {
       typeof rows.customerJourneySummary?.["asOfMonth"] === "string"
         ? rows.customerJourneySummary["asOfMonth"]
         : metadata.releaseMonth;
-    return runResolvedDetectorStudy({
+    return runResolved({
       metadata,
       detectorInput: {
         detectorRunId: metadata.detectorRunId,
@@ -711,7 +716,7 @@ export function runRegistryDetectorStudy(input: {
       metadata.detectorId === SCHEDULE_MISMATCH_DETECTOR_ID
         ? DEFAULT_SCHEDULE_MISMATCH_THRESHOLDS.candidateLimit
         : DEFAULT_TRAVEL_TIME_VARIABILITY_THRESHOLDS.candidateLimit;
-    return runResolvedDetectorStudy({
+    return runResolved({
       metadata,
       detectorInput: {
         detectorRunId: metadata.detectorRunId,
@@ -739,7 +744,7 @@ export function runRegistryDetectorStudy(input: {
       historyStartMonth: metadata.historyStartMonth,
       minHistoryPoints: DEFAULT_DEGRADATION_TREND_THRESHOLDS.minHistoryPoints,
     });
-    return runResolvedDetectorStudy({
+    return runResolved({
       metadata,
       detectorInput: {
         detectorRunId: metadata.detectorRunId,
@@ -762,7 +767,7 @@ export function runRegistryDetectorStudy(input: {
       metadata.detectorId,
       "multi-month speed peer routes",
     );
-    return runResolvedDetectorStudy({
+    return runResolved({
       metadata,
       detectorInput: {
         detectorRunId: metadata.detectorRunId,
@@ -786,17 +791,26 @@ export function runRegistryDetectorStudy(input: {
   }
 
   if (metadata.detectorId === POSITIVE_DEVIANCE_DETECTOR_ID) {
-    const resolved = buildPositiveDevianceFeatures({
-      rows: requireRows(
-        rows.routeMetricHistoryRows,
-        metadata.detectorId,
-        "route metric history rows",
-      ),
-      releaseMonth: metadata.releaseMonth,
-      minPeerCount: DEFAULT_POSITIVE_DEVIANCE_THRESHOLDS.minPeerCount,
-      minStablePeriods: DEFAULT_POSITIVE_DEVIANCE_THRESHOLDS.minStablePeriods,
-    });
-    return runResolvedDetectorStudy({
+    const resolved =
+      rows.positiveDevianceFeatures === undefined
+        ? buildPositiveDevianceFeatures({
+            rows: requireRows(
+              rows.routeMetricHistoryRows,
+              metadata.detectorId,
+              "route metric history rows",
+            ),
+            releaseMonth: metadata.releaseMonth,
+            minPeerCount: DEFAULT_POSITIVE_DEVIANCE_THRESHOLDS.minPeerCount,
+            minStablePeriods: DEFAULT_POSITIVE_DEVIANCE_THRESHOLDS.minStablePeriods,
+          })
+        : {
+            features: rows.positiveDevianceFeatures,
+            summary: rows.positiveDevianceSummary ?? {
+              sourceKind: "positive_deviance_from_detector_input_assembly",
+              featureCount: rows.positiveDevianceFeatures.length,
+            },
+          };
+    return runResolved({
       metadata,
       detectorInput: {
         detectorRunId: metadata.detectorRunId,
@@ -838,7 +852,7 @@ export function runRegistryDetectorStudy(input: {
         gateStatusCounts: interventionPanelGateStatusCounts(treatmentEventPanelRows),
       },
     };
-    return runResolvedDetectorStudy({
+    return runResolved({
       metadata,
       detectorInput: {
         detectorRunId: metadata.detectorRunId,
@@ -875,7 +889,7 @@ export function runRegistryDetectorStudy(input: {
       routeTreatmentFeatures,
       sourceGapModelRows,
     });
-    return runResolvedDetectorStudy({
+    return runResolved({
       metadata,
       detectorInput: {
         detectorRunId: metadata.detectorRunId,
@@ -911,7 +925,7 @@ export function runRegistryDetectorStudy(input: {
         "route-segment treatment features",
       ),
     });
-    return runResolvedDetectorStudy({
+    return runResolved({
       metadata,
       detectorInput: {
         detectorRunId: metadata.detectorRunId,
@@ -935,7 +949,7 @@ export function runRegistryDetectorStudy(input: {
       "source gap model rows",
     );
     const sourceGapCount = sourceGapModelRows.reduce((sum, row) => sum + row.sourceGapCount, 0);
-    return runResolvedDetectorStudy({
+    return runResolved({
       metadata,
       detectorInput: {
         detectorRunId: metadata.detectorRunId,
@@ -968,7 +982,7 @@ export function runRegistryDetectorStudy(input: {
       metadata.detectorId === PERMIT_CORRELATED_SLOWDOWN_DETECTOR_ID
         ? DEFAULT_PERMIT_CORRELATED_SLOWDOWN_THRESHOLDS.candidateLimit
         : DEFAULT_SERVICE_REQUEST_CONTEXT_THRESHOLDS.candidateLimit;
-    return runResolvedDetectorStudy({
+    return runResolved({
       metadata,
       detectorInput: {
         detectorRunId: metadata.detectorRunId,
@@ -1023,7 +1037,7 @@ export function runRegistryDetectorStudy(input: {
         "route-segment treatment features",
       ),
     });
-    return runResolvedDetectorStudy({
+    return runResolved({
       metadata,
       detectorInput: {
         detectorRunId: metadata.detectorRunId,
@@ -1080,7 +1094,7 @@ export function runRegistryDetectorStudy(input: {
       ),
       interventionScopeFitRows,
     });
-    return runResolvedDetectorStudy({
+    return runResolved({
       metadata,
       detectorInput: {
         detectorRunId: metadata.detectorRunId,
@@ -1110,7 +1124,7 @@ export function runRegistryDetectorStudy(input: {
         "delay-concentration segment rows",
       ),
     });
-    return runResolvedDetectorStudy({
+    return runResolved({
       metadata,
       detectorInput: {
         detectorRunId: metadata.detectorRunId,
