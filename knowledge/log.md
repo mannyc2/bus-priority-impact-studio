@@ -2,6 +2,19 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-11] engineering | Track B delay concentration calibration machinery
+
+Added the first ADR-0018 calibration machinery for `delay_concentration` on the route-segment-month
+grain: a deterministic review-queue builder, reviewed-gold/evaluation/readiness projection, focused
+fixture tests, and the calibration NOTE/register updates. The existing March 2026 no-write inventory
+covers 353 routes, 4,140 segment rows, and 470,462 speed observations; it emits 7 candidates with
+271 clean no-hit routes and 75 skipped routes. The high-limit `--candidate-limit 20000` probe emits
+the same 7 candidates, so the first review risk is not cap suppression. Main calibration risks to
+label are low eligible segment count, segment-count sensitivity, single-segment dominance, segment
+length/mix or stale-row uncertainty, and the hard caveat that concentration is descriptive rather
+than causal or actionable by itself. Public promotion remains blocked on reviewed labels and zero
+suppress leakage.
+
 ## [2026-06-11] infra | Track B Phase 0-2 checkpoint after resolver seam hardening
 
 After the S1.1 follow-up seam hardening, re-checked the rest of

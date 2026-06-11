@@ -39,15 +39,14 @@ Status of each document:
 | Document | Status |
 |---|---|
 | `backend-goal-seam-calibration.md` | **Superseded** by `backend-goal-finish-detectors.md` (Phase A landed; Phase B absorbed into its Phase 3 waves). Banner added 2026-06-10. |
-| `backend-goal-finish-detectors.md` | **Active** — Track B. Currently mid Phase 3 Wave 1 (observed_reliability, headway_reliability_ewt, bunching_hotspots have calibration machinery; rider_weighted resolved early as coverage-blocked, matching its own Open Decision 3 recommendation; `delay_concentration` is the remaining Wave 1 slice). |
+| `backend-goal-finish-detectors.md` | **Active** — Track B. Phase 3 Wave 1 now has initial calibration machinery for observed_reliability, headway_reliability_ewt, bunching_hotspots, and delay_concentration; rider_weighted resolved early as coverage-blocked, matching its own Open Decision 3 recommendation. |
 | `master-plan-product-questions.md` | **Active** — the umbrella. Nothing in it is invalidated by this plan. |
 | `frontend-goal-data-serving.md` | **Active** — Tracks E/F consumer side. This document executes its §7. |
 | `analytics-architecture-research-request.md`, `public-engagement-questions-research-request.md` | Research inputs, referenced by the plans above; not work plans. |
 
 Where the current working-tree slices fit: the uncommitted/recently-committed calibration slices on
-`codex/reviewable-current-worktree-slices` are Track B Phase 3 Wave 1 work. Note one ordering
-correction: the next Wave 1 detector is `delay_concentration`, not `travel_time_variability` /
-`schedule_mismatch` (those are Wave 2).
+`codex/reviewable-current-worktree-slices` are Track B Phase 3 Wave 1 work. The Wave 1 machinery
+floor is now complete; `travel_time_variability` and `schedule_mismatch` remain Wave 2 work.
 
 ## 1. What "remove the monthly release" means — and what it does not
 
@@ -165,8 +164,8 @@ compatibility shims.
   states with zero contract change.
 - **Track B S2.4** (materialization-coverage artifact) is the biggest later input to manifest
   honesty for stop-hour surfaces — when it lands, add it as a manifest input in a small slice.
-- Recommended order of all in-flight work: C0 → (C1–C4 sequential) ∥ Track B Wave 1 finish
-  (`delay_concentration`) ∥ frontend §6.1 map design handoff. After C4: §8.1 registry, then the
+- Recommended order of all in-flight work: C0 → (C1–C4 sequential) ∥ Track B reviewed-label
+  collection for Wave 1 ∥ frontend §6.1 map design handoff. After C4: §8.1 registry, then the
   §4 redesign on the flagship-10 routes.
 
 ## 6. Risks
