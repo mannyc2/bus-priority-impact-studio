@@ -2,6 +2,20 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-11] analysis | A3 311 curb-friction agreement artifact closes the evidence loop
+
+Closed master-plan §3 A3 verification with a real 52-row hand-check artifact at
+`data/artifacts/context-events/311-curb-friction-taxonomy-agreement.json` (ignored data artifact;
+force-add when packaging the A3 evidence bundle). The packet covers recent current 311 rows:
+51 from March 2026 and one February 2026 no-geocode row included to exercise the non-evaluable
+join path. Validation resolved all 52 rows back to raw current 311 captures, matched the
+deterministic complaint taxonomy, and checked segment-route join confidence against fanout
+thresholds. Result: 52/52 category agreement (100%); 42/42 evaluable join-confidence agreement
+(100%); 10 joins were not evaluable because the row had no `physical_id` or no local route-LION
+match. Disagreement types: none observed in this sample. Rule verdict: no taxonomy or
+join-confidence rule tweaks needed before the A3 PR; keep low/fanout-heavy joins as weak
+associational context.
+
 ## [2026-06-10] engineering | Track A1: native segment-speed cell grain preserved, route-month proven as a projection
 
 Master-plan §3 A1. Audit premise was partially stale: `local_route_segment_speed` already held
