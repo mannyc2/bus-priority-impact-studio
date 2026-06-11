@@ -1,0 +1,167 @@
+{
+  "artifactKind": "registry_detector_run",
+  "schemaVersion": 1,
+  "generatedAt": "2026-06-10T15:41:12.586Z",
+  "detectorId": "intervention_gap",
+  "detectorVersion": "1.0.0",
+  "detectorRunId": "intervention_gap-2026-03",
+  "releaseMonth": "2026-03",
+  "dbPath": "data/local/pipeline.sqlite",
+  "artifactPath": "data/artifacts/detector-calibration-intervention-gap/no-write-run-limit20000.json",
+  "wroteDb": false,
+  "featureContracts": [
+    {
+      "featureGrain": "route_month",
+      "resolverId": "artifact.signal_features.route_month.v1",
+      "status": "resolved",
+      "reason": "Resolved from route-month signal feature artifacts or local route trend/context aggregates."
+    },
+    {
+      "featureGrain": "intervention_window",
+      "resolverId": "sqlite.local_route_intervention_comparison.window.v1",
+      "status": "resolved",
+      "reason": "Resolved from treatment event panels, intervention comparisons, and treatment summary feature rows."
+    },
+    {
+      "featureGrain": "route_treatment_summary",
+      "resolverId": "artifact.route_treatment_summary.route.v1",
+      "status": "resolved",
+      "reason": "Resolved from route-treatment-summary routeTreatmentRows."
+    },
+    {
+      "featureGrain": "route_treatment_source_gap",
+      "resolverId": "artifact.route_treatment_summary.source_gap.v1",
+      "status": "resolved",
+      "reason": "Resolved from route-treatment-summary sourceGapRows."
+    }
+  ],
+  "dataProductDependencies": [
+    {
+      "productId": "analytics_corpus_profile_artifact",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    },
+    {
+      "productId": "local_route_intervention_comparison_history",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    },
+    {
+      "productId": "local_route_month_coverage_release",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    },
+    {
+      "productId": "local_route_month_trends_history",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    },
+    {
+      "productId": "route_treatment_summary_artifact",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    }
+  ],
+  "modelDependencies": [
+    {
+      "modelId": "source_gap_model_v1",
+      "status": "available",
+      "rowCount": 381,
+      "reason": "Required model artifact source_gap_model_v1 was supplied as sourceGapModelRows."
+    }
+  ],
+  "inputSummary": {
+    "sourceKind": "intervention_gap_from_source_gap_model_v1",
+    "artifactMonth": "2026-03",
+    "artifactValidationStatus": "warn",
+    "routeFilter": null,
+    "routeTreatmentFeatureCount": 4572,
+    "routeSegmentTreatmentFeatureCount": 4134,
+    "routeTreatmentSourceGapFeatureCount": 381,
+    "sourceGapFeatureCount": 381,
+    "positiveSegmentTreatmentFeatureCount": 2112,
+    "routeTreatmentSourceEvidenceRowCount": 5063,
+    "segmentUniverseRowCount": 4140,
+    "segmentTreatmentRowCount": 4134,
+    "artifactPath": "/mnt/models/dev/bus-reliability-tracker/data/artifacts/studio/v2/route-treatment-summary/2026-03/route-treatment-summary.json",
+    "artifactFound": true,
+    "sourceRowCount": 381,
+    "sourceGapModelRowCount": 381,
+    "sourceGapModelSourceGapCount": 381,
+    "routeCount": 381,
+    "featureCount": 381,
+    "routeWithSpeedPainCount": 350,
+    "routeWithReliabilityPainCount": 350,
+    "highPainRouteCount": 138,
+    "absentInterventionRouteCount": 0,
+    "thinSourceGapRouteCount": 35,
+    "futureOnlyRouteCount": 0,
+    "datedOrEvaluatedRouteCount": 346
+  },
+  "outputSummary": {
+    "candidateCount": 8,
+    "evidenceCount": 16,
+    "coverageCount": 381,
+    "hitCount": 8,
+    "cleanNoHitCount": 342,
+    "skippedCount": 31
+  },
+  "candidateSamples": [
+    {
+      "candidateId": "3f75df5ada21a81a3bcadae800e44280",
+      "routeId": "B32",
+      "scopeId": "B32",
+      "detectorScore": 93,
+      "claimText": "Route B32 has high rider-pain signals but no strong dated bus-priority intervention evidence."
+    },
+    {
+      "candidateId": "326a2260ae71431343ebedc8d750b6bb",
+      "routeId": "B70",
+      "scopeId": "B70",
+      "detectorScore": 93,
+      "claimText": "Route B70 has high rider-pain signals but no strong dated bus-priority intervention evidence."
+    },
+    {
+      "candidateId": "e94ab32eb37c00aeea138a2f82818668",
+      "routeId": "B74",
+      "scopeId": "B74",
+      "detectorScore": 93,
+      "claimText": "Route B74 has high rider-pain signals but no strong dated bus-priority intervention evidence."
+    },
+    {
+      "candidateId": "d7e2485da30d5492e63bd97d6fede525",
+      "routeId": "B84",
+      "scopeId": "B84",
+      "detectorScore": 100,
+      "claimText": "Route B84 has high rider-pain signals but no strong dated bus-priority intervention evidence."
+    },
+    {
+      "candidateId": "5f868dd0df68881fc2e4e97b5efc8f56",
+      "routeId": "BX33",
+      "scopeId": "BX33",
+      "detectorScore": 93,
+      "claimText": "Route BX33 has high rider-pain signals but no strong dated bus-priority intervention evidence."
+    },
+    {
+      "candidateId": "b76d1faca0f86143a47c8d95cba2a14c",
+      "routeId": "BX46",
+      "scopeId": "BX46",
+      "detectorScore": 100,
+      "claimText": "Route BX46 has high rider-pain signals but no strong dated bus-priority intervention evidence."
+    },
+    {
+      "candidateId": "1e9ce146db2e45a414cf4b3d85419b31",
+      "routeId": "Q74",
+      "scopeId": "Q74",
+      "detectorScore": 90,
+      "claimText": "Route Q74 has high rider-pain signals but no strong dated bus-priority intervention evidence."
+    },
+    {
+      "candidateId": "2227efa7fd7a32be1797f7105b7dda25",
+      "routeId": "S40",
+      "scopeId": "S40",
+      "detectorScore": 85,
+      "claimText": "Route S40 has high rider-pain signals but no strong dated bus-priority intervention evidence."
+    }
+  ]
+}

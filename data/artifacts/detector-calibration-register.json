@@ -1,7 +1,7 @@
 {
   "artifactKind": "detector_calibration_register",
   "schemaVersion": 1,
-  "generatedAt": "2026-06-11T16:26:36.822Z",
+  "generatedAt": "2026-06-11T18:00:00.000Z",
   "summary": {
     "detectorCount": 21,
     "byDisposition": {
@@ -19,14 +19,117 @@
       "experimental": 2
     },
     "machineryCount": 18,
-    "totalReviewedLabelCount": 23,
+    "totalReviewedLabelCount": 860,
     "falsePositiveRootCauseTagCounts": {
+      "adversarial_reviewed": 1,
+      "all_day_flat_speed": 1,
+      "autocorrelation_failure": 1,
+      "borderline_frequency": 1,
+      "broad_street_condition_not_specific": 1,
+      "broad_street_context_not_specific": 1,
+      "chronic_stable_not_worsening": 1,
+      "chronic_stable_slow": 1,
+      "chronic_stable_speed": 1,
+      "chronically_stable": 1,
+      "claim_overstates": 1,
+      "duplicate_node_pair_m96_m106": 1,
+      "duplicate_or_less_specific": 2,
       "duplicate_or_stale_segment_rows": 1,
+      "dwell_dominated": 1,
+      "effect_estimate_unstable": 1,
+      "express_route_context": 1,
+      "extreme_share": 1,
+      "extreme_variability_los_f": 1,
+      "false_deviant_data_artifact": 1,
+      "feed_gap_or_coverage_artifact": 2,
+      "first_segment_terminal_effect": 1,
+      "first_timepoint_artifact": 1,
+      "first_timepoint_dwell_contamination": 1,
+      "fragile_persistence": 1,
+      "gap_claim_contradicted_by_current_confirmed": 1,
+      "gap_claim_rests_on_failed_join": 1,
+      "geometry_ambiguous": 1,
+      "geometry_join_ambiguous_not_matched": 1,
+      "geometry_join_bad": 1,
+      "geometry_join_terminal_divergence": 1,
+      "high_buffer_index_spread": 1,
+      "high_pain_supported": 1,
+      "high_route_fanout": 2,
+      "historically_stable_or_improving": 1,
+      "history_supported": 1,
+      "in_vehicle_component_driven": 1,
+      "insufficient_history": 1,
+      "join_actually_correct": 1,
+      "large_signed_deviation": 1,
+      "light_reviewed": 1,
       "low_eligible_segment_count": 1,
+      "low_exposure": 1,
+      "low_gtfs_rt_samples": 1,
+      "low_match_weight": 2,
+      "low_observation_count": 1,
       "low_total_delay": 1,
-      "not_actionable_as_claim": 1,
+      "method_divergence": 1,
+      "missing_bus_wait_assessment": 1,
+      "missing_denominator": 1,
+      "named_layover_lane_bus_plaza": 1,
+      "narrow_daypart_spread": 1,
+      "near_threshold": 1,
+      "never_public_without_methodology_review": 1,
+      "not_a_best_practice_proof": 1,
+      "not_a_causal_attribution": 1,
+      "not_a_causal_impact": 1,
+      "not_a_usable_panel": 1,
+      "not_actionable_as_claim": 12,
+      "not_matched_overlap_zero": 1,
+      "not_primary_scope_mismatch": 1,
+      "off_peak_fastest_daypart": 1,
+      "offset_lane_shape_mismatch": 1,
+      "overlap_below_threshold_with_confirmed_status": 1,
+      "peer_construction_artifact": 1,
+      "placebo_failure": 1,
+      "positive_comparisons_present": 1,
+      "pre_trend_failure": 1,
+      "reporting_bias": 1,
+      "route_direction_daypart_cell": 2,
+      "route_level_source_on_corridor_soundview": 1,
+      "route_refs_are_route_specific": 1,
+      "route_rollup_artifact": 1,
+      "route_shape_overlap_not_audited": 1,
+      "route_shape_overlap_only": 1,
+      "second_expansion_bucket:suppress": 1,
       "segment_count_sensitive": 1,
-      "segment_length_mix_uncertain": 1
+      "segment_length_mix_uncertain": 1,
+      "segment_order_1": 1,
+      "segmentOrder_1": 1,
+      "segmentOrder_1_terminal": 1,
+      "service_pattern_break": 2,
+      "short_segment": 2,
+      "short_segment_dwell_dominated": 1,
+      "single_cell_not_route_generalizable": 1,
+      "single_period_not_persistent": 1,
+      "speed_not_actually_bad": 1,
+      "stop_direction_hour_cell": 2,
+      "terminal_first_segment": 2,
+      "terminal_or_layover": 1,
+      "terminal_or_layover_artifact": 1,
+      "terminal_segment": 1,
+      "terminal_segment_order_1": 1,
+      "thin_headway_samples": 1,
+      "thin_high_confidence_touches": 1,
+      "thin_history": 1,
+      "thin_observed_months": 1,
+      "thin_observed_trips": 2,
+      "thin_or_undated_treatment_evidence": 1,
+      "thin_pair_support": 1,
+      "thin_source_gap_evidence": 1,
+      "too_short_or_dwell_dominated": 1,
+      "treatment_inventory_incomplete": 1,
+      "treatment_scoped_elsewhere": 1,
+      "treatment_scoped_elsewhere_on_corridor": 1,
+      "unrelated_work_type": 1,
+      "wait_component_driven": 1,
+      "weak_or_no_controls": 1,
+      "well_sampled": 1
     }
   },
   "entries": [
@@ -38,9 +141,16 @@
       "calibrationDir": "data/artifacts/detector-calibration-bunching-hotspots",
       "notePath": "data/artifacts/detector-calibration-bunching-hotspots/NOTE.md",
       "reviewedGoldModule": "packages/applied-research/src/evaluation/bunching-hotspots-reviewed-gold.ts",
-      "reviewedLabelCount": 0,
-      "falsePositiveRootCauseTags": [],
-      "decisionRef": null
+      "reviewedLabelCount": 54,
+      "falsePositiveRootCauseTags": [
+        "extreme_share",
+        "feed_gap_or_coverage_artifact",
+        "not_actionable_as_claim",
+        "single_cell_not_route_generalizable",
+        "stop_direction_hour_cell",
+        "thin_pair_support"
+      ],
+      "decisionRef": "data/artifacts/detector-calibration-bunching-hotspots/reviewed-gold.json"
     },
     {
       "detectorId": "customer_journey_shortfall",
@@ -50,9 +160,18 @@
       "calibrationDir": null,
       "notePath": null,
       "reviewedGoldModule": "packages/applied-research/src/evaluation/customer-journey-reviewed-gold.ts",
-      "reviewedLabelCount": 0,
-      "falsePositiveRootCauseTags": [],
-      "decisionRef": null
+      "reviewedLabelCount": 135,
+      "falsePositiveRootCauseTags": [
+        "express_route_context",
+        "in_vehicle_component_driven",
+        "insufficient_history",
+        "low_exposure",
+        "missing_denominator",
+        "not_actionable_as_claim",
+        "route_rollup_artifact",
+        "wait_component_driven"
+      ],
+      "decisionRef": "data/artifacts/detector-calibration-customer-journey-gold-v2/customer-journey-reviewed-gold-v2-combined-135.json"
     },
     {
       "detectorId": "degradation_trend",
@@ -62,9 +181,12 @@
       "calibrationDir": "data/artifacts/detector-calibration-degradation-trend",
       "notePath": "data/artifacts/detector-calibration-degradation-trend/NOTE.md",
       "reviewedGoldModule": "packages/applied-research/src/evaluation/degradation-trend-reviewed-gold.ts",
-      "reviewedLabelCount": 0,
-      "falsePositiveRootCauseTags": [],
-      "decisionRef": null
+      "reviewedLabelCount": 22,
+      "falsePositiveRootCauseTags": [
+        "history_supported",
+        "thin_history"
+      ],
+      "decisionRef": "data/artifacts/detector-calibration-degradation-trend/reviewed-gold.json"
     },
     {
       "detectorId": "delay_concentration",
@@ -83,7 +205,7 @@
         "segment_count_sensitive",
         "segment_length_mix_uncertain"
       ],
-      "decisionRef": "data/artifacts/detector-calibration-delay-concentration/reviewed-decisions.json"
+      "decisionRef": "data/artifacts/detector-calibration-delay-concentration/reviewed-gold.json"
     },
     {
       "detectorId": "headway_reliability_ewt",
@@ -93,9 +215,17 @@
       "calibrationDir": "data/artifacts/detector-calibration-headway-reliability-ewt",
       "notePath": "data/artifacts/detector-calibration-headway-reliability-ewt/NOTE.md",
       "reviewedGoldModule": "packages/applied-research/src/evaluation/headway-reliability-ewt-reviewed-gold.ts",
-      "reviewedLabelCount": 0,
-      "falsePositiveRootCauseTags": [],
-      "decisionRef": null
+      "reviewedLabelCount": 42,
+      "falsePositiveRootCauseTags": [
+        "borderline_frequency",
+        "extreme_variability_los_f",
+        "feed_gap_or_coverage_artifact",
+        "not_actionable_as_claim",
+        "stop_direction_hour_cell",
+        "terminal_or_layover_artifact",
+        "thin_headway_samples"
+      ],
+      "decisionRef": "data/artifacts/detector-calibration-headway-reliability-ewt/reviewed-gold.json"
     },
     {
       "detectorId": "intervention_event_study",
@@ -105,9 +235,18 @@
       "calibrationDir": "data/artifacts/detector-calibration-intervention-event-study",
       "notePath": "data/artifacts/detector-calibration-intervention-event-study/NOTE.md",
       "reviewedGoldModule": "packages/applied-research/src/evaluation/intervention-event-study-reviewed-gold.ts",
-      "reviewedLabelCount": 0,
-      "falsePositiveRootCauseTags": [],
-      "decisionRef": null
+      "reviewedLabelCount": 32,
+      "falsePositiveRootCauseTags": [
+        "autocorrelation_failure",
+        "effect_estimate_unstable",
+        "method_divergence",
+        "never_public_without_methodology_review",
+        "not_a_usable_panel",
+        "placebo_failure",
+        "pre_trend_failure",
+        "weak_or_no_controls"
+      ],
+      "decisionRef": "data/artifacts/detector-calibration-intervention-event-study/reviewed-gold.json"
     },
     {
       "detectorId": "intervention_gap",
@@ -117,9 +256,14 @@
       "calibrationDir": "data/artifacts/detector-calibration-intervention-gap",
       "notePath": "data/artifacts/detector-calibration-intervention-gap/NOTE.md",
       "reviewedGoldModule": "packages/applied-research/src/evaluation/intervention-gap-reviewed-gold.ts",
-      "reviewedLabelCount": 0,
-      "falsePositiveRootCauseTags": [],
-      "decisionRef": null
+      "reviewedLabelCount": 24,
+      "falsePositiveRootCauseTags": [
+        "high_pain_supported",
+        "not_actionable_as_claim",
+        "thin_source_gap_evidence",
+        "treatment_inventory_incomplete"
+      ],
+      "decisionRef": "data/artifacts/detector-calibration-intervention-gap/reviewed-gold.json"
     },
     {
       "detectorId": "intervention_underperformance",
@@ -129,9 +273,14 @@
       "calibrationDir": "data/artifacts/detector-calibration-intervention-underperformance",
       "notePath": "data/artifacts/detector-calibration-intervention-underperformance/NOTE.md",
       "reviewedGoldModule": "packages/applied-research/src/evaluation/intervention-underperformance-reviewed-gold.ts",
-      "reviewedLabelCount": 0,
-      "falsePositiveRootCauseTags": [],
-      "decisionRef": null
+      "reviewedLabelCount": 44,
+      "falsePositiveRootCauseTags": [
+        "not_a_causal_impact",
+        "not_actionable_as_claim",
+        "positive_comparisons_present",
+        "thin_or_undated_treatment_evidence"
+      ],
+      "decisionRef": "data/artifacts/detector-calibration-intervention-underperformance/reviewed-gold.json"
     },
     {
       "detectorId": "multi_month_speed_peer",
@@ -141,9 +290,12 @@
       "calibrationDir": "data/artifacts/detector-calibration-multi-month-speed-peer",
       "notePath": "data/artifacts/detector-calibration-multi-month-speed-peer/NOTE.md",
       "reviewedGoldModule": "packages/applied-research/src/evaluation/multi-month-speed-peer-reviewed-gold.ts",
-      "reviewedLabelCount": 0,
-      "falsePositiveRootCauseTags": [],
-      "decisionRef": null
+      "reviewedLabelCount": 24,
+      "falsePositiveRootCauseTags": [
+        "not_actionable_as_claim",
+        "thin_observed_months"
+      ],
+      "decisionRef": "data/artifacts/detector-calibration-multi-month-speed-peer/reviewed-gold.json"
     },
     {
       "detectorId": "observed_reliability",
@@ -153,9 +305,14 @@
       "calibrationDir": "data/artifacts/detector-calibration-observed-reliability",
       "notePath": "data/artifacts/detector-calibration-observed-reliability/NOTE.md",
       "reviewedGoldModule": "packages/applied-research/src/evaluation/observed-reliability-reviewed-gold.ts",
-      "reviewedLabelCount": 0,
-      "falsePositiveRootCauseTags": [],
-      "decisionRef": null
+      "reviewedLabelCount": 58,
+      "falsePositiveRootCauseTags": [
+        "low_gtfs_rt_samples",
+        "missing_bus_wait_assessment",
+        "near_threshold",
+        "not_actionable_as_claim"
+      ],
+      "decisionRef": "data/artifacts/detector-calibration-observed-reliability/reviewed-gold.json"
     },
     {
       "detectorId": "permit_correlated_slowdown",
@@ -165,9 +322,16 @@
       "calibrationDir": "data/artifacts/detector-calibration-permit-correlated-slowdown",
       "notePath": "data/artifacts/detector-calibration-permit-correlated-slowdown/NOTE.md",
       "reviewedGoldModule": "packages/applied-research/src/evaluation/permit-correlated-slowdown-reviewed-gold.ts",
-      "reviewedLabelCount": 0,
-      "falsePositiveRootCauseTags": [],
-      "decisionRef": null
+      "reviewedLabelCount": 44,
+      "falsePositiveRootCauseTags": [
+        "broad_street_context_not_specific",
+        "high_route_fanout",
+        "low_match_weight",
+        "not_a_causal_attribution",
+        "not_actionable_as_claim",
+        "unrelated_work_type"
+      ],
+      "decisionRef": "data/artifacts/detector-calibration-permit-correlated-slowdown/reviewed-gold.json"
     },
     {
       "detectorId": "persistent_speed_hotspot",
@@ -189,9 +353,15 @@
       "calibrationDir": "data/artifacts/detector-calibration-positive-deviance",
       "notePath": "data/artifacts/detector-calibration-positive-deviance/NOTE.md",
       "reviewedGoldModule": "packages/applied-research/src/evaluation/positive-deviance-reviewed-gold.ts",
-      "reviewedLabelCount": 0,
-      "falsePositiveRootCauseTags": [],
-      "decisionRef": null
+      "reviewedLabelCount": 33,
+      "falsePositiveRootCauseTags": [
+        "false_deviant_data_artifact",
+        "fragile_persistence",
+        "not_a_best_practice_proof",
+        "peer_construction_artifact",
+        "single_period_not_persistent"
+      ],
+      "decisionRef": "data/artifacts/detector-calibration-positive-deviance/reviewed-gold.json"
     },
     {
       "detectorId": "rider_weighted_excess_wait",
@@ -213,9 +383,15 @@
       "calibrationDir": "data/artifacts/detector-calibration-schedule-mismatch",
       "notePath": "data/artifacts/detector-calibration-schedule-mismatch/NOTE.md",
       "reviewedGoldModule": "packages/applied-research/src/evaluation/schedule-mismatch-reviewed-gold.ts",
-      "reviewedLabelCount": 0,
-      "falsePositiveRootCauseTags": [],
-      "decisionRef": null
+      "reviewedLabelCount": 52,
+      "falsePositiveRootCauseTags": [
+        "large_signed_deviation",
+        "not_actionable_as_claim",
+        "route_direction_daypart_cell",
+        "service_pattern_break",
+        "thin_observed_trips"
+      ],
+      "decisionRef": "data/artifacts/detector-calibration-schedule-mismatch/reviewed-gold.json"
     },
     {
       "detectorId": "service_request_context",
@@ -225,9 +401,16 @@
       "calibrationDir": "data/artifacts/detector-calibration-service-request-context",
       "notePath": "data/artifacts/detector-calibration-service-request-context/NOTE.md",
       "reviewedGoldModule": "packages/applied-research/src/evaluation/service-request-context-reviewed-gold.ts",
-      "reviewedLabelCount": 0,
-      "falsePositiveRootCauseTags": [],
-      "decisionRef": null
+      "reviewedLabelCount": 43,
+      "falsePositiveRootCauseTags": [
+        "broad_street_condition_not_specific",
+        "high_route_fanout",
+        "low_match_weight",
+        "not_actionable_as_claim",
+        "reporting_bias",
+        "thin_high_confidence_touches"
+      ],
+      "decisionRef": "data/artifacts/detector-calibration-service-request-context/reviewed-gold.json"
     },
     {
       "detectorId": "source_gap",
@@ -239,7 +422,7 @@
       "reviewedGoldModule": null,
       "reviewedLabelCount": 0,
       "falsePositiveRootCauseTags": [],
-      "decisionRef": null
+      "decisionRef": "data/artifacts/detector-calibration-source-gap/agreement-audit.json"
     },
     {
       "detectorId": "speed_pace_hotspot",
@@ -249,9 +432,14 @@
       "calibrationDir": null,
       "notePath": null,
       "reviewedGoldModule": "packages/applied-research/src/evaluation/speed-pace-reviewed-gold.ts",
-      "reviewedLabelCount": 0,
-      "falsePositiveRootCauseTags": [],
-      "decisionRef": null
+      "reviewedLabelCount": 66,
+      "falsePositiveRootCauseTags": [
+        "geometry_ambiguous",
+        "low_observation_count",
+        "short_segment",
+        "terminal_or_layover"
+      ],
+      "decisionRef": "data/artifacts/detector-calibration-speed-pace-v2/reviewed-gold.json"
     },
     {
       "detectorId": "travel_time_variability",
@@ -261,9 +449,15 @@
       "calibrationDir": "data/artifacts/detector-calibration-travel-time-variability",
       "notePath": "data/artifacts/detector-calibration-travel-time-variability/NOTE.md",
       "reviewedGoldModule": "packages/applied-research/src/evaluation/travel-time-variability-reviewed-gold.ts",
-      "reviewedLabelCount": 0,
-      "falsePositiveRootCauseTags": [],
-      "decisionRef": null
+      "reviewedLabelCount": 46,
+      "falsePositiveRootCauseTags": [
+        "high_buffer_index_spread",
+        "not_actionable_as_claim",
+        "route_direction_daypart_cell",
+        "service_pattern_break",
+        "thin_observed_trips"
+      ],
+      "decisionRef": "data/artifacts/detector-calibration-travel-time-variability/reviewed-gold.json"
     },
     {
       "detectorId": "treatment_scope_gap",
@@ -273,9 +467,33 @@
       "calibrationDir": null,
       "notePath": null,
       "reviewedGoldModule": "packages/applied-research/src/evaluation/treatment-scope-reviewed-gold.ts",
-      "reviewedLabelCount": 0,
-      "falsePositiveRootCauseTags": [],
-      "decisionRef": null
+      "reviewedLabelCount": 52,
+      "falsePositiveRootCauseTags": [
+        "claim_overstates",
+        "duplicate_or_less_specific",
+        "first_timepoint_artifact",
+        "first_timepoint_dwell_contamination",
+        "gap_claim_contradicted_by_current_confirmed",
+        "gap_claim_rests_on_failed_join",
+        "geometry_join_ambiguous_not_matched",
+        "geometry_join_bad",
+        "geometry_join_terminal_divergence",
+        "join_actually_correct",
+        "named_layover_lane_bus_plaza",
+        "not_matched_overlap_zero",
+        "offset_lane_shape_mismatch",
+        "overlap_below_threshold_with_confirmed_status",
+        "route_level_source_on_corridor_soundview",
+        "route_refs_are_route_specific",
+        "segmentOrder_1_terminal",
+        "segment_order_1",
+        "terminal_first_segment",
+        "terminal_segment_order_1",
+        "treatment_scoped_elsewhere",
+        "treatment_scoped_elsewhere_on_corridor",
+        "well_sampled"
+      ],
+      "decisionRef": "data/artifacts/detector-calibration-history-gates/expanded-treatment-scope-gold.json"
     },
     {
       "detectorId": "treatment_scope_mismatch",
@@ -285,9 +503,35 @@
       "calibrationDir": null,
       "notePath": null,
       "reviewedGoldModule": "packages/applied-research/src/evaluation/treatment-scope-reviewed-gold.ts",
-      "reviewedLabelCount": 0,
-      "falsePositiveRootCauseTags": [],
-      "decisionRef": null
+      "reviewedLabelCount": 66,
+      "falsePositiveRootCauseTags": [
+        "adversarial_reviewed",
+        "all_day_flat_speed",
+        "chronic_stable_not_worsening",
+        "chronic_stable_slow",
+        "chronic_stable_speed",
+        "chronically_stable",
+        "duplicate_node_pair_m96_m106",
+        "duplicate_or_less_specific",
+        "dwell_dominated",
+        "first_segment_terminal_effect",
+        "historically_stable_or_improving",
+        "light_reviewed",
+        "narrow_daypart_spread",
+        "not_primary_scope_mismatch",
+        "off_peak_fastest_daypart",
+        "route_shape_overlap_not_audited",
+        "route_shape_overlap_only",
+        "second_expansion_bucket:suppress",
+        "segmentOrder_1",
+        "short_segment",
+        "short_segment_dwell_dominated",
+        "speed_not_actually_bad",
+        "terminal_first_segment",
+        "terminal_segment",
+        "too_short_or_dwell_dominated"
+      ],
+      "decisionRef": "data/artifacts/detector-calibration-history-gates/expanded-treatment-scope-gold.json"
     }
   ]
 }

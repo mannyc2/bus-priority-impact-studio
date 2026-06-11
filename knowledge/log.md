@@ -2,6 +2,45 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-11] analysis | Full detector calibration sweep: 13 reviewed-gold sets, S4.1 serving gate, Phase 5 floor
+
+Completed the backend-goal-finish-detectors plan in one sweep. Every machinery_built and
+internal_only detector now has reviewed gold on the March 2026 inventory (register total: 860
+labels across 18 detectors). S4.1 landed: `SERVING_BLOCKED_DETECTOR_IDS` in `@bp/domain`
+structurally blocks persistent_speed_hotspot (superseded), intervention_event_study
+(candidate-causal), positive_deviance, and rider_weighted_excess_wait from route-insight serving
+even if a manifest carries them in a public bucket, with a test tying the blocklist to the
+calibration register dispositions. Phase 5 floor: S5.1-S5.3 pure helpers were already tested;
+`evidence-packet-completeness-2026-03.json` now materializes S5.3 over the real runs (mature share
+1.0 for every candidate-bearing family; source_gap 0 by its data-quality waiver).
+
+Promotable now (label-backed public_finding_candidate buckets): observed_reliability 22,
+intervention_underperformance 4 (M57, M42, M34+, M104), delay_concentration 4, degradation_trend 1
+(Q103), headway_reliability_ewt 3 (all cap-suppressed in production — see below), bunching_hotspots
+1 (S54 N), plus the previously calibrated treatment-scope/speed-pace/customer-journey sets. Context
+family held its invariant: permit_correlated_slowdown and service_request_context leak 0 into
+findings; route_context ceilings of 7 and 10.
+
+The sweep's negative findings are the valuable part, all recorded as readiness gates / feature
+fixes, never threshold edits: (1) stop_direction_hour detectors are not promotable — headway/
+bunching score-saturate so the production top-100 is an arbitrary thin-sample slice while
+well-sampled real pockets sit cap-suppressed, and fractional GTFS-RT coverage fabricates gap/EWT
+artifacts (headway leakage 2/23, bunching 14/46); (2) travel_time_variability's metric is
+constructively broken — percentiles over 3-10 hourly aggregate sums whose row-count mix explains
+16/18 emitted cells (leakage 16/44); fix is a trip-level feature rebuild; (3) schedule_mismatch has
+no verifiable schedule baseline (15-151 min scheduled vs 175-650 min observed is physically
+impossible) — all 24 reviewed emitted capped at needs_more_evidence, below even the expected
+route_context ceiling; (4) multi_month_speed_peer silently used the system-wide fallback peer group
+for every candidate while claiming "matched peer median" — zero primaries until peer construction
+or claim wording is fixed; (5) degradation_trend's main failure is step breaks scored as trends
+(route-version provenance missing from the history grain); (6) permit/311 context detectors share
+the route-LION fanout failure (Manhattan grid permits/complaints counted against many routes;
+permit suppress leakage 13/29, 311 12/28); (7) observed_reliability's cap hides 120 qualifying
+routes with a Queens/express skew. source_gap agreement audit: zero overclaims vs the S2.4
+materialization artifact; failure mode is under-reporting (silent on 14 route holes in 2 grains).
+intervention_event_study confirmed structurally incapable of public buckets; its internal bar
+(suppress leakage 6/19 from gate-failed panels still emitting) is explicitly not yet met.
+
 ## [2026-06-11] analysis | delay_concentration reviewed gold: 4/4 primary survival, 0/16 suppress leakage
 
 Completed the ADR-0018 loop for `delay_concentration` on the March 2026 inventory. `findings

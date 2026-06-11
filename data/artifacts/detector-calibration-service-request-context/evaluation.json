@@ -1,0 +1,1066 @@
+{
+  "artifactKind": "service_request_context_reviewed_gold_evaluation",
+  "schemaVersion": 1,
+  "generatedAt": "2026-06-11T17:13:22.716Z",
+  "releaseMonth": "2026-03",
+  "asOfMonth": "2026-06",
+  "summary": {
+    "labelCount": 43,
+    "emittedReviewedCount": 27,
+    "primaryExpectedCount": 0,
+    "primarySurvivedCount": 0,
+    "primaryDroppedCount": 0,
+    "findingsLeakageCount": 0,
+    "suppressExpectedCount": 28,
+    "suppressStillEmittedCount": 12,
+    "contextOrReviewerExpectedCount": 15,
+    "contextOrReviewerStillEmittedCount": 15,
+    "unreviewedEmittedCount": 0
+  },
+  "byExpectedFrontendUse": {
+    "primary_finding": {
+      "expected": 0,
+      "emitted": 0,
+      "dropped": 0
+    },
+    "route_context": {
+      "expected": 10,
+      "emitted": 10,
+      "dropped": 0
+    },
+    "reviewer_only": {
+      "expected": 2,
+      "emitted": 2,
+      "dropped": 0
+    },
+    "needs_more_evidence": {
+      "expected": 3,
+      "emitted": 3,
+      "dropped": 0
+    },
+    "suppress": {
+      "expected": 28,
+      "emitted": 12,
+      "dropped": 16
+    }
+  },
+  "byCalibrationTag": {
+    "broad_street_condition_not_specific": {
+      "expected": 20,
+      "emitted": 12,
+      "dropped": 8
+    },
+    "high_confidence_311_touches": {
+      "expected": 15,
+      "emitted": 15,
+      "dropped": 0
+    },
+    "high_route_fanout": {
+      "expected": 12,
+      "emitted": 12,
+      "dropped": 0
+    },
+    "low_match_weight": {
+      "expected": 16,
+      "emitted": 16,
+      "dropped": 0
+    },
+    "near_threshold": {
+      "expected": 1,
+      "emitted": 1,
+      "dropped": 0
+    },
+    "not_a_causal_attribution": {
+      "expected": 15,
+      "emitted": 15,
+      "dropped": 0
+    },
+    "not_actionable_as_claim": {
+      "expected": 10,
+      "emitted": 2,
+      "dropped": 8
+    },
+    "reporting_bias": {
+      "expected": 16,
+      "emitted": 8,
+      "dropped": 8
+    },
+    "slow_route_supported": {
+      "expected": 6,
+      "emitted": 6,
+      "dropped": 0
+    },
+    "thin_high_confidence_touches": {
+      "expected": 7,
+      "emitted": 7,
+      "dropped": 0
+    },
+    "true_service_request_context": {
+      "expected": 10,
+      "emitted": 10,
+      "dropped": 0
+    }
+  },
+  "byReviewDepth": {
+    "adversarial": {
+      "expected": 27,
+      "emitted": 27,
+      "dropped": 0
+    },
+    "light": {
+      "expected": 16,
+      "emitted": 0,
+      "dropped": 16
+    }
+  },
+  "emittedReviewed": [
+    {
+      "detectorId": "service_request_context",
+      "scopeId": "B11",
+      "routeId": "B11",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "route_context",
+      "calibrationTags": [
+        "true_service_request_context",
+        "slow_route_supported",
+        "high_confidence_311_touches",
+        "high_route_fanout",
+        "not_a_causal_attribution"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-43",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Slow route (5.98 mph), best-in-slice match weight 0.6088 with 472 high-confidence touches, but fanout 26 sits just over the 25 review flag — some of the 311 mass is shared with neighboring routes. Quality is strong enough to keep as context.",
+      "labelId": "service_request_context:B11",
+      "identityKey": "service_request_context\u0000B11",
+      "shouldEmitSignal": true,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "service_request_context",
+      "scopeId": "B60",
+      "routeId": "B60",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "route_context",
+      "calibrationTags": [
+        "true_service_request_context",
+        "high_confidence_311_touches",
+        "not_a_causal_attribution"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-43",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Hotspot 89 with 483 touched events, match weight 0.5968 and 328 high-confidence touches at fanout 11. The 311 association is route-specific enough to serve as context, but the evidence is undifferentiated 311 volume (no complaint-type breakdown survives to this grain), so it stays context, never a finding.",
+      "labelId": "service_request_context:B60",
+      "identityKey": "service_request_context\u0000B60",
+      "shouldEmitSignal": true,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "service_request_context",
+      "scopeId": "BX11",
+      "routeId": "BX11",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "route_context",
+      "calibrationTags": [
+        "true_service_request_context",
+        "high_confidence_311_touches",
+        "not_a_causal_attribution"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-43",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Speed 6.29 mph with hotspot 76, 669 touched events, match weight 0.5547, 361 high-confidence touches at the lowest emitted fanout (9). One of the most route-specific associations in the slice; still context, not a finding.",
+      "labelId": "service_request_context:BX11",
+      "identityKey": "service_request_context\u0000BX11",
+      "shouldEmitSignal": true,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "service_request_context",
+      "scopeId": "BX2",
+      "routeId": "BX2",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "low_match_weight",
+        "thin_high_confidence_touches",
+        "broad_street_condition_not_specific"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-43",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Slow route (5.58 mph) but only 39 high-confidence touches out of 820 touched events (match weight 0.2857): the 311 mass is overwhelmingly low-confidence street noise. Suppress as context.",
+      "labelId": "service_request_context:BX2",
+      "identityKey": "service_request_context\u0000BX2",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "service_request_context",
+      "scopeId": "BX28",
+      "routeId": "BX28",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "needs_more_evidence",
+      "calibrationTags": [
+        "high_confidence_311_touches",
+        "low_match_weight",
+        "not_a_causal_attribution"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-43",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Hotspot 76, 71 high-confidence touches, match weight 0.2327 at fanout 11. Same profile as BX38 (the two share a corridor); weak join, plausible association, hold.",
+      "labelId": "service_request_context:BX28",
+      "identityKey": "service_request_context\u0000BX28",
+      "shouldEmitSignal": true,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "service_request_context",
+      "scopeId": "BX32",
+      "routeId": "BX32",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "route_context",
+      "calibrationTags": [
+        "true_service_request_context",
+        "slow_route_supported",
+        "high_confidence_311_touches",
+        "not_a_causal_attribution"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-43",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Slow route (5.88 mph), match weight 0.5776, 208 high-confidence touches at the lowest fanout in the emitted set (6). Route-specific association; context.",
+      "labelId": "service_request_context:BX32",
+      "identityKey": "service_request_context\u0000BX32",
+      "shouldEmitSignal": true,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "service_request_context",
+      "scopeId": "BX35",
+      "routeId": "BX35",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "route_context",
+      "calibrationTags": [
+        "true_service_request_context",
+        "slow_route_supported",
+        "high_confidence_311_touches",
+        "not_a_causal_attribution"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-43",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Genuinely slow route (5.58 mph) with the best match weight in the slice (0.6103), 252 high-confidence touches, fanout 9. Clean route_context card.",
+      "labelId": "service_request_context:BX35",
+      "identityKey": "service_request_context\u0000BX35",
+      "shouldEmitSignal": true,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "service_request_context",
+      "scopeId": "BX38",
+      "routeId": "BX38",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "needs_more_evidence",
+      "calibrationTags": [
+        "high_confidence_311_touches",
+        "low_match_weight",
+        "not_a_causal_attribution"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-43",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Hotspot 93, 71 high-confidence touches, match weight 0.2354 below floor at fanout 11. Low fanout argues the association could be route-specific, but the join quality is too weak to assert it; hold for better evidence.",
+      "labelId": "service_request_context:BX38",
+      "identityKey": "service_request_context\u0000BX38",
+      "shouldEmitSignal": true,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "service_request_context",
+      "scopeId": "M106",
+      "routeId": "M106",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "low_match_weight",
+        "thin_high_confidence_touches",
+        "broad_street_condition_not_specific"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-43",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "17 high-confidence touches, match weight 0.2168. Same thin-support pattern as M96; suppress.",
+      "labelId": "service_request_context:M106",
+      "identityKey": "service_request_context\u0000M106",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "service_request_context",
+      "scopeId": "M125",
+      "routeId": "M125",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "route_context",
+      "calibrationTags": [
+        "true_service_request_context",
+        "slow_route_supported",
+        "high_confidence_311_touches",
+        "not_a_causal_attribution"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-43",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Slow route (5.63 mph), match weight 0.5079, 147 high-confidence touches, fanout 14. Smaller touch volume (261) than peers but both quality floors hold; context.",
+      "labelId": "service_request_context:M125",
+      "identityKey": "service_request_context\u0000M125",
+      "shouldEmitSignal": true,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "service_request_context",
+      "scopeId": "M22",
+      "routeId": "M22",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "high_route_fanout",
+        "low_match_weight",
+        "broad_street_condition_not_specific",
+        "reporting_bias"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-43",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "65 high-confidence touches at fanout 25 with match weight 0.2872 (below floor, emitted via the OR-branch). Weak, corridor-shared association; suppress as 311 context.",
+      "labelId": "service_request_context:M22",
+      "identityKey": "service_request_context\u0000M22",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "service_request_context",
+      "scopeId": "M23+",
+      "routeId": "M23+",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "high_route_fanout",
+        "low_match_weight",
+        "thin_high_confidence_touches",
+        "broad_street_condition_not_specific",
+        "reporting_bias"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-43",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Only 137 touched events with 41 high-confidence at fanout 31 and match weight 0.2736. Thin, non-specific association on a short crosstown route; suppress.",
+      "labelId": "service_request_context:M23+",
+      "identityKey": "service_request_context\u0000M23+",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "service_request_context",
+      "scopeId": "M31",
+      "routeId": "M31",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "reviewer_only",
+      "calibrationTags": [
+        "slow_route_supported",
+        "high_confidence_311_touches",
+        "high_route_fanout",
+        "near_threshold",
+        "broad_street_condition_not_specific",
+        "not_a_causal_attribution"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-43",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Slow route (5.46 mph), 120 high-confidence touches, match weight 0.3392 just under the 0.35 floor, fanout 54. Real speed pain, but the 311 mass is grid-shared Manhattan volume; keep internal.",
+      "labelId": "service_request_context:M31",
+      "identityKey": "service_request_context\u0000M31",
+      "shouldEmitSignal": true,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "service_request_context",
+      "scopeId": "M34+",
+      "routeId": "M34+",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "high_route_fanout",
+        "low_match_weight",
+        "thin_high_confidence_touches",
+        "broad_street_condition_not_specific",
+        "reporting_bias"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-43",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "38 high-confidence touches at fanout 49 with match weight 0.1733 — the weakest join in the emitted set. The 311 mass is shared across the entire 34th St corridor family; suppress.",
+      "labelId": "service_request_context:M34+",
+      "identityKey": "service_request_context\u0000M34+",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "service_request_context",
+      "scopeId": "M34A+",
+      "routeId": "M34A+",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "high_route_fanout",
+        "low_match_weight",
+        "thin_high_confidence_touches",
+        "broad_street_condition_not_specific",
+        "reporting_bias"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-43",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "42 high-confidence touches at fanout 49, match weight 0.1829. Same corridor-shared 311 mass as M34+; the detector double-counts one street's complaints across sibling routes. Suppress.",
+      "labelId": "service_request_context:M34A+",
+      "identityKey": "service_request_context\u0000M34A+",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "service_request_context",
+      "scopeId": "M4",
+      "routeId": "M4",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "reviewer_only",
+      "calibrationTags": [
+        "slow_route_supported",
+        "high_confidence_311_touches",
+        "high_route_fanout",
+        "low_match_weight",
+        "broad_street_condition_not_specific",
+        "not_a_causal_attribution"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-43",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Slow route (6.39 mph borderline, hotspot 75) with 266 high-confidence touches, but fanout 55 and match weight 0.2261 (below the detector's own 0.35 quality floor; emitted via the high-confidence OR-branch). Each 311 event here touches dozens of Manhattan routes — useful for reviewers, misleading as public route context.",
+      "labelId": "service_request_context:M4",
+      "identityKey": "service_request_context\u0000M4",
+      "shouldEmitSignal": true,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "service_request_context",
+      "scopeId": "M50",
+      "routeId": "M50",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "high_route_fanout",
+        "low_match_weight",
+        "broad_street_condition_not_specific",
+        "reporting_bias"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-43",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "83 high-confidence touches at fanout 45, match weight 0.3457 just under floor. Grid-shared Manhattan volume; suppress as context.",
+      "labelId": "service_request_context:M50",
+      "identityKey": "service_request_context\u0000M50",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "service_request_context",
+      "scopeId": "M57",
+      "routeId": "M57",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "high_route_fanout",
+        "low_match_weight",
+        "broad_street_condition_not_specific",
+        "reporting_bias"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-43",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Slow route (5.06 mph) but only 42 high-confidence touches at fanout 54 and match weight 0.288. The 311 association is Manhattan grid density, not route-specific evidence; the slow-speed story belongs to speed detectors, not 311 context.",
+      "labelId": "service_request_context:M57",
+      "identityKey": "service_request_context\u0000M57",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "service_request_context",
+      "scopeId": "M66",
+      "routeId": "M66",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "low_match_weight",
+        "thin_high_confidence_touches",
+        "broad_street_condition_not_specific"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-43",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "34 high-confidence touches, match weight 0.2244 at fanout 15. Slow route (5.83 mph) but the 311 join is weak and undifferentiated; suppress as context.",
+      "labelId": "service_request_context:M66",
+      "identityKey": "service_request_context\u0000M66",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "service_request_context",
+      "scopeId": "M96",
+      "routeId": "M96",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "low_match_weight",
+        "thin_high_confidence_touches",
+        "broad_street_condition_not_specific"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-43",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "16 high-confidence touches (barely 3x the floor of 5) with match weight 0.2259. The OR-gate lets 16 touches carry a route-month claim; association too thin to surface anywhere. Suppress.",
+      "labelId": "service_request_context:M96",
+      "identityKey": "service_request_context\u0000M96",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "service_request_context",
+      "scopeId": "Q12",
+      "routeId": "Q12",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "route_context",
+      "calibrationTags": [
+        "true_service_request_context",
+        "high_confidence_311_touches",
+        "not_a_causal_attribution"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-43",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Hotspot 89 (route speed 9.6 mph, so the pain is hotspot-driven), 554 touched events, match weight 0.5816, 429 high-confidence touches, fanout 17. Solid association quality; context only — 311 volume is not causal evidence for the hotspot.",
+      "labelId": "service_request_context:Q12",
+      "identityKey": "service_request_context\u0000Q12",
+      "shouldEmitSignal": true,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "service_request_context",
+      "scopeId": "Q17",
+      "routeId": "Q17",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "needs_more_evidence",
+      "calibrationTags": [
+        "high_confidence_311_touches",
+        "low_match_weight",
+        "not_a_causal_attribution"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-43",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 2 (score 98) with hotspot 97 and 107 high-confidence touches, but match weight 0.2438 fails the detector's own 0.35 quality floor (emitted via the OR-branch). The speed pain is real; whether the 311 mass is about this route needs the complaint-type/segment-level join the current evidence does not carry.",
+      "labelId": "service_request_context:Q17",
+      "identityKey": "service_request_context\u0000Q17",
+      "shouldEmitSignal": true,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "service_request_context",
+      "scopeId": "Q23",
+      "routeId": "Q23",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "route_context",
+      "calibrationTags": [
+        "true_service_request_context",
+        "high_confidence_311_touches",
+        "not_a_causal_attribution"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-43",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Hotspot 83, 629 touched events, match weight 0.5932, 392 high-confidence touches, fanout 23. Good join quality; route_context is the correct ceiling for an associational 311 signal.",
+      "labelId": "service_request_context:Q23",
+      "identityKey": "service_request_context\u0000Q23",
+      "shouldEmitSignal": true,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "service_request_context",
+      "scopeId": "Q27",
+      "routeId": "Q27",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "route_context",
+      "calibrationTags": [
+        "true_service_request_context",
+        "high_confidence_311_touches",
+        "not_a_causal_attribution"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-43",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Hotspot 75 (route speed 9.8 mph), 709 touched events, match weight 0.5094, 389 high-confidence touches, fanout 17. Association quality clears both detector floors comfortably; context only.",
+      "labelId": "service_request_context:Q27",
+      "identityKey": "service_request_context\u0000Q27",
+      "shouldEmitSignal": true,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "service_request_context",
+      "scopeId": "Q31",
+      "routeId": "Q31",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "high_route_fanout",
+        "low_match_weight",
+        "not_actionable_as_claim",
+        "reporting_bias"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-43",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Route speed 8.89 mph — not slow; emitted on hotspot 71, one point over the 70 floor — with match weight 0.2845 at fanout 29. Marginal speed pain plus weak association; suppress.",
+      "labelId": "service_request_context:Q31",
+      "identityKey": "service_request_context\u0000Q31",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "service_request_context",
+      "scopeId": "Q65",
+      "routeId": "Q65",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "route_context",
+      "calibrationTags": [
+        "true_service_request_context",
+        "high_confidence_311_touches",
+        "high_route_fanout",
+        "not_a_causal_attribution"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-43",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 1 (score 99): speed 6.61 mph with hotspot 99, 214 high-confidence touches, match weight 0.4058, fanout 29. The top-ranked candidate is still only an association; fanout means part of the 311 mass is corridor-shared. Context ceiling holds.",
+      "labelId": "service_request_context:Q65",
+      "identityKey": "service_request_context\u0000Q65",
+      "shouldEmitSignal": true,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "service_request_context",
+      "scopeId": "Q85",
+      "routeId": "Q85",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "high_route_fanout",
+        "low_match_weight",
+        "not_actionable_as_claim",
+        "reporting_bias"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-43",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Route speed 10.65 mph — the fastest emitted route — qualifying only on hotspot 71 (floor 70), with match weight 0.2941 at fanout 29. A 10.6 mph route presented as a '311-context slowdown' is the clearest mislabel in the slice; suppress.",
+      "labelId": "service_request_context:Q85",
+      "identityKey": "service_request_context\u0000Q85",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    }
+  ],
+  "droppedReviewed": [
+    {
+      "detectorId": "service_request_context",
+      "scopeId": "B103",
+      "routeId": "B103",
+      "sourceQueue": "clean_no_hit_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "reporting_bias",
+        "broad_street_condition_not_specific"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-43",
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Not emitted because speed pain fails (7.96 mph, hotspot 56) — yet the route carries 1,588 touched 311 events with 519 high-confidence touches, more than most emitted candidates. Direct evidence that 311 volume tracks street/borough density, not bus conditions.",
+      "labelId": "service_request_context:B103",
+      "identityKey": "service_request_context\u0000B103",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "service_request_context",
+      "scopeId": "B93",
+      "routeId": "B93",
+      "sourceQueue": "skipped_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "not_actionable_as_claim"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-43",
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Skipped missing_speed: 171 high-confidence 311 touches but no speed signal for the month, so no association can be evaluated. Correct skip.",
+      "labelId": "service_request_context:B93",
+      "identityKey": "service_request_context\u0000B93",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "service_request_context",
+      "scopeId": "B94",
+      "routeId": "B94",
+      "sourceQueue": "skipped_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "not_actionable_as_claim"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-43",
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Skipped missing_speed: 693 touched events at fanout 37 with no speed data. Correct skip; the 311 mass alone must never produce a claim.",
+      "labelId": "service_request_context:B94",
+      "identityKey": "service_request_context\u0000B94",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "service_request_context",
+      "scopeId": "BM2",
+      "routeId": "BM2",
+      "sourceQueue": "clean_no_hit_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "reporting_bias",
+        "broad_street_condition_not_specific"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-43",
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Express route at 9.88 mph with 1,595 touched events at fanout 55 and match weight 0.17: long express routes sweep up enormous, non-specific 311 mass. The speed gate (not the 311 gate) is what held this back.",
+      "labelId": "service_request_context:BM2",
+      "identityKey": "service_request_context\u0000BM2",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "service_request_context",
+      "scopeId": "BX1",
+      "routeId": "BX1",
+      "sourceQueue": "clean_no_hit_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "reporting_bias",
+        "broad_street_condition_not_specific"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-43",
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "6.81 mph, hotspot 62: just misses both speed-pain floors despite 830 touched events and 67 high-confidence touches. The control shows how thin the margin is between emitted and clean at the hotspot-70 boundary.",
+      "labelId": "service_request_context:BX1",
+      "identityKey": "service_request_context\u0000BX1",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "service_request_context",
+      "scopeId": "BX28-BX38",
+      "routeId": "BX28-BX38",
+      "sourceQueue": "skipped_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "not_actionable_as_claim"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-43",
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Skipped missing_speed on a combined scope id with zero 311 context rows. Correct skip; also a reminder that combined-route scope ids exist in coverage.",
+      "labelId": "service_request_context:BX28-BX38",
+      "identityKey": "service_request_context\u0000BX28-BX38",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "service_request_context",
+      "scopeId": "BX92",
+      "routeId": "BX92",
+      "sourceQueue": "skipped_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "not_actionable_as_claim"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-43",
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Skipped missing_speed with only 15 high-confidence touches. Correct skip.",
+      "labelId": "service_request_context:BX92",
+      "identityKey": "service_request_context\u0000BX92",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "service_request_context",
+      "scopeId": "BXM18",
+      "routeId": "BXM18",
+      "sourceQueue": "clean_no_hit_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "reporting_bias",
+        "broad_street_condition_not_specific"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-43",
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Express route, 1,952 touched events — the largest 311 mass in the control sample — with zero high-confidence touches and match weight 0.11. Route-length artifact: a long express route crosses everything and matches nothing.",
+      "labelId": "service_request_context:BXM18",
+      "identityKey": "service_request_context\u0000BXM18",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "service_request_context",
+      "scopeId": "J90",
+      "routeId": "J90",
+      "sourceQueue": "clean_no_hit_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "reporting_bias",
+        "broad_street_condition_not_specific"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-43",
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "7.45 mph, hotspot 31: no speed pain. Carries 606 high-confidence touches at match weight 0.46 — better association quality than half the emitted set, on a route with no problem. 311 quality alone says nothing about bus conditions.",
+      "labelId": "service_request_context:J90",
+      "identityKey": "service_request_context\u0000J90",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "service_request_context",
+      "scopeId": "L90",
+      "routeId": "L90",
+      "sourceQueue": "clean_no_hit_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "reporting_bias",
+        "broad_street_condition_not_specific"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-43",
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Skipped-adjacent control (insufficient speed observations recorded in inputs, outcome clean): 243 high-confidence touches at match weight 0.59. No speed evidence, so no claim is possible.",
+      "labelId": "service_request_context:L90",
+      "identityKey": "service_request_context\u0000L90",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "service_request_context",
+      "scopeId": "L92",
+      "routeId": "L92",
+      "sourceQueue": "skipped_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "not_actionable_as_claim"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-43",
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Skipped missing_speed: shuttle-style scope with 51 high-confidence touches, no speed data. Correct skip.",
+      "labelId": "service_request_context:L92",
+      "identityKey": "service_request_context\u0000L92",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "service_request_context",
+      "scopeId": "M101",
+      "routeId": "M101",
+      "sourceQueue": "clean_no_hit_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "reporting_bias",
+        "broad_street_condition_not_specific"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-43",
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "6.91 mph, hotspot 62: misses the floors. 1,574 touched events at fanout 35 — Manhattan reporting density again; correctly held back by the speed gate.",
+      "labelId": "service_request_context:M101",
+      "identityKey": "service_request_context\u0000M101",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "service_request_context",
+      "scopeId": "M90",
+      "routeId": "M90",
+      "sourceQueue": "skipped_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "not_actionable_as_claim"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-43",
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Skipped missing_speed: 73 high-confidence touches, no speed data. Correct skip.",
+      "labelId": "service_request_context:M90",
+      "identityKey": "service_request_context\u0000M90",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "service_request_context",
+      "scopeId": "Q60",
+      "routeId": "Q60",
+      "sourceQueue": "clean_no_hit_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "reporting_bias",
+        "broad_street_condition_not_specific"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-43",
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "8.04 mph, hotspot 43: clean. 1,249 touched events but only 46 high-confidence at match weight 0.13 — high-volume, low-quality 311 mass, correctly not surfaced.",
+      "labelId": "service_request_context:Q60",
+      "identityKey": "service_request_context\u0000Q60",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "service_request_context",
+      "scopeId": "Q96",
+      "routeId": "Q96",
+      "sourceQueue": "skipped_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "not_actionable_as_claim"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-43",
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Skipped missing_speed: 40 high-confidence touches at fanout 33, no speed data. Correct skip.",
+      "labelId": "service_request_context:Q96",
+      "identityKey": "service_request_context\u0000Q96",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "service_request_context",
+      "scopeId": "T464",
+      "routeId": "T464",
+      "sourceQueue": "skipped_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "not_actionable_as_claim"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-43",
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Skipped missing_speed on a non-bus scope id (T464) carrying 1,090 touched events and 226 high-confidence touches — the 311 join happily attaches mass to a scope with no speed feed. Correct skip, but flags join-universe hygiene.",
+      "labelId": "service_request_context:T464",
+      "identityKey": "service_request_context\u0000T464",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    }
+  ],
+  "unreviewedEmittedCandidates": []
+}

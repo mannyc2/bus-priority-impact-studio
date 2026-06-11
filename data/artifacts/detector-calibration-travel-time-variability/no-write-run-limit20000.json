@@ -1,0 +1,1080 @@
+{
+  "artifactKind": "registry_detector_run",
+  "schemaVersion": 1,
+  "generatedAt": "2026-06-10T15:47:41.193Z",
+  "detectorId": "travel_time_variability",
+  "detectorVersion": "1.0.0",
+  "detectorRunId": "travel_time_variability-2026-03",
+  "releaseMonth": "2026-03",
+  "dbPath": "data/local/pipeline.sqlite",
+  "artifactPath": "data/artifacts/detector-calibration-travel-time-variability/no-write-run-limit20000.json",
+  "wroteDb": false,
+  "featureContracts": [
+    {
+      "featureGrain": "route_direction_daypart",
+      "resolverId": "sqlite.route_direction_daypart.v1",
+      "status": "resolved",
+      "reason": "Resolved from local_route_segment_speed runtime aggregates and schedule runtime baselines."
+    },
+    {
+      "featureGrain": "feed_health",
+      "resolverId": "embedded.feature_quality.v1",
+      "status": "satisfied_by_feature_quality",
+      "reason": "Current registry runner carries coverage, freshness, and sample gates through feature quality fields."
+    }
+  ],
+  "dataProductDependencies": [
+    {
+      "productId": "analytics_backfill_coverage_audit",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    },
+    {
+      "productId": "bus_observatory_gtfs_rt_availability",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    },
+    {
+      "productId": "local_observed_headway_samples_run",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    },
+    {
+      "productId": "local_route_reliability_baseline_release",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    },
+    {
+      "productId": "local_route_schedule_timepoints_release",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    }
+  ],
+  "modelDependencies": [],
+  "inputSummary": {
+    "sourceKind": "route_direction_daypart_runtime_from_segment_speed",
+    "observedRuntimeSampleCount": 12962,
+    "scheduledRuntimeSampleCount": 2094004,
+    "featureCount": 2537,
+    "featureWithScheduleBaselineCount": 2497,
+    "supportedFeatureCount": 2530
+  },
+  "outputSummary": {
+    "candidateCount": 144,
+    "evidenceCount": 288,
+    "coverageCount": 2537,
+    "hitCount": 144,
+    "cleanNoHitCount": 2339,
+    "skippedCount": 54
+  },
+  "candidateSamples": [
+    {
+      "candidateId": "4c14c699d5f20f3eada4be6a7cada481",
+      "routeId": "B100",
+      "scopeId": "B100:2026-03:E:midday",
+      "detectorScore": 100,
+      "claimText": "Route B100 E midday travel time is variable: P50 198.909165 min and P95 439.5662835 min."
+    },
+    {
+      "candidateId": "476067ff2bc65946f6017e6ba5368576",
+      "routeId": "B12",
+      "scopeId": "B12:2026-03:E:midday",
+      "detectorScore": 64,
+      "claimText": "Route B12 E midday travel time is variable: P50 323.104026 min and P95 501.29405999999994 min."
+    },
+    {
+      "candidateId": "895d74a32ebc4762d1212a891105c42a",
+      "routeId": "B15",
+      "scopeId": "B15:2026-03:W:off_peak",
+      "detectorScore": 68,
+      "claimText": "Route B15 W off_peak travel time is variable: P50 403.666326 min and P95 645.6706547999997 min."
+    },
+    {
+      "candidateId": "19d48deb9f9f519c4efc23df0f37e829",
+      "routeId": "B16",
+      "scopeId": "B16:2026-03:N:midday",
+      "detectorScore": 94,
+      "claimText": "Route B16 N midday travel time is variable: P50 503.89820399999996 min and P95 968.698272 min."
+    },
+    {
+      "candidateId": "ccd01a50f3fb96aec23fdf3d5ed30350",
+      "routeId": "B17",
+      "scopeId": "B17:2026-03:S:midday",
+      "detectorScore": 77,
+      "claimText": "Route B17 S midday travel time is variable: P50 241.927662 min and P95 413.3894085 min."
+    },
+    {
+      "candidateId": "c9ce6e9c842dfdc1d20534efd263b340",
+      "routeId": "B17",
+      "scopeId": "B17:2026-03:S:off_peak",
+      "detectorScore": 75,
+      "claimText": "Route B17 S off_peak travel time is variable: P50 193.771095 min and P95 325.9155975 min."
+    },
+    {
+      "candidateId": "f4d378e03c000f65e270e06daf322096",
+      "routeId": "B35",
+      "scopeId": "B35:2026-03:E:off_peak",
+      "detectorScore": 100,
+      "claimText": "Route B35 E off_peak travel time is variable: P50 349.066875 min and P95 715.0234806 min."
+    },
+    {
+      "candidateId": "93efd5e27b639356483c54e52ae51b90",
+      "routeId": "B35",
+      "scopeId": "B35:2026-03:W:off_peak",
+      "detectorScore": 91,
+      "claimText": "Route B35 W off_peak travel time is variable: P50 346.742337 min and P95 652.6134374999999 min."
+    },
+    {
+      "candidateId": "dff8dbf6bb968d60d72a1e5853c2d6fc",
+      "routeId": "B36",
+      "scopeId": "B36:2026-03:W:midday",
+      "detectorScore": 64,
+      "claimText": "Route B36 W midday travel time is variable: P50 293.893278 min and P95 454.9839 min."
+    },
+    {
+      "candidateId": "822ffc479de47d5068a4a682a159e5b3",
+      "routeId": "B4",
+      "scopeId": "B4:2026-03:W:midday",
+      "detectorScore": 64,
+      "claimText": "Route B4 W midday travel time is variable: P50 548.945262 min and P95 852.2189115 min."
+    },
+    {
+      "candidateId": "4f83cfde2225b7116a0774e96fd79b99",
+      "routeId": "B41",
+      "scopeId": "B41:2026-03:N:off_peak",
+      "detectorScore": 86,
+      "claimText": "Route B41 N off_peak travel time is variable: P50 443.313588 min and P95 807.4508324999995 min."
+    },
+    {
+      "candidateId": "ef6cd4cadcd00d18c4931d53f389fa0c",
+      "routeId": "B41",
+      "scopeId": "B41:2026-03:S:off_peak",
+      "detectorScore": 100,
+      "claimText": "Route B41 S off_peak travel time is variable: P50 445.08822 min and P95 970.2993296999999 min."
+    },
+    {
+      "candidateId": "e00f836fac0217d45fab4ce7d05e3e0b",
+      "routeId": "B46+",
+      "scopeId": "B46+:2026-03:S:midday",
+      "detectorScore": 74,
+      "claimText": "Route B46+ S midday travel time is variable: P50 326.63457 min and P95 546.0470505000001 min."
+    },
+    {
+      "candidateId": "02a1d2c61d6ca941ed5b6661cd583eb8",
+      "routeId": "B6",
+      "scopeId": "B6:2026-03:E:off_peak",
+      "detectorScore": 82,
+      "claimText": "Route B6 E off_peak travel time is variable: P50 510.71718599999997 min and P95 904.7750207999999 min."
+    },
+    {
+      "candidateId": "34fc78516aaac2af1ff25a37e5f788b1",
+      "routeId": "B6",
+      "scopeId": "B6:2026-03:W:off_peak",
+      "detectorScore": 100,
+      "claimText": "Route B6 W off_peak travel time is variable: P50 482.116821 min and P95 1024.5443244 min."
+    },
+    {
+      "candidateId": "989ac7adfc0a2a076a440b51d2125ef9",
+      "routeId": "B63",
+      "scopeId": "B63:2026-03:N:midday",
+      "detectorScore": 71,
+      "claimText": "Route B63 N midday travel time is variable: P50 609.340626 min and P95 994.269321 min."
+    },
+    {
+      "candidateId": "045d2da84af1347667bb95b1bebedef7",
+      "routeId": "B64",
+      "scopeId": "B64:2026-03:N:midday",
+      "detectorScore": 79,
+      "claimText": "Route B64 N midday travel time is variable: P50 368.720892 min and P95 642.9268649999999 min."
+    },
+    {
+      "candidateId": "8e9b97ad0c693f9f60ba2177a38a388d",
+      "routeId": "B64",
+      "scopeId": "B64:2026-03:S:midday",
+      "detectorScore": 62,
+      "claimText": "Route B64 S midday travel time is variable: P50 365.808036 min and P95 556.621263 min."
+    },
+    {
+      "candidateId": "d40cafa245a2b870566703b64b01ce6c",
+      "routeId": "B69",
+      "scopeId": "B69:2026-03:S:midday",
+      "detectorScore": 72,
+      "claimText": "Route B69 S midday travel time is variable: P50 378.643356 min and P95 622.460325 min."
+    },
+    {
+      "candidateId": "5dd79035a2c046a1df26b8647d1d7ece",
+      "routeId": "B7",
+      "scopeId": "B7:2026-03:N:off_peak",
+      "detectorScore": 72,
+      "claimText": "Route B7 N off_peak travel time is variable: P50 219.94563 min and P95 364.18117889999996 min."
+    },
+    {
+      "candidateId": "6368401163629be2f4da37cc4be971af",
+      "routeId": "BX1",
+      "scopeId": "BX1:2026-03:N:off_peak",
+      "detectorScore": 71,
+      "claimText": "Route BX1 N off_peak travel time is variable: P50 413.325318 min and P95 676.4645306999998 min."
+    },
+    {
+      "candidateId": "75638885acc140464f162a9bedd9d630",
+      "routeId": "BX10",
+      "scopeId": "BX10:2026-03:S:midday",
+      "detectorScore": 75,
+      "claimText": "Route BX10 S midday travel time is variable: P50 383.43698700000004 min and P95 649.1385705 min."
+    },
+    {
+      "candidateId": "522d20f2160b0d99eead1c6c08f73070",
+      "routeId": "BX11",
+      "scopeId": "BX11:2026-03:W:midday",
+      "detectorScore": 71,
+      "claimText": "Route BX11 W midday travel time is variable: P50 371.077002 min and P95 607.3811715 min."
+    },
+    {
+      "candidateId": "8c89fe8a1726524c81b98c472bbea1a7",
+      "routeId": "BX15",
+      "scopeId": "BX15:2026-03:N:off_peak",
+      "detectorScore": 65,
+      "claimText": "Route BX15 N off_peak travel time is variable: P50 181.36986000000002 min and P95 283.9944467999999 min."
+    },
+    {
+      "candidateId": "02db0b64395a05167ad542424bee1126",
+      "routeId": "BX16",
+      "scopeId": "BX16:2026-03:W:midday",
+      "detectorScore": 78,
+      "claimText": "Route BX16 W midday travel time is variable: P50 317.735808 min and P95 547.3013025 min."
+    },
+    {
+      "candidateId": "4fb0084bce8f8264a4a0d35994f72afc",
+      "routeId": "BX20",
+      "scopeId": "BX20:2026-03:S:midday",
+      "detectorScore": 74,
+      "claimText": "Route BX20 S midday travel time is variable: P50 67.00614 min and P95 111.861645 min."
+    },
+    {
+      "candidateId": "777c6e4973bbcf6111424eb7ef21a4ee",
+      "routeId": "BX21",
+      "scopeId": "BX21:2026-03:N:midday",
+      "detectorScore": 68,
+      "claimText": "Route BX21 N midday travel time is variable: P50 439.899051 min and P95 701.582223 min."
+    },
+    {
+      "candidateId": "8296b0fd43455b249bacad8cad2330d5",
+      "routeId": "BX22",
+      "scopeId": "BX22:2026-03:N:off_peak",
+      "detectorScore": 68,
+      "claimText": "Route BX22 N off_peak travel time is variable: P50 224.21299199999999 min and P95 358.51802549999996 min."
+    },
+    {
+      "candidateId": "58af3956fcc60068eb971925731ef345",
+      "routeId": "BX22",
+      "scopeId": "BX22:2026-03:S:off_peak",
+      "detectorScore": 76,
+      "claimText": "Route BX22 S off_peak travel time is variable: P50 216.760419 min and P95 369.7945923 min."
+    },
+    {
+      "candidateId": "849fc2d4076de5bad195b44588d0ea8f",
+      "routeId": "BX24",
+      "scopeId": "BX24:2026-03:E:off_peak",
+      "detectorScore": 93,
+      "claimText": "Route BX24 E off_peak travel time is variable: P50 106.06323 min and P95 202.55540309999998 min."
+    },
+    {
+      "candidateId": "7bb26f014a1412c3f84310030b067fd4",
+      "routeId": "BX24",
+      "scopeId": "BX24:2026-03:W:off_peak",
+      "detectorScore": 71,
+      "claimText": "Route BX24 W off_peak travel time is variable: P50 92.204838 min and P95 150.69362189999998 min."
+    },
+    {
+      "candidateId": "e3fb0146ed9afeb0da3fc6f724e7b20b",
+      "routeId": "BX26",
+      "scopeId": "BX26:2026-03:W:midday",
+      "detectorScore": 77,
+      "claimText": "Route BX26 W midday travel time is variable: P50 330.71071800000004 min and P95 567.46446 min."
+    },
+    {
+      "candidateId": "9b3c203b58722e12bfb1e249b615a8a1",
+      "routeId": "BX27",
+      "scopeId": "BX27:2026-03:N:off_peak",
+      "detectorScore": 76,
+      "claimText": "Route BX27 N off_peak travel time is variable: P50 93.571785 min and P95 158.5804263 min."
+    },
+    {
+      "candidateId": "e6dd640099049f11ae8f58dd92669e0e",
+      "routeId": "BX28",
+      "scopeId": "BX28:2026-03:W:midday",
+      "detectorScore": 82,
+      "claimText": "Route BX28 W midday travel time is variable: P50 458.788653 min and P95 814.077618 min."
+    },
+    {
+      "candidateId": "959552a5e186838f49c265c609d0facf",
+      "routeId": "BX3",
+      "scopeId": "BX3:2026-03:S:midday",
+      "detectorScore": 70,
+      "claimText": "Route BX3 S midday travel time is variable: P50 253.69075800000002 min and P95 411.789204 min."
+    },
+    {
+      "candidateId": "b4b6ffaa946d8067cb0139c912e94ff0",
+      "routeId": "BX30",
+      "scopeId": "BX30:2026-03:E:midday",
+      "detectorScore": 61,
+      "claimText": "Route BX30 E midday travel time is variable: P50 354.729111 min and P95 536.2996755 min."
+    },
+    {
+      "candidateId": "ae8430c3c7e3a6cea4da9987fbc86b2b",
+      "routeId": "BX31",
+      "scopeId": "BX31:2026-03:N:midday",
+      "detectorScore": 67,
+      "claimText": "Route BX31 N midday travel time is variable: P50 348.831534 min and P95 555.7989855000001 min."
+    },
+    {
+      "candidateId": "86bd71053214cd616483dde4d0ac0261",
+      "routeId": "BX33",
+      "scopeId": "BX33:2026-03:E:off_peak",
+      "detectorScore": 70,
+      "claimText": "Route BX33 E off_peak travel time is variable: P50 99.083796 min and P95 161.01004379999998 min."
+    },
+    {
+      "candidateId": "e5b63161981cc32e1e1f30e74551a087",
+      "routeId": "BX33",
+      "scopeId": "BX33:2026-03:W:off_peak",
+      "detectorScore": 62,
+      "claimText": "Route BX33 W off_peak travel time is variable: P50 94.80301800000001 min and P95 144.804519 min."
+    },
+    {
+      "candidateId": "da0b171eb11a301d6d7dbafebd04d7d7",
+      "routeId": "BX36",
+      "scopeId": "BX36:2026-03:W:midday",
+      "detectorScore": 100,
+      "claimText": "Route BX36 W midday travel time is variable: P50 496.80758099999997 min and P95 1021.747272 min."
+    },
+    {
+      "candidateId": "1d857e2df91c716bc4f0eade3aabbae0",
+      "routeId": "BX38",
+      "scopeId": "BX38:2026-03:W:off_peak",
+      "detectorScore": 100,
+      "claimText": "Route BX38 W off_peak travel time is variable: P50 126.916812 min and P95 332.30773919999996 min."
+    },
+    {
+      "candidateId": "e1f4e43ab2372bc4211998e3939082d1",
+      "routeId": "BX39",
+      "scopeId": "BX39:2026-03:N:off_peak",
+      "detectorScore": 63,
+      "claimText": "Route BX39 N off_peak travel time is variable: P50 274.406319 min and P95 422.56143209999993 min."
+    },
+    {
+      "candidateId": "f7bc40edb1ea1fb81f58cfd100d3bb9b",
+      "routeId": "BX39",
+      "scopeId": "BX39:2026-03:S:off_peak",
+      "detectorScore": 74,
+      "claimText": "Route BX39 S off_peak travel time is variable: P50 240.13868100000002 min and P95 401.89262039999994 min."
+    },
+    {
+      "candidateId": "91bce546b4832092e0e375b57211a174",
+      "routeId": "BX41",
+      "scopeId": "BX41:2026-03:N:midday",
+      "detectorScore": 66,
+      "claimText": "Route BX41 N midday travel time is variable: P50 348.085743 min and P95 546.169035 min."
+    },
+    {
+      "candidateId": "b2b8a08ef33d764e85b15862e6f89161",
+      "routeId": "BX6+",
+      "scopeId": "BX6+:2026-03:E:off_peak",
+      "detectorScore": 98,
+      "claimText": "Route BX6+ E off_peak travel time is variable: P50 141.04370699999998 min and P95 278.21823329999995 min."
+    },
+    {
+      "candidateId": "0c4f750ae54332ccfb27707ea0024576",
+      "routeId": "BX9",
+      "scopeId": "BX9:2026-03:S:midday",
+      "detectorScore": 60,
+      "claimText": "Route BX9 S midday travel time is variable: P50 448.12996499999997 min and P95 673.001838 min."
+    },
+    {
+      "candidateId": "6843ec3711fa5503b52ac832bae47ae4",
+      "routeId": "J90",
+      "scopeId": "J90:2026-03:W:off_peak",
+      "detectorScore": 63,
+      "claimText": "Route J90 W off_peak travel time is variable: P50 44.159715000000006 min and P95 67.6449483 min."
+    },
+    {
+      "candidateId": "674faf4a8aeef4ee3c41add22633e65a",
+      "routeId": "M101",
+      "scopeId": "M101:2026-03:N:off_peak",
+      "detectorScore": 100,
+      "claimText": "Route M101 N off_peak travel time is variable: P50 485.757222 min and P95 1001.3407433999997 min."
+    },
+    {
+      "candidateId": "0baeaed290e503b14000dafe0e1e14f2",
+      "routeId": "M101",
+      "scopeId": "M101:2026-03:S:off_peak",
+      "detectorScore": 60,
+      "claimText": "Route M101 S off_peak travel time is variable: P50 560.826924 min and P95 844.0138274999999 min."
+    },
+    {
+      "candidateId": "d267c8db1f695ed2659e3149501f6924",
+      "routeId": "M103",
+      "scopeId": "M103:2026-03:N:off_peak",
+      "detectorScore": 61,
+      "claimText": "Route M103 N off_peak travel time is variable: P50 307.660527 min and P95 466.6404428999999 min."
+    },
+    {
+      "candidateId": "1b5c7150550c528cdd779107b7dada6d",
+      "routeId": "M15",
+      "scopeId": "M15:2026-03:N:off_peak",
+      "detectorScore": 75,
+      "claimText": "Route M15 N off_peak travel time is variable: P50 360.371046 min and P95 608.9627114999998 min."
+    },
+    {
+      "candidateId": "736e39a93fd1ea0e396311b5ad254b08",
+      "routeId": "M2",
+      "scopeId": "M2:2026-03:N:off_peak",
+      "detectorScore": 72,
+      "claimText": "Route M2 N off_peak travel time is variable: P50 407.24448600000005 min and P95 670.3134212999996 min."
+    },
+    {
+      "candidateId": "0ef28b7e277a1f1308411ae2175d555d",
+      "routeId": "M22",
+      "scopeId": "M22:2026-03:E:off_peak",
+      "detectorScore": 71,
+      "claimText": "Route M22 E off_peak travel time is variable: P50 102.461052 min and P95 167.5968198 min."
+    },
+    {
+      "candidateId": "1b1de43885d7e217e5953b27f44f85bd",
+      "routeId": "M4",
+      "scopeId": "M4:2026-03:S:off_peak",
+      "detectorScore": 100,
+      "claimText": "Route M4 S off_peak travel time is variable: P50 182.322336 min and P95 542.2661982 min."
+    },
+    {
+      "candidateId": "d35596d6d0aab05fd7f5ff70fddc8d59",
+      "routeId": "M7",
+      "scopeId": "M7:2026-03:N:off_peak",
+      "detectorScore": 67,
+      "claimText": "Route M7 N off_peak travel time is variable: P50 326.549667 min and P95 517.3376949 min."
+    },
+    {
+      "candidateId": "71d727f34f29f144faa8da4cacc3cfe4",
+      "routeId": "Q1",
+      "scopeId": "Q1:2026-03:W:off_peak",
+      "detectorScore": 66,
+      "claimText": "Route Q1 W off_peak travel time is variable: P50 220.33239 min and P95 346.1849259 min."
+    },
+    {
+      "candidateId": "8241b4939c7231d7c758b90f2f2c34cb",
+      "routeId": "Q11",
+      "scopeId": "Q11:2026-03:N:midday",
+      "detectorScore": 68,
+      "claimText": "Route Q11 N midday travel time is variable: P50 501.181155 min and P95 803.2704405000001 min."
+    },
+    {
+      "candidateId": "9ace1bddbb93638107f97465be75a778",
+      "routeId": "Q113",
+      "scopeId": "Q113:2026-03:N:off_peak",
+      "detectorScore": 100,
+      "claimText": "Route Q113 N off_peak travel time is variable: P50 125.605008 min and P95 312.4633896 min."
+    },
+    {
+      "candidateId": "0b70c51d165da50dabe624d74eeb36bd",
+      "routeId": "Q113",
+      "scopeId": "Q113:2026-03:S:off_peak",
+      "detectorScore": 66,
+      "claimText": "Route Q113 S off_peak travel time is variable: P50 206.14786500000002 min and P95 324.88558739999996 min."
+    },
+    {
+      "candidateId": "9101f77c54450aeb815ac44a4ca1b36a",
+      "routeId": "Q115",
+      "scopeId": "Q115:2026-03:N:midday",
+      "detectorScore": 67,
+      "claimText": "Route Q115 N midday travel time is variable: P50 228.31142699999998 min and P95 362.19359099999997 min."
+    },
+    {
+      "candidateId": "667a923cad71817a1978f68f79aa8013",
+      "routeId": "Q22",
+      "scopeId": "Q22:2026-03:E:midday",
+      "detectorScore": 100,
+      "claimText": "Route Q22 E midday travel time is variable: P50 305.272476 min and P95 983.2757805000001 min."
+    },
+    {
+      "candidateId": "e0368b8c009a0ea94a476265786618f4",
+      "routeId": "Q22",
+      "scopeId": "Q22:2026-03:W:am_peak",
+      "detectorScore": 66,
+      "claimText": "Route Q22 W am_peak travel time is variable: P50 355.80984 min and P95 560.4202257 min."
+    },
+    {
+      "candidateId": "b9ab10ffffdab951c7705e86161bac39",
+      "routeId": "Q27",
+      "scopeId": "Q27:2026-03:S:midday",
+      "detectorScore": 84,
+      "claimText": "Route Q27 S midday travel time is variable: P50 494.97912599999995 min and P95 889.858581 min."
+    },
+    {
+      "candidateId": "194f95b7b570f3f42635051a841c960c",
+      "routeId": "Q28",
+      "scopeId": "Q28:2026-03:E:am_peak",
+      "detectorScore": 67,
+      "claimText": "Route Q28 E am_peak travel time is variable: P50 204.62756100000001 min and P95 324.79170479999993 min."
+    },
+    {
+      "candidateId": "c94114cb3f3a1976109453372ef7db53",
+      "routeId": "Q30",
+      "scopeId": "Q30:2026-03:E:midday",
+      "detectorScore": 72,
+      "claimText": "Route Q30 E midday travel time is variable: P50 337.884033 min and P95 558.513246 min."
+    },
+    {
+      "candidateId": "04ce465b28244c38445a0955714bbbdb",
+      "routeId": "Q30",
+      "scopeId": "Q30:2026-03:W:midday",
+      "detectorScore": 92,
+      "claimText": "Route Q30 W midday travel time is variable: P50 316.039152 min and P95 601.0484025000001 min."
+    },
+    {
+      "candidateId": "b71f0f4588c44892cc1cb3359109b4f2",
+      "routeId": "Q31",
+      "scopeId": "Q31:2026-03:S:midday",
+      "detectorScore": 74,
+      "claimText": "Route Q31 S midday travel time is variable: P50 527.2468200000001 min and P95 880.5030135 min."
+    },
+    {
+      "candidateId": "3cf943ab921df3deecd3b9fffea2b4e2",
+      "routeId": "Q31",
+      "scopeId": "Q31:2026-03:S:pm_peak",
+      "detectorScore": 88,
+      "claimText": "Route Q31 S pm_peak travel time is variable: P50 409.45581000000004 min and P95 759.5592044999999 min."
+    },
+    {
+      "candidateId": "2145fadab017aeeb8be05be34ec0c310",
+      "routeId": "Q4",
+      "scopeId": "Q4:2026-03:W:midday",
+      "detectorScore": 90,
+      "claimText": "Route Q4 W midday travel time is variable: P50 274.217172 min and P95 513.785652 min."
+    },
+    {
+      "candidateId": "f1f92b044ff5e726aa4eab777088d577",
+      "routeId": "Q41",
+      "scopeId": "Q41:2026-03:N:midday",
+      "detectorScore": 73,
+      "claimText": "Route Q41 N midday travel time is variable: P50 430.512258 min and P95 714.3197295 min."
+    },
+    {
+      "candidateId": "f1226c7b3931ceeee506268f7542e89c",
+      "routeId": "Q41",
+      "scopeId": "Q41:2026-03:S:am_peak",
+      "detectorScore": 66,
+      "claimText": "Route Q41 S am_peak travel time is variable: P50 425.0499 min and P95 667.2705245999998 min."
+    },
+    {
+      "candidateId": "6ca67d3c1c8e902caebc3ce928cd9b3f",
+      "routeId": "Q43",
+      "scopeId": "Q43:2026-03:W:midday",
+      "detectorScore": 92,
+      "claimText": "Route Q43 W midday travel time is variable: P50 363.09425699999997 min and P95 692.0876579999999 min."
+    },
+    {
+      "candidateId": "cc1f467386b5d58472227c91e548d857",
+      "routeId": "Q46",
+      "scopeId": "Q46:2026-03:E:midday",
+      "detectorScore": 65,
+      "claimText": "Route Q46 E midday travel time is variable: P50 314.143467 min and P95 489.6438015 min."
+    },
+    {
+      "candidateId": "ba4faa23e01b35f728f9e3d7c192d6e4",
+      "routeId": "Q46",
+      "scopeId": "Q46:2026-03:W:midday",
+      "detectorScore": 72,
+      "claimText": "Route Q46 W midday travel time is variable: P50 276.909654 min and P95 456.0576885 min."
+    },
+    {
+      "candidateId": "7eacf4c1b0b003e1d05800b84acd3678",
+      "routeId": "Q47",
+      "scopeId": "Q47:2026-03:S:midday",
+      "detectorScore": 61,
+      "claimText": "Route Q47 S midday travel time is variable: P50 303.746985 min and P95 461.1517635 min."
+    },
+    {
+      "candidateId": "b878e777d1cdd507b46bf9d1b6c02f53",
+      "routeId": "Q5",
+      "scopeId": "Q5:2026-03:W:midday",
+      "detectorScore": 74,
+      "claimText": "Route Q5 W midday travel time is variable: P50 270.377763 min and P95 453.0200355 min."
+    },
+    {
+      "candidateId": "823777c45175af90551237f287577822",
+      "routeId": "Q50",
+      "scopeId": "Q50:2026-03:S:off_peak",
+      "detectorScore": 61,
+      "claimText": "Route Q50 S off_peak travel time is variable: P50 192.990987 min and P95 292.3073697 min."
+    },
+    {
+      "candidateId": "297afa728145f81771f014bcee7ea5ae",
+      "routeId": "Q54",
+      "scopeId": "Q54:2026-03:E:midday",
+      "detectorScore": 72,
+      "claimText": "Route Q54 E midday travel time is variable: P50 585.7942499999999 min and P95 967.4247825 min."
+    },
+    {
+      "candidateId": "bbc4933c26793d6635bd756ec9f48237",
+      "routeId": "Q58",
+      "scopeId": "Q58:2026-03:E:midday",
+      "detectorScore": 90,
+      "claimText": "Route Q58 E midday travel time is variable: P50 490.600416 min and P95 921.028464 min."
+    },
+    {
+      "candidateId": "6a7d0b122eef0639ae9b8c26b32caa9b",
+      "routeId": "Q7",
+      "scopeId": "Q7:2026-03:E:midday",
+      "detectorScore": 61,
+      "claimText": "Route Q7 E midday travel time is variable: P50 209.856831 min and P95 318.15783600000003 min."
+    },
+    {
+      "candidateId": "332d46028b9fc341d00d46592c4578bd",
+      "routeId": "Q7",
+      "scopeId": "Q7:2026-03:W:am_peak",
+      "detectorScore": 82,
+      "claimText": "Route Q7 W am_peak travel time is variable: P50 224.121582 min and P95 397.82991419999996 min."
+    },
+    {
+      "candidateId": "a34d9db461a508b6ace3d71824a059ec",
+      "routeId": "Q75",
+      "scopeId": "Q75:2026-03:S:midday",
+      "detectorScore": 72,
+      "claimText": "Route Q75 S midday travel time is variable: P50 293.33563200000003 min and P95 482.37321149999997 min."
+    },
+    {
+      "candidateId": "6c14747b32bce542512b733ca27f7e8d",
+      "routeId": "Q76",
+      "scopeId": "Q76:2026-03:N:midday",
+      "detectorScore": 84,
+      "claimText": "Route Q76 N midday travel time is variable: P50 421.534869 min and P95 758.4753105 min."
+    },
+    {
+      "candidateId": "30f43b9fdab37cfa7c00fbd88bba531a",
+      "routeId": "Q76",
+      "scopeId": "Q76:2026-03:S:midday",
+      "detectorScore": 68,
+      "claimText": "Route Q76 S midday travel time is variable: P50 407.536854 min and P95 654.4371885 min."
+    },
+    {
+      "candidateId": "6844e841de8a765932948d5da7a754b7",
+      "routeId": "Q77",
+      "scopeId": "Q77:2026-03:S:midday",
+      "detectorScore": 71,
+      "claimText": "Route Q77 S midday travel time is variable: P50 355.002747 min and P95 583.352217 min."
+    },
+    {
+      "candidateId": "6a76731b0c3abbf9d78d4d80595bc841",
+      "routeId": "Q83",
+      "scopeId": "Q83:2026-03:W:midday",
+      "detectorScore": 64,
+      "claimText": "Route Q83 W midday travel time is variable: P50 228.076164 min and P95 354.823344 min."
+    },
+    {
+      "candidateId": "fd18fd57eb1579d6634d4562cc6eef76",
+      "routeId": "Q85",
+      "scopeId": "Q85:2026-03:N:midday",
+      "detectorScore": 79,
+      "claimText": "Route Q85 N midday travel time is variable: P50 307.573707 min and P95 532.5384270000001 min."
+    },
+    {
+      "candidateId": "f3dd4969e3713ae48515fdd7134ad323",
+      "routeId": "Q88",
+      "scopeId": "Q88:2026-03:E:midday",
+      "detectorScore": 68,
+      "claimText": "Route Q88 E midday travel time is variable: P50 325.62647400000003 min and P95 522.129651 min."
+    },
+    {
+      "candidateId": "3b892a17301123caf2084065bf7c7c68",
+      "routeId": "Q88",
+      "scopeId": "Q88:2026-03:W:midday",
+      "detectorScore": 68,
+      "claimText": "Route Q88 W midday travel time is variable: P50 421.323756 min and P95 674.0507729999999 min."
+    },
+    {
+      "candidateId": "5a5eecaf30b557cea2ecb54ee9866523",
+      "routeId": "QM2",
+      "scopeId": "QM2:2026-03:W:off_peak",
+      "detectorScore": 67,
+      "claimText": "Route QM2 W off_peak travel time is variable: P50 264.934131 min and P95 419.4422082 min."
+    },
+    {
+      "candidateId": "d6627b38f7100957efc06395f3d5a77c",
+      "routeId": "QM20",
+      "scopeId": "QM20:2026-03:W:off_peak",
+      "detectorScore": 100,
+      "claimText": "Route QM20 W off_peak travel time is variable: P50 87.170844 min and P95 245.29556100000002 min."
+    },
+    {
+      "candidateId": "cd51926ce0a4cb5dc6013ff1e677779c",
+      "routeId": "QM4",
+      "scopeId": "QM4:2026-03:W:off_peak",
+      "detectorScore": 61,
+      "claimText": "Route QM4 W off_peak travel time is variable: P50 321.391638 min and P95 487.5849672 min."
+    },
+    {
+      "candidateId": "4efa0acf2b9b3d1681df65c8c0b3b783",
+      "routeId": "QM6",
+      "scopeId": "QM6:2026-03:W:off_peak",
+      "detectorScore": 100,
+      "claimText": "Route QM6 W off_peak travel time is variable: P50 221.742954 min and P95 622.395618 min."
+    },
+    {
+      "candidateId": "2075b7d45fb991f2cdeeee2b3004f5c9",
+      "routeId": "QM8",
+      "scopeId": "QM8:2026-03:E:pm_peak",
+      "detectorScore": 61,
+      "claimText": "Route QM8 E pm_peak travel time is variable: P50 556.087272 min and P95 840.1451483999999 min."
+    },
+    {
+      "candidateId": "baf58fd39841eff0c95f4d02b7394f0f",
+      "routeId": "QM8",
+      "scopeId": "QM8:2026-03:W:am_peak",
+      "detectorScore": 100,
+      "claimText": "Route QM8 W am_peak travel time is variable: P50 363.100752 min and P95 900.0515825999998 min."
+    },
+    {
+      "candidateId": "b9cdeac3046338bfc1a35a8780c3c1bb",
+      "routeId": "S42",
+      "scopeId": "S42:2026-03:S:am_peak",
+      "detectorScore": 84,
+      "claimText": "Route S42 S am_peak travel time is variable: P50 75.85509300000001 min and P95 136.56294989999998 min."
+    },
+    {
+      "candidateId": "4b7dc1cc9b67887d43713927dd743631",
+      "routeId": "S44",
+      "scopeId": "S44:2026-03:E:midday",
+      "detectorScore": 100,
+      "claimText": "Route S44 E midday travel time is variable: P50 404.02554299999997 min and P95 822.5345669999999 min."
+    },
+    {
+      "candidateId": "04f97fc3741e33fb6ea08ee8be566290",
+      "routeId": "S44",
+      "scopeId": "S44:2026-03:W:am_peak",
+      "detectorScore": 71,
+      "claimText": "Route S44 W am_peak travel time is variable: P50 370.976658 min and P95 605.3162681999999 min."
+    },
+    {
+      "candidateId": "c18bcc256259398279519807b62e4a5c",
+      "routeId": "S44",
+      "scopeId": "S44:2026-03:W:midday",
+      "detectorScore": 81,
+      "claimText": "Route S44 W midday travel time is variable: P50 382.544133 min and P95 673.5947625 min."
+    },
+    {
+      "candidateId": "2d2777f88b6b42a611c67425e7d7cfa9",
+      "routeId": "S46",
+      "scopeId": "S46:2026-03:E:midday",
+      "detectorScore": 78,
+      "claimText": "Route S46 E midday travel time is variable: P50 467.715486 min and P95 804.0107895 min."
+    },
+    {
+      "candidateId": "ca0d67b77429a605419349946ec6b79a",
+      "routeId": "S46",
+      "scopeId": "S46:2026-03:W:am_peak",
+      "detectorScore": 61,
+      "claimText": "Route S46 W am_peak travel time is variable: P50 435.10854600000005 min and P95 655.4256458999998 min."
+    },
+    {
+      "candidateId": "f28bb2bd3464c6c05cbfbd2c100d2e3f",
+      "routeId": "S46",
+      "scopeId": "S46:2026-03:W:midday",
+      "detectorScore": 66,
+      "claimText": "Route S46 W midday travel time is variable: P50 432.32376899999997 min and P95 678.3737685 min."
+    },
+    {
+      "candidateId": "15801d5e39af5036112890e0c7d49643",
+      "routeId": "S48",
+      "scopeId": "S48:2026-03:W:midday",
+      "detectorScore": 71,
+      "claimText": "Route S48 W midday travel time is variable: P50 331.390827 min and P95 541.0312035 min."
+    },
+    {
+      "candidateId": "97030150f525a71ab0b3bad42c5bcff5",
+      "routeId": "S54",
+      "scopeId": "S54:2026-03:N:am_peak",
+      "detectorScore": 81,
+      "claimText": "Route S54 N am_peak travel time is variable: P50 277.131621 min and P95 488.4978014999999 min."
+    },
+    {
+      "candidateId": "526858daac9d53c253d8e6783ca4cd14",
+      "routeId": "S54",
+      "scopeId": "S54:2026-03:N:midday",
+      "detectorScore": 72,
+      "claimText": "Route S54 N midday travel time is variable: P50 279.19913399999996 min and P95 462.0894195 min."
+    },
+    {
+      "candidateId": "807618b78c2ef2930b6fdb2166a6c434",
+      "routeId": "S54",
+      "scopeId": "S54:2026-03:S:am_peak",
+      "detectorScore": 100,
+      "claimText": "Route S54 S am_peak travel time is variable: P50 275.544984 min and P95 590.5630898999999 min."
+    },
+    {
+      "candidateId": "86f2e6a1c1e4232a8298e02b94821e72",
+      "routeId": "S54",
+      "scopeId": "S54:2026-03:S:midday",
+      "detectorScore": 73,
+      "claimText": "Route S54 S midday travel time is variable: P50 263.084928 min and P95 437.8276125 min."
+    },
+    {
+      "candidateId": "43072213b101ecbee27c475d3354be91",
+      "routeId": "S55",
+      "scopeId": "S55:2026-03:N:am_peak",
+      "detectorScore": 83,
+      "claimText": "Route S55 N am_peak travel time is variable: P50 253.26919199999998 min and P95 453.7141484999999 min."
+    },
+    {
+      "candidateId": "d2d2a3f28564f7ca0938778e508666ea",
+      "routeId": "S55",
+      "scopeId": "S55:2026-03:N:midday",
+      "detectorScore": 66,
+      "claimText": "Route S55 N midday travel time is variable: P50 219.193275 min and P95 346.4105745 min."
+    },
+    {
+      "candidateId": "f8235b85c6eb82ebc852b4b2b6edbf04",
+      "routeId": "S55",
+      "scopeId": "S55:2026-03:S:midday",
+      "detectorScore": 95,
+      "claimText": "Route S55 S midday travel time is variable: P50 212.005113 min and P95 409.539681 min."
+    },
+    {
+      "candidateId": "e4427bb5efe588a16791317d821fca2b",
+      "routeId": "S56",
+      "scopeId": "S56:2026-03:N:midday",
+      "detectorScore": 100,
+      "claimText": "Route S56 N midday travel time is variable: P50 177.02127000000002 min and P95 477.8225775000001 min."
+    },
+    {
+      "candidateId": "8014598d10874e38d52209c3e1cc3527",
+      "routeId": "S56",
+      "scopeId": "S56:2026-03:S:midday",
+      "detectorScore": 99,
+      "claimText": "Route S56 S midday travel time is variable: P50 181.95578999999998 min and P95 361.4241285 min."
+    },
+    {
+      "candidateId": "f0082d83bba93ec46708ff6a9c0626f4",
+      "routeId": "S57",
+      "scopeId": "S57:2026-03:N:midday",
+      "detectorScore": 100,
+      "claimText": "Route S57 N midday travel time is variable: P50 357.20376 min and P95 752.200242 min."
+    },
+    {
+      "candidateId": "4fc5f03b49f2e2fdd43881df31c95ced",
+      "routeId": "S59",
+      "scopeId": "S59:2026-03:N:midday",
+      "detectorScore": 100,
+      "claimText": "Route S59 N midday travel time is variable: P50 372.307125 min and P95 929.510919 min."
+    },
+    {
+      "candidateId": "fee259b04147ec695b2fbbdb550d2be6",
+      "routeId": "S59",
+      "scopeId": "S59:2026-03:S:midday",
+      "detectorScore": 70,
+      "claimText": "Route S59 S midday travel time is variable: P50 365.025039 min and P95 594.061005 min."
+    },
+    {
+      "candidateId": "a345dc46b46f68dac0ec8a5cfb484b87",
+      "routeId": "S61",
+      "scopeId": "S61:2026-03:E:midday",
+      "detectorScore": 67,
+      "claimText": "Route S61 E midday travel time is variable: P50 390.320646 min and P95 622.0055805 min."
+    },
+    {
+      "candidateId": "51143bc5adbe6b479120eb7a4286cac6",
+      "routeId": "S62",
+      "scopeId": "S62:2026-03:W:midday",
+      "detectorScore": 76,
+      "claimText": "Route S62 W midday travel time is variable: P50 327.91477199999997 min and P95 557.160018 min."
+    },
+    {
+      "candidateId": "3a05fc79076b36e0e336168dec4ea722",
+      "routeId": "S66",
+      "scopeId": "S66:2026-03:E:am_peak",
+      "detectorScore": 88,
+      "claimText": "Route S66 E am_peak travel time is variable: P50 211.316307 min and P95 391.38082469999995 min."
+    },
+    {
+      "candidateId": "32abf0a667cb488682a452b56a1bf2da",
+      "routeId": "S76",
+      "scopeId": "S76:2026-03:N:midday",
+      "detectorScore": 79,
+      "claimText": "Route S76 N midday travel time is variable: P50 382.90375500000005 min and P95 666.9159735 min."
+    },
+    {
+      "candidateId": "4de38ad293a1abd5d74b103919389f72",
+      "routeId": "S78",
+      "scopeId": "S78:2026-03:E:midday",
+      "detectorScore": 100,
+      "claimText": "Route S78 E midday travel time is variable: P50 696.1677090000001 min and P95 1398.9859844999999 min."
+    },
+    {
+      "candidateId": "f46180fed318f3c0335b4c47f5cb6bff",
+      "routeId": "S78",
+      "scopeId": "S78:2026-03:W:midday",
+      "detectorScore": 86,
+      "claimText": "Route S78 W midday travel time is variable: P50 624.444573 min and P95 1143.284028 min."
+    },
+    {
+      "candidateId": "89d0a9866602120581db8a02ed019d23",
+      "routeId": "S79+",
+      "scopeId": "S79+:2026-03:E:midday",
+      "detectorScore": 61,
+      "claimText": "Route S79+ E midday travel time is variable: P50 456.25928999999996 min and P95 692.052921 min."
+    },
+    {
+      "candidateId": "c37d2f6f975c0f248daf3ee77b3b2bae",
+      "routeId": "SIM1",
+      "scopeId": "SIM1:2026-03:S:midday",
+      "detectorScore": 66,
+      "claimText": "Route SIM1 S midday travel time is variable: P50 230.097072 min and P95 361.14842999999996 min."
+    },
+    {
+      "candidateId": "4662ae96e21fa0c9a186e902a8acc473",
+      "routeId": "SIM11",
+      "scopeId": "SIM11:2026-03:N:off_peak",
+      "detectorScore": 62,
+      "claimText": "Route SIM11 N off_peak travel time is variable: P50 200.737212 min and P95 306.0501936 min."
+    },
+    {
+      "candidateId": "3af70f00d8123ff18272e97e7a2fe0a2",
+      "routeId": "SIM15",
+      "scopeId": "SIM15:2026-03:N:off_peak",
+      "detectorScore": 79,
+      "claimText": "Route SIM15 N off_peak travel time is variable: P50 168.24568800000003 min and P95 293.2677786 min."
+    },
+    {
+      "candidateId": "6a804f3ab1fe3dabf7c72381b84c4a37",
+      "routeId": "SIM1C",
+      "scopeId": "SIM1C:2026-03:N:am_peak",
+      "detectorScore": 100,
+      "claimText": "Route SIM1C N am_peak travel time is variable: P50 238.075356 min and P95 677.0478938999998 min."
+    },
+    {
+      "candidateId": "c63d4faebd46de6bd35b0304ccdcb4f0",
+      "routeId": "SIM1C",
+      "scopeId": "SIM1C:2026-03:S:pm_peak",
+      "detectorScore": 100,
+      "claimText": "Route SIM1C S pm_peak travel time is variable: P50 239.38245899999998 min and P95 614.6448366 min."
+    },
+    {
+      "candidateId": "25cfd7d2a4dea003cc7ba811e9af27f2",
+      "routeId": "SIM3",
+      "scopeId": "SIM3:2026-03:S:midday",
+      "detectorScore": 70,
+      "claimText": "Route SIM3 S midday travel time is variable: P50 229.31517599999998 min and P95 372.98461139999995 min."
+    },
+    {
+      "candidateId": "79d1f5af07388f293a7299da4b66719b",
+      "routeId": "SIM33",
+      "scopeId": "SIM33:2026-03:S:midday",
+      "detectorScore": 63,
+      "claimText": "Route SIM33 S midday travel time is variable: P50 261.286572 min and P95 401.25550079999994 min."
+    },
+    {
+      "candidateId": "e4874fad8b7d98ff13471e3f26d716e9",
+      "routeId": "SIM33C",
+      "scopeId": "SIM33C:2026-03:N:am_peak",
+      "detectorScore": 100,
+      "claimText": "Route SIM33C N am_peak travel time is variable: P50 151.477128 min and P95 456.23501669999985 min."
+    },
+    {
+      "candidateId": "1a9265971bc871e148c2669ea0fe43b8",
+      "routeId": "SIM33C",
+      "scopeId": "SIM33C:2026-03:S:pm_peak",
+      "detectorScore": 81,
+      "claimText": "Route SIM33C S pm_peak travel time is variable: P50 291.09835799999996 min and P95 511.7417414999999 min."
+    },
+    {
+      "candidateId": "2d45e407e421a9246fc91c0a8d63e02f",
+      "routeId": "SIM34",
+      "scopeId": "SIM34:2026-03:S:midday",
+      "detectorScore": 82,
+      "claimText": "Route SIM34 S midday travel time is variable: P50 210.719823 min and P95 373.3874061 min."
+    },
+    {
+      "candidateId": "64cac960d5002efbdb3a73d519b7d699",
+      "routeId": "SIM3C",
+      "scopeId": "SIM3C:2026-03:N:am_peak",
+      "detectorScore": 89,
+      "claimText": "Route SIM3C N am_peak travel time is variable: P50 137.938656 min and P95 257.3538498 min."
+    },
+    {
+      "candidateId": "c0e139bf64ffb024bc0a68a9cac7d77b",
+      "routeId": "SIM3C",
+      "scopeId": "SIM3C:2026-03:S:pm_peak",
+      "detectorScore": 84,
+      "claimText": "Route SIM3C S pm_peak travel time is variable: P50 345.316923 min and P95 620.1271496999999 min."
+    },
+    {
+      "candidateId": "a141b098ee58340f2face87ce283a954",
+      "routeId": "SIM4C",
+      "scopeId": "SIM4C:2026-03:N:am_peak",
+      "detectorScore": 100,
+      "claimText": "Route SIM4C N am_peak travel time is variable: P50 239.475498 min and P95 625.5575147999998 min."
+    },
+    {
+      "candidateId": "22f1165545030bffa0457878ef165ee3",
+      "routeId": "SIM4C",
+      "scopeId": "SIM4C:2026-03:N:off_peak",
+      "detectorScore": 71,
+      "claimText": "Route SIM4C N off_peak travel time is variable: P50 254.166378 min and P95 417.11760419999996 min."
+    },
+    {
+      "candidateId": "a98afb6047d264e309f0bd9e3f0e72d9",
+      "routeId": "SIM5",
+      "scopeId": "SIM5:2026-03:N:off_peak",
+      "detectorScore": 71,
+      "claimText": "Route SIM5 N off_peak travel time is variable: P50 177.49998 min and P95 290.644209 min."
+    },
+    {
+      "candidateId": "a1e3fede8b59dda0a9cdacd49291ec0c",
+      "routeId": "SIM6",
+      "scopeId": "SIM6:2026-03:N:off_peak",
+      "detectorScore": 71,
+      "claimText": "Route SIM6 N off_peak travel time is variable: P50 231.78981000000002 min and P95 378.8391378 min."
+    },
+    {
+      "candidateId": "cc1bd3e3ceb4e36c62dfc47bf31da76b",
+      "routeId": "SIM9",
+      "scopeId": "SIM9:2026-03:S:midday",
+      "detectorScore": 66,
+      "claimText": "Route SIM9 S midday travel time is variable: P50 224.98972500000002 min and P95 355.4535009 min."
+    },
+    {
+      "candidateId": "188ee8504a81bb77221169982a2c1143",
+      "routeId": "X27",
+      "scopeId": "X27:2026-03:N:off_peak",
+      "detectorScore": 97,
+      "claimText": "Route X27 N off_peak travel time is variable: P50 109.295058 min and P95 214.8142656 min."
+    },
+    {
+      "candidateId": "c0d3574a97eeb9031cf1e89e799d1431",
+      "routeId": "X27",
+      "scopeId": "X27:2026-03:N:pm_peak",
+      "detectorScore": 87,
+      "claimText": "Route X27 N pm_peak travel time is variable: P50 287.550831 min and P95 527.9911152 min."
+    },
+    {
+      "candidateId": "526ffc66668c6fb867e6a60fff11a89e",
+      "routeId": "X27",
+      "scopeId": "X27:2026-03:S:am_peak",
+      "detectorScore": 100,
+      "claimText": "Route X27 S am_peak travel time is variable: P50 110.011668 min and P95 369.3550866 min."
+    },
+    {
+      "candidateId": "6db6a30bba568cd34e9caeb4365327b6",
+      "routeId": "X28",
+      "scopeId": "X28:2026-03:N:off_peak",
+      "detectorScore": 100,
+      "claimText": "Route X28 N off_peak travel time is variable: P50 126.36864 min and P95 268.613604 min."
+    },
+    {
+      "candidateId": "e4a0ad27398db31a42d508ff36face32",
+      "routeId": "X28",
+      "scopeId": "X28:2026-03:S:am_peak",
+      "detectorScore": 100,
+      "claimText": "Route X28 S am_peak travel time is variable: P50 97.417038 min and P95 401.2184784 min."
+    }
+  ]
+}

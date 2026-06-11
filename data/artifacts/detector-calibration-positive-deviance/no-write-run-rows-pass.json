@@ -1,0 +1,602 @@
+{
+  "artifactKind": "registry_detector_run",
+  "schemaVersion": 1,
+  "generatedAt": "2026-06-11T17:13:34.925Z",
+  "detectorId": "positive_deviance",
+  "detectorVersion": "1.0.0",
+  "detectorRunId": "positive_deviance-2026-03",
+  "releaseMonth": "2026-03",
+  "dbPath": "data/local/pipeline.sqlite",
+  "artifactPath": "data/artifacts/detector-calibration-positive-deviance/no-write-run-rows-pass.json",
+  "wroteDb": false,
+  "featureContracts": [
+    {
+      "featureGrain": "positive_deviance",
+      "resolverId": "artifact.positive_deviance.v1",
+      "status": "resolved",
+      "reason": "Supplied by a registered applied-research detector-input resolver or local-row loader."
+    },
+    {
+      "featureGrain": "feed_health",
+      "resolverId": "embedded.feature_quality.v1",
+      "status": "satisfied_by_feature_quality",
+      "reason": "Carried through feature-quality coverage/freshness/sample fields rather than a dedicated row resolver."
+    }
+  ],
+  "dataProductDependencies": [
+    {
+      "productId": "analytics_backfill_coverage_audit",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    },
+    {
+      "productId": "bus_observatory_gtfs_rt_availability",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    },
+    {
+      "productId": "local_route_month_trends_history",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    },
+    {
+      "productId": "route_hourly_profile_artifact",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    }
+  ],
+  "modelDependencies": [
+    {
+      "modelId": "route_peer_residuals_v1",
+      "status": "available",
+      "rowCount": 348,
+      "reason": "Required model artifact route_peer_residuals_v1 was supplied as routePeerResidualRows."
+    }
+  ],
+  "inputSummary": {
+    "sourceKind": "positive_deviance_from_route_month_trend_peer_history",
+    "metricName": "average_speed_mph",
+    "releaseMonth": "2026-03",
+    "sourceRowCount": 13154,
+    "monthCount": 36,
+    "featureCount": 365,
+    "supportedFeatureCount": 361,
+    "peerCount": 348
+  },
+  "outputSummary": {
+    "candidateCount": 48,
+    "evidenceCount": 96,
+    "coverageCount": 365,
+    "hitCount": 48,
+    "cleanNoHitCount": 0,
+    "deferredNotInScopeCount": 0,
+    "skippedCount": 317
+  },
+  "capAccounting": {
+    "mode": "global_candidate_limit",
+    "status": "below_production_cap",
+    "productionCandidateLimit": 100,
+    "runCandidateLimit": 100,
+    "qualifyingCandidateCount": 48,
+    "emittedWithinProductionCapCount": 48,
+    "cappedOutCount": 0,
+    "cappedOutByBoroughPrefix": {},
+    "cappedOutByRouteId": {},
+    "routeBreakdown": [
+      {
+        "routeId": "B39",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "BX29",
+        "boroughPrefix": "BX",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "BXM8",
+        "boroughPrefix": "BXM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "M35",
+        "boroughPrefix": "M",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "Q100",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "Q35",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "Q50",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "QM11",
+        "boroughPrefix": "QM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "QM16",
+        "boroughPrefix": "QM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "QM17",
+        "boroughPrefix": "QM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "QM25",
+        "boroughPrefix": "QM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "QM36",
+        "boroughPrefix": "QM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "QM65",
+        "boroughPrefix": "QM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "QM7",
+        "boroughPrefix": "QM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "QM8",
+        "boroughPrefix": "QM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "S40",
+        "boroughPrefix": "S",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "S55",
+        "boroughPrefix": "S",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "S56",
+        "boroughPrefix": "S",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "S57",
+        "boroughPrefix": "S",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "S59",
+        "boroughPrefix": "S",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "S74",
+        "boroughPrefix": "S",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "S78",
+        "boroughPrefix": "S",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "S79+",
+        "boroughPrefix": "S",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "S81",
+        "boroughPrefix": "S",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "S89",
+        "boroughPrefix": "S",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "S90",
+        "boroughPrefix": "S",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "SIM1",
+        "boroughPrefix": "SIM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "SIM10",
+        "boroughPrefix": "SIM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "SIM11",
+        "boroughPrefix": "SIM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "SIM15",
+        "boroughPrefix": "SIM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "SIM2",
+        "boroughPrefix": "SIM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "SIM22",
+        "boroughPrefix": "SIM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "SIM23",
+        "boroughPrefix": "SIM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "SIM24",
+        "boroughPrefix": "SIM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "SIM25",
+        "boroughPrefix": "SIM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "SIM26",
+        "boroughPrefix": "SIM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "SIM31",
+        "boroughPrefix": "SIM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "SIM32",
+        "boroughPrefix": "SIM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "SIM33",
+        "boroughPrefix": "SIM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "SIM33C",
+        "boroughPrefix": "SIM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "SIM35",
+        "boroughPrefix": "SIM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "SIM4",
+        "boroughPrefix": "SIM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "SIM4C",
+        "boroughPrefix": "SIM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "SIM5",
+        "boroughPrefix": "SIM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "SIM6",
+        "boroughPrefix": "SIM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "SIM7",
+        "boroughPrefix": "SIM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "SIM8",
+        "boroughPrefix": "SIM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "SIM9",
+        "boroughPrefix": "SIM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      }
+    ],
+    "note": "Run uses production cap 100. The qualifying candidate count stayed below the production cap."
+  },
+  "candidateSamples": [
+    {
+      "candidateId": "e47da5cc61a8676c97cf072d37194bc6",
+      "routeId": "B39",
+      "scopeId": "B39",
+      "detectorScore": 73,
+      "claimText": "route B39 performs in the top decile for average_speed_mph versus NYC bus routes with speed-history support, persistent over 5 periods."
+    },
+    {
+      "candidateId": "80007e9cb80d98dcad04e86158b03b3e",
+      "routeId": "BX29",
+      "scopeId": "BX29",
+      "detectorScore": 91,
+      "claimText": "route BX29 performs in the top decile for average_speed_mph versus NYC bus routes with speed-history support, persistent over 36 periods."
+    },
+    {
+      "candidateId": "790e7938d6d144da37bd6e3692024fa7",
+      "routeId": "BXM8",
+      "scopeId": "BXM8",
+      "detectorScore": 70,
+      "claimText": "route BXM8 performs in the top decile for average_speed_mph versus NYC bus routes with speed-history support, persistent over 2 periods."
+    },
+    {
+      "candidateId": "154c84173292147c228c0d07ba0f68ed",
+      "routeId": "M35",
+      "scopeId": "M35",
+      "detectorScore": 79,
+      "claimText": "route M35 performs in the top decile for average_speed_mph versus NYC bus routes with speed-history support, persistent over 7 periods."
+    },
+    {
+      "candidateId": "fe21631bf7bbc7a95bc968be3e30e687",
+      "routeId": "Q100",
+      "scopeId": "Q100",
+      "detectorScore": 71,
+      "claimText": "route Q100 performs in the top decile for average_speed_mph versus NYC bus routes with speed-history support, persistent over 2 periods."
+    },
+    {
+      "candidateId": "e529428e366c107f60dec54ca07648bd",
+      "routeId": "Q35",
+      "scopeId": "Q35",
+      "detectorScore": 100,
+      "claimText": "route Q35 performs in the top decile for average_speed_mph versus NYC bus routes with speed-history support, persistent over 36 periods."
+    },
+    {
+      "candidateId": "d37d9de892789f1a1dacab449fa679cc",
+      "routeId": "Q50",
+      "scopeId": "Q50",
+      "detectorScore": 94,
+      "claimText": "route Q50 performs in the top decile for average_speed_mph versus NYC bus routes with speed-history support, persistent over 36 periods."
+    },
+    {
+      "candidateId": "6d9549f0eea37769f30fef858e5ea358",
+      "routeId": "QM11",
+      "scopeId": "QM11",
+      "detectorScore": 82,
+      "claimText": "route QM11 performs in the top decile for average_speed_mph versus NYC bus routes with speed-history support, persistent over 9 periods."
+    },
+    {
+      "candidateId": "fcff148e8e97b5f47847efaefd2be2ce",
+      "routeId": "QM16",
+      "scopeId": "QM16",
+      "detectorScore": 89,
+      "claimText": "route QM16 performs in the top decile for average_speed_mph versus NYC bus routes with speed-history support, persistent over 36 periods."
+    },
+    {
+      "candidateId": "db4b42c7d07c607143c883572c7df18a",
+      "routeId": "QM17",
+      "scopeId": "QM17",
+      "detectorScore": 82,
+      "claimText": "route QM17 performs in the top decile for average_speed_mph versus NYC bus routes with speed-history support, persistent over 32 periods."
+    },
+    {
+      "candidateId": "078a1a82f1041c4136367195b411eef6",
+      "routeId": "QM25",
+      "scopeId": "QM25",
+      "detectorScore": 76,
+      "claimText": "route QM25 performs in the top decile for average_speed_mph versus NYC bus routes with speed-history support, persistent over 7 periods."
+    },
+    {
+      "candidateId": "f163e1ff272a505fee631b95337f66fe",
+      "routeId": "QM36",
+      "scopeId": "QM36",
+      "detectorScore": 79,
+      "claimText": "route QM36 performs in the top decile for average_speed_mph versus NYC bus routes with speed-history support, persistent over 24 periods."
+    },
+    {
+      "candidateId": "868faa4d8d2c46b145b2448596eaaeb1",
+      "routeId": "QM65",
+      "scopeId": "QM65",
+      "detectorScore": 78,
+      "claimText": "route QM65 performs in the top decile for average_speed_mph versus NYC bus routes with speed-history support, persistent over 7 periods."
+    },
+    {
+      "candidateId": "08216214d3d35b42e8c409f49e8cd424",
+      "routeId": "QM7",
+      "scopeId": "QM7",
+      "detectorScore": 79,
+      "claimText": "route QM7 performs in the top decile for average_speed_mph versus NYC bus routes with speed-history support, persistent over 9 periods."
+    },
+    {
+      "candidateId": "27b1e84a53eb54be8b67f373ee458b2d",
+      "routeId": "QM8",
+      "scopeId": "QM8",
+      "detectorScore": 86,
+      "claimText": "route QM8 performs in the top decile for average_speed_mph versus NYC bus routes with speed-history support, persistent over 9 periods."
+    },
+    {
+      "candidateId": "1423285d50a9024a3d7c8b5fd413ad50",
+      "routeId": "S40",
+      "scopeId": "S40",
+      "detectorScore": 93,
+      "claimText": "route S40 performs in the top decile for average_speed_mph versus NYC bus routes with speed-history support, persistent over 36 periods."
+    },
+    {
+      "candidateId": "90b4b01f61a6059f2814781bb1d2a694",
+      "routeId": "S55",
+      "scopeId": "S55",
+      "detectorScore": 84,
+      "claimText": "route S55 performs in the top decile for average_speed_mph versus NYC bus routes with speed-history support, persistent over 36 periods."
+    },
+    {
+      "candidateId": "5352f6f070252e562eee57b4e9bdc4f9",
+      "routeId": "S56",
+      "scopeId": "S56",
+      "detectorScore": 80,
+      "claimText": "route S56 performs in the top decile for average_speed_mph versus NYC bus routes with speed-history support, persistent over 35 periods."
+    },
+    {
+      "candidateId": "94e74c0f1b1ad362fe28fc931cb0d73b",
+      "routeId": "S57",
+      "scopeId": "S57",
+      "detectorScore": 73,
+      "claimText": "route S57 performs in the top decile for average_speed_mph versus NYC bus routes with speed-history support, persistent over 3 periods."
+    },
+    {
+      "candidateId": "0937c638be41e529a2ae983744dfe758",
+      "routeId": "S59",
+      "scopeId": "S59",
+      "detectorScore": 73,
+      "claimText": "route S59 performs in the top decile for average_speed_mph versus NYC bus routes with speed-history support, persistent over 13 periods."
+    },
+    {
+      "candidateId": "97ffb4f39aedd0e5b0f710839ac28099",
+      "routeId": "S74",
+      "scopeId": "S74",
+      "detectorScore": 74,
+      "claimText": "route S74 performs in the top decile for average_speed_mph versus NYC bus routes with speed-history support, persistent over 10 periods."
+    },
+    {
+      "candidateId": "345b849e329dcaf045d4438c44af8007",
+      "routeId": "S78",
+      "scopeId": "S78",
+      "detectorScore": 81,
+      "claimText": "route S78 performs in the top decile for average_speed_mph versus NYC bus routes with speed-history support, persistent over 34 periods."
+    },
+    {
+      "candidateId": "0cca4d68b69a522f4781b9633b3d8156",
+      "routeId": "S79+",
+      "scopeId": "S79+",
+      "detectorScore": 87,
+      "claimText": "route S79+ performs in the top decile for average_speed_mph versus NYC bus routes with speed-history support, persistent over 36 periods."
+    },
+    {
+      "candidateId": "e30d30e0af503037ad2fe27f9990358d",
+      "routeId": "S81",
+      "scopeId": "S81",
+      "detectorScore": 72,
+      "claimText": "route S81 performs in the top decile for average_speed_mph versus NYC bus routes with speed-history support, persistent over 2 periods."
+    },
+    {
+      "candidateId": "22aa3384411ab5decc8deebfd4530fa6",
+      "routeId": "S89",
+      "scopeId": "S89",
+      "detectorScore": 96,
+      "claimText": "route S89 performs in the top decile for average_speed_mph versus NYC bus routes with speed-history support, persistent over 36 periods."
+    }
+  ]
+}
