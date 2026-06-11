@@ -21,11 +21,12 @@ hand-editing those dirs** (Phase 4 S4.3).
 | `deferred` | 0 | none |
 
 `retirementStatus`: active 18, deprecated 1 (persistent_speed_hotspot), experimental 2
-(rider_weighted_excess_wait, positive_deviance). `reviewedLabelCount` is 0 across the board until human
-review populates the gold sets; `falsePositiveRootCauseTags` likewise fill in from reviewed-gold once
-labels exist (the register schema carries them now). Regenerate whenever a disposition, registry
-status, or reviewed-gold changes; this enables level-6 release-over-release tracking (reviewer
-outcomes feeding improvements).
+(rider_weighted_excess_wait, positive_deviance). First reviewed gold landed 2026-06-11:
+`delay_concentration` carries 23 reviewed labels (batch `2026-06-11-march-initial-23`) with
+suppress-side root-cause tags recorded; every other detector's `reviewedLabelCount` stays 0 until
+its gold set is reviewed. Regenerate whenever a disposition, registry status, or reviewed-gold
+changes; this enables level-6 release-over-release tracking (reviewer outcomes feeding
+improvements).
 
 `delay_concentration` moved from `deferred` to `machinery_built` after the S2.1 terminal-flag
 prerequisite was satisfied and the route-segment review queue + reviewed-gold/readiness machinery

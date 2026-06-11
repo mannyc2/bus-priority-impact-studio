@@ -1,7 +1,7 @@
 {
   "artifactKind": "detector_calibration_register",
   "schemaVersion": 1,
-  "generatedAt": "2026-06-11T00:00:00.000Z",
+  "generatedAt": "2026-06-11T16:26:36.822Z",
   "summary": {
     "detectorCount": 21,
     "byDisposition": {
@@ -19,8 +19,15 @@
       "experimental": 2
     },
     "machineryCount": 18,
-    "totalReviewedLabelCount": 0,
-    "falsePositiveRootCauseTagCounts": {}
+    "totalReviewedLabelCount": 23,
+    "falsePositiveRootCauseTagCounts": {
+      "duplicate_or_stale_segment_rows": 1,
+      "low_eligible_segment_count": 1,
+      "low_total_delay": 1,
+      "not_actionable_as_claim": 1,
+      "segment_count_sensitive": 1,
+      "segment_length_mix_uncertain": 1
+    }
   },
   "entries": [
     {
@@ -67,9 +74,16 @@
       "calibrationDir": "data/artifacts/detector-calibration-delay-concentration",
       "notePath": "data/artifacts/detector-calibration-delay-concentration/NOTE.md",
       "reviewedGoldModule": "packages/applied-research/src/evaluation/delay-concentration-reviewed-gold.ts",
-      "reviewedLabelCount": 0,
-      "falsePositiveRootCauseTags": [],
-      "decisionRef": null
+      "reviewedLabelCount": 23,
+      "falsePositiveRootCauseTags": [
+        "duplicate_or_stale_segment_rows",
+        "low_eligible_segment_count",
+        "low_total_delay",
+        "not_actionable_as_claim",
+        "segment_count_sensitive",
+        "segment_length_mix_uncertain"
+      ],
+      "decisionRef": "data/artifacts/detector-calibration-delay-concentration/reviewed-decisions.json"
     },
     {
       "detectorId": "headway_reliability_ewt",

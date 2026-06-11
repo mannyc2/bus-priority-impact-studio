@@ -2,6 +2,23 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-11] analysis | delay_concentration reviewed gold: 4/4 primary survival, 0/16 suppress leakage
+
+Completed the ADR-0018 loop for `delay_concentration` on the March 2026 inventory. `findings
+run-detector` gained `--rows-output`, which persists every candidate/evidence/coverage row (the run
+artifact keeps only samples) so review queues can be built from a real run. The stratified queue
+selected 23 rows: all 7 emitted candidates, 8 borough-spread clean controls, and 8 skipped
+controls. Reviewed labels (batch `2026-06-11-march-initial-23`, adversarial depth on emitted rows):
+4 `primary_finding` (B6, Q17, Q27, B17), 1 `route_context` (B44+), 1 `needs_more_evidence` (Q44+,
+whose "6 of 8 segments" readout is near-tautological at the 8-segment route minimum), 1
+`reviewer_only` (Q43, near-threshold score with delay at the 61st percentile), and 16 `suppress`.
+Evaluation: reviewed-primary survival 4/4, suppress leakage 0/16, unreviewed emitted 0. Readiness:
+4 `public_finding_candidate`, 1 `route_context`, 2 `review_queue`, 16 `suppressed`, with 75 skipped
+coverage rows accounted separately. Review confirmed the absolute-delay floor correctly holds back
+every high-Gini/low-delay route (Q88 at the 99.6th Gini percentile but 30k min delay), and that
+"6 of N" readouts degrade near the segment minimum — kept as readiness gates, no thresholds or caps
+changed. The calibration register now carries the 23 labels and suppress-side root-cause tags.
+
 ## [2026-06-11] engineering | Track B delay concentration calibration machinery
 
 Added the first ADR-0018 calibration machinery for `delay_concentration` on the route-segment-month

@@ -62,6 +62,7 @@ export default defineCommand({
       routeId: z.string().optional(),
       artifactRoot: z.string().optional(),
       output: z.string().optional(),
+      rowsOutput: z.string().optional(),
       writeDb: writeDbFlagSchema,
       candidateLimit: arg.positiveInt().optional(),
     }),
@@ -140,6 +141,24 @@ export default defineCommand({
       }
       await mkdir(dirname(outputPath), { recursive: true });
       await writeJson(outputPath, artifact);
+      if (input.options.rowsOutput !== undefined) {
+        // Calibration review queues need every candidate/evidence/coverage row, not the sampled
+        // summary in the run artifact.
+        const rowsPath = fromCliPath(input.options.rowsOutput);
+        await mkdir(dirname(rowsPath), { recursive: true });
+        await writeJson(rowsPath, {
+          artifactKind: "registry_detector_run_rows",
+          schemaVersion: 1,
+          detectorId,
+          detectorRunId,
+          releaseMonth,
+          generatedAt: artifact.generatedAt,
+          wroteDb: artifact.wroteDb,
+          candidates: output.candidates,
+          evidence: output.evidence,
+          coverage: output.coverage,
+        });
+      }
       return {
         detectorId,
         releaseMonth,

@@ -83,17 +83,59 @@ Both are pure applied-research code over detector rows, fixture-tested in
 - The detector must remain descriptive: avoidable-delay concentration is not causal evidence about
   bus lanes, enforcement, signals, construction, or curb activity.
 
-## Remaining Work
+## Full-Output Run + Review Queue (2026-06-11)
 
-- Commandize a full-output review-queue writer: `findings run-detector` persists only the summarized
-  registry run artifact, not full candidates/evidence/coverage.
-- Hand-label all 7 emitted candidates plus stratified clean/skipped controls.
-- Require suppress leakage = 0 and report reviewed-primary survival before serving promotion.
-- Treat low support, segment-count sensitivity, and single-segment dominance as readiness gates, not
-  reasons to relax thresholds.
+`findings run-detector` gained a `--rows-output` option that persists every candidate/evidence/
+coverage row (the run artifact keeps only samples). Queue built from those rows with
+`buildDelayConcentrationReviewQueue()`:
+
+```bash
+bun run pipeline findings run-detector --detector-id delay_concentration \
+  --year 2026 --month 3 --write-db false \
+  --output data/artifacts/detector-calibration-delay-concentration/no-write-run-rows-pass.json \
+  --rows-output data/artifacts/detector-calibration-delay-concentration/run-rows.json
+bun --conditions=source <build review-queue.json from run-rows.json>
+```
+
+23 rows selected for review: all 7 emitted candidates (4 `top_score`, 3 `low_eligible_segments`),
+8 borough-spread `clean_control` rows, 8 `skipped_control` rows. Cap suppression 0, matching the
+high-limit probe.
+
+## Reviewed Gold (batch `2026-06-11-march-initial-23`)
+
+All 23 selected rows labeled (adversarial depth on the 7 emitted, light on controls); decisions in
+`reviewed-decisions.json`, gold in `reviewed-gold.json`.
+
+| Label | Count | Routes |
+| --- | ---: | --- |
+| `primary_finding` | 4 | B6, Q17, Q27, B17 |
+| `route_context` | 1 | B44+ |
+| `needs_more_evidence` | 1 | Q44+ (6-of-8 readout near-tautological at the 8-segment minimum) |
+| `reviewer_only` | 1 | Q43 (near-threshold score 79, delay only 61st percentile) |
+| `suppress` | 16 | 8 clean controls (absolute-delay floor working as designed) + 8 skipped controls |
+
+Review findings worth keeping: the absolute-delay floor (fleet-median quantile) correctly held back
+every high-Gini/low-delay clean control (Q88 at the 99.6th Gini percentile but 30k min delay); the
+"6 of N" readout degrades into tautology near the 8-segment route minimum (Q44+, Q43); express/QM
+routes add segment-length-mix uncertainty on top of the floor; B17's top segment carries 0.42 of
+delay — under the 0.5 dominance flag but worth re-review if it grows.
+
+## Evaluation + Readiness (`evaluation.json`, `readiness-projection.json`)
+
+| Metric | Value |
+| --- | ---: |
+| Reviewed-primary survival | **4/4** |
+| Suppress leakage | **0/16** |
+| Unreviewed emitted candidates | 0 |
+| Readiness buckets | 4 `public_finding_candidate`, 1 `route_context`, 2 `review_queue`, 16 `suppressed` |
+| Coverage skipped (readiness-only accounting) | 75 (67 unreviewed) |
+
+No detector thresholds or caps were changed; all gates were already label-consistent.
 
 ## Recommendation
 
-`delay_concentration` is ready for first review-queue construction and gold-label collection from
-the March 2026 no-write output. It is **not** ready for public promotion until labels are reviewed
-and the readiness projection reports zero suppress leakage with label-backed primary survival.
+`delay_concentration` is calibrated at the ADR-0018 floor for March 2026: combined gold shows zero
+suppress leakage and full reviewed-primary survival, with a readiness projection separating the 4
+public-finding candidates from segment-count-sensitive and near-floor routes. Serving promotion
+remains gated on the readiness manifest path (S4.1); low segment support, segment-count
+sensitivity, and single-segment dominance stay readiness gates, never threshold relaxations.
