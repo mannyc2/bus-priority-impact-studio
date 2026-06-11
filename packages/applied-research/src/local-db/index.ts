@@ -101,6 +101,10 @@ export {
   loadDetectorStudyLocalDbRows,
 } from "./detector-study-rows";
 export {
+  type FeatureGrainMaterializationCoverageLocalDbQuery,
+  loadFeatureGrainMaterializationCoverageRows,
+} from "./feature-grain-materialization-coverage-rows";
+export {
   type EwtRouteMonthScoreVectorLocalDbQuery,
   loadCustomerJourneyAbstByRouteMonth,
   loadEwtRouteMonthScoreVectorLocalDbRows,

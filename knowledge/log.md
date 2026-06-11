@@ -2,6 +2,17 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-11] infra | S2.4 feature-grain coverage command
+
+Closed the S2.4 follow-up left by the first materialization-coverage slice: added a
+fixture-backed `audit feature-grain-materialization-coverage` pipeline command that writes
+`data/artifacts/materialization-coverage/feature-grain-materialization-coverage-YYYY-MM.json` from
+registered feature contracts and current local DB support counts. Route-level grains use
+`local_route_catalog` as the denominator; segment, stop-hour, source, context, and intervention
+grains keep `fleetUniverse: null` until their fleet universes are enumerated. Artifact-backed
+grains with local DB support carry source-support notes, while route-treatment artifact seams remain
+explicit missing rows so calibration NOTEs can cite the gap instead of implying coverage.
+
 ## [2026-06-11] infra | Track B S2.2 run artifacts expose detector cap accounting
 
 Extended the shared S2.2 cap-policy discipline from review queues into registry detector run

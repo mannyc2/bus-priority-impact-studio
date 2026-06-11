@@ -36,6 +36,7 @@ export {
   evaluationArtifactPath,
 } from "./evaluation-artifacts";
 export { ewtScoreVectorArtifactPath } from "./ewt-score-vectors";
+export { featureGrainMaterializationCoveragePath } from "./feature-grain-materialization-coverage";
 export {
   expressBusCapacityContextPath,
   expressRouteAnalysisAuditPath,

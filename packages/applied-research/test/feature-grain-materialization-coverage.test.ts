@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { featureGrainMaterializationCoveragePath } from "../src/artifacts/feature-grain-materialization-coverage";
 import { buildFeatureGrainMaterializationCoverage } from "../src/evaluation/feature-grain-materialization-coverage";
 
 describe("feature-grain materialization coverage (S2.4)", () => {
@@ -67,5 +68,16 @@ describe("feature-grain materialization coverage (S2.4)", () => {
         rows: [{ featureGrain: "route_month", scopesMaterialized: -1 }],
       }),
     ).toThrow(/cannot be negative/);
+  });
+
+  test("owns the feature-grain materialization coverage artifact path", () => {
+    expect(
+      featureGrainMaterializationCoveragePath({
+        artifactRoot: "data/artifacts",
+        releaseMonth: "2026-03",
+      }),
+    ).toBe(
+      "data/artifacts/materialization-coverage/feature-grain-materialization-coverage-2026-03.json",
+    );
   });
 });
