@@ -5,15 +5,19 @@
 // module; the core module never imports back here.
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";
+import { PDFDocument } from "pdf-lib";
 import { writeJson } from "../../../lib/json.ts";
+import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";
 import {
+  type AuditTier2OcrPageMarkdownArgs,
   addPageAuditIssue,
   artifactKey,
+  type CliOption,
   emptyPageAuditIssueCounts,
   latestDocsRunId,
   markdownBody,
   normalizeOcrPageMarkdownRootName,
+  type OcrPageMarkdownAuditCliArgs,
   ocrPageMarkdownSourceRoot,
   ocrPlanPath,
   pageMarkdownOutputPaths,
@@ -21,9 +25,6 @@ import {
   parseCliOptions,
   pdfInfoPageCount,
   runArtifactRoot,
-  type AuditTier2OcrPageMarkdownArgs,
-  type CliOption,
-  type OcrPageMarkdownAuditCliArgs,
   type Tier2OcrPageMarkdownAudit,
   type Tier2OcrPageMarkdownAuditIssueCode,
   type Tier2OcrPageMarkdownAuditPage,
@@ -187,6 +188,20 @@ function summarizeOcrPageAuditSource(input: {
   };
 }
 
+async function pdfPageCountWithFallback(pdfPath: string): Promise<number | null> {
+  const fromPdfInfo = await pdfInfoPageCount(pdfPath);
+  if (fromPdfInfo !== null) return fromPdfInfo;
+
+  try {
+    const bytes = new Uint8Array(await Bun.file(pdfPath).arrayBuffer());
+    const pdf = await PDFDocument.load(bytes, { ignoreEncryption: true });
+    const pageCount = pdf.getPageCount();
+    return Number.isInteger(pageCount) && pageCount > 0 ? pageCount : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function auditTier2OcrPageMarkdown(
   args: AuditTier2OcrPageMarkdownArgs,
 ): Promise<Tier2OcrPageMarkdownAudit> {
@@ -205,7 +220,7 @@ export async function auditTier2OcrPageMarkdown(
       pageMarkdownRootName,
     });
     const rawPath = join(runRoot, source.rawArtifactKey);
-    const pdfPageCount = await pdfInfoPageCount(rawPath);
+    const pdfPageCount = await pdfPageCountWithFallback(rawPath);
     const pageCount = pdfPageCount ?? 0;
     const pages: Tier2OcrPageMarkdownAuditPage[] = [];
     for (let pageNumber = 1; pageNumber <= pageCount; pageNumber += 1) {
