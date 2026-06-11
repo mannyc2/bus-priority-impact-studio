@@ -6,6 +6,40 @@ import {
   runRegistryDetectorStudy,
 } from "../src/detector-runs";
 
+function detectorRunCandidate(input: {
+  readonly candidateId: string;
+  readonly detectorId?: string;
+  readonly detectorRunId?: string;
+  readonly routeId: string | null;
+  readonly scopeId: string;
+  readonly detectorScore: number;
+}) {
+  const detectorId = input.detectorId ?? "observed_reliability";
+  const detectorRunId = input.detectorRunId ?? `${detectorId}-2026-03-test`;
+  return FindingCandidateSchema.parse({
+    candidateId: input.candidateId,
+    detectorRunId,
+    detectorId,
+    month: "2026-03",
+    routeId: input.routeId,
+    physicalId: null,
+    scopeKind: "route",
+    scopeId: input.scopeId,
+    category: "reliability",
+    reasonCode: "high_long_gap_share",
+    severity: "medium",
+    confidence: "medium",
+    detectorScore: input.detectorScore,
+    claimText: "Route has high observed long-gap reliability risk.",
+    claimSafeLabel: "issue_needs_review",
+    status: "open",
+    reviewState: "unreviewed",
+    windowStart: null,
+    windowEnd: null,
+    createdAt: "2026-06-01T00:00:00.000Z",
+  });
+}
+
 describe("detector run artifacts", () => {
   test("summarizes detector outputs and feature contract satisfaction", () => {
     const artifact = buildRegistryDetectorRunArtifact({
@@ -129,6 +163,200 @@ describe("detector run artifacts", () => {
       "c1",
       "c2",
     ]);
+  });
+
+  test("records global high-limit cap accounting by borough and route", () => {
+    const candidates = [
+      detectorRunCandidate({
+        candidateId: "c-m15",
+        routeId: "M15",
+        scopeId: "M15",
+        detectorScore: 95,
+      }),
+      detectorRunCandidate({
+        candidateId: "c-b41",
+        routeId: "B41",
+        scopeId: "B41",
+        detectorScore: 90,
+      }),
+      detectorRunCandidate({
+        candidateId: "c-s53",
+        routeId: "S53",
+        scopeId: "S53",
+        detectorScore: 80,
+      }),
+      detectorRunCandidate({
+        candidateId: "c-m14",
+        routeId: "M14",
+        scopeId: "M14",
+        detectorScore: 70,
+      }),
+    ];
+
+    const artifact = buildRegistryDetectorRunArtifact({
+      detectorId: "observed_reliability",
+      detectorRunId: "observed_reliability-2026-03-test",
+      releaseMonth: "2026-03",
+      generatedAt: "2026-06-01T00:00:00.000Z",
+      dbPath: null,
+      artifactPath: "observed_reliability-run.json",
+      wroteDb: false,
+      inputSummary: { routeCount: candidates.length },
+      output: { candidates, evidence: [], coverage: [] },
+      featureContracts: detectorStudyFeatureContractSatisfaction({
+        detectorId: "observed_reliability",
+      }),
+      capPolicy: {
+        mode: "global_candidate_limit",
+        productionCandidateLimit: 2,
+        runCandidateLimit: 4,
+        reason: "High-limit no-write inventory run: run cap 4 exceeds production cap 2.",
+      },
+    });
+
+    expect(artifact.capAccounting).toMatchObject({
+      mode: "global_candidate_limit",
+      status: "high_limit_inventory",
+      productionCandidateLimit: 2,
+      runCandidateLimit: 4,
+      qualifyingCandidateCount: 4,
+      emittedWithinProductionCapCount: 2,
+      cappedOutCount: 2,
+      cappedOutByBoroughPrefix: { M: 1, S: 1 },
+      cappedOutByRouteId: { M14: 1, S53: 1 },
+    });
+    expect(
+      artifact.capAccounting.routeBreakdown.find((route) => route.routeId === "M14"),
+    ).toMatchObject({
+      boroughPrefix: "M",
+      qualifyingCandidateCount: 1,
+      emittedWithinProductionCapCount: 0,
+      cappedOutCount: 1,
+    });
+  });
+
+  test("records per-route cap accounting for route-scoped caps", () => {
+    const candidates = [
+      detectorRunCandidate({
+        candidateId: "c-b1-a",
+        detectorId: "persistent_speed_hotspot",
+        detectorRunId: "persistent_speed_hotspot-2026-03-test",
+        routeId: "B1",
+        scopeId: "B1:seg-a",
+        detectorScore: 95,
+      }),
+      detectorRunCandidate({
+        candidateId: "c-b1-b",
+        detectorId: "persistent_speed_hotspot",
+        detectorRunId: "persistent_speed_hotspot-2026-03-test",
+        routeId: "B1",
+        scopeId: "B1:seg-b",
+        detectorScore: 90,
+      }),
+      detectorRunCandidate({
+        candidateId: "c-q5-a",
+        detectorId: "persistent_speed_hotspot",
+        detectorRunId: "persistent_speed_hotspot-2026-03-test",
+        routeId: "Q5",
+        scopeId: "Q5:seg-a",
+        detectorScore: 94,
+      }),
+      detectorRunCandidate({
+        candidateId: "c-q5-b",
+        detectorId: "persistent_speed_hotspot",
+        detectorRunId: "persistent_speed_hotspot-2026-03-test",
+        routeId: "Q5",
+        scopeId: "Q5:seg-b",
+        detectorScore: 82,
+      }),
+      detectorRunCandidate({
+        candidateId: "c-q5-c",
+        detectorId: "persistent_speed_hotspot",
+        detectorRunId: "persistent_speed_hotspot-2026-03-test",
+        routeId: "Q5",
+        scopeId: "Q5:seg-c",
+        detectorScore: 70,
+      }),
+    ];
+
+    const artifact = buildRegistryDetectorRunArtifact({
+      detectorId: "persistent_speed_hotspot",
+      detectorRunId: "persistent_speed_hotspot-2026-03-test",
+      releaseMonth: "2026-03",
+      generatedAt: "2026-06-01T00:00:00.000Z",
+      dbPath: null,
+      artifactPath: "persistent_speed_hotspot-run.json",
+      wroteDb: false,
+      inputSummary: { routeCount: 2 },
+      output: { candidates, evidence: [], coverage: [] },
+      featureContracts: detectorStudyFeatureContractSatisfaction({
+        detectorId: "persistent_speed_hotspot",
+      }),
+      capPolicy: {
+        mode: "per_route_candidate_limit",
+        productionCandidateLimit: 1,
+        runCandidateLimit: 3,
+        reason: "High-limit no-write inventory run: run cap 3 exceeds production cap 1.",
+      },
+    });
+
+    expect(artifact.capAccounting).toMatchObject({
+      mode: "per_route_candidate_limit",
+      status: "high_limit_inventory",
+      qualifyingCandidateCount: 5,
+      emittedWithinProductionCapCount: 2,
+      cappedOutCount: 3,
+      cappedOutByBoroughPrefix: { B: 1, Q: 2 },
+      cappedOutByRouteId: { B1: 1, Q5: 2 },
+    });
+  });
+
+  test("registry run artifacts expose observed-reliability 100-vs-220 cap distribution", () => {
+    const routes = Array.from({ length: 220 }, (_, index) => ({
+      routeId: `B${String(index + 1).padStart(3, "0")}`,
+      reliabilityStatus: "observed" as const,
+      sampleCount: 1000,
+      minSampleThreshold: 100,
+      observedLongGapShare: 0.8,
+      waitReliabilityRatio: 10,
+      excessWaitMinutes: 20,
+      scheduledBaselineHeadwaySampleCount: 20,
+      busWaitAssessmentTripCount: 20,
+      busWaitAssessment: 0.5,
+    }));
+
+    const { artifact, output } = runRegistryDetectorStudy({
+      metadata: {
+        detectorId: "observed_reliability",
+        detectorRunId: "observed_reliability-2026-03-high-limit",
+        releaseMonth: "2026-03",
+        historyStartMonth: "2023-04",
+        generatedAt: "2026-06-07T00:00:00.000Z",
+        dbPath: null,
+        artifactPath: "observed_reliability-run.json",
+        wroteDb: false,
+        candidateLimit: 220,
+      },
+      rows: {
+        observedReliabilityRoutes: routes,
+      },
+    });
+
+    expect(output.candidates).toHaveLength(220);
+    expect(artifact.capAccounting).toMatchObject({
+      mode: "global_candidate_limit",
+      status: "high_limit_inventory",
+      productionCandidateLimit: 100,
+      runCandidateLimit: 220,
+      qualifyingCandidateCount: 220,
+      emittedWithinProductionCapCount: 100,
+      cappedOutCount: 120,
+      cappedOutByBoroughPrefix: { B: 120 },
+    });
+    expect(Object.values(artifact.capAccounting.cappedOutByRouteId)).toHaveLength(120);
+    expect(
+      Object.values(artifact.capAccounting.cappedOutByRouteId).every((count) => count === 1),
+    ).toBe(true);
   });
 
   test("runs rider-weighted EWT from reliability exposure panel rows", () => {

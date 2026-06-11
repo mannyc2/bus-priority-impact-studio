@@ -6,6 +6,8 @@ import type {
   FindingCoverageAudit,
   FindingEvidenceLink,
 } from "@bp/domain/findings";
+import { boroughPrefix, rankByDetectorScore } from "../evaluation/cap-policy";
+import { detectorScopeIdentityKey } from "../evaluation/detector-readiness-projection";
 
 export type ContractSatisfaction = FeatureContractSatisfaction;
 
@@ -26,6 +28,46 @@ export type DetectorOutput = {
   candidates: FindingCandidate[];
   evidence: FindingEvidenceLink[];
   coverage: FindingCoverageAudit[];
+};
+
+export type DetectorRunCapPolicyMode =
+  | "global_candidate_limit"
+  | "per_route_candidate_limit"
+  | "not_capped";
+
+export type DetectorRunCapInventoryStatus =
+  | "high_limit_inventory"
+  | "at_production_cap"
+  | "below_production_cap"
+  | "not_capped";
+
+export type DetectorRunCapPolicy = {
+  mode: DetectorRunCapPolicyMode;
+  productionCandidateLimit: number | null;
+  runCandidateLimit: number | null;
+  reason: string;
+};
+
+export type DetectorRunCapRouteBreakdown = {
+  routeId: string | null;
+  boroughPrefix: string;
+  qualifyingCandidateCount: number;
+  emittedWithinProductionCapCount: number;
+  cappedOutCount: number;
+};
+
+export type DetectorRunCapAccounting = {
+  mode: DetectorRunCapPolicyMode;
+  status: DetectorRunCapInventoryStatus;
+  productionCandidateLimit: number | null;
+  runCandidateLimit: number | null;
+  qualifyingCandidateCount: number;
+  emittedWithinProductionCapCount: number;
+  cappedOutCount: number;
+  cappedOutByBoroughPrefix: Record<string, number>;
+  cappedOutByRouteId: Record<string, number>;
+  routeBreakdown: DetectorRunCapRouteBreakdown[];
+  note: string;
 };
 
 export type RegistryDetectorRunArtifact = {
@@ -52,6 +94,7 @@ export type RegistryDetectorRunArtifact = {
     deferredNotInScopeCount: number;
     skippedCount: number;
   };
+  capAccounting: DetectorRunCapAccounting;
   candidateSamples: Array<{
     candidateId: string;
     routeId: string | null;
@@ -97,6 +140,194 @@ function coverageSummary(output: DetectorOutput): RegistryDetectorRunArtifact["o
   };
 }
 
+function countRecordFromMap(counts: ReadonlyMap<string, number>): Record<string, number> {
+  return Object.fromEntries(
+    [...counts.entries()]
+      .filter(([, count]) => count > 0)
+      .sort(([left], [right]) => left.localeCompare(right)),
+  );
+}
+
+function increment(map: Map<string, number>, key: string): void {
+  map.set(key, (map.get(key) ?? 0) + 1);
+}
+
+function routeRecordKey(routeId: string | null): string {
+  return routeId ?? "unknown";
+}
+
+function defaultCapPolicy(): DetectorRunCapPolicy {
+  return {
+    mode: "not_capped",
+    productionCandidateLimit: null,
+    runCandidateLimit: null,
+    reason: "No production candidate cap is registered for this detector artifact.",
+  };
+}
+
+function capStatus(input: {
+  mode: DetectorRunCapPolicyMode;
+  productionCandidateLimit: number | null;
+  runCandidateLimit: number | null;
+  routeBreakdown: readonly DetectorRunCapRouteBreakdown[];
+  qualifyingCandidateCount: number;
+}): DetectorRunCapInventoryStatus {
+  if (input.mode === "not_capped" || input.productionCandidateLimit === null) {
+    return "not_capped";
+  }
+  const productionCandidateLimit = input.productionCandidateLimit;
+  if (input.runCandidateLimit !== null && input.runCandidateLimit > productionCandidateLimit) {
+    return "high_limit_inventory";
+  }
+  const capWasReached =
+    input.mode === "global_candidate_limit"
+      ? input.qualifyingCandidateCount >= productionCandidateLimit
+      : input.routeBreakdown.some(
+          (route) => route.qualifyingCandidateCount >= productionCandidateLimit,
+        );
+  return capWasReached ? "at_production_cap" : "below_production_cap";
+}
+
+function capNote(input: {
+  policy: DetectorRunCapPolicy;
+  status: DetectorRunCapInventoryStatus;
+}): string {
+  if (input.status === "not_capped") return input.policy.reason;
+  if (input.status === "high_limit_inventory") {
+    return `${input.policy.reason} Capped-out counts are observable because this run limit exceeds the production cap.`;
+  }
+  if (input.status === "at_production_cap") {
+    return `${input.policy.reason} This run reached the production cap; use a higher no-write candidate limit to observe suppressed candidates beyond it.`;
+  }
+  return `${input.policy.reason} The qualifying candidate count stayed below the production cap.`;
+}
+
+function candidateRank(input: {
+  candidate: FindingCandidate;
+  rankByScope: ReadonlyMap<string, number>;
+}): number {
+  return (
+    input.rankByScope.get(
+      detectorScopeIdentityKey({
+        detectorId: input.candidate.detectorId,
+        scopeId: input.candidate.scopeId,
+      }),
+    ) ?? Number.POSITIVE_INFINITY
+  );
+}
+
+export function buildDetectorRunCapAccounting(input: {
+  output: DetectorOutput;
+  capPolicy?: DetectorRunCapPolicy;
+}): DetectorRunCapAccounting {
+  const policy = input.capPolicy ?? defaultCapPolicy();
+  const cappedCandidates = new Set<string>();
+
+  if (policy.mode !== "not_capped" && policy.productionCandidateLimit !== null) {
+    if (policy.mode === "global_candidate_limit") {
+      const rankByScope = rankByDetectorScore(input.output.candidates);
+      for (const candidate of input.output.candidates) {
+        const rank = candidateRank({ candidate, rankByScope });
+        if (rank > policy.productionCandidateLimit) {
+          cappedCandidates.add(
+            detectorScopeIdentityKey({
+              detectorId: candidate.detectorId,
+              scopeId: candidate.scopeId,
+            }),
+          );
+        }
+      }
+    } else {
+      const candidatesByRoute = new Map<string, FindingCandidate[]>();
+      for (const candidate of input.output.candidates) {
+        const routeKey = routeRecordKey(candidate.routeId);
+        const candidates = candidatesByRoute.get(routeKey) ?? [];
+        candidates.push(candidate);
+        candidatesByRoute.set(routeKey, candidates);
+      }
+      for (const candidates of candidatesByRoute.values()) {
+        const rankByScope = rankByDetectorScore(candidates);
+        for (const candidate of candidates) {
+          const rank = candidateRank({ candidate, rankByScope });
+          if (rank > policy.productionCandidateLimit) {
+            cappedCandidates.add(
+              detectorScopeIdentityKey({
+                detectorId: candidate.detectorId,
+                scopeId: candidate.scopeId,
+              }),
+            );
+          }
+        }
+      }
+    }
+  }
+
+  const routes = new Map<string, DetectorRunCapRouteBreakdown>();
+  const cappedOutByBoroughPrefix = new Map<string, number>();
+  const cappedOutByRouteId = new Map<string, number>();
+  let emittedWithinProductionCapCount = 0;
+  let cappedOutCount = 0;
+
+  for (const candidate of input.output.candidates) {
+    const key = detectorScopeIdentityKey({
+      detectorId: candidate.detectorId,
+      scopeId: candidate.scopeId,
+    });
+    const routeKey = routeRecordKey(candidate.routeId);
+    const prefix = boroughPrefix(candidate.routeId);
+    const previous = routes.get(routeKey) ?? {
+      routeId: candidate.routeId,
+      boroughPrefix: prefix,
+      qualifyingCandidateCount: 0,
+      emittedWithinProductionCapCount: 0,
+      cappedOutCount: 0,
+    };
+    const cappedOut = cappedCandidates.has(key);
+    const next = {
+      ...previous,
+      qualifyingCandidateCount: previous.qualifyingCandidateCount + 1,
+      emittedWithinProductionCapCount:
+        previous.emittedWithinProductionCapCount + (cappedOut ? 0 : 1),
+      cappedOutCount: previous.cappedOutCount + (cappedOut ? 1 : 0),
+    };
+    routes.set(routeKey, next);
+    if (cappedOut) {
+      cappedOutCount += 1;
+      increment(cappedOutByBoroughPrefix, prefix);
+      increment(cappedOutByRouteId, routeKey);
+    } else {
+      emittedWithinProductionCapCount += 1;
+    }
+  }
+
+  const routeBreakdown = [...routes.values()].sort(
+    (left, right) =>
+      left.boroughPrefix.localeCompare(right.boroughPrefix) ||
+      routeRecordKey(left.routeId).localeCompare(routeRecordKey(right.routeId)),
+  );
+  const status = capStatus({
+    mode: policy.mode,
+    productionCandidateLimit: policy.productionCandidateLimit,
+    runCandidateLimit: policy.runCandidateLimit,
+    routeBreakdown,
+    qualifyingCandidateCount: input.output.candidates.length,
+  });
+
+  return {
+    mode: policy.mode,
+    status,
+    productionCandidateLimit: policy.productionCandidateLimit,
+    runCandidateLimit: policy.runCandidateLimit,
+    qualifyingCandidateCount: input.output.candidates.length,
+    emittedWithinProductionCapCount,
+    cappedOutCount,
+    cappedOutByBoroughPrefix: countRecordFromMap(cappedOutByBoroughPrefix),
+    cappedOutByRouteId: countRecordFromMap(cappedOutByRouteId),
+    routeBreakdown,
+    note: capNote({ policy, status }),
+  };
+}
+
 export function buildRegistryDetectorRunArtifact(input: {
   detectorId: string;
   detectorRunId: string;
@@ -109,6 +340,7 @@ export function buildRegistryDetectorRunArtifact(input: {
   output: DetectorOutput;
   featureContracts: readonly ContractSatisfaction[];
   candidateSampleLimit?: number;
+  capPolicy?: DetectorRunCapPolicy;
   modelDependencies?: readonly ModelArtifactDependency[];
 }): RegistryDetectorRunArtifact {
   const detector = getAnalyticsDetector(input.detectorId);
@@ -132,6 +364,10 @@ export function buildRegistryDetectorRunArtifact(input: {
     ],
     inputSummary: input.inputSummary,
     outputSummary: coverageSummary(input.output),
+    capAccounting: buildDetectorRunCapAccounting({
+      output: input.output,
+      ...(input.capPolicy === undefined ? {} : { capPolicy: input.capPolicy }),
+    }),
     candidateSamples: input.output.candidates.slice(0, candidateSampleLimit).map((candidate) => ({
       candidateId: candidate.candidateId,
       routeId: candidate.routeId,

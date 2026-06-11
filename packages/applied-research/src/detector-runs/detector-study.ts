@@ -122,6 +122,7 @@ import { detectorInputFeatureContractSatisfaction } from "./detector-input-assem
 import {
   buildRegistryDetectorRunArtifact,
   type DetectorOutput,
+  type DetectorRunCapPolicy,
   type ModelArtifactDependency,
   type RegistryDetectorRunArtifact,
 } from "./run-artifact";
@@ -310,6 +311,11 @@ function artifactFor(input: {
     inputSummary: input.inputSummary,
     output: input.output,
     featureContracts: input.featureContracts,
+    capPolicy: detectorRunCapPolicy({
+      detectorId: input.metadata.detectorId,
+      candidateLimit: input.metadata.candidateLimit,
+      wroteDb: input.metadata.wroteDb,
+    }),
     ...(input.modelDependencies === undefined
       ? {}
       : { modelDependencies: input.modelDependencies }),
@@ -427,6 +433,141 @@ function candidateLimitThreshold(input: {
 }): { candidateLimit: number } {
   return {
     candidateLimit: input.candidateLimit ?? input.defaultLimit,
+  };
+}
+
+function productionCapForDetector(
+  detectorId: string,
+): Pick<DetectorRunCapPolicy, "mode" | "productionCandidateLimit"> | null {
+  switch (detectorId) {
+    case SPEED_PACE_HOTSPOT_DETECTOR_ID:
+      return {
+        mode: "global_candidate_limit",
+        productionCandidateLimit: DEFAULT_SPEED_PACE_HOTSPOT_THRESHOLDS.candidateLimit,
+      };
+    case PERSISTENT_SPEED_HOTSPOT_DETECTOR_ID:
+      return {
+        mode: "per_route_candidate_limit",
+        productionCandidateLimit:
+          DEFAULT_PERSISTENT_SPEED_HOTSPOT_THRESHOLDS.candidateLimitPerRoute,
+      };
+    case HEADWAY_RELIABILITY_EWT_DETECTOR_ID:
+      return {
+        mode: "global_candidate_limit",
+        productionCandidateLimit: DEFAULT_HEADWAY_RELIABILITY_EWT_THRESHOLDS.candidateLimit,
+      };
+    case BUNCHING_HOTSPOTS_DETECTOR_ID:
+      return {
+        mode: "global_candidate_limit",
+        productionCandidateLimit: DEFAULT_BUNCHING_HOTSPOTS_THRESHOLDS.candidateLimit,
+      };
+    case OBSERVED_RELIABILITY_DETECTOR_ID:
+      return {
+        mode: "global_candidate_limit",
+        productionCandidateLimit: DEFAULT_OBSERVED_RELIABILITY_THRESHOLDS.candidateLimit,
+      };
+    case RIDER_WEIGHTED_EXCESS_WAIT_DETECTOR_ID:
+      return {
+        mode: "global_candidate_limit",
+        productionCandidateLimit: DEFAULT_RIDER_WEIGHTED_EXCESS_WAIT_THRESHOLDS.candidateLimit,
+      };
+    case CUSTOMER_JOURNEY_SHORTFALL_DETECTOR_ID:
+      return {
+        mode: "global_candidate_limit",
+        productionCandidateLimit: DEFAULT_CUSTOMER_JOURNEY_SHORTFALL_THRESHOLDS.candidateLimit,
+      };
+    case SCHEDULE_MISMATCH_DETECTOR_ID:
+      return {
+        mode: "global_candidate_limit",
+        productionCandidateLimit: DEFAULT_SCHEDULE_MISMATCH_THRESHOLDS.candidateLimit,
+      };
+    case TRAVEL_TIME_VARIABILITY_DETECTOR_ID:
+      return {
+        mode: "global_candidate_limit",
+        productionCandidateLimit: DEFAULT_TRAVEL_TIME_VARIABILITY_THRESHOLDS.candidateLimit,
+      };
+    case DEGRADATION_TREND_DETECTOR_ID:
+      return {
+        mode: "global_candidate_limit",
+        productionCandidateLimit: DEFAULT_DEGRADATION_TREND_THRESHOLDS.candidateLimit,
+      };
+    case MULTI_MONTH_SPEED_PEER_DETECTOR_ID:
+      return {
+        mode: "global_candidate_limit",
+        productionCandidateLimit: DEFAULT_MULTI_MONTH_SPEED_PEER_THRESHOLDS.candidateLimit,
+      };
+    case POSITIVE_DEVIANCE_DETECTOR_ID:
+      return {
+        mode: "global_candidate_limit",
+        productionCandidateLimit: DEFAULT_POSITIVE_DEVIANCE_THRESHOLDS.candidateLimit,
+      };
+    case INTERVENTION_EVENT_STUDY_DETECTOR_ID:
+      return {
+        mode: "global_candidate_limit",
+        productionCandidateLimit: DEFAULT_INTERVENTION_EVENT_STUDY_THRESHOLDS.candidateLimit,
+      };
+    case INTERVENTION_GAP_DETECTOR_ID:
+      return {
+        mode: "global_candidate_limit",
+        productionCandidateLimit: DEFAULT_INTERVENTION_GAP_THRESHOLDS.candidateLimit,
+      };
+    case INTERVENTION_UNDERPERFORMANCE_DETECTOR_ID:
+      return {
+        mode: "global_candidate_limit",
+        productionCandidateLimit: DEFAULT_INTERVENTION_UNDERPERFORMANCE_THRESHOLDS.candidateLimit,
+      };
+    case PERMIT_CORRELATED_SLOWDOWN_DETECTOR_ID:
+      return {
+        mode: "global_candidate_limit",
+        productionCandidateLimit: DEFAULT_PERMIT_CORRELATED_SLOWDOWN_THRESHOLDS.candidateLimit,
+      };
+    case SERVICE_REQUEST_CONTEXT_DETECTOR_ID:
+      return {
+        mode: "global_candidate_limit",
+        productionCandidateLimit: DEFAULT_SERVICE_REQUEST_CONTEXT_THRESHOLDS.candidateLimit,
+      };
+    case TREATMENT_SCOPE_MISMATCH_DETECTOR_ID:
+      return {
+        mode: "global_candidate_limit",
+        productionCandidateLimit: DEFAULT_TREATMENT_SCOPE_MISMATCH_THRESHOLDS.candidateLimit,
+      };
+    case TREATMENT_SCOPE_GAP_DETECTOR_ID:
+      return {
+        mode: "global_candidate_limit",
+        productionCandidateLimit: DEFAULT_TREATMENT_SCOPE_GAP_THRESHOLDS.candidateLimit,
+      };
+    default:
+      return null;
+  }
+}
+
+function detectorRunCapPolicy(input: {
+  readonly detectorId: string;
+  readonly candidateLimit: number | undefined;
+  readonly wroteDb: boolean;
+}): DetectorRunCapPolicy {
+  const production = productionCapForDetector(input.detectorId);
+  if (production === null || production.productionCandidateLimit === null) {
+    return {
+      mode: "not_capped",
+      productionCandidateLimit: null,
+      runCandidateLimit: null,
+      reason: "No production candidate cap is registered for this detector path.",
+    };
+  }
+  const runCandidateLimit = input.candidateLimit ?? production.productionCandidateLimit;
+  const runKind = input.wroteDb ? "inventory run" : "no-write inventory run";
+  const relation =
+    runCandidateLimit > production.productionCandidateLimit
+      ? `High-limit ${runKind}: run cap ${runCandidateLimit} exceeds production cap ${production.productionCandidateLimit}.`
+      : runCandidateLimit < production.productionCandidateLimit
+        ? `Run cap ${runCandidateLimit} is below production cap ${production.productionCandidateLimit}.`
+        : `Run uses production cap ${production.productionCandidateLimit}.`;
+  return {
+    mode: production.mode,
+    productionCandidateLimit: production.productionCandidateLimit,
+    runCandidateLimit,
+    reason: relation,
   };
 }
 
@@ -667,9 +808,10 @@ export function runRegistryDetectorStudy(input: {
       metadata.detectorId,
       "customer journey features",
     );
+    const { asOfMonth: customerJourneyAsOfMonth } = rows.customerJourneySummary ?? {};
     const asOfMonth =
-      typeof rows.customerJourneySummary?.["asOfMonth"] === "string"
-        ? rows.customerJourneySummary["asOfMonth"]
+      typeof customerJourneyAsOfMonth === "string"
+        ? customerJourneyAsOfMonth
         : metadata.releaseMonth;
     return runResolved({
       metadata,
