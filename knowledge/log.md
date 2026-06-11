@@ -2,6 +2,22 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-11] infra | Track B S1.1 readiness now derives from detector input resolvers
+
+Closed the current-base version of `backend-goal-finish-detectors.md` S1.1 on
+`codex/track-b-resolver-readiness`: deleted the standalone
+`detector-runs/feature-resolver-support.ts` satisfaction map and moved support accounting into
+`detector-input-assembly.ts`, where resolver support is derived from registered artifact resolvers,
+local-row loaders, and the two quality-carried feature-quality grains. The pipeline `findings
+run-detector` path now passes assembly-produced `featureContracts` into `runRegistryDetectorStudy`
+instead of letting detector execution recompute readiness from a separate map; direct test callers
+retain the same fallback contract calculation. Added an assembly guard test proving every kernel
+feature contract has a supported resolver path or an explicit quality-carried status. Verification:
+`bun --filter @bp/applied-research typecheck`; `bun --filter @bp/pipeline-v2 typecheck`;
+`bun --filter @bp/applied-research test feature-resolver-support detector-study
+detector-run-artifact` (377 pass / 0 fail); `bun --filter @bp/pipeline-v2 test
+commands/findings/run-detector` (474 pass / 0 fail).
+
 ## [2026-06-11] analysis | A3 311 curb-friction agreement artifact closes the evidence loop
 
 Closed master-plan §3 A3 verification with a real 52-row hand-check artifact at

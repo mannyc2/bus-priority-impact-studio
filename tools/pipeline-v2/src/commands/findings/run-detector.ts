@@ -1,7 +1,7 @@
 import { mkdir } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative } from "node:path";
 import {
-  assembleDetectorStudySourceRows,
+  assembleDetectorStudyInput,
   DEFAULT_REGISTRY_DETECTOR_STUDY_ID,
   runRegistryDetectorStudy,
 } from "@bp/applied-research/detector-runs";
@@ -105,7 +105,7 @@ export default defineCommand({
         observedRunId,
         ...(input.options.routeId === undefined ? {} : { routeId: input.options.routeId }),
       });
-      const assembledRows = await assembleDetectorStudySourceRows({
+      const assembled = await assembleDetectorStudyInput({
         context: {
           detectorId,
           artifactRoot,
@@ -131,7 +131,8 @@ export default defineCommand({
             ? {}
             : { candidateLimit: input.options.candidateLimit }),
         },
-        rows: assembledRows,
+        rows: assembled.rows,
+        featureContracts: assembled.featureContracts,
       });
       if (input.options.writeDb) {
         await replaceFindingsForMonth(local.db, {

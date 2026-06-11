@@ -1,5 +1,7 @@
 import type { Database } from "bun:sqlite";
 import { join } from "node:path";
+import type { FeatureContractSatisfaction } from "@bp/analytics/core";
+import { DEFAULT_POSITIVE_DEVIANCE_THRESHOLDS } from "@bp/analytics/detectors";
 import { featureContractsForGrains } from "@bp/analytics/features";
 import { getAnalyticsDetector } from "@bp/analytics/registry";
 import { FindingSignalFeaturesArtifactSchema } from "@bp/domain/findings";
@@ -24,6 +26,7 @@ import type {
   TreatmentEventPanelArtifactV1,
 } from "../feature-resolvers";
 import { buildCustomerJourneyFeaturesFromMetricRows } from "../feature-resolvers/customer-journey";
+import { buildPositiveDevianceFeatures } from "../feature-resolvers/detector-family-features";
 import { loadCustomerJourneyMetricLocalDbRows } from "../local-db/customer-journey-rows";
 import { loadRouteMonthSignalFeatureLocalDbRows } from "../local-db/detector-study-rows";
 import type { DetectorStudySourceRows } from "./detector-study";
@@ -48,6 +51,13 @@ type DetectorInputResolver = {
     readonly context: DetectorInputAssemblyContext;
     readonly rows: MutableDetectorStudySourceRows;
   }): Promise<void>;
+};
+
+export type DetectorInputResolverSupport = Pick<FeatureContractSatisfaction, "status" | "reason">;
+
+export type DetectorInputAssemblyResult = {
+  readonly rows: DetectorStudySourceRows;
+  readonly featureContracts: readonly FeatureContractSatisfaction[];
 };
 
 function routeMatches(
@@ -299,7 +309,48 @@ const FEATURE_RESOLVERS: Readonly<Record<string, DetectorInputResolver>> = {
       await TREATMENT_EVENT_PANEL_RESOLVER.resolve(input);
     },
   },
+  "artifact.positive_deviance.v1": {
+    resolverId: "artifact.positive_deviance.v1",
+    async resolve({ context, rows }) {
+      if (rows.positiveDevianceFeatures !== undefined) return;
+      if (rows.routeMetricHistoryRows === undefined) return;
+      const resolved = buildPositiveDevianceFeatures({
+        rows: rows.routeMetricHistoryRows,
+        releaseMonth: context.releaseMonth,
+        minPeerCount: DEFAULT_POSITIVE_DEVIANCE_THRESHOLDS.minPeerCount,
+        minStablePeriods: DEFAULT_POSITIVE_DEVIANCE_THRESHOLDS.minStablePeriods,
+      });
+      rows.positiveDevianceFeatures = resolved.features;
+      rows.positiveDevianceSummary = resolved.summary;
+    },
+  },
 };
+
+function localRowResolver(resolverId: string): DetectorInputResolver {
+  return {
+    resolverId,
+    async resolve() {
+      // Local SQLite rows are loaded before artifact assembly; this registration makes that
+      // resolver path visible to the kernel contract audit.
+    },
+  };
+}
+
+const LOCAL_ROW_RESOLVERS: Readonly<Record<string, DetectorInputResolver>> = Object.fromEntries(
+  [
+    "sqlite.local_route_segment_speed.segment_daypart.v1",
+    "sqlite.local_route_segment_speed.route_segment_month.v1",
+    "sqlite.local_route_observed_reliability_summary.v1",
+    "sqlite.route_direction_daypart.v1",
+    "sqlite.local_route_month_trend.history.v1",
+    "sqlite.local_route_intervention_comparison.window.v1",
+  ].map((resolverId) => [resolverId, localRowResolver(resolverId)]),
+);
+
+const QUALITY_CARRIED_FEATURE_RESOLVER_IDS: ReadonlySet<string> = new Set([
+  "embedded.feature_quality.v1",
+  "sqlite.source_coverage.v1",
+]);
 
 async function resolveRouteTreatmentFeatures(input: {
   readonly context: DetectorInputAssemblyContext;
@@ -338,10 +389,63 @@ function orderedResolverIds(input: {
   ];
 }
 
-export async function assembleDetectorStudySourceRows(input: {
+function featureResolverFor(resolverId: string): DetectorInputResolver | undefined {
+  return FEATURE_RESOLVERS[resolverId] ?? LOCAL_ROW_RESOLVERS[resolverId];
+}
+
+export function listDetectorInputFeatureResolverIds(): string[] {
+  return [
+    ...new Set([
+      ...Object.keys(FEATURE_RESOLVERS),
+      ...Object.keys(LOCAL_ROW_RESOLVERS),
+      ...QUALITY_CARRIED_FEATURE_RESOLVER_IDS,
+    ]),
+  ].sort((left, right) => left.localeCompare(right));
+}
+
+export function detectorInputFeatureResolverSupport(
+  resolverId: string,
+): DetectorInputResolverSupport {
+  if (QUALITY_CARRIED_FEATURE_RESOLVER_IDS.has(resolverId)) {
+    return {
+      status: "satisfied_by_feature_quality",
+      reason:
+        "Carried through feature-quality coverage/freshness/sample fields rather than a dedicated row resolver.",
+    };
+  }
+  if (featureResolverFor(resolverId) !== undefined) {
+    return {
+      status: "resolved",
+      reason:
+        "Supplied by a registered applied-research detector-input resolver or local-row loader.",
+    };
+  }
+  return {
+    status: "unsupported",
+    reason: "No applied-research detector-input resolver supplies this feature grain.",
+  };
+}
+
+export function detectorInputFeatureContractSatisfaction(input: {
+  readonly detectorId: string;
+}): FeatureContractSatisfaction[] {
+  const detector = getAnalyticsDetector(input.detectorId);
+  if (detector === null) throw new Error(`Unknown detector: ${input.detectorId}`);
+  return featureContractsForGrains(detector.featureGrains).map((contract) => {
+    const support = detectorInputFeatureResolverSupport(contract.resolverId);
+    return {
+      featureGrain: contract.featureGrain,
+      resolverId: contract.resolverId,
+      status: support.status,
+      reason: support.reason,
+    };
+  });
+}
+
+export async function assembleDetectorStudyInput(input: {
   readonly context: DetectorInputAssemblyContext;
   readonly localRows: DetectorStudySourceRows;
-}): Promise<DetectorStudySourceRows> {
+}): Promise<DetectorInputAssemblyResult> {
   const detector = getAnalyticsDetector(input.context.detectorId);
   if (detector === null) throw new Error(`Unknown detector: ${input.context.detectorId}`);
 
@@ -351,9 +455,19 @@ export async function assembleDetectorStudySourceRows(input: {
     modelArtifacts: detector.modelArtifacts ?? [],
     featureGrains: detector.featureGrains,
   })) {
-    const resolver = MODEL_ARTIFACT_RESOLVERS[resolverId] ?? FEATURE_RESOLVERS[resolverId];
+    const resolver = MODEL_ARTIFACT_RESOLVERS[resolverId] ?? featureResolverFor(resolverId);
     if (resolver === undefined) continue;
     await resolver.resolve({ context: input.context, rows });
   }
-  return rows;
+  return {
+    rows,
+    featureContracts: detectorInputFeatureContractSatisfaction({ detectorId: detector.detectorId }),
+  };
+}
+
+export async function assembleDetectorStudySourceRows(input: {
+  readonly context: DetectorInputAssemblyContext;
+  readonly localRows: DetectorStudySourceRows;
+}): Promise<DetectorStudySourceRows> {
+  return (await assembleDetectorStudyInput(input)).rows;
 }
