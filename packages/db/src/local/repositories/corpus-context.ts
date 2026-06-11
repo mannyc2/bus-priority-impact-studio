@@ -425,6 +425,8 @@ export async function upsert311ServiceRequests(
           communityBoard: sql`excluded.community_board`,
           latitude: sql`excluded.latitude`,
           longitude: sql`excluded.longitude`,
+          curbFrictionCategory: sql`excluded.curb_friction_category`,
+          curbFrictionRule: sql`excluded.curb_friction_rule`,
         },
       }),
   );

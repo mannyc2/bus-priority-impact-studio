@@ -2,30 +2,30 @@ import type { Database } from "bun:sqlite";
 import {
   DEGRADATION_TREND_DETECTOR_ID,
   DELAY_CONCENTRATION_DETECTOR_ID,
-  INTERVENTION_GAP_DETECTOR_ID,
   INTERVENTION_EVENT_STUDY_DETECTOR_ID,
+  INTERVENTION_GAP_DETECTOR_ID,
   INTERVENTION_UNDERPERFORMANCE_DETECTOR_ID,
   MULTI_MONTH_SPEED_PEER_DETECTOR_ID,
+  type MultiMonthSpeedPeerRouteInput,
   OBSERVED_RELIABILITY_DETECTOR_ID,
+  type ObservedReliabilityRouteInput,
   PERMIT_CORRELATED_SLOWDOWN_DETECTOR_ID,
   PERSISTENT_SPEED_HOTSPOT_DETECTOR_ID,
-  TREATMENT_SCOPE_GAP_DETECTOR_ID,
-  TREATMENT_SCOPE_MISMATCH_DETECTOR_ID,
+  type PersistentSpeedHotspotRouteInput,
   POSITIVE_DEVIANCE_DETECTOR_ID,
   RIDER_WEIGHTED_EXCESS_WAIT_DETECTOR_ID,
   SCHEDULE_MISMATCH_DETECTOR_ID,
   SERVICE_REQUEST_CONTEXT_DETECTOR_ID,
   SPEED_PACE_HOTSPOT_DETECTOR_ID,
   TRAVEL_TIME_VARIABILITY_DETECTOR_ID,
-  type MultiMonthSpeedPeerRouteInput,
-  type ObservedReliabilityRouteInput,
-  type PersistentSpeedHotspotRouteInput,
+  TREATMENT_SCOPE_GAP_DETECTOR_ID,
+  TREATMENT_SCOPE_MISMATCH_DETECTOR_ID,
 } from "@bp/analytics/detectors";
 import {
   FindingReasonCodeSchema,
-  RouteMonthSignalFeatureSchema,
   type RouteMonthContextEventFeature,
   type RouteMonthSignalFeature,
+  RouteMonthSignalFeatureSchema,
 } from "@bp/domain/findings";
 import type { DetectorStudySourceRows } from "../detector-runs/detector-study";
 import type {
@@ -74,7 +74,9 @@ function intValue(value: unknown, fallback = 0): number {
 }
 
 function median(values: readonly number[]): number | null {
-  const sorted = values.filter((value) => Number.isFinite(value)).sort((left, right) => left - right);
+  const sorted = values
+    .filter((value) => Number.isFinite(value))
+    .sort((left, right) => left - right);
   if (sorted.length === 0) return null;
   const midpoint = Math.floor(sorted.length / 2);
   if (sorted.length % 2 === 1) return sorted[midpoint] ?? null;
@@ -652,15 +654,13 @@ function queryPersistentSpeedHotspotRoutes(input: {
   for (const row of rows) {
     const routeId = textValue(row.routeId);
     if (routeId === null) continue;
-    const route =
-      routes.get(routeId) ??
-      {
-        routeId,
-        hasSpeedData: intValue(row.speedObservationCount) > 0,
-        speedObservationCount: intValue(row.speedObservationCount),
-        segmentCount: intValue(row.segmentCount),
-        hotspots: [],
-      };
+    const route = routes.get(routeId) ?? {
+      routeId,
+      hasSpeedData: intValue(row.speedObservationCount) > 0,
+      speedObservationCount: intValue(row.speedObservationCount),
+      segmentCount: intValue(row.segmentCount),
+      hotspots: [],
+    };
     const segmentId = textValue(row.segmentId);
     if (segmentId !== null) {
       const direction = textValue(row.direction);
@@ -889,7 +889,11 @@ function queryRouteMonthSignalContextRows(input: {
         COUNT(*) AS touchCount,
         SUM(CASE WHEN evidence_role = 'primary' THEN 1 ELSE 0 END) AS primaryTouchCount,
         SUM(CASE WHEN evidence_role = 'context' THEN 1 ELSE 0 END) AS contextTouchCount,
-        SUM(CASE WHEN match_weight >= 0.5 AND route_fanout <= 3 THEN 1 ELSE 0 END)
+        SUM(CASE
+          WHEN join_confidence = 'high' THEN 1
+          WHEN join_confidence IS NULL AND match_weight >= 0.5 AND route_fanout <= 3 THEN 1
+          ELSE 0
+        END)
           AS highConfidenceTouchCount,
         COALESCE(SUM(match_weight), 0) AS matchWeightSum,
         COALESCE(AVG(match_weight), 0) AS averageMatchWeight,
@@ -1019,9 +1023,7 @@ export function loadRouteMonthSignalFeatureLocalDbRows(input: {
       const isComputable =
         base.routeWeightedAverageSpeedMph !== null && base.speedObservationCount > 0;
       const sourceRefs = [
-        ...(base.hasTrendRow
-          ? [`local_route_month_trend:${base.routeId}:${base.month}`]
-          : []),
+        ...(base.hasTrendRow ? [`local_route_month_trend:${base.routeId}:${base.month}`] : []),
         ...(base.hotspotCount > 0 || base.maxHotspotScore !== null
           ? [`local_route_hotspot_summary:${base.routeId}:${base.month}`]
           : []),
@@ -1048,10 +1050,7 @@ export function loadRouteMonthSignalFeatureLocalDbRows(input: {
         ridershipExposure: base.ridershipExposure,
         permitTouchedEventCount,
         permitTouchCount: permitRows.reduce((total, row) => total + row.touchCount, 0),
-        permitRouteCount: permitRows.reduce(
-          (max, row) => Math.max(max, row.maxRouteFanout),
-          0,
-        ),
+        permitRouteCount: permitRows.reduce((max, row) => Math.max(max, row.maxRouteFanout), 0),
         permitSources: [...new Set(permitRows.map((row) => row.sourceId))].sort(),
         contextTouchedEventCount,
         contextTouchCount: contextEventCounts.reduce((total, row) => total + row.touchCount, 0),

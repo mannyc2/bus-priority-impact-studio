@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import { upsert311ServiceRequests } from "@bp/db/local";
 import {
-  BUS_RELEVANT_311_COMPLAINTS,
+  CURB_FRICTION_311_COMPLAINT_TYPES,
   normalize311ServiceRequestRows,
   type ServiceRequestEra,
 } from "@bp/sources/adapters/nyc-open-data/service-requests-311";
@@ -58,7 +58,7 @@ export async function runNyc311Ingest(inputs: Nyc311IngestRunInputs): Promise<Ny
   const complaintTypes =
     inputs.complaintTypes && inputs.complaintTypes.length > 0
       ? inputs.complaintTypes
-      : BUS_RELEVANT_311_COMPLAINTS;
+      : CURB_FRICTION_311_COMPLAINT_TYPES;
   const sourceId = sourceIdForEra[era];
   const monthKey = isoMonth(inputs.year, inputs.month);
   const manifestText =
@@ -106,7 +106,7 @@ export async function runNyc311Ingest(inputs: Nyc311IngestRunInputs): Promise<Ny
 
 export default defineCommand({
   path: ["ingest", "311-service-requests"],
-  summary: "Fetch monthly bus-relevant 311 service requests.",
+  summary: "Fetch monthly curb-friction 311 service requests.",
   input: {
     options: dbOptions.extend({
       year: arg.positiveInt().default(2026).describe("Calendar year"),
@@ -115,7 +115,7 @@ export default defineCommand({
       complaintTypes: z
         .array(z.string())
         .default([])
-        .describe("Override complaint type filter (default: BUS_RELEVANT_311_COMPLAINTS)"),
+        .describe("Override complaint type filter (default: CURB_FRICTION_311_COMPLAINT_TYPES)"),
     }),
   },
   middleware: [withLocalDb()],

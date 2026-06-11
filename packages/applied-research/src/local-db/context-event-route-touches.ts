@@ -50,36 +50,54 @@ export function materializeContextEventRouteTouches(input: {
 
     input.sqlite
       .prepare(
-        `INSERT INTO local_context_event_route_touch
+        `WITH route_lengths AS (
+           SELECT route_id, sum(overlap_meters) AS route_length_meters
+             FROM local_route_lion_link
+            GROUP BY route_id
+         )
+         INSERT INTO local_context_event_route_touch
            (event_id, route_id, source_id, event_kind, occurred_at, ended_at,
             physical_id, touch_kind, evidence_role, overlap_meters, buffer_meters,
-            route_fanout, match_weight, computed_at)
-         SELECT event_id,
-                route_id,
-                source_id,
-                event_kind,
-                occurred_at,
-                ended_at,
-                physical_id,
+            route_fanout, match_weight, segment_borough, route_length_meters,
+            route_overlap_share, join_confidence, join_confidence_reason, computed_at)
+         SELECT e.event_id,
+                e.route_id,
+                e.source_id,
+                e.event_kind,
+                e.occurred_at,
+                e.ended_at,
+                e.physical_id,
                 'direct_route',
                 'primary',
                 NULL,
                 NULL,
                 1,
                 1.0,
+                NULL,
+                rl.route_length_meters,
+                NULL,
+                'high',
+                'direct_route_key',
                 ?
-           FROM local_context_event
-          WHERE route_id IS NOT NULL`,
+           FROM local_context_event e
+           LEFT JOIN route_lengths rl ON rl.route_id = e.route_id
+          WHERE e.route_id IS NOT NULL`,
       )
       .run(input.computedAt);
 
     input.sqlite
       .prepare(
-        `WITH ${routeLionLinkFanoutCte()}
+        `WITH ${routeLionLinkFanoutCte()},
+              route_lengths AS (
+                SELECT route_id, sum(overlap_meters) AS route_length_meters
+                  FROM local_route_lion_link
+                 GROUP BY route_id
+              )
          INSERT INTO local_context_event_route_touch
            (event_id, route_id, source_id, event_kind, occurred_at, ended_at,
             physical_id, touch_kind, evidence_role, overlap_meters, buffer_meters,
-            route_fanout, match_weight, computed_at)
+            route_fanout, match_weight, segment_borough, route_length_meters,
+            route_overlap_share, join_confidence, join_confidence_reason, computed_at)
          SELECT e.event_id,
                 l.route_id,
                 e.source_id,
@@ -93,10 +111,27 @@ export function materializeContextEventRouteTouches(input: {
                 l.buffer_meters,
                 f.route_fanout,
                 1.0 / f.route_fanout,
+                l.borough,
+                rl.route_length_meters,
+                CASE
+                  WHEN rl.route_length_meters > 0 THEN l.overlap_meters / rl.route_length_meters
+                  ELSE NULL
+                END,
+                CASE
+                  WHEN f.route_fanout <= 2 THEN 'high'
+                  WHEN f.route_fanout <= 5 THEN 'medium'
+                  ELSE 'low'
+                END,
+                printf(
+                  'route_lion_link:fanout=%d;overlap_meters=%.3f',
+                  f.route_fanout,
+                  coalesce(l.overlap_meters, 0.0)
+                ),
                 ?
            FROM local_context_event e
            JOIN local_route_lion_link l ON l.physical_id = e.physical_id
            JOIN fanout f ON f.physical_id = e.physical_id
+           LEFT JOIN route_lengths rl ON rl.route_id = l.route_id
           WHERE e.route_id IS NULL
             AND e.physical_id IS NOT NULL`,
       )
@@ -104,33 +139,78 @@ export function materializeContextEventRouteTouches(input: {
 
     input.sqlite
       .prepare(
-        `INSERT OR IGNORE INTO local_context_event_route_touch
+        `WITH route_lengths AS (
+           SELECT route_id, sum(overlap_meters) AS route_length_meters
+             FROM local_route_lion_link
+            GROUP BY route_id
+         ),
+         parking_route_matches AS (
+           SELECT e.event_id,
+                  e.source_id,
+                  e.event_kind,
+                  e.occurred_at,
+                  e.ended_at,
+                  m.route_id,
+                  CASE
+                    WHEN count(DISTINCT m.physical_id) = 1 THEN min(m.physical_id)
+                    ELSE NULL
+                  END AS physical_id,
+                  NULLIF(sum(coalesce(l.overlap_meters, 0.0)), 0.0) AS overlap_meters,
+                  max(l.buffer_meters) AS buffer_meters,
+                  max(m.candidate_count) AS route_fanout,
+                  min(1.0, sum(m.match_weight)) AS match_weight,
+                  CASE
+                    WHEN count(DISTINCT l.borough) = 1 THEN min(l.borough)
+                    ELSE NULL
+                  END AS segment_borough
+             FROM local_context_event e
+             JOIN local_parking_violation p ON p.summons_number = e.source_row_id
+             JOIN local_parking_violation_match m ON m.location_key = p.match_location_key
+             LEFT JOIN local_route_lion_link l
+               ON l.route_id = m.route_id
+              AND l.physical_id = m.physical_id
+            WHERE e.event_kind = 'parking_violation'
+              AND p.match_location_key IS NOT NULL
+            GROUP BY e.event_id, e.source_id, e.event_kind, e.occurred_at, e.ended_at, m.route_id
+         )
+         INSERT OR IGNORE INTO local_context_event_route_touch
            (event_id, route_id, source_id, event_kind, occurred_at, ended_at,
             physical_id, touch_kind, evidence_role, overlap_meters, buffer_meters,
-            route_fanout, match_weight, computed_at)
-         SELECT e.event_id,
+            route_fanout, match_weight, segment_borough, route_length_meters,
+            route_overlap_share, join_confidence, join_confidence_reason, computed_at)
+         SELECT m.event_id,
                 m.route_id,
-                e.source_id,
-                e.event_kind,
-                e.occurred_at,
-                e.ended_at,
-                CASE
-                  WHEN count(DISTINCT m.physical_id) = 1 THEN min(m.physical_id)
-                  ELSE NULL
-                END AS physical_id,
+                m.source_id,
+                m.event_kind,
+                m.occurred_at,
+                m.ended_at,
+                m.physical_id,
                 'parking_location_match',
                 'context',
-                NULL,
-                NULL,
-                max(m.candidate_count),
-                min(1.0, sum(m.match_weight)),
+                m.overlap_meters,
+                m.buffer_meters,
+                m.route_fanout,
+                m.match_weight,
+                m.segment_borough,
+                rl.route_length_meters,
+                CASE
+                  WHEN rl.route_length_meters > 0 AND m.overlap_meters IS NOT NULL
+                    THEN m.overlap_meters / rl.route_length_meters
+                  ELSE NULL
+                END,
+                CASE
+                  WHEN m.match_weight >= 0.5 AND m.route_fanout <= 3 THEN 'high'
+                  WHEN m.match_weight >= 0.25 OR m.route_fanout <= 5 THEN 'medium'
+                  ELSE 'low'
+                END,
+                printf(
+                  'parking_location_match:candidates=%d;match_weight=%.3f',
+                  m.route_fanout,
+                  m.match_weight
+                ),
                 ?
-           FROM local_context_event e
-           JOIN local_parking_violation p ON p.summons_number = e.source_row_id
-           JOIN local_parking_violation_match m ON m.location_key = p.match_location_key
-          WHERE e.event_kind = 'parking_violation'
-            AND p.match_location_key IS NOT NULL
-          GROUP BY e.event_id, m.route_id`,
+           FROM parking_route_matches m
+           LEFT JOIN route_lengths rl ON rl.route_id = m.route_id`,
       )
       .run(input.computedAt);
 

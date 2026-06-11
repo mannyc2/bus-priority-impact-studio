@@ -25,7 +25,8 @@ describe("context event route touches local DB", () => {
           physical_id TEXT NOT NULL,
           route_id TEXT NOT NULL,
           overlap_meters REAL,
-          buffer_meters REAL
+          buffer_meters REAL,
+          borough TEXT
         );
         CREATE TABLE local_parking_violation (
           summons_number TEXT NOT NULL,
@@ -52,6 +53,11 @@ describe("context event route touches local DB", () => {
           buffer_meters REAL,
           route_fanout INTEGER NOT NULL,
           match_weight REAL NOT NULL,
+          segment_borough TEXT,
+          route_length_meters REAL,
+          route_overlap_share REAL,
+          join_confidence TEXT,
+          join_confidence_reason TEXT,
           computed_at TEXT NOT NULL,
           UNIQUE (event_id, route_id, touch_kind)
         );
@@ -63,8 +69,10 @@ describe("context event route touches local DB", () => {
           ('evt-unmatched', NULL, 'parking', 'parking_violation', '2026-03-04', NULL, NULL, 'summons-2');
 
         INSERT INTO local_route_lion_link VALUES
-          ('100', 'M15', 42.5, 20),
-          ('100', 'M101', 21.5, 20);
+          ('100', 'M15', 42.5, 20, 'Manhattan'),
+          ('100', 'M101', 21.5, 20, 'Manhattan'),
+          ('500', 'Q44', 30, 20, 'Queens'),
+          ('501', 'Q44', 70, 20, 'Queens');
 
         INSERT INTO local_parking_violation VALUES
           ('summons-1', 'loc-1'),
@@ -110,6 +118,69 @@ describe("context event route touches local DB", () => {
           )
           .all(),
       ).toEqual([{ computed_at: "2026-06-06T00:00:00.000Z" }]);
+      expect(
+        sqlite
+          .query<
+            {
+              event_id: string;
+              route_id: string;
+              touch_kind: string;
+              segment_borough: string | null;
+              route_length_meters: number | null;
+              route_overlap_share: number | null;
+              join_confidence: string | null;
+              join_confidence_reason: string | null;
+            },
+            []
+          >(
+            `SELECT event_id, route_id, touch_kind, segment_borough, route_length_meters,
+                    route_overlap_share, join_confidence, join_confidence_reason
+               FROM local_context_event_route_touch
+              ORDER BY event_id, route_id`,
+          )
+          .all(),
+      ).toEqual([
+        {
+          event_id: "evt-direct",
+          route_id: "M15",
+          touch_kind: "direct_route",
+          segment_borough: null,
+          route_length_meters: 42.5,
+          route_overlap_share: null,
+          join_confidence: "high",
+          join_confidence_reason: "direct_route_key",
+        },
+        {
+          event_id: "evt-lion",
+          route_id: "M101",
+          touch_kind: "route_lion_link",
+          segment_borough: "Manhattan",
+          route_length_meters: 21.5,
+          route_overlap_share: 1,
+          join_confidence: "high",
+          join_confidence_reason: "route_lion_link:fanout=2;overlap_meters=21.500",
+        },
+        {
+          event_id: "evt-lion",
+          route_id: "M15",
+          touch_kind: "route_lion_link",
+          segment_borough: "Manhattan",
+          route_length_meters: 42.5,
+          route_overlap_share: 1,
+          join_confidence: "high",
+          join_confidence_reason: "route_lion_link:fanout=2;overlap_meters=42.500",
+        },
+        {
+          event_id: "evt-parking",
+          route_id: "Q44",
+          touch_kind: "parking_location_match",
+          segment_borough: "Queens",
+          route_length_meters: 100,
+          route_overlap_share: 1,
+          join_confidence: "high",
+          join_confidence_reason: "parking_location_match:candidates=2;match_weight=1.000",
+        },
+      ]);
     } finally {
       sqlite.close();
     }

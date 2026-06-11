@@ -5,7 +5,28 @@ import { schemaVersion } from "../../core/index.js";
 export const ServiceRequestEraSchema = z.enum(["current", "historical"]);
 export type ServiceRequestEra = z.output<typeof ServiceRequestEraSchema>;
 
-// Bus-relevant complaint types (used as the default $where filter for ingest).
+export const CurbFriction311CategorySchema = z.enum([
+  "double_parking",
+  "blocked_lane",
+  "blocked_driveway",
+  "blocked_hydrant",
+  "blocked_bus_stop",
+]);
+export type CurbFriction311Category = z.output<typeof CurbFriction311CategorySchema>;
+
+export type CurbFriction311Classification = {
+  category: CurbFriction311Category;
+  rule: string;
+};
+
+// Deterministic complaint-type allowlist for curb-friction 311 ingest.
+export const CURB_FRICTION_311_COMPLAINT_TYPES = [
+  "Blocked Driveway",
+  "Illegal Parking",
+  "Bus Stop Condition",
+] as const;
+
+// Older broad bus-relevant complaint list, retained for explicit exploratory overrides.
 export const BUS_RELEVANT_311_COMPLAINTS = [
   "Blocked Driveway",
   "Illegal Parking",
@@ -17,6 +38,68 @@ export const BUS_RELEVANT_311_COMPLAINTS = [
   "Derelict Vehicle",
   "Traffic",
 ] as const;
+
+function normalizedText(value: string | null): string {
+  return (value ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function hasAny(value: string, needles: readonly string[]): boolean {
+  return needles.some((needle) => value.includes(needle));
+}
+
+export function classify311CurbFriction(input: {
+  complaintType: string | null;
+  descriptor: string | null;
+}): CurbFriction311Classification | null {
+  const complaintType = normalizedText(input.complaintType);
+  const descriptor = normalizedText(input.descriptor);
+
+  if (complaintType === "blocked driveway") {
+    return {
+      category: "blocked_driveway",
+      rule: "complaint_type:blocked_driveway",
+    };
+  }
+
+  if (complaintType === "illegal parking") {
+    if (descriptor.includes("double park")) {
+      return {
+        category: "double_parking",
+        rule: "illegal_parking_descriptor:double_parked",
+      };
+    }
+    if (descriptor.includes("hydrant")) {
+      return {
+        category: "blocked_hydrant",
+        rule: "illegal_parking_descriptor:hydrant",
+      };
+    }
+    if (descriptor.includes("bus stop")) {
+      return {
+        category: "blocked_bus_stop",
+        rule: "illegal_parking_descriptor:bus_stop",
+      };
+    }
+    if (hasAny(descriptor, ["blocked lane", "blocking traffic", "blocked bike lane", "bus lane"])) {
+      return {
+        category: "blocked_lane",
+        rule: "illegal_parking_descriptor:blocked_lane",
+      };
+    }
+  }
+
+  if (
+    complaintType === "bus stop condition" &&
+    hasAny(descriptor, ["blocked", "obstruct", "illegal parking", "no standing"])
+  ) {
+    return {
+      category: "blocked_bus_stop",
+      rule: "bus_stop_condition_descriptor:blocked_or_obstructed",
+    };
+  }
+
+  return null;
+}
 
 export const Normalized311ServiceRequestSchema = z
   .object({
@@ -41,6 +124,8 @@ export const Normalized311ServiceRequestSchema = z
     communityBoard: z.string().nullable(),
     latitude: z.number().nullable(),
     longitude: z.number().nullable(),
+    curbFrictionCategory: CurbFriction311CategorySchema.nullable(),
+    curbFrictionRule: z.string().nullable(),
   })
   .strict();
 
@@ -84,6 +169,10 @@ export function normalize311ServiceRequestRows(
   return rows
     .map((row) => {
       const p = Raw311RowSchema.parse(row);
+      const curbFriction = classify311CurbFriction({
+        complaintType: p.complaint_type,
+        descriptor: p.descriptor,
+      });
       return {
         schemaVersion,
         uniqueKey: p.unique_key,
@@ -106,6 +195,8 @@ export function normalize311ServiceRequestRows(
         communityBoard: p.community_board,
         latitude: p.latitude,
         longitude: p.longitude,
+        curbFrictionCategory: curbFriction?.category ?? null,
+        curbFrictionRule: curbFriction?.rule ?? null,
       } satisfies Normalized311ServiceRequest;
     })
     .sort((a, b) => a.uniqueKey.localeCompare(b.uniqueKey));

@@ -874,6 +874,16 @@ export const local311ServiceRequest = sqliteTable("local_311_service_request", {
   communityBoard: text("community_board"),
   latitude: real("latitude"),
   longitude: real("longitude"),
+  curbFrictionCategory: text("curb_friction_category", {
+    enum: [
+      "double_parking",
+      "blocked_lane",
+      "blocked_driveway",
+      "blocked_hydrant",
+      "blocked_bus_stop",
+    ],
+  }),
+  curbFrictionRule: text("curb_friction_rule"),
   physicalId: text("physical_id"),
   geocodeConfidence: text("geocode_confidence"),
 });
@@ -1095,6 +1105,11 @@ export const localContextEventRouteTouch = sqliteTable(
     bufferMeters: real("buffer_meters"),
     routeFanout: integer("route_fanout").notNull(),
     matchWeight: real("match_weight").notNull(),
+    segmentBorough: text("segment_borough"),
+    routeLengthMeters: real("route_length_meters"),
+    routeOverlapShare: real("route_overlap_share"),
+    joinConfidence: text("join_confidence", { enum: ["high", "medium", "low"] }),
+    joinConfidenceReason: text("join_confidence_reason"),
     computedAt: text("computed_at").notNull(),
   },
   (table) => [

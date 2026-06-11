@@ -8,6 +8,7 @@ export { analyticsCorpusProfilePath } from "./analytics-corpus-profile";
 export { analyticsDetectorReadinessPath } from "./analytics-detector-readiness";
 export { analyticsMaterializationCoveragePath } from "./analytics-materialization-coverage";
 export { contextEventRouteTouchAuditPath } from "./context-event-route-touches";
+export { curbFrictionTaxonomyAgreementAuditPath } from "./curb-friction-taxonomy-agreement";
 export { dataProductCompletenessPath } from "./data-product-completeness";
 export { decouplingQuadrantsArtifactPath } from "./decoupling-quadrants";
 export {

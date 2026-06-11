@@ -99,6 +99,15 @@ export {
   summarizeConfidenceComponentCompleteness,
 } from "./confidence-decomposition";
 export {
+  type BuildCurbFrictionTaxonomyAgreementAuditInput,
+  buildCurbFrictionTaxonomyAgreementAudit,
+  type CurbFrictionTaxonomyAgreementAudit,
+  type CurbFrictionTaxonomyAgreementAuditRow,
+  type CurbFrictionTaxonomyAgreementCategory,
+  CurbFrictionTaxonomyAgreementCategorySchema,
+  type CurbFrictionTaxonomyAgreementInputRow,
+} from "./curb-friction-taxonomy-agreement";
+export {
   type BuildCustomerJourneyReadinessProjectionInput,
   type BuildCustomerJourneyReviewedGoldInput,
   buildCustomerJourneyReadinessProjection,

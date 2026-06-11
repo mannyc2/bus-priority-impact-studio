@@ -38,6 +38,8 @@ export const ContextEventPayloadSchemaByKind = {
       status: nullableString,
       incidentAddress: nullableString,
       streetName: nullableString,
+      curbFrictionCategory: nullableString,
+      curbFrictionRule: nullableString,
     })
     .strict(),
   collision: z
@@ -233,6 +235,8 @@ export async function runBuildContextEvents(inputs: {
         complaint_type: string | null;
         descriptor: string | null;
         status: string | null;
+        curb_friction_category: string | null;
+        curb_friction_rule: string | null;
         physical_id: string | null;
         latitude: number | null;
         longitude: number | null;
@@ -242,7 +246,8 @@ export async function runBuildContextEvents(inputs: {
       []
     >(
       `SELECT unique_key, era, created_date, closed_date, complaint_type, descriptor,
-              status, physical_id, latitude, longitude, incident_address, street_name
+              status, curb_friction_category, curb_friction_rule, physical_id, latitude,
+              longitude, incident_address, street_name
          FROM local_311_service_request`,
     )
     .all();
@@ -263,6 +268,8 @@ export async function runBuildContextEvents(inputs: {
       status: row.status,
       incidentAddress: row.incident_address,
       streetName: row.street_name,
+      curbFrictionCategory: row.curb_friction_category,
+      curbFrictionRule: row.curb_friction_rule,
     }),
     ingestedAt,
   }));
