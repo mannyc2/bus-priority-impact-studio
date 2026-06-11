@@ -1,0 +1,1732 @@
+{
+  "artifactKind": "headway_reliability_ewt_reviewed_decisions",
+  "schemaVersion": 1,
+  "reviewBatch": "2026-06-11-postfix-top100-100",
+  "reviewer": "maintainer with LLM-assisted review per ADR-0018; metrics read from run-rows-batch2.json (deleted after extraction)",
+  "releaseMonth": "2026-03",
+  "notes": "Batch 2: post-ranking-fix production top-100 (score desc, featureKey asc tie-break over the --candidate-limit 20000 run; identical to the production cap because the sort is now fully deterministic). All 100 cells were unreviewed by batch 1. Adversarial depth on every cell. Same evidence standard as batch 1: >=30 observed headways with schedule-consistent coverage and gap-implausible magnitude supports a publishable stop-hour wait story; hour-scale EWT with CoV >=5 at 5-8 scheduled buses/hour is a feed-gap artifact; adjacent-stop/corridor duplicates keep one canonical cell. Batch 1 labels unchanged.",
+  "decisions": [
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "Q88:E:502510:2026-03:Weekday:07",
+      "routeId": "Q88",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "primary_finding",
+      "calibrationTags": [
+        "true_excess_wait_shortfall",
+        "high_headway_samples",
+        "frequent_service_supported",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 1 in the post-fix production top-100. EWT 6.4 min vs 3.9 min scheduled wait, CoV 1.45, LoS F, 37 observed headways (sufficiency 0.796) at 7.8 scheduled buses/hour, hour 7, HORACE HARDING EXPWY/148 ST. Well-observed (>=30 headways) with coverage consistent with the schedule and a gap-implausible magnitude; the wait story is publishable at stop-hour grain with the single-cell caveat \u2014 do not generalize to the route."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "Q88:E:501394:2026-03:Weekday:07",
+      "routeId": "Q88",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "route_context",
+      "calibrationTags": [
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 2 in the post-fix production top-100. EWT 7.3 min vs 4 min scheduled wait, CoV 1.27, LoS F, 34 observed headways (sufficiency 0.756) at 7.5 scheduled buses/hour, hour 7, HORACE HARDING EXPWY/UTOPIA PKWY. Real pocket but a duplicate of the same upstream corridor pattern; canonical cell is Q88:E:502510:2026-03:Weekday:07. Keep as route context so a rollup dedupes adjacent cells.",
+      "notes": "Duplicate-pocket: canonical Q88:E:502510:2026-03:Weekday:07."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "Q88:E:502878:2026-03:Weekday:07",
+      "routeId": "Q88",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "route_context",
+      "calibrationTags": [
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 3 in the post-fix production top-100. EWT 7.2 min vs 4 min scheduled wait, CoV 1.37, LoS F, 34 observed headways (sufficiency 0.756) at 7.5 scheduled buses/hour, hour 7, HORACE HARDING EXPWY/136 ST. Real pocket but a duplicate of the same upstream corridor pattern; canonical cell is Q88:E:502510:2026-03:Weekday:07. Keep as route context so a rollup dedupes adjacent cells.",
+      "notes": "Duplicate-pocket: canonical Q88:E:502510:2026-03:Weekday:07."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "Q88:E:501390:2026-03:Weekday:07",
+      "routeId": "Q88",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "route_context",
+      "calibrationTags": [
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 4 in the post-fix production top-100. EWT 7.0 min vs 4 min scheduled wait, CoV 1.26, LoS F, 33 observed headways (sufficiency 0.733) at 7.5 scheduled buses/hour, hour 7, HORACE HARDING EXPWY/168 ST. Real pocket but a duplicate of the same upstream corridor pattern; canonical cell is Q88:E:502510:2026-03:Weekday:07. Keep as route context so a rollup dedupes adjacent cells.",
+      "notes": "Duplicate-pocket: canonical Q88:E:502510:2026-03:Weekday:07."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "Q88:E:501388:2026-03:Weekday:07",
+      "routeId": "Q88",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "route_context",
+      "calibrationTags": [
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 5 in the post-fix production top-100. EWT 6.5 min vs 3.9 min scheduled wait, CoV 1.47, LoS F, 34 observed headways (sufficiency 0.731) at 7.8 scheduled buses/hour, hour 7, HORACE HARDING EXPWY/164 ST. Real pocket but a duplicate of the same upstream corridor pattern; canonical cell is Q88:E:502510:2026-03:Weekday:07. Keep as route context so a rollup dedupes adjacent cells.",
+      "notes": "Duplicate-pocket: canonical Q88:E:502510:2026-03:Weekday:07."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "B16:S:301710:2026-03:Weekday:07",
+      "routeId": "B16",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "primary_finding",
+      "calibrationTags": [
+        "true_excess_wait_shortfall",
+        "high_headway_samples",
+        "extreme_variability_los_f",
+        "frequent_service_supported",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 6 in the post-fix production top-100. EWT 8.7 min vs 5.6 min scheduled wait, CoV 2.39, LoS F, 42 observed headways (sufficiency 0.716) at 5.3 scheduled buses/hour, hour 7, 86 ST/RIDGE BLVD. Well-observed (>=30 headways) with coverage consistent with the schedule and a gap-implausible magnitude; the wait story is publishable at stop-hour grain with the single-cell caveat \u2014 do not generalize to the route."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "SIM4:N:404887:2026-03:Weekday:07",
+      "routeId": "SIM4",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "route_context",
+      "calibrationTags": [
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 7 in the post-fix production top-100. EWT 17.5 min vs 6 min scheduled wait, CoV 2.28, LoS F, 50 observed headways (sufficiency 0.714) at 5 scheduled buses/hour, hour 7, GREENWICH ST/BATTERY PL. Real pocket but a duplicate of the same upstream corridor pattern; canonical cell is SIM1:N:404887:2026-03:Weekday:07. Keep as route context so a rollup dedupes adjacent cells.",
+      "notes": "Duplicate-pocket: canonical SIM1:N:404887:2026-03:Weekday:07."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "Q88:E:501385:2026-03:Weekday:07",
+      "routeId": "Q88",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "route_context",
+      "calibrationTags": [
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 8 in the post-fix production top-100. EWT 8.3 min vs 3.9 min scheduled wait, CoV 1.72, LoS F, 33 observed headways (sufficiency 0.71) at 7.8 scheduled buses/hour, hour 7, HORACE HARDING EXPWY/PARSONS BLVD. Real pocket but a duplicate of the same upstream corridor pattern; canonical cell is Q88:E:502510:2026-03:Weekday:07. Keep as route context so a rollup dedupes adjacent cells.",
+      "notes": "Duplicate-pocket: canonical Q88:E:502510:2026-03:Weekday:07."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "Q88:E:502880:2026-03:Weekday:07",
+      "routeId": "Q88",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "route_context",
+      "calibrationTags": [
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 9 in the post-fix production top-100. EWT 9.4 min vs 3.9 min scheduled wait, CoV 1.89, LoS F, 33 observed headways (sufficiency 0.71) at 7.8 scheduled buses/hour, hour 7, HORACE HARDING EXPWY/MAIN ST. Real pocket but a duplicate of the same upstream corridor pattern; canonical cell is Q88:E:502510:2026-03:Weekday:07. Keep as route context so a rollup dedupes adjacent cells.",
+      "notes": "Duplicate-pocket: canonical Q88:E:502510:2026-03:Weekday:07."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "B16:S:301679:2026-03:Weekday:06",
+      "routeId": "B16",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "primary_finding",
+      "calibrationTags": [
+        "true_excess_wait_shortfall",
+        "high_headway_samples",
+        "frequent_service_supported",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 10 in the post-fix production top-100. EWT 9.9 min vs 5.3 min scheduled wait, CoV 1.9, LoS F, 36 observed headways (sufficiency 0.706) at 5.7 scheduled buses/hour, hour 6, 13 AV/39 ST. Well-observed (>=30 headways) with coverage consistent with the schedule and a gap-implausible magnitude; the wait story is publishable at stop-hour grain with the single-cell caveat \u2014 do not generalize to the route."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "Q31:S:904095:2026-03:Weekday:15",
+      "routeId": "Q31",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "primary_finding",
+      "calibrationTags": [
+        "true_excess_wait_shortfall",
+        "high_headway_samples",
+        "frequent_service_supported",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 11 in the post-fix production top-100. EWT 20.6 min vs 6 min scheduled wait, CoV 1.75, LoS F, 67 observed headways (sufficiency 0.705) at 5 scheduled buses/hour, hour 15, ARCHER AV/SUTPHIN BLVD. Well-observed (>=30 headways) with coverage consistent with the schedule and a gap-implausible magnitude; the wait story is publishable at stop-hour grain with the single-cell caveat \u2014 do not generalize to the route."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "Q76:S:505297:2026-03:Weekday:15",
+      "routeId": "Q76",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "feed_gap_or_coverage_artifact",
+        "extreme_variability_los_f",
+        "not_actionable_as_claim",
+        "stop_direction_hour_cell"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 12 in the post-fix production top-100. EWT 92.8 min vs 6 min scheduled wait, CoV 6.95, LoS F, 29 observed headways (sufficiency 0.701) at 5 scheduled buses/hour, hour 15, HILLSIDE AV/EDGERTON BLVD. A month-typical excess wait of this magnitude at this frequency is physically implausible; the CoV shows hour-scale gaps that are missing observations (feed dropouts), not service. Suppress as feed-gap artifact.",
+      "notes": "Q76/Q77 Hillside Av corridor hour-15 cluster: every cell claims 75-93 min of excess wait at ~5 buses/hour \u2014 a shared feed-gap artifact across the corridor, not five independent findings."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "Q88:E:501383:2026-03:Weekday:07",
+      "routeId": "Q88",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "route_context",
+      "calibrationTags": [
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 13 in the post-fix production top-100. EWT 6.6 min vs 4.4 min scheduled wait, CoV 1.85, LoS F, 33 observed headways (sufficiency 0.698) at 6.8 scheduled buses/hour, hour 7, HORACE HARDING EXPWY/KISSENA BLVD. Real pocket but a duplicate of the same upstream corridor pattern; canonical cell is Q88:E:502510:2026-03:Weekday:07. Keep as route context so a rollup dedupes adjacent cells.",
+      "notes": "Duplicate-pocket: canonical Q88:E:502510:2026-03:Weekday:07."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "Q76:N:502718:2026-03:Weekday:15",
+      "routeId": "Q76",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "needs_more_evidence",
+      "calibrationTags": [
+        "thin_headway_samples",
+        "extreme_variability_los_f",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 14 in the post-fix production top-100. EWT 23.9 min vs 5.6 min scheduled wait, CoV 2.35, LoS F, 26 observed headways (sufficiency 0.696) at 5.4 scheduled buses/hour, hour 15, FRANCIS LEWIS BLVD/17 RD. Under 30 observed headways where the schedule implies far more; the EWT magnitude is plausible but coverage is too fractional to separate real unreliability from feed gaps. Needs more observed coverage before promotion.",
+      "notes": "Adjacent-stop pair on Francis Lewis Blvd (Q76 N hour 15); one upstream pattern."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "Q76:N:502719:2026-03:Weekday:15",
+      "routeId": "Q76",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "needs_more_evidence",
+      "calibrationTags": [
+        "thin_headway_samples",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 15 in the post-fix production top-100. EWT 17.4 min vs 5.6 min scheduled wait, CoV 1.87, LoS F, 28 observed headways (sufficiency 0.691) at 5.4 scheduled buses/hour, hour 15, FRANCIS LEWIS BLVD/16 AV. Under 30 observed headways where the schedule implies far more; the EWT magnitude is plausible but coverage is too fractional to separate real unreliability from feed gaps. Needs more observed coverage before promotion.",
+      "notes": "Adjacent-stop pair on Francis Lewis Blvd (Q76 N hour 15); one upstream pattern."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "M11:S:401500:2026-03:Weekday:06",
+      "routeId": "M11",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "primary_finding",
+      "calibrationTags": [
+        "true_excess_wait_shortfall",
+        "high_headway_samples",
+        "frequent_service_supported",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 16 in the post-fix production top-100. EWT 6.2 min vs 6 min scheduled wait, CoV 1.38, LoS F, 37 observed headways (sufficiency 0.673) at 5 scheduled buses/hour, hour 6, 9 AV/W 35 ST. Well-observed (>=30 headways) with coverage consistent with the schedule and a gap-implausible magnitude; the wait story is publishable at stop-hour grain with the single-cell caveat \u2014 do not generalize to the route."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "X37:N:402143:2026-03:Weekday:07",
+      "routeId": "X37",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "needs_more_evidence",
+      "calibrationTags": [
+        "thin_headway_samples",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 17 in the post-fix production top-100. EWT 7.2 min vs 5 min scheduled wait, CoV 1.27, LoS F, 29 observed headways (sufficiency 0.667) at 6 scheduled buses/hour, hour 7, E 23 ST / 1 AV. Under 30 observed headways where the schedule implies far more; the EWT magnitude is plausible but coverage is too fractional to separate real unreliability from feed gaps. Needs more observed coverage before promotion."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "Q88:E:501635:2026-03:Weekday:08",
+      "routeId": "Q88",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "primary_finding",
+      "calibrationTags": [
+        "true_excess_wait_shortfall",
+        "high_headway_samples",
+        "extreme_variability_los_f",
+        "frequent_service_supported",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 18 in the post-fix production top-100. EWT 18.4 min vs 4 min scheduled wait, CoV 2.35, LoS F, 30 observed headways (sufficiency 0.667) at 7.5 scheduled buses/hour, hour 8, SPRINGFIELD BLVD/HILLSIDE AV. Well-observed (>=30 headways) with coverage consistent with the schedule and a gap-implausible magnitude; the wait story is publishable at stop-hour grain with the single-cell caveat \u2014 do not generalize to the route."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "SIM15:S:450402:2026-03:Weekday:16",
+      "routeId": "SIM15",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "primary_finding",
+      "calibrationTags": [
+        "true_excess_wait_shortfall",
+        "high_headway_samples",
+        "frequent_service_supported",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 19 in the post-fix production top-100. EWT 22.6 min vs 6 min scheduled wait, CoV 1.91, LoS F, 53 observed headways (sufficiency 0.662) at 5 scheduled buses/hour, hour 16, CHURCH ST/FULTON ST. Well-observed (>=30 headways) with coverage consistent with the schedule and a gap-implausible magnitude; the wait story is publishable at stop-hour grain with the single-cell caveat \u2014 do not generalize to the route."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "SIM10:S:201106:2026-03:Weekday:16",
+      "routeId": "SIM10",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "primary_finding",
+      "calibrationTags": [
+        "true_excess_wait_shortfall",
+        "high_headway_samples",
+        "frequent_service_supported",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 20 in the post-fix production top-100. EWT 12.4 min vs 6 min scheduled wait, CoV 1.84, LoS F, 39 observed headways (sufficiency 0.65) at 5 scheduled buses/hour, hour 16, HYLAN BLVD/BURGHER AV. Well-observed (>=30 headways) with coverage consistent with the schedule and a gap-implausible magnitude; the wait story is publishable at stop-hour grain with the single-cell caveat \u2014 do not generalize to the route."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "BXM9:S:450451:2026-03:Weekday:07",
+      "routeId": "BXM9",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "needs_more_evidence",
+      "calibrationTags": [
+        "thin_headway_samples",
+        "extreme_variability_los_f",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 21 in the post-fix production top-100. EWT 12.5 min vs 6 min scheduled wait, CoV 2.93, LoS F, 22 observed headways (sufficiency 0.645) at 5 scheduled buses/hour, hour 7, 2 AV/E 121 ST. Under 30 observed headways where the schedule implies far more; the EWT magnitude is plausible but coverage is too fractional to separate real unreliability from feed gaps. Needs more observed coverage before promotion."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "B16:S:307515:2026-03:Weekday:07",
+      "routeId": "B16",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "route_context",
+      "calibrationTags": [
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 22 in the post-fix production top-100. EWT 8.6 min vs 5.3 min scheduled wait, CoV 2.3, LoS F, 40 observed headways (sufficiency 0.642) at 5.7 scheduled buses/hour, hour 7, 86 ST/NARROWS AV. Real pocket but a duplicate of the same upstream corridor pattern; canonical cell is B16:S:301710:2026-03:Weekday:07. Keep as route context so a rollup dedupes adjacent cells.",
+      "notes": "Duplicate-pocket: canonical B16:S:301710:2026-03:Weekday:07."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "B16:S:301708:2026-03:Weekday:07",
+      "routeId": "B16",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "route_context",
+      "calibrationTags": [
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 23 in the post-fix production top-100. EWT 13.7 min vs 5.6 min scheduled wait, CoV 3.15, LoS F, 41 observed headways (sufficiency 0.641) at 5.3 scheduled buses/hour, hour 7, 86 ST/4 AV. Real pocket but a duplicate of the same upstream corridor pattern; canonical cell is B16:S:301710:2026-03:Weekday:07. Keep as route context so a rollup dedupes adjacent cells.",
+      "notes": "Duplicate-pocket: canonical B16:S:301710:2026-03:Weekday:07."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "SIM10:S:201110:2026-03:Weekday:16",
+      "routeId": "SIM10",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "route_context",
+      "calibrationTags": [
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 24 in the post-fix production top-100. EWT 14.4 min vs 6 min scheduled wait, CoV 2.04, LoS F, 32 observed headways (sufficiency 0.64) at 5 scheduled buses/hour, hour 16, HYLAN BLVD/BUEL AV. Real pocket but a duplicate of the same upstream corridor pattern; canonical cell is SIM10:S:201106:2026-03:Weekday:16. Keep as route context so a rollup dedupes adjacent cells.",
+      "notes": "Duplicate-pocket: canonical SIM10:S:201106:2026-03:Weekday:16."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "B17:N:801078:2026-03:Weekday:07",
+      "routeId": "B17",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "primary_finding",
+      "calibrationTags": [
+        "true_excess_wait_shortfall",
+        "high_headway_samples",
+        "frequent_service_supported",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 25 in the post-fix production top-100. EWT 10.1 min vs 6 min scheduled wait, CoV 1.43, LoS F, 44 observed headways (sufficiency 0.629) at 5 scheduled buses/hour, hour 7, FLATLANDS AV/ROCKAWAY PKWY. Well-observed (>=30 headways) with coverage consistent with the schedule and a gap-implausible magnitude; the wait story is publishable at stop-hour grain with the single-cell caveat \u2014 do not generalize to the route."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "Q76:S:505233:2026-03:Weekday:15",
+      "routeId": "Q76",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "feed_gap_or_coverage_artifact",
+        "extreme_variability_los_f",
+        "not_actionable_as_claim",
+        "stop_direction_hour_cell"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 26 in the post-fix production top-100. EWT 80.4 min vs 5.8 min scheduled wait, CoV 5.78, LoS F, 28 observed headways (sufficiency 0.628) at 5.2 scheduled buses/hour, hour 15, HILLSIDE AV/AVON ST. A month-typical excess wait of this magnitude at this frequency is physically implausible; the CoV shows hour-scale gaps that are missing observations (feed dropouts), not service. Suppress as feed-gap artifact.",
+      "notes": "Q76/Q77 Hillside Av corridor hour-15 cluster: every cell claims 75-93 min of excess wait at ~5 buses/hour \u2014 a shared feed-gap artifact across the corridor, not five independent findings."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "Q77:N:700815:2026-03:Weekday:15",
+      "routeId": "Q77",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "reviewer_only",
+      "calibrationTags": [
+        "terminal_or_layover_artifact",
+        "thin_headway_samples",
+        "stop_direction_hour_cell"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 27 in the post-fix production top-100. EWT 20.3 min vs 5.8 min scheduled wait, CoV 1.69, LoS F, 28 observed headways (sufficiency 0.628) at 5.2 scheduled buses/hour, hour 15, 168 ST/JAMAICA BUS TERMINAL. 168 St/Jamaica Bus Terminal is a dispatch terminal: departure headways here are schedule/dispatch behavior, and the cell is just under the 30-headway floor. Keep for reviewers; not publishable as a rider wait claim."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "B16:S:301709:2026-03:Weekday:07",
+      "routeId": "B16",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "route_context",
+      "calibrationTags": [
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 28 in the post-fix production top-100. EWT 7.1 min vs 5.6 min scheduled wait, CoV 2.1, LoS F, 40 observed headways (sufficiency 0.625) at 5.3 scheduled buses/hour, hour 7, 86 ST/3 AV. Real pocket but a duplicate of the same upstream corridor pattern; canonical cell is B16:S:301710:2026-03:Weekday:07. Keep as route context so a rollup dedupes adjacent cells.",
+      "notes": "Duplicate-pocket: canonical B16:S:301710:2026-03:Weekday:07."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "B20:S:300584:2026-03:Weekday:06",
+      "routeId": "B20",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "primary_finding",
+      "calibrationTags": [
+        "true_excess_wait_shortfall",
+        "high_headway_samples",
+        "extreme_variability_los_f",
+        "frequent_service_supported",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 29 in the post-fix production top-100. EWT 12.0 min vs 5.6 min scheduled wait, CoV 2.2, LoS F, 30 observed headways (sufficiency 0.625) at 5.3 scheduled buses/hour, hour 6, WORTMAN AV/PENNSYLVANIA AV. Well-observed (>=30 headways) with coverage consistent with the schedule and a gap-implausible magnitude; the wait story is publishable at stop-hour grain with the single-cell caveat \u2014 do not generalize to the route."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "B9:E:300952:2026-03:Weekday:06",
+      "routeId": "B9",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "needs_more_evidence",
+      "calibrationTags": [
+        "thin_headway_samples",
+        "extreme_variability_los_f",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 30 in the post-fix production top-100. EWT 15.9 min vs 6 min scheduled wait, CoV 2.24, LoS F, 29 observed headways (sufficiency 0.623) at 5 scheduled buses/hour, hour 6, AVENUE M/E 9 ST. Under 30 observed headways where the schedule implies far more; the EWT magnitude is plausible but coverage is too fractional to separate real unreliability from feed gaps. Needs more observed coverage before promotion."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "Q88:E:502629:2026-03:Weekday:08",
+      "routeId": "Q88",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "needs_more_evidence",
+      "calibrationTags": [
+        "thin_headway_samples",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 31 in the post-fix production top-100. EWT 8.5 min vs 4 min scheduled wait, CoV 1.38, LoS F, 29 observed headways (sufficiency 0.623) at 7.5 scheduled buses/hour, hour 8, 73 AV/FRANCIS LEWIS BLVD. Under 30 observed headways where the schedule implies far more; the EWT magnitude is plausible but coverage is too fractional to separate real unreliability from feed gaps. Needs more observed coverage before promotion.",
+      "notes": "Q88 E hour-8 73 Av corridor thin cluster; canonical well-sampled hour-8 cell is Q88:E:501635:2026-03:Weekday:08 (rank 18)."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "Q88:E:502630:2026-03:Weekday:08",
+      "routeId": "Q88",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "needs_more_evidence",
+      "calibrationTags": [
+        "thin_headway_samples",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 32 in the post-fix production top-100. EWT 13.7 min vs 4 min scheduled wait, CoV 1.93, LoS F, 29 observed headways (sufficiency 0.623) at 7.5 scheduled buses/hour, hour 8, 73 AV/HOLLIS HILLS TERR. Under 30 observed headways where the schedule implies far more; the EWT magnitude is plausible but coverage is too fractional to separate real unreliability from feed gaps. Needs more observed coverage before promotion.",
+      "notes": "Q88 E hour-8 73 Av corridor thin cluster; canonical well-sampled hour-8 cell is Q88:E:501635:2026-03:Weekday:08 (rank 18)."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "Q88:E:502633:2026-03:Weekday:08",
+      "routeId": "Q88",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "needs_more_evidence",
+      "calibrationTags": [
+        "thin_headway_samples",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 33 in the post-fix production top-100. EWT 14.3 min vs 4 min scheduled wait, CoV 1.99, LoS F, 29 observed headways (sufficiency 0.623) at 7.5 scheduled buses/hour, hour 8, 73 AV/BELL BLVD. Under 30 observed headways where the schedule implies far more; the EWT magnitude is plausible but coverage is too fractional to separate real unreliability from feed gaps. Needs more observed coverage before promotion.",
+      "notes": "Q88 E hour-8 73 Av corridor thin cluster; canonical well-sampled hour-8 cell is Q88:E:501635:2026-03:Weekday:08 (rank 18)."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "SIM5:N:903115:2026-03:Weekday:07",
+      "routeId": "SIM5",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "route_context",
+      "calibrationTags": [
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 34 in the post-fix production top-100. EWT 18.8 min vs 6 min scheduled wait, CoV 2.06, LoS F, 59 observed headways (sufficiency 0.621) at 5 scheduled buses/hour, hour 7, BATTERY PL/GREENWICH ST. Real pocket but a duplicate of the same upstream corridor pattern; canonical cell is SIM1:N:404887:2026-03:Weekday:07. Keep as route context so a rollup dedupes adjacent cells.",
+      "notes": "Duplicate-pocket: canonical SIM1:N:404887:2026-03:Weekday:07."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "SIM10:N:402145:2026-03:Weekday:09",
+      "routeId": "SIM10",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "primary_finding",
+      "calibrationTags": [
+        "true_excess_wait_shortfall",
+        "high_headway_samples",
+        "extreme_variability_los_f",
+        "frequent_service_supported",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 35 in the post-fix production top-100. EWT 13.3 min vs 6 min scheduled wait, CoV 2.41, LoS F, 40 observed headways (sufficiency 0.615) at 5 scheduled buses/hour, hour 9, E 23 ST / 3 AV. Well-observed (>=30 headways) with coverage consistent with the schedule and a gap-implausible magnitude; the wait story is publishable at stop-hour grain with the single-cell caveat \u2014 do not generalize to the route."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "S91:E:202692:2026-03:Weekday:07",
+      "routeId": "S91",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "primary_finding",
+      "calibrationTags": [
+        "true_excess_wait_shortfall",
+        "high_headway_samples",
+        "frequent_service_supported",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 36 in the post-fix production top-100. EWT 9.8 min vs 6 min scheduled wait, CoV 1.3, LoS F, 46 observed headways (sufficiency 0.613) at 5 scheduled buses/hour, hour 7, VICTORY BLVD/SILVER LAKE APARTMENTS. Well-observed (>=30 headways) with coverage consistent with the schedule and a gap-implausible magnitude; the wait story is publishable at stop-hour grain with the single-cell caveat \u2014 do not generalize to the route."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "B20:S:307897:2026-03:Weekday:06",
+      "routeId": "B20",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "primary_finding",
+      "calibrationTags": [
+        "true_excess_wait_shortfall",
+        "high_headway_samples",
+        "frequent_service_supported",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 37 in the post-fix production top-100. EWT 8.9 min vs 5 min scheduled wait, CoV 1.7, LoS F, 33 observed headways (sufficiency 0.611) at 6 scheduled buses/hour, hour 6, VAN SINDEREN AV/FULTON ST. Well-observed (>=30 headways) with coverage consistent with the schedule and a gap-implausible magnitude; the wait story is publishable at stop-hour grain with the single-cell caveat \u2014 do not generalize to the route."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "B16:S:301701:2026-03:Weekday:07",
+      "routeId": "B16",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "route_context",
+      "calibrationTags": [
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 38 in the post-fix production top-100. EWT 6.3 min vs 5.6 min scheduled wait, CoV 1.65, LoS F, 39 observed headways (sufficiency 0.609) at 5.3 scheduled buses/hour, hour 7, FORT HAMILTON PKWY/BAY RIDGE PKWY. Real pocket but a duplicate of the same upstream corridor pattern; canonical cell is B16:S:301710:2026-03:Weekday:07. Keep as route context so a rollup dedupes adjacent cells.",
+      "notes": "Duplicate-pocket: canonical B16:S:301710:2026-03:Weekday:07."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "B16:S:307501:2026-03:Weekday:07",
+      "routeId": "B16",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "route_context",
+      "calibrationTags": [
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 39 in the post-fix production top-100. EWT 10.6 min vs 5.3 min scheduled wait, CoV 2.26, LoS F, 38 observed headways (sufficiency 0.61) at 5.7 scheduled buses/hour, hour 7, 86 ST/FORT HAMILTON PKWY. Real pocket but a duplicate of the same upstream corridor pattern; canonical cell is B16:S:301710:2026-03:Weekday:07. Keep as route context so a rollup dedupes adjacent cells.",
+      "notes": "Duplicate-pocket: canonical B16:S:301710:2026-03:Weekday:07."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "B16:S:307513:2026-03:Weekday:07",
+      "routeId": "B16",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "route_context",
+      "calibrationTags": [
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 40 in the post-fix production top-100. EWT 8.1 min vs 5.6 min scheduled wait, CoV 2.18, LoS F, 39 observed headways (sufficiency 0.609) at 5.3 scheduled buses/hour, hour 7, FORT HAMILTON PKWY/7 AV. Real pocket but a duplicate of the same upstream corridor pattern; canonical cell is B16:S:301710:2026-03:Weekday:07. Keep as route context so a rollup dedupes adjacent cells.",
+      "notes": "Duplicate-pocket: canonical B16:S:301710:2026-03:Weekday:07."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "Q43:W:500071:2026-03:Weekday:14",
+      "routeId": "Q43",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "needs_more_evidence",
+      "calibrationTags": [
+        "thin_headway_samples",
+        "extreme_variability_los_f",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 41 in the post-fix production top-100. EWT 24.4 min vs 4.1 min scheduled wait, CoV 2.56, LoS F, 26 observed headways (sufficiency 0.609) at 7.4 scheduled buses/hour, hour 14, HILLSIDE AV/212 ST. Under 30 observed headways where the schedule implies far more; the EWT magnitude is plausible but coverage is too fractional to separate real unreliability from feed gaps. Needs more observed coverage before promotion."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "B20:N:301956:2026-03:Weekday:07",
+      "routeId": "B20",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "primary_finding",
+      "calibrationTags": [
+        "true_excess_wait_shortfall",
+        "high_headway_samples",
+        "extreme_variability_los_f",
+        "frequent_service_supported",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 42 in the post-fix production top-100. EWT 13.1 min vs 5.6 min scheduled wait, CoV 2.04, LoS F, 32 observed headways (sufficiency 0.6) at 5.3 scheduled buses/hour, hour 7, PENNSYLVANIA AV/WORTMAN AV. Well-observed (>=30 headways) with coverage consistent with the schedule and a gap-implausible magnitude; the wait story is publishable at stop-hour grain with the single-cell caveat \u2014 do not generalize to the route."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "B25:W:307238:2026-03:Weekday:07",
+      "routeId": "B25",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "feed_gap_or_coverage_artifact",
+        "extreme_variability_los_f",
+        "not_actionable_as_claim",
+        "stop_direction_hour_cell"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 43 in the post-fix production top-100. EWT 82.0 min vs 6 min scheduled wait, CoV 7.62, LoS F, 30 observed headways (sufficiency 0.6) at 5 scheduled buses/hour, hour 7, FULTON ST/VAN SINDEREN AV. A month-typical excess wait of this magnitude at this frequency is physically implausible; the CoV shows hour-scale gaps that are missing observations (feed dropouts), not service. Suppress as feed-gap artifact."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "B9:E:306830:2026-03:Weekday:06",
+      "routeId": "B9",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "primary_finding",
+      "calibrationTags": [
+        "true_excess_wait_shortfall",
+        "high_headway_samples",
+        "frequent_service_supported",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 44 in the post-fix production top-100. EWT 7.8 min vs 6 min scheduled wait, CoV 1.23, LoS F, 30 observed headways (sufficiency 0.6) at 5 scheduled buses/hour, hour 6, AVENUE L/BEDFORD AV. Well-observed (>=30 headways) with coverage consistent with the schedule and a gap-implausible magnitude; the wait story is publishable at stop-hour grain with the single-cell caveat \u2014 do not generalize to the route."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "Q76:S:501414:2026-03:Weekday:15",
+      "routeId": "Q76",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "feed_gap_or_coverage_artifact",
+        "extreme_variability_los_f",
+        "not_actionable_as_claim",
+        "stop_direction_hour_cell"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 45 in the post-fix production top-100. EWT 78.6 min vs 6 min scheduled wait, CoV 5.98, LoS F, 30 observed headways (sufficiency 0.6) at 5 scheduled buses/hour, hour 15, HILLSIDE AV/MIDLAND PKWY. A month-typical excess wait of this magnitude at this frequency is physically implausible; the CoV shows hour-scale gaps that are missing observations (feed dropouts), not service. Suppress as feed-gap artifact.",
+      "notes": "Q76/Q77 Hillside Av corridor hour-15 cluster: every cell claims 75-93 min of excess wait at ~5 buses/hour \u2014 a shared feed-gap artifact across the corridor, not five independent findings."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "S91:E:200544:2026-03:Weekday:07",
+      "routeId": "S91",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "route_context",
+      "calibrationTags": [
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 46 in the post-fix production top-100. EWT 9.5 min vs 6 min scheduled wait, CoV 1.28, LoS F, 51 observed headways (sufficiency 0.6) at 5 scheduled buses/hour, hour 7, VICTORY BLVD/CLOVE RD. Real pocket but a duplicate of the same upstream corridor pattern; canonical cell is S91:E:202692:2026-03:Weekday:07. Keep as route context so a rollup dedupes adjacent cells.",
+      "notes": "Duplicate-pocket: canonical S91:E:202692:2026-03:Weekday:07."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "S94:W:200437:2026-03:Weekday:18",
+      "routeId": "S94",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "primary_finding",
+      "calibrationTags": [
+        "true_excess_wait_shortfall",
+        "high_headway_samples",
+        "frequent_service_supported",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 47 in the post-fix production top-100. EWT 15.2 min vs 6 min scheduled wait, CoV 1.4, LoS F, 42 observed headways (sufficiency 0.6) at 5 scheduled buses/hour, hour 18, RICHMOND AV/VEDDER AV. Well-observed (>=30 headways) with coverage consistent with the schedule and a gap-implausible magnitude; the wait story is publishable at stop-hour grain with the single-cell caveat \u2014 do not generalize to the route."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "S94:W:200886:2026-03:Weekday:17",
+      "routeId": "S94",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "primary_finding",
+      "calibrationTags": [
+        "true_excess_wait_shortfall",
+        "high_headway_samples",
+        "frequent_service_supported",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 48 in the post-fix production top-100. EWT 11.3 min vs 6 min scheduled wait, CoV 0.9, LoS F, 42 observed headways (sufficiency 0.6) at 5 scheduled buses/hour, hour 17, HENDERSON AV/BARD AV. Well-observed (>=30 headways) with coverage consistent with the schedule and a gap-implausible magnitude; the wait story is publishable at stop-hour grain with the single-cell caveat \u2014 do not generalize to the route."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "SIM11:S:203345:2026-03:Weekday:17",
+      "routeId": "SIM11",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "primary_finding",
+      "calibrationTags": [
+        "true_excess_wait_shortfall",
+        "high_headway_samples",
+        "frequent_service_supported",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 49 in the post-fix production top-100. EWT 14.9 min vs 6 min scheduled wait, CoV 1.74, LoS F, 60 observed headways (sufficiency 0.6) at 5 scheduled buses/hour, hour 17, NARROWS RD NORTH/FINGERBOARD RD. Well-observed (>=30 headways) with coverage consistent with the schedule and a gap-implausible magnitude; the wait story is publishable at stop-hour grain with the single-cell caveat \u2014 do not generalize to the route."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "SIM4:N:200395:2026-03:Weekday:06",
+      "routeId": "SIM4",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "primary_finding",
+      "calibrationTags": [
+        "true_excess_wait_shortfall",
+        "high_headway_samples",
+        "frequent_service_supported",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 50 in the post-fix production top-100. EWT 10.1 min vs 6 min scheduled wait, CoV 1.53, LoS F, 33 observed headways (sufficiency 0.6) at 5 scheduled buses/hour, hour 6, RICHMOND AV/ROCKLAND AV. Well-observed (>=30 headways) with coverage consistent with the schedule and a gap-implausible magnitude; the wait story is publishable at stop-hour grain with the single-cell caveat \u2014 do not generalize to the route."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "Q77:N:501414:2026-03:Weekday:15",
+      "routeId": "Q77",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "feed_gap_or_coverage_artifact",
+        "extreme_variability_los_f",
+        "not_actionable_as_claim",
+        "stop_direction_hour_cell"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 51 in the post-fix production top-100. EWT 80.3 min vs 5.8 min scheduled wait, CoV 6.19, LoS F, 29 observed headways (sufficiency 0.599) at 5.2 scheduled buses/hour, hour 15, HILLSIDE AV/MIDLAND PKWY. A month-typical excess wait of this magnitude at this frequency is physically implausible; the CoV shows hour-scale gaps that are missing observations (feed dropouts), not service. Suppress as feed-gap artifact.",
+      "notes": "Q76/Q77 Hillside Av corridor hour-15 cluster: every cell claims 75-93 min of excess wait at ~5 buses/hour \u2014 a shared feed-gap artifact across the corridor, not five independent findings."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "M98:S:400799:2026-03:Weekday:06",
+      "routeId": "M98",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "primary_finding",
+      "calibrationTags": [
+        "true_excess_wait_shortfall",
+        "high_headway_samples",
+        "frequent_service_supported",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 52 in the post-fix production top-100. EWT 5.7 min vs 6 min scheduled wait, CoV 0.93, LoS F, 56 observed headways (sufficiency 0.622) at 5 scheduled buses/hour, hour 6, W 178 ST/BROADWAY. Well-observed (>=30 headways) with coverage consistent with the schedule and a gap-implausible magnitude; the wait story is publishable at stop-hour grain with the single-cell caveat \u2014 do not generalize to the route."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "Q76:N:501198:2026-03:Weekday:15",
+      "routeId": "Q76",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "needs_more_evidence",
+      "calibrationTags": [
+        "thin_headway_samples",
+        "extreme_variability_los_f",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 53 in the post-fix production top-100. EWT 25.8 min vs 5.6 min scheduled wait, CoV 2.53, LoS F, 26 observed headways (sufficiency 0.596) at 5.4 scheduled buses/hour, hour 15, CROSS ISLAND PKWY/CLINTONVILLE ST. Under 30 observed headways where the schedule implies far more; the EWT magnitude is plausible but coverage is too fractional to separate real unreliability from feed gaps. Needs more observed coverage before promotion."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "S54:S:200311:2026-03:Weekday:07",
+      "routeId": "S54",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "primary_finding",
+      "calibrationTags": [
+        "true_excess_wait_shortfall",
+        "high_headway_samples",
+        "extreme_variability_los_f",
+        "frequent_service_supported",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 54 in the post-fix production top-100. EWT 16.5 min vs 5.7 min scheduled wait, CoV 2.19, LoS F, 50 observed headways (sufficiency 0.595) at 5.2 scheduled buses/hour, hour 7, CASTLETON AV/CAROLINE ST. Well-observed (>=30 headways) with coverage consistent with the schedule and a gap-implausible magnitude; the wait story is publishable at stop-hour grain with the single-cell caveat \u2014 do not generalize to the route."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "M4:N:803067:2026-03:Weekday:12",
+      "routeId": "M4",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "terminal_or_layover_artifact",
+        "feed_gap_or_coverage_artifact",
+        "extreme_variability_los_f",
+        "not_actionable_as_claim",
+        "stop_direction_hour_cell"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 55 in the post-fix production top-100. EWT 26.4 min vs 5.2 min scheduled wait, CoV 3.38, LoS F, 31 observed headways (sufficiency 0.594) at 5.8 scheduled buses/hour, hour 12, MARGARET CORBIN DR/CLOISTERS. A month-typical excess wait of this magnitude at this frequency is physically implausible; the CoV shows hour-scale gaps that are missing observations (feed dropouts), not service. Suppress as feed-gap artifact.",
+      "notes": "Margaret Corbin Dr/Cloisters is the M4 terminal loop; hour-scale gaps here reflect layover/dispatch and feed dropouts, not rider-experienced wait."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "B16:S:307488:2026-03:Weekday:07",
+      "routeId": "B16",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "route_context",
+      "calibrationTags": [
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 56 in the post-fix production top-100. EWT 16.6 min vs 5.6 min scheduled wait, CoV 3.48, LoS F, 38 observed headways (sufficiency 0.594) at 5.3 scheduled buses/hour, hour 7, 7 AV SERVICE RD SOUTH/79 ST. Real pocket but a duplicate of the same upstream corridor pattern; canonical cell is B16:S:301710:2026-03:Weekday:07. Keep as route context so a rollup dedupes adjacent cells.",
+      "notes": "Duplicate-pocket: canonical B16:S:301710:2026-03:Weekday:07."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "B9:E:300930:2026-03:Weekday:06",
+      "routeId": "B9",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "primary_finding",
+      "calibrationTags": [
+        "true_excess_wait_shortfall",
+        "high_headway_samples",
+        "extreme_variability_los_f",
+        "frequent_service_supported",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 57 in the post-fix production top-100. EWT 12.4 min vs 5 min scheduled wait, CoV 2.23, LoS F, 32 observed headways (sufficiency 0.593) at 6 scheduled buses/hour, hour 6, 60 ST/8 AV. Well-observed (>=30 headways) with coverage consistent with the schedule and a gap-implausible magnitude; the wait story is publishable at stop-hour grain with the single-cell caveat \u2014 do not generalize to the route."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "M11:N:403757:2026-03:Weekday:09",
+      "routeId": "M11",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "primary_finding",
+      "calibrationTags": [
+        "true_excess_wait_shortfall",
+        "high_headway_samples",
+        "extreme_variability_los_f",
+        "frequent_service_supported",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 58 in the post-fix production top-100. EWT 15.1 min vs 5.8 min scheduled wait, CoV 2.08, LoS F, 46 observed headways (sufficiency 0.59) at 5.2 scheduled buses/hour, hour 9, W 135 ST/AMSTERDAM AV. Well-observed (>=30 headways) with coverage consistent with the schedule and a gap-implausible magnitude; the wait story is publishable at stop-hour grain with the single-cell caveat \u2014 do not generalize to the route."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "S91:E:203406:2026-03:Weekday:07",
+      "routeId": "S91",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "route_context",
+      "calibrationTags": [
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 59 in the post-fix production top-100. EWT 10.7 min vs 6 min scheduled wait, CoV 1.67, LoS F, 50 observed headways (sufficiency 0.588) at 5 scheduled buses/hour, hour 7, BRADLEY AV/PURDY AV. Real pocket but a duplicate of the same upstream corridor pattern; canonical cell is S91:E:202692:2026-03:Weekday:07. Keep as route context so a rollup dedupes adjacent cells.",
+      "notes": "Duplicate-pocket: canonical S91:E:202692:2026-03:Weekday:07."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "SIM9:N:203104:2026-03:Weekday:07",
+      "routeId": "SIM9",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "primary_finding",
+      "calibrationTags": [
+        "true_excess_wait_shortfall",
+        "high_headway_samples",
+        "extreme_variability_los_f",
+        "frequent_service_supported",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 60 in the post-fix production top-100. EWT 14.5 min vs 6 min scheduled wait, CoV 2.0, LoS F, 47 observed headways (sufficiency 0.588) at 5 scheduled buses/hour, hour 7, FATHER CAPODANNO BLVD/ATLANTIC AV. Well-observed (>=30 headways) with coverage consistent with the schedule and a gap-implausible magnitude; the wait story is publishable at stop-hour grain with the single-cell caveat \u2014 do not generalize to the route."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "S94:W:203693:2026-03:Weekday:18",
+      "routeId": "S94",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "route_context",
+      "calibrationTags": [
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 61 in the post-fix production top-100. EWT 17.4 min vs 6 min scheduled wait, CoV 1.55, LoS F, 44 observed headways (sufficiency 0.587) at 5 scheduled buses/hour, hour 18, RICHMOND AV/MONSEY PL. Real pocket but a duplicate of the same upstream corridor pattern; canonical cell is S94:W:200437:2026-03:Weekday:18. Keep as route context so a rollup dedupes adjacent cells.",
+      "notes": "Duplicate-pocket: canonical S94:W:200437:2026-03:Weekday:18."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "S78:E:200152:2026-03:Weekday:15",
+      "routeId": "S78",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "reviewer_only",
+      "calibrationTags": [
+        "extreme_variability_los_f",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 62 in the post-fix production top-100. EWT 36.3 min vs 5.8 min scheduled wait, CoV 2.87, LoS F, 61 observed headways (sufficiency 0.587) at 5.2 scheduled buses/hour, hour 15, BAY ST/HANNAH ST. 61 observed headways make this the best-sampled large-EWT cell in the top-100, but a 36-minute typical excess wait at 5 buses/hour still demands manual scrutiny of the underlying gaps before any publication. Reviewer-only pending gap inspection."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "B52:W:306530:2026-03:Weekday:07",
+      "routeId": "B52",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "feed_gap_or_coverage_artifact",
+        "extreme_variability_los_f",
+        "not_actionable_as_claim",
+        "stop_direction_hour_cell"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 63 in the post-fix production top-100. EWT 22.8 min vs 4.1 min scheduled wait, CoV 5.16, LoS F, 30 observed headways (sufficiency 0.584) at 7.3 scheduled buses/hour, hour 7, GATES AV/MARCUS GARVEY BLVD. A month-typical excess wait of this magnitude at this frequency is physically implausible; the CoV shows hour-scale gaps that are missing observations (feed dropouts), not service. Suppress as feed-gap artifact."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "B8:W:306454:2026-03:Weekday:06",
+      "routeId": "B8",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "needs_more_evidence",
+      "calibrationTags": [
+        "thin_headway_samples",
+        "extreme_variability_los_f",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 64 in the post-fix production top-100. EWT 20.6 min vs 4.1 min scheduled wait, CoV 3.07, LoS F, 30 observed headways (sufficiency 0.584) at 7.3 scheduled buses/hour, hour 6, CHURCH AV/E 93 ST. Under 30 observed headways where the schedule implies far more; the EWT magnitude is plausible but coverage is too fractional to separate real unreliability from feed gaps. Needs more observed coverage before promotion.",
+      "notes": "B8 W hour-6 pair on the same corridor; one upstream pattern."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "B8:W:308314:2026-03:Weekday:06",
+      "routeId": "B8",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "needs_more_evidence",
+      "calibrationTags": [
+        "thin_headway_samples",
+        "extreme_variability_los_f",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 65 in the post-fix production top-100. EWT 18.4 min vs 4.1 min scheduled wait, CoV 2.78, LoS F, 30 observed headways (sufficiency 0.584) at 7.3 scheduled buses/hour, hour 6, LINDEN BLVD/THOMAS BOYLAND ST. Under 30 observed headways where the schedule implies far more; the EWT magnitude is plausible but coverage is too fractional to separate real unreliability from feed gaps. Needs more observed coverage before promotion.",
+      "notes": "B8 W hour-6 pair on the same corridor; one upstream pattern."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "SIM10:S:203695:2026-03:Weekday:16",
+      "routeId": "SIM10",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "route_context",
+      "calibrationTags": [
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 66 in the post-fix production top-100. EWT 13.3 min vs 6 min scheduled wait, CoV 1.91, LoS F, 38 observed headways (sufficiency 0.585) at 5 scheduled buses/hour, hour 16, HYLAN BLVD/OLD TOWN RD. Real pocket but a duplicate of the same upstream corridor pattern; canonical cell is SIM10:S:201106:2026-03:Weekday:16. Keep as route context so a rollup dedupes adjacent cells.",
+      "notes": "Duplicate-pocket: canonical SIM10:S:201106:2026-03:Weekday:16."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "Q77:N:502852:2026-03:Weekday:15",
+      "routeId": "Q77",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "feed_gap_or_coverage_artifact",
+        "extreme_variability_los_f",
+        "not_actionable_as_claim",
+        "stop_direction_hour_cell"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 67 in the post-fix production top-100. EWT 75.2 min vs 5.8 min scheduled wait, CoV 5.85, LoS F, 27 observed headways (sufficiency 0.584) at 5.2 scheduled buses/hour, hour 15, FRANCIS LEWIS BLVD/JAMAICA AV. A month-typical excess wait of this magnitude at this frequency is physically implausible; the CoV shows hour-scale gaps that are missing observations (feed dropouts), not service. Suppress as feed-gap artifact.",
+      "notes": "Q76/Q77 Hillside Av corridor hour-15 cluster: every cell claims 75-93 min of excess wait at ~5 buses/hour \u2014 a shared feed-gap artifact across the corridor, not five independent findings."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "Q24:E:503649:2026-03:Weekday:06",
+      "routeId": "Q24",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "feed_gap_or_coverage_artifact",
+        "extreme_variability_los_f",
+        "not_actionable_as_claim",
+        "stop_direction_hour_cell"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 68 in the post-fix production top-100. EWT 70.7 min vs 5.3 min scheduled wait, CoV 8.1, LoS F, 33 observed headways (sufficiency 0.582) at 5.7 scheduled buses/hour, hour 6, ATLANTIC AV/104 ST. A month-typical excess wait of this magnitude at this frequency is physically implausible; the CoV shows hour-scale gaps that are missing observations (feed dropouts), not service. Suppress as feed-gap artifact."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "BX38:W:100731:2026-03:Weekday:07",
+      "routeId": "BX38",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "needs_more_evidence",
+      "calibrationTags": [
+        "thin_headway_samples",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 69 in the post-fix production top-100. EWT 8.8 min vs 6 min scheduled wait, CoV 1.45, LoS F, 28 observed headways (sufficiency 0.581) at 5 scheduled buses/hour, hour 7, BAINBRIDGE AV/VAN CORTLANDT AV EAST. Under 30 observed headways where the schedule implies far more; the EWT magnitude is plausible but coverage is too fractional to separate real unreliability from feed gaps. Needs more observed coverage before promotion."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "Q88:E:502631:2026-03:Weekday:08",
+      "routeId": "Q88",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "needs_more_evidence",
+      "calibrationTags": [
+        "thin_headway_samples",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 70 in the post-fix production top-100. EWT 10.9 min vs 4 min scheduled wait, CoV 1.62, LoS F, 28 observed headways (sufficiency 0.581) at 7.5 scheduled buses/hour, hour 8, 73 AV/210 ST. Under 30 observed headways where the schedule implies far more; the EWT magnitude is plausible but coverage is too fractional to separate real unreliability from feed gaps. Needs more observed coverage before promotion.",
+      "notes": "Q88 E hour-8 73 Av corridor thin cluster; canonical well-sampled hour-8 cell is Q88:E:501635:2026-03:Weekday:08 (rank 18)."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "Q31:S:502145:2026-03:Weekday:16",
+      "routeId": "Q31",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "primary_finding",
+      "calibrationTags": [
+        "true_excess_wait_shortfall",
+        "high_headway_samples",
+        "frequent_service_supported",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 71 in the post-fix production top-100. EWT 12.3 min vs 6 min scheduled wait, CoV 1.52, LoS F, 58 observed headways (sufficiency 0.58) at 5 scheduled buses/hour, hour 16, JAMAICA AV/150 ST. Well-observed (>=30 headways) with coverage consistent with the schedule and a gap-implausible magnitude; the wait story is publishable at stop-hour grain with the single-cell caveat \u2014 do not generalize to the route."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "SIM22:N:200384:2026-03:Weekday:06",
+      "routeId": "SIM22",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "primary_finding",
+      "calibrationTags": [
+        "true_excess_wait_shortfall",
+        "high_headway_samples",
+        "frequent_service_supported",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 72 in the post-fix production top-100. EWT 11.5 min vs 6 min scheduled wait, CoV 1.7, LoS F, 52 observed headways (sufficiency 0.578) at 5 scheduled buses/hour, hour 6, RICHMOND AV/BARLOW AV. Well-observed (>=30 headways) with coverage consistent with the schedule and a gap-implausible magnitude; the wait story is publishable at stop-hour grain with the single-cell caveat \u2014 do not generalize to the route."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "SIM22:N:805165:2026-03:Weekday:06",
+      "routeId": "SIM22",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "route_context",
+      "calibrationTags": [
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 73 in the post-fix production top-100. EWT 11.6 min vs 6 min scheduled wait, CoV 1.72, LoS F, 52 observed headways (sufficiency 0.578) at 5 scheduled buses/hour, hour 6, ELTINGVILLE/TRANSIT CENTER. Real pocket but a duplicate of the same upstream corridor pattern; canonical cell is SIM22:N:200384:2026-03:Weekday:06. Keep as route context so a rollup dedupes adjacent cells.",
+      "notes": "Duplicate-pocket: canonical SIM22:N:200384:2026-03:Weekday:06."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "BX8:S:100541:2026-03:Weekday:08",
+      "routeId": "BX8",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "primary_finding",
+      "calibrationTags": [
+        "true_excess_wait_shortfall",
+        "high_headway_samples",
+        "extreme_variability_los_f",
+        "frequent_service_supported",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 74 in the post-fix production top-100. EWT 14.7 min vs 5.8 min scheduled wait, CoV 2.26, LoS F, 33 observed headways (sufficiency 0.577) at 5.2 scheduled buses/hour, hour 8, WILLIAMSBRIDGE RD/MORRIS PARK AV. Well-observed (>=30 headways) with coverage consistent with the schedule and a gap-implausible magnitude; the wait story is publishable at stop-hour grain with the single-cell caveat \u2014 do not generalize to the route."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "QM7:W:502410:2026-03:Weekday:07",
+      "routeId": "QM7",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "primary_finding",
+      "calibrationTags": [
+        "true_excess_wait_shortfall",
+        "high_headway_samples",
+        "extreme_variability_los_f",
+        "frequent_service_supported",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 75 in the post-fix production top-100. EWT 19.6 min vs 5 min scheduled wait, CoV 2.52, LoS F, 45 observed headways (sufficiency 0.577) at 6 scheduled buses/hour, hour 7, UNION TURPIKE/PARSONS BLVD. Well-observed (>=30 headways) with coverage consistent with the schedule and a gap-implausible magnitude; the wait story is publishable at stop-hour grain with the single-cell caveat \u2014 do not generalize to the route."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "SIM4:S:404238:2026-03:Weekday:16",
+      "routeId": "SIM4",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "primary_finding",
+      "calibrationTags": [
+        "true_excess_wait_shortfall",
+        "high_headway_samples",
+        "frequent_service_supported",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 76 in the post-fix production top-100. EWT 7.5 min vs 5 min scheduled wait, CoV 1.22, LoS F, 45 observed headways (sufficiency 0.577) at 6 scheduled buses/hour, hour 16, BROADWAY/BARCLAY ST. Well-observed (>=30 headways) with coverage consistent with the schedule and a gap-implausible magnitude; the wait story is publishable at stop-hour grain with the single-cell caveat \u2014 do not generalize to the route."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "M98:S:400640:2026-03:Weekday:06",
+      "routeId": "M98",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "route_context",
+      "calibrationTags": [
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 77 in the post-fix production top-100. EWT 6.4 min vs 6 min scheduled wait, CoV 0.93, LoS F, 49 observed headways (sufficiency 0.577) at 5 scheduled buses/hour, hour 6, FORT WASHINGTON AV/W 190 ST. Real pocket but a duplicate of the same upstream corridor pattern; canonical cell is M98:S:400799:2026-03:Weekday:06. Keep as route context so a rollup dedupes adjacent cells.",
+      "notes": "Duplicate-pocket: canonical M98:S:400799:2026-03:Weekday:06."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "QM11:W:552966:2026-03:Weekday:07",
+      "routeId": "QM11",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "primary_finding",
+      "calibrationTags": [
+        "true_excess_wait_shortfall",
+        "high_headway_samples",
+        "frequent_service_supported",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 78 in the post-fix production top-100. EWT 6.3 min vs 6 min scheduled wait, CoV 0.94, LoS F, 46 observed headways (sufficiency 0.575) at 5 scheduled buses/hour, hour 7, 63 RD/QUEENS BLVD. Well-observed (>=30 headways) with coverage consistent with the schedule and a gap-implausible magnitude; the wait story is publishable at stop-hour grain with the single-cell caveat \u2014 do not generalize to the route."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "SIM30:N:201552:2026-03:Weekday:06",
+      "routeId": "SIM30",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "route_context",
+      "calibrationTags": [
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable",
+        "near_threshold"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 79 in the post-fix production top-100. EWT 5.9 min vs 6 min scheduled wait, CoV 0.94, LoS F, 32 observed headways (sufficiency 0.582) at 5 scheduled buses/hour, hour 6, FOREST AV/BROADWAY. Well-observed but the excess wait (5.9 min, CoV 0.94) barely clears the claim bar; route-context only."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "SIM9:N:200132:2026-03:Weekday:07",
+      "routeId": "SIM9",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "route_context",
+      "calibrationTags": [
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 80 in the post-fix production top-100. EWT 15.0 min vs 6 min scheduled wait, CoV 2.06, LoS F, 46 observed headways (sufficiency 0.575) at 5 scheduled buses/hour, hour 7, LILY POND AV/McCLEAN AV. Real pocket but a duplicate of the same upstream corridor pattern; canonical cell is SIM9:N:203104:2026-03:Weekday:07. Keep as route context so a rollup dedupes adjacent cells.",
+      "notes": "Duplicate-pocket: canonical SIM9:N:203104:2026-03:Weekday:07."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "M11:N:401411:2026-03:Weekday:07",
+      "routeId": "M11",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "primary_finding",
+      "calibrationTags": [
+        "true_excess_wait_shortfall",
+        "high_headway_samples",
+        "frequent_service_supported",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 81 in the post-fix production top-100. EWT 9.9 min vs 5.6 min scheduled wait, CoV 1.35, LoS F, 31 observed headways (sufficiency 0.574) at 5.4 scheduled buses/hour, hour 7, 10 AV/W 53 ST. Well-observed (>=30 headways) with coverage consistent with the schedule and a gap-implausible magnitude; the wait story is publishable at stop-hour grain with the single-cell caveat \u2014 do not generalize to the route."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "QM11:W:553210:2026-03:Weekday:07",
+      "routeId": "QM11",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "route_context",
+      "calibrationTags": [
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 82 in the post-fix production top-100. EWT 6.1 min vs 6 min scheduled wait, CoV 0.94, LoS F, 43 observed headways (sufficiency 0.573) at 5 scheduled buses/hour, hour 7, 108 ST/63 RD. Real pocket but a duplicate of the same upstream corridor pattern; canonical cell is QM11:W:552966:2026-03:Weekday:07. Keep as route context so a rollup dedupes adjacent cells.",
+      "notes": "Duplicate-pocket: canonical QM11:W:552966:2026-03:Weekday:07."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "M3:S:400475:2026-03:Weekday:09",
+      "routeId": "M3",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "primary_finding",
+      "calibrationTags": [
+        "true_excess_wait_shortfall",
+        "high_headway_samples",
+        "extreme_variability_los_f",
+        "frequent_service_supported",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 83 in the post-fix production top-100. EWT 20.6 min vs 5.4 min scheduled wait, CoV 2.57, LoS F, 32 observed headways (sufficiency 0.571) at 5.6 scheduled buses/hour, hour 9, SAINT NICHOLAS AV/W 130 ST. Well-observed (>=30 headways) with coverage consistent with the schedule and a gap-implausible magnitude; the wait story is publishable at stop-hour grain with the single-cell caveat \u2014 do not generalize to the route."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "Q88:E:501628:2026-03:Weekday:08",
+      "routeId": "Q88",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "route_context",
+      "calibrationTags": [
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 84 in the post-fix production top-100. EWT 22.6 min vs 4 min scheduled wait, CoV 2.66, LoS F, 30 observed headways (sufficiency 0.571) at 7.5 scheduled buses/hour, hour 8, SPRINGFIELD BLVD/75 AV. Real pocket but a duplicate of the same upstream corridor pattern; canonical cell is Q88:E:501635:2026-03:Weekday:08. Keep as route context so a rollup dedupes adjacent cells.",
+      "notes": "Duplicate-pocket: canonical Q88:E:501635:2026-03:Weekday:08."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "Q88:E:501632:2026-03:Weekday:08",
+      "routeId": "Q88",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "route_context",
+      "calibrationTags": [
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 85 in the post-fix production top-100. EWT 20.9 min vs 4 min scheduled wait, CoV 2.57, LoS F, 30 observed headways (sufficiency 0.571) at 7.5 scheduled buses/hour, hour 8, SPRINGFIELD BLVD/UNION TPKE. Real pocket but a duplicate of the same upstream corridor pattern; canonical cell is Q88:E:501635:2026-03:Weekday:08. Keep as route context so a rollup dedupes adjacent cells.",
+      "notes": "Duplicate-pocket: canonical Q88:E:501635:2026-03:Weekday:08."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "B20:S:301155:2026-03:Weekday:06",
+      "routeId": "B20",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "needs_more_evidence",
+      "calibrationTags": [
+        "thin_headway_samples",
+        "extreme_variability_los_f",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 86 in the post-fix production top-100. EWT 12.5 min vs 5.6 min scheduled wait, CoV 2.1, LoS F, 27 observed headways (sufficiency 0.57) at 5.3 scheduled buses/hour, hour 6, LINDEN BLVD/EUCLID AV. Under 30 observed headways where the schedule implies far more; the EWT magnitude is plausible but coverage is too fractional to separate real unreliability from feed gaps. Needs more observed coverage before promotion."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "Q24:E:302019:2026-03:Weekday:05",
+      "routeId": "Q24",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "feed_gap_or_coverage_artifact",
+        "extreme_variability_los_f",
+        "not_actionable_as_claim",
+        "stop_direction_hour_cell"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 87 in the post-fix production top-100. EWT 92.0 min vs 5.6 min scheduled wait, CoV 11.8, LoS F, 27 observed headways (sufficiency 0.57) at 5.3 scheduled buses/hour, hour 5, BROADWAY/ROCKAWAY AV. A month-typical excess wait of this magnitude at this frequency is physically implausible; the CoV shows hour-scale gaps that are missing observations (feed dropouts), not service. Suppress as feed-gap artifact."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "SIM10:S:201113:2026-03:Weekday:16",
+      "routeId": "SIM10",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "route_context",
+      "calibrationTags": [
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 88 in the post-fix production top-100. EWT 13.6 min vs 6 min scheduled wait, CoV 1.94, LoS F, 37 observed headways (sufficiency 0.569) at 5 scheduled buses/hour, hour 16, HYLAN BLVD/JEFFERSON AV. Real pocket but a duplicate of the same upstream corridor pattern; canonical cell is SIM10:S:201106:2026-03:Weekday:16. Keep as route context so a rollup dedupes adjacent cells.",
+      "notes": "Duplicate-pocket: canonical SIM10:S:201106:2026-03:Weekday:16."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "Q48:E:502321:2026-03:Weekday:16",
+      "routeId": "Q48",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "feed_gap_or_coverage_artifact",
+        "extreme_variability_los_f",
+        "not_actionable_as_claim",
+        "stop_direction_hour_cell"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 89 in the post-fix production top-100. EWT 54.7 min vs 6 min scheduled wait, CoV 5.7, LoS F, 34 observed headways (sufficiency 0.567) at 5 scheduled buses/hour, hour 16, UNION TPKE/198 ST. A month-typical excess wait of this magnitude at this frequency is physically implausible; the CoV shows hour-scale gaps that are missing observations (feed dropouts), not service. Suppress as feed-gap artifact."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "SIM3:S:203165:2026-03:Weekday:18",
+      "routeId": "SIM3",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "primary_finding",
+      "calibrationTags": [
+        "true_excess_wait_shortfall",
+        "high_headway_samples",
+        "frequent_service_supported",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 90 in the post-fix production top-100. EWT 13.1 min vs 6 min scheduled wait, CoV 1.89, LoS F, 34 observed headways (sufficiency 0.567) at 5 scheduled buses/hour, hour 18, WATCHOGUE RD/SMITH CT. Well-observed (>=30 headways) with coverage consistent with the schedule and a gap-implausible magnitude; the wait story is publishable at stop-hour grain with the single-cell caveat \u2014 do not generalize to the route."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "SIM8:N:403239:2026-03:Weekday:06",
+      "routeId": "SIM8",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "primary_finding",
+      "calibrationTags": [
+        "true_excess_wait_shortfall",
+        "high_headway_samples",
+        "frequent_service_supported",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 91 in the post-fix production top-100. EWT 10.4 min vs 6 min scheduled wait, CoV 1.62, LoS F, 34 observed headways (sufficiency 0.567) at 5 scheduled buses/hour, hour 6, W 42 ST/8 AV. Well-observed (>=30 headways) with coverage consistent with the schedule and a gap-implausible magnitude; the wait story is publishable at stop-hour grain with the single-cell caveat \u2014 do not generalize to the route."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "SIM22:N:202855:2026-03:Weekday:06",
+      "routeId": "SIM22",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "route_context",
+      "calibrationTags": [
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 92 in the post-fix production top-100. EWT 12.0 min vs 6 min scheduled wait, CoV 1.77, LoS F, 48 observed headways (sufficiency 0.565) at 5 scheduled buses/hour, hour 6, RICHMOND AV/KOCH BLVD. Real pocket but a duplicate of the same upstream corridor pattern; canonical cell is SIM22:N:200384:2026-03:Weekday:06. Keep as route context so a rollup dedupes adjacent cells.",
+      "notes": "Duplicate-pocket: canonical SIM22:N:200384:2026-03:Weekday:06."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "M11:N:401400:2026-03:Weekday:08",
+      "routeId": "M11",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "primary_finding",
+      "calibrationTags": [
+        "true_excess_wait_shortfall",
+        "high_headway_samples",
+        "extreme_variability_los_f",
+        "frequent_service_supported",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 93 in the post-fix production top-100. EWT 20.8 min vs 5.8 min scheduled wait, CoV 2.64, LoS F, 44 observed headways (sufficiency 0.564) at 5.2 scheduled buses/hour, hour 8, 10 AV/W 25 ST. Well-observed (>=30 headways) with coverage consistent with the schedule and a gap-implausible magnitude; the wait story is publishable at stop-hour grain with the single-cell caveat \u2014 do not generalize to the route."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "M11:N:401446:2026-03:Weekday:09",
+      "routeId": "M11",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "route_context",
+      "calibrationTags": [
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 94 in the post-fix production top-100. EWT 23.6 min vs 5.8 min scheduled wait, CoV 2.88, LoS F, 44 observed headways (sufficiency 0.564) at 5.2 scheduled buses/hour, hour 9, AMSTERDAM AV/W 129 ST. Real pocket but a duplicate of the same upstream corridor pattern; canonical cell is M11:N:403757:2026-03:Weekday:09. Keep as route context so a rollup dedupes adjacent cells.",
+      "notes": "Duplicate-pocket: canonical M11:N:403757:2026-03:Weekday:09."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "Q48:E:502313:2026-03:Weekday:16",
+      "routeId": "Q48",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "feed_gap_or_coverage_artifact",
+        "extreme_variability_los_f",
+        "not_actionable_as_claim",
+        "stop_direction_hour_cell"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 95 in the post-fix production top-100. EWT 69.2 min vs 6 min scheduled wait, CoV 6.44, LoS F, 31 observed headways (sufficiency 0.564) at 5 scheduled buses/hour, hour 16, UNION TURNPIKE/UTOPIA PKWY. A month-typical excess wait of this magnitude at this frequency is physically implausible; the CoV shows hour-scale gaps that are missing observations (feed dropouts), not service. Suppress as feed-gap artifact."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "QM20:E:552667:2026-03:Weekday:19",
+      "routeId": "QM20",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "primary_finding",
+      "calibrationTags": [
+        "true_excess_wait_shortfall",
+        "high_headway_samples",
+        "frequent_service_supported",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 96 in the post-fix production top-100. EWT 11.4 min vs 6 min scheduled wait, CoV 1.14, LoS F, 31 observed headways (sufficiency 0.564) at 5 scheduled buses/hour, hour 19, 26 AV/203 ST. Well-observed (>=30 headways) with coverage consistent with the schedule and a gap-implausible magnitude; the wait story is publishable at stop-hour grain with the single-cell caveat \u2014 do not generalize to the route."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "SIM2:N:202239:2026-03:Weekday:06",
+      "routeId": "SIM2",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "primary_finding",
+      "calibrationTags": [
+        "true_excess_wait_shortfall",
+        "high_headway_samples",
+        "frequent_service_supported",
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Rank 97 in the post-fix production top-100. EWT 11.0 min vs 6 min scheduled wait, CoV 1.17, LoS F, 31 observed headways (sufficiency 0.564) at 5 scheduled buses/hour, hour 6, ARTHUR KILL RD/ARDEN AV. Well-observed (>=30 headways) with coverage consistent with the schedule and a gap-implausible magnitude; the wait story is publishable at stop-hour grain with the single-cell caveat \u2014 do not generalize to the route."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "SIM2:N:202886:2026-03:Weekday:06",
+      "routeId": "SIM2",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "route_context",
+      "calibrationTags": [
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 98 in the post-fix production top-100. EWT 10.8 min vs 6 min scheduled wait, CoV 1.18, LoS F, 31 observed headways (sufficiency 0.564) at 5 scheduled buses/hour, hour 6, ARDEN AV/HAMPTON GREEN. Real pocket but a duplicate of the same upstream corridor pattern; canonical cell is SIM2:N:202239:2026-03:Weekday:06. Keep as route context so a rollup dedupes adjacent cells.",
+      "notes": "Duplicate-pocket: canonical SIM2:N:202239:2026-03:Weekday:06."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "SIM2:N:203592:2026-03:Weekday:06",
+      "routeId": "SIM2",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "route_context",
+      "calibrationTags": [
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 99 in the post-fix production top-100. EWT 11.0 min vs 6 min scheduled wait, CoV 1.18, LoS F, 31 observed headways (sufficiency 0.564) at 5 scheduled buses/hour, hour 6, VETERANS RD EAST/ARTHUR KILL RD. Real pocket but a duplicate of the same upstream corridor pattern; canonical cell is SIM2:N:202239:2026-03:Weekday:06. Keep as route context so a rollup dedupes adjacent cells.",
+      "notes": "Duplicate-pocket: canonical SIM2:N:202239:2026-03:Weekday:06."
+    },
+    {
+      "detectorId": "headway_reliability_ewt",
+      "scopeId": "B20:S:302039:2026-03:Weekday:06",
+      "routeId": "B20",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "route_context",
+      "calibrationTags": [
+        "stop_direction_hour_cell",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewBatch": "2026-06-11-postfix-top100-100",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Rank 100 in the post-fix production top-100. EWT 13.5 min vs 5.6 min scheduled wait, CoV 2.4, LoS F, 30 observed headways (sufficiency 0.562) at 5.3 scheduled buses/hour, hour 6, PENNSYLVANIA AV/LINDEN BLVD. Real pocket but a duplicate of the same upstream corridor pattern; canonical cell is B20:S:300584:2026-03:Weekday:06. Keep as route context so a rollup dedupes adjacent cells.",
+      "notes": "Duplicate-pocket: canonical B20:S:300584:2026-03:Weekday:06."
+    }
+  ]
+}

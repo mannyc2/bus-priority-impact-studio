@@ -230,3 +230,49 @@ out of reach of a sufficiency ranking — those cells are well-observed measurem
 platoon — and stays assigned to the stop-pocket dedupe readiness gate (and school-overlay baseline
 check) already recommended above. Primary survival stays 1/1; `evaluation-rankfix.json` records
 suppress leakage 5/46 (was 14/46).
+
+## Batch 2: post-fix top-100 review (2026-06-11)
+
+Re-ran with full rows (`no-write-run-batch2.json`; the 768 MB rows file was used for extraction and
+deleted), derived the production top-100 by the production ranking (detectorScore desc, featureKey
+asc, slice 100 — verified against `packages/analytics/src/findings/bunching-hotspots.ts`), and
+labeled every top-100 cell not already in batch-1 gold: **87 new labels**, all adversarial depth,
+batch `2026-06-11-postfix-top100-87` in `reviewed-decisions-batch2.json`. 13 of the top-100 were
+already labeled in batch 1 (including the rank-1 primary and the 5 known leaks).
+
+Batch-2 label distribution (87 new cells): 1 `primary_finding` (Q31:S:501518 hr15, 94 pairs,
+coverage 0.97, obs ≈ schedule-implied — canonical of the Q31 southbound school-dismissal corridor),
+2 `needs_more_evidence` (S56:N:202888 hr14 canonical at 46 pairs; S78:E:200285 Bay St hr15 at
+coverage 0.71), 6 `reviewer_only` (pocket canonicals: S59 Hylan/Luten, Q31 hr14, S56 hr15, S55/S56
+AM school run, S96:W hr19 gap class, QM35:W 3 Av gap corridor), 39 `route_context` (well-observed
+duplicate-pocket members), 39 `suppress`.
+
+Structural readout — **78 of the production top-100 are non-canonical members of one of 14
+stop/corridor pockets** (S54 Manor Rd 24 dups, Q31:S hr15 14 + hr14 5, S56:N hr14 13, S78:E Hylan
+hr14 7, plus smaller school/express pockets). That is the size of the stop-pocket dedupe-gate
+slice: a canonical-cell gate would collapse the top-100 to ~22 independent identities. Second
+recurring failure: **observed-vs-schedule-implied baseline mismatch** (obs ≥ 1.4× expected:
+QM36:W:450001 r20, S79+:E:805168 r37, S54:N:201687-hr14 r61, S86:S:202502 r64, QM8:W:403639 r72) —
+school overlays and express short-turns break the scheduled-headway denominator, same mode as the
+batch-1 Q11 pocket. Gap-class cells were checked against arrival coverage per the batch-1 rule;
+only one classic feed-gap artifact remains in the top-100 (B37 r93, batch 1).
+
+Combined gold (`reviewed-gold-combined.json`, batch 1 unchanged + batch 2; evaluation against the
+production top-100 in `evaluation-combined.json`, readiness in
+`readiness-projection-combined.json`, asOfMonth 2026-06):
+
+| Metric | Value |
+| --- | ---: |
+| Gold labels | 141 (54 + 87) |
+| Primary survival | **2/2** (S54:N:201690 r1, Q31:S:501518 r29) |
+| Suppress leakage in top-100 | **44/85** — every top-100 cell is now reviewed (unreviewed emitted: 0) |
+| Leakage characterization | 35 duplicate-pocket (dedupe gate), 5 baseline-mismatch (overlay/baseline check), 4 coverage/thin artifacts (1 batch-1 B37 + B16:N:301616 at coverage 0.52, S59:N:200407, S55:N:202335) |
+| Top-100 label mix | 2 primary, 42 route_context, 9 reviewer_only, 3 needs_more_evidence, 44 suppress |
+| Readiness buckets | 2 `public_finding_candidate`, 42 `route_context`, 12 `review_queue`, 85 `suppressed`; coverage skipped 646,333 |
+
+Of the 5 pre-batch-2 known leaks: 4 are dedupe-gate leaks (Q11 ×2, S46:W:203087, S54:N:201687
+hr15) and 1 is the B37 coverage artifact — confirmed by the batch-2 characterization above. The
+post-fix top-100 is no longer artifact-dominated (the rank fix did its job: bunching-class,
+well-observed cells), but it is **duplicate-dominated**: the binding readiness gates are now stop-
+pocket dedupe and overlay-aware baselines, exactly as recommended. No thresholds, caps, or
+production code were changed in this batch; labels were assigned on merit.

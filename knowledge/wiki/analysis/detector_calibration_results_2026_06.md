@@ -4,7 +4,8 @@ Status: synthesis of the 2026-06-11 full calibration sweep. This is the "what di
 get us" record — the publishable core, the rejected analyses and why, and the guarantees that make
 both trustworthy. Per-detector detail lives in each
 `data/artifacts/detector-calibration-<name>/NOTE.md`; the queryable record is
-`data/artifacts/detector-calibration-register.json` (860 reviewed labels across 18 detectors).
+`data/artifacts/detector-calibration-register.json` (1,047 reviewed labels across 18 detectors
+after batch 2).
 Read with `detector_catalog.md` (the map) and ADR-0018 (the loop every result below went through).
 
 ## Headline
@@ -35,11 +36,15 @@ Label-backed `public_finding_candidate` buckets, March 2026:
 | `delay_concentration` | 4 | B6, Q17, Q27, B17: 6 segments carry 73–88% of avoidable delay | 4/4, 0/16 |
 | `intervention_underperformance` | 4 | M57, M42, M34+, M104: dated treatments, still underperforming peers (associational wording) | 4/4, 0/16 |
 | `degradation_trend` | 1 | Q103: the only genuine multi-year gradual decline | 1/1, 0/16 |
-| `bunching_hotspots` | 1 | S54 northbound stop pocket (51 pairs, bunching 0.647) — now rank 1 after the sufficiency fix | 1/1 |
-| `headway_reliability_ewt` | 3 | Q13/QM11/SIM1 well-sampled excess-wait pockets (outside production top-100; see residuals) | 3 labeled, 0/23 leakage post-fix |
+| `bunching_hotspots` | 2 | S54 N Manor Rd (rank 1) + Q31 S school-dismissal corridor (94 pairs, 0.97 coverage) | 2/2 (batch 2) |
+| `headway_reliability_ewt` | 40 | Well-observed stop-hour excess-wait pockets — the post-fix top-100 fully labeled (37 new primaries + the 3 batch-1 pockets) | 37/40 in top-100; see residuals |
+| `multi_month_speed_peer` | 2 | M57 (−1.43 mph vs 33 Manhattan locals, 36/36 months) and BX2 (−1.49 vs 43 BX locals) | 2/2, 0/16 (batch 2) |
 
-Context tier (`route_context`, soft placement only): 17 entries from the permit/311 context family
-plus intervention_gap's 5 thin-inventory routes and the peer detector's 6 (below).
+Context tier (`route_context`, soft placement only): 17 entries from the permit/311 context family,
+intervention_gap's 5 thin-inventory routes, the peer detector's 6 (M31/M42 near-threshold locals +
+the SBS pair, whose 2.8–3.0 mph deficits are real but measured against a citywide class-only pool),
+and 73 stop-hour route_context cells (mostly well-observed same-platoon duplicates naming their
+canonical cell).
 
 **The product story these support:** route pages with reviewed insights ("is my route one of the
 bad ones"), a "where the delay actually sits" segment story (delay concentration + speed-pace),
@@ -105,12 +110,28 @@ findings; `observed_reliability`'s production cap hides 120 qualifiers with a Qu
   candidate-bearing family carries primary + counter-evidence on 100% of candidates (source_gap's
   0 is its data-quality waiver).
 
+## Batch 2 (2026-06-11, same day): post-fix review results
+
+The named top-priority review batch ran the same day. Register total is now **1,047 labels**.
+
+- **Headway**: all 100 post-fix top-100 cells labeled — 37 new primaries, 34 route_context.
+  Honest residuals: the 3 batch-1 primaries sit at ranks ~200–250 among qualitatively identical
+  cells (rank ≤100 is a capacity choice, not a quality bar — documented), and 12 hour-scale
+  feed-gap artifacts leak because EWT severity saturates on huge gaps → named fix: CoV/max-gap
+  sanity gate.
+- **Bunching**: 87 new labels; primaries 2/2 (S54 rank 1, Q31 S rank 29). The top-100 is no longer
+  artifact-dominated but **duplicate-dominated**: 78/100 cells are non-canonical members of 14
+  stop pockets — a canonical-cell dedupe gate would collapse it to ~22 independent identities.
+- **Peer re-review**: against honest same-class peers the four locals' deficits shrank to
+  1.0–1.5 mph; M57 and BX2 upgraded to primary (stable 36/36 months), M31/M42 kept at context
+  (near-threshold, unstable), the SBS pair upgraded needs_more_evidence → route_context.
+
 ## Named next steps (in value order)
 
-1. Review batch over the new post-fix stop-hour top-100s (unlocks the excess-wait story) and the
-   six peer-fix routes (unlocks rankings).
-2. Stop-pocket dedupe gate for cross-route/adjacent-cell duplicates (bunching's remaining 5 leaks,
-   headway rollups, event-study panel duplication).
+1. Stop-pocket canonical-cell dedupe gate (collapses bunching's duplicate-dominated top-100 to
+   ~22 identities; also covers headway rollups and event-study panel duplication). Precisely
+   sized by batch 2.
+2. Headway CoV/max-gap sanity gate for hour-scale feed-gap EWT artifacts (12 labeled examples).
 3. Trip-level runtime feature (unblocks travel_time_variability); schedule provenance + observed
    runtime aggregation audit (unblocks schedule_mismatch).
 4. Route-version provenance in the history grain (turns degradation_trend's step breaks into

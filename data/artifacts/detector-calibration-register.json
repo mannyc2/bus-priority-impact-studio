@@ -1,7 +1,7 @@
 {
   "artifactKind": "detector_calibration_register",
   "schemaVersion": 1,
-  "generatedAt": "2026-06-11T18:00:00.000Z",
+  "generatedAt": "2026-06-11T21:00:00.000Z",
   "summary": {
     "detectorCount": 21,
     "byDisposition": {
@@ -19,7 +19,7 @@
       "experimental": 2
     },
     "machineryCount": 18,
-    "totalReviewedLabelCount": 860,
+    "totalReviewedLabelCount": 1047,
     "falsePositiveRootCauseTagCounts": {
       "adversarial_reviewed": 1,
       "all_day_flat_speed": 1,
@@ -141,7 +141,7 @@
       "calibrationDir": "data/artifacts/detector-calibration-bunching-hotspots",
       "notePath": "data/artifacts/detector-calibration-bunching-hotspots/NOTE.md",
       "reviewedGoldModule": "packages/applied-research/src/evaluation/bunching-hotspots-reviewed-gold.ts",
-      "reviewedLabelCount": 54,
+      "reviewedLabelCount": 141,
       "falsePositiveRootCauseTags": [
         "extreme_share",
         "feed_gap_or_coverage_artifact",
@@ -150,7 +150,7 @@
         "stop_direction_hour_cell",
         "thin_pair_support"
       ],
-      "decisionRef": "data/artifacts/detector-calibration-bunching-hotspots/reviewed-gold.json"
+      "decisionRef": "data/artifacts/detector-calibration-bunching-hotspots/reviewed-gold-combined.json"
     },
     {
       "detectorId": "customer_journey_shortfall",
@@ -215,7 +215,7 @@
       "calibrationDir": "data/artifacts/detector-calibration-headway-reliability-ewt",
       "notePath": "data/artifacts/detector-calibration-headway-reliability-ewt/NOTE.md",
       "reviewedGoldModule": "packages/applied-research/src/evaluation/headway-reliability-ewt-reviewed-gold.ts",
-      "reviewedLabelCount": 42,
+      "reviewedLabelCount": 142,
       "falsePositiveRootCauseTags": [
         "borderline_frequency",
         "extreme_variability_los_f",
@@ -225,7 +225,7 @@
         "terminal_or_layover_artifact",
         "thin_headway_samples"
       ],
-      "decisionRef": "data/artifacts/detector-calibration-headway-reliability-ewt/reviewed-gold.json"
+      "decisionRef": "data/artifacts/detector-calibration-headway-reliability-ewt/reviewed-gold-combined.json"
     },
     {
       "detectorId": "intervention_event_study",
@@ -295,7 +295,7 @@
         "not_actionable_as_claim",
         "thin_observed_months"
       ],
-      "decisionRef": "data/artifacts/detector-calibration-multi-month-speed-peer/reviewed-gold.json"
+      "decisionRef": "data/artifacts/detector-calibration-multi-month-speed-peer/reviewed-gold-combined.json"
     },
     {
       "detectorId": "observed_reliability",

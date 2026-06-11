@@ -176,3 +176,48 @@ borough-class peers; M34+, M34A+ needs_more_evidence now ranked against an SBS-o
 candidates for label **upgrade** in a future review batch — the fallback-peer-group blocker that
 capped them is resolved. Labels in `reviewed-gold.json` were not changed here; a new review batch
 must make that call. M50/M8 no longer emit and need no relabel to stay honest.
+
+## Batch 2: peer-fix re-review (2026-06-11)
+
+Re-reviewed (adversarial) the six routes that survive the class-based peer fix against the new
+evidence in `run-rows-peerfix.json`; batch id `2026-06-11-peerfix-rereview-6`, decisions in
+`reviewed-decisions-batch2.json`. The gold builder does not dedupe identity keys, so the combined
+gold was constructed by replacing the six batch-1 decisions with their batch-2 counterparts and
+keeping every other batch-1 decision (16 suppress controls untouched; M50/M8 keep their batch-1
+`route_context` labels and no longer emit, which the eval reports as expected non-emission, not
+leakage). Built via a temp `bun --conditions=source` script inside `packages/applied-research`
+(deleted after): `reviewed-gold-combined.json`, `evaluation-combined.json`,
+`readiness-projection-combined.json` (asOfMonth `2026-06`, evaluated against the peerfix candidate
+set).
+
+| Route | Batch 1 -> Batch 2 | Avg deficit (per-month range) | Months >= 1 mph | Peer method / size / median |
+| --- | --- | --- | ---: | --- |
+| M57 | route_context -> **primary_finding** | 1.43 mph (1.20-1.65) | 36/36 | route_family_type / 32-33 M locals / 6.66 |
+| BX2 | route_context -> **primary_finding** | 1.49 mph (1.33-1.64) | 36/36 | route_family_type / 42-43 BX locals / 7.46 |
+| M31 | route_context -> route_context | 1.03 mph (0.91-1.23) | 17/36 | route_family_type / 32-33 M locals / 6.66 |
+| M42 | route_context -> route_context | 1.06 mph (0.63-1.35) | 23/36 | route_family_type / 32-33 M locals / 6.66 |
+| M34+ | needs_more_evidence -> **route_context** | 3.02 mph (2.37-3.67) | 36/36 | route_type / 19 SBS / 8.77 |
+| M34A+ | needs_more_evidence -> **route_context** | 2.83 mph (2.21-3.29) | 36/36 | route_type / 19 SBS / 8.77 |
+
+Reasoning highlights: against the honest borough-class medians the local deficits shrink from the
+inflated 2.85-3.60 mph system-pool numbers to 1.0-1.5 mph. M57 and BX2 stay above the 1 mph floor
+in all 36 months (~20-21% below the matched median) with strong `route_family_type` groups and
+method-naming claim text — promotable. M31/M42 clear the floor in only 17/23 of 36 months
+(near-threshold, minimum deficits 0.91/0.63 mph) and stay context on magnitude/stability, not
+methodology. M34+/M34A+ upgrade from needs_more_evidence to route_context: the SBS-vs-SBS
+comparison is now honest, large, and stable, but the 19-route `route_type` pool is class-only and
+citywide (mixed boroughs/corridor geometries; "slowest SBS" partly measures crosstown geometry) and
+detector confidence is low, so they stop short of a primary ranking.
+
+### Combined evaluation (`evaluation-combined.json`, vs peerfix run)
+
+| Metric | Value |
+| --- | ---: |
+| Label count | 24 (2 primary, 6 route_context, 0 needs_more_evidence, 16 suppress) |
+| Reviewed-primary survival | **2/2** (M57, BX2) |
+| Suppress leakage | **0/16** (M50/M8 were never suppress-labeled; no suppress scope emits) |
+| Context/reviewer expected vs still emitted | 6/4 (M50, M8 honestly dropped by the peer fix) |
+| Unreviewed emitted candidates | 0 |
+| Readiness buckets | 2 `public_finding_candidate`, 6 `route_context`, 0 `review_queue`, 16 `suppressed` |
+
+No detector thresholds, caps, register entries, or production code were changed in this batch.

@@ -220,3 +220,46 @@ LoS-F severity) — by the gold criteria above (≥30 headways, gap-implausible 
 exactly the population the ranking should prefer, and the three primaries (sufficiency ~0.52) sit
 just below the new cutoff (0.5636). Pushing them inside would require overfitting the sufficiency
 curve to three labels; instead the new top-100 needs its own review pass before any promotion call.
+
+## Batch 2: post-fix top-100 review (2026-06-11)
+
+Batch `2026-06-11-postfix-top100-100` (`reviewed-decisions-batch2.json`). Re-run with full rows
+(`no-write-run-batch2.json`; `run-rows-batch2.json` was ~777MB, deleted after extraction). The
+production top-100 was derived by the detector's exact sort (score desc, featureKey asc) over the
+high-limit candidates; with the deterministic tie-break this equals the production cap. All 100
+top-100 cells were unreviewed by batch 1 — every one was labeled at adversarial depth using the
+batch-1 evidence standard (≥30 observed headways + schedule-consistent coverage + gap-implausible
+magnitude → publishable stop-hour pocket; hour-scale EWT with CoV ≥5 → feed-gap suppress;
+adjacent-stop/corridor duplicates keep one canonical cell).
+
+| Batch-2 label | Count | Notes |
+| --- | ---: | --- |
+| `primary_finding` | 37 | well-observed (30–67 headways) pockets with plausible 6–26 min EWT |
+| `route_context` | 34 | 33 duplicate-pocket cells naming a canonical (Q88 hr7 ×7, B16 hr7 ×7, SIM10 hr16 ×3, S91 ×2, SIM22 ×2, SIM2 ×2, Q88 hr8 ×2, Battery Pl node ×2 incl. SIM4 hr7 duplicating the batch-1 SIM1 primary, plus singles) + 1 near-threshold (SIM30) |
+| `reviewer_only` | 2 | Q77 Jamaica Bus Terminal (dispatch terminal), S78 36-min EWT on 61 headways (needs gap inspection) |
+| `needs_more_evidence` | 15 | 22–29 observed headways, plausible magnitude, fractional coverage |
+| `suppress` | 12 | feed-gap artifacts: EWT 55–93 min with CoV 5–11.8 (Q76/Q77 Hillside hr15 cluster ×5, Q24 ×2, Q48 ×2, B25, B52) + M4 Cloisters terminal loop |
+
+Combined gold (`reviewed-gold-combined.json`, batch 1 + batch 2, batch-1 labels unchanged): **142
+labels** — 40 primary, 34 route_context, 6 reviewer_only, 27 needs_more_evidence, 35 suppress.
+Evaluation against the production top-100 (`evaluation-combined.json`, asOfMonth 2026-06):
+
+| Metric | Value |
+| --- | ---: |
+| Reviewed-primary survival | **37/40** (the 3 batch-1 primaries remain at ranks 201/216/248) |
+| Suppress leakage in top-100 | **12/35** — the 12 batch-2 feed-gap artifacts the detector emits at ranks 12–95; batch-1 suppress cells stay out (worst rank 670) |
+| Unreviewed emitted (top-100) | 0 — the top-100 is now fully label-backed |
+| Readiness buckets (`readiness-projection-combined.json`) | 40 `public_finding_candidate`, 34 `route_context`, 33 `review_queue`, 35 `suppressed` |
+
+The 12-cell suppress leakage is an honest detector finding, not a labeling artifact: extreme-CoV
+feed-gap cells still rank high because the EWT severity signal saturates on hour-scale gaps. A CoV
+(or max-gap) sanity gate is the label-backed fix direction for a future slice; not changed here.
+
+**Cut line.** Spot checks at ranks 101–300 (B69 #101, SIM10 #105/150, BX8 #110, B67 #125, Q31 #175,
+QM32 #199, SIM7 #200, QM11 #201, Q13 #216, SIM1 #248, SIM9 #275, QM8 #300) show the population just
+outside the cap is the same character as ranks 80–100: 28–69 observed headways, 7–13 min EWT, scores
+80.3–82.5 vs 82.5 at rank 100. The three batch-1 primaries (ranks 201/216/248) are qualitatively
+indistinguishable from cells just inside the cap — the cut at 100 is a capacity choice, not a quality
+boundary, and any promotion narrative should say so rather than treat rank ≤100 as a quality bar.
+Nothing alarming below the line; the only borderline cell sampled was B67 #125 (EWT 28.4, CoV 3.1, 33
+headways — would be needs_more_evidence/suppress-adjacent if it entered the cap).

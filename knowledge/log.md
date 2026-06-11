@@ -2,6 +2,25 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-11] analysis | Batch 2 reviews: post-fix stop-hour top-100s + peer re-review
+
+Ran the top-priority review batch over the artifacts the two feature fixes produced. Register now
+totals 1,047 reviewed labels. Headway: all 100 post-fix top-100 cells labeled adversarially — 37
+new primary_finding + 34 route_context; primary survival 37/40 (the 3 batch-1 primaries sit at
+ranks ~200-250 among qualitatively identical cells; rank<=100 documented as a capacity choice, not
+a quality bar); 12/35 suppress leakage remains from hour-scale feed-gap artifacts where EWT
+severity saturates — named fix is a CoV/max-gap sanity gate. Bunching: 87 new labels; primaries
+2/2 (S54 N rank 1, new Q31 S school-dismissal canonical rank 29); the post-fix top-100 is
+duplicate-dominated, not artifact-dominated — 78/100 cells are non-canonical members of 14 stop
+pockets, so the canonical-cell dedupe gate (next slice) would collapse it to ~22 independent
+identities. Peer re-review: against honest class-based peers the four locals' deficits shrank from
+the system-pool's 2.85-3.6 mph to 1.0-1.5 mph; M57 and BX2 upgraded route_context→primary_finding
+(stable >=1 mph deficits 36/36 months), M31/M42 honestly kept at route_context, M34+/M34A+
+upgraded needs_more_evidence→route_context (real 2.8-3.0 mph deficits but a citywide class-only
+pool). All combined-gold evaluations: batch-1 labels untouched; suppress leakage 0/16 (peer),
+batch-1 suppress cells stay out of the headway top-100 (worst rank 670). The publishable core grew
+from ~70 to ~110 label-backed public finding candidates.
+
 ## [2026-06-11] engineering | Label-backed fixes: stop-hour sufficiency ranking + real speed-peer groups
 
 Implemented the two highest-leverage feature fixes named by the calibration sweep, verified against
