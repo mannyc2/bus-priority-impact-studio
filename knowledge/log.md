@@ -20,9 +20,12 @@ counts already matched (proof nothing was dropped), 148 route-months re-fetched 
 17,494,571 cells, ~5 GB. Golden diff on the real DB: 12,075/12,075 rows byte-identical, 0
 mismatches. Artifacts: `data/artifacts/a1-segment-speed-cell-probe.json` (live Q60 2025-03 probe:
 Socrata 2,681 rows = local cells; legacy filter drops 197) and
-`data/artifacts/route-month-speed-golden-diff.json`. Route-month speed columns are now derivable
-locally; the Socrata aggregate path in `route-trends` can be swapped to the projection when Track
-A goes continuous.
+`data/artifacts/route-month-speed-golden-diff.json`. Follow-up landed same
+slice: `ingest route-trends` now derives its speed aggregates from the local cell table instead of
+a second Socrata server-side aggregation (ridership fetch unchanged), reporting
+`monthsWithoutCellSpeedCoverage` for window months with no cell rows — verified byte-identical
+against the production trend table on a temp DB (180/180 route-months across 5 routes, full
+history).
 
 ## [2026-06-10] engineering | Frontend §8.1 registry + §4.1/§4.3 structural redesign land on the cutover floor
 
