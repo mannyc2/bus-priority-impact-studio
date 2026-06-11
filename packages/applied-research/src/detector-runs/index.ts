@@ -27,6 +27,11 @@ export {
   type ContractSatisfaction,
   type DataProductDependency,
   type DetectorOutput,
+  type DetectorRunCapAccounting,
+  type DetectorRunCapInventoryStatus,
+  type DetectorRunCapPolicy,
+  type DetectorRunCapPolicyMode,
+  type DetectorRunCapRouteBreakdown,
   type ModelArtifactDependency,
   type RegistryDetectorRunArtifact,
 } from "./run-artifact";

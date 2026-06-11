@@ -2,6 +2,17 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-11] infra | Track B S2.2 run artifacts expose detector cap accounting
+
+Extended the shared S2.2 cap-policy discipline from review queues into registry detector run
+artifacts. Every run artifact now carries a `capAccounting` block with cap mode, production cap,
+run cap, qualifying candidate count, capped-out count, and capped-out distribution by borough prefix
+and route. Global caps use the shared score-rank helper; persistent speed uses per-route cap
+accounting. Synthetic verification covers the known observed-reliability 100-vs-220 no-write probe:
+220 qualifying route candidates under a high run cap, 100 within the production cap, 120 capped out
+and visible by borough/route in the artifact. Source-gap and delay-concentration remain explicitly
+`not_capped` until their detector thresholds expose candidate-limit policies.
+
 ## [2026-06-11] infra | Track B S1.1 readiness now derives from detector input resolvers
 
 Closed the current-base version of `backend-goal-finish-detectors.md` S1.1 on
