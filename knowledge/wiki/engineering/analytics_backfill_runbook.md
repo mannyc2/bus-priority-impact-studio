@@ -2,7 +2,7 @@
 title: Analytics Backfill Runbook
 type: engineering
 status: active
-last_updated: 2026-05-31
+last_updated: 2026-06-11
 owner: tools/pipeline-v2
 source_count: 0
 tags: [analytics, backfill, runbook, corpus, operations]
@@ -20,6 +20,9 @@ This runbook covers the local 2023-04 through 2026-03 analytics corpus backfill 
 
 The job is local batch work. It should not run inside the public Worker or public serving path.
 Outputs land in the local SQLite pipeline database and are verified by read-only audit artifacts.
+
+Production route-trends runs are still full-table rebuilds; the next run must include ridership for
+the full trend window, not only the newly refreshed speed months.
 
 ## Active run
 
