@@ -1,6 +1,11 @@
 import { Link } from "@tanstack/react-router";
 import { DataAsOf } from "@/components/DataAsOf";
-import { coverageRows, coverageSummary } from "@/components/route/coverage-matrix";
+import {
+  type CheckedCleanCoverageChip,
+  checkedCleanCoverageChips,
+  coverageRows,
+  coverageSummary,
+} from "@/components/route/coverage-matrix";
 import {
   completenessStatusLabel,
   releaseLayerDescription,
@@ -23,6 +28,7 @@ export function DataNotesSection({ data }: { data: StudioRouteDetailResponse }) 
   const historyWindow = dossierMetricWindow(dossier?.speed);
   const ridershipMonthCount = dossierMetricMonthCount(dossier?.ridership);
   const coverage = coverageRows(data.capability);
+  const checkedCleanChips = checkedCleanCoverageChips(coverage);
   const archetype = routeDossierArchetype({ capability: data.capability, dossier });
   const hiddenTabs = ROUTE_DETAIL_TABS.flatMap((tab) => {
     const presentation = sectionPresentation(data.capability, tab.value);
@@ -118,6 +124,7 @@ export function DataNotesSection({ data }: { data: StudioRouteDetailResponse }) 
               : "Legacy route detail without a published capability manifest."
           }
         />
+        <CheckedCleanChipRail chips={checkedCleanChips} />
         <div className="rounded-[3px] bg-[var(--bp-color-card)] shadow-[0_0_0_1px_var(--bp-color-rule)]">
           {coverage.length > 0 ? (
             coverage.map((row) => (
@@ -201,6 +208,28 @@ export function DataNotesSection({ data }: { data: StudioRouteDetailResponse }) 
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+function CheckedCleanChipRail({ chips }: { chips: readonly CheckedCleanCoverageChip[] }) {
+  if (chips.length === 0) return null;
+
+  return (
+    <div className="mb-3 flex flex-wrap gap-2">
+      {chips.map((chip) => (
+        <div
+          key={chip.key}
+          className="inline-flex max-w-full items-center gap-2 rounded-[3px] bg-[var(--bp-color-good-bg)] px-2.5 py-1.5 text-[11.5px] shadow-[inset_0_0_0_1px_var(--bp-color-good)]"
+          title={chip.reason ?? chip.depthLabel}
+        >
+          <Badge variant="good">Checked clean</Badge>
+          <span className="truncate font-semibold text-[var(--bp-color-ink)]">{chip.label}</span>
+          <span className="font-mono text-[10.5px] text-[var(--bp-color-good)]">
+            {chip.checkedThroughLabel}
+          </span>
+        </div>
+      ))}
     </div>
   );
 }

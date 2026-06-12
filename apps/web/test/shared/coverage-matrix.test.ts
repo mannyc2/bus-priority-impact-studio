@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { coverageRows, coverageSummary } from "../../src/components/route/coverage-matrix";
+import {
+  checkedCleanCoverageChips,
+  coverageRows,
+  coverageSummary,
+} from "../../src/components/route/coverage-matrix";
 import type { RouteSurfaceCapability, StudioRouteCapability } from "../../src/studio/api-contract";
 
 function surface(
@@ -37,10 +41,21 @@ describe("coverage matrix", () => {
       ["Treatments", "Blocked", "depth not published"],
     ]);
     expect(coverageSummary(rows)).toBe("1 ready / 1 checked clean / 1 blocked");
+    expect(checkedCleanCoverageChips(rows)).toEqual([
+      {
+        key: "reliability",
+        label: "Reliability",
+        checkedThroughLabel: "through 2026-03",
+        dataAsOf: "2026-03",
+        depthLabel: "3 months / stop_hour",
+        reason: "because checked_clean",
+      },
+    ]);
   });
 
   test("handles missing legacy capability without inventing coverage", () => {
     expect(coverageRows(null)).toEqual([]);
     expect(coverageSummary([])).toBe("No manifest surfaces published");
+    expect(checkedCleanCoverageChips([])).toEqual([]);
   });
 });

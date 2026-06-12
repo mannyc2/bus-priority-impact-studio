@@ -2,6 +2,44 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Evidence tab promotes checked-clean surfaces
+
+Advanced the route-detail §5.3 negative-space contract in the Evidence tab. The capability coverage
+matrix now exposes a pure `checkedCleanCoverageChips` projection, and the Evidence "What we
+checked" block renders compact checked-clean chips with the surface label and data-as-of month
+before the full coverage table. This makes clean no-hit surfaces visible without changing detector
+logic, promoting blocked detector families, or inventing coverage for legacy route responses.
+
+Added focused coverage-matrix tests for checked-clean chip labels, data clocks, depth labels, and
+legacy empty-state behavior.
+
+Verified with `bunx biome check --write apps/web/src/components/route/coverage-matrix.ts
+apps/web/src/components/route/DataNotesSection.tsx
+apps/web/test/shared/coverage-matrix.test.ts`, `bun test
+apps/web/test/shared/coverage-matrix.test.ts apps/web/test/shared/section-registry.test.ts
+--timeout 5000`, `bun --filter @bp/web typecheck`, and `bun --filter @bp/web build`.
+
+## [2026-06-12] engineering | Tier 2 Bx41 Webster CB6 source review closes one more source
+
+Reviewed `nyc_dot_select_bus_service_pdf_2013_03_sbs_webster_bx_cb6` from the full-corpus source
+review workspace as a proposed Bx41 Webster Avenue SBS 2013 service/implementation-plan record. The
+local ignored reviewed-record seed now has 12 sources and 12 records. The new record cites the
+March 7, 2013 CB6 presentation, Bx41 LTD to Bx41 SBS service plan, 4 miles of offset bus lanes,
+off-board fare collection, all-door boarding, TSP, bus bulbs, pedestrian improvements, turn
+bays/signal-time changes, and the project timeline that places bus lanes/priority treatments before
+summer 2013 start of service while separating 2014-2015 capital work.
+
+Because the source gives a season rather than an exact month/day, the record stores
+`effectiveDate: 2013` with `datePrecision: year` and carries the summer-2013 detail as a caveat.
+Regenerated the local ignored source receipt closure audit. It now reports 291 queue sources, 12
+valid reviewed records, 3 disposition receipts, 13 closed sources, 278 open sources, and 0 conflicts;
+public promotion remains blocked on full source closure. The broader Tier 2 structured-data
+inventory command still reports the older global source-closure next action because it scans the
+published artifact inventory rather than this ignored manual-review seed.
+
+Verified with `jq empty` on the reviewed-record artifact, `bun run pipeline docs tier2
+source-receipt-audit ...`, and `bun run pipeline audit tier2-structured-data --json`.
+
 ## [2026-06-12] engineering | Overview insight cards get typed micro-figures
 
 Advanced the route-detail §5.1 insight-card system without changing detector output. Added a

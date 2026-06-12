@@ -13,6 +13,15 @@ export type CoverageRow = {
   depthLabel: string;
 };
 
+export type CheckedCleanCoverageChip = {
+  key: string;
+  label: string;
+  checkedThroughLabel: string;
+  dataAsOf: string | null;
+  depthLabel: string;
+  reason: string | null;
+};
+
 const SURFACE_LABELS: Record<string, string> = {
   condition: "Condition",
   detectorFindings: "Detector findings",
@@ -91,6 +100,21 @@ export function coverageSummary(rows: readonly CoverageRow[]): string {
     blocked > 0 ? `${blocked} blocked` : null,
   ].filter(Boolean);
   return parts.length > 0 ? parts.join(" / ") : "No manifest surfaces published";
+}
+
+export function checkedCleanCoverageChips(
+  rows: readonly CoverageRow[],
+): CheckedCleanCoverageChip[] {
+  return rows
+    .filter((row) => row.state === "checked_clean")
+    .map((row) => ({
+      key: row.key,
+      label: row.label,
+      checkedThroughLabel: row.dataAsOf ? `through ${row.dataAsOf}` : "through unknown",
+      dataAsOf: row.dataAsOf,
+      depthLabel: row.depthLabel,
+      reason: row.reason,
+    }));
 }
 
 function depthLabel(depth: RouteSurfaceCapability["depth"]): string {
