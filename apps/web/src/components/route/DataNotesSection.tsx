@@ -69,16 +69,16 @@ export function DataNotesSection({
     <div className="flex flex-col gap-7">
       <div className="flex flex-wrap items-center gap-7 rounded-[3px] bg-[var(--bp-color-card)] p-5 shadow-[0_0_0_1px_var(--bp-color-rule)]">
         <DataWindow
-          label="Primary window"
-          value={historyWindow ?? "Current projection"}
+          label="Window"
+          value={historyWindow ?? "Projection"}
           sub={
             dossier
-              ? `${dossier.speed.sparkline.length} route-month rows`
+              ? `${dossier.speed.sparkline.length} route-months`
               : `${segments.length} segments in route detail`
           }
         />
         <DataWindow
-          label="Dossier depth"
+          label="Depth"
           value={archetype.label}
           sub={archetype.summary}
           good={archetype.id === "flagship"}
@@ -90,7 +90,7 @@ export function DataNotesSection({
           good={quality.releaseLayer === "observed_release"}
         />
         <DataWindow
-          label="Route quality"
+          label="Quality"
           value={quality.confidence}
           sub={completenessStatusLabel(quality.completenessStatus)}
           good={quality.confidence === "high"}
@@ -110,7 +110,7 @@ export function DataNotesSection({
             params={{ page: "methodology" }}
             className="inline-flex items-center rounded-[3px] border border-[var(--bp-color-accent)] px-3 py-2 text-[12px] font-semibold text-[var(--bp-color-accent)] no-underline"
           >
-            Methodology &rarr;
+            Methods &rarr;
           </Link>
         </div>
       </div>
@@ -124,11 +124,11 @@ export function DataNotesSection({
 
       <div>
         <SectionHeader
-          title="What we checked"
+          title="Checked"
           sub={
             coverage.length > 0
               ? coverageSummary(coverage)
-              : "Legacy detail without a capability manifest."
+              : "Legacy detail; no capability manifest."
           }
         />
         <CheckedCleanChipRail chips={checkedCleanChips} />
@@ -166,10 +166,7 @@ export function DataNotesSection({
 
       {hiddenTabs.length > 0 ? (
         <div>
-          <SectionHeader
-            title="Sections not shown"
-            sub="Hidden where route evidence is not ready."
-          />
+          <SectionHeader title="Hidden sections" sub="Hidden where route evidence is thin." />
           <div className="rounded-[3px] bg-[var(--bp-color-card)] shadow-[0_0_0_1px_var(--bp-color-rule)]">
             {hiddenTabs.map(({ tab, presentation }) => (
               <div
@@ -197,7 +194,7 @@ export function DataNotesSection({
                   {hiddenStateLabel(presentation.state)}
                 </div>
                 <div className="text-[11.5px] text-[var(--bp-color-ink-55)]">
-                  {presentation.reason ?? "No route-level evidence published."}
+                  {presentation.reason ?? "No route evidence published."}
                 </div>
                 <div className="text-right max-lg:text-left">
                   <DataAsOf dataAsOf={presentation.dataAsOf} />
@@ -209,7 +206,7 @@ export function DataNotesSection({
       ) : null}
 
       <div>
-        <SectionHeader title="Datasets in use" sub="Sources behind this route's numbers." />
+        <SectionHeader title="Datasets" sub="Sources behind route numbers." />
         <div className="rounded-[3px] bg-[var(--bp-color-card)] shadow-[0_0_0_1px_var(--bp-color-rule)]">
           {datasets.map(([name, publisher, window]) => (
             <div
@@ -240,9 +237,25 @@ function EvidenceIndexSection({
   sectionRegistry: Pick<RouteSectionRegistry, "presentations">;
   onNavigate: (tab: RouteDetailTabValue) => void;
 }) {
+  const hiddenSignalCount = rows.filter(
+    (row) => row.tab !== "evidence" && !routeSectionCanNavigate(sectionRegistry, row.tab),
+  ).length;
+
   return (
     <div>
-      <SectionHeader title={routeSectionQuestion("evidence")} />
+      <SectionHeader
+        title={routeSectionQuestion("evidence")}
+        right={
+          rows.length > 0 ? (
+            <div className="flex flex-wrap justify-end gap-2">
+              <Badge variant="neutral">{rows.length} signals</Badge>
+              {hiddenSignalCount > 0 ? (
+                <Badge variant="accent">{hiddenSignalCount} covered</Badge>
+              ) : null}
+            </div>
+          ) : null
+        }
+      />
       <div className="rounded-[3px] bg-[var(--bp-color-card)] shadow-[0_0_0_1px_var(--bp-color-rule)]">
         {rows.length > 0 ? (
           rows.map((row, index) => (
@@ -308,7 +321,7 @@ function EvidenceIndexSection({
           ))
         ) : (
           <div className="px-4 py-3 text-[12.5px] text-[var(--bp-color-ink-55)]">
-            The matrix below still records what was checked.
+            Checked surfaces appear below.
           </div>
         )}
       </div>
