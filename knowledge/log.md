@@ -2,6 +2,44 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Reliability tab becomes evidence-backed
+
+Advanced the route-detail Reliability tab toward the §4.3 dossier-backed question, "Can riders
+count on it?" The header KPI no longer claims an official reliability grade just because the
+surface is available. It now reports building, low-sample, or observed evidence states from the
+capability manifest and observed reliability row, with data-as-of metadata and sample coverage.
+
+The tab now shows evidence state, sample coverage, bunching share, long-gap share, headway
+distribution, reliability-specific insight rows, and provenance/caveat copy. Missing or insufficient
+observed rows remain explicit manifest-gated empty states instead of blank or overclaimed sections.
+Added a shared `reliability-summary` helper and focused tests for building, observed, low-sample,
+and reliability-insight filtering cases.
+
+Verified with `bunx biome check apps/web/src/components/route/ReliabilitySection.tsx
+apps/web/src/components/route/RouteJudgedKpiStrip.tsx
+apps/web/src/components/route/reliability-summary.ts
+apps/web/test/shared/reliability-summary.test.ts`, `bun test
+apps/web/test/shared/reliability-summary.test.ts apps/web/test/shared/section-registry.test.ts
+--timeout 5000`, `bun --filter @bp/web typecheck`, and `bun --filter @bp/web build`.
+
+## [2026-06-12] engineering | Tier 2 B46 Utica CB18 source review closes one more source
+
+Reviewed `nyc_dot_bus_priority_document_pdf_brt_uticaave_cb18_transportation_committee_2016` from
+the full-corpus source review workspace as a proposed B46 Utica Avenue SBS launch and capital-plan
+record. The local ignored reviewed-record seed now has 7 sources and 7 records. The new record cites
+the February 17, 2016 CB18 presentation, the B46 SBS route and CB18 stop context, 2014-2015 bus-lane
+and TSP improvements, 2016 fare-machine and red-lane launch prep, 2017-2018 bus bulb and pedestrian
+capital plans, and the Avenue H stop relocation/short-turn context.
+
+Regenerated the local ignored source receipt closure audit. It now reports 291 queue sources, 7
+valid reviewed records, 3 disposition receipts, 8 closed sources, 283 open sources, and 0 conflicts;
+public promotion remains blocked on full source closure. The broader Tier 2 structured-data
+inventory command still reports the older global source-closure next action because it scans the
+published artifact inventory rather than this ignored manual-review seed.
+
+Verified with `jq empty` on the reviewed-record artifact, `bun run pipeline docs tier2
+source-receipt-audit ...`, and `bun run pipeline audit tier2-structured-data --json`.
+
 ## [2026-06-12] engineering | Tier 2 M15 CB11 source review closes one more source
 
 Reviewed `nyc_dot_bus_priority_document_pdf_2010_06_09_brt_1st2nd_cb11` from the full-corpus

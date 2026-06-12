@@ -6,6 +6,7 @@ import {
   MetricStat,
   metricToneColor,
 } from "@/components/route/MetricColumns";
+import { reliabilitySummary } from "@/components/route/reliability-summary";
 import { Spark } from "@/components/Spark";
 import type {
   RouteDossierSummaryForDetail,
@@ -92,6 +93,10 @@ export function RouteJudgedKpiStrip({
   const ridership = dossier?.ridership ?? null;
   const posture = dossier?.treatmentPosture ?? null;
   const reliability = capability?.surfaces["reliability"] ?? null;
+  const reliabilityKpi = reliabilitySummary({
+    observed: route.observedReliability,
+    capability: reliability,
+  });
 
   const currentSpeed = speed?.current ?? route.weightedAvgSpeed;
   const speedSub = peerFraming(speed?.peerPercentile ?? null, "local routes");
@@ -100,7 +105,8 @@ export function RouteJudgedKpiStrip({
 
   const aceActive = posture?.aceActive ?? route.aceStatus === "active";
   const hasLane = (posture?.busLaneMatchedLaneCount ?? 0) > 0 || route.laneCoverage > 0;
-  const postureLabel = aceActive && hasLane ? "Treated" : aceActive || hasLane ? "Partial" : "Untreated";
+  const postureLabel =
+    aceActive && hasLane ? "Treated" : aceActive || hasLane ? "Partial" : "Untreated";
   const postureBits = [
     hasLane ? "bus lane" : null,
     aceActive ? `ACE${posture?.aceSince ? ` since ${posture.aceSince.slice(0, 4)}` : ""}` : null,
@@ -140,9 +146,11 @@ export function RouteJudgedKpiStrip({
       <Judged
         label="Reliability"
         divider
-        value={reliability?.state === "ready" ? "Graded" : "—"}
-        sub={reliability?.reason ?? "wait-time grade lands with the reliability detectors"}
-        dataAsOf={reliability?.dataAsOf ?? null}
+        onClick={() => onNavigate("reliability")}
+        value={reliabilityKpi.kpiValue}
+        tone={reliabilityKpi.kpiTone}
+        sub={reliabilityKpi.kpiSub}
+        dataAsOf={reliabilityKpi.dataAsOf}
       />
       <Judged
         label="Riders"
