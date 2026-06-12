@@ -2,6 +2,45 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Riders tab becomes a burden dossier
+
+Advanced the route-detail Riders tab toward the §4.3 dossier question, "Who bears it?" The header
+Riders KPI now uses the same rider-impact summary as the tab, pairing daily riders with
+rider-hours lost per weekday and the ridership surface's data-as-of clock. The tab now leads with a
+question-shaped section header, separates current rider-hour burden from monthly ridership history,
+shows route trend and top-segment share evidence, and adds rider/customer-journey insight rows when
+public detector context is attached.
+
+Added `rider-impact-summary` as the pure label/null-handling helper so daily-rider, burden,
+history, top-segment, and rider-insight wording stays out of React layout code. Focused tests cover
+dossier-backed ridership history, current-projection fallback wording, and rider-impact insight
+filtering without promoting blocked detector fixes.
+
+Verified with `bunx biome check --write apps/web/src/components/route/RidersSection.tsx
+apps/web/src/components/route/RouteJudgedKpiStrip.tsx
+apps/web/src/components/route/rider-impact-summary.ts
+apps/web/test/shared/rider-impact-summary.test.ts`, `bun test
+apps/web/test/shared/rider-impact-summary.test.ts apps/web/test/shared/section-registry.test.ts
+--timeout 5000`, `bun --filter @bp/web typecheck`, and `bun --filter @bp/web build`.
+
+## [2026-06-12] engineering | Tier 2 Q52/Q53 Woodhaven source review closes one more source
+
+Reviewed `nyc_dot_bus_priority_document_pdf_brt_woodhaven_may2016` from the full-corpus source
+review workspace as a proposed Q52/Q53 Woodhaven / Cross Bay SBS 2017 plan record. The local
+ignored reviewed-record seed now has 8 sources and 8 records. The new record cites the May 10,
+2016 CAC presentation, Q52/Q53 corridor and ridership context, the 2017 SBS implementation plan,
+bus-lane/TSP/fare-payment/all-door-boarding components, 2015 bus-lane evidence, simulation travel
+time context, and design-update caveats around median stations and later capital work.
+
+Regenerated the local ignored source receipt closure audit. It now reports 291 queue sources, 8
+valid reviewed records, 3 disposition receipts, 9 closed sources, 282 open sources, and 0 conflicts;
+public promotion remains blocked on full source closure. The broader Tier 2 structured-data
+inventory command still reports the older global source-closure next action because it scans the
+published artifact inventory rather than this ignored manual-review seed.
+
+Verified with `jq empty` on the reviewed-record artifact, `bun run pipeline docs tier2
+source-receipt-audit ...`, and `bun run pipeline audit tier2-structured-data --json`.
+
 ## [2026-06-12] engineering | Reliability tab becomes evidence-backed
 
 Advanced the route-detail Reliability tab toward the §4.3 dossier-backed question, "Can riders

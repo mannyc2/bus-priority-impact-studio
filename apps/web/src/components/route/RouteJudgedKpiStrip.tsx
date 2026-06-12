@@ -7,6 +7,7 @@ import {
   metricToneColor,
 } from "@/components/route/MetricColumns";
 import { reliabilitySummary } from "@/components/route/reliability-summary";
+import { riderImpactSummary } from "@/components/route/rider-impact-summary";
 import { Spark } from "@/components/Spark";
 import type {
   RouteDossierSummaryForDetail,
@@ -25,10 +26,6 @@ import type { MetricTone } from "@/studio/metric-model";
 function fmtPct(pct: number | null): string {
   if (pct === null) return "—";
   return `${pct > 0 ? "+" : ""}${pct.toFixed(1)}%`;
-}
-
-function compactThousands(n: number): string {
-  return Math.abs(n) >= 1000 ? `${(n / 1000).toFixed(1)}K` : String(n);
 }
 
 function peerFraming(peerPercentile: number | null, kind: string): string | null {
@@ -90,18 +87,21 @@ export function RouteJudgedKpiStrip({
   onNavigate: (tab: string) => void;
 }) {
   const speed = dossier?.speed ?? null;
-  const ridership = dossier?.ridership ?? null;
   const posture = dossier?.treatmentPosture ?? null;
   const reliability = capability?.surfaces["reliability"] ?? null;
   const reliabilityKpi = reliabilitySummary({
     observed: route.observedReliability,
     capability: reliability,
   });
+  const ridersKpi = riderImpactSummary({
+    route,
+    dossier,
+    capability: capability?.surfaces["ridership"] ?? null,
+  });
 
   const currentSpeed = speed?.current ?? route.weightedAvgSpeed;
   const speedSub = peerFraming(speed?.peerPercentile ?? null, "local routes");
   const trendPct = speed?.movement6mPct ?? null;
-  const ridersTrend = ridership?.movement6mPct ?? null;
 
   const aceActive = posture?.aceActive ?? route.aceStatus === "active";
   const hasLane = (posture?.busLaneMatchedLaneCount ?? 0) > 0 || route.laneCoverage > 0;
@@ -156,13 +156,10 @@ export function RouteJudgedKpiStrip({
         label="Riders"
         divider
         onClick={() => onNavigate("riders")}
-        value={compactThousands(route.dailyRiders)}
-        sub={
-          ridersTrend !== null
-            ? `${fmtPct(ridersTrend)} over 6 months`
-            : `${route.ridersYoyPct >= 0 ? "+" : ""}${route.ridersYoyPct.toFixed(1)}% YoY`
-        }
-        dataAsOf={ridership?.dataAsOf ?? null}
+        value={ridersKpi.kpiValue}
+        tone={ridersKpi.kpiTone}
+        sub={ridersKpi.kpiSub}
+        dataAsOf={ridersKpi.dataAsOf}
       />
       <Judged
         label="Treatment posture"
