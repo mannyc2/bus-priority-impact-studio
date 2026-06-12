@@ -62,6 +62,7 @@ export function TreatmentsHistorySection({ data }: { data: StudioRouteDetailResp
   const hasSpeedHistory = historySpeeds.length > 0;
   const speedTrendData = hasSpeedHistory ? historySpeeds : route.spark;
   const speedWindow = dossierMetricWindow(data.dossier?.speed);
+  const currentSpeedMph = data.dossier?.speed.current ?? route.weightedAvgSpeed;
   const treatmentDataAsOf =
     data.dossier?.treatmentPosture.dataAsOf ??
     data.dossier?.dataAsOf ??
@@ -119,7 +120,6 @@ export function TreatmentsHistorySection({ data }: { data: StudioRouteDetailResp
         <SectionHeader
           title="Dated history"
           sub={`${route.interventions.length} changes on ${route.label}${route.sbs ? " SBS" : ""}. Use before reading speed.`}
-          right={<TimelineLegend />}
         />
         <InterventionTimeline events={route.interventions} />
       </section>
@@ -130,14 +130,14 @@ export function TreatmentsHistorySection({ data }: { data: StudioRouteDetailResp
           source={
             hasSpeedHistory
               ? `Avg speed${speedWindow ? `, ${speedWindow}` : ""}.`
-              : "Trend estimate; schedule dashed."
+              : "Trend estimate."
           }
           height={196}
           right={
             <Badge variant={hasSpeedHistory ? "accent" : "warn"}>
               {hasSpeedHistory
                 ? `${dossierMetricMonthCount(data.dossier?.speed) || speedTrendData.length} months`
-                : `${route.weightedAvgSpeed.toFixed(1)} mph now`}
+                : `${currentSpeedMph.toFixed(1)} mph now`}
             </Badge>
           }
         >
@@ -243,31 +243,12 @@ function TreatmentSourceList({ rows }: { rows: readonly TreatmentSourceRow[] }) 
   );
 }
 
-function TimelineLegend() {
-  return (
-    <div className="flex flex-wrap items-center gap-3 text-[11px] text-[var(--bp-color-ink-70)]">
-      {[
-        ["var(--bp-color-accent)", "Service"],
-        ["var(--bp-color-good)", "Improvement"],
-        ["var(--bp-color-warn)", "Caution"],
-      ].map(([color, label]) => (
-        <span key={label} className="inline-flex items-center gap-1.5">
-          <span className="size-2 rounded-full" style={{ background: color }} />
-          {label}
-        </span>
-      ))}
-    </div>
-  );
-}
-
 function ComparisonCards({ cards }: { cards: readonly TreatmentComparisonCard[] }) {
   if (cards.length === 0) {
     return (
       <Alert variant="info">
         <AlertTitle variant="info">No window</AlertTitle>
-        <AlertDescription>
-          Dated records are useful context, but this route has no before/after card yet.
-        </AlertDescription>
+        <AlertDescription>No before/after card yet.</AlertDescription>
       </Alert>
     );
   }

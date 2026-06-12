@@ -2,6 +2,39 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Treatment tab speed fallback uses dossier current
+
+Kept the route-detail treatment/history tab on the dossier clock by making its no-history speed
+badge prefer `dossier.speed.current` before falling back to the legacy route projection. This
+matches the Overview verdict contract while leaving the historical chart path unchanged when
+monthly dossier speed history is available. Trimmed the treatment tab's empty-state copy and removed
+the dated-history header legend so the route-detail chunk stays under the existing web total-JS
+budget; the production build now reports 484.969 KB gz total JS against the 485 KB cap.
+
+Also reviewed `nyc_dot_bus_priority_document_pdf_bx6_spring_newsletter_2017` from the full-corpus
+source review workspace. The local ignored reviewed-record seed now has 36 reviewed-record sources
+and 38 valid records. This source contributes one conservative proposed BX6 SBS record for the
+Spring 2017 161st/163rd Street/Hunts Point newsletter, covering the eastbound bus-only tunnel/bus
+lane, off-board fare collection, all-door boarding, real-time passenger information, boarding
+islands, pedestrian improvements, signal retiming, and related curb-management changes. The review
+treats the newsletter as planned/in-progress design evidence rather than proof of final Summer 2017
+implementation or measured Bx6 impact, and requires visual review before geometry publication.
+
+Regenerated the local ignored source receipt closure audit. It now reports 291 queue sources, 38
+valid reviewed records, 36 reviewed-record sources, 4 disposition receipts, 38 closed sources, 253
+open sources, and 0 conflicts; public promotion remains blocked on full source closure.
+
+Verified with `bunx biome check apps/web/src/components/route/TreatmentsHistorySection.tsx`, `bun
+test apps/web/test/shared/treatments-history.test.ts
+apps/web/test/shared/route-verdict-derived.test.ts --timeout 5000`, `bun --filter @bp/web
+typecheck`, `bun --filter @bp/web build`, `jq empty
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/intervention-records-corpus-reviewed.json
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/source-receipt-closure-audit.json
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/source-receipt-closure-audit-summary.json`,
+`bun --filter @bp/pipeline-v2 cli -- docs tier2 source-receipt-audit --queue-path ...`, `bun
+--filter @bp/pipeline-v2 cli -- audit tier2-structured-data --json`, `bun run check:types`, `bun
+run check:knowledge`, and `git diff --check`.
+
 ## [2026-06-12] engineering | Overview verdict uses dossier clock
 
 Closed the route-detail two-clocks issue called out in the design brief by making the Overview
