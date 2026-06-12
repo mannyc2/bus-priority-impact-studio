@@ -26,6 +26,21 @@ import type {
 } from "@/studio/api-contract";
 import { legacyToTreatments } from "@/studio/treatment-model";
 
+type SegmentIdentity = {
+  id: string;
+};
+
+export function prioritizeWhereWhenSegments<T extends SegmentIdentity>(
+  insightSegments: readonly T[],
+  fallbackSegments: readonly T[],
+): T[] {
+  return [
+    ...new Map(
+      [...insightSegments, ...fallbackSegments].map((segment) => [segment.id, segment] as const),
+    ).values(),
+  ];
+}
+
 export function SlowSegmentsSection({
   route,
   segments,
@@ -61,11 +76,7 @@ export function SlowSegmentsSection({
     direction === "all" ? segments : segments.filter((segment) => segment.direction === direction);
   const topVisible = directionSegments.slice(0, 5);
   const matchedInsightSegments = directionSegments.filter((segment) => segmentInsight(segment));
-  const visible = [
-    ...new Map(
-      [...topVisible, ...matchedInsightSegments].map((segment) => [segment.id, segment]),
-    ).values(),
-  ];
+  const visible = prioritizeWhereWhenSegments(matchedInsightSegments, topVisible);
   const featured = visible.slice(0, 3);
   const tableRows = visible.slice(3);
   const visibleMatchedInsightIds = new Set(
