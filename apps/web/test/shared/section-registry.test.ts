@@ -12,18 +12,17 @@ function surface(state: RouteSurfaceCapability["state"], dataAsOf: string | null
   } satisfies RouteSurfaceCapability;
 }
 
-function capability(
-  surfaces: Record<string, RouteSurfaceCapability>,
-): StudioRouteCapability {
+function capability(surfaces: Record<string, RouteSurfaceCapability>): StudioRouteCapability {
   return { overallState: "ready", surfaces, caveats: [] };
 }
 
 /** Flagship-shaped route: everything built. */
 const rich = capability({
   condition: surface("ready"),
+  map: surface("ready"),
   trend: surface("ready"),
   speedHistory: surface("ready"),
-  reliability: surface("building"),
+  reliability: surface("ready"),
   ridership: surface("partial"),
   treatment: surface("ready"),
   scheduleBaseline: surface("ready"),
@@ -33,6 +32,7 @@ const rich = capability({
 /** Clean route: detectors looked, found nothing; treatments don't apply. */
 const clean = capability({
   condition: surface("ready"),
+  map: surface("ready"),
   trend: surface("ready"),
   speedHistory: surface("checked_clean"),
   reliability: surface("checked_clean"),
@@ -45,6 +45,7 @@ const clean = capability({
 /** Sparse route: almost nothing built yet. */
 const sparse = capability({
   condition: surface("partial"),
+  map: surface("ready"),
   trend: surface("insufficient_data", null),
   speedHistory: surface("building"),
   reliability: surface("insufficient_data", null),
@@ -63,7 +64,7 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
   });
 
   test("rich route renders every section", () => {
-    for (const tab of ["where-when", "riders", "treatments"]) {
+    for (const tab of ["map", "where-when", "reliability", "riders", "treatments"]) {
       expect(sectionPresentation(rich, tab)).toEqual({ mode: "render" });
     }
   });
@@ -76,13 +77,27 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
       dataAsOf: "2026-03",
     });
     expect(sectionPresentation(clean, "riders")).toEqual({ mode: "render" });
-    expect(sectionPresentation(clean, "treatments")).toEqual({ mode: "hidden" });
+    expect(sectionPresentation(clean, "treatments")).toEqual({
+      mode: "hidden",
+      state: "not_applicable",
+      reason: "because not_applicable",
+      dataAsOf: null,
+    });
+    expect(sectionPresentation(clean, "reliability")).toMatchObject({
+      mode: "empty",
+      state: "checked_clean",
+    });
   });
 
   test("sparse route gets the honest-empty vocabulary, not blank sections", () => {
+    expect(sectionPresentation(sparse, "map")).toEqual({ mode: "render" });
     expect(sectionPresentation(sparse, "where-when")).toMatchObject({
       mode: "empty",
       state: "building",
+    });
+    expect(sectionPresentation(sparse, "reliability")).toMatchObject({
+      mode: "hidden",
+      state: "insufficient_data",
     });
     expect(sectionPresentation(sparse, "riders")).toMatchObject({
       mode: "empty",
@@ -96,7 +111,7 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
   });
 
   test("null capability (legacy fallback) renders everything", () => {
-    for (const tab of ["where-when", "riders", "treatments"]) {
+    for (const tab of ["map", "where-when", "reliability", "riders", "treatments"]) {
       expect(sectionPresentation(null, tab)).toEqual({ mode: "render" });
     }
   });

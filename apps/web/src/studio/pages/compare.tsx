@@ -22,6 +22,10 @@ import type {
 import { StudioPage } from "../page.js";
 import { NotFoundPage } from "./not-found.js";
 
+const ROUTE_COMPARE_TABS = ROUTE_DETAIL_TABS.filter(
+  (tab) => tab.value !== "map" && tab.value !== "reliability",
+);
+
 export function ComparePage({
   detailA,
   detailB,
@@ -52,7 +56,7 @@ function CompareView(sides: CompareSides) {
     <StudioPage flush>
       <RouteDetailShell
         header={<RouteCompareHeader />}
-        tabs={ROUTE_DETAIL_TABS}
+        tabs={ROUTE_COMPARE_TABS}
         value={activeTab}
         onValueChange={(value) => setActiveTab(value as RouteDetailTabValue)}
       >

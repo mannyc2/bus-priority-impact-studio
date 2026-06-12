@@ -5,11 +5,13 @@ import {
   releaseLayerDescription,
   releaseLayerLabel,
 } from "@/components/route/data-quality-labels";
+import { ROUTE_DETAIL_TABS } from "@/components/route/RouteDetailShell";
 import {
   dossierMetricMonthCount,
   dossierMetricWindow,
   formatCompact,
 } from "@/components/route/route-derived";
+import { sectionPresentation } from "@/components/route/section-registry";
 import { SectionHeader } from "@/components/SectionHeader";
 import type { StudioRouteDetailResponse } from "@/studio/api-contract";
 
@@ -17,6 +19,10 @@ export function DataNotesSection({ data }: { data: StudioRouteDetailResponse }) 
   const { route, quality, segments, dossier } = data;
   const historyWindow = dossierMetricWindow(dossier?.speed);
   const ridershipMonthCount = dossierMetricMonthCount(dossier?.ridership);
+  const hiddenTabs = ROUTE_DETAIL_TABS.flatMap((tab) => {
+    const presentation = sectionPresentation(data.capability, tab.value);
+    return presentation.mode === "hidden" ? [{ tab, presentation }] : [];
+  });
   const datasets = [
     ["Bus segment speeds", "MTA Open Data", `${segments.length} timepoint segments`, 14],
     [
@@ -92,6 +98,34 @@ export function DataNotesSection({ data }: { data: StudioRouteDetailResponse }) 
         </div>
       </div>
 
+      {hiddenTabs.length > 0 ? (
+        <div>
+          <SectionHeader
+            title="Sections not shown"
+            sub="Route sections withheld because the source evidence does not support them yet."
+          />
+          <div className="rounded-[3px] bg-[var(--bp-color-card)] shadow-[0_0_0_1px_var(--bp-color-rule)]">
+            {hiddenTabs.map(({ tab, presentation }) => (
+              <div
+                key={tab.value}
+                className="grid grid-cols-[220px_160px_minmax(0,1fr)_120px] items-center gap-5 px-4 py-3 shadow-[inset_0_-1px_0_var(--bp-color-rule)] last:shadow-none max-lg:grid-cols-1 max-lg:gap-1"
+              >
+                <div className="text-[13px] font-semibold">{tab.label}</div>
+                <div className="font-mono text-[11.5px] text-[var(--bp-color-ink-55)]">
+                  {hiddenStateLabel(presentation.state)}
+                </div>
+                <div className="text-[11.5px] text-[var(--bp-color-ink-55)]">
+                  {presentation.reason ?? "No route-level evidence published for this section."}
+                </div>
+                <div className="text-right max-lg:text-left">
+                  <DataAsOf dataAsOf={presentation.dataAsOf} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       <div>
         <SectionHeader
           title="Datasets in use for this route"
@@ -117,6 +151,10 @@ export function DataNotesSection({ data }: { data: StudioRouteDetailResponse }) 
       </div>
     </div>
   );
+}
+
+function hiddenStateLabel(state: string): string {
+  return state.replaceAll("_", " ");
 }
 
 function DataWindow({

@@ -10,21 +10,38 @@ import type { RouteSurfaceCapability, StudioRouteCapability } from "@/studio/api
  * `overview` and `evidence` are unconditional: the verdict and the
  * provenance story must render for every route, however thin.
  */
-const TAB_SURFACES: Record<string, readonly string[]> = {
-  overview: [],
-  "where-when": ["speedHistory"],
-  riders: ["ridership"],
-  treatments: ["treatment"],
-  evidence: [],
+const TAB_CONFIG: Record<
+  string,
+  {
+    surfaces: readonly string[];
+    hiddenStates?: readonly RouteSurfaceCapability["state"][];
+  }
+> = {
+  overview: { surfaces: [] },
+  map: { surfaces: ["map", "geometry", "routeGeometry"] },
+  "where-when": { surfaces: ["speedHistory"] },
+  reliability: {
+    surfaces: ["reliability"],
+    hiddenStates: ["building", "insufficient_data", "not_applicable"],
+  },
+  riders: { surfaces: ["ridership"] },
+  treatments: { surfaces: ["treatment"] },
+  evidence: { surfaces: [] },
 };
 
 /** The four honest-empty visual states (§8.2). */
 export type HonestEmptyState = "building" | "insufficient_data" | "checked_clean" | "blocked";
+export type HiddenSectionState = Exclude<RouteSurfaceCapability["state"], "ready" | "partial">;
 
 export type SectionPresentation =
   | { mode: "render" }
   | { mode: "empty"; state: HonestEmptyState; reason: string | null; dataAsOf: string | null }
-  | { mode: "hidden" };
+  | {
+      mode: "hidden";
+      state: HiddenSectionState;
+      reason: string | null;
+      dataAsOf: string | null;
+    };
 
 /** Higher = closer to rendering. Governs which backing surface speaks for a tab. */
 const STATE_RANK: Record<RouteSurfaceCapability["state"], number> = {
@@ -41,7 +58,8 @@ export function sectionPresentation(
   capability: StudioRouteCapability | null,
   tabValue: string,
 ): SectionPresentation {
-  const surfaceKeys = TAB_SURFACES[tabValue] ?? [];
+  const config = TAB_CONFIG[tabValue] ?? { surfaces: [] };
+  const surfaceKeys = config.surfaces;
   // No manifest (legacy fallback) or unconditional tab: render as before.
   if (capability === null || surfaceKeys.length === 0) return { mode: "render" };
 
@@ -60,8 +78,21 @@ export function sectionPresentation(
     case "partial":
       return { mode: "render" };
     case "not_applicable":
-      return { mode: "hidden" };
+      return {
+        mode: "hidden",
+        state: governing.state,
+        reason: governing.reason,
+        dataAsOf: governing.dataAsOf,
+      };
     default:
+      if (config.hiddenStates?.includes(governing.state)) {
+        return {
+          mode: "hidden",
+          state: governing.state,
+          reason: governing.reason,
+          dataAsOf: governing.dataAsOf,
+        };
+      }
       return {
         mode: "empty",
         state: governing.state,

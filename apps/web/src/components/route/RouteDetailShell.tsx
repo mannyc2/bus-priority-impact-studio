@@ -3,14 +3,14 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export type RouteDetailTab = { value: string; label: string };
 
-/** The question-shaped route-section tabs (frontend §4.3), shared verbatim by
- * route-detail and compare so the two pages stay structurally identical.
- * Treatments & history absorbs the old Interventions and Timeline tabs;
- * Evidence absorbs Data notes. A Reliability tab joins when the reliability
- * capability surface leaves `building` (Track B Wave 1). */
+/** The question-shaped route-section tabs (frontend §4.3). Treatments & history
+ * absorbs the old Interventions and Timeline tabs; Evidence absorbs Data notes.
+ * Compare still consumes a subset until map/reliability compare sections exist. */
 export const ROUTE_DETAIL_TABS = [
   { value: "overview", label: "Overview" },
+  { value: "map", label: "Map" },
   { value: "where-when", label: "Where & when" },
+  { value: "reliability", label: "Reliability" },
   { value: "riders", label: "Riders" },
   { value: "treatments", label: "Treatments & history" },
   { value: "evidence", label: "Evidence" },

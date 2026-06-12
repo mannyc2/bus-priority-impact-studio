@@ -3,19 +3,21 @@ import { ArrowRight } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { KPISkeleton } from "@/components/KPI";
 import { DataNotesSection } from "@/components/route/DataNotesSection";
+import { HonestEmptySection } from "@/components/route/HonestEmptySection";
 import { InterventionsSection } from "@/components/route/InterventionsSection";
 import { OverviewSection } from "@/components/route/OverviewSection";
+import { ReliabilitySection } from "@/components/route/ReliabilitySection";
 import { RidersSection } from "@/components/route/RidersSection";
 import {
   ROUTE_DETAIL_TABS,
   RouteDetailShell,
   type RouteDetailTabValue,
 } from "@/components/route/RouteDetailShell";
-import { HonestEmptySection } from "@/components/route/HonestEmptySection";
 import { RouteHeader } from "@/components/route/RouteHeader";
 import { RouteJudgedKpiStrip } from "@/components/route/RouteJudgedKpiStrip";
-import { sectionPresentation } from "@/components/route/section-registry";
+import { RouteMapSection } from "@/components/route/RouteMapSection";
 import { SlowSegmentsSection } from "@/components/route/SlowSegments";
+import { sectionPresentation } from "@/components/route/section-registry";
 import { TimelineSection } from "@/components/route/TimelineSection";
 import { SegmentRowHeader, SegmentRowSkeleton } from "@/components/SegmentRow";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -111,6 +113,9 @@ export function RouteDetailPage({ data }: { data: StudioRouteDetailResponse | nu
         {section("overview", () => (
           <OverviewSection data={data} />
         ))}
+        {section("map", () => (
+          <RouteMapSection data={data} />
+        ))}
         {section("where-when", () => (
           <SlowSegmentsSection
             route={route}
@@ -118,6 +123,9 @@ export function RouteDetailPage({ data }: { data: StudioRouteDetailResponse | nu
             insights={data.insights}
             {...(flagged?.id ? { flaggedId: flagged.id } : {})}
           />
+        ))}
+        {section("reliability", () => (
+          <ReliabilitySection data={data} />
         ))}
         {section("riders", () => (
           <RidersSection data={data} />
