@@ -137,6 +137,40 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
   });
 
   test("routeSectionRegistry reflects the three contrast route shapes", () => {
+    expect(
+      routeSectionRegistry(rich).visibleTabs.map((tab) => [tab.value, tab.emptyState]),
+    ).toEqual([
+      ["overview", undefined],
+      ["map", undefined],
+      ["where-when", undefined],
+      ["reliability", undefined],
+      ["riders", undefined],
+      ["treatments", undefined],
+      ["evidence", undefined],
+    ]);
+    expect(
+      routeSectionRegistry(clean).visibleTabs.map((tab) => [tab.value, tab.emptyState]),
+    ).toEqual([
+      ["overview", undefined],
+      ["map", undefined],
+      ["where-when", "checked_clean"],
+      ["reliability", "checked_clean"],
+      ["riders", undefined],
+      ["evidence", undefined],
+    ]);
+    expect(
+      routeSectionRegistry(sparse).visibleTabs.map((tab) => [tab.value, tab.emptyState]),
+    ).toEqual([
+      ["overview", undefined],
+      ["map", undefined],
+      ["where-when", "building"],
+      ["riders", "insufficient_data"],
+      ["treatments", "blocked"],
+      ["evidence", undefined],
+    ]);
+  });
+
+  test("routeSectionRegistry keeps the visible tab order for contrast route shapes", () => {
     expect(routeSectionRegistry(rich).visibleTabs.map((tab) => tab.value)).toEqual([
       "overview",
       "map",

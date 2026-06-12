@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { RouteDetailTab } from "./section-registry";
+import type { HonestEmptyState, RouteDetailTab } from "./section-registry";
 
 /**
  * Shared chrome for the route-detail and compare pages: the flush header card
@@ -46,6 +46,14 @@ export function RouteDetailShell({
                 className="inline-flex items-center gap-1.5 rounded-none border-0 px-0 py-[10px] text-[12.5px] font-normal text-[var(--bp-color-ink-55)] data-active:font-semibold data-active:text-[var(--bp-color-ink)] data-active:shadow-[inset_0_-2px_0_var(--bp-color-ink)] data-active:after:hidden"
               >
                 {t.label}
+                {t.emptyState ? (
+                  <Badge
+                    variant={emptyStateVariant(t.emptyState)}
+                    className="h-[17px] px-[5px] py-0 text-[10px]"
+                  >
+                    {emptyStateLabel(t.emptyState)}
+                  </Badge>
+                ) : null}
                 {t.badge && t.badge.count > 0 ? (
                   <Badge
                     variant={t.badge.severity === "high" ? "bad" : "warn"}
@@ -63,4 +71,23 @@ export function RouteDetailShell({
       </Tabs>
     </div>
   );
+}
+
+function emptyStateLabel(state: HonestEmptyState): string {
+  switch (state) {
+    case "checked_clean":
+      return "Checked";
+    case "building":
+      return "Building";
+    case "insufficient_data":
+      return "Thin";
+    case "blocked":
+      return "Blocked";
+  }
+}
+
+function emptyStateVariant(state: HonestEmptyState): "neutral" | "good" | "bad" {
+  if (state === "checked_clean") return "good";
+  if (state === "blocked") return "bad";
+  return "neutral";
 }

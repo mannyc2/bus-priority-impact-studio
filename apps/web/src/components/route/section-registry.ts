@@ -14,6 +14,7 @@ export type RouteDetailTab = {
   label: string;
   question?: string;
   badge?: { count: number; severity: "low" | "medium" | "high" } | undefined;
+  emptyState?: HonestEmptyState | undefined;
 };
 
 export const ROUTE_SECTION_QUESTIONS = {
@@ -177,7 +178,9 @@ export function routeSectionRegistry(
       continue;
     }
 
-    visibleTabs.push(badgedTab);
+    visibleTabs.push(
+      presentation.mode === "empty" ? { ...badgedTab, emptyState: presentation.state } : badgedTab,
+    );
   }
 
   return { presentations, visibleTabs, hiddenSections };
