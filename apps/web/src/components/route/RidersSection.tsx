@@ -77,8 +77,8 @@ export function RidersSection({ data }: { data: StudioRouteDetailResponse }) {
           title={hasRidershipHistory ? "Monthly ridership" : "Estimated daily riders"}
           source={
             hasRidershipHistory
-              ? `Monthly ridership${dossierMetricWindow(data.dossier?.ridership) ? `, ${dossierMetricWindow(data.dossier?.ridership)}` : ""}.`
-              : "Estimated from the route's current trend until monthly ridership is available."
+              ? `Monthly riders${dossierMetricWindow(data.dossier?.ridership) ? `, ${dossierMetricWindow(data.dossier?.ridership)}` : ""}.`
+              : "Estimated until monthly ridership is available."
           }
           height={148}
           right={
@@ -96,10 +96,7 @@ export function RidersSection({ data }: { data: StudioRouteDetailResponse }) {
           />
         </ChartFrame>
         <div>
-          <SectionHeader
-            title="Top rider-impact segments"
-            sub="Where riders lose the most time, by segment."
-          />
+          <SectionHeader title="Top burden segments" sub="Where riders lose the most time." />
           <div className="rounded-[3px] bg-[var(--bp-color-card)] shadow-[0_0_0_1px_var(--bp-color-rule)]">
             {topSegments.length > 0 ? (
               topSegments.map((segment) => (
@@ -128,7 +125,7 @@ export function RidersSection({ data }: { data: StudioRouteDetailResponse }) {
               ))
             ) : (
               <div className="px-4 py-3 text-[12.5px] text-[var(--bp-color-ink-55)]">
-                Segment-level rider-hour burden is not attached to this route.
+                No segment rider-hour burden is attached.
               </div>
             )}
           </div>
@@ -138,7 +135,7 @@ export function RidersSection({ data }: { data: StudioRouteDetailResponse }) {
       <div className="grid grid-cols-[minmax(0,1fr)_minmax(280px,0.85fr)] gap-5 max-xl:grid-cols-1">
         <ChartFrame
           title="Rider exposure by hour"
-          source="When delays affect the most riders; red marks the AM and PM rush."
+          source="Delay exposure by hour; red marks rush periods."
           height={112}
         >
           <HourExposure data={hourlyExposure} />
@@ -147,11 +144,11 @@ export function RidersSection({ data }: { data: StudioRouteDetailResponse }) {
       </div>
 
       <Alert variant="info">
-        <AlertTitle variant="info">Rider-hours framing</AlertTitle>
+        <AlertTitle variant="info">Rider-hours</AlertTitle>
         <AlertDescription>
-          A 1-minute delay affecting 1,000 riders is 16.7 rider-hours. This route loses{" "}
-          {route.riderHoursLost.toLocaleString()} rider-hours per weekday in the current projection,
-          so the rider tab ranks where delay affects riders rather than where buses are merely slow.
+          A 1-minute delay for 1,000 riders is 16.7 rider-hours. This route loses{" "}
+          {route.riderHoursLost.toLocaleString()} per weekday, so this tab ranks rider burden rather
+          than bus slowness alone.
         </AlertDescription>
       </Alert>
     </div>
@@ -201,11 +198,11 @@ function RiderInsightPanel({ insights }: { insights: StudioRouteDetailResponse["
   return (
     <div className="rounded-[3px] bg-[var(--bp-color-card)] p-5 shadow-[0_0_0_1px_var(--bp-color-rule)]">
       <SectionHeader
-        title="Rider-impact signals"
+        title="Rider signals"
         sub={
           insights.length > 0
-            ? "Detector-ready customer-journey context attached to this route."
-            : "No rider-impact detector insight is promoted for this route yet."
+            ? "Public customer-journey context for this route."
+            : "No public rider-impact insight yet."
         }
       />
       {insights.length > 0 ? (
@@ -238,8 +235,8 @@ function RiderInsightPanel({ insights }: { insights: StudioRouteDetailResponse["
         </div>
       ) : (
         <div className="mt-3 rounded-[3px] bg-[var(--bp-color-paper-deep)] px-3 py-2.5 text-[12px] leading-[1.45] text-[var(--bp-color-ink-55)]">
-          The rider-hour projection can be cited, but no customer-journey detector card has cleared
-          the public insight gate for this route.
+          The rider-hour projection can be cited, but no customer-journey card has cleared the
+          public gate.
         </div>
       )}
     </div>

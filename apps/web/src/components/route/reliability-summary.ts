@@ -4,6 +4,7 @@ import type {
   StudioRouteInsight,
 } from "@/studio/api-contract";
 import type { MetricTone } from "@/studio/metric-model";
+import { stableInsightSort } from "./route-insight-placement";
 
 type ObservedReliability = StudioRoute["observedReliability"];
 
@@ -27,7 +28,11 @@ export type ReliabilitySummary = {
   hasObservedMetrics: boolean;
 };
 
-const RELIABILITY_DETECTOR_IDS = new Set(["observed_reliability", "headway_reliability_ewt"]);
+const RELIABILITY_DETECTOR_IDS = new Set([
+  "observed_reliability",
+  "headway_reliability_ewt",
+  "bunching_hotspots",
+]);
 
 export function reliabilitySummary({
   observed,
@@ -109,6 +114,7 @@ export function reliabilityInsightRows(
         RELIABILITY_DETECTOR_IDS.has(insight.detectorId) ||
         insight.title.toLowerCase().includes("reliability"),
     )
+    .sort(stableInsightSort)
     .slice(0, 3);
 }
 

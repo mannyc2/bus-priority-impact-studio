@@ -140,18 +140,37 @@ describe("riderImpactInsightRows", () => {
     refs: [],
   } satisfies StudioRouteInsight;
 
-  test("keeps customer journey and rider-titled rows without pulling generic speed rows", () => {
+  test("uses shared severity and month order for rider-impact cards", () => {
     const rows = riderImpactInsightRows([
-      base,
-      { ...base, kind: "performance_annotation", title: "Rider delay context" },
-      { ...base, detectorId: "speed_pace_hotspot", title: "Customer impact context" },
+      { ...base, asOfMonth: "2026-01" },
+      {
+        ...base,
+        kind: "performance_annotation",
+        detectorId: "rider_weighted_excess_wait",
+        title: "Rider-weighted excess wait",
+        severity: "high",
+        asOfMonth: "2025-12",
+      },
+      {
+        ...base,
+        kind: "performance_annotation",
+        title: "Rider delay context",
+        asOfMonth: "2026-03",
+      },
+      {
+        ...base,
+        detectorId: "speed_pace_hotspot",
+        title: "Customer impact context",
+        severity: "low",
+        asOfMonth: "2026-04",
+      },
       { ...base, detectorId: "speed_pace_hotspot", title: "Speed context" },
     ]);
 
     expect(rows.map((row) => row.title)).toEqual([
-      "Customer journey shortfall",
+      "Rider-weighted excess wait",
       "Rider delay context",
-      "Customer impact context",
+      "Customer journey shortfall",
     ]);
   });
 });
