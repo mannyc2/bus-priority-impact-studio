@@ -12,6 +12,7 @@ import {
   dossierMetricWindow,
   dossierSpeedSeries,
   formatCompact,
+  routeVerdict,
 } from "@/components/route/route-derived";
 import {
   type RouteInsightMicroFigureKind,
@@ -81,30 +82,32 @@ export function OverviewSection({
   const archetype = routeDossierArchetype({ capability: data.capability, dossier: data.dossier });
   const coverage = coverageRows(data.capability);
   const mapTarget = routeSectionCanNavigate(sectionRegistry, "map") ? "map" : "evidence";
-  const mapTargetLabel = mapTarget === "map" ? "Map" : "Evidence";
   const manifestDataAsOf = coverageLatestDataAsOf(coverage);
   const overviewDataAsOf = data.dossier?.dataAsOf ?? manifestDataAsOf;
   const checkedCleanSurfaces = coverage.filter((surface) => surface.state === "checked_clean");
   const checkedThrough =
     coverageLatestDataAsOf(checkedCleanSurfaces) ?? data.dossier?.dataAsOf ?? null;
+  const verdict = routeVerdict(route, data.dossier);
 
   return (
     <div className="flex flex-col gap-7">
       <section className="flex flex-col gap-4">
         <SectionHeader
-          title="What stands out"
+          title="Stands out"
           sub={coverageSummary(coverage)}
           right={<DataAsOf dataAsOf={overviewDataAsOf} />}
         />
         <VerdictSummary
-          data={data}
           archetype={archetype}
+          verdictLead={verdict.lead}
+          speedPercentile={verdict.peerPercentile}
+          speedDataAsOf={verdict.dataAsOf}
           slowestLabel={
             worst
-              ? `${worst.label} is the slowest segment for ${worst.persistenceMonths} trailing month(s).`
+              ? `${worst.label}: slowest for ${worst.persistenceMonths} mo.`
               : slowestByRiders
-                ? `${slowestByRiders.from} to ${slowestByRiders.to} has the highest visible rider impact.`
-                : "No rider-impact row is available."
+                ? `${slowestByRiders.from} to ${slowestByRiders.to}: top rider impact.`
+                : "No rider row."
           }
         />
         {overviewInsights.length > 0 ? (
@@ -130,18 +133,18 @@ export function OverviewSection({
 
       <div className="grid grid-cols-[minmax(0,1.25fr)_minmax(320px,0.8fr)] gap-5 max-xl:grid-cols-1">
         <ChartFrame
-          title="Story strip"
+          title="Story"
           source={
             hasSpeedHistory
-              ? `Monthly average speed${speedWindow ? `, ${speedWindow}` : ""}.`
-              : "Trend estimate; schedule dashed."
+              ? `Avg speed${speedWindow ? `, ${speedWindow}` : ""}.`
+              : "Trend; schedule dashed."
           }
           height={172}
           right={
-            <Badge variant={route.weightedAvgSpeed < 6 ? "bad" : "warn"}>
+            <Badge variant={verdict.speedMph < 6 ? "bad" : "warn"}>
               {hasSpeedHistory
                 ? `${dossierMetricMonthCount(data.dossier?.speed) || speedTrendData.length} months`
-                : `${route.weightedAvgSpeed.toFixed(1)} mph now`}
+                : `${verdict.speedMph.toFixed(1)} mph now`}
             </Badge>
           }
         >
@@ -151,9 +154,9 @@ export function OverviewSection({
         <section className="flex flex-col rounded-[3px] bg-[var(--bp-color-card)] p-[18px] shadow-[0_0_0_1px_var(--bp-color-rule)]">
           <div className="mb-3.5 flex items-start justify-between gap-4">
             <div>
-              <div className="text-sm font-semibold tracking-[-0.005em]">Mini-map</div>
+              <div className="text-sm font-semibold tracking-[-0.005em]">Map</div>
               <div className="mt-[3px] text-[11px] text-[var(--bp-color-ink-55)]">
-                Flagged segment/treatments.
+                Flagged segment.
               </div>
             </div>
             <button
@@ -161,7 +164,7 @@ export function OverviewSection({
               onClick={() => onNavigate(mapTarget)}
               className="inline-flex shrink-0 items-center gap-1 rounded-[3px] border border-[var(--bp-color-ink-20)] px-2.5 py-1.5 text-[11.5px] font-semibold text-[var(--bp-color-ink)]"
             >
-              {mapTargetLabel}
+              View
             </button>
           </div>
           <div className="min-h-[172px]">
@@ -173,13 +176,13 @@ export function OverviewSection({
       <section className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 rounded-[3px] bg-[var(--bp-color-card)] p-4 shadow-[0_0_0_1px_var(--bp-color-rule)] max-lg:grid-cols-1">
         <div>
           <div className="mb-2 font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--bp-color-ink-55)]">
-            Verdict footer
+            Verdict
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <TreatmentBadgeRow treatments={treatments} max={6} />
-            <Badge variant="neutral">{formatCompact(route.dailyRiders)} weekday riders</Badge>
-            <Badge variant={route.weightedAvgSpeed < 6 ? "bad" : "neutral"}>
-              {route.weightedAvgSpeed.toFixed(1)} mph
+            <Badge variant="neutral">{formatCompact(route.dailyRiders)} riders/day</Badge>
+            <Badge variant={verdict.speedMph < 6 ? "bad" : "neutral"}>
+              {verdict.speedMph.toFixed(1)} mph
             </Badge>
           </div>
         </div>
@@ -188,7 +191,7 @@ export function OverviewSection({
           onClick={() => onNavigate("evidence")}
           className="inline-flex w-fit items-center gap-1.5 rounded-[3px] border border-[var(--bp-color-accent)] px-3 py-2 text-[12px] font-semibold text-[var(--bp-color-accent)]"
         >
-          Evidence checked
+          Evidence
         </button>
       </section>
     </div>
@@ -196,32 +199,35 @@ export function OverviewSection({
 }
 
 function VerdictSummary({
-  data,
   archetype,
+  verdictLead,
+  speedPercentile,
+  speedDataAsOf,
   slowestLabel,
 }: {
-  data: StudioRouteDetailResponse;
   archetype: ReturnType<typeof routeDossierArchetype>;
+  verdictLead: string;
+  speedPercentile: number | null;
+  speedDataAsOf: string | null;
   slowestLabel: string;
 }) {
-  const { route } = data;
   return (
     <div className="grid grid-cols-[4px_minmax(0,1fr)_auto] items-start gap-4 rounded-[3px] bg-[var(--bp-color-card)] p-4 shadow-[0_0_0_1px_var(--bp-color-rule)] max-lg:grid-cols-[4px_minmax(0,1fr)]">
       <div className="h-full rounded-[2px] bg-[var(--bp-color-ink)]" />
       <div>
         <div className="mb-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--bp-color-ink-55)]">
-          Route summary
+          Summary
         </div>
         <p className="m-0 max-w-[980px] text-[13.5px] leading-[1.65] text-[var(--bp-color-ink)]">
-          {route.diagnosis} {slowestLabel}
+          {verdictLead} {slowestLabel}
         </p>
       </div>
       <div className="flex flex-col items-end gap-2 max-lg:col-start-2 max-lg:items-start">
         <Badge variant={archetype.badgeVariant}>{archetype.label}</Badge>
-        <Badge variant={route.speedPercentile < 35 ? "bad" : "neutral"}>
-          {Math.round(route.speedPercentile)}th pct speed
+        <Badge variant={speedPercentile !== null && speedPercentile < 35 ? "bad" : "neutral"}>
+          {speedPercentile === null ? "No rank" : `${Math.round(speedPercentile)}th pct speed`}
         </Badge>
-        <DataAsOf dataAsOf={data.dossier?.speed.dataAsOf ?? null} />
+        <DataAsOf dataAsOf={speedDataAsOf} />
       </div>
     </div>
   );
@@ -241,7 +247,6 @@ function InsightCard({
   const caveats = safeInsightCaveats(insight, 2);
   const spec = routeInsightCardSpec(insight);
   const target = routeSectionCanNavigate(sectionRegistry, spec.tab) ? spec.tab : "evidence";
-  const targetLabel = target === spec.tab ? spec.tabLabel : "Evidence";
   return (
     <article className="flex min-h-[224px] flex-col rounded-[3px] bg-[var(--bp-color-card)] p-4 shadow-[0_0_0_1px_var(--bp-color-rule)]">
       <div className="flex items-start justify-between gap-3">
@@ -284,13 +289,13 @@ function InsightCard({
           onClick={() => onNavigate(target)}
           className="inline-flex items-center gap-1 text-[11.5px] font-semibold text-[var(--bp-color-accent)]"
         >
-          Open {targetLabel}
+          Open
         </button>
         <a
           href={`/briefs/new?route=${routeSlug}`}
           className="text-[11.5px] font-semibold text-[var(--bp-color-ink)]"
         >
-          Send to brief
+          Brief
         </a>
       </div>
     </article>
@@ -395,15 +400,15 @@ function CheckedCleanCard({
         Checked clean
       </div>
       <p className="m-0 max-w-[760px] text-[13px] leading-[1.6] text-[var(--bp-color-ink)]">
-        Checked through {checkedThrough ?? "the current dossier"}: no overview flags. {checkedCount}
-        checked-clean surface(s) in Evidence.
+        Checked through {checkedThrough ?? "the dossier"}: no flags. {checkedCount} clean
+        surface(s).
       </p>
       <button
         type="button"
         onClick={onNavigate}
         className="mt-3 inline-flex items-center gap-1.5 rounded-[3px] border border-[var(--bp-color-ink-20)] px-3 py-1.5 text-[11.5px] font-semibold text-[var(--bp-color-ink)]"
       >
-        Open Evidence
+        Evidence
       </button>
     </div>
   );

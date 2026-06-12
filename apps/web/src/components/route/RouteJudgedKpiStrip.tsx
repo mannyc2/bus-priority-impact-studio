@@ -36,10 +36,10 @@ function fmtPct(pct: number | null): string {
   return `${pct > 0 ? "+" : ""}${pct.toFixed(1)}%`;
 }
 
-function peerFraming(peerPercentile: number | null, kind: string): string | null {
+function peerFraming(peerPercentile: number | null): string | null {
   if (peerPercentile === null) return null;
   const p = Math.round(peerPercentile);
-  return p >= 50 ? `faster than ${p}% of ${kind}` : `slower than ${100 - p}% of ${kind}`;
+  return p >= 50 ? `>${p}% peers` : `<${100 - p}% peers`;
 }
 
 function Judged({
@@ -110,7 +110,7 @@ export function RouteJudgedKpiStrip({
   });
 
   const currentSpeed = speed?.current ?? route.weightedAvgSpeed;
-  const speedSub = peerFraming(speed?.peerPercentile ?? null, "local routes");
+  const speedSub = peerFraming(speed?.peerPercentile ?? null);
   const trendPct = speed?.movement6mPct ?? null;
 
   const aceActive = posture?.aceActive ?? route.aceStatus === "active";
@@ -135,7 +135,7 @@ export function RouteJudgedKpiStrip({
         value={currentSpeed.toFixed(1)}
         unit="mph"
         tone={currentSpeed < 6 ? "bad" : "ink"}
-        sub={speedSub ?? "no peer ranking for this route"}
+        sub={speedSub ?? "no peer rank"}
         dataAsOf={speed?.dataAsOf ?? null}
       />
       <Judged
@@ -154,7 +154,7 @@ export function RouteJudgedKpiStrip({
             />
           ) : undefined
         }
-        sub="speed over 6 months"
+        sub="6 mo speed"
         dataAsOf={speed?.dataAsOf ?? null}
       />
       <Judged
@@ -176,12 +176,12 @@ export function RouteJudgedKpiStrip({
         dataAsOf={ridersKpi.dataAsOf}
       />
       <Judged
-        label="Treatment posture"
+        label="Treatment"
         divider={false}
         onClick={clickTarget("treatments")}
         value={postureLabel}
         tone={postureLabel === "Treated" ? "good" : "ink"}
-        sub={postureBits.length > 0 ? postureBits.join(" · ") : "no treatments on record"}
+        sub={postureBits.length > 0 ? postureBits.join(" · ") : "no treatment"}
         dataAsOf={posture?.dataAsOf ?? null}
       />
     </MetricColumns>
