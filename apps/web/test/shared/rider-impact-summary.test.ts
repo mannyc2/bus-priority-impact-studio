@@ -12,7 +12,7 @@ import type {
 const ridershipCapability = {
   state: "ready",
   reason: "Ridership history is available.",
-  depth: "route_month",
+  depth: { monthsCovered: 4, grains: ["route_month"] },
   dataAsOf: "2026-03",
   freshness: "current",
 } satisfies RouteSurfaceCapability;

@@ -1,4 +1,5 @@
 import { CorridorMap } from "@/components/CorridorMap";
+import { routeSectionQuestion } from "@/components/route/section-registry";
 import { SectionHeader } from "@/components/SectionHeader";
 import { Badge } from "@/components/ui/badge";
 import type { StudioRouteDetailResponse } from "@/studio/api-contract";
@@ -18,8 +19,8 @@ export function RouteMapSection({ data }: { data: StudioRouteDetailResponse }) {
   return (
     <section className="flex flex-col gap-5">
       <SectionHeader
-        title="Route geography and flagged segments"
-        sub="Visible timepoint segments, pace coloring, and bus-priority treatment coverage for this route."
+        title={routeSectionQuestion("map")}
+        sub="Segment pace, flags, and bus-priority coverage."
         right={
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant={flagged ? "bad" : "neutral"}>

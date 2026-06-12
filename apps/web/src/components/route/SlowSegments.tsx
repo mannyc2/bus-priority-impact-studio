@@ -1,4 +1,3 @@
-import { ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { type CaptureSource, SendToBriefSheet } from "@/components/brief/SendToBriefSheet.js";
 import { ChartFrame } from "@/components/ChartFrame";
@@ -13,6 +12,7 @@ import {
   routeInsightPlacements,
   safeInsightCaveats,
 } from "@/components/route/route-insight-placement";
+import { routeSectionQuestion } from "@/components/route/section-registry";
 import { type WhereWhenSummary, whereWhenSummary } from "@/components/route/where-when-summary";
 import { SectionHeader } from "@/components/SectionHeader";
 import { SegmentRow, SegmentRowHeader } from "@/components/SegmentRow";
@@ -81,7 +81,7 @@ export function SlowSegmentsSection({
   return (
     <section className="flex flex-col gap-5">
       <SectionHeader
-        title="Top slow segments by rider-hours lost"
+        title={routeSectionQuestion("where-when")}
         sub={summary.sectionSubtitle}
         right={
           <div className="flex items-center gap-2">
@@ -104,7 +104,7 @@ export function SlowSegmentsSection({
         <div className="rounded-[3px] bg-[var(--bp-color-card)] px-5 py-4 shadow-[0_0_0_1px_var(--bp-color-rule)]">
           <SectionHeader
             title="Corridor profile"
-            sub="Average weekday speed for each segment. The dashed line is the schedule; the bars below show bus-priority treatments."
+            sub="Weekday segment speeds; dashed line is schedule."
           />
           <CorridorProfile route={route} segments={segments} highlightId={flaggedId} />
         </div>
@@ -190,7 +190,6 @@ export function SlowSegmentsSection({
                     className="inline-flex items-center gap-1 text-[11.5px] font-semibold text-[var(--bp-color-accent)] hover:underline"
                   >
                     Send to brief
-                    <ArrowRight size={13} />
                   </button>
                 </div>
               </div>
@@ -199,14 +198,8 @@ export function SlowSegmentsSection({
         </div>
       </div>
       <div className="mt-3 text-[11.5px] text-[var(--bp-color-ink-55)]">
-        Showing {visible.length} of {segments.length} timepoint segments in this direction filter.
-        {unmatchedMapInsightCount > 0 ? (
-          <span>
-            {" "}
-            Some detector notes are available but are not tied to the visible segment rows in this
-            release.
-          </span>
-        ) : null}
+        {visible.length} of {segments.length} segments shown.
+        {unmatchedMapInsightCount > 0 ? <span> More detector notes are off-row.</span> : null}
       </div>
       {capture ? <SendToBriefSheet source={capture} onClose={() => setSendSeg(null)} /> : null}
     </section>
@@ -356,7 +349,6 @@ function SlowSegmentCard({
         className="mt-4 inline-flex w-fit items-center gap-1.5 rounded-[3px] border border-[var(--bp-color-ink-20)] px-3 py-1.5 text-[11.5px] font-semibold text-[var(--bp-color-ink)] hover:bg-[var(--bp-color-paper-deep)]"
       >
         Send to brief
-        <ArrowRight size={13} />
       </button>
     </article>
   );

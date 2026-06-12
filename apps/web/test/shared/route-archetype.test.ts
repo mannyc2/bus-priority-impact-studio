@@ -53,7 +53,13 @@ function dossier(months: number): RouteDossierSummaryForDetail {
       dataAsOf: "2026-03",
     },
     worstSegment: null,
-    treatmentPosture: null,
+    treatmentPosture: {
+      aceActive: false,
+      aceSince: null,
+      busLaneMatchedLaneCount: 0,
+      latestEvents: [],
+      dataAsOf: "2026-03",
+    },
   };
 }
 

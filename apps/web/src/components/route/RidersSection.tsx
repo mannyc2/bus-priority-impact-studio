@@ -13,6 +13,7 @@ import {
   formatCompact,
 } from "@/components/route/route-derived";
 import { safeInsightCaveats } from "@/components/route/route-insight-placement";
+import { routeSectionQuestion } from "@/components/route/section-registry";
 import { SectionHeader } from "@/components/SectionHeader";
 import { SpeedTrend } from "@/components/SpeedTrend";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -33,7 +34,7 @@ export function RidersSection({ data }: { data: StudioRouteDetailResponse }) {
   return (
     <div className="flex flex-col gap-7">
       <SectionHeader
-        title="Who bears it?"
+        title={routeSectionQuestion("riders")}
         sub={summary.sectionSubtitle}
         right={<DataAsOf dataAsOf={summary.dataAsOf} />}
       />

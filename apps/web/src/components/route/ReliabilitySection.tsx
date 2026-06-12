@@ -1,6 +1,7 @@
 import { DataAsOf } from "@/components/DataAsOf";
 import { reliabilityInsightRows, reliabilitySummary } from "@/components/route/reliability-summary";
 import { safeInsightCaveats } from "@/components/route/route-insight-placement";
+import { routeSectionQuestion } from "@/components/route/section-registry";
 import { SectionHeader } from "@/components/SectionHeader";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -29,7 +30,7 @@ export function ReliabilitySection({ data }: { data: StudioRouteDetailResponse }
   return (
     <section className="flex flex-col gap-5">
       <SectionHeader
-        title="Can riders count on it?"
+        title={routeSectionQuestion("reliability")}
         sub={summary.sectionSubtitle}
         right={<DataAsOf dataAsOf={summary.dataAsOf} />}
       />

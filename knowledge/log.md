@@ -2,6 +2,30 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Tier 2 Bx41 Webster CAC4 plan source closes one more source
+
+Reviewed `nyc_dot_select_bus_service_pdf_2012_11_sbs_webster_cac4` from the full-corpus source
+review workspace as a proposed Bx41 Webster Avenue SBS plan record. The local ignored
+reviewed-record seed now has 17 sources and 17 records. The record cites the November 29, 2012 CAC
+#4 deck, Bx41 LTD to Bx41 SBS conversion, 4 miles of offset bus lanes with bus bulb stations,
+off-board fare collection, TSP, pedestrian safety improvements, half-mile SBS stop spacing, the
+Webster Avenue corridor termini, and the 2013/2014 implementation horizon.
+
+The record stores `effectiveDate: 2013` with `datePrecision: year` because this source gives a
+2013/2014 planning horizon rather than the later exact launch date. Bx15/Bx55/Bx34/Bx12/M60 and the
+LaGuardia SBS references remain caveated as context, and station-location/northern-routing options
+are not treated as final geometry from this deck alone. Regenerated the local ignored source receipt
+closure audit. It now reports 291 queue sources, 17 valid reviewed records, 17 reviewed-record
+sources, 18 closed sources, 273 open sources, and 0 conflicts; public promotion remains blocked on
+full source closure. The broader Tier 2 structured-data inventory command still reports the older
+published-inventory next action because it scans published artifacts rather than this ignored
+manual-review seed.
+
+Verified with `jq empty
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/intervention-records-corpus-reviewed.json`,
+`bun --filter @bp/pipeline-v2 cli -- docs tier2 source-receipt-audit ...`, and `bun --filter
+@bp/pipeline-v2 cli -- audit tier2-structured-data --json`.
+
 ## [2026-06-12] engineering | Evidence names hidden sections with route-detail questions
 
 Advanced the route-detail §4.3 / §8.1 handoff by letting the section registry carry question-shaped

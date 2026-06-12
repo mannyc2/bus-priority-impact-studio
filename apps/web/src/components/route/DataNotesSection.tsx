@@ -23,6 +23,7 @@ import {
 } from "@/components/route/route-insight-card";
 import {
   type RouteDetailTabValue,
+  routeSectionQuestion,
   routeSectionRegistry,
 } from "@/components/route/section-registry";
 import { SectionHeader } from "@/components/SectionHeader";
@@ -224,7 +225,7 @@ function EvidenceIndexSection({
 }) {
   return (
     <div>
-      <SectionHeader title="Evidence index" />
+      <SectionHeader title={routeSectionQuestion("evidence")} />
       <div className="rounded-[3px] bg-[var(--bp-color-card)] shadow-[0_0_0_1px_var(--bp-color-rule)]">
         {rows.length > 0 ? (
           rows.map((row, index) => (

@@ -5,6 +5,7 @@ import {
   dossierMetricWindow,
   dossierSpeedSeries,
 } from "@/components/route/route-derived";
+import { routeSectionQuestion } from "@/components/route/section-registry";
 import { SectionHeader } from "@/components/SectionHeader";
 import { SpeedTrend } from "@/components/SpeedTrend";
 import { TreatmentInventory } from "@/components/TreatmentBadge";
@@ -51,8 +52,8 @@ export function TreatmentsHistorySection({ data }: { data: StudioRouteDetailResp
     <div className="flex flex-col gap-7">
       <section>
         <SectionHeader
-          title="Treatment posture"
-          sub="A single view of what is in place, what is only proposed, and which dated records are strong enough to read against route performance."
+          title={routeSectionQuestion("treatments")}
+          sub="What is in place, proposed, and dated enough to read against performance."
           right={
             <Badge variant={comparisonCards.length > 0 ? "accent" : "neutral"}>
               {comparisonCards.length} evaluated

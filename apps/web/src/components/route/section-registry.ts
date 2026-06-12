@@ -16,18 +16,36 @@ export type RouteDetailTab = {
   badge?: { count: number; severity: "low" | "medium" | "high" } | undefined;
 };
 
+export const ROUTE_SECTION_QUESTIONS = {
+  overview: "What's the story?",
+  map: "Where is this route, and where does it hurt?",
+  "where-when": "Where and when does it lose time?",
+  reliability: "Can riders count on it?",
+  riders: "Who bears it?",
+  treatments: "What was tried, and what happened?",
+  evidence: "What can I cite, and what did you check?",
+} as const satisfies Record<RouteDetailTabValue, string>;
+
 /** The question-shaped route-section tabs (frontend §4.3). Treatments & history
  * absorbs the old Interventions and Timeline tabs; Evidence absorbs Data notes.
  * Compare still consumes a subset until map/reliability compare sections exist. */
 export const ROUTE_DETAIL_TABS = [
-  { value: "overview", label: "Overview" },
-  { value: "map", label: "Map" },
-  { value: "where-when", label: "Where & when" },
-  { value: "reliability", label: "Reliability", question: "Can riders count on it?" },
-  { value: "riders", label: "Riders" },
-  { value: "treatments", label: "Treatments & history", question: "What was tried?" },
-  { value: "evidence", label: "Evidence" },
+  { value: "overview", label: "Overview", question: ROUTE_SECTION_QUESTIONS.overview },
+  { value: "map", label: "Map", question: ROUTE_SECTION_QUESTIONS.map },
+  { value: "where-when", label: "Where & when", question: ROUTE_SECTION_QUESTIONS["where-when"] },
+  { value: "reliability", label: "Reliability", question: ROUTE_SECTION_QUESTIONS.reliability },
+  { value: "riders", label: "Riders", question: ROUTE_SECTION_QUESTIONS.riders },
+  {
+    value: "treatments",
+    label: "Treatments & history",
+    question: ROUTE_SECTION_QUESTIONS.treatments,
+  },
+  { value: "evidence", label: "Evidence", question: ROUTE_SECTION_QUESTIONS.evidence },
 ] as const satisfies readonly RouteDetailTab[];
+
+export function routeSectionQuestion(tabValue: RouteDetailTabValue): string {
+  return ROUTE_SECTION_QUESTIONS[tabValue];
+}
 
 /**
  * The manifest-driven section registry (frontend §8.1): each route-detail tab
