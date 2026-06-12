@@ -188,3 +188,13 @@ export function routeSectionCanNavigate(
 ): boolean {
   return registry.presentations[tabValue].mode !== "hidden";
 }
+
+export function routeSectionNavigationTarget(
+  registry: Pick<RouteSectionRegistry, "presentations">,
+  tabValue: RouteDetailTabValue,
+  fallback: RouteDetailTabValue | null = "evidence",
+): RouteDetailTabValue | null {
+  if (routeSectionCanNavigate(registry, tabValue)) return tabValue;
+  if (fallback === null) return null;
+  return routeSectionCanNavigate(registry, fallback) ? fallback : null;
+}

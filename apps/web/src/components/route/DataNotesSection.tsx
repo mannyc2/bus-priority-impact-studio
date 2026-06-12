@@ -23,8 +23,9 @@ import {
 } from "@/components/route/route-insight-card";
 import {
   type RouteDetailTabValue,
+  type RouteSectionRegistry,
+  routeSectionCanNavigate,
   routeSectionQuestion,
-  routeSectionRegistry,
 } from "@/components/route/section-registry";
 import { SectionHeader } from "@/components/SectionHeader";
 import { Badge } from "@/components/ui/badge";
@@ -32,9 +33,11 @@ import type { StudioRouteDetailResponse } from "@/studio/api-contract";
 
 export function DataNotesSection({
   data,
+  sectionRegistry,
   onNavigate,
 }: {
   data: StudioRouteDetailResponse;
+  sectionRegistry: Pick<RouteSectionRegistry, "presentations" | "hiddenSections">;
   onNavigate: (tab: RouteDetailTabValue) => void;
 }) {
   const { route, quality, segments, dossier } = data;
@@ -44,7 +47,7 @@ export function DataNotesSection({
   const checkedCleanChips = checkedCleanCoverageChips(coverage);
   const evidenceRows = routeEvidenceIndexRows(data.insights);
   const archetype = routeDossierArchetype({ capability: data.capability, dossier });
-  const hiddenTabs = routeSectionRegistry(data.capability).hiddenSections;
+  const hiddenTabs = sectionRegistry.hiddenSections;
   const datasets = [
     ["Segment speeds", "MTA Open Data", `${segments.length} segments`, 14],
     [
@@ -116,7 +119,12 @@ export function DataNotesSection({
         </div>
       </div>
 
-      <EvidenceIndexSection rows={evidenceRows} routeSlug={route.slug} onNavigate={onNavigate} />
+      <EvidenceIndexSection
+        rows={evidenceRows}
+        routeSlug={route.slug}
+        sectionRegistry={sectionRegistry}
+        onNavigate={onNavigate}
+      />
 
       <div>
         <SectionHeader
@@ -145,7 +153,7 @@ export function DataNotesSection({
                   <Badge variant={row.tone}>{row.stateLabel}</Badge>
                 </div>
                 <div className="text-[11.5px] leading-[1.45] text-[var(--bp-color-ink-55)]">
-                  {row.reason ?? coverageReason(row.state)}
+                  {row.reason ?? row.stateLabel}
                 </div>
                 <div className="text-right max-lg:text-left">
                   <DataAsOf dataAsOf={row.dataAsOf} />
@@ -164,7 +172,7 @@ export function DataNotesSection({
         <div>
           <SectionHeader
             title="Sections not shown"
-            sub="Unavailable where source evidence is not ready."
+            sub="Hidden where route evidence is not ready."
           />
           <div className="rounded-[3px] bg-[var(--bp-color-card)] shadow-[0_0_0_1px_var(--bp-color-rule)]">
             {hiddenTabs.map(({ tab, presentation }) => (
@@ -217,10 +225,12 @@ export function DataNotesSection({
 function EvidenceIndexSection({
   rows,
   routeSlug,
+  sectionRegistry,
   onNavigate,
 }: {
   rows: readonly RouteEvidenceIndexRow[];
   routeSlug: string;
+  sectionRegistry: Pick<RouteSectionRegistry, "presentations">;
   onNavigate: (tab: RouteDetailTabValue) => void;
 }) {
   return (
@@ -268,6 +278,8 @@ function EvidenceIndexSection({
               <div className="flex flex-col items-end gap-2 max-lg:items-start">
                 {row.tab === "evidence" ? (
                   <Badge variant="accent">In Evidence</Badge>
+                ) : !routeSectionCanNavigate(sectionRegistry, row.tab) ? (
+                  <Badge variant="neutral">Covered in Evidence</Badge>
                 ) : (
                   <button
                     type="button"
@@ -289,7 +301,7 @@ function EvidenceIndexSection({
           ))
         ) : (
           <div className="px-4 py-3 text-[12.5px] text-[var(--bp-color-ink-55)]">
-            The coverage matrix below still records what was checked for this route.
+            The matrix below still records what was checked.
           </div>
         )}
       </div>
@@ -321,27 +333,6 @@ function CheckedCleanChipRail({ chips }: { chips: readonly CheckedCleanCoverageC
 
 function hiddenStateLabel(state: string): string {
   return state.replaceAll("_", " ");
-}
-
-function coverageReason(state: string): string {
-  switch (state) {
-    case "ready":
-      return "Evidence is available for this section.";
-    case "partial":
-      return "Evidence is available, but coverage is incomplete.";
-    case "checked_clean":
-      return "The source or detector ran and did not publish a route flag.";
-    case "building":
-      return "The producer exists but has not finished for this route.";
-    case "insufficient_data":
-      return "The available inputs do not support a route-level claim.";
-    case "not_applicable":
-      return "This surface does not apply to this route.";
-    case "blocked":
-      return "An upstream dependency blocked this surface.";
-    default:
-      return "No route-level explanation published for this surface.";
-  }
 }
 
 function DataWindow({

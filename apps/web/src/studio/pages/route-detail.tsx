@@ -112,7 +112,8 @@ export function RouteDetailPage({ data }: { data: StudioRouteDetailResponse | nu
         {section("overview", () => (
           <OverviewSection
             data={data}
-            onNavigate={(tab) => setActiveTab(tab as RouteDetailTabValue)}
+            sectionRegistry={sectionRegistry}
+            onNavigate={(tab) => setActiveTab(tab)}
           />
         ))}
         {section("map", () => (
@@ -137,7 +138,11 @@ export function RouteDetailPage({ data }: { data: StudioRouteDetailResponse | nu
           <TreatmentsHistorySection data={data} />
         ))}
         {section("evidence", () => (
-          <DataNotesSection data={data} onNavigate={(tab) => setActiveTab(tab)} />
+          <DataNotesSection
+            data={data}
+            sectionRegistry={sectionRegistry}
+            onNavigate={(tab) => setActiveTab(tab)}
+          />
         ))}
       </RouteDetailShell>
     </StudioPage>

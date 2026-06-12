@@ -16,7 +16,11 @@ import {
   routeInsightPlacements,
   safeInsightCaveats,
 } from "@/components/route/route-insight-placement";
-import type { RouteDetailTabValue } from "@/components/route/section-registry";
+import {
+  type RouteDetailTabValue,
+  type RouteSectionRegistry,
+  routeSectionCanNavigate,
+} from "@/components/route/section-registry";
 import { SectionHeader } from "@/components/SectionHeader";
 import { SpeedTrend } from "@/components/SpeedTrend";
 import { TreatmentBadgeRow } from "@/components/TreatmentBadge";
@@ -52,9 +56,11 @@ const COVERAGE_CHIP_CLASSES = ["w-8", "w-12", "w-7"] as const;
 
 export function OverviewSection({
   data,
+  sectionRegistry,
   onNavigate,
 }: {
   data: StudioRouteDetailResponse;
+  sectionRegistry: Pick<RouteSectionRegistry, "presentations">;
   onNavigate: (tab: RouteDetailTabValue) => void;
 }) {
   const { route, segments } = data;
@@ -67,6 +73,8 @@ export function OverviewSection({
   const treatments = routeTreatments(route, segments);
   const overviewInsights = routeInsightPlacements(data.insights).overview;
   const archetype = routeDossierArchetype({ capability: data.capability, dossier: data.dossier });
+  const mapTarget = routeSectionCanNavigate(sectionRegistry, "map") ? "map" : "evidence";
+  const mapTargetLabel = mapTarget === "map" ? "Map" : "Evidence";
   const checkedCleanSurfaces = Object.values(data.capability?.surfaces ?? {}).filter(
     (surface) => surface.state === "checked_clean",
   );
@@ -82,7 +90,7 @@ export function OverviewSection({
       <section className="flex flex-col gap-4">
         <SectionHeader
           title="What stands out"
-          sub="Readiness-gated route signals, ordered by severity and grounded in the current dossier."
+          sub="Readiness-gated signals, ordered by severity."
           right={<DataAsOf dataAsOf={data.dossier?.dataAsOf ?? null} />}
         />
         <VerdictSummary
@@ -103,6 +111,7 @@ export function OverviewSection({
                 key={`${insight.detectorId}:${insight.scopeId ?? insight.title}`}
                 insight={insight}
                 routeSlug={route.slug}
+                sectionRegistry={sectionRegistry}
                 onNavigate={onNavigate}
               />
             ))}
@@ -122,7 +131,7 @@ export function OverviewSection({
           source={
             hasSpeedHistory
               ? `Monthly average speed${dossierMetricWindow(data.dossier?.speed) ? `, ${dossierMetricWindow(data.dossier?.speed)}` : ""}.`
-              : "Recent trend estimate; the dashed line is the schedule."
+              : "Recent trend estimate; dashed line is schedule."
           }
           height={172}
           right={
@@ -141,15 +150,15 @@ export function OverviewSection({
             <div>
               <div className="text-sm font-semibold tracking-[-0.005em]">Mini-map</div>
               <div className="mt-[3px] text-[11px] text-[var(--bp-color-ink-55)]">
-                Flagged segment and visible treatment coverage.
+                Flagged segment and treatments.
               </div>
             </div>
             <button
               type="button"
-              onClick={() => onNavigate("map")}
+              onClick={() => onNavigate(mapTarget)}
               className="inline-flex shrink-0 items-center gap-1 rounded-[3px] border border-[var(--bp-color-ink-20)] px-2.5 py-1.5 text-[11.5px] font-semibold text-[var(--bp-color-ink)]"
             >
-              Map
+              {mapTargetLabel}
             </button>
           </div>
           <div className="min-h-[172px]">
@@ -218,14 +227,18 @@ function VerdictSummary({
 function InsightCard({
   insight,
   routeSlug,
+  sectionRegistry,
   onNavigate,
 }: {
   insight: StudioRouteInsight;
   routeSlug: string;
+  sectionRegistry: Pick<RouteSectionRegistry, "presentations">;
   onNavigate: (tab: RouteDetailTabValue) => void;
 }) {
   const caveats = safeInsightCaveats(insight, 2);
   const spec = routeInsightCardSpec(insight);
+  const target = routeSectionCanNavigate(sectionRegistry, spec.tab) ? spec.tab : "evidence";
+  const targetLabel = target === spec.tab ? spec.tabLabel : "Evidence";
   return (
     <article className="flex min-h-[224px] flex-col rounded-[3px] bg-[var(--bp-color-card)] p-4 shadow-[0_0_0_1px_var(--bp-color-rule)]">
       <div className="flex items-start justify-between gap-3">
@@ -265,10 +278,10 @@ function InsightCard({
         </div>
         <button
           type="button"
-          onClick={() => onNavigate(spec.tab)}
+          onClick={() => onNavigate(target)}
           className="inline-flex items-center gap-1 text-[11.5px] font-semibold text-[var(--bp-color-accent)]"
         >
-          Open {spec.tabLabel}
+          Open {targetLabel}
         </button>
         <a
           href={`/briefs/new?route=${routeSlug}`}
@@ -380,7 +393,7 @@ function CheckedCleanCard({
       </div>
       <p className="m-0 max-w-[760px] text-[13px] leading-[1.6] text-[var(--bp-color-ink)]">
         Checked through {checkedThrough ?? "the current dossier"}: no ranked overview flags are
-        published for this route. {checkedCount} checked-clean surface(s) are listed in Evidence.
+        published. {checkedCount} checked-clean surface(s) are listed in Evidence.
       </p>
       <button
         type="button"
