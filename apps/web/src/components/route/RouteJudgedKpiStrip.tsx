@@ -36,10 +36,10 @@ function fmtPct(pct: number | null): string {
   return `${pct > 0 ? "+" : ""}${pct.toFixed(1)}%`;
 }
 
-function peerFraming(peerPercentile: number | null): string | null {
+function peerHeadline(peerPercentile: number | null): string | null {
   if (peerPercentile === null) return null;
-  const p = Math.round(peerPercentile);
-  return p >= 50 ? `>${p}% peers` : `<${100 - p}% peers`;
+  const fast = peerPercentile >= 50;
+  return `${fast ? ">" : "<"}${Math.round(fast ? peerPercentile : 100 - peerPercentile)}%`;
 }
 
 function Judged({
@@ -110,7 +110,8 @@ export function RouteJudgedKpiStrip({
   });
 
   const currentSpeed = speed?.current ?? route.weightedAvgSpeed;
-  const speedSub = peerFraming(speed?.peerPercentile ?? null);
+  const currentSpeedLabel = currentSpeed.toFixed(1);
+  const speedPeer = peerHeadline(speed?.peerPercentile ?? null);
   const trendPct = speed?.movement6mPct ?? null;
 
   const aceActive = posture?.aceActive ?? route.aceStatus === "active";
@@ -132,10 +133,10 @@ export function RouteJudgedKpiStrip({
         label="Condition"
         divider
         onClick={clickTarget("where-when")}
-        value={currentSpeed.toFixed(1)}
-        unit="mph"
+        value={speedPeer ?? currentSpeedLabel}
+        unit={speedPeer ? "peers" : "mph"}
         tone={currentSpeed < 6 ? "bad" : "ink"}
-        sub={speedSub ?? "no rank"}
+        sub={speedPeer ? `${currentSpeedLabel} mph` : "no rank"}
         dataAsOf={speed?.dataAsOf ?? null}
       />
       <Judged
@@ -154,7 +155,7 @@ export function RouteJudgedKpiStrip({
             />
           ) : undefined
         }
-        sub="6 mo speed"
+        sub="6 mo"
         dataAsOf={speed?.dataAsOf ?? null}
       />
       <Judged

@@ -67,7 +67,7 @@ describe("whereWhenSummary", () => {
       worstSegmentLabel: "First Avenue 67 St to 79 St",
       worstSegmentDetail: "4 months slowest",
       dataAsOf: "2026-03",
-      sectionSubtitle: "1 segment with 2 months speed history (2026-01 to 2026-03).",
+      sectionSubtitle: "1 segment with 2 months history (2026-01 to 2026-03).",
     });
   });
 

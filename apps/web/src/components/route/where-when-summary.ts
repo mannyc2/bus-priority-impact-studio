@@ -58,7 +58,7 @@ export function whereWhenSummary({
       ? `${worstSegment.persistenceMonths} ${plural(worstSegment.persistenceMonths, "month")} slowest`
       : fallbackWorst
         ? `${formatCompact(fallbackWorst.riderHours)} rider-hr/day`
-        : "no segment-level speed rows in this release",
+        : "no segment rows",
     dataAsOf: speed?.dataAsOf ?? dossier?.dataAsOf ?? null,
     sectionSubtitle: sectionSubtitle(segments.length, monthCount, window),
   };
@@ -98,9 +98,9 @@ function peerFraming(peerPercentile: number | null): string {
 
 function sectionSubtitle(segmentCount: number, monthCount: number, window: string | null): string {
   if (monthCount > 0 && window !== null) {
-    return `${segmentCount} ${plural(segmentCount, "segment")} with ${monthCount} ${plural(monthCount, "month")} speed history (${window}).`;
+    return `${segmentCount} ${plural(segmentCount, "segment")} with ${monthCount} ${plural(monthCount, "month")} history (${window}).`;
   }
-  return `${segmentCount} ${plural(segmentCount, "segment")} in current projection. Hour strip shows time-of-day severity.`;
+  return `${segmentCount} ${plural(segmentCount, "segment")} in projection. Hour strip shows time-of-day severity.`;
 }
 
 function plural(count: number, singular: string): string {

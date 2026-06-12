@@ -9,6 +9,7 @@ import type { StudioRouteDetailResponse } from "@/studio/api-contract";
 
 export function ReliabilitySection({ data }: { data: StudioRouteDetailResponse }) {
   const observed = data.route.observedReliability;
+  // biome-ignore lint/complexity/useLiteralKeys: capability surfaces are typed as an index signature.
   const capability = data.capability?.surfaces["reliability"] ?? null;
   const summary = reliabilitySummary({ observed, capability });
   const insights = reliabilityInsightRows(data.insights);
@@ -16,10 +17,9 @@ export function ReliabilitySection({ data }: { data: StudioRouteDetailResponse }
   if (observed === null) {
     return (
       <Alert variant="info">
-        <AlertTitle variant="info">Reliability not published yet</AlertTitle>
+        <AlertTitle variant="info">Reliability pending</AlertTitle>
         <AlertDescription>
-          {capability?.reason ??
-            "Observed headway evidence has not cleared the route dossier gate."}
+          {capability?.reason ?? "Headway evidence has not cleared gate."}
         </AlertDescription>
       </Alert>
     );
@@ -68,11 +68,7 @@ export function ReliabilitySection({ data }: { data: StudioRouteDetailResponse }
         <div className="rounded-[3px] bg-[var(--bp-color-card)] p-5 shadow-[0_0_0_1px_var(--bp-color-rule)]">
           <SectionHeader
             title="Signals"
-            sub={
-              insights.length > 0
-                ? "Public reliability context for this route."
-                : "No public reliability insight yet."
-            }
+            sub={insights.length > 0 ? "Reliability context." : "No insight yet."}
           />
           <ReliabilityInsightList insights={insights} />
         </div>
@@ -146,8 +142,7 @@ function ReliabilityInsightList({ insights }: { insights: StudioRouteDetailRespo
   if (insights.length === 0) {
     return (
       <div className="mt-3 rounded-[3px] bg-[var(--bp-color-paper-deep)] px-3 py-2.5 text-[12px] leading-[1.45] text-[var(--bp-color-ink-55)]">
-        Observed reliability can be cited, but no reliability detector card has cleared the public
-        gate.
+        Reliability can be cited; no card cleared the public gate.
       </div>
     );
   }

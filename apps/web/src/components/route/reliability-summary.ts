@@ -43,14 +43,14 @@ export function reliabilitySummary({
 }): ReliabilitySummary {
   if (observed === null) {
     const state = capability?.state ?? "building";
-    const reason = capability?.reason ?? "Observed wait reliability is not attached to this route.";
+    const reason = capability?.reason ?? "Wait reliability is not attached.";
     return {
       kpiValue: state === "building" ? "Building" : "Not published",
       kpiSub: reason,
       kpiTone: "ink",
       sectionSubtitle: reason,
       statusLabel: state.replaceAll("_", " "),
-      statusDetail: "No route-level observed reliability payload is attached.",
+      statusDetail: "No reliability payload.",
       sampleLabel: "n/a",
       sampleDetail: "sample coverage not published",
       medianHeadwayLabel: "n/a",
