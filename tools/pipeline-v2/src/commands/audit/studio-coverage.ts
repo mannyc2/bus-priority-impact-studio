@@ -131,6 +131,7 @@ export type StudioCoverageAuditResult = {
     detectorFindingsMissingRefs: string[];
     evidenceCatalogInvalidItems: string[];
     generatedArtifactPresentationViolations: string[];
+    d1RouteAddressabilityShare: number;
     studioRouteCoverageShare: number;
     studioBriefCoverageShare: number;
     findingRouteCount: number;
@@ -526,6 +527,10 @@ export async function auditStudioCoverage(
     publicRouteIds.size === 0
       ? 0
       : Number((projectionFindingRouteIds.size / publicRouteIds.size).toFixed(4));
+  const d1RouteAddressabilityShare =
+    publicRouteIds.size === 0
+      ? 0
+      : Number((Math.min(1, catalog.length / publicRouteIds.size)).toFixed(4));
 
   const [briefEvidenceDetailCount, briefHistoryDetailCount] = await Promise.all([
     Promise.all(
@@ -549,7 +554,9 @@ export async function auditStudioCoverage(
       auditEvidenceCatalog(studioRoot),
       auditGeneratedArtifactPresentationText(studioRoot),
     ]);
-  const hasRouteBriefInputGaps =
+  const hasMandatoryServingGaps =
+    publicRouteIds.size === 0 ||
+    d1RouteAddressabilityShare < 1 ||
     routeBriefInputs.routesMissingBriefInput.length > 0 ||
     routeBriefInputs.routesMissingScheduleComparisons.length > 0 ||
     routeBriefInputs.routesWithSegmentsMissingScheduleComparisons.length > 0 ||
@@ -557,16 +564,9 @@ export async function auditStudioCoverage(
     routeBriefInputs.routesWithMissingRidershipExposure.length > 0 ||
     routeBriefInputs.routesWithMissingHourlyBins.length > 0 ||
     routeBriefInputs.routesWithLegacyHourlyBins.length > 0 ||
-    projectionSegmentHours.segmentsWithInvalidHourBins > 0 ||
     routesWithInvalidLaneCoverage.length > 0 ||
     routesWithInvalidTrendMonthLabels.length > 0 ||
     routesWithInvalidRidershipProfile.length > 0 ||
-    projectionSegmentHours.segmentsWithInvalidLaneGeometry > 0 ||
-    projectionSegmentHours.segmentsWithInvalidRouteShapeGeometry > 0 ||
-    projectionSegmentHours.segmentsWithInvalidTspEvidence > 0 ||
-    projectionSegmentHours.segmentsWithInvalidPublicAiNotes > 0 ||
-    projectionSegmentHours.routeDetailsWithExcessPublicAiNoteDensity > 0 ||
-    projectionSegmentHours.routeDetailsWithInvalidRidershipProfile > 0 ||
     projectionSegmentHours.routeSegmentEvidenceWithInvalidLaneGeometry > 0 ||
     projectionSegmentHours.routeSegmentEvidenceWithInvalidRouteShapeGeometry > 0 ||
     projectionSegmentHours.routeSegmentEvidenceWithInvalidTspEvidence > 0 ||
@@ -574,12 +574,23 @@ export async function auditStudioCoverage(
     projectionSegmentHours.routeSegmentResponsesWithInvalidCoverageMetadata > 0 ||
     evidenceCatalogAudit.evidenceCatalogInvalidItemCount > 0 ||
     presentationScan.generatedArtifactPresentationViolationCount > 0;
+  const hasLegacyRouteDetailProjectionGaps =
+    projectionSegmentHours.segmentsWithInvalidHourBins > 0 ||
+    projectionSegmentHours.segmentsWithInvalidLaneGeometry > 0 ||
+    projectionSegmentHours.segmentsWithInvalidRouteShapeGeometry > 0 ||
+    projectionSegmentHours.segmentsWithInvalidTspEvidence > 0 ||
+    projectionSegmentHours.segmentsWithInvalidPublicAiNotes > 0 ||
+    projectionSegmentHours.routeDetailsWithExcessPublicAiNoteDensity > 0 ||
+    projectionSegmentHours.routeDetailsWithInvalidRidershipProfile > 0;
 
   const status: StudioCoverageAuditResult["status"] =
-    studioRouteCoverageShare < 0.5 || studioBriefCoverageShare < 0.5 || hasRouteBriefInputGaps
+    hasMandatoryServingGaps
       ? "fail"
       : routesMissingFromProjection.length > 0 ||
           briefsMissingFromProjection.length > 0 ||
+          studioRouteCoverageShare < 0.5 ||
+          studioBriefCoverageShare < 0.5 ||
+          hasLegacyRouteDetailProjectionGaps ||
           findingsMissingReview.length > 0 ||
           reviewStateCounts.generatedCandidate > 0 ||
           reviewCandidatesMarkedApproved.length > 0 ||
@@ -710,11 +721,12 @@ export async function auditStudioCoverage(
       evidenceCatalogInvalidItems: evidenceCatalogAudit.invalidEvidenceCatalogRefs,
       generatedArtifactPresentationViolations:
         presentationScan.generatedArtifactPresentationViolations,
+      d1RouteAddressabilityShare,
       studioRouteCoverageShare,
       studioBriefCoverageShare,
       findingRouteCount: projectionFindingRouteIds.size,
       studioFindingCoverageShare,
-      note: "Studio route and brief coverage are measured against public-visible route_brief_summary rows, not every route_catalog row. Findings are thresholded candidate outputs, so finding coverage is reported but not required to reach every route. Route brief inputs must include complete schedule comparisons, ridership exposure, and 24 observed hourly slow-window bins for every public route segment before the release can pass. Route list/detail/segment projections must carry DOT bus-lane geometry, source-month labels for speed/ridership sparklines, route-level hourly ridership profiles, route-shape LineStrings, TSP source-status evidence, complete delay-exposure evidence, explicit route-segment coverage blocker metadata, optional sparse public AI notes with only body/source/generationMode, unique stable evidence catalog IDs with source refs and immutable artifact href/hash metadata, and no retired synthetic/proxy presentation phrases in generated JSON artifacts.",
+      note: "D1 route addressability is the public /api/v1/studio/routes fail gate; legacy studio/v1 route and brief projection coverage is retained as an artifact-depth warning because sparse routes now return D1-backed partial detail with surface flags. Findings are thresholded candidate outputs, so finding coverage is reported but not required to reach every route. Route brief inputs must include complete schedule comparisons, ridership exposure, and 24 observed hourly slow-window bins for every public route segment before the release can pass. Route segment evidence projections must carry DOT bus-lane geometry, route-shape LineStrings, TSP source-status evidence, complete delay-exposure evidence, explicit route-segment coverage blocker metadata, unique stable evidence catalog IDs with source refs and immutable artifact href/hash metadata, and no retired synthetic/proxy presentation phrases in generated JSON artifacts. Legacy route detail projection geometry, public-AI-note, and route-level ridership-profile gaps are warnings until the v1 curated route-detail artifacts are rebuilt from the v2 serving surfaces.",
     },
     outputPath,
   };

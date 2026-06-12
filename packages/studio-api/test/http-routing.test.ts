@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { StudioSnapshotResponseSchema } from "@bp/domain/studio/snapshots";
 import { isApiPath, isStudioApiPath, studioRouteTemplate } from "@bp/studio-api/contracts";
+import { studioOpenApiDocument } from "@bp/studio-api/contracts/openapi";
 import { handleStudioApiRequest } from "@bp/studio-api/server";
 import { studioProjectionKey, studioProjectionPrefix } from "../src/studio/projections.js";
 import { handleStudioReadRequest } from "../src/studio/read-handlers.js";
@@ -11,6 +12,17 @@ const quality = {
   confidence: "high",
   caveats: [],
 } as const;
+
+function openApiOperationCount(): number {
+  return Object.values(studioOpenApiDocument.paths).reduce(
+    (sum, pathItem) =>
+      sum +
+      (["get", "post", "put", "patch", "delete"] as const).filter(
+        (method) => pathItem[method] !== undefined,
+      ).length,
+    0,
+  );
+}
 
 const route = {
   slug: "m15-sbs",
@@ -193,7 +205,7 @@ describe("Studio API HTTP helpers", () => {
         briefs: 0,
         methods: 1,
         docsSections: 1,
-        docsEndpoints: 1,
+        docsEndpoints: openApiOperationCount(),
       }),
     );
     expect(body.projections.map((projection) => projection.path)).toContain(

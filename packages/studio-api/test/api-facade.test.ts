@@ -23,6 +23,7 @@ import {
   StudioRouteIndex2ResponseSchema,
   StudioSnapshotResponseSchema,
 } from "@bp/domain/studio/snapshots";
+import { studioOpenApiDocument } from "@bp/studio-api/contracts/openapi";
 import { handleStudioApiRequest, type StudioApiEnv } from "@bp/studio-api/server";
 
 type D1Value = string | number | boolean | null;
@@ -1168,8 +1169,37 @@ describe("Studio API facade", () => {
     expect(speedHistory.routeSlug).toBe("m15-sbs");
     expect(speedHistory.summary.cellCount).toBe(8);
     expect(speedHistory.cells.map((cell) => cell.status)).toEqual(["available", "missing"]);
-    expect(StudioDocsResponseSchema.parse(await docsResponse.json()).endpoints).toEqual(
-      expect.arrayContaining([expect.objectContaining({ path: "/api/v1/studio/routes" })]),
+    const docs = StudioDocsResponseSchema.parse(await docsResponse.json());
+    expect(docs.sections[0]?.title).toBe("Quickstart");
+    expect(docs.endpoints).toEqual(
+      expect.arrayContaining([
+        { method: "GET", path: "/api/v1/studio/routes", body: "List Studio route cards." },
+        {
+          method: "GET",
+          path: "/api/v1/studio/routes/{routeId}",
+          body: "Fetch route detail, KPIs, diagnosis, and segment evidence.",
+        },
+        {
+          method: "POST",
+          path: "/api/v1/studio/briefs",
+          body: "Create a new Studio brief draft from a route, finding, or source brief seed.",
+        },
+      ]),
+    );
+    expect(docs.endpoints).not.toContainEqual({
+      method: "GET",
+      path: "/api/v1/studio/routes",
+      body: "List routes.",
+    });
+    expect(docs.endpoints.length).toBe(
+      Object.values(studioOpenApiDocument.paths).reduce(
+        (sum, pathItem) =>
+          sum +
+          (["get", "post", "put", "patch", "delete"] as const).filter(
+            (method) => pathItem[method] !== undefined,
+          ).length,
+        0,
+      ),
     );
   });
 
