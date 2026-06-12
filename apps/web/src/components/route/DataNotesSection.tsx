@@ -119,6 +119,7 @@ export function DataNotesSection({
         rows={evidenceRows}
         routeSlug={route.slug}
         sectionRegistry={sectionRegistry}
+        hiddenSectionCount={hiddenTabs.length}
         onNavigate={onNavigate}
       />
 
@@ -226,31 +227,43 @@ export function DataNotesSection({
   );
 }
 
-function EvidenceIndexSection({
+export function EvidenceIndexSection({
   rows,
   routeSlug,
   sectionRegistry,
+  hiddenSectionCount,
   onNavigate,
 }: {
   rows: readonly RouteEvidenceIndexRow[];
   routeSlug: string;
   sectionRegistry: Pick<RouteSectionRegistry, "presentations">;
+  hiddenSectionCount: number;
   onNavigate: (tab: RouteDetailTabValue) => void;
 }) {
   const hiddenSignalCount = rows.filter(
     (row) => row.tab !== "evidence" && !routeSectionCanNavigate(sectionRegistry, row.tab),
   ).length;
+  const hasSummary = rows.length > 0 || hiddenSectionCount > 0;
 
   return (
     <div>
       <SectionHeader
         title={routeSectionQuestion("evidence")}
         right={
-          rows.length > 0 ? (
+          hasSummary ? (
             <div className="flex flex-wrap justify-end gap-2">
-              <Badge variant="neutral">{rows.length} signals</Badge>
+              {rows.length > 0 ? (
+                <Badge variant="neutral">
+                  {rows.length} {plural(rows.length, "signal")}
+                </Badge>
+              ) : null}
               {hiddenSignalCount > 0 ? (
                 <Badge variant="accent">{hiddenSignalCount} covered</Badge>
+              ) : null}
+              {hiddenSectionCount > 0 ? (
+                <Badge variant="warn">
+                  {hiddenSectionCount} {plural(hiddenSectionCount, "notice")}
+                </Badge>
               ) : null}
             </div>
           ) : null
@@ -353,6 +366,10 @@ function CheckedCleanChipRail({ chips }: { chips: readonly CheckedCleanCoverageC
 
 function hiddenStateLabel(state: string): string {
   return state.replaceAll("_", " ");
+}
+
+function plural(count: number, singular: string): string {
+  return count === 1 ? singular : `${singular}s`;
 }
 
 function DataWindow({
