@@ -1,6 +1,10 @@
 import type { StudioRouteInsight } from "@/studio/api-contract";
 import type { RouteDetailTabValue } from "./RouteDetailShell";
-import { routeTabForInsight } from "./route-insight-placement";
+import {
+  routeTabForInsight,
+  safeInsightCaveats,
+  stableInsightSort,
+} from "./route-insight-placement";
 
 export type RouteInsightMicroFigureKind =
   | "segment_strip"
@@ -17,6 +21,19 @@ export type RouteInsightCardSpec = {
   tabLabel: string;
 };
 
+export type RouteEvidenceIndexRow = {
+  title: string;
+  summary: string;
+  detectorLabel: string;
+  severity: StudioRouteInsight["severity"];
+  monthLabel: string | null;
+  tab: RouteDetailTabValue;
+  tabLabel: string;
+  citationLabel: string;
+  referenceDetailLabel: string;
+  caveats: string[];
+};
+
 export function routeInsightCardSpec(insight: StudioRouteInsight): RouteInsightCardSpec {
   const tab = routeTabForInsight(insight);
   const microFigureKind = routeInsightMicroFigureKind(insight, tab);
@@ -29,6 +46,28 @@ export function routeInsightCardSpec(insight: StudioRouteInsight): RouteInsightC
     tab,
     tabLabel: routeInsightTabLabel(tab),
   };
+}
+
+export function routeEvidenceIndexRows(
+  insights: readonly StudioRouteInsight[],
+): RouteEvidenceIndexRow[] {
+  return [...insights].sort(stableInsightSort).map((insight) => {
+    const spec = routeInsightCardSpec(insight);
+    const counts = referenceCounts(insight);
+
+    return {
+      title: insight.title,
+      summary: insight.shortText,
+      detectorLabel: spec.detectorLabel,
+      severity: insight.severity,
+      monthLabel: insight.asOfMonth ?? insight.month ?? null,
+      tab: spec.tab,
+      tabLabel: spec.tabLabel,
+      citationLabel: citationLabel(insight.refs.length),
+      referenceDetailLabel: referenceDetailLabel(counts),
+      caveats: safeInsightCaveats(insight, 2),
+    };
+  });
 }
 
 export function routeInsightTabLabel(tab: RouteDetailTabValue): string {
@@ -83,6 +122,30 @@ function microFigureLabel(kind: RouteInsightMicroFigureKind): string {
     case "sparkline":
       return "Trend cue";
   }
+}
+
+function referenceCounts(insight: StudioRouteInsight): {
+  finding: number;
+  source: number;
+} {
+  const finding = insight.refs.filter((ref) => ref.evidenceRefPath !== undefined).length;
+  const source = insight.refs.filter((ref) => ref.sourceProjectionPath !== undefined).length;
+
+  return { finding, source };
+}
+
+function citationLabel(count: number): string {
+  if (count === 0) return "No cited refs";
+  return `${count} cited ref${count === 1 ? "" : "s"}`;
+}
+
+function referenceDetailLabel(counts: { finding: number; source: number }): string {
+  const parts = [
+    counts.finding > 0 ? `${counts.finding} finding ref${counts.finding === 1 ? "" : "s"}` : null,
+    counts.source > 0 ? `${counts.source} source ref${counts.source === 1 ? "" : "s"}` : null,
+  ].filter((part): part is string => part !== null);
+
+  return parts.length > 0 ? parts.join(" / ") : "No public refs attached";
 }
 
 function labelFromToken(token: string): string {

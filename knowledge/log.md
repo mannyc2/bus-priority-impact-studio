@@ -2,6 +2,49 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Evidence tab gains an insight citation index
+
+Advanced the route-detail §4.3/§5.4 Evidence tab by adding a pure `routeEvidenceIndexRows`
+projection over the existing public `StudioRouteInsight` contract. The Evidence tab now starts with
+an index of route findings sorted by severity/month/detector/scope, showing detector label,
+freshness, safe caveats, cited-ref totals, finding/source ref counts, tab jump targets, and a
+route-scoped send-to-brief action. Source-gap rows remain in Evidence even when they have no public
+refs attached.
+
+This is a frontend-only dossier affordance: it does not change the Studio API contract, add new
+detector output, or promote blocked detector feature families.
+
+Verified with `bunx biome check apps/web/src/components/route/route-insight-card.ts
+apps/web/src/components/route/DataNotesSection.tsx
+apps/web/src/components/route/route-insight-placement.ts apps/web/src/studio/pages/route-detail.tsx
+apps/web/test/shared/route-evidence-index.test.ts`, `bun test
+apps/web/test/shared/route-evidence-index.test.ts
+apps/web/test/shared/route-insight-card.test.ts
+apps/web/test/shared/route-insight-placement.test.ts apps/web/test/shared/coverage-matrix.test.ts
+apps/web/test/shared/section-registry.test.ts --timeout 5000`, `bun --filter @bp/web typecheck`,
+`bun --filter @bp/web build`, `bun run check:knowledge`, and `git diff --check`.
+
+## [2026-06-12] engineering | Tier 2 Bx12 Fordham/Inwood CAB source review closes one more source
+
+Reviewed `nyc_dot_bus_priority_document_pdf_fordham_rd_inwood_cab_may2023` from the full-corpus
+source review workspace as a proposed Bx12 SBS Fordham Road/Inwood offset bus-lane plan. The local
+ignored reviewed-record seed now has 13 sources and 13 records. The new record cites the May 31,
+2023 Community Advisory Board presentation, selected Alternative A offset bus-lane design, 24/7 bus
+lane operation, curb/loading access changes, fall 2023 planned implementation, and ABLE camera
+enforcement context. Studied busway alternatives remain caveated as alternatives, not selected
+interventions.
+
+Because the source states planned fall 2023 implementation rather than post-implementation proof,
+the record stores `effectiveDate: 2023` with `datePrecision: year`. Regenerated the local ignored
+source receipt closure audit. It now reports 291 queue sources, 13 valid reviewed records, 3
+disposition receipts, 14 closed sources, 277 open sources, and 0 conflicts; public promotion remains
+blocked on full source closure. The broader Tier 2 structured-data inventory command still reports
+the older global source-closure next action because it scans the published artifact inventory rather
+than this ignored manual-review seed.
+
+Verified with `jq empty` on the reviewed-record artifact, `bun run pipeline docs tier2
+source-receipt-audit ...`, and `bun run pipeline audit tier2-structured-data --json`.
+
 ## [2026-06-12] engineering | Evidence tab promotes checked-clean surfaces
 
 Advanced the route-detail §5.3 negative-space contract in the Evidence tab. The capability coverage

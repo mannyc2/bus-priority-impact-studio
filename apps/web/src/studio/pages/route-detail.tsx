@@ -142,7 +142,7 @@ export function RouteDetailPage({ data }: { data: StudioRouteDetailResponse | nu
           <TreatmentsHistorySection data={data} />
         ))}
         {section("evidence", () => (
-          <DataNotesSection data={data} />
+          <DataNotesSection data={data} onNavigate={(tab) => setActiveTab(tab)} />
         ))}
       </RouteDetailShell>
     </StudioPage>

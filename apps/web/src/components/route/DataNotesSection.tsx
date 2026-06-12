@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { ArrowRight } from "lucide-react";
 import { DataAsOf } from "@/components/DataAsOf";
 import {
   type CheckedCleanCoverageChip,
@@ -11,24 +12,35 @@ import {
   releaseLayerDescription,
   releaseLayerLabel,
 } from "@/components/route/data-quality-labels";
-import { ROUTE_DETAIL_TABS } from "@/components/route/RouteDetailShell";
+import { ROUTE_DETAIL_TABS, type RouteDetailTabValue } from "@/components/route/RouteDetailShell";
 import { routeDossierArchetype } from "@/components/route/route-archetype";
 import {
   dossierMetricMonthCount,
   dossierMetricWindow,
   formatCompact,
 } from "@/components/route/route-derived";
+import {
+  type RouteEvidenceIndexRow,
+  routeEvidenceIndexRows,
+} from "@/components/route/route-insight-card";
 import { sectionPresentation } from "@/components/route/section-registry";
 import { SectionHeader } from "@/components/SectionHeader";
 import { Badge } from "@/components/ui/badge";
 import type { StudioRouteDetailResponse } from "@/studio/api-contract";
 
-export function DataNotesSection({ data }: { data: StudioRouteDetailResponse }) {
+export function DataNotesSection({
+  data,
+  onNavigate,
+}: {
+  data: StudioRouteDetailResponse;
+  onNavigate: (tab: RouteDetailTabValue) => void;
+}) {
   const { route, quality, segments, dossier } = data;
   const historyWindow = dossierMetricWindow(dossier?.speed);
   const ridershipMonthCount = dossierMetricMonthCount(dossier?.ridership);
   const coverage = coverageRows(data.capability);
   const checkedCleanChips = checkedCleanCoverageChips(coverage);
+  const evidenceRows = routeEvidenceIndexRows(data.insights);
   const archetype = routeDossierArchetype({ capability: data.capability, dossier });
   const hiddenTabs = ROUTE_DETAIL_TABS.flatMap((tab) => {
     const presentation = sectionPresentation(data.capability, tab.value);
@@ -114,6 +126,8 @@ export function DataNotesSection({ data }: { data: StudioRouteDetailResponse }) 
           </Link>
         </div>
       </div>
+
+      <EvidenceIndexSection rows={evidenceRows} routeSlug={route.slug} onNavigate={onNavigate} />
 
       <div>
         <SectionHeader
@@ -207,6 +221,91 @@ export function DataNotesSection({ data }: { data: StudioRouteDetailResponse }) 
             </div>
           ))}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function EvidenceIndexSection({
+  rows,
+  routeSlug,
+  onNavigate,
+}: {
+  rows: readonly RouteEvidenceIndexRow[];
+  routeSlug: string;
+  onNavigate: (tab: RouteDetailTabValue) => void;
+}) {
+  return (
+    <div>
+      <SectionHeader title="Evidence index" />
+      <div className="rounded-[3px] bg-[var(--bp-color-card)] shadow-[0_0_0_1px_var(--bp-color-rule)]">
+        {rows.length > 0 ? (
+          rows.map((row, index) => (
+            <div
+              key={index}
+              className="grid grid-cols-[minmax(0,1fr)_180px_210px] gap-5 px-4 py-4 shadow-[inset_0_-1px_0_var(--bp-color-rule)] last:shadow-none max-lg:grid-cols-1 max-lg:gap-3"
+            >
+              <div className="min-w-0">
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <Badge
+                    variant={
+                      row.severity === "high"
+                        ? "bad"
+                        : row.severity === "medium"
+                          ? "warn"
+                          : "neutral"
+                    }
+                  >
+                    {row.severity}
+                  </Badge>
+                  <Badge variant="neutral" className="max-w-full truncate">
+                    {row.detectorLabel}
+                  </Badge>
+                  <DataAsOf dataAsOf={row.monthLabel} />
+                </div>
+                <div className="text-[13px] font-semibold">{row.title}</div>
+                <p className="m-0 mt-1 max-w-[820px] text-[11.5px] leading-[1.5] text-[var(--bp-color-ink-55)]">
+                  {row.summary}
+                </p>
+                {row.caveats.length > 0 ? (
+                  <p className="m-0 mt-2 max-w-[820px] text-[11px] leading-[1.45] text-[var(--bp-color-ink-40)]">
+                    {row.caveats.join(" ")}
+                  </p>
+                ) : null}
+              </div>
+              <div className="text-[11.5px] leading-[1.45] text-[var(--bp-color-ink-55)]">
+                <div className="font-semibold text-[var(--bp-color-ink)]">{row.citationLabel}</div>
+                <div className="mt-1">{row.referenceDetailLabel}</div>
+              </div>
+              <div className="flex flex-col items-end gap-2 max-lg:items-start">
+                {row.tab === "evidence" ? (
+                  <Badge variant="accent">In Evidence</Badge>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => onNavigate(row.tab)}
+                    className="inline-flex items-center gap-1.5 rounded-[3px] border border-[var(--bp-color-ink-20)] px-3 py-1.5 text-[11.5px] font-semibold text-[var(--bp-color-ink)]"
+                  >
+                    Open {row.tabLabel}
+                    <ArrowRight size={13} />
+                  </button>
+                )}
+                <Link
+                  to="/briefs/new"
+                  search={{ route: routeSlug }}
+                  className="inline-flex items-center gap-1.5 rounded-[3px] border border-[var(--bp-color-accent)] px-3 py-1.5 text-[11.5px] font-semibold text-[var(--bp-color-accent)] no-underline"
+                >
+                  Send to brief
+                  <ArrowRight size={13} />
+                </Link>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="px-4 py-3 text-[12.5px] text-[var(--bp-color-ink-55)]">
+            The coverage matrix below still records what was checked for this route.
+          </div>
+        )}
       </div>
     </div>
   );

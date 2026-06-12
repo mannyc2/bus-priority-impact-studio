@@ -37,10 +37,10 @@ const TREATMENT_DETECTOR_IDS = new Set([
   "treatment_scope_gap",
 ]);
 
-function stableInsightSort(left: StudioRouteInsight, right: StudioRouteInsight): number {
+export function stableInsightSort(left: StudioRouteInsight, right: StudioRouteInsight): number {
   return (
     severityRank[left.severity] - severityRank[right.severity] ||
-    (left.month ?? "").localeCompare(right.month ?? "") * -1 ||
+    (left.asOfMonth ?? left.month ?? "").localeCompare(right.asOfMonth ?? right.month ?? "") * -1 ||
     left.detectorId.localeCompare(right.detectorId) ||
     (left.scopeId ?? "").localeCompare(right.scopeId ?? "")
   );
