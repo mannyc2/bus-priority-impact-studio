@@ -2,6 +2,35 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Route detail registry exposes map and reliability tabs
+
+Advanced the route evidence dossier to registry-driven presentation for the next route-detail
+redesign slice. The route section registry now includes explicit Map and Reliability tabs, hides
+reliability when the manifest says the surface is still building or insufficient, and carries
+hidden-section state/reason/data-as-of metadata into the Evidence notes instead of rendering blank
+or unsupported tabs. The route-detail page now renders a map-first geography section and an observed
+wait-reliability section when the manifest supports them, while compare keeps the existing supported
+subset until map/reliability compare sections exist.
+
+Verified with `bun test apps/web/test/shared/section-registry.test.ts --timeout 5000`,
+`bun --filter @bp/web typecheck`, `bun --filter @bp/web build`, targeted
+`bunx biome check --max-diagnostics=80 ...`, and `git diff --check`.
+
+## [2026-06-12] engineering | Tier 2 Kings Highway source review closes one more source
+
+Reviewed `nyc_dot_bus_priority_document_pdf_brt_kings_highway_aug2018` from the full-corpus source
+review packs as a corridor-level proposed Kings Highway curbside-change record. The local ignored
+reviewed-record seed now has 2 sources and 2 records, with Kings Highway carrying bus-lane,
+turn-bay, taxi-stand-relocation, truck-loading-zone, parking-meter, and parking-impact evidence
+while preserving caveats that the reviewed pages do not state bus route IDs, implementation date,
+measured bus-speed impact, or block-level treatment locations.
+
+Regenerated the local ignored source receipt closure audit. It now reports 291 queue sources, 2
+valid reviewed records, 3 disposition receipts, 3 closed sources, 288 open sources, and 0 conflicts;
+public promotion remains blocked on full source closure. Verified with `jq empty` on the reviewed
+record artifact, `bun --filter @bp/pipeline-v2 cli -- docs tier2 source-receipt-audit ...`, and
+`bun --filter @bp/pipeline-v2 cli -- audit tier2-structured-data --json`.
+
 ## [2026-06-12] docs | Multi-year public contract clarified
 
 Captured the maintainer clarification that the product should stop centering the idea of monthly
