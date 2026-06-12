@@ -2,6 +2,43 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Route detail shell render tests cover contrast dossiers
+
+Advanced the route-detail §8.1 registry handoff by adding server-render coverage for the actual
+`RouteDetailShell` tab chrome, not just the pure registry selector. The new shared test renders the
+rich, checked-clean, and sparse contrast route manifests through the shell and asserts that the tab
+strip visibly diverges: flagship routes show Reliability and Treatments & history, clean routes
+hide not-applicable treatments, and sparse routes withhold insufficient-data Reliability while
+keeping Treatments & history as an honest-empty section. It also locks visible-tab detector badges
+and the question-shaped tab titles used by the §4.3 dossier contract.
+
+Also reviewed `nyc_dot_bus_priority_document_pdf_webster_cross_bronx_cb5_may2019` from the
+full-corpus source review workspace as a proposed Bx41 Webster Avenue / Cross Bronx Expressway
+gap-fill package. The local ignored reviewed-record seed now has 28 sources and 28 records. The
+record cites the May 22, 2019 CB5 Better Buses deck, the Webster Avenue E 176 St-E 174 St priority
+project rationale, 2013-2017 safety table, Bx41 SBS southbound speed table, traffic-share
+methodology, proposal diagrams, and summary pages. It assigns canonical `bus_lane` and
+`pedestrian_improvement` treatments, with custom treatment details for Qwik Kurb right-turn
+channelization, turn controls, painted curb extensions, Park Avenue Cross Bronx access signage, and
+the proposed signal-timing investigation.
+
+The record keeps the source conservative: it uses `proposed` status as of `2019-05-22`, assigns
+scope only to Bx41/Bx41 SBS, treats the June 2013 Bx41 SBS launch as background rather than the
+2019 package effective date, and caveats the speed/injury tables as proposal context rather than
+post-implementation impact. Regenerated the local ignored source receipt closure audit. It now
+reports 291 queue sources, 28 valid reviewed records, 28 reviewed-record sources, 29 closed
+sources, 262 open sources, and 0 conflicts; public promotion remains blocked on full source
+closure. The broader Tier 2 structured-data inventory still reports the older published-inventory
+next action because it scans published artifacts rather than this ignored manual-review seed.
+
+Verified with `bunx biome check apps/web/test/shared/route-detail-shell.test.ts
+apps/web/test/shared/section-registry.test.ts`, `bun test
+apps/web/test/shared/route-detail-shell.test.ts apps/web/test/shared/section-registry.test.ts
+--timeout 5000`, `bun --filter @bp/web typecheck`, `bun --filter @bp/web build`, `jq empty
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/intervention-records-corpus-reviewed.json`,
+`bun --filter @bp/pipeline-v2 cli -- docs tier2 source-receipt-audit --queue-path ...`, and `bun
+--filter @bp/pipeline-v2 cli -- audit tier2-structured-data --json`.
+
 ## [2026-06-12] engineering | Route evidence removes fake dataset cite counts
 
 Continued the route evidence dossier follow-up after PR #10 merged by aligning the Evidence tab's
