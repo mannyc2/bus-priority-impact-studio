@@ -2,6 +2,39 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Where & when floats dossier worst segment
+
+Made the Where & when tab actually surface the dossier's persistent-worst segment in the featured
+segment rail. The segment ordering helper still keeps detector-targeted rows ahead of generic
+fallback rows, but the caller now prepends the matching `dossier.worstSegment.segmentId` when it is
+present in the active direction filter, so the persistence badge is not stranded off-screen.
+Trimmed the low-value off-row note counter and chart subtitles to keep the production build under
+the unchanged bundle cap at 484.9 KB gz total JS.
+
+Also reviewed `nyc_dot_bus_priority_document_pdf_2015_04_23_brt_woodhaven_dw2_discussionmaterials`
+from the full-corpus source review workspace. The local ignored reviewed-record seed now has 41
+reviewed-record sources and 43 valid records. This source contributes one conservative proposed
+Q52/Q53 Woodhaven/Cross Bay Boulevard Workshop #2 design record for the 67th Drive to 73rd Avenue
+area, covering bus-only lanes, left-turn controls, a proposed 68 Road eastbound traffic-direction
+reversal, new two-way operation near Cooper Avenue and Trotting Course Lane, and side-lane parking.
+The record treats the pages as proposed design evidence only and requires visual review before
+publishing block-level reversal or two-way-operation geometry.
+
+Regenerated the local ignored source receipt closure audit. It now reports 291 queue sources, 43
+valid reviewed records, 41 reviewed-record sources, 4 disposition receipts, 43 closed sources, 248
+open sources, and 0 conflicts; public promotion remains blocked on full source closure.
+
+Verified with `bunx biome check apps/web/src/components/route/SlowSegments.tsx
+apps/web/test/shared/where-when-segment-order.test.ts knowledge/log.md`, `bun test
+apps/web/test/shared/where-when-segment-order.test.ts --timeout 5000`, `bun --filter @bp/web
+typecheck`, `bun --filter @bp/web build`, `jq empty
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/intervention-records-corpus-reviewed.json
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/source-receipt-closure-audit.json
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/source-receipt-closure-audit-summary.json`,
+`bun --filter @bp/pipeline-v2 cli -- docs tier2 source-receipt-audit --queue-path ...`, `bun
+--filter @bp/pipeline-v2 cli -- audit tier2-structured-data --json`, `bun run check:types`, `bun
+run check:knowledge`, and `git diff --check`.
+
 ## [2026-06-12] engineering | Where & when badges persistent worst segments
 
 Promoted the route dossier's persistent-worst segment signal into the Where & when tab. Featured

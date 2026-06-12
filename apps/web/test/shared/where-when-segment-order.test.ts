@@ -13,6 +13,15 @@ describe("prioritizeWhereWhenSegments", () => {
     expect(visible.map((row) => row.id)).toEqual(["detector", "slow-2", "slow-1", "slow-3"]);
   });
 
+  test("floats the dossier persistent worst segment ahead of detector rows", () => {
+    const visible = prioritizeWhereWhenSegments(
+      [segment("persistent"), segment("detector"), segment("slow-2")],
+      [segment("slow-1"), segment("slow-2"), segment("persistent")],
+    );
+
+    expect(visible.map((row) => row.id)).toEqual(["persistent", "detector", "slow-2", "slow-1"]);
+  });
+
   test("keeps generic rows when no detector-targeted segments exist", () => {
     const visible = prioritizeWhereWhenSegments([], [segment("slow-1"), segment("slow-2")]);
 

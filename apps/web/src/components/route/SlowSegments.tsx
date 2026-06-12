@@ -80,18 +80,15 @@ export function SlowSegmentsSection({
     direction === "all" ? segments : segments.filter((segment) => segment.direction === direction);
   const topVisible = directionSegments.slice(0, 5);
   const matchedInsightSegments = directionSegments.filter((segment) => segmentInsight(segment));
-  const visible = prioritizeWhereWhenSegments(matchedInsightSegments, topVisible);
+  const visible = prioritizeWhereWhenSegments(
+    [
+      ...directionSegments.filter((segment) => segment.id === dossier?.worstSegment?.segmentId),
+      ...matchedInsightSegments,
+    ],
+    topVisible,
+  );
   const featured = visible.slice(0, 3);
   const tableRows = visible.slice(3);
-  const visibleMatchedInsightIds = new Set(
-    visible.flatMap((segment) => {
-      const insight = segmentInsight(segment);
-      return insight === null ? [] : [`${insight.detectorId}:${insight.scopeId ?? ""}`];
-    }),
-  );
-  const unmatchedMapInsightCount = mapInsights.filter(
-    (insight) => !visibleMatchedInsightIds.has(`${insight.detectorId}:${insight.scopeId ?? ""}`),
-  ).length;
 
   return (
     <section className="flex flex-col gap-5">
@@ -117,10 +114,10 @@ export function SlowSegmentsSection({
       <WhereWhenSummaryCards summary={summary} />
       <div className="grid grid-cols-[minmax(0,1.45fr)_minmax(300px,0.8fr)] gap-5 max-xl:grid-cols-1">
         <div className="rounded-[3px] bg-[var(--bp-color-card)] px-5 py-4 shadow-[0_0_0_1px_var(--bp-color-rule)]">
-          <SectionHeader title="Profile" sub="Weekday speed; dash=schedule." />
+          <SectionHeader title="Profile" />
           <CorridorProfile route={route} segments={segments} highlightId={flaggedId} />
         </div>
-        <ChartFrame title="Hourly speed" source="Average by hour." height={164}>
+        <ChartFrame title="By hour" height={164}>
           <HourBars
             data={hourProfile}
             sched={route.scheduledMph}
@@ -208,7 +205,6 @@ export function SlowSegmentsSection({
       </div>
       <div className="mt-3 text-[11.5px] text-[var(--bp-color-ink-55)]">
         {visible.length} of {segments.length} segments shown.
-        {unmatchedMapInsightCount > 0 ? <span> More notes off-row.</span> : null}
       </div>
       {capture ? <SendToBriefSheet source={capture} onClose={() => setSendSeg(null)} /> : null}
     </section>
@@ -220,7 +216,7 @@ function WhereWhenSummaryCards({ summary }: { summary: WhereWhenSummary }) {
     <div className="grid grid-cols-4 rounded-[3px] bg-[var(--bp-color-card)] shadow-[0_0_0_1px_var(--bp-color-rule)] max-xl:grid-cols-2 max-sm:grid-cols-1">
       <WhereWhenStat label="Speed" value={summary.currentSpeedLabel} sub={summary.peerLabel} />
       <WhereWhenStat
-        label="6-mo trend"
+        label="Trend"
         value={summary.movementLabel}
         sub={summary.movementDetail}
         tone={summary.movementTone}
@@ -322,7 +318,7 @@ function SlowSegmentCard({
           <div className="font-mono text-[24px] font-semibold leading-none" style={{ color }}>
             {segment.riderHours.toLocaleString()}
           </div>
-          <div className="mt-1 text-[11px] text-[var(--bp-color-ink-55)]">rider-hr lost/day</div>
+          <div className="mt-1 text-[11px] text-[var(--bp-color-ink-55)]">rider-hr/day</div>
         </div>
         <CorridorMap route={route} segments={segments} highlightId={segment.id} mode="mini" />
       </div>
@@ -343,7 +339,7 @@ function SlowSegmentCard({
         </p>
       ) : (
         <p className="m-0 mt-4 flex-1 text-[12px] leading-[1.55] text-[var(--bp-color-ink-55)]">
-          No segment note in this release.
+          No note.
         </p>
       )}
 
