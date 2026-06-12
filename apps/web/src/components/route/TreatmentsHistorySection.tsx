@@ -1,4 +1,5 @@
 import { ChartFrame } from "@/components/ChartFrame";
+import { DataAsOf } from "@/components/DataAsOf";
 import { InterventionTimeline } from "@/components/InterventionTimeline";
 import {
   dossierMetricMonthCount,
@@ -47,17 +48,22 @@ export function TreatmentsHistorySection({ data }: { data: StudioRouteDetailResp
   const historySpeeds = dossierSpeedSeries(data.dossier);
   const hasSpeedHistory = historySpeeds.length > 0;
   const speedTrendData = hasSpeedHistory ? historySpeeds : route.spark;
+  const treatmentDataAsOf =
+    data.dossier?.treatmentPosture.dataAsOf ?? data.dossier?.dataAsOf ?? null;
 
   return (
     <div className="flex flex-col gap-7">
       <section>
         <SectionHeader
           title={routeSectionQuestion("treatments")}
-          sub="What is in place, proposed, and dated enough to read against performance."
+          sub="What is in place, proposed, and dated enough to compare."
           right={
-            <Badge variant={comparisonCards.length > 0 ? "accent" : "neutral"}>
-              {comparisonCards.length} evaluated
-            </Badge>
+            <div className="flex flex-wrap items-center gap-2">
+              <DataAsOf dataAsOf={treatmentDataAsOf} />
+              <Badge variant={comparisonCards.length > 0 ? "accent" : "neutral"}>
+                {comparisonCards.length} evaluated
+              </Badge>
+            </div>
           }
         />
         <div className="grid grid-cols-4 gap-4 max-lg:grid-cols-2 max-sm:grid-cols-1">
@@ -80,16 +86,13 @@ export function TreatmentsHistorySection({ data }: { data: StudioRouteDetailResp
         <section>
           <SectionHeader
             title="What is in the record"
-            sub={`Treatments on ${route.label}${route.sbs ? " SBS" : ""}, grouped by family. State and evaluation are separate axes.`}
+            sub={`Treatments on ${route.label}${route.sbs ? " SBS" : ""}, grouped by family and state.`}
           />
           <TreatmentInventory treatments={treatments} />
         </section>
 
         <section>
-          <SectionHeader
-            title="Document refs"
-            sub="Source labels attached to the dated route records."
-          />
+          <SectionHeader title="Document refs" sub="Source labels on dated records." />
           <TreatmentSourceList rows={sourceRows} />
         </section>
       </div>
@@ -97,7 +100,7 @@ export function TreatmentsHistorySection({ data }: { data: StudioRouteDetailResp
       <section>
         <SectionHeader
           title="Dated history"
-          sub={`${route.interventions.length} recorded changes on ${route.label}${route.sbs ? " SBS" : ""}. Read them in order before interpreting any speed movement.`}
+          sub={`${route.interventions.length} recorded changes on ${route.label}${route.sbs ? " SBS" : ""}. Read before interpreting speed movement.`}
           right={<TimelineLegend />}
         />
         <InterventionTimeline events={route.interventions} />
@@ -126,7 +129,7 @@ export function TreatmentsHistorySection({ data }: { data: StudioRouteDetailResp
         <section>
           <SectionHeader
             title="Evaluation cards"
-            sub="Shown only when a route record has a promoted comparison window."
+            sub="Shown when a record has a promoted comparison window."
           />
           <ComparisonCards cards={comparisonCards} />
         </section>
@@ -231,7 +234,7 @@ function TimelineLegend() {
     <div className="flex flex-wrap items-center gap-3 text-[11px] text-[var(--bp-color-ink-70)]">
       {[
         ["var(--bp-color-accent)", "Service / enforcement"],
-        ["var(--bp-color-good)", "Measured improvement"],
+        ["var(--bp-color-good)", "Improvement"],
         ["var(--bp-color-warn)", "Attribution caution"],
       ].map(([color, label]) => (
         <span key={label} className="inline-flex items-center gap-1.5">
@@ -247,10 +250,10 @@ function ComparisonCards({ cards }: { cards: readonly TreatmentComparisonCard[] 
   if (cards.length === 0) {
     return (
       <Alert variant="info">
-        <AlertTitle variant="info">No promoted comparison window</AlertTitle>
+        <AlertTitle variant="info">No comparison window</AlertTitle>
         <AlertDescription>
-          The dated records above are useful context, but this route does not yet publish a
-          route-level before/after comparison card.
+          The dated records are useful context, but this route does not yet publish a before/after
+          card.
         </AlertDescription>
       </Alert>
     );

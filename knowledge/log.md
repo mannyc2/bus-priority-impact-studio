@@ -2,6 +2,39 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Treatments section shows dossier freshness
+
+Advanced the route-detail §4.1 / §7.4 freshness cutover by adding the shared `DataAsOf` marker to
+the Treatments & history header. The section now reads from `dossier.treatmentPosture.dataAsOf`
+with a page-level dossier fallback, keeps the evaluated-comparison count badge, and trims nearby
+copy so the route-detail lazy chunk stays within the existing bundle budget.
+
+Also reviewed `nyc_dot_select_bus_service_pdf_2012_09_webster_sbs_cac3` from the full-corpus
+source review workspace as a proposed Bx41 Webster Avenue SBS planning record. The local ignored
+reviewed-record seed now has 22 sources and 22 records. The record cites the September 27, 2012
+CAC #3 deck, Bx41 LTD to Bx41 SBS conversion, 4 miles of offset bus lanes, bus bulb/station
+planning, off-board fare collection, TSP, pedestrian safety improvements, half-mile SBS stop
+spacing, and the 2013-2014 final-design/implementation horizon.
+
+The record stores `effectiveDate: 2013` with `datePrecision: year` because this source gives an
+implementation horizon rather than an exact launch month/day. It separately caveats that the deck
+is a planning source without measured post-implementation impact, and treats non-Bx41 route
+mentions in the review pack as context rather than assigned intervention scope. Regenerated the
+local ignored source receipt closure audit. It now reports 291 queue sources, 22 valid reviewed
+records, 22 reviewed-record sources, 23 closed sources, 268 open sources, and 0 conflicts; public
+promotion remains blocked on full source closure. The broader Tier 2 structured-data inventory
+still reports the older published-inventory next action because it scans published artifacts rather
+than this ignored manual-review seed.
+
+Verified with `bunx biome check
+apps/web/src/components/route/TreatmentsHistorySection.tsx apps/web/test/shared/treatments-history.test.ts`,
+`bun test apps/web/test/shared/treatments-history.test.ts --timeout 5000`, `bun --filter @bp/web
+typecheck`, `bun --filter @bp/web build`, `bun run check:types`, `bun run check:knowledge`, `git
+diff --check`, `jq empty
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/intervention-records-corpus-reviewed.json`,
+`bun --filter @bp/pipeline-v2 cli -- docs tier2 source-receipt-audit ...`, and `bun --filter
+@bp/pipeline-v2 cli -- audit tier2-structured-data --json`.
+
 ## [2026-06-12] engineering | Judged KPI clicks fall back to Evidence
 
 Advanced the route-detail §4.1 / §8.1 handoff by routing judged KPI header clicks through the
