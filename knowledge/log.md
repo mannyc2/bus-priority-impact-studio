@@ -2,6 +2,43 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Overview insight cards can feed briefs
+
+Advanced the route-detail §5.4 citation/corpus-palette loop. Overview insight cards now include a
+route-scoped send-to-brief action next to their tab jump, so readiness-gated detector claims can
+move directly into the brief composer without changing detector output or the Studio API contract.
+To stay within the strict route-detail bundle budget, the decorative micro-figure keeps its typed
+kind but no longer ships a separate per-kind label string.
+
+Verified with `bunx biome check apps/web/src/components/route/OverviewSection.tsx
+apps/web/src/components/route/route-insight-card.ts
+apps/web/test/shared/route-insight-card.test.ts`, `bun test
+apps/web/test/shared/route-insight-card.test.ts
+apps/web/test/shared/route-insight-placement.test.ts
+apps/web/test/shared/route-evidence-index.test.ts --timeout 5000`, `bun --filter @bp/web
+typecheck`, `bun --filter @bp/web build`, `bun run check:knowledge`, and `git diff --check`.
+
+## [2026-06-12] engineering | Tier 2 Bx41 Webster CB3 source review closes one more source
+
+Reviewed `nyc_dot_select_bus_service_pdf_2013_02_sbs_webster_bx_cb3` from the full-corpus source
+review workspace as a proposed Bx41 Webster Avenue SBS June 2013 service/implementation-plan
+record. The local ignored reviewed-record seed now has 14 sources and 14 records. The new record
+cites the February 12, 2013 CB3 presentation, the Bx41 LTD to Bx41 SBS service plan, 4 miles of
+offset bus lanes, off-board fare collection, all-door boarding, TSP, bus bulb stations, pedestrian
+improvements, turn-bay/signal-time changes, and the implementation timeline that places lane
+markings and red bus-lane paint in late March-May with start of service at the end of June.
+
+Because the source gives a month but not an exact day, the record stores `effectiveDate: 2013-06`
+with `datePrecision: month` and carries the pre-implementation caveat explicitly. Regenerated the
+local ignored source receipt closure audit. It now reports 291 queue sources, 14 valid reviewed
+records, 3 disposition receipts, 15 closed sources, 276 open sources, and 0 conflicts; public
+promotion remains blocked on full source closure. The broader Tier 2 structured-data inventory
+command still reports the older global source-closure next action because it scans the published
+artifact inventory rather than this ignored manual-review seed.
+
+Verified with `jq empty` on the reviewed-record artifact, `bun run pipeline docs tier2
+source-receipt-audit ...`, and `bun run pipeline audit tier2-structured-data --json`.
+
 ## [2026-06-12] engineering | Evidence tab gains an insight citation index
 
 Advanced the route-detail §4.3/§5.4 Evidence tab by adding a pure `routeEvidenceIndexRows`

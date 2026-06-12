@@ -103,6 +103,7 @@ export function OverviewSection({
               <InsightCard
                 key={`${insight.detectorId}:${insight.scopeId ?? insight.title}`}
                 insight={insight}
+                routeSlug={route.slug}
                 onNavigate={onNavigate}
               />
             ))}
@@ -219,9 +220,11 @@ function VerdictSummary({
 
 function InsightCard({
   insight,
+  routeSlug,
   onNavigate,
 }: {
   insight: StudioRouteInsight;
+  routeSlug: string;
   onNavigate: (tab: RouteDetailTabValue) => void;
 }) {
   const caveats = safeInsightCaveats(insight, 2);
@@ -255,12 +258,8 @@ function InsightCard({
           </TooltipProvider>
         ) : null}
       </p>
-      <InsightMicroFigure
-        kind={spec.microFigureKind}
-        label={spec.microFigureLabel}
-        severity={insight.severity}
-      />
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+      <InsightMicroFigure kind={spec.microFigureKind} severity={insight.severity} />
+      <div className="mt-4 flex flex-wrap items-center gap-3">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           <DataAsOf dataAsOf={insight.asOfMonth ?? insight.month ?? null} />
           <Badge variant="neutral" className="max-w-full truncate">
@@ -275,6 +274,12 @@ function InsightCard({
           Open {spec.tabLabel}
           <ArrowRight size={13} />
         </button>
+        <a
+          href={`/briefs/new?route=${routeSlug}`}
+          className="text-[11.5px] font-semibold text-[var(--bp-color-ink)]"
+        >
+          Send to brief
+        </a>
       </div>
     </article>
   );
@@ -282,20 +287,14 @@ function InsightCard({
 
 function InsightMicroFigure({
   kind,
-  label,
   severity,
 }: {
   kind: RouteInsightMicroFigureKind;
-  label: string;
   severity: StudioRouteInsight["severity"];
 }) {
   const toneClass = microFigureToneClass(severity);
   return (
-    <div
-      role="img"
-      aria-label={label}
-      className="mt-3 h-[38px] rounded-[2px] bg-[var(--bp-color-ink-06)]"
-    >
+    <div className="mt-3 h-[38px] rounded-[2px] bg-[var(--bp-color-ink-06)]">
       {kind === "timeline_tick" ? (
         <div className="relative h-full px-3 py-1.5">
           <span className="absolute left-3 right-3 top-1/2 h-px -translate-y-1/2 bg-[var(--bp-color-ink-20)]" />

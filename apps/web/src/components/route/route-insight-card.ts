@@ -16,7 +16,6 @@ export type RouteInsightCardSpec = {
   detectorLabel: string;
   evidenceLabel: string;
   microFigureKind: RouteInsightMicroFigureKind;
-  microFigureLabel: string;
   tab: RouteDetailTabValue;
   tabLabel: string;
 };
@@ -42,7 +41,6 @@ export function routeInsightCardSpec(insight: StudioRouteInsight): RouteInsightC
     detectorLabel: labelFromToken(insight.detectorId),
     evidenceLabel: evidenceLabel(insight),
     microFigureKind,
-    microFigureLabel: microFigureLabel(microFigureKind),
     tab,
     tabLabel: routeInsightTabLabel(tab),
   };
@@ -109,19 +107,6 @@ function evidenceLabel(insight: StudioRouteInsight): string {
   const refCount = insight.refs.length;
   if (refCount === 0) return "No cited refs";
   return `${refCount} cited ref${refCount === 1 ? "" : "s"}`;
-}
-
-function microFigureLabel(kind: RouteInsightMicroFigureKind): string {
-  switch (kind) {
-    case "segment_strip":
-      return "Segment cue";
-    case "timeline_tick":
-      return "Timeline cue";
-    case "coverage_chip":
-      return "Coverage cue";
-    case "sparkline":
-      return "Trend cue";
-  }
 }
 
 function referenceCounts(insight: StudioRouteInsight): {
