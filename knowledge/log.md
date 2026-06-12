@@ -2,6 +2,42 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Route tabs expose section questions
+
+Advanced the route-detail §4.3 / §8.1 registry handoff by carrying each tab's
+question-shaped contract into the shared tab shell. Compact tab labels remain unchanged, but
+route-detail tabs now expose their registry question through the native tab title, and the tab
+badge screen-reader label was tightened from "flagged insights" to "flags" to keep the existing
+bundle budget green.
+
+Also reviewed `nyc_dot_bus_priority_document_pdf_2012_02_06_brt_webster_cac1` from the
+full-corpus source review workspace as an initial proposed/planning Bx41 Webster Avenue SBS
+record. The local ignored reviewed-record seed now has 24 sources and 24 records. The record cites
+the February 6, 2012 CAC #1 deck, the proposed Webster Avenue SBS corridor based on Bx41, 5.3
+miles of corridor length, 125,000 nearby residents, 74% car-free households, 61% transit commute
+share, 22,000 daily Bx41 riders, pre-design one-way travel time of 37-57 minutes, bus-delay hot
+spots, and winter/spring 2012 planning next steps.
+
+The record stores no launch date because this source does not give a preferred design,
+implementation date, or post-implementation result. It uses a `planning` status as of
+`2012-02-06`, assigns scope only to Bx41, treats Bx12/M15/M34/M34A/B44/S79 as context or prior SBS
+examples, and caveats map-derived endpoints/delay locations for visual review. Regenerated the
+local ignored source receipt closure audit. It now reports 291 queue sources, 24 valid reviewed
+records, 24 reviewed-record sources, 25 closed sources, 266 open sources, and 0 conflicts; public
+promotion remains blocked on full source closure. The broader Tier 2 structured-data inventory
+still reports the older published-inventory next action because it scans published artifacts rather
+than this ignored manual-review seed.
+
+Verified with `bunx biome check
+apps/web/src/components/route/RouteDetailShell.tsx apps/web/src/components/route/section-registry.ts
+apps/web/test/shared/section-registry.test.ts`, `bun test
+apps/web/test/shared/section-registry.test.ts --timeout 5000`, `bun --filter @bp/web typecheck`,
+`bun --filter @bp/web build`, `bun run check:types`, `bun run check:knowledge`, `git diff
+--check`, `jq empty
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/intervention-records-corpus-reviewed.json`,
+`bun --filter @bp/pipeline-v2 cli -- docs tier2 source-receipt-audit ...`, and `bun --filter
+@bp/pipeline-v2 cli -- audit tier2-structured-data --json`.
+
 ## [2026-06-12] engineering | Map section shows manifest freshness
 
 Advanced the route-detail §4 / §7.4 map-surface cutover by adding the shared `DataAsOf` marker to
