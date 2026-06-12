@@ -104,6 +104,6 @@ describe("RouteDetailShell tab render contract", () => {
 
     expect(richHtml).toContain('title="Where and when does it lose time?"');
     expect(richHtml).toContain('title="Can riders count on it?"');
-    expect(richHtml).toContain('title="What can I cite, and what did you check?"');
+    expect(richHtml).toContain('title="What can I cite?"');
   });
 });

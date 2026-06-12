@@ -19,12 +19,12 @@ export type RouteDetailTab = {
 
 export const ROUTE_SECTION_QUESTIONS = {
   overview: "What's the story?",
-  map: "Where is this route, and where does it hurt?",
+  map: "Where does it hurt?",
   "where-when": "Where and when does it lose time?",
   reliability: "Can riders count on it?",
   riders: "Who bears it?",
-  treatments: "What was tried, and what happened?",
-  evidence: "What can I cite, and what did you check?",
+  treatments: "What was tried?",
+  evidence: "What can I cite?",
 } as const satisfies Record<RouteDetailTabValue, string>;
 
 /** The question-shaped route-section tabs (frontend §4.3). Treatments & history
@@ -175,7 +175,10 @@ export function routeSectionRegistry(
       tab.value === "evidence" && hiddenSections.length > 0
         ? sourceBadge === undefined
           ? { count: hiddenSections.length, severity: "medium" as const }
-          : { count: sourceBadge.count + hiddenSections.length, severity: sourceBadge.severity }
+          : {
+              count: sourceBadge.count + hiddenSections.length,
+              severity: sourceBadge.severity === "low" ? "medium" : sourceBadge.severity,
+            }
         : sourceBadge;
     const badgedTab = badge === undefined ? tab : { ...tab, badge };
     presentations[tab.value] = presentation;

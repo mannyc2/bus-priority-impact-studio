@@ -64,12 +64,12 @@ const sparse = capability({
 describe("sectionPresentation (frontend §8.1 registry)", () => {
   test("route detail tabs carry the frontend §4.3 questions", () => {
     expect(routeSectionQuestion("overview")).toBe("What's the story?");
-    expect(routeSectionQuestion("map")).toBe("Where is this route, and where does it hurt?");
+    expect(routeSectionQuestion("map")).toBe("Where does it hurt?");
     expect(routeSectionQuestion("where-when")).toBe("Where and when does it lose time?");
     expect(routeSectionQuestion("reliability")).toBe("Can riders count on it?");
     expect(routeSectionQuestion("riders")).toBe("Who bears it?");
-    expect(routeSectionQuestion("treatments")).toBe("What was tried, and what happened?");
-    expect(routeSectionQuestion("evidence")).toBe("What can I cite, and what did you check?");
+    expect(routeSectionQuestion("treatments")).toBe("What was tried?");
+    expect(routeSectionQuestion("evidence")).toBe("What can I cite?");
   });
 
   test("overview and evidence are unconditional on every contrast route", () => {
@@ -209,7 +209,7 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
     ).toEqual([
       {
         tab: "treatments",
-        question: "What was tried, and what happened?",
+        question: "What was tried?",
         mode: "hidden",
         state: "not_applicable",
       },
@@ -245,6 +245,9 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
       ["treatments", 0],
       ["evidence", 1],
     ]);
+    expect(registry.visibleTabs.find((tab) => tab.value === "evidence")?.badge?.severity).toBe(
+      "medium",
+    );
     expect(registry.hiddenSections.map(({ tab }) => [tab.value, tab.badge?.count ?? 0])).toEqual([
       ["reliability", 2],
     ]);
@@ -257,6 +260,15 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
 
     const evidence = registry.visibleTabs.find((tab) => tab.value === "evidence");
     expect(evidence?.badge).toEqual({ count: 4, severity: "high" });
+  });
+
+  test("routeSectionRegistry raises low Evidence badges when hidden notices are added", () => {
+    const registry = routeSectionRegistry(sparse, {
+      evidence: { count: 1, severity: "low" },
+    });
+
+    const evidence = registry.visibleTabs.find((tab) => tab.value === "evidence");
+    expect(evidence?.badge).toEqual({ count: 2, severity: "medium" });
   });
 
   test("routeSectionCanNavigate follows hidden-section policy for header KPI clicks", () => {

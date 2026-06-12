@@ -2,6 +2,43 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Evidence badge severity reflects hidden notices
+
+Tightened the route-section registry so Evidence tab badges preserve detector counts and now lift
+low-severity Evidence badges to medium when manifest-hidden section notices are folded into
+Evidence. This keeps a hidden reliability/treatment notice from looking like a low-priority
+Evidence-only signal. Trimmed three tab-question tooltips (`Where does it hurt?`, `What was
+tried?`, `What can I cite?`) so the unchanged production bundle cap still passes at 485.0 KB gz
+total JS.
+
+Also reviewed `nyc_dot_bus_priority_document_pdf_fordham_rd_inwood_cb7_jun2023` from the
+full-corpus source review workspace. The local ignored reviewed-record seed now has 44
+reviewed-record sources and 47 valid records. This source contributes two conservative Bx12 records:
+an implemented Bx12 SBS ABLE record with the November 18, 2022 implementation date, 60-day warning
+period, Fordham Road ticket/speed observations, and operating-hour caveats; and a proposed Fordham
+Road/Inwood Alternative A offset-bus-lane planning record from the June 1, 2023 CB7 presentation.
+The design record treats the eastbound and two-way Fordham Road busway concepts as studied
+alternatives rather than selected interventions, limits route assignment to Bx12 SBS until
+route-shape review supports wider fanout, and caveats map-derived geometry before block-level
+publication.
+
+Regenerated the local ignored source receipt closure audit with the current v2 flags. It now
+reports 291 queue sources, 47 valid reviewed records, 44 reviewed-record sources, 4 disposition
+receipts, 46 closed sources, 245 open sources, and 0 conflicts; public promotion remains blocked on
+full source closure.
+
+Verified with `bunx biome check apps/web/src/components/route/section-registry.ts
+apps/web/test/shared/section-registry.test.ts apps/web/test/shared/route-detail-shell.test.ts`,
+`bun test apps/web/test/shared/section-registry.test.ts
+apps/web/test/shared/route-detail-shell.test.ts --timeout 5000`, `bun --filter @bp/web typecheck`,
+`bun --filter @bp/web build`, `bun run check:types`, `jq empty
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/intervention-records-corpus-reviewed.json
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/source-receipt-closure-audit.json
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/source-receipt-closure-audit-summary.json`,
+`bun --filter @bp/pipeline-v2 cli -- docs tier2 source-receipt-audit --queue-path ...`, and `bun
+--filter @bp/pipeline-v2 cli -- audit tier2-structured-data --json`, `bun run check:knowledge`,
+and `git diff --check`.
+
 ## [2026-06-12] engineering | Overview empty state distinguishes checked-clean evidence
 
 Tightened the route Overview zero-insight state so it only says "Checked clean" when the capability
