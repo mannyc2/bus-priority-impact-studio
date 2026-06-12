@@ -10,6 +10,7 @@ import { RouteDetailShell } from "@/components/route/RouteDetailShell";
 import { RouteHeader } from "@/components/route/RouteHeader";
 import { RouteJudgedKpiStrip } from "@/components/route/RouteJudgedKpiStrip";
 import { RouteMapSection } from "@/components/route/RouteMapSection";
+import { routeDossierArchetype } from "@/components/route/route-archetype";
 import { routeTabBadges } from "@/components/route/route-insight-placement";
 import { SlowSegmentsSection } from "@/components/route/SlowSegments";
 import {
@@ -43,6 +44,7 @@ export function RouteDetailPage({ data }: { data: StudioRouteDetailResponse | nu
 
   const tabBadges = routeTabBadges(data.insights);
   const sectionRegistry = routeSectionRegistry(data.capability, tabBadges);
+  const archetype = routeDossierArchetype({ capability: data.capability, dossier: data.dossier });
   const section = (tab: RouteDetailTabValue, render: () => ReactNode) => {
     const presentation = sectionRegistry.presentations[tab];
     if (presentation.mode === "hidden") return null;
@@ -68,6 +70,7 @@ export function RouteDetailPage({ data }: { data: StudioRouteDetailResponse | nu
         header={
           <RouteHeader
             route={route}
+            contextLabel={archetype.label}
             metricStrip={
               <RouteJudgedKpiStrip
                 route={route}
@@ -86,7 +89,7 @@ export function RouteDetailPage({ data }: { data: StudioRouteDetailResponse | nu
                     viewTransition
                     className="inline-flex items-center rounded-[3px] border border-[var(--bp-color-ink-20)] px-3.5 py-2 text-[12.5px] font-medium text-[var(--bp-color-ink)] no-underline"
                   >
-                    Compare with {peer.label}
+                    Compare {peer.label}
                     {peer.sbs ? " SBS" : ""}
                   </Link>
                 ) : null}
@@ -95,7 +98,7 @@ export function RouteDetailPage({ data }: { data: StudioRouteDetailResponse | nu
                   search={{ route: route.slug }}
                   className="inline-flex items-center gap-1.5 rounded-[3px] bg-[var(--bp-color-ink)] px-3.5 py-2 text-[12.5px] font-semibold text-[var(--bp-color-paper)] no-underline"
                 >
-                  Generate brief
+                  Brief
                 </Link>
               </>
             }
