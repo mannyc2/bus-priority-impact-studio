@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { DataAsOf } from "@/components/DataAsOf";
+import { coverageRows, coverageSummary } from "@/components/route/coverage-matrix";
 import {
   completenessStatusLabel,
   releaseLayerDescription,
@@ -13,12 +14,14 @@ import {
 } from "@/components/route/route-derived";
 import { sectionPresentation } from "@/components/route/section-registry";
 import { SectionHeader } from "@/components/SectionHeader";
+import { Badge } from "@/components/ui/badge";
 import type { StudioRouteDetailResponse } from "@/studio/api-contract";
 
 export function DataNotesSection({ data }: { data: StudioRouteDetailResponse }) {
   const { route, quality, segments, dossier } = data;
   const historyWindow = dossierMetricWindow(dossier?.speed);
   const ridershipMonthCount = dossierMetricMonthCount(dossier?.ridership);
+  const coverage = coverageRows(data.capability);
   const hiddenTabs = ROUTE_DETAIL_TABS.flatMap((tab) => {
     const presentation = sectionPresentation(data.capability, tab.value);
     return presentation.mode === "hidden" ? [{ tab, presentation }] : [];
@@ -98,6 +101,47 @@ export function DataNotesSection({ data }: { data: StudioRouteDetailResponse }) 
         </div>
       </div>
 
+      <div>
+        <SectionHeader
+          title="What we checked"
+          sub={
+            coverage.length > 0
+              ? coverageSummary(coverage)
+              : "Legacy route detail without a published capability manifest."
+          }
+        />
+        <div className="rounded-[3px] bg-[var(--bp-color-card)] shadow-[0_0_0_1px_var(--bp-color-rule)]">
+          {coverage.length > 0 ? (
+            coverage.map((row) => (
+              <div
+                key={row.key}
+                className="grid grid-cols-[220px_130px_minmax(0,1fr)_120px] items-center gap-5 px-4 py-3 shadow-[inset_0_-1px_0_var(--bp-color-rule)] last:shadow-none max-lg:grid-cols-1 max-lg:gap-1"
+              >
+                <div>
+                  <div className="text-[13px] font-semibold">{row.label}</div>
+                  <div className="mt-0.5 font-mono text-[10.5px] text-[var(--bp-color-ink-40)]">
+                    {row.depthLabel}
+                  </div>
+                </div>
+                <div>
+                  <Badge variant={row.tone}>{row.stateLabel}</Badge>
+                </div>
+                <div className="text-[11.5px] leading-[1.45] text-[var(--bp-color-ink-55)]">
+                  {row.reason ?? coverageReason(row.state)}
+                </div>
+                <div className="text-right max-lg:text-left">
+                  <DataAsOf dataAsOf={row.dataAsOf} />
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="px-4 py-3 text-[12.5px] text-[var(--bp-color-ink-55)]">
+              This route predates the manifest-driven evidence matrix.
+            </div>
+          )}
+        </div>
+      </div>
+
       {hiddenTabs.length > 0 ? (
         <div>
           <SectionHeader
@@ -155,6 +199,27 @@ export function DataNotesSection({ data }: { data: StudioRouteDetailResponse }) 
 
 function hiddenStateLabel(state: string): string {
   return state.replaceAll("_", " ");
+}
+
+function coverageReason(state: string): string {
+  switch (state) {
+    case "ready":
+      return "Evidence is available for this section.";
+    case "partial":
+      return "Evidence is available, but coverage is incomplete.";
+    case "checked_clean":
+      return "The source or detector ran and did not publish a route flag.";
+    case "building":
+      return "The producer exists but has not finished for this route.";
+    case "insufficient_data":
+      return "The available inputs do not support a route-level claim.";
+    case "not_applicable":
+      return "This surface does not apply to this route.";
+    case "blocked":
+      return "An upstream dependency blocked this surface.";
+    default:
+      return "No route-level explanation published for this surface.";
+  }
 }
 
 function DataWindow({

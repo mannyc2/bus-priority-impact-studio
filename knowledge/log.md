@@ -2,6 +2,35 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Evidence shows manifest coverage matrix
+
+Advanced the route-detail Evidence tab from dataset notes into the §5.3/§8.1 manifest-backed
+"what we checked" matrix. Evidence now lists each published capability surface with state, depth,
+reason, and data-as-of metadata, so ready, checked-clean, insufficient, blocked, and legacy/no-manifest
+routes all have explicit public language instead of relying only on hidden-tab notes. Added a focused
+coverage-matrix helper and tests for ordering, labels, depth summaries, and legacy fallback behavior.
+
+Verified with `bun test apps/web/test/shared/coverage-matrix.test.ts
+apps/web/test/shared/section-registry.test.ts --timeout 5000`, `bun --filter @bp/web typecheck`,
+targeted `bunx biome check ...`, `bun --filter @bp/web build`, and `git diff --check`.
+
+## [2026-06-12] engineering | Tier 2 M15 CAC4 source review closes one more source
+
+Reviewed `nyc_dot_bus_priority_document_pdf_2010_04_29_brt_1st2nd_cac4` from the full-corpus
+source review workspace as a proposed M15 First Avenue/Second Avenue SBS launch record. The local
+ignored reviewed-record seed now has 4 sources and 4 records. The CAC4 record cites the April 29,
+2010 presentation, the source-announced October 10, 2010 M15 SBS start, the 10+ miles of bus/bike
+facilities, the First Avenue/Second Avenue corridor/ridership context, and station-siting changes
+at Water/Wall, Grand/Allen, First/28th, and First/42nd, while preserving caveats that this is
+pre-launch evidence, deterministic corridor validation still needs review, and the station maps are
+not a full block-by-block treatment assignment.
+
+Regenerated the local ignored source receipt closure audit. It now reports 291 queue sources, 4
+valid reviewed records, 3 disposition receipts, 5 closed sources, 286 open sources, and 0 conflicts;
+public promotion remains blocked on full source closure. Verified with `jq empty` on the reviewed
+record artifact, `bun run pipeline docs tier2 source-receipt-audit ...`, and
+`bun run pipeline audit tier2-structured-data --json`.
+
 ## [2026-06-12] engineering | Overview becomes a dossier verdict slice
 
 Advanced the route-detail redesign from tab availability into the §4.2 Overview shape. Overview
