@@ -13,7 +13,11 @@ import {
   safeInsightCaveats,
 } from "@/components/route/route-insight-placement";
 import { routeSectionQuestion } from "@/components/route/section-registry";
-import { type WhereWhenSummary, whereWhenSummary } from "@/components/route/where-when-summary";
+import {
+  type WhereWhenSummary,
+  whereWhenSegmentBadge,
+  whereWhenSummary,
+} from "@/components/route/where-when-summary";
 import { SectionHeader } from "@/components/SectionHeader";
 import { SegmentRow, SegmentRowHeader } from "@/components/SegmentRow";
 import { TreatmentBadgeRow } from "@/components/TreatmentBadge";
@@ -98,11 +102,11 @@ export function SlowSegmentsSection({
           <div className="flex items-center gap-2">
             <DataAsOf dataAsOf={summary.dataAsOf} />
             <FilterChips
-              ariaLabel="Direction filter"
+              ariaLabel="Direction"
               value={direction}
               onChange={setDirection}
               options={[
-                { id: "all" as const, label: "All directions" },
+                { id: "all" as const, label: "All" },
                 { id: "NB" as const, label: "NB" },
                 { id: "SB" as const, label: "SB" },
               ]}
@@ -113,17 +117,10 @@ export function SlowSegmentsSection({
       <WhereWhenSummaryCards summary={summary} />
       <div className="grid grid-cols-[minmax(0,1.45fr)_minmax(300px,0.8fr)] gap-5 max-xl:grid-cols-1">
         <div className="rounded-[3px] bg-[var(--bp-color-card)] px-5 py-4 shadow-[0_0_0_1px_var(--bp-color-rule)]">
-          <SectionHeader
-            title="Corridor profile"
-            sub="Weekday segment speeds; dashed line is schedule."
-          />
+          <SectionHeader title="Profile" sub="Weekday speed; dash=schedule." />
           <CorridorProfile route={route} segments={segments} highlightId={flaggedId} />
         </div>
-        <ChartFrame
-          title="Speed by hour of day"
-          source="Average speed by time of day."
-          height={164}
-        >
+        <ChartFrame title="Hourly speed" source="Average by hour." height={164}>
           <HourBars
             data={hourProfile}
             sched={route.scheduledMph}
@@ -143,6 +140,7 @@ export function SlowSegmentsSection({
               segments={segments}
               segment={segment}
               insight={segmentInsight(segment)}
+              segmentBadge={whereWhenSegmentBadge({ segment, dossier: dossier ?? null })}
               index={index}
               onSend={() => setSendSeg(segment)}
             />
@@ -210,7 +208,7 @@ export function SlowSegmentsSection({
       </div>
       <div className="mt-3 text-[11.5px] text-[var(--bp-color-ink-55)]">
         {visible.length} of {segments.length} segments shown.
-        {unmatchedMapInsightCount > 0 ? <span> More detector notes are off-row.</span> : null}
+        {unmatchedMapInsightCount > 0 ? <span> More notes off-row.</span> : null}
       </div>
       {capture ? <SendToBriefSheet source={capture} onClose={() => setSendSeg(null)} /> : null}
     </section>
@@ -220,24 +218,16 @@ export function SlowSegmentsSection({
 function WhereWhenSummaryCards({ summary }: { summary: WhereWhenSummary }) {
   return (
     <div className="grid grid-cols-4 rounded-[3px] bg-[var(--bp-color-card)] shadow-[0_0_0_1px_var(--bp-color-rule)] max-xl:grid-cols-2 max-sm:grid-cols-1">
+      <WhereWhenStat label="Speed" value={summary.currentSpeedLabel} sub={summary.peerLabel} />
       <WhereWhenStat
-        label="Current speed"
-        value={summary.currentSpeedLabel}
-        sub={summary.peerLabel}
-      />
-      <WhereWhenStat
-        label="6-month movement"
+        label="6-mo trend"
         value={summary.movementLabel}
         sub={summary.movementDetail}
         tone={summary.movementTone}
       />
+      <WhereWhenStat label="Window" value={summary.windowLabel} sub={summary.coverageLabel} />
       <WhereWhenStat
-        label="History window"
-        value={summary.windowLabel}
-        sub={summary.coverageLabel}
-      />
-      <WhereWhenStat
-        label="Worst segment"
+        label="Worst"
         value={summary.worstSegmentLabel}
         sub={summary.worstSegmentDetail}
       />
@@ -283,6 +273,7 @@ function SlowSegmentCard({
   segments,
   segment,
   insight,
+  segmentBadge,
   index,
   onSend,
 }: {
@@ -290,6 +281,7 @@ function SlowSegmentCard({
   segments: readonly StudioSegment[];
   segment: StudioSegment;
   insight: StudioRouteInsight | null;
+  segmentBadge: string | null;
   index: number;
   onSend: () => void;
 }) {
@@ -317,7 +309,12 @@ function SlowSegmentCard({
             </div>
           </div>
         </div>
-        <Badge variant={segment.flagged ? "bad" : "warn"}>{segment.speedMph.toFixed(1)} mph</Badge>
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          {segmentBadge ? <Badge variant="bad">{segmentBadge}</Badge> : null}
+          <Badge variant={segment.flagged ? "bad" : "warn"}>
+            {segment.speedMph.toFixed(1)} mph
+          </Badge>
+        </div>
       </div>
 
       <div className="mt-4 grid grid-cols-[1fr_150px] items-center gap-3">
@@ -325,9 +322,7 @@ function SlowSegmentCard({
           <div className="font-mono text-[24px] font-semibold leading-none" style={{ color }}>
             {segment.riderHours.toLocaleString()}
           </div>
-          <div className="mt-1 text-[11px] text-[var(--bp-color-ink-55)]">
-            rider-hours lost / day
-          </div>
+          <div className="mt-1 text-[11px] text-[var(--bp-color-ink-55)]">rider-hr lost/day</div>
         </div>
         <CorridorMap route={route} segments={segments} highlightId={segment.id} mode="mini" />
       </div>
@@ -348,7 +343,7 @@ function SlowSegmentCard({
         </p>
       ) : (
         <p className="m-0 mt-4 flex-1 text-[12px] leading-[1.55] text-[var(--bp-color-ink-55)]">
-          No route-specific note is attached to this segment in the current serving data.
+          No segment note in this release.
         </p>
       )}
 
@@ -382,7 +377,7 @@ function SegmentInsightNote({
       }
     >
       <span className="font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--bp-color-accent)]">
-        Detector note
+        Note
       </span>
       <span className={compact ? "mt-1 block" : "text-[12px] leading-[1.55]"}>
         {insight.shortText}

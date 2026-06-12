@@ -1,5 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { whereWhenSummary } from "../../src/components/route/where-when-summary";
+import {
+  whereWhenSegmentBadge,
+  whereWhenSummary,
+} from "../../src/components/route/where-when-summary";
 import type { RouteDossierSummaryForDetail } from "../../src/studio/api-contract";
 
 const dossier = {
@@ -57,15 +60,14 @@ describe("whereWhenSummary", () => {
       currentSpeedLabel: "5.8 mph",
       peerLabel: "slower than 88% of local routes",
       movementLabel: "-8.2%",
-      movementDetail: "slower over 6 months",
+      movementDetail: "slower over 6 mo",
       movementTone: "bad",
-      coverageLabel: "2 months of route-speed history",
+      coverageLabel: "2 months speed history",
       windowLabel: "2026-01 to 2026-03",
       worstSegmentLabel: "First Avenue 67 St to 79 St",
-      worstSegmentDetail: "4 trailing months as the slowest segment",
+      worstSegmentDetail: "4 months slowest",
       dataAsOf: "2026-03",
-      sectionSubtitle:
-        "1 timepoint segment with 2 months of route-speed history (2026-01 to 2026-03).",
+      sectionSubtitle: "1 segment with 2 months speed history (2026-01 to 2026-03).",
     });
   });
 
@@ -83,13 +85,31 @@ describe("whereWhenSummary", () => {
       currentSpeedLabel: "7.1 mph",
       peerLabel: "no peer ranking yet",
       movementLabel: "n/a",
-      movementDetail: "not enough history for a 6-month comparison",
+      movementDetail: "not enough 6-month history",
       movementTone: "neutral",
       coverageLabel: "2 timepoint segments",
       windowLabel: "current projection",
       worstSegmentLabel: "High to Impact",
-      worstSegmentDetail: "12.3K rider-hours lost / day",
+      worstSegmentDetail: "12.3K rider-hr/day",
       dataAsOf: null,
     });
+  });
+
+  test("badges the segment that matches the dossier persistent worst segment", () => {
+    expect(
+      whereWhenSegmentBadge({
+        segment: { id: "M15+:2026-03:N:19:100:200" },
+        dossier,
+      }),
+    ).toBe("4 mo worst");
+  });
+
+  test("does not badge unrelated segments", () => {
+    expect(
+      whereWhenSegmentBadge({
+        segment: { id: "M15+:2026-03:S:19:100:200" },
+        dossier,
+      }),
+    ).toBeNull();
   });
 });
