@@ -1,6 +1,17 @@
 import { describe, expect, test } from "bun:test";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { OverviewSection } from "../../src/components/route/OverviewSection";
 import { routeMapHighlight } from "../../src/components/route/RouteMapSection";
-import type { StudioRouteInsight, StudioSegment } from "../../src/studio/api-contract";
+import { routeSectionRegistry } from "../../src/components/route/section-registry";
+import type {
+  RouteSurfaceCapability,
+  StudioRoute,
+  StudioRouteCapability,
+  StudioRouteDetailResponse,
+  StudioRouteInsight,
+  StudioSegment,
+} from "../../src/studio/api-contract";
 
 function segment(input: Partial<StudioSegment> & Pick<StudioSegment, "id">): StudioSegment {
   const fixture: StudioSegment = {
@@ -39,6 +50,86 @@ function insight(input: Partial<StudioRouteInsight> = {}): StudioRouteInsight {
   return { ...fixture, ...input, routeId: input.routeId ?? fixture.routeId };
 }
 
+function surface(state: RouteSurfaceCapability["state"]): RouteSurfaceCapability {
+  return {
+    state,
+    reason: null,
+    depth: null,
+    dataAsOf: "2026-05",
+    freshness: "current",
+  };
+}
+
+const route = {
+  slug: "b48",
+  routeId: "B48",
+  label: "B48",
+  corridor: "Lorimer / Franklin",
+  corridorFull: "Lorimer Street / Franklin Avenue",
+  borough: "Brooklyn",
+  sbs: false,
+  speedMph: 7.1,
+  scheduledMph: 8.2,
+  weightedAvgSpeed: 7.1,
+  speedPercentile: 42,
+  dailyRiders: 9800,
+  ridersYoyPct: 1.2,
+  riderHoursLost: 64,
+  laneCoverage: 0,
+  aceStatus: "none",
+  aceSince: null,
+  tspCoverage: "none",
+  reliability: "Building",
+  observedReliability: null,
+  diagnosis: "B48 has a focused route dossier.",
+  spark: [7.0, 7.1],
+  termini: { north: "Greenpoint", south: "Prospect Park" },
+  miles: 6.1,
+  stops: 32,
+  flags: [],
+  peerSlug: null,
+  interventions: [],
+  movement6mPct: null,
+  context12mPct: null,
+} satisfies StudioRoute;
+
+const capability = {
+  overallState: "ready",
+  surfaces: {
+    detectorFindings: surface("ready"),
+    map: surface("ready"),
+    ridership: surface("ready"),
+    speedHistory: surface("ready"),
+    treatment: surface("not_applicable"),
+  },
+  caveats: [],
+} satisfies StudioRouteCapability;
+
+function detail({
+  insights,
+  segments,
+}: {
+  insights: StudioRouteInsight[];
+  segments: StudioSegment[];
+}): StudioRouteDetailResponse {
+  return {
+    schemaVersion: 2,
+    generatedAt: "2026-06-12T00:00:00.000Z",
+    route,
+    segments,
+    artifactRefs: [],
+    insights,
+    capability,
+    dossier: null,
+    quality: {
+      releaseLayer: "current_signal",
+      completenessStatus: "complete",
+      confidence: "high",
+      caveats: [],
+    },
+  };
+}
+
 describe("routeMapHighlight", () => {
   test("uses sorted detector-targeted map segments before generic flagged fallback", () => {
     const result = routeMapHighlight(
@@ -72,5 +163,22 @@ describe("routeMapHighlight", () => {
       signalCount: 0,
       segment: null,
     });
+  });
+
+  test("drives the Overview mini-map with the detector-targeted segment", () => {
+    const registry = routeSectionRegistry(capability);
+    const markup = renderToStaticMarkup(
+      createElement(OverviewSection, {
+        data: detail({
+          segments: [segment({ id: "flagged", flagged: true }), segment({ id: "target" })],
+          insights: [insight({ severity: "high", target: { segmentIds: ["target"] } })],
+        }),
+        sectionRegistry: registry,
+        onNavigate: () => undefined,
+      }),
+    );
+
+    expect(markup).toContain('x="74.5" y="4" width="72" height="14"');
+    expect(markup).not.toContain('x="3.5" y="4" width="72" height="14"');
   });
 });
