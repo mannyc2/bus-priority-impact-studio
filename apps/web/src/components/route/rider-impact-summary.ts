@@ -61,8 +61,8 @@ export function riderImpactSummary({
       : formatSignedPct(ridership.movement6mPct);
   const trendDetail =
     ridership?.movement6mPct === null || ridership?.movement6mPct === undefined
-      ? "year over year in the current route projection"
-      : "over 6 months in the dossier ridership series";
+      ? "YoY in current projection"
+      : "6 mo dossier ridership";
   const topSegments = [...segments].sort((a, b) => b.riderHours - a.riderHours).slice(0, 6);
   const topSegment = topSegments[0] ?? null;
   const topShare =
@@ -76,7 +76,7 @@ export function riderImpactSummary({
   const historyDetail =
     monthCount > 0
       ? `${historyWindow ?? "monthly ridership history"}`
-      : (capability?.reason ?? "Monthly ridership history is not attached to this route yet.");
+      : (capability?.reason ?? "Monthly ridership not attached yet.");
   const burdenLabel = formatRiderHours(route.riderHoursLost);
 
   return {
@@ -88,15 +88,15 @@ export function riderImpactSummary({
     kpiTone: route.riderHoursLost >= 5_000 ? "bad" : "ink",
     sectionSubtitle:
       topSegment === null
-        ? "Daily riders and rider-hour burden from the current route projection."
-        : `Daily riders, rider-hour burden, and the highest-impact segment: ${topSegment.from} to ${topSegment.to}.`,
+        ? "Daily riders and burden from current projection."
+        : `Daily riders, burden, top segment: ${topSegment.from} to ${topSegment.to}.`,
     dailyRidersLabel: formatCompact(route.dailyRiders),
     dailyRidersDetail: `${trendLabel} ${trendDetail}`,
     burdenLabel,
     burdenDetail:
       route.riderHoursLost > 0
-        ? "rider-hours lost per weekday in the current projection"
-        : "no rider-hour loss in the current projection",
+        ? "rider-hours lost/day in projection"
+        : "no rider-hour loss in projection",
     trendLabel,
     trendDetail,
     historyLabel,

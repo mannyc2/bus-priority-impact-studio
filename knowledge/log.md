@@ -2,6 +2,51 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Condition KPI leads with peer framing
+
+Aligned the judged KPI strip with the route-detail redesign contract: the Condition tile now leads
+with peer-relative framing when a speed peer percentile is available, while the raw mph value moves
+to supporting copy. Added a server-rendered shared test that asserts the peer percentile appears
+before the mph value. Trimmed adjacent route-detail copy in reliability, where/when, and rider
+impact summaries so the production build stays under the unchanged 485 KB gz total-JS budget.
+
+Also reviewed `nyc_dot_bus_priority_document_pdf_fordham_rd_inwood_cb11_jun2023` from the
+full-corpus source review workspace. The local ignored reviewed-record seed now has 47
+reviewed-record sources and 52 valid records. This source contributes two conservative Bx12 records:
+an implemented Bx12 SBS ABLE record with the November 18, 2022 implementation date, January 17,
+2023 summons start, Fordham Road ticket/speed observations, and operating-hour caveats; and a
+Fordham Road/Inwood alternatives-under-study planning record from the June 5, 2023 CB11
+presentation. The planning record cites Alternative A offset bus lanes and the studied eastbound
+and two-way busway concepts without treating CB11 as final selection or implementation proof, limits
+route assignment to Bx12 SBS until route-shape review supports wider fanout, and caveats
+cross-section/map/traffic-analysis details before block-level publication.
+
+Regenerated the local ignored source receipt closure audit with the current v2 flags. It now
+reports 291 queue sources, 52 valid reviewed records, 47 reviewed-record sources, 4 disposition
+receipts, 49 closed sources, 242 open sources, and 0 conflicts; public promotion remains blocked on
+full source closure.
+
+Verified with `bunx biome check apps/web/src/components/route/RouteJudgedKpiStrip.tsx
+apps/web/src/components/route/ReliabilitySection.tsx
+apps/web/src/components/route/reliability-summary.ts
+apps/web/src/components/route/where-when-summary.ts
+apps/web/src/components/route/rider-impact-summary.ts
+apps/web/test/shared/route-judged-kpi-strip.test.ts
+apps/web/test/shared/where-when-summary.test.ts
+apps/web/test/shared/rider-impact-summary.test.ts
+apps/web/test/shared/reliability-summary.test.ts knowledge/log.md`, `bun test
+apps/web/test/shared/route-judged-kpi-strip.test.ts
+apps/web/test/shared/where-when-summary.test.ts
+apps/web/test/shared/rider-impact-summary.test.ts
+apps/web/test/shared/reliability-summary.test.ts --timeout 5000`, `bun --filter @bp/web
+typecheck`, `bun --filter @bp/web build`, `bun run check:types`, `jq empty
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/intervention-records-corpus-reviewed.json
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/source-receipt-closure-audit.json
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/source-receipt-closure-audit-summary.json`,
+`bun --filter @bp/pipeline-v2 cli -- docs tier2 source-receipt-audit --queue-path ...`, `bun
+--filter @bp/pipeline-v2 cli -- audit tier2-structured-data --json`, `bun run check:knowledge`,
+and `git diff --check`.
+
 ## [2026-06-12] engineering | Coverage summaries omit zero ready counts
 
 Tightened route capability coverage summaries so sparse manifests no longer start with `0 ready`.
