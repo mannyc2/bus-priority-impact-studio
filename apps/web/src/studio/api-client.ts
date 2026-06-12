@@ -4,7 +4,7 @@ import {
   type PathBuildInput,
   type StudioApiRouteId,
 } from "@bp/studio-api/client";
-import type * as z from "zod";
+import * as z from "zod";
 import type {
   StudioBriefAgentProposalApplyRequest,
   StudioBriefAgentProposalRejectRequest,
@@ -259,6 +259,24 @@ export function fetchStudioCompare(a: string, b: string, options?: StudioQueryOp
 
 export function fetchStudioFindings(options?: StudioQueryOptions) {
   return loadStudioJson(studioPath("studio.findings"), StudioFindingsResponseSchema, options);
+}
+
+const MapContextCollectionSchema = z.object({
+  features: z.array(
+    z.object({
+      geometry: z.object({
+        type: z.literal("MultiPolygon"),
+        coordinates: z.array(z.array(z.array(z.array(z.number()).length(2)))),
+      }),
+    }),
+  ),
+});
+
+const MAP_CONTEXT_PATH = "/api/v1/artifacts/map/context/nyc-boroughs.min.geojson";
+
+/** NYC borough shoreline polygons used as the route map's land/water context. */
+export function fetchMapContext(options?: StudioQueryOptions) {
+  return loadNullableStudioJson(MAP_CONTEXT_PATH, MapContextCollectionSchema, options);
 }
 
 export function fetchMapManifest(options?: StudioQueryOptions) {

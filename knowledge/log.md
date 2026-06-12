@@ -2,6 +2,24 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Route map gains real shoreline context and stop ticks
+
+Follow-up to the frontend regression slice: the bare route polyline now sits on real geography.
+Added `map context`, a pipeline-v2 command that parses the captured NYC borough-boundary bulk
+CSV (WKT multipolygons), Douglas-Peucker-simplifies the shoreline to ~40m tolerance, drops
+sub-0.1km2 islands, and emits `map/context/nyc-boroughs.min.geojson` (5 boroughs, 33 rings,
+~65KB). `RouteGeoMap` renders it as a water-gradient background with land polygons under the
+route, projected through the same equirectangular transform, plus intermediate timepoint stop
+ticks with cleaned cross-street labels. The context fetch is progressive enhancement — a 404
+falls back to the plain route rendering. Everything drawn is real data: GTFS street geometry,
+observed segment speeds, NYC Open Data shoreline, timepoint coordinates. Local dev serving needs
+the context artifact seeded once via `scripts/seed-local-studio-r2.sh ... data/artifacts/map/context`.
+
+Verified with `bun --filter @bp/pipeline-v2 test` (493 pass), the real `map context` command run
+(byte-identical artifact), `bun test apps/web/test` (88 pass), `bun --filter @bp/web build`
+(budget ok), and headless screenshots of M15-SBS (Manhattan/East River) and B46-SBS (Brooklyn/
+Jamaica Bay) map tabs.
+
 ## [2026-06-12] engineering | Frontend regression fixes from user design review
 
 The user reviewed the dossier-redesign frontend (PRs #12–#32) and rejected several of its

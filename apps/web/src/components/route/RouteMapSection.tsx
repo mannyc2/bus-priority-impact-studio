@@ -2,6 +2,7 @@ import type { MapRouteSegmentFeatureCollection } from "@bp/domain/maps";
 import { useEffect, useState } from "react";
 import { CorridorMap } from "@/components/CorridorMap";
 import { RouteGeoMap } from "@/components/route/RouteGeoMap";
+import type { RouteGeoContext } from "@/components/route/route-geo-map";
 import {
   insightTargetsSegment,
   routeInsightPlacements,
@@ -9,7 +10,7 @@ import {
 import { routeSectionQuestion } from "@/components/route/section-registry";
 import { SectionHeader } from "@/components/SectionHeader";
 import { Badge } from "@/components/ui/badge";
-import { fetchRouteSegmentsGeo } from "@/studio/api-client";
+import { fetchMapContext, fetchRouteSegmentsGeo } from "@/studio/api-client";
 import type {
   StudioRouteDetailResponse,
   StudioRouteInsight,
@@ -66,7 +67,11 @@ export function routeMapFocusSummary(highlight: RouteMapHighlight): RouteMapFocu
 
 type GeoState =
   | { status: "loading" }
-  | { status: "ready"; collection: MapRouteSegmentFeatureCollection }
+  | {
+      status: "ready";
+      collection: MapRouteSegmentFeatureCollection;
+      context: RouteGeoContext | null;
+    }
   | { status: "unavailable" };
 
 export function useRouteSegmentsGeo(routeId: string): GeoState {
@@ -75,13 +80,18 @@ export function useRouteSegmentsGeo(routeId: string): GeoState {
   useEffect(() => {
     const controller = new AbortController();
     setState({ status: "loading" });
-    fetchRouteSegmentsGeo(routeId, { signal: controller.signal })
-      .then((collection) => {
+    Promise.all([
+      fetchRouteSegmentsGeo(routeId, { signal: controller.signal }),
+      // Shoreline context is progressive enhancement — its absence never
+      // blocks the route geometry.
+      fetchMapContext({ signal: controller.signal }).catch(() => null),
+    ])
+      .then(([collection, context]) => {
         if (controller.signal.aborted) return;
         setState(
           collection === null || collection.features.length === 0
             ? { status: "unavailable" }
-            : { status: "ready", collection },
+            : { status: "ready", collection, context },
         );
       })
       .catch(() => {
@@ -126,7 +136,7 @@ export function RouteMapSection({ data }: { data: StudioRouteDetailResponse }) {
       />
       <div className="rounded-[3px] bg-[var(--bp-color-card)] p-5 shadow-[0_0_0_1px_var(--bp-color-rule)]">
         {geo.status === "ready" ? (
-          <RouteGeoMap collection={geo.collection} />
+          <RouteGeoMap collection={geo.collection} context={geo.context} />
         ) : geo.status === "loading" ? (
           <div
             className="animate-pulse rounded-[3px] bg-[var(--bp-color-ink-06)]"

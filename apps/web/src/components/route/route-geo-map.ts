@@ -22,9 +22,18 @@ export type RouteGeoLabelPoint = {
   label: string;
 };
 
+/** Land polygons from the borough-boundary context artifact (lon/lat rings). */
+export type RouteGeoContext = {
+  features: ReadonlyArray<{
+    geometry: { type: "MultiPolygon"; coordinates: number[][][][] };
+  }>;
+};
+
 export type RouteGeoMapModel = {
   segments: RouteGeoSegment[];
   termini: RouteGeoLabelPoint[];
+  stops: RouteGeoLabelPoint[];
+  landPaths: string[];
   slowest: (RouteGeoLabelPoint & { speedMph: number }) | null;
 };
 
@@ -58,7 +67,19 @@ function pickDirection(features: readonly MapRouteSegmentFeature[]): MapRouteSeg
 
 export function routeGeoMapModel(
   collection: Pick<MapRouteSegmentFeatureCollection, "features">,
-  { width, height, padding }: { width: number; height: number; padding: number },
+  {
+    width,
+    height,
+    padding,
+    context = null,
+    marginPct = 0,
+  }: {
+    width: number;
+    height: number;
+    padding: number;
+    context?: RouteGeoContext | null;
+    marginPct?: number;
+  },
 ): RouteGeoMapModel | null {
   const features = pickDirection(collection.features);
   if (features.length === 0) return null;
@@ -76,6 +97,14 @@ export function routeGeoMapModel(
     }
   }
 
+  // Geographic margin so surrounding land/water shows around the route.
+  const lonMargin = (maxLon - minLon) * marginPct;
+  const latMargin = (maxLat - minLat) * marginPct;
+  minLon -= lonMargin;
+  maxLon += lonMargin;
+  minLat -= latMargin;
+  maxLat += latMargin;
+
   const lonScale = Math.cos(((minLat + maxLat) / 2) * (Math.PI / 180));
   const spanX = Math.max((maxLon - minLon) * lonScale, 1e-9);
   const spanY = Math.max(maxLat - minLat, 1e-9);
@@ -89,6 +118,28 @@ export function routeGeoMapModel(
     offsetX + (lon - minLon) * lonScale * scale,
     offsetY + (maxLat - lat) * scale,
   ];
+
+  // Land polygons, pre-filtered to rings that touch the visible window (the
+  // SVG viewport clips overflow, so coarse bbox filtering is enough).
+  const landPaths: string[] = [];
+  if (context !== null) {
+    const visible = ([lon, lat]: readonly [number, number]) =>
+      lon >= minLon - 0.02 && lon <= maxLon + 0.02 && lat >= minLat - 0.02 && lat <= maxLat + 0.02;
+    for (const feature of context.features) {
+      for (const polygon of feature.geometry.coordinates) {
+        for (const ring of polygon) {
+          if (!ring.some((coordinate) => visible(coordinate as [number, number]))) continue;
+          const d = ring
+            .map((coordinate, index) => {
+              const [x, y] = project(coordinate as [number, number]);
+              return `${index === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`;
+            })
+            .join(" ");
+          landPaths.push(`${d} Z`);
+        }
+      }
+    }
+  }
 
   const slowestFeature = features.reduce<MapRouteSegmentFeature | null>((acc, feature) => {
     const speed = feature.properties.averageSpeedMph;
@@ -132,22 +183,28 @@ export function routeGeoMapModel(
     }
   }
   const termini: RouteGeoLabelPoint[] = [];
+  const stops: RouteGeoLabelPoint[] = [];
+  const seenStopKeys = new Set<string>();
   for (const feature of features) {
-    if (termini.length >= 2) break;
     const coordinates = feature.geometry.coordinates;
     for (const [index, coordinate] of [coordinates[0], coordinates[coordinates.length - 1]]
       .filter((c): c is [number, number] => c !== undefined)
       .entries()) {
-      const entry = endpointCounts.get(coordKey(coordinate));
-      if (entry === undefined || entry.count !== 1 || entry.label === null) continue;
-      const [x, y] = project(coordinate);
+      const key = coordKey(coordinate);
+      if (seenStopKeys.has(key)) continue;
+      const entry = endpointCounts.get(key);
+      if (entry === undefined) continue;
       const label = cleanStopName(
         index === 0 ? feature.properties.startStopName : feature.properties.endStopName,
       );
       if (label === null) continue;
-      if (termini.some((t) => t.label === label)) continue;
-      termini.push({ x, y, label });
-      if (termini.length >= 2) break;
+      seenStopKeys.add(key);
+      const [x, y] = project(coordinate);
+      if (entry.count === 1 && termini.length < 2 && !termini.some((t) => t.label === label)) {
+        termini.push({ x, y, label });
+      } else {
+        stops.push({ x, y, label });
+      }
     }
   }
 
@@ -177,7 +234,7 @@ export function routeGeoMapModel(
     }
   }
 
-  return { segments, termini, slowest };
+  return { segments, termini, stops, landPaths, slowest };
 }
 
 export function geoSpeedColor(speedMph: number | null): string {

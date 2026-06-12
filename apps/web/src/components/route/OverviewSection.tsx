@@ -103,7 +103,7 @@ export function OverviewSection({
           </div>
           <div className="min-h-[172px]">
             {geo.status === "ready" ? (
-              <RouteGeoMap collection={geo.collection} variant="mini" />
+              <RouteGeoMap collection={geo.collection} context={geo.context} variant="mini" />
             ) : geo.status === "loading" ? (
               <div
                 className="h-[200px] animate-pulse rounded-[3px] bg-[var(--bp-color-ink-06)]"
