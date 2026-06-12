@@ -11,6 +11,7 @@ import {
 } from "@/components/route/route-derived";
 import {
   routeInsightPlacements,
+  routeTabForInsight,
   safeInsightCaveats,
 } from "@/components/route/route-insight-placement";
 import { SectionHeader } from "@/components/SectionHeader";
@@ -190,7 +191,7 @@ function InsightCard({
   onNavigate: (tab: RouteDetailTabValue) => void;
 }) {
   const caveats = safeInsightCaveats(insight, 2);
-  const tab = tabForInsight(insight);
+  const tab = routeTabForInsight(insight);
   return (
     <article className="flex min-h-[178px] flex-col rounded-[3px] bg-[var(--bp-color-card)] p-4 shadow-[0_0_0_1px_var(--bp-color-rule)]">
       <div className="flex items-start justify-between gap-3">
@@ -263,15 +264,6 @@ function CheckedCleanCard({
       </button>
     </div>
   );
-}
-
-function tabForInsight(insight: StudioRouteInsight): RouteDetailTabValue {
-  if (insight.kind === "timeline_annotation" || insight.kind === "treatment_scope") {
-    return "treatments";
-  }
-  if (insight.kind === "map_segment" || insight.placement === "map_segment") return "map";
-  if (insight.kind === "customer_journey") return "riders";
-  return "where-when";
 }
 
 function tabLabel(tab: RouteDetailTabValue): string {

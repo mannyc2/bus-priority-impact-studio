@@ -15,6 +15,7 @@ import {
 import { RouteHeader } from "@/components/route/RouteHeader";
 import { RouteJudgedKpiStrip } from "@/components/route/RouteJudgedKpiStrip";
 import { RouteMapSection } from "@/components/route/RouteMapSection";
+import { routeTabBadges } from "@/components/route/route-insight-placement";
 import { SlowSegmentsSection } from "@/components/route/SlowSegments";
 import { sectionPresentation } from "@/components/route/section-registry";
 import { TreatmentsHistorySection } from "@/components/route/TreatmentsHistorySection";
@@ -44,8 +45,12 @@ export function RouteDetailPage({ data }: { data: StudioRouteDetailResponse | nu
   const presentations = new Map(
     ROUTE_DETAIL_TABS.map((tab) => [tab.value, sectionPresentation(data.capability, tab.value)]),
   );
+  const tabBadges = routeTabBadges(data.insights);
   const visibleTabs = ROUTE_DETAIL_TABS.filter((tab) => {
     return presentations.get(tab.value)?.mode !== "hidden";
+  }).map((tab) => {
+    const badge = tabBadges[tab.value];
+    return badge === undefined ? tab : { ...tab, badge };
   });
   const section = (tab: RouteDetailTabValue, render: () => ReactNode) => {
     const presentation = presentations.get(tab);

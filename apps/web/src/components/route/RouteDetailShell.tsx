@@ -1,7 +1,12 @@
 import type { ReactNode } from "react";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-export type RouteDetailTab = { value: string; label: string };
+export type RouteDetailTab = {
+  value: string;
+  label: string;
+  badge?: { count: number; severity: "low" | "medium" | "high" } | undefined;
+};
 
 /** The question-shaped route-section tabs (frontend §4.3). Treatments & history
  * absorbs the old Interventions and Timeline tabs; Evidence absorbs Data notes.
@@ -57,9 +62,18 @@ export function RouteDetailShell({
               <TabsTrigger
                 key={t.value}
                 value={t.value}
-                className="rounded-none border-0 px-0 py-[10px] text-[12.5px] font-normal text-[var(--bp-color-ink-55)] data-active:font-semibold data-active:text-[var(--bp-color-ink)] data-active:shadow-[inset_0_-2px_0_var(--bp-color-ink)] data-active:after:hidden"
+                className="inline-flex items-center gap-1.5 rounded-none border-0 px-0 py-[10px] text-[12.5px] font-normal text-[var(--bp-color-ink-55)] data-active:font-semibold data-active:text-[var(--bp-color-ink)] data-active:shadow-[inset_0_-2px_0_var(--bp-color-ink)] data-active:after:hidden"
               >
                 {t.label}
+                {t.badge && t.badge.count > 0 ? (
+                  <Badge
+                    variant={t.badge.severity === "high" ? "bad" : "warn"}
+                    className="h-[17px] min-w-[17px] px-[5px] py-0 text-[10px]"
+                    aria-label={`${t.badge.count} flagged insight${t.badge.count === 1 ? "" : "s"}`}
+                  >
+                    {t.badge.count > 9 ? "9+" : t.badge.count}
+                  </Badge>
+                ) : null}
               </TabsTrigger>
             ))}
           </TabsList>

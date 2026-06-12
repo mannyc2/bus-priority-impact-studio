@@ -2,6 +2,8 @@ import { describe, expect, test } from "bun:test";
 import {
   insightTargetsSegment,
   routeInsightPlacements,
+  routeTabBadges,
+  routeTabForInsight,
   safeInsightCaveats,
 } from "../../src/components/route/route-insight-placement";
 import type { StudioRouteInsight } from "../../src/studio/api-contract";
@@ -77,5 +79,88 @@ describe("route insight placement", () => {
         "B48:2026-03:S:19:303861:307169",
       ),
     ).toBe(true);
+  });
+
+  test("routes insights to the tab that explains them", () => {
+    expect(
+      routeTabForInsight(
+        insight({
+          kind: "map_segment",
+          placement: "map_segment",
+          detectorId: "speed_pace_hotspot",
+        }),
+      ),
+    ).toBe("map");
+    expect(
+      routeTabForInsight(
+        insight({
+          kind: "performance_annotation",
+          placement: "chart_annotation",
+          detectorId: "headway_reliability_ewt",
+        }),
+      ),
+    ).toBe("reliability");
+    expect(
+      routeTabForInsight(
+        insight({
+          kind: "performance_annotation",
+          placement: "overview",
+          detectorId: "rider_weighted_excess_wait",
+        }),
+      ),
+    ).toBe("riders");
+    expect(
+      routeTabForInsight(
+        insight({
+          kind: "performance_annotation",
+          placement: "overview",
+          detectorId: "source_gap",
+        }),
+      ),
+    ).toBe("evidence");
+    expect(
+      routeTabForInsight(
+        insight({
+          kind: "treatment_scope",
+          placement: "timeline",
+          detectorId: "treatment_scope_gap",
+        }),
+      ),
+    ).toBe("treatments");
+  });
+
+  test("counts tab badges and keeps the strongest severity per tab", () => {
+    expect(
+      routeTabBadges([
+        insight({
+          kind: "performance_annotation",
+          placement: "chart_annotation",
+          detectorId: "speed_pace_hotspot",
+          severity: "medium",
+        }),
+        insight({
+          kind: "performance_annotation",
+          placement: "overview",
+          detectorId: "degradation_trend",
+          severity: "high",
+        }),
+        insight({
+          kind: "performance_annotation",
+          placement: "chart_annotation",
+          detectorId: "headway_reliability_ewt",
+          severity: "medium",
+        }),
+        insight({
+          kind: "customer_journey",
+          placement: "overview",
+          detectorId: "customer_journey_shortfall",
+          severity: "low",
+        }),
+      ]),
+    ).toMatchObject({
+      "where-when": { count: 2, severity: "high" },
+      reliability: { count: 1, severity: "medium" },
+      riders: { count: 1, severity: "low" },
+    });
   });
 });

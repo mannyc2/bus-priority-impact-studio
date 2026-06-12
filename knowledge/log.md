@@ -2,6 +2,43 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Route tabs badge their flagged insights
+
+Advanced the route-detail §4.3 tab strip so detector-shaped public insights now badge the tab that
+explains them. Shared `routeTabForInsight` routes map, reliability, rider-impact, treatment, and
+source-gap insights to the dossier tabs; `routeTabBadges` counts visible insights per tab and keeps
+the strongest severity for the badge color. The overview insight cards now use the same router as
+the shell, so "View details" links and the manifest-filtered tab badges stay aligned.
+
+The shell renders compact `Badge` counts on visible tabs only, capped at `9+`, without changing the
+section registry or promoting the blocked detector feature families. This keeps the current public
+insight contract as the source of truth while making the registry-backed page easier to scan.
+
+Verified with `bunx biome check apps/web/src/components/route/RouteDetailShell.tsx
+apps/web/src/components/route/OverviewSection.tsx
+apps/web/src/components/route/route-insight-placement.ts apps/web/src/studio/pages/route-detail.tsx
+apps/web/test/shared/route-insight-placement.test.ts`, `bun test
+apps/web/test/shared/route-insight-placement.test.ts apps/web/test/shared/section-registry.test.ts
+--timeout 5000`, `bun --filter @bp/web typecheck`, and `bun --filter @bp/web build`.
+
+## [2026-06-12] engineering | Tier 2 M34/M16 34th Street AA source review closes one more source
+
+Reviewed `nyc_dot_bus_priority_document_pdf_34thstreet_aa_final` from the full-corpus source review
+workspace as a proposed M34/M16 34th Street BRT Locally Preferred Alternative record. The local
+ignored reviewed-record seed now has 9 sources and 9 records. The new record cites the February 2010
+Alternatives Analysis Screening Report, limits the intervention route assignment to the M34/M16
+east-west local service, and preserves the BRT transitway, off-board fare collection, all-door
+boarding, TSP, station-siting, pedestrian-space, and preliminary-design/environmental-review evidence.
+
+Regenerated the local ignored source receipt closure audit. It now reports 291 queue sources, 9
+valid reviewed records, 3 disposition receipts, 10 closed sources, 281 open sources, and 0 conflicts;
+public promotion remains blocked on full source closure. The broader Tier 2 structured-data
+inventory command still reports the older global source-closure next action because it scans the
+published artifact inventory rather than this ignored manual-review seed.
+
+Verified with `jq empty` on the reviewed-record artifact, `bun run pipeline docs tier2
+source-receipt-audit ...`, and `bun run pipeline audit tier2-structured-data --json`.
+
 ## [2026-06-12] engineering | Riders tab becomes a burden dossier
 
 Advanced the route-detail Riders tab toward the §4.3 dossier question, "Who bears it?" The header
