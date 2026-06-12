@@ -53,12 +53,22 @@ describe("analytics backfill coverage", () => {
     try {
       insertRows(db, "local_route_segment_speed", "2026-01", 300, 400);
       insertRows(db, "local_route_segment_speed", "2026-02", 300, 400);
+      insertRows(db, "local_route_segment_speed", "2025-12", 300, 400);
       insertRows(db, "local_route_hourly_ridership", "2026-01", 300, 120);
       insertRows(db, "local_route_hourly_ridership", "2026-02", 40, 120);
       insertRows(db, "local_route_intervention_comparison", "2026-01", 80, 1);
       insertRows(db, "local_route_intervention_comparison", "2026-02", 80, 1);
 
-      const surfaceRows = loadAnalyticsBackfillCoverageLocalDbRows({ sqlite: db });
+      const surfaceRows = loadAnalyticsBackfillCoverageLocalDbRows({
+        sqlite: db,
+        startMonth: "2026-01",
+        endMonth: "2026-03",
+      });
+      expect(
+        surfaceRows
+          .find((surface) => surface.surfaceId === "route_segment_speed")
+          ?.rows.map((row) => row.month),
+      ).not.toContain("2025-12");
       const artifactPath = analyticsBackfillCoveragePath({
         artifactRoot: "/tmp/artifacts",
         startMonth: "2026-01",

@@ -10,6 +10,7 @@ describe("detector corpus grain audit command boundary", () => {
   test("keeps audit construction and markdown rendering in applied-research", () => {
     const source = readFileSync(COMMAND_PATH, "utf8");
 
+    expect(source).toContain("dataProductCompletenessArtifactPath");
     expect(source).toContain("parseDataProductCompletenessArtifact");
     expect(source).toContain('from "@bp/applied-research/evaluation"');
     expect(source).toContain("buildDetectorCorpusGrainAudit({");

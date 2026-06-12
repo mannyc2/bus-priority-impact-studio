@@ -21,6 +21,7 @@ import {
 import { RouteMonthSignalFeatureSchema } from "@bp/domain/findings";
 import {
   detectorRunArtifactPath,
+  partitionFindingRowsForReleaseMonth,
   writeDbFlagSchema,
 } from "../../../src/commands/findings/run-detector.ts";
 
@@ -34,6 +35,27 @@ describe("writeDb flag parsing", () => {
     expect(writeDbFlagSchema.parse("true")).toBe(true);
     expect(writeDbFlagSchema.parse("1")).toBe(true);
     expect(writeDbFlagSchema.parse(true)).toBe(true);
+  });
+
+  test("release DB writes partition source-as-of rows by release month", () => {
+    const rows = partitionFindingRowsForReleaseMonth(
+      [
+        {
+          id: "customer-journey-row",
+          month: "2026-04",
+          scopeId: "BM1:2026-04:Off-Peak:EXP",
+        },
+      ],
+      "2026-03",
+    );
+
+    expect(rows).toEqual([
+      {
+        id: "customer-journey-row",
+        month: "2026-03",
+        scopeId: "BM1:2026-04:Off-Peak:EXP",
+      },
+    ]);
   });
 });
 

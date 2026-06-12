@@ -733,6 +733,20 @@ export {
   type RouteBriefInputHourlyBins,
 } from "./studio-coverage";
 export {
+  buildMtaWikiTier2SourceAlignmentArtifact,
+  buildMtaWikiTier2BridgeArtifact,
+  renderMtaWikiTier2SourceAlignmentMarkdown,
+  renderMtaWikiTier2BridgeMarkdown,
+  type MtaWikiBridgeCanonicalInputs,
+  type MtaWikiBridgeEvidencePreview,
+  type MtaWikiBridgeReviewGroup,
+  type MtaWikiCanonicalRecord,
+  type MtaWikiTier2SourceAlignmentArtifact,
+  type MtaWikiTier2SourceAlignmentRow,
+  type MtaWikiTier2BridgeArtifact,
+  type Tier2SourceQueueForMtaWikiAlignment,
+} from "./tier2-mta-wiki-bridge";
+export {
   buildTier2StructuredDataInventoryFromArtifacts,
   classifyTier2StructuredArtifact,
   renderTier2StructuredDataInventoryMarkdown,

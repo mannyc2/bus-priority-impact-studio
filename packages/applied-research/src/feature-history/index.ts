@@ -77,3 +77,9 @@ export {
   type SegmentDaypartFeature,
   type SegmentDaypartHistoryArtifact,
 } from "./segment-daypart-history";
+export {
+  buildSegmentDaypartPanelArtifact,
+  type SegmentDaypartPanelArtifact,
+  type SegmentDaypartPanelEligibilityStatus,
+  type SegmentDaypartPanelRow,
+} from "./segment-daypart-panel";

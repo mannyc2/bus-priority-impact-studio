@@ -15,6 +15,9 @@ import {
 function createDb(
   options: {
     includeBusWaitAssessment?: boolean;
+    includeCustomerJourneyMetrics?: boolean;
+    includeContextEventRouteTouch?: boolean;
+    includeScheduleIngestStatus?: boolean;
     includeScheduleStop?: boolean;
     includeScheduleTimepoint?: boolean;
   } = {},
@@ -68,6 +71,43 @@ function createDb(
       );
     `);
   }
+  if (options.includeCustomerJourneyMetrics !== false) {
+    db.exec(`
+      CREATE TABLE local_bus_customer_journey_metric (
+        month text NOT NULL,
+        route_id text NOT NULL,
+        borough text NOT NULL,
+        trip_type text NOT NULL,
+        period text NOT NULL,
+        customers real NOT NULL,
+        additional_bus_stop_time_minutes real,
+        additional_travel_time_minutes real,
+        customer_journey_time_minutes real,
+        PRIMARY KEY (month, route_id, trip_type, period)
+      );
+    `);
+  }
+  if (options.includeScheduleIngestStatus === true) {
+    db.exec(`
+      CREATE TABLE local_route_schedule_ingest_status (
+        source_year integer NOT NULL,
+        route_id text NOT NULL,
+        status text NOT NULL,
+        row_count integer NOT NULL DEFAULT 0,
+        PRIMARY KEY (source_year, route_id)
+      );
+    `);
+  }
+  if (options.includeContextEventRouteTouch === true) {
+    db.exec(`
+      CREATE TABLE local_context_event_route_touch (
+        event_id text NOT NULL,
+        route_id text NOT NULL,
+        event_kind text NOT NULL,
+        occurred_at text NOT NULL
+      );
+    `);
+  }
   return db;
 }
 
@@ -108,6 +148,33 @@ function insertBusWaitAssessmentCoverage(db: Database, months: readonly string[]
   tx();
 }
 
+function insertCustomerJourneyCoverage(db: Database, months: readonly string[]): void {
+  const insert = db.prepare(
+    `
+      INSERT INTO local_bus_customer_journey_metric (
+        month,
+        route_id,
+        borough,
+        trip_type,
+        period,
+        customers,
+        additional_bus_stop_time_minutes,
+        additional_travel_time_minutes,
+        customer_journey_time_minutes
+      )
+      VALUES (?, ?, 'Brooklyn', 'local', 'am_peak', 3, 1, 2, 10)
+    `,
+  );
+  const tx = db.transaction(() => {
+    for (const month of months) {
+      for (let route = 0; route < 260; route += 1) {
+        insert.run(month, `R${route}`);
+      }
+    }
+  });
+  tx();
+}
+
 function insertScheduleCoverage(db: Database, months: readonly string[]): void {
   const insert = db.prepare(
     "INSERT INTO local_route_schedule_timepoint (route_id, month, row_rank) VALUES (?, ?, ?)",
@@ -140,11 +207,60 @@ function insertScheduleStopSourceYearCoverage(db: Database, sourceYears: readonl
   tx();
 }
 
+function insertScheduleIngestStatusCoverage(
+  db: Database,
+  sourceYear: number,
+  routeCount: number,
+  rowsPerRoute: number,
+): void {
+  const insert = db.prepare(
+    "INSERT INTO local_route_schedule_ingest_status (source_year, route_id, status, row_count) VALUES (?, ?, 'complete', ?)",
+  );
+  const tx = db.transaction(() => {
+    for (let route = 0; route < routeCount; route += 1) {
+      insert.run(sourceYear, `R${route}`, rowsPerRoute);
+    }
+  });
+  tx();
+}
+
+function insertContextEventRouteTouches(input: {
+  db: Database;
+  eventKind: string;
+  months: readonly string[];
+  routesPerMonth: number;
+  rowsPerRoute: number;
+}): void {
+  const insert = input.db.prepare(
+    "INSERT INTO local_context_event_route_touch (event_id, route_id, event_kind, occurred_at) VALUES (?, ?, ?, ?)",
+  );
+  const tx = input.db.transaction(() => {
+    for (const month of input.months) {
+      for (let route = 0; route < input.routesPerMonth; route += 1) {
+        for (let row = 0; row < input.rowsPerRoute; row += 1) {
+          insert.run(`${input.eventKind}:${month}:${route}:${row}`, `R${route}`, input.eventKind, `${month}-15`);
+        }
+      }
+    }
+  });
+  tx();
+}
+
 function buildReadinessAudit(db: Database) {
-  const backfillCoverage = buildAnalyticsBackfillCoverageAudit({
-    surfaceRows: loadAnalyticsBackfillCoverageLocalDbRows({ sqlite: db }),
+  return buildReadinessAuditForWindow(db, {
     startMonth: "2026-01",
     endMonth: "2026-08",
+  });
+}
+
+function buildReadinessAuditForWindow(
+  db: Database,
+  window: { startMonth: string; endMonth: string },
+) {
+  const backfillCoverage = buildAnalyticsBackfillCoverageAudit({
+    surfaceRows: loadAnalyticsBackfillCoverageLocalDbRows({ sqlite: db }),
+    startMonth: window.startMonth,
+    endMonth: window.endMonth,
     generatedAt: "2026-05-30T00:00:00.000Z",
     dbPath: null,
     artifactPath: "data/artifacts/coverage.json",
@@ -176,13 +292,14 @@ describe("analytics detector readiness", () => {
       const months = monthRange(2026, 1, 8);
       insertObservedHeadwayCoverage(db, months);
       insertBusWaitAssessmentCoverage(db, months);
+      insertCustomerJourneyCoverage(db, months);
       insertScheduleCoverage(db, months);
 
       const audit = buildReadinessAudit(db);
 
       expect(audit.summary.detectorCount).toBe(listAnalyticsDetectors().length);
-      expect(audit.summary.readyDetectorCount).toBe(3);
-      expect(audit.summary.blockedDetectorCount).toBe(18);
+      expect(audit.summary.readyDetectorCount).toBe(4);
+      expect(audit.summary.blockedDetectorCount).toBe(17);
       expect(audit.summary.policyPendingDetectorCount).toBe(0);
 
       const ewt = audit.detectors.find(
@@ -229,6 +346,21 @@ describe("analytics detector readiness", () => {
         "observed_headways",
         "gtfs_schedule_runtime",
         "bus_wait_assessment",
+      ]);
+
+      const customerJourney = audit.detectors.find(
+        (detector) => detector.detectorId === "customer_journey_shortfall",
+      );
+      expect(customerJourney?.status).toBe("ready");
+      expect(customerJourney?.requirements).toEqual([
+        expect.objectContaining({
+          surfaceId: "customer_journey_metrics",
+          registryProductId: "local_bus_customer_journey_metrics_history",
+          tableName: "local_bus_customer_journey_metric",
+          status: "ready",
+          usableMonthCount: 8,
+          minimumCompleteMonths: 8,
+        }),
       ]);
 
       const delayConcentration = audit.detectors.find(
@@ -296,6 +428,108 @@ describe("analytics detector readiness", () => {
           }),
         ]),
       );
+    } finally {
+      db.close();
+    }
+  });
+
+  it("uses schedule ingest status summaries for source-year schedule readiness", () => {
+    const db = createDb({
+      includeScheduleIngestStatus: true,
+      includeScheduleStop: true,
+      includeScheduleTimepoint: false,
+    });
+    try {
+      const months = monthRange(2026, 1, 8);
+      insertObservedHeadwayCoverage(db, months);
+      insertBusWaitAssessmentCoverage(db, months);
+      insertScheduleIngestStatusCoverage(db, 2026, 260, 40);
+
+      const audit = buildReadinessAudit(db);
+
+      const scheduleSurface = audit.surfaceCoverage.find(
+        (surface) => surface.surfaceId === "gtfs_schedule_runtime",
+      );
+      expect(scheduleSurface).toMatchObject({
+        registryProductId: "local_route_schedule_stop_source_backfill",
+        label: "Source-year schedule stop rows",
+        tableName: "local_route_schedule_stop",
+        presentMonthCount: 8,
+        missingMonthCount: 0,
+        thinMonthCount: 0,
+        medianRowsPerPresentMonth: 10400,
+        medianRoutesPerPresentMonth: 260,
+      });
+    } finally {
+      db.close();
+    }
+  });
+
+  it("uses detector policy windows instead of the whole audited history for readiness status", () => {
+    const db = createDb();
+    try {
+      const fullWindow = monthRange(2023, 4, 36);
+      const lookback12 = monthRange(2025, 4, 12);
+      insertObservedHeadwayCoverage(db, fullWindow);
+      insertScheduleCoverage(db, lookback12);
+
+      const audit = buildReadinessAuditForWindow(db, {
+        startMonth: "2023-04",
+        endMonth: "2026-03",
+      });
+
+      const scheduleSurface = audit.surfaceCoverage.find(
+        (surface) => surface.surfaceId === "gtfs_schedule_runtime",
+      );
+      expect(scheduleSurface).toMatchObject({
+        presentMonthCount: 12,
+        missingMonthCount: 24,
+      });
+
+      const bunching = audit.detectors.find(
+        (detector) => detector.detectorId === "bunching_hotspots",
+      );
+      expect(bunching?.status).toBe("ready");
+      expect(bunching?.requirements).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            surfaceId: "gtfs_schedule_runtime",
+            status: "ready",
+            presentMonthCount: 12,
+            missingMonthCount: 0,
+            thinMonthCount: 0,
+          }),
+        ]),
+      );
+    } finally {
+      db.close();
+    }
+  });
+
+  it("uses threshold route presence for event route-touch readiness", () => {
+    const db = createDb({ includeContextEventRouteTouch: true });
+    try {
+      const months = monthRange(2026, 1, 8);
+      insertContextEventRouteTouches({
+        db,
+        eventKind: "permit",
+        months,
+        routesPerMonth: 12,
+        rowsPerRoute: 3,
+      });
+
+      const audit = buildReadinessAudit(db);
+
+      const permitSurface = audit.surfaceCoverage.find(
+        (surface) => surface.surfaceId === "dot_permit_route_touches",
+      );
+      expect(permitSurface).toMatchObject({
+        presentMonthCount: 8,
+        missingMonthCount: 0,
+        thinMonthCount: 0,
+        medianRowsPerPresentMonth: 36,
+        medianRoutesPerPresentMonth: 1,
+      });
     } finally {
       db.close();
     }

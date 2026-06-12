@@ -94,7 +94,13 @@ export async function buildTier2StructuredDataInventory(args: {
       !lower.includes("intervention") &&
       !lower.includes("candidate-bundle") &&
       !lower.includes("ocr-markdown-candidates") &&
-      !lower.includes("followup-curation")
+      !lower.includes("followup-curation") &&
+      !lower.includes("vocab-materialized-views") &&
+      !lower.includes("source-review-packs") &&
+      !lower.includes("source-disposition-queue") &&
+      !lower.includes("source-disposition-receipts") &&
+      !lower.includes("source-receipt-closure") &&
+      !lower.includes("mta-wiki-source-alignment")
     ) {
       continue;
     }

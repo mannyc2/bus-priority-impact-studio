@@ -154,7 +154,16 @@ const JsonArtifactCheckSchema = BaseCheckSchema.extend({
   validateReleaseMonth: z.boolean().optional(),
   validateRunId: z.boolean().optional(),
   requiredJsonValues: z.array(JsonExpectedValueSchema).optional(),
-  semantic: z.enum(["tier2_publishable_ready", "detector_gold_set_quality"]).optional(),
+  semantic: z
+    .enum([
+      "tier2_publishable_ready",
+      "detector_gold_set_quality",
+      "mta_wiki_bridge_ready_for_review",
+      "tier2_full_corpus_materialized_views_ready",
+      "tier2_source_disposition_queue_ready",
+      "tier2_source_receipt_closure_ready",
+    ])
+    .optional(),
 }).strict();
 
 const FileArtifactCheckSchema = BaseCheckSchema.extend({
@@ -2594,6 +2603,54 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = DataProductManifestSch
             "{artifactRoot}/docs/tier2-full-corpus-2026-05-24-pass2/tier2-intervention-events-combined.json",
         },
         {
+          id: "mta_wiki_canonical_bridge_review_queue",
+          label: "mta-wiki canonical bridge review queue",
+          type: "json_artifact",
+          pathTemplate:
+            "{artifactRoot}/docs/mta-wiki-tier2-bridge/mta-wiki-intervention-review-queue.json",
+          requiredJsonValues: [
+            { path: "mtaWikiCanonicalBridge", equals: true },
+            { path: "summary.externalCorpus", equals: "mta-wiki" },
+            { path: "summary.publicPromotionStatus", equals: "not_ready" },
+          ],
+          semantic: "mta_wiki_bridge_ready_for_review",
+        },
+        {
+          id: "full_corpus_materialized_research_views",
+          label: "Full qv1-qv10 Tier 2 materialized research views",
+          type: "json_artifact",
+          pathTemplate:
+            "{artifactRoot}/docs/agentic-runs-20260604/vocab-materialized-views-full-authority-qv1-qv10-manual-vocab-v1/vocab-materialized-views.json",
+          requiredJsonValues: [
+            { path: "artifactKind", equals: "bp.tier2_vocab_materialized_views.v1" },
+          ],
+          semantic: "tier2_full_corpus_materialized_views_ready",
+        },
+        {
+          id: "source_disposition_queue_full_corpus",
+          label: "Full qv1-qv10 Tier 2 source disposition queue",
+          type: "json_artifact",
+          pathTemplate:
+            "{artifactRoot}/docs/agentic-runs-20260604/source-disposition-queue-full-authority-qv1-qv10-v1/source-disposition-queue.json",
+          requiredJsonValues: [
+            { path: "artifactKind", equals: "bp.tier2_source_disposition_queue.v1" },
+            { path: "summary.publicPromotionStatus", equals: "not_ready" },
+          ],
+          semantic: "tier2_source_disposition_queue_ready",
+        },
+        {
+          id: "source_receipt_closure_full_corpus",
+          label: "Full qv1-qv10 Tier 2 source receipt closure audit",
+          type: "json_artifact",
+          pathTemplate:
+            "{artifactRoot}/docs/agentic-runs-20260604/source-receipt-closure-full-authority-qv1-qv10-v1/source-receipt-closure-audit.json",
+          requiredJsonValues: [
+            { path: "artifactKind", equals: "bp.tier2_source_receipt_closure_audit.v1" },
+            { path: "summary.publicPromotionStatus", equals: "not_ready" },
+          ],
+          semantic: "tier2_source_receipt_closure_ready",
+        },
+        {
           id: "reviewed_intervention_records_full_corpus",
           label: "Full Tier 2 reviewed intervention records",
           type: "json_artifact",
@@ -2776,10 +2833,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = DataProductManifestSch
         "event_family_response_drift",
       ],
       freshnessPolicy: { cadence: "historical_window" },
-      lifecycle: {
-        status: "blocked",
-        reason: "planned applied-research artifact family; builder not implemented yet",
-      },
+      lifecycle: { status: "expected" },
       checks: [
         {
           id: "segment_daypart_panel",
@@ -2810,10 +2864,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = DataProductManifestSch
       ],
       downstreamConsumers: ["causal_event_study_workbench", "event_family_response_drift"],
       freshnessPolicy: { cadence: "historical_window" },
-      lifecycle: {
-        status: "blocked",
-        reason: "planned applied-research artifact family; builder not implemented yet",
-      },
+      lifecycle: { status: "expected" },
       checks: [
         {
           id: "pulse_candidate_set",
@@ -2843,10 +2894,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = DataProductManifestSch
       ],
       downstreamConsumers: ["causal_event_study_workbench", "event_family_response_drift"],
       freshnessPolicy: { cadence: "historical_window" },
-      lifecycle: {
-        status: "blocked",
-        reason: "planned applied-research artifact family; builder not implemented yet",
-      },
+      lifecycle: { status: "expected" },
       checks: [
         {
           id: "pulse_event_overlap",
@@ -2877,10 +2925,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = DataProductManifestSch
       ],
       downstreamConsumers: ["causal_event_study_workbench", "methodology review packets"],
       freshnessPolicy: { cadence: "historical_window" },
-      lifecycle: {
-        status: "blocked",
-        reason: "planned applied-research artifact family; builder not implemented yet",
-      },
+      lifecycle: { status: "expected" },
       checks: [
         {
           id: "event_effect_contrast",
@@ -2911,10 +2956,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = DataProductManifestSch
       ],
       downstreamConsumers: ["causal_event_study_workbench", "event_family_response_drift"],
       freshnessPolicy: { cadence: "historical_window" },
-      lifecycle: {
-        status: "blocked",
-        reason: "planned applied-research artifact family; builder not implemented yet",
-      },
+      lifecycle: { status: "expected" },
       checks: [
         {
           id: "mechanism_corroboration",
@@ -2944,10 +2986,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = DataProductManifestSch
       ],
       downstreamConsumers: ["event_family_response_drift"],
       freshnessPolicy: { cadence: "historical_window" },
-      lifecycle: {
-        status: "blocked",
-        reason: "planned applied-research artifact family; builder not implemented yet",
-      },
+      lifecycle: { status: "expected" },
       checks: [
         {
           id: "event_family_effect_panel",
@@ -2965,7 +3004,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = DataProductManifestSch
       kind: "artifact_family",
       owner: "packages/applied-research",
       grain: "event-family response drift study",
-      producerCommand: "applied-research build response-drift-study",
+      producerCommand: "applied-research build event-family-response-drift-study",
       expectedUniverse: {
         description:
           "Review-gated study artifact asking whether the same event/intervention family stopped working, changed magnitude, or reversed sign under newer regimes.",
@@ -2977,10 +3016,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = DataProductManifestSch
       ],
       downstreamConsumers: ["research review packets", "strategy planning"],
       freshnessPolicy: { cadence: "historical_window" },
-      lifecycle: {
-        status: "blocked",
-        reason: "planned applied-research artifact family; builder not implemented yet",
-      },
+      lifecycle: { status: "expected" },
       checks: [
         {
           id: "response_drift_study",

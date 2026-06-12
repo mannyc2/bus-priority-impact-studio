@@ -3,8 +3,10 @@ import { dirname, isAbsolute, join, relative } from "node:path";
 import {
   analysisDependencyClosureMarkdownPath as appliedAnalysisDependencyClosureMarkdownPath,
   analysisDependencyClosurePath as appliedAnalysisDependencyClosurePath,
+  causalValidationGatesArtifactPath,
   dataProductCompletenessPath,
   detectorEvaluationArtifactPath,
+  forecastValidationGatesArtifactPath,
 } from "@bp/applied-research/artifacts";
 import {
   DATA_PRODUCT_MANIFEST,
@@ -90,6 +92,8 @@ export default defineCommand({
       detectorCorpusGrain: z.string().optional(),
       reviewPacketCoverage: z.string().optional(),
       detectorEvaluation: z.string().optional(),
+      forecastValidation: z.string().optional(),
+      causalValidation: z.string().optional(),
       output: z.string().optional(),
       markdownOutput: z.string().optional(),
     }),
@@ -152,6 +156,14 @@ export default defineCommand({
       input.options.detectorEvaluation === undefined
         ? detectorEvaluationArtifactPath({ artifactRoot, historyStartMonth, releaseMonth })
         : fromCliPath(input.options.detectorEvaluation);
+    const forecastValidationInputPath =
+      input.options.forecastValidation === undefined
+        ? forecastValidationGatesArtifactPath({ artifactRoot, historyStartMonth, releaseMonth })
+        : fromCliPath(input.options.forecastValidation);
+    const causalValidationInputPath =
+      input.options.causalValidation === undefined
+        ? causalValidationGatesArtifactPath({ artifactRoot, historyStartMonth, releaseMonth })
+        : fromCliPath(input.options.causalValidation);
     const manifest =
       input.options.manifest === undefined
         ? DATA_PRODUCT_MANIFEST
@@ -171,6 +183,8 @@ export default defineCommand({
         detectorCorpusGrain: repoDisplayPath(detectorCorpusGrainInputPath),
         reviewPacketCoverage: repoDisplayPath(reviewPacketCoverageInputPath),
         detectorEvaluation: repoDisplayPath(detectorEvaluationInputPath),
+        forecastValidation: repoDisplayPath(forecastValidationInputPath),
+        causalValidation: repoDisplayPath(causalValidationInputPath),
       },
       dataProductCompleteness: await readDataProductCompletenessIfExists(
         dataProductCompletenessInputPath,
@@ -179,6 +193,8 @@ export default defineCommand({
       detectorCorpusGrain: await readJsonIfExists(detectorCorpusGrainInputPath),
       reviewPacketCoverage: await readJsonIfExists(reviewPacketCoverageInputPath),
       detectorEvaluation: await readJsonIfExists(detectorEvaluationInputPath),
+      forecastValidation: await readJsonIfExists(forecastValidationInputPath),
+      causalValidation: await readJsonIfExists(causalValidationInputPath),
     });
 
     await mkdir(dirname(outputPath), { recursive: true });

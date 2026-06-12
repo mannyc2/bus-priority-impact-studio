@@ -16,6 +16,8 @@ const PATHS = {
   detectorCorpusGrain: "grain-audit.json",
   reviewPacketCoverage: "review-packet-coverage.json",
   detectorEvaluation: "detector-evaluation.json",
+  forecastValidation: "forecast-validation-gates.json",
+  causalValidation: "causal-validation-gates.json",
 };
 
 const MANIFEST: AnalysisDependencyDataProductManifest = {
@@ -142,6 +144,16 @@ function productCompleteness(tier2Status: "partial" | "blocked") {
   };
 }
 
+function productCompletenessWithSegmentPanelReady() {
+  return {
+    products: productCompleteness("partial").products.map((product) =>
+      product.productId === "applied_research_segment_daypart_panel"
+        ? { ...product, status: "complete", reasons: [] }
+        : product,
+    ),
+  };
+}
+
 function buildFixture(tier2Status: "partial" | "blocked") {
   return buildAnalysisDependencyClosure({
     detectors: [detector("intervention_event_study")],
@@ -199,6 +211,8 @@ function buildFixture(tier2Status: "partial" | "blocked") {
         },
       ],
     },
+    forecastValidation: null,
+    causalValidation: null,
   });
 }
 
@@ -243,6 +257,46 @@ describe("analysis dependency closure", () => {
     const markdown = renderAnalysisDependencyClosureMarkdown(artifact);
     expect(markdown).toContain("# Analysis Dependency Closure");
     expect(markdown).toContain("event_family_response_drift");
+  });
+
+  test("uses forecast validation gate artifacts for the forecasting planned unit", () => {
+    const artifact = buildAnalysisDependencyClosure({
+      detectors: [],
+      manifest: MANIFEST,
+      releaseMonth: "2026-03",
+      historyStartMonth: "2023-04",
+      runId: "bus-observatory-2026-03",
+      generatedAt: "2026-06-01T00:00:00.000Z",
+      artifactPath: "/tmp/detector-closure.json",
+      markdownPath: "/tmp/detector-closure.md",
+      inputArtifacts: PATHS,
+      dataProductCompleteness: productCompletenessWithSegmentPanelReady(),
+      detectorReadiness: null,
+      detectorCorpusGrain: null,
+      reviewPacketCoverage: null,
+      detectorEvaluation: null,
+      forecastValidation: {
+        gates: [
+          { gateId: "rolling_backtest", status: "pass", reasons: [] },
+          { gateId: "calibration_curve", status: "pass", reasons: [] },
+          { gateId: "distribution_shift_monitor", status: "warn", reasons: ["fixture_drift"] },
+        ],
+      },
+      causalValidation: null,
+    });
+
+    const forecasting = artifact.analysisUnits.find(
+      (unit) => unit.analysisId === "continuous_travel_time_forecasting",
+    );
+    expect(forecasting?.status).toBe("partial");
+    expect(forecasting?.dependencies).toContainEqual(
+      expect.objectContaining({
+        dependencyId: "distribution_shift_monitor",
+        source: "forecast-validation-gates",
+        status: "warn",
+      }),
+    );
+    expect(forecasting?.blockerCount).toBe(0);
   });
 
   test("owns the detector closure artifact paths", () => {

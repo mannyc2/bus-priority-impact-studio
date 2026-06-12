@@ -14,6 +14,13 @@ export type Tier2StructuredLayer =
   | "duplicate_review"
   | "duplicate_decisions"
   | "followup_curation"
+  | "mta_wiki_canonical_bridge"
+  | "mta_wiki_source_alignment"
+  | "materialized_research_views"
+  | "source_review_packs"
+  | "source_disposition_queue"
+  | "source_disposition_receipts"
+  | "source_receipt_closure_audit"
   | "audit_report"
   | "llm_response_trace"
   | "unknown_json";
@@ -77,6 +84,7 @@ export type Tier2StructuredDataInventory = {
     publishableArtifactCount: number;
     candidateBundleArtifactCount: number;
     stagingEventArtifactCount: number;
+    materializedResearchViewArtifactCount: number;
     unknownArtifactCount: number;
     bestResearchArtifactPath: string | null;
     bestPublishableArtifactPath: string | null;
@@ -131,6 +139,80 @@ export function classifyTier2StructuredArtifact(args: {
 }): Tier2StructuredArtifactClassification {
   const record = asRecord(args.value);
   const fileName = args.fileName.toLowerCase();
+  if (field(record, "mtaWikiCanonicalBridge") === true) {
+    return {
+      layer: "mta_wiki_canonical_bridge",
+      trustTier: "discovery_only",
+      useCase:
+        "External mta-wiki canonical graph bridge. Useful for review-queue seeding and coverage expansion, but not publishable until collapsed into reviewed intervention records.",
+    };
+  }
+  if (
+    field(record, "artifactKind") === "bp.tier2_mta_wiki_source_alignment.v1" ||
+    fileName.includes("mta-wiki-source-alignment")
+  ) {
+    return {
+      layer: "mta_wiki_source_alignment",
+      trustTier: "discovery_only",
+      useCase:
+        "Exact-key source alignment between the Tier 2 source queue and mta-wiki review groups. Useful as authoring context only; it does not close source receipts or create publishable facts.",
+    };
+  }
+  if (
+    field(record, "artifactKind") === "bp.tier2_vocab_materialized_views.v1" ||
+    fileName.includes("vocab-materialized-views")
+  ) {
+    return {
+      layer: "materialized_research_views",
+      trustTier: "validated_staging",
+      useCase:
+        "Machine-built full-corpus research/review views over canonical Tier 2 surfaces. Useful for detector features, route evidence bundles, and review queues; not reviewed or publishable intervention facts.",
+    };
+  }
+  if (
+    field(record, "artifactKind") === "bp.tier2_source_disposition_queue.v1" ||
+    fileName.includes("source-disposition-queue")
+  ) {
+    return {
+      layer: "source_disposition_queue",
+      trustTier: "validated_staging",
+      useCase:
+        "Source-level review/disposition queue over full-corpus Tier 2 materialized views. Useful for review receipt tracking and reviewed-record generation; not reviewed or publishable intervention facts.",
+    };
+  }
+  if (
+    field(record, "artifactKind") === "bp.tier2_source_review_pack_batch.v1" ||
+    fileName.includes("source-review-packs")
+  ) {
+    return {
+      layer: "source_review_packs",
+      trustTier: "validated_staging",
+      useCase:
+        "Source-scoped review pack batch over the full-corpus Tier 2 queue. Useful as authoring handoff for reviewed records and dispositions; not reviewed or publishable intervention facts.",
+    };
+  }
+  if (
+    field(record, "artifactKind") === "bp.tier2_source_disposition_receipts.v1" ||
+    fileName.includes("source-disposition-receipts")
+  ) {
+    return {
+      layer: "source_disposition_receipts",
+      trustTier: "validated_staging",
+      useCase:
+        "Explicit source-disposition receipt artifact. Useful for closing source review accounting; not reviewed or publishable intervention facts.",
+    };
+  }
+  if (
+    field(record, "artifactKind") === "bp.tier2_source_receipt_closure_audit.v1" ||
+    fileName.includes("source-receipt-closure")
+  ) {
+    return {
+      layer: "source_receipt_closure_audit",
+      trustTier: "validated_staging",
+      useCase:
+        "Source-level receipt closure audit over the Tier 2 source queue, reviewed records, and disposition receipts. Useful as a promotion gate; not reviewed or publishable intervention facts.",
+    };
+  }
   if (Array.isArray(field(record, "documentInterventionRecords"))) {
     return {
       layer: "reviewed_intervention_records",
@@ -275,6 +357,19 @@ export function summarizeTier2StructuredCounts(input: {
   const sourceCandidates = asArray(field(record, "documentSourceCandidates"));
   const interventionSeeds = asArray(field(record, "documentInterventionSeeds"));
   const routeProjection = asRecord(field(record, "interventionsByRoute"));
+  const reviewGroups = asArray(field(record, "reviewGroups"));
+  const sourceReviewPacks = asArray(field(record, "packs"));
+  const sourceDispositionItems = asArray(field(record, "items"));
+  const sourceDispositionReceipts = asArray(field(record, "receipts"));
+  const sourceClosureRows = asArray(field(record, "sourceClosures"));
+  const alignedSources = asArray(field(record, "alignedSources"));
+  const summary = asRecord(field(record, "summary"));
+  const isMaterializedResearchViews = input.layer === "materialized_research_views";
+  const isSourceReviewPacks = input.layer === "source_review_packs";
+  const isSourceDispositionQueue = input.layer === "source_disposition_queue";
+  const isSourceDispositionReceipts = input.layer === "source_disposition_receipts";
+  const isSourceReceiptClosureAudit = input.layer === "source_receipt_closure_audit";
+  const isMtaWikiSourceAlignment = input.layer === "mta_wiki_source_alignment";
 
   let validCurrentRecordSchemaCount: number | null = null;
   let invalidCurrentRecordSchemaCount: number | null = null;
@@ -293,31 +388,107 @@ export function summarizeTier2StructuredCounts(input: {
     asArray(routeProjection[route]),
   );
   const candidateCount =
-    input.layer === "candidate_bundle"
-      ? sourceCandidates.length + interventionSeeds.length
-      : candidates.length || null;
+    input.layer === "mta_wiki_canonical_bridge"
+      ? typeof summary["interventionCandidateRecordCount"] === "number"
+        ? summary["interventionCandidateRecordCount"]
+        : null
+      : isMtaWikiSourceAlignment &&
+          typeof summary["alignedInterventionCandidateRecordCount"] === "number"
+      ? summary["alignedInterventionCandidateRecordCount"]
+      : isSourceReviewPacks && typeof summary["selectedMtaWikiCandidateRecordCount"] === "number"
+        ? summary["selectedMtaWikiCandidateRecordCount"]
+      : input.layer === "candidate_bundle"
+        ? sourceCandidates.length + interventionSeeds.length
+        : candidates.length || null;
 
   return {
     sourceCount:
-      uniqueStringCount([
-        ...reviewedRecords.map((row) => field(asRecord(row), "sourceId")),
-        ...publishable.map((row) => field(asRecord(row), "sourceId")),
-        ...events.map((row) => field(asRecord(row), "sourceId")),
-        ...sourceCandidates.map((row) => field(asRecord(row), "sourceId")),
-        ...candidates.map((row) => field(asRecord(row), "sourceId")),
-      ]) || null,
+      isMaterializedResearchViews && typeof summary["sourceCoverageRowCount"] === "number"
+        ? summary["sourceCoverageRowCount"]
+        : isSourceReviewPacks && typeof summary["selectedSourceCount"] === "number"
+        ? summary["selectedSourceCount"]
+        : isSourceDispositionQueue && typeof summary["sourceCount"] === "number"
+        ? summary["sourceCount"]
+        : isSourceDispositionReceipts && typeof summary["receiptCount"] === "number"
+        ? summary["receiptCount"]
+        : isSourceReceiptClosureAudit && typeof summary["queueSourceCount"] === "number"
+        ? summary["queueSourceCount"]
+        : isMtaWikiSourceAlignment && typeof summary["queueSourceCount"] === "number"
+        ? summary["queueSourceCount"]
+        : input.layer === "mta_wiki_canonical_bridge" && typeof summary["sourceCount"] === "number"
+        ? summary["sourceCount"]
+        : uniqueStringCount([
+            ...reviewedRecords.map((row) => field(asRecord(row), "sourceId")),
+            ...publishable.map((row) => field(asRecord(row), "sourceId")),
+            ...events.map((row) => field(asRecord(row), "sourceId")),
+            ...sourceCandidates.map((row) => field(asRecord(row), "sourceId")),
+            ...candidates.map((row) => field(asRecord(row), "sourceId")),
+            ...reviewGroups.map((row) => field(asRecord(row), "sourceId")),
+          ]) || null,
     routeCount:
-      uniqueStringCount([
-        ...flattenRouteValues(reviewedRecords),
-        ...flattenRouteValues(publishable),
-        ...flattenRouteValues(events),
-        ...flattenRouteValues(candidates),
-        ...projectedRouteKeys,
-        ...flattenRouteValues(projectedRouteEntries),
-      ]) || null,
-    recordCount: reviewedRecords.length || toolCallRecords.length || null,
+      isMaterializedResearchViews && typeof summary["routeEvidenceBundleCount"] === "number"
+        ? summary["routeEvidenceBundleCount"]
+        : isSourceReviewPacks
+        ? uniqueStringCount([
+            ...sourceReviewPacks.flatMap((row) =>
+              asArray(field(asRecord(field(asRecord(row), "sourceSummary")), "routeIds")),
+            ),
+            ...sourceReviewPacks.flatMap((row) =>
+              asArray(field(asRecord(row), "routeContexts")).flatMap((context) => {
+                const contextRecord = asRecord(context);
+                return [
+                  field(contextRecord, "routeId"),
+                  ...asArray(field(contextRecord, "routeIds")),
+                ];
+              }),
+            ),
+          ]) || null
+        : isSourceDispositionQueue && typeof summary["uniqueRouteCount"] === "number"
+        ? summary["uniqueRouteCount"]
+        : input.layer === "mta_wiki_canonical_bridge" && typeof summary["routeCount"] === "number"
+        ? summary["routeCount"]
+        : isMtaWikiSourceAlignment
+        ? uniqueStringCount([
+            ...alignedSources.flatMap((row) => asArray(field(asRecord(row), "queueRouteIds"))),
+            ...alignedSources.flatMap((row) => asArray(field(asRecord(row), "mtaWikiRouteIds"))),
+          ]) || null
+        : uniqueStringCount([
+            ...flattenRouteValues(reviewedRecords),
+            ...flattenRouteValues(publishable),
+            ...flattenRouteValues(events),
+            ...flattenRouteValues(candidates),
+            ...projectedRouteKeys,
+            ...flattenRouteValues(projectedRouteEntries),
+            ...reviewGroups.flatMap((row) => asArray(field(asRecord(row), "routeIds"))),
+          ]) || null,
+    recordCount:
+      isMaterializedResearchViews && typeof summary["detectorFeatureRowCount"] === "number"
+        ? summary["detectorFeatureRowCount"]
+        : isSourceReviewPacks && typeof summary["selectedSourceCount"] === "number"
+        ? summary["selectedSourceCount"]
+        : isSourceDispositionQueue && typeof summary["reviewQueueItemCount"] === "number"
+        ? summary["reviewQueueItemCount"]
+        : isSourceDispositionReceipts && typeof summary["receiptCount"] === "number"
+        ? summary["receiptCount"]
+        : isSourceReceiptClosureAudit && typeof summary["queueSourceCount"] === "number"
+        ? summary["queueSourceCount"]
+        : input.layer === "mta_wiki_canonical_bridge" &&
+      typeof summary["interventionCandidateRecordCount"] === "number"
+        ? summary["interventionCandidateRecordCount"]
+        : isMtaWikiSourceAlignment
+        ? alignedSources.length || null
+        : reviewedRecords.length ||
+          toolCallRecords.length ||
+          sourceReviewPacks.length ||
+          sourceDispositionItems.length ||
+          sourceDispositionReceipts.length ||
+          sourceClosureRows.length ||
+          null,
     candidateCount,
-    eventCount: events.length || null,
+    eventCount:
+      input.layer === "mta_wiki_canonical_bridge" && typeof summary["eventCount"] === "number"
+        ? summary["eventCount"]
+        : events.length || null,
     publishableCount: publishable.length || null,
     validCurrentRecordSchemaCount,
     invalidCurrentRecordSchemaCount,
@@ -351,6 +522,41 @@ export function summarizeTier2StructuredArtifactValue(input: {
   }
   if (classification.layer === "studio_route_projection") {
     warnings.push("route projection is lossy and should not be used as the research substrate");
+  }
+  if (classification.layer === "mta_wiki_canonical_bridge") {
+    warnings.push(
+      "mta-wiki bridge is an external review queue and must not be treated as reviewed or publishable intervention facts",
+    );
+  }
+  if (classification.layer === "mta_wiki_source_alignment") {
+    warnings.push(
+      "mta-wiki source alignment is authoring context and must not be treated as reviewed or publishable intervention facts",
+    );
+  }
+  if (classification.layer === "materialized_research_views") {
+    warnings.push(
+      "materialized research views are machine-built review substrate and must not be treated as reviewed or publishable intervention facts",
+    );
+  }
+  if (classification.layer === "source_review_packs") {
+    warnings.push(
+      "source review packs are authoring handoffs and must not be treated as reviewed or publishable intervention facts",
+    );
+  }
+  if (classification.layer === "source_disposition_queue") {
+    warnings.push(
+      "source disposition queue is review scaffolding and must not be treated as reviewed or publishable intervention facts",
+    );
+  }
+  if (classification.layer === "source_disposition_receipts") {
+    warnings.push(
+      "source disposition receipts close source accounting only and must not be treated as reviewed or publishable intervention facts",
+    );
+  }
+  if (classification.layer === "source_receipt_closure_audit") {
+    warnings.push(
+      "source receipt closure audit is a promotion gate and must not be treated as reviewed or publishable intervention facts",
+    );
   }
 
   return {
@@ -404,6 +610,32 @@ function nextActionsForInventory(
       artifact.layer === "reviewed_intervention_records" &&
       artifact.relativePath.includes("tier2-full-corpus-2026-05-24-pass2"),
   );
+  const fullCorpusMaterializedViews = inventory.artifacts.find(
+    (artifact) =>
+      artifact.layer === "materialized_research_views" &&
+      artifact.relativePath.includes("full-authority-qv1-qv10"),
+  );
+  if (fullCorpusMaterializedViews !== undefined && fullCorpusReviewed === undefined) {
+    actions.push(
+      "Use the full-corpus qv1-qv10 materialized research views to drive source dispositions and reviewed-record generation; do not promote them directly.",
+    );
+  }
+  const sourceReceiptClosureAudit = inventory.artifacts.find(
+    (artifact) =>
+      artifact.layer === "source_receipt_closure_audit" &&
+      artifact.relativePath.includes("source-receipt-closure-full-authority-qv1-qv10"),
+  );
+  if (
+    sourceReceiptClosureAudit !== undefined &&
+    sourceReceiptClosureAudit.summary?.["sourceReceiptClosureStatus"] !== "complete"
+  ) {
+    const openSourceCount = sourceReceiptClosureAudit.summary?.["openSourceCount"];
+    actions.push(
+      typeof openSourceCount === "number"
+        ? `Close the full-corpus source receipt audit; ${openSourceCount} source(s) still need valid reviewed records or source disposition receipts.`
+        : "Close the full-corpus source receipt audit before promoting Tier 2 intervention records.",
+    );
+  }
   if (fullCorpusReviewed === undefined) {
     actions.push(
       "Backfill the full-corpus reviewed intervention-record layer; current reviewed records are from the smaller curated subset.",
@@ -479,6 +711,9 @@ export function buildTier2StructuredDataInventoryFromArtifacts(input: {
       ).length,
       stagingEventArtifactCount: artifacts.filter((artifact) => artifact.layer === "staging_events")
         .length,
+      materializedResearchViewArtifactCount: artifacts.filter(
+        (artifact) => artifact.layer === "materialized_research_views",
+      ).length,
       unknownArtifactCount: artifacts.filter((artifact) => artifact.layer === "unknown_json")
         .length,
       bestResearchArtifactPath: bestResearchArtifact?.relativePath ?? null,
@@ -521,6 +756,7 @@ export function renderTier2StructuredDataInventoryMarkdown(
     `- publishable artifacts: ${inventory.summary.publishableArtifactCount}`,
     `- candidate bundles: ${inventory.summary.candidateBundleArtifactCount}`,
     `- staging event artifacts: ${inventory.summary.stagingEventArtifactCount}`,
+    `- materialized research view artifacts: ${inventory.summary.materializedResearchViewArtifactCount}`,
     `- unknown artifacts: ${inventory.summary.unknownArtifactCount}`,
     `- best research artifact: \`${inventory.summary.bestResearchArtifactPath ?? "none"}\``,
     `- best publishable artifact: \`${inventory.summary.bestPublishableArtifactPath ?? "none"}\``,

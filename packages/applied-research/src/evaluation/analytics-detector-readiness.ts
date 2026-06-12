@@ -90,6 +90,39 @@ const BACKFILL_SURFACE_TO_POLICY_SURFACE: ReadonlyMap<string, BackfillValidation
     ["intervention_comparisons", "intervention_comparisons"],
   ]);
 
+function parseIsoMonthParts(value: string): { year: number; month: number } {
+  const [yearText, monthText] = value.split("-");
+  const year = Number(yearText);
+  const month = Number(monthText);
+  if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) {
+    throw new Error(`Invalid ISO month: ${value}`);
+  }
+  return { year, month };
+}
+
+function addMonths(value: string, delta: number): string {
+  const parsed = parseIsoMonthParts(value);
+  const zeroBased = parsed.year * 12 + (parsed.month - 1) + delta;
+  const year = Math.floor(zeroBased / 12);
+  const month = (zeroBased % 12) + 1;
+  return `${year}-${String(month).padStart(2, "0")}`;
+}
+
+function requestedMonths(startMonth: string, endMonth: string): string[] {
+  const months: string[] = [];
+  for (let month = startMonth; ; month = addMonths(month, 1)) {
+    months.push(month);
+    if (month === endMonth) return months;
+    if (month > endMonth) return months;
+  }
+}
+
+function trailingWindowMonths(endMonth: string, monthCount: number): string[] {
+  const count = Math.max(1, monthCount);
+  const startMonth = addMonths(endMonth, -(count - 1));
+  return requestedMonths(startMonth, endMonth);
+}
+
 export const DETECTOR_READINESS_REGISTRY_PRODUCT_BY_SURFACE = {
   bus_wait_assessment: "local_bus_wait_assessment_history",
   customer_journey_metrics: "local_bus_customer_journey_metrics_history",
@@ -122,6 +155,22 @@ function policySurfaceCoverage(
   return [...backfillSurfaces, ...directCoverage];
 }
 
+function policyRelevantMonths(
+  policy: DetectorCalibrationPolicy,
+  coverageWindow: AnalyticsBackfillCoverageAudit["window"],
+): string[] {
+  const auditedMonths = new Set(requestedMonths(coverageWindow.startMonth, coverageWindow.endMonth));
+  const windowIds = new Set([policy.releaseOutputWindow, ...policy.baselineWindowIds]);
+  const months = [...windowIds].flatMap((windowId) => {
+    const config = getCalibrationWindowConfig(windowId);
+    return trailingWindowMonths(coverageWindow.endMonth, config?.defaultMonths ?? 1);
+  });
+  const relevant = [...new Set(months)]
+    .filter((month) => auditedMonths.has(month))
+    .sort((left, right) => left.localeCompare(right));
+  return relevant.length > 0 ? relevant : [...auditedMonths].sort((left, right) => left.localeCompare(right));
+}
+
 function maximumMinimumCompleteMonths(policy: DetectorCalibrationPolicy): number {
   const gateMinimum = Math.max(
     0,
@@ -140,6 +189,7 @@ function surfaceReadiness(input: {
   expectation: DetectorPostBackfillValidationExpectation;
   surface: PolicySurfaceCoverageSummary | undefined;
   minimumCompleteMonths: number;
+  relevantMonths: readonly string[];
 }): DetectorSurfaceReadiness {
   if (input.surface === undefined) {
     return {
@@ -162,8 +212,26 @@ function surfaceReadiness(input: {
     };
   }
 
-  const usableMonthCount = input.surface.presentMonthCount;
-  const hasFullWindow = input.surface.missingMonthCount === 0 && input.surface.thinMonthCount === 0;
+  const surfaceMonthByMonth = new Map(input.surface.months.map((month) => [month.month, month]));
+  const evaluatedMonths = input.relevantMonths.map(
+    (month) =>
+      surfaceMonthByMonth.get(month) ?? {
+        month,
+        status: "missing" as const,
+        rowCount: 0,
+        routeCount: 0,
+        evaluatedCount: null,
+        reasons: ["surface_month_not_audited"],
+      },
+  );
+  const missingMonths = evaluatedMonths
+    .filter((month) => month.status === "missing")
+    .map((month) => month.month);
+  const thinMonths = evaluatedMonths
+    .filter((month) => month.status === "thin")
+    .map((month) => month.month);
+  const usableMonthCount = evaluatedMonths.filter((month) => month.status === "present").length;
+  const hasFullWindow = missingMonths.length === 0 && thinMonths.length === 0;
   const passesMinimum = usableMonthCount >= input.minimumCompleteMonths;
   const status: DetectorReadinessStatus = !passesMinimum
     ? "blocked"
@@ -185,13 +253,13 @@ function surfaceReadiness(input: {
     tableName: input.surface.tableName,
     required: input.expectation.required,
     status,
-    presentMonthCount: input.surface.presentMonthCount,
+    presentMonthCount: usableMonthCount,
     usableMonthCount,
-    thinMonthCount: input.surface.thinMonthCount,
-    missingMonthCount: input.surface.missingMonthCount,
+    thinMonthCount: thinMonths.length,
+    missingMonthCount: missingMonths.length,
     minimumCompleteMonths: input.minimumCompleteMonths,
-    missingMonths: input.surface.missingMonths,
-    thinMonths: input.surface.thinMonths,
+    missingMonths,
+    thinMonths,
     failureState: input.expectation.failureState,
     expectation: input.expectation.expectation,
     reasons,
@@ -253,13 +321,16 @@ function pendingPolicyDetectorSummary(input: {
 function detectorReadinessFromPolicy(input: {
   policy: DetectorCalibrationPolicy;
   surfaceById: ReadonlyMap<string, PolicySurfaceCoverageSummary>;
+  coverageWindow: AnalyticsBackfillCoverageAudit["window"];
 }): DetectorReadinessSummary {
   const minimumCompleteMonths = maximumMinimumCompleteMonths(input.policy);
+  const relevantMonths = policyRelevantMonths(input.policy, input.coverageWindow);
   const requirements = input.policy.postBackfillValidation.map((expectation) =>
     surfaceReadiness({
       expectation,
       surface: input.surfaceById.get(expectation.surfaceId),
       minimumCompleteMonths,
+      relevantMonths,
     }),
   );
   const status = detectorStatus(requirements);
@@ -310,7 +381,11 @@ export function buildAnalyticsDetectorReadinessAudit(
         detectorName: detector.spec.name,
       });
     }
-    return detectorReadinessFromPolicy({ policy, surfaceById });
+    return detectorReadinessFromPolicy({
+      policy,
+      surfaceById,
+      coverageWindow: input.backfillCoverage.window,
+    });
   });
 
   const requiredRequirements = detectors.flatMap((detector) =>

@@ -667,6 +667,112 @@ export function dataProductJsonSemanticReasons(input: {
       reasons.push(`tier2_disposition_conflicts:${dispositionConflicts.length}`);
     }
   }
+  if (input.check.semantic === "mta_wiki_bridge_ready_for_review") {
+    const candidateCount = numberValue(
+      valueAtJsonPath(input.value, "summary.interventionCandidateRecordCount"),
+    );
+    const reviewGroupCount = numberValue(valueAtJsonPath(input.value, "summary.reviewGroupCount"));
+    const routedGroupCount = numberValue(
+      valueAtJsonPath(input.value, "summary.reviewGroupsWithRoutes"),
+    );
+    const promotionBlockers = valueAtJsonPath(input.value, "summary.promotionBlockers");
+    if (candidateCount <= 0) reasons.push("mta_wiki_bridge_candidate_count_zero");
+    if (reviewGroupCount <= 0) reasons.push("mta_wiki_bridge_review_group_count_zero");
+    if (routedGroupCount <= 0) reasons.push("mta_wiki_bridge_routed_group_count_zero");
+    if (!Array.isArray(promotionBlockers) || promotionBlockers.length === 0) {
+      reasons.push("mta_wiki_bridge_missing_promotion_blockers");
+    }
+  }
+  if (input.check.semantic === "tier2_full_corpus_materialized_views_ready") {
+    const surfaceCount = numberValue(valueAtJsonPath(input.value, "summary.consumerSurfaceRowCount"));
+    const sourceCount = numberValue(valueAtJsonPath(input.value, "summary.sourceCoverageRowCount"));
+    const routeCount = numberValue(valueAtJsonPath(input.value, "summary.routeEvidenceBundleCount"));
+    const featureRowCount = numberValue(valueAtJsonPath(input.value, "summary.detectorFeatureRowCount"));
+    if (surfaceCount < 50_000) {
+      reasons.push(`tier2_full_corpus_materialized_surface_count_low:${surfaceCount}`);
+    }
+    if (sourceCount < 250) {
+      reasons.push(`tier2_full_corpus_materialized_source_count_low:${sourceCount}`);
+    }
+    if (routeCount < 200) {
+      reasons.push(`tier2_full_corpus_materialized_route_count_low:${routeCount}`);
+    }
+    if (featureRowCount < 50_000) {
+      reasons.push(`tier2_full_corpus_materialized_feature_count_low:${featureRowCount}`);
+    }
+  }
+  if (input.check.semantic === "tier2_source_disposition_queue_ready") {
+    const sourceCount = numberValue(valueAtJsonPath(input.value, "summary.sourceCount"));
+    const reviewQueueItemCount = numberValue(valueAtJsonPath(input.value, "summary.reviewQueueItemCount"));
+    const recordCandidateReviewCount = numberValue(
+      valueAtJsonPath(input.value, "summary.recordCandidateReviewCount"),
+    );
+    const reviewReceiptMissingCount = numberValue(
+      valueAtJsonPath(input.value, "summary.reviewReceiptMissingCount"),
+    );
+    const promotionBlockers = valueAtJsonPath(input.value, "summary.promotionBlockers");
+    if (sourceCount < 250) reasons.push(`tier2_source_disposition_source_count_low:${sourceCount}`);
+    if (reviewQueueItemCount !== sourceCount) {
+      reasons.push(`tier2_source_disposition_queue_count_mismatch:${reviewQueueItemCount}/${sourceCount}`);
+    }
+    if (recordCandidateReviewCount <= 0) {
+      reasons.push("tier2_source_disposition_record_candidate_count_zero");
+    }
+    if (reviewReceiptMissingCount !== sourceCount) {
+      reasons.push(
+        `tier2_source_disposition_review_receipts_not_explicitly_missing:${reviewReceiptMissingCount}/${sourceCount}`,
+      );
+    }
+    if (!Array.isArray(promotionBlockers) || promotionBlockers.length === 0) {
+      reasons.push("tier2_source_disposition_missing_promotion_blockers");
+    }
+  }
+  if (input.check.semantic === "tier2_source_receipt_closure_ready") {
+    const queueSourceCount = numberValue(valueAtJsonPath(input.value, "summary.queueSourceCount"));
+    const closedSourceCount = numberValue(valueAtJsonPath(input.value, "summary.closedSourceCount"));
+    const openSourceCount = numberValue(valueAtJsonPath(input.value, "summary.openSourceCount"));
+    const conflictSourceCount = numberValue(valueAtJsonPath(input.value, "summary.conflictSourceCount"));
+    const invalidReviewedRecordCount = numberValue(
+      valueAtJsonPath(input.value, "summary.invalidReviewedRecordCount"),
+    );
+    const invalidDispositionReceiptCount = numberValue(
+      valueAtJsonPath(input.value, "summary.invalidDispositionReceiptCount"),
+    );
+    const orphanReviewedRecordSourceCount = numberValue(
+      valueAtJsonPath(input.value, "summary.orphanReviewedRecordSourceCount"),
+    );
+    const orphanDispositionReceiptCount = numberValue(
+      valueAtJsonPath(input.value, "summary.orphanDispositionReceiptCount"),
+    );
+    const closureStatus = textValue(
+      valueAtJsonPath(input.value, "summary.sourceReceiptClosureStatus"),
+    );
+    if (queueSourceCount < 250) {
+      reasons.push(`tier2_source_receipt_queue_source_count_low:${queueSourceCount}`);
+    }
+    if (closureStatus !== "complete") {
+      reasons.push(`tier2_source_receipt_closure_status:${closureStatus ?? "missing"}`);
+    }
+    if (closedSourceCount !== queueSourceCount) {
+      reasons.push(`tier2_source_receipt_closed_count_mismatch:${closedSourceCount}/${queueSourceCount}`);
+    }
+    if (openSourceCount > 0) reasons.push(`tier2_source_receipt_open_sources:${openSourceCount}`);
+    if (conflictSourceCount > 0) {
+      reasons.push(`tier2_source_receipt_conflict_sources:${conflictSourceCount}`);
+    }
+    if (invalidReviewedRecordCount > 0) {
+      reasons.push(`tier2_source_receipt_invalid_records:${invalidReviewedRecordCount}`);
+    }
+    if (invalidDispositionReceiptCount > 0) {
+      reasons.push(`tier2_source_receipt_invalid_dispositions:${invalidDispositionReceiptCount}`);
+    }
+    if (orphanReviewedRecordSourceCount > 0) {
+      reasons.push(`tier2_source_receipt_orphan_record_sources:${orphanReviewedRecordSourceCount}`);
+    }
+    if (orphanDispositionReceiptCount > 0) {
+      reasons.push(`tier2_source_receipt_orphan_dispositions:${orphanDispositionReceiptCount}`);
+    }
+  }
   if (input.check.semantic === "detector_gold_set_quality") {
     const trueNegative = numberValue(valueAtJsonPath(input.value, "summary.trueNegative"));
     const falsePositive = numberValue(valueAtJsonPath(input.value, "summary.falsePositive"));

@@ -145,4 +145,123 @@ describe("audit tier2-structured-data", () => {
       await rm(root, { recursive: true, force: true });
     }
   });
+
+  test("includes mta-wiki source alignment artifacts in the inventory scan", async () => {
+    const root = await mkdtemp(join(tmpdir(), "tier2-structured-"));
+    try {
+      await Bun.write(
+        join(root, "mta-wiki-source-alignment.json"),
+        JSON.stringify({
+          artifactKind: "bp.tier2_mta_wiki_source_alignment.v1",
+          generatedAt: "2026-06-12T00:00:00.000Z",
+          summary: {
+            queueSourceCount: 2,
+            exactAlignedSourceCount: 1,
+            alignedInterventionCandidateRecordCount: 3,
+          },
+          alignedSources: [
+            {
+              queueSourceId: "nyc_dot_select_bus_service_pdf_2013_03_sbs_webster_bx_cb5",
+              queueRouteIds: ["BX41"],
+              mtaWikiRouteIds: ["BX41"],
+            },
+          ],
+        }),
+      );
+
+      const inventory = await buildTier2StructuredDataInventory({
+        docsRoot: root,
+        output: join(root, "audit.json"),
+        markdown: join(root, "audit.md"),
+      });
+
+      expect(inventory.summary.artifactCount).toBe(1);
+      expect(inventory.artifacts[0]).toMatchObject({
+        layer: "mta_wiki_source_alignment",
+        trustTier: "discovery_only",
+        counts: {
+          sourceCount: 2,
+          routeCount: 1,
+          recordCount: 1,
+          candidateCount: 3,
+        },
+      });
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  test("includes source-disposition receipt artifacts in the inventory scan", async () => {
+    const root = await mkdtemp(join(tmpdir(), "tier2-structured-"));
+    try {
+      await Bun.write(
+        join(root, "source-disposition-receipts.json"),
+        JSON.stringify({
+          artifactKind: "bp.tier2_source_disposition_receipts.v1",
+          generatedAt: "2026-06-12T00:25:00.000Z",
+          summary: { receiptCount: 1 },
+          receipts: [{ sourceId: "source-1", disposition: "supporting_context_only" }],
+        }),
+      );
+
+      const inventory = await buildTier2StructuredDataInventory({
+        docsRoot: root,
+        output: join(root, "audit.json"),
+        markdown: join(root, "audit.md"),
+      });
+
+      expect(inventory.summary.artifactCount).toBe(1);
+      expect(inventory.artifacts[0]).toMatchObject({
+        layer: "source_disposition_receipts",
+        trustTier: "validated_staging",
+        counts: {
+          sourceCount: 1,
+          recordCount: 1,
+        },
+      });
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  test("includes source review pack artifacts in the inventory scan", async () => {
+    const root = await mkdtemp(join(tmpdir(), "tier2-structured-"));
+    try {
+      await Bun.write(
+        join(root, "source-review-packs.json"),
+        JSON.stringify({
+          artifactKind: "bp.tier2_source_review_pack_batch.v1",
+          generatedAt: "2026-06-12T01:05:00.000Z",
+          summary: {
+            selectedSourceCount: 2,
+            selectedMtaWikiCandidateRecordCount: 4,
+          },
+          packs: [
+            { sourceId: "source-1", sourceSummary: { routeIds: ["BX41"] } },
+            { sourceId: "source-2", sourceSummary: { routeIds: ["M34"] } },
+          ],
+        }),
+      );
+
+      const inventory = await buildTier2StructuredDataInventory({
+        docsRoot: root,
+        output: join(root, "audit.json"),
+        markdown: join(root, "audit.md"),
+      });
+
+      expect(inventory.summary.artifactCount).toBe(1);
+      expect(inventory.artifacts[0]).toMatchObject({
+        layer: "source_review_packs",
+        trustTier: "validated_staging",
+        counts: {
+          sourceCount: 2,
+          routeCount: 2,
+          recordCount: 2,
+          candidateCount: 4,
+        },
+      });
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
 });

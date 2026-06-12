@@ -99,9 +99,11 @@ describe("route timeline serving projection", () => {
     });
 
     const outputPath = join(workingRoot, "serving-projection.json");
+    const artifactRoot = join(workingRoot, "artifacts");
     const result = await buildRouteTimelineServingProjection({
       indexPath,
       outputPath,
+      artifactRoot,
       month: "2026-03",
       r2Prefix: "studio/v2/routes/",
       generatedAt: "2026-06-07T06:30:00.000Z",
@@ -129,6 +131,14 @@ describe("route timeline serving projection", () => {
       contentType: "application/json",
     });
     expect(result.artifact.copyPlan[0]?.sha256).toHaveLength(64);
+    expect(result.materializedArtifactPaths).toEqual([
+      join(artifactRoot, "studio/v2/routes/b46/timeline.json"),
+      join(artifactRoot, "studio/v2/routes/m15/timeline.json"),
+    ]);
+    expect(await Bun.file(join(artifactRoot, "studio/v2/routes/b46/timeline.json")).json()).toEqual({
+      routeId: "B46",
+      events: [1, 2, 3],
+    });
 
     const schemaSql = await Bun.file(result.schemaPath).text();
     const seedSql = await Bun.file(result.seedPath).text();

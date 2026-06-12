@@ -5,7 +5,7 @@ import {
   runRegistryDetectorStudyFromResolverPath,
 } from "@bp/applied-research/detector-runs";
 import { loadDetectorStudyLocalDbRows } from "@bp/applied-research/local-db";
-import { replaceFindingsForMonth } from "@bp/db/local";
+import { replaceFindingRun } from "@bp/db/local";
 import { arg, defineCommand, z } from "@liche/core";
 import { isoMonth } from "../../lib/dates.ts";
 import { writeJson } from "../../lib/json.ts";
@@ -43,6 +43,13 @@ export function detectorRunArtifactPath(input: {
     input.releaseMonth,
     `${input.detectorId}-run.json`,
   );
+}
+
+export function partitionFindingRowsForReleaseMonth<T extends { readonly month: string }>(
+  rows: readonly T[],
+  releaseMonth: string,
+): T[] {
+  return rows.map((row) => (row.month === releaseMonth ? row : { ...row, month: releaseMonth }));
 }
 
 export default defineCommand({
@@ -131,12 +138,11 @@ export default defineCommand({
         localRows,
       });
       if (input.options.writeDb) {
-        await replaceFindingsForMonth(local.db, {
-          month: releaseMonth,
-          detectorId,
-          candidates: output.candidates,
+        await replaceFindingRun(local.db, {
+          detectorRunId,
+          candidates: partitionFindingRowsForReleaseMonth(output.candidates, releaseMonth),
           evidence: output.evidence,
-          coverage: output.coverage,
+          coverage: partitionFindingRowsForReleaseMonth(output.coverage, releaseMonth),
         });
       }
       await mkdir(dirname(outputPath), { recursive: true });
