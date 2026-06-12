@@ -2,6 +2,35 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Overview becomes a dossier verdict slice
+
+Advanced the route-detail redesign from tab availability into the §4.2 Overview shape. Overview
+now leads with a route verdict, up to three severity-ranked insight cards, a dossier-backed story
+strip, a mini-map link into the Map tab, and a "what we checked" path into Evidence. The corridor
+profile and hour-of-day diagnostic chart moved out of Overview and into Where & when, matching the
+question-shaped tab split.
+
+Verified with `bun test apps/web/test/shared/route-insight-placement.test.ts
+apps/web/test/shared/section-registry.test.ts --timeout 5000`, `bun --filter @bp/web typecheck`,
+and `bun --filter @bp/web build`.
+
+## [2026-06-12] engineering | Tier 2 M15 First/Second Avenue source review closes one more source
+
+Reviewed `nyc_dot_bus_priority_document_pdf_2010_02_25_brt_1st2nd_cb8` from the full-corpus
+source review packs as a proposed M15 SBS corridor record for First Avenue/Second Avenue Phase 1.
+The local ignored reviewed-record seed now has 3 sources and 3 records. The M15 record cites the
+official February 25, 2010 CB8 presentation title/date, the 2010 milestone schedule, and the
+corridor map legend for offset/curb bus lanes, SBS station locations, and protected/shared bike
+path street designs, while preserving caveats that the reviewed page text does not itself print
+M15, the start date is only October/November 2010, and the map extraction does not assign treatment
+types to exact segments.
+
+Regenerated the local ignored source receipt closure audit. It now reports 291 queue sources, 3
+valid reviewed records, 3 disposition receipts, 4 closed sources, 287 open sources, and 0 conflicts;
+public promotion remains blocked on full source closure. Verified with `jq empty` on the reviewed
+record artifact, `bun --filter @bp/pipeline-v2 cli -- docs tier2 source-receipt-audit ...`, and
+`bun --filter @bp/pipeline-v2 cli -- audit tier2-structured-data --json`.
+
 ## [2026-06-12] engineering | Route detail registry exposes map and reliability tabs
 
 Advanced the route evidence dossier to registry-driven presentation for the next route-detail
