@@ -5,6 +5,11 @@ import {
   dossierMetricWindow,
   formatCompact,
 } from "@/components/route/route-derived";
+import {
+  completenessStatusLabel,
+  releaseLayerDescription,
+  releaseLayerLabel,
+} from "@/components/route/data-quality-labels";
 import { SectionHeader } from "@/components/SectionHeader";
 import type { StudioRouteDetailResponse } from "@/studio/api-contract";
 
@@ -56,9 +61,15 @@ export function DataNotesSection({ data }: { data: StudioRouteDetailResponse }) 
           }
         />
         <DataWindow
+          label="Release layer"
+          value={releaseLayerLabel(quality.releaseLayer)}
+          sub={releaseLayerDescription(quality.releaseLayer)}
+          good={quality.releaseLayer === "observed_release"}
+        />
+        <DataWindow
           label="Route quality"
           value={quality.confidence}
-          sub={quality.completenessStatus.replace(/_/g, " ")}
+          sub={completenessStatusLabel(quality.completenessStatus)}
           good={quality.confidence === "high"}
         />
         <div className="max-w-[280px]">

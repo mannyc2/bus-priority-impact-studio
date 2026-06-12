@@ -1,16 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { routeHead } from "../../lib/head.js";
-import { fetchStudioRouteSections, fetchStudioRoutes } from "../../studio/api-client.js";
+import {
+  fetchStudioRouteSections,
+  fetchStudioRoutes,
+  staticStudioLoaderStaleTimeMs,
+} from "../../studio/api-client.js";
 import { RoutesHomeLoadingPage, RoutesHomePage } from "../../studio/pages/routes-home.js";
 
 export const Route = createFileRoute("/routes/")({
-  loader: async () => {
+  loader: async ({ abortController }) => {
+    const options = { signal: abortController.signal };
     const [routes, routeSections] = await Promise.all([
-      fetchStudioRoutes(),
-      fetchStudioRouteSections().catch(() => null),
+      fetchStudioRoutes(options),
+      fetchStudioRouteSections(options).catch(() => null),
     ]);
     return { routeSections, routes };
   },
+  staleTime: staticStudioLoaderStaleTimeMs,
   pendingComponent: RoutesHomeLoadingPage,
   head: () =>
     routeHead(

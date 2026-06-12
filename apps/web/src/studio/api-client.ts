@@ -76,6 +76,14 @@ type StudioMutationOptions = {
   idempotencyKey?: string;
 };
 
+export type StudioQueryOptions = {
+  signal?: AbortSignal;
+};
+
+export const staticStudioLoaderStaleTimeMs = 5 * 60 * 1000;
+export const editorialStudioLoaderStaleTimeMs = 60 * 1000;
+export const mutableStudioLoaderStaleTimeMs = 30 * 1000;
+
 const studioApiClient = createStudioApiClient();
 
 function studioPath(routeId: StudioApiRouteId, input: PathBuildInput = {}): string {
@@ -138,12 +146,14 @@ async function apiError(response: Response, path: string): Promise<StudioApiErro
 async function loadStudioJson<TSchema extends z.ZodType>(
   path: string,
   schema: TSchema,
+  options: StudioQueryOptions = {},
 ): Promise<z.output<TSchema>> {
   const response = await fetch(path, {
     credentials: "same-origin",
     headers: {
       Accept: "application/json",
     },
+    ...(options.signal ? { signal: options.signal } : {}),
   });
 
   if (!response.ok) {
@@ -161,12 +171,14 @@ async function loadStudioJson<TSchema extends z.ZodType>(
 async function loadNullableStudioJson<TSchema extends z.ZodType>(
   path: string,
   schema: TSchema,
+  options: StudioQueryOptions = {},
 ): Promise<z.output<TSchema> | null> {
   const response = await fetch(path, {
     credentials: "same-origin",
     headers: {
       Accept: "application/json",
     },
+    ...(options.signal ? { signal: options.signal } : {}),
   });
 
   if (response.status === 404) {
@@ -192,87 +204,100 @@ function studioMutationIdempotencyKey(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 }
 
-export function fetchStudioRoutes() {
-  return loadStudioJson(studioPath("studio.routes"), StudioRoutesResponseSchema);
+export function fetchStudioRoutes(options?: StudioQueryOptions) {
+  return loadStudioJson(studioPath("studio.routes"), StudioRoutesResponseSchema, options);
 }
 
-export function fetchStudioRouteIndex2() {
+export function fetchStudioRouteIndex2(options?: StudioQueryOptions) {
   return loadStudioJson(
     studioPath("studio.routes", { query: { schema: 2 } }),
     StudioRouteIndex2ResponseSchema,
+    options,
   );
 }
 
-export function fetchStudioRouteSections() {
-  return loadStudioJson(studioPath("studio.routeSections"), StudioRouteSectionsResponseSchema);
+export function fetchStudioRouteSections(options?: StudioQueryOptions) {
+  return loadStudioJson(
+    studioPath("studio.routeSections"),
+    StudioRouteSectionsResponseSchema,
+    options,
+  );
 }
 
-export function fetchStudioSearch(query: string) {
+export function fetchStudioSearch(query: string, options?: StudioQueryOptions) {
   return loadStudioJson(
     studioPath("studio.search", { query: { q: query } }),
     StudioSearchResponseSchema,
+    options,
   );
 }
 
-export function fetchStudioRoute(routeId: string) {
+export function fetchStudioRoute(routeId: string, options?: StudioQueryOptions) {
   return loadNullableStudioJson(
     studioPath("studio.route", { params: { routeId } }),
     StudioRouteDetailResponseSchema,
+    options,
   );
 }
 
-export function fetchStudioRouteHistory(routeId: string) {
+export function fetchStudioRouteHistory(routeId: string, options?: StudioQueryOptions) {
   return loadNullableStudioJson(
     studioPath("studio.routeHistory", { params: { routeId } }),
     StudioRouteHistoryResponseSchema,
+    options,
   );
 }
 
-export function fetchStudioCompare(a: string, b: string) {
+export function fetchStudioCompare(a: string, b: string, options?: StudioQueryOptions) {
   return loadNullableStudioJson(
     studioPath("studio.compare", { query: { a, b } }),
     StudioCompareResponseSchema,
+    options,
   );
 }
 
-export function fetchStudioFindings() {
-  return loadStudioJson(studioPath("studio.findings"), StudioFindingsResponseSchema);
+export function fetchStudioFindings(options?: StudioQueryOptions) {
+  return loadStudioJson(studioPath("studio.findings"), StudioFindingsResponseSchema, options);
 }
 
-export function fetchStudioFinding(findingId: string) {
+export function fetchStudioFinding(findingId: string, options?: StudioQueryOptions) {
   return loadNullableStudioJson(
     studioPath("studio.finding", { params: { findingId } }),
     StudioFindingResponseSchema,
+    options,
   );
 }
 
-export function fetchStudioBriefs() {
-  return loadStudioJson(studioPath("studio.briefs"), StudioBriefsResponseSchema);
+export function fetchStudioBriefs(options?: StudioQueryOptions) {
+  return loadStudioJson(studioPath("studio.briefs"), StudioBriefsResponseSchema, options);
 }
 
-export function fetchStudioBrief(briefId: string) {
+export function fetchStudioBrief(briefId: string, options?: StudioQueryOptions) {
   return loadNullableStudioJson(
     studioPath("studio.brief", { params: { briefId } }),
     StudioBriefResponseSchema,
+    options,
   );
 }
 
-export function fetchStudioBriefEvidence(briefId: string) {
+export function fetchStudioBriefEvidence(briefId: string, options?: StudioQueryOptions) {
   return loadNullableStudioJson(
     studioPath("studio.briefEvidence", { params: { briefId } }),
     StudioBriefEvidenceResponseSchema,
+    options,
   );
 }
 
-export function fetchStudioBriefHistory(briefId: string) {
+export function fetchStudioBriefHistory(briefId: string, options?: StudioQueryOptions) {
   return loadNullableStudioJson(
     studioPath("studio.briefHistory", { params: { briefId } }),
     StudioBriefHistoryResponseSchema,
+    options,
   );
 }
 
-export function fetchStudioDocs() {
-  return loadStudioJson(studioPath("studio.docs"), StudioDocsResponseSchema);
+export function fetchStudioDocs(options?: StudioQueryOptions) {
+  return loadStudioJson(studioPath("studio.docs"), StudioDocsResponseSchema, options);
 }
 
 async function sendStudioJson(
@@ -378,10 +403,15 @@ export function createStudioBriefAgentRun(
   );
 }
 
-export function fetchStudioBriefAgentRun(briefId: string, runId: string) {
+export function fetchStudioBriefAgentRun(
+  briefId: string,
+  runId: string,
+  options?: StudioQueryOptions,
+) {
   return loadStudioJson(
     studioPath("studio.briefAgentRun", { params: { briefId, runId } }),
     StudioBriefAgentRunResponseSchema,
+    options,
   );
 }
 
@@ -400,10 +430,15 @@ export function proposeStudioBriefAgentEdit(
   );
 }
 
-export function fetchStudioBriefAgentProposal(briefId: string, proposalId: string) {
+export function fetchStudioBriefAgentProposal(
+  briefId: string,
+  proposalId: string,
+  options?: StudioQueryOptions,
+) {
   return loadStudioJson(
     studioPath("studio.briefAgentProposal", { params: { briefId, proposalId } }),
     StudioBriefAgentProposalResponseSchema,
+    options,
   );
 }
 
@@ -437,10 +472,11 @@ export function rejectStudioBriefAgentProposal(
   );
 }
 
-export function listStudioBriefDraftVersions(briefId: string) {
+export function listStudioBriefDraftVersions(briefId: string, options?: StudioQueryOptions) {
   return loadStudioJson(
     studioPath("studio.briefDraftVersions", { params: { briefId } }),
     StudioBriefDraftVersionsResponseSchema,
+    options,
   );
 }
 
@@ -528,10 +564,11 @@ export function resolveStudioBriefDraftRefs(
   );
 }
 
-export function fetchStudioBriefDraftRefs(briefId: string) {
+export function fetchStudioBriefDraftRefs(briefId: string, options?: StudioQueryOptions) {
   return loadStudioJson(
     studioPath("studio.briefDraftRefs", { params: { briefId } }),
     StudioBriefDraftRefsResponseSchema,
+    options,
   );
 }
 
@@ -577,10 +614,11 @@ export function recordStudioBriefPromotionReceipt(
   );
 }
 
-export function listStudioBriefDraftComments(briefId: string) {
+export function listStudioBriefDraftComments(briefId: string, options?: StudioQueryOptions) {
   return loadStudioJson(
     studioPath("studio.briefDraftComments", { params: { briefId } }),
     StudioBriefDraftCommentsResponseSchema,
+    options,
   );
 }
 
@@ -730,9 +768,13 @@ export function retractStudioBriefDraftCandidate(
   );
 }
 
-export function fetchStudioBriefPublishCandidateExport(briefId: string) {
+export function fetchStudioBriefPublishCandidateExport(
+  briefId: string,
+  options?: StudioQueryOptions,
+) {
   return loadStudioJson(
     studioPath("studio.briefDraft.publishCandidateExport", { params: { briefId } }),
     StudioBriefPublishCandidateExportResponseSchema,
+    options,
   );
 }

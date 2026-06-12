@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { lazy, Suspense } from "react";
 import { routeHead } from "../../lib/head.js";
-import { fetchStudioRoute } from "../../studio/api-client.js";
+import { fetchStudioRoute, staticStudioLoaderStaleTimeMs } from "../../studio/api-client.js";
 
 const RouteDetailPage = lazy(() =>
   import("../../studio/pages/route-detail.js").then((module) => ({
@@ -11,7 +11,11 @@ const RouteDetailPage = lazy(() =>
 
 export const Route = createFileRoute("/routes/$routeId")({
   // One Tier-1 fetch (C2): history series ride in on the detail dossier.
-  loader: ({ params }) => fetchStudioRoute(params.routeId).then((detail) => ({ detail })),
+  loader: ({ abortController, params }) =>
+    fetchStudioRoute(params.routeId, { signal: abortController.signal }).then((detail) => ({
+      detail,
+    })),
+  staleTime: staticStudioLoaderStaleTimeMs,
   pendingComponent: RouteDetailRouteFallback,
   head: ({ params }) => routeHead(`${params.routeId} Route Detail`),
   component: RouteDetailRoute,

@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { routeHead } from "../lib/head.js";
-import { fetchStudioBriefs } from "../studio/api-client.js";
+import { editorialStudioLoaderStaleTimeMs, fetchStudioBriefs } from "../studio/api-client.js";
 import { BriefsGalleryPage } from "../studio/pages/briefs.js";
 
 export const Route = createFileRoute("/briefs")({
-  loader: fetchStudioBriefs,
+  loader: ({ abortController }) => fetchStudioBriefs({ signal: abortController.signal }),
+  staleTime: editorialStudioLoaderStaleTimeMs,
   head: () => routeHead("Briefs"),
   component: BriefsRoute,
 });

@@ -1,10 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { routeHead } from "../../../lib/head.js";
-import { fetchStudioRoute } from "../../../studio/api-client.js";
+import { fetchStudioRoute, mutableStudioLoaderStaleTimeMs } from "../../../studio/api-client.js";
 import { RouteAnnotatePage } from "../../../studio/pages/route-annotate.js";
 
 export const Route = createFileRoute("/routes/$routeId/annotate")({
-  loader: ({ params }) => fetchStudioRoute(params.routeId),
+  loader: ({ abortController, params }) =>
+    fetchStudioRoute(params.routeId, { signal: abortController.signal }),
+  staleTime: mutableStudioLoaderStaleTimeMs,
   head: ({ params }) => routeHead(`${params.routeId} Annotate`),
   component: RouteAnnotateRoute,
 });

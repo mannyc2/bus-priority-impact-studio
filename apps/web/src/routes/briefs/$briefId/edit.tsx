@@ -1,10 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { routeHead } from "../../../lib/head.js";
-import { fetchStudioBrief } from "../../../studio/api-client.js";
+import { fetchStudioBrief, mutableStudioLoaderStaleTimeMs } from "../../../studio/api-client.js";
 import { BriefComposerPage } from "../../../studio/pages/brief-workflows.js";
 
 export const Route = createFileRoute("/briefs/$briefId/edit")({
-  loader: ({ params }) => fetchStudioBrief(params.briefId),
+  loader: ({ abortController, params }) =>
+    fetchStudioBrief(params.briefId, { signal: abortController.signal }),
+  staleTime: mutableStudioLoaderStaleTimeMs,
   head: () => routeHead("Brief Composer"),
   component: BriefEditRoute,
 });

@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { routeHead } from "../lib/head.js";
-import { fetchStudioRoutes } from "../studio/api-client.js";
+import { fetchStudioRoutes, staticStudioLoaderStaleTimeMs } from "../studio/api-client.js";
 import { HomeLoadingPage, HomePage } from "../studio/pages/home.js";
 
 export const Route = createFileRoute("/")({
-  loader: fetchStudioRoutes,
+  loader: ({ abortController }) => fetchStudioRoutes({ signal: abortController.signal }),
+  staleTime: staticStudioLoaderStaleTimeMs,
   pendingComponent: HomeLoadingPage,
   head: () =>
     routeHead(
