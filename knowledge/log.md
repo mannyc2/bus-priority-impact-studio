@@ -2,6 +2,40 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Overview mini-map follows detector segment focus
+
+Aligned the route-detail verdict mini-map with the Map tab by reusing the detector-prioritized
+route-map highlight. When a map-placement insight targets a segment, the Overview mini-map now
+outlines that detector-targeted segment before falling back to the legacy flagged/top-impact
+segment. Added a render-level test so the Overview card proves it outlines the targeted segment,
+not just the pure helper result. The production build remains under the existing bundle cap at
+485.0 KB gz total JS against the 485 KB budget.
+
+Also reviewed `nyc_dot_bus_priority_document_pdf_2015_04_01_brt_woodhaven_newsletter_1_spring2015`
+from the full-corpus source review workspace. The local ignored reviewed-record seed now has 38
+reviewed-record sources and 40 valid records. This source contributes one conservative proposed
+Q52/Q53 SBS draft-design record for Woodhaven and Cross Bay Boulevards, covering Woodhaven
+main-road bus lanes, Cross Bay offset bus lanes, median SBS stations with real-time arrival
+information, calmed service roads, left-turn bays, safer medians/crosswalks, and consistent
+roadway design. The record treats the Spring 2015 newsletter as draft design evidence only: no
+implementation date, no completion proof, no measured Q52/Q53 impact, and no block-level geometry
+without visual review.
+
+Regenerated the local ignored source receipt closure audit. It now reports 291 queue sources, 40
+valid reviewed records, 38 reviewed-record sources, 4 disposition receipts, 40 closed sources, 251
+open sources, and 0 conflicts; public promotion remains blocked on full source closure.
+
+Verified with `bunx biome check apps/web/src/components/route/OverviewSection.tsx
+apps/web/test/shared/route-map-highlight.test.ts`, `bun test
+apps/web/test/shared/route-map-highlight.test.ts --timeout 5000`, `bun --filter @bp/web
+typecheck`, `bun --filter @bp/web build`, `jq empty
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/intervention-records-corpus-reviewed.json
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/source-receipt-closure-audit.json
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/source-receipt-closure-audit-summary.json`,
+`bun --filter @bp/pipeline-v2 cli -- docs tier2 source-receipt-audit --queue-path ...`, `bun
+--filter @bp/pipeline-v2 cli -- audit tier2-structured-data --json`, `bun run check:types`, `bun
+run check:knowledge`, and `git diff --check`.
+
 ## [2026-06-12] engineering | Evidence tab carries hidden-section notices
 
 Tightened the route-detail section registry handoff by rolling manifest-hidden section notices into

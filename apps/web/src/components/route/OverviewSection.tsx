@@ -6,6 +6,7 @@ import {
   coverageRows,
   coverageSummary,
 } from "@/components/route/coverage-matrix";
+import { routeMapHighlight } from "@/components/route/RouteMapSection";
 import { routeDossierArchetype } from "@/components/route/route-archetype";
 import {
   dossierMetricMonthCount,
@@ -76,7 +77,7 @@ export function OverviewSection({
   const speedWindow = dossierMetricWindow(data.dossier?.speed);
   const slowestByRiders = [...segments].sort((a, b) => b.riderHours - a.riderHours)[0] ?? null;
   const worst = data.dossier?.worstSegment ?? null;
-  const flagged = segments.find((segment) => segment.flagged) ?? slowestByRiders;
+  const mapHighlightSegment = routeMapHighlight(segments, data.insights).segment ?? slowestByRiders;
   const treatments = routeTreatments(route, segments);
   const overviewInsights = routeInsightPlacements(data.insights).overview;
   const archetype = routeDossierArchetype({ capability: data.capability, dossier: data.dossier });
@@ -156,7 +157,7 @@ export function OverviewSection({
             <div>
               <div className="text-sm font-semibold tracking-[-0.005em]">Map</div>
               <div className="mt-[3px] text-[11px] text-[var(--bp-color-ink-55)]">
-                Flagged segment.
+                Focus segment.
               </div>
             </div>
             <button
@@ -168,7 +169,12 @@ export function OverviewSection({
             </button>
           </div>
           <div className="min-h-[172px]">
-            <CorridorMap route={route} segments={segments} highlightId={flagged?.id} mode="mini" />
+            <CorridorMap
+              route={route}
+              segments={segments}
+              highlightId={mapHighlightSegment?.id}
+              mode="mini"
+            />
           </div>
         </section>
       </div>
