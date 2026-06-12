@@ -73,7 +73,8 @@ export function RouteDetailPage({ data }: { data: StudioRouteDetailResponse | nu
                 route={route}
                 dossier={data.dossier}
                 capability={data.capability}
-                onNavigate={(tab) => setActiveTab(tab as RouteDetailTabValue)}
+                sectionRegistry={sectionRegistry}
+                onNavigate={(tab) => setActiveTab(tab)}
               />
             }
             actions={

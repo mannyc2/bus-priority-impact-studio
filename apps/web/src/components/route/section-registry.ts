@@ -181,3 +181,10 @@ export function routeSectionRegistry(
 
   return { presentations, visibleTabs, hiddenSections };
 }
+
+export function routeSectionCanNavigate(
+  registry: Pick<RouteSectionRegistry, "presentations">,
+  tabValue: RouteDetailTabValue,
+): boolean {
+  return registry.presentations[tabValue].mode !== "hidden";
+}

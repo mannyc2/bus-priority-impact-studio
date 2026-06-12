@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+  routeSectionCanNavigate,
   routeSectionQuestion,
   routeSectionRegistry,
   sectionPresentation,
@@ -209,5 +210,13 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
       ["treatments", 0],
       ["evidence", 0],
     ]);
+  });
+
+  test("routeSectionCanNavigate follows hidden-section policy for header KPI clicks", () => {
+    expect(routeSectionCanNavigate(routeSectionRegistry(rich), "reliability")).toBe(true);
+    expect(routeSectionCanNavigate(routeSectionRegistry(clean), "where-when")).toBe(true);
+    expect(routeSectionCanNavigate(routeSectionRegistry(clean), "treatments")).toBe(false);
+    expect(routeSectionCanNavigate(routeSectionRegistry(sparse), "reliability")).toBe(false);
+    expect(routeSectionCanNavigate(routeSectionRegistry(sparse), "riders")).toBe(true);
   });
 });

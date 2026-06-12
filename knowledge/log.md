@@ -2,6 +2,31 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Tier 2 Bx41 Webster CB4 plan source closes one more source
+
+Reviewed `nyc_dot_select_bus_service_pdf_2013_02_sbs_webster_bx_cb4` from the full-corpus source
+review workspace as a proposed Bx41 Webster Avenue SBS plan record. The local ignored
+reviewed-record seed now has 18 sources and 18 records. The record cites the February 6, 2013 CB4
+deck, Bx41 LTD to Bx41 SBS conversion, 4 miles of offset bus lanes, off-board fare collection, TSP,
+bus-bulb station plans, pedestrian safety improvements, red bus-lane paint, fare-machine and stop
+changes, and the Webster Avenue corridor termini.
+
+The record stores `effectiveDate: 2013-06` with `datePrecision: month` because this source gives a
+summer/end-of-June 2013 service-start window rather than an exact launch day. It also caveats the
+2014-2015 bus-bulb/capital phase separately from the June 2013 service and roadway launch. Bx12,
+M15, M34/M34A, S79, B44, M60, Bx15, and Bx35 remain context, service-plan, or station-impact
+mentions rather than assigned intervention routes. Regenerated the local ignored source receipt
+closure audit. It now reports 291 queue sources, 18 valid reviewed records, 18 reviewed-record
+sources, 19 closed sources, 272 open sources, and 0 conflicts; public promotion remains blocked on
+full source closure. The broader Tier 2 structured-data inventory command still reports the older
+published-inventory next action because it scans published artifacts rather than this ignored
+manual-review seed.
+
+Verified with `jq empty
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/intervention-records-corpus-reviewed.json`,
+`bun --filter @bp/pipeline-v2 cli -- docs tier2 source-receipt-audit ...`, and `bun --filter
+@bp/pipeline-v2 cli -- audit tier2-structured-data --json`.
+
 ## [2026-06-12] engineering | Tier 2 Bx41 Webster CAC4 plan source closes one more source
 
 Reviewed `nyc_dot_select_bus_service_pdf_2012_11_sbs_webster_cac4` from the full-corpus source

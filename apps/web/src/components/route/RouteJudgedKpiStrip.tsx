@@ -8,6 +8,11 @@ import {
 } from "@/components/route/MetricColumns";
 import { reliabilitySummary } from "@/components/route/reliability-summary";
 import { riderImpactSummary } from "@/components/route/rider-impact-summary";
+import {
+  type RouteDetailTabValue,
+  type RouteSectionRegistry,
+  routeSectionCanNavigate,
+} from "@/components/route/section-registry";
 import { Spark } from "@/components/Spark";
 import type {
   RouteDossierSummaryForDetail,
@@ -79,12 +84,14 @@ export function RouteJudgedKpiStrip({
   route,
   dossier,
   capability,
+  sectionRegistry,
   onNavigate,
 }: {
   route: StudioRoute;
   dossier: RouteDossierSummaryForDetail | null;
   capability: StudioRouteCapability | null;
-  onNavigate: (tab: string) => void;
+  sectionRegistry: Pick<RouteSectionRegistry, "presentations">;
+  onNavigate: (tab: RouteDetailTabValue) => void;
 }) {
   const speed = dossier?.speed ?? null;
   const posture = dossier?.treatmentPosture ?? null;
@@ -111,13 +118,15 @@ export function RouteJudgedKpiStrip({
     hasLane ? "bus lane" : null,
     aceActive ? `ACE${posture?.aceSince ? ` since ${posture.aceSince.slice(0, 4)}` : ""}` : null,
   ].filter(Boolean);
+  const clickTarget = (tab: RouteDetailTabValue) =>
+    routeSectionCanNavigate(sectionRegistry, tab) ? () => onNavigate(tab) : undefined;
 
   return (
     <MetricColumns>
       <Judged
         label="Condition"
         divider
-        onClick={() => onNavigate("where-when")}
+        onClick={clickTarget("where-when")}
         value={currentSpeed.toFixed(1)}
         unit="mph"
         tone={currentSpeed < 6 ? "bad" : "ink"}
@@ -127,7 +136,7 @@ export function RouteJudgedKpiStrip({
       <Judged
         label="Trend"
         divider
-        onClick={() => onNavigate("where-when")}
+        onClick={clickTarget("where-when")}
         value={fmtPct(trendPct)}
         tone={trendPct === null ? "ink" : trendPct < 0 ? "bad" : "good"}
         trailing={
@@ -146,7 +155,7 @@ export function RouteJudgedKpiStrip({
       <Judged
         label="Reliability"
         divider
-        onClick={() => onNavigate("reliability")}
+        onClick={clickTarget("reliability")}
         value={reliabilityKpi.kpiValue}
         tone={reliabilityKpi.kpiTone}
         sub={reliabilityKpi.kpiSub}
@@ -155,7 +164,7 @@ export function RouteJudgedKpiStrip({
       <Judged
         label="Riders"
         divider
-        onClick={() => onNavigate("riders")}
+        onClick={clickTarget("riders")}
         value={ridersKpi.kpiValue}
         tone={ridersKpi.kpiTone}
         sub={ridersKpi.kpiSub}
@@ -164,7 +173,7 @@ export function RouteJudgedKpiStrip({
       <Judged
         label="Treatment posture"
         divider={false}
-        onClick={() => onNavigate("treatments")}
+        onClick={clickTarget("treatments")}
         value={postureLabel}
         tone={postureLabel === "Treated" ? "good" : "ink"}
         sub={postureBits.length > 0 ? postureBits.join(" · ") : "no treatments on record"}
