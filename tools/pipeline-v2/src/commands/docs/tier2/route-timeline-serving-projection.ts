@@ -36,8 +36,7 @@ export async function runDocsTier2RouteTimelineServingProjection(
 
 export default defineCommand({
   path: ["docs", "tier2", "route-timeline-serving-projection"],
-  summary:
-    "Project route timeline bundle readiness into compact D1 rows and R2 artifact refs.",
+  summary: "Project route timeline bundle readiness into compact D1 rows and R2 artifact refs.",
   input: { options: optionsSchema },
   output: z.unknown(),
   async run({ input }) {

@@ -54,6 +54,19 @@ export {
   type MaterializationCoverageSurface,
 } from "./analytics-materialization-coverage";
 export {
+  type BuildRouteCapabilityManifestInput,
+  buildRouteCapabilityManifest,
+  type RouteCapabilityInputRow,
+  type RouteCapabilitySourceStatus,
+} from "./build-route-capability-manifest";
+export {
+  type BuildRouteDossierSummariesInput,
+  buildRouteDossierSummaries,
+  type RouteDossierInputRow,
+  type RouteDossierTrendPoint,
+  type RouteDossierWorstSegmentMonth,
+} from "./build-route-dossier-summary";
+export {
   type BuildBunchingHotspotsReviewQueueInput,
   type BunchingHotspotsReviewCandidateLike,
   type BunchingHotspotsReviewCoverageLike,
@@ -263,19 +276,6 @@ export {
   emptyDetectorReadinessBucketCounts,
   sortedDetectorBucketRecord,
 } from "./detector-readiness-projection";
-export {
-  type BuildRouteCapabilityManifestInput,
-  buildRouteCapabilityManifest,
-  type RouteCapabilityInputRow,
-  type RouteCapabilitySourceStatus,
-} from "./build-route-capability-manifest";
-export {
-  type BuildRouteDossierSummariesInput,
-  buildRouteDossierSummaries,
-  type RouteDossierInputRow,
-  type RouteDossierTrendPoint,
-  type RouteDossierWorstSegmentMonth,
-} from "./build-route-dossier-summary";
 export {
   type BuildDetectorReadinessServingManifestInput,
   buildDetectorReadinessServingManifest,
@@ -733,17 +733,17 @@ export {
   type RouteBriefInputHourlyBins,
 } from "./studio-coverage";
 export {
-  buildMtaWikiTier2SourceAlignmentArtifact,
   buildMtaWikiTier2BridgeArtifact,
-  renderMtaWikiTier2SourceAlignmentMarkdown,
-  renderMtaWikiTier2BridgeMarkdown,
+  buildMtaWikiTier2SourceAlignmentArtifact,
   type MtaWikiBridgeCanonicalInputs,
   type MtaWikiBridgeEvidencePreview,
   type MtaWikiBridgeReviewGroup,
   type MtaWikiCanonicalRecord,
+  type MtaWikiTier2BridgeArtifact,
   type MtaWikiTier2SourceAlignmentArtifact,
   type MtaWikiTier2SourceAlignmentRow,
-  type MtaWikiTier2BridgeArtifact,
+  renderMtaWikiTier2BridgeMarkdown,
+  renderMtaWikiTier2SourceAlignmentMarkdown,
   type Tier2SourceQueueForMtaWikiAlignment,
 } from "./tier2-mta-wiki-bridge";
 export {

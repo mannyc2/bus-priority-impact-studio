@@ -455,6 +455,7 @@ describe("S4.1 serving readiness gating", () => {
       )
       .map((entry) => entry.detectorId)
       .sort();
-    expect([...SERVING_BLOCKED_DETECTOR_IDS].sort()).toEqual(neverPublic);
+    const blockedDetectorIds: string[] = [...SERVING_BLOCKED_DETECTOR_IDS].sort();
+    expect(blockedDetectorIds).toEqual(neverPublic);
   });
 });

@@ -94,7 +94,9 @@ describe("docs tier2 source-disposition-receipts", () => {
         schemaVersion: 1,
         generatedAt: "2026-06-12T00:15:00.000Z",
         summary: { selectedSourceCount: 1 },
-        packs: [{ queueRef: "s001", sourceId: "source-context", sampleSurfaces: [], featureRows: [] }],
+        packs: [
+          { queueRef: "s001", sourceId: "source-context", sampleSurfaces: [], featureRows: [] },
+        ],
       });
       await writeJson(decisionsPath, {
         decisions: [

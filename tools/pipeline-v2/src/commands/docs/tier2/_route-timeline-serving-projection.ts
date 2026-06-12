@@ -401,9 +401,7 @@ export async function buildRouteTimelineServingProjection(
       ? defaultPath(outputPath, "-schema.sql")
       : fromCliPath(args.schemaPath);
   const seedPath =
-    args.seedPath === undefined
-      ? defaultPath(outputPath, "-seed.sql")
-      : fromCliPath(args.seedPath);
+    args.seedPath === undefined ? defaultPath(outputPath, "-seed.sql") : fromCliPath(args.seedPath);
 
   await mkdir(dirname(outputPath), { recursive: true });
   await mkdir(dirname(markdownPath), { recursive: true });

@@ -203,7 +203,9 @@ function summarizeAccumulator(accumulator: ForecastAccumulator): {
   return {
     forecastCount: accumulator.forecastCount,
     meanAbsoluteErrorMph: round(accumulator.absoluteErrorMph / accumulator.forecastCount),
-    meanAbsolutePercentageError: round(accumulator.absolutePercentageError / accumulator.forecastCount),
+    meanAbsolutePercentageError: round(
+      accumulator.absolutePercentageError / accumulator.forecastCount,
+    ),
     withinTenPercentShare: round(accumulator.withinTenPercentCount / accumulator.forecastCount),
     residualBiasMph: round(accumulator.residualMph / accumulator.forecastCount),
   };

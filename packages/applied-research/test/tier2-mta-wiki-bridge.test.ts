@@ -149,14 +149,18 @@ describe("mta-wiki Tier 2 bridge", () => {
             display_name: "External only source",
           },
         ],
-        routes: [{ record_id: "route_bx41-sbs", record_kind: "route", payload: { route_id: "Bx41 SBS" } }],
+        routes: [
+          { record_id: "route_bx41-sbs", record_kind: "route", payload: { route_id: "Bx41 SBS" } },
+        ],
         projects: [
           {
             record_id: "project_webster_sbs",
             record_kind: "project",
             source_id: "2013_03_sbs_webster_bx_cb5",
             payload: { routes_served: ["Bx41 SBS"] },
-            evidence_refs: [{ evidence_id: "ev-1", source_path: "raw/sources/source/blocks.jsonl" }],
+            evidence_refs: [
+              { evidence_id: "ev-1", source_path: "raw/sources/source/blocks.jsonl" },
+            ],
             truth_status: "source_stated",
             review_state: "unreviewed",
           },

@@ -13,7 +13,8 @@ const SUMMARY_KIND = "bp.tier2_source_review_pack_batch_summary.v1";
 
 type MaterializedFeatureRow = Tier2VocabMaterializedViewsArtifact["detectorFeatureRows"][number];
 type MaterializedRouteBundle = Tier2VocabMaterializedViewsArtifact["routeEvidenceBundles"][number];
-type MaterializedUnresolvedItem = Tier2VocabMaterializedViewsArtifact["unresolvedReviewQueue"][number];
+type MaterializedUnresolvedItem =
+  Tier2VocabMaterializedViewsArtifact["unresolvedReviewQueue"][number];
 
 type MtaWikiSourceAlignmentRow = {
   queueRef: string;
@@ -223,7 +224,9 @@ function routeContextForSource(input: {
   bundle: MaterializedRouteBundle;
   sourceId: string;
 }): SourceReviewPackRouteContext | null {
-  const ref = input.bundle.sourcePageRefs.find((sourceRef) => sourceRef.sourceId === input.sourceId);
+  const ref = input.bundle.sourcePageRefs.find(
+    (sourceRef) => sourceRef.sourceId === input.sourceId,
+  );
   if (ref === undefined) return null;
   return {
     routeId: input.bundle.routeId,
@@ -528,9 +531,8 @@ function buildBatch(input: {
       highPrioritySourceCount: packs.filter((pack) => pack.priority === "high").length,
       publicPromotionStatus: "not_ready",
       reviewReceiptMissingCount: packs.length,
-      selectedMtaWikiAlignedSourceCount: packs.filter(
-        (pack) => pack.mtaWikiContext.length > 0,
-      ).length,
+      selectedMtaWikiAlignedSourceCount: packs.filter((pack) => pack.mtaWikiContext.length > 0)
+        .length,
       selectedMtaWikiCandidateRecordCount,
       selectedSourceIds: packs.map((pack) => pack.sourceId),
       promotionBlockers: [
@@ -569,7 +571,9 @@ function renderMarkdown(artifact: Tier2SourceReviewPackBatchArtifact): string {
   lines.push(`- Source-disposition review packs: ${artifact.summary.sourceDispositionReviewCount}`);
   lines.push(`- High priority packs: ${artifact.summary.highPrioritySourceCount}`);
   lines.push(`- Review receipts missing: ${artifact.summary.reviewReceiptMissingCount}`);
-  lines.push(`- Packs with mta-wiki context: ${artifact.summary.selectedMtaWikiAlignedSourceCount}`);
+  lines.push(
+    `- Packs with mta-wiki context: ${artifact.summary.selectedMtaWikiAlignedSourceCount}`,
+  );
   lines.push(
     `- mta-wiki candidate records in selected packs: ${artifact.summary.selectedMtaWikiCandidateRecordCount}`,
   );
@@ -582,7 +586,8 @@ function renderMarkdown(artifact: Tier2SourceReviewPackBatchArtifact): string {
   );
   lines.push("|---|---|---|---|---:|---:|---:|---:|---|");
   for (const pack of artifact.packs) {
-    const title = pack.sourceTitle === null ? pack.sourceId : `${pack.sourceId}: ${pack.sourceTitle}`;
+    const title =
+      pack.sourceTitle === null ? pack.sourceId : `${pack.sourceId}: ${pack.sourceTitle}`;
     lines.push(
       `| ${pack.queueRef} | ${pack.priority} | ${pack.reviewLane} | ${markdownEscape(title)} | ${pack.sourceSummary.routeCount} | ${pack.featureRows.length} | ${pack.unresolvedItems.length} | ${pack.sourceSummary.mtaWikiCandidateRecordCount} | ${pack.sourceSummary.reviewFlags.join(", ")} |`,
     );
@@ -615,11 +620,15 @@ export async function buildTier2SourceReviewPackBatch(
     materializedViewsPath,
   ).json()) as Tier2VocabMaterializedViewsArtifact;
   if (materializedViews.artifactKind !== "bp.tier2_vocab_materialized_views.v1") {
-    throw new Error(`Expected bp.tier2_vocab_materialized_views.v1 artifact: ${materializedViewsPath}`);
+    throw new Error(
+      `Expected bp.tier2_vocab_materialized_views.v1 artifact: ${materializedViewsPath}`,
+    );
   }
   if (!Array.isArray(queue.items)) throw new Error(`Queue has no items array: ${queuePath}`);
   if (!Array.isArray(materializedViews.detectorFeatureRows)) {
-    throw new Error(`Materialized views has no detectorFeatureRows array: ${materializedViewsPath}`);
+    throw new Error(
+      `Materialized views has no detectorFeatureRows array: ${materializedViewsPath}`,
+    );
   }
   const mtaWikiAlignmentPath =
     args.mtaWikiAlignmentPath === undefined ? null : fromCliPath(args.mtaWikiAlignmentPath);
@@ -631,10 +640,14 @@ export async function buildTier2SourceReviewPackBatch(
     mtaWikiAlignment !== null &&
     mtaWikiAlignment.artifactKind !== "bp.tier2_mta_wiki_source_alignment.v1"
   ) {
-    throw new Error(`Expected bp.tier2_mta_wiki_source_alignment.v1 artifact: ${mtaWikiAlignmentPath}`);
+    throw new Error(
+      `Expected bp.tier2_mta_wiki_source_alignment.v1 artifact: ${mtaWikiAlignmentPath}`,
+    );
   }
   if (mtaWikiAlignment !== null && !Array.isArray(mtaWikiAlignment.alignedSources)) {
-    throw new Error(`mta-wiki source alignment has no alignedSources array: ${mtaWikiAlignmentPath}`);
+    throw new Error(
+      `mta-wiki source alignment has no alignedSources array: ${mtaWikiAlignmentPath}`,
+    );
   }
   return buildBatch({
     queue,
@@ -666,10 +679,17 @@ export async function runTier2SourceReviewPackBatch(
   const artifact = await buildTier2SourceReviewPackBatch(args);
   const outputPath = fromCliPath(
     args.outputPath ??
-      join(defaultArtifactRootPath(), "docs", "tier2-source-review-packs", "source-review-pack-batch.json"),
+      join(
+        defaultArtifactRootPath(),
+        "docs",
+        "tier2-source-review-packs",
+        "source-review-pack-batch.json",
+      ),
   );
   const markdownPath =
-    args.markdownPath === undefined ? outputPath.replace(/\.json$/, ".md") : fromCliPath(args.markdownPath);
+    args.markdownPath === undefined
+      ? outputPath.replace(/\.json$/, ".md")
+      : fromCliPath(args.markdownPath);
   const summaryPath =
     args.summaryPath === undefined
       ? outputPath.replace(/\.json$/, "-summary.json")

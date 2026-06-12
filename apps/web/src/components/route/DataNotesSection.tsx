@@ -1,15 +1,15 @@
 import { Link } from "@tanstack/react-router";
 import { DataAsOf } from "@/components/DataAsOf";
 import {
-  dossierMetricMonthCount,
-  dossierMetricWindow,
-  formatCompact,
-} from "@/components/route/route-derived";
-import {
   completenessStatusLabel,
   releaseLayerDescription,
   releaseLayerLabel,
 } from "@/components/route/data-quality-labels";
+import {
+  dossierMetricMonthCount,
+  dossierMetricWindow,
+  formatCompact,
+} from "@/components/route/route-derived";
 import { SectionHeader } from "@/components/SectionHeader";
 import type { StudioRouteDetailResponse } from "@/studio/api-contract";
 

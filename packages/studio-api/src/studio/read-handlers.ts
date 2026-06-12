@@ -1,10 +1,10 @@
 import {
   createD1ServingDb,
-  findLatestSpeedTrendMonth,
-  findLatestStudioServingMonth,
   type RouteMonthTrend as D1RouteMonthTrend,
   type RouteObservedReliabilitySummary as D1RouteObservedReliabilitySummary,
   type SourceMonthCoverage as D1SourceMonthCoverage,
+  findLatestSpeedTrendMonth,
+  findLatestStudioServingMonth,
   getRouteTimelineIndex,
   listRouteMonthTrends,
   listRouteObservedReliabilitySummaries,
@@ -22,8 +22,8 @@ import {
   RouteCapabilityManifestForIndexSchema,
   type RouteDossierSummaryForDetail,
   RouteDossierSummaryForDetailSchema,
-  routeDossierSummaryKey,
   type RouteSurfaceState,
+  routeDossierSummaryKey,
   STUDIO_ROUTE_CAPABILITY_MANIFEST_KEY,
   type StudioRouteCapability,
 } from "@bp/domain/studio";
@@ -1931,7 +1931,11 @@ export async function buildStudioRouteHistoryResponse(
     return { ok: false, response: errorResponse(503, NO_SERVING_MONTH_MESSAGE) };
   }
 
-  const row = await findStudioRouteIndexSourceRow({ env, slug, baselineMonth: months.servingMonth });
+  const row = await findStudioRouteIndexSourceRow({
+    env,
+    slug,
+    baselineMonth: months.servingMonth,
+  });
   if (row === null) {
     return { ok: false, response: errorResponse(404, "Studio route history was not found.") };
   }
@@ -2144,8 +2148,9 @@ function summaryReadyRouteCount(routes: readonly StudioRouteIndex2Row[]): number
 
 function artifactReadyRouteCount(routes: readonly StudioRouteIndex2Row[]): number {
   return routes.filter(
-    (route) => SUPPORT_LEVEL_BY_OVERALL_STATE[route.capability.overallState] !== "index_only"
-      && SUPPORT_LEVEL_BY_OVERALL_STATE[route.capability.overallState] !== "summary_ready",
+    (route) =>
+      SUPPORT_LEVEL_BY_OVERALL_STATE[route.capability.overallState] !== "index_only" &&
+      SUPPORT_LEVEL_BY_OVERALL_STATE[route.capability.overallState] !== "summary_ready",
   ).length;
 }
 
@@ -2892,7 +2897,9 @@ export async function handleStudioReadRequest<TEnv extends StudioReadEnv>(
 
   if (url.pathname === "/api/v1/studio/docs") {
     const docs = await loadStudioProjection(env, "docs.json", StudioDocsResponseSchema);
-    return docs instanceof Response ? docs : studioJsonResponse(withGeneratedDocsEndpoints(docs), env);
+    return docs instanceof Response
+      ? docs
+      : studioJsonResponse(withGeneratedDocsEndpoints(docs), env);
   }
 
   return errorResponse(404, "Studio API endpoint was not found.");

@@ -1,5 +1,5 @@
 import type { Database, SQLQueryBindings } from "bun:sqlite";
-import { monthRange, type IsoMonthString } from "../core";
+import { type IsoMonthString, monthRange } from "../core";
 import type {
   AnalyticsBackfillObservedMonthRow,
   AnalyticsBackfillSurfaceRows,

@@ -70,8 +70,9 @@ export default defineCommand({
           })
         : fromCliPath(input.options.output);
     const artifact = buildEventFamilyResponseDriftStudyArtifact({
-      eventFamilyEffectPanel:
-        (await Bun.file(eventFamilyEffectPanelPath).json()) as EventFamilyEffectPanelArtifact,
+      eventFamilyEffectPanel: (await Bun.file(
+        eventFamilyEffectPanelPath,
+      ).json()) as EventFamilyEffectPanelArtifact,
       generatedAt: new Date().toISOString(),
       artifactPath: repoDisplayPath(outputPath),
       sourceEventFamilyEffectPanelPath: repoDisplayPath(eventFamilyEffectPanelPath),

@@ -184,13 +184,12 @@ function buildArtifact(input: {
         (pack) => !receiptSourceIds.has(pack.sourceId),
       ).length,
       publicPromotionStatus: "not_ready",
-      sourceIds: receipts.map((receipt) => receipt.sourceId).sort((left, right) =>
-        left.localeCompare(right),
-      ),
+      sourceIds: receipts
+        .map((receipt) => receipt.sourceId)
+        .sort((left, right) => left.localeCompare(right)),
     },
     policy: {
-      useCase:
-        "Normalized source-disposition receipts authored from Tier 2 source review packs.",
+      useCase: "Normalized source-disposition receipts authored from Tier 2 source review packs.",
       closureRule:
         "Only supporting_context_only, no_actionable_bus_priority_intervention, and suppressed close a source without reviewed intervention records.",
       publicPromotionRule:
@@ -244,7 +243,9 @@ export async function runDocsTier2SourceDispositionReceipts(
   const decisionsPath = fromCliPath(input.decisionsPath);
   const outputPath = fromCliPath(input.outputPath);
   const markdownPath =
-    input.markdownPath === undefined ? outputPath.replace(/\.json$/u, ".md") : fromCliPath(input.markdownPath);
+    input.markdownPath === undefined
+      ? outputPath.replace(/\.json$/u, ".md")
+      : fromCliPath(input.markdownPath);
   const summaryPath =
     input.summaryPath === undefined
       ? outputPath.replace(/\.json$/u, "-summary.json")

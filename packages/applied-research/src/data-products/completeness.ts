@@ -1,3 +1,4 @@
+import { z } from "zod";
 import type {
   DataProduct,
   DataProductCheck,
@@ -11,7 +12,6 @@ import {
   DataProductKindSchema,
   DataProductLifecycleSchema,
 } from "./registry";
-import { z } from "zod";
 
 export type DataProductCheckAudit = {
   checkId: string;
@@ -417,9 +417,7 @@ export const DATA_PRODUCT_REQUIRED_INPUT_PRODUCT_ALIASES: Record<string, readonl
   local_route_hourly_ridership: ["local_route_hourly_ridership_history"],
   local_route_month_trend: ["local_route_month_trends_history"],
   local_route_month_coverage: ["local_route_month_coverage_release"],
-  local_route_observed_reliability_summary: [
-    "local_route_observed_reliability_summary_release",
-  ],
+  local_route_observed_reliability_summary: ["local_route_observed_reliability_summary_release"],
   local_route_readiness: ["local_route_readiness_release"],
   local_route_intervention_comparison: ["local_route_intervention_comparison_history"],
   local_route_schedule_stop: ["local_route_schedule_stop_source_backfill"],
@@ -684,10 +682,16 @@ export function dataProductJsonSemanticReasons(input: {
     }
   }
   if (input.check.semantic === "tier2_full_corpus_materialized_views_ready") {
-    const surfaceCount = numberValue(valueAtJsonPath(input.value, "summary.consumerSurfaceRowCount"));
+    const surfaceCount = numberValue(
+      valueAtJsonPath(input.value, "summary.consumerSurfaceRowCount"),
+    );
     const sourceCount = numberValue(valueAtJsonPath(input.value, "summary.sourceCoverageRowCount"));
-    const routeCount = numberValue(valueAtJsonPath(input.value, "summary.routeEvidenceBundleCount"));
-    const featureRowCount = numberValue(valueAtJsonPath(input.value, "summary.detectorFeatureRowCount"));
+    const routeCount = numberValue(
+      valueAtJsonPath(input.value, "summary.routeEvidenceBundleCount"),
+    );
+    const featureRowCount = numberValue(
+      valueAtJsonPath(input.value, "summary.detectorFeatureRowCount"),
+    );
     if (surfaceCount < 50_000) {
       reasons.push(`tier2_full_corpus_materialized_surface_count_low:${surfaceCount}`);
     }
@@ -703,7 +707,9 @@ export function dataProductJsonSemanticReasons(input: {
   }
   if (input.check.semantic === "tier2_source_disposition_queue_ready") {
     const sourceCount = numberValue(valueAtJsonPath(input.value, "summary.sourceCount"));
-    const reviewQueueItemCount = numberValue(valueAtJsonPath(input.value, "summary.reviewQueueItemCount"));
+    const reviewQueueItemCount = numberValue(
+      valueAtJsonPath(input.value, "summary.reviewQueueItemCount"),
+    );
     const recordCandidateReviewCount = numberValue(
       valueAtJsonPath(input.value, "summary.recordCandidateReviewCount"),
     );
@@ -713,7 +719,9 @@ export function dataProductJsonSemanticReasons(input: {
     const promotionBlockers = valueAtJsonPath(input.value, "summary.promotionBlockers");
     if (sourceCount < 250) reasons.push(`tier2_source_disposition_source_count_low:${sourceCount}`);
     if (reviewQueueItemCount !== sourceCount) {
-      reasons.push(`tier2_source_disposition_queue_count_mismatch:${reviewQueueItemCount}/${sourceCount}`);
+      reasons.push(
+        `tier2_source_disposition_queue_count_mismatch:${reviewQueueItemCount}/${sourceCount}`,
+      );
     }
     if (recordCandidateReviewCount <= 0) {
       reasons.push("tier2_source_disposition_record_candidate_count_zero");
@@ -729,9 +737,13 @@ export function dataProductJsonSemanticReasons(input: {
   }
   if (input.check.semantic === "tier2_source_receipt_closure_ready") {
     const queueSourceCount = numberValue(valueAtJsonPath(input.value, "summary.queueSourceCount"));
-    const closedSourceCount = numberValue(valueAtJsonPath(input.value, "summary.closedSourceCount"));
+    const closedSourceCount = numberValue(
+      valueAtJsonPath(input.value, "summary.closedSourceCount"),
+    );
     const openSourceCount = numberValue(valueAtJsonPath(input.value, "summary.openSourceCount"));
-    const conflictSourceCount = numberValue(valueAtJsonPath(input.value, "summary.conflictSourceCount"));
+    const conflictSourceCount = numberValue(
+      valueAtJsonPath(input.value, "summary.conflictSourceCount"),
+    );
     const invalidReviewedRecordCount = numberValue(
       valueAtJsonPath(input.value, "summary.invalidReviewedRecordCount"),
     );
@@ -754,7 +766,9 @@ export function dataProductJsonSemanticReasons(input: {
       reasons.push(`tier2_source_receipt_closure_status:${closureStatus ?? "missing"}`);
     }
     if (closedSourceCount !== queueSourceCount) {
-      reasons.push(`tier2_source_receipt_closed_count_mismatch:${closedSourceCount}/${queueSourceCount}`);
+      reasons.push(
+        `tier2_source_receipt_closed_count_mismatch:${closedSourceCount}/${queueSourceCount}`,
+      );
     }
     if (openSourceCount > 0) reasons.push(`tier2_source_receipt_open_sources:${openSourceCount}`);
     if (conflictSourceCount > 0) {

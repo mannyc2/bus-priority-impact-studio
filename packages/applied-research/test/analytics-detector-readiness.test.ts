@@ -238,7 +238,12 @@ function insertContextEventRouteTouches(input: {
     for (const month of input.months) {
       for (let route = 0; route < input.routesPerMonth; route += 1) {
         for (let row = 0; row < input.rowsPerRoute; row += 1) {
-          insert.run(`${input.eventKind}:${month}:${route}:${row}`, `R${route}`, input.eventKind, `${month}-15`);
+          insert.run(
+            `${input.eventKind}:${month}:${route}:${row}`,
+            `R${route}`,
+            input.eventKind,
+            `${month}-15`,
+          );
         }
       }
     }

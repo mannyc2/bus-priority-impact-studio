@@ -90,9 +90,7 @@ export default defineCommand({
         forecastCount: artifact.summary.forecastCount,
         validationMonthCount: artifact.summary.validationMonthCount,
         releaseMonthForecastCount: artifact.summary.releaseMonthForecastCount,
-        gateStatuses: Object.fromEntries(
-          artifact.gates.map((gate) => [gate.gateId, gate.status]),
-        ),
+        gateStatuses: Object.fromEntries(artifact.gates.map((gate) => [gate.gateId, gate.status])),
       };
     } finally {
       sqlite.close();

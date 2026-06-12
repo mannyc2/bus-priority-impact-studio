@@ -380,10 +380,13 @@ export function renderSourceDispositionQueueMarkdown(
   lines.push("");
   lines.push("## Top Queue Items");
   lines.push("");
-  lines.push("| Ref | Priority | Lane | Source | Routes | Surfaces | Signals | Unresolved | Flags |");
+  lines.push(
+    "| Ref | Priority | Lane | Source | Routes | Surfaces | Signals | Unresolved | Flags |",
+  );
   lines.push("|---|---|---|---|---:|---:|---:|---:|---|");
   for (const item of artifact.items.slice(0, maxRows)) {
-    const title = item.sourceTitle === null ? item.sourceId : `${item.sourceId}: ${item.sourceTitle}`;
+    const title =
+      item.sourceTitle === null ? item.sourceId : `${item.sourceId}: ${item.sourceTitle}`;
     lines.push(
       `| ${item.queueRef} | ${item.priority} | ${item.reviewLane} | ${markdownEscape(title)} | ${item.routeCount} | ${item.surfaceCount} | ${item.candidateSignals.eventOrTreatmentSignalCount} | ${item.unresolvedFieldCount} | ${item.reviewFlags.join(", ")} |`,
     );
@@ -432,10 +435,17 @@ export async function runTier2SourceDispositionQueue(
   const artifact = await buildTier2SourceDispositionQueue(args);
   const outputPath = fromCliPath(
     args.outputPath ??
-      join(defaultArtifactRootPath(), "docs", "tier2-source-disposition-queue", "source-disposition-queue.json"),
+      join(
+        defaultArtifactRootPath(),
+        "docs",
+        "tier2-source-disposition-queue",
+        "source-disposition-queue.json",
+      ),
   );
   const markdownPath =
-    args.markdownPath === undefined ? outputPath.replace(/\.json$/, ".md") : fromCliPath(args.markdownPath);
+    args.markdownPath === undefined
+      ? outputPath.replace(/\.json$/, ".md")
+      : fromCliPath(args.markdownPath);
   const summaryPath =
     args.summaryPath === undefined
       ? outputPath.replace(/\.json$/, "-summary.json")
@@ -444,10 +454,7 @@ export async function runTier2SourceDispositionQueue(
   await writeJson(outputPath, artifact);
   const markdownOptions =
     args.maxMarkdownRows === undefined ? {} : { maxRows: args.maxMarkdownRows };
-  await Bun.write(
-    markdownPath,
-    renderSourceDispositionQueueMarkdown(artifact, markdownOptions),
-  );
+  await Bun.write(markdownPath, renderSourceDispositionQueueMarkdown(artifact, markdownOptions));
   await writeJson(summaryPath, {
     artifactKind: SUMMARY_KIND,
     schemaVersion: 1,

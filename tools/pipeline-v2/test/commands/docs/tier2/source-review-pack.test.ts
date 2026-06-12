@@ -149,7 +149,9 @@ async function seedArtifacts(): Promise<{
         sourceCount: 1,
         sourceIds: ["source-event"],
         sourceGroupCounts: { bus_priority_document: 1 },
-        sourcePageRefs: [{ sourceId: "source-event", sourceTitle: "Event Source", pageNumbers: [1, 2, 3] }],
+        sourcePageRefs: [
+          { sourceId: "source-event", sourceTitle: "Event Source", pageNumbers: [1, 2, 3] },
+        ],
         surfaceKindCounts: { event_candidate: 1 },
         keyCounts: { eventFamily: 1 },
         coarseFamilyCounts: { project_delivery: 1 },
@@ -342,7 +344,10 @@ describe("Tier 2 source review pack batch", () => {
         reviewedRecordIds: [],
       },
     });
-    expect(pack.featureRows.map((row) => row.featureId)).toEqual(["feature-event", "feature-metric"]);
+    expect(pack.featureRows.map((row) => row.featureId)).toEqual([
+      "feature-event",
+      "feature-metric",
+    ]);
     expect(pack.unresolvedItems[0]?.reviewItemId).toBe("review-1");
     expect(pack.routeContexts[0]).toMatchObject({
       routeId: "B46",

@@ -69,7 +69,9 @@ export default defineCommand({
           })
         : fromCliPath(input.options.output);
     const artifact = buildMechanismCorroborationArtifact({
-      eventEffectContrast: (await Bun.file(eventEffectContrastPath).json()) as EventEffectContrastArtifact,
+      eventEffectContrast: (await Bun.file(
+        eventEffectContrastPath,
+      ).json()) as EventEffectContrastArtifact,
       generatedAt: new Date().toISOString(),
       artifactPath: repoDisplayPath(outputPath),
       sourceEventEffectContrastPath: repoDisplayPath(eventEffectContrastPath),

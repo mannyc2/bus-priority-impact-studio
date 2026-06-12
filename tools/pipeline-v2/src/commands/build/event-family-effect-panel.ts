@@ -80,9 +80,12 @@ export default defineCommand({
           })
         : fromCliPath(input.options.output);
     const artifact = buildEventFamilyEffectPanelArtifact({
-      eventEffectContrast: (await Bun.file(eventEffectContrastPath).json()) as EventEffectContrastArtifact,
-      mechanismCorroboration:
-        (await Bun.file(mechanismCorroborationPath).json()) as MechanismCorroborationArtifact,
+      eventEffectContrast: (await Bun.file(
+        eventEffectContrastPath,
+      ).json()) as EventEffectContrastArtifact,
+      mechanismCorroboration: (await Bun.file(
+        mechanismCorroborationPath,
+      ).json()) as MechanismCorroborationArtifact,
       generatedAt: new Date().toISOString(),
       artifactPath: repoDisplayPath(outputPath),
       sourceEventEffectContrastPath: repoDisplayPath(eventEffectContrastPath),

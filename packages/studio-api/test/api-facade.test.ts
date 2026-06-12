@@ -141,7 +141,12 @@ function capabilitySurface(state: string, reason: string | null = null) {
 }
 
 function capabilityManifestArtifact(
-  routes: { routeId: string; overallState: string; surfaces: Record<string, unknown>; caveats?: string[] }[],
+  routes: {
+    routeId: string;
+    overallState: string;
+    surfaces: Record<string, unknown>;
+    caveats?: string[];
+  }[],
 ): FakeR2Object {
   return new FakeR2Object(
     JSON.stringify({
@@ -2139,13 +2144,12 @@ describe("Studio API facade", () => {
       LAST_BUILT_SPEED_MONTH: "2026-03",
     };
 
-    const [routesResponse, searchResponse, detailResponse, historyResponse] =
-      await Promise.all([
-        fetchApi("/api/v1/studio/routes", env),
-        fetchApi("/api/v1/studio/search?q=late%20night", env),
-        fetchApi("/api/v1/studio/routes/b99", env),
-        fetchApi("/api/v1/studio/routes/b99/history", env),
-      ]);
+    const [routesResponse, searchResponse, detailResponse, historyResponse] = await Promise.all([
+      fetchApi("/api/v1/studio/routes", env),
+      fetchApi("/api/v1/studio/search?q=late%20night", env),
+      fetchApi("/api/v1/studio/routes/b99", env),
+      fetchApi("/api/v1/studio/routes/b99/history", env),
+    ]);
 
     expect(routesResponse.status).toBe(200);
     const routes = StudioRoutesResponseSchema.parse(await routesResponse.json());

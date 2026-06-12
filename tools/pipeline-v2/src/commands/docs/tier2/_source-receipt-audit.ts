@@ -1,9 +1,9 @@
-import {
-  DocumentInterventionRecordSchema,
-  type DocumentInterventionRecord,
-} from "@bp/domain/documents/intervention-records";
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import {
+  type DocumentInterventionRecord,
+  DocumentInterventionRecordSchema,
+} from "@bp/domain/documents/intervention-records";
 import { writeJson } from "../../../lib/json.ts";
 import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";
 import type {
@@ -221,9 +221,7 @@ function pushRecord<K extends string, V>(map: Map<K, V[]>, key: K, value: V) {
   existing.push(value);
 }
 
-async function loadReviewedRecords(
-  paths: string[],
-): Promise<{
+async function loadReviewedRecords(paths: string[]): Promise<{
   records: DocumentInterventionRecord[];
   invalid: InvalidReviewedRecord[];
 }> {
@@ -252,9 +250,7 @@ async function loadReviewedRecords(
   return { records, invalid };
 }
 
-async function loadDispositionReceipts(
-  paths: string[],
-): Promise<{
+async function loadDispositionReceipts(paths: string[]): Promise<{
   receipts: SourceDispositionReceipt[];
   invalid: InvalidDispositionReceipt[];
 }> {
@@ -337,10 +333,7 @@ function sourceReasons(input: {
     reasons.push("no_valid_reviewed_record_or_closing_source_disposition");
   }
   if (input.invalidRecordCount > 0) reasons.push("invalid_reviewed_records_present");
-  if (
-    input.validRecordCount === 0 &&
-    input.dispositions.includes("reviewed_records_authored")
-  ) {
+  if (input.validRecordCount === 0 && input.dispositions.includes("reviewed_records_authored")) {
     reasons.push("record_authored_receipt_without_valid_record");
   }
   if (input.dispositions.includes("needs_more_source_review")) {
@@ -376,10 +369,14 @@ function buildBlockers(input: {
     );
   }
   if (input.invalidReviewedRecordCount > 0) {
-    blockers.push(`${input.invalidReviewedRecordCount} reviewed record(s) fail the current domain schema`);
+    blockers.push(
+      `${input.invalidReviewedRecordCount} reviewed record(s) fail the current domain schema`,
+    );
   }
   if (input.invalidDispositionReceiptCount > 0) {
-    blockers.push(`${input.invalidDispositionReceiptCount} source disposition receipt(s) are malformed`);
+    blockers.push(
+      `${input.invalidDispositionReceiptCount} source disposition receipt(s) are malformed`,
+    );
   }
   if (input.orphanReviewedRecordSourceCount > 0) {
     blockers.push(
@@ -412,9 +409,11 @@ function buildAudit(input: {
 
   for (const record of input.reviewedRecords) pushRecord(recordsBySource, record.sourceId, record);
   for (const invalidRecord of input.invalidReviewedRecords) {
-    if (invalidRecord.sourceId !== null) pushRecord(invalidRecordsBySource, invalidRecord.sourceId, invalidRecord);
+    if (invalidRecord.sourceId !== null)
+      pushRecord(invalidRecordsBySource, invalidRecord.sourceId, invalidRecord);
   }
-  for (const receipt of input.dispositionReceipts) pushRecord(receiptsBySource, receipt.sourceId, receipt);
+  for (const receipt of input.dispositionReceipts)
+    pushRecord(receiptsBySource, receipt.sourceId, receipt);
 
   const sourceClosures = input.queue.items.map((item): Tier2SourceReceiptClosureRow => {
     const validRecords = recordsBySource.get(item.sourceId) ?? [];
@@ -463,7 +462,8 @@ function buildAudit(input: {
 
   const orphanRecordsBySource = new Map<string, DocumentInterventionRecord[]>();
   for (const record of input.reviewedRecords) {
-    if (!queueSourceIds.has(record.sourceId)) pushRecord(orphanRecordsBySource, record.sourceId, record);
+    if (!queueSourceIds.has(record.sourceId))
+      pushRecord(orphanRecordsBySource, record.sourceId, record);
   }
   const orphanReviewedRecordRefs = [...orphanRecordsBySource.entries()]
     .sort(([left], [right]) => left.localeCompare(right))
@@ -479,12 +479,14 @@ function buildAudit(input: {
         left.sourceArtifactPath.localeCompare(right.sourceArtifactPath) ||
         left.sourceIndex - right.sourceIndex,
     )
-    .map((receipt): OrphanReceiptRef => ({
-      sourceId: receipt.sourceId,
-      sourceArtifactPath: receipt.sourceArtifactPath,
-      sourceIndex: receipt.sourceIndex,
-      disposition: receipt.disposition,
-    }));
+    .map(
+      (receipt): OrphanReceiptRef => ({
+        sourceId: receipt.sourceId,
+        sourceArtifactPath: receipt.sourceArtifactPath,
+        sourceIndex: receipt.sourceIndex,
+        disposition: receipt.disposition,
+      }),
+    );
 
   const closedByRecordCount = sourceClosures.filter(
     (row) => row.status === "closed_by_record",
@@ -602,7 +604,8 @@ export function renderSourceReceiptClosureAuditMarkdown(
   lines.push("|---|---|---|---|---|---:|---|---|");
   for (const row of rows) {
     const title = row.sourceTitle === null ? row.sourceId : `${row.sourceId}: ${row.sourceTitle}`;
-    const dispositions = row.receiptDispositions.length === 0 ? "none" : row.receiptDispositions.join(", ");
+    const dispositions =
+      row.receiptDispositions.length === 0 ? "none" : row.receiptDispositions.join(", ");
     lines.push(
       `| ${row.queueRef} | ${row.status} | ${row.priority} | ${row.reviewLane} | ${markdownEscape(title)} | ${row.validRecordCount} | ${dispositions} | ${row.statusReasons.join(", ")} |`,
     );
@@ -666,7 +669,9 @@ export async function runTier2SourceReceiptClosureAudit(
       ),
   );
   const markdownPath =
-    args.markdownPath === undefined ? outputPath.replace(/\.json$/, ".md") : fromCliPath(args.markdownPath);
+    args.markdownPath === undefined
+      ? outputPath.replace(/\.json$/, ".md")
+      : fromCliPath(args.markdownPath);
   const summaryPath =
     args.summaryPath === undefined
       ? outputPath.replace(/\.json$/, "-summary.json")

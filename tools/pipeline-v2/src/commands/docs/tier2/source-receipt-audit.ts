@@ -4,7 +4,10 @@ import { runTier2SourceReceiptClosureAuditFromCli } from "./_source-receipt-audi
 
 const optionsSchema = z.object({
   queuePath: z.string(),
-  reviewedRecordsPaths: z.string().optional().describe("Comma-separated reviewed-record artifact paths"),
+  reviewedRecordsPaths: z
+    .string()
+    .optional()
+    .describe("Comma-separated reviewed-record artifact paths"),
   sourceDispositionsPaths: z
     .string()
     .optional()

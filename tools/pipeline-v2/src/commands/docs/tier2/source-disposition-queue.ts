@@ -28,8 +28,7 @@ export async function runDocsTier2SourceDispositionQueue(input: z.infer<typeof o
 
 export default defineCommand({
   path: ["docs", "tier2", "source-disposition-queue"],
-  summary:
-    "Build a source-level Tier 2 review/disposition queue from materialized qv1-qv10 views.",
+  summary: "Build a source-level Tier 2 review/disposition queue from materialized qv1-qv10 views.",
   input: { options: optionsSchema },
   output: z.unknown(),
   async run({ input }) {

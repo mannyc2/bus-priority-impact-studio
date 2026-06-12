@@ -159,7 +159,9 @@ function policyRelevantMonths(
   policy: DetectorCalibrationPolicy,
   coverageWindow: AnalyticsBackfillCoverageAudit["window"],
 ): string[] {
-  const auditedMonths = new Set(requestedMonths(coverageWindow.startMonth, coverageWindow.endMonth));
+  const auditedMonths = new Set(
+    requestedMonths(coverageWindow.startMonth, coverageWindow.endMonth),
+  );
   const windowIds = new Set([policy.releaseOutputWindow, ...policy.baselineWindowIds]);
   const months = [...windowIds].flatMap((windowId) => {
     const config = getCalibrationWindowConfig(windowId);
@@ -168,7 +170,9 @@ function policyRelevantMonths(
   const relevant = [...new Set(months)]
     .filter((month) => auditedMonths.has(month))
     .sort((left, right) => left.localeCompare(right));
-  return relevant.length > 0 ? relevant : [...auditedMonths].sort((left, right) => left.localeCompare(right));
+  return relevant.length > 0
+    ? relevant
+    : [...auditedMonths].sort((left, right) => left.localeCompare(right));
 }
 
 function maximumMinimumCompleteMonths(policy: DetectorCalibrationPolicy): number {

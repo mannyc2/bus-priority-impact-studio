@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { Database } from "bun:sqlite";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { buildRouteTimelineServingProjection } from "../../../../src/commands/docs/tier2/_route-timeline-serving-projection.ts";
@@ -135,10 +135,12 @@ describe("route timeline serving projection", () => {
       join(artifactRoot, "studio/v2/routes/b46/timeline.json"),
       join(artifactRoot, "studio/v2/routes/m15/timeline.json"),
     ]);
-    expect(await Bun.file(join(artifactRoot, "studio/v2/routes/b46/timeline.json")).json()).toEqual({
-      routeId: "B46",
-      events: [1, 2, 3],
-    });
+    expect(await Bun.file(join(artifactRoot, "studio/v2/routes/b46/timeline.json")).json()).toEqual(
+      {
+        routeId: "B46",
+        events: [1, 2, 3],
+      },
+    );
 
     const schemaSql = await Bun.file(result.schemaPath).text();
     const seedSql = await Bun.file(result.seedPath).text();

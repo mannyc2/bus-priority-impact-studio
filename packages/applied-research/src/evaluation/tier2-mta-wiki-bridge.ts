@@ -220,9 +220,7 @@ function queueSourceAlignmentKeys(sourceId: string): string[] {
 
 function mtaWikiGroupAlignmentKeys(group: MtaWikiBridgeReviewGroup): string[] {
   return sorted(
-    [group.sourceId, group.sourceLabel]
-      .map(normalizedSourceKey)
-      .filter((key) => key.length > 0),
+    [group.sourceId, group.sourceLabel].map(normalizedSourceKey).filter((key) => key.length > 0),
   );
 }
 
@@ -243,10 +241,8 @@ function incrementCount(counts: Record<string, number>, key: string | null | und
 }
 
 function sourceIdsFor(record: MtaWikiCanonicalRecord): string[] {
-  return sorted([
-    ...stringArray(record.source_ids),
-    ...(stringValue(record.source_id) !== null ? [stringValue(record.source_id)!] : []),
-  ]);
+  const sourceId = stringValue(record.source_id);
+  return sorted([...stringArray(record.source_ids), ...(sourceId === null ? [] : [sourceId])]);
 }
 
 function payload(record: MtaWikiCanonicalRecord): JsonRecord {
@@ -292,13 +288,12 @@ function buildRouteRecordLookup(routes: readonly MtaWikiCanonicalRecord[]): Map<
     const label = routeLabelFromRouteRecord(route);
     const normalized = label === null ? null : normalizeRouteId(label);
     if (normalized === null) continue;
+    const localObservationId = stringValue(route.local_observation_id);
     for (const id of [
       route.record_id,
       ...stringArray(route.record_aliases),
       ...stringArray(route.local_observation_ids),
-      ...(stringValue(route.local_observation_id) !== null
-        ? [stringValue(route.local_observation_id)!]
-        : []),
+      ...(localObservationId === null ? [] : [localObservationId]),
     ]) {
       byRecordId.set(id, normalized);
     }
@@ -350,7 +345,7 @@ function projectIdsFromRelation(relation: MtaWikiCanonicalRecord): string[] {
     stringValue(rowPayload["object_id"]),
     stringValue(rowPayload["subject_local_observation_id"]),
     stringValue(rowPayload["object_local_observation_id"]),
-  ].flatMap((value) => (value !== null && value.startsWith("project_") ? [value] : []));
+  ].flatMap((value) => (value?.startsWith("project_") ? [value] : []));
 }
 
 function candidateDate(record: MtaWikiCanonicalRecord): string | null {
@@ -525,8 +520,7 @@ export function buildMtaWikiTier2BridgeArtifact(input: {
 
   const reviewGroups = [...groups.values()]
     .filter(
-      (group) =>
-        group.projectIds.size + group.eventIds.size + group.treatmentComponentIds.size > 0,
+      (group) => group.projectIds.size + group.eventIds.size + group.treatmentComponentIds.size > 0,
     )
     .map((group): MtaWikiBridgeReviewGroup => {
       const dates = sorted(group.dates);
@@ -576,7 +570,9 @@ export function buildMtaWikiTier2BridgeArtifact(input: {
       return left.sourceId.localeCompare(right.sourceId);
     });
 
-  const eventReviewStateCounts = countBy(input.canonical.events.map((record) => record.review_state));
+  const eventReviewStateCounts = countBy(
+    input.canonical.events.map((record) => record.review_state),
+  );
   const treatmentComponentReviewStateCounts = countBy(
     input.canonical.treatmentComponents.map((record) => record.review_state),
   );
@@ -821,7 +817,9 @@ export function renderMtaWikiTier2SourceAlignmentMarkdown(
     );
   }
   if (artifact.alignedSources.length > 75) {
-    lines.push(`| ... ${artifact.alignedSources.length - 75} more alignment(s) | - | - | - | - | - |`);
+    lines.push(
+      `| ... ${artifact.alignedSources.length - 75} more alignment(s) | - | - | - | - | - |`,
+    );
   }
 
   lines.push("", "## Next Actions", "");
@@ -830,9 +828,7 @@ export function renderMtaWikiTier2SourceAlignmentMarkdown(
   return lines.join("\n");
 }
 
-export function renderMtaWikiTier2BridgeMarkdown(
-  artifact: MtaWikiTier2BridgeArtifact,
-): string {
+export function renderMtaWikiTier2BridgeMarkdown(artifact: MtaWikiTier2BridgeArtifact): string {
   const lines = [
     "# mta-wiki Tier 2 Bridge",
     "",
@@ -877,7 +873,9 @@ export function renderMtaWikiTier2BridgeMarkdown(
     );
   }
   if (artifact.reviewGroups.length > 50) {
-    lines.push(`| ... ${artifact.reviewGroups.length - 50} more group(s) | - | - | - | - | - | - |`);
+    lines.push(
+      `| ... ${artifact.reviewGroups.length - 50} more group(s) | - | - | - | - | - | - |`,
+    );
   }
 
   lines.push("", "## Next Actions", "");

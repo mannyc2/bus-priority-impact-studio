@@ -1,8 +1,8 @@
+import type { PanelManifest } from "../feature-resolvers/panel-spec";
 import {
   type SegmentDaypartPanelSpec,
   segmentDaypartPanelSpecV1,
 } from "../feature-resolvers/segment-daypart-residuals";
-import type { PanelManifest } from "../feature-resolvers/panel-spec";
 import type { SegmentDaypartHistoryRow } from "../local-db/segment-daypart-history-rows";
 
 export type SegmentDaypartPanelEligibilityStatus =

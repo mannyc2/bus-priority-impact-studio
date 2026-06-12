@@ -2,12 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { forecastValidationGatesArtifactPath } from "../src/artifacts";
 import { buildForecastValidationGatesArtifact } from "../src/forecasting";
 
-function row(input: {
-  routeId: string;
-  month: string;
-  segmentId: string;
-  speed: number;
-}) {
+function row(input: { routeId: string; month: string; segmentId: string; speed: number }) {
   return {
     route_id: input.routeId,
     month: input.month,

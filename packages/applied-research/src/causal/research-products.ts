@@ -153,11 +153,7 @@ export type MechanismCorroborationArtifact = {
   readonly limitations: readonly string[];
 };
 
-export type EventFamilyTimeRegime =
-  | "pre_2024"
-  | "2024_to_2025"
-  | "2026_plus"
-  | "unknown_date";
+export type EventFamilyTimeRegime = "pre_2024" | "2024_to_2025" | "2026_plus" | "unknown_date";
 
 export type EventFamilyEffectPanelRow = {
   readonly panelId: string;
@@ -302,8 +298,7 @@ function interventionFamily(interventionType: string): string {
 
 function corroborationStatus(row: EventEffectContrastRow): MechanismCorroborationStatus {
   const primary = effectDirection(row.eventStudyEstimateMph);
-  const peer =
-    row.matchedPeerDeltaMph === null ? null : effectDirection(row.matchedPeerDeltaMph);
+  const peer = row.matchedPeerDeltaMph === null ? null : effectDirection(row.matchedPeerDeltaMph);
   if (primary === "flat") return "weak_signal";
   if (peer === null || peer === "flat") return "single_method_signal";
   return peer === primary ? "corroborated" : "mixed";
@@ -373,7 +368,12 @@ function candidateFromPanelRow(row: Record<string, unknown>): PulseCandidate | n
   const routeId = text(row["treatedScopeId"]);
   const interventionType = text(row["interventionType"]);
   const treatedScopeKind = text(row["treatedScopeKind"]);
-  if (eventId === null || routeId === null || interventionType === null || treatedScopeKind === null) {
+  if (
+    eventId === null ||
+    routeId === null ||
+    interventionType === null ||
+    treatedScopeKind === null
+  ) {
     return null;
   }
   const interventionDate = text(row["interventionDate"]);
@@ -519,9 +519,8 @@ export function buildEventEffectContrastArtifact(input: {
       contrastCount: rows.length,
       routeCount: countUnique(rows.map((row) => row.routeId)),
       eventCount: countUnique(rows.map((row) => row.eventId)),
-      candidateCausalContrastCount: rows.filter(
-        (row) => row.gateDisposition === "candidate_causal",
-      ).length,
+      candidateCausalContrastCount: rows.filter((row) => row.gateDisposition === "candidate_causal")
+        .length,
       medianAbsEffectEstimateMph: median(rows.map((row) => Math.abs(row.eventStudyEstimateMph))),
     },
     rows,
@@ -546,7 +545,9 @@ export function buildMechanismCorroborationArtifact(input: {
     const status = corroborationStatus(row);
     const evidenceSignals = [
       `event_study:${primaryDirection}`,
-      row.matchedPeerDeltaMph === null ? "matched_peer:not_available" : `matched_peer:${peerDirection}`,
+      row.matchedPeerDeltaMph === null
+        ? "matched_peer:not_available"
+        : `matched_peer:${peerDirection}`,
       `control_routes:${row.controlRouteCount}`,
     ];
     return {
@@ -644,16 +645,14 @@ export function buildEventFamilyEffectPanelArtifact(input: {
         flatCount: contrasts.filter(
           (contrast) => effectDirection(contrast.eventStudyEstimateMph) === "flat",
         ).length,
-        corroboratedCount: mechanismRows.filter(
-          (row) => row.corroborationStatus === "corroborated",
-        ).length,
+        corroboratedCount: mechanismRows.filter((row) => row.corroborationStatus === "corroborated")
+          .length,
         mixedCount: mechanismRows.filter((row) => row.corroborationStatus === "mixed").length,
         singleMethodSignalCount: mechanismRows.filter(
           (row) => row.corroborationStatus === "single_method_signal",
         ).length,
-        weakSignalCount: mechanismRows.filter(
-          (row) => row.corroborationStatus === "weak_signal",
-        ).length,
+        weakSignalCount: mechanismRows.filter((row) => row.corroborationStatus === "weak_signal")
+          .length,
         candidateCausalContrastCount: contrasts.filter(
           (contrast) => contrast.gateDisposition === "candidate_causal",
         ).length,

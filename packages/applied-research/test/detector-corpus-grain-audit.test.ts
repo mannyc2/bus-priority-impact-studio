@@ -219,9 +219,7 @@ describe("detector corpus grain audit", () => {
       const treatmentScopeGap = audit.detectors.find(
         (detector) => detector.detectorId === "treatment_scope_gap",
       );
-      expect(treatmentScopeGap?.missingFeatureGrains).not.toContain(
-        "route_treatment_summary",
-      );
+      expect(treatmentScopeGap?.missingFeatureGrains).not.toContain("route_treatment_summary");
       expect(treatmentScopeGap?.missingFeatureGrains).not.toContain(
         "route_segment_treatment_summary",
       );
@@ -231,9 +229,7 @@ describe("detector corpus grain audit", () => {
           .filter((productId, index, productIds) => productIds.indexOf(productId) === index),
       ).toContain("route_treatment_summary_artifact");
 
-      const sourceGap = audit.detectors.find(
-        (detector) => detector.detectorId === "source_gap",
-      );
+      const sourceGap = audit.detectors.find((detector) => detector.detectorId === "source_gap");
       expect(sourceGap?.missingFeatureGrains).not.toContain("route_treatment_source_gap");
 
       const interventionUnderperformance = audit.detectors.find(

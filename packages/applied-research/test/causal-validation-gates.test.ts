@@ -94,7 +94,9 @@ describe("causal validation gates", () => {
       warnGateCount: 3,
       failGateCount: 0,
     });
-    expect(Object.fromEntries(artifact.gates.map((gate) => [gate.gateId, gate.status]))).toMatchObject({
+    expect(
+      Object.fromEntries(artifact.gates.map((gate) => [gate.gateId, gate.status])),
+    ).toMatchObject({
       event_family_placebos: "warn",
       temporal_transportability: "warn",
       regime_sensitivity: "warn",

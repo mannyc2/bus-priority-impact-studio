@@ -67,8 +67,8 @@ describe("Tier 2 structured data evaluation", () => {
       }),
     ).toMatchObject({
       layer: "materialized_research_views",
-        trustTier: "validated_staging",
-      });
+      trustTier: "validated_staging",
+    });
 
     expect(
       classifyTier2StructuredArtifact({
@@ -97,8 +97,8 @@ describe("Tier 2 structured data evaluation", () => {
       }),
     ).toMatchObject({
       layer: "source_receipt_closure_audit",
-        trustTier: "validated_staging",
-      });
+      trustTier: "validated_staging",
+    });
 
     expect(
       classifyTier2StructuredArtifact({

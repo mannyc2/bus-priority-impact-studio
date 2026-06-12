@@ -1,11 +1,6 @@
 import { mkdir, readdir, readFile, stat } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import {
-  listRouteBriefSummaries,
-  listRouteCatalog,
-  listRouteObservedReliabilitySummaries,
-} from "@bp/db/local";
-import {
   auditProjectionSegmentHourBins,
   auditRouteBriefInputHourlyBins,
   hasDotRouteLaneCoverage,
@@ -13,6 +8,11 @@ import {
   hasValidTrendMonthLabels,
   type RouteBriefInputHourlyBins,
 } from "@bp/applied-research/evaluation";
+import {
+  listRouteBriefSummaries,
+  listRouteCatalog,
+  listRouteObservedReliabilitySummaries,
+} from "@bp/db/local";
 import { arg, defineCommand, z } from "@liche/core";
 import { isoMonth } from "../../lib/dates.ts";
 import { writeJson } from "../../lib/json.ts";
@@ -530,7 +530,7 @@ export async function auditStudioCoverage(
   const d1RouteAddressabilityShare =
     publicRouteIds.size === 0
       ? 0
-      : Number((Math.min(1, catalog.length / publicRouteIds.size)).toFixed(4));
+      : Number(Math.min(1, catalog.length / publicRouteIds.size).toFixed(4));
 
   const [briefEvidenceDetailCount, briefHistoryDetailCount] = await Promise.all([
     Promise.all(
@@ -583,21 +583,20 @@ export async function auditStudioCoverage(
     projectionSegmentHours.routeDetailsWithExcessPublicAiNoteDensity > 0 ||
     projectionSegmentHours.routeDetailsWithInvalidRidershipProfile > 0;
 
-  const status: StudioCoverageAuditResult["status"] =
-    hasMandatoryServingGaps
-      ? "fail"
-      : routesMissingFromProjection.length > 0 ||
-          briefsMissingFromProjection.length > 0 ||
-          studioRouteCoverageShare < 0.5 ||
-          studioBriefCoverageShare < 0.5 ||
-          hasLegacyRouteDetailProjectionGaps ||
-          findingsMissingReview.length > 0 ||
-          reviewStateCounts.generatedCandidate > 0 ||
-          reviewCandidatesMarkedApproved.length > 0 ||
-          reviewedFindingsWithoutApproval.length > 0 ||
-          detectorFindingsMissingRefs.length > 0
-        ? "warn"
-        : "pass";
+  const status: StudioCoverageAuditResult["status"] = hasMandatoryServingGaps
+    ? "fail"
+    : routesMissingFromProjection.length > 0 ||
+        briefsMissingFromProjection.length > 0 ||
+        studioRouteCoverageShare < 0.5 ||
+        studioBriefCoverageShare < 0.5 ||
+        hasLegacyRouteDetailProjectionGaps ||
+        findingsMissingReview.length > 0 ||
+        reviewStateCounts.generatedCandidate > 0 ||
+        reviewCandidatesMarkedApproved.length > 0 ||
+        reviewedFindingsWithoutApproval.length > 0 ||
+        detectorFindingsMissingRefs.length > 0
+      ? "warn"
+      : "pass";
 
   const result: StudioCoverageAuditResult = {
     schemaVersion: 1,

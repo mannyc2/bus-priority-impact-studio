@@ -7,21 +7,21 @@ export {
   type InterventionPanelRow,
 } from "./intervention-panel";
 export {
+  buildEventEffectContrastArtifact,
   buildEventFamilyEffectPanelArtifact,
   buildEventFamilyResponseDriftStudyArtifact,
-  buildEventEffectContrastArtifact,
   buildMechanismCorroborationArtifact,
   buildPulseCandidateSetArtifact,
   buildPulseEventOverlapArtifact,
   type EffectDirection,
+  type EventEffectContrastArtifact,
+  type EventEffectContrastRow,
   type EventFamilyDriftDirection,
   type EventFamilyEffectPanelArtifact,
   type EventFamilyEffectPanelRow,
   type EventFamilyResponseDriftRow,
   type EventFamilyResponseDriftStudyArtifact,
   type EventFamilyTimeRegime,
-  type EventEffectContrastArtifact,
-  type EventEffectContrastRow,
   type MechanismCorroborationArtifact,
   type MechanismCorroborationRow,
   type MechanismCorroborationStatus,
@@ -300,10 +300,7 @@ export function buildCausalValidationGatesArtifact(input: {
     gateFromCounts("placebo_in_time", objectValue(gateStatusCounts?.["placeboInTimeStatus"])),
     gateFromCounts("placebo_in_space", objectValue(gateStatusCounts?.["placeboInSpaceStatus"])),
     gateFromCounts("autocorrelation", objectValue(gateStatusCounts?.["autocorrelationStatus"])),
-    gateFromCounts(
-      "method_divergence",
-      objectValue(gateStatusCounts?.["methodDivergenceStatus"]),
-    ),
+    gateFromCounts("method_divergence", objectValue(gateStatusCounts?.["methodDivergenceStatus"])),
     ...eventFamilyValidationGates({
       eventFamilyEffectPanel: input.eventFamilyEffectPanel ?? null,
       eventFamilyResponseDriftStudy: input.eventFamilyResponseDriftStudy ?? null,
@@ -327,8 +324,7 @@ export function buildCausalValidationGatesArtifact(input: {
     artifactPath: input.artifactPath,
     sourcePanelPath: input.sourcePanelPath,
     sourceEventFamilyEffectPanelPath: input.sourceEventFamilyEffectPanelPath ?? null,
-    sourceEventFamilyResponseDriftStudyPath:
-      input.sourceEventFamilyResponseDriftStudyPath ?? null,
+    sourceEventFamilyResponseDriftStudyPath: input.sourceEventFamilyResponseDriftStudyPath ?? null,
     sourceModelId: "treatment_event_panel_v1",
     summary: {
       panelRowCount: numberValue(summary?.["panelRowCount"]),

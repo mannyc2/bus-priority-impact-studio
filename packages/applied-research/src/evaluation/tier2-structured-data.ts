@@ -394,96 +394,102 @@ export function summarizeTier2StructuredCounts(input: {
         : null
       : isMtaWikiSourceAlignment &&
           typeof summary["alignedInterventionCandidateRecordCount"] === "number"
-      ? summary["alignedInterventionCandidateRecordCount"]
-      : isSourceReviewPacks && typeof summary["selectedMtaWikiCandidateRecordCount"] === "number"
-        ? summary["selectedMtaWikiCandidateRecordCount"]
-      : input.layer === "candidate_bundle"
-        ? sourceCandidates.length + interventionSeeds.length
-        : candidates.length || null;
+        ? summary["alignedInterventionCandidateRecordCount"]
+        : isSourceReviewPacks && typeof summary["selectedMtaWikiCandidateRecordCount"] === "number"
+          ? summary["selectedMtaWikiCandidateRecordCount"]
+          : input.layer === "candidate_bundle"
+            ? sourceCandidates.length + interventionSeeds.length
+            : candidates.length || null;
 
   return {
     sourceCount:
       isMaterializedResearchViews && typeof summary["sourceCoverageRowCount"] === "number"
         ? summary["sourceCoverageRowCount"]
         : isSourceReviewPacks && typeof summary["selectedSourceCount"] === "number"
-        ? summary["selectedSourceCount"]
-        : isSourceDispositionQueue && typeof summary["sourceCount"] === "number"
-        ? summary["sourceCount"]
-        : isSourceDispositionReceipts && typeof summary["receiptCount"] === "number"
-        ? summary["receiptCount"]
-        : isSourceReceiptClosureAudit && typeof summary["queueSourceCount"] === "number"
-        ? summary["queueSourceCount"]
-        : isMtaWikiSourceAlignment && typeof summary["queueSourceCount"] === "number"
-        ? summary["queueSourceCount"]
-        : input.layer === "mta_wiki_canonical_bridge" && typeof summary["sourceCount"] === "number"
-        ? summary["sourceCount"]
-        : uniqueStringCount([
-            ...reviewedRecords.map((row) => field(asRecord(row), "sourceId")),
-            ...publishable.map((row) => field(asRecord(row), "sourceId")),
-            ...events.map((row) => field(asRecord(row), "sourceId")),
-            ...sourceCandidates.map((row) => field(asRecord(row), "sourceId")),
-            ...candidates.map((row) => field(asRecord(row), "sourceId")),
-            ...reviewGroups.map((row) => field(asRecord(row), "sourceId")),
-          ]) || null,
+          ? summary["selectedSourceCount"]
+          : isSourceDispositionQueue && typeof summary["sourceCount"] === "number"
+            ? summary["sourceCount"]
+            : isSourceDispositionReceipts && typeof summary["receiptCount"] === "number"
+              ? summary["receiptCount"]
+              : isSourceReceiptClosureAudit && typeof summary["queueSourceCount"] === "number"
+                ? summary["queueSourceCount"]
+                : isMtaWikiSourceAlignment && typeof summary["queueSourceCount"] === "number"
+                  ? summary["queueSourceCount"]
+                  : input.layer === "mta_wiki_canonical_bridge" &&
+                      typeof summary["sourceCount"] === "number"
+                    ? summary["sourceCount"]
+                    : uniqueStringCount([
+                        ...reviewedRecords.map((row) => field(asRecord(row), "sourceId")),
+                        ...publishable.map((row) => field(asRecord(row), "sourceId")),
+                        ...events.map((row) => field(asRecord(row), "sourceId")),
+                        ...sourceCandidates.map((row) => field(asRecord(row), "sourceId")),
+                        ...candidates.map((row) => field(asRecord(row), "sourceId")),
+                        ...reviewGroups.map((row) => field(asRecord(row), "sourceId")),
+                      ]) || null,
     routeCount:
       isMaterializedResearchViews && typeof summary["routeEvidenceBundleCount"] === "number"
         ? summary["routeEvidenceBundleCount"]
         : isSourceReviewPacks
-        ? uniqueStringCount([
-            ...sourceReviewPacks.flatMap((row) =>
-              asArray(field(asRecord(field(asRecord(row), "sourceSummary")), "routeIds")),
-            ),
-            ...sourceReviewPacks.flatMap((row) =>
-              asArray(field(asRecord(row), "routeContexts")).flatMap((context) => {
-                const contextRecord = asRecord(context);
-                return [
-                  field(contextRecord, "routeId"),
-                  ...asArray(field(contextRecord, "routeIds")),
-                ];
-              }),
-            ),
-          ]) || null
-        : isSourceDispositionQueue && typeof summary["uniqueRouteCount"] === "number"
-        ? summary["uniqueRouteCount"]
-        : input.layer === "mta_wiki_canonical_bridge" && typeof summary["routeCount"] === "number"
-        ? summary["routeCount"]
-        : isMtaWikiSourceAlignment
-        ? uniqueStringCount([
-            ...alignedSources.flatMap((row) => asArray(field(asRecord(row), "queueRouteIds"))),
-            ...alignedSources.flatMap((row) => asArray(field(asRecord(row), "mtaWikiRouteIds"))),
-          ]) || null
-        : uniqueStringCount([
-            ...flattenRouteValues(reviewedRecords),
-            ...flattenRouteValues(publishable),
-            ...flattenRouteValues(events),
-            ...flattenRouteValues(candidates),
-            ...projectedRouteKeys,
-            ...flattenRouteValues(projectedRouteEntries),
-            ...reviewGroups.flatMap((row) => asArray(field(asRecord(row), "routeIds"))),
-          ]) || null,
+          ? uniqueStringCount([
+              ...sourceReviewPacks.flatMap((row) =>
+                asArray(field(asRecord(field(asRecord(row), "sourceSummary")), "routeIds")),
+              ),
+              ...sourceReviewPacks.flatMap((row) =>
+                asArray(field(asRecord(row), "routeContexts")).flatMap((context) => {
+                  const contextRecord = asRecord(context);
+                  return [
+                    field(contextRecord, "routeId"),
+                    ...asArray(field(contextRecord, "routeIds")),
+                  ];
+                }),
+              ),
+            ]) || null
+          : isSourceDispositionQueue && typeof summary["uniqueRouteCount"] === "number"
+            ? summary["uniqueRouteCount"]
+            : input.layer === "mta_wiki_canonical_bridge" &&
+                typeof summary["routeCount"] === "number"
+              ? summary["routeCount"]
+              : isMtaWikiSourceAlignment
+                ? uniqueStringCount([
+                    ...alignedSources.flatMap((row) =>
+                      asArray(field(asRecord(row), "queueRouteIds")),
+                    ),
+                    ...alignedSources.flatMap((row) =>
+                      asArray(field(asRecord(row), "mtaWikiRouteIds")),
+                    ),
+                  ]) || null
+                : uniqueStringCount([
+                    ...flattenRouteValues(reviewedRecords),
+                    ...flattenRouteValues(publishable),
+                    ...flattenRouteValues(events),
+                    ...flattenRouteValues(candidates),
+                    ...projectedRouteKeys,
+                    ...flattenRouteValues(projectedRouteEntries),
+                    ...reviewGroups.flatMap((row) => asArray(field(asRecord(row), "routeIds"))),
+                  ]) || null,
     recordCount:
       isMaterializedResearchViews && typeof summary["detectorFeatureRowCount"] === "number"
         ? summary["detectorFeatureRowCount"]
         : isSourceReviewPacks && typeof summary["selectedSourceCount"] === "number"
-        ? summary["selectedSourceCount"]
-        : isSourceDispositionQueue && typeof summary["reviewQueueItemCount"] === "number"
-        ? summary["reviewQueueItemCount"]
-        : isSourceDispositionReceipts && typeof summary["receiptCount"] === "number"
-        ? summary["receiptCount"]
-        : isSourceReceiptClosureAudit && typeof summary["queueSourceCount"] === "number"
-        ? summary["queueSourceCount"]
-        : input.layer === "mta_wiki_canonical_bridge" &&
-      typeof summary["interventionCandidateRecordCount"] === "number"
-        ? summary["interventionCandidateRecordCount"]
-        : isMtaWikiSourceAlignment
-        ? alignedSources.length || null
-        : reviewedRecords.length ||
-          toolCallRecords.length ||
-          sourceReviewPacks.length ||
-          sourceDispositionItems.length ||
-          sourceDispositionReceipts.length ||
-          sourceClosureRows.length ||
-          null,
+          ? summary["selectedSourceCount"]
+          : isSourceDispositionQueue && typeof summary["reviewQueueItemCount"] === "number"
+            ? summary["reviewQueueItemCount"]
+            : isSourceDispositionReceipts && typeof summary["receiptCount"] === "number"
+              ? summary["receiptCount"]
+              : isSourceReceiptClosureAudit && typeof summary["queueSourceCount"] === "number"
+                ? summary["queueSourceCount"]
+                : input.layer === "mta_wiki_canonical_bridge" &&
+                    typeof summary["interventionCandidateRecordCount"] === "number"
+                  ? summary["interventionCandidateRecordCount"]
+                  : isMtaWikiSourceAlignment
+                    ? alignedSources.length || null
+                    : reviewedRecords.length ||
+                      toolCallRecords.length ||
+                      sourceReviewPacks.length ||
+                      sourceDispositionItems.length ||
+                      sourceDispositionReceipts.length ||
+                      sourceClosureRows.length ||
+                      null,
     candidateCount,
     eventCount:
       input.layer === "mta_wiki_canonical_bridge" && typeof summary["eventCount"] === "number"

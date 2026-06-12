@@ -1,16 +1,16 @@
 import { describe, expect, test } from "bun:test";
 import {
+  eventEffectContrastArtifactPath,
   eventFamilyEffectPanelArtifactPath,
   eventFamilyResponseDriftStudyArtifactPath,
-  eventEffectContrastArtifactPath,
   mechanismCorroborationArtifactPath,
   pulseCandidateSetArtifactPath,
   pulseEventOverlapArtifactPath,
 } from "../src/artifacts";
 import {
+  buildEventEffectContrastArtifact,
   buildEventFamilyEffectPanelArtifact,
   buildEventFamilyResponseDriftStudyArtifact,
-  buildEventEffectContrastArtifact,
   buildMechanismCorroborationArtifact,
   buildPulseCandidateSetArtifact,
   buildPulseEventOverlapArtifact,

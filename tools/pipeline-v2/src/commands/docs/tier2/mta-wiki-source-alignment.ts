@@ -2,8 +2,8 @@ import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import {
   buildMtaWikiTier2SourceAlignmentArtifact,
-  renderMtaWikiTier2SourceAlignmentMarkdown,
   type MtaWikiTier2BridgeArtifact,
+  renderMtaWikiTier2SourceAlignmentMarkdown,
   type Tier2SourceQueueForMtaWikiAlignment,
 } from "@bp/applied-research/evaluation";
 import { defineCommand, z } from "@liche/core";
@@ -36,7 +36,8 @@ export async function runDocsTier2MtaWikiSourceAlignment(
   input: RunDocsTier2MtaWikiSourceAlignmentInput,
 ) {
   const queuePath = fromCliPath(input.queuePath);
-  const bridgePath = input.bridgePath === undefined ? DEFAULT_BRIDGE_PATH : fromCliPath(input.bridgePath);
+  const bridgePath =
+    input.bridgePath === undefined ? DEFAULT_BRIDGE_PATH : fromCliPath(input.bridgePath);
   const outputPath = input.output === undefined ? DEFAULT_OUTPUT_PATH : fromCliPath(input.output);
   const markdownPath =
     input.markdown === undefined
@@ -47,7 +48,8 @@ export async function runDocsTier2MtaWikiSourceAlignment(
 
   const sourceQueue = (await Bun.file(queuePath).json()) as Tier2SourceQueueForMtaWikiAlignment;
   const mtaWikiBridge = (await Bun.file(bridgePath).json()) as MtaWikiTier2BridgeArtifact;
-  if (!Array.isArray(sourceQueue.items)) throw new Error(`Source queue has no items array: ${queuePath}`);
+  if (!Array.isArray(sourceQueue.items))
+    throw new Error(`Source queue has no items array: ${queuePath}`);
   if (mtaWikiBridge.mtaWikiCanonicalBridge !== true) {
     throw new Error(`Expected mta-wiki bridge artifact: ${bridgePath}`);
   }

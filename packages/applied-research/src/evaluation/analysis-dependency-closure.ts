@@ -1,8 +1,8 @@
 import { listAnalyticsDetectors, type RegisteredAnalyticsDetector } from "@bp/analytics/registry";
 import {
-  dataProductCompletenessStatusMap,
-  type DataProductCompletenessRef,
   type DataProductCompletenessStatus as CanonicalDataProductCompletenessStatus,
+  type DataProductCompletenessRef,
+  dataProductCompletenessStatusMap,
 } from "../data-products";
 
 export type AnalysisKind = "detector" | "causal_study" | "forecasting" | "response_drift_study";
@@ -493,7 +493,7 @@ function validationGateDependency(input: {
     source:
       row === undefined
         ? "planned_analysis_unit"
-        : text(row["sourceArtifact"]) ?? "validation-gates",
+        : (text(row["sourceArtifact"]) ?? "validation-gates"),
     reasons:
       dependencyStatus === "pass"
         ? []
@@ -722,8 +722,7 @@ function warningsForArtifacts(input: ArtifactInputs): string[] {
   if (input.detectorEvaluation === null) warnings.push("Detector evaluation artifact missing.");
   if (input.forecastValidation === null)
     warnings.push("Forecast validation gates artifact missing.");
-  if (input.causalValidation === null)
-    warnings.push("Causal validation gates artifact missing.");
+  if (input.causalValidation === null) warnings.push("Causal validation gates artifact missing.");
   return warnings;
 }
 

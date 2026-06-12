@@ -2,9 +2,9 @@ import { mkdir } from "node:fs/promises";
 import { dirname, isAbsolute, join } from "node:path";
 import {
   buildMtaWikiTier2BridgeArtifact,
-  renderMtaWikiTier2BridgeMarkdown,
   type MtaWikiCanonicalRecord,
   type MtaWikiTier2BridgeArtifact,
+  renderMtaWikiTier2BridgeMarkdown,
 } from "@bp/applied-research/evaluation";
 import { arg, defineCommand, z } from "@liche/core";
 import { writeJson } from "../../../lib/json.ts";
@@ -42,9 +42,7 @@ async function readJsonlRecords(path: string): Promise<MtaWikiCanonicalRecord[]>
     try {
       records.push(JSON.parse(line) as MtaWikiCanonicalRecord);
     } catch (error) {
-      throw new Error(
-        `Failed to parse ${path}:${lineNumber}: ${(error as Error).message}`,
-      );
+      throw new Error(`Failed to parse ${path}:${lineNumber}: ${(error as Error).message}`);
     }
   }
   return records;
@@ -143,7 +141,7 @@ export default defineCommand({
     const artifact = await runDocsTier2MtaWikiBridge(input.options);
     const markdownPath =
       input.options.markdown === undefined
-        ? artifact.outputPath?.replace(/\.json$/u, ".md") ?? null
+        ? (artifact.outputPath?.replace(/\.json$/u, ".md") ?? null)
         : input.options.markdown.length === 0
           ? null
           : fromCliPath(input.options.markdown);

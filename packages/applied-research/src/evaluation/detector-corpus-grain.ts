@@ -1,9 +1,9 @@
 import { isAbsolute, relative } from "node:path";
 import { listAnalyticsDetectors, type RegisteredAnalyticsDetector } from "@bp/analytics/registry";
 import {
-  dataProductCompletenessStatusMap,
   type DataProductCompletenessRef,
   type DataProductCompletenessStatus,
+  dataProductCompletenessStatusMap,
 } from "../data-products";
 import type { DetectorCorpusGrainCoverageCounts } from "../local-db";
 import type { RouteMonthShadowAuditArtifact } from "./detector-shadow-audits";

@@ -115,8 +115,6 @@ describe("segment daypart panel", () => {
         startMonth: "2023-04",
         releaseMonth: "2026-03",
       }),
-    ).toBe(
-      "data/artifacts/applied-research/2023-04_to_2026-03/2026-03/segment-daypart-panel.json",
-    );
+    ).toBe("data/artifacts/applied-research/2023-04_to_2026-03/2026-03/segment-daypart-panel.json");
   });
 });
