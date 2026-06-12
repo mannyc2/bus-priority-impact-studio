@@ -7,6 +7,7 @@ import { dossierMetricMonthCount, dossierMetricWindow, formatCompact } from "./r
 
 type SummaryRoute = Pick<StudioRoute, "weightedAvgSpeed">;
 type SummarySegment = Pick<StudioSegment, "from" | "to" | "riderHours" | "speedMph">;
+type SegmentWithId = Pick<StudioSegment, "id">;
 
 export type WhereWhenSummary = {
   currentSpeedLabel: string;
@@ -47,20 +48,32 @@ export function whereWhenSummary({
     movementTone: movement === null ? "neutral" : movement < 0 ? "bad" : "good",
     coverageLabel:
       monthCount > 0
-        ? `${monthCount} ${plural(monthCount, "month")} of route-speed history`
+        ? `${monthCount} ${plural(monthCount, "month")} speed history`
         : `${segments.length} ${plural(segments.length, "timepoint segment")}`,
     windowLabel: window ?? "current projection",
     worstSegmentLabel:
       worstSegment?.label ??
       (fallbackWorst ? `${fallbackWorst.from} to ${fallbackWorst.to}` : "No segment surfaced"),
     worstSegmentDetail: worstSegment
-      ? `${worstSegment.persistenceMonths} ${plural(worstSegment.persistenceMonths, "trailing month")} as the slowest segment`
+      ? `${worstSegment.persistenceMonths} ${plural(worstSegment.persistenceMonths, "month")} slowest`
       : fallbackWorst
-        ? `${formatCompact(fallbackWorst.riderHours)} rider-hours lost / day`
+        ? `${formatCompact(fallbackWorst.riderHours)} rider-hr/day`
         : "no segment-level speed rows in this release",
     dataAsOf: speed?.dataAsOf ?? dossier?.dataAsOf ?? null,
     sectionSubtitle: sectionSubtitle(segments.length, monthCount, window),
   };
+}
+
+export function whereWhenSegmentBadge({
+  segment,
+  dossier,
+}: {
+  segment: SegmentWithId;
+  dossier: RouteDossierSummaryForDetail | null;
+}): string | null {
+  const worst = dossier?.worstSegment ?? null;
+  if (worst === null || worst.segmentId !== segment.id) return null;
+  return `${worst.persistenceMonths} mo worst`;
 }
 
 function signedPct(value: number | null): string {
@@ -69,10 +82,10 @@ function signedPct(value: number | null): string {
 }
 
 function movementDetail(value: number | null): string {
-  if (value === null) return "not enough history for a 6-month comparison";
-  if (value < -0.05) return "slower over 6 months";
-  if (value > 0.05) return "faster over 6 months";
-  return "flat over 6 months";
+  if (value === null) return "not enough 6-month history";
+  if (value < -0.05) return "slower over 6 mo";
+  if (value > 0.05) return "faster over 6 mo";
+  return "flat over 6 mo";
 }
 
 function peerFraming(peerPercentile: number | null): string {
@@ -85,9 +98,9 @@ function peerFraming(peerPercentile: number | null): string {
 
 function sectionSubtitle(segmentCount: number, monthCount: number, window: string | null): string {
   if (monthCount > 0 && window !== null) {
-    return `${segmentCount} ${plural(segmentCount, "timepoint segment")} with ${monthCount} ${plural(monthCount, "month")} of route-speed history (${window}).`;
+    return `${segmentCount} ${plural(segmentCount, "segment")} with ${monthCount} ${plural(monthCount, "month")} speed history (${window}).`;
   }
-  return `${segmentCount} ${plural(segmentCount, "timepoint segment")} in the current serving projection. Hour strip shows severity by time of day.`;
+  return `${segmentCount} ${plural(segmentCount, "segment")} in current projection. Hour strip shows time-of-day severity.`;
 }
 
 function plural(count: number, singular: string): string {

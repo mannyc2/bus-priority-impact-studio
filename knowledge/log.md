@@ -2,6 +2,38 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Where & when badges persistent worst segments
+
+Promoted the route dossier's persistent-worst segment signal into the Where & when tab. Featured
+segment cards now show a compact persistence badge when their segment ID matches
+`dossier.worstSegment.segmentId`, while unrelated segments stay unbadged. The helper is pure and
+covered for matched and unmatched segment IDs. Trimmed nearby Where & when labels so the unchanged
+web bundle budget still passes at 485.0 KB gz total JS.
+
+Also reviewed `nyc_dot_bus_priority_document_pdf_2014_11_brt_utica_workshopsummary` from the
+full-corpus source review workspace. The local ignored reviewed-record seed now has 40
+reviewed-record sources and 42 valid records. This source contributes one conservative in-progress
+B46/Utica Avenue SBS planning record for the November 13, 2014 workshop-summary cover page. It
+keeps canonical treatments empty, records only the SBS planning/workshop context, and caveats that
+the extracted page does not identify specific proposed treatments, implementation dates, community
+feedback, or measured B46 impacts.
+
+Regenerated the local ignored source receipt closure audit. It now reports 291 queue sources, 42
+valid reviewed records, 40 reviewed-record sources, 4 disposition receipts, 42 closed sources, 249
+open sources, and 0 conflicts; public promotion remains blocked on full source closure.
+
+Verified with `bunx biome check apps/web/src/components/route/SlowSegments.tsx
+apps/web/src/components/route/where-when-summary.ts
+apps/web/test/shared/where-when-summary.test.ts knowledge/log.md`, `bun test
+apps/web/test/shared/where-when-summary.test.ts --timeout 5000`, `bun --filter @bp/web
+typecheck`, `bun --filter @bp/web build`, `jq empty
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/intervention-records-corpus-reviewed.json
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/source-receipt-closure-audit.json
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/source-receipt-closure-audit-summary.json`,
+`bun --filter @bp/pipeline-v2 cli -- docs tier2 source-receipt-audit --queue-path ...`, `bun
+--filter @bp/pipeline-v2 cli -- audit tier2-structured-data --json`, `bun run check:types`, `bun
+run check:knowledge`, and `git diff --check`.
+
 ## [2026-06-12] engineering | Map tab summarizes focus segment
 
 Turned the Map tab's third stat from a route artifact count into a detector-aligned focus-segment
