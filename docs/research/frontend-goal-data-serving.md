@@ -16,6 +16,11 @@ content (the corpus), in form (pages designed around questions and verdicts, not
 in feel (responsive, adaptive, beautiful). The product must read as synthesized evidence with a
 point of view, not re-displayed Open Data.
 
+**Maintainer decision, 2026-06-12:** stop designing around the idea of a monthly publishing
+product. The public app should serve a multi-year route/corridor evidence dossier wherever source
+coverage supports it. `baselineMonth` and release-keyed artifacts remain provenance, audit, and
+promotion anchors; they are not the shape of the user-facing contract.
+
 ---
 
 ## 0. What this project is for (the thesis the frontend must express)
@@ -33,13 +38,17 @@ either visible or wasted.
 
 ## 1. Ground truth (verified 2026-06-10)
 
-### Contract: month-shaped, schema-deep
+### Current contract problem: month-shaped, schema-deep
 
 8 of 11 public read models are single-month snapshots; route detail, findings, compare, and
 search are *implicitly* bound to `env.BASELINE_MONTH ?? env.LAST_BUILT_SPEED_MONTH`
 (`packages/studio-api/src/studio/read-handlers.ts:1617`). Only route history, speed history, and
 projection-ref metadata are series-shaped. Route detail shows `generatedAt` (pipeline run time)
 and never the period the data describes.
+
+This is the legacy shape to remove. The target contract is series-first: route identity, verdicts,
+capability states, history windows, treatment dates, current signals, and evidence refs travel
+together, with any single baseline month labeled as an anchor inside that dossier.
 
 ### Page: dataset-shaped tabs, fixed composition
 
@@ -81,7 +90,7 @@ no immutable caching; no prefetch. (Loaders parallel and charts lazy — those a
 Four compounding problems:
 
 1. **Month-shaped contract** — the UI cannot tell a multi-year story except in two bolted-on
-   series endpoints.
+   series endpoints; that shape must stop being the default contract for public surfaces.
 2. **Dataset-shaped IA** — tabs mirror pipeline tables, not user questions; Overview is a dump,
    not a verdict; the page has no editorial point of view.
 3. **Detectors have no visual consequence** — the project's core investment (calibrated,
@@ -89,9 +98,9 @@ Four compounding problems:
 4. **Unserved corpus** — the most differentiated artifacts (carpets, reliability, maps,
    documents) never reach a user.
 
-Common cause: the frontend was built around the *pipeline's* unit of work (a monthly release of
-tables) rather than the *product's* unit of meaning (a route's evidence, judged). Fix the
-contract (§7), then let detectors edit the page (§4–5), then widen what's served (§6, §9).
+Common cause: the frontend was built around the *pipeline's* old unit of work (a baseline-month
+table slice) rather than the *product's* unit of meaning (a route's evidence, judged across time).
+Fix the contract (§7), then let detectors edit the page (§4–5), then widen what's served (§6, §9).
 
 ## 3. Design principles
 

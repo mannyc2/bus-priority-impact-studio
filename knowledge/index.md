@@ -32,8 +32,10 @@ agent-assisted detector authoring plan after the analytics refactor; 0014 define
 serving model for Studio brief-draft authoring endpoints; 0015 adopts a lazy-loaded markdown
 pipeline + typed `BriefBlock` primitives for rendering brief prose with embeddable figures; 0016
 records the Cloudflare Think / Workers AI runtime for queued brief-author proposals; 0017 retires
-the broad "monthly release" slogan in favor of a mixed-freshness model: historical corpus, baseline
-month, current signal, source-capture snapshot, serving projection, and deliberate publication gate;
+the broad "monthly release" slogan in favor of a multi-year, mixed-freshness model: historical
+corpus, baseline month, current signal, source-capture snapshot, serving projection, and deliberate
+publication gate; public surfaces should use multi-year route/corridor evidence by default where
+source coverage supports it;
 0018 records the detector calibration/readiness loop: reviewed gold labels, suppress-leakage
 evaluation, deterministic gates, and readiness buckets must separate detector signals from public
 finding eligibility. Draft creation, verdicts, body markdown, authoring ref resolution/persistence,
@@ -173,32 +175,45 @@ mutations, and Codemode deferred until a workflow needs it.
 
 ## Immediate open issues
 
-1. Promote the Data Pipeline Finish Plan v2 work from local completion to reviewed release
-   promotion: March 2026 publish is intentionally deferred until final seed/artifact review, then
-   run `publish:serving-release --execute` as a deliberate production mutation.
-2. Continue targeted 311 geocode/join improvement with monthly slices; the first February 2026
-   slice recovered 999 physical IDs and increased current 311 route touches after context rebuild.
-3. Keep scheduled production refresh small and durable: Worker cron writes GTFS-RT
-   protobuf/manifests plus compact health to R2/D1, the route-speed watcher runs daily, and
-   `shouldRebuild=true` triggers a manual PC rebuild/publish run. Do not add a Queue until there is
-   a concrete retry/fanout need.
-4. Finish remaining `/api/v1/studio/*` depth: route listing/search and generated Studio briefs
-   now cover the public route set, route detail carries observed reliability plus artifact refs,
-   and Studio findings now prefer approved promoted-finding artifacts before detector review-queue
-   candidates. Finding payloads now expose reviewed/promoted/review-candidate/generated
-   provenance, and `audit:studio-coverage` verifies that detector-backed findings keep candidate,
-   detector, decision, packet, and immutable hash refs where required.
-5. Implement the remaining web app support plan: add signal-aware route loaders,
-   route-specific cache policy, deferred non-critical evidence/map panels, and wire the authoring
-   UI/UX to the now-live draft API.
-6. Add web release gates: Lighthouse route matrix, SEO crawlability checks, Worker
-   `Server-Timing`, and no-D1 RUM.
-7. Generate `/docs` API metadata from the same package-level Studio runtime contracts that serve
-   `GET /api/openapi.json`.
-8. Keep `Baseline Release`, `Current Signal`, `Pending Publication`, and `Observed Release` labels
-   wired through audit artifacts, Studio projections, and frontend-facing briefs. March 2026 is the
-   current observed release candidate with `third_party_recovered` provenance; May 2026 is the
-   official self-collected current observed appendix until matching public speed rows exist.
+1. Done 2026-06-12: Data Pipeline Finish Plan v2 promotion is no longer blocked by the stale local
+   artifact gap. The recorded March 2026 production `publish:serving-release --execute` remains the
+   deliberate serving mutation, and the local release gate now materializes route-timeline R2
+   artifacts from the serving projection copy plan. `check:publish-completeness -- --month 2026-03`
+   reports 0 missing D1 artifact refs, and a dry-run `publish:serving-release` reverified the
+   March 2026 D1/R2 publish plan without mutating production.
+2. Done 2026-06-12: 311 geocoding is complete for the loaded current and historical corpora, with
+   zero unattempted rows after the targeted monthly slices. Current 311 has 2,504,843 geocoded
+   records and 16,291 misses; historical 311 has 37,707 geocoded records and 1,597 misses. Route
+   touches are materialized for both tables and can now be treated as loaded-corpus complete.
+3. Done 2026-06-12: scheduled refresh remains small and durable in the Worker. Cron captures
+   GTFS-RT protobuf/manifests plus compact health to R2/D1, the daily route-speed watcher writes
+   publication artifacts, and `shouldRebuild=true` stays a manual PC rebuild/publish handoff. The
+   source-refresh tests cover missing-binding skips, manifest capture, spaced snapshots, watcher
+   publication, minute-cron scope, and scheduled-facade delegation.
+4. Done 2026-06-12: `/api/v1/studio/*` public route addressability is D1-backed for route
+   listing/search/detail/history and generated public briefs. `audit studio-coverage` now fails
+   mandatory serving-contract gaps, reports `d1RouteAddressabilityShare: 1`, and downgrades legacy
+   curated `studio/v1` route-detail projection depth to a warning until those artifacts are rebuilt
+   from the v2 serving surfaces. Detector-backed findings keep the required candidate, detector,
+   decision, packet, and immutable hash refs.
+5. Done 2026-06-12: the current web app support plan is implemented for the live contract. Studio
+   API reads accept abort signals, high-traffic TanStack route loaders pass router cancellation and
+   route-specific stale times, search/compare/new-brief loaders keep independent fetches parallel,
+   brief evidence/history are split out of the public brief shell, route/chart-heavy UI is lazy
+   loaded where the current payload contract allows it, and the authoring UI writes to the live D1
+   draft create/edit/review/publish-candidate/retract APIs.
+6. Done 2026-06-12: web release gates are in place through `check:web-release`,
+   `check:web-seo`, `check:web-performance`, Lighthouse opt-in, Worker SEO tests, Studio
+   `Server-Timing`, and log-only no-D1 RUM.
+7. Done 2026-06-12: `/api/v1/studio/docs` endpoint metadata is generated from the same
+   `studioOpenApiDocument.paths` contract served by `GET /api/openapi.json`, and snapshot docs
+   endpoint counts follow that generated contract.
+8. Done 2026-06-12: `Baseline Release`, `Current Signal`, `Pending Publication`, and
+   `Observed Release` labels are wired through the Studio/API quality contract and route data notes,
+   with frontend label helpers covered by tests so raw enum names do not leak into public copy.
+   March 2026 remains the current observed release candidate with `third_party_recovered`
+   provenance; May 2026 remains the official self-collected current observed appendix until matching
+   public speed rows exist.
 9. Reduce remaining bus-lane source gaps where public dates can be recovered, and get external
    transit-domain review of the peer-adjusted ACE/ABLE/bus-lane method before causal claims.
 10. Continue the post-v1 finding coverage track: detector considered/hit/skipped counts, source-gap

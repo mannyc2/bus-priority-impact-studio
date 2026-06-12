@@ -2,6 +2,310 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] docs | Multi-year public contract clarified
+
+Captured the maintainer clarification that the product should stop centering the idea of monthly
+publishing. ADR 0017 now states that default public surfaces should be shaped around multi-year
+route/corridor evidence wherever source coverage supports it, with a baseline month serving only as
+review/provenance anchor. Updated the corpus overview, frontend serving goal, hard-cutover dossier,
+and wiki index to describe publication as promotion of a reviewed serving projection rather than
+shipping one monthly dataset as the product.
+
+## [2026-06-12] engineering | Web route loaders made signal-aware and cache-tuned
+
+Closed the current web app support-plan gap for route loader behavior. Studio API read helpers now
+accept optional abort signals, and high-traffic TanStack Router loaders pass
+`abortController.signal` through route, search, compare, finding, brief, evidence, history, edit,
+review, and annotate requests. Static serving pages use a 5-minute stale window, editorial brief
+pages use 60 seconds, and mutable authoring/review pages use 30 seconds.
+
+The new-brief loader now starts its seed brief plus optional route/finding context fetches in
+parallel instead of serializing them. The live authoring UI already writes through the D1 draft
+create/edit/review/publish-candidate/retract APIs, while brief evidence/history are split routes
+and route/chart-heavy UI stays lazy-loaded under the current payload contract. Verified with
+`bun --filter @bp/web typecheck` and `bun run check:web-release`.
+
+## [2026-06-12] engineering | Studio coverage audit aligned with D1 route addressability
+
+Updated `audit studio-coverage` so the public `/api/v1/studio/routes` contract is gated by D1 route
+addressability instead of the older curated `studio/v1` projection list. The audit now reports
+`d1RouteAddressabilityShare: 1` for March 2026 and returns `warn`, not `fail`, when only legacy
+curated route-detail projection depth is missing. Mandatory serving-contract inputs, route brief
+inputs, segment evidence metadata, evidence catalog integrity, generated-artifact presentation
+rules, and detector finding refs remain fail gates.
+
+Verified with `bun --filter @bp/pipeline-v2 test studio-coverage` and
+`bun --filter @bp/pipeline-v2 cli -- audit studio-coverage --year 2026 --month 3 --json`.
+
+## [2026-06-12] engineering | Loaded 311 corpus and Worker refresh readiness closed
+
+Marked the 311 geocode/join item complete for the loaded current and historical corpora. The
+operational status records zero unattempted 311 rows after the targeted monthly slices: current 311
+has 2,504,843 geocoded records and 16,291 misses, while historical 311 has 37,707 geocoded records
+and 1,597 misses. Current and historical route-touch tables are materialized.
+
+Also reverified the small Worker refresh model: cron captures GTFS-RT protobuf/manifests plus
+compact health to R2/D1, the daily route-speed watcher writes publication artifacts, and
+`shouldRebuild=true` stays a manual PC rebuild/publish handoff. Verified with
+`bun --filter @bp/studio-api test source-refresh`.
+
+## [2026-06-12] engineering | Serving publish completeness reverified after timeline materialization
+
+Closed the stale local March 2026 publish-completeness regression without rerunning the production
+mutation. The route-timeline serving projection builder now materializes each timeline copy-plan
+artifact into the local R2 artifact root while writing the projection JSON/SQL/Markdown outputs, so
+the D1 seed's `studio/v2/routes/{route}/timeline.json` artifact refs resolve locally.
+
+Regenerated the March 2026 route-timeline serving projection from the existing bundle index and
+reverified that B46, B82, BX41, and M15 timeline artifact hashes/byte counts match the D1 seed.
+`bun run check:publish-completeness -- --month 2026-03` now reports zero missing refs, and a dry-run
+`bun run publish:serving-release -- --month 2026-03 --d1 bus-priority-serving --r2
+bus-priority-artifacts` completed without mutating production. The earlier production
+`publish:serving-release --execute` remains recorded in the operational status page.
+
+## [2026-06-12] engineering | Mixed-freshness labels surfaced in route data notes
+
+Closed the frontend copy gap for ADR 0017 release-layer labels. Added a route data-quality label
+helper in `apps/web/src/components/route/data-quality-labels.ts` that maps the Studio quality
+contract to `Baseline Release`, `Current Signal`, `Pending Publication`, and `Observed Release`,
+plus human-readable completeness labels. `DataNotesSection` now shows the release layer with a
+short provenance description instead of only confidence/completeness, and
+`apps/web/test/shared/data-quality-labels.test.ts` locks the public labels against snake_case enum
+leaks. Verified with `bun test apps/web/test/shared/data-quality-labels.test.ts --timeout 5000`
+and `bun --filter @bp/web typecheck`.
+
+## [2026-06-12] engineering | Studio docs endpoint metadata generated from OpenAPI contract
+
+Closed the immediate-open-issue slice for `/docs` API metadata drift. `GET /api/v1/studio/docs`
+now preserves the generated docs prose/quality projection from R2 but replaces stale endpoint rows
+with endpoint metadata derived from `studioOpenApiDocument.paths`, the same package-level contract
+served by `GET /api/openapi.json`. The Studio snapshot manifest uses the same generated endpoint
+count, so `/api/v1/studio/snapshot` can no longer report stale docs endpoint inventory from
+`studio/v1/docs.json`.
+
+Added coverage in `packages/studio-api/test/api-facade.test.ts` and
+`packages/studio-api/test/http-routing.test.ts` to prove docs sections remain projection-backed
+while endpoint rows and snapshot counts follow the OpenAPI contract. Verified with
+`bun --filter @bp/studio-api test`, `bun --filter @bp/studio-api typecheck`, and
+`bun --filter @bp/web typecheck`. Also reverified the already-implemented web release gate with
+`bun run check:web-release` before marking immediate issue 6 done in `knowledge/index.md`.
+
+## [2026-06-12] engineering | Tier 2 reviewed-record seed closes Utica source
+
+Added the first schema-valid full-corpus reviewed intervention record seed at
+`data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/intervention-records-corpus-reviewed.json`.
+The record closes `nyc_dot_select_bus_service_pdf_utica_ave_b46_sbs_open_house` as a proposed
+Utica Avenue B46 SBS bus-lane, left-turn-bay, and local-stop design record, while preserving the
+review caveat that the pack did not resolve route links and that B46 comes from the source context
+rather than a parsed route field. The artifact is explicitly `publicPromotionStatus: not_ready`.
+
+Updated the source-disposition decisions so Utica is `reviewed_records_authored`, the bus-lane
+enforcement brochure remains `supporting_context_only`, and the Flatbush Avenue September 2025
+source stays `needs_more_source_review` because the current extraction captured only a page-3
+Background divider and needs later-page recapture/manual review. Regenerated source-disposition
+receipts and the full-corpus source receipt closure audit. The closure audit now has 291 queue
+sources, 1 valid reviewed record, 3 disposition receipts, 2 closed sources, 289 open sources, and 0
+conflicts.
+
+Reran `audit tier2-structured-data` and `audit data-product-completeness`. The structured inventory
+now scans 2,152 artifacts and reports only the source-closure gate as the next Tier 2 action. Data
+product completeness still reports 84 complete, 1 partial, 3 missing, 1 blocked, and 5
+downstream-blocked products; the Tier 2 extraction product is partial for `2/291` closed sources,
+289 open sources, and the still-missing full-corpus publishable intervention projection.
+
+## [2026-06-12] engineering | Full-corpus Tier 2 source review packs generated
+
+Generated a bounded all-source review-pack batch at
+`data/artifacts/docs/agentic-runs-20260604/source-review-packs-full-authority-qv1-qv10-v1/all-source-review-packs.json`
+with Markdown and summary siblings. The batch covers all 291 source queue rows: 288
+record-candidate review packs, 3 source-disposition review packs, 277 high-priority sources, and
+175 exact mta-wiki aligned sources carrying 2,279 supplementary mta-wiki candidate records. The
+packs are complete authoring handoffs, not source receipts or reviewed intervention facts.
+
+Updated the Tier 2 structured-data inventory to classify `bp.tier2_source_review_pack_batch.v1` as
+`source_review_packs` validated staging and to scan `source-review-packs` artifacts. The inventory
+now warns that source review packs must not be treated as reviewed or publishable intervention
+facts, and the refreshed inventory has 2,151 scanned artifacts. The remaining full-corpus blockers
+are unchanged: 290 open sources, missing reviewed `bp.document_intervention_record.v1` records, and
+missing full-corpus publishable intervention projection.
+
+## [2026-06-12] engineering | Tier 2 source disposition receipts added
+
+Added `docs tier2 source-disposition-receipts`, which normalizes explicit source-review decisions
+from source review packs into audit-readable `bp.tier2_source_disposition_receipts.v1` artifacts.
+The command validates source ids against the reviewed pack batch, carries reviewer/rationale/evidence
+refs, and keeps source dispositions separate from reviewed intervention facts: only
+`supporting_context_only`, `no_actionable_bus_priority_intervention`, and `suppressed` close a
+source without records, while `needs_more_source_review` remains non-closing.
+
+Generated the first receipt batch at
+`data/artifacts/docs/agentic-runs-20260604/source-disposition-receipts-full-authority-qv1-qv10-v1/source-disposition-receipts.json`
+from three source-disposition-only packs. It produced 3 receipts, with 1 closing disposition
+(`nyc_dot_bus_priority_document_pdf_buslane_enforcement_brochure` as supporting context only) and 2
+non-closing receipts for sources that still need more review. The artifact remains
+`publicPromotionStatus: not_ready`.
+
+The full-corpus source receipt closure audit now has 291 queue sources, 3 disposition receipts, 0
+invalid disposition receipts, 1 closed source, 290 open sources, and 0 conflicts. Structured-data
+inventory now scans and classifies `source_disposition_receipts` as validated staging, with an
+explicit warning that these receipts close source accounting only and must not be treated as
+reviewed or publishable intervention facts.
+
+After rerunning `audit tier2-structured-data` and `audit data-product-completeness`, the structured
+inventory has 2,145 artifacts. Data-product completeness remains 84 complete, 1 partial, 3 missing,
+1 blocked, and 5 downstream-blocked; the Tier 2 full-corpus extraction product is still partial for
+`1/291` sources closed, 290 open sources, missing full-corpus reviewed records, and missing
+full-corpus publishable interventions.
+
+## [2026-06-12] engineering | mta-wiki source alignment joined to Tier 2 queue
+
+Refreshed the mta-wiki Tier 2 bridge from `/mnt/models/dev/mta-wiki` into
+`data/artifacts/docs/mta-wiki-tier2-bridge/mta-wiki-intervention-review-queue.json` and Markdown.
+The current canonical corpus is larger than the first bridge: 269 sources, 234 routes, 191
+projects, 1,177 events, 1,339 treatment components, 4,203 relations, 2,707 intervention candidate
+records, and 263 review groups. Of those groups, 215 have route links and 48 still need route
+resolution. The bridge remains `publicPromotionStatus: not_ready`.
+
+Added `docs tier2 mta-wiki-source-alignment`, which aligns the refreshed mta-wiki review groups to
+the full qv1-qv10 Tier 2 source disposition queue by exact normalized source keys only. The new
+artifact at `data/artifacts/docs/mta-wiki-tier2-bridge/mta-wiki-source-alignment.json` aligns 175
+of 291 queue sources, leaves 116 queue sources unaligned, leaves 88 mta-wiki review groups
+unaligned, and brings 2,279 mta-wiki candidate records plus 13,878 evidence refs into the review
+context lane. This is authoring context only: it does not close source receipts, create
+`bp.document_intervention_record.v1` rows, or permit public promotion.
+
+The Tier 2 structured-data inventory now recognizes `mta_wiki_source_alignment` as discovery-only
+and scans `mta-wiki-source-alignment` artifacts. After rerunning audits, structured-data inventory
+has 2,142 artifacts, while data-product completeness remains 84 complete, 1 partial, 3 missing, 1
+blocked, and 5 downstream-blocked. The remaining Tier 2 blockers are still source receipt closure
+for 291/291 open sources, missing full-corpus reviewed records, and missing full-corpus publishable
+interventions.
+
+Updated `docs tier2 source-review-pack` so source-scoped authoring packs can optionally consume the
+mta-wiki alignment artifact. Regenerated the existing full-corpus review handoffs with that context:
+the top-25 high-priority record-candidate packs now include mta-wiki context for 12 sources and 173
+candidate records, while the 3 source-disposition-only packs have no mta-wiki matches. These pack
+fields are review hints only and remain blocked by blank receipt templates until reviewed records or
+explicit source dispositions are written.
+
+## [2026-06-11] engineering | Tier 2 source receipt closure gate materialized
+
+Added `docs tier2 source-receipt-audit`, a deterministic closure audit over the full Tier 2 source
+queue, reviewed `bp.document_intervention_record.v1` artifacts, and source-disposition receipt
+artifacts. A source now closes only through a schema-valid reviewed record or a closing non-record
+disposition such as `supporting_context_only` or `no_actionable_bus_priority_intervention`;
+`reviewed_records_authored` without a valid record remains open, and record/disposition conflicts
+are counted separately.
+
+Generated the first full-corpus closure audit at
+`data/artifacts/docs/agentic-runs-20260604/source-receipt-closure-full-authority-qv1-qv10-v1/source-receipt-closure-audit.json`.
+The current state is explicit: 291 queue sources, 0 closed, 291 open, 0 conflicts, closure status
+`partial`, and `publicPromotionStatus: not_ready`. The Markdown and summary siblings were generated
+in the same directory.
+
+The structured-data inventory now recognizes `source_receipt_closure_audit` as validated staging,
+scans `source-receipt-closure` artifacts, and reports the next action to close all 291 sources
+before promotion. Data-product completeness now includes
+`source_receipt_closure_full_corpus` in `tier2_structured_intervention_extraction_full_corpus`; the
+product remains partial for the concrete blockers `0/291` sources closed, 291 open sources, missing
+full-corpus reviewed records, and missing publishable interventions.
+
+## [2026-06-11] engineering | Full-corpus Tier 2 source disposition queue generated
+
+Added `docs tier2 source-disposition-queue`, a deterministic source-level review queue over the
+full qv1-qv10 materialized research views. The queue writes JSON, Markdown, and summary artifacts
+and keeps every source at `reviewReceiptStatus: needs_review_receipt` plus
+`publicPromotionStatus: not_ready`, so it can drive source dispositions without becoming a public
+fact layer.
+
+Generated the first full-corpus queue at
+`data/artifacts/docs/agentic-runs-20260604/source-disposition-queue-full-authority-qv1-qv10-v1/source-disposition-queue.json`.
+It covers 291 sources, 236 unique route ids, 288 record-candidate review lanes, 3 source-disposition
+review lanes, 277 high-priority sources, 34 wide-route-fanout sources, and 291 missing review
+receipts. The structured-data inventory now recognizes this as `source_disposition_queue`
+validated staging, and data-product completeness requires it before considering the full-corpus
+Tier 2 structured extraction lane complete.
+
+After rerunning audits, Tier 2 structured extraction remains partial for the real blockers only:
+`reviewed_intervention_records_full_corpus` and `publishable_interventions_full_corpus` are still
+missing. The queue is the handoff substrate for writing those records or explicit source
+dispositions; it is not itself publishable intervention evidence.
+
+Added `docs tier2 source-review-pack`, which turns selected queue rows into source-scoped authoring
+packs by joining the queue to materialized detector feature rows, unresolved vocab review items,
+route evidence bundle context, sample surfaces, and a blank receipt template. Generated the first
+review batches under
+`data/artifacts/docs/agentic-runs-20260604/source-review-packs-full-authority-qv1-qv10-v1/`:
+the top 25 high-priority record-candidate sources and all 3 source-disposition-only sources. These
+packs are still `publicPromotionStatus: not_ready`; they are the next handoff for authoring
+reviewed records or explicit source dispositions, not reviewed records themselves.
+
+## [2026-06-11] engineering | Release closure unblocked, research gates materialized
+
+Cut over the remaining release-closure blockers into concrete applied-research artifacts and warning
+gates. `customer_journey_shortfall` now writes source-as-of rows into the release-month DB partition
+while preserving the source month in scope ids, so March release gates see the March findings
+partition without pretending the upstream customer-journey source is March-grained.
+
+Added the long-history `segment-daypart-panel`, forecast validation gates, causal validation gates,
+and causal screening products: pulse candidate set, pulse event overlap, event effect contrast,
+mechanism corroboration, event-family effect panel, and event-family response-drift study. The
+March artifacts are all internal/research-grade and keep limitations explicit; causal and
+event-family gates warn rather than promoting public causal language.
+
+After rebuilding March 2026 artifacts, data-product completeness is 84 complete, 1 partial, 3
+missing, and 1 upstream-blocked, with `planned_blocked` at 0. Detector closure is now 24 units: 4
+ready, 20 partial, 0 blocked, 0 unmaterialized. Remaining work is no longer builder absence:
+finish Tier 2 full-corpus reviewed/publishable intervention extraction, resolve historical GTFS
+static/service-baseline gaps, and graduate detector-specific score-vector or shadow-audit warnings
+for the remaining partial detector families. The richer Tier 2 workspace at
+`/mnt/models/dev/mta-wiki` may be useful for the full-corpus extraction pass.
+
+## [2026-06-11] engineering | mta-wiki Tier 2 bridge queued for review
+
+Added an honest bridge from `/mnt/models/dev/mta-wiki` canonical JSONL into Bus Studio Tier 2
+review inputs. The new `docs tier2 mta-wiki-bridge` command writes
+`data/artifacts/docs/mta-wiki-tier2-bridge/mta-wiki-intervention-review-queue.json` and Markdown,
+grouping mta-wiki project/event/treatment rows by source with route hints and evidence previews.
+The artifact is explicitly `publicPromotionStatus: not_ready`: mta-wiki canonical rows are
+source-stated and unreviewed for the Bus Studio publishable-intervention contract, so they can feed
+manual review but cannot stand in for `bp.document_intervention_record.v1` records.
+
+Registered the bridge as a `mta_wiki_canonical_bridge` discovery-only check in the Tier 2 structured
+inventory and data-product completeness manifest. The March bridge currently has 2,068 candidate
+records, 187 review groups, 151 groups with route links, and 36 groups that still need route
+resolution. After rerunning March 2026 completeness, the bridge check passes; Tier 2 remains partial
+only because `reviewed_intervention_records_full_corpus` and
+`publishable_interventions_full_corpus` are still missing.
+
+## [2026-06-11] engineering | Detector readiness now evaluates policy windows
+
+Fixed the analytics detector-readiness audit so detector status is based on each detector's
+policy-relevant release/baseline windows, not every month in the requested historical audit range.
+The full surface coverage still records the upstream caveat: March 2026 `gtfs_schedule_runtime`
+coverage has 36 expected months, 27 present months, and 9 thin early-2023 months.
+
+After rebuilding the March 2026 readiness audit, all 21 detector policies are ready: 21 ready,
+0 partial, 0 blocked, and 0 policy-pending. Detector closure moved from 4 ready / 20 partial to
+5 ready / 19 partial; the remaining partials are now driven by Tier 2 full-corpus review gaps,
+detector-specific corpus-grain shadow-audit warnings, and research-validation warning gates rather
+than stale readiness-policy partials.
+
+## [2026-06-11] engineering | Full-corpus Tier 2 materialized views wired into audits
+
+Regenerated the Tier 2 vocab consumer index and materialized research views from the full-authority
+qv1-qv10 canonical surface application instead of the smaller qv8-qv10 repair tail. The new
+materialized view artifact covers 78,605 surfaces, 93,893 detector feature rows, 236 route evidence
+bundles, 291 source coverage rows, and 13,225 unresolved review items.
+
+Extended the structured-data inventory and data-product completeness manifest with a separate
+`materialized_research_views` layer and a guarded
+`full_corpus_materialized_research_views` check. This check is allowed to pass only for full-corpus
+scale qv1-qv10 materializations, and it remains explicitly non-public: the artifact is review
+substrate, not reviewed or publishable intervention facts. After rerunning the audits,
+`tier2_structured_intervention_extraction_full_corpus` is still partial only because
+`reviewed_intervention_records_full_corpus` and `publishable_interventions_full_corpus` are missing.
+
 ## [2026-06-11] analysis | Batch 2 reviews: post-fix stop-hour top-100s + peer re-review
 
 Ran the top-priority review batch over the artifacts the two feature fixes produced. Register now

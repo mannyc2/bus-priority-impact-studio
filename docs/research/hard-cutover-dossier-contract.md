@@ -53,6 +53,11 @@ floor is now complete; `travel_time_variability` and `schedule_mismatch` remain 
 ADR-0017 retires *"the product is a monthly release"* as doctrine. It does **not** retire months.
 Be precise about the boundary, because over-rotating would break the pipeline's review model:
 
+Maintainer clarification, 2026-06-12: the desired public contract is multi-year by default. A
+baseline month may anchor provenance, review, and promotion, but route/detail/search/compare
+surfaces should not be shaped as "the latest month plus decorations" when multi-year source
+coverage exists.
+
 **Removed by this cutover (public contract + UI):**
 
 - The implicit binding of route detail, findings, compare, and search to

@@ -22,12 +22,13 @@ Navigation and glossary for how data flows from public sources to the public web
 │  Bigger than what we serve, smaller than raw. Gitignored.       │
 │  Source of truth for what *could* be published.                 │
 └──────────────────────┬──────────────────────────────────────────┘
-                       │ publish:serving-release
+                       │ promote serving projection
+                       │ (not a monthly-product doctrine)
                        ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │  3. SERVING PROJECTION                                          │
 │  Compact pre-baked answers in Cloudflare D1 + R2.               │
-│  D1: queryable rows (scorecards, monthly summaries, hotspots).  │
+│  D1: indexed rows (scorecards, time-series, hotspots).          │
 │  R2: immutable bundles (ladder JSON, finding trails, GeoJSON).  │
 │  This is what apps/web reads. The public never sees the raw     │
 │  corpus or local artifacts.                                     │
@@ -243,11 +244,14 @@ Commands under `tools/pipeline-v2/src/commands/findings/`: deterministic detecto
 
 **Granularity preserved here, not lost:** finding records carry references back to the specific route-month rows, detector parameters, evidence packets, and (for agent proposals) the validator decisions. This is what lets the Studio show a reasoning trail.
 
-#### Stage F — Brief composition and publish
+#### Stage F — Brief composition and serving promotion
 
 Commands under `tools/pipeline-v2/src/commands/brief/` and `publish/`: assemble per-route brief artifacts from the route-month tables + promoted findings + map artifacts, then `publish:serving-release` writes the D1 row set and R2 objects.
 
-This is the final projection step into Tier 3. The publish step is the boundary at which `Pending Publication` → `Observed Release`.
+This is the final projection step into Tier 3. The publish command name is historical; it should be
+read as **promote a reviewed serving projection**, not "ship one monthly dataset as the product."
+The public app should prefer multi-year route/corridor evidence wherever source coverage supports
+it. The promotion step is the boundary at which `Pending Publication` → `Observed Release`.
 
 #### Summary: where the corpus loses information
 
@@ -259,7 +263,7 @@ This is the final projection step into Tier 3. The publish step is the boundary 
 | Route-month aggregation | individual samples, per-hour detail | median, p90, dayparted windows, hotspot scores |
 | Corridor model | per-route distinction inside a corridor | corridor membership table for drill-down |
 | Findings | nothing structural | full back-references to inputs |
-| Publish | nothing further; just a snapshot boundary | the whole release package |
+| Serving promotion | nothing further; just a projection boundary | the reviewed serving package |
 
 Reversing any of these collapses requires going back to `knowledge/raw/` and re-running from the appropriate stage.
 
@@ -271,7 +275,7 @@ The rule from [serving_storage_split_plan](../../knowledge/wiki/engineering/serv
 > If the API needs `fetch this complete versioned object`, use **R2**.
 
 - **D1** holds compact, pre-answered queries: `route_scorecard`, `route_month_trend`, `corridor_hotspot`, `route_brief_summary`, intervention events, equity context. Indexed for the read patterns the API issues. See `packages/db/src/d1/schema.ts`.
-- **R2** holds release documents: ladder JSON for a route-month, finding reasoning trails with evidence refs, brief shells, map GeoJSON, PMTiles. Immutable per release.
+- **R2** holds serving documents: route/timeline JSON, finding reasoning trails with evidence refs, brief shells, map GeoJSON, PMTiles. Immutable per promoted projection.
 
 ADR [0002](../decisions/0002-postgres-drizzle-and-d1-serving-projections.md) sets the long-term plan: D1 stays as an edge serving projection; Postgres via Hyperdrive is the planned canonical analytics store when the project outgrows local artifacts.
 
@@ -283,7 +287,7 @@ The word is overloaded. Four distinct meanings live in this corpus:
 |---|---|---|
 | **Source-capture snapshot** | `metadata/*.json` `checkedAt` | "Re-captured kufs-yh3x metadata on 2026-04-27." |
 | **Native data-grain row** | The dataset's own period | A single (route, timepoint-pair, month, day-type, hour) row in segment speeds. |
-| **Release** | D1 + R2 frozen package | "March 2026 Observed Release." |
+| **Serving projection package** | D1 + R2 frozen package | "Projection promoted with March 2026 as the baseline anchor." |
 | **Pipeline artifact corpus** | Dated working directories | `tier2-full-corpus-2026-05-24-pass2/`. |
 
 When clarifying, say which axis you mean.
@@ -295,7 +299,10 @@ ADR [0017](../decisions/0017-mixed-freshness-publication-model.md) is the canoni
 > The product is a multi-year evidence system with versioned baselines, current signals, and audited
 > publication gates.
 
-Avoid using "monthly release" as a product slogan. Use the narrower terms instead:
+Avoid using "monthly release" as a product slogan. The target public contract is **multi-year by
+default**: a route page should show history windows, baselines, current signals, treatment dates,
+and document evidence together. A single baseline month is a provenance/review anchor, not the
+shape of the product. Use the narrower terms instead:
 
 | Term | What it answers |
 |---|---|
@@ -307,14 +314,17 @@ Avoid using "monthly release" as a product slogan. Use the narrower terms instea
 | **Serving projection** | What D1/R2 package can the public app read quickly and honestly? |
 | **Publication / promotion** | Which reviewed mutation moved a projection to production? |
 
-Monthly cadence remains valid for monthly source grains and release-keyed review output. It is not
-the whole product model.
+Monthly cadence remains valid for monthly source grains and review/audit keys. It is not the whole
+product model, and new public surfaces should not be designed as single-month slices unless the
+source itself only supports a one-month/latest-status view.
 
-## Release Snapshot Versus Analysis Corpus
+## Serving Projection Versus Analysis Corpus
 
-The release month is not the analytical universe. It is the serving snapshot. Historical local
-tables and artifacts are allowed to be much larger than the public projection because detectors need
-history for baselines, calibration, near-miss analysis, and false-positive review.
+The baseline month is not the analytical universe. It is one anchor inside a larger serving
+projection. Historical local tables and artifacts are allowed to be much larger than the public
+projection because detectors need history for baselines, calibration, near-miss analysis, and
+false-positive review. The frontend goal is to expose more of that multi-year corpus directly,
+not to keep flattening it into the latest month.
 
 Current policy:
 
