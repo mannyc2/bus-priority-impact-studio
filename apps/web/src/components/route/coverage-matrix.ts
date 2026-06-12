@@ -123,6 +123,11 @@ export function checkedCleanCoverageChips(
     }));
 }
 
+export function coverageLatestDataAsOf(rows: readonly CoverageRow[]): string | null {
+  const months = rows.flatMap((row) => (row.dataAsOf ? [row.dataAsOf] : []));
+  return months.length > 0 ? ([...months].sort().at(-1) ?? null) : null;
+}
+
 function depthLabel(depth: RouteSurfaceCapability["depth"]): string {
   if (depth === null) return "depth not published";
   const months =

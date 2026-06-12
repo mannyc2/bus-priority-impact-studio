@@ -1,7 +1,11 @@
 import { ChartFrame } from "@/components/ChartFrame";
 import { CorridorMap } from "@/components/CorridorMap";
 import { DataAsOf } from "@/components/DataAsOf";
-import { coverageRows, coverageSummary } from "@/components/route/coverage-matrix";
+import {
+  coverageLatestDataAsOf,
+  coverageRows,
+  coverageSummary,
+} from "@/components/route/coverage-matrix";
 import { routeDossierArchetype } from "@/components/route/route-archetype";
 import {
   dossierMetricMonthCount,
@@ -77,13 +81,11 @@ export function OverviewSection({
   const coverage = coverageRows(data.capability);
   const mapTarget = routeSectionCanNavigate(sectionRegistry, "map") ? "map" : "evidence";
   const mapTargetLabel = mapTarget === "map" ? "Map" : "Evidence";
+  const manifestDataAsOf = coverageLatestDataAsOf(coverage);
+  const overviewDataAsOf = data.dossier?.dataAsOf ?? manifestDataAsOf;
   const checkedCleanSurfaces = coverage.filter((surface) => surface.state === "checked_clean");
   const checkedThrough =
-    latestMonth(
-      checkedCleanSurfaces.flatMap((surface) => (surface.dataAsOf ? [surface.dataAsOf] : [])),
-    ) ??
-    data.dossier?.dataAsOf ??
-    null;
+    coverageLatestDataAsOf(checkedCleanSurfaces) ?? data.dossier?.dataAsOf ?? null;
 
   return (
     <div className="flex flex-col gap-7">
@@ -91,7 +93,7 @@ export function OverviewSection({
         <SectionHeader
           title="What stands out"
           sub={coverageSummary(coverage)}
-          right={<DataAsOf dataAsOf={data.dossier?.dataAsOf ?? null} />}
+          right={<DataAsOf dataAsOf={overviewDataAsOf} />}
         />
         <VerdictSummary
           data={data}
@@ -404,8 +406,4 @@ function CheckedCleanCard({
       </button>
     </div>
   );
-}
-
-function latestMonth(months: readonly string[]): string | null {
-  return months.length === 0 ? null : ([...months].sort().at(-1) ?? null);
 }

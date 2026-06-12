@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   checkedCleanCoverageChips,
+  coverageLatestDataAsOf,
   coverageRows,
   coverageSummary,
 } from "../../src/components/route/coverage-matrix";
@@ -51,11 +52,25 @@ describe("coverage matrix", () => {
         reason: "because checked_clean",
       },
     ]);
+    expect(coverageLatestDataAsOf(rows)).toBe("2026-03");
   });
 
   test("handles missing legacy capability without inventing coverage", () => {
     expect(coverageRows(null)).toEqual([]);
     expect(coverageSummary([])).toBe("No manifest surfaces published");
     expect(checkedCleanCoverageChips([])).toEqual([]);
+    expect(coverageLatestDataAsOf([])).toBeNull();
+  });
+
+  test("uses the latest manifest surface month for route-level freshness", () => {
+    const rows = coverageRows(
+      capability({
+        trend: { ...surface("ready"), dataAsOf: "2026-01" },
+        reliability: { ...surface("building"), dataAsOf: "2026-04" },
+        treatment: surface("not_applicable"),
+      }),
+    );
+
+    expect(coverageLatestDataAsOf(rows)).toBe("2026-04");
   });
 });

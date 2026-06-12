@@ -3,6 +3,7 @@ import { DataAsOf } from "@/components/DataAsOf";
 import {
   type CheckedCleanCoverageChip,
   checkedCleanCoverageChips,
+  coverageLatestDataAsOf,
   coverageRows,
   coverageSummary,
 } from "@/components/route/coverage-matrix";
@@ -48,6 +49,7 @@ export function DataNotesSection({
   const evidenceRows = routeEvidenceIndexRows(data.insights);
   const archetype = routeDossierArchetype({ capability: data.capability, dossier });
   const hiddenTabs = sectionRegistry.hiddenSections;
+  const evidenceDataAsOf = dossier?.dataAsOf ?? coverageLatestDataAsOf(coverage);
   const datasets = [
     ["Segment speeds", "MTA Open Data", `${segments.length} segments`, 14],
     [
@@ -103,7 +105,7 @@ export function DataNotesSection({
           <div className="mb-1 font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--bp-color-ink-55)]">
             Freshness
           </div>
-          <DataAsOf dataAsOf={dossier?.dataAsOf ?? null} className="text-[13px]" />
+          <DataAsOf dataAsOf={evidenceDataAsOf} className="text-[13px]" />
           <div className="mt-0.5 text-[11px] leading-[1.35] text-[var(--bp-color-ink-55)]">
             latest month
           </div>

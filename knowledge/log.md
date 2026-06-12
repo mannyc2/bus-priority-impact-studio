@@ -2,6 +2,42 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Surface manifest freshness in route evidence
+
+Advanced the route-detail §7.4 freshness doctrine by adding a shared coverage helper for the
+latest `dataAsOf` across manifest surfaces. Overview and Evidence/Data notes now fall back to that
+manifest freshness when a route has capability coverage but no full dossier summary, so
+manifest-light routes no longer show unknown freshness in the first-screen verdict or evidence
+header. The coverage helper is covered in the shared matrix tests.
+
+Also reviewed `nyc_dot_bus_priority_document_pdf_2012_05_webster_cac2_summary` from the
+full-corpus source review workspace as a proposed/planning Bx41 Webster Avenue SBS CAC #2 summary
+record. The local ignored reviewed-record seed now has 26 sources and 26 records. The record cites
+the May 2, 2012 meeting summary, CAC discussion of Webster Avenue safety/congestion/parking
+issues, future-development context, curbside/offset/median SBS running-way alternatives, workshop
+tradeoffs, and the rider-preference exercise where the medium 5-minute walk / 5-minute wait /
+20-minute bus-trip scenario received 8 votes on Sheet A.
+
+The record stores no launch date because this source is a meeting-summary planning artifact, not a
+selected design or implementation result. It uses a `planning` status as of `2012-05-02`, assigns
+scope only to Bx41, treats Bx12 as prior SBS context, and caveats the conceptual bus-lane
+alternatives and workshop preference votes as planning inputs rather than measured route impacts.
+Regenerated the local ignored source receipt closure audit. It now reports 291 queue sources, 26
+valid reviewed records, 26 reviewed-record sources, 27 closed sources, 264 open sources, and 0
+conflicts; public promotion remains blocked on full source closure. The broader Tier 2
+structured-data inventory still reports the older published-inventory next action because it scans
+published artifacts rather than this ignored manual-review seed.
+
+Verified with `bunx biome check
+apps/web/src/components/route/OverviewSection.tsx apps/web/src/components/route/DataNotesSection.tsx
+apps/web/src/components/route/coverage-matrix.ts apps/web/test/shared/coverage-matrix.test.ts`,
+`bun test apps/web/test/shared/coverage-matrix.test.ts --timeout 5000`, `bun --filter @bp/web
+typecheck`, `bun --filter @bp/web build`, `bun run check:types`, `bun run check:knowledge`, `git
+diff --check`, `jq empty
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/intervention-records-corpus-reviewed.json`,
+`bun --filter @bp/pipeline-v2 cli -- docs tier2 source-receipt-audit ...`, and `bun --filter
+@bp/pipeline-v2 cli -- audit tier2-structured-data --json`.
+
 ## [2026-06-12] engineering | Overview shows manifest coverage
 
 Advanced the route-detail §4 / §8.1 registry handoff by making the Overview header summarize the
