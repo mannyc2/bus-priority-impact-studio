@@ -1,13 +1,41 @@
 import { CorridorMap } from "@/components/CorridorMap";
 import { DataAsOf } from "@/components/DataAsOf";
+import {
+  insightTargetsSegment,
+  routeInsightPlacements,
+} from "@/components/route/route-insight-placement";
 import { routeSectionQuestion } from "@/components/route/section-registry";
 import { SectionHeader } from "@/components/SectionHeader";
 import { Badge } from "@/components/ui/badge";
-import type { StudioRouteDetailResponse } from "@/studio/api-contract";
+import type {
+  StudioRouteDetailResponse,
+  StudioRouteInsight,
+  StudioSegment,
+} from "@/studio/api-contract";
+
+export type RouteMapHighlight = {
+  segment: StudioSegment | null;
+  signalCount: number;
+};
+
+export function routeMapHighlight(
+  segments: readonly StudioSegment[],
+  insights: readonly StudioRouteInsight[],
+): RouteMapHighlight {
+  const mapInsights = routeInsightPlacements(insights).mapSegment;
+  for (const insight of mapInsights) {
+    const segment = segments.find((item) => insightTargetsSegment(insight, item.id));
+    if (segment) return { segment, signalCount: mapInsights.length };
+  }
+  return {
+    segment: segments.find((segment) => segment.flagged) ?? null,
+    signalCount: mapInsights.length,
+  };
+}
 
 export function RouteMapSection({ data }: { data: StudioRouteDetailResponse }) {
   const { route, segments } = data;
-  const flagged = segments.find((segment) => segment.flagged) ?? null;
+  const highlight = routeMapHighlight(segments, data.insights);
   const mapArtifacts = data.artifactRefs.filter(
     (artifact) =>
       artifact.key.startsWith("map/") ||
@@ -18,8 +46,11 @@ export function RouteMapSection({ data }: { data: StudioRouteDetailResponse }) {
   const treatmentSegments = segments.filter((segment) => segment.ace || segment.tsp).length;
   const surfaces = data.capability?.surfaces;
   const dataAsOf =
+    // biome-ignore lint/complexity/useLiteralKeys: capability surfaces are index-signature keys.
     surfaces?.["map"]?.dataAsOf ??
+    // biome-ignore lint/complexity/useLiteralKeys: capability surfaces are index-signature keys.
     surfaces?.["geometry"]?.dataAsOf ??
+    // biome-ignore lint/complexity/useLiteralKeys: capability surfaces are index-signature keys.
     surfaces?.["routeGeometry"]?.dataAsOf ??
     data.dossier?.dataAsOf ??
     null;
@@ -28,33 +59,39 @@ export function RouteMapSection({ data }: { data: StudioRouteDetailResponse }) {
     <section className="flex flex-col gap-5">
       <SectionHeader
         title={routeSectionQuestion("map")}
-        sub="Pace, flags, and priority coverage."
+        sub="Pace, flags, priority."
         right={
           <div className="flex flex-wrap items-center gap-2">
             <DataAsOf dataAsOf={dataAsOf} />
-            <Badge variant={flagged ? "bad" : "neutral"}>{flagged ? "flagged" : "clear"}</Badge>
+            <Badge
+              variant={
+                highlight.signalCount > 0 ? "warn" : highlight.segment?.flagged ? "bad" : "neutral"
+              }
+            >
+              {highlight.signalCount > 0
+                ? `${highlight.signalCount} signals`
+                : highlight.segment
+                  ? "flagged"
+                  : "clear"}
+            </Badge>
             <Badge variant="neutral">{segments.length} segments</Badge>
           </div>
         }
       />
       <div className="rounded-[3px] bg-[var(--bp-color-card)] p-5 shadow-[0_0_0_1px_var(--bp-color-rule)]">
-        <CorridorMap route={route} segments={segments} highlightId={flagged?.id} />
+        <CorridorMap route={route} segments={segments} highlightId={highlight.segment?.id} />
       </div>
       <div className="grid grid-cols-3 gap-4 max-lg:grid-cols-1">
         <MapStat
-          label="Bus-lane coverage"
+          label="Bus lanes"
           value={`${route.laneCoverage}%`}
           sub={`${laneSegments} segments`}
         />
+        <MapStat label="ACE/TSP" value={String(treatmentSegments)} sub="segments" />
         <MapStat
-          label="ACE / TSP overlap"
-          value={String(treatmentSegments)}
-          sub="segments with evidence"
-        />
-        <MapStat
-          label="Map evidence"
+          label="Map refs"
           value={String(mapArtifacts.length)}
-          sub={mapArtifacts.length > 0 ? "route map refs" : "citywide layer"}
+          sub={mapArtifacts.length > 0 ? "route refs" : "citywide"}
         />
       </div>
     </section>

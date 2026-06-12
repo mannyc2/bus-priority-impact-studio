@@ -2,6 +2,43 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Map tab follows detector-targeted segments
+
+Advanced the route-detail §5.2 / §6.1 map handoff by making the Map tab reuse the shared
+map-segment insight placement contract. Detector-targeted map signals now choose the highlighted
+corridor segment before the generic flagged fallback, while the section header counts map signals
+with the same badge posture used elsewhere in the route dossier. The implementation keeps the map
+surface small and trimmed copy so `bun --filter @bp/web build` remains under the existing total-JS
+bundle budget.
+
+Also reviewed `nyc_dot_select_bus_service_pdf_201201_brt_34th_project_analysis_report` from the
+full-corpus source review workspace as a proposed M34/M34A 34th Street SBS build-package record.
+The local ignored reviewed-record seed now has 31 sources and 31 records. The record cites the
+January 2012 project-analysis report cover, M34/M34A route/service context, project goals,
+executive-summary project elements, cross-section, neighborhood-character project description,
+construction/noise page, and LOS/signal-timing appendix. It assigns canonical `bus_lane`,
+`bus_bulb`, `off_board_fare_collection`, `pedestrian_improvement`, `signal_retiming`, and
+`transit_signal_priority` treatments, with custom details for offset bus lanes, SBS station
+amenities, turn bays, curbside loading zones, and signage.
+
+The source review stays conservative: it treats the report as proposed/project-analysis evidence,
+not completion or impact proof; preserves Fall 2011 off-board fare collection and the M16-to-M34A
+rename as context; limits assigned routes to M34/M34A; and caveats the 2008 bus-lane speed figures
+as baseline context rather than results of the 2012 build package. Regenerated the local ignored
+source receipt closure audit. It now reports 291 queue sources, 31 valid reviewed records, 31
+reviewed-record sources, 4 disposition receipts, 33 closed sources, 258 open sources, and 0
+conflicts; public promotion remains blocked on full source closure.
+
+Verified with `bunx biome check apps/web/src/components/route/RouteMapSection.tsx
+apps/web/test/shared/route-map-highlight.test.ts`, `bun test
+apps/web/test/shared/route-map-highlight.test.ts
+apps/web/test/shared/route-insight-placement.test.ts --timeout 5000`, `bun --filter @bp/web
+typecheck`, `bun --filter @bp/web build`, `jq empty
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/intervention-records-corpus-reviewed.json`,
+`bun --filter @bp/pipeline-v2 cli -- docs tier2 source-receipt-audit --queue-path ...`, `bun
+--filter @bp/pipeline-v2 cli -- audit tier2-structured-data --json`, `bun run check:types`, `bun
+run check:knowledge`, and `git diff --check`.
+
 ## [2026-06-12] engineering | Treatments tab shows timeline signals
 
 Advanced the route-detail §4.3 / §5.2 treatment handoff by letting the Treatments & history
