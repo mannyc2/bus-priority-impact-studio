@@ -1,8 +1,6 @@
-import { ArrowRight } from "lucide-react";
 import { ChartFrame } from "@/components/ChartFrame";
 import { CorridorMap } from "@/components/CorridorMap";
 import { DataAsOf } from "@/components/DataAsOf";
-import type { RouteDetailTabValue } from "@/components/route/RouteDetailShell";
 import { routeDossierArchetype } from "@/components/route/route-archetype";
 import {
   dossierMetricMonthCount,
@@ -18,6 +16,7 @@ import {
   routeInsightPlacements,
   safeInsightCaveats,
 } from "@/components/route/route-insight-placement";
+import type { RouteDetailTabValue } from "@/components/route/section-registry";
 import { SectionHeader } from "@/components/SectionHeader";
 import { SpeedTrend } from "@/components/SpeedTrend";
 import { TreatmentBadgeRow } from "@/components/TreatmentBadge";
@@ -151,7 +150,6 @@ export function OverviewSection({
               className="inline-flex shrink-0 items-center gap-1 rounded-[3px] border border-[var(--bp-color-ink-20)] px-2.5 py-1.5 text-[11.5px] font-semibold text-[var(--bp-color-ink)]"
             >
               Map
-              <ArrowRight size={13} />
             </button>
           </div>
           <div className="min-h-[172px]">
@@ -179,7 +177,6 @@ export function OverviewSection({
           className="inline-flex w-fit items-center gap-1.5 rounded-[3px] border border-[var(--bp-color-accent)] px-3 py-2 text-[12px] font-semibold text-[var(--bp-color-accent)]"
         >
           What we checked
-          <ArrowRight size={14} />
         </button>
       </section>
     </div>
@@ -272,7 +269,6 @@ function InsightCard({
           className="inline-flex items-center gap-1 text-[11.5px] font-semibold text-[var(--bp-color-accent)]"
         >
           Open {spec.tabLabel}
-          <ArrowRight size={13} />
         </button>
         <a
           href={`/briefs/new?route=${routeSlug}`}
@@ -392,7 +388,6 @@ function CheckedCleanCard({
         className="mt-3 inline-flex items-center gap-1.5 rounded-[3px] border border-[var(--bp-color-ink-20)] px-3 py-1.5 text-[11.5px] font-semibold text-[var(--bp-color-ink)]"
       >
         Open Evidence
-        <ArrowRight size={13} />
       </button>
     </div>
   );

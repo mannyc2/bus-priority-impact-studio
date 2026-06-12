@@ -2,6 +2,49 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Route detail tabs use one manifest registry
+
+Advanced frontend §8.1 by moving the route-detail tab metadata and manifest presentation policy
+into the pure section registry. The route detail page now asks `routeSectionRegistry()` for the
+per-tab presentations, visible tabs, and hidden sections in one pass; the Evidence tab consumes
+the same hidden-section list for "Sections not shown" instead of recomputing it locally. The
+contrast-route tests now assert the visible tab sets for rich, checked-clean, and sparse route
+shapes, plus hidden-section reasons and detector badge attachment.
+
+To keep the strict route-detail bundle budget green, compare keeps its tiny static tab subset
+locally and imports only erased registry types, and decorative arrow icons were removed from
+route-detail/Evidence actions whose text labels are already explicit.
+
+Verified with `bunx biome check apps/web/src/components/route/section-registry.ts
+apps/web/src/components/route/RouteDetailShell.tsx apps/web/src/components/route/DataNotesSection.tsx
+apps/web/src/components/route/OverviewSection.tsx
+apps/web/src/components/route/route-insight-card.ts
+apps/web/src/components/route/route-insight-placement.ts apps/web/src/studio/pages/route-detail.tsx
+apps/web/src/studio/pages/compare.tsx apps/web/test/shared/section-registry.test.ts`, `bun test
+apps/web/test/shared/section-registry.test.ts apps/web/test/shared/route-insight-card.test.ts
+apps/web/test/shared/route-insight-placement.test.ts --timeout 5000`, `bun --filter @bp/web
+typecheck`, and `bun --filter @bp/web build`.
+
+## [2026-06-12] engineering | Tier 2 Bx41 Webster 2014 progress source closes one more source
+
+Reviewed `nyc_dot_bus_priority_document_pdf_2014_03_11_brt_webster_cb3` from the full-corpus source
+review workspace as an implemented Bx41 Webster Avenue SBS record with preliminary post-launch
+results. The local ignored reviewed-record seed now has 15 sources and 15 records. The record cites
+the March 11, 2014 CB3 deck, the June 30, 2013 Bx41 SBS launch, 4 miles / 8 lane-miles of Webster
+Avenue bus lanes, NYPD lane enforcement, optimized signal timing, pedestrian safety islands, Phase 2
+bus-bulb design pages, and preliminary official travel-time/ridership tables.
+
+The record stores `effectiveDate: 2013-06-30` with `datePrecision: day` and keeps TSP plus Phase 2
+capital work caveated as future/estimated in this source. Regenerated the local ignored source
+receipt closure audit. It now reports 291 queue sources, 15 valid reviewed records, 3 disposition
+receipts, 16 closed sources, 275 open sources, and 0 conflicts; public promotion remains blocked on
+full source closure. The broader Tier 2 structured-data inventory command still reports the older
+published-inventory next action because it scans published artifacts rather than this ignored
+manual-review seed.
+
+Verified with `jq empty` on the reviewed-record artifact, `bun run pipeline docs tier2
+source-receipt-audit ...`, and `bun run pipeline audit tier2-structured-data --json`.
+
 ## [2026-06-12] engineering | Overview insight cards can feed briefs
 
 Advanced the route-detail §5.4 citation/corpus-palette loop. Overview insight cards now include a

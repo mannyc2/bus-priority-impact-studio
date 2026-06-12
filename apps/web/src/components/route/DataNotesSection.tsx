@@ -1,5 +1,4 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowRight } from "lucide-react";
 import { DataAsOf } from "@/components/DataAsOf";
 import {
   type CheckedCleanCoverageChip,
@@ -12,7 +11,6 @@ import {
   releaseLayerDescription,
   releaseLayerLabel,
 } from "@/components/route/data-quality-labels";
-import { ROUTE_DETAIL_TABS, type RouteDetailTabValue } from "@/components/route/RouteDetailShell";
 import { routeDossierArchetype } from "@/components/route/route-archetype";
 import {
   dossierMetricMonthCount,
@@ -23,7 +21,10 @@ import {
   type RouteEvidenceIndexRow,
   routeEvidenceIndexRows,
 } from "@/components/route/route-insight-card";
-import { sectionPresentation } from "@/components/route/section-registry";
+import {
+  type RouteDetailTabValue,
+  routeSectionRegistry,
+} from "@/components/route/section-registry";
 import { SectionHeader } from "@/components/SectionHeader";
 import { Badge } from "@/components/ui/badge";
 import type { StudioRouteDetailResponse } from "@/studio/api-contract";
@@ -42,10 +43,7 @@ export function DataNotesSection({
   const checkedCleanChips = checkedCleanCoverageChips(coverage);
   const evidenceRows = routeEvidenceIndexRows(data.insights);
   const archetype = routeDossierArchetype({ capability: data.capability, dossier });
-  const hiddenTabs = ROUTE_DETAIL_TABS.flatMap((tab) => {
-    const presentation = sectionPresentation(data.capability, tab.value);
-    return presentation.mode === "hidden" ? [{ tab, presentation }] : [];
-  });
+  const hiddenTabs = routeSectionRegistry(data.capability).hiddenSections;
   const datasets = [
     ["Bus segment speeds", "MTA Open Data", `${segments.length} timepoint segments`, 14],
     [
@@ -287,7 +285,6 @@ function EvidenceIndexSection({
                     className="inline-flex items-center gap-1.5 rounded-[3px] border border-[var(--bp-color-ink-20)] px-3 py-1.5 text-[11.5px] font-semibold text-[var(--bp-color-ink)]"
                   >
                     Open {row.tabLabel}
-                    <ArrowRight size={13} />
                   </button>
                 )}
                 <Link
@@ -296,7 +293,6 @@ function EvidenceIndexSection({
                   className="inline-flex items-center gap-1.5 rounded-[3px] border border-[var(--bp-color-accent)] px-3 py-1.5 text-[11.5px] font-semibold text-[var(--bp-color-accent)] no-underline"
                 >
                   Send to brief
-                  <ArrowRight size={13} />
                 </Link>
               </div>
             </div>

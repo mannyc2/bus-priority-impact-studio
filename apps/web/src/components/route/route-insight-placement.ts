@@ -1,5 +1,5 @@
 import type { StudioRouteInsight } from "@/studio/api-contract";
-import type { RouteDetailTabValue } from "./RouteDetailShell";
+import type { RouteDetailTabValue } from "./section-registry";
 
 export type RouteInsightPlacements = {
   overview: StudioRouteInsight[];

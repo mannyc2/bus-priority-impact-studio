@@ -1,10 +1,10 @@
 import type { StudioRouteInsight } from "@/studio/api-contract";
-import type { RouteDetailTabValue } from "./RouteDetailShell";
 import {
   routeTabForInsight,
   safeInsightCaveats,
   stableInsightSort,
 } from "./route-insight-placement";
+import type { RouteDetailTabValue } from "./section-registry";
 
 export type RouteInsightMicroFigureKind =
   | "segment_strip"

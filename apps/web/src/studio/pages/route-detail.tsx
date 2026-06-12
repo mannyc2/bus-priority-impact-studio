@@ -1,5 +1,4 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowRight } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { KPISkeleton } from "@/components/KPI";
 import { DataNotesSection } from "@/components/route/DataNotesSection";
@@ -7,17 +6,17 @@ import { HonestEmptySection } from "@/components/route/HonestEmptySection";
 import { OverviewSection } from "@/components/route/OverviewSection";
 import { ReliabilitySection } from "@/components/route/ReliabilitySection";
 import { RidersSection } from "@/components/route/RidersSection";
-import {
-  ROUTE_DETAIL_TABS,
-  RouteDetailShell,
-  type RouteDetailTabValue,
-} from "@/components/route/RouteDetailShell";
+import { RouteDetailShell } from "@/components/route/RouteDetailShell";
 import { RouteHeader } from "@/components/route/RouteHeader";
 import { RouteJudgedKpiStrip } from "@/components/route/RouteJudgedKpiStrip";
 import { RouteMapSection } from "@/components/route/RouteMapSection";
 import { routeTabBadges } from "@/components/route/route-insight-placement";
 import { SlowSegmentsSection } from "@/components/route/SlowSegments";
-import { sectionPresentation } from "@/components/route/section-registry";
+import {
+  ROUTE_DETAIL_TABS,
+  type RouteDetailTabValue,
+  routeSectionRegistry,
+} from "@/components/route/section-registry";
 import { TreatmentsHistorySection } from "@/components/route/TreatmentsHistorySection";
 import { SegmentRowHeader, SegmentRowSkeleton } from "@/components/SegmentRow";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -42,19 +41,11 @@ export function RouteDetailPage({ data }: { data: StudioRouteDetailResponse | nu
   const peer = data.peerRoute;
   const [activeTab, setActiveTab] = useState<RouteDetailTabValue>("overview");
 
-  const presentations = new Map(
-    ROUTE_DETAIL_TABS.map((tab) => [tab.value, sectionPresentation(data.capability, tab.value)]),
-  );
   const tabBadges = routeTabBadges(data.insights);
-  const visibleTabs = ROUTE_DETAIL_TABS.filter((tab) => {
-    return presentations.get(tab.value)?.mode !== "hidden";
-  }).map((tab) => {
-    const badge = tabBadges[tab.value];
-    return badge === undefined ? tab : { ...tab, badge };
-  });
+  const sectionRegistry = routeSectionRegistry(data.capability, tabBadges);
   const section = (tab: RouteDetailTabValue, render: () => ReactNode) => {
-    const presentation = presentations.get(tab);
-    if (presentation === undefined || presentation.mode === "hidden") return null;
+    const presentation = sectionRegistry.presentations[tab];
+    if (presentation.mode === "hidden") return null;
     return (
       <TabsContent value={tab}>
         {presentation.mode === "render" ? (
@@ -104,14 +95,17 @@ export function RouteDetailPage({ data }: { data: StudioRouteDetailResponse | nu
                   className="inline-flex items-center gap-1.5 rounded-[3px] bg-[var(--bp-color-ink)] px-3.5 py-2 text-[12.5px] font-semibold text-[var(--bp-color-paper)] no-underline"
                 >
                   Generate brief
-                  <ArrowRight size={14} />
                 </Link>
               </>
             }
           />
         }
-        tabs={visibleTabs}
-        value={visibleTabs.some((tab) => tab.value === activeTab) ? activeTab : "overview"}
+        tabs={sectionRegistry.visibleTabs}
+        value={
+          sectionRegistry.visibleTabs.some((tab) => tab.value === activeTab)
+            ? activeTab
+            : "overview"
+        }
         onValueChange={(value) => setActiveTab(value as RouteDetailTabValue)}
       >
         {section("overview", () => (

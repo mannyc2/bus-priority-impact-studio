@@ -1,5 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { sectionPresentation } from "../../src/components/route/section-registry";
+import {
+  routeSectionRegistry,
+  sectionPresentation,
+} from "../../src/components/route/section-registry";
 import type { RouteSurfaceCapability, StudioRouteCapability } from "../../src/studio/api-contract";
 
 function surface(state: RouteSurfaceCapability["state"], dataAsOf: string | null = "2026-03") {
@@ -64,7 +67,7 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
   });
 
   test("rich route renders every section", () => {
-    for (const tab of ["map", "where-when", "reliability", "riders", "treatments"]) {
+    for (const tab of ["map", "where-when", "reliability", "riders", "treatments"] as const) {
       expect(sectionPresentation(rich, tab)).toEqual({ mode: "render" });
     }
   });
@@ -111,12 +114,73 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
   });
 
   test("null capability (legacy fallback) renders everything", () => {
-    for (const tab of ["map", "where-when", "reliability", "riders", "treatments"]) {
+    for (const tab of ["map", "where-when", "reliability", "riders", "treatments"] as const) {
       expect(sectionPresentation(null, tab)).toEqual({ mode: "render" });
     }
   });
 
   test("manifest missing the backing surface renders rather than hides", () => {
     expect(sectionPresentation(capability({}), "riders")).toEqual({ mode: "render" });
+  });
+
+  test("routeSectionRegistry reflects the three contrast route shapes", () => {
+    expect(routeSectionRegistry(rich).visibleTabs.map((tab) => tab.value)).toEqual([
+      "overview",
+      "map",
+      "where-when",
+      "reliability",
+      "riders",
+      "treatments",
+      "evidence",
+    ]);
+    expect(routeSectionRegistry(clean).visibleTabs.map((tab) => tab.value)).toEqual([
+      "overview",
+      "map",
+      "where-when",
+      "reliability",
+      "riders",
+      "evidence",
+    ]);
+    expect(routeSectionRegistry(sparse).visibleTabs.map((tab) => tab.value)).toEqual([
+      "overview",
+      "map",
+      "where-when",
+      "riders",
+      "treatments",
+      "evidence",
+    ]);
+  });
+
+  test("routeSectionRegistry gives Evidence the withheld tab reasons", () => {
+    expect(
+      routeSectionRegistry(clean).hiddenSections.map(({ tab, presentation }) => ({
+        tab: tab.value,
+        mode: presentation.mode,
+        state: presentation.state,
+      })),
+    ).toEqual([{ tab: "treatments", mode: "hidden", state: "not_applicable" }]);
+    expect(
+      routeSectionRegistry(sparse).hiddenSections.map(({ tab, presentation }) => ({
+        tab: tab.value,
+        mode: presentation.mode,
+        state: presentation.state,
+      })),
+    ).toEqual([{ tab: "reliability", mode: "hidden", state: "insufficient_data" }]);
+  });
+
+  test("routeSectionRegistry attaches detector badges without showing hidden sections", () => {
+    expect(
+      routeSectionRegistry(sparse, {
+        reliability: { count: 2, severity: "high" },
+        riders: { count: 1, severity: "medium" },
+      }).visibleTabs.map((tab) => [tab.value, tab.badge?.count ?? 0]),
+    ).toEqual([
+      ["overview", 0],
+      ["map", 0],
+      ["where-when", 0],
+      ["riders", 1],
+      ["treatments", 0],
+      ["evidence", 0],
+    ]);
   });
 });

@@ -1,27 +1,7 @@
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
-export type RouteDetailTab = {
-  value: string;
-  label: string;
-  badge?: { count: number; severity: "low" | "medium" | "high" } | undefined;
-};
-
-/** The question-shaped route-section tabs (frontend §4.3). Treatments & history
- * absorbs the old Interventions and Timeline tabs; Evidence absorbs Data notes.
- * Compare still consumes a subset until map/reliability compare sections exist. */
-export const ROUTE_DETAIL_TABS = [
-  { value: "overview", label: "Overview" },
-  { value: "map", label: "Map" },
-  { value: "where-when", label: "Where & when" },
-  { value: "reliability", label: "Reliability" },
-  { value: "riders", label: "Riders" },
-  { value: "treatments", label: "Treatments & history" },
-  { value: "evidence", label: "Evidence" },
-] as const satisfies readonly RouteDetailTab[];
-
-export type RouteDetailTabValue = (typeof ROUTE_DETAIL_TABS)[number]["value"];
+import type { RouteDetailTab } from "./section-registry";
 
 /**
  * Shared chrome for the route-detail and compare pages: the flush header card
