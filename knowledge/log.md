@@ -2,6 +2,40 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Route pages show dossier depth archetypes
+
+Advanced the manifest-adaptive route-detail work from §8.3 by deriving a route dossier archetype
+from the capability manifest and dossier series depth. Routes now classify as `flagship`,
+`standard`, `sparse`, or `legacy` based on complete evidence surfaces and multi-year depth, and the
+route page exposes that classification in both the Overview verdict card and the Evidence summary.
+
+This makes the page more honest about how much route-level support is available without changing
+the underlying serving contract or touching blocked detector feature families. Sparse and legacy
+routes no longer visually imply the same dossier completeness as broad multi-year routes.
+
+Verified with `bunx biome check --write apps/web/src/components/route/route-archetype.ts
+apps/web/src/components/route/OverviewSection.tsx
+apps/web/src/components/route/DataNotesSection.tsx apps/web/test/shared/route-archetype.test.ts`
+and `bun test apps/web/test/shared/route-archetype.test.ts --timeout 5000`.
+
+## [2026-06-12] engineering | Tier 2 Bx41 Webster CB5 source review closes one more source
+
+Reviewed `nyc_dot_select_bus_service_pdf_2013_03_sbs_webster_bx_cb5` from the full-corpus source
+review workspace as a proposed Bx41 Webster Avenue SBS June 2013 service/implementation-plan record.
+The local ignored reviewed-record seed now has 10 sources and 10 records. The new record cites the
+March 21, 2013 CB5 presentation, the Bx41 Webster/Melrose route scope, 4 miles of offset bus lanes,
+off-board fare collection, all-door boarding, TSP, pedestrian improvements, bus bulbs, queue jump,
+turn bays, half-mile SBS stop spacing, and June start-of-service implementation steps.
+
+Regenerated the local ignored source receipt closure audit. It now reports 291 queue sources, 10
+valid reviewed records, 3 disposition receipts, 11 closed sources, 280 open sources, and 0 conflicts;
+public promotion remains blocked on full source closure. The broader Tier 2 structured-data
+inventory command still reports the older global source-closure next action because it scans the
+published artifact inventory rather than this ignored manual-review seed.
+
+Verified with `jq empty` on the reviewed-record artifact, `bun run pipeline docs tier2
+source-receipt-audit ...`, and `bun run pipeline audit tier2-structured-data --json`.
+
 ## [2026-06-12] engineering | Route tabs badge their flagged insights
 
 Advanced the route-detail §4.3 tab strip so detector-shaped public insights now badge the tab that

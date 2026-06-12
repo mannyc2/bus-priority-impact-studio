@@ -7,6 +7,7 @@ import {
   releaseLayerLabel,
 } from "@/components/route/data-quality-labels";
 import { ROUTE_DETAIL_TABS } from "@/components/route/RouteDetailShell";
+import { routeDossierArchetype } from "@/components/route/route-archetype";
 import {
   dossierMetricMonthCount,
   dossierMetricWindow,
@@ -22,6 +23,7 @@ export function DataNotesSection({ data }: { data: StudioRouteDetailResponse }) 
   const historyWindow = dossierMetricWindow(dossier?.speed);
   const ridershipMonthCount = dossierMetricMonthCount(dossier?.ridership);
   const coverage = coverageRows(data.capability);
+  const archetype = routeDossierArchetype({ capability: data.capability, dossier });
   const hiddenTabs = ROUTE_DETAIL_TABS.flatMap((tab) => {
     const presentation = sectionPresentation(data.capability, tab.value);
     return presentation.mode === "hidden" ? [{ tab, presentation }] : [];
@@ -68,6 +70,12 @@ export function DataNotesSection({ data }: { data: StudioRouteDetailResponse }) 
               ? `${dossier.speed.sparkline.length} route-month rows`
               : `${segments.length} segments in route detail`
           }
+        />
+        <DataWindow
+          label="Dossier depth"
+          value={archetype.label}
+          sub={archetype.summary}
+          good={archetype.id === "flagship"}
         />
         <DataWindow
           label="Release layer"

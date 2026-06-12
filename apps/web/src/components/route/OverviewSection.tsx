@@ -3,6 +3,7 @@ import { ChartFrame } from "@/components/ChartFrame";
 import { CorridorMap } from "@/components/CorridorMap";
 import { DataAsOf } from "@/components/DataAsOf";
 import type { RouteDetailTabValue } from "@/components/route/RouteDetailShell";
+import { routeDossierArchetype } from "@/components/route/route-archetype";
 import {
   dossierMetricMonthCount,
   dossierMetricWindow,
@@ -38,6 +39,7 @@ export function OverviewSection({
   const flagged = segments.find((segment) => segment.flagged) ?? slowestByRiders;
   const treatments = routeTreatments(route, segments);
   const overviewInsights = routeInsightPlacements(data.insights).overview;
+  const archetype = routeDossierArchetype({ capability: data.capability, dossier: data.dossier });
   const checkedCleanSurfaces = Object.values(data.capability?.surfaces ?? {}).filter(
     (surface) => surface.state === "checked_clean",
   );
@@ -58,6 +60,7 @@ export function OverviewSection({
         />
         <VerdictSummary
           data={data}
+          archetype={archetype}
           slowestLabel={
             worst
               ? `${worst.label} has been the slowest segment for ${worst.persistenceMonths} trailing month(s).`
@@ -156,9 +159,11 @@ export function OverviewSection({
 
 function VerdictSummary({
   data,
+  archetype,
   slowestLabel,
 }: {
   data: StudioRouteDetailResponse;
+  archetype: ReturnType<typeof routeDossierArchetype>;
   slowestLabel: string;
 }) {
   const { route } = data;
@@ -174,6 +179,7 @@ function VerdictSummary({
         </p>
       </div>
       <div className="flex flex-col items-end gap-2 max-lg:col-start-2 max-lg:items-start">
+        <Badge variant={archetype.badgeVariant}>{archetype.label}</Badge>
         <Badge variant={route.speedPercentile < 35 ? "bad" : "neutral"}>
           {Math.round(route.speedPercentile)}th pct speed
         </Badge>
