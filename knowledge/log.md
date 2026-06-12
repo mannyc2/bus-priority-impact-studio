@@ -2,6 +2,41 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Evidence header summarizes hidden notices
+
+Made the Evidence tab's own section header summarize manifest-hidden section notices, not just
+public insight rows. The visible Evidence badge already counted hidden reliability/treatment
+notices; the page body now mirrors that contract with a compact warning badge even when there are no
+native insight rows. Added a server-rendered route evidence test for the zero-insight, one-hidden
+notice case, and kept the production bundle under the unchanged 485 KB gz total-JS cap by rendering
+the header badges inline.
+
+Also reviewed `nyc_dot_bus_priority_document_pdf_fordham_rd_inwood_cb6_jun2023` from the
+full-corpus source review workspace. The local ignored reviewed-record seed now has 45
+reviewed-record sources and 49 valid records. This source contributes two conservative Bx12 records:
+an implemented Bx12 SBS ABLE record with the November 18, 2022 implementation date, 60-day warning
+period, Fordham Road ticket/speed observations, and operating-hour caveats; and a proposed Fordham
+Road/Inwood Alternative A offset-bus-lane planning record from the June 22, 2023 CB6 presentation.
+The design record treats the eastbound and two-way Fordham Road busway concepts as studied
+alternatives rather than selected interventions, includes the source-stated CB6 curb-space context,
+limits route assignment to Bx12 SBS until route-shape review supports wider fanout, and caveats
+map-derived geometry before block-level publication.
+
+Regenerated the local ignored source receipt closure audit with the current v2 flags. It now
+reports 291 queue sources, 49 valid reviewed records, 45 reviewed-record sources, 4 disposition
+receipts, 47 closed sources, 244 open sources, and 0 conflicts; public promotion remains blocked on
+full source closure.
+
+Verified with `bunx biome check apps/web/src/components/route/DataNotesSection.tsx
+apps/web/test/shared/data-notes-section.test.ts`, `bun test
+apps/web/test/shared/data-notes-section.test.ts --timeout 5000`, `bun --filter @bp/web typecheck`,
+`bun --filter @bp/web build`, `bun run check:types`, `jq empty
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/intervention-records-corpus-reviewed.json
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/source-receipt-closure-audit.json
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/source-receipt-closure-audit-summary.json`,
+`bun --filter @bp/pipeline-v2 cli -- docs tier2 source-receipt-audit --queue-path ...`, and `bun
+--filter @bp/pipeline-v2 cli -- audit tier2-structured-data --json`.
+
 ## [2026-06-12] engineering | Evidence badge severity reflects hidden notices
 
 Tightened the route-section registry so Evidence tab badges preserve detector counts and now lift
