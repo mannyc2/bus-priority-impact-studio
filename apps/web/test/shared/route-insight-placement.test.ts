@@ -27,10 +27,11 @@ describe("route insight placement", () => {
       insight({ placement: "overview", severity: "high", scopeId: "high" }),
       insight({ placement: "chart_annotation", severity: "low", scopeId: "chart" }),
       insight({ placement: "overview", severity: "medium", scopeId: "medium" }),
+      insight({ placement: "overview", severity: "medium", scopeId: "medium-2" }),
       insight({ placement: "timeline", severity: "medium", scopeId: "timeline" }),
     ]);
 
-    expect(placements.overview.map((row) => row.scopeId)).toEqual(["high", "medium"]);
+    expect(placements.overview.map((row) => row.scopeId)).toEqual(["high", "medium", "medium-2"]);
     expect(placements.mapSegment.map((row) => row.scopeId)).toEqual(["map"]);
     expect(placements.chartAnnotation.map((row) => row.scopeId)).toEqual(["chart"]);
     expect(placements.timeline.map((row) => row.scopeId)).toEqual(["timeline"]);

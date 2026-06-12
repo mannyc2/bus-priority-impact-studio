@@ -111,7 +111,10 @@ export function RouteDetailPage({ data }: { data: StudioRouteDetailResponse | nu
         onValueChange={(value) => setActiveTab(value as RouteDetailTabValue)}
       >
         {section("overview", () => (
-          <OverviewSection data={data} />
+          <OverviewSection
+            data={data}
+            onNavigate={(tab) => setActiveTab(tab as RouteDetailTabValue)}
+          />
         ))}
         {section("map", () => (
           <RouteMapSection data={data} />

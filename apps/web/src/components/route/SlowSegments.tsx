@@ -1,8 +1,12 @@
 import { ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { type CaptureSource, SendToBriefSheet } from "@/components/brief/SendToBriefSheet.js";
+import { ChartFrame } from "@/components/ChartFrame";
 import { CorridorMap } from "@/components/CorridorMap";
+import { CorridorProfile } from "@/components/CorridorProfile";
 import { FilterChips } from "@/components/FilterChips";
+import { HourBars } from "@/components/HourBars";
+import { averageHourlySpeed } from "@/components/route/route-derived";
 import {
   insightTargetsSegment,
   routeInsightPlacements,
@@ -33,6 +37,7 @@ export function SlowSegmentsSection({
   const [openId, setOpenId] = useState<string | null>(flaggedId ?? null);
   const [direction, setDirection] = useState<"all" | "NB" | "SB" | "EB" | "WB">("all");
   const [sendSeg, setSendSeg] = useState<StudioSegment | null>(null);
+  const hourProfile = averageHourlySpeed(route, segments);
 
   const capture: CaptureSource | null = sendSeg && {
     routeSlug: route.slug,
@@ -88,6 +93,29 @@ export function SlowSegmentsSection({
           </div>
         }
       />
+      <div className="grid grid-cols-[minmax(0,1.45fr)_minmax(300px,0.8fr)] gap-5 max-xl:grid-cols-1">
+        <div className="rounded-[3px] bg-[var(--bp-color-card)] px-5 py-4 shadow-[0_0_0_1px_var(--bp-color-rule)]">
+          <SectionHeader
+            title="Corridor profile"
+            sub="Average weekday speed for each segment. The dashed line is the schedule; the bars below show bus-priority treatments."
+          />
+          <CorridorProfile route={route} segments={segments} highlightId={flaggedId} />
+        </div>
+        <ChartFrame
+          title="Speed by hour of day"
+          source="Average speed by time of day."
+          height={164}
+        >
+          <HourBars
+            data={hourProfile}
+            sched={route.scheduledMph}
+            height={164}
+            min={Math.max(0, Math.floor(Math.min(...hourProfile) - 1))}
+            max={Math.ceil(Math.max(route.scheduledMph, ...hourProfile) + 1)}
+            legend
+          />
+        </ChartFrame>
+      </div>
       {featured.length > 0 ? (
         <div className="grid grid-cols-3 gap-4 max-xl:grid-cols-1">
           {featured.map((segment, index) => (
