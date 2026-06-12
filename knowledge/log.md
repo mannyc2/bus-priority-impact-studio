@@ -2,6 +2,47 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Overview shows manifest coverage
+
+Advanced the route-detail §4 / §8.1 registry handoff by making the Overview header summarize the
+route capability manifest instead of using static readiness copy. The summary now counts ready,
+checked-clean, partial, building, insufficient-data, blocked, and not-applicable surfaces, so a
+route with non-ready manifest states no longer looks empty from the first screen. Overview checked
+clean handling now uses the same ordered coverage rows as the Evidence matrix, and treatment
+insight CTAs now point at `Treatments & history` to match the redesigned tab label. Nearby route
+overview copy was tightened to keep the production bundle inside the existing budget.
+
+Also reviewed `nyc_dot_bus_priority_document_pdf_201205_brt_webster_cac` from the full-corpus
+source review workspace as a proposed/planning Bx41 Webster Avenue SBS design-ideas record. The
+local ignored reviewed-record seed now has 25 sources and 25 records. The record cites the May 2,
+2012 CAC #2 deck, the Bx41-based proposed Webster Avenue corridor, 5.3 miles of corridor length,
+125,000 nearby residents, 74% car-free households, 63% transit commute share, 22,000 daily Bx41
+riders, Bx41 LTD travel-time variability of 37-57 minutes, stopped-time and delay breakdown
+signals, Fordham Road pedestrian/boarding pressure, parking observations, the Spring 2012 active
+design-ideas phase, the May 16, 2012 open house, Summer 2012 analysis, and Fall 2012 draft
+corridor-plan target.
+
+The record stores no launch date because this source does not give a preferred design,
+implementation date, or post-implementation result. It uses `planning` statuses as of
+`2012-05-02` and `2012-05-16`, assigns scope only to Bx41, treats Bx12 and M15 references as prior
+SBS examples or feature context, and caveats the OCR-derived corridor map summary for visual
+review before publication. Regenerated the local ignored source receipt closure audit. It now
+reports 291 queue sources, 25 valid reviewed records, 25 reviewed-record sources, 26 closed
+sources, 265 open sources, and 0 conflicts; public promotion remains blocked on full source
+closure. The broader Tier 2 structured-data inventory still reports the older published-inventory
+next action because it scans published artifacts rather than this ignored manual-review seed.
+
+Verified with `bunx biome check
+apps/web/src/components/route/OverviewSection.tsx apps/web/src/components/route/coverage-matrix.ts
+apps/web/src/components/route/route-insight-card.ts apps/web/test/shared/coverage-matrix.test.ts
+apps/web/test/shared/route-insight-card.test.ts`, `bun test
+apps/web/test/shared/coverage-matrix.test.ts apps/web/test/shared/route-insight-card.test.ts
+--timeout 5000`, `bun --filter @bp/web typecheck`, `bun --filter @bp/web build`, `bun run
+check:types`, `bun run check:knowledge`, `git diff --check`, `jq empty
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/intervention-records-corpus-reviewed.json`,
+`bun --filter @bp/pipeline-v2 cli -- docs tier2 source-receipt-audit ...`, and `bun --filter
+@bp/pipeline-v2 cli -- audit tier2-structured-data --json`.
+
 ## [2026-06-12] engineering | Route tabs expose section questions
 
 Advanced the route-detail §4.3 / §8.1 registry handoff by carrying each tab's

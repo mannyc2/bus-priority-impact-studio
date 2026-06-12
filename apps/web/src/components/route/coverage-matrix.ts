@@ -92,12 +92,18 @@ export function coverageSummary(rows: readonly CoverageRow[]): string {
   const checkedClean = rows.filter((row) => row.state === "checked_clean").length;
   const ready = rows.filter((row) => row.state === "ready").length;
   const partial = rows.filter((row) => row.state === "partial").length;
+  const building = rows.filter((row) => row.state === "building").length;
+  const insufficient = rows.filter((row) => row.state === "insufficient_data").length;
   const blocked = rows.filter((row) => row.state === "blocked").length;
+  const notApplicable = rows.filter((row) => row.state === "not_applicable").length;
   const parts = [
     `${ready} ready`,
     checkedClean > 0 ? `${checkedClean} checked clean` : null,
     partial > 0 ? `${partial} partial` : null,
+    building > 0 ? `${building} building` : null,
+    insufficient > 0 ? `${insufficient} insufficient` : null,
     blocked > 0 ? `${blocked} blocked` : null,
+    notApplicable > 0 ? `${notApplicable} not applicable` : null,
   ].filter(Boolean);
   return parts.length > 0 ? parts.join(" / ") : "No manifest surfaces published";
 }

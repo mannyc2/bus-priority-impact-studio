@@ -73,7 +73,7 @@ export function routeInsightTabLabel(tab: RouteDetailTabValue): string {
     case "where-when":
       return "Where & when";
     case "treatments":
-      return "Treatments";
+      return "Treatments & history";
     default:
       return tab[0]?.toUpperCase() + tab.slice(1);
   }

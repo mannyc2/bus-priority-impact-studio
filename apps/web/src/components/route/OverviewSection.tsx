@@ -1,6 +1,7 @@
 import { ChartFrame } from "@/components/ChartFrame";
 import { CorridorMap } from "@/components/CorridorMap";
 import { DataAsOf } from "@/components/DataAsOf";
+import { coverageRows, coverageSummary } from "@/components/route/coverage-matrix";
 import { routeDossierArchetype } from "@/components/route/route-archetype";
 import {
   dossierMetricMonthCount,
@@ -73,11 +74,10 @@ export function OverviewSection({
   const treatments = routeTreatments(route, segments);
   const overviewInsights = routeInsightPlacements(data.insights).overview;
   const archetype = routeDossierArchetype({ capability: data.capability, dossier: data.dossier });
+  const coverage = coverageRows(data.capability);
   const mapTarget = routeSectionCanNavigate(sectionRegistry, "map") ? "map" : "evidence";
   const mapTargetLabel = mapTarget === "map" ? "Map" : "Evidence";
-  const checkedCleanSurfaces = Object.values(data.capability?.surfaces ?? {}).filter(
-    (surface) => surface.state === "checked_clean",
-  );
+  const checkedCleanSurfaces = coverage.filter((surface) => surface.state === "checked_clean");
   const checkedThrough =
     latestMonth(
       checkedCleanSurfaces.flatMap((surface) => (surface.dataAsOf ? [surface.dataAsOf] : [])),
@@ -90,7 +90,7 @@ export function OverviewSection({
       <section className="flex flex-col gap-4">
         <SectionHeader
           title="What stands out"
-          sub="Readiness-gated signals, ordered by severity."
+          sub={coverageSummary(coverage)}
           right={<DataAsOf dataAsOf={data.dossier?.dataAsOf ?? null} />}
         />
         <VerdictSummary
@@ -100,8 +100,8 @@ export function OverviewSection({
             worst
               ? `${worst.label} has been the slowest segment for ${worst.persistenceMonths} trailing month(s).`
               : slowestByRiders
-                ? `${slowestByRiders.from} to ${slowestByRiders.to} is the highest rider-impact segment visible in this release.`
-                : "No segment-level rider-impact row is available in this release."
+                ? `${slowestByRiders.from} to ${slowestByRiders.to} has the highest visible rider impact.`
+                : "No rider-impact row is available."
           }
         />
         {overviewInsights.length > 0 ? (
@@ -131,7 +131,7 @@ export function OverviewSection({
           source={
             hasSpeedHistory
               ? `Monthly average speed${dossierMetricWindow(data.dossier?.speed) ? `, ${dossierMetricWindow(data.dossier?.speed)}` : ""}.`
-              : "Recent trend estimate; dashed line is schedule."
+              : "Trend estimate; dashed line is schedule."
           }
           height={172}
           right={
@@ -207,7 +207,7 @@ function VerdictSummary({
       <div className="h-full rounded-[2px] bg-[var(--bp-color-ink)]" />
       <div>
         <div className="mb-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--bp-color-ink-55)]">
-          Route in one paragraph
+          Route summary
         </div>
         <p className="m-0 max-w-[980px] text-[13.5px] leading-[1.65] text-[var(--bp-color-ink)]">
           {route.diagnosis} {slowestLabel}
@@ -392,8 +392,8 @@ function CheckedCleanCard({
         Checked clean
       </div>
       <p className="m-0 max-w-[760px] text-[13px] leading-[1.6] text-[var(--bp-color-ink)]">
-        Checked through {checkedThrough ?? "the current dossier"}: no ranked overview flags are
-        published. {checkedCount} checked-clean surface(s) are listed in Evidence.
+        Checked through {checkedThrough ?? "the current dossier"}: no overview flags. {checkedCount}
+        checked-clean surface(s) in Evidence.
       </p>
       <button
         type="button"

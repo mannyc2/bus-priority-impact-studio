@@ -40,7 +40,7 @@ describe("coverage matrix", () => {
       ["Custom Signal", "Insufficient data", "depth not published"],
       ["Treatments", "Blocked", "depth not published"],
     ]);
-    expect(coverageSummary(rows)).toBe("1 ready / 1 checked clean / 1 blocked");
+    expect(coverageSummary(rows)).toBe("1 ready / 1 checked clean / 1 insufficient / 1 blocked");
     expect(checkedCleanCoverageChips(rows)).toEqual([
       {
         key: "reliability",

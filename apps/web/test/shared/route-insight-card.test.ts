@@ -69,7 +69,7 @@ describe("route insight card specs", () => {
     expect(routeInsightMicroFigureKind(treatmentInsight)).toBe("timeline_tick");
     expect(routeInsightCardSpec(treatmentInsight)).toMatchObject({
       tab: "treatments",
-      tabLabel: "Treatments",
+      tabLabel: "Treatments & history",
     });
   });
 
