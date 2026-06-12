@@ -1,9 +1,24 @@
 import { describe, expect, test } from "bun:test";
 import {
   interventionComparisonCards,
+  treatmentHistoryInsightRows,
   treatmentSourceRows,
 } from "../../src/components/route/TreatmentsHistorySection";
-import type { StudioIntervention } from "../../src/studio/api-contract";
+import type { StudioIntervention, StudioRouteInsight } from "../../src/studio/api-contract";
+
+function insight(input: Partial<StudioRouteInsight> = {}): StudioRouteInsight {
+  const fixture: StudioRouteInsight = {
+    routeId: "M14A",
+    detectorId: "fixture_detector",
+    title: "Fixture insight",
+    shortText: "Fixture text.",
+    severity: "medium",
+    kind: "performance_annotation",
+    placement: "overview",
+    refs: [],
+  };
+  return { ...fixture, ...input, routeId: input.routeId ?? fixture.routeId };
+}
 
 describe("treatments history helpers", () => {
   test("turns promoted intervention comparisons into public cards", () => {
@@ -37,7 +52,7 @@ describe("treatments history helpers", () => {
         tone: "good",
         routeDeltaLabel: "+0.55 mph",
         adjustedDeltaLabel: "+0.41 mph",
-        comparisonLabel: "12 comparison routes",
+        comparisonLabel: "12 routes",
         windowLabel: "2024-07 to 2024-12 -> 2025-02 to 2025-07",
         caveat: "Comparison-adjusted, not causal proof.",
       },
@@ -75,5 +90,32 @@ describe("treatments history helpers", () => {
         year: "2025",
       },
     ]);
+  });
+
+  test("selects sorted timeline-placement insights for the treatment tab", () => {
+    const rows = treatmentHistoryInsightRows([
+      insight({ detectorId: "other", placement: "overview", severity: "high", scopeId: "skip" }),
+      insight({
+        detectorId: "treatment_scope_gap",
+        placement: "timeline",
+        severity: "medium",
+        scopeId: "treatment",
+      }),
+      insight({
+        detectorId: "timeline_event",
+        placement: "timeline",
+        severity: "high",
+        scopeId: "timeline",
+      }),
+      insight({
+        detectorId: "timeline_annotation",
+        kind: "timeline_annotation",
+        placement: "overview",
+        severity: "low",
+        scopeId: "skip-kind",
+      }),
+    ]);
+
+    expect(rows.map((row) => row.scopeId)).toEqual(["timeline", "treatment"]);
   });
 });

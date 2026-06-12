@@ -7,13 +7,18 @@ import {
   dossierMetricWindow,
   dossierSpeedSeries,
 } from "@/components/route/route-derived";
+import { routeInsightPlacements } from "@/components/route/route-insight-placement";
 import { routeSectionQuestion } from "@/components/route/section-registry";
 import { SectionHeader } from "@/components/SectionHeader";
 import { SpeedTrend } from "@/components/SpeedTrend";
 import { TreatmentInventory } from "@/components/TreatmentBadge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import type { StudioIntervention, StudioRouteDetailResponse } from "@/studio/api-contract";
+import type {
+  StudioIntervention,
+  StudioRouteDetailResponse,
+  StudioRouteInsight,
+} from "@/studio/api-contract";
 import { countTreatmentStates, groupTreatments, routeTreatments } from "@/studio/treatment-model";
 
 type Tone = NonNullable<StudioIntervention["tone"]>;
@@ -37,6 +42,12 @@ export type TreatmentSourceRow = {
   year: string;
 };
 
+export function treatmentHistoryInsightRows(
+  insights: readonly StudioRouteInsight[],
+): StudioRouteInsight[] {
+  return routeInsightPlacements(insights).timeline;
+}
+
 export function TreatmentsHistorySection({ data }: { data: StudioRouteDetailResponse }) {
   const { route, segments } = data;
   const treatments = routeTreatments(route, segments);
@@ -46,9 +57,11 @@ export function TreatmentsHistorySection({ data }: { data: StudioRouteDetailResp
   ).length;
   const comparisonCards = interventionComparisonCards(route.interventions);
   const sourceRows = treatmentSourceRows(route.interventions);
+  const treatmentInsights = treatmentHistoryInsightRows(data.insights);
   const historySpeeds = dossierSpeedSeries(data.dossier);
   const hasSpeedHistory = historySpeeds.length > 0;
   const speedTrendData = hasSpeedHistory ? historySpeeds : route.spark;
+  const speedWindow = dossierMetricWindow(data.dossier?.speed);
   const treatmentDataAsOf =
     data.dossier?.treatmentPosture.dataAsOf ??
     data.dossier?.dataAsOf ??
@@ -59,13 +72,16 @@ export function TreatmentsHistorySection({ data }: { data: StudioRouteDetailResp
       <section>
         <SectionHeader
           title={routeSectionQuestion("treatments")}
-          sub="What is in place, proposed, and dated enough to compare."
+          sub="What is in place, proposed, and comparable."
           right={
             <div className="flex flex-wrap items-center gap-2">
               <DataAsOf dataAsOf={treatmentDataAsOf} />
               <Badge variant={comparisonCards.length > 0 ? "accent" : "neutral"}>
                 {comparisonCards.length} evaluated
               </Badge>
+              {treatmentInsights.length > 0 ? (
+                <Badge variant="warn">{treatmentInsights.length} signals</Badge>
+              ) : null}
             </div>
           }
         />
@@ -76,7 +92,7 @@ export function TreatmentsHistorySection({ data }: { data: StudioRouteDetailResp
             sub={`${treatments.length} treatments`}
           />
           <PostureStat label="In place" value={counts.inPlace} sub="active or implemented" good />
-          <PostureStat label="Planned" value={counts.planned} sub="planned, proposed, future" />
+          <PostureStat label="Planned" value={counts.planned} sub="planned/proposed" />
           <PostureStat
             label="Records"
             value={route.interventions.length}
@@ -88,22 +104,21 @@ export function TreatmentsHistorySection({ data }: { data: StudioRouteDetailResp
       <div className="grid grid-cols-[minmax(0,1fr)_360px] items-start gap-6 max-xl:grid-cols-1">
         <section>
           <SectionHeader
-            title="What is in the record"
-            sub={`Treatments on ${route.label}${route.sbs ? " SBS" : ""}, grouped by family and state.`}
+            title="In the record"
+            sub={`Treatments on ${route.label}${route.sbs ? " SBS" : ""}, grouped by family/state.`}
           />
           <TreatmentInventory treatments={treatments} />
         </section>
 
         <section>
-          <SectionHeader title="Document refs" sub="Source labels on dated records." />
+          <SectionHeader title="Document refs" sub="Labels on dated records." />
           <TreatmentSourceList rows={sourceRows} />
         </section>
       </div>
-
       <section>
         <SectionHeader
           title="Dated history"
-          sub={`${route.interventions.length} recorded changes on ${route.label}${route.sbs ? " SBS" : ""}. Read before interpreting speed movement.`}
+          sub={`${route.interventions.length} changes on ${route.label}${route.sbs ? " SBS" : ""}. Use before reading speed.`}
           right={<TimelineLegend />}
         />
         <InterventionTimeline events={route.interventions} />
@@ -111,11 +126,11 @@ export function TreatmentsHistorySection({ data }: { data: StudioRouteDetailResp
 
       <div className="grid grid-cols-[minmax(0,1fr)_420px] items-start gap-6 max-xl:grid-cols-1">
         <ChartFrame
-          title={hasSpeedHistory ? "Route speed history" : "Speed around recorded changes"}
+          title={hasSpeedHistory ? "Speed history" : "Speed near changes"}
           source={
             hasSpeedHistory
-              ? `Monthly average speed${dossierMetricWindow(data.dossier?.speed) ? `, ${dossierMetricWindow(data.dossier?.speed)}` : ""}.`
-              : "Recent trend estimate; the dashed line is the schedule."
+              ? `Avg speed${speedWindow ? `, ${speedWindow}` : ""}.`
+              : "Trend estimate; schedule dashed."
           }
           height={196}
           right={
@@ -130,10 +145,7 @@ export function TreatmentsHistorySection({ data }: { data: StudioRouteDetailResp
         </ChartFrame>
 
         <section>
-          <SectionHeader
-            title="Evaluation cards"
-            sub="Shown when a record has a promoted comparison window."
-          />
+          <SectionHeader title="Evaluation cards" sub="Promoted comparison windows." />
           <ComparisonCards cards={comparisonCards} />
         </section>
       </div>
@@ -154,8 +166,7 @@ export function interventionComparisonCards(
         tone: event.tone ?? toneForDelta(cohort.adjustedSpeedDeltaMph),
         routeDeltaLabel: signedMph(cohort.routeSpeedDeltaMph),
         adjustedDeltaLabel: signedMph(cohort.adjustedSpeedDeltaMph),
-        comparisonLabel:
-          cohort.routeCount === 1 ? "1 comparison route" : `${cohort.routeCount} comparison routes`,
+        comparisonLabel: cohort.routeCount === 1 ? "1 route" : `${cohort.routeCount} routes`,
         windowLabel: windowLabel(cohort.preWindow, cohort.postWindow),
         caveat: cohort.caveat,
       },
@@ -206,7 +217,7 @@ function TreatmentSourceList({ rows }: { rows: readonly TreatmentSourceRow[] }) 
   if (rows.length === 0) {
     return (
       <div className="rounded-[3px] bg-[var(--bp-color-card)] p-4 text-[12.5px] text-[var(--bp-color-ink-55)] shadow-[0_0_0_1px_var(--bp-color-rule)]">
-        No source-labeled treatment records are published for this route yet.
+        No source-labeled records yet.
       </div>
     );
   }
@@ -236,9 +247,9 @@ function TimelineLegend() {
   return (
     <div className="flex flex-wrap items-center gap-3 text-[11px] text-[var(--bp-color-ink-70)]">
       {[
-        ["var(--bp-color-accent)", "Service / enforcement"],
+        ["var(--bp-color-accent)", "Service"],
         ["var(--bp-color-good)", "Improvement"],
-        ["var(--bp-color-warn)", "Attribution caution"],
+        ["var(--bp-color-warn)", "Caution"],
       ].map(([color, label]) => (
         <span key={label} className="inline-flex items-center gap-1.5">
           <span className="size-2 rounded-full" style={{ background: color }} />
@@ -253,10 +264,9 @@ function ComparisonCards({ cards }: { cards: readonly TreatmentComparisonCard[] 
   if (cards.length === 0) {
     return (
       <Alert variant="info">
-        <AlertTitle variant="info">No comparison window</AlertTitle>
+        <AlertTitle variant="info">No window</AlertTitle>
         <AlertDescription>
-          The dated records are useful context, but this route does not yet publish a before/after
-          card.
+          Dated records are useful context, but this route has no before/after card yet.
         </AlertDescription>
       </Alert>
     );
@@ -278,8 +288,8 @@ function ComparisonCards({ cards }: { cards: readonly TreatmentComparisonCard[] 
             <Badge variant={card.tone}>{card.comparisonLabel}</Badge>
           </div>
           <div className="mt-4 grid grid-cols-2 gap-3">
-            <DeltaMetric label="route delta" value={card.routeDeltaLabel} tone={card.tone} />
-            <DeltaMetric label="peer-adjusted" value={card.adjustedDeltaLabel} tone={card.tone} />
+            <DeltaMetric label="route" value={card.routeDeltaLabel} tone={card.tone} />
+            <DeltaMetric label="adjusted" value={card.adjustedDeltaLabel} tone={card.tone} />
           </div>
           <div className="mt-3 text-[11.5px] leading-[1.45] text-[var(--bp-color-ink-55)]">
             {card.caveat}
@@ -326,8 +336,7 @@ function windowLabel(
   preWindow: ComparisonCohort["preWindow"],
   postWindow: ComparisonCohort["postWindow"],
 ): string {
-  const pre = preWindow === null ? "pre window missing" : `${preWindow.from} to ${preWindow.to}`;
-  const post =
-    postWindow === null ? "post window missing" : `${postWindow.from} to ${postWindow.to}`;
+  const pre = preWindow === null ? "pre missing" : `${preWindow.from} to ${preWindow.to}`;
+  const post = postWindow === null ? "post missing" : `${postWindow.from} to ${postWindow.to}`;
   return `${pre} -> ${post}`;
 }
