@@ -100,18 +100,37 @@ describe("reliabilityInsightRows", () => {
     refs: [],
   } satisfies StudioRouteInsight;
 
-  test("keeps reliability detector rows first and caps the section", () => {
+  test("uses shared severity and month order for reliability cards", () => {
     const rows = reliabilityInsightRows([
-      base,
-      { ...base, detectorId: "headway_reliability_ewt", title: "Wait reliability context" },
-      { ...base, detectorId: "speed_pace", title: "Reliability context from title" },
+      { ...base, severity: "medium", asOfMonth: "2026-01" },
+      {
+        ...base,
+        detectorId: "headway_reliability_ewt",
+        title: "Wait reliability context",
+        severity: "medium",
+        asOfMonth: "2026-03",
+      },
+      {
+        ...base,
+        detectorId: "bunching_hotspots",
+        title: "Bunching reliability context",
+        severity: "high",
+        asOfMonth: "2025-12",
+      },
+      {
+        ...base,
+        detectorId: "speed_pace",
+        title: "Reliability context from title",
+        severity: "low",
+        asOfMonth: "2026-04",
+      },
       { ...base, detectorId: "speed_pace", title: "Speed context" },
     ]);
 
     expect(rows.map((row) => row.title)).toEqual([
-      "Observed reliability risk",
+      "Bunching reliability context",
       "Wait reliability context",
-      "Reliability context from title",
+      "Observed reliability risk",
     ]);
   });
 });

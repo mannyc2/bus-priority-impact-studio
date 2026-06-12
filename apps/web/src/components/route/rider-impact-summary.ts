@@ -11,6 +11,7 @@ import type {
   StudioSegment,
 } from "@/studio/api-contract";
 import type { MetricTone } from "@/studio/metric-model";
+import { stableInsightSort } from "./route-insight-placement";
 
 type RiderImpactRoute = Pick<StudioRoute, "dailyRiders" | "ridersYoyPct" | "riderHoursLost">;
 type RiderImpactSegment = Pick<StudioSegment, "id" | "from" | "to" | "riderHours" | "flagged">;
@@ -35,7 +36,10 @@ export type RiderImpactSummary = {
   topSegments: RiderImpactSegment[];
 };
 
-const RIDER_IMPACT_DETECTOR_IDS = new Set(["customer_journey_shortfall"]);
+const RIDER_IMPACT_DETECTOR_IDS = new Set([
+  "customer_journey_shortfall",
+  "rider_weighted_excess_wait",
+]);
 
 export function riderImpactSummary({
   route,
@@ -119,6 +123,7 @@ export function riderImpactInsightRows(
         title.includes("customer")
       );
     })
+    .sort(stableInsightSort)
     .slice(0, 3);
 }
 

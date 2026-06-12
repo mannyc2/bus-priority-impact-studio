@@ -16,12 +16,10 @@ export function ReliabilitySection({ data }: { data: StudioRouteDetailResponse }
   if (observed === null) {
     return (
       <Alert variant="info">
-        <AlertTitle variant="info">
-          Reliability evidence is not published for this route yet
-        </AlertTitle>
+        <AlertTitle variant="info">Reliability not published yet</AlertTitle>
         <AlertDescription>
           {capability?.reason ??
-            "The route dossier has not published enough observed headway evidence for a reliability panel."}
+            "Observed headway evidence has not cleared the route dossier gate."}
         </AlertDescription>
       </Alert>
     );
@@ -60,10 +58,7 @@ export function ReliabilitySection({ data }: { data: StudioRouteDetailResponse }
       </div>
       <div className="grid grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] gap-5 max-xl:grid-cols-1">
         <div className="rounded-[3px] bg-[var(--bp-color-card)] p-5 shadow-[0_0_0_1px_var(--bp-color-rule)]">
-          <SectionHeader
-            title="Headway distribution"
-            sub="Observed route-level waits in the published reliability row."
-          />
+          <SectionHeader title="Headways" sub="Route-level observed waits." />
           <div className="mt-3 grid grid-cols-3 gap-4 max-sm:grid-cols-1">
             <HeadwayStat label="Median" value={summary.medianHeadwayLabel} />
             <HeadwayStat label="P90" value={summary.p90HeadwayLabel} />
@@ -72,18 +67,18 @@ export function ReliabilitySection({ data }: { data: StudioRouteDetailResponse }
         </div>
         <div className="rounded-[3px] bg-[var(--bp-color-card)] p-5 shadow-[0_0_0_1px_var(--bp-color-rule)]">
           <SectionHeader
-            title="Reliability signals"
+            title="Signals"
             sub={
               insights.length > 0
-                ? "Detector-ready reliability context attached to this route."
-                : "No reliability detector insight is promoted for this route yet."
+                ? "Public reliability context for this route."
+                : "No public reliability insight yet."
             }
           />
           <ReliabilityInsightList insights={insights} />
         </div>
       </div>
       <Alert variant="info">
-        <AlertTitle variant="info">Reliability provenance</AlertTitle>
+        <AlertTitle variant="info">Provenance</AlertTitle>
         <AlertDescription>{summary.caveat}</AlertDescription>
       </Alert>
     </section>
@@ -151,8 +146,8 @@ function ReliabilityInsightList({ insights }: { insights: StudioRouteDetailRespo
   if (insights.length === 0) {
     return (
       <div className="mt-3 rounded-[3px] bg-[var(--bp-color-paper-deep)] px-3 py-2.5 text-[12px] leading-[1.45] text-[var(--bp-color-ink-55)]">
-        The observed row can be cited, but no reliability detector card has cleared the public
-        insight gate for this route.
+        Observed reliability can be cited, but no reliability detector card has cleared the public
+        gate.
       </div>
     );
   }

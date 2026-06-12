@@ -2,6 +2,42 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Reliability and rider tabs share signal ordering
+
+Advanced the route-detail §5.2 signal handoff for the Reliability and Riders tabs. Their
+section-level insight rows now use the shared severity/month/detector/scope ordering contract, so
+the visible cards align with the tab badges, Overview verdict, and Evidence index. Reliability now
+recognizes `bunching_hotspots` alongside the observed/headway reliability detectors; Riders now
+recognizes `rider_weighted_excess_wait` alongside customer-journey shortfall. Route-detail copy was
+trimmed slightly so the existing web total-JS bundle budget stays intact.
+
+Also reviewed `nyc_dot_bus_priority_document_pdf_2011_brt_34th_cb6_slides` from the full-corpus
+source review workspace. The local ignored reviewed-record seed now has 32 reviewed-record sources
+and 33 valid records. This source contributes two conservative M34/M34A records: an implemented
+November 13, 2011 fare-prepayment/SBS rename record, and a proposed 2012 34th Street street-design
+record for bus lanes, bus bulbs, pedestrian space, signal timing, turn bays, and loading zones.
+The review explicitly keeps M15 fare-prepayment percentages as comparison context, treats the 2012
+street-design material as planned/modelled evidence rather than completion or impact proof, and
+requires visual review before block-level geometry publication.
+
+Regenerated the local ignored source receipt closure audit. It now reports 291 queue sources, 33
+valid reviewed records, 32 reviewed-record sources, 4 disposition receipts, 34 closed sources, 257
+open sources, and 0 conflicts; public promotion remains blocked on full source closure.
+
+Verified with `bun test apps/web/test/shared/reliability-summary.test.ts
+apps/web/test/shared/rider-impact-summary.test.ts apps/web/test/shared/route-insight-placement.test.ts
+--timeout 5000`, `bunx biome check apps/web/src/components/route/ReliabilitySection.tsx
+apps/web/src/components/route/RidersSection.tsx apps/web/src/components/route/reliability-summary.ts
+apps/web/src/components/route/rider-impact-summary.ts apps/web/test/shared/reliability-summary.test.ts
+apps/web/test/shared/rider-impact-summary.test.ts`, `bun --filter @bp/web typecheck`,
+`bun --filter @bp/web build`, `jq empty
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/intervention-records-corpus-reviewed.json
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/source-receipt-closure-audit.json
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/source-receipt-closure-audit-summary.json`,
+`bun --filter @bp/pipeline-v2 cli -- docs tier2 source-receipt-audit --queue-path ...`,
+`bun --filter @bp/pipeline-v2 cli -- audit tier2-structured-data --json`, `bun run check:types`,
+`bun run check:knowledge`, and `git diff --check`.
+
 ## [2026-06-12] engineering | Map tab follows detector-targeted segments
 
 Advanced the route-detail §5.2 / §6.1 map handoff by making the Map tab reuse the shared
