@@ -135,7 +135,7 @@ export function RouteJudgedKpiStrip({
         value={currentSpeed.toFixed(1)}
         unit="mph"
         tone={currentSpeed < 6 ? "bad" : "ink"}
-        sub={speedSub ?? "no peer rank"}
+        sub={speedSub ?? "no rank"}
         dataAsOf={speed?.dataAsOf ?? null}
       />
       <Judged
@@ -181,7 +181,7 @@ export function RouteJudgedKpiStrip({
         onClick={clickTarget("treatments")}
         value={postureLabel}
         tone={postureLabel === "Treated" ? "good" : "ink"}
-        sub={postureBits.length > 0 ? postureBits.join(" · ") : "no treatment"}
+        sub={postureBits.length > 0 ? postureBits.join(" · ") : "none"}
         dataAsOf={posture?.dataAsOf ?? null}
       />
     </MetricColumns>
