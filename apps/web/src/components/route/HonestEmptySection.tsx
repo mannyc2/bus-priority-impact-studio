@@ -14,26 +14,26 @@ const EMPTY_COPY: Record<
   checked_clean: {
     icon: CircleCheck,
     tone: "var(--bp-color-good)",
-    title: "Checked — nothing to flag",
-    body: "Detectors ran against this route's data and found nothing that clears the publication bar. Silence here is a result, not a gap.",
+    title: "Checked clean",
+    body: "Detectors ran; no publishable signal.",
   },
   building: {
     icon: CircleDashed,
     tone: "var(--bp-color-ink-55)",
-    title: "Still building",
-    body: "The pipeline that backs this section exists but has not finished for this route yet.",
+    title: "Building",
+    body: "Pipeline still building.",
   },
   insufficient_data: {
     icon: CircleOff,
     tone: "var(--bp-color-ink-55)",
-    title: "Not enough data",
-    body: "There is not enough underlying data on this route to say anything defensible here.",
+    title: "Thin data",
+    body: "Data is too thin for a defensible result.",
   },
   blocked: {
     icon: TriangleAlert,
     tone: "var(--bp-color-bad, #b3261e)",
-    title: "Source unavailable",
-    body: "An upstream dependency for this section failed; the data exists but could not be built this release.",
+    title: "Blocked",
+    body: "Upstream dependency failed this release.",
   },
 };
 

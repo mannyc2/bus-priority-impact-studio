@@ -2,6 +2,44 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Honest-empty tabs show registry state
+
+Advanced the route-detail §8.1 / §4.3 section-registry contract by carrying honest-empty state onto
+the visible tab chrome. Tabs that still render an honest-empty section now show compact
+`Checked`/`Building`/`Thin`/`Blocked` badges, while manifest-hidden sections remain absent from the
+tab bar and continue routing their context through Evidence. The visible-rich, checked-clean, and
+sparse route shapes now have shell-level coverage so the tab contract is tested where users see it.
+
+Trimmed the honest-empty section body copy so the added tab badges stay under the existing web
+total-JS bundle budget without raising the cap.
+
+Also reviewed `nyc_dot_bus_priority_document_pdf_201110_brt_34th_cac5` from the full-corpus source
+review workspace. The local ignored reviewed-record seed now has 34 reviewed-record sources and 36
+valid records. This source contributes two conservative M34/M34A records: a planned November 13,
+2011 SBS/fare-prepayment/camera-enforcement startup record, and a proposed 2012 34th Street
+street-design record for bus lanes, bus bulbs, pedestrian space, signal timing, right-turn bays,
+and loading-zone changes. The records keep the deck's M15 statistics as comparison context, treat
+the 2012 design material as planned/proposed evidence rather than completion or impact proof, and
+require visual review before block-level geometry publication.
+
+Regenerated the local ignored source receipt closure audit. It now reports 291 queue sources, 36
+valid reviewed records, 34 reviewed-record sources, 4 disposition receipts, 36 closed sources, 255
+open sources, and 0 conflicts; public promotion remains blocked on full source closure.
+
+Verified with `bun test apps/web/test/shared/section-registry.test.ts
+apps/web/test/shared/route-detail-shell.test.ts --timeout 5000`, `bunx biome check
+apps/web/src/components/route/RouteDetailShell.tsx
+apps/web/src/components/route/section-registry.ts
+apps/web/src/components/route/HonestEmptySection.tsx apps/web/test/shared/section-registry.test.ts
+apps/web/test/shared/route-detail-shell.test.ts knowledge/log.md`, `bun --filter @bp/web
+typecheck`, `bun --filter @bp/web build`, `jq empty
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/intervention-records-corpus-reviewed.json
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/source-receipt-closure-audit.json
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/source-receipt-closure-audit-summary.json`,
+`bun --filter @bp/pipeline-v2 cli -- docs tier2 source-receipt-audit --queue-path ...`, `bun
+--filter @bp/pipeline-v2 cli -- audit tier2-structured-data --json`, `bun run check:types`, `bun
+run check:knowledge`, and `git diff --check`.
+
 ## [2026-06-12] engineering | Evidence tab counts registry-routed signals
 
 Advanced the route-detail §8.1 / §4.3 evidence handoff by making the Evidence tab header count

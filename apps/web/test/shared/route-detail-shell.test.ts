@@ -87,6 +87,18 @@ describe("RouteDetailShell tab render contract", () => {
     expect(sparseHtml).not.toContain('aria-label="2 flags"');
   });
 
+  test("marks visible honest-empty tabs without exposing hidden tabs", () => {
+    const cleanHtml = renderShell(clean);
+    const sparseHtml = renderShell(sparse);
+
+    expect(cleanHtml).toContain("Checked");
+    expect(cleanHtml).not.toContain("Treatments &amp; history");
+    expect(sparseHtml).toContain("Building");
+    expect(sparseHtml).toContain("Thin");
+    expect(sparseHtml).toContain("Blocked");
+    expect(sparseHtml).not.toContain("Reliability");
+  });
+
   test("preserves question-shaped tab titles in the shell chrome", () => {
     const richHtml = renderShell(rich);
 
