@@ -11,7 +11,7 @@ import { riderImpactSummary } from "@/components/route/rider-impact-summary";
 import {
   type RouteDetailTabValue,
   type RouteSectionRegistry,
-  routeSectionCanNavigate,
+  routeSectionNavigationTarget,
 } from "@/components/route/section-registry";
 import { Spark } from "@/components/Spark";
 import type {
@@ -118,8 +118,10 @@ export function RouteJudgedKpiStrip({
     hasLane ? "bus lane" : null,
     aceActive ? `ACE${posture?.aceSince ? ` since ${posture.aceSince.slice(0, 4)}` : ""}` : null,
   ].filter(Boolean);
-  const clickTarget = (tab: RouteDetailTabValue) =>
-    routeSectionCanNavigate(sectionRegistry, tab) ? () => onNavigate(tab) : undefined;
+  const clickTarget = (tab: RouteDetailTabValue) => {
+    const target = routeSectionNavigationTarget(sectionRegistry, tab, "evidence");
+    return target === null ? undefined : () => onNavigate(target);
+  };
 
   return (
     <MetricColumns>

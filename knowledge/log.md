@@ -2,6 +2,42 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Judged KPI clicks fall back to Evidence
+
+Advanced the route-detail §4.1 / §8.1 handoff by routing judged KPI header clicks through the
+section registry's canonical navigation fallback. If a KPI's owning section is manifest-hidden,
+the header now sends the reader to Evidence instead of becoming a dead click target; visible and
+honest-empty sections still open their owning tabs. The existing registry test covers the hidden
+section fallback to Evidence for sparse and not-applicable route shapes.
+
+Also reviewed `nyc_dot_select_bus_service_pdf_2013_02_sbs_webster_bx_cb1` from the full-corpus
+source review workspace as a proposed Bx41 Webster Avenue SBS plan record. The local ignored
+reviewed-record seed now has 21 sources and 21 records. The record cites the February 11, 2013 CB1
+deck, Bx41 LTD to Bx41 SBS conversion, 4 miles of offset bus lanes, off-board fare collection,
+TSP/traffic signal coordination, pedestrian improvements, station/bus-bulb planning, Hub stop
+changes, half-mile SBS stop spacing, and the end-of-June 2013 service-start plan.
+
+The record stores `effectiveDate: 2013-06` with `datePrecision: month` because this source gives a
+June/end-of-month launch plan rather than the exact launch day. It separately caveats the 2014-2015
+bus-bulb/capital construction phase, treats Bx12/M15/M34/S79/B44/M60/Bx15/Bx55/LGA references as
+context or related service-plan mentions rather than assigned intervention routes, and flags
+map-derived station geometry for visual review. Regenerated the local ignored source receipt
+closure audit. It now reports 291 queue sources, 21 valid reviewed records, 21 reviewed-record
+sources, 22 closed sources, 269 open sources, and 0 conflicts; public promotion remains blocked on
+full source closure. The broader Tier 2 structured-data inventory still reports the older
+published-inventory next action because it scans published artifacts rather than this ignored
+manual-review seed.
+
+Verified with `bunx biome check
+apps/web/src/components/route/section-registry.ts apps/web/src/components/route/RouteJudgedKpiStrip.tsx
+apps/web/test/shared/section-registry.test.ts`, `bun test
+apps/web/test/shared/section-registry.test.ts --timeout 5000`, `bun --filter @bp/web typecheck`,
+`bun --filter @bp/web build`, `bun run check:types`, `bun run check:knowledge`, `git diff
+--check`, `jq empty
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/intervention-records-corpus-reviewed.json`,
+`bun --filter @bp/pipeline-v2 cli -- docs tier2 source-receipt-audit ...`, and `bun --filter
+@bp/pipeline-v2 cli -- audit tier2-structured-data --json`.
+
 ## [2026-06-12] engineering | Hidden route sections preserve badge evidence
 
 Advanced the route-detail §8.1 registry handoff by keeping detector badge metadata on hidden
