@@ -4,7 +4,6 @@ import { type ReactNode, useEffect, useState } from "react";
 import { KPISkeleton } from "@/components/KPI";
 import { DataNotesSection } from "@/components/route/DataNotesSection";
 import { HonestEmptySection } from "@/components/route/HonestEmptySection";
-import { InterventionsSection } from "@/components/route/InterventionsSection";
 import { OverviewSection } from "@/components/route/OverviewSection";
 import { ReliabilitySection } from "@/components/route/ReliabilitySection";
 import { RidersSection } from "@/components/route/RidersSection";
@@ -18,7 +17,7 @@ import { RouteJudgedKpiStrip } from "@/components/route/RouteJudgedKpiStrip";
 import { RouteMapSection } from "@/components/route/RouteMapSection";
 import { SlowSegmentsSection } from "@/components/route/SlowSegments";
 import { sectionPresentation } from "@/components/route/section-registry";
-import { TimelineSection } from "@/components/route/TimelineSection";
+import { TreatmentsHistorySection } from "@/components/route/TreatmentsHistorySection";
 import { SegmentRowHeader, SegmentRowSkeleton } from "@/components/SegmentRow";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TabsContent } from "@/components/ui/tabs";
@@ -134,10 +133,7 @@ export function RouteDetailPage({ data }: { data: StudioRouteDetailResponse | nu
           <RidersSection data={data} />
         ))}
         {section("treatments", () => (
-          <div className="flex flex-col gap-11">
-            <InterventionsSection route={route} segments={segments} />
-            <TimelineSection data={data} />
-          </div>
+          <TreatmentsHistorySection data={data} />
         ))}
         {section("evidence", () => (
           <DataNotesSection data={data} />

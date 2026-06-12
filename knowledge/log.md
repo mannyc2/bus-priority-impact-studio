@@ -2,6 +2,36 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Tier 2 M15 CB8 March source review closes one more source
+
+Reviewed `nyc_dot_bus_priority_document_pdf_2010_03_11_brt_1st2nd_cb8` from the full-corpus
+source review workspace as a proposed First Avenue/Second Avenue M15 SBS Phase 1 schedule and
+treatment record. The local ignored reviewed-record seed now has 5 sources and 5 records. The new
+record cites the March 11, 2010 CB8 presentation, the First Avenue/Second Avenue M15 corridor from
+South Ferry to 125th Street, the 2010 SBS feature table for off-board fare collection and improved
+bus lanes, the 2010 schedule showing October Phase 1 SBS service beginning, and selected CB8 station
+siting pages, while preserving caveats that the source is pre-launch, month-level, and not a full
+block-by-block assignment.
+
+Regenerated the local ignored source receipt closure audit. It now reports 291 queue sources, 5
+valid reviewed records, 3 disposition receipts, 6 closed sources, 285 open sources, and 0 conflicts;
+public promotion remains blocked on full source closure. Verified with `jq empty` on the reviewed
+record artifact, `bun run pipeline docs tier2 source-receipt-audit ...`, and
+`bun run pipeline audit tier2-structured-data --json`.
+
+## [2026-06-12] engineering | Treatments history tab becomes dossier-backed
+
+Consolidated the route-detail Treatments & history tab into the §4.3 redesign shape. The tab now
+shows treatment posture stats, family-grouped treatment inventory, source-labeled document refs,
+dated intervention history, dossier-backed speed history, and comparison cards only when a promoted
+route record carries a peer-adjusted comparison window. This replaces the old split between the
+treatment inventory and timeline sections without reviving the blocked detector feature fixes.
+
+Added helper coverage for promoted comparison card formatting and source-row de-duplication.
+Verified with `bun test apps/web/test/shared/treatments-history.test.ts
+apps/web/test/shared/section-registry.test.ts --timeout 5000`, `bun --filter @bp/web typecheck`,
+targeted `bunx biome check --write ...`, and `bun --filter @bp/web build`.
+
 ## [2026-06-12] engineering | Evidence shows manifest coverage matrix
 
 Advanced the route-detail Evidence tab from dataset notes into the §5.3/§8.1 manifest-backed
