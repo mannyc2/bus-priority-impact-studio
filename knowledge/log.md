@@ -2,6 +2,38 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Where-and-when floats detector-targeted segments
+
+Advanced the route-detail §5.2 detector-shaped ordering contract by making the Where & when
+section prioritize detector-targeted map/segment insights ahead of the generic slowest-segment
+fallback rows. The section still shows the fallback top rows, but the merged visible set is now
+de-duplicated with insight-targeted segments first, so promoted segment evidence can reach the
+featured cards instead of being appended after the generic top five.
+
+Also closed `nyc_dot_bus_priority_document_pdf_lower_montauk_final_report_jan2018` from the
+full-corpus source review workspace with a `no_actionable_bus_priority_intervention` disposition.
+Direct review of the Lower Montauk Branch Rail Study pages found a passenger-rail reactivation
+feasibility study, not a bus-priority intervention source. The source mentions bus routes such as
+Q11/Q21/Q23/Q52/Q53/BM5/QM12/QM15/QM42 only as station-access or transit-connectivity context for
+potential rail stations, while the recommendations concern rail mode, station siting,
+ADA/platform requirements, freight accommodation, capital costs, funding, and permitting.
+
+Regenerated the local ignored source receipt closure audit. It now reports 291 queue sources, 29
+valid reviewed records, 4 disposition receipts, 31 closed sources, 260 open sources, and 0
+conflicts; public promotion remains blocked on full source closure. The broader Tier 2
+structured-data inventory still reports the older published-inventory next action because it scans
+published artifacts rather than this ignored manual-review seed.
+
+Verified with `bunx biome check apps/web/src/components/route/SlowSegments.tsx
+apps/web/test/shared/where-when-segment-order.test.ts`, `bun test
+apps/web/test/shared/where-when-segment-order.test.ts --timeout 5000`, `bun --filter @bp/web
+typecheck`, `bun --filter @bp/web build`, `bun run check:types`, `bun run check:knowledge`, `git
+diff --check`, `jq empty
+data/artifacts/docs/agentic-runs-20260604/source-disposition-receipts-full-authority-qv1-qv10-v1/source-disposition-receipts.json
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/intervention-records-corpus-reviewed.json`,
+`bun --filter @bp/pipeline-v2 cli -- docs tier2 source-receipt-audit --queue-path ...`, and `bun
+--filter @bp/pipeline-v2 cli -- audit tier2-structured-data --json`.
+
 ## [2026-06-12] engineering | Overview verdict uses top route signals
 
 Advanced the route-detail §4.2 / §5 verdict handoff by making the Overview "What stands out"
