@@ -3,7 +3,6 @@ import { type CaptureSource, SendToBriefSheet } from "@/components/brief/SendToB
 import { ChartFrame } from "@/components/ChartFrame";
 import { CorridorMap } from "@/components/CorridorMap";
 import { CorridorProfile } from "@/components/CorridorProfile";
-import { DataAsOf } from "@/components/DataAsOf";
 import { FilterChips } from "@/components/FilterChips";
 import { HourBars } from "@/components/HourBars";
 import { averageHourlySpeed } from "@/components/route/route-derived";
@@ -97,7 +96,6 @@ export function SlowSegmentsSection({
         sub={summary.sectionSubtitle}
         right={
           <div className="flex items-center gap-2">
-            <DataAsOf dataAsOf={summary.dataAsOf} />
             <FilterChips
               ariaLabel="Direction"
               value={direction}

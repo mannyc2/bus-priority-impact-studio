@@ -1,5 +1,7 @@
+import type { MapRouteSegmentFeatureCollection } from "@bp/domain/maps";
+import { useEffect, useState } from "react";
 import { CorridorMap } from "@/components/CorridorMap";
-import { DataAsOf } from "@/components/DataAsOf";
+import { RouteGeoMap } from "@/components/route/RouteGeoMap";
 import {
   insightTargetsSegment,
   routeInsightPlacements,
@@ -7,6 +9,7 @@ import {
 import { routeSectionQuestion } from "@/components/route/section-registry";
 import { SectionHeader } from "@/components/SectionHeader";
 import { Badge } from "@/components/ui/badge";
+import { fetchRouteSegmentsGeo } from "@/studio/api-client";
 import type {
   StudioRouteDetailResponse,
   StudioRouteInsight,
@@ -61,31 +64,51 @@ export function routeMapFocusSummary(highlight: RouteMapHighlight): RouteMapFocu
   };
 }
 
+type GeoState =
+  | { status: "loading" }
+  | { status: "ready"; collection: MapRouteSegmentFeatureCollection }
+  | { status: "unavailable" };
+
+export function useRouteSegmentsGeo(routeId: string): GeoState {
+  const [state, setState] = useState<GeoState>({ status: "loading" });
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setState({ status: "loading" });
+    fetchRouteSegmentsGeo(routeId, { signal: controller.signal })
+      .then((collection) => {
+        if (controller.signal.aborted) return;
+        setState(
+          collection === null || collection.features.length === 0
+            ? { status: "unavailable" }
+            : { status: "ready", collection },
+        );
+      })
+      .catch(() => {
+        if (controller.signal.aborted) return;
+        setState({ status: "unavailable" });
+      });
+    return () => controller.abort();
+  }, [routeId]);
+
+  return state;
+}
+
 export function RouteMapSection({ data }: { data: StudioRouteDetailResponse }) {
   const { route, segments } = data;
   const highlight = routeMapHighlight(segments, data.insights);
   const focus = routeMapFocusSummary(highlight);
   const laneSegments = segments.filter((segment) => segment.lane !== "none").length;
   const treatmentSegments = segments.filter((segment) => segment.ace || segment.tsp).length;
-  const surfaces = data.capability?.surfaces;
-  const dataAsOf =
-    // biome-ignore lint/complexity/useLiteralKeys: capability surfaces are index-signature keys.
-    surfaces?.["map"]?.dataAsOf ??
-    // biome-ignore lint/complexity/useLiteralKeys: capability surfaces are index-signature keys.
-    surfaces?.["geometry"]?.dataAsOf ??
-    // biome-ignore lint/complexity/useLiteralKeys: capability surfaces are index-signature keys.
-    surfaces?.["routeGeometry"]?.dataAsOf ??
-    data.dossier?.dataAsOf ??
-    null;
+  const geo = useRouteSegmentsGeo(route.routeId);
 
   return (
     <section className="flex flex-col gap-5">
       <SectionHeader
         title={routeSectionQuestion("map")}
-        sub="Pace, flags, priority."
+        sub="Observed segment speeds on the route's street geometry."
         right={
           <div className="flex flex-wrap items-center gap-2">
-            <DataAsOf dataAsOf={dataAsOf} />
             <Badge
               variant={
                 highlight.signalCount > 0 ? "warn" : highlight.segment?.flagged ? "bad" : "neutral"
@@ -102,8 +125,24 @@ export function RouteMapSection({ data }: { data: StudioRouteDetailResponse }) {
         }
       />
       <div className="rounded-[3px] bg-[var(--bp-color-card)] p-5 shadow-[0_0_0_1px_var(--bp-color-rule)]">
-        <CorridorMap route={route} segments={segments} highlightId={highlight.segment?.id} />
+        {geo.status === "ready" ? (
+          <RouteGeoMap collection={geo.collection} />
+        ) : geo.status === "loading" ? (
+          <div
+            className="animate-pulse rounded-[3px] bg-[var(--bp-color-ink-06)]"
+            style={{ height: 420 }}
+            aria-hidden
+          />
+        ) : (
+          <CorridorMap route={route} segments={segments} highlightId={highlight.segment?.id} />
+        )}
       </div>
+      {geo.status === "unavailable" ? (
+        <p className="m-0 text-[11.5px] text-[var(--bp-color-ink-55)]">
+          Street geometry for this route is not published yet; showing the corridor speed profile
+          instead.
+        </p>
+      ) : null}
       <div className="grid grid-cols-3 gap-4 max-lg:grid-cols-1">
         <MapStat
           label="Bus lanes"

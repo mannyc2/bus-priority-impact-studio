@@ -2,6 +2,39 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Frontend regression fixes from user design review
+
+The user reviewed the dossier-redesign frontend (PRs #12–#32) and rejected several of its
+patterns. This slice applies the punch list. Deleted every visible "data as of" freshness chip
+(the `DataAsOf` component and the shell nav "data current to" line are gone; the underlying
+dossier clocks are untouched). The route header KPI strip now leads with real numbers — observed
+mph, 6-month trend %, excess wait minutes, daily riders, bus-lane coverage % — instead of the
+judged words Condition/Observed/Treated; peer framing moved to the sub-line.
+
+/routes now has one "Routes needing attention" block in the discovery-section layout
+(needs_attention, worsening_fast, treatment_gaps; data_coverage is no longer rendered publicly)
+plus a clean "All routes" index sorted by riders with em-dashes for unpublished values, fixing
+the all-zeros alphabetical list. The route Overview was rebuilt: prose summary sentence, the
+"Story" chart renamed to a real "Speed history" frame, fake hardcoded insight micro-figures and
+the badge-soup verdict bar deleted. The homepage now ends after the "every route" index — the
+how-to-use cards and the fabricated colophon (fake analysts, stats, contact) are deleted.
+Findings cards hide "x/100 detector score" strings via `publicMetric` and drop the fabricated
+ConfidenceBar; real quantities still render.
+
+The Map tab is now an actual geographic map: `RouteGeoMap` draws the precomputed
+`map/route-segments/{routeId}/{month}/all-day.geojson` artifacts (real street LineStrings,
+speed-banded colors, termini, slowest-stretch callout gated to genuinely slow segments) as plain
+SVG — no map library, bundle stays at 482.6/485 KB gz. The client reaches it through the
+existing `/api/v1/map/manifest` + `/api/v1/artifacts/:key` endpoints; local dev R2 was seeded
+with `scripts/seed-local-studio-r2.sh ... data/artifacts/map/<dir>`. Overview's map card uses a
+compact variant of the same component, replacing the 150×22 `CorridorMapMini` strip.
+
+Verified with `bun test apps/web/test` (88 pass), `bun --filter @bp/web typecheck`,
+`bun --filter @bp/web build` (budget ok), `bunx biome check` on changed files, and headless
+browser screenshots of /, /routes, /routes/m15-sbs (Overview + Map tabs), and /findings.
+Follow-ups the user has asked for but not in this slice: Where & when redesign, finding-detail
+and brief-detail pages, a citywide map page.
+
 ## [2026-06-12] engineering | Condition KPI leads with peer framing
 
 Aligned the judged KPI strip with the route-detail redesign contract: the Condition tile now leads

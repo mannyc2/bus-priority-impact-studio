@@ -1,5 +1,4 @@
 import { ChartFrame } from "@/components/ChartFrame";
-import { DataAsOf } from "@/components/DataAsOf";
 import { HourExposure } from "@/components/HourExposure";
 import {
   riderImpactInsightRows,
@@ -33,11 +32,7 @@ export function RidersSection({ data }: { data: StudioRouteDetailResponse }) {
 
   return (
     <div className="flex flex-col gap-7">
-      <SectionHeader
-        title={routeSectionQuestion("riders")}
-        sub={summary.sectionSubtitle}
-        right={<DataAsOf dataAsOf={summary.dataAsOf} />}
-      />
+      <SectionHeader title={routeSectionQuestion("riders")} sub={summary.sectionSubtitle} />
       <div className="grid grid-cols-3 rounded-[3px] bg-[var(--bp-color-card)] shadow-[0_0_0_1px_var(--bp-color-rule)] max-lg:grid-cols-1">
         <RiderKpi
           label="Daily riders"
@@ -218,7 +213,6 @@ function RiderInsightPanel({ insights }: { insights: StudioRouteDetailResponse["
                   <Badge variant={insight.severity === "high" ? "bad" : "neutral"}>
                     {insight.severity}
                   </Badge>
-                  <DataAsOf dataAsOf={insight.asOfMonth ?? insight.month ?? null} />
                 </div>
                 <div className="text-[12.5px] font-semibold">{insight.title}</div>
                 <div className="mt-1 text-[11.5px] leading-[1.45] text-[var(--bp-color-ink-55)]">

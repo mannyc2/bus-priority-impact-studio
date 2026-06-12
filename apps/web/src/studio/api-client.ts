@@ -1,3 +1,4 @@
+import { MapManifestResponseSchema, MapRouteSegmentFeatureCollectionSchema } from "@bp/domain/maps";
 import {
   createStudioApiClient,
   type PathBuildInput,
@@ -258,6 +259,26 @@ export function fetchStudioCompare(a: string, b: string, options?: StudioQueryOp
 
 export function fetchStudioFindings(options?: StudioQueryOptions) {
   return loadStudioJson(studioPath("studio.findings"), StudioFindingsResponseSchema, options);
+}
+
+export function fetchMapManifest(options?: StudioQueryOptions) {
+  return loadNullableStudioJson(
+    studioPath("public.mapManifest"),
+    MapManifestResponseSchema,
+    options,
+  );
+}
+
+/** Fetch the precomputed route-segment GeoJSON for one route, via the map manifest. */
+export async function fetchRouteSegmentsGeo(routeId: string, options?: StudioQueryOptions) {
+  const manifest = await fetchMapManifest(options);
+  if (manifest === null) return null;
+  const entry = manifest.artifacts.find(
+    (artifact) =>
+      artifact.artifactKind === "map_route_segments_geojson" && artifact.routeId === routeId,
+  );
+  if (entry === undefined) return null;
+  return loadNullableStudioJson(entry.apiPath, MapRouteSegmentFeatureCollectionSchema, options);
 }
 
 export function fetchStudioFinding(findingId: string, options?: StudioQueryOptions) {

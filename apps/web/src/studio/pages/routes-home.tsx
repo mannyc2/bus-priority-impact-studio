@@ -1,6 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { DataAsOf } from "@/components/DataAsOf";
 import { EmptyState } from "@/components/EmptyState";
 import { FilterChips } from "@/components/FilterChips";
 import { RouteBadge } from "@/components/RouteBadge";
@@ -28,10 +27,9 @@ const visibleSectionIds = [
   "needs_attention",
   "worsening_fast",
   "treatment_gaps",
-  "data_coverage",
 ] as const satisfies readonly StudioRouteSectionId[];
 
-const SECTION_ROW_LIMIT = 4;
+const SECTION_ROW_LIMIT = 6;
 
 function matchesFilter(route: StudioRoute, filter: FilterId): boolean {
   if (filter === "sbs") return route.sbs;
@@ -45,11 +43,6 @@ function formatRiders(n: number): string {
 
 function routeRowSbs(row: StudioRouteSectionRow): boolean {
   return row.routeId.includes("+") || row.label.toLowerCase().includes("sbs");
-}
-
-function sectionStatusLabel(status: StudioRouteSection["status"]): string {
-  if (status === "not_built") return "not built";
-  return status;
 }
 
 function sectionRankRows(section: StudioRouteSection): readonly StudioRouteSectionRow[] {
@@ -76,43 +69,27 @@ function RouteDiscoverySections({
     const section = byId.get(id);
     return section === undefined ? [] : [section];
   });
-  const notBuilt = routeSections.sections.filter((section) => section.status === "not_built");
+
+  if (sections.length === 0) {
+    return null;
+  }
 
   return (
     <section className="mt-10 border-y border-[var(--bp-color-rule)] py-5">
-      <div className="mb-4 flex items-end justify-between gap-4 max-md:flex-col max-md:items-start">
-        <div>
-          <h2 className="m-0 text-[19px] font-semibold leading-tight tracking-[-0.015em]">
-            Route discovery
-          </h2>
-          <p className="mt-1 max-w-[680px] text-[12.5px] leading-normal text-[var(--bp-color-ink-70)]">
-            <DataAsOf dataAsOf={routeSections.dataAsOf} /> — ranks from current route summaries,
-            history, and coverage flags.
-          </p>
-        </div>
-        <div className="whitespace-nowrap text-[11px] font-medium text-[var(--bp-color-ink-55)]">
-          {routeSections.sections.length} sections
-        </div>
+      <div className="mb-4">
+        <h2 className="m-0 text-[19px] font-semibold leading-tight tracking-[-0.015em]">
+          Routes needing attention
+        </h2>
+        <p className="mt-1 max-w-[680px] text-[12.5px] leading-normal text-[var(--bp-color-ink-70)]">
+          Ranked from observed speeds, speed history, and the treatment record. Not a recommendation
+          — a triage list.
+        </p>
       </div>
-      <div className="grid grid-cols-2 gap-x-8 gap-y-6 max-lg:grid-cols-1">
+      <div className="grid grid-cols-3 gap-x-8 gap-y-6 max-lg:grid-cols-1">
         {sections.map((section) => (
           <RouteDiscoverySection key={section.sectionId} section={section} />
         ))}
       </div>
-      {notBuilt.length > 0 ? (
-        <div className="mt-4 flex flex-wrap gap-2 text-[11px] text-[var(--bp-color-ink-55)]">
-          <span className="font-medium text-[var(--bp-color-ink-70)]">Not yet ranked:</span>
-          {notBuilt.map((section) => (
-            <span
-              key={section.sectionId}
-              className="rounded-[3px] bg-[var(--bp-color-ink-06)] px-1.5 py-0.5"
-              title={section.notBuiltReason ?? undefined}
-            >
-              {section.title}
-            </span>
-          ))}
-        </div>
-      ) : null}
     </section>
   );
 }
@@ -123,14 +100,7 @@ function RouteDiscoverySection({ section }: { section: StudioRouteSection }) {
     <div className="min-w-0">
       <div className="mb-2 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <h3 className="m-0 truncate text-[13px] font-semibold leading-tight">
-              {section.title}
-            </h3>
-            <span className="rounded-[3px] bg-[var(--bp-color-ink-06)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--bp-color-ink-55)]">
-              {sectionStatusLabel(section.status)}
-            </span>
-          </div>
+          <h3 className="m-0 truncate text-[13px] font-semibold leading-tight">{section.title}</h3>
           <p className="mt-1 line-clamp-2 text-[11.5px] leading-snug text-[var(--bp-color-ink-55)]">
             {section.productQuestion}
           </p>
@@ -142,7 +112,7 @@ function RouteDiscoverySection({ section }: { section: StudioRouteSection }) {
         ))}
         {rows.length === 0 ? (
           <div className="py-3 text-[12px] text-[var(--bp-color-ink-55)]">
-            No routes pass this section's coverage gate.
+            No routes ranked here right now.
           </div>
         ) : null}
       </div>
@@ -165,7 +135,7 @@ function RouteDiscoveryRow({ row }: { row: StudioRouteSectionRow }) {
           {row.reasons[0] ?? row.scoreLabel}
         </div>
         <div className="mt-0.5 truncate text-[10.5px] text-[var(--bp-color-ink-55)]">
-          {row.reasons.slice(1, 3).join(" · ") || row.supportLevel.replaceAll("_", " ")}
+          {row.reasons.slice(1, 3).join(" · ")}
         </div>
       </div>
       <div className="text-right max-sm:col-start-2 max-sm:text-left">
@@ -210,9 +180,10 @@ export function RoutesHomePage({
     [routes],
   );
 
-  // Snapshot 2.0 expands the backend route universe; keep this prototype page's visual sort/filter
-  // behavior stable until the release data is complete enough to redesign the public route index.
-  const filtered = routes.filter((route) => matchesFilter(route, filter));
+  const filtered = routes
+    .filter((route) => matchesFilter(route, filter))
+    .slice()
+    .sort((a, b) => b.dailyRiders - a.dailyRiders);
 
   return (
     <StudioPage>
@@ -271,15 +242,14 @@ export function RoutesHomePage({
         <div className="mb-3 flex items-end justify-between gap-4 max-md:flex-col max-md:items-start">
           <div>
             <h2 className="m-0 text-[19px] font-semibold leading-tight tracking-[-0.015em]">
-              Routes needing attention this month
+              All routes
             </h2>
             <p className="mt-1 max-w-[620px] text-[12.5px] leading-normal text-[var(--bp-color-ink-70)]">
-              Surfaced by week-over-week speed decline weighted by daily riders. Not a
-              recommendation - a triage list.
+              Every tracked route, busiest first.
             </p>
           </div>
           <FilterChips
-            ariaLabel="Filter routes needing attention"
+            ariaLabel="Filter all routes"
             value={filter}
             onChange={setFilter}
             options={filters}
@@ -287,7 +257,9 @@ export function RoutesHomePage({
         </div>
         <div className="mt-4 grid grid-cols-2 gap-x-8 max-lg:grid-cols-1">
           {filtered.map((route) => {
+            const hasSpeed = route.speedMph > 0;
             const delta = route.speedMph - route.scheduledMph;
+            const showDelta = hasSpeed && route.scheduledMph > 0;
             return (
               <Link
                 key={route.slug}
@@ -302,12 +274,12 @@ export function RoutesHomePage({
                     {route.corridor}
                   </div>
                   <div className="mt-0.5 truncate text-[11px] text-[var(--bp-color-ink-55)]">
-                    {route.flags.join(" · ")}
+                    {route.borough}
                   </div>
                 </div>
                 <div className="text-right">
                   <div className="font-mono text-[16px] font-semibold tabular-nums leading-none">
-                    {route.speedMph.toFixed(1)}
+                    {hasSpeed ? route.speedMph.toFixed(1) : "—"}
                   </div>
                   <div className="mt-0.5 text-[9px] uppercase tracking-[0.04em] text-[var(--bp-color-ink-55)]">
                     mph
@@ -316,14 +288,17 @@ export function RoutesHomePage({
                 <div
                   className="text-right font-mono text-[12px] font-semibold tabular-nums"
                   style={{
-                    color: delta < 0 ? "var(--bp-color-bad)" : "var(--bp-color-good)",
+                    color: showDelta
+                      ? delta < 0
+                        ? "var(--bp-color-bad)"
+                        : "var(--bp-color-good)"
+                      : "var(--bp-color-ink-55)",
                   }}
                 >
-                  {delta > 0 ? "+" : ""}
-                  {delta.toFixed(1)}
+                  {showDelta ? `${delta > 0 ? "+" : ""}${delta.toFixed(1)}` : "—"}
                 </div>
                 <div className="text-right font-mono text-[11px] tabular-nums text-[var(--bp-color-ink-55)]">
-                  {formatRiders(route.dailyRiders)}/day
+                  {route.dailyRiders > 0 ? `${formatRiders(route.dailyRiders)}/day` : "—"}
                 </div>
               </Link>
             );
@@ -357,15 +332,12 @@ export function RoutesHomeLoadingPage() {
       </header>
       <Skeleton className="h-[52px] max-w-[760px] rounded-[3px]" />
       <section className="mt-10 border-y border-[var(--bp-color-rule)] py-5">
-        <div className="mb-4 flex items-end justify-between gap-4 max-md:flex-col max-md:items-start">
-          <div>
-            <Skeleton className="h-[22px] w-[190px]" />
-            <Skeleton className="mt-2 h-[13px] w-[560px] max-w-full" />
-          </div>
-          <Skeleton className="h-[13px] w-[70px]" />
+        <div className="mb-4">
+          <Skeleton className="h-[22px] w-[190px]" />
+          <Skeleton className="mt-2 h-[13px] w-[560px] max-w-full" />
         </div>
-        <div className="grid grid-cols-2 gap-x-8 gap-y-6 max-lg:grid-cols-1">
-          {Array.from({ length: 4 }).map((_, sectionIndex) => (
+        <div className="grid grid-cols-3 gap-x-8 gap-y-6 max-lg:grid-cols-1">
+          {Array.from({ length: 3 }).map((_, sectionIndex) => (
             <div key={sectionIndex}>
               <div className="mb-2">
                 <Skeleton className="h-[15px] w-[150px]" />

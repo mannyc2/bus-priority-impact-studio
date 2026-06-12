@@ -1,7 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 import { useState } from "react";
-import { ConfidenceBar } from "@/components/ConfidenceBar";
 import { EmptyState } from "@/components/EmptyState";
 import { FilterChips } from "@/components/FilterChips";
 import { Rail, RailRule } from "@/components/Rail";
@@ -30,6 +29,13 @@ function severityBorderColor(category: string): string {
   if (category === "Anomaly") return "var(--bp-color-bad)";
   if (category === "Treatment gap") return "var(--bp-color-warn)";
   return "var(--bp-color-accent)";
+}
+
+// Internal detector scores ("70/100 detector score") are review tooling, not a
+// public metric; only real observed quantities earn the card's metric slot.
+function publicMetric(metric: string): string | null {
+  if (/\d+\s*\/\s*\d+\s*detector score/i.test(metric)) return null;
+  return metric;
 }
 
 function reviewBadge(finding: StudioFindingsResponse["findings"][number]["finding"]) {
@@ -189,6 +195,7 @@ export function FindingsFeedPage({ data }: { data: StudioFindingsResponse }) {
             {sorted.map(({ finding, route }) => {
               const borderColor = severityBorderColor(finding.category);
               const review = reviewBadge(finding);
+              const metric = publicMetric(finding.metric);
               return (
                 <article
                   key={finding.id}
@@ -228,12 +235,13 @@ export function FindingsFeedPage({ data }: { data: StudioFindingsResponse }) {
                           {finding.body}
                         </p>
                       </div>
-                      <div className="w-[170px] shrink-0">
-                        <div className="mb-2 font-mono text-[18px] font-semibold tabular-nums">
-                          {finding.metric}
+                      {metric !== null ? (
+                        <div className="w-[170px] shrink-0">
+                          <div className="font-mono text-[18px] font-semibold tabular-nums">
+                            {metric}
+                          </div>
                         </div>
-                        <ConfidenceBar value={finding.confidence === "high" ? 82 : 58} />
-                      </div>
+                      ) : null}
                     </div>
                   </Link>
                   <div className="flex items-center justify-between border-t border-[var(--bp-color-rule)] px-5 py-2.5">
@@ -312,8 +320,7 @@ export function FindingsFeedLoadingPage() {
                     <Skeleton className="mt-2 h-[13px] w-[64%] max-w-[680px]" />
                   </div>
                   <div className="w-[170px] shrink-0">
-                    <Skeleton className="mb-3 h-[22px] w-[96px]" />
-                    <Skeleton className="h-[8px] w-full rounded-full" />
+                    <Skeleton className="h-[22px] w-[96px]" />
                   </div>
                 </div>
               </article>

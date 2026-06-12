@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { DataAsOf } from "@/components/DataAsOf";
 import {
   MetricColumn,
   MetricColumns,
@@ -22,10 +21,9 @@ import type {
 import type { MetricTone } from "@/studio/metric-model";
 
 /**
- * The judged KPI header (frontend §4.1): five time-aware verdicts fed by the
- * route dossier — peer framing leads, the raw number supports. Each column
- * carries its own `dataAsOf` clock and clicks through to the tab that explains
- * it. Detail-page only; compare keeps the raw-metric strip.
+ * The route header KPI strip: five real numbers fed by the route dossier.
+ * Each column clicks through to the tab that explains it. Detail-page only;
+ * compare keeps the raw-metric strip.
  */
 
 const RELIABILITY_SURFACE = "reliability";
@@ -36,13 +34,15 @@ function fmtPct(pct: number | null): string {
   return `${pct > 0 ? "+" : ""}${pct.toFixed(1)}%`;
 }
 
-function peerHeadline(peerPercentile: number | null): string | null {
-  if (peerPercentile === null) return null;
-  const fast = peerPercentile >= 50;
-  return `${fast ? ">" : "<"}${Math.round(fast ? peerPercentile : 100 - peerPercentile)}%`;
+function peerSub(peerPercentile: number | null): string {
+  if (peerPercentile === null) return "observed average";
+  if (peerPercentile >= 50) {
+    return `faster than ${Math.round(peerPercentile)}% of peers`;
+  }
+  return `slower than ${Math.round(100 - peerPercentile)}% of peers`;
 }
 
-function Judged({
+function Kpi({
   label,
   divider,
   onClick,
@@ -51,7 +51,6 @@ function Judged({
   tone = "ink",
   trailing,
   sub,
-  dataAsOf,
 }: {
   label: string;
   divider: boolean;
@@ -61,13 +60,11 @@ function Judged({
   tone?: MetricTone;
   trailing?: ReactNode;
   sub: string;
-  dataAsOf: string | null;
 }) {
   const body = (
     <>
       <MetricStat value={value} unit={unit} color={metricToneColor[tone]} trailing={trailing} />
       <div className="mt-[3px] text-[11px] text-[var(--bp-color-ink-55)]">{sub}</div>
-      <DataAsOf dataAsOf={dataAsOf} className="mt-1" />
     </>
   );
   return (
@@ -110,18 +107,12 @@ export function RouteJudgedKpiStrip({
   });
 
   const currentSpeed = speed?.current ?? route.weightedAvgSpeed;
-  const currentSpeedLabel = currentSpeed.toFixed(1);
-  const speedPeer = peerHeadline(speed?.peerPercentile ?? null);
   const trendPct = speed?.movement6mPct ?? null;
 
   const aceActive = posture?.aceActive ?? route.aceStatus === "active";
-  const hasLane = (posture?.busLaneMatchedLaneCount ?? 0) > 0 || route.laneCoverage > 0;
-  const postureLabel =
-    aceActive && hasLane ? "Treated" : aceActive || hasLane ? "Partial" : "Untreated";
-  const postureBits = [
-    hasLane ? "bus lane" : null,
-    aceActive ? `ACE${posture?.aceSince ? ` since ${posture.aceSince.slice(0, 4)}` : ""}` : null,
-  ].filter(Boolean);
+  const aceSub = aceActive
+    ? `ACE${posture?.aceSince ? ` since ${posture.aceSince.slice(0, 4)}` : " active"}`
+    : "no camera enforcement";
   const clickTarget = (tab: RouteDetailTabValue) => {
     const target = routeSectionNavigationTarget(sectionRegistry, tab, "evidence");
     return target === null ? undefined : () => onNavigate(target);
@@ -129,17 +120,16 @@ export function RouteJudgedKpiStrip({
 
   return (
     <MetricColumns>
-      <Judged
-        label="Condition"
+      <Kpi
+        label="Speed"
         divider
         onClick={clickTarget("where-when")}
-        value={speedPeer ?? currentSpeedLabel}
-        unit={speedPeer ? "peers" : "mph"}
-        tone={currentSpeed < 6 ? "bad" : "ink"}
-        sub={speedPeer ? `${currentSpeedLabel} mph` : "no rank"}
-        dataAsOf={speed?.dataAsOf ?? null}
+        value={currentSpeed > 0 ? currentSpeed.toFixed(1) : "—"}
+        unit="mph"
+        tone={currentSpeed > 0 && currentSpeed < 6 ? "bad" : "ink"}
+        sub={peerSub(speed?.peerPercentile ?? null)}
       />
-      <Judged
+      <Kpi
         label="Trend"
         divider
         onClick={clickTarget("where-when")}
@@ -155,35 +145,36 @@ export function RouteJudgedKpiStrip({
             />
           ) : undefined
         }
-        sub="6 mo"
-        dataAsOf={speed?.dataAsOf ?? null}
+        sub="past 6 months"
       />
-      <Judged
-        label="Reliability"
+      <Kpi
+        label="Excess wait"
         divider
         onClick={clickTarget("reliability")}
-        value={reliabilityKpi.kpiValue}
-        tone={reliabilityKpi.kpiTone}
-        sub={reliabilityKpi.kpiSub}
-        dataAsOf={reliabilityKpi.dataAsOf}
+        value={reliabilityKpi.hasObservedMetrics ? reliabilityKpi.excessWaitLabel : "—"}
+        tone={reliabilityKpi.hasObservedMetrics ? reliabilityKpi.kpiTone : "ink"}
+        sub={
+          reliabilityKpi.hasObservedMetrics
+            ? `${reliabilityKpi.longGapLabel} long gaps`
+            : "not yet measured"
+        }
       />
-      <Judged
+      <Kpi
         label="Riders"
         divider
         onClick={clickTarget("riders")}
-        value={ridersKpi.kpiValue}
+        value={route.dailyRiders > 0 ? ridersKpi.kpiValue : "—"}
         tone={ridersKpi.kpiTone}
-        sub={ridersKpi.kpiSub}
-        dataAsOf={ridersKpi.dataAsOf}
+        sub={route.dailyRiders > 0 ? "daily riders" : "not yet measured"}
       />
-      <Judged
-        label="Treatment"
+      <Kpi
+        label="Bus lane"
         divider={false}
         onClick={clickTarget("treatments")}
-        value={postureLabel}
-        tone={postureLabel === "Treated" ? "good" : "ink"}
-        sub={postureBits.length > 0 ? postureBits.join(" · ") : "none"}
-        dataAsOf={posture?.dataAsOf ?? null}
+        value={`${route.laneCoverage}%`}
+        unit="of route"
+        tone={route.laneCoverage > 0 ? "good" : "ink"}
+        sub={aceSub}
       />
     </MetricColumns>
   );

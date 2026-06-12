@@ -9,7 +9,6 @@ const navItems = [
   { to: "/docs", label: "Docs" },
 ] as const;
 
-const DATA_CURRENT_TO = "2026-05-12";
 
 export function StudioShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
@@ -35,10 +34,6 @@ export function StudioShell({ children }: { children: ReactNode }) {
             <StudioNavLink key={item.to} item={item} pathname={pathname} />
           ))}
         </nav>
-        <div className="flex shrink-0 items-center gap-1.5 font-mono text-[11px] text-[var(--bp-color-ink-55)] max-sm:hidden">
-          <span className="h-1.5 w-1.5 rounded-full bg-[var(--bp-color-good)]" aria-hidden />
-          data current to {DATA_CURRENT_TO}
-        </div>
       </header>
       <div className="min-h-0 flex-1 overflow-auto">{children}</div>
     </div>

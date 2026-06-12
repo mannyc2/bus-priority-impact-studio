@@ -53,11 +53,7 @@ export function RouteDetailPage({ data }: { data: StudioRouteDetailResponse | nu
         {presentation.mode === "render" ? (
           render()
         ) : (
-          <HonestEmptySection
-            state={presentation.state}
-            reason={presentation.reason}
-            dataAsOf={presentation.dataAsOf}
-          />
+          <HonestEmptySection state={presentation.state} reason={presentation.reason} />
         )}
       </TabsContent>
     );
