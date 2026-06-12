@@ -2,12 +2,14 @@ export type { StudyDefinition, StudyRun } from "../core/study";
 export {
   assembleDetectorStudyInput,
   assembleDetectorStudySourceRows,
+  buildResolvedDetectorStudyFeatureResolver,
   detectorInputFeatureContractSatisfaction,
   detectorInputFeatureResolverSupport,
   listDetectorInputFeatureResolverIds,
   type DetectorInputAssemblyContext,
   type DetectorInputAssemblyResult,
   type DetectorInputResolverSupport,
+  type ResolvedDetectorStudyFeatureResolverInput,
 } from "./detector-input-assembly";
 export {
   DEFAULT_REGISTRY_DETECTOR_STUDY_ID,
@@ -20,7 +22,9 @@ export {
   detectorStudyNeedsStopDirectionHourFeatures,
   listDetectorStudyCatalogRows,
   type RegistryDetectorStudyResult,
+  type RunRegistryDetectorStudyFromResolverPathInput,
   runRegistryDetectorStudy,
+  runRegistryDetectorStudyFromResolverPath,
 } from "./detector-study";
 export {
   buildRegistryDetectorRunArtifact,

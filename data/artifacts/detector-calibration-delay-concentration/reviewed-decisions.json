@@ -1,0 +1,326 @@
+{
+  "artifactKind": "delay_concentration_reviewed_decisions",
+  "schemaVersion": 1,
+  "reviewBatch": "2026-06-11-march-initial-23",
+  "reviewer": "maintainer with LLM-assisted review per ADR-0018; metrics read from review-queue.json",
+  "releaseMonth": "2026-03",
+  "decisions": [
+    {
+      "detectorId": "delay_concentration",
+      "scopeId": "B6",
+      "routeId": "B6",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "primary_finding",
+      "calibrationTags": [
+        "true_delay_concentration",
+        "route_scope_concentration",
+        "fleet_benchmark_supported",
+        "segment_support_supported",
+        "top_segments_plausible"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-23",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "26 eligible segments, 4,522 observations, Gini 0.6575 at the 99th fleet percentile with total avoidable delay also at the 99th percentile. The 6-of-26 readout (72.9% of delay) is informative because the readout set is a small fraction of the route. No single segment dominates (top share 0.22). Descriptive claim survives adversarial read."
+    },
+    {
+      "detectorId": "delay_concentration",
+      "scopeId": "Q17",
+      "routeId": "Q17",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "primary_finding",
+      "calibrationTags": [
+        "true_delay_concentration",
+        "route_scope_concentration",
+        "fleet_benchmark_supported",
+        "segment_support_supported",
+        "top_segments_plausible"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-23",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "15 eligible segments, 2,448 observations, Gini 0.6453 at the 98th percentile with delay at the 92nd percentile. 6-of-15 readout (88%) leaves a real complement; top segment share 0.29 is not dominant. Concentration claim is well supported and stays descriptive."
+    },
+    {
+      "detectorId": "delay_concentration",
+      "scopeId": "Q27",
+      "routeId": "Q27",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "primary_finding",
+      "calibrationTags": [
+        "true_delay_concentration",
+        "route_scope_concentration",
+        "fleet_benchmark_supported",
+        "segment_support_supported",
+        "top_segments_plausible"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-23",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "21 eligible segments, 2,395 observations, Gini 0.6509 at the 99th percentile with delay at the 92nd percentile. 6-of-21 readout (77.2%) is meaningful at this segment count; top segment share 0.21. Survives adversarial read as a descriptive route-scope concentration claim."
+    },
+    {
+      "detectorId": "delay_concentration",
+      "scopeId": "B17",
+      "routeId": "B17",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "primary_finding",
+      "calibrationTags": [
+        "true_delay_concentration",
+        "route_scope_concentration",
+        "fleet_benchmark_supported",
+        "segment_support_supported"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-23",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "16 eligible segments, 1,954 observations, highest fleet Gini (0.7066, 100th percentile). Delay percentile is lower (79th) and the top segment carries 0.42 of delay — close to but under the 0.5 dominance flag, so the route-level framing still holds. Kept primary on the strength of the fleet-extreme concentration; reviewer confidence medium because one segment carries much of the story.",
+      "notes": "If the top-segment share grows in later months this should be re-reviewed against the single_segment_dominant gate."
+    },
+    {
+      "detectorId": "delay_concentration",
+      "scopeId": "Q44+",
+      "routeId": "Q44+",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "needs_more_evidence",
+      "calibrationTags": [
+        "low_eligible_segment_count",
+        "segment_count_sensitive",
+        "not_actionable_as_claim"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-23",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Highest detector score (98) and very large total delay (99th percentile), but only 8 eligible segments — the detector minimum. The public readout '6 of 8 segments concentrate 99.6%' is near-tautological (75% of segments holding ~100% of delay) and minSegmentsToReadoutShare is 4, so the readout is segment-count sensitive. The route plainly has heavy avoidable delay, but the concentration framing needs a finer segment grain before it is publishable.",
+      "notes": "Do not relax minSegmentsForRoute to admit this; the fix is better segment support, not a looser gate."
+    },
+    {
+      "detectorId": "delay_concentration",
+      "scopeId": "B44+",
+      "routeId": "B44+",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "route_context",
+      "calibrationTags": [
+        "route_scope_concentration",
+        "fleet_benchmark_supported",
+        "low_eligible_segment_count",
+        "segment_length_mix_uncertain"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-23",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "11 eligible segments with Gini at the 96th percentile and delay at the 83rd. The '6 of 11 → 99.5%' readout is more informative than Q44+'s 6-of-8 but still covers over half the route's segments, and SBS routes have long, uneven segment spacing that can inflate share readouts. Useful as route-page context; not strong enough to lead as a standalone finding."
+    },
+    {
+      "detectorId": "delay_concentration",
+      "scopeId": "Q43",
+      "routeId": "Q43",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "reviewer_only",
+      "calibrationTags": [
+        "low_eligible_segment_count",
+        "segment_count_sensitive",
+        "near_threshold",
+        "low_total_delay"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-23",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Lowest emitted score (79, under the 82 near-threshold line), 9 eligible segments, and total delay only at the 61st percentile — just over the absolute floor. The '6 of 9 → 99.2%' readout is segment-count sensitive (minSegmentsToReadoutShare 4). Real signal worth internal tracking, but the combination of near-floor delay and a near-tautological readout keeps it off public surfaces."
+    },
+    {
+      "detectorId": "delay_concentration",
+      "scopeId": "BXM2",
+      "routeId": "BXM2",
+      "sourceQueue": "clean_no_hit_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": ["low_total_delay", "segment_length_mix_uncertain", "not_actionable_as_claim"],
+      "reviewBatch": "2026-06-11-march-initial-23",
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Express route with Gini at the 95th percentile but total avoidable delay (32k min) below the fleet-median absolute floor. Express segment spacing also makes share readouts unreliable. Correctly not emitted; should stay suppressed."
+    },
+    {
+      "detectorId": "delay_concentration",
+      "scopeId": "Q1",
+      "routeId": "Q1",
+      "sourceQueue": "clean_no_hit_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": ["low_total_delay", "low_eligible_segment_count"],
+      "reviewBatch": "2026-06-11-march-initial-23",
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Gini at the 99th percentile but only 10 eligible segments and 20k min total delay, well below the absolute floor. High relative concentration of a small absolute quantity is not a public claim. Correct suppression."
+    },
+    {
+      "detectorId": "delay_concentration",
+      "scopeId": "Q74",
+      "routeId": "Q74",
+      "sourceQueue": "clean_no_hit_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": ["low_total_delay", "low_eligible_segment_count", "segment_count_sensitive"],
+      "reviewBatch": "2026-06-11-march-initial-23",
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Exactly 8 eligible segments (detector minimum) and 28k min total delay below the floor. Even if delay grew, the 6-of-8 readout problem from Q44+ would apply. Correct suppression."
+    },
+    {
+      "detectorId": "delay_concentration",
+      "scopeId": "Q88",
+      "routeId": "Q88",
+      "sourceQueue": "clean_no_hit_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": ["low_total_delay"],
+      "reviewBatch": "2026-06-11-march-initial-23",
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Highest clean-control Gini percentile (99.6th) but 30k min total delay below the fleet-median floor. The absolute-delay floor is doing exactly its job here. Correct suppression."
+    },
+    {
+      "detectorId": "delay_concentration",
+      "scopeId": "QM16",
+      "routeId": "QM16",
+      "sourceQueue": "clean_no_hit_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": ["low_total_delay", "segment_length_mix_uncertain", "duplicate_or_stale_segment_rows"],
+      "reviewBatch": "2026-06-11-march-initial-23",
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Express commuter route with only 295 observations across 18 segments and 16k min total delay. Sparse observations plus express segment geometry make the Gini readout untrustworthy regardless of the floor. Correct suppression.",
+      "notes": "295 observations over 18 segments averages ~16 per segment — near the 10-per-segment minimum; observation sparsity is the real story."
+    },
+    {
+      "detectorId": "delay_concentration",
+      "scopeId": "QM2",
+      "routeId": "QM2",
+      "sourceQueue": "clean_no_hit_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": ["low_total_delay", "low_eligible_segment_count", "segment_length_mix_uncertain"],
+      "reviewBatch": "2026-06-11-march-initial-23",
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Express route, 8 eligible segments at the minimum, 19k min total delay below the floor. Correct suppression."
+    },
+    {
+      "detectorId": "delay_concentration",
+      "scopeId": "QM5",
+      "routeId": "QM5",
+      "sourceQueue": "clean_no_hit_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": ["low_total_delay", "segment_length_mix_uncertain"],
+      "reviewBatch": "2026-06-11-march-initial-23",
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Express route with 21k min total delay below the floor; 3 of 17 segments already fall under the per-segment observation minimum. Correct suppression."
+    },
+    {
+      "detectorId": "delay_concentration",
+      "scopeId": "QM6",
+      "routeId": "QM6",
+      "sourceQueue": "clean_no_hit_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": ["low_total_delay", "segment_length_mix_uncertain"],
+      "reviewBatch": "2026-06-11-march-initial-23",
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Express route, 22k min total delay below the fleet-median floor. Correct suppression."
+    },
+    {
+      "detectorId": "delay_concentration",
+      "scopeId": "B111",
+      "routeId": "B111",
+      "sourceQueue": "skipped_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": ["low_eligible_segment_count"],
+      "reviewBatch": "2026-06-11-march-initial-23",
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "2 segments and 11 observations; zero eligible segments. Correctly skipped for insufficient speed observations — concentration is undefined here."
+    },
+    {
+      "detectorId": "delay_concentration",
+      "scopeId": "B2",
+      "routeId": "B2",
+      "sourceQueue": "skipped_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": ["low_eligible_segment_count"],
+      "reviewBatch": "2026-06-11-march-initial-23",
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "857 observations but spread over 6 segments with zero meeting eligibility — under the 8-segment route minimum regardless. Correct skip.",
+      "notes": "857 observations with 0 eligible segments suggests the observations cluster on few segments; worth a feature-side look if this pattern is common."
+    },
+    {
+      "detectorId": "delay_concentration",
+      "scopeId": "B31",
+      "routeId": "B31",
+      "sourceQueue": "skipped_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": ["low_eligible_segment_count"],
+      "reviewBatch": "2026-06-11-march-initial-23",
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "7 segments, below the 8-segment route minimum. Correct skip."
+    },
+    {
+      "detectorId": "delay_concentration",
+      "scopeId": "B32",
+      "routeId": "B32",
+      "sourceQueue": "skipped_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": ["low_eligible_segment_count"],
+      "reviewBatch": "2026-06-11-march-initial-23",
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "6 segments, below the route minimum. Correct skip."
+    },
+    {
+      "detectorId": "delay_concentration",
+      "scopeId": "B39",
+      "routeId": "B39",
+      "sourceQueue": "skipped_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": ["low_eligible_segment_count"],
+      "reviewBatch": "2026-06-11-march-initial-23",
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "2 segments only. Correct skip."
+    },
+    {
+      "detectorId": "delay_concentration",
+      "scopeId": "B42",
+      "routeId": "B42",
+      "sourceQueue": "skipped_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": ["low_eligible_segment_count"],
+      "reviewBatch": "2026-06-11-march-initial-23",
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "2 segments only. Correct skip."
+    },
+    {
+      "detectorId": "delay_concentration",
+      "scopeId": "B46+",
+      "routeId": "B46+",
+      "sourceQueue": "skipped_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": ["low_eligible_segment_count"],
+      "reviewBatch": "2026-06-11-march-initial-23",
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "SBS route with 6 segments, below the route minimum. Correct skip."
+    },
+    {
+      "detectorId": "delay_concentration",
+      "scopeId": "B74",
+      "routeId": "B74",
+      "sourceQueue": "skipped_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": ["low_eligible_segment_count"],
+      "reviewBatch": "2026-06-11-march-initial-23",
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "4 segments only. Correct skip."
+    }
+  ]
+}

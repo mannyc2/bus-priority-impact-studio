@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   buildRouteInsightsFromDetectorReadiness,
   type DetectorReadinessServingManifestForInsights,
+  SERVING_BLOCKED_DETECTOR_IDS,
   STUDIO_ROUTE_INSIGHT_DETECTOR_IDS,
   StudioRouteDetailResponseSchema,
 } from "../src/studio";
@@ -176,8 +177,11 @@ describe("route insight projection", () => {
       routeId: "M20",
     });
 
+    const servableDetectorIds = expectedFrontendDetectorIds.filter(
+      (detectorId) => !(SERVING_BLOCKED_DETECTOR_IDS as readonly string[]).includes(detectorId),
+    );
     expect([...new Set(insights.map((insight) => insight.detectorId))].sort()).toEqual(
-      [...expectedFrontendDetectorIds].sort(),
+      [...servableDetectorIds].sort(),
     );
     expect(insights).toEqual(
       expect.arrayContaining([
@@ -404,5 +408,54 @@ describe("S4.1 serving readiness gating", () => {
     for (const detectorId of surfacedDetectorIds) {
       expect(allowed.has(detectorId), `${detectorId} leaked past the allowlist`).toBe(true);
     }
+  });
+
+  test("never-public detectors are blocked even from valid public buckets", () => {
+    const blockedManifest = {
+      artifactKind: "detector_readiness_serving_manifest",
+      schemaVersion: 1,
+      routes: [
+        {
+          routeId: "M20",
+          publicFindingCandidateRefs: [
+            servingRef("speed_pace_hotspot"),
+            ...SERVING_BLOCKED_DETECTOR_IDS.map((detectorId) => servingRef(detectorId)),
+          ],
+          routeContextRefs: SERVING_BLOCKED_DETECTOR_IDS.map((detectorId) => ({
+            ...servingRef(detectorId),
+            bucket: "route_context" as const,
+          })),
+        },
+      ],
+    } satisfies DetectorReadinessServingManifestForInsights;
+
+    const insights = buildRouteInsightsFromDetectorReadiness({
+      manifest: blockedManifest,
+      routeId: "M20",
+    });
+    const surfacedDetectorIds = new Set(insights.map((insight) => insight.detectorId));
+
+    expect(surfacedDetectorIds.has("speed_pace_hotspot")).toBe(true);
+    for (const detectorId of SERVING_BLOCKED_DETECTOR_IDS) {
+      expect(surfacedDetectorIds.has(detectorId), `${detectorId} must never serve`).toBe(false);
+    }
+  });
+
+  test("the blocklist mirrors the consolidated calibration register dispositions", async () => {
+    const registerUrl = new URL(
+      "../../../data/artifacts/detector-calibration-register.json",
+      import.meta.url,
+    );
+    const register = (await Bun.file(registerUrl).json()) as {
+      entries: readonly { detectorId: string; disposition: string }[];
+    };
+    const neverPublic = register.entries
+      .filter((entry) =>
+        ["superseded", "internal_only", "inventory_blocked"].includes(entry.disposition),
+      )
+      .map((entry) => entry.detectorId)
+      .sort();
+    const blockedDetectorIds: string[] = [...SERVING_BLOCKED_DETECTOR_IDS].sort();
+    expect(blockedDetectorIds).toEqual(neverPublic);
   });
 });

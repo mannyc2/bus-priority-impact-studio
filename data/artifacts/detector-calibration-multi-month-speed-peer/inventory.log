@@ -1,0 +1,22 @@
+$ bun --filter @bp/pipeline-v2 cli -- findings run-detector --detector-id multi_month_speed_peer --year "2026" --month "3" --write-db false --output data/artifacts/detector-calibration-multi-month-speed-peer/no-write-run.json
+@bp/pipeline-v2 cli: {
+@bp/pipeline-v2 cli:   "detectorId": "multi_month_speed_peer",
+@bp/pipeline-v2 cli:   "releaseMonth": "2026-03",
+@bp/pipeline-v2 cli:   "outputPath": "data/artifacts/detector-calibration-multi-month-speed-peer/no-write-run.json",
+@bp/pipeline-v2 cli:   "wroteDb": false,
+@bp/pipeline-v2 cli:   "featureCount": 13154,
+@bp/pipeline-v2 cli:   "candidateCount": 8,
+@bp/pipeline-v2 cli:   "coverageCount": 367
+@bp/pipeline-v2 cli: }
+@bp/pipeline-v2 cli: Exited with code 0
+$ bun --filter @bp/pipeline-v2 cli -- findings run-detector --detector-id multi_month_speed_peer --year "2026" --month "3" --write-db false --candidate-limit "20000" --output "data/artifacts/detector-calibration-multi-month-speed-peer/no-write-run-limit20000.json"
+@bp/pipeline-v2 cli: {
+@bp/pipeline-v2 cli:   "detectorId": "multi_month_speed_peer",
+@bp/pipeline-v2 cli:   "releaseMonth": "2026-03",
+@bp/pipeline-v2 cli:   "outputPath": "data/artifacts/detector-calibration-multi-month-speed-peer/no-write-run-limit20000.json",
+@bp/pipeline-v2 cli:   "wroteDb": false,
+@bp/pipeline-v2 cli:   "featureCount": 13154,
+@bp/pipeline-v2 cli:   "candidateCount": 8,
+@bp/pipeline-v2 cli:   "coverageCount": 367
+@bp/pipeline-v2 cli: }
+@bp/pipeline-v2 cli: Exited with code 0

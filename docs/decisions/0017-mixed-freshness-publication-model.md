@@ -30,6 +30,10 @@ Retire "the product is a monthly release" as product doctrine.
 The product is a **multi-year evidence system with versioned baselines, current signals, and
 audited publication gates**.
 
+Default public surfaces should therefore be shaped around multi-year route/corridor evidence
+whenever source coverage supports it. A baseline month is an anchor for review and provenance, not
+the intended outer boundary of the user-facing data.
+
 Use these terms consistently:
 
 | Term | Meaning |

@@ -1,0 +1,292 @@
+{
+  "artifactKind": "registry_detector_run",
+  "schemaVersion": 1,
+  "generatedAt": "2026-06-10T15:42:36.057Z",
+  "detectorId": "source_gap",
+  "detectorVersion": "1.0.0",
+  "detectorRunId": "source_gap-2026-03",
+  "releaseMonth": "2026-03",
+  "dbPath": "data/local/pipeline.sqlite",
+  "artifactPath": "data/artifacts/detector-calibration-source-gap/no-write-run.json",
+  "wroteDb": false,
+  "featureContracts": [
+    {
+      "featureGrain": "source_coverage",
+      "resolverId": "sqlite.source_coverage.v1",
+      "status": "satisfied_by_feature_quality",
+      "reason": "Source coverage is carried through source-gap model rows and detector input quality summaries."
+    },
+    {
+      "featureGrain": "feed_health",
+      "resolverId": "embedded.feature_quality.v1",
+      "status": "satisfied_by_feature_quality",
+      "reason": "Current registry runner carries coverage, freshness, and sample gates through feature quality fields."
+    },
+    {
+      "featureGrain": "route_reliability_month",
+      "resolverId": "sqlite.local_route_observed_reliability_summary.v1",
+      "status": "resolved",
+      "reason": "Resolved from observed reliability summaries joined to scheduled baselines and Bus Wait Assessment support."
+    },
+    {
+      "featureGrain": "route_treatment_source_gap",
+      "resolverId": "artifact.route_treatment_summary.source_gap.v1",
+      "status": "resolved",
+      "reason": "Resolved from route-treatment-summary sourceGapRows."
+    }
+  ],
+  "dataProductDependencies": [
+    {
+      "productId": "analytics_backfill_coverage_audit",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    },
+    {
+      "productId": "bus_observatory_gtfs_rt_availability",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    },
+    {
+      "productId": "local_bus_wait_assessment_history",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    },
+    {
+      "productId": "local_route_month_coverage_release",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    },
+    {
+      "productId": "local_route_observed_reliability_summary_release",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    },
+    {
+      "productId": "local_route_reliability_baseline_release",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    },
+    {
+      "productId": "route_treatment_summary_artifact",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    },
+    {
+      "productId": "studio_route_source_status_rows",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    }
+  ],
+  "modelDependencies": [
+    {
+      "modelId": "source_gap_model_v1",
+      "status": "available",
+      "rowCount": 381,
+      "reason": "Required model artifact source_gap_model_v1 was supplied as sourceGapModelRows."
+    }
+  ],
+  "inputSummary": {
+    "sourceKind": "source_gap_from_source_gap_model_v1",
+    "artifactMonth": "2026-03",
+    "artifactValidationStatus": "warn",
+    "routeFilter": null,
+    "routeTreatmentFeatureCount": 4572,
+    "routeSegmentTreatmentFeatureCount": 4134,
+    "routeTreatmentSourceGapFeatureCount": 381,
+    "sourceGapFeatureCount": 381,
+    "positiveSegmentTreatmentFeatureCount": 2112,
+    "routeTreatmentSourceEvidenceRowCount": 5063,
+    "segmentUniverseRowCount": 4140,
+    "segmentTreatmentRowCount": 4134,
+    "artifactPath": "/mnt/models/dev/bus-reliability-tracker/data/artifacts/studio/v2/route-treatment-summary/2026-03/route-treatment-summary.json",
+    "artifactFound": true,
+    "featureCount": 381,
+    "sourceGapModelRowCount": 381,
+    "sourceGapModelSourceGapCount": 381
+  },
+  "outputSummary": {
+    "candidateCount": 381,
+    "evidenceCount": 381,
+    "coverageCount": 381,
+    "hitCount": 381,
+    "cleanNoHitCount": 0,
+    "skippedCount": 0
+  },
+  "candidateSamples": [
+    {
+      "candidateId": "24836ccdf77347bc358a2abbb0074f5d",
+      "routeId": "B1",
+      "scopeId": "B1",
+      "detectorScore": 75,
+      "claimText": "Route B1 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "c3c0b3287fcce281d7e1a3bbb4e859f6",
+      "routeId": "B100",
+      "scopeId": "B100",
+      "detectorScore": 75,
+      "claimText": "Route B100 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "77cf8fdfa215410e4b07281d83ba0d31",
+      "routeId": "B102",
+      "scopeId": "B102",
+      "detectorScore": 75,
+      "claimText": "Route B102 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "d34713307f948313defdbb40c4a2a246",
+      "routeId": "B103",
+      "scopeId": "B103",
+      "detectorScore": 75,
+      "claimText": "Route B103 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "6e5a975ec64f5cfeec60e674f7cee73d",
+      "routeId": "B106",
+      "scopeId": "B106",
+      "detectorScore": 75,
+      "claimText": "Route B106 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "cf2fb0083ed233f7595c8f9ddbdb7541",
+      "routeId": "B11",
+      "scopeId": "B11",
+      "detectorScore": 75,
+      "claimText": "Route B11 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "c93c2c79e8b294f3e6cff87ea70c7092",
+      "routeId": "B111",
+      "scopeId": "B111",
+      "detectorScore": 75,
+      "claimText": "Route B111 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "0550bf3eb2b3b4cadacc18d217cd7722",
+      "routeId": "B116",
+      "scopeId": "B116",
+      "detectorScore": 75,
+      "claimText": "Route B116 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "e7cc8884a6589eaa01409b30217b6f9e",
+      "routeId": "B12",
+      "scopeId": "B12",
+      "detectorScore": 75,
+      "claimText": "Route B12 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "a3883cd346adf39179ec58078cdc6114",
+      "routeId": "B13",
+      "scopeId": "B13",
+      "detectorScore": 75,
+      "claimText": "Route B13 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "d0d8469df523c542cfe672f6632765f6",
+      "routeId": "B14",
+      "scopeId": "B14",
+      "detectorScore": 75,
+      "claimText": "Route B14 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "bc7b432dc2b43aafeeb98c98645ec8ab",
+      "routeId": "B15",
+      "scopeId": "B15",
+      "detectorScore": 75,
+      "claimText": "Route B15 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "4ea3f6932665737433504bb68a8d5e7c",
+      "routeId": "B16",
+      "scopeId": "B16",
+      "detectorScore": 75,
+      "claimText": "Route B16 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "c94713436288a055a355fe2f28adb96d",
+      "routeId": "B17",
+      "scopeId": "B17",
+      "detectorScore": 75,
+      "claimText": "Route B17 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "15b4adcb44b07b5da1a63aeab7741a35",
+      "routeId": "B2",
+      "scopeId": "B2",
+      "detectorScore": 75,
+      "claimText": "Route B2 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "3565662322cbe545f9d833e171aeafdd",
+      "routeId": "B20",
+      "scopeId": "B20",
+      "detectorScore": 75,
+      "claimText": "Route B20 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "e602de04386ce20e835aadc8ad1c7b70",
+      "routeId": "B24",
+      "scopeId": "B24",
+      "detectorScore": 75,
+      "claimText": "Route B24 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "8094d848b0a3fa6acd3e3faab27b80ca",
+      "routeId": "B25",
+      "scopeId": "B25",
+      "detectorScore": 75,
+      "claimText": "Route B25 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "eeddb1213bbfdefa17884578e4e978c9",
+      "routeId": "B26",
+      "scopeId": "B26",
+      "detectorScore": 75,
+      "claimText": "Route B26 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "c6ff70651269a6cba3f3c5c8f603c6c5",
+      "routeId": "B3",
+      "scopeId": "B3",
+      "detectorScore": 75,
+      "claimText": "Route B3 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "2c58663fb2e854f92603492dfc37ae4c",
+      "routeId": "B31",
+      "scopeId": "B31",
+      "detectorScore": 75,
+      "claimText": "Route B31 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "029f26b2952a7543d9e1cf61d54f4b74",
+      "routeId": "B32",
+      "scopeId": "B32",
+      "detectorScore": 75,
+      "claimText": "Route B32 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "be31503de0c881d6c498d01507d43124",
+      "routeId": "B35",
+      "scopeId": "B35",
+      "detectorScore": 75,
+      "claimText": "Route B35 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "815559de88c2eb83a7bbf73f14f0b07e",
+      "routeId": "B36",
+      "scopeId": "B36",
+      "detectorScore": 75,
+      "claimText": "Route B36 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "d0d69665f44555d8b1b3df0429685599",
+      "routeId": "B37",
+      "scopeId": "B37",
+      "detectorScore": 75,
+      "claimText": "Route B37 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    }
+  ]
+}

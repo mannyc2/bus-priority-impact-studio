@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
-import { mkdir } from "node:fs/promises";
+import { copyFile, mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { writeJson } from "../../../lib/json.ts";
-import { fromCliPath } from "../../../lib/paths.ts";
+import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";
 import type { Tier2RouteTimelineBundleIndexArtifact } from "./_route-timeline-bundle-index.ts";
 
 const ARTIFACT_KIND = "bp.tier2_route_timeline_serving_projection.v1";
@@ -94,6 +94,7 @@ export type BuildRouteTimelineServingProjectionArgs = {
   summaryPath?: string;
   schemaPath?: string;
   seedPath?: string;
+  artifactRoot?: string;
   month?: string;
   r2Prefix?: string;
   generatedAt?: string;
@@ -314,9 +315,11 @@ export async function buildRouteTimelineServingProjection(
   summaryPath: string;
   schemaPath: string;
   seedPath: string;
+  materializedArtifactPaths: string[];
 }> {
   const generatedAt = args.generatedAt ?? new Date().toISOString();
   const sourceIndexPath = fromCliPath(args.indexPath);
+  const artifactRoot = fromCliPath(args.artifactRoot ?? defaultArtifactRootPath());
   const index = (await Bun.file(sourceIndexPath).json()) as Tier2RouteTimelineBundleIndexArtifact;
   const releaseMonth = args.month ?? DEFAULT_MONTH;
   const r2Prefix = normalizeR2Prefix(args.r2Prefix ?? DEFAULT_R2_PREFIX);
@@ -398,9 +401,7 @@ export async function buildRouteTimelineServingProjection(
       ? defaultPath(outputPath, "-schema.sql")
       : fromCliPath(args.schemaPath);
   const seedPath =
-    args.seedPath === undefined
-      ? defaultPath(outputPath, "-seed.sql")
-      : fromCliPath(args.seedPath);
+    args.seedPath === undefined ? defaultPath(outputPath, "-seed.sql") : fromCliPath(args.seedPath);
 
   await mkdir(dirname(outputPath), { recursive: true });
   await mkdir(dirname(markdownPath), { recursive: true });
@@ -419,8 +420,25 @@ export async function buildRouteTimelineServingProjection(
   });
   await Bun.write(schemaPath, renderSchemaSql());
   await Bun.write(seedPath, renderSeedSql(artifact));
+  const materializedArtifactPaths: string[] = [];
+  for (const row of copyPlan) {
+    const targetPath = join(artifactRoot, row.artifactKey);
+    await mkdir(dirname(targetPath), { recursive: true });
+    if (targetPath !== row.sourcePath) {
+      await copyFile(row.sourcePath, targetPath);
+    }
+    materializedArtifactPaths.push(targetPath);
+  }
 
-  return { artifact, outputPath, markdownPath, summaryPath, schemaPath, seedPath };
+  return {
+    artifact,
+    outputPath,
+    markdownPath,
+    summaryPath,
+    schemaPath,
+    seedPath,
+    materializedArtifactPaths,
+  };
 }
 
 function parseArgs(argv: string[]): CliArgs {
@@ -452,6 +470,10 @@ function parseArgs(argv: string[]): CliArgs {
       if (value === undefined) throw new Error("--seed requires a value.");
       args.seedPath = value;
       index += 1;
+    } else if (arg === "--artifact-root") {
+      if (value === undefined) throw new Error("--artifact-root requires a value.");
+      args.artifactRoot = value;
+      index += 1;
     } else if (arg === "--month") {
       if (value === undefined) throw new Error("--month requires a value.");
       args.month = value;
@@ -481,6 +503,7 @@ export async function runRouteTimelineServingProjectionFromCli(argv: string[]) {
     ...(args.summaryPath === undefined ? {} : { summaryPath: args.summaryPath }),
     ...(args.schemaPath === undefined ? {} : { schemaPath: args.schemaPath }),
     ...(args.seedPath === undefined ? {} : { seedPath: args.seedPath }),
+    ...(args.artifactRoot === undefined ? {} : { artifactRoot: args.artifactRoot }),
     ...(args.month === undefined ? {} : { month: args.month }),
     ...(args.r2Prefix === undefined ? {} : { r2Prefix: args.r2Prefix }),
     ...(args.generatedAt === undefined ? {} : { generatedAt: args.generatedAt }),

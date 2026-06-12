@@ -7,6 +7,15 @@ export { analyticsBackfillCoveragePath } from "./analytics-backfill-coverage";
 export { analyticsCorpusProfilePath } from "./analytics-corpus-profile";
 export { analyticsDetectorReadinessPath } from "./analytics-detector-readiness";
 export { analyticsMaterializationCoveragePath } from "./analytics-materialization-coverage";
+export {
+  eventEffectContrastArtifactPath,
+  eventFamilyEffectPanelArtifactPath,
+  eventFamilyResponseDriftStudyArtifactPath,
+  mechanismCorroborationArtifactPath,
+  pulseCandidateSetArtifactPath,
+  pulseEventOverlapArtifactPath,
+} from "./causal-research-products";
+export { causalValidationGatesArtifactPath } from "./causal-validation-gates";
 export { contextEventRouteTouchAuditPath } from "./context-event-route-touches";
 export { curbFrictionTaxonomyAgreementAuditPath } from "./curb-friction-taxonomy-agreement";
 export { dataProductCompletenessPath } from "./data-product-completeness";
@@ -41,6 +50,7 @@ export {
   expressRouteAnalysisAuditPath,
   expressRouteAnalysisPath,
 } from "./express-route-analysis";
+export { forecastValidationGatesArtifactPath } from "./forecast-validation-gates";
 export { interventionPanelArtifactPath } from "./intervention-panel";
 export { interventionScopeFitArtifactPath } from "./intervention-scope-fit";
 export { localDbQueryBaselinesArtifactPath } from "./local-db-query-baselines";
@@ -70,6 +80,7 @@ export {
 } from "./route-treatment-summary";
 export { runtimeTrendScoreVectorPath } from "./runtime-trend-score-vectors";
 export { segmentDaypartHistoryArtifactPath } from "./segment-daypart-history";
+export { segmentDaypartPanelArtifactPath } from "./segment-daypart-panel";
 export { segmentDaypartResidualsArtifactPath } from "./segment-daypart-residuals";
 export { segmentSpeedResidualsArtifactPath } from "./segment-speed-residuals";
 export { sourceCoverageLedgerPath } from "./source-coverage";

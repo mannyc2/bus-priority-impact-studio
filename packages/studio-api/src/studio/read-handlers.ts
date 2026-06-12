@@ -1,10 +1,10 @@
 import {
   createD1ServingDb,
-  findLatestSpeedTrendMonth,
-  findLatestStudioServingMonth,
   type RouteMonthTrend as D1RouteMonthTrend,
   type RouteObservedReliabilitySummary as D1RouteObservedReliabilitySummary,
   type SourceMonthCoverage as D1SourceMonthCoverage,
+  findLatestSpeedTrendMonth,
+  findLatestStudioServingMonth,
   getRouteTimelineIndex,
   listRouteMonthTrends,
   listRouteObservedReliabilitySummaries,
@@ -22,8 +22,8 @@ import {
   RouteCapabilityManifestForIndexSchema,
   type RouteDossierSummaryForDetail,
   RouteDossierSummaryForDetailSchema,
-  routeDossierSummaryKey,
   type RouteSurfaceState,
+  routeDossierSummaryKey,
   STUDIO_ROUTE_CAPABILITY_MANIFEST_KEY,
   type StudioRouteCapability,
 } from "@bp/domain/studio";
@@ -33,7 +33,11 @@ import {
   type StudioBriefResponse,
   StudioBriefsResponseSchema,
 } from "@bp/domain/studio/briefs";
-import { StudioDocsResponseSchema, StudioMethodsResponseSchema } from "@bp/domain/studio/docs";
+import {
+  type StudioDocsResponse,
+  StudioDocsResponseSchema,
+  StudioMethodsResponseSchema,
+} from "@bp/domain/studio/docs";
 import {
   StudioFindingResponseSchema,
   StudioFindingsResponseSchema,
@@ -77,6 +81,7 @@ import {
   type StudioSourceMonthState,
 } from "@bp/domain/studio/snapshots";
 import * as z from "zod";
+import { studioOpenApiDocument } from "../contracts/openapi.js";
 import type { StudioApiEnv } from "../env.js";
 import { errorResponse } from "../http/errors.js";
 import {
@@ -105,6 +110,31 @@ export type StudioReadHooks<TEnv extends StudioReadEnv = StudioReadEnv> = {
     projection: StudioBriefResponse,
   ) => Promise<StudioBriefResponse>;
 };
+
+const OPENAPI_DOC_METHODS = ["get", "post", "put", "patch", "delete"] as const;
+
+function studioDocsEndpointsFromOpenApi(): StudioDocsResponse["endpoints"] {
+  return Object.entries(studioOpenApiDocument.paths).flatMap(([path, pathItem]) =>
+    OPENAPI_DOC_METHODS.flatMap((method) => {
+      const operation = pathItem[method];
+      if (operation === undefined) return [];
+      return [
+        {
+          method: method.toUpperCase(),
+          path,
+          body: operation.summary,
+        },
+      ];
+    }),
+  );
+}
+
+function withGeneratedDocsEndpoints(docs: StudioDocsResponse): StudioDocsResponse {
+  return StudioDocsResponseSchema.parse({
+    ...docs,
+    endpoints: studioDocsEndpointsFromOpenApi(),
+  });
+}
 
 type BuildStudioRoutesResponseResult =
   | {
@@ -1901,7 +1931,11 @@ export async function buildStudioRouteHistoryResponse(
     return { ok: false, response: errorResponse(503, NO_SERVING_MONTH_MESSAGE) };
   }
 
-  const row = await findStudioRouteIndexSourceRow({ env, slug, baselineMonth: months.servingMonth });
+  const row = await findStudioRouteIndexSourceRow({
+    env,
+    slug,
+    baselineMonth: months.servingMonth,
+  });
   if (row === null) {
     return { ok: false, response: errorResponse(404, "Studio route history was not found.") };
   }
@@ -2114,8 +2148,9 @@ function summaryReadyRouteCount(routes: readonly StudioRouteIndex2Row[]): number
 
 function artifactReadyRouteCount(routes: readonly StudioRouteIndex2Row[]): number {
   return routes.filter(
-    (route) => SUPPORT_LEVEL_BY_OVERALL_STATE[route.capability.overallState] !== "index_only"
-      && SUPPORT_LEVEL_BY_OVERALL_STATE[route.capability.overallState] !== "summary_ready",
+    (route) =>
+      SUPPORT_LEVEL_BY_OVERALL_STATE[route.capability.overallState] !== "index_only" &&
+      SUPPORT_LEVEL_BY_OVERALL_STATE[route.capability.overallState] !== "summary_ready",
   ).length;
 }
 
@@ -2435,6 +2470,7 @@ async function buildStudioSnapshotResponse(env: StudioReadEnv): Promise<Response
   if (briefs instanceof Response) return briefs;
   if (methods instanceof Response) return methods;
   if (docs instanceof Response) return docs;
+  const docsProjection = withGeneratedDocsEndpoints(docs);
 
   const generatedAt = new Date().toISOString();
   const resolvedMonths = await resolveServingMonths(env);
@@ -2484,8 +2520,8 @@ async function buildStudioSnapshotResponse(env: StudioReadEnv): Promise<Response
     {
       resource: "docs",
       path: projectionPath(env, "docs.json"),
-      itemCount: docs.sections.length + docs.endpoints.length,
-      generatedAt: docs.generatedAt,
+      itemCount: docsProjection.sections.length + docsProjection.endpoints.length,
+      generatedAt: docsProjection.generatedAt,
     },
   ];
   const prefix = studioProjectionPrefix(env);
@@ -2504,8 +2540,8 @@ async function buildStudioSnapshotResponse(env: StudioReadEnv): Promise<Response
         findings: findings.findings.length,
         briefs: briefs.briefs.length,
         methods: methods.datasets.length,
-        docsSections: docs.sections.length,
-        docsEndpoints: docs.endpoints.length,
+        docsSections: docsProjection.sections.length,
+        docsEndpoints: docsProjection.endpoints.length,
       },
       projections,
       quality: routesResult.quality,
@@ -2861,7 +2897,9 @@ export async function handleStudioReadRequest<TEnv extends StudioReadEnv>(
 
   if (url.pathname === "/api/v1/studio/docs") {
     const docs = await loadStudioProjection(env, "docs.json", StudioDocsResponseSchema);
-    return docs instanceof Response ? docs : studioJsonResponse(docs, env);
+    return docs instanceof Response
+      ? docs
+      : studioJsonResponse(withGeneratedDocsEndpoints(docs), env);
   }
 
   return errorResponse(404, "Studio API endpoint was not found.");

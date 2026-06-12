@@ -1,4 +1,5 @@
 import type { StudioRouteInsight } from "@/studio/api-contract";
+import type { RouteDetailTabValue } from "./section-registry";
 
 export type RouteInsightPlacements = {
   overview: StudioRouteInsight[];
@@ -7,16 +8,39 @@ export type RouteInsightPlacements = {
   timeline: StudioRouteInsight[];
 };
 
+export type RouteTabBadge = {
+  count: number;
+  severity: StudioRouteInsight["severity"];
+};
+
 const severityRank: Record<StudioRouteInsight["severity"], number> = {
   high: 0,
   medium: 1,
   low: 2,
 };
 
-function stableInsightSort(left: StudioRouteInsight, right: StudioRouteInsight): number {
+const RELIABILITY_DETECTOR_IDS = new Set([
+  "observed_reliability",
+  "headway_reliability_ewt",
+  "bunching_hotspots",
+]);
+
+const RIDER_IMPACT_DETECTOR_IDS = new Set([
+  "customer_journey_shortfall",
+  "rider_weighted_excess_wait",
+]);
+
+const TREATMENT_DETECTOR_IDS = new Set([
+  "intervention_gap",
+  "intervention_underperformance",
+  "treatment_scope_mismatch",
+  "treatment_scope_gap",
+]);
+
+export function stableInsightSort(left: StudioRouteInsight, right: StudioRouteInsight): number {
   return (
     severityRank[left.severity] - severityRank[right.severity] ||
-    (left.month ?? "").localeCompare(right.month ?? "") * -1 ||
+    (left.asOfMonth ?? left.month ?? "").localeCompare(right.asOfMonth ?? right.month ?? "") * -1 ||
     left.detectorId.localeCompare(right.detectorId) ||
     (left.scopeId ?? "").localeCompare(right.scopeId ?? "")
   );
@@ -27,11 +51,62 @@ export function routeInsightPlacements(
 ): RouteInsightPlacements {
   const sorted = [...insights].sort(stableInsightSort);
   return {
-    overview: sorted.filter((insight) => insight.placement === "overview").slice(0, 2),
+    overview: sorted.filter((insight) => insight.placement === "overview").slice(0, 3),
     mapSegment: sorted.filter((insight) => insight.placement === "map_segment"),
     chartAnnotation: sorted.filter((insight) => insight.placement === "chart_annotation"),
     timeline: sorted.filter((insight) => insight.placement === "timeline"),
   };
+}
+
+export function routeTabForInsight(insight: StudioRouteInsight): RouteDetailTabValue {
+  const title = insight.title.toLowerCase();
+  if (
+    insight.kind === "timeline_annotation" ||
+    insight.kind === "treatment_scope" ||
+    TREATMENT_DETECTOR_IDS.has(insight.detectorId)
+  ) {
+    return "treatments";
+  }
+  if (insight.kind === "map_segment" || insight.placement === "map_segment") return "map";
+  if (
+    insight.kind === "customer_journey" ||
+    RIDER_IMPACT_DETECTOR_IDS.has(insight.detectorId) ||
+    title.includes("rider") ||
+    title.includes("customer")
+  ) {
+    return "riders";
+  }
+  if (
+    RELIABILITY_DETECTOR_IDS.has(insight.detectorId) ||
+    title.includes("reliability") ||
+    title.includes("bunching") ||
+    title.includes("long-gap")
+  ) {
+    return "reliability";
+  }
+  if (insight.detectorId === "source_gap") return "evidence";
+  return "where-when";
+}
+
+export function routeTabBadges(
+  insights: readonly StudioRouteInsight[],
+): Partial<Record<RouteDetailTabValue, RouteTabBadge>> {
+  const badges: Partial<Record<RouteDetailTabValue, RouteTabBadge>> = {};
+  for (const insight of insights) {
+    const tab = routeTabForInsight(insight);
+    const existing = badges[tab];
+    badges[tab] =
+      existing === undefined
+        ? { count: 1, severity: insight.severity }
+        : {
+            count: existing.count + 1,
+            severity:
+              severityRank[insight.severity] < severityRank[existing.severity]
+                ? insight.severity
+                : existing.severity,
+          };
+  }
+  return badges;
 }
 
 export function safeInsightCaveats(

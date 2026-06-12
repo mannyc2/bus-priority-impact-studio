@@ -1,10 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { routeHead } from "../../lib/head.js";
-import { fetchStudioBrief } from "../../studio/api-client.js";
+import { editorialStudioLoaderStaleTimeMs, fetchStudioBrief } from "../../studio/api-client.js";
 import { BriefReadingPage } from "../../studio/pages/briefs.js";
 
 export const Route = createFileRoute("/briefs/$briefId")({
-  loader: ({ params }) => fetchStudioBrief(params.briefId),
+  loader: ({ abortController, params }) =>
+    fetchStudioBrief(params.briefId, { signal: abortController.signal }),
+  staleTime: editorialStudioLoaderStaleTimeMs,
   head: () => routeHead("Brief"),
   component: BriefRoute,
 });

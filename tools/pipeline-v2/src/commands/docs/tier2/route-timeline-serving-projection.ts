@@ -9,6 +9,7 @@ const optionsSchema = z.object({
   summaryPath: z.string().optional(),
   schemaPath: z.string().optional(),
   seedPath: z.string().optional(),
+  artifactRoot: z.string().optional(),
   month: z.string().optional(),
   r2Prefix: z.string().optional(),
   generatedAt: z.string().optional(),
@@ -21,6 +22,7 @@ const flagMap: Record<string, string> = {
   summaryPath: "--summary",
   schemaPath: "--schema",
   seedPath: "--seed",
+  artifactRoot: "--artifact-root",
   month: "--month",
   r2Prefix: "--r2-prefix",
   generatedAt: "--generated-at",
@@ -34,8 +36,7 @@ export async function runDocsTier2RouteTimelineServingProjection(
 
 export default defineCommand({
   path: ["docs", "tier2", "route-timeline-serving-projection"],
-  summary:
-    "Project route timeline bundle readiness into compact D1 rows and R2 artifact refs.",
+  summary: "Project route timeline bundle readiness into compact D1 rows and R2 artifact refs.",
   input: { options: optionsSchema },
   output: z.unknown(),
   async run({ input }) {

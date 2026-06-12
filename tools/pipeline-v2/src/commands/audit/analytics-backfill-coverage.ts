@@ -64,7 +64,11 @@ export default defineCommand({
 
     let audit: AnalyticsBackfillCoverageAudit;
     try {
-      const surfaceRows = loadAnalyticsBackfillCoverageLocalDbRows({ sqlite });
+      const surfaceRows = loadAnalyticsBackfillCoverageLocalDbRows({
+        sqlite,
+        startMonth,
+        endMonth,
+      });
       audit = buildAppliedAnalyticsBackfillCoverageAudit({
         surfaceRows,
         startMonth,

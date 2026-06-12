@@ -1,0 +1,22 @@
+$ bun --filter @bp/pipeline-v2 cli -- findings run-detector --detector-id schedule_mismatch --year "2026" --month "3" --write-db false --output data/artifacts/detector-calibration-schedule-mismatch/no-write-run.json
+@bp/pipeline-v2 cli: {
+@bp/pipeline-v2 cli:   "detectorId": "schedule_mismatch",
+@bp/pipeline-v2 cli:   "releaseMonth": "2026-03",
+@bp/pipeline-v2 cli:   "outputPath": "data/artifacts/detector-calibration-schedule-mismatch/no-write-run.json",
+@bp/pipeline-v2 cli:   "wroteDb": false,
+@bp/pipeline-v2 cli:   "featureCount": 2537,
+@bp/pipeline-v2 cli:   "candidateCount": 100,
+@bp/pipeline-v2 cli:   "coverageCount": 2537
+@bp/pipeline-v2 cli: }
+@bp/pipeline-v2 cli: Exited with code 0
+$ bun --filter @bp/pipeline-v2 cli -- findings run-detector --detector-id schedule_mismatch --year "2026" --month "3" --write-db false --candidate-limit "20000" --output "data/artifacts/detector-calibration-schedule-mismatch/no-write-run-limit20000.json"
+@bp/pipeline-v2 cli: {
+@bp/pipeline-v2 cli:   "detectorId": "schedule_mismatch",
+@bp/pipeline-v2 cli:   "releaseMonth": "2026-03",
+@bp/pipeline-v2 cli:   "outputPath": "data/artifacts/detector-calibration-schedule-mismatch/no-write-run-limit20000.json",
+@bp/pipeline-v2 cli:   "wroteDb": false,
+@bp/pipeline-v2 cli:   "featureCount": 2537,
+@bp/pipeline-v2 cli:   "candidateCount": 2434,
+@bp/pipeline-v2 cli:   "coverageCount": 2537
+@bp/pipeline-v2 cli: }
+@bp/pipeline-v2 cli: Exited with code 0

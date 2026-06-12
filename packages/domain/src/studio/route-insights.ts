@@ -63,6 +63,18 @@ export const STUDIO_ROUTE_INSIGHT_DETECTOR_IDS = [
   "delay_concentration",
 ] as const;
 
+// S4.1 serving readiness gate, blocked side: detector ids whose calibration disposition can never
+// reach a public bucket. Mirrors the consolidated calibration register
+// (data/artifacts/detector-calibration-register.json): superseded, internal_only (candidate-causal
+// event study and the internal learning detector), and inventory_blocked experimental detectors.
+// Register-consistency is enforced by test.
+export const SERVING_BLOCKED_DETECTOR_IDS = [
+  "persistent_speed_hotspot",
+  "intervention_event_study",
+  "positive_deviance",
+  "rider_weighted_excess_wait",
+] as const;
+
 const CAVEAT_LABELS = new Map<string, string>([
   ["true_customer_impact", "Reviewed as a customer-impact pattern."],
   ["wait_component_driven", "Wait-time evidence is the main contributor."],
@@ -593,6 +605,7 @@ export function buildRouteInsightsFromDetectorReadiness(input: {
   // public_finding_candidate / route_context; this filter structurally excludes any uncalibrated /
   // unknown detector id that lands in a public bucket from reaching a public surface.
   const allowedDetectorIds = new Set<string>(STUDIO_ROUTE_INSIGHT_DETECTOR_IDS);
+  for (const blocked of SERVING_BLOCKED_DETECTOR_IDS) allowedDetectorIds.delete(blocked);
   const publicRefs = route.publicFindingCandidateRefs.filter((ref) =>
     allowedDetectorIds.has(ref.detectorId),
   );

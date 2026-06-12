@@ -1,0 +1,262 @@
+{
+  "artifactKind": "registry_detector_run",
+  "schemaVersion": 1,
+  "generatedAt": "2026-06-10T15:42:35.398Z",
+  "detectorId": "service_request_context",
+  "detectorVersion": "1.0.0",
+  "detectorRunId": "service_request_context-2026-03",
+  "releaseMonth": "2026-03",
+  "dbPath": "data/local/pipeline.sqlite",
+  "artifactPath": "data/artifacts/detector-calibration-service-request-context/no-write-run-limit20000.json",
+  "wroteDb": false,
+  "featureContracts": [
+    {
+      "featureGrain": "route_month",
+      "resolverId": "artifact.signal_features.route_month.v1",
+      "status": "resolved",
+      "reason": "Resolved from route-month signal feature artifacts or local route trend/context aggregates."
+    },
+    {
+      "featureGrain": "context_source_month",
+      "resolverId": "sqlite.local_context_event_route_touch.month.v1",
+      "status": "resolved",
+      "reason": "Resolved from monthly local_context_event_route_touch aggregates embedded in RouteMonthSignalFeature rows."
+    }
+  ],
+  "dataProductDependencies": [
+    {
+      "productId": "analytics_corpus_profile_artifact",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    },
+    {
+      "productId": "local_ace_enforcement_context_history",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    },
+    {
+      "productId": "local_context_event_route_touches_history",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    },
+    {
+      "productId": "local_route_month_coverage_release",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    },
+    {
+      "productId": "local_route_month_trends_history",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    }
+  ],
+  "modelDependencies": [],
+  "inputSummary": {
+    "sourceKind": "route_month_signal_features_from_local_sqlite",
+    "featureCount": 380,
+    "computableFeatureCount": 350,
+    "permitTouchedFeatureCount": 378,
+    "contextTouchedFeatureCount": 380,
+    "contextSourceCount": 6,
+    "detectorCandidateCount": 0
+  },
+  "outputSummary": {
+    "candidateCount": 27,
+    "evidenceCount": 81,
+    "coverageCount": 380,
+    "hitCount": 27,
+    "cleanNoHitCount": 323,
+    "skippedCount": 30
+  },
+  "candidateSamples": [
+    {
+      "candidateId": "ade486de8d6d7ddf3e1551dd0c5e3ac6",
+      "routeId": "B11",
+      "scopeId": "B11",
+      "detectorScore": 78,
+      "claimText": "Route B11 has slow-speed evidence during a month with substantial 311 service-request context."
+    },
+    {
+      "candidateId": "33f3594275353da648fcc57f3c0843fe",
+      "routeId": "B60",
+      "scopeId": "B60",
+      "detectorScore": 92,
+      "claimText": "Route B60 has slow-speed evidence during a month with substantial 311 service-request context."
+    },
+    {
+      "candidateId": "3c3cbcef5fbcd6ff22a673d0f28e5e23",
+      "routeId": "BX11",
+      "scopeId": "BX11",
+      "detectorScore": 82,
+      "claimText": "Route BX11 has slow-speed evidence during a month with substantial 311 service-request context."
+    },
+    {
+      "candidateId": "2d03d09cb52022a6b95fe65a4accf4af",
+      "routeId": "BX2",
+      "scopeId": "BX2",
+      "detectorScore": 79,
+      "claimText": "Route BX2 has slow-speed evidence during a month with substantial 311 service-request context."
+    },
+    {
+      "candidateId": "af7fd1b515b0a97cc237a8eb05d0e2ff",
+      "routeId": "BX28",
+      "scopeId": "BX28",
+      "detectorScore": 82,
+      "claimText": "Route BX28 has slow-speed evidence during a month with substantial 311 service-request context."
+    },
+    {
+      "candidateId": "096abdc9dea0927cd857238132e06b0d",
+      "routeId": "BX32",
+      "scopeId": "BX32",
+      "detectorScore": 78,
+      "claimText": "Route BX32 has slow-speed evidence during a month with substantial 311 service-request context."
+    },
+    {
+      "candidateId": "8ba345d8bb9ce30bd6b57a1cba744218",
+      "routeId": "BX35",
+      "scopeId": "BX35",
+      "detectorScore": 79,
+      "claimText": "Route BX35 has slow-speed evidence during a month with substantial 311 service-request context."
+    },
+    {
+      "candidateId": "c0631b23cb44257ece4f082b04b075be",
+      "routeId": "BX38",
+      "scopeId": "BX38",
+      "detectorScore": 95,
+      "claimText": "Route BX38 has slow-speed evidence during a month with substantial 311 service-request context."
+    },
+    {
+      "candidateId": "7dc0205e72010fcd5c0dc9c4b026bec6",
+      "routeId": "M106",
+      "scopeId": "M106",
+      "detectorScore": 78,
+      "claimText": "Route M106 has slow-speed evidence during a month with substantial 311 service-request context."
+    },
+    {
+      "candidateId": "288dc8e3ae23816bd3c9d63b9aa9b9d2",
+      "routeId": "M125",
+      "scopeId": "M125",
+      "detectorScore": 79,
+      "claimText": "Route M125 has slow-speed evidence during a month with substantial 311 service-request context."
+    },
+    {
+      "candidateId": "575886d204cdb39938a7b9936a515862",
+      "routeId": "M22",
+      "scopeId": "M22",
+      "detectorScore": 78,
+      "claimText": "Route M22 has slow-speed evidence during a month with substantial 311 service-request context."
+    },
+    {
+      "candidateId": "02f0b991cfd78e59d8f2cf417156d87e",
+      "routeId": "M23+",
+      "scopeId": "M23+",
+      "detectorScore": 78,
+      "claimText": "Route M23+ has slow-speed evidence during a month with substantial 311 service-request context."
+    },
+    {
+      "candidateId": "7664fa082fd6d112ad768edba412f023",
+      "routeId": "M31",
+      "scopeId": "M31",
+      "detectorScore": 80,
+      "claimText": "Route M31 has slow-speed evidence during a month with substantial 311 service-request context."
+    },
+    {
+      "candidateId": "0367487ed240cd604b992900bc86a696",
+      "routeId": "M34+",
+      "scopeId": "M34+",
+      "detectorScore": 78,
+      "claimText": "Route M34+ has slow-speed evidence during a month with substantial 311 service-request context."
+    },
+    {
+      "candidateId": "5edea45a1756dbc43e5aeac779bbc213",
+      "routeId": "M34A+",
+      "scopeId": "M34A+",
+      "detectorScore": 78,
+      "claimText": "Route M34A+ has slow-speed evidence during a month with substantial 311 service-request context."
+    },
+    {
+      "candidateId": "4a130bfa259886875236f17c627a88db",
+      "routeId": "M4",
+      "scopeId": "M4",
+      "detectorScore": 81,
+      "claimText": "Route M4 has slow-speed evidence during a month with substantial 311 service-request context."
+    },
+    {
+      "candidateId": "bb0c68888c5f10a3b3a0ee18adbd46ec",
+      "routeId": "M50",
+      "scopeId": "M50",
+      "detectorScore": 78,
+      "claimText": "Route M50 has slow-speed evidence during a month with substantial 311 service-request context."
+    },
+    {
+      "candidateId": "93025092093fb2394823f7b92bfa7079",
+      "routeId": "M57",
+      "scopeId": "M57",
+      "detectorScore": 81,
+      "claimText": "Route M57 has slow-speed evidence during a month with substantial 311 service-request context."
+    },
+    {
+      "candidateId": "36d1ec1ea68c525f3abbbb0301d47fab",
+      "routeId": "M66",
+      "scopeId": "M66",
+      "detectorScore": 78,
+      "claimText": "Route M66 has slow-speed evidence during a month with substantial 311 service-request context."
+    },
+    {
+      "candidateId": "89561ff6cdbccfd933e3809683ce21f9",
+      "routeId": "M96",
+      "scopeId": "M96",
+      "detectorScore": 79,
+      "claimText": "Route M96 has slow-speed evidence during a month with substantial 311 service-request context."
+    },
+    {
+      "candidateId": "aa1ec0a441bd29f0cfe6405a0f1f4f72",
+      "routeId": "Q12",
+      "scopeId": "Q12",
+      "detectorScore": 92,
+      "claimText": "Route Q12 has slow-speed evidence during a month with substantial 311 service-request context."
+    },
+    {
+      "candidateId": "c81db92de6d98b9c66713b0a37aa253a",
+      "routeId": "Q17",
+      "scopeId": "Q17",
+      "detectorScore": 98,
+      "claimText": "Route Q17 has slow-speed evidence during a month with substantial 311 service-request context."
+    },
+    {
+      "candidateId": "8ab6b4248fae8618a084b63e142e81a3",
+      "routeId": "Q23",
+      "scopeId": "Q23",
+      "detectorScore": 87,
+      "claimText": "Route Q23 has slow-speed evidence during a month with substantial 311 service-request context."
+    },
+    {
+      "candidateId": "e1b02439a41d566ca6b1065366d0cf1e",
+      "routeId": "Q27",
+      "scopeId": "Q27",
+      "detectorScore": 81,
+      "claimText": "Route Q27 has slow-speed evidence during a month with substantial 311 service-request context."
+    },
+    {
+      "candidateId": "533430a6f5aedf98c91ddaf9f118ed6c",
+      "routeId": "Q31",
+      "scopeId": "Q31",
+      "detectorScore": 78,
+      "claimText": "Route Q31 has slow-speed evidence during a month with substantial 311 service-request context."
+    },
+    {
+      "candidateId": "defc5bcb649ae25e58f71654c0d73f23",
+      "routeId": "Q65",
+      "scopeId": "Q65",
+      "detectorScore": 99,
+      "claimText": "Route Q65 has slow-speed evidence during a month with substantial 311 service-request context."
+    },
+    {
+      "candidateId": "b3fcba125e2e10d2e0e0c2feb6fecdb2",
+      "routeId": "Q85",
+      "scopeId": "Q85",
+      "detectorScore": 78,
+      "claimText": "Route Q85 has slow-speed evidence during a month with substantial 311 service-request context."
+    }
+  ]
+}

@@ -351,6 +351,7 @@ export type { DetectorReadinessServingManifestForInsights } from "./route-insigh
 export {
   buildRouteInsightsFromDetectorReadiness,
   DetectorReadinessServingManifestForInsightsSchema,
+  SERVING_BLOCKED_DETECTOR_IDS,
   STUDIO_ROUTE_INSIGHT_DETECTOR_IDS,
 } from "./route-insights.js";
 export type {

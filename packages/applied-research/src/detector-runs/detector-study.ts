@@ -1,9 +1,5 @@
 import { summarizeInterventionGates } from "@bp/analytics/calibration";
-import {
-  type FeatureContractSatisfaction,
-  type FeatureResolver,
-  runAnalyticsDetector,
-} from "@bp/analytics/core";
+import { type FeatureContractSatisfaction, runAnalyticsDetector } from "@bp/analytics/core";
 import {
   BUNCHING_HOTSPOTS_DETECTOR_ID,
   CUSTOMER_JOURNEY_SHORTFALL_DETECTOR_ID,
@@ -118,7 +114,12 @@ import {
   type RouteSegmentHistoricalSpeedSummarySourceRow,
   type RouteSegmentSpeedSummarySourceRow,
 } from "../feature-resolvers/treatment-detector-inputs";
-import { detectorInputFeatureContractSatisfaction } from "./detector-input-assembly";
+import {
+  assembleDetectorStudyInput,
+  buildResolvedDetectorStudyFeatureResolver,
+  detectorInputFeatureContractSatisfaction,
+  type DetectorInputAssemblyContext,
+} from "./detector-input-assembly";
 import {
   buildRegistryDetectorRunArtifact,
   type DetectorOutput,
@@ -247,28 +248,17 @@ type RunResolvedDetectorStudyInput = {
   readonly detectorInput: unknown;
   readonly inputSummary: Record<string, unknown>;
   readonly modelDependencies: readonly ModelArtifactDependency[];
-  readonly featureContracts: readonly FeatureContractSatisfaction[];
 };
 
 function runResolvedDetectorStudy(
   input: RunResolvedDetectorStudyInput,
 ): RegistryDetectorStudyResult {
   const detector = detectorForStudy(input.metadata.detectorId);
-  const resolver: FeatureResolver<unknown> = {
-    resolverId: "applied_research.detector_study_rows.v1",
-    resolve: (request) => {
-      if (request.detector.detectorId !== detector.detectorId) {
-        throw new Error(
-          `Resolver request detector ${request.detector.detectorId} did not match ${detector.detectorId}.`,
-        );
-      }
-      return {
-        detectorInput: input.detectorInput,
-        inputSummary: input.inputSummary,
-        featureContracts: input.featureContracts,
-      };
-    },
-  };
+  const resolver = buildResolvedDetectorStudyFeatureResolver({
+    detectorId: detector.detectorId,
+    detectorInput: input.detectorInput,
+    inputSummary: input.inputSummary,
+  });
 
   const run = runAnalyticsDetector({
     detector,
@@ -615,24 +605,40 @@ function interventionPanelCandidateCausalEligibleCount(
   ).length;
 }
 
+export type RunRegistryDetectorStudyFromResolverPathInput = {
+  readonly metadata: DetectorStudyMetadata;
+  readonly context: DetectorInputAssemblyContext;
+  readonly localRows: DetectorStudySourceRows;
+};
+
+export async function runRegistryDetectorStudyFromResolverPath(
+  input: RunRegistryDetectorStudyFromResolverPathInput,
+): Promise<RegistryDetectorStudyResult> {
+  if (input.context.detectorId !== input.metadata.detectorId) {
+    throw new Error(
+      `Detector input assembly context ${input.context.detectorId} did not match metadata ${input.metadata.detectorId}.`,
+    );
+  }
+  const assembled = await assembleDetectorStudyInput({
+    context: input.context,
+    localRows: input.localRows,
+  });
+  return runRegistryDetectorStudy({
+    metadata: input.metadata,
+    rows: assembled.rows,
+  });
+}
+
 export function runRegistryDetectorStudy(input: {
   readonly metadata: DetectorStudyMetadata;
   readonly rows: DetectorStudySourceRows;
-  readonly featureContracts?: readonly FeatureContractSatisfaction[];
 }): RegistryDetectorStudyResult {
   const { metadata, rows } = input;
-  const featureContracts =
-    input.featureContracts ??
-    detectorStudyFeatureContractSatisfaction({
-      detectorId: metadata.detectorId,
-    });
-  const runResolved = (
-    resolved: Omit<RunResolvedDetectorStudyInput, "featureContracts">,
-  ): RegistryDetectorStudyResult =>
-    runResolvedDetectorStudy({
-      ...resolved,
-      featureContracts,
-    });
+  const featureContracts = detectorStudyFeatureContractSatisfaction({
+    detectorId: metadata.detectorId,
+  });
+  const runResolved = (resolved: RunResolvedDetectorStudyInput): RegistryDetectorStudyResult =>
+    runResolvedDetectorStudy(resolved);
   const modelDependencies = detectorModelDependencySatisfaction({
     detectorId: metadata.detectorId,
     rows,

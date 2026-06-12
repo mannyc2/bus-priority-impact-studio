@@ -1,8 +1,8 @@
 import { listAnalyticsDetectors, type RegisteredAnalyticsDetector } from "@bp/analytics/registry";
 import {
-  dataProductCompletenessStatusMap,
-  type DataProductCompletenessRef,
   type DataProductCompletenessStatus as CanonicalDataProductCompletenessStatus,
+  type DataProductCompletenessRef,
+  dataProductCompletenessStatusMap,
 } from "../data-products";
 
 export type AnalysisKind = "detector" | "causal_study" | "forecasting" | "response_drift_study";
@@ -78,6 +78,8 @@ export type AnalysisDependencyClosureArtifact = {
     readonly detectorCorpusGrain: string;
     readonly reviewPacketCoverage: string;
     readonly detectorEvaluation: string;
+    readonly forecastValidation: string;
+    readonly causalValidation: string;
   };
   readonly summary: {
     readonly analysisUnitCount: number;
@@ -118,6 +120,8 @@ type ArtifactInputs = {
   readonly detectorCorpusGrain: unknown | null;
   readonly reviewPacketCoverage: unknown | null;
   readonly detectorEvaluation: unknown | null;
+  readonly forecastValidation: unknown | null;
+  readonly causalValidation: unknown | null;
 };
 
 export type BuildAnalysisDependencyClosureInput = {
@@ -238,6 +242,22 @@ function evaluationScorecardsByDetector(
     if (detectorId !== null) scorecards.set(detectorId, scorecard);
   }
   return scorecards;
+}
+
+function validationGatesById(
+  artifact: unknown | null,
+  source: string,
+): Map<string, Record<string, unknown>> {
+  const root = asObject(artifact);
+  if (root === null) return new Map();
+  const rows = new Map<string, Record<string, unknown>>();
+  for (const rawGate of asArray(root["gates"])) {
+    const gate = asObject(rawGate);
+    if (gate === null) continue;
+    const gateId = text(gate["gateId"]);
+    if (gateId !== null) rows.set(gateId, { ...gate, sourceArtifact: source });
+  }
+  return rows;
 }
 
 function productDependencyKind(
@@ -437,15 +457,49 @@ function evaluationDependency(input: {
   };
 }
 
-function validationGateDependency(gateId: string): AnalysisDependency {
+function validationGateDependency(input: {
+  readonly gateId: string;
+  readonly validationGateRows: ReadonlyMap<string, Record<string, unknown>>;
+  readonly artifactPresent: boolean;
+}): AnalysisDependency {
+  const row = input.validationGateRows.get(input.gateId);
+  const status = text(row?.["status"]);
+  const dependencyStatus: AnalysisDependencyStatus =
+    row === undefined
+      ? input.artifactPresent
+        ? "missing"
+        : "blocked"
+      : status === "pass" || status === "warn" || status === "fail"
+        ? status
+        : "not_audited";
+  const reasons =
+    row === undefined
+      ? [
+          input.artifactPresent
+            ? "validation_gate_row_missing"
+            : "validation_gate_artifact_not_implemented_yet",
+        ]
+      : dependencyStatus === "pass"
+        ? []
+        : asArray(row["reasons"])
+            .map(text)
+            .filter((reason): reason is string => reason !== null);
   return {
-    dependencyId: gateId,
+    dependencyId: input.gateId,
     kind: "validation_gate",
-    label: gateId.replaceAll("_", " "),
+    label: input.gateId.replaceAll("_", " "),
     required: true,
-    status: "blocked",
-    source: "planned_analysis_unit",
-    reasons: ["validation_gate_artifact_not_implemented_yet"],
+    status: dependencyStatus,
+    source:
+      row === undefined
+        ? "planned_analysis_unit"
+        : (text(row["sourceArtifact"]) ?? "validation-gates"),
+    reasons:
+      dependencyStatus === "pass"
+        ? []
+        : reasons.length > 0
+          ? reasons
+          : [`validation_gate_status:${dependencyStatus}`],
   };
 }
 
@@ -598,6 +652,10 @@ function plannedUnit(input: {
   readonly definition: PlannedAnalysisUnitDefinition;
   readonly productsById: ReadonlyMap<string, AnalysisDependencyDataProduct>;
   readonly productStatusById: ReadonlyMap<string, ProductCompletenessRef>;
+  readonly validationGateRows: ReadonlyMap<string, Record<string, unknown>>;
+  readonly artifactPresence: {
+    readonly forecastValidation: boolean;
+  };
 }): AnalysisUnit {
   const dependencies = [
     ...input.definition.productIds.map((productId) =>
@@ -608,7 +666,13 @@ function plannedUnit(input: {
         productStatusById: input.productStatusById,
       }),
     ),
-    ...input.definition.validationGates.map(validationGateDependency),
+    ...input.definition.validationGates.map((gateId) =>
+      validationGateDependency({
+        gateId,
+        validationGateRows: input.validationGateRows,
+        artifactPresent: input.artifactPresence.forecastValidation,
+      }),
+    ),
   ];
   return buildUnit({
     analysisId: input.definition.analysisId,
@@ -656,6 +720,9 @@ function warningsForArtifacts(input: ArtifactInputs): string[] {
   if (input.reviewPacketCoverage === null)
     warnings.push("Review-packet coverage artifact missing.");
   if (input.detectorEvaluation === null) warnings.push("Detector evaluation artifact missing.");
+  if (input.forecastValidation === null)
+    warnings.push("Forecast validation gates artifact missing.");
+  if (input.causalValidation === null) warnings.push("Causal validation gates artifact missing.");
   return warnings;
 }
 
@@ -709,11 +776,17 @@ export function buildAnalysisDependencyClosure(
   const grainRows = artifactDetectorRows(input.detectorCorpusGrain);
   const reviewRows = artifactDetectorRows(input.reviewPacketCoverage);
   const scorecards = evaluationScorecardsByDetector(input.detectorEvaluation);
+  const validationGateRows = new Map([
+    ...validationGatesById(input.forecastValidation, "forecast-validation-gates"),
+    ...validationGatesById(input.causalValidation, "causal-validation-gates"),
+  ]);
   const artifactPresence = {
     readiness: input.detectorReadiness !== null,
     grain: input.detectorCorpusGrain !== null,
     review: input.reviewPacketCoverage !== null,
     evaluation: input.detectorEvaluation !== null,
+    forecastValidation: input.forecastValidation !== null,
+    causalValidation: input.causalValidation !== null,
   };
 
   const detectorUnits = detectors.map((detector) =>
@@ -729,7 +802,16 @@ export function buildAnalysisDependencyClosure(
     }),
   );
   const plannedUnits = PLANNED_ANALYSIS_UNITS.map((definition) =>
-    plannedUnit({ definition, productsById, productStatusById }),
+    plannedUnit({
+      definition,
+      productsById,
+      productStatusById,
+      validationGateRows,
+      artifactPresence: {
+        forecastValidation:
+          artifactPresence.forecastValidation || artifactPresence.causalValidation,
+      },
+    }),
   );
   const analysisUnits = [...detectorUnits, ...plannedUnits].sort((a, b) => {
     const kindDelta = a.analysisKind.localeCompare(b.analysisKind);

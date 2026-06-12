@@ -2,6 +2,7 @@ import { Database as BunDatabase } from "bun:sqlite";
 import { mkdir } from "node:fs/promises";
 import { dirname, isAbsolute, relative } from "node:path";
 import {
+  dataProductCompletenessPath as dataProductCompletenessArtifactPath,
   detectDetectorSpecificScoreVectorIds,
   detectorCorpusGrainAuditMarkdownPath,
   detectorCorpusGrainAuditPath,
@@ -133,10 +134,20 @@ export default defineCommand({
       input.options.manifest === undefined
         ? DATA_PRODUCT_MANIFEST
         : parseDataProductManifestText(await Bun.file(fromCliPath(input.options.manifest)).text());
-    const dataProductCompletenessPath =
+    const requestedDataProductCompletenessPath =
       input.options.dataProductCompleteness === undefined
-        ? null
+        ? dataProductCompletenessArtifactPath({
+            artifactRoot,
+            historyStartMonth,
+            releaseMonth,
+            runId,
+          })
         : fromCliPath(input.options.dataProductCompleteness);
+    const dataProductCompletenessPath = (await Bun.file(
+      requestedDataProductCompletenessPath,
+    ).exists())
+      ? requestedDataProductCompletenessPath
+      : null;
     const productCompleteness = await readOptionalDataProductCompleteness(
       dataProductCompletenessPath,
     );

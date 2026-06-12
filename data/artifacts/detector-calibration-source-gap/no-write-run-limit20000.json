@@ -1,0 +1,2784 @@
+{
+  "artifactKind": "registry_detector_run",
+  "schemaVersion": 1,
+  "generatedAt": "2026-06-10T15:42:36.723Z",
+  "detectorId": "source_gap",
+  "detectorVersion": "1.0.0",
+  "detectorRunId": "source_gap-2026-03",
+  "releaseMonth": "2026-03",
+  "dbPath": "data/local/pipeline.sqlite",
+  "artifactPath": "data/artifacts/detector-calibration-source-gap/no-write-run-limit20000.json",
+  "wroteDb": false,
+  "featureContracts": [
+    {
+      "featureGrain": "source_coverage",
+      "resolverId": "sqlite.source_coverage.v1",
+      "status": "satisfied_by_feature_quality",
+      "reason": "Source coverage is carried through source-gap model rows and detector input quality summaries."
+    },
+    {
+      "featureGrain": "feed_health",
+      "resolverId": "embedded.feature_quality.v1",
+      "status": "satisfied_by_feature_quality",
+      "reason": "Current registry runner carries coverage, freshness, and sample gates through feature quality fields."
+    },
+    {
+      "featureGrain": "route_reliability_month",
+      "resolverId": "sqlite.local_route_observed_reliability_summary.v1",
+      "status": "resolved",
+      "reason": "Resolved from observed reliability summaries joined to scheduled baselines and Bus Wait Assessment support."
+    },
+    {
+      "featureGrain": "route_treatment_source_gap",
+      "resolverId": "artifact.route_treatment_summary.source_gap.v1",
+      "status": "resolved",
+      "reason": "Resolved from route-treatment-summary sourceGapRows."
+    }
+  ],
+  "dataProductDependencies": [
+    {
+      "productId": "analytics_backfill_coverage_audit",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    },
+    {
+      "productId": "bus_observatory_gtfs_rt_availability",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    },
+    {
+      "productId": "local_bus_wait_assessment_history",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    },
+    {
+      "productId": "local_route_month_coverage_release",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    },
+    {
+      "productId": "local_route_observed_reliability_summary_release",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    },
+    {
+      "productId": "local_route_reliability_baseline_release",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    },
+    {
+      "productId": "route_treatment_summary_artifact",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    },
+    {
+      "productId": "studio_route_source_status_rows",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    }
+  ],
+  "modelDependencies": [
+    {
+      "modelId": "source_gap_model_v1",
+      "status": "available",
+      "rowCount": 381,
+      "reason": "Required model artifact source_gap_model_v1 was supplied as sourceGapModelRows."
+    }
+  ],
+  "inputSummary": {
+    "sourceKind": "source_gap_from_source_gap_model_v1",
+    "artifactMonth": "2026-03",
+    "artifactValidationStatus": "warn",
+    "routeFilter": null,
+    "routeTreatmentFeatureCount": 4572,
+    "routeSegmentTreatmentFeatureCount": 4134,
+    "routeTreatmentSourceGapFeatureCount": 381,
+    "sourceGapFeatureCount": 381,
+    "positiveSegmentTreatmentFeatureCount": 2112,
+    "routeTreatmentSourceEvidenceRowCount": 5063,
+    "segmentUniverseRowCount": 4140,
+    "segmentTreatmentRowCount": 4134,
+    "artifactPath": "/mnt/models/dev/bus-reliability-tracker/data/artifacts/studio/v2/route-treatment-summary/2026-03/route-treatment-summary.json",
+    "artifactFound": true,
+    "featureCount": 381,
+    "sourceGapModelRowCount": 381,
+    "sourceGapModelSourceGapCount": 381
+  },
+  "outputSummary": {
+    "candidateCount": 381,
+    "evidenceCount": 381,
+    "coverageCount": 381,
+    "hitCount": 381,
+    "cleanNoHitCount": 0,
+    "skippedCount": 0
+  },
+  "candidateSamples": [
+    {
+      "candidateId": "24836ccdf77347bc358a2abbb0074f5d",
+      "routeId": "B1",
+      "scopeId": "B1",
+      "detectorScore": 75,
+      "claimText": "Route B1 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "c3c0b3287fcce281d7e1a3bbb4e859f6",
+      "routeId": "B100",
+      "scopeId": "B100",
+      "detectorScore": 75,
+      "claimText": "Route B100 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "77cf8fdfa215410e4b07281d83ba0d31",
+      "routeId": "B102",
+      "scopeId": "B102",
+      "detectorScore": 75,
+      "claimText": "Route B102 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "d34713307f948313defdbb40c4a2a246",
+      "routeId": "B103",
+      "scopeId": "B103",
+      "detectorScore": 75,
+      "claimText": "Route B103 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "6e5a975ec64f5cfeec60e674f7cee73d",
+      "routeId": "B106",
+      "scopeId": "B106",
+      "detectorScore": 75,
+      "claimText": "Route B106 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "cf2fb0083ed233f7595c8f9ddbdb7541",
+      "routeId": "B11",
+      "scopeId": "B11",
+      "detectorScore": 75,
+      "claimText": "Route B11 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "c93c2c79e8b294f3e6cff87ea70c7092",
+      "routeId": "B111",
+      "scopeId": "B111",
+      "detectorScore": 75,
+      "claimText": "Route B111 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "0550bf3eb2b3b4cadacc18d217cd7722",
+      "routeId": "B116",
+      "scopeId": "B116",
+      "detectorScore": 75,
+      "claimText": "Route B116 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "e7cc8884a6589eaa01409b30217b6f9e",
+      "routeId": "B12",
+      "scopeId": "B12",
+      "detectorScore": 75,
+      "claimText": "Route B12 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "a3883cd346adf39179ec58078cdc6114",
+      "routeId": "B13",
+      "scopeId": "B13",
+      "detectorScore": 75,
+      "claimText": "Route B13 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "d0d8469df523c542cfe672f6632765f6",
+      "routeId": "B14",
+      "scopeId": "B14",
+      "detectorScore": 75,
+      "claimText": "Route B14 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "bc7b432dc2b43aafeeb98c98645ec8ab",
+      "routeId": "B15",
+      "scopeId": "B15",
+      "detectorScore": 75,
+      "claimText": "Route B15 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "4ea3f6932665737433504bb68a8d5e7c",
+      "routeId": "B16",
+      "scopeId": "B16",
+      "detectorScore": 75,
+      "claimText": "Route B16 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "c94713436288a055a355fe2f28adb96d",
+      "routeId": "B17",
+      "scopeId": "B17",
+      "detectorScore": 75,
+      "claimText": "Route B17 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "15b4adcb44b07b5da1a63aeab7741a35",
+      "routeId": "B2",
+      "scopeId": "B2",
+      "detectorScore": 75,
+      "claimText": "Route B2 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "3565662322cbe545f9d833e171aeafdd",
+      "routeId": "B20",
+      "scopeId": "B20",
+      "detectorScore": 75,
+      "claimText": "Route B20 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "e602de04386ce20e835aadc8ad1c7b70",
+      "routeId": "B24",
+      "scopeId": "B24",
+      "detectorScore": 75,
+      "claimText": "Route B24 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "8094d848b0a3fa6acd3e3faab27b80ca",
+      "routeId": "B25",
+      "scopeId": "B25",
+      "detectorScore": 75,
+      "claimText": "Route B25 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "eeddb1213bbfdefa17884578e4e978c9",
+      "routeId": "B26",
+      "scopeId": "B26",
+      "detectorScore": 75,
+      "claimText": "Route B26 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "c6ff70651269a6cba3f3c5c8f603c6c5",
+      "routeId": "B3",
+      "scopeId": "B3",
+      "detectorScore": 75,
+      "claimText": "Route B3 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "2c58663fb2e854f92603492dfc37ae4c",
+      "routeId": "B31",
+      "scopeId": "B31",
+      "detectorScore": 75,
+      "claimText": "Route B31 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "029f26b2952a7543d9e1cf61d54f4b74",
+      "routeId": "B32",
+      "scopeId": "B32",
+      "detectorScore": 75,
+      "claimText": "Route B32 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "be31503de0c881d6c498d01507d43124",
+      "routeId": "B35",
+      "scopeId": "B35",
+      "detectorScore": 75,
+      "claimText": "Route B35 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "815559de88c2eb83a7bbf73f14f0b07e",
+      "routeId": "B36",
+      "scopeId": "B36",
+      "detectorScore": 75,
+      "claimText": "Route B36 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "d0d69665f44555d8b1b3df0429685599",
+      "routeId": "B37",
+      "scopeId": "B37",
+      "detectorScore": 75,
+      "claimText": "Route B37 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "6542266f6f7baf95e309abebf43a200b",
+      "routeId": "B38",
+      "scopeId": "B38",
+      "detectorScore": 75,
+      "claimText": "Route B38 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "db2a9b7d4de0f7c2248009f4e02b549d",
+      "routeId": "B39",
+      "scopeId": "B39",
+      "detectorScore": 75,
+      "claimText": "Route B39 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "244d6b0c6523b874797264e9949c0458",
+      "routeId": "B4",
+      "scopeId": "B4",
+      "detectorScore": 75,
+      "claimText": "Route B4 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "378481f2271f68d517c1d007f42eff3f",
+      "routeId": "B41",
+      "scopeId": "B41",
+      "detectorScore": 75,
+      "claimText": "Route B41 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "22d25643351beec87bcdc6f690f22e5f",
+      "routeId": "B42",
+      "scopeId": "B42",
+      "detectorScore": 75,
+      "claimText": "Route B42 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "c5b38c1234adee5f6c48f01ead9132e2",
+      "routeId": "B43",
+      "scopeId": "B43",
+      "detectorScore": 75,
+      "claimText": "Route B43 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "87fb30238678d9990ba22ff83919eee5",
+      "routeId": "B44",
+      "scopeId": "B44",
+      "detectorScore": 75,
+      "claimText": "Route B44 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "21514a75fb5b0b3efb0d1989ec569631",
+      "routeId": "B44+",
+      "scopeId": "B44+",
+      "detectorScore": 75,
+      "claimText": "Route B44+ has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "9219f85a7c05f43263629c8399841a72",
+      "routeId": "B45",
+      "scopeId": "B45",
+      "detectorScore": 75,
+      "claimText": "Route B45 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "5f0bdd11066a2cffda849db695906817",
+      "routeId": "B46",
+      "scopeId": "B46",
+      "detectorScore": 75,
+      "claimText": "Route B46 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "6a78f109a1e723f71dc327dabf93d7c7",
+      "routeId": "B46+",
+      "scopeId": "B46+",
+      "detectorScore": 75,
+      "claimText": "Route B46+ has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "c7b2a29cf344c7271f3da1460e442d52",
+      "routeId": "B47",
+      "scopeId": "B47",
+      "detectorScore": 75,
+      "claimText": "Route B47 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "1a909b15bc21eb0190b584c7d1765ba1",
+      "routeId": "B48",
+      "scopeId": "B48",
+      "detectorScore": 75,
+      "claimText": "Route B48 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "f9e6e904b0912ad2cf7d13a6f9ab5b11",
+      "routeId": "B49",
+      "scopeId": "B49",
+      "detectorScore": 75,
+      "claimText": "Route B49 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "2547115c0b44ffd3624b63be5dbeca20",
+      "routeId": "B52",
+      "scopeId": "B52",
+      "detectorScore": 75,
+      "claimText": "Route B52 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "f34581b51b90aad90bb0cd679e49ae1d",
+      "routeId": "B54",
+      "scopeId": "B54",
+      "detectorScore": 75,
+      "claimText": "Route B54 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "992f40fae0a50368831c0a7ed09e34b2",
+      "routeId": "B57",
+      "scopeId": "B57",
+      "detectorScore": 75,
+      "claimText": "Route B57 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "5676013da57cc85eb85c3b90ff4e9f64",
+      "routeId": "B6",
+      "scopeId": "B6",
+      "detectorScore": 75,
+      "claimText": "Route B6 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "ec0d7960628acfaa985bd2663349ff22",
+      "routeId": "B60",
+      "scopeId": "B60",
+      "detectorScore": 75,
+      "claimText": "Route B60 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "f0cd7ac1dc007739ffc286b24be29be6",
+      "routeId": "B61",
+      "scopeId": "B61",
+      "detectorScore": 75,
+      "claimText": "Route B61 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "ca1daeefbc512419e42a76cd08a9ad08",
+      "routeId": "B62",
+      "scopeId": "B62",
+      "detectorScore": 75,
+      "claimText": "Route B62 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "a208ae53d43345e601492b3785631733",
+      "routeId": "B63",
+      "scopeId": "B63",
+      "detectorScore": 75,
+      "claimText": "Route B63 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "da036cfb876c097f03bd20323394b7d4",
+      "routeId": "B64",
+      "scopeId": "B64",
+      "detectorScore": 75,
+      "claimText": "Route B64 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "b2e4e66d8fb803f0ab8079bd5ac3a18a",
+      "routeId": "B65",
+      "scopeId": "B65",
+      "detectorScore": 75,
+      "claimText": "Route B65 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "acdfc0f6b1e7c66c8735de896063caf9",
+      "routeId": "B67",
+      "scopeId": "B67",
+      "detectorScore": 75,
+      "claimText": "Route B67 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "518e25098744d2d0a7f5d249136685e2",
+      "routeId": "B68",
+      "scopeId": "B68",
+      "detectorScore": 75,
+      "claimText": "Route B68 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "b362b604191bd427a69df6254eba2959",
+      "routeId": "B69",
+      "scopeId": "B69",
+      "detectorScore": 75,
+      "claimText": "Route B69 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "f0857b355fa7fd42c93701fec4583c9d",
+      "routeId": "B7",
+      "scopeId": "B7",
+      "detectorScore": 75,
+      "claimText": "Route B7 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "3cfe3f092041b6e17721c97ce48d91de",
+      "routeId": "B70",
+      "scopeId": "B70",
+      "detectorScore": 75,
+      "claimText": "Route B70 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "adeae5b2c900d27472cb1c7f1e8d398f",
+      "routeId": "B74",
+      "scopeId": "B74",
+      "detectorScore": 75,
+      "claimText": "Route B74 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "6c2c133aa5b673c21e084222a253d9b0",
+      "routeId": "B8",
+      "scopeId": "B8",
+      "detectorScore": 75,
+      "claimText": "Route B8 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "870fa4b53014114ee9031230d8129d2a",
+      "routeId": "B82",
+      "scopeId": "B82",
+      "detectorScore": 75,
+      "claimText": "Route B82 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "95cbd2957939a83d359bc06f9b56c4e9",
+      "routeId": "B82+",
+      "scopeId": "B82+",
+      "detectorScore": 75,
+      "claimText": "Route B82+ has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "004a107e47d8186c316cd1fd2424532d",
+      "routeId": "B83",
+      "scopeId": "B83",
+      "detectorScore": 75,
+      "claimText": "Route B83 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "333ed87d0d1dd757fdb573070dd30d9b",
+      "routeId": "B84",
+      "scopeId": "B84",
+      "detectorScore": 75,
+      "claimText": "Route B84 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "966934cecb746db91a44e76f487ec950",
+      "routeId": "B9",
+      "scopeId": "B9",
+      "detectorScore": 75,
+      "claimText": "Route B9 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "132f56aceffdbaf29a70b22c7eec80fe",
+      "routeId": "B90",
+      "scopeId": "B90",
+      "detectorScore": 75,
+      "claimText": "Route B90 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "940c2a328df90ecec9d7421c31046a98",
+      "routeId": "B93",
+      "scopeId": "B93",
+      "detectorScore": 75,
+      "claimText": "Route B93 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "9af9ab211a36a7dcca50e60e36b7d660",
+      "routeId": "B94",
+      "scopeId": "B94",
+      "detectorScore": 75,
+      "claimText": "Route B94 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "33198d6bdaf58e36980b1e5fe63c4731",
+      "routeId": "B96",
+      "scopeId": "B96",
+      "detectorScore": 75,
+      "claimText": "Route B96 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "be3ac506afa55e14c99fb0071dcc2654",
+      "routeId": "B99",
+      "scopeId": "B99",
+      "detectorScore": 75,
+      "claimText": "Route B99 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "ac557a9215eef656f2456a1cf9a2f759",
+      "routeId": "BM1",
+      "scopeId": "BM1",
+      "detectorScore": 75,
+      "claimText": "Route BM1 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "794090e6872a78a3f80b57cdd0707826",
+      "routeId": "BM2",
+      "scopeId": "BM2",
+      "detectorScore": 75,
+      "claimText": "Route BM2 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "eed4667ca0dae8afc845b15eab3d773d",
+      "routeId": "BM3",
+      "scopeId": "BM3",
+      "detectorScore": 75,
+      "claimText": "Route BM3 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "da7ce155f09ecb4b93646c81df26525e",
+      "routeId": "BM4",
+      "scopeId": "BM4",
+      "detectorScore": 75,
+      "claimText": "Route BM4 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "ac178a809f08456b6d9c828edb0144ad",
+      "routeId": "BM5",
+      "scopeId": "BM5",
+      "detectorScore": 75,
+      "claimText": "Route BM5 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "6fdcdd5ec6639b1bd307d3e67cb5a033",
+      "routeId": "BX1",
+      "scopeId": "BX1",
+      "detectorScore": 75,
+      "claimText": "Route BX1 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "c2688781a1f08aec64e803ee85d62d9b",
+      "routeId": "BX10",
+      "scopeId": "BX10",
+      "detectorScore": 75,
+      "claimText": "Route BX10 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "cb057f2f31c1de877dcd3f3a9ca5127f",
+      "routeId": "BX11",
+      "scopeId": "BX11",
+      "detectorScore": 75,
+      "claimText": "Route BX11 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "b184533e4156fe8cf2d661ff64220a42",
+      "routeId": "BX12",
+      "scopeId": "BX12",
+      "detectorScore": 75,
+      "claimText": "Route BX12 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "43bf5ddef0dadcdf6c8469c48d4ead27",
+      "routeId": "BX12+",
+      "scopeId": "BX12+",
+      "detectorScore": 75,
+      "claimText": "Route BX12+ has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "16180b1f17458420b416405bd39f8565",
+      "routeId": "BX13",
+      "scopeId": "BX13",
+      "detectorScore": 75,
+      "claimText": "Route BX13 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "62f9fc351e7b36204e056a614326738b",
+      "routeId": "BX15",
+      "scopeId": "BX15",
+      "detectorScore": 75,
+      "claimText": "Route BX15 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "d5cb68ce34ee02e08a73901e1899cfb8",
+      "routeId": "BX16",
+      "scopeId": "BX16",
+      "detectorScore": 75,
+      "claimText": "Route BX16 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "70eb1dd58d0fc2f553b8f1f67f1ef949",
+      "routeId": "BX17",
+      "scopeId": "BX17",
+      "detectorScore": 75,
+      "claimText": "Route BX17 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "859d9b933063a1ea058c9b5804679a38",
+      "routeId": "BX18A",
+      "scopeId": "BX18A",
+      "detectorScore": 75,
+      "claimText": "Route BX18A has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "6558a782ef740921cd9701a8497992d7",
+      "routeId": "BX18B",
+      "scopeId": "BX18B",
+      "detectorScore": 75,
+      "claimText": "Route BX18B has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "8aaef7f75f1f5d25c56a4890a90de72c",
+      "routeId": "BX19",
+      "scopeId": "BX19",
+      "detectorScore": 75,
+      "claimText": "Route BX19 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "643cb677fd352310cc0ec0b968cc2769",
+      "routeId": "BX2",
+      "scopeId": "BX2",
+      "detectorScore": 75,
+      "claimText": "Route BX2 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "67a3ef89a0de050564e5f2ff8c4524b7",
+      "routeId": "BX20",
+      "scopeId": "BX20",
+      "detectorScore": 75,
+      "claimText": "Route BX20 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "cc1ecf96e12bea975c30edf458d20c0f",
+      "routeId": "BX21",
+      "scopeId": "BX21",
+      "detectorScore": 75,
+      "claimText": "Route BX21 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "86ea5432b1753fbb23f1cb05268c846f",
+      "routeId": "BX22",
+      "scopeId": "BX22",
+      "detectorScore": 75,
+      "claimText": "Route BX22 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "d7dab4799b4fc9899c03ddfdb8cf3b76",
+      "routeId": "BX23",
+      "scopeId": "BX23",
+      "detectorScore": 75,
+      "claimText": "Route BX23 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "6902c15127dc2cd6afa5c9df0345a323",
+      "routeId": "BX24",
+      "scopeId": "BX24",
+      "detectorScore": 75,
+      "claimText": "Route BX24 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "e4e9c4e6f61b05b2c5b1c8be3c95ff80",
+      "routeId": "BX25",
+      "scopeId": "BX25",
+      "detectorScore": 75,
+      "claimText": "Route BX25 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "c64f40ae7b99fcec7344d22188d9d59f",
+      "routeId": "BX26",
+      "scopeId": "BX26",
+      "detectorScore": 75,
+      "claimText": "Route BX26 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "30da86acf7a599115b82f8f32825d26a",
+      "routeId": "BX27",
+      "scopeId": "BX27",
+      "detectorScore": 75,
+      "claimText": "Route BX27 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "3fed090b86a81c2e0f799b82ad17429f",
+      "routeId": "BX28",
+      "scopeId": "BX28",
+      "detectorScore": 75,
+      "claimText": "Route BX28 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "07398ebf7d96ba36e83e805591ecb7b3",
+      "routeId": "BX29",
+      "scopeId": "BX29",
+      "detectorScore": 75,
+      "claimText": "Route BX29 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "accae2c013d3500f1df2ac7ebb9e9539",
+      "routeId": "BX3",
+      "scopeId": "BX3",
+      "detectorScore": 75,
+      "claimText": "Route BX3 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "19c6c47f554c1e6f4500dc597cbafe1a",
+      "routeId": "BX30",
+      "scopeId": "BX30",
+      "detectorScore": 75,
+      "claimText": "Route BX30 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "b881ba8c45aff94c1f3536ea8d2332cc",
+      "routeId": "BX31",
+      "scopeId": "BX31",
+      "detectorScore": 75,
+      "claimText": "Route BX31 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "4021819079aaaf9c1944c4ec598c90c6",
+      "routeId": "BX32",
+      "scopeId": "BX32",
+      "detectorScore": 75,
+      "claimText": "Route BX32 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "3808b59976106f9ef76b464041763df0",
+      "routeId": "BX33",
+      "scopeId": "BX33",
+      "detectorScore": 75,
+      "claimText": "Route BX33 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "f1806e734e11131db6a143e2c6d8951a",
+      "routeId": "BX34",
+      "scopeId": "BX34",
+      "detectorScore": 75,
+      "claimText": "Route BX34 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "385ddbdfb3013146e2c85ed1210cf9ba",
+      "routeId": "BX35",
+      "scopeId": "BX35",
+      "detectorScore": 75,
+      "claimText": "Route BX35 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "7a34d32febcf0e74ffa6dd649d187745",
+      "routeId": "BX36",
+      "scopeId": "BX36",
+      "detectorScore": 75,
+      "claimText": "Route BX36 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "46443526355b9cd8190c7906555efbdd",
+      "routeId": "BX38",
+      "scopeId": "BX38",
+      "detectorScore": 75,
+      "claimText": "Route BX38 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "41e77af42f6c2194101ed8f68d6bd28c",
+      "routeId": "BX39",
+      "scopeId": "BX39",
+      "detectorScore": 75,
+      "claimText": "Route BX39 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "9b8ed6c96625296e00dca627228e4b5b",
+      "routeId": "BX4",
+      "scopeId": "BX4",
+      "detectorScore": 75,
+      "claimText": "Route BX4 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "6011fff4e22982a36c5a8672a91eac1f",
+      "routeId": "BX40",
+      "scopeId": "BX40",
+      "detectorScore": 75,
+      "claimText": "Route BX40 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "a1c0b86207f266c751eaef05ec9018e5",
+      "routeId": "BX41",
+      "scopeId": "BX41",
+      "detectorScore": 75,
+      "claimText": "Route BX41 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "e2dd2650d49f75259034632a8a173867",
+      "routeId": "BX41+",
+      "scopeId": "BX41+",
+      "detectorScore": 75,
+      "claimText": "Route BX41+ has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "f77d79a9dd3f04439e4b81c4818f3cc6",
+      "routeId": "BX42",
+      "scopeId": "BX42",
+      "detectorScore": 75,
+      "claimText": "Route BX42 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "7017edaf8800c6b5d9ebc4a4ba7f84a7",
+      "routeId": "BX46",
+      "scopeId": "BX46",
+      "detectorScore": 75,
+      "claimText": "Route BX46 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "d04a5b2a066564a3c232b808d73467c0",
+      "routeId": "BX4A",
+      "scopeId": "BX4A",
+      "detectorScore": 75,
+      "claimText": "Route BX4A has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "59405063ab248b48f8ea7cfbda2be3c2",
+      "routeId": "BX5",
+      "scopeId": "BX5",
+      "detectorScore": 75,
+      "claimText": "Route BX5 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "0e8fed4ebeb0e3ee37dca129d6138a77",
+      "routeId": "BX6",
+      "scopeId": "BX6",
+      "detectorScore": 75,
+      "claimText": "Route BX6 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "4ad78acd5fd6d65f429a8c8dc24ca6af",
+      "routeId": "BX6+",
+      "scopeId": "BX6+",
+      "detectorScore": 75,
+      "claimText": "Route BX6+ has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "53ba4d9a8c73f8b0f6da4fca09d35546",
+      "routeId": "BX7",
+      "scopeId": "BX7",
+      "detectorScore": 75,
+      "claimText": "Route BX7 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "46629dedf5f35aeace1722e956bcc81c",
+      "routeId": "BX8",
+      "scopeId": "BX8",
+      "detectorScore": 75,
+      "claimText": "Route BX8 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "feb721d31b4708076e65f3b79857866e",
+      "routeId": "BX9",
+      "scopeId": "BX9",
+      "detectorScore": 75,
+      "claimText": "Route BX9 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "c8c9f1f1f15428e0086000a62d58e703",
+      "routeId": "BX92",
+      "scopeId": "BX92",
+      "detectorScore": 75,
+      "claimText": "Route BX92 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "7518156e7ea2e92b9fb856d28b77b1af",
+      "routeId": "BX95",
+      "scopeId": "BX95",
+      "detectorScore": 75,
+      "claimText": "Route BX95 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "a8a1002a04067926213e39e3454fc69d",
+      "routeId": "BXM1",
+      "scopeId": "BXM1",
+      "detectorScore": 75,
+      "claimText": "Route BXM1 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "5cfe521c7dd3620f9bea536cf08b6788",
+      "routeId": "BXM10",
+      "scopeId": "BXM10",
+      "detectorScore": 75,
+      "claimText": "Route BXM10 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "909d6ce8a49c2ca7cce90f2c8d197f7f",
+      "routeId": "BXM11",
+      "scopeId": "BXM11",
+      "detectorScore": 75,
+      "claimText": "Route BXM11 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "692510af24a567525588d256febc760b",
+      "routeId": "BXM18",
+      "scopeId": "BXM18",
+      "detectorScore": 75,
+      "claimText": "Route BXM18 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "60d6497be89e7c287cd360ee5ac97a65",
+      "routeId": "BXM2",
+      "scopeId": "BXM2",
+      "detectorScore": 75,
+      "claimText": "Route BXM2 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "b5a1a671ca0a782dd6479781e3ce09b8",
+      "routeId": "BXM3",
+      "scopeId": "BXM3",
+      "detectorScore": 75,
+      "claimText": "Route BXM3 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "ce1d13b2e58b5158118135bb213ea2d6",
+      "routeId": "BXM4",
+      "scopeId": "BXM4",
+      "detectorScore": 75,
+      "claimText": "Route BXM4 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "da9568f8b12eda3ade5a907df1d97d30",
+      "routeId": "BXM6",
+      "scopeId": "BXM6",
+      "detectorScore": 75,
+      "claimText": "Route BXM6 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "f04dba3c0907b94cc73580856f991d60",
+      "routeId": "BXM7",
+      "scopeId": "BXM7",
+      "detectorScore": 75,
+      "claimText": "Route BXM7 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "d57b8ecab8d42d43957175a83f177015",
+      "routeId": "BXM8",
+      "scopeId": "BXM8",
+      "detectorScore": 75,
+      "claimText": "Route BXM8 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "3f326e3c7e0dc6e0347d36772e7344ac",
+      "routeId": "BXM9",
+      "scopeId": "BXM9",
+      "detectorScore": 75,
+      "claimText": "Route BXM9 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "07b16f73f2b61f59d311ede1f041a924",
+      "routeId": "CPAS",
+      "scopeId": "CPAS",
+      "detectorScore": 75,
+      "claimText": "Route CPAS has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "6097368101927eebf4bcc27d38286e0c",
+      "routeId": "ECAS",
+      "scopeId": "ECAS",
+      "detectorScore": 75,
+      "claimText": "Route ECAS has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "1c64b5c0b8aa532a8bfbc340ec1ca3cd",
+      "routeId": "J90",
+      "scopeId": "J90",
+      "detectorScore": 75,
+      "claimText": "Route J90 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "591a4a5f0de7fc1f81c41728f095fcc0",
+      "routeId": "L90",
+      "scopeId": "L90",
+      "detectorScore": 75,
+      "claimText": "Route L90 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "33962ceb2a89a56b29ec571d55168b7b",
+      "routeId": "L92",
+      "scopeId": "L92",
+      "detectorScore": 75,
+      "claimText": "Route L92 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "984df4f7d09db9d7ff80c7557e19d0c0",
+      "routeId": "M1",
+      "scopeId": "M1",
+      "detectorScore": 75,
+      "claimText": "Route M1 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "2e163b0d3e073b002de7ac235662591d",
+      "routeId": "M10",
+      "scopeId": "M10",
+      "detectorScore": 75,
+      "claimText": "Route M10 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "48a6dc3678eecc810411247e2d67a413",
+      "routeId": "M100",
+      "scopeId": "M100",
+      "detectorScore": 75,
+      "claimText": "Route M100 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "e9ffc34c038f31ff54b84bf4e2def364",
+      "routeId": "M101",
+      "scopeId": "M101",
+      "detectorScore": 75,
+      "claimText": "Route M101 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "634d1870d041f9372fbdbf63cf3c2642",
+      "routeId": "M102",
+      "scopeId": "M102",
+      "detectorScore": 75,
+      "claimText": "Route M102 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "ce84b76f0fbdf8b8eccc95dae7528c38",
+      "routeId": "M103",
+      "scopeId": "M103",
+      "detectorScore": 75,
+      "claimText": "Route M103 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "d89d174125d5428e6941ad83f9aac93e",
+      "routeId": "M104",
+      "scopeId": "M104",
+      "detectorScore": 75,
+      "claimText": "Route M104 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "4e3e83572824470f4d992338147ee8b9",
+      "routeId": "M106",
+      "scopeId": "M106",
+      "detectorScore": 75,
+      "claimText": "Route M106 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "9b5506237d7ec0ca11d98d199313d89d",
+      "routeId": "M11",
+      "scopeId": "M11",
+      "detectorScore": 75,
+      "claimText": "Route M11 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "5a80f504458f1d26a227d26dcc5b94b9",
+      "routeId": "M116",
+      "scopeId": "M116",
+      "detectorScore": 75,
+      "claimText": "Route M116 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "45ed3845f6256a7e2cd317d313e1bbd0",
+      "routeId": "M12",
+      "scopeId": "M12",
+      "detectorScore": 75,
+      "claimText": "Route M12 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "941a78e670da2dd5fc8bdde9370ece31",
+      "routeId": "M125",
+      "scopeId": "M125",
+      "detectorScore": 75,
+      "claimText": "Route M125 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "aae09b6d7d590d9b01c8e47f309a83f0",
+      "routeId": "M14A+",
+      "scopeId": "M14A+",
+      "detectorScore": 75,
+      "claimText": "Route M14A+ has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "ead31905058eb3e467726114e6c102ee",
+      "routeId": "M14D+",
+      "scopeId": "M14D+",
+      "detectorScore": 75,
+      "claimText": "Route M14D+ has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "2c2c5167bb43467169829529085861e8",
+      "routeId": "M15",
+      "scopeId": "M15",
+      "detectorScore": 75,
+      "claimText": "Route M15 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "450ebc59ca2deb664997ab2bf31acc04",
+      "routeId": "M15+",
+      "scopeId": "M15+",
+      "detectorScore": 75,
+      "claimText": "Route M15+ has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "0885f59225a8027a497f37687ca80f36",
+      "routeId": "M2",
+      "scopeId": "M2",
+      "detectorScore": 75,
+      "claimText": "Route M2 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "02c79cebbbcdfcdff259607b6bb1b811",
+      "routeId": "M20",
+      "scopeId": "M20",
+      "detectorScore": 75,
+      "claimText": "Route M20 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "df486b6a77df2caf14fb3fd564fd376e",
+      "routeId": "M21",
+      "scopeId": "M21",
+      "detectorScore": 75,
+      "claimText": "Route M21 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "5c2fabc31948ac20caccaa0166b50b54",
+      "routeId": "M22",
+      "scopeId": "M22",
+      "detectorScore": 75,
+      "claimText": "Route M22 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "4dc211b87fc2f41203e53d94e849f07d",
+      "routeId": "M23+",
+      "scopeId": "M23+",
+      "detectorScore": 75,
+      "claimText": "Route M23+ has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "3c7a56233cf3e5b36c21f715a1ee3847",
+      "routeId": "M3",
+      "scopeId": "M3",
+      "detectorScore": 75,
+      "claimText": "Route M3 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "3190efc6125c710e9f368d711dcdd51e",
+      "routeId": "M31",
+      "scopeId": "M31",
+      "detectorScore": 75,
+      "claimText": "Route M31 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "d1f12098fc41d84210c5aa01ef7c186d",
+      "routeId": "M34+",
+      "scopeId": "M34+",
+      "detectorScore": 75,
+      "claimText": "Route M34+ has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "e33248fba9d48ec67f906f8b7f96d093",
+      "routeId": "M34A+",
+      "scopeId": "M34A+",
+      "detectorScore": 75,
+      "claimText": "Route M34A+ has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "2f8048f98f705a4386f83d3674d91c69",
+      "routeId": "M35",
+      "scopeId": "M35",
+      "detectorScore": 75,
+      "claimText": "Route M35 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "f3c19461475ec4acc870ef65a7a6714e",
+      "routeId": "M4",
+      "scopeId": "M4",
+      "detectorScore": 75,
+      "claimText": "Route M4 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "69af827778b7bb7860cf2c7985389c5b",
+      "routeId": "M42",
+      "scopeId": "M42",
+      "detectorScore": 75,
+      "claimText": "Route M42 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "d5f155b010fbe57804b182e240008070",
+      "routeId": "M5",
+      "scopeId": "M5",
+      "detectorScore": 75,
+      "claimText": "Route M5 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "3516c4ae8d1b9e760f82e0c8b6fa4e46",
+      "routeId": "M50",
+      "scopeId": "M50",
+      "detectorScore": 75,
+      "claimText": "Route M50 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "ffaaf9df28b51e6f2136e1bca3961ed6",
+      "routeId": "M55",
+      "scopeId": "M55",
+      "detectorScore": 75,
+      "claimText": "Route M55 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "5448c3f71fe41f293b1a5dc66327de88",
+      "routeId": "M57",
+      "scopeId": "M57",
+      "detectorScore": 75,
+      "claimText": "Route M57 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "b57e63fc252e61fdd2e65a98c528c063",
+      "routeId": "M60+",
+      "scopeId": "M60+",
+      "detectorScore": 75,
+      "claimText": "Route M60+ has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "ccb066f6192b0dbd8ba04ceab93496e0",
+      "routeId": "M66",
+      "scopeId": "M66",
+      "detectorScore": 75,
+      "claimText": "Route M66 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "da8e67b21e9e2eea16e2e173a1f18fbb",
+      "routeId": "M7",
+      "scopeId": "M7",
+      "detectorScore": 75,
+      "claimText": "Route M7 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "48a47ee5b2ccb51c35aa6105d5450bf6",
+      "routeId": "M72",
+      "scopeId": "M72",
+      "detectorScore": 75,
+      "claimText": "Route M72 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "44639692867031249bcefadeab6f3e83",
+      "routeId": "M79+",
+      "scopeId": "M79+",
+      "detectorScore": 75,
+      "claimText": "Route M79+ has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "0a6fb5a971e3bf48742672f4df3dfa96",
+      "routeId": "M8",
+      "scopeId": "M8",
+      "detectorScore": 75,
+      "claimText": "Route M8 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "3ee5d6858469753e13e90144ee9d915b",
+      "routeId": "M86+",
+      "scopeId": "M86+",
+      "detectorScore": 75,
+      "claimText": "Route M86+ has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "01d551960ff3614b6570d7c681a76880",
+      "routeId": "M9",
+      "scopeId": "M9",
+      "detectorScore": 75,
+      "claimText": "Route M9 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "0c0472e26cb8cb3ddabb7625820cae19",
+      "routeId": "M90",
+      "scopeId": "M90",
+      "detectorScore": 75,
+      "claimText": "Route M90 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "7398235ace333cf61d6c10211a138221",
+      "routeId": "M96",
+      "scopeId": "M96",
+      "detectorScore": 75,
+      "claimText": "Route M96 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "d65bb3ee78fc9dc13661f2d3f0907104",
+      "routeId": "M98",
+      "scopeId": "M98",
+      "detectorScore": 75,
+      "claimText": "Route M98 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "e93875b9b2a8b93c85f4efd5b462da49",
+      "routeId": "Q1",
+      "scopeId": "Q1",
+      "detectorScore": 75,
+      "claimText": "Route Q1 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "c519bea4f82a6deb7da841a70e8956e0",
+      "routeId": "Q10",
+      "scopeId": "Q10",
+      "detectorScore": 75,
+      "claimText": "Route Q10 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "da4c36efe44cd3334a7fb36274b97c73",
+      "routeId": "Q100",
+      "scopeId": "Q100",
+      "detectorScore": 75,
+      "claimText": "Route Q100 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "2aef5965c08170911e5043307d7ff75a",
+      "routeId": "Q101",
+      "scopeId": "Q101",
+      "detectorScore": 75,
+      "claimText": "Route Q101 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "bc6a567d4b4751fbaf9b9bf6d0ee5862",
+      "routeId": "Q102",
+      "scopeId": "Q102",
+      "detectorScore": 75,
+      "claimText": "Route Q102 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "8989f74bfa5bc8857bf78bca4c4d05f3",
+      "routeId": "Q103",
+      "scopeId": "Q103",
+      "detectorScore": 75,
+      "claimText": "Route Q103 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "ba816cb72501110935aa74f946a022d3",
+      "routeId": "Q104",
+      "scopeId": "Q104",
+      "detectorScore": 75,
+      "claimText": "Route Q104 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "a97b79e9ca7cf74e79210ccb701370e8",
+      "routeId": "Q108",
+      "scopeId": "Q108",
+      "detectorScore": 75,
+      "claimText": "Route Q108 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "f69e82fdfd322ae8d9244972cf1b21fa",
+      "routeId": "Q109",
+      "scopeId": "Q109",
+      "detectorScore": 75,
+      "claimText": "Route Q109 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "43b356991f9302083fb22127579202c8",
+      "routeId": "Q11",
+      "scopeId": "Q11",
+      "detectorScore": 75,
+      "claimText": "Route Q11 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "77a39e3980ebbde057670e591bce5e9a",
+      "routeId": "Q110",
+      "scopeId": "Q110",
+      "detectorScore": 75,
+      "claimText": "Route Q110 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "db11a424f20e36c0324811e37b936260",
+      "routeId": "Q111",
+      "scopeId": "Q111",
+      "detectorScore": 75,
+      "claimText": "Route Q111 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "dc78cf636c2d946fe8a6e5f974f17957",
+      "routeId": "Q112",
+      "scopeId": "Q112",
+      "detectorScore": 75,
+      "claimText": "Route Q112 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "509d1e31fac4dd92ae7efc458fc0a1b1",
+      "routeId": "Q113",
+      "scopeId": "Q113",
+      "detectorScore": 75,
+      "claimText": "Route Q113 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "236d8a5fc4ea3daa7793680c7ee08f49",
+      "routeId": "Q114",
+      "scopeId": "Q114",
+      "detectorScore": 75,
+      "claimText": "Route Q114 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "43652f24ac21d6cd589ae9df7de3ddb4",
+      "routeId": "Q115",
+      "scopeId": "Q115",
+      "detectorScore": 75,
+      "claimText": "Route Q115 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "e91f7924cbed46a74579cf62016d1817",
+      "routeId": "Q12",
+      "scopeId": "Q12",
+      "detectorScore": 75,
+      "claimText": "Route Q12 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "2116adeffe073dd0a4489eb685b8080a",
+      "routeId": "Q121",
+      "scopeId": "Q121",
+      "detectorScore": 75,
+      "claimText": "Route Q121 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "522594a35c11e2627e31a5be56f9d0ea",
+      "routeId": "Q13",
+      "scopeId": "Q13",
+      "detectorScore": 75,
+      "claimText": "Route Q13 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "dd7475491492b067e636e0938997a009",
+      "routeId": "Q14",
+      "scopeId": "Q14",
+      "detectorScore": 75,
+      "claimText": "Route Q14 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "c5ab560b317041add02772f904a40924",
+      "routeId": "Q15",
+      "scopeId": "Q15",
+      "detectorScore": 75,
+      "claimText": "Route Q15 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "98398952f868419b646d66f731015ec5",
+      "routeId": "Q16",
+      "scopeId": "Q16",
+      "detectorScore": 75,
+      "claimText": "Route Q16 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "298175b79d36205cad3545e5846d4db6",
+      "routeId": "Q17",
+      "scopeId": "Q17",
+      "detectorScore": 75,
+      "claimText": "Route Q17 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "b12c1add85213828bf46b5974c1eeab4",
+      "routeId": "Q18",
+      "scopeId": "Q18",
+      "detectorScore": 75,
+      "claimText": "Route Q18 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "d0d4c41daee4f2561b6076c1ac77eba0",
+      "routeId": "Q19",
+      "scopeId": "Q19",
+      "detectorScore": 75,
+      "claimText": "Route Q19 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "0d97fb6f290895598a071498c47020f8",
+      "routeId": "Q2",
+      "scopeId": "Q2",
+      "detectorScore": 75,
+      "claimText": "Route Q2 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "63734eb57f5dcbbf8580917563536435",
+      "routeId": "Q20",
+      "scopeId": "Q20",
+      "detectorScore": 75,
+      "claimText": "Route Q20 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "17f405e079c7c0fe9ddb19803d7b6122",
+      "routeId": "Q22",
+      "scopeId": "Q22",
+      "detectorScore": 75,
+      "claimText": "Route Q22 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "522333149c9841309c77144789c945b4",
+      "routeId": "Q23",
+      "scopeId": "Q23",
+      "detectorScore": 75,
+      "claimText": "Route Q23 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "83cd60d8428283212d916a005adeadf9",
+      "routeId": "Q24",
+      "scopeId": "Q24",
+      "detectorScore": 75,
+      "claimText": "Route Q24 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "372d1edd4ca2fcab9587fc955877fa46",
+      "routeId": "Q25",
+      "scopeId": "Q25",
+      "detectorScore": 75,
+      "claimText": "Route Q25 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "4587d2769d407a03068fefab1c810615",
+      "routeId": "Q26",
+      "scopeId": "Q26",
+      "detectorScore": 75,
+      "claimText": "Route Q26 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "b6528c5c337923e4ffa1309a37f9837e",
+      "routeId": "Q27",
+      "scopeId": "Q27",
+      "detectorScore": 75,
+      "claimText": "Route Q27 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "f13138bfedb18c2a5179de8e39876432",
+      "routeId": "Q28",
+      "scopeId": "Q28",
+      "detectorScore": 75,
+      "claimText": "Route Q28 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "b29e814f181bed03d529ae337e2e9bca",
+      "routeId": "Q29",
+      "scopeId": "Q29",
+      "detectorScore": 75,
+      "claimText": "Route Q29 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "0028a3a278d32104f79c14b22c91f17d",
+      "routeId": "Q3",
+      "scopeId": "Q3",
+      "detectorScore": 75,
+      "claimText": "Route Q3 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "1ad10c612ad11b5b895dc271b28e20e4",
+      "routeId": "Q30",
+      "scopeId": "Q30",
+      "detectorScore": 75,
+      "claimText": "Route Q30 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "3f53c74e77df29791ccd265889e05173",
+      "routeId": "Q31",
+      "scopeId": "Q31",
+      "detectorScore": 75,
+      "claimText": "Route Q31 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "56e01fa4b66627d9a10af9781062c39d",
+      "routeId": "Q32",
+      "scopeId": "Q32",
+      "detectorScore": 75,
+      "claimText": "Route Q32 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "145f92253e3a5d4a7d5125123526134e",
+      "routeId": "Q33",
+      "scopeId": "Q33",
+      "detectorScore": 75,
+      "claimText": "Route Q33 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "8c2b356db3fd0e2d58a537fe0725e437",
+      "routeId": "Q35",
+      "scopeId": "Q35",
+      "detectorScore": 75,
+      "claimText": "Route Q35 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "63c119b80c5815bc9b12f3496792c914",
+      "routeId": "Q36",
+      "scopeId": "Q36",
+      "detectorScore": 75,
+      "claimText": "Route Q36 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "3b1e805bb07d2fe8adbe7ad94e4af05d",
+      "routeId": "Q37",
+      "scopeId": "Q37",
+      "detectorScore": 75,
+      "claimText": "Route Q37 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "5a424e932f577b9ea4b3579add2e4958",
+      "routeId": "Q38",
+      "scopeId": "Q38",
+      "detectorScore": 75,
+      "claimText": "Route Q38 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "79f749b44a7397ea8d1ddfdc02fce2c6",
+      "routeId": "Q39",
+      "scopeId": "Q39",
+      "detectorScore": 75,
+      "claimText": "Route Q39 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "833b2ebd3a61bfa8d6066a81888a28aa",
+      "routeId": "Q4",
+      "scopeId": "Q4",
+      "detectorScore": 75,
+      "claimText": "Route Q4 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "15b88ad9e08e861e6401259d7b73cbb9",
+      "routeId": "Q40",
+      "scopeId": "Q40",
+      "detectorScore": 75,
+      "claimText": "Route Q40 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "2a52c4f214c251db230f59a4bab354ef",
+      "routeId": "Q41",
+      "scopeId": "Q41",
+      "detectorScore": 75,
+      "claimText": "Route Q41 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "c679cbdd87a9d137a5d6c19d19f7c1f1",
+      "routeId": "Q42",
+      "scopeId": "Q42",
+      "detectorScore": 75,
+      "claimText": "Route Q42 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "cde80ee3523c92d92e85dbfdbd2700ca",
+      "routeId": "Q43",
+      "scopeId": "Q43",
+      "detectorScore": 75,
+      "claimText": "Route Q43 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "fe2dc5fb4c59ab201bc794b4bc2e8f65",
+      "routeId": "Q44+",
+      "scopeId": "Q44+",
+      "detectorScore": 75,
+      "claimText": "Route Q44+ has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "45ea39fabd67ba75462f6b1612c7dfc6",
+      "routeId": "Q45",
+      "scopeId": "Q45",
+      "detectorScore": 75,
+      "claimText": "Route Q45 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "00590bd3c081b2bd662a1bbed9875c53",
+      "routeId": "Q46",
+      "scopeId": "Q46",
+      "detectorScore": 75,
+      "claimText": "Route Q46 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "26182ac6f6b4ba78b31f7ebf3d896740",
+      "routeId": "Q47",
+      "scopeId": "Q47",
+      "detectorScore": 75,
+      "claimText": "Route Q47 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "79e8acf7f6719b86de4c6b9c2ae2f7e2",
+      "routeId": "Q48",
+      "scopeId": "Q48",
+      "detectorScore": 75,
+      "claimText": "Route Q48 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "debfc58142eebd91fbd156c8784097c8",
+      "routeId": "Q49",
+      "scopeId": "Q49",
+      "detectorScore": 75,
+      "claimText": "Route Q49 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "b1961dfd816b39d0bc7da9505e4edf97",
+      "routeId": "Q5",
+      "scopeId": "Q5",
+      "detectorScore": 75,
+      "claimText": "Route Q5 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "c0958fd48afbae103532bb9eed2fc349",
+      "routeId": "Q50",
+      "scopeId": "Q50",
+      "detectorScore": 75,
+      "claimText": "Route Q50 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "5f0b005897d2ce96b9e885cceddee984",
+      "routeId": "Q51",
+      "scopeId": "Q51",
+      "detectorScore": 75,
+      "claimText": "Route Q51 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "702f93d641ab48292a67967d516d13dd",
+      "routeId": "Q52+",
+      "scopeId": "Q52+",
+      "detectorScore": 75,
+      "claimText": "Route Q52+ has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "10abd588c0b26e188f1bd93e46f0ae71",
+      "routeId": "Q53+",
+      "scopeId": "Q53+",
+      "detectorScore": 75,
+      "claimText": "Route Q53+ has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "ac0a0d2edc35c80ae90ec8759d3250b1",
+      "routeId": "Q54",
+      "scopeId": "Q54",
+      "detectorScore": 75,
+      "claimText": "Route Q54 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "3491bcb40d8ad9c19fc44037ec742843",
+      "routeId": "Q55",
+      "scopeId": "Q55",
+      "detectorScore": 75,
+      "claimText": "Route Q55 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "2bd1fcefa6310ebaf7a5a1aa70caf191",
+      "routeId": "Q56",
+      "scopeId": "Q56",
+      "detectorScore": 75,
+      "claimText": "Route Q56 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "c4eef1acc9261f5fe18c0f3cd967381a",
+      "routeId": "Q58",
+      "scopeId": "Q58",
+      "detectorScore": 75,
+      "claimText": "Route Q58 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "c8a572ec891c601545e2bb9e3d05c064",
+      "routeId": "Q59",
+      "scopeId": "Q59",
+      "detectorScore": 75,
+      "claimText": "Route Q59 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "7cbd6a9621f8b64ba12432067e08e206",
+      "routeId": "Q6",
+      "scopeId": "Q6",
+      "detectorScore": 75,
+      "claimText": "Route Q6 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "d5aa471850602a39b509e28e131fe521",
+      "routeId": "Q60",
+      "scopeId": "Q60",
+      "detectorScore": 75,
+      "claimText": "Route Q60 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "dbba4fa026ec2072eac5c51b276845d1",
+      "routeId": "Q61",
+      "scopeId": "Q61",
+      "detectorScore": 75,
+      "claimText": "Route Q61 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "e1af07220af9b0751b43379965df98cb",
+      "routeId": "Q63",
+      "scopeId": "Q63",
+      "detectorScore": 75,
+      "claimText": "Route Q63 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "ea8be0e532b10fdf5733c625ac2c0fe1",
+      "routeId": "Q64",
+      "scopeId": "Q64",
+      "detectorScore": 75,
+      "claimText": "Route Q64 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "611d1884aeb87ff706edcfc90f44709b",
+      "routeId": "Q65",
+      "scopeId": "Q65",
+      "detectorScore": 75,
+      "claimText": "Route Q65 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "ce3243a464105afb17e71c57605ffb9b",
+      "routeId": "Q66",
+      "scopeId": "Q66",
+      "detectorScore": 75,
+      "claimText": "Route Q66 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "d2e86a70bf7a6529963b72d594732a28",
+      "routeId": "Q67",
+      "scopeId": "Q67",
+      "detectorScore": 75,
+      "claimText": "Route Q67 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "9fc6b38341b41f9e898e2bfb67c91d0d",
+      "routeId": "Q69",
+      "scopeId": "Q69",
+      "detectorScore": 75,
+      "claimText": "Route Q69 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "836090ccac2fd24c47ef812decdc587d",
+      "routeId": "Q7",
+      "scopeId": "Q7",
+      "detectorScore": 75,
+      "claimText": "Route Q7 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "13272f4e6d2667f6b70e3732e9d40fcf",
+      "routeId": "Q70+",
+      "scopeId": "Q70+",
+      "detectorScore": 75,
+      "claimText": "Route Q70+ has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "970bf3c3fa59b89c6c1fc8f762590905",
+      "routeId": "Q72",
+      "scopeId": "Q72",
+      "detectorScore": 75,
+      "claimText": "Route Q72 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "954c7aeb37c0db67ee10dcea23765ffd",
+      "routeId": "Q74",
+      "scopeId": "Q74",
+      "detectorScore": 75,
+      "claimText": "Route Q74 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "9ac2f7b17e760b5ed6490087dea02356",
+      "routeId": "Q75",
+      "scopeId": "Q75",
+      "detectorScore": 75,
+      "claimText": "Route Q75 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "0163baafd125e5c1e88409fb5d8889d5",
+      "routeId": "Q76",
+      "scopeId": "Q76",
+      "detectorScore": 75,
+      "claimText": "Route Q76 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "eb19229937bf3ad3773ff9a612d9859c",
+      "routeId": "Q77",
+      "scopeId": "Q77",
+      "detectorScore": 75,
+      "claimText": "Route Q77 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "3cabbe2fa00429d838900c516f5f1b4e",
+      "routeId": "Q8",
+      "scopeId": "Q8",
+      "detectorScore": 75,
+      "claimText": "Route Q8 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "43089a41a2efa564ebac30b6c3794fa3",
+      "routeId": "Q80",
+      "scopeId": "Q80",
+      "detectorScore": 75,
+      "claimText": "Route Q80 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "daaa121f7ca885b21e99a93dcbf8553b",
+      "routeId": "Q82",
+      "scopeId": "Q82",
+      "detectorScore": 75,
+      "claimText": "Route Q82 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "837412c2be00534f600795226774aafc",
+      "routeId": "Q83",
+      "scopeId": "Q83",
+      "detectorScore": 75,
+      "claimText": "Route Q83 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "92659e8e4174eb0f42850a2e95a621ce",
+      "routeId": "Q84",
+      "scopeId": "Q84",
+      "detectorScore": 75,
+      "claimText": "Route Q84 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "b9d500856092ae0d90835c07ab7f4d8d",
+      "routeId": "Q85",
+      "scopeId": "Q85",
+      "detectorScore": 75,
+      "claimText": "Route Q85 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "6c28f8b6fb12fdb7211bbbe17173c570",
+      "routeId": "Q86",
+      "scopeId": "Q86",
+      "detectorScore": 75,
+      "claimText": "Route Q86 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "53b8eab4c0b705eb217d923544a833b9",
+      "routeId": "Q87",
+      "scopeId": "Q87",
+      "detectorScore": 75,
+      "claimText": "Route Q87 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "caaeeec372690afa21e601f6eeffcb0d",
+      "routeId": "Q88",
+      "scopeId": "Q88",
+      "detectorScore": 75,
+      "claimText": "Route Q88 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "5d9003b3c54854a90de902708c257fd4",
+      "routeId": "Q89",
+      "scopeId": "Q89",
+      "detectorScore": 75,
+      "claimText": "Route Q89 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "2d3200ebe9eb7d80da6271cae3176871",
+      "routeId": "Q9",
+      "scopeId": "Q9",
+      "detectorScore": 75,
+      "claimText": "Route Q9 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "e843760364bc344c483132f7be22eced",
+      "routeId": "Q90",
+      "scopeId": "Q90",
+      "detectorScore": 75,
+      "claimText": "Route Q90 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "b0afaedc2414730eb966de47d6fe28fd",
+      "routeId": "Q96",
+      "scopeId": "Q96",
+      "detectorScore": 75,
+      "claimText": "Route Q96 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "d3ef57ffc7c6e5690aa86ddb0b63f057",
+      "routeId": "Q97",
+      "scopeId": "Q97",
+      "detectorScore": 75,
+      "claimText": "Route Q97 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "69cc8dd6e5c5aa01de7bf67c27cc84c4",
+      "routeId": "Q98",
+      "scopeId": "Q98",
+      "detectorScore": 75,
+      "claimText": "Route Q98 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "b6d51586f171dea3113674112d7cdf9e",
+      "routeId": "QM1",
+      "scopeId": "QM1",
+      "detectorScore": 75,
+      "claimText": "Route QM1 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "842112447c181ce9f12c2bbbaf3a2865",
+      "routeId": "QM10",
+      "scopeId": "QM10",
+      "detectorScore": 75,
+      "claimText": "Route QM10 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "6cd1e921943707bbffe01de34bbcea8e",
+      "routeId": "QM11",
+      "scopeId": "QM11",
+      "detectorScore": 75,
+      "claimText": "Route QM11 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "7fa6d5c14f7d207ac7e8f602e4daadee",
+      "routeId": "QM12",
+      "scopeId": "QM12",
+      "detectorScore": 75,
+      "claimText": "Route QM12 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "ecf728ac4f5de9fe579dbade75a5db11",
+      "routeId": "QM15",
+      "scopeId": "QM15",
+      "detectorScore": 75,
+      "claimText": "Route QM15 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "f933558b788b4d9bcb48f8d893bf9be8",
+      "routeId": "QM16",
+      "scopeId": "QM16",
+      "detectorScore": 75,
+      "claimText": "Route QM16 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "4e69c0062c8fe33e51611cae0e849c6a",
+      "routeId": "QM17",
+      "scopeId": "QM17",
+      "detectorScore": 75,
+      "claimText": "Route QM17 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "35190cf3f61b72b867564324c701b8d1",
+      "routeId": "QM18",
+      "scopeId": "QM18",
+      "detectorScore": 75,
+      "claimText": "Route QM18 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "087aa6f7af1e54058076285d1862cc71",
+      "routeId": "QM2",
+      "scopeId": "QM2",
+      "detectorScore": 75,
+      "claimText": "Route QM2 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "c624621ac182e3148a78124bf974fa58",
+      "routeId": "QM20",
+      "scopeId": "QM20",
+      "detectorScore": 75,
+      "claimText": "Route QM20 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "433304dcfd21da3fb7de5cac78114389",
+      "routeId": "QM21",
+      "scopeId": "QM21",
+      "detectorScore": 75,
+      "claimText": "Route QM21 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "13703bd9fb96598e3fdac0250e235f0d",
+      "routeId": "QM24",
+      "scopeId": "QM24",
+      "detectorScore": 75,
+      "claimText": "Route QM24 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "cb06c652b8cadf69dc70c75152e76860",
+      "routeId": "QM25",
+      "scopeId": "QM25",
+      "detectorScore": 75,
+      "claimText": "Route QM25 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "f617f46fc5f00ebd7f47663e97965f99",
+      "routeId": "QM31",
+      "scopeId": "QM31",
+      "detectorScore": 75,
+      "claimText": "Route QM31 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "0301407f9cdac695d00beb00a58a00c2",
+      "routeId": "QM32",
+      "scopeId": "QM32",
+      "detectorScore": 75,
+      "claimText": "Route QM32 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "22cb9a039770eaf92778fcd5fa2f7cb4",
+      "routeId": "QM34",
+      "scopeId": "QM34",
+      "detectorScore": 75,
+      "claimText": "Route QM34 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "2ee8cfc6fbe8bd28d90870b87bb571a8",
+      "routeId": "QM35",
+      "scopeId": "QM35",
+      "detectorScore": 75,
+      "claimText": "Route QM35 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "2e73952541a7bc9cb494370d737ad40c",
+      "routeId": "QM36",
+      "scopeId": "QM36",
+      "detectorScore": 75,
+      "claimText": "Route QM36 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "1001068d7a1339c68fdb789e756e3e88",
+      "routeId": "QM4",
+      "scopeId": "QM4",
+      "detectorScore": 75,
+      "claimText": "Route QM4 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "13ac7ccd1d4ec7bd8cef49774529fbc5",
+      "routeId": "QM40",
+      "scopeId": "QM40",
+      "detectorScore": 75,
+      "claimText": "Route QM40 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "f261ba00a1e4c954fb8f8eee67d30a77",
+      "routeId": "QM42",
+      "scopeId": "QM42",
+      "detectorScore": 75,
+      "claimText": "Route QM42 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "4c6c3d0840b1a47b6165d70fbf7e6d38",
+      "routeId": "QM44",
+      "scopeId": "QM44",
+      "detectorScore": 75,
+      "claimText": "Route QM44 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "e5549c6d31e1969f362ca62ab8bd670e",
+      "routeId": "QM5",
+      "scopeId": "QM5",
+      "detectorScore": 75,
+      "claimText": "Route QM5 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "6942b15817a7146b4788488e297f4b78",
+      "routeId": "QM6",
+      "scopeId": "QM6",
+      "detectorScore": 75,
+      "claimText": "Route QM6 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "4008e1d036a40a72d9c763ceda1db9b2",
+      "routeId": "QM63",
+      "scopeId": "QM63",
+      "detectorScore": 75,
+      "claimText": "Route QM63 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "4aeaa8d9e0bd747fc632971fca800aa6",
+      "routeId": "QM64",
+      "scopeId": "QM64",
+      "detectorScore": 75,
+      "claimText": "Route QM64 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "c5315775d18ec764849b8214a125c3c3",
+      "routeId": "QM65",
+      "scopeId": "QM65",
+      "detectorScore": 75,
+      "claimText": "Route QM65 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "8e513b403fae426f38960a520ab857ac",
+      "routeId": "QM68",
+      "scopeId": "QM68",
+      "detectorScore": 75,
+      "claimText": "Route QM68 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "9540906e2a3632416926b30b0dbe7d9d",
+      "routeId": "QM7",
+      "scopeId": "QM7",
+      "detectorScore": 75,
+      "claimText": "Route QM7 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "33b0765d4a6f75319ae5902cd98c8b1b",
+      "routeId": "QM8",
+      "scopeId": "QM8",
+      "detectorScore": 75,
+      "claimText": "Route QM8 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "6c2be13d86323946d3e8ae7c745b9519",
+      "routeId": "S40",
+      "scopeId": "S40",
+      "detectorScore": 75,
+      "claimText": "Route S40 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "8c08ad3f26b1bb788f1e8da3856a9608",
+      "routeId": "S42",
+      "scopeId": "S42",
+      "detectorScore": 75,
+      "claimText": "Route S42 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "4c9a9c0b21aca5173858b1e9e4c7314c",
+      "routeId": "S44",
+      "scopeId": "S44",
+      "detectorScore": 75,
+      "claimText": "Route S44 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "48fa3edfb1316f66354f78cebd71b5fd",
+      "routeId": "S46",
+      "scopeId": "S46",
+      "detectorScore": 75,
+      "claimText": "Route S46 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "22cd66e233e94963232119514ceefa4b",
+      "routeId": "S48",
+      "scopeId": "S48",
+      "detectorScore": 75,
+      "claimText": "Route S48 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "9222460cf865a8ac879bb05968f54077",
+      "routeId": "S51",
+      "scopeId": "S51",
+      "detectorScore": 75,
+      "claimText": "Route S51 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "496e2e5ad2c291e8496fedc1417237b0",
+      "routeId": "S52",
+      "scopeId": "S52",
+      "detectorScore": 75,
+      "claimText": "Route S52 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "824892074e5027355593b15752d56fa5",
+      "routeId": "S53",
+      "scopeId": "S53",
+      "detectorScore": 75,
+      "claimText": "Route S53 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "734be2ad895a05c6f0c6335be7e9534f",
+      "routeId": "S54",
+      "scopeId": "S54",
+      "detectorScore": 75,
+      "claimText": "Route S54 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "4faeb4ae64869e8505c684e97e8f2605",
+      "routeId": "S55",
+      "scopeId": "S55",
+      "detectorScore": 75,
+      "claimText": "Route S55 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "02459d1c020c0cb16e1bf2a3dd0f15cb",
+      "routeId": "S56",
+      "scopeId": "S56",
+      "detectorScore": 75,
+      "claimText": "Route S56 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "308bd1dfa957a482725697cd709334e7",
+      "routeId": "S57",
+      "scopeId": "S57",
+      "detectorScore": 75,
+      "claimText": "Route S57 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "9d0222e76b859b4e48aee17c9a307158",
+      "routeId": "S59",
+      "scopeId": "S59",
+      "detectorScore": 75,
+      "claimText": "Route S59 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "f68b3cd8565d1b71dfcb8b1b4de293d5",
+      "routeId": "S61",
+      "scopeId": "S61",
+      "detectorScore": 75,
+      "claimText": "Route S61 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "04357fe980f84d1d60516fb10c0437da",
+      "routeId": "S62",
+      "scopeId": "S62",
+      "detectorScore": 75,
+      "claimText": "Route S62 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "f8b99879b98fe317c57945b2673a7b91",
+      "routeId": "S66",
+      "scopeId": "S66",
+      "detectorScore": 75,
+      "claimText": "Route S66 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "2dd349dc9953af629e155fc8917460a2",
+      "routeId": "S74",
+      "scopeId": "S74",
+      "detectorScore": 75,
+      "claimText": "Route S74 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "875634fac2690ff355c0513e4309544d",
+      "routeId": "S76",
+      "scopeId": "S76",
+      "detectorScore": 75,
+      "claimText": "Route S76 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "8cd7495f17776d473d4806f85c5d7ffa",
+      "routeId": "S78",
+      "scopeId": "S78",
+      "detectorScore": 75,
+      "claimText": "Route S78 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "cac8d84d1c55f15232669cb482fd6dc1",
+      "routeId": "S79+",
+      "scopeId": "S79+",
+      "detectorScore": 75,
+      "claimText": "Route S79+ has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "9e325bd92856e7c853028a862a1d44f1",
+      "routeId": "S81",
+      "scopeId": "S81",
+      "detectorScore": 75,
+      "claimText": "Route S81 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "3c7627c49cb08ce8f3e88fe4404a19ea",
+      "routeId": "S84",
+      "scopeId": "S84",
+      "detectorScore": 75,
+      "claimText": "Route S84 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "9efeef5b9632668150e24a31e30fc048",
+      "routeId": "S86",
+      "scopeId": "S86",
+      "detectorScore": 75,
+      "claimText": "Route S86 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "02bb3b27038934e9784a8fe9e60eb8a3",
+      "routeId": "S89",
+      "scopeId": "S89",
+      "detectorScore": 75,
+      "claimText": "Route S89 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "c990e4e311620b38b31927dbae6baa9f",
+      "routeId": "S90",
+      "scopeId": "S90",
+      "detectorScore": 75,
+      "claimText": "Route S90 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "f98d52a3b54e411bb3d801839cacc815",
+      "routeId": "S91",
+      "scopeId": "S91",
+      "detectorScore": 75,
+      "claimText": "Route S91 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "707133bf2c3da2391769504b500897b9",
+      "routeId": "S92",
+      "scopeId": "S92",
+      "detectorScore": 75,
+      "claimText": "Route S92 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "f1017765412eace53347df104e99dfb7",
+      "routeId": "S93",
+      "scopeId": "S93",
+      "detectorScore": 75,
+      "claimText": "Route S93 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "b650c918189769925742b3dbbd2eb0f0",
+      "routeId": "S94",
+      "scopeId": "S94",
+      "detectorScore": 75,
+      "claimText": "Route S94 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "123e350db5a19f2243265e8d1cb9a958",
+      "routeId": "S96",
+      "scopeId": "S96",
+      "detectorScore": 75,
+      "claimText": "Route S96 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "93d8a0e277ece9f2580e5433391c71fa",
+      "routeId": "S98",
+      "scopeId": "S98",
+      "detectorScore": 75,
+      "claimText": "Route S98 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "79864296c3aaf471d39bcaed41dc5c85",
+      "routeId": "SIM1",
+      "scopeId": "SIM1",
+      "detectorScore": 75,
+      "claimText": "Route SIM1 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "e4cd2a8a330d5593479b76a8cd424c98",
+      "routeId": "SIM10",
+      "scopeId": "SIM10",
+      "detectorScore": 75,
+      "claimText": "Route SIM10 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "a1d208fc7469732a2ca7d00b2ca3294e",
+      "routeId": "SIM11",
+      "scopeId": "SIM11",
+      "detectorScore": 75,
+      "claimText": "Route SIM11 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "4d0c490c08a18abf9662a1526c837357",
+      "routeId": "SIM15",
+      "scopeId": "SIM15",
+      "detectorScore": 75,
+      "claimText": "Route SIM15 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "7583cf4056eacbf3ffe22dbb4fc1080d",
+      "routeId": "SIM1C",
+      "scopeId": "SIM1C",
+      "detectorScore": 75,
+      "claimText": "Route SIM1C has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "31f38e68e6c7b509e84bc667630de0c3",
+      "routeId": "SIM2",
+      "scopeId": "SIM2",
+      "detectorScore": 75,
+      "claimText": "Route SIM2 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "8eb265930931ab37e8442f305eb4dd58",
+      "routeId": "SIM22",
+      "scopeId": "SIM22",
+      "detectorScore": 75,
+      "claimText": "Route SIM22 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "01243713154150bda8b07061e10f3f5b",
+      "routeId": "SIM23",
+      "scopeId": "SIM23",
+      "detectorScore": 75,
+      "claimText": "Route SIM23 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "2647af19aea8646e866a5e01c641ac92",
+      "routeId": "SIM24",
+      "scopeId": "SIM24",
+      "detectorScore": 75,
+      "claimText": "Route SIM24 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "2aaef8c0823c7ca25f6b029d4ffe6822",
+      "routeId": "SIM25",
+      "scopeId": "SIM25",
+      "detectorScore": 75,
+      "claimText": "Route SIM25 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "45215d1d2d2da73074dba4c4270356ba",
+      "routeId": "SIM26",
+      "scopeId": "SIM26",
+      "detectorScore": 75,
+      "claimText": "Route SIM26 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "abafc6c7577fbb394000298aa972dddb",
+      "routeId": "SIM3",
+      "scopeId": "SIM3",
+      "detectorScore": 75,
+      "claimText": "Route SIM3 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "be4fa5b4af51180560336efac91909ef",
+      "routeId": "SIM30",
+      "scopeId": "SIM30",
+      "detectorScore": 75,
+      "claimText": "Route SIM30 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "f73257f571654d243a23ad98ae98b6b5",
+      "routeId": "SIM31",
+      "scopeId": "SIM31",
+      "detectorScore": 75,
+      "claimText": "Route SIM31 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "bacb625f42831995a4d3049df4e8d865",
+      "routeId": "SIM32",
+      "scopeId": "SIM32",
+      "detectorScore": 75,
+      "claimText": "Route SIM32 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "0fef5296213ef4f1847738ef5338862c",
+      "routeId": "SIM33",
+      "scopeId": "SIM33",
+      "detectorScore": 75,
+      "claimText": "Route SIM33 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "a71873de244078a423b45c3be0a5637b",
+      "routeId": "SIM33C",
+      "scopeId": "SIM33C",
+      "detectorScore": 75,
+      "claimText": "Route SIM33C has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "b7e5f9f80dcfacdbd655de5f6e41761d",
+      "routeId": "SIM34",
+      "scopeId": "SIM34",
+      "detectorScore": 75,
+      "claimText": "Route SIM34 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "0f454a4ef0c50afe47ef94bd1cf6249a",
+      "routeId": "SIM35",
+      "scopeId": "SIM35",
+      "detectorScore": 75,
+      "claimText": "Route SIM35 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "f8a4c78df67e9fec513005970ab4f4c6",
+      "routeId": "SIM3C",
+      "scopeId": "SIM3C",
+      "detectorScore": 75,
+      "claimText": "Route SIM3C has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "631fe12966cfd95c0e467528c71d831f",
+      "routeId": "SIM4",
+      "scopeId": "SIM4",
+      "detectorScore": 75,
+      "claimText": "Route SIM4 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "c9f57e1b18cbd9f0bccca40e75ea9f37",
+      "routeId": "SIM4C",
+      "scopeId": "SIM4C",
+      "detectorScore": 75,
+      "claimText": "Route SIM4C has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "b7d104450eaf56473f13ac8e96d487ee",
+      "routeId": "SIM5",
+      "scopeId": "SIM5",
+      "detectorScore": 75,
+      "claimText": "Route SIM5 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "6d9f6cbec1450d1a45ba7731c7ce1602",
+      "routeId": "SIM6",
+      "scopeId": "SIM6",
+      "detectorScore": 75,
+      "claimText": "Route SIM6 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "35688d05c4ecab82efc055baa3d45d5a",
+      "routeId": "SIM7",
+      "scopeId": "SIM7",
+      "detectorScore": 75,
+      "claimText": "Route SIM7 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "3bc1c3dd659f0c9734bb8d7193b72e6a",
+      "routeId": "SIM8",
+      "scopeId": "SIM8",
+      "detectorScore": 75,
+      "claimText": "Route SIM8 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "d9435de357113dba48ec9f944b0a6fb3",
+      "routeId": "SIM9",
+      "scopeId": "SIM9",
+      "detectorScore": 75,
+      "claimText": "Route SIM9 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "60b4ad3b5dd8b74de108c85779f9daa9",
+      "routeId": "T113",
+      "scopeId": "T113",
+      "detectorScore": 75,
+      "claimText": "Route T113 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "528afe27e1aa0cc7d61a1613c2bb1040",
+      "routeId": "T117",
+      "scopeId": "T117",
+      "detectorScore": 75,
+      "claimText": "Route T117 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "e57b4a609dd2103155a78e86e0f751df",
+      "routeId": "T127",
+      "scopeId": "T127",
+      "detectorScore": 75,
+      "claimText": "Route T127 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "dac8b18ad8363b575966c273d6563daf",
+      "routeId": "T232",
+      "scopeId": "T232",
+      "detectorScore": 75,
+      "claimText": "Route T232 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "95b7cf12807b401d3fcef255e74b3a3b",
+      "routeId": "T260",
+      "scopeId": "T260",
+      "detectorScore": 75,
+      "claimText": "Route T260 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "44dcf6d431bf75374c4f9b4ee979af01",
+      "routeId": "T320",
+      "scopeId": "T320",
+      "detectorScore": 75,
+      "claimText": "Route T320 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "65138725455da0cd294f9e562f00b7ed",
+      "routeId": "T321",
+      "scopeId": "T321",
+      "detectorScore": 75,
+      "claimText": "Route T321 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "22dc48b87fb75cfcc7d100d30e09b115",
+      "routeId": "T323",
+      "scopeId": "T323",
+      "detectorScore": 75,
+      "claimText": "Route T323 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "0305e4018686ab6ab3eef43dc4a5845f",
+      "routeId": "T354",
+      "scopeId": "T354",
+      "detectorScore": 75,
+      "claimText": "Route T354 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "a9d29f1dcb00c57a87b1e1af7ee239ee",
+      "routeId": "T403",
+      "scopeId": "T403",
+      "detectorScore": 75,
+      "claimText": "Route T403 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "3eb99e2f828a911d55feae5a98a46795",
+      "routeId": "T426",
+      "scopeId": "T426",
+      "detectorScore": 75,
+      "claimText": "Route T426 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "7fa81824ad2834b3426c788aba316900",
+      "routeId": "T430",
+      "scopeId": "T430",
+      "detectorScore": 75,
+      "claimText": "Route T430 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "b684a91ede6123cc6ba6c2619ede1073",
+      "routeId": "T464",
+      "scopeId": "T464",
+      "detectorScore": 75,
+      "claimText": "Route T464 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "458ccf5d2a18f3c28f6f0202bba4f9e7",
+      "routeId": "X27",
+      "scopeId": "X27",
+      "detectorScore": 75,
+      "claimText": "Route X27 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "809488edf624cd1973bdfa3e811994a3",
+      "routeId": "X28",
+      "scopeId": "X28",
+      "detectorScore": 75,
+      "claimText": "Route X28 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "575cb16fcf86b19070dd25d7354dfe82",
+      "routeId": "X37",
+      "scopeId": "X37",
+      "detectorScore": 75,
+      "claimText": "Route X37 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "569c7d1e405c3642eb7baf83ea8b3819",
+      "routeId": "X38",
+      "scopeId": "X38",
+      "detectorScore": 75,
+      "claimText": "Route X38 has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    },
+    {
+      "candidateId": "9882d326721b9f7fd508b102dd71df4f",
+      "routeId": "YOAS",
+      "scopeId": "YOAS",
+      "detectorScore": 75,
+      "claimText": "Route YOAS has a transit-signal-priority source gap: current route/intersection inventory is missing from public sources."
+    }
+  ]
+}

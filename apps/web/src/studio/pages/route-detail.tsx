@@ -1,22 +1,23 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowRight } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { KPISkeleton } from "@/components/KPI";
 import { DataNotesSection } from "@/components/route/DataNotesSection";
-import { InterventionsSection } from "@/components/route/InterventionsSection";
-import { OverviewSection } from "@/components/route/OverviewSection";
-import { RidersSection } from "@/components/route/RidersSection";
-import {
-  ROUTE_DETAIL_TABS,
-  RouteDetailShell,
-  type RouteDetailTabValue,
-} from "@/components/route/RouteDetailShell";
 import { HonestEmptySection } from "@/components/route/HonestEmptySection";
+import { OverviewSection } from "@/components/route/OverviewSection";
+import { ReliabilitySection } from "@/components/route/ReliabilitySection";
+import { RidersSection } from "@/components/route/RidersSection";
+import { RouteDetailShell } from "@/components/route/RouteDetailShell";
 import { RouteHeader } from "@/components/route/RouteHeader";
 import { RouteJudgedKpiStrip } from "@/components/route/RouteJudgedKpiStrip";
-import { sectionPresentation } from "@/components/route/section-registry";
+import { RouteMapSection } from "@/components/route/RouteMapSection";
+import { routeTabBadges } from "@/components/route/route-insight-placement";
 import { SlowSegmentsSection } from "@/components/route/SlowSegments";
-import { TimelineSection } from "@/components/route/TimelineSection";
+import {
+  ROUTE_DETAIL_TABS,
+  type RouteDetailTabValue,
+  routeSectionRegistry,
+} from "@/components/route/section-registry";
+import { TreatmentsHistorySection } from "@/components/route/TreatmentsHistorySection";
 import { SegmentRowHeader, SegmentRowSkeleton } from "@/components/SegmentRow";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TabsContent } from "@/components/ui/tabs";
@@ -40,15 +41,11 @@ export function RouteDetailPage({ data }: { data: StudioRouteDetailResponse | nu
   const peer = data.peerRoute;
   const [activeTab, setActiveTab] = useState<RouteDetailTabValue>("overview");
 
-  const presentations = new Map(
-    ROUTE_DETAIL_TABS.map((tab) => [tab.value, sectionPresentation(data.capability, tab.value)]),
-  );
-  const visibleTabs = ROUTE_DETAIL_TABS.filter((tab) => {
-    return presentations.get(tab.value)?.mode !== "hidden";
-  });
+  const tabBadges = routeTabBadges(data.insights);
+  const sectionRegistry = routeSectionRegistry(data.capability, tabBadges);
   const section = (tab: RouteDetailTabValue, render: () => ReactNode) => {
-    const presentation = presentations.get(tab);
-    if (presentation === undefined || presentation.mode === "hidden") return null;
+    const presentation = sectionRegistry.presentations[tab];
+    if (presentation.mode === "hidden") return null;
     return (
       <TabsContent value={tab}>
         {presentation.mode === "render" ? (
@@ -76,7 +73,8 @@ export function RouteDetailPage({ data }: { data: StudioRouteDetailResponse | nu
                 route={route}
                 dossier={data.dossier}
                 capability={data.capability}
-                onNavigate={(tab) => setActiveTab(tab as RouteDetailTabValue)}
+                sectionRegistry={sectionRegistry}
+                onNavigate={(tab) => setActiveTab(tab)}
               />
             }
             actions={
@@ -98,18 +96,28 @@ export function RouteDetailPage({ data }: { data: StudioRouteDetailResponse | nu
                   className="inline-flex items-center gap-1.5 rounded-[3px] bg-[var(--bp-color-ink)] px-3.5 py-2 text-[12.5px] font-semibold text-[var(--bp-color-paper)] no-underline"
                 >
                   Generate brief
-                  <ArrowRight size={14} />
                 </Link>
               </>
             }
           />
         }
-        tabs={visibleTabs}
-        value={visibleTabs.some((tab) => tab.value === activeTab) ? activeTab : "overview"}
+        tabs={sectionRegistry.visibleTabs}
+        value={
+          sectionRegistry.visibleTabs.some((tab) => tab.value === activeTab)
+            ? activeTab
+            : "overview"
+        }
         onValueChange={(value) => setActiveTab(value as RouteDetailTabValue)}
       >
         {section("overview", () => (
-          <OverviewSection data={data} />
+          <OverviewSection
+            data={data}
+            sectionRegistry={sectionRegistry}
+            onNavigate={(tab) => setActiveTab(tab)}
+          />
+        ))}
+        {section("map", () => (
+          <RouteMapSection data={data} />
         ))}
         {section("where-when", () => (
           <SlowSegmentsSection
@@ -117,19 +125,24 @@ export function RouteDetailPage({ data }: { data: StudioRouteDetailResponse | nu
             segments={segments}
             insights={data.insights}
             {...(flagged?.id ? { flaggedId: flagged.id } : {})}
+            dossier={data.dossier}
           />
+        ))}
+        {section("reliability", () => (
+          <ReliabilitySection data={data} />
         ))}
         {section("riders", () => (
           <RidersSection data={data} />
         ))}
         {section("treatments", () => (
-          <div className="flex flex-col gap-11">
-            <InterventionsSection route={route} segments={segments} />
-            <TimelineSection data={data} />
-          </div>
+          <TreatmentsHistorySection data={data} />
         ))}
         {section("evidence", () => (
-          <DataNotesSection data={data} />
+          <DataNotesSection
+            data={data}
+            sectionRegistry={sectionRegistry}
+            onNavigate={(tab) => setActiveTab(tab)}
+          />
         ))}
       </RouteDetailShell>
     </StudioPage>

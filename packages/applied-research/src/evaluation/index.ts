@@ -54,6 +54,19 @@ export {
   type MaterializationCoverageSurface,
 } from "./analytics-materialization-coverage";
 export {
+  type BuildRouteCapabilityManifestInput,
+  buildRouteCapabilityManifest,
+  type RouteCapabilityInputRow,
+  type RouteCapabilitySourceStatus,
+} from "./build-route-capability-manifest";
+export {
+  type BuildRouteDossierSummariesInput,
+  buildRouteDossierSummaries,
+  type RouteDossierInputRow,
+  type RouteDossierTrendPoint,
+  type RouteDossierWorstSegmentMonth,
+} from "./build-route-dossier-summary";
+export {
   type BuildBunchingHotspotsReviewQueueInput,
   type BunchingHotspotsReviewCandidateLike,
   type BunchingHotspotsReviewCoverageLike,
@@ -155,6 +168,36 @@ export {
   type EvaluateDegradationTrendReviewedGoldInput,
   evaluateDegradationTrendReviewedGold,
 } from "./degradation-trend-reviewed-gold";
+export {
+  type BuildDelayConcentrationReviewQueueInput,
+  buildDelayConcentrationReviewQueue,
+  type DelayConcentrationReviewCandidateLike,
+  type DelayConcentrationReviewCoverageLike,
+  type DelayConcentrationReviewEvidenceLike,
+  type DelayConcentrationReviewItem,
+  type DelayConcentrationReviewMetrics,
+  type DelayConcentrationReviewQueueArtifact,
+  type DelayConcentrationReviewStratum,
+  type DelayConcentrationReviewStratumQuota,
+  type DelayConcentrationTopSegmentReviewMetric,
+} from "./delay-concentration-review-queue";
+export {
+  type BuildDelayConcentrationReadinessProjectionInput,
+  type BuildDelayConcentrationReviewedGoldInput,
+  buildDelayConcentrationReadinessProjection,
+  buildDelayConcentrationReviewedGoldArtifact,
+  type DelayConcentrationCalibrationTag,
+  type DelayConcentrationCandidateLike,
+  type DelayConcentrationCoverageLike,
+  type DelayConcentrationGoldLabel,
+  type DelayConcentrationReadinessProjection,
+  type DelayConcentrationReviewedDecision,
+  type DelayConcentrationReviewedFrontendUse,
+  type DelayConcentrationReviewedGoldArtifact,
+  type DelayConcentrationReviewedGoldEvaluation,
+  type EvaluateDelayConcentrationReviewedGoldInput,
+  evaluateDelayConcentrationReviewedGold,
+} from "./delay-concentration-reviewed-gold";
 export type {
   DetectorEvaluationArtifact,
   DetectorEvaluationInputArtifacts,
@@ -233,19 +276,6 @@ export {
   emptyDetectorReadinessBucketCounts,
   sortedDetectorBucketRecord,
 } from "./detector-readiness-projection";
-export {
-  type BuildRouteCapabilityManifestInput,
-  buildRouteCapabilityManifest,
-  type RouteCapabilityInputRow,
-  type RouteCapabilitySourceStatus,
-} from "./build-route-capability-manifest";
-export {
-  type BuildRouteDossierSummariesInput,
-  buildRouteDossierSummaries,
-  type RouteDossierInputRow,
-  type RouteDossierTrendPoint,
-  type RouteDossierWorstSegmentMonth,
-} from "./build-route-dossier-summary";
 export {
   type BuildDetectorReadinessServingManifestInput,
   buildDetectorReadinessServingManifest,
@@ -702,6 +732,20 @@ export {
   type ProjectionSegmentHourBins,
   type RouteBriefInputHourlyBins,
 } from "./studio-coverage";
+export {
+  buildMtaWikiTier2BridgeArtifact,
+  buildMtaWikiTier2SourceAlignmentArtifact,
+  type MtaWikiBridgeCanonicalInputs,
+  type MtaWikiBridgeEvidencePreview,
+  type MtaWikiBridgeReviewGroup,
+  type MtaWikiCanonicalRecord,
+  type MtaWikiTier2BridgeArtifact,
+  type MtaWikiTier2SourceAlignmentArtifact,
+  type MtaWikiTier2SourceAlignmentRow,
+  renderMtaWikiTier2BridgeMarkdown,
+  renderMtaWikiTier2SourceAlignmentMarkdown,
+  type Tier2SourceQueueForMtaWikiAlignment,
+} from "./tier2-mta-wiki-bridge";
 export {
   buildTier2StructuredDataInventoryFromArtifacts,
   classifyTier2StructuredArtifact,

@@ -140,6 +140,37 @@ describe("detectHeadwayReliabilityEwt", () => {
     expect(out.coverage[0]?.outcome as string).toBe("clean_no_hit");
   });
 
+  test("ranks well-observed cells above thin-sample cells at equal raw severity", () => {
+    // Same headway pattern (equal raw severity); the thin cell repeats it once (10 headways at
+    // fractional coverage), the dense cell three times (30 headways at full coverage).
+    const pattern = [3, 3, 3, 3, 3, 15, 15, 18, 18, 24];
+    const thin = stopHour({
+      stopId: "100001",
+      observedHeadwaysMinutes: pattern,
+      quality: quality({ observedCount: 10, expectedCount: 30, coverageShare: 0.3333 }),
+    });
+    const dense = stopHour({
+      stopId: "100002",
+      observedHeadwaysMinutes: [...pattern, ...pattern, ...pattern],
+      quality: quality({ observedCount: 30, expectedCount: 30, coverageShare: 1 }),
+    });
+
+    const out = runEwt(thin, {
+      features: [thin, dense],
+      thresholds: { candidateLimit: 1 },
+    });
+
+    expect(out.candidates).toHaveLength(1);
+    expect(out.candidates[0]?.physicalId).toBe("100002");
+
+    const both = runEwt(thin, { features: [thin, dense] });
+    const thinScore = both.candidates.find((c) => c.physicalId === "100001")?.detectorScore;
+    const denseScore = both.candidates.find((c) => c.physicalId === "100002")?.detectorScore;
+    expect(thinScore).toBeDefined();
+    expect(denseScore).toBeDefined();
+    expect(denseScore as number).toBeGreaterThan(thinScore as number);
+  });
+
   test("skips instead of scoring low-coverage cells as clean", () => {
     const out = runEwt(
       stopHour({
@@ -211,6 +242,45 @@ describe("detectBunchingHotspots", () => {
       "primary",
     ]);
     expect(out.coverage[0]?.outcome as string).toBe("hit");
+  });
+
+  test("ranks well-observed cells above thin-pair cells at equal raw severity", () => {
+    const pattern = [2, 2, 2, 2, 2, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 25, 25, 25, 25, 25];
+    const thin = stopHour({
+      stopId: "200001",
+      observedHeadwaysMinutes: pattern,
+      quality: quality({
+        sampleCount: 20,
+        minSampleCount: 20,
+        observedCount: 20,
+        expectedCount: 60,
+        coverageShare: 0.3333,
+      }),
+    });
+    const dense = stopHour({
+      stopId: "200002",
+      observedHeadwaysMinutes: [...pattern, ...pattern, ...pattern],
+      quality: quality({
+        sampleCount: 60,
+        minSampleCount: 20,
+        observedCount: 60,
+        expectedCount: 60,
+        coverageShare: 1,
+      }),
+    });
+
+    const out = runBunching(thin, {
+      features: [thin, dense],
+      thresholds: { candidateLimit: 1 },
+    });
+
+    expect(out.candidates).toHaveLength(1);
+    expect(out.candidates[0]?.physicalId).toBe("200002");
+
+    const both = runBunching(thin, { features: [thin, dense] });
+    const thinScore = both.candidates.find((c) => c.physicalId === "200001")?.detectorScore;
+    const denseScore = both.candidates.find((c) => c.physicalId === "200002")?.detectorScore;
+    expect(denseScore as number).toBeGreaterThan(thinScore as number);
   });
 
   test("skips bunching cells without enough headway pairs", () => {

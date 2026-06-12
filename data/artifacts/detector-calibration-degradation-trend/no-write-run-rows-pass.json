@@ -1,0 +1,179 @@
+{
+  "artifactKind": "registry_detector_run",
+  "schemaVersion": 1,
+  "generatedAt": "2026-06-11T17:05:15.509Z",
+  "detectorId": "degradation_trend",
+  "detectorVersion": "1.0.0",
+  "detectorRunId": "degradation_trend-2026-03",
+  "releaseMonth": "2026-03",
+  "dbPath": "data/local/pipeline.sqlite",
+  "artifactPath": "data/artifacts/detector-calibration-degradation-trend/no-write-run-rows-pass.json",
+  "wroteDb": false,
+  "featureContracts": [
+    {
+      "featureGrain": "route_metric_history",
+      "resolverId": "sqlite.local_route_month_trend.history.v1",
+      "status": "resolved",
+      "reason": "Supplied by a registered applied-research detector-input resolver or local-row loader."
+    },
+    {
+      "featureGrain": "feed_health",
+      "resolverId": "embedded.feature_quality.v1",
+      "status": "satisfied_by_feature_quality",
+      "reason": "Carried through feature-quality coverage/freshness/sample fields rather than a dedicated row resolver."
+    }
+  ],
+  "dataProductDependencies": [
+    {
+      "productId": "analytics_backfill_coverage_audit",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    },
+    {
+      "productId": "bus_observatory_gtfs_rt_availability",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    },
+    {
+      "productId": "local_bus_wait_assessment_history",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    },
+    {
+      "productId": "local_route_month_trends_history",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    },
+    {
+      "productId": "local_route_observed_reliability_summary_release",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    }
+  ],
+  "modelDependencies": [
+    {
+      "modelId": "route_peer_residuals_v1",
+      "status": "available",
+      "rowCount": 348,
+      "reason": "Required model artifact route_peer_residuals_v1 was supplied as routePeerResidualRows."
+    }
+  ],
+  "inputSummary": {
+    "sourceKind": "route_metric_history_from_route_month_trend",
+    "metricName": "average_speed_mph",
+    "historyStartMonth": "2023-04",
+    "releaseMonth": "2026-03",
+    "sourceRowCount": 13154,
+    "featureCount": 367,
+    "supportedFeatureCount": 348
+  },
+  "outputSummary": {
+    "candidateCount": 6,
+    "evidenceCount": 12,
+    "coverageCount": 367,
+    "hitCount": 6,
+    "cleanNoHitCount": 341,
+    "deferredNotInScopeCount": 0,
+    "skippedCount": 20
+  },
+  "capAccounting": {
+    "mode": "global_candidate_limit",
+    "status": "below_production_cap",
+    "productionCandidateLimit": 100,
+    "runCandidateLimit": 100,
+    "qualifyingCandidateCount": 6,
+    "emittedWithinProductionCapCount": 6,
+    "cappedOutCount": 0,
+    "cappedOutByBoroughPrefix": {},
+    "cappedOutByRouteId": {},
+    "routeBreakdown": [
+      {
+        "routeId": "B82+",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "Q100",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "Q102",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "Q103",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "Q22",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "Q65",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      }
+    ],
+    "note": "Run uses production cap 100. The qualifying candidate count stayed below the production cap."
+  },
+  "candidateSamples": [
+    {
+      "candidateId": "3b66407ab79601b85166cad699f83a74",
+      "routeId": "B82+",
+      "scopeId": "B82+",
+      "detectorScore": 63,
+      "claimText": "route B82+ shows a worsening trend in average_speed_mph over 36 months."
+    },
+    {
+      "candidateId": "d0a01a6ccf7e8cf06a85576c63cc7f7c",
+      "routeId": "Q100",
+      "scopeId": "Q100",
+      "detectorScore": 81,
+      "claimText": "route Q100 shows a worsening trend in average_speed_mph over 36 months."
+    },
+    {
+      "candidateId": "d753847fc41636a9f15d23aa0c2fdb02",
+      "routeId": "Q102",
+      "scopeId": "Q102",
+      "detectorScore": 66,
+      "claimText": "route Q102 shows a worsening trend in average_speed_mph over 36 months."
+    },
+    {
+      "candidateId": "d9a6d682f7d4963d752cc15494eb95ce",
+      "routeId": "Q103",
+      "scopeId": "Q103",
+      "detectorScore": 67,
+      "claimText": "route Q103 shows a worsening trend in average_speed_mph over 36 months."
+    },
+    {
+      "candidateId": "1a1d7693083e4ff3297f44d7fe218f02",
+      "routeId": "Q22",
+      "scopeId": "Q22",
+      "detectorScore": 90,
+      "claimText": "route Q22 shows a worsening trend in average_speed_mph over 36 months."
+    },
+    {
+      "candidateId": "e77fddfbf27ab05ce9cb2398d60af870",
+      "routeId": "Q65",
+      "scopeId": "Q65",
+      "detectorScore": 90,
+      "claimText": "route Q65 shows a worsening trend in average_speed_mph over 36 months."
+    }
+  ]
+}

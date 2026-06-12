@@ -1,0 +1,3283 @@
+{
+  "artifactKind": "registry_detector_run",
+  "schemaVersion": 1,
+  "generatedAt": "2026-06-11T17:04:33.532Z",
+  "detectorId": "observed_reliability",
+  "detectorVersion": "1.0.0",
+  "detectorRunId": "observed_reliability-2026-03",
+  "releaseMonth": "2026-03",
+  "dbPath": "data/local/pipeline.sqlite",
+  "artifactPath": "data/artifacts/detector-calibration-observed-reliability/no-write-run-rows-pass.json",
+  "wroteDb": false,
+  "featureContracts": [
+    {
+      "featureGrain": "route_reliability_month",
+      "resolverId": "sqlite.local_route_observed_reliability_summary.v1",
+      "status": "resolved",
+      "reason": "Supplied by a registered applied-research detector-input resolver or local-row loader."
+    }
+  ],
+  "dataProductDependencies": [
+    {
+      "productId": "local_bus_wait_assessment_history",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    },
+    {
+      "productId": "local_route_observed_reliability_summary_release",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    },
+    {
+      "productId": "local_route_reliability_baseline_release",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    }
+  ],
+  "modelDependencies": [],
+  "inputSummary": {
+    "sourceKind": "observed_reliability_from_local_route_observed_reliability_summary",
+    "routeCount": 381,
+    "featureCount": 381,
+    "observedRouteCount": 350,
+    "scheduledBaselineRouteCount": 369,
+    "busWaitAssessmentRouteCount": 343
+  },
+  "outputSummary": {
+    "candidateCount": 220,
+    "evidenceCount": 440,
+    "coverageCount": 381,
+    "hitCount": 220,
+    "cleanNoHitCount": 122,
+    "deferredNotInScopeCount": 0,
+    "skippedCount": 39
+  },
+  "capAccounting": {
+    "mode": "global_candidate_limit",
+    "status": "high_limit_inventory",
+    "productionCandidateLimit": 100,
+    "runCandidateLimit": 1000,
+    "qualifyingCandidateCount": 220,
+    "emittedWithinProductionCapCount": 100,
+    "cappedOutCount": 120,
+    "cappedOutByBoroughPrefix": {
+      "B": 12,
+      "BM": 5,
+      "BX": 11,
+      "BXM": 6,
+      "M": 13,
+      "Q": 24,
+      "QM": 17,
+      "S": 16,
+      "SIM": 12,
+      "X": 4
+    },
+    "cappedOutByRouteId": {
+      "B13": 1,
+      "B16": 1,
+      "B20": 1,
+      "B24": 1,
+      "B4": 1,
+      "B46+": 1,
+      "B57": 1,
+      "B67": 1,
+      "B69": 1,
+      "B7": 1,
+      "B82+": 1,
+      "B84": 1,
+      "BM1": 1,
+      "BM2": 1,
+      "BM3": 1,
+      "BM4": 1,
+      "BM5": 1,
+      "BX12+": 1,
+      "BX16": 1,
+      "BX18A": 1,
+      "BX18B": 1,
+      "BX25": 1,
+      "BX26": 1,
+      "BX30": 1,
+      "BX34": 1,
+      "BX38": 1,
+      "BX6+": 1,
+      "BX7": 1,
+      "BXM11": 1,
+      "BXM2": 1,
+      "BXM3": 1,
+      "BXM4": 1,
+      "BXM6": 1,
+      "BXM8": 1,
+      "M1": 1,
+      "M100": 1,
+      "M11": 1,
+      "M125": 1,
+      "M20": 1,
+      "M22": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M72": 1,
+      "M8": 1,
+      "M9": 1,
+      "M98": 1,
+      "Q1": 1,
+      "Q113": 1,
+      "Q114": 1,
+      "Q17": 1,
+      "Q19": 1,
+      "Q29": 1,
+      "Q31": 1,
+      "Q37": 1,
+      "Q38": 1,
+      "Q39": 1,
+      "Q41": 1,
+      "Q44+": 1,
+      "Q52+": 1,
+      "Q54": 1,
+      "Q59": 1,
+      "Q6": 1,
+      "Q60": 1,
+      "Q65": 1,
+      "Q66": 1,
+      "Q67": 1,
+      "Q76": 1,
+      "Q77": 1,
+      "Q90": 1,
+      "Q98": 1,
+      "QM10": 1,
+      "QM11": 1,
+      "QM12": 1,
+      "QM17": 1,
+      "QM2": 1,
+      "QM20": 1,
+      "QM21": 1,
+      "QM24": 1,
+      "QM32": 1,
+      "QM35": 1,
+      "QM44": 1,
+      "QM5": 1,
+      "QM6": 1,
+      "QM65": 1,
+      "QM68": 1,
+      "QM7": 1,
+      "QM8": 1,
+      "S42": 1,
+      "S48": 1,
+      "S52": 1,
+      "S54": 1,
+      "S55": 1,
+      "S56": 1,
+      "S57": 1,
+      "S59": 1,
+      "S81": 1,
+      "S84": 1,
+      "S90": 1,
+      "S91": 1,
+      "S92": 1,
+      "S94": 1,
+      "S96": 1,
+      "S98": 1,
+      "SIM11": 1,
+      "SIM15": 1,
+      "SIM3": 1,
+      "SIM30": 1,
+      "SIM31": 1,
+      "SIM32": 1,
+      "SIM33": 1,
+      "SIM33C": 1,
+      "SIM34": 1,
+      "SIM35": 1,
+      "SIM3C": 1,
+      "SIM6": 1,
+      "X27": 1,
+      "X28": 1,
+      "X37": 1,
+      "X38": 1
+    },
+    "routeBreakdown": [
+      {
+        "routeId": "B1",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "B103",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "B11",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "B12",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "B13",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "B14",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "B15",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "B16",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "B17",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "B2",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "B20",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "B24",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "B25",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "B26",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "B3",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "B31",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "B32",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "B35",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "B36",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "B37",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "B38",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "B4",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "B41",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "B43",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "B44",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "B44+",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "B45",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "B46",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "B46+",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "B47",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "B48",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "B49",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "B52",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "B54",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "B57",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "B6",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "B60",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "B61",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "B62",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "B63",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "B64",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "B65",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "B67",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "B68",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "B69",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "B7",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "B70",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "B74",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "B8",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "B82",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "B82+",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "B83",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "B84",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "B9",
+        "boroughPrefix": "B",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "BM1",
+        "boroughPrefix": "BM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "BM2",
+        "boroughPrefix": "BM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "BM3",
+        "boroughPrefix": "BM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "BM4",
+        "boroughPrefix": "BM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "BM5",
+        "boroughPrefix": "BM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "BX1",
+        "boroughPrefix": "BX",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "BX10",
+        "boroughPrefix": "BX",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "BX11",
+        "boroughPrefix": "BX",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "BX12",
+        "boroughPrefix": "BX",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "BX12+",
+        "boroughPrefix": "BX",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "BX15",
+        "boroughPrefix": "BX",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "BX16",
+        "boroughPrefix": "BX",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "BX17",
+        "boroughPrefix": "BX",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "BX18A",
+        "boroughPrefix": "BX",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "BX18B",
+        "boroughPrefix": "BX",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "BX19",
+        "boroughPrefix": "BX",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "BX2",
+        "boroughPrefix": "BX",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "BX20",
+        "boroughPrefix": "BX",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "BX21",
+        "boroughPrefix": "BX",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "BX22",
+        "boroughPrefix": "BX",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "BX23",
+        "boroughPrefix": "BX",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "BX25",
+        "boroughPrefix": "BX",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "BX26",
+        "boroughPrefix": "BX",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "BX27",
+        "boroughPrefix": "BX",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "BX28",
+        "boroughPrefix": "BX",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "BX3",
+        "boroughPrefix": "BX",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "BX30",
+        "boroughPrefix": "BX",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "BX31",
+        "boroughPrefix": "BX",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "BX32",
+        "boroughPrefix": "BX",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "BX33",
+        "boroughPrefix": "BX",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "BX34",
+        "boroughPrefix": "BX",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "BX35",
+        "boroughPrefix": "BX",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "BX36",
+        "boroughPrefix": "BX",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "BX38",
+        "boroughPrefix": "BX",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "BX39",
+        "boroughPrefix": "BX",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "BX4",
+        "boroughPrefix": "BX",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "BX40",
+        "boroughPrefix": "BX",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "BX41",
+        "boroughPrefix": "BX",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "BX41+",
+        "boroughPrefix": "BX",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "BX42",
+        "boroughPrefix": "BX",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "BX4A",
+        "boroughPrefix": "BX",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "BX5",
+        "boroughPrefix": "BX",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "BX6",
+        "boroughPrefix": "BX",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "BX6+",
+        "boroughPrefix": "BX",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "BX7",
+        "boroughPrefix": "BX",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "BX8",
+        "boroughPrefix": "BX",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "BX9",
+        "boroughPrefix": "BX",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "BXM11",
+        "boroughPrefix": "BXM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "BXM2",
+        "boroughPrefix": "BXM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "BXM3",
+        "boroughPrefix": "BXM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "BXM4",
+        "boroughPrefix": "BXM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "BXM6",
+        "boroughPrefix": "BXM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "BXM8",
+        "boroughPrefix": "BXM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "M1",
+        "boroughPrefix": "M",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "M100",
+        "boroughPrefix": "M",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "M101",
+        "boroughPrefix": "M",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "M102",
+        "boroughPrefix": "M",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "M103",
+        "boroughPrefix": "M",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "M11",
+        "boroughPrefix": "M",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "M125",
+        "boroughPrefix": "M",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "M15",
+        "boroughPrefix": "M",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "M2",
+        "boroughPrefix": "M",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "M20",
+        "boroughPrefix": "M",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "M22",
+        "boroughPrefix": "M",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "M3",
+        "boroughPrefix": "M",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "M34+",
+        "boroughPrefix": "M",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "M34A+",
+        "boroughPrefix": "M",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "M4",
+        "boroughPrefix": "M",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "M42",
+        "boroughPrefix": "M",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "M5",
+        "boroughPrefix": "M",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "M55",
+        "boroughPrefix": "M",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "M57",
+        "boroughPrefix": "M",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "M60+",
+        "boroughPrefix": "M",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "M66",
+        "boroughPrefix": "M",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "M72",
+        "boroughPrefix": "M",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "M8",
+        "boroughPrefix": "M",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "M9",
+        "boroughPrefix": "M",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "M98",
+        "boroughPrefix": "M",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "Q1",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "Q11",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "Q111",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "Q113",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "Q114",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "Q14",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "Q17",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "Q19",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "Q22",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "Q23",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "Q24",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "Q25",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "Q29",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "Q31",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "Q37",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "Q38",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "Q39",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "Q41",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "Q44+",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "Q52+",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "Q54",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "Q56",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "Q58",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "Q59",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "Q6",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "Q60",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "Q65",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "Q66",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "Q67",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "Q74",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "Q76",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "Q77",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "Q8",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "Q90",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "Q98",
+        "boroughPrefix": "Q",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "QM10",
+        "boroughPrefix": "QM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "QM11",
+        "boroughPrefix": "QM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "QM12",
+        "boroughPrefix": "QM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "QM17",
+        "boroughPrefix": "QM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "QM2",
+        "boroughPrefix": "QM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "QM20",
+        "boroughPrefix": "QM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "QM21",
+        "boroughPrefix": "QM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "QM24",
+        "boroughPrefix": "QM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "QM32",
+        "boroughPrefix": "QM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "QM35",
+        "boroughPrefix": "QM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "QM44",
+        "boroughPrefix": "QM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "QM5",
+        "boroughPrefix": "QM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "QM6",
+        "boroughPrefix": "QM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "QM65",
+        "boroughPrefix": "QM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "QM68",
+        "boroughPrefix": "QM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "QM7",
+        "boroughPrefix": "QM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "QM8",
+        "boroughPrefix": "QM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "S42",
+        "boroughPrefix": "S",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "S44",
+        "boroughPrefix": "S",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "S48",
+        "boroughPrefix": "S",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "S52",
+        "boroughPrefix": "S",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "S54",
+        "boroughPrefix": "S",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "S55",
+        "boroughPrefix": "S",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "S56",
+        "boroughPrefix": "S",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "S57",
+        "boroughPrefix": "S",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "S59",
+        "boroughPrefix": "S",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "S74",
+        "boroughPrefix": "S",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "S76",
+        "boroughPrefix": "S",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "S78",
+        "boroughPrefix": "S",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 1,
+        "cappedOutCount": 0
+      },
+      {
+        "routeId": "S81",
+        "boroughPrefix": "S",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "S84",
+        "boroughPrefix": "S",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "S90",
+        "boroughPrefix": "S",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "S91",
+        "boroughPrefix": "S",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "S92",
+        "boroughPrefix": "S",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "S94",
+        "boroughPrefix": "S",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "S96",
+        "boroughPrefix": "S",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "S98",
+        "boroughPrefix": "S",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "SIM11",
+        "boroughPrefix": "SIM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "SIM15",
+        "boroughPrefix": "SIM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "SIM3",
+        "boroughPrefix": "SIM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "SIM30",
+        "boroughPrefix": "SIM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "SIM31",
+        "boroughPrefix": "SIM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "SIM32",
+        "boroughPrefix": "SIM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "SIM33",
+        "boroughPrefix": "SIM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "SIM33C",
+        "boroughPrefix": "SIM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "SIM34",
+        "boroughPrefix": "SIM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "SIM35",
+        "boroughPrefix": "SIM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "SIM3C",
+        "boroughPrefix": "SIM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "SIM6",
+        "boroughPrefix": "SIM",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "X27",
+        "boroughPrefix": "X",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "X28",
+        "boroughPrefix": "X",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "X37",
+        "boroughPrefix": "X",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      },
+      {
+        "routeId": "X38",
+        "boroughPrefix": "X",
+        "qualifyingCandidateCount": 1,
+        "emittedWithinProductionCapCount": 0,
+        "cappedOutCount": 1
+      }
+    ],
+    "note": "High-limit no-write inventory run: run cap 1000 exceeds production cap 100. Capped-out counts are observable because this run limit exceeds the production cap."
+  },
+  "candidateSamples": [
+    {
+      "candidateId": "5837e0dfcd8cb646871c094658f34d0c",
+      "routeId": "B1",
+      "scopeId": "B1",
+      "detectorScore": 92,
+      "claimText": "Route B1 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "c499d1785459239f689719531a14dcc1",
+      "routeId": "B103",
+      "scopeId": "B103",
+      "detectorScore": 90,
+      "claimText": "Route B103 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "c3b3684fd7a44c04c8dc9680ca5aa567",
+      "routeId": "B11",
+      "scopeId": "B11",
+      "detectorScore": 92,
+      "claimText": "Route B11 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "98fd944042244d68fc98f2d6b0244ebb",
+      "routeId": "B12",
+      "scopeId": "B12",
+      "detectorScore": 95,
+      "claimText": "Route B12 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "af82d357707ac717711fbb8bf044c47c",
+      "routeId": "B13",
+      "scopeId": "B13",
+      "detectorScore": 85,
+      "claimText": "Route B13 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "bab3ec7e8facb3bee0a4b309c36ae5aa",
+      "routeId": "B14",
+      "scopeId": "B14",
+      "detectorScore": 94,
+      "claimText": "Route B14 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "338d5bab359a13aff2163c0059238fa0",
+      "routeId": "B15",
+      "scopeId": "B15",
+      "detectorScore": 94,
+      "claimText": "Route B15 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "8fcaaf8da62c88e6be970795d208c03a",
+      "routeId": "B16",
+      "scopeId": "B16",
+      "detectorScore": 86,
+      "claimText": "Route B16 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "2dfd29f58b05ea845a6c466a68b04a02",
+      "routeId": "B17",
+      "scopeId": "B17",
+      "detectorScore": 93,
+      "claimText": "Route B17 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "b9d881a61a806d9c42a4b7b7b80d3bca",
+      "routeId": "B2",
+      "scopeId": "B2",
+      "detectorScore": 92,
+      "claimText": "Route B2 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "7e6d8eff8cbaf3f410e95c3b656e2b13",
+      "routeId": "B20",
+      "scopeId": "B20",
+      "detectorScore": 87,
+      "claimText": "Route B20 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "1aa9faf72443e7f1a15957096d66ed4d",
+      "routeId": "B24",
+      "scopeId": "B24",
+      "detectorScore": 87,
+      "claimText": "Route B24 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "ac5656c16b1e8eefffc8e24a839a25cf",
+      "routeId": "B25",
+      "scopeId": "B25",
+      "detectorScore": 96,
+      "claimText": "Route B25 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "e9dab816aa7e9adb951775f4b5751142",
+      "routeId": "B26",
+      "scopeId": "B26",
+      "detectorScore": 90,
+      "claimText": "Route B26 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "a36718cac9075b8a16a61a219ccf0567",
+      "routeId": "B3",
+      "scopeId": "B3",
+      "detectorScore": 93,
+      "claimText": "Route B3 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "871b112f92ec154340addaaf6b0f05eb",
+      "routeId": "B31",
+      "scopeId": "B31",
+      "detectorScore": 92,
+      "claimText": "Route B31 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "d71ed4f601332194e522c4377d75cfd0",
+      "routeId": "B32",
+      "scopeId": "B32",
+      "detectorScore": 92,
+      "claimText": "Route B32 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "fccd014a11d1d975c9c48020f8609fc4",
+      "routeId": "B35",
+      "scopeId": "B35",
+      "detectorScore": 92,
+      "claimText": "Route B35 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "72af3b6b294a27fbb38626c8929358a0",
+      "routeId": "B36",
+      "scopeId": "B36",
+      "detectorScore": 91,
+      "claimText": "Route B36 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "cb78b3b40d8dac02466004ec3b83ec6f",
+      "routeId": "B37",
+      "scopeId": "B37",
+      "detectorScore": 89,
+      "claimText": "Route B37 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "22e662048f13483edbe72113c4a5c723",
+      "routeId": "B38",
+      "scopeId": "B38",
+      "detectorScore": 91,
+      "claimText": "Route B38 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "059db3c1575a9344d27c5dde439231e7",
+      "routeId": "B4",
+      "scopeId": "B4",
+      "detectorScore": 88,
+      "claimText": "Route B4 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "24f3954b6cd33577c73173b0c52a1137",
+      "routeId": "B41",
+      "scopeId": "B41",
+      "detectorScore": 93,
+      "claimText": "Route B41 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "015616ba3910d07bb80b4511e38aeaa6",
+      "routeId": "B43",
+      "scopeId": "B43",
+      "detectorScore": 91,
+      "claimText": "Route B43 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "6fea25f5c137a70934acb7aa204eaaf7",
+      "routeId": "B44",
+      "scopeId": "B44",
+      "detectorScore": 92,
+      "claimText": "Route B44 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "67aee56f9efaccb81c48ea4c9abf1825",
+      "routeId": "B44+",
+      "scopeId": "B44+",
+      "detectorScore": 90,
+      "claimText": "Route B44+ has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "e309dd1ddcb761d1401b8a2472508690",
+      "routeId": "B45",
+      "scopeId": "B45",
+      "detectorScore": 95,
+      "claimText": "Route B45 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "954802f35b7630dfea34b455571652c7",
+      "routeId": "B46",
+      "scopeId": "B46",
+      "detectorScore": 92,
+      "claimText": "Route B46 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "b2245d64fe4e85d20b02cc42a0b832d7",
+      "routeId": "B46+",
+      "scopeId": "B46+",
+      "detectorScore": 87,
+      "claimText": "Route B46+ has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "99c48b495bd2fcdd5c815bc25a7a8f60",
+      "routeId": "B47",
+      "scopeId": "B47",
+      "detectorScore": 90,
+      "claimText": "Route B47 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "780107f521ee67c564082ce972d4c979",
+      "routeId": "B48",
+      "scopeId": "B48",
+      "detectorScore": 90,
+      "claimText": "Route B48 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "fcb9548b439a5aee5fefbc17457381a3",
+      "routeId": "B49",
+      "scopeId": "B49",
+      "detectorScore": 93,
+      "claimText": "Route B49 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "7332cef06d62e9a7a35f3feeb2597d70",
+      "routeId": "B52",
+      "scopeId": "B52",
+      "detectorScore": 91,
+      "claimText": "Route B52 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "b744a820ce2314a5f918760e3cb18ee6",
+      "routeId": "B54",
+      "scopeId": "B54",
+      "detectorScore": 91,
+      "claimText": "Route B54 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "c8c58e55b1a559cdc361cc5d9c8fcccc",
+      "routeId": "B57",
+      "scopeId": "B57",
+      "detectorScore": 85,
+      "claimText": "Route B57 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "baacd7a236dad3f03f9f7be675177c35",
+      "routeId": "B6",
+      "scopeId": "B6",
+      "detectorScore": 90,
+      "claimText": "Route B6 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "151f664ee5a20e556c63b28a7775af68",
+      "routeId": "B60",
+      "scopeId": "B60",
+      "detectorScore": 92,
+      "claimText": "Route B60 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "7b8f13d06e4f2b09e5657f8b4c7d1ff1",
+      "routeId": "B61",
+      "scopeId": "B61",
+      "detectorScore": 94,
+      "claimText": "Route B61 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "447280fe18836fd571ea1252c1a09574",
+      "routeId": "B62",
+      "scopeId": "B62",
+      "detectorScore": 90,
+      "claimText": "Route B62 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "01baee070526c808fbdf0342851f33e4",
+      "routeId": "B63",
+      "scopeId": "B63",
+      "detectorScore": 90,
+      "claimText": "Route B63 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "ca4705aac01b5a7ba89bd7cc6bcf3437",
+      "routeId": "B64",
+      "scopeId": "B64",
+      "detectorScore": 92,
+      "claimText": "Route B64 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "1a3bc7fbc5d43460f580b2bb2bf294c5",
+      "routeId": "B65",
+      "scopeId": "B65",
+      "detectorScore": 95,
+      "claimText": "Route B65 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "2024703465c45f460888bdbc296a31ea",
+      "routeId": "B67",
+      "scopeId": "B67",
+      "detectorScore": 84,
+      "claimText": "Route B67 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "ee9284161e55596cc2b054f1f6e9659a",
+      "routeId": "B68",
+      "scopeId": "B68",
+      "detectorScore": 93,
+      "claimText": "Route B68 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "76d443ba3e6e5d244e014f83f0584e55",
+      "routeId": "B69",
+      "scopeId": "B69",
+      "detectorScore": 81,
+      "claimText": "Route B69 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "31a4519bc70e3271ddf36b7e1122b9fb",
+      "routeId": "B7",
+      "scopeId": "B7",
+      "detectorScore": 85,
+      "claimText": "Route B7 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "4f2291b36294a6f239c3e09db39d854b",
+      "routeId": "B70",
+      "scopeId": "B70",
+      "detectorScore": 90,
+      "claimText": "Route B70 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "4b012e163fab782d874351a857e78bda",
+      "routeId": "B74",
+      "scopeId": "B74",
+      "detectorScore": 93,
+      "claimText": "Route B74 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "849ac79ae80ca70de34198f8d485387f",
+      "routeId": "B8",
+      "scopeId": "B8",
+      "detectorScore": 91,
+      "claimText": "Route B8 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "3619637bbf9479ffab38942e4301af13",
+      "routeId": "B82",
+      "scopeId": "B82",
+      "detectorScore": 91,
+      "claimText": "Route B82 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "141d63c869457cb69ca83a5b00e0b38d",
+      "routeId": "B82+",
+      "scopeId": "B82+",
+      "detectorScore": 81,
+      "claimText": "Route B82+ has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "6f9e379aa15a769f11cfdf1265da4e17",
+      "routeId": "B83",
+      "scopeId": "B83",
+      "detectorScore": 92,
+      "claimText": "Route B83 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "749afd891648e46d796b5d5df874327a",
+      "routeId": "B84",
+      "scopeId": "B84",
+      "detectorScore": 86,
+      "claimText": "Route B84 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "bcfce2c0be5312d6899c67c8cde7a199",
+      "routeId": "B9",
+      "scopeId": "B9",
+      "detectorScore": 90,
+      "claimText": "Route B9 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "ae39f907b3700d34f4e9e1d4a0074790",
+      "routeId": "BM1",
+      "scopeId": "BM1",
+      "detectorScore": 81,
+      "claimText": "Route BM1 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "78e8880e6d645d2bfeb26eb14f867ceb",
+      "routeId": "BM2",
+      "scopeId": "BM2",
+      "detectorScore": 76,
+      "claimText": "Route BM2 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "cfdbcd7b4c77d18ac9f3ec83d9001ba1",
+      "routeId": "BM3",
+      "scopeId": "BM3",
+      "detectorScore": 80,
+      "claimText": "Route BM3 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "0394af6313bba782d99c7007ccad8862",
+      "routeId": "BM4",
+      "scopeId": "BM4",
+      "detectorScore": 78,
+      "claimText": "Route BM4 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "66a06f72a06603de9f3e07ce035a12fd",
+      "routeId": "BM5",
+      "scopeId": "BM5",
+      "detectorScore": 74,
+      "claimText": "Route BM5 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "ba6cb78217398847337c7c53f4a45313",
+      "routeId": "BX1",
+      "scopeId": "BX1",
+      "detectorScore": 93,
+      "claimText": "Route BX1 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "f08d6fff8d94734328b59e73ee707b02",
+      "routeId": "BX10",
+      "scopeId": "BX10",
+      "detectorScore": 91,
+      "claimText": "Route BX10 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "3eea947cb9b3f49efb31b1f25642b550",
+      "routeId": "BX11",
+      "scopeId": "BX11",
+      "detectorScore": 93,
+      "claimText": "Route BX11 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "ca6da52b0ccda23b3dffd1460e30a413",
+      "routeId": "BX12",
+      "scopeId": "BX12",
+      "detectorScore": 91,
+      "claimText": "Route BX12 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "e187027df813027479b13c85c519658c",
+      "routeId": "BX12+",
+      "scopeId": "BX12+",
+      "detectorScore": 85,
+      "claimText": "Route BX12+ has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "2224d307fe936c96474296fcccebb8dc",
+      "routeId": "BX15",
+      "scopeId": "BX15",
+      "detectorScore": 97,
+      "claimText": "Route BX15 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "ee8f890194bfdd1836d4ac7dacd6a033",
+      "routeId": "BX16",
+      "scopeId": "BX16",
+      "detectorScore": 88,
+      "claimText": "Route BX16 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "2888826c1b1e7a1220485fe1248e57ee",
+      "routeId": "BX17",
+      "scopeId": "BX17",
+      "detectorScore": 90,
+      "claimText": "Route BX17 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "ff54abbbdf9dc4ee49adb725ae4a0163",
+      "routeId": "BX18A",
+      "scopeId": "BX18A",
+      "detectorScore": 87,
+      "claimText": "Route BX18A has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "554f3223a56a66daba9c979033b572b8",
+      "routeId": "BX18B",
+      "scopeId": "BX18B",
+      "detectorScore": 88,
+      "claimText": "Route BX18B has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "57ef2106b1e7bdded397d06e913a47c0",
+      "routeId": "BX19",
+      "scopeId": "BX19",
+      "detectorScore": 89,
+      "claimText": "Route BX19 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "9caf7940490a83d436afefababfb8ebe",
+      "routeId": "BX2",
+      "scopeId": "BX2",
+      "detectorScore": 93,
+      "claimText": "Route BX2 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "93122ce08365c7f50ea2b7680dcdc1a4",
+      "routeId": "BX20",
+      "scopeId": "BX20",
+      "detectorScore": 90,
+      "claimText": "Route BX20 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "2ea59b8ec43c9664d250aa7e7c374172",
+      "routeId": "BX21",
+      "scopeId": "BX21",
+      "detectorScore": 90,
+      "claimText": "Route BX21 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "f6d6b57f76d17fe4fb74ba9fcdc4eaa4",
+      "routeId": "BX22",
+      "scopeId": "BX22",
+      "detectorScore": 90,
+      "claimText": "Route BX22 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "7c761d880beea8618b93e91f15c8ffee",
+      "routeId": "BX23",
+      "scopeId": "BX23",
+      "detectorScore": 90,
+      "claimText": "Route BX23 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "94ac639522bbac84b205f2d12c99afb5",
+      "routeId": "BX25",
+      "scopeId": "BX25",
+      "detectorScore": 78,
+      "claimText": "Route BX25 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "85cd60986a6436ae6f14b7d2da20dc2e",
+      "routeId": "BX26",
+      "scopeId": "BX26",
+      "detectorScore": 77,
+      "claimText": "Route BX26 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "f98d15643c2ea9e98e2de7f0ef7c8089",
+      "routeId": "BX27",
+      "scopeId": "BX27",
+      "detectorScore": 91,
+      "claimText": "Route BX27 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "570e011dd2de5e3c7319910632d3171a",
+      "routeId": "BX28",
+      "scopeId": "BX28",
+      "detectorScore": 89,
+      "claimText": "Route BX28 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "0f4cbef1bdab7470d9a6268cd24d8318",
+      "routeId": "BX3",
+      "scopeId": "BX3",
+      "detectorScore": 91,
+      "claimText": "Route BX3 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "f538390f745a57cfaf8f65e027c3ec45",
+      "routeId": "BX30",
+      "scopeId": "BX30",
+      "detectorScore": 86,
+      "claimText": "Route BX30 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "2cd5ccb5d221c30c841909aa35b6b57a",
+      "routeId": "BX31",
+      "scopeId": "BX31",
+      "detectorScore": 91,
+      "claimText": "Route BX31 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "92e256224e6fe4bc703dd3da896ecfb7",
+      "routeId": "BX32",
+      "scopeId": "BX32",
+      "detectorScore": 89,
+      "claimText": "Route BX32 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "b5f632586952b900e99fd1689292f905",
+      "routeId": "BX33",
+      "scopeId": "BX33",
+      "detectorScore": 95,
+      "claimText": "Route BX33 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "21d6f9eef12b6e99c51da0e8eeadb92b",
+      "routeId": "BX34",
+      "scopeId": "BX34",
+      "detectorScore": 82,
+      "claimText": "Route BX34 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "56251bcea2a0c1a04ad501e426e14460",
+      "routeId": "BX35",
+      "scopeId": "BX35",
+      "detectorScore": 91,
+      "claimText": "Route BX35 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "565516e54ca3ecf66be36ea8f137a676",
+      "routeId": "BX36",
+      "scopeId": "BX36",
+      "detectorScore": 92,
+      "claimText": "Route BX36 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "8f58ec49e13ed9ad2f7ebae9b0fe82f9",
+      "routeId": "BX38",
+      "scopeId": "BX38",
+      "detectorScore": 83,
+      "claimText": "Route BX38 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "47dbbd624bf323dfa70687a6fa86544d",
+      "routeId": "BX39",
+      "scopeId": "BX39",
+      "detectorScore": 91,
+      "claimText": "Route BX39 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "3fb7507f9d8b70f0cda8bec80d0a8cce",
+      "routeId": "BX4",
+      "scopeId": "BX4",
+      "detectorScore": 94,
+      "claimText": "Route BX4 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "3db8456017dc4c5eb9cf1cf1b1a77066",
+      "routeId": "BX40",
+      "scopeId": "BX40",
+      "detectorScore": 90,
+      "claimText": "Route BX40 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "44ec35f075314cd387f9397f6cc85f0f",
+      "routeId": "BX41",
+      "scopeId": "BX41",
+      "detectorScore": 96,
+      "claimText": "Route BX41 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "450def391233d19f0e186d6f42090408",
+      "routeId": "BX41+",
+      "scopeId": "BX41+",
+      "detectorScore": 92,
+      "claimText": "Route BX41+ has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "87ae33e3c3fafa18e1a0b0d19c261087",
+      "routeId": "BX42",
+      "scopeId": "BX42",
+      "detectorScore": 90,
+      "claimText": "Route BX42 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "f97c042511eac3d019cc5179f81f0b64",
+      "routeId": "BX4A",
+      "scopeId": "BX4A",
+      "detectorScore": 93,
+      "claimText": "Route BX4A has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "154501418f7695451262388c5ea9219a",
+      "routeId": "BX5",
+      "scopeId": "BX5",
+      "detectorScore": 96,
+      "claimText": "Route BX5 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "83d30f6364e7dbec08734c9ef379d9d6",
+      "routeId": "BX6",
+      "scopeId": "BX6",
+      "detectorScore": 93,
+      "claimText": "Route BX6 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "74f2cea5b35c85854fce606643d80138",
+      "routeId": "BX6+",
+      "scopeId": "BX6+",
+      "detectorScore": 87,
+      "claimText": "Route BX6+ has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "adf6e6de92efd4ed5838439f391b38c3",
+      "routeId": "BX7",
+      "scopeId": "BX7",
+      "detectorScore": 89,
+      "claimText": "Route BX7 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "b6d7aa2c488627815e6a1f82658bfa6d",
+      "routeId": "BX8",
+      "scopeId": "BX8",
+      "detectorScore": 91,
+      "claimText": "Route BX8 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "b07cc1477c47240901bea9485cc9fcb9",
+      "routeId": "BX9",
+      "scopeId": "BX9",
+      "detectorScore": 90,
+      "claimText": "Route BX9 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "ff4e5d7a0d8514f05ca0400e5f074311",
+      "routeId": "BXM11",
+      "scopeId": "BXM11",
+      "detectorScore": 79,
+      "claimText": "Route BXM11 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "0e1f5992cd61250b37a26e5aac5deae2",
+      "routeId": "BXM2",
+      "scopeId": "BXM2",
+      "detectorScore": 79,
+      "claimText": "Route BXM2 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "77cb171029ccc532d20291f387cc43b0",
+      "routeId": "BXM3",
+      "scopeId": "BXM3",
+      "detectorScore": 67,
+      "claimText": "Route BXM3 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "ce152a99932e93f23e2f5ad3620cb0a8",
+      "routeId": "BXM4",
+      "scopeId": "BXM4",
+      "detectorScore": 69,
+      "claimText": "Route BXM4 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "c680ea75a6a6ff6e090f4cfc8e922cba",
+      "routeId": "BXM6",
+      "scopeId": "BXM6",
+      "detectorScore": 66,
+      "claimText": "Route BXM6 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "683046c6df1e53affe26853ca3a78427",
+      "routeId": "BXM8",
+      "scopeId": "BXM8",
+      "detectorScore": 76,
+      "claimText": "Route BXM8 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "9ca1f4c514b90510db83dcdc1b8f1290",
+      "routeId": "M1",
+      "scopeId": "M1",
+      "detectorScore": 86,
+      "claimText": "Route M1 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "036d2efec9a74a8bbac48723a0b5d4ff",
+      "routeId": "M100",
+      "scopeId": "M100",
+      "detectorScore": 86,
+      "claimText": "Route M100 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "c5ac72242e0449ca515db063040cb606",
+      "routeId": "M101",
+      "scopeId": "M101",
+      "detectorScore": 92,
+      "claimText": "Route M101 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "3721b416d72e55676279588df27cc4c4",
+      "routeId": "M102",
+      "scopeId": "M102",
+      "detectorScore": 92,
+      "claimText": "Route M102 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "e49cfeff076f35d9a08c79ed9bd56f9b",
+      "routeId": "M103",
+      "scopeId": "M103",
+      "detectorScore": 94,
+      "claimText": "Route M103 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "4c0ccacb53854451e419fb631e36a381",
+      "routeId": "M11",
+      "scopeId": "M11",
+      "detectorScore": 86,
+      "claimText": "Route M11 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "fee9898ea64f107df12caa8cea7eaa26",
+      "routeId": "M125",
+      "scopeId": "M125",
+      "detectorScore": 89,
+      "claimText": "Route M125 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "c587484f330754aefeba43694df79586",
+      "routeId": "M15",
+      "scopeId": "M15",
+      "detectorScore": 90,
+      "claimText": "Route M15 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "ccd00504f2850cc310566b3a33125b9e",
+      "routeId": "M2",
+      "scopeId": "M2",
+      "detectorScore": 90,
+      "claimText": "Route M2 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "b257486ffd9e7698c3c93876df33cee1",
+      "routeId": "M20",
+      "scopeId": "M20",
+      "detectorScore": 84,
+      "claimText": "Route M20 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "94f902611723aafbfc8a6985154ab70e",
+      "routeId": "M22",
+      "scopeId": "M22",
+      "detectorScore": 88,
+      "claimText": "Route M22 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "1703812bfd1c6ac909edfa76302b7a4b",
+      "routeId": "M3",
+      "scopeId": "M3",
+      "detectorScore": 88,
+      "claimText": "Route M3 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "f5a08fc06f174bbaf670a538677a702f",
+      "routeId": "M34+",
+      "scopeId": "M34+",
+      "detectorScore": 90,
+      "claimText": "Route M34+ has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "b3c07c43a89256fe2302ef5f842ab568",
+      "routeId": "M34A+",
+      "scopeId": "M34A+",
+      "detectorScore": 93,
+      "claimText": "Route M34A+ has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "942561097879f0f8a89684f6c3213d0c",
+      "routeId": "M4",
+      "scopeId": "M4",
+      "detectorScore": 87,
+      "claimText": "Route M4 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "6b026a312eee201f3d4665287f63fe41",
+      "routeId": "M42",
+      "scopeId": "M42",
+      "detectorScore": 90,
+      "claimText": "Route M42 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "24a846f412ef78e31245b71538971858",
+      "routeId": "M5",
+      "scopeId": "M5",
+      "detectorScore": 87,
+      "claimText": "Route M5 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "a8a376dc2ea6ded22868d047bfea688d",
+      "routeId": "M55",
+      "scopeId": "M55",
+      "detectorScore": 92,
+      "claimText": "Route M55 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "d097e6392b065de8ea3e5ccc705af5de",
+      "routeId": "M57",
+      "scopeId": "M57",
+      "detectorScore": 90,
+      "claimText": "Route M57 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "74be072e35c11208923c046b02ddceee",
+      "routeId": "M60+",
+      "scopeId": "M60+",
+      "detectorScore": 91,
+      "claimText": "Route M60+ has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "8191c0feead5eb01d86eb6eb4a6ccc9b",
+      "routeId": "M66",
+      "scopeId": "M66",
+      "detectorScore": 91,
+      "claimText": "Route M66 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "86a27b8cb867fc72aa84abe16711f951",
+      "routeId": "M72",
+      "scopeId": "M72",
+      "detectorScore": 89,
+      "claimText": "Route M72 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "74c7671b516fe2e6ec9fce280680345a",
+      "routeId": "M8",
+      "scopeId": "M8",
+      "detectorScore": 84,
+      "claimText": "Route M8 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "a1dba4916b63ca2e51e433f7a3dbaa6e",
+      "routeId": "M9",
+      "scopeId": "M9",
+      "detectorScore": 86,
+      "claimText": "Route M9 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "e6bab04c040bd0cd4185d885dfd45b27",
+      "routeId": "M98",
+      "scopeId": "M98",
+      "detectorScore": 77,
+      "claimText": "Route M98 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "8a4ec6ff82d1681256c01ce0966ffaeb",
+      "routeId": "Q1",
+      "scopeId": "Q1",
+      "detectorScore": 88,
+      "claimText": "Route Q1 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "5d5de682599ce4a7d916031e76432e2c",
+      "routeId": "Q11",
+      "scopeId": "Q11",
+      "detectorScore": 91,
+      "claimText": "Route Q11 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "1141ef68dc299ae8104618e9859dab78",
+      "routeId": "Q111",
+      "scopeId": "Q111",
+      "detectorScore": 92,
+      "claimText": "Route Q111 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "8ed7bdac9fd977336c5b74d75f6fd232",
+      "routeId": "Q113",
+      "scopeId": "Q113",
+      "detectorScore": 78,
+      "claimText": "Route Q113 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "645babdaaa210014e544f0a4ae781da9",
+      "routeId": "Q114",
+      "scopeId": "Q114",
+      "detectorScore": 81,
+      "claimText": "Route Q114 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "73ff0295bb6458f2c9738a267bb1e431",
+      "routeId": "Q14",
+      "scopeId": "Q14",
+      "detectorScore": 91,
+      "claimText": "Route Q14 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "82ab90a55c9ca6832f96b7cbc3d9939d",
+      "routeId": "Q17",
+      "scopeId": "Q17",
+      "detectorScore": 89,
+      "claimText": "Route Q17 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "da63556ba5d2d533c3346ae147ec1c9e",
+      "routeId": "Q19",
+      "scopeId": "Q19",
+      "detectorScore": 85,
+      "claimText": "Route Q19 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "8143c13acd9bdb4595eb56649770c32c",
+      "routeId": "Q22",
+      "scopeId": "Q22",
+      "detectorScore": 95,
+      "claimText": "Route Q22 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "4a80d503234a066ec5339bd1982ec47d",
+      "routeId": "Q23",
+      "scopeId": "Q23",
+      "detectorScore": 91,
+      "claimText": "Route Q23 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "eae5b58bd947a57551e6cb2836784e9b",
+      "routeId": "Q24",
+      "scopeId": "Q24",
+      "detectorScore": 90,
+      "claimText": "Route Q24 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "72311207c54613118cd07a00f7fa4282",
+      "routeId": "Q25",
+      "scopeId": "Q25",
+      "detectorScore": 91,
+      "claimText": "Route Q25 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "0333866044609fb1ff583919fac32c08",
+      "routeId": "Q29",
+      "scopeId": "Q29",
+      "detectorScore": 89,
+      "claimText": "Route Q29 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "5c411484e505b5d7727a208a3428ecef",
+      "routeId": "Q31",
+      "scopeId": "Q31",
+      "detectorScore": 83,
+      "claimText": "Route Q31 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "4950bcd42e862d1a7dc3fe9268fae74f",
+      "routeId": "Q37",
+      "scopeId": "Q37",
+      "detectorScore": 88,
+      "claimText": "Route Q37 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "e3ab9cefe8992ec0704de40a64ed5860",
+      "routeId": "Q38",
+      "scopeId": "Q38",
+      "detectorScore": 87,
+      "claimText": "Route Q38 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "26874cca9e1cae2027c4658dc9eb1302",
+      "routeId": "Q39",
+      "scopeId": "Q39",
+      "detectorScore": 84,
+      "claimText": "Route Q39 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "bfc6d0e8a37520cc4144d7c6433a5bf9",
+      "routeId": "Q41",
+      "scopeId": "Q41",
+      "detectorScore": 87,
+      "claimText": "Route Q41 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "6f81b1410e3539ab074845baaf7d2f6f",
+      "routeId": "Q44+",
+      "scopeId": "Q44+",
+      "detectorScore": 88,
+      "claimText": "Route Q44+ has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "d558dd856e0fd0da2c8556ba7af6c150",
+      "routeId": "Q52+",
+      "scopeId": "Q52+",
+      "detectorScore": 78,
+      "claimText": "Route Q52+ has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "83e15229c9842c9f8ab5a8083e5c0cc3",
+      "routeId": "Q54",
+      "scopeId": "Q54",
+      "detectorScore": 89,
+      "claimText": "Route Q54 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "8c17704f4132b3e1c0092370daa25bb0",
+      "routeId": "Q56",
+      "scopeId": "Q56",
+      "detectorScore": 93,
+      "claimText": "Route Q56 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "537c09b517b4a9948e5c83831ac642b5",
+      "routeId": "Q58",
+      "scopeId": "Q58",
+      "detectorScore": 91,
+      "claimText": "Route Q58 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "9a9b740e3875b8f98e2c4231b4899318",
+      "routeId": "Q59",
+      "scopeId": "Q59",
+      "detectorScore": 89,
+      "claimText": "Route Q59 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "97655e4a9f0f99a185670372fa0800b6",
+      "routeId": "Q6",
+      "scopeId": "Q6",
+      "detectorScore": 88,
+      "claimText": "Route Q6 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "0551f07ba3bae84087093f2dd06b8c8e",
+      "routeId": "Q60",
+      "scopeId": "Q60",
+      "detectorScore": 89,
+      "claimText": "Route Q60 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "ff87924cce1acd413a2ac5c8c1a4d6e7",
+      "routeId": "Q65",
+      "scopeId": "Q65",
+      "detectorScore": 88,
+      "claimText": "Route Q65 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "da70bf291aaad75aa0ff2e08e7a88bf0",
+      "routeId": "Q66",
+      "scopeId": "Q66",
+      "detectorScore": 86,
+      "claimText": "Route Q66 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "0c7d380ead3007e8ef467f89d2b4b6f7",
+      "routeId": "Q67",
+      "scopeId": "Q67",
+      "detectorScore": 82,
+      "claimText": "Route Q67 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "43247502b8ea966a47e64e8adfca1e8a",
+      "routeId": "Q74",
+      "scopeId": "Q74",
+      "detectorScore": 91,
+      "claimText": "Route Q74 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "805a12870c4a84c208d220f07fa39d0a",
+      "routeId": "Q76",
+      "scopeId": "Q76",
+      "detectorScore": 79,
+      "claimText": "Route Q76 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "7c44756298283bf37f8c7bc9c080e667",
+      "routeId": "Q77",
+      "scopeId": "Q77",
+      "detectorScore": 86,
+      "claimText": "Route Q77 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "0587e0f57721c1ee3e577987772e7843",
+      "routeId": "Q8",
+      "scopeId": "Q8",
+      "detectorScore": 90,
+      "claimText": "Route Q8 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "3de3cee83cde72902b4ad3c848957f47",
+      "routeId": "Q90",
+      "scopeId": "Q90",
+      "detectorScore": 81,
+      "claimText": "Route Q90 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "fefd3e403ba2bc02072ddf95da6a3429",
+      "routeId": "Q98",
+      "scopeId": "Q98",
+      "detectorScore": 88,
+      "claimText": "Route Q98 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "461cdbcf9e2db15c68d90c3c13fc5e8e",
+      "routeId": "QM10",
+      "scopeId": "QM10",
+      "detectorScore": 74,
+      "claimText": "Route QM10 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "ea39a068a373202b3695dfee9b4f6e30",
+      "routeId": "QM11",
+      "scopeId": "QM11",
+      "detectorScore": 71,
+      "claimText": "Route QM11 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "67f3b05180133a655771e668aba12d86",
+      "routeId": "QM12",
+      "scopeId": "QM12",
+      "detectorScore": 76,
+      "claimText": "Route QM12 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "a92d34991577ec0cd9012ffe37915ed9",
+      "routeId": "QM17",
+      "scopeId": "QM17",
+      "detectorScore": 72,
+      "claimText": "Route QM17 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "bddef47edb9ad295eae51fb676f61c18",
+      "routeId": "QM2",
+      "scopeId": "QM2",
+      "detectorScore": 66,
+      "claimText": "Route QM2 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "6277817b1cd8cfd9d3839dcb46c9a7c5",
+      "routeId": "QM20",
+      "scopeId": "QM20",
+      "detectorScore": 77,
+      "claimText": "Route QM20 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "17605b27a9ffc06e8046907307e81d4a",
+      "routeId": "QM21",
+      "scopeId": "QM21",
+      "detectorScore": 72,
+      "claimText": "Route QM21 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "8cfbffebf2be6b0bee7e29648c891ef3",
+      "routeId": "QM24",
+      "scopeId": "QM24",
+      "detectorScore": 72,
+      "claimText": "Route QM24 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "0841029345bcc222fce6a89bab24e6c9",
+      "routeId": "QM32",
+      "scopeId": "QM32",
+      "detectorScore": 73,
+      "claimText": "Route QM32 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "dcd0239a4a5ac045fae698c38851ef15",
+      "routeId": "QM35",
+      "scopeId": "QM35",
+      "detectorScore": 75,
+      "claimText": "Route QM35 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "d1ab755c60d37d9d7af9b56147bf04b4",
+      "routeId": "QM44",
+      "scopeId": "QM44",
+      "detectorScore": 62,
+      "claimText": "Route QM44 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "76ae898a73a2aa771bfac67f6a61ca75",
+      "routeId": "QM5",
+      "scopeId": "QM5",
+      "detectorScore": 79,
+      "claimText": "Route QM5 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "38026343ba861ee1ec96bd4fad3273a4",
+      "routeId": "QM6",
+      "scopeId": "QM6",
+      "detectorScore": 66,
+      "claimText": "Route QM6 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "654802b5b39a0941b170b967eadf7759",
+      "routeId": "QM65",
+      "scopeId": "QM65",
+      "detectorScore": 67,
+      "claimText": "Route QM65 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "6e2f67719394ec51ef7d1a61ee6a412b",
+      "routeId": "QM68",
+      "scopeId": "QM68",
+      "detectorScore": 72,
+      "claimText": "Route QM68 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "85419fbf3b70e5952f9c472d287eb245",
+      "routeId": "QM7",
+      "scopeId": "QM7",
+      "detectorScore": 72,
+      "claimText": "Route QM7 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "4ba33ef6ee4145ebc0b821c7b0942d8a",
+      "routeId": "QM8",
+      "scopeId": "QM8",
+      "detectorScore": 68,
+      "claimText": "Route QM8 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "15fef3e6873bac45958f782aebe1a0c1",
+      "routeId": "S42",
+      "scopeId": "S42",
+      "detectorScore": 83,
+      "claimText": "Route S42 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "4db742b60c469a64481d970ef8d47320",
+      "routeId": "S44",
+      "scopeId": "S44",
+      "detectorScore": 90,
+      "claimText": "Route S44 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "c6562116689d5edea5ca7d660ceac74b",
+      "routeId": "S48",
+      "scopeId": "S48",
+      "detectorScore": 89,
+      "claimText": "Route S48 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "670f3116ebc139b1cd083d6d482a1497",
+      "routeId": "S52",
+      "scopeId": "S52",
+      "detectorScore": 81,
+      "claimText": "Route S52 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "04362bbe67f7b9043147d94cdea97f04",
+      "routeId": "S54",
+      "scopeId": "S54",
+      "detectorScore": 80,
+      "claimText": "Route S54 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "07e6ad5872485ada1057cdb6de9cdccd",
+      "routeId": "S55",
+      "scopeId": "S55",
+      "detectorScore": 79,
+      "claimText": "Route S55 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "3062af4cce508345bd737a37909e408e",
+      "routeId": "S56",
+      "scopeId": "S56",
+      "detectorScore": 74,
+      "claimText": "Route S56 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "bba741bc58682df90f0cccf9af135f11",
+      "routeId": "S57",
+      "scopeId": "S57",
+      "detectorScore": 80,
+      "claimText": "Route S57 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "b49e1835c1fe5f72d3fd1d1e507fa7be",
+      "routeId": "S59",
+      "scopeId": "S59",
+      "detectorScore": 83,
+      "claimText": "Route S59 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "b0ab7f541a04baadb6561539291a1a83",
+      "routeId": "S74",
+      "scopeId": "S74",
+      "detectorScore": 92,
+      "claimText": "Route S74 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "53729837610bee7b4756d483f7063615",
+      "routeId": "S76",
+      "scopeId": "S76",
+      "detectorScore": 91,
+      "claimText": "Route S76 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "caf2e2d4edfecbd6deffda3df5852048",
+      "routeId": "S78",
+      "scopeId": "S78",
+      "detectorScore": 90,
+      "claimText": "Route S78 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "773a21f1b1a6eb7a187170fa368457be",
+      "routeId": "S81",
+      "scopeId": "S81",
+      "detectorScore": 76,
+      "claimText": "Route S81 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "22c046ddd649508904ed342ed2222605",
+      "routeId": "S84",
+      "scopeId": "S84",
+      "detectorScore": 78,
+      "claimText": "Route S84 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "436f5b3eeed55fa376fbe69fb9109b6b",
+      "routeId": "S90",
+      "scopeId": "S90",
+      "detectorScore": 83,
+      "claimText": "Route S90 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "2bf98558ff73cf74960d15447302cba1",
+      "routeId": "S91",
+      "scopeId": "S91",
+      "detectorScore": 73,
+      "claimText": "Route S91 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "248987add209eed48a841151e6b5f02b",
+      "routeId": "S92",
+      "scopeId": "S92",
+      "detectorScore": 71,
+      "claimText": "Route S92 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "6ed8be4f9676cf425123bea0dbd8613c",
+      "routeId": "S94",
+      "scopeId": "S94",
+      "detectorScore": 78,
+      "claimText": "Route S94 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "006503debfb8b4de2ab820b16ce3f179",
+      "routeId": "S96",
+      "scopeId": "S96",
+      "detectorScore": 81,
+      "claimText": "Route S96 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "91d095c86cf3c52113054e67d3726147",
+      "routeId": "S98",
+      "scopeId": "S98",
+      "detectorScore": 80,
+      "claimText": "Route S98 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "c0869a13a90a58fd31b7cc104493560f",
+      "routeId": "SIM11",
+      "scopeId": "SIM11",
+      "detectorScore": 74,
+      "claimText": "Route SIM11 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "8e175ea891825d776a3080adb3a306b4",
+      "routeId": "SIM15",
+      "scopeId": "SIM15",
+      "detectorScore": 74,
+      "claimText": "Route SIM15 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "eb300969af5e31d638be750d1badc561",
+      "routeId": "SIM3",
+      "scopeId": "SIM3",
+      "detectorScore": 70,
+      "claimText": "Route SIM3 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "e0716d87caebff34e052d37230bdfb7e",
+      "routeId": "SIM30",
+      "scopeId": "SIM30",
+      "detectorScore": 70,
+      "claimText": "Route SIM30 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "6d6e176f14b7f6173fdc7d0a026abfa9",
+      "routeId": "SIM31",
+      "scopeId": "SIM31",
+      "detectorScore": 70,
+      "claimText": "Route SIM31 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "0b62a877f8cfd0fc4dd7bd194d8c7e07",
+      "routeId": "SIM32",
+      "scopeId": "SIM32",
+      "detectorScore": 72,
+      "claimText": "Route SIM32 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "7385ad74f70b1757d0c27ef8ce05f5b4",
+      "routeId": "SIM33",
+      "scopeId": "SIM33",
+      "detectorScore": 72,
+      "claimText": "Route SIM33 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "4dcf471b50ee61d875cbfad2706c23bf",
+      "routeId": "SIM33C",
+      "scopeId": "SIM33C",
+      "detectorScore": 77,
+      "claimText": "Route SIM33C has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "7e411a03d52e27c61e6d0fc0d197ff0b",
+      "routeId": "SIM34",
+      "scopeId": "SIM34",
+      "detectorScore": 79,
+      "claimText": "Route SIM34 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "5c7a82d841fa308251d9817b5f3d8bcf",
+      "routeId": "SIM35",
+      "scopeId": "SIM35",
+      "detectorScore": 78,
+      "claimText": "Route SIM35 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "c8ecc85f87b2b27fcc6f9b9b2799a3c0",
+      "routeId": "SIM3C",
+      "scopeId": "SIM3C",
+      "detectorScore": 74,
+      "claimText": "Route SIM3C has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "56af8c6faebe3f2fee009ba073a4cffb",
+      "routeId": "SIM6",
+      "scopeId": "SIM6",
+      "detectorScore": 77,
+      "claimText": "Route SIM6 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "55c7255ce105e707ab0125130b93ade6",
+      "routeId": "X27",
+      "scopeId": "X27",
+      "detectorScore": 76,
+      "claimText": "Route X27 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "ed3334d35294792c7199d903c480cd4a",
+      "routeId": "X28",
+      "scopeId": "X28",
+      "detectorScore": 75,
+      "claimText": "Route X28 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "12b5348ebc5a92d67fbff9956906c5bf",
+      "routeId": "X37",
+      "scopeId": "X37",
+      "detectorScore": 78,
+      "claimText": "Route X37 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    },
+    {
+      "candidateId": "ef602e7cb83ad1cb5514de765d06c611",
+      "routeId": "X38",
+      "scopeId": "X38",
+      "detectorScore": 80,
+      "claimText": "Route X38 has high observed long-gap reliability risk corroborated by Bus Wait Assessment."
+    }
+  ]
+}

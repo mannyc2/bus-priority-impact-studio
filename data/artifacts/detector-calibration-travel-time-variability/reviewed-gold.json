@@ -1,0 +1,1713 @@
+{
+  "artifactKind": "travel_time_variability_reviewed_gold",
+  "schemaVersion": 1,
+  "generatedAt": "2026-06-11T17:07:01.928Z",
+  "releaseMonth": "2026-03",
+  "asOfMonth": "2026-06",
+  "source": {
+    "reviewQueuePath": "data/artifacts/detector-calibration-travel-time-variability/review-queue.json",
+    "decisionsPath": "data/artifacts/detector-calibration-travel-time-variability/reviewed-decisions.json"
+  },
+  "summary": {
+    "labelCount": 46,
+    "primaryFindingCount": 0,
+    "routeContextCount": 0,
+    "reviewerOnlyCount": 0,
+    "needsMoreEvidenceCount": 2,
+    "suppressCount": 44,
+    "byCalibrationTag": {
+      "high_buffer_index_spread": 30,
+      "not_actionable_as_claim": 28,
+      "route_direction_daypart_cell": 46,
+      "service_pattern_break": 30,
+      "single_cell_not_route_generalizable": 2,
+      "thin_observed_trips": 26
+    },
+    "byReviewDepth": {
+      "adversarial": 18,
+      "light": 28
+    }
+  },
+  "labels": [
+    {
+      "detectorId": "travel_time_variability",
+      "scopeId": "B100:2026-03:E:midday",
+      "routeId": "B100",
+      "reviewBatch": "2026-06-11-march-initial-46",
+      "reviewedEvidence": {
+        "timestampSampleCount": 6,
+        "runtimeSumBufferIndex": 1.21,
+        "segmentRowCountBufferIndex": 0.595,
+        "perRowRuntimeBufferIndex": 0.374,
+        "segmentRowsPerTimestampMin": 21,
+        "segmentRowsPerTimestampMax": 36,
+        "queueMetrics": {
+          "observedRuntimeP50Minutes": 198.909165,
+          "observedRuntimeP95Minutes": 439.5662835,
+          "bufferIndex": 1.2099,
+          "observedTripCount": 2455
+        }
+      },
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "high_buffer_index_spread",
+        "route_direction_daypart_cell",
+        "service_pattern_break",
+        "thin_observed_trips",
+        "not_actionable_as_claim"
+      ],
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Spread is a segment-coverage composition artifact, not travel-time variability. The cell's percentiles are taken over only 6 hourly aggregate rows (one per hour-of-day in the daypart), and the 'runtime' is a SUM of average_travel_time_minutes across a varying number of segment rows per hour (21-36 rows): row-count buffer index 0.595 explains most of the runtime buffer index 1.21, with per-row spread only 0.374. The claim text also publishes P50 198.9 min as a route runtime, which is not a plausible trip runtime. The reported observedTripCount 2455 is a segment-row trip sum, not the percentile sample size.",
+      "labelId": "travel_time_variability:B100:2026-03:E:midday",
+      "identityKey": "travel_time_variability\u0000B100:2026-03:E:midday",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "travel_time_variability",
+      "scopeId": "B111:2026-03:S:am_peak",
+      "routeId": "B111",
+      "reviewBatch": "2026-06-11-march-initial-46",
+      "reviewedEvidence": {
+        "timestampSampleCount": 1,
+        "runtimeSumBufferIndex": 0,
+        "segmentRowCountBufferIndex": 0,
+        "perRowRuntimeBufferIndex": 0,
+        "segmentRowsPerTimestampMin": 1,
+        "segmentRowsPerTimestampMax": 1,
+        "queueMetrics": {
+          "observedRuntimeP50Minutes": 53.86668,
+          "observedRuntimeP95Minutes": 53.86668,
+          "bufferIndex": 0,
+          "observedTripCount": 1
+        }
+      },
+      "sourceQueue": "skipped_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "thin_observed_trips",
+        "route_direction_daypart_cell"
+      ],
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Skipped on insufficient_runtime_observations with observedTripCount 1 < 30. Gate fired correctly.",
+      "labelId": "travel_time_variability:B111:2026-03:S:am_peak",
+      "identityKey": "travel_time_variability\u0000B111:2026-03:S:am_peak",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "travel_time_variability",
+      "scopeId": "B12:2026-03:E:midday",
+      "routeId": "B12",
+      "reviewBatch": "2026-06-11-march-initial-46",
+      "reviewedEvidence": {
+        "timestampSampleCount": 6,
+        "runtimeSumBufferIndex": 0.551,
+        "segmentRowCountBufferIndex": 0.321,
+        "perRowRuntimeBufferIndex": 0.169,
+        "segmentRowsPerTimestampMin": 35,
+        "segmentRowsPerTimestampMax": 50,
+        "queueMetrics": {
+          "observedRuntimeP50Minutes": 323.104026,
+          "observedRuntimeP95Minutes": 501.29405999999994,
+          "bufferIndex": 0.5514943165703543,
+          "observedTripCount": 6273
+        }
+      },
+      "sourceQueue": "clean_no_hit_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "high_buffer_index_spread",
+        "route_direction_daypart_cell",
+        "service_pattern_break",
+        "not_actionable_as_claim"
+      ],
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Qualifying-but-cap-suppressed control. Same construct failure as the emitted set: buffer index 0.551 over 6 hourly composition-driven sums (row-count BI 0.321, per-row BI 0.169). Correctly absent from production output; must stay suppressed.",
+      "labelId": "travel_time_variability:B12:2026-03:E:midday",
+      "identityKey": "travel_time_variability\u0000B12:2026-03:E:midday",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "travel_time_variability",
+      "scopeId": "B16:2026-03:N:midday",
+      "routeId": "B16",
+      "reviewBatch": "2026-06-11-march-initial-46",
+      "reviewedEvidence": {
+        "timestampSampleCount": 6,
+        "runtimeSumBufferIndex": 0.922,
+        "segmentRowCountBufferIndex": 0.746,
+        "perRowRuntimeBufferIndex": 0.099,
+        "segmentRowsPerTimestampMin": 56,
+        "segmentRowsPerTimestampMax": 105,
+        "queueMetrics": {
+          "observedRuntimeP50Minutes": 503.89820399999996,
+          "observedRuntimeP95Minutes": 968.698272,
+          "bufferIndex": 0.9224,
+          "observedTripCount": 5336
+        }
+      },
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "high_buffer_index_spread",
+        "route_direction_daypart_cell",
+        "service_pattern_break",
+        "thin_observed_trips",
+        "not_actionable_as_claim"
+      ],
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Spread is a segment-coverage composition artifact, not travel-time variability. The cell's percentiles are taken over only 6 hourly aggregate rows (one per hour-of-day in the daypart), and the 'runtime' is a SUM of average_travel_time_minutes across a varying number of segment rows per hour (56-105 rows): row-count buffer index 0.746 explains most of the runtime buffer index 0.922, with per-row spread only 0.099. The claim text also publishes P50 503.9 min as a route runtime, which is not a plausible trip runtime. The reported observedTripCount 5336 is a segment-row trip sum, not the percentile sample size.",
+      "labelId": "travel_time_variability:B16:2026-03:N:midday",
+      "identityKey": "travel_time_variability\u0000B16:2026-03:N:midday",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "travel_time_variability",
+      "scopeId": "B35:2026-03:E:off_peak",
+      "routeId": "B35",
+      "reviewBatch": "2026-06-11-march-initial-46",
+      "reviewedEvidence": {
+        "timestampSampleCount": 10,
+        "runtimeSumBufferIndex": 1.048,
+        "segmentRowCountBufferIndex": 0.179,
+        "perRowRuntimeBufferIndex": 0.955,
+        "segmentRowsPerTimestampMin": 63,
+        "segmentRowsPerTimestampMax": 81,
+        "queueMetrics": {
+          "observedRuntimeP50Minutes": 349.066875,
+          "observedRuntimeP95Minutes": 715.0234806,
+          "bufferIndex": 1.0484,
+          "observedTripCount": 7213
+        }
+      },
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "needs_more_evidence",
+      "calibrationTags": [
+        "high_buffer_index_spread",
+        "route_direction_daypart_cell",
+        "service_pattern_break",
+        "thin_observed_trips",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Only emitted cell family where the spread survives composition decomposition: per-row runtime buffer index 0.955 vs segment-row-count buffer index 0.179 across 10 hourly samples. But the spread is across hours of day inside the off_peak band (which mixes overnight and evening service), not across days or trips, and the claim's P50 349.1 min is a sum over non-unique segment cells, not a trip runtime. A real B35 off-peak variability story may exist; it needs trip-level runtime distributions and a daypart decomposition before any public use.",
+      "labelId": "travel_time_variability:B35:2026-03:E:off_peak",
+      "identityKey": "travel_time_variability\u0000B35:2026-03:E:off_peak",
+      "shouldEmitSignal": true,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "travel_time_variability",
+      "scopeId": "B35:2026-03:W:off_peak",
+      "routeId": "B35",
+      "reviewBatch": "2026-06-11-march-initial-46",
+      "reviewedEvidence": {
+        "timestampSampleCount": 10,
+        "runtimeSumBufferIndex": 0.882,
+        "segmentRowCountBufferIndex": 0.103,
+        "perRowRuntimeBufferIndex": 0.865,
+        "segmentRowsPerTimestampMin": 63,
+        "segmentRowsPerTimestampMax": 74,
+        "queueMetrics": {
+          "observedRuntimeP50Minutes": 346.742337,
+          "observedRuntimeP95Minutes": 652.6134374999999,
+          "bufferIndex": 0.8821,
+          "observedTripCount": 8074
+        }
+      },
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "needs_more_evidence",
+      "calibrationTags": [
+        "high_buffer_index_spread",
+        "route_direction_daypart_cell",
+        "service_pattern_break",
+        "thin_observed_trips",
+        "single_cell_not_route_generalizable"
+      ],
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Only emitted cell family where the spread survives composition decomposition: per-row runtime buffer index 0.865 vs segment-row-count buffer index 0.103 across 10 hourly samples. But the spread is across hours of day inside the off_peak band (which mixes overnight and evening service), not across days or trips, and the claim's P50 346.7 min is a sum over non-unique segment cells, not a trip runtime. A real B35 off-peak variability story may exist; it needs trip-level runtime distributions and a daypart decomposition before any public use.",
+      "labelId": "travel_time_variability:B35:2026-03:W:off_peak",
+      "identityKey": "travel_time_variability\u0000B35:2026-03:W:off_peak",
+      "shouldEmitSignal": true,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "travel_time_variability",
+      "scopeId": "B4:2026-03:W:midday",
+      "routeId": "B4",
+      "reviewBatch": "2026-06-11-march-initial-46",
+      "reviewedEvidence": {
+        "timestampSampleCount": 6,
+        "runtimeSumBufferIndex": 0.552,
+        "segmentRowCountBufferIndex": 0.379,
+        "perRowRuntimeBufferIndex": 0.152,
+        "segmentRowsPerTimestampMin": 56,
+        "segmentRowsPerTimestampMax": 81,
+        "queueMetrics": {
+          "observedRuntimeP50Minutes": 548.945262,
+          "observedRuntimeP95Minutes": 852.2189115,
+          "bufferIndex": 0.5524661027131701,
+          "observedTripCount": 3795
+        }
+      },
+      "sourceQueue": "clean_no_hit_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "high_buffer_index_spread",
+        "route_direction_daypart_cell",
+        "service_pattern_break",
+        "not_actionable_as_claim"
+      ],
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Qualifying-but-cap-suppressed control. Same construct failure as the emitted set: buffer index 0.552 over 6 hourly composition-driven sums (row-count BI 0.379, per-row BI 0.152). Correctly absent from production output; must stay suppressed.",
+      "labelId": "travel_time_variability:B4:2026-03:W:midday",
+      "identityKey": "travel_time_variability\u0000B4:2026-03:W:midday",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "travel_time_variability",
+      "scopeId": "B41:2026-03:S:off_peak",
+      "routeId": "B41",
+      "reviewBatch": "2026-06-11-march-initial-46",
+      "reviewedEvidence": {
+        "timestampSampleCount": 10,
+        "runtimeSumBufferIndex": 1.18,
+        "segmentRowCountBufferIndex": 0.959,
+        "perRowRuntimeBufferIndex": 0.092,
+        "segmentRowsPerTimestampMin": 47,
+        "segmentRowsPerTimestampMax": 96,
+        "queueMetrics": {
+          "observedRuntimeP50Minutes": 445.08822,
+          "observedRuntimeP95Minutes": 970.2993296999999,
+          "bufferIndex": 1.18,
+          "observedTripCount": 8308
+        }
+      },
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "high_buffer_index_spread",
+        "route_direction_daypart_cell",
+        "service_pattern_break",
+        "thin_observed_trips",
+        "not_actionable_as_claim"
+      ],
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Spread is a segment-coverage composition artifact, not travel-time variability. The cell's percentiles are taken over only 10 hourly aggregate rows (one per hour-of-day in the daypart), and the 'runtime' is a SUM of average_travel_time_minutes across a varying number of segment rows per hour (47-96 rows): row-count buffer index 0.959 explains most of the runtime buffer index 1.18, with per-row spread only 0.092. The claim text also publishes P50 445.1 min as a route runtime, which is not a plausible trip runtime. The reported observedTripCount 8308 is a segment-row trip sum, not the percentile sample size.",
+      "labelId": "travel_time_variability:B41:2026-03:S:off_peak",
+      "identityKey": "travel_time_variability\u0000B41:2026-03:S:off_peak",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "travel_time_variability",
+      "scopeId": "B6:2026-03:W:off_peak",
+      "routeId": "B6",
+      "reviewBatch": "2026-06-11-march-initial-46",
+      "reviewedEvidence": {
+        "timestampSampleCount": 10,
+        "runtimeSumBufferIndex": 1.125,
+        "segmentRowCountBufferIndex": 0.645,
+        "perRowRuntimeBufferIndex": 0.341,
+        "segmentRowsPerTimestampMin": 64,
+        "segmentRowsPerTimestampMax": 116,
+        "queueMetrics": {
+          "observedRuntimeP50Minutes": 482.116821,
+          "observedRuntimeP95Minutes": 1024.5443244,
+          "bufferIndex": 1.1251,
+          "observedTripCount": 13391
+        }
+      },
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "high_buffer_index_spread",
+        "route_direction_daypart_cell",
+        "service_pattern_break",
+        "thin_observed_trips",
+        "not_actionable_as_claim"
+      ],
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Spread is a segment-coverage composition artifact, not travel-time variability. The cell's percentiles are taken over only 10 hourly aggregate rows (one per hour-of-day in the daypart), and the 'runtime' is a SUM of average_travel_time_minutes across a varying number of segment rows per hour (64-116 rows): row-count buffer index 0.645 explains most of the runtime buffer index 1.125, with per-row spread only 0.341. The claim text also publishes P50 482.1 min as a route runtime, which is not a plausible trip runtime. The reported observedTripCount 13391 is a segment-row trip sum, not the percentile sample size.",
+      "labelId": "travel_time_variability:B6:2026-03:W:off_peak",
+      "identityKey": "travel_time_variability\u0000B6:2026-03:W:off_peak",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "travel_time_variability",
+      "scopeId": "B9:2026-03:W:midday",
+      "routeId": "B9",
+      "reviewBatch": "2026-06-11-march-initial-46",
+      "reviewedEvidence": {
+        "timestampSampleCount": 6,
+        "runtimeSumBufferIndex": 0.498,
+        "segmentRowCountBufferIndex": 0.397,
+        "perRowRuntimeBufferIndex": 0.118,
+        "segmentRowsPerTimestampMin": 56,
+        "segmentRowsPerTimestampMax": 84,
+        "queueMetrics": {
+          "observedRuntimeP50Minutes": 532.63539,
+          "observedRuntimeP95Minutes": 798.141096,
+          "bufferIndex": 0.498475525631145,
+          "observedTripCount": 8564
+        }
+      },
+      "sourceQueue": "clean_no_hit_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "route_direction_daypart_cell"
+      ],
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Below-threshold clean control (buffer index 0.498 < 0.5). Threshold held it back as designed; the same composition caveats apply to the metric itself.",
+      "labelId": "travel_time_variability:B9:2026-03:W:midday",
+      "identityKey": "travel_time_variability\u0000B9:2026-03:W:midday",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "travel_time_variability",
+      "scopeId": "BM1:2026-03:E:midday",
+      "routeId": "BM1",
+      "reviewBatch": "2026-06-11-march-initial-46",
+      "reviewedEvidence": {
+        "timestampSampleCount": 5,
+        "runtimeSumBufferIndex": 0.379,
+        "segmentRowCountBufferIndex": 0.178,
+        "perRowRuntimeBufferIndex": 0.175,
+        "segmentRowsPerTimestampMin": 31,
+        "segmentRowsPerTimestampMax": 66,
+        "queueMetrics": {
+          "observedRuntimeP50Minutes": 700.16511,
+          "observedRuntimeP95Minutes": 965.6479668,
+          "bufferIndex": 0.3791717882086411,
+          "observedTripCount": 1094
+        }
+      },
+      "sourceQueue": "clean_no_hit_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "route_direction_daypart_cell"
+      ],
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Below-threshold clean control (buffer index 0.379 < 0.5). Threshold held it back as designed; the same composition caveats apply to the metric itself.",
+      "labelId": "travel_time_variability:BM1:2026-03:E:midday",
+      "identityKey": "travel_time_variability\u0000BM1:2026-03:E:midday",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "travel_time_variability",
+      "scopeId": "BM4:2026-03:E:am_peak",
+      "routeId": "BM4",
+      "reviewBatch": "2026-06-11-march-initial-46",
+      "reviewedEvidence": {
+        "timestampSampleCount": 1,
+        "runtimeSumBufferIndex": 0,
+        "segmentRowCountBufferIndex": 0,
+        "perRowRuntimeBufferIndex": 0,
+        "segmentRowsPerTimestampMin": 5,
+        "segmentRowsPerTimestampMax": 5,
+        "queueMetrics": {
+          "observedRuntimeP50Minutes": 52.855536,
+          "observedRuntimeP95Minutes": 52.855536,
+          "bufferIndex": 0,
+          "observedTripCount": 15
+        }
+      },
+      "sourceQueue": "skipped_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "thin_observed_trips",
+        "route_direction_daypart_cell"
+      ],
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Skipped on insufficient_runtime_observations with observedTripCount 15 < 30. Gate fired correctly.",
+      "labelId": "travel_time_variability:BM4:2026-03:E:am_peak",
+      "identityKey": "travel_time_variability\u0000BM4:2026-03:E:am_peak",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "travel_time_variability",
+      "scopeId": "BX21:2026-03:N:midday",
+      "routeId": "BX21",
+      "reviewBatch": "2026-06-11-march-initial-46",
+      "reviewedEvidence": {
+        "timestampSampleCount": 6,
+        "runtimeSumBufferIndex": 0.595,
+        "segmentRowCountBufferIndex": 0.388,
+        "perRowRuntimeBufferIndex": 0.145,
+        "segmentRowsPerTimestampMin": 56,
+        "segmentRowsPerTimestampMax": 85,
+        "queueMetrics": {
+          "observedRuntimeP50Minutes": 439.899051,
+          "observedRuntimeP95Minutes": 701.582223,
+          "bufferIndex": 0.5948709627927795,
+          "observedTripCount": 7584
+        }
+      },
+      "sourceQueue": "clean_no_hit_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "high_buffer_index_spread",
+        "route_direction_daypart_cell",
+        "service_pattern_break",
+        "not_actionable_as_claim"
+      ],
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Qualifying-but-cap-suppressed control. Same construct failure as the emitted set: buffer index 0.595 over 6 hourly composition-driven sums (row-count BI 0.388, per-row BI 0.145). Correctly absent from production output; must stay suppressed.",
+      "labelId": "travel_time_variability:BX21:2026-03:N:midday",
+      "identityKey": "travel_time_variability\u0000BX21:2026-03:N:midday",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "travel_time_variability",
+      "scopeId": "BX22:2026-03:N:off_peak",
+      "routeId": "BX22",
+      "reviewBatch": "2026-06-11-march-initial-46",
+      "reviewedEvidence": {
+        "timestampSampleCount": 10,
+        "runtimeSumBufferIndex": 0.599,
+        "segmentRowCountBufferIndex": 0.245,
+        "perRowRuntimeBufferIndex": 0.316,
+        "segmentRowsPerTimestampMin": 42,
+        "segmentRowsPerTimestampMax": 61,
+        "queueMetrics": {
+          "observedRuntimeP50Minutes": 224.21299199999999,
+          "observedRuntimeP95Minutes": 358.51802549999996,
+          "bufferIndex": 0.5990064728274086,
+          "observedTripCount": 4268
+        }
+      },
+      "sourceQueue": "clean_no_hit_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "high_buffer_index_spread",
+        "route_direction_daypart_cell",
+        "service_pattern_break",
+        "not_actionable_as_claim"
+      ],
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Qualifying-but-cap-suppressed control. Same construct failure as the emitted set: buffer index 0.599 over 10 hourly composition-driven sums (row-count BI 0.245, per-row BI 0.316). Correctly absent from production output; must stay suppressed.",
+      "labelId": "travel_time_variability:BX22:2026-03:N:off_peak",
+      "identityKey": "travel_time_variability\u0000BX22:2026-03:N:off_peak",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "travel_time_variability",
+      "scopeId": "BX24:2026-03:E:off_peak",
+      "routeId": "BX24",
+      "reviewBatch": "2026-06-11-march-initial-46",
+      "reviewedEvidence": {
+        "timestampSampleCount": 10,
+        "runtimeSumBufferIndex": 0.91,
+        "segmentRowCountBufferIndex": 0.5,
+        "perRowRuntimeBufferIndex": 0.273,
+        "segmentRowsPerTimestampMin": 14,
+        "segmentRowsPerTimestampMax": 21,
+        "queueMetrics": {
+          "observedRuntimeP50Minutes": 106.06323,
+          "observedRuntimeP95Minutes": 202.55540309999998,
+          "bufferIndex": 0.9098,
+          "observedTripCount": 980
+        }
+      },
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "high_buffer_index_spread",
+        "route_direction_daypart_cell",
+        "service_pattern_break",
+        "thin_observed_trips",
+        "not_actionable_as_claim"
+      ],
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Spread is a segment-coverage composition artifact, not travel-time variability. The cell's percentiles are taken over only 10 hourly aggregate rows (one per hour-of-day in the daypart), and the 'runtime' is a SUM of average_travel_time_minutes across a varying number of segment rows per hour (14-21 rows): row-count buffer index 0.5 explains most of the runtime buffer index 0.91, with per-row spread only 0.273. The claim text also publishes P50 106.1 min as a route runtime, which is not a plausible trip runtime. The reported observedTripCount 980 is a segment-row trip sum, not the percentile sample size.",
+      "labelId": "travel_time_variability:BX24:2026-03:E:off_peak",
+      "identityKey": "travel_time_variability\u0000BX24:2026-03:E:off_peak",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "travel_time_variability",
+      "scopeId": "BX36:2026-03:E:midday",
+      "routeId": "BX36",
+      "reviewBatch": "2026-06-11-march-initial-46",
+      "reviewedEvidence": {
+        "timestampSampleCount": 6,
+        "runtimeSumBufferIndex": 0.467,
+        "segmentRowCountBufferIndex": 0.417,
+        "perRowRuntimeBufferIndex": 0.131,
+        "segmentRowsPerTimestampMin": 28,
+        "segmentRowsPerTimestampMax": 48,
+        "queueMetrics": {
+          "observedRuntimeP50Minutes": 543.792498,
+          "observedRuntimeP95Minutes": 797.5687605,
+          "bufferIndex": 0.4666784912137571,
+          "observedTripCount": 5079
+        }
+      },
+      "sourceQueue": "clean_no_hit_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "route_direction_daypart_cell"
+      ],
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Below-threshold clean control (buffer index 0.467 < 0.5). Threshold held it back as designed; the same composition caveats apply to the metric itself.",
+      "labelId": "travel_time_variability:BX36:2026-03:E:midday",
+      "identityKey": "travel_time_variability\u0000BX36:2026-03:E:midday",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "travel_time_variability",
+      "scopeId": "BX36:2026-03:W:midday",
+      "routeId": "BX36",
+      "reviewBatch": "2026-06-11-march-initial-46",
+      "reviewedEvidence": {
+        "timestampSampleCount": 6,
+        "runtimeSumBufferIndex": 1.057,
+        "segmentRowCountBufferIndex": 0.759,
+        "perRowRuntimeBufferIndex": 0.161,
+        "segmentRowsPerTimestampMin": 28,
+        "segmentRowsPerTimestampMax": 53,
+        "queueMetrics": {
+          "observedRuntimeP50Minutes": 496.80758099999997,
+          "observedRuntimeP95Minutes": 1021.747272,
+          "bufferIndex": 1.0566,
+          "observedTripCount": 5291
+        }
+      },
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "high_buffer_index_spread",
+        "route_direction_daypart_cell",
+        "service_pattern_break",
+        "thin_observed_trips",
+        "not_actionable_as_claim"
+      ],
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Spread is a segment-coverage composition artifact, not travel-time variability. The cell's percentiles are taken over only 6 hourly aggregate rows (one per hour-of-day in the daypart), and the 'runtime' is a SUM of average_travel_time_minutes across a varying number of segment rows per hour (28-53 rows): row-count buffer index 0.759 explains most of the runtime buffer index 1.057, with per-row spread only 0.161. The claim text also publishes P50 496.8 min as a route runtime, which is not a plausible trip runtime. The reported observedTripCount 5291 is a segment-row trip sum, not the percentile sample size.",
+      "labelId": "travel_time_variability:BX36:2026-03:W:midday",
+      "identityKey": "travel_time_variability\u0000BX36:2026-03:W:midday",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "travel_time_variability",
+      "scopeId": "BX38:2026-03:W:off_peak",
+      "routeId": "BX38",
+      "reviewBatch": "2026-06-11-march-initial-46",
+      "reviewedEvidence": {
+        "timestampSampleCount": 5,
+        "runtimeSumBufferIndex": 1.618,
+        "segmentRowCountBufferIndex": 1.422,
+        "perRowRuntimeBufferIndex": 0.052,
+        "segmentRowsPerTimestampMin": 5,
+        "segmentRowsPerTimestampMax": 44,
+        "queueMetrics": {
+          "observedRuntimeP50Minutes": 126.916812,
+          "observedRuntimeP95Minutes": 332.30773919999996,
+          "bufferIndex": 1.6183,
+          "observedTripCount": 1297
+        }
+      },
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "high_buffer_index_spread",
+        "route_direction_daypart_cell",
+        "service_pattern_break",
+        "thin_observed_trips",
+        "not_actionable_as_claim"
+      ],
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Spread is a segment-coverage composition artifact, not travel-time variability. The cell's percentiles are taken over only 5 hourly aggregate rows (one per hour-of-day in the daypart), and the 'runtime' is a SUM of average_travel_time_minutes across a varying number of segment rows per hour (5-44 rows): row-count buffer index 1.422 explains most of the runtime buffer index 1.618, with per-row spread only 0.052. The claim text also publishes P50 126.9 min as a route runtime, which is not a plausible trip runtime. The reported observedTripCount 1297 is a segment-row trip sum, not the percentile sample size.",
+      "labelId": "travel_time_variability:BX38:2026-03:W:off_peak",
+      "identityKey": "travel_time_variability\u0000BX38:2026-03:W:off_peak",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "travel_time_variability",
+      "scopeId": "BX6+:2026-03:E:off_peak",
+      "routeId": "BX6+",
+      "reviewBatch": "2026-06-11-march-initial-46",
+      "reviewedEvidence": {
+        "timestampSampleCount": 4,
+        "runtimeSumBufferIndex": 0.973,
+        "segmentRowCountBufferIndex": 0.992,
+        "perRowRuntimeBufferIndex": 0.149,
+        "segmentRowsPerTimestampMin": 1,
+        "segmentRowsPerTimestampMax": 14,
+        "queueMetrics": {
+          "observedRuntimeP50Minutes": 141.04370699999998,
+          "observedRuntimeP95Minutes": 278.21823329999995,
+          "bufferIndex": 0.9726,
+          "observedTripCount": 516
+        }
+      },
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "high_buffer_index_spread",
+        "route_direction_daypart_cell",
+        "service_pattern_break",
+        "thin_observed_trips",
+        "not_actionable_as_claim"
+      ],
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Spread is a segment-coverage composition artifact, not travel-time variability. The cell's percentiles are taken over only 4 hourly aggregate rows (one per hour-of-day in the daypart), and the 'runtime' is a SUM of average_travel_time_minutes across a varying number of segment rows per hour (1-14 rows): row-count buffer index 0.992 explains most of the runtime buffer index 0.973, with per-row spread only 0.149. The claim text also publishes P50 141.0 min as a route runtime, which is not a plausible trip runtime. The reported observedTripCount 516 is a segment-row trip sum, not the percentile sample size.",
+      "labelId": "travel_time_variability:BX6+:2026-03:E:off_peak",
+      "identityKey": "travel_time_variability\u0000BX6+:2026-03:E:off_peak",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "travel_time_variability",
+      "scopeId": "BX95:2026-03:N:am_peak",
+      "routeId": "BX95",
+      "reviewBatch": "2026-06-11-march-initial-46",
+      "reviewedEvidence": {
+        "timestampSampleCount": 1,
+        "runtimeSumBufferIndex": 0,
+        "segmentRowCountBufferIndex": 0,
+        "perRowRuntimeBufferIndex": 0,
+        "segmentRowsPerTimestampMin": 1,
+        "segmentRowsPerTimestampMax": 1,
+        "queueMetrics": {
+          "observedRuntimeP50Minutes": 16.24998,
+          "observedRuntimeP95Minutes": 16.24998,
+          "bufferIndex": 0,
+          "observedTripCount": 1
+        }
+      },
+      "sourceQueue": "skipped_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "thin_observed_trips",
+        "route_direction_daypart_cell"
+      ],
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Skipped on insufficient_runtime_observations with observedTripCount 1 < 30. Gate fired correctly.",
+      "labelId": "travel_time_variability:BX95:2026-03:N:am_peak",
+      "identityKey": "travel_time_variability\u0000BX95:2026-03:N:am_peak",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "travel_time_variability",
+      "scopeId": "BXM3:2026-03:S:off_peak",
+      "routeId": "BXM3",
+      "reviewBatch": "2026-06-11-march-initial-46",
+      "reviewedEvidence": {
+        "timestampSampleCount": 6,
+        "runtimeSumBufferIndex": 0.439,
+        "segmentRowCountBufferIndex": 0.47,
+        "perRowRuntimeBufferIndex": 0.191,
+        "segmentRowsPerTimestampMin": 2,
+        "segmentRowsPerTimestampMax": 49,
+        "queueMetrics": {
+          "observedRuntimeP50Minutes": 322.628175,
+          "observedRuntimeP95Minutes": 464.265045,
+          "bufferIndex": 0.43900961222621054,
+          "observedTripCount": 743
+        }
+      },
+      "sourceQueue": "clean_no_hit_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "route_direction_daypart_cell"
+      ],
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Below-threshold clean control (buffer index 0.439 < 0.5). Threshold held it back as designed; the same composition caveats apply to the metric itself.",
+      "labelId": "travel_time_variability:BXM3:2026-03:S:off_peak",
+      "identityKey": "travel_time_variability\u0000BXM3:2026-03:S:off_peak",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "travel_time_variability",
+      "scopeId": "J90:2026-03:E:off_peak",
+      "routeId": "J90",
+      "reviewBatch": "2026-06-11-march-initial-46",
+      "reviewedEvidence": {
+        "timestampSampleCount": 10,
+        "runtimeSumBufferIndex": 0.395,
+        "segmentRowCountBufferIndex": 0.275,
+        "perRowRuntimeBufferIndex": 0.131,
+        "segmentRowsPerTimestampMin": 2,
+        "segmentRowsPerTimestampMax": 6,
+        "queueMetrics": {
+          "observedRuntimeP50Minutes": 55.250814000000005,
+          "observedRuntimeP95Minutes": 77.05237829999999,
+          "bufferIndex": 0.3945926353229833,
+          "observedTripCount": 148
+        }
+      },
+      "sourceQueue": "clean_no_hit_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "route_direction_daypart_cell"
+      ],
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Below-threshold clean control (buffer index 0.395 < 0.5). Threshold held it back as designed; the same composition caveats apply to the metric itself.",
+      "labelId": "travel_time_variability:J90:2026-03:E:off_peak",
+      "identityKey": "travel_time_variability\u0000J90:2026-03:E:off_peak",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "travel_time_variability",
+      "scopeId": "J90:2026-03:W:off_peak",
+      "routeId": "J90",
+      "reviewBatch": "2026-06-11-march-initial-46",
+      "reviewedEvidence": {
+        "timestampSampleCount": 10,
+        "runtimeSumBufferIndex": 0.532,
+        "segmentRowCountBufferIndex": 0.275,
+        "perRowRuntimeBufferIndex": 0.284,
+        "segmentRowsPerTimestampMin": 2,
+        "segmentRowsPerTimestampMax": 6,
+        "queueMetrics": {
+          "observedRuntimeP50Minutes": 44.159715000000006,
+          "observedRuntimeP95Minutes": 67.6449483,
+          "bufferIndex": 0.531824838543455,
+          "observedTripCount": 142
+        }
+      },
+      "sourceQueue": "clean_no_hit_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "high_buffer_index_spread",
+        "route_direction_daypart_cell",
+        "service_pattern_break",
+        "not_actionable_as_claim"
+      ],
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Qualifying-but-cap-suppressed control. Same construct failure as the emitted set: buffer index 0.532 over 10 hourly composition-driven sums (row-count BI 0.275, per-row BI 0.284). Correctly absent from production output; must stay suppressed.",
+      "labelId": "travel_time_variability:J90:2026-03:W:off_peak",
+      "identityKey": "travel_time_variability\u0000J90:2026-03:W:off_peak",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "travel_time_variability",
+      "scopeId": "L90:2026-03:E:off_peak",
+      "routeId": "L90",
+      "reviewBatch": "2026-06-11-march-initial-46",
+      "reviewedEvidence": {
+        "timestampSampleCount": 7,
+        "runtimeSumBufferIndex": 0.183,
+        "segmentRowCountBufferIndex": 0,
+        "perRowRuntimeBufferIndex": 0.183,
+        "segmentRowsPerTimestampMin": 4,
+        "segmentRowsPerTimestampMax": 4,
+        "queueMetrics": {
+          "observedRuntimeP50Minutes": 77.73333,
+          "observedRuntimeP95Minutes": 91.9906914,
+          "bufferIndex": 0.18341374800230492,
+          "observedTripCount": 476
+        }
+      },
+      "sourceQueue": "clean_no_hit_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "route_direction_daypart_cell"
+      ],
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Below-threshold clean control (buffer index 0.183 < 0.5). Threshold held it back as designed; the same composition caveats apply to the metric itself.",
+      "labelId": "travel_time_variability:L90:2026-03:E:off_peak",
+      "identityKey": "travel_time_variability\u0000L90:2026-03:E:off_peak",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "travel_time_variability",
+      "scopeId": "M101:2026-03:N:off_peak",
+      "routeId": "M101",
+      "reviewBatch": "2026-06-11-march-initial-46",
+      "reviewedEvidence": {
+        "timestampSampleCount": 10,
+        "runtimeSumBufferIndex": 1.061,
+        "segmentRowCountBufferIndex": 0.493,
+        "perRowRuntimeBufferIndex": 0.427,
+        "segmentRowsPerTimestampMin": 62,
+        "segmentRowsPerTimestampMax": 108,
+        "queueMetrics": {
+          "observedRuntimeP50Minutes": 485.757222,
+          "observedRuntimeP95Minutes": 1001.3407433999997,
+          "bufferIndex": 1.0614,
+          "observedTripCount": 9541
+        }
+      },
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "high_buffer_index_spread",
+        "route_direction_daypart_cell",
+        "service_pattern_break",
+        "thin_observed_trips",
+        "not_actionable_as_claim"
+      ],
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Spread is a segment-coverage composition artifact, not travel-time variability. The cell's percentiles are taken over only 10 hourly aggregate rows (one per hour-of-day in the daypart), and the 'runtime' is a SUM of average_travel_time_minutes across a varying number of segment rows per hour (62-108 rows): row-count buffer index 0.493 explains most of the runtime buffer index 1.061, with per-row spread only 0.427. The claim text also publishes P50 485.8 min as a route runtime, which is not a plausible trip runtime. The reported observedTripCount 9541 is a segment-row trip sum, not the percentile sample size.",
+      "labelId": "travel_time_variability:M101:2026-03:N:off_peak",
+      "identityKey": "travel_time_variability\u0000M101:2026-03:N:off_peak",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "travel_time_variability",
+      "scopeId": "M103:2026-03:N:off_peak",
+      "routeId": "M103",
+      "reviewBatch": "2026-06-11-march-initial-46",
+      "reviewedEvidence": {
+        "timestampSampleCount": 10,
+        "runtimeSumBufferIndex": 0.517,
+        "segmentRowCountBufferIndex": 0.028,
+        "perRowRuntimeBufferIndex": 0.405,
+        "segmentRowsPerTimestampMin": 49,
+        "segmentRowsPerTimestampMax": 56,
+        "queueMetrics": {
+          "observedRuntimeP50Minutes": 307.660527,
+          "observedRuntimeP95Minutes": 466.6404428999999,
+          "bufferIndex": 0.5167380991322293,
+          "observedTripCount": 4914
+        }
+      },
+      "sourceQueue": "clean_no_hit_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "high_buffer_index_spread",
+        "route_direction_daypart_cell",
+        "service_pattern_break",
+        "not_actionable_as_claim"
+      ],
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Qualifying-but-cap-suppressed control. Same construct failure as the emitted set: buffer index 0.517 over 10 hourly composition-driven sums (row-count BI 0.028, per-row BI 0.405). Correctly absent from production output; must stay suppressed.",
+      "labelId": "travel_time_variability:M103:2026-03:N:off_peak",
+      "identityKey": "travel_time_variability\u0000M103:2026-03:N:off_peak",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "travel_time_variability",
+      "scopeId": "M106:2026-03:E:off_peak",
+      "routeId": "M106",
+      "reviewBatch": "2026-06-11-march-initial-46",
+      "reviewedEvidence": {
+        "timestampSampleCount": 1,
+        "runtimeSumBufferIndex": 0,
+        "segmentRowCountBufferIndex": 0,
+        "perRowRuntimeBufferIndex": 0,
+        "segmentRowsPerTimestampMin": 5,
+        "segmentRowsPerTimestampMax": 5,
+        "queueMetrics": {
+          "observedRuntimeP50Minutes": 28.856070000000003,
+          "observedRuntimeP95Minutes": 28.856070000000003,
+          "bufferIndex": 0,
+          "observedTripCount": 18
+        }
+      },
+      "sourceQueue": "skipped_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "thin_observed_trips",
+        "route_direction_daypart_cell"
+      ],
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Skipped on insufficient_runtime_observations with observedTripCount 18 < 30. Gate fired correctly.",
+      "labelId": "travel_time_variability:M106:2026-03:E:off_peak",
+      "identityKey": "travel_time_variability\u0000M106:2026-03:E:off_peak",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "travel_time_variability",
+      "scopeId": "M15:2026-03:N:off_peak",
+      "routeId": "M15",
+      "reviewBatch": "2026-06-11-march-initial-46",
+      "reviewedEvidence": {
+        "timestampSampleCount": 10,
+        "runtimeSumBufferIndex": 0.69,
+        "segmentRowCountBufferIndex": 0.336,
+        "perRowRuntimeBufferIndex": 0.262,
+        "segmentRowsPerTimestampMin": 70,
+        "segmentRowsPerTimestampMax": 103,
+        "queueMetrics": {
+          "observedRuntimeP50Minutes": 360.371046,
+          "observedRuntimeP95Minutes": 608.9627114999998,
+          "bufferIndex": 0.6898,
+          "observedTripCount": 12452
+        }
+      },
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "high_buffer_index_spread",
+        "route_direction_daypart_cell",
+        "service_pattern_break",
+        "thin_observed_trips",
+        "not_actionable_as_claim"
+      ],
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Spread is a segment-coverage composition artifact, not travel-time variability. The cell's percentiles are taken over only 10 hourly aggregate rows (one per hour-of-day in the daypart), and the 'runtime' is a SUM of average_travel_time_minutes across a varying number of segment rows per hour (70-103 rows): row-count buffer index 0.336 explains most of the runtime buffer index 0.69, with per-row spread only 0.262. The claim text also publishes P50 360.4 min as a route runtime, which is not a plausible trip runtime. The reported observedTripCount 12452 is a segment-row trip sum, not the percentile sample size.",
+      "labelId": "travel_time_variability:M15:2026-03:N:off_peak",
+      "identityKey": "travel_time_variability\u0000M15:2026-03:N:off_peak",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "travel_time_variability",
+      "scopeId": "M2:2026-03:N:off_peak",
+      "routeId": "M2",
+      "reviewBatch": "2026-06-11-march-initial-46",
+      "reviewedEvidence": {
+        "timestampSampleCount": 10,
+        "runtimeSumBufferIndex": 0.646,
+        "segmentRowCountBufferIndex": 0.296,
+        "perRowRuntimeBufferIndex": 0.33,
+        "segmentRowsPerTimestampMin": 37,
+        "segmentRowsPerTimestampMax": 63,
+        "queueMetrics": {
+          "observedRuntimeP50Minutes": 407.24448600000005,
+          "observedRuntimeP95Minutes": 670.3134212999996,
+          "bufferIndex": 0.646,
+          "observedTripCount": 3937
+        }
+      },
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "high_buffer_index_spread",
+        "route_direction_daypart_cell",
+        "service_pattern_break",
+        "thin_observed_trips",
+        "not_actionable_as_claim"
+      ],
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Spread is a segment-coverage composition artifact, not travel-time variability. The cell's percentiles are taken over only 10 hourly aggregate rows (one per hour-of-day in the daypart), and the 'runtime' is a SUM of average_travel_time_minutes across a varying number of segment rows per hour (37-63 rows): row-count buffer index 0.296 explains most of the runtime buffer index 0.646, with per-row spread only 0.33. The claim text also publishes P50 407.2 min as a route runtime, which is not a plausible trip runtime. The reported observedTripCount 3937 is a segment-row trip sum, not the percentile sample size.",
+      "labelId": "travel_time_variability:M2:2026-03:N:off_peak",
+      "identityKey": "travel_time_variability\u0000M2:2026-03:N:off_peak",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "travel_time_variability",
+      "scopeId": "M22:2026-03:W:off_peak",
+      "routeId": "M22",
+      "reviewBatch": "2026-06-11-march-initial-46",
+      "reviewedEvidence": {
+        "timestampSampleCount": 7,
+        "runtimeSumBufferIndex": 0.49,
+        "segmentRowCountBufferIndex": 0.4,
+        "perRowRuntimeBufferIndex": 0.174,
+        "segmentRowsPerTimestampMin": 20,
+        "segmentRowsPerTimestampMax": 28,
+        "queueMetrics": {
+          "observedRuntimeP50Minutes": 117.972144,
+          "observedRuntimeP95Minutes": 175.80305099999998,
+          "bufferIndex": 0.49020815456231753,
+          "observedTripCount": 1198
+        }
+      },
+      "sourceQueue": "clean_no_hit_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "route_direction_daypart_cell"
+      ],
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Below-threshold clean control (buffer index 0.49 < 0.5). Threshold held it back as designed; the same composition caveats apply to the metric itself.",
+      "labelId": "travel_time_variability:M22:2026-03:W:off_peak",
+      "identityKey": "travel_time_variability\u0000M22:2026-03:W:off_peak",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "travel_time_variability",
+      "scopeId": "M4:2026-03:S:off_peak",
+      "routeId": "M4",
+      "reviewBatch": "2026-06-11-march-initial-46",
+      "reviewedEvidence": {
+        "timestampSampleCount": 7,
+        "runtimeSumBufferIndex": 1.974,
+        "segmentRowCountBufferIndex": 1.333,
+        "perRowRuntimeBufferIndex": 0.18,
+        "segmentRowsPerTimestampMin": 1,
+        "segmentRowsPerTimestampMax": 63,
+        "queueMetrics": {
+          "observedRuntimeP50Minutes": 182.322336,
+          "observedRuntimeP95Minutes": 542.2661982,
+          "bufferIndex": 1.9742,
+          "observedTripCount": 3650
+        }
+      },
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "high_buffer_index_spread",
+        "route_direction_daypart_cell",
+        "service_pattern_break",
+        "thin_observed_trips",
+        "not_actionable_as_claim"
+      ],
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Spread is a segment-coverage composition artifact, not travel-time variability. The cell's percentiles are taken over only 7 hourly aggregate rows (one per hour-of-day in the daypart), and the 'runtime' is a SUM of average_travel_time_minutes across a varying number of segment rows per hour (1-63 rows): row-count buffer index 1.333 explains most of the runtime buffer index 1.974, with per-row spread only 0.18. The claim text also publishes P50 182.3 min as a route runtime, which is not a plausible trip runtime. The reported observedTripCount 3650 is a segment-row trip sum, not the percentile sample size.",
+      "labelId": "travel_time_variability:M4:2026-03:S:off_peak",
+      "identityKey": "travel_time_variability\u0000M4:2026-03:S:off_peak",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "travel_time_variability",
+      "scopeId": "M7:2026-03:N:off_peak",
+      "routeId": "M7",
+      "reviewBatch": "2026-06-11-march-initial-46",
+      "reviewedEvidence": {
+        "timestampSampleCount": 10,
+        "runtimeSumBufferIndex": 0.584,
+        "segmentRowCountBufferIndex": 0,
+        "perRowRuntimeBufferIndex": 0.584,
+        "segmentRowsPerTimestampMin": 42,
+        "segmentRowsPerTimestampMax": 42,
+        "queueMetrics": {
+          "observedRuntimeP50Minutes": 326.549667,
+          "observedRuntimeP95Minutes": 517.3376949,
+          "bufferIndex": 0.5842542411779583,
+          "observedTripCount": 4466
+        }
+      },
+      "sourceQueue": "clean_no_hit_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "high_buffer_index_spread",
+        "route_direction_daypart_cell",
+        "service_pattern_break",
+        "not_actionable_as_claim"
+      ],
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Qualifying-but-cap-suppressed control. Same construct failure as the emitted set: buffer index 0.584 over 10 hourly composition-driven sums (row-count BI 0.0, per-row BI 0.584). Correctly absent from production output; must stay suppressed. Note: row count is constant here, so the spread is a genuine hour-of-day profile inside the off_peak band - a daypart-boundary artifact, still not day-to-day unreliability.",
+      "labelId": "travel_time_variability:M7:2026-03:N:off_peak",
+      "identityKey": "travel_time_variability\u0000M7:2026-03:N:off_peak",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "travel_time_variability",
+      "scopeId": "Q27:2026-03:S:pm_peak",
+      "routeId": "Q27",
+      "reviewBatch": "2026-06-11-march-initial-46",
+      "reviewedEvidence": {
+        "timestampSampleCount": 4,
+        "runtimeSumBufferIndex": 0.494,
+        "segmentRowCountBufferIndex": 0.362,
+        "perRowRuntimeBufferIndex": 0.095,
+        "segmentRowsPerTimestampMin": 47,
+        "segmentRowsPerTimestampMax": 67,
+        "queueMetrics": {
+          "observedRuntimeP50Minutes": 419.887095,
+          "observedRuntimeP95Minutes": 627.4535768999999,
+          "bufferIndex": 0.49433879814763043,
+          "observedTripCount": 8254
+        }
+      },
+      "sourceQueue": "clean_no_hit_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "route_direction_daypart_cell"
+      ],
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Below-threshold clean control (buffer index 0.494 < 0.5). Threshold held it back as designed; the same composition caveats apply to the metric itself.",
+      "labelId": "travel_time_variability:Q27:2026-03:S:pm_peak",
+      "identityKey": "travel_time_variability\u0000Q27:2026-03:S:pm_peak",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "travel_time_variability",
+      "scopeId": "Q30:2026-03:W:midday",
+      "routeId": "Q30",
+      "reviewBatch": "2026-06-11-march-initial-46",
+      "reviewedEvidence": {
+        "timestampSampleCount": 6,
+        "runtimeSumBufferIndex": 0.902,
+        "segmentRowCountBufferIndex": 0.714,
+        "perRowRuntimeBufferIndex": 0.118,
+        "segmentRowsPerTimestampMin": 42,
+        "segmentRowsPerTimestampMax": 82,
+        "queueMetrics": {
+          "observedRuntimeP50Minutes": 316.039152,
+          "observedRuntimeP95Minutes": 601.0484025000001,
+          "bufferIndex": 0.9018,
+          "observedTripCount": 4253
+        }
+      },
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "high_buffer_index_spread",
+        "route_direction_daypart_cell",
+        "service_pattern_break",
+        "thin_observed_trips",
+        "not_actionable_as_claim"
+      ],
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Spread is a segment-coverage composition artifact, not travel-time variability. The cell's percentiles are taken over only 6 hourly aggregate rows (one per hour-of-day in the daypart), and the 'runtime' is a SUM of average_travel_time_minutes across a varying number of segment rows per hour (42-82 rows): row-count buffer index 0.714 explains most of the runtime buffer index 0.902, with per-row spread only 0.118. The claim text also publishes P50 316.0 min as a route runtime, which is not a plausible trip runtime. The reported observedTripCount 4253 is a segment-row trip sum, not the percentile sample size.",
+      "labelId": "travel_time_variability:Q30:2026-03:W:midday",
+      "identityKey": "travel_time_variability\u0000Q30:2026-03:W:midday",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "travel_time_variability",
+      "scopeId": "Q76:2026-03:S:midday",
+      "routeId": "Q76",
+      "reviewBatch": "2026-06-11-march-initial-46",
+      "reviewedEvidence": {
+        "timestampSampleCount": 6,
+        "runtimeSumBufferIndex": 0.606,
+        "segmentRowCountBufferIndex": 0.413,
+        "perRowRuntimeBufferIndex": 0.136,
+        "segmentRowsPerTimestampMin": 49,
+        "segmentRowsPerTimestampMax": 70,
+        "queueMetrics": {
+          "observedRuntimeP50Minutes": 407.536854,
+          "observedRuntimeP95Minutes": 654.4371885,
+          "bufferIndex": 0.6058356000853853,
+          "observedTripCount": 4104
+        }
+      },
+      "sourceQueue": "clean_no_hit_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "high_buffer_index_spread",
+        "route_direction_daypart_cell",
+        "service_pattern_break",
+        "not_actionable_as_claim"
+      ],
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Qualifying-but-cap-suppressed control. Same construct failure as the emitted set: buffer index 0.606 over 6 hourly composition-driven sums (row-count BI 0.413, per-row BI 0.136). Correctly absent from production output; must stay suppressed.",
+      "labelId": "travel_time_variability:Q76:2026-03:S:midday",
+      "identityKey": "travel_time_variability\u0000Q76:2026-03:S:midday",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "travel_time_variability",
+      "scopeId": "Q88:2026-03:E:midday",
+      "routeId": "Q88",
+      "reviewBatch": "2026-06-11-march-initial-46",
+      "reviewedEvidence": {
+        "timestampSampleCount": 6,
+        "runtimeSumBufferIndex": 0.603,
+        "segmentRowCountBufferIndex": 0.357,
+        "perRowRuntimeBufferIndex": 0.222,
+        "segmentRowsPerTimestampMin": 21,
+        "segmentRowsPerTimestampMax": 31,
+        "queueMetrics": {
+          "observedRuntimeP50Minutes": 325.62647400000003,
+          "observedRuntimeP95Minutes": 522.129651,
+          "bufferIndex": 0.603461919376985,
+          "observedTripCount": 3166
+        }
+      },
+      "sourceQueue": "clean_no_hit_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "high_buffer_index_spread",
+        "route_direction_daypart_cell",
+        "service_pattern_break",
+        "not_actionable_as_claim"
+      ],
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Qualifying-but-cap-suppressed control. Same construct failure as the emitted set: buffer index 0.603 over 6 hourly composition-driven sums (row-count BI 0.357, per-row BI 0.222). Correctly absent from production output; must stay suppressed.",
+      "labelId": "travel_time_variability:Q88:2026-03:E:midday",
+      "identityKey": "travel_time_variability\u0000Q88:2026-03:E:midday",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "travel_time_variability",
+      "scopeId": "Q92:2026-03:W:off_peak",
+      "routeId": "Q92",
+      "reviewBatch": "2026-06-11-march-initial-46",
+      "reviewedEvidence": {
+        "timestampSampleCount": 6,
+        "runtimeSumBufferIndex": 2.657,
+        "segmentRowCountBufferIndex": 0,
+        "perRowRuntimeBufferIndex": 2.657,
+        "segmentRowsPerTimestampMin": 1,
+        "segmentRowsPerTimestampMax": 1,
+        "queueMetrics": {
+          "observedRuntimeP50Minutes": 6.716670000000001,
+          "observedRuntimeP95Minutes": 24.565289999999997,
+          "bufferIndex": 2.6573614603665203,
+          "observedTripCount": 16
+        }
+      },
+      "sourceQueue": "skipped_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "thin_observed_trips",
+        "route_direction_daypart_cell"
+      ],
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Skipped on insufficient_runtime_observations with observedTripCount 16 < 30. Gate fired correctly. Buffer index 2.66 here shows what the trip floor is protecting against: an extreme spread on 16 trips.",
+      "labelId": "travel_time_variability:Q92:2026-03:W:off_peak",
+      "identityKey": "travel_time_variability\u0000Q92:2026-03:W:off_peak",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "travel_time_variability",
+      "scopeId": "QM10:2026-03:E:midday",
+      "routeId": "QM10",
+      "reviewBatch": "2026-06-11-march-initial-46",
+      "reviewedEvidence": {
+        "timestampSampleCount": 1,
+        "runtimeSumBufferIndex": 0,
+        "segmentRowCountBufferIndex": 0,
+        "perRowRuntimeBufferIndex": 0,
+        "segmentRowsPerTimestampMin": 5,
+        "segmentRowsPerTimestampMax": 5,
+        "queueMetrics": {
+          "observedRuntimeP50Minutes": 132.803628,
+          "observedRuntimeP95Minutes": 132.803628,
+          "bufferIndex": 0,
+          "observedTripCount": 20
+        }
+      },
+      "sourceQueue": "skipped_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "thin_observed_trips",
+        "route_direction_daypart_cell"
+      ],
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Skipped on insufficient_runtime_observations with observedTripCount 20 < 30. Gate fired correctly.",
+      "labelId": "travel_time_variability:QM10:2026-03:E:midday",
+      "identityKey": "travel_time_variability\u0000QM10:2026-03:E:midday",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "travel_time_variability",
+      "scopeId": "QM2:2026-03:W:off_peak",
+      "routeId": "QM2",
+      "reviewBatch": "2026-06-11-march-initial-46",
+      "reviewedEvidence": {
+        "timestampSampleCount": 4,
+        "runtimeSumBufferIndex": 0.583,
+        "segmentRowCountBufferIndex": 0.524,
+        "perRowRuntimeBufferIndex": 0.095,
+        "segmentRowsPerTimestampMin": 3,
+        "segmentRowsPerTimestampMax": 32,
+        "queueMetrics": {
+          "observedRuntimeP50Minutes": 264.934131,
+          "observedRuntimeP95Minutes": 419.4422082,
+          "bufferIndex": 0.5831943080221703,
+          "observedTripCount": 284
+        }
+      },
+      "sourceQueue": "clean_no_hit_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "high_buffer_index_spread",
+        "route_direction_daypart_cell",
+        "service_pattern_break",
+        "not_actionable_as_claim"
+      ],
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Qualifying-but-cap-suppressed control. Same construct failure as the emitted set: buffer index 0.583 over 4 hourly composition-driven sums (row-count BI 0.524, per-row BI 0.095). Correctly absent from production output; must stay suppressed.",
+      "labelId": "travel_time_variability:QM2:2026-03:W:off_peak",
+      "identityKey": "travel_time_variability\u0000QM2:2026-03:W:off_peak",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "travel_time_variability",
+      "scopeId": "S55:2026-03:N:off_peak",
+      "routeId": "S55",
+      "reviewBatch": "2026-06-11-march-initial-46",
+      "reviewedEvidence": {
+        "timestampSampleCount": 1,
+        "runtimeSumBufferIndex": 0,
+        "segmentRowCountBufferIndex": 0,
+        "perRowRuntimeBufferIndex": 0,
+        "segmentRowsPerTimestampMin": 5,
+        "segmentRowsPerTimestampMax": 5,
+        "queueMetrics": {
+          "observedRuntimeP50Minutes": 80.598606,
+          "observedRuntimeP95Minutes": 80.598606,
+          "bufferIndex": 0,
+          "observedTripCount": 17
+        }
+      },
+      "sourceQueue": "skipped_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "thin_observed_trips",
+        "route_direction_daypart_cell"
+      ],
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Skipped on insufficient_runtime_observations with observedTripCount 17 < 30. Gate fired correctly.",
+      "labelId": "travel_time_variability:S55:2026-03:N:off_peak",
+      "identityKey": "travel_time_variability\u0000S55:2026-03:N:off_peak",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "travel_time_variability",
+      "scopeId": "S56:2026-03:S:midday",
+      "routeId": "S56",
+      "reviewBatch": "2026-06-11-march-initial-46",
+      "reviewedEvidence": {
+        "timestampSampleCount": 6,
+        "runtimeSumBufferIndex": 0.986,
+        "segmentRowCountBufferIndex": 0.75,
+        "perRowRuntimeBufferIndex": 0.16,
+        "segmentRowsPerTimestampMin": 20,
+        "segmentRowsPerTimestampMax": 40,
+        "queueMetrics": {
+          "observedRuntimeP50Minutes": 181.95578999999998,
+          "observedRuntimeP95Minutes": 361.4241285,
+          "bufferIndex": 0.9863,
+          "observedTripCount": 999
+        }
+      },
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "high_buffer_index_spread",
+        "route_direction_daypart_cell",
+        "service_pattern_break",
+        "thin_observed_trips",
+        "not_actionable_as_claim"
+      ],
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Spread is a segment-coverage composition artifact, not travel-time variability. The cell's percentiles are taken over only 6 hourly aggregate rows (one per hour-of-day in the daypart), and the 'runtime' is a SUM of average_travel_time_minutes across a varying number of segment rows per hour (20-40 rows): row-count buffer index 0.75 explains most of the runtime buffer index 0.986, with per-row spread only 0.16. The claim text also publishes P50 182.0 min as a route runtime, which is not a plausible trip runtime. The reported observedTripCount 999 is a segment-row trip sum, not the percentile sample size.",
+      "labelId": "travel_time_variability:S56:2026-03:S:midday",
+      "identityKey": "travel_time_variability\u0000S56:2026-03:S:midday",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "travel_time_variability",
+      "scopeId": "S61:2026-03:E:midday",
+      "routeId": "S61",
+      "reviewBatch": "2026-06-11-march-initial-46",
+      "reviewedEvidence": {
+        "timestampSampleCount": 6,
+        "runtimeSumBufferIndex": 0.594,
+        "segmentRowCountBufferIndex": 0.459,
+        "perRowRuntimeBufferIndex": 0.091,
+        "segmentRowsPerTimestampMin": 49,
+        "segmentRowsPerTimestampMax": 79,
+        "queueMetrics": {
+          "observedRuntimeP50Minutes": 390.320646,
+          "observedRuntimeP95Minutes": 622.0055805,
+          "bufferIndex": 0.5935759147621413,
+          "observedTripCount": 4903
+        }
+      },
+      "sourceQueue": "clean_no_hit_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "high_buffer_index_spread",
+        "route_direction_daypart_cell",
+        "service_pattern_break",
+        "not_actionable_as_claim"
+      ],
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Qualifying-but-cap-suppressed control. Same construct failure as the emitted set: buffer index 0.594 over 6 hourly composition-driven sums (row-count BI 0.459, per-row BI 0.091). Correctly absent from production output; must stay suppressed.",
+      "labelId": "travel_time_variability:S61:2026-03:E:midday",
+      "identityKey": "travel_time_variability\u0000S61:2026-03:E:midday",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "travel_time_variability",
+      "scopeId": "SIM10:2026-03:S:off_peak",
+      "routeId": "SIM10",
+      "reviewBatch": "2026-06-11-march-initial-46",
+      "reviewedEvidence": {
+        "timestampSampleCount": 1,
+        "runtimeSumBufferIndex": 0,
+        "segmentRowCountBufferIndex": 0,
+        "perRowRuntimeBufferIndex": 0,
+        "segmentRowsPerTimestampMin": 5,
+        "segmentRowsPerTimestampMax": 5,
+        "queueMetrics": {
+          "observedRuntimeP50Minutes": 38.680026,
+          "observedRuntimeP95Minutes": 38.680026,
+          "bufferIndex": 0,
+          "observedTripCount": 21
+        }
+      },
+      "sourceQueue": "skipped_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "thin_observed_trips",
+        "route_direction_daypart_cell"
+      ],
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Skipped on insufficient_runtime_observations with observedTripCount 21 < 30. Gate fired correctly.",
+      "labelId": "travel_time_variability:SIM10:2026-03:S:off_peak",
+      "identityKey": "travel_time_variability\u0000SIM10:2026-03:S:off_peak",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "travel_time_variability",
+      "scopeId": "SIM3C:2026-03:N:am_peak",
+      "routeId": "SIM3C",
+      "reviewBatch": "2026-06-11-march-initial-46",
+      "reviewedEvidence": {
+        "timestampSampleCount": 4,
+        "runtimeSumBufferIndex": 0.866,
+        "segmentRowCountBufferIndex": 0.855,
+        "perRowRuntimeBufferIndex": 0.086,
+        "segmentRowsPerTimestampMin": 11,
+        "segmentRowsPerTimestampMax": 31,
+        "queueMetrics": {
+          "observedRuntimeP50Minutes": 137.938656,
+          "observedRuntimeP95Minutes": 257.3538498,
+          "bufferIndex": 0.8657,
+          "observedTripCount": 594
+        }
+      },
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "high_buffer_index_spread",
+        "route_direction_daypart_cell",
+        "service_pattern_break",
+        "thin_observed_trips",
+        "not_actionable_as_claim"
+      ],
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Spread is a segment-coverage composition artifact, not travel-time variability. The cell's percentiles are taken over only 4 hourly aggregate rows (one per hour-of-day in the daypart), and the 'runtime' is a SUM of average_travel_time_minutes across a varying number of segment rows per hour (11-31 rows): row-count buffer index 0.855 explains most of the runtime buffer index 0.866, with per-row spread only 0.086. The claim text also publishes P50 137.9 min as a route runtime, which is not a plausible trip runtime. The reported observedTripCount 594 is a segment-row trip sum, not the percentile sample size.",
+      "labelId": "travel_time_variability:SIM3C:2026-03:N:am_peak",
+      "identityKey": "travel_time_variability\u0000SIM3C:2026-03:N:am_peak",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "travel_time_variability",
+      "scopeId": "SIM9:2026-03:S:midday",
+      "routeId": "SIM9",
+      "reviewBatch": "2026-06-11-march-initial-46",
+      "reviewedEvidence": {
+        "timestampSampleCount": 2,
+        "runtimeSumBufferIndex": 0.58,
+        "segmentRowCountBufferIndex": 0.54,
+        "perRowRuntimeBufferIndex": 0.065,
+        "segmentRowsPerTimestampMin": 5,
+        "segmentRowsPerTimestampMax": 20,
+        "queueMetrics": {
+          "observedRuntimeP50Minutes": 224.98972500000002,
+          "observedRuntimeP95Minutes": 355.4535009,
+          "bufferIndex": 0.579865484523793,
+          "observedTripCount": 165
+        }
+      },
+      "sourceQueue": "clean_no_hit_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "high_buffer_index_spread",
+        "route_direction_daypart_cell",
+        "service_pattern_break",
+        "not_actionable_as_claim"
+      ],
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Qualifying-but-cap-suppressed control. Same construct failure as the emitted set: buffer index 0.58 over 2 hourly composition-driven sums (row-count BI 0.54, per-row BI 0.065). Correctly absent from production output; must stay suppressed.",
+      "labelId": "travel_time_variability:SIM9:2026-03:S:midday",
+      "identityKey": "travel_time_variability\u0000SIM9:2026-03:S:midday",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    },
+    {
+      "detectorId": "travel_time_variability",
+      "scopeId": "X27:2026-03:N:off_peak",
+      "routeId": "X27",
+      "reviewBatch": "2026-06-11-march-initial-46",
+      "reviewedEvidence": {
+        "timestampSampleCount": 3,
+        "runtimeSumBufferIndex": 0.965,
+        "segmentRowCountBufferIndex": 0.707,
+        "perRowRuntimeBufferIndex": 0.019,
+        "segmentRowsPerTimestampMin": 7,
+        "segmentRowsPerTimestampMax": 25,
+        "queueMetrics": {
+          "observedRuntimeP50Minutes": 109.295058,
+          "observedRuntimeP95Minutes": 214.8142656,
+          "bufferIndex": 0.9655,
+          "observedTripCount": 297
+        }
+      },
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "high_buffer_index_spread",
+        "route_direction_daypart_cell",
+        "service_pattern_break",
+        "thin_observed_trips",
+        "not_actionable_as_claim"
+      ],
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Spread is a segment-coverage composition artifact, not travel-time variability. The cell's percentiles are taken over only 3 hourly aggregate rows (one per hour-of-day in the daypart), and the 'runtime' is a SUM of average_travel_time_minutes across a varying number of segment rows per hour (7-25 rows): row-count buffer index 0.707 explains most of the runtime buffer index 0.965, with per-row spread only 0.019. The claim text also publishes P50 109.3 min as a route runtime, which is not a plausible trip runtime. The reported observedTripCount 297 is a segment-row trip sum, not the percentile sample size.",
+      "labelId": "travel_time_variability:X27:2026-03:N:off_peak",
+      "identityKey": "travel_time_variability\u0000X27:2026-03:N:off_peak",
+      "shouldEmitSignal": false,
+      "shouldEmitFindingCandidate": false,
+      "shouldEmitCandidate": false,
+      "shouldPromotePrimary": false
+    }
+  ]
+}

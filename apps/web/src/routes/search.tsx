@@ -1,6 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { routeHead } from "../lib/head.js";
-import { fetchStudioRoutes, fetchStudioSearch } from "../studio/api-client.js";
+import {
+  fetchStudioRoutes,
+  fetchStudioSearch,
+  staticStudioLoaderStaleTimeMs,
+} from "../studio/api-client.js";
 import { SearchResultsPage } from "../studio/pages/search-results.js";
 
 type SearchParams = {
@@ -12,10 +16,15 @@ export const Route = createFileRoute("/search")({
     q: typeof search.q === "string" && search.q.trim().length > 0 ? search.q : "manhattan ace",
   }),
   loaderDeps: ({ search }) => ({ q: search.q }),
-  loader: async ({ deps }) => {
-    const [data, routes] = await Promise.all([fetchStudioSearch(deps.q), fetchStudioRoutes()]);
+  loader: async ({ abortController, deps }) => {
+    const options = { signal: abortController.signal };
+    const [data, routes] = await Promise.all([
+      fetchStudioSearch(deps.q, options),
+      fetchStudioRoutes(options),
+    ]);
     return { data, allRoutes: routes.routes };
   },
+  staleTime: staticStudioLoaderStaleTimeMs,
   head: ({ match }) => routeHead(`Search: ${match.search.q}`),
   component: SearchRoute,
 });

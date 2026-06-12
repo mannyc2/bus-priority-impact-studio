@@ -1,18 +1,25 @@
-import { ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { type CaptureSource, SendToBriefSheet } from "@/components/brief/SendToBriefSheet.js";
+import { ChartFrame } from "@/components/ChartFrame";
 import { CorridorMap } from "@/components/CorridorMap";
+import { CorridorProfile } from "@/components/CorridorProfile";
+import { DataAsOf } from "@/components/DataAsOf";
 import { FilterChips } from "@/components/FilterChips";
+import { HourBars } from "@/components/HourBars";
+import { averageHourlySpeed } from "@/components/route/route-derived";
 import {
   insightTargetsSegment,
   routeInsightPlacements,
   safeInsightCaveats,
 } from "@/components/route/route-insight-placement";
+import { routeSectionQuestion } from "@/components/route/section-registry";
+import { type WhereWhenSummary, whereWhenSummary } from "@/components/route/where-when-summary";
 import { SectionHeader } from "@/components/SectionHeader";
 import { SegmentRow, SegmentRowHeader } from "@/components/SegmentRow";
 import { TreatmentBadgeRow } from "@/components/TreatmentBadge";
 import { Badge } from "@/components/ui/badge";
 import type {
+  RouteDossierSummaryForDetail,
   StudioRouteDetailResponse,
   StudioRouteInsight,
   StudioSegment,
@@ -24,15 +31,19 @@ export function SlowSegmentsSection({
   segments,
   insights,
   flaggedId,
+  dossier,
 }: {
   route: StudioRouteDetailResponse["route"];
   segments: readonly StudioSegment[];
   insights: readonly StudioRouteInsight[];
   flaggedId?: string;
+  dossier?: RouteDossierSummaryForDetail | null;
 }) {
   const [openId, setOpenId] = useState<string | null>(flaggedId ?? null);
   const [direction, setDirection] = useState<"all" | "NB" | "SB" | "EB" | "WB">("all");
   const [sendSeg, setSendSeg] = useState<StudioSegment | null>(null);
+  const hourProfile = averageHourlySpeed(route, segments);
+  const summary = whereWhenSummary({ route, segments, dossier: dossier ?? null });
 
   const capture: CaptureSource | null = sendSeg && {
     routeSlug: route.slug,
@@ -70,11 +81,11 @@ export function SlowSegmentsSection({
   return (
     <section className="flex flex-col gap-5">
       <SectionHeader
-        title="Top slow segments by rider-hours lost"
-        sub={`${segments.length} timepoint segments observed in March 2026. Hour strip shows severity by time of day.`}
+        title={routeSectionQuestion("where-when")}
+        sub={summary.sectionSubtitle}
         right={
           <div className="flex items-center gap-2">
-            <Badge variant="accent">Mar 2026</Badge>
+            <DataAsOf dataAsOf={summary.dataAsOf} />
             <FilterChips
               ariaLabel="Direction filter"
               value={direction}
@@ -88,6 +99,30 @@ export function SlowSegmentsSection({
           </div>
         }
       />
+      <WhereWhenSummaryCards summary={summary} />
+      <div className="grid grid-cols-[minmax(0,1.45fr)_minmax(300px,0.8fr)] gap-5 max-xl:grid-cols-1">
+        <div className="rounded-[3px] bg-[var(--bp-color-card)] px-5 py-4 shadow-[0_0_0_1px_var(--bp-color-rule)]">
+          <SectionHeader
+            title="Corridor profile"
+            sub="Weekday segment speeds; dashed line is schedule."
+          />
+          <CorridorProfile route={route} segments={segments} highlightId={flaggedId} />
+        </div>
+        <ChartFrame
+          title="Speed by hour of day"
+          source="Average speed by time of day."
+          height={164}
+        >
+          <HourBars
+            data={hourProfile}
+            sched={route.scheduledMph}
+            height={164}
+            min={Math.max(0, Math.floor(Math.min(...hourProfile) - 1))}
+            max={Math.ceil(Math.max(route.scheduledMph, ...hourProfile) + 1)}
+            legend
+          />
+        </ChartFrame>
+      </div>
       {featured.length > 0 ? (
         <div className="grid grid-cols-3 gap-4 max-xl:grid-cols-1">
           {featured.map((segment, index) => (
@@ -155,7 +190,6 @@ export function SlowSegmentsSection({
                     className="inline-flex items-center gap-1 text-[11.5px] font-semibold text-[var(--bp-color-accent)] hover:underline"
                   >
                     Send to brief
-                    <ArrowRight size={13} />
                   </button>
                 </div>
               </div>
@@ -164,17 +198,72 @@ export function SlowSegmentsSection({
         </div>
       </div>
       <div className="mt-3 text-[11.5px] text-[var(--bp-color-ink-55)]">
-        Showing {visible.length} of {segments.length} timepoint segments in this direction filter.
-        {unmatchedMapInsightCount > 0 ? (
-          <span>
-            {" "}
-            Some detector notes are available but are not tied to the visible segment rows in this
-            release.
-          </span>
-        ) : null}
+        {visible.length} of {segments.length} segments shown.
+        {unmatchedMapInsightCount > 0 ? <span> More detector notes are off-row.</span> : null}
       </div>
       {capture ? <SendToBriefSheet source={capture} onClose={() => setSendSeg(null)} /> : null}
     </section>
+  );
+}
+
+function WhereWhenSummaryCards({ summary }: { summary: WhereWhenSummary }) {
+  return (
+    <div className="grid grid-cols-4 rounded-[3px] bg-[var(--bp-color-card)] shadow-[0_0_0_1px_var(--bp-color-rule)] max-xl:grid-cols-2 max-sm:grid-cols-1">
+      <WhereWhenStat
+        label="Current speed"
+        value={summary.currentSpeedLabel}
+        sub={summary.peerLabel}
+      />
+      <WhereWhenStat
+        label="6-month movement"
+        value={summary.movementLabel}
+        sub={summary.movementDetail}
+        tone={summary.movementTone}
+      />
+      <WhereWhenStat
+        label="History window"
+        value={summary.windowLabel}
+        sub={summary.coverageLabel}
+      />
+      <WhereWhenStat
+        label="Worst segment"
+        value={summary.worstSegmentLabel}
+        sub={summary.worstSegmentDetail}
+      />
+    </div>
+  );
+}
+
+function WhereWhenStat({
+  label,
+  value,
+  sub,
+  tone = "neutral",
+}: {
+  label: string;
+  value: string;
+  sub: string;
+  tone?: WhereWhenSummary["movementTone"];
+}) {
+  const color =
+    tone === "bad"
+      ? "var(--bp-color-bad)"
+      : tone === "good"
+        ? "var(--bp-color-good)"
+        : "var(--bp-color-ink)";
+  return (
+    <div className="min-w-0 p-4 shadow-[inset_-1px_0_0_var(--bp-color-rule)] last:shadow-none max-xl:nth-2:shadow-none max-sm:shadow-[inset_0_-1px_0_var(--bp-color-rule)]">
+      <div className="font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--bp-color-ink-55)]">
+        {label}
+      </div>
+      <div
+        className="mt-1 truncate font-mono text-[20px] font-semibold leading-tight"
+        style={{ color }}
+      >
+        {value}
+      </div>
+      <div className="mt-1 text-[11.5px] leading-[1.4] text-[var(--bp-color-ink-55)]">{sub}</div>
+    </div>
   );
 }
 
@@ -260,7 +349,6 @@ function SlowSegmentCard({
         className="mt-4 inline-flex w-fit items-center gap-1.5 rounded-[3px] border border-[var(--bp-color-ink-20)] px-3 py-1.5 text-[11.5px] font-semibold text-[var(--bp-color-ink)] hover:bg-[var(--bp-color-paper-deep)]"
       >
         Send to brief
-        <ArrowRight size={13} />
       </button>
     </article>
   );

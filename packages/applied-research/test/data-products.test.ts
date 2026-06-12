@@ -618,6 +618,190 @@ describe("data product registry", () => {
       }),
     ).toContain("tier2_publishable_total_zero");
 
+    const semanticOnlyCheck = {
+      id: "artifact",
+      label: "Artifact",
+      type: "json_artifact" as const,
+      pathTemplate: "/tmp/artifact.json",
+    };
+
+    expect(
+      dataProductJsonSemanticReasons({
+        value: {
+          mtaWikiCanonicalBridge: true,
+          summary: {
+            externalCorpus: "mta-wiki",
+            publicPromotionStatus: "not_ready",
+            interventionCandidateRecordCount: 2070,
+            reviewGroupCount: 187,
+            reviewGroupsWithRoutes: 151,
+            promotionBlockers: ["unreviewed source-stated records"],
+          },
+        },
+        check: { ...semanticOnlyCheck, semantic: "mta_wiki_bridge_ready_for_review" },
+        releaseMonth: "2026-03",
+        runId: "run-1",
+      }),
+    ).toEqual([]);
+
+    expect(
+      dataProductJsonSemanticReasons({
+        value: {
+          summary: {
+            interventionCandidateRecordCount: 0,
+            reviewGroupCount: 0,
+            reviewGroupsWithRoutes: 0,
+            promotionBlockers: [],
+          },
+        },
+        check: { ...semanticOnlyCheck, semantic: "mta_wiki_bridge_ready_for_review" },
+        releaseMonth: "2026-03",
+        runId: "run-1",
+      }),
+    ).toEqual(
+      expect.arrayContaining([
+        "mta_wiki_bridge_candidate_count_zero",
+        "mta_wiki_bridge_review_group_count_zero",
+        "mta_wiki_bridge_routed_group_count_zero",
+        "mta_wiki_bridge_missing_promotion_blockers",
+      ]),
+    );
+
+    expect(
+      dataProductJsonSemanticReasons({
+        value: {
+          summary: {
+            queueSourceCount: 291,
+            closedSourceCount: 291,
+            openSourceCount: 0,
+            conflictSourceCount: 0,
+            invalidReviewedRecordCount: 0,
+            invalidDispositionReceiptCount: 0,
+            orphanReviewedRecordSourceCount: 0,
+            orphanDispositionReceiptCount: 0,
+            sourceReceiptClosureStatus: "complete",
+          },
+        },
+        check: { ...semanticOnlyCheck, semantic: "tier2_source_receipt_closure_ready" },
+        releaseMonth: "2026-03",
+        runId: "run-1",
+      }),
+    ).toEqual([]);
+
+    expect(
+      dataProductJsonSemanticReasons({
+        value: {
+          summary: {
+            queueSourceCount: 12,
+            closedSourceCount: 8,
+            openSourceCount: 3,
+            conflictSourceCount: 1,
+            invalidReviewedRecordCount: 2,
+            invalidDispositionReceiptCount: 4,
+            orphanReviewedRecordSourceCount: 5,
+            orphanDispositionReceiptCount: 6,
+            sourceReceiptClosureStatus: "partial",
+          },
+        },
+        check: { ...semanticOnlyCheck, semantic: "tier2_source_receipt_closure_ready" },
+        releaseMonth: "2026-03",
+        runId: "run-1",
+      }),
+    ).toEqual(
+      expect.arrayContaining([
+        "tier2_source_receipt_queue_source_count_low:12",
+        "tier2_source_receipt_closure_status:partial",
+        "tier2_source_receipt_closed_count_mismatch:8/12",
+        "tier2_source_receipt_open_sources:3",
+        "tier2_source_receipt_conflict_sources:1",
+        "tier2_source_receipt_invalid_records:2",
+        "tier2_source_receipt_invalid_dispositions:4",
+        "tier2_source_receipt_orphan_record_sources:5",
+        "tier2_source_receipt_orphan_dispositions:6",
+      ]),
+    );
+
+    expect(
+      dataProductJsonSemanticReasons({
+        value: {
+          summary: {
+            consumerSurfaceRowCount: 78_605,
+            sourceCoverageRowCount: 291,
+            routeEvidenceBundleCount: 236,
+            detectorFeatureRowCount: 93_893,
+          },
+        },
+        check: { ...semanticOnlyCheck, semantic: "tier2_full_corpus_materialized_views_ready" },
+        releaseMonth: "2026-03",
+        runId: "run-1",
+      }),
+    ).toEqual([]);
+
+    expect(
+      dataProductJsonSemanticReasons({
+        value: {
+          summary: {
+            consumerSurfaceRowCount: 15_925,
+            sourceCoverageRowCount: 175,
+            routeEvidenceBundleCount: 151,
+            detectorFeatureRowCount: 18_529,
+          },
+        },
+        check: { ...semanticOnlyCheck, semantic: "tier2_full_corpus_materialized_views_ready" },
+        releaseMonth: "2026-03",
+        runId: "run-1",
+      }),
+    ).toEqual(
+      expect.arrayContaining([
+        "tier2_full_corpus_materialized_surface_count_low:15925",
+        "tier2_full_corpus_materialized_source_count_low:175",
+        "tier2_full_corpus_materialized_route_count_low:151",
+        "tier2_full_corpus_materialized_feature_count_low:18529",
+      ]),
+    );
+
+    expect(
+      dataProductJsonSemanticReasons({
+        value: {
+          summary: {
+            sourceCount: 291,
+            reviewQueueItemCount: 291,
+            recordCandidateReviewCount: 94,
+            reviewReceiptMissingCount: 291,
+            promotionBlockers: ["source-level review receipts have not been written"],
+          },
+        },
+        check: { ...semanticOnlyCheck, semantic: "tier2_source_disposition_queue_ready" },
+        releaseMonth: "2026-03",
+        runId: "run-1",
+      }),
+    ).toEqual([]);
+
+    expect(
+      dataProductJsonSemanticReasons({
+        value: {
+          summary: {
+            sourceCount: 12,
+            reviewQueueItemCount: 11,
+            recordCandidateReviewCount: 0,
+            reviewReceiptMissingCount: 0,
+            promotionBlockers: [],
+          },
+        },
+        check: { ...semanticOnlyCheck, semantic: "tier2_source_disposition_queue_ready" },
+        releaseMonth: "2026-03",
+        runId: "run-1",
+      }),
+    ).toEqual(
+      expect.arrayContaining([
+        "tier2_source_disposition_source_count_low:12",
+        "tier2_source_disposition_queue_count_mismatch:11/12",
+        "tier2_source_disposition_record_candidate_count_zero",
+        "tier2_source_disposition_review_receipts_not_explicitly_missing:0/12",
+        "tier2_source_disposition_missing_promotion_blockers",
+      ]),
+    );
+
     expect(
       dataProductJsonSemanticReasons({
         value: {

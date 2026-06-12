@@ -78,6 +78,20 @@ const MANIFEST: DetectorCorpusDataProductManifest = {
       grain: "release",
       lifecycle: { status: "expected" },
     },
+    {
+      id: "local_bus_customer_journey_metrics_history",
+      label: "Bus customer journey metrics history",
+      kind: "local_table",
+      grain: "route x month x trip type x period",
+      lifecycle: { status: "expected" },
+    },
+    {
+      id: "route_treatment_summary_artifact",
+      label: "Route treatment summary",
+      kind: "artifact_family",
+      grain: "route x month x treatment source/segment/source-gap summary",
+      lifecycle: { status: "expected" },
+    },
   ],
 };
 
@@ -92,6 +106,12 @@ const PRODUCT_COMPLETENESS = {
       status: "missing",
       reasons: ["fixture_missing"],
     },
+    {
+      productId: "local_bus_customer_journey_metrics_history",
+      status: "complete",
+      reasons: [],
+    },
+    { productId: "route_treatment_summary_artifact", status: "complete", reasons: [] },
   ],
 };
 
@@ -184,6 +204,33 @@ describe("detector corpus grain audit", () => {
       expect(multiMonth?.releaseChecks.falseNegativeShadowAudit.reason).toContain(
         "3 hidden richer-grain candidate",
       );
+
+      const customerJourney = audit.featureGrains.find(
+        (feature) => feature.featureGrain === "customer_journey",
+      );
+      expect(customerJourney).toMatchObject({
+        kind: "detector_native",
+        status: "complete",
+      });
+      expect(customerJourney?.products.map((product) => product.productId)).toEqual([
+        "local_bus_customer_journey_metrics_history",
+      ]);
+
+      const treatmentScopeGap = audit.detectors.find(
+        (detector) => detector.detectorId === "treatment_scope_gap",
+      );
+      expect(treatmentScopeGap?.missingFeatureGrains).not.toContain("route_treatment_summary");
+      expect(treatmentScopeGap?.missingFeatureGrains).not.toContain(
+        "route_segment_treatment_summary",
+      );
+      expect(
+        treatmentScopeGap?.featureGrainAudits
+          .flatMap((feature) => feature.products.map((product) => product.productId))
+          .filter((productId, index, productIds) => productIds.indexOf(productId) === index),
+      ).toContain("route_treatment_summary_artifact");
+
+      const sourceGap = audit.detectors.find((detector) => detector.detectorId === "source_gap");
+      expect(sourceGap?.missingFeatureGrains).not.toContain("route_treatment_source_gap");
 
       const interventionUnderperformance = audit.detectors.find(
         (detector) => detector.detectorId === "intervention_underperformance",

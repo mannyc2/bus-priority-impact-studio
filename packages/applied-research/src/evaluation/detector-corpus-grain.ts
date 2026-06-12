@@ -1,9 +1,9 @@
 import { isAbsolute, relative } from "node:path";
 import { listAnalyticsDetectors, type RegisteredAnalyticsDetector } from "@bp/analytics/registry";
 import {
-  dataProductCompletenessStatusMap,
   type DataProductCompletenessRef,
   type DataProductCompletenessStatus,
+  dataProductCompletenessStatusMap,
 } from "../data-products";
 import type { DetectorCorpusGrainCoverageCounts } from "../local-db";
 import type { RouteMonthShadowAuditArtifact } from "./detector-shadow-audits";
@@ -230,6 +230,83 @@ const FEATURE_GRAIN_PROFILES: readonly FeatureGrainProfile[] = [
     productIds: ["local_route_segment_speed_history", "studio_route_hotspot_summaries"],
     notes: [
       "This grain preserves location but can still hide time-of-day effects unless evidence links retain them.",
+    ],
+  },
+  {
+    featureGrain: "customer_journey",
+    kind: "detector_native",
+    transformIntent: "customer journey metric history by route, month, trip type, and period",
+    granularityRisk: "low",
+    retainedAxes: ["route", "month", "period", "trip type", "customer count"],
+    collapsedAxes: ["individual trips", "individual riders", "stop-level wait/travel components"],
+    productIds: ["local_bus_customer_journey_metrics_history"],
+    notes: [
+      "Detector-native for customer journey shortfall because the source metric carries the claim axes used by the detector.",
+    ],
+  },
+  {
+    featureGrain: "route_treatment_summary",
+    kind: "screening",
+    transformIntent: "route-month treatment context by source and treatment scope",
+    granularityRisk: "medium",
+    retainedAxes: [
+      "route",
+      "month",
+      "treatment type",
+      "geography scope",
+      "evidence label",
+      "source references",
+    ],
+    collapsedAxes: [
+      "segment geometry",
+      "direction",
+      "event timestamp",
+      "within-route treatment extent",
+    ],
+    productIds: ["route_treatment_summary_artifact"],
+    notes: [
+      "Useful for route-level treatment screening; segment-level treatment claims still need the segment summary grain.",
+    ],
+  },
+  {
+    featureGrain: "route_segment_treatment_summary",
+    kind: "detector_native",
+    transformIntent: "route-segment treatment context with segment overlap and lane-type evidence",
+    granularityRisk: "low",
+    retainedAxes: [
+      "route",
+      "month",
+      "segment",
+      "direction",
+      "treatment type",
+      "overlap share",
+      "lane type",
+    ],
+    collapsedAxes: [
+      "raw geometry vertices",
+      "individual source records after source refs",
+      "within-segment speed observations",
+    ],
+    productIds: ["route_treatment_summary_artifact"],
+    notes: ["Preferred segment substrate for treatment-scope mismatch and gap detectors."],
+  },
+  {
+    featureGrain: "route_treatment_source_gap",
+    kind: "source_health",
+    transformIntent: "route-month treatment source gap and blocking-claim context",
+    granularityRisk: "low",
+    retainedAxes: [
+      "route",
+      "month",
+      "treatment type",
+      "gap kind",
+      "source references",
+      "blocking claims",
+    ],
+    collapsedAxes: ["raw agency statement text", "unmatched geometry candidates"],
+    productIds: ["route_treatment_summary_artifact"],
+    notes: [
+      "A source coverage gate for treatment claims; it flags evidence gaps rather than proving performance effects.",
     ],
   },
   {

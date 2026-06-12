@@ -1,0 +1,937 @@
+{
+  "artifactKind": "degradation_trend_readiness_projection",
+  "schemaVersion": 1,
+  "generatedAt": "2026-06-11T17:05:15.509Z",
+  "releaseMonth": "2026-03",
+  "asOfMonth": "2026-06",
+  "summary": {
+    "itemCount": 22,
+    "byBucket": {
+      "public_finding_candidate": 1,
+      "route_context": 0,
+      "review_queue": 5,
+      "suppressed": 16
+    },
+    "byDetector": {
+      "degradation_trend": {
+        "public_finding_candidate": 1,
+        "route_context": 0,
+        "review_queue": 5,
+        "suppressed": 16
+      }
+    },
+    "reviewedSuppressedCount": 16,
+    "coverageSkippedCount": 20,
+    "unreviewedSuppressedCoverageCount": 12
+  },
+  "items": [
+    {
+      "identityKey": "degradation_trend\u0000Q103",
+      "detectorId": "degradation_trend",
+      "routeId": "Q103",
+      "scopeId": "Q103",
+      "bucket": "public_finding_candidate",
+      "reviewedFrontendUse": "primary_finding",
+      "emittedCandidate": true,
+      "reasonCode": null,
+      "calibrationTags": [
+        "true_worsening_trend",
+        "route_scope_trend",
+        "history_supported",
+        "strong_robust_z"
+      ],
+      "label": {
+        "detectorId": "degradation_trend",
+        "scopeId": "Q103",
+        "routeId": "Q103",
+        "sourceQueue": "candidate_review",
+        "expectedFrontendUse": "primary_finding",
+        "calibrationTags": [
+          "true_worsening_trend",
+          "route_scope_trend",
+          "history_supported",
+          "strong_robust_z"
+        ],
+        "reviewBatch": "2026-06-11-march-initial-22",
+        "reviewDepth": "adversarial",
+        "reviewerConfidence": "high",
+        "rationale": "36/36 supported points, robust-z 3.73, slope 0.0143. The only genuinely gradual multi-year decline in the emitted set: yearly medians 8.24 -> 8.13 -> 7.82 mph and same-month March values 8.27 -> 8.17 -> 7.73 fall monotonically with no step break and no seasonal signature. Latest month (7.73) is slightly above 2026-02 (7.53) but well inside the established downward band. 'Worsening trend over 36 months' is an accurate descriptive claim.",
+        "labelId": "degradation_trend:Q103",
+        "identityKey": "degradation_trend\u0000Q103",
+        "shouldEmitSignal": true,
+        "shouldEmitFindingCandidate": true,
+        "shouldEmitCandidate": true,
+        "shouldPromotePrimary": true
+      },
+      "candidate": {
+        "candidateId": "d9a6d682f7d4963d752cc15494eb95ce",
+        "detectorId": "degradation_trend",
+        "detectorRunId": "degradation_trend-2026-03",
+        "month": "2026-03",
+        "scopeKind": "route",
+        "scopeId": "Q103",
+        "routeId": "Q103",
+        "physicalId": null,
+        "category": "speed",
+        "severity": "low",
+        "confidence": "medium",
+        "detectorScore": 67,
+        "reasonCode": "worsening_trend",
+        "claimSafeLabel": "issue_needs_review",
+        "claimText": "route Q103 shows a worsening trend in average_speed_mph over 36 months.",
+        "status": "open",
+        "reviewState": "needs_review",
+        "windowStart": null,
+        "windowEnd": null,
+        "createdAt": "2026-06-11T17:05:15.509Z"
+      }
+    },
+    {
+      "identityKey": "degradation_trend\u0000B82+",
+      "detectorId": "degradation_trend",
+      "routeId": "B82+",
+      "scopeId": "B82+",
+      "bucket": "review_queue",
+      "reviewedFrontendUse": "reviewer_only",
+      "emittedCandidate": true,
+      "reasonCode": null,
+      "calibrationTags": [
+        "history_supported",
+        "near_threshold",
+        "single_metric_not_corroborated"
+      ],
+      "label": {
+        "detectorId": "degradation_trend",
+        "scopeId": "B82+",
+        "routeId": "B82+",
+        "sourceQueue": "candidate_review",
+        "expectedFrontendUse": "reviewer_only",
+        "calibrationTags": [
+          "history_supported",
+          "near_threshold",
+          "single_metric_not_corroborated"
+        ],
+        "reviewBatch": "2026-06-11-march-initial-22",
+        "reviewDepth": "adversarial",
+        "reviewerConfidence": "medium",
+        "rationale": "Lowest score in the set (63, near the 60 floor), robust-z 3.27 on a small MAD (0.084), so modest absolute movement clears the z gate. Decline is confined to the trailing ~7 months (9.1 -> 8.5-8.6) with a single outlier dip to 8.0 in 2026-02 and a recovery to 8.63 in 2026-03 (latest month improved). March-over-March: 9.00, 9.10, 8.63 — only one worse year. Plausible early-stage worsening on an SBS route, worth a reviewer's eye next month, but too thin and too recent for any public surface.",
+        "labelId": "degradation_trend:B82+",
+        "identityKey": "degradation_trend\u0000B82+",
+        "shouldEmitSignal": true,
+        "shouldEmitFindingCandidate": false,
+        "shouldEmitCandidate": false,
+        "shouldPromotePrimary": false
+      },
+      "candidate": {
+        "candidateId": "3b66407ab79601b85166cad699f83a74",
+        "detectorId": "degradation_trend",
+        "detectorRunId": "degradation_trend-2026-03",
+        "month": "2026-03",
+        "scopeKind": "route",
+        "scopeId": "B82+",
+        "routeId": "B82+",
+        "physicalId": null,
+        "category": "speed",
+        "severity": "low",
+        "confidence": "medium",
+        "detectorScore": 63,
+        "reasonCode": "worsening_trend",
+        "claimSafeLabel": "issue_needs_review",
+        "claimText": "route B82+ shows a worsening trend in average_speed_mph over 36 months.",
+        "status": "open",
+        "reviewState": "needs_review",
+        "windowStart": null,
+        "windowEnd": null,
+        "createdAt": "2026-06-11T17:05:15.509Z"
+      }
+    },
+    {
+      "identityKey": "degradation_trend\u0000Q100",
+      "detectorId": "degradation_trend",
+      "routeId": "Q100",
+      "scopeId": "Q100",
+      "bucket": "review_queue",
+      "reviewedFrontendUse": "needs_more_evidence",
+      "emittedCandidate": true,
+      "reasonCode": null,
+      "calibrationTags": [
+        "history_supported",
+        "strong_robust_z",
+        "route_version_break_confound",
+        "not_actionable_as_claim"
+      ],
+      "label": {
+        "detectorId": "degradation_trend",
+        "scopeId": "Q100",
+        "routeId": "Q100",
+        "sourceQueue": "candidate_review",
+        "expectedFrontendUse": "needs_more_evidence",
+        "calibrationTags": [
+          "history_supported",
+          "strong_robust_z",
+          "route_version_break_confound",
+          "not_actionable_as_claim"
+        ],
+        "reviewBatch": "2026-06-11-march-initial-22",
+        "reviewDepth": "adversarial",
+        "reviewerConfidence": "high",
+        "rationale": "Score 81, robust-z 5.1. Step break at 2025-08/09: 12.9 -> 11.2 mph, then near-constant 11.2 for six straight months (suspiciously low variance, possibly a coverage or aggregation change) before 11.5 in 2026-03. Yearly medians 13.18, 13.02, 11.35. routeVersion null throughout. The flat plateau after the break plus the latest-month improvement argue against an ongoing trend; comparability across the break is unverified.",
+        "notes": "The six identical-looking 11.2 values post-break deserve a source-coverage audit independent of route-version provenance.",
+        "labelId": "degradation_trend:Q100",
+        "identityKey": "degradation_trend\u0000Q100",
+        "shouldEmitSignal": true,
+        "shouldEmitFindingCandidate": false,
+        "shouldEmitCandidate": false,
+        "shouldPromotePrimary": false
+      },
+      "candidate": {
+        "candidateId": "d0a01a6ccf7e8cf06a85576c63cc7f7c",
+        "detectorId": "degradation_trend",
+        "detectorRunId": "degradation_trend-2026-03",
+        "month": "2026-03",
+        "scopeKind": "route",
+        "scopeId": "Q100",
+        "routeId": "Q100",
+        "physicalId": null,
+        "category": "speed",
+        "severity": "medium",
+        "confidence": "medium",
+        "detectorScore": 81,
+        "reasonCode": "worsening_trend",
+        "claimSafeLabel": "issue_needs_review",
+        "claimText": "route Q100 shows a worsening trend in average_speed_mph over 36 months.",
+        "status": "open",
+        "reviewState": "needs_review",
+        "windowStart": null,
+        "windowEnd": null,
+        "createdAt": "2026-06-11T17:05:15.509Z"
+      }
+    },
+    {
+      "identityKey": "degradation_trend\u0000Q102",
+      "detectorId": "degradation_trend",
+      "routeId": "Q102",
+      "scopeId": "Q102",
+      "bucket": "review_queue",
+      "reviewedFrontendUse": "needs_more_evidence",
+      "emittedCandidate": true,
+      "reasonCode": null,
+      "calibrationTags": [
+        "history_supported",
+        "near_threshold",
+        "route_version_break_confound"
+      ],
+      "label": {
+        "detectorId": "degradation_trend",
+        "scopeId": "Q102",
+        "routeId": "Q102",
+        "sourceQueue": "candidate_review",
+        "expectedFrontendUse": "needs_more_evidence",
+        "calibrationTags": [
+          "history_supported",
+          "near_threshold",
+          "route_version_break_confound"
+        ],
+        "reviewBatch": "2026-06-11-march-initial-22",
+        "reviewDepth": "adversarial",
+        "reviewerConfidence": "medium",
+        "rationale": "Score 66 (near threshold), robust-z 3.54. Stable ~8.7-8.9 mph for 29 months, then a drop to 7.4 at 2025-09 followed by a volatile 7.4-8.2 band, with 2026-03 (7.96) improved over 2026-02 (7.55). Same late-2025 break window as the other Queens emits with routeVersion null, so the level shift is confounded; the post-break volatility means even the new level is not yet well characterized.",
+        "labelId": "degradation_trend:Q102",
+        "identityKey": "degradation_trend\u0000Q102",
+        "shouldEmitSignal": true,
+        "shouldEmitFindingCandidate": false,
+        "shouldEmitCandidate": false,
+        "shouldPromotePrimary": false
+      },
+      "candidate": {
+        "candidateId": "d753847fc41636a9f15d23aa0c2fdb02",
+        "detectorId": "degradation_trend",
+        "detectorRunId": "degradation_trend-2026-03",
+        "month": "2026-03",
+        "scopeKind": "route",
+        "scopeId": "Q102",
+        "routeId": "Q102",
+        "physicalId": null,
+        "category": "speed",
+        "severity": "low",
+        "confidence": "medium",
+        "detectorScore": 66,
+        "reasonCode": "worsening_trend",
+        "claimSafeLabel": "issue_needs_review",
+        "claimText": "route Q102 shows a worsening trend in average_speed_mph over 36 months.",
+        "status": "open",
+        "reviewState": "needs_review",
+        "windowStart": null,
+        "windowEnd": null,
+        "createdAt": "2026-06-11T17:05:15.509Z"
+      }
+    },
+    {
+      "identityKey": "degradation_trend\u0000Q22",
+      "detectorId": "degradation_trend",
+      "routeId": "Q22",
+      "scopeId": "Q22",
+      "bucket": "review_queue",
+      "reviewedFrontendUse": "needs_more_evidence",
+      "emittedCandidate": true,
+      "reasonCode": null,
+      "calibrationTags": [
+        "history_supported",
+        "strong_robust_z",
+        "route_version_break_confound",
+        "not_actionable_as_claim"
+      ],
+      "label": {
+        "detectorId": "degradation_trend",
+        "scopeId": "Q22",
+        "routeId": "Q22",
+        "sourceQueue": "candidate_review",
+        "expectedFrontendUse": "needs_more_evidence",
+        "calibrationTags": [
+          "history_supported",
+          "strong_robust_z",
+          "route_version_break_confound",
+          "not_actionable_as_claim"
+        ],
+        "reviewBatch": "2026-06-11-march-initial-22",
+        "reviewDepth": "adversarial",
+        "reviewerConfidence": "high",
+        "rationale": "Top score 90, robust-z 11.1 — but the series is not a trend: it is a one-month step from 11.2 to 8.9 mph at 2025-09 and flat ~9.0 on both sides (yearly medians 11.77, 11.64, 9.12). Every point carries routeVersion null, so a service-change/route-version break in late 2025 (consistent with the Queens redesign window) cannot be ruled in or out by the detector. The level worsening is real, but 'worsening trend over 36 months' mischaracterizes a step change whose comparability across the break is unverified. Needs route-version provenance before any public use; do not relax — this is a history-confidence gate.",
+        "notes": "Latest month improved slightly (8.95 vs 8.70 in 2026-02), consistent with a stable post-step level rather than continuing decline.",
+        "labelId": "degradation_trend:Q22",
+        "identityKey": "degradation_trend\u0000Q22",
+        "shouldEmitSignal": true,
+        "shouldEmitFindingCandidate": false,
+        "shouldEmitCandidate": false,
+        "shouldPromotePrimary": false
+      },
+      "candidate": {
+        "candidateId": "1a1d7693083e4ff3297f44d7fe218f02",
+        "detectorId": "degradation_trend",
+        "detectorRunId": "degradation_trend-2026-03",
+        "month": "2026-03",
+        "scopeKind": "route",
+        "scopeId": "Q22",
+        "routeId": "Q22",
+        "physicalId": null,
+        "category": "speed",
+        "severity": "high",
+        "confidence": "medium",
+        "detectorScore": 90,
+        "reasonCode": "worsening_trend",
+        "claimSafeLabel": "issue_needs_review",
+        "claimText": "route Q22 shows a worsening trend in average_speed_mph over 36 months.",
+        "status": "open",
+        "reviewState": "needs_review",
+        "windowStart": null,
+        "windowEnd": null,
+        "createdAt": "2026-06-11T17:05:15.509Z"
+      }
+    },
+    {
+      "identityKey": "degradation_trend\u0000Q65",
+      "detectorId": "degradation_trend",
+      "routeId": "Q65",
+      "scopeId": "Q65",
+      "bucket": "review_queue",
+      "reviewedFrontendUse": "needs_more_evidence",
+      "emittedCandidate": true,
+      "reasonCode": null,
+      "calibrationTags": [
+        "history_supported",
+        "strong_robust_z",
+        "route_version_break_confound",
+        "not_actionable_as_claim"
+      ],
+      "label": {
+        "detectorId": "degradation_trend",
+        "scopeId": "Q65",
+        "routeId": "Q65",
+        "sourceQueue": "candidate_review",
+        "expectedFrontendUse": "needs_more_evidence",
+        "calibrationTags": [
+          "history_supported",
+          "strong_robust_z",
+          "route_version_break_confound",
+          "not_actionable_as_claim"
+        ],
+        "reviewBatch": "2026-06-11-march-initial-22",
+        "reviewDepth": "adversarial",
+        "reviewerConfidence": "high",
+        "rationale": "Score 90, robust-z 6.0. Same step-break shape as Q22: flat ~8.4 mph through 2025-06, abrupt drop to 6.5 at 2025-07, then flat ~6.8 since (yearly medians 8.53, 8.35, 6.86). routeVersion null on all points and routeVersionBreakCount 0, so a mid-2025 route/service change confound is unmodeled. Sustained level worsening is real but the trend claim and 36-month framing are not supportable without break provenance.",
+        "labelId": "degradation_trend:Q65",
+        "identityKey": "degradation_trend\u0000Q65",
+        "shouldEmitSignal": true,
+        "shouldEmitFindingCandidate": false,
+        "shouldEmitCandidate": false,
+        "shouldPromotePrimary": false
+      },
+      "candidate": {
+        "candidateId": "e77fddfbf27ab05ce9cb2398d60af870",
+        "detectorId": "degradation_trend",
+        "detectorRunId": "degradation_trend-2026-03",
+        "month": "2026-03",
+        "scopeKind": "route",
+        "scopeId": "Q65",
+        "routeId": "Q65",
+        "physicalId": null,
+        "category": "speed",
+        "severity": "high",
+        "confidence": "medium",
+        "detectorScore": 90,
+        "reasonCode": "worsening_trend",
+        "claimSafeLabel": "issue_needs_review",
+        "claimText": "route Q65 shows a worsening trend in average_speed_mph over 36 months.",
+        "status": "open",
+        "reviewState": "needs_review",
+        "windowStart": null,
+        "windowEnd": null,
+        "createdAt": "2026-06-11T17:05:15.509Z"
+      }
+    },
+    {
+      "identityKey": "degradation_trend\u0000B1",
+      "detectorId": "degradation_trend",
+      "routeId": "B1",
+      "scopeId": "B1",
+      "bucket": "suppressed",
+      "reviewedFrontendUse": "suppress",
+      "emittedCandidate": false,
+      "reasonCode": null,
+      "calibrationTags": [
+        "history_supported"
+      ],
+      "label": {
+        "detectorId": "degradation_trend",
+        "scopeId": "B1",
+        "routeId": "B1",
+        "sourceQueue": "clean_no_hit_control",
+        "expectedFrontendUse": "suppress",
+        "calibrationTags": [
+          "history_supported"
+        ],
+        "reviewBatch": "2026-06-11-march-initial-22",
+        "reviewDepth": "light",
+        "reviewerConfidence": "high",
+        "rationale": "Clean no-hit control with full 36-point history and no emitted candidate; nothing in coverage suggests a missed worsening trend. Correctly not emitted.",
+        "labelId": "degradation_trend:B1",
+        "identityKey": "degradation_trend\u0000B1",
+        "shouldEmitSignal": false,
+        "shouldEmitFindingCandidate": false,
+        "shouldEmitCandidate": false,
+        "shouldPromotePrimary": false
+      },
+      "candidate": null
+    },
+    {
+      "identityKey": "degradation_trend\u0000B100",
+      "detectorId": "degradation_trend",
+      "routeId": "B100",
+      "scopeId": "B100",
+      "bucket": "suppressed",
+      "reviewedFrontendUse": "suppress",
+      "emittedCandidate": false,
+      "reasonCode": null,
+      "calibrationTags": [
+        "history_supported"
+      ],
+      "label": {
+        "detectorId": "degradation_trend",
+        "scopeId": "B100",
+        "routeId": "B100",
+        "sourceQueue": "clean_no_hit_control",
+        "expectedFrontendUse": "suppress",
+        "calibrationTags": [
+          "history_supported"
+        ],
+        "reviewBatch": "2026-06-11-march-initial-22",
+        "reviewDepth": "light",
+        "reviewerConfidence": "high",
+        "rationale": "Clean no-hit control, full 36-point history, no route-version breaks recorded. Correctly not emitted.",
+        "labelId": "degradation_trend:B100",
+        "identityKey": "degradation_trend\u0000B100",
+        "shouldEmitSignal": false,
+        "shouldEmitFindingCandidate": false,
+        "shouldEmitCandidate": false,
+        "shouldPromotePrimary": false
+      },
+      "candidate": null
+    },
+    {
+      "identityKey": "degradation_trend\u0000B102",
+      "detectorId": "degradation_trend",
+      "routeId": "B102",
+      "scopeId": "B102",
+      "bucket": "suppressed",
+      "reviewedFrontendUse": "suppress",
+      "emittedCandidate": false,
+      "reasonCode": "insufficient_history",
+      "calibrationTags": [
+        "thin_history"
+      ],
+      "label": {
+        "detectorId": "degradation_trend",
+        "scopeId": "B102",
+        "routeId": "B102",
+        "sourceQueue": "skipped_control",
+        "expectedFrontendUse": "suppress",
+        "calibrationTags": [
+          "thin_history"
+        ],
+        "reviewBatch": "2026-06-11-march-initial-22",
+        "reviewDepth": "light",
+        "reviewerConfidence": "high",
+        "rationale": "Skipped insufficient_history: 7-month window with only 1 supported point. The minimum-history gate is working as designed; no trend claim is possible here.",
+        "labelId": "degradation_trend:B102",
+        "identityKey": "degradation_trend\u0000B102",
+        "shouldEmitSignal": false,
+        "shouldEmitFindingCandidate": false,
+        "shouldEmitCandidate": false,
+        "shouldPromotePrimary": false
+      },
+      "candidate": null
+    },
+    {
+      "identityKey": "degradation_trend\u0000B103",
+      "detectorId": "degradation_trend",
+      "routeId": "B103",
+      "scopeId": "B103",
+      "bucket": "suppressed",
+      "reviewedFrontendUse": "suppress",
+      "emittedCandidate": false,
+      "reasonCode": null,
+      "calibrationTags": [
+        "history_supported"
+      ],
+      "label": {
+        "detectorId": "degradation_trend",
+        "scopeId": "B103",
+        "routeId": "B103",
+        "sourceQueue": "clean_no_hit_control",
+        "expectedFrontendUse": "suppress",
+        "calibrationTags": [
+          "history_supported"
+        ],
+        "reviewBatch": "2026-06-11-march-initial-22",
+        "reviewDepth": "light",
+        "reviewerConfidence": "high",
+        "rationale": "Clean no-hit control, full 36-point history. Correctly not emitted.",
+        "labelId": "degradation_trend:B103",
+        "identityKey": "degradation_trend\u0000B103",
+        "shouldEmitSignal": false,
+        "shouldEmitFindingCandidate": false,
+        "shouldEmitCandidate": false,
+        "shouldPromotePrimary": false
+      },
+      "candidate": null
+    },
+    {
+      "identityKey": "degradation_trend\u0000B106",
+      "detectorId": "degradation_trend",
+      "routeId": "B106",
+      "scopeId": "B106",
+      "bucket": "suppressed",
+      "reviewedFrontendUse": "suppress",
+      "emittedCandidate": false,
+      "reasonCode": "insufficient_history",
+      "calibrationTags": [
+        "thin_history"
+      ],
+      "label": {
+        "detectorId": "degradation_trend",
+        "scopeId": "B106",
+        "routeId": "B106",
+        "sourceQueue": "skipped_control",
+        "expectedFrontendUse": "suppress",
+        "calibrationTags": [
+          "thin_history"
+        ],
+        "reviewBatch": "2026-06-11-march-initial-22",
+        "reviewDepth": "light",
+        "reviewerConfidence": "high",
+        "rationale": "Skipped insufficient_history: 5 supported points in a 36-month window. Correctly skipped.",
+        "labelId": "degradation_trend:B106",
+        "identityKey": "degradation_trend\u0000B106",
+        "shouldEmitSignal": false,
+        "shouldEmitFindingCandidate": false,
+        "shouldEmitCandidate": false,
+        "shouldPromotePrimary": false
+      },
+      "candidate": null
+    },
+    {
+      "identityKey": "degradation_trend\u0000B11",
+      "detectorId": "degradation_trend",
+      "routeId": "B11",
+      "scopeId": "B11",
+      "bucket": "suppressed",
+      "reviewedFrontendUse": "suppress",
+      "emittedCandidate": false,
+      "reasonCode": null,
+      "calibrationTags": [
+        "history_supported"
+      ],
+      "label": {
+        "detectorId": "degradation_trend",
+        "scopeId": "B11",
+        "routeId": "B11",
+        "sourceQueue": "clean_no_hit_control",
+        "expectedFrontendUse": "suppress",
+        "calibrationTags": [
+          "history_supported"
+        ],
+        "reviewBatch": "2026-06-11-march-initial-22",
+        "reviewDepth": "light",
+        "reviewerConfidence": "high",
+        "rationale": "Clean no-hit control, full 36-point history. Correctly not emitted.",
+        "labelId": "degradation_trend:B11",
+        "identityKey": "degradation_trend\u0000B11",
+        "shouldEmitSignal": false,
+        "shouldEmitFindingCandidate": false,
+        "shouldEmitCandidate": false,
+        "shouldPromotePrimary": false
+      },
+      "candidate": null
+    },
+    {
+      "identityKey": "degradation_trend\u0000B111",
+      "detectorId": "degradation_trend",
+      "routeId": "B111",
+      "scopeId": "B111",
+      "bucket": "suppressed",
+      "reviewedFrontendUse": "suppress",
+      "emittedCandidate": false,
+      "reasonCode": "insufficient_history",
+      "calibrationTags": [
+        "thin_history"
+      ],
+      "label": {
+        "detectorId": "degradation_trend",
+        "scopeId": "B111",
+        "routeId": "B111",
+        "sourceQueue": "skipped_control",
+        "expectedFrontendUse": "suppress",
+        "calibrationTags": [
+          "thin_history"
+        ],
+        "reviewBatch": "2026-06-11-march-initial-22",
+        "reviewDepth": "light",
+        "reviewerConfidence": "high",
+        "rationale": "Skipped insufficient_history: 0 supported points. Correctly skipped.",
+        "labelId": "degradation_trend:B111",
+        "identityKey": "degradation_trend\u0000B111",
+        "shouldEmitSignal": false,
+        "shouldEmitFindingCandidate": false,
+        "shouldEmitCandidate": false,
+        "shouldPromotePrimary": false
+      },
+      "candidate": null
+    },
+    {
+      "identityKey": "degradation_trend\u0000B12",
+      "detectorId": "degradation_trend",
+      "routeId": "B12",
+      "scopeId": "B12",
+      "bucket": "suppressed",
+      "reviewedFrontendUse": "suppress",
+      "emittedCandidate": false,
+      "reasonCode": null,
+      "calibrationTags": [
+        "history_supported"
+      ],
+      "label": {
+        "detectorId": "degradation_trend",
+        "scopeId": "B12",
+        "routeId": "B12",
+        "sourceQueue": "clean_no_hit_control",
+        "expectedFrontendUse": "suppress",
+        "calibrationTags": [
+          "history_supported"
+        ],
+        "reviewBatch": "2026-06-11-march-initial-22",
+        "reviewDepth": "light",
+        "reviewerConfidence": "high",
+        "rationale": "Clean no-hit control, full 36-point history. Correctly not emitted.",
+        "labelId": "degradation_trend:B12",
+        "identityKey": "degradation_trend\u0000B12",
+        "shouldEmitSignal": false,
+        "shouldEmitFindingCandidate": false,
+        "shouldEmitCandidate": false,
+        "shouldPromotePrimary": false
+      },
+      "candidate": null
+    },
+    {
+      "identityKey": "degradation_trend\u0000B13",
+      "detectorId": "degradation_trend",
+      "routeId": "B13",
+      "scopeId": "B13",
+      "bucket": "suppressed",
+      "reviewedFrontendUse": "suppress",
+      "emittedCandidate": false,
+      "reasonCode": null,
+      "calibrationTags": [
+        "history_supported"
+      ],
+      "label": {
+        "detectorId": "degradation_trend",
+        "scopeId": "B13",
+        "routeId": "B13",
+        "sourceQueue": "clean_no_hit_control",
+        "expectedFrontendUse": "suppress",
+        "calibrationTags": [
+          "history_supported"
+        ],
+        "reviewBatch": "2026-06-11-march-initial-22",
+        "reviewDepth": "light",
+        "reviewerConfidence": "high",
+        "rationale": "Clean no-hit control, full 36-point history. Correctly not emitted.",
+        "labelId": "degradation_trend:B13",
+        "identityKey": "degradation_trend\u0000B13",
+        "shouldEmitSignal": false,
+        "shouldEmitFindingCandidate": false,
+        "shouldEmitCandidate": false,
+        "shouldPromotePrimary": false
+      },
+      "candidate": null
+    },
+    {
+      "identityKey": "degradation_trend\u0000B14",
+      "detectorId": "degradation_trend",
+      "routeId": "B14",
+      "scopeId": "B14",
+      "bucket": "suppressed",
+      "reviewedFrontendUse": "suppress",
+      "emittedCandidate": false,
+      "reasonCode": null,
+      "calibrationTags": [
+        "history_supported"
+      ],
+      "label": {
+        "detectorId": "degradation_trend",
+        "scopeId": "B14",
+        "routeId": "B14",
+        "sourceQueue": "clean_no_hit_control",
+        "expectedFrontendUse": "suppress",
+        "calibrationTags": [
+          "history_supported"
+        ],
+        "reviewBatch": "2026-06-11-march-initial-22",
+        "reviewDepth": "light",
+        "reviewerConfidence": "high",
+        "rationale": "Clean no-hit control, full 36-point history. Correctly not emitted.",
+        "labelId": "degradation_trend:B14",
+        "identityKey": "degradation_trend\u0000B14",
+        "shouldEmitSignal": false,
+        "shouldEmitFindingCandidate": false,
+        "shouldEmitCandidate": false,
+        "shouldPromotePrimary": false
+      },
+      "candidate": null
+    },
+    {
+      "identityKey": "degradation_trend\u0000B15",
+      "detectorId": "degradation_trend",
+      "routeId": "B15",
+      "scopeId": "B15",
+      "bucket": "suppressed",
+      "reviewedFrontendUse": "suppress",
+      "emittedCandidate": false,
+      "reasonCode": null,
+      "calibrationTags": [
+        "history_supported"
+      ],
+      "label": {
+        "detectorId": "degradation_trend",
+        "scopeId": "B15",
+        "routeId": "B15",
+        "sourceQueue": "clean_no_hit_control",
+        "expectedFrontendUse": "suppress",
+        "calibrationTags": [
+          "history_supported"
+        ],
+        "reviewBatch": "2026-06-11-march-initial-22",
+        "reviewDepth": "light",
+        "reviewerConfidence": "high",
+        "rationale": "Clean no-hit control, full 36-point history. Correctly not emitted.",
+        "labelId": "degradation_trend:B15",
+        "identityKey": "degradation_trend\u0000B15",
+        "shouldEmitSignal": false,
+        "shouldEmitFindingCandidate": false,
+        "shouldEmitCandidate": false,
+        "shouldPromotePrimary": false
+      },
+      "candidate": null
+    },
+    {
+      "identityKey": "degradation_trend\u0000B93",
+      "detectorId": "degradation_trend",
+      "routeId": "B93",
+      "scopeId": "B93",
+      "bucket": "suppressed",
+      "reviewedFrontendUse": "suppress",
+      "emittedCandidate": false,
+      "reasonCode": "insufficient_history",
+      "calibrationTags": [
+        "thin_history"
+      ],
+      "label": {
+        "detectorId": "degradation_trend",
+        "scopeId": "B93",
+        "routeId": "B93",
+        "sourceQueue": "skipped_control",
+        "expectedFrontendUse": "suppress",
+        "calibrationTags": [
+          "thin_history"
+        ],
+        "reviewBatch": "2026-06-11-march-initial-22",
+        "reviewDepth": "light",
+        "reviewerConfidence": "high",
+        "rationale": "Skipped insufficient_history: 4 supported points. Correctly skipped.",
+        "labelId": "degradation_trend:B93",
+        "identityKey": "degradation_trend\u0000B93",
+        "shouldEmitSignal": false,
+        "shouldEmitFindingCandidate": false,
+        "shouldEmitCandidate": false,
+        "shouldPromotePrimary": false
+      },
+      "candidate": null
+    },
+    {
+      "identityKey": "degradation_trend\u0000B94",
+      "detectorId": "degradation_trend",
+      "routeId": "B94",
+      "scopeId": "B94",
+      "bucket": "suppressed",
+      "reviewedFrontendUse": "suppress",
+      "emittedCandidate": false,
+      "reasonCode": "insufficient_history",
+      "calibrationTags": [
+        "thin_history"
+      ],
+      "label": {
+        "detectorId": "degradation_trend",
+        "scopeId": "B94",
+        "routeId": "B94",
+        "sourceQueue": "skipped_control",
+        "expectedFrontendUse": "suppress",
+        "calibrationTags": [
+          "thin_history"
+        ],
+        "reviewBatch": "2026-06-11-march-initial-22",
+        "reviewDepth": "light",
+        "reviewerConfidence": "high",
+        "rationale": "Skipped insufficient_history: 2 supported points. Correctly skipped.",
+        "labelId": "degradation_trend:B94",
+        "identityKey": "degradation_trend\u0000B94",
+        "shouldEmitSignal": false,
+        "shouldEmitFindingCandidate": false,
+        "shouldEmitCandidate": false,
+        "shouldPromotePrimary": false
+      },
+      "candidate": null
+    },
+    {
+      "identityKey": "degradation_trend\u0000B96",
+      "detectorId": "degradation_trend",
+      "routeId": "B96",
+      "scopeId": "B96",
+      "bucket": "suppressed",
+      "reviewedFrontendUse": "suppress",
+      "emittedCandidate": false,
+      "reasonCode": "insufficient_history",
+      "calibrationTags": [
+        "thin_history"
+      ],
+      "label": {
+        "detectorId": "degradation_trend",
+        "scopeId": "B96",
+        "routeId": "B96",
+        "sourceQueue": "skipped_control",
+        "expectedFrontendUse": "suppress",
+        "calibrationTags": [
+          "thin_history"
+        ],
+        "reviewBatch": "2026-06-11-march-initial-22",
+        "reviewDepth": "light",
+        "reviewerConfidence": "high",
+        "rationale": "Skipped insufficient_history: 2 supported points. Correctly skipped.",
+        "labelId": "degradation_trend:B96",
+        "identityKey": "degradation_trend\u0000B96",
+        "shouldEmitSignal": false,
+        "shouldEmitFindingCandidate": false,
+        "shouldEmitCandidate": false,
+        "shouldPromotePrimary": false
+      },
+      "candidate": null
+    },
+    {
+      "identityKey": "degradation_trend\u0000B99",
+      "detectorId": "degradation_trend",
+      "routeId": "B99",
+      "scopeId": "B99",
+      "bucket": "suppressed",
+      "reviewedFrontendUse": "suppress",
+      "emittedCandidate": false,
+      "reasonCode": "insufficient_history",
+      "calibrationTags": [
+        "thin_history"
+      ],
+      "label": {
+        "detectorId": "degradation_trend",
+        "scopeId": "B99",
+        "routeId": "B99",
+        "sourceQueue": "skipped_control",
+        "expectedFrontendUse": "suppress",
+        "calibrationTags": [
+          "thin_history"
+        ],
+        "reviewBatch": "2026-06-11-march-initial-22",
+        "reviewDepth": "light",
+        "reviewerConfidence": "high",
+        "rationale": "Skipped insufficient_history: 2 supported points. Correctly skipped.",
+        "labelId": "degradation_trend:B99",
+        "identityKey": "degradation_trend\u0000B99",
+        "shouldEmitSignal": false,
+        "shouldEmitFindingCandidate": false,
+        "shouldEmitCandidate": false,
+        "shouldPromotePrimary": false
+      },
+      "candidate": null
+    },
+    {
+      "identityKey": "degradation_trend\u0000BX92",
+      "detectorId": "degradation_trend",
+      "routeId": "BX92",
+      "scopeId": "BX92",
+      "bucket": "suppressed",
+      "reviewedFrontendUse": "suppress",
+      "emittedCandidate": false,
+      "reasonCode": "insufficient_history",
+      "calibrationTags": [
+        "thin_history"
+      ],
+      "label": {
+        "detectorId": "degradation_trend",
+        "scopeId": "BX92",
+        "routeId": "BX92",
+        "sourceQueue": "skipped_control",
+        "expectedFrontendUse": "suppress",
+        "calibrationTags": [
+          "thin_history"
+        ],
+        "reviewBatch": "2026-06-11-march-initial-22",
+        "reviewDepth": "light",
+        "reviewerConfidence": "high",
+        "rationale": "Skipped insufficient_history: 0 supported points. Correctly skipped.",
+        "labelId": "degradation_trend:BX92",
+        "identityKey": "degradation_trend\u0000BX92",
+        "shouldEmitSignal": false,
+        "shouldEmitFindingCandidate": false,
+        "shouldEmitCandidate": false,
+        "shouldPromotePrimary": false
+      },
+      "candidate": null
+    }
+  ]
+}

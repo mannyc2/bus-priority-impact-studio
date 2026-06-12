@@ -87,7 +87,11 @@ export default defineCommand({
     try {
       const generatedAt = new Date().toISOString();
       const backfillCoverage = buildAnalyticsBackfillCoverageAudit({
-        surfaceRows: loadAnalyticsBackfillCoverageLocalDbRows({ sqlite }),
+        surfaceRows: loadAnalyticsBackfillCoverageLocalDbRows({
+          sqlite,
+          startMonth,
+          endMonth,
+        }),
         startMonth,
         endMonth,
         generatedAt,

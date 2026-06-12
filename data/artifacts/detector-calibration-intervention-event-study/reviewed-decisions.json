@@ -1,0 +1,518 @@
+{
+  "artifactKind": "intervention_event_study_reviewed_decisions",
+  "schemaVersion": 1,
+  "reviewBatch": "2026-06-11-march-initial-32",
+  "reviewer": "maintainer with LLM-assisted review per ADR-0018; metrics read from review-queue.json",
+  "releaseMonth": "2026-03",
+  "note": "32 scope-identity decisions covering all 67 selectedForReview queue items (coverage rows are panel-grain; identity is detector+scope, so duplicate panels per scope share one decision).",
+  "decisions": [
+    {
+      "detectorId": "intervention_event_study",
+      "scopeId": "QM6",
+      "routeId": "QM6",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "methodology_review_candidate",
+      "calibrationTags": [
+        "candidate_causal_gates_pass",
+        "never_public_without_methodology_review"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-32",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Score 96, bus_lane_infrastructure, estimate 0.8733, 10 control scopes; pre-trend, placebo-in-time/space, and autocorrelation gates all tested and passed with no method divergence. Panel quality is adequate to hand to human methodology review. This grades the panel, not the effect: the sign/magnitude claim stays internal until a human approves the methodology. Note the route also carries a duplicate 0-control insufficient_window panel for the same intervention, so treatment dating/window construction must be confirmed in methodology review."
+    },
+    {
+      "detectorId": "intervention_event_study",
+      "scopeId": "BX20",
+      "routeId": "BX20",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "methodology_review_candidate",
+      "calibrationTags": [
+        "candidate_causal_gates_pass",
+        "never_public_without_methodology_review"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-32",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Score 90, automated_bus_lane_enforcement, estimate -0.7162, 10 control scopes; pre-trend, placebo-in-time/space, and autocorrelation gates all tested and passed with no method divergence. Panel quality is adequate to hand to human methodology review. This grades the panel, not the effect: the sign/magnitude claim stays internal until a human approves the methodology. Note the route also carries a duplicate 0-control insufficient_window panel for the same intervention, so treatment dating/window construction must be confirmed in methodology review."
+    },
+    {
+      "detectorId": "intervention_event_study",
+      "scopeId": "Q40",
+      "routeId": "Q40",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "methodology_review_candidate",
+      "calibrationTags": [
+        "candidate_causal_gates_pass",
+        "never_public_without_methodology_review"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-32",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Score 90, bus_lane_infrastructure, estimate 0.7102, 10 control scopes; pre-trend, placebo-in-time/space, and autocorrelation gates all tested and passed with no method divergence. Panel quality is adequate to hand to human methodology review. This grades the panel, not the effect: the sign/magnitude claim stays internal until a human approves the methodology."
+    },
+    {
+      "detectorId": "intervention_event_study",
+      "scopeId": "QM36",
+      "routeId": "QM36",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "methodology_review_candidate",
+      "calibrationTags": [
+        "candidate_causal_gates_pass",
+        "never_public_without_methodology_review"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-32",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Score 86, bus_lane_infrastructure, estimate 0.5927, 10 control scopes; pre-trend, placebo-in-time/space, and autocorrelation gates all tested and passed with no method divergence. Panel quality is adequate to hand to human methodology review. This grades the panel, not the effect: the sign/magnitude claim stays internal until a human approves the methodology."
+    },
+    {
+      "detectorId": "intervention_event_study",
+      "scopeId": "QM2",
+      "routeId": "QM2",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "methodology_review_candidate",
+      "calibrationTags": [
+        "candidate_causal_gates_pass",
+        "never_public_without_methodology_review"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-32",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Score 82, bus_lane_infrastructure, estimate 0.4776, 10 control scopes; pre-trend, placebo-in-time/space, and autocorrelation gates all tested and passed with no method divergence. Panel quality is adequate to hand to human methodology review. This grades the panel, not the effect: the sign/magnitude claim stays internal until a human approves the methodology. Note the route also carries a duplicate 0-control insufficient_window panel for the same intervention, so treatment dating/window construction must be confirmed in methodology review."
+    },
+    {
+      "detectorId": "intervention_event_study",
+      "scopeId": "SIM6",
+      "routeId": "SIM6",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "methodology_review_candidate",
+      "calibrationTags": [
+        "candidate_causal_gates_pass",
+        "never_public_without_methodology_review"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-32",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Score 82, bus_lane_infrastructure, estimate -0.4794, 10 control scopes; pre-trend, placebo-in-time/space, and autocorrelation gates all tested and passed with no method divergence. Panel quality is adequate to hand to human methodology review. This grades the panel, not the effect: the sign/magnitude claim stays internal until a human approves the methodology. Note the route also carries a duplicate 0-control insufficient_window panel for the same intervention, so treatment dating/window construction must be confirmed in methodology review."
+    },
+    {
+      "detectorId": "intervention_event_study",
+      "scopeId": "QM20",
+      "routeId": "QM20",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "methodology_review_candidate",
+      "calibrationTags": [
+        "candidate_causal_gates_pass",
+        "never_public_without_methodology_review"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-32",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Score 81, bus_lane_infrastructure, estimate 0.4444, 10 control scopes; pre-trend, placebo-in-time/space, and autocorrelation gates all tested and passed with no method divergence. Panel quality is adequate to hand to human methodology review. This grades the panel, not the effect: the sign/magnitude claim stays internal until a human approves the methodology. Note the route also carries a duplicate 0-control insufficient_window panel for the same intervention, so treatment dating/window construction must be confirmed in methodology review."
+    },
+    {
+      "detectorId": "intervention_event_study",
+      "scopeId": "QM5",
+      "routeId": "QM5",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "methodology_review_candidate",
+      "calibrationTags": [
+        "candidate_causal_gates_pass",
+        "never_public_without_methodology_review"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-32",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Score 81, bus_lane_infrastructure, estimate 0.4508, 10 control scopes; pre-trend, placebo-in-time/space, and autocorrelation gates all tested and passed with no method divergence. Panel quality is adequate to hand to human methodology review. This grades the panel, not the effect: the sign/magnitude claim stays internal until a human approves the methodology. Note the route also carries a duplicate 0-control insufficient_window panel for the same intervention, so treatment dating/window construction must be confirmed in methodology review."
+    },
+    {
+      "detectorId": "intervention_event_study",
+      "scopeId": "M35",
+      "routeId": "M35",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "needs_more_evidence",
+      "calibrationTags": [
+        "candidate_causal_gates_pass",
+        "effect_estimate_unstable",
+        "never_public_without_methodology_review"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-32",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Score 100, rank 1, bus_lane_infrastructure, estimate +1.069 with all gates passing. The magnitude (a full standardized unit) on a short Randall's Island route is implausible as a bus-lane effect and suggests window contamination or treatment-dating error the gates did not catch. Panel is not complete enough to grade as a methodology-review candidate despite the gate passes."
+    },
+    {
+      "detectorId": "intervention_event_study",
+      "scopeId": "B39",
+      "routeId": "B39",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "needs_more_evidence",
+      "calibrationTags": [
+        "candidate_causal_gates_pass",
+        "effect_estimate_unstable",
+        "never_public_without_methodology_review"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-32",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Score 98, rank 2, bus_lane_infrastructure, estimate -0.937 with all gates passing. B39 is a Williamsburg Bridge shuttle with a history of service suspension/restoration; a near-unit negative swing more plausibly reflects service-pattern changes than the dated intervention. Treatment dating needs verification before this panel is review-grade."
+    },
+    {
+      "detectorId": "intervention_event_study",
+      "scopeId": "Q82",
+      "routeId": "Q82",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "associational_context",
+      "calibrationTags": [
+        "associational_only",
+        "never_public_without_methodology_review"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-32",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "medium",
+      "rationale": "Score 75, bus_lane_infrastructure, estimate 0.471, 10 controls, no blocking reasons recorded but candidateCausalEligible=false \u2014 associationally scoreable only (causal gates not fully satisfied/tested). Internal context only. A duplicate 0-control insufficient_window panel exists for the same scope, reinforcing window-construction uncertainty."
+    },
+    {
+      "detectorId": "intervention_event_study",
+      "scopeId": "B26",
+      "routeId": "B26",
+      "sourceQueue": "clean_no_hit_control",
+      "expectedFrontendUse": "associational_context",
+      "calibrationTags": [
+        "associational_only",
+        "never_public_without_methodology_review"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-32",
+      "reviewDepth": "light",
+      "reviewerConfidence": "medium",
+      "rationale": "Clean control: automated_bus_lane_enforcement panel, estimate 0.170, 10 controls, associational-only and below emission. Usable internal context; correctly not emitted."
+    },
+    {
+      "detectorId": "intervention_event_study",
+      "scopeId": "BM3",
+      "routeId": "BM3",
+      "sourceQueue": "clean_no_hit_control",
+      "expectedFrontendUse": "associational_context",
+      "calibrationTags": [
+        "candidate_causal_gates_pass",
+        "never_public_without_methodology_review"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-32",
+      "reviewDepth": "light",
+      "reviewerConfidence": "medium",
+      "rationale": "Clean control: bus_lane_infrastructure panel with all gates passing and a null estimate (-0.034). A clean usable panel with no effect \u2014 exactly what a working gate stack should let through silently. Kept as internal context that the detector's null behavior is honest."
+    },
+    {
+      "detectorId": "intervention_event_study",
+      "scopeId": "Q35",
+      "routeId": "Q35",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "placebo_failure",
+        "effect_estimate_unstable",
+        "not_a_usable_panel",
+        "never_public_without_methodology_review"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-32",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Score 93, rank 4, estimate +1.452 but placebo_in_time_failed: the same 'effect' appears at a fake treatment date, so the window is contaminated (this route is also a fleet-wide positive deviant on speed, consistent with a secular trend not an intervention effect). Not a usable panel."
+    },
+    {
+      "detectorId": "intervention_event_study",
+      "scopeId": "QM17",
+      "routeId": "QM17",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "placebo_failure",
+        "not_a_usable_panel",
+        "never_public_without_methodology_review"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-32",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Score 79, estimate -0.580, placebo_in_time_failed: pre-period pseudo-treatments reproduce the effect, so treatment dating cannot be distinguished from trend. Not a usable panel."
+    },
+    {
+      "detectorId": "intervention_event_study",
+      "scopeId": "S79+",
+      "routeId": "S79+",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "placebo_failure",
+        "not_a_usable_panel",
+        "never_public_without_methodology_review"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-32",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Score 75, automated_bus_lane_enforcement, estimate 0.477, placebo_in_space_failed: untreated control routes show the same shift, so the panel cannot attribute the change to the treated scope. Also carries seven duplicate 0-control insufficient_window panels for the same scope \u2014 the worst duplication case in the queue and a panel-assembly defect to fix at the input grain."
+    },
+    {
+      "detectorId": "intervention_event_study",
+      "scopeId": "S46",
+      "routeId": "S46",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "placebo_failure",
+        "method_divergence",
+        "not_a_usable_panel",
+        "never_public_without_methodology_review"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-32",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Score 72, estimate 0.381 with placebo_in_space_failed AND method_divergence: estimators disagree and untreated controls move too. Two independent methodology failures; not a usable panel."
+    },
+    {
+      "detectorId": "intervention_event_study",
+      "scopeId": "BX18B",
+      "routeId": "BX18B",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "placebo_failure",
+        "method_divergence",
+        "not_a_usable_panel",
+        "never_public_without_methodology_review"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-32",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Score 69, estimate -0.290 with placebo_in_space_failed and method_divergence. Same double failure as S46; not a usable panel."
+    },
+    {
+      "detectorId": "intervention_event_study",
+      "scopeId": "M98",
+      "routeId": "M98",
+      "sourceQueue": "candidate_review",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "method_divergence",
+        "not_a_usable_panel",
+        "never_public_without_methodology_review"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-32",
+      "reviewDepth": "adversarial",
+      "reviewerConfidence": "high",
+      "rationale": "Score 69, estimate -0.294 with method_divergence: the event-study and comparison estimators disagree on sign/magnitude, so the panel cannot support a stable estimate."
+    },
+    {
+      "detectorId": "intervention_event_study",
+      "scopeId": "B46",
+      "routeId": "B46",
+      "sourceQueue": "clean_no_hit_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "autocorrelation_failure",
+        "not_a_usable_panel",
+        "never_public_without_methodology_review"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-32",
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Clean control with gate failure(s) ['autocorrelation_failure']: the methodology gates correctly kept this panel below emission. Suppression confirms the gate behavior, not an effect judgment."
+    },
+    {
+      "detectorId": "intervention_event_study",
+      "scopeId": "BX18A",
+      "routeId": "BX18A",
+      "sourceQueue": "clean_no_hit_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "placebo_failure",
+        "method_divergence",
+        "not_a_usable_panel",
+        "never_public_without_methodology_review"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-32",
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Clean control with gate failure(s) ['placebo_failure', 'method_divergence']: the methodology gates correctly kept this panel below emission. Suppression confirms the gate behavior, not an effect judgment."
+    },
+    {
+      "detectorId": "intervention_event_study",
+      "scopeId": "BXM11",
+      "routeId": "BXM11",
+      "sourceQueue": "clean_no_hit_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "placebo_failure",
+        "not_a_usable_panel",
+        "never_public_without_methodology_review"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-32",
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Clean control with gate failure(s) ['placebo_failure']: the methodology gates correctly kept this panel below emission. Suppression confirms the gate behavior, not an effect judgment."
+    },
+    {
+      "detectorId": "intervention_event_study",
+      "scopeId": "BXM7",
+      "routeId": "BXM7",
+      "sourceQueue": "clean_no_hit_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "placebo_failure",
+        "method_divergence",
+        "not_a_usable_panel",
+        "never_public_without_methodology_review"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-32",
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Clean control with gate failure(s) ['placebo_failure', 'method_divergence']: the methodology gates correctly kept this panel below emission. Suppression confirms the gate behavior, not an effect judgment."
+    },
+    {
+      "detectorId": "intervention_event_study",
+      "scopeId": "M1",
+      "routeId": "M1",
+      "sourceQueue": "clean_no_hit_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "placebo_failure",
+        "not_a_usable_panel",
+        "never_public_without_methodology_review"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-32",
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Clean control with gate failure(s) ['placebo_failure']: the methodology gates correctly kept this panel below emission. Suppression confirms the gate behavior, not an effect judgment."
+    },
+    {
+      "detectorId": "intervention_event_study",
+      "scopeId": "M14A+",
+      "routeId": "M14A+",
+      "sourceQueue": "clean_no_hit_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "placebo_failure",
+        "autocorrelation_failure",
+        "not_a_usable_panel",
+        "never_public_without_methodology_review"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-32",
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Clean control with gate failure(s) ['placebo_failure', 'autocorrelation_failure']: the methodology gates correctly kept this panel below emission. Suppression confirms the gate behavior, not an effect judgment."
+    },
+    {
+      "detectorId": "intervention_event_study",
+      "scopeId": "Q83",
+      "routeId": "Q83",
+      "sourceQueue": "clean_no_hit_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "autocorrelation_failure",
+        "not_a_usable_panel",
+        "never_public_without_methodology_review"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-32",
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Clean control with gate failure(s) ['autocorrelation_failure']: the methodology gates correctly kept this panel below emission. Suppression confirms the gate behavior, not an effect judgment."
+    },
+    {
+      "detectorId": "intervention_event_study",
+      "scopeId": "QM1",
+      "routeId": "QM1",
+      "sourceQueue": "clean_no_hit_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "placebo_failure",
+        "not_a_usable_panel",
+        "never_public_without_methodology_review"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-32",
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Clean control with gate failure(s) ['placebo_failure']: the methodology gates correctly kept this panel below emission. Suppression confirms the gate behavior, not an effect judgment."
+    },
+    {
+      "detectorId": "intervention_event_study",
+      "scopeId": "QM68",
+      "routeId": "QM68",
+      "sourceQueue": "clean_no_hit_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "pre_trend_failure",
+        "placebo_failure",
+        "not_a_usable_panel",
+        "never_public_without_methodology_review"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-32",
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Clean control with gate failure(s) ['pre_trend_failure', 'placebo_failure']: the methodology gates correctly kept this panel below emission. Suppression confirms the gate behavior, not an effect judgment."
+    },
+    {
+      "detectorId": "intervention_event_study",
+      "scopeId": "B1",
+      "routeId": "B1",
+      "sourceQueue": "skipped_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "weak_or_no_controls",
+        "not_a_usable_panel",
+        "never_public_without_methodology_review"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-32",
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Skipped control (insufficient_window / no_counterfactual): zero control scopes and no estimable window. No panel exists to grade; the skip gate is working as designed."
+    },
+    {
+      "detectorId": "intervention_event_study",
+      "scopeId": "BX1",
+      "routeId": "BX1",
+      "sourceQueue": "skipped_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "weak_or_no_controls",
+        "not_a_usable_panel",
+        "never_public_without_methodology_review"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-32",
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Skipped control (insufficient_window / no_counterfactual): zero control scopes and no estimable window. No panel exists to grade; the skip gate is working as designed."
+    },
+    {
+      "detectorId": "intervention_event_study",
+      "scopeId": "J90",
+      "routeId": "J90",
+      "sourceQueue": "skipped_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "weak_or_no_controls",
+        "not_a_usable_panel",
+        "never_public_without_methodology_review"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-32",
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Skipped control (insufficient_window / no_counterfactual): zero control scopes and no estimable window. No panel exists to grade; the skip gate is working as designed."
+    },
+    {
+      "detectorId": "intervention_event_study",
+      "scopeId": "Q103",
+      "routeId": "Q103",
+      "sourceQueue": "skipped_control",
+      "expectedFrontendUse": "suppress",
+      "calibrationTags": [
+        "weak_or_no_controls",
+        "not_a_usable_panel",
+        "never_public_without_methodology_review"
+      ],
+      "reviewBatch": "2026-06-11-march-initial-32",
+      "reviewDepth": "light",
+      "reviewerConfidence": "high",
+      "rationale": "Skipped control (insufficient_window / no_counterfactual): zero control scopes and no estimable window. No panel exists to grade; the skip gate is working as designed."
+    }
+  ]
+}

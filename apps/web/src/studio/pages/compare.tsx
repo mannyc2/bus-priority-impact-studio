@@ -7,12 +7,9 @@ import { RidersCompareSection } from "@/components/route/compare/RidersCompareSe
 import { SlowSegmentsCompareSection } from "@/components/route/compare/SlowSegmentsCompareSection";
 import { TimelineCompareSection } from "@/components/route/compare/TimelineCompareSection";
 import type { CompareSides } from "@/components/route/compare/types";
-import {
-  ROUTE_DETAIL_TABS,
-  RouteDetailShell,
-  type RouteDetailTabValue,
-} from "@/components/route/RouteDetailShell";
+import { RouteDetailShell } from "@/components/route/RouteDetailShell";
 import { RouteCompareHeader } from "@/components/route/RouteHeader";
+import type { RouteDetailTab, RouteDetailTabValue } from "@/components/route/section-registry";
 import { TabsContent } from "@/components/ui/tabs";
 import type {
   StudioRoute,
@@ -21,6 +18,14 @@ import type {
 } from "../api-contract.js";
 import { StudioPage } from "../page.js";
 import { NotFoundPage } from "./not-found.js";
+
+const ROUTE_COMPARE_TABS = [
+  { value: "overview", label: "Overview" },
+  { value: "where-when", label: "Where & when" },
+  { value: "riders", label: "Riders" },
+  { value: "treatments", label: "Treatments & history" },
+  { value: "evidence", label: "Evidence" },
+] as const satisfies readonly RouteDetailTab[];
 
 export function ComparePage({
   detailA,
@@ -52,7 +57,7 @@ function CompareView(sides: CompareSides) {
     <StudioPage flush>
       <RouteDetailShell
         header={<RouteCompareHeader />}
-        tabs={ROUTE_DETAIL_TABS}
+        tabs={ROUTE_COMPARE_TABS}
         value={activeTab}
         onValueChange={(value) => setActiveTab(value as RouteDetailTabValue)}
       >

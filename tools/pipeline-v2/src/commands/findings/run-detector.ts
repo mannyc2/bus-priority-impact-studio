@@ -1,12 +1,11 @@
 import { mkdir } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative } from "node:path";
 import {
-  assembleDetectorStudyInput,
   DEFAULT_REGISTRY_DETECTOR_STUDY_ID,
-  runRegistryDetectorStudy,
+  runRegistryDetectorStudyFromResolverPath,
 } from "@bp/applied-research/detector-runs";
 import { loadDetectorStudyLocalDbRows } from "@bp/applied-research/local-db";
-import { replaceFindingsForMonth } from "@bp/db/local";
+import { replaceFindingRun } from "@bp/db/local";
 import { arg, defineCommand, z } from "@liche/core";
 import { isoMonth } from "../../lib/dates.ts";
 import { writeJson } from "../../lib/json.ts";
@@ -46,6 +45,13 @@ export function detectorRunArtifactPath(input: {
   );
 }
 
+export function partitionFindingRowsForReleaseMonth<T extends { readonly month: string }>(
+  rows: readonly T[],
+  releaseMonth: string,
+): T[] {
+  return rows.map((row) => (row.month === releaseMonth ? row : { ...row, month: releaseMonth }));
+}
+
 export default defineCommand({
   path: ["findings", "run-detector"],
   summary: "Run a registry detector study through @bp/applied-research.",
@@ -63,6 +69,7 @@ export default defineCommand({
       routeId: z.string().optional(),
       artifactRoot: z.string().optional(),
       output: z.string().optional(),
+      rowsOutput: z.string().optional(),
       writeDb: writeDbFlagSchema,
       candidateLimit: arg.positiveInt().optional(),
     }),
@@ -105,19 +112,7 @@ export default defineCommand({
         observedRunId,
         ...(input.options.routeId === undefined ? {} : { routeId: input.options.routeId }),
       });
-      const assembled = await assembleDetectorStudyInput({
-        context: {
-          detectorId,
-          artifactRoot,
-          releaseMonth,
-          historyStartMonth: input.options.historyStartMonth,
-          observedRunId,
-          sqlite: local.sqlite,
-          ...(input.options.routeId === undefined ? {} : { routeId: input.options.routeId }),
-        },
-        localRows,
-      });
-      const { artifact, output } = runRegistryDetectorStudy({
+      const { artifact, output } = await runRegistryDetectorStudyFromResolverPath({
         metadata: {
           detectorId,
           detectorRunId,
@@ -131,20 +126,45 @@ export default defineCommand({
             ? {}
             : { candidateLimit: input.options.candidateLimit }),
         },
-        rows: assembled.rows,
-        featureContracts: assembled.featureContracts,
+        context: {
+          detectorId,
+          artifactRoot,
+          releaseMonth,
+          historyStartMonth: input.options.historyStartMonth,
+          observedRunId,
+          sqlite: local.sqlite,
+          ...(input.options.routeId === undefined ? {} : { routeId: input.options.routeId }),
+        },
+        localRows,
       });
       if (input.options.writeDb) {
-        await replaceFindingsForMonth(local.db, {
-          month: releaseMonth,
+        await replaceFindingRun(local.db, {
+          detectorRunId,
+          candidates: partitionFindingRowsForReleaseMonth(output.candidates, releaseMonth),
+          evidence: output.evidence,
+          coverage: partitionFindingRowsForReleaseMonth(output.coverage, releaseMonth),
+        });
+      }
+      await mkdir(dirname(outputPath), { recursive: true });
+      await writeJson(outputPath, artifact);
+      if (input.options.rowsOutput !== undefined) {
+        // Calibration review queues need every candidate/evidence/coverage row, not the sampled
+        // summary in the run artifact.
+        const rowsPath = fromCliPath(input.options.rowsOutput);
+        await mkdir(dirname(rowsPath), { recursive: true });
+        await writeJson(rowsPath, {
+          artifactKind: "registry_detector_run_rows",
+          schemaVersion: 1,
           detectorId,
+          detectorRunId,
+          releaseMonth,
+          generatedAt: artifact.generatedAt,
+          wroteDb: artifact.wroteDb,
           candidates: output.candidates,
           evidence: output.evidence,
           coverage: output.coverage,
         });
       }
-      await mkdir(dirname(outputPath), { recursive: true });
-      await writeJson(outputPath, artifact);
       return {
         detectorId,
         releaseMonth,

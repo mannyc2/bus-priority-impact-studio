@@ -1,0 +1,284 @@
+{
+  "artifactKind": "registry_detector_run",
+  "schemaVersion": 1,
+  "generatedAt": "2026-06-10T15:41:13.268Z",
+  "detectorId": "intervention_event_study",
+  "detectorVersion": "1.0.0",
+  "detectorRunId": "intervention_event_study-2026-03",
+  "releaseMonth": "2026-03",
+  "dbPath": "data/local/pipeline.sqlite",
+  "artifactPath": "data/artifacts/detector-calibration-intervention-event-study/no-write-run.json",
+  "wroteDb": false,
+  "featureContracts": [
+    {
+      "featureGrain": "intervention_panel",
+      "resolverId": "artifact.intervention_panel.v1",
+      "status": "resolved",
+      "reason": "Resolved from local_route_intervention_comparison treated/control panel rows."
+    },
+    {
+      "featureGrain": "route_metric_history",
+      "resolverId": "sqlite.local_route_month_trend.history.v1",
+      "status": "resolved",
+      "reason": "Resolved from local_route_month_trend average-speed history."
+    }
+  ],
+  "dataProductDependencies": [
+    {
+      "productId": "intervention_panel_artifact",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    },
+    {
+      "productId": "local_bus_wait_assessment_history",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    },
+    {
+      "productId": "local_route_intervention_comparison_history",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    },
+    {
+      "productId": "local_route_month_trends_history",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    },
+    {
+      "productId": "local_route_observed_reliability_summary_release",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    }
+  ],
+  "modelDependencies": [
+    {
+      "modelId": "treatment_event_panel_v1",
+      "status": "available",
+      "rowCount": 741,
+      "reason": "Required model artifact treatment_event_panel_v1 was supplied as treatmentEventPanelRows."
+    }
+  ],
+  "inputSummary": {
+    "sourceKind": "intervention_panel_from_treatment_event_panel_v1",
+    "featureCount": 741,
+    "supportedFeatureCount": 236,
+    "eligibleControlFeatureCount": 236,
+    "featureWithEffectEstimateCount": 236,
+    "candidateCausalEligibleFeatureCount": 102,
+    "gateStatusCounts": {
+      "preTrendStatus": {
+        "fails": 1,
+        "not_tested": 509,
+        "passes": 231
+      },
+      "placeboInTimeStatus": {
+        "fails": 8,
+        "not_tested": 522,
+        "passes": 211
+      },
+      "placeboInSpaceStatus": {
+        "fails": 85,
+        "not_tested": 511,
+        "passes": 145
+      },
+      "autocorrelationStatus": {
+        "fails": 60,
+        "not_tested": 510,
+        "passes": 171
+      },
+      "methodDivergenceStatus": {
+        "fails": 12,
+        "not_tested": 505,
+        "passes": 224
+      }
+    },
+    "treatmentEventPanelSummary": {
+      "panelRowCount": 741
+    }
+  },
+  "outputSummary": {
+    "candidateCount": 100,
+    "evidenceCount": 200,
+    "coverageCount": 741,
+    "hitCount": 100,
+    "cleanNoHitCount": 136,
+    "skippedCount": 505
+  },
+  "candidateSamples": [
+    {
+      "candidateId": "f49f9a611b07ff6aaacca300411f1809",
+      "routeId": "B103",
+      "scopeId": "B103",
+      "detectorScore": 72,
+      "claimText": "Performance on route B103 changed by -0.162 in the window after bus_lane_infrastructure; association pending review."
+    },
+    {
+      "candidateId": "77bd09bed6bdccf1f59f8570adbdcd4c",
+      "routeId": "B11",
+      "scopeId": "B11",
+      "detectorScore": 75,
+      "claimText": "Performance on route B11 changed by -0.252 in the window after automated_bus_lane_enforcement; association pending review."
+    },
+    {
+      "candidateId": "9376322667dc5faac2cd3096e1415c37",
+      "routeId": "B2",
+      "scopeId": "B2",
+      "detectorScore": 69,
+      "claimText": "Performance on route B2 changed by -0.081 in the window after bus_lane_infrastructure; association pending review."
+    },
+    {
+      "candidateId": "515b869f699d523a377fd45313056c49",
+      "routeId": "B25",
+      "scopeId": "B25",
+      "detectorScore": 72,
+      "claimText": "Performance on route B25 changed by 0.17 in the window after automated_bus_lane_enforcement; association pending review."
+    },
+    {
+      "candidateId": "1cf9e97fefe0546eadac9991824ee6b9",
+      "routeId": "B3",
+      "scopeId": "B3",
+      "detectorScore": 71,
+      "claimText": "Performance on route B3 changed by -0.143 in the window after bus_lane_infrastructure; association pending review."
+    },
+    {
+      "candidateId": "777bfb9736f23e0f8f048a33ea6e2900",
+      "routeId": "B35",
+      "scopeId": "B35",
+      "detectorScore": 70,
+      "claimText": "Performance on route B35 changed by 0.12 in the window after automated_bus_lane_enforcement; association pending review."
+    },
+    {
+      "candidateId": "d06840cf8c410b583479b4747b1c7dfc",
+      "routeId": "B39",
+      "scopeId": "B39",
+      "detectorScore": 98,
+      "claimText": "Performance on route B39 changed by -0.937 in the window after bus_lane_infrastructure; association pending review."
+    },
+    {
+      "candidateId": "c6ee372b18f0d2823c59153a8002b023",
+      "routeId": "B42",
+      "scopeId": "B42",
+      "detectorScore": 77,
+      "claimText": "Performance on route B42 changed by 0.314 in the window after automated_bus_lane_enforcement; association pending review."
+    },
+    {
+      "candidateId": "b6d1e9af45876c313d622b589c4d2ed0",
+      "routeId": "B44+",
+      "scopeId": "B44+",
+      "detectorScore": 73,
+      "claimText": "Performance on route B44+ changed by 0.202 in the window after automated_bus_lane_enforcement; association pending review."
+    },
+    {
+      "candidateId": "178bc7286fa80851cfc4bc146ffaf1b8",
+      "routeId": "B46+",
+      "scopeId": "B46+",
+      "detectorScore": 70,
+      "claimText": "Performance on route B46+ changed by -0.105 in the window after automated_bus_lane_enforcement; association pending review."
+    },
+    {
+      "candidateId": "741f5b48ef7ec71ef936271b72d3f318",
+      "routeId": "B52",
+      "scopeId": "B52",
+      "detectorScore": 72,
+      "claimText": "Performance on route B52 changed by -0.185 in the window after bus_lane_infrastructure; association pending review."
+    },
+    {
+      "candidateId": "e72b9f022a062aba3e8f1e55c90e2625",
+      "routeId": "B62",
+      "scopeId": "B62",
+      "detectorScore": 72,
+      "claimText": "Performance on route B62 changed by -0.171 in the window after bus_lane_infrastructure; association pending review."
+    },
+    {
+      "candidateId": "3cc50f7aa48e122e6c64d1e373402552",
+      "routeId": "B63",
+      "scopeId": "B63",
+      "detectorScore": 73,
+      "claimText": "Performance on route B63 changed by -0.2 in the window after automated_bus_lane_enforcement; association pending review."
+    },
+    {
+      "candidateId": "087b756afda53f97c21243a667119a2c",
+      "routeId": "B63",
+      "scopeId": "B63",
+      "detectorScore": 74,
+      "claimText": "Performance on route B63 changed by -0.243 in the window after bus_lane_infrastructure; association pending review."
+    },
+    {
+      "candidateId": "a37e8272f4d18b4aeb5cf6c5281e004b",
+      "routeId": "B82+",
+      "scopeId": "B82+",
+      "detectorScore": 70,
+      "claimText": "Performance on route B82+ changed by -0.104 in the window after automated_bus_lane_enforcement; association pending review."
+    },
+    {
+      "candidateId": "f8e6dbe7f0c8ae1da587531de89f7e9c",
+      "routeId": "BM1",
+      "scopeId": "BM1",
+      "detectorScore": 73,
+      "claimText": "Performance on route BM1 changed by -0.213 in the window after bus_lane_infrastructure; association pending review."
+    },
+    {
+      "candidateId": "26e271b34fecac1c8d85c8581a4ab0ad",
+      "routeId": "BM2",
+      "scopeId": "BM2",
+      "detectorScore": 69,
+      "claimText": "Performance on route BM2 changed by 0.094 in the window after bus_lane_infrastructure; association pending review."
+    },
+    {
+      "candidateId": "9e44cbef3dac57663ec0a149aeefce42",
+      "routeId": "BM4",
+      "scopeId": "BM4",
+      "detectorScore": 71,
+      "claimText": "Performance on route BM4 changed by 0.143 in the window after bus_lane_infrastructure; association pending review."
+    },
+    {
+      "candidateId": "4a0036004dcbe0c18397a620636d231a",
+      "routeId": "BM5",
+      "scopeId": "BM5",
+      "detectorScore": 71,
+      "claimText": "Performance on route BM5 changed by 0.145 in the window after bus_lane_infrastructure; association pending review."
+    },
+    {
+      "candidateId": "8f56bd1a532bff4ce98a246096979c59",
+      "routeId": "BX10",
+      "scopeId": "BX10",
+      "detectorScore": 70,
+      "claimText": "Performance on route BX10 changed by 0.108 in the window after bus_lane_infrastructure; association pending review."
+    },
+    {
+      "candidateId": "7ba20380858f1132429ff8618483aca2",
+      "routeId": "BX12",
+      "scopeId": "BX12",
+      "detectorScore": 73,
+      "claimText": "Performance on route BX12 changed by 0.21 in the window after bus_lane_infrastructure; association pending review."
+    },
+    {
+      "candidateId": "363cc4fdf198d889f30ec20e7941f0f1",
+      "routeId": "BX12+",
+      "scopeId": "BX12+",
+      "detectorScore": 76,
+      "claimText": "Performance on route BX12+ changed by -0.289 in the window after automated_bus_lane_enforcement; association pending review."
+    },
+    {
+      "candidateId": "9932fe74dd4e970c9b03978d87825157",
+      "routeId": "BX15",
+      "scopeId": "BX15",
+      "detectorScore": 69,
+      "claimText": "Performance on route BX15 changed by -0.074 in the window after automated_bus_lane_enforcement; association pending review."
+    },
+    {
+      "candidateId": "f0f930776200ab25c1cc1608920bd339",
+      "routeId": "BX16",
+      "scopeId": "BX16",
+      "detectorScore": 75,
+      "claimText": "Performance on route BX16 changed by 0.245 in the window after bus_lane_infrastructure; association pending review."
+    },
+    {
+      "candidateId": "5793877dc8d1090641fc282377c4e6cb",
+      "routeId": "BX18B",
+      "scopeId": "BX18B",
+      "detectorScore": 69,
+      "claimText": "Performance on route BX18B changed by -0.29 in the window after bus_lane_infrastructure; association pending review."
+    }
+  ]
+}

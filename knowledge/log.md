@@ -2,6 +2,1325 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Surface manifest freshness in route evidence
+
+Advanced the route-detail §7.4 freshness doctrine by adding a shared coverage helper for the
+latest `dataAsOf` across manifest surfaces. Overview and Evidence/Data notes now fall back to that
+manifest freshness when a route has capability coverage but no full dossier summary, so
+manifest-light routes no longer show unknown freshness in the first-screen verdict or evidence
+header. The coverage helper is covered in the shared matrix tests.
+
+Also reviewed `nyc_dot_bus_priority_document_pdf_2012_05_webster_cac2_summary` from the
+full-corpus source review workspace as a proposed/planning Bx41 Webster Avenue SBS CAC #2 summary
+record. The local ignored reviewed-record seed now has 26 sources and 26 records. The record cites
+the May 2, 2012 meeting summary, CAC discussion of Webster Avenue safety/congestion/parking
+issues, future-development context, curbside/offset/median SBS running-way alternatives, workshop
+tradeoffs, and the rider-preference exercise where the medium 5-minute walk / 5-minute wait /
+20-minute bus-trip scenario received 8 votes on Sheet A.
+
+The record stores no launch date because this source is a meeting-summary planning artifact, not a
+selected design or implementation result. It uses a `planning` status as of `2012-05-02`, assigns
+scope only to Bx41, treats Bx12 as prior SBS context, and caveats the conceptual bus-lane
+alternatives and workshop preference votes as planning inputs rather than measured route impacts.
+Regenerated the local ignored source receipt closure audit. It now reports 291 queue sources, 26
+valid reviewed records, 26 reviewed-record sources, 27 closed sources, 264 open sources, and 0
+conflicts; public promotion remains blocked on full source closure. The broader Tier 2
+structured-data inventory still reports the older published-inventory next action because it scans
+published artifacts rather than this ignored manual-review seed.
+
+Verified with `bunx biome check
+apps/web/src/components/route/OverviewSection.tsx apps/web/src/components/route/DataNotesSection.tsx
+apps/web/src/components/route/coverage-matrix.ts apps/web/test/shared/coverage-matrix.test.ts`,
+`bun test apps/web/test/shared/coverage-matrix.test.ts --timeout 5000`, `bun --filter @bp/web
+typecheck`, `bun --filter @bp/web build`, `bun run check:types`, `bun run check:knowledge`, `git
+diff --check`, `jq empty
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/intervention-records-corpus-reviewed.json`,
+`bun --filter @bp/pipeline-v2 cli -- docs tier2 source-receipt-audit ...`, and `bun --filter
+@bp/pipeline-v2 cli -- audit tier2-structured-data --json`.
+
+## [2026-06-12] engineering | Overview shows manifest coverage
+
+Advanced the route-detail §4 / §8.1 registry handoff by making the Overview header summarize the
+route capability manifest instead of using static readiness copy. The summary now counts ready,
+checked-clean, partial, building, insufficient-data, blocked, and not-applicable surfaces, so a
+route with non-ready manifest states no longer looks empty from the first screen. Overview checked
+clean handling now uses the same ordered coverage rows as the Evidence matrix, and treatment
+insight CTAs now point at `Treatments & history` to match the redesigned tab label. Nearby route
+overview copy was tightened to keep the production bundle inside the existing budget.
+
+Also reviewed `nyc_dot_bus_priority_document_pdf_201205_brt_webster_cac` from the full-corpus
+source review workspace as a proposed/planning Bx41 Webster Avenue SBS design-ideas record. The
+local ignored reviewed-record seed now has 25 sources and 25 records. The record cites the May 2,
+2012 CAC #2 deck, the Bx41-based proposed Webster Avenue corridor, 5.3 miles of corridor length,
+125,000 nearby residents, 74% car-free households, 63% transit commute share, 22,000 daily Bx41
+riders, Bx41 LTD travel-time variability of 37-57 minutes, stopped-time and delay breakdown
+signals, Fordham Road pedestrian/boarding pressure, parking observations, the Spring 2012 active
+design-ideas phase, the May 16, 2012 open house, Summer 2012 analysis, and Fall 2012 draft
+corridor-plan target.
+
+The record stores no launch date because this source does not give a preferred design,
+implementation date, or post-implementation result. It uses `planning` statuses as of
+`2012-05-02` and `2012-05-16`, assigns scope only to Bx41, treats Bx12 and M15 references as prior
+SBS examples or feature context, and caveats the OCR-derived corridor map summary for visual
+review before publication. Regenerated the local ignored source receipt closure audit. It now
+reports 291 queue sources, 25 valid reviewed records, 25 reviewed-record sources, 26 closed
+sources, 265 open sources, and 0 conflicts; public promotion remains blocked on full source
+closure. The broader Tier 2 structured-data inventory still reports the older published-inventory
+next action because it scans published artifacts rather than this ignored manual-review seed.
+
+Verified with `bunx biome check
+apps/web/src/components/route/OverviewSection.tsx apps/web/src/components/route/coverage-matrix.ts
+apps/web/src/components/route/route-insight-card.ts apps/web/test/shared/coverage-matrix.test.ts
+apps/web/test/shared/route-insight-card.test.ts`, `bun test
+apps/web/test/shared/coverage-matrix.test.ts apps/web/test/shared/route-insight-card.test.ts
+--timeout 5000`, `bun --filter @bp/web typecheck`, `bun --filter @bp/web build`, `bun run
+check:types`, `bun run check:knowledge`, `git diff --check`, `jq empty
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/intervention-records-corpus-reviewed.json`,
+`bun --filter @bp/pipeline-v2 cli -- docs tier2 source-receipt-audit ...`, and `bun --filter
+@bp/pipeline-v2 cli -- audit tier2-structured-data --json`.
+
+## [2026-06-12] engineering | Route tabs expose section questions
+
+Advanced the route-detail §4.3 / §8.1 registry handoff by carrying each tab's
+question-shaped contract into the shared tab shell. Compact tab labels remain unchanged, but
+route-detail tabs now expose their registry question through the native tab title, and the tab
+badge screen-reader label was tightened from "flagged insights" to "flags" to keep the existing
+bundle budget green.
+
+Also reviewed `nyc_dot_bus_priority_document_pdf_2012_02_06_brt_webster_cac1` from the
+full-corpus source review workspace as an initial proposed/planning Bx41 Webster Avenue SBS
+record. The local ignored reviewed-record seed now has 24 sources and 24 records. The record cites
+the February 6, 2012 CAC #1 deck, the proposed Webster Avenue SBS corridor based on Bx41, 5.3
+miles of corridor length, 125,000 nearby residents, 74% car-free households, 61% transit commute
+share, 22,000 daily Bx41 riders, pre-design one-way travel time of 37-57 minutes, bus-delay hot
+spots, and winter/spring 2012 planning next steps.
+
+The record stores no launch date because this source does not give a preferred design,
+implementation date, or post-implementation result. It uses a `planning` status as of
+`2012-02-06`, assigns scope only to Bx41, treats Bx12/M15/M34/M34A/B44/S79 as context or prior SBS
+examples, and caveats map-derived endpoints/delay locations for visual review. Regenerated the
+local ignored source receipt closure audit. It now reports 291 queue sources, 24 valid reviewed
+records, 24 reviewed-record sources, 25 closed sources, 266 open sources, and 0 conflicts; public
+promotion remains blocked on full source closure. The broader Tier 2 structured-data inventory
+still reports the older published-inventory next action because it scans published artifacts rather
+than this ignored manual-review seed.
+
+Verified with `bunx biome check
+apps/web/src/components/route/RouteDetailShell.tsx apps/web/src/components/route/section-registry.ts
+apps/web/test/shared/section-registry.test.ts`, `bun test
+apps/web/test/shared/section-registry.test.ts --timeout 5000`, `bun --filter @bp/web typecheck`,
+`bun --filter @bp/web build`, `bun run check:types`, `bun run check:knowledge`, `git diff
+--check`, `jq empty
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/intervention-records-corpus-reviewed.json`,
+`bun --filter @bp/pipeline-v2 cli -- docs tier2 source-receipt-audit ...`, and `bun --filter
+@bp/pipeline-v2 cli -- audit tier2-structured-data --json`.
+
+## [2026-06-12] engineering | Map section shows manifest freshness
+
+Advanced the route-detail §4 / §7.4 map-surface cutover by adding the shared `DataAsOf` marker to
+the Map section header. The section now reads its freshness clock from the route capability
+manifest's `map`, `geometry`, or `routeGeometry` surfaces, with a dossier-level fallback when the
+manifest lacks a map-specific clock. Nearby map microcopy was tightened so the route-detail lazy
+chunk stays within the existing bundle budget.
+
+Also reviewed `nyc_dot_bus_priority_document_pdf_2014_08_25_brt_websteravenue_progressreport`
+from the full-corpus source review workspace as an implemented Bx41 Webster Avenue SBS progress
+record. The local ignored reviewed-record seed now has 23 sources and 23 records. The record cites
+the August 2014 progress report, the June 30, 2013 Bx41 SBS launch, 8 miles of Webster Avenue bus
+lanes from E 165 Street to E Gun Hill Road, off-board fare collection, fare inspection, branding
+and customer information, pedestrian refuges/medians, signal timing changes, and source-reported
+travel-time/delay/ridership results.
+
+The record stores `effectiveDate: 2013-06-30` with `datePrecision: day`. It separately caveats
+that TSP and enhanced bus-bulb capital construction were future or in-design items in the August
+2014 source, and that the speed, delay, satisfaction, and ridership metrics are source-reported
+before/after results rather than a controlled causal estimate. Regenerated the local ignored source
+receipt closure audit. It now reports 291 queue sources, 23 valid reviewed records, 23
+reviewed-record sources, 24 closed sources, 267 open sources, and 0 conflicts; public promotion
+remains blocked on full source closure. The broader Tier 2 structured-data inventory still reports
+the older published-inventory next action because it scans published artifacts rather than this
+ignored manual-review seed.
+
+Verified with `bunx biome check apps/web/src/components/route/RouteMapSection.tsx`, `bun
+--filter @bp/web typecheck`, `bun --filter @bp/web build`, `jq empty
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/intervention-records-corpus-reviewed.json`,
+`bun --filter @bp/pipeline-v2 cli -- docs tier2 source-receipt-audit ...`, and `bun --filter
+@bp/pipeline-v2 cli -- audit tier2-structured-data --json`.
+
+## [2026-06-12] engineering | Treatments section shows dossier freshness
+
+Advanced the route-detail §4.1 / §7.4 freshness cutover by adding the shared `DataAsOf` marker to
+the Treatments & history header. The section now reads from `dossier.treatmentPosture.dataAsOf`
+with a page-level dossier fallback, keeps the evaluated-comparison count badge, and trims nearby
+copy so the route-detail lazy chunk stays within the existing bundle budget.
+
+Also reviewed `nyc_dot_select_bus_service_pdf_2012_09_webster_sbs_cac3` from the full-corpus
+source review workspace as a proposed Bx41 Webster Avenue SBS planning record. The local ignored
+reviewed-record seed now has 22 sources and 22 records. The record cites the September 27, 2012
+CAC #3 deck, Bx41 LTD to Bx41 SBS conversion, 4 miles of offset bus lanes, bus bulb/station
+planning, off-board fare collection, TSP, pedestrian safety improvements, half-mile SBS stop
+spacing, and the 2013-2014 final-design/implementation horizon.
+
+The record stores `effectiveDate: 2013` with `datePrecision: year` because this source gives an
+implementation horizon rather than an exact launch month/day. It separately caveats that the deck
+is a planning source without measured post-implementation impact, and treats non-Bx41 route
+mentions in the review pack as context rather than assigned intervention scope. Regenerated the
+local ignored source receipt closure audit. It now reports 291 queue sources, 22 valid reviewed
+records, 22 reviewed-record sources, 23 closed sources, 268 open sources, and 0 conflicts; public
+promotion remains blocked on full source closure. The broader Tier 2 structured-data inventory
+still reports the older published-inventory next action because it scans published artifacts rather
+than this ignored manual-review seed.
+
+Verified with `bunx biome check
+apps/web/src/components/route/TreatmentsHistorySection.tsx apps/web/test/shared/treatments-history.test.ts`,
+`bun test apps/web/test/shared/treatments-history.test.ts --timeout 5000`, `bun --filter @bp/web
+typecheck`, `bun --filter @bp/web build`, `bun run check:types`, `bun run check:knowledge`, `git
+diff --check`, `jq empty
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/intervention-records-corpus-reviewed.json`,
+`bun --filter @bp/pipeline-v2 cli -- docs tier2 source-receipt-audit ...`, and `bun --filter
+@bp/pipeline-v2 cli -- audit tier2-structured-data --json`.
+
+## [2026-06-12] engineering | Judged KPI clicks fall back to Evidence
+
+Advanced the route-detail §4.1 / §8.1 handoff by routing judged KPI header clicks through the
+section registry's canonical navigation fallback. If a KPI's owning section is manifest-hidden,
+the header now sends the reader to Evidence instead of becoming a dead click target; visible and
+honest-empty sections still open their owning tabs. The existing registry test covers the hidden
+section fallback to Evidence for sparse and not-applicable route shapes.
+
+Also reviewed `nyc_dot_select_bus_service_pdf_2013_02_sbs_webster_bx_cb1` from the full-corpus
+source review workspace as a proposed Bx41 Webster Avenue SBS plan record. The local ignored
+reviewed-record seed now has 21 sources and 21 records. The record cites the February 11, 2013 CB1
+deck, Bx41 LTD to Bx41 SBS conversion, 4 miles of offset bus lanes, off-board fare collection,
+TSP/traffic signal coordination, pedestrian improvements, station/bus-bulb planning, Hub stop
+changes, half-mile SBS stop spacing, and the end-of-June 2013 service-start plan.
+
+The record stores `effectiveDate: 2013-06` with `datePrecision: month` because this source gives a
+June/end-of-month launch plan rather than the exact launch day. It separately caveats the 2014-2015
+bus-bulb/capital construction phase, treats Bx12/M15/M34/S79/B44/M60/Bx15/Bx55/LGA references as
+context or related service-plan mentions rather than assigned intervention routes, and flags
+map-derived station geometry for visual review. Regenerated the local ignored source receipt
+closure audit. It now reports 291 queue sources, 21 valid reviewed records, 21 reviewed-record
+sources, 22 closed sources, 269 open sources, and 0 conflicts; public promotion remains blocked on
+full source closure. The broader Tier 2 structured-data inventory still reports the older
+published-inventory next action because it scans published artifacts rather than this ignored
+manual-review seed.
+
+Verified with `bunx biome check
+apps/web/src/components/route/section-registry.ts apps/web/src/components/route/RouteJudgedKpiStrip.tsx
+apps/web/test/shared/section-registry.test.ts`, `bun test
+apps/web/test/shared/section-registry.test.ts --timeout 5000`, `bun --filter @bp/web typecheck`,
+`bun --filter @bp/web build`, `bun run check:types`, `bun run check:knowledge`, `git diff
+--check`, `jq empty
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/intervention-records-corpus-reviewed.json`,
+`bun --filter @bp/pipeline-v2 cli -- docs tier2 source-receipt-audit ...`, and `bun --filter
+@bp/pipeline-v2 cli -- audit tier2-structured-data --json`.
+
+## [2026-06-12] engineering | Hidden route sections preserve badge evidence
+
+Advanced the route-detail §8.1 registry handoff by keeping detector badge metadata on hidden
+sections. If an insight targets a manifest-hidden tab, the tab still stays hidden, but Evidence's
+"Sections not shown" row now preserves the badge count/severity so the detector signal is not lost.
+The contrast-route registry test now asserts that sparse-route reliability can stay out of the tab
+strip while carrying its hidden high-severity badge into Evidence.
+
+Also reviewed `nyc_dot_bus_priority_document_pdf_2014_04_10_brt_webster_cb7` from the full-corpus
+source review workspace as an implemented Bx41 Webster Avenue SBS progress record. The local
+ignored reviewed-record seed now has 20 sources and 20 records. The record cites the April 10, 2014
+CB7 deck, the June 30, 2013 Bx41 SBS launch, Webster Avenue bus lanes from E 165 St to E Gun Hill
+Road, 4 miles / 8 lane-miles, NYPD lane enforcement, signal timing at E Fordham Rd, CB7 pedestrian
+islands/medians, and preliminary official travel-time/ridership tables.
+
+The record stores `effectiveDate: 2013-06-30` with `datePrecision: day`; TSP and Phase 2
+bus-bulb/capital construction remain caveated as future or estimated timeline items in this source,
+and Bx12/M15/B44 are treated as context or examples rather than assigned routes. Regenerated the
+local ignored source receipt closure audit. It now reports 291 queue sources, 20 valid reviewed
+records, 20 reviewed-record sources, 21 closed sources, 270 open sources, and 0 conflicts; public
+promotion remains blocked on full source closure. The broader Tier 2 structured-data inventory
+command still reports the older published-inventory next action because it scans published
+artifacts rather than this ignored manual-review seed.
+
+Verified with `bunx biome check
+apps/web/src/components/route/section-registry.ts apps/web/src/components/route/DataNotesSection.tsx
+apps/web/test/shared/section-registry.test.ts`, `bun test
+apps/web/test/shared/section-registry.test.ts --timeout 5000`, `bun --filter @bp/web typecheck`,
+`bun --filter @bp/web build`, `bun run check:types`, `bun run check:knowledge`, `git diff --check`,
+`jq empty data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/intervention-records-corpus-reviewed.json`,
+`bun --filter @bp/pipeline-v2 cli -- docs tier2 source-receipt-audit ...`, and `bun --filter
+@bp/pipeline-v2 cli -- audit tier2-structured-data --json`.
+
+## [2026-06-12] engineering | Route section CTAs respect hidden manifest tabs
+
+Advanced the route-detail §8.1 registry handoff by centralizing section navigation fallback in the
+registry. Header KPI clicks already ignored hidden tabs; now Overview insight CTAs and Evidence
+index rows use the same policy. Visible and honest-empty sections remain navigable, while hidden
+section targets either fall back to Evidence from Overview or stay labeled as covered in Evidence
+inside the Evidence tab. The route-detail page passes the canonical registry into Overview and
+Evidence instead of letting those sections recompute their own tab policy.
+
+Also reviewed `nyc_dot_bus_priority_document_pdf_2014_03_06_brt_webster_cb6` from the full-corpus
+source review workspace as an implemented Bx41 Webster Avenue SBS progress record. The local
+ignored reviewed-record seed now has 19 sources and 19 records. The record cites the March 6, 2014
+CB6 deck, the June 30, 2013 Bx41 SBS launch, Webster Avenue bus lanes from E 165 St to E Gun Hill
+Road, 4 miles / 8 lane-miles, NYPD lane enforcement, signal timing at E Fordham Rd, pedestrian
+islands/medians, and preliminary official travel-time/ridership tables.
+
+The record stores `effectiveDate: 2013-06-30` with `datePrecision: day`; TSP and Phase 2
+bus-bulb/capital construction remain caveated as future or estimated timeline items in this source,
+and Bx12/M15/B44 are treated as context or examples rather than assigned routes. Regenerated the
+local ignored source receipt closure audit. It now reports 291 queue sources, 19 valid reviewed
+records, 19 reviewed-record sources, 20 closed sources, 271 open sources, and 0 conflicts; public
+promotion remains blocked on full source closure. The broader Tier 2 structured-data inventory
+command still reports the older published-inventory next action because it scans published
+artifacts rather than this ignored manual-review seed.
+
+Verified with `bunx biome check
+apps/web/src/components/route/section-registry.ts apps/web/src/components/route/OverviewSection.tsx
+apps/web/src/components/route/DataNotesSection.tsx apps/web/src/studio/pages/route-detail.tsx
+apps/web/test/shared/section-registry.test.ts`, `bun test
+apps/web/test/shared/section-registry.test.ts --timeout 5000`, `bun --filter @bp/web typecheck`,
+`bun --filter @bp/web build`, `bun run check:types`, `bun run check:knowledge`, `git diff --check`,
+`jq empty
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/intervention-records-corpus-reviewed.json`,
+`bun --filter @bp/pipeline-v2 cli -- docs tier2 source-receipt-audit ...`, and `bun --filter
+@bp/pipeline-v2 cli -- audit tier2-structured-data --json`.
+
+## [2026-06-12] engineering | Tier 2 Bx41 Webster CB4 plan source closes one more source
+
+Reviewed `nyc_dot_select_bus_service_pdf_2013_02_sbs_webster_bx_cb4` from the full-corpus source
+review workspace as a proposed Bx41 Webster Avenue SBS plan record. The local ignored
+reviewed-record seed now has 18 sources and 18 records. The record cites the February 6, 2013 CB4
+deck, Bx41 LTD to Bx41 SBS conversion, 4 miles of offset bus lanes, off-board fare collection, TSP,
+bus-bulb station plans, pedestrian safety improvements, red bus-lane paint, fare-machine and stop
+changes, and the Webster Avenue corridor termini.
+
+The record stores `effectiveDate: 2013-06` with `datePrecision: month` because this source gives a
+summer/end-of-June 2013 service-start window rather than an exact launch day. It also caveats the
+2014-2015 bus-bulb/capital phase separately from the June 2013 service and roadway launch. Bx12,
+M15, M34/M34A, S79, B44, M60, Bx15, and Bx35 remain context, service-plan, or station-impact
+mentions rather than assigned intervention routes. Regenerated the local ignored source receipt
+closure audit. It now reports 291 queue sources, 18 valid reviewed records, 18 reviewed-record
+sources, 19 closed sources, 272 open sources, and 0 conflicts; public promotion remains blocked on
+full source closure. The broader Tier 2 structured-data inventory command still reports the older
+published-inventory next action because it scans published artifacts rather than this ignored
+manual-review seed.
+
+Verified with `jq empty
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/intervention-records-corpus-reviewed.json`,
+`bun --filter @bp/pipeline-v2 cli -- docs tier2 source-receipt-audit ...`, and `bun --filter
+@bp/pipeline-v2 cli -- audit tier2-structured-data --json`.
+
+## [2026-06-12] engineering | Tier 2 Bx41 Webster CAC4 plan source closes one more source
+
+Reviewed `nyc_dot_select_bus_service_pdf_2012_11_sbs_webster_cac4` from the full-corpus source
+review workspace as a proposed Bx41 Webster Avenue SBS plan record. The local ignored
+reviewed-record seed now has 17 sources and 17 records. The record cites the November 29, 2012 CAC
+#4 deck, Bx41 LTD to Bx41 SBS conversion, 4 miles of offset bus lanes with bus bulb stations,
+off-board fare collection, TSP, pedestrian safety improvements, half-mile SBS stop spacing, the
+Webster Avenue corridor termini, and the 2013/2014 implementation horizon.
+
+The record stores `effectiveDate: 2013` with `datePrecision: year` because this source gives a
+2013/2014 planning horizon rather than the later exact launch date. Bx15/Bx55/Bx34/Bx12/M60 and the
+LaGuardia SBS references remain caveated as context, and station-location/northern-routing options
+are not treated as final geometry from this deck alone. Regenerated the local ignored source receipt
+closure audit. It now reports 291 queue sources, 17 valid reviewed records, 17 reviewed-record
+sources, 18 closed sources, 273 open sources, and 0 conflicts; public promotion remains blocked on
+full source closure. The broader Tier 2 structured-data inventory command still reports the older
+published-inventory next action because it scans published artifacts rather than this ignored
+manual-review seed.
+
+Verified with `jq empty
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/intervention-records-corpus-reviewed.json`,
+`bun --filter @bp/pipeline-v2 cli -- docs tier2 source-receipt-audit ...`, and `bun --filter
+@bp/pipeline-v2 cli -- audit tier2-structured-data --json`.
+
+## [2026-06-12] engineering | Evidence names hidden sections with route-detail questions
+
+Advanced the route-detail §4.3 / §8.1 handoff by letting the section registry carry question-shaped
+copy for the hidden Evidence rows that need it now. "Sections not shown" now renders withheld
+Reliability and Treatments entries as section label plus dossier question, so Evidence can explain
+what claim is absent instead of only naming the UI tab. The registry test now locks those hidden
+questions to the checked-clean and sparse contrast routes.
+
+To keep the strict route-detail bundle guard green, compare continues to use label-only local tabs
+and the Evidence data-source labels were tightened without changing the source coverage model.
+
+Verified with `bunx biome check apps/web/src/components/route/section-registry.ts
+apps/web/src/components/route/DataNotesSection.tsx apps/web/src/studio/pages/compare.tsx
+apps/web/test/shared/section-registry.test.ts`, `bun test
+apps/web/test/shared/section-registry.test.ts --timeout 5000`, `bun --filter @bp/web typecheck`,
+and `bun --filter @bp/web build`.
+
+## [2026-06-12] engineering | Tier 2 Bx41 Webster CB4 progress source closes one more source
+
+Reviewed `nyc_dot_bus_priority_document_pdf_2014_03_05_brt_webster_cb4` from the full-corpus source
+review workspace as an implemented Bx41 Webster Avenue SBS record with preliminary post-launch
+results. The local ignored reviewed-record seed now has 16 sources and 16 records. The record cites
+the March 5, 2014 CB4 presentation, the June 30, 2013 Bx41 SBS launch, Webster Avenue bus lanes
+from E 165 Street to E Gun Hill Road, NYPD lane enforcement, optimized signal timing, pedestrian
+safety changes, repaving, and preliminary travel-time/ridership tables.
+
+The record stores `effectiveDate: 2013-06-30` with `datePrecision: day`; TSP and Phase 2 bus-bulb
+work remain caveated as future/estimated in this source, and Bx12/Bx35 are treated as context rather
+than assigned routes. Regenerated the local ignored source receipt closure audit. It now reports 291
+queue sources, 16 valid reviewed records, 16 reviewed-record sources, 17 closed sources, 274 open
+sources, and 0 conflicts; public promotion remains blocked on full source closure. The broader Tier
+2 structured-data inventory command still reports the older published-inventory next action because
+it scans published artifacts rather than this ignored manual-review seed.
+
+Verified with `jq empty
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/intervention-records-corpus-reviewed.json`,
+`bun run pipeline docs tier2 source-receipt-audit ...`, and `bun run pipeline audit
+tier2-structured-data --json`.
+
+## [2026-06-12] engineering | Route detail tabs use one manifest registry
+
+Advanced frontend §8.1 by moving the route-detail tab metadata and manifest presentation policy
+into the pure section registry. The route detail page now asks `routeSectionRegistry()` for the
+per-tab presentations, visible tabs, and hidden sections in one pass; the Evidence tab consumes
+the same hidden-section list for "Sections not shown" instead of recomputing it locally. The
+contrast-route tests now assert the visible tab sets for rich, checked-clean, and sparse route
+shapes, plus hidden-section reasons and detector badge attachment.
+
+To keep the strict route-detail bundle budget green, compare keeps its tiny static tab subset
+locally and imports only erased registry types, and decorative arrow icons were removed from
+route-detail/Evidence actions whose text labels are already explicit.
+
+Verified with `bunx biome check apps/web/src/components/route/section-registry.ts
+apps/web/src/components/route/RouteDetailShell.tsx apps/web/src/components/route/DataNotesSection.tsx
+apps/web/src/components/route/OverviewSection.tsx
+apps/web/src/components/route/route-insight-card.ts
+apps/web/src/components/route/route-insight-placement.ts apps/web/src/studio/pages/route-detail.tsx
+apps/web/src/studio/pages/compare.tsx apps/web/test/shared/section-registry.test.ts`, `bun test
+apps/web/test/shared/section-registry.test.ts apps/web/test/shared/route-insight-card.test.ts
+apps/web/test/shared/route-insight-placement.test.ts --timeout 5000`, `bun --filter @bp/web
+typecheck`, and `bun --filter @bp/web build`.
+
+## [2026-06-12] engineering | Tier 2 Bx41 Webster 2014 progress source closes one more source
+
+Reviewed `nyc_dot_bus_priority_document_pdf_2014_03_11_brt_webster_cb3` from the full-corpus source
+review workspace as an implemented Bx41 Webster Avenue SBS record with preliminary post-launch
+results. The local ignored reviewed-record seed now has 15 sources and 15 records. The record cites
+the March 11, 2014 CB3 deck, the June 30, 2013 Bx41 SBS launch, 4 miles / 8 lane-miles of Webster
+Avenue bus lanes, NYPD lane enforcement, optimized signal timing, pedestrian safety islands, Phase 2
+bus-bulb design pages, and preliminary official travel-time/ridership tables.
+
+The record stores `effectiveDate: 2013-06-30` with `datePrecision: day` and keeps TSP plus Phase 2
+capital work caveated as future/estimated in this source. Regenerated the local ignored source
+receipt closure audit. It now reports 291 queue sources, 15 valid reviewed records, 3 disposition
+receipts, 16 closed sources, 275 open sources, and 0 conflicts; public promotion remains blocked on
+full source closure. The broader Tier 2 structured-data inventory command still reports the older
+published-inventory next action because it scans published artifacts rather than this ignored
+manual-review seed.
+
+Verified with `jq empty` on the reviewed-record artifact, `bun run pipeline docs tier2
+source-receipt-audit ...`, and `bun run pipeline audit tier2-structured-data --json`.
+
+## [2026-06-12] engineering | Overview insight cards can feed briefs
+
+Advanced the route-detail §5.4 citation/corpus-palette loop. Overview insight cards now include a
+route-scoped send-to-brief action next to their tab jump, so readiness-gated detector claims can
+move directly into the brief composer without changing detector output or the Studio API contract.
+To stay within the strict route-detail bundle budget, the decorative micro-figure keeps its typed
+kind but no longer ships a separate per-kind label string.
+
+Verified with `bunx biome check apps/web/src/components/route/OverviewSection.tsx
+apps/web/src/components/route/route-insight-card.ts
+apps/web/test/shared/route-insight-card.test.ts`, `bun test
+apps/web/test/shared/route-insight-card.test.ts
+apps/web/test/shared/route-insight-placement.test.ts
+apps/web/test/shared/route-evidence-index.test.ts --timeout 5000`, `bun --filter @bp/web
+typecheck`, `bun --filter @bp/web build`, `bun run check:knowledge`, and `git diff --check`.
+
+## [2026-06-12] engineering | Tier 2 Bx41 Webster CB3 source review closes one more source
+
+Reviewed `nyc_dot_select_bus_service_pdf_2013_02_sbs_webster_bx_cb3` from the full-corpus source
+review workspace as a proposed Bx41 Webster Avenue SBS June 2013 service/implementation-plan
+record. The local ignored reviewed-record seed now has 14 sources and 14 records. The new record
+cites the February 12, 2013 CB3 presentation, the Bx41 LTD to Bx41 SBS service plan, 4 miles of
+offset bus lanes, off-board fare collection, all-door boarding, TSP, bus bulb stations, pedestrian
+improvements, turn-bay/signal-time changes, and the implementation timeline that places lane
+markings and red bus-lane paint in late March-May with start of service at the end of June.
+
+Because the source gives a month but not an exact day, the record stores `effectiveDate: 2013-06`
+with `datePrecision: month` and carries the pre-implementation caveat explicitly. Regenerated the
+local ignored source receipt closure audit. It now reports 291 queue sources, 14 valid reviewed
+records, 3 disposition receipts, 15 closed sources, 276 open sources, and 0 conflicts; public
+promotion remains blocked on full source closure. The broader Tier 2 structured-data inventory
+command still reports the older global source-closure next action because it scans the published
+artifact inventory rather than this ignored manual-review seed.
+
+Verified with `jq empty` on the reviewed-record artifact, `bun run pipeline docs tier2
+source-receipt-audit ...`, and `bun run pipeline audit tier2-structured-data --json`.
+
+## [2026-06-12] engineering | Evidence tab gains an insight citation index
+
+Advanced the route-detail §4.3/§5.4 Evidence tab by adding a pure `routeEvidenceIndexRows`
+projection over the existing public `StudioRouteInsight` contract. The Evidence tab now starts with
+an index of route findings sorted by severity/month/detector/scope, showing detector label,
+freshness, safe caveats, cited-ref totals, finding/source ref counts, tab jump targets, and a
+route-scoped send-to-brief action. Source-gap rows remain in Evidence even when they have no public
+refs attached.
+
+This is a frontend-only dossier affordance: it does not change the Studio API contract, add new
+detector output, or promote blocked detector feature families.
+
+Verified with `bunx biome check apps/web/src/components/route/route-insight-card.ts
+apps/web/src/components/route/DataNotesSection.tsx
+apps/web/src/components/route/route-insight-placement.ts apps/web/src/studio/pages/route-detail.tsx
+apps/web/test/shared/route-evidence-index.test.ts`, `bun test
+apps/web/test/shared/route-evidence-index.test.ts
+apps/web/test/shared/route-insight-card.test.ts
+apps/web/test/shared/route-insight-placement.test.ts apps/web/test/shared/coverage-matrix.test.ts
+apps/web/test/shared/section-registry.test.ts --timeout 5000`, `bun --filter @bp/web typecheck`,
+`bun --filter @bp/web build`, `bun run check:knowledge`, and `git diff --check`.
+
+## [2026-06-12] engineering | Tier 2 Bx12 Fordham/Inwood CAB source review closes one more source
+
+Reviewed `nyc_dot_bus_priority_document_pdf_fordham_rd_inwood_cab_may2023` from the full-corpus
+source review workspace as a proposed Bx12 SBS Fordham Road/Inwood offset bus-lane plan. The local
+ignored reviewed-record seed now has 13 sources and 13 records. The new record cites the May 31,
+2023 Community Advisory Board presentation, selected Alternative A offset bus-lane design, 24/7 bus
+lane operation, curb/loading access changes, fall 2023 planned implementation, and ABLE camera
+enforcement context. Studied busway alternatives remain caveated as alternatives, not selected
+interventions.
+
+Because the source states planned fall 2023 implementation rather than post-implementation proof,
+the record stores `effectiveDate: 2023` with `datePrecision: year`. Regenerated the local ignored
+source receipt closure audit. It now reports 291 queue sources, 13 valid reviewed records, 3
+disposition receipts, 14 closed sources, 277 open sources, and 0 conflicts; public promotion remains
+blocked on full source closure. The broader Tier 2 structured-data inventory command still reports
+the older global source-closure next action because it scans the published artifact inventory rather
+than this ignored manual-review seed.
+
+Verified with `jq empty` on the reviewed-record artifact, `bun run pipeline docs tier2
+source-receipt-audit ...`, and `bun run pipeline audit tier2-structured-data --json`.
+
+## [2026-06-12] engineering | Evidence tab promotes checked-clean surfaces
+
+Advanced the route-detail §5.3 negative-space contract in the Evidence tab. The capability coverage
+matrix now exposes a pure `checkedCleanCoverageChips` projection, and the Evidence "What we
+checked" block renders compact checked-clean chips with the surface label and data-as-of month
+before the full coverage table. This makes clean no-hit surfaces visible without changing detector
+logic, promoting blocked detector families, or inventing coverage for legacy route responses.
+
+Added focused coverage-matrix tests for checked-clean chip labels, data clocks, depth labels, and
+legacy empty-state behavior.
+
+Verified with `bunx biome check --write apps/web/src/components/route/coverage-matrix.ts
+apps/web/src/components/route/DataNotesSection.tsx
+apps/web/test/shared/coverage-matrix.test.ts`, `bun test
+apps/web/test/shared/coverage-matrix.test.ts apps/web/test/shared/section-registry.test.ts
+--timeout 5000`, `bun --filter @bp/web typecheck`, and `bun --filter @bp/web build`.
+
+## [2026-06-12] engineering | Tier 2 Bx41 Webster CB6 source review closes one more source
+
+Reviewed `nyc_dot_select_bus_service_pdf_2013_03_sbs_webster_bx_cb6` from the full-corpus source
+review workspace as a proposed Bx41 Webster Avenue SBS 2013 service/implementation-plan record. The
+local ignored reviewed-record seed now has 12 sources and 12 records. The new record cites the
+March 7, 2013 CB6 presentation, Bx41 LTD to Bx41 SBS service plan, 4 miles of offset bus lanes,
+off-board fare collection, all-door boarding, TSP, bus bulbs, pedestrian improvements, turn
+bays/signal-time changes, and the project timeline that places bus lanes/priority treatments before
+summer 2013 start of service while separating 2014-2015 capital work.
+
+Because the source gives a season rather than an exact month/day, the record stores
+`effectiveDate: 2013` with `datePrecision: year` and carries the summer-2013 detail as a caveat.
+Regenerated the local ignored source receipt closure audit. It now reports 291 queue sources, 12
+valid reviewed records, 3 disposition receipts, 13 closed sources, 278 open sources, and 0 conflicts;
+public promotion remains blocked on full source closure. The broader Tier 2 structured-data
+inventory command still reports the older global source-closure next action because it scans the
+published artifact inventory rather than this ignored manual-review seed.
+
+Verified with `jq empty` on the reviewed-record artifact, `bun run pipeline docs tier2
+source-receipt-audit ...`, and `bun run pipeline audit tier2-structured-data --json`.
+
+## [2026-06-12] engineering | Overview insight cards get typed micro-figures
+
+Advanced the route-detail §5.1 insight-card system without changing detector output. Added a
+pure `routeInsightCardSpec` helper that classifies existing `StudioRouteInsight` rows into tab
+targets, evidence labels, and compact micro-figure kinds: segment strips, trend cues, timeline
+ticks, or coverage chips. The Overview verdict cards now use that spec for detector labels,
+deep-link copy, citation-count chips, and a fixed-height visual cue that makes ranked insights
+scannable before opening a tab.
+
+This keeps the public route dossier contract as the source of truth, leaves the blocked detector
+feature families untouched, and gives the current insight payload the card shape called for by the
+frontend dossier plan.
+
+Verified with `bunx biome check --write apps/web/src/components/route/route-insight-card.ts
+apps/web/src/components/route/OverviewSection.tsx apps/web/test/shared/route-insight-card.test.ts`,
+`bun test apps/web/test/shared/route-insight-card.test.ts
+apps/web/test/shared/route-insight-placement.test.ts --timeout 5000`,
+`bun --filter @bp/web typecheck`, `bunx biome check
+apps/web/src/components/route/route-insight-card.ts
+apps/web/src/components/route/OverviewSection.tsx apps/web/test/shared/route-insight-card.test.ts`,
+and `bun --filter @bp/web build`.
+
+## [2026-06-12] engineering | Tier 2 Bx41 Webster CB7 source review closes one more source
+
+Reviewed `nyc_dot_select_bus_service_pdf_2013_03_sbs_webster_bx_cb7` from the full-corpus source
+review workspace as a proposed Bx41 Webster Avenue SBS 2013 service/implementation-plan record. The
+local ignored reviewed-record seed now has 11 sources and 11 records. The new record cites the
+March 14, 2013 CB7 presentation, the Bx41 LTD to Bx41 SBS service plan, 4 miles of offset bus
+lanes, off-board fare collection, all-door boarding, TSP, bus bulbs, pedestrian improvements, turn
+bays/signal-time changes, and the project timeline that places bus lanes/priority treatments in
+spring 2013 and start of service in summer 2013.
+
+Because the source gives a season rather than an exact month/day, the record stores
+`effectiveDate: 2013` with `datePrecision: year` and carries the summer-2013 detail as a caveat.
+Regenerated the local ignored source receipt closure audit. It now reports 291 queue sources, 11
+valid reviewed records, 3 disposition receipts, 12 closed sources, 279 open sources, and 0 conflicts;
+public promotion remains blocked on full source closure. The broader Tier 2 structured-data
+inventory command still reports the older global source-closure next action because it scans the
+published artifact inventory rather than this ignored manual-review seed.
+
+Verified with `jq empty` on the reviewed-record artifact, `bun run pipeline docs tier2
+source-receipt-audit ...`, and `bun run pipeline audit tier2-structured-data --json`.
+
+## [2026-06-12] engineering | Route pages show dossier depth archetypes
+
+Advanced the manifest-adaptive route-detail work from §8.3 by deriving a route dossier archetype
+from the capability manifest and dossier series depth. Routes now classify as `flagship`,
+`standard`, `sparse`, or `legacy` based on complete evidence surfaces and multi-year depth, and the
+route page exposes that classification in both the Overview verdict card and the Evidence summary.
+
+This makes the page more honest about how much route-level support is available without changing
+the underlying serving contract or touching blocked detector feature families. Sparse and legacy
+routes no longer visually imply the same dossier completeness as broad multi-year routes.
+
+Verified with `bunx biome check --write apps/web/src/components/route/route-archetype.ts
+apps/web/src/components/route/OverviewSection.tsx
+apps/web/src/components/route/DataNotesSection.tsx apps/web/test/shared/route-archetype.test.ts`
+and `bun test apps/web/test/shared/route-archetype.test.ts --timeout 5000`.
+
+## [2026-06-12] engineering | Tier 2 Bx41 Webster CB5 source review closes one more source
+
+Reviewed `nyc_dot_select_bus_service_pdf_2013_03_sbs_webster_bx_cb5` from the full-corpus source
+review workspace as a proposed Bx41 Webster Avenue SBS June 2013 service/implementation-plan record.
+The local ignored reviewed-record seed now has 10 sources and 10 records. The new record cites the
+March 21, 2013 CB5 presentation, the Bx41 Webster/Melrose route scope, 4 miles of offset bus lanes,
+off-board fare collection, all-door boarding, TSP, pedestrian improvements, bus bulbs, queue jump,
+turn bays, half-mile SBS stop spacing, and June start-of-service implementation steps.
+
+Regenerated the local ignored source receipt closure audit. It now reports 291 queue sources, 10
+valid reviewed records, 3 disposition receipts, 11 closed sources, 280 open sources, and 0 conflicts;
+public promotion remains blocked on full source closure. The broader Tier 2 structured-data
+inventory command still reports the older global source-closure next action because it scans the
+published artifact inventory rather than this ignored manual-review seed.
+
+Verified with `jq empty` on the reviewed-record artifact, `bun run pipeline docs tier2
+source-receipt-audit ...`, and `bun run pipeline audit tier2-structured-data --json`.
+
+## [2026-06-12] engineering | Route tabs badge their flagged insights
+
+Advanced the route-detail §4.3 tab strip so detector-shaped public insights now badge the tab that
+explains them. Shared `routeTabForInsight` routes map, reliability, rider-impact, treatment, and
+source-gap insights to the dossier tabs; `routeTabBadges` counts visible insights per tab and keeps
+the strongest severity for the badge color. The overview insight cards now use the same router as
+the shell, so "View details" links and the manifest-filtered tab badges stay aligned.
+
+The shell renders compact `Badge` counts on visible tabs only, capped at `9+`, without changing the
+section registry or promoting the blocked detector feature families. This keeps the current public
+insight contract as the source of truth while making the registry-backed page easier to scan.
+
+Verified with `bunx biome check apps/web/src/components/route/RouteDetailShell.tsx
+apps/web/src/components/route/OverviewSection.tsx
+apps/web/src/components/route/route-insight-placement.ts apps/web/src/studio/pages/route-detail.tsx
+apps/web/test/shared/route-insight-placement.test.ts`, `bun test
+apps/web/test/shared/route-insight-placement.test.ts apps/web/test/shared/section-registry.test.ts
+--timeout 5000`, `bun --filter @bp/web typecheck`, and `bun --filter @bp/web build`.
+
+## [2026-06-12] engineering | Tier 2 M34/M16 34th Street AA source review closes one more source
+
+Reviewed `nyc_dot_bus_priority_document_pdf_34thstreet_aa_final` from the full-corpus source review
+workspace as a proposed M34/M16 34th Street BRT Locally Preferred Alternative record. The local
+ignored reviewed-record seed now has 9 sources and 9 records. The new record cites the February 2010
+Alternatives Analysis Screening Report, limits the intervention route assignment to the M34/M16
+east-west local service, and preserves the BRT transitway, off-board fare collection, all-door
+boarding, TSP, station-siting, pedestrian-space, and preliminary-design/environmental-review evidence.
+
+Regenerated the local ignored source receipt closure audit. It now reports 291 queue sources, 9
+valid reviewed records, 3 disposition receipts, 10 closed sources, 281 open sources, and 0 conflicts;
+public promotion remains blocked on full source closure. The broader Tier 2 structured-data
+inventory command still reports the older global source-closure next action because it scans the
+published artifact inventory rather than this ignored manual-review seed.
+
+Verified with `jq empty` on the reviewed-record artifact, `bun run pipeline docs tier2
+source-receipt-audit ...`, and `bun run pipeline audit tier2-structured-data --json`.
+
+## [2026-06-12] engineering | Riders tab becomes a burden dossier
+
+Advanced the route-detail Riders tab toward the §4.3 dossier question, "Who bears it?" The header
+Riders KPI now uses the same rider-impact summary as the tab, pairing daily riders with
+rider-hours lost per weekday and the ridership surface's data-as-of clock. The tab now leads with a
+question-shaped section header, separates current rider-hour burden from monthly ridership history,
+shows route trend and top-segment share evidence, and adds rider/customer-journey insight rows when
+public detector context is attached.
+
+Added `rider-impact-summary` as the pure label/null-handling helper so daily-rider, burden,
+history, top-segment, and rider-insight wording stays out of React layout code. Focused tests cover
+dossier-backed ridership history, current-projection fallback wording, and rider-impact insight
+filtering without promoting blocked detector fixes.
+
+Verified with `bunx biome check --write apps/web/src/components/route/RidersSection.tsx
+apps/web/src/components/route/RouteJudgedKpiStrip.tsx
+apps/web/src/components/route/rider-impact-summary.ts
+apps/web/test/shared/rider-impact-summary.test.ts`, `bun test
+apps/web/test/shared/rider-impact-summary.test.ts apps/web/test/shared/section-registry.test.ts
+--timeout 5000`, `bun --filter @bp/web typecheck`, and `bun --filter @bp/web build`.
+
+## [2026-06-12] engineering | Tier 2 Q52/Q53 Woodhaven source review closes one more source
+
+Reviewed `nyc_dot_bus_priority_document_pdf_brt_woodhaven_may2016` from the full-corpus source
+review workspace as a proposed Q52/Q53 Woodhaven / Cross Bay SBS 2017 plan record. The local
+ignored reviewed-record seed now has 8 sources and 8 records. The new record cites the May 10,
+2016 CAC presentation, Q52/Q53 corridor and ridership context, the 2017 SBS implementation plan,
+bus-lane/TSP/fare-payment/all-door-boarding components, 2015 bus-lane evidence, simulation travel
+time context, and design-update caveats around median stations and later capital work.
+
+Regenerated the local ignored source receipt closure audit. It now reports 291 queue sources, 8
+valid reviewed records, 3 disposition receipts, 9 closed sources, 282 open sources, and 0 conflicts;
+public promotion remains blocked on full source closure. The broader Tier 2 structured-data
+inventory command still reports the older global source-closure next action because it scans the
+published artifact inventory rather than this ignored manual-review seed.
+
+Verified with `jq empty` on the reviewed-record artifact, `bun run pipeline docs tier2
+source-receipt-audit ...`, and `bun run pipeline audit tier2-structured-data --json`.
+
+## [2026-06-12] engineering | Reliability tab becomes evidence-backed
+
+Advanced the route-detail Reliability tab toward the §4.3 dossier-backed question, "Can riders
+count on it?" The header KPI no longer claims an official reliability grade just because the
+surface is available. It now reports building, low-sample, or observed evidence states from the
+capability manifest and observed reliability row, with data-as-of metadata and sample coverage.
+
+The tab now shows evidence state, sample coverage, bunching share, long-gap share, headway
+distribution, reliability-specific insight rows, and provenance/caveat copy. Missing or insufficient
+observed rows remain explicit manifest-gated empty states instead of blank or overclaimed sections.
+Added a shared `reliability-summary` helper and focused tests for building, observed, low-sample,
+and reliability-insight filtering cases.
+
+Verified with `bunx biome check apps/web/src/components/route/ReliabilitySection.tsx
+apps/web/src/components/route/RouteJudgedKpiStrip.tsx
+apps/web/src/components/route/reliability-summary.ts
+apps/web/test/shared/reliability-summary.test.ts`, `bun test
+apps/web/test/shared/reliability-summary.test.ts apps/web/test/shared/section-registry.test.ts
+--timeout 5000`, `bun --filter @bp/web typecheck`, and `bun --filter @bp/web build`.
+
+## [2026-06-12] engineering | Tier 2 B46 Utica CB18 source review closes one more source
+
+Reviewed `nyc_dot_bus_priority_document_pdf_brt_uticaave_cb18_transportation_committee_2016` from
+the full-corpus source review workspace as a proposed B46 Utica Avenue SBS launch and capital-plan
+record. The local ignored reviewed-record seed now has 7 sources and 7 records. The new record cites
+the February 17, 2016 CB18 presentation, the B46 SBS route and CB18 stop context, 2014-2015 bus-lane
+and TSP improvements, 2016 fare-machine and red-lane launch prep, 2017-2018 bus bulb and pedestrian
+capital plans, and the Avenue H stop relocation/short-turn context.
+
+Regenerated the local ignored source receipt closure audit. It now reports 291 queue sources, 7
+valid reviewed records, 3 disposition receipts, 8 closed sources, 283 open sources, and 0 conflicts;
+public promotion remains blocked on full source closure. The broader Tier 2 structured-data
+inventory command still reports the older global source-closure next action because it scans the
+published artifact inventory rather than this ignored manual-review seed.
+
+Verified with `jq empty` on the reviewed-record artifact, `bun run pipeline docs tier2
+source-receipt-audit ...`, and `bun run pipeline audit tier2-structured-data --json`.
+
+## [2026-06-12] engineering | Tier 2 M15 CB11 source review closes one more source
+
+Reviewed `nyc_dot_bus_priority_document_pdf_2010_06_09_brt_1st2nd_cb11` from the full-corpus
+source review workspace as a proposed First Avenue/Second Avenue M15 SBS launch-plan record. The
+local ignored reviewed-record seed now has 6 sources and 6 records. The record cites the June 9,
+2010 CB11 presentation, the M15 SBS route map from South Ferry to 125th Street, the 2010 feature
+table for off-board fare collection and improved bus lanes, the 2010 bus-lane implementation plan,
+selected CB11 station-siting pages, construction sequencing, and the October 2010 launch summary.
+It preserves caveats that the source is pre-launch, Transit Signal Priority and bus bulbs are
+2011-2012 features in this presentation, and selected station pages are not a full block-by-block
+treatment assignment.
+
+Regenerated the local ignored source receipt closure audit. It now reports 291 queue sources, 6
+valid reviewed records, 3 disposition receipts, 7 closed sources, 284 open sources, and 0 conflicts;
+public promotion remains blocked on full source closure. Verified with `jq empty` on the reviewed
+record artifact, `bun run pipeline docs tier2 source-receipt-audit ...`, and
+`bun run pipeline audit tier2-structured-data --json`.
+
+## [2026-06-12] engineering | Where and when uses dossier speed summary
+
+Advanced the route-detail Where & when tab toward the §4.3 dossier-backed shape. The section now
+derives its subtitle, data-as-of badge, current speed, peer framing, 6-month movement, history
+window, and worst-segment copy from the route dossier when available, with current-projection
+fallbacks for sparse or legacy routes. The helper keeps formatting and null handling out of the
+React component, and the route-detail page passes the dossier summary into the slow-segments view.
+
+Added focused coverage for a rich dossier case and a no-dossier fallback. Verified with
+`bunx biome check --write apps/web/src/components/route/SlowSegments.tsx
+apps/web/src/components/route/where-when-summary.ts apps/web/src/studio/pages/route-detail.tsx
+apps/web/test/shared/where-when-summary.test.ts`, `bun test
+apps/web/test/shared/where-when-summary.test.ts apps/web/test/shared/section-registry.test.ts
+--timeout 5000`, `bun --filter @bp/web typecheck`, and `bun --filter @bp/web build`.
+
+## [2026-06-12] engineering | Tier 2 M15 CB8 March source review closes one more source
+
+Reviewed `nyc_dot_bus_priority_document_pdf_2010_03_11_brt_1st2nd_cb8` from the full-corpus
+source review workspace as a proposed First Avenue/Second Avenue M15 SBS Phase 1 schedule and
+treatment record. The local ignored reviewed-record seed now has 5 sources and 5 records. The new
+record cites the March 11, 2010 CB8 presentation, the First Avenue/Second Avenue M15 corridor from
+South Ferry to 125th Street, the 2010 SBS feature table for off-board fare collection and improved
+bus lanes, the 2010 schedule showing October Phase 1 SBS service beginning, and selected CB8 station
+siting pages, while preserving caveats that the source is pre-launch, month-level, and not a full
+block-by-block assignment.
+
+Regenerated the local ignored source receipt closure audit. It now reports 291 queue sources, 5
+valid reviewed records, 3 disposition receipts, 6 closed sources, 285 open sources, and 0 conflicts;
+public promotion remains blocked on full source closure. Verified with `jq empty` on the reviewed
+record artifact, `bun run pipeline docs tier2 source-receipt-audit ...`, and
+`bun run pipeline audit tier2-structured-data --json`.
+
+## [2026-06-12] engineering | Treatments history tab becomes dossier-backed
+
+Consolidated the route-detail Treatments & history tab into the §4.3 redesign shape. The tab now
+shows treatment posture stats, family-grouped treatment inventory, source-labeled document refs,
+dated intervention history, dossier-backed speed history, and comparison cards only when a promoted
+route record carries a peer-adjusted comparison window. This replaces the old split between the
+treatment inventory and timeline sections without reviving the blocked detector feature fixes.
+
+Added helper coverage for promoted comparison card formatting and source-row de-duplication.
+Verified with `bun test apps/web/test/shared/treatments-history.test.ts
+apps/web/test/shared/section-registry.test.ts --timeout 5000`, `bun --filter @bp/web typecheck`,
+targeted `bunx biome check --write ...`, and `bun --filter @bp/web build`.
+
+## [2026-06-12] engineering | Evidence shows manifest coverage matrix
+
+Advanced the route-detail Evidence tab from dataset notes into the §5.3/§8.1 manifest-backed
+"what we checked" matrix. Evidence now lists each published capability surface with state, depth,
+reason, and data-as-of metadata, so ready, checked-clean, insufficient, blocked, and legacy/no-manifest
+routes all have explicit public language instead of relying only on hidden-tab notes. Added a focused
+coverage-matrix helper and tests for ordering, labels, depth summaries, and legacy fallback behavior.
+
+Verified with `bun test apps/web/test/shared/coverage-matrix.test.ts
+apps/web/test/shared/section-registry.test.ts --timeout 5000`, `bun --filter @bp/web typecheck`,
+targeted `bunx biome check ...`, `bun --filter @bp/web build`, and `git diff --check`.
+
+## [2026-06-12] engineering | Tier 2 M15 CAC4 source review closes one more source
+
+Reviewed `nyc_dot_bus_priority_document_pdf_2010_04_29_brt_1st2nd_cac4` from the full-corpus
+source review workspace as a proposed M15 First Avenue/Second Avenue SBS launch record. The local
+ignored reviewed-record seed now has 4 sources and 4 records. The CAC4 record cites the April 29,
+2010 presentation, the source-announced October 10, 2010 M15 SBS start, the 10+ miles of bus/bike
+facilities, the First Avenue/Second Avenue corridor/ridership context, and station-siting changes
+at Water/Wall, Grand/Allen, First/28th, and First/42nd, while preserving caveats that this is
+pre-launch evidence, deterministic corridor validation still needs review, and the station maps are
+not a full block-by-block treatment assignment.
+
+Regenerated the local ignored source receipt closure audit. It now reports 291 queue sources, 4
+valid reviewed records, 3 disposition receipts, 5 closed sources, 286 open sources, and 0 conflicts;
+public promotion remains blocked on full source closure. Verified with `jq empty` on the reviewed
+record artifact, `bun run pipeline docs tier2 source-receipt-audit ...`, and
+`bun run pipeline audit tier2-structured-data --json`.
+
+## [2026-06-12] engineering | Overview becomes a dossier verdict slice
+
+Advanced the route-detail redesign from tab availability into the §4.2 Overview shape. Overview
+now leads with a route verdict, up to three severity-ranked insight cards, a dossier-backed story
+strip, a mini-map link into the Map tab, and a "what we checked" path into Evidence. The corridor
+profile and hour-of-day diagnostic chart moved out of Overview and into Where & when, matching the
+question-shaped tab split.
+
+Verified with `bun test apps/web/test/shared/route-insight-placement.test.ts
+apps/web/test/shared/section-registry.test.ts --timeout 5000`, `bun --filter @bp/web typecheck`,
+and `bun --filter @bp/web build`.
+
+## [2026-06-12] engineering | Tier 2 M15 First/Second Avenue source review closes one more source
+
+Reviewed `nyc_dot_bus_priority_document_pdf_2010_02_25_brt_1st2nd_cb8` from the full-corpus
+source review packs as a proposed M15 SBS corridor record for First Avenue/Second Avenue Phase 1.
+The local ignored reviewed-record seed now has 3 sources and 3 records. The M15 record cites the
+official February 25, 2010 CB8 presentation title/date, the 2010 milestone schedule, and the
+corridor map legend for offset/curb bus lanes, SBS station locations, and protected/shared bike
+path street designs, while preserving caveats that the reviewed page text does not itself print
+M15, the start date is only October/November 2010, and the map extraction does not assign treatment
+types to exact segments.
+
+Regenerated the local ignored source receipt closure audit. It now reports 291 queue sources, 3
+valid reviewed records, 3 disposition receipts, 4 closed sources, 287 open sources, and 0 conflicts;
+public promotion remains blocked on full source closure. Verified with `jq empty` on the reviewed
+record artifact, `bun --filter @bp/pipeline-v2 cli -- docs tier2 source-receipt-audit ...`, and
+`bun --filter @bp/pipeline-v2 cli -- audit tier2-structured-data --json`.
+
+## [2026-06-12] engineering | Route detail registry exposes map and reliability tabs
+
+Advanced the route evidence dossier to registry-driven presentation for the next route-detail
+redesign slice. The route section registry now includes explicit Map and Reliability tabs, hides
+reliability when the manifest says the surface is still building or insufficient, and carries
+hidden-section state/reason/data-as-of metadata into the Evidence notes instead of rendering blank
+or unsupported tabs. The route-detail page now renders a map-first geography section and an observed
+wait-reliability section when the manifest supports them, while compare keeps the existing supported
+subset until map/reliability compare sections exist.
+
+Verified with `bun test apps/web/test/shared/section-registry.test.ts --timeout 5000`,
+`bun --filter @bp/web typecheck`, `bun --filter @bp/web build`, targeted
+`bunx biome check --max-diagnostics=80 ...`, and `git diff --check`.
+
+## [2026-06-12] engineering | Tier 2 Kings Highway source review closes one more source
+
+Reviewed `nyc_dot_bus_priority_document_pdf_brt_kings_highway_aug2018` from the full-corpus source
+review packs as a corridor-level proposed Kings Highway curbside-change record. The local ignored
+reviewed-record seed now has 2 sources and 2 records, with Kings Highway carrying bus-lane,
+turn-bay, taxi-stand-relocation, truck-loading-zone, parking-meter, and parking-impact evidence
+while preserving caveats that the reviewed pages do not state bus route IDs, implementation date,
+measured bus-speed impact, or block-level treatment locations.
+
+Regenerated the local ignored source receipt closure audit. It now reports 291 queue sources, 2
+valid reviewed records, 3 disposition receipts, 3 closed sources, 288 open sources, and 0 conflicts;
+public promotion remains blocked on full source closure. Verified with `jq empty` on the reviewed
+record artifact, `bun --filter @bp/pipeline-v2 cli -- docs tier2 source-receipt-audit ...`, and
+`bun --filter @bp/pipeline-v2 cli -- audit tier2-structured-data --json`.
+
+## [2026-06-12] docs | Multi-year public contract clarified
+
+Captured the maintainer clarification that the product should stop centering the idea of monthly
+publishing. ADR 0017 now states that default public surfaces should be shaped around multi-year
+route/corridor evidence wherever source coverage supports it, with a baseline month serving only as
+review/provenance anchor. Updated the corpus overview, frontend serving goal, hard-cutover dossier,
+and wiki index to describe publication as promotion of a reviewed serving projection rather than
+shipping one monthly dataset as the product.
+
+## [2026-06-12] engineering | Web route loaders made signal-aware and cache-tuned
+
+Closed the current web app support-plan gap for route loader behavior. Studio API read helpers now
+accept optional abort signals, and high-traffic TanStack Router loaders pass
+`abortController.signal` through route, search, compare, finding, brief, evidence, history, edit,
+review, and annotate requests. Static serving pages use a 5-minute stale window, editorial brief
+pages use 60 seconds, and mutable authoring/review pages use 30 seconds.
+
+The new-brief loader now starts its seed brief plus optional route/finding context fetches in
+parallel instead of serializing them. The live authoring UI already writes through the D1 draft
+create/edit/review/publish-candidate/retract APIs, while brief evidence/history are split routes
+and route/chart-heavy UI stays lazy-loaded under the current payload contract. Verified with
+`bun --filter @bp/web typecheck` and `bun run check:web-release`.
+
+## [2026-06-12] engineering | Studio coverage audit aligned with D1 route addressability
+
+Updated `audit studio-coverage` so the public `/api/v1/studio/routes` contract is gated by D1 route
+addressability instead of the older curated `studio/v1` projection list. The audit now reports
+`d1RouteAddressabilityShare: 1` for March 2026 and returns `warn`, not `fail`, when only legacy
+curated route-detail projection depth is missing. Mandatory serving-contract inputs, route brief
+inputs, segment evidence metadata, evidence catalog integrity, generated-artifact presentation
+rules, and detector finding refs remain fail gates.
+
+Verified with `bun --filter @bp/pipeline-v2 test studio-coverage` and
+`bun --filter @bp/pipeline-v2 cli -- audit studio-coverage --year 2026 --month 3 --json`.
+
+## [2026-06-12] engineering | Loaded 311 corpus and Worker refresh readiness closed
+
+Marked the 311 geocode/join item complete for the loaded current and historical corpora. The
+operational status records zero unattempted 311 rows after the targeted monthly slices: current 311
+has 2,504,843 geocoded records and 16,291 misses, while historical 311 has 37,707 geocoded records
+and 1,597 misses. Current and historical route-touch tables are materialized.
+
+Also reverified the small Worker refresh model: cron captures GTFS-RT protobuf/manifests plus
+compact health to R2/D1, the daily route-speed watcher writes publication artifacts, and
+`shouldRebuild=true` stays a manual PC rebuild/publish handoff. Verified with
+`bun --filter @bp/studio-api test source-refresh`.
+
+## [2026-06-12] engineering | Serving publish completeness reverified after timeline materialization
+
+Closed the stale local March 2026 publish-completeness regression without rerunning the production
+mutation. The route-timeline serving projection builder now materializes each timeline copy-plan
+artifact into the local R2 artifact root while writing the projection JSON/SQL/Markdown outputs, so
+the D1 seed's `studio/v2/routes/{route}/timeline.json` artifact refs resolve locally.
+
+Regenerated the March 2026 route-timeline serving projection from the existing bundle index and
+reverified that B46, B82, BX41, and M15 timeline artifact hashes/byte counts match the D1 seed.
+`bun run check:publish-completeness -- --month 2026-03` now reports zero missing refs, and a dry-run
+`bun run publish:serving-release -- --month 2026-03 --d1 bus-priority-serving --r2
+bus-priority-artifacts` completed without mutating production. The earlier production
+`publish:serving-release --execute` remains recorded in the operational status page.
+
+## [2026-06-12] engineering | Mixed-freshness labels surfaced in route data notes
+
+Closed the frontend copy gap for ADR 0017 release-layer labels. Added a route data-quality label
+helper in `apps/web/src/components/route/data-quality-labels.ts` that maps the Studio quality
+contract to `Baseline Release`, `Current Signal`, `Pending Publication`, and `Observed Release`,
+plus human-readable completeness labels. `DataNotesSection` now shows the release layer with a
+short provenance description instead of only confidence/completeness, and
+`apps/web/test/shared/data-quality-labels.test.ts` locks the public labels against snake_case enum
+leaks. Verified with `bun test apps/web/test/shared/data-quality-labels.test.ts --timeout 5000`
+and `bun --filter @bp/web typecheck`.
+
+## [2026-06-12] engineering | Studio docs endpoint metadata generated from OpenAPI contract
+
+Closed the immediate-open-issue slice for `/docs` API metadata drift. `GET /api/v1/studio/docs`
+now preserves the generated docs prose/quality projection from R2 but replaces stale endpoint rows
+with endpoint metadata derived from `studioOpenApiDocument.paths`, the same package-level contract
+served by `GET /api/openapi.json`. The Studio snapshot manifest uses the same generated endpoint
+count, so `/api/v1/studio/snapshot` can no longer report stale docs endpoint inventory from
+`studio/v1/docs.json`.
+
+Added coverage in `packages/studio-api/test/api-facade.test.ts` and
+`packages/studio-api/test/http-routing.test.ts` to prove docs sections remain projection-backed
+while endpoint rows and snapshot counts follow the OpenAPI contract. Verified with
+`bun --filter @bp/studio-api test`, `bun --filter @bp/studio-api typecheck`, and
+`bun --filter @bp/web typecheck`. Also reverified the already-implemented web release gate with
+`bun run check:web-release` before marking immediate issue 6 done in `knowledge/index.md`.
+
+## [2026-06-12] engineering | Tier 2 reviewed-record seed closes Utica source
+
+Added the first schema-valid full-corpus reviewed intervention record seed at
+`data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/intervention-records-corpus-reviewed.json`.
+The record closes `nyc_dot_select_bus_service_pdf_utica_ave_b46_sbs_open_house` as a proposed
+Utica Avenue B46 SBS bus-lane, left-turn-bay, and local-stop design record, while preserving the
+review caveat that the pack did not resolve route links and that B46 comes from the source context
+rather than a parsed route field. The artifact is explicitly `publicPromotionStatus: not_ready`.
+
+Updated the source-disposition decisions so Utica is `reviewed_records_authored`, the bus-lane
+enforcement brochure remains `supporting_context_only`, and the Flatbush Avenue September 2025
+source stays `needs_more_source_review` because the current extraction captured only a page-3
+Background divider and needs later-page recapture/manual review. Regenerated source-disposition
+receipts and the full-corpus source receipt closure audit. The closure audit now has 291 queue
+sources, 1 valid reviewed record, 3 disposition receipts, 2 closed sources, 289 open sources, and 0
+conflicts.
+
+Reran `audit tier2-structured-data` and `audit data-product-completeness`. The structured inventory
+now scans 2,152 artifacts and reports only the source-closure gate as the next Tier 2 action. Data
+product completeness still reports 84 complete, 1 partial, 3 missing, 1 blocked, and 5
+downstream-blocked products; the Tier 2 extraction product is partial for `2/291` closed sources,
+289 open sources, and the still-missing full-corpus publishable intervention projection.
+
+## [2026-06-12] engineering | Full-corpus Tier 2 source review packs generated
+
+Generated a bounded all-source review-pack batch at
+`data/artifacts/docs/agentic-runs-20260604/source-review-packs-full-authority-qv1-qv10-v1/all-source-review-packs.json`
+with Markdown and summary siblings. The batch covers all 291 source queue rows: 288
+record-candidate review packs, 3 source-disposition review packs, 277 high-priority sources, and
+175 exact mta-wiki aligned sources carrying 2,279 supplementary mta-wiki candidate records. The
+packs are complete authoring handoffs, not source receipts or reviewed intervention facts.
+
+Updated the Tier 2 structured-data inventory to classify `bp.tier2_source_review_pack_batch.v1` as
+`source_review_packs` validated staging and to scan `source-review-packs` artifacts. The inventory
+now warns that source review packs must not be treated as reviewed or publishable intervention
+facts, and the refreshed inventory has 2,151 scanned artifacts. The remaining full-corpus blockers
+are unchanged: 290 open sources, missing reviewed `bp.document_intervention_record.v1` records, and
+missing full-corpus publishable intervention projection.
+
+## [2026-06-12] engineering | Tier 2 source disposition receipts added
+
+Added `docs tier2 source-disposition-receipts`, which normalizes explicit source-review decisions
+from source review packs into audit-readable `bp.tier2_source_disposition_receipts.v1` artifacts.
+The command validates source ids against the reviewed pack batch, carries reviewer/rationale/evidence
+refs, and keeps source dispositions separate from reviewed intervention facts: only
+`supporting_context_only`, `no_actionable_bus_priority_intervention`, and `suppressed` close a
+source without records, while `needs_more_source_review` remains non-closing.
+
+Generated the first receipt batch at
+`data/artifacts/docs/agentic-runs-20260604/source-disposition-receipts-full-authority-qv1-qv10-v1/source-disposition-receipts.json`
+from three source-disposition-only packs. It produced 3 receipts, with 1 closing disposition
+(`nyc_dot_bus_priority_document_pdf_buslane_enforcement_brochure` as supporting context only) and 2
+non-closing receipts for sources that still need more review. The artifact remains
+`publicPromotionStatus: not_ready`.
+
+The full-corpus source receipt closure audit now has 291 queue sources, 3 disposition receipts, 0
+invalid disposition receipts, 1 closed source, 290 open sources, and 0 conflicts. Structured-data
+inventory now scans and classifies `source_disposition_receipts` as validated staging, with an
+explicit warning that these receipts close source accounting only and must not be treated as
+reviewed or publishable intervention facts.
+
+After rerunning `audit tier2-structured-data` and `audit data-product-completeness`, the structured
+inventory has 2,145 artifacts. Data-product completeness remains 84 complete, 1 partial, 3 missing,
+1 blocked, and 5 downstream-blocked; the Tier 2 full-corpus extraction product is still partial for
+`1/291` sources closed, 290 open sources, missing full-corpus reviewed records, and missing
+full-corpus publishable interventions.
+
+## [2026-06-12] engineering | mta-wiki source alignment joined to Tier 2 queue
+
+Refreshed the mta-wiki Tier 2 bridge from `/mnt/models/dev/mta-wiki` into
+`data/artifacts/docs/mta-wiki-tier2-bridge/mta-wiki-intervention-review-queue.json` and Markdown.
+The current canonical corpus is larger than the first bridge: 269 sources, 234 routes, 191
+projects, 1,177 events, 1,339 treatment components, 4,203 relations, 2,707 intervention candidate
+records, and 263 review groups. Of those groups, 215 have route links and 48 still need route
+resolution. The bridge remains `publicPromotionStatus: not_ready`.
+
+Added `docs tier2 mta-wiki-source-alignment`, which aligns the refreshed mta-wiki review groups to
+the full qv1-qv10 Tier 2 source disposition queue by exact normalized source keys only. The new
+artifact at `data/artifacts/docs/mta-wiki-tier2-bridge/mta-wiki-source-alignment.json` aligns 175
+of 291 queue sources, leaves 116 queue sources unaligned, leaves 88 mta-wiki review groups
+unaligned, and brings 2,279 mta-wiki candidate records plus 13,878 evidence refs into the review
+context lane. This is authoring context only: it does not close source receipts, create
+`bp.document_intervention_record.v1` rows, or permit public promotion.
+
+The Tier 2 structured-data inventory now recognizes `mta_wiki_source_alignment` as discovery-only
+and scans `mta-wiki-source-alignment` artifacts. After rerunning audits, structured-data inventory
+has 2,142 artifacts, while data-product completeness remains 84 complete, 1 partial, 3 missing, 1
+blocked, and 5 downstream-blocked. The remaining Tier 2 blockers are still source receipt closure
+for 291/291 open sources, missing full-corpus reviewed records, and missing full-corpus publishable
+interventions.
+
+Updated `docs tier2 source-review-pack` so source-scoped authoring packs can optionally consume the
+mta-wiki alignment artifact. Regenerated the existing full-corpus review handoffs with that context:
+the top-25 high-priority record-candidate packs now include mta-wiki context for 12 sources and 173
+candidate records, while the 3 source-disposition-only packs have no mta-wiki matches. These pack
+fields are review hints only and remain blocked by blank receipt templates until reviewed records or
+explicit source dispositions are written.
+
+## [2026-06-11] engineering | Tier 2 source receipt closure gate materialized
+
+Added `docs tier2 source-receipt-audit`, a deterministic closure audit over the full Tier 2 source
+queue, reviewed `bp.document_intervention_record.v1` artifacts, and source-disposition receipt
+artifacts. A source now closes only through a schema-valid reviewed record or a closing non-record
+disposition such as `supporting_context_only` or `no_actionable_bus_priority_intervention`;
+`reviewed_records_authored` without a valid record remains open, and record/disposition conflicts
+are counted separately.
+
+Generated the first full-corpus closure audit at
+`data/artifacts/docs/agentic-runs-20260604/source-receipt-closure-full-authority-qv1-qv10-v1/source-receipt-closure-audit.json`.
+The current state is explicit: 291 queue sources, 0 closed, 291 open, 0 conflicts, closure status
+`partial`, and `publicPromotionStatus: not_ready`. The Markdown and summary siblings were generated
+in the same directory.
+
+The structured-data inventory now recognizes `source_receipt_closure_audit` as validated staging,
+scans `source-receipt-closure` artifacts, and reports the next action to close all 291 sources
+before promotion. Data-product completeness now includes
+`source_receipt_closure_full_corpus` in `tier2_structured_intervention_extraction_full_corpus`; the
+product remains partial for the concrete blockers `0/291` sources closed, 291 open sources, missing
+full-corpus reviewed records, and missing publishable interventions.
+
+## [2026-06-11] engineering | Full-corpus Tier 2 source disposition queue generated
+
+Added `docs tier2 source-disposition-queue`, a deterministic source-level review queue over the
+full qv1-qv10 materialized research views. The queue writes JSON, Markdown, and summary artifacts
+and keeps every source at `reviewReceiptStatus: needs_review_receipt` plus
+`publicPromotionStatus: not_ready`, so it can drive source dispositions without becoming a public
+fact layer.
+
+Generated the first full-corpus queue at
+`data/artifacts/docs/agentic-runs-20260604/source-disposition-queue-full-authority-qv1-qv10-v1/source-disposition-queue.json`.
+It covers 291 sources, 236 unique route ids, 288 record-candidate review lanes, 3 source-disposition
+review lanes, 277 high-priority sources, 34 wide-route-fanout sources, and 291 missing review
+receipts. The structured-data inventory now recognizes this as `source_disposition_queue`
+validated staging, and data-product completeness requires it before considering the full-corpus
+Tier 2 structured extraction lane complete.
+
+After rerunning audits, Tier 2 structured extraction remains partial for the real blockers only:
+`reviewed_intervention_records_full_corpus` and `publishable_interventions_full_corpus` are still
+missing. The queue is the handoff substrate for writing those records or explicit source
+dispositions; it is not itself publishable intervention evidence.
+
+Added `docs tier2 source-review-pack`, which turns selected queue rows into source-scoped authoring
+packs by joining the queue to materialized detector feature rows, unresolved vocab review items,
+route evidence bundle context, sample surfaces, and a blank receipt template. Generated the first
+review batches under
+`data/artifacts/docs/agentic-runs-20260604/source-review-packs-full-authority-qv1-qv10-v1/`:
+the top 25 high-priority record-candidate sources and all 3 source-disposition-only sources. These
+packs are still `publicPromotionStatus: not_ready`; they are the next handoff for authoring
+reviewed records or explicit source dispositions, not reviewed records themselves.
+
+## [2026-06-11] engineering | Release closure unblocked, research gates materialized
+
+Cut over the remaining release-closure blockers into concrete applied-research artifacts and warning
+gates. `customer_journey_shortfall` now writes source-as-of rows into the release-month DB partition
+while preserving the source month in scope ids, so March release gates see the March findings
+partition without pretending the upstream customer-journey source is March-grained.
+
+Added the long-history `segment-daypart-panel`, forecast validation gates, causal validation gates,
+and causal screening products: pulse candidate set, pulse event overlap, event effect contrast,
+mechanism corroboration, event-family effect panel, and event-family response-drift study. The
+March artifacts are all internal/research-grade and keep limitations explicit; causal and
+event-family gates warn rather than promoting public causal language.
+
+After rebuilding March 2026 artifacts, data-product completeness is 84 complete, 1 partial, 3
+missing, and 1 upstream-blocked, with `planned_blocked` at 0. Detector closure is now 24 units: 4
+ready, 20 partial, 0 blocked, 0 unmaterialized. Remaining work is no longer builder absence:
+finish Tier 2 full-corpus reviewed/publishable intervention extraction, resolve historical GTFS
+static/service-baseline gaps, and graduate detector-specific score-vector or shadow-audit warnings
+for the remaining partial detector families. The richer Tier 2 workspace at
+`/mnt/models/dev/mta-wiki` may be useful for the full-corpus extraction pass.
+
+## [2026-06-11] engineering | mta-wiki Tier 2 bridge queued for review
+
+Added an honest bridge from `/mnt/models/dev/mta-wiki` canonical JSONL into Bus Studio Tier 2
+review inputs. The new `docs tier2 mta-wiki-bridge` command writes
+`data/artifacts/docs/mta-wiki-tier2-bridge/mta-wiki-intervention-review-queue.json` and Markdown,
+grouping mta-wiki project/event/treatment rows by source with route hints and evidence previews.
+The artifact is explicitly `publicPromotionStatus: not_ready`: mta-wiki canonical rows are
+source-stated and unreviewed for the Bus Studio publishable-intervention contract, so they can feed
+manual review but cannot stand in for `bp.document_intervention_record.v1` records.
+
+Registered the bridge as a `mta_wiki_canonical_bridge` discovery-only check in the Tier 2 structured
+inventory and data-product completeness manifest. The March bridge currently has 2,068 candidate
+records, 187 review groups, 151 groups with route links, and 36 groups that still need route
+resolution. After rerunning March 2026 completeness, the bridge check passes; Tier 2 remains partial
+only because `reviewed_intervention_records_full_corpus` and
+`publishable_interventions_full_corpus` are still missing.
+
+## [2026-06-11] engineering | Detector readiness now evaluates policy windows
+
+Fixed the analytics detector-readiness audit so detector status is based on each detector's
+policy-relevant release/baseline windows, not every month in the requested historical audit range.
+The full surface coverage still records the upstream caveat: March 2026 `gtfs_schedule_runtime`
+coverage has 36 expected months, 27 present months, and 9 thin early-2023 months.
+
+After rebuilding the March 2026 readiness audit, all 21 detector policies are ready: 21 ready,
+0 partial, 0 blocked, and 0 policy-pending. Detector closure moved from 4 ready / 20 partial to
+5 ready / 19 partial; the remaining partials are now driven by Tier 2 full-corpus review gaps,
+detector-specific corpus-grain shadow-audit warnings, and research-validation warning gates rather
+than stale readiness-policy partials.
+
+## [2026-06-11] engineering | Full-corpus Tier 2 materialized views wired into audits
+
+Regenerated the Tier 2 vocab consumer index and materialized research views from the full-authority
+qv1-qv10 canonical surface application instead of the smaller qv8-qv10 repair tail. The new
+materialized view artifact covers 78,605 surfaces, 93,893 detector feature rows, 236 route evidence
+bundles, 291 source coverage rows, and 13,225 unresolved review items.
+
+Extended the structured-data inventory and data-product completeness manifest with a separate
+`materialized_research_views` layer and a guarded
+`full_corpus_materialized_research_views` check. This check is allowed to pass only for full-corpus
+scale qv1-qv10 materializations, and it remains explicitly non-public: the artifact is review
+substrate, not reviewed or publishable intervention facts. After rerunning the audits,
+`tier2_structured_intervention_extraction_full_corpus` is still partial only because
+`reviewed_intervention_records_full_corpus` and `publishable_interventions_full_corpus` are missing.
+
+## [2026-06-11] analysis | Batch 2 reviews: post-fix stop-hour top-100s + peer re-review
+
+Ran the top-priority review batch over the artifacts the two feature fixes produced. Register now
+totals 1,047 reviewed labels. Headway: all 100 post-fix top-100 cells labeled adversarially — 37
+new primary_finding + 34 route_context; primary survival 37/40 (the 3 batch-1 primaries sit at
+ranks ~200-250 among qualitatively identical cells; rank<=100 documented as a capacity choice, not
+a quality bar); 12/35 suppress leakage remains from hour-scale feed-gap artifacts where EWT
+severity saturates — named fix is a CoV/max-gap sanity gate. Bunching: 87 new labels; primaries
+2/2 (S54 N rank 1, new Q31 S school-dismissal canonical rank 29); the post-fix top-100 is
+duplicate-dominated, not artifact-dominated — 78/100 cells are non-canonical members of 14 stop
+pockets, so the canonical-cell dedupe gate (next slice) would collapse it to ~22 independent
+identities. Peer re-review: against honest class-based peers the four locals' deficits shrank from
+the system-pool's 2.85-3.6 mph to 1.0-1.5 mph; M57 and BX2 upgraded route_context→primary_finding
+(stable >=1 mph deficits 36/36 months), M31/M42 honestly kept at route_context, M34+/M34A+
+upgraded needs_more_evidence→route_context (real 2.8-3.0 mph deficits but a citywide class-only
+pool). All combined-gold evaluations: batch-1 labels untouched; suppress leakage 0/16 (peer),
+batch-1 suppress cells stay out of the headway top-100 (worst rank 670). The publishable core grew
+from ~70 to ~110 label-backed public finding candidates.
+
+## [2026-06-11] engineering | Label-backed fixes: stop-hour sufficiency ranking + real speed-peer groups
+
+Implemented the two highest-leverage feature fixes named by the calibration sweep, verified against
+the untouched reviewed-gold sets. (1) Stop-hour ranking: `observationSufficiencySignal()` in
+headway-common blends each cell's sample count (vs the existing high-confidence thresholds) and
+schedule-implied coverage share into detectorScore for headway_reliability_ewt and
+bunching_hotspots — no emission gate added, no floors/caps touched, high-limit candidate counts
+unchanged. Score saturation is gone (unique max 91.83). Bunching: the S54 label-backed primary now
+ranks 1; suppress-labeled top-100 leakage fell 14→5 (arrival-coverage artifacts 10→1; the remaining
+4 are duplicate-pocket leaks owned by the future stop-pocket dedupe gate). Headway: suppress
+leakage in the top-100 fell 2→0 and the three label-backed primaries improved 593/1131/1310 →
+216/201/248 but remain outside the top-100 — the cells above them are unreviewed well-observed
+LoS-F cells that meet the gold's own criteria, so the curve was not overfit to force three labels
+in; recorded as the honest residual. (2) multi_month_speed_peer: root cause of the fallback-pool
+pathology was a wiring gap — `buildMultiMonthSpeedPeerRoutesFromHistory` hardcoded
+`peerGroupMethod: "system"`. New class-based peer construction (SBS/express/local × borough, min
+group size 10 with an honest fallback chain) plus claim wording that names the method actually
+used. March rerun: 6 emitted (M50/M8 fall below the floor against honest same-class medians),
+zero system-only candidates, SBS routes now compared within a 19-route SBS pool with deficits
+nearly unchanged (3.08→3.02 mph) — the signal was real, the framing wasn't. Suppress leakage held
+0/16; the 6 survivors are flagged for label upgrade in the next review batch.
+
+## [2026-06-11] analysis | Full detector calibration sweep: 13 reviewed-gold sets, S4.1 serving gate, Phase 5 floor
+
+Completed the backend-goal-finish-detectors plan in one sweep. Every machinery_built and
+internal_only detector now has reviewed gold on the March 2026 inventory (register total: 860
+labels across 18 detectors). S4.1 landed: `SERVING_BLOCKED_DETECTOR_IDS` in `@bp/domain`
+structurally blocks persistent_speed_hotspot (superseded), intervention_event_study
+(candidate-causal), positive_deviance, and rider_weighted_excess_wait from route-insight serving
+even if a manifest carries them in a public bucket, with a test tying the blocklist to the
+calibration register dispositions. Phase 5 floor: S5.1-S5.3 pure helpers were already tested;
+`evidence-packet-completeness-2026-03.json` now materializes S5.3 over the real runs (mature share
+1.0 for every candidate-bearing family; source_gap 0 by its data-quality waiver).
+
+Promotable now (label-backed public_finding_candidate buckets): observed_reliability 22,
+intervention_underperformance 4 (M57, M42, M34+, M104), delay_concentration 4, degradation_trend 1
+(Q103), headway_reliability_ewt 3 (all cap-suppressed in production — see below), bunching_hotspots
+1 (S54 N), plus the previously calibrated treatment-scope/speed-pace/customer-journey sets. Context
+family held its invariant: permit_correlated_slowdown and service_request_context leak 0 into
+findings; route_context ceilings of 7 and 10.
+
+The sweep's negative findings are the valuable part, all recorded as readiness gates / feature
+fixes, never threshold edits: (1) stop_direction_hour detectors are not promotable — headway/
+bunching score-saturate so the production top-100 is an arbitrary thin-sample slice while
+well-sampled real pockets sit cap-suppressed, and fractional GTFS-RT coverage fabricates gap/EWT
+artifacts (headway leakage 2/23, bunching 14/46); (2) travel_time_variability's metric is
+constructively broken — percentiles over 3-10 hourly aggregate sums whose row-count mix explains
+16/18 emitted cells (leakage 16/44); fix is a trip-level feature rebuild; (3) schedule_mismatch has
+no verifiable schedule baseline (15-151 min scheduled vs 175-650 min observed is physically
+impossible) — all 24 reviewed emitted capped at needs_more_evidence, below even the expected
+route_context ceiling; (4) multi_month_speed_peer silently used the system-wide fallback peer group
+for every candidate while claiming "matched peer median" — zero primaries until peer construction
+or claim wording is fixed; (5) degradation_trend's main failure is step breaks scored as trends
+(route-version provenance missing from the history grain); (6) permit/311 context detectors share
+the route-LION fanout failure (Manhattan grid permits/complaints counted against many routes;
+permit suppress leakage 13/29, 311 12/28); (7) observed_reliability's cap hides 120 qualifying
+routes with a Queens/express skew. source_gap agreement audit: zero overclaims vs the S2.4
+materialization artifact; failure mode is under-reporting (silent on 14 route holes in 2 grains).
+intervention_event_study confirmed structurally incapable of public buckets; its internal bar
+(suppress leakage 6/19 from gate-failed panels still emitting) is explicitly not yet met.
+
+## [2026-06-11] analysis | delay_concentration reviewed gold: 4/4 primary survival, 0/16 suppress leakage
+
+Completed the ADR-0018 loop for `delay_concentration` on the March 2026 inventory. `findings
+run-detector` gained `--rows-output`, which persists every candidate/evidence/coverage row (the run
+artifact keeps only samples) so review queues can be built from a real run. The stratified queue
+selected 23 rows: all 7 emitted candidates, 8 borough-spread clean controls, and 8 skipped
+controls. Reviewed labels (batch `2026-06-11-march-initial-23`, adversarial depth on emitted rows):
+4 `primary_finding` (B6, Q17, Q27, B17), 1 `route_context` (B44+), 1 `needs_more_evidence` (Q44+,
+whose "6 of 8 segments" readout is near-tautological at the 8-segment route minimum), 1
+`reviewer_only` (Q43, near-threshold score with delay at the 61st percentile), and 16 `suppress`.
+Evaluation: reviewed-primary survival 4/4, suppress leakage 0/16, unreviewed emitted 0. Readiness:
+4 `public_finding_candidate`, 1 `route_context`, 2 `review_queue`, 16 `suppressed`, with 75 skipped
+coverage rows accounted separately. Review confirmed the absolute-delay floor correctly holds back
+every high-Gini/low-delay route (Q88 at the 99.6th Gini percentile but 30k min delay), and that
+"6 of N" readouts degrade near the segment minimum — kept as readiness gates, no thresholds or caps
+changed. The calibration register now carries the 23 labels and suppress-side root-cause tags.
+
+## [2026-06-11] engineering | Track B delay concentration calibration machinery
+
+Added the first ADR-0018 calibration machinery for `delay_concentration` on the route-segment-month
+grain: a deterministic review-queue builder, reviewed-gold/evaluation/readiness projection, focused
+fixture tests, and the calibration NOTE/register updates. The existing March 2026 no-write inventory
+covers 353 routes, 4,140 segment rows, and 470,462 speed observations; it emits 7 candidates with
+271 clean no-hit routes and 75 skipped routes. The high-limit `--candidate-limit 20000` probe emits
+the same 7 candidates, so the first review risk is not cap suppression. Main calibration risks to
+label are low eligible segment count, segment-count sensitivity, single-segment dominance, segment
+length/mix or stale-row uncertainty, and the hard caveat that concentration is descriptive rather
+than causal or actionable by itself. Public promotion remains blocked on reviewed labels and zero
+suppress leakage.
+
+## [2026-06-11] infra | Track B Phase 0-2 checkpoint after resolver seam hardening
+
+After the S1.1 follow-up seam hardening, re-checked the rest of
+`backend-goal-finish-detectors.md` Phases 0-2 before moving into new detector calibration work.
+S1.2 is already closed in the current tree: `treatment-event-panel.ts` gets the
+`intervention_event_study` detector id through the `@bp/domain` allowlist, and
+`production-boundaries.test.ts` scans real `tools/pipeline-v2/src` import specifiers so prose
+strings and sandbox symlink commands do not mask direct `@bp/analytics` imports. The current
+Phase 2 state is also no longer the stale mid-plan state: S2.1 `isTerminal` and S2.3
+spatial-confidence/lane-type field fixes have current calibration log entries, S2.2 cap accounting
+and S2.4 materialization coverage are logged, and S2.5 `deferred_not_in_scope` is in the domain/db
+coverage vocabulary plus run-artifact summary accounting. Verification today:
+`bun test tests/harness/production-boundaries.test.ts --timeout 5000` (15 pass / 0 fail);
+`bun --filter @bp/pipeline-v2 test commands/build/treatment-event-panel` (474 pass / 0 fail; package
+runner executed the full suite); `bun --filter @bp/analytics test` (179 pass / 0 fail);
+`bun --filter @bp/analytics typecheck`; `bun --filter @bp/domain typecheck`;
+`bun --filter @bp/domain test` (74 pass / 0 fail).
+
+## [2026-06-11] infra | Track B S1.1 detector-run seam now uses the resolver path end to end
+
+Follow-up hardening on S1.1 after the first resolver-support slice: `runRegistryDetectorStudy`
+no longer accepts caller-supplied `featureContracts`, and the kernel `FeatureResolver` wrapper for
+already-built detector inputs now lives in `detector-input-assembly.ts`, where contract
+satisfaction is derived from the registered resolver/local-row/quality-carried support path. The
+pipeline `findings run-detector` command now calls `runRegistryDetectorStudyFromResolverPath`,
+which assembles inputs and runs the detector without re-passing a separate satisfaction map. Added
+a regression proving the assembly-backed run path emits the same resolver-derived contracts and
+model dependency audit. Verification: `bun --filter @bp/applied-research test detector-study
+feature-resolver-support` (381 pass / 0 fail; package runner executed the full suite);
+`bun --filter @bp/pipeline-v2 test commands/findings/run-detector` (474 pass / 0 fail; package
+runner executed the full suite).
+
 ## [2026-06-11] infra | Track B S2.2 run artifacts expose detector cap accounting
 
 Extended the shared S2.2 cap-policy discipline from review queues into registry detector run

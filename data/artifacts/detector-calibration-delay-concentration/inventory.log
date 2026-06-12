@@ -1,0 +1,22 @@
+$ bun --filter @bp/pipeline-v2 cli -- findings run-detector --detector-id delay_concentration --year "2026" --month "3" --write-db false --output data/artifacts/detector-calibration-delay-concentration/no-write-run.json
+@bp/pipeline-v2 cli: {
+@bp/pipeline-v2 cli:   "detectorId": "delay_concentration",
+@bp/pipeline-v2 cli:   "releaseMonth": "2026-03",
+@bp/pipeline-v2 cli:   "outputPath": "data/artifacts/detector-calibration-delay-concentration/no-write-run.json",
+@bp/pipeline-v2 cli:   "wroteDb": false,
+@bp/pipeline-v2 cli:   "featureCount": 353,
+@bp/pipeline-v2 cli:   "candidateCount": 7,
+@bp/pipeline-v2 cli:   "coverageCount": 353
+@bp/pipeline-v2 cli: }
+@bp/pipeline-v2 cli: Exited with code 0
+$ bun --filter @bp/pipeline-v2 cli -- findings run-detector --detector-id delay_concentration --year "2026" --month "3" --write-db false --candidate-limit "20000" --output "data/artifacts/detector-calibration-delay-concentration/no-write-run-limit20000.json"
+@bp/pipeline-v2 cli: {
+@bp/pipeline-v2 cli:   "detectorId": "delay_concentration",
+@bp/pipeline-v2 cli:   "releaseMonth": "2026-03",
+@bp/pipeline-v2 cli:   "outputPath": "data/artifacts/detector-calibration-delay-concentration/no-write-run-limit20000.json",
+@bp/pipeline-v2 cli:   "wroteDb": false,
+@bp/pipeline-v2 cli:   "featureCount": 353,
+@bp/pipeline-v2 cli:   "candidateCount": 7,
+@bp/pipeline-v2 cli:   "coverageCount": 353
+@bp/pipeline-v2 cli: }
+@bp/pipeline-v2 cli: Exited with code 0

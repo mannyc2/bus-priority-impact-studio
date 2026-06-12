@@ -1,0 +1,250 @@
+{
+  "artifactKind": "registry_detector_run",
+  "schemaVersion": 1,
+  "generatedAt": "2026-06-10T15:23:36.395Z",
+  "detectorId": "bunching_hotspots",
+  "detectorVersion": "1.0.0",
+  "detectorRunId": "bunching_hotspots-2026-03",
+  "releaseMonth": "2026-03",
+  "dbPath": "data/local/pipeline.sqlite",
+  "artifactPath": "data/artifacts/detector-calibration-bunching-hotspots/no-write-run.json",
+  "wroteDb": false,
+  "featureContracts": [
+    {
+      "featureGrain": "stop_direction_hour",
+      "resolverId": "artifact.stop_direction_hour_ewt_features.v1",
+      "status": "resolved",
+      "reason": "Resolved from analytics-stop-direction-hour-ewt feature artifacts into StopDirectionHourFeature rows."
+    },
+    {
+      "featureGrain": "feed_health",
+      "resolverId": "embedded.feature_quality.v1",
+      "status": "satisfied_by_feature_quality",
+      "reason": "Current registry runner carries coverage, freshness, and sample gates through feature quality fields."
+    }
+  ],
+  "dataProductDependencies": [
+    {
+      "productId": "analytics_backfill_coverage_audit",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    },
+    {
+      "productId": "bus_observatory_gtfs_rt_availability",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    },
+    {
+      "productId": "local_observed_headway_samples_run",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    },
+    {
+      "productId": "local_route_schedule_timepoints_release",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    },
+    {
+      "productId": "stop_direction_hour_ewt_features",
+      "status": "declared",
+      "reason": "Declared by the analytics detector registry for this detector."
+    }
+  ],
+  "modelDependencies": [],
+  "inputSummary": {
+    "sourceKind": "stop_direction_hour_ewt_feature_artifacts",
+    "artifactCount": 350,
+    "featureCount": 650264,
+    "readyFeatureCount": 14628,
+    "baselineUnavailableCount": 39377,
+    "insufficientHeadwayCount": 550909,
+    "lowCoverageCount": 45350,
+    "observedHeadwaySampleCount": 2604283,
+    "loadedFeatureCount": 650264
+  },
+  "outputSummary": {
+    "candidateCount": 100,
+    "evidenceCount": 200,
+    "coverageCount": 650264,
+    "hitCount": 100,
+    "cleanNoHitCount": 3831,
+    "skippedCount": 646333
+  },
+  "candidateSamples": [
+    {
+      "candidateId": "0c69969d0c00f12ea01aaa9d324b28bc",
+      "routeId": "B37",
+      "scopeId": "B37:N:308437:2026-03:Weekday:12",
+      "detectorScore": 96,
+      "claimText": "Route B37 at 3 AV/8 ST shows long gaps in 70% of observed headway pairs in hour 12."
+    },
+    {
+      "candidateId": "a4a5dcdc62b987a3183f3f3eae280bde",
+      "routeId": "B37",
+      "scopeId": "B37:N:308742:2026-03:Weekday:12",
+      "detectorScore": 93,
+      "claimText": "Route B37 at 3 AV/16 ST shows long gaps in 66.7% of observed headway pairs in hour 12."
+    },
+    {
+      "candidateId": "7b4e3c1aafb13b9a8340f4b93633d707",
+      "routeId": "B37",
+      "scopeId": "B37:S:308269:2026-03:Weekday:13",
+      "detectorScore": 92,
+      "claimText": "Route B37 at 3 AV/95 ST shows long gaps in 65% of observed headway pairs in hour 13."
+    },
+    {
+      "candidateId": "accb23b3a523a0532c0e260a690f246f",
+      "routeId": "B60",
+      "scopeId": "B60:S:305071:2026-03:Weekday:16",
+      "detectorScore": 92,
+      "claimText": "Route B60 at ROCKAWAY AV/NEWPORT ST shows long gaps in 65% of observed headway pairs in hour 16."
+    },
+    {
+      "candidateId": "f5c68bdec4e656af751d8faf030220c9",
+      "routeId": "Q63",
+      "scopeId": "Q63:E:551878:2026-03:Weekday:07",
+      "detectorScore": 99,
+      "claimText": "Route Q63 at NORTHERN BLVD/82 ST shows long gaps in 74.1% of observed headway pairs in hour 7."
+    },
+    {
+      "candidateId": "e41736a756766c5a874b1e2fd673b557",
+      "routeId": "Q63",
+      "scopeId": "Q63:E:551881:2026-03:Weekday:07",
+      "detectorScore": 96,
+      "claimText": "Route Q63 at NORTHERN BLVD/85 ST shows long gaps in 70.4% of observed headway pairs in hour 7."
+    },
+    {
+      "candidateId": "f6ab524db42a17a712c0608a93dd5eeb",
+      "routeId": "Q63",
+      "scopeId": "Q63:W:552035:2026-03:Weekday:07",
+      "detectorScore": 93,
+      "claimText": "Route Q63 at NORTHERN BLVD/37 ST shows long gaps in 66.7% of observed headway pairs in hour 7."
+    },
+    {
+      "candidateId": "f868edccd333add1f9f6124adf78ba0f",
+      "routeId": "S56",
+      "scopeId": "S56:N:201184:2026-03:Weekday:15",
+      "detectorScore": 92,
+      "claimText": "Route S56 at HYLAN BLVD/SEGUINE AV shows bunching in 39.1% of observed headway pairs in hour 15."
+    },
+    {
+      "candidateId": "5fa955503d93509255c097b4c70dae4d",
+      "routeId": "S56",
+      "scopeId": "S56:N:202091:2026-03:Weekday:14",
+      "detectorScore": 99,
+      "claimText": "Route S56 at ARTHUR KILL RD/ARDEN AV shows bunching in 44.1% of observed headway pairs in hour 14."
+    },
+    {
+      "candidateId": "5d01545f020262b04e7bac745e24e841",
+      "routeId": "S56",
+      "scopeId": "S56:N:202094:2026-03:Weekday:14",
+      "detectorScore": 93,
+      "claimText": "Route S56 at ARTHUR KILL RD/WOODROW RD shows bunching in 39.5% of observed headway pairs in hour 14."
+    },
+    {
+      "candidateId": "9c7515817d5ac75a34d9005ed7234c19",
+      "routeId": "S56",
+      "scopeId": "S56:N:202095:2026-03:Weekday:14",
+      "detectorScore": 96,
+      "claimText": "Route S56 at ARTHUR KILL RD/ANNADALE RD shows bunching in 41.7% of observed headway pairs in hour 14."
+    },
+    {
+      "candidateId": "8501d70187c7e458717c4603bbadd2ca",
+      "routeId": "S56",
+      "scopeId": "S56:N:202096:2026-03:Weekday:14",
+      "detectorScore": 98,
+      "claimText": "Route S56 at ARTHUR KILL RD/CROSSFIELD AV shows bunching in 43.5% of observed headway pairs in hour 14."
+    },
+    {
+      "candidateId": "accbbb437f61d3ad32c53262e6d6a500",
+      "routeId": "S56",
+      "scopeId": "S56:N:202884:2026-03:Weekday:14",
+      "detectorScore": 98,
+      "claimText": "Route S56 at ARDEN AV/DOVER GREEN shows bunching in 43.8% of observed headway pairs in hour 14."
+    },
+    {
+      "candidateId": "bb2eec91bc422cfa19a987678d099bdf",
+      "routeId": "S56",
+      "scopeId": "S56:N:202885:2026-03:Weekday:14",
+      "detectorScore": 93,
+      "claimText": "Route S56 at ARDEN AV/FOREST GREEN shows bunching in 39.4% of observed headway pairs in hour 14."
+    },
+    {
+      "candidateId": "148f52f362ee1ae7cf1b8132961dcd71",
+      "routeId": "S56",
+      "scopeId": "S56:N:202886:2026-03:Weekday:14",
+      "detectorScore": 94,
+      "claimText": "Route S56 at ARDEN AV/HAMPTON GREEN shows bunching in 40.5% of observed headway pairs in hour 14."
+    },
+    {
+      "candidateId": "c0ddb3a5460bdb162986c735f2112ed3",
+      "routeId": "S56",
+      "scopeId": "S56:N:202888:2026-03:Weekday:14",
+      "detectorScore": 98,
+      "claimText": "Route S56 at ARDEN AV/WOODROW RD shows bunching in 43.5% of observed headway pairs in hour 14."
+    },
+    {
+      "candidateId": "ff6c599ac604b86d6edd825ef71e8b85",
+      "routeId": "S56",
+      "scopeId": "S56:N:202890:2026-03:Weekday:14",
+      "detectorScore": 100,
+      "claimText": "Route S56 at WOODROW RD/DELMAR AV shows bunching in 46.2% of observed headway pairs in hour 14."
+    },
+    {
+      "candidateId": "f694aa01d30c717228da51c408c3ed84",
+      "routeId": "S56",
+      "scopeId": "S56:N:202894:2026-03:Weekday:15",
+      "detectorScore": 96,
+      "claimText": "Route S56 at FOSTER RD/ALBOURNE AV shows bunching in 41.7% of observed headway pairs in hour 15."
+    },
+    {
+      "candidateId": "89d8dd942410b7b3a44fad7d0fae4778",
+      "routeId": "S56",
+      "scopeId": "S56:S:805108:2026-03:Weekday:07",
+      "detectorScore": 94,
+      "claimText": "Route S56 at EYLENDT ST/ LUTEN AV shows bunching in 40.5% of observed headway pairs in hour 7."
+    },
+    {
+      "candidateId": "4aee7181306c9233d2ea87032fa8fd33",
+      "routeId": "B69",
+      "scopeId": "B69:N:303301:2026-03:Weekday:17",
+      "detectorScore": 96,
+      "claimText": "Route B69 at FLATBUSH AV/8 AV shows long gaps in 70% of observed headway pairs in hour 17."
+    },
+    {
+      "candidateId": "0cd2a2ea363d9cda2514340e196a614d",
+      "routeId": "B69",
+      "scopeId": "B69:N:305624:2026-03:Weekday:17",
+      "detectorScore": 92,
+      "claimText": "Route B69 at 20 ST/8 AV shows long gaps in 65% of observed headway pairs in hour 17."
+    },
+    {
+      "candidateId": "8bb8b6dbcefae64c89ad47721cfa3ff8",
+      "routeId": "B69",
+      "scopeId": "B69:N:305628:2026-03:Weekday:17",
+      "detectorScore": 96,
+      "claimText": "Route B69 at 7 AV/13 ST shows long gaps in 70% of observed headway pairs in hour 17."
+    },
+    {
+      "candidateId": "e96026273a0e591a0de73324d5dc2dda",
+      "routeId": "B69",
+      "scopeId": "B69:N:305629:2026-03:Weekday:17",
+      "detectorScore": 93,
+      "claimText": "Route B69 at 7 AV/11 ST shows long gaps in 66.7% of observed headway pairs in hour 17."
+    },
+    {
+      "candidateId": "3225d3034a647478f9d3c2b2d44c62af",
+      "routeId": "B69",
+      "scopeId": "B69:N:305632:2026-03:Weekday:17",
+      "detectorScore": 97,
+      "claimText": "Route B69 at 7 AV/3 ST shows long gaps in 70.8% of observed headway pairs in hour 17."
+    },
+    {
+      "candidateId": "490d8d06267280c4a41f25288129a3e7",
+      "routeId": "B69",
+      "scopeId": "B69:N:305633:2026-03:Weekday:17",
+      "detectorScore": 92,
+      "claimText": "Route B69 at 7 AV/GARFIELD PL shows long gaps in 65% of observed headway pairs in hour 17."
+    }
+  ]
+}
