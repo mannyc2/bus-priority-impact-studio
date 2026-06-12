@@ -51,7 +51,7 @@ export function routeInsightPlacements(
 ): RouteInsightPlacements {
   const sorted = [...insights].sort(stableInsightSort);
   return {
-    overview: sorted.filter((insight) => insight.placement === "overview").slice(0, 3),
+    overview: sorted.slice(0, 3),
     mapSegment: sorted.filter((insight) => insight.placement === "map_segment"),
     chartAnnotation: sorted.filter((insight) => insight.placement === "chart_annotation"),
     timeline: sorted.filter((insight) => insight.placement === "timeline"),

@@ -2,6 +2,48 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Overview verdict uses top route signals
+
+Advanced the route-detail §4.2 / §5 verdict handoff by making the Overview "What stands out"
+cards select the top three public route insights across all placements, instead of only insights
+pre-labeled for the old Overview slot. Map, chart, and timeline placements still feed their
+section-specific affordances, but the first-screen verdict now leads with the strongest
+route-specific detector signals by the existing severity/month/detector/scope ordering.
+
+Also reviewed `nyc_dot_bus_priority_document_pdf_webster_ave_e174_st_e176_st_may2019` from the
+full-corpus source review workspace as a proposed Bx41 Webster Avenue E 176 St-E 174 St gap-fill
+package. The local ignored reviewed-record seed now has 29 sources and 29 records. The record cites
+the May 7, 2019 CB5 Municipal Services Committee Bus Forward deck, the Better Buses project
+selection rationale, 2013-2017 injury table, Bx41 SBS southbound speed table, traffic-share
+methodology, proposal diagrams, bus-lane gap pages, traffic-flow signage page, and summary page.
+It assigns canonical `bus_lane` and `pedestrian_improvement` treatments, with custom treatment
+details for Qwik Kurb right-turn channelization, turn controls, painted curb extensions, Park
+Avenue Cross Bronx access signage, and the proposed signal-timing investigation.
+
+The record keeps the source conservative: it uses `proposed` status as of `2019-05-07`, assigns
+scope only to Bx41/Bx41 SBS, treats the June 2013 Bx41 SBS launch as background rather than the
+2019 package effective date, and caveats the speed/injury/traffic-share tables as proposal context
+rather than post-implementation impact. Regenerated the local ignored source receipt closure audit.
+It now reports 291 queue sources, 29 valid reviewed records, 29 reviewed-record sources, 30 closed
+sources, 261 open sources, and 0 conflicts; public promotion remains blocked on full source
+closure. The broader Tier 2 structured-data inventory still reports the older published-inventory
+next action because it scans published artifacts rather than this ignored manual-review seed.
+
+Verified with `bunx biome check
+apps/web/src/components/route/OverviewSection.tsx
+apps/web/src/components/route/route-insight-placement.ts
+apps/web/test/shared/route-insight-placement.test.ts
+apps/web/test/shared/route-insight-card.test.ts
+apps/web/test/shared/route-evidence-index.test.ts`, `bun test
+apps/web/test/shared/route-insight-placement.test.ts
+apps/web/test/shared/route-insight-card.test.ts
+apps/web/test/shared/route-evidence-index.test.ts --timeout 5000`, `bun --filter @bp/web
+typecheck`, `bun --filter @bp/web build`, `bun run check:types`, `bun run check:knowledge`,
+`git diff --check`, `jq empty
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/intervention-records-corpus-reviewed.json`,
+`bun --filter @bp/pipeline-v2 cli -- docs tier2 source-receipt-audit --queue-path ...`, and
+`bun --filter @bp/pipeline-v2 cli -- audit tier2-structured-data --json`.
+
 ## [2026-06-12] engineering | Route detail shell render tests cover contrast dossiers
 
 Advanced the route-detail §8.1 registry handoff by adding server-render coverage for the actual

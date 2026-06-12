@@ -72,6 +72,7 @@ export function OverviewSection({
   const historySpeeds = dossierSpeedSeries(data.dossier);
   const hasSpeedHistory = historySpeeds.length > 0;
   const speedTrendData = hasSpeedHistory ? historySpeeds : route.spark;
+  const speedWindow = dossierMetricWindow(data.dossier?.speed);
   const slowestByRiders = [...segments].sort((a, b) => b.riderHours - a.riderHours)[0] ?? null;
   const worst = data.dossier?.worstSegment ?? null;
   const flagged = segments.find((segment) => segment.flagged) ?? slowestByRiders;
@@ -100,7 +101,7 @@ export function OverviewSection({
           archetype={archetype}
           slowestLabel={
             worst
-              ? `${worst.label} has been the slowest segment for ${worst.persistenceMonths} trailing month(s).`
+              ? `${worst.label} is the slowest segment for ${worst.persistenceMonths} trailing month(s).`
               : slowestByRiders
                 ? `${slowestByRiders.from} to ${slowestByRiders.to} has the highest visible rider impact.`
                 : "No rider-impact row is available."
@@ -132,8 +133,8 @@ export function OverviewSection({
           title="Story strip"
           source={
             hasSpeedHistory
-              ? `Monthly average speed${dossierMetricWindow(data.dossier?.speed) ? `, ${dossierMetricWindow(data.dossier?.speed)}` : ""}.`
-              : "Trend estimate; dashed line is schedule."
+              ? `Monthly average speed${speedWindow ? `, ${speedWindow}` : ""}.`
+              : "Trend estimate; schedule dashed."
           }
           height={172}
           right={
@@ -152,7 +153,7 @@ export function OverviewSection({
             <div>
               <div className="text-sm font-semibold tracking-[-0.005em]">Mini-map</div>
               <div className="mt-[3px] text-[11px] text-[var(--bp-color-ink-55)]">
-                Flagged segment and treatments.
+                Flagged segment/treatments.
               </div>
             </div>
             <button
@@ -187,7 +188,7 @@ export function OverviewSection({
           onClick={() => onNavigate("evidence")}
           className="inline-flex w-fit items-center gap-1.5 rounded-[3px] border border-[var(--bp-color-accent)] px-3 py-2 text-[12px] font-semibold text-[var(--bp-color-accent)]"
         >
-          What we checked
+          Evidence checked
         </button>
       </section>
     </div>

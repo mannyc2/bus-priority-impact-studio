@@ -22,7 +22,7 @@ function insight(input: Partial<StudioRouteInsight> & Pick<StudioRouteInsight, "
 }
 
 describe("route insight placement", () => {
-  test("groups insights by frontend placement and caps overview", () => {
+  test("selects top verdict insights while preserving section placements", () => {
     const placements = routeInsightPlacements([
       insight({ placement: "overview", severity: "low", scopeId: "low" }),
       insight({ placement: "map_segment", severity: "medium", scopeId: "map" }),
@@ -33,7 +33,7 @@ describe("route insight placement", () => {
       insight({ placement: "timeline", severity: "medium", scopeId: "timeline" }),
     ]);
 
-    expect(placements.overview.map((row) => row.scopeId)).toEqual(["high", "medium", "medium-2"]);
+    expect(placements.overview.map((row) => row.scopeId)).toEqual(["high", "map", "medium"]);
     expect(placements.mapSegment.map((row) => row.scopeId)).toEqual(["map"]);
     expect(placements.chartAnnotation.map((row) => row.scopeId)).toEqual(["chart"]);
     expect(placements.timeline.map((row) => row.scopeId)).toEqual(["timeline"]);
