@@ -124,8 +124,23 @@ export function checkedCleanCoverageChips(
 }
 
 export function coverageLatestDataAsOf(rows: readonly CoverageRow[]): string | null {
-  const months = rows.flatMap((row) => (row.dataAsOf ? [row.dataAsOf] : []));
-  return months.length > 0 ? ([...months].sort().at(-1) ?? null) : null;
+  return latestDataAsOf(rows.map((row) => row.dataAsOf));
+}
+
+export function coverageLatestSurfaceDataAsOf(
+  capability: StudioRouteCapability | null,
+  surfaceKeys: readonly string[],
+): string | null {
+  if (capability === null) return null;
+  return latestDataAsOf(surfaceKeys.map((key) => capability.surfaces[key]?.dataAsOf ?? null));
+}
+
+function latestDataAsOf(values: readonly (string | null)[]): string | null {
+  let latest: string | null = null;
+  for (const value of values) {
+    if (value !== null && (latest === null || value > latest)) latest = value;
+  }
+  return latest;
 }
 
 function depthLabel(depth: RouteSurfaceCapability["depth"]): string {

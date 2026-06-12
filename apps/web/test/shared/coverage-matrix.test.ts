@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   checkedCleanCoverageChips,
   coverageLatestDataAsOf,
+  coverageLatestSurfaceDataAsOf,
   coverageRows,
   coverageSummary,
 } from "../../src/components/route/coverage-matrix";
@@ -72,5 +73,19 @@ describe("coverage matrix", () => {
     );
 
     expect(coverageLatestDataAsOf(rows)).toBe("2026-04");
+  });
+
+  test("uses named manifest surfaces for section freshness fallbacks", () => {
+    const manifest = capability({
+      condition: { ...surface("ready"), dataAsOf: "2026-01" },
+      trend: { ...surface("ready"), dataAsOf: "2026-02" },
+      speedHistory: { ...surface("ready"), dataAsOf: "2026-04" },
+      treatment: { ...surface("partial"), dataAsOf: "2026-03" },
+    });
+
+    expect(coverageLatestSurfaceDataAsOf(manifest, ["trend", "speedHistory"])).toBe("2026-04");
+    expect(coverageLatestSurfaceDataAsOf(manifest, ["treatment"])).toBe("2026-03");
+    expect(coverageLatestSurfaceDataAsOf(manifest, ["reliability"])).toBeNull();
+    expect(coverageLatestSurfaceDataAsOf(null, ["condition"])).toBeNull();
   });
 });

@@ -1,6 +1,7 @@
 import { ChartFrame } from "@/components/ChartFrame";
 import { DataAsOf } from "@/components/DataAsOf";
 import { InterventionTimeline } from "@/components/InterventionTimeline";
+import { coverageLatestSurfaceDataAsOf } from "@/components/route/coverage-matrix";
 import {
   dossierMetricMonthCount,
   dossierMetricWindow,
@@ -49,7 +50,9 @@ export function TreatmentsHistorySection({ data }: { data: StudioRouteDetailResp
   const hasSpeedHistory = historySpeeds.length > 0;
   const speedTrendData = hasSpeedHistory ? historySpeeds : route.spark;
   const treatmentDataAsOf =
-    data.dossier?.treatmentPosture.dataAsOf ?? data.dossier?.dataAsOf ?? null;
+    data.dossier?.treatmentPosture.dataAsOf ??
+    data.dossier?.dataAsOf ??
+    coverageLatestSurfaceDataAsOf(data.capability, ["treatment"]);
 
   return (
     <div className="flex flex-col gap-7">

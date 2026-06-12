@@ -51,24 +51,18 @@ export function DataNotesSection({
   const hiddenTabs = sectionRegistry.hiddenSections;
   const evidenceDataAsOf = dossier?.dataAsOf ?? coverageLatestDataAsOf(coverage);
   const datasets = [
-    ["Segment speeds", "MTA Open Data", `${segments.length} segments`, 14],
-    [
-      "Speed history",
-      "Dossier",
-      historyWindow ?? "not built",
-      dossierMetricMonthCount(dossier?.speed),
-    ],
+    ["Segment speeds", "MTA Open Data", `${segments.length} segments`],
+    ["Speed history", "Dossier", historyWindow ?? "not built"],
     [
       "Riders/time",
       "Studio projection",
       ridershipMonthCount > 0
         ? `${ridershipMonthCount} ridership rows`
         : `${formatCompact(route.dailyRiders)} riders/day`,
-      9,
     ],
-    ["Schedule", "MTA GTFS", `${route.scheduledMph.toFixed(1)} mph scheduled`, 6],
-    ["Bus lanes", "NYC DOT", `${route.laneCoverage}% coverage`, 8],
-    ["ACE record", "MTA Open Data", route.aceSince ? `since ${route.aceSince}` : "none active", 5],
+    ["Schedule", "MTA GTFS", `${route.scheduledMph.toFixed(1)} mph scheduled`],
+    ["Bus lanes", "NYC DOT", `${route.laneCoverage}% coverage`],
+    ["ACE record", "MTA Open Data", route.aceSince ? `since ${route.aceSince}` : "none active"],
   ] as const;
 
   return (
@@ -217,19 +211,16 @@ export function DataNotesSection({
       <div>
         <SectionHeader title="Datasets in use" sub="Sources behind this route's numbers." />
         <div className="rounded-[3px] bg-[var(--bp-color-card)] shadow-[0_0_0_1px_var(--bp-color-rule)]">
-          {datasets.map(([name, publisher, window, cites]) => (
+          {datasets.map(([name, publisher, window]) => (
             <div
               key={name}
-              className="grid grid-cols-[220px_160px_minmax(0,1fr)_80px] items-center gap-5 px-4 py-3 shadow-[inset_0_-1px_0_var(--bp-color-rule)] last:shadow-none max-lg:grid-cols-1 max-lg:gap-1"
+              className="grid grid-cols-[220px_160px_minmax(0,1fr)] items-center gap-5 px-4 py-3 shadow-[inset_0_-1px_0_var(--bp-color-rule)] last:shadow-none max-lg:grid-cols-1 max-lg:gap-1"
             >
               <div className="text-[13px] font-semibold">{name}</div>
               <div className="font-mono text-[11.5px] text-[var(--bp-color-ink-55)]">
                 {publisher}
               </div>
               <div className="text-[11.5px] text-[var(--bp-color-ink-55)]">{window}</div>
-              <div className="text-right font-mono text-[11.5px] font-semibold text-[var(--bp-color-accent)] max-lg:text-left">
-                cited {cites}x
-              </div>
             </div>
           ))}
         </div>

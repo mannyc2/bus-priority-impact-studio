@@ -28,6 +28,9 @@ import type { MetricTone } from "@/studio/metric-model";
  * it. Detail-page only; compare keeps the raw-metric strip.
  */
 
+const RELIABILITY_SURFACE = "reliability";
+const RIDERSHIP_SURFACE = "ridership";
+
 function fmtPct(pct: number | null): string {
   if (pct === null) return "—";
   return `${pct > 0 ? "+" : ""}${pct.toFixed(1)}%`;
@@ -95,7 +98,7 @@ export function RouteJudgedKpiStrip({
 }) {
   const speed = dossier?.speed ?? null;
   const posture = dossier?.treatmentPosture ?? null;
-  const reliability = capability?.surfaces["reliability"] ?? null;
+  const reliability = capability?.surfaces[RELIABILITY_SURFACE] ?? null;
   const reliabilityKpi = reliabilitySummary({
     observed: route.observedReliability,
     capability: reliability,
@@ -103,7 +106,7 @@ export function RouteJudgedKpiStrip({
   const ridersKpi = riderImpactSummary({
     route,
     dossier,
-    capability: capability?.surfaces["ridership"] ?? null,
+    capability: capability?.surfaces[RIDERSHIP_SURFACE] ?? null,
   });
 
   const currentSpeed = speed?.current ?? route.weightedAvgSpeed;

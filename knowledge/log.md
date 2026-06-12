@@ -2,6 +2,46 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Route evidence removes fake dataset cite counts
+
+Continued the route evidence dossier follow-up after PR #10 merged by aligning the Evidence tab's
+dataset list with the documented source-ref contract. `DataNotesSection` no longer renders
+hardcoded `cited Nx` counts for source-family rows; the dataset table now omits that unsupported
+count column instead of implying a per-dataset citation graph. Added
+`coverageLatestSurfaceDataAsOf()` so route-detail headers can fall back to named manifest surface
+freshness when a route has capability coverage but no full dossier object. Treatments & history now
+uses the treatment surface clock as its final fallback.
+
+Also reviewed `nyc_dot_bus_priority_document_pdf_2014_03_20_brt_webste_cb5` from the
+full-corpus source review workspace as an implemented Bx41 Webster Avenue SBS launch/results
+record. The source documents the June 30, 2013 Bx41 SBS launch replacing Bx41 Limited, 4 miles / 8
+lane-miles of Webster Avenue bus lanes, off-board fare collection equipment, pedestrian/turn-control
+roadway changes, planned Summer 2014 TSP, Phase 2 station/capital work, and preliminary
+source-stated before/after Bx41 travel-time results from November 2012 to November 2013. The local
+ignored reviewed-record seed now has 27 sources and 27 records.
+
+The new record caveats that the results are preliminary agency before/after measurements, not causal
+proof; page 18 ridership values are chart-estimated; TSP and Phase 2 capital/station work are future
+or estimated milestones in this March 2014 source; station geometry is map/OCR-derived; and Bx12,
+Bx36, and Bx40/42 are context routes rather than assigned intervention routes. Regenerated the
+local ignored source receipt closure audit. It now reports 291 queue sources, 27 valid reviewed
+records, 27 reviewed-record sources, 28 closed sources, 263 open sources, and 0 conflicts; public
+promotion remains blocked on full source closure. The broader Tier 2 structured-data inventory still
+reports the older published-inventory next action because it scans published artifacts rather than
+this ignored manual-review seed.
+
+Verified with `bunx biome check
+apps/web/src/components/route/DataNotesSection.tsx
+apps/web/src/components/route/TreatmentsHistorySection.tsx
+apps/web/src/components/route/RouteJudgedKpiStrip.tsx
+apps/web/src/components/route/coverage-matrix.ts apps/web/test/shared/coverage-matrix.test.ts`,
+`bun test apps/web/test/shared/coverage-matrix.test.ts --timeout 5000`, `bun --filter @bp/web
+typecheck`, `bun --filter @bp/web build`, `bun run check:types`, `bun run check:knowledge`, `git
+diff --check`, `jq empty
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/intervention-records-corpus-reviewed.json`,
+`bun --filter @bp/pipeline-v2 cli -- docs tier2 source-receipt-audit ...`, and `bun --filter
+@bp/pipeline-v2 cli -- audit tier2-structured-data --json`.
+
 ## [2026-06-12] engineering | Surface manifest freshness in route evidence
 
 Advanced the route-detail §7.4 freshness doctrine by adding a shared coverage helper for the
