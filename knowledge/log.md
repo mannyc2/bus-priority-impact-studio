@@ -2,6 +2,39 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Hidden route sections preserve badge evidence
+
+Advanced the route-detail §8.1 registry handoff by keeping detector badge metadata on hidden
+sections. If an insight targets a manifest-hidden tab, the tab still stays hidden, but Evidence's
+"Sections not shown" row now preserves the badge count/severity so the detector signal is not lost.
+The contrast-route registry test now asserts that sparse-route reliability can stay out of the tab
+strip while carrying its hidden high-severity badge into Evidence.
+
+Also reviewed `nyc_dot_bus_priority_document_pdf_2014_04_10_brt_webster_cb7` from the full-corpus
+source review workspace as an implemented Bx41 Webster Avenue SBS progress record. The local
+ignored reviewed-record seed now has 20 sources and 20 records. The record cites the April 10, 2014
+CB7 deck, the June 30, 2013 Bx41 SBS launch, Webster Avenue bus lanes from E 165 St to E Gun Hill
+Road, 4 miles / 8 lane-miles, NYPD lane enforcement, signal timing at E Fordham Rd, CB7 pedestrian
+islands/medians, and preliminary official travel-time/ridership tables.
+
+The record stores `effectiveDate: 2013-06-30` with `datePrecision: day`; TSP and Phase 2
+bus-bulb/capital construction remain caveated as future or estimated timeline items in this source,
+and Bx12/M15/B44 are treated as context or examples rather than assigned routes. Regenerated the
+local ignored source receipt closure audit. It now reports 291 queue sources, 20 valid reviewed
+records, 20 reviewed-record sources, 21 closed sources, 270 open sources, and 0 conflicts; public
+promotion remains blocked on full source closure. The broader Tier 2 structured-data inventory
+command still reports the older published-inventory next action because it scans published
+artifacts rather than this ignored manual-review seed.
+
+Verified with `bunx biome check
+apps/web/src/components/route/section-registry.ts apps/web/src/components/route/DataNotesSection.tsx
+apps/web/test/shared/section-registry.test.ts`, `bun test
+apps/web/test/shared/section-registry.test.ts --timeout 5000`, `bun --filter @bp/web typecheck`,
+`bun --filter @bp/web build`, `bun run check:types`, `bun run check:knowledge`, `git diff --check`,
+`jq empty data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/intervention-records-corpus-reviewed.json`,
+`bun --filter @bp/pipeline-v2 cli -- docs tier2 source-receipt-audit ...`, and `bun --filter
+@bp/pipeline-v2 cli -- audit tier2-structured-data --json`.
+
 ## [2026-06-12] engineering | Route section CTAs respect hidden manifest tabs
 
 Advanced the route-detail §8.1 registry handoff by centralizing section navigation fallback in the

@@ -182,6 +182,20 @@ export function DataNotesSection({
               >
                 <div className="text-[13px] font-semibold">
                   {tab.question ? `${tab.label}: ${tab.question}` : tab.label}
+                  {tab.badge ? (
+                    <Badge
+                      variant={
+                        tab.badge.severity === "high"
+                          ? "bad"
+                          : tab.badge.severity === "medium"
+                            ? "warn"
+                            : "neutral"
+                      }
+                      className="ml-2"
+                    >
+                      {tab.badge.count}
+                    </Badge>
+                  ) : null}
                 </div>
                 <div className="font-mono text-[11.5px] text-[var(--bp-color-ink-55)]">
                   {hiddenStateLabel(presentation.state)}
