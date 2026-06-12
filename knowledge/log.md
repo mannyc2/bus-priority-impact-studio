@@ -2,6 +2,41 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Evidence tab counts registry-routed signals
+
+Advanced the route-detail §8.1 / §4.3 evidence handoff by making the Evidence tab header count
+route insight signals and call out signals carried there because their natural section is hidden by
+the manifest-driven section registry. The row-level behavior is unchanged: navigable signals still
+link to their tabs, hidden-section signals remain covered in Evidence, and source gaps stay native
+Evidence rows. Data Notes copy was trimmed slightly so the existing web total-JS bundle budget
+continues to pass.
+
+Also reviewed `nyc_dot_bus_priority_document_pdf_brt_south_brooklyn_b82_cb18_jun2017` from the
+full-corpus source review workspace. The local ignored reviewed-record seed now has 33
+reviewed-record sources and 34 valid records. This source contributes one conservative proposed B82
+South Brooklyn SBS street-design record for bus lanes, rerouting, pedestrian/safety work,
+intersection redesigns, and SBS stop amenities. The record keeps the source-stated 2018 launch as
+planned evidence, treats 29% signal-delay and 21% bus-stop delay values as existing-condition
+context rather than impact results, limits assigned route scope to B82, and requires visual review
+before block-level bus-lane or alignment geometry publication.
+
+Regenerated the local ignored source receipt closure audit. It now reports 291 queue sources, 34
+valid reviewed records, 33 reviewed-record sources, 4 disposition receipts, 35 closed sources, 256
+open sources, and 0 conflicts; public promotion remains blocked on full source closure.
+
+Verified with `bun test apps/web/test/shared/route-evidence-index.test.ts
+apps/web/test/shared/section-registry.test.ts --timeout 5000`, `bunx biome check
+apps/web/src/components/route/DataNotesSection.tsx
+apps/web/src/components/route/route-insight-card.ts
+apps/web/test/shared/route-evidence-index.test.ts`, `bun --filter @bp/web typecheck`, `bun
+--filter @bp/web build`, `jq empty
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/intervention-records-corpus-reviewed.json
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/source-receipt-closure-audit.json
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/source-receipt-closure-audit-summary.json`,
+`bun --filter @bp/pipeline-v2 cli -- docs tier2 source-receipt-audit --queue-path ...`, `bun
+--filter @bp/pipeline-v2 cli -- audit tier2-structured-data --json`, `bun run check:types`, `bun
+run check:knowledge`, and `git diff --check`.
+
 ## [2026-06-12] engineering | Reliability and rider tabs share signal ordering
 
 Advanced the route-detail §5.2 signal handoff for the Reliability and Riders tabs. Their
