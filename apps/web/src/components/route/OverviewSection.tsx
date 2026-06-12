@@ -107,7 +107,7 @@ export function OverviewSection({
             worst
               ? `${worst.label}: slowest for ${worst.persistenceMonths} mo.`
               : slowestByRiders
-                ? `${slowestByRiders.from} to ${slowestByRiders.to}: top rider impact.`
+                ? `${slowestByRiders.from} to ${slowestByRiders.to}: top impact.`
                 : "No rider row."
           }
         />
@@ -135,11 +135,7 @@ export function OverviewSection({
       <div className="grid grid-cols-[minmax(0,1.25fr)_minmax(320px,0.8fr)] gap-5 max-xl:grid-cols-1">
         <ChartFrame
           title="Story"
-          source={
-            hasSpeedHistory
-              ? `Avg speed${speedWindow ? `, ${speedWindow}` : ""}.`
-              : "Trend; schedule dashed."
-          }
+          source={hasSpeedHistory ? `Speed${speedWindow ? `, ${speedWindow}` : ""}.` : "Trend."}
           height={172}
           right={
             <Badge variant={verdict.speedMph < 6 ? "bad" : "warn"}>
@@ -156,9 +152,7 @@ export function OverviewSection({
           <div className="mb-3.5 flex items-start justify-between gap-4">
             <div>
               <div className="text-sm font-semibold tracking-[-0.005em]">Map</div>
-              <div className="mt-[3px] text-[11px] text-[var(--bp-color-ink-55)]">
-                Focus segment.
-              </div>
+              <div className="mt-[3px] text-[11px] text-[var(--bp-color-ink-55)]">Focus.</div>
             </div>
             <button
               type="button"
@@ -400,21 +394,24 @@ function CheckedCleanCard({
   checkedThrough: string | null;
   onNavigate: () => void;
 }) {
+  const hasCleanSurface = checkedCount > 0;
+  const surfaceLabel = checkedCount === 1 ? "surface" : "surfaces";
   return (
     <div className="rounded-[3px] bg-[var(--bp-color-card)] p-4 shadow-[0_0_0_1px_var(--bp-color-rule)]">
       <div className="mb-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--bp-color-good)]">
-        Checked clean
+        {hasCleanSurface ? "Checked clean" : "No flags"}
       </div>
       <p className="m-0 max-w-[760px] text-[13px] leading-[1.6] text-[var(--bp-color-ink)]">
-        Checked through {checkedThrough ?? "the dossier"}: no flags. {checkedCount} clean
-        surface(s).
+        {hasCleanSurface
+          ? `Through ${checkedThrough ?? "dossier"}: no flags. ${checkedCount} clean ${surfaceLabel}.`
+          : "No flags yet. Evidence shows readiness."}
       </p>
       <button
         type="button"
         onClick={onNavigate}
         className="mt-3 inline-flex items-center gap-1.5 rounded-[3px] border border-[var(--bp-color-ink-20)] px-3 py-1.5 text-[11.5px] font-semibold text-[var(--bp-color-ink)]"
       >
-        Evidence
+        {hasCleanSurface ? "Checks" : "Evidence"}
       </button>
     </div>
   );

@@ -2,6 +2,42 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Overview empty state distinguishes checked-clean evidence
+
+Tightened the route Overview zero-insight state so it only says "Checked clean" when the capability
+manifest actually contains checked-clean surfaces. Routes with no Overview insight cards but no
+clean manifest surfaces now say no flags surfaced yet and point to Evidence readiness instead of
+overclaiming a clean check. Trimmed adjacent route-detail and coverage labels (`depth unknown`,
+`Schedule`, `no rank`, `none`, shorter chart source text) to keep the unchanged web bundle cap
+passing at 485.0 KB gz total JS.
+
+Also reviewed `nyc_dot_select_bus_service_pdf_2013_11_sbs_nostrand_flyer` from the full-corpus
+source review workspace. The local ignored reviewed-record seed now has 43 reviewed-record sources
+and 45 valid records. This source contributes one conservative implemented B44 Nostrand/Rogers SBS
+launch record with the November 17, 2013 effective date, bus lanes, off-board fare collection,
+all-door boarding, northbound Rogers Avenue reroute, station streetscape work, truck loading
+windows, and the source-stated 40,000-rider context. The record caveats that the flyer's
+"faster/more reliable" language is not measured impact evidence, that B49 appears only as local
+service context, and that bus-lane hours/geometry and construction timeline details need later
+publication review.
+
+Regenerated the local ignored source receipt closure audit. It now reports 291 queue sources, 45
+valid reviewed records, 43 reviewed-record sources, 4 disposition receipts, 45 closed sources, 246
+open sources, and 0 conflicts; public promotion remains blocked on full source closure.
+
+Verified with `bunx biome check apps/web/src/components/route/coverage-matrix.ts
+apps/web/src/components/route/OverviewSection.tsx
+apps/web/src/components/route/RouteJudgedKpiStrip.tsx
+apps/web/test/shared/coverage-matrix.test.ts knowledge/log.md`, `bun test
+apps/web/test/shared/coverage-matrix.test.ts --timeout 5000`, `bun --filter @bp/web typecheck`,
+`bun --filter @bp/web build`, `jq empty
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/intervention-records-corpus-reviewed.json
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/source-receipt-closure-audit.json
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/source-receipt-closure-audit-summary.json`,
+`bun --filter @bp/pipeline-v2 cli -- docs tier2 source-receipt-audit --queue-path ...`, `bun
+--filter @bp/pipeline-v2 cli -- audit tier2-structured-data --json`, `bun run check:types`, `bun
+run check:knowledge`, and `git diff --check`.
+
 ## [2026-06-12] engineering | Route header surfaces dossier archetype
 
 Promoted the route dossier archetype into the first-screen route header context. `RouteHeader` now

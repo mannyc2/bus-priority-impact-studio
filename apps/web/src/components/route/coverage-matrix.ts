@@ -27,11 +27,11 @@ const SURFACE_LABELS: Record<string, string> = {
   detectorFindings: "Detector findings",
   geometry: "Route geometry",
   map: "Map",
-  materializationCoverage: "Materialization coverage",
+  materializationCoverage: "Materialization",
   reliability: "Reliability",
   ridership: "Ridership",
   routeGeometry: "Route geometry",
-  scheduleBaseline: "Schedule baseline",
+  scheduleBaseline: "Schedule",
   speedHistory: "Speed history",
   treatment: "Treatments",
   trend: "Trend",
@@ -87,7 +87,7 @@ export function coverageRows(capability: StudioRouteCapability | null): Coverage
 }
 
 export function coverageSummary(rows: readonly CoverageRow[]): string {
-  if (rows.length === 0) return "No manifest surfaces published";
+  if (rows.length === 0) return "No manifest surfaces";
 
   const checkedClean = rows.filter((row) => row.state === "checked_clean").length;
   const ready = rows.filter((row) => row.state === "ready").length;
@@ -105,7 +105,7 @@ export function coverageSummary(rows: readonly CoverageRow[]): string {
     blocked > 0 ? `${blocked} blocked` : null,
     notApplicable > 0 ? `${notApplicable} not applicable` : null,
   ].filter(Boolean);
-  return parts.length > 0 ? parts.join(" / ") : "No manifest surfaces published";
+  return parts.length > 0 ? parts.join(" / ") : "No manifest surfaces";
 }
 
 export function checkedCleanCoverageChips(
@@ -116,7 +116,7 @@ export function checkedCleanCoverageChips(
     .map((row) => ({
       key: row.key,
       label: row.label,
-      checkedThroughLabel: row.dataAsOf ? `through ${row.dataAsOf}` : "through unknown",
+      checkedThroughLabel: row.dataAsOf ? `through ${row.dataAsOf}` : "unknown",
       dataAsOf: row.dataAsOf,
       depthLabel: row.depthLabel,
       reason: row.reason,
@@ -144,7 +144,7 @@ function latestDataAsOf(values: readonly (string | null)[]): string | null {
 }
 
 function depthLabel(depth: RouteSurfaceCapability["depth"]): string {
-  if (depth === null) return "depth not published";
+  if (depth === null) return "depth unknown";
   const months =
     depth.monthsCovered === 1 ? "1 month" : `${depth.monthsCovered.toLocaleString()} months`;
   return depth.grains.length > 0 ? `${months} / ${depth.grains.join(", ")}` : months;
