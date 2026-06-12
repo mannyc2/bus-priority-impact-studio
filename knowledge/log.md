@@ -2,6 +2,38 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Route header surfaces dossier archetype
+
+Promoted the route dossier archetype into the first-screen route header context. `RouteHeader` now
+accepts a compact `contextLabel`, and the route-detail page computes it from the dossier/capability
+archetype so flagship, calibrated, and setup-state context is visible before the tabs. Added a
+server-rendered header test to lock the context label and metric-strip slot together. Trimmed two
+route-detail action labels so the unchanged web bundle cap still passes at 485.0 KB gz total JS.
+
+Also reviewed `nyc_dot_bus_priority_document_pdf_2015_04_29_brt_woodhaven_dw3_discussionmaterials`
+from the full-corpus source review workspace. The local ignored reviewed-record seed now has 42
+reviewed-record sources and 44 valid records. This source contributes one conservative proposed
+Q52/Q53 Woodhaven/Cross Bay Boulevard Workshop #3 design-alternatives record covering left-turn
+controls near 101 Avenue, 103 Avenue, Rockaway Boulevard, and 107 Avenue plus Van Wicklen Road
+stop-location, pedestrian-crossing, and greenstreet options. The record treats the pages as
+proposed design evidence only and requires source-page visual/geometry review before stop-level,
+safety-impact, or block-level publication.
+
+Regenerated the local ignored source receipt closure audit. It now reports 291 queue sources, 44
+valid reviewed records, 42 reviewed-record sources, 4 disposition receipts, 44 closed sources, 247
+open sources, and 0 conflicts; public promotion remains blocked on full source closure.
+
+Verified with `bunx biome check apps/web/src/components/route/RouteHeader.tsx
+apps/web/src/studio/pages/route-detail.tsx apps/web/test/shared/route-header.test.ts
+knowledge/log.md`, `bun test apps/web/test/shared/route-header.test.ts --timeout 5000`, `bun
+--filter @bp/web typecheck`, `bun --filter @bp/web build`, `jq empty
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/intervention-records-corpus-reviewed.json
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/source-receipt-closure-audit.json
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/source-receipt-closure-audit-summary.json`,
+`bun --filter @bp/pipeline-v2 cli -- docs tier2 source-receipt-audit --queue-path ...`, `bun
+--filter @bp/pipeline-v2 cli -- audit tier2-structured-data --json`, `bun run check:types`, `bun
+run check:knowledge`, and `git diff --check`.
+
 ## [2026-06-12] engineering | Where & when floats dossier worst segment
 
 Made the Where & when tab actually surface the dossier's persistent-worst segment in the featured
