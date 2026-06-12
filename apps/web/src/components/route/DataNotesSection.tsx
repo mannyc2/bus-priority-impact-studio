@@ -45,34 +45,24 @@ export function DataNotesSection({
   const archetype = routeDossierArchetype({ capability: data.capability, dossier });
   const hiddenTabs = routeSectionRegistry(data.capability).hiddenSections;
   const datasets = [
-    ["Bus segment speeds", "MTA Open Data", `${segments.length} timepoint segments`, 14],
+    ["Segment speeds", "MTA Open Data", `${segments.length} segments`, 14],
     [
-      "Route speed history",
-      "Pipeline dossier projection",
-      historyWindow ?? "not built for this route",
+      "Speed history",
+      "Dossier",
+      historyWindow ?? "not built",
       dossierMetricMonthCount(dossier?.speed),
     ],
     [
-      "Ridership and rider-hours",
-      "MTA / Studio projection",
+      "Riders/time",
+      "Studio projection",
       ridershipMonthCount > 0
-        ? `${ridershipMonthCount} monthly ridership rows`
-        : `${formatCompact(route.dailyRiders)} weekday riders`,
+        ? `${ridershipMonthCount} ridership rows`
+        : `${formatCompact(route.dailyRiders)} riders/day`,
       9,
     ],
-    [
-      "Schedule timepoints",
-      "MTA GTFS",
-      `${route.scheduledMph.toFixed(1)} mph scheduled baseline`,
-      6,
-    ],
-    ["Bus lane geometry", "NYC DOT", `${route.laneCoverage}% route coverage`, 8],
-    [
-      "ACE program record",
-      "MTA Open Data",
-      route.aceSince ? `since ${route.aceSince}` : "no active record",
-      5,
-    ],
+    ["Schedule", "MTA GTFS", `${route.scheduledMph.toFixed(1)} mph scheduled`, 6],
+    ["Bus lanes", "NYC DOT", `${route.laneCoverage}% coverage`, 8],
+    ["ACE record", "MTA Open Data", route.aceSince ? `since ${route.aceSince}` : "none active", 5],
   ] as const;
 
   return (
@@ -111,7 +101,7 @@ export function DataNotesSection({
           </div>
           <DataAsOf dataAsOf={dossier?.dataAsOf ?? null} className="text-[13px]" />
           <div className="mt-0.5 text-[11px] leading-[1.35] text-[var(--bp-color-ink-55)]">
-            latest input month
+            latest month
           </div>
         </div>
         <div className="ml-auto">
@@ -120,7 +110,7 @@ export function DataNotesSection({
             params={{ page: "methodology" }}
             className="inline-flex items-center rounded-[3px] border border-[var(--bp-color-accent)] px-3 py-2 text-[12px] font-semibold text-[var(--bp-color-accent)] no-underline"
           >
-            Full methodology &rarr;
+            Methodology &rarr;
           </Link>
         </div>
       </div>
@@ -133,7 +123,7 @@ export function DataNotesSection({
           sub={
             coverage.length > 0
               ? coverageSummary(coverage)
-              : "Legacy route detail without a published capability manifest."
+              : "Legacy detail without a capability manifest."
           }
         />
         <CheckedCleanChipRail chips={checkedCleanChips} />
@@ -173,7 +163,7 @@ export function DataNotesSection({
         <div>
           <SectionHeader
             title="Sections not shown"
-            sub="Route sections withheld because the source evidence does not support them yet."
+            sub="Unavailable where source evidence is not ready."
           />
           <div className="rounded-[3px] bg-[var(--bp-color-card)] shadow-[0_0_0_1px_var(--bp-color-rule)]">
             {hiddenTabs.map(({ tab, presentation }) => (
@@ -181,12 +171,14 @@ export function DataNotesSection({
                 key={tab.value}
                 className="grid grid-cols-[220px_160px_minmax(0,1fr)_120px] items-center gap-5 px-4 py-3 shadow-[inset_0_-1px_0_var(--bp-color-rule)] last:shadow-none max-lg:grid-cols-1 max-lg:gap-1"
               >
-                <div className="text-[13px] font-semibold">{tab.label}</div>
+                <div className="text-[13px] font-semibold">
+                  {tab.question ? `${tab.label}: ${tab.question}` : tab.label}
+                </div>
                 <div className="font-mono text-[11.5px] text-[var(--bp-color-ink-55)]">
                   {hiddenStateLabel(presentation.state)}
                 </div>
                 <div className="text-[11.5px] text-[var(--bp-color-ink-55)]">
-                  {presentation.reason ?? "No route-level evidence published for this section."}
+                  {presentation.reason ?? "No route-level evidence published."}
                 </div>
                 <div className="text-right max-lg:text-left">
                   <DataAsOf dataAsOf={presentation.dataAsOf} />
@@ -198,10 +190,7 @@ export function DataNotesSection({
       ) : null}
 
       <div>
-        <SectionHeader
-          title="Datasets in use for this route"
-          sub="The data sources behind this route's numbers."
-        />
+        <SectionHeader title="Datasets in use" sub="Sources behind this route's numbers." />
         <div className="rounded-[3px] bg-[var(--bp-color-card)] shadow-[0_0_0_1px_var(--bp-color-rule)]">
           {datasets.map(([name, publisher, window, cites]) => (
             <div

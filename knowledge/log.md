@@ -2,6 +2,45 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Evidence names hidden sections with route-detail questions
+
+Advanced the route-detail §4.3 / §8.1 handoff by letting the section registry carry question-shaped
+copy for the hidden Evidence rows that need it now. "Sections not shown" now renders withheld
+Reliability and Treatments entries as section label plus dossier question, so Evidence can explain
+what claim is absent instead of only naming the UI tab. The registry test now locks those hidden
+questions to the checked-clean and sparse contrast routes.
+
+To keep the strict route-detail bundle guard green, compare continues to use label-only local tabs
+and the Evidence data-source labels were tightened without changing the source coverage model.
+
+Verified with `bunx biome check apps/web/src/components/route/section-registry.ts
+apps/web/src/components/route/DataNotesSection.tsx apps/web/src/studio/pages/compare.tsx
+apps/web/test/shared/section-registry.test.ts`, `bun test
+apps/web/test/shared/section-registry.test.ts --timeout 5000`, `bun --filter @bp/web typecheck`,
+and `bun --filter @bp/web build`.
+
+## [2026-06-12] engineering | Tier 2 Bx41 Webster CB4 progress source closes one more source
+
+Reviewed `nyc_dot_bus_priority_document_pdf_2014_03_05_brt_webster_cb4` from the full-corpus source
+review workspace as an implemented Bx41 Webster Avenue SBS record with preliminary post-launch
+results. The local ignored reviewed-record seed now has 16 sources and 16 records. The record cites
+the March 5, 2014 CB4 presentation, the June 30, 2013 Bx41 SBS launch, Webster Avenue bus lanes
+from E 165 Street to E Gun Hill Road, NYPD lane enforcement, optimized signal timing, pedestrian
+safety changes, repaving, and preliminary travel-time/ridership tables.
+
+The record stores `effectiveDate: 2013-06-30` with `datePrecision: day`; TSP and Phase 2 bus-bulb
+work remain caveated as future/estimated in this source, and Bx12/Bx35 are treated as context rather
+than assigned routes. Regenerated the local ignored source receipt closure audit. It now reports 291
+queue sources, 16 valid reviewed records, 16 reviewed-record sources, 17 closed sources, 274 open
+sources, and 0 conflicts; public promotion remains blocked on full source closure. The broader Tier
+2 structured-data inventory command still reports the older published-inventory next action because
+it scans published artifacts rather than this ignored manual-review seed.
+
+Verified with `jq empty
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/intervention-records-corpus-reviewed.json`,
+`bun run pipeline docs tier2 source-receipt-audit ...`, and `bun run pipeline audit
+tier2-structured-data --json`.
+
 ## [2026-06-12] engineering | Route detail tabs use one manifest registry
 
 Advanced frontend §8.1 by moving the route-detail tab metadata and manifest presentation policy

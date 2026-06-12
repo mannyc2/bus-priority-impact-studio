@@ -12,6 +12,7 @@ export type RouteDetailTabValue =
 export type RouteDetailTab = {
   value: RouteDetailTabValue;
   label: string;
+  question?: string;
   badge?: { count: number; severity: "low" | "medium" | "high" } | undefined;
 };
 
@@ -22,9 +23,9 @@ export const ROUTE_DETAIL_TABS = [
   { value: "overview", label: "Overview" },
   { value: "map", label: "Map" },
   { value: "where-when", label: "Where & when" },
-  { value: "reliability", label: "Reliability" },
+  { value: "reliability", label: "Reliability", question: "Can riders count on it?" },
   { value: "riders", label: "Riders" },
-  { value: "treatments", label: "Treatments & history" },
+  { value: "treatments", label: "Treatments & history", question: "What was tried?" },
   { value: "evidence", label: "Evidence" },
 ] as const satisfies readonly RouteDetailTab[];
 

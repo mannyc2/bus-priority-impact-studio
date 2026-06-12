@@ -155,17 +155,33 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
     expect(
       routeSectionRegistry(clean).hiddenSections.map(({ tab, presentation }) => ({
         tab: tab.value,
+        question: tab.question,
         mode: presentation.mode,
         state: presentation.state,
       })),
-    ).toEqual([{ tab: "treatments", mode: "hidden", state: "not_applicable" }]);
+    ).toEqual([
+      {
+        tab: "treatments",
+        question: "What was tried?",
+        mode: "hidden",
+        state: "not_applicable",
+      },
+    ]);
     expect(
       routeSectionRegistry(sparse).hiddenSections.map(({ tab, presentation }) => ({
         tab: tab.value,
+        question: tab.question,
         mode: presentation.mode,
         state: presentation.state,
       })),
-    ).toEqual([{ tab: "reliability", mode: "hidden", state: "insufficient_data" }]);
+    ).toEqual([
+      {
+        tab: "reliability",
+        question: "Can riders count on it?",
+        mode: "hidden",
+        state: "insufficient_data",
+      },
+    ]);
   });
 
   test("routeSectionRegistry attaches detector badges without showing hidden sections", () => {
