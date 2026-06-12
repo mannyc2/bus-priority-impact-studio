@@ -11,8 +11,11 @@ import {
   formatCompact,
 } from "@/components/route/route-derived";
 import {
+  type RouteInsightMicroFigureKind,
+  routeInsightCardSpec,
+} from "@/components/route/route-insight-card";
+import {
   routeInsightPlacements,
-  routeTabForInsight,
   safeInsightCaveats,
 } from "@/components/route/route-insight-placement";
 import { SectionHeader } from "@/components/SectionHeader";
@@ -20,8 +23,33 @@ import { SpeedTrend } from "@/components/SpeedTrend";
 import { TreatmentBadgeRow } from "@/components/TreatmentBadge";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 import type { StudioRouteDetailResponse, StudioRouteInsight } from "@/studio/api-contract";
 import { routeTreatments } from "@/studio/treatment-model";
+
+const SEGMENT_STRIP_BAR_CLASSES = [
+  "h-[10px]",
+  "h-[15px]",
+  "h-[24px]",
+  "h-[17px]",
+  "h-[21px]",
+  "h-[31px]",
+  "h-[18px]",
+  "h-[12px]",
+] as const;
+
+const SPARKLINE_BAR_CLASSES = [
+  "h-[12px]",
+  "h-[17px]",
+  "h-[14px]",
+  "h-[24px]",
+  "h-[20px]",
+  "h-[29px]",
+] as const;
+
+const TIMELINE_TICK_CLASSES = ["left-[10%]", "left-[37%]", "left-[64%]", "left-[88%]"] as const;
+
+const COVERAGE_CHIP_CLASSES = ["w-8", "w-12", "w-7"] as const;
 
 export function OverviewSection({
   data,
@@ -197,13 +225,13 @@ function InsightCard({
   onNavigate: (tab: RouteDetailTabValue) => void;
 }) {
   const caveats = safeInsightCaveats(insight, 2);
-  const tab = routeTabForInsight(insight);
+  const spec = routeInsightCardSpec(insight);
   return (
-    <article className="flex min-h-[178px] flex-col rounded-[3px] bg-[var(--bp-color-card)] p-4 shadow-[0_0_0_1px_var(--bp-color-rule)]">
+    <article className="flex min-h-[224px] flex-col rounded-[3px] bg-[var(--bp-color-card)] p-4 shadow-[0_0_0_1px_var(--bp-color-rule)]">
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--bp-color-ink-55)]">
-            {insight.detectorId.replaceAll("_", " ")}
+            {spec.detectorLabel}
           </div>
           <h3 className="m-0 mt-1 text-[14px] leading-[1.3]">{insight.title}</h3>
         </div>
@@ -227,19 +255,118 @@ function InsightCard({
           </TooltipProvider>
         ) : null}
       </p>
-      <div className="mt-4 flex items-center justify-between gap-3">
-        <DataAsOf dataAsOf={insight.asOfMonth ?? insight.month ?? null} />
+      <InsightMicroFigure
+        kind={spec.microFigureKind}
+        label={spec.microFigureLabel}
+        severity={insight.severity}
+      />
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <DataAsOf dataAsOf={insight.asOfMonth ?? insight.month ?? null} />
+          <Badge variant="neutral" className="max-w-full truncate">
+            {spec.evidenceLabel}
+          </Badge>
+        </div>
         <button
           type="button"
-          onClick={() => onNavigate(tab)}
+          onClick={() => onNavigate(spec.tab)}
           className="inline-flex items-center gap-1 text-[11.5px] font-semibold text-[var(--bp-color-accent)]"
         >
-          Open {tabLabel(tab)}
+          Open {spec.tabLabel}
           <ArrowRight size={13} />
         </button>
       </div>
     </article>
   );
+}
+
+function InsightMicroFigure({
+  kind,
+  label,
+  severity,
+}: {
+  kind: RouteInsightMicroFigureKind;
+  label: string;
+  severity: StudioRouteInsight["severity"];
+}) {
+  const toneClass = microFigureToneClass(severity);
+  return (
+    <div
+      role="img"
+      aria-label={label}
+      className="mt-3 h-[38px] rounded-[2px] bg-[var(--bp-color-ink-06)]"
+    >
+      {kind === "timeline_tick" ? (
+        <div className="relative h-full px-3 py-1.5">
+          <span className="absolute left-3 right-3 top-1/2 h-px -translate-y-1/2 bg-[var(--bp-color-ink-20)]" />
+          {TIMELINE_TICK_CLASSES.map((positionClass, index) => (
+            <span
+              key={positionClass}
+              className={cn(
+                "absolute top-1/2 size-2 -translate-y-1/2 rounded-full",
+                positionClass,
+                index === 2 ? toneClass : "bg-[var(--bp-color-ink-40)]",
+              )}
+            />
+          ))}
+        </div>
+      ) : null}
+      {kind === "coverage_chip" ? (
+        <div className="flex h-full items-center gap-1.5 px-2">
+          {COVERAGE_CHIP_CLASSES.map((widthClass, index) => (
+            <span
+              key={`${widthClass}:${index}`}
+              className={cn(
+                "h-3 rounded-[2px]",
+                widthClass,
+                index === 0 ? toneClass : "bg-[var(--bp-color-ink-20)]",
+              )}
+            />
+          ))}
+          <span className={cn("ml-auto size-2 rounded-full", toneClass)} />
+        </div>
+      ) : null}
+      {kind === "segment_strip" ? (
+        <div className="flex h-full items-end gap-1.5 px-2 py-1.5">
+          {SEGMENT_STRIP_BAR_CLASSES.map((heightClass, index) => (
+            <span
+              key={`${heightClass}:${index}`}
+              className={cn(
+                "min-w-0 flex-1 rounded-[1px]",
+                heightClass,
+                index === 5 ? toneClass : "bg-[var(--bp-color-ink-20)]",
+              )}
+            />
+          ))}
+        </div>
+      ) : null}
+      {kind === "sparkline" ? (
+        <div className="flex h-full items-end gap-1.5 px-2 py-1.5">
+          {SPARKLINE_BAR_CLASSES.map((heightClass, index) => (
+            <span
+              key={`${heightClass}:${index}`}
+              className={cn(
+                "min-w-0 flex-1 rounded-[1px]",
+                heightClass,
+                index >= 3 ? toneClass : "bg-[var(--bp-color-ink-20)]",
+              )}
+            />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function microFigureToneClass(severity: StudioRouteInsight["severity"]): string {
+  switch (severity) {
+    case "high":
+      return "bg-[var(--bp-color-bad)]";
+    case "medium":
+      return "bg-[var(--bp-color-warn)]";
+    case "low":
+      return "bg-[var(--bp-color-accent)]";
+  }
 }
 
 function CheckedCleanCard({
@@ -270,17 +397,6 @@ function CheckedCleanCard({
       </button>
     </div>
   );
-}
-
-function tabLabel(tab: RouteDetailTabValue): string {
-  switch (tab) {
-    case "where-when":
-      return "Where & when";
-    case "treatments":
-      return "Treatments";
-    default:
-      return tab[0]?.toUpperCase() + tab.slice(1);
-  }
 }
 
 function latestMonth(months: readonly string[]): string | null {

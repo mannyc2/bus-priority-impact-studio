@@ -2,6 +2,49 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Overview insight cards get typed micro-figures
+
+Advanced the route-detail §5.1 insight-card system without changing detector output. Added a
+pure `routeInsightCardSpec` helper that classifies existing `StudioRouteInsight` rows into tab
+targets, evidence labels, and compact micro-figure kinds: segment strips, trend cues, timeline
+ticks, or coverage chips. The Overview verdict cards now use that spec for detector labels,
+deep-link copy, citation-count chips, and a fixed-height visual cue that makes ranked insights
+scannable before opening a tab.
+
+This keeps the public route dossier contract as the source of truth, leaves the blocked detector
+feature families untouched, and gives the current insight payload the card shape called for by the
+frontend dossier plan.
+
+Verified with `bunx biome check --write apps/web/src/components/route/route-insight-card.ts
+apps/web/src/components/route/OverviewSection.tsx apps/web/test/shared/route-insight-card.test.ts`,
+`bun test apps/web/test/shared/route-insight-card.test.ts
+apps/web/test/shared/route-insight-placement.test.ts --timeout 5000`,
+`bun --filter @bp/web typecheck`, `bunx biome check
+apps/web/src/components/route/route-insight-card.ts
+apps/web/src/components/route/OverviewSection.tsx apps/web/test/shared/route-insight-card.test.ts`,
+and `bun --filter @bp/web build`.
+
+## [2026-06-12] engineering | Tier 2 Bx41 Webster CB7 source review closes one more source
+
+Reviewed `nyc_dot_select_bus_service_pdf_2013_03_sbs_webster_bx_cb7` from the full-corpus source
+review workspace as a proposed Bx41 Webster Avenue SBS 2013 service/implementation-plan record. The
+local ignored reviewed-record seed now has 11 sources and 11 records. The new record cites the
+March 14, 2013 CB7 presentation, the Bx41 LTD to Bx41 SBS service plan, 4 miles of offset bus
+lanes, off-board fare collection, all-door boarding, TSP, bus bulbs, pedestrian improvements, turn
+bays/signal-time changes, and the project timeline that places bus lanes/priority treatments in
+spring 2013 and start of service in summer 2013.
+
+Because the source gives a season rather than an exact month/day, the record stores
+`effectiveDate: 2013` with `datePrecision: year` and carries the summer-2013 detail as a caveat.
+Regenerated the local ignored source receipt closure audit. It now reports 291 queue sources, 11
+valid reviewed records, 3 disposition receipts, 12 closed sources, 279 open sources, and 0 conflicts;
+public promotion remains blocked on full source closure. The broader Tier 2 structured-data
+inventory command still reports the older global source-closure next action because it scans the
+published artifact inventory rather than this ignored manual-review seed.
+
+Verified with `jq empty` on the reviewed-record artifact, `bun run pipeline docs tier2
+source-receipt-audit ...`, and `bun run pipeline audit tier2-structured-data --json`.
+
 ## [2026-06-12] engineering | Route pages show dossier depth archetypes
 
 Advanced the manifest-adaptive route-detail work from §8.3 by deriving a route dossier archetype
