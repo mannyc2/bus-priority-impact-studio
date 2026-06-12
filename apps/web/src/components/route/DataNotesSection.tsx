@@ -174,7 +174,7 @@ export function DataNotesSection({
                 className="grid grid-cols-[220px_160px_minmax(0,1fr)_120px] items-center gap-5 px-4 py-3 shadow-[inset_0_-1px_0_var(--bp-color-rule)] last:shadow-none max-lg:grid-cols-1 max-lg:gap-1"
               >
                 <div className="text-[13px] font-semibold">
-                  {tab.question ? `${tab.label}: ${tab.question}` : tab.label}
+                  {tab.label}
                   {tab.badge ? (
                     <Badge
                       variant={

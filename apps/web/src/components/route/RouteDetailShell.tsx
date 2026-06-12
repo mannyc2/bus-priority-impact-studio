@@ -58,7 +58,7 @@ export function RouteDetailShell({
                   <Badge
                     variant={t.badge.severity === "high" ? "bad" : "warn"}
                     className="h-[17px] min-w-[17px] px-[5px] py-0 text-[10px]"
-                    aria-label={`${t.badge.count} flag${t.badge.count === 1 ? "" : "s"}`}
+                    aria-label={`${t.badge.count} notice${t.badge.count === 1 ? "" : "s"}`}
                   >
                     {t.badge.count > 9 ? "9+" : t.badge.count}
                   </Badge>

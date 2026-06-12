@@ -2,6 +2,42 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Evidence tab carries hidden-section notices
+
+Tightened the route-detail section registry handoff by rolling manifest-hidden section notices into
+the visible Evidence tab badge. Existing Evidence detector badges are preserved and incremented, so
+users get one compact notice count for both native Evidence signals and section context routed
+there because a tab is hidden. The tab badge accessibility label now says `notice` instead of
+`flag`, and the hidden-section table uses shorter tab labels to keep the Data Notes surface compact.
+
+Also reviewed `nyc_dot_bus_priority_document_pdf_brt_woodhaven_crossbay_blvd_sept_flyer` from the
+full-corpus source review workspace. The local ignored reviewed-record seed now has 37
+reviewed-record sources and 39 valid records. This source contributes one conservative in-progress
+Q52/Q53 SBS record for Woodhaven Boulevard from Union Turnpike to 81st Road, covering curbside
+bus-only lanes, pedestrian refuge/median work, a left-turn restriction, U-turn bay access at 81st
+Road, and the source-stated three general traffic lanes in each direction. The record omits an
+effective date because the flyer says only `mid-September`, treats the source as construction and
+design evidence rather than completion or measured impact proof, and requires visual review before
+block-level geometry publication.
+
+Regenerated the local ignored source receipt closure audit. It now reports 291 queue sources, 39
+valid reviewed records, 37 reviewed-record sources, 4 disposition receipts, 39 closed sources, 252
+open sources, and 0 conflicts; public promotion remains blocked on full source closure.
+
+Verified with `bunx biome check apps/web/src/components/route/section-registry.ts
+apps/web/src/components/route/RouteDetailShell.tsx
+apps/web/src/components/route/DataNotesSection.tsx
+apps/web/test/shared/section-registry.test.ts
+apps/web/test/shared/route-detail-shell.test.ts knowledge/log.md`, `bun test
+apps/web/test/shared/section-registry.test.ts apps/web/test/shared/route-detail-shell.test.ts
+--timeout 5000`, `bun --filter @bp/web typecheck`, `bun --filter @bp/web build`, `jq empty
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/intervention-records-corpus-reviewed.json
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/source-receipt-closure-audit.json
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/source-receipt-closure-audit-summary.json`,
+`bun --filter @bp/pipeline-v2 cli -- docs tier2 source-receipt-audit --queue-path ...`, `bun
+--filter @bp/pipeline-v2 cli -- audit tier2-structured-data --json`, `bun run check:types`, `bun
+run check:knowledge`, and `git diff --check`.
+
 ## [2026-06-12] engineering | Treatment tab speed fallback uses dossier current
 
 Kept the route-detail treatment/history tab on the dossier clock by making its no-history speed

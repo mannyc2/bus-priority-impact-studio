@@ -170,7 +170,13 @@ export function routeSectionRegistry(
 
   for (const tab of ROUTE_DETAIL_TABS) {
     const presentation = sectionPresentation(capability, tab.value);
-    const badge = tabBadges[tab.value];
+    const sourceBadge = tabBadges[tab.value];
+    const badge =
+      tab.value === "evidence" && hiddenSections.length > 0
+        ? sourceBadge === undefined
+          ? { count: hiddenSections.length, severity: "medium" as const }
+          : { count: sourceBadge.count + hiddenSections.length, severity: sourceBadge.severity }
+        : sourceBadge;
     const badgedTab = badge === undefined ? tab : { ...tab, badge };
     presentations[tab.value] = presentation;
     if (presentation.mode === "hidden") {
