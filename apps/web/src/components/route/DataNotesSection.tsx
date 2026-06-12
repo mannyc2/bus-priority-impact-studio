@@ -126,11 +126,7 @@ export function DataNotesSection({
       <div>
         <SectionHeader
           title="Checked"
-          sub={
-            coverage.length > 0
-              ? coverageSummary(coverage)
-              : "Legacy detail; no capability manifest."
-          }
+          sub={coverage.length > 0 ? coverageSummary(coverage) : "Legacy detail; no manifest."}
         />
         <CheckedCleanChipRail chips={checkedCleanChips} />
         <div className="rounded-[3px] bg-[var(--bp-color-card)] shadow-[0_0_0_1px_var(--bp-color-rule)]">
@@ -167,7 +163,7 @@ export function DataNotesSection({
 
       {hiddenTabs.length > 0 ? (
         <div>
-          <SectionHeader title="Hidden sections" sub="Hidden where route evidence is thin." />
+          <SectionHeader title="Hidden sections" sub="Hidden when evidence is thin." />
           <div className="rounded-[3px] bg-[var(--bp-color-card)] shadow-[0_0_0_1px_var(--bp-color-rule)]">
             {hiddenTabs.map(({ tab, presentation }) => (
               <div
@@ -207,7 +203,7 @@ export function DataNotesSection({
       ) : null}
 
       <div>
-        <SectionHeader title="Datasets" sub="Sources behind route numbers." />
+        <SectionHeader title="Datasets" sub="Route-number sources." />
         <div className="rounded-[3px] bg-[var(--bp-color-card)] shadow-[0_0_0_1px_var(--bp-color-rule)]">
           {datasets.map(([name, publisher, window]) => (
             <div
@@ -334,7 +330,7 @@ export function EvidenceIndexSection({
           ))
         ) : (
           <div className="px-4 py-3 text-[12.5px] text-[var(--bp-color-ink-55)]">
-            Checked surfaces appear below.
+            Checked surfaces below.
           </div>
         )}
       </div>
@@ -353,7 +349,7 @@ function CheckedCleanChipRail({ chips }: { chips: readonly CheckedCleanCoverageC
           className="inline-flex max-w-full items-center gap-2 rounded-[3px] bg-[var(--bp-color-good-bg)] px-2.5 py-1.5 text-[11.5px] shadow-[inset_0_0_0_1px_var(--bp-color-good)]"
           title={chip.reason ?? chip.depthLabel}
         >
-          <Badge variant="good">Checked clean</Badge>
+          <Badge variant="good">Clean</Badge>
           <span className="truncate font-semibold text-[var(--bp-color-ink)]">{chip.label}</span>
           <span className="font-mono text-[10.5px] text-[var(--bp-color-good)]">
             {chip.checkedThroughLabel}

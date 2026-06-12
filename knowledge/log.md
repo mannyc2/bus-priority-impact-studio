@@ -2,6 +2,43 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Coverage summaries omit zero ready counts
+
+Tightened route capability coverage summaries so sparse manifests no longer start with `0 ready`.
+Rows with insufficient or not-applicable evidence now summarize only the states actually present,
+while checked-clean, partial, building, blocked, and not-applicable counts keep their existing
+ordering. Trimmed adjacent route-detail evidence labels (`Speed`, `Geometry`, `Findings`, `unknown`,
+shorter empty-state copy) so the production bundle stays under the unchanged 485 KB gz total-JS
+budget.
+
+Also reviewed `nyc_dot_bus_priority_document_pdf_brt_south_brooklyn_b82_may2017` from the
+full-corpus source review workspace. The local ignored reviewed-record seed now has 46
+reviewed-record sources and 50 valid records. This source contributes one conservative proposed B82
+Southern Brooklyn SBS design record for the May 9, 2017 deck, covering the planned SBS feature
+package, bus-lane typologies, signal priority, off-board fare collection, all-door boarding,
+Glenwood Road reroute, pedestrian/safety/intersection work, and the source-stated 2018 launch
+schedule. The record caveats that the source is planning evidence rather than implementation proof,
+that program benefit statements are not observed B82 impacts, and that map-derived lane/route
+geometry needs later visual review before block-level publication.
+
+Regenerated the local ignored source receipt closure audit with the current v2 flags. It now
+reports 291 queue sources, 50 valid reviewed records, 46 reviewed-record sources, 4 disposition
+receipts, 48 closed sources, 243 open sources, and 0 conflicts; public promotion remains blocked on
+full source closure.
+
+Verified with `bunx biome check apps/web/src/components/route/coverage-matrix.ts
+apps/web/src/components/route/DataNotesSection.tsx apps/web/test/shared/coverage-matrix.test.ts
+apps/web/test/shared/data-notes-section.test.ts`, `bun test
+apps/web/test/shared/coverage-matrix.test.ts apps/web/test/shared/data-notes-section.test.ts
+--timeout 5000`, `bun --filter @bp/web typecheck`, `bun --filter @bp/web build`, `bun run
+check:types`, `jq empty
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/intervention-records-corpus-reviewed.json
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/source-receipt-closure-audit.json
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/source-receipt-closure-audit-summary.json`,
+`bun --filter @bp/pipeline-v2 cli -- docs tier2 source-receipt-audit --queue-path ...`, `bun
+--filter @bp/pipeline-v2 cli -- audit tier2-structured-data --json`, `bun run check:knowledge`,
+and `git diff --check`.
+
 ## [2026-06-12] engineering | Evidence header summarizes hidden notices
 
 Made the Evidence tab's own section header summarize manifest-hidden section notices, not just

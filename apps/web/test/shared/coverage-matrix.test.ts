@@ -37,10 +37,10 @@ describe("coverage matrix", () => {
     );
 
     expect(rows.map((row) => [row.label, row.stateLabel, row.depthLabel])).toEqual([
-      ["Speed history", "Ready", "36 months / route_month"],
+      ["Speed", "Ready", "36 months / route_month"],
       ["Reliability", "Checked clean", "3 months / stop_hour"],
-      ["Custom Signal", "Insufficient data", "depth unknown"],
-      ["Treatments", "Blocked", "depth unknown"],
+      ["Custom Signal", "Insufficient data", "unknown"],
+      ["Treatments", "Blocked", "unknown"],
     ]);
     expect(coverageSummary(rows)).toBe("1 ready / 1 checked clean / 1 insufficient / 1 blocked");
     expect(checkedCleanCoverageChips(rows)).toEqual([
@@ -61,6 +61,17 @@ describe("coverage matrix", () => {
     expect(coverageSummary([])).toBe("No manifest surfaces");
     expect(checkedCleanCoverageChips([])).toEqual([]);
     expect(coverageLatestDataAsOf([])).toBeNull();
+  });
+
+  test("omits zero ready counts for sparse manifests", () => {
+    const rows = coverageRows(
+      capability({
+        reliability: surface("insufficient_data"),
+        treatment: surface("not_applicable"),
+      }),
+    );
+
+    expect(coverageSummary(rows)).toBe("1 insufficient / 1 not applicable");
   });
 
   test("uses the latest manifest surface month for route-level freshness", () => {
