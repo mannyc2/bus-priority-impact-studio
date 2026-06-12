@@ -2,6 +2,44 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Treatments tab shows timeline signals
+
+Advanced the route-detail §4.3 / §5.2 treatment handoff by letting the Treatments & history
+section count timeline-placement route insights in its header. The new helper reuses the shared
+`routeInsightPlacements` ordering, so treatment and timeline detector signals follow the same
+severity/month/scope sort used by the rest of the route dossier. To keep the existing web bundle
+budget intact, the section exposes a compact signal badge and leaves full insight text in the
+Overview/Evidence surfaces.
+
+Also reviewed `nyc_dot_bus_priority_document_pdf_brt_woodhaven_after_fall2018` from the
+full-corpus source review workspace as an implemented Q52/Q53 Woodhaven / Cross Bay Boulevard SBS
+launch-and-results record. The local ignored reviewed-record seed now has 30 sources and 30
+records. The record cites the Fall 2018 progress report cover, executive summary, route page,
+implementation timeline, ridership, service metrics, customer satisfaction, safety results, and
+final results pages. It assigns canonical `bus_lane`, `off_board_fare_collection`,
+`pedestrian_improvement`, and `signal_retiming` treatments, with custom details for median SBS
+stations, branded SBS service, Q52 Beach 54 St extension, Rockaways/Broad Channel stop
+consolidation, new SBS stops, widened medians/refuges, turn restrictions, and traffic calming.
+
+The record keeps the source conservative: it uses `complete` status as of the Fall 2018 report,
+assigns route scope only to Q52/Q53, treats citywide SBS routes on the context map as non-assigned,
+records source-stated ridership/travel-time/reliability/survey/safety results as descriptive
+before/after evidence rather than causal proof, and does not infer a new TSP treatment from this
+source alone. Regenerated the local ignored source receipt closure audit. It now reports 291 queue
+sources, 30 valid reviewed records, 30 reviewed-record sources, 4 disposition receipts, 32 closed
+sources, 259 open sources, and 0 conflicts; public promotion remains blocked on full source
+closure.
+
+Verified with `jq empty
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/intervention-records-corpus-reviewed.json`,
+`bun --filter @bp/pipeline-v2 cli -- docs tier2 source-receipt-audit --queue-path ...`,
+`bun --filter @bp/pipeline-v2 cli -- audit tier2-structured-data --json`, `bunx biome check
+apps/web/src/components/route/TreatmentsHistorySection.tsx
+apps/web/test/shared/treatments-history.test.ts`, `bun test
+apps/web/test/shared/treatments-history.test.ts --timeout 5000`, `bun --filter @bp/web
+typecheck`, `bun --filter @bp/web build`, `bun run check:types`, `bun run check:knowledge`, and
+`git diff --check`.
+
 ## [2026-06-12] engineering | Where-and-when floats detector-targeted segments
 
 Advanced the route-detail §5.2 detector-shaped ordering contract by making the Where & when
