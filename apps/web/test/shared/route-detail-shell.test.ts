@@ -83,8 +83,8 @@ describe("RouteDetailShell tab render contract", () => {
   test("renders badges only for visible tabs", () => {
     const sparseHtml = renderShell(sparse);
 
-    expect(sparseHtml).toContain('aria-label="1 flag"');
-    expect(sparseHtml).not.toContain('aria-label="2 flags"');
+    expect(sparseHtml).toContain('aria-label="1 notice"');
+    expect(sparseHtml).not.toContain('aria-label="2 notices"');
   });
 
   test("marks visible honest-empty tabs without exposing hidden tabs", () => {

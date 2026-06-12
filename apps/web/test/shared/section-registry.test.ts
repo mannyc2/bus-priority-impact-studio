@@ -231,7 +231,7 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
     ]);
   });
 
-  test("routeSectionRegistry attaches detector badges without showing hidden sections", () => {
+  test("routeSectionRegistry attaches detector badges and points hidden sections to Evidence", () => {
     const registry = routeSectionRegistry(sparse, {
       reliability: { count: 2, severity: "high" },
       riders: { count: 1, severity: "medium" },
@@ -243,11 +243,20 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
       ["where-when", 0],
       ["riders", 1],
       ["treatments", 0],
-      ["evidence", 0],
+      ["evidence", 1],
     ]);
     expect(registry.hiddenSections.map(({ tab }) => [tab.value, tab.badge?.count ?? 0])).toEqual([
       ["reliability", 2],
     ]);
+  });
+
+  test("routeSectionRegistry combines Evidence detector badges with hidden-section notices", () => {
+    const registry = routeSectionRegistry(sparse, {
+      evidence: { count: 3, severity: "high" },
+    });
+
+    const evidence = registry.visibleTabs.find((tab) => tab.value === "evidence");
+    expect(evidence?.badge).toEqual({ count: 4, severity: "high" });
   });
 
   test("routeSectionCanNavigate follows hidden-section policy for header KPI clicks", () => {
