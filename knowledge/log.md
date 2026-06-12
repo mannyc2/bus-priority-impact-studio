@@ -2,6 +2,39 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Tier 2 M15 CB11 source review closes one more source
+
+Reviewed `nyc_dot_bus_priority_document_pdf_2010_06_09_brt_1st2nd_cb11` from the full-corpus
+source review workspace as a proposed First Avenue/Second Avenue M15 SBS launch-plan record. The
+local ignored reviewed-record seed now has 6 sources and 6 records. The record cites the June 9,
+2010 CB11 presentation, the M15 SBS route map from South Ferry to 125th Street, the 2010 feature
+table for off-board fare collection and improved bus lanes, the 2010 bus-lane implementation plan,
+selected CB11 station-siting pages, construction sequencing, and the October 2010 launch summary.
+It preserves caveats that the source is pre-launch, Transit Signal Priority and bus bulbs are
+2011-2012 features in this presentation, and selected station pages are not a full block-by-block
+treatment assignment.
+
+Regenerated the local ignored source receipt closure audit. It now reports 291 queue sources, 6
+valid reviewed records, 3 disposition receipts, 7 closed sources, 284 open sources, and 0 conflicts;
+public promotion remains blocked on full source closure. Verified with `jq empty` on the reviewed
+record artifact, `bun run pipeline docs tier2 source-receipt-audit ...`, and
+`bun run pipeline audit tier2-structured-data --json`.
+
+## [2026-06-12] engineering | Where and when uses dossier speed summary
+
+Advanced the route-detail Where & when tab toward the §4.3 dossier-backed shape. The section now
+derives its subtitle, data-as-of badge, current speed, peer framing, 6-month movement, history
+window, and worst-segment copy from the route dossier when available, with current-projection
+fallbacks for sparse or legacy routes. The helper keeps formatting and null handling out of the
+React component, and the route-detail page passes the dossier summary into the slow-segments view.
+
+Added focused coverage for a rich dossier case and a no-dossier fallback. Verified with
+`bunx biome check --write apps/web/src/components/route/SlowSegments.tsx
+apps/web/src/components/route/where-when-summary.ts apps/web/src/studio/pages/route-detail.tsx
+apps/web/test/shared/where-when-summary.test.ts`, `bun test
+apps/web/test/shared/where-when-summary.test.ts apps/web/test/shared/section-registry.test.ts
+--timeout 5000`, `bun --filter @bp/web typecheck`, and `bun --filter @bp/web build`.
+
 ## [2026-06-12] engineering | Tier 2 M15 CB8 March source review closes one more source
 
 Reviewed `nyc_dot_bus_priority_document_pdf_2010_03_11_brt_1st2nd_cb8` from the full-corpus

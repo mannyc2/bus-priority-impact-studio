@@ -124,6 +124,7 @@ export function RouteDetailPage({ data }: { data: StudioRouteDetailResponse | nu
             segments={segments}
             insights={data.insights}
             {...(flagged?.id ? { flaggedId: flagged.id } : {})}
+            dossier={data.dossier}
           />
         ))}
         {section("reliability", () => (
