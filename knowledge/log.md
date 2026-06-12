@@ -2,6 +2,40 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Map tab summarizes focus segment
+
+Turned the Map tab's third stat from a route artifact count into a detector-aligned focus-segment
+summary. The new shared helper reports the highlighted segment speed, extent, rounded rider-hours
+exposure, and overlapping bus priority treatments; when detector map signals do not match a segment,
+it reports an unmatched map signal, and when there are no map signals it reports a clear no-flag
+state. Added focused helper coverage for matched, unmatched, and clear states so the Map tab follows
+the same detector-prioritized highlight contract as the Overview mini-map.
+
+Also reviewed `nyc_dot_bus_priority_document_pdf_2015_04_30_brt_woodhaven_dw4_discussionmaterials`
+from the full-corpus source review workspace. The local ignored reviewed-record seed now has 39
+reviewed-record sources and 41 valid records. This source contributes one conservative proposed
+Q52/Q53 SBS Rockaway Peninsula stop-consolidation record from the April 30, 2015 Public Design
+Workshop #4 materials, covering the potential 15 Road or 16 Road consolidation in Broad Channel,
+the proposal to consolidate the last southbound stop to Beach 67 Street, and the source legend's
+proposed limited-stop discontinuation context. The record treats the page as workshop/proposed
+design evidence only: no implementation date, no completion proof, no measured impact metric, and
+no stop-level publication without source-page visual review.
+
+Regenerated the local ignored source receipt closure audit. It now reports 291 queue sources, 41
+valid reviewed records, 39 reviewed-record sources, 4 disposition receipts, 41 closed sources, 250
+open sources, and 0 conflicts; public promotion remains blocked on full source closure.
+
+Verified with `bunx biome check apps/web/src/components/route/RouteMapSection.tsx
+apps/web/test/shared/route-map-highlight.test.ts knowledge/log.md`, `bun test
+apps/web/test/shared/route-map-highlight.test.ts --timeout 5000`, `bun --filter @bp/web
+typecheck`, `bun --filter @bp/web build`, `jq empty
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/intervention-records-corpus-reviewed.json
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/source-receipt-closure-audit.json
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/source-receipt-closure-audit-summary.json`,
+`bun --filter @bp/pipeline-v2 cli -- docs tier2 source-receipt-audit --queue-path ...`, `bun
+--filter @bp/pipeline-v2 cli -- audit tier2-structured-data --json`, `bun run check:types`, `bun
+run check:knowledge`, and `git diff --check`.
+
 ## [2026-06-12] engineering | Overview mini-map follows detector segment focus
 
 Aligned the route-detail verdict mini-map with the Map tab by reusing the detector-prioritized

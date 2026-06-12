@@ -2,7 +2,10 @@ import { describe, expect, test } from "bun:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { OverviewSection } from "../../src/components/route/OverviewSection";
-import { routeMapHighlight } from "../../src/components/route/RouteMapSection";
+import {
+  routeMapFocusSummary,
+  routeMapHighlight,
+} from "../../src/components/route/RouteMapSection";
 import { routeSectionRegistry } from "../../src/components/route/section-registry";
 import type {
   RouteSurfaceCapability,
@@ -162,6 +165,41 @@ describe("routeMapHighlight", () => {
     expect(routeMapHighlight([segment({ id: "plain" })], [])).toEqual({
       signalCount: 0,
       segment: null,
+    });
+  });
+
+  test("summarizes a matched focus segment for the Map tab", () => {
+    expect(
+      routeMapFocusSummary({
+        signalCount: 2,
+        segment: segment({
+          id: "target",
+          from: "Avenue A",
+          to: "Avenue B",
+          speedMph: 4.8,
+          riderHours: 1250,
+          lane: "partial",
+          ace: true,
+          tsp: true,
+        }),
+      }),
+    ).toEqual({
+      value: "4.8 mph",
+      sub: "Avenue A to Avenue B / 1250 rider hr / lane+ACE+TSP",
+    });
+  });
+
+  test("summarizes unmatched map signals without inventing a segment", () => {
+    expect(routeMapFocusSummary({ signalCount: 1, segment: null })).toEqual({
+      value: "Unmatched",
+      sub: "map signal",
+    });
+  });
+
+  test("summarizes clear maps when no segment is flagged", () => {
+    expect(routeMapFocusSummary({ signalCount: 0, segment: null })).toEqual({
+      value: "Clear",
+      sub: "no flag",
     });
   });
 

@@ -18,6 +18,11 @@ export type RouteMapHighlight = {
   signalCount: number;
 };
 
+export type RouteMapFocusSummary = {
+  value: string;
+  sub: string;
+};
+
 export function routeMapHighlight(
   segments: readonly StudioSegment[],
   insights: readonly StudioRouteInsight[],
@@ -33,15 +38,33 @@ export function routeMapHighlight(
   };
 }
 
+export function routeMapFocusSummary(highlight: RouteMapHighlight): RouteMapFocusSummary {
+  const { segment, signalCount } = highlight;
+  if (segment === null) {
+    return {
+      value: signalCount > 0 ? "Unmatched" : "Clear",
+      sub: signalCount > 0 ? "map signal" : "no flag",
+    };
+  }
+
+  const overlap =
+    [
+      segment.lane === "none" ? null : "lane",
+      segment.ace ? "ACE" : null,
+      segment.tsp ? "TSP" : null,
+    ]
+      .filter(Boolean)
+      .join("+") || "no priority";
+  return {
+    value: `${segment.speedMph.toFixed(1)} mph`,
+    sub: `${segment.from} to ${segment.to} / ${Math.round(segment.riderHours)} rider hr / ${overlap}`,
+  };
+}
+
 export function RouteMapSection({ data }: { data: StudioRouteDetailResponse }) {
   const { route, segments } = data;
   const highlight = routeMapHighlight(segments, data.insights);
-  const mapArtifacts = data.artifactRefs.filter(
-    (artifact) =>
-      artifact.key.startsWith("map/") ||
-      artifact.contentType.includes("geo") ||
-      artifact.name.toLowerCase().includes("map"),
-  );
+  const focus = routeMapFocusSummary(highlight);
   const laneSegments = segments.filter((segment) => segment.lane !== "none").length;
   const treatmentSegments = segments.filter((segment) => segment.ace || segment.tsp).length;
   const surfaces = data.capability?.surfaces;
@@ -88,11 +111,7 @@ export function RouteMapSection({ data }: { data: StudioRouteDetailResponse }) {
           sub={`${laneSegments} segments`}
         />
         <MapStat label="ACE/TSP" value={String(treatmentSegments)} sub="segments" />
-        <MapStat
-          label="Map refs"
-          value={String(mapArtifacts.length)}
-          sub={mapArtifacts.length > 0 ? "route refs" : "citywide"}
-        />
+        <MapStat label="Focus segment" value={focus.value} sub={focus.sub} />
       </div>
     </section>
   );
