@@ -1,4 +1,5 @@
 import { CorridorMap } from "@/components/CorridorMap";
+import { DataAsOf } from "@/components/DataAsOf";
 import { routeSectionQuestion } from "@/components/route/section-registry";
 import { SectionHeader } from "@/components/SectionHeader";
 import { Badge } from "@/components/ui/badge";
@@ -15,17 +16,23 @@ export function RouteMapSection({ data }: { data: StudioRouteDetailResponse }) {
   );
   const laneSegments = segments.filter((segment) => segment.lane !== "none").length;
   const treatmentSegments = segments.filter((segment) => segment.ace || segment.tsp).length;
+  const surfaces = data.capability?.surfaces;
+  const dataAsOf =
+    surfaces?.["map"]?.dataAsOf ??
+    surfaces?.["geometry"]?.dataAsOf ??
+    surfaces?.["routeGeometry"]?.dataAsOf ??
+    data.dossier?.dataAsOf ??
+    null;
 
   return (
     <section className="flex flex-col gap-5">
       <SectionHeader
         title={routeSectionQuestion("map")}
-        sub="Segment pace, flags, and bus-priority coverage."
+        sub="Pace, flags, and priority coverage."
         right={
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant={flagged ? "bad" : "neutral"}>
-              {flagged ? "flagged segment" : "no segment flag"}
-            </Badge>
+            <DataAsOf dataAsOf={dataAsOf} />
+            <Badge variant={flagged ? "bad" : "neutral"}>{flagged ? "flagged" : "clear"}</Badge>
             <Badge variant="neutral">{segments.length} segments</Badge>
           </div>
         }
@@ -37,17 +44,17 @@ export function RouteMapSection({ data }: { data: StudioRouteDetailResponse }) {
         <MapStat
           label="Bus-lane coverage"
           value={`${route.laneCoverage}%`}
-          sub={`${laneSegments} visible segment(s)`}
+          sub={`${laneSegments} segments`}
         />
         <MapStat
           label="ACE / TSP overlap"
           value={String(treatmentSegments)}
-          sub="visible segments with program evidence"
+          sub="segments with evidence"
         />
         <MapStat
           label="Map evidence"
           value={String(mapArtifacts.length)}
-          sub={mapArtifacts.length > 0 ? "route map reference(s)" : "citywide map layer"}
+          sub={mapArtifacts.length > 0 ? "route map refs" : "citywide layer"}
         />
       </div>
     </section>

@@ -2,6 +2,38 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Map section shows manifest freshness
+
+Advanced the route-detail §4 / §7.4 map-surface cutover by adding the shared `DataAsOf` marker to
+the Map section header. The section now reads its freshness clock from the route capability
+manifest's `map`, `geometry`, or `routeGeometry` surfaces, with a dossier-level fallback when the
+manifest lacks a map-specific clock. Nearby map microcopy was tightened so the route-detail lazy
+chunk stays within the existing bundle budget.
+
+Also reviewed `nyc_dot_bus_priority_document_pdf_2014_08_25_brt_websteravenue_progressreport`
+from the full-corpus source review workspace as an implemented Bx41 Webster Avenue SBS progress
+record. The local ignored reviewed-record seed now has 23 sources and 23 records. The record cites
+the August 2014 progress report, the June 30, 2013 Bx41 SBS launch, 8 miles of Webster Avenue bus
+lanes from E 165 Street to E Gun Hill Road, off-board fare collection, fare inspection, branding
+and customer information, pedestrian refuges/medians, signal timing changes, and source-reported
+travel-time/delay/ridership results.
+
+The record stores `effectiveDate: 2013-06-30` with `datePrecision: day`. It separately caveats
+that TSP and enhanced bus-bulb capital construction were future or in-design items in the August
+2014 source, and that the speed, delay, satisfaction, and ridership metrics are source-reported
+before/after results rather than a controlled causal estimate. Regenerated the local ignored source
+receipt closure audit. It now reports 291 queue sources, 23 valid reviewed records, 23
+reviewed-record sources, 24 closed sources, 267 open sources, and 0 conflicts; public promotion
+remains blocked on full source closure. The broader Tier 2 structured-data inventory still reports
+the older published-inventory next action because it scans published artifacts rather than this
+ignored manual-review seed.
+
+Verified with `bunx biome check apps/web/src/components/route/RouteMapSection.tsx`, `bun
+--filter @bp/web typecheck`, `bun --filter @bp/web build`, `jq empty
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/intervention-records-corpus-reviewed.json`,
+`bun --filter @bp/pipeline-v2 cli -- docs tier2 source-receipt-audit ...`, and `bun --filter
+@bp/pipeline-v2 cli -- audit tier2-structured-data --json`.
+
 ## [2026-06-12] engineering | Treatments section shows dossier freshness
 
 Advanced the route-detail §4.1 / §7.4 freshness cutover by adding the shared `DataAsOf` marker to
