@@ -2,6 +2,47 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Overview verdict uses dossier clock
+
+Closed the route-detail two-clocks issue called out in the design brief by making the Overview
+summary, story badge, and footer speed badge read from the route dossier speed current/dataAsOf
+when present. The route projection now appears only as the explicit fallback when a dossier current
+speed is unavailable. The derived verdict helper returns the speed, peer rank, data clock, and lead
+sentence together so the Overview prose and badges stay on the same measurement clock.
+
+Trimmed nearby route-detail labels and folded the verdict helpers to keep the existing web total-JS
+bundle budget intact. The production build now reports 484.952 KB gz of total JS against the 485 KB
+cap without raising the budget.
+
+Also reviewed `nyc_dot_bus_priority_document_pdf_brt_south_brooklyn_b82_cb11_apr2017` from the
+full-corpus source review workspace. The local ignored reviewed-record seed now has 35
+reviewed-record sources and 37 valid records. This source contributes one conservative proposed
+B82 South Brooklyn SBS design record for bus lanes, off-board fare collection, all-door boarding,
+transit signal priority, pedestrian improvements, rerouting, SBS station amenities, real-time
+passenger information, a Cropsey/Bay 37 bus-pedestrian island, a proposed Avenue K stop, targeted
+loading zones, and side-street metered parking. The review treats the April 2017 CB11 deck as
+proposed design/next-steps evidence rather than proof of final 2018 implementation, keeps generic
+SBS program results as context rather than B82-specific impact proof, and requires visual review
+before geometry publication.
+
+Regenerated the local ignored source receipt closure audit. It now reports 291 queue sources, 37
+valid reviewed records, 35 reviewed-record sources, 4 disposition receipts, 37 closed sources, 254
+open sources, and 0 conflicts; public promotion remains blocked on full source closure.
+
+Verified with `bunx biome check
+apps/web/src/components/route/route-derived.ts
+apps/web/src/components/route/RouteJudgedKpiStrip.tsx
+apps/web/src/components/route/OverviewSection.tsx
+apps/web/test/shared/route-verdict-derived.test.ts`, `bun test
+apps/web/test/shared/route-verdict-derived.test.ts
+apps/web/test/shared/route-detail-shell.test.ts apps/web/test/shared/section-registry.test.ts
+--timeout 5000`, `bun --filter @bp/web typecheck`, `bun --filter @bp/web build`, `jq empty
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/intervention-records-corpus-reviewed.json
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/source-receipt-closure-audit.json
+data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/source-receipt-closure-audit-summary.json`,
+`bun --filter @bp/pipeline-v2 cli -- docs tier2 source-receipt-audit --queue-path ...`, and `bun
+--filter @bp/pipeline-v2 cli -- audit tier2-structured-data --json`.
+
 ## [2026-06-12] engineering | Honest-empty tabs show registry state
 
 Advanced the route-detail §8.1 / §4.3 section-registry contract by carrying honest-empty state onto

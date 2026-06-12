@@ -40,6 +40,37 @@ export function dossierMetricWindow(metric: RouteDossierMetricSummary | undefine
   return `${months[0]} to ${months[months.length - 1]}`;
 }
 
+export function routeVerdict(
+  route: StudioRoute,
+  dossier: RouteDossierSummaryForDetail | null,
+): {
+  speedMph: number;
+  peerPercentile: number | null;
+  dataAsOf: string | null;
+  lead: string;
+} {
+  const speed = dossier?.speed;
+  if (speed?.current !== null && speed?.current !== undefined) {
+    const movement =
+      speed.movement6mPct === null
+        ? ""
+        : `, ${speed.movement6mPct > 0 ? "+" : ""}${speed.movement6mPct.toFixed(1)}% 6 mo`;
+    return {
+      speedMph: speed.current,
+      peerPercentile: speed.peerPercentile,
+      dataAsOf: speed.dataAsOf,
+      lead: `${route.label}: ${speed.current.toFixed(1)} mph${movement}.`,
+    };
+  }
+
+  return {
+    speedMph: route.weightedAvgSpeed,
+    peerPercentile: route.speedPercentile,
+    dataAsOf: null,
+    lead: route.diagnosis,
+  };
+}
+
 export function routeHistorySpeedSeries(history: StudioRouteHistoryResponse | null): number[] {
   return (
     history?.points.flatMap((point) =>
