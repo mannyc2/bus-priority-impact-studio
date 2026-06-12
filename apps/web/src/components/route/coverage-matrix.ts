@@ -24,15 +24,15 @@ export type CheckedCleanCoverageChip = {
 
 const SURFACE_LABELS: Record<string, string> = {
   condition: "Condition",
-  detectorFindings: "Detector findings",
-  geometry: "Route geometry",
+  detectorFindings: "Findings",
+  geometry: "Geometry",
   map: "Map",
   materializationCoverage: "Materialization",
   reliability: "Reliability",
   ridership: "Ridership",
-  routeGeometry: "Route geometry",
+  routeGeometry: "Geometry",
   scheduleBaseline: "Schedule",
-  speedHistory: "Speed history",
+  speedHistory: "Speed",
   treatment: "Treatments",
   trend: "Trend",
 };
@@ -97,7 +97,7 @@ export function coverageSummary(rows: readonly CoverageRow[]): string {
   const blocked = rows.filter((row) => row.state === "blocked").length;
   const notApplicable = rows.filter((row) => row.state === "not_applicable").length;
   const parts = [
-    `${ready} ready`,
+    ready > 0 ? `${ready} ready` : null,
     checkedClean > 0 ? `${checkedClean} checked clean` : null,
     partial > 0 ? `${partial} partial` : null,
     building > 0 ? `${building} building` : null,
@@ -144,7 +144,7 @@ function latestDataAsOf(values: readonly (string | null)[]): string | null {
 }
 
 function depthLabel(depth: RouteSurfaceCapability["depth"]): string {
-  if (depth === null) return "depth unknown";
+  if (depth === null) return "unknown";
   const months =
     depth.monthsCovered === 1 ? "1 month" : `${depth.monthsCovered.toLocaleString()} months`;
   return depth.grains.length > 0 ? `${months} / ${depth.grains.join(", ")}` : months;

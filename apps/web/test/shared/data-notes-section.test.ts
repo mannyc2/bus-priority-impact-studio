@@ -21,6 +21,6 @@ describe("DataNotesSection evidence header", () => {
     );
 
     expect(markup).toContain("1 notice");
-    expect(markup).toContain("Checked surfaces appear below.");
+    expect(markup).toContain("Checked surfaces below.");
   });
 });
