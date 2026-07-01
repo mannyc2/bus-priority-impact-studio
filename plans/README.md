@@ -38,7 +38,7 @@ nyc-transit-kit pin gets fixed at its source so adoption can proceed (029).
 
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
-| 019 | Land the hard cutover and clear the residue | P0 | M | — | TODO |
+| 019 | Land the hard cutover and clear the residue | P0 | M | — | BLOCKED (brief/finding domain schemas still imported by Studio serving read handlers) |
 | 020 | Serve the MTA-wiki route evidence end-to-end | P1 | L | 019 | TODO |
 | 021 | Expand the served route corpus beyond the 12-route pilot | P1 | L | 019 (020 rec.) | TODO |
 | 022 | Converge the route page on the canonical editorial design | P1 | L | 019, 020 | TODO |
