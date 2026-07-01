@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { detectDegradationTrends, type DegradationTrendDetectorInput } from "../src/index.js";
 import type { FeatureQuality, RouteMetricHistoryFeature } from "@bp/analytics/features";
+import { type DegradationTrendDetectorInput, detectDegradationTrends } from "../src/index.js";
 
 const GENERATED_AT = "2026-05-30T12:00:00.000Z";
 const MONTH = "2026-03";

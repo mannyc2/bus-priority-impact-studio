@@ -33,7 +33,13 @@ function event(input: {
     datePrecision: "day",
     ...(input.treatmentText ? { treatmentText: input.treatmentText } : {}),
     evidenceRefs: [
-      { sourceId: `source-${input.surfaceId}`, pageNumber: 1, blockId: "B0001", lineStart: 2, lineEnd: 2 },
+      {
+        sourceId: `source-${input.surfaceId}`,
+        pageNumber: 1,
+        blockId: "B0001",
+        lineStart: 2,
+        lineEnd: 2,
+      },
     ],
     rawCandidate: {
       statusRaw: input.statusRaw === undefined ? "completed" : input.statusRaw,
@@ -115,8 +121,19 @@ describe("Tier 2 operational-date assertions", () => {
     await Bun.write(
       eventsPath,
       [
-        event({ surfaceId: "busway", displayLabel: "14th Street busway launch", rawFamily: "busway_implementation", treatmentText: "transit and truck priority", statusRaw: "completed" }),
-        event({ surfaceId: "meeting", displayLabel: "Public workshop", rawFamily: "public_meeting", statusRaw: "completed" }),
+        event({
+          surfaceId: "busway",
+          displayLabel: "14th Street busway launch",
+          rawFamily: "busway_implementation",
+          treatmentText: "transit and truck priority",
+          statusRaw: "completed",
+        }),
+        event({
+          surfaceId: "meeting",
+          displayLabel: "Public workshop",
+          rawFamily: "public_meeting",
+          statusRaw: "completed",
+        }),
       ]
         .map((row) => JSON.stringify(row))
         .join("\n"),
@@ -131,7 +148,9 @@ describe("Tier 2 operational-date assertions", () => {
 
     expect(result.artifact.summary.inputEventCount).toBe(2);
     expect(result.artifact.summary.trustedOperationalDateCount).toBe(1);
-    expect(result.artifact.summary.countsByValidationState["source_stated_operational_date"]).toBe(1);
+    expect(result.artifact.summary.countsByValidationState["source_stated_operational_date"]).toBe(
+      1,
+    );
     expect(result.artifact.summary.countsByValidationState["non_operational_milestone"]).toBe(1);
     expect(await Bun.file(outputPath).exists()).toBe(true);
   });

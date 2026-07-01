@@ -103,9 +103,7 @@ type RouteReadinessIndexRow = z.output<typeof RouteReadinessIndexRowSchema>;
 type RouteBriefSummaryIndexRow = z.output<typeof RouteBriefSummaryIndexRowSchema>;
 type RouteArtifactIndexRow = z.output<typeof RouteArtifactIndexRowSchema>;
 type RouteMonthTrendIndexRow = z.output<typeof RouteMonthTrendIndexRowSchema>;
-type RouteSpeedHistoryCoverageIndexRow = z.output<
-  typeof RouteSpeedHistoryCoverageIndexRowSchema
->;
+type RouteSpeedHistoryCoverageIndexRow = z.output<typeof RouteSpeedHistoryCoverageIndexRowSchema>;
 
 export type StudioRouteIndexSourceRow = {
   routeId: string;
@@ -261,13 +259,17 @@ function groupHistoryCoverage(rows: readonly RouteMonthTrendIndexRow[]) {
         group.stats.firstRidershipMonth = row.month;
         group.stats.firstRidership = row.ridership;
       }
-      if (group.stats.latestRidershipMonth === null || row.month > group.stats.latestRidershipMonth) {
+      if (
+        group.stats.latestRidershipMonth === null ||
+        row.month > group.stats.latestRidershipMonth
+      ) {
         group.stats.latestRidershipMonth = row.month;
         group.stats.latestRidership = row.ridership;
       }
     }
     if (group.stats.firstAverageSpeedMph !== null && group.stats.latestAverageSpeedMph !== null) {
-      group.stats.speedChangeMph = group.stats.latestAverageSpeedMph - group.stats.firstAverageSpeedMph;
+      group.stats.speedChangeMph =
+        group.stats.latestAverageSpeedMph - group.stats.firstAverageSpeedMph;
     }
     if (group.stats.firstRidership !== null && group.stats.latestRidership !== null) {
       group.stats.ridershipChange = group.stats.latestRidership - group.stats.firstRidership;
@@ -280,7 +282,10 @@ function groupHistoryCoverage(rows: readonly RouteMonthTrendIndexRow[]) {
     const latest = group.stats.latestAverageSpeedMph;
     if (speeds === undefined || latestMonth === null || latest === null) continue;
     group.stats.speedMovement6mPct = movementPct(latest, speeds.get(monthsBefore(latestMonth, 6)));
-    group.stats.speedMovement12mPct = movementPct(latest, speeds.get(monthsBefore(latestMonth, 12)));
+    group.stats.speedMovement12mPct = movementPct(
+      latest,
+      speeds.get(monthsBefore(latestMonth, 12)),
+    );
   }
   return output;
 }
@@ -410,99 +415,98 @@ export async function listStudioRouteIndexSourceRows(
     artifactRows,
     trendRows,
     speedHistoryCoverageRows,
-  ] =
-    await Promise.all([
-      db
-        .select({
-          route_id: routeCatalog.routeId,
-          route_short_name: routeCatalog.routeShortName,
-          route_long_name: routeCatalog.routeLongName,
-          shape_count: routeCatalog.shapeCount,
-          stop_count: routeCatalog.stopCount,
-          timepoint_stop_count: routeCatalog.timepointStopCount,
-        })
-        .from(routeCatalog)
-        .orderBy(asc(routeCatalog.routeId)),
-      db
-        .select({
-          route_id: routeCatalogType.routeId,
-          type_rank: routeCatalogType.typeRank,
-          route_type: routeCatalogType.routeType,
-        })
-        .from(routeCatalogType)
-        .orderBy(asc(routeCatalogType.routeId), asc(routeCatalogType.typeRank)),
-      db
-        .select({
-          route_id: routeReadiness.routeId,
-          month: routeReadiness.month,
-          readiness_status: routeReadiness.readinessStatus,
-          build_eligible: routeReadiness.buildEligible,
-          readiness_score: routeReadiness.readinessScore,
-          speed_observation_count: routeReadiness.speedObservationCount,
-          speed_bus_trip_count: routeReadiness.speedBusTripCount,
-          average_speed_mph: routeReadiness.averageSpeedMph,
-          schedule_timepoint_count: routeReadiness.scheduleTimepointCount,
-          shape_count: routeReadiness.shapeCount,
-          stop_count: routeReadiness.stopCount,
-          timepoint_stop_count: routeReadiness.timepointStopCount,
-        })
-        .from(routeReadiness)
-        .where(eq(routeReadiness.month, month))
-        .orderBy(asc(routeReadiness.routeId)),
-      db
-        .select({
-          route_id: routeBriefSummary.routeId,
-          month: routeBriefSummary.month,
-          public_visible: routeBriefSummary.publicVisible,
-          route_score: routeBriefSummary.routeScore,
-          average_speed_mph: routeBriefSummary.averageSpeedMph,
-          hotspot_count: routeBriefSummary.hotspotCount,
-          total_ridership: routeBriefSummary.totalRidership,
-          ace_active: routeBriefSummary.aceActive,
-          bus_lane_matched_lane_count: routeBriefSummary.busLaneMatchedLaneCount,
-        })
-        .from(routeBriefSummary)
-        .where(eq(routeBriefSummary.month, month))
-        .orderBy(asc(routeBriefSummary.routeId)),
-      db
-        .select({
-          route_id: routeArtifact.routeId,
-          month: routeArtifact.month,
-          artifact_name: routeArtifact.artifactName,
-        })
-        .from(routeArtifact)
-        .where(eq(routeArtifact.month, month))
-        .orderBy(asc(routeArtifact.routeId), asc(routeArtifact.artifactName)),
-      db
-        .select({
-          route_id: routeMonthTrend.routeId,
-          month: routeMonthTrend.month,
-          average_speed_mph: routeMonthTrend.averageSpeedMph,
-          ridership: routeMonthTrend.ridership,
-          has_speed_trend: routeMonthTrend.hasSpeedTrend,
-          has_ridership_trend: routeMonthTrend.hasRidershipTrend,
-        })
-        .from(routeMonthTrend)
-        .orderBy(asc(routeMonthTrend.routeId), asc(routeMonthTrend.month)),
-      db
-        .select({
-          route_id: routeSpeedHistoryCoverage.routeId,
-          month: routeSpeedHistoryCoverage.month,
-          route_slug: routeSpeedHistoryCoverage.routeSlug,
-          history_start_month: routeSpeedHistoryCoverage.historyStartMonth,
-          history_end_month: routeSpeedHistoryCoverage.historyEndMonth,
-          artifact_path: routeSpeedHistoryCoverage.artifactPath,
-          artifact_status: routeSpeedHistoryCoverage.artifactStatus,
-          month_count: routeSpeedHistoryCoverage.monthCount,
-          segment_count: routeSpeedHistoryCoverage.segmentCount,
-          cell_count: routeSpeedHistoryCoverage.cellCount,
-          available_cell_count: routeSpeedHistoryCoverage.availableCellCount,
-          missing_cell_count: routeSpeedHistoryCoverage.missingCellCount,
-        })
-        .from(routeSpeedHistoryCoverage)
-        .where(eq(routeSpeedHistoryCoverage.month, month))
-        .orderBy(asc(routeSpeedHistoryCoverage.routeId)),
-    ]);
+  ] = await Promise.all([
+    db
+      .select({
+        route_id: routeCatalog.routeId,
+        route_short_name: routeCatalog.routeShortName,
+        route_long_name: routeCatalog.routeLongName,
+        shape_count: routeCatalog.shapeCount,
+        stop_count: routeCatalog.stopCount,
+        timepoint_stop_count: routeCatalog.timepointStopCount,
+      })
+      .from(routeCatalog)
+      .orderBy(asc(routeCatalog.routeId)),
+    db
+      .select({
+        route_id: routeCatalogType.routeId,
+        type_rank: routeCatalogType.typeRank,
+        route_type: routeCatalogType.routeType,
+      })
+      .from(routeCatalogType)
+      .orderBy(asc(routeCatalogType.routeId), asc(routeCatalogType.typeRank)),
+    db
+      .select({
+        route_id: routeReadiness.routeId,
+        month: routeReadiness.month,
+        readiness_status: routeReadiness.readinessStatus,
+        build_eligible: routeReadiness.buildEligible,
+        readiness_score: routeReadiness.readinessScore,
+        speed_observation_count: routeReadiness.speedObservationCount,
+        speed_bus_trip_count: routeReadiness.speedBusTripCount,
+        average_speed_mph: routeReadiness.averageSpeedMph,
+        schedule_timepoint_count: routeReadiness.scheduleTimepointCount,
+        shape_count: routeReadiness.shapeCount,
+        stop_count: routeReadiness.stopCount,
+        timepoint_stop_count: routeReadiness.timepointStopCount,
+      })
+      .from(routeReadiness)
+      .where(eq(routeReadiness.month, month))
+      .orderBy(asc(routeReadiness.routeId)),
+    db
+      .select({
+        route_id: routeBriefSummary.routeId,
+        month: routeBriefSummary.month,
+        public_visible: routeBriefSummary.publicVisible,
+        route_score: routeBriefSummary.routeScore,
+        average_speed_mph: routeBriefSummary.averageSpeedMph,
+        hotspot_count: routeBriefSummary.hotspotCount,
+        total_ridership: routeBriefSummary.totalRidership,
+        ace_active: routeBriefSummary.aceActive,
+        bus_lane_matched_lane_count: routeBriefSummary.busLaneMatchedLaneCount,
+      })
+      .from(routeBriefSummary)
+      .where(eq(routeBriefSummary.month, month))
+      .orderBy(asc(routeBriefSummary.routeId)),
+    db
+      .select({
+        route_id: routeArtifact.routeId,
+        month: routeArtifact.month,
+        artifact_name: routeArtifact.artifactName,
+      })
+      .from(routeArtifact)
+      .where(eq(routeArtifact.month, month))
+      .orderBy(asc(routeArtifact.routeId), asc(routeArtifact.artifactName)),
+    db
+      .select({
+        route_id: routeMonthTrend.routeId,
+        month: routeMonthTrend.month,
+        average_speed_mph: routeMonthTrend.averageSpeedMph,
+        ridership: routeMonthTrend.ridership,
+        has_speed_trend: routeMonthTrend.hasSpeedTrend,
+        has_ridership_trend: routeMonthTrend.hasRidershipTrend,
+      })
+      .from(routeMonthTrend)
+      .orderBy(asc(routeMonthTrend.routeId), asc(routeMonthTrend.month)),
+    db
+      .select({
+        route_id: routeSpeedHistoryCoverage.routeId,
+        month: routeSpeedHistoryCoverage.month,
+        route_slug: routeSpeedHistoryCoverage.routeSlug,
+        history_start_month: routeSpeedHistoryCoverage.historyStartMonth,
+        history_end_month: routeSpeedHistoryCoverage.historyEndMonth,
+        artifact_path: routeSpeedHistoryCoverage.artifactPath,
+        artifact_status: routeSpeedHistoryCoverage.artifactStatus,
+        month_count: routeSpeedHistoryCoverage.monthCount,
+        segment_count: routeSpeedHistoryCoverage.segmentCount,
+        cell_count: routeSpeedHistoryCoverage.cellCount,
+        available_cell_count: routeSpeedHistoryCoverage.availableCellCount,
+        missing_cell_count: routeSpeedHistoryCoverage.missingCellCount,
+      })
+      .from(routeSpeedHistoryCoverage)
+      .where(eq(routeSpeedHistoryCoverage.month, month))
+      .orderBy(asc(routeSpeedHistoryCoverage.routeId)),
+  ]);
 
   const routeTypes = groupRouteTypes(
     typeRows.map((row) => RouteCatalogTypeIndexRowSchema.parse(row)),
@@ -526,9 +530,7 @@ export async function listStudioRouteIndexSourceRows(
     trendRows.map((row) => RouteMonthTrendIndexRowSchema.parse(row)),
   );
   const speedHistoryCoverage = groupSpeedHistoryCoverage(
-    speedHistoryCoverageRows.map((row) =>
-      RouteSpeedHistoryCoverageIndexRowSchema.parse(row),
-    ),
+    speedHistoryCoverageRows.map((row) => RouteSpeedHistoryCoverageIndexRowSchema.parse(row)),
   );
 
   return catalogRows.map((row): StudioRouteIndexSourceRow => {

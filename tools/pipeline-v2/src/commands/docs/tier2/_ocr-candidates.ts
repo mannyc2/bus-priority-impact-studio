@@ -1,3 +1,4 @@
+// biome-ignore-all lint/style/noNonNullAssertion: Legacy Tier 2 command code is pending plan 024 deletion; existing index assertions are intentional.
 // Tier 2 Phase 2 OCR-markdown evidence-candidate extraction step, extracted
 // from the former _shared.ts monolith during the per-step decomposition. Holds
 // the candidate tool/prompt/system-prompt, the DeepSeek client wrapper, the

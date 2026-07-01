@@ -5,14 +5,14 @@
 // from the core module; the core module never imports back here.
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";
 import { writeJson } from "../../../lib/json.ts";
+import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";
 import {
+  type CliOption,
   latestDocsRunId,
   parseCliOptions,
   readRequiredJsonArtifact,
   runArtifactRoot,
-  type CliOption,
   type Tier2CandidateBundle,
   type Tier2CanonicalInterventionEventsArtifact,
   type Tier2DocumentChunksArtifact,

@@ -44,37 +44,37 @@ maybe("sandbox.runBash", () => {
   });
 
   test("blocks network", async () => {
-    const r = await runBash(
-      "getent hosts cloudflare.com 2>&1; echo end",
-      { image: TEST_IMAGE, timeoutSec: 10 },
-    );
+    const r = await runBash("getent hosts cloudflare.com 2>&1; echo end", {
+      image: TEST_IMAGE,
+      timeoutSec: 10,
+    });
     expect(r.stdout).toContain("end");
     expect(r.stdout).not.toContain("104.");
   });
 
   test("rootfs is read-only", async () => {
-    const r = await runBash(
-      "touch /smoke_marker 2>&1; echo done",
-      { image: TEST_IMAGE, timeoutSec: 10 },
-    );
+    const r = await runBash("touch /smoke_marker 2>&1; echo done", {
+      image: TEST_IMAGE,
+      timeoutSec: 10,
+    });
     expect(r.stdout).toContain("Read-only file system");
     expect(r.stdout).toContain("done");
   });
 
   test("artifact mount is readable read-only", async () => {
-    const r = await runBash(
-      "head -c 20 /work/data/artifacts/findings/detector-specs.json",
-      { image: TEST_IMAGE, timeoutSec: 10 },
-    );
+    const r = await runBash("head -c 20 /work/data/artifacts/findings/detector-specs.json", {
+      image: TEST_IMAGE,
+      timeoutSec: 10,
+    });
     expect(r.exitCode).toBe(0);
     expect(r.stdout.length).toBeGreaterThan(0);
   });
 
   test("artifact mount is not writable", async () => {
-    const r = await runBash(
-      "touch /work/data/artifacts/__smoke 2>&1; echo done",
-      { image: TEST_IMAGE, timeoutSec: 10 },
-    );
+    const r = await runBash("touch /work/data/artifacts/__smoke 2>&1; echo done", {
+      image: TEST_IMAGE,
+      timeoutSec: 10,
+    });
     expect(r.stdout).toContain("Read-only file system");
     expect(r.stdout).toContain("done");
   });
@@ -103,10 +103,7 @@ maybe("sandbox.runTypeScript", () => {
   });
 
   test("propagates non-zero exit on TypeScript error", async () => {
-    const r = await runTypeScript(
-      "throw new Error('boom')",
-      { image: TEST_IMAGE, timeoutSec: 10 },
-    );
+    const r = await runTypeScript("throw new Error('boom')", { image: TEST_IMAGE, timeoutSec: 10 });
     expect(r.exitCode).not.toBe(0);
     expect(r.stderr).toContain("Error");
     expect(r.stderr).toContain("boom");

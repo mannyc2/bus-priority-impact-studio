@@ -211,7 +211,9 @@ function renderMarkdown(artifact: Tier2RouteTimelineBundleIndexArtifact): string
   lines.push(`- Default events: ${artifact.summary.defaultEventCount}`);
   lines.push(`- Events: ${artifact.summary.eventCount}`);
   lines.push(`- Unresolved-date events: ${artifact.summary.unresolvedDateEventCount}`);
-  lines.push(`- Validation: ${artifact.summary.validationErrorCount} errors, ${artifact.summary.validationWarningCount} warnings`);
+  lines.push(
+    `- Validation: ${artifact.summary.validationErrorCount} errors, ${artifact.summary.validationWarningCount} warnings`,
+  );
   if (artifact.summary.totalTokens !== null) {
     lines.push(`- LLM tokens in source runs: ${artifact.summary.totalTokens}`);
   }

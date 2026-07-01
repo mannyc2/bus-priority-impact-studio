@@ -1,14 +1,16 @@
+// biome-ignore-all lint/style/noNonNullAssertion: Legacy Tier 2 command code is pending plan 024 deletion; existing index assertions are intentional.
 // Tier 2 captured-text → pseudo-page Markdown normalizer step, extracted from
 // the former _shared.ts monolith during the per-step decomposition. Imports
 // shared types, path/IO helpers, and OCR-audit shape helpers from the core
 // module; the core module never imports back here, keeping the DAG acyclic.
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";
 import { writeJson } from "../../../lib/json.ts";
+import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";
 import {
   addPageAuditIssue,
   artifactKey,
+  type CliOption,
   captureManifestPath,
   emptyPageAuditIssueCounts,
   frontmatterValue,
@@ -17,9 +19,8 @@ import {
   normalizeOcrArtifactRootName,
   parseCliOptions,
   parseSourceIds,
-  type CliOption,
-  type Tier2CaptureManifest,
   type Tier2CapturedSource,
+  type Tier2CaptureManifest,
   type Tier2OcrPageMarkdownAudit,
   type Tier2OcrPageMarkdownAuditIssueCode,
   type Tier2OcrPageMarkdownAuditPage,
@@ -456,8 +457,7 @@ export async function normalizeTextMarkdown(
   }
 
   const outputPath = args.outputPath ?? join(runRoot, "text-page-markdown-audit.json");
-  const phase2CompatPlanPath =
-    args.phase2CompatPlanPath ?? join(runRoot, "text-ocr-plan-v1.json");
+  const phase2CompatPlanPath = args.phase2CompatPlanPath ?? join(runRoot, "text-ocr-plan-v1.json");
   const phase2CompatAuditPath =
     args.phase2CompatAuditPath ?? join(runRoot, "text-page-markdown-phase2-audit.json");
 
@@ -474,10 +474,7 @@ export async function normalizeTextMarkdown(
     summary: {
       sourceCount: sources.length,
       pageCount: sources.reduce((sum, source) => sum + source.pageCount, 0),
-      completePageCount: sources.reduce(
-        (sum, source) => sum + source.completePageCount,
-        0,
-      ),
+      completePageCount: sources.reduce((sum, source) => sum + source.completePageCount, 0),
       tooShortSourceCount: sources.filter((source) => source.quality === "too_short").length,
       totalOriginalLength: sources.reduce((sum, source) => sum + source.originalLength, 0),
     },
@@ -591,9 +588,7 @@ async function resolveNormalizeTextMarkdownPaths(
   return { captureManifestPath: captureManifestPath(artifactRoot, runId) };
 }
 
-export async function normalizeTextMarkdownFromCli(
-  args: string[],
-): Promise<TextPageMarkdownAudit> {
+export async function normalizeTextMarkdownFromCli(args: string[]): Promise<TextPageMarkdownAudit> {
   const parsed = parseNormalizeTextMarkdownCliArgs(args);
   const paths = await resolveNormalizeTextMarkdownPaths(parsed);
   return normalizeTextMarkdown({

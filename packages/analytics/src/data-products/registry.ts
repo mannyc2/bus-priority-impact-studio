@@ -355,10 +355,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = DataProductManifestSch
         "source_manifest:bus_hourly_ridership_2020_2024",
         "source_manifest:bus_hourly_ridership_2025",
       ],
-      downstreamConsumers: [
-        "route scorecards",
-        "route history charts",
-      ],
+      downstreamConsumers: ["route scorecards", "route history charts"],
       freshnessPolicy: { cadence: "historical_window" },
       checks: [
         {
@@ -390,10 +387,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = DataProductManifestSch
         "source_manifest:bus_segment_speeds_2023_2024",
         "source_manifest:bus_segment_speeds_2025",
       ],
-      downstreamConsumers: [
-        "route hotspot scoring",
-        "Studio route-detail segment ladders",
-      ],
+      downstreamConsumers: ["route hotspot scoring", "Studio route-detail segment ladders"],
       freshnessPolicy: { cadence: "historical_window" },
       checks: [
         {
@@ -461,10 +455,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = DataProductManifestSch
         "source_manifest:intervention_seed_events",
         "tier2_structured_intervention_extraction_full_corpus",
       ],
-      downstreamConsumers: [
-        "route_treatment_summary_artifact",
-        "Studio intervention timelines",
-      ],
+      downstreamConsumers: ["route_treatment_summary_artifact", "Studio intervention timelines"],
       freshnessPolicy: { cadence: "manual" },
       checks: [
         {
@@ -751,10 +742,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = DataProductManifestSch
         months: "history_window",
       },
       requiredInputs: ["source_manifest:bus_wait_assessment"],
-      downstreamConsumers: [
-        "reliability context",
-        "route evidence caveats",
-      ],
+      downstreamConsumers: ["reliability context", "route evidence caveats"],
       freshnessPolicy: { cadence: "historical_window" },
       checks: [
         {
@@ -816,11 +804,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = DataProductManifestSch
         "local_route_lion_link",
         "local_parking_violation_match",
       ],
-      downstreamConsumers: [
-        "route context panels",
-        "intervention caveats",
-        "data notes",
-      ],
+      downstreamConsumers: ["route context panels", "intervention caveats", "data notes"],
       freshnessPolicy: { cadence: "historical_window" },
       checks: [
         {
@@ -851,11 +835,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = DataProductManifestSch
         "map_base_geojson_artifacts",
         "tier2_structured_intervention_extraction_full_corpus",
       ],
-      downstreamConsumers: [
-        "Studio intervention timeline",
-        "route evidence panels",
-        "data notes",
-      ],
+      downstreamConsumers: ["Studio intervention timeline", "route evidence panels", "data notes"],
       freshnessPolicy: { cadence: "release_month" },
       checks: [
         {
@@ -1135,11 +1115,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = DataProductManifestSch
         "source_manifest:ace_violations",
         "source_manifest:mta_ace_page",
       ],
-      downstreamConsumers: [
-        "intervention context",
-        "route caveats",
-        "data notes",
-      ],
+      downstreamConsumers: ["intervention context", "route caveats", "data notes"],
       freshnessPolicy: { cadence: "historical_window" },
       checks: [
         {
@@ -1167,7 +1143,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = DataProductManifestSch
       producerCommand: "ingest census-equity-context; ingest weather-observations",
       expectedUniverse: {
         description:
-        "Census tract context and NYC weather observations used as route caveats and controls.",
+          "Census tract context and NYC weather observations used as route caveats and controls.",
         months: "history_window",
       },
       requiredInputs: [
@@ -1258,11 +1234,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = DataProductManifestSch
         "source_manifest:nyc_311_service_requests_current",
         "source_manifest:nyc_311_service_requests_historical",
       ],
-      downstreamConsumers: [
-        "route context panels",
-        "data notes",
-        "source caveats",
-      ],
+      downstreamConsumers: ["route context panels", "data notes", "source caveats"],
       freshnessPolicy: { cadence: "historical_window" },
       checks: [
         {
@@ -1301,10 +1273,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = DataProductManifestSch
         months: "history_window",
       },
       requiredInputs: ["source_manifest:nyc_dot_street_construction_permits"],
-      downstreamConsumers: [
-        "intervention caveats",
-        "data notes",
-      ],
+      downstreamConsumers: ["intervention caveats", "data notes"],
       freshnessPolicy: { cadence: "historical_window" },
       checks: [
         {
@@ -1335,11 +1304,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = DataProductManifestSch
         months: "history_window",
       },
       requiredInputs: ["source_manifest:nyc_dot_traffic_speeds"],
-      downstreamConsumers: [
-        "speed hotspot caveats",
-        "route context panels",
-        "data notes",
-      ],
+      downstreamConsumers: ["speed hotspot caveats", "route context panels", "data notes"],
       freshnessPolicy: { cadence: "historical_window" },
       checks: [
         {
@@ -1371,11 +1336,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = DataProductManifestSch
         months: "history_window",
       },
       requiredInputs: ["source_manifest:nyc_dot_traffic_volume_counts"],
-      downstreamConsumers: [
-        "peer-route baselines",
-        "route context panels",
-        "data notes",
-      ],
+      downstreamConsumers: ["peer-route baselines", "route context panels", "data notes"],
       freshnessPolicy: { cadence: "historical_window" },
       checks: [
         {
@@ -1406,10 +1367,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = DataProductManifestSch
         "source_manifest:nyc_parking_violations_fy2024",
         "source_manifest:nyc_parking_violations_fy2025",
       ],
-      downstreamConsumers: [
-        "intervention enforcement caveats",
-        "data notes",
-      ],
+      downstreamConsumers: ["intervention enforcement caveats", "data notes"],
       freshnessPolicy: { cadence: "historical_window" },
       checks: [
         {
@@ -1441,10 +1399,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = DataProductManifestSch
         months: "history_window",
       },
       requiredInputs: ["source_manifest:nypd_motor_vehicle_collisions"],
-      downstreamConsumers: [
-        "safety caveats",
-        "data notes",
-      ],
+      downstreamConsumers: ["safety caveats", "data notes"],
       freshnessPolicy: { cadence: "historical_window" },
       checks: [
         {
@@ -2647,10 +2602,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = DataProductManifestSch
         description: "R2/D1 artifact-key completeness audit before serving publication.",
         months: "release_month",
       },
-      requiredInputs: [
-        "map_release_manifest",
-        "studio_route_artifact_index",
-      ],
+      requiredInputs: ["map_release_manifest", "studio_route_artifact_index"],
       downstreamConsumers: ["publish:serving-release", "release promotion checklist"],
       freshnessPolicy: { cadence: "release_month" },
       checks: [

@@ -5,20 +5,20 @@
 // never imports back here.
 import { mkdir, readdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { defaultArtifactRootPath, fromCliPath, fromRepoRoot } from "../../../lib/paths.ts";
 import { writeJson } from "../../../lib/json.ts";
+import { defaultArtifactRootPath, fromCliPath, fromRepoRoot } from "../../../lib/paths.ts";
 import {
+  type BuildTier2PipelineStatusArgs,
+  type CliOption,
   candidateBundlePath,
   canonicalInterventionEventsPath,
   followupOcrPlanPath,
   latestDocsRunId,
+  type PipelineStatusCliArgs,
   parseCliOptions,
   readJsonArtifactIfExistsForStatus,
   readRequiredJsonArtifact,
   runArtifactRoot,
-  type BuildTier2PipelineStatusArgs,
-  type CliOption,
-  type PipelineStatusCliArgs,
   type Tier2CandidateBundle,
   type Tier2CanonicalInterventionEventsArtifact,
   type Tier2DuplicateDecisionVerification,

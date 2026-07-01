@@ -291,8 +291,7 @@ export function replaceRouteReadiness(
   );
 
   db.transaction((tx) => {
-    tx
-      .delete(localRouteReadinessMissingInput)
+    tx.delete(localRouteReadinessMissingInput)
       .where(eq(localRouteReadinessMissingInput.month, month))
       .run();
     tx.delete(localRouteReadiness).where(eq(localRouteReadiness.month, month)).run();

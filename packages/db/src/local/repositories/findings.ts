@@ -285,7 +285,10 @@ export type ReplaceFindingsForMonthArgs = {
 // release month without churning unrelated detectors. Evidence rows cascade
 // via the FK on candidate_id, but we delete them explicitly so the call also
 // works when the caller wants to drop a detector entirely (candidates=[]).
-export function replaceFindingsForMonth(db: LocalPipelineDb, args: ReplaceFindingsForMonthArgs): void {
+export function replaceFindingsForMonth(
+  db: LocalPipelineDb,
+  args: ReplaceFindingsForMonthArgs,
+): void {
   assertCoverageAuditJson(args.coverage);
   const candidateMatch = and(
     eq(localFindingCandidate.month, args.month),
@@ -300,14 +303,12 @@ export function replaceFindingsForMonth(db: LocalPipelineDb, args: ReplaceFindin
     const existingIds = existing.map((row) => row.candidateId);
     for (let i = 0; i < existingIds.length; i += UPSERT_CHUNK) {
       const chunk = existingIds.slice(i, i + UPSERT_CHUNK);
-      tx
-        .delete(localFindingEvidenceLink)
+      tx.delete(localFindingEvidenceLink)
         .where(inArray(localFindingEvidenceLink.candidateId, chunk))
         .run();
     }
     tx.delete(localFindingCandidate).where(candidateMatch).run();
-    tx
-      .delete(localFindingCoverageAudit)
+    tx.delete(localFindingCoverageAudit)
       .where(
         and(
           eq(localFindingCoverageAudit.month, args.month),
@@ -344,17 +345,14 @@ export function replaceFindingRun(
     const existingIds = existing.map((row) => row.candidateId);
     for (let i = 0; i < existingIds.length; i += UPSERT_CHUNK) {
       const chunk = existingIds.slice(i, i + UPSERT_CHUNK);
-      tx
-        .delete(localFindingEvidenceLink)
+      tx.delete(localFindingEvidenceLink)
         .where(inArray(localFindingEvidenceLink.candidateId, chunk))
         .run();
     }
-    tx
-      .delete(localFindingCandidate)
+    tx.delete(localFindingCandidate)
       .where(eq(localFindingCandidate.detectorRunId, args.detectorRunId))
       .run();
-    tx
-      .delete(localFindingCoverageAudit)
+    tx.delete(localFindingCoverageAudit)
       .where(eq(localFindingCoverageAudit.detectorRunId, args.detectorRunId))
       .run();
 

@@ -128,7 +128,9 @@ export function replaceBusCustomerJourneyMetricRows(
   }
 
   db.transaction((tx) => {
-    tx.delete(localBusCustomerJourneyMetric).where(eq(localBusCustomerJourneyMetric.month, month)).run();
+    tx.delete(localBusCustomerJourneyMetric)
+      .where(eq(localBusCustomerJourneyMetric.month, month))
+      .run();
     insertAll(tx, localBusCustomerJourneyMetric, [...rows]);
   });
 }

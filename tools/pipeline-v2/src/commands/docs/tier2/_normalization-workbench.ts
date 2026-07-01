@@ -2,22 +2,19 @@ import { createHash } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { writeJson } from "../../../lib/json.ts";
-import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";
 import type { ToolCallMessage } from "../../../lib/llm.ts";
+import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";
+import { callPioneerToolCallDirect, openRouterErrorMessage } from "./_llm-clients.ts";
 import {
-  callPioneerToolCallDirect,
-  openRouterErrorMessage,
-} from "./_llm-clients.ts";
-import {
+  type CliOption,
   defaultFetch,
   extractToolCallArguments,
+  type FetchLike,
   latestDocsRunId,
   missingToolCallErrorMessage,
   parseCliOptions,
   runArtifactRoot,
   trueOption,
-  type CliOption,
-  type FetchLike,
 } from "./_shared.ts";
 
 const PROMPT_VERSION = "tier2-normalization-workbench-v1";
@@ -91,12 +88,7 @@ type CandidateGroup = {
   }>;
 };
 
-type RuleAction =
-  | "annotate"
-  | "split_family"
-  | "suppress"
-  | "denormalize_surface"
-  | "needs_review";
+type RuleAction = "annotate" | "split_family" | "suppress" | "denormalize_surface" | "needs_review";
 
 type NormalizationRule = {
   ruleId: string;
@@ -189,18 +181,22 @@ export type Tier2NormalizationAppliedArtifact = {
     unresolvedRowCount: number;
   };
   surfaces: {
-    documentMetricClaims: Array<AppliedRowBase & {
-      metricSource: string;
-      metricTruthStatus: string;
-      valuePrecision: string;
-      geographyScope: string;
-      measurementMethodology: string;
-    }>;
+    documentMetricClaims: Array<
+      AppliedRowBase & {
+        metricSource: string;
+        metricTruthStatus: string;
+        valuePrecision: string;
+        geographyScope: string;
+        measurementMethodology: string;
+      }
+    >;
     documentEntities: Array<AppliedRowBase & { entityMode: string }>;
-    documentInterventionEvents: Array<AppliedRowBase & {
-      implementationStatus: string;
-      dateResolution: string;
-    }>;
+    documentInterventionEvents: Array<
+      AppliedRowBase & {
+        implementationStatus: string;
+        dateResolution: string;
+      }
+    >;
     documentTables: Array<AppliedRowBase & { refinedTableFamily: string }>;
     documentClaims: Array<AppliedRowBase & { causalClaimFlag: boolean; claimBasis: string }>;
     sourceGapQueue: Array<AppliedRowBase & { queueReason: string }>;
@@ -251,7 +247,10 @@ function shortHash(value: string): string {
 }
 
 function compact(value: unknown): string {
-  return String(value ?? "").toLowerCase().replace(/\s+/g, " ").trim();
+  return String(value ?? "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function includesAny(text: string, needles: string[]): boolean {
@@ -312,13 +311,15 @@ function rawCandidateSummary(row: NormalizedCandidateRow): Record<string, unknow
     "rawKind",
     "kindHint",
   ];
-  return Object.fromEntries(keys.flatMap((key) => {
-    const value = raw[key];
-    if (value === undefined || value === null || value === "") return [];
-    if (Array.isArray(value)) return [[key, value.slice(0, 8)]];
-    if (typeof value === "object") return [];
-    return [[key, value]];
-  }));
+  return Object.fromEntries(
+    keys.flatMap((key) => {
+      const value = raw[key];
+      if (value === undefined || value === null || value === "") return [];
+      if (Array.isArray(value)) return [[key, value.slice(0, 8)]];
+      if (typeof value === "object") return [];
+      return [[key, value]];
+    }),
+  );
 }
 
 function hazardTagsForGroup(rows: NormalizedCandidateRow[]): string[] {
@@ -329,8 +330,11 @@ function hazardTagsForGroup(rows: NormalizedCandidateRow[]): string[] {
   if (first.canonicalFamily.startsWith("other")) tags.add("unresolved_family");
   if (first.candidateType === "metric") {
     tags.add("document_metric_claim");
-    if (includesAny(joined, ["~", "approx", "approximately", "about"])) tags.add("approximate_value");
-    if (includesAny(joined, ["faster", "improvement", "improved", "reduced", "increase", "decrease"])) {
+    if (includesAny(joined, ["~", "approx", "approximately", "about"]))
+      tags.add("approximate_value");
+    if (
+      includesAny(joined, ["faster", "improvement", "improved", "reduced", "increase", "decrease"])
+    ) {
       tags.add("change_metric");
     }
     if (!includesAny(joined, ["201", "202", "before", "after", "pre", "post", "baseline"])) {
@@ -345,7 +349,10 @@ function hazardTagsForGroup(rows: NormalizedCandidateRow[]): string[] {
     ) {
       tags.add("rail_or_subway_context");
     }
-    if (first.canonicalFamily === "bus_route" && includesAny(joined, ["subway", "rail", "station"])) {
+    if (
+      first.canonicalFamily === "bus_route" &&
+      includesAny(joined, ["subway", "rail", "station"])
+    ) {
       tags.add("bus_rail_mode_conflict");
     }
   }
@@ -412,10 +419,13 @@ function selectCandidateGroups(groups: CandidateGroup[], groupCount: number): Ca
   return selected;
 }
 
-function buildCandidateGroups(rows: NormalizedCandidateRow[], input: {
-  groupCount: number;
-  examplesPerGroup: number;
-}): CandidateGroup[] {
+function buildCandidateGroups(
+  rows: NormalizedCandidateRow[],
+  input: {
+    groupCount: number;
+    examplesPerGroup: number;
+  },
+): CandidateGroup[] {
   const grouped = new Map<string, NormalizedCandidateRow[]>();
   for (const row of rows) {
     const key = `${row.candidateType}|${row.canonicalFamily}|${compact(row.rawFamily)}`;
@@ -450,7 +460,10 @@ function buildCandidateGroups(rows: NormalizedCandidateRow[], input: {
         })),
       } satisfies CandidateGroup;
     })
-    .sort((left, right) => groupScore(right) - groupScore(left) || left.groupId.localeCompare(right.groupId));
+    .sort(
+      (left, right) =>
+        groupScore(right) - groupScore(left) || left.groupId.localeCompare(right.groupId),
+    );
   return selectCandidateGroups(groups, input.groupCount);
 }
 
@@ -471,8 +484,12 @@ function builtinRules(groups: CandidateGroup[]): NormalizationRule[] {
         },
       },
       confidence: 0.95,
-      rationale: "Tier 2 documents provide source claims; deterministic analytics remain metric truth.",
-      sampleGroupIds: groups.filter((group) => group.candidateType === "metric").slice(0, 5).map((group) => group.groupId),
+      rationale:
+        "Tier 2 documents provide source claims; deterministic analytics remain metric truth.",
+      sampleGroupIds: groups
+        .filter((group) => group.candidateType === "metric")
+        .slice(0, 5)
+        .map((group) => group.groupId),
     },
     {
       ruleId: "builtin_entity_mode_split",
@@ -483,8 +500,12 @@ function builtinRules(groups: CandidateGroup[]): NormalizationRule[] {
       match: {},
       output: { targetSurface: "documentEntities" },
       confidence: 0.9,
-      rationale: "Bus routes, subway lines, rail services, and stations are all useful but must not share one route namespace.",
-      sampleGroupIds: groups.filter((group) => group.candidateType === "entity").slice(0, 5).map((group) => group.groupId),
+      rationale:
+        "Bus routes, subway lines, rail services, and stations are all useful but must not share one route namespace.",
+      sampleGroupIds: groups
+        .filter((group) => group.candidateType === "entity")
+        .slice(0, 5)
+        .map((group) => group.groupId),
     },
     {
       ruleId: "builtin_event_status_gate",
@@ -495,8 +516,12 @@ function builtinRules(groups: CandidateGroup[]): NormalizationRule[] {
       match: {},
       output: { targetSurface: "documentInterventionEvents" },
       confidence: 0.85,
-      rationale: "Event rows must carry proposal/planning/implementation status before feeding intervention panels.",
-      sampleGroupIds: groups.filter((group) => group.candidateType === "event").slice(0, 5).map((group) => group.groupId),
+      rationale:
+        "Event rows must carry proposal/planning/implementation status before feeding intervention panels.",
+      sampleGroupIds: groups
+        .filter((group) => group.candidateType === "event")
+        .slice(0, 5)
+        .map((group) => group.groupId),
     },
     {
       ruleId: "builtin_claim_causal_gate",
@@ -508,7 +533,10 @@ function builtinRules(groups: CandidateGroup[]): NormalizationRule[] {
       output: { targetSurface: "documentClaims", fields: { causalClaimFlag: true } },
       confidence: 0.8,
       rationale: "Documents may assert effects, but causal language must be review-gated.",
-      sampleGroupIds: groups.filter((group) => group.hazardTags.includes("causal_claim_gate")).slice(0, 5).map((group) => group.groupId),
+      sampleGroupIds: groups
+        .filter((group) => group.hazardTags.includes("causal_claim_gate"))
+        .slice(0, 5)
+        .map((group) => group.groupId),
     },
     {
       ruleId: "builtin_table_family_refinement",
@@ -519,8 +547,12 @@ function builtinRules(groups: CandidateGroup[]): NormalizationRule[] {
       match: {},
       output: { targetSurface: "documentTables" },
       confidence: 0.8,
-      rationale: "Map legends, stop-ridership tables, and before/after comparisons have different downstream uses.",
-      sampleGroupIds: groups.filter((group) => group.candidateType === "table").slice(0, 5).map((group) => group.groupId),
+      rationale:
+        "Map legends, stop-ridership tables, and before/after comparisons have different downstream uses.",
+      sampleGroupIds: groups
+        .filter((group) => group.candidateType === "table")
+        .slice(0, 5)
+        .map((group) => group.groupId),
     },
     {
       ruleId: "builtin_review_unresolved_family",
@@ -532,7 +564,10 @@ function builtinRules(groups: CandidateGroup[]): NormalizationRule[] {
       output: { targetSurface: "sourceGapQueue" },
       confidence: 0.9,
       rationale: "The long tail remains reviewable instead of being silently coerced.",
-      sampleGroupIds: groups.filter((group) => group.hazardTags.includes("unresolved_family")).slice(0, 5).map((group) => group.groupId),
+      sampleGroupIds: groups
+        .filter((group) => group.hazardTags.includes("unresolved_family"))
+        .slice(0, 5)
+        .map((group) => group.groupId),
     },
   ];
 }
@@ -547,7 +582,8 @@ function precisionFromMetric(row: NormalizedCandidateRow): string {
 function geographyScope(row: NormalizedCandidateRow): string {
   const text = rawCandidateText(row);
   if (includesAny(text, ["citywide", "new york city", "nyc bus"])) return "citywide";
-  if (includesAny(text, ["bronx", "manhattan", "brooklyn", "queens", "staten island"])) return "borough";
+  if (includesAny(text, ["bronx", "manhattan", "brooklyn", "queens", "staten island"]))
+    return "borough";
   if (includesAny(text, ["stop", "station"])) return "stop";
   if (includesAny(text, ["route", "m15", "m14", "bx", "b41", "q"])) return "route";
   if (includesAny(text, ["corridor", "street", "avenue", "road"])) return "corridor";
@@ -558,7 +594,8 @@ function measurementMethodology(row: NormalizedCandidateRow): string {
   const text = rawCandidateText(row);
   if (includesAny(text, ["survey", "satisfaction"])) return "survey";
   if (includesAny(text, ["gps", "bus time", "avl"])) return "gps_or_avl";
-  if (includesAny(text, ["apc", "passenger counter", "ridership"])) return "apc_or_ridership_system";
+  if (includesAny(text, ["apc", "passenger counter", "ridership"]))
+    return "apc_or_ridership_system";
   if (includesAny(text, ["chart", "figure"])) return "chart_estimate";
   return "unspecified_document_method";
 }
@@ -578,8 +615,18 @@ function dateResolution(row: NormalizedCandidateRow): string {
   const raw = asRecord(row.rawCandidate);
   const text = `${stringField(raw, "dateRaw")} ${row.displayLabel}`;
   if (/\b\d{4}-\d{2}-\d{2}\b/.test(text)) return "exact";
-  if (/\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{1,2},?\s+\d{4}\b/i.test(text)) return "exact";
-  if (/\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{4}\b/i.test(text)) return "month";
+  if (
+    /\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{1,2},?\s+\d{4}\b/i.test(
+      text,
+    )
+  )
+    return "exact";
+  if (
+    /\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{4}\b/i.test(
+      text,
+    )
+  )
+    return "month";
   if (/\b\d{4}\s*[-–]\s*\d{4}\b/.test(text)) return "range";
   if (/\b\d{4}\b/.test(text)) return "year";
   if (includesAny(text, ["before", "after", "prior", "currently", "future"])) return "relative";
@@ -592,7 +639,8 @@ function implementationStatus(row: NormalizedCandidateRow): string {
   if (includesAny(text, ["proposed", "proposal"])) return "proposed";
   if (includesAny(text, ["planning", "planned", "design"])) return "planned";
   if (includesAny(text, ["underway", "construction", "installing"])) return "in_progress";
-  if (includesAny(text, ["completed", "implemented", "launched", "opened", "in service"])) return "completed";
+  if (includesAny(text, ["completed", "implemented", "launched", "opened", "in service"]))
+    return "completed";
   return "unknown";
 }
 
@@ -620,12 +668,18 @@ function claimBasis(row: NormalizedCandidateRow): string {
 function refinedTableFamily(row: NormalizedCandidateRow): string {
   const text = rawCandidateText(row);
   if (includesAny(text, ["map", "legend"])) return "map_legend";
-  if (includesAny(text, ["boarding", "alighting", "ridership", "stop"])) return "stop_or_ridership_table";
-  if (includesAny(text, ["before", "after", "pre", "post", "2018", "2019", "2020"])) return "before_after_comparison";
+  if (includesAny(text, ["boarding", "alighting", "ridership", "stop"]))
+    return "stop_or_ridership_table";
+  if (includesAny(text, ["before", "after", "pre", "post", "2018", "2019", "2020"]))
+    return "before_after_comparison";
   return row.canonicalFamily;
 }
 
-function baseApplied(row: NormalizedCandidateRow, appliedRuleIds: string[], reviewReasons: string[]): AppliedRowBase {
+function baseApplied(
+  row: NormalizedCandidateRow,
+  appliedRuleIds: string[],
+  reviewReasons: string[],
+): AppliedRowBase {
   return {
     rowId: row.rowId,
     sourceId: row.sourceId,
@@ -669,7 +723,9 @@ function applySeedRules(input: {
   rules: NormalizationRule[];
   groups: CandidateGroup[];
 }): Tier2NormalizationAppliedArtifact {
-  const approvedRuleIds = input.rules.filter((rule) => rule.status === "approved_seed").map((rule) => rule.ruleId);
+  const approvedRuleIds = input.rules
+    .filter((rule) => rule.status === "approved_seed")
+    .map((rule) => rule.ruleId);
   const surfaces: Tier2NormalizationAppliedArtifact["surfaces"] = {
     documentMetricClaims: [],
     documentEntities: [],
@@ -786,11 +842,26 @@ function modelTool() {
               status: { type: "string", enum: ["proposed"] },
               action: {
                 type: "string",
-                enum: ["annotate", "split_family", "suppress", "denormalize_surface", "needs_review"],
+                enum: [
+                  "annotate",
+                  "split_family",
+                  "suppress",
+                  "denormalize_surface",
+                  "needs_review",
+                ],
               },
               candidateType: {
                 type: "string",
-                enum: ["any", "entity", "metric", "event", "table", "claim", "context_signal", "review_question"],
+                enum: [
+                  "any",
+                  "entity",
+                  "metric",
+                  "event",
+                  "table",
+                  "claim",
+                  "context_signal",
+                  "review_question",
+                ],
               },
               match: {
                 type: "object",
@@ -889,7 +960,9 @@ function buildUserPrompt(input: {
 }
 
 function artifactSibling(path: string, suffix: string): string {
-  return path.endsWith(".json") ? path.replace(/\.json$/, `${suffix}.json`) : `${path}${suffix}.json`;
+  return path.endsWith(".json")
+    ? path.replace(/\.json$/, `${suffix}.json`)
+    : `${path}${suffix}.json`;
 }
 
 function usageFromBody(body: unknown): unknown | null {
@@ -901,12 +974,22 @@ function defaultSurfaceSpecs(): ModelRuleResponse["denormalizedSurfaces"] {
   return [
     {
       surfaceName: "documentMetricClaims",
-      purpose: "Document-claimed metrics for evidence packets, priors, and source-gap review; not deterministic project metrics.",
-      requiredFields: ["rowId", "metricSource", "metricTruthStatus", "valuePrecision", "geographyScope", "measurementMethodology", "evidenceRefs"],
+      purpose:
+        "Document-claimed metrics for evidence packets, priors, and source-gap review; not deterministic project metrics.",
+      requiredFields: [
+        "rowId",
+        "metricSource",
+        "metricTruthStatus",
+        "valuePrecision",
+        "geographyScope",
+        "measurementMethodology",
+        "evidenceRefs",
+      ],
     },
     {
       surfaceName: "documentInterventionEvents",
-      purpose: "Candidate intervention and service-change events with status/date gates for applied research panels.",
+      purpose:
+        "Candidate intervention and service-change events with status/date gates for applied research panels.",
       requiredFields: ["rowId", "implementationStatus", "dateResolution", "evidenceRefs"],
     },
     {
@@ -938,7 +1021,9 @@ function renderMarkdown(input: {
   lines.push(`- Builtin approved rules: ${input.workbench.summary.builtinRuleCount}`);
   lines.push(`- Model proposed rules: ${input.workbench.summary.modelRuleCount}`);
   lines.push(`- Review questions: ${input.workbench.summary.reviewQuestionCount}`);
-  lines.push(`- Review queue rows after deterministic apply: ${input.applied.summary.reviewQueueCount}`);
+  lines.push(
+    `- Review queue rows after deterministic apply: ${input.applied.summary.reviewQueueCount}`,
+  );
   lines.push(`- Unresolved selected groups: ${input.applied.summary.unresolvedGroupCount}`);
   lines.push("");
   lines.push("## Surface Counts");
@@ -962,7 +1047,9 @@ function renderMarkdown(input: {
   lines.push("## Model Proposed Rules");
   lines.push("");
   for (const rule of input.workbench.modelRules) {
-    lines.push(`- **${rule.ruleId}** (${rule.action}, ${rule.candidateType}, confidence ${rule.confidence}): ${rule.rationale}`);
+    lines.push(
+      `- **${rule.ruleId}** (${rule.action}, ${rule.candidateType}, confidence ${rule.confidence}): ${rule.rationale}`,
+    );
   }
   lines.push("");
   lines.push("## Review Questions");
@@ -981,13 +1068,20 @@ export async function runTier2NormalizationWorkbench(
   applied: Tier2NormalizationAppliedArtifact;
 }> {
   const generatedAt = args.generatedAt ?? new Date().toISOString();
-  const normalized = (await Bun.file(args.normalizedCandidatesPath).json()) as NormalizedCandidatesArtifact;
+  const normalized = (await Bun.file(
+    args.normalizedCandidatesPath,
+  ).json()) as NormalizedCandidatesArtifact;
   const rows = normalized.rows;
   const groupCount = args.groupCount ?? DEFAULT_GROUP_COUNT;
   const examplesPerGroup = args.examplesPerGroup ?? DEFAULT_EXAMPLES_PER_GROUP;
   const groups = buildCandidateGroups(rows, { groupCount, examplesPerGroup });
   const builtin = builtinRules(groups);
-  const outputPath = args.outputPath ?? join(dirname(args.normalizedCandidatesPath), "document-discovery-normalization-workbench-v1.json");
+  const outputPath =
+    args.outputPath ??
+    join(
+      dirname(args.normalizedCandidatesPath),
+      "document-discovery-normalization-workbench-v1.json",
+    );
   const batchOutputPath = args.batchOutputPath ?? artifactSibling(outputPath, "-batch");
   const appliedOutputPath = args.appliedOutputPath ?? artifactSibling(outputPath, "-applied");
   const markdownPath = args.markdownPath ?? artifactSibling(outputPath, "");
@@ -1019,7 +1113,9 @@ export async function runTier2NormalizationWorkbench(
   if (args.execute === true) {
     const apiKey = args.pioneerApiKey ?? process.env["PIONEER_API_KEY"];
     if (apiKey === undefined || apiKey.trim().length === 0) {
-      throw new Error("PIONEER_API_KEY is required for docs tier2 normalization-workbench --execute.");
+      throw new Error(
+        "PIONEER_API_KEY is required for docs tier2 normalization-workbench --execute.",
+      );
     }
     const tool = modelTool();
     const messages: ToolCallMessage[] = [
@@ -1075,7 +1171,9 @@ export async function runTier2NormalizationWorkbench(
       }));
       reviewQuestions = parsed.reviewQuestions ?? [];
       denormalizedSurfaces =
-        parsed.denormalizedSurfaces?.length > 0 ? parsed.denormalizedSurfaces : denormalizedSurfaces;
+        parsed.denormalizedSurfaces?.length > 0
+          ? parsed.denormalizedSurfaces
+          : denormalizedSurfaces;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       await writeJson(errorPath, {
@@ -1102,7 +1200,9 @@ export async function runTier2NormalizationWorkbench(
     execute: args.execute === true,
     summary: {
       inputRows: rows.length,
-      groupCount: new Set(rows.map((row) => `${row.candidateType}|${row.canonicalFamily}|${compact(row.rawFamily)}`)).size,
+      groupCount: new Set(
+        rows.map((row) => `${row.candidateType}|${row.canonicalFamily}|${compact(row.rawFamily)}`),
+      ).size,
       selectedGroupCount: groups.length,
       builtinRuleCount: builtin.length,
       modelRuleCount: modelRules.length,
@@ -1129,7 +1229,10 @@ export async function runTier2NormalizationWorkbench(
     groups,
   });
   await writeJson(appliedOutputPath, applied);
-  await Bun.write(markdownPath.endsWith(".md") ? markdownPath : markdownPath.replace(/\.json$/, ".md"), renderMarkdown({ workbench, applied }));
+  await Bun.write(
+    markdownPath.endsWith(".md") ? markdownPath : markdownPath.replace(/\.json$/, ".md"),
+    renderMarkdown({ workbench, applied }),
+  );
   return { workbench, applied };
 }
 
@@ -1215,7 +1318,10 @@ async function resolveNormalizedCandidatesPath(args: CliArgs): Promise<string> {
   if (runId === null) {
     throw new Error("No docs run found. Provide --run-id or --normalized-candidates.");
   }
-  return join(runArtifactRoot(artifactRoot, runId), "document-discovery-normalized-candidates-canonical-v1.json");
+  return join(
+    runArtifactRoot(artifactRoot, runId),
+    "document-discovery-normalized-candidates-canonical-v1.json",
+  );
 }
 
 export async function runTier2NormalizationWorkbenchFromCli(argv: string[]) {

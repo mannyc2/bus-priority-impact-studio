@@ -239,7 +239,7 @@
         </div>
       </div>
 
-      <div class="callout"><b>FeatureContract vs FeatureResolver vs Feature.</b> The <i>contract</i> (in <code>packages/analytics</code>) is the spec — "this grain has these keys, these required fields, comes from these tables." The <i>resolver</i> (in <code>packages/applied-research</code>) is the function that actually reads SQLite and builds the typed object. The <i>feature</i> is the resulting object. Same noun, three roles: spec, builder, product.</p></div>
+      <div class="callout"><b>FeatureContract vs FeatureResolver vs Feature.</b> The <i>contract</i> (in <code>packages/analytics</code>) is the spec — "this grain has these keys, these required fields, comes from these tables." The <i>resolver</i> (in <code>packages/applied-research</code>) is the function that actually reads SQLite and builds the typed object. The <i>feature</i> is the resulting object. Same noun, three roles: spec, builder, product.</div>
     </section>
 
     <!-- ===================== DETECTOR ===================== -->
@@ -666,11 +666,11 @@ function renderDetectors(){
 }
 function mkChip(host,label,val,getActive,setActive,onChange){
   const c=ce("div","filterchip"+(getActive()===val?" on":""),label);
-  c.addEventListener("click",()=>{setActive(val);[...host.children].forEach(x=>x.classList.remove("on"));c.classList.add("on");onChange();});
+  c.addEventListener("click",()=>{setActive(val);[...host.children].forEach(x=>{x.classList.remove("on");});c.classList.add("on");onChange();});
   host.appendChild(c);
 }
 mkChip(dFilters,"all ("+DETECTORS.length+")","all",()=>activeCat,v=>activeCat=v,renderDetectors);
-CATS.forEach(c=>mkChip(dFilters,catLabel(c)+" ("+DETECTORS.filter(d=>d.cat===c).length+")",c,()=>activeCat,v=>activeCat=v,renderDetectors));
+CATS.forEach(c=>{mkChip(dFilters,catLabel(c)+" ("+DETECTORS.filter(d=>d.cat===c).length+")",c,()=>activeCat,v=>activeCat=v,renderDetectors);});
 renderDetectors();
 
 // glossary
@@ -690,7 +690,7 @@ function renderGlossary(){
   gCount.textContent=items.length+" of "+GLOSSARY.length+" terms";
 }
 mkChip(gFilters,"all","all",()=>gCat,v=>gCat=v,renderGlossary);
-GCATS.forEach(c=>mkChip(gFilters,c,c,()=>gCat,v=>gCat=v,renderGlossary));
+GCATS.forEach(c=>{mkChip(gFilters,c,c,()=>gCat,v=>gCat=v,renderGlossary);});
 gSearch.addEventListener("input",e=>{gQuery=e.target.value;renderGlossary();});
 renderGlossary();
 
@@ -718,11 +718,11 @@ const secs=navLinks.map(a=>document.querySelector(a.getAttribute("href"))).filte
 const spy=new IntersectionObserver(entries=>{
   entries.forEach(en=>{
     if(en.isIntersecting){
-      navLinks.forEach(a=>a.classList.toggle("active",a.getAttribute("href")==="#"+en.target.id));
+      navLinks.forEach(a=>{a.classList.toggle("active",a.getAttribute("href")==="#"+en.target.id);});
     }
   });
 },{rootMargin:"-10% 0px -80% 0px"});
-secs.forEach(s=>spy.observe(s));
+secs.forEach(s=>{spy.observe(s);});
 </script>
 </body>
 </html>

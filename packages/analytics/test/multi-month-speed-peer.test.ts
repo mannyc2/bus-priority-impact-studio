@@ -84,7 +84,10 @@ describe("classifyMultiMonthSpeedPeerRoute", () => {
 });
 
 describe("selectMultiMonthSpeedPeerGroup", () => {
-  const peer = (routeId: string, averageSpeedMph = 8): { routeId: string; averageSpeedMph: number } => ({
+  const peer = (
+    routeId: string,
+    averageSpeedMph = 8,
+  ): { routeId: string; averageSpeedMph: number } => ({
     routeId,
     averageSpeedMph,
   });

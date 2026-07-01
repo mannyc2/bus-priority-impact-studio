@@ -34,7 +34,8 @@ type PioneerCapabilityReport = {
 function parseArgs(argv: string[]): Record<string, string | boolean> {
   const out: Record<string, string | boolean> = {};
   for (let index = 0; index < argv.length; index += 1) {
-    const current = argv[index]!;
+    const current = argv[index];
+    if (current === undefined) continue;
     if (!current.startsWith("--")) continue;
     const key = current.slice(2);
     const next = argv[index + 1];
@@ -112,7 +113,10 @@ async function timed<T>(fn: () => Promise<T>): Promise<{ value: T; elapsedMs: nu
   return { value, elapsedMs: Math.round(performance.now() - start) };
 }
 
-async function fetchJson(input: string, init: RequestInit): Promise<{ status: number; body: unknown }> {
+async function fetchJson(
+  input: string,
+  init: RequestInit,
+): Promise<{ status: number; body: unknown }> {
   const response = await fetch(input, init);
   let body: unknown;
   try {

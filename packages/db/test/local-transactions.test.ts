@@ -33,7 +33,9 @@ describe("local replace helpers are transactional", () => {
       // Seed a valid brief for (M1, 2026-03).
       replaceRouteBriefRows(db, {
         summary: briefSummary(10),
-        peakWindows: [{ routeId: "M1", month: "2026-03", windowRank: 1, dayOfWeek: "Mon", hourOfDay: 8 }],
+        peakWindows: [
+          { routeId: "M1", month: "2026-03", windowRank: 1, dayOfWeek: "Mon", hourOfDay: 8 },
+        ],
         slowestWindows: [],
       });
       expect(await listRouteBriefSummaries(db, "2026-03")).toHaveLength(1);

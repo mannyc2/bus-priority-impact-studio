@@ -5,16 +5,16 @@
 // pipeline-status) and is imported here. The core module never imports back.
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";
 import { writeJson } from "../../../lib/json.ts";
+import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";
 import {
+  type BuildTier2DuplicateDecisionTemplateArgs,
+  type CliOption,
+  type DuplicateDecisionTemplateCliArgs,
   duplicateDecisionIsComplete,
   latestDocsRunId,
   parseCliOptions,
   runArtifactRoot,
-  type BuildTier2DuplicateDecisionTemplateArgs,
-  type CliOption,
-  type DuplicateDecisionTemplateCliArgs,
   type Tier2DuplicateDecision,
   type Tier2DuplicateDecisionItem,
   type Tier2DuplicateDecisionTemplate,
@@ -223,7 +223,6 @@ export async function buildTier2DuplicateDecisionTemplateFromCli(
     summary: template.summary,
   };
 }
-
 
 function parseVerifyDuplicateDecisionsCliArgs(args: string[]): VerifyDuplicateDecisionsCliArgs {
   const options: CliOption<VerifyDuplicateDecisionsCliArgs>[] = [

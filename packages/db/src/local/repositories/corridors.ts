@@ -30,8 +30,7 @@ export function replaceCorridorRows(
   db.transaction((tx) => {
     tx.delete(localCorridorHotspot).where(eq(localCorridorHotspot.month, month)).run();
     tx.delete(localCorridorArtifact).where(eq(localCorridorArtifact.month, month)).run();
-    tx
-      .delete(localCorridorInterventionContext)
+    tx.delete(localCorridorInterventionContext)
       .where(eq(localCorridorInterventionContext.month, month))
       .run();
     tx.delete(localCorridorMonthSummary).where(eq(localCorridorMonthSummary.month, month)).run();

@@ -1,12 +1,12 @@
 import { mkdir, readdir, stat } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { defineCommand, z } from "@liche/core";
 import {
   type GtfsRtFeedType,
   listGtfsRtCollectionRuns,
   listGtfsRtFeedSnapshots,
   listGtfsRtParsedSnapshots,
 } from "@bp/db/local";
+import { defineCommand, z } from "@liche/core";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { writeJson } from "../../lib/json.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
@@ -332,7 +332,9 @@ export default defineCommand({
   }),
   async run({ input }) {
     const artifactRoot =
-      input.options.artifactRoot === undefined ? undefined : fromCliPath(input.options.artifactRoot);
+      input.options.artifactRoot === undefined
+        ? undefined
+        : fromCliPath(input.options.artifactRoot);
     const outputPath =
       input.options.output === undefined ? undefined : fromCliPath(input.options.output);
     return runLocalDbCommandBoundary({

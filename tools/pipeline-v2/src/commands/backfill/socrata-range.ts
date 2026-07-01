@@ -164,8 +164,14 @@ export default defineCommand({
   summary: "Backfill Socrata corpus sources across (source × month) pairs in parallel.",
   input: {
     options: z.object({
-      since: z.string().regex(/^\d{4}-\d{1,2}$/).describe("Start month, YYYY-MM"),
-      until: z.string().regex(/^\d{4}-\d{1,2}$/).describe("End month, YYYY-MM"),
+      since: z
+        .string()
+        .regex(/^\d{4}-\d{1,2}$/)
+        .describe("Start month, YYYY-MM"),
+      until: z
+        .string()
+        .regex(/^\d{4}-\d{1,2}$/)
+        .describe("End month, YYYY-MM"),
       sources: z
         .array(z.string())
         .default([])

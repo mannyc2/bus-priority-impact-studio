@@ -77,12 +77,7 @@ async function auditOcrPageMarkdownPage(input: {
   pageNumber: number;
 }): Promise<Tier2OcrPageMarkdownAuditPage> {
   const paths = pageMarkdownOutputPaths(input.pageRoot);
-  const [
-    markdownExists,
-    toolCallExists,
-    responseExists,
-    errorExists,
-  ] = await Promise.all([
+  const [markdownExists, toolCallExists, responseExists, errorExists] = await Promise.all([
     Bun.file(paths.markdownPath).exists(),
     Bun.file(paths.toolCallPath).exists(),
     Bun.file(paths.responsePath).exists(),
@@ -132,7 +127,11 @@ async function auditOcrPageMarkdownPage(input: {
     publisher: input.source.publisher,
     sourceGroup: input.source.sourceGroup,
     pageNumber: input.pageNumber,
-    status: errorExists ? "ocr_failed" : markdownExists && toolCallExists ? "ocr_complete" : "missing",
+    status: errorExists
+      ? "ocr_failed"
+      : markdownExists && toolCallExists
+        ? "ocr_complete"
+        : "missing",
     markdownArtifactKey: markdownExists ? artifactKey(paths.markdownPath, input.runRoot) : null,
     toolCallArtifactKey: toolCallExists ? artifactKey(paths.toolCallPath, input.runRoot) : null,
     responseArtifactKey: responseExists ? artifactKey(paths.responsePath, input.runRoot) : null,
@@ -146,7 +145,10 @@ async function auditOcrPageMarkdownPage(input: {
     containsCharts,
     blankPageLikely,
     needsVisualReview:
-      visualReviewHints.length > 0 || containsTables === true || containsMaps === true || containsCharts === true,
+      visualReviewHints.length > 0 ||
+      containsTables === true ||
+      containsMaps === true ||
+      containsCharts === true,
     routesMentioned: result?.routesMentioned ?? [],
     corridorsMentioned: result?.corridorsMentioned ?? [],
     datesMentioned: result?.datesMentioned ?? [],
@@ -310,7 +312,8 @@ async function resolveOcrPageMarkdownAuditPaths(
   if (args.ocrPlanPath !== undefined) {
     return {
       ocrPlanPath: args.ocrPlanPath,
-      outputPath: args.outputPath ?? join(dirname(args.ocrPlanPath), "ocr-page-markdown-audit.json"),
+      outputPath:
+        args.outputPath ?? join(dirname(args.ocrPlanPath), "ocr-page-markdown-audit.json"),
     };
   }
   const artifactRoot = args.artifactRoot ?? defaultArtifactRootPath();
@@ -320,7 +323,8 @@ async function resolveOcrPageMarkdownAuditPaths(
   }
   return {
     ocrPlanPath: ocrPlanPath(artifactRoot, runId),
-    outputPath: args.outputPath ?? join(runArtifactRoot(artifactRoot, runId), "ocr-page-markdown-audit.json"),
+    outputPath:
+      args.outputPath ?? join(runArtifactRoot(artifactRoot, runId), "ocr-page-markdown-audit.json"),
   };
 }
 

@@ -266,7 +266,9 @@ describe("Tier 2 vocab surface application", () => {
       "metricFamily",
       "metricUnit",
     ]);
-    const metricFamily = normalization.fieldMappings.find((mapping) => mapping.keyId === "metricFamily");
+    const metricFamily = normalization.fieldMappings.find(
+      (mapping) => mapping.keyId === "metricFamily",
+    );
     expect(metricFamily?.modifiers.routeIds).toEqual(["B41"]);
     expect(metricFamily?.evidence.supportIds).toEqual(["support-metric"]);
     expect(metricFamily?.evidence.evidencePointerIds).toEqual(["pointer-metric"]);

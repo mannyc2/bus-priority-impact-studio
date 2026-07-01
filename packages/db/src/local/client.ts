@@ -52,8 +52,7 @@ export function insertAll<T extends SQLiteTable>(
   rows: readonly SQLiteInsertValue<T>[],
 ): void {
   for (let i = 0; i < rows.length; i += INSERT_BATCH_SIZE) {
-    tx
-      .insert(table)
+    tx.insert(table)
       .values(rows.slice(i, i + INSERT_BATCH_SIZE) as SQLiteInsertValue<T>[])
       .run();
   }

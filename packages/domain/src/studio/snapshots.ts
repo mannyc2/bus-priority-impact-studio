@@ -47,7 +47,6 @@ export const StudioSourceMonthStatusSchema = z.enum([
   "source_absent",
 ]);
 
-
 export const StudioProjectionStorageSchema = z.enum(["d1", "r2", "worker", "computed"]);
 
 export const StudioSnapshot2ProjectionRefSchema = z

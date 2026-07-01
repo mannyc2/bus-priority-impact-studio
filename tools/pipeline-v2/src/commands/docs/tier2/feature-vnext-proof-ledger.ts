@@ -23,11 +23,15 @@ function splitArtifactPaths(value: string): string[] {
 export async function runDocsTier2FeatureVNextProofLedger(input: z.infer<typeof optionsSchema>) {
   const vnextArtifactPaths = splitArtifactPaths(input.vnextArtifactPaths);
   if (vnextArtifactPaths.length === 0) {
-    throw new Error("docs tier2 feature-vnext-proof-ledger requires at least one --vnext-artifact-paths value.");
+    throw new Error(
+      "docs tier2 feature-vnext-proof-ledger requires at least one --vnext-artifact-paths value.",
+    );
   }
   const result = await runTier2FeatureProofLedgerFromVNext({
     vnextArtifactPaths,
-    ...(input.canonicalMergePath === undefined ? {} : { canonicalMergePath: input.canonicalMergePath }),
+    ...(input.canonicalMergePath === undefined
+      ? {}
+      : { canonicalMergePath: input.canonicalMergePath }),
     ...(input.outputPath === undefined ? {} : { outputPath: input.outputPath }),
     ...(input.markdownPath === undefined ? {} : { markdownPath: input.markdownPath }),
     ...(input.summaryPath === undefined ? {} : { summaryPath: input.summaryPath }),
@@ -49,8 +53,7 @@ export async function runDocsTier2FeatureVNextProofLedger(input: z.infer<typeof 
 
 export default defineCommand({
   path: ["docs", "tier2", "feature-vnext-proof-ledger"],
-  summary:
-    "Build a Tier 2 feature proof ledger from accepted vNext extraction candidates.",
+  summary: "Build a Tier 2 feature proof ledger from accepted vNext extraction candidates.",
   input: { options: optionsSchema },
   output: z.unknown(),
   async run({ input }) {

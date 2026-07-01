@@ -2,12 +2,12 @@ import { Database } from "bun:sqlite";
 import { describe, expect, test } from "bun:test";
 import { createLocalPipelineDb } from "@bp/db/local";
 import { Layer } from "effect";
+import { LocalDbConnection } from "../../src/effect/local-db.ts";
 import {
-  runLocalDbCommandBoundary,
   LocalDbCommandServiceLayer,
   runLocalDbCommand,
+  runLocalDbCommandBoundary,
 } from "../../src/effect/local-db-command.ts";
-import { LocalDbConnection } from "../../src/effect/local-db.ts";
 import { runPipelineEffect } from "../../src/effect/runtime.ts";
 import type { OpenLocalPipelineDb } from "../../src/lib/local-db.ts";
 

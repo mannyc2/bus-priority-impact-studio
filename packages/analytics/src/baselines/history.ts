@@ -17,12 +17,18 @@ function finiteValues(values: readonly number[]): number[] {
   return values.filter((value) => Number.isFinite(value));
 }
 
+function requiredValue(values: readonly number[], index: number): number {
+  const value = values[index];
+  if (value === undefined) throw new Error(`Missing numeric value at index ${index}.`);
+  return value;
+}
+
 function median(values: readonly number[]): number | null {
   const finite = finiteValues(values).sort((left, right) => left - right);
   if (finite.length === 0) return null;
   const midpoint = Math.floor(finite.length / 2);
-  if (finite.length % 2 === 1) return finite[midpoint]!;
-  return (finite[midpoint - 1]! + finite[midpoint]!) / 2;
+  if (finite.length % 2 === 1) return requiredValue(finite, midpoint);
+  return (requiredValue(finite, midpoint - 1) + requiredValue(finite, midpoint)) / 2;
 }
 
 export function historicalDelta(current: number, baseline: number): HistoricalDelta {
@@ -64,7 +70,7 @@ export function theilSenSlope(values: readonly number[]): number | null {
   const slopes: number[] = [];
   for (let left = 0; left < finite.length - 1; left += 1) {
     for (let right = left + 1; right < finite.length; right += 1) {
-      slopes.push((finite[right]! - finite[left]!) / (right - left));
+      slopes.push((requiredValue(finite, right) - requiredValue(finite, left)) / (right - left));
     }
   }
 

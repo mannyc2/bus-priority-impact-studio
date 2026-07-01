@@ -120,9 +120,7 @@ describe("toRouteDossierInputRows + buildAndWriteRouteDossierSummaries", () => {
     });
     expect(routeCount).toBe(2);
 
-    const written = JSON.parse(
-      await Bun.file(join(tmp, routeDossierSummaryKey("m15-sbs"))).text(),
-    );
+    const written = JSON.parse(await Bun.file(join(tmp, routeDossierSummaryKey("m15-sbs"))).text());
     const dossier = RouteDossierSummarySchema.parse(written);
     expect(dossier.routeId).toBe("M15+");
     expect(dossier.speed.current).toBe(7);

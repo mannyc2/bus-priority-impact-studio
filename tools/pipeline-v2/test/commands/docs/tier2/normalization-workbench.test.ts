@@ -94,7 +94,10 @@ async function seedNormalizedCandidates() {
         canonicalFamily: "service_or_ridership",
         rawFamily: "stop ridership table",
         displayLabel: "Stop-level boardings table",
-        rawCandidate: { tableKindRaw: "stop ridership table", headerTextsRaw: ["Stop", "Boardings"] },
+        rawCandidate: {
+          tableKindRaw: "stop ridership table",
+          headerTextsRaw: ["Stop", "Boardings"],
+        },
       }),
     ],
   });
@@ -211,4 +214,3 @@ describe("Tier 2 normalization workbench", () => {
     expect(await Bun.file(join(workingRoot, "workbench-tool-call.json")).exists()).toBe(true);
   });
 });
-

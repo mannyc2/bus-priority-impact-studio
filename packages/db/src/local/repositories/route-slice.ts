@@ -173,8 +173,7 @@ export function replaceRouteSegmentSpeeds(
   }));
 
   db.transaction((tx) => {
-    tx
-      .delete(localRouteSegmentSpeed)
+    tx.delete(localRouteSegmentSpeed)
       .where(
         and(eq(localRouteSegmentSpeed.routeId, routeId), eq(localRouteSegmentSpeed.month, month)),
       )
@@ -253,8 +252,7 @@ export function replaceRouteSegmentSpeedCells(
   }));
 
   db.transaction((tx) => {
-    tx
-      .delete(localRouteSegmentSpeedCell)
+    tx.delete(localRouteSegmentSpeedCell)
       .where(
         and(
           eq(localRouteSegmentSpeedCell.routeId, routeId),
@@ -304,8 +302,7 @@ export function replaceRouteHourlyRidership(
   }));
 
   db.transaction((tx) => {
-    tx
-      .delete(localRouteHourlyRidership)
+    tx.delete(localRouteHourlyRidership)
       .where(
         and(
           eq(localRouteHourlyRidership.routeId, routeId),
@@ -368,8 +365,7 @@ export function replaceRouteSchedules(
   }));
 
   db.transaction((tx) => {
-    tx
-      .delete(localRouteScheduleTimepoint)
+    tx.delete(localRouteScheduleTimepoint)
       .where(
         and(
           eq(localRouteScheduleTimepoint.routeId, routeId),
@@ -449,8 +445,7 @@ export function replaceRouteStops(
   }));
 
   db.transaction((tx) => {
-    tx
-      .delete(localRouteStop)
+    tx.delete(localRouteStop)
       .where(and(eq(localRouteStop.routeId, routeId), eq(localRouteStop.month, month)))
       .run();
     insertAll(tx, localRouteStop, values);
@@ -517,8 +512,7 @@ export function replaceRouteHotspots(
   }));
 
   db.transaction((tx) => {
-    tx
-      .delete(localRouteHotspot)
+    tx.delete(localRouteHotspot)
       .where(
         and(
           eq(localRouteHotspot.routeId, summary.routeId),
@@ -526,8 +520,7 @@ export function replaceRouteHotspots(
         ),
       )
       .run();
-    tx
-      .delete(localRouteHotspotSummary)
+    tx.delete(localRouteHotspotSummary)
       .where(
         and(
           eq(localRouteHotspotSummary.routeId, summary.routeId),
@@ -536,8 +529,7 @@ export function replaceRouteHotspots(
       )
       .run();
 
-    tx
-      .insert(localRouteHotspotSummary)
+    tx.insert(localRouteHotspotSummary)
       .values({
         routeId: summary.routeId,
         month: summary.isoMonth,

@@ -13,7 +13,9 @@ const optionsSchema = z.object({
 export async function runDocsTier2FeatureProofLedger(input: z.infer<typeof optionsSchema>) {
   const result = await runTier2FeatureProofLedger({
     vocabApplicationPath: input.vocabApplicationPath,
-    ...(input.canonicalMergePath === undefined ? {} : { canonicalMergePath: input.canonicalMergePath }),
+    ...(input.canonicalMergePath === undefined
+      ? {}
+      : { canonicalMergePath: input.canonicalMergePath }),
     ...(input.outputPath === undefined ? {} : { outputPath: input.outputPath }),
     ...(input.markdownPath === undefined ? {} : { markdownPath: input.markdownPath }),
     ...(input.summaryPath === undefined ? {} : { summaryPath: input.summaryPath }),

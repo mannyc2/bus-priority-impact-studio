@@ -1,10 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { routeHead } from "../lib/head.js";
 import { fetchStudioRoutes, staticStudioLoaderStaleTimeMs } from "../studio/api-client.js";
-import {
-  InterventionsLoadingPage,
-  InterventionsPage,
-} from "../studio/pages/interventions.js";
+import { InterventionsLoadingPage, InterventionsPage } from "../studio/pages/interventions.js";
 
 export const Route = createFileRoute("/interventions")({
   loader: ({ abortController }) => fetchStudioRoutes({ signal: abortController.signal }),

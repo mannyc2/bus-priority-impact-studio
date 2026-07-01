@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import {
   buildSegmentDaypartFeaturesFromSpeedRows,
-  segmentIdForSpeedRow,
   type SegmentDaypartSpeedSourceRow,
+  segmentIdForSpeedRow,
 } from "../../src/lib/speed-pace-feature-resolver.ts";
 
 function row(overrides: Partial<SegmentDaypartSpeedSourceRow>): SegmentDaypartSpeedSourceRow {

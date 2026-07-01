@@ -10,13 +10,13 @@ import {
   DEFAULT_TIER2_FEATURE_SMOKE_MODEL,
   DEFAULT_TIER2_FEATURE_SMOKE_PROVIDER,
   DEFAULT_TIER2_FEATURE_SMOKE_TIMEOUT_MS,
-  Tier2FeatureExtractionRequestSchema,
   type Tier2FeatureExtractionRequest,
+  Tier2FeatureExtractionRequestSchema,
 } from "./contract.ts";
 import { evaluateTier2FeaturePromotionGate } from "./promotion-gate.ts";
 import {
-  runTier2FeatureExtractionVNext,
   type RunTier2FeatureExtractionVNextArgs,
+  runTier2FeatureExtractionVNext,
   type Tier2FeatureExtractionUsage,
   type Tier2FeatureExtractionVNextArtifact,
 } from "./runner.ts";
@@ -147,7 +147,12 @@ function stableHash(value: unknown): string {
 }
 
 function slug(value: string): string {
-  return value.replace(/[^a-zA-Z0-9_-]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 140) || "window";
+  return (
+    value
+      .replace(/[^a-zA-Z0-9_-]+/g, "_")
+      .replace(/^_+|_+$/g, "")
+      .slice(0, 140) || "window"
+  );
 }
 
 function round(value: number): number {
@@ -204,7 +209,8 @@ function evidenceHandleForVNext(value: unknown): unknown | null {
   const sourceId = stringValue(value["sourceId"]);
   const quoteText = stringValue(value["quoteText"]);
   const text = stringValue(value["text"]);
-  if (evidenceHandle === null || sourceId === null || (quoteText === null && text === null)) return null;
+  if (evidenceHandle === null || sourceId === null || (quoteText === null && text === null))
+    return null;
   return {
     evidenceHandle,
     sourceId,
@@ -217,10 +223,13 @@ function evidenceHandleForVNext(value: unknown): unknown | null {
 
 function routeLookupRequestForVNext(value: unknown): unknown | null {
   if (!isRecord(value)) return null;
-  const text = stringValue(value["text"]) ?? stringValue(value["query"]) ?? stringValue(value["rawText"]);
+  const text =
+    stringValue(value["text"]) ?? stringValue(value["query"]) ?? stringValue(value["rawText"]);
   if (text === null) return null;
   return {
-    ...(stringValue(value["lookupHandle"]) === null ? {} : { lookupHandle: stringValue(value["lookupHandle"]) }),
+    ...(stringValue(value["lookupHandle"]) === null
+      ? {}
+      : { lookupHandle: stringValue(value["lookupHandle"]) }),
     text,
   };
 }
@@ -280,7 +289,9 @@ function vNextRequestFromAgenticRequest(input: {
     ? input.raw["evidenceHandles"].flatMap((item) => evidenceHandleForVNext(item) ?? [])
     : [];
   if (evidenceHandles.length === 0) {
-    throw new Error(`No vNext-compatible evidenceHandles for ${source.sourceId}:${source.pageNumbers.join(",")}.`);
+    throw new Error(
+      `No vNext-compatible evidenceHandles for ${source.sourceId}:${source.pageNumbers.join(",")}.`,
+    );
   }
   const sourceRecord = isRecord(input.raw["source"]) ? input.raw["source"] : {};
   const request = {
@@ -398,7 +409,10 @@ function startRateLimiter(rateLimitPerMinute: number | null): (() => Promise<voi
   };
 }
 
-function statusCount(windows: CanaryWindowResult[], status: Tier2FeatureExtractionVNextArtifact["summary"]["finalStatus"]) {
+function statusCount(
+  windows: CanaryWindowResult[],
+  status: Tier2FeatureExtractionVNextArtifact["summary"]["finalStatus"],
+) {
   return windows.filter((window) => window.finalStatus === status).length;
 }
 
@@ -417,7 +431,8 @@ function canaryChecks(input: {
         passed: true,
         observed: true,
         threshold: true,
-        message: "Canary was prepared without live LLM execution; validity checks require --execute.",
+        message:
+          "Canary was prepared without live LLM execution; validity checks require --execute.",
       },
     ];
   }
@@ -451,14 +466,17 @@ export async function runTier2FeatureCanary(args: Tier2FeatureCanaryRunArgs): Pr
   outputPath: string;
 }> {
   const generatedAt = args.generatedAt ?? new Date().toISOString();
-  const runId = args.runId ?? `tier2-feature-canary-${generatedAt.replace(/[^0-9]/g, "").slice(0, 14)}`;
+  const runId =
+    args.runId ?? `tier2-feature-canary-${generatedAt.replace(/[^0-9]/g, "").slice(0, 14)}`;
   const outputRoot = fromCliPath(
     args.outputRoot ?? join(defaultArtifactRootPath(), "docs", "tier2-feature-canary", runId),
   );
   const seed = args.seed ?? runId;
   const concurrency = args.concurrency ?? 4;
-  const manifestWindows = args.manifestPath === undefined ? [] : await readWindowsFromManifest(args.manifestPath);
-  const pathWindows = args.requestPaths === undefined ? [] : windowsFromRequestPaths(args.requestPaths);
+  const manifestWindows =
+    args.manifestPath === undefined ? [] : await readWindowsFromManifest(args.manifestPath);
+  const pathWindows =
+    args.requestPaths === undefined ? [] : windowsFromRequestPaths(args.requestPaths);
   const allWindows = [...manifestWindows, ...pathWindows];
   if (allWindows.length === 0) {
     throw new Error("Tier 2 feature canary requires --manifest-path or --request-paths.");
@@ -469,7 +487,7 @@ export async function runTier2FeatureCanary(args: Tier2FeatureCanaryRunArgs): Pr
   const rateLimitPerMinute = args.rateLimitPerMinute ?? null;
   const waitForRateLimit = startRateLimiter(execute ? rateLimitPerMinute : null);
   const includePriorContext = args.includePriorContext === true;
-  const maxPriorContextChars = includePriorContext ? args.maxPriorContextChars ?? 12_000 : 0;
+  const maxPriorContextChars = includePriorContext ? (args.maxPriorContextChars ?? 12_000) : 0;
   const extractionRoot = join(outputRoot, "extractions");
   const requestRoot = join(outputRoot, "requests");
   await mkdir(requestRoot, { recursive: true });
@@ -549,7 +567,8 @@ export async function runTier2FeatureCanary(args: Tier2FeatureCanaryRunArgs): Pr
   await writeJson(promotionGatePath, promotionGate);
 
   const acceptedRunCount = statusCount(windowResults, "accepted");
-  const acceptedRunRate = windowResults.length === 0 ? 0 : round(acceptedRunCount / windowResults.length);
+  const acceptedRunRate =
+    windowResults.length === 0 ? 0 : round(acceptedRunCount / windowResults.length);
   const checks = canaryChecks({
     execute,
     acceptedRunRate,
@@ -558,7 +577,11 @@ export async function runTier2FeatureCanary(args: Tier2FeatureCanaryRunArgs): Pr
     maxPublishableWithoutProof: args.maxPublishableWithoutProof ?? 0,
     promotionGatePassed: promotionGate.passed,
   });
-  const verdict = execute ? (checks.every((check) => check.passed) ? "passed" : "failed") : "prepared";
+  const verdict = execute
+    ? checks.every((check) => check.passed)
+      ? "passed"
+      : "failed"
+    : "prepared";
   const artifact: Tier2FeatureCanaryRunArtifact = {
     artifactKind: FEATURE_CANARY_RUN_ARTIFACT_KIND,
     schemaVersion: 1,
@@ -574,7 +597,8 @@ export async function runTier2FeatureCanary(args: Tier2FeatureCanaryRunArgs): Pr
       seed,
       concurrency,
       rateLimitPerMinute,
-      vocabApplicationPath: args.vocabApplicationPath === undefined ? null : fromCliPath(args.vocabApplicationPath),
+      vocabApplicationPath:
+        args.vocabApplicationPath === undefined ? null : fromCliPath(args.vocabApplicationPath),
       includePriorContext,
       maxPriorContextChars,
     },
@@ -587,9 +611,18 @@ export async function runTier2FeatureCanary(args: Tier2FeatureCanaryRunArgs): Pr
       rejectedRunCount: statusCount(windowResults, "rejected"),
       providerFailedRunCount: statusCount(windowResults, "provider_failed"),
       toolParseFailedRunCount: statusCount(windowResults, "tool_response_parse_failed"),
-      totalAcceptedCandidateCount: windowResults.reduce((sum, window) => sum + window.acceptedCandidateCount, 0),
-      totalRejectedCandidateCount: windowResults.reduce((sum, window) => sum + window.rejectedCandidateCount, 0),
-      totalValidationErrorCount: windowResults.reduce((sum, window) => sum + window.validationErrorCount, 0),
+      totalAcceptedCandidateCount: windowResults.reduce(
+        (sum, window) => sum + window.acceptedCandidateCount,
+        0,
+      ),
+      totalRejectedCandidateCount: windowResults.reduce(
+        (sum, window) => sum + window.rejectedCandidateCount,
+        0,
+      ),
+      totalValidationErrorCount: windowResults.reduce(
+        (sum, window) => sum + window.validationErrorCount,
+        0,
+      ),
       proofLedgerPath,
       resolvedProofLedgerPath,
       promotionGatePath,

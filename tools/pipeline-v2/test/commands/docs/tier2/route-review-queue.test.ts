@@ -1,14 +1,14 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
-import {
-  buildTier2RouteReviewQueue,
-  runTier2RouteReviewQueue,
-} from "../../../../src/commands/docs/tier2/_route-review-queue.ts";
 import type {
   EventRouteResolutionArtifact,
   EventRouteResolutionRow,
 } from "../../../../src/commands/docs/tier2/_event-route-resolution.ts";
+import {
+  buildTier2RouteReviewQueue,
+  runTier2RouteReviewQueue,
+} from "../../../../src/commands/docs/tier2/_route-review-queue.ts";
 import { writeJson } from "../../../../src/lib/json.ts";
 
 const workingRoot = join(process.cwd(), "test", ".tmp-tier2-route-review-queue");
@@ -62,7 +62,15 @@ function row(input: {
       "document_claim_only_event: source text was not validated against a historical service record",
       "date_basis_source_stated_operational: trusting the official source operational date; historical GTFS is only an optional route/service exposure check",
     ],
-    evidenceRefs: [{ sourceId: `source-${input.surfaceId}`, pageNumber: 1, blockId: "B0001", lineStart: 1, lineEnd: 2 }],
+    evidenceRefs: [
+      {
+        sourceId: `source-${input.surfaceId}`,
+        pageNumber: 1,
+        blockId: "B0001",
+        lineStart: 1,
+        lineEnd: 2,
+      },
+    ],
   };
 }
 
@@ -81,7 +89,8 @@ function artifact(rows: EventRouteResolutionRow[]): EventRouteResolutionArtifact
         (r) => r.timelineEligibility === "intervention_timeline_candidate",
       ).length,
       routeResolvedEventCount: rows.filter((r) => r.routeResolutionState === "resolved").length,
-      routeResolvedInterventionCandidateCount: rows.filter((r) => r.promotableToRouteReviewQueue).length,
+      routeResolvedInterventionCandidateCount: rows.filter((r) => r.promotableToRouteReviewQueue)
+        .length,
       promotableToRouteReviewQueueCount: rows.filter((r) => r.promotableToRouteReviewQueue).length,
       ambiguousInterventionCandidateCount: 0,
       unresolvedInterventionCandidateCount: 0,
@@ -118,7 +127,11 @@ describe("Tier 2 route review queue", () => {
   test("fans route-resolved event rows into per-route review queues", () => {
     const queue = buildTier2RouteReviewQueue(
       artifact([
-        row({ surfaceId: "direct", routeIds: ["M14A+", "M14D+"], routeResolutionTier: "direct_event_text" }),
+        row({
+          surfaceId: "direct",
+          routeIds: ["M14A+", "M14D+"],
+          routeResolutionTier: "direct_event_text",
+        }),
         row({
           surfaceId: "corridor",
           routeIds: ["M34+"],
@@ -160,9 +173,9 @@ describe("Tier 2 route review queue", () => {
     expect(m34?.items[0]?.reviewerDecisionOptions).toContain(
       "needs_historical_gtfs_date_validation",
     );
-    expect(m34?.items[0]?.reviewTasks.some((task) => task.includes("weaker route-resolution"))).toBe(
-      true,
-    );
+    expect(
+      m34?.items[0]?.reviewTasks.some((task) => task.includes("weaker route-resolution")),
+    ).toBe(true);
     expect(queue.routes.some((route) => route.routeId === "M15+")).toBe(false);
   });
 
@@ -171,7 +184,9 @@ describe("Tier 2 route review queue", () => {
     const outputPath = join(workingRoot, "queue.json");
     await writeJson(
       routeResolutionPath,
-      artifact([row({ surfaceId: "direct", routeIds: ["M14A+"], routeResolutionTier: "direct_event_text" })]),
+      artifact([
+        row({ surfaceId: "direct", routeIds: ["M14A+"], routeResolutionTier: "direct_event_text" }),
+      ]),
     );
 
     const result = await runTier2RouteReviewQueue({

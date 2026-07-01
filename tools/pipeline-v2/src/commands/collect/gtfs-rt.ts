@@ -357,8 +357,11 @@ export default defineCommand({
   }),
   async run({ input }) {
     const feedTypes =
-      input.options.feedTypes.length === 0 ? undefined : normalizeFeedTypes(input.options.feedTypes);
-    const rawDir = input.options.rawDir === undefined ? undefined : fromCliPath(input.options.rawDir);
+      input.options.feedTypes.length === 0
+        ? undefined
+        : normalizeFeedTypes(input.options.feedTypes);
+    const rawDir =
+      input.options.rawDir === undefined ? undefined : fromCliPath(input.options.rawDir);
     return runLocalDbCommandBoundary({
       dbPath: input.options.db,
       command: "collect.gtfs-rt",

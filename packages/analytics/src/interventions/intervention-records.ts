@@ -605,9 +605,7 @@ function canonicalTreatmentLabel(value: string): string | null {
   return DOCUMENT_TREATMENT_TYPES.has(normalized) ? normalized : null;
 }
 
-function repairDraftLabelConflicts(
-  draft: DocumentInterventionRecordDraft,
-): {
+function repairDraftLabelConflicts(draft: DocumentInterventionRecordDraft): {
   draft: DocumentInterventionRecordDraft;
   repaired: boolean;
 } {
@@ -661,9 +659,7 @@ function repairDraftLabelConflicts(
   };
 }
 
-function collectEvidenceRefs(
-  draft: DocumentInterventionRecordDraft,
-): string[] {
+function collectEvidenceRefs(draft: DocumentInterventionRecordDraft): string[] {
   const refs = new Set<string>();
   for (const obs of draft.statusHistory) {
     for (const id of obs.evidenceRefs) refs.add(id);
@@ -732,8 +728,7 @@ export function backfillStatusHistory(input: {
 } {
   const existing = input.draft.statusHistory;
   const seenKeys = new Set(existing.map((entry) => `${entry.status}|${entry.asOfDate ?? ""}`));
-  const inferred: DocumentInterventionRecordDraft["statusHistory"] =
-    [];
+  const inferred: DocumentInterventionRecordDraft["statusHistory"] = [];
   let coercedFromProposedOnly = false;
   for (const candidate of input.recordCandidates) {
     const rawStatus = statusFromCandidateFields(candidate.fields);
@@ -927,14 +922,10 @@ function corridorEndpointSupported(endpoint: string, supportingText: string): bo
 }
 
 export function validateCorridorExtentEndpoints(input: {
-  corridor: NonNullable<
-    DocumentInterventionRecordDraft["corridor"]
-  >;
+  corridor: NonNullable<DocumentInterventionRecordDraft["corridor"]>;
   supportingCandidates: Tier2DocumentEvidenceCandidate[];
 }): {
-  corridor: NonNullable<
-    DocumentInterventionRecordDraft["corridor"]
-  >;
+  corridor: NonNullable<DocumentInterventionRecordDraft["corridor"]>;
   unsupportedEndpointsRemoved: boolean;
 } {
   if (input.corridor.extentEndpoints === undefined) {
@@ -1453,7 +1444,6 @@ export function dedupeInterventionRecordsByEvidenceOverlap(input: {
   }
   return merged;
 }
-
 
 // --- top-level tool-args processing ---
 type InterventionRecordsSchemaIssue = {

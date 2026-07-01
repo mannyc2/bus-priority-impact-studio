@@ -1,10 +1,11 @@
+// biome-ignore-all lint/style/noNonNullAssertion: Fixture assertions intentionally index rows after explicit length/content checks.
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdir, rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import {
   extractTier2DocumentDiscoveries,
-  validateDiscoveryExtraction,
   type Tier2DiscoveryEvidenceBlock,
+  validateDiscoveryExtraction,
 } from "../../../../src/commands/docs/tier2/_discovery-extraction.ts";
 import { writeJson } from "../../../../src/lib/json.ts";
 
@@ -280,7 +281,9 @@ describe("Tier 2 discovery extraction", () => {
         entities: [
           {
             ...extraction.entities[0]!,
-            evidenceRefs: [{ ...extraction.entities[0]!.evidenceRefs[0]!, blockHash: "sha256:bad" }],
+            evidenceRefs: [
+              { ...extraction.entities[0]!.evidenceRefs[0]!, blockHash: "sha256:bad" },
+            ],
           },
         ],
       },
@@ -428,9 +431,7 @@ describe("Tier 2 discovery extraction", () => {
     expect(artifact.extractions[0]?.entities[0]?.evidenceRefs[0]).toEqual(
       expectedCanonicalEvidenceRef,
     );
-    expect(artifact.extractions[0]?.metrics[0]?.labelRaw).toBe(
-      "optional empty field repair smoke",
-    );
+    expect(artifact.extractions[0]?.metrics[0]?.labelRaw).toBe("optional empty field repair smoke");
     expect(artifact.extractions[0]?.extractionAudit).toMatchObject({
       modelId: "deepseek-v4-flash",
       extractedAt: "2026-06-02T12:00:00.000Z",
@@ -471,8 +472,7 @@ describe("Tier 2 discovery extraction", () => {
                       type: "function",
                       function: {
                         name: "submit_document_discovery_candidates",
-                        arguments:
-                          '{"source":{"sourceId":"fixture_pdf"},"entities":[{"entityId":',
+                        arguments: '{"source":{"sourceId":"fixture_pdf"},"entities":[{"entityId":',
                       },
                     },
                   ],

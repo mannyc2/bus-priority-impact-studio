@@ -30,7 +30,9 @@ function canonical(input: {
     measurementDimension: input.measurementDimension ?? "count",
     metricFamily: input.metricFamily ?? "street_geometry",
     mergePolicy: "family_rollup_allowed",
-    ...(input.countedEntityFamily === undefined ? {} : { countedEntityFamily: input.countedEntityFamily }),
+    ...(input.countedEntityFamily === undefined
+      ? {}
+      : { countedEntityFamily: input.countedEntityFamily }),
     semanticTags: [input.canonicalId],
     downstreamUses: ["normalization"],
     positiveExamples: input.positiveExamples ?? [input.label],
@@ -162,11 +164,14 @@ describe("Tier 2 vocab map pack cleanup", () => {
       label: "01-metricUnit-slice40",
       keyId: "metricUnit",
       canonicalValues: [
-        canonical({ canonicalId: "percent", label: "Percent", metricFamily: "generic_unit", measurementDimension: "ratio_or_share" }),
+        canonical({
+          canonicalId: "percent",
+          label: "Percent",
+          metricFamily: "generic_unit",
+          measurementDimension: "ratio_or_share",
+        }),
       ],
-      aliases: [
-        alias({ rawValue: "percent", decision: "mapped", canonicalId: "percent" }),
-      ],
+      aliases: [alias({ rawValue: "percent", decision: "mapped", canonicalId: "percent" })],
     });
     await writeCompletedRun({
       label: "11-eventTreatmentFamily-full",
@@ -258,53 +263,70 @@ describe("Tier 2 vocab map pack cleanup", () => {
     });
 
     expect(manifest.mapCount).toBe(2);
-    expect(manifest.cleanedMaps.map((item) => item.keyId).sort()).toEqual(["eventTreatmentFamily", "metricFamily"]);
+    expect(manifest.cleanedMaps.map((item) => item.keyId).sort()).toEqual([
+      "eventTreatmentFamily",
+      "metricFamily",
+    ]);
     expect(manifest.totals.duplicateCanonicalMerges).toBe(1);
     expect(manifest.totals.exactAliasRemaps).toBe(3);
 
     const metricEntry = manifest.cleanedMaps.find((item) => item.keyId === "metricFamily");
     if (metricEntry === undefined) throw new Error("missing metricFamily cleaned map");
     const metricMap = await Bun.file(metricEntry.cleanedVocabMapPath).json();
-    const feedbackCanonicals = metricMap.canonicalValues.filter((item: { label: string }) =>
-      item.label === "Location-Specific Comments via Online Feedback Portal"
+    const feedbackCanonicals = metricMap.canonicalValues.filter(
+      (item: { label: string }) =>
+        item.label === "Location-Specific Comments via Online Feedback Portal",
     );
     expect(feedbackCanonicals).toHaveLength(1);
-    const feedbackAlias = metricMap.aliases.find((item: { rawValue: string }) =>
-      item.rawValue === "Location-specific comments received via online portal"
+    const feedbackAlias = metricMap.aliases.find(
+      (item: { rawValue: string }) =>
+        item.rawValue === "Location-specific comments received via online portal",
     );
     expect(feedbackAlias.canonicalId).toBe(feedbackCanonicals[0].canonicalId);
-    const totalWidth = metricMap.aliases.find((item: { rawValue: string }) => item.rawValue === "Total Width");
+    const totalWidth = metricMap.aliases.find(
+      (item: { rawValue: string }) => item.rawValue === "Total Width",
+    );
     expect(totalWidth.decision).toBe("mapped");
     expect(totalWidth.originalDecision).toBe("preserve_raw");
     expect(totalWidth.canonicalId).toBe("street_total_width");
     expect(totalWidth.normalization.coarseFamily).toBe("street_geometry");
 
-    const b46 = metricMap.aliases.find((item: { rawValue: string }) => item.rawValue === "B46 route respondents");
+    const b46 = metricMap.aliases.find(
+      (item: { rawValue: string }) => item.rawValue === "B46 route respondents",
+    );
     expect(b46.normalization.modifiers.routeIds).toEqual(["B46"]);
     expect(b46.normalization.canonicalLeafId).toBe("route_specific_survey_respondents");
     expect(b46.normalization.evidenceProvenance.inputCount).toBe(3);
 
-    const treatmentEntry = manifest.cleanedMaps.find((item) => item.keyId === "eventTreatmentFamily");
+    const treatmentEntry = manifest.cleanedMaps.find(
+      (item) => item.keyId === "eventTreatmentFamily",
+    );
     if (treatmentEntry === undefined) throw new Error("missing eventTreatmentFamily cleaned map");
     const treatmentMap = await Bun.file(treatmentEntry.cleanedVocabMapPath).json();
-    const queueJump = treatmentMap.aliases.find((item: { rawValue: string }) => item.rawValue === "Queue Jump Signal");
+    const queueJump = treatmentMap.aliases.find(
+      (item: { rawValue: string }) => item.rawValue === "Queue Jump Signal",
+    );
     expect(queueJump.decision).toBe("mapped");
     expect(queueJump.canonicalId).toBe("bus_queue_jump");
     expect(queueJump.normalization.coarseFamily).toBe("signal_priority");
-    const finalDesign = treatmentMap.aliases.find((item: { rawValue: string }) =>
-      item.rawValue === "final_design_and_engineering"
+    const finalDesign = treatmentMap.aliases.find(
+      (item: { rawValue: string }) => item.rawValue === "final_design_and_engineering",
     );
     expect(finalDesign.decision).toBe("mapped");
     expect(finalDesign.canonicalId).toBe("final_design_and_engineering");
     expect(finalDesign.normalization.coarseFamily).toBe("capital_delivery");
-    const finalDesignCanonical = treatmentMap.canonicalValues.find((item: { canonicalId: string }) =>
-      item.canonicalId === "final_design_and_engineering"
+    const finalDesignCanonical = treatmentMap.canonicalValues.find(
+      (item: { canonicalId: string }) => item.canonicalId === "final_design_and_engineering",
     );
     expect(finalDesignCanonical.coarseGroup).toBe("capital_delivery");
 
     const projection = await Bun.file(manifest.projectionPath).json();
     expect(projection.rowCount).toBe(5);
-    expect(projection.rows.every((row: { evidenceProvenance?: unknown }) => row.evidenceProvenance !== undefined)).toBe(true);
+    expect(
+      projection.rows.every(
+        (row: { evidenceProvenance?: unknown }) => row.evidenceProvenance !== undefined,
+      ),
+    ).toBe(true);
     expect(await Bun.file(manifest.summaryPath).exists()).toBe(true);
   });
 });

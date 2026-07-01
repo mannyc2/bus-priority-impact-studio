@@ -13,8 +13,8 @@ import type { Api, AssistantMessage, Model } from "@earendil-works/pi-ai";
 import {
   type HarnessFactory,
   type HarnessLike,
-  type ToolExecutor,
   makeToolLoopRunner,
+  type ToolExecutor,
 } from "../../../src/lib/codemode/index.ts";
 import type { SandboxResult } from "../../../src/lib/sandbox.ts";
 
@@ -50,9 +50,7 @@ function mkHarnessFactory(
   finalAssistantText: string,
 ): HarnessFactory {
   return (opts: AgentHarnessOptions): HarnessLike => {
-    const toolByName = new Map<string, AgentTool>(
-      (opts.tools ?? []).map((t) => [t.name, t]),
-    );
+    const toolByName = new Map<string, AgentTool>((opts.tools ?? []).map((t) => [t.name, t]));
     const subscribers: Array<(event: AgentHarnessEvent) => Promise<void> | void> = [];
     let toolResultHandler: ToolResultHandler | undefined;
 
@@ -222,11 +220,11 @@ describe("makeToolLoopRunner (AgentHarness)", () => {
     const r = await loop({ systemPrompt: "sys", userMessage: "user" });
     expect(r.finalText).toBe("done");
     expect(r.toolUseTrace.length).toBe(2);
-    expect(r.toolUseTrace[0]!.tool).toBe("ts_exec");
-    expect(r.toolUseTrace[0]!.code).toBe("console.log('first')");
-    expect(r.toolUseTrace[0]!.stdoutPreview).toBe("first\n");
-    expect(r.toolUseTrace[1]!.tool).toBe("bash_exec");
-    expect(r.toolUseTrace[1]!.code).toBe("echo second");
+    expect(r.toolUseTrace[0]?.tool).toBe("ts_exec");
+    expect(r.toolUseTrace[0]?.code).toBe("console.log('first')");
+    expect(r.toolUseTrace[0]?.stdoutPreview).toBe("first\n");
+    expect(r.toolUseTrace[1]?.tool).toBe("bash_exec");
+    expect(r.toolUseTrace[1]?.code).toBe("echo second");
     expect(r.capsHit).toBeNull();
   });
 

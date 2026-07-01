@@ -46,4 +46,3 @@ export default defineCommand({
     return runDocsTier2NormalizationWorkbench(input.options);
   },
 });
-

@@ -5,16 +5,16 @@
 // core module never imports back here.
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";
 import { writeJson } from "../../../lib/json.ts";
+import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";
 import {
+  type AuditTier2InterventionDuplicatesArgs,
+  type CliOption,
   canonicalInterventionEventsPath,
+  type DuplicateAuditCliArgs,
   interventionDuplicateAuditPath,
   latestDocsRunId,
   parseCliOptions,
-  type AuditTier2InterventionDuplicatesArgs,
-  type CliOption,
-  type DuplicateAuditCliArgs,
   type Tier2CanonicalInterventionEvent,
   type Tier2CanonicalInterventionEventsArtifact,
   type Tier2InterventionDuplicateAudit,

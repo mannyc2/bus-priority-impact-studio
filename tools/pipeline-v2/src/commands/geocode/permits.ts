@@ -1,11 +1,11 @@
-import { arg, defineCommand, z } from "@liche/core";
 import { updateDotStreetPermitGeocode } from "@bp/db/local";
+import { arg, defineCommand, z } from "@liche/core";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import {
   createGeoclientFromEnv,
-  Geocoder,
   type GeocodeInput,
   type GeocodeOutcome,
+  Geocoder,
 } from "../../lib/geocoder.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 
@@ -95,11 +95,7 @@ export async function runGeocodePermits(
           borough,
         });
       }
-      if (
-        row.on_street_name &&
-        row.to_street_name &&
-        row.to_street_name !== row.from_street_name
-      ) {
+      if (row.on_street_name && row.to_street_name && row.to_street_name !== row.from_street_name) {
         attempts.push({
           kind: "intersection",
           crossStreetOne: row.on_street_name,

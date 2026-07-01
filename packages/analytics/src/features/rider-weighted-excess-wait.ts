@@ -19,9 +19,7 @@ export type RiderWeightedExcessWaitFeature = {
   ridershipQuality: FeatureQuality;
 };
 
-export function riderWeightedExcessWaitFeatureKey(
-  feature: RiderWeightedExcessWaitFeature,
-): string {
+export function riderWeightedExcessWaitFeatureKey(feature: RiderWeightedExcessWaitFeature): string {
   return [
     feature.routeId,
     feature.direction,

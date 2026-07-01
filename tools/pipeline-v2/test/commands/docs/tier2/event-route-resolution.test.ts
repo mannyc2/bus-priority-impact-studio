@@ -1,7 +1,7 @@
+import { Database } from "bun:sqlite";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
-import { Database } from "bun:sqlite";
 import {
   classifyTier2Event,
   normalizeStreetName,
@@ -28,7 +28,9 @@ function eventRow(input: {
     sourceTitle: "Fixture Source",
     sourceGroup: "fixture",
     pageNumbers: [1],
-    evidenceRefs: [{ sourceId: input.sourceId, pageNumber: 1, blockId: "B0001", lineStart: 1, lineEnd: 1 }],
+    evidenceRefs: [
+      { sourceId: input.sourceId, pageNumber: 1, blockId: "B0001", lineStart: 1, lineEnd: 1 },
+    ],
     displayLabel: input.displayLabel,
     canonicalFamily: input.canonicalFamily,
     rawFamily: input.rawFamily,
@@ -104,10 +106,7 @@ afterEach(async () => {
 describe("Tier 2 document event route resolution", () => {
   test("loads local DB reference data through the Effect boundary", async () => {
     const source = await Bun.file(
-      new URL(
-        "../../../../src/commands/docs/tier2/_event-route-resolution.ts",
-        import.meta.url,
-      ),
+      new URL("../../../../src/commands/docs/tier2/_event-route-resolution.ts", import.meta.url),
     ).text();
 
     expect(source).toContain("runLocalDbCommandBoundary({");
@@ -217,7 +216,9 @@ describe("Tier 2 document event route resolution", () => {
     // operational date is trusted (historical GTFS is only an optional exposure check).
     expect(corridor?.dateValidationState).toBe("source_stated_operational_date");
 
-    const sourceContext = result.artifact.rows.find((row) => row.surfaceId === "evt-source-context");
+    const sourceContext = result.artifact.rows.find(
+      (row) => row.surfaceId === "evt-source-context",
+    );
     expect(sourceContext?.routeResolutionTier).toBe("source_single_route_context");
     expect(sourceContext?.routeIds).toEqual(["M34+"]);
 

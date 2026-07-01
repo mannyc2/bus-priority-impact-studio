@@ -5,7 +5,6 @@ import { dirname, isAbsolute, join, relative } from "node:path";
 import {
   classifyDataProductCompleteness,
   DATA_PRODUCT_MANIFEST,
-  dataProductCompletenessPath,
   type DataProduct,
   type DataProductCheck,
   type DataProductCheckAudit,
@@ -17,6 +16,7 @@ import {
   type DataProductGapClass,
   type DataProductManifest,
   type DataProductRouteUniverse,
+  dataProductCompletenessPath,
   dataProductCoverageSummary,
   dataProductGapClassCounts,
   dataProductReasons,
@@ -75,10 +75,6 @@ export type DataProductCompletenessAudit = {
 };
 
 export {
-  dataProductCompletenessPath,
-  sourceMonthCoverageMatrixPath,
-} from "@bp/analytics/data-products";
-export {
   classifyDataProductCompleteness,
   DATA_PRODUCT_MANIFEST,
   type DataProductCheckAudit,
@@ -90,6 +86,7 @@ export {
   type DataProductDownstreamBlocker,
   type DataProductGapClass,
   type DataProductRootCause,
+  dataProductCompletenessPath,
   dataProductCoverageSummary,
   dataProductGapClassCounts,
   dataProductJsonSemanticReasons,
@@ -97,6 +94,7 @@ export {
   dataProductStatus,
   dataProductStatusCounts,
   parseDataProductManifestText,
+  sourceMonthCoverageMatrixPath,
 } from "@bp/analytics/data-products";
 export {
   buildDataProductRouteUniverses,

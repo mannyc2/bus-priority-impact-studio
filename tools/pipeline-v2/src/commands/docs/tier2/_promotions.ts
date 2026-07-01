@@ -1,3 +1,4 @@
+// biome-ignore-all lint/style/noNonNullAssertion: Legacy Tier 2 command code is pending plan 024 deletion; existing index assertions are intentional.
 // Tier 2 promotion + studio-projection step, extracted from the former
 // _shared.ts monolith during the per-step decomposition. Imports shared
 // infrastructure (CLI parsing, path/IO helpers) from the core module; the core

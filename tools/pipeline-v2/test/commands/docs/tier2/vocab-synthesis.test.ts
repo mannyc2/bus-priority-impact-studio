@@ -135,7 +135,9 @@ function canonicalValue(input: {
     measurementDimension: input.measurementDimension ?? "ratio_or_share",
     metricFamily: input.metricFamily ?? "generic_unit",
     mergePolicy: input.mergePolicy ?? "family_rollup_allowed",
-    ...(input.countedEntityFamily === undefined ? {} : { countedEntityFamily: input.countedEntityFamily }),
+    ...(input.countedEntityFamily === undefined
+      ? {}
+      : { countedEntityFamily: input.countedEntityFamily }),
     semanticTags: input.semanticTags ?? [input.canonicalId],
     downstreamUses: ["metric grouping"],
     positiveExamples: input.positiveExamples ?? [input.label.toLowerCase()],
@@ -161,7 +163,11 @@ describe("Tier 2 vocab synthesis", () => {
     expect(run.summary.inputValueCount).toBe(3);
     expect(run.summary.executedChunkCount).toBe(0);
     expect(run.keys[0]?.chunks.map((chunk) => chunk.valueCount)).toEqual([2, 1]);
-    expect(await Bun.file(join(outputRoot, "chunks", "metricUnit", "metricUnit-chunk-0001", "input.json")).exists()).toBe(true);
+    expect(
+      await Bun.file(
+        join(outputRoot, "chunks", "metricUnit", "metricUnit-chunk-0001", "input.json"),
+      ).exists(),
+    ).toBe(true);
     expect(await Bun.file(join(outputRoot, "vocab-synthesis-run.json")).exists()).toBe(true);
   });
 
@@ -294,7 +300,7 @@ describe("Tier 2 vocab synthesis", () => {
         rawValue: "percent",
       } as never);
       captured.readContext = readResult.content
-        .map((item) => item.type === "text" ? item.text : "")
+        .map((item) => (item.type === "text" ? item.text : ""))
         .join("\n");
       const submitTool = extraTools?.find((tool) => tool.name === "submit_tier2_vocab_map");
       if (submitTool === undefined) throw new Error("submit tool missing");
@@ -368,7 +374,7 @@ describe("Tier 2 vocab synthesis", () => {
     ]);
     expect(captured.userMessage).toContain("# Tier 2 Vocabulary Synthesis");
     expect(captured.userMessage).toContain("values[count=2]:");
-    expect(captured.userMessage).toContain("raw: \"percent\"");
+    expect(captured.userMessage).toContain('raw: "percent"');
     expect(captured.userMessage).not.toContain("surfaceId:");
     expect(captured.userMessage).not.toContain("artifactRef:");
     expect(captured.readContext).toContain("surfaceId:");
@@ -486,6 +492,9 @@ describe("Tier 2 vocab synthesis", () => {
     const vocabMap = await Bun.file(run.vocabMapPath).json();
     expect(vocabMap.summary.canonicalValueCount).toBe(1);
     expect(vocabMap.summary.aliasCount).toBe(2);
-    expect(vocabMap.aliases.map((alias: { rawValue: string }) => alias.rawValue).sort()).toEqual(["%", "percent"]);
+    expect(vocabMap.aliases.map((alias: { rawValue: string }) => alias.rawValue).sort()).toEqual([
+      "%",
+      "percent",
+    ]);
   });
 });

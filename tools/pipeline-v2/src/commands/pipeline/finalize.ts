@@ -262,7 +262,9 @@ export default defineCommand({
     .passthrough(),
   async run({ input }) {
     const artifactRoot =
-      input.options.artifactRoot === undefined ? undefined : fromCliPath(input.options.artifactRoot);
+      input.options.artifactRoot === undefined
+        ? undefined
+        : fromCliPath(input.options.artifactRoot);
     const exportRoot =
       input.options.exportRoot === undefined ? undefined : fromCliPath(input.options.exportRoot);
     return runLocalDbCommandBoundary({
@@ -294,7 +296,8 @@ export default defineCommand({
           minObservedRouteShare: input.options.minObservedRouteShare,
           minGtfsRtCollectionHours: input.options.minGtfsRtCollectionHours,
           maxGtfsRtSampleSeconds: input.options.maxGtfsRtSampleSeconds,
-          minGtfsRtVehiclePositionSnapshotShare: input.options.minGtfsRtVehiclePositionSnapshotShare,
+          minGtfsRtVehiclePositionSnapshotShare:
+            input.options.minGtfsRtVehiclePositionSnapshotShare,
           observedReliabilityMinSamples: input.options.observedReliabilityMinSamples,
           interventionWindowMonths: input.options.interventionWindowMonths,
           interventionMinSampleMonths: input.options.interventionMinSampleMonths,

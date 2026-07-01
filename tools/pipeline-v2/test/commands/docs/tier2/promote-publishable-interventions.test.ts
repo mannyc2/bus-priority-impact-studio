@@ -1,14 +1,11 @@
+// biome-ignore-all lint/style/noNonNullAssertion: Fixture assertions intentionally index rows after explicit length/content checks.
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdir, readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { promotePublishableInterventions } from "../../../../src/commands/docs/tier2/_shared.ts";
 import { writeJson } from "../../../../src/lib/json.ts";
 
-const workingRoot = join(
-  process.cwd(),
-  "test",
-  ".tmp-promote-publishable-interventions",
-);
+const workingRoot = join(process.cwd(), "test", ".tmp-promote-publishable-interventions");
 
 type RecordSeed = {
   recordId: string;
@@ -149,9 +146,7 @@ describe("promotePublishableInterventions", () => {
       ...paths,
       generatedAt: "2026-05-27T00:00:00.000Z",
     });
-    const byId = new Map(
-      artifact.publishableInterventions.map((i) => [i.recordId, i.status]),
-    );
+    const byId = new Map(artifact.publishableInterventions.map((i) => [i.recordId, i.status]));
     expect(byId.get("pub_impl")).toBe("implemented");
     expect(byId.get("pub_inprog")).toBe("implemented");
     expect(byId.get("plan_proposed")).toBe("proposed");

@@ -340,7 +340,9 @@ export async function completeToolCall(
         maxRetries: 0,
         ...(options.maxOutputTokens === undefined ? {} : { maxTokens: options.maxOutputTokens }),
         ...(options.reasoning === undefined ? {} : { reasoning: options.reasoning }),
-        ...(options.providerOptions === undefined ? {} : { providerOptions: options.providerOptions }),
+        ...(options.providerOptions === undefined
+          ? {}
+          : { providerOptions: options.providerOptions }),
         ...(options.headers === undefined ? {} : { headers: options.headers }),
       } as never);
 

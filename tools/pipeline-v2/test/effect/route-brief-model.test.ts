@@ -2,9 +2,9 @@ import { describe, expect, test } from "bun:test";
 import { Effect, Layer } from "effect";
 import { RouteLocalDbCommandError } from "../../src/effect/errors.ts";
 import {
+  type RouteBriefModelResult,
   RouteBriefModelService,
   runRouteBriefModelCommand,
-  type RouteBriefModelResult,
 } from "../../src/effect/route-brief-model.ts";
 import { runPipelineEffect } from "../../src/effect/runtime.ts";
 

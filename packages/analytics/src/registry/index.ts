@@ -8,9 +8,9 @@ export {
 export type {
   DetectorBaselineFamily,
   DetectorClaimTier,
+  DetectorModelArtifactId,
   DetectorPromotionGate,
   DetectorPromotionGateKind,
-  DetectorModelArtifactId,
   DetectorRegistryMetadata,
   DetectorRetirementStatus,
 } from "./metadata.js";

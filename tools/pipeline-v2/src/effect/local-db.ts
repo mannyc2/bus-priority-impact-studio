@@ -1,6 +1,6 @@
+import { Context, Effect, Layer } from "effect";
 import type { OpenLocalDbOptions, OpenLocalPipelineDb } from "../lib/local-db.ts";
 import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../lib/local-db.ts";
-import { Context, Effect, Layer } from "effect";
 import { LocalDbOpenError } from "./errors.ts";
 
 export type LocalDbConfigShape = {

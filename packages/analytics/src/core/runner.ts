@@ -1,9 +1,6 @@
 import type { AnalyticsDetector, DetectorOutput } from "./detector.js";
 
-export type FeatureResolutionStatus =
-  | "resolved"
-  | "satisfied_by_feature_quality"
-  | "unsupported";
+export type FeatureResolutionStatus = "resolved" | "satisfied_by_feature_quality" | "unsupported";
 
 export type FeatureContractSatisfaction = {
   readonly featureGrain: string;
@@ -58,14 +55,14 @@ export function runAnalyticsDetector<TInput>(input: {
     context: input.context,
   });
   const reportedGrains = new Set(
-    resolved.featureContracts.map((contract) => contract.featureGrain)
+    resolved.featureContracts.map((contract) => contract.featureGrain),
   );
   const missingGrains = input.detector.featureGrains.filter(
-    (featureGrain) => !reportedGrains.has(featureGrain)
+    (featureGrain) => !reportedGrains.has(featureGrain),
   );
   if (missingGrains.length > 0) {
     throw new Error(
-      `Feature resolver ${input.resolver.resolverId} did not report satisfaction for detector ${input.detector.detectorId} grain(s): ${missingGrains.join(", ")}`
+      `Feature resolver ${input.resolver.resolverId} did not report satisfaction for detector ${input.detector.detectorId} grain(s): ${missingGrains.join(", ")}`,
     );
   }
 

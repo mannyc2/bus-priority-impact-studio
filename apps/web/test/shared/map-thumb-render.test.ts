@@ -3,8 +3,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MapThumb } from "../../src/components/MapThumb.js";
 
-const fallbackPath =
-  "M12,68 L36,44 L90,28 L110.4,14.399999999999999";
+const fallbackPath = "M12,68 L36,44 L90,28 L110.4,14.399999999999999";
 
 function extractPath(markup: string): string {
   const match = markup.match(/<path[^>]+d="([^"]+)"/);

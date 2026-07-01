@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 import {
   buildMeetingDiscovery,
   enumerateMeetingMonths,
-  parseMeetingPage,
   type FetchedMeetingPage,
+  parseMeetingPage,
 } from "../../../../src/commands/docs/tier2/_discover-meetings.ts";
 
 const SAMPLE_HTML = `
@@ -74,7 +74,10 @@ describe("buildMeetingDiscovery", () => {
 
   test("classifies empty and failed months without inventing sources", () => {
     const result = buildMeetingDiscovery({
-      pages: [pageFrom("<html><body>no meeting this month</body></html>", "2026-08"), pageFrom(null, "2026-09")],
+      pages: [
+        pageFrom("<html><body>no meeting this month</body></html>", "2026-08"),
+        pageFrom(null, "2026-09"),
+      ],
     });
     expect(result.summary.monthsEmpty).toBe(1);
     expect(result.summary.monthsFailed).toBe(1);

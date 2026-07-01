@@ -9,10 +9,7 @@ import {
 import { arg, defineCommand, z } from "@liche/core";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { writeJson } from "../../lib/json.ts";
-import {
-  dbOptions,
-  type OpenLocalPipelineDb,
-} from "../../lib/local-db.ts";
+import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { defaultArtifactRootPath, fromCliPath } from "../../lib/paths.ts";
 
 export type { SourceEventKindAudit } from "@bp/pipeline-v2/local-db-aggregates";
@@ -116,7 +113,8 @@ export default defineCommand({
             input.options.artifactRoot === undefined
               ? undefined
               : fromCliPath(input.options.artifactRoot),
-          output: input.options.output === undefined ? undefined : fromCliPath(input.options.output),
+          output:
+            input.options.output === undefined ? undefined : fromCliPath(input.options.output),
           auditOnly: input.options.auditOnly,
         }),
     });

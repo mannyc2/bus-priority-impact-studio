@@ -42,8 +42,7 @@ export function replaceRouteScorecard(
   row: typeof localRouteScorecard.$inferInsert,
 ): void {
   db.transaction((tx) => {
-    tx
-      .delete(localRouteScorecard)
+    tx.delete(localRouteScorecard)
       .where(
         and(eq(localRouteScorecard.routeId, row.routeId), eq(localRouteScorecard.month, row.month)),
       )
@@ -95,8 +94,7 @@ export function replaceRouteBriefRows(
 ): void {
   const { routeId, month } = input.summary;
   db.transaction((tx) => {
-    tx
-      .delete(localRouteBriefPeakWindow)
+    tx.delete(localRouteBriefPeakWindow)
       .where(
         and(
           eq(localRouteBriefPeakWindow.routeId, routeId),
@@ -104,8 +102,7 @@ export function replaceRouteBriefRows(
         ),
       )
       .run();
-    tx
-      .delete(localRouteBriefSlowestWindow)
+    tx.delete(localRouteBriefSlowestWindow)
       .where(
         and(
           eq(localRouteBriefSlowestWindow.routeId, routeId),
@@ -113,8 +110,7 @@ export function replaceRouteBriefRows(
         ),
       )
       .run();
-    tx
-      .delete(localRouteBriefSummary)
+    tx.delete(localRouteBriefSummary)
       .where(
         and(eq(localRouteBriefSummary.routeId, routeId), eq(localRouteBriefSummary.month, month)),
       )
@@ -192,13 +188,11 @@ export function replaceRouteBatch(
   },
 ): void {
   db.transaction((tx) => {
-    tx
-      .delete(localRouteBatchBuiltRoute)
+    tx.delete(localRouteBatchBuiltRoute)
       .where(eq(localRouteBatchBuiltRoute.month, input.status.month))
       .run();
     tx.delete(localRouteBatchIssue).where(eq(localRouteBatchIssue.month, input.status.month)).run();
-    tx
-      .delete(localRouteBatchStatus)
+    tx.delete(localRouteBatchStatus)
       .where(eq(localRouteBatchStatus.month, input.status.month))
       .run();
     tx.insert(localRouteBatchStatus).values(input.status).run();
@@ -267,12 +261,10 @@ export function replaceRouteReliabilityRows(
   },
 ): void {
   db.transaction((tx) => {
-    tx
-      .delete(localRouteReliabilityGapWindow)
+    tx.delete(localRouteReliabilityGapWindow)
       .where(eq(localRouteReliabilityGapWindow.month, month))
       .run();
-    tx
-      .delete(localRouteMonthSourceStatus)
+    tx.delete(localRouteMonthSourceStatus)
       .where(
         and(
           eq(localRouteMonthSourceStatus.month, month),
@@ -280,8 +272,7 @@ export function replaceRouteReliabilityRows(
         ),
       )
       .run();
-    tx
-      .delete(localRouteReliabilityBaseline)
+    tx.delete(localRouteReliabilityBaseline)
       .where(eq(localRouteReliabilityBaseline.month, month))
       .run();
     insertAll(tx, localRouteReliabilityBaseline, [...input.baselines]);
@@ -342,8 +333,7 @@ export function replaceRouteEquityRows(
 ): void {
   db.transaction((tx) => {
     tx.delete(localRouteEquityContext).where(eq(localRouteEquityContext.month, month)).run();
-    tx
-      .delete(localRouteMonthSourceStatus)
+    tx.delete(localRouteMonthSourceStatus)
       .where(
         and(
           eq(localRouteMonthSourceStatus.month, month),

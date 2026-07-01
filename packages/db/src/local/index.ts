@@ -2,6 +2,43 @@ export type { LocalPipelineDb, LocalPipelineSchema, LocalPipelineTx } from "./cl
 export { applyLocalPragmas, batchInsert, createLocalPipelineDb, insertAll } from "./client.js";
 export { migrateLocalPipelineDb } from "./migrate.js";
 export type {
+  Local311ServiceRequest,
+  LocalBusCustomerJourneyMetric,
+  LocalBusWaitAssessment,
+  LocalDotStreetPermit,
+  LocalDotTrafficSpeed,
+  LocalDotTrafficVolumeCount,
+  LocalLionSegment,
+  LocalNypdCollision,
+  LocalParkingViolation,
+  LocalWeatherObservation,
+} from "./repositories/corpus-context.js";
+export {
+  count311ByEra,
+  countDotStreetPermits,
+  countDotTrafficVolumes,
+  countLionSegments,
+  countNypdCollisions,
+  countParkingViolationsByCode,
+  countWeatherObservations,
+  insertDotTrafficSpeedSnapshot,
+  insertDotTrafficVolumeCounts,
+  listBusCustomerJourneyMetricRowsForMonth,
+  listBusCustomerJourneyMetricRowsForRoute,
+  listBusWaitAssessmentRowsForMonth,
+  listBusWaitAssessmentRowsForRoute,
+  listDotTrafficSpeedsForLink,
+  listLatestDotTrafficSpeeds,
+  replaceBusCustomerJourneyMetricRows,
+  replaceBusWaitAssessmentRows,
+  upsert311ServiceRequests,
+  upsertDotStreetPermits,
+  upsertLionSegments,
+  upsertNypdCollisions,
+  upsertParkingViolations,
+  upsertWeatherObservations,
+} from "./repositories/corpus-context.js";
+export type {
   LocalCorridor,
   LocalCorridorArtifact,
   LocalCorridorHotspot,
@@ -24,6 +61,41 @@ export {
   listCensusTractEquityContext,
   replaceCensusTractEquityContext,
 } from "./repositories/equity.js";
+export type {
+  ListContextEventRouteTouchesArgs,
+  LocalContextEvent,
+  LocalContextEventRouteTouch,
+  LocalFindingCandidate,
+  LocalFindingCoverageAudit,
+  LocalFindingEvidenceLink,
+  ReplaceFindingsForMonthArgs,
+} from "./repositories/findings.js";
+export {
+  countContextEvents,
+  insertCoverageAudit,
+  insertCoverageAuditIgnore,
+  insertFindingCandidate,
+  insertFindingEvidenceLinks,
+  listCandidatesByRoute,
+  listContextEventRouteTouchesForWindow,
+  listEvidenceForCandidate,
+  replaceFindingRun,
+  replaceFindingsForMonth,
+  upsertContextEvents,
+} from "./repositories/findings.js";
+export type { LocalGeocodeCacheRow } from "./repositories/geocode-cache.js";
+export {
+  getGeocodeCacheRow,
+  upsertGeocodeCacheRow,
+} from "./repositories/geocode-cache.js";
+export type { LocalGeocodeUpdate } from "./repositories/geocode-updates.js";
+export {
+  update311ServiceRequestGeocode,
+  updateDotStreetPermitGeocode,
+  updateNypdCollisionGeocode,
+  updateTrafficSpeedGeocode,
+  updateTrafficVolumeGeocode,
+} from "./repositories/geocode-updates.js";
 export type {
   GtfsRtFeedType,
   LocalGtfsRtAlert,
@@ -70,78 +142,6 @@ export {
   replaceBusLanes,
   replaceRouteInterventionEvaluationRows,
 } from "./repositories/interventions.js";
-export type {
-  Local311ServiceRequest,
-  LocalBusCustomerJourneyMetric,
-  LocalBusWaitAssessment,
-  LocalDotStreetPermit,
-  LocalDotTrafficSpeed,
-  LocalDotTrafficVolumeCount,
-  LocalLionSegment,
-  LocalNypdCollision,
-  LocalParkingViolation,
-  LocalWeatherObservation,
-} from "./repositories/corpus-context.js";
-export {
-  count311ByEra,
-  countDotStreetPermits,
-  countDotTrafficVolumes,
-  countLionSegments,
-  countNypdCollisions,
-  countParkingViolationsByCode,
-  countWeatherObservations,
-  insertDotTrafficSpeedSnapshot,
-  insertDotTrafficVolumeCounts,
-  listBusCustomerJourneyMetricRowsForMonth,
-  listBusCustomerJourneyMetricRowsForRoute,
-  listBusWaitAssessmentRowsForMonth,
-  listBusWaitAssessmentRowsForRoute,
-  listDotTrafficSpeedsForLink,
-  listLatestDotTrafficSpeeds,
-  replaceBusCustomerJourneyMetricRows,
-  replaceBusWaitAssessmentRows,
-  upsert311ServiceRequests,
-  upsertDotStreetPermits,
-  upsertLionSegments,
-  upsertNypdCollisions,
-  upsertParkingViolations,
-  upsertWeatherObservations,
-} from "./repositories/corpus-context.js";
-export type { LocalGeocodeCacheRow } from "./repositories/geocode-cache.js";
-export {
-  getGeocodeCacheRow,
-  upsertGeocodeCacheRow,
-} from "./repositories/geocode-cache.js";
-export type { LocalGeocodeUpdate } from "./repositories/geocode-updates.js";
-export {
-  update311ServiceRequestGeocode,
-  updateDotStreetPermitGeocode,
-  updateNypdCollisionGeocode,
-  updateTrafficSpeedGeocode,
-  updateTrafficVolumeGeocode,
-} from "./repositories/geocode-updates.js";
-export type {
-  LocalContextEvent,
-  LocalContextEventRouteTouch,
-  LocalFindingCandidate,
-  LocalFindingCoverageAudit,
-  LocalFindingEvidenceLink,
-  ListContextEventRouteTouchesArgs,
-  ReplaceFindingsForMonthArgs,
-} from "./repositories/findings.js";
-export {
-  countContextEvents,
-  insertCoverageAudit,
-  insertCoverageAuditIgnore,
-  insertFindingCandidate,
-  insertFindingEvidenceLinks,
-  listCandidatesByRoute,
-  listContextEventRouteTouchesForWindow,
-  listEvidenceForCandidate,
-  replaceFindingRun,
-  replaceFindingsForMonth,
-  upsertContextEvents,
-} from "./repositories/findings.js";
 export type {
   LocalObservedHeadwaySample,
   LocalObservedVehicleStopEvent,
@@ -245,8 +245,8 @@ export {
 } from "./repositories/route-slice.js";
 
 export {
-  replaceTier2InterventionStagingRows,
   type LocalTier2InterventionStagingEvent,
   type LocalTier2InterventionStagingEventRoute,
   type LocalTier2InterventionStagingEventSourceSpan,
+  replaceTier2InterventionStagingRows,
 } from "./repositories/tier2-intervention-staging.js";

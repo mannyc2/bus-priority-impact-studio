@@ -49,7 +49,11 @@ function QualityPanel({ quality, generatedAt }: { quality: StudioQuality; genera
       <SectionHeader
         title="Release quality"
         sub={`Generated ${formatDate(generatedAt)}.`}
-        right={<Badge variant={quality.confidence === "high" ? "good" : "warn"}>{quality.confidence}</Badge>}
+        right={
+          <Badge variant={quality.confidence === "high" ? "good" : "warn"}>
+            {quality.confidence}
+          </Badge>
+        }
       />
       <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
         <QualityStat label="Layer" value={quality.releaseLayer.replaceAll("_", " ")} />
@@ -62,7 +66,10 @@ function QualityPanel({ quality, generatedAt }: { quality: StudioQuality; genera
         {quality.caveats.length > 0 ? (
           <ul className="m-0 mt-2 list-none p-0 text-[12.5px] leading-[1.55] text-[var(--bp-color-ink-70)]">
             {quality.caveats.map((caveat) => (
-              <li key={caveat} className="py-1 shadow-[inset_0_-1px_0_var(--bp-color-rule)] last:shadow-none">
+              <li
+                key={caveat}
+                className="py-1 shadow-[inset_0_-1px_0_var(--bp-color-rule)] last:shadow-none"
+              >
                 {caveat}
               </li>
             ))}
@@ -80,12 +87,27 @@ function QualityPanel({ quality, generatedAt }: { quality: StudioQuality; genera
 function PrinciplesPanel() {
   return (
     <section className="rounded-[3px] bg-[var(--bp-color-card)] p-5 shadow-[0_0_0_1px_var(--bp-color-rule)]">
-      <SectionHeader title="Interpretation rules" sub="Useful civic data, without pretending to prove more than it can." />
+      <SectionHeader
+        title="Interpretation rules"
+        sub="Useful civic data, without pretending to prove more than it can."
+      />
       <div className="grid grid-cols-2 gap-3 max-md:grid-cols-1">
-        <MethodRule title="Before/after is context" body="Intervention windows show route change around a dated event. They are not randomized causal claims." />
-        <MethodRule title="Sparse still renders" body="Every route page shows what exists, what is missing, and which sections are checked clean or still building." />
-        <MethodRule title="Route evidence first" body="The app favors route, segment, timeline, ridership, map, and source panels over separate finding feeds." />
-        <MethodRule title="Pipeline owns aggregation" body="Browser pages read static projections; expensive source probing and joins stay in Bun-run pipeline jobs." />
+        <MethodRule
+          title="Before/after is context"
+          body="Intervention windows show route change around a dated event. They are not randomized causal claims."
+        />
+        <MethodRule
+          title="Sparse still renders"
+          body="Every route page shows what exists, what is missing, and which sections are checked clean or still building."
+        />
+        <MethodRule
+          title="Route evidence first"
+          body="The app favors route, segment, timeline, ridership, map, and source panels over separate finding feeds."
+        />
+        <MethodRule
+          title="Pipeline owns aggregation"
+          body="Browser pages read static projections; expensive source probing and joins stay in Bun-run pipeline jobs."
+        />
       </div>
     </section>
   );

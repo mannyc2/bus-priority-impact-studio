@@ -2,18 +2,14 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import {
-  projectPublishableInterventions,
-  projectPublishableInterventionToStudio,
   type PromotedIntervention,
   type PromotionArtifact,
+  projectPublishableInterventions,
+  projectPublishableInterventionToStudio,
 } from "../../../../src/commands/docs/tier2/_shared.ts";
 import { writeJson } from "../../../../src/lib/json.ts";
 
-const workingRoot = join(
-  process.cwd(),
-  "test",
-  ".tmp-project-publishable-interventions",
-);
+const workingRoot = join(process.cwd(), "test", ".tmp-project-publishable-interventions");
 
 function makeRecord(overrides: Partial<PromotedIntervention>): PromotedIntervention {
   return {
@@ -187,11 +183,7 @@ describe("projectPublishableInterventions", () => {
       publishableArtifactPath,
       generatedAt: "2026-05-27T00:00:00.000Z",
     });
-    expect(artifact.interventionsByRoute["M15"]?.[0]?.title).toBe(
-      "Transit Signal Priority — M15",
-    );
-    expect(artifact.interventionsByRoute["B44"]?.[0]?.title).toBe(
-      "Transit Signal Priority — B44",
-    );
+    expect(artifact.interventionsByRoute["M15"]?.[0]?.title).toBe("Transit Signal Priority — M15");
+    expect(artifact.interventionsByRoute["B44"]?.[0]?.title).toBe("Transit Signal Priority — B44");
   });
 });

@@ -13,15 +13,17 @@ export default defineCommand({
       artifactRoot: z.string().optional().describe("Override artifact root directory"),
     }),
   },
-  output: z.object({
-    status: z.enum(["pass", "fail"]),
-    manifestPath: z.string(),
-    artifactCount: z.number(),
-    routeSegmentArtifactCount: z.number(),
-    totalFeatureCount: z.number(),
-    totalByteLength: z.number(),
-    issueCount: z.number(),
-  }).passthrough(),
+  output: z
+    .object({
+      status: z.enum(["pass", "fail"]),
+      manifestPath: z.string(),
+      artifactCount: z.number(),
+      routeSegmentArtifactCount: z.number(),
+      totalFeatureCount: z.number(),
+      totalByteLength: z.number(),
+      issueCount: z.number(),
+    })
+    .passthrough(),
   async run({ input }) {
     const month = isoMonth(input.options.year, input.options.month);
     const artifactRoot =

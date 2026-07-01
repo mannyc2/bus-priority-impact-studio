@@ -32,8 +32,7 @@ export function replaceCensusTractEquityContext(
   rows: readonly LocalCensusTractEquityContext[],
 ): void {
   db.transaction((tx) => {
-    tx
-      .delete(localCensusTractEquityContext)
+    tx.delete(localCensusTractEquityContext)
       .where(eq(localCensusTractEquityContext.acsYear, acsYear))
       .run();
 

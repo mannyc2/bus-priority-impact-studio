@@ -100,8 +100,14 @@ export default defineCommand({
   summary: "Check Bus Observatory recovered GTFS-RT availability across a month range.",
   input: {
     options: z.object({
-      since: z.string().regex(/^\d{4}-\d{1,2}$/).describe("Start month, YYYY-MM"),
-      until: z.string().regex(/^\d{4}-\d{1,2}$/).describe("End month, YYYY-MM"),
+      since: z
+        .string()
+        .regex(/^\d{4}-\d{1,2}$/)
+        .describe("Start month, YYYY-MM"),
+      until: z
+        .string()
+        .regex(/^\d{4}-\d{1,2}$/)
+        .describe("End month, YYYY-MM"),
       artifactRoot: z.string().optional().describe("Artifact root directory"),
     }),
   },

@@ -1,5 +1,6 @@
 export const FEATURE_PROOF_LEDGER_ARTIFACT_KIND = "bp.tier2_feature_proof_ledger.v1" as const;
-export const FEATURE_PROOF_LEDGER_SUMMARY_KIND = "bp.tier2_feature_proof_ledger_summary.v1" as const;
+export const FEATURE_PROOF_LEDGER_SUMMARY_KIND =
+  "bp.tier2_feature_proof_ledger_summary.v1" as const;
 
 export type JsonRecord = Record<string, unknown>;
 

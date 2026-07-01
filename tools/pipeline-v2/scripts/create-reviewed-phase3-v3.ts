@@ -7,22 +7,13 @@ import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 const repoRoot = join(import.meta.dir, "../../..");
-const corpusDir = join(
-  repoRoot,
-  "data/artifacts/docs/gap-roadmap-docs-2026-05-25",
-);
-const inputCorpusPath = join(
-  corpusDir,
-  "intervention-records-corpus-v2-with-text-2026-05-27.json",
-);
+const corpusDir = join(repoRoot, "data/artifacts/docs/gap-roadmap-docs-2026-05-25");
+const inputCorpusPath = join(corpusDir, "intervention-records-corpus-v2-with-text-2026-05-27.json");
 const manualReviewPath = join(
   corpusDir,
   "intervention-records-corpus-v2-manual-review-2026-05-27.json",
 );
-const outputPath = join(
-  corpusDir,
-  "intervention-records-corpus-v3-reviewed-2026-05-27.json",
-);
+const outputPath = join(corpusDir, "intervention-records-corpus-v3-reviewed-2026-05-27.json");
 const reportPath = join(
   corpusDir,
   "intervention-records-corpus-v3-reviewed-2026-05-27-report.json",
@@ -77,9 +68,7 @@ function clone<T>(value: T): T {
 }
 
 function sortedCounts(counts: Record<string, number>): Record<string, number> {
-  return Object.fromEntries(
-    Object.entries(counts).sort(([a], [b]) => a.localeCompare(b)),
-  );
+  return Object.fromEntries(Object.entries(counts).sort(([a], [b]) => a.localeCompare(b)));
 }
 
 function countBy<T extends string>(values: T[]): Record<T, number> {
@@ -94,9 +83,7 @@ const inputRecords = inputCorpus.documentInterventionRecords ?? [];
 const inputSources = inputCorpus.sources ?? [];
 const reviews = manualReview.reviews ?? [];
 const reviewByRecordId = new Map(reviews.map((review) => [review.recordId, review]));
-const rejectedReviews = reviews.filter(
-  (review) => review.disposition === "reject_pipeline_issue",
-);
+const rejectedReviews = reviews.filter((review) => review.disposition === "reject_pipeline_issue");
 const rejectedRecordIds = new Set(rejectedReviews.map((review) => review.recordId));
 
 const keptRecords = inputRecords
@@ -136,9 +123,7 @@ const missingRejectedRecordIds = rejectedReviews
 const unreconciledReviews = reviews
   .map((review) => review.recordId)
   .filter((recordId) => !inputRecords.some((record) => record.recordId === recordId));
-const duplicateKeptRecordIds = Object.entries(
-  countBy(keptRecords.map((record) => record.recordId)),
-)
+const duplicateKeptRecordIds = Object.entries(countBy(keptRecords.map((record) => record.recordId)))
   .filter(([, count]) => count > 1)
   .map(([recordId, count]) => ({ recordId, count }));
 
@@ -163,9 +148,9 @@ const output = {
   summary,
   manualReview: {
     sourceReviewPath: rel(manualReviewPath),
-    dispositionCounts: manualReview.summary?.["dispositionCounts"] ?? countBy(
-      reviews.map((review) => review.disposition),
-    ),
+    dispositionCounts:
+      manualReview.summary?.["dispositionCounts"] ??
+      countBy(reviews.map((review) => review.disposition)),
     removedDisposition: "reject_pipeline_issue",
     removedRecordCount: removedRecords.length,
     removedRecords,

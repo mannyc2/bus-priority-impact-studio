@@ -10,7 +10,7 @@ import {
 } from "@bp/pipeline-v2/local-db-aggregates";
 import { Context, Effect, Layer } from "effect";
 import type { OpenLocalDbOptions } from "../lib/local-db.ts";
-import { BuildLocalDbCommandError, LocalDbOpenError } from "./errors.ts";
+import { BuildLocalDbCommandError, type LocalDbOpenError } from "./errors.ts";
 import { LocalDbConnection, makeLocalDbLayer } from "./local-db.ts";
 
 export type BuildObservedHeadwaysCommandInput = {
@@ -45,34 +45,32 @@ export class BuildLocalDbService extends Context.Service<
   }
 >()("@bp/pipeline-v2/BuildLocalDbService") {}
 
-export const BuildLocalDbServiceLayer: Layer.Layer<
-  BuildLocalDbService,
-  never,
-  LocalDbConnection
-> = Layer.effect(
-  BuildLocalDbService,
-  Effect.gen(function* () {
-    const local = yield* LocalDbConnection;
+export const BuildLocalDbServiceLayer: Layer.Layer<BuildLocalDbService, never, LocalDbConnection> =
+  Layer.effect(
+    BuildLocalDbService,
+    Effect.gen(function* () {
+      const local = yield* LocalDbConnection;
 
-    return {
-      buildContextEvents: Effect.fn("BuildLocalDbService.buildContextEvents")(function* () {
-        yield* Effect.annotateCurrentSpan({
-          command: "build.context-events",
-          dbPath: local.path,
-        });
+      return {
+        buildContextEvents: Effect.fn("BuildLocalDbService.buildContextEvents")(function* () {
+          yield* Effect.annotateCurrentSpan({
+            command: "build.context-events",
+            dbPath: local.path,
+          });
 
-        return yield* Effect.tryPromise({
-          try: () => runBuildContextEvents({ local }),
-          catch: (cause) =>
-            BuildLocalDbCommandError.make({
-              command: "build.context-events",
-              operation: "runBuildContextEvents",
-              cause,
-            }),
-        });
-      }),
-      buildObservedHeadways: Effect.fn("BuildLocalDbService.buildObservedHeadways")(
-        function* (input: BuildObservedHeadwaysCommandInput) {
+          return yield* Effect.tryPromise({
+            try: () => runBuildContextEvents({ local }),
+            catch: (cause) =>
+              BuildLocalDbCommandError.make({
+                command: "build.context-events",
+                operation: "runBuildContextEvents",
+                cause,
+              }),
+          });
+        }),
+        buildObservedHeadways: Effect.fn("BuildLocalDbService.buildObservedHeadways")(function* (
+          input: BuildObservedHeadwaysCommandInput,
+        ) {
           yield* Effect.annotateCurrentSpan({
             command: "build.observed-headways",
             runId: input.runId,
@@ -92,10 +90,10 @@ export const BuildLocalDbServiceLayer: Layer.Layer<
                 cause,
               }),
           });
-        },
-      ),
-      buildRouteLionLink: Effect.fn("BuildLocalDbService.buildRouteLionLink")(
-        function* (input: BuildRouteLionLinkCommandInput) {
+        }),
+        buildRouteLionLink: Effect.fn("BuildLocalDbService.buildRouteLionLink")(function* (
+          input: BuildRouteLionLinkCommandInput,
+        ) {
           yield* Effect.annotateCurrentSpan({
             command: "build.route-lion-link",
             bufferMeters: input.bufferMeters,
@@ -117,10 +115,10 @@ export const BuildLocalDbServiceLayer: Layer.Layer<
                 cause,
               }),
           });
-        },
-      ),
-      buildLionGeometryIndex: Effect.fn("BuildLocalDbService.buildLionGeometryIndex")(
-        function* (input: BuildLionGeometryIndexCommandInput) {
+        }),
+        buildLionGeometryIndex: Effect.fn("BuildLocalDbService.buildLionGeometryIndex")(function* (
+          input: BuildLionGeometryIndexCommandInput,
+        ) {
           yield* Effect.annotateCurrentSpan({
             command: "build.lion-geometry-index",
             limit: input.limit ?? null,
@@ -140,11 +138,10 @@ export const BuildLocalDbServiceLayer: Layer.Layer<
                 cause,
               }),
           });
-        },
-      ),
-    };
-  }),
-);
+        }),
+      };
+    }),
+  );
 
 export const runBuildContextEventsCommand = Effect.fn("runBuildContextEventsCommand")(function* () {
   const service = yield* BuildLocalDbService;
@@ -168,18 +165,18 @@ export const runBuildObservedHeadwaysCommand = Effect.fn("runBuildObservedHeadwa
   },
 );
 
-export const runBuildRouteLionLinkCommand = Effect.fn("runBuildRouteLionLinkCommand")(
-  function* (input: BuildRouteLionLinkCommandInput) {
-    const service = yield* BuildLocalDbService;
-    const result = yield* service.buildRouteLionLink(input);
+export const runBuildRouteLionLinkCommand = Effect.fn("runBuildRouteLionLinkCommand")(function* (
+  input: BuildRouteLionLinkCommandInput,
+) {
+  const service = yield* BuildLocalDbService;
+  const result = yield* service.buildRouteLionLink(input);
 
-    yield* Effect.logInfo(
-      `route LION link complete: ${result.totalLinks} links across ${result.routesProcessed} routes`,
-    );
+  yield* Effect.logInfo(
+    `route LION link complete: ${result.totalLinks} links across ${result.routesProcessed} routes`,
+  );
 
-    return result;
-  },
-);
+  return result;
+});
 
 export const runBuildLionGeometryIndexCommand = Effect.fn("runBuildLionGeometryIndexCommand")(
   function* (input: BuildLionGeometryIndexCommandInput) {

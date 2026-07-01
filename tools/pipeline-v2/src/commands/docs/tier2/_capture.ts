@@ -5,30 +5,30 @@
 // module; the core module never imports back here.
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";
 import { writeJson } from "../../../lib/json.ts";
+import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";
 import {
   artifactKey,
+  type CaptureCliArgs,
+  type CaptureTier2DocsArgs,
   captureManifestPath,
   createRunId,
-  decodeUtf8,
   DEFAULT_BACKLOG_PATH,
+  decodeUtf8,
   defaultFetch,
+  type ExpectedContentType,
+  type FetchLike,
   parseCliOptions,
   readBacklog,
   runArtifactRoot,
   sha256,
   stripHtmlToText,
   summarizeCapture,
-  writeSourceMetadata,
-  type CaptureCliArgs,
-  type CaptureTier2DocsArgs,
-  type ExpectedContentType,
-  type FetchLike,
   type TextExtractionStatus,
   type Tier2BacklogSource,
-  type Tier2CaptureManifest,
   type Tier2CapturedSource,
+  type Tier2CaptureManifest,
+  writeSourceMetadata,
 } from "./_shared.ts";
 
 function detectContentType(input: {

@@ -2,7 +2,10 @@ import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { writeJson } from "../../../../lib/json.ts";
 import { defaultArtifactRootPath, fromCliPath } from "../../../../lib/paths.ts";
-import { FEATURE_PROOF_LEDGER_ARTIFACT_KIND, type Tier2FeatureProofLedgerArtifact } from "./types.ts";
+import {
+  FEATURE_PROOF_LEDGER_ARTIFACT_KIND,
+  type Tier2FeatureProofLedgerArtifact,
+} from "./types.ts";
 
 export const FEATURE_PROMOTION_GATE_ARTIFACT_KIND = "bp.tier2_feature_promotion_gate.v1" as const;
 
@@ -99,7 +102,9 @@ export async function runTier2FeaturePromotionGate(input: {
   const gate = evaluateTier2FeaturePromotionGate({
     ledger,
     sourceLedgerPath: ledgerPath,
-    ...(input.strictNoBlockingErrors === undefined ? {} : { strictNoBlockingErrors: input.strictNoBlockingErrors }),
+    ...(input.strictNoBlockingErrors === undefined
+      ? {}
+      : { strictNoBlockingErrors: input.strictNoBlockingErrors }),
     ...(input.generatedAt === undefined ? {} : { generatedAt: input.generatedAt }),
   });
   const outputPath = fromCliPath(

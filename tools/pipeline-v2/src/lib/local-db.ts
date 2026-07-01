@@ -1,12 +1,12 @@
 import { Database } from "bun:sqlite";
 import { join } from "node:path";
-import { z } from "@liche/core";
 import {
   applyLocalPragmas,
   createLocalPipelineDb,
   type LocalPipelineDb,
   migrateLocalPipelineDb,
 } from "@bp/db/local";
+import { z } from "@liche/core";
 import { fromRepoRoot } from "./paths.ts";
 import { loadSpatialite } from "./spatialite.ts";
 

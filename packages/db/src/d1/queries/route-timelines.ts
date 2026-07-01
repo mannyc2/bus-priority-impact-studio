@@ -145,9 +145,7 @@ export async function getRouteTimelineIndex(
     .where(and(eq(routeTimelineIndex.routeId, routeId), eq(routeTimelineIndex.month, month)))
     .limit(1);
   const row = rows[0];
-  return row === undefined
-    ? null
-    : toRouteTimelineIndex(RouteTimelineIndexRowSchema.parse(row));
+  return row === undefined ? null : toRouteTimelineIndex(RouteTimelineIndexRowSchema.parse(row));
 }
 
 export async function listRouteTimelineIndex(

@@ -169,12 +169,18 @@ export function summarizeCorpusProfile(input: SummarizeCorpusProfileInput): Corp
         (month) => month >= historyStartMonth && month < releaseMonth,
       ).length;
       const requestedWindowCoverageShare = inWindowMonths.size / requestedWindowMonthCount;
+      const sortedMonths = [...months].sort();
+      const firstMonth = sortedMonths[0];
+      const lastMonth = sortedMonths.at(-1);
+      if (firstMonth === undefined || lastMonth === undefined) {
+        throw new Error(`Missing month summary for ${sourceId}/${family}.`);
+      }
 
       return {
         sourceId,
         family,
-        firstMonth: [...months].sort()[0]!,
-        lastMonth: [...months].sort().at(-1)!,
+        firstMonth,
+        lastMonth,
         monthCount: months.size,
         routeCount: routes.size,
         totalRows: observations.reduce((sum, observation) => sum + observation.rowCount, 0),

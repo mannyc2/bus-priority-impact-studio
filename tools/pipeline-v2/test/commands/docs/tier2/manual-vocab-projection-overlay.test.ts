@@ -253,12 +253,16 @@ describe("Tier 2 manual vocab projection overlay", () => {
     await writeJson(graduationPlanPath, {
       graduationKeys: [
         key("metricFamily", "canonicalPayload.metricFamily", ["rawPayload.metricLabel"]),
-        key("metricSubjectFamily", "canonicalPayload.metricSubjectFamily", ["rawPayload.subjectRaw"]),
+        key("metricSubjectFamily", "canonicalPayload.metricSubjectFamily", [
+          "rawPayload.subjectRaw",
+        ]),
         key("metricUnit", "canonicalPayload.metricUnit", ["rawPayload.unitRaw"]),
         key("entityKind", "canonicalPayload.entityKind", ["rawPayload.entityKindRaw"]),
         key("entityRole", "canonicalPayload.entityRole", ["rawPayload.roleRaw"]),
         key("claimKind", "canonicalPayload.claimKind", ["rawPayload.claimKindRaw"]),
-        key("claimResearchUseTag", "canonicalPayload.researchUseTags", ["rawPayload.researchUseTagsRaw"]),
+        key("claimResearchUseTag", "canonicalPayload.researchUseTags", [
+          "rawPayload.researchUseTagsRaw",
+        ]),
         key("contextKind", "canonicalPayload.contextKind", ["rawPayload.contextKindRaw"]),
         key("questionKind", "canonicalPayload.questionKind", ["rawPayload.questionKindRaw"]),
         key("tableKind", "canonicalPayload.tableKind", ["rawPayload.tableKindRaw"]),
@@ -383,16 +387,66 @@ describe("Tier 2 manual vocab projection overlay", () => {
     }>;
     expect(rows).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ keyId: "metricFamily", rawValue: "Bus Speed (MPH)", decision: "mapped", canonicalLeafId: "bus_speed_mph" }),
-        expect.objectContaining({ keyId: "metricSubjectFamily", rawValue: "traffic_volume", decision: "mapped", canonicalLeafId: "general_traffic_volume" }),
-        expect.objectContaining({ keyId: "metricUnit", rawValue: "Vehicles / hour", decision: "mapped", canonicalLeafId: "vehicles_per_hour" }),
-        expect.objectContaining({ keyId: "entityKind", rawValue: "destination", decision: "mapped", canonicalLeafId: "location" }),
-        expect.objectContaining({ keyId: "entityRole", rawValue: "map_label_street", decision: "mapped", canonicalLeafId: "map_label" }),
-        expect.objectContaining({ keyId: "claimKind", rawValue: "public_opinion_result", decision: "mapped", canonicalLeafId: "survey_finding" }),
-        expect.objectContaining({ keyId: "claimResearchUseTag", rawValue: "community_concern", decision: "mapped", canonicalLeafId: "community_engagement" }),
-        expect.objectContaining({ keyId: "contextKind", rawValue: "photograph_caption", decision: "mapped", canonicalLeafId: "image_caption" }),
-        expect.objectContaining({ keyId: "questionKind", rawValue: "diagram_clarification", decision: "mapped", canonicalLeafId: "map_content_clarification" }),
-        expect.objectContaining({ keyId: "tableKind", rawValue: "project_schedule", decision: "mapped", canonicalLeafId: "project_timeline" }),
+        expect.objectContaining({
+          keyId: "metricFamily",
+          rawValue: "Bus Speed (MPH)",
+          decision: "mapped",
+          canonicalLeafId: "bus_speed_mph",
+        }),
+        expect.objectContaining({
+          keyId: "metricSubjectFamily",
+          rawValue: "traffic_volume",
+          decision: "mapped",
+          canonicalLeafId: "general_traffic_volume",
+        }),
+        expect.objectContaining({
+          keyId: "metricUnit",
+          rawValue: "Vehicles / hour",
+          decision: "mapped",
+          canonicalLeafId: "vehicles_per_hour",
+        }),
+        expect.objectContaining({
+          keyId: "entityKind",
+          rawValue: "destination",
+          decision: "mapped",
+          canonicalLeafId: "location",
+        }),
+        expect.objectContaining({
+          keyId: "entityRole",
+          rawValue: "map_label_street",
+          decision: "mapped",
+          canonicalLeafId: "map_label",
+        }),
+        expect.objectContaining({
+          keyId: "claimKind",
+          rawValue: "public_opinion_result",
+          decision: "mapped",
+          canonicalLeafId: "survey_finding",
+        }),
+        expect.objectContaining({
+          keyId: "claimResearchUseTag",
+          rawValue: "community_concern",
+          decision: "mapped",
+          canonicalLeafId: "community_engagement",
+        }),
+        expect.objectContaining({
+          keyId: "contextKind",
+          rawValue: "photograph_caption",
+          decision: "mapped",
+          canonicalLeafId: "image_caption",
+        }),
+        expect.objectContaining({
+          keyId: "questionKind",
+          rawValue: "diagram_clarification",
+          decision: "mapped",
+          canonicalLeafId: "map_content_clarification",
+        }),
+        expect.objectContaining({
+          keyId: "tableKind",
+          rawValue: "project_schedule",
+          decision: "mapped",
+          canonicalLeafId: "project_timeline",
+        }),
       ]),
     );
   });
@@ -429,7 +483,9 @@ describe("Tier 2 manual vocab projection overlay", () => {
     await writeJson(graduationPlanPath, {
       graduationKeys: [
         key("metricFamily", "canonicalPayload.metricFamily", ["rawPayload.metricLabel"]),
-        key("metricSubjectFamily", "canonicalPayload.metricSubjectFamily", ["rawPayload.subjectRaw"]),
+        key("metricSubjectFamily", "canonicalPayload.metricSubjectFamily", [
+          "rawPayload.subjectRaw",
+        ]),
       ],
     });
 
@@ -532,7 +588,9 @@ describe("Tier 2 manual vocab projection overlay", () => {
     await writeJson(graduationPlanPath, {
       graduationKeys: [
         key("metricFamily", "canonicalPayload.metricFamily", ["rawPayload.metricLabels"]),
-        key("metricSubjectFamily", "canonicalPayload.metricSubjectFamily", ["rawPayload.subjectRaw"]),
+        key("metricSubjectFamily", "canonicalPayload.metricSubjectFamily", [
+          "rawPayload.subjectRaw",
+        ]),
       ],
     });
 

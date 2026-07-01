@@ -18,9 +18,7 @@ const flagMap: Record<string, string> = {
   generatedAt: "--generated-at",
 };
 
-export async function runDocsTier2RouteTimelineBundleIndex(
-  input: z.infer<typeof optionsSchema>,
-) {
+export async function runDocsTier2RouteTimelineBundleIndex(input: z.infer<typeof optionsSchema>) {
   return runRouteTimelineBundleIndexFromCli(optionsToArgs(input, flagMap));
 }
 

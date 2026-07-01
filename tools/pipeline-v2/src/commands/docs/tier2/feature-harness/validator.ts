@@ -156,7 +156,10 @@ function pathPrefix(ctx: CandidateContext): string {
 }
 
 function candidateId(ctx: CandidateContext): string {
-  const local = typeof ctx.candidate["candidateLocalId"] === "string" ? ctx.candidate["candidateLocalId"] : null;
+  const local =
+    typeof ctx.candidate["candidateLocalId"] === "string"
+      ? ctx.candidate["candidateLocalId"]
+      : null;
   return `${ctx.featureFamily}:${ctx.candidateIndex}:${local ?? "candidate"}`;
 }
 
@@ -206,7 +209,9 @@ function supportHandleIndex(request: Tier2FeatureExtractionRequest): Map<string,
       ...(handle.quoteText === undefined ? {} : { quoteText: handle.quoteText }),
       ...(handle.text === undefined ? {} : { text: handle.text }),
       ...(handle.queryRaw === undefined ? {} : { queryRaw: handle.queryRaw }),
-      ...(handle.checkedSourceFamilyRaw === undefined ? {} : { checkedSourceFamilyRaw: handle.checkedSourceFamilyRaw }),
+      ...(handle.checkedSourceFamilyRaw === undefined
+        ? {}
+        : { checkedSourceFamilyRaw: handle.checkedSourceFamilyRaw }),
     });
   }
   return index;
@@ -230,20 +235,19 @@ function resolveEvidenceFieldPath(candidate: JsonRecord, evidenceKey: string): s
   if (evidenceKey.startsWith("evidenceByField.")) {
     return fieldExists(candidate, lastSegment) ? lastSegment : null;
   }
-  if (fieldExists(candidate, evidenceKey) && !isNonSourceCandidateField(evidenceKey)) return evidenceKey;
+  if (fieldExists(candidate, evidenceKey) && !isNonSourceCandidateField(evidenceKey))
+    return evidenceKey;
   return fieldExists(candidate, lastSegment) ? lastSegment : null;
 }
 
 function legacySupportRows(candidate: JsonRecord): ProvenanceSupportRow[] {
   return Array.isArray(candidate["fieldSupport"])
     ? candidate["fieldSupport"].flatMap((item): ProvenanceSupportRow[] => {
-        return (
-          item !== null &&
+        return item !== null &&
           typeof item === "object" &&
           !Array.isArray(item) &&
           typeof (item as { fieldPath?: unknown }).fieldPath === "string" &&
           typeof (item as { evidenceHandle?: unknown }).evidenceHandle === "string"
-        )
           ? [
               {
                 ...(item as FieldSupportSubmission),
@@ -326,7 +330,9 @@ function candidateText(candidate: JsonRecord, fields: string[]): string {
 }
 
 function metricValueExists(candidate: JsonRecord): boolean {
-  return VALUE_SUPPORT_PATHS.some((fieldPath) => hasSubmittedValue(candidateValueAt(candidate, fieldPath)));
+  return VALUE_SUPPORT_PATHS.some((fieldPath) =>
+    hasSubmittedValue(candidateValueAt(candidate, fieldPath)),
+  );
 }
 
 function addSupportErrors(input: {
@@ -361,7 +367,9 @@ function validateSubmittedOptionalFields(input: {
     const alreadySupportedMetricValue =
       input.ctx.section === "metricClaimCandidates" &&
       VALUE_SUPPORT_PATHS.includes(fieldPath) &&
-      VALUE_SUPPORT_PATHS.some((valuePath) => supportFor(input.ctx.candidate, input.request, valuePath).length > 0);
+      VALUE_SUPPORT_PATHS.some(
+        (valuePath) => supportFor(input.ctx.candidate, input.request, valuePath).length > 0,
+      );
     if (alreadySupportedMetricValue) continue;
     addSupportErrors({ request: input.request, ctx: input.ctx, fieldPath, errors: input.errors });
   }
@@ -466,7 +474,8 @@ function validateSourceGapTranscript(input: {
       code: "evidence_handle_unknown",
       retryOwner: "llm",
       message: `${pathPrefix(input.ctx)}.searchTranscriptHandle is not in request.sourceSearchTranscriptHandles.`,
-      llmRetryInstruction: "Retry using exactly one sourceSearchTranscriptHandles.searchTranscriptHandle supplied by the runner.",
+      llmRetryInstruction:
+        "Retry using exactly one sourceSearchTranscriptHandles.searchTranscriptHandle supplied by the runner.",
       deterministicRunnerFields: ["validationErrors"],
     }),
   );
@@ -539,7 +548,9 @@ function validateServiceDeliveryCandidate(input: {
   );
 }
 
-function buildObservationIndex(submission: Tier2FeatureExtractionToolResponse): SubmissionObservationIndex {
+function buildObservationIndex(
+  submission: Tier2FeatureExtractionToolResponse,
+): SubmissionObservationIndex {
   const localObservationIds = new Set<string>();
   for (const { section } of FEATURE_FAMILY_SECTIONS) {
     const candidates = submission[section] as JsonRecord[];
@@ -563,7 +574,8 @@ function validateRelationTargets(input: {
   if (input.ctx.section !== "relationCandidates") return;
   for (const fieldPath of ["fromLocalObservationId", "toLocalObservationId"]) {
     const value = input.ctx.candidate[fieldPath];
-    if (typeof value !== "string" || input.observationIndex.localObservationIds.has(value)) continue;
+    if (typeof value !== "string" || input.observationIndex.localObservationIds.has(value))
+      continue;
     input.errors.push(
       validationError({
         code: "relation_target_unknown",
@@ -591,7 +603,8 @@ function validateRequiredFields(input: {
             ? "metric_unit_missing"
             : input.ctx.section === "metricClaimCandidates" && fieldPath === "sourceClaimAuthority"
               ? "metric_authority_missing"
-              : input.ctx.section === "metricClaimCandidates" && fieldPath === "publicationWordingGate"
+              : input.ctx.section === "metricClaimCandidates" &&
+                  fieldPath === "publicationWordingGate"
                 ? "metric_publication_gate_missing"
                 : "tool_shape_invalid";
       input.errors.push(
@@ -621,9 +634,16 @@ function validateRequiredFields(input: {
     );
     return;
   }
-  const valueField = VALUE_SUPPORT_PATHS.find((fieldPath) => fieldExists(input.ctx.candidate, fieldPath));
+  const valueField = VALUE_SUPPORT_PATHS.find((fieldPath) =>
+    fieldExists(input.ctx.candidate, fieldPath),
+  );
   if (valueField !== undefined) {
-    addSupportErrors({ request: input.request, ctx: input.ctx, fieldPath: valueField, errors: input.errors });
+    addSupportErrors({
+      request: input.request,
+      ctx: input.ctx,
+      fieldPath: valueField,
+      errors: input.errors,
+    });
   }
 }
 

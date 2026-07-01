@@ -1,6 +1,6 @@
 import { Context, Effect, Layer } from "effect";
 import type { OpenLocalDbOptions, OpenLocalPipelineDb } from "../lib/local-db.ts";
-import { LocalDbOpenError, PipelineLocalDbCommandError } from "./errors.ts";
+import { type LocalDbOpenError, PipelineLocalDbCommandError } from "./errors.ts";
 import { LocalDbConnection, makeLocalDbLayer } from "./local-db.ts";
 import { runPipelineEffect } from "./runtime.ts";
 

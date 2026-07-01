@@ -36,7 +36,10 @@ export function MetricValue({
         {value}
       </div>
       {unit ? (
-        <div className="text-[var(--bp-color-ink-55)] tracking-[0.03em]" style={{ fontSize: unitSize }}>
+        <div
+          className="text-[var(--bp-color-ink-55)] tracking-[0.03em]"
+          style={{ fontSize: unitSize }}
+        >
           {unit}
         </div>
       ) : null}

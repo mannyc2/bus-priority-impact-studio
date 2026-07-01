@@ -2,15 +2,15 @@ import { mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
 import {
   type StudioRouteEvidenceArtifact,
+  StudioRouteEvidenceArtifactSchema,
   type StudioRouteEvidenceBundle,
   type StudioRouteEvidenceCitation,
+  StudioRouteEvidenceCitationSchema,
   type StudioRouteEvidenceIntervention,
   type StudioRouteEvidenceMetricClaim,
   type StudioRouteEvidenceProject,
   type StudioRouteEvidenceSourceGap,
   type StudioRouteEvidenceTimelineEvent,
-  StudioRouteEvidenceArtifactSchema,
-  StudioRouteEvidenceCitationSchema,
 } from "@bp/domain/studio/route-evidence";
 import { type StudioRoute, StudioRoutesResponseSchema } from "@bp/domain/studio/routes";
 import { arg, defineCommand, z } from "@liche/core";
@@ -18,9 +18,9 @@ import { readJsonArtifact, writeJson } from "../../lib/json.ts";
 import {
   busRouteKeysFromText,
   busRouteKeysFromValue,
-  loadMtaWikiCanonicalCorpus,
   type JsonObject,
   type JsonValue,
+  loadMtaWikiCanonicalCorpus,
   type MtaWikiCanonicalCorpus,
   type MtaWikiCanonicalRecord,
   type MtaWikiEvidenceRef,
@@ -107,7 +107,10 @@ function payloadText(record: MtaWikiCanonicalRecord, key: string): string | null
   return textValue(record.payload?.[key]);
 }
 
-function payloadScalar(record: MtaWikiCanonicalRecord, key: string): string | number | boolean | null {
+function payloadScalar(
+  record: MtaWikiCanonicalRecord,
+  key: string,
+): string | number | boolean | null {
   return scalarValue(record.payload?.[key]);
 }
 
@@ -233,7 +236,9 @@ function relationRecord(record: MtaWikiCanonicalRecord): RelationRecord {
   };
 }
 
-function routeRecordKind(record: MtaWikiCanonicalRecord | undefined): RouteEvidenceRecordKind | null {
+function routeRecordKind(
+  record: MtaWikiCanonicalRecord | undefined,
+): RouteEvidenceRecordKind | null {
   if (record === undefined) return null;
   if (record.record_kind === "event") return "event";
   if (record.record_kind === "metric_claim") return "metric_claim";
@@ -270,7 +275,10 @@ function addRecordToRoute(work: RouteWork, record: MtaWikiCanonicalRecord | unde
   }
 }
 
-function relationOtherEndpoint(relation: RelationRecord, endpointIds: ReadonlySet<string>): string | null {
+function relationOtherEndpoint(
+  relation: RelationRecord,
+  endpointIds: ReadonlySet<string>,
+): string | null {
   if (relation.subjectId !== null && endpointIds.has(relation.subjectId)) {
     return relation.objectId;
   }
@@ -307,7 +315,7 @@ function addCitationForRef(input: {
     ...(textValue(input.ref.text_sha256) === null
       ? {}
       : { textSha256: textValue(input.ref.text_sha256) }),
-    ...(textValue(sourcePayload?.["title"]) ?? source?.display_name
+    ...((textValue(sourcePayload?.["title"]) ?? source?.display_name)
       ? { sourceTitle: textValue(sourcePayload?.["title"]) ?? source?.display_name }
       : {}),
     ...(textValue(sourcePayload?.["publisher"]) === null
@@ -363,7 +371,8 @@ function timelineEventFor(
     title: payloadText(record, "event_name") ?? record.display_name ?? null,
     description: payloadText(record, "description"),
     dateText: payloadText(record, "date_text") ?? payloadText(record, "date"),
-    dateNormalized: payloadText(record, "date_normalized") ?? payloadText(record, "event_date_normalized"),
+    dateNormalized:
+      payloadText(record, "date_normalized") ?? payloadText(record, "event_date_normalized"),
     datePrecision: payloadText(record, "date_precision"),
   };
 }
@@ -396,7 +405,7 @@ function interventionFor(
     title: payloadText(record, "label") ?? payloadText(record, "treatment_kind"),
     description: payloadText(record, "description"),
     locations: [
-        ...new Set([
+      ...new Set([
         ...stringValues(record.payload?.["locations"]),
         ...stringValues(record.payload?.["location_text"]),
         ...stringValues(record.payload?.["normalized_location"]),
@@ -594,9 +603,7 @@ export function buildStudioRouteEvidenceArtifact(input: {
     }
   }
 
-  const routes = works.map((work) =>
-    materializeBundle({ work, sources: sourceIndex, relations }),
-  );
+  const routes = works.map((work) => materializeBundle({ work, sources: sourceIndex, relations }));
   const citationCount = routes.reduce((sum, route) => sum + route.citations.length, 0);
   return StudioRouteEvidenceArtifactSchema.parse({
     artifactKind: "bp.studio.route_evidence.v1",
@@ -629,7 +636,8 @@ async function loadStudioRoutes(path: string): Promise<readonly StudioRoute[]> {
 export async function runStudioImportMtaWikiRouteEvidence(
   input: RunStudioImportMtaWikiRouteEvidenceInput,
 ): Promise<StudioRouteEvidenceArtifact> {
-  const routesPath = input.routesPath === undefined ? defaultRoutesPath : fromCliPath(input.routesPath);
+  const routesPath =
+    input.routesPath === undefined ? defaultRoutesPath : fromCliPath(input.routesPath);
   const outputPath = input.output === undefined ? defaultOutputPath : fromCliPath(input.output);
   const routes = await loadStudioRoutes(routesPath);
   const corpus = await loadMtaWikiCanonicalCorpus(input.mtaWikiRoot);

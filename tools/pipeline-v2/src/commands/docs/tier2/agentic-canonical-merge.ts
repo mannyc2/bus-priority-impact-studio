@@ -1,6 +1,6 @@
 import { defineCommand, z } from "@liche/core";
-import { optionsToArgs } from "./_cli-bridge.ts";
 import { runTier2AgenticCanonicalMergeFromCli } from "./_agentic-canonical-merge.ts";
+import { optionsToArgs } from "./_cli-bridge.ts";
 
 const optionsSchema = z.object({
   selfHealPlans: z.string(),
@@ -22,8 +22,7 @@ export async function runDocsTier2AgenticCanonicalMerge(input: z.infer<typeof op
 
 export default defineCommand({
   path: ["docs", "tier2", "agentic-canonical-merge"],
-  summary:
-    "Merge Tier 2 agentic extraction retry runs into a canonical per-window artifact set.",
+  summary: "Merge Tier 2 agentic extraction retry runs into a canonical per-window artifact set.",
   input: { options: optionsSchema },
   output: z.unknown(),
   async run({ input }) {

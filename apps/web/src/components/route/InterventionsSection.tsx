@@ -21,7 +21,6 @@ export function InterventionsSection({
         />
         <TreatmentInventory treatments={treatments} />
       </div>
-
     </div>
   );
 }

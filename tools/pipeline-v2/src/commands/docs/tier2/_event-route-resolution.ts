@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noAssignInExpressions: Legacy Tier 2 command code is pending plan 024 deletion; assignment-in-condition shape is unchanged.
 import type { Database } from "bun:sqlite";
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";

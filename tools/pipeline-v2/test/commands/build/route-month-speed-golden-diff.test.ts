@@ -11,6 +11,7 @@ import routeMonthSpeedGoldenDiff from "../../../src/commands/build/route-month-s
 
 const runGoldenDiff = routeMonthSpeedGoldenDiff.run;
 if (runGoldenDiff === undefined) throw new Error("golden-diff command has no run handler");
+
 import { openLocalPipelineDb } from "../../../src/lib/local-db.ts";
 
 function cell(overrides: Partial<LocalRouteSegmentSpeedCell>): LocalRouteSegmentSpeedCell {

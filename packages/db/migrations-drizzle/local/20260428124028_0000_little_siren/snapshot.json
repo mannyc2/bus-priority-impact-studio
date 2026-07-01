@@ -1,9 +1,7 @@
 {
   "dialect": "sqlite",
   "id": "5c163cf0-7634-4fe5-a40b-38c770e6120b",
-  "prevIds": [
-    "00000000-0000-0000-0000-000000000000"
-  ],
+  "prevIds": ["00000000-0000-0000-0000-000000000000"],
   "version": "7",
   "ddl": [
     {
@@ -201,10 +199,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id",
-        "month"
-      ],
+      "columns": ["route_id", "month"],
       "nameExplicit": false,
       "name": "local_route_build_plan_route_id_month_pk",
       "table": "local_route_build_plan",
@@ -225,9 +220,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id"
-      ],
+      "columns": ["route_id"],
       "nameExplicit": false,
       "name": "local_route_catalog_pk",
       "table": "local_route_catalog",
@@ -358,10 +351,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id",
-        "type_rank"
-      ],
+      "columns": ["route_id", "type_rank"],
       "nameExplicit": false,
       "name": "local_route_catalog_type_route_id_type_rank_pk",
       "table": "local_route_catalog_type",
@@ -402,10 +392,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id",
-        "direction_rank"
-      ],
+      "columns": ["route_id", "direction_rank"],
       "nameExplicit": false,
       "name": "local_route_direction_route_id_direction_rank_pk",
       "table": "local_route_direction",
@@ -496,10 +483,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id",
-        "month"
-      ],
+      "columns": ["route_id", "month"],
       "nameExplicit": false,
       "name": "local_route_month_coverage_route_id_month_pk",
       "table": "local_route_month_coverage",
@@ -650,10 +634,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id",
-        "month"
-      ],
+      "columns": ["route_id", "month"],
       "nameExplicit": false,
       "name": "local_route_readiness_route_id_month_pk",
       "table": "local_route_readiness",
@@ -704,11 +685,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id",
-        "month",
-        "input_rank"
-      ],
+      "columns": ["route_id", "month", "input_rank"],
       "nameExplicit": false,
       "name": "local_route_readiness_missing_input_route_id_month_input_rank_pk",
       "table": "local_route_readiness_missing_input",

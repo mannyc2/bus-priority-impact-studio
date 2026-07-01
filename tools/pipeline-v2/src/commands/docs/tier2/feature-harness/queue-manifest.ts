@@ -16,7 +16,9 @@ export type QueueKind = z.output<typeof QueueKindSchema>;
 
 export const Tier2FeatureQueueManifestSchema = z
   .object({
-    artifactKind: z.literal("bp.tier2_feature_queue_manifest.v1").default("bp.tier2_feature_queue_manifest.v1"),
+    artifactKind: z
+      .literal("bp.tier2_feature_queue_manifest.v1")
+      .default("bp.tier2_feature_queue_manifest.v1"),
     schemaVersion: z.literal(1).default(1),
     generatedAt: z.string().min(1),
     queueId: z.string().min(1),

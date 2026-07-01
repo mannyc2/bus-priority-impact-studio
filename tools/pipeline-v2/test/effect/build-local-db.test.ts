@@ -6,7 +6,6 @@ import type {
   BuildRouteLionLinkResult,
 } from "@bp/pipeline-v2/local-db-aggregates";
 import { Effect, Layer } from "effect";
-import { BuildLocalDbCommandError } from "../../src/effect/errors.ts";
 import {
   BuildLocalDbService,
   runBuildContextEventsCommand,
@@ -14,6 +13,7 @@ import {
   runBuildObservedHeadwaysCommand,
   runBuildRouteLionLinkCommand,
 } from "../../src/effect/build-local-db.ts";
+import { BuildLocalDbCommandError } from "../../src/effect/errors.ts";
 import { runPipelineEffect } from "../../src/effect/runtime.ts";
 
 const contextEventsResult: BuildContextEventsResult = {

@@ -133,9 +133,7 @@ export type StudioRouteEvidenceTimelineEvent = z.output<
 export type StudioRouteEvidenceIntervention = z.output<
   typeof StudioRouteEvidenceInterventionSchema
 >;
-export type StudioRouteEvidenceMetricClaim = z.output<
-  typeof StudioRouteEvidenceMetricClaimSchema
->;
+export type StudioRouteEvidenceMetricClaim = z.output<typeof StudioRouteEvidenceMetricClaimSchema>;
 export type StudioRouteEvidenceProject = z.output<typeof StudioRouteEvidenceProjectSchema>;
 export type StudioRouteEvidenceSourceGap = z.output<typeof StudioRouteEvidenceSourceGapSchema>;
 export type StudioRouteEvidenceCoverage = z.output<typeof StudioRouteEvidenceCoverageSchema>;

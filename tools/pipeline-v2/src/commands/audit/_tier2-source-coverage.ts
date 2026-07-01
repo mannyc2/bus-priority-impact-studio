@@ -144,7 +144,12 @@ export type Tier2SourceCoverageArtifact = {
     note: string;
   };
   byAssetClass: Record<Tier2AssetClass, number>;
-  byContentType: Array<{ contentType: string; assetClass: Tier2AssetClass; available: number; captured: number }>;
+  byContentType: Array<{
+    contentType: string;
+    assetClass: Tier2AssetClass;
+    available: number;
+    captured: number;
+  }>;
   bySourceGroup: Array<{
     sourceGroup: string;
     available: number;
@@ -198,7 +203,9 @@ export type Tier2SourceCoverageInputs = {
   publishableInterventions: Tier2PublishableRef[];
 };
 
-export function buildTier2SourceCoverage(input: Tier2SourceCoverageInputs): Tier2SourceCoverageArtifact {
+export function buildTier2SourceCoverage(
+  input: Tier2SourceCoverageInputs,
+): Tier2SourceCoverageArtifact {
   const backlogById = new Map(input.backlog.map((s) => [s.sourceId, s]));
   const captureById = new Map(input.capture.map((s) => [s.sourceId, s]));
   const verifiedById = new Map(
@@ -233,7 +240,9 @@ export function buildTier2SourceCoverage(input: Tier2SourceCoverageInputs): Tier
 
     const expectedContentType = backlog?.expectedContentType ?? null;
     const detectedContentType = capture?.detectedContentType ?? null;
-    const { assetClass, mediaKind } = classifyContentType(expectedContentType ?? detectedContentType);
+    const { assetClass, mediaKind } = classifyContentType(
+      expectedContentType ?? detectedContentType,
+    );
 
     const captureStatusRaw = capture?.captureStatus ?? null;
     const captureStatus: Tier2SourceCoverageRow["captureStatus"] =
@@ -313,7 +322,10 @@ export function buildTier2SourceCoverage(input: Tier2SourceCoverageInputs): Tier
   rows.sort((a, b) => a.sourceId.localeCompare(b.sourceId));
 
   // Rollups.
-  const byContentTypeMap = new Map<string, { assetClass: Tier2AssetClass; available: number; captured: number }>();
+  const byContentTypeMap = new Map<
+    string,
+    { assetClass: Tier2AssetClass; available: number; captured: number }
+  >();
   const bySourceGroupMap = new Map<
     string,
     { available: number; captured: number; ocrDerived: number; extracted: number; promoted: number }
@@ -342,7 +354,11 @@ export function buildTier2SourceCoverage(input: Tier2SourceCoverageInputs): Tier
     }
 
     const ctKey = row.expectedContentType ?? row.detectedContentType ?? "(unknown)";
-    const ct = byContentTypeMap.get(ctKey) ?? { assetClass: row.assetClass, available: 0, captured: 0 };
+    const ct = byContentTypeMap.get(ctKey) ?? {
+      assetClass: row.assetClass,
+      available: 0,
+      captured: 0,
+    };
     if (row.inBacklog) ct.available += 1;
     if (row.captureStatus === "captured") ct.captured += 1;
     byContentTypeMap.set(ctKey, ct);
@@ -434,23 +450,30 @@ export function buildTier2SourceCoverage(input: Tier2SourceCoverageInputs): Tier
     mediaLane: {
       recognizedContentTypes: [...MEDIA_CONTENT_TYPES],
       knownMediaSources,
-      ingestedMediaSources: rows.filter((r) => r.assetClass === "media" && r.captureStatus === "captured")
-        .length,
+      ingestedMediaSources: rows.filter(
+        (r) => r.assetClass === "media" && r.captureStatus === "captured",
+      ).length,
       note:
         knownMediaSources === 0
           ? "No YouTube/audio/video sources are in the backlog yet. The media lane is a first-class but empty slot; add a source with expectedContentType=youtube|audio|video to register it. Transcription/ingest is deferred — such sources will report as available-but-not-captured until a transcription path exists."
           : "Media sources are registered but transcription/ingest is deferred; they report as available-but-not-captured until a transcription path exists.",
     },
     gaps: {
-      availableNotCaptured: sample(rows.filter((r) => r.captureStatus === "not_attempted").map((r) => r.sourceId)),
+      availableNotCaptured: sample(
+        rows.filter((r) => r.captureStatus === "not_attempted").map((r) => r.sourceId),
+      ),
       capturedPdfNotOcrDerived: sample(
         rows.filter((r) => r.gaps.includes("captured_pdf_not_ocr_derived")).map((r) => r.sourceId),
       ),
       ocrDerivedNotVerified: sample(
         rows.filter((r) => r.ocrDerived && !r.extracted).map((r) => r.sourceId),
       ),
-      verifiedNotReviewed: sample(rows.filter((r) => r.extracted && !r.reviewed).map((r) => r.sourceId)),
-      reviewedNotPromoted: sample(rows.filter((r) => r.reviewed && !r.promoted).map((r) => r.sourceId)),
+      verifiedNotReviewed: sample(
+        rows.filter((r) => r.extracted && !r.reviewed).map((r) => r.sourceId),
+      ),
+      reviewedNotPromoted: sample(
+        rows.filter((r) => r.reviewed && !r.promoted).map((r) => r.sourceId),
+      ),
     },
     sources: rows,
   };
@@ -477,7 +500,9 @@ export function renderTier2SourceCoverageMarkdown(artifact: Tier2SourceCoverageA
   lines.push(`| Captured | ${s.captured} |`);
   lines.push(`| Capture failed | ${s.captureFailed} |`);
   lines.push(`| Available, not captured | ${s.notCaptured} |`);
-  lines.push(`| Not successfully captured (failed + not attempted) | ${s.notSuccessfullyCaptured} |`);
+  lines.push(
+    `| Not successfully captured (failed + not attempted) | ${s.notSuccessfullyCaptured} |`,
+  );
   lines.push(`| OCR-required sources | ${s.ocrRequiredSources} |`);
   lines.push(`| Sources with OCR-derived surfaces | ${s.ocrDerivedSources} |`);
   lines.push(`| Sources promoted to verified/materialized | ${s.extractedSources} |`);
@@ -525,8 +550,12 @@ export function renderTier2SourceCoverageMarkdown(artifact: Tier2SourceCoverageA
   lines.push("## Gaps (available vs have)", "");
   lines.push("| Gap | Sources |", "| --- | ---: |");
   lines.push(`| Available, not captured | ${artifact.gaps.availableNotCaptured.count} |`);
-  lines.push(`| Captured PDFs, no OCR-derived surface | ${artifact.gaps.capturedPdfNotOcrDerived.count} |`);
-  lines.push(`| OCR-derived, not verified/materialized | ${artifact.gaps.ocrDerivedNotVerified.count} |`);
+  lines.push(
+    `| Captured PDFs, no OCR-derived surface | ${artifact.gaps.capturedPdfNotOcrDerived.count} |`,
+  );
+  lines.push(
+    `| OCR-derived, not verified/materialized | ${artifact.gaps.ocrDerivedNotVerified.count} |`,
+  );
   lines.push(`| Verified, not reviewed | ${artifact.gaps.verifiedNotReviewed.count} |`);
   lines.push(`| Reviewed, not promoted | ${artifact.gaps.reviewedNotPromoted.count} |`);
   lines.push("");

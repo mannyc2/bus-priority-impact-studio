@@ -14,33 +14,54 @@ export type SegmentedRegressionSummary = {
 
 function solveLinearSystem(matrix: number[][], vector: number[]): number[] | null {
   const size = vector.length;
-  const augmented = matrix.map((row, index) => [...row, vector[index]!]);
+  const augmented = matrix.map((row, index) => [...row, requiredNumber(vector, index)]);
 
   for (let pivot = 0; pivot < size; pivot += 1) {
     let pivotRow = pivot;
     for (let row = pivot + 1; row < size; row += 1) {
-      if (Math.abs(augmented[row]![pivot]!) > Math.abs(augmented[pivotRow]![pivot]!)) {
+      if (
+        Math.abs(requiredNumber(requiredRow(augmented, row), pivot)) >
+        Math.abs(requiredNumber(requiredRow(augmented, pivotRow), pivot))
+      ) {
         pivotRow = row;
       }
     }
-    if (Math.abs(augmented[pivotRow]![pivot]!) < 1e-12) return null;
-    [augmented[pivot], augmented[pivotRow]] = [augmented[pivotRow]!, augmented[pivot]!];
+    if (Math.abs(requiredNumber(requiredRow(augmented, pivotRow), pivot)) < 1e-12) return null;
+    [augmented[pivot], augmented[pivotRow]] = [
+      requiredRow(augmented, pivotRow),
+      requiredRow(augmented, pivot),
+    ];
 
-    const pivotValue = augmented[pivot]![pivot]!;
+    const pivotRowValues = requiredRow(augmented, pivot);
+    const pivotValue = requiredNumber(pivotRowValues, pivot);
     for (let column = pivot; column <= size; column += 1) {
-      augmented[pivot]![column] = augmented[pivot]![column]! / pivotValue;
+      pivotRowValues[column] = requiredNumber(pivotRowValues, column) / pivotValue;
     }
 
     for (let row = 0; row < size; row += 1) {
       if (row === pivot) continue;
-      const factor = augmented[row]![pivot]!;
+      const rowValues = requiredRow(augmented, row);
+      const factor = requiredNumber(rowValues, pivot);
       for (let column = pivot; column <= size; column += 1) {
-        augmented[row]![column] = augmented[row]![column]! - factor * augmented[pivot]![column]!;
+        rowValues[column] =
+          requiredNumber(rowValues, column) - factor * requiredNumber(pivotRowValues, column);
       }
     }
   }
 
-  return augmented.map((row) => row[size]!);
+  return augmented.map((row) => requiredNumber(row, size));
+}
+
+function requiredRow(rows: readonly number[][], index: number): number[] {
+  const row = rows[index];
+  if (row === undefined) throw new Error(`Missing matrix row at index ${index}.`);
+  return row;
+}
+
+function requiredNumber(values: readonly number[], index: number): number {
+  const value = values[index];
+  if (value === undefined) throw new Error(`Missing matrix value at index ${index}.`);
+  return value;
 }
 
 export function segmentedRegressionSummary(input: {
@@ -59,9 +80,11 @@ export function segmentedRegressionSummary(input: {
     const timeAfter = post === 1 ? point.time - input.interventionTime : 0;
     const row = [1, point.time, post, timeAfter];
     for (let left = 0; left < row.length; left += 1) {
-      xty[left] = xty[left]! + row[left]! * point.value;
+      xty[left] = requiredNumber(xty, left) + requiredNumber(row, left) * point.value;
       for (let right = 0; right < row.length; right += 1) {
-        xtx[left]![right] = xtx[left]![right]! + row[left]! * row[right]!;
+        const xtxRow = requiredRow(xtx, left);
+        xtxRow[right] =
+          requiredNumber(xtxRow, right) + requiredNumber(row, left) * requiredNumber(row, right);
       }
     }
   }
@@ -69,10 +92,10 @@ export function segmentedRegressionSummary(input: {
   const coefficients = solveLinearSystem(xtx, xty);
   if (coefficients === null) return null;
   return {
-    intercept: coefficients[0]!,
-    baselineSlope: coefficients[1]!,
-    levelChange: coefficients[2]!,
-    slopeChange: coefficients[3]!,
+    intercept: requiredNumber(coefficients, 0),
+    baselineSlope: requiredNumber(coefficients, 1),
+    levelChange: requiredNumber(coefficients, 2),
+    slopeChange: requiredNumber(coefficients, 3),
     pointCount: points.length,
     interventionTime: input.interventionTime,
   };

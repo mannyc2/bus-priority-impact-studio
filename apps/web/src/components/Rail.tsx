@@ -27,13 +27,7 @@ export function Rail({
   );
 }
 
-export function RailSection({
-  eyebrow,
-  children,
-}: {
-  eyebrow?: ReactNode;
-  children: ReactNode;
-}) {
+export function RailSection({ eyebrow, children }: { eyebrow?: ReactNode; children: ReactNode }) {
   return (
     <section>
       {eyebrow ? (

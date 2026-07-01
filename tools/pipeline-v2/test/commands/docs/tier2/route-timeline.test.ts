@@ -32,7 +32,13 @@ async function seedSurfaces(): Promise<string> {
       eventStatus: "implemented",
       dateText: "October 2019",
       affectedEntitiesRaw: ["M14 A/D Select Bus Service", "M14D"],
-      evidenceRefs: [{ pageNumber: 1, blockId: "B0001", snippet: "The 14th Street Busway opened in October 2019." }],
+      evidenceRefs: [
+        {
+          pageNumber: 1,
+          blockId: "B0001",
+          snippet: "The 14th Street Busway opened in October 2019.",
+        },
+      ],
     }),
     eventRow({
       surfaceId: "ev-b",
@@ -44,7 +50,9 @@ async function seedSurfaces(): Promise<string> {
       eventStatus: "implemented",
       dateText: "October 2019",
       affectedEntitiesRaw: ["M14 A/D", "M14D"],
-      evidenceRefs: [{ pageNumber: 7, blockId: "B0003", snippet: "Busway launched on 14th Street." }],
+      evidenceRefs: [
+        { pageNumber: 7, blockId: "B0003", snippet: "Busway launched on 14th Street." },
+      ],
     }),
     // C: M14 but undated -> excluded as undated.
     eventRow({
@@ -166,6 +174,8 @@ describe("docs tier2 route-timeline", () => {
     expect(report.corroboratingMetrics.byFamily["bus_speed"]).toBe(1);
     expect(report.corroboratingMetrics.examples).toHaveLength(1);
 
-    expect(await Bun.file(join(workingRoot, "out", "route-intervention-timeline-M14.md")).exists()).toBe(true);
+    expect(
+      await Bun.file(join(workingRoot, "out", "route-intervention-timeline-M14.md")).exists(),
+    ).toBe(true);
   });
 });

@@ -1,8 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-  summarizeCorpusProfile,
-  type CorpusProfileObservation,
-} from "@bp/analytics/corpus";
+import { type CorpusProfileObservation, summarizeCorpusProfile } from "@bp/analytics/corpus";
 
 function routeMonths(
   sourceId: string,

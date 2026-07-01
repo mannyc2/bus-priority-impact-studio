@@ -1,6 +1,6 @@
-import { runRouteBuildPlan, type RouteBuildPlanResult } from "@bp/pipeline-v2/local-db-aggregates";
+import { type RouteBuildPlanResult, runRouteBuildPlan } from "@bp/pipeline-v2/local-db-aggregates";
 import { Context, Effect, Layer } from "effect";
-import { LocalDbOpenError, RouteBuildPlanCommandError } from "./errors.ts";
+import { type LocalDbOpenError, RouteBuildPlanCommandError } from "./errors.ts";
 import { LocalDbConnection, makeLocalDbLayer } from "./local-db.ts";
 
 export type RouteBuildPlanCommandInput = {

@@ -5,8 +5,6 @@ import {
   releaseStatusResponseJsonSchema,
   routeListResponseJsonSchema,
   routeProfileResponseJsonSchema,
-} from "@bp/domain/json-schema";
-import {
   studioMethodsResponseJsonSchema,
   studioRouteDetailResponseJsonSchema,
   studioRouteHistoryResponseJsonSchema,

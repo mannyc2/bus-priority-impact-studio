@@ -1,12 +1,6 @@
 import type { ReactNode } from "react";
 
-export function StudioPage({
-  children,
-  flush = false,
-}: {
-  children: ReactNode;
-  flush?: boolean;
-}) {
+export function StudioPage({ children, flush = false }: { children: ReactNode; flush?: boolean }) {
   if (flush) {
     return <div className="h-full min-h-0">{children}</div>;
   }

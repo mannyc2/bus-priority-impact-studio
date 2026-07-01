@@ -7,24 +7,32 @@
 
 import { clamp } from "./core/numbers.js";
 
+function requiredValue(values: readonly number[], index: number): number {
+  const value = values[index];
+  if (value === undefined) throw new Error(`Missing concentration value at index ${index}.`);
+  return value;
+}
+
 export function median(values: readonly number[]): number {
   if (values.length === 0) return 0;
   const sorted = [...values].sort((left, right) => left - right);
   const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 0 ? (sorted[mid - 1]! + sorted[mid]!) / 2 : sorted[mid]!;
+  return sorted.length % 2 === 0
+    ? (requiredValue(sorted, mid - 1) + requiredValue(sorted, mid)) / 2
+    : requiredValue(sorted, mid);
 }
 
 /** Linear-interpolated percentile (`p` in [0,1]) of an unweighted sample. */
 export function percentile(values: readonly number[], p: number): number {
   if (values.length === 0) return 0;
   const sorted = [...values].sort((left, right) => left - right);
-  if (sorted.length === 1) return sorted[0]!;
+  if (sorted.length === 1) return requiredValue(sorted, 0);
   const rank = clamp(p, 0, 1) * (sorted.length - 1);
   const lo = Math.floor(rank);
   const hi = Math.ceil(rank);
-  if (lo === hi) return sorted[lo]!;
+  if (lo === hi) return requiredValue(sorted, lo);
   const frac = rank - lo;
-  return sorted[lo]! * (1 - frac) + sorted[hi]! * frac;
+  return requiredValue(sorted, lo) * (1 - frac) + requiredValue(sorted, hi) * frac;
 }
 
 /** Fraction of the sample `<= value`, i.e. the percentile rank of `value` within `all`. */
@@ -49,7 +57,7 @@ export function giniCoefficient(values: readonly number[]): number {
   let total = 0;
   let weighted = 0;
   for (let i = 0; i < n; i += 1) {
-    const value = sorted[i]!;
+    const value = requiredValue(sorted, i);
     if (value < 0) throw new Error("giniCoefficient requires non-negative values.");
     total += value;
     weighted += (i + 1) * value;
@@ -69,7 +77,7 @@ export function minItemsForShare(values: readonly number[], targetShare: number)
   const target = clamp(targetShare, 0, 1) * total;
   let cumulative = 0;
   for (let i = 0; i < sorted.length; i += 1) {
-    cumulative += sorted[i]!;
+    cumulative += requiredValue(sorted, i);
     if (cumulative >= target) return i + 1;
   }
   return sorted.length;
@@ -82,7 +90,7 @@ export function topItemsShare(values: readonly number[], k: number): number {
   const sorted = [...values].sort((left, right) => right - left);
   let cumulative = 0;
   for (let i = 0; i < Math.min(k, sorted.length); i += 1) {
-    cumulative += sorted[i]!;
+    cumulative += requiredValue(sorted, i);
   }
   return cumulative / total;
 }

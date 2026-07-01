@@ -8,9 +8,7 @@ export type CheckSpatialiteResult = {
   version: string | null;
 };
 
-export function runCheckSpatialite(inputs: {
-  local: OpenLocalPipelineDb;
-}): CheckSpatialiteResult {
+export function runCheckSpatialite(inputs: { local: OpenLocalPipelineDb }): CheckSpatialiteResult {
   return {
     ok: inputs.local.spatialite !== null,
     path: inputs.local.spatialite?.path ?? null,

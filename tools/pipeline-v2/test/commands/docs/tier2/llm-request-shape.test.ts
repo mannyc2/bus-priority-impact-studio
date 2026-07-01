@@ -1,3 +1,4 @@
+// biome-ignore-all lint/style/noNonNullAssertion: Fixture assertions intentionally index rows after explicit length/content checks.
 // Tier 2 LLM request-shape characterization tests.
 //
 // After the pi-harness migration (`lib/llm.ts` -> `@earendil-works/pi-ai`), three
@@ -22,10 +23,7 @@ import { join } from "node:path";
 import { callDeepSeekInterventionRecords } from "../../../../src/commands/docs/tier2/_intervention-records.ts";
 import { callDeepSeekMarkdownCandidates } from "../../../../src/commands/docs/tier2/_ocr-candidates.ts";
 import { callOpenRouterPageMarkdownOcr } from "../../../../src/commands/docs/tier2/_ocr-render.ts";
-import type {
-  FetchLike,
-  Tier2OcrPlanSource,
-} from "../../../../src/commands/docs/tier2/_shared.ts";
+import type { FetchLike, Tier2OcrPlanSource } from "../../../../src/commands/docs/tier2/_shared.ts";
 
 type Captured = { url: string; headers: unknown; body: Record<string, unknown> };
 
@@ -87,7 +85,9 @@ function messageRoles(body: Record<string, unknown>): string[] {
   return messages.map((m) => m.role);
 }
 
-function firstUserContent(body: Record<string, unknown>): Array<{ type: string; [k: string]: unknown }> {
+function firstUserContent(
+  body: Record<string, unknown>,
+): Array<{ type: string; [k: string]: unknown }> {
   const messages = (body["messages"] ?? []) as Array<{ role: string; content: unknown }>;
   const user = messages.find((m) => m.role === "user");
   return (user?.content ?? []) as Array<{ type: string; [k: string]: unknown }>;
@@ -130,7 +130,7 @@ describe("Tier 2 LLM request shape (pi-harness migration)", () => {
 
       const content = firstUserContent(req.body);
       expect(content.map((c) => c.type)).toEqual(["text", "image_url"]);
-      expect((content[0]!["text"] as string)).toContain("page-level OCR");
+      expect(content[0]!["text"] as string).toContain("page-level OCR");
       const imageUrl = (content[1]!["image_url"] as { url: string }).url;
       // Bytes [1,2,3,4] -> base64 "AQIDBA==".
       expect(imageUrl).toBe("data:image/png;base64,AQIDBA==");
@@ -179,8 +179,8 @@ describe("Tier 2 LLM request shape (pi-harness migration)", () => {
       expect(toolNames(req.body)).toEqual(["record_tier2_ocr_page"]);
       const content = firstUserContent(req.body);
       expect(content.map((c) => c.type)).toEqual(["text", "image_url"]);
-      expect((content[0]!["text"] as string)).toContain("Sparse pages are valid OCR outputs.");
-      expect((content[0]!["text"] as string)).toContain("do not emit [unclear]");
+      expect(content[0]!["text"] as string).toContain("Sparse pages are valid OCR outputs.");
+      expect(content[0]!["text"] as string).toContain("do not emit [unclear]");
       expect((content[1]!["image_url"] as { url: string }).url).toBe(
         "data:image/png;base64,AQIDBA==",
       );

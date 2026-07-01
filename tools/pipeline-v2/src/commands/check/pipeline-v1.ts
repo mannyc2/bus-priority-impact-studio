@@ -1,5 +1,4 @@
 import { join } from "node:path";
-import { arg, defineCommand, z } from "@liche/core";
 import {
   getRouteBatchStatus,
   listAceRoutes,
@@ -23,12 +22,10 @@ import {
   listRouteObservedReliabilitySummaries,
   listRouteReadiness,
 } from "@bp/db/local";
+import { arg, defineCommand, z } from "@liche/core";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
-import {
-  dbOptions,
-  type OpenLocalPipelineDb,
-} from "../../lib/local-db.ts";
+import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { defaultArtifactRootPath, fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
 import { verifyMapArtifactManifest } from "../map/artifacts.ts";
 import { runVerifyD1Export } from "../verify/d1.ts";
@@ -603,7 +600,9 @@ export async function runCheckPipelineV1(
   const busLaneInterventionComparisons = interventionComparisons.filter(
     (row) => row.sourceId === busLaneSourceId,
   );
-  const busLaneComparisonRouteIds = new Set(busLaneInterventionComparisons.map((row) => row.routeId));
+  const busLaneComparisonRouteIds = new Set(
+    busLaneInterventionComparisons.map((row) => row.routeId),
+  );
   const busLaneSourceGapComparisonRows = busLaneInterventionComparisons.filter((row) =>
     row.comparisonStatus.startsWith("source_gap_"),
   ).length;
@@ -1313,7 +1312,9 @@ export default defineCommand({
         ? undefined
         : fromCliPath(input.options.sourceMetadataDir);
     const artifactRoot =
-      input.options.artifactRoot === undefined ? undefined : fromCliPath(input.options.artifactRoot);
+      input.options.artifactRoot === undefined
+        ? undefined
+        : fromCliPath(input.options.artifactRoot);
     const exportRoot =
       input.options.exportRoot === undefined ? undefined : fromCliPath(input.options.exportRoot);
     return runLocalDbCommandBoundary({

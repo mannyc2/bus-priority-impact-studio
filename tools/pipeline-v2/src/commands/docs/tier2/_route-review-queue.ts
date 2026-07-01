@@ -3,13 +3,13 @@ import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { writeJson } from "../../../lib/json.ts";
 import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";
-import { latestDocsRunId, runArtifactRoot } from "./_shared.ts";
 import type {
   EventRouteResolutionArtifact,
   EventRouteResolutionRow,
   InterventionFamily,
   RouteResolutionTier,
 } from "./_event-route-resolution.ts";
+import { latestDocsRunId, runArtifactRoot } from "./_shared.ts";
 
 const ARTIFACT_KIND = "bp.tier2_route_review_queue.v1";
 const DEFAULT_SURFACES_DIR = "document-derived-surfaces-v1";
@@ -126,10 +126,14 @@ function addCount(counts: Record<string, number>, key: string): void {
 }
 
 function displayTitle(row: EventRouteResolutionRow): string {
-  return row.eventName ?? row.displayLabel ?? row.treatmentText ?? row.locationText ?? row.surfaceId;
+  return (
+    row.eventName ?? row.displayLabel ?? row.treatmentText ?? row.locationText ?? row.surfaceId
+  );
 }
 
-function defaultDecision(item: Pick<Tier2RouteReviewQueueItem, "dateValidationState">): ReviewerDecisionOption {
+function defaultDecision(
+  item: Pick<Tier2RouteReviewQueueItem, "dateValidationState">,
+): ReviewerDecisionOption {
   switch (item.dateValidationState) {
     case "source_stated_operational_date":
     case "source_stated_planned_date":
@@ -203,7 +207,9 @@ function reviewTasksForRow(row: EventRouteResolutionRow): string[] {
     );
   }
   if (row.routeResolutionTier !== "direct_event_text") {
-    tasks.push("Review the weaker route-resolution path because the event text did not directly name this route.");
+    tasks.push(
+      "Review the weaker route-resolution path because the event text did not directly name this route.",
+    );
   }
   return tasks;
 }
@@ -229,7 +235,10 @@ function decisionOptionsForRow(row: EventRouteResolutionRow): ReviewerDecisionOp
   return options;
 }
 
-function queueItemForRoute(row: EventRouteResolutionRow, routeId: string): Tier2RouteReviewQueueItem {
+function queueItemForRoute(
+  row: EventRouteResolutionRow,
+  routeId: string,
+): Tier2RouteReviewQueueItem {
   const reviewPriority = priorityForRow(row);
   return {
     queueItemId: `tier2_route_review_${shortHash(`${routeId}|${row.surfaceId}`)}`,
@@ -267,7 +276,10 @@ function sortItems(a: Tier2RouteReviewQueueItem, b: Tier2RouteReviewQueueItem): 
   return a.queueItemId.localeCompare(b.queueItemId);
 }
 
-function buildRouteQueue(routeId: string, items: Tier2RouteReviewQueueItem[]): Tier2RouteReviewQueueRoute {
+function buildRouteQueue(
+  routeId: string,
+  items: Tier2RouteReviewQueueItem[],
+): Tier2RouteReviewQueueRoute {
   const sourceIds = new Set<string>();
   const interventionFamilyCounts: Record<string, number> = {};
   const routeResolutionTierCounts: Record<string, number> = {};
@@ -347,12 +359,18 @@ function buildSummary(input: {
           row.timelineEligibility === "intervention_timeline_candidate" &&
           row.routeResolutionState === "unresolved",
       ).length,
-      processOnlyEventCount: input.sourceRows.filter((row) => row.timelineEligibility === "process_only").length,
+      processOnlyEventCount: input.sourceRows.filter(
+        (row) => row.timelineEligibility === "process_only",
+      ).length,
       evaluationOrMonitoringEventCount: input.sourceRows.filter(
         (row) => row.timelineEligibility === "evaluation_or_monitoring",
       ).length,
-      contextOnlyEventCount: input.sourceRows.filter((row) => row.timelineEligibility === "context_only").length,
-      needsReviewEventCount: input.sourceRows.filter((row) => row.timelineEligibility === "needs_review").length,
+      contextOnlyEventCount: input.sourceRows.filter(
+        (row) => row.timelineEligibility === "context_only",
+      ).length,
+      needsReviewEventCount: input.sourceRows.filter(
+        (row) => row.timelineEligibility === "needs_review",
+      ).length,
     },
   };
 }
@@ -396,8 +414,9 @@ export function buildTier2RouteReviewQueue(
 export async function runTier2RouteReviewQueue(
   args: RunTier2RouteReviewQueueArgs,
 ): Promise<RunTier2RouteReviewQueueResult> {
-  const routeResolution =
-    (await Bun.file(args.routeResolutionPath).json()) as EventRouteResolutionArtifact;
+  const routeResolution = (await Bun.file(
+    args.routeResolutionPath,
+  ).json()) as EventRouteResolutionArtifact;
   const artifact = buildTier2RouteReviewQueue(routeResolution, {
     routeResolutionPath: args.routeResolutionPath,
     generatedAt: args.generatedAt ?? new Date().toISOString(),
@@ -444,9 +463,15 @@ function parseCliOptions(args: string[]): CliArgs {
 
 export async function runTier2RouteReviewQueueFromCli(args: string[]) {
   const parsed = parseCliOptions(args);
-  const artifactRoot = parsed.artifactRoot ? fromCliPath(parsed.artifactRoot) : defaultArtifactRootPath();
+  const artifactRoot = parsed.artifactRoot
+    ? fromCliPath(parsed.artifactRoot)
+    : defaultArtifactRootPath();
   const runId = parsed.runId ?? (await latestDocsRunId(artifactRoot));
-  if (runId === null && parsed.surfacesDir === undefined && parsed.routeResolutionPath === undefined) {
+  if (
+    runId === null &&
+    parsed.surfacesDir === undefined &&
+    parsed.routeResolutionPath === undefined
+  ) {
     throw new Error("No Tier 2 run found. Pass --route-resolution, --surfaces-dir, or --run-id.");
   }
   const surfacesDir =

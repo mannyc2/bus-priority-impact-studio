@@ -3,8 +3,7 @@ import { dirname, join } from "node:path";
 import { writeJson } from "../../../lib/json.ts";
 import type { AgenticExtractionProvider } from "./_agentic-extraction.ts";
 
-export const TIER2_AGENTIC_SELF_HEAL_PLAN_ARTIFACT_KIND =
-  "bp.tier2_agentic_self_heal_plan.v1";
+export const TIER2_AGENTIC_SELF_HEAL_PLAN_ARTIFACT_KIND = "bp.tier2_agentic_self_heal_plan.v1";
 
 export type Tier2AgenticSelfHealLane =
   | "clean"
@@ -348,7 +347,9 @@ export async function buildTier2AgenticSelfHealPlan(
     const manifestExists = manifest !== null;
     for (const window of windowCandidatesFrom({ manifest, shard })) {
       const artifact =
-        window.artifactPath === null ? null : objectValue(await readJsonIfExists(window.artifactPath));
+        window.artifactPath === null
+          ? null
+          : objectValue(await readJsonIfExists(window.artifactPath));
       const audit =
         window.auditPath === null ? null : objectValue(await readJsonIfExists(window.auditPath));
 

@@ -565,7 +565,12 @@
       "title": "MTA Open Data Program",
       "publisher": "MTA",
       "sourceGroup": "open_data_plan",
-      "intendedUse": ["dataset_watchlist", "source_gap_candidate", "methodology_caveat", "source_card"],
+      "intendedUse": [
+        "dataset_watchlist",
+        "source_gap_candidate",
+        "methodology_caveat",
+        "source_card"
+      ],
       "priority": 38,
       "documentDate": "2026-01-27",
       "expectedContentType": "html",
@@ -616,7 +621,12 @@
       "title": "MTA Fare-Free Bus Pilot One-Year Evaluation",
       "publisher": "MTA",
       "sourceGroup": "fare_policy",
-      "intendedUse": ["fare_policy_context", "metric_claim_candidate", "methodology_caveat", "source_card"],
+      "intendedUse": [
+        "fare_policy_context",
+        "metric_claim_candidate",
+        "methodology_caveat",
+        "source_card"
+      ],
       "priority": 42,
       "expectedContentType": "pdf",
       "ocrHint": "required",
@@ -628,7 +638,12 @@
       "title": "Bronx Bus Network Redesign Final Plan",
       "publisher": "MTA",
       "sourceGroup": "route_redesign",
-      "intendedUse": ["route_redesign_service_change", "stop_consolidation_candidate", "supersession_candidate", "source_card"],
+      "intendedUse": [
+        "route_redesign_service_change",
+        "stop_consolidation_candidate",
+        "supersession_candidate",
+        "source_card"
+      ],
       "priority": 43,
       "documentDate": "2019-10",
       "expectedContentType": "pdf",
@@ -641,7 +656,12 @@
       "title": "Bronx Bus Network Redesign Final Plan Addendum",
       "publisher": "MTA",
       "sourceGroup": "route_redesign",
-      "intendedUse": ["route_redesign_service_change", "stop_consolidation_candidate", "supersession_candidate", "source_card"],
+      "intendedUse": [
+        "route_redesign_service_change",
+        "stop_consolidation_candidate",
+        "supersession_candidate",
+        "source_card"
+      ],
       "priority": 44,
       "documentDate": "2021-11",
       "expectedContentType": "pdf",
@@ -667,7 +687,12 @@
       "title": "Queens Bus Network Redesign Proposed Final Plan Addendum",
       "publisher": "MTA",
       "sourceGroup": "route_redesign",
-      "intendedUse": ["route_redesign_service_change", "stop_consolidation_candidate", "supersession_candidate", "table_candidate"],
+      "intendedUse": [
+        "route_redesign_service_change",
+        "stop_consolidation_candidate",
+        "supersession_candidate",
+        "table_candidate"
+      ],
       "priority": 46,
       "documentDate": "2024-12",
       "expectedContentType": "pdf",
@@ -680,7 +705,12 @@
       "title": "Queens Bus Network Redesign Proposed Final Plan",
       "publisher": "MTA",
       "sourceGroup": "route_redesign",
-      "intendedUse": ["route_redesign_service_change", "stop_consolidation_candidate", "supersession_candidate", "table_candidate"],
+      "intendedUse": [
+        "route_redesign_service_change",
+        "stop_consolidation_candidate",
+        "supersession_candidate",
+        "table_candidate"
+      ],
       "priority": 47,
       "documentDate": "2023-12",
       "expectedContentType": "pdf",
@@ -706,7 +736,12 @@
       "title": "Queens Bus Network Redesign Service Change Board Item",
       "publisher": "MTA",
       "sourceGroup": "board_books",
-      "intendedUse": ["route_redesign_service_change", "project_status_candidate", "supersession_candidate", "source_card"],
+      "intendedUse": [
+        "route_redesign_service_change",
+        "project_status_candidate",
+        "supersession_candidate",
+        "source_card"
+      ],
       "priority": 49,
       "documentDate": "2025-01",
       "expectedContentType": "pdf",
@@ -719,7 +754,12 @@
       "title": "Brooklyn Bus Network Redesign Draft Plan with Route Profiles",
       "publisher": "MTA",
       "sourceGroup": "route_redesign",
-      "intendedUse": ["route_redesign_service_change", "stop_consolidation_candidate", "table_candidate", "source_card"],
+      "intendedUse": [
+        "route_redesign_service_change",
+        "stop_consolidation_candidate",
+        "table_candidate",
+        "source_card"
+      ],
       "priority": 50,
       "documentDate": "2022-12",
       "expectedContentType": "pdf",
@@ -746,7 +786,12 @@
       "title": "Jamaica Busway Monitoring Update November 2022",
       "publisher": "NYC DOT",
       "sourceGroup": "busway",
-      "intendedUse": ["metric_claim_candidate", "table_candidate", "methodology_caveat", "source_card"],
+      "intendedUse": [
+        "metric_claim_candidate",
+        "table_candidate",
+        "methodology_caveat",
+        "source_card"
+      ],
       "priority": 52,
       "documentDate": "2022-11",
       "expectedContentType": "pdf",
@@ -759,7 +804,12 @@
       "title": "14th Street Transit and Truck Priority Pilot Preliminary Report Fall 2019",
       "publisher": "Sam Schwartz / NYC DOT",
       "sourceGroup": "busway",
-      "intendedUse": ["third_party_evaluation", "metric_claim_candidate", "table_candidate", "methodology_caveat"],
+      "intendedUse": [
+        "third_party_evaluation",
+        "metric_claim_candidate",
+        "table_candidate",
+        "methodology_caveat"
+      ],
       "priority": 53,
       "documentDate": "2019-12",
       "expectedContentType": "pdf",
@@ -772,7 +822,12 @@
       "title": "14th Street Transit and Truck Priority Pilot Report 2 Winter 2020",
       "publisher": "Sam Schwartz / NYC DOT",
       "sourceGroup": "busway",
-      "intendedUse": ["third_party_evaluation", "metric_claim_candidate", "table_candidate", "methodology_caveat"],
+      "intendedUse": [
+        "third_party_evaluation",
+        "metric_claim_candidate",
+        "table_candidate",
+        "methodology_caveat"
+      ],
       "priority": 54,
       "documentDate": "2020",
       "expectedContentType": "pdf",
@@ -785,7 +840,12 @@
       "title": "B44 Select Bus Service Nostrand Avenue Progress Report",
       "publisher": "NYC DOT / MTA",
       "sourceGroup": "select_bus_service",
-      "intendedUse": ["metric_claim_candidate", "table_candidate", "treatment_component_candidate", "source_card"],
+      "intendedUse": [
+        "metric_claim_candidate",
+        "table_candidate",
+        "treatment_component_candidate",
+        "source_card"
+      ],
       "priority": 55,
       "documentDate": "2016-06",
       "expectedContentType": "pdf",
@@ -798,7 +858,12 @@
       "title": "M86 Select Bus Service Progress Report",
       "publisher": "NYC DOT / MTA",
       "sourceGroup": "select_bus_service",
-      "intendedUse": ["metric_claim_candidate", "table_candidate", "treatment_component_candidate", "source_card"],
+      "intendedUse": [
+        "metric_claim_candidate",
+        "table_candidate",
+        "treatment_component_candidate",
+        "source_card"
+      ],
       "priority": 56,
       "documentDate": "2017-04",
       "expectedContentType": "pdf",
@@ -811,7 +876,12 @@
       "title": "Behind Schedule: How New York City's Bus System Slow Rolls Riders",
       "publisher": "NYC Comptroller",
       "sourceGroup": "comptroller_audit",
-      "intendedUse": ["third_party_evaluation", "metric_claim_candidate", "source_gap_candidate", "methodology_caveat"],
+      "intendedUse": [
+        "third_party_evaluation",
+        "metric_claim_candidate",
+        "source_gap_candidate",
+        "methodology_caveat"
+      ],
       "priority": 57,
       "documentDate": "2025-04",
       "expectedContentType": "pdf",
@@ -824,7 +894,12 @@
       "title": "Life in the Slow Lane: A Report Card for New York City's Bus System",
       "publisher": "NYC Comptroller",
       "sourceGroup": "comptroller_audit",
-      "intendedUse": ["third_party_evaluation", "metric_claim_candidate", "table_candidate", "methodology_caveat"],
+      "intendedUse": [
+        "third_party_evaluation",
+        "metric_claim_candidate",
+        "table_candidate",
+        "methodology_caveat"
+      ],
       "priority": 58,
       "documentDate": "2025-09-04",
       "expectedContentType": "pdf",
@@ -837,7 +912,12 @@
       "title": "Speeding Up Slowly: A Review of Initiatives to Improve Bus Speeds in New York City",
       "publisher": "NYC Independent Budget Office",
       "sourceGroup": "ibo_report",
-      "intendedUse": ["third_party_evaluation", "metric_claim_candidate", "source_gap_candidate", "methodology_caveat"],
+      "intendedUse": [
+        "third_party_evaluation",
+        "metric_claim_candidate",
+        "source_gap_candidate",
+        "methodology_caveat"
+      ],
       "priority": 59,
       "documentDate": "2025-02",
       "expectedContentType": "pdf",
@@ -850,7 +930,12 @@
       "title": "NYC Streets Plan",
       "publisher": "NYC DOT",
       "sourceGroup": "better_buses",
-      "intendedUse": ["project_status_candidate", "source_gap_candidate", "metric_claim_candidate", "source_card"],
+      "intendedUse": [
+        "project_status_candidate",
+        "source_gap_candidate",
+        "metric_claim_candidate",
+        "source_card"
+      ],
       "priority": 60,
       "documentDate": "2026",
       "expectedContentType": "html",
@@ -863,7 +948,12 @@
       "title": "NYC Streets Plan Update 2026",
       "publisher": "NYC DOT",
       "sourceGroup": "better_buses",
-      "intendedUse": ["project_status_candidate", "source_gap_candidate", "metric_claim_candidate", "table_candidate"],
+      "intendedUse": [
+        "project_status_candidate",
+        "source_gap_candidate",
+        "metric_claim_candidate",
+        "table_candidate"
+      ],
       "priority": 61,
       "documentDate": "2026",
       "expectedContentType": "pdf",
@@ -929,7 +1019,12 @@
       "title": "MTA, NYCDOT Announce Ambitious Plan to Improve Bus Service",
       "publisher": "MTA",
       "sourceGroup": "transit_signal_priority",
-      "intendedUse": ["tsp_candidate", "source_gap_candidate", "metric_claim_candidate", "source_card"],
+      "intendedUse": [
+        "tsp_candidate",
+        "source_gap_candidate",
+        "metric_claim_candidate",
+        "source_card"
+      ],
       "priority": 66,
       "documentDate": "2021-08-16",
       "expectedContentType": "html",
@@ -942,7 +1037,12 @@
       "title": "MTA Launches Redesigned Bronx Local Bus Network Reminder",
       "publisher": "MTA",
       "sourceGroup": "route_redesign",
-      "intendedUse": ["route_redesign_service_change", "tsp_candidate", "source_gap_candidate", "source_card"],
+      "intendedUse": [
+        "route_redesign_service_change",
+        "tsp_candidate",
+        "source_gap_candidate",
+        "source_card"
+      ],
       "priority": 67,
       "documentDate": "2022-06-25",
       "expectedContentType": "html",
@@ -994,7 +1094,12 @@
       "title": "NYC DOT Connecting to the Core Press Release",
       "publisher": "NYC DOT",
       "sourceGroup": "transit_signal_priority",
-      "intendedUse": ["tsp_candidate", "source_gap_candidate", "metric_claim_candidate", "source_card"],
+      "intendedUse": [
+        "tsp_candidate",
+        "source_gap_candidate",
+        "metric_claim_candidate",
+        "source_card"
+      ],
       "priority": 71,
       "documentDate": "2024-05-02",
       "expectedContentType": "html",
@@ -1007,7 +1112,12 @@
       "title": "Connecting to the Core: Safer, Greener and More Convenient Access to the Manhattan Central Business District",
       "publisher": "NYC DOT",
       "sourceGroup": "transit_signal_priority",
-      "intendedUse": ["tsp_candidate", "source_gap_candidate", "metric_claim_candidate", "table_candidate"],
+      "intendedUse": [
+        "tsp_candidate",
+        "source_gap_candidate",
+        "metric_claim_candidate",
+        "table_candidate"
+      ],
       "priority": 72,
       "documentDate": "2024-05",
       "expectedContentType": "pdf",
@@ -1059,7 +1169,12 @@
       "title": "21st Street Bus Priority and Safety Study December 2021",
       "publisher": "NYC DOT",
       "sourceGroup": "bus_priority_document",
-      "intendedUse": ["under_consideration_candidate", "tsp_candidate", "bus_priority_project_context", "source_card"],
+      "intendedUse": [
+        "under_consideration_candidate",
+        "tsp_candidate",
+        "bus_priority_project_context",
+        "source_card"
+      ],
       "priority": 76,
       "documentDate": "2021-12",
       "expectedContentType": "pdf",
@@ -1123,7 +1238,12 @@
       "title": "NYC Open Data Capital Project Detail Data - Dollars Dataset Columns",
       "publisher": "NYC Open Data",
       "sourceGroup": "dataset_dictionary",
-      "intendedUse": ["source_dictionary", "field_caveat", "validation_schema", "source_gap_candidate"],
+      "intendedUse": [
+        "source_dictionary",
+        "field_caveat",
+        "validation_schema",
+        "source_gap_candidate"
+      ],
       "priority": 81,
       "expectedContentType": "json",
       "ocrHint": "not_needed",

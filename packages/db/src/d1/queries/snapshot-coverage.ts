@@ -71,9 +71,7 @@ export type SourceMonthCoverage = {
   artifactPath: string | null;
 };
 
-function toRouteSpeedHistoryCoverage(
-  row: RouteSpeedHistoryCoverageRow,
-): RouteSpeedHistoryCoverage {
+function toRouteSpeedHistoryCoverage(row: RouteSpeedHistoryCoverageRow): RouteSpeedHistoryCoverage {
   return {
     routeId: row.route_id,
     month: row.month,
@@ -131,12 +129,12 @@ export async function listRouteSpeedHistoryCoverage(
     .where(eq(routeSpeedHistoryCoverage.month, month))
     .orderBy(asc(routeSpeedHistoryCoverage.routeId));
 
-  return rows.map((row) => toRouteSpeedHistoryCoverage(RouteSpeedHistoryCoverageRowSchema.parse(row)));
+  return rows.map((row) =>
+    toRouteSpeedHistoryCoverage(RouteSpeedHistoryCoverageRowSchema.parse(row)),
+  );
 }
 
-export async function listSourceMonthCoverage(
-  db: D1ServingDb,
-): Promise<SourceMonthCoverage[]> {
+export async function listSourceMonthCoverage(db: D1ServingDb): Promise<SourceMonthCoverage[]> {
   const rows = await db
     .select({
       source_id: sourceMonthCoverage.sourceId,

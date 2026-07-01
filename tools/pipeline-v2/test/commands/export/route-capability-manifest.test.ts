@@ -14,10 +14,7 @@ afterAll(() => rmSync(tmp, { recursive: true, force: true }));
 
 // Minimal slice of the readLocalD1Inputs return shape that the adapter consumes.
 const d1Inputs = {
-  routeCatalog: [
-    { routeId: "M15+" },
-    { routeId: "B99" },
-  ],
+  routeCatalog: [{ routeId: "M15+" }, { routeId: "B99" }],
   routeReadiness: [{ routeId: "M15+", scheduleTimepointCount: 42 }],
   routeBriefSummaries: [
     {
@@ -60,7 +57,11 @@ describe("toRouteCapabilityInputRows", () => {
       speedMonthCount: 2,
       ridershipMonthCount: 1,
     });
-    expect(row?.speedHistory).toEqual({ endMonth: "2026-03", monthCount: 24, missingCellCount: 16 });
+    expect(row?.speedHistory).toEqual({
+      endMonth: "2026-03",
+      monthCount: 24,
+      missingCellCount: 16,
+    });
     expect(row?.treatment).toEqual({ aceActive: true, busLaneMatchedLaneCount: 5 });
     expect(row?.sourceStatus).toEqual({ reliability: "available", ridership: "blocked" });
   });

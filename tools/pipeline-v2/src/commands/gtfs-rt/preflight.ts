@@ -1,4 +1,3 @@
-import { arg, defineCommand, z } from "@liche/core";
 import {
   listGtfsRtCollectionRuns,
   listGtfsRtFeedSnapshots,
@@ -8,6 +7,7 @@ import {
   listRouteMonthSourceStatuses,
   listRouteObservedReliabilitySummaries,
 } from "@bp/db/local";
+import { arg, defineCommand, z } from "@liche/core";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
@@ -231,9 +231,7 @@ function recommendationsFor(issues: readonly GtfsRtPreflightIssue[]): string[] {
       "Rebuild route observed reliability so observedHeadways, bunching, and waitTimeReliability source statuses are written.",
   };
   return unique(
-    issues
-      .map((issue) => byCode[issue.code])
-      .filter((rec): rec is string => rec !== undefined),
+    issues.map((issue) => byCode[issue.code]).filter((rec): rec is string => rec !== undefined),
   );
 }
 

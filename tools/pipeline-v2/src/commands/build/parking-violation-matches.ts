@@ -17,10 +17,7 @@ import { arg, defineCommand, z } from "@liche/core";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { createGeoclientFromEnv, Geocoder } from "../../lib/geocoder.ts";
 import { writeJson } from "../../lib/json.ts";
-import {
-  dbOptions,
-  type OpenLocalPipelineDb,
-} from "../../lib/local-db.ts";
+import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { defaultArtifactRootPath, fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
 
 export type BuildParkingViolationMatchesInputs = {
@@ -261,7 +258,8 @@ export default defineCommand({
             input.options.artifactRoot === undefined
               ? undefined
               : fromCliPath(input.options.artifactRoot),
-          output: input.options.output === undefined ? undefined : fromCliPath(input.options.output),
+          output:
+            input.options.output === undefined ? undefined : fromCliPath(input.options.output),
           rawParkingDir:
             input.options.rawParkingDir === undefined
               ? undefined

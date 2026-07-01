@@ -1,10 +1,7 @@
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { arg, defineCommand, z } from "@liche/core";
-import {
-  type CloudflareCostSummary,
-  estimateR2StandardCost,
-} from "../../lib/cloudflare-costs.ts";
+import { type CloudflareCostSummary, estimateR2StandardCost } from "../../lib/cloudflare-costs.ts";
 import { fromCliPath } from "../../lib/paths.ts";
 
 type MirrorTask = {
@@ -105,9 +102,8 @@ function makeBunR2Client(args: {
   accessKeyId: string;
   secretAccessKey: string;
 }): R2MirrorClient {
-  const bunRuntime = (
-    globalThis as unknown as { Bun?: { S3Client: new (cfg: object) => unknown } }
-  ).Bun;
+  const bunRuntime = (globalThis as unknown as { Bun?: { S3Client: new (cfg: object) => unknown } })
+    .Bun;
   if (!bunRuntime?.S3Client) {
     throw new Error("Bun.S3Client is required to mirror; run with `bun run` not `node`.");
   }
@@ -138,13 +134,10 @@ export async function runPullGtfsRtR2Run(
   const execute = inputs.execute === true;
   const concurrency = inputs.concurrency ?? 16;
   const nextCommand = nextImportCommand(runId, manifestRoot, outputDir);
-  const projectedDryRunCost = estimateR2StandardCost(
-    { classBOperations: tasks.length * 2 },
-    [
-      "R2 GTFS-RT mirroring reads one manifest object and one protobuf object for each manifest-list entry.",
-      "R2 egress is free; this estimate only counts Class B read operations.",
-    ],
-  );
+  const projectedDryRunCost = estimateR2StandardCost({ classBOperations: tasks.length * 2 }, [
+    "R2 GTFS-RT mirroring reads one manifest object and one protobuf object for each manifest-list entry.",
+    "R2 egress is free; this estimate only counts Class B read operations.",
+  ]);
 
   if (!execute) {
     for (const task of tasks.slice(0, 10)) {
@@ -193,6 +186,8 @@ export async function runPullGtfsRtR2Run(
     }
     client = makeBunR2Client({ bucket, endpoint, accessKeyId, secretAccessKey });
   }
+  if (client === undefined) throw new Error("R2 client could not be initialized.");
+  const r2Client = client;
 
   let downloadedCount = 0;
   let skippedCount = 0;
@@ -210,10 +205,14 @@ export async function runPullGtfsRtR2Run(
       const task = queue.shift();
       if (task === undefined) return;
       try {
-        const manifestResult = await downloadObject({ client: client!, key: task.manifestKey, outputDir });
+        const manifestResult = await downloadObject({
+          client: r2Client,
+          key: task.manifestKey,
+          outputDir,
+        });
         record(manifestResult);
         const rawKey = await resolveRawKey(join(outputDir, task.manifestKey), task.inferredRawKey);
-        const rawResult = await downloadObject({ client: client!, key: rawKey, outputDir });
+        const rawResult = await downloadObject({ client: r2Client, key: rawKey, outputDir });
         record(rawResult);
       } catch (error) {
         failedCount += 1;
@@ -235,13 +234,10 @@ export async function runPullGtfsRtR2Run(
 
   await Promise.all(Array.from({ length: Math.min(concurrency, tasks.length) }, () => worker()));
   console.log(`\nNext pipeline handoff command:\n${nextCommand}`);
-  const actualCost = estimateR2StandardCost(
-    { classBOperations: downloadedCount },
-    [
-      "Existing local mirror files are skipped before contacting R2, so skipped objects are not counted as Class B reads.",
-      "R2 egress is free; this estimate only counts Class B read operations.",
-    ],
-  );
+  const actualCost = estimateR2StandardCost({ classBOperations: downloadedCount }, [
+    "Existing local mirror files are skipped before contacting R2, so skipped objects are not counted as Class B reads.",
+    "R2 egress is free; this estimate only counts Class B read operations.",
+  ]);
 
   return {
     runId,

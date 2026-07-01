@@ -1,9 +1,7 @@
 {
   "dialect": "sqlite",
   "id": "b5676370-4c39-40cf-869c-65e5501667da",
-  "prevIds": [
-    "2e63f108-c84c-436f-aa6c-911da9f7bb2c"
-  ],
+  "prevIds": ["2e63f108-c84c-436f-aa6c-911da9f7bb2c"],
   "version": "7",
   "ddl": [
     {
@@ -21,9 +19,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "unique_key"
-      ],
+      "columns": ["unique_key"],
       "nameExplicit": false,
       "name": "local_311_service_request_pk",
       "table": "local_311_service_request",
@@ -254,11 +250,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id",
-        "program",
-        "implementation_date"
-      ],
+      "columns": ["route_id", "program", "implementation_date"],
       "nameExplicit": false,
       "name": "local_ace_route_route_id_program_implementation_date_pk",
       "table": "local_ace_route",
@@ -319,12 +311,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "month",
-        "route_id",
-        "violation_type",
-        "violation_status"
-      ],
+      "columns": ["month", "route_id", "violation_type", "violation_status"],
       "nameExplicit": false,
       "name": "local_ace_violation_summary_month_route_id_violation_type_violation_status_pk",
       "table": "local_ace_violation_summary",
@@ -345,9 +332,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "segment_id"
-      ],
+      "columns": ["segment_id"],
       "nameExplicit": false,
       "name": "local_bus_lane_pk",
       "table": "local_bus_lane",
@@ -518,10 +503,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "segment_id",
-        "coordinate_rank"
-      ],
+      "columns": ["segment_id", "coordinate_rank"],
       "nameExplicit": false,
       "name": "local_bus_lane_coordinate_segment_id_coordinate_rank_pk",
       "table": "local_bus_lane_coordinate",
@@ -622,13 +604,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "month",
-        "route_id",
-        "day_type",
-        "trip_type",
-        "period"
-      ],
+      "columns": ["month", "route_id", "day_type", "trip_type", "period"],
       "nameExplicit": false,
       "name": "local_bus_wait_assessment_month_route_id_day_type_trip_type_period_pk",
       "table": "local_bus_wait_assessment",
@@ -829,10 +805,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "acs_year",
-        "geoid"
-      ],
+      "columns": ["acs_year", "geoid"],
       "nameExplicit": false,
       "name": "local_census_tract_equity_context_acs_year_geoid_pk",
       "table": "local_census_tract_equity_context",
@@ -853,9 +826,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "corridor_id"
-      ],
+      "columns": ["corridor_id"],
       "nameExplicit": false,
       "name": "local_corridor_pk",
       "table": "local_corridor",
@@ -966,11 +937,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "corridor_id",
-        "month",
-        "artifact_name"
-      ],
+      "columns": ["corridor_id", "month", "artifact_name"],
       "nameExplicit": false,
       "name": "local_corridor_artifact_corridor_id_month_artifact_name_pk",
       "table": "local_corridor_artifact",
@@ -1081,11 +1048,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "corridor_id",
-        "month",
-        "corridor_hotspot_rank"
-      ],
+      "columns": ["corridor_id", "month", "corridor_hotspot_rank"],
       "nameExplicit": false,
       "name": "local_corridor_hotspot_corridor_id_month_corridor_hotspot_rank_pk",
       "table": "local_corridor_hotspot",
@@ -1276,11 +1239,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "corridor_id",
-        "month",
-        "context_rank"
-      ],
+      "columns": ["corridor_id", "month", "context_rank"],
       "nameExplicit": false,
       "name": "local_corridor_intervention_context_corridor_id_month_context_rank_pk",
       "table": "local_corridor_intervention_context",
@@ -1431,10 +1390,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "corridor_id",
-        "month"
-      ],
+      "columns": ["corridor_id", "month"],
       "nameExplicit": false,
       "name": "local_corridor_month_summary_corridor_id_month_pk",
       "table": "local_corridor_month_summary",
@@ -1565,11 +1521,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "corridor_id",
-        "month",
-        "route_id"
-      ],
+      "columns": ["corridor_id", "month", "route_id"],
       "nameExplicit": false,
       "name": "local_corridor_route_member_corridor_id_month_route_id_pk",
       "table": "local_corridor_route_member",
@@ -1590,9 +1542,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "permit_number"
-      ],
+      "columns": ["permit_number"],
       "nameExplicit": false,
       "name": "local_dot_street_permit_pk",
       "table": "local_dot_street_permit",
@@ -1893,10 +1843,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "link_id",
-        "sampled_at"
-      ],
+      "columns": ["link_id", "sampled_at"],
       "nameExplicit": false,
       "name": "local_dot_traffic_speed_link_id_sampled_at_pk",
       "table": "local_dot_traffic_speed",
@@ -2007,11 +1954,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "request_id",
-        "segment_id",
-        "sampled_at"
-      ],
+      "columns": ["request_id", "segment_id", "sampled_at"],
       "nameExplicit": false,
       "name": "local_dot_traffic_volume_count_request_id_segment_id_sampled_at_pk",
       "table": "local_dot_traffic_volume_count",
@@ -2162,12 +2105,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "run_id",
-        "feed_type",
-        "sample_index",
-        "entity_id"
-      ],
+      "columns": ["run_id", "feed_type", "sample_index", "entity_id"],
       "nameExplicit": false,
       "name": "local_gtfs_rt_alert_run_id_feed_type_sample_index_entity_id_pk",
       "table": "local_gtfs_rt_alert",
@@ -2188,9 +2126,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "run_id"
-      ],
+      "columns": ["run_id"],
       "nameExplicit": false,
       "name": "local_gtfs_rt_collection_run_pk",
       "table": "local_gtfs_rt_collection_run",
@@ -2431,11 +2367,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "run_id",
-        "feed_type",
-        "sample_index"
-      ],
+      "columns": ["run_id", "feed_type", "sample_index"],
       "nameExplicit": false,
       "name": "local_gtfs_rt_feed_snapshot_run_id_feed_type_sample_index_pk",
       "table": "local_gtfs_rt_feed_snapshot",
@@ -2576,11 +2508,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "run_id",
-        "feed_type",
-        "sample_index"
-      ],
+      "columns": ["run_id", "feed_type", "sample_index"],
       "nameExplicit": false,
       "name": "local_gtfs_rt_parsed_snapshot_run_id_feed_type_sample_index_pk",
       "table": "local_gtfs_rt_parsed_snapshot",
@@ -2741,13 +2669,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "run_id",
-        "feed_type",
-        "sample_index",
-        "entity_id",
-        "update_rank"
-      ],
+      "columns": ["run_id", "feed_type", "sample_index", "entity_id", "update_rank"],
       "nameExplicit": false,
       "name": "local_gtfs_rt_stop_time_update_run_id_feed_type_sample_index_entity_id_update_rank_pk",
       "table": "local_gtfs_rt_stop_time_update",
@@ -2948,12 +2870,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "run_id",
-        "feed_type",
-        "sample_index",
-        "entity_id"
-      ],
+      "columns": ["run_id", "feed_type", "sample_index", "entity_id"],
       "nameExplicit": false,
       "name": "local_gtfs_rt_trip_update_run_id_feed_type_sample_index_entity_id_pk",
       "table": "local_gtfs_rt_trip_update",
@@ -3254,12 +3171,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "run_id",
-        "feed_type",
-        "sample_index",
-        "entity_id"
-      ],
+      "columns": ["run_id", "feed_type", "sample_index", "entity_id"],
       "nameExplicit": false,
       "name": "local_gtfs_rt_vehicle_position_run_id_feed_type_sample_index_entity_id_pk",
       "table": "local_gtfs_rt_vehicle_position",
@@ -3280,9 +3192,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "event_id"
-      ],
+      "columns": ["event_id"],
       "nameExplicit": false,
       "name": "local_intervention_event_pk",
       "table": "local_intervention_event",
@@ -3383,9 +3293,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "physical_id"
-      ],
+      "columns": ["physical_id"],
       "nameExplicit": false,
       "name": "local_lion_segment_pk",
       "table": "local_lion_segment",
@@ -3566,9 +3474,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "collision_id"
-      ],
+      "columns": ["collision_id"],
       "nameExplicit": false,
       "name": "local_nypd_collision_pk",
       "table": "local_nypd_collision",
@@ -3889,10 +3795,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "run_id",
-        "sample_rank"
-      ],
+      "columns": ["run_id", "sample_rank"],
       "nameExplicit": false,
       "name": "local_observed_headway_sample_run_id_sample_rank_pk",
       "table": "local_observed_headway_sample",
@@ -4053,10 +3956,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "run_id",
-        "event_rank"
-      ],
+      "columns": ["run_id", "event_rank"],
       "nameExplicit": false,
       "name": "local_observed_vehicle_stop_event_run_id_event_rank_pk",
       "table": "local_observed_vehicle_stop_event",
@@ -4077,9 +3977,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "summons_number"
-      ],
+      "columns": ["summons_number"],
       "nameExplicit": false,
       "name": "local_parking_violation_pk",
       "table": "local_parking_violation",
@@ -4310,11 +4208,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id",
-        "month",
-        "artifact_name"
-      ],
+      "columns": ["route_id", "month", "artifact_name"],
       "nameExplicit": false,
       "name": "local_route_artifact_route_id_month_artifact_name_pk",
       "table": "local_route_artifact",
@@ -4375,10 +4269,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "month",
-        "route_rank"
-      ],
+      "columns": ["month", "route_rank"],
       "nameExplicit": false,
       "name": "local_route_batch_built_route_month_route_rank_pk",
       "table": "local_route_batch_built_route",
@@ -4449,10 +4340,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "month",
-        "issue_rank"
-      ],
+      "columns": ["month", "issue_rank"],
       "nameExplicit": false,
       "name": "local_route_batch_issue_month_issue_rank_pk",
       "table": "local_route_batch_issue",
@@ -4473,9 +4361,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "month"
-      ],
+      "columns": ["month"],
       "nameExplicit": false,
       "name": "local_route_batch_status_pk",
       "table": "local_route_batch_status",
@@ -4686,11 +4572,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id",
-        "month",
-        "window_rank"
-      ],
+      "columns": ["route_id", "month", "window_rank"],
       "nameExplicit": false,
       "name": "local_route_brief_peak_window_route_id_month_window_rank_pk",
       "table": "local_route_brief_peak_window",
@@ -4811,11 +4693,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id",
-        "month",
-        "window_rank"
-      ],
+      "columns": ["route_id", "month", "window_rank"],
       "nameExplicit": false,
       "name": "local_route_brief_slowest_window_route_id_month_window_rank_pk",
       "table": "local_route_brief_slowest_window",
@@ -4956,10 +4834,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id",
-        "month"
-      ],
+      "columns": ["route_id", "month"],
       "nameExplicit": false,
       "name": "local_route_brief_summary_route_id_month_pk",
       "table": "local_route_brief_summary",
@@ -5160,10 +5035,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id",
-        "month"
-      ],
+      "columns": ["route_id", "month"],
       "nameExplicit": false,
       "name": "local_route_build_plan_route_id_month_pk",
       "table": "local_route_build_plan",
@@ -5184,9 +5056,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id"
-      ],
+      "columns": ["route_id"],
       "nameExplicit": false,
       "name": "local_route_catalog_pk",
       "table": "local_route_catalog",
@@ -5317,10 +5187,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id",
-        "type_rank"
-      ],
+      "columns": ["route_id", "type_rank"],
       "nameExplicit": false,
       "name": "local_route_catalog_type_route_id_type_rank_pk",
       "table": "local_route_catalog_type",
@@ -5411,10 +5278,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "month",
-        "rank"
-      ],
+      "columns": ["month", "rank"],
       "nameExplicit": false,
       "name": "local_route_comparison_rank_month_rank_pk",
       "table": "local_route_comparison_rank",
@@ -5455,10 +5319,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id",
-        "direction_rank"
-      ],
+      "columns": ["route_id", "direction_rank"],
       "nameExplicit": false,
       "name": "local_route_direction_route_id_direction_rank_pk",
       "table": "local_route_direction",
@@ -5659,10 +5520,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id",
-        "month"
-      ],
+      "columns": ["route_id", "month"],
       "nameExplicit": false,
       "name": "local_route_equity_context_route_id_month_pk",
       "table": "local_route_equity_context",
@@ -5923,11 +5781,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id",
-        "month",
-        "hotspot_rank"
-      ],
+      "columns": ["route_id", "month", "hotspot_rank"],
       "nameExplicit": false,
       "name": "local_route_hotspot_route_id_month_hotspot_rank_pk",
       "table": "local_route_hotspot",
@@ -6058,10 +5912,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id",
-        "month"
-      ],
+      "columns": ["route_id", "month"],
       "nameExplicit": false,
       "name": "local_route_hotspot_summary_route_id_month_pk",
       "table": "local_route_hotspot_summary",
@@ -6132,12 +5983,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id",
-        "month",
-        "day_of_week",
-        "hour_of_day"
-      ],
+      "columns": ["route_id", "month", "day_of_week", "hour_of_day"],
       "nameExplicit": false,
       "name": "local_route_hourly_ridership_route_id_month_day_of_week_hour_of_day_pk",
       "table": "local_route_hourly_ridership",
@@ -6488,11 +6334,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id",
-        "month",
-        "event_id"
-      ],
+      "columns": ["route_id", "month", "event_id"],
       "nameExplicit": false,
       "name": "local_route_intervention_comparison_route_id_month_event_id_pk",
       "table": "local_route_intervention_comparison",
@@ -6583,10 +6425,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id",
-        "month"
-      ],
+      "columns": ["route_id", "month"],
       "nameExplicit": false,
       "name": "local_route_month_coverage_route_id_month_pk",
       "table": "local_route_month_coverage",
@@ -6677,12 +6516,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id",
-        "month",
-        "source_scope",
-        "source_id"
-      ],
+      "columns": ["route_id", "month", "source_scope", "source_id"],
       "nameExplicit": false,
       "name": "local_route_month_source_status_route_id_month_source_scope_source_id_pk",
       "table": "local_route_month_source_status",
@@ -6783,10 +6617,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id",
-        "month"
-      ],
+      "columns": ["route_id", "month"],
       "nameExplicit": false,
       "name": "local_route_month_trend_route_id_month_pk",
       "table": "local_route_month_trend",
@@ -7007,11 +6838,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id",
-        "month",
-        "run_id"
-      ],
+      "columns": ["route_id", "month", "run_id"],
       "nameExplicit": false,
       "name": "local_route_observed_reliability_summary_route_id_month_run_id_pk",
       "table": "local_route_observed_reliability_summary",
@@ -7162,10 +6989,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id",
-        "month"
-      ],
+      "columns": ["route_id", "month"],
       "nameExplicit": false,
       "name": "local_route_readiness_route_id_month_pk",
       "table": "local_route_readiness",
@@ -7216,11 +7040,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id",
-        "month",
-        "input_rank"
-      ],
+      "columns": ["route_id", "month", "input_rank"],
       "nameExplicit": false,
       "name": "local_route_readiness_missing_input_route_id_month_input_rank_pk",
       "table": "local_route_readiness_missing_input",
@@ -7341,10 +7161,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id",
-        "month"
-      ],
+      "columns": ["route_id", "month"],
       "nameExplicit": false,
       "name": "local_route_reliability_baseline_route_id_month_pk",
       "table": "local_route_reliability_baseline",
@@ -7465,11 +7282,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id",
-        "month",
-        "window_rank"
-      ],
+      "columns": ["route_id", "month", "window_rank"],
       "nameExplicit": false,
       "name": "local_route_reliability_gap_window_route_id_month_window_rank_pk",
       "table": "local_route_reliability_gap_window",
@@ -7630,11 +7443,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id",
-        "month",
-        "row_rank"
-      ],
+      "columns": ["route_id", "month", "row_rank"],
       "nameExplicit": false,
       "name": "local_route_schedule_timepoint_route_id_month_row_rank_pk",
       "table": "local_route_schedule_timepoint",
@@ -7705,10 +7514,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id",
-        "month"
-      ],
+      "columns": ["route_id", "month"],
       "nameExplicit": false,
       "name": "local_route_scorecard_route_id_month_pk",
       "table": "local_route_scorecard",
@@ -7939,11 +7745,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id",
-        "month",
-        "row_rank"
-      ],
+      "columns": ["route_id", "month", "row_rank"],
       "nameExplicit": false,
       "name": "local_route_segment_speed_route_id_month_row_rank_pk",
       "table": "local_route_segment_speed",
@@ -8064,12 +7866,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id",
-        "month",
-        "stop_id",
-        "direction_id"
-      ],
+      "columns": ["route_id", "month", "stop_id", "direction_id"],
       "nameExplicit": false,
       "name": "local_route_stop_route_id_month_stop_id_direction_id_pk",
       "table": "local_route_stop",

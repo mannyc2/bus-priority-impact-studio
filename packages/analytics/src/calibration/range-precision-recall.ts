@@ -35,10 +35,7 @@ function hasOverlap(range: LabeledRange, candidates: readonly LabeledRange[]): b
 }
 
 function maxOverlap(range: LabeledRange, candidates: readonly LabeledRange[]): number {
-  return candidates.reduce(
-    (best, candidate) => Math.max(best, overlapLength(range, candidate)),
-    0,
-  );
+  return candidates.reduce((best, candidate) => Math.max(best, overlapLength(range, candidate)), 0);
 }
 
 export function evaluateRangePrecisionRecall(input: {

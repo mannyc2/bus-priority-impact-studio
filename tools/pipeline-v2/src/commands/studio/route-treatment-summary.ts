@@ -1,6 +1,10 @@
 import { mkdir } from "node:fs/promises";
 import { dirname, isAbsolute, relative } from "node:path";
 import {
+  routeTreatmentSummaryArtifactPath,
+  routeTreatmentSummaryMarkdownPath,
+} from "@bp/analytics/artifacts";
+import {
   buildRouteTreatmentSummaryArtifact,
   type PublishableInterventionLike,
   type RouteSegmentLaneOverlapInput,
@@ -12,10 +16,6 @@ import {
   routeTreatmentSummaryMarkdown,
   segmentTreatmentRowsFromLaneOverlaps,
 } from "@bp/analytics/interventions";
-import {
-  routeTreatmentSummaryArtifactPath,
-  routeTreatmentSummaryMarkdownPath,
-} from "@bp/analytics/artifacts";
 import {
   loadRouteTreatmentSummaryLocalDbRows,
   type RouteTreatmentSegmentUniverseRow,

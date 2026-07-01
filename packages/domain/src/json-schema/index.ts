@@ -70,6 +70,7 @@ import {
   StudioReleasePayloadSchema,
   StudioSearchResponseSchema,
 } from "../studio/release.js";
+import { StudioRouteEvidenceArtifactSchema } from "../studio/route-evidence.js";
 import {
   StudioRouteDetailResponseSchema,
   StudioRouteHistoryResponseSchema,
@@ -77,7 +78,6 @@ import {
   StudioRouteSpeedHistoryResponseSchema,
   StudioRoutesResponseSchema,
 } from "../studio/routes/index.js";
-import { StudioRouteEvidenceArtifactSchema } from "../studio/route-evidence.js";
 import {
   StudioRouteIndex2ResponseSchema,
   StudioSnapshotResponseSchema,

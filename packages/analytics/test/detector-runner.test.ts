@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import {
-  runAnalyticsDetector,
   type AnalyticsDetector,
   type FeatureResolver,
+  runAnalyticsDetector,
 } from "@bp/analytics/core";
 import { SPEED_PACE_HOTSPOT_DETECTOR_ID } from "@bp/analytics/detectors";
 import { getFindingDetectorSpec } from "@bp/analytics/registry";
@@ -114,7 +114,7 @@ describe("analytics detector runner", () => {
           month: "2026-03",
           generatedAt: "2026-06-09T00:00:00.000Z",
         },
-      })
+      }),
     ).toThrow("grain(s): feed_health");
   });
 });

@@ -1362,5 +1362,4 @@ describe("data product completeness audit", () => {
       rmSync(artifactRoot, { recursive: true, force: true });
     }
   });
-
 });

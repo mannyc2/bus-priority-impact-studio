@@ -169,7 +169,9 @@ export async function repairRouteTimelineCuration(args: RepairRouteTimelineCurat
   const packPath = fromCliPath(args.packPath);
   const toolCallPath = fromCliPath(args.toolCallPath);
   const outputPath = fromCliPath(args.outputPath ?? defaultOutputPath(args.toolCallPath));
-  const summaryPath = fromCliPath(args.summaryPath ?? defaultPath(outputPath, "-repair-summary.json"));
+  const summaryPath = fromCliPath(
+    args.summaryPath ?? defaultPath(outputPath, "-repair-summary.json"),
+  );
   const validationPath = fromCliPath(
     args.validationPath ?? defaultPath(outputPath, "-repair-validation.json"),
   );

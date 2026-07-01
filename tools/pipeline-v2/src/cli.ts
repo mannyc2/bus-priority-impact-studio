@@ -1,10 +1,10 @@
 import {
+  type DeclarativeCommand,
   defineCli,
   help,
   outputControls,
   reflectionControls,
   run,
-  type DeclarativeCommand,
   version,
 } from "@liche/core";
 import { Glob } from "bun";

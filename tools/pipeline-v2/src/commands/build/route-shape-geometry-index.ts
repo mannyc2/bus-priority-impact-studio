@@ -5,10 +5,7 @@ import {
 import { normalizeRouteShapeRows } from "@bp/sources/adapters/mta/routes-stops";
 import { defineCommand, z } from "@liche/core";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
-import {
-  dbOptions,
-  type OpenLocalPipelineDb,
-} from "../../lib/local-db.ts";
+import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
 
 function defaultSnapshotPath(): string {

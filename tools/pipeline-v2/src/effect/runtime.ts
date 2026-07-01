@@ -1,5 +1,5 @@
-import { ManagedRuntime } from "effect";
 import type { Effect, Layer } from "effect";
+import { ManagedRuntime } from "effect";
 
 export async function runPipelineEffect<A, E, R, ER>(
   effect: Effect.Effect<A, E, R>,

@@ -118,17 +118,45 @@ describe("Tier 2 agentic canonical merge", () => {
       name: "base-plan",
       runId: "qv8",
       items: [
-        item({ shardId: "base-a", windowId: "source-a:1", lane: "clean", artifactPath: baseA, acceptedCount: 1 }),
-        item({ shardId: "base-b", windowId: "source-b:2", lane: "provider_transient_retry", artifactPath: null }),
-        item({ shardId: "base-c", windowId: "source-c:3", lane: "clean", artifactPath: baseC, acceptedCount: 1 }),
+        item({
+          shardId: "base-a",
+          windowId: "source-a:1",
+          lane: "clean",
+          artifactPath: baseA,
+          acceptedCount: 1,
+        }),
+        item({
+          shardId: "base-b",
+          windowId: "source-b:2",
+          lane: "provider_transient_retry",
+          artifactPath: null,
+        }),
+        item({
+          shardId: "base-c",
+          windowId: "source-c:3",
+          lane: "clean",
+          artifactPath: baseC,
+          acceptedCount: 1,
+        }),
       ],
     });
     const retryPlan = await writeSelfHealPlan({
       name: "retry-plan",
       runId: "qv9",
       items: [
-        item({ shardId: "retry-b", windowId: "source-b:2", lane: "clean", artifactPath: retryB, acceptedCount: 2 }),
-        item({ shardId: "retry-c", windowId: "source-c:3", lane: "provider_transient_retry", artifactPath: null }),
+        item({
+          shardId: "retry-b",
+          windowId: "source-b:2",
+          lane: "clean",
+          artifactPath: retryB,
+          acceptedCount: 2,
+        }),
+        item({
+          shardId: "retry-c",
+          windowId: "source-c:3",
+          lane: "provider_transient_retry",
+          artifactPath: null,
+        }),
       ],
     });
 
@@ -149,8 +177,12 @@ describe("Tier 2 agentic canonical merge", () => {
       context_signal: 1,
       metric_observation: 1,
     });
-    expect(merge.canonicalArtifacts.find((artifact) => artifact.windowId === "source-b:2")?.runId).toBe("qv9");
-    expect(merge.canonicalArtifacts.find((artifact) => artifact.windowId === "source-c:3")?.runId).toBe("qv8");
+    expect(
+      merge.canonicalArtifacts.find((artifact) => artifact.windowId === "source-b:2")?.runId,
+    ).toBe("qv9");
+    expect(
+      merge.canonicalArtifacts.find((artifact) => artifact.windowId === "source-c:3")?.runId,
+    ).toBe("qv8");
     expect(await Bun.file(outputPath).exists()).toBe(true);
   });
 });

@@ -1,13 +1,13 @@
 import type { Database } from "bun:sqlite";
-import { Glob } from "bun";
 import { mkdir } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative } from "node:path";
 import { arg, defineCommand, z } from "@liche/core";
+import { Glob } from "bun";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
-import { readCsvRows } from "../../lib/streaming-csv.ts";
 import { writeJson } from "../../lib/json.ts";
 import { dbOptions } from "../../lib/local-db.ts";
 import { defaultArtifactRootPath, fromCliPath, repoRoot } from "../../lib/paths.ts";
+import { readCsvRows } from "../../lib/streaming-csv.ts";
 
 type CsvRow = Record<string, string>;
 

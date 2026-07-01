@@ -42,9 +42,7 @@ export function effectiveScheduledHeadwayMinutes(feature: StopDirectionHourFeatu
   return null;
 }
 
-export function summarizeHeadwaysMinutes(
-  values: readonly number[],
-): HeadwayDistributionSummary {
+export function summarizeHeadwaysMinutes(values: readonly number[]): HeadwayDistributionSummary {
   const headways = validHeadwaysMinutes(values);
   if (headways.length === 0) {
     return { min: null, p50: null, p90: null, max: null };

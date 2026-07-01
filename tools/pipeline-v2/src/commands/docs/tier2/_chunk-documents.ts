@@ -6,19 +6,19 @@
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import type { Tier2CandidateSourceRef } from "@bp/domain/documents/candidates";
-import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";
 import { writeJson } from "../../../lib/json.ts";
+import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";
 import {
   annotationTextBlocks,
+  type ChunkCliArgs,
+  type ChunkTier2DocumentsArgs,
+  type CliOption,
   candidateBundlePath,
   documentChunksPath,
   latestDocsRunId,
   parseCliOptions,
   readJsonArtifact,
   sha256,
-  type ChunkCliArgs,
-  type ChunkTier2DocumentsArgs,
-  type CliOption,
   type Tier2CandidateBundle,
   type Tier2DocumentChunk,
   type Tier2DocumentChunksArtifact,

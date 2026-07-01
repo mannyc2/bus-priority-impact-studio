@@ -45,7 +45,16 @@ function event(input: {
     candidateIds: ["candidate-1"],
     dateAssertionRefs: input.dateAssertionRefs ?? [],
     dateAssertionIds: [],
-    sourceChips: [{ sourceRef: "s001", sourceId: "source-a", title: "Source A", sourceGroup: "doc", pages: [3], candidateRefs: ["c001"] }],
+    sourceChips: [
+      {
+        sourceRef: "s001",
+        sourceId: "source-a",
+        title: "Source A",
+        sourceGroup: "doc",
+        pages: [3],
+        candidateRefs: ["c001"],
+      },
+    ],
     citationRefs: [],
     affectedRouteIds: ["B46"],
     affectedSegments: [],

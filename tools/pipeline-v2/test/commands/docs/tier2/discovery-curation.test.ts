@@ -13,7 +13,11 @@ const evidenceRef = {
   blockHash: "sha256:block",
 };
 
-function extraction(input: { extractionId: string; page: number; candidates?: "first" | "second" }) {
+function extraction(input: {
+  extractionId: string;
+  page: number;
+  candidates?: "first" | "second";
+}) {
   return {
     source: {
       sourceId: "fixture_source",
@@ -201,12 +205,12 @@ describe("Tier 2 discovery curation audit", () => {
       "vehicle_or_user_class",
     );
     expect(audit.normalizationSeed.metricFamilyMappings[0]?.canonicalFamily).toBe("bus_speed");
-    expect(audit.normalizationSeed.metricFamilyMappings.map((row) => row.canonicalFamily)).toContain(
-      "ridership",
-    );
-    expect(audit.normalizationSeed.metricFamilyMappings.map((row) => row.canonicalFamily)).toContain(
-      "realtime_arrival_info",
-    );
+    expect(
+      audit.normalizationSeed.metricFamilyMappings.map((row) => row.canonicalFamily),
+    ).toContain("ridership");
+    expect(
+      audit.normalizationSeed.metricFamilyMappings.map((row) => row.canonicalFamily),
+    ).toContain("realtime_arrival_info");
     expect(audit.dedupeSeed.entities[0]?.displayLabel).toBe("M15 SBS");
     expect(audit.dedupeSeed.entities[0]?.count).toBe(2);
     expect(await Bun.file(join(workingRoot, "audit.md")).exists()).toBe(true);
@@ -230,11 +234,15 @@ describe("Tier 2 discovery curation audit", () => {
     await mkdir(join(preferredRoot, "source", "windows", "0001-0001"), { recursive: true });
     await Bun.write(
       join(fallbackRoot, "source", "windows", "0001-0001", "document-discovery.json"),
-      JSON.stringify(extraction({ extractionId: "fallback-extraction", page: 1, candidates: "first" })),
+      JSON.stringify(
+        extraction({ extractionId: "fallback-extraction", page: 1, candidates: "first" }),
+      ),
     );
     await Bun.write(
       join(preferredRoot, "source", "windows", "0001-0001", "document-discovery.json"),
-      JSON.stringify(extraction({ extractionId: "preferred-extraction", page: 1, candidates: "second" })),
+      JSON.stringify(
+        extraction({ extractionId: "preferred-extraction", page: 1, candidates: "second" }),
+      ),
     );
 
     const audit = await buildTier2DiscoveryCurationAudit({

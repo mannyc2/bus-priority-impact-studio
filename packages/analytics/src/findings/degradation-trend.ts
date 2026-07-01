@@ -161,8 +161,10 @@ function skipReason(
     };
   }
 
+  const currentPoint = points[currentIndex];
+  if (currentPoint === undefined) return null;
   const priorValues = points.slice(0, currentIndex).map((point) => point.worseOrientedValue);
-  if (robustZScore(points[currentIndex]!.worseOrientedValue, priorValues).z === null) {
+  if (robustZScore(currentPoint.worseOrientedValue, priorValues).z === null) {
     return {
       reasonCode: "baseline_dispersion_unavailable",
       reason: "Prior history has no robust dispersion, so a z-score cannot be computed.",
@@ -189,7 +191,8 @@ function evaluateFeature(
   const currentIndex = points.findIndex((point) => point.month === month);
   if (currentIndex < 0) return null;
 
-  const current = points[currentIndex]!;
+  const current = points[currentIndex];
+  if (current === undefined) return null;
   const priorValues = points.slice(0, currentIndex).map((point) => point.worseOrientedValue);
   const allValues = points.map((point) => point.worseOrientedValue);
   const z = robustZScore(current.worseOrientedValue, priorValues);

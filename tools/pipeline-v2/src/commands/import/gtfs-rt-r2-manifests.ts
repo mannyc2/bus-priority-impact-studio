@@ -1,11 +1,11 @@
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";
-import { arg, defineCommand, z } from "@liche/core";
 import {
   type GtfsRtFeedType,
   replaceGtfsRtCollectionRun,
   replaceGtfsRtFeedSnapshots,
 } from "@bp/db/local";
+import { arg, defineCommand, z } from "@liche/core";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromCliPath } from "../../lib/paths.ts";
@@ -100,9 +100,9 @@ export async function runImportGtfsRtR2Manifests(
 ): Promise<ImportGtfsRtR2ManifestsResult> {
   const sampleSeconds = Math.max(1, Math.round(inputs.sampleSeconds ?? 30));
   const manifestPaths = await listJsonFiles(inputs.manifestRoot);
-  const manifests = (
-    await Promise.all(manifestPaths.map((path) => readWorkerManifest(path)))
-  ).sort((left, right) => left.fetchedAt.localeCompare(right.fetchedAt));
+  const manifests = (await Promise.all(manifestPaths.map((path) => readWorkerManifest(path)))).sort(
+    (left, right) => left.fetchedAt.localeCompare(right.fetchedAt),
+  );
 
   if (manifests.length === 0) {
     throw new Error(`No Worker GTFS-RT manifest JSON files found under ${inputs.manifestRoot}.`);

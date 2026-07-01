@@ -1,17 +1,17 @@
 import { describe, expect, test } from "bun:test";
-import {
-  detectBunchingHotspots,
-  detectHeadwayReliabilityEwt,
-  detectRiderWeightedExcessWait,
-  type BunchingHotspotsDetectorInput,
-  type HeadwayReliabilityEwtDetectorInput,
-  type RiderWeightedExcessWaitDetectorInput,
-} from "../src/index.js";
 import type {
   FeatureQuality,
   RiderWeightedExcessWaitFeature,
   StopDirectionHourFeature,
 } from "@bp/analytics/features";
+import {
+  type BunchingHotspotsDetectorInput,
+  detectBunchingHotspots,
+  detectHeadwayReliabilityEwt,
+  detectRiderWeightedExcessWait,
+  type HeadwayReliabilityEwtDetectorInput,
+  type RiderWeightedExcessWaitDetectorInput,
+} from "../src/index.js";
 
 const GENERATED_AT = "2026-05-30T12:00:00.000Z";
 const MONTH = "2026-03";
