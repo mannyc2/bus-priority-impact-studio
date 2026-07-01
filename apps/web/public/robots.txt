@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://buspriorityimpact.studio/sitemap.xml
+Sitemap: https://bus-priority-impact-studio.c20carroll.workers.dev/sitemap.xml

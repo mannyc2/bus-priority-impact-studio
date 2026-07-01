@@ -15,7 +15,6 @@ import type { StudioRoute } from "../api-contract.js";
 // (the same /api/v1/studio/routes feed the loader already provides), shown as
 // a preview of the full 327-route directory.
 
-const LAST_REFRESH = "May 12, 2026";
 const CITYWIDE_ROUTE_COUNT = 327;
 // The homepage index is a preview of the full directory (the design shows ~10
 // rows with a "browse all" affordance), sorted by daily ridership.
@@ -47,6 +46,16 @@ const boroughStripe: Record<string, string> = {
 
 function formatRiders(n: number): string {
   return n >= 1000 ? `${(n / 1000).toFixed(1)}K` : String(n);
+}
+
+function formatDate(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.valueOf())) return value;
+  return date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
 }
 
 // Direction of travel, read off the route's 12-month speed trend.
@@ -271,7 +280,13 @@ function FeaturedStat({ label, children }: { label: string; children: ReactNode 
 // HomePage
 // ─────────────────────────────────────────────────────────────
 
-export function HomePage({ routes }: { routes: readonly StudioRoute[] }) {
+export function HomePage({
+  generatedAt,
+  routes,
+}: {
+  generatedAt: string;
+  routes: readonly StudioRoute[];
+}) {
   const navigate = useNavigate();
   const [borough, setBorough] = useState("All boroughs");
 
@@ -321,6 +336,7 @@ export function HomePage({ routes }: { routes: readonly StudioRoute[] }) {
   const previewRoutes = filteredRoutes.slice(0, INDEX_PREVIEW_LIMIT);
 
   const heroChips = byRidership.slice(0, 5);
+  const generatedLabel = formatDate(generatedAt);
 
   return (
     <main className="min-h-full bg-[var(--bp-color-paper)]">
@@ -357,7 +373,7 @@ export function HomePage({ routes }: { routes: readonly StudioRoute[] }) {
               </Link>
               <span className="flex-1" />
               <span className="font-mono text-[12px] text-[var(--bp-color-ink-55)]">
-                updated weekly · last refresh {LAST_REFRESH}
+                route feed generated {generatedLabel}
               </span>
             </div>
           </div>

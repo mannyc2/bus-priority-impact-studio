@@ -1,6 +1,6 @@
 export function StudioFooter({
   sources = ["MTA Bus Speeds", "Hourly Ridership", "ACE program", "NYC DOT bus lanes"],
-  updated = "2026-05-12",
+  updated,
 }: {
   sources?: readonly string[];
   updated?: string;
@@ -17,8 +17,12 @@ export function StudioFooter({
         </span>
       ))}
       <div className="flex-1" />
-      <span className="font-mono">updated {updated}</span>
-      <span className="text-[var(--bp-color-ink-20)]">·</span>
+      {updated ? (
+        <>
+          <span className="font-mono">updated {updated}</span>
+          <span className="text-[var(--bp-color-ink-20)]">·</span>
+        </>
+      ) : null}
       <span className="font-semibold text-[var(--bp-color-accent)]">Methodology →</span>
     </footer>
   );

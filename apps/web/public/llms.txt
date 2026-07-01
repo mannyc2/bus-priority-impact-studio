@@ -4,16 +4,16 @@ Bus Priority Impact Studio publishes route-first evidence pages for NYC bus prio
 
 ## Public pages
 
-- [Route priority overview](https://buspriorityimpact.studio/)
-- [M15 SBS route evidence page](https://buspriorityimpact.studio/routes/m15-sbs)
-- [Network map](https://buspriorityimpact.studio/map)
-- [Intervention timelines](https://buspriorityimpact.studio/interventions)
-- [Source and methodology notes](https://buspriorityimpact.studio/methods)
+- [Route priority overview](https://bus-priority-impact-studio.c20carroll.workers.dev/)
+- [M15 SBS route evidence page](https://bus-priority-impact-studio.c20carroll.workers.dev/routes/m15-sbs)
+- [Network map](https://bus-priority-impact-studio.c20carroll.workers.dev/map)
+- [Intervention timelines](https://bus-priority-impact-studio.c20carroll.workers.dev/interventions)
+- [Source and methodology notes](https://bus-priority-impact-studio.c20carroll.workers.dev/methods)
 
 ## API
 
-- [OpenAPI 3.1 contract](https://buspriorityimpact.studio/api/openapi.json)
-- [Route cards](https://buspriorityimpact.studio/api/v1/studio/routes)
-- [M15 SBS route profile](https://buspriorityimpact.studio/api/v1/studio/routes/m15-sbs)
-- [M15 SBS speed history](https://buspriorityimpact.studio/api/v1/studio/routes/m15-sbs/speed-history)
-- [Methodology payload](https://buspriorityimpact.studio/api/v1/studio/methods)
+- [OpenAPI 3.1 contract](https://bus-priority-impact-studio.c20carroll.workers.dev/api/openapi.json)
+- [Route cards](https://bus-priority-impact-studio.c20carroll.workers.dev/api/v1/studio/routes)
+- [M15 SBS route profile](https://bus-priority-impact-studio.c20carroll.workers.dev/api/v1/studio/routes/m15-sbs)
+- [M15 SBS speed history](https://bus-priority-impact-studio.c20carroll.workers.dev/api/v1/studio/routes/m15-sbs/speed-history)
+- [Methodology payload](https://bus-priority-impact-studio.c20carroll.workers.dev/api/v1/studio/methods)

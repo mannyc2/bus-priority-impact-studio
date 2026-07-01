@@ -27,7 +27,9 @@ export const PUBLIC_STUDIO_ROUTES: readonly PublicStudioRoute[] = [
 
 export function getStudioSeoMetadata(input: URL | string): StudioSeoMetadata | null {
   const url =
-    typeof input === "string" ? new URL(input, "https://buspriorityimpact.studio") : input;
+    typeof input === "string"
+      ? new URL(input, "https://bus-priority-impact-studio.c20carroll.workers.dev")
+      : input;
   const pathname = normalizePathname(url.pathname);
 
   if (pathname === "/") {
