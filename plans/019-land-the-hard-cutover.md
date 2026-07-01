@@ -146,6 +146,23 @@ commit.
 
 ### Step 4: Delete the brief/finding domain residue
 
+> **STOP resolution (operator ruling, 2026-07-01)**: the executor correctly
+> stopped on live importers at `read-handlers.ts:30,36,2474`. Investigation:
+> the sole consumer is `buildStudioSnapshotResponse` →
+> `GET /api/v1/studio/snapshot`, which loads the `findings.json`/`briefs.json`
+> R2 projections only to report counts and projection paths; the browser
+> client never reads those fields, and the products they describe were
+> deleted by plan 017. Ruling: this is dead narration, not a live dependency.
+> Before deleting the domain dirs, remove the findings/briefs loads from
+> `buildStudioSnapshotResponse` — drop the two `loadStudioProjection` calls,
+> the `counts.findings`/`counts.briefs` fields, the findings/briefs entries
+> in the `projections` array, and the corresponding fields in the
+> `@bp/domain/studio/snapshots` schema — and update the snapshot tests to the
+> slimmer shape. The snapshot endpoint itself stays (it is a useful coverage
+> manifest). Note for later: the same function also loads `docs.json`
+> (`StudioDocsResponseSchema`) — that is the same class of residue but is NOT
+> part of this ruling; leave it and record it as a plan 024 candidate.
+
 - Delete `packages/domain/src/studio/briefs/` and
   `packages/domain/src/studio/findings/`.
 - Remove their re-exports from `packages/domain/src/studio/index.ts`, any
