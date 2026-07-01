@@ -171,18 +171,6 @@ describe("Studio API HTTP helpers", () => {
             routes: [route],
             quality,
           },
-          "studio/v1/findings.json": {
-            schemaVersion: 1,
-            generatedAt: "2026-06-05T00:00:00.000Z",
-            findings: [],
-            quality,
-          },
-          "studio/v1/briefs.json": {
-            schemaVersion: 1,
-            generatedAt: "2026-06-05T00:00:00.000Z",
-            briefs: [],
-            quality,
-          },
           "studio/v1/methods.json": {
             schemaVersion: 1,
             generatedAt: "2026-06-05T00:00:00.000Z",
@@ -215,8 +203,6 @@ describe("Studio API HTTP helpers", () => {
     expect(body.counts).toEqual(
       expect.objectContaining({
         routes: 1,
-        findings: 0,
-        briefs: 0,
         methods: 1,
         docsSections: 1,
         docsEndpoints: openApiOperationCount(),

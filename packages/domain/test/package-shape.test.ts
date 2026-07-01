@@ -8,7 +8,6 @@ import { toProjectJsonSchema } from "@bp/domain/json-schema";
 import { MapManifestResponseSchema } from "@bp/domain/maps";
 import { RouteIdCodec } from "@bp/domain/primitives";
 import { RouteScorecardSchema } from "@bp/domain/routes";
-import { StudioBriefSchema } from "@bp/domain/studio/briefs";
 import { StudioRouteSchema } from "@bp/domain/studio/routes";
 import * as z from "zod";
 
@@ -69,14 +68,13 @@ describe("domain package shape", () => {
         "./routes",
         "./schema-registry",
         "./studio",
-        "./studio/briefs",
         "./studio/docs",
-        "./studio/findings",
         "./studio/identity",
         "./studio/interventions",
         "./studio/release",
         "./studio/routes",
         "./studio/rum",
+        "./studio/segment-evidence",
         "./studio/shared",
         "./studio/snapshots",
       ]),
@@ -130,7 +128,6 @@ describe("domain package shape", () => {
     expect(typeof FindingCandidateSchema.safeParse).toBe("function");
     expect(typeof DocumentDiscoveryExtractionSchema.safeParse).toBe("function");
     expect(typeof StudioRouteSchema.safeParse).toBe("function");
-    expect(typeof StudioBriefSchema.safeParse).toBe("function");
     expect(toProjectJsonSchema(RouteScorecardSchema)).toEqual(
       expect.objectContaining({
         $schema: "https://json-schema.org/draft/2020-12/schema",

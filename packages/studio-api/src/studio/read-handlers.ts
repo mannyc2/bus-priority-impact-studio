@@ -27,13 +27,11 @@ import {
   STUDIO_ROUTE_CAPABILITY_MANIFEST_KEY,
   type StudioRouteCapability,
 } from "@bp/domain/studio";
-import { StudioBriefsResponseSchema } from "@bp/domain/studio/briefs";
 import {
   type StudioDocsResponse,
   StudioDocsResponseSchema,
   StudioMethodsResponseSchema,
 } from "@bp/domain/studio/docs";
-import { StudioFindingsResponseSchema } from "@bp/domain/studio/findings";
 import {
   type StudioObservedReliability,
   type StudioRoute,
@@ -2316,8 +2314,6 @@ function sourceMonthStates(input: {
 function buildSnapshot2(input: {
   routeIndex: StudioRouteIndex2Response;
   sourceMonthCoverage: readonly D1SourceMonthCoverage[];
-  findingsCount: number;
-  briefsCount: number;
   lastBuiltSpeedMonth: string | undefined;
   tier2Views: Tier2MaterializedViewsArtifact | null;
   modelProjection: ModelArtifactServingProjection | null;
@@ -2453,8 +2449,6 @@ function buildSnapshot2(input: {
       routeIndexRows: routes.length,
       routeSpeedHistoryCoverageRows,
       sourceMonthCoverageRows: input.sourceMonthCoverage.length,
-      findings: input.findingsCount,
-      briefs: input.briefsCount,
     },
     caveats: [
       "Snapshot 2.0 is an addressability and coverage manifest, not the final route-page payload model.",
@@ -2468,19 +2462,14 @@ function buildSnapshot2(input: {
 }
 
 async function buildStudioSnapshotResponse(env: StudioReadEnv): Promise<Response> {
-  const [routesResult, findings, briefs, methods, docs, tier2Views, modelProjection] =
-    await Promise.all([
-      buildStudioRoutesResponse(env),
-      loadStudioProjection(env, "findings.json", StudioFindingsResponseSchema),
-      loadStudioProjection(env, "briefs.json", StudioBriefsResponseSchema),
-      loadStudioProjection(env, "methods.json", StudioMethodsResponseSchema),
-      loadStudioProjection(env, "docs.json", StudioDocsResponseSchema),
-      loadTier2MaterializedViews(env),
-      loadModelArtifactServingProjection(env),
-    ]);
+  const [routesResult, methods, docs, tier2Views, modelProjection] = await Promise.all([
+    buildStudioRoutesResponse(env),
+    loadStudioProjection(env, "methods.json", StudioMethodsResponseSchema),
+    loadStudioProjection(env, "docs.json", StudioDocsResponseSchema),
+    loadTier2MaterializedViews(env),
+    loadModelArtifactServingProjection(env),
+  ]);
   if (!routesResult.ok) return routesResult.response;
-  if (findings instanceof Response) return findings;
-  if (briefs instanceof Response) return briefs;
   if (methods instanceof Response) return methods;
   if (docs instanceof Response) return docs;
   const docsProjection = withGeneratedDocsEndpoints(docs);
@@ -2498,8 +2487,6 @@ async function buildStudioSnapshotResponse(env: StudioReadEnv): Promise<Response
       ? buildSnapshot2({
           routeIndex: routeIndex2Result.routeIndex,
           sourceMonthCoverage,
-          findingsCount: findings.findings.length,
-          briefsCount: briefs.briefs.length,
           lastBuiltSpeedMonth: resolvedMonths?.latestSpeedMonth ?? undefined,
           tier2Views,
           modelProjection,
@@ -2511,18 +2498,6 @@ async function buildStudioSnapshotResponse(env: StudioReadEnv): Promise<Response
       path: projectionPath(env, "routes.json", { d1Backed: routesAreD1Backed }),
       itemCount: routesResult.routes.length,
       generatedAt: routesResult.generatedAt,
-    },
-    {
-      resource: "findings",
-      path: projectionPath(env, "findings.json"),
-      itemCount: findings.findings.length,
-      generatedAt: findings.generatedAt,
-    },
-    {
-      resource: "briefs",
-      path: projectionPath(env, "briefs.json"),
-      itemCount: briefs.briefs.length,
-      generatedAt: briefs.generatedAt,
     },
     {
       resource: "methods",
@@ -2550,8 +2525,6 @@ async function buildStudioSnapshotResponse(env: StudioReadEnv): Promise<Response
       lastBuiltSpeedMonth: resolvedMonths?.latestSpeedMonth ?? null,
       counts: {
         routes: routesResult.routes.length,
-        findings: findings.findings.length,
-        briefs: briefs.briefs.length,
         methods: methods.datasets.length,
         docsSections: docsProjection.sections.length,
         docsEndpoints: docsProjection.endpoints.length,

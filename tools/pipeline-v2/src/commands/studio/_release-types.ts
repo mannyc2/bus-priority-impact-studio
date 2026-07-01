@@ -1,11 +1,11 @@
 import type { LocalBusLane } from "@bp/db/local";
-import type { StudioAiPublicNote } from "@bp/domain/studio/briefs";
 import type { StudioSpeedPercentileContext } from "@bp/domain/studio/docs";
 import type { StudioIntervention as DomainStudioIntervention } from "@bp/domain/studio/interventions";
 import type {
   StudioRoute as DomainStudioRoute,
   StudioSegment as DomainStudioSegment,
 } from "@bp/domain/studio/routes";
+import type { StudioAiPublicNote } from "@bp/domain/studio/segment-evidence";
 import type { SocrataRow } from "@bp/sources/clients/socrata";
 
 // The Studio release pipeline annotates the canonical domain Route/Segment
@@ -432,7 +432,7 @@ export type SpeedPercentileResult = StudioSpeedPercentileContext & { percentile:
 export type SegmentAnalystNoteRecord = {
   routeSlug: string;
   segmentId: string;
-  note: import("@bp/domain/studio/briefs").StudioAiAnalystNote;
+  note: import("@bp/domain/studio/segment-evidence").StudioAiAnalystNote;
 };
 
 export type SegmentAnalystNotesArtifact = {

@@ -11,7 +11,6 @@ import {
   type RouteInterventionComparison,
   type RouteMonthTrend,
 } from "@bp/db";
-import type { StudioAiPublicNote } from "@bp/domain/studio/briefs";
 import type { StudioIntervention } from "@bp/domain/studio/interventions";
 import {
   buildStudioDocsProjection,
@@ -506,10 +505,6 @@ async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> 
     segments,
     routeSegmentEvidence,
     routeArtifacts,
-    findings: [],
-    briefs: [],
-    versions: [],
-    comments: [],
     methods: methodDatasetsFromDocsSources(docsSources),
     docsSections: docsSections(options.month),
     docsSources,
@@ -533,6 +528,15 @@ function buildSegmentAnalystNotesArtifact(
 
 function analystNotesOutputPath(outputDir: string): string {
   return resolve(outputDir, "..", "internal", basename(outputDir), "segment-analyst-notes.json");
+}
+
+function isLlmGeneratedSegmentNote(value: unknown): boolean {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "generationMode" in value &&
+    value.generationMode === "llm_assisted_evidence_summary"
+  );
 }
 
 async function writeProjections(outputPath: string, release: StudioReleasePayload): Promise<void> {
@@ -648,10 +652,8 @@ export async function runStudioRelease(
           : options.segmentNoteLlm.enabled
             ? Math.min(options.segmentNoteLlm.limit ?? 0, publicNoteCount)
             : 0,
-      generatedCount: release.segments.filter(
-        (segment) =>
-          (segment.aiNote as StudioAiPublicNote | undefined)?.generationMode ===
-          "llm_assisted_evidence_summary",
+      generatedCount: release.segments.filter((segment) =>
+        isLlmGeneratedSegmentNote(segment.aiNote),
       ).length,
     },
   };

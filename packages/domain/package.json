@@ -79,11 +79,6 @@
       "bun": "./src/studio/index.ts",
       "import": "./src/studio/index.ts"
     },
-    "./studio/briefs": {
-      "types": "./src/studio/briefs/index.ts",
-      "bun": "./src/studio/briefs/index.ts",
-      "import": "./src/studio/briefs/index.ts"
-    },
     "./studio/docs": {
       "types": "./src/studio/docs/index.ts",
       "bun": "./src/studio/docs/index.ts",
@@ -93,11 +88,6 @@
       "types": "./src/studio/field-provenance.ts",
       "bun": "./src/studio/field-provenance.ts",
       "import": "./src/studio/field-provenance.ts"
-    },
-    "./studio/findings": {
-      "types": "./src/studio/findings/index.ts",
-      "bun": "./src/studio/findings/index.ts",
-      "import": "./src/studio/findings/index.ts"
     },
     "./studio/identity": {
       "types": "./src/studio/identity/index.ts",
@@ -128,6 +118,11 @@
       "types": "./src/studio/routes/index.ts",
       "bun": "./src/studio/routes/index.ts",
       "import": "./src/studio/routes/index.ts"
+    },
+    "./studio/segment-evidence": {
+      "types": "./src/studio/segment-evidence.ts",
+      "bun": "./src/studio/segment-evidence.ts",
+      "import": "./src/studio/segment-evidence.ts"
     },
     "./studio/rum": {
       "types": "./src/studio/rum.ts",

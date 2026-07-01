@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { StudioAiPublicNoteSchema } from "@bp/domain/studio/briefs";
+import { StudioAiPublicNoteSchema } from "@bp/domain/studio/segment-evidence";
 
 export type RouteBriefInputHourlyBins = {
   routeInputCount: number;

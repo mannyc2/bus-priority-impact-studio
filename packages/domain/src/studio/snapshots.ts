@@ -11,7 +11,7 @@ export const STUDIO_ROUTE_DETECTOR_READINESS_MANIFEST_KEY =
 
 export const StudioSnapshotProjectionSchema = z
   .object({
-    resource: z.enum(["routes", "findings", "briefs", "methods", "docs"]),
+    resource: z.enum(["routes", "methods", "docs"]),
     path: z.string(),
     itemCount: z.number().int().nonnegative(),
     generatedAt: z.string().nullable(),
@@ -152,8 +152,6 @@ export const StudioSnapshot2Schema = z
         routeIndexRows: z.number().int().nonnegative(),
         routeSpeedHistoryCoverageRows: z.number().int().nonnegative(),
         sourceMonthCoverageRows: z.number().int().nonnegative(),
-        findings: z.number().int().nonnegative(),
-        briefs: z.number().int().nonnegative(),
       })
       .strict(),
     caveats: z.array(z.string()),
@@ -173,8 +171,6 @@ export const StudioSnapshotResponseSchema = z
     counts: z
       .object({
         routes: z.number().int().nonnegative(),
-        findings: z.number().int().nonnegative(),
-        briefs: z.number().int().nonnegative(),
         methods: z.number().int().nonnegative(),
         docsSections: z.number().int().nonnegative(),
         docsEndpoints: z.number().int().nonnegative(),

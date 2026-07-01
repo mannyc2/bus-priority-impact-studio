@@ -30,7 +30,7 @@ The package has no root entrypoint. Import the explicit subpath you need:
 | `@bp/domain/maps` | GeoJSON segment features and map-manifest contracts. |
 | `@bp/domain/findings` | Detector candidate, evidence, coverage, review-packet, promotion, and agent-proposal contracts. |
 | `@bp/domain/documents/*` | Document discovery, structured extraction, research surfaces, candidates, intervention records, and operational-date helpers. |
-| `@bp/domain/studio` | Studio analyst contracts and the `buildStudio*` projection helpers (also re-split into `studio/briefs`, `studio/routes`, `studio/findings`, `studio/identity`, `studio/snapshots`, `studio/release`, …). |
+| `@bp/domain/studio` | Studio analyst contracts and the `buildStudio*` projection helpers (also re-split into `studio/routes`, `studio/identity`, `studio/snapshots`, `studio/release`, `studio/segment-evidence`, …). |
 | `@bp/domain/schema-registry` | `registerProjectSchema` and the shared `projectSchemaRegistry`. |
 | `@bp/domain/json-schema` | Precomputed JSON Schemas and `toProjectJsonSchema`. |
 

@@ -330,30 +330,12 @@ function createStudioProjectionEnv(): StudioApiEnv {
     ARTIFACTS: new FakeR2Bucket({
       [CAPABILITY_MANIFEST_KEY]: capabilityManifestArtifact(STANDARD_ROUTE_CAPABILITIES),
       "studio/v2/routes/m15-sbs/dossier.json": dossierSummaryArtifact("M15+", "m15-sbs"),
-      "studio/v1/briefs.json": new FakeR2Object(
-        JSON.stringify({
-          schemaVersion: 1,
-          generatedAt: "2026-06-05T00:00:00.000Z",
-          briefs: [],
-          quality,
-        }),
-        "application/json",
-      ),
       "studio/v1/docs.json": new FakeR2Object(
         JSON.stringify({
           schemaVersion: 1,
           generatedAt: "2026-06-05T00:00:00.000Z",
           sections: [{ title: "Quickstart", body: ["Use the API."] }],
           endpoints: [{ method: "GET", path: "/api/v1/studio/routes", body: "List routes." }],
-          quality,
-        }),
-        "application/json",
-      ),
-      "studio/v1/findings.json": new FakeR2Object(
-        JSON.stringify({
-          schemaVersion: 1,
-          generatedAt: "2026-06-05T00:00:00.000Z",
-          findings: [],
           quality,
         }),
         "application/json",
@@ -821,7 +803,6 @@ describe("Studio API facade", () => {
         "/api/v1/studio/methods": expect.any(Object),
       }),
     );
-    expect(openApi.paths).not.toHaveProperty("/api/v1/studio/briefs/{briefId}/draft/generate");
   });
 
   it("applies registry private no-store cache policy to RUM reports", async () => {

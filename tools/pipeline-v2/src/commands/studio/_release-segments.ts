@@ -4,7 +4,7 @@ import {
   type StudioAiPublicNote,
   StudioAiPublicNoteSchema,
   type StudioRouteSegmentEvidence,
-} from "@bp/domain/studio/briefs";
+} from "@bp/domain/studio/segment-evidence";
 import { complete } from "@earendil-works/pi-ai";
 import { openRouterModel } from "../../lib/llm.ts";
 import {
